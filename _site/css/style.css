@@ -469,3 +469,21 @@ em { font-style: italic; }
   transition: opacity 0.15s;
 }
 .btn:hover { opacity: 0.88; text-decoration: n
+/* ---- SECTION PHOTO (même image que le hero, effet parallax) ---- */
+.section--photo {
+  position: relative;
+  background-image: url('/assets/hero-bureau.jpg');
+  background-size: cover;
+  background-position: center 30%;
+  background-attachment: fixed;
+}
+.section--photo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(244, 237, 217, 0.88);
+}
+.section--photo > * {
+  position: relative;
+  z-index: 1;
+}
