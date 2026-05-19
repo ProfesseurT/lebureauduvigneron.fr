@@ -111,6 +111,7 @@ em { font-style: italic; }
   background-image: url('/assets/hero-bureau.jpg');
   background-size: cover;
   background-position: center 30%;
+  background-attachment: fixed;
   background-color: var(--burgundy);
   min-height: 600px;
   display: flex;
