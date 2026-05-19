@@ -1,0 +1,26 @@
+---
+layout: base.njk
+---
+
+<div class="article-header">
+  <div class="container">
+    {% if pilier %}
+    <div class="article-header__pilier">{{ pilier }}</div>
+    {% endif %}
+    <h1>{{ title }}</h1>
+    <div class="article-header__meta">
+      Par Teddy Pereira · {{ page.date | dateReadable }}
+      {% if temps_lecture %} · {{ temps_lecture }} de lecture{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="article-body">
+  <div class="container">
+    {{ content | safe }}
+
+    <div class="article-back">
+      <a href="/articles/">← Tous les articles</a>
+    </div>
+  </div>
+</div>

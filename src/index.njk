@@ -1,0 +1,141 @@
+---
+layout: base.njk
+title: Le Bureau du Vigneron
+description: Le bureau extérieur du vigneron — outils, méthodes et ressources pour piloter son domaine.
+---
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <p class="hero__eyebrow">Par Teddy Pereira · Co-fondateur Solumatic</p>
+    <h1>Ce qui se passe sur le bureau avant le vin.</h1>
+    <p class="hero__lead">
+      La gestion, le commercial, les process — le quotidien invisible qui tient les domaines.
+      Pour les vignerons qui veulent piloter leur métier, pas le subir.
+    </p>
+    <a href="#waitlist" class="btn">Rejoindre la liste d'attente</a>
+  </div>
+</section>
+
+<!-- POSITIONNEMENT -->
+<section class="section">
+  <div class="container">
+    <p class="section__label">Ce que c'est</p>
+    <h2 class="section__title">Le bureau extérieur du vigneron.</h2>
+    <p>
+      Depuis 12 ans, je passe mes semaines sur le bureau des vignerons. J'ai vu 2 000 domaines de l'intérieur.
+      J'ai construit les outils qui structurent leur vie admin et commerciale. Et j'enseigne aux futurs pros du vin à l'ESA Angers.
+    </p>
+    <p>
+      Personne ne parle de <em>ce qui se passe avant le vin</em> — la gestion, le fichier client, la facturation, la traçabilité, la relation commerciale.
+      C'est pourtant là que se jouent 60% de la marge d'un domaine.
+    </p>
+    <p>
+      Le Bureau du Vigneron, c'est un espace de ressources, de méthodes et d'outils concrets.
+      Pas de théorie. Pas de jargon. Du terrain.
+    </p>
+
+    <div class="signature">
+      <img src="/assets/teddy-avatar.png" alt="Teddy Pereira" class="signature__avatar" onerror="this.style.display='none'">
+      <div>
+        <p class="signature__name">Teddy Pereira</p>
+        <p class="signature__role">Co-fondateur Solumatic · 12 ans terrain viti · Enseignant ESA Angers</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 PILIERS -->
+<section class="section section--alt">
+  <div class="container--wide">
+    <p class="section__label" style="text-align:center">Ce qu'on couvre</p>
+    <h2 class="section__title" style="text-align:center">5 sujets. Zéro langue de bois.</h2>
+
+    <div class="piliers">
+      <div class="pilier">
+        <span class="pilier__icon">🍇</span>
+        <p class="pilier__title">Terrain viti</p>
+        <p class="pilier__desc">Ce que j'observe chaque semaine dans les domaines. Les vraies problématiques métier.</p>
+      </div>
+      <div class="pilier">
+        <span class="pilier__icon">🏗️</span>
+        <p class="pilier__title">Organisation</p>
+        <p class="pilier__desc">Comment structurer un domaine pour qu'il scale sans épuiser son dirigeant.</p>
+      </div>
+      <div class="pilier">
+        <span class="pilier__icon">🔧</span>
+        <p class="pilier__title">Process</p>
+        <p class="pilier__desc">Méthodes, workflows, outils concrets. Ce qui marche vraiment sur le terrain.</p>
+      </div>
+      <div class="pilier">
+        <span class="pilier__icon">📊</span>
+        <p class="pilier__title">Marketing</p>
+        <p class="pilier__desc">Vendre en direct, gérer son fichier client, fidéliser. Ce qui marche en niche.</p>
+      </div>
+      <div class="pilier">
+        <span class="pilier__icon">🎓</span>
+        <p class="pilier__title">Enseignement</p>
+        <p class="pilier__desc">Ce que je transmets aux futurs pros du vin que personne d'autre ne leur dit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARTICLES RÉCENTS -->
+{% if collections.posts | length > 0 %}
+<section class="section">
+  <div class="container">
+    <p class="section__label">Les derniers articles</p>
+    <h2 class="section__title">Du concret, du terrain.</h2>
+
+    <div class="articles-grid">
+      {% for post in collections.posts | slice(0, 3) %}
+      <div class="article-card">
+        {% if post.data.pilier %}
+        <p class="article-card__pilier">{{ post.data.pilier }}</p>
+        {% endif %}
+        <a href="{{ post.url }}" class="article-card__title">{{ post.data.title }}</a>
+        {% if post.data.description %}
+        <p class="article-card__excerpt">{{ post.data.description }}</p>
+        {% endif %}
+        <p class="article-card__meta">{{ post.date | dateReadable }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="text-align:center; margin-top:2rem;">
+      <a href="/articles/" class="btn" style="background:var(--burgundy); color:var(--cream);">Tous les articles</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- WAITLIST TALLY -->
+<section class="waitlist" id="waitlist">
+  <div class="container">
+    <h2>Rejoindre la liste d'attente</h2>
+    <p>Le Bureau du Vigneron est en construction. Laissez votre email, je vous préviens en premier.</p>
+
+    <div class="tally-wrapper">
+      <!--
+        ⚠️ TEDDY — remplace XXXXXXXX par l'ID de ton formulaire Tally.
+        Pour récupérer l'ID :
+        1. Va sur tally.so → crée ton formulaire
+        2. Clique "Share" → copie le lien (ex: tally.so/r/XXXXXXXX)
+        3. Remplace XXXXXXXX ci-dessous par ce code
+      -->
+      <iframe
+        data-tally-src="https://tally.so/embed/yPokbX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
+        loading="lazy"
+        width="100%"
+        height="300"
+        frameborder="0"
+        marginheight="0"
+        marginwidth="0"
+        title="Liste d'attente — Le Bureau du Vigneron"
+        style="border:none; background:transparent;"
+      ></iframe>
+      <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
+    </div>
+  </div>
+</section>

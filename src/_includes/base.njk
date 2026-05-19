@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} — Le Bureau du Vigneron</title>
+  <meta name="description" content="{{ description if description else 'Le bureau extérieur du vigneron — outils, ressources et méthodes pour piloter son domaine.' }}">
+  <meta property="og:title" content="{{ title }} — Le Bureau du Vigneron">
+  <meta property="og:description" content="{{ description if description else 'Le bureau extérieur du vigneron.' }}">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Georgia&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+  <!-- Décap CMS identity widget -->
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
+      <ul class="nav__links">
+        <li><a href="/articles/">Articles</a></li>
+        <li><a href="/teddy/">À propos</a></li>
+        <li><a href="/#waitlist">Liste d'attente</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  {{ content | safe }}
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        Le Bureau du Vigneron est une marque commerciale de <strong>Solumatic SAS</strong> — incarnée par Teddy Pereira.<br>
+        <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a> · Nantes
+      </p>
+    </div>
+  </footer>
+
+  <!-- Décap CMS redirect après login admin -->
+  <script>
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", user => {
+        if (!user) {
+          window.netlifyIdentity.on("login", () => {
+            document.location.href = "/admin/";
+          });
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

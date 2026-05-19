@@ -1,0 +1,43 @@
+---
+layout: base.njk
+title: Articles
+description: Ressources et analyses sur la gestion de domaine vitivinicole — par Teddy Pereira.
+permalink: /articles/
+---
+
+<section class="about-hero">
+  <div class="container">
+    <p class="section__label" style="color:rgba(244,237,217,0.6)">Ressources</p>
+    <h1 style="color:var(--cream)">Articles</h1>
+    <p style="color:rgba(244,237,217,0.8); font-style:italic; margin:0; font-size:1.05rem;">
+      Du terrain. Du concret. Pas de théorie.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    {% if collections.posts | length > 0 %}
+    <div class="articles-grid">
+      {% for post in collections.posts %}
+      <div class="article-card">
+        {% if post.data.pilier %}
+        <p class="article-card__pilier">{{ post.data.pilier }}</p>
+        {% endif %}
+        <a href="{{ post.url }}" class="article-card__title">{{ post.data.title }}</a>
+        {% if post.data.description %}
+        <p class="article-card__excerpt">{{ post.data.description }}</p>
+        {% endif %}
+        <p class="article-card__meta">{{ post.date | dateReadable }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <p style="color:var(--muted); font-style:italic; text-align:center; padding: 3rem 0;">
+      Les premiers articles arrivent bientôt.<br>
+      <a href="/#waitlist">Rejoindre la liste d'attente →</a>
+    </p>
+    {% endif %}
+  </div>
+</section>

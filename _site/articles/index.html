@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Articles — Le Bureau du Vigneron</title>
+  <meta name="description" content="Ressources et analyses sur la gestion de domaine vitivinicole — par Teddy Pereira.">
+  <meta property="og:title" content="Articles — Le Bureau du Vigneron">
+  <meta property="og:description" content="Ressources et analyses sur la gestion de domaine vitivinicole — par Teddy Pereira.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Georgia&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+  <!-- Décap CMS identity widget -->
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
+      <ul class="nav__links">
+        <li><a href="/articles/">Articles</a></li>
+        <li><a href="/teddy/">À propos</a></li>
+        <li><a href="/#waitlist">Liste d'attente</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  
+<section class="about-hero">
+  <div class="container">
+    <p class="section__label" style="color:rgba(244,237,217,0.6)">Ressources</p>
+    <h1 style="color:var(--cream)">Articles</h1>
+    <p style="color:rgba(244,237,217,0.8); font-style:italic; margin:0; font-size:1.05rem;">
+      Du terrain. Du concret. Pas de théorie.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    
+    <div class="articles-grid">
+      
+      <div class="article-card">
+        
+        <p class="article-card__pilier">Terrain viti 🍇</p>
+        
+        <a href="/posts/exemple-qr-code-viti/" class="article-card__title">QR code vitivinicole : 2 ans après l&#39;obligation, ce qu&#39;on a vraiment observé</a>
+        
+        <p class="article-card__excerpt">Depuis janvier 2023, le QR code nutritionnel est obligatoire sur toutes les bouteilles de vin. 2 ans plus tard, 3 000 domaines sur la plateforme, voici ce que les chiffres disent vraiment.</p>
+        
+        <p class="article-card__meta">15 mai 2026</p>
+      </div>
+      
+    </div>
+
+    
+  </div>
+</section>
+
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        Le Bureau du Vigneron est une marque commerciale de <strong>Solumatic SAS</strong> — incarnée par Teddy Pereira.<br>
+        <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a> · Nantes
+      </p>
+    </div>
+  </footer>
+
+  <!-- Décap CMS redirect après login admin -->
+  <script>
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", user => {
+        if (!user) {
+          window.netlifyIdentity.on("login", () => {
+            document.location.href = "/admin/";
+          });
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>
