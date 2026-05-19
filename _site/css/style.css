@@ -104,6 +104,28 @@ em { font-style: italic; }
   padding: 5rem 0 4rem;
   text-align: center;
 }
+
+/* Hero avec photo de fond */
+.hero--photo {
+  position: relative;
+  background-image: url('/assets/hero-bureau.jpg');
+  background-size: cover;
+  background-position: center 30%;
+  background-color: var(--burgundy);
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+}
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(55, 12, 22, 0.72);
+}
+.hero__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
 .hero__eyebrow {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 0.8rem;
@@ -208,25 +230,70 @@ em { font-style: italic; }
   margin: 0;
 }
 
-/* ---- TALLY FORM SECTION ---- */
+/* ---- WAITLIST SECTION ---- */
 .waitlist {
   background: var(--burgundy);
   color: var(--cream);
-  padding: 4rem 0;
+  padding: 5rem 0 4rem;
   text-align: center;
 }
 .waitlist h2 {
   color: var(--cream);
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
 }
-.waitlist p {
-  opacity: 0.8;
+.waitlist__eyebrow {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+.waitlist__header {
+  margin-bottom: 2.5rem;
+}
+.waitlist__sub {
+  opacity: 0.75;
   font-style: italic;
-  margin-bottom: 2rem;
+  max-width: 480px;
+  margin: 0 auto;
+  font-size: 1rem;
+  line-height: 1.65;
 }
-.tally-wrapper {
+.waitlist__proof {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+}
+.waitlist__proof-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+.waitlist__proof-icon { font-size: 1rem; }
+.waitlist__proof-sep { opacity: 0.3; font-size: 1.2rem; }
+.waitlist__form-wrap {
   max-width: 520px;
   margin: 0 auto;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(244,237,217,0.15);
+  border-radius: 4px;
+  padding: 2rem 2rem 1rem;
+}
+.tally-wrapper { width: 100%; }
+.waitlist__reassurance {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  opacity: 0.4;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-style: normal;
 }
 
 /* ---- ARTICLES LIST ---- */
@@ -400,19 +467,4 @@ em { font-style: italic; }
   text-decoration: none;
   transition: opacity 0.15s;
 }
-.btn:hover { opacity: 0.88; text-decoration: none; }
-.btn--outline {
-  background: transparent;
-  border: 1px solid rgba(244, 237, 217, 0.4);
-  color: var(--cream);
-}
-
-/* ---- RESPONSIVE ---- */
-@media (max-width: 640px) {
-  .hero { padding: 3.5rem 0 3rem; }
-  .section { padding: 3rem 0; }
-  .nav__links { gap: 1.25rem; }
-  .signature { flex-direction: column; text-align: center; }
-  .piliers { grid-template-columns: 1fr; }
-  .chiffre-grid { grid-template-columns: repeat(2, 1fr); }
-}
+.btn:hover { opacity: 0.88; text-decoration: n

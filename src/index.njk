@@ -5,8 +5,9 @@ description: Le bureau extérieur du vigneron — outils, méthodes et ressource
 ---
 
 <!-- HERO -->
-<section class="hero">
-  <div class="container">
+<section class="hero hero--photo">
+  <div class="hero__overlay"></div>
+  <div class="container hero__content">
     <p class="hero__eyebrow">Par Teddy Pereira · Co-fondateur Solumatic</p>
     <h1>Ce qui se passe sur le bureau avant le vin.</h1>
     <p class="hero__lead">
@@ -113,29 +114,49 @@ description: Le bureau extérieur du vigneron — outils, méthodes et ressource
 <!-- WAITLIST TALLY -->
 <section class="waitlist" id="waitlist">
   <div class="container">
-    <h2>Rejoindre la liste d'attente</h2>
-    <p>Le Bureau du Vigneron est en construction. Laissez votre email, je vous préviens en premier.</p>
 
-    <div class="tally-wrapper">
-      <!--
-        ⚠️ TEDDY — remplace XXXXXXXX par l'ID de ton formulaire Tally.
-        Pour récupérer l'ID :
-        1. Va sur tally.so → crée ton formulaire
-        2. Clique "Share" → copie le lien (ex: tally.so/r/XXXXXXXX)
-        3. Remplace XXXXXXXX ci-dessous par ce code
-      -->
-      <iframe
-        data-tally-src="https://tally.so/embed/yPokbX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
-        loading="lazy"
-        width="100%"
-        height="300"
-        frameborder="0"
-        marginheight="0"
-        marginwidth="0"
-        title="Liste d'attente — Le Bureau du Vigneron"
-        style="border:none; background:transparent;"
-      ></iframe>
-      <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
+    <div class="waitlist__header">
+      <p class="waitlist__eyebrow">Accès anticipé</p>
+      <h2>Ce projet est fait pour vous.<br>Dites-le nous.</h2>
+      <p class="waitlist__sub">
+        Le Bureau du Vigneron ouvre bientôt. Pas de newsletter hebdo. Pas de spam.
+        Un email, quand c'est prêt — et vous y accédez en premier.
+      </p>
     </div>
-  </div>
-</section>
+
+    <div class="waitlist__proof">
+      <div class="waitlist__proof-item">
+        <span class="waitlist__proof-icon">🍇</span>
+        <span>Vignerons</span>
+      </div>
+      <div class="waitlist__proof-sep">·</div>
+      <div class="waitlist__proof-item">
+        <span class="waitlist__proof-icon">🎓</span>
+        <span>Étudiants vin</span>
+      </div>
+      <div class="waitlist__proof-sep">·</div>
+      <div class="waitlist__proof-item">
+        <span class="waitlist__proof-icon">🏛️</span>
+        <span>Pros filière</span>
+      </div>
+    </div>
+
+    <div class="waitlist__form-wrap">
+      <div class="tally-wrapper">
+        <iframe
+          data-tally-src="https://tally.so/embed/yPokbX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
+          loading="lazy"
+          width="100%"
+          height="400"
+          frameborder="0"
+          marginheight="0"
+          marginwidth="0"
+          title="Liste d'attente — Le Bureau du Vigneron"
+          style="border:none; background:transparent;"
+        ></iframe>
+        <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
+      </div>
+    </div>
+
+    <p class="waitlist__reassurance">
+      Teddy Pereira · Co-fondateur Solumatic 
