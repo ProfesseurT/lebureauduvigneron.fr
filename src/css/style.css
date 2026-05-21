@@ -1206,7 +1206,7 @@ em { font-style: italic; }
 /* Board container */
 .demo-pinboard__board {
   position: relative;
-  height: 760px;
+  height: 920px;
   cursor: pointer;
   overflow: hidden;
   outline: none;
@@ -1509,7 +1509,7 @@ em { font-style: italic; }
   overflow: hidden;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: 120px 130px 140px;
+  grid-template-rows: 120px 130px 140px 140px 120px;
   gap: 8px;
 }
 .viti-panel {
@@ -1678,33 +1678,252 @@ em { font-style: italic; }
 
 /* ---- RESPONSIVE PINBOARD ---- */
 @media (max-width: 1023px) {
-  .demo-pinboard__board { height: 640px; }
+  .demo-pinboard__board { height: 800px; }
   .note-card { width: 28%; height: 28%; }
   .viti-kpi-big { font-size: 24px; }
   .viti-body { grid-template-columns: 160px 1fr 110px; }
-  .viti-main { grid-template-rows: 100px 110px 120px; }
+  .viti-main { grid-template-rows: 100px 110px 120px 130px 100px; }
+  .vitimedia-slots { grid-template-columns: 1fr 1fr; }
+  .vitimedia-slot:last-child { display: none; }
 }
 @media (max-width: 767px) {
-  .demo-pinboard__board { height: 500px; }
+  .demo-pinboard__board { height: 640px; }
   .demo-pinboard__header { grid-template-columns: 1fr; gap: 0.75rem; }
   .demo-pinboard__hint { display: none; }
   .note-card { width: 40%; height: 35%; }
-  /* Masquer 4 cartes sur mobile, garder facture/tva/qr/vinca */
   .note-card[data-card="stock"],
   .note-card[data-card="rdv"],
   .note-card[data-card="cahier"],
   .note-card[data-card="client"] { display: none; }
-  /* Dashboard mobile simplifié */
   .viti-body { grid-template-columns: 0 1fr 0; }
   .viti-sidebar-left, .viti-sidebar-right { display: none; }
-  .viti-main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 6px; padding: 6px; }
-  /* Sur mobile, montrer seulement KPI rouge et KPI CA mois */
+  .viti-main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto; gap: 6px; padding: 6px; }
   .viti-panel--red { grid-column: 1; grid-row: 1; }
   .viti-panel--kpi:first-of-type { grid-column: 2; grid-row: 1; }
-  /* Cacher les autres panels sur mobile */
   .viti-panel--donut,
   .viti-panel--kpi ~ .viti-panel--kpi,
   .viti-panel--line,
   .viti-panel--bar1,
   .viti-panel--bar2 { display: none; }
+  .vitisoft-todo { grid-column: 1 / 3 !important; grid-row: 2 !important; }
+  .vitimedia-zone { grid-column: 1 / 3 !important; grid-row: 3 !important; }
+  /* Cacher les 2 derniers items todo sur mobile */
+  .vitisoft-todo-item:nth-child(n+4) { display: none; }
+  .vitimedia-slots { grid-template-columns: 1fr; }
+  .vitimedia-slot:last-child { display: none; }
+  .vitimedia-avatar { width: 28px !important; height: 28px !important; font-size: 9px !important; }
+  .vitimedia-tagline { font-size: 9.5px !important; }
 }
+
+/* ---- VITISOFT TODOLIST ---- */
+.vitisoft-todo {
+  background: #FFFFFF;
+  border: 1px solid #D6CDB6;
+  padding: 8px 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.vitisoft-panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #1E2536;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px dotted rgba(30,37,54,0.2);
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  flex-shrink: 0;
+}
+.vitisoft-todo-count {
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+}
+.vitisoft-todo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.vitisoft-todo-item {
+  display: grid;
+  grid-template-columns: 14px 90px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  padding: 5px 0;
+  border-bottom: 1px dotted rgba(30,37,54,0.1);
+}
+.vitisoft-todo-item:last-child { border-bottom: none; }
+.vitisoft-todo-check {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid #1E2536;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 8px;
+}
+.vitisoft-todo-check.checked {
+  background: #3F8050;
+  border-color: #3F8050;
+  color: #fff;
+}
+.vitisoft-todo-check.checked::after {
+  content: '✓';
+  font-size: 8px;
+  line-height: 1;
+  color: #fff;
+}
+.vitisoft-todo-cat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #5A1525;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vitisoft-todo-cat.done { opacity: 0.4; text-decoration: line-through; }
+.vitisoft-todo-label {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11px;
+  color: #1E2536;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vitisoft-todo-label.done { text-decoration: line-through; opacity: 0.5; }
+.vitisoft-todo-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #1E2536;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+/* ---- VITIMEDIA ZONE ---- */
+.vitimedia-zone {
+  background: #FBF7EC;
+  border: 1px dashed #B22245;
+  padding: 10px 12px;
+  box-shadow: inset 0 1px 0 rgba(178,34,69,0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.vitimedia-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.vitimedia-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #B22245;
+}
+.vitimedia-badge {
+  background: #F5EFE0;
+  border: 1px solid #B22245;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #B22245;
+}
+.vitimedia-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.vitimedia-slot {
+  background: #FFFFFF;
+  border: 1px solid #E5DFCC;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.vitimedia-slot:hover {
+  border-color: #B22245;
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.vitimedia-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.vitimedia-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.vitimedia-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E2536;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vitimedia-tagline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 10.5px;
+  opacity: 0.75;
+  color: #1E2536;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vitimedia-cta {
+  background: #B22245;
+  color: #fff;
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.vitimedia-slot:hover .vitimedia-cta { background: #8B1A36; }

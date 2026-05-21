@@ -66,6 +66,34 @@
 
 ---
 
+## 1c. ADDENDUM 02 — Todolist + Vitimedia (2026-05-21)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-21_LP-pre-inscription_ADDENDUM-02-todolist-vitimedia.md`
+
+### Fichiers modifiés (addendum 02)
+| Fichier | Ce qui a changé |
+|---------|-----------------|
+| `src/_includes/components/demo-pinboard.njk` | Ajout de 2 nouveaux blocs dans `<main>` du dashboard digital : `.vitisoft-todo` (grid-row:4) + `.vitimedia-zone` (grid-row:5) |
+| `src/css/style.css` | Board height 760→920px desktop / 640→800px tablet / 500→640px mobile. `viti-main grid-template-rows` 3→5 lignes. Nouveaux blocs CSS : vitisoft-todo + vitimedia complets |
+
+### Critères d'acceptation — addendum 02
+| Critère | Statut |
+|---------|--------|
+| Todolist "À faire aujourd'hui" visible sous les charts | ✅ |
+| 5 items : Dubreuil, cuve 4, TVA, Vidal, QR Gamay | ✅ |
+| Cuve 4 cochée — strike-through + opacity réduite | ✅ |
+| Bandeau "EMPLACEMENTS VITIMEDIA" + badge "★ DIFFUSION NATIVE" | ✅ |
+| 3 encarts : Viti-Élevages (rouge), ESV (vert), ESA Angers (ink) | ✅ |
+| Avatar 36×36px carré coloré avec initiales | ✅ |
+| Bouton "En savoir +" sur chaque encart | ✅ |
+| Hover encart : bordure bordeaux + élévation (CSS) | ✅ |
+| Board height augmenté (920px / 800px / 640px) | ✅ |
+| Mobile : 3 items todo visibles, 2 encarts visibles | ✅ |
+| Autres états chaos + organized inchangés | ✅ |
+| Build Eleventy propre (4 fichiers, 0 erreur) | ✅ |
+
+---
+
 ## 2. COMMANDES CÔTÉ TEDDY
 
 ### Première fois (installer les dépendances)
