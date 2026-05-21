@@ -35,6 +35,37 @@
 
 ---
 
+## 1b. ADDENDUM — PINBOARD 3 ÉTATS (2026-05-21)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-21_LP-pre-inscription_ADDENDUM-pinboard.md`
+
+### Fichiers créés / modifiés (addendum)
+| Fichier | Ce qui a changé |
+|---------|-----------------|
+| `src/_includes/components/demo-pinboard.njk` | Section complète : 8 note-cards positionnées, dashboard Vitisoft mock (sidebar, KPIs, 3 charts SVG), header étape/hint, footer ticks |
+| `src/js/pinboard.js` | Machine à états 3 étapes : click/clavier, crossfade layers, positions chaos/organized, badges dynamiques |
+| `src/css/style.css` | Section pinboard : board, note-cards (.note-card--yellow/kraft/white/cream), punaises, textures liège (radial-gradients + SVG noise), dashboard Vitisoft complet (sidebar gauche, main grid, charts, sidebar droite), responsive 3 breakpoints |
+| `src/_includes/base.njk` | Ajout `Caveat:wght@400;500` aux Google Fonts (écriture manuscrite carte cahier) |
+| `src/index.njk` | Ajout `{% include "components/demo-pinboard.njk" %}` entre manifeste et références |
+
+### Critères d'acceptation — statut addendum
+| Critère | Statut |
+|---------|--------|
+| Section entre Manifeste et Références | ✅ |
+| État défaut `chaos` — 8 cartes dispersées | ✅ |
+| Click 1 → grille 4×2, rotations à 0, transition 1.1s | ✅ |
+| Click 2 → crossfade Vitisoft dashboard 0.9s | ✅ |
+| Click 3 → retour chaos | ✅ |
+| Caption + hint + numéro étape dynamiques | ✅ |
+| Badge état disparaît en digital | ✅ |
+| Dashboard : KPI rouge, donut, lignes, barres | ✅ |
+| Clavier Enter/Espace = next state | ✅ |
+| Pas de transition au chargement (`.ready` différé) | ✅ |
+| Mobile < 768px : 4 cartes, height 500px | ✅ |
+| Aucun framework JS ajouté | ✅ |
+
+---
+
 ## 2. COMMANDES CÔTÉ TEDDY
 
 ### Première fois (installer les dépendances)

@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
   <!-- Décap CMS identity widget -->
@@ -78,6 +78,384 @@
     </div>
   </div>
 </section>
+
+<section id="demo-pinboard" class="demo-pinboard" aria-label="Démonstration interactive du bureau du vigneron">
+  <div class="container--wide">
+
+    <!-- HEADER : étape + hint -->
+    <div class="demo-pinboard__header">
+      <div class="demo-pinboard__step">
+        <span class="demo-pinboard__step-label" data-pinboard-step>Démonstration · étape 01 / 03</span>
+        <span class="demo-pinboard__caption" data-pinboard-caption>Le bureau d'un vigneron, un mardi de fin de mois.</span>
+      </div>
+      <div class="demo-pinboard__hint">
+        <span class="demo-pinboard__hint-icon">↗</span>
+        <span class="demo-pinboard__hint-text" data-pinboard-hint>Cliquez sur le tableau pour ranger</span>
+      </div>
+    </div>
+
+    <!-- BOARD -->
+    <div
+      class="demo-pinboard__board"
+      role="button"
+      tabindex="0"
+      data-pinboard
+      data-state="chaos"
+      aria-label="Cliquez ou appuyez sur Entrée pour faire évoluer la démonstration"
+    >
+
+      <!-- ===== LAYER PAPER (corkboard + cartes) ===== -->
+      <div class="demo-pinboard__layer demo-pinboard__layer--paper" data-pinboard-pinboard>
+        <div class="demo-pinboard__inner-border" aria-hidden="true"></div>
+
+        <!-- Carte 1 : Facture impayée -->
+        <article class="note-card note-card--yellow" data-card="facture" data-chaos="4,6,-8" data-org="4,8,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Relance client</p>
+          <p class="card__title">Facture impayée</p>
+          <p class="card__amount">4 280 €</p>
+          <p class="card__line">Cave de M. Dubreuil</p>
+          <p class="card__urgent">⚠ à relancer !!</p>
+        </article>
+
+        <!-- Carte 2 : TVA -->
+        <article class="note-card note-card--kraft" data-card="tva" data-chaos="22,38,6" data-org="26,8,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Déclaration TVA</p>
+          <table class="card__table" style="margin-top:4px;">
+            <tr><td>CA HT</td><td>42 180,00</td></tr>
+            <tr><td>TVA coll.</td><td>8 436,00</td></tr>
+            <tr><td>TVA déd.</td><td>2 109,00</td></tr>
+          </table>
+          <span class="card__stamp">Échéance 15</span>
+        </article>
+
+        <!-- Carte 3 : Stock -->
+        <article class="note-card note-card--white" data-card="stock" data-chaos="48,14,-4" data-org="48,8,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Inventaire chai</p>
+          <table class="card__table" style="margin-top:4px;">
+            <tr><td>Sauv. blanc 24</td><td>1 240 b.</td></tr>
+            <tr><td>Muscadet 23</td><td>840 b.</td></tr>
+            <tr><td>Gamay 24</td><td>2 100 b.</td></tr>
+            <tr><td>Cab. franc 23</td><td>620 b.</td></tr>
+          </table>
+        </article>
+
+        <!-- Carte 4 : QR -->
+        <article class="note-card note-card--cream" data-card="qr" data-chaos="70,32,9" data-org="70,8,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Conformité</p>
+          <!-- Mini QR visuel SVG -->
+          <svg width="42" height="42" viewBox="0 0 42 42" style="margin:4px 0 6px;" aria-hidden="true">
+            <rect width="42" height="42" fill="none"/>
+            <!-- Coin haut-gauche -->
+            <rect x="2" y="2" width="16" height="16" fill="none" stroke="#1E2536" stroke-width="2"/>
+            <rect x="6" y="6" width="8" height="8" fill="#1E2536"/>
+            <!-- Coin haut-droit -->
+            <rect x="24" y="2" width="16" height="16" fill="none" stroke="#1E2536" stroke-width="2"/>
+            <rect x="28" y="6" width="8" height="8" fill="#1E2536"/>
+            <!-- Coin bas-gauche -->
+            <rect x="2" y="24" width="16" height="16" fill="none" stroke="#1E2536" stroke-width="2"/>
+            <rect x="6" y="28" width="8" height="8" fill="#1E2536"/>
+            <!-- Points data -->
+            <rect x="24" y="24" width="4" height="4" fill="#1E2536"/>
+            <rect x="30" y="24" width="4" height="4" fill="#1E2536"/>
+            <rect x="36" y="24" width="4" height="4" fill="#1E2536"/>
+            <rect x="24" y="30" width="4" height="4" fill="#1E2536"/>
+            <rect x="36" y="30" width="4" height="4" fill="#1E2536"/>
+            <rect x="30" y="36" width="4" height="4" fill="#1E2536"/>
+            <rect x="36" y="36" width="4" height="4" fill="#1E2536"/>
+          </svg>
+          <p class="card__title" style="font-size:0.72rem;">QR nutritionnel</p>
+          <p class="card__line">obligatoire 2024</p>
+        </article>
+
+        <!-- Carte 5 : RDV -->
+        <article class="note-card note-card--yellow" data-card="rdv" data-chaos="8,60,4" data-org="4,56,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Carnet de RDV</p>
+          <table class="card__table" style="margin-top:4px;">
+            <tr><td>09h</td><td>Cuverie soutirage</td></tr>
+            <tr><td>11h</td><td>Caviste Angers</td></tr>
+            <tr><td>14h</td><td>M. Vidal (visite)</td></tr>
+            <tr><td>17h</td><td>Fournisseur étiq.</td></tr>
+          </table>
+        </article>
+
+        <!-- Carte 6 : Cahier de chai (manuscrit Caveat) -->
+        <article class="note-card note-card--kraft" data-card="cahier" data-chaos="36,64,-7" data-org="26,56,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Cahier de chai</p>
+          <p class="card__handwrite" style="margin-top:5px;">
+            cuve 4 — densité 1014<br>
+            remontage 20 min<br>
+            goût correct, long. ✓<br>
+            → soutirer mardi
+          </p>
+        </article>
+
+        <!-- Carte 7 : Fiche client -->
+        <article class="note-card note-card--white" data-card="client" data-chaos="60,56,5" data-org="48,56,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">Fiche client</p>
+          <p class="card__title" style="margin-top:4px;">Caves Bertrand &amp; Fils</p>
+          <p class="card__line">Saumur · depuis 2019</p>
+          <p class="card__line">Dernière com. : 12 mars</p>
+          <p class="card__amount" style="margin-top:5px;">2 880 €</p>
+        </article>
+
+        <!-- Carte 8 : VINCA IA -->
+        <article class="note-card note-card--cream" data-card="vinca" data-chaos="74,64,-3" data-org="70,56,0">
+          <span class="pin" aria-hidden="true"></span>
+          <p class="card__label">VINCA · IA</p>
+          <p class="card__line" style="margin-top:4px; font-style:italic; font-size:0.68rem; color:rgba(30,37,54,0.7);">
+            « Quel est le délai légal pour la déclaration de récolte ? »
+          </p>
+          <p class="card__line" style="margin-top:5px; font-size:0.68rem; color:#1E2536; line-height:1.5;">
+            → Avant le 25 nov. via le portail des douanes…
+          </p>
+        </article>
+
+        <!-- Badge état -->
+        <div class="demo-pinboard__state-badge" data-pinboard-state-badge aria-live="polite">
+          État : chaos administratif · 23:47
+        </div>
+
+      </div><!-- /layer-paper -->
+
+      <!-- ===== LAYER DIGITAL (Dashboard Vitisoft mock) ===== -->
+      <div class="demo-pinboard__layer demo-pinboard__layer--digital" data-pinboard-digital aria-hidden="true">
+        <div class="viti-dashboard">
+
+          <!-- Barre de titre -->
+          <div class="viti-titlebar">
+            <span class="viti-titlebar__app">VITISOFT</span>
+            <span class="viti-titlebar__domain">Domaine du Petit Verre</span>
+            <span class="viti-titlebar__user">Administrateur</span>
+          </div>
+
+          <!-- Corps -->
+          <div class="viti-body">
+
+            <!-- Sidebar gauche -->
+            <aside class="viti-sidebar-left" aria-hidden="true">
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Contacts</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item viti-menu-item--active">Clients/contacts</li>
+                  <li class="viti-menu-item">Commerciaux</li>
+                  <li class="viti-menu-item">Courtiers</li>
+                  <li class="viti-menu-item">Transporteurs</li>
+                </ul>
+              </div>
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Factures</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item">Liste</li>
+                  <li class="viti-menu-item">Faire une facture</li>
+                  <li class="viti-menu-item">Règlements / banque</li>
+                  <li class="viti-menu-item">Avoirs</li>
+                </ul>
+              </div>
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Commandes</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item">Liste / BL</li>
+                  <li class="viti-menu-item">Faire une commande</li>
+                  <li class="viti-menu-item">Pro forma</li>
+                </ul>
+              </div>
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Produits / Stocks</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item">Produits</li>
+                  <li class="viti-menu-item">Réservations</li>
+                  <li class="viti-menu-item">Achats</li>
+                  <li class="viti-menu-item">Dépôts</li>
+                </ul>
+              </div>
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Déclarations</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item">DRM / DAS</li>
+                  <li class="viti-menu-item">Capsules</li>
+                </ul>
+              </div>
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Analyse</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item">Statistiques</li>
+                  <li class="viti-menu-item">Commissions</li>
+                  <li class="viti-menu-item">Comptabilité</li>
+                  <li class="viti-menu-item">Audit</li>
+                  <li class="viti-menu-item" style="color:#E8A000;">VINCA (IA)</li>
+                </ul>
+              </div>
+
+              <div class="viti-menu-section">
+                <div class="viti-menu-header">Caisse / Tactile</div>
+                <ul class="viti-menu-items">
+                  <li class="viti-menu-item">Faire une facture caisse</li>
+                  <li class="viti-menu-item">Coordonnées Tourist.</li>
+                </ul>
+              </div>
+
+            </aside>
+
+            <!-- Zone principale -->
+            <main class="viti-main" aria-hidden="true">
+
+              <!-- KPI rouge (rowspan 2) -->
+              <div class="viti-panel viti-panel--red" style="grid-column:1; grid-row:1/3;">
+                <p class="viti-panel__title">Alertes</p>
+                <p class="viti-kpi-big">18</p>
+                <p class="viti-kpi-desc">Factures dont<br>l'échéance est<br>dépassée</p>
+                <div class="viti-kpi-sep"></div>
+                <p class="viti-kpi-sub">187 €</p>
+                <p class="viti-kpi-desc">Panier moyen HT<br>année en cours</p>
+              </div>
+
+              <!-- Donut — Répartition par familles -->
+              <div class="viti-panel viti-panel--donut" style="grid-column:2; grid-row:1;">
+                <p class="viti-panel__title">Répartition par familles</p>
+                <div class="viti-donut-wrap">
+                  <div class="viti-donut"></div>
+                  <div class="viti-donut-legend">
+                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#E8B43A"></span>Blancs secs 30%</div>
+                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#4CAF50"></span>Rouges 25%</div>
+                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#C5443D"></span>Rosés 15%</div>
+                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#7B5EA7"></span>Effervesc. 12%</div>
+                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#4A90D9"></span>Liquoreux 8%</div>
+                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#E87D1E"></span>Autres 10%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- KPI CA mois -->
+              <div class="viti-panel viti-panel--kpi" style="grid-column:3; grid-row:1;">
+                <p class="viti-panel__title">CA mois en cours</p>
+                <p class="viti-kpi-value">32 480,00 €</p>
+                <span class="viti-badge-green">+14 %</span>
+              </div>
+
+              <!-- KPI CA année -->
+              <div class="viti-panel viti-panel--kpi" style="grid-column:4; grid-row:1;">
+                <p class="viti-panel__title">CA année en cours</p>
+                <p class="viti-kpi-value">284 730,00 €</p>
+                <span class="viti-badge-green">+8 %</span>
+              </div>
+
+              <!-- LineChart — Évolution CA cumulé -->
+              <div class="viti-panel viti-panel--line" style="grid-column:2/5; grid-row:2;">
+                <p class="viti-panel__title">Évolution du chiffre d'affaires cumulé</p>
+                <div class="viti-chart-wrap">
+                  <svg viewBox="0 0 320 80" preserveAspectRatio="none" aria-hidden="true">
+                    <!-- Gridlines -->
+                    <line x1="0" y1="20" x2="320" y2="20" stroke="rgba(30,37,54,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="40" x2="320" y2="40" stroke="rgba(30,37,54,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="60" x2="320" y2="60" stroke="rgba(30,37,54,0.06)" stroke-width="1"/>
+                    <!-- Année N-1 (jaune) -->
+                    <polyline
+                      points="0,72 29,68 58,64 87,60 116,55 145,50 174,44 203,39 232,33 261,28 290,22 320,16"
+                      fill="none" stroke="#E8B43A" stroke-width="2" stroke-linejoin="round"/>
+                    <!-- Année N (vert) -->
+                    <polyline
+                      points="0,74 29,69 58,64 87,58 116,52 145,44 174,37 203,30 232,23 261,17 290,11 320,5"
+                      fill="none" stroke="#4CAF50" stroke-width="2" stroke-linejoin="round"/>
+                    <!-- Labels mois -->
+                    <text x="0"   y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">J</text>
+                    <text x="58"  y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">M</text>
+                    <text x="116" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">M</text>
+                    <text x="174" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">J</text>
+                    <text x="232" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">S</text>
+                    <text x="290" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">N</text>
+                    <!-- Légende -->
+                    <rect x="240" y="4" width="8" height="3" fill="#E8B43A"/>
+                    <text x="251" y="7" font-size="6" fill="rgba(30,37,54,0.6)" font-family="monospace">N-1</text>
+                    <rect x="240" y="10" width="8" height="3" fill="#4CAF50"/>
+                    <text x="251" y="13" font-size="6" fill="rgba(30,37,54,0.6)" font-family="monospace">N</text>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- BarChart — CA par commercial -->
+              <div class="viti-panel viti-panel--bar1" style="grid-column:1/3; grid-row:3;">
+                <p class="viti-panel__title">CA par commercial — année en cours</p>
+                <div class="viti-chart-wrap">
+                  <svg viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="0" y1="65" x2="200" y2="65" stroke="rgba(30,37,54,0.15)" stroke-width="1"/>
+                    <rect x="3"   y="30" width="14" height="35" fill="#E8B43A" rx="1"/>
+                    <rect x="23"  y="23" width="14" height="42" fill="#4CAF50" rx="1"/>
+                    <rect x="43"  y="37" width="14" height="28" fill="#E8B43A" rx="1"/>
+                    <rect x="63"  y="15" width="14" height="50" fill="#4CAF50" rx="1"/>
+                    <rect x="83"  y="27" width="14" height="38" fill="#E8B43A" rx="1"/>
+                    <rect x="103" y="20" width="14" height="45" fill="#4CAF50" rx="1"/>
+                    <rect x="123" y="35" width="14" height="30" fill="#E8B43A" rx="1"/>
+                    <rect x="143" y="17" width="14" height="48" fill="#4CAF50" rx="1"/>
+                    <rect x="163" y="25" width="14" height="40" fill="#E8B43A" rx="1"/>
+                    <rect x="183" y="13" width="14" height="52" fill="#4CAF50" rx="1"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- BarChart — Prévision encaissements -->
+              <div class="viti-panel viti-panel--bar2" style="grid-column:3/5; grid-row:3;">
+                <p class="viti-panel__title">Prévision des encaissements</p>
+                <div class="viti-chart-wrap">
+                  <svg viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="0" y1="65" x2="200" y2="65" stroke="rgba(30,37,54,0.15)" stroke-width="1"/>
+                    <rect x="3"   y="55" width="14" height="10" fill="#C5443D" rx="1"/>
+                    <rect x="23"  y="30" width="14" height="35" fill="#4CAF50" rx="1"/>
+                    <rect x="43"  y="25" width="14" height="40" fill="#4CAF50" rx="1"/>
+                    <rect x="63"  y="22" width="14" height="43" fill="#4CAF50" rx="1"/>
+                    <rect x="83"  y="18" width="14" height="47" fill="#4CAF50" rx="1"/>
+                    <rect x="103" y="20" width="14" height="45" fill="#4CAF50" rx="1"/>
+                    <rect x="123" y="15" width="14" height="50" fill="#4CAF50" rx="1"/>
+                    <rect x="143" y="18" width="14" height="47" fill="#4CAF50" rx="1"/>
+                    <rect x="163" y="22" width="14" height="43" fill="#4CAF50" rx="1"/>
+                    <rect x="183" y="28" width="14" height="37" fill="#4CAF50" rx="1"/>
+                  </svg>
+                </div>
+              </div>
+
+            </main>
+
+            <!-- Sidebar droite -->
+            <aside class="viti-sidebar-right" aria-hidden="true">
+              <p class="viti-dispo-label">Disposition</p>
+              <div class="viti-dispo-select">TB principal 1 ▾</div>
+              <div class="viti-action-btn viti-action-btn--yellow">? Aide</div>
+              <div class="viti-action-btn">⚙ Config.</div>
+              <div class="viti-action-btn">🔔 Alertes</div>
+              <div class="viti-action-btn">👤 Compte</div>
+              <div class="viti-action-btn">✎ Person.</div>
+              <div class="viti-action-btn">💾 Saveg.</div>
+              <div class="viti-action-btn viti-action-btn--red">✕ Quitter</div>
+            </aside>
+
+          </div><!-- /viti-body -->
+        </div><!-- /viti-dashboard -->
+      </div><!-- /layer-digital -->
+
+    </div><!-- /board -->
+
+    <!-- FOOTER : tirets + label -->
+    <div class="demo-pinboard__footer">
+      <div class="demo-pinboard__ticks" aria-hidden="true"><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span></div>
+      <span class="demo-pinboard__footer-label">Faites défiler · Découvrez les piliers</span>
+    </div>
+
+  </div><!-- /container-wide -->
+</section>
+
+<script src="/js/pinboard.js" defer></script>
 
 <section class="references">
   <div class="container--wide">

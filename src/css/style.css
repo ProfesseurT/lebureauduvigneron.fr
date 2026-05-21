@@ -1139,3 +1139,572 @@ em { font-style: italic; }
   }
   .tiroir__stamp { display: none; }
 }
+
+/* ====================================================
+   DEMO PINBOARD — 3 ÉTATS (chaos → organisé → digital)
+   ==================================================== */
+
+.demo-pinboard {
+  padding: 5rem 0 4rem;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Header (étape + hint) */
+.demo-pinboard__header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 0 1.25rem;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0;
+}
+.demo-pinboard__step { display: flex; flex-direction: column; gap: 0.3rem; }
+.demo-pinboard__step-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+}
+.demo-pinboard__caption {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink);
+  opacity: 0.85;
+}
+.demo-pinboard__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.demo-pinboard__hint-icon {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.demo-pinboard__hint-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Board container */
+.demo-pinboard__board {
+  position: relative;
+  height: 760px;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+  border: 1px solid var(--ink);
+  border-top: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.demo-pinboard__board:focus-visible {
+  outline: 3px solid var(--bordeaux);
+  outline-offset: 2px;
+}
+
+/* Layers */
+.demo-pinboard__layer {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.9s ease, transform 1.1s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.demo-pinboard__layer--paper {
+  opacity: 1;
+  transform: scale(1);
+  /* Cork texture via radial gradients */
+  background-color: #C4A07A;
+  background-image:
+    radial-gradient(ellipse at 18% 22%, rgba(155,112,62,0.55) 0%, transparent 42%),
+    radial-gradient(ellipse at 82% 68%, rgba(138,100,55,0.45) 0%, transparent 38%),
+    radial-gradient(ellipse at 54% 50%, rgba(175,138,88,0.25) 0%, transparent 70%),
+    radial-gradient(ellipse at 10% 78%, rgba(118,85,44,0.40) 0%, transparent 32%),
+    radial-gradient(ellipse at 70% 15%, rgba(160,125,75,0.35) 0%, transparent 45%);
+}
+/* SVG noise overlay for cork texture */
+.demo-pinboard__layer--paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.12;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+/* Inner border (corkboard frame) */
+.demo-pinboard__inner-border {
+  position: absolute;
+  inset: 12px;
+  border: 2px solid rgba(90,60,25,0.25);
+  pointer-events: none;
+}
+
+.demo-pinboard__layer--digital {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+  background: #F5F2EB;
+}
+
+/* Note cards */
+.note-card {
+  position: absolute;
+  width: 22%;
+  height: 30%;
+  padding: 14px 13px 12px;
+  box-shadow: 2px 3px 10px rgba(30,25,15,0.25), 0 1px 3px rgba(30,25,15,0.15);
+  overflow: hidden;
+  /* transitions applied only after .ready is set on the board */
+}
+.demo-pinboard__board.ready .note-card {
+  transition:
+    left   1.1s cubic-bezier(0.65, 0, 0.35, 1),
+    top    1.1s cubic-bezier(0.65, 0, 0.35, 1),
+    transform 1.1s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.note-card--yellow { background: #F4E2A0; }
+.note-card--kraft  { background: #D9C9A7; }
+.note-card--white  { background: #F8F4EA; }
+.note-card--cream  { background: #F5EFE0; }
+
+/* Punaise rouge */
+.pin {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e06060, #8B1A1A);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  margin: 0 auto 8px;
+  position: relative;
+}
+.pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+}
+
+/* Card content typography */
+.card__label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(30,37,54,0.5);
+  margin-bottom: 5px;
+}
+.card__amount {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  color: #C5443D;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.card__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.78rem;
+  color: #1E2536;
+  font-weight: 700;
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+.card__line {
+  font-size: 0.72rem;
+  color: rgba(30,37,54,0.7);
+  line-height: 1.45;
+  margin-bottom: 1px;
+}
+.card__urgent {
+  font-size: 0.7rem;
+  color: #C5443D;
+  font-weight: 700;
+  margin-top: 5px;
+}
+.card__table { font-size: 0.68rem; color: rgba(30,37,54,0.75); line-height: 1.7; }
+.card__table td:first-child { padding-right: 6px; }
+.card__table td:last-child { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; }
+.card__stamp {
+  display: inline-block;
+  border: 1.5px solid #C5443D;
+  color: #C5443D;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  margin-top: 4px;
+  transform: rotate(-3deg);
+}
+.card__handwrite {
+  font-family: 'Caveat', cursive;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #1E2536;
+}
+
+/* QR icon placeholder */
+.card__qr {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 6px;
+  border: 2px solid #1E2536;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px;
+  padding: 3px;
+}
+.card__qr-dot {
+  background: #1E2536;
+  border-radius: 1px;
+}
+
+/* State badge */
+.demo-pinboard__state-badge {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(245,239,224,0.9);
+  border: 1px solid rgba(30,37,54,0.35);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  padding: 5px 14px;
+  white-space: nowrap;
+  transition: opacity 0.4s ease;
+}
+
+/* Footer */
+.demo-pinboard__footer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--ink);
+}
+.demo-pinboard__ticks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.demo-pinboard__tick {
+  display: inline-block;
+  width: 1.5px;
+  height: 14px;
+  background: var(--ink);
+  opacity: 0.6;
+}
+.demo-pinboard__footer-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+/* ---- VITISOFT DASHBOARD MOCK ---- */
+.viti-dashboard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  background: #F5F2EB;
+  overflow: hidden;
+}
+
+.viti-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 12px;
+  height: 30px;
+  background: #1E2536;
+  flex-shrink: 0;
+}
+.viti-titlebar__app {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #FF9F00;
+  letter-spacing: 0.12em;
+}
+.viti-titlebar__domain {
+  font-size: 11px;
+  color: rgba(239,231,214,0.7);
+  flex: 1;
+}
+.viti-titlebar__user {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(239,231,214,0.5);
+}
+
+.viti-body {
+  display: grid;
+  grid-template-columns: 200px 1fr 130px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Sidebar left */
+.viti-sidebar-left {
+  background: #EFEAE0;
+  border-right: 1px solid rgba(30,37,54,0.15);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.viti-menu-section { border-bottom: 1px solid rgba(30,37,54,0.08); }
+.viti-menu-header {
+  background: #1E2536;
+  color: #EFE7D6;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+}
+.viti-menu-items { list-style: none; padding: 2px 0; }
+.viti-menu-item {
+  font-size: 10px;
+  color: #1E2536;
+  padding: 3px 10px;
+  cursor: default;
+  transition: background 0.1s;
+  line-height: 1.3;
+}
+.viti-menu-item:hover { background: rgba(30,37,54,0.06); }
+.viti-menu-item--active { background: rgba(90,21,37,0.08); color: #5A1525; font-weight: 500; }
+
+/* Main content grid */
+.viti-main {
+  padding: 8px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: 120px 130px 140px;
+  gap: 8px;
+}
+.viti-panel {
+  background: #FDFAF4;
+  border: 1px solid rgba(30,37,54,0.12);
+  padding: 8px 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.viti-panel__title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(30,37,54,0.5);
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+/* KPI rouge */
+.viti-panel--red {
+  background: #C5443D;
+  border-color: #A03530;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  justify-content: center;
+  gap: 4px;
+}
+.viti-panel--red .viti-panel__title { color: rgba(239,231,214,0.6); }
+.viti-kpi-big {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  color: #F5EFE0;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.viti-kpi-desc {
+  font-size: 9px;
+  color: rgba(239,231,214,0.75);
+  line-height: 1.4;
+}
+.viti-kpi-sep {
+  width: 100%;
+  height: 1px;
+  background: rgba(239,231,214,0.2);
+  margin: 6px 0;
+}
+.viti-kpi-sub {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  color: #F5EFE0;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+/* KPI ink */
+.viti-panel--kpi { justify-content: space-between; }
+.viti-kpi-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  color: #1E2536;
+  line-height: 1;
+}
+.viti-badge-green {
+  display: inline-block;
+  background: #2D6A2D;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 2px;
+  align-self: flex-start;
+}
+
+/* Donut chart */
+.viti-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.viti-donut {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #E8B43A  0%  30%,
+    #4CAF50 30%  55%,
+    #C5443D 55%  70%,
+    #7B5EA7 70%  82%,
+    #4A90D9 82%  90%,
+    #E87D1E 90%  95%,
+    #5A1525 95%  98%,
+    #8B7355 98% 100%
+  );
+  position: relative;
+  flex-shrink: 0;
+}
+.viti-donut::after {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  background: #FDFAF4;
+}
+.viti-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 8px;
+  color: rgba(30,37,54,0.7);
+  overflow: hidden;
+}
+.viti-legend-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.viti-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Charts SVG */
+.viti-chart-wrap { flex: 1; min-height: 0; overflow: hidden; }
+.viti-chart-wrap svg { width: 100%; height: 100%; }
+
+/* Sidebar right */
+.viti-sidebar-right {
+  background: #EFEAE0;
+  border-left: 1px solid rgba(30,37,54,0.15);
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+.viti-dispo-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(30,37,54,0.45);
+  margin-bottom: 2px;
+}
+.viti-dispo-select {
+  font-size: 9px;
+  color: #1E2536;
+  border: 1px solid rgba(30,37,54,0.25);
+  background: #FDFAF4;
+  padding: 3px 5px;
+  margin-bottom: 6px;
+  cursor: default;
+}
+.viti-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: #1E2536;
+  padding: 4px 6px;
+  background: #FDFAF4;
+  border: 1px solid rgba(30,37,54,0.15);
+  cursor: default;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.viti-action-btn:hover { background: #F5EFE0; }
+.viti-action-btn--yellow { color: #8B6300; border-color: #E8B43A; }
+.viti-action-btn--red { color: #C5443D; border-color: #C5443D; }
+
+/* ---- RESPONSIVE PINBOARD ---- */
+@media (max-width: 1023px) {
+  .demo-pinboard__board { height: 640px; }
+  .note-card { width: 28%; height: 28%; }
+  .viti-kpi-big { font-size: 24px; }
+  .viti-body { grid-template-columns: 160px 1fr 110px; }
+  .viti-main { grid-template-rows: 100px 110px 120px; }
+}
+@media (max-width: 767px) {
+  .demo-pinboard__board { height: 500px; }
+  .demo-pinboard__header { grid-template-columns: 1fr; gap: 0.75rem; }
+  .demo-pinboard__hint { display: none; }
+  .note-card { width: 40%; height: 35%; }
+  /* Masquer 4 cartes sur mobile, garder facture/tva/qr/vinca */
+  .note-card[data-card="stock"],
+  .note-card[data-card="rdv"],
+  .note-card[data-card="cahier"],
+  .note-card[data-card="client"] { display: none; }
+  /* Dashboard mobile simplifié */
+  .viti-body { grid-template-columns: 0 1fr 0; }
+  .viti-sidebar-left, .viti-sidebar-right { display: none; }
+  .viti-main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 6px; padding: 6px; }
+  /* Sur mobile, montrer seulement KPI rouge et KPI CA mois */
+  .viti-panel--red { grid-column: 1; grid-row: 1; }
+  .viti-panel--kpi:first-of-type { grid-column: 2; grid-row: 1; }
+  /* Cacher les autres panels sur mobile */
+  .viti-panel--donut,
+  .viti-panel--kpi ~ .viti-panel--kpi,
+  .viti-panel--line,
+  .viti-panel--bar1,
+  .viti-panel--bar2 { display: none; }
+}
