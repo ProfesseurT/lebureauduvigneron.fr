@@ -1,12 +1,17 @@
 {
   "name": "lebureauduvigneron",
   "version": "1.0.0",
-  "description": "Le Bureau du Vigneron — site MVP",
+  "description": "Le Bureau du Vigneron — LP pré-inscription",
   "scripts": {
-    "build": "eleventy",
-    "start": "eleventy --serve"
+    "build": "node scripts/sync-notion.js && eleventy",
+    "start": "eleventy --serve",
+    "dev": "eleventy --serve"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "notion-to-md": "^3.1.1"
   }
 }

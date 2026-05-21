@@ -1,0 +1,29 @@
+{% if collections.posts | length > 0 %}
+<section class="articles-section">
+  <div class="container--wide">
+
+    <p class="section__label">Le journal</p>
+    <h2 class="section__title">Du concret, du terrain.</h2>
+
+    <div class="articles-grid">
+      {% for post in collections.posts | slice(0, 3) %}
+      <div class="article-card">
+        {% if post.data.pilier %}
+        <p class="article-card__pilier">{{ post.data.pilier }}</p>
+        {% endif %}
+        <a href="{{ post.url }}" class="article-card__title">{{ post.data.title }}</a>
+        {% if post.data.description %}
+        <p class="article-card__excerpt">{{ post.data.description }}</p>
+        {% endif %}
+        <p class="article-card__meta">{{ post.date | dateReadable }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="articles-cta">
+      <a href="/articles/" class="btn btn--bordeaux">→ Tous les articles</a>
+    </div>
+
+  </div>
+</section>
+{% endif %}

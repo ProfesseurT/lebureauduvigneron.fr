@@ -1,6 +1,7 @@
 module.exports = function(eleventyConfig) {
-  // Copier le CSS et les assets tels quels
+  // Copier le CSS, JS et les assets tels quels
   eleventyConfig.addPassthroughCopy("src/css");
+  eleventyConfig.addPassthroughCopy("src/js");
   eleventyConfig.addPassthroughCopy("src/assets");
   eleventyConfig.addPassthroughCopy("admin");
 
