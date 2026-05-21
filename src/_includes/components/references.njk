@@ -1,78 +1,133 @@
+{# ============================================================
+   COMPOSANT : Preuve sociale "Journal de vigne"
+   Données : src/_data/avis.json (chapeau, score, la_une, brèves, partenaire, video)
+   ============================================================ #}
+
+{% macro stars(count=5, sizeClass="") %}
+  <span class="stars {{ sizeClass }}" aria-label="{{ count }} étoiles sur 5">
+    {% for i in range(0, count) %}
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
+    {% endfor %}
+  </span>
+{% endmacro %}
+
 <section class="references">
   <div class="container--wide">
 
-    <p class="references__label">Ils nous font confiance</p>
-
-    <!-- LOGO WALL -->
-    <!-- TODO Teddy : remplacer les SVG placeholders par les vrais fichiers /assets/logos/xxx.png -->
+    {# ─── LOGOS (existant) ─── #}
     <div class="logos-wall">
-
       <div class="logo-item">
         <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" aria-label="Vitisoft">
           <rect x="2" y="2" width="156" height="36" rx="2" fill="none" stroke="#1E2536" stroke-width="1.5"/>
           <text x="80" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#1E2536">Vitisoft</text>
         </svg>
       </div>
-
       <div class="logo-item">
         <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" aria-label="Viticode">
           <rect x="2" y="2" width="156" height="36" rx="2" fill="none" stroke="#1E2536" stroke-width="1.5"/>
           <text x="80" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#1E2536">Viticode</text>
         </svg>
       </div>
-
       <div class="logo-item">
         <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" aria-label="ESA Angers">
           <rect x="2" y="2" width="156" height="36" rx="2" fill="none" stroke="#1E2536" stroke-width="1.5"/>
           <text x="80" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#1E2536">ESA Angers</text>
         </svg>
       </div>
-
       <div class="logo-item">
         <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" aria-label="Solumatic">
           <rect x="2" y="2" width="156" height="36" rx="2" fill="none" stroke="#1E2536" stroke-width="1.5"/>
           <text x="80" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#1E2536">Solumatic</text>
         </svg>
       </div>
-
       <div class="logo-item">
         <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" aria-label="Viti-Élevages">
           <rect x="2" y="2" width="156" height="36" rx="2" fill="none" stroke="#1E2536" stroke-width="1.5"/>
           <text x="80" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#1E2536">Viti-Élevages</text>
         </svg>
       </div>
-
       <div class="logo-item">
         <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" aria-label="VINCA">
           <rect x="2" y="2" width="156" height="36" rx="2" fill="none" stroke="#1E2536" stroke-width="1.5"/>
           <text x="80" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#1E2536">VINCA</text>
         </svg>
       </div>
-
     </div>
 
-    <!-- VERBATIMS -->
-    <!-- TODO Teddy : remplacer par de vrais témoignages clients validés -->
-    <div class="verbatims">
+    {# ─── ORNEMENT ─── #}
+    <div class="editorial-rule"><span class="editorial-rule__ornament">✦</span></div>
 
-      <div class="verbatim">
-        <p class="verbatim__quote">Vitisoft a remplacé 4 outils. Mon comptable adore. Moi aussi.</p>
-        <p class="verbatim__author">Jean-Marc Vallet</p>
-        <p class="verbatim__domaine">Domaine de la Chevalerie · Bourgueil</p>
+    {# ─── CHAPEAU ÉDITORIAL ─── #}
+    <div class="editorial-intro">
+      <p class="editorial-intro__kicker">{{ avis.chapeau.kicker }}</p>
+      <p class="editorial-intro__text">{{ avis.chapeau.texte | safe }}</p>
+    </div>
+
+    {# ─── LA UNE (Lespinasse) ─── #}
+    <article class="la-une">
+      <span class="la-une__label">La une</span>
+      <p class="la-une__quote">{{ avis.la_une.quote }}</p>
+      <div class="la-une__signature">
+        <p class="la-une__signature-name">{{ avis.la_une.auteur }}</p>
+        <p class="la-une__signature-meta">
+          {{ avis.la_une.domaine }}
+          <span class="dot">·</span>
+          {{ avis.la_une.context }}
+          <span class="dot">·</span>
+          {{ avis.la_une.date }}
+        </p>
+        {% if avis.la_une.nps %}<span class="la-une__nps">NPS {{ avis.la_une.nps }}</span>{% endif %}
       </div>
+    </article>
 
-      <div class="verbatim">
-        <p class="verbatim__quote">Pour les QR nutritionnels obligatoires, Viticode en 20 minutes, c'était fini. Sérieusement.</p>
-        <p class="verbatim__author">Sophie Girard</p>
-        <p class="verbatim__domaine">Château La Perrière · Sancerre</p>
+    {# ─── SCORE AGRÉGÉ INTÉGRÉ ─── #}
+    <div class="score-inline">
+      {{ stars(5, "stars--score") }}
+      <span class="score-inline__text"><span class="big">{{ avis.score.note }}</span>/5 — {{ avis.score.label }}</span>
+      <a class="score-inline__link" href="{{ avis.score.lien_google }}" target="_blank" rel="noopener">voir tous les avis →</a>
+    </div>
+
+    {# ─── GRILLE BRÈVES ─── #}
+    <div class="breves-grid">
+      {% for breve in avis.breves %}
+        <article class="breve">
+          {{ stars(5, "stars--breve") }}
+          <p class="breve__quote">{{ breve.quote }}</p>
+          <div class="breve__signature">
+            <span class="breve__signature-name">{{ breve.auteur }}</span>
+            <span class="breve__signature-meta">{{ breve.meta }}</span>
+            <span class="breve__signature-source">{{ breve.source }} · {{ breve.date }}</span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    {# ─── ORNEMENT ─── #}
+    <div class="editorial-rule"><span class="editorial-rule__ornament">✦</span></div>
+
+    {# ─── LE MOT DU PARTENAIRE (Wine Vision) ─── #}
+    <div class="partenaire-block">
+      <span class="partenaire-block__label">Le mot du partenaire</span>
+      <p class="partenaire-block__quote">{{ avis.partenaire.quote }}</p>
+      <p class="partenaire-block__signature-name">{{ avis.partenaire.auteur }}</p>
+      <p class="partenaire-block__signature-meta">{{ avis.partenaire.meta }}</p>
+    </div>
+
+    {# ─── ORNEMENT ─── #}
+    <div class="editorial-rule"><span class="editorial-rule__ornament">✦</span></div>
+
+    {# ─── VIDÉO YOUTUBE ─── #}
+    <div class="video-block">
+      <p class="video-block__label">{{ avis.video.kicker }}</p>
+      <p class="video-block__title">{{ avis.video.title }}</p>
+      <div class="video-frame">
+        <iframe
+          src="https://www.youtube.com/embed/{{ avis.video.youtube_id }}"
+          title="Témoignage client Solumatic"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
       </div>
-
-      <div class="verbatim">
-        <p class="verbatim__quote">Teddy connaît le terrain. Ce n'est pas un consultant — il a vu nos domaines de l'intérieur depuis 10 ans.</p>
-        <p class="verbatim__author">Pierre Aumont</p>
-        <p class="verbatim__domaine">Mas de l'Olivette · Languedoc</p>
-      </div>
-
     </div>
 
   </div>

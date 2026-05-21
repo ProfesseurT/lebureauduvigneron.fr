@@ -282,31 +282,26 @@ em { font-style: italic; }
   margin: 0;
 }
 
-/* ---- RÉFÉRENCES : LOGOS + VERBATIMS ---- */
+/* ---- RÉFÉRENCES — JOURNAL DE VIGNE (v2) ----
+   Composant : src/_includes/components/references.njk
+   Données   : src/_data/avis.json
+---- */
 .references {
-  padding: 4rem 0;
-  background: var(--paper-deep);
+  padding: 5rem 0 6rem;
+  background: var(--paper);
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-}
-.references__label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--muted);
-  margin-bottom: 2.5rem;
-  text-align: center;
+  position: relative;
 }
 
-/* Logo wall */
+/* — Logos — */
 .logos-wall {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 2.5rem 3rem;
-  margin-bottom: 3.5rem;
+  margin-bottom: 4rem;
 }
 .logo-item {
   height: 40px;
@@ -317,52 +312,344 @@ em { font-style: italic; }
   opacity: 0.55;
   transition: filter 0.2s ease, opacity 0.2s ease;
 }
-.logo-item:hover {
-  filter: grayscale(0);
-  opacity: 1;
+.logo-item:hover { filter: grayscale(0); opacity: 1; }
+.logo-item svg { height: 38px; width: auto; }
+
+/* — Étoiles (utilitaire) — */
+.stars {
+  display: inline-flex;
+  gap: 0.2rem;
 }
-.logo-item svg {
-  height: 38px;
-  width: auto;
+.stars svg { fill: var(--gold, #C4A24E); }
+.stars--score svg { width: 16px; height: 16px; }
+.stars--breve svg { width: 12px; height: 12px; }
+
+/* — Filet décoratif — */
+.editorial-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 3rem auto;
+  max-width: 850px;
+  gap: 1rem;
+}
+.editorial-rule::before,
+.editorial-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+.editorial-rule__ornament {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  color: var(--cork);
+  line-height: 1;
 }
 
-/* Verbatims */
-.verbatims {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-top: 1rem;
+/* — Chapeau éditorial — */
+.editorial-intro {
+  max-width: 700px;
+  margin: 0 auto 3rem;
+  text-align: center;
 }
-.verbatim {
-  background: var(--paper-light);
-  border: 1px solid var(--rule);
-  padding: 1.75rem;
+.editorial-intro__kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--bordeaux);
+  margin-bottom: 1rem;
 }
-.verbatim__quote {
+.editorial-intro__text {
   font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: 1.15rem;
+  line-height: 1.7;
   color: var(--ink);
-  margin-bottom: 1.25rem;
+  font-style: italic;
+  opacity: 0.88;
 }
-.verbatim__quote::before { content: '\201C'; }
-.verbatim__quote::after  { content: '\201D'; }
-.verbatim__author {
+.editorial-intro__text strong {
+  font-weight: 500;
+  font-style: normal;
+  opacity: 1;
+}
+
+/* — La Une (Lespinasse) — */
+.la-une {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem 2rem;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.la-une__label {
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper);
+  padding: 0 1.2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--ink);
+  font-weight: 500;
+}
+.la-une__quote {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.4rem, 3vw, 1.95rem);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink);
+  text-align: center;
+  margin: 0 0 2.5rem;
+  position: relative;
+  padding: 0 2rem;
+}
+.la-une__quote::before {
+  content: '\201C';
+  position: absolute;
+  top: -1.5rem;
+  left: 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 5rem;
+  color: var(--cork);
+  opacity: 0.5;
+  line-height: 1;
+}
+.la-une__quote::after {
+  content: '\201D';
+  position: absolute;
+  bottom: -3rem;
+  right: 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 5rem;
+  color: var(--cork);
+  opacity: 0.5;
+  line-height: 1;
+}
+.la-une__signature {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+.la-une__signature-name {
+  font-family: 'Caveat', cursive;
+  font-weight: 500;
+  font-size: 2rem;
+  color: var(--ink);
+  line-height: 1.1;
+  margin: 0 0 0.4rem;
+}
+.la-une__signature-meta {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--muted);
+  line-height: 1.6;
   margin: 0;
 }
-.verbatim__domaine {
+.la-une__signature-meta .dot { color: var(--cork); margin: 0 0.4rem; }
+.la-une__nps {
+  display: inline-block;
+  margin-top: 0.6rem;
+  padding: 0.2rem 0.6rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* — Score agrégé inline — */
+.score-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 3rem auto 3.5rem;
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  max-width: 600px;
+}
+.score-inline__text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink);
+}
+.score-inline__text .big {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bordeaux);
+  font-weight: 700;
+  vertical-align: middle;
+  margin: 0 0.25rem;
+}
+.score-inline__link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--bordeaux);
+  text-decoration: none;
+  border-bottom: 1px solid var(--bordeaux);
+  padding-bottom: 1px;
+}
+.score-inline__link:hover { opacity: 0.7; text-decoration: none; }
+
+/* — Grille brèves (3x3) — */
+.breves-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+.breve {
+  padding: 2rem 1.8rem;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  transition: background 0.2s ease;
+}
+.breve:hover { background: var(--paper-light); }
+.breve .stars { margin-bottom: 1rem; }
+.breve__quote {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--ink);
+  font-style: italic;
+  flex-grow: 1;
+  margin: 0 0 1.5rem;
+}
+.breve__quote::before { content: '\201C '; color: var(--cork); font-style: normal; }
+.breve__quote::after  { content: ' \201D'; color: var(--cork); font-style: normal; }
+.breve__signature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.breve__signature-name {
+  font-family: 'Caveat', cursive;
+  font-weight: 500;
+  font-size: 1.35rem;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.breve__signature-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.breve__signature-source {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cork);
+  margin-top: 0.4rem;
+  opacity: 0.8;
+}
+
+/* — Le mot du partenaire — */
+.partenaire-block {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.partenaire-block__label {
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper);
+  padding: 0 1rem;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
   color: var(--cork);
-  letter-spacing: 0.08em;
+}
+.partenaire-block__quote {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.65;
+  color: var(--ink);
+  opacity: 0.88;
+  margin: 0 0 1.2rem;
+}
+.partenaire-block__signature-name {
+  font-family: 'Caveat', cursive;
+  font-weight: 500;
+  font-size: 1.6rem;
+  color: var(--ink);
+  line-height: 1.1;
   margin: 0;
-  margin-top: 0.2rem;
+}
+.partenaire-block__signature-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 0.4rem 0 0;
+}
+
+/* — Vidéo — */
+.video-block {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 0 1rem;
+  text-align: center;
+}
+.video-block__label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--bordeaux);
+  margin-bottom: 1.5rem;
+}
+.video-block__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink);
+  margin: 0 0 2rem;
+}
+.video-frame {
+  aspect-ratio: 16 / 9;
+  background: var(--ink);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  position: relative;
+}
+.video-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
 }
 
 /* ---- TIROIRS — SYSTÈME ONGLETS ---- */
@@ -1110,9 +1397,10 @@ em { font-style: italic; }
   .partenaires-grid {
     grid-template-columns: 1fr 1fr;
   }
-  .verbatims {
-    grid-template-columns: 1fr;
+  .breves-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
+  .la-une__quote { font-size: 1.4rem; padding: 0 1rem; }
   .articles-grid {
     grid-template-columns: 1fr;
   }
@@ -1138,6 +1426,10 @@ em { font-style: italic; }
     text-align: center;
   }
   .tiroir__stamp { display: none; }
+  .breves-grid { grid-template-columns: 1fr; }
+  .la-une { padding: 2.5rem 1rem 1.5rem; }
+  .score-inline { flex-direction: column; gap: 0.8rem; }
+  .editorial-intro__text { font-size: 1rem; }
 }
 
 /* ====================================================

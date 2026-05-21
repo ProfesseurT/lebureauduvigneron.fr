@@ -1,0 +1,107 @@
+{
+  "score": {
+    "note": "4,9",
+    "total": 73,
+    "label": "73 avis vérifiés",
+    "lien_google": "https://maps.google.com/?cid=1106331513270491395"
+  },
+  "chapeau": {
+    "kicker": "Paroles de vignerons",
+    "texte": "Le Bureau du Vigneron est porté par <strong>Solumatic</strong>, éditeur de Vitisoft, Viticode et VINCA. Voici ce que disent celles et ceux qui nous font confiance depuis <strong>plus de dix ans</strong>."
+  },
+  "la_une": {
+    "id": "lespinasse",
+    "quote": "Vitisoft m'a changé la vie pour la gestion commerciale. Archi-facile et efficace. Nous prenons notre retraite après 43 ans de viticulture, mais nous continuerons d'en parler aux jeunes collègues.",
+    "auteur": "Marie & Jean-François Lespinasse",
+    "domaine": "Château Bichon Cassignols",
+    "context": "43 ans de viticulture",
+    "date": "mai 2026",
+    "nps": "10 / 10",
+    "source": "Témoignage client"
+  },
+  "breves": [
+    {
+      "id": "borgnat",
+      "quote": "Mon logiciel de référence commercial depuis 2015. Réactif à la moindre demande. Organisation du travail au millimètre.",
+      "auteur": "Étienne Borgnat",
+      "meta": "Vigneron · client depuis 2015",
+      "source": "via google",
+      "date": "il y a 3 mois"
+    },
+    {
+      "id": "marchal",
+      "quote": "Logiciel fluide, intuitif, pratique. Je recommande Vitisoft à tous mes confrères vignerons. Un allié incontournable.",
+      "auteur": "Manon Marchal",
+      "meta": "Vigneronne",
+      "source": "via google",
+      "date": "il y a 2 ans"
+    },
+    {
+      "id": "kermabo",
+      "quote": "Excellent logiciel, très facile d'utilisation pour un petit exploitant. Sept ans d'utilisation, jamais de bug, service client réactif.",
+      "auteur": "Maud & Sébastien",
+      "meta": "Kermabo · 7 ans client",
+      "source": "via google",
+      "date": "il y a 2 ans"
+    },
+    {
+      "id": "lemaire",
+      "quote": "Super solution pour notre distillerie. Outil de gestion puissant et poussé, CRM super adapté. On adore quand on nous facilite la tâche.",
+      "auteur": "Valour Lemaire",
+      "meta": "Distillerie · spiritueux",
+      "source": "via google",
+      "date": "il y a 2 ans"
+    },
+    {
+      "id": "chaigne",
+      "quote": "Domaine familial, installation en janvier 2022. Après prise en main, fiable, pratique à utiliser et très complet.",
+      "auteur": "Régis Chaigne",
+      "meta": "Domaine familial · depuis 2022",
+      "source": "via google",
+      "date": "il y a 2 ans"
+    },
+    {
+      "id": "andreelli",
+      "quote": "Extrêmement complet, équipe support réactive, efficace, à l'écoute. Puissant côté tableaux de bord — module statistiques hyper complet.",
+      "auteur": "Sophie Andreelli",
+      "meta": "Vigneronne · usage data",
+      "source": "via google",
+      "date": "il y a 5 ans"
+    },
+    {
+      "id": "bordron",
+      "quote": "Le choix du changement a été difficile : en concurrence, des devis beaucoup plus chers. Vitisoft a tenu sa promesse.",
+      "auteur": "Claire Bordron",
+      "meta": "Vigneronne · budget maîtrisé",
+      "source": "via google",
+      "date": "il y a 6 ans"
+    },
+    {
+      "id": "anne-sophie",
+      "quote": "Bravo à toute l'équipe. Gens formidables, à l'écoute. Service à taille humaine, un tchat super pratique.",
+      "auteur": "Anne-Sophie D",
+      "meta": "Vigneronne",
+      "source": "via google",
+      "date": "il y a 1 an"
+    },
+    {
+      "id": "laborde",
+      "quote": "Très bon logiciel, expert en comptabilité matière, qui saura vous libérer du temps. Très intuitif et facile.",
+      "auteur": "Anaïs Laborde",
+      "meta": "Vigneronne · compta matière",
+      "source": "via google",
+      "date": "il y a 2 ans"
+    }
+  ],
+  "partenaire": {
+    "id": "wine-vision",
+    "quote": "En tant que partenaire de Vitisoft, nous avons constaté l'excellence de leur logiciel dédié à la gestion viticole. Une grande réactivité, une capacité à écouter et à répondre.",
+    "auteur": "Wine Vision",
+    "meta": "Partenaire de l'écosystème viticole"
+  },
+  "video": {
+    "youtube_id": "fh04CgXNj7U",
+    "kicker": "Témoignage filmé",
+    "title": "À voir et écouter"
+  }
+}
