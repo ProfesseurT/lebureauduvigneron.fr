@@ -294,26 +294,6 @@ em { font-style: italic; }
   position: relative;
 }
 
-/* — Logos — */
-.logos-wall {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 2.5rem 3rem;
-  margin-bottom: 4rem;
-}
-.logo-item {
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  filter: grayscale(1);
-  opacity: 0.55;
-  transition: filter 0.2s ease, opacity 0.2s ease;
-}
-.logo-item:hover { filter: grayscale(0); opacity: 1; }
-.logo-item svg { height: 38px; width: auto; }
 
 /* — Étoiles (utilitaire) — */
 .stars {
