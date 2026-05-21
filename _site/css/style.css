@@ -1206,7 +1206,7 @@ em { font-style: italic; }
 /* Board container */
 .demo-pinboard__board {
   position: relative;
-  height: 920px;
+  height: 900px;
   cursor: pointer;
   overflow: hidden;
   outline: none;
@@ -1509,7 +1509,7 @@ em { font-style: italic; }
   overflow: hidden;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: 120px 130px 140px 140px 120px;
+  grid-template-rows: 120px 130px 140px 140px 100px;
   gap: 8px;
 }
 .viti-panel {
@@ -1678,16 +1678,15 @@ em { font-style: italic; }
 
 /* ---- RESPONSIVE PINBOARD ---- */
 @media (max-width: 1023px) {
-  .demo-pinboard__board { height: 800px; }
+  .demo-pinboard__board { height: 760px; }
   .note-card { width: 28%; height: 28%; }
   .viti-kpi-big { font-size: 24px; }
   .viti-body { grid-template-columns: 160px 1fr 110px; }
-  .viti-main { grid-template-rows: 100px 110px 120px 130px 100px; }
+  .viti-main { grid-template-rows: 100px 110px 120px 130px 60px; }
   .vitimedia-slots { grid-template-columns: 1fr 1fr; }
-  .vitimedia-slot:last-child { display: none; }
 }
 @media (max-width: 767px) {
-  .demo-pinboard__board { height: 640px; }
+  .demo-pinboard__board { height: 620px; }
   .demo-pinboard__header { grid-template-columns: 1fr; gap: 0.75rem; }
   .demo-pinboard__hint { display: none; }
   .note-card { width: 40%; height: 35%; }
@@ -1710,7 +1709,6 @@ em { font-style: italic; }
   /* Cacher les 2 derniers items todo sur mobile */
   .vitisoft-todo-item:nth-child(n+4) { display: none; }
   .vitimedia-slots { grid-template-columns: 1fr; }
-  .vitimedia-slot:last-child { display: none; }
   .vitimedia-avatar { width: 28px !important; height: 28px !important; font-size: 9px !important; }
   .vitimedia-tagline { font-size: 9.5px !important; }
 }
@@ -1826,7 +1824,6 @@ em { font-style: italic; }
 }
 .vitimedia-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
   flex-shrink: 0;
@@ -1839,20 +1836,9 @@ em { font-style: italic; }
   text-transform: uppercase;
   color: #B22245;
 }
-.vitimedia-badge {
-  background: #F5EFE0;
-  border: 1px solid #B22245;
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: #B22245;
-}
 .vitimedia-slots {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   flex: 1;
   min-height: 0;
