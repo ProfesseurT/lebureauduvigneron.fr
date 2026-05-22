@@ -1478,7 +1478,7 @@ em { font-style: italic; }
 /* Board container */
 .demo-pinboard__board {
   position: relative;
-  height: 900px;
+  height: 720px;
   cursor: pointer;
   overflow: hidden;
   outline: none;
@@ -1950,7 +1950,7 @@ em { font-style: italic; }
 
 /* ---- RESPONSIVE PINBOARD ---- */
 @media (max-width: 1023px) {
-  .demo-pinboard__board { height: 760px; }
+  .demo-pinboard__board { height: 640px; }
   .note-card { width: 28%; height: 28%; }
   .viti-kpi-big { font-size: 24px; }
   .viti-body { grid-template-columns: 160px 1fr 110px; }
