@@ -2,8 +2,9 @@
   var tablist = document.querySelector('[role="tablist"]');
   if (!tablist) return;
 
-  var tabs   = Array.from(tablist.querySelectorAll('[role="tab"]'));
-  var panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+  var tabs      = Array.from(tablist.querySelectorAll('[role="tab"]'));
+  var container = tablist.closest('.tiroirs-section') || document;
+  var panels    = Array.from(container.querySelectorAll('[role="tabpanel"]'));
 
   function activate(index) {
     tabs.forEach(function (tab, i) {

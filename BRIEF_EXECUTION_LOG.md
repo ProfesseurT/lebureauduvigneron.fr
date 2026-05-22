@@ -197,4 +197,47 @@ Si `npm install` n'a pas été lancé ET que `NOTION_TOKEN` est défini, le scri
 
 ---
 
-*Log généré automatiquement — 2026-05-21*
+---
+
+## 1d. DASHBOARD PREVIEW "Mon Bureau" (2026-05-22)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-22_LP-dashboard-preview.md`
+
+### Fichiers créés / modifiés
+| Fichier | Ce qui a changé |
+|---------|-----------------|
+| `src/_includes/components/dashboard-preview.njk` | Section complète : top bar, sidebar 8 onglets, 8 panels (bureau / outils / bibliothèque / formations / comptoir / tournée / réseau / compte) |
+| `src/js/dashboard-preview.js` | Onglets scopés à `.dashboard-mock`, flèches ↑↓ + Home/End + Enter/Espace, hook prénom localStorage/URL |
+| `src/css/style.css` | Section `DASHBOARD PREVIEW` ajoutée avant le bloc RESPONSIVE existant (≈320 lignes) |
+| `src/index.njk` | Ajout `{% include "components/dashboard-preview.njk" %}` entre tiroirs et articles-recent |
+| `src/js/tiroirs.js` | Scope panels query à `.tiroirs-section` (1 ligne, voir Déviations) |
+
+### Déviations par rapport au brief
+| Déviation | Justification |
+|-----------|---------------|
+| `tiroirs.js` modifié (1 ligne) | Sans ça, `panels = document.querySelectorAll('[role="tabpanel"]')` capturait les 8 panels du dashboard. Résultat : cliquer un tiroir cachait le panel dashboard actif. Correction minimale, comportement tiroirs inchangé. |
+| `aria-orientation="vertical"` explicite sur sidebar | WCAG — tablist vertical doit l'indiquer pour les screen-readers |
+| `disabled` + `aria-disabled="true"` sur boutons "Bientôt" | Meilleure pratique A11Y plutôt que juste désactiver via CSS |
+
+### Critères d'acceptation — statut
+| Critère | Statut |
+|---------|--------|
+| Bloc entre tiroirs et articles-recent | ✅ |
+| Fond var(--ink) tranche visuellement | ✅ |
+| Sidebar 8 items dans l'ordre exact | ✅ |
+| Tableau de bord actif au chargement, 5 modules | ✅ |
+| Clic onglet → changement instantané (pas de fade) | ✅ |
+| "Mon réseau" cliquable → écran verrouillé "Bientôt" | ✅ |
+| Chip "Présenté par" visible et labellisé | ✅ |
+| Fiche Vitisoft avec mention transparence | ✅ |
+| Prénom par défaut "Vigneron" | ✅ |
+| Mobile : sidebar horizontale scrollable, grilles 1 col | ✅ CSS |
+| Navigation clavier ↑↓ + Enter/Espace | ✅ |
+| Build Eleventy propre — 0 warning, 0 erreur | ✅ |
+
+### Problèmes rencontrés
+- **Conflit ARIA tabpanel** : deux systèmes `[role="tablist"]` / `[role="tabpanel"]` sur la même page. tiroirs.js utilisait `document.querySelectorAll` non scopé. Résolu par scope à `.tiroirs-section`.
+
+**Statut : PRÊT POUR PUSH TEDDY**
+
+*Log généré automatiquement — 2026-05-22*
