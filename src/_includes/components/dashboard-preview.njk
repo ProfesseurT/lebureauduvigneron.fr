@@ -50,7 +50,7 @@
         <button role="tab" id="dtab-reseau" aria-selected="false" aria-controls="dpanel-reseau" class="dnav-item dnav-item--locked" type="button" aria-label="Mon réseau — bientôt disponible">
           <span class="dnav-item__icon" aria-hidden="true">⊘</span>
           <span class="dnav-item__label">Mon réseau</span>
-          <span class="dnav-item__badge" aria-hidden="true">bientôt</span>
+          <span class="dnav-item__badge">bientôt</span>
         </button>
         <button role="tab" id="dtab-compte" aria-selected="false" aria-controls="dpanel-compte" class="dnav-item" type="button">
           <span class="dnav-item__icon" aria-hidden="true">⚇</span>
@@ -112,14 +112,14 @@
               <p class="dmod-resume__title">Reprendre : Calculateur prix de revient bouteille</p>
               <p class="dmod-resume__progress">Vous avez complété 4 étapes sur 7.</p>
             </div>
-            <button type="button" class="btn btn--bordeaux" style="font-size:0.72rem;padding:0.5rem 1.25rem;flex-shrink:0;" onclick="console.log('dashboard: reprendre')">Reprendre →</button>
+            <a href="#waitlist" class="dbtn dbtn--bordeaux">Reprendre →</a>
           </div>
 
           <div class="dmod-partner">
             <span class="dmod-partner__chip">Présenté par</span>
-            <p class="dmod-partner__name">Étiquettes Jardin &amp; Vigne — étiquetage premium AOC</p>
-            <p class="dmod-partner__desc">Atelier 100% français, papier coton, encres végétales. Sélection éditoriale Le Bureau du Vigneron.</p>
-            <button type="button" class="dtool-btn" onclick="console.log('dashboard: partenaire')">Découvrir →</button>
+            <p class="dmod-partner__name">Vinilabel — étiquetage Loire</p>
+            <p class="dmod-partner__desc">Au service des entreprises des vignobles de Loire. Sélection éditoriale Le Bureau du Vigneron.</p>
+            <a href="#waitlist" class="dbtn dbtn--outline">Découvrir →</a>
           </div>
 
         </div>
@@ -134,65 +134,65 @@
             <div class="dtool-card">
               <span class="dtool-card__icon" aria-hidden="true">@</span>
               <p class="dtool-card__name">Générateur signature email</p>
-              <p class="dtool-card__tag">Lead magnet</p>
-              <p class="dtool-card__desc">Créez une signature email professionnelle en 2 minutes.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: outil signature')">Lancer →</button>
+              <p class="dtool-card__tag">Communication</p>
+              <p class="dtool-card__desc">Une signature pro en 2 minutes. Code HTML prêt.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
             </div>
             <div class="dtool-card">
               <span class="dtool-card__icon" aria-hidden="true">€</span>
               <p class="dtool-card__name">Calculateur prix de revient bouteille</p>
-              <p class="dtool-card__tag">Lead magnet</p>
-              <p class="dtool-card__desc">Calculez votre coût réel par bouteille avec marge.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: outil prix')">Lancer →</button>
+              <p class="dtool-card__tag">Commercial</p>
+              <p class="dtool-card__desc">Ton vrai prix à la bouteille, en 5 inputs.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
             </div>
             <div class="dtool-card">
               <span class="dtool-card__icon" aria-hidden="true">≈</span>
               <p class="dtool-card__name">Calculateur ROI ERP/CRM</p>
-              <p class="dtool-card__tag">Lead magnet</p>
-              <p class="dtool-card__desc">Estimez le retour sur investissement d'un outil de gestion.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: outil ROI')">Lancer →</button>
+              <p class="dtool-card__tag">Productivité</p>
+              <p class="dtool-card__desc">Combien te fait perdre ton Excel ? Le chiffre exact.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
             </div>
             <div class="dtool-card">
               <span class="dtool-card__icon" aria-hidden="true">✓</span>
               <p class="dtool-card__name">Audit digital self-service</p>
-              <p class="dtool-card__tag">12 questions</p>
-              <p class="dtool-card__desc">Évaluez votre maturité digitale en moins de 5 minutes.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: audit digital')">Lancer →</button>
+              <p class="dtool-card__tag">Diagnostic</p>
+              <p class="dtool-card__desc">12 questions, un rapport PDF, ton plan d'action.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
             </div>
             <div class="dtool-card">
               <span class="dtool-card__icon" aria-hidden="true">☑</span>
               <p class="dtool-card__name">Audit conformité administrative</p>
-              <p class="dtool-card__tag">QR / douanes / facturation</p>
-              <p class="dtool-card__desc">Vérifiez que votre domaine est en règle sur les 3 points critiques.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: audit conformité')">Lancer →</button>
+              <p class="dtool-card__tag">Conformité</p>
+              <p class="dtool-card__desc">QR, douanes, facturation électronique : où en es-tu ?</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
             </div>
             <div class="dtool-card dtool-card--locked">
               <span class="dtool-card__icon" aria-hidden="true">◫</span>
               <p class="dtool-card__name">Calculateur marge contributive client</p>
-              <p class="dtool-card__tag">Upload CSV</p>
-              <p class="dtool-card__desc">Identifiez vos clients les plus rentables via vos données de vente.</p>
-              <button type="button" class="dtool-btn dtool-btn--lock" disabled aria-disabled="true">⊘ Bientôt</button>
+              <p class="dtool-card__tag">Commercial</p>
+              <p class="dtool-card__desc">Quel client te rapporte vraiment ? Upload CSV ventes.</p>
+              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
             </div>
             <div class="dtool-card dtool-card--locked">
               <span class="dtool-card__icon" aria-hidden="true">⇄</span>
               <p class="dtool-card__name">Simulateur transmission domaine</p>
-              <p class="dtool-card__tag">Long terme</p>
-              <p class="dtool-card__desc">Anticipez les scénarios de transmission sur 5, 10 et 20 ans.</p>
-              <button type="button" class="dtool-btn dtool-btn--lock" disabled aria-disabled="true">⊘ Bientôt</button>
+              <p class="dtool-card__tag">Transmission</p>
+              <p class="dtool-card__desc">Préparer la transmission de ton domaine, étape par étape.</p>
+              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
             </div>
             <div class="dtool-card dtool-card--locked">
               <span class="dtool-card__icon" aria-hidden="true">⊞</span>
               <p class="dtool-card__name">Générateur fiche technique vin</p>
-              <p class="dtool-card__tag">AOC / IGP</p>
-              <p class="dtool-card__desc">Générez une fiche technique conforme en quelques clics.</p>
-              <button type="button" class="dtool-btn dtool-btn--lock" disabled aria-disabled="true">⊘ Bientôt</button>
+              <p class="dtool-card__tag">Communication</p>
+              <p class="dtool-card__desc">FT cohérente AOC/IGP, en 3 minutes.</p>
+              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
             </div>
             <div class="dtool-card dtool-card--locked">
               <span class="dtool-card__icon" aria-hidden="true">◈</span>
               <p class="dtool-card__name">Générateur étiquette nutritionnelle</p>
-              <p class="dtool-card__tag">Via Viticode</p>
-              <p class="dtool-card__desc">Créez votre étiquette nutritionnelle réglementaire QR.</p>
-              <button type="button" class="dtool-btn dtool-btn--lock" disabled aria-disabled="true">⊘ Bientôt</button>
+              <p class="dtool-card__tag">Conformité</p>
+              <p class="dtool-card__desc">QR conforme UE généré via Viticode.</p>
+              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
             </div>
           </div>
         </div>
@@ -204,43 +204,49 @@
             <p class="dpanel__subtitle">Articles, templates et veille filière. Filtrés par pilier.</p>
           </div>
           <div class="dlib-filters" role="group" aria-label="Filtrer par pilier">
-            <button type="button" class="dlib-chip dlib-chip--active" onclick="return false;">Tous</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Terrain</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Organisation</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Process</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Marketing</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Enseignement</button>
+            <button type="button" class="dlib-chip dlib-chip--active" tabindex="-1">Tous</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Terrain</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Organisation</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Process</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Marketing</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Enseignement</button>
           </div>
           <div class="dlib-grid">
             <div class="dlib-card">
               <p class="dlib-card__type">Article · Marketing</p>
               <p class="dlib-card__title">Vendre 30% plus cher en direct : 3 leviers concrets</p>
               <p class="dlib-card__meta">8 min de lecture</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
             </div>
             <div class="dlib-card">
               <p class="dlib-card__type">Article · Process</p>
               <p class="dlib-card__title">Le QR nutritionnel, 2 ans après : ce qui marche vraiment</p>
               <p class="dlib-card__meta">12 min de lecture</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
             </div>
             <div class="dlib-card">
               <p class="dlib-card__type">Template · Organisation</p>
               <p class="dlib-card__title">Modèle CGV vente directe à jour 2026</p>
               <p class="dlib-card__meta">Word · 4 pages</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
             </div>
             <div class="dlib-card">
               <p class="dlib-card__type">Veille · Filière</p>
               <p class="dlib-card__title">Synthèse mensuelle mai 2026 — 4 dossiers</p>
               <p class="dlib-card__meta">PDF · membres</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
             </div>
             <div class="dlib-card">
               <p class="dlib-card__type">Article · Enseignement</p>
               <p class="dlib-card__title">Faut-il former son fils sur Vitisoft ou sur Excel ?</p>
               <p class="dlib-card__meta">6 min de lecture</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
             </div>
             <div class="dlib-card">
               <p class="dlib-card__type">Template · Marketing</p>
               <p class="dlib-card__title">Grille tarifaire 3 circuits (cave / HoReCa / export)</p>
               <p class="dlib-card__meta">Excel</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
             </div>
           </div>
         </div>
@@ -249,84 +255,108 @@
         <div role="tabpanel" id="dpanel-formations" class="dpanel" aria-labelledby="dtab-formations" hidden>
           <div class="dpanel__header">
             <h3 class="dpanel__title">La salle de cours.</h3>
-            <p class="dpanel__subtitle">Formations one-shot par Teddy Pereira. Pas d'abo, pas de fioritures.</p>
+            <p class="dpanel__subtitle">Cours conçus avec des enseignants et des vignerons. Le premier cours est issu de la licence ESA Angers — Marketing des Vins &amp; Terroirs, animé par Teddy Pereira depuis 5 ans.</p>
           </div>
-          <div class="dform-grid">
-            <div class="dform-card">
-              <p class="dform-card__tag">Pilier — Organisation</p>
-              <p class="dform-card__title">Les fondations</p>
-              <p class="dform-card__meta">4h vidéo + workbook PDF</p>
-              <p class="dform-card__price">297 €</p>
-              <p class="dform-card__pitch">L'admin + le commercial de base. Ce qu'on ne vous a jamais expliqué à l'école.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: formation fondations')">Voir le programme →</button>
-            </div>
-            <div class="dform-card">
-              <p class="dform-card__tag">Pilier — Marketing</p>
-              <p class="dform-card__title">Vendre en direct sans s'épuiser</p>
-              <p class="dform-card__meta">5h vidéo + 3 templates</p>
-              <p class="dform-card__price">397 €</p>
-              <p class="dform-card__pitch">CRM, fichier client, relances. Le système qui fait revenir vos clients.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: formation vente')">Voir le programme →</button>
-            </div>
-            <div class="dform-card">
-              <p class="dform-card__tag">Pilier — Process</p>
-              <p class="dform-card__title">L'IA pour vignerons : usages réels (et inutiles)</p>
-              <p class="dform-card__meta">2h vidéo</p>
-              <p class="dform-card__price">197 €</p>
-              <p class="dform-card__pitch">Ce que ChatGPT change vraiment pour un domaine. Ce qu'il ne changera jamais.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: formation IA')">Voir le programme →</button>
-            </div>
+          <div class="dform-esa">
+            <div class="dform-esa__chip">ESA Angers · partenaire</div>
+            <p class="dform-esa__title">Marketing des Vins &amp; Terroirs</p>
+            <p class="dform-esa__subtitle">Licence — animée par Teddy Pereira depuis 5 ans</p>
+            <div class="dform-esa__rule"></div>
+            <ul class="dform-esa__modules" aria-label="Modules du cours">
+              <li class="dform-esa__module">
+                <span class="dform-esa__module-name">Module 1 — Le marché</span>
+                <span class="dform-esa__module-dur">· 4h</span>
+              </li>
+              <li class="dform-esa__module">
+                <span class="dform-esa__module-name">Module 2 — Le client direct</span>
+                <span class="dform-esa__module-dur">· 5h</span>
+              </li>
+              <li class="dform-esa__module">
+                <span class="dform-esa__module-name">Module 3 — La tarification</span>
+                <span class="dform-esa__module-dur">· 6h</span>
+              </li>
+              <li class="dform-esa__module">
+                <span class="dform-esa__module-name">Module 4 — Les circuits</span>
+                <span class="dform-esa__module-dur">· 7h</span>
+              </li>
+              <li class="dform-esa__module">
+                <span class="dform-esa__module-name">Module 5 — Storytelling domaine</span>
+                <span class="dform-esa__module-dur">· 8h</span>
+              </li>
+            </ul>
+            <div class="dform-esa__rule"></div>
+            <p class="dform-esa__sign">— Teddy P.</p>
+            <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander le programme complet →</a>
           </div>
           <div class="dform-bandeau">
-            <p class="dform-bandeau__text">Atelier live mensuel — capacité 15 places.<br>Prochaine session : 18 juin 2026 · CRM vigneron · 197 €</p>
-            <button type="button" class="btn" style="font-size:0.72rem;padding:0.5rem 1.25rem;background:var(--bordeaux);color:var(--paper);flex-shrink:0;" onclick="console.log('dashboard: atelier')">S'inscrire à l'atelier →</button>
+            <p class="dform-bandeau__text">D'autres formations sont en préparation.</p>
+            <a href="#waitlist" class="dbtn dbtn--outline">Être prévenu →</a>
           </div>
         </div>
 
         <!-- Panel 05 — Comptoir partenaires -->
         <div role="tabpanel" id="dpanel-comptoir" class="dpanel" aria-labelledby="dtab-comptoir" hidden>
           <div class="dpanel__header">
-            <h3 class="dpanel__title">Les pros que vous voudriez connaître.</h3>
-            <p class="dpanel__subtitle">Sélection éditoriale. Mise en relation directe. Pas d'enchère Google.</p>
+            <h3 class="dpanel__title">Les pros qui accompagnent les vignerons.</h3>
+            <p class="dpanel__subtitle">Une sélection éditoriale issue de l'écosystème Vitisoft. Mise en relation directe, pas d'enchère Google.</p>
           </div>
           <div class="dlib-filters" role="group" aria-label="Filtrer par catégorie partenaire">
-            <button type="button" class="dlib-chip dlib-chip--active" onclick="return false;">Tous</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Œnologues</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Compta viti</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Étiquetage</button>
-            <button type="button" class="dlib-chip" onclick="return false;">Webdesign vin</button>
-            <button type="button" class="dlib-chip" onclick="return false;">ERP / CRM</button>
+            <button type="button" class="dlib-chip dlib-chip--active" tabindex="-1">Tous</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Conformité</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Comptabilité</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Financement</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Étiquetage</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Syndicats</button>
+            <button type="button" class="dlib-chip" tabindex="-1">Communication</button>
           </div>
           <div class="dcomptoir-grid">
             <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Œnologie conseil</p>
-              <p class="dcomptoir-card__region">Loire</p>
-              <p class="dcomptoir-card__name">Cabinet Œnoconseil — Marie Lavoine</p>
-              <p class="dcomptoir-card__pitch">Spécialiste Chenin et Cabernet franc. 18 ans d'expérience, 40 domaines accompagnés.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: devis oenologue')">Demander un devis →</button>
+              <p class="dcomptoir-card__cat">Conformité</p>
+              <p class="dcomptoir-card__region">National</p>
+              <span class="dcomptoir-card__transp">Édité par Solumatic — éditeur de ce site</span>
+              <p class="dcomptoir-card__name">Viticode</p>
+              <p class="dcomptoir-card__pitch">QR codes nutritionnels obligatoires depuis 2024. Gratuit, conforme UE.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Découvrir →</a>
             </div>
             <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Compta viti</p>
-              <p class="dcomptoir-card__region">France entière</p>
-              <p class="dcomptoir-card__name">Vinea Comptable</p>
-              <p class="dcomptoir-card__pitch">Cabinet 100% vin. Maîtrise déclarations CVI, douanes, paie agricole. Formés à Vitisoft.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: devis compta')">Demander un devis →</button>
+              <p class="dcomptoir-card__cat">Comptabilité viticole</p>
+              <p class="dcomptoir-card__region">Provence + national</p>
+              <p class="dcomptoir-card__name">CER France Provence</p>
+              <p class="dcomptoir-card__pitch">Cabinet comptable spécialisé agriculture et viticulture. Accompagne plusieurs centaines de domaines.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander un devis →</a>
             </div>
             <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Étiquetage premium</p>
-              <p class="dcomptoir-card__region">Bordeaux</p>
-              <p class="dcomptoir-card__name">Atelier Jardin &amp; Vigne</p>
-              <p class="dcomptoir-card__pitch">Papier coton, encres végétales, livraisons à 7 jours. Spécialistes AOC.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: devis etiquetage')">Demander un devis →</button>
+              <p class="dcomptoir-card__cat">Financement</p>
+              <p class="dcomptoir-card__region">National</p>
+              <p class="dcomptoir-card__name">Banque Populaire</p>
+              <p class="dcomptoir-card__pitch">Financement de logiciels, équipements et investissements matériels pour les domaines.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Étudier mon dossier →</a>
             </div>
             <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">ERP / CRM viti</p>
-              <p class="dcomptoir-card__region">France</p>
-              <span class="dcomptoir-card__transp">Édité par Solumatic SAS — éditeur de ce site</span>
-              <p class="dcomptoir-card__name">Vitisoft</p>
-              <p class="dcomptoir-card__pitch">ERP/CRM de référence. 2 000 domaines. Listé en transparence aux côtés des concurrents.</p>
-              <button type="button" class="dtool-btn" onclick="console.log('dashboard: fiche vitisoft')">Voir la fiche →</button>
+              <p class="dcomptoir-card__cat">Étiquetage</p>
+              <p class="dcomptoir-card__region">Vignobles de Loire</p>
+              <p class="dcomptoir-card__name">Vinilabel</p>
+              <p class="dcomptoir-card__pitch">Au service des entreprises des vignobles de Loire. Étiquetage soigné.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander un devis →</a>
             </div>
+            <div class="dcomptoir-card">
+              <p class="dcomptoir-card__cat">Syndicat / Fédération</p>
+              <p class="dcomptoir-card__region">Anjou-Saumur</p>
+              <p class="dcomptoir-card__name">Fédération Vignerons Indépendants Anjou-Saumur</p>
+              <p class="dcomptoir-card__pitch">280 vignerons fédérés. Défense de la filière, services aux adhérents.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Rejoindre →</a>
+            </div>
+            <div class="dcomptoir-card">
+              <p class="dcomptoir-card__cat">Comptabilité &amp; conseil</p>
+              <p class="dcomptoir-card__region">National</p>
+              <p class="dcomptoir-card__name">TGS France · Soregor</p>
+              <p class="dcomptoir-card__pitch">Collectif d'experts-comptables et conseillers. Présence forte sur la filière viticole.</p>
+              <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander un devis →</a>
+            </div>
+          </div>
+          <div class="dform-bandeau">
+            <p class="dform-bandeau__text">Plus de 20 partenaires de l'écosystème Vitisoft seront listés ici.</p>
+            <a href="#waitlist" class="dbtn dbtn--outline">Voir le réseau complet →</a>
           </div>
         </div>
 
@@ -343,6 +373,7 @@
                 <p class="dtournee-info__tag">Pilier — Terrain · 9 min</p>
                 <p class="dtournee-info__title">Dom. Cailloux, Anjou — premier soutirage Cab. franc</p>
                 <p class="dtournee-info__pitch">Comment Mathieu Cailloux a structuré son chai en 3 ans après reprise familiale.</p>
+                <a href="#waitlist" class="dbtn dbtn--bordeaux">Regarder →</a>
               </div>
             </div>
             <div class="dtournee-card">
@@ -351,12 +382,13 @@
                 <p class="dtournee-info__tag">Pilier — Organisation · 11 min</p>
                 <p class="dtournee-info__title">Dom. Vauguillaume, Muscadet — la facturation en 12 min/jour</p>
                 <p class="dtournee-info__pitch">Comment Émilie Vauguillaume tient sa compta sans logiciel le matin avant 9h.</p>
+                <a href="#waitlist" class="dbtn dbtn--bordeaux">Regarder →</a>
               </div>
             </div>
           </div>
           <div class="dform-bandeau">
             <p class="dform-bandeau__text">1 nouvelle visite par mois.<br>Prochaine : Dom. Marpâtissier, Sancerre — 12 juin</p>
-            <button type="button" class="btn" style="font-size:0.72rem;padding:0.5rem 1.25rem;background:var(--bordeaux);color:var(--paper);flex-shrink:0;" onclick="console.log('dashboard: rappel tournée')">Activer le rappel →</button>
+            <a href="#waitlist" class="dbtn dbtn--bordeaux">Activer le rappel →</a>
           </div>
         </div>
 
@@ -366,8 +398,8 @@
             <div class="dpanel-locked__icon" aria-hidden="true">⊘</div>
             <h3 class="dpanel-locked__title">Mon réseau — bientôt disponible</h3>
             <p class="dpanel-locked__desc">Programme de parrainage, communauté privée, annuaire des membres, badges d'engagement. La partie sociale de votre bureau.</p>
-            <p class="dpanel-locked__date">Ouverture prévue : juillet 2026</p>
-            <button type="button" class="btn btn--bordeaux" style="font-size:0.78rem;" onclick="console.log('dashboard: prévenir réseau')">Être prévenu de l'ouverture →</button>
+            <p class="dpanel-locked__date">Ouverture prévue : juillet 2026.</p>
+            <a href="#waitlist" class="dbtn dbtn--bordeaux">Être prévenu de l'ouverture →</a>
           </div>
         </div>
 
@@ -442,8 +474,8 @@
           <div class="dcompte-rgpd">
             <p class="dcompte-rgpd__text">🔒 Vous gardez le contrôle.</p>
             <div class="dcompte-rgpd__links">
-              <a href="#" class="dcompte-rgpd__link" onclick="return false;">Exporter mes données</a>
-              <a href="#" class="dcompte-rgpd__link dcompte-rgpd__link--danger" onclick="return false;">Supprimer mon compte</a>
+              <a href="#waitlist" class="dcompte-rgpd__link">Exporter mes données</a>
+              <a href="#waitlist" class="dcompte-rgpd__link dcompte-rgpd__link--danger">Supprimer mon compte</a>
             </div>
           </div>
 

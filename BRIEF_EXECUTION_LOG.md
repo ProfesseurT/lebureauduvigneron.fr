@@ -241,3 +241,51 @@ Si `npm install` n'a pas été lancé ET que `NOTION_TOKEN` est défini, le scri
 **Statut : PRÊT POUR PUSH TEDDY**
 
 *Log généré automatiquement — 2026-05-22*
+
+---
+
+## 1e. DASHBOARD PREVIEW V2 — Corrections (2026-05-25)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-22_LP-dashboard-preview_V2.md`
+
+### Fichiers modifiés
+| Fichier | Ce qui a changé |
+|---------|-----------------|
+| `src/index.njk` | Nouvel ordre LP : dashboard-preview déplacé **avant** tiroirs ; references déplacé **après** tiroirs (swap des deux blocs) |
+| `src/_includes/components/dashboard-preview.njk` | Corrections complètes V2 (voir détail ci-dessous) |
+| `src/css/style.css` | Ajout classes `.dbtn` / `.dbtn--bordeaux` / `.dbtn--outline`, `.dform-esa` et sous-éléments, flex sur `.dlib-card` et `.dtournee-info` |
+
+### Corrections détaillées dans dashboard-preview.njk
+| Section | V1 (avant) | V2 (après) |
+|---------|-----------|-----------|
+| **Ordre LP** | dashboard après tiroirs | dashboard avant tiroirs |
+| **Panel 01 — partenaire** | "Jardin & Vigne" (fictif) | "Vinilabel — étiquetage Loire" (réel) |
+| **Panel 01 — boutons** | `<button onclick="console.log(...)">` | `<a href="#waitlist" class="dbtn ...">` |
+| **Panel 02 — tags** | "Lead magnet" × 5 | Tags catégorie métier : Communication / Commercial / Productivité / Diagnostic / Conformité |
+| **Panel 02 — descriptions** | Textes génériques | Promesses en 1 ligne per brief |
+| **Panel 02 — boutons** | `<button onclick="...">` | `<a href="#waitlist" class="dbtn dbtn--bordeaux">` |
+| **Panel 02 — locked** | `<button disabled>` | `<span>` (non-interactif, pas de lien) |
+| **Panel 03 — cartes** | Pas de bouton | Bouton "Ouvrir →" `href="#waitlist"` sur chaque carte |
+| **Panel 04 — formations** | 3 formations factices avec prix (297€, 397€, 197€) + atelier live tarifé | Unique carte ESA Angers, 5 modules, **aucun prix** |
+| **Panel 05 — partenaires** | 4 fiches fictives (Œnoconseil, Vinea, Jardin, Vitisoft) | 6 partenaires réels Vitisoft (Viticode, CER France, Banque Pop., Vinilabel, FVI Anjou, TGS France) |
+| **Panel 05 — filtres** | Œnologues / Compta / Étiquetage / Webdesign / ERP | Conformité / Comptabilité / Financement / Étiquetage / Syndicats / Communication |
+| **Panel 05 — transparence** | Sur Vitisoft | Sur **Viticode** ("Édité par Solumatic") |
+| **Panel 05 — bandeau** | Absent | Ajouté : "20+ partenaires" + lien #waitlist |
+| **Panel 06 — boutons** | `<button onclick="...">` | `<a href="#waitlist">` sur chaque replay + bandeau |
+| **Panel 07 — bouton** | `<button onclick="...">` | `<a href="#waitlist">` |
+| **Panel 08 — liens RGPD** | `href="#" onclick="return false;"` | `href="#waitlist"` |
+
+### Déviations par rapport au brief
+Aucune. Toutes les règles V2 respectées à la lettre.
+
+### Vérifications post-build
+- `npm run build` → 0 erreur, 0 warning
+- Aucune occurrence de "Lead magnet" dans `_site/index.html`
+- Aucune occurrence de "297" / "€" dans les panels formations
+- Aucune fiche fictive (Œnoconseil / Vinea / Jardin & Vigne) dans `_site/index.html`
+- Ordre des sections confirmé : dashboard (l.528) → tiroirs (l.1018) → references (l.1386) → articles (l.1686) → waitlist (l.1704)
+- Tous les CTA mock pointent vers `#waitlist` (balises `<a>`)
+
+**Statut : PRÊT POUR PUSH TEDDY**
+
+*Log généré automatiquement — 2026-05-25*

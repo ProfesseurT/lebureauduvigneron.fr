@@ -2206,6 +2206,145 @@ em { font-style: italic; }
 .dcompte-rgpd__link--danger { color: #C5443D; }
 .dcompte-rgpd__link--danger:hover { color: #A03530; }
 
+/* -- dbtn : boutons liens → #waitlist dans le mock -- */
+.dbtn {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.65rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.dbtn--bordeaux {
+  color: var(--paper);
+  background: var(--bordeaux);
+  border: 1px solid var(--bordeaux);
+}
+
+.dbtn--bordeaux:hover {
+  background: #7a1525;
+  border-color: #7a1525;
+  color: var(--paper);
+}
+
+.dbtn--outline {
+  color: var(--bordeaux);
+  background: none;
+  border: 1px solid var(--bordeaux);
+}
+
+.dbtn--outline:hover {
+  background: var(--bordeaux);
+  color: var(--paper);
+}
+
+/* -- dlib-card : flex pour positionner le bouton en bas -- */
+.dlib-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.dlib-card__meta { flex: 1; }
+
+/* -- dtournee-info : flex pour positionner le bouton en bas -- */
+.dtournee-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dtournee-info__pitch { flex: 1; }
+
+/* -- Panel 04 (V2): Carte ESA -- */
+.dform-esa {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 700px;
+}
+
+.dform-esa__chip {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #2a6b38;
+  border: 1px solid rgba(42,107,56,0.4);
+  background: rgba(42,107,56,0.08);
+  padding: 0.15rem 0.5rem;
+  width: fit-content;
+}
+
+.dform-esa__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.dform-esa__subtitle {
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+  margin: 0;
+}
+
+.dform-esa__rule {
+  height: 1px;
+  background: var(--rule);
+  margin: 0.15rem 0;
+}
+
+.dform-esa__modules {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.dform-esa__module {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+
+.dform-esa__module-name {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.dform-esa__module-dur {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.dform-esa__sign {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0;
+}
+
 /* -- Dashboard responsive -- */
 @media (max-width: 1023px) {
   .dashboard-mock {
