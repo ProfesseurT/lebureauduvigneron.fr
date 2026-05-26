@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau de bord vigneron — Le Bureau du Vigneron</title>
+<meta name="description" content="Lis ton mois de ventes en 30 secondes. Upload ton export Vitisoft, obtiens tes 11 KPI commerciaux automatiquement.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bordeaux:     #5A1525;
+  --bordeaux-deep:#45101D;
+  --paper:        #EFE7D6;
+  --paper-light:  #F5EFE0;
+  --paper-deep:   #E5DBC4;
+  --ink:          #1E2536;
+  --cork:         #B89066;
+  --muted:        #7A6A56;
+  --border:       #D6C9AF;
+  --green:        #2E6B4A;
+  --red:          #8B1A1A;
+  --yellow:       #7A5C00;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:'Playfair Display',Georgia,serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--bordeaux);text-decoration:none}
+a:hover{text-decoration:underline}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* NAV */
+.nav{background:var(--bordeaux-deep);padding:1rem 0;position:sticky;top:0;z-index:100}
+.nav__inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 1.5rem}
+.nav__logo{color:var(--paper);font-family:'Playfair Display',serif;font-size:1rem;font-style:italic;text-decoration:none}
+.nav__links{display:flex;gap:2rem;list-style:none;align-items:center}
+.nav__links a{color:var(--paper);opacity:.75;font-family:'JetBrains Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;text-decoration:none}
+.nav__links a:hover{opacity:1;text-decoration:none}
+.nav__badge{background:var(--cork);color:var(--paper);padding:.2rem .6rem;border-radius:2px;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;opacity:1!important}
+
+/* LAYOUT */
+.container{max-width:1200px;margin:0 auto;padding:0 1.5rem}
+.section{padding:4rem 0}
+.section--dark{background:var(--bordeaux-deep);color:var(--paper)}
+.section--mid{background:var(--paper-deep)}
+
+/* LANDING */
+.landing-hero{padding:5rem 0 4rem;text-align:center}
+.landing-hero h1{font-size:clamp(2rem,5vw,3.2rem);max-width:640px;margin:0 auto 1.5rem;line-height:1.2}
+.landing-hero .lead{font-size:1.1rem;color:var(--muted);max-width:480px;margin:0 auto 2.5rem;font-style:italic}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.15em;color:var(--cork);margin-bottom:1.25rem}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:4px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;max-width:520px;margin:0 auto 1.5rem;background:var(--paper-light)}
+.upload-zone:hover{border-color:var(--bordeaux);background:var(--paper-deep)}
+.upload-icon{font-size:2.5rem;margin-bottom:1rem}
+.upload-zone h3{font-size:1.1rem;margin-bottom:.5rem}
+.upload-zone p{font-size:.85rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.upload-hint{font-size:.78rem;color:var(--muted);text-align:center;font-family:'JetBrains Mono',monospace;margin-top:.75rem}
+
+/* BUTTONS */
+.btn{display:inline-block;padding:.75rem 1.75rem;font-family:'JetBrains Mono',monospace;font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;transition:all .2s;border:none;text-decoration:none}
+.btn--primary{background:var(--bordeaux);color:var(--paper)}
+.btn--primary:hover{background:var(--bordeaux-deep);text-decoration:none;color:var(--paper)}
+.btn--ghost{background:transparent;color:var(--bordeaux);border:1.5px solid var(--bordeaux)}
+.btn--ghost:hover{background:var(--bordeaux);color:var(--paper);text-decoration:none}
+.btn--demo{background:var(--cork);color:var(--paper);padding:.6rem 1.25rem;font-size:.75rem}
+.btn--demo:hover{background:#9a7a54;text-decoration:none;color:var(--paper)}
+.btn-group{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+
+/* TEASER SCREENSHOTS */
+.teaser-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin:3rem 0}
+.teaser-card{background:var(--paper-deep);border:1px solid var(--border);border-radius:4px;padding:1.5rem;text-align:left}
+.teaser-card__label{font-family:'JetBrains Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--cork);margin-bottom:.75rem}
+.teaser-card__big{font-size:2rem;font-weight:700;color:var(--bordeaux);margin-bottom:.25rem}
+.teaser-card__sub{font-size:.8rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.teaser-card__delta{font-size:.78rem;font-family:'JetBrains Mono',monospace;margin-top:.5rem}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--red)}
+.delta-neutral{color:var(--yellow)}
+
+/* PRIVACY BADGE */
+.privacy{display:inline-flex;align-items:center;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);margin-top:1rem}
+.privacy::before{content:'🔒';font-size:.9rem}
+
+/* DASHBOARD */
+#state-dashboard{display:none}
+.dash-header{background:var(--bordeaux-deep);padding:1.25rem 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.dash-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.dash-title{color:var(--paper);font-size:1.1rem;font-style:italic}
+.dash-meta{color:rgba(239,231,214,.6);font-family:'JetBrains Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
+.month-selector{background:rgba(239,231,214,.12);border:1px solid rgba(239,231,214,.25);color:var(--paper);font-family:'JetBrains Mono',monospace;font-size:.78rem;padding:.4rem .8rem;cursor:pointer;appearance:none;border-radius:2px;padding-right:1.8rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23EFE7D6' opacity='.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center}
+
+/* BLOC A — KPI cards */
+.bloc-a{padding:2rem 0 1.5rem}
+.kpi-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem}
+.kpi-card{background:var(--paper-light);border:1px solid var(--border);padding:1.5rem;position:relative}
+.kpi-card--highlight{border-color:var(--bordeaux);border-left:4px solid var(--bordeaux)}
+.kpi-label{font-family:'JetBrains Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.6rem}
+.kpi-value{font-size:2.2rem;font-weight:700;color:var(--ink);line-height:1;margin-bottom:.6rem}
+.kpi-value span{font-size:1rem;font-weight:400;color:var(--muted)}
+.kpi-deltas{display:flex;flex-direction:column;gap:.25rem}
+.delta{font-family:'JetBrains Mono',monospace;font-size:.72rem;display:flex;gap:.4rem;align-items:center}
+.delta-label{color:var(--muted)}
+
+/* BLOC B */
+.bloc-b{padding:1.5rem 0}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.grid-2-3{display:grid;grid-template-columns:2fr 3fr;gap:1.5rem}
+.chart-card{background:var(--paper-light);border:1px solid var(--border);padding:1.5rem}
+.chart-card__title{font-family:'JetBrains Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1.25rem}
+.chart-wrap{position:relative;height:220px}
+.chart-wrap--tall{height:260px}
+.top-list{list-style:none;display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem}
+.top-list li{display:flex;align-items:baseline;gap:.5rem;font-size:.9rem}
+.top-rank{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);width:1.2rem;flex-shrink:0}
+.top-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-ca{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--ink);flex-shrink:0}
+.top-pct{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);flex-shrink:0;width:2.8rem;text-align:right}
+.alert-badge{display:inline-block;padding:.15rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;border-radius:2px;margin-left:.4rem}
+.alert-badge--warn{background:#FEF3CD;color:#7A5C00;border:1px solid #F0D060}
+.alert-badge--ok{background:#D4EDDA;color:#2E6B4A;border:1px solid #A8D8B9}
+.alert-badge--danger{background:#F8D7DA;color:#8B1A1A;border:1px solid #F0A0A0}
+
+/* BLOC C */
+.bloc-c{padding:1.5rem 0 3rem}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 2fr;gap:1.5rem}
+.retour-big{font-size:2.8rem;font-weight:700;line-height:1;margin-bottom:.5rem}
+.retour-ok{color:var(--green)}
+.retour-warn{color:var(--yellow)}
+.retour-danger{color:var(--red)}
+.format-list{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.format-row{display:flex;align-items:center;gap:.75rem}
+.format-bar-wrap{flex:1;background:var(--paper-deep);height:8px;border-radius:4px;overflow:hidden}
+.format-bar{height:100%;background:var(--bordeaux);border-radius:4px}
+.format-pct{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--ink);width:2.5rem;text-align:right}
+.format-name{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);width:7rem;white-space:nowrap}
+
+/* CTA FOOTER */
+.dash-cta{background:var(--bordeaux-deep);padding:2.5rem 0;text-align:center;border-top:1px solid rgba(239,231,214,.12)}
+.dash-cta h3{color:var(--paper);font-size:1.3rem;margin-bottom:.75rem}
+.dash-cta p{color:rgba(239,231,214,.65);font-size:.9rem;font-style:italic;margin-bottom:1.5rem}
+
+/* FOOTER */
+footer{background:var(--ink);color:rgba(239,231,214,.5);text-align:center;padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem}
+
+/* DIVIDER */
+.rule{height:1px;background:var(--border);margin:1.5rem 0}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .kpi-grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-2,.grid-2-3,.grid-3{grid-template-columns:1fr}
+  .teaser-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .kpi-grid-4{grid-template-columns:1fr 1fr}
+  .kpi-value{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav__inner">
+    <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
+    <ul class="nav__links">
+      <li><a href="/articles/">Articles</a></li>
+      <li><a href="/outils/dashboard-vigneron" class="nav__badge">Outil</a></li>
+      <li><a href="/teddy/">À propos</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ===================== STATE 1 : LANDING ===================== -->
+<div id="state-landing">
+
+  <div class="landing-hero">
+    <div class="container" style="max-width:720px">
+      <p class="eyebrow">Tableau de bord vigneron · Gratuit · Données locales</p>
+      <h1>Lis ton mois de ventes en 30 secondes. Pas en 1 heure.</h1>
+      <p class="lead">Upload ton export mensuel Vitisoft — tu obtiens tes 11 KPI commerciaux instantanément. Tes données ne quittent pas ton navigateur.</p>
+
+      <div class="upload-zone" onclick="showDashboard()">
+        <div class="upload-icon">📂</div>
+        <h3>Dépose ton fichier CSV ici</h3>
+        <p>ou clique pour sélectionner · Export Vitisoft</p>
+      </div>
+      <div class="upload-hint">Séparateur ; · Encodage CP1252 ou UTF-8 · Toutes tailles de fichier</div>
+
+      <div class="btn-group" style="margin-top:1.5rem">
+        <button class="btn btn--primary" onclick="showDashboard()">Upload mon CSV Vitisoft</button>
+        <button class="btn btn--ghost" onclick="showDashboard()">Tester avec le fichier démo</button>
+      </div>
+      <div style="text-align:center">
+        <span class="privacy">100 % privé — tes données restent dans ton navigateur</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teaser KPI preview -->
+  <div class="section section--mid">
+    <div class="container">
+      <p class="eyebrow" style="text-align:center">Ce que tu vas voir en 5 secondes</p>
+      <div class="teaser-grid">
+        <div class="teaser-card">
+          <div class="teaser-card__label">CA HT du mois</div>
+          <div class="teaser-card__big">46 850 €</div>
+          <div class="teaser-card__delta delta-up">↑ +32,3 % vs mois dernier</div>
+          <div class="teaser-card__delta delta-up">↑ +25,5 % vs même mois N-1</div>
+        </div>
+        <div class="teaser-card">
+          <div class="teaser-card__label">Mix circuits</div>
+          <div class="teaser-card__sub" style="margin-bottom:.75rem">Particuliers · CAV · Export · CHR</div>
+          <div style="display:flex;flex-direction:column;gap:.3rem">
+            <div style="display:flex;gap:.5rem;align-items:center;font-family:'JetBrains Mono',monospace;font-size:.8rem">
+              <div style="width:36%;height:8px;background:var(--bordeaux);border-radius:2px"></div>
+              <span>PAR 36%</span>
+            </div>
+            <div style="display:flex;gap:.5rem;align-items:center;font-family:'JetBrains Mono',monospace;font-size:.8rem">
+              <div style="width:27%;height:8px;background:var(--cork);border-radius:2px"></div>
+              <span>CAV 27%</span>
+            </div>
+            <div style="display:flex;gap:.5rem;align-items:center;font-family:'JetBrains Mono',monospace;font-size:.8rem">
+              <div style="width:19%;height:8px;background:#8B4555;border-radius:2px"></div>
+              <span>EXPORT 19%</span>
+            </div>
+          </div>
+        </div>
+        <div class="teaser-card">
+          <div class="teaser-card__label">Top client du mois</div>
+          <div class="teaser-card__big" style="font-size:1.4rem">AGUIAR</div>
+          <div class="teaser-card__sub">8 190 € · 17,5 % du CA mensuel</div>
+          <div class="teaser-card__delta" style="margin-top:.75rem;color:var(--muted);font-size:.78rem">
+            Top 1 en dessous du seuil d'alerte (30 %) <span class="alert-badge alert-badge--ok">OK</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:2rem">
+        <button class="btn btn--demo" onclick="showDashboard()">→ Voir le dashboard complet (données démo)</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /state-landing -->
+
+
+<!-- ===================== STATE 2 : DASHBOARD ===================== -->
+<div id="state-dashboard">
+
+  <!-- HEADER DASHBOARD -->
+  <div class="dash-header">
+    <div class="container">
+      <div class="dash-header__inner">
+        <div>
+          <div class="dash-meta">Domaine de la Serre d'Autan · données démo</div>
+          <div class="dash-title">Tableau de bord commercial</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem">
+          <select class="month-selector" id="monthSelector">
+            <option>Mai 2026</option>
+            <option>Avril 2026</option>
+            <option>Mars 2026</option>
+            <option>Février 2026</option>
+            <option>Janvier 2026</option>
+          </select>
+          <button class="btn btn--ghost" onclick="showLanding()" style="color:rgba(239,231,214,.7);border-color:rgba(239,231,214,.25);font-size:.72rem;padding:.4rem .9rem">← Retour</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOC A -->
+  <div class="bloc-a">
+    <div class="container">
+      <div class="kpi-grid-4">
+
+        <div class="kpi-card kpi-card--highlight">
+          <div class="kpi-label">CA HT du mois</div>
+          <div class="kpi-value">46 850 <span>€</span></div>
+          <div class="kpi-deltas">
+            <div class="delta">
+              <span class="delta-up">↑ +32,3 %</span>
+              <span class="delta-label">vs avril 2026</span>
+            </div>
+            <div class="delta">
+              <span class="delta-up">↑ +25,5 %</span>
+              <span class="delta-label">vs mai 2025</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Volume (eq. 75 cl)</div>
+          <div class="kpi-value">6 350 <span>btl</span></div>
+          <div class="kpi-deltas">
+            <div class="delta">
+              <span class="delta-up">↑ +33,6 %</span>
+              <span class="delta-label">vs avril 2026</span>
+            </div>
+            <div class="delta">
+              <span class="delta-up">↑ +26,6 %</span>
+              <span class="delta-label">vs mai 2025</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Prix moyen / bouteille</div>
+          <div class="kpi-value">7,38 <span>€/btl</span></div>
+          <div class="kpi-deltas">
+            <div class="delta">
+              <span class="delta-neutral">↓ −0,8 %</span>
+              <span class="delta-label">vs mai 2025</span>
+            </div>
+            <div class="delta" style="margin-top:.15rem">
+              <span style="font-size:.68rem;color:var(--muted);font-style:italic">BIB en hausse ce mois</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Clients actifs</div>
+          <div class="kpi-value">15 <span style="font-size:.85rem"></span></div>
+          <div class="kpi-deltas">
+            <div class="delta">
+              <span class="delta-up">↑ +2</span>
+              <span class="delta-label">vs avril 2026</span>
+            </div>
+            <div class="delta">
+              <span class="delta-neutral">= même nombre</span>
+              <span class="delta-label">vs mai 2025</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOC B -->
+  <div class="bloc-b">
+    <div class="container">
+      <div class="grid-2-3" style="margin-bottom:1.5rem">
+
+        <!-- K5 Mix circuits -->
+        <div class="chart-card">
+          <div class="chart-card__title">K5 — Mix circuits (CA)</div>
+          <div class="chart-wrap">
+            <canvas id="chartCircuits"></canvas>
+          </div>
+        </div>
+
+        <!-- K6 Top 5 clients -->
+        <div class="chart-card">
+          <div class="chart-card__title">K6 — Top 5 clients du mois</div>
+          <ul class="top-list">
+            <li>
+              <span class="top-rank">1.</span>
+              <span class="top-name">AGUIAR</span>
+              <span class="top-ca">8 190 €</span>
+              <span class="top-pct">17,5 %</span>
+            </li>
+            <li>
+              <span class="top-rank">2.</span>
+              <span class="top-name">CLOUGH JOHN</span>
+              <span class="top-ca">6 840 €</span>
+              <span class="top-pct">14,6 %</span>
+            </li>
+            <li>
+              <span class="top-rank">3.</span>
+              <span class="top-name">CAVE DES PYRÉNÉES</span>
+              <span class="top-ca">4 493 €</span>
+              <span class="top-pct">9,6 %</span>
+            </li>
+            <li>
+              <span class="top-rank">4.</span>
+              <span class="top-name">CAVES DU PALAIS</span>
+              <span class="top-ca">3 744 €</span>
+              <span class="top-pct">8,0 %</span>
+            </li>
+            <li>
+              <span class="top-rank">5.</span>
+              <span class="top-name">MARTIN PAUL</span>
+              <span class="top-ca">3 557 €</span>
+              <span class="top-pct">7,6 %</span>
+            </li>
+          </ul>
+          <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+            <span class="alert-badge alert-badge--ok">Top 1 &lt; 30 % — concentration normale</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="grid-2">
+
+        <!-- K7 Top 5 cuvées -->
+        <div class="chart-card">
+          <div class="chart-card__title">K7 — Top 5 cuvées (CA)</div>
+          <div class="chart-wrap">
+            <canvas id="chartCuvees"></canvas>
+          </div>
+        </div>
+
+        <!-- K8 Mix couleurs -->
+        <div class="chart-card">
+          <div class="chart-card__title">K8 — Mix couleurs</div>
+          <div class="chart-wrap">
+            <canvas id="chartCouleurs"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOC C -->
+  <div class="bloc-c section--mid">
+    <div class="container" style="padding-top:1.5rem">
+      <div class="grid-3">
+
+        <!-- K9 Mix formats -->
+        <div class="chart-card">
+          <div class="chart-card__title">K9 — Mix formats</div>
+          <div class="format-list" style="margin-top:.5rem">
+            <div class="format-row">
+              <span class="format-name">Bouteille 0.75 L</span>
+              <div class="format-bar-wrap"><div class="format-bar" style="width:95%"></div></div>
+              <span class="format-pct">95 %</span>
+            </div>
+            <div class="format-row">
+              <span class="format-name">BIB 3 L</span>
+              <div class="format-bar-wrap"><div class="format-bar" style="width:5%;background:var(--cork)"></div></div>
+              <span class="format-pct">5 %</span>
+            </div>
+          </div>
+          <div style="margin-top:1.25rem;padding-top:.75rem;border-top:1px solid var(--border)">
+            <span style="font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--muted)">En volume eq75 · Btl = 6 030 · BIB = 320</span>
+          </div>
+        </div>
+
+        <!-- K10 Retours -->
+        <div class="chart-card">
+          <div class="chart-card__title">K10 — Retours &amp; remises</div>
+          <div class="retour-big retour-ok">0,4 %</div>
+          <div style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">du CA brut mensuel</div>
+          <span class="alert-badge alert-badge--ok">Normal — seuil 5 %</span>
+          <div style="margin-top:1rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted)">
+            Montant : −187 € (1 retour)<br>
+            Client : MARTIN PAUL
+          </div>
+        </div>
+
+        <!-- K11 YTD -->
+        <div class="chart-card">
+          <div class="chart-card__title">K11 — Cumul YTD vs N-1 (CA HT)</div>
+          <div class="chart-wrap--tall">
+            <canvas id="chartYTD"></canvas>
+          </div>
+          <div style="margin-top:.75rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted)">
+            2026 YTD jan–mai : <strong style="color:var(--bordeaux)">162 979 €</strong><br>
+            2025 YTD jan–mai : 155 150 € &nbsp;·&nbsp; <span class="delta-up">+5,0 %</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="dash-cta">
+    <div class="container">
+      <h3>Garde cet historique d'un mois à l'autre</h3>
+      <p>Crée ton compte gratuit pour empiler tes mois et suivre ta progression sur 12 mois.</p>
+      <div class="btn-group">
+        <button class="btn btn--primary" onclick="alert('Fonctionnalité disponible en V2 — rejoins la liste d\'attente !')">Créer mon compte gratuit</button>
+        <a href="/#waitlist" class="btn btn--ghost" style="color:var(--paper);border-color:rgba(239,231,214,.3)">Liste d'attente</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /state-dashboard -->
+
+<footer>
+  <p>Le Bureau du Vigneron est une marque commerciale de Solumatic SAS · <a href="/teddy/" style="color:inherit;opacity:.7">Teddy Pereira</a></p>
+</footer>
+
+<script>
+function showDashboard() {
+  document.getElementById('state-landing').style.display = 'none';
+  document.getElementById('state-dashboard').style.display = 'block';
+  window.scrollTo(0, 0);
+  initCharts();
+}
+function showLanding() {
+  document.getElementById('state-dashboard').style.display = 'none';
+  document.getElementById('state-landing').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+let chartsInitialized = false;
+function initCharts() {
+  if (chartsInitialized) return;
+  chartsInitialized = true;
+
+  const palette = {
+    bordeaux: '#5A1525',
+    bordeaux2: '#8B4555',
+    cork:     '#B89066',
+    muted:    '#D6C9AF',
+    ink:      '#1E2536',
+    green:    '#2E6B4A',
+    blue:     '#3A5A7A',
+  };
+
+  const fontMono = "'JetBrains Mono', monospace";
+
+  Chart.defaults.font.family = fontMono;
+  Chart.defaults.font.size = 11;
+  Chart.defaults.color = '#7A6A56';
+
+  // K5 — Mix circuits (donut)
+  new Chart(document.getElementById('chartCircuits'), {
+    type: 'doughnut',
+    data: {
+      labels: ['PAR', 'CAV', 'EXPORT', 'GROSSI', 'CHR', 'PART'],
+      datasets: [{
+        data: [36, 27, 19, 9, 5, 4],
+        backgroundColor: [palette.bordeaux, palette.cork, palette.bordeaux2, '#C4A882', palette.muted, '#E5DBC4'],
+        borderColor: '#EFE7D6',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, padding: 10 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} %` } }
+      }
+    }
+  });
+
+  // K7 — Top 5 cuvées (horizontal bar)
+  new Chart(document.getElementById('chartCuvees'), {
+    type: 'bar',
+    data: {
+      labels: ["BIB Rouge", "GR 2020", "Blanc 2023", "Rosé 2023", "Rouge 2022"],
+      datasets: [{
+        label: 'CA HT (€)',
+        data: [1280, 2916, 3802, 7410, 31442],
+        backgroundColor: [palette.muted, palette.cork, '#8B9E7A', palette.bordeaux2, palette.bordeaux],
+        borderRadius: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0,0,0,.06)' },
+          ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v }
+        },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // K8 — Mix couleurs (grouped bar)
+  new Chart(document.getElementById('chartCouleurs'), {
+    type: 'bar',
+    data: {
+      labels: ['Rouge', 'Rosé', 'Blanc'],
+      datasets: [
+        { label: '% Volume', data: [74, 18, 8], backgroundColor: palette.bordeaux, borderRadius: 2 },
+        { label: '% CA',     data: [76, 16, 8], backgroundColor: palette.cork, borderRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+      scales: {
+        y: {
+          max: 100,
+          grid: { color: 'rgba(0,0,0,.06)' },
+          ticks: { callback: v => v + ' %' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // K11 — YTD cumul
+  new Chart(document.getElementById('chartYTD'), {
+    type: 'line',
+    data: {
+      labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'],
+      datasets: [
+        {
+          label: '2026',
+          data: [25872, 43409, 80682, 116129, 162978],
+          borderColor: palette.bordeaux,
+          backgroundColor: 'rgba(90,21,37,.08)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: palette.bordeaux
+        },
+        {
+          label: '2025',
+          data: [28641, 46427, 83280, 117833, 155150],
+          borderColor: palette.cork,
+          borderDash: [5, 4],
+          borderWidth: 1.8,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: palette.cork
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 10 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('fr-FR')} €` } }
+      },
+      scales: {
+        y: {
+          grid: { color: 'rgba(0,0,0,.06)' },
+          ticks: { callback: v => (v/1000).toFixed(0)+'k €' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

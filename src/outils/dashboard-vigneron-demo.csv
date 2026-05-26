@@ -1,0 +1,143 @@
+Famille client - Lib;Nom + Prénom Client;Commerciaux;Code article;Année;Mois;Volume (EQ 75cl);CA HT;AOC/IGP;Couleur;Millésime;Format;Nom cuvée
+PAR;AGUIAR;;1001;2025;Janvier;600;4680;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1001;2025;Janvier;240;1872;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;LECLERC PIERRE;;1004;2025;Janvier;48;648;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Janvier;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Janvier;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2025;Janvier;192;1382;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+EXPORT;CLOUGH JOHN;;1001;2025;Janvier;960;7200;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2025;Janvier;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2025;Janvier;120;936;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+GROSSI;VINO FRANCE DIST;;1001;2025;Janvier;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1003;2025;Janvier;96;691;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+PAR;AGUIAR;;1001;2025;Février;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;MARTIN PAUL;;1002;2025;Février;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Février;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Février;240;1872;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;CLOUGH JOHN;;1001;2025;Février;720;5400;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;LE VIEUX MOULIN;;1002;2025;Février;96;624;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1001;2025;Février;360;2340;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1001;2025;Février;48;374;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;AGUIAR;;1001;2025;Mars;720;5616;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2025;Mars;360;2340;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;LECLERC PIERRE;;1004;2025;Mars;96;1296;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Mars;600;4680;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Mars;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2025;Mars;288;2074;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+CAV;VINOTHÈQUE DE LYON;;1004;2025;Mars;72;972;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+EXPORT;CLOUGH JOHN;;1001;2025;Mars;960;7200;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2025;Mars;360;2340;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2025;Mars;192;1498;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;BRASSERIE DES ARTS;;1002;2025;Mars;144;936;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1001;2025;Mars;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1003;2025;Mars;144;1037;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+PAR;AGUIAR;;1001;2025;Avril;840;6552;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2025;Avril;480;3120;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;LECLERC PIERRE;;1004;2025;Avril;72;972;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+PAR;MARTIN PAUL;;1001;2025;Avril;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Avril;576;4493;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Avril;432;3370;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2025;Avril;240;1728;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+EXPORT;CLOUGH JOHN;;1001;2025;Avril;840;6300;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;LE VIEUX MOULIN;;1001;2025;Avril;168;1310;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+GROSSI;VINO FRANCE DIST;;1001;2025;Avril;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1002;2025;Avril;120;780;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;AGUIAR;;1001;2025;Mai;840;6552;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2025;Mai;480;3120;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;LECLERC PIERRE;;1004;2025;Mai;96;1296;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+PAR;MARTIN PAUL;;1001;2025;Mai;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Mai;528;4118;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Mai;384;2995;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2025;Mai;240;1728;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+CAV;CAVE SAINT-ÉMILION;;1002;2025;Mai;168;1092;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+EXPORT;CLOUGH JOHN;;1001;2025;Mai;840;6300;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2025;Mai;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2025;Mai;168;1310;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;BRASSERIE DES ARTS;;1002;2025;Mai;120;780;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1001;2025;Mai;432;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1003;2025;Mai;144;1037;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+PAR;MARTIN PAUL;;1001;2025;Mai;-24;-187.2;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;AGUIAR;;1001;2025;Juin;960;7488;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2025;Juin;600;3900;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;LECLERC PIERRE;;1004;2025;Juin;120;1620;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Juin;576;4493;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Juin;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2025;Juin;288;2074;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+EXPORT;CLOUGH JOHN;;1001;2025;Juin;1080;8100;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2025;Juin;360;2340;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2025;Juin;240;1872;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;BRASSERIE DES ARTS;;1002;2025;Juin;192;1248;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1005;2025;Juin;480;1920;Languedoc;Rouge;2022;BIB 3 L;Serre d'Autan BIB Rouge
+PART;Client de passage;;1002;2025;Juin;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;AGUIAR;;1001;2025;Décembre;1200;9360;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2025;Décembre;720;4680;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;LECLERC PIERRE;;1004;2025;Décembre;240;3240;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+PAR;MARTIN PAUL;;1001;2025;Décembre;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVE DES PYRÉNÉES;;1001;2025;Décembre;720;5616;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2025;Décembre;600;4680;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2025;Décembre;360;2592;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+CAV;VINOTHÈQUE DE LYON;;1004;2025;Décembre;144;1944;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+EXPORT;CLOUGH JOHN;;1001;2025;Décembre;1440;10800;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2025;Décembre;480;3120;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2025;Décembre;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;BRASSERIE DES ARTS;;1002;2025;Décembre;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1001;2025;Décembre;720;4680;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1003;2025;Décembre;288;2074;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+PAR;LECLERC PIERRE;;1001;2025;Décembre;-48;-374.4;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;AGUIAR;;1001;2026;Janvier;600;4680;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1001;2026;Janvier;240;1872;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;LECLERC PIERRE;;1004;2026;Janvier;48;648;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+CAV;CAVE DES PYRÉNÉES;;1001;2026;Janvier;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2026;Janvier;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;CLOUGH JOHN;;1001;2026;Janvier;960;7200;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;LE VIEUX MOULIN;;1001;2026;Janvier;120;936;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+GROSSI;VINO FRANCE DIST;;1001;2026;Janvier;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1003;2026;Janvier;120;864;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+PAR;AGUIAR;;1001;2026;Février;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;MARTIN PAUL;;1002;2026;Février;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CAV;CAVE DES PYRÉNÉES;;1001;2026;Février;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2026;Février;240;1872;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;CLOUGH JOHN;;1001;2026;Février;720;5400;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;LE VIEUX MOULIN;;1001;2026;Février;96;749;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+GROSSI;VINO FRANCE DIST;;1001;2026;Février;360;2340;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;AGUIAR;;1001;2026;Mars;840;6552;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2026;Mars;480;3120;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;LECLERC PIERRE;;1004;2026;Mars;96;1296;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+CAV;CAVE DES PYRÉNÉES;;1001;2026;Mars;576;4493;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2026;Mars;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2026;Mars;288;2074;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+EXPORT;CLOUGH JOHN;;1001;2026;Mars;1080;8100;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2026;Mars;360;2340;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2026;Mars;192;1498;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;BRASSERIE DES ARTS;;1002;2026;Mars;144;936;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1001;2026;Mars;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;AGUIAR;;1001;2026;Avril;840;6552;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2026;Avril;480;3120;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;MARTIN PAUL;;1001;2026;Avril;360;2808;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;LECLERC PIERRE;;1004;2026;Avril;72;972;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+CAV;CAVE DES PYRÉNÉES;;1001;2026;Avril;528;4118;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2026;Avril;384;2995;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2026;Avril;240;1728;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+EXPORT;CLOUGH JOHN;;1001;2026;Avril;840;6300;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2026;Avril;240;1560;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2026;Avril;168;1310;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+GROSSI;VINO FRANCE DIST;;1001;2026;Avril;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;1003;2026;Avril;120;864;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+PAR;AGUIAR;;1001;2026;Mai;1050;8190;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;DUCHAMP MARIE;;1002;2026;Mai;540;3510;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+PAR;MARTIN PAUL;;1001;2026;Mai;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PAR;LECLERC PIERRE;;1004;2026;Mai;120;1620;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+PART;Client de passage;;1003;2026;Mai;240;1728;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+CAV;CAVE DES PYRÉNÉES;;1001;2026;Mai;576;4493;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;CAVES DU PALAIS;;1001;2026;Mai;480;3744;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CAV;ÉPICERIE FINE NÎMES;;1003;2026;Mai;288;2074;Languedoc;Blanc;2023;Bouteille 0.75 L;Serre d'Autan Blanc 2023
+CAV;CAVE SAINT-ÉMILION;;1002;2026;Mai;168;1092;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CAV;VINOTHÈQUE DE LYON;;1004;2026;Mai;96;1296;Languedoc;Rouge;2020;Bouteille 0.75 L;Grande Réserve Rouge 2020
+EXPORT;CLOUGH JOHN;;1001;2026;Mai;912;6840;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+EXPORT;MÜLLER HANS;;1002;2026;Mai;288;1872;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+CHR;LE VIEUX MOULIN;;1001;2026;Mai;192;1498;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+CHR;BRASSERIE DES ARTS;;1002;2026;Mai;144;936;Languedoc;Rosé;2023;Bouteille 0.75 L;Serre d'Autan Rosé 2023
+GROSSI;VINO FRANCE DIST;;1001;2026;Mai;480;3120;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+GROSSI;VINO FRANCE DIST;;1005;2026;Mai;320;1280;Languedoc;Rouge;2022;BIB 3 L;Serre d'Autan BIB Rouge
+PAR;MARTIN PAUL;;1001;2026;Mai;-24;-187.2;Languedoc;Rouge;2022;Bouteille 0.75 L;Serre d'Autan Rouge 2022
+PART;Client de passage;;9001;2026;Mai;0;0;;;0;Bouteille 0.75 L;Consigne Bouteille
