@@ -13,8 +13,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
-  <!-- Décap CMS identity widget -->
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
 
@@ -23,6 +21,7 @@
       <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
       <ul class="nav__links">
         <li><a href="/articles/">Articles</a></li>
+        <li><a href="/conseil-terrain/">Conseil terrain</a></li>
         <li><a href="/teddy/">À propos</a></li>
         <li><a href="/#waitlist" class="nav__cta">Liste d'attente</a></li>
       </ul>
@@ -93,6 +92,7 @@
         <ul>
           <li><a href="https://www.solumatic.fr" target="_blank" rel="noopener">À propos de Solumatic</a></li>
           <li><a href="/articles/">Le journal</a></li>
+          <li><a href="/conseil-terrain/">Conseil terrain</a></li>
           <li><a href="/teddy/">Teddy Pereira</a></li>
           <li><a href="mailto:teddy@solumatic.fr">Nous écrire</a></li>
         </ul>
@@ -120,18 +120,6 @@
 </footer>
 
 
-  <!-- Décap CMS redirect après login admin -->
-  <script>
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", user => {
-        if (!user) {
-          window.netlifyIdentity.on("login", () => {
-            document.location.href = "/admin/";
-          });
-        }
-      });
-    }
-  </script>
 
 </body>
 </html>

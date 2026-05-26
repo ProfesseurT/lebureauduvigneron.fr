@@ -1,0 +1,55 @@
+<section class="articles-une section" id="a-la-une">
+  <div class="container--wide">
+
+    <div class="articles-une__header">
+      <h2>À la une</h2>
+      <p class="articles-une__sub">Du concret. Du terrain. Pas de théorie.</p>
+    </div>
+
+    <div class="articles-une__grid">
+      {% set recentPosts = collections.posts | sort(true, false, 'date') %}
+      {% for post in recentPosts | first(3) %}
+      <article class="articles-une__card">
+        <a href="{{ post.url }}" class="articles-une__card-link">
+          <div class="articles-une__card-img">
+            {% if post.data.image %}
+            <img src="{{ post.data.image }}" alt="{{ post.data.title }}" loading="lazy">
+            {% else %}
+            <div class="articles-une__card-placeholder"></div>
+            {% endif %}
+          </div>
+          <div class="articles-une__card-body">
+            {% if post.data.pilier %}
+            <p class="articles-une__pilier">{{ post.data.pilier }}</p>
+            {% endif %}
+            <h3 class="articles-une__title">{{ post.data.title }}</h3>
+            {% if post.data.description %}
+            <p class="articles-une__excerpt">{{ post.data.description }}</p>
+            {% endif %}
+            <p class="articles-une__meta">
+              {% if post.data.temps_lecture %}{{ post.data.temps_lecture }}{% endif %}
+              {% if post.data.temps_lecture and post.date %} · {% endif %}
+              {% if post.date %}{{ post.date | date("d MMM YYYY") }}{% endif %}
+            </p>
+          </div>
+        </a>
+      </article>
+      {% endfor %}
+
+      {% if (collections.posts | length) < 3 %}
+      <article class="articles-une__card articles-une__card--soon">
+        <div class="articles-une__card-body articles-une__card-body--soon">
+          <p class="articles-une__pilier">Bientôt</p>
+          <h3 class="articles-une__title">D'autres analyses arrivent.</h3>
+          <p class="articles-une__excerpt">Le Bureau démarre. Un article par semaine, sur le terrain.</p>
+        </div>
+      </article>
+      {% endif %}
+    </div>
+
+    <div class="articles-une__cta">
+      <a href="/articles/" class="btn btn--bordeaux">Voir tous les articles →</a>
+    </div>
+
+  </div>
+</section>

@@ -4,17 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Le Bureau du Vigneron — Le Bureau du Vigneron</title>
-  <meta name="description" content="Le bureau extérieur du vigneron — outils, méthodes et ressources pour piloter son domaine.">
+  <meta name="description" content="Le média de référence de la filière viti-vini-SPI. Articles fond, podcasts terrain, catalogue de partenaires bienveillants. Vu depuis le bureau du vigneron.">
   <meta property="og:title" content="Le Bureau du Vigneron — Le Bureau du Vigneron">
-  <meta property="og:description" content="Le bureau extérieur du vigneron — outils, méthodes et ressources pour piloter son domaine.">
+  <meta property="og:description" content="Le média de référence de la filière viti-vini-SPI. Articles fond, podcasts terrain, catalogue de partenaires bienveillants. Vu depuis le bureau du vigneron.">
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
-  <!-- Décap CMS identity widget -->
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
 
@@ -23,6 +21,7 @@
       <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
       <ul class="nav__links">
         <li><a href="/articles/">Articles</a></li>
+        <li><a href="/conseil-terrain/">Conseil terrain</a></li>
         <li><a href="/teddy/">À propos</a></li>
         <li><a href="/#waitlist" class="nav__cta">Liste d'attente</a></li>
       </ul>
@@ -33,15 +32,134 @@
 <section class="hero hero--photo">
   <div class="hero__overlay"></div>
   <div class="hero__content">
-    <p class="hero__eyebrow">Par Teddy Pereira · Co-fondateur Solumatic</p>
-    <h1>Ce qui se passe sur le bureau avant, pendant et après le vin.</h1>
-    <p class="hero__lead">
-      La gestion, le commercial, les process — le quotidien invisible qui tient les domaines debout.
+    <h1>Le média de référence de la filière.</h1>
+    <p class="hero__lead" style="font-family:'Playfair Display',serif; font-style:italic;">
+      Vu depuis le bureau du vigneron.
+    </p>
+    <p class="hero__desc">
+      Articles fond, podcasts terrain, catalogue de partenaires bienveillants. Ici on parle de l'admin, du marketing et des heures qu'on passe à faire tourner la boîte — pas du vin.
     </p>
     <div class="hero__ctas">
-      <a href="#waitlist" class="btn">Rejoindre la liste d'attente</a>
-      <a href="#tiroirs" class="btn btn--ghost">Voir les outils</a>
+      <a href="#a-la-une" class="btn btn--bordeaux">Découvrir le média →</a>
+      <a href="#waitlist" class="btn btn--ghost">Rejoindre la liste d'attente</a>
     </div>
+  </div>
+</section>
+
+<section class="articles-une section" id="a-la-une">
+  <div class="container--wide">
+
+    <div class="articles-une__header">
+      <h2>À la une</h2>
+      <p class="articles-une__sub">Du concret. Du terrain. Pas de théorie.</p>
+    </div>
+
+    <div class="articles-une__grid">
+      
+      
+
+      
+      <article class="articles-une__card articles-une__card--soon">
+        <div class="articles-une__card-body articles-une__card-body--soon">
+          <p class="articles-une__pilier">Bientôt</p>
+          <h3 class="articles-une__title">D'autres analyses arrivent.</h3>
+          <p class="articles-une__excerpt">Le Bureau démarre. Un article par semaine, sur le terrain.</p>
+        </div>
+      </article>
+      
+    </div>
+
+    <div class="articles-une__cta">
+      <a href="/articles/" class="btn btn--bordeaux">Voir tous les articles →</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- TODO: bascule mode épisode actif quand episodes/ existe -->
+<section class="podcast-teaser section section--alt" id="podcast">
+  <div class="container">
+
+    <div class="podcast-teaser__header">
+      <h2>Le podcast</h2>
+      <p class="podcast-teaser__sub">Les voix de la filière, en conversation longue.</p>
+    </div>
+
+    <div class="podcast-teaser__body">
+      <div class="podcast-teaser__player podcast-teaser__player--disabled" aria-label="Podcast non disponible pour l'instant">
+        <div class="podcast-teaser__player-inner">
+          <div class="podcast-teaser__player-icon">▶</div>
+          <div class="podcast-teaser__player-bars">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p class="podcast-teaser__player-label">Épisode 1 · Juillet 2026</p>
+        </div>
+      </div>
+
+      <div class="podcast-teaser__text">
+        <p class="podcast-teaser__date-label">Le premier épisode arrive en juillet 2026.</p>
+        <p>Format long (35–45 min) : un partenaire de la filière vient parler de son métier vu du bureau du vigneron. Œnologues conseil, comptables filière, juristes vin, tonneliers, distributeurs. Tu les entends, tu choisis, tu décides.</p>
+        <p>Sois prévenu(e) du premier épisode.</p>
+
+        <form class="podcast-teaser__form" action="#" method="post">
+          <div class="podcast-teaser__form-row">
+            <input type="email" name="email" placeholder="ton@email.fr" class="podcast-teaser__input" required>
+            <button type="submit" class="podcast-teaser__btn">Me prévenir</button>
+          </div>
+          <p class="podcast-teaser__form-note">Inscription disponible bientôt — reviens dans 48h ou écris à <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a></p>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="voix-filiere section" id="voix-filiere">
+  <div class="container--wide">
+
+    <div class="voix-filiere__header">
+      <h2>Voix de la filière</h2>
+      <p class="voix-filiere__sub">Les pros qui apportent tous les jours à la filière. Recommandés, écoutés, partagés.</p>
+    </div>
+
+    <div class="voix-filiere__grid">
+
+      <!-- Fiche 1 — WineTailors -->
+      <div class="voix-filiere__card">
+        <div class="voix-filiere__avatar voix-filiere__avatar--bordeaux">BT</div>
+        <p class="voix-filiere__specialty">Ecommerce vin · Plateforme de vente directe</p>
+        <h3 class="voix-filiere__name">WineTailors</h3>
+        <p class="voix-filiere__desc"><em>"Partenaire ecommerce du Bureau. Benoît Tesson partage son expertise sur la vente directe en ligne et la stratégie digitale des domaines."</em></p>
+        <div class="voix-filiere__actions">
+          <a href="https://youtu.be/MH_LNK3EE4o?si=FCC2T5ZPXFTpACUu" target="_blank" rel="ugc noopener" class="voix-filiere__link">Voir la vidéo →</a>
+          <a href="#" class="voix-filiere__btn">Découvrir →</a>
+        </div>
+      </div>
+
+      <!-- Fiche 2 — Emilie Barbottin -->
+      <div class="voix-filiere__card">
+        <div class="voix-filiere__avatar voix-filiere__avatar--cork">EB</div>
+        <p class="voix-filiere__specialty">Formatrice Vitisoft · Audit de données viti</p>
+        <h3 class="voix-filiere__name">Emilie Barbottin</h3>
+        <p class="voix-filiere__desc"><em>"Experte des audits de données pour domaines viticoles. Elle remet de l'ordre dans les bases et fait gagner des heures aux équipes."</em></p>
+        <div class="voix-filiere__actions">
+          <a href="https://padawine.notion.site/?p=319c905819fa80d099daffd60b7178a3&pm=c" target="_blank" rel="ugc noopener" class="voix-filiere__link">Voir le profil →</a>
+          <a href="#" class="voix-filiere__btn">Découvrir →</a>
+        </div>
+      </div>
+
+      <!-- Fiche 3 — Placeholder éditorial -->
+      <div class="voix-filiere__card voix-filiere__card--soon">
+        <h3 class="voix-filiere__name">Et 6 autres partenaires bientôt référencés.</h3>
+        <p class="voix-filiere__desc"><em>Œnologues conseil, comptables filière, juristes vin, tonneliers, distributeurs. Le catalogue s'enrichit chaque semaine.</em></p>
+        <div class="voix-filiere__actions">
+          <a href="#" class="voix-filiere__btn">Voir le catalogue complet →</a>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 </section>
 
@@ -49,17 +167,17 @@
   <div class="container">
     <p class="section__label">Le projet</p>
 
+    <h2 style="font-style:italic; margin-bottom:2rem;">Pourquoi ce média existe.</h2>
+
     <div class="manifeste__body">
       <p>
-        Douze ans qu'on fabrique des outils pour la filière vin. 2 000 domaines équipés, 5 000 personnes connectées chaque jour.
-        La filière est dure. Marché de niche, règles qui changent tous les semestres, des dimanches à étiqueter.
-        Le vigneron doit être agronome, œnologue, commercial, RH, comptable, juriste, marketeur. Et il devrait dormir, aussi.
+        Pendant 12 ans j'ai vu 2&nbsp;000 bureaux de vignerons de l'intérieur. Pas les vignes — les bureaux. Là où ça coince vraiment : l'admin, le commercial, le temps qui passe.
       </p>
       <p>
-        Le Bureau du Vigneron, c'est l'idée simple qu'on aurait dû avoir plus tôt : tout réunir en un endroit.
-        Pas un super-logiciel-qui-fait-tout — ça n'existe pas.
-        Mais un bureau bien rangé, avec les bons outils sortis sur la table, le journal du métier dans la main gauche,
-        et une IA qui répond aux questions qu'on n'a pas le temps de googler à 23h.
+        J'ai construit Vitisoft, Viticode, Vitiwin, VINCA. J'ai formé à l'ESA Angers. J'ai écrit. Tout ça pour ressortir avec une conviction : <strong>personne ne parle de ce qui se passe au bureau du vigneron</strong>.
+      </p>
+      <p>
+        Le Bureau du Vigneron, c'est ça. La filière qui prend la parole sur les sujets qu'on ne traite nulle part ailleurs. Vu depuis ton bureau.
       </p>
     </div>
 
@@ -73,1640 +191,51 @@
       >
       <div>
         <p class="signature__name">Teddy Pereira</p>
-        <p class="signature__role">Co-fondateur Solumatic · 12 ans terrain viti · Enseignant ESA Angers</p>
+        <p class="signature__role">Co-fondateur Solumatic · Nantes</p>
       </div>
     </div>
   </div>
 </section>
 
-<section id="demo-pinboard" class="demo-pinboard" aria-label="Démonstration interactive du bureau du vigneron">
-  <div class="container--wide">
-
-    <!-- HEADER : étape + hint -->
-    <div class="demo-pinboard__header">
-      <div class="demo-pinboard__step">
-        <span class="demo-pinboard__step-label" data-pinboard-step>Démonstration · étape 01 / 03</span>
-        <span class="demo-pinboard__caption" data-pinboard-caption>Le bureau d'un vigneron, un mardi de fin de mois.</span>
-      </div>
-      <div class="demo-pinboard__hint">
-        <span class="demo-pinboard__hint-icon">↗</span>
-        <span class="demo-pinboard__hint-text" data-pinboard-hint>Cliquez sur le tableau pour ranger</span>
-      </div>
-    </div>
-
-    <!-- BOARD -->
-    <div
-      class="demo-pinboard__board"
-      role="button"
-      tabindex="0"
-      data-pinboard
-      data-state="chaos"
-      aria-label="Cliquez ou appuyez sur Entrée pour faire évoluer la démonstration"
-    >
-
-      <!-- ===== LAYER PAPER (corkboard + cartes) ===== -->
-      <div class="demo-pinboard__layer demo-pinboard__layer--paper" data-pinboard-pinboard>
-        <div class="demo-pinboard__inner-border" aria-hidden="true"></div>
-
-        <!-- Carte 1 : Facture impayée -->
-        <article class="note-card note-card--yellow" data-card="facture" data-chaos="4,6,-8" data-org="4,8,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Relance client</p>
-          <p class="card__title">Facture impayée</p>
-          <p class="card__amount">4 280 €</p>
-          <p class="card__line">Cave de M. Dubreuil</p>
-          <p class="card__urgent">⚠ à relancer !!</p>
-        </article>
-
-        <!-- Carte 2 : TVA -->
-        <article class="note-card note-card--kraft" data-card="tva" data-chaos="22,38,6" data-org="26,8,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Déclaration TVA</p>
-          <table class="card__table" style="margin-top:4px;">
-            <tr><td>CA HT</td><td>42 180,00</td></tr>
-            <tr><td>TVA coll.</td><td>8 436,00</td></tr>
-            <tr><td>TVA déd.</td><td>2 109,00</td></tr>
-          </table>
-          <span class="card__stamp">Échéance 15</span>
-        </article>
-
-        <!-- Carte 3 : Stock -->
-        <article class="note-card note-card--white" data-card="stock" data-chaos="48,14,-4" data-org="48,8,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Inventaire chai</p>
-          <table class="card__table" style="margin-top:4px;">
-            <tr><td>Sauv. blanc 24</td><td>1 240 b.</td></tr>
-            <tr><td>Muscadet 23</td><td>840 b.</td></tr>
-            <tr><td>Gamay 24</td><td>2 100 b.</td></tr>
-            <tr><td>Cab. franc 23</td><td>620 b.</td></tr>
-          </table>
-        </article>
-
-        <!-- Carte 4 : QR -->
-        <article class="note-card note-card--cream" data-card="qr" data-chaos="70,32,9" data-org="70,8,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Conformité</p>
-          <!-- Mini QR visuel SVG -->
-          <svg width="42" height="42" viewBox="0 0 42 42" style="margin:4px 0 6px;" aria-hidden="true">
-            <rect width="42" height="42" fill="none"/>
-            <!-- Coin haut-gauche -->
-            <rect x="2" y="2" width="16" height="16" fill="none" stroke="#1E2536" stroke-width="2"/>
-            <rect x="6" y="6" width="8" height="8" fill="#1E2536"/>
-            <!-- Coin haut-droit -->
-            <rect x="24" y="2" width="16" height="16" fill="none" stroke="#1E2536" stroke-width="2"/>
-            <rect x="28" y="6" width="8" height="8" fill="#1E2536"/>
-            <!-- Coin bas-gauche -->
-            <rect x="2" y="24" width="16" height="16" fill="none" stroke="#1E2536" stroke-width="2"/>
-            <rect x="6" y="28" width="8" height="8" fill="#1E2536"/>
-            <!-- Points data -->
-            <rect x="24" y="24" width="4" height="4" fill="#1E2536"/>
-            <rect x="30" y="24" width="4" height="4" fill="#1E2536"/>
-            <rect x="36" y="24" width="4" height="4" fill="#1E2536"/>
-            <rect x="24" y="30" width="4" height="4" fill="#1E2536"/>
-            <rect x="36" y="30" width="4" height="4" fill="#1E2536"/>
-            <rect x="30" y="36" width="4" height="4" fill="#1E2536"/>
-            <rect x="36" y="36" width="4" height="4" fill="#1E2536"/>
-          </svg>
-          <p class="card__title" style="font-size:0.72rem;">QR nutritionnel</p>
-          <p class="card__line">obligatoire 2024</p>
-        </article>
-
-        <!-- Carte 5 : RDV -->
-        <article class="note-card note-card--yellow" data-card="rdv" data-chaos="8,60,4" data-org="4,56,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Carnet de RDV</p>
-          <table class="card__table" style="margin-top:4px;">
-            <tr><td>09h</td><td>Cuverie soutirage</td></tr>
-            <tr><td>11h</td><td>Caviste Angers</td></tr>
-            <tr><td>14h</td><td>M. Vidal (visite)</td></tr>
-            <tr><td>17h</td><td>Fournisseur étiq.</td></tr>
-          </table>
-        </article>
-
-        <!-- Carte 6 : Cahier de chai (manuscrit Caveat) -->
-        <article class="note-card note-card--kraft" data-card="cahier" data-chaos="36,64,-7" data-org="26,56,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Cahier de chai</p>
-          <p class="card__handwrite" style="margin-top:5px;">
-            cuve 4 — densité 1014<br>
-            remontage 20 min<br>
-            goût correct, long. ✓<br>
-            → soutirer mardi
-          </p>
-        </article>
-
-        <!-- Carte 7 : Fiche client -->
-        <article class="note-card note-card--white" data-card="client" data-chaos="60,56,5" data-org="48,56,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">Fiche client</p>
-          <p class="card__title" style="margin-top:4px;">Caves Bertrand &amp; Fils</p>
-          <p class="card__line">Saumur · depuis 2019</p>
-          <p class="card__line">Dernière com. : 12 mars</p>
-          <p class="card__amount" style="margin-top:5px;">2 880 €</p>
-        </article>
-
-        <!-- Carte 8 : VINCA IA -->
-        <article class="note-card note-card--cream" data-card="vinca" data-chaos="74,64,-3" data-org="70,56,0">
-          <span class="pin" aria-hidden="true"></span>
-          <p class="card__label">VINCA · IA</p>
-          <p class="card__line" style="margin-top:4px; font-style:italic; font-size:0.68rem; color:rgba(30,37,54,0.7);">
-            « Quel est le délai légal pour la déclaration de récolte ? »
-          </p>
-          <p class="card__line" style="margin-top:5px; font-size:0.68rem; color:#1E2536; line-height:1.5;">
-            → Avant le 25 nov. via le portail des douanes…
-          </p>
-        </article>
-
-        <!-- Badge état -->
-        <div class="demo-pinboard__state-badge" data-pinboard-state-badge aria-live="polite">
-          État : chaos administratif · 23:47
-        </div>
-
-      </div><!-- /layer-paper -->
-
-      <!-- ===== LAYER DIGITAL (Dashboard Vitisoft mock) ===== -->
-      <div class="demo-pinboard__layer demo-pinboard__layer--digital" data-pinboard-digital aria-hidden="true">
-        <div class="viti-dashboard">
-
-          <!-- Barre de titre -->
-          <div class="viti-titlebar">
-            <span class="viti-titlebar__app">VITISOFT</span>
-            <span class="viti-titlebar__domain">Domaine du Petit Verre</span>
-            <span class="viti-titlebar__user">Administrateur</span>
-          </div>
-
-          <!-- Corps -->
-          <div class="viti-body">
-
-            <!-- Sidebar gauche -->
-            <aside class="viti-sidebar-left" aria-hidden="true">
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Contacts</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item viti-menu-item--active">Clients/contacts</li>
-                  <li class="viti-menu-item">Commerciaux</li>
-                  <li class="viti-menu-item">Courtiers</li>
-                  <li class="viti-menu-item">Transporteurs</li>
-                </ul>
-              </div>
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Factures</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item">Liste</li>
-                  <li class="viti-menu-item">Faire une facture</li>
-                  <li class="viti-menu-item">Règlements / banque</li>
-                  <li class="viti-menu-item">Avoirs</li>
-                </ul>
-              </div>
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Commandes</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item">Liste / BL</li>
-                  <li class="viti-menu-item">Faire une commande</li>
-                  <li class="viti-menu-item">Pro forma</li>
-                </ul>
-              </div>
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Produits / Stocks</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item">Produits</li>
-                  <li class="viti-menu-item">Réservations</li>
-                  <li class="viti-menu-item">Achats</li>
-                  <li class="viti-menu-item">Dépôts</li>
-                </ul>
-              </div>
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Déclarations</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item">DRM / DAS</li>
-                  <li class="viti-menu-item">Capsules</li>
-                </ul>
-              </div>
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Analyse</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item">Statistiques</li>
-                  <li class="viti-menu-item">Commissions</li>
-                  <li class="viti-menu-item">Comptabilité</li>
-                  <li class="viti-menu-item">Audit</li>
-                  <li class="viti-menu-item" style="color:#E8A000;">VINCA (IA)</li>
-                </ul>
-              </div>
-
-              <div class="viti-menu-section">
-                <div class="viti-menu-header">Caisse / Tactile</div>
-                <ul class="viti-menu-items">
-                  <li class="viti-menu-item">Faire une facture caisse</li>
-                  <li class="viti-menu-item">Coordonnées Tourist.</li>
-                </ul>
-              </div>
-
-            </aside>
-
-            <!-- Zone principale -->
-            <main class="viti-main" aria-hidden="true">
-
-              <!-- KPI rouge (rowspan 2) -->
-              <div class="viti-panel viti-panel--red" style="grid-column:1; grid-row:1/3;">
-                <p class="viti-panel__title">Alertes</p>
-                <p class="viti-kpi-big">18</p>
-                <p class="viti-kpi-desc">Factures dont<br>l'échéance est<br>dépassée</p>
-                <div class="viti-kpi-sep"></div>
-                <p class="viti-kpi-sub">187 €</p>
-                <p class="viti-kpi-desc">Panier moyen HT<br>année en cours</p>
-              </div>
-
-              <!-- Donut — Répartition par familles -->
-              <div class="viti-panel viti-panel--donut" style="grid-column:2; grid-row:1;">
-                <p class="viti-panel__title">Répartition par familles</p>
-                <div class="viti-donut-wrap">
-                  <div class="viti-donut"></div>
-                  <div class="viti-donut-legend">
-                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#E8B43A"></span>Blancs secs 30%</div>
-                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#4CAF50"></span>Rouges 25%</div>
-                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#C5443D"></span>Rosés 15%</div>
-                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#7B5EA7"></span>Effervesc. 12%</div>
-                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#4A90D9"></span>Liquoreux 8%</div>
-                    <div class="viti-legend-item"><span class="viti-legend-dot" style="background:#E87D1E"></span>Autres 10%</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- KPI CA mois -->
-              <div class="viti-panel viti-panel--kpi" style="grid-column:3; grid-row:1;">
-                <p class="viti-panel__title">CA mois en cours</p>
-                <p class="viti-kpi-value">32 480,00 €</p>
-                <span class="viti-badge-green">+14 %</span>
-              </div>
-
-              <!-- KPI CA année -->
-              <div class="viti-panel viti-panel--kpi" style="grid-column:4; grid-row:1;">
-                <p class="viti-panel__title">CA année en cours</p>
-                <p class="viti-kpi-value">284 730,00 €</p>
-                <span class="viti-badge-green">+8 %</span>
-              </div>
-
-              <!-- LineChart — Évolution CA cumulé -->
-              <div class="viti-panel viti-panel--line" style="grid-column:2/5; grid-row:2;">
-                <p class="viti-panel__title">Évolution du chiffre d'affaires cumulé</p>
-                <div class="viti-chart-wrap">
-                  <svg viewBox="0 0 320 80" preserveAspectRatio="none" aria-hidden="true">
-                    <!-- Gridlines -->
-                    <line x1="0" y1="20" x2="320" y2="20" stroke="rgba(30,37,54,0.06)" stroke-width="1"/>
-                    <line x1="0" y1="40" x2="320" y2="40" stroke="rgba(30,37,54,0.06)" stroke-width="1"/>
-                    <line x1="0" y1="60" x2="320" y2="60" stroke="rgba(30,37,54,0.06)" stroke-width="1"/>
-                    <!-- Année N-1 (jaune) -->
-                    <polyline
-                      points="0,72 29,68 58,64 87,60 116,55 145,50 174,44 203,39 232,33 261,28 290,22 320,16"
-                      fill="none" stroke="#E8B43A" stroke-width="2" stroke-linejoin="round"/>
-                    <!-- Année N (vert) -->
-                    <polyline
-                      points="0,74 29,69 58,64 87,58 116,52 145,44 174,37 203,30 232,23 261,17 290,11 320,5"
-                      fill="none" stroke="#4CAF50" stroke-width="2" stroke-linejoin="round"/>
-                    <!-- Labels mois -->
-                    <text x="0"   y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">J</text>
-                    <text x="58"  y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">M</text>
-                    <text x="116" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">M</text>
-                    <text x="174" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">J</text>
-                    <text x="232" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">S</text>
-                    <text x="290" y="78" font-size="6" fill="rgba(30,37,54,0.4)" font-family="monospace">N</text>
-                    <!-- Légende -->
-                    <rect x="240" y="4" width="8" height="3" fill="#E8B43A"/>
-                    <text x="251" y="7" font-size="6" fill="rgba(30,37,54,0.6)" font-family="monospace">N-1</text>
-                    <rect x="240" y="10" width="8" height="3" fill="#4CAF50"/>
-                    <text x="251" y="13" font-size="6" fill="rgba(30,37,54,0.6)" font-family="monospace">N</text>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- BarChart — CA par commercial -->
-              <div class="viti-panel viti-panel--bar1" style="grid-column:1/3; grid-row:3;">
-                <p class="viti-panel__title">CA par commercial — année en cours</p>
-                <div class="viti-chart-wrap">
-                  <svg viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true">
-                    <line x1="0" y1="65" x2="200" y2="65" stroke="rgba(30,37,54,0.15)" stroke-width="1"/>
-                    <rect x="3"   y="30" width="14" height="35" fill="#E8B43A" rx="1"/>
-                    <rect x="23"  y="23" width="14" height="42" fill="#4CAF50" rx="1"/>
-                    <rect x="43"  y="37" width="14" height="28" fill="#E8B43A" rx="1"/>
-                    <rect x="63"  y="15" width="14" height="50" fill="#4CAF50" rx="1"/>
-                    <rect x="83"  y="27" width="14" height="38" fill="#E8B43A" rx="1"/>
-                    <rect x="103" y="20" width="14" height="45" fill="#4CAF50" rx="1"/>
-                    <rect x="123" y="35" width="14" height="30" fill="#E8B43A" rx="1"/>
-                    <rect x="143" y="17" width="14" height="48" fill="#4CAF50" rx="1"/>
-                    <rect x="163" y="25" width="14" height="40" fill="#E8B43A" rx="1"/>
-                    <rect x="183" y="13" width="14" height="52" fill="#4CAF50" rx="1"/>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- BarChart — Prévision encaissements -->
-              <div class="viti-panel viti-panel--bar2" style="grid-column:3/5; grid-row:3;">
-                <p class="viti-panel__title">Prévision des encaissements</p>
-                <div class="viti-chart-wrap">
-                  <svg viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true">
-                    <line x1="0" y1="65" x2="200" y2="65" stroke="rgba(30,37,54,0.15)" stroke-width="1"/>
-                    <rect x="3"   y="55" width="14" height="10" fill="#C5443D" rx="1"/>
-                    <rect x="23"  y="30" width="14" height="35" fill="#4CAF50" rx="1"/>
-                    <rect x="43"  y="25" width="14" height="40" fill="#4CAF50" rx="1"/>
-                    <rect x="63"  y="22" width="14" height="43" fill="#4CAF50" rx="1"/>
-                    <rect x="83"  y="18" width="14" height="47" fill="#4CAF50" rx="1"/>
-                    <rect x="103" y="20" width="14" height="45" fill="#4CAF50" rx="1"/>
-                    <rect x="123" y="15" width="14" height="50" fill="#4CAF50" rx="1"/>
-                    <rect x="143" y="18" width="14" height="47" fill="#4CAF50" rx="1"/>
-                    <rect x="163" y="22" width="14" height="43" fill="#4CAF50" rx="1"/>
-                    <rect x="183" y="28" width="14" height="37" fill="#4CAF50" rx="1"/>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- ===== TODOLIST "À faire aujourd'hui" ===== -->
-              <div class="vitisoft-todo" style="grid-column:1/5; grid-row:4;">
-                <div class="vitisoft-panel-title">
-                  <span>À faire aujourd'hui</span>
-                  <span class="vitisoft-todo-count">5 tâches</span>
-                </div>
-                <ul class="vitisoft-todo-list">
-                  <li class="vitisoft-todo-item">
-                    <span class="vitisoft-todo-check" aria-hidden="true"></span>
-                    <span class="vitisoft-todo-cat">Facture</span>
-                    <span class="vitisoft-todo-label">Relancer M. Dubreuil — facture 4 280 €</span>
-                    <span class="vitisoft-todo-meta">8h45 · Cave de M. Dubreuil</span>
-                  </li>
-                  <li class="vitisoft-todo-item">
-                    <span class="vitisoft-todo-check checked" aria-hidden="true"></span>
-                    <span class="vitisoft-todo-cat done">Chai</span>
-                    <span class="vitisoft-todo-label done">Soutirer cuve 4 — densité 1014</span>
-                    <span class="vitisoft-todo-meta">Fait à 10h12</span>
-                  </li>
-                  <li class="vitisoft-todo-item">
-                    <span class="vitisoft-todo-check" aria-hidden="true"></span>
-                    <span class="vitisoft-todo-cat">Déclaration</span>
-                    <span class="vitisoft-todo-label">Valider TVA mensuelle — échéance 15</span>
-                    <span class="vitisoft-todo-meta">avant vendredi</span>
-                  </li>
-                  <li class="vitisoft-todo-item">
-                    <span class="vitisoft-todo-check" aria-hidden="true"></span>
-                    <span class="vitisoft-todo-cat">RDV</span>
-                    <span class="vitisoft-todo-label">Visite M. Vidal — domaine, étiquetage cuvée 2024</span>
-                    <span class="vitisoft-todo-meta">14h00</span>
-                  </li>
-                  <li class="vitisoft-todo-item">
-                    <span class="vitisoft-todo-check" aria-hidden="true"></span>
-                    <span class="vitisoft-todo-cat">Conformité</span>
-                    <span class="vitisoft-todo-label">Générer QR nutritionnel — Gamay 24 (2 100 b.)</span>
-                    <span class="vitisoft-todo-meta">via Viticode</span>
-                  </li>
-                </ul>
-              </div>
-
-              <!-- ===== PARTENAIRES ÉCOSYSTÈME ===== -->
-              <div class="vitimedia-zone" style="grid-column: 1 / 5; margin-top: 12px;">
-                <div class="vitimedia-header">
-                  <span class="vitimedia-label">Partenaires Écosystème</span>
-                </div>
-                <div class="vitimedia-slots">
-
-                  <a class="vitimedia-slot" href="#" data-partner="viti-elevages">
-                    <span class="vitimedia-avatar" style="background:#B22245;">VE</span>
-                    <div class="vitimedia-info">
-                      <span class="vitimedia-name">Viti-Élevages</span>
-                      <span class="vitimedia-tagline">Tonneaux innovants pour sublimer vos vins</span>
-                    </div>
-                    <span class="vitimedia-cta">En savoir +</span>
-                  </a>
-
-                  <a class="vitimedia-slot" href="#" data-partner="services-viti">
-                    <span class="vitimedia-avatar" style="background:#3F5C3A;">ES</span>
-                    <div class="vitimedia-info">
-                      <span class="vitimedia-name">Entreprise Services Viti</span>
-                      <span class="vitimedia-tagline">Allié quotidien — matériel &amp; services sur mesure</span>
-                    </div>
-                    <span class="vitimedia-cta">En savoir +</span>
-                  </a>
-
-                </div>
-              </div>
-
-            </main>
-
-            <!-- Sidebar droite -->
-            <aside class="viti-sidebar-right" aria-hidden="true">
-              <p class="viti-dispo-label">Disposition</p>
-              <div class="viti-dispo-select">TB principal 1 ▾</div>
-              <div class="viti-action-btn viti-action-btn--yellow">? Aide</div>
-              <div class="viti-action-btn">⚙ Config.</div>
-              <div class="viti-action-btn">🔔 Alertes</div>
-              <div class="viti-action-btn">👤 Compte</div>
-              <div class="viti-action-btn">✎ Person.</div>
-              <div class="viti-action-btn">💾 Saveg.</div>
-              <div class="viti-action-btn viti-action-btn--red">✕ Quitter</div>
-            </aside>
-
-          </div><!-- /viti-body -->
-        </div><!-- /viti-dashboard -->
-      </div><!-- /layer-digital -->
-
-    </div><!-- /board -->
-
-    <!-- FOOTER : tirets + label -->
-    <div class="demo-pinboard__footer">
-      <div class="demo-pinboard__ticks" aria-hidden="true"><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span><span class="demo-pinboard__tick"></span></div>
-      <span class="demo-pinboard__footer-label">Faites défiler · Découvrez les piliers</span>
-    </div>
-
-  </div><!-- /container-wide -->
-</section>
-
-<script src="/js/pinboard.js" defer></script>
-
-<section class="dashboard-preview" id="dashboard-preview">
-  <div class="dashboard-preview__intro">
-    <p class="section__label" style="color:rgba(239,231,214,0.45);">Maquette — Aperçu du tableau de bord vigneron</p>
-    <h2 class="dashboard-preview__title">Votre bureau, en un coup d'œil.</h2>
-    <p class="dashboard-preview__subtitle">Cliquez dans la barre latérale pour explorer. Toutes les données affichées sont factices — c'est juste pour vous projeter.</p>
-  </div>
-
-  <div class="dashboard-mock" role="application" aria-label="Aperçu interactif du tableau de bord">
-
-    <!-- Top bar -->
-    <div class="dashboard-mock__topbar">
-      <div class="dashboard-mock__brand">
-        <span class="dashboard-mock__brand-dot" aria-hidden="true"></span>
-        <span class="dashboard-mock__brand-name">Le Bureau du Vigneron</span>
-      </div>
-      <div class="dashboard-mock__user">
-        <span class="dashboard-mock__user-name" data-user-name>Vigneron</span>
-        <span class="dashboard-mock__user-avatar" aria-hidden="true">V</span>
-      </div>
-    </div>
-
-    <div class="dashboard-mock__body">
-
-      <!-- Sidebar -->
-      <nav class="dashboard-mock__sidebar" role="tablist" aria-label="Navigation du tableau de bord" aria-orientation="vertical">
-        <button role="tab" id="dtab-bureau" aria-selected="true" aria-controls="dpanel-bureau" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">◉</span>
-          <span class="dnav-item__label">Tableau de bord</span>
-        </button>
-        <button role="tab" id="dtab-outils" aria-selected="false" aria-controls="dpanel-outils" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">⚙</span>
-          <span class="dnav-item__label">Outils</span>
-        </button>
-        <button role="tab" id="dtab-biblio" aria-selected="false" aria-controls="dpanel-biblio" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">≡</span>
-          <span class="dnav-item__label">Bibliothèque</span>
-        </button>
-        <button role="tab" id="dtab-formations" aria-selected="false" aria-controls="dpanel-formations" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">▶</span>
-          <span class="dnav-item__label">Formations</span>
-        </button>
-        <button role="tab" id="dtab-comptoir" aria-selected="false" aria-controls="dpanel-comptoir" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">⌂</span>
-          <span class="dnav-item__label">Comptoir partenaires</span>
-        </button>
-        <button role="tab" id="dtab-tournee" aria-selected="false" aria-controls="dpanel-tournee" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">▷</span>
-          <span class="dnav-item__label">Carnet de Tournée</span>
-        </button>
-        <button role="tab" id="dtab-reseau" aria-selected="false" aria-controls="dpanel-reseau" class="dnav-item dnav-item--locked" type="button" aria-label="Mon réseau — bientôt disponible">
-          <span class="dnav-item__icon" aria-hidden="true">⊘</span>
-          <span class="dnav-item__label">Mon réseau</span>
-          <span class="dnav-item__badge">bientôt</span>
-        </button>
-        <button role="tab" id="dtab-compte" aria-selected="false" aria-controls="dpanel-compte" class="dnav-item" type="button">
-          <span class="dnav-item__icon" aria-hidden="true">⚇</span>
-          <span class="dnav-item__label">Mon compte</span>
-        </button>
-      </nav>
-
-      <!-- Content area -->
-      <div class="dashboard-mock__content">
-
-        <!-- Panel 01 — Tableau de bord -->
-        <div role="tabpanel" id="dpanel-bureau" class="dpanel" aria-labelledby="dtab-bureau">
-
-          <div class="dmod-greeting">
-            <p class="dmod-greeting__text">Bonjour <span data-user-greeting>Vigneron</span>, vendredi 22 mai 2026</p>
-            <span class="dmod-greeting__weather">☀ 22°C · Vent SO 12 km/h · Vigilance mildiou modérée</span>
-          </div>
-
-          <p class="dmod-title">Prochaines échéances</p>
-          <div class="dmod-grid-3" style="margin-bottom:1.25rem;">
-            <div class="dmod-card">
-              <p class="dmod-card__tag">Échéance · 15 juin</p>
-              <p class="dmod-card__label">Déclaration TVA mensuelle</p>
-              <p class="dmod-card__sub">dans 24 jours</p>
-            </div>
-            <div class="dmod-card">
-              <p class="dmod-card__tag">Échéance · 30 juin</p>
-              <p class="dmod-card__label">Renouvellement contrat œnologue</p>
-              <p class="dmod-card__sub">dans 39 jours</p>
-            </div>
-            <div class="dmod-card">
-              <p class="dmod-card__tag">Échéance · 12 juillet</p>
-              <p class="dmod-card__label">Salon Vinexpo Bordeaux</p>
-              <p class="dmod-card__sub">préparer le stand</p>
-            </div>
-          </div>
-
-          <p class="dmod-title">Nouveau dans la bibliothèque</p>
-          <div class="dmod-grid-3" style="margin-bottom:1.25rem;">
-            <div class="dmod-card">
-              <p class="dmod-card__tag">Article · Marketing</p>
-              <p class="dmod-card__label">Tarifer ses vins en vente directe sans culpabiliser</p>
-              <p class="dmod-card__sub">12 min de lecture</p>
-            </div>
-            <div class="dmod-card">
-              <p class="dmod-card__tag">Vidéo · Carnet de Tournée</p>
-              <p class="dmod-card__label">Dom. Cailloux, Anjou — premier soutirage Cab. franc</p>
-              <p class="dmod-card__sub">9 min</p>
-            </div>
-            <div class="dmod-card">
-              <p class="dmod-card__tag">Template · Organisation</p>
-              <p class="dmod-card__label">Modèle facture export simplifié</p>
-              <p class="dmod-card__sub">PDF · 2 pages</p>
-            </div>
-          </div>
-
-          <div class="dmod-resume">
-            <div class="dmod-resume__text">
-              <p class="dmod-resume__title">Reprendre : Calculateur prix de revient bouteille</p>
-              <p class="dmod-resume__progress">Vous avez complété 4 étapes sur 7.</p>
-            </div>
-            <a href="#waitlist" class="dbtn dbtn--bordeaux">Reprendre →</a>
-          </div>
-
-          <div class="dmod-partner">
-            <span class="dmod-partner__chip">Présenté par</span>
-            <p class="dmod-partner__name">Vinilabel — étiquetage Loire</p>
-            <p class="dmod-partner__desc">Au service des entreprises des vignobles de Loire. Sélection éditoriale Le Bureau du Vigneron.</p>
-            <a href="#waitlist" class="dbtn dbtn--outline">Découvrir →</a>
-          </div>
-
-        </div>
-
-        <!-- Panel 02 — Outils -->
-        <div role="tabpanel" id="dpanel-outils" class="dpanel" aria-labelledby="dtab-outils" hidden>
-          <div class="dpanel__header">
-            <h3 class="dpanel__title">Vos outils du quotidien.</h3>
-            <p class="dpanel__subtitle">Calculateurs, audits et générateurs. Résultats sauvegardés dans votre compte.</p>
-          </div>
-          <div class="dtools-grid">
-            <div class="dtool-card">
-              <span class="dtool-card__icon" aria-hidden="true">@</span>
-              <p class="dtool-card__name">Générateur signature email</p>
-              <p class="dtool-card__tag">Communication</p>
-              <p class="dtool-card__desc">Une signature pro en 2 minutes. Code HTML prêt.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
-            </div>
-            <div class="dtool-card">
-              <span class="dtool-card__icon" aria-hidden="true">€</span>
-              <p class="dtool-card__name">Calculateur prix de revient bouteille</p>
-              <p class="dtool-card__tag">Commercial</p>
-              <p class="dtool-card__desc">Ton vrai prix à la bouteille, en 5 inputs.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
-            </div>
-            <div class="dtool-card">
-              <span class="dtool-card__icon" aria-hidden="true">≈</span>
-              <p class="dtool-card__name">Calculateur ROI ERP/CRM</p>
-              <p class="dtool-card__tag">Productivité</p>
-              <p class="dtool-card__desc">Combien te fait perdre ton Excel ? Le chiffre exact.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
-            </div>
-            <div class="dtool-card">
-              <span class="dtool-card__icon" aria-hidden="true">✓</span>
-              <p class="dtool-card__name">Audit digital self-service</p>
-              <p class="dtool-card__tag">Diagnostic</p>
-              <p class="dtool-card__desc">12 questions, un rapport PDF, ton plan d'action.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
-            </div>
-            <div class="dtool-card">
-              <span class="dtool-card__icon" aria-hidden="true">☑</span>
-              <p class="dtool-card__name">Audit conformité administrative</p>
-              <p class="dtool-card__tag">Conformité</p>
-              <p class="dtool-card__desc">QR, douanes, facturation électronique : où en es-tu ?</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Lancer →</a>
-            </div>
-            <div class="dtool-card dtool-card--locked">
-              <span class="dtool-card__icon" aria-hidden="true">◫</span>
-              <p class="dtool-card__name">Calculateur marge contributive client</p>
-              <p class="dtool-card__tag">Commercial</p>
-              <p class="dtool-card__desc">Quel client te rapporte vraiment ? Upload CSV ventes.</p>
-              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
-            </div>
-            <div class="dtool-card dtool-card--locked">
-              <span class="dtool-card__icon" aria-hidden="true">⇄</span>
-              <p class="dtool-card__name">Simulateur transmission domaine</p>
-              <p class="dtool-card__tag">Transmission</p>
-              <p class="dtool-card__desc">Préparer la transmission de ton domaine, étape par étape.</p>
-              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
-            </div>
-            <div class="dtool-card dtool-card--locked">
-              <span class="dtool-card__icon" aria-hidden="true">⊞</span>
-              <p class="dtool-card__name">Générateur fiche technique vin</p>
-              <p class="dtool-card__tag">Communication</p>
-              <p class="dtool-card__desc">FT cohérente AOC/IGP, en 3 minutes.</p>
-              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
-            </div>
-            <div class="dtool-card dtool-card--locked">
-              <span class="dtool-card__icon" aria-hidden="true">◈</span>
-              <p class="dtool-card__name">Générateur étiquette nutritionnelle</p>
-              <p class="dtool-card__tag">Conformité</p>
-              <p class="dtool-card__desc">QR conforme UE généré via Viticode.</p>
-              <span class="dtool-btn dtool-btn--lock" aria-hidden="true">⊘ Bientôt</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Panel 03 — Bibliothèque -->
-        <div role="tabpanel" id="dpanel-biblio" class="dpanel" aria-labelledby="dtab-biblio" hidden>
-          <div class="dpanel__header">
-            <h3 class="dpanel__title">Tout ce qui se lit, se télécharge, se regarde.</h3>
-            <p class="dpanel__subtitle">Articles, templates et veille filière. Filtrés par pilier.</p>
-          </div>
-          <div class="dlib-filters" role="group" aria-label="Filtrer par pilier">
-            <button type="button" class="dlib-chip dlib-chip--active" tabindex="-1">Tous</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Terrain</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Organisation</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Process</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Marketing</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Enseignement</button>
-          </div>
-          <div class="dlib-grid">
-            <div class="dlib-card">
-              <p class="dlib-card__type">Article · Marketing</p>
-              <p class="dlib-card__title">Vendre 30% plus cher en direct : 3 leviers concrets</p>
-              <p class="dlib-card__meta">8 min de lecture</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
-            </div>
-            <div class="dlib-card">
-              <p class="dlib-card__type">Article · Process</p>
-              <p class="dlib-card__title">Le QR nutritionnel, 2 ans après : ce qui marche vraiment</p>
-              <p class="dlib-card__meta">12 min de lecture</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
-            </div>
-            <div class="dlib-card">
-              <p class="dlib-card__type">Template · Organisation</p>
-              <p class="dlib-card__title">Modèle CGV vente directe à jour 2026</p>
-              <p class="dlib-card__meta">Word · 4 pages</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
-            </div>
-            <div class="dlib-card">
-              <p class="dlib-card__type">Veille · Filière</p>
-              <p class="dlib-card__title">Synthèse mensuelle mai 2026 — 4 dossiers</p>
-              <p class="dlib-card__meta">PDF · membres</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
-            </div>
-            <div class="dlib-card">
-              <p class="dlib-card__type">Article · Enseignement</p>
-              <p class="dlib-card__title">Faut-il former son fils sur Vitisoft ou sur Excel ?</p>
-              <p class="dlib-card__meta">6 min de lecture</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
-            </div>
-            <div class="dlib-card">
-              <p class="dlib-card__type">Template · Marketing</p>
-              <p class="dlib-card__title">Grille tarifaire 3 circuits (cave / HoReCa / export)</p>
-              <p class="dlib-card__meta">Excel</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Ouvrir →</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Panel 04 — Formations -->
-        <div role="tabpanel" id="dpanel-formations" class="dpanel" aria-labelledby="dtab-formations" hidden>
-          <div class="dpanel__header">
-            <h3 class="dpanel__title">La salle de cours.</h3>
-            <p class="dpanel__subtitle">Cours conçus avec des enseignants et des vignerons. Le premier cours est issu de la licence ESA Angers — Marketing des Vins &amp; Terroirs, animé par Teddy Pereira depuis 5 ans.</p>
-          </div>
-          <div class="dform-esa">
-            <div class="dform-esa__chip">ESA Angers · partenaire</div>
-            <p class="dform-esa__title">Marketing des Vins &amp; Terroirs</p>
-            <p class="dform-esa__subtitle">Licence — animée par Teddy Pereira depuis 5 ans</p>
-            <div class="dform-esa__rule"></div>
-            <ul class="dform-esa__modules" aria-label="Modules du cours">
-              <li class="dform-esa__module">
-                <span class="dform-esa__module-name">Module 1 — Le marché</span>
-                <span class="dform-esa__module-dur">· 4h</span>
-              </li>
-              <li class="dform-esa__module">
-                <span class="dform-esa__module-name">Module 2 — Le client direct</span>
-                <span class="dform-esa__module-dur">· 5h</span>
-              </li>
-              <li class="dform-esa__module">
-                <span class="dform-esa__module-name">Module 3 — La tarification</span>
-                <span class="dform-esa__module-dur">· 6h</span>
-              </li>
-              <li class="dform-esa__module">
-                <span class="dform-esa__module-name">Module 4 — Les circuits</span>
-                <span class="dform-esa__module-dur">· 7h</span>
-              </li>
-              <li class="dform-esa__module">
-                <span class="dform-esa__module-name">Module 5 — Storytelling domaine</span>
-                <span class="dform-esa__module-dur">· 8h</span>
-              </li>
-            </ul>
-            <div class="dform-esa__rule"></div>
-            <p class="dform-esa__sign">— Teddy P.</p>
-            <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander le programme complet →</a>
-          </div>
-          <div class="dform-bandeau">
-            <p class="dform-bandeau__text">D'autres formations sont en préparation.</p>
-            <a href="#waitlist" class="dbtn dbtn--outline">Être prévenu →</a>
-          </div>
-        </div>
-
-        <!-- Panel 05 — Comptoir partenaires -->
-        <div role="tabpanel" id="dpanel-comptoir" class="dpanel" aria-labelledby="dtab-comptoir" hidden>
-          <div class="dpanel__header">
-            <h3 class="dpanel__title">Les pros qui accompagnent les vignerons.</h3>
-            <p class="dpanel__subtitle">Une sélection éditoriale issue de l'écosystème Vitisoft. Mise en relation directe, pas d'enchère Google.</p>
-          </div>
-          <div class="dlib-filters" role="group" aria-label="Filtrer par catégorie partenaire">
-            <button type="button" class="dlib-chip dlib-chip--active" tabindex="-1">Tous</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Conformité</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Comptabilité</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Financement</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Étiquetage</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Syndicats</button>
-            <button type="button" class="dlib-chip" tabindex="-1">Communication</button>
-          </div>
-          <div class="dcomptoir-grid">
-            <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Conformité</p>
-              <p class="dcomptoir-card__region">National</p>
-              <span class="dcomptoir-card__transp">Édité par Solumatic — éditeur de ce site</span>
-              <p class="dcomptoir-card__name">Viticode</p>
-              <p class="dcomptoir-card__pitch">QR codes nutritionnels obligatoires depuis 2024. Gratuit, conforme UE.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Découvrir →</a>
-            </div>
-            <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Comptabilité viticole</p>
-              <p class="dcomptoir-card__region">Provence + national</p>
-              <p class="dcomptoir-card__name">CER France Provence</p>
-              <p class="dcomptoir-card__pitch">Cabinet comptable spécialisé agriculture et viticulture. Accompagne plusieurs centaines de domaines.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander un devis →</a>
-            </div>
-            <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Financement</p>
-              <p class="dcomptoir-card__region">National</p>
-              <p class="dcomptoir-card__name">Banque Populaire</p>
-              <p class="dcomptoir-card__pitch">Financement de logiciels, équipements et investissements matériels pour les domaines.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Étudier mon dossier →</a>
-            </div>
-            <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Étiquetage</p>
-              <p class="dcomptoir-card__region">Vignobles de Loire</p>
-              <p class="dcomptoir-card__name">Vinilabel</p>
-              <p class="dcomptoir-card__pitch">Au service des entreprises des vignobles de Loire. Étiquetage soigné.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander un devis →</a>
-            </div>
-            <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Syndicat / Fédération</p>
-              <p class="dcomptoir-card__region">Anjou-Saumur</p>
-              <p class="dcomptoir-card__name">Fédération Vignerons Indépendants Anjou-Saumur</p>
-              <p class="dcomptoir-card__pitch">280 vignerons fédérés. Défense de la filière, services aux adhérents.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Rejoindre →</a>
-            </div>
-            <div class="dcomptoir-card">
-              <p class="dcomptoir-card__cat">Comptabilité &amp; conseil</p>
-              <p class="dcomptoir-card__region">National</p>
-              <p class="dcomptoir-card__name">TGS France · Soregor</p>
-              <p class="dcomptoir-card__pitch">Collectif d'experts-comptables et conseillers. Présence forte sur la filière viticole.</p>
-              <a href="#waitlist" class="dbtn dbtn--bordeaux">Demander un devis →</a>
-            </div>
-          </div>
-          <div class="dform-bandeau">
-            <p class="dform-bandeau__text">Plus de 20 partenaires de l'écosystème Vitisoft seront listés ici.</p>
-            <a href="#waitlist" class="dbtn dbtn--outline">Voir le réseau complet →</a>
-          </div>
-        </div>
-
-        <!-- Panel 06 — Carnet de Tournée -->
-        <div role="tabpanel" id="dpanel-tournee" class="dpanel" aria-labelledby="dtab-tournee" hidden>
-          <div class="dpanel__header">
-            <h3 class="dpanel__title">Le terrain en vidéo.</h3>
-            <p class="dpanel__subtitle">Replays des visites de Teddy. 1 vigneron, 1 visite, 10 minutes utiles.</p>
-          </div>
-          <div class="dtournee-grid">
-            <div class="dtournee-card">
-              <div class="dtournee-thumb" aria-hidden="true">▶</div>
-              <div class="dtournee-info">
-                <p class="dtournee-info__tag">Pilier — Terrain · 9 min</p>
-                <p class="dtournee-info__title">Dom. Cailloux, Anjou — premier soutirage Cab. franc</p>
-                <p class="dtournee-info__pitch">Comment Mathieu Cailloux a structuré son chai en 3 ans après reprise familiale.</p>
-                <a href="#waitlist" class="dbtn dbtn--bordeaux">Regarder →</a>
-              </div>
-            </div>
-            <div class="dtournee-card">
-              <div class="dtournee-thumb" aria-hidden="true">▶</div>
-              <div class="dtournee-info">
-                <p class="dtournee-info__tag">Pilier — Organisation · 11 min</p>
-                <p class="dtournee-info__title">Dom. Vauguillaume, Muscadet — la facturation en 12 min/jour</p>
-                <p class="dtournee-info__pitch">Comment Émilie Vauguillaume tient sa compta sans logiciel le matin avant 9h.</p>
-                <a href="#waitlist" class="dbtn dbtn--bordeaux">Regarder →</a>
-              </div>
-            </div>
-          </div>
-          <div class="dform-bandeau">
-            <p class="dform-bandeau__text">1 nouvelle visite par mois.<br>Prochaine : Dom. Marpâtissier, Sancerre — 12 juin</p>
-            <a href="#waitlist" class="dbtn dbtn--bordeaux">Activer le rappel →</a>
-          </div>
-        </div>
-
-        <!-- Panel 07 — Mon réseau (locked) -->
-        <div role="tabpanel" id="dpanel-reseau" class="dpanel" aria-labelledby="dtab-reseau" hidden>
-          <div class="dpanel-locked">
-            <div class="dpanel-locked__icon" aria-hidden="true">⊘</div>
-            <h3 class="dpanel-locked__title">Mon réseau — bientôt disponible</h3>
-            <p class="dpanel-locked__desc">Programme de parrainage, communauté privée, annuaire des membres, badges d'engagement. La partie sociale de votre bureau.</p>
-            <p class="dpanel-locked__date">Ouverture prévue : juillet 2026.</p>
-            <a href="#waitlist" class="dbtn dbtn--bordeaux">Être prévenu de l'ouverture →</a>
-          </div>
-        </div>
-
-        <!-- Panel 08 — Mon compte -->
-        <div role="tabpanel" id="dpanel-compte" class="dpanel" aria-labelledby="dtab-compte" hidden>
-          <div class="dpanel__header">
-            <h3 class="dpanel__title">Vos informations.</h3>
-            <p class="dpanel__subtitle">Tout ce que vous nous avez confié. Modifiable, exportable, supprimable.</p>
-          </div>
-
-          <div class="dcompte-section">
-            <div class="dcompte-fields">
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Nom du domaine</span>
-                <span class="dcompte-field__val">Domaine de la Métairie</span>
-              </div>
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Région</span>
-                <span class="dcompte-field__val">Anjou-Saumur</span>
-              </div>
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Appellation principale</span>
-                <span class="dcompte-field__val">AOC Anjou rouge</span>
-              </div>
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Taille</span>
-                <span class="dcompte-field__val">14 ha</span>
-              </div>
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Rôle</span>
-                <span class="dcompte-field__val">Vigneron exploitant</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="dcompte-section">
-            <p class="dmod-title">Préférences</p>
-            <div class="dcompte-fields">
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Piliers favoris</span>
-                <span class="dcompte-field__val">☑ Marketing · ☑ Organisation</span>
-              </div>
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Newsletter</span>
-                <span class="dcompte-field__val">☑ Fréquence bimensuelle</span>
-              </div>
-              <div class="dcompte-field">
-                <span class="dcompte-field__key">Notifications</span>
-                <span class="dcompte-field__val">☑ Hebdomadaires</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="dcompte-section">
-            <p class="dmod-title">Vos données</p>
-            <div class="dcompte-mini-grid">
-              <div class="dcompte-mini">
-                <span class="dcompte-mini__val">7</span>
-                <span class="dcompte-mini__label">Mes téléchargements</span>
-              </div>
-              <div class="dcompte-mini">
-                <span class="dcompte-mini__val">2</span>
-                <span class="dcompte-mini__label">Mes audits passés</span>
-              </div>
-              <div class="dcompte-mini">
-                <span class="dcompte-mini__val">0</span>
-                <span class="dcompte-mini__label">Mes achats</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="dcompte-rgpd">
-            <p class="dcompte-rgpd__text">🔒 Vous gardez le contrôle.</p>
-            <div class="dcompte-rgpd__links">
-              <a href="#waitlist" class="dcompte-rgpd__link">Exporter mes données</a>
-              <a href="#waitlist" class="dcompte-rgpd__link dcompte-rgpd__link--danger">Supprimer mon compte</a>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
+<section class="charte-bloc section" id="charte-editoriale">
+  <div class="container">
+    <div class="charte-bloc__inner">
+      <h3 class="charte-bloc__title">Indépendance éditoriale stricte</h3>
+      <p class="charte-bloc__body"><em>"Le Bureau du Vigneron s'engage à une indépendance éditoriale totale. Bien qu'étant une marque commerciale de Solumatic SAS, ce média peut publier des analyses critiques de tout acteur de la filière, y compris Solumatic, Vitisoft et Vitimedia. Aucun annonceur ou partenaire ne dispose d'un droit de regard préalable sur la ligne éditoriale."</em></p>
+      <a href="/charte-editoriale/" class="charte-bloc__link">Lire la charte complète →</a>
     </div>
   </div>
 </section>
 
-<script src="/js/dashboard-preview.js" defer></script>
+<section class="compteurs-honnetes section section--alt" id="le-bureau-en-chiffres">
+  <div class="container">
 
-<section class="tiroirs-section" id="tiroirs">
-  <div class="container--wide">
-
-    <p class="section__label" style="margin-bottom:1.5rem;">Ce que vous trouvez ici</p>
-
-    <!-- ONGLETS -->
-    <div role="tablist" aria-label="Les cinq tiroirs du bureau" class="tiroirs__tablist">
-
-      <button role="tab" id="tab-outils" aria-selected="true" aria-controls="panel-outils" class="tiroir-tab" type="button">
-        <span class="tiroir-tab__name">Outils</span>
-        <span class="tiroir-tab__sub">logiciels &amp; IA</span>
-      </button>
-
-      <button role="tab" id="tab-enseignement" aria-selected="false" aria-controls="panel-enseignement" class="tiroir-tab" type="button">
-        <span class="tiroir-tab__name">Enseignement</span>
-        <span class="tiroir-tab__sub">former, transmettre</span>
-      </button>
-
-      <button role="tab" id="tab-agenda" aria-selected="false" aria-controls="panel-agenda" class="tiroir-tab" type="button">
-        <span class="tiroir-tab__name">Agenda</span>
-        <span class="tiroir-tab__sub">rendez-vous filière</span>
-      </button>
-
-      <button role="tab" id="tab-telechargements" aria-selected="false" aria-controls="panel-telechargements" class="tiroir-tab" type="button">
-        <span class="tiroir-tab__name">Téléchargements</span>
-        <span class="tiroir-tab__sub">ressources &amp; guides</span>
-      </button>
-
-      <button role="tab" id="tab-partenaires" aria-selected="false" aria-controls="panel-partenaires" class="tiroir-tab" type="button">
-        <span class="tiroir-tab__name">Partenaires</span>
-        <span class="tiroir-tab__sub">réseau &amp; confiance</span>
-      </button>
-
-    </div>
-
-    <!-- ===== PANEL 01 — OUTILS ===== -->
-    <div role="tabpanel" id="panel-outils" aria-labelledby="tab-outils" class="tiroir-panel">
-      <span class="tiroir__stamp tiroir__stamp--ink">2 000 domaines équipés</span>
-      <p class="tiroir__eyebrow">Tiroir · 01</p>
-      <hr class="tiroir__rule">
-      <h3 class="tiroir__title">Les outils du métier.</h3>
-      <p class="tiroir__subtitle">Logiciels, IA, services connectés. Ce qui tourne tous les jours dans le bureau du vigneron — facturation, conformité, traçabilité, assistance.</p>
-
-      <div class="outils-grid">
-
-        <div class="outil-card">
-          <p class="outil-card__cat">ERP / CRM</p>
-          <p class="outil-card__name">Vitisoft</p>
-          <p class="outil-card__desc">Devis, factures, clients, stock. Le tableau de bord du domaine.</p>
-          <p class="outil-card__year">Depuis 2014</p>
-          <a href="#waitlist" class="outil-card__link">Découvrir →</a>
-        </div>
-
-        <div class="outil-card">
-          <p class="outil-card__cat">QR nutritionnel</p>
-          <p class="outil-card__name">Viticode</p>
-          <p class="outil-card__desc">QR codes obligatoires depuis 2024. Gratuit, conforme UE.</p>
-          <p class="outil-card__year">Depuis 2023</p>
-          <a href="#waitlist" class="outil-card__link">Découvrir →</a>
-        </div>
-
-        <div class="outil-card">
-          <p class="outil-card__cat">Traçabilité chai</p>
-          <p class="outil-card__name">Vitiwin</p>
-          <p class="outil-card__desc">Soutirage, sulfitage, embouteillage. Du raisin à la bouteille.</p>
-          <p class="outil-card__year">&nbsp;</p>
-          <a href="#waitlist" class="outil-card__link">Découvrir →</a>
-        </div>
-
-        <div class="outil-card">
-          <p class="outil-card__cat">IA viticulture</p>
-          <p class="outil-card__name">VINCA</p>
-          <p class="outil-card__desc">L'assistant IA souverain qui connaît la réglementation française.</p>
-          <p class="outil-card__year">Depuis 2025</p>
-          <a href="#waitlist" class="outil-card__link">Découvrir →</a>
-        </div>
-
+    <div class="compteurs-honnetes__grid">
+      <div class="compteur-item">
+        <span class="compteur-item__nb">3</span>
+        <span class="compteur-item__label">podcasts en route</span>
+      </div>
+      <div class="compteur-item">
+        <span class="compteur-item__nb">1</span>
+        <span class="compteur-item__label">article publié</span>
+      </div>
+      <div class="compteur-item">
+        <span class="compteur-item__nb">8</span>
+        <span class="compteur-item__label">partenaires en discussion</span>
       </div>
     </div>
 
-    <!-- ===== PANEL 02 — ENSEIGNEMENT ===== -->
-    <div role="tabpanel" id="panel-enseignement" aria-labelledby="tab-enseignement" class="tiroir-panel" hidden>
-      <span class="tiroir__stamp tiroir__stamp--green">ESA Angers · partenaire</span>
-      <p class="tiroir__eyebrow">Tiroir · 02</p>
-      <hr class="tiroir__rule">
-      <h3 class="tiroir__title">Former, transmettre.</h3>
-      <p class="tiroir__subtitle">Cours, ateliers, retours d'expérience. Construit avec des enseignants et des vignerons — pas par un cabinet de conseil.</p>
-
-      <div class="enseignement-grid">
-
-        <ul class="enseignement-list">
-          <li class="ens-item">
-            <p class="ens-item__tag">Licence</p>
-            <p class="ens-item__name">Marketing des Vins &amp; Terroirs</p>
-            <p class="ens-item__desc">Licence ESA Angers, 5 ans de cours.</p>
-          </li>
-          <li class="ens-item">
-            <p class="ens-item__tag">Atelier · 4h</p>
-            <p class="ens-item__name">Process commerciaux du domaine</p>
-            <p class="ens-item__desc">Tarifer, vendre, fidéliser sans s'épuiser.</p>
-          </li>
-          <li class="ens-item">
-            <p class="ens-item__tag">Atelier · 3h</p>
-            <p class="ens-item__name">Conformité 2024–2026</p>
-            <p class="ens-item__desc">QR, étiquetage, déclarations. Tout en une matinée.</p>
-          </li>
-          <li class="ens-item">
-            <p class="ens-item__tag">Continu</p>
-            <p class="ens-item__name">Padawine — articles &amp; vidéos</p>
-            <p class="ens-item__desc">Format court, lisible le dimanche soir.</p>
-          </li>
-        </ul>
-
-        <div class="programme-card">
-          <p class="programme-card__title">Marketing des Vins &amp; Terroirs</p>
-          <ul class="programme-modules">
-            <li class="programme-module">
-              <span>Module 1 — Le marché</span><span>4h</span>
-            </li>
-            <li class="programme-module">
-              <span>Module 2 — Le client direct</span><span>5h</span>
-            </li>
-            <li class="programme-module">
-              <span>Module 3 — La tarification</span><span>6h</span>
-            </li>
-            <li class="programme-module">
-              <span>Module 4 — Les circuits</span><span>7h</span>
-            </li>
-            <li class="programme-module">
-              <span>Module 5 — Storytelling domaine</span><span>8h</span>
-            </li>
-          </ul>
-          <p class="programme-card__signature">— Teddy P.</p>
-        </div>
-
-      </div>
-
-      <div style="margin-top:1.25rem;">
-        <a href="#waitlist" class="btn btn--bordeaux" style="font-size:0.72rem;padding:0.5rem 1rem;">→ Tous les cours</a>
-      </div>
-    </div>
-
-    <!-- ===== PANEL 03 — AGENDA ===== -->
-    <div role="tabpanel" id="panel-agenda" aria-labelledby="tab-agenda" class="tiroir-panel" hidden>
-      <span class="tiroir__stamp tiroir__stamp--ink">Avril — Juillet 2026</span>
-      <p class="tiroir__eyebrow">Tiroir · 03</p>
-      <hr class="tiroir__rule">
-      <h3 class="tiroir__title">Les rendez-vous de la filière.</h3>
-      <p class="tiroir__subtitle">Salons, formations, échéances réglementaires, démos terrain. Tout ce qu'il ne faut pas rater — et ce à quoi vous pouvez vous inscrire en deux clics.</p>
-
-      <div class="agenda-grid">
-
-        <div class="agenda-card">
-          <div class="agenda-card__date">
-            <div class="agenda-card__day">12</div>
-            <div class="agenda-card__month">Mai</div>
-            <div class="agenda-card__dow">mar.</div>
-          </div>
-          <div class="agenda-card__content">
-            <p class="agenda-card__type">Salon</p>
-            <p class="agenda-card__title">Wine Paris — stand Solumatic</p>
-            <p class="agenda-card__lieu">Paris · Porte de Versailles</p>
-          </div>
-        </div>
-
-        <div class="agenda-card">
-          <div class="agenda-card__date">
-            <div class="agenda-card__day">28</div>
-            <div class="agenda-card__month">Mai</div>
-            <div class="agenda-card__dow">jeu.</div>
-          </div>
-          <div class="agenda-card__content">
-            <p class="agenda-card__type">Démo</p>
-            <p class="agenda-card__title">Démo Vitisoft — Saumur</p>
-            <p class="agenda-card__lieu">Caves coopératives</p>
-          </div>
-        </div>
-
-        <div class="agenda-card">
-          <div class="agenda-card__date">
-            <div class="agenda-card__day">15</div>
-            <div class="agenda-card__month">Juin</div>
-            <div class="agenda-card__dow">lun.</div>
-          </div>
-          <div class="agenda-card__content">
-            <p class="agenda-card__type">Échéance</p>
-            <p class="agenda-card__title">Échéance TVA mensuelle</p>
-            <p class="agenda-card__lieu">Portail des impôts</p>
-          </div>
-        </div>
-
-        <div class="agenda-card">
-          <div class="agenda-card__date">
-            <div class="agenda-card__day">22</div>
-            <div class="agenda-card__month">Juin</div>
-            <div class="agenda-card__dow">lun.</div>
-          </div>
-          <div class="agenda-card__content">
-            <p class="agenda-card__type">Formation</p>
-            <p class="agenda-card__title">Atelier QR nutritionnel</p>
-            <p class="agenda-card__lieu">Visio · 1h</p>
-          </div>
-        </div>
-
-        <div class="agenda-card">
-          <div class="agenda-card__date">
-            <div class="agenda-card__day">03</div>
-            <div class="agenda-card__month">Juil</div>
-            <div class="agenda-card__dow">ven.</div>
-          </div>
-          <div class="agenda-card__content">
-            <p class="agenda-card__type">Salon</p>
-            <p class="agenda-card__title">Vinexpo Bordeaux</p>
-            <p class="agenda-card__lieu">Bordeaux · Parc Expo</p>
-          </div>
-        </div>
-
-        <div class="agenda-card">
-          <div class="agenda-card__date">
-            <div class="agenda-card__day">25</div>
-            <div class="agenda-card__month">Juil</div>
-            <div class="agenda-card__dow">sam.</div>
-          </div>
-          <div class="agenda-card__content">
-            <p class="agenda-card__type">Démo</p>
-            <p class="agenda-card__title">Webinaire VINCA — questions</p>
-            <p class="agenda-card__lieu">En ligne</p>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="tiroir__footer-note">
-        <span>— Synchronisable avec votre agenda Google / Outlook</span>
-        <a href="#waitlist" class="btn btn--ghost" style="color:var(--bordeaux);border-color:var(--bordeaux);font-size:0.72rem;padding:0.5rem 1rem;">→ Voir tout l'agenda</a>
-      </div>
-    </div>
-
-    <!-- ===== PANEL 04 — TÉLÉCHARGEMENTS ===== -->
-    <div role="tabpanel" id="panel-telechargements" aria-labelledby="tab-telechargements" class="tiroir-panel" hidden>
-      <span class="tiroir__stamp tiroir__stamp--green">Gratuit · membres</span>
-      <p class="tiroir__eyebrow">Tiroir · 04</p>
-      <hr class="tiroir__rule">
-      <h3 class="tiroir__title">Ressources à emporter.</h3>
-      <p class="tiroir__subtitle">Modèles de documents, guides PDF, checklists, kits de conformité. À imprimer, à signer, à coller derrière la porte du bureau.</p>
-
-      <div class="dl-grid">
-
-        <div class="dl-card">
-          <span class="dl-card__icon">PDF</span>
-          <div class="dl-card__info">
-            <p class="dl-card__name">Kit conformité QR nutritionnel 2024</p>
-            <p class="dl-card__meta">PDF · 18 pages</p>
-          </div>
-          <a href="#waitlist" class="dl-card__btn">↓ Obtenir</a>
-        </div>
-
-        <div class="dl-card">
-          <span class="dl-card__icon">ZIP</span>
-          <div class="dl-card__info">
-            <p class="dl-card__name">Modèles factures &amp; devis</p>
-            <p class="dl-card__meta">Word + Excel · 6 fichiers</p>
-          </div>
-          <a href="#waitlist" class="dl-card__btn">↓ Obtenir</a>
-        </div>
-
-        <div class="dl-card">
-          <span class="dl-card__icon">PDF</span>
-          <div class="dl-card__info">
-            <p class="dl-card__name">Calendrier des échéances 2026</p>
-            <p class="dl-card__meta">PDF · 2 pages</p>
-          </div>
-          <a href="#waitlist" class="dl-card__btn">↓ Obtenir</a>
-        </div>
-
-        <div class="dl-card">
-          <span class="dl-card__icon">XLS</span>
-          <div class="dl-card__info">
-            <p class="dl-card__name">Grille tarifaire 3 circuits</p>
-            <p class="dl-card__meta">Excel · 1 fichier</p>
-          </div>
-          <a href="#waitlist" class="dl-card__btn">↓ Obtenir</a>
-        </div>
-
-        <div class="dl-card">
-          <span class="dl-card__icon">PDF</span>
-          <div class="dl-card__info">
-            <p class="dl-card__name">Checklist transmission de domaine</p>
-            <p class="dl-card__meta">PDF · 12 pages</p>
-          </div>
-          <a href="#waitlist" class="dl-card__btn">↓ Obtenir</a>
-        </div>
-
-        <div class="dl-card">
-          <span class="dl-card__icon">DOC</span>
-          <div class="dl-card__info">
-            <p class="dl-card__name">Modèle CGV vente directe</p>
-            <p class="dl-card__meta">Word · 4 pages</p>
-          </div>
-          <a href="#waitlist" class="dl-card__btn">↓ Obtenir</a>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ===== PANEL 05 — PARTENAIRES ===== -->
-    <div role="tabpanel" id="panel-partenaires" aria-labelledby="tab-partenaires" class="tiroir-panel" hidden>
-      <span class="tiroir__stamp tiroir__stamp--ink">Réseau filière</span>
-      <p class="tiroir__eyebrow">Tiroir · 05</p>
-      <hr class="tiroir__rule">
-      <h3 class="tiroir__title">Nos partenaires.</h3>
-      <p class="tiroir__subtitle">Le bureau ne tourne pas seul. Coopératives, écoles, fournisseurs, organisations de filière — voici les maisons avec qui on avance, et qu'on recommande sans hésiter.</p>
-
-      <div class="partenaires-grid">
-
-        <div class="partenaire-card">
-          <p class="partenaire-card__type">Tonnellerie</p>
-          <p class="partenaire-card__name">Viti-Élevages</p>
-          <p class="partenaire-card__desc">Tonneaux innovants pour sublimer vos vins.</p>
-        </div>
-
-        <div class="partenaire-card">
-          <p class="partenaire-card__type">Enseignement</p>
-          <p class="partenaire-card__name">ESA Angers</p>
-          <p class="partenaire-card__desc">Licence Marketing des Vins &amp; Terroirs.</p>
-        </div>
-
-        <div class="partenaire-card">
-          <p class="partenaire-card__type">Services</p>
-          <p class="partenaire-card__name">Entreprise Services Viti</p>
-          <p class="partenaire-card__desc">Allié au quotidien : matériel sur mesure.</p>
-        </div>
-
-        <div class="partenaire-card">
-          <p class="partenaire-card__type">Institution</p>
-          <p class="partenaire-card__name">Chambres d'agriculture</p>
-          <p class="partenaire-card__desc">Relais terrain dans les régions viticoles.</p>
-        </div>
-
-        <div class="partenaire-card">
-          <p class="partenaire-card__type">Juridique</p>
-          <p class="partenaire-card__name">Notaires &amp; avocats filière</p>
-          <p class="partenaire-card__desc">Réseau spécialisé transmission, CGV, droit du vin.</p>
-        </div>
-
-        <div class="partenaire-card">
-          <p class="partenaire-card__type">Comptabilité</p>
-          <p class="partenaire-card__name">Cabinets comptables vin</p>
-          <p class="partenaire-card__desc">Comptables formés à Vitisoft.</p>
-        </div>
-
-      </div>
-
-      <div class="tiroir__footer-note">
-        <span>— Vous voulez rejoindre le réseau ?</span>
-        <a href="#waitlist" class="btn btn--bordeaux" style="font-size:0.72rem;padding:0.5rem 1rem;">→ Devenir partenaire</a>
-      </div>
-    </div>
+    <p class="compteurs-honnetes__note">Le Bureau démarre. Chaque mois, ces chiffres montent.</p>
 
   </div>
 </section>
-
-<script src="/js/tiroirs.js" defer></script>
-
-
-
-
-
-<section class="references">
-  <div class="container--wide">
-
-    
-    <div class="editorial-intro">
-      <p class="editorial-intro__kicker">Paroles de vignerons</p>
-      <p class="editorial-intro__text">Le Bureau du Vigneron est porté par <strong>Solumatic</strong>, éditeur de Vitisoft, Viticode et VINCA. Voici ce que disent celles et ceux qui nous font confiance depuis <strong>plus de dix ans</strong>.</p>
-    </div>
-
-    
-    <article class="la-une">
-      <span class="la-une__label">La une</span>
-      <p class="la-une__quote">Vitisoft m&#39;a changé la vie pour la gestion commerciale. Archi-facile et efficace. Nous prenons notre retraite après 43 ans de viticulture, mais nous continuerons d&#39;en parler aux jeunes collègues.</p>
-      <div class="la-une__signature">
-        <p class="la-une__signature-name">Marie &amp; Jean-François Lespinasse</p>
-        <p class="la-une__signature-meta">
-          Château Bichon Cassignols
-          <span class="dot">·</span>
-          43 ans de viticulture
-          <span class="dot">·</span>
-          mai 2026
-        </p>
-        <span class="la-une__nps">NPS 10 / 10</span>
-      </div>
-    </article>
-
-    
-    <div class="score-inline">
-      
-  <span class="stars stars--score" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-      <span class="score-inline__text"><span class="big">4,9</span>/5 — 73 avis vérifiés</span>
-      <a class="score-inline__link" href="https://maps.google.com/?cid=1106331513270491395" target="_blank" rel="noopener">voir tous les avis →</a>
-    </div>
-
-    
-    <div class="breves-grid">
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Mon logiciel de référence commercial depuis 2015. Réactif à la moindre demande. Organisation du travail au millimètre.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Étienne Borgnat</span>
-            <span class="breve__signature-meta">Vigneron · client depuis 2015</span>
-            <span class="breve__signature-source">via google · il y a 3 mois</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Logiciel fluide, intuitif, pratique. Je recommande Vitisoft à tous mes confrères vignerons. Un allié incontournable.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Manon Marchal</span>
-            <span class="breve__signature-meta">Vigneronne</span>
-            <span class="breve__signature-source">via google · il y a 2 ans</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Excellent logiciel, très facile d&#39;utilisation pour un petit exploitant. Sept ans d&#39;utilisation, jamais de bug, service client réactif.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Maud &amp; Sébastien</span>
-            <span class="breve__signature-meta">Kermabo · 7 ans client</span>
-            <span class="breve__signature-source">via google · il y a 2 ans</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Super solution pour notre distillerie. Outil de gestion puissant et poussé, CRM super adapté. On adore quand on nous facilite la tâche.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Valour Lemaire</span>
-            <span class="breve__signature-meta">Distillerie · spiritueux</span>
-            <span class="breve__signature-source">via google · il y a 2 ans</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Domaine familial, installation en janvier 2022. Après prise en main, fiable, pratique à utiliser et très complet.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Régis Chaigne</span>
-            <span class="breve__signature-meta">Domaine familial · depuis 2022</span>
-            <span class="breve__signature-source">via google · il y a 2 ans</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Extrêmement complet, équipe support réactive, efficace, à l&#39;écoute. Puissant côté tableaux de bord — module statistiques hyper complet.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Sophie Andreelli</span>
-            <span class="breve__signature-meta">Vigneronne · usage data</span>
-            <span class="breve__signature-source">via google · il y a 5 ans</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Le choix du changement a été difficile : en concurrence, des devis beaucoup plus chers. Vitisoft a tenu sa promesse.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Claire Bordron</span>
-            <span class="breve__signature-meta">Vigneronne · budget maîtrisé</span>
-            <span class="breve__signature-source">via google · il y a 6 ans</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Bravo à toute l&#39;équipe. Gens formidables, à l&#39;écoute. Service à taille humaine, un tchat super pratique.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Anne-Sophie D</span>
-            <span class="breve__signature-meta">Vigneronne</span>
-            <span class="breve__signature-source">via google · il y a 1 an</span>
-          </div>
-        </article>
-      
-        <article class="breve">
-          
-  <span class="stars stars--breve" aria-label="5 étoiles sur 5">
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-    
-  </span>
-
-          <p class="breve__quote">Très bon logiciel, expert en comptabilité matière, qui saura vous libérer du temps. Très intuitif et facile.</p>
-          <div class="breve__signature">
-            <span class="breve__signature-name">Anaïs Laborde</span>
-            <span class="breve__signature-meta">Vigneronne · compta matière</span>
-            <span class="breve__signature-source">via google · il y a 2 ans</span>
-          </div>
-        </article>
-      
-    </div>
-
-    
-    <div class="editorial-rule"><span class="editorial-rule__ornament">✦</span></div>
-
-    
-    <div class="partenaire-block">
-      <span class="partenaire-block__label">Le mot du partenaire</span>
-      <p class="partenaire-block__quote">En tant que partenaire de Vitisoft, nous avons constaté l&#39;excellence de leur logiciel dédié à la gestion viticole. Une grande réactivité, une capacité à écouter et à répondre.</p>
-      <p class="partenaire-block__signature-name">Wine Vision</p>
-      <p class="partenaire-block__signature-meta">Partenaire de l&#39;écosystème viticole</p>
-    </div>
-
-    
-    <div class="editorial-rule"><span class="editorial-rule__ornament">✦</span></div>
-
-    
-    <div class="video-block">
-      <p class="video-block__label">Témoignage filmé</p>
-      <p class="video-block__title">À voir et écouter</p>
-      <div class="video-frame">
-        <iframe
-          src="https://www.youtube.com/embed/fh04CgXNj7U"
-          title="Témoignage client Solumatic"
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen></iframe>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-
-<section class="articles-section">
-  <div class="container--wide">
-
-    <p class="section__label">Le journal</p>
-    <h2 class="section__title">Du concret, du terrain.</h2>
-
-    <div class="articles-grid">
-      
-    </div>
-
-    <div class="articles-cta">
-      <a href="/articles/" class="btn btn--bordeaux">→ Tous les articles</a>
-    </div>
-
-  </div>
-</section>
-
 
 <section class="waitlist" id="waitlist">
   <div class="container">
 
     <div class="waitlist__header">
-      <p class="waitlist__eyebrow">Accès anticipé</p>
-      <h2>Ce projet est fait pour vous.<br>Dites-le nous.</h2>
+      <p class="waitlist__eyebrow">Newsletter</p>
+      <h2>L'édition bimensuelle du Bureau.<br>Du concret. 1 lundi sur 2.</h2>
       <p class="waitlist__sub">
         Le Bureau du Vigneron ouvre bientôt. Pas de newsletter hebdo. Pas de spam.
         Un email, quand c'est prêt — et vous y accédez en premier.
@@ -1775,6 +304,7 @@
         <ul>
           <li><a href="https://www.solumatic.fr" target="_blank" rel="noopener">À propos de Solumatic</a></li>
           <li><a href="/articles/">Le journal</a></li>
+          <li><a href="/conseil-terrain/">Conseil terrain</a></li>
           <li><a href="/teddy/">Teddy Pereira</a></li>
           <li><a href="mailto:teddy@solumatic.fr">Nous écrire</a></li>
         </ul>
@@ -1802,18 +332,6 @@
 </footer>
 
 
-  <!-- Décap CMS redirect après login admin -->
-  <script>
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", user => {
-        if (!user) {
-          window.netlifyIdentity.on("login", () => {
-            document.location.href = "/admin/";
-          });
-        }
-      });
-    }
-  </script>
 
 </body>
 </html>

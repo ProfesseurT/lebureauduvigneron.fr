@@ -289,3 +289,104 @@ Aucune. Toutes les règles V2 respectées à la lettre.
 **Statut : PRÊT POUR PUSH TEDDY**
 
 *Log généré automatiquement — 2026-05-25*
+
+---
+
+## 1f. HOME PIVOT VERSION A — "Le média de la filière" (2026-05-26)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-25_home-pivot-V-A.md`
+
+### Fichiers modifiés
+| Fichier | Ce qui a changé |
+|---------|-----------------|
+| `src/index.njk` | Réécriture complète — nouvelle structure 8 sections |
+| `src/_includes/components/hero.njk` | Nouveau hero : H1 "Le média de référence de la filière." + sous-titre Playfair italic + desc JetBrains + 2 CTA (primaire bordeaux scroll #a-la-une, secondaire ghost scroll #waitlist) |
+| `src/_includes/components/manifeste.njk` | Texte simplifié selon brief §5.5 — "Pourquoi ce média existe." |
+| `src/_includes/components/waitlist.njk` | Texte mis à jour : "L'édition bimensuelle du Bureau. Du concret. 1 lundi sur 2." |
+| `src/_includes/base.njk` | Suppression script Netlify Identity (gain -10ko JS). Ajout lien nav "Conseil terrain" |
+| `src/_includes/components/footer-rich.njk` | Ajout lien "Conseil terrain" dans colonne Maison |
+| `src/css/style.css` | Ajout ~400 lignes CSS : hero v2, articles-une, podcast-teaser, voix-filiere, charte-bloc, compteurs-honnetes + tous styles page conseil-terrain + responsive |
+
+### Fichiers créés
+| Fichier | Rôle |
+|---------|------|
+| `src/_includes/components/articles-une.njk` | "À la une" — boucle 3 derniers posts + placeholder "Bientôt" si < 3 articles |
+| `src/_includes/components/podcast-teaser.njk` | Teaser podcast "Premier épisode juillet 2026" + form email placeholder |
+| `src/_includes/components/voix-filiere.njk` | 2 fiches partenaires (WineTailors + Emilie Barbottin) + placeholder "6 autres bientôt" |
+| `src/_includes/components/compteurs-honnetes.njk` | 3 chiffres : 3 podcasts / 1 article / 8 partenaires |
+| `src/_includes/components/charte-bloc.njk` | Bloc indépendance éditoriale + lien /charte-editoriale/ |
+
+### Composants retirés de la home, conservés dans le repo
+| Composant | Destination future |
+|-----------|-------------------|
+| `demo-pinboard.njk` | `/about/` ou article cornerstone |
+| `dashboard-preview.njk` | `/le-compte/` quand Supabase branché |
+| `tiroirs.njk` | `/outils-et-ressources/` |
+| `references.njk` | Home quand vrais témoignages validés |
+| `articles-recent.njk` | Remplacé par `articles-une.njk` (plus visuel) |
+
+### Critères d'acceptation — statut
+| # | Critère | Statut |
+|---|---------|--------|
+| 1 | H1 "Le média de référence de la filière." | ✅ |
+| 2 | Section "À la une" 3 cartes + placeholder | ✅ |
+| 3 | Section podcast teaser "Premier épisode en juillet" | ✅ |
+| 4 | 2 fiches partenaires + placeholder "6 autres" | ✅ |
+| 5 | Manifeste simplifié | ✅ |
+| 6 | Bloc charte éditoriale visible | ✅ |
+| 7 | Bloc 3 chiffres 3/1/8 | ✅ |
+| 8 | Waitlist Tally yPokbX intact | ✅ |
+| 9 | Pinboard/dashboard/tiroirs/references retirés de la home | ✅ |
+| 10 | Composants retirés toujours dans `_includes/components/` | ✅ |
+| 15 | Script Netlify Identity retiré de base.njk | ✅ |
+| 16 | Aucun framework JS ajouté | ✅ |
+| 17 | Polices Playfair/JetBrains/Caveat chargées | ✅ |
+| 18 | Footer riche intact | ✅ |
+| 19 | Pas de push automatique | ✅ |
+| 13 | Build `npm run build` propre, 0 erreur | ✅ 5 fichiers écrits en 0.31s |
+
+---
+
+## 1g. PAGE CONSEIL TERRAIN (2026-05-26)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-25_conseil-terrain.md`
+
+### Fichiers créés
+| Fichier | Rôle |
+|---------|------|
+| `src/conseil-terrain.njk` | Page principale `/conseil-terrain/` |
+| `src/_includes/components/conseil-prestations.njk` | 3 cartes prestations + bandeau conférence |
+| `src/_includes/components/conseil-cas-concrets.njk` | 3 cas concrets anonymisés (Provence / Saint-Tropez / Val de Loire) |
+| `src/_includes/components/conseil-temoignage.njk` | Citation Ferrari/2CV |
+| `src/_includes/components/conseil-form.njk` | Formulaire de contact HTML (9 champs) + placeholder Tally + capture UTM `?prestation=` |
+
+### Critères d'acceptation — statut
+| # | Critère | Statut |
+|---|---------|--------|
+| 1 | Page accessible `/conseil-terrain/` | ✅ |
+| 2 | H1 "Conseil terrain." | ✅ |
+| 3 | 3 cartes prestations avec tarifs | ✅ |
+| 4 | Bandeau "Conférence ou atelier filière" | ✅ |
+| 5 | 3 cas concrets | ✅ |
+| 6 | Bloc "point commun" | ✅ |
+| 7 | Témoignage Ferrari/2CV | ✅ |
+| 8 | Tableau tarifs | ✅ |
+| 9 | Formulaire HTML placeholder (Tally non configuré) | ✅ |
+| 10 | Nav "Conseil terrain" ajouté | ✅ |
+| 11 | Footer "Conseil terrain" ajouté | ✅ |
+| 13 | Build propre | ✅ |
+| 14 | Aucun framework JS ajouté | ✅ |
+| 15 | Cohérence visuelle paper/bordeaux/ink | ✅ |
+| 16 | Mailto teddy@solumatic.fr actif en fallback | ✅ |
+| 17 | Pas de push automatique | ✅ |
+
+### Actions restantes côté Teddy
+1. **Formulaire Tally `conseil-terrain`** — créer sur tally.so avec les 9 champs → me transmettre l'ID embed
+2. **Formulaire Tally `podcast-launch`** — créer un formulaire email simple → me transmettre l'ID
+3. **Photos partenaires** — Benoît Tesson (WineTailors) + Emilie Barbottin → déposer dans `src/assets/partenaires/`
+4. **Témoignage Ferrari/2CV** — confirmer si on peut nommer l'auteur
+5. **Validation visuelle** sur Vercel preview avant push main
+
+**Statut : PRÊT POUR PUSH TEDDY**
+
+*Log généré automatiquement — 2026-05-26*
