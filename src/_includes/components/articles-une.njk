@@ -7,33 +7,34 @@
     </div>
 
     <div class="articles-une__grid">
-      {% set recentPosts = collections.posts | sort(true, false, 'date') %}
-      {% for post in recentPosts | first(3) %}
-      <article class="articles-une__card">
-        <a href="{{ post.url }}" class="articles-une__card-link">
-          <div class="articles-une__card-img">
-            {% if post.data.image %}
-            <img src="{{ post.data.image }}" alt="{{ post.data.title }}" loading="lazy">
-            {% else %}
-            <div class="articles-une__card-placeholder"></div>
-            {% endif %}
-          </div>
-          <div class="articles-une__card-body">
-            {% if post.data.pilier %}
-            <p class="articles-une__pilier">{{ post.data.pilier }}</p>
-            {% endif %}
-            <h3 class="articles-une__title">{{ post.data.title }}</h3>
-            {% if post.data.description %}
-            <p class="articles-une__excerpt">{{ post.data.description }}</p>
-            {% endif %}
-            <p class="articles-une__meta">
-              {% if post.data.temps_lecture %}{{ post.data.temps_lecture }}{% endif %}
-              {% if post.data.temps_lecture and post.date %} · {% endif %}
-              {% if post.date %}{{ post.date | date("d MMM YYYY") }}{% endif %}
-            </p>
-          </div>
-        </a>
-      </article>
+      {% for post in collections.posts %}
+        {% if loop.index <= 3 %}
+        <article class="articles-une__card">
+          <a href="{{ post.url }}" class="articles-une__card-link">
+            <div class="articles-une__card-img">
+              {% if post.data.image %}
+              <img src="{{ post.data.image }}" alt="{{ post.data.title }}" loading="lazy">
+              {% else %}
+              <div class="articles-une__card-placeholder"></div>
+              {% endif %}
+            </div>
+            <div class="articles-une__card-body">
+              {% if post.data.pilier %}
+              <p class="articles-une__pilier">{{ post.data.pilier }}</p>
+              {% endif %}
+              <h3 class="articles-une__title">{{ post.data.title }}</h3>
+              {% if post.data.description %}
+              <p class="articles-une__excerpt">{{ post.data.description }}</p>
+              {% endif %}
+              <p class="articles-une__meta">
+                {% if post.data.temps_lecture %}{{ post.data.temps_lecture }}{% endif %}
+                {% if post.data.temps_lecture and post.date %} · {% endif %}
+                {% if post.date %}{{ post.date | dateReadable }}{% endif %}
+              </p>
+            </div>
+          </a>
+        </article>
+        {% endif %}
       {% endfor %}
 
       {% if (collections.posts | length) < 3 %}

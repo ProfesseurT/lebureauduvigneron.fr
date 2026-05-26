@@ -1205,7 +1205,7 @@ em { font-style: italic; }
 }
 .footer-rich__grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 3rem;
   margin-bottom: 3rem;
 }
@@ -2771,41 +2771,7 @@ em { font-style: italic; }
   text-decoration: none;
 }
 
-/* ============================================================
-   CHARTE BLOC
-   ============================================================ */
-.charte-bloc {
-  background: var(--paper);
-}
-.charte-bloc__inner {
-  border: 1px solid var(--rule);
-  background: var(--paper-light);
-  padding: 2rem 2.5rem;
-  max-width: 760px;
-  margin: 0 auto;
-}
-.charte-bloc__title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.1rem;
-  color: var(--ink);
-  margin-bottom: 1rem;
-}
-.charte-bloc__body {
-  font-size: 0.92rem;
-  color: var(--muted);
-  line-height: 1.75;
-  margin-bottom: 1.25rem;
-}
-.charte-bloc__link {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  color: var(--bordeaux);
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  border-bottom: 1px solid var(--bordeaux);
-  padding-bottom: 1px;
-}
-.charte-bloc__link:hover { opacity: 0.7; text-decoration: none; }
+/* charte-bloc supprimé — décision Teddy 26 mai 2026 */
 
 /* ============================================================
    COMPTEURS HONNÊTES
@@ -3302,6 +3268,7 @@ em { font-style: italic; }
   .footer-rich__brand {
     grid-column: 1 / -1;
   }
+  /* 3 colonnes desktop → 2 colonnes tablet : brand prend tout le haut */
 }
 
 @media (max-width: 600px) {
@@ -3326,6 +3293,16 @@ em { font-style: italic; }
 /* ====================================================
    DEMO PINBOARD — 3 ÉTATS (chaos → organisé → digital)
    ==================================================== */
+
+.pinboard-section__header {
+  text-align: center;
+  padding: 5rem 0 2rem;
+}
+.pinboard-section__sub {
+  font-style: italic;
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+}
 
 .demo-pinboard {
   padding: 5rem 0 4rem;
@@ -3869,7 +3846,7 @@ em { font-style: italic; }
   .vitimedia-slots { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 767px) {
-  .demo-pinboard__board { height: 620px; }
+  .demo-pinboard__board { height: 540px; }
   .demo-pinboard__header { grid-template-columns: 1fr; gap: 0.75rem; }
   .demo-pinboard__hint { display: none; }
   .note-card { width: 40%; height: 35%; }

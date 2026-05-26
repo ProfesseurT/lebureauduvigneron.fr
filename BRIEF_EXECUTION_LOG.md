@@ -292,6 +292,41 @@ Aucune. Toutes les règles V2 respectées à la lettre.
 
 ---
 
+## 1h. ADDENDUM CORRECTIONS QA + PINBOARD + CHARTE (2026-05-26)
+
+**Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-26_LP-pivot-V-A_ADDENDUM-corrections-QA.md`
+
+### Fichiers modifiés
+| Fichier | Ce qui a changé |
+|---------|-----------------|
+| `src/index.njk` | Charte retirée. Pinboard réintégré entre compteurs et waitlist |
+| `src/_includes/components/articles-une.njk` | Fix loop : `sort()/slice()` → `loop.index <= 3`. Fix date → `dateReadable`. Article QR code visible |
+| `src/_includes/components/demo-pinboard.njk` | Header section "Le bureau, en image" ajouté |
+| `src/_includes/components/footer-rich.njk` | Tagline pivot média. Colonne "Le bureau" (5 liens morts) supprimée |
+| `src/_includes/base.njk` | Meta description + og:description → nouvelle promesse média |
+| `src/css/style.css` | Grid footer 4→3 col. Hauteur board mobile 620→540px. `.pinboard-section__header`. `.charte-bloc` purgé |
+
+### Fichiers supprimés
+| Fichier | Raison |
+|---------|--------|
+| `src/_includes/components/charte-bloc.njk` | Décision Teddy 26 mai : pas d'engagement public sur indépendance éditoriale |
+
+### Vérifications HTML généré
+| Contrôle | Résultat |
+|----------|----------|
+| `QR code vitivinicole` dans index.html | 1 ✅ |
+| `charte` dans index.html | 0 ✅ |
+| `#tiroirs` dans index.html | 0 ✅ |
+| `netlify-identity` dans index.html | 0 ✅ |
+| `Le bureau, en image` dans index.html | 1 ✅ |
+| Build 0 erreur | ✅ 5 fichiers 0.32s |
+
+**Statut : PRÊT POUR PUSH TEDDY**
+
+*Log généré automatiquement — 2026-05-26*
+
+---
+
 ## 1f. HOME PIVOT VERSION A — "Le média de la filière" (2026-05-26)
 
 **Brief source :** `_pipeline/01_BRIEF/briefs/2026-05-25_home-pivot-V-A.md`
