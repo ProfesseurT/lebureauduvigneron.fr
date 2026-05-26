@@ -2,84 +2,20 @@
   <h2 class="conseil-form__title" style="text-align:center;">Parlons-en.</h2>
   <p class="conseil-form__sub" style="text-align:center;">Décris ton besoin en 2–3 lignes. Je te recontacte sous 48h ouvrées.</p>
 
-  <!-- Formulaire Tally à configurer par Teddy -->
-  <!-- TODO: remplacer ce formulaire par l'embed Tally conseil-terrain quand Teddy fournit l'ID -->
-  <div class="conseil-form__placeholder">
-    <p class="conseil-form__placeholder-text">Formulaire en cours de configuration — reviens dans 48h ou écris directement à <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a></p>
-
-    <form class="conseil-form__fallback" name="conseil-terrain" method="POST" data-netlify="false" action="mailto:teddy@solumatic.fr">
-      <input type="hidden" name="prestation" id="prestation-hidden">
-      <div class="conseil-form__field">
-        <label for="ct-prestation">Prestation visée</label>
-        <select id="ct-prestation" name="prestation_visee" class="conseil-form__select">
-          <option value="">Choisir...</option>
-          <option value="audit">Audit financier et structurel logiciel</option>
-          <option value="accompagnement">Accompagnement terrain</option>
-          <option value="formation">Formation équipe commercial-admin</option>
-          <option value="conference">Conférence / atelier filière</option>
-          <option value="autre">Autre</option>
-        </select>
-      </div>
-      <div class="conseil-form__field">
-        <label for="ct-structure">Type de structure</label>
-        <select id="ct-structure" name="type_structure" class="conseil-form__select">
-          <option value="">Choisir...</option>
-          <option value="vigneron">Vigneron indépendant</option>
-          <option value="cooperative">Coopérative</option>
-          <option value="syndicat">Syndicat ou interpro</option>
-          <option value="chambre">Chambre d'agriculture</option>
-          <option value="editeur">Éditeur logiciel viti</option>
-          <option value="autre">Autre</option>
-        </select>
-      </div>
-      <div class="conseil-form__field">
-        <label for="ct-region">Région / département</label>
-        <input type="text" id="ct-region" name="region" placeholder="ex: Loire-Atlantique" class="conseil-form__input">
-      </div>
-      <div class="conseil-form__field">
-        <label for="ct-taille">Taille du domaine ou de la structure</label>
-        <input type="text" id="ct-taille" name="taille" placeholder="ex: 18 ha, 4 salariés" class="conseil-form__input">
-      </div>
-      <div class="conseil-form__field">
-        <label for="ct-besoin">Décris ton besoin</label>
-        <textarea id="ct-besoin" name="besoin" rows="4" placeholder="En 2–3 lignes, qu'est-ce qui coince ?" class="conseil-form__textarea"></textarea>
-      </div>
-      <div class="conseil-form__row-2">
-        <div class="conseil-form__field">
-          <label for="ct-nom">Prénom + Nom</label>
-          <input type="text" id="ct-nom" name="nom" required class="conseil-form__input">
-        </div>
-        <div class="conseil-form__field">
-          <label for="ct-email">Email</label>
-          <input type="email" id="ct-email" name="email" required class="conseil-form__input">
-        </div>
-      </div>
-      <div class="conseil-form__field">
-        <label for="ct-tel">Téléphone <span class="conseil-form__optional">(optionnel)</span></label>
-        <input type="tel" id="ct-tel" name="telephone" class="conseil-form__input">
-      </div>
-      <div class="conseil-form__field">
-        <label>Préférence de contact</label>
-        <div class="conseil-form__radios">
-          <label class="conseil-form__radio"><input type="radio" name="contact_pref" value="email"> Email</label>
-          <label class="conseil-form__radio"><input type="radio" name="contact_pref" value="telephone"> Téléphone</label>
-          <label class="conseil-form__radio"><input type="radio" name="contact_pref" value="visio"> Visio rapide</label>
-        </div>
-      </div>
-      <button type="submit" class="conseil-form__submit">Envoyer ma demande →</button>
-    </form>
+  <div class="conseil-form__embed">
+    <iframe
+      data-tally-src="https://tally.so/embed/nPg55B?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1&source=lebureauduvigneron"
+      loading="lazy"
+      width="100%"
+      height="500"
+      frameborder="0"
+      marginheight="0"
+      marginwidth="0"
+      title="Formulaire conseil terrain — Le Bureau du Vigneron"
+      style="border:none; background:transparent;"
+    ></iframe>
+    <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
   </div>
-</div>
 
-<script>
-  (function() {
-    var params = new URLSearchParams(window.location.search);
-    var prestation = params.get('prestation');
-    if (prestation) {
-      var sel = document.getElementById('ct-prestation');
-      if (sel) sel.value = prestation;
-      var hidden = document.getElementById('prestation-hidden');
-      if (hidden) hidden.value = prestation;
-    }
-  })();
-</script>
+  <p class="conseil-form__fallback-note">Formulaire non chargé ? Écris directement à <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a></p>
+</div>

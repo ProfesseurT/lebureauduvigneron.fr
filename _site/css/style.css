@@ -2706,6 +2706,15 @@ em { font-style: italic; }
 }
 .voix-filiere__avatar--bordeaux { background: rgba(90,21,37,0.7); }
 .voix-filiere__avatar--cork { background: var(--cork); }
+.voix-filiere__photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 2px solid var(--rule);
+  flex-shrink: 0;
+}
 .voix-filiere__specialty {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.62rem;
@@ -3212,6 +3221,21 @@ em { font-style: italic; }
   transition: opacity 0.15s;
 }
 .conseil-form__submit:hover { opacity: 0.88; }
+.conseil-form__embed {
+  max-width: 680px;
+  margin: 0 auto;
+}
+.conseil-form__fallback-note {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 1.25rem;
+  letter-spacing: 0.04em;
+}
+.podcast-teaser__tally {
+  margin-top: 1.5rem;
+}
 
 /* ============================================================
    RESPONSIVE — nouveaux composants
