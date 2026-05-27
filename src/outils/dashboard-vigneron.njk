@@ -1,0 +1,601 @@
+---
+layout: base.njk
+title: Tableau de bord vigneron
+description: Upload ton export mensuel Vitisoft — 11 KPI commerciaux automatiques en 30 secondes. 100 % privé, tes données restent dans ton navigateur.
+---
+
+<style>
+/* Tokens manquants dans style.css global */
+:root{--green:#2E6B4A;--red:#8B1A1A;--yellow:#7A5C00}
+
+/* Conteneur large (le .container du site = 760px, dashboard = 1200px) */
+.dash-container{max-width:1200px;margin:0 auto;padding:0 1.5rem}
+
+/* ── LANDING ───────────────────────────────────────────────────────────────── */
+.landing{padding:4rem 0;text-align:center}
+.landing h1{font-size:clamp(2rem,5vw,3rem);max-width:600px;margin:0 auto 1.25rem;line-height:1.2}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.15em;color:var(--cork);margin-bottom:1.25rem}
+.lead{font-size:1.05rem;color:var(--muted);max-width:460px;margin:0 auto 2.5rem;font-style:italic}
+.upload-zone{border:2px dashed var(--border);border-radius:4px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;max-width:520px;margin:0 auto 1rem;background:var(--paper-light)}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--bordeaux);background:var(--paper-deep)}
+.upload-zone.drag-over{border-style:solid}
+.upload-icon{font-size:2.5rem;margin-bottom:1rem}
+.upload-zone h3{font-size:1.05rem;margin-bottom:.4rem}
+.upload-zone p{font-size:.82rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin:0}
+.btn{display:inline-block;padding:.7rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;transition:all .2s;border:none;text-decoration:none;border-radius:2px}
+.btn--primary{background:var(--bordeaux);color:var(--paper)}
+.btn--primary:hover{background:var(--bordeaux-deep);color:var(--paper);text-decoration:none}
+.btn--ghost{background:transparent;color:var(--bordeaux);border:1.5px solid var(--bordeaux)}
+.btn--ghost:hover{background:var(--bordeaux);color:var(--paper);text-decoration:none}
+.btn--sm{padding:.45rem 1rem;font-size:.7rem}
+.btn-group{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem}
+.privacy{display:inline-flex;align-items:center;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.75rem}
+.hint{font-size:.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;margin-top:.6rem}
+
+/* ── STATUS BAR ────────────────────────────────────────────────────────────── */
+.status-bar{padding:.75rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.8rem;display:none;align-items:center;gap:.75rem}
+.status-bar.error{background:#F8D7DA;color:#8B1A1A;border-left:3px solid #8B1A1A;display:flex}
+.status-bar.loading{background:var(--paper-deep);color:var(--muted);display:flex}
+.status-bar.success{background:#D4EDDA;color:#2E6B4A;border-left:3px solid #2E6B4A;display:flex}
+.spinner{width:1rem;height:1rem;border:2px solid var(--muted);border-top-color:var(--bordeaux);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── DASHBOARD ─────────────────────────────────────────────────────────────── */
+#state-dashboard{display:none}
+.dash-header{background:var(--bordeaux-deep);padding:1.25rem 0}
+.dash-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.dash-title{color:var(--paper);font-size:1.05rem;font-style:italic}
+.dash-meta{color:rgba(239,231,214,.55);font-family:'JetBrains Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem}
+.dash-controls{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.month-selector{background:rgba(239,231,214,.1);border:1px solid rgba(239,231,214,.25);color:var(--paper);font-family:'JetBrains Mono',monospace;font-size:.75rem;padding:.4rem .8rem;cursor:pointer;border-radius:2px;appearance:none;padding-right:1.8rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23EFE7D6' opacity='.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center}
+
+/* ── KPI GRID ──────────────────────────────────────────────────────────────── */
+.bloc-a{padding:1.75rem 0 1.25rem}
+.kpi-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.kpi-card{background:var(--paper-light);border:1px solid var(--border);padding:1.4rem}
+.kpi-card--highlight{border-color:var(--bordeaux);border-left:4px solid var(--bordeaux)}
+.kpi-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.5rem}
+.kpi-value{font-size:2rem;font-weight:700;color:var(--ink);line-height:1;margin-bottom:.5rem}
+.kpi-value span{font-size:.9rem;font-weight:400;color:var(--muted)}
+.kpi-deltas{display:flex;flex-direction:column;gap:.2rem}
+.delta{font-family:'JetBrains Mono',monospace;font-size:.68rem;display:flex;gap:.35rem;align-items:center}
+.delta-label{color:var(--muted)}
+.up{color:var(--green)}.down{color:var(--red)}.flat{color:var(--yellow)}
+
+/* ── CHARTS ────────────────────────────────────────────────────────────────── */
+.bloc-b{padding:1.25rem 0}
+.bloc-c{padding:1.25rem 0 2.5rem;background:var(--paper-deep)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+.grid-2-3{display:grid;grid-template-columns:2fr 3fr;gap:1.25rem;margin-bottom:1.25rem}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 2fr;gap:1.25rem}
+.chart-card{background:var(--paper-light);border:1px solid var(--border);padding:1.4rem}
+.chart-card__title{font-family:'JetBrains Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1rem}
+.chart-wrap{position:relative;height:210px}
+.chart-wrap--tall{height:240px}
+.top-list{list-style:none;display:flex;flex-direction:column;gap:.65rem}
+.top-list li{display:flex;align-items:baseline;gap:.5rem;font-size:.88rem;margin-bottom:0}
+.top-rank{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);width:1.2rem;flex-shrink:0}
+.top-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-ca{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--ink);flex-shrink:0}
+.top-pct{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);width:2.8rem;text-align:right;flex-shrink:0}
+.alert-badge{display:inline-block;padding:.12rem .45rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;border-radius:2px}
+.badge-ok{background:#D4EDDA;color:#2E6B4A;border:1px solid #A8D8B9}
+.badge-warn{background:#FEF3CD;color:#7A5C00;border:1px solid #F0D060}
+.badge-danger{background:#F8D7DA;color:#8B1A1A;border:1px solid #F0A0A0}
+.format-list{display:flex;flex-direction:column;gap:.55rem;margin-top:.4rem}
+.format-row{display:flex;align-items:center;gap:.6rem}
+.format-name{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);width:8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.format-bar-wrap{flex:1;background:var(--paper-deep);height:7px;border-radius:4px;overflow:hidden}
+.format-bar{height:100%;background:var(--bordeaux);border-radius:4px;transition:width .4s}
+.format-pct{font-family:'JetBrains Mono',monospace;font-size:.72rem;width:2.5rem;text-align:right}
+.retour-big{font-size:2.6rem;font-weight:700;line-height:1;margin-bottom:.4rem}
+.sub{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.5rem}
+.dash-cta{background:var(--bordeaux-deep);padding:2rem 0;text-align:center}
+.dash-cta h3{color:var(--paper);font-size:1.2rem;margin-bottom:.6rem}
+.dash-cta p{color:rgba(239,231,214,.6);font-size:.88rem;font-style:italic;margin-bottom:1.25rem}
+
+/* ── RESPONSIVE ────────────────────────────────────────────────────────────── */
+@media(max-width:960px){.kpi-grid-4{grid-template-columns:repeat(2,1fr)}.grid-2-3,.grid-2,.grid-3{grid-template-columns:1fr}}
+@media(max-width:560px){.kpi-grid-4{grid-template-columns:repeat(2,1fr)}.kpi-value{font-size:1.5rem}}
+</style>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="statusBar">
+  <div class="spinner" id="statusSpinner"></div>
+  <span id="statusText"></span>
+</div>
+
+<!-- ===== LANDING ===== -->
+<div id="state-landing">
+  <div class="landing">
+    <div class="dash-container" style="max-width:700px">
+      <p class="eyebrow">Tableau de bord vigneron · V1 · Gratuit</p>
+      <h1>Lis ton mois de ventes en 30 secondes. Pas en 1 heure.</h1>
+      <p class="lead">Upload ton export mensuel Vitisoft — 11 KPI commerciaux automatiques. Tes données ne quittent pas ton navigateur.</p>
+
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">📂</div>
+        <h3>Dépose ton fichier CSV ici</h3>
+        <p>ou clique pour sélectionner</p>
+        <input type="file" id="fileInput" accept=".csv" style="display:none">
+      </div>
+      <div class="hint">Export Vitisoft · Séparateur ; · UTF-8 ou CP1252</div>
+
+      <div class="btn-group">
+        <button class="btn btn--primary" onclick="document.getElementById('fileInput').click()">Upload mon CSV Vitisoft</button>
+        <button class="btn btn--ghost" onclick="loadDemo()">Tester avec le fichier démo</button>
+      </div>
+      <div style="text-align:center">
+        <span class="privacy">🔒 100 % privé — tes données restent dans ton navigateur</span>
+      </div>
+
+      <div id="resumeSection" style="display:none;margin-top:2rem;padding:1.25rem;background:var(--paper-deep);border:1px solid var(--border);text-align:center">
+        <p style="font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted);margin-bottom:.75rem">Données précédentes détectées en mémoire</p>
+        <button class="btn btn--primary btn--sm" onclick="loadFromStorage()">Reprendre ma session</button>
+        <button class="btn btn--ghost btn--sm" style="margin-left:.5rem" onclick="clearStorage()">Effacer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="state-dashboard">
+
+  <div class="dash-header">
+    <div class="dash-container">
+      <div class="dash-header__inner">
+        <div>
+          <div class="dash-meta" id="domainName">—</div>
+          <div class="dash-title">Tableau de bord commercial</div>
+        </div>
+        <div class="dash-controls">
+          <select class="month-selector" id="monthSelector" onchange="onMonthChange()"></select>
+          <button class="btn btn--ghost btn--sm" style="color:rgba(239,231,214,.7);border-color:rgba(239,231,214,.25)" onclick="document.getElementById('fileInput').click()">Nouveau fichier</button>
+          <button class="btn btn--ghost btn--sm" style="color:rgba(239,231,214,.7);border-color:rgba(239,231,214,.25)" onclick="backToLanding()">← Accueil</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOC A — Photo du mois -->
+  <div class="bloc-a">
+    <div class="dash-container">
+      <div class="kpi-grid-4">
+        <div class="kpi-card kpi-card--highlight">
+          <div class="kpi-label">CA HT du mois</div>
+          <div class="kpi-value" id="k1Value">—</div>
+          <div class="kpi-deltas" id="k1Deltas"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Volume (eq. 75 cl)</div>
+          <div class="kpi-value" id="k2Value">—</div>
+          <div class="kpi-deltas" id="k2Deltas"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prix moyen / bouteille</div>
+          <div class="kpi-value" id="k3Value">—</div>
+          <div class="kpi-deltas" id="k3Deltas"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Clients actifs</div>
+          <div class="kpi-value" id="k4Value">—</div>
+          <div class="kpi-deltas" id="k4Deltas"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOC B — Diagnostic structurel -->
+  <div class="bloc-b">
+    <div class="dash-container">
+      <div class="grid-2-3">
+        <div class="chart-card">
+          <div class="chart-card__title">K5 — Mix circuits (CA)</div>
+          <div class="chart-wrap"><canvas id="chartCircuits"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card__title">K6 — Top 5 clients du mois</div>
+          <ul class="top-list" id="top5clients"></ul>
+          <div id="top1Alert" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-card__title">K7 — Top 5 cuvées (CA)</div>
+          <div class="chart-wrap"><canvas id="chartCuvees"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card__title">K8 — Mix couleurs</div>
+          <div class="chart-wrap"><canvas id="chartCouleurs"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOC C — Alertes & signaux faibles -->
+  <div class="bloc-c">
+    <div class="dash-container" style="padding-top:1.25rem">
+      <div class="grid-3">
+        <div class="chart-card">
+          <div class="chart-card__title">K9 — Mix formats</div>
+          <div class="format-list" id="formatList"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card__title">K10 — Retours &amp; remises</div>
+          <div class="retour-big" id="k10Value">—</div>
+          <div style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem">du CA brut mensuel</div>
+          <div id="k10Badge"></div>
+          <div class="sub" id="k10Detail"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card__title">K11 — Cumul YTD vs N-1 (CA HT)</div>
+          <div class="chart-wrap--tall"><canvas id="chartYTD"></canvas></div>
+          <div class="sub" id="ytdSummary"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA compte V2 -->
+  <div class="dash-cta">
+    <div class="dash-container">
+      <h3>Garde cet historique d'un mois à l'autre</h3>
+      <p>Crée ton compte gratuit pour empiler tes mois et suivre ta progression sur 12 mois.</p>
+      <div class="btn-group" style="margin-top:0">
+        <button class="btn btn--primary" onclick="alert('Fonctionnalité V2 — rejoins la liste d\'attente !')">Créer mon compte gratuit</button>
+        <a href="/#waitlist" class="btn btn--ghost" style="color:var(--paper);border-color:rgba(239,231,214,.3)">Liste d'attente</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /dashboard -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'bdv_dashboard_v1';
+const PARASITE_KEYWORDS = ['test', 'consigne', 'acompte', 'remise', 'remis', 'gratuit', 'pack', 'dégustation'];
+const MOIS_FR = {
+  janvier:1, fevrier:2, mars:3, avril:4, mai:5, juin:6,
+  juillet:7, aout:8, septembre:9, octobre:10, novembre:11, decembre:12
+};
+const MOIS_LABELS = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const PALETTE = ['#5A1525','#B89066','#8B4555','#C4A882','#D6C9AF','#7A6A56','#3A5A7A'];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let allRows = [];
+let charts = {};
+
+// ─── NORMALISATION ────────────────────────────────────────────────────────────
+function stripAccents(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'') }
+function moisToNum(s){ return MOIS_FR[stripAccents(s||'').toLowerCase().trim()] || 0 }
+
+function normaliseCouleur(s){
+  const n = stripAccents((s||'').toLowerCase().trim());
+  if(n==='rouge') return 'Rouge';
+  if(n==='rose'||n==='rose') return 'Rosé';
+  if(n==='blanc') return 'Blanc';
+  return s ? s.trim() : '';
+}
+function normaliseFormat(s){
+  if(!s) return 'Autre';
+  const n = s.replace(/\s+/g,' ').trim();
+  if(/bouteille/i.test(n)&&/0.?75/i.test(n)) return 'Bouteille 0.75 L';
+  if(/bib/i.test(n)&&/3/i.test(n)) return 'BIB 3 L';
+  if(/(1\s*l|litre)/i.test(n)) return 'Litre 1 L';
+  return n;
+}
+function isParasite(cuvee){
+  const s = stripAccents((cuvee||'').toLowerCase());
+  return PARASITE_KEYWORDS.some(k => s.includes(k));
+}
+function parseNum(s){
+  if(s===undefined||s===null||s==='') return 0;
+  return parseFloat(String(s).replace(',','.')) || 0;
+}
+function normaliseRow(raw){
+  const moisStr = (raw['Mois']||'').trim();
+  const moisNum = moisToNum(moisStr);
+  const annee = parseInt(raw['Année'])||0;
+  return {
+    circuit:  (raw['Famille client - Lib']||'').trim(),
+    client:   (raw['Nom + Prénom Client']||'').trim(),
+    code:     parseInt(raw['Code article'])||0,
+    annee, moisNum,
+    moisLabel: moisStr || MOIS_LABELS[moisNum] || '?',
+    volume:   parseNum(raw['Volume (EQ 75cl)']),
+    caHT:     parseNum(raw['CA HT']),
+    couleur:  normaliseCouleur(raw['Couleur']),
+    millesime:parseInt(raw['Millésime'])||0,
+    format:   normaliseFormat(raw['Format']),
+    cuvee:    (raw['Nom cuvée']||'').trim(),
+    parasite: isParasite(raw['Nom cuvée']),
+  };
+}
+
+const REQUIRED_COLS = ['Famille client - Lib','Nom + Prénom Client','Année','Mois','Volume (EQ 75cl)','CA HT'];
+function validateSchema(fields){ return REQUIRED_COLS.every(c => fields.includes(c)); }
+
+// ─── ENCODAGE ─────────────────────────────────────────────────────────────────
+async function decodeFile(file){
+  const buf = await file.arrayBuffer();
+  const utf8 = new TextDecoder('utf-8',{fatal:false}).decode(buf);
+  if(!utf8.includes('�')) return utf8;
+  return new TextDecoder('windows-1252').decode(buf);
+}
+
+// ─── PARSING ─────────────────────────────────────────────────────────────────
+async function processFile(file){
+  showStatus('loading','Lecture du fichier…');
+  try {
+    const text = await decodeFile(file);
+    const result = Papa.parse(text,{header:true,delimiter:';',skipEmptyLines:true});
+    if(!validateSchema(result.meta.fields||[])){
+      showStatus('error','Format non reconnu. Cet outil lit les exports Vitisoft. Vérifie le délimiteur (;) et les en-têtes de colonnes.');
+      return;
+    }
+    const rows = result.data.map(normaliseRow).filter(r=>r.annee>0&&r.moisNum>0);
+    if(rows.length===0){ showStatus('error','Aucune ligne valide trouvée après normalisation.'); return; }
+    allRows = rows;
+    saveToStorage(rows);
+    showStatus('success',`${rows.length} lignes chargées · ${new Set(rows.map(r=>r.annee+'-'+r.moisNum)).size} mois détectés`);
+    buildDashboard();
+  } catch(e){
+    showStatus('error','Erreur de lecture : '+e.message);
+  }
+}
+
+// ─── DÉMO ────────────────────────────────────────────────────────────────────
+async function loadDemo(){
+  showStatus('loading','Chargement du fichier démo…');
+  try {
+    const res = await fetch('/outils/dashboard-vigneron-demo.csv');
+    if(!res.ok) throw new Error('Fichier démo introuvable (statut '+res.status+')');
+    const text = await res.text();
+    const result = Papa.parse(text,{header:true,delimiter:';',skipEmptyLines:true});
+    allRows = result.data.map(normaliseRow).filter(r=>r.annee>0&&r.moisNum>0);
+    saveToStorage(allRows);
+    showStatus('success',`Démo chargée · ${allRows.length} lignes · Domaine de la Serre d'Autan`);
+    buildDashboard();
+  } catch(e){
+    showStatus('error','Impossible de charger la démo : '+e.message);
+  }
+}
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+function saveToStorage(rows){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(rows)); }catch(e){} }
+function loadFromStorage(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    allRows = JSON.parse(raw);
+    buildDashboard();
+  }catch(e){}
+}
+function clearStorage(){
+  localStorage.removeItem(STORAGE_KEY);
+  document.getElementById('resumeSection').style.display='none';
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function buildDashboard(){
+  const months = getAvailableMonths(allRows);
+  if(months.length===0){ showStatus('error','Aucun mois trouvé.'); return; }
+  const sel = document.getElementById('monthSelector');
+  sel.innerHTML = months.map(m=>`<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+  const latest = months[0];
+  sel.value = `${latest.year}-${latest.month}`;
+  document.getElementById('state-landing').style.display='none';
+  document.getElementById('state-dashboard').style.display='block';
+  window.scrollTo(0,0);
+  renderKPIs(latest.year,latest.month);
+}
+function onMonthChange(){
+  const [year,month] = document.getElementById('monthSelector').value.split('-').map(Number);
+  renderKPIs(year,month);
+}
+function backToLanding(){
+  document.getElementById('state-dashboard').style.display='none';
+  document.getElementById('state-landing').style.display='block';
+  window.scrollTo(0,0);
+}
+function getAvailableMonths(rows){
+  const seen = new Map();
+  rows.forEach(r=>{
+    const k = `${r.annee}-${r.moisNum}`;
+    if(!seen.has(k)) seen.set(k,{year:r.annee,month:r.moisNum,label:`${MOIS_LABELS[r.moisNum]||r.moisLabel} ${r.annee}`});
+  });
+  return Array.from(seen.values()).sort((a,b)=>b.year-a.year||b.month-a.month);
+}
+
+// ─── KPI ENGINE ───────────────────────────────────────────────────────────────
+function filterMonth(rows,year,month){ return rows.filter(r=>r.annee===year&&r.moisNum===month&&!r.parasite); }
+function sumCA(rows){ return rows.reduce((s,r)=>s+r.caHT,0); }
+function sumVol(rows){ return rows.reduce((s,r)=>s+r.volume,0); }
+function pct(a,b){ return b===0?null:(a-b)/Math.abs(b)*100; }
+function fmt(n){ return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(n); }
+function fmtCA(n){ return fmt(Math.round(n))+' €'; }
+function fmtPct(p){ if(p===null) return '—'; const s=p>=0?'↑ +':'↓ '; return s+Math.abs(p).toFixed(1)+' %'; }
+function pctClass(p){ if(p===null) return 'flat'; return p>=0?'up':'down'; }
+function prevMonthPeriod(year,month){ return month===1?{year:year-1,month:12}:{year,month:month-1}; }
+function prevYearPeriod(year,month){ return {year:year-1,month}; }
+function deltaHTML(p,label){
+  if(p===null) return `<div class="delta"><span class="flat">—</span><span class="delta-label">${label}</span></div>`;
+  const c=pctClass(p);
+  return `<div class="delta"><span class="${c}">${fmtPct(p)}</span><span class="delta-label">${label}</span></div>`;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function renderKPIs(year,month){
+  const cur  = filterMonth(allRows,year,month);
+  const pm   = prevMonthPeriod(year,month);
+  const py   = prevYearPeriod(year,month);
+  const prev = filterMonth(allRows,pm.year,pm.month);
+  const n1   = filterMonth(allRows,py.year,py.month);
+
+  // K1 CA
+  const ca=sumCA(cur),caPrev=sumCA(prev),caN1=sumCA(n1);
+  document.getElementById('k1Value').innerHTML=fmtCA(ca);
+  document.getElementById('k1Deltas').innerHTML=
+    deltaHTML(pct(ca,caPrev),`vs ${MOIS_LABELS[pm.month]||'?'} ${pm.year}`)+
+    deltaHTML(pct(ca,caN1),`vs ${MOIS_LABELS[py.month]||'?'} ${py.year}`);
+
+  // K2 Volume
+  const vol=sumVol(cur),volPrev=sumVol(prev),volN1=sumVol(n1);
+  document.getElementById('k2Value').innerHTML=`${fmt(Math.round(vol))} <span>btl</span>`;
+  document.getElementById('k2Deltas').innerHTML=
+    deltaHTML(pct(vol,volPrev),`vs ${MOIS_LABELS[pm.month]||'?'} ${pm.year}`)+
+    deltaHTML(pct(vol,volN1),`vs ${MOIS_LABELS[py.month]||'?'} ${py.year}`);
+
+  // K3 Prix moyen
+  const posRows=cur.filter(r=>r.volume>0&&r.caHT>0);
+  const posN1=n1.filter(r=>r.volume>0&&r.caHT>0);
+  const prix=posRows.length>0?sumCA(posRows)/sumVol(posRows):0;
+  const prixN1=posN1.length>0?sumCA(posN1)/sumVol(posN1):0;
+  document.getElementById('k3Value').innerHTML=prix>0?`${prix.toFixed(2)} <span>€/btl</span>`:'—';
+  document.getElementById('k3Deltas').innerHTML=deltaHTML(pct(prix,prixN1),`vs ${MOIS_LABELS[py.month]||'?'} ${py.year}`);
+
+  // K4 Clients actifs
+  const clients=new Set(cur.filter(r=>r.caHT!==0).map(r=>r.client));
+  const clientsPrev=new Set(prev.filter(r=>r.caHT!==0).map(r=>r.client));
+  const nb=clients.size,nbPrev=clientsPrev.size;
+  document.getElementById('k4Value').innerHTML=`${nb}`;
+  const diffCli=nb-nbPrev;
+  document.getElementById('k4Deltas').innerHTML=nbPrev>0?
+    `<div class="delta"><span class="${diffCli>=0?'up':'down'}">${diffCli>=0?'↑ +':'↓ '}${diffCli} client${Math.abs(diffCli)>1?'s':''}</span><span class="delta-label">vs ${MOIS_LABELS[pm.month]||'?'} ${pm.year}</span></div>`:'';
+
+  // K5 Mix circuits
+  const circMap={};
+  cur.forEach(r=>{ circMap[r.circuit]=(circMap[r.circuit]||0)+r.caHT; });
+  const circEntries=Object.entries(circMap).sort((a,b)=>b[1]-a[1]);
+  renderChart('chartCircuits','doughnut',
+    circEntries.map(e=>e[0]),
+    [{data:circEntries.map(e=>e[1]),backgroundColor:PALETTE,borderColor:'#EFE7D6',borderWidth:2}],
+    {cutout:'62%',plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8}},tooltip:{callbacks:{label:ctx=>{const tot=circEntries.reduce((s,e)=>s+e[1],0);return ` ${ctx.label}: ${fmtCA(ctx.raw)} (${(ctx.raw/tot*100).toFixed(0)}%)`;}}}}});
+
+  // K6 Top 5 clients
+  const cliMap={};
+  cur.forEach(r=>{ cliMap[r.client]=(cliMap[r.client]||0)+r.caHT; });
+  const top5=Object.entries(cliMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('top5clients').innerHTML=top5.map((e,i)=>
+    `<li><span class="top-rank">${i+1}.</span><span class="top-name">${e[0]}</span><span class="top-ca">${fmtCA(e[1])}</span><span class="top-pct">${ca>0?(e[1]/ca*100).toFixed(1)+' %':'—'}</span></li>`
+  ).join('');
+  const top1Pct=ca>0&&top5.length>0?top5[0][1]/ca*100:0;
+  document.getElementById('top1Alert').innerHTML=top5.length>0?
+    (top1Pct>30?`<span class="alert-badge badge-danger">⚠ Top 1 &gt; 30 % — dépendance forte</span>`:
+                `<span class="alert-badge badge-ok">Top 1 &lt; 30 % — concentration normale</span>`):'';
+
+  // K7 Top 5 cuvées
+  const cuvMap={};
+  cur.forEach(r=>{ if(!cuvMap[r.cuvee]) cuvMap[r.cuvee]={ca:0,vol:0}; cuvMap[r.cuvee].ca+=r.caHT; cuvMap[r.cuvee].vol+=r.volume; });
+  const top5cuv=Object.entries(cuvMap).sort((a,b)=>b[1].ca-a[1].ca).slice(0,5).reverse();
+  renderChart('chartCuvees','bar',
+    top5cuv.map(e=>e[0].length>22?e[0].slice(0,20)+'…':e[0]),
+    [{label:'CA HT',data:top5cuv.map(e=>e[1].ca),backgroundColor:PALETTE.slice(0,5).reverse(),borderRadius:2}],
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(0,0,0,.06)'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}},y:{grid:{display:false}}}});
+
+  // K8 Mix couleurs
+  const couleurMap={Rouge:{ca:0,vol:0},'Rosé':{ca:0,vol:0},Blanc:{ca:0,vol:0}};
+  cur.forEach(r=>{ if(couleurMap[r.couleur]){couleurMap[r.couleur].ca+=r.caHT;couleurMap[r.couleur].vol+=r.volume;} });
+  const totalVol=Object.values(couleurMap).reduce((s,v)=>s+v.vol,0);
+  const totalCoulCA=Object.values(couleurMap).reduce((s,v)=>s+v.ca,0);
+  renderChart('chartCouleurs','bar',
+    ['Rouge','Rosé','Blanc'],
+    [
+      {label:'% Volume',data:['Rouge','Rosé','Blanc'].map(c=>totalVol>0?+(couleurMap[c].vol/totalVol*100).toFixed(1):0),backgroundColor:'#5A1525',borderRadius:2},
+      {label:'% CA',    data:['Rouge','Rosé','Blanc'].map(c=>totalCoulCA>0?+(couleurMap[c].ca/totalCoulCA*100).toFixed(1):0),backgroundColor:'#B89066',borderRadius:2}
+    ],
+    {plugins:{legend:{position:'top',labels:{boxWidth:10}}},scales:{y:{max:100,grid:{color:'rgba(0,0,0,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}});
+
+  // K9 Mix formats
+  const fmtMap={};
+  cur.filter(r=>r.volume>0).forEach(r=>{ const f=r.format||'Autre'; if(!fmtMap[f]) fmtMap[f]={ca:0,vol:0}; fmtMap[f].vol+=r.volume; fmtMap[f].ca+=r.caHT; });
+  const totalFmtVol=Object.values(fmtMap).reduce((s,v)=>s+v.vol,0);
+  const fmtEntries=Object.entries(fmtMap).sort((a,b)=>b[1].vol-a[1].vol);
+  document.getElementById('formatList').innerHTML=fmtEntries.map(([name,v],i)=>{
+    const p=totalFmtVol>0?(v.vol/totalFmtVol*100):0;
+    const colors=['#5A1525','#B89066','#8B4555','#C4A882'];
+    return `<div class="format-row"><span class="format-name">${name}</span><div class="format-bar-wrap"><div class="format-bar" style="width:${p.toFixed(0)}%;background:${colors[i]||'#D6C9AF'}"></div></div><span class="format-pct">${p.toFixed(0)} %</span></div>`;
+  }).join('');
+
+  // K10 Retours
+  const retourRows=cur.filter(r=>r.caHT<0);
+  const caRetour=Math.abs(retourRows.reduce((s,r)=>s+r.caHT,0));
+  const caBrut=cur.filter(r=>r.caHT>0).reduce((s,r)=>s+r.caHT,0);
+  const retPct=caBrut>0?caRetour/caBrut*100:0;
+  const k10El=document.getElementById('k10Value');
+  k10El.textContent=retPct.toFixed(1)+' %';
+  k10El.className='retour-big '+(retPct===0?'up':retPct<5?'up':retPct<10?'flat':'down');
+  document.getElementById('k10Badge').innerHTML=retPct===0?'<span class="alert-badge badge-ok">Aucun retour</span>':
+    retPct<5?'<span class="alert-badge badge-ok">Normal — seuil 5 %</span>':
+    retPct<10?'<span class="alert-badge badge-warn">⚠ Retours élevés</span>':
+    '<span class="alert-badge badge-danger">⛔ Retours critiques &gt; 10 %</span>';
+  document.getElementById('k10Detail').innerHTML=retourRows.length>0?
+    `Montant : −${fmtCA(caRetour)}<br>${retourRows.length} ligne${retourRows.length>1?'s':''} concernée${retourRows.length>1?'s':''}<br>${[...new Set(retourRows.map(r=>r.client))].join(', ')}`:
+    'Aucun retour ce mois';
+
+  // K11 YTD
+  const ytdMonths=Array.from({length:month},(_,i)=>i+1);
+  const cumul=(y)=>ytdMonths.reduce((acc,m)=>{
+    const s=filterMonth(allRows,y,m).reduce((s,r)=>s+r.caHT,0);
+    return [...acc,(acc[acc.length-1]||0)+s];
+  },[]);
+  const c_cur=cumul(year);
+  const c_n1=cumul(year-1);
+  const labelsYTD=ytdMonths.map(m=>MOIS_LABELS[m]?MOIS_LABELS[m].slice(0,3):String(m));
+  renderChart('chartYTD','line',labelsYTD,
+    [{label:String(year),data:c_cur,borderColor:'#5A1525',backgroundColor:'rgba(90,21,37,.08)',borderWidth:2.5,fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#5A1525'},
+     {label:String(year-1),data:c_n1,borderColor:'#B89066',borderDash:[5,4],borderWidth:1.8,fill:false,tension:.3,pointRadius:3,pointBackgroundColor:'#B89066'}],
+    {plugins:{legend:{position:'top',labels:{boxWidth:10}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtCA(ctx.raw)}`}}},scales:{y:{grid:{color:'rgba(0,0,0,.06)'},ticks:{callback:v=>(v/1000).toFixed(0)+'k€'}},x:{grid:{display:false}}}});
+
+  const ytdCur=c_cur[c_cur.length-1]||0;
+  const ytdN1=c_n1[c_n1.length-1]||0;
+  document.getElementById('ytdSummary').innerHTML=
+    `${year} jan–${(MOIS_LABELS[month]||'').toLowerCase()||'?'} : <strong style="color:var(--bordeaux)">${fmtCA(ytdCur)}</strong><br>`+
+    `${year-1} même période : ${fmtCA(ytdN1)}&nbsp;·&nbsp;<span class="${pctClass(pct(ytdCur,ytdN1))}">${fmtPct(pct(ytdCur,ytdN1))}</span>`;
+
+  document.getElementById('domainName').textContent=`${MOIS_LABELS[month]||'?'} ${year} · ${cur.length} lignes`;
+}
+
+// ─── CHART HELPERS ────────────────────────────────────────────────────────────
+function renderChart(id,type,labels,datasets,options){
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+  const ctx=document.getElementById(id)?document.getElementById(id).getContext('2d'):null;
+  if(!ctx) return;
+  Chart.defaults.font.family="'JetBrains Mono', monospace";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color='#7A6A56';
+  charts[id]=new Chart(ctx,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,...options}});
+}
+
+// ─── STATUS BAR ───────────────────────────────────────────────────────────────
+function showStatus(type,msg){
+  const bar=document.getElementById('statusBar');
+  bar.className='status-bar '+type;
+  document.getElementById('statusText').textContent=msg;
+  document.getElementById('statusSpinner').style.display=type==='loading'?'block':'none';
+  if(type==='success') setTimeout(()=>{ bar.style.display='none'; },4000);
+}
+
+// ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
+const fileInput=document.getElementById('fileInput');
+fileInput.addEventListener('change',e=>{ if(e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; });
+
+const zone=document.getElementById('uploadZone');
+zone.addEventListener('dragover',e=>{ e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop',e=>{ e.preventDefault(); zone.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f) processFile(f); });
+zone.addEventListener('click',()=>fileInput.click());
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(function init(){
+  const stored=localStorage.getItem(STORAGE_KEY);
+  if(stored){
+    try{
+      const rows=JSON.parse(stored);
+      if(rows&&rows.length>0) document.getElementById('resumeSection').style.display='block';
+    }catch(e){}
+  }
+})();
+</script>
