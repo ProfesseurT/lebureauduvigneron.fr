@@ -5,7 +5,8 @@ description: "Depuis janvier 2023, le QR code nutritionnel est obligatoire sur t
 date: 2026-05-15
 pilier: "Terrain viti 🍇"
 temps_lecture: "6 min"
-tags: posts
+eleventyExcludeFromCollections: true
+permalink: false
 ---
 
 3e domaine cette semaine dans le Val de Loire. Même scène à chaque fois.
