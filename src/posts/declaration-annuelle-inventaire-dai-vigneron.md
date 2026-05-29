@@ -3,6 +3,7 @@ layout: article.njk
 title: "Déclaration Annuelle d'Inventaire : la faire sans y passer un week-end"
 description: "La DAI tombe chaque année et chaque année c'est la même galère. Voici les 5 étapes que je conseille aux vignerons pour la boucler proprement, sans stress et sans erreur."
 date: 2026-05-21
+categorie: "Réglementation"
 pilier: "Process 🔧"
 temps_lecture: "6 min"
 tags: posts

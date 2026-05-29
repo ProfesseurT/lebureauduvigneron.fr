@@ -3,6 +3,7 @@ layout: article.njk
 title: "Facturation électronique obligatoire : ce que le vigneron doit anticiper avant septembre 2026"
 description: "Dès le 1er septembre 2026, recevoir ses factures par une plateforme agréée devient obligatoire pour tous. Voici les dates, ce que ça change concrètement pour un domaine, et la seule chose à faire dès maintenant."
 date: 2026-05-14
+categorie: "Réglementation"
 pilier: "Process 🔧"
 temps_lecture: "6 min"
 tags: posts

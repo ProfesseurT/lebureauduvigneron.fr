@@ -3,6 +3,7 @@ layout: article.njk
 title: "Vendre son vin sans avoir la fibre commerciale"
 description: "La qualité ne suffit pas à remplir un carnet de commandes. Voici la méthode que je vois marcher chez les vignerons qui détestent vendre — sans courir les salons ni y passer leurs nuits."
 date: 2026-05-28
+categorie: "Vendre & fidéliser"
 pilier: "Marketing 📈"
 temps_lecture: "7 min"
 tags: posts
