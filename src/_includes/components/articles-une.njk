@@ -37,12 +37,31 @@
         {% endif %}
       {% endfor %}
 
-      {% if (collections.posts | length) < 3 %}
+      {% set reste = 3 - (collections.posts | length) %}
+      {% if reste > 0 %}
       <article class="articles-une__card articles-une__card--soon">
         <div class="articles-une__card-body articles-une__card-body--soon">
           <p class="articles-une__pilier">Bientôt</p>
           <h3 class="articles-une__title">D'autres analyses arrivent.</h3>
           <p class="articles-une__excerpt">Le Bureau démarre. Un article par semaine, sur le terrain.</p>
+        </div>
+      </article>
+      {% endif %}
+      {% if reste > 1 %}
+      <article class="articles-une__card articles-une__card--soon">
+        <div class="articles-une__card-body articles-une__card-body--soon">
+          <p class="articles-une__pilier">Bientôt</p>
+          <h3 class="articles-une__title">Le terrain, mis en mots.</h3>
+          <p class="articles-une__excerpt">Visites, installations, cas concrets. Bientôt ici.</p>
+        </div>
+      </article>
+      {% endif %}
+      {% if reste > 2 %}
+      <article class="articles-une__card articles-une__card--soon">
+        <div class="articles-une__card-body articles-une__card-body--soon">
+          <p class="articles-une__pilier">Bientôt</p>
+          <h3 class="articles-une__title">La filière, vue d'en bas.</h3>
+          <p class="articles-une__excerpt">Admin, marketing, outils, orga. Du vécu, pas de théorie.</p>
         </div>
       </article>
       {% endif %}
