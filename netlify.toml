@@ -1,8 +1,0 @@
-[build]
-  command = "npm install && npm run build"
-  publish = "_site"
-
-[[redirects]]
-  from = "/admin"
-  to = "/admin/index.html"
-  status = 200

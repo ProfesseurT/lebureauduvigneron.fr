@@ -5,8 +5,6 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets");
   // Passthrough ciblé : seuls les fichiers non-templates de src/outils (CSV, etc.)
   eleventyConfig.addPassthroughCopy({"src/outils/dashboard-vigneron-demo.csv": "outils/dashboard-vigneron-demo.csv"});
-  eleventyConfig.addPassthroughCopy("admin");
-
   // Trier les posts du plus récent au plus ancien
   eleventyConfig.addCollection("posts", function(collectionApi) {
     return collectionApi.getFilteredByGlob("src/posts/*.md").reverse();

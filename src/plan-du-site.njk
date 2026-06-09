@@ -1,0 +1,42 @@
+---
+layout: base.njk
+title: Plan du site
+description: Plan du site — Le Bureau du Vigneron.
+permalink: /plan-du-site/
+---
+
+<section class="about-hero">
+  <div class="container">
+    <h1 style="color:var(--cream)">Plan du site</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:720px;">
+
+    <h2>Pages principales</h2>
+    <ul>
+      <li><a href="/">Accueil</a></li>
+      <li><a href="/articles/">Articles</a></li>
+      <li><a href="/conseil-terrain/">Conseil terrain</a></li>
+      <li><a href="/outils/dashboard-vigneron/">Tableau de bord</a></li>
+      <li><a href="/teddy/">Teddy Pereira</a></li>
+    </ul>
+
+    <h2>Articles</h2>
+    <ul>
+      {% for post in collections.posts %}
+      <li><a href="{{ post.url }}">{{ post.data.title }}</a></li>
+      {% endfor %}
+    </ul>
+
+    <h2>Légal</h2>
+    <ul>
+      <li><a href="/mentions-legales/">Mentions légales</a></li>
+      <li><a href="/cgu/">CGU</a></li>
+      <li><a href="/politique-confidentialite/">Politique de confidentialité</a></li>
+    </ul>
+
+    <p style="margin-top:2rem;"><a href="/">← Accueil</a></p>
+  </div>
+</section>
