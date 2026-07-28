@@ -114,7 +114,33 @@ a{color:var(--orange)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1.2rem;margin-bottom:1.2rem}
 .card__title{font-family:var(--fm);font-size:.64rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:500}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.grid-rep{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
 .chart-wrap{position:relative;height:300px}
+
+/* BASCULE MESURE */
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
+.toggle button{font-family:var(--fm);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;padding:.4rem .8rem;border:none;background:none;cursor:pointer;color:var(--muted)}
+.toggle button.on{background:var(--orange);color:#fff}
+
+/* REPARTITIONS (barres horizontales) */
+.rep{display:flex;flex-direction:column;gap:.4rem}
+.rep__row{display:grid;grid-template-columns:1fr 5.2rem;gap:.6rem;align-items:center}
+.rep__bar{position:relative;background:var(--cream);border:1px solid var(--line);border-radius:4px;height:1.5rem;overflow:hidden}
+.rep__fill{position:absolute;left:0;top:0;bottom:0;background:rgba(232,119,34,.22)}
+.rep__lbl{position:relative;padding:0 .45rem;line-height:1.5rem;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rep__val{font-family:var(--fm);font-size:.74rem;text-align:right;color:var(--ink)}
+.rep__pct{color:var(--muted);font-size:.66rem}
+
+/* EXPLORATEUR */
+.expl-ctrls{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
+.field{display:flex;flex-direction:column;gap:.25rem}
+.field label{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.field select,.field input{font-family:var(--fm);font-size:.78rem;padding:.45rem .5rem;border:1px solid var(--line);background:var(--card);color:var(--ink);min-width:180px;border-radius:5px}
+.rename-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin:.2rem 0 1rem}
+.heat{width:100%;border-collapse:collapse;font-size:.74rem}
+.heat th,.heat td{padding:.4rem .5rem;border:1px solid var(--line);text-align:right;font-family:var(--fm)}
+.heat th{font-size:.58rem;text-transform:uppercase;color:var(--muted);background:var(--cream)}
+.heat td.rowh,.heat th.rowh{text-align:left;font-family:var(--fc);background:var(--cream)}
 
 /* HERO rythme */
 .hero{background:var(--anthra);color:#fff;border-radius:10px;padding:1.6rem 1.8rem;margin-bottom:1.4rem;border-left:5px solid var(--orange)}
@@ -156,7 +182,7 @@ table.data tbody tr:hover{background:var(--cream)}
 .note{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.6rem}
 .mini-line{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.7rem}
 
-@media(max-width:900px){.app.on{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--orange)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.cta__txt{max-width:100%}}
+@media(max-width:900px){.app.on{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--orange)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-rep{grid-template-columns:1fr}.cta__txt{max-width:100%}}
 </style>
 </head>
 <body>
@@ -258,6 +284,11 @@ let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[]};
 let filters={year:null};     // filtre annee actif (null = toutes)
 let charts={};
+let uiMesure='ca';           // 'ca' (CA vin HT) ou 'btl' (bouteilles/cols)
+let explAxe1='famille', explAxe2='';   // explorateur libre de l'Apercu
+const PERSO_LABELS_KEY='bdv_persolabels_v4';
+let persoLabels={};          // libelles perso personnalises {colonne d'origine: libelle}
+try{persoLabels=JSON.parse(localStorage.getItem(PERSO_LABELS_KEY))||{};}catch(e){persoLabels={};}
 
 /* ======================= UTILS ======================= */
 function el(id){return document.getElementById(id);}
@@ -504,10 +535,60 @@ function renderAll(){renderApercu();renderReactivation();renderDecrochage();rend
 
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
-function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div>`;}
+function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div></div>`;}
 function incompleteNote(){const f=yoyFrame();return f?`Comparaison a date egale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque annee. ${f.cur} arretee au ${fmtDate(f.cutDate)}.`:'';}
 
-/* ======================= APERCU (KPI + rythme a date) ======================= */
+/* ======================= AXES + MESURE (Apercu) ======================= */
+function deptFromCP(cp){const s=String(cp||'').replace(/\D/g,'');return s.length>=2?s.slice(0,2):'';}
+const AXES=[
+  {key:'famille',label:'Famille',get:r=>r.famille},
+  {key:'codeTarif',label:'Code tarif',get:r=>r.codeTarif},
+  {key:'couleur',label:'Couleur',get:r=>r.couleur},
+  {key:'_canal',label:'Canal de vente',get:r=>r._canal},
+  {key:'appellation',label:'Appellation',get:r=>r.appellation},
+  {key:'millesime',label:'Millesime',get:r=>r.millesime},
+  {key:'conditionnement',label:'Conditionnement',get:r=>r.conditionnement},
+  {key:'commercial',label:'Commercial',get:r=>r.commercial},
+  {key:'vendeur',label:'Vendeur',get:r=>r.vendeur},
+  {key:'origine',label:'Origine (acquisition)',get:r=>r.origine},
+  {key:'triPerso1',label:'Campagne (tri perso)',get:r=>r.triPerso1},
+  {key:'pays',label:'Pays',get:r=>r.pays},
+  {key:'ville',label:'Ville',get:r=>r.ville},
+  {key:'_dept',label:'Departement',get:r=>deptFromCP(r.cp)}
+];
+const PERSO_KEYS=['persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5','persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9'];
+function defaultPersoLabel(key){const m=key.match(/^perso(Client|Produit)(\d)$/);return m?('Perso '+(m[1]==='Client'?'client':'produit')+' '+m[2]):key;}
+function persoLabel(key){return (persoLabels[key]&&persoLabels[key].trim())?persoLabels[key].trim():defaultPersoLabel(key);}
+function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}}
+// Un champ est exploitable s'il a plus d'une valeur non vide (sinon masque : vide ou constant).
+function fieldUsable(get){const s=new Set();for(let i=0;i<ROWS.length;i++){const r=ROWS[i];if(!r._vin)continue;const v=get(r);if(v!==''&&v!=null){s.add(String(v));if(s.size>1)return true;}}return false;}
+function usableAxes(){
+  const std=AXES.filter(a=>fieldUsable(a.get));
+  const perso=PERSO_KEYS.filter(k=>fieldUsable(r=>r[k])).map(k=>({key:k,label:persoLabel(k),get:r=>r[k],perso:true}));
+  return {std,perso,all:[...std,...perso]};
+}
+function axisDef(key){const {all}=usableAxes();return all.find(a=>a.key===key)||all[0]||AXES[0];}
+function mesureVal(r){return uiMesure==='ca'?r._total:r._qte;}
+function fmtMes(v){return uiMesure==='ca'?fmtMoney(v):fmtNum(v);}
+function mesureLabel(){return uiMesure==='ca'?'CA vin HT':'Bouteilles / cols';}
+function groupSum(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigne)':String(k);m[k]=(m[k]||0)+mesureVal(r);});return m;}
+function topEntries(m,n){const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]);if(arr.length<=n)return arr;const top=arr.slice(0,n);top.push(['Autres',arr.slice(n).reduce((s,e)=>s+e[1],0)]);return top;}
+function topKeys(m,n){const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);return arr.length<=n?arr:arr.slice(0,n).concat(['Autres']);}
+function barListHTML(entries){
+  const max=entries.length?Math.max(...entries.map(e=>e[1]),0):0;
+  const tot=entries.reduce((s,e)=>s+e[1],0);
+  return `<div class="rep">`+entries.map(([k,v])=>{
+    const w=max>0?Math.max(0,v/max*100):0, pct=tot>0?v/tot*100:0;
+    return `<div class="rep__row"><div class="rep__bar"><div class="rep__fill" style="width:${w.toFixed(1)}%"></div><div class="rep__lbl">${esc(k)}</div></div><div class="rep__val">${fmtMes(v)} <span class="rep__pct">${fmtNum(pct,0)}%</span></div></div>`;
+  }).join('')+`</div>`;
+}
+function repCard(title,get){
+  const entries=topEntries(groupSum(vinRows(),get),8);
+  const body=entries.length?barListHTML(entries):`<p class="note">Aucune donnee sur la periode.</p>`;
+  return `<div class="card"><div class="card__title"><span>${esc(title)}</span></div>${body}</div>`;
+}
+
+/* ======================= APERCU (3 couches) ======================= */
 function renderApercu(){
   const rows=vinRows();
   const ca=sum(rows,r=>r._total);
@@ -519,7 +600,7 @@ function renderApercu(){
 
   let html=`<h2 class="panel__title">Apercu des ventes</h2><div class="panel__sub">CA vin HT, hors transport, pub, remises, offerts et casse. Perimetre : ${scope}.</div>`;
 
-  // Rythme a date (expertise 3) : seulement si 2 annees comparables et vue "Toutes".
+  // COUCHE 1 : les vitaux. Rythme a date en tete (evolution YoY), puis les compteurs.
   const f=yoyFrame();
   if(f){
     const curW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.cur&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
@@ -527,17 +608,16 @@ function renderApercu(){
     const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
     const cls=d==null?'':(d>=0?'up':'down');
     html+=`<div class="hero">
-      <div class="hero__label">Rythme a date, ${f.cur} vs ${f.prev}</div>
+      <div class="hero__label">Evolution vs l'an dernier a date, ${f.cur} vs ${f.prev}</div>
       <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
       <div class="hero__sub">Au ${fmtDate(f.cutDate)}, tu es a ${d==null?'n/d':fmtPct(d)} vs l'an dernier au meme jour. ${fmtMoney(curW)} contre ${fmtMoney(prevW)}. ${incompleteNote()}</div>
     </div>`;
   }
-
   html+=`<div class="kpi-grid">
-    ${kpiCard('CA vin HT',fmtMoney(ca),rows.length+' lignes de vente',true)}
-    ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
-    ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
+    ${kpiCard('CA vin HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
     ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantite vendue')}
+    ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
+    ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
     ${kpiCard('Clients actifs',fmtNum(clients),'ont achete sur la periode')}
   </div>`;
 
@@ -554,25 +634,81 @@ function renderApercu(){
       dep?`<b>Dependance forte a surveiller.</b> Un depart ferait mal. Elargis ta base de gros clients.`:`Repartition saine, pas de dependance excessive sur les 3 premiers clients.`);
   }
 
-  // Graphe CA par mois (annee courante vs precedente si dispo).
-  html+=`<div class="card"><div class="card__title"><span>CA vin par mois</span></div><div class="chart-wrap"><canvas id="chMois"></canvas></div></div>`;
+  // Bascule mesure (CA / Bouteilles) : agit sur les repartitions et l'explorateur.
+  html+=`<div class="section-label">Repartitions du ${uiMesure==='ca'?'CA vin':'volume'}</div>
+  <div style="margin-bottom:1rem"><span class="toggle">
+    <button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA vin HT</button>
+    <button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button>
+  </span></div>`;
+
+  // COUCHE 2 : 4 repartitions standard.
+  html+=`<div class="grid-rep">
+    ${repCard('Par famille',r=>r.famille)}
+    ${repCard('Par code tarif',r=>r.codeTarif)}
+    ${repCard('Par couleur',r=>r.couleur)}
+    ${repCard('Par canal de vente',r=>r._canal)}
+  </div>`;
+
+  // COUCHE 3 : explorateur libre (1 ou 2 axes).
+  html+=`<div class="section-label">Explorer librement</div><div class="card" id="explCard"></div>`;
 
   el('p-apercu').innerHTML=html;
-  drawMois();
+  renderExplorer();
 }
-function drawMois(){
-  destroyChart('chMois');
-  const ctx=el('chMois');if(!ctx)return;
-  const years=filters.year?[filters.year]:META.years.slice(-2);
-  const datasets=years.map((y,i)=>{
-    const arr=new Array(12).fill(0);
-    ROWS.forEach(r=>{if(r._vin&&r._date&&r._date.y===y)arr[r._date.m-1]+=r._total;});
-    const color=i===years.length-1?'#E87722':'#5A6472';
-    return {label:String(y),data:arr,backgroundColor:color,borderRadius:3};
-  });
-  charts.chMois=new Chart(ctx,{type:'bar',data:{labels:['Jan','Fev','Mar','Avr','Mai','Juin','Juil','Aout','Sep','Oct','Nov','Dec'],datasets},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:datasets.length>1}},
-      scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
+function setMesure(m){uiMesure=m;renderApercu();}
+function renderExplorer(){
+  const {all}=usableAxes();
+  if(!all.find(a=>a.key===explAxe1))explAxe1=all.length?all[0].key:'famille';
+  if(explAxe2 && !all.find(a=>a.key===explAxe2))explAxe2='';
+  const rows=vinRows();
+  const opts=(sel,withNone)=>{
+    const {std,perso}=usableAxes();
+    let h=withNone?`<option value="" ${sel===''?'selected':''}>(aucun)</option>`:'';
+    h+=`<optgroup label="Standards">`+std.map(a=>`<option value="${a.key}"${sel===a.key?' selected':''}>${esc(a.label)}</option>`).join('')+`</optgroup>`;
+    if(perso.length)h+=`<optgroup label="Champs perso Vitisoft">`+perso.map(a=>`<option value="${a.key}"${sel===a.key?' selected':''}>${esc(a.label)}</option>`).join('')+`</optgroup>`;
+    return h;
+  };
+  let html=`<div class="expl-ctrls">
+    <div class="field"><label>Repartir par</label><select onchange="explAxe1=this.value;renderExplorer()">${opts(explAxe1,false)}</select></div>
+    <div class="field"><label>Croiser avec (optionnel)</label><select onchange="explAxe2=this.value;renderExplorer()">${opts(explAxe2,true)}</select></div>
+    <span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span>
+  </div>`;
+
+  // Renommage des champs perso selectionnes (persiste).
+  const persoSel=[explAxe1,explAxe2].filter(k=>k&&PERSO_KEYS.includes(k));
+  if(persoSel.length){
+    html+=`<div class="rename-row">`+persoSel.map(k=>`<div class="field"><label>Renommer ${esc(defaultPersoLabel(k))}</label><input value="${esc(persoLabel(k))}" onchange="renamePerso('${k}',this.value)"></div>`).join('')+`</div>`;
+  }
+
+  const a1=axisDef(explAxe1);
+  if(!explAxe2){
+    const entries=topEntries(groupSum(rows,a1.get),12);
+    html+=entries.length?barListHTML(entries):`<p class="note">Aucune donnee.</p>`;
+  }else{
+    const a2=axisDef(explAxe2);
+    const rowKeys=topKeys(groupSum(rows,a1.get),8), colKeys=topKeys(groupSum(rows,a2.get),8);
+    const rowSet=new Set(rowKeys), colSet=new Set(colKeys);
+    const cell={}, rowTot={}, colTot={}; let grand=0;
+    rows.forEach(r=>{
+      let rk=r[a1.key]; if(a1.key==='_canal')rk=r._canal; else if(a1.key==='_dept')rk=deptFromCP(r.cp); rk=(rk===''||rk==null)?'(non renseigne)':String(rk); if(!rowSet.has(rk))rk='Autres';
+      let ck=r[a2.key]; if(a2.key==='_canal')ck=r._canal; else if(a2.key==='_dept')ck=deptFromCP(r.cp); ck=(ck===''||ck==null)?'(non renseigne)':String(ck); if(!colSet.has(ck))ck='Autres';
+      const v=mesureVal(r);cell[rk]=cell[rk]||{};cell[rk][ck]=(cell[rk][ck]||0)+v;rowTot[rk]=(rowTot[rk]||0)+v;colTot[ck]=(colTot[ck]||0)+v;grand+=v;
+    });
+    const rk2=rowKeys.filter(k=>rowTot[k]), ck2=colKeys.filter(k=>colTot[k]);
+    html+=`<div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${esc(a1.label)} \\ ${esc(a2.label)}</th>${ck2.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+    rk2.forEach(rkey=>{
+      html+=`<tr><td class="rowh">${esc(rkey)}</td>${ck2.map(c=>`<td>${(cell[rkey]&&cell[rkey][c])?fmtMes(cell[rkey][c]):'-'}</td>`).join('')}<td>${fmtMes(rowTot[rkey])}</td></tr>`;
+    });
+    html+=`<tr><td class="rowh"><b>Total</b></td>${ck2.map(c=>`<td>${fmtMes(colTot[c])}</td>`).join('')}<td>${fmtMes(grand)}</td></tr>`;
+    html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}. Top 8 par axe, le reste regroupe en "Autres".</p>`;
+  }
+  el('explCard').innerHTML=html;
+}
+function renamePerso(key,val){
+  const v=(val||'').trim();
+  if(v)persoLabels[key]=v; else delete persoLabels[key];
+  savePersoLabels();
+  renderApercu();
 }
 
 /* ======================= EXPERTISE 1 : REACTIVATION (RFM) ======================= */
