@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Bureau du Vigneron, tableau de bord des ventes</title>
+<meta name="description" content="Depose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. 100% dans ton navigateur.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --anthra:#23262B;--anthra-2:#1B1D21;--anthra-3:#2C2F35;
+  --paper:#F1F0EC;--card:#FFFFFF;--cream:#FAF6F0;--line:#E4E0D7;
+  --ink:#23262B;--muted:#6B7280;
+  --orange:#E87722;--orange-d:#CF6516;--teal:#17A29A;--red:#E0524E;--slate:#2F6DB5;--cork:#C99A2E;
+  --ft:'Roboto',system-ui,sans-serif;--fc:'Roboto',system-ui,sans-serif;--fm:'Roboto Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper);color:var(--ink);font-family:var(--fc);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--ft);font-weight:900;line-height:1.12;letter-spacing:-.01em}
+a{color:var(--orange)}
+.mono{font-family:var(--fm)}
+.hidden{display:none!important}
+
+/* STATUS */
+.status{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:900;padding:.6rem 1rem;font-family:var(--fm);font-size:.78rem;display:none;align-items:center;gap:.5rem;border-radius:4px;box-shadow:0 8px 26px rgba(0,0,0,.3);max-width:90vw}
+.status.error{background:#FBE3E1;color:#B23227;display:flex}
+.status.loading{background:var(--anthra);color:#fff;display:flex}
+.status.success{background:#D6F0ED;color:#0E7B72;display:flex}
+.spinner{width:.9rem;height:.9rem;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* IMPORT */
+.import{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--anthra);
+  background-image:radial-gradient(rgba(232,119,34,.10) 1px,transparent 1px);background-size:22px 22px}
+.import__box{max-width:660px;width:100%;text-align:center;background:var(--card);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);padding:2.6rem 2.2rem;border-top:4px solid var(--orange)}
+.import .eyebrow{font-family:var(--fm);font-size:.68rem;text-transform:uppercase;letter-spacing:.16em;color:var(--orange);margin-bottom:1rem}
+.import h1{font-family:var(--ft);font-weight:900;font-size:clamp(1.8rem,4.2vw,2.6rem);color:var(--ink);margin-bottom:.7rem}
+.import .lead{font-size:1.02rem;color:var(--muted);max-width:520px;margin:0 auto 1.9rem;line-height:1.5}
+.dropzone{border:2px dashed var(--orange);border-radius:8px;padding:2.6rem 2rem;cursor:pointer;transition:.2s;background:var(--cream)}
+.dropzone:hover,.dropzone.over{border-color:var(--orange-d);background:#FBEEDF}
+.dropzone.over{border-style:solid}
+.dz-icon{font-size:2.1rem;margin-bottom:.5rem;color:var(--orange)}
+.dropzone h3{font-family:var(--ft);font-weight:700;font-size:1.05rem;margin-bottom:.25rem}
+.dropzone p{font-size:.82rem;color:var(--muted);font-family:var(--fm)}
+.btn-row{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1.3rem}
+.hint{font-family:var(--fm);font-size:.72rem;color:var(--muted);margin-top:.8rem}
+.resume{margin-top:1.8rem;padding:1rem;background:var(--cream);border:1px solid var(--line);border-radius:6px;font-size:.85rem;text-align:left}
+.resume b{font-weight:700}
+
+/* BOUTONS */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;font-family:var(--fm);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;border:none;text-decoration:none;transition:.15s;white-space:nowrap;border-radius:5px;font-weight:500}
+.btn--primary{background:var(--orange);color:#fff}
+.btn--primary:hover{background:var(--orange-d)}
+.btn--ghost{background:transparent;color:var(--orange);border:1.5px solid var(--orange)}
+.btn--ghost:hover{background:var(--orange);color:#fff}
+.btn--sm{padding:.42rem .8rem;font-size:.66rem}
+.btn--light{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.btn--light:hover{background:rgba(255,255,255,.2)}
+.btn--danger{background:transparent;color:var(--red);border:1.5px solid var(--red)}
+.btn--danger:hover{background:var(--red);color:#fff}
+
+/* APP SHELL */
+.app{display:none;min-height:100vh;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr}
+.app.on{display:grid}
+.topbar{grid-column:1/3;background:var(--anthra);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;gap:1rem;flex-wrap:wrap;border-bottom:2px solid var(--orange)}
+.topbar__brand{font-family:var(--ft);font-weight:900;font-size:1rem;letter-spacing:.02em;color:#fff;text-decoration:none;display:inline-flex;align-items:center}
+.topbar__brand::before{content:"";display:inline-block;width:9px;height:9px;background:var(--orange);border-radius:2px;margin-right:.5rem;vertical-align:middle}
+.topbar__brand:hover{color:var(--orange)}
+.topbar__home{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);text-decoration:none;margin-left:.6rem}
+.topbar__home:hover{color:var(--orange)}
+.topbar__file{font-family:var(--fm);font-size:.64rem;opacity:.6;text-transform:uppercase;letter-spacing:.06em}
+.topbar__actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.sidebar{background:var(--anthra-2);padding:.5rem 0 2rem}
+.navitem{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;background:none;border:none;border-left:3px solid transparent;color:#AEB4BD;font-family:var(--fm);font-size:.74rem;padding:.68rem 1.1rem;cursor:pointer;transition:.12s;letter-spacing:.02em}
+.navitem:hover{background:var(--anthra-3);color:#fff}
+.navitem.on{color:#fff;background:var(--anthra-3);border-left-color:var(--orange)}
+.navitem__ico{width:16px;text-align:center;flex-shrink:0;color:var(--orange)}
+.content{background:var(--paper);padding:1.4rem 1.6rem 4rem;overflow-x:hidden;min-width:0}
+
+/* FILTRES */
+.filterbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.55rem .8rem;margin-bottom:1.2rem;font-size:.8rem}
+.filterbar__label{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.chip{font-family:var(--fm);font-size:.66rem;padding:.28rem .62rem;border:1px solid var(--line);background:var(--card);cursor:pointer;border-radius:4px;transition:.12s;color:var(--muted)}
+.chip:hover{border-color:var(--orange);color:var(--ink)}
+.chip.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+/* PANNEAUX */
+.panel{display:none}
+.panel.on{display:block}
+.panel__title{font-size:1.4rem;font-weight:900;color:var(--ink);margin-bottom:.15rem}
+.panel__sub{font-size:.86rem;color:var(--muted);margin-bottom:1.2rem}
+.section-label{font-family:var(--fm);font-size:.62rem;text-transform:uppercase;letter-spacing:.13em;color:var(--orange);margin:1.6rem 0 .7rem;font-weight:500}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.9rem;margin-bottom:1.4rem}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1.1rem;border-top:3px solid var(--orange)}
+.kpi--hi{background:var(--orange);border-color:var(--orange);border-top-color:var(--orange-d)}
+.kpi--hi .kpi__label,.kpi--hi .kpi__sub{color:rgba(255,255,255,.85)}
+.kpi--hi .kpi__val{color:#fff}
+.kpi__label{font-family:var(--fm);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem}
+.kpi__val{font-size:1.6rem;font-weight:900;line-height:1;font-family:var(--ft);color:var(--ink)}
+.kpi__val span{font-size:.8rem;font-weight:400;color:var(--muted)}
+.kpi__sub{font-family:var(--fm);font-size:.6rem;color:var(--muted);margin-top:.4rem}
+
+/* CARTES */
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1.2rem;margin-bottom:1.2rem}
+.card__title{font-family:var(--fm);font-size:.64rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:500}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.chart-wrap{position:relative;height:300px}
+
+/* HERO rythme */
+.hero{background:var(--anthra);color:#fff;border-radius:10px;padding:1.6rem 1.8rem;margin-bottom:1.4rem;border-left:5px solid var(--orange)}
+.hero__label{font-family:var(--fm);font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.7);margin-bottom:.5rem}
+.hero__val{font-size:2.6rem;font-weight:900;font-family:var(--ft);line-height:1}
+.hero__val.up{color:#F2A65A}
+.hero__val.down{color:#F0908C}
+.hero__sub{font-family:var(--fm);font-size:.72rem;color:rgba(255,255,255,.75);margin-top:.6rem}
+
+/* TABLEAUX */
+table.data{width:100%;border-collapse:collapse;font-size:.82rem}
+table.data th,table.data td{padding:.45rem .55rem;text-align:left;border-bottom:1px solid var(--line)}
+table.data th{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+table.data td.num,table.data th.num{text-align:right;font-family:var(--fm)}
+table.data tbody tr:hover{background:var(--cream)}
+.pos{color:var(--teal)}
+.neg{color:var(--red)}
+
+/* SIGNAUX (verdict + action) */
+.signal{display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border:1px solid var(--line);border-radius:8px;background:var(--card);margin-bottom:.7rem;border-left-width:4px}
+.signal--danger{border-left-color:var(--red)}
+.signal--warn{border-left-color:var(--orange)}
+.signal--ok{border-left-color:var(--teal)}
+.signal--info{border-left-color:var(--slate)}
+.signal__ico{font-size:1.15rem;flex-shrink:0;line-height:1.3}
+.signal__body{font-size:.92rem}
+.signal__verdict{font-weight:700;margin-bottom:.15rem}
+.signal__action{color:var(--muted);font-size:.86rem}
+.signal__action b{color:var(--ink)}
+
+/* CTA */
+.cta{background:var(--anthra);color:#fff;padding:1.2rem 1.4rem;margin-bottom:1.2rem;border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;border-left:4px solid var(--orange)}
+.cta__txt{max-width:65%}
+.cta h3{color:#fff;font-size:1.05rem;font-weight:900;margin-bottom:.2rem}
+.cta p{font-size:.85rem;opacity:.8}
+
+.foot{font-family:var(--fm);font-size:.66rem;color:var(--muted);text-align:center;margin-top:2.4rem;padding-top:1rem;border-top:1px solid var(--line)}
+.note{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.6rem}
+
+@media(max-width:900px){.app.on{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--orange)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.cta__txt{max-width:100%}}
+</style>
+</head>
+<body>
+
+<div class="status" id="status"><div class="spinner" id="statusSpin"></div><span id="statusTxt"></span></div>
+
+<!-- ============ IMPORT ============ -->
+<section id="screenImport" class="import">
+  <div class="import__box">
+    <p class="eyebrow">Tableau de bord des ventes · lecture d'export Vitisoft</p>
+    <h1>Depose ton export. Tes chiffres se lisent tout seuls.</h1>
+    <p class="lead">Ton chiffre d'affaires, tes clients a relancer, ceux qui decrochent, tes canaux de vente. L'outil lit ton export, sort tes statistiques et te dit quoi faire. Tes donnees restent dans ton navigateur.</p>
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">&#9095;</div><h3>Depose ton fichier ici</h3>
+      <p>Export Vitisoft (.csv) · ou clique pour choisir</p>
+      <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn--primary" onclick="document.getElementById('fileInput').click()">Choisir un fichier</button>
+    </div>
+    <div class="hint">&#128274; 100% prive, rien n'est envoye sur internet.</div>
+    <div class="resume" id="resumeBox" style="display:none"></div>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><a href="/" class="topbar__home">&#8592; Retour au site</a> <span class="topbar__file" id="tbFile"></span></div>
+    <div class="topbar__actions">
+      <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
+    </div>
+  </div>
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="content">
+    <div class="filterbar" id="filterbar"></div>
+    <section class="panel" id="p-apercu"></section>
+    <section class="panel" id="p-reactivation"></section>
+    <section class="panel" id="p-decrochage"></section>
+    <section class="panel" id="p-canaux"></section>
+    <section class="panel" id="p-base"></section>
+  </main>
+</div>
+
+<script>
+/* ================================================================
+   LE BUREAU DU VIGNERON, tableau de bord des ventes v4
+   Lecture d'un export Vitisoft (CSV windows-1252, separateur ;).
+   Cumul persistant (IndexedDB), dedup par empreinte de ligne.
+   4 expertises commerciales : reactivation RFM, decrochage YoY,
+   rythme a date YoY, mix canal + prix moyen.
+   100% front-end, aucune donnee envoyee.
+   ================================================================ */
+
+/* ======================= CONFIG (a ajuster par domaine) ======================= */
+
+// Les 40 colonnes de l'export, dans l'ordre exact. On cable en dur (pas d'auto-detection).
+const COLS=['date','numFacture','produit','numProduit','famille','conditionnement',
+  'persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5',
+  'appellation','couleur','millesime','puHT','totalHT','client','numClient','commercial',
+  'quantite','codeTarif',
+  'persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9',
+  'pays','origine','ville','cp','vendeur','triPerso1','typeOffert','ordreDRM','depot','lieuVente'];
+
+// Familles considerees comme du vin / produit vendu (=> comptent dans le CA vin).
+// A adapter d'un domaine a l'autre.
+const FAMILLES_VIN=['CHAMPAGNE','COTEAUX CHAMPENOIS','RATAFIA CHAMPENOIS','BAR/VENTE ALIMENTATION','VISITES DEGUSTATIONS','ARTICLES COMPOSES'];
+
+// Familles a isoler hors du CA vin (frais, pub, remises, divers).
+const FAMILLES_HORS_VIN=['TRANSPORT','ARTICLES PUBLICITAIRES','REMISE','DIVERS'];
+
+// Valeurs de "Type Offert" = sorties gratuites ou pertes, jamais du CA.
+const TYPES_OFFERT=['Offert','Echantillon','Degustation','Consommation Personnelle','Casse'];
+
+// Normalisation des canaux (Lieu de vente saisi a la main). Regroupement souple.
+// Chaque regle : liste de fragments a chercher (insensible casse/accents/espaces).
+const CANAUX=[
+  {label:'Caveau',      match:['caveau']},
+  {label:'Email',       match:['email','mail','courrier']},
+  {label:'Site internet',match:['site internet','stripe','insta']},
+  {label:'Telephone',   startsWith:['tel']},
+  {label:'Salon',       startsWith:['salon']},
+  {label:'Depot',       match:['depot']}
+  // tout le reste => "Autre / non renseigne"
+];
+
+// Seuils des expertises (verdicts).
+const SEUILS={
+  rfmRecenceMois:12,   // au dela de X mois sans achat => dormant
+  rfmMinFreq:2,        // au moins X factures pour cibler la relance
+  decrochagePct:-30,   // recul de plus de 30% => alerte churn
+  dependanceTop3:30    // top 3 clients > 30% du CA => dependance
+};
+
+/* ======================= ETAT ======================= */
+const DB_NAME='bdv_ventes_v4', STORE='lignes';
+let ROWS=[];                 // lignes derivees en memoire
+let META={min:null,max:null,years:[]};
+let filters={year:null};     // filtre annee actif (null = toutes)
+let charts={};
+
+/* ======================= UTILS ======================= */
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function stripAccents(s){return (s==null?'':String(s)).normalize('NFD').replace(/[̀-ͯ]/g,'');}
+function norm(s){return stripAccents(s).toLowerCase().replace(/\s+/g,' ').trim();}
+function fmtNum(n,d){return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:d==null?0:d}).format(n);}
+function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
+function fmtPct(n,d){return (n>=0?'+':'')+fmtNum(n,d==null?1:d)+' %';}
+function plur(n,mot){return n+' '+mot+(n>1?'s':'');}
+function status(type,msg){const b=el('status');b.className='status '+type;el('statusTxt').textContent=msg;el('statusSpin').style.display=type==='loading'?'block':'none';b.style.display='flex';if(type!=='loading')setTimeout(()=>{b.style.display='none';},4000);}
+
+// Nombre francais "14,58" -> 14.58 ; gere le negatif et l'espace milliers.
+function parseNum(v){
+  if(v==null||v==='')return 0;
+  if(typeof v==='number')return v;
+  let s=String(v).replace(/\s/g,'').replace(/€/g,'').replace(/%/g,'');
+  if(s.indexOf(',')>-1&&s.indexOf('.')>-1)s=s.replace(/\./g,'').replace(',','.');
+  else if(s.indexOf(',')>-1)s=s.replace(',','.');
+  const n=parseFloat(s);return isNaN(n)?0:n;
+}
+// Date "JJ/MM/AAAA" -> objet {y,m,d,t} (t = timestamp jour, pour comparer).
+function parseDateFR(v){
+  if(!v)return null;
+  const m=String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(!m)return null;
+  const d=+m[1],mo=+m[2],y=+m[3];
+  if(y<1990||y>2100||mo<1||mo>12)return null;
+  return {y,m:mo,d,t:y*10000+mo*100+d};
+}
+// Empreinte de ligne (hash) sur les 40 champs bruts concatenes. cyrb53, compact et robuste.
+function cyrb53(str){
+  let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);
+  return (h2>>>0).toString(16).padStart(8,'0')+(h1>>>0).toString(16).padStart(8,'0');
+}
+
+// Canal normalise a partir du lieu de vente brut.
+function normCanal(raw){
+  const k=norm(raw);
+  if(!k)return 'Autre / non renseigne';
+  for(const c of CANAUX){
+    if(c.startsWith&&c.startsWith.some(p=>k.startsWith(norm(p))))return c.label;
+    if(c.match&&c.match.some(p=>k.includes(norm(p))))return c.label;
+  }
+  return 'Autre / non renseigne';
+}
+
+/* ======================= INDEXEDDB ======================= */
+function dbOpen(){
+  return new Promise((res,rej)=>{
+    const rq=indexedDB.open(DB_NAME,1);
+    rq.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'h'});};
+    rq.onsuccess=e=>res(e.target.result);
+    rq.onerror=e=>rej(e.target.error);
+  });
+}
+// Ajoute des lignes {h, raw:[...40]} en ignorant les doublons (meme empreinte). Renvoie {added,dup}.
+async function dbAddMany(items){
+  const db=await dbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readwrite'),st=tx.objectStore(STORE);
+    let added=0,dup=0,i=0;
+    function next(){
+      if(i>=items.length){return;}
+      const it=items[i++];
+      const g=st.get(it.h);
+      g.onsuccess=()=>{
+        if(g.result){dup++;}
+        else{st.add(it);added++;}
+        next();
+      };
+      g.onerror=()=>{next();};
+    }
+    next();
+    tx.oncomplete=()=>res({added,dup});
+    tx.onerror=e=>rej(e.target.error);
+  });
+}
+async function dbGetAll(){
+  const db=await dbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readonly'),rq=tx.objectStore(STORE).getAll();
+    rq.onsuccess=()=>res(rq.result||[]);rq.onerror=e=>rej(e.target.error);
+  });
+}
+async function dbClear(){
+  const db=await dbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();
+    tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error);
+  });
+}
+async function dbCount(){
+  const db=await dbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readonly'),rq=tx.objectStore(STORE).count();
+    rq.onsuccess=()=>res(rq.result);rq.onerror=e=>rej(e.target.error);
+  });
+}
+
+/* ======================= IMPORT ======================= */
+function bindImport(){
+  const dz=el('dropzone'),fi=el('fileInput');
+  fi.addEventListener('change',e=>handleFiles(e.target.files));
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files);});
+  dz.addEventListener('click',()=>fi.click());
+}
+async function handleFiles(list){
+  const files=Array.from(list).filter(f=>f.name.toLowerCase().endsWith('.csv'));
+  if(!files.length){status('error','Depose un fichier .csv exporte depuis Vitisoft.');return;}
+  let totAdded=0,totDup=0;
+  for(const f of files){
+    try{
+      status('loading','Lecture de '+f.name+'...');
+      const items=await readVitisoftCSV(f);
+      const r=await dbAddMany(items);
+      totAdded+=r.added;totDup+=r.dup;
+    }catch(err){status('error','Erreur sur '+f.name+' : '+err.message);return;}
+  }
+  await reloadFromDB();
+  const total=ROWS.length;
+  const per=META.min&&META.max?(' sur la periode '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
+  status('success',totAdded+' ligne(s) ajoutee(s), '+totDup+' doublon(s) ignore(s). Base totale = '+fmtNum(total)+' lignes'+per+'.');
+  openApp();
+}
+// Lit le CSV en windows-1252 (PAS UTF-8), separateur ; , renvoie [{h, raw:[...]}].
+function readVitisoftCSV(file){
+  return new Promise((res,rej)=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      try{
+        const buf=new Uint8Array(e.target.result);
+        const text=new TextDecoder('windows-1252').decode(buf);
+        const parsed=Papa.parse(text,{delimiter:';',skipEmptyLines:true});
+        const rows=parsed.data;
+        const items=[];
+        rows.forEach((row,idx)=>{
+          if(!row||!row.length)return;
+          // Sauter la ligne d'en-tete (1ere cellule = "Date" ou pas une date).
+          if(idx===0 && !parseDateFR(row[0]))return;
+          if(!parseDateFR(row[0]))return; // ligne sans date valide (total, vide) => ignore
+          const raw=[];for(let i=0;i<COLS.length;i++)raw.push(row[i]==null?'':String(row[i]));
+          items.push({h:cyrb53(raw.join('')),raw});
+        });
+        res(items);
+      }catch(err){rej(err);}
+    };
+    rd.onerror=()=>rej(new Error('lecture impossible'));
+    rd.readAsArrayBuffer(file);
+  });
+}
+function fmtDate(d){return d?String(d.d).padStart(2,'0')+'/'+String(d.m).padStart(2,'0')+'/'+d.y:'';}
+
+/* ======================= DERIVATION EN MEMOIRE ======================= */
+async function reloadFromDB(){
+  const items=await dbGetAll();
+  ROWS=items.map(it=>deriveRow(it.raw));
+  computeMeta();
+}
+// Transforme les 40 champs bruts en objet exploitable + classification vente/non-vente.
+function deriveRow(raw){
+  const o={};COLS.forEach((k,i)=>o[k]=raw[i]==null?'':raw[i]);
+  o._date=parseDateFR(o.date);
+  o._total=parseNum(o.totalHT);
+  o._pu=parseNum(o.puHT);
+  o._qte=parseNum(o.quantite);
+  o._canal=normCanal(o.lieuVente);
+  const fam=norm(o.famille);
+  const offert=String(o.typeOffert||'').trim()!=='';
+  const isHorsVin=FAMILLES_HORS_VIN.some(f=>norm(f)===fam);
+  const isFamVin=FAMILLES_VIN.some(f=>norm(f)===fam);
+  o._offert=offert;
+  o._horsVin=isHorsVin;
+  // Vente vin = famille vin ET pas un offert/echantillon/casse.
+  o._vin=isFamVin && !offert;
+  return o;
+}
+function computeMeta(){
+  let min=null,max=null;const ys=new Set();
+  ROWS.forEach(r=>{if(!r._date)return;if(!min||r._date.t<min.t)min=r._date;if(!max||r._date.t>max.t)max=r._date;ys.add(r._date.y);});
+  META={min,max,years:[...ys].sort((a,b)=>a-b)};
+}
+
+/* ======================= SELECTION / FENETRES ======================= */
+// Lignes vin (CA reel) filtrees par l'annee active si presente.
+function vinRows(){
+  return ROWS.filter(r=>r._vin && (filters.year==null || (r._date&&r._date.y===filters.year)));
+}
+// Somme d'un accesseur sur un tableau.
+function sum(arr,fn){return arr.reduce((s,r)=>s+fn(r),0);}
+
+// Determine curYear / prevYear + date de coupe (a date egale) pour les comparatifs YoY.
+function yoyFrame(){
+  const ys=META.years;if(ys.length<2)return null;
+  const cur=ys[ys.length-1],prev=cur-1;
+  if(!ys.includes(prev))return null;
+  // date max presente dans l'annee courante (parmi les lignes vin).
+  let cut=null;
+  ROWS.forEach(r=>{if(r._vin&&r._date&&r._date.y===cur){if(!cut||r._date.t>cut.t)cut=r._date;}});
+  if(!cut)return null;
+  return {cur,prev,cutM:cut.m,cutD:cut.d,cutDate:cut};
+}
+// Une date tombe-t-elle dans la fenetre 1er janvier -> (cutM/cutD) de son annee ?
+function inWindow(d,cutM,cutD){if(!d)return false;return d.m<cutM || (d.m===cutM && d.d<=cutD);}
+
+/* ======================= APP / NAV ======================= */
+const NAV=[
+  {id:'apercu',ico:'▧',label:'Apercu'},
+  {id:'reactivation',ico:'↻',label:'Reactivation'},
+  {id:'decrochage',ico:'⚠',label:'Decrochage'},
+  {id:'canaux',ico:'▤',label:'Canaux & prix'},
+  {id:'base',ico:'\u{1F5C2}',label:'Ma base'}
+];
+function openApp(){
+  el('screenImport').style.display='none';
+  el('app').classList.add('on');
+  el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
+  el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.label}</button>`).join('');
+  buildFilterBar();
+  renderAll();
+  navTo('apercu');
+}
+function showImport(){el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();}
+function navTo(id){
+  document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
+  window.scrollTo(0,0);
+}
+function buildFilterBar(){
+  const parts=['<span class="filterbar__label">Annee</span>'];
+  parts.push(`<span class="chip ${filters.year==null?'on':''}" onclick="setYear(null)">Toutes</span>`);
+  META.years.forEach(y=>parts.push(`<span class="chip ${filters.year===y?'on':''}" onclick="setYear(${y})">${y}</span>`));
+  el('filterbar').innerHTML=parts.join('');
+}
+function setYear(y){filters.year=y;buildFilterBar();renderAll();}
+function renderAll(){renderApercu();renderReactivation();renderDecrochage();renderCanaux();renderBase();}
+
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
+function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div>`;}
+function incompleteNote(){const f=yoyFrame();return f?`Comparaison a date egale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque annee. ${f.cur} arretee au ${fmtDate(f.cutDate)}.`:'';}
+
+/* ======================= APERCU (KPI + rythme a date) ======================= */
+function renderApercu(){
+  const rows=vinRows();
+  const ca=sum(rows,r=>r._total);
+  const factures=new Set(rows.map(r=>r.numFacture)).size;
+  const btl=sum(rows,r=>r._qte);
+  const clients=new Set(rows.map(r=>r.numClient||r.client)).size;
+  const panier=factures?ca/factures:0;
+  const scope=filters.year?('annee '+filters.year):'toute la base';
+
+  let html=`<h2 class="panel__title">Apercu des ventes</h2><div class="panel__sub">CA vin HT, hors transport, pub, remises, offerts et casse. Perimetre : ${scope}.</div>`;
+
+  // Rythme a date (expertise 3) : seulement si 2 annees comparables et vue "Toutes".
+  const f=yoyFrame();
+  if(f){
+    const curW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.cur&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
+    const prevW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.prev&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
+    const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
+    const cls=d==null?'':(d>=0?'up':'down');
+    html+=`<div class="hero">
+      <div class="hero__label">Rythme a date, ${f.cur} vs ${f.prev}</div>
+      <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
+      <div class="hero__sub">Au ${fmtDate(f.cutDate)}, tu es a ${d==null?'n/d':fmtPct(d)} vs l'an dernier au meme jour. ${fmtMoney(curW)} contre ${fmtMoney(prevW)}. ${incompleteNote()}</div>
+    </div>`;
+  }
+
+  html+=`<div class="kpi-grid">
+    ${kpiCard('CA vin HT',fmtMoney(ca),rows.length+' lignes de vente',true)}
+    ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
+    ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
+    ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantite vendue')}
+    ${kpiCard('Clients actifs',fmtNum(clients),'ont achete sur la periode')}
+  </div>`;
+
+  // Graphe CA par mois (annee courante vs precedente si dispo).
+  html+=`<div class="card"><div class="card__title"><span>CA vin par mois</span></div><div class="chart-wrap"><canvas id="chMois"></canvas></div></div>`;
+
+  el('p-apercu').innerHTML=html;
+  drawMois();
+}
+function drawMois(){
+  destroyChart('chMois');
+  const ctx=el('chMois');if(!ctx)return;
+  const years=filters.year?[filters.year]:META.years.slice(-2);
+  const datasets=years.map((y,i)=>{
+    const arr=new Array(12).fill(0);
+    ROWS.forEach(r=>{if(r._vin&&r._date&&r._date.y===y)arr[r._date.m-1]+=r._total;});
+    const color=i===years.length-1?'#E87722':'#5A6472';
+    return {label:String(y),data:arr,backgroundColor:color,borderRadius:3};
+  });
+  charts.chMois=new Chart(ctx,{type:'bar',data:{labels:['Jan','Fev','Mar','Avr','Mai','Juin','Juil','Aout','Sep','Oct','Nov','Dec'],datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:datasets.length>1}},
+      scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
+}
+
+/* ======================= EXPERTISE 1 : REACTIVATION (RFM) ======================= */
+function clientStats(){
+  // Agrege par client (sur les lignes vin, toutes annees).
+  const map={};
+  ROWS.forEach(r=>{
+    if(!r._vin||!r._date)return;
+    const id=r.numClient||r.client||'(inconnu)';
+    let c=map[id];if(!c){c=map[id]={id,nom:r.client||id,factures:new Set(),montant:0,last:null};}
+    c.factures.add(r.numFacture);
+    c.montant+=r._total;
+    if(!c.last||r._date.t>c.last.t)c.last=r._date;
+  });
+  return Object.values(map);
+}
+function monthsBetween(a,b){if(!a||!b)return 0;return (b.y-a.y)*12+(b.m-a.m);}
+function renderReactivation(){
+  const ref=META.max;
+  const clients=clientStats();
+  const dormants=clients.filter(c=>{
+    const rec=monthsBetween(c.last,ref);
+    return rec>SEUILS.rfmRecenceMois && c.factures.size>=SEUILS.rfmMinFreq && c.montant>0;
+  }).sort((a,b)=>b.montant-a.montant);
+  const caDormant=sum(dormants,c=>c.montant);
+
+  let html=`<h2 class="panel__title">Reactivation clients</h2><div class="panel__sub">Methode RFM : Recence (mois depuis le dernier achat), Frequence (nb de factures), Montant (CA cumule). Reference = derniere date de la base, ${fmtDate(ref)}.</div>`;
+
+  if(!dormants.length){
+    html+=signal('ok','✔','Aucun client dormant a fort potentiel detecte.',`Seuils : plus de ${SEUILS.rfmRecenceMois} mois sans achat, au moins ${SEUILS.rfmMinFreq} factures passees.`);
+  }else{
+    html+=signal('warn','↻',
+      `${plur(dormants.length,'client')} dormant${dormants.length>1?'s':''} representant ${fmtMoney(caDormant)} de CA passe a relancer.`,
+      `Ce sont de bons clients (au moins ${SEUILS.rfmMinFreq} commandes) qui n'ont plus achete depuis plus de ${SEUILS.rfmRecenceMois} mois. <b>Action : campagne de relance ciblee, en commencant par le haut de la liste.</b>`);
+    const top=dormants.slice(0,20);
+    html+=`<div class="card"><div class="card__title"><span>Top clients a relancer (par CA historique)</span></div>
+      <table class="data"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Factures</th><th class="num">Dernier achat</th><th class="num">Mois sans achat</th></tr></thead><tbody>
+      ${top.map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.factures.size}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${monthsBetween(c.last,ref)}</td></tr>`).join('')}
+      </tbody></table>
+      ${dormants.length>20?`<p class="note">${dormants.length-20} autres clients dormants au dela du top 20.</p>`:''}</div>`;
+  }
+  el('p-reactivation').innerHTML=html;
+}
+
+/* ======================= EXPERTISE 2 : DECROCHAGE (YoY a date egale) ======================= */
+function renderDecrochage(){
+  const f=yoyFrame();
+  let html=`<h2 class="panel__title">Clients en decrochage</h2>`;
+  if(!f){
+    html+=`<div class="panel__sub">Il faut deux annees comparables dans la base pour cette analyse.</div>`+
+      signal('info','ℹ','Comparatif indisponible.','Ajoute un export couvrant l\'annee precedente pour activer la detection du churn.');
+    el('p-decrochage').innerHTML=html;return;
+  }
+  html+=`<div class="panel__sub">Clients presents les deux annees dont le CA recule de plus de ${Math.abs(SEUILS.decrochagePct)}% (a date egale). ${incompleteNote()}</div>`;
+
+  // CA par client sur la fenetre a date egale, pour cur et prev.
+  const byClient={};
+  ROWS.forEach(r=>{
+    if(!r._vin||!r._date)return;
+    if(!inWindow(r._date,f.cutM,f.cutD))return;
+    if(r._date.y!==f.cur&&r._date.y!==f.prev)return;
+    const id=r.numClient||r.client||'(inconnu)';
+    let c=byClient[id];if(!c){c=byClient[id]={nom:r.client||id,cur:0,prev:0};}
+    if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;
+  });
+  const decroche=Object.values(byClient)
+    .filter(c=>c.prev>0 && c.cur>=0 && ((c.cur-c.prev)/c.prev*100)<SEUILS.decrochagePct)
+    .map(c=>({...c,perdu:c.prev-c.cur,pct:(c.cur-c.prev)/c.prev*100}))
+    .sort((a,b)=>b.perdu-a.perdu);
+  const totPerdu=sum(decroche,c=>c.perdu);
+
+  if(!decroche.length){
+    html+=signal('ok','✔','Aucun client en decrochage marque.',`Aucun client actif les deux annees ne recule de plus de ${Math.abs(SEUILS.decrochagePct)}% a date egale.`);
+  }else{
+    html+=signal('danger','⚠',
+      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs l'an dernier a date egale.`,
+      `C'est l'alerte a traiter avant le depart complet. <b>Action : les appeler en priorite, en partant du plus gros montant perdu.</b>`);
+    const top=decroche.slice(0,20);
+    html+=`<div class="card"><div class="card__title"><span>Top clients en decrochage (par euros perdus)</span></div>
+      <table class="data"><thead><tr><th>Client</th><th class="num">${f.prev} a date</th><th class="num">${f.cur} a date</th><th class="num">Perdu</th><th class="num">Evolution</th></tr></thead><tbody>
+      ${top.map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
+      </tbody></table>
+      ${decroche.length>20?`<p class="note">${decroche.length-20} autres clients en recul au dela du top 20.</p>`:''}</div>`;
+  }
+  el('p-decrochage').innerHTML=html;
+}
+
+/* ======================= EXPERTISE 4 : MIX CANAL + PRIX MOYEN ======================= */
+function renderCanaux(){
+  let html=`<h2 class="panel__title">Canaux & prix moyen</h2>`;
+  const f=yoyFrame();
+  // Fenetre : si YoY dispo, a date egale sur cur/prev. Sinon, annee active ou toute la base.
+  const labels=[...new Set(CANAUX.map(c=>c.label)).add('Autre / non renseigne')];
+
+  // Agregation part de CA + prix moyen par canal.
+  function agg(year){
+    const m={};let tot=0;
+    ROWS.forEach(r=>{
+      if(!r._vin||!r._date)return;
+      if(year!=null && r._date.y!==year)return;
+      if(f && year!=null && !inWindow(r._date,f.cutM,f.cutD))return;
+      const k=r._canal;let c=m[k];if(!c){c=m[k]={ca:0,qte:0};}
+      c.ca+=r._total;c.qte+=r._qte;tot+=r._total;
+    });
+    return {m,tot};
+  }
+
+  if(f){
+    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille, ${f.cur} vs ${f.prev} a date egale. ${incompleteNote()}</div>`;
+    const A=agg(f.cur),B=agg(f.prev);
+    const keys=[...new Set([...Object.keys(A.m),...Object.keys(B.m)])];
+    const rows=keys.map(k=>{
+      const a=A.m[k]||{ca:0,qte:0},b=B.m[k]||{ca:0,qte:0};
+      const partCur=A.tot?a.ca/A.tot*100:0,partPrev=B.tot?b.ca/B.tot*100:0;
+      const prixCur=a.qte?a.ca/a.qte:0,prixPrev=b.qte?b.ca/b.qte:0;
+      return {k,caCur:a.ca,partCur,partPrev,dPts:partCur-partPrev,prixCur,prixPrev};
+    }).sort((x,y)=>y.caCur-x.caCur);
+
+    // Signal : plus gros mouvement de part.
+    const mover=[...rows].filter(r=>Math.abs(r.dPts)>=1).sort((a,b)=>Math.abs(b.dPts)-Math.abs(a.dPts))[0];
+    if(mover){
+      const sens=mover.dPts>=0?'progresse':'recule';
+      html+=signal(mover.dPts>=0?'ok':'warn',mover.dPts>=0?'↗':'↘',
+        `Le canal ${mover.k} ${sens} de ${fmtNum(Math.abs(mover.dPts),1)} points de CA.`,
+        `<b>Action : ${mover.dPts>=0?'capitaliser sur ce canal qui monte':'comprendre pourquoi ce canal decroche et reagir'}.</b>`);
+    }
+    // Alerte valeur : prix moyen caveau vs pro/export.
+    const cav=rows.find(r=>r.k==='Caveau');
+    if(cav&&cav.prixCur>0){
+      html+=signal('info','ℹ',`Prix moyen au caveau : ${fmtMoney(cav.prixCur)} par bouteille (${f.cur} a date).`,
+        `La vente directe doit rester ton canal le plus cher. Si un canal pro ou export s'en rapproche, tu perds de la valeur. Verifie l'ecart dans le tableau.`);
+    }
+
+    html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
+      <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${f.prev}</th><th class="num">Part ${f.cur}</th><th class="num">Evol. (pts)</th><th class="num">Prix moyen ${f.prev}</th><th class="num">Prix moyen ${f.cur}</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtNum(r.partPrev,1)} %</td><td class="num">${fmtNum(r.partCur,1)} %</td><td class="num ${r.dPts>=0?'pos':'neg'}">${fmtNum(r.dPts,1)}</td><td class="num">${r.prixPrev?fmtMoney(r.prixPrev):'n/d'}</td><td class="num">${r.prixCur?fmtMoney(r.prixCur):'n/d'}</td></tr>`).join('')}
+      </tbody></table></div>`;
+    html+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${f.cur}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
+    el('p-canaux').innerHTML=html;
+    drawCanal(A);
+  }else{
+    const year=filters.year;
+    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille. Perimetre : ${year?('annee '+year):'toute la base'}.</div>`;
+    const A=agg(year);
+    const rows=Object.entries(A.m).map(([k,v])=>({k,ca:v.ca,part:A.tot?v.ca/A.tot*100:0,prix:v.qte?v.ca/v.qte:0})).sort((a,b)=>b.ca-a.ca);
+    html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
+      <table class="data"><thead><tr><th>Canal</th><th class="num">CA</th><th class="num">Part</th><th class="num">Prix moyen / btl</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtMoney(r.ca)}</td><td class="num">${fmtNum(r.part,1)} %</td><td class="num">${r.prix?fmtMoney(r.prix):'n/d'}</td></tr>`).join('')}
+      </tbody></table>
+      <p class="note">Ajoute un export couvrant l'annee precedente pour voir l'evolution d'un canal a l'autre.</p></div>`;
+    html+=`<div class="card"><div class="card__title"><span>Part de CA par canal</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
+    el('p-canaux').innerHTML=html;
+    drawCanal(A);
+  }
+}
+function drawCanal(A){
+  destroyChart('chCanal');
+  const ctx=el('chCanal');if(!ctx)return;
+  const rows=Object.entries(A.m).map(([k,v])=>[k,v.ca]).filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]);
+  const pal=['#E87722','#2F6DB5','#17A29A','#C99A2E','#5A6472','#8A5CB8','#E0940F'];
+  charts.chCanal=new Chart(ctx,{type:'bar',data:{labels:rows.map(r=>r[0]),datasets:[{data:rows.map(r=>r[1]),backgroundColor:pal,borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>fmtNum(v)}}}}});
+}
+
+/* ======================= MA BASE (import info, hors-vin, offerts, dependance, vider) ======================= */
+function renderBase(){
+  const vin=ROWS.filter(r=>r._vin);
+  const horsVin=ROWS.filter(r=>r._horsVin && !r._offert);
+  const offerts=ROWS.filter(r=>r._offert);
+  const caVin=sum(vin,r=>r._total);
+  const caHorsVin=sum(horsVin,r=>r._total);
+  const coutOffert=sum(offerts,r=>Math.abs(r._pu*r._qte));
+
+  // Dependance top 3 clients (expertise v5 amorcee, utile ici).
+  const clients=clientStats().sort((a,b)=>b.montant-a.montant);
+  const top3=clients.slice(0,3);
+  const caTot=sum(clients,c=>c.montant);
+  const partTop3=caTot?sum(top3,c=>c.montant)/caTot*100:0;
+
+  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">Etat de la base cumulee et separation vente / hors-vin.</div>`;
+
+  if(top3.length){
+    const dep=partTop3>SEUILS.dependanceTop3;
+    html+=signal(dep?'warn':'ok',dep?'⚠':'✔',
+      `Le top 3 clients pese ${fmtNum(partTop3,0)}% de ton CA vin.`,
+      dep?`<b>Dependance forte a surveiller.</b> Un depart ferait mal. Elargis ta base de gros clients.`:`Repartition saine, pas de dependance excessive sur les 3 premiers clients.`);
+  }
+
+  html+=`<div class="kpi-grid">
+    ${kpiCard('Lignes en base',fmtNum(ROWS.length),(META.min?fmtDate(META.min)+' au '+fmtDate(META.max):''),true)}
+    ${kpiCard('CA vin HT',fmtMoney(caVin),vin.length+' lignes')}
+    ${kpiCard('Hors vin',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
+    ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),offerts.length+' lignes, valorise au PU')}
+    ${kpiCard('Annees',META.years.join(', ')||'n/d','presentes dans la base')}
+  </div>`;
+
+  // Detail offerts par type.
+  const parType={};
+  offerts.forEach(r=>{const t=String(r.typeOffert||'Autre').trim();let c=parType[t];if(!c)c=parType[t]={n:0,cout:0};c.n++;c.cout+=Math.abs(r._pu*r._qte);});
+  const typesRows=Object.entries(parType).sort((a,b)=>b[1].cout-a[1].cout);
+  if(typesRows.length){
+    html+=`<div class="card"><div class="card__title"><span>Bouteilles offertes, echantillons et casse</span></div>
+      <table class="data"><thead><tr><th>Type</th><th class="num">Lignes</th><th class="num">Cout estime (au PU)</th></tr></thead><tbody>
+      ${typesRows.map(([t,c])=>`<tr><td>${esc(t)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.cout)}</td></tr>`).join('')}
+      </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Valorisation au prix unitaire pour estimer ce que ca coute.</p></div>`;
+  }
+
+  html+=`<div class="cta"><div class="cta__txt"><h3>Un nouvel export chaque mois</h3><p>Depose le prochain export : les nouvelles lignes s'ajoutent, les doublons sont ignores automatiquement. Ta base grandit sans jamais compter deux fois.</p></div><button class="btn btn--primary" onclick="showImport()">Ajouter un export</button></div>`;
+
+  html+=`<div class="card"><div class="card__title"><span>Zone de reset</span></div><p style="font-size:.88rem;color:var(--muted);margin-bottom:.9rem">Vider la base efface toutes les lignes cumulees de ce navigateur. Action definitive.</p><button class="btn btn--danger" onclick="viderBase()">Vider la base</button></div>`;
+
+  html+=`<div class="foot">Le Bureau du Vigneron, propulse par Solumatic.</div>`;
+  el('p-base').innerHTML=html;
+}
+async function viderBase(){
+  if(!confirm('Vider toute la base ? Cette action est definitive et efface les '+fmtNum(ROWS.length)+' lignes cumulees.'))return;
+  await dbClear();
+  ROWS=[];computeMeta();
+  status('success','Base videe.');
+  el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();
+}
+
+/* ======================= REPRISE (resume au demarrage) ======================= */
+async function refreshResume(){
+  const n=await dbCount();
+  const box=el('resumeBox');
+  if(n>0){
+    box.style.display='block';
+    box.innerHTML=`<b>${fmtNum(n)} lignes deja en base</b> dans ce navigateur. <a href="#" onclick="reopen();return false;">Ouvrir mon tableau de bord</a> ou depose un nouvel export pour l'enrichir.`;
+  }else box.style.display='none';
+}
+async function reopen(){
+  status('loading','Chargement de ta base...');
+  await reloadFromDB();
+  status('success',fmtNum(ROWS.length)+' lignes chargees.');
+  openApp();
+}
+
+/* ======================= INIT ======================= */
+bindImport();
+refreshResume();
+</script>
+</body>
+</html>
