@@ -97,6 +97,10 @@ a{color:var(--orange)}
 
 /* KPI */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.9rem;margin-bottom:1.4rem}
+.kpi-grid--base{grid-template-columns:repeat(3,1fr)}
+.kpi-grid--base .kpi{display:flex;flex-direction:column}
+.yearpills{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem}
+.yearpill{font-family:var(--fm);font-size:.72rem;font-weight:500;padding:.12rem .45rem;background:var(--cream);border:1px solid var(--line);border-radius:4px;color:var(--ink)}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1.1rem;border-top:3px solid var(--orange)}
 .kpi--hi{background:var(--orange);border-color:var(--orange);border-top-color:var(--orange-d)}
 .kpi--hi .kpi__label,.kpi--hi .kpi__sub{color:rgba(255,255,255,.85)}
@@ -148,7 +152,9 @@ table.data tbody tr:hover{background:var(--cream)}
 .cta p{font-size:.85rem;opacity:.8}
 
 .foot{font-family:var(--fm);font-size:.66rem;color:var(--muted);text-align:center;margin-top:2.4rem;padding-top:1rem;border-top:1px solid var(--line)}
+.appfoot{font-family:var(--fm);font-size:.66rem;color:var(--muted);text-align:center;margin-top:2.6rem;padding-top:1.1rem;border-top:1px solid var(--line)}
 .note{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.6rem}
+.mini-line{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.7rem}
 
 @media(max-width:900px){.app.on{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--orange)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.cta__txt{max-width:100%}}
 </style>
@@ -192,6 +198,7 @@ table.data tbody tr:hover{background:var(--cream)}
     <section class="panel" id="p-decrochage"></section>
     <section class="panel" id="p-canaux"></section>
     <section class="panel" id="p-base"></section>
+    <footer class="appfoot">Le Bureau du Vigneron, propulse par Solumatic.</footer>
   </main>
 </div>
 
@@ -482,6 +489,8 @@ function showImport(){el('app').classList.remove('on');el('screenImport').style.
 function navTo(id){
   document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
+  // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
+  el('filterbar').style.display = (id==='base') ? 'none' : 'flex';
   window.scrollTo(0,0);
 }
 function buildFilterBar(){
@@ -531,6 +540,19 @@ function renderApercu(){
     ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantite vendue')}
     ${kpiCard('Clients actifs',fmtNum(clients),'ont achete sur la periode')}
   </div>`;
+
+  // Concentration : poids du top 3 clients sur le CA du perimetre affiche.
+  const byCli={};
+  rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';byCli[id]=(byCli[id]||0)+r._total;});
+  const partsCA=Object.values(byCli).sort((a,b)=>b-a);
+  if(partsCA.length>=3 && ca>0){
+    const top3=partsCA.slice(0,3).reduce((s,v)=>s+v,0);
+    const partTop3=top3/ca*100;
+    const dep=partTop3>SEUILS.dependanceTop3;
+    html+=signal(dep?'warn':'ok',dep?'⚠':'✔',
+      `Le top 3 clients pese ${fmtNum(partTop3,0)}% de ton CA vin (${scope}).`,
+      dep?`<b>Dependance forte a surveiller.</b> Un depart ferait mal. Elargis ta base de gros clients.`:`Repartition saine, pas de dependance excessive sur les 3 premiers clients.`);
+  }
 
   // Graphe CA par mois (annee courante vs precedente si dispo).
   html+=`<div class="card"><div class="card__title"><span>CA vin par mois</span></div><div class="chart-wrap"><canvas id="chMois"></canvas></div></div>`;
@@ -715,54 +737,85 @@ function drawCanal(A){
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
 
-/* ======================= MA BASE (import info, hors-vin, offerts, dependance, vider) ======================= */
+/* ======================= MA BASE (etat de la base, hors-vin, offerts) ======================= */
+// Prix de vente moyen REEL, par produit et par famille, sur les ventes payantes uniquement.
+// Sert a valoriser les offerts / echantillons / casse (qui ont un PU de 0).
+function prixVenteMoyen(){
+  const prod={},fam={};
+  ROWS.forEach(r=>{
+    if(!r._vin || r._total<=0 || r._qte<=0)return;
+    const p=prod[r.numProduit]||(prod[r.numProduit]={ca:0,q:0});p.ca+=r._total;p.q+=r._qte;
+    const fk=norm(r.famille);const g=fam[fk]||(fam[fk]={ca:0,q:0});g.ca+=r._total;g.q+=r._qte;
+  });
+  const parProduit={},parFamille={};
+  for(const k in prod)parProduit[k]=prod[k].q?prod[k].ca/prod[k].q:0;
+  for(const k in fam)parFamille[k]=fam[k].q?fam[k].ca/fam[k].q:0;
+  return {parProduit,parFamille};
+}
+// Cout estime d'une ligne offerte : prix produit, sinon prix famille, sinon 0 (jamais planter).
+function coutOffertLigne(r,prix){
+  const pu = prix.parProduit[r.numProduit] || prix.parFamille[norm(r.famille)] || 0;
+  return pu * r._qte;
+}
 function renderBase(){
   const vin=ROWS.filter(r=>r._vin);
   const horsVin=ROWS.filter(r=>r._horsVin && !r._offert);
   const offerts=ROWS.filter(r=>r._offert);
   const caVin=sum(vin,r=>r._total);
   const caHorsVin=sum(horsVin,r=>r._total);
-  const coutOffert=sum(offerts,r=>Math.abs(r._pu*r._qte));
+  const prix=prixVenteMoyen();
+  const coutOffert=sum(offerts,r=>coutOffertLigne(r,prix));
 
-  // Dependance top 3 clients (expertise v5 amorcee, utile ici).
-  const clients=clientStats().sort((a,b)=>b.montant-a.montant);
-  const top3=clients.slice(0,3);
-  const caTot=sum(clients,c=>c.montant);
-  const partTop3=caTot?sum(top3,c=>c.montant)/caTot*100:0;
+  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">Etat de la base cumulee (tout l'historique). Le filtre annees ne s'applique pas ici.</div>`;
 
-  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">Etat de la base cumulee et separation vente / hors-vin.</div>`;
-
-  if(top3.length){
-    const dep=partTop3>SEUILS.dependanceTop3;
-    html+=signal(dep?'warn':'ok',dep?'⚠':'✔',
-      `Le top 3 clients pese ${fmtNum(partTop3,0)}% de ton CA vin.`,
-      dep?`<b>Dependance forte a surveiller.</b> Un depart ferait mal. Elargis ta base de gros clients.`:`Repartition saine, pas de dependance excessive sur les 3 premiers clients.`);
-  }
-
-  html+=`<div class="kpi-grid">
-    ${kpiCard('Lignes en base',fmtNum(ROWS.length),(META.min?fmtDate(META.min)+' au '+fmtDate(META.max):''),true)}
-    ${kpiCard('CA vin HT',fmtMoney(caVin),vin.length+' lignes')}
+  // ZONE A : etat de la base (compteurs alignes, memes dimensions).
+  const yearpills=META.years.length?`<div class="yearpills">${META.years.map(y=>`<span class="yearpill">${y}</span>`).join('')}</div>`:'n/d';
+  const periode=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'n/d';
+  html+=`<div class="section-label">Etat de la base</div>
+  <div class="kpi-grid kpi-grid--base">
+    ${kpiCard('Lignes en base',fmtNum(ROWS.length),'toutes lignes cumulees',true)}
+    ${kpiCard('Periode couverte',periode,'du premier au dernier export')}
+    ${kpiCard('Annees presentes',yearpills,plur(META.years.length,'annee'))}
+    ${kpiCard('CA vin HT',fmtMoney(caVin),plur(vin.length,'ligne')+' de vente')}
     ${kpiCard('Hors vin',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
-    ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),offerts.length+' lignes, valorise au PU')}
-    ${kpiCard('Annees',META.years.join(', ')||'n/d','presentes dans la base')}
+    ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),plur(offerts.length,'ligne')+', prix de vente moyen')}
   </div>`;
 
-  // Detail offerts par type.
+  // ZONE B : details.
+  html+=`<div class="section-label">Details</div>`;
   const parType={};
-  offerts.forEach(r=>{const t=String(r.typeOffert||'Autre').trim();let c=parType[t];if(!c)c=parType[t]={n:0,cout:0};c.n++;c.cout+=Math.abs(r._pu*r._qte);});
+  offerts.forEach(r=>{const t=String(r.typeOffert||'Autre').trim();const c=parType[t]||(parType[t]={n:0,cout:0});c.n++;c.cout+=coutOffertLigne(r,prix);});
   const typesRows=Object.entries(parType).sort((a,b)=>b[1].cout-a[1].cout);
   if(typesRows.length){
     html+=`<div class="card"><div class="card__title"><span>Bouteilles offertes, echantillons et casse</span></div>
-      <table class="data"><thead><tr><th>Type</th><th class="num">Lignes</th><th class="num">Cout estime (au PU)</th></tr></thead><tbody>
+      <table class="data"><thead><tr><th>Type</th><th class="num">Lignes</th><th class="num">Cout estime (prix de vente moyen)</th></tr></thead><tbody>
       ${typesRows.map(([t,c])=>`<tr><td>${esc(t)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.cout)}</td></tr>`).join('')}
-      </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Valorisation au prix unitaire pour estimer ce que ca coute.</p></div>`;
+      </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Estimation du manque a gagner, valorisee au prix de vente moyen reel de chaque produit.</p></div>`;
+  }
+  // Hors-vin par famille.
+  const parFamHV={};
+  horsVin.forEach(r=>{const f=(r.famille||'(non renseigne)').trim();const c=parFamHV[f]||(parFamHV[f]={n:0,ca:0});c.n++;c.ca+=r._total;});
+  const hvRows=Object.entries(parFamHV).sort((a,b)=>Math.abs(b[1].ca)-Math.abs(a[1].ca));
+  if(hvRows.length){
+    html+=`<div class="card"><div class="card__title"><span>Hors-vin par famille</span></div>
+      <table class="data"><thead><tr><th>Famille</th><th class="num">Lignes</th><th class="num">Montant HT</th></tr></thead><tbody>
+      ${hvRows.map(([f,c])=>`<tr><td>${esc(f)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.ca)}</td></tr>`).join('')}
+      </tbody></table><p class="note">Frais et lignes hors CA vin, isoles pour ne pas fausser le chiffre d'affaires.</p></div>`;
   }
 
-  html+=`<div class="cta"><div class="cta__txt"><h3>Un nouvel export chaque mois</h3><p>Depose le prochain export : les nouvelles lignes s'ajoutent, les doublons sont ignores automatiquement. Ta base grandit sans jamais compter deux fois.</p></div><button class="btn btn--primary" onclick="showImport()">Ajouter un export</button></div>`;
+  // ZONE C : gestion (deux actions sobres cote a cote).
+  html+=`<div class="section-label">Gestion</div>
+  <div class="grid-2">
+    <div class="card"><div class="card__title"><span>Ajouter un export</span></div>
+      <button class="btn btn--primary" onclick="showImport()">Ajouter un export</button>
+      <p class="mini-line">Chaque nouvel export s'ajoute, les doublons sont ignores automatiquement.</p>
+    </div>
+    <div class="card"><div class="card__title"><span>Vider la base</span></div>
+      <button class="btn btn--danger" onclick="viderBase()">Vider la base</button>
+      <p class="mini-line">Efface toutes les lignes cumulees de ce navigateur. Action definitive.</p>
+    </div>
+  </div>`;
 
-  html+=`<div class="card"><div class="card__title"><span>Zone de reset</span></div><p style="font-size:.88rem;color:var(--muted);margin-bottom:.9rem">Vider la base efface toutes les lignes cumulees de ce navigateur. Action definitive.</p><button class="btn btn--danger" onclick="viderBase()">Vider la base</button></div>`;
-
-  html+=`<div class="foot">Le Bureau du Vigneron, propulse par Solumatic.</div>`;
   el('p-base').innerHTML=html;
 }
 async function viderBase(){
