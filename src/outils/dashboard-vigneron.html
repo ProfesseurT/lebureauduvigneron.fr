@@ -205,6 +205,13 @@ table.data tbody tr:hover{background:var(--cream)}
 .foot{font-family:var(--fm);font-size:.66rem;color:var(--muted);text-align:center;margin-top:2.4rem;padding-top:1rem;border-top:1px solid var(--line)}
 .appfoot{font-family:var(--fm);font-size:.66rem;color:var(--muted);text-align:center;margin-top:2.6rem;padding-top:1.1rem;border-top:1px solid var(--line)}
 .note{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.6rem}
+.pourquoi{margin-top:.6rem;font-size:.82rem}
+.pourquoi summary{cursor:pointer;font-family:var(--fm);font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--orange);user-select:none}
+.pourquoi__in{margin-top:.5rem;padding:.6rem .8rem;background:var(--cream);border:1px solid var(--line);border-radius:6px;color:var(--muted);line-height:1.5}
+.conf{font-family:var(--fm);font-size:.58rem;text-transform:uppercase;letter-spacing:.05em;padding:.1rem .4rem;border-radius:3px;border:1px solid var(--line);white-space:nowrap}
+.conf--bonne{color:var(--teal);border-color:var(--teal)}
+.conf--moyenne{color:var(--cork);border-color:var(--cork)}
+.conf--faible{color:var(--muted)}
 .mini-line{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.7rem}
 
 /* RAPPORT IMPRIMABLE (motif design "Rapport Vitisoft") */
@@ -369,16 +376,20 @@ const CANAUX=[
 
 // Seuils des expertises (verdicts).
 const SEUILS={
-  rfmRecenceMois:12,   // au-delà de X mois sans achat => dormant
+  rfmRecenceMois:12,   // filet de secours si aucune cadence fiable et aucun intervalle median de base
   rfmMinFreq:2,        // au moins X factures pour cibler la relance
-  decrochagePct:-30,   // recul de plus de 30% => alerte churn
-  dependanceTop3:30    // top 3 clients > 30% du CA => dependance
+  decrochagePct:-30,   // recul de reference (module ensuite par la volatilite propre du client)
+  dependanceTop3:30,   // plancher, contextualise ensuite par la taille de la base
+  cadenceK:1.5,        // "en retard" si le silence depasse k x la cadence du client
+  cadenceMinAchats:3,  // nb d'achats minimum pour calculer une cadence fiable
+  regulariteCV:0.5     // CV en dessous duquel un client est juge "regulier"
 };
 
 /* ======================= ETAT ======================= */
 const DB_NAME='bdv_ventes_v4', STORE='lignes';
 let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[]};
+let PROFIL=null;             // profil de la base (calcule une fois apres import, cf. profilBase)
 let filters={year:null};     // filtre annee actif (null = toutes)
 let charts={};
 let BUSY_MIN=1500;   // en dessous, calcul synchrone (instantane) ; au dela, indicateur de chargement
@@ -563,6 +574,7 @@ async function reloadFromDB(){
 function deriveRow(raw){
   const o={};COLS.forEach((k,i)=>o[k]=raw[i]==null?'':raw[i]);
   o._date=parseDateFR(o.date);
+  o._dayNum=o._date?Math.floor(Date.UTC(o._date.y,o._date.m-1,o._date.d)/86400000):null; // jour absolu, pour les intervalles en jours
   o._total=parseNum(o.totalHT);
   o._pu=parseNum(o.puHT);
   o._qte=parseNum(o.quantite);
@@ -582,6 +594,45 @@ function computeMeta(){
   let min=null,max=null;const ys=new Set();
   ROWS.forEach(r=>{if(!r._date)return;if(!min||r._date.t<min.t)min=r._date;if(!max||r._date.t>max.t)max=r._date;ys.add(r._date.y);});
   META={min,max,years:[...ys].sort((a,b)=>a-b)};
+  PROFIL=profilBase();   // recalcule le profil a chaque changement de base
+}
+function median(arr){if(!arr.length)return 0;const a=[...arr].sort((x,y)=>x-y),m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function stdev(arr){if(arr.length<2)return 0;const m=arr.reduce((s,v)=>s+v,0)/arr.length;return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/arr.length);}
+// Regroupe les dates de facture distinctes (jours absolus) par client, sur les lignes de vente.
+function clientPurchaseDays(){
+  const m={};
+  ROWS.forEach(r=>{if(!r._vin||r._dayNum==null)return;const id=r.numClient||r.client||'(inconnu)';(m[id]||(m[id]=new Set())).add(r._dayNum);});
+  const out={};for(const id in m)out[id]=[...m[id]].sort((a,b)=>a-b);
+  return out;
+}
+// PROFIL DE BASE : lit la forme de la base une fois, pour calibrer les agents (aucune constante gravee).
+function profilBase(){
+  const vente=ROWS.filter(r=>r._vin);
+  if(!vente.length)return {nClients:0,nFactures:0,nLignes:0,moisCouverts:0,anneesCompletes:0,caTotal:0,panierMoyen:0,dims:{},intervalleMedianBase:0,saisonnalite:1,refDay:null};
+  const clients=new Set(),factures=new Set(),moisSet=new Set(),parAn={};
+  let ca=0,refDay=null;
+  const caMois=new Array(13).fill(0);
+  vente.forEach(r=>{
+    clients.add(r.numClient||r.client||'(inconnu)');factures.add(r.numFacture);ca+=r._total;
+    if(r._date){moisSet.add(r._date.y*100+r._date.m);(parAn[r._date.y]||(parAn[r._date.y]=new Set())).add(r._date.m);caMois[r._date.m]+=r._total;}
+    if(r._dayNum!=null&&(refDay==null||r._dayNum>refDay))refDay=r._dayNum;
+  });
+  const anneesCompletes=Object.values(parAn).filter(s=>s.size>=12).length;
+  // Dimensions : distinctes + taux de remplissage (sur les lignes de vente).
+  const AX={famille:r=>r.famille,couleur:r=>r.couleur,canal:r=>r._canal,codeTarif:r=>r.codeTarif,appellation:r=>r.appellation,millesime:r=>r.millesime,conditionnement:r=>r.conditionnement,origine:r=>r.origine,pays:r=>r.pays,commercial:r=>r.commercial,vendeur:r=>r.vendeur};
+  const dims={};
+  for(const k in AX){const s=new Set();let fill=0;vente.forEach(r=>{const v=AX[k](r);if(v!==''&&v!=null){s.add(String(v));fill++;}});dims[k]={distinct:s.size,fill:vente.length?fill/vente.length:0};}
+  // Intervalle median de la base : toutes les cadences consecutives des clients a >= 2 achats.
+  const days=clientPurchaseDays();const gaps=[];
+  for(const id in days){const d=days[id];for(let i=1;i<d.length;i++)gaps.push(d[i]-d[i-1]);}
+  const intervalleMedianBase=median(gaps);
+  // Saisonnalite : mois le plus fort / moyenne mensuelle (sur les mois ayant du CA).
+  const moisAvecCA=caMois.slice(1).filter(v=>v>0);
+  const moyMois=moisAvecCA.length?moisAvecCA.reduce((s,v)=>s+v,0)/moisAvecCA.length:0;
+  const saisonnalite=moyMois>0?Math.max(...caMois.slice(1))/moyMois:1;
+  return {nClients:clients.size,nFactures:factures.size,nLignes:vente.length,
+    moisCouverts:moisSet.size,anneesCompletes,caTotal:ca,panierMoyen:factures.size?ca/factures.size:0,
+    dims,intervalleMedianBase,saisonnalite,refDay};
 }
 
 /* ======================= SELECTION / FENETRES ======================= */
@@ -645,7 +696,8 @@ function renderAll(){renderApercu();renderEvolution();renderExplo();renderDiagno
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
 function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div></div>`;}
-function incompleteNote(){const f=yoyFrame();return f?`Comparaison à date égale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque année. ${f.cur} arrêtée au ${fmtDate(f.cutDate)}.`:'';}
+function histCourtNote(){return (PROFIL&&PROFIL.moisCouverts&&PROFIL.moisCouverts<24)?` Historique court (${PROFIL.moisCouverts} mois) : comparatifs annuels à prendre avec prudence.`:'';}
+function incompleteNote(){const f=yoyFrame();return (f?`Comparaison à date égale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque année. ${f.cur} arrêtée au ${fmtDate(f.cutDate)}.`:'')+histCourtNote();}
 
 /* ======================= AXES + MESURE (Apercu) ======================= */
 function deptFromCP(cp){const s=String(cp||'').replace(/\D/g,'');return s.length>=2?s.slice(0,2):'';}
@@ -1100,24 +1152,82 @@ function drawTrend(labels,data){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMoney(c.parsed.y)+' (corrigé)'}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
 
-/* ======================= AGENTS MUTUALISES (aussi utilisés par le Diagnostic) ======================= */
-function agentDormants(){
-  const ref=META.max;if(!ref)return{ref:null,dormants:[],ca:0};
-  const dormants=clientStats().filter(c=>{const rec=monthsBetween(c.last,ref);return rec>SEUILS.rfmRecenceMois&&c.factures.size>=SEUILS.rfmMinFreq&&c.montant>0;}).sort((a,b)=>b.montant-a.montant);
-  return{ref,dormants,ca:sum(dormants,c=>c.montant)};
+/* ======================= CALIBRAGE + AGENT CADENCE ======================= */
+// Jour absolu -> objet date {y,m,d,t} pour l'affichage.
+function dayToDate(dn){if(dn==null)return null;const dt=new Date(dn*86400000);const y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();return {y,m,d,t:y*10000+m*100+d};}
+// Delai lisible : jours, mois ou annees selon l'ampleur.
+function fmtDelai(days){if(days==null)return 'n/d';if(days<45)return Math.round(days)+' j';const mo=days/30.44;return mo<18?fmtNum(mo,mo<3?1:0)+' mois':fmtNum(mo/12,1)+' ans';}
+// Seuil de dependance RELATIF a la taille : peu de clients => concentration naturellement plus haute, plus toleree.
+function seuilDependance(n){if(n<10)return 100;return Math.max(25,Math.min(75,60-Math.log10(n)*12));}
+// Bloc "pourquoi" depliable (les chiffres qui fondent le conseil).
+function pourquoi(inner){return `<details class="pourquoi"><summary>Pourquoi ce conseil</summary><div class="pourquoi__in">${inner}</div></details>`;}
+// Badge de niveau de confiance quand la donnee est limite.
+function confBadge(level){const lib={faible:'confiance faible',moyenne:'confiance moyenne',bonne:'confiance bonne'};return `<span class="conf conf--${level}">${lib[level]||level}</span>`;}
+
+// AGENT CADENCE : rythme d'achat par client, a partir de ses dates de facture distinctes.
+function agentCadence(){
+  const P=PROFIL||profilBase();const refDay=P.refDay;
+  if(refDay==null||!P.nClients)return{ok:false,clients:[],enRetard:[],caPotentiel:0,refDay:null};
+  const days=clientPurchaseDays();
+  const info={};
+  ROWS.forEach(r=>{if(!r._vin)return;const id=r.numClient||r.client||'(inconnu)';const c=info[id]||(info[id]={montant:0,fact:new Set(),nom:r.client||id,moisCount:{}});c.montant+=r._total;c.fact.add(r.numFacture);if(r._date)c.moisCount[r._date.m]=(c.moisCount[r._date.m]||0)+r._total;});
+  const clients=[];
+  for(const id in days){
+    const d=days[id],n=d.length,meta=info[id]||{montant:0,nom:id,fact:new Set(),moisCount:{}};
+    const last=d[n-1],silence=refDay-last,panier=meta.fact.size?meta.montant/meta.fact.size:meta.montant;
+    let cadence=null,cv=null,cls,fiable=false;
+    if(n===1){cls='one-shot';}
+    else if(n>=SEUILS.cadenceMinAchats){const gaps=[];for(let i=1;i<n;i++)gaps.push(d[i]-d[i-1]);cadence=median(gaps);const moy=gaps.reduce((s,v)=>s+v,0)/gaps.length;cv=moy>0?stdev(gaps)/moy:0;fiable=true;cls=cv<=SEUILS.regulariteCV?'regulier':'occasionnel';}
+    else cls='peu'; // 2 achats : pas de cadence fiable, on bascule sur l'intervalle median de la base (cf. cadRef)
+    const annuel=cadence!=null&&cadence>=300&&cadence<=430;
+    let moisHab=null,mx=-1;for(const m in meta.moisCount){if(meta.moisCount[m]>mx){mx=meta.moisCount[m];moisHab=+m;}}
+    const cadRef=cadence!=null?cadence:(P.intervalleMedianBase||0);
+    const ampleur=cadRef>0?silence/cadRef:0;
+    const enRetard=cadRef>0&&n>=2&&silence>cadRef*SEUILS.cadenceK;
+    const prochaine=cadence!=null?last+cadence:null;
+    const conf=fiable?(n>=5?'bonne':'moyenne'):'faible';
+    clients.push({id,nom:meta.nom,n,montant:meta.montant,panier,last,silence,cadence,cadRef,cv,cls,fiable,annuel,moisHab,enRetard,ampleur,prochaine,caPotentiel:panier,conf});
+  }
+  const enRetard=clients.filter(c=>c.enRetard&&c.montant>0).map(c=>({...c,score:c.montant*Math.min(c.ampleur,5)})).sort((a,b)=>b.score-a.score);
+  return{ok:true,refDay,clients,enRetard,caPotentiel:sum(enRetard,c=>c.caPotentiel)};
 }
+
+/* ======================= AGENTS MUTUALISES (aussi utilisés par le Diagnostic) ======================= */
+// Dormance = "en retard sur sa propre cadence" (k x cadence du client, sinon k x intervalle median de la base).
+function agentDormants(){
+  const ref=META.max;const cad=agentCadence();if(!cad.ok)return{ref:null,dormants:[],ca:0,base:!!(PROFIL&&PROFIL.intervalleMedianBase)};
+  const dormants=cad.enRetard.filter(c=>c.n>=SEUILS.rfmMinFreq&&c.montant>0)
+    .map(c=>({id:c.id,nom:c.nom,montant:c.montant,n:c.n,factures:{size:c.n},last:dayToDate(c.last),silence:c.silence,cadence:c.cadence,cadRef:c.cadRef,ampleur:c.ampleur,fiable:c.fiable,annuel:c.annuel,caPotentiel:c.caPotentiel,conf:c.conf}));
+  return{ref,dormants,ca:sum(dormants,c=>c.montant),usedBaseInterval:!clientStatsHaveCadence(cad)};
+}
+function clientStatsHaveCadence(cad){return cad.clients.some(c=>c.cadence!=null);}
 function agentDecrochage(){
   const f=yoyFrame();if(!f)return{f:null,decroche:[],totPerdu:0};
+  // CA annuel complet par client sur toutes les annees, pour estimer la volatilite propre de chacun.
+  const yearly={};
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;const id=r.numClient||r.client||'(inconnu)';(yearly[id]||(yearly[id]={}))[r._date.y]=(yearly[id][r._date.y]||0)+r._total;});
   const by={};
-  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!inWindow(r._date,f.cutM,f.cutD))return;if(r._date.y!==f.cur&&r._date.y!==f.prev)return;const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={nom:r.client||id,cur:0,prev:0};if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;});
-  const decroche=Object.values(by).filter(c=>c.prev>0&&c.cur>=0&&((c.cur-c.prev)/c.prev*100)<SEUILS.decrochagePct).map(c=>({...c,perdu:c.prev-c.cur,pct:(c.cur-c.prev)/c.prev*100})).sort((a,b)=>b.perdu-a.perdu);
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!inWindow(r._date,f.cutM,f.cutD))return;if(r._date.y!==f.cur&&r._date.y!==f.prev)return;const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={id,nom:r.client||id,cur:0,prev:0};if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;});
+  const decroche=Object.values(by).map(c=>{
+    const pct=c.prev>0?(c.cur-c.prev)/c.prev*100:0;
+    // Volatilite : CV du CA annuel du client si >= 3 annees connues, sinon pas de volatilite fiable.
+    const vals=Object.values(yearly[c.id]||{});
+    const moy=vals.length?vals.reduce((s,v)=>s+v,0)/vals.length:0;
+    const cv=(vals.length>=3&&moy>0)?stdev(vals)/moy:null;
+    // Seuil relatif : un client volatil doit chuter plus fort pour alerter.
+    const seuil=cv!=null?SEUILS.decrochagePct*(1+Math.min(cv,1.5)):SEUILS.decrochagePct;
+    return{...c,perdu:c.prev-c.cur,pct,cv,seuil};
+  }).filter(c=>c.prev>0&&c.cur>=0&&c.pct<c.seuil).sort((a,b)=>b.perdu-a.perdu);
   return{f,decroche,totPerdu:sum(decroche,c=>c.perdu)};
 }
 function agentConcentration(){
   const rows=ROWS.filter(r=>r._vin),ca=sum(rows,r=>r._total);if(ca<=0)return null;
   const by={};rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';by[id]=(by[id]||0)+r._total;});
   const parts=Object.values(by).sort((a,b)=>b-a);if(parts.length<3)return null;
-  return{part:parts.slice(0,3).reduce((s,v)=>s+v,0)/ca*100,clients:parts.length};
+  const part=parts.slice(0,3).reduce((s,v)=>s+v,0)/ca*100;
+  const seuil=seuilDependance(parts.length);        // seuil relatif a la taille de la base
+  const hhi=parts.reduce((s,v)=>s+Math.pow(v/ca,2),0)*10000; // indice Herfindahl (fait, 0-10000)
+  return{part,clients:parts.length,seuil,alert:part>seuil,hhi};
 }
 function agentCanalMover(){
   const f=yoyFrame();if(!f)return null;
@@ -1145,7 +1255,8 @@ function diagnosticSignals(){
   const dec=agentDecrochage();
   if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs l'an dernier à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
   const dor=agentDormants();
-  if(dor.dormants.length)S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} dormant${dor.dormants.length>1?'s':''} à relancer : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`Campagne de réactivation ciblée, du plus gros au plus petit. Détail dans l'onglet Réactivation.`});
+  if(dor.dormants.length){const t3=dor.dormants.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
+    S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. Détail et liste complète dans l'onglet Réactivation.`});}
   const pv=computePriceVolume();
   if(pv){
     if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
@@ -1153,7 +1264,7 @@ function diagnosticSignals(){
     else if(pv.delta>=0)S.push({sev:1,impact:pv.delta,kind:'ok',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
   }
   const con=agentConcentration();
-  if(con&&con.part>SEUILS.dependanceTop3)S.push({sev:2,impact:0,kind:'warn',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA.`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
+  if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
   const cm=agentCanalMover();
   if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Détail dans l'onglet Canaux.`});
   const series=monthlySeries();
@@ -1238,22 +1349,35 @@ function clientStats(){
 }
 function monthsBetween(a,b){if(!a||!b)return 0;return (b.y-a.y)*12+(b.m-a.m);}
 function renderReactivation(){
-  const _ar=agentDormants();const ref=_ar.ref,dormants=_ar.dormants,caDormant=_ar.ca;
+  const P=PROFIL||profilBase();
+  const ref=META.max;
+  let html=`<h2 class="panel__title">Réactivation clients</h2>`;
 
-  let html=`<h2 class="panel__title">Réactivation clients</h2><div class="panel__sub">Méthode RFM : Récence (mois depuis le dernier achat), Fréquence (nb de factures), Montant (CA cumulé). Référence = dernière date de la base, ${fmtDate(ref)}.</div>`;
+  // Abstention : pas assez de matiere pour une analyse de cadence fiable.
+  if(!P||P.nClients<5||P.nFactures<10){
+    html+=`<div class="panel__sub">Relance fondée sur la cadence d'achat propre à chaque client.</div>`+
+      signal('info','ℹ','Pas assez de données pour cette analyse.',`Il faut au moins quelques clients et une dizaine de factures. Base actuelle : ${fmtNum(P?P.nClients:0)} clients, ${fmtNum(P?P.nFactures:0)} factures.`);
+    el('p-reactivation').innerHTML=html;return;
+  }
+
+  const _ar=agentDormants();const dormants=_ar.dormants,caDormant=_ar.ca;
+  const cadTxt=P.intervalleMedianBase?fmtDelai(P.intervalleMedianBase):'n/d';
+  html+=`<div class="panel__sub">Un client est « en retard » quand son silence dépasse ${SEUILS.cadenceK} fois sa cadence habituelle (à défaut, l'intervalle médian de la base, ${cadTxt}). Référence = ${fmtDate(ref)}. Cadence calculée à partir de ${SEUILS.cadenceMinAchats} achats.</div>`;
 
   if(!dormants.length){
-    html+=signal('ok','✔','Aucun client dormant à fort potentiel détecté.',`Seuils : plus de ${SEUILS.rfmRecenceMois} mois sans achat, au moins ${SEUILS.rfmMinFreq} factures passées.`);
+    html+=signal('ok','✔','Aucun client en retard sur sa cadence.',`Tes clients réguliers commandent dans les temps. Rien à relancer pour l'instant.`);
   }else{
     html+=signal('warn','↻',
-      `${plur(dormants.length,'client')} dormant${dormants.length>1?'s':''} représentant ${fmtMoney(caDormant)} de CA passé à relancer.`,
-      `Ce sont de bons clients (au moins ${SEUILS.rfmMinFreq} commandes) qui n'ont plus acheté depuis plus de ${SEUILS.rfmRecenceMois} mois. <b>Action : campagne de relance ciblée, en commençant par le haut de la liste.</b>`);
+      `${plur(dormants.length,'client')} en retard sur leur cadence, ${fmtMoney(caDormant)} de CA historique à réveiller.`,
+      `<b>Action : relance ciblée en partant du haut (valeur du client croisée avec l'ampleur du retard).</b>`
+      +pourquoi(`Retard = silence actuel supérieur à ${SEUILS.cadenceK} × la cadence propre du client. La cadence est la médiane des intervalles entre ses achats (fiable à partir de ${SEUILS.cadenceMinAchats} achats ; en dessous, on retombe sur l'intervalle médian de la base, ${cadTxt}). Les clients à achat annuel ne sont signalés que si le retard dépasse un cycle, jamais hors saison.`));
     const top=dormants.slice(0,20);
-    html+=`<div class="card"><div class="card__title"><span>Top clients à relancer (par CA historique)</span></div>
-      <table class="data"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Factures</th><th class="num">Dernier achat</th><th class="num">Mois sans achat</th></tr></thead><tbody>
-      ${top.map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.factures.size}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${monthsBetween(c.last,ref)}</td></tr>`).join('')}
+    html+=`<div class="card"><div class="card__title"><span>Clients à relancer (valeur × ampleur du retard)</span></div>
+      <table class="data"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Achats</th><th class="num">Cadence</th><th>Rythme</th><th class="num">Dernier achat</th><th class="num">En retard de</th><th class="num">Prochaine attendue</th><th>Fiabilité</th></tr></thead><tbody>
+      ${top.map(c=>{const rythme=c.annuel?'annuel':(c.fiable?(c.cadRef>0?'régulier':''):'indicatif');
+        return `<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.n}</td><td class="num">${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}</td><td>${rythme}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${fmtDelai(c.silence)}</td><td class="num">${c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):'n/d'}</td><td>${confBadge(c.conf)}</td></tr>`;}).join('')}
       </tbody></table>
-      ${dormants.length>20?`<p class="note">${dormants.length-20} autres clients dormants au-delà du top 20.</p>`:''}</div>`;
+      ${dormants.length>20?`<p class="note">${dormants.length-20} autres clients en retard au-delà du top 20.</p>`:''}</div>`;
   }
   el('p-reactivation').innerHTML=html;
 }
@@ -1267,13 +1391,13 @@ function renderDecrochage(){
       signal('info','ℹ','Comparatif indisponible.','Ajoute un export couvrant l\'année précédente pour activer la détection du churn.');
     el('p-decrochage').innerHTML=html;return;
   }
-  html+=`<div class="panel__sub">Clients présents les deux années dont le CA recule de plus de ${Math.abs(SEUILS.decrochagePct)}% (à date égale). ${incompleteNote()}</div>`;
+  html+=`<div class="panel__sub">Clients présents les deux années dont le CA recule anormalement (à date égale). Le seuil de baisse s'adapte à la volatilité propre de chaque client : un client qui oscille beaucoup doit chuter plus fort pour être signalé. ${incompleteNote()}</div>`;
 
   // CA par client sur la fenetre à date égale, pour cur et prev.
   const _ad=agentDecrochage();const decroche=_ad.decroche,totPerdu=_ad.totPerdu;
 
   if(!decroche.length){
-    html+=signal('ok','✔','Aucun client en décrochage marqué.',`Aucun client actif les deux années ne recule de plus de ${Math.abs(SEUILS.decrochagePct)}% à date égale.`);
+    html+=signal('ok','✔','Aucun client en décrochage marqué.',`Aucun client actif les deux années ne recule au-delà de sa volatilité habituelle à date égale.`);
   }else{
     html+=signal('danger','⚠',
       `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs l'an dernier à date égale.`,
