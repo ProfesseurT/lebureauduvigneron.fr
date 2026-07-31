@@ -248,12 +248,13 @@ const COLS=['date','numFacture','produit','numProduit','famille','conditionnemen
   'persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9',
   'pays','origine','ville','cp','vendeur','triPerso1','typeOffert','ordreDRM','depot','lieuVente'];
 
-// Familles considerees comme du vin / produit vendu (=> comptent dans le CA vin).
-// A adapter d'un domaine a l'autre.
-const FAMILLES_VIN=['CHAMPAGNE','COTEAUX CHAMPENOIS','RATAFIA CHAMPENOIS','BAR/VENTE ALIMENTATION','VISITES DEGUSTATIONS','ARTICLES COMPOSES'];
-
-// Familles a isoler hors du CA vin (frais, pub, remises, divers).
-const FAMILLES_HORS_VIN=['TRANSPORT','ARTICLES PUBLICITAIRES','REMISE','DIVERS'];
+// LISTE NOIRE des familles hors chiffre d'affaires (frais, remises, pub, divers, avoirs).
+// Logique inversee : TOUT est une vente par defaut, on n'exclut que ce qui est ici.
+// Comparaison normalisee (sans accents, insensible casse/espaces) et par INCLUSION PARTIELLE
+// pour attraper les variantes. Un export Vitisoft est un export de ventes : la majorite des lignes SONT des ventes,
+// quel que soit le nom de la famille (Rouge, Blanc, Rose, Champagne, Whisky, IGP...).
+// (liste editable depuis l'ecran Colonnes, a venir.)
+const FAMILLES_HORS_CA=['TRANSPORT','FRAIS DE PORT','REMISE','AVOIR','ARTICLES PUBLICITAIRES','PUBLICITAIRE','PLV','DIVERS'];
 
 // Valeurs de "Type Offert" = sorties gratuites ou pertes, jamais du CA.
 const TYPES_OFFERT=['Offert','Echantillon','Degustation','Consommation Personnelle','Casse'];
@@ -284,7 +285,7 @@ let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[]};
 let filters={year:null};     // filtre annee actif (null = toutes)
 let charts={};
-let uiMesure='ca';           // 'ca' (CA vin HT) ou 'btl' (bouteilles/cols)
+let uiMesure='ca';           // 'ca' (CA HT) ou 'btl' (bouteilles/cols)
 let explAxe1='famille', explAxe2='';   // explorateur libre de l'Apercu
 const PERSO_LABELS_KEY='bdv_persolabels_v4';
 let persoLabels={};          // libelles perso personnalises {colonne d'origine: libelle}
@@ -463,12 +464,13 @@ function deriveRow(raw){
   o._canal=normCanal(o.lieuVente);
   const fam=norm(o.famille);
   const offert=String(o.typeOffert||'').trim()!=='';
-  const isHorsVin=FAMILLES_HORS_VIN.some(f=>norm(f)===fam);
-  const isFamVin=FAMILLES_VIN.some(f=>norm(f)===fam);
-  o._offert=offert;
-  o._horsVin=isHorsVin;
-  // Vente vin = famille vin ET pas un offert/echantillon/casse.
-  o._vin=isFamVin && !offert;
+  // Liste noire par inclusion partielle : la famille est-elle un poste hors chiffre d'affaires ?
+  const estHorsCA=FAMILLES_HORS_CA.some(f=>fam.includes(norm(f)));
+  o._offert=offert;                       // sortie gratuite ou perte (typeOffert non vide)
+  o._horsVin=estHorsCA;                    // hors chiffre d'affaires (transport, remise, pub, divers, avoir)
+  // TOUT le reste est une vente, quel que soit le nom de la famille.
+  o._vente=!estHorsCA && !offert;
+  o._vin=o._vente;                         // alias retro-compatibilite (l'ancien code lit encore _vin)
   return o;
 }
 function computeMeta(){
@@ -570,7 +572,7 @@ function usableAxes(){
 function axisDef(key){const {all}=usableAxes();return all.find(a=>a.key===key)||all[0]||AXES[0];}
 function mesureVal(r){return uiMesure==='ca'?r._total:r._qte;}
 function fmtMes(v){return uiMesure==='ca'?fmtMoney(v):fmtNum(v);}
-function mesureLabel(){return uiMesure==='ca'?'CA vin HT':'Bouteilles / cols';}
+function mesureLabel(){return uiMesure==='ca'?'CA HT':'Bouteilles / cols';}
 function groupSum(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigne)':String(k);m[k]=(m[k]||0)+mesureVal(r);});return m;}
 function topEntries(m,n){const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]);if(arr.length<=n)return arr;const top=arr.slice(0,n);top.push(['Autres',arr.slice(n).reduce((s,e)=>s+e[1],0)]);return top;}
 function topKeys(m,n){const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);return arr.length<=n?arr:arr.slice(0,n).concat(['Autres']);}
@@ -598,7 +600,16 @@ function renderApercu(){
   const panier=factures?ca/factures:0;
   const scope=filters.year?('annee '+filters.year):'toute la base';
 
-  let html=`<h2 class="panel__title">Apercu des ventes</h2><div class="panel__sub">CA vin HT, hors transport, pub, remises, offerts et casse. Perimetre : ${scope}.</div>`;
+  let html=`<h2 class="panel__title">Apercu des ventes</h2><div class="panel__sub">CA HT des ventes, hors transport, pub, remises, offerts et casse. Perimetre : ${scope}.</div>`;
+
+  // Garde-fou anti-ecran-vide : des lignes en base mais aucune vente detectee.
+  if(!rows.length && ROWS.length){
+    html+=signal('danger','⚠',
+      `Aucune vente detectee, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
+      `Certaines familles sont peut-etre classees a tort en hors-vente (transport, remises, pub, divers). Le reglage des familles arrivera dans l'onglet Colonnes. En attendant, verifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
+    el('p-apercu').innerHTML=html;
+    return;
+  }
 
   // COUCHE 1 : les vitaux. Rythme a date en tete (evolution YoY), puis les compteurs.
   const f=yoyFrame();
@@ -614,7 +625,7 @@ function renderApercu(){
     </div>`;
   }
   html+=`<div class="kpi-grid">
-    ${kpiCard('CA vin HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
+    ${kpiCard('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
     ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantite vendue')}
     ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
     ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
@@ -630,14 +641,14 @@ function renderApercu(){
     const partTop3=top3/ca*100;
     const dep=partTop3>SEUILS.dependanceTop3;
     html+=signal(dep?'warn':'ok',dep?'⚠':'✔',
-      `Le top 3 clients pese ${fmtNum(partTop3,0)}% de ton CA vin (${scope}).`,
+      `Le top 3 clients pese ${fmtNum(partTop3,0)}% de ton CA (${scope}).`,
       dep?`<b>Dependance forte a surveiller.</b> Un depart ferait mal. Elargis ta base de gros clients.`:`Repartition saine, pas de dependance excessive sur les 3 premiers clients.`);
   }
 
   // Bascule mesure (CA / Bouteilles) : agit sur les repartitions et l'explorateur.
-  html+=`<div class="section-label">Repartitions du ${uiMesure==='ca'?'CA vin':'volume'}</div>
+  html+=`<div class="section-label">Repartitions du ${uiMesure==='ca'?'CA':'volume'}</div>
   <div style="margin-bottom:1rem"><span class="toggle">
-    <button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA vin HT</button>
+    <button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA HT</button>
     <button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button>
   </span></div>`;
 
@@ -912,8 +923,8 @@ function renderBase(){
     ${kpiCard('Lignes en base',fmtNum(ROWS.length),'toutes lignes cumulees',true)}
     ${kpiCard('Periode couverte',periode,'du premier au dernier export')}
     ${kpiCard('Annees presentes',yearpills,plur(META.years.length,'annee'))}
-    ${kpiCard('CA vin HT',fmtMoney(caVin),plur(vin.length,'ligne')+' de vente')}
-    ${kpiCard('Hors vin',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
+    ${kpiCard('CA HT',fmtMoney(caVin),plur(vin.length,'ligne')+' de vente')}
+    ${kpiCard('Hors-vente',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
     ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),plur(offerts.length,'ligne')+', prix de vente moyen')}
   </div>`;
 
@@ -928,15 +939,15 @@ function renderBase(){
       ${typesRows.map(([t,c])=>`<tr><td>${esc(t)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.cout)}</td></tr>`).join('')}
       </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Estimation du manque a gagner, valorisee au prix de vente moyen reel de chaque produit.</p></div>`;
   }
-  // Hors-vin par famille.
+  // Hors-vente par famille.
   const parFamHV={};
   horsVin.forEach(r=>{const f=(r.famille||'(non renseigne)').trim();const c=parFamHV[f]||(parFamHV[f]={n:0,ca:0});c.n++;c.ca+=r._total;});
   const hvRows=Object.entries(parFamHV).sort((a,b)=>Math.abs(b[1].ca)-Math.abs(a[1].ca));
   if(hvRows.length){
-    html+=`<div class="card"><div class="card__title"><span>Hors-vin par famille</span></div>
+    html+=`<div class="card"><div class="card__title"><span>Hors-vente par famille</span></div>
       <table class="data"><thead><tr><th>Famille</th><th class="num">Lignes</th><th class="num">Montant HT</th></tr></thead><tbody>
       ${hvRows.map(([f,c])=>`<tr><td>${esc(f)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.ca)}</td></tr>`).join('')}
-      </tbody></table><p class="note">Frais et lignes hors CA vin, isoles pour ne pas fausser le chiffre d'affaires.</p></div>`;
+      </tbody></table><p class="note">Frais et lignes hors chiffre d'affaires, isoles pour ne pas fausser le CA des ventes.</p></div>`;
   }
 
   // ZONE C : gestion (deux actions sobres cote a cote).
