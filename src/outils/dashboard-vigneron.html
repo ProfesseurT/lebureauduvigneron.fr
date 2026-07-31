@@ -4,11 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Le Bureau du Vigneron, tableau de bord des ventes</title>
-<meta name="description" content="Depose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. 100% dans ton navigateur.">
+<meta name="description" content="Dépose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. 100% dans ton navigateur.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzIzMjYyQiIvPjxyZWN0IHg9IjYuNSIgeT0iMTciIHdpZHRoPSI0LjUiIGhlaWdodD0iOCIgcng9IjEiIGZpbGw9IiNFODc3MjIiLz48cmVjdCB4PSIxMy43NSIgeT0iMTIiIHdpZHRoPSI0LjUiIGhlaWdodD0iMTMiIHJ4PSIxIiBmaWxsPSIjRTg3NzIyIi8+PHJlY3QgeD0iMjEiIHk9IjciIHdpZHRoPSI0LjUiIGhlaWdodD0iMTgiIHJ4PSIxIiBmaWxsPSIjRTg3NzIyIi8+PC9zdmc+">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Le Bureau du Vigneron">
+<meta property="og:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
+<meta property="og:description" content="Dépose ton export Vitisoft : ton CA, tes clients à relancer, tes canaux et des conseils commerciaux automatiques. 100% dans ton navigateur.">
+<meta property="og:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
+<meta name="twitter:description" content="Ton export Vitisoft se lit tout seul : CA, clients, canaux, conseils. 100% local.">
+<meta name="twitter:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --anthra:#23262B;--anthra-2:#1B1D21;--anthra-3:#2C2F35;
@@ -30,6 +43,16 @@ a{color:var(--orange)}
 .status.error{background:#FBE3E1;color:#B23227;display:flex}
 .status.loading{background:var(--anthra);color:#fff;display:flex}
 .status.success{background:#D6F0ED;color:#0E7B72;display:flex}
+/* OVERLAY DE CHARGEMENT (verre qui se remplit, centre) */
+#busyov{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:rgba(27,29,33,.5)}
+#busyov.on{display:flex}
+.busyov__card{background:var(--card);border-radius:14px;padding:1.9rem 2.4rem;box-shadow:0 24px 70px rgba(0,0,0,.45);border-top:4px solid var(--orange);text-align:center;min-width:210px}
+.glass{display:block;margin:0 auto .9rem}
+.glass-out{fill:none;stroke:var(--anthra);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.liquid{fill:var(--orange);animation:fillup 1.8s ease-in-out infinite}
+@keyframes fillup{0%{transform:translateY(42px)}12%{transform:translateY(42px)}75%{transform:translateY(0)}100%{transform:translateY(0)}}
+.busyov__txt{font-family:var(--ft);font-weight:900;font-size:1.05rem;color:var(--ink);letter-spacing:.01em}
+.busyov__sub{font-family:var(--fm);font-size:.66rem;color:var(--muted);margin-top:.25rem}
 .spinner{width:.9rem;height:.9rem;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -133,6 +156,8 @@ a{color:var(--orange)}
 
 /* EXPLORATEUR */
 .expl-ctrls{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
+.facet-cat{margin-bottom:.3rem}
+.facet-cat__lbl{font-family:var(--fm);font-size:.58rem;text-transform:uppercase;letter-spacing:.09em;color:var(--orange);margin:.55rem 0 .2rem;font-weight:500}
 .field{display:flex;flex-direction:column;gap:.25rem}
 .field label{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 .field select,.field input{font-family:var(--fm);font-size:.78rem;padding:.45rem .5rem;border:1px solid var(--line);background:var(--card);color:var(--ink);min-width:180px;border-radius:5px}
@@ -182,28 +207,92 @@ table.data tbody tr:hover{background:var(--cream)}
 .note{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.6rem}
 .mini-line{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.7rem}
 
+/* RAPPORT IMPRIMABLE (motif design "Rapport Vitisoft") */
+#printReport{display:none}
+.pr{background:#fff;color:#23262B;font-family:'Roboto',system-ui,sans-serif;font-size:12px;line-height:1.45;max-width:900px;margin:0 auto}
+.pr-cover{background:#23262B;color:#fff;padding:26px 28px 22px;border-bottom:4px solid #E87722;margin-bottom:18px}
+.pr-cover__brand{font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#E87722;margin-bottom:10px}
+.pr-cover__brand::before{content:"";display:inline-block;width:8px;height:8px;background:#E87722;border-radius:2px;margin-right:7px;vertical-align:middle}
+.pr-cover__title{font-size:30px;font-weight:900;letter-spacing:-.01em;line-height:1.05}
+.pr-cover__sub{font-family:'Roboto Mono',monospace;font-size:11px;color:rgba(255,255,255,.78);margin-top:9px}
+.pr-cover__tag{font-family:'Roboto Mono',monospace;font-size:10px;color:rgba(255,255,255,.5);margin-top:3px}
+.pr-hero{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px;padding:0 28px;margin-bottom:12px}
+.pr-kpi{background:#FAF6F0;border:1px solid #E4E0D7;border-top:3px solid #E87722;border-radius:8px;padding:12px 14px}
+.pr-kpi--hero{background:#E87722;border-color:#CF6516;border-top-color:#CF6516}
+.pr-kpi--hero .pr-kpi__l,.pr-kpi--hero .pr-kpi__s{color:rgba(255,255,255,.88)}
+.pr-kpi--hero .pr-kpi__v{color:#fff}
+.pr-kpi__l{font-family:'Roboto Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin-bottom:5px}
+.pr-kpi__v{font-size:23px;font-weight:900;line-height:1}
+.pr-kpi__v.up{color:#0E7B72}.pr-kpi__v.down{color:#C0392B}
+.pr-kpi__s{font-family:'Roboto Mono',monospace;font-size:9px;color:#6B7280;margin-top:5px}
+.pr-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 28px;margin-bottom:14px}
+.pr-kpis .pr-kpi{border-top-width:2px}
+.pr-seclabel{font-family:'Roboto Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#CF6516;margin:16px 28px 8px;padding-bottom:5px;border-bottom:2px solid #E87722;font-weight:500}
+.pr-h3{font-size:12px;font-weight:700;margin:0 0 5px;color:#3A3F47}
+.pr-signals{display:flex;flex-direction:column;gap:7px;margin:0 28px 6px}
+.pr-sig{border:1px solid #E4E0D7;border-left-width:4px;border-radius:6px;padding:8px 11px;background:#fff}
+.pr-sig--danger{border-left-color:#E0524E}.pr-sig--warn{border-left-color:#E87722}.pr-sig--ok{border-left-color:#17A29A}.pr-sig--info{border-left-color:#2F6DB5}
+.pr-sig__v{font-weight:700;font-size:12px;margin-bottom:2px}
+.pr-sig__a{font-size:11px;color:#6B7280}
+.pr-pv{display:flex;gap:12px;margin:0 28px 6px}
+.pr-pv__item{flex:1;background:#FAF6F0;border:1px solid #E4E0D7;border-radius:6px;padding:9px 12px;display:flex;flex-direction:column;gap:4px}
+.pr-pv__item span{font-family:'Roboto Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#6B7280}
+.pr-pv__item b{font-size:16px;font-weight:900}
+.pr-pv__item b.up{color:#0E7B72}.pr-pv__item b.down{color:#C0392B}
+.pr-pv__tot{background:#23262B;border-color:#23262B}.pr-pv__tot span{color:rgba(255,255,255,.7)}.pr-pv__tot b{color:#fff}
+.pr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 28px 6px}
+.pr-t{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:4px}
+.pr-t th{font-family:'Roboto Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:#6B7280;text-align:left;padding:4px 7px;background:#F1F0EC;border-bottom:1px solid #E4E0D7}
+.pr-t td{padding:4px 7px;border-bottom:1px solid #EFECE4}
+.pr-t tbody tr:nth-child(even){background:#FBFAF7}
+.pr-t .n{text-align:right;font-family:'Roboto Mono',monospace}
+.pr-t .muted{color:#9AA0A8}
+.pr-bar,.pr-barh{width:76px}
+.pr-bar span{display:block;height:7px;background:#E87722;border-radius:2px;min-width:2px}
+.pr-foot{display:flex;justify-content:space-between;gap:12px;font-family:'Roboto Mono',monospace;font-size:9px;color:#9AA0A8;margin:16px 28px 0;padding-top:9px;border-top:1px solid #E4E0D7}
+@media print{
+  @page{size:A4;margin:12mm}
+  body>*{display:none!important}
+  #printReport{display:block!important}
+  .pr{max-width:none}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  .pr-cover,.pr-hero,.pr-kpis{page-break-inside:avoid}
+  .pr-seclabel{page-break-after:avoid}
+  .pr-sig,.pr-pv__item,.pr-kpi{page-break-inside:avoid}
+}
 @media(max-width:900px){.app.on{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--orange)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-rep{grid-template-columns:1fr}.cta__txt{max-width:100%}}
 </style>
 </head>
 <body>
 
 <div class="status" id="status"><div class="spinner" id="statusSpin"></div><span id="statusTxt"></span></div>
+<div id="busyov"><div class="busyov__card">
+  <svg class="glass" viewBox="0 0 80 104" width="76" height="100" aria-hidden="true">
+    <defs><clipPath id="bowlclip"><path d="M22 6 H58 C58 32 50 48 40 48 C30 48 22 32 22 6 Z"/></clipPath></defs>
+    <g clip-path="url(#bowlclip)"><rect class="liquid" x="20" y="6" width="40" height="44"/></g>
+    <path class="glass-out" d="M22 6 H58 C58 32 50 48 40 48 C30 48 22 32 22 6 Z"/>
+    <line class="glass-out" x1="40" y1="48" x2="40" y2="90"/>
+    <line class="glass-out" x1="26" y1="94" x2="54" y2="94"/>
+  </svg>
+  <div class="busyov__txt" id="busytxt">Analyse…</div>
+  <div class="busyov__sub">le moteur travaille</div>
+</div></div>
 
 <!-- ============ IMPORT ============ -->
 <section id="screenImport" class="import">
   <div class="import__box">
     <p class="eyebrow">Tableau de bord des ventes · lecture d'export Vitisoft</p>
-    <h1>Depose ton export. Tes chiffres se lisent tout seuls.</h1>
-    <p class="lead">Ton chiffre d'affaires, tes clients a relancer, ceux qui decrochent, tes canaux de vente. L'outil lit ton export, sort tes statistiques et te dit quoi faire. Tes donnees restent dans ton navigateur.</p>
+    <h1>Dépose ton export. Tes chiffres se lisent tout seuls.</h1>
+    <p class="lead">Ton chiffre d'affaires, tes clients à relancer, ceux qui décrochent, tes canaux de vente. L'outil lit ton export, sort tes statistiques et te dit quoi faire. Tes données restent dans ton navigateur.</p>
     <div class="dropzone" id="dropzone">
-      <div class="dz-icon">&#9095;</div><h3>Depose ton fichier ici</h3>
+      <div class="dz-icon">&#9095;</div><h3>Dépose ton fichier ici</h3>
       <p>Export Vitisoft (.csv) · ou clique pour choisir</p>
       <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
     </div>
     <div class="btn-row">
       <button class="btn btn--primary" onclick="document.getElementById('fileInput').click()">Choisir un fichier</button>
     </div>
-    <div class="hint">&#128274; 100% prive, rien n'est envoye sur internet.</div>
+    <div class="hint">&#128274; 100% privé, rien n'est envoyé sur internet.</div>
     <div class="resume" id="resumeBox" style="display:none"></div>
   </div>
 </section>
@@ -214,19 +303,26 @@ table.data tbody tr:hover{background:var(--cream)}
     <div><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><a href="/" class="topbar__home">&#8592; Retour au site</a> <span class="topbar__file" id="tbFile"></span></div>
     <div class="topbar__actions">
       <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
+      <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
+      <button class="btn btn--light btn--sm" onclick="exportExcel()">Exporter Excel</button>
     </div>
   </div>
   <nav class="sidebar" id="sidebar"></nav>
   <main class="content">
     <div class="filterbar" id="filterbar"></div>
     <section class="panel" id="p-apercu"></section>
+    <section class="panel" id="p-evolution"></section>
+    <section class="panel" id="p-explorer"></section>
+    <section class="panel" id="p-diagnostic"></section>
     <section class="panel" id="p-reactivation"></section>
     <section class="panel" id="p-decrochage"></section>
     <section class="panel" id="p-canaux"></section>
     <section class="panel" id="p-base"></section>
-    <footer class="appfoot">Le Bureau du Vigneron, propulse par Solumatic.</footer>
+    <footer class="appfoot">Le Bureau du Vigneron, propulsé par Solumatic.</footer>
   </main>
 </div>
+
+<div id="printReport"></div>
 
 <script>
 /* ================================================================
@@ -240,7 +336,7 @@ table.data tbody tr:hover{background:var(--cream)}
 
 /* ======================= CONFIG (a ajuster par domaine) ======================= */
 
-// Les 40 colonnes de l'export, dans l'ordre exact. On cable en dur (pas d'auto-detection).
+// Les 40 colonnes de l'export, dans l'ordre exact. On cable en dur (pas d'auto-détection).
 const COLS=['date','numFacture','produit','numProduit','famille','conditionnement',
   'persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5',
   'appellation','couleur','millesime','puHT','totalHT','client','numClient','commercial',
@@ -273,7 +369,7 @@ const CANAUX=[
 
 // Seuils des expertises (verdicts).
 const SEUILS={
-  rfmRecenceMois:12,   // au dela de X mois sans achat => dormant
+  rfmRecenceMois:12,   // au-delà de X mois sans achat => dormant
   rfmMinFreq:2,        // au moins X factures pour cibler la relance
   decrochagePct:-30,   // recul de plus de 30% => alerte churn
   dependanceTop3:30    // top 3 clients > 30% du CA => dependance
@@ -285,8 +381,13 @@ let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[]};
 let filters={year:null};     // filtre annee actif (null = toutes)
 let charts={};
+let BUSY_MIN=1500;   // en dessous, calcul synchrone (instantane) ; au dela, indicateur de chargement
 let uiMesure='ca';           // 'ca' (CA HT) ou 'btl' (bouteilles/cols)
 let explAxe1='famille', explAxe2='';   // explorateur libre de l'Apercu
+let evoDim='codeTarif', evoStep='mois';   // vue Evolution : dimension + pas de temps
+let exploAxis1='famille', exploAxis2='', exploYear=null, exploFilters={}, exploShowFilters=false;   // onglet Explorer
+const OBJ_KEY='bdv_objectif_v5';
+let objectif=null;try{const _o=parseFloat(localStorage.getItem(OBJ_KEY));objectif=(_o>0)?_o:null;}catch(e){objectif=null;}
 const PERSO_LABELS_KEY='bdv_persolabels_v4';
 let persoLabels={};          // libelles perso personnalises {colonne d'origine: libelle}
 try{persoLabels=JSON.parse(localStorage.getItem(PERSO_LABELS_KEY))||{};}catch(e){persoLabels={};}
@@ -301,6 +402,10 @@ function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
 function fmtPct(n,d){return (n>=0?'+':'')+fmtNum(n,d==null?1:d)+' %';}
 function plur(n,mot){return n+' '+mot+(n>1?'s':'');}
 function status(type,msg){const b=el('status');b.className='status '+type;el('statusTxt').textContent=msg;el('statusSpin').style.display=type==='loading'?'block':'none';b.style.display='flex';if(type!=='loading')setTimeout(()=>{b.style.display='none';},4000);}
+// Indicateur "le moteur travaille" : affiche la barre, laisse le navigateur la peindre, PUIS lance le calcul lourd.
+function busy(on,msg){const b=el('busyov');if(!b)return;if(on){const t=el('busytxt');if(t)t.textContent=msg||'Analyse…';b.classList.add('on');}else b.classList.remove('on');}
+function runBusy(msg,fn){if(!ROWS||ROWS.length<BUSY_MIN){fn();return;}busy(true,msg);const raf=window.requestAnimationFrame||(g=>setTimeout(g,16));raf(()=>raf(()=>{try{fn();}finally{busy(false);}}));}
+function uiExplorer(){runBusy('Analyse…',renderExplo);}
 
 // Nombre francais "14,58" -> 14.58 ; gere le negatif et l'espace milliers.
 function parseNum(v){
@@ -404,7 +509,7 @@ function bindImport(){
 }
 async function handleFiles(list){
   const files=Array.from(list).filter(f=>f.name.toLowerCase().endsWith('.csv'));
-  if(!files.length){status('error','Depose un fichier .csv exporte depuis Vitisoft.');return;}
+  if(!files.length){status('error','Dépose un fichier .csv exporté depuis Vitisoft.');return;}
   let totAdded=0,totDup=0;
   for(const f of files){
     try{
@@ -416,8 +521,8 @@ async function handleFiles(list){
   }
   await reloadFromDB();
   const total=ROWS.length;
-  const per=META.min&&META.max?(' sur la periode '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
-  status('success',totAdded+' ligne(s) ajoutee(s), '+totDup+' doublon(s) ignore(s). Base totale = '+fmtNum(total)+' lignes'+per+'.');
+  const per=META.min&&META.max?(' sur la période '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
+  status('success',totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s). Base totale = '+fmtNum(total)+' lignes'+per+'.');
   openApp();
 }
 // Lit le CSV en windows-1252 (PAS UTF-8), separateur ; , renvoie [{h, raw:[...]}].
@@ -470,7 +575,7 @@ function deriveRow(raw){
   o._horsVin=estHorsCA;                    // hors chiffre d'affaires (transport, remise, pub, divers, avoir)
   // TOUT le reste est une vente, quel que soit le nom de la famille.
   o._vente=!estHorsCA && !offert;
-  o._vin=o._vente;                         // alias retro-compatibilite (l'ancien code lit encore _vin)
+  o._vin=o._vente;                         // alias retro-compatibilite (le reste du code lit encore _vin)
   return o;
 }
 function computeMeta(){
@@ -480,19 +585,19 @@ function computeMeta(){
 }
 
 /* ======================= SELECTION / FENETRES ======================= */
-// Lignes vin (CA reel) filtrees par l'annee active si presente.
+// Lignes vin (CA reel) filtrees par l'annee active si présente.
 function vinRows(){
   return ROWS.filter(r=>r._vin && (filters.year==null || (r._date&&r._date.y===filters.year)));
 }
 // Somme d'un accesseur sur un tableau.
 function sum(arr,fn){return arr.reduce((s,r)=>s+fn(r),0);}
 
-// Determine curYear / prevYear + date de coupe (a date egale) pour les comparatifs YoY.
+// Determine curYear / prevYear + date de coupe (à date égale) pour les comparatifs YoY.
 function yoyFrame(){
   const ys=META.years;if(ys.length<2)return null;
   const cur=ys[ys.length-1],prev=cur-1;
   if(!ys.includes(prev))return null;
-  // date max presente dans l'annee courante (parmi les lignes vin).
+  // date max présente dans l'annee courante (parmi les lignes vin).
   let cut=null;
   ROWS.forEach(r=>{if(r._vin&&r._date&&r._date.y===cur){if(!cut||r._date.t>cut.t)cut=r._date;}});
   if(!cut)return null;
@@ -503,9 +608,12 @@ function inWindow(d,cutM,cutD){if(!d)return false;return d.m<cutM || (d.m===cutM
 
 /* ======================= APP / NAV ======================= */
 const NAV=[
-  {id:'apercu',ico:'▧',label:'Apercu'},
-  {id:'reactivation',ico:'↻',label:'Reactivation'},
-  {id:'decrochage',ico:'⚠',label:'Decrochage'},
+  {id:'apercu',ico:'▧',label:'Aperçu'},
+  {id:'evolution',ico:'&#128200;',label:'Évolution'},
+  {id:'explorer',ico:'&#128301;',label:'Explorer'},
+  {id:'diagnostic',ico:'&#128269;',label:'Diagnostic'},
+  {id:'reactivation',ico:'↻',label:'Réactivation'},
+  {id:'decrochage',ico:'⚠',label:'Décrochage'},
   {id:'canaux',ico:'▤',label:'Canaux & prix'},
   {id:'base',ico:'\u{1F5C2}',label:'Ma base'}
 ];
@@ -515,15 +623,14 @@ function openApp(){
   el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
   el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.label}</button>`).join('');
   buildFilterBar();
-  renderAll();
-  navTo('apercu');
+  runBusy('Analyse de tes ventes…',()=>{renderAll();navTo('apercu');});
 }
 function showImport(){el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();}
 function navTo(id){
   document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
-  el('filterbar').style.display = (id==='base') ? 'none' : 'flex';
+  el('filterbar').style.display = (id==='base'||id==='diagnostic'||id==='explorer') ? 'none' : 'flex';
   window.scrollTo(0,0);
 }
 function buildFilterBar(){
@@ -532,23 +639,24 @@ function buildFilterBar(){
   META.years.forEach(y=>parts.push(`<span class="chip ${filters.year===y?'on':''}" onclick="setYear(${y})">${y}</span>`));
   el('filterbar').innerHTML=parts.join('');
 }
-function setYear(y){filters.year=y;buildFilterBar();renderAll();}
-function renderAll(){renderApercu();renderReactivation();renderDecrochage();renderCanaux();renderBase();}
+function setYear(y){filters.year=y;buildFilterBar();runBusy('Analyse…',renderAll);}
+function renderAll(){renderApercu();renderEvolution();renderExplo();renderDiagnostic();renderReactivation();renderDecrochage();renderCanaux();renderBase();}
 
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
 function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div></div>`;}
-function incompleteNote(){const f=yoyFrame();return f?`Comparaison a date egale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque annee. ${f.cur} arretee au ${fmtDate(f.cutDate)}.`:'';}
+function incompleteNote(){const f=yoyFrame();return f?`Comparaison à date égale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque année. ${f.cur} arrêtée au ${fmtDate(f.cutDate)}.`:'';}
 
 /* ======================= AXES + MESURE (Apercu) ======================= */
 function deptFromCP(cp){const s=String(cp||'').replace(/\D/g,'');return s.length>=2?s.slice(0,2):'';}
 const AXES=[
   {key:'famille',label:'Famille',get:r=>r.famille},
   {key:'codeTarif',label:'Code tarif',get:r=>r.codeTarif},
+  {key:'client',label:'Client',get:r=>r.client||r.numClient},
   {key:'couleur',label:'Couleur',get:r=>r.couleur},
   {key:'_canal',label:'Canal de vente',get:r=>r._canal},
   {key:'appellation',label:'Appellation',get:r=>r.appellation},
-  {key:'millesime',label:'Millesime',get:r=>r.millesime},
+  {key:'millesime',label:'Millésime',get:r=>r.millesime},
   {key:'conditionnement',label:'Conditionnement',get:r=>r.conditionnement},
   {key:'commercial',label:'Commercial',get:r=>r.commercial},
   {key:'vendeur',label:'Vendeur',get:r=>r.vendeur},
@@ -556,7 +664,9 @@ const AXES=[
   {key:'triPerso1',label:'Campagne (tri perso)',get:r=>r.triPerso1},
   {key:'pays',label:'Pays',get:r=>r.pays},
   {key:'ville',label:'Ville',get:r=>r.ville},
-  {key:'_dept',label:'Departement',get:r=>deptFromCP(r.cp)}
+  {key:'_dept',label:'Département',get:r=>deptFromCP(r.cp)},
+  {key:'_annee',label:'Année',get:r=>r._date?String(r._date.y):''},
+  {key:'_mois',label:'Mois',get:r=>r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):''}
 ];
 const PERSO_KEYS=['persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5','persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9'];
 function defaultPersoLabel(key){const m=key.match(/^perso(Client|Produit)(\d)$/);return m?('Perso '+(m[1]==='Client'?'client':'produit')+' '+m[2]):key;}
@@ -570,12 +680,36 @@ function usableAxes(){
   return {std,perso,all:[...std,...perso]};
 }
 function axisDef(key){const {all}=usableAxes();return all.find(a=>a.key===key)||all[0]||AXES[0];}
+// Hiérarchie des critères par nature (ordre d'affichage dans les listes déroulantes).
+const AXIS_CATS=[
+  {label:'Produit et vin',keys:['famille','couleur','appellation','millesime','conditionnement']},
+  {label:'Client',keys:['client']},
+  {label:'Commercial et prix',keys:['codeTarif','_canal','commercial','vendeur']},
+  {label:'Géographie',keys:['pays','_dept','ville']},
+  {label:'Acquisition',keys:['origine','triPerso1']},
+  {label:'Temps',keys:['_annee','_mois']}
+];
+function axisOpt(a,sel){return `<option value="${a.key}"${sel===a.key?' selected':''}>${esc(a.label)}</option>`;}
+// Construit des <optgroup> par nature à partir d'une liste d'axes std (+ perso).
+function catOptions(std,perso,sel,withNone){
+  let h=withNone?`<option value=""${sel===''?' selected':''}>(aucun)</option>`:'';
+  const used=new Set();
+  AXIS_CATS.forEach(cat=>{const items=cat.keys.map(k=>std.find(a=>a.key===k)).filter(Boolean);items.forEach(a=>used.add(a.key));if(items.length)h+=`<optgroup label="${cat.label}">`+items.map(a=>axisOpt(a,sel)).join('')+`</optgroup>`;});
+  const rest=std.filter(a=>!used.has(a.key));
+  if(rest.length)h+=`<optgroup label="Autres critères">`+rest.map(a=>axisOpt(a,sel)).join('')+`</optgroup>`;
+  if(perso&&perso.length)h+=`<optgroup label="Champs perso Vitisoft">`+perso.map(a=>axisOpt(a,sel)).join('')+`</optgroup>`;
+  return h;
+}
 function mesureVal(r){return uiMesure==='ca'?r._total:r._qte;}
 function fmtMes(v){return uiMesure==='ca'?fmtMoney(v):fmtNum(v);}
 function mesureLabel(){return uiMesure==='ca'?'CA HT':'Bouteilles / cols';}
-function groupSum(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigne)':String(k);m[k]=(m[k]||0)+mesureVal(r);});return m;}
+function groupSum(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigné)':String(k);m[k]=(m[k]||0)+mesureVal(r);});return m;}
 function topEntries(m,n){const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]);if(arr.length<=n)return arr;const top=arr.slice(0,n);top.push(['Autres',arr.slice(n).reduce((s,e)=>s+e[1],0)]);return top;}
+function allEntries(m){return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
 function topKeys(m,n){const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);return arr.length<=n?arr:arr.slice(0,n).concat(['Autres']);}
+function isTimeAxis(k){return k==='_mois'||k==='_annee';}
+function chronoEntries(m){return Object.entries(m).filter(([k])=>k!=='(non renseigné)'&&k!=='').sort((a,b)=>a[0]<b[0]?-1:(a[0]>b[0]?1:0));}
+function axisKeys(key,m,n){return isTimeAxis(key)?chronoEntries(m).map(e=>e[0]):Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);}
 function barListHTML(entries){
   const max=entries.length?Math.max(...entries.map(e=>e[1]),0):0;
   const tot=entries.reduce((s,e)=>s+e[1],0);
@@ -585,8 +719,8 @@ function barListHTML(entries){
   }).join('')+`</div>`;
 }
 function repCard(title,get){
-  const entries=topEntries(groupSum(vinRows(),get),8);
-  const body=entries.length?barListHTML(entries):`<p class="note">Aucune donnee sur la periode.</p>`;
+  const entries=allEntries(groupSum(vinRows(),get));
+  const body=entries.length?barListHTML(entries):`<p class="note">Aucune donnée sur la période.</p>`;
   return `<div class="card"><div class="card__title"><span>${esc(title)}</span></div>${body}</div>`;
 }
 
@@ -598,128 +732,494 @@ function renderApercu(){
   const btl=sum(rows,r=>r._qte);
   const clients=new Set(rows.map(r=>r.numClient||r.client)).size;
   const panier=factures?ca/factures:0;
-  const scope=filters.year?('annee '+filters.year):'toute la base';
+  const scope=filters.year?('année '+filters.year):'toute la base';
+  const f=yoyFrame(),at=computeAtterrissage();
+  let html=`<h2 class="panel__title">Aperçu des ventes</h2><div class="panel__sub">L'état de ton activité en un coup d'œil. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
 
-  let html=`<h2 class="panel__title">Apercu des ventes</h2><div class="panel__sub">CA HT des ventes, hors transport, pub, remises, offerts et casse. Perimetre : ${scope}.</div>`;
-
-  // Garde-fou anti-ecran-vide : des lignes en base mais aucune vente detectee.
+  // Garde-fou anti-écran-vide : des lignes en base mais aucune vente détectée.
   if(!rows.length && ROWS.length){
     html+=signal('danger','⚠',
-      `Aucune vente detectee, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
-      `Certaines familles sont peut-etre classees a tort en hors-vente (transport, remises, pub, divers). Le reglage des familles arrivera dans l'onglet Colonnes. En attendant, verifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
+      `Aucune vente détectée, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
+      `Certaines familles sont peut-être classées à tort en hors-vente (transport, remises, pub, divers). Le réglage des familles arrivera dans l'onglet Colonnes. En attendant, vérifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
     el('p-apercu').innerHTML=html;
     return;
   }
 
-  // COUCHE 1 : les vitaux. Rythme a date en tete (evolution YoY), puis les compteurs.
-  const f=yoyFrame();
   if(f){
     const curW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.cur&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
     const prevW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.prev&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
     const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
     const cls=d==null?'':(d>=0?'up':'down');
     html+=`<div class="hero">
-      <div class="hero__label">Evolution vs l'an dernier a date, ${f.cur} vs ${f.prev}</div>
+      <div class="hero__label">Où en est ton année, ${f.cur} vs ${f.prev} à date</div>
       <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
-      <div class="hero__sub">Au ${fmtDate(f.cutDate)}, tu es a ${d==null?'n/d':fmtPct(d)} vs l'an dernier au meme jour. ${fmtMoney(curW)} contre ${fmtMoney(prevW)}. ${incompleteNote()}</div>
+      <div class="hero__sub">Au ${fmtDate(f.cutDate)} : ${fmtMoney(curW)} cette année contre ${fmtMoney(prevW)} l'an dernier au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
     </div>`;
   }
+
   html+=`<div class="kpi-grid">
     ${kpiCard('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
-    ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantite vendue')}
+    ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantité vendue')}
     ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
     ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
-    ${kpiCard('Clients actifs',fmtNum(clients),'ont achete sur la periode')}
+    ${kpiCard('Clients actifs',fmtNum(clients),'ont acheté sur la période')}
   </div>`;
 
-  // Concentration : poids du top 3 clients sur le CA du perimetre affiche.
-  const byCli={};
-  rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';byCli[id]=(byCli[id]||0)+r._total;});
-  const partsCA=Object.values(byCli).sort((a,b)=>b-a);
-  if(partsCA.length>=3 && ca>0){
-    const top3=partsCA.slice(0,3).reduce((s,v)=>s+v,0);
-    const partTop3=top3/ca*100;
-    const dep=partTop3>SEUILS.dependanceTop3;
-    html+=signal(dep?'warn':'ok',dep?'⚠':'✔',
-      `Le top 3 clients pese ${fmtNum(partTop3,0)}% de ton CA (${scope}).`,
-      dep?`<b>Dependance forte a surveiller.</b> Un depart ferait mal. Elargis ta base de gros clients.`:`Repartition saine, pas de dependance excessive sur les 3 premiers clients.`);
-  }
-
-  // Bascule mesure (CA / Bouteilles) : agit sur les repartitions et l'explorateur.
-  html+=`<div class="section-label">Repartitions du ${uiMesure==='ca'?'CA':'volume'}</div>
-  <div style="margin-bottom:1rem"><span class="toggle">
+  html+=`<div style="margin:.2rem 0 1.1rem"><span class="toggle">
     <button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA HT</button>
     <button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button>
   </span></div>`;
 
-  // COUCHE 2 : 4 repartitions standard.
-  html+=`<div class="grid-rep">
+  html+=`<div class="section-label">La forme de ton année</div>
+    <div class="card"><div class="card__title"><span>${uiMesure==='ca'?'CA HT':'Bouteilles'} par mois${f?' · '+f.cur+' vs '+f.prev:''}</span></div><div class="chart-wrap"><canvas id="chApMonth"></canvas></div></div>`;
+
+  html+=`<div class="section-label">Ton mix</div><div class="grid-2">
+    <div class="card"><div class="card__title"><span>Répartition par couleur</span></div><div class="chart-wrap"><canvas id="chApDonut"></canvas></div></div>
+    <div class="card"><div class="card__title"><span>Top cuvées</span></div>${(()=>{const e=allEntries(groupSum(rows,r=>r.produit)).slice(0,7);return e.length?barListHTML(e):'<p class="note">Aucune donnée.</p>';})()}</div>
+  </div>`;
+
+  const tot=sum(rows,mesureVal);
+  const cliMap={};rows.forEach(r=>{const id=r.client||r.numClient||'(inconnu)';cliMap[id]=(cliMap[id]||0)+mesureVal(r);});
+  const topCli=allEntries(cliMap).slice(0,8);
+  html+=`<div class="section-label">Qui fait ton chiffre</div><div class="grid-2">
+    <div class="card"><div class="card__title"><span>Top clients</span></div><table class="data"><thead><tr><th>Client</th><th class="num">${mesureLabel()}</th><th class="num">Part</th></tr></thead><tbody>${topCli.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${fmtMes(v)}</td><td class="num">${tot>0?fmtNum(v/tot*100,0)+'%':'-'}</td></tr>`).join('')}</tbody></table></div>
+    <div class="card"><div class="card__title"><span>Par canal de vente</span></div>${(()=>{const e=allEntries(groupSum(rows,r=>r._canal));return e.length?barListHTML(e):'<p class="note">Aucune donnée.</p>';})()}</div>
+  </div>`;
+
+  const byCli={};rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';byCli[id]=(byCli[id]||0)+r._total;});
+  const partsCA=Object.values(byCli).sort((a,b)=>b-a);
+  if(partsCA.length>=3&&ca>0){
+    const top3=partsCA.slice(0,3).reduce((s,v)=>s+v,0),partTop3=top3/ca*100,dep=partTop3>SEUILS.dependanceTop3;
+    html+=signal(dep?'warn':'ok',dep?'⚠':'✔',`Le top 3 clients pèse ${fmtNum(partTop3,0)}% de ton CA (${scope}).`,dep?`<b>Dépendance forte à surveiller.</b> Un départ ferait mal. Élargis ta base de gros clients.`:`Répartition saine, pas de dépendance excessive sur les 3 premiers clients.`);
+  }
+
+  html+=`<div class="section-label">Répartitions détaillées</div><div class="grid-rep">
     ${repCard('Par famille',r=>r.famille)}
     ${repCard('Par code tarif',r=>r.codeTarif)}
-    ${repCard('Par couleur',r=>r.couleur)}
-    ${repCard('Par canal de vente',r=>r._canal)}
   </div>`;
-
-  // COUCHE 3 : explorateur libre (1 ou 2 axes).
-  html+=`<div class="section-label">Explorer librement</div><div class="card" id="explCard"></div>`;
 
   el('p-apercu').innerHTML=html;
-  renderExplorer();
+  drawApMonth();
+  drawApDonut(rows);
 }
-function setMesure(m){uiMesure=m;renderApercu();}
-function renderExplorer(){
-  const {all}=usableAxes();
-  if(!all.find(a=>a.key===explAxe1))explAxe1=all.length?all[0].key:'famille';
-  if(explAxe2 && !all.find(a=>a.key===explAxe2))explAxe2='';
-  const rows=vinRows();
-  const opts=(sel,withNone)=>{
-    const {std,perso}=usableAxes();
-    let h=withNone?`<option value="" ${sel===''?'selected':''}>(aucun)</option>`:'';
-    h+=`<optgroup label="Standards">`+std.map(a=>`<option value="${a.key}"${sel===a.key?' selected':''}>${esc(a.label)}</option>`).join('')+`</optgroup>`;
-    if(perso.length)h+=`<optgroup label="Champs perso Vitisoft">`+perso.map(a=>`<option value="${a.key}"${sel===a.key?' selected':''}>${esc(a.label)}</option>`).join('')+`</optgroup>`;
-    return h;
-  };
-  let html=`<div class="expl-ctrls">
-    <div class="field"><label>Repartir par</label><select onchange="explAxe1=this.value;renderExplorer()">${opts(explAxe1,false)}</select></div>
-    <div class="field"><label>Croiser avec (optionnel)</label><select onchange="explAxe2=this.value;renderExplorer()">${opts(explAxe2,true)}</select></div>
-    <span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span>
+function apMonthly(year){const a=new Array(12).fill(0);for(const r of ROWS){if(!r._vin||!r._date||r._date.y!==year)continue;a[r._date.m-1]+=mesureVal(r);}return a;}
+function drawApMonth(){
+  destroyChart('chApMonth');const ctx=el('chApMonth');if(!ctx)return;const ys=META.years;if(!ys.length)return;
+  const cur=filters.year||ys[ys.length-1],prev=ys.includes(cur-1)?cur-1:null;
+  const ds=[{label:String(cur),data:apMonthly(cur),borderColor:'#E87722',backgroundColor:'rgba(232,119,34,.12)',fill:true,tension:.3,borderWidth:2,pointRadius:2}];
+  if(prev)ds.push({label:String(prev),data:apMonthly(prev),borderColor:'#8A94A6',backgroundColor:'transparent',borderDash:[5,4],fill:false,tension:.3,borderWidth:1.5,pointRadius:0});
+  charts.chApMonth=new Chart(ctx,{type:'line',data:{labels:MOIS_FR,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:!!prev,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
+}
+function drawApDonut(rows){
+  destroyChart('chApDonut');const ctx=el('chApDonut');if(!ctx)return;
+  const entries=allEntries(groupSum(rows,r=>r.couleur)).filter(e=>e[1]>0);
+  const pal=['#7A1E2B','#C64B5A','#E0A93B','#E87722','#2F6DB5','#17A29A','#8A5CB8','#5A6472'];
+  charts.chApDonut=new Chart(ctx,{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:pal,borderWidth:1,borderColor:'#FFFFFF'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label+' : '+fmtMes(c.parsed)}}}}});
+}
+function setMesure(m){uiMesure=m;runBusy('Analyse…',renderAll);}
+function axisGetByKey(k){const a=axisDef(k);return a?a.get:(r=>r[k]);}
+function exploRows(){
+  return ROWS.filter(r=>{
+    if(!r._vin)return false;
+    if(exploYear!=null&&(!r._date||r._date.y!==exploYear))return false;
+    for(const k in exploFilters){const v=exploFilters[k];if(!v)continue;const av=axisGetByKey(k)(r);if(String(av==null?'':av)!==v)return false;}
+    return true;
+  });
+}
+function distinctVals(getf){const s=new Set();for(let i=0;i<ROWS.length;i++){const r=ROWS[i];if(!r._vin)continue;const v=getf(r);if(v!==''&&v!=null)s.add(String(v));}return [...s].sort((a,b)=>a.localeCompare(b,'fr'));}
+function setExploFilter(k,v){if(v==='')delete exploFilters[k];else exploFilters[k]=v;runBusy('Analyse…',renderExplo);}
+function setExploYear(v){exploYear=(v===''?null:+v);runBusy('Analyse…',renderExplo);}
+function setExploAxis(w,v){if(w===1)exploAxis1=v;else exploAxis2=v;runBusy('Analyse…',renderExplo);}
+function resetExplo(){exploFilters={};exploYear=null;runBusy('Analyse…',renderExplo);}
+function toggleExploFilters(btn){exploShowFilters=!exploShowFilters;const m=el('moreFilters');if(m)m.classList.toggle('hidden');if(btn)btn.textContent=exploShowFilters?'Masquer les filtres':'Afficher plus de filtres';}
+function optsExplo(sel,withNone){const {std,perso}=usableAxes();return catOptions(std,perso,sel,withNone);}
+function renderExplo(){
+  const p=el('p-explorer');if(!p)return;
+  const {std,perso}=usableAxes();
+  const facets=[...std.filter(a=>!isTimeAxis(a.key)),...perso];
+  if(!axisDef(exploAxis1))exploAxis1='famille';
+  const rows=exploRows(),base=ROWS.filter(r=>r._vin);
+  let html=`<h2 class="panel__title">Explorer librement</h2><div class="panel__sub">Filtre ta base sur autant de critères que tu veux, puis répartis et croise les axes. Mesure : ${mesureLabel()}.</div>`;
+
+  html+=`<div class="card"><div class="card__title"><span>Filtres</span><button class="btn btn--ghost btn--sm" onclick="resetExplo()">Réinitialiser</button></div>`;
+  html+=`<div class="expl-ctrls">
+    <div class="field"><label>Année</label><select onchange="setExploYear(this.value)"><option value=""${exploYear==null?' selected':''}>Toutes</option>${META.years.map(y=>`<option value="${y}"${exploYear===y?' selected':''}>${y}</option>`).join('')}</select></div>
+    <div class="field"><label>Mesure</label><span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span></div>
   </div>`;
+  const nbActive=Object.keys(exploFilters).length;
+  html+=`<button class="btn btn--ghost btn--sm" onclick="toggleExploFilters(this)" style="margin:.2rem 0 .7rem">${exploShowFilters?'Masquer les filtres':('Afficher plus de filtres'+(nbActive?' ('+nbActive+' actif'+(nbActive>1?'s':'')+')':''))}</button>`;
+  const fSel=a=>{const vals=distinctVals(a.get),cur=exploFilters[a.key]||'';return `<div class="field"><label>${esc(a.label)}</label><select onchange="setExploFilter('${a.key}',this.value)"><option value=""${cur===''?' selected':''}>(tous)</option>${vals.map(v=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(v)}</option>`).join('')}</select></div>`;};
+  const stdF=std.filter(a=>!isTimeAxis(a.key)),usedF=new Set();let facetHtml='';
+  AXIS_CATS.forEach(cat=>{if(cat.label==='Temps')return;const items=cat.keys.map(k=>stdF.find(a=>a.key===k)).filter(Boolean);items.forEach(a=>usedF.add(a.key));if(items.length)facetHtml+=`<div class="facet-cat"><div class="facet-cat__lbl">${cat.label}</div><div class="expl-ctrls">`+items.map(fSel).join('')+`</div></div>`;});
+  const restF=stdF.filter(a=>!usedF.has(a.key));
+  if(restF.length)facetHtml+=`<div class="facet-cat"><div class="facet-cat__lbl">Autres critères</div><div class="expl-ctrls">`+restF.map(fSel).join('')+`</div></div>`;
+  if(perso.length)facetHtml+=`<div class="facet-cat"><div class="facet-cat__lbl">Champs perso Vitisoft</div><div class="expl-ctrls">`+perso.map(fSel).join('')+`</div></div>`;
+  html+=`<div id="moreFilters" class="${exploShowFilters?'':'hidden'}">${facetHtml}</div>`;
+  const nbF=Object.keys(exploFilters).length+(exploYear!=null?1:0);
+  html+=`<p class="note">${fmtNum(rows.length)} ligne(s) sur ${fmtNum(base.length)} · ${fmtMoney(sum(rows,r=>r._total))} de CA HT sélectionné${nbF?' · '+nbF+' filtre(s) actif(s)':''}.</p></div>`;
 
-  // Renommage des champs perso selectionnes (persiste).
-  const persoSel=[explAxe1,explAxe2].filter(k=>k&&PERSO_KEYS.includes(k));
-  if(persoSel.length){
-    html+=`<div class="rename-row">`+persoSel.map(k=>`<div class="field"><label>Renommer ${esc(defaultPersoLabel(k))}</label><input value="${esc(persoLabel(k))}" onchange="renamePerso('${k}',this.value)"></div>`).join('')+`</div>`;
-  }
-
-  const a1=axisDef(explAxe1);
-  if(!explAxe2){
-    const entries=topEntries(groupSum(rows,a1.get),12);
-    html+=entries.length?barListHTML(entries):`<p class="note">Aucune donnee.</p>`;
+  html+=`<div class="card"><div class="card__title"><span>Répartition</span><span><button class="btn btn--ghost btn--sm" onclick="exportExplo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportExplo('csv')">CSV</button></span></div>`;
+  html+=`<div class="expl-ctrls">
+    <div class="field"><label>Répartir par</label><select onchange="setExploAxis(1,this.value)">${optsExplo(exploAxis1,false)}</select></div>
+    <div class="field"><label>Croiser avec (optionnel)</label><select onchange="setExploAxis(2,this.value)">${optsExplo(exploAxis2,true)}</select></div>
+  </div>`;
+  const a1=axisDef(exploAxis1);
+  if(!exploAxis2){
+    const entries=isTimeAxis(exploAxis1)?chronoEntries(groupSum(rows,a1.get)):allEntries(groupSum(rows,a1.get));
+    html+=entries.length?barListHTML(entries):`<p class="note">Aucune donnée sur cette sélection.</p>`;
   }else{
-    const a2=axisDef(explAxe2);
-    const rowKeys=topKeys(groupSum(rows,a1.get),8), colKeys=topKeys(groupSum(rows,a2.get),8);
-    const rowSet=new Set(rowKeys), colSet=new Set(colKeys);
-    const cell={}, rowTot={}, colTot={}; let grand=0;
-    rows.forEach(r=>{
-      let rk=r[a1.key]; if(a1.key==='_canal')rk=r._canal; else if(a1.key==='_dept')rk=deptFromCP(r.cp); rk=(rk===''||rk==null)?'(non renseigne)':String(rk); if(!rowSet.has(rk))rk='Autres';
-      let ck=r[a2.key]; if(a2.key==='_canal')ck=r._canal; else if(a2.key==='_dept')ck=deptFromCP(r.cp); ck=(ck===''||ck==null)?'(non renseigne)':String(ck); if(!colSet.has(ck))ck='Autres';
-      const v=mesureVal(r);cell[rk]=cell[rk]||{};cell[rk][ck]=(cell[rk][ck]||0)+v;rowTot[rk]=(rowTot[rk]||0)+v;colTot[ck]=(colTot[ck]||0)+v;grand+=v;
-    });
-    const rk2=rowKeys.filter(k=>rowTot[k]), ck2=colKeys.filter(k=>colTot[k]);
-    html+=`<div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${esc(a1.label)} \\ ${esc(a2.label)}</th>${ck2.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
-    rk2.forEach(rkey=>{
-      html+=`<tr><td class="rowh">${esc(rkey)}</td>${ck2.map(c=>`<td>${(cell[rkey]&&cell[rkey][c])?fmtMes(cell[rkey][c]):'-'}</td>`).join('')}<td>${fmtMes(rowTot[rkey])}</td></tr>`;
-    });
+    const a2=axisDef(exploAxis2);
+    const rowKeys=axisKeys(exploAxis1,groupSum(rows,a1.get),8),colKeys=axisKeys(exploAxis2,groupSum(rows,a2.get),8);
+    const rowSet=new Set(rowKeys),colSet=new Set(colKeys);
+    const cell={},rowTot={},colTot={};let grand=0;
+    rows.forEach(r=>{let rk=a1.get(r);rk=(rk===''||rk==null)?'(non renseigné)':String(rk);if(!rowSet.has(rk))rk='Autres';let ck=a2.get(r);ck=(ck===''||ck==null)?'(non renseigné)':String(ck);if(!colSet.has(ck))ck='Autres';const v=mesureVal(r);cell[rk]=cell[rk]||{};cell[rk][ck]=(cell[rk][ck]||0)+v;rowTot[rk]=(rowTot[rk]||0)+v;colTot[ck]=(colTot[ck]||0)+v;grand+=v;});
+    const rk2=rowKeys.filter(k=>rowTot[k]),ck2=colKeys.filter(k=>colTot[k]);
+    html+=`<div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${esc(a1.label)} \ ${esc(a2.label)}</th>${ck2.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+    rk2.forEach(rkey=>{html+=`<tr><td class="rowh">${esc(rkey)}</td>${ck2.map(c=>`<td>${(cell[rkey]&&cell[rkey][c])?fmtMes(cell[rkey][c]):'-'}</td>`).join('')}<td>${fmtMes(rowTot[rkey])}</td></tr>`;});
     html+=`<tr><td class="rowh"><b>Total</b></td>${ck2.map(c=>`<td>${fmtMes(colTot[c])}</td>`).join('')}<td>${fmtMes(grand)}</td></tr>`;
-    html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}. Top 8 par axe, le reste regroupe en "Autres".</p>`;
+    html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}. Toutes les valeurs affichées, sans regroupement.</p>`;
   }
-  el('explCard').innerHTML=html;
+  html+=`</div>`;
+  p.innerHTML=html;
 }
 function renamePerso(key,val){
   const v=(val||'').trim();
   if(v)persoLabels[key]=v; else delete persoLabels[key];
   savePersoLabels();
   renderApercu();
+}
+
+/* ======================= VUE EVOLUTION (le film dans le temps) ======================= */
+// Cle de période selon le pas de temps choisi : 'AAAA' (annuel) ou 'AAAA-MM' (mensuel).
+function periodKey(r){return evoStep==='annee'?(r._date?String(r._date.y):''):(r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):'');}
+const MOIS_FR=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function periodLabel(k){if(/^\d{4}-\d{2}$/.test(k)){const y=k.slice(0,4),m=+k.slice(5,7);return MOIS_FR[m-1]+' '+y;}return k;}
+// Mensuel : respecte le filtre annee (zoom sur une annee). Annuel : ignore le filtre (toutes les annees).
+function evoRows(){return ROWS.filter(r=>r._vin&&r._date&&(evoStep==='annee'||filters.year==null||r._date.y===filters.year));}
+function evoDimGet(){if(!evoDim)return null;const a=axisDef(evoDim);return a?a.get:null;}
+/* ======================= LECTURE EXPERTE (commentaire auto de la vue Evolution) ======================= */
+function _mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0;}
+function _stdev(a){if(a.length<2)return 0;const m=_mean(a);return Math.sqrt(_mean(a.map(x=>(x-m)*(x-m))));}
+function _slope(a){const n=a.length;if(n<2)return 0;const mx=(n-1)/2,my=_mean(a);let num=0,den=0;for(let i=0;i<n;i++){num+=(i-mx)*(a[i]-my);den+=(i-mx)*(i-mx);}return den?num/den:0;}
+function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
+  const n=periods.length;if(!n)return '';
+  const grand=totByPeriod.reduce((s,v)=>s+v,0),avg=grand/n;
+  const pw=evoStep==='annee'?'année':'mois',pwpl=evoStep==='annee'?'années':'mois';
+  const dimLbl=dimGet?axisDef(evoDim).label.toLowerCase():'';
+  const lbl=i=>periodLabel(periods[i]);
+  let out=`<div class="section-label">Lecture experte</div>`;
+
+  // 1. Tendance de fond
+  if(n>=2){
+    const first=totByPeriod[0],last=totByPeriod[n-1];
+    const d=first?(last-first)/Math.abs(first)*100:null;
+    const sl=_slope(totByPeriod),seuil=Math.max(1,Math.abs(avg)*0.02);
+    const trend=sl>seuil?'orientée à la hausse':(sl<-seuil?'orientée à la baisse':'globalement stable');
+    const k=d==null?'info':(d>=0?'ok':'warn'),ic=d==null?'≈':(d>=0?'↗':'↘');
+    out+=signal(k,ic,`Tendance de fond ${trend} : ${fmtMes(first)} en ${lbl(0)} vers ${fmtMes(last)} en ${lbl(n-1)}${d==null?'':' ('+fmtPct(d)+')'}.`,`Pente moyenne ${sl>=0?'+':'-'}${fmtMes(Math.abs(sl))} par ${pw} sur ${n} ${pwpl}. Moyenne par ${pw} : ${fmtMes(avg)}.`);
+  }else{
+    out+=signal('info','≈',`Une seule ${pw} dans la sélection (${lbl(0)}) : ${fmtMes(grand)}.`,`Ajoute de l'historique pour dégager une tendance.`);
+  }
+
+  // 2. Pic / creux
+  if(n>=2){
+    let iMax=0,iMin=0;totByPeriod.forEach((v,i)=>{if(v>totByPeriod[iMax])iMax=i;if(v<totByPeriod[iMin])iMin=i;});
+    const ratio=totByPeriod[iMin]>0?totByPeriod[iMax]/totByPeriod[iMin]:null;
+    out+=signal('info','◆',`Meilleur ${pw} : ${lbl(iMax)} (${fmtMes(totByPeriod[iMax])}). Plus faible : ${lbl(iMin)} (${fmtMes(totByPeriod[iMin])}).`,ratio?`Rapport de ${fmtNum(ratio,1)} entre le haut et le bas de la période.`:`Le point bas est à zéro ou négatif.`);
+  }
+
+  // 3. Momentum du dernier point
+  if(n>=3){
+    const last=totByPeriod[n-1],prev=totByPeriod[n-2];
+    const dp=prev?(last-prev)/Math.abs(prev)*100:null,above=last>=avg;
+    out+=signal(dp==null?'info':(dp>=0?'ok':'warn'),dp>=0?'▲':'▼',`Dernier ${pw} (${lbl(n-1)})${dp==null?'':(dp>=0?' en accélération de ':' en repli de ')+fmtPct(dp)+' vs le '+pw+' précédent'}, ${above?'au-dessus':'en dessous'} de la moyenne (${fmtMes(avg)}).`,`Le dernier point ${above?'confirme plutôt':'contraste avec'} le niveau moyen : à surveiller sur le ${pw} suivant.`);
+  }
+
+  // 4. Concentration entre segments
+  if(dimGet&&segs.length>=2){
+    const shares=segs.map(x=>segTot[x]).filter(v=>v>0).sort((a,b)=>b-a);
+    const tot=shares.reduce((s,v)=>s+v,0);
+    if(tot>0){
+      const top1=shares[0]/tot*100,top3=shares.slice(0,3).reduce((s,v)=>s+v,0)/tot*100;
+      let cum=0,pareto=0;for(const v of shares){cum+=v;pareto++;if(cum/tot>=0.8)break;}
+      const hhi=shares.reduce((s,v)=>s+Math.pow(v/tot*100,2),0);
+      const niveau=hhi>2500?'très concentré':(hhi>1500?'modérément concentré':'plutôt réparti');
+      out+=signal(hhi>2500?'warn':'info','▤',`Concentration : répartition ${niveau}. Le 1er ${dimLbl} pèse ${fmtNum(top1,0)}% du total, le top 3 ${fmtNum(top3,0)}%.`,`${pareto} ${dimLbl}${pareto>1?'s':''} sur ${shares.length} font 80% du total. ${hhi>2500?'Dépendance à surveiller : un décrochage ferait mal.':'Base assez équilibrée.'}`);
+    }
+  }
+
+  // 5. Moteurs / freins + contribution a la variation
+  if(dimGet&&n>=2&&segs.length>=2){
+    const deltas=segs.map(x=>{const o=bySeg[x];return {s:x,d:((o&&o[periods[n-1]])||0)-((o&&o[periods[0]])||0)};});
+    const risers=deltas.filter(x=>x.d>0).sort((a,b)=>b.d-a.d),fallers=deltas.filter(x=>x.d<0).sort((a,b)=>a.d-b.d);
+    const emerging=deltas.filter(x=>{const o=bySeg[x.s];return ((o&&o[periods[0]])||0)===0&&((o&&o[periods[n-1]])||0)>0;}).map(x=>x.s);
+    const vanish=deltas.filter(x=>{const o=bySeg[x.s];return ((o&&o[periods[0]])||0)>0&&((o&&o[periods[n-1]])||0)===0;}).map(x=>x.s);
+    const totDelta=totByPeriod[n-1]-totByPeriod[0];
+    let parts=[];
+    if(risers.length)parts.push(`tiré vers le haut par <b>${esc(risers[0].s)}</b> (+${fmtMes(risers[0].d)})`);
+    if(fallers.length)parts.push(`pénalisé par <b>${esc(fallers[0].s)}</b> (-${fmtMes(Math.abs(fallers[0].d))})`);
+    let act=[];
+    if(risers.length&&totDelta>0)act.push(`${esc(risers[0].s)} explique ${fmtNum(risers[0].d/totDelta*100,0)}% de la hausse`);
+    if(emerging.length)act.push(`nouveau${emerging.length>1?'x':''} : ${emerging.slice(0,3).map(esc).join(', ')}`);
+    if(vanish.length)act.push(`disparu${vanish.length>1?'s':''} : ${vanish.slice(0,3).map(esc).join(', ')}`);
+    if(parts.length)out+=signal('info','⇅',`Le total est ${parts.join(', et ')}.`,act.length?act.join(' · ')+'.':`Compare les segments qui montent et ceux qui refluent dans le tableau.`);
+  }
+
+  // 6. Saisonnalite (vue mensuelle)
+  if(evoStep==='mois'&&n>=6){
+    const byM={},cM={};periods.forEach((p,i)=>{const mm=+p.slice(5,7);byM[mm]=(byM[mm]||0)+totByPeriod[i];cM[mm]=(cM[mm]||0)+1;});
+    const avgM={};for(const mm in byM)avgM[mm]=byM[mm]/cM[mm];
+    const arr=Object.keys(avgM).map(Number);let pk=arr[0],tr=arr[0];arr.forEach(mm=>{if(avgM[mm]>avgM[pk])pk=mm;if(avgM[mm]<avgM[tr])tr=mm;});
+    const cv=avg?_stdev(totByPeriod)/Math.abs(avg)*100:0;
+    out+=signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Variabilité ${cv>40?'forte':(cv>20?'modérée':'faible')} (CV ${fmtNum(cv,0)}%).`,`${cv>40?'Anticipe la trésorerie autour des creux et charge les actions commerciales avant les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`);
+  }
+
+  // 7. Qualite : poids du non renseigne
+  if(dimGet){
+    const nr=segTot['(non renseigné)'];
+    if(nr&&grand>0&&nr/grand>0.05)out+=signal('warn','⚑',`${fmtNum(nr/grand*100,0)}% du total tombe dans « (non renseigné) » sur ${dimLbl}.`,`Fiabilise la saisie de ce champ dans Vitisoft pour une lecture nette.`);
+  }
+  return out;
+}
+
+function renderEvolution(){
+  const rows=evoRows();
+  const scope=evoStep==='annee'?'toutes années':(filters.year?('année '+filters.year):'toute la base, tous mois confondus');
+  let html=`<h2 class="panel__title">Évolution dans le temps</h2><div class="panel__sub">Comment tes chiffres bougent ${evoStep==='annee'?"d'une année sur l'autre":"mois après mois"}. Mesure : ${mesureLabel()}. Périmètre : ${scope}.</div>`;
+  const {std,perso}=usableAxes();
+  const dimOpts=`<option value=""${evoDim===''?' selected':''}>Total (pas de segmentation)</option>`+catOptions(std.filter(a=>!isTimeAxis(a.key)),perso,evoDim,false);
+  html+=`<div class="expl-ctrls">
+    <div class="field"><label>Segmenter par</label><select onchange="setEvoDim(this.value)">${dimOpts}</select></div>
+    <div class="field"><label>Pas de temps</label><span class="toggle"><button class="${evoStep==='mois'?'on':''}" onclick="setEvoStep('mois')">Mensuel</button><button class="${evoStep==='annee'?'on':''}" onclick="setEvoStep('annee')">Annuel</button></span></div>
+    <div class="field"><label>Mesure</label><span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span></div>
+  </div>`;
+  const periodsSet=new Set();rows.forEach(r=>{const p=periodKey(r);if(p)periodsSet.add(p);});
+  const periods=[...periodsSet].sort();
+  if(!periods.length){el('p-evolution').innerHTML=html+`<p class="note">Aucune donnée datée sur ce périmètre.</p>`;return;}
+  const dimGet=evoDimGet();
+  const bySeg={},segTot={};
+  rows.forEach(r=>{
+    const p=periodKey(r);if(!p)return;
+    let seg=dimGet?dimGet(r):'Total';seg=(seg===''||seg==null)?'(non renseigné)':String(seg);
+    if(!bySeg[seg])bySeg[seg]={};
+    bySeg[seg][p]=(bySeg[seg][p]||0)+mesureVal(r);
+    segTot[seg]=(segTot[seg]||0)+mesureVal(r);
+  });
+  const segs=Object.keys(segTot).sort((a,b)=>segTot[b]-segTot[a]);
+  const totByPeriod=periods.map(p=>segs.reduce((a,seg)=>a+((bySeg[seg]&&bySeg[seg][p])||0),0));
+  html+=evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet);
+  const dense=dimGet&&segs.length>12;
+  html+=`<div class="card"><div class="card__title"><span>${dimGet?('Évolution par '+esc(axisDef(evoDim).label.toLowerCase())):'Évolution du total'}</span></div><div class="chart-wrap"><canvas id="chEvo"></canvas></div>${dense?`<p class="note">${segs.length} segments : trop pour un graphe lisible, la courbe montre le total. Le détail par segment est dans le tableau ci-dessous.</p>`:''}</div>`;
+  html+=`<div class="card"><div class="card__title"><span>Détail chiffré</span><span><button class="btn btn--ghost btn--sm" onclick="exportEvo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportEvo('csv')">CSV</button></span></div><div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${dimGet?esc(axisDef(evoDim).label):'Période'}</th>${periods.map(p=>`<th>${esc(periodLabel(p))}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+  segs.forEach(seg=>{html+=`<tr><td class="rowh">${esc(seg)}</td>${periods.map(p=>`<td>${(bySeg[seg]&&bySeg[seg][p])?fmtMes(bySeg[seg][p]):'-'}</td>`).join('')}<td>${fmtMes(segTot[seg])}</td></tr>`;});
+  if(dimGet)html+=`<tr><td class="rowh"><b>Total</b></td>${periods.map((p,i)=>`<td>${fmtMes(totByPeriod[i])}</td>`).join('')}<td>${fmtMes(totByPeriod.reduce((a,v)=>a+v,0))}</td></tr>`;
+  html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}.${evoStep==='mois'&&filters.year==null?" Astuce : clique une année dans le filtre en haut pour zoomer sur ses mois.":''}${evoStep==='annee'&&filters.year!=null?" Le filtre année ne s'applique pas à la vue annuelle.":''}</p></div>`;
+  el('p-evolution').innerHTML=html;
+  if(dense){const tot={};periods.forEach((p,i)=>tot[p]=totByPeriod[i]);drawEvo(periods,['Total'],{Total:tot},false);}
+  else drawEvo(periods,segs,bySeg,!!dimGet);
+}
+function setEvoDim(v){evoDim=v;runBusy('Analyse…',renderEvolution);}
+function setEvoStep(st){evoStep=st;runBusy('Analyse…',renderEvolution);}
+function drawEvo(periods,segs,bySeg,multi){
+  destroyChart('chEvo');
+  const ctx=el('chEvo');if(!ctx)return;
+  const pal=['#E87722','#2F6DB5','#17A29A','#C99A2E','#5A6472','#8A5CB8','#E0940F'];
+  const labels=periods.map(p=>periodLabel(p));
+  const datasets=segs.map((seg,i)=>({label:seg,data:periods.map(p=>(bySeg[seg]&&bySeg[seg][p])||0),borderColor:multi?pal[i%pal.length]:'#E87722',backgroundColor:multi?pal[i%pal.length]:'rgba(232,119,34,.15)',borderWidth:2,tension:.25,fill:!multi,pointRadius:2,pointHoverRadius:4}));
+  charts.chEvo=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:multi,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
+}
+
+/* ======================= DIAGNOSTIC (agents statistiques) ======================= */
+// Objectif de CA annuel, memorise dans le navigateur.
+function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}runBusy('Analyse…',renderDiagnostic);}
+
+// AGENT A : atterrissage de l'annee en cours (projection fin d'annee).
+function computeAtterrissage(){
+  const ys=META.years;if(!ys.length)return null;
+  const cur=ys[ys.length-1];
+  const curRows=ROWS.filter(r=>r._vin&&r._date&&r._date.y===cur);
+  if(!curRows.length)return null;
+  let maxM=0;curRows.forEach(r=>{if(r._date.m>maxM)maxM=r._date.m;});
+  const done=sum(curRows,r=>r._total);
+  if(maxM>=12)return{cur,complete:true,total:done};
+  const prev=cur-1,hasPrev=ys.includes(prev);
+  const linear=maxM?done*(12/maxM):done;
+  let central,low,high,method;
+  if(hasPrev){
+    const prevYTD=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===prev&&r._date.m<=maxM),r=>r._total);
+    const prevFull=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===prev),r=>r._total);
+    const seasonal=prevYTD>0?done/prevYTD*prevFull:linear;
+    central=seasonal;low=Math.min(seasonal,linear);high=Math.max(seasonal,linear);method='saison';
+  }else{central=linear;low=done;high=linear;method='lineaire';}
+  return{cur,complete:false,months:maxM,done,central,low,high,method};
+}
+
+// AGENT B : serie mensuelle et indice de saisonnalite.
+function monthlySeries(){
+  const m={};ROWS.forEach(r=>{if(!r._vin||!r._date)return;const k=r._date.y*100+r._date.m;m[k]=(m[k]||0)+r._total;});
+  return Object.keys(m).map(Number).sort((a,b)=>a-b).map(k=>({y:Math.floor(k/100),m:k%100,v:m[k]}));
+}
+function seasonalIndex(series){
+  const byM={},cnt={};let tot=0,n=0;
+  series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cnt[p.m]=(cnt[p.m]||0)+1;tot+=p.v;n++;});
+  const avg=n?tot/n:0,idx={};
+  for(let mm=1;mm<=12;mm++)if(cnt[mm]){const a=byM[mm]/cnt[mm];idx[mm]=avg?a/avg:1;}
+  return{idx};
+}
+
+// AGENT C : decomposition effet prix / effet volume (N vs N-1 a date egale).
+function computePriceVolume(){
+  const f=yoyFrame();if(!f)return null;
+  function agg(y){let ca=0,q=0;ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(r._date.y!==y)return;if(!inWindow(r._date,f.cutM,f.cutD))return;ca+=r._total;q+=r._qte;});return{ca,q};}
+  const A=agg(f.cur),B=agg(f.prev);
+  if(A.q<=0||B.q<=0)return null;
+  const P0=B.ca/B.q,P1=A.ca/A.q;
+  return{cur:f.cur,prev:f.prev,P0,P1,volEff:(A.q-B.q)*P0,priceEff:(P1-P0)*A.q,delta:A.ca-B.ca};
+}
+
+// AGENT D : pont de contribution par client (nouveaux / hausse / baisse / perdus).
+function computeBridge(){
+  const f=yoyFrame();if(!f)return null;
+  const by={};
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!inWindow(r._date,f.cutM,f.cutD))return;if(r._date.y!==f.cur&&r._date.y!==f.prev)return;
+    const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={nom:r.client||id,cur:0,prev:0};
+    if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;});
+  let nw=0,up=0,down=0,lost=0;const movers=[];
+  Object.values(by).forEach(c=>{const d=c.cur-c.prev;
+    if(c.prev<=0&&c.cur>0)nw+=c.cur;
+    else if(c.cur<=0&&c.prev>0)lost+=(c.cur-c.prev);
+    else if(d>=0)up+=d;else down+=d;
+    if(Math.round(d)!==0)movers.push([c.nom,d]);});
+  movers.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  return{cur:f.cur,prev:f.prev,nw,up,down,lost,delta:nw+up+down+lost,movers};
+}
+
+function drawTrend(labels,data){
+  destroyChart('chTrend');const ctx=el('chTrend');if(!ctx)return;
+  charts.chTrend=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Tendance corrigée',data,borderColor:'#E87722',backgroundColor:'rgba(232,119,34,.10)',fill:true,tension:.3,pointRadius:2,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMoney(c.parsed.y)+' (corrigé)'}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
+}
+
+/* ======================= AGENTS MUTUALISES (aussi utilisés par le Diagnostic) ======================= */
+function agentDormants(){
+  const ref=META.max;if(!ref)return{ref:null,dormants:[],ca:0};
+  const dormants=clientStats().filter(c=>{const rec=monthsBetween(c.last,ref);return rec>SEUILS.rfmRecenceMois&&c.factures.size>=SEUILS.rfmMinFreq&&c.montant>0;}).sort((a,b)=>b.montant-a.montant);
+  return{ref,dormants,ca:sum(dormants,c=>c.montant)};
+}
+function agentDecrochage(){
+  const f=yoyFrame();if(!f)return{f:null,decroche:[],totPerdu:0};
+  const by={};
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!inWindow(r._date,f.cutM,f.cutD))return;if(r._date.y!==f.cur&&r._date.y!==f.prev)return;const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={nom:r.client||id,cur:0,prev:0};if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;});
+  const decroche=Object.values(by).filter(c=>c.prev>0&&c.cur>=0&&((c.cur-c.prev)/c.prev*100)<SEUILS.decrochagePct).map(c=>({...c,perdu:c.prev-c.cur,pct:(c.cur-c.prev)/c.prev*100})).sort((a,b)=>b.perdu-a.perdu);
+  return{f,decroche,totPerdu:sum(decroche,c=>c.perdu)};
+}
+function agentConcentration(){
+  const rows=ROWS.filter(r=>r._vin),ca=sum(rows,r=>r._total);if(ca<=0)return null;
+  const by={};rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';by[id]=(by[id]||0)+r._total;});
+  const parts=Object.values(by).sort((a,b)=>b-a);if(parts.length<3)return null;
+  return{part:parts.slice(0,3).reduce((s,v)=>s+v,0)/ca*100,clients:parts.length};
+}
+function agentCanalMover(){
+  const f=yoyFrame();if(!f)return null;
+  function agg(y){const m={};let tot=0;ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(r._date.y!==y)return;if(!inWindow(r._date,f.cutM,f.cutD))return;m[r._canal]=(m[r._canal]||0)+r._total;tot+=r._total;});return{m,tot};}
+  const A=agg(f.cur),B=agg(f.prev),keys=[...new Set([...Object.keys(A.m),...Object.keys(B.m)])];
+  let mv=null;keys.forEach(k=>{const pc=A.tot?(A.m[k]||0)/A.tot*100:0,pp=B.tot?(B.m[k]||0)/B.tot*100:0,dPts=pc-pp;if(mv==null||Math.abs(dPts)>Math.abs(mv.dPts))mv={k,dPts};});
+  return{f,mover:mv};
+}
+function yoyTotals(){
+  const f=yoyFrame();if(!f)return null;
+  const cur=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.cur&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
+  const prev=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.prev&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
+  return{f,cur,prev,d:prev?(cur-prev)/Math.abs(prev)*100:null};
+}
+// Synthetise les verdicts de tous les agents en une liste priorisee (severite puis impact en euros).
+function diagnosticSignals(){
+  const S=[];
+  const at=computeAtterrissage();
+  if(at&&!at.complete){
+    if(objectif){const gap=at.central-objectif;
+      if(gap<0)S.push({sev:3,impact:Math.abs(gap),kind:'danger',ico:'⚑',verdict:`Objectif menacé : au rythme actuel il manquerait ${fmtMoney(Math.abs(gap))} pour tenir ${fmtMoney(objectif)}.`,action:`Atterrissage estimé ${fmtMoney(at.central)}. Active les leviers ci-dessous d'ici la fin d'année.`});
+      else S.push({sev:1,impact:gap,kind:'ok',ico:'✔',verdict:`Objectif jouable : atterrissage estimé ${fmtMoney(at.central)}, soit ${fmtMoney(gap)} au-dessus de l'objectif.`,action:`Sécurise la trajectoire, ne relâche pas sur les clients à risque.`});
+    }else S.push({sev:0,impact:0,kind:'info',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
+  }
+  const dec=agentDecrochage();
+  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs l'an dernier à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
+  const dor=agentDormants();
+  if(dor.dormants.length)S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} dormant${dor.dormants.length>1?'s':''} à relancer : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`Campagne de réactivation ciblée, du plus gros au plus petit. Détail dans l'onglet Réactivation.`});
+  const pv=computePriceVolume();
+  if(pv){
+    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
+    else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Le sujet, c'est le nombre de bouteilles vendues. Pousse acquisition et réactivation.`});
+    else if(pv.delta>=0)S.push({sev:1,impact:pv.delta,kind:'ok',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
+  }
+  const con=agentConcentration();
+  if(con&&con.part>SEUILS.dependanceTop3)S.push({sev:2,impact:0,kind:'warn',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA.`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
+  const cm=agentCanalMover();
+  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Détail dans l'onglet Canaux.`});
+  const series=monthlySeries();
+  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Anticipe la trésorerie et charge les actions commerciales juste avant.`});}
+  S.sort((a,b)=>b.sev-a.sev||b.impact-a.impact);
+  return S;
+}
+
+function renderDiagnostic(){
+  const p=el('p-diagnostic');if(!p)return;
+  let html=`<h2 class="panel__title">Diagnostic</h2><div class="panel__sub">Ce que disent tes agents, réunis en un plan de lecture. Analyses sur le CA HT.</div>`;
+
+  // 1. Synthese chiffree
+  const at=computeAtterrissage(),yt=yoyTotals();
+  html+=`<div class="section-label">Où en es-tu</div><div class="kpi-grid">`;
+  if(at&&!at.complete){
+    html+=kpiCard('Réalisé '+at.cur,fmtMoney(at.done),at.months+' mois connus',true);
+    html+=kpiCard('Atterrissage estimé',fmtMoney(at.central),'fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high));
+  }else if(at&&at.complete){html+=kpiCard(at.cur+', année complète',fmtMoney(at.total),'année clôturée',true);}
+  if(yt&&yt.d!=null)html+=kpiCard('Évolution vs '+yt.f.prev,fmtPct(yt.d),'à date, '+fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev));
+  if(objectif&&at&&!at.complete){const gap=at.central-objectif;html+=kpiCard('Écart vs objectif',(gap>=0?'+':'-')+fmtMoney(Math.abs(gap)),gap>=0?'objectif jouable':'objectif menacé');}
+  html+=`</div>`;
+  html+=`<div class="expl-ctrls"><div class="field"><label>Objectif de CA annuel (HT), optionnel</label><input type="text" value="${objectif?esc(fmtNum(objectif)):''}" placeholder="ex. 500000" onchange="setObjectif(this.value)"></div></div>`;
+  if(at&&!at.complete)html+=`<p class="note">Atterrissage ${at.method==='saison'?('calé sur la saisonnalité de '+(at.cur-1)):'linéaire (faute d\'année précédente en base)'}.</p>`;
+
+  // 2. Plan d'action priorise (tous les agents)
+  html+=`<div class="section-label">À regarder en priorité</div>`;
+  const sigs=diagnosticSignals();
+  if(sigs.length)sigs.forEach(x=>html+=signal(x.kind,x.ico,x.verdict,x.action));
+  else html+=signal('ok','✔','Rien d\'urgent sur la base chargée.','Tes indicateurs sont au vert. Continue le suivi régulier.');
+
+  // 3. Tendance desaisonnalisee
+  html+=`<div class="section-label">Tendance de fond, corrigée de la saisonnalité</div>`;
+  const series=monthlySeries();
+  if(series.length>=6)html+=`<div class="card"><div class="card__title"><span>Élan réel mois après mois</span></div><div class="chart-wrap"><canvas id="chTrend"></canvas></div><p class="note">On neutralise tes pics et tes creux de saison pour voir ta vraie dynamique. Une pente qui monte, c'est du progrès hors effet calendaire.</p></div>`;
+  else html+=signal('info','ℹ','Pas assez de mois pour dégager une tendance.','Il faut au moins six mois de données datées dans la base.');
+
+  // 4. D'ou vient l'evolution : prix/volume + contribution clients
+  html+=`<div class="section-label">D'où vient l'évolution</div>`;
+  const pv=computePriceVolume();
+  if(pv){
+    html+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${pv.cur} vs ${pv.prev} à date égale</span></div>
+      <table class="data"><tbody>
+      <tr><td>Effet volume (quantités vendues)</td><td class="num" style="color:${pv.volEff>=0?'var(--teal)':'var(--red)'}">${pv.volEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.volEff))}</td></tr>
+      <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${pv.priceEff>=0?'var(--teal)':'var(--red)'}">${pv.priceEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.priceEff))}</td></tr>
+      <tr><td><b>Variation totale</b></td><td class="num"><b>${pv.delta>=0?'+':'-'}${fmtMoney(Math.abs(pv.delta))}</b></td></tr>
+      </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
+  }else html+=signal('info','ℹ','Décomposition prix/volume indisponible.','Il faut deux années comparables dans la base.');
+  const br=computeBridge();
+  if(br){
+    html+=`<div class="card"><div class="card__title"><span>Contribution par client, ${br.cur} vs ${br.prev} à date égale</span></div>
+      <table class="data"><tbody>
+      <tr><td>Clients nouveaux</td><td class="num" style="color:var(--teal)">+${fmtMoney(br.nw)}</td></tr>
+      <tr><td>Clients en hausse</td><td class="num" style="color:var(--teal)">+${fmtMoney(br.up)}</td></tr>
+      <tr><td>Clients en baisse</td><td class="num" style="color:var(--red)">-${fmtMoney(Math.abs(br.down))}</td></tr>
+      <tr><td>Clients perdus</td><td class="num" style="color:var(--red)">-${fmtMoney(Math.abs(br.lost))}</td></tr>
+      <tr><td><b>Variation totale</b></td><td class="num"><b>${br.delta>=0?'+':'-'}${fmtMoney(Math.abs(br.delta))}</b></td></tr>
+      </tbody></table>
+      <div class="section-label">Plus gros mouvements</div>
+      <table class="data"><thead><tr><th>Client</th><th class="num">Effet</th></tr></thead><tbody>
+      ${br.movers.slice(0,10).map(c=>`<tr><td>${esc(c[0])}</td><td class="num" style="color:${c[1]>=0?'var(--teal)':'var(--red)'}">${c[1]>=0?'+':'-'}${fmtMoney(Math.abs(c[1]))}</td></tr>`).join('')}
+      </tbody></table><p class="note">Calculé à mois comparables entre les deux années.</p></div>`;
+  }else html+=signal('info','ℹ','Contribution clients indisponible.','Il faut deux années comparables dans la base.');
+
+  p.innerHTML=html;
+  if(series.length>=6){const si=seasonalIndex(series),labels=[],data=[];series.forEach(pt=>{const idx=si.idx[pt.m]||1;labels.push(MOIS_FR[pt.m-1]+' '+String(pt.y).slice(2));data.push(idx?pt.v/idx:pt.v);});drawTrend(labels,data);}
 }
 
 /* ======================= EXPERTISE 1 : REACTIVATION (RFM) ======================= */
@@ -738,71 +1238,52 @@ function clientStats(){
 }
 function monthsBetween(a,b){if(!a||!b)return 0;return (b.y-a.y)*12+(b.m-a.m);}
 function renderReactivation(){
-  const ref=META.max;
-  const clients=clientStats();
-  const dormants=clients.filter(c=>{
-    const rec=monthsBetween(c.last,ref);
-    return rec>SEUILS.rfmRecenceMois && c.factures.size>=SEUILS.rfmMinFreq && c.montant>0;
-  }).sort((a,b)=>b.montant-a.montant);
-  const caDormant=sum(dormants,c=>c.montant);
+  const _ar=agentDormants();const ref=_ar.ref,dormants=_ar.dormants,caDormant=_ar.ca;
 
-  let html=`<h2 class="panel__title">Reactivation clients</h2><div class="panel__sub">Methode RFM : Recence (mois depuis le dernier achat), Frequence (nb de factures), Montant (CA cumule). Reference = derniere date de la base, ${fmtDate(ref)}.</div>`;
+  let html=`<h2 class="panel__title">Réactivation clients</h2><div class="panel__sub">Méthode RFM : Récence (mois depuis le dernier achat), Fréquence (nb de factures), Montant (CA cumulé). Référence = dernière date de la base, ${fmtDate(ref)}.</div>`;
 
   if(!dormants.length){
-    html+=signal('ok','✔','Aucun client dormant a fort potentiel detecte.',`Seuils : plus de ${SEUILS.rfmRecenceMois} mois sans achat, au moins ${SEUILS.rfmMinFreq} factures passees.`);
+    html+=signal('ok','✔','Aucun client dormant à fort potentiel détecté.',`Seuils : plus de ${SEUILS.rfmRecenceMois} mois sans achat, au moins ${SEUILS.rfmMinFreq} factures passées.`);
   }else{
     html+=signal('warn','↻',
-      `${plur(dormants.length,'client')} dormant${dormants.length>1?'s':''} representant ${fmtMoney(caDormant)} de CA passe a relancer.`,
-      `Ce sont de bons clients (au moins ${SEUILS.rfmMinFreq} commandes) qui n'ont plus achete depuis plus de ${SEUILS.rfmRecenceMois} mois. <b>Action : campagne de relance ciblee, en commencant par le haut de la liste.</b>`);
+      `${plur(dormants.length,'client')} dormant${dormants.length>1?'s':''} représentant ${fmtMoney(caDormant)} de CA passé à relancer.`,
+      `Ce sont de bons clients (au moins ${SEUILS.rfmMinFreq} commandes) qui n'ont plus acheté depuis plus de ${SEUILS.rfmRecenceMois} mois. <b>Action : campagne de relance ciblée, en commençant par le haut de la liste.</b>`);
     const top=dormants.slice(0,20);
-    html+=`<div class="card"><div class="card__title"><span>Top clients a relancer (par CA historique)</span></div>
+    html+=`<div class="card"><div class="card__title"><span>Top clients à relancer (par CA historique)</span></div>
       <table class="data"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Factures</th><th class="num">Dernier achat</th><th class="num">Mois sans achat</th></tr></thead><tbody>
       ${top.map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.factures.size}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${monthsBetween(c.last,ref)}</td></tr>`).join('')}
       </tbody></table>
-      ${dormants.length>20?`<p class="note">${dormants.length-20} autres clients dormants au dela du top 20.</p>`:''}</div>`;
+      ${dormants.length>20?`<p class="note">${dormants.length-20} autres clients dormants au-delà du top 20.</p>`:''}</div>`;
   }
   el('p-reactivation').innerHTML=html;
 }
 
-/* ======================= EXPERTISE 2 : DECROCHAGE (YoY a date egale) ======================= */
+/* ======================= EXPERTISE 2 : DECROCHAGE (YoY à date égale) ======================= */
 function renderDecrochage(){
   const f=yoyFrame();
-  let html=`<h2 class="panel__title">Clients en decrochage</h2>`;
+  let html=`<h2 class="panel__title">Clients en décrochage</h2>`;
   if(!f){
-    html+=`<div class="panel__sub">Il faut deux annees comparables dans la base pour cette analyse.</div>`+
-      signal('info','ℹ','Comparatif indisponible.','Ajoute un export couvrant l\'annee precedente pour activer la detection du churn.');
+    html+=`<div class="panel__sub">Il faut deux années comparables dans la base pour cette analyse.</div>`+
+      signal('info','ℹ','Comparatif indisponible.','Ajoute un export couvrant l\'année précédente pour activer la détection du churn.');
     el('p-decrochage').innerHTML=html;return;
   }
-  html+=`<div class="panel__sub">Clients presents les deux annees dont le CA recule de plus de ${Math.abs(SEUILS.decrochagePct)}% (a date egale). ${incompleteNote()}</div>`;
+  html+=`<div class="panel__sub">Clients présents les deux années dont le CA recule de plus de ${Math.abs(SEUILS.decrochagePct)}% (à date égale). ${incompleteNote()}</div>`;
 
-  // CA par client sur la fenetre a date egale, pour cur et prev.
-  const byClient={};
-  ROWS.forEach(r=>{
-    if(!r._vin||!r._date)return;
-    if(!inWindow(r._date,f.cutM,f.cutD))return;
-    if(r._date.y!==f.cur&&r._date.y!==f.prev)return;
-    const id=r.numClient||r.client||'(inconnu)';
-    let c=byClient[id];if(!c){c=byClient[id]={nom:r.client||id,cur:0,prev:0};}
-    if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;
-  });
-  const decroche=Object.values(byClient)
-    .filter(c=>c.prev>0 && c.cur>=0 && ((c.cur-c.prev)/c.prev*100)<SEUILS.decrochagePct)
-    .map(c=>({...c,perdu:c.prev-c.cur,pct:(c.cur-c.prev)/c.prev*100}))
-    .sort((a,b)=>b.perdu-a.perdu);
-  const totPerdu=sum(decroche,c=>c.perdu);
+  // CA par client sur la fenetre à date égale, pour cur et prev.
+  const _ad=agentDecrochage();const decroche=_ad.decroche,totPerdu=_ad.totPerdu;
 
   if(!decroche.length){
-    html+=signal('ok','✔','Aucun client en decrochage marque.',`Aucun client actif les deux annees ne recule de plus de ${Math.abs(SEUILS.decrochagePct)}% a date egale.`);
+    html+=signal('ok','✔','Aucun client en décrochage marqué.',`Aucun client actif les deux années ne recule de plus de ${Math.abs(SEUILS.decrochagePct)}% à date égale.`);
   }else{
     html+=signal('danger','⚠',
-      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs l'an dernier a date egale.`,
-      `C'est l'alerte a traiter avant le depart complet. <b>Action : les appeler en priorite, en partant du plus gros montant perdu.</b>`);
+      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs l'an dernier à date égale.`,
+      `C'est l'alerte à traiter avant le départ complet. <b>Action : les appeler en priorité, en partant du plus gros montant perdu.</b>`);
     const top=decroche.slice(0,20);
-    html+=`<div class="card"><div class="card__title"><span>Top clients en decrochage (par euros perdus)</span></div>
-      <table class="data"><thead><tr><th>Client</th><th class="num">${f.prev} a date</th><th class="num">${f.cur} a date</th><th class="num">Perdu</th><th class="num">Evolution</th></tr></thead><tbody>
+    html+=`<div class="card"><div class="card__title"><span>Top clients en décrochage (par euros perdus)</span></div>
+      <table class="data"><thead><tr><th>Client</th><th class="num">${f.prev} a date</th><th class="num">${f.cur} a date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody>
       ${top.map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
       </tbody></table>
-      ${decroche.length>20?`<p class="note">${decroche.length-20} autres clients en recul au dela du top 20.</p>`:''}</div>`;
+      ${decroche.length>20?`<p class="note">${decroche.length-20} autres clients en recul au-delà du top 20.</p>`:''}</div>`;
   }
   el('p-decrochage').innerHTML=html;
 }
@@ -811,7 +1292,7 @@ function renderDecrochage(){
 function renderCanaux(){
   let html=`<h2 class="panel__title">Canaux & prix moyen</h2>`;
   const f=yoyFrame();
-  // Fenetre : si YoY dispo, a date egale sur cur/prev. Sinon, annee active ou toute la base.
+  // Fenetre : si YoY dispo, à date égale sur cur/prev. Sinon, annee active ou toute la base.
   const labels=[...new Set(CANAUX.map(c=>c.label)).add('Autre / non renseigne')];
 
   // Agregation part de CA + prix moyen par canal.
@@ -828,7 +1309,7 @@ function renderCanaux(){
   }
 
   if(f){
-    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille, ${f.cur} vs ${f.prev} a date egale. ${incompleteNote()}</div>`;
+    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille, ${f.cur} vs ${f.prev} à date égale. ${incompleteNote()}</div>`;
     const A=agg(f.cur),B=agg(f.prev);
     const keys=[...new Set([...Object.keys(A.m),...Object.keys(B.m)])];
     const rows=keys.map(k=>{
@@ -844,17 +1325,17 @@ function renderCanaux(){
       const sens=mover.dPts>=0?'progresse':'recule';
       html+=signal(mover.dPts>=0?'ok':'warn',mover.dPts>=0?'↗':'↘',
         `Le canal ${mover.k} ${sens} de ${fmtNum(Math.abs(mover.dPts),1)} points de CA.`,
-        `<b>Action : ${mover.dPts>=0?'capitaliser sur ce canal qui monte':'comprendre pourquoi ce canal decroche et reagir'}.</b>`);
+        `<b>Action : ${mover.dPts>=0?'capitaliser sur ce canal qui monte':'comprendre pourquoi ce canal décroche et réagir'}.</b>`);
     }
     // Alerte valeur : prix moyen caveau vs pro/export.
     const cav=rows.find(r=>r.k==='Caveau');
     if(cav&&cav.prixCur>0){
       html+=signal('info','ℹ',`Prix moyen au caveau : ${fmtMoney(cav.prixCur)} par bouteille (${f.cur} a date).`,
-        `La vente directe doit rester ton canal le plus cher. Si un canal pro ou export s'en rapproche, tu perds de la valeur. Verifie l'ecart dans le tableau.`);
+        `La vente directe doit rester ton canal le plus cher. Si un canal pro ou export s'en rapproche, tu perds de la valeur. Vérifie l'écart dans le tableau.`);
     }
 
     html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
-      <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${f.prev}</th><th class="num">Part ${f.cur}</th><th class="num">Evol. (pts)</th><th class="num">Prix moyen ${f.prev}</th><th class="num">Prix moyen ${f.cur}</th></tr></thead><tbody>
+      <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${f.prev}</th><th class="num">Part ${f.cur}</th><th class="num">Évol. (pts)</th><th class="num">Prix moyen ${f.prev}</th><th class="num">Prix moyen ${f.cur}</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtNum(r.partPrev,1)} %</td><td class="num">${fmtNum(r.partCur,1)} %</td><td class="num ${r.dPts>=0?'pos':'neg'}">${fmtNum(r.dPts,1)}</td><td class="num">${r.prixPrev?fmtMoney(r.prixPrev):'n/d'}</td><td class="num">${r.prixCur?fmtMoney(r.prixCur):'n/d'}</td></tr>`).join('')}
       </tbody></table></div>`;
     html+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${f.cur}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
@@ -862,14 +1343,14 @@ function renderCanaux(){
     drawCanal(A);
   }else{
     const year=filters.year;
-    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille. Perimetre : ${year?('annee '+year):'toute la base'}.</div>`;
+    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille. Périmètre : ${year?('année '+year):'toute la base'}.</div>`;
     const A=agg(year);
     const rows=Object.entries(A.m).map(([k,v])=>({k,ca:v.ca,part:A.tot?v.ca/A.tot*100:0,prix:v.qte?v.ca/v.qte:0})).sort((a,b)=>b.ca-a.ca);
     html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
       <table class="data"><thead><tr><th>Canal</th><th class="num">CA</th><th class="num">Part</th><th class="num">Prix moyen / btl</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtMoney(r.ca)}</td><td class="num">${fmtNum(r.part,1)} %</td><td class="num">${r.prix?fmtMoney(r.prix):'n/d'}</td></tr>`).join('')}
       </tbody></table>
-      <p class="note">Ajoute un export couvrant l'annee precedente pour voir l'evolution d'un canal a l'autre.</p></div>`;
+      <p class="note">Ajoute un export couvrant l'année précédente pour voir l'évolution d'un canal à l'autre.</p></div>`;
     html+=`<div class="card"><div class="card__title"><span>Part de CA par canal</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
     el('p-canaux').innerHTML=html;
     drawCanal(A);
@@ -913,41 +1394,41 @@ function renderBase(){
   const prix=prixVenteMoyen();
   const coutOffert=sum(offerts,r=>coutOffertLigne(r,prix));
 
-  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">Etat de la base cumulee (tout l'historique). Le filtre annees ne s'applique pas ici.</div>`;
+  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">État de la base cumulée (tout l'historique). Le filtre années ne s'applique pas ici.</div>`;
 
   // ZONE A : etat de la base (compteurs alignes, memes dimensions).
   const yearpills=META.years.length?`<div class="yearpills">${META.years.map(y=>`<span class="yearpill">${y}</span>`).join('')}</div>`:'n/d';
-  const periode=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'n/d';
-  html+=`<div class="section-label">Etat de la base</div>
+  const période=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'n/d';
+  html+=`<div class="section-label">État de la base</div>
   <div class="kpi-grid kpi-grid--base">
-    ${kpiCard('Lignes en base',fmtNum(ROWS.length),'toutes lignes cumulees',true)}
-    ${kpiCard('Periode couverte',periode,'du premier au dernier export')}
-    ${kpiCard('Annees presentes',yearpills,plur(META.years.length,'annee'))}
+    ${kpiCard('Lignes en base',fmtNum(ROWS.length),'toutes lignes cumulées',true)}
+    ${kpiCard('Période couverte',période,'du premier au dernier export')}
+    ${kpiCard('Années présentes',yearpills,plur(META.years.length,'année'))}
     ${kpiCard('CA HT',fmtMoney(caVin),plur(vin.length,'ligne')+' de vente')}
     ${kpiCard('Hors-vente',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
     ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),plur(offerts.length,'ligne')+', prix de vente moyen')}
   </div>`;
 
   // ZONE B : details.
-  html+=`<div class="section-label">Details</div>`;
+  html+=`<div class="section-label">Détails</div>`;
   const parType={};
   offerts.forEach(r=>{const t=String(r.typeOffert||'Autre').trim();const c=parType[t]||(parType[t]={n:0,cout:0});c.n++;c.cout+=coutOffertLigne(r,prix);});
   const typesRows=Object.entries(parType).sort((a,b)=>b[1].cout-a[1].cout);
   if(typesRows.length){
-    html+=`<div class="card"><div class="card__title"><span>Bouteilles offertes, echantillons et casse</span></div>
-      <table class="data"><thead><tr><th>Type</th><th class="num">Lignes</th><th class="num">Cout estime (prix de vente moyen)</th></tr></thead><tbody>
+    html+=`<div class="card"><div class="card__title"><span>Bouteilles offertes, échantillons et casse</span></div>
+      <table class="data"><thead><tr><th>Type</th><th class="num">Lignes</th><th class="num">Coût estimé (prix de vente moyen)</th></tr></thead><tbody>
       ${typesRows.map(([t,c])=>`<tr><td>${esc(t)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.cout)}</td></tr>`).join('')}
-      </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Estimation du manque a gagner, valorisee au prix de vente moyen reel de chaque produit.</p></div>`;
+      </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Estimation du manque à gagner, valorisée au prix de vente moyen réel de chaque produit.</p></div>`;
   }
   // Hors-vente par famille.
   const parFamHV={};
-  horsVin.forEach(r=>{const f=(r.famille||'(non renseigne)').trim();const c=parFamHV[f]||(parFamHV[f]={n:0,ca:0});c.n++;c.ca+=r._total;});
+  horsVin.forEach(r=>{const f=(r.famille||'(non renseigné)').trim();const c=parFamHV[f]||(parFamHV[f]={n:0,ca:0});c.n++;c.ca+=r._total;});
   const hvRows=Object.entries(parFamHV).sort((a,b)=>Math.abs(b[1].ca)-Math.abs(a[1].ca));
   if(hvRows.length){
     html+=`<div class="card"><div class="card__title"><span>Hors-vente par famille</span></div>
       <table class="data"><thead><tr><th>Famille</th><th class="num">Lignes</th><th class="num">Montant HT</th></tr></thead><tbody>
       ${hvRows.map(([f,c])=>`<tr><td>${esc(f)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.ca)}</td></tr>`).join('')}
-      </tbody></table><p class="note">Frais et lignes hors chiffre d'affaires, isoles pour ne pas fausser le CA des ventes.</p></div>`;
+      </tbody></table><p class="note">Frais et lignes hors CA, isolées pour ne pas fausser le chiffre d'affaires.</p></div>`;
   }
 
   // ZONE C : gestion (deux actions sobres cote a cote).
@@ -955,21 +1436,21 @@ function renderBase(){
   <div class="grid-2">
     <div class="card"><div class="card__title"><span>Ajouter un export</span></div>
       <button class="btn btn--primary" onclick="showImport()">Ajouter un export</button>
-      <p class="mini-line">Chaque nouvel export s'ajoute, les doublons sont ignores automatiquement.</p>
+      <p class="mini-line">Chaque nouvel export s'ajoute, les doublons sont ignorés automatiquement.</p>
     </div>
     <div class="card"><div class="card__title"><span>Vider la base</span></div>
       <button class="btn btn--danger" onclick="viderBase()">Vider la base</button>
-      <p class="mini-line">Efface toutes les lignes cumulees de ce navigateur. Action definitive.</p>
+      <p class="mini-line">Efface toutes les lignes cumulées de ce navigateur. Action définitive.</p>
     </div>
   </div>`;
 
   el('p-base').innerHTML=html;
 }
 async function viderBase(){
-  if(!confirm('Vider toute la base ? Cette action est definitive et efface les '+fmtNum(ROWS.length)+' lignes cumulees.'))return;
+  if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées.'))return;
   await dbClear();
   ROWS=[];computeMeta();
-  status('success','Base videe.');
+  status('success','Base vidée.');
   el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();
 }
 
@@ -979,15 +1460,142 @@ async function refreshResume(){
   const box=el('resumeBox');
   if(n>0){
     box.style.display='block';
-    box.innerHTML=`<b>${fmtNum(n)} lignes deja en base</b> dans ce navigateur. <a href="#" onclick="reopen();return false;">Ouvrir mon tableau de bord</a> ou depose un nouvel export pour l'enrichir.`;
+    box.innerHTML=`<b>${fmtNum(n)} lignes déjà en base</b> dans ce navigateur. <a href="#" onclick="reopen();return false;">Ouvrir mon tableau de bord</a> ou dépose un nouvel export pour l'enrichir.`;
   }else box.style.display='none';
 }
 async function reopen(){
   status('loading','Chargement de ta base...');
   await reloadFromDB();
-  status('success',fmtNum(ROWS.length)+' lignes chargees.');
+  status('success',fmtNum(ROWS.length)+' lignes chargées.');
   openApp();
 }
+
+/* ======================= EXPORTS (PDF rapport + Excel/CSV) ======================= */
+function groupCA(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigné)':String(k);m[k]=(m[k]||0)+r._total;});return m;}
+function groupQ(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigné)':String(k);m[k]=(m[k]||0)+r._qte;});return m;}
+function prTable(entries,label,tot){const e=entries.filter(x=>x[1]!==0);const mx=e.length?Math.max.apply(null,e.map(x=>Math.abs(x[1]))):0;return `<table class="pr-t"><thead><tr><th>${esc(label)}</th><th class="n">CA HT</th><th class="n">Part</th><th class="pr-barh"></th></tr></thead><tbody>`+e.map(([k,v])=>{const w=mx>0?Math.max(2,Math.abs(v)/mx*100):0;return `<tr><td>${esc(k)}</td><td class="n">${fmtMoney(v)}</td><td class="n muted">${tot>0?fmtNum(v/tot*100,0)+'%':'-'}</td><td class="pr-bar"><span style="width:${w.toFixed(0)}%"></span></td></tr>`;}).join('')+`</tbody></table>`;}
+function prKpi(l,v,sub,hero){return `<div class="pr-kpi${hero?' pr-kpi--hero':''}"><div class="pr-kpi__l">${esc(l)}</div><div class="pr-kpi__v">${v}</div><div class="pr-kpi__s">${esc(sub||'')}</div></div>`;}
+function prSec(t){return `<div class="pr-seclabel">${esc(t)}</div>`;}
+function buildReport(){
+  const rows=ROWS.filter(r=>r._vin);
+  const ca=sum(rows,r=>r._total),btl=sum(rows,r=>r._qte);
+  const factures=new Set(rows.map(r=>r.numFacture)).size,clients=new Set(rows.map(r=>r.numClient||r.client)).size;
+  const panier=factures?ca/factures:0,at=computeAtterrissage(),yt=yoyTotals();
+  const per=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'';
+  let h=`<div class="pr">`;
+  h+=`<div class="pr-cover"><div class="pr-cover__brand">Le Bureau du Vigneron</div><div class="pr-cover__title">Rapport de ventes</div><div class="pr-cover__sub">${per} · édité le ${new Date().toLocaleDateString('fr-FR')} · ${fmtNum(rows.length)} lignes analysées</div><div class="pr-cover__tag">Propulsé par Solumatic · lecture d'export Vitisoft · CA HT</div></div>`;
+
+  const evV=(yt&&yt.d!=null)?fmtPct(yt.d):'n/d',evCls=(yt&&yt.d!=null)?(yt.d>=0?'up':'down'):'';
+  const atV=at?(at.complete?fmtMoney(at.total):fmtMoney(at.central)):'n/d';
+  const atS=at?(at.complete?'année complète':('fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high))):'2 années requises';
+  h+=`<div class="pr-hero">
+    ${prKpi('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
+    <div class="pr-kpi"><div class="pr-kpi__l">Évolution vs ${yt?yt.f.prev:'N-1'} à date</div><div class="pr-kpi__v ${evCls}">${evV}</div><div class="pr-kpi__s">${yt?(fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev)):'n/d'}</div></div>
+    ${prKpi('Atterrissage estimé',atV,atS)}
+  </div>`;
+
+  h+=`<div class="pr-kpis">
+    ${prKpi('Bouteilles / cols',fmtNum(btl),'quantité vendue')}
+    ${prKpi('Panier moyen',fmtMoney(panier),'par facture')}
+    ${prKpi('Factures',fmtNum(factures),'distinctes')}
+    ${objectif?prKpi('Objectif',fmtMoney(objectif),(at&&!at.complete)?(((at.central-objectif)>=0?'+':'-')+fmtMoney(Math.abs(at.central-objectif))+' projeté'):'fixé'):prKpi('Clients actifs',fmtNum(clients),'sur la période')}
+  </div>`;
+
+  const sigs=diagnosticSignals();
+  if(sigs.length)h+=prSec('À regarder en priorité')+`<div class="pr-signals">`+sigs.map(x=>`<div class="pr-sig pr-sig--${x.kind}"><div class="pr-sig__v">${x.verdict.replace(/<[^>]+>/g,'')}</div><div class="pr-sig__a">${x.action.replace(/<[^>]+>/g,'')}</div></div>`).join('')+`</div>`;
+
+  const pv=computePriceVolume();
+  if(pv)h+=prSec("D'où vient l'évolution · "+pv.cur+' vs '+pv.prev)+`<div class="pr-pv">
+    <div class="pr-pv__item"><span>Effet volume</span><b class="${pv.volEff>=0?'up':'down'}">${(pv.volEff>=0?'+':'-')+fmtMoney(Math.abs(pv.volEff))}</b></div>
+    <div class="pr-pv__item"><span>Effet prix</span><b class="${pv.priceEff>=0?'up':'down'}">${(pv.priceEff>=0?'+':'-')+fmtMoney(Math.abs(pv.priceEff))}</b></div>
+    <div class="pr-pv__item pr-pv__tot"><span>Variation totale</span><b>${(pv.delta>=0?'+':'-')+fmtMoney(Math.abs(pv.delta))}</b></div>
+  </div>`;
+
+  const cliMap={};rows.forEach(r=>{const id=r.client||r.numClient||'(inconnu)';cliMap[id]=(cliMap[id]||0)+r._total;});
+  h+=prSec('Qui et quoi font ton chiffre')+`<div class="pr-2col"><div><div class="pr-h3">Top clients</div>${prTable(allEntries(cliMap).slice(0,8),'Client',ca)}</div><div><div class="pr-h3">Top cuvées</div>${prTable(allEntries(groupCA(rows,r=>r.produit)).slice(0,8),'Cuvée',ca)}</div></div>`;
+
+  h+=prSec('Répartitions')+`<div class="pr-2col"><div><div class="pr-h3">Par couleur</div>${prTable(allEntries(groupCA(rows,r=>r.couleur)),'Couleur',ca)}</div><div><div class="pr-h3">Par canal de vente</div>${prTable(allEntries(groupCA(rows,r=>r._canal)),'Canal',ca)}</div></div><div class="pr-2col"><div><div class="pr-h3">Par famille</div>${prTable(allEntries(groupCA(rows,r=>r.famille)),'Famille',ca)}</div><div><div class="pr-h3">Par code tarif</div>${prTable(allEntries(groupCA(rows,r=>r.codeTarif)),'Code tarif',ca)}</div></div>`;
+
+  h+=`<div class="pr-foot"><span>Le Bureau du Vigneron · propulsé par Solumatic</span><span>Données lues localement depuis ton export Vitisoft, jamais transmises.</span></div>`;
+  h+=`</div>`;
+  return h;
+}
+
+function exportPDF(){
+  if(!ROWS.length){status('error','Charge un export avant de générer le rapport.');return;}
+  el('printReport').innerHTML=buildReport();
+  status('loading','Choisis « Enregistrer au format PDF » dans la fenêtre d\'impression.');
+  setTimeout(()=>{window.print();const st=el('status');if(st)st.style.display='none';},250);
+}
+function dl(name,type,data){try{const b=new Blob([data],{type}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);status('success','Export généré : '+name);}catch(e){status('error','Export impossible sur ce navigateur.');}}
+function exportExcel(){
+  if(!ROWS.length){status('error','Charge un export avant d\'exporter.');return;}
+  const rows=ROWS.filter(r=>r._vin),ca=sum(rows,r=>r._total);
+  const dims=[['Famille',r=>r.famille],['Code tarif',r=>r.codeTarif],['Couleur',r=>r.couleur],['Canal',r=>r._canal],['Client',r=>r.client||r.numClient],['Cuvée',r=>r.produit]];
+  if(typeof XLSX==='undefined'){
+    const m=groupCA(rows,dims[0][1]);
+    const lignes=['Famille;CA HT;Part %'].concat(allEntries(m).map(([k,v])=>`${k};${Math.round(v)};${ca>0?(v/ca*100).toFixed(1):0}`));
+    dl('analyse-vitisoft.csv','text/csv;charset=utf-8','﻿'+lignes.join('\n'));return;
+  }
+  const wb=XLSX.utils.book_new();
+  const yt=yoyTotals(),at=computeAtterrissage();
+  const syn=[['Indicateur','Valeur'],['CA HT',Math.round(ca)],['Bouteilles',Math.round(sum(rows,r=>r._qte))],['Factures',new Set(rows.map(r=>r.numFacture)).size],['Clients actifs',new Set(rows.map(r=>r.numClient||r.client)).size]];
+  if(yt&&yt.d!=null)syn.push(['Évolution YoY à date (%)',+yt.d.toFixed(1)]);
+  if(at&&!at.complete)syn.push(['Atterrissage estimé',Math.round(at.central)]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(syn),'Synthèse');
+  dims.forEach(([label,g])=>{const m=groupCA(rows,g),q=groupQ(rows,g);const aoa=[[label,'CA HT','Bouteilles','Part %']].concat(allEntries(m).map(([k,v])=>[k,Math.round(v),Math.round(q[k]||0),ca>0?+(v/ca*100).toFixed(1):0]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),label.slice(0,28));});
+  const mm={};rows.forEach(r=>{if(!r._date)return;const k=r._date.y+'-'+String(r._date.m).padStart(2,'0');mm[k]=(mm[k]||0)+r._total;});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Mois','CA HT']].concat(Object.keys(mm).sort().map(k=>[k,Math.round(mm[k])]))),'Par mois');
+  const sigs=diagnosticSignals();
+  if(sigs.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Priorité (3=urgent)','Constat','Action','Impact €']].concat(sigs.map(x=>[x.sev,x.verdict.replace(/<[^>]+>/g,''),x.action.replace(/<[^>]+>/g,''),Math.round(x.impact||0)]))),'Diagnostic');
+  XLSX.writeFile(wb,'analyse-vitisoft.xlsx');
+  status('success','Export Excel généré : analyse-vitisoft.xlsx');
+}
+
+/* ======================= EXPORTS CONTEXTUELS ======================= */
+function forceCsv(sheets,base){const csv=sheets[0].aoa.map(row=>row.map(c=>{c=(c==null?'':String(c));return /[;\n"]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\n');dl(base+'.csv','text/csv;charset=utf-8','﻿'+csv);}
+function toXlsxOrCsv(sheets,base){
+  if(typeof XLSX==='undefined'){forceCsv(sheets,base);return;}
+  const wb=XLSX.utils.book_new();
+  sheets.forEach(sh=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh.aoa),sh.name.slice(0,28).replace(/[\\\/?*\[\]:]/g,' ')));
+  XLSX.writeFile(wb,base+'.xlsx');status('success','Export généré : '+base+'.xlsx');
+}
+// Exploration : pivot affiché + lignes filtrées
+function exploExportSheets(){
+  const rows=exploRows(),a1=axisDef(exploAxis1),sheets=[];
+  if(!exploAxis2){
+    const entries=isTimeAxis(exploAxis1)?chronoEntries(groupSum(rows,a1.get)):allEntries(groupSum(rows,a1.get));
+    const tot=entries.reduce((sm,e)=>sm+e[1],0);
+    sheets.push({name:a1.label,aoa:[[a1.label,mesureLabel(),'Part %']].concat(entries.map(([k,v])=>[k,Math.round(v),tot?+(v/tot*100).toFixed(1):0]))});
+  }else{
+    const a2=axisDef(exploAxis2);
+    const rowKeys=axisKeys(exploAxis1,groupSum(rows,a1.get),8),colKeys=axisKeys(exploAxis2,groupSum(rows,a2.get),8);
+    const rset=new Set(rowKeys),cset=new Set(colKeys),cell={},rt={},ct={};
+    rows.forEach(r=>{let rk=a1.get(r);rk=(rk===''||rk==null)?'(non renseigné)':String(rk);if(!rset.has(rk))rk='Autres';let ck=a2.get(r);ck=(ck===''||ck==null)?'(non renseigné)':String(ck);if(!cset.has(ck))ck='Autres';const v=mesureVal(r);cell[rk]=cell[rk]||{};cell[rk][ck]=(cell[rk][ck]||0)+v;rt[rk]=(rt[rk]||0)+v;ct[ck]=(ct[ck]||0)+v;});
+    const rk2=rowKeys.filter(k=>rt[k]),ck2=colKeys.filter(k=>ct[k]);
+    const head=[a1.label+' / '+a2.label].concat(ck2,['Total']);
+    const body=rk2.map(rk=>[rk].concat(ck2.map(c=>Math.round((cell[rk]&&cell[rk][c])||0)),[Math.round(rt[rk])]));
+    body.push(['Total'].concat(ck2.map(c=>Math.round(ct[c])),[Math.round(rk2.reduce((sm,rk)=>sm+rt[rk],0))]));
+    sheets.push({name:'Croisement',aoa:[head].concat(body)});
+  }
+  const heads=['Date','Facture','Client','Cuvée','Famille','Couleur','Millésime','Appellation','Canal','Code tarif','Quantité','CA HT'];
+  const lignes=[heads].concat(rows.map(r=>[r.date,r.numFacture,r.client,r.produit,r.famille,r.couleur,r.millesime,r.appellation,r._canal,r.codeTarif,r._qte,Math.round(r._total)]));
+  sheets.push({name:'Lignes filtrées',aoa:lignes});
+  return sheets;
+}
+function exportExplo(fmt){if(!ROWS.length){status('error','Rien à exporter.');return;}const sh=exploExportSheets();fmt==='csv'?forceCsv(sh,'exploration-vitisoft'):toXlsxOrCsv(sh,'exploration-vitisoft');}
+// Évolution : le tableau segment × période affiché
+function evoExportSheets(){
+  const rows=evoRows(),dimGet=evoDimGet();
+  const ps=new Set();rows.forEach(r=>{const p=periodKey(r);if(p)ps.add(p);});const periods=[...ps].sort();
+  const bySeg={},segTot={};
+  rows.forEach(r=>{const p=periodKey(r);if(!p)return;let seg=dimGet?dimGet(r):'Total';seg=(seg===''||seg==null)?'(non renseigné)':String(seg);if(!bySeg[seg])bySeg[seg]={};bySeg[seg][p]=(bySeg[seg][p]||0)+mesureVal(r);segTot[seg]=(segTot[seg]||0)+mesureVal(r);});
+  const segs=Object.keys(segTot).sort((a,b)=>segTot[b]-segTot[a]);
+  const head=[dimGet?axisDef(evoDim).label:'Total'].concat(periods.map(periodLabel),['Total']);
+  const body=segs.map(seg=>[seg].concat(periods.map(p=>Math.round((bySeg[seg]&&bySeg[seg][p])||0)),[Math.round(segTot[seg])]));
+  return [{name:'Évolution',aoa:[head].concat(body)}];
+}
+function exportEvo(fmt){if(!ROWS.length){status('error','Rien à exporter.');return;}const sh=evoExportSheets();fmt==='csv'?forceCsv(sh,'evolution-vitisoft'):toXlsxOrCsv(sh,'evolution-vitisoft');}
 
 /* ======================= INIT ======================= */
 bindImport();
