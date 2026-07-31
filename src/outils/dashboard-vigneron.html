@@ -177,6 +177,11 @@ a{color:var(--orange)}
 
 /* TABLEAUX */
 table.data{width:100%;border-collapse:collapse;font-size:.82rem}
+.tablewrap{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.tablewrap table.data{border:none}
+table.data--sticky thead th{position:sticky;top:0;background:var(--card);z-index:2;box-shadow:inset 0 -1px 0 var(--line)}
+.toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:.7rem}
+.search{font-family:var(--fc);font-size:.85rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:5px;min-width:220px;background:var(--card);color:var(--ink)}
 table.data th,table.data td{padding:.45rem .55rem;text-align:left;border-bottom:1px solid var(--line)}
 table.data th{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 table.data td.num,table.data th.num{text-align:right;font-family:var(--fm)}
@@ -390,6 +395,7 @@ const DB_NAME='bdv_ventes_v4', STORE='lignes';
 let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[]};
 let PROFIL=null;             // profil de la base (calcule une fois apres import, cf. profilBase)
+let reactList=[],decroList=[]; // listes completes affichees (relance / decrochage), pour l'export
 let filters={year:null};     // filtre annee actif (null = toutes)
 let charts={};
 let BUSY_MIN=1500;   // en dessous, calcul synchrone (instantane) ; au dela, indicateur de chargement
@@ -1197,7 +1203,7 @@ function agentCadence(){
 function agentDormants(){
   const ref=META.max;const cad=agentCadence();if(!cad.ok)return{ref:null,dormants:[],ca:0,base:!!(PROFIL&&PROFIL.intervalleMedianBase)};
   const dormants=cad.enRetard.filter(c=>c.n>=SEUILS.rfmMinFreq&&c.montant>0)
-    .map(c=>({id:c.id,nom:c.nom,montant:c.montant,n:c.n,factures:{size:c.n},last:dayToDate(c.last),silence:c.silence,cadence:c.cadence,cadRef:c.cadRef,ampleur:c.ampleur,fiable:c.fiable,annuel:c.annuel,caPotentiel:c.caPotentiel,conf:c.conf}));
+    .map(c=>({id:c.id,nom:c.nom,montant:c.montant,n:c.n,factures:{size:c.n},last:dayToDate(c.last),silence:c.silence,cadence:c.cadence,cadRef:c.cadRef,ampleur:c.ampleur,fiable:c.fiable,annuel:c.annuel,prochaine:c.prochaine,caPotentiel:c.caPotentiel,conf:c.conf}));
   return{ref,dormants,ca:sum(dormants,c=>c.montant),usedBaseInterval:!clientStatsHaveCadence(cad)};
 }
 function clientStatsHaveCadence(cad){return cad.clients.some(c=>c.cadence!=null);}
@@ -1367,17 +1373,18 @@ function renderReactivation(){
   if(!dormants.length){
     html+=signal('ok','✔','Aucun client en retard sur sa cadence.',`Tes clients réguliers commandent dans les temps. Rien à relancer pour l'instant.`);
   }else{
+    reactList=dormants; // liste complete memorisee pour l'export
     html+=signal('warn','↻',
       `${plur(dormants.length,'client')} en retard sur leur cadence, ${fmtMoney(caDormant)} de CA historique à réveiller.`,
       `<b>Action : relance ciblée en partant du haut (valeur du client croisée avec l'ampleur du retard).</b>`
       +pourquoi(`Retard = silence actuel supérieur à ${SEUILS.cadenceK} × la cadence propre du client. La cadence est la médiane des intervalles entre ses achats (fiable à partir de ${SEUILS.cadenceMinAchats} achats ; en dessous, on retombe sur l'intervalle médian de la base, ${cadTxt}). Les clients à achat annuel ne sont signalés que si le retard dépasse un cycle, jamais hors saison.`));
-    const top=dormants.slice(0,20);
-    html+=`<div class="card"><div class="card__title"><span>Clients à relancer (valeur × ampleur du retard)</span></div>
-      <table class="data"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Achats</th><th class="num">Cadence</th><th>Rythme</th><th class="num">Dernier achat</th><th class="num">En retard de</th><th class="num">Prochaine attendue</th><th>Fiabilité</th></tr></thead><tbody>
-      ${top.map(c=>{const rythme=c.annuel?'annuel':(c.fiable?(c.cadRef>0?'régulier':''):'indicatif');
-        return `<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.n}</td><td class="num">${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}</td><td>${rythme}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${fmtDelai(c.silence)}</td><td class="num">${c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):'n/d'}</td><td>${confBadge(c.conf)}</td></tr>`;}).join('')}
-      </tbody></table>
-      ${dormants.length>20?`<p class="note">${dormants.length-20} autres clients en retard au-delà du top 20.</p>`:''}</div>`;
+    html+=`<div class="card">
+      <div class="toolbar"><span class="card__title" style="margin:0">Clients à relancer (valeur × ampleur du retard), ${fmtNum(dormants.length)} au total</span>
+        <span style="display:flex;gap:.5rem;flex-wrap:wrap"><input class="search" type="text" placeholder="Filtrer par nom de client" oninput="filterList('reactBody',this.value)"><button class="btn btn--ghost btn--sm" onclick="exportReactList()">Exporter la liste</button></span></div>
+      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Achats</th><th class="num">Cadence</th><th>Rythme</th><th class="num">Dernier achat</th><th class="num">En retard de</th><th class="num">Prochaine attendue</th><th>Fiabilité</th></tr></thead><tbody id="reactBody">
+      ${dormants.map(c=>{const rythme=c.annuel?'annuel':(c.fiable?'régulier/occasionnel':'indicatif');
+        return `<tr data-nom="${esc(norm(c.nom))}"><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.n}</td><td class="num">${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}</td><td>${rythme}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${fmtDelai(c.silence)}</td><td class="num">${c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):'n/d'}</td><td>${confBadge(c.conf)}</td></tr>`;}).join('')}
+      </tbody></table></div></div>`;
   }
   el('p-reactivation').innerHTML=html;
 }
@@ -1402,12 +1409,13 @@ function renderDecrochage(){
     html+=signal('danger','⚠',
       `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs l'an dernier à date égale.`,
       `C'est l'alerte à traiter avant le départ complet. <b>Action : les appeler en priorité, en partant du plus gros montant perdu.</b>`);
-    const top=decroche.slice(0,20);
-    html+=`<div class="card"><div class="card__title"><span>Top clients en décrochage (par euros perdus)</span></div>
-      <table class="data"><thead><tr><th>Client</th><th class="num">${f.prev} a date</th><th class="num">${f.cur} a date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody>
-      ${top.map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
-      </tbody></table>
-      ${decroche.length>20?`<p class="note">${decroche.length-20} autres clients en recul au-delà du top 20.</p>`:''}</div>`;
+    decroList=decroche; // liste complete memorisee pour l'export
+    html+=`<div class="card">
+      <div class="toolbar"><span class="card__title" style="margin:0">Clients en décrochage (par euros perdus), ${fmtNum(decroche.length)} au total</span>
+        <span style="display:flex;gap:.5rem;flex-wrap:wrap"><input class="search" type="text" placeholder="Filtrer par nom de client" oninput="filterList('decroBody',this.value)"><button class="btn btn--ghost btn--sm" onclick="exportDecroList()">Exporter la liste</button></span></div>
+      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th class="num">${f.prev} à date</th><th class="num">${f.cur} à date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody id="decroBody">
+      ${decroche.map(c=>`<tr data-nom="${esc(norm(c.nom))}"><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
+      </tbody></table></div></div>`;
   }
   el('p-decrochage').innerHTML=html;
 }
@@ -1677,6 +1685,22 @@ function exportExcel(){
 }
 
 /* ======================= EXPORTS CONTEXTUELS ======================= */
+// Filtre en direct d'une liste de clients par nom (sur l'attribut data-nom des lignes).
+function filterList(tbodyId,q){const tb=el(tbodyId);if(!tb)return;const k=norm(q);tb.querySelectorAll('tr').forEach(tr=>{const n=tr.getAttribute('data-nom')||'';tr.style.display=(!k||n.includes(k))?'':'none';});}
+// Export de la liste COMPLETE de relance (tous les clients en retard, pas seulement l'ecran).
+function exportReactList(){
+  if(!reactList.length){status('error','Aucun client a exporter.');return;}
+  const aoa=[['Client','CA historique','Achats','Cadence (jours)','Rythme','Dernier achat','En retard (jours)','Prochaine attendue','Fiabilite']];
+  reactList.forEach(c=>aoa.push([c.nom,Math.round(c.montant),c.n,(c.cadence!=null?Math.round(c.cadence):Math.round(c.cadRef)),(c.annuel?'annuel':(c.fiable?'regulier/occasionnel':'indicatif')),fmtDate(c.last),Math.round(c.silence),(c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):''),c.conf]));
+  toXlsxOrCsv([{name:'Relance',aoa}],'clients-a-relancer');
+}
+// Export de la liste COMPLETE de decrochage.
+function exportDecroList(){
+  if(!decroList.length){status('error','Aucun client a exporter.');return;}
+  const aoa=[['Client','CA annee precedente','CA annee en cours','Perdu','Evolution %']];
+  decroList.forEach(c=>aoa.push([c.nom,Math.round(c.prev),Math.round(c.cur),Math.round(c.perdu),+c.pct.toFixed(1)]));
+  toXlsxOrCsv([{name:'Decrochage',aoa}],'clients-en-decrochage');
+}
 function forceCsv(sheets,base){const csv=sheets[0].aoa.map(row=>row.map(c=>{c=(c==null?'':String(c));return /[;\n"]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\n');dl(base+'.csv','text/csv;charset=utf-8','﻿'+csv);}
 function toXlsxOrCsv(sheets,base){
   if(typeof XLSX==='undefined'){forceCsv(sheets,base);return;}
