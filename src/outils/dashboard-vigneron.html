@@ -182,6 +182,14 @@ table.data{width:100%;border-collapse:collapse;font-size:.82rem}
 table.data--sticky thead th{position:sticky;top:0;background:var(--card);z-index:2;box-shadow:inset 0 -1px 0 var(--line)}
 .toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:.7rem}
 .search{font-family:var(--fc);font-size:.85rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:5px;min-width:220px;background:var(--card);color:var(--ink)}
+/* Case a cocher des listes de clients (« joignables par e-mail ») et cellules secondaires. */
+.chk{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--muted);cursor:pointer;white-space:nowrap}
+.chk input{accent-color:var(--orange);width:15px;height:15px;cursor:pointer;margin:0}
+.muted-cell{color:var(--muted);font-size:.8rem}
+/* #B8530E et pas --orange-d (#CF6516) : ce dernier ne donne que 3,8:1 sur fond clair,
+   sous le seuil WCAG AA de 4,5:1 pour du texte. #B8530E monte a 4,9:1. */
+.data a{color:#B8530E;text-decoration:none;word-break:break-all}
+.data a:hover{text-decoration:underline}
 table.data th,table.data td{padding:.45rem .55rem;text-align:left;border-bottom:1px solid var(--line)}
 table.data th{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 table.data td.num,table.data th.num{text-align:right;font-family:var(--fm)}
@@ -348,13 +356,23 @@ table.data tbody tr:hover{background:var(--cream)}
 
 /* ======================= CONFIG (a ajuster par domaine) ======================= */
 
-// Les 40 colonnes de l'export, dans l'ordre exact. On cable en dur (pas d'auto-détection).
+// Les colonnes de l'export, dans l'ordre exact. On cable en dur (pas d'auto-détection).
+// ATTENTION : les 40 premieres sont le socle historique. L'empreinte de dedup (voir HASH_COLS)
+// ne porte QUE sur elles, pour que les bases deja constituees restent reconnues.
+// Toute colonne ajoutee par une version plus recente de l'export vient APRES, jamais au milieu.
 const COLS=['date','numFacture','produit','numProduit','famille','conditionnement',
   'persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5',
   'appellation','couleur','millesime','puHT','totalHT','client','numClient','commercial',
   'quantite','codeTarif',
   'persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9',
-  'pays','origine','ville','cp','vendeur','triPerso1','typeOffert','ordreDRM','depot','lieuVente'];
+  'pays','origine','ville','cp','vendeur','triPerso1','typeOffert','ordreDRM','depot','lieuVente',
+  // --- ajoutee par l'export d'aout 2026, hors empreinte ---
+  'emails'];
+
+// Nombre de champs entrant dans l'empreinte de ligne. NE JAMAIS AUGMENTER cette valeur :
+// toutes les empreintes changeraient, plus aucune ligne deja en base ne serait reconnue,
+// et un reimport dupliquerait la totalite des lignes (CA double, en silence).
+const HASH_COLS=40;
 
 // LISTE NOIRE des familles hors chiffre d'affaires (frais, remises, pub, divers, avoirs).
 // Logique inversee : TOUT est une vente par defaut, on n'exclut que ce qui est ici.
@@ -442,13 +460,44 @@ function parseDateFR(v){
   if(y<1990||y>2100||mo<1||mo>12)return null;
   return {y,m:mo,d,t:y*10000+mo*100+d};
 }
-// Empreinte de ligne (hash) sur les 40 champs bruts concatenes. cyrb53, compact et robuste.
+// Empreinte de ligne (hash) sur les HASH_COLS premiers champs bruts. cyrb53, compact et robuste.
 function cyrb53(str){
   let h1=0xdeadbeef,h2=0x41c6ce57;
   for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
   h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);
   h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);
   return (h2>>>0).toString(16).padStart(8,'0')+(h1>>>0).toString(16).padStart(8,'0');
+}
+
+/* ======================= COLONNES HORS EMPREINTE ======================= */
+// Une ligne deja en base doit-elle etre remplacee par la version qui arrive ?
+// Oui uniquement si la nouvelle apporte une information la ou l'ancienne n'en avait pas,
+// sur les colonnes situees apres l'empreinte. On n'ecrase jamais une valeur par du vide.
+function rawEnrichit(oldRaw,newRaw){
+  if(!Array.isArray(oldRaw)||!Array.isArray(newRaw))return false;
+  for(let i=HASH_COLS;i<COLS.length;i++){
+    const a=String(oldRaw[i]==null?'':oldRaw[i]).trim();
+    const b=String(newRaw[i]==null?'':newRaw[i]).trim();
+    if(b&&b!==a)return true;
+  }
+  return false;
+}
+
+/* ======================= ADRESSES E-MAIL ======================= */
+// La colonne Emails de l'export est saisie a la main cote logiciel. Constats sur base reelle :
+// plusieurs adresses dans une meme cellule separees par un pipe, parfois par une espace,
+// des majuscules, des doublons, et quelques adresses invalides (domaine sans extension).
+// On nettoie ici une fois pour toutes, le reste du code ne voit qu'un tableau propre.
+const RE_EMAIL=/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/;
+function parseEmails(cell){
+  if(!cell)return [];
+  const out=[],vus=new Set();
+  String(cell).split(/[|;,\s]+/).forEach(part=>{
+    const e=part.trim().replace(/^[<("']+|[>)"'.,;]+$/g,'').toLowerCase();
+    if(!e||!RE_EMAIL.test(e)||vus.has(e))return;
+    vus.add(e);out.push(e);
+  });
+  return out;
 }
 
 // Canal normalise a partir du lieu de vente brut.
@@ -476,20 +525,26 @@ async function dbAddMany(items){
   const db=await dbOpen();
   return new Promise((res,rej)=>{
     const tx=db.transaction(STORE,'readwrite'),st=tx.objectStore(STORE);
-    let added=0,dup=0,i=0;
+    let added=0,dup=0,enriched=0,i=0;
     function next(){
       if(i>=items.length){return;}
       const it=items[i++];
       const g=st.get(it.h);
       g.onsuccess=()=>{
-        if(g.result){dup++;}
+        const old=g.result;
+        if(old){
+          // Ligne deja connue. Un export plus recent peut porter des colonnes hors empreinte
+          // (aujourd'hui : les adresses e-mail). On complete au lieu d'ignorer betement.
+          if(rawEnrichit(old.raw,it.raw)){st.put(it);enriched++;}
+          else dup++;
+        }
         else{st.add(it);added++;}
         next();
       };
       g.onerror=()=>{next();};
     }
     next();
-    tx.oncomplete=()=>res({added,dup});
+    tx.oncomplete=()=>res({added,dup,enriched});
     tx.onerror=e=>rej(e.target.error);
   });
 }
@@ -527,19 +582,22 @@ function bindImport(){
 async function handleFiles(list){
   const files=Array.from(list).filter(f=>f.name.toLowerCase().endsWith('.csv'));
   if(!files.length){status('error','Dépose un fichier .csv exporté depuis Vitisoft.');return;}
-  let totAdded=0,totDup=0;
+  let totAdded=0,totDup=0,totEnrich=0;
   for(const f of files){
     try{
       status('loading','Lecture de '+f.name+'...');
       const items=await readVitisoftCSV(f);
       const r=await dbAddMany(items);
-      totAdded+=r.added;totDup+=r.dup;
+      totAdded+=r.added;totDup+=r.dup;totEnrich+=(r.enriched||0);
     }catch(err){status('error','Erreur sur '+f.name+' : '+err.message);return;}
   }
   await reloadFromDB();
   const total=ROWS.length;
   const per=META.min&&META.max?(' sur la période '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
-  status('success',totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s). Base totale = '+fmtNum(total)+' lignes'+per+'.');
+  // Un export deja importe qui revient enrichi (adresses e-mail) ne doit pas passer pour un echec.
+  const enrichTxt=totEnrich?', '+fmtNum(totEnrich)+' ligne(s) complétée(s) avec les adresses e-mail':'';
+  const couvTxt=COUV.total?' '+fmtNum(COUV.joignables)+' client(s) sur '+fmtNum(COUV.total)+' ont une adresse e-mail.':'';
+  status('success',totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s)'+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt);
   openApp();
 }
 // Lit le CSV en windows-1252 (PAS UTF-8), separateur ; , renvoie [{h, raw:[...]}].
@@ -559,7 +617,9 @@ function readVitisoftCSV(file){
           if(idx===0 && !parseDateFR(row[0]))return;
           if(!parseDateFR(row[0]))return; // ligne sans date valide (total, vide) => ignore
           const raw=[];for(let i=0;i<COLS.length;i++)raw.push(row[i]==null?'':String(row[i]));
-          items.push({h:cyrb53(raw.join('')),raw});
+          // Empreinte sur le socle historique uniquement : un export enrichi d'une colonne
+          // supplementaire doit reconnaitre les lignes deja en base, pas les redoubler.
+          items.push({h:cyrb53(raw.slice(0,HASH_COLS).join('')),raw});
         });
         res(items);
       }catch(err){rej(err);}
@@ -585,6 +645,9 @@ function deriveRow(raw){
   o._pu=parseNum(o.puHT);
   o._qte=parseNum(o.quantite);
   o._canal=normCanal(o.lieuVente);
+  o._emails=parseEmails(o.emails);        // adresses nettoyees de la ligne (0, 1 ou plusieurs)
+  o._email=o._emails[0]||'';              // adresse principale, pour l'affichage
+  o._joignable=o._emails.length>0;
   const fam=norm(o.famille);
   const offert=String(o.typeOffert||'').trim()!=='';
   // Liste noire par inclusion partielle : la famille est-elle un poste hors chiffre d'affaires ?
@@ -600,7 +663,37 @@ function computeMeta(){
   let min=null,max=null;const ys=new Set();
   ROWS.forEach(r=>{if(!r._date)return;if(!min||r._date.t<min.t)min=r._date;if(!max||r._date.t>max.t)max=r._date;ys.add(r._date.y);});
   META={min,max,years:[...ys].sort((a,b)=>a-b)};
+  buildEmailIndex();     // adresses regroupees par client, avant le profil
   PROFIL=profilBase();   // recalcule le profil a chaque changement de base
+}
+
+/* Index des adresses par client. L'export porte l'e-mail sur chaque ligne de facture,
+   donc la meme adresse revient des dizaines de fois : on la remonte une bonne fois au client.
+   Cle = numero client quand il existe (le libelle, lui, peut etre renomme dans le logiciel). */
+let EMAILS={},COUV={joignables:0,total:0};
+function clientKey(r){return r.numClient||r.client||'(inconnu)';}
+function buildEmailIndex(){
+  const m={};
+  ROWS.forEach(r=>{
+    if(!r._emails||!r._emails.length)return;
+    const id=clientKey(r),s=m[id]||(m[id]=new Set());
+    r._emails.forEach(e=>s.add(e));
+  });
+  EMAILS={};for(const id in m)EMAILS[id]=[...m[id]];
+  const tous=new Set();ROWS.forEach(r=>{if(r._vin)tous.add(clientKey(r));});
+  let j=0;tous.forEach(id=>{if(EMAILS[id])j++;});
+  COUV={joignables:j,total:tous.size};
+}
+// Adresses connues d'un client (tableau, eventuellement vide).
+function emailsOf(id){return EMAILS[id]||[];}
+// Adresse principale d'un client, chaine vide si aucune.
+function emailOf(id){const e=EMAILS[id];return e&&e.length?e[0]:'';}
+// Cellule e-mail d'un tableau : lien mailto, mention discrete des adresses en plus, ou tiret.
+function emailCell(id){
+  const e=emailsOf(id);
+  if(!e.length)return `<span class="muted-cell">non renseigné</span>`;
+  const plus=e.length>1?` <span class="muted-cell">+${e.length-1}</span>`:'';
+  return `<a href="mailto:${esc(e[0])}">${esc(e[0])}</a>${plus}`;
 }
 function median(arr){if(!arr.length)return 0;const a=[...arr].sort((x,y)=>x-y),m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;}
 function stdev(arr){if(arr.length<2)return 0;const m=arr.reduce((s,v)=>s+v,0)/arr.length;return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/arr.length);}
@@ -1380,13 +1473,15 @@ function renderReactivation(){
       +pourquoi(`Retard = silence actuel supérieur à ${SEUILS.cadenceK} × la cadence propre du client. La cadence est la médiane des intervalles entre ses achats (fiable à partir de ${SEUILS.cadenceMinAchats} achats ; en dessous, on retombe sur l'intervalle médian de la base, ${cadTxt}). Les clients à achat annuel ne sont signalés que si le retard dépasse un cycle, jamais hors saison.`));
     html+=`<div class="card">
       <div class="toolbar"><span class="card__title" style="margin:0">Clients à relancer (valeur × ampleur du retard), ${fmtNum(dormants.length)} au total</span>
-        <span style="display:flex;gap:.5rem;flex-wrap:wrap"><input class="search" type="text" placeholder="Filtrer par nom de client" oninput="filterList('reactBody',this.value)"><button class="btn btn--ghost btn--sm" onclick="exportReactList()">Exporter la liste</button></span></div>
-      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th class="num">CA historique</th><th class="num">Achats</th><th class="num">Cadence</th><th>Rythme</th><th class="num">Dernier achat</th><th class="num">En retard de</th><th class="num">Prochaine attendue</th><th>Fiabilité</th></tr></thead><tbody id="reactBody">
+        ${listTools('reactBody','exportReactList')}</div>
+      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>E-mail</th><th class="num">CA historique</th><th class="num">Achats</th><th class="num">Cadence</th><th>Rythme</th><th class="num">Dernier achat</th><th class="num">En retard de</th><th class="num">Prochaine attendue</th><th>Fiabilité</th></tr></thead><tbody id="reactBody">
       ${dormants.map(c=>{const rythme=c.annuel?'annuel':(c.fiable?'régulier/occasionnel':'indicatif');
-        return `<tr data-nom="${esc(norm(c.nom))}"><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.n}</td><td class="num">${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}</td><td>${rythme}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${fmtDelai(c.silence)}</td><td class="num">${c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):'n/d'}</td><td>${confBadge(c.conf)}</td></tr>`;}).join('')}
+        return `<tr data-nom="${esc(norm(c.nom))}" data-mail="${esc(emailsOf(c.id).join(' '))}"><td>${esc(c.nom)}</td><td>${emailCell(c.id)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.n}</td><td class="num">${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}</td><td>${rythme}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${fmtDelai(c.silence)}</td><td class="num">${c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):'n/d'}</td><td>${confBadge(c.conf)}</td></tr>`;}).join('')}
       </tbody></table></div></div>`;
   }
   el('p-reactivation').innerHTML=html;
+  // Les controles viennent d'etre recrees vierges : on remet l'etat du filtre a zero et on compte.
+  FILTRES.reactBody={q:'',joign:false};applyFilters('reactBody');
 }
 
 /* ======================= EXPERTISE 2 : DECROCHAGE (YoY à date égale) ======================= */
@@ -1412,12 +1507,13 @@ function renderDecrochage(){
     decroList=decroche; // liste complete memorisee pour l'export
     html+=`<div class="card">
       <div class="toolbar"><span class="card__title" style="margin:0">Clients en décrochage (par euros perdus), ${fmtNum(decroche.length)} au total</span>
-        <span style="display:flex;gap:.5rem;flex-wrap:wrap"><input class="search" type="text" placeholder="Filtrer par nom de client" oninput="filterList('decroBody',this.value)"><button class="btn btn--ghost btn--sm" onclick="exportDecroList()">Exporter la liste</button></span></div>
-      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th class="num">${f.prev} à date</th><th class="num">${f.cur} à date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody id="decroBody">
-      ${decroche.map(c=>`<tr data-nom="${esc(norm(c.nom))}"><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
+        ${listTools('decroBody','exportDecroList')}</div>
+      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>E-mail</th><th class="num">${f.prev} à date</th><th class="num">${f.cur} à date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody id="decroBody">
+      ${decroche.map(c=>`<tr data-nom="${esc(norm(c.nom))}" data-mail="${esc(emailsOf(c.id).join(' '))}"><td>${esc(c.nom)}</td><td>${emailCell(c.id)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
       </tbody></table></div></div>`;
   }
   el('p-decrochage').innerHTML=html;
+  FILTRES.decroBody={q:'',joign:false};applyFilters('decroBody');
 }
 
 /* ======================= EXPERTISE 4 : MIX CANAL + PRIX MOYEN ======================= */
@@ -1685,20 +1781,46 @@ function exportExcel(){
 }
 
 /* ======================= EXPORTS CONTEXTUELS ======================= */
-// Filtre en direct d'une liste de clients par nom (sur l'attribut data-nom des lignes).
-function filterList(tbodyId,q){const tb=el(tbodyId);if(!tb)return;const k=norm(q);tb.querySelectorAll('tr').forEach(tr=>{const n=tr.getAttribute('data-nom')||'';tr.style.display=(!k||n.includes(k))?'':'none';});}
+// Filtre en direct d'une liste de clients. Deux criteres cumulables, memorises par tableau :
+// le texte cherche (nom OU adresse e-mail) et la case « joignables seulement ».
+const FILTRES={};
+function applyFilters(tbodyId){
+  const tb=el(tbodyId);if(!tb)return;
+  const f=FILTRES[tbodyId]||(FILTRES[tbodyId]={q:'',joign:false});
+  const k=norm(f.q);let vus=0;
+  tb.querySelectorAll('tr').forEach(tr=>{
+    const n=tr.getAttribute('data-nom')||'',m=tr.getAttribute('data-mail')||'';
+    const okTxt=!k||n.includes(k)||m.includes(k);
+    const okJoign=!f.joign||m!=='';
+    const ok=okTxt&&okJoign;
+    tr.style.display=ok?'':'none';if(ok)vus++;
+  });
+  const cpt=el(tbodyId+'Count');
+  if(cpt)cpt.textContent=fmtNum(vus)+' affiché(s)';
+}
+function filterList(tbodyId,q){const f=FILTRES[tbodyId]||(FILTRES[tbodyId]={q:'',joign:false});f.q=q;applyFilters(tbodyId);}
+function filterJoignables(tbodyId,on){const f=FILTRES[tbodyId]||(FILTRES[tbodyId]={q:'',joign:false});f.joign=!!on;applyFilters(tbodyId);}
+// Barre d'outils commune aux listes de clients : recherche, case joignables, compteur.
+function listTools(tbodyId,exportFn){
+  return `<span style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+    <input class="search" type="text" placeholder="Filtrer par nom ou adresse e-mail" oninput="filterList('${tbodyId}',this.value)">
+    <label class="chk"><input type="checkbox" onchange="filterJoignables('${tbodyId}',this.checked)"> joignables par e-mail</label>
+    <span class="muted-cell" id="${tbodyId}Count"></span>
+    <button class="btn btn--ghost btn--sm" onclick="${exportFn}()">Exporter la liste</button></span>`;
+}
 // Export de la liste COMPLETE de relance (tous les clients en retard, pas seulement l'ecran).
 function exportReactList(){
   if(!reactList.length){status('error','Aucun client a exporter.');return;}
-  const aoa=[['Client','CA historique','Achats','Cadence (jours)','Rythme','Dernier achat','En retard (jours)','Prochaine attendue','Fiabilite']];
-  reactList.forEach(c=>aoa.push([c.nom,Math.round(c.montant),c.n,(c.cadence!=null?Math.round(c.cadence):Math.round(c.cadRef)),(c.annuel?'annuel':(c.fiable?'regulier/occasionnel':'indicatif')),fmtDate(c.last),Math.round(c.silence),(c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):''),c.conf]));
+  // La colonne E-mail est en 2e position : le fichier part tel quel dans un outil d'emailing.
+  const aoa=[['Client','E-mail','Autres e-mails','CA historique','Achats','Cadence (jours)','Rythme','Dernier achat','En retard (jours)','Prochaine attendue','Fiabilite']];
+  reactList.forEach(c=>aoa.push([c.nom,emailOf(c.id),emailsOf(c.id).slice(1).join(' | '),Math.round(c.montant),c.n,(c.cadence!=null?Math.round(c.cadence):Math.round(c.cadRef)),(c.annuel?'annuel':(c.fiable?'regulier/occasionnel':'indicatif')),fmtDate(c.last),Math.round(c.silence),(c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):''),c.conf]));
   toXlsxOrCsv([{name:'Relance',aoa}],'clients-a-relancer');
 }
 // Export de la liste COMPLETE de decrochage.
 function exportDecroList(){
   if(!decroList.length){status('error','Aucun client a exporter.');return;}
-  const aoa=[['Client','CA annee precedente','CA annee en cours','Perdu','Evolution %']];
-  decroList.forEach(c=>aoa.push([c.nom,Math.round(c.prev),Math.round(c.cur),Math.round(c.perdu),+c.pct.toFixed(1)]));
+  const aoa=[['Client','E-mail','Autres e-mails','CA annee precedente','CA annee en cours','Perdu','Evolution %']];
+  decroList.forEach(c=>aoa.push([c.nom,emailOf(c.id),emailsOf(c.id).slice(1).join(' | '),Math.round(c.prev),Math.round(c.cur),Math.round(c.perdu),+c.pct.toFixed(1)]));
   toXlsxOrCsv([{name:'Decrochage',aoa}],'clients-en-decrochage');
 }
 function forceCsv(sheets,base){const csv=sheets[0].aoa.map(row=>row.map(c=>{c=(c==null?'':String(c));return /[;\n"]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\n');dl(base+'.csv','text/csv;charset=utf-8','﻿'+csv);}
