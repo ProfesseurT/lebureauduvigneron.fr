@@ -337,6 +337,7 @@ table.data tbody tr:hover{background:var(--cream)}
     <section class="panel" id="p-reactivation"></section>
     <section class="panel" id="p-decrochage"></section>
     <section class="panel" id="p-canaux"></section>
+    <section class="panel" id="p-reglages"></section>
     <section class="panel" id="p-base"></section>
     <footer class="appfoot">Le Bureau du Vigneron, propulsé par Solumatic.</footer>
   </main>
@@ -409,7 +410,7 @@ const SEUILS={
 };
 
 /* ======================= ETAT ======================= */
-const DB_NAME='bdv_ventes_v4', STORE='lignes';
+const DB_NAME='bdv_ventes_v4', STORE='lignes', STORE_REG='reglages';
 let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[]};
 let PROFIL=null;             // profil de la base (calcule une fois apres import, cf. profilBase)
@@ -500,6 +501,136 @@ function parseEmails(cell){
   return out;
 }
 
+/* ======================= REGLAGES DU DOMAINE =======================
+   Dans Vitisoft, Origine, Lieu de vente et les champs Perso sont saisis librement :
+   chaque domaine y met ce qu'il veut. Aucune liste de valeurs ecrite en dur ne peut
+   donc etre juste ailleurs que chez celui qui l'a ecrite.
+   Principe retenu : on ne suppose rien, on decouvre les valeurs reellement presentes,
+   on PROPOSE un classement, le vigneron tranche une fois, et on memorise.
+   Sans reglage enregistre, l'outil retombe sur les propositions automatiques :
+   il fonctionne toujours, simplement avec l'aveu qu'il a deviné.
+   Forme de REG :
+     {champCanal, champType, horsCA:{famille:bool}, gratuit:{type:bool},
+      canaux:{valeur:'libelle'}, types:{valeur:'libelle'}, valide:bool}
+*/
+let REG=null;
+const CHAMPS_CANDIDATS=[
+  {k:'lieuVente',  l:'Lieu de vente'},
+  {k:'origine',    l:'Origine'},
+  {k:'codeTarif',  l:'Code tarif'},
+  {k:'depot',      l:'Dépôt'},
+  {k:'commercial', l:'Commercial'},
+  {k:'vendeur',    l:'Vendeur'},
+  {k:'triPerso1',  l:'Tri perso facture 1'},
+  {k:'persoClient1',l:'Perso client 1'},{k:'persoClient2',l:'Perso client 2'},{k:'persoClient3',l:'Perso client 3'},
+  {k:'persoClient4',l:'Perso client 4'},{k:'persoClient5',l:'Perso client 5'},{k:'persoClient6',l:'Perso client 6'},
+  {k:'persoClient7',l:'Perso client 7'},{k:'persoClient8',l:'Perso client 8'},{k:'persoClient9',l:'Perso client 9'}
+];
+// Une valeur consideree comme vide : chaine blanche, ou zero seul (fréquent dans les champs perso).
+function estVide(v){const s=String(v==null?'':v).trim();return !s||s==='0';}
+
+// Profil d'un champ sur la base chargee : remplissage, dispersion, forme temporelle des valeurs.
+// Sert a classer les champs du plus exploitable au moins exploitable, sans rien presumer du sens.
+function profilChamp(cle){
+  const vals={};let remplies=0;
+  ROWS.forEach(r=>{
+    const v=String(r[cle]==null?'':r[cle]).trim();
+    if(estVide(v))return;
+    remplies++;
+    const e=vals[v]||(vals[v]={v,n:0,ca:0,jours:new Set(),clients:new Set(),min:Infinity,max:-Infinity});
+    e.n++;e.ca+=r._total;
+    if(r._dayNum!=null){e.jours.add(r._dayNum);e.min=Math.min(e.min,r._dayNum);e.max=Math.max(e.max,r._dayNum);}
+    e.clients.add(r.numClient||r.client||'?');
+  });
+  const liste=Object.values(vals).sort((a,b)=>b.n-a.n);
+  return {cle,remplies,taux:ROWS.length?remplies/ROWS.length:0,distinct:liste.length,liste};
+}
+// Forme d'une valeur : ponctuelle ou installee dans la duree. Cette lecture est FIABLE,
+// elle ne repose que sur les dates. Elle ne dit rien du sens : « Ami » et « Ramatuelle »
+// ont la meme forme. C'est pourquoi elle ne sert qu'a proposer, jamais a conclure.
+function formeValeur(e){
+  if(!e.jours.size)return 'indéterminée';
+  const etendue=e.max-e.min+1;
+  if(e.jours.size<=3&&etendue<=7)return 'ponctuelle';
+  if(etendue>200&&e.jours.size>=10)return 'récurrente';
+  if(e.clients.size===1)return 'un seul client';
+  return 'intermittente';
+}
+// Proposition de libelle pour une valeur de canal. Purement indicative.
+function proposerCanal(v,e){
+  const k=norm(v);
+  for(const c of CANAUX){
+    if(c.startsWith&&c.startsWith.some(p=>k.startsWith(norm(p))))return c.label;
+    if(c.match&&c.match.some(p=>k.includes(norm(p))))return c.label;
+  }
+  // Rien dans le vocabulaire connu. On ne fusionne surtout pas : deux caveaux dans deux
+  // communes doivent rester deux lignes distinctes. On reprend donc la valeur telle quelle,
+  // proprement capitalisee, et le vigneron regroupe lui-meme s'il le souhaite.
+  // Seules les valeurs d'un seul jour sont rassemblees, un salon ponctuel se suffit rarement.
+  if(formeValeur(e)==='ponctuelle')return 'Événement';
+  return capit(v);
+}
+// « grimaud » devient « Grimaud », « SALON DU VIN » devient « Salon du vin ».
+function capit(s){
+  const t=String(s||'').trim();
+  if(!t)return '';
+  if(t===t.toUpperCase()&&t.length>3)return t.charAt(0)+t.slice(1).toLowerCase();
+  return t.charAt(0).toUpperCase()+t.slice(1);
+}
+// Proposition de regroupement pour une typologie client : on rassemble par racine alphabetique
+// (CAV, CAV1, CAV3 -> CAV ; CHR, CHR1, CHR2 -> CHR), ce qui colle aux codes tarif reels.
+function proposerType(v){
+  const s=String(v||'').trim().toUpperCase();
+  const racine=s.replace(/[\s._-]*\d+$/,'');
+  return racine||s;
+}
+// Reglages par defaut, entierement deduits du fichier charge. Aucun choix humain encore.
+function reglagesProposes(){
+  const profils={};CHAMPS_CANDIDATS.forEach(c=>profils[c.k]=profilChamp(c.k));
+  // Choix des colonnes par defaut. Le CONTENU des champs est libre, mais pas leurs EN-TETES :
+  // c'est Vitisoft qui fixe les colonnes, pas l'utilisateur. Le nom de la colonne est donc la
+  // seule sémantique fiable dont on dispose, et il prime sur le taux de remplissage.
+  // Se fier au champ le plus rempli donnerait « Vendeur » comme canal de vente, ce qui est faux.
+  const utiles=CHAMPS_CANDIDATS.map(c=>profils[c.k]).filter(p=>p.distinct>=2&&p.distinct<=60);
+  const dispo=k=>profils[k]&&profils[k].distinct>=2;
+  const secours=(exclu)=>(utiles.filter(p=>p.cle!==exclu).sort((a,b)=>b.taux-a.taux)[0]||{cle:'lieuVente'}).cle;
+  const champType=dispo('codeTarif')?'codeTarif':secours(null);
+  const champCanal=dispo('lieuVente')&&champType!=='lieuVente'?'lieuVente'
+                  :(dispo('origine')&&champType!=='origine'?'origine':secours(champType));
+  const R={champCanal,champType,horsCA:{},gratuit:{},canaux:{},types:{},valide:false};
+  // Familles : la liste noire historique sert de proposition, plus rien d'autre.
+  const fams=new Set();ROWS.forEach(r=>{const f=String(r.famille||'').trim();if(f)fams.add(f);});
+  fams.forEach(f=>{R.horsCA[f]=FAMILLES_HORS_CA.some(x=>norm(f).includes(norm(x)));});
+  // Types offerts : toute valeur non vide etait consideree comme une sortie gratuite.
+  const tos=new Set();ROWS.forEach(r=>{const t=String(r.typeOffert||'').trim();if(t)tos.add(t);});
+  tos.forEach(t=>{R.gratuit[t]=true;});
+  profils[champCanal].liste.forEach(e=>{R.canaux[e.v]=proposerCanal(e.v,e);});
+  profils[champType].liste.forEach(e=>{R.types[e.v]=proposerType(e.v);});
+  R._profils=profils;
+  return R;
+}
+// Applique les reglages a une ligne. Tout passe par ici, plus aucune decision ailleurs.
+function classerLigne(o){
+  const R=REG;
+  const fam=String(o.famille||'').trim();
+  const to=String(o.typeOffert||'').trim();
+  if(R&&R.valide){
+    o._horsVin=!!R.horsCA[fam];
+    o._offert=to?!!R.gratuit[to]:false;
+    o._canal=R.canaux[String(o[R.champCanal]||'').trim()]||'Autre / non renseigné';
+    o._typeClient=R.types[String(o[R.champType]||'').trim()]||'Non typé';
+  }else{
+    // Mode deviné : comportement historique, conserve tel quel.
+    o._horsVin=FAMILLES_HORS_CA.some(f=>norm(fam).includes(norm(f)));
+    o._offert=to!=='';
+    o._canal=normCanal(o.lieuVente);
+    o._typeClient='Non typé';
+  }
+  o._vente=!o._horsVin&&!o._offert;
+  o._vin=o._vente;
+  return o;
+}
+
 // Canal normalise a partir du lieu de vente brut.
 function normCanal(raw){
   const k=norm(raw);
@@ -514,10 +645,31 @@ function normCanal(raw){
 /* ======================= INDEXEDDB ======================= */
 function dbOpen(){
   return new Promise((res,rej)=>{
-    const rq=indexedDB.open(DB_NAME,1);
-    rq.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'h'});};
+    // Version 2 : ajout du store des reglages. La montee de version ne touche pas au store
+    // des lignes, les bases deja constituees sont conservees telles quelles.
+    const rq=indexedDB.open(DB_NAME,2);
+    rq.onupgradeneeded=e=>{const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'h'});
+      if(!db.objectStoreNames.contains(STORE_REG))db.createObjectStore(STORE_REG);
+    };
     rq.onsuccess=e=>res(e.target.result);
     rq.onerror=e=>rej(e.target.error);
+  });
+}
+// Reglages du domaine : un seul enregistrement, cle fixe.
+async function regLire(){
+  const db=await dbOpen();
+  return new Promise(res=>{
+    const rq=db.transaction(STORE_REG,'readonly').objectStore(STORE_REG).get('v1');
+    rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);
+  });
+}
+async function regEcrire(obj){
+  const db=await dbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_REG,'readwrite');
+    tx.objectStore(STORE_REG).put(obj,'v1');
+    tx.oncomplete=()=>res(true);tx.onerror=e=>rej(e.target.error);
   });
 }
 // Ajoute des lignes {h, raw:[...40]} en ignorant les doublons (meme empreinte). Renvoie {added,dup}.
@@ -633,8 +785,29 @@ function fmtDate(d){return d?String(d.d).padStart(2,'0')+'/'+String(d.m).padStar
 /* ======================= DERIVATION EN MEMOIRE ======================= */
 async function reloadFromDB(){
   const items=await dbGetAll();
+  REG=await regLire();                    // les reglages doivent etre la AVANT de classer
   ROWS=items.map(it=>deriveRow(it.raw));
   computeMeta();
+  // Sans reglage enregistre, on prepare les propositions pour l'ecran dedie, sans les appliquer.
+  if(!REG||!REG.valide)PROPOSE=reglagesProposes();
+}
+let PROPOSE=null;
+// Enregistre les reglages saisis par le vigneron et reclasse toute la base.
+async function appliquerReglages(R){
+  R.valide=true;delete R._profils;
+  await regEcrire(R);
+  REG=R;
+  ROWS=ROWS.map(r=>classerLigne(r));
+  computeMeta();
+  runBusy('Application de tes réglages…',()=>{renderAll();navTo('reglages');});
+  status('success','Réglages enregistrés. Toute la base a été reclassée.');
+}
+// Revient aux propositions automatiques.
+async function oublierReglages(){
+  if(!confirm('Revenir au classement automatique ? Tes regroupements seront perdus.'))return;
+  await regEcrire({valide:false});
+  await reloadFromDB();
+  runBusy('Retour au classement automatique…',()=>{renderAll();navTo('reglages');});
 }
 // Transforme les 40 champs bruts en objet exploitable + classification vente/non-vente.
 function deriveRow(raw){
@@ -644,20 +817,12 @@ function deriveRow(raw){
   o._total=parseNum(o.totalHT);
   o._pu=parseNum(o.puHT);
   o._qte=parseNum(o.quantite);
-  o._canal=normCanal(o.lieuVente);
   o._emails=parseEmails(o.emails);        // adresses nettoyees de la ligne (0, 1 ou plusieurs)
   o._email=o._emails[0]||'';              // adresse principale, pour l'affichage
   o._joignable=o._emails.length>0;
-  const fam=norm(o.famille);
-  const offert=String(o.typeOffert||'').trim()!=='';
-  // Liste noire par inclusion partielle : la famille est-elle un poste hors chiffre d'affaires ?
-  const estHorsCA=FAMILLES_HORS_CA.some(f=>fam.includes(norm(f)));
-  o._offert=offert;                       // sortie gratuite ou perte (typeOffert non vide)
-  o._horsVin=estHorsCA;                    // hors chiffre d'affaires (transport, remise, pub, divers, avoir)
-  // TOUT le reste est une vente, quel que soit le nom de la famille.
-  o._vente=!estHorsCA && !offert;
-  o._vin=o._vente;                         // alias retro-compatibilite (le reste du code lit encore _vin)
-  return o;
+  // Classification (vente, hors CA, offert, canal, typologie) : entierement deleguee
+  // aux reglages du domaine, avec repli sur les propositions automatiques.
+  return classerLigne(o);
 }
 function computeMeta(){
   let min=null,max=null;const ys=new Set();
@@ -765,6 +930,7 @@ const NAV=[
   {id:'reactivation',ico:'↻',label:'Réactivation'},
   {id:'decrochage',ico:'⚠',label:'Décrochage'},
   {id:'canaux',ico:'▤',label:'Canaux & prix'},
+  {id:'reglages',ico:'⚙',label:'Réglages'},
   {id:'base',ico:'\u{1F5C2}',label:'Ma base'}
 ];
 function openApp(){
@@ -780,7 +946,7 @@ function navTo(id){
   document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
-  el('filterbar').style.display = (id==='base'||id==='diagnostic'||id==='explorer') ? 'none' : 'flex';
+  el('filterbar').style.display = (id==='base'||id==='diagnostic'||id==='explorer'||id==='reglages') ? 'none' : 'flex';
   window.scrollTo(0,0);
 }
 function buildFilterBar(){
@@ -790,7 +956,7 @@ function buildFilterBar(){
   el('filterbar').innerHTML=parts.join('');
 }
 function setYear(y){filters.year=y;buildFilterBar();runBusy('Analyse…',renderAll);}
-function renderAll(){renderApercu();renderEvolution();renderExplo();renderDiagnostic();renderReactivation();renderDecrochage();renderCanaux();renderBase();}
+function renderAll(){renderApercu();renderEvolution();renderExplo();renderDiagnostic();renderReactivation();renderDecrochage();renderCanaux();renderReglages();renderBase();}
 
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
@@ -1613,6 +1779,136 @@ function coutOffertLigne(r,prix){
   const pu = prix.parProduit[r.numProduit] || prix.parFamille[norm(r.famille)] || 0;
   return pu * r._qte;
 }
+/* ======================= ECRAN REGLAGES =======================
+   Quatre questions, dans l'ordre de leur impact sur les chiffres affiches.
+   L'ecran travaille sur une copie de travail (BROUILLON) : rien n'est applique
+   tant que le vigneron n'a pas cliqué sur le bouton d'enregistrement. */
+let BROUILLON=null;
+function renderReglages(){
+  if(!ROWS.length){el('p-reglages').innerHTML='<h2 class="panel__title">Réglages</h2>';return;}
+  if(!BROUILLON)BROUILLON=REG&&REG.valide?JSON.parse(JSON.stringify(REG)):(PROPOSE||reglagesProposes());
+  if(!BROUILLON._profils)BROUILLON._profils=reglagesProposes()._profils;
+  const B=BROUILLON, P=B._profils;
+  const regle=!!(REG&&REG.valide);
+
+  let html=`<h2 class="panel__title">Réglages</h2>
+  <div class="panel__sub">Dans ton logiciel, tu remplis Origine, Lieu de vente et les champs Perso comme tu veux. L'outil ne peut donc pas deviner ce que veulent dire tes valeurs. Il te propose une lecture, tu la corriges une fois, il s'en souvient.</div>`;
+
+  html+=regle
+    ? signal('ok','✔','Tes réglages sont enregistrés.','Les chiffres de tous les écrans les utilisent. Tu peux les modifier ici à tout moment.')
+    : signal('info','ℹ','L\'outil fonctionne actuellement au jugé.',
+        'Les regroupements ci-dessous sont des <b>propositions</b> déduites de ton fichier, pas des certitudes. Tant que tu ne les as pas validés, prends les chiffres de canaux et de typologie avec prudence.');
+
+  /* 1. Ce qui compte dans le chiffre d'affaires */
+  const fams=Object.keys(B.horsCA).sort((a,b)=>caFamille(b)-caFamille(a));
+  html+=`<div class="section-label">1. Ce qui compte dans ton chiffre d'affaires</div>
+  <div class="card"><p class="mini-line">Décoche une famille pour la sortir du CA (frais de port, remises, avoirs, articles publicitaires). Les montants ci-dessous sont ceux de ta base.</p>
+  <div class="tablewrap"><table class="data"><thead><tr><th>Famille de produit</th><th class="num">Lignes</th><th class="num">Montant HT</th><th>Compte dans le CA</th></tr></thead><tbody>
+  ${fams.map(f=>{const s=statFamille(f);
+    return `<tr><td>${esc(f)}</td><td class="num">${fmtNum(s.n)}</td><td class="num">${fmtMoney(s.ca)}</td>
+      <td><label class="chk"><input type="checkbox" ${B.horsCA[f]?'':'checked'} onchange="BROUILLON.horsCA[${JSON.stringify(f).replace(/"/g,'&quot;')}]=!this.checked;majImpact()"> oui</label></td></tr>`;}).join('')}
+  </tbody></table></div></div>`;
+
+  /* 2. Les sorties gratuites */
+  const tos=Object.keys(B.gratuit);
+  if(tos.length){
+    html+=`<div class="section-label">2. Les sorties gratuites</div>
+    <div class="card"><p class="mini-line">Ces valeurs viennent de ta colonne « Type Offert ». Coche celles qui sont réellement des sorties sans recette : elles ne compteront jamais dans le CA.</p>
+    <div class="tablewrap"><table class="data"><thead><tr><th>Valeur</th><th class="num">Lignes</th><th>Sortie gratuite ou perte</th></tr></thead><tbody>
+    ${tos.map(t=>{const n=ROWS.filter(r=>String(r.typeOffert||'').trim()===t).length;
+      return `<tr><td>${esc(t)}</td><td class="num">${fmtNum(n)}</td>
+        <td><label class="chk"><input type="checkbox" ${B.gratuit[t]?'checked':''} onchange="BROUILLON.gratuit[${JSON.stringify(t).replace(/"/g,'&quot;')}]=this.checked;majImpact()"> oui</label></td></tr>`;}).join('')}
+    </tbody></table></div></div>`;
+  }
+
+  /* 3. Où est l'information de canal */
+  html+=`<div class="section-label">3. Où mets-tu le canal de vente ?</div>
+  <div class="card">
+    <p class="mini-line">Choisis la colonne dans laquelle tu notes l'endroit ou la manière dont la vente s'est faite. Le taux de remplissage est calculé sur ta base.</p>
+    ${selectChamp('champCanal',B.champCanal,P)}
+    ${tableRegroupement('canaux',B.champCanal,P,B)}
+  </div>`;
+
+  /* 4. Typologie client */
+  html+=`<div class="section-label">4. Comment distingues-tu tes types de clients ?</div>
+  <div class="card">
+    <p class="mini-line">Particuliers, cavistes, restaurants, export. Le code tarif est souvent la colonne la plus fiable, parce qu'elle vient du paramétrage et non de la saisie.</p>
+    ${selectChamp('champType',B.champType,P)}
+    ${tableRegroupement('types',B.champType,P,B)}
+  </div>`;
+
+  /* Impact et validation */
+  html+=`<div class="section-label">Impact de tes choix</div>
+  <div class="card"><div id="impactReg">${impactHtml()}</div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
+      <button class="btn btn--primary" onclick="appliquerReglages(BROUILLON)">Enregistrer et recalculer</button>
+      ${regle?'<button class="btn btn--ghost" onclick="oublierReglages()">Revenir au classement automatique</button>':''}
+      <button class="btn btn--ghost" onclick="BROUILLON=null;renderReglages()">Annuler mes modifications</button>
+    </div>
+    <p class="mini-line">Tes réglages restent dans ce navigateur, comme tes lignes de vente. Rien n'est envoyé.</p>
+  </div>`;
+  el('p-reglages').innerHTML=html;
+}
+function statFamille(f){const l=ROWS.filter(r=>String(r.famille||'').trim()===f);return{n:l.length,ca:sum(l,r=>r._total)};}
+function caFamille(f){return statFamille(f).ca;}
+// Selecteur de colonne source, annote du taux de remplissage et du nombre de valeurs.
+function selectChamp(cle,valeur,P){
+  const opts=CHAMPS_CANDIDATS.map(c=>{
+    const p=P[c.k]||{taux:0,distinct:0};
+    if(!p.distinct)return '';
+    return `<option value="${c.k}" ${c.k===valeur?'selected':''}>${c.l} — rempli à ${Math.round(p.taux*100)} %, ${p.distinct} valeur(s)</option>`;
+  }).join('');
+  return `<select class="search" style="min-width:340px" onchange="changerChamp('${cle}',this.value)">${opts}</select>`;
+}
+function changerChamp(cle,val){
+  BROUILLON[cle]=val;
+  const P=BROUILLON._profils, cible=cle==='champCanal'?'canaux':'types';
+  BROUILLON[cible]={};
+  (P[val]?P[val].liste:[]).forEach(e=>{BROUILLON[cible][e.v]=cible==='canaux'?proposerCanal(e.v,e):proposerType(e.v);});
+  renderReglages();
+}
+// Table de regroupement : une ligne par valeur presente, avec sa forme et son libelle modifiable.
+function tableRegroupement(cible,champ,P,B){
+  const p=P[champ];
+  if(!p||!p.liste.length)return `<p class="note">Cette colonne est vide dans ta base, rien à regrouper.</p>`;
+  const MAX=40, liste=p.liste.slice(0,MAX), reste=p.liste.length-liste.length;
+  const libelles=[...new Set(Object.values(B[cible]))].sort();
+  const dl=`<datalist id="dl-${cible}">${libelles.map(l=>`<option value="${esc(l)}">`).join('')}</datalist>`;
+  return dl+`<div class="tablewrap" style="margin-top:.8rem"><table class="data"><thead><tr>
+    <th>Valeur dans ton fichier</th><th class="num">Lignes</th><th class="num">Clients</th><th>Forme</th><th>Tu l'appelles</th></tr></thead><tbody>
+    ${liste.map(e=>`<tr><td>${esc(e.v)}</td><td class="num">${fmtNum(e.n)}</td><td class="num">${fmtNum(e.clients.size)}</td>
+      <td><span class="muted-cell">${formeValeur(e)}</span></td>
+      <td><input class="search" style="min-width:170px" list="dl-${cible}" value="${esc(B[cible][e.v]||'')}"
+        onchange="BROUILLON.${cible}[${JSON.stringify(e.v).replace(/"/g,'&quot;')}]=this.value.trim();majImpact()"></td></tr>`).join('')}
+    </tbody></table></div>
+    ${reste>0?`<p class="note">${reste} valeur(s) plus rares ne sont pas affichées, elles seront rangées dans « Autre / non renseigné ».</p>`:''}
+    <p class="note">La colonne « Forme » est lue sur les dates : une valeur présente un seul jour se comporte comme un événement, une valeur présente toute l'année comme un point de vente permanent. C'est une indication, pas une conclusion : l'outil ne sait pas ce que tes mots veulent dire.</p>`;
+}
+// Simulation en direct : ce que les choix courants changeraient, sans rien enregistrer.
+function impactHtml(){
+  const B=BROUILLON;if(!B)return '';
+  let ca=0,hors=0,gratuit=0;
+  const canaux=new Set(),types=new Set();
+  ROWS.forEach(r=>{
+    const fam=String(r.famille||'').trim(), to=String(r.typeOffert||'').trim();
+    const hc=!!B.horsCA[fam], of=to?!!B.gratuit[to]:false;
+    if(hc)hors+=r._total; else if(of)gratuit+=r._total; else ca+=r._total;
+    canaux.add(B.canaux[String(r[B.champCanal]||'').trim()]||'Autre / non renseigné');
+    types.add(B.types[String(r[B.champType]||'').trim()]||'Non typé');
+  });
+  const sansCanal=ROWS.filter(r=>!B.canaux[String(r[B.champCanal]||'').trim()]).length;
+  const sansType=ROWS.filter(r=>!B.types[String(r[B.champType]||'').trim()]).length;
+  const pc=n=>ROWS.length?Math.round(n/ROWS.length*100):0;
+  return `<div class="kpi-grid">
+    ${kpiCard('CA avec ces réglages',fmtMoney(ca),'hors frais et sorties gratuites',true)}
+    ${kpiCard('Sorti du CA',fmtMoney(hors),'frais, remises, avoirs')}
+    ${kpiCard('Sorties gratuites',fmtMoney(gratuit),'offerts, casse, dégustation')}
+    ${kpiCard('Canaux distincts',fmtNum(canaux.size),`${pc(sansCanal)} % des lignes sans canal`)}
+    ${kpiCard('Types de clients',fmtNum(types.size),`${pc(sansType)} % des lignes non typées`)}
+  </div>`;
+}
+function majImpact(){const z=el('impactReg');if(z)z.innerHTML=impactHtml();}
+
 function renderBase(){
   const vin=ROWS.filter(r=>r._vin);
   const horsVin=ROWS.filter(r=>r._horsVin && !r._offert);
