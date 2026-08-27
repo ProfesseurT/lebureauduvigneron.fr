@@ -77,6 +77,7 @@
   /* ---- FORMES ---- */
   /* Le site n'a pas de rayon : la texture d'imprime vient de l'angle vif. */
   --tr-rapide:0.15s;
+  --z-nav:100;
   --r-nul:0;--r-rond:50%;
   --trait:1px;--trait-fort:2px;--trait-accent:3px;
   /* ---- OMBRES ---- */
@@ -141,7 +142,9 @@ a{color:var(--bordeaux)}
 .btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
 
 /* APP SHELL */
-.app{display:none;min-height:100vh;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr}
+.app{display:none;min-height:100vh;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr;transition:grid-template-columns var(--tr-rapide) ease}
+/* Volet replie : le tableau recupere les 230 px, c'est tout l'objet. */
+.app.replie{grid-template-columns:0 1fr}
 .app.on{display:grid}
 .topbar{grid-column:1/3;background:var(--bordeaux-deep);color:var(--on-dark);display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;gap:1rem;flex-wrap:wrap;border-bottom:var(--trait-fort) solid var(--gold)}
 .topbar__brand{font-family:var(--font-titre);font-weight:400;font-size:var(--t-corps);letter-spacing:var(--ls-doux);color:var(--on-dark);text-decoration:none;display:inline-flex;align-items:center}
@@ -151,8 +154,41 @@ a{color:var(--bordeaux)}
 .topbar__home:hover{color:var(--gold)}
 .topbar__file{font-family:var(--font-mono);font-size:var(--t-micro);opacity:.6;text-transform:uppercase;letter-spacing:var(--ls-doux)}
 .topbar__actions{display:flex;gap:.5rem;flex-wrap:wrap}
-.sidebar{background:var(--ink-deep);padding:.5rem 0 2rem}
+.sidebar{background:var(--ink-deep);padding:.5rem 0 2rem;overflow:hidden;min-width:0}
 .navitem{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;background:none;border:none;border-left:var(--trait-accent) solid transparent;color:var(--on-dark-soft);font-family:var(--font-mono);font-size:var(--t-petit);padding:.68rem 1.1rem;cursor:pointer;transition:var(--tr-rapide);letter-spacing:var(--ls-doux)}
+
+/* ---- VOLET : bouton et repere de position ---- */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.topbar__gauche{display:flex;align-items:center;gap:.55rem;min-width:0}
+.volet{flex-shrink:0;width:26px;height:22px;display:flex;align-items:center;justify-content:center;
+  background:none;border:var(--trait) solid var(--on-dark-rule);border-radius:var(--r-nul);
+  cursor:pointer;transition:border-color var(--tr-rapide),background var(--tr-rapide)}
+.volet:hover{border-color:var(--gold);background:color-mix(in srgb, var(--on-dark) 6%, transparent)}
+.volet__filets{display:block;width:13px;height:9px;border-top:var(--trait) solid var(--on-dark);
+  border-bottom:var(--trait) solid var(--on-dark);position:relative}
+.volet__filets::before{content:"";position:absolute;left:0;right:0;top:calc(50% - 0.5px);
+  border-top:var(--trait) solid var(--on-dark)}
+/* Volet replie, le menu disparait : la barre haute doit reprendre A LA FOIS
+   le repere de position ET la navigation, sinon replier enferme le vigneron
+   dans l'ecran ou il se trouve. */
+.ici{display:none;position:relative}
+.app.replie .ici{display:block}
+.app.replie .topbar__home{display:none}
+.ici__btn{background:none;border:none;cursor:pointer;padding:.2rem .3rem;
+  font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;
+  letter-spacing:var(--ls-etiq);color:var(--gold);white-space:nowrap}
+.ici__btn::after{content:" \25BE";font-size:.9em}
+.ici__btn:hover{color:var(--on-dark)}
+.ici__menu{display:none;position:absolute;top:calc(100% + .45rem);left:0;z-index:var(--z-nav);
+  min-width:190px;background:var(--ink-deep);border:var(--trait) solid var(--on-dark-rule);
+  box-shadow:var(--ombre-carte);padding:.25rem 0}
+.ici.ouvert .ici__menu{display:block}
+.ici__item{display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;
+  border-left:var(--trait-accent) solid transparent;padding:.5rem .9rem;
+  font-family:var(--font-corps);font-size:var(--t-base);color:var(--on-dark-soft)}
+.ici__item:hover{background:var(--ink);color:var(--on-dark)}
+.ici__item.on{color:var(--on-dark);background:var(--ink);border-left-color:var(--gold)}
+@media(max-width:900px){.volet{display:none!important}.app.replie .ici{display:none}}
 .navitem:hover{background:var(--ink);color:var(--on-dark)}
 .navitem.on{color:var(--on-dark);background:var(--ink);border-left-color:var(--gold)}
 .navitem__ico{width:16px;text-align:center;flex-shrink:0;color:var(--gold)}
@@ -421,7 +457,7 @@ table.data tbody tr:hover{background:var(--paper-light)}
   .pr-seclabel{page-break-after:avoid}
   .pr-sig,.pr-pv__item,.pr-kpi{page-break-inside:avoid}
 }
-@media(max-width:900px){.app.on{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:var(--trait-accent) solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--gold)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-rep{grid-template-columns:1fr}.cta__txt{max-width:100%}}
+@media(max-width:900px){.app.on,.app.on.replie{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:var(--trait-accent) solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--gold)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-rep{grid-template-columns:1fr}.cta__txt{max-width:100%}}
 </style>
 </head>
 <body>
@@ -461,7 +497,8 @@ table.data tbody tr:hover{background:var(--paper-light)}
 <!-- ============ APP ============ -->
 <div class="app" id="app">
   <div class="topbar">
-    <div><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><a href="/" class="topbar__home">&#8592; Retour au site</a> <span class="topbar__file" id="tbFile"></span></div>
+    <div class="topbar__gauche"><button class="volet" id="volet" type="button" aria-expanded="true" aria-controls="sidebar"
+        title="Replier le menu (touche crochet ouvrant)" onclick="basculerVolet()"><span class="volet__filets" aria-hidden="true"></span><span class="sr">Replier le menu</span></button><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><div class="ici" id="ici"><button class="ici__btn" id="tbSection" type="button" aria-haspopup="true" aria-expanded="false" onclick="basculerIci(event)"></button><div class="ici__menu" id="iciMenu" role="menu"></div></div><a href="/" class="topbar__home">&#8592; Retour au site</a> <span class="topbar__file" id="tbFile"></span></div>
     <div class="topbar__actions">
       <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
       <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
@@ -1218,12 +1255,78 @@ function openApp(){
   el('app').classList.add('on');
   el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
   el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.label}</button>`).join('');
+  peuplerIci();
+  appliquerVolet(voletReplie());
   buildFilterBar();
   runBusy('Analyse de tes ventes…',()=>{renderAll();navTo('annee');});
 }
+/* ---------------- VOLET DE NAVIGATION ----------------
+   Replier le menu rend 230 px de large au tableau. La preference suit le
+   navigateur du vigneron, comme l'objectif de CA et les libelles perso. */
+const VOLET_KEY='bdv_volet_replie';
+function voletReplie(){try{return localStorage.getItem(VOLET_KEY)==='1';}catch(e){return false;}}
+function appliquerVolet(replie){
+  const app=el('app'), b=el('volet');
+  app.classList.toggle('replie',replie);
+  if(b){
+    b.setAttribute('aria-expanded',String(!replie));
+    b.title=(replie?'Deplier':'Replier')+' le menu (touche crochet ouvrant)';
+    b.querySelector('.sr').textContent=(replie?'Deplier':'Replier')+' le menu';
+  }
+}
+
+/* Chart.js dimensionne un canvas au moment ou il le cree. Un canvas cree
+   pendant que la grille est encore en train de bouger nait a 0 de large et y
+   reste. On observe donc la zone de contenu et on redimensionne apres coup :
+   ca couvre le repli, le depli, le redimensionnement de la fenetre, et le
+   temps que met la grille a se poser au premier rendu. */
+let _tRedim=null;
+function redimGraphiques(){
+  clearTimeout(_tRedim);
+  _tRedim=setTimeout(()=>{try{Object.values(charts).forEach(c=>c&&c.resize());}catch(e){}},120);
+}
+if(window.ResizeObserver){
+  new ResizeObserver(redimGraphiques).observe(document.querySelector('.content'));
+}
+/* Le menu de la barre haute : meme source que le volet, jamais une copie. */
+function peuplerIci(){
+  el('iciMenu').innerHTML=NAV.map(n=>
+    `<button class="ici__item" role="menuitem" data-p="${n.id}" onclick="navTo('${n.id}')">${n.label}</button>`).join('');
+}
+function fermerIci(){
+  const d=el('ici'); if(!d)return;
+  d.classList.remove('ouvert'); el('tbSection').setAttribute('aria-expanded','false');
+}
+function basculerIci(e){
+  e.stopPropagation();
+  const d=el('ici'), o=!d.classList.contains('ouvert');
+  d.classList.toggle('ouvert',o); el('tbSection').setAttribute('aria-expanded',String(o));
+}
+document.addEventListener('click',fermerIci);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fermerIci();});
+
+function basculerVolet(){
+  fermerIci();
+  const r=!el('app').classList.contains('replie');
+  try{localStorage.setItem(VOLET_KEY,r?'1':'0');}catch(e){}
+  appliquerVolet(r);
+}
+// Le crochet ouvrant ne sert a rien d'autre ici, mais jamais pendant une saisie.
+document.addEventListener('keydown',e=>{
+  if(e.key!=='['||e.metaKey||e.ctrlKey||e.altKey)return;
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;
+  if(!el('app').classList.contains('on'))return;
+  e.preventDefault(); basculerVolet();
+});
+
 function showImport(){el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();}
 function navTo(id){
   document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
+  const ici=NAV.find(n=>n.id===id);
+  if(ici) el('tbSection').textContent='· '+ici.label;
+  document.querySelectorAll('.ici__item').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
+  fermerIci();
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
