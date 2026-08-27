@@ -3300,7 +3300,7 @@ async function reopen(){
   status('loading','Chargement de ta base...');
   await reloadFromDB();
   status('success',fmtNum(ROWS.length)+' lignes chargées.');
-  if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});
+  if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.',esquivable:true});
   openApp();
 }
 

@@ -371,6 +371,114 @@ else ok('aucun faux gras : toute graisse >= 600 trouve une fonte >= 600 chargee'
 if (poidsAbsents) note(poidsAbsents + ' graisse(s) demandee(s) non chargee(s), rabattues sans synthese');
 
 /* ---------------------------------------------------------------------------
+   8. CSS embarque dans les modules JS (src/js/*.js)
+   Un module comme bdv-compte.js injecte son propre <style> depuis un litteral
+   de chaine : ce texte ne passe jamais par le parseur ci-dessus, donc jamais
+   par ce controle, sauf a l'aller chercher expres. Repli de var(--x, ...) mal
+   recopie, couleur en dur oubliee hors de tout var(), rayon en dur : c'est
+   exactement le genre de derive silencieuse que ce script existe pour attraper.
+--------------------------------------------------------------------------- */
+titre('8. CSS embarque dans src/js/*.js');
+
+const DOSSIER_JS = path.join(RACINE, 'src/js');
+const fichiersJS = fs.existsSync(DOSSIER_JS)
+  ? fs.readdirSync(DOSSIER_JS).filter(f => f.endsWith('.js')).map(f => path.join(DOSSIER_JS, f))
+  : [];
+
+/* Repere chaque appel var(...), y compris quand le repli contient lui-meme
+   des parentheses (rgba(...) dans un box-shadow) : un decoupage par regex
+   simple casse sur ce cas, il faut compter la profondeur. */
+function appelsVar(val) {
+  const out = [];
+  const re = /var\(/g;
+  let m;
+  while ((m = re.exec(val))) {
+    let i = m.index + 4, prof = 1;
+    const debut = i;
+    while (i < val.length && prof > 0) {
+      if (val[i] === '(') prof++;
+      else if (val[i] === ')') prof--;
+      i++;
+    }
+    const inner = val.slice(debut, i - 1);
+    const virgule = inner.indexOf(',');
+    const nom = (virgule >= 0 ? inner.slice(0, virgule) : inner).trim();
+    const repli = virgule >= 0 ? inner.slice(virgule + 1).trim() : null;
+    out.push({ nom, repli, debut: m.index, fin: i });
+  }
+  return out;
+}
+
+const normVal = v => v.replace(/\s*,\s*/g, ',').replace(/\s+/g, ' ').trim();
+
+/* Deux valeurs de repli se valent si ce sont la meme couleur (ecart de
+   formatage tolere : #fff == #FFFFFF, .7 == 0.70) ou la meme dimension
+   simple ; sinon, egalite de texte stricte (piles de polices, ombres). */
+function memeValeur(a, b) {
+  const ra = rgba(a), rb = rgba(b);
+  if (ra && rb) return JSON.stringify(ra) === JSON.stringify(rb);
+  const na = a.match(/^(-?\d*\.?\d+)(px|rem|em|%|s|ms)?$/);
+  const nb = b.match(/^(-?\d*\.?\d+)(px|rem|em|%|s|ms)?$/);
+  if (na && nb) return parseFloat(na[1]) === parseFloat(nb[1]) && (na[2] || '') === (nb[2] || '');
+  return normVal(a) === normVal(b);
+}
+
+function litteralesCss(fichier) {
+  const src = fs.readFileSync(fichier, 'utf8');
+  const RE = /'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g;
+  const out = [];
+  let m;
+  while ((m = RE.exec(src))) {
+    const brut = m[1] ?? m[2] ?? m[3] ?? '';
+    if (!brut.includes('{') || !brut.includes(':')) continue;
+    const contenu = brut.replace(/\\(.)/g, '$1');
+    const erreurs = [];
+    const ast = csstree.parse(contenu, { onParseError: e => erreurs.push(e.message) });
+    if (erreurs.length || !ast.children || !ast.children.some(ch => ch.type === 'Rule')) continue;
+    out.push({ ast, ligne: src.slice(0, m.index).split('\n').length });
+  }
+  return out;
+}
+
+let jsCouleursDur = 0, jsRayonsDur = 0, jsRepliFaux = 0, jsTokenAbsent = 0, litteralesLues = 0;
+
+fichiersJS.forEach(fichier => {
+  const rel = path.relative(RACINE, fichier);
+  litteralesCss(fichier).forEach(({ ast, ligne }) => {
+    litteralesLues++;
+    ast.children.forEach(regle => {
+      if (regle.type !== 'Rule' || !regle.block) return;
+      regle.block.children.forEach(d => {
+        if (d.type !== 'Declaration') return;
+        const val = csstree.generate(d.value);
+        const appels = appelsVar(val);
+
+        appels.forEach(({ nom, repli }) => {
+          if (!(nom in B.tokens)) { ko(rel + ' L' + ligne + ' : var(' + nom + ') sans declaration dans :root'); jsTokenAbsent++; return; }
+          if (repli == null) return;
+          const attendu = normVal(resout(B.tokens[nom], B.tokens));
+          if (!memeValeur(normVal(repli), attendu)) {
+            ko(rel + ' L' + ligne + ' : repli de var(' + nom + ') = "' + repli + '", attendu "' + attendu + '"');
+            jsRepliFaux++;
+          }
+        });
+
+        let sansVar = val;
+        [...appels].reverse().forEach(({ debut, fin }) => { sansVar = sansVar.slice(0, debut) + sansVar.slice(fin); });
+        if (RE_COULEUR.test(sansVar)) { ko(rel + ' L' + ligne + ' : couleur en dur hors var() dans ' + d.property + ': ' + val); jsCouleursDur++; }
+        if (d.property === 'border-radius') {
+          const reste = sansVar.trim();
+          if (reste && !/^0(px|rem|em)?$/.test(reste) && !/50%/.test(val)) { ko(rel + ' L' + ligne + ' : border-radius en dur (' + val + ')'); jsRayonsDur++; }
+        }
+      });
+    });
+  });
+});
+
+console.log('  ' + litteralesLues + ' litterale(s) CSS lue(s) dans ' + fichiersJS.length + ' fichier(s) (' + fichiersJS.map(f => path.basename(f)).join(', ') + ')');
+if (!jsCouleursDur && !jsRayonsDur && !jsRepliFaux && !jsTokenAbsent) ok('CSS embarque conforme : couleurs, rayons et reprises de tokens verifies');
+
+/* ---------------------------------------------------------------------------
    Verdict
 --------------------------------------------------------------------------- */
 titre('VERDICT');
