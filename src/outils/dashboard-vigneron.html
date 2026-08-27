@@ -4,24 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Le Bureau du Vigneron, tableau de bord des ventes</title>
-<meta name="description" content="Dépose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. 100% dans ton navigateur.">
+<meta name="description" content="Dépose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. Tes données de vente restent dans ton navigateur.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjNDUxMDFEIi8+PHJlY3QgeD0iNi41IiB5PSIxNyIgd2lkdGg9IjQuNSIgaGVpZ2h0PSI4IiBmaWxsPSIjQzRBMjRFIi8+PHJlY3QgeD0iMTMuNzUiIHk9IjEyIiB3aWR0aD0iNC41IiBoZWlnaHQ9IjEzIiBmaWxsPSIjQzRBMjRFIi8+PHJlY3QgeD0iMjEiIHk9IjciIHdpZHRoPSI0LjUiIGhlaWdodD0iMTgiIGZpbGw9IiNDNEEyNEUiLz48L3N2Zz4=">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Le Bureau du Vigneron">
 <meta property="og:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
-<meta property="og:description" content="Dépose ton export Vitisoft : ton CA, tes clients à relancer, tes canaux et des conseils commerciaux automatiques. 100% dans ton navigateur.">
+<meta property="og:description" content="Dépose ton export Vitisoft : ton CA, tes clients à relancer, tes canaux et des conseils commerciaux automatiques. Tes données de vente restent dans ton navigateur.">
 <meta property="og:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
-<meta name="twitter:description" content="Ton export Vitisoft se lit tout seul : CA, clients, canaux, conseils. 100% local.">
+<meta name="twitter:description" content="Ton export Vitisoft se lit tout seul : CA, clients, canaux, conseils. Tes données de vente restent dans ton navigateur.">
 <meta name="twitter:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="/js/bdv-compte.js" data-outil="dashboard-vigneron" defer></script>
 <style>
 /* ============================================================================
    Charte "Le Bureau du Vigneron". Source de verite : tokens.css.
@@ -486,10 +487,11 @@ table.data tbody tr:hover{background:var(--paper-light)}
       <p>Export Vitisoft (.csv) · ou clique pour choisir</p>
       <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
     </div>
+    <div class="hint">Gratuit. Un compte, juste ton email, est demandé pour ouvrir tes résultats.</div>
     <div class="btn-row">
       <button class="btn btn--primary" onclick="document.getElementById('fileInput').click()">Choisir un fichier</button>
     </div>
-    <div class="hint">&#128274; 100% privé, rien n'est envoyé sur internet.</div>
+    <div class="hint">&#128274; Tes ventes restent dans ton navigateur. Seul ton email nous parvient.</div>
     <div class="resume" id="resumeBox" style="display:none"></div>
   </div>
 </section>
@@ -1015,6 +1017,7 @@ async function handleFiles(list){
   const couvTxt=COUV.total?' '+fmtNum(COUV.joignables)+' client(s) sur '+fmtNum(COUV.total)+' sont joignables ('
     +fmtNum(COUV.mail)+' par e-mail, '+fmtNum(COUV.tel)+' par téléphone).':'';
   status('success',totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s)'+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt);
+  if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});
   openApp();
 }
 // Lit le CSV en windows-1252 (PAS UTF-8), separateur ; , renvoie [{h, raw:[...]}].
@@ -3297,6 +3300,7 @@ async function reopen(){
   status('loading','Chargement de ta base...');
   await reloadFromDB();
   status('success',fmtNum(ROWS.length)+' lignes chargées.');
+  if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});
   openApp();
 }
 

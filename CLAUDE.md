@@ -94,8 +94,14 @@ bordeaux, du blanc pur est plus dur que le papier du site.
 
 ## Ce que le dashboard ne fait pas, volontairement
 
-- **Aucun appel reseau.** Tout est calcule dans le navigateur du vigneron, les donnees de ses
-  clients ne sortent jamais. C'est la promesse du produit : ne pas la casser pour du confort.
+- **Aucune donnee de vente ne sort du navigateur.** Depuis les comptes, l'outil parle au reseau
+  pour exactement deux choses : ouvrir une session et lire ou ecrire la fiche de profil. Les
+  lignes de vente, les noms de clients et les montants ne sont jamais transmis, jamais stockes
+  ailleurs qu'en IndexedDB. Toute evolution qui enverrait une donnee issue de l'export doit etre
+  arbitree a part, avec le message produit et la page de confidentialite.
+  Regle d'or du module de compte (`src/js/bdv-compte.js`) : le compte ne conditionne jamais la
+  lecture des donnees locales. Si Supabase est en panne ou le reseau coupe, l'outil s'ouvre quand
+  meme des lors qu'une session a deja ete ouverte une fois sur ce navigateur.
 - **Aucun envoi d'e-mail.** Le compositeur remplit un lien `mailto:`, c'est la messagerie du
   vigneron qui envoie. Pas de cle API dans une page publique, pas de responsabilite d'envoi.
 - **Aucune generation de texte par un modele.** Les messages sont des gabarits a blocs remplis
