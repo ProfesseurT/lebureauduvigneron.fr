@@ -1,0 +1,155 @@
+/* ============================================================================
+   LE BUREAU DU VIGNERON — SYSTEME DE TOKENS
+   ============================================================================
+   Source unique de verite pour le site ET le tableau de bord.
+   Regle : aucune couleur, aucune taille, aucun rayon ecrit en dur ailleurs.
+
+   L'identite est celle du site : papier, encre, bordeaux, angles vifs.
+   L'orange #E87722 est la couleur de Vitisoft, la maison mere. Il n'a pas
+   sa place ici, sauf pour signaler explicitement un lien vers Vitisoft.
+
+   Contrastes verifies : bordeaux sur papier = 11,0:1 (AAA), muted 6,1:1 (AA),
+   cork-encre 6,2:1 (AA). --cork brut ne passe pas AA : ornement uniquement.
+   ============================================================================ */
+
+:root {
+
+  /* ---- SURFACES ------------------------------------------------------ */
+  --paper:        #EFE7D6;   /* fond principal, le papier */
+  --paper-light:  #F5EFE0;   /* cartes et zones surelevees */
+  --paper-deep:   #DACDAF;   /* zones en retrait, separations : 1,28:1 sur --paper */
+  --white:        #FFFFFF;   /* uniquement pour les surfaces qui doivent trancher */
+
+  /* ---- ENCRES -------------------------------------------------------- */
+  --ink:          #1E2536;   /* texte courant, bleu-encre */
+  --ink-deep:     #0F1622;   /* chromes sombres : barres, pieds de page */
+  --muted:        #63523D;   /* texte secondaire, chaud pour rester dans le papier. 6,1:1 sur papier, 4,8:1 sur --paper-deep */
+  --rule:         rgba(30, 37, 54, 0.18);   /* LE filet, l'element structurant du site */
+  --rule-fort:    rgba(30, 37, 54, 0.42);   /* frontiere de section : le filet qui se voit */
+
+  /* ---- MARQUE -------------------------------------------------------- */
+  --bordeaux:      #5A1525;  /* accent principal */
+  --bordeaux-deep: #45101D;  /* navigation, pied de page, fonds sombres */
+  --bordeaux-vif:  #7A1525;  /* survol des boutons pleins : plus rouge, jamais plus pale */
+  --bordeaux-veil: rgba(40, 10, 18, 0.70);  /* voile photo du hero */
+  --cork:          #B89066;  /* liege : ornements seulement, filets, guillemets, pastilles */
+  --cork-encre:    #704C22;  /* le liege quand il porte du texte : 6,2:1 sur papier, 4,9:1 sur --paper-deep */
+
+  /* ---- MARQUES TIERCES ----------------------------------------------- */
+  /* Jamais comme accent du site : ce sont les couleurs des produits montres
+     en maquette, elles suivent leur charte, pas la notre. */
+  --viti-orange:     #FF9F00;  /* Vitisoft */
+  --vitimedia-rouge: #B22245;  /* Vitimedia */
+  --vitimedia-fonce: #8B1A36;
+  --gold:          #C4A24E;  /* etoiles, distinctions */
+
+  /* ---- SUR FOND SOMBRE ----------------------------------------------- */
+  /* Les couleurs de marque ne sont pas lisibles sur bordeaux-deep.
+     Ces variantes existent pour cela, et pour rien d'autre. */
+  --on-dark:       #EFE7D6;               /* = paper, texte sur fond sombre */
+  --on-dark-soft:  rgba(239, 231, 214, 0.75);
+  --on-dark-faint: rgba(239, 231, 214, 0.35);
+  --on-dark-rule:  rgba(239, 231, 214, 0.15);
+
+  /* ---- ETATS SEMANTIQUES --------------------------------------------- */
+  /* Un etat, une couleur, un fond pale associe. Jamais reutilises comme accent. */
+  --ok:          #2D6A2D;
+  --ok-bg:       #E8F0E4;
+  --danger:      #C5443D;
+  --danger-deep: #A03530;  /* survol et filet d'un bloc rouge */
+  --danger-bg:   #FBE9E7;
+  --warn:        #8B6300;
+  --warn-bg:     #F8EFE3;
+  --info:        #2F6DB5;
+  --info-bg:     #E8EFF7;
+
+  /* ---- TYPOGRAPHIE : familles ---------------------------------------- */
+  --font-titre:     'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-corps:     'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono:      'JetBrains Mono', 'Courier New', monospace;
+  --font-manuscrit: 'Caveat', cursive;
+
+  /* ---- TYPOGRAPHIE : echelle ----------------------------------------- */
+  /* Dix pas au lieu de soixante-cinq. Chaque pas est distinguable a l'oeil. */
+  --t-micro:  0.62rem;   /* 10 px  etiquettes capitales, mentions legales */
+  --t-mini:   0.70rem;   /* 11 px  meta, legendes */
+  --t-petit:  0.78rem;   /* 12 px  boutons, labels de formulaire */
+  --t-base:   0.88rem;   /* 14 px  texte dense, tableaux */
+  --t-corps:  1.00rem;   /* 16 px  texte courant */
+  --t-lead:   1.15rem;   /* 18 px  chapo, citations */
+  --t-citation: clamp(1.5rem, 3.2vw, 2.05rem);  /* la citation mise en scene */
+  --t-h3:     1.35rem;
+  --t-h2:     clamp(1.4rem, 3vw, 2.2rem);
+  --t-h1:     clamp(2rem, 5vw, 3.2rem);
+  --t-hero:   clamp(2.2rem, 5.5vw, 3.6rem);
+  --t-chiffre:clamp(2.5rem, 6vw, 5rem);   /* les grands nombres */
+
+  /* ---- TYPOGRAPHIE : rythme ------------------------------------------ */
+  --lh-serre:  1.2;    /* titres */
+  --lh-normal: 1.5;    /* interfaces denses */
+  --lh-lecture:1.7;    /* texte courant */
+  --ls-large:  0.15em; /* etiquettes capitales tres espacees */
+  --ls-etiq:   0.10em; /* etiquettes capitales, valeur de reference */
+  --ls-doux:   0.05em; /* boutons */
+
+  /* ---- FORMES -------------------------------------------------------- */
+  /* Le site n'a pas de rayon. C'est un parti pris, pas un oubli : la texture
+     d'imprime vient de la l'angle vif et du filet. Ne pas introduire de rayon
+     ailleurs que sur les elements ronds par nature. */
+  --r-nul:    0;
+  --r-rond:   50%;     /* pastilles, avatars, puces */
+  --trait:    1px;     /* epaisseur de filet standard */
+  --trait-fort: 2px;   /* soulignement de titre de tableau */
+  --trait-accent: 3px; /* liseré d'accent sur un bord */
+
+  /* ---- OMBRES -------------------------------------------------------- */
+  /* Le site en utilise tres peu, et c'est ce qui fait sa texture. */
+  --ombre-dure:  6px 6px 0 rgba(30, 37, 54, 0.18);   /* signature : ombre sans flou */
+  --ombre-carte: 2px 3px 10px rgba(30, 25, 15, 0.25);
+  --ombre-photo: 0 20px 60px rgba(0, 0, 0, 0.35);
+
+  /* ---- ESPACEMENT ---------------------------------------------------- */
+  --e-xs:   0.35rem;
+  --e-s:    0.65rem;
+  --e-m:    1rem;
+  --e-l:    1.5rem;
+  --e-xl:   2rem;
+  --e-2xl:  3rem;
+  --section: 5rem;     /* rythme vertical de reference entre sections */
+
+  /* ---- MOUVEMENT ----------------------------------------------------- */
+  --tr-rapide: 0.15s;  /* valeur de reference, deja majoritaire */
+  --tr-lent:   0.4s;
+
+  /* ---- COUCHES ------------------------------------------------------- */
+  --z-sticky: 2;
+  --z-nav:    100;
+  --z-modale: 400;
+  --z-statut: 900;
+  --z-voile:  1000;
+}
+
+/* ============================================================================
+   NOTES D'APPLICATION
+
+   Ce qui disparait du site :
+   --burgundy, --burgundy-dk, --cream, --cream-dk  doublons exacts, 0 usage
+   --border #D6C9AF                                 0 usage
+   --accent #8B2635                                 0 usage, cinquieme rouge
+
+   Ce qui apparait :
+   --white, --ink-deep, --bordeaux-veil, --gold, toutes les variantes sur fond
+   sombre, les huit tokens d'etat, l'echelle typographique, les formes, les
+   espacements, le mouvement et les couches.
+
+   Ce que le tableau de bord doit abandonner :
+   --orange #E87722 et --orange-d #CF6516   remplaces par --bordeaux
+   --teal #17A29A                            remplace par --ok
+   --red #E0524E                             remplace par --danger
+   --slate #2F6DB5                           remplace par --info
+   --cork #C99A2E                            remplace par --gold
+   --paper #F1F0EC, --cream #FAF6F0          remplaces par les papiers du site
+   --ink #23262B, --anthra*                  remplaces par --ink et --ink-deep
+   Roboto et Roboto Mono                     remplaces par Inter et JetBrains Mono
+   les onze rayons                           ramenes a zero, sauf pastilles rondes
+   ============================================================================ */
