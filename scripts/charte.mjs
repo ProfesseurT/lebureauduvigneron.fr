@@ -1,0 +1,381 @@
+/* ============================================================================
+   scripts/charte.mjs : controle de conformite a la charte graphique.
+
+     node scripts/charte.mjs           le CSS du site
+     node scripts/charte.mjs --dash    le tableau de bord
+
+   Ne modifie rien. Sortie 0 seulement si tout est conforme.
+
+   Le controle qui compte le plus est le dernier : il confronte chaque
+   font-weight demande par le CSS aux graisses reellement chargees par le lien
+   Google Fonts. Une regle qui demande du 700 sur une fonte chargee en 400 et
+   500 ne leve aucune erreur, elle produit des contours epaissis par le
+   navigateur, sur toutes les pages a la fois. C'est arrive sur environ 376
+   passages en gras des articles, et personne ne l'a vu pendant des mois.
+   ============================================================================ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import * as csstree from 'css-tree';
+
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DASH = process.argv.includes('--dash');
+
+/* Le tableau de bord est un fichier autonome : son CSS est dans un <style>
+   inline, et c'est lui qui porte son propre lien Google Fonts. */
+const CIBLE = DASH ? path.join(RACINE, 'src/outils/dashboard-vigneron.html')
+                   : path.join(RACINE, 'src/css/style.css');
+const APRES = CIBLE;
+const LIEN_FONTS = DASH ? CIBLE : path.join(RACINE, 'src/_includes/base.njk');
+
+console.log('cible : ' + path.relative(RACINE, CIBLE));
+
+let ERR = 0, NOTES = 0;
+const ok = m => console.log('  ok    : ' + m);
+const ko = m => { ERR++; console.log('  ECHEC : ' + m); };
+const note = m => { NOTES++; console.log('  note  : ' + m); };
+const titre = t => console.log('\n== ' + t + ' ==');
+
+/* ---------------------------------------------------------------------------
+   Parsing
+--------------------------------------------------------------------------- */
+function parse(fichier) {
+  let txt = fs.readFileSync(fichier, 'utf8');
+  if (fichier.endsWith('.html')) {
+    const i = txt.indexOf('<style'), j = txt.indexOf('</style>');
+    txt = txt.slice(txt.indexOf('>', i) + 1, j);
+  }
+  const erreurs = [];
+  const ast = csstree.parse(txt, { positions: true, onParseError: e => erreurs.push(e.message + ' (ligne ' + e.line + ')') });
+  const regles = [];
+  const tokens = {};
+  const marche = (noeud, ctx) => {
+    if (!noeud.children) return;
+    noeud.children.forEach(ch => {
+      if (ch.type === 'Atrule') {
+        const c = ctx.concat('@' + ch.name + ' ' + (ch.prelude ? csstree.generate(ch.prelude) : ''));
+        if (ch.block) marche(ch.block, c);
+      } else if (ch.type === 'Rule') {
+        const sel = csstree.generate(ch.prelude);
+        const decls = [];
+        ch.block.children.forEach(d => {
+          if (d.type !== 'Declaration') return;
+          decls.push({ prop: d.property, val: csstree.generate(d.value), ligne: d.loc ? d.loc.start.line : 0 });
+          if (sel === ':root' && d.property.startsWith('--')) tokens[d.property] = csstree.generate(d.value);
+        });
+        regles.push({ ctx: ctx.join(' >> '), sel, decls, ligne: ch.loc ? ch.loc.start.line : 0 });
+      }
+    });
+  };
+  marche(ast, []);
+  return { txt, erreurs, regles, tokens };
+}
+
+const norme = s => s.replace(/\s*([,>+~])\s*/g, '$1').replace(/\s+/g, ' ').trim();
+
+const B = parse(APRES);
+if (B.erreurs.length) ko('le CSS ne parse pas : ' + B.erreurs[0]);
+
+titre('4. Valeurs en dur restantes');
+
+const dur = { couleurs: [], rayons: [], ls: [], durees: [], tailles: [] };
+const RE_COULEUR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(/;
+
+B.regles.forEach(r => {
+  const sel = norme(r.sel);
+  if (sel === ':root') return;
+  r.decls.forEach(d => {
+    if (RE_COULEUR.test(d.val)) dur.couleurs.push([sel, d.prop, d.val, d.ligne]);
+    if (d.prop === 'border-radius' && !/var\(|50%|^0$/.test(d.val)) dur.rayons.push([sel, d.val, d.ligne]);
+    if (d.prop === 'letter-spacing' && !/var\(/.test(d.val) && d.val !== '0') dur.ls.push([sel, d.val, d.ligne]);
+    if (/^transition(-duration)?$/.test(d.prop)) {
+      const brut = (d.val.match(/(?<![\w.-])[0-9]*\.?[0-9]+m?s(?![\w-])/g) || []);
+      brut.forEach(v => dur.durees.push([sel, v, d.ligne]));
+    }
+    if (d.prop === 'font-size' && !/var\(/.test(d.val)) dur.tailles.push([sel, d.val, d.ligne]);
+  });
+});
+
+console.log('  couleurs en dur       : ' + dur.couleurs.length);
+dur.couleurs.forEach(c => console.log('        L' + c[3] + '  ' + c[0] + ' { ' + c[1] + ': ' + c[2] + ' }'));
+console.log('  rayons non ronds      : ' + dur.rayons.length);
+dur.rayons.forEach(c => console.log('        L' + c[2] + '  ' + c[0] + ' { border-radius: ' + c[1] + ' }'));
+console.log('  letter-spacing en dur : ' + dur.ls.length);
+dur.ls.forEach(c => console.log('        L' + c[2] + '  ' + c[0] + ' { letter-spacing: ' + c[1] + ' }'));
+console.log('  durees en dur         : ' + dur.durees.length);
+dur.durees.forEach(c => console.log('        L' + c[2] + '  ' + c[0] + ' -> ' + c[1]));
+console.log('  font-size en dur      : ' + dur.tailles.length +
+            '  (dont ' + dur.tailles.filter(t => /px/.test(t[1])).length + ' en px, maquettes produit)');
+
+/* Seuils : ce que la passe de corrections s'engage a tenir. */
+/* Un letter-spacing NEGATIF n'est pas un ecartement d'etiquette, c'est le
+   resserrement optique d'un grand titre. Les trois tokens ne le couvrent pas. */
+const lsEcartement = dur.ls.filter(c => !String(c[1]).trim().startsWith('-'));
+if (lsEcartement.length > 1) ko(lsEcartement.length + ' letter-spacing en dur hors table de correspondance');
+else ok('letter-spacing : ' + lsEcartement.length + ' valeur en dur, plus ' +
+        (dur.ls.length - lsEcartement.length) + ' resserrement(s) de titre, hors table');
+const dureesReelles = dur.durees.filter(d => !/0\.01ms/.test(d[1]));
+if (dureesReelles.length) ko(dureesReelles.length + ' duree(s) de transition en dur');
+else ok('aucune duree de transition en dur hors prefers-reduced-motion');
+const rayonsHorsMaquette = dur.rayons.filter(r => !/^\.(viti|vitisoft|vitimedia)/.test(r[0]));
+if (rayonsHorsMaquette.length) ko(rayonsHorsMaquette.length + ' rayon(s) hors maquette produit tiers');
+else ok('les ' + dur.rayons.length + ' rayons restants sont tous dans les maquettes .viti* / .vitimedia*');
+
+/* ---------------------------------------------------------------------------
+   5. Tokens
+--------------------------------------------------------------------------- */
+titre('5. Tokens declares, tokens appeles');
+const declares = new Set(Object.keys(B.tokens));
+const appeles = new Set();
+for (const m of B.txt.matchAll(/var\(\s*(--[\w-]+)/g)) appeles.add(m[1]);
+
+/* Le tableau de bord lit ses couleurs de serie depuis le JS, pas depuis une
+   regle CSS : sans ca, les huit --serie-* passeraient pour inutilisees. */
+if (DASH) {
+  const brut = fs.readFileSync(CIBLE, 'utf8');
+  for (const m of brut.matchAll(/cssToken\('(--[a-z0-9-]+)'\)/g)) appeles.add(m[1]);
+  if (/palSeries\(/.test(brut)) [...declares].filter(t => /^--serie-\d+$/.test(t)).forEach(t => appeles.add(t));
+}
+
+const jamaisAppeles = [...declares].filter(t => !appeles.has(t)).sort();
+const jamaisDeclares = [...appeles].filter(t => !declares.has(t)).sort();
+
+console.log('  tokens declares : ' + declares.size + ', tokens appeles : ' + appeles.size);
+if (jamaisDeclares.length) jamaisDeclares.forEach(t => ko('var(' + t + ') sans declaration'));
+else ok('aucun var() sans declaration');
+if (jamaisAppeles.length) { note('tokens declares jamais appeles : ' + jamaisAppeles.join(', ')); }
+else ok('tous les tokens declares sont utilises');
+
+/* ---------------------------------------------------------------------------
+   6. Contrastes
+--------------------------------------------------------------------------- */
+titre('6. Contrastes des paires texte sur fond de la charte');
+
+function resout(v, tokens, prof = 0) {
+  if (prof > 12) return v;
+  let change = false;
+  const out = v.replace(/var\(\s*(--[\w-]+)\s*\)/g, (m, nom) => {
+    if (tokens[nom] !== undefined) { change = true; return tokens[nom]; }
+    return m;
+  });
+  return change ? resout(out, tokens, prof + 1) : out;
+}
+function rgba(c) {
+  c = resout(c.trim(), B.tokens).trim();
+  let m = c.match(/^#([0-9a-fA-F]{3,8})$/);
+  if (m) {
+    let h = m[1];
+    if (h.length === 3) h = h.split('').map(x => x + x).join('');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16),
+            h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1];
+  }
+  m = c.match(/^rgba?\(([^)]+)\)$/);
+  if (m) {
+    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+    return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+  }
+  return null;
+}
+const compose = (fg, bg) => fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3]));
+function lum(c) {
+  const s = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+}
+function ratio(fg, bg) {
+  const f = compose(rgba(fg), rgba(bg)), b = rgba(bg).slice(0, 3);
+  const a = lum(f), c = lum(b);
+  return (Math.max(a, c) + 0.05) / (Math.min(a, c) + 0.05);
+}
+
+/* [ encre, fond, role, seuil, bloquant, remarque ]
+   seuil 4.5 : texte courant (AA). 3.0 : composant non textuel porteur de sens.
+   Sous 3.0 : pur decor, WCAG ne fixe rien, le seuil est celui de la charte.
+   bloquant = false : la paire ne se produit nulle part dans le CSS, elle est
+   affichee pour memoire et ne fait pas echouer le controle. */
+const PAIRES = [
+  ['var(--ink)',        'var(--paper)',         'texte courant sur papier',        4.5, true,  ''],
+  ['var(--ink)',        'var(--paper-light)',   'texte sur carte',                 4.5, true,  ''],
+  ['var(--ink)',        'var(--paper-deep)',    'texte sur bande en retrait',      4.5, true,  ''],
+  ['var(--muted)',      'var(--paper)',         'texte secondaire sur papier',     4.5, true,  ''],
+  ['var(--muted)',      'var(--paper-light)',   'texte secondaire sur carte',      4.5, true,  ''],
+  ['var(--muted)',      'var(--paper-deep)',    'texte secondaire sur bande',      4.5, true,  ''],
+  ['var(--bordeaux)',   'var(--paper)',         'accent sur papier',               4.5, true,  ''],
+  ['var(--bordeaux)',   'var(--paper-light)',   'accent sur carte',                4.5, true,  ''],
+  ['var(--bordeaux)',   'var(--paper-deep)',    'accent sur bande',                4.5, true,  ''],
+  ['var(--cork-encre)', 'var(--paper)',         'liege encre sur papier',          4.5, true,  ''],
+  ['var(--cork-encre)', 'var(--paper-light)',   'liege encre sur carte',           4.5, true,  ''],
+  ['var(--cork-encre)', 'var(--paper-deep)',    'liege encre sur bande',           4.5, true,  ''],
+  ['var(--on-dark)',    'var(--bordeaux-deep)', 'texte sur fond sombre',           4.5, true,  ''],
+  ['var(--on-dark)',    'var(--ink)',           'texte sur encre',                 4.5, true,  ''],
+  ['var(--on-dark)',    'var(--ink-deep)',      'texte sur encre profonde',        4.5, true,  ''],
+  ['var(--on-dark-soft)','var(--bordeaux-deep)','texte attenue sur fond sombre',   4.5, true,  ''],
+  ['var(--on-dark-faint)','var(--bordeaux-deep)','etiquette pale sur fond sombre', 4.5, false, '--on-dark-faint n\'est appele nulle part : ne doit jamais porter de texte'],
+  ['var(--cork)',       'var(--ink-deep)',      'liege sur encre profonde (badge)',4.5, true,  ''],
+  ['var(--danger)',     'var(--paper)',         'rouge sur papier',                4.5, false, 'hors des seize corrections : --danger echoue partout comme texte'],
+  ['var(--danger)',     'var(--paper-light)',   'montant en retard sur carte',     4.5, false, 'hors des seize corrections, voir le rapport'],
+  ['var(--danger-deep)','var(--paper-light)',   'rouge fonce sur carte (piste)',   4.5, false, 'la sortie proposee pour --danger'],
+  ['var(--ok)',         'var(--ok-bg)',         'etat ok',                         4.5, false, '--ok-bg n\'est appele nulle part'],
+  ['var(--danger)',     'var(--danger-bg)',     'etat danger',                     4.5, false, '--danger-bg n\'est appele nulle part'],
+  ['var(--warn)',       'var(--warn-bg)',       'etat alerte',                     4.5, false, '--warn-bg n\'est appele nulle part'],
+  ['var(--info)',       'var(--info-bg)',       'etat info',                       4.5, false, '--info-bg n\'est appele nulle part'],
+  ['var(--cork)',       'var(--paper)',         'liege ORNEMENT sur papier',       1.5, true,  'decor seul : filets, guillemets, pastilles'],
+  ['var(--rule-fort)',  'var(--paper)',         'filet de section (non textuel)',  1.25, true, ''],
+  ['var(--rule)',       'var(--paper)',         'filet de carte (non textuel)',    1.10, true, ''],
+  ['var(--paper-deep)', 'var(--paper)',         'alternance des bandes',           1.25, true, '']
+];
+
+let echecsContraste = 0;
+console.log('  ' + 'paire'.padEnd(36) + 'ratio    seuil  AA  verdict');
+PAIRES.forEach(([fg, bg, role, seuil, bloquant, remarque]) => {
+  if (!rgba(fg) || !rgba(bg)) {   // token absent de cette cible : sans objet
+    console.log('  ' + role.padEnd(36) + '     .        .    .   sans objet   ' +
+                fg.replace(/var\(|\)/g, '') + ' / ' + bg.replace(/var\(|\)/g, ''));
+    return;
+  }
+  const r = ratio(fg, bg);
+  const passe = r >= seuil;
+  if (!passe && bloquant) echecsContraste++;
+  const aa = r >= 4.5 ? 'AA ' : (r >= 3 ? '/  ' : '-  ');
+  console.log('  ' + role.padEnd(36) +
+              r.toFixed(2).padStart(6) + '   ' + seuil.toFixed(2).padStart(5) + '  ' + aa + ' ' +
+              (passe ? 'OK ' : (bloquant ? 'NON' : 'nc ')) + '   ' +
+              fg.replace(/var\(|\)/g, '') + ' / ' + bg.replace(/var\(|\)/g, '') +
+              (remarque ? '   (' + remarque + ')' : ''));
+});
+PAIRES.filter(p => !p[4] && rgba(p[0]) && rgba(p[1]) && ratio(p[0], p[1]) < p[3])
+      .forEach(p => note('paire hors usage sous AA : ' + p[2] + ' (' + p[5] + ')'));
+if (echecsContraste) ko(echecsContraste + ' paire(s) en usage sous le seuil');
+else ok('toutes les paires en usage passent leur seuil');
+
+/* ---------------------------------------------------------------------------
+   7. Graisses demandees contre graisses chargees  (LE controle du faux gras)
+--------------------------------------------------------------------------- */
+titre('7. Graisses demandees par le CSS contre graisses chargees par Google Fonts');
+
+const lien = fs.existsSync(LIEN_FONTS) ? fs.readFileSync(LIEN_FONTS, 'utf8').trim() : '';
+if (!lien) { ko('lien Google Fonts introuvable : ' + LIEN_FONTS); }
+console.log('  source du lien : ' + LIEN_FONTS + ' (instantane de src/_includes/base.njk)');
+
+/* Graisses romaines reellement servies par le lien. */
+const chargees = {};
+for (const m of lien.matchAll(/family=([^&]+)/g)) {
+  const bloc = decodeURIComponent(m[1]).replace(/\+/g, ' ');
+  const [nom, axes] = bloc.split(':');
+  const poids = new Set();
+  if (!axes) poids.add(400);
+  else {
+    const noms = axes.split('@')[0].split(',');
+    const iw = noms.indexOf('wght');
+    const iItal = noms.indexOf('ital');
+    (axes.split('@')[1] || '').split(';').forEach(tuple => {
+      const vals = tuple.split(',');
+      if (iItal >= 0 && vals[iItal] === '1') return;      // l'italique se compte a part
+      const v = iw >= 0 ? vals[iw] : '400';
+      // une plage 400..700 sert toutes les graisses intermediaires
+      if (v.includes('..')) { const [a, b] = v.split('..').map(Number); for (let w = a; w <= b; w += 100) poids.add(w); }
+      else poids.add(Number(v));
+    });
+  }
+  chargees[nom.trim()] = [...poids].sort((a, b) => a - b);
+}
+Object.entries(chargees).forEach(([f, w]) => console.log('  charge : ' + f.padEnd(16) + w.join(', ')));
+
+/* Token de famille -> nom Google */
+const FAMILLE = { '--font-titre': 'Fraunces', '--font-corps': 'Inter',
+                  '--font-mono': 'JetBrains Mono', '--font-manuscrit': 'Caveat' };
+
+/* Famille declaree par selecteur, dans le meme bloc ou dans un autre bloc
+   portant exactement le meme selecteur. */
+const familleDe = new Map();
+B.regles.forEach(r => {
+  const sel = norme(r.sel);
+  r.decls.forEach(d => {
+    if (d.prop !== 'font-family') return;
+    const m = d.val.match(/var\((--font-[\w-]+)\)/);
+    if (m) familleDe.set(sel, m[1]);
+    else if (/-apple-system|Segoe UI/.test(d.val)) familleDe.set(sel, 'systeme');
+  });
+});
+
+/* Remontee : .bloc__element -> .bloc, puis .bloc__element:etat -> .bloc__element */
+function resoutFamille(sel) {
+  if (familleDe.has(sel)) return [familleDe.get(sel), 'declaree'];
+  /* Selecteur descendant : si le dernier maillon ne declare rien, la famille
+     vient de l'ancetre le plus proche qui en declare une. */
+  const maillons = sel.split(/\s+(?![^(\[]*[)\]])/).filter(Boolean);
+  if (maillons.length > 1 && !familleDe.has(maillons[maillons.length - 1])) {
+    for (let i = maillons.length - 2; i >= 0; i--) {
+      if (familleDe.has(maillons[i])) return [familleDe.get(maillons[i]), 'heritee de ' + maillons[i]];
+    }
+  }
+  let s = sel;
+  for (let i = 0; i < 6; i++) {
+    const base = s.split(/[ >+~]/).pop().replace(/:[\w-]+(\([^)]*\))?$/, '').replace(/\[[^\]]*\]/g, '');
+    if (familleDe.has(base)) return [familleDe.get(base), 'heritee de ' + base];
+    const m = base.match(/^(\.[\w-]+?)(__[\w-]+)$/);
+    if (m && familleDe.has(m[1])) return [familleDe.get(m[1]), 'heritee de ' + m[1]];
+    if (m && familleDe.has(m[1] + '__card')) return [familleDe.get(m[1] + '__card'), 'heritee de ' + m[1] + '__card'];
+    if (base === s) break;
+    s = base;
+  }
+  return ['--font-corps', 'supposee (heritage de body)'];
+}
+
+const lignes = [];
+B.regles.forEach(r => {
+  const sel = norme(r.sel);
+  r.decls.forEach(d => {
+    if (d.prop !== 'font-weight') return;
+    const w = Number(d.val);
+    if (!w) return;
+    const [tok, origine] = resoutFamille(sel);
+    lignes.push({ sel, w, tok, origine, ligne: d.ligne });
+  });
+});
+
+let fauxGras = 0, poidsAbsents = 0;
+console.log('  ' + 'selecteur'.padEnd(42) + 'poids  famille          etat');
+lignes.sort((a, b) => a.ligne - b.ligne).forEach(l => {
+  const fam = FAMILLE[l.tok];
+  let etat;
+  if (!fam) etat = 'famille systeme, hors controle';
+  else {
+    const dispo = chargees[fam] || [];
+    if (dispo.includes(l.w)) etat = 'charge';
+    else {
+      /* Appariement CSS : pour un poids demande, on retient le plus proche
+         inferieur, sinon le plus proche superieur. Le navigateur ne
+         synthetise du gras que si le poids demande est >= 600 ET que la
+         fonte retenue est en dessous de 600. */
+      const inf = dispo.filter(x => x <= l.w).pop();
+      const sup = dispo.find(x => x >= l.w);
+      const retenu = (l.w < 400 ? (inf ?? sup) : (inf ?? sup));
+      if (l.w >= 600 && (retenu === undefined || retenu < 600)) {
+        etat = 'FAUX GRAS : ' + l.w + ' demande, ' + retenu + ' disponible';
+        fauxGras++;
+      } else {
+        etat = 'non charge, rendu a ' + retenu + ' sans synthese';
+        poidsAbsents++;
+      }
+    }
+  }
+  const marque = /FAUX GRAS/.test(etat) ? '!! ' : '   ';
+  console.log(marque + l.sel.slice(0, 40).padEnd(42) + String(l.w).padEnd(7) +
+              (fam || l.tok).padEnd(17) + etat + '   [' + l.origine + ']');
+});
+
+console.log('  ' + lignes.length + ' declarations font-weight analysees');
+if (fauxGras) ko(fauxGras + ' declaration(s) en faux gras synthetique');
+else ok('aucun faux gras : toute graisse >= 600 trouve une fonte >= 600 chargee');
+if (poidsAbsents) note(poidsAbsents + ' graisse(s) demandee(s) non chargee(s), rabattues sans synthese');
+
+/* ---------------------------------------------------------------------------
+   Verdict
+--------------------------------------------------------------------------- */
+titre('VERDICT');
+console.log('  echecs : ' + ERR + '   notes : ' + NOTES);
+if (ERR) { console.log('  NON CONFORME'); process.exit(1); }
+console.log('  CONFORME');
+process.exit(0);
+

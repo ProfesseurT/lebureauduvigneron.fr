@@ -1,13 +1,16 @@
 {
   "name": "lebureauduvigneron",
   "version": "1.0.0",
-  "description": "Le Bureau du Vigneron — LP pré-inscription",
+  "description": "Le Bureau du Vigneron, LP pre-inscription",
   "scripts": {
     "build": "eleventy",
     "start": "eleventy --serve",
-    "dev": "eleventy --serve"
+    "dev": "eleventy --serve",
+    "charte": "node scripts/charte.mjs",
+    "charte:dash": "node scripts/charte.mjs --dash"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^3.0.0"
+    "@11ty/eleventy": "^3.0.0",
+    "css-tree": "^3.2.1"
   }
 }
