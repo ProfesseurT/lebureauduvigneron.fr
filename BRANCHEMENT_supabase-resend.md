@@ -169,15 +169,38 @@ un vigneron pilote.
 
 À créer dans Resend > Domains, région d'envoi **Ireland (eu-west-1)** :
 
-- `courrier.lebureauduvigneron.fr` : les codes de connexion. Transactionnel.
+- `courrier.lebureauduvigneron.fr` : confirmations d'inscription et reprises de mot de passe.
+  Transactionnel.
 - `edition.lebureauduvigneron.fr` : l'édition bimensuelle. Marketing.
 
 Le plan gratuit accepte trois domaines, la séparation est donc gratuite. Elle sert à une seule
 chose, et elle est décisive : le jour où un lecteur marque la newsletter comme indésirable, il
-abîme la réputation de `edition.` et pas celle de `courrier.`. Un vigneron qui ne reçoit plus son
-code de connexion ne peut plus ouvrir son tableau de bord, et il ne saura jamais pourquoi.
+abîme la réputation de `edition.` et pas celle de `courrier.`. Un vigneron qui a perdu son mot de
+passe et dont le code de reprise part en spam n'a plus aucun chemin de retour, et il ne saura
+jamais pourquoi.
 
 Ne jamais envoyer depuis le domaine racine `lebureauduvigneron.fr`.
+
+#### État constaté le 01/09/2026 : Resend a été posé sur la racine
+
+Vérification DNS depuis 1.1.1.1 et 8.8.8.8, le 01/09/2026 au soir. Ce qui existe :
+
+| Nom | Valeur |
+| --- | --- |
+| `send.lebureauduvigneron.fr` MX | `10 feedback-smtp.eu-west-1.amazonses.com` |
+| `send.lebureauduvigneron.fr` TXT | `v=spf1 include:amazonses.com ~all` |
+| `resend._domainkey.lebureauduvigneron.fr` TXT | clé DKIM présente |
+| `_dmarc.lebureauduvigneron.fr` TXT | `v=DMARC1; p=none;` |
+| `courrier.lebureauduvigneron.fr` | **NXDOMAIN**, rien |
+| `edition.lebureauduvigneron.fr` | **NXDOMAIN**, rien |
+
+Bonne nouvelle au passage : [Certain] le courrier IONOS n'est pas menacé. Les MX
+`mx00/mx01.ionos.fr` et le SPF `_spf-eu.ionos.com` sont sur la racine, Resend n'utilise que le
+sous-domaine `send.` — deux enregistrements distincts, aucun conflit. Ne jamais toucher aux
+enregistrements IONOS de la racine.
+
+**Arbitrage repris le 01/09/2026 : on tient la séparation en deux sous-domaines**, et la racine
+sort de Resend. Migration en 4.2bis.
 
 ### 4.2 DNS
 
@@ -185,8 +208,65 @@ Resend affiche pour chaque domaine les enregistrements exacts à créer chez le 
 un MX pour les retours, un TXT SPF, un TXT DKIM. Les copier tels quels, ne rien inventer, ne rien
 adapter. La vérification prend de quelques minutes à quelques heures.
 
+[Certain] **La clé DKIM est propre à chaque domaine.** Ne jamais recopier celle de la racine sur
+`courrier.` ou `edition.` : le domaine ne se vérifiera pas, et l'erreur est invisible dans
+l'interface du registrar.
+
+[Probable] **Piège IONOS.** L'éditeur DNS d'IONOS complète tout seul avec le nom de la zone. Saisir
+`send.courrier.lebureauduvigneron.fr` dans le champ « Nom » crée
+`send.courrier.lebureauduvigneron.fr.lebureauduvigneron.fr`, qui ne se vérifiera jamais. Ne saisir
+que la partie relative : `send.courrier`, `resend._domainkey.courrier`, et ainsi de suite. Cela se
+contrôle de l'extérieur, avant même de regarder Resend :
+
+    dig +short TXT resend._domainkey.courrier.lebureauduvigneron.fr
+
+**DMARC : rien à créer sur les sous-domaines.** [Certain] Une politique DMARC posée sur le domaine
+d'organisation s'applique à ses sous-domaines tant qu'aucune politique plus spécifique ne
+l'écrase. `_dmarc.lebureauduvigneron.fr` en `p=none` couvre donc `courrier.` et `edition.`. C'est
+le seul enregistrement Resend de la racine à **conserver**.
+
 Ne pas passer à l'étape suivante avant que Resend affiche le domaine `Verified`. Un SMTP posé sur
 un domaine non vérifié n'échoue pas bruyamment, il envoie des messages qui finissent en spam.
+
+### 4.2bis État DNS au 01/09/2026, et ce qu'il reste
+
+`courrier.lebureauduvigneron.fr` est **en place et vérifié**, contrôlé depuis 1.1.1.1, 8.8.8.8 et
+le serveur autoritatif IONOS `ns1066.ui-dns.com` :
+
+| Nom | Valeur |
+| --- | --- |
+| `send.courrier` MX | `10 feedback-smtp.eu-west-1.amazonses.com` |
+| `send.courrier` TXT | `v=spf1 include:amazonses.com ~all` |
+| `resend._domainkey.courrier` TXT | clé DKIM présente, distincte de celle de la racine |
+| `_dmarc.courrier` | NXDOMAIN, et c'est correct : la racine couvre |
+
+`edition.lebureauduvigneron.fr` n'existe pas encore. Ce n'est pas un reste de ce lot : c'est le
+premier geste du lot newsletter, à faire avant le premier envoi de l'édition, jamais après.
+
+**Le danger n'est pas ce qui manque, c'est ce qui reste en trop.** La racine est encore vérifiée
+dans Resend, donc encore sélectionnable comme expéditeur. Le jour du premier envoi de l'édition,
+si `edition.` n'existe pas, Resend proposera la racine et l'envoi partira du domaine qui porte les
+codes de reprise de mot de passe. Ce ne sera pas une faute d'inattention, ce sera le défaut de
+l'interface. Le seul garde-fou fiable est de retirer la racine tout de suite, pas de compter s'en
+souvenir dans quinze jours.
+
+Reste à faire, dans cet ordre :
+
+1. Clé API `bdv-auth-smtp`, permission d'envoi, restreinte à `courrier.` (section 4.3). La clé
+   `bdv-edition` attend que `edition.` existe.
+2. SMTP Supabase sur `codes@courrier.lebureauduvigneron.fr` (section 4.4).
+3. Les deux tests d'envoi : inscription, puis mot de passe oublié. Le second est le seul qui
+   prouve que le gabarit **Reset password** a été réécrit.
+4. Les deux tests passés, **retirer le domaine racine de Resend**, puis supprimer chez IONOS
+   `send.lebureauduvigneron.fr` MX, `send.lebureauduvigneron.fr` TXT et
+   `resend._domainkey.lebureauduvigneron.fr`.
+5. Ne jamais toucher à `_dmarc.lebureauduvigneron.fr`, ni au SPF `_spf-eu.ionos.com`, ni aux MX
+   `mx00/mx01.ionos.fr` : c'est la boîte de Ted.
+
+Contrôle depuis l'extérieur, plus rapide que de deviner si le tort vient d'IONOS ou de Resend :
+
+    dig +short TXT resend._domainkey.courrier.lebureauduvigneron.fr
+    dig +short MX  send.courrier.lebureauduvigneron.fr
 
 ### 4.3 Deux clés API
 
