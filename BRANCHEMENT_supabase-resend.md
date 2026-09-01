@@ -1,27 +1,54 @@
 # Brancher Supabase et Resend
 
-État au 01/09/2026 : le code est écrit et livré (commits `fb3e808` et `4391e39`). Le projet
-Supabase `qukmncqqwomhmrdhvetj` existe, en **West EU (Ireland), `eu-west-1`**, encore vide. Resend
-n'est pas créé. Ce fichier est la marche à suivre, dans l'ordre. Chaque étape a son test : si le
-test ne passe pas, ne pas passer à la suivante.
+État au 01/09/2026, révisé le soir : le lot est passé de **email + code à six chiffres** à
+**email + mot de passe**, décidé avec Ted. Le code de `src/js/bdv-compte.js` a été réécrit en
+conséquence. Le projet Supabase `qukmncqqwomhmrdhvetj` existe, en **West EU (Ireland),
+`eu-west-1`**, encore vide. Resend n'est pas créé. Ce fichier est la marche à suivre, dans
+l'ordre. Chaque étape a son test : si le test ne passe pas, ne pas passer à la suivante.
+
+Ce que le mot de passe change, en une phrase : le code à six chiffres n'est plus un moyen de
+connexion, il ne sert plus qu'à confirmer une adresse à l'inscription et à reprendre un mot de
+passe oublié. Conséquence directe et bienvenue, le plafond Resend de 100 messages par jour ne
+peut plus empêcher un vigneron de se connecter (voir 4.5).
 
 ## 0. Ce que le code attend
 
 `src/js/bdv-compte.js` appelle GoTrue et PostgREST directement, sans `supabase-js`. Il attend
-exactement deux valeurs, lignes 15 et 16 :
+exactement deux valeurs, lignes 21 et 22 :
 
     const SUPABASE_URL = '';
     const SUPABASE_ANON_KEY = '';
+
+Une troisième constante, `MDP_MIN = 8`, doit rester alignée sur le réglage Supabase de la
+section 3. Si les deux divergent, le refus vient du serveur et le message s'affiche en anglais.
 
 Points de contact réseau, il n'y en a pas d'autres :
 
 | Appel | Endpoint | Ce qu'il suppose |
 | --- | --- | --- |
-| `demanderCode()` | `POST /auth/v1/otp` avec `create_user: true` | inscriptions ouvertes, e-mail activé |
-| `verifierCode()` | `POST /auth/v1/verify` avec `type: 'email'` | le mail contient un **code**, pas un lien |
+| `inscription()` | `POST /auth/v1/signup` `{email, password}` | inscriptions ouvertes, e-mail activé |
+| `confirmerInscription()` | `POST /auth/v1/verify` `type: 'signup'` | gabarit **Confirm signup** en `{{ .Token }}` |
+| `renvoyerConfirmation()` | `POST /auth/v1/resend` `type: 'signup'` | idem |
+| `connexion()` | `POST /auth/v1/token?grant_type=password` | rien de particulier |
+| `demanderReprise()` | `POST /auth/v1/recover` | gabarit **Reset password** en `{{ .Token }}` |
+| `validerReprise()` | `POST /auth/v1/verify` `type: 'recovery'` | ouvre une session, ne change pas le mot de passe |
+| `changerMdp()` | `PUT /auth/v1/user` `{password}` + Bearer | la session de reprise |
 | `rafraichir()` | `POST /auth/v1/token?grant_type=refresh_token` | rien de particulier |
 | `profil()` | `GET /rest/v1/profils?id=eq.<uid>` | table `profils`, RLS en lecture |
 | `majProfil()` / `ecrireSiVide()` | `PATCH /rest/v1/profils?id=eq.<uid>` | RLS en écriture |
+
+Trois pièges portés par le code, à connaître avant de déboguer l'écran :
+
+1. **La reprise, c'est deux appels.** `verify type=recovery` ouvre une session, il ne change
+   aucun mot de passe. C'est cette session qui autorise le `PUT /user` suivant. Un seul des
+   deux appels laisse le vigneron connecté avec son ancien mot de passe intact.
+2. **Une adresse déjà prise ne renvoie pas d'erreur.** [Probable] GoTrue répond `200` avec un
+   utilisateur dont `identities` est un tableau vide, pour ne pas révéler qui est inscrit.
+   `inscription()` teste ce cas ; sans lui, l'écran demanderait un code qui n'arrive jamais.
+3. **Un compte créé mais jamais confirmé** reçoit `email_not_confirmed` à la connexion.
+   `seConnecter()` rattrape ce code, renvoie un code de confirmation et affiche l'étape 2.
+   Sans ce rattrapage, ce vigneron est enfermé dehors définitivement : rien dans l'écran ne lui
+   permettrait de redemander le code.
 
 Tant que les deux constantes sont vides, `porte()` renvoie `null` et l'outil s'ouvre sans compte.
 C'est voulu : configuration absente vaut porte ouverte. Ça veut aussi dire qu'une faute de frappe
@@ -71,33 +98,51 @@ lisible. C'est le seul vrai risque de sécurité du lot, et il ne se voit nulle 
 
 Authentication > Sign In / Providers > Email :
 
-- fournisseur e-mail activé, inscriptions autorisées. Sans ça, `create_user: true` renvoie 422 et
+- fournisseur e-mail activé, **inscriptions autorisées**. Sans ça, `POST /signup` renvoie 422 et
   la porte affiche « Une erreur est survenue » pour tout le monde.
-- longueur du code OTP : 6. Le champ de saisie est en `maxlength="6"`.
-- expiration du code : 600 secondes. Le défaut est de 3600, une heure de validité pour un code à
-  six chiffres est inutilement large.
+- **Confirm email : activé.** Décidé le 01/09/2026. Le coût est un e-mail par inscription et un
+  écran de plus ; le gain est que `profils.email` ne contient que des adresses vérifiées, sans
+  quoi la liste de diffusion se remplit d'adresses fausses ou d'adresses d'autrui — exactement
+  la pollution que le durcissement des grants de la section 2 cherche à empêcher.
+- **Minimum password length : 8.** Doit rester égal à `MDP_MIN` dans `bdv-compte.js`.
+- **Aucune exigence de caractères** (pas de majuscule ni de symbole imposés). Le public est
+  vigneron, souvent sur téléphone : une règle de complexité produit un mot de passe noté sur un
+  carnet à côté de l'ordinateur, ce qui est un recul de sécurité, pas un progrès.
+- [Certain] La protection contre les mots de passe déjà fuités (HaveIBeenPwned) est réservée au
+  plan Pro. On s'en passe, et on ne compte pas dessus.
+- longueur du code OTP : **6**. Le champ de saisie est en `maxlength="6"`. Toujours utile : le
+  code sert encore à la confirmation et à la reprise.
+- expiration du code : **600 secondes**. Le défaut est de 3600, une heure de validité pour un
+  code à six chiffres est inutilement large.
 
-Authentication > URL Configuration : Site URL = `https://lebureauduvigneron.fr`.
+Authentication > URL Configuration : Site URL = `https://lebureauduvigneron.fr`. Aucune Redirect
+URL n'est nécessaire : le code reste dans la modale, aucun e-mail ne contient de lien cliquable.
 
 ### Le piège des gabarits
 
-Par défaut, Supabase envoie un **lien magique**, pas un code. Il faut réécrire les gabarits pour
-qu'ils contiennent `{{ .Token }}` et plus aucune trace de `{{ .ConfirmationURL }}`.
+Par défaut, Supabase envoie un **lien**, pas un code. Il faut réécrire les gabarits pour qu'ils
+contiennent `{{ .Token }}` et plus aucune trace de `{{ .ConfirmationURL }}`.
 
-Et il y a **deux** gabarits à réécrire, pas un :
+[Certain] `{{ .Token }}` est disponible dans **Confirm signup** comme dans **Reset password**.
+C'est ce qui permet à tout le parcours de rester dans la modale : aucune page de retour à écrire,
+aucun fragment d'URL à décoder, aucun lien à cliquer depuis un téléphone.
 
-- **Confirm signup** : c'est celui qui part quand l'adresse est inconnue, donc à la toute première
-  connexion de chaque vigneron.
-- **Magic Link** : c'est celui qui part quand l'adresse existe déjà, donc à toutes les suivantes.
+Deux gabarits à réécrire :
 
-N'en corriger qu'un donne le pire des symptômes : ça marche en test avec ta propre adresse déjà
-inscrite, et ça envoie un lien inutilisable à chaque nouveau vigneron. Personne ne remonte le bug,
-ils abandonnent.
+- **Confirm signup** : part à chaque création de compte, et à chaque `resend`.
+- **Reset password** : part à chaque « Mot de passe oublié ». **C'est celui qu'on oublie**, et son
+  oubli ne se voit qu'au premier vigneron qui perd son mot de passe — c'est-à-dire trop tard, et
+  il ne le signalera pas.
 
-Gabarit minimal, à décliner ensuite sur la charte :
+**Magic Link** n'a plus à être touché : la connexion par code a été retirée du code le 01/09/2026.
+Si le gabarit par défaut reste en place, aucun message n'en part.
+
+Gabarit minimal, à décliner ensuite sur la charte. Le même corps convient aux deux, seule la
+phrase d'introduction change (« Voici votre code de connexion » / « Voici votre code pour
+choisir un nouveau mot de passe ») :
 
     <p>Bonjour,</p>
-    <p>Voici votre code de connexion au Bureau du Vigneron :</p>
+    <p>Voici votre code pour le Bureau du Vigneron :</p>
     <p style="font-size:28px;letter-spacing:6px;font-family:monospace"><b>{{ .Token }}</b></p>
     <p>Il est valable dix minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>
 
@@ -105,11 +150,14 @@ Gabarit minimal, à décliner ensuite sur la charte :
 
 Authentication > Rate Limits, après avoir posé le SMTP à l'étape 4 :
 
-- envoi d'e-mails : 30 par heure par défaut, à relever. 150 laisse de la marge sans ouvrir la
-  porte à l'abus.
+- envoi d'e-mails : 30 par heure par défaut. Moins critique qu'avec la connexion par code, mais
+  à relever quand même : 150 laisse de la marge sans ouvrir la porte à l'abus.
 - un même compte ne peut demander un code que toutes les 60 secondes. Le bouton « Renvoyer le
   code » se heurte donc à un 429, déjà traduit en « Trop de tentatives » dans `erreurLisible()`.
   Rien à faire, juste à savoir avant de croire à un bug.
+- les tentatives de connexion par mot de passe ont leur propre limite, indépendante de l'e-mail.
+  Un vigneron qui se trompe cinq fois voit « Trop de tentatives » et non « mot de passe
+  incorrect » : c'est le serveur qui parle, pas un bug de l'écran.
 
 ## 4. Resend
 
@@ -164,16 +212,24 @@ Authentication > Emails > SMTP Settings :
 | Sender email | `codes@courrier.lebureauduvigneron.fr` |
 | Sender name | `Le Bureau du Vigneron` |
 
-**Test.** Demander un code sur une adresse personnelle, hors organisation Supabase. Le message
-doit arriver en moins d'une minute, contenir six chiffres et aucun lien.
+**Test.** Créer un compte sur une adresse personnelle, hors organisation Supabase. Le message
+doit arriver en moins d'une minute, contenir six chiffres et aucun lien. Puis « Mot de passe
+oublié » sur cette même adresse : un second message, six chiffres, aucun lien. Le second test
+est le seul qui prouve que le gabarit **Reset password** a bien été réécrit.
 
-### 4.5 Le plafond qui va mordre
+### 4.5 Le plafond, et pourquoi il mord beaucoup moins
 
-Plan gratuit : 3 000 messages par mois, **100 par jour**. Le mensuel est confortable, le
-quotidien ne l'est pas. Le jour d'un envoi de l'édition bimensuelle, la newsletter consomme le
-quota et les codes de connexion tombent avec elle. À 80 abonnés, il faut soit passer au plan
-payant, soit envoyer la newsletter depuis un autre compte. À arbitrer avant le premier envoi, pas
-après.
+Plan gratuit : 3 000 messages par mois, **100 par jour**.
+
+Avec la connexion par code, ce plafond était un risque de blocage : chaque connexion consommait
+un e-mail, et le jour d'un envoi de l'édition bimensuelle la newsletter mangeait le quota, donc
+plus personne ne pouvait ouvrir son tableau de bord. **Le mot de passe supprime ce risque.**
+Resend ne voit plus qu'une inscription et un oubli de mot de passe, soit quelques messages par
+semaine face à une newsletter bimensuelle.
+
+Ce qui reste vrai : le jour d'un envoi, si l'édition dépasse le quota, une **inscription** ou un
+**oubli de mot de passe** peut tomber avec elle. C'est un désagrément à retenter le lendemain, plus
+un vigneron enfermé dehors. À arbitrer avant de dépasser 80 abonnés, sans urgence.
 
 ## 5. Brancher les deux constantes
 
@@ -187,7 +243,7 @@ ne justifie pas ce détour.
 
 Ajouter au passage dans `.env.example`, pour la trace :
 
-    # Projet Supabase (region Paris). La cle anon est publique, elle est aussi en dur dans
+    # Projet Supabase (region West EU, Ireland). La cle anon est publique, elle est aussi en dur dans
     # src/js/bdv-compte.js. Elle est ici pour memoire, aucun script du depot ne la lit.
     SUPABASE_URL=
     SUPABASE_ANON_KEY=
@@ -200,18 +256,32 @@ Ajouter au passage dans `.env.example`, pour la trace :
 
 À faire dans l'ordre, sur le site déployé, pas en local :
 
-1. Adresse jamais vue : code reçu, six chiffres, aucun lien. Valide le gabarit **Confirm signup**.
-2. Même adresse une seconde fois : code reçu. Valide le gabarit **Magic Link**.
-3. Code faux : « Code incorrect, vérifie et réessaie. »
-4. Trois demandes en trente secondes : « Trop de tentatives, réessaie dans quelques minutes. »
-5. `curl` avec la clé anon sans session sur `profils` : `[]`.
-6. `PATCH` de `profils.email` avec un jeton valide : refusé. Valide le durcissement de l'étape 2.
-7. Compte A qui tente un `PATCH` sur l'`id` du compte B : zéro ligne modifiée.
-8. **Règle d'or.** Couper le réseau, recharger le tableau de bord avec une session déjà ouverte :
-   l'outil s'ouvre, la base IndexedDB se lit, le chiffre d'affaires s'affiche. Si l'outil bloque,
-   le lot est à refuser, quel que soit l'état du reste.
-9. Le lien « politique de confidentialité » de la porte ouvre bien `/politique-confidentialite/`.
-10. Une fiche `profils` existe bien, avec `outil_origine = dashboard-vigneron`.
+1. Adresse jamais vue, « Créer mon compte » : code reçu, six chiffres, aucun lien. Valide le
+   gabarit **Confirm signup**.
+2. Code saisi : la porte s'ouvre. Une fiche `profils` existe, avec `outil_origine =
+   dashboard-vigneron`.
+3. Déconnexion, puis « Me connecter » avec le bon mot de passe : la porte s'ouvre, **aucun
+   e-mail ne part**. C'est tout l'intérêt du lot, et ça se vérifie dans le journal Resend.
+4. Mauvais mot de passe : « Adresse ou mot de passe incorrect. » Pas « Code incorrect ».
+5. **« Créer mon compte » sur cette adresse déjà inscrite** : « Un compte existe déjà avec cette
+   adresse. » Surtout pas un écran de code qui attend indéfiniment. Valide le test `identities`.
+6. Mot de passe de moins de 8 caractères à l'inscription : refusé en français, avant l'appel
+   réseau.
+7. **« Mot de passe oublié »**, code reçu, nouveau mot de passe posé, la porte s'ouvre. Puis
+   déconnexion et connexion avec le **nouveau** mot de passe. Valide le gabarit **Reset
+   password** et le fait que `changerMdp()` a bien été appelé après la session de reprise.
+8. Ancien mot de passe après cette reprise : refusé.
+9. Compte créé et fenêtre fermée sans saisir le code, puis « Me connecter » : un nouveau code
+   part et l'étape 2 s'affiche. Valide le rattrapage `email_not_confirmed`.
+10. Trois demandes de code en trente secondes : « Trop de tentatives, réessaie dans quelques
+    minutes. »
+11. `curl` avec la clé anon sans session sur `profils` : `[]`.
+12. `PATCH` de `profils.email` avec un jeton valide : refusé. Valide le durcissement de l'étape 2.
+13. Compte A qui tente un `PATCH` sur l'`id` du compte B : zéro ligne modifiée.
+14. **Règle d'or.** Couper le réseau, recharger le tableau de bord avec une session déjà ouverte :
+    l'outil s'ouvre, la base IndexedDB se lit, le chiffre d'affaires s'affiche. Si l'outil bloque,
+    le lot est à refuser, quel que soit l'état du reste.
+15. Le lien « politique de confidentialité » de la porte ouvre bien `/politique-confidentialite/`.
 
 ## 7. Ce qui reste à arbitrer, et qui n'est pas de la configuration
 
@@ -280,6 +350,22 @@ Le brancher sur Resend serait quelques lignes. Ce serait aussi transmettre des n
 des montants à un tiers, rendre la politique de confidentialité fausse, et endosser la
 responsabilité d'envoi. Si ce besoin remonte, il s'arbitre à part, avec le message produit et la
 page de confidentialité, jamais au fil d'un lot technique.
+
+### 7.6 `profils.email` va diverger de `auth.users.email`
+
+Apparu avec le mot de passe, parce que le code appelle maintenant `PUT /auth/v1/user`.
+
+[Certain] Cet endpoint change le mot de passe, mais il accepte aussi un champ `email`. Or le
+déclencheur `creer_profil` ne recopie l'adresse qu'**à l'insertion** (`after insert on
+auth.users`), et le durcissement de la section 2 retire `email` des colonnes que le compte peut
+modifier dans `profils`. Un changement d'adresse côté GoTrue contourne donc ce garde-fou : le
+compte garde une adresse à jour dans `auth.users` et une adresse périmée dans `profils`.
+
+`bdv-compte.js` n'expose aucun écran de changement d'adresse, donc rien ne déclenche ce cas
+aujourd'hui. Mais ça tranche une question qui se posera au premier export de liste : **la liste
+de diffusion se lit sur `auth.users`, via une vue, pas sur `profils.email`.** L'alternative est
+un déclencheur `after update on auth.users` qui resynchronise ; il faudra le poser le jour où un
+écran « changer mon adresse » apparaît.
 
 ## 8. Le serveur MCP Supabase
 

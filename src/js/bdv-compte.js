@@ -1,6 +1,12 @@
 /* Le Bureau du Vigneron, module de compte.
-   Porte d'entree commune a tous les outils : email + code a 6 chiffres, sans mot de passe,
-   sans supabase-js. Appelle directement GoTrue (auth) et PostgREST (profils).
+   Porte d'entree commune a tous les outils : email + mot de passe, sans supabase-js.
+   Appelle directement GoTrue (auth) et PostgREST (profils).
+
+   Le code a six chiffres n'est plus un moyen de connexion. Il ne sert plus qu'a deux choses :
+   confirmer une adresse a l'inscription, et reprendre la main sur un mot de passe oublie. Dans
+   les deux cas il reste dans la modale : aucun lien a cliquer, aucune page de retour, aucun
+   fragment d'URL a decoder. C'est la raison pour laquelle les gabarits Supabase doivent porter
+   {{ .Token }} et pas {{ .ConfirmationURL }}.
 
    Regle d'or : un vigneron ne doit jamais se retrouver enferme dehors de ses propres donnees.
    La session locale suffit a ouvrir l'outil ; le reseau ne sert qu'a l'ouvrir ou la rafraichir,
@@ -14,6 +20,10 @@
   // les tables Supabase, jamais au secret de cette cle.
   const SUPABASE_URL = '';
   const SUPABASE_ANON_KEY = '';
+
+  // Doit rester aligne sur Authentication > Providers > Email > Minimum password length.
+  // Si les deux divergent, le refus vient du serveur et le message est en anglais.
+  const MDP_MIN = 8;
 
   const SESSION_KEY = 'bdv_session';
   const TRACE_KEY = 'bdv_trace_envoyee';
@@ -48,19 +58,44 @@
   }
   function viderSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
 
+  // L'ordre des tests compte : invalid_credentials contient "invalid", email_not_confirmed
+  // contient "email". Le cas le plus precis passe toujours en premier.
+  // L'erreur porte aussi .brut, le code GoTrue d'origine : l'ecran s'en sert pour reagir
+  // (renvoyer un code de confirmation) sans avoir a lire le texte francais.
   function erreurLisible(status, data){
-    const brut = String((data && (data.error_code || data.code || data.msg || data.error_description || data.error)) || '').toLowerCase();
-    if(status === 429 || brut.indexOf('rate') >= 0) return new Error("Trop de tentatives, réessaie dans quelques minutes.");
-    if(brut.indexOf('expired') >= 0) return new Error("Ce code a expiré, demande-en un nouveau.");
-    if(brut.indexOf('invalid') >= 0 || brut.indexOf('token') >= 0) return new Error("Code incorrect, vérifie et réessaie.");
-    if(status === 400) return new Error("Adresse e-mail invalide.");
-    return new Error("Une erreur est survenue, réessaie dans un instant.");
+    const t = (String((data && (data.error_code || data.code)) || '') + ' '
+      + String((data && (data.msg || data.error_description || data.error || data.message)) || '')).toLowerCase();
+    let message;
+    if(status === 429 || t.indexOf('rate') >= 0 || t.indexOf('over_email_send') >= 0)
+      message = "Trop de tentatives, réessaie dans quelques minutes.";
+    else if(t.indexOf('already') >= 0 || t.indexOf('exists') >= 0)
+      message = "Un compte existe déjà avec cette adresse. Connecte-toi, ou utilise « Mot de passe oublié ».";
+    else if(t.indexOf('weak_password') >= 0 || t.indexOf('at least') >= 0)
+      message = "Mot de passe trop court : " + MDP_MIN + " caractères minimum.";
+    else if(t.indexOf('not_confirmed') >= 0)
+      message = "Adresse pas encore confirmée. Un nouveau code vient de partir.";
+    else if(t.indexOf('invalid_credentials') >= 0 || t.indexOf('invalid login') >= 0)
+      message = "Adresse ou mot de passe incorrect.";
+    else if(t.indexOf('expired') >= 0)
+      message = "Ce code a expiré, demande-en un nouveau.";
+    else if(t.indexOf('otp') >= 0 || t.indexOf('token') >= 0 || t.indexOf('invalid') >= 0)
+      message = "Code incorrect, vérifie et réessaie.";
+    else if(status === 400)
+      message = "Adresse e-mail invalide.";
+    else
+      message = "Une erreur est survenue, réessaie dans un instant.";
+    const err = new Error(message);
+    err.brut = t;
+    err.status = status;
+    return err;
   }
 
-  async function appelGoTrue(chemin, corps){
+  async function appelGoTrue(chemin, corps, methode, jeton){
+    const entetes = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY };
+    if(jeton) entetes['Authorization'] = 'Bearer ' + jeton;
     const r = await fetch(SUPABASE_URL + '/auth/v1' + chemin, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      method: methode || 'POST',
+      headers: entetes,
       body: JSON.stringify(corps)
     });
     const data = await r.json().catch(function(){ return {}; });
@@ -68,16 +103,73 @@
     return data;
   }
 
-  async function demanderCode(email){
+  function verifEmail(email){
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Adresse e-mail invalide.");
-    await appelGoTrue('/otp', { email: email, create_user: true });
+  }
+  function verifMdp(mdp){
+    if(String(mdp || '').length < MDP_MIN)
+      throw new Error("Mot de passe trop court : " + MDP_MIN + " caractères minimum.");
   }
 
-  async function verifierCode(email, code, extra){
-    const data = await appelGoTrue('/verify', { email: email, token: code, type: 'email' });
+  // Deux issues possibles, selon "Confirm email" cote Supabase :
+  //   { confirmer: true } confirmation active (notre choix) : pas de session, un code part.
+  //   { session }         confirmation desactivee : session immediate.
+  // Ne jamais supposer laquelle : un changement de reglage dans le tableau de bord Supabase
+  // ne doit pas casser l'ecran.
+  async function inscription(email, mdp){
+    verifEmail(email);
+    verifMdp(mdp);
+    const data = await appelGoTrue('/signup', { email: email, password: mdp });
+    if(data && data.access_token) return { session: ecrireSession(data) };
+    // Adresse deja prise : GoTrue repond 200 avec un utilisateur sans identite plutot qu'une
+    // erreur, pour ne pas reveler qui est inscrit. Sans ce test, l'ecran demanderait un code
+    // qui n'arrivera jamais, et le vigneron attendrait devant un champ vide.
+    if(data && Array.isArray(data.identities) && data.identities.length === 0){
+      const err = new Error("Un compte existe déjà avec cette adresse. Connecte-toi, ou utilise « Mot de passe oublié ».");
+      err.brut = 'user_already_exists';
+      throw err;
+    }
+    return { confirmer: true };
+  }
+
+  async function confirmerInscription(email, code, extra){
+    const data = await appelGoTrue('/verify', { email: email, token: code, type: 'signup' });
     const session = ecrireSession(data);
     majTrace(session, extra || {}).catch(function(){});
     return session;
+  }
+
+  async function renvoyerConfirmation(email){
+    await appelGoTrue('/resend', { type: 'signup', email: email });
+  }
+
+  async function connexion(email, mdp, extra){
+    verifEmail(email);
+    const data = await appelGoTrue('/token?grant_type=password', { email: email, password: mdp });
+    const session = ecrireSession(data);
+    majTrace(session, extra || {}).catch(function(){});
+    return session;
+  }
+
+  // Toujours 200, meme sur une adresse inconnue : GoTrue ne dit pas qui est inscrit. L'ecran
+  // affiche donc "un code a ete envoye" dans les deux cas, et c'est correct.
+  async function demanderReprise(email){
+    verifEmail(email);
+    await appelGoTrue('/recover', { email: email });
+  }
+
+  // Le code de reprise ouvre une session, il ne change pas le mot de passe. C'est cette
+  // session qui autorise ensuite le PUT /user. Deux appels, jamais un.
+  async function validerReprise(email, code){
+    const data = await appelGoTrue('/verify', { email: email, token: code, type: 'recovery' });
+    return ecrireSession(data);
+  }
+
+  async function changerMdp(nouveau){
+    verifMdp(nouveau);
+    const s = lireSession();
+    if(!s) throw new Error("Session expirée, recommence depuis le début.");
+    return appelGoTrue('/user', { password: nouveau }, 'PUT', s.access_token);
   }
 
   async function rafraichir(){
@@ -171,6 +263,7 @@
       + '.bdv-porte__input{width:100%;padding:.65rem .75rem;border:1px solid var(--rule-fort,rgba(30,37,54,.42));background:var(--paper-light,#F5EFE0);font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-corps,1rem);color:var(--ink,#1E2536);margin-bottom:.9rem;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__input:focus{outline:2px solid var(--bordeaux,#5A1525);outline-offset:1px}'
       + '.bdv-porte__input--code{letter-spacing:.3em;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);text-align:center;font-size:1.2rem}'
+      + '.bdv-porte__aide{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:-.5rem 0 .9rem}'
       + '.bdv-porte__chk{display:flex;align-items:flex-start;gap:.5rem;font-size:var(--t-petit,.78rem);color:var(--muted,#63523D);margin-bottom:1.1rem;line-height:var(--lh-normal,1.5)}'
       + '.bdv-porte__btn{width:100%;padding:.7rem 1rem;background:var(--bordeaux,#5A1525);color:var(--on-dark,#EFE7D6);border:none;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-doux,.05em);font-weight:500;cursor:pointer;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__btn:hover{background:var(--bordeaux-vif,#7A1525)}'
@@ -205,44 +298,93 @@
         '<div class="bdv-porte__carte">'
         + '<p class="bdv-porte__eyebrow">Le Bureau du Vigneron</p>'
         + '<h2 id="bdvPorteTitre" class="bdv-porte__titre">' + esc(options.titre || 'Tes chiffres sont prêts.') + '</h2>'
-        + '<p class="bdv-porte__reassure">On stocke ton email, rien d\'autre. Tes ventes ne quittent pas ton navigateur.</p>'
-        + '<div data-etape="email">'
+        + '<p class="bdv-porte__reassure">On stocke ton email et ton mot de passe, rien d\'autre. Tes ventes ne quittent pas ton navigateur.</p>'
+        // Etape 1 : acces. Deux boutons distincts, volontairement. Un seul bouton obligerait a
+        // deviner l'intention, et le 400 du serveur ne dit pas si c'est le mot de passe qui est
+        // faux ou le compte qui n'existe pas.
+        + '<div data-etape="acces">'
         + '<label class="bdv-porte__label" for="bdvEmail">Ton email</label>'
         + '<input class="bdv-porte__input" type="email" id="bdvEmail" autocomplete="email" placeholder="toi@domaine.fr">'
+        + '<label class="bdv-porte__label" for="bdvMdp">Ton mot de passe</label>'
+        + '<input class="bdv-porte__input" type="password" id="bdvMdp" autocomplete="current-password">'
+        + '<p class="bdv-porte__aide">' + MDP_MIN + ' caractères minimum.</p>'
         + '<label class="bdv-porte__chk"><input type="checkbox" id="bdvNews"> Recevoir l\'édition bimensuelle du Bureau du Vigneron</label>'
-        + '<button class="bdv-porte__btn" id="bdvBtnEmail" type="button">Recevoir mon code</button>'
+        + '<button class="bdv-porte__btn" id="bdvBtnConnexion" type="button">Me connecter</button>'
+        + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvBtnInscription" type="button">Créer mon compte</button>'
+        + '<button class="bdv-porte__lien" id="bdvOublie" type="button">Mot de passe oublié ?</button>'
         + (options.esquivable ? '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvPlusTard" type="button">Plus tard</button>' : '')
-        + '<p class="bdv-porte__erreur" id="bdvErreurEmail" hidden></p>'
+        + '<p class="bdv-porte__erreur" id="bdvErreurAcces" hidden></p>'
         + '</div>'
+        // Etape 2 : le code a six chiffres. Le meme ecran sert a confirmer une inscription et
+        // a reprendre un mot de passe oublie ; seule la variable modeCode change.
         + '<div data-etape="code" hidden>'
-        + '<p class="bdv-porte__note">Un code à 6 chiffres vient d\'être envoyé à <b id="bdvEmailAffiche"></b>.</p>'
+        + '<p class="bdv-porte__note" id="bdvNoteCode"></p>'
         + '<label class="bdv-porte__label" for="bdvCode">Code reçu</label>'
         + '<input class="bdv-porte__input bdv-porte__input--code" type="text" id="bdvCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code">'
         + '<button class="bdv-porte__btn" id="bdvBtnCode" type="button">Valider</button>'
         + '<button class="bdv-porte__lien" id="bdvRenvoyer" type="button">Renvoyer le code</button>'
         + '<p class="bdv-porte__erreur" id="bdvErreurCode" hidden></p>'
         + '</div>'
+        // Etape 3 : uniquement apres une reprise. Le code a ouvert une session, il reste a
+        // poser le nouveau mot de passe avant d'entrer.
+        + '<div data-etape="nouveau" hidden>'
+        + '<p class="bdv-porte__note">Code validé. Choisis un nouveau mot de passe.</p>'
+        + '<label class="bdv-porte__label" for="bdvNouveauMdp">Nouveau mot de passe</label>'
+        + '<input class="bdv-porte__input" type="password" id="bdvNouveauMdp" autocomplete="new-password">'
+        + '<p class="bdv-porte__aide">' + MDP_MIN + ' caractères minimum.</p>'
+        + '<button class="bdv-porte__btn" id="bdvBtnNouveau" type="button">Enregistrer et entrer</button>'
+        + '<p class="bdv-porte__erreur" id="bdvErreurNouveau" hidden></p>'
+        + '</div>'
         + '<p class="bdv-porte__legal">En continuant, tu acceptes la <a href="/politique-confidentialite/" target="_blank" rel="noopener">politique de confidentialité</a>.</p>'
         + '</div>';
       document.body.appendChild(overlay);
 
-      const etapeEmail = overlay.querySelector('[data-etape="email"]');
-      const etapeCode = overlay.querySelector('[data-etape="code"]');
+      const etapes = {
+        acces: overlay.querySelector('[data-etape="acces"]'),
+        code: overlay.querySelector('[data-etape="code"]'),
+        nouveau: overlay.querySelector('[data-etape="nouveau"]')
+      };
       const champEmail = overlay.querySelector('#bdvEmail');
+      const champMdp = overlay.querySelector('#bdvMdp');
       const champNews = overlay.querySelector('#bdvNews');
-      const btnEmail = overlay.querySelector('#bdvBtnEmail');
+      const btnConnexion = overlay.querySelector('#bdvBtnConnexion');
+      const btnInscription = overlay.querySelector('#bdvBtnInscription');
+      const btnOublie = overlay.querySelector('#bdvOublie');
       const btnPlusTard = overlay.querySelector('#bdvPlusTard');
-      const erreurEmail = overlay.querySelector('#bdvErreurEmail');
+      const erreurAcces = overlay.querySelector('#bdvErreurAcces');
+      const noteCode = overlay.querySelector('#bdvNoteCode');
       const champCode = overlay.querySelector('#bdvCode');
       const btnCode = overlay.querySelector('#bdvBtnCode');
       const btnRenvoyer = overlay.querySelector('#bdvRenvoyer');
       const erreurCode = overlay.querySelector('#bdvErreurCode');
-      const emailAffiche = overlay.querySelector('#bdvEmailAffiche');
+      const champNouveau = overlay.querySelector('#bdvNouveauMdp');
+      const btnNouveau = overlay.querySelector('#bdvBtnNouveau');
+      const erreurNouveau = overlay.querySelector('#bdvErreurNouveau');
       champEmail.focus();
 
+      // 'signup' ou 'recovery'. Decide ce que valide l'etape 2 et ou elle mene ensuite.
+      let modeCode = 'signup';
+
+      function montrer(nom){
+        Object.keys(etapes).forEach(function(k){ etapes[k].hidden = (k !== nom); });
+      }
       function montrerErreur(el, e){ el.textContent = e.message; el.hidden = false; }
       function masquerErreur(el){ el.hidden = true; }
+      function occupe(btn, texte){
+        btn.dataset.repos = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = texte;
+      }
+      function libre(btn){
+        btn.disabled = false;
+        if(btn.dataset.repos) btn.textContent = btn.dataset.repos;
+      }
 
+      function entrer(session){
+        document.removeEventListener('keydown', surEchap);
+        overlay.remove();
+        resolve(session);
+      }
       function esquiver(){
         reporterPorte();
         document.removeEventListener('keydown', surEchap);
@@ -255,45 +397,128 @@
         document.addEventListener('keydown', surEchap);
       }
 
-      async function envoyerCode(){
-        masquerErreur(erreurEmail);
+      function extraConsent(){ return champNews.checked ? { consent_news: true } : {}; }
+
+      function versCode(mode, phrase){
+        modeCode = mode;
+        noteCode.innerHTML = phrase;
+        champCode.value = '';
+        masquerErreur(erreurCode);
+        montrer('code');
+        champCode.focus();
+      }
+
+      async function seConnecter(){
+        masquerErreur(erreurAcces);
         const email = champEmail.value.trim();
-        btnEmail.disabled = true; btnEmail.textContent = 'Envoi…';
+        occupe(btnConnexion, 'Connexion…');
         try{
-          await demanderCode(email);
-          emailAffiche.textContent = email;
-          etapeEmail.hidden = true; etapeCode.hidden = false;
-          champCode.focus();
+          entrer(await connexion(email, champMdp.value, extraConsent()));
         }catch(e){
-          montrerErreur(erreurEmail, e);
+          // Compte cree mais jamais confirme : sans ce rattrapage le vigneron est enferme
+          // dehors pour toujours, il n'a aucun moyen de redemander le code depuis l'ecran.
+          if(e.brut && e.brut.indexOf('not_confirmed') >= 0){
+            // On passe a l'etape 2 dans tous les cas, meme si le renvoi echoue : un 429 veut
+            // dire qu'un code vient de partir, donc que le vigneron en a un dans sa boite.
+            // L'enfermer sur cet ecran a cause d'une limite de debit serait absurde.
+            let renvoye = true;
+            try{ await renvoyerConfirmation(email); }catch(e2){ renvoye = false; }
+            versCode('signup', renvoye
+              ? 'Ton adresse n\'était pas encore confirmée. Un code à 6 chiffres vient d\'être envoyé à <b>' + esc(email) + '</b>.'
+              : 'Ton adresse n\'est pas encore confirmée. Saisis le code déjà envoyé à <b>' + esc(email) + '</b>, ou attends une minute avant de le faire renvoyer.');
+            return;
+          }
+          montrerErreur(erreurAcces, e);
         }finally{
-          btnEmail.disabled = false; btnEmail.textContent = 'Recevoir mon code';
+          libre(btnConnexion);
+        }
+      }
+
+      async function sInscrire(){
+        masquerErreur(erreurAcces);
+        const email = champEmail.value.trim();
+        occupe(btnInscription, 'Création…');
+        try{
+          const issue = await inscription(email, champMdp.value);
+          if(issue.session){
+            majTrace(issue.session, extraConsent()).catch(function(){});
+            entrer(issue.session);
+            return;
+          }
+          versCode('signup', 'Un code à 6 chiffres vient d\'être envoyé à <b>' + esc(email) + '</b>.');
+        }catch(e){
+          montrerErreur(erreurAcces, e);
+        }finally{
+          libre(btnInscription);
+        }
+      }
+
+      async function oublie(){
+        masquerErreur(erreurAcces);
+        const email = champEmail.value.trim();
+        occupe(btnOublie, 'Envoi…');
+        try{
+          await demanderReprise(email);
+          versCode('recovery', 'Si un compte existe pour <b>' + esc(email) + '</b>, un code à 6 chiffres vient d\'y être envoyé.');
+        }catch(e){
+          montrerErreur(erreurAcces, e);
+        }finally{
+          libre(btnOublie);
         }
       }
 
       async function validerCode(){
         masquerErreur(erreurCode);
-        btnCode.disabled = true; btnCode.textContent = 'Vérification…';
+        const email = champEmail.value.trim();
+        const code = champCode.value.trim();
+        occupe(btnCode, 'Vérification…');
         try{
-          const extra = champNews.checked ? { consent_news: true } : {};
-          const session = await verifierCode(champEmail.value.trim(), champCode.value.trim(), extra);
-          document.removeEventListener('keydown', surEchap);
-          overlay.remove();
-          resolve(session);
+          if(modeCode === 'signup'){
+            entrer(await confirmerInscription(email, code, extraConsent()));
+            return;
+          }
+          await validerReprise(email, code);
+          montrer('nouveau');
+          champNouveau.focus();
         }catch(e){
           montrerErreur(erreurCode, e);
-          btnCode.disabled = false; btnCode.textContent = 'Valider';
+        }finally{
+          libre(btnCode);
         }
       }
 
-      btnEmail.addEventListener('click', envoyerCode);
-      champEmail.addEventListener('keydown', function(e){ if(e.key === 'Enter') envoyerCode(); });
-      btnCode.addEventListener('click', validerCode);
-      champCode.addEventListener('keydown', function(e){ if(e.key === 'Enter') validerCode(); });
-      btnRenvoyer.addEventListener('click', function(){
+      async function poserNouveauMdp(){
+        masquerErreur(erreurNouveau);
+        occupe(btnNouveau, 'Enregistrement…');
+        try{
+          await changerMdp(champNouveau.value);
+          const session = lireSession();
+          majTrace(session, extraConsent()).catch(function(){});
+          entrer(session);
+        }catch(e){
+          montrerErreur(erreurNouveau, e);
+        }finally{
+          libre(btnNouveau);
+        }
+      }
+
+      function renvoyer(){
         masquerErreur(erreurCode);
-        demanderCode(champEmail.value.trim()).catch(function(e){ montrerErreur(erreurCode, e); });
-      });
+        const email = champEmail.value.trim();
+        const p = (modeCode === 'signup') ? renvoyerConfirmation(email) : demanderReprise(email);
+        p.catch(function(e){ montrerErreur(erreurCode, e); });
+      }
+
+      btnConnexion.addEventListener('click', seConnecter);
+      btnInscription.addEventListener('click', sInscrire);
+      btnOublie.addEventListener('click', oublie);
+      btnCode.addEventListener('click', validerCode);
+      btnRenvoyer.addEventListener('click', renvoyer);
+      btnNouveau.addEventListener('click', poserNouveauMdp);
+      champEmail.addEventListener('keydown', function(e){ if(e.key === 'Enter') champMdp.focus(); });
+      champMdp.addEventListener('keydown', function(e){ if(e.key === 'Enter') seConnecter(); });
+      champCode.addEventListener('keydown', function(e){ if(e.key === 'Enter') validerCode(); });
+      champNouveau.addEventListener('keydown', function(e){ if(e.key === 'Enter') poserNouveauMdp(); });
     });
   }
 
@@ -301,8 +526,13 @@
 
   window.BdvCompte = {
     session: lireSession,
-    demanderCode: demanderCode,
-    verifierCode: verifierCode,
+    inscription: inscription,
+    confirmerInscription: confirmerInscription,
+    renvoyerConfirmation: renvoyerConfirmation,
+    connexion: connexion,
+    demanderReprise: demanderReprise,
+    validerReprise: validerReprise,
+    changerMdp: changerMdp,
     rafraichir: rafraichir,
     deconnexion: deconnexion,
     profil: profil,
