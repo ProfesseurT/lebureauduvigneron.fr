@@ -70,49 +70,44 @@ adresses déjà collectées.
    qu'une fois.
 2. Relever dans Settings > API : l'URL du projet et la clé `anon` (`publishable`).
 
-## 2. Passer le schéma
+## 2. Passer le schéma — FAIT le 01/09/2026
 
-**Un seul geste** depuis le 01/09/2026 : ouvrir `supabase/schema.sql`, tout copier, coller dans
-l'éditeur SQL Supabase, exécuter. Les grants de durcissement, qui traînaient hors du dépôt, y sont
-désormais versionnés, ainsi que le déclencheur de synchronisation de l'adresse (voir 7.6).
+Appliqué via le MCP Supabase, migration `socle_comptes_profils_rls_grants_declencheurs`. La base
+était vide (0 table, 0 politique, 0 déclencheur, 0 compte), donc aucune donnée inconnue ne pouvait
+remonter dans le contexte d'un agent : c'était la seule fenêtre où passer le DDL par le MCP ne
+coûtait rien. Le DDL suivant, s'il y en a, repasse à la main.
 
-Le fichier est écrit pour être **rejouable sans erreur** : `create ... if not exists`,
-`drop policy if exists` avant chaque `create policy`, `create or replace function`,
-`drop trigger if exists`. Le rejouer après un passage partiel ne casse rien. C'est délibéré : un
-script à moitié passé dans un onglet de navigateur est le pire état à déboguer, et c'est le seul
-mode d'exécution disponible ici — [Certain] le MCP Supabase est en `read_only=true`, il ne passe
-aucun DDL, et c'est voulu (section 8).
+Contrôlé en base juste après :
 
-Ce que le fichier fait, dans l'ordre : la table `profils`, RLS activé, les deux politiques
-(`select` et `update`, cette dernière avec un `with check` explicite qui interdit de réécrire
-`id`), le retrait des droits `insert`/`delete`/`update` puis le regrant d'`update` colonne par
-colonne, le déclencheur de création de fiche, et le déclencheur de synchronisation de l'adresse.
+| Contrôle | Résultat |
+| --- | --- |
+| RLS sur `profils` | active |
+| Politique `lire sa fiche` | `select`, `using (auth.uid() = id)` |
+| Politique `modifier sa fiche` | `update`, `using` **et** `with check` posés |
+| `authenticated` peut modifier | `prenom, nom, domaine, code_postal, profil, outil_origine, consent_news, vu_le` |
+| `authenticated` ne peut PAS modifier | `email`, `id`, `cree_le` |
+| `anon` | aucun `insert`, `update` ni `delete` |
+| Déclencheurs sur `auth.users` | `creer_profil_apres_inscription` et `synchroniser_email_apres_maj`, tous deux actifs |
+| Alertes de sécurité Supabase | aucune |
 
-`id`, `email` et `cree_le` sont volontairement hors du grant. [Certain] Les deux déclencheurs sont
-`security definer` : ils écrivent malgré ces `revoke`, et c'est le seul chemin autorisé vers ces
-trois colonnes.
+`anon` conserve le privilège `select`, et c'est normal : c'est RLS qui filtre, pas le grant. Ce
+que le contrôle SQL ne prouve donc **pas**, c'est le comportement de bout en bout. Seul l'appel
+depuis l'extérieur le prouve, et [Certain] ni le conteneur Cowork ni le shell du poste n'ont accès
+réseau à `*.supabase.co` — ce test est à passer par Ted, depuis son terminal :
 
-**Test.** Avec la clé anon, sans session, la table doit être muette :
+    ANON='<cle anon>'
+    U='https://qukmncqqwomhmrdhvetj.supabase.co'
+    curl -s -w '\n%{http_code}\n' "$U/rest/v1/profils?select=*" -H "apikey: $ANON"
+    curl -s -w '\n%{http_code}\n' -X POST "$U/rest/v1/profils" -H "apikey: $ANON" \
+      -H "Content-Type: application/json" \
+      -d '{"id":"00000000-0000-0000-0000-000000000001","email":"pirate@exemple.fr"}'
 
-    curl -s "https://qukmncqqwomhmrdhvetj.supabase.co/rest/v1/profils?select=*" -H "apikey: <ANON>"
+Attendu : `[]` en 200 pour le premier, un refus pour le second. Si le premier renvoie des lignes,
+la table des e-mails est publiquement lisible — c'est le seul vrai risque de sécurité du lot, et
+il ne se voit nulle part dans l'interface.
 
-Réponse attendue : `[]`. Toute autre réponse veut dire que la table des e-mails est publiquement
-lisible. C'est le seul vrai risque de sécurité du lot, et il ne se voit nulle part dans l'interface.
-
-**Second test, à passer dans un nouvel onglet de l'éditeur SQL** — il vérifie que le durcissement
-a bien pris, ce que l'interface n'affiche pas :
-
-    select grantee, privilege_type, column_name
-      from information_schema.column_privileges
-     where table_name = 'profils' and grantee in ('anon','authenticated')
-     order by grantee, column_name;
-
-    select tgname, tgenabled from pg_trigger
-     where tgrelid = 'auth.users'::regclass and not tgisinternal;
-
-Attendu : aucune ligne `update` pour `anon`, aucune ligne `update` sur `email`, `id` ou `cree_le`
-pour `authenticated`, et **deux** déclencheurs sur `auth.users`,
-`creer_profil_apres_inscription` et `synchroniser_email_apres_maj`, tous deux en `O`.
+Le fichier `supabase/schema.sql` reste la référence versionnée, et reste rejouable : le repasser
+après coup ne casse rien.
 
 ## 3. Configurer l'authentification
 
