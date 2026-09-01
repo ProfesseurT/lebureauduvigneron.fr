@@ -72,27 +72,47 @@ adresses déjà collectées.
 
 ## 2. Passer le schéma
 
-Coller `supabase/schema.sql` tel quel dans l'éditeur SQL, puis exécuter. Il crée la table
-`profils`, active RLS, pose deux politiques et le déclencheur qui crée la fiche à l'inscription.
+**Un seul geste** depuis le 01/09/2026 : ouvrir `supabase/schema.sql`, tout copier, coller dans
+l'éditeur SQL Supabase, exécuter. Les grants de durcissement, qui traînaient hors du dépôt, y sont
+désormais versionnés, ainsi que le déclencheur de synchronisation de l'adresse (voir 7.6).
 
-Puis coller ce second bloc, qui n'est pas encore dans le dépôt et qui devrait y être :
+Le fichier est écrit pour être **rejouable sans erreur** : `create ... if not exists`,
+`drop policy if exists` avant chaque `create policy`, `create or replace function`,
+`drop trigger if exists`. Le rejouer après un passage partiel ne casse rien. C'est délibéré : un
+script à moitié passé dans un onglet de navigateur est le pire état à déboguer, et c'est le seul
+mode d'exécution disponible ici — [Certain] le MCP Supabase est en `read_only=true`, il ne passe
+aucun DDL, et c'est voulu (section 8).
 
-    -- Aucune politique d'insertion ni de suppression n'existe : autant retirer le droit.
-    revoke insert, delete on public.profils from anon, authenticated;
+Ce que le fichier fait, dans l'ordre : la table `profils`, RLS activé, les deux politiques
+(`select` et `update`, cette dernière avec un `with check` explicite qui interdit de réécrire
+`id`), le retrait des droits `insert`/`delete`/`update` puis le regrant d'`update` colonne par
+colonne, le déclencheur de création de fiche, et le déclencheur de synchronisation de l'adresse.
 
-    -- La politique d'update autorise toutes les colonnes. Un compte peut donc réécrire son
-    -- propre champ `email` avec l'adresse de quelqu'un d'autre, ce qui pollue la liste de
-    -- diffusion sans laisser de trace. Le droit se restreint colonne par colonne.
-    revoke update on public.profils from anon, authenticated;
-    grant update (prenom, nom, domaine, code_postal, profil, outil_origine, consent_news, vu_le)
-      on public.profils to authenticated;
+`id`, `email` et `cree_le` sont volontairement hors du grant. [Certain] Les deux déclencheurs sont
+`security definer` : ils écrivent malgré ces `revoke`, et c'est le seul chemin autorisé vers ces
+trois colonnes.
 
 **Test.** Avec la clé anon, sans session, la table doit être muette :
 
-    curl -s "https://<ref>.supabase.co/rest/v1/profils?select=*" -H "apikey: <ANON>"
+    curl -s "https://qukmncqqwomhmrdhvetj.supabase.co/rest/v1/profils?select=*" -H "apikey: <ANON>"
 
 Réponse attendue : `[]`. Toute autre réponse veut dire que la table des e-mails est publiquement
 lisible. C'est le seul vrai risque de sécurité du lot, et il ne se voit nulle part dans l'interface.
+
+**Second test, à passer dans un nouvel onglet de l'éditeur SQL** — il vérifie que le durcissement
+a bien pris, ce que l'interface n'affiche pas :
+
+    select grantee, privilege_type, column_name
+      from information_schema.column_privileges
+     where table_name = 'profils' and grantee in ('anon','authenticated')
+     order by grantee, column_name;
+
+    select tgname, tgenabled from pg_trigger
+     where tgrelid = 'auth.users'::regclass and not tgisinternal;
+
+Attendu : aucune ligne `update` pour `anon`, aucune ligne `update` sur `email`, `id` ou `cree_le`
+pour `authenticated`, et **deux** déclencheurs sur `auth.users`,
+`creer_profil_apres_inscription` et `synchroniser_email_apres_maj`, tous deux en `O`.
 
 ## 3. Configurer l'authentification
 
@@ -431,21 +451,25 @@ des montants à un tiers, rendre la politique de confidentialité fausse, et end
 responsabilité d'envoi. Si ce besoin remonte, il s'arbitre à part, avec le message produit et la
 page de confidentialité, jamais au fil d'un lot technique.
 
-### 7.6 `profils.email` va diverger de `auth.users.email`
+### 7.6 `profils.email` divergeait de `auth.users.email` — résolu le 01/09/2026
 
 Apparu avec le mot de passe, parce que le code appelle maintenant `PUT /auth/v1/user`.
 
 [Certain] Cet endpoint change le mot de passe, mais il accepte aussi un champ `email`. Or le
-déclencheur `creer_profil` ne recopie l'adresse qu'**à l'insertion** (`after insert on
-auth.users`), et le durcissement de la section 2 retire `email` des colonnes que le compte peut
-modifier dans `profils`. Un changement d'adresse côté GoTrue contourne donc ce garde-fou : le
-compte garde une adresse à jour dans `auth.users` et une adresse périmée dans `profils`.
+déclencheur `creer_profil` ne recopie l'adresse qu'**à l'insertion**, et la section 3 du schéma
+interdit au compte de toucher `profils.email`. Un changement d'adresse côté GoTrue laissait donc
+dans `profils` une adresse périmée que **rien** ne pouvait corriger — ni le client, faute de
+droit, ni le déclencheur, qui ne se réveille pas sur `update`.
 
-`bdv-compte.js` n'expose aucun écran de changement d'adresse, donc rien ne déclenche ce cas
-aujourd'hui. Mais ça tranche une question qui se posera au premier export de liste : **la liste
-de diffusion se lit sur `auth.users`, via une vue, pas sur `profils.email`.** L'alternative est
-un déclencheur `after update on auth.users` qui resynchronise ; il faudra le poser le jour où un
-écran « changer mon adresse » apparaît.
+**Corrigé dans `supabase/schema.sql`, section 5** : un second déclencheur
+`synchroniser_email_apres_maj`, `after update on auth.users`, conditionné par
+`when (new.email is distinct from old.email)` pour ne pas réécrire la ligne à chaque connexion —
+GoTrue met `auth.users` à jour bien plus souvent que l'adresse ne change.
+
+Conséquence sur la décision précédente : **la liste de diffusion peut se lire sur
+`profils.email`.** Le détour par une vue sur `auth.users`, envisagé avant ce correctif, n'a plus
+de raison d'être. Cinq lignes de déclencheur valaient mieux qu'une vue plus une note de vigilance
+à tenir dans le temps.
 
 ## 8. Le serveur MCP Supabase
 
