@@ -45,7 +45,7 @@
   --ok:#2D6A2D;--ok-bg:#E8F0E4;
   --danger:#C5443D;--danger-deep:#A03530;--danger-bg:#FBE9E7;
   --warn:#8B6300;--warn-bg:#F8EFE3;
-  --info:#2F6DB5;
+  --info:#2F6DB5;--info-bg:#E8EFF7;
   /* ---- ETATS SUR FOND SOMBRE ---- */
   /* --ok et --danger tombent sous 3:1 sur --ink-deep. Ces deux tirages clairs
      existent pour le seul bloc de rythme, qui est sombre. */
@@ -256,6 +256,9 @@ a{color:var(--bordeaux)}
 .field{display:flex;flex-direction:column;gap:.25rem}
 .field label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
 .field select,.field input{font-family:var(--font-mono);font-size:var(--t-petit);padding:.45rem .5rem;border:var(--trait) solid var(--muted);background:var(--white);color:var(--ink);min-width:180px;border-radius:var(--r-nul)}
+.field--dates__pair{display:flex;gap:.4rem;align-items:center}
+.field--dates__pair input{min-width:0;width:130px}
+.field--dates__pair span{color:var(--muted)}
 .rename-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin:.2rem 0 1rem}
 .heat{width:100%;border-collapse:collapse;font-size:var(--t-petit)}
 .heat th,.heat td{padding:.4rem .5rem;border:var(--trait) solid var(--rule);text-align:right;font-family:var(--font-mono)}
@@ -291,6 +294,9 @@ table.data--sticky thead th{position:sticky;top:0;background:var(--white);z-inde
 .pilote{background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);
   padding:.9rem 1.1rem;margin-bottom:1.1rem}
 .pilote__row{display:flex;flex-wrap:wrap;gap:.9rem;align-items:flex-end}
+.pilote__row .field{flex:1 1 170px}
+.pilote__row .field select{width:100%}
+.pilote__row .field--dates{flex:0 1 auto}
 .pilote__row--sec{margin-top:.75rem;padding-top:.75rem;border-top:var(--trait) solid var(--rule);
   align-items:center;gap:.5rem}
 .pilote__count{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-petit);color:var(--muted);white-space:nowrap}
@@ -363,6 +369,9 @@ tr.clic:focus-visible{outline:var(--trait-fort) solid var(--bordeaux);outline-of
 .m-recul{background:var(--danger-bg);color:var(--danger-deep)}
 .m-cadence{background:var(--warn-bg);color:var(--warn)}
 .m-premier{background:var(--ok-bg);color:var(--ok)}
+.m-statut-afaire{background:var(--warn-bg);color:var(--warn)}
+.m-statut-relance{background:var(--info-bg);color:var(--info)}
+.m-statut-traite{background:var(--ok-bg);color:var(--ok)}
 .why{display:block;font-size:var(--t-petit);color:var(--muted);margin-top:.1rem;font-weight:400}
 .chk{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--t-petit);color:var(--muted);cursor:pointer;white-space:nowrap}
 .chk input{accent-color:var(--bordeaux);width:15px;height:15px;cursor:pointer;margin:0}
@@ -659,6 +668,43 @@ let EX_START=1;try{const _e=parseInt(localStorage.getItem(EX_KEY),10);if(_e>=1&&
 const PERSO_LABELS_KEY='bdv_persolabels_v4';
 let persoLabels={};          // libelles perso personnalises {colonne d'origine: libelle}
 try{persoLabels=JSON.parse(localStorage.getItem(PERSO_LABELS_KEY))||{};}catch(e){persoLabels={};}
+
+/* ---------- Suivi CRM, pose par le vigneron lui-meme, jamais deduit des ventes ----------
+   Cle = clientKey (numClient ou nom), comme partout ailleurs dans l'outil. Un enregistrement
+   vide est retire de la structure : sinon un client touche puis « nettoye » par le vigneron
+   resterait a vie dans le localStorage, invisible mais present. */
+const CRM_KEY='bdv_crm_v1';
+let CRM={};
+try{CRM=JSON.parse(localStorage.getItem(CRM_KEY))||{};}catch(e){CRM={};}
+function crmSave(){try{localStorage.setItem(CRM_KEY,JSON.stringify(CRM));}catch(e){}}
+function crmVide(c){return !c||(!c.statut&&!c.notes&&!c.rappel&&!c.canal&&!(c.tags&&c.tags.length));}
+function crmRafraichirListe(){const p=el('p-clients');if(p&&p.classList.contains('on'))renderClients();}
+function crmSet(id,champ,valeur){
+  const c=CRM[id]||{};
+  if(valeur==='')delete c[champ];else c[champ]=valeur;
+  if(crmVide(c))delete CRM[id];else CRM[id]=c;
+  crmSave();crmRafraichirListe();
+}
+function crmSetTags(id,texte){
+  const tags=texte.split(',').map(t=>t.trim()).filter(Boolean);
+  const c=CRM[id]||{};
+  if(tags.length)c.tags=tags;else delete c.tags;
+  if(crmVide(c))delete CRM[id];else CRM[id]=c;
+  crmSave();crmRafraichirListe();
+}
+const STATUTS_SUIVI={
+  a_faire:{label:'À faire',cls:'m-statut-afaire'},
+  relance:{label:'Relancé',cls:'m-statut-relance'},
+  traite:{label:'Traité',cls:'m-statut-traite'}
+};
+const CANAUX_SUIVI=['Téléphone','E-mail','En personne','Courrier'];
+function fmtDateIso(iso){if(!iso)return '';const [y,m,d]=iso.split('-').map(Number);return fmtDate({y,m,d});}
+function rappelCell(iso){
+  const auj=new Date().toISOString().slice(0,10);
+  if(iso<auj)return `<span style="color:var(--danger-deep);font-weight:600">${fmtDateIso(iso)}</span>`;
+  if(iso===auj)return `<span style="font-weight:600">${fmtDateIso(iso)}</span>`;
+  return fmtDateIso(iso);
+}
 
 /* ======================= UTILS ======================= */
 function el(id){return document.getElementById(id);}
@@ -1752,8 +1798,11 @@ function renderExplo(){
       <div class="field"><label>Répartir par</label><select onchange="setExploAxis(1,this.value)">${optsExplo(exploAxis1,false)}</select></div>
       <div class="field"><label>Croiser avec</label><select onchange="setExploAxis(2,this.value)">${optsExplo(exploAxis2,true)}</select></div>
       <div class="field"><label>${EX_START===1?'Année':'Exercice'}</label><select onchange="setExploEx(this.value)"><option value=""${exploEx==null?' selected':''}>Tous</option>${META.exercices.map(y=>`<option value="${y}"${exploEx===y?' selected':''}>${exLabel(y)}</option>`).join('')}</select></div>
-      <div class="field"><label>Du</label><input type="date" value="${exploFrom!=null?isoDepuisJour(exploFrom):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('from',this.value)"></div>
-      <div class="field"><label>Au</label><input type="date" value="${exploTo!=null?isoDepuisJour(exploTo):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('to',this.value)"></div>
+      <div class="field field--dates"><label>Du au</label><div class="field--dates__pair">
+        <input type="date" value="${exploFrom!=null?isoDepuisJour(exploFrom):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('from',this.value)">
+        <span>→</span>
+        <input type="date" value="${exploTo!=null?isoDepuisJour(exploTo):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('to',this.value)">
+      </div></div>
       <div class="field"><label>Mesure</label><span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span></div>
     </div>`;
 
@@ -2889,6 +2938,7 @@ function ficheHTML(f,motif){
   const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
   const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
   const conseils=conseilClient(f,motif||'premier');
+  const s=CRM[f.id]||{};
   const maxCuvee=f.cuvees.length?f.cuvees[0][1].ca:0;
   const reco=recoPour(f.id,3);
   const prixBase=prixVenteMoyen();
@@ -2926,6 +2976,25 @@ function ficheHTML(f,motif){
     <div class="fiche__conseil">
       <div class="fiche__conseil-t">Ce que je ferais</div>
       ${conseils.map(c=>`<p>${c}</p>`).join('')}
+    </div>
+
+    <div class="msg">
+      <div class="section-label" style="margin-top:0">Ton suivi</div>
+      <div class="expl-ctrls" style="margin-bottom:.9rem">
+        <div class="field"><label>Statut</label><select onchange="crmSet('${esc(f.id)}','statut',this.value)">
+          <option value=""${!s.statut?' selected':''}>Aucun</option>
+          ${Object.keys(STATUTS_SUIVI).map(k=>`<option value="${k}"${s.statut===k?' selected':''}>${STATUTS_SUIVI[k].label}</option>`).join('')}
+        </select></div>
+        <div class="field"><label>Rappel</label><input type="date" value="${esc(s.rappel||'')}" onchange="crmSet('${esc(f.id)}','rappel',this.value)"></div>
+        <div class="field"><label>Canal préféré</label><select onchange="crmSet('${esc(f.id)}','canal',this.value)">
+          <option value=""${!s.canal?' selected':''}>Non précisé</option>
+          ${CANAUX_SUIVI.map(c=>`<option value="${esc(c)}"${s.canal===c?' selected':''}>${esc(c)}</option>`).join('')}
+        </select></div>
+      </div>
+      <label class="msg__lbl">Étiquettes, séparées par une virgule</label>
+      <input class="msg__sujet" type="text" value="${esc((s.tags||[]).join(', '))}" placeholder="ex. VIP, difficile à joindre" onchange="crmSetTags('${esc(f.id)}',this.value)">
+      <label class="msg__lbl">Notes</label>
+      <textarea class="msg__texte" rows="4" placeholder="Ce qu'il faut se rappeler sur ce client…" onchange="crmSet('${esc(f.id)}','notes',this.value)">${esc(s.notes||'')}</textarea>
     </div>
 
     ${messageHTML(f,motif||'premier')}
@@ -3042,8 +3111,9 @@ function renderClients(){
     <div class="toolbar"><span class="card__title" style="margin:0">${filtreMotif==='tous'?'Tous les clients à traiter':MOTIFS[filtreMotif].label}, du plus gros montant au plus petit</span>
       ${listTools('clientsBody','exportClients')}</div>
     <div class="tablewrap"><table class="data data--sticky"><thead><tr>
-      <th>Client</th><th>Contact</th><th>Raison</th><th class="num">Montant</th><th class="num">Chance</th></tr></thead><tbody id="clientsBody">
-    ${liste.map(c=>`<tr class="clic" data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}"
+      <th>Client</th><th>Contact</th><th>Raison</th><th class="num">Montant</th><th class="num">Chance</th>
+      <th>Statut</th><th>Rappel</th><th>Étiquettes</th><th>Canal</th></tr></thead><tbody id="clientsBody">
+    ${liste.map(c=>{const s=CRM[c.id]||{};return `<tr class="clic" data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}"
         tabindex="0" role="button" aria-label="Ouvrir la fiche de ${esc(c.nom)}"
         onclick="ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}')"
         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}');}">
@@ -3052,7 +3122,11 @@ function renderClients(){
       <td><span class="motif ${MOTIFS[c.motif].cls}">${MOTIFS[c.motif].label}</span></td>
       <td class="num">${fmtMoney(c.montant)}<span class="why">${c.lib}</span></td>
       <td class="num">${c.chance!=null?fmtNum(c.chance*100,0)+' %':'<span class="muted-cell">n/d</span>'}</td>
-    </tr>`).join('')}
+      <td>${s.statut&&STATUTS_SUIVI[s.statut]?`<span class="motif ${STATUTS_SUIVI[s.statut].cls}">${STATUTS_SUIVI[s.statut].label}</span>`:'<span class="muted-cell">-</span>'}</td>
+      <td>${s.rappel?rappelCell(s.rappel):'<span class="muted-cell">-</span>'}</td>
+      <td>${(s.tags&&s.tags.length)?s.tags.map(esc).join(', '):'<span class="muted-cell">-</span>'}</td>
+      <td>${s.canal?esc(s.canal):'<span class="muted-cell">-</span>'}</td>
+    </tr>`;}).join('')}
     </tbody></table></div></div>`;
   html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul motif dont le taux de retour soit mesurable sur ${PROFIL&&PROFIL.moisCouverts?PROFIL.moisCouverts:'la'} mois d'historique. Pour les deux autres, il faudrait respectivement 30 et 36 mois. Mieux vaut une case vide qu'un chiffre inventé.</p>`;
   el('p-clients').innerHTML=html;
@@ -3062,9 +3136,11 @@ function setMotif(m){filtreMotif=m;renderClients();navTo('clients');}
 function exportClients(){
   const liste=(filtreMotif==='tous'?CLIENTS:CLIENTS.filter(c=>c.motif===filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
   if(!liste.length){status('error','Aucun client a exporter.');return;}
-  const aoa=[['Client','E-mail','Telephone','Autres contacts','Raison','Montant','Nature du montant','Chance de retour %','Detail']];
-  liste.forEach(c=>aoa.push([c.nom,emailOf(c.id),telOf(c.id),autresContacts(c.id),MOTIFS[c.motif].label,
-    Math.round(c.montant),c.lib,c.chance!=null?+(c.chance*100).toFixed(1):'',c.detail]));
+  const aoa=[['Client','E-mail','Telephone','Autres contacts','Raison','Montant','Nature du montant','Chance de retour %','Detail',
+    'Statut','Rappel','Etiquettes','Canal prefere','Notes']];
+  liste.forEach(c=>{const s=CRM[c.id]||{};aoa.push([c.nom,emailOf(c.id),telOf(c.id),autresContacts(c.id),MOTIFS[c.motif].label,
+    Math.round(c.montant),c.lib,c.chance!=null?+(c.chance*100).toFixed(1):'',c.detail,
+    s.statut&&STATUTS_SUIVI[s.statut]?STATUTS_SUIVI[s.statut].label:'',s.rappel||'',(s.tags||[]).join(', '),s.canal||'',s.notes||'']);});
   toXlsxOrCsv([{name:'Mes clients',aoa}],'mes-clients-'+filtreMotif);
 }
 
