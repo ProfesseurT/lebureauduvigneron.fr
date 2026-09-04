@@ -25,6 +25,44 @@
   // Si les deux divergent, le refus vient du serveur et le message est en anglais.
   const MDP_MIN = 8;
 
+  // Doit rester aligne sur Authentication > Providers > Email > Password Requirements.
+  // Regle choisie le 04/09/2026 : minuscule, majuscule, chiffre ET symbole obligatoires.
+  // La liste des symboles est recopiee telle quelle de la documentation Supabase. Elle ne
+  // contient PAS l'espace.
+  //
+  // Le piege francais : les sets de Supabase sont a-z et A-Z, sans accent. Un « a » accentue
+  // ne compte donc ni comme minuscule, ni comme symbole, il ne compte pour rien. Un mot de
+  // passe comme « Chateau2026 » ecrit avec l'accent passe la longueur mais rate le symbole,
+  // et le vigneron n'a aucun moyen de le deviner. C'est toute la raison d'etre de la liste
+  // cochee sous le champ : le refus ne doit jamais etre une devinette.
+  const MDP_SYMBOLES = '!@#$%^&*()_+-=[]{};\'\\:"|<>?,./`~';
+  function mdpAUnSymbole(m){
+    for(let i = 0; i < m.length; i++){ if(MDP_SYMBOLES.indexOf(m.charAt(i)) >= 0) return true; }
+    return false;
+  }
+  const MDP_REGLES = [
+    { cle:'long', texte: MDP_MIN + ' caractères ou plus', test: function(m){ return m.length >= MDP_MIN; } },
+    { cle:'min',  texte:'une minuscule',                  test: function(m){ return /[a-z]/.test(m); } },
+    { cle:'maj',  texte:'une majuscule',                   test: function(m){ return /[A-Z]/.test(m); } },
+    { cle:'chi',  texte:'un chiffre',                      test: function(m){ return /[0-9]/.test(m); } },
+    { cle:'sym',  texte:'un symbole comme ! ? * ou -',     test: mdpAUnSymbole }
+  ];
+  function mdpManquants(mdp){
+    const m = String(mdp || '');
+    return MDP_REGLES.filter(function(r){ return !r.test(m); });
+  }
+  // Rendue deux fois : sous le champ de l'ecran d'acces, et sous celui de l'ecran de reprise.
+  function listeRegles(id, titre){
+    return '<div class="bdv-porte__regles" id="' + id + '" hidden aria-live="polite">'
+      + (titre ? '<p class="bdv-porte__regles-titre">' + esc(titre) + '</p>' : '')
+      + MDP_REGLES.map(function(r){
+          return '<p class="bdv-porte__regle" data-regle="' + r.cle + '">'
+            + '<span class="bdv-porte__puce" aria-hidden="true">\u00b7</span>'
+            + '<span>' + esc(r.texte) + '</span></p>';
+        }).join('')
+      + '</div>';
+  }
+
   const SESSION_KEY = 'bdv_session';
   const TRACE_KEY = 'bdv_trace_envoyee';
   const REPORT_KEY = 'bdv_porte_reportee';
@@ -70,6 +108,12 @@
       message = "Trop de tentatives, réessaie dans quelques minutes.";
     else if(t.indexOf('already') >= 0 || t.indexOf('exists') >= 0)
       message = "Un compte existe déjà avec cette adresse. Connecte-toi, ou utilise « Mot de passe oublié ».";
+    // Les deux refus de GoTrue portent "at least" dans leur texte, celui de longueur comme
+    // celui de complexite ("one character of each"). Le plus precis passe donc en premier :
+    // sans ca, un mot de passe de douze caracteres sans symbole s'entend repondre qu'il est
+    // trop court, et le vigneron tourne en rond devant le champ.
+    else if(t.indexOf('of each') >= 0)
+      message = "Mot de passe trop simple : il faut une minuscule, une majuscule, un chiffre et un symbole.";
     else if(t.indexOf('weak_password') >= 0 || t.indexOf('at least') >= 0)
       message = "Mot de passe trop court : " + MDP_MIN + " caractères minimum.";
     else if(t.indexOf('not_confirmed') >= 0)
@@ -106,9 +150,13 @@
   function verifEmail(email){
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Adresse e-mail invalide.");
   }
+  // N'est appelee QUE a l'inscription et au changement de mot de passe. Volontairement pas a
+  // la connexion : un compte cree avant un durcissement de la regle doit pouvoir entrer avec
+  // le mot de passe qu'il a.
   function verifMdp(mdp){
-    if(String(mdp || '').length < MDP_MIN)
-      throw new Error("Mot de passe trop court : " + MDP_MIN + " caractères minimum.");
+    const manque = mdpManquants(mdp);
+    if(!manque.length) return;
+    throw new Error("Il faut encore " + manque.map(function(r){ return r.texte; }).join(', ') + ".");
   }
 
   // Deux issues possibles, selon "Confirm email" cote Supabase :
@@ -264,6 +312,11 @@
       + '.bdv-porte__input:focus{outline:2px solid var(--bordeaux,#5A1525);outline-offset:1px}'
       + '.bdv-porte__input--code{letter-spacing:.3em;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);text-align:center;font-size:1.2rem}'
       + '.bdv-porte__aide{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:-.5rem 0 .9rem}'
+      + '.bdv-porte__regles{margin:-.5rem 0 .9rem}'
+      + '.bdv-porte__regles-titre{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:0 0 .25rem}'
+      + '.bdv-porte__regle{display:flex;gap:.4rem;align-items:baseline;font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:0;line-height:1.7}'
+      + '.bdv-porte__regle--ok{color:var(--ok,#2D6A2D)}'
+      + '.bdv-porte__puce{font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);flex:0 0 .8rem}'
       + '.bdv-porte__chk{display:flex;align-items:flex-start;gap:.5rem;font-size:var(--t-petit,.78rem);color:var(--muted,#63523D);margin-bottom:1.1rem;line-height:var(--lh-normal,1.5)}'
       + '.bdv-porte__btn{width:100%;padding:.7rem 1rem;background:var(--bordeaux,#5A1525);color:var(--on-dark,#EFE7D6);border:none;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-doux,.05em);font-weight:500;cursor:pointer;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__btn:hover{background:var(--bordeaux-vif,#7A1525)}'
@@ -307,7 +360,7 @@
         + '<input class="bdv-porte__input" type="email" id="bdvEmail" autocomplete="email" placeholder="toi@domaine.fr">'
         + '<label class="bdv-porte__label" for="bdvMdp">Ton mot de passe</label>'
         + '<input class="bdv-porte__input" type="password" id="bdvMdp" autocomplete="current-password">'
-        + '<p class="bdv-porte__aide">' + MDP_MIN + ' caractères minimum.</p>'
+        + listeRegles('bdvReglesAcces', 'Pour créer un compte, il faut :')
         + '<label class="bdv-porte__chk"><input type="checkbox" id="bdvNews"> Recevoir l\'édition bimensuelle du Bureau du Vigneron</label>'
         + '<button class="bdv-porte__btn" id="bdvBtnConnexion" type="button">Me connecter</button>'
         + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvBtnInscription" type="button">Créer mon compte</button>'
@@ -331,7 +384,7 @@
         + '<p class="bdv-porte__note">Code validé. Choisis un nouveau mot de passe.</p>'
         + '<label class="bdv-porte__label" for="bdvNouveauMdp">Nouveau mot de passe</label>'
         + '<input class="bdv-porte__input" type="password" id="bdvNouveauMdp" autocomplete="new-password">'
-        + '<p class="bdv-porte__aide">' + MDP_MIN + ' caractères minimum.</p>'
+        + listeRegles('bdvReglesNouveau', 'Il faut :')
         + '<button class="bdv-porte__btn" id="bdvBtnNouveau" type="button">Enregistrer et entrer</button>'
         + '<p class="bdv-porte__erreur" id="bdvErreurNouveau" hidden></p>'
         + '</div>'
@@ -515,6 +568,29 @@
       btnCode.addEventListener('click', validerCode);
       btnRenvoyer.addEventListener('click', renvoyer);
       btnNouveau.addEventListener('click', poserNouveauMdp);
+      // La liste ne s'affiche qu'au focus ou a la saisie sur l'ecran d'acces : un vigneron qui
+      // revient juste se connecter n'a pas a lire les regles d'inscription. Sur l'ecran de
+      // reprise elle est visible tout de suite, il n'y a la que du nouveau mot de passe.
+      const reglesAcces = overlay.querySelector('#bdvReglesAcces');
+      const reglesNouveau = overlay.querySelector('#bdvReglesNouveau');
+      function majRegles(boite, mdp, toujours){
+        if(!boite) return;
+        const v = String(mdp || '');
+        boite.hidden = !(toujours || v.length);
+        MDP_REGLES.forEach(function(r){
+          const ligne = boite.querySelector('[data-regle="' + r.cle + '"]');
+          if(!ligne) return;
+          const ok = r.test(v);
+          ligne.className = 'bdv-porte__regle' + (ok ? ' bdv-porte__regle--ok' : '');
+          const puce = ligne.querySelector('.bdv-porte__puce');
+          if(puce) puce.textContent = ok ? '\u2713' : '\u00b7';
+        });
+      }
+      champMdp.addEventListener('input', function(){ majRegles(reglesAcces, champMdp.value); });
+      champMdp.addEventListener('focus', function(){ majRegles(reglesAcces, champMdp.value, true); });
+      champNouveau.addEventListener('input', function(){ majRegles(reglesNouveau, champNouveau.value, true); });
+      majRegles(reglesNouveau, '', true);
+
       champEmail.addEventListener('keydown', function(e){ if(e.key === 'Enter') champMdp.focus(); });
       champMdp.addEventListener('keydown', function(e){ if(e.key === 'Enter') seConnecter(); });
       champCode.addEventListener('keydown', function(e){ if(e.key === 'Enter') validerCode(); });
