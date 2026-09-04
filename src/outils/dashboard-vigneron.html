@@ -197,6 +197,10 @@ a{color:var(--bordeaux)}
 
 /* FILTRES */
 .filterbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center;background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.55rem .8rem;margin-bottom:1.2rem;font-size:var(--t-petit)}
+.filterbar__sep{width:var(--trait);align-self:stretch;background:var(--rule);margin:0 .3rem}
+.filterbar__dates{display:flex;gap:.6rem;align-items:center;font-size:var(--t-petit);color:var(--muted)}
+.filterbar__dates input{font-family:var(--font-mono);font-size:var(--t-petit);color:var(--ink);background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.2rem .35rem}
+.filterbar__scope{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:right}
 .filterbar__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted)}
 .chip{font-family:var(--font-mono);font-size:var(--t-micro);padding:.28rem .62rem;border:var(--trait) solid var(--rule);background:var(--white);cursor:pointer;border-radius:var(--r-nul);transition:var(--tr-rapide);color:var(--muted)}
 .chip:hover{border-color:var(--bordeaux);color:var(--ink)}
@@ -628,18 +632,30 @@ const SEUILS={
 /* ======================= ETAT ======================= */
 const DB_NAME='bdv_ventes_v4', STORE='lignes', STORE_REG='reglages';
 let ROWS=[];                 // lignes derivees en memoire
-let META={min:null,max:null,years:[]};
+let META={min:null,max:null,years:[],exercices:[]};
 let PROFIL=null;             // profil de la base (calcule une fois apres import, cf. profilBase)
 let reactList=[],decroList=[]; // listes completes affichees (relance / decrochage), pour l'export
-let filters={year:null};     // filtre annee actif (null = toutes)
+// Selection temporelle active. Deux couches, volontairement distinctes :
+//   ex        un exercice entier (null = tous). C'est la maille des comparatifs.
+//   from/to   une plage libre en jour absolu (_dayNum), bornes incluses. Elle ne pilote
+//             QUE le descriptif : un intervalle quelconque n'a pas de periode precedente
+//             canonique, donc les moteurs comparatifs restent cales sur l'exercice et le disent.
+//   preset    l'etiquette du raccourci choisi, pour reafficher le bon etat de la barre.
+let filters={ex:null,from:null,to:null,preset:'tous'};
 let charts={};
 let BUSY_MIN=1500;   // en dessous, calcul synchrone (instantane) ; au dela, indicateur de chargement
 let uiMesure='ca';           // 'ca' (CA HT) ou 'btl' (bouteilles/cols)
 let explAxe1='famille', explAxe2='';   // explorateur libre de l'Apercu
 let evoDim='codeTarif', evoStep='mois';   // vue Evolution : dimension + pas de temps
-let exploAxis1='famille', exploAxis2='', exploYear=null, exploFilters={}, exploShowFilters=false;   // onglet Explorer
+let exploAxis1='famille', exploAxis2='', exploEx=null, exploFrom=null, exploTo=null, exploFilters={}, exploShowFilters=false;   // onglet Explorer
 const OBJ_KEY='bdv_objectif_v5';
 let objectif=null;try{const _o=parseFloat(localStorage.getItem(OBJ_KEY));objectif=(_o>0)?_o:null;}catch(e){objectif=null;}
+const EX_KEY='bdv_exercice_v1';
+// Mois d'ouverture de l'exercice comptable, 1 a 12. 1 = janvier, donc exercice cale sur
+// l'annee civile : c'est le comportement historique de l'outil, et le defaut.
+// Range a cote de l'objectif et des libelles perso, PAS dans les reglages du domaine :
+// « Revenir au classement automatique » ne doit pas effacer le decoupage comptable.
+let EX_START=1;try{const _e=parseInt(localStorage.getItem(EX_KEY),10);if(_e>=1&&_e<=12)EX_START=_e;}catch(e){EX_START=1;}
 const PERSO_LABELS_KEY='bdv_persolabels_v4';
 let persoLabels={};          // libelles perso personnalises {colonne d'origine: libelle}
 try{persoLabels=JSON.parse(localStorage.getItem(PERSO_LABELS_KEY))||{};}catch(e){persoLabels={};}
@@ -1106,11 +1122,65 @@ async function oublierReglages(){
   await reloadFromDB();
   runBusy('Retour au classement automatique…',()=>{renderAll();navTo('parametres');});
 }
+/* ======================= EXERCICE COMPTABLE =======================
+   Un exercice est nomme par son ANNEE D'OUVERTURE. Trois champs derives par ligne,
+   calcules une fois, pour qu'aucun ecran n'ait plus a raisonner en mois civils :
+
+     _exY    annee d'ouverture de l'exercice qui contient la date.
+     _exM    rang du mois DANS l'exercice, 1 a 12 (1 = le mois d'ouverture).
+     _exPos  rang mois/jour dans l'exercice, sous la forme _exM*100+jour.
+
+   _exPos est le SEUL curseur des comparaisons « a date egale ». Il est monotone, et
+   surtout insensible aux annees bissextiles, contrairement a un ecart en jours : un
+   ecart en jours ferait comparer le 15 juin d'une annee au 14 juin d'une autre.
+
+   EX_START=1 rend _exY identique a l'annee civile et _exPos identique a l'ancien
+   mois*100+jour de inWindow(). C'est le test de non-regression de tout ce module :
+   sur un exercice civil, aucun chiffre de l'outil ne doit bouger d'un centime. */
+function exMoisDansExercice(m){return ((m-EX_START+12)%12)+1;}
+function exAnnee(d){return EX_START===1?d.y:(d.m>=EX_START?d.y:d.y-1);}
+function exDeriver(o){
+  if(!o._date){o._exY=null;o._exM=null;o._exPos=null;return o;}
+  o._exY=exAnnee(o._date);
+  o._exM=exMoisDansExercice(o._date.m);
+  o._exPos=o._exM*100+o._date.d;
+  return o;
+}
+// Cale sur janvier, l'exercice EST l'annee civile : on l'ecrit « 2026 », sans jargon.
+// Autrement il chevauche deux annees, et seul le double millesime est lisible.
+function exLabel(y){return y==null?'':(EX_START===1?String(y):(y+'/'+(y+1)));}
+function exLabelCourt(y){return y==null?'':(EX_START===1?String(y):(y+'/'+String(y+1).slice(2)));}
+// Le mot juste dans une phrase, et sa forme avec demonstratif.
+function exMot(){return EX_START===1?'année':'exercice';}
+function exCe(){return EX_START===1?'cette année':'cet exercice';}
+function exMoisNom(i){return MOIS_PLEIN[i-1];}   // 1..12, mois civil
+// Les douze mois dans l'ordre de l'exercice, pour l'axe des graphiques mensuels.
+function exMoisLabels(){const a=[];for(let i=0;i<12;i++)a.push(MOIS_FR[(EX_START-1+i)%12]);return a;}
+// Bornes d'un exercice en jour absolu (_dayNum), pour les raccourcis de periode.
+function exBornes(y){
+  return {debut:Math.floor(Date.UTC(y,EX_START-1,1)/86400000),
+          fin:Math.floor(Date.UTC(y+1,EX_START-1,1)/86400000)-1};
+}
+// Changement du mois d'ouverture. On ne retouche NI la base NI les empreintes : on
+// recalcule les trois champs derives sur les lignes deja en memoire, et on repart de zero
+// cote selection, parce qu'une selection calee sur l'ancien decoupage ne veut plus rien dire.
+function exAppliquer(m){
+  const n=parseInt(m,10);
+  if(!(n>=1&&n<=12)||n===EX_START)return;
+  EX_START=n;
+  try{if(n===1)localStorage.removeItem(EX_KEY);else localStorage.setItem(EX_KEY,String(n));}catch(e){}
+  ROWS.forEach(exDeriver);
+  filters={ex:null,from:null,to:null,preset:'tous'};
+  computeMeta();
+  runBusy('Recalcul sur le nouvel exercice…',()=>{buildFilterBar();renderAll();});
+}
+
 // Transforme les 40 champs bruts en objet exploitable + classification vente/non-vente.
 function deriveRow(raw){
   const o={};COLS.forEach((k,i)=>o[k]=raw[i]==null?'':raw[i]);
   o._date=parseDateFR(o.date);
   o._dayNum=o._date?Math.floor(Date.UTC(o._date.y,o._date.m-1,o._date.d)/86400000):null; // jour absolu, pour les intervalles en jours
+  exDeriver(o);            // exercice comptable : _exY, _exM, _exPos (voir plus haut)
   o._total=parseNum(o.totalHT);
   o._pu=parseNum(o.puHT);
   o._qte=parseNum(o.quantite);
@@ -1124,9 +1194,9 @@ function deriveRow(raw){
   return classerLigne(o);
 }
 function computeMeta(){
-  let min=null,max=null;const ys=new Set();
-  ROWS.forEach(r=>{if(!r._date)return;if(!min||r._date.t<min.t)min=r._date;if(!max||r._date.t>max.t)max=r._date;ys.add(r._date.y);});
-  META={min,max,years:[...ys].sort((a,b)=>a-b)};
+  let min=null,max=null;const ys=new Set(),xs=new Set();
+  ROWS.forEach(r=>{if(!r._date)return;if(!min||r._date.t<min.t)min=r._date;if(!max||r._date.t>max.t)max=r._date;ys.add(r._date.y);if(r._exY!=null)xs.add(r._exY);});
+  META={min,max,years:[...ys].sort((a,b)=>a-b),exercices:[...xs].sort((a,b)=>a-b)};
   buildEmailIndex();     // adresses regroupees par client, avant le profil
   RECO=null;CLASSEMENT=null;   // index de recommandation et classement : reconstruits a la demande
   PROFIL=profilBase();   // recalcule le profil a chaque changement de base
@@ -1202,9 +1272,10 @@ function profilBase(){
   const caMois=new Array(13).fill(0);
   vente.forEach(r=>{
     clients.add(r.numClient||r.client||'(inconnu)');factures.add(r.numFacture);ca+=r._total;
-    if(r._date){moisSet.add(r._date.y*100+r._date.m);(parAn[r._date.y]||(parAn[r._date.y]=new Set())).add(r._date.m);caMois[r._date.m]+=r._total;}
+    if(r._date){moisSet.add(r._date.y*100+r._date.m);(parAn[r._exY]||(parAn[r._exY]=new Set())).add(r._date.m);caMois[r._date.m]+=r._total;}
     if(r._dayNum!=null&&(refDay==null||r._dayNum>refDay))refDay=r._dayNum;
   });
+  // Exercices complets : douze mois distincts dans le MEME exercice, pas dans la meme annee civile.
   const anneesCompletes=Object.values(parAn).filter(s=>s.size>=12).length;
   // Dimensions : distinctes + taux de remplissage (sur les lignes de vente).
   const AX={famille:r=>r.famille,couleur:r=>r.couleur,canal:r=>r._canal,codeTarif:r=>r.codeTarif,appellation:r=>r.appellation,millesime:r=>r.millesime,conditionnement:r=>r.conditionnement,origine:r=>r.origine,pays:r=>r.pays,commercial:r=>r.commercial,vendeur:r=>r.vendeur};
@@ -1224,26 +1295,76 @@ function profilBase(){
 }
 
 /* ======================= SELECTION / FENETRES ======================= */
-// Lignes vin (CA reel) filtrees par l'annee active si présente.
+// Lignes vin (CA reel) reduites a la selection temporelle courante.
 function vinRows(){
-  return ROWS.filter(r=>r._vin && (filters.year==null || (r._date&&r._date.y===filters.year)));
+  return ROWS.filter(r=>r._vin && dansSelection(r));
+}
+// Une ligne tombe-t-elle dans la selection courante ? Exercice puis plage libre, cumulables.
+function dansSelection(r){
+  if(filters.ex!=null && r._exY!==filters.ex)return false;
+  if(filters.from!=null&&(r._dayNum==null||r._dayNum<filters.from))return false;
+  if(filters.to!=null&&(r._dayNum==null||r._dayNum>filters.to))return false;
+  return true;
+}
+// Vrai des qu'une plage libre est active. Les blocs comparatifs s'en servent pour dire
+// au lecteur qu'ils ne suivent PAS sa plage : sans ca il croit comparer ce qu'il a choisi.
+function plageLibre(){return filters.from!=null||filters.to!=null;}
+// Bornes en clair. Une borne seule se lit « depuis le » ou « jusqu'au ».
+function libelleBornes(a,b){
+  const d=a!=null?fmtDate(dayToDate(a)):null, f=b!=null?fmtDate(dayToDate(b)):null;
+  if(d&&f)return 'du '+d+' au '+f;
+  if(d)return 'depuis le '+d;
+  if(f)return "jusqu'au "+f;
+  return '';
+}
+// Le perimetre en clair, pour les sous-titres d'ecran.
+function libellePerimetre(){
+  const ex=filters.ex!=null?(exMot()+' '+exLabel(filters.ex)):null;
+  const pl=plageLibre()?libelleBornes(filters.from,filters.to):null;
+  if(ex&&pl)return ex+', '+pl;
+  return pl||ex||'toute la base';
 }
 // Somme d'un accesseur sur un tableau.
 function sum(arr,fn){return arr.reduce((s,r)=>s+fn(r),0);}
 
-// Determine curYear / prevYear + date de coupe (à date égale) pour les comparatifs YoY.
+// Cadre des comparatifs « a date egale » : exercice courant, exercice precedent, et la
+// position la plus avancee atteinte dans le courant. Tout se joue sur _exPos, jamais
+// sur le mois civil : c'est ce qui rend un exercice aout-juillet comparable a lui-meme.
 function yoyFrame(){
-  const ys=META.years;if(ys.length<2)return null;
-  const cur=ys[ys.length-1],prev=cur-1;
-  if(!ys.includes(prev))return null;
-  // date max présente dans l'annee courante (parmi les lignes vin).
-  let cut=null;
-  ROWS.forEach(r=>{if(r._vin&&r._date&&r._date.y===cur){if(!cut||r._date.t>cut.t)cut=r._date;}});
+  const xs=META.exercices;if(xs.length<2)return null;
+  const cur=xs[xs.length-1],prev=cur-1;
+  if(!xs.includes(prev))return null;
+  let cut=null,cutPos=-1;
+  ROWS.forEach(r=>{if(r._vin&&r._date&&r._exY===cur&&r._exPos>cutPos){cutPos=r._exPos;cut=r._date;}});
   if(!cut)return null;
-  return {cur,prev,cutM:cut.m,cutD:cut.d,cutDate:cut};
+  return {cur,prev,cutPos,cutM:cut.m,cutD:cut.d,cutDate:cut};
 }
-// Une date tombe-t-elle dans la fenetre 1er janvier -> (cutM/cutD) de son annee ?
-function inWindow(d,cutM,cutD){if(!d)return false;return d.m<cutM || (d.m===cutM && d.d<=cutD);}
+// Une ligne est-elle avant le jour de coupe, mesure DANS SON PROPRE exercice ?
+// Unique comparateur « a date egale » de l'outil. Remplace l'ancien inWindow(),
+// qui codait en dur un depart au 1er janvier.
+function avantCoupe(r,cutPos){return r._exPos!=null&&r._exPos<=cutPos;}
+
+/* Conversions entre le champ <input type="date"> (ISO AAAA-MM-JJ) et le jour absolu
+   (_dayNum), la seule unite dans laquelle l'outil compare deja des intervalles. */
+function jourDepuisISO(v){
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v==null?'':v).trim());
+  if(!m)return null;
+  return Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/86400000);
+}
+function isoDepuisDate(d){return d?(d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0')):'';}
+function isoDepuisJour(dn){return dn==null?'':isoDepuisDate(dayToDate(dn));}
+
+/* Raccourcis de periode. Tous comptes depuis la DERNIERE DATE PRESENTE EN BASE, jamais
+   depuis aujourd'hui : la base est un historique cumule. Un export charge en septembre
+   pour des ventes arretees en juin afficherait sinon trois mois vides, et « 12 derniers
+   mois » ne couvrirait que neuf mois de ventes reelles. */
+function ancreFin(){return META.max?Math.floor(Date.UTC(META.max.y,META.max.m-1,META.max.d)/86400000):null;}
+// Premier jour du mois situe n mois avant le mois de la derniere date en base.
+// Date.UTC normalise un mois negatif, donc le passage d'annee est gratuit.
+function jourMoisRecule(n){
+  if(!META.max)return null;
+  return Math.floor(Date.UTC(META.max.y,META.max.m-1-n,1)/86400000);
+}
 
 /* ======================= APP / NAV ======================= */
 const NAV=[
@@ -1257,7 +1378,7 @@ function openApp(){
   el('screenImport').style.display='none';
   el('app').classList.add('on');
   el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
-  el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.label}</button>`).join('');
+  el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.id==='annee'?('Mon '+exMot()):n.label}</button>`).join('');
   peuplerIci();
   appliquerVolet(voletReplie());
   buildFilterBar();
@@ -1335,13 +1456,61 @@ function navTo(id){
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
   window.scrollTo(0,0);
 }
+/* La barre de periode. Trois familles de choix, separees par un filet, dans l'ordre ou
+   on s'en sert : l'exercice entier (la maille des comparatifs), les fenetres glissantes,
+   puis les dates a la main. Le perimetre effectif est reecrit en clair a droite, parce
+   qu'un filtre qu'on ne voit plus est un chiffre qu'on lit de travers. */
 function buildFilterBar(){
-  const parts=['<span class="filterbar__label">Annee</span>'];
-  parts.push(`<span class="chip ${filters.year==null?'on':''}" onclick="setYear(null)">Toutes</span>`);
-  META.years.forEach(y=>parts.push(`<span class="chip ${filters.year===y?'on':''}" onclick="setYear(${y})">${y}</span>`));
-  el('filterbar').innerHTML=parts.join('');
+  const chip=(actif,action,txt)=>`<span class="chip ${actif?'on':''}" onclick="${action}">${txt}</span>`;
+  const perso=filters.preset==='perso';
+  let h=`<span class="filterbar__label">Période</span>`;
+  h+=chip(filters.preset==='tous',"setExercice(null)","Tout l'historique");
+  META.exercices.forEach(y=>h+=chip(filters.preset==='ex'+y,`setExercice(${y})`,esc(exLabel(y))));
+  if(META.max){
+    h+=`<span class="filterbar__sep"></span>`;
+    h+=chip(filters.preset==='12m',"setPeriode('12m')",'12 derniers mois');
+    h+=chip(filters.preset==='3m',"setPeriode('3m')",'3 derniers mois');
+    h+=chip(filters.preset==='1m',"setPeriode('1m')",'Dernier mois');
+  }
+  h+=`<span class="filterbar__sep"></span>`;
+  h+=chip(perso,"setPeriode('perso')",'Dates précises…');
+  if(perso){
+    const mn=isoDepuisDate(META.min),mx=isoDepuisDate(META.max);
+    h+=`<span class="filterbar__dates">
+      <label>du <input type="date" value="${isoDepuisJour(filters.from)}" min="${mn}" max="${mx}" onchange="setBorne('from',this.value)"></label>
+      <label>au <input type="date" value="${isoDepuisJour(filters.to)}" min="${mn}" max="${mx}" onchange="setBorne('to',this.value)"></label>
+    </span>`;
+  }
+  const rel=(filters.preset==='12m'||filters.preset==='3m'||filters.preset==='1m');
+  h+=`<span class="filterbar__scope" title="${rel?'Fenêtre comptée depuis la dernière date présente en base, pas depuis aujourd\'hui.':''}">${esc(libellePerimetre())}${rel?' · depuis la fin de ta base':''}</span>`;
+  el('filterbar').innerHTML=h;
 }
-function setYear(y){filters.year=y;buildFilterBar();runBusy('Analyse…',renderAll);}
+// Un exercice entier. Il efface toute plage libre : les deux ensemble n'ont pas de sens
+// pour le lecteur, qui ne saurait plus si le chiffre affiche est celui de l'exercice.
+function setExercice(y){
+  filters={ex:y,from:null,to:null,preset:y==null?'tous':('ex'+y)};
+  buildFilterBar();runBusy('Analyse…',renderAll);
+}
+// Fenetres glissantes et bascule vers la saisie manuelle.
+function setPeriode(p){
+  const fin=ancreFin();
+  filters={ex:null,from:null,to:null,preset:p};
+  if(p==='12m'){filters.from=jourMoisRecule(11);filters.to=fin;}
+  else if(p==='3m'){filters.from=jourMoisRecule(2);filters.to=fin;}
+  else if(p==='1m'){filters.from=jourMoisRecule(0);filters.to=fin;}
+  buildFilterBar();runBusy('Analyse…',renderAll);
+}
+// Bornes saisies au jour. On remet dans l'ordre plutot que de refuser : un vigneron qui
+// tape la fin avant le debut veut voir l'intervalle, pas lire un message d'erreur.
+function setBorne(quelle,v){
+  const d=jourDepuisISO(v);
+  if(quelle==='from')filters.from=d;else filters.to=d;
+  if(filters.from!=null&&filters.to!=null&&filters.from>filters.to){
+    const t=filters.from;filters.from=filters.to;filters.to=t;
+  }
+  filters.preset='perso';
+  buildFilterBar();runBusy('Analyse…',renderAll);
+}
 function renderAll(){
   // Mon annee : quatre anciens ecrans empiles dans une seule page, dans l'ordre de lecture.
   renderDiagnostic();renderApercu();renderEvolution();renderCanaux();
@@ -1355,7 +1524,8 @@ function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];
 function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
 function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div></div>`;}
 function histCourtNote(){return (PROFIL&&PROFIL.moisCouverts&&PROFIL.moisCouverts<24)?` Historique court (${PROFIL.moisCouverts} mois) : comparatifs annuels à prendre avec prudence.`:'';}
-function incompleteNote(){const f=yoyFrame();return (f?`Comparaison à date égale : ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')} de chaque année. ${f.cur} arrêtée au ${fmtDate(f.cutDate)}.`:'')+histCourtNote();}
+function exComplet(){return EX_START===1?'année complète':'exercice complet';}
+function incompleteNote(){const f=yoyFrame();return (f?`Comparaison à date égale : même rang dans chaque ${exMot()}, soit le ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')}. ${exLabel(f.cur)} arrêté au ${fmtDate(f.cutDate)}.`:'')+histCourtNote();}
 
 /* ======================= AXES + MESURE (Apercu) ======================= */
 function deptFromCP(cp){const s=String(cp||'').replace(/\D/g,'');return s.length>=2?s.slice(0,2):'';}
@@ -1375,7 +1545,7 @@ const AXES=[
   {key:'pays',label:'Pays',get:r=>r.pays},
   {key:'ville',label:'Ville',get:r=>r.ville},
   {key:'_dept',label:'Département',get:r=>deptFromCP(r.cp)},
-  {key:'_annee',label:'Année',get:r=>r._date?String(r._date.y):''},
+  {key:'_annee',label:'Année',get:r=>exLabel(r._exY)},   // libelle ajuste dans usableAxes()
   {key:'_mois',label:'Mois',get:r=>r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):''}
 ];
 const PERSO_KEYS=['persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5','persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9'];
@@ -1385,7 +1555,8 @@ function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.string
 // Un champ est exploitable s'il a plus d'une valeur non vide (sinon masque : vide ou constant).
 function fieldUsable(get){const s=new Set();for(let i=0;i<ROWS.length;i++){const r=ROWS[i];if(!r._vin)continue;const v=get(r);if(v!==''&&v!=null){s.add(String(v));if(s.size>1)return true;}}return false;}
 function usableAxes(){
-  const std=AXES.filter(a=>fieldUsable(a.get));
+  // Le libelle de l'axe temps suit le reglage : « Annee » sur un exercice civil, « Exercice » sinon.
+  const std=AXES.filter(a=>fieldUsable(a.get)).map(a=>(a.key==='_annee'&&EX_START!==1)?Object.assign({},a,{label:'Exercice'}):a);
   const perso=PERSO_KEYS.filter(k=>fieldUsable(r=>r[k])).map(k=>({key:k,label:persoLabel(k),get:r=>r[k],perso:true}));
   return {std,perso,all:[...std,...perso]};
 }
@@ -1442,7 +1613,7 @@ function renderApercu(){
   const btl=sum(rows,r=>r._qte);
   const clients=new Set(rows.map(r=>r.numClient||r.client)).size;
   const panier=factures?ca/factures:0;
-  const scope=filters.year?('année '+filters.year):'toute la base';
+  const scope=libellePerimetre();
   const f=yoyFrame(),at=computeAtterrissage();
   let html=`<h2 class="panel__title">Aperçu des ventes</h2><div class="panel__sub">L'état de ton activité en un coup d'œil. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
 
@@ -1456,15 +1627,18 @@ function renderApercu(){
   }
 
   if(f){
-    const curW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.cur&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
-    const prevW=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.prev&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
+    const curW=sum(ROWS.filter(r=>r._vin&&r._exY===f.cur&&avantCoupe(r,f.cutPos)),r=>r._total);
+    const prevW=sum(ROWS.filter(r=>r._vin&&r._exY===f.prev&&avantCoupe(r,f.cutPos)),r=>r._total);
     const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
     const cls=d==null?'':(d>=0?'up':'down');
     html+=`<div class="hero">
-      <div class="hero__label">Où en est ton année, ${f.cur} vs ${f.prev} à date</div>
+      <div class="hero__label">Où en est ton ${exMot()}, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date</div>
       <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
-      <div class="hero__sub">Au ${fmtDate(f.cutDate)} : ${fmtMoney(curW)} cette année contre ${fmtMoney(prevW)} l'an dernier au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
+      <div class="hero__sub">Au ${fmtDate(f.cutDate)} : ${fmtMoney(curW)} ${exCe()} contre ${fmtMoney(prevW)} le précédent au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
     </div>`;
+    // Une plage libre n'a pas de periode precedente equivalente : ce bloc reste donc cale
+    // sur l'exercice, et il doit le dire. Sans cette phrase, le lecteur croit comparer sa plage.
+    if(plageLibre())html+=`<p class="note" style="margin:-.7rem 0 1.1rem">Ce comparatif reste calé sur ${exLabel(f.cur)} contre ${exLabel(f.prev)}, <b>pas sur la plage de dates choisie</b> : une plage quelconque n'a pas de période précédente équivalente. Les compteurs et les répartitions ci-dessous, eux, suivent bien ta plage.</p>`;
   }
 
   html+=`<div class="kpi-grid">
@@ -1480,8 +1654,8 @@ function renderApercu(){
     <button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button>
   </span></div>`;
 
-  html+=`<div class="section-label">La forme de ton année</div>
-    <div class="card"><div class="card__title"><span>${uiMesure==='ca'?'CA HT':'Bouteilles'} par mois${f?' · '+f.cur+' vs '+f.prev:''}</span></div><div class="chart-wrap"><canvas id="chApMonth"></canvas></div></div>`;
+  html+=`<div class="section-label">La forme de ton ${exMot()}</div>
+    <div class="card"><div class="card__title"><span>${uiMesure==='ca'?'CA HT':'Bouteilles'} par mois${f?' · '+exLabelCourt(f.cur)+' vs '+exLabelCourt(f.prev):''}</span></div><div class="chart-wrap"><canvas id="chApMonth"></canvas></div></div>`;
 
   html+=`<div class="section-label">Ton mix</div><div class="grid-2">
     <div class="card"><div class="card__title"><span>Répartition par couleur</span></div><div class="chart-wrap"><canvas id="chApDonut"></canvas></div></div>
@@ -1512,13 +1686,14 @@ function renderApercu(){
   drawApMonth();
   drawApDonut(rows);
 }
-function apMonthly(year){const a=new Array(12).fill(0);for(const r of ROWS){if(!r._vin||!r._date||r._date.y!==year)continue;a[r._date.m-1]+=mesureVal(r);}return a;}
+// Serie mensuelle d'un exercice, rangee dans l'ordre DE L'EXERCICE (case 0 = mois d'ouverture).
+function apMonthly(ex){const a=new Array(12).fill(0);for(const r of ROWS){if(!r._vin||r._exY!==ex||r._exM==null)continue;a[r._exM-1]+=mesureVal(r);}return a;}
 function drawApMonth(){
-  destroyChart('chApMonth');const ctx=el('chApMonth');if(!ctx)return;const ys=META.years;if(!ys.length)return;
-  const cur=filters.year||ys[ys.length-1],prev=ys.includes(cur-1)?cur-1:null;
-  const ds=[{label:String(cur),data:apMonthly(cur),borderColor:cssToken('--bordeaux'),backgroundColor:aireBordeaux(),fill:true,tension:.3,borderWidth:2,pointRadius:2}];
-  if(prev)ds.push({label:String(prev),data:apMonthly(prev),borderColor:cssToken('--muted'),backgroundColor:'transparent',borderDash:[5,4],fill:false,tension:.3,borderWidth:1.5,pointRadius:0});
-  charts.chApMonth=new Chart(ctx,{type:'line',data:{labels:MOIS_FR,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:!!prev,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
+  destroyChart('chApMonth');const ctx=el('chApMonth');if(!ctx)return;const xs=META.exercices;if(!xs.length)return;
+  const cur=filters.ex!=null?filters.ex:xs[xs.length-1],prev=xs.includes(cur-1)?cur-1:null;
+  const ds=[{label:exLabelCourt(cur),data:apMonthly(cur),borderColor:cssToken('--bordeaux'),backgroundColor:aireBordeaux(),fill:true,tension:.3,borderWidth:2,pointRadius:2}];
+  if(prev)ds.push({label:exLabelCourt(prev),data:apMonthly(prev),borderColor:cssToken('--muted'),backgroundColor:'transparent',borderDash:[5,4],fill:false,tension:.3,borderWidth:1.5,pointRadius:0});
+  charts.chApMonth=new Chart(ctx,{type:'line',data:{labels:exMoisLabels(),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:!!prev,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
 function drawApDonut(rows){
   destroyChart('chApDonut');const ctx=el('chApDonut');if(!ctx)return;
@@ -1531,21 +1706,31 @@ function axisGetByKey(k){const a=axisDef(k);return a?a.get:(r=>r[k]);}
 function exploRows(){
   return ROWS.filter(r=>{
     if(!r._vin)return false;
-    if(exploYear!=null&&(!r._date||r._date.y!==exploYear))return false;
+    if(exploEx!=null&&r._exY!==exploEx)return false;
+    if(exploFrom!=null&&(r._dayNum==null||r._dayNum<exploFrom))return false;
+    if(exploTo!=null&&(r._dayNum==null||r._dayNum>exploTo))return false;
     for(const k in exploFilters){const v=exploFilters[k];if(!v)continue;const av=axisGetByKey(k)(r);if(String(av==null?'':av)!==v)return false;}
     return true;
   });
 }
 function distinctVals(getf){const s=new Set();for(let i=0;i<ROWS.length;i++){const r=ROWS[i];if(!r._vin)continue;const v=getf(r);if(v!==''&&v!=null)s.add(String(v));}return [...s].sort((a,b)=>a.localeCompare(b,'fr'));}
 function setExploFilter(k,v){if(v==='')delete exploFilters[k];else exploFilters[k]=v;runBusy('Analyse…',renderExplo);}
-function setExploYear(v){exploYear=(v===''?null:+v);runBusy('Analyse…',renderExplo);}
+function setExploEx(v){exploEx=(v===''?null:+v);runBusy('Analyse…',renderExplo);}
+// Bornes de l'Explorer, saisies au jour. C'est ici que se traitent les « dates bien precises » :
+// cet ecran n'a aucun moteur comparatif, donc une plage quelconque n'y fausse rien.
+function setExploBorne(quelle,v){
+  const d=jourDepuisISO(v);
+  if(quelle==='from')exploFrom=d;else exploTo=d;
+  if(exploFrom!=null&&exploTo!=null&&exploFrom>exploTo){const t=exploFrom;exploFrom=exploTo;exploTo=t;}
+  runBusy('Analyse…',renderExplo);
+}
 function setExploAxis(w,v){if(w===1)exploAxis1=v;else exploAxis2=v;runBusy('Analyse…',renderExplo);}
 // Retire un seul filtre depuis sa pastille, sans toucher aux autres.
 function retirerFiltre(k){
-  if(k==='__year')exploYear=null;else delete exploFilters[k];
+  if(k==='__ex')exploEx=null;else if(k==='__plage'){exploFrom=null;exploTo=null;}else delete exploFilters[k];
   runBusy('Analyse…',renderExplo);
 }
-function resetExplo(){exploFilters={};exploYear=null;runBusy('Analyse…',renderExplo);}
+function resetExplo(){exploFilters={};exploEx=null;exploFrom=null;exploTo=null;runBusy('Analyse…',renderExplo);}
 function toggleExploFilters(btn){exploShowFilters=!exploShowFilters;const m=el('moreFilters');if(m)m.classList.toggle('hidden');if(btn){btn.textContent=exploShowFilters?'Masquer les critères':'Affiner la sélection';btn.setAttribute('aria-expanded',String(exploShowFilters));}}
 function optsExplo(sel,withNone){const {std,perso}=usableAxes();return catOptions(std,perso,sel,withNone);}
 function renderExplo(){
@@ -1566,13 +1751,16 @@ function renderExplo(){
     <div class="pilote__row">
       <div class="field"><label>Répartir par</label><select onchange="setExploAxis(1,this.value)">${optsExplo(exploAxis1,false)}</select></div>
       <div class="field"><label>Croiser avec</label><select onchange="setExploAxis(2,this.value)">${optsExplo(exploAxis2,true)}</select></div>
-      <div class="field"><label>Année</label><select onchange="setExploYear(this.value)"><option value=""${exploYear==null?' selected':''}>Toutes</option>${META.years.map(y=>`<option value="${y}"${exploYear===y?' selected':''}>${y}</option>`).join('')}</select></div>
+      <div class="field"><label>${EX_START===1?'Année':'Exercice'}</label><select onchange="setExploEx(this.value)"><option value=""${exploEx==null?' selected':''}>Tous</option>${META.exercices.map(y=>`<option value="${y}"${exploEx===y?' selected':''}>${exLabel(y)}</option>`).join('')}</select></div>
+      <div class="field"><label>Du</label><input type="date" value="${exploFrom!=null?isoDepuisJour(exploFrom):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('from',this.value)"></div>
+      <div class="field"><label>Au</label><input type="date" value="${exploTo!=null?isoDepuisJour(exploTo):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('to',this.value)"></div>
       <div class="field"><label>Mesure</label><span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span></div>
     </div>`;
 
   // Ce qui est actif, en clair, et retirable d'un clic.
   const actifs=[];
-  if(exploYear!=null)actifs.push({k:'__year',lbl:'Année',val:String(exploYear)});
+  if(exploEx!=null)actifs.push({k:'__ex',lbl:EX_START===1?'Année':'Exercice',val:exLabel(exploEx)});
+  if(exploFrom!=null||exploTo!=null)actifs.push({k:'__plage',lbl:'Dates',val:libelleBornes(exploFrom,exploTo)});
   Object.keys(exploFilters).forEach(k=>{
     const a=[...std,...perso].find(x=>x.key===k);
     actifs.push({k,lbl:a?a.label:k,val:exploFilters[k]});});
@@ -1625,13 +1813,13 @@ function renamePerso(key,val){
 
 /* ======================= VUE EVOLUTION (le film dans le temps) ======================= */
 // Cle de période selon le pas de temps choisi : 'AAAA' (annuel) ou 'AAAA-MM' (mensuel).
-function periodKey(r){return evoStep==='annee'?(r._date?String(r._date.y):''):(r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):'');}
+function periodKey(r){return evoStep==='annee'?exLabel(r._exY):(r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):'');}
 // Mois en toutes lettres : les abreges de MOIS_FR (« juil. ») ne se mettent pas dans une phrase.
 const MOIS_PLEIN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 const MOIS_FR=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 function periodLabel(k){if(/^\d{4}-\d{2}$/.test(k)){const y=k.slice(0,4),m=+k.slice(5,7);return MOIS_FR[m-1]+' '+y;}return k;}
-// Mensuel : respecte le filtre annee (zoom sur une annee). Annuel : ignore le filtre (toutes les annees).
-function evoRows(){return ROWS.filter(r=>r._vin&&r._date&&(evoStep==='annee'||filters.year==null||r._date.y===filters.year));}
+// Mensuel : respecte la selection de periode (zoom). Annuel : l'ignore, pour garder tous les exercices.
+function evoRows(){return ROWS.filter(r=>r._vin&&r._date&&(evoStep==='annee'||dansSelection(r)));}
 function evoDimGet(){if(!evoDim)return null;const a=axisDef(evoDim);return a?a.get:null;}
 /* ======================= LECTURE EXPERTE (commentaire auto de la vue Evolution) ======================= */
 function _mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0;}
@@ -1640,7 +1828,7 @@ function _slope(a){const n=a.length;if(n<2)return 0;const mx=(n-1)/2,my=_mean(a)
 function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
   const n=periods.length;if(!n)return '';
   const grand=totByPeriod.reduce((s,v)=>s+v,0),avg=grand/n;
-  const pw=evoStep==='annee'?'année':'mois',pwpl=evoStep==='annee'?'années':'mois';
+  const pw=evoStep==='annee'?exMot():'mois',pwpl=evoStep==='annee'?(exMot()+'s'):'mois';
   const dimLbl=dimGet?axisDef(evoDim).label.toLowerCase():'';
   const lbl=i=>periodLabel(periods[i]);
   let out=`<div class="section-label">Lecture experte</div>`;
@@ -1720,7 +1908,7 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
 
 function renderEvolution(){
   const rows=evoRows();
-  const scope=evoStep==='annee'?'toutes années':(filters.year?('année '+filters.year):'toute la base, tous mois confondus');
+  const scope=evoStep==='annee'?('tous '+exMot()+'s'):(filters.ex!=null||plageLibre()?libellePerimetre():'toute la base, tous mois confondus');
   let html=`<h2 class="panel__title">Évolution dans le temps</h2><div class="panel__sub">Comment tes chiffres bougent ${evoStep==='annee'?"d'une année sur l'autre":"mois après mois"}. Mesure : ${mesureLabel()}. Périmètre : ${scope}.</div>`;
   const {std,perso}=usableAxes();
   const dimOpts=`<option value=""${evoDim===''?' selected':''}>Total (pas de segmentation)</option>`+catOptions(std.filter(a=>!isTimeAxis(a.key)),perso,evoDim,false);
@@ -1749,7 +1937,7 @@ function renderEvolution(){
   html+=`<div class="card"><div class="card__title"><span>Détail chiffré</span><span><button class="btn btn--ghost btn--sm" onclick="exportEvo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportEvo('csv')">CSV</button></span></div><div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${dimGet?esc(axisDef(evoDim).label):'Période'}</th>${periods.map(p=>`<th>${esc(periodLabel(p))}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
   segs.forEach(seg=>{html+=`<tr><td class="rowh">${esc(seg)}</td>${periods.map(p=>`<td>${(bySeg[seg]&&bySeg[seg][p])?fmtMes(bySeg[seg][p]):'-'}</td>`).join('')}<td>${fmtMes(segTot[seg])}</td></tr>`;});
   if(dimGet)html+=`<tr><td class="rowh"><b>Total</b></td>${periods.map((p,i)=>`<td>${fmtMes(totByPeriod[i])}</td>`).join('')}<td>${fmtMes(totByPeriod.reduce((a,v)=>a+v,0))}</td></tr>`;
-  html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}.${evoStep==='mois'&&filters.year==null?" Astuce : clique une année dans le filtre en haut pour zoomer sur ses mois.":''}${evoStep==='annee'&&filters.year!=null?" Le filtre année ne s'applique pas à la vue annuelle.":''}</p></div>`;
+  html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}.${evoStep==='mois'&&filters.ex==null&&!plageLibre()?" Astuce : choisis une période en haut de l'écran pour zoomer.":''}${evoStep==='annee'&&(filters.ex!=null||plageLibre())?" La sélection de période ne s'applique pas à la vue par "+exMot()+".":''}</p></div>`;
   el('p-evolution').innerHTML=html;
   if(dense){const tot={};periods.forEach((p,i)=>tot[p]=totByPeriod[i]);drawEvo(periods,['Total'],{Total:tot},false);}
   else drawEvo(periods,segs,bySeg,!!dimGet);
@@ -1771,19 +1959,21 @@ function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try
 
 // AGENT A : atterrissage de l'annee en cours (projection fin d'annee).
 function computeAtterrissage(){
-  const ys=META.years;if(!ys.length)return null;
-  const cur=ys[ys.length-1];
-  const curRows=ROWS.filter(r=>r._vin&&r._date&&r._date.y===cur);
+  const xs=META.exercices;if(!xs.length)return null;
+  const cur=xs[xs.length-1];
+  const curRows=ROWS.filter(r=>r._vin&&r._exY===cur);
   if(!curRows.length)return null;
-  let maxM=0;curRows.forEach(r=>{if(r._date.m>maxM)maxM=r._date.m;});
+  // Mois ecoules DANS l'exercice (_exM), pas dans l'annee civile : sur un exercice
+  // aout-juillet, un export arrete en septembre vaut 2 mois connus, pas 9.
+  let maxM=0;curRows.forEach(r=>{if(r._exM>maxM)maxM=r._exM;});
   const done=sum(curRows,r=>r._total);
   if(maxM>=12)return{cur,complete:true,total:done};
-  const prev=cur-1,hasPrev=ys.includes(prev);
+  const prev=cur-1,hasPrev=xs.includes(prev);
   const linear=maxM?done*(12/maxM):done;
   let central,low,high,method;
   if(hasPrev){
-    const prevYTD=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===prev&&r._date.m<=maxM),r=>r._total);
-    const prevFull=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===prev),r=>r._total);
+    const prevYTD=sum(ROWS.filter(r=>r._vin&&r._exY===prev&&r._exM<=maxM),r=>r._total);
+    const prevFull=sum(ROWS.filter(r=>r._vin&&r._exY===prev),r=>r._total);
     const seasonal=prevYTD>0?done/prevYTD*prevFull:linear;
     central=seasonal;low=Math.min(seasonal,linear);high=Math.max(seasonal,linear);method='saison';
   }else{central=linear;low=done;high=linear;method='lineaire';}
@@ -1806,7 +1996,7 @@ function seasonalIndex(series){
 // AGENT C : decomposition effet prix / effet volume (N vs N-1 a date egale).
 function computePriceVolume(){
   const f=yoyFrame();if(!f)return null;
-  function agg(y){let ca=0,q=0;ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(r._date.y!==y)return;if(!inWindow(r._date,f.cutM,f.cutD))return;ca+=r._total;q+=r._qte;});return{ca,q};}
+  function agg(y){let ca=0,q=0;ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(r._exY!==y)return;if(!avantCoupe(r,f.cutPos))return;ca+=r._total;q+=r._qte;});return{ca,q};}
   const A=agg(f.cur),B=agg(f.prev);
   if(A.q<=0||B.q<=0)return null;
   const P0=B.ca/B.q,P1=A.ca/A.q;
@@ -1817,9 +2007,9 @@ function computePriceVolume(){
 function computeBridge(){
   const f=yoyFrame();if(!f)return null;
   const by={};
-  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!inWindow(r._date,f.cutM,f.cutD))return;if(r._date.y!==f.cur&&r._date.y!==f.prev)return;
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!avantCoupe(r,f.cutPos))return;if(r._exY!==f.cur&&r._exY!==f.prev)return;
     const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={nom:r.client||id,cur:0,prev:0};
-    if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;});
+    if(r._exY===f.cur)c.cur+=r._total;else c.prev+=r._total;});
   let nw=0,up=0,down=0,lost=0;const movers=[];
   Object.values(by).forEach(c=>{const d=c.cur-c.prev;
     if(c.prev<=0&&c.cur>0)nw+=c.cur;
@@ -1837,7 +2027,7 @@ function bridgeHero(){
   const br=computeBridge();
   if(!br){
     return `<div class="section-label">D'où vient ta variation</div>`+
-      signal('info','ℹ','Décomposition indisponible.','Il faut deux années comparables dans la base pour savoir si ton chiffre bouge parce que tu gagnes des clients ou parce que tu en perds. Ajoute un export couvrant l\'année précédente.');
+      signal('info','ℹ','Décomposition indisponible.',`Il faut deux ${exMot()}s comparables dans la base pour savoir si ton chiffre bouge parce que tu gagnes des clients ou parce que tu en perds. Ajoute un export couvrant le précédent.`);
   }
   const gagne=br.nw+br.up, perdu=Math.abs(br.down+br.lost);
   const ratio=perdu>0?gagne/perdu:null;
@@ -1861,7 +2051,7 @@ function bridgeHero(){
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
       <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--ok)':'var(--danger)'}"></span></td>
       <td class="num" style="color:${pos?'var(--ok)':'var(--danger-deep)'};white-space:nowrap">${pos?'+':'-'}${fmtMoney(Math.abs(val))}</td></tr>`;
-  return `<div class="section-label">D'où vient ta variation, ${br.prev} vs ${br.cur} à date égale</div>`
+  return `<div class="section-label">D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale</div>`
     +signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
       <table class="data"><tbody>
@@ -2026,9 +2216,9 @@ function agentDecrochage(){
   const venuUneFois=id=>{const j=joursClient[id];return !j||j.length<=1;};
   // CA annuel complet par client sur toutes les annees, pour estimer la volatilite propre de chacun.
   const yearly={};
-  ROWS.forEach(r=>{if(!r._vin||!r._date)return;const id=r.numClient||r.client||'(inconnu)';(yearly[id]||(yearly[id]={}))[r._date.y]=(yearly[id][r._date.y]||0)+r._total;});
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;const id=r.numClient||r.client||'(inconnu)';(yearly[id]||(yearly[id]={}))[r._exY]=(yearly[id][r._exY]||0)+r._total;});
   const by={};
-  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!inWindow(r._date,f.cutM,f.cutD))return;if(r._date.y!==f.cur&&r._date.y!==f.prev)return;const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={id,nom:r.client||id,cur:0,prev:0};if(r._date.y===f.cur)c.cur+=r._total;else c.prev+=r._total;});
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!avantCoupe(r,f.cutPos))return;if(r._exY!==f.cur&&r._exY!==f.prev)return;const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={id,nom:r.client||id,cur:0,prev:0};if(r._exY===f.cur)c.cur+=r._total;else c.prev+=r._total;});
   const decroche=Object.values(by).map(c=>{
     const pct=c.prev>0?(c.cur-c.prev)/c.prev*100:0;
     // Volatilite : CV du CA annuel du client si >= 3 annees connues, sinon pas de volatilite fiable.
@@ -2055,15 +2245,15 @@ function agentConcentration(){
 }
 function agentCanalMover(){
   const f=yoyFrame();if(!f)return null;
-  function agg(y){const m={};let tot=0;ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(r._date.y!==y)return;if(!inWindow(r._date,f.cutM,f.cutD))return;m[r._canal]=(m[r._canal]||0)+r._total;tot+=r._total;});return{m,tot};}
+  function agg(y){const m={};let tot=0;ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(r._exY!==y)return;if(!avantCoupe(r,f.cutPos))return;m[r._canal]=(m[r._canal]||0)+r._total;tot+=r._total;});return{m,tot};}
   const A=agg(f.cur),B=agg(f.prev),keys=[...new Set([...Object.keys(A.m),...Object.keys(B.m)])];
   let mv=null;keys.forEach(k=>{const pc=A.tot?(A.m[k]||0)/A.tot*100:0,pp=B.tot?(B.m[k]||0)/B.tot*100:0,dPts=pc-pp;if(mv==null||Math.abs(dPts)>Math.abs(mv.dPts))mv={k,dPts};});
   return{f,mover:mv};
 }
 function yoyTotals(){
   const f=yoyFrame();if(!f)return null;
-  const cur=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.cur&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
-  const prev=sum(ROWS.filter(r=>r._vin&&r._date&&r._date.y===f.prev&&inWindow(r._date,f.cutM,f.cutD)),r=>r._total);
+  const cur=sum(ROWS.filter(r=>r._vin&&r._exY===f.cur&&avantCoupe(r,f.cutPos)),r=>r._total);
+  const prev=sum(ROWS.filter(r=>r._vin&&r._exY===f.prev&&avantCoupe(r,f.cutPos)),r=>r._total);
   return{f,cur,prev,d:prev?(cur-prev)/Math.abs(prev)*100:null};
 }
 // Synthetise les verdicts de tous les agents en une liste priorisee (severite puis impact en euros).
@@ -2077,7 +2267,7 @@ function diagnosticSignals(){
     }else S.push({sev:0,impact:0,kind:'info',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
   }
   const dec=agentDecrochage();
-  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs l'an dernier à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
+  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs le ${exMot()} précédent à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
   const dor=agentDormants();
   if(dor.dormants.length){const t3=dor.dormants.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
     S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. Détail et liste complète dans l'onglet Réactivation.`});}
@@ -2099,7 +2289,7 @@ function diagnosticSignals(){
 
 function renderDiagnostic(){
   const p=el('p-diagnostic');if(!p)return;
-  let html=`<h2 class="panel__title">Mon année</h2><div class="panel__sub">Où va ton argent, et pourquoi. Tout est calculé sur le CA HT.</div>`;
+  let html=`<h2 class="panel__title">Mon ${exMot()}</h2><div class="panel__sub">Où va ton argent, et pourquoi. Tout est calculé sur le CA HT.</div>`;
 
   // 0. LE CHIFFRE QUI COMMANDE TOUT : d'ou vient la variation du chiffre d'affaires.
   // Ce bloc etait le dernier de l'ecran. Il est le plus important : il montre qu'un domaine
@@ -2110,14 +2300,14 @@ function renderDiagnostic(){
   const at=computeAtterrissage(),yt=yoyTotals();
   html+=`<div class="section-label">Où en es-tu</div><div class="kpi-grid">`;
   if(at&&!at.complete){
-    html+=kpiCard('Réalisé '+at.cur,fmtMoney(at.done),at.months+' mois connus',true);
+    html+=kpiCard('Réalisé '+exLabelCourt(at.cur),fmtMoney(at.done),at.months+' mois connus',true);
     html+=kpiCard('Atterrissage estimé',fmtMoney(at.central),'fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high));
-  }else if(at&&at.complete){html+=kpiCard(at.cur+', année complète',fmtMoney(at.total),'année clôturée',true);}
-  if(yt&&yt.d!=null)html+=kpiCard('Évolution vs '+yt.f.prev,fmtPct(yt.d),'à date, '+fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev));
+  }else if(at&&at.complete){html+=kpiCard(exLabel(at.cur)+', '+exComplet(),fmtMoney(at.total),exMot()+' clôturé'+(EX_START===1?'e':''),true);}
+  if(yt&&yt.d!=null)html+=kpiCard('Évolution vs '+exLabelCourt(yt.f.prev),fmtPct(yt.d),'à date, '+fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev));
   if(objectif&&at&&!at.complete){const gap=at.central-objectif;html+=kpiCard('Écart vs objectif',(gap>=0?'+':'-')+fmtMoney(Math.abs(gap)),gap>=0?'objectif jouable':'objectif menacé');}
   html+=`</div>`;
   html+=`<div class="expl-ctrls"><div class="field"><label>Objectif de CA annuel (HT), optionnel</label><input type="text" value="${objectif?esc(fmtNum(objectif)):''}" placeholder="ex. 500000" onchange="setObjectif(this.value)"></div></div>`;
-  if(at&&!at.complete)html+=`<p class="note">Atterrissage ${at.method==='saison'?('calé sur la saisonnalité de '+(at.cur-1)):'linéaire (faute d\'année précédente en base)'}.</p>`;
+  if(at&&!at.complete)html+=`<p class="note">Atterrissage ${at.method==='saison'?('calé sur la saisonnalité de '+exLabel(at.cur-1)):('linéaire (faute d\'un '+exMot()+' précédent en base)')}.</p>`;
 
   // 2. Plan d'action priorise (tous les agents)
   html+=`<div class="section-label">À regarder en priorité</div>`;
@@ -2135,13 +2325,13 @@ function renderDiagnostic(){
   html+=`<div class="section-label">D'où vient l'évolution</div>`;
   const pv=computePriceVolume();
   if(pv){
-    html+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${pv.cur} vs ${pv.prev} à date égale</span></div>
+    html+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${exLabelCourt(pv.cur)} vs ${exLabelCourt(pv.prev)} à date égale</span></div>
       <table class="data"><tbody>
       <tr><td>Effet volume (quantités vendues)</td><td class="num" style="color:${pv.volEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.volEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.volEff))}</td></tr>
       <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${pv.priceEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.priceEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.priceEff))}</td></tr>
       <tr><td><b>Variation totale</b></td><td class="num"><b>${pv.delta>=0?'+':'-'}${fmtMoney(Math.abs(pv.delta))}</b></td></tr>
       </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
-  }else html+=signal('info','ℹ','Décomposition prix/volume indisponible.','Il faut deux années comparables dans la base.');
+  }else html+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
   // Le detail des plus gros mouvements reste ici ; la synthese, elle, est remontee en tete.
   const br=computeBridge();
   if(br&&br.movers.length){
@@ -2235,9 +2425,9 @@ function agentProduits(){
     m.ca+=r._total;m.btl+=r._qte;
     if(r._dayNum!=null&&(m.dernier==null||r._dayNum>m.dernier))m.dernier=r._dayNum;
     c.cond[r.conditionnement||'?']=(c.cond[r.conditionnement||'?']||0)+r._qte;
-    if(f&&r._date&&inWindow(r._date,f.cutM,f.cutD)){
-      if(r._date.y===f.cur){c.cur+=r._total;m.cur+=r._total;}
-      else if(r._date.y===f.prev)c.prev+=r._total;}
+    if(f&&r._date&&avantCoupe(r,f.cutPos)){
+      if(r._exY===f.cur){c.cur+=r._total;m.cur+=r._total;}
+      else if(r._exY===f.prev)c.prev+=r._total;}
   });
   const caTotal=sum(V,r=>r._total);
   const liste=Object.values(cuvees).map(c=>{
@@ -2488,7 +2678,7 @@ function ficheClient(id){
   const parMois=new Array(13).fill(0);
   ventes.forEach(r=>{if(r._date)parMois[r._date.m]+=r._total;});
   const parAn={};
-  ventes.forEach(r=>{if(r._date)parAn[r._date.y]=(parAn[r._date.y]||0)+r._total;});
+  ventes.forEach(r=>{if(r._exY!=null)parAn[r._exY]=(parAn[r._exY]||0)+r._total;});
   const offerts=lignes.filter(r=>r._offert);
   const pxRef=offerts.length?prixVenteMoyen():null;   // calcule une fois, pas une fois par ligne
   return {id,nom:base.client||id,ville:base.ville||'',cp:base.cp||'',pays:base.pays||'',
@@ -2793,7 +2983,7 @@ function agentClients(){
     if(vus.has(c.id))return;vus.add(c.id);
     out.push({id:c.id,nom:c.nom,motif:'recul',montant:c.perdu,
       lib:'perdu cette année',
-      detail:`${fmtMoney(c.prev)} l'an dernier, ${fmtMoney(c.cur)} cette année à date égale`,
+      detail:`${fmtMoney(c.prev)} le ${exMot()} précédent, ${fmtMoney(c.cur)} ${exCe()} à date égale`,
       chance:null});
   });
   // 2. Retard de cadence : le client a un rythme propre, et il l'a rompu.
@@ -2831,7 +3021,7 @@ function renderClients(){
   const parMotif=m=>CLIENTS.filter(c=>c.motif===m);
   const nb=m=>parMotif(m).length, som=m=>sum(parMotif(m),c=>c.montant);
   const br=computeBridge();
-  html+=`<div class="panel__sub">Un client n'apparaît qu'une seule fois, avec la raison la plus solide qui le concerne. Les trois analyses tournent toujours, elles sont devenues les filtres ci-dessous.${br?` Ces clients sont ceux qui composent les lignes « perdus » et « en baisse » de <b>Mon année</b>.`:''}</div>`;
+  html+=`<div class="panel__sub">Un client n'apparaît qu'une seule fois, avec la raison la plus solide qui le concerne. Les trois analyses tournent toujours, elles sont devenues les filtres ci-dessous.${br?` Ces clients sont ceux qui composent les lignes « perdus » et « en baisse » de <b>Mon ${exMot()}</b>.`:''}</div>`;
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
   html+=`<div class="motif-cards">${['recul','cadence','premier'].map(m=>`
@@ -2961,8 +3151,8 @@ function renderDecrochage(){
   const f=yoyFrame();
   let html=`<h2 class="panel__title">Clients en décrochage</h2>`;
   if(!f){
-    html+=`<div class="panel__sub">Il faut deux années comparables dans la base pour cette analyse.</div>`+
-      signal('info','ℹ','Comparatif indisponible.','Ajoute un export couvrant l\'année précédente pour activer la détection du churn.');
+    html+=`<div class="panel__sub">Il faut deux ${exMot()}s comparables dans la base pour cette analyse.</div>`+
+      signal('info','ℹ','Comparatif indisponible.',`Ajoute un export couvrant le ${exMot()} précédent pour activer la détection du churn.`);
     el('p-decrochage').innerHTML=html;return;
   }
   html+=`<div class="panel__sub">Clients <b>fidèles</b> dont le CA recule anormalement (à date égale). Le seuil de baisse s'adapte à la volatilité propre de chaque client : un client qui oscille beaucoup doit chuter plus fort pour être signalé. ${incompleteNote()}</div>`;
@@ -2977,13 +3167,13 @@ function renderDecrochage(){
     html+=signal('ok','✔','Aucun client en décrochage marqué.',`Aucun client actif les deux années ne recule au-delà de sa volatilité habituelle à date égale.`);
   }else{
     html+=signal('danger','⚠',
-      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs l'an dernier à date égale.`,
+      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs le ${exMot()} précédent à date égale.`,
       `C'est l'alerte à traiter avant le départ complet. <b>Action : les appeler en priorité, en partant du plus gros montant perdu.</b>`);
     decroList=decroche; // liste complete memorisee pour l'export
     html+=`<div class="card">
       <div class="toolbar"><span class="card__title" style="margin:0">Clients en décrochage (par euros perdus), ${fmtNum(decroche.length)} au total</span>
         ${listTools('decroBody','exportDecroList')}</div>
-      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>Contact</th><th class="num">${f.prev} à date</th><th class="num">${f.cur} à date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody id="decroBody">
+      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>Contact</th><th class="num">${exLabelCourt(f.prev)} à date</th><th class="num">${exLabelCourt(f.cur)} à date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody id="decroBody">
       ${decroche.map(c=>`<tr data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}"><td>${esc(c.nom)}</td><td>${emailCell(c.id)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
       </tbody></table></div></div>`;
   }
@@ -2999,12 +3189,12 @@ function renderCanaux(){
   const labels=[...new Set(CANAUX.map(c=>c.label)).add('Autre / non renseigne')];
 
   // Agregation part de CA + prix moyen par canal.
-  function agg(year){
+  function agg(ex){
     const m={};let tot=0;
     ROWS.forEach(r=>{
       if(!r._vin||!r._date)return;
-      if(year!=null && r._date.y!==year)return;
-      if(f && year!=null && !inWindow(r._date,f.cutM,f.cutD))return;
+      if(ex!=null && r._exY!==ex)return;
+      if(f && ex!=null && !avantCoupe(r,f.cutPos))return;
       const k=r._canal;let c=m[k];if(!c){c=m[k]={ca:0,qte:0};}
       c.ca+=r._total;c.qte+=r._qte;tot+=r._total;
     });
@@ -3012,7 +3202,7 @@ function renderCanaux(){
   }
 
   if(f){
-    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille, ${f.cur} vs ${f.prev} à date égale. ${incompleteNote()}</div>`;
+    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date égale. ${incompleteNote()}</div>`;
     const A=agg(f.cur),B=agg(f.prev);
     const keys=[...new Set([...Object.keys(A.m),...Object.keys(B.m)])];
     const rows=keys.map(k=>{
@@ -3033,21 +3223,21 @@ function renderCanaux(){
     // Alerte valeur : prix moyen caveau vs pro/export.
     const cav=rows.find(r=>r.k==='Caveau');
     if(cav&&cav.prixCur>0){
-      html+=signal('info','ℹ',`Prix moyen au caveau : ${fmtMoney(cav.prixCur)} par bouteille (${f.cur} a date).`,
+      html+=signal('info','ℹ',`Prix moyen au caveau : ${fmtMoney(cav.prixCur)} par bouteille (${exLabelCourt(f.cur)} à date).`,
         `La vente directe doit rester ton canal le plus cher. Si un canal pro ou export s'en rapproche, tu perds de la valeur. Vérifie l'écart dans le tableau.`);
     }
 
     html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
-      <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${f.prev}</th><th class="num">Part ${f.cur}</th><th class="num">Évol. (pts)</th><th class="num">Prix moyen ${f.prev}</th><th class="num">Prix moyen ${f.cur}</th></tr></thead><tbody>
+      <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${exLabelCourt(f.prev)}</th><th class="num">Part ${exLabelCourt(f.cur)}</th><th class="num">Évol. (pts)</th><th class="num">Prix moyen ${exLabelCourt(f.prev)}</th><th class="num">Prix moyen ${exLabelCourt(f.cur)}</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtNum(r.partPrev,1)} %</td><td class="num">${fmtNum(r.partCur,1)} %</td><td class="num ${r.dPts>=0?'pos':'neg'}">${fmtNum(r.dPts,1)}</td><td class="num">${r.prixPrev?fmtMoney(r.prixPrev):'n/d'}</td><td class="num">${r.prixCur?fmtMoney(r.prixCur):'n/d'}</td></tr>`).join('')}
       </tbody></table></div>`;
-    html+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${f.cur}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
+    html+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${exLabelCourt(f.cur)}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
     el('p-canaux').innerHTML=html;
     drawCanal(A);
   }else{
-    const year=filters.year;
-    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille. Périmètre : ${year?('année '+year):'toute la base'}.</div>`;
-    const A=agg(year);
+    const ex=filters.ex;
+    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille. Périmètre : ${ex!=null?(exMot()+' '+exLabel(ex)):'toute la base'}.</div>`;
+    const A=agg(ex);
     const rows=Object.entries(A.m).map(([k,v])=>({k,ca:v.ca,part:A.tot?v.ca/A.tot*100:0,prix:v.qte?v.ca/v.qte:0})).sort((a,b)=>b.ca-a.ca);
     html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
       <table class="data"><thead><tr><th>Canal</th><th class="num">CA</th><th class="num">Part</th><th class="num">Prix moyen / btl</th></tr></thead><tbody>
@@ -3107,6 +3297,25 @@ function renderReglages(){
     ? signal('ok','✔','Tes réglages sont enregistrés.','Les chiffres de tous les écrans les utilisent. Tu peux les modifier ici à tout moment.')
     : signal('info','ℹ','L\'outil fonctionne actuellement au jugé.',
         'Les regroupements ci-dessous sont des <b>propositions</b> déduites de ton fichier, pas des certitudes. Tant que tu ne les as pas validés, prends les chiffres de canaux et de typologie avec prudence.');
+
+  /* 0. L'exercice comptable. Range avant les quatre sections de classification parce que
+     ce n'est pas une question de contenu de champ mais de decoupage du temps : il commande
+     les comparatifs de tous les ecrans, alors que les sections suivantes ne touchent qu'au
+     classement des lignes. Enregistre a la volee, hors BROUILLON : ce reglage ne fait pas
+     partie des reglages du domaine et ne doit pas partir avec eux. */
+  const dernEx=META.exercices.length?META.exercices[META.exercices.length-1]:null;
+  const bornes=dernEx!=null?exBornes(dernEx):null;
+  html+=`<div class="section-label">Ton exercice comptable</div>
+  <div class="card">
+    <p class="mini-line">Si ta société ne clôture pas au 31 décembre, dis-le ici. Tous les écrans comparent alors des exercices entre eux et non des années civiles : « où en es-tu », l'atterrissage, le décrochage client et le mix canal se recalent sur ce découpage.</p>
+    <div class="expl-ctrls"><div class="field"><label>Premier mois de l'exercice</label>
+      <select class="search" onchange="exAppliquer(this.value)">${MOIS_PLEIN.map((m,i)=>`<option value="${i+1}"${EX_START===i+1?' selected':''}>${m}</option>`).join('')}</select>
+    </div></div>
+    <p class="mini-line">${EX_START===1
+      ?`Exercice calé sur l'année civile, du 1<sup>er</sup> janvier au 31 décembre. C'est le réglage par défaut.`
+      :`Exercice du 1<sup>er</sup> ${MOIS_PLEIN[EX_START-1]} au dernier jour de ${MOIS_PLEIN[(EX_START+10)%12]}.${bornes?` Le dernier exercice de ta base est ${exLabel(dernEx)}, du ${fmtDate(dayToDate(bornes.debut))} au ${fmtDate(dayToDate(bornes.fin))}.`:''}`}</p>
+    <p class="note">Ce réglage ne touche ni tes lignes ni les empreintes de déduplication : il ne change que la façon de découper le temps. Le changer recalcule immédiatement, sans réimport, et il survit à « Revenir au classement automatique ».</p>
+  </div>`;
 
   /* 1. Ce qui compte dans le chiffre d'affaires */
   const fams=Object.keys(B.horsCA).sort((a,b)=>caFamille(b)-caFamille(a));
@@ -3227,16 +3436,16 @@ function renderBase(){
   const prix=prixVenteMoyen();
   const coutOffert=sum(offerts,r=>coutOffertLigne(r,prix));
 
-  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">État de la base cumulée (tout l'historique). Le filtre années ne s'applique pas ici.</div>`;
+  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">État de la base cumulée (tout l'historique). La sélection de période ne s'applique pas ici.</div>`;
 
   // ZONE A : etat de la base (compteurs alignes, memes dimensions).
-  const yearpills=META.years.length?`<div class="yearpills">${META.years.map(y=>`<span class="yearpill">${y}</span>`).join('')}</div>`:'n/d';
+  const yearpills=META.exercices.length?`<div class="yearpills">${META.exercices.map(y=>`<span class="yearpill">${esc(exLabelCourt(y))}</span>`).join('')}</div>`:'n/d';
   const période=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'n/d';
   html+=`<div class="section-label">État de la base</div>
   <div class="kpi-grid kpi-grid--base">
     ${kpiCard('Lignes en base',fmtNum(ROWS.length),'toutes lignes cumulées',true)}
     ${kpiCard('Période couverte',période,'du premier au dernier export')}
-    ${kpiCard('Années présentes',yearpills,plur(META.years.length,'année'))}
+    ${kpiCard(EX_START===1?'Années présentes':'Exercices présents',yearpills,plur(META.exercices.length,exMot()))}
     ${kpiCard('CA HT',fmtMoney(caVin),plur(vin.length,'ligne')+' de vente')}
     ${kpiCard('Hors-vente',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
     ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),plur(offerts.length,'ligne')+', prix de vente moyen')}
@@ -3321,10 +3530,10 @@ function buildReport(){
 
   const evV=(yt&&yt.d!=null)?fmtPct(yt.d):'n/d',evCls=(yt&&yt.d!=null)?(yt.d>=0?'up':'down'):'';
   const atV=at?(at.complete?fmtMoney(at.total):fmtMoney(at.central)):'n/d';
-  const atS=at?(at.complete?'année complète':('fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high))):'2 années requises';
+  const atS=at?(at.complete?exComplet():('fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high))):('2 '+exMot()+'s requis');
   h+=`<div class="pr-hero">
     ${prKpi('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
-    <div class="pr-kpi"><div class="pr-kpi__l">Évolution vs ${yt?yt.f.prev:'N-1'} à date</div><div class="pr-kpi__v ${evCls}">${evV}</div><div class="pr-kpi__s">${yt?(fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev)):'n/d'}</div></div>
+    <div class="pr-kpi"><div class="pr-kpi__l">Évolution vs ${yt?exLabelCourt(yt.f.prev):'N-1'} à date</div><div class="pr-kpi__v ${evCls}">${evV}</div><div class="pr-kpi__s">${yt?(fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev)):'n/d'}</div></div>
     ${prKpi('Atterrissage estimé',atV,atS)}
   </div>`;
 
@@ -3339,7 +3548,7 @@ function buildReport(){
   if(sigs.length)h+=prSec('À regarder en priorité')+`<div class="pr-signals">`+sigs.map(x=>`<div class="pr-sig pr-sig--${x.kind}"><div class="pr-sig__v">${x.verdict.replace(/<[^>]+>/g,'')}</div><div class="pr-sig__a">${x.action.replace(/<[^>]+>/g,'')}</div></div>`).join('')+`</div>`;
 
   const pv=computePriceVolume();
-  if(pv)h+=prSec("D'où vient l'évolution · "+pv.cur+' vs '+pv.prev)+`<div class="pr-pv">
+  if(pv)h+=prSec("D'où vient l'évolution · "+exLabelCourt(pv.cur)+' vs '+exLabelCourt(pv.prev))+`<div class="pr-pv">
     <div class="pr-pv__item"><span>Effet volume</span><b class="${pv.volEff>=0?'up':'down'}">${(pv.volEff>=0?'+':'-')+fmtMoney(Math.abs(pv.volEff))}</b></div>
     <div class="pr-pv__item"><span>Effet prix</span><b class="${pv.priceEff>=0?'up':'down'}">${(pv.priceEff>=0?'+':'-')+fmtMoney(Math.abs(pv.priceEff))}</b></div>
     <div class="pr-pv__item pr-pv__tot"><span>Variation totale</span><b>${(pv.delta>=0?'+':'-')+fmtMoney(Math.abs(pv.delta))}</b></div>
