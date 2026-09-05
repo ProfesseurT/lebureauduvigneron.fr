@@ -59,4 +59,4 @@ La question n'est pas « est-ce que je vends ? » mais « est-ce que je gagne de
 
 ---
 
-*Article de la série « Outils & données ». Voir aussi [segmenter ses clients](/posts/segmentation-clients-vigneron/) et [la Déclaration Annuelle d'Inventaire](/posts/declaration-annuelle-inventaire-dai-vigneron/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Outils & données ». Voir aussi [segmenter ses clients](/posts/segmentation-clients-vigneron/) et [la Déclaration Annuelle d'Inventaire](/posts/declaration-annuelle-inventaire-dai-vigneron/). [Crée ton compte](/compte/).*

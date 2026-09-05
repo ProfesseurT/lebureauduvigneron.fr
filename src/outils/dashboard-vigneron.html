@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Le Bureau du Vigneron, tableau de bord des ventes</title>
-<meta name="description" content="Dépose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. Tes données de vente restent dans ton navigateur.">
+<meta name="description" content="Dépose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. Réservé aux utilisateurs de Vitisoft.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjNDUxMDFEIi8+PHJlY3QgeD0iNi41IiB5PSIxNyIgd2lkdGg9IjQuNSIgaGVpZ2h0PSI4IiBmaWxsPSIjQzRBMjRFIi8+PHJlY3QgeD0iMTMuNzUiIHk9IjEyIiB3aWR0aD0iNC41IiBoZWlnaHQ9IjEzIiBmaWxsPSIjQzRBMjRFIi8+PHJlY3QgeD0iMjEiIHk9IjciIHdpZHRoPSI0LjUiIGhlaWdodD0iMTgiIGZpbGw9IiNDNEEyNEUiLz48L3N2Zz4=">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Le Bureau du Vigneron">
 <meta property="og:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
-<meta property="og:description" content="Dépose ton export Vitisoft : ton CA, tes clients à relancer, tes canaux et des conseils commerciaux automatiques. Tes données de vente restent dans ton navigateur.">
+<meta property="og:description" content="Dépose ton export Vitisoft : ton CA, tes clients à relancer, tes canaux et des conseils commerciaux automatiques. Réservé aux utilisateurs de Vitisoft.">
 <meta property="og:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
-<meta name="twitter:description" content="Ton export Vitisoft se lit tout seul : CA, clients, canaux, conseils. Tes données de vente restent dans ton navigateur.">
+<meta name="twitter:description" content="Ton export Vitisoft se lit tout seul : CA, clients, canaux, conseils. Réservé aux utilisateurs de Vitisoft.">
 <meta name="twitter:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -23,6 +23,19 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="/js/bdv-compte.js" data-outil="dashboard-vigneron" defer></script>
+<script src="/js/bdv-sync.js" defer></script>
+<!-- Verrou pose AVANT le premier pixel. Sans compte, rien du tableau de bord ne s'affiche,
+     pas meme la zone de depot. On lit la session directement dans localStorage au lieu
+     d'attendre bdv-compte.js, qui est charge en defer : sinon la page s'afficherait une
+     fraction de seconde avant que la porte ne la recouvre, et ce clignotement montrerait
+     justement ce qu'on veut cacher. Le verrou est leve par le bloc INIT en fin de page. -->
+<script>
+  try{
+    var _bdvS = JSON.parse(localStorage.getItem('bdv_session'));
+    if(!(_bdvS && _bdvS.access_token && _bdvS.user)) document.documentElement.className += ' bdv-verrou';
+  }catch(e){ document.documentElement.className += ' bdv-verrou'; }
+</script>
+<style>html.bdv-verrou body > *:not(.bdv-porte){visibility:hidden}</style>
 <style>
 /* ============================================================================
    Charte "Le Bureau du Vigneron". Source de verite : tokens.css.
@@ -122,6 +135,12 @@ a{color:var(--bordeaux)}
 .dropzone{border:var(--trait-fort) dashed var(--bordeaux);border-radius:var(--r-nul);padding:2.6rem 2rem;cursor:pointer;transition:var(--tr-rapide);background:var(--paper-light)}
 .dropzone:hover,.dropzone.over{border-color:var(--bordeaux-vif);background:var(--paper-deep)}
 .dropzone.over{border-style:solid}
+/* Variante posee dans la carte « Ajouter un export » de l'ecran Ma base : meme zone, meme
+   comportement, mais rangee dans une carte a cote d'une autre. Aucune couleur ni rayon ici,
+   uniquement des espacements : tout le reste est herite de .dropzone. */
+.dropzone--compact{padding:1.3rem 1rem;text-align:center;margin-bottom:.7rem}
+.dropzone--compact .dz-icon{font-size:1.5rem;margin-bottom:.3rem}
+.dropzone--compact h3{font-size:.95rem}
 .dz-icon{font-size:2.1rem;margin-bottom:.5rem;color:var(--bordeaux)}
 .dropzone h3{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;margin-bottom:.25rem}
 .dropzone p{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
@@ -494,17 +513,17 @@ table.data tbody tr:hover{background:var(--paper-light)}
   <div class="import__box">
     <p class="eyebrow">Tableau de bord des ventes · lecture d'export Vitisoft</p>
     <h1>Dépose ton export. Tes chiffres se lisent tout seuls.</h1>
-    <p class="lead">Ton chiffre d'affaires, tes clients à relancer, ceux qui décrochent, tes canaux de vente. L'outil lit ton export, sort tes statistiques et te dit quoi faire. Tes données restent dans ton navigateur.</p>
+    <p class="lead">Ton chiffre d'affaires, tes clients à relancer, ceux qui décrochent, tes canaux de vente. L'outil lit ton export, sort tes statistiques et te dit quoi faire.</p>
     <div class="dropzone" id="dropzone">
       <div class="dz-icon">&#9095;</div><h3>Dépose ton fichier ici</h3>
       <p>Export Vitisoft (.csv) · ou clique pour choisir</p>
       <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
     </div>
-    <div class="hint">Gratuit. Un compte, juste ton email, est demandé pour ouvrir tes résultats.</div>
+    <div class="hint"><b>Réservé aux utilisateurs de Vitisoft.</b> L'outil lit le fichier d'export de Vitisoft et refuse tout autre format.</div>
     <div class="btn-row">
       <button class="btn btn--primary" onclick="document.getElementById('fileInput').click()">Choisir un fichier</button>
     </div>
-    <div class="hint">&#128274; Tes ventes restent dans ton navigateur. Seul ton email nous parvient.</div>
+    <div class="hint">Tu retrouveras cette zone à tout moment dans « Ma base ».</div>
     <div class="resume" id="resumeBox" style="display:none"></div>
   </div>
 </section>
@@ -643,6 +662,7 @@ const DB_NAME='bdv_ventes_v4', STORE='lignes', STORE_REG='reglages';
 let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[],exercices:[]};
 let PROFIL=null;             // profil de la base (calcule une fois apres import, cf. profilBase)
+let SANS_NUM=0;              // lignes sans numero client, cf. computeMeta et clientKey
 let reactList=[],decroList=[]; // listes completes affichees (relance / decrochage), pour l'export
 // Selection temporelle active. Deux couches, volontairement distinctes :
 //   ex        un exercice entier (null = tous). C'est la maille des comparatifs.
@@ -677,20 +697,68 @@ const CRM_KEY='bdv_crm_v1';
 let CRM={};
 try{CRM=JSON.parse(localStorage.getItem(CRM_KEY))||{};}catch(e){CRM={};}
 function crmSave(){try{localStorage.setItem(CRM_KEY,JSON.stringify(CRM));}catch(e){}}
+
+/* ---------- Branchements vers le serveur (voir src/js/bdv-sync.js) ----------
+   Aucun appelant n'attend ces fonctions, volontairement : elles partent en tache de fond et
+   ne doivent jamais retarder un rendu ni une saisie. Un echec reseau est silencieux, la
+   valeur reste dans IndexedDB et repartira a la prochaine occasion. C'est la regle 2 du
+   module de synchronisation : rien d'ici ne peut empecher l'outil de fonctionner. */
+function syncPret(){return !!(window.BdvSync&&BdvSync.pret());}
+function syncReglages(){
+  if(!syncPret())return;
+  BdvSync.ecrireReglages({
+    objectif:objectif,
+    exercice_debut:EX_START,
+    perso_labels:persoLabels,
+    classement:REG||null
+  }).catch(function(){});
+}
+// Une fiche videe par le vigneron est SUPPRIMEE du serveur, pas gardee vide : sinon la table
+// se remplit de fiches fantomes qu'aucun ecran ne montre plus.
+function syncSuivi(id){
+  if(!syncPret()||!id)return;
+  const c=CRM[id];
+  (c?BdvSync.ecrireSuivi(id,c):BdvSync.supprimerSuivi(id)).catch(function(){});
+}
+// Rapatriement au demarrage. Les lignes du serveur passent par dbAddMany comme n'importe quel
+// import : meme deduplication, meme enrichissement hors empreinte, aucun chemin special.
+async function tirerDuServeur(){
+  if(!syncPret())return;
+  try{
+    const lignes=await BdvSync.tirerVentes(function(n){status('loading','Récupération de tes ventes, '+fmtNum(n)+' lignes...');});
+    if(lignes.length){
+      const r=await dbAddMany(lignes);
+      if(r.added)status('success',fmtNum(r.added)+' ligne(s) récupérée(s) depuis ton compte.');
+    }
+    const reg=await BdvSync.lireReglages();
+    if(reg){
+      if(reg.objectif!=null){objectif=Number(reg.objectif)||null;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));}catch(e){}}
+      if(reg.exercice_debut>=1&&reg.exercice_debut<=12){EX_START=reg.exercice_debut;try{localStorage.setItem(EX_KEY,String(EX_START));}catch(e){}}
+      if(reg.perso_labels){persoLabels=reg.perso_labels;savePersoLabels();}
+      if(reg.classement)await regEcrire(reg.classement);
+    }
+    const suivi=await BdvSync.lireSuivi();
+    if(suivi&&Object.keys(suivi).length){
+      // Le local gagne sur le serveur en cas de conflit : une note ecrite ici et pas encore
+      // partie ne doit pas etre effacee par une version plus ancienne venue d'ailleurs.
+      CRM=Object.assign({},suivi,CRM);crmSave();
+    }
+  }catch(e){ /* jamais bloquant */ }
+}
 function crmVide(c){return !c||(!c.statut&&!c.notes&&!c.rappel&&!c.canal&&!(c.tags&&c.tags.length));}
 function crmRafraichirListe(){const p=el('p-clients');if(p&&p.classList.contains('on'))renderClients();}
 function crmSet(id,champ,valeur){
   const c=CRM[id]||{};
   if(valeur==='')delete c[champ];else c[champ]=valeur;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
-  crmSave();crmRafraichirListe();
+  crmSave();syncSuivi(id);crmRafraichirListe();
 }
 function crmSetTags(id,texte){
   const tags=texte.split(',').map(t=>t.trim()).filter(Boolean);
   const c=CRM[id]||{};
   if(tags.length)c.tags=tags;else delete c.tags;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
-  crmSave();crmRafraichirListe();
+  crmSave();syncSuivi(id);crmRafraichirListe();
 }
 const STATUTS_SUIVI={
   a_faire:{label:'À faire',cls:'m-statut-afaire'},
@@ -864,7 +932,7 @@ function profilChamp(cle){
     const e=vals[v]||(vals[v]={v,n:0,ca:0,jours:new Set(),clients:new Set(),min:Infinity,max:-Infinity});
     e.n++;e.ca+=r._total;
     if(r._dayNum!=null){e.jours.add(r._dayNum);e.min=Math.min(e.min,r._dayNum);e.max=Math.max(e.max,r._dayNum);}
-    e.clients.add(r.numClient||r.client||'?');
+    e.clients.add(clientKey(r));
   });
   const liste=Object.values(vals).sort((a,b)=>b.n-a.n);
   return {cle,remplies,taux:ROWS.length?remplies/ROWS.length:0,distinct:liste.length,liste};
@@ -1051,25 +1119,46 @@ async function dbCount(){
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&el('modale')&&el('modale').classList.contains('on')){e.preventDefault();fermerFiche();}
 });
-function bindImport(){
-  const dz=el('dropzone'),fi=el('fileInput');
+// Deux zones de depot vivent dans la page depuis le 04/09/2026 : celle de l'ecran d'arrivee,
+// et celle de l'ecran « Ma base », pour qu'ajouter un export ne fasse plus sortir de l'outil.
+// Celle de « Ma base » est reconstruite a chaque rendu du panneau, donc elle doit pouvoir etre
+// rebranchee autant de fois qu'il le faut : le drapeau `branchee` evite d'empiler les ecouteurs,
+// ce qui declencherait handleFiles plusieurs fois sur un seul depot.
+function bindZoneDepot(idZone,idChamp){
+  const dz=el(idZone),fi=el(idChamp);
+  if(!dz||!fi||dz.dataset.branchee==='1')return;
+  dz.dataset.branchee='1';
   fi.addEventListener('change',e=>handleFiles(e.target.files));
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files);});
   dz.addEventListener('click',()=>fi.click());
 }
+function bindImport(){ bindZoneDepot('dropzone','fileInput'); }
 async function handleFiles(list){
   const files=Array.from(list).filter(f=>f.name.toLowerCase().endsWith('.csv'));
   if(!files.length){status('error','Dépose un fichier .csv exporté depuis Vitisoft.');return;}
   let totAdded=0,totDup=0,totEnrich=0;
+  const aPousser=[];
   for(const f of files){
     try{
       status('loading','Lecture de '+f.name+'...');
       const items=await readVitisoftCSV(f);
       const r=await dbAddMany(items);
       totAdded+=r.added;totDup+=r.dup;totEnrich+=(r.enriched||0);
+      aPousser.push.apply(aPousser,items);
     }catch(err){status('error','Erreur sur '+f.name+' : '+err.message);return;}
+  }
+  // On envoie TOUTES les lignes lues, pas seulement les nouvelles. dbAddMany ne dit pas
+  // lesquelles il a retenues, et le serveur fusionne les doublons de toute facon. Un reimport
+  // renvoie donc des lignes deja connues : c'est du reseau pour rien, mais c'est sans risque,
+  // alors qu'un suivi approximatif de « ce qui est nouveau » laisserait des trous en base.
+  if(syncPret()&&aPousser.length){
+    status('loading','Enregistrement sur ton compte...');
+    const env=await BdvSync.pousserVentes(aPousser,function(fait,total){
+      status('loading','Enregistrement sur ton compte, '+fmtNum(fait)+' / '+fmtNum(total)+'...');
+    });
+    if(env.echecs)status('error',fmtNum(env.echecs)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles restent dans ce navigateur, réimporte le fichier plus tard.');
   }
   await reloadFromDB();
   const total=ROWS.length;
@@ -1155,6 +1244,7 @@ let PROPOSE=null;
 async function appliquerReglages(R){
   R.valide=true;delete R._profils;
   await regEcrire(R);
+  REG=R;syncReglages();
   REG=R;
   ROWS=ROWS.map(r=>classerLigne(r));
   computeMeta();
@@ -1215,6 +1305,7 @@ function exAppliquer(m){
   if(!(n>=1&&n<=12)||n===EX_START)return;
   EX_START=n;
   try{if(n===1)localStorage.removeItem(EX_KEY);else localStorage.setItem(EX_KEY,String(n));}catch(e){}
+  syncReglages();
   ROWS.forEach(exDeriver);
   filters={ex:null,from:null,to:null,preset:'tous'};
   computeMeta();
@@ -1243,6 +1334,10 @@ function computeMeta(){
   let min=null,max=null;const ys=new Set(),xs=new Set();
   ROWS.forEach(r=>{if(!r._date)return;if(!min||r._date.t<min.t)min=r._date;if(!max||r._date.t>max.t)max=r._date;ys.add(r._date.y);if(r._exY!=null)xs.add(r._exY);});
   META={min,max,years:[...ys].sort((a,b)=>a-b),exercices:[...xs].sort((a,b)=>a-b)};
+  // Combien de lignes n'ont pas de numero client et se rabattent sur le nom. Doit valoir zero
+  // sur un export Vitisoft. Autre chose que zero veut dire que la cle de suivi de ces lignes la
+  // est fragile, et l'ecran Ma base le dit au lieu de le taire.
+  SANS_NUM=ROWS.filter(r=>!String(r.numClient||'').trim()).length;
   buildEmailIndex();     // adresses regroupees par client, avant le profil
   RECO=null;CLASSEMENT=null;   // index de recommandation et classement : reconstruits a la demande
   PROFIL=profilBase();   // recalcule le profil a chaque changement de base
@@ -1252,6 +1347,20 @@ function computeMeta(){
    donc la meme adresse revient des dizaines de fois : on la remonte une bonne fois au client.
    Cle = numero client quand il existe (le libelle, lui, peut etre renomme dans le logiciel). */
 let EMAILS={},TELS={},COUV={joignables:0,total:0,mail:0,tel:0};
+/* LA seule definition de l'identite d'un client. Aucun ecran ne la recalcule a la main :
+   avant le 04/09/2026, seize expressions la recopiaient, dont DEUX a l'envers (le nom avant le
+   numero), a trois lignes d'ecart l'une de l'autre. Ca produisait deja des ecarts entre ecrans ;
+   depuis que les fiches de suivi sont rangees sur le serveur sous cette cle, ca produirait des
+   fiches orphelines qu'aucun ecran ne retrouverait.
+
+   Le NUMERO passe avant le nom, et c'est tout l'enjeu : un vigneron qui corrige une orthographe
+   dans Vitisoft ne doit pas perdre ses notes. Ted confirme que la colonne est toujours remplie.
+   Le repli sur le nom reste quand meme, parce que rabattre tous les clients sans numero sur une
+   seule cle les fusionnerait en un client unique, bien pire qu'une fiche perdue. SANS_NUM compte
+   les lignes qui prennent ce repli, plutot que de laisser la chose invisible.
+
+   PIEGE : cette ligne contient le motif que seize autres endroits utilisaient. Toute reecriture
+   automatique doit la mettre de cote d'abord, sous peine de la rendre recursive. */
 function clientKey(r){return r.numClient||r.client||'(inconnu)';}
 function buildEmailIndex(){
   const m={},t={};
@@ -1305,7 +1414,7 @@ function stdev(arr){if(arr.length<2)return 0;const m=arr.reduce((s,v)=>s+v,0)/ar
 // Regroupe les dates de facture distinctes (jours absolus) par client, sur les lignes de vente.
 function clientPurchaseDays(){
   const m={};
-  ROWS.forEach(r=>{if(!r._vin||r._dayNum==null)return;const id=r.numClient||r.client||'(inconnu)';(m[id]||(m[id]=new Set())).add(r._dayNum);});
+  ROWS.forEach(r=>{if(!r._vin||r._dayNum==null)return;const id=clientKey(r);(m[id]||(m[id]=new Set())).add(r._dayNum);});
   const out={};for(const id in m)out[id]=[...m[id]].sort((a,b)=>a-b);
   return out;
 }
@@ -1317,7 +1426,7 @@ function profilBase(){
   let ca=0,refDay=null;
   const caMois=new Array(13).fill(0);
   vente.forEach(r=>{
-    clients.add(r.numClient||r.client||'(inconnu)');factures.add(r.numFacture);ca+=r._total;
+    clients.add(clientKey(r));factures.add(r.numFacture);ca+=r._total;
     if(r._date){moisSet.add(r._date.y*100+r._date.m);(parAn[r._exY]||(parAn[r._exY]=new Set())).add(r._date.m);caMois[r._date.m]+=r._total;}
     if(r._dayNum!=null&&(refDay==null||r._dayNum>refDay))refDay=r._dayNum;
   });
@@ -1578,6 +1687,8 @@ function deptFromCP(cp){const s=String(cp||'').replace(/\D/g,'');return s.length
 const AXES=[
   {key:'famille',label:'Famille',get:r=>r.famille},
   {key:'codeTarif',label:'Code tarif',get:r=>r.codeTarif},
+  // Nom d'abord, et c'est voulu : c'est une ETIQUETTE lue par le vigneron, pas une identite.
+  // L'identite passe par clientKey(), qui met le numero devant. Ne pas aligner l'une sur l'autre.
   {key:'client',label:'Client',get:r=>r.client||r.numClient},
   {key:'couleur',label:'Couleur',get:r=>r.couleur},
   {key:'_canal',label:'Canal de vente',get:r=>r._canal},
@@ -1597,7 +1708,7 @@ const AXES=[
 const PERSO_KEYS=['persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5','persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9'];
 function defaultPersoLabel(key){const m=key.match(/^perso(Client|Produit)(\d)$/);return m?('Perso '+(m[1]==='Client'?'client':'produit')+' '+m[2]):key;}
 function persoLabel(key){return (persoLabels[key]&&persoLabels[key].trim())?persoLabels[key].trim():defaultPersoLabel(key);}
-function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}}
+function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}syncReglages();}
 // Un champ est exploitable s'il a plus d'une valeur non vide (sinon masque : vide ou constant).
 function fieldUsable(get){const s=new Set();for(let i=0;i<ROWS.length;i++){const r=ROWS[i];if(!r._vin)continue;const v=get(r);if(v!==''&&v!=null){s.add(String(v));if(s.size>1)return true;}}return false;}
 function usableAxes(){
@@ -1657,7 +1768,7 @@ function renderApercu(){
   const ca=sum(rows,r=>r._total);
   const factures=new Set(rows.map(r=>r.numFacture)).size;
   const btl=sum(rows,r=>r._qte);
-  const clients=new Set(rows.map(r=>r.numClient||r.client)).size;
+  const clients=new Set(rows.map(r=>clientKey(r))).size;
   const panier=factures?ca/factures:0;
   const scope=libellePerimetre();
   const f=yoyFrame(),at=computeAtterrissage();
@@ -1709,14 +1820,14 @@ function renderApercu(){
   </div>`;
 
   const tot=sum(rows,mesureVal);
-  const cliMap={};rows.forEach(r=>{const id=r.client||r.numClient||'(inconnu)';cliMap[id]=(cliMap[id]||0)+mesureVal(r);});
+  const cliMap={};rows.forEach(r=>{const id=clientKey(r);cliMap[id]=(cliMap[id]||0)+mesureVal(r);});
   const topCli=allEntries(cliMap).slice(0,8);
   html+=`<div class="section-label">Qui fait ton chiffre</div><div class="grid-2">
     <div class="card"><div class="card__title"><span>Top clients</span></div><table class="data"><thead><tr><th>Client</th><th class="num">${mesureLabel()}</th><th class="num">Part</th></tr></thead><tbody>${topCli.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${fmtMes(v)}</td><td class="num">${tot>0?fmtNum(v/tot*100,0)+'%':'-'}</td></tr>`).join('')}</tbody></table></div>
     <div class="card"><div class="card__title"><span>Par canal de vente</span></div>${(()=>{const e=allEntries(groupSum(rows,r=>r._canal));return e.length?barListHTML(e):'<p class="note">Aucune donnée.</p>';})()}</div>
   </div>`;
 
-  const byCli={};rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';byCli[id]=(byCli[id]||0)+r._total;});
+  const byCli={};rows.forEach(r=>{const id=clientKey(r);byCli[id]=(byCli[id]||0)+r._total;});
   const partsCA=Object.values(byCli).sort((a,b)=>b-a);
   if(partsCA.length>=3&&ca>0){
     const top3=partsCA.slice(0,3).reduce((s,v)=>s+v,0),partTop3=top3/ca*100,dep=partTop3>SEUILS.dependanceTop3;
@@ -2004,7 +2115,7 @@ function drawEvo(periods,segs,bySeg,multi){
 
 /* ======================= DIAGNOSTIC (agents statistiques) ======================= */
 // Objectif de CA annuel, memorise dans le navigateur.
-function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}runBusy('Analyse…',renderDiagnostic);}
+function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}syncReglages();runBusy('Analyse…',renderDiagnostic);}
 
 // AGENT A : atterrissage de l'annee en cours (projection fin d'annee).
 function computeAtterrissage(){
@@ -2057,7 +2168,7 @@ function computeBridge(){
   const f=yoyFrame();if(!f)return null;
   const by={};
   ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!avantCoupe(r,f.cutPos))return;if(r._exY!==f.cur&&r._exY!==f.prev)return;
-    const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={nom:r.client||id,cur:0,prev:0};
+    const id=clientKey(r);let c=by[id];if(!c)c=by[id]={nom:r.client||id,cur:0,prev:0};
     if(r._exY===f.cur)c.cur+=r._total;else c.prev+=r._total;});
   let nw=0,up=0,down=0,lost=0;const movers=[];
   Object.values(by).forEach(c=>{const d=c.cur-c.prev;
@@ -2137,7 +2248,7 @@ function agentCadence(){
   if(refDay==null||!P.nClients)return{ok:false,clients:[],enRetard:[],caPotentiel:0,refDay:null};
   const days=clientPurchaseDays();
   const info={};
-  ROWS.forEach(r=>{if(!r._vin)return;const id=r.numClient||r.client||'(inconnu)';const c=info[id]||(info[id]={montant:0,fact:new Set(),nom:r.client||id,moisCount:{}});c.montant+=r._total;c.fact.add(r.numFacture);if(r._date)c.moisCount[r._date.m]=(c.moisCount[r._date.m]||0)+r._total;});
+  ROWS.forEach(r=>{if(!r._vin)return;const id=clientKey(r);const c=info[id]||(info[id]={montant:0,fact:new Set(),nom:r.client||id,moisCount:{}});c.montant+=r._total;c.fact.add(r.numFacture);if(r._date)c.moisCount[r._date.m]=(c.moisCount[r._date.m]||0)+r._total;});
   const clients=[];
   for(const id in days){
     const d=days[id],n=d.length,meta=info[id]||{montant:0,nom:id,fact:new Set(),moisCount:{}};
@@ -2189,7 +2300,7 @@ function agentPremierAchat(){
   const fiche={};
   ids.forEach(id=>{fiche[id]={premier:0,type:'',nom:id,ville:'',prod:{}};});
   ROWS.forEach(r=>{if(!r._vin)return;
-    const id=r.numClient||r.client||'(inconnu)';const f=fiche[id];if(!f)return;
+    const id=clientKey(r);const f=fiche[id];if(!f)return;
     if(r._dayNum===jours[id][0])f.premier+=r._total;      // montant du tout premier jour d'achat
     if(!f.type&&r._typeClient)f.type=r._typeClient;
     if(f.nom===id&&r.client)f.nom=r.client;
@@ -2265,9 +2376,9 @@ function agentDecrochage(){
   const venuUneFois=id=>{const j=joursClient[id];return !j||j.length<=1;};
   // CA annuel complet par client sur toutes les annees, pour estimer la volatilite propre de chacun.
   const yearly={};
-  ROWS.forEach(r=>{if(!r._vin||!r._date)return;const id=r.numClient||r.client||'(inconnu)';(yearly[id]||(yearly[id]={}))[r._exY]=(yearly[id][r._exY]||0)+r._total;});
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;const id=clientKey(r);(yearly[id]||(yearly[id]={}))[r._exY]=(yearly[id][r._exY]||0)+r._total;});
   const by={};
-  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!avantCoupe(r,f.cutPos))return;if(r._exY!==f.cur&&r._exY!==f.prev)return;const id=r.numClient||r.client||'(inconnu)';let c=by[id];if(!c)c=by[id]={id,nom:r.client||id,cur:0,prev:0};if(r._exY===f.cur)c.cur+=r._total;else c.prev+=r._total;});
+  ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!avantCoupe(r,f.cutPos))return;if(r._exY!==f.cur&&r._exY!==f.prev)return;const id=clientKey(r);let c=by[id];if(!c)c=by[id]={id,nom:r.client||id,cur:0,prev:0};if(r._exY===f.cur)c.cur+=r._total;else c.prev+=r._total;});
   const decroche=Object.values(by).map(c=>{
     const pct=c.prev>0?(c.cur-c.prev)/c.prev*100:0;
     // Volatilite : CV du CA annuel du client si >= 3 annees connues, sinon pas de volatilite fiable.
@@ -2285,7 +2396,7 @@ function agentDecrochage(){
 }
 function agentConcentration(){
   const rows=ROWS.filter(r=>r._vin),ca=sum(rows,r=>r._total);if(ca<=0)return null;
-  const by={};rows.forEach(r=>{const id=r.numClient||r.client||'(inconnu)';by[id]=(by[id]||0)+r._total;});
+  const by={};rows.forEach(r=>{const id=clientKey(r);by[id]=(by[id]||0)+r._total;});
   const parts=Object.values(by).sort((a,b)=>b-a);if(parts.length<3)return null;
   const part=parts.slice(0,3).reduce((s,v)=>s+v,0)/ca*100;
   const seuil=seuilDependance(parts.length);        // seuil relatif a la taille de la base
@@ -2400,7 +2511,7 @@ function clientStats(){
   const map={};
   ROWS.forEach(r=>{
     if(!r._vin||!r._date)return;
-    const id=r.numClient||r.client||'(inconnu)';
+    const id=clientKey(r);
     let c=map[id];if(!c){c=map[id]={id,nom:r.client||id,factures:new Set(),montant:0,last:null};}
     c.factures.add(r.numFacture);
     c.montant+=r._total;
@@ -3526,6 +3637,9 @@ function renderBase(){
     ${kpiCard('Hors-vente',fmtMoney(caHorsVin),'transport, pub, remises, divers')}
     ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),plur(offerts.length,'ligne')+', prix de vente moyen')}
   </div>`;
+  if(SANS_NUM){
+    html+=`<p class="note">${fmtNum(SANS_NUM)} ligne(s) sans numéro client. Elles sont suivies sous le nom du client, ce qui fonctionne, mais leur fiche de suivi se perdra si l'orthographe du nom change dans Vitisoft.</p>`;
+  }
 
   // ZONE B : details.
   html+=`<div class="section-label">Détails</div>`;
@@ -3553,8 +3667,12 @@ function renderBase(){
   html+=`<div class="section-label">Gestion</div>
   <div class="grid-2">
     <div class="card"><div class="card__title"><span>Ajouter un export</span></div>
-      <button class="btn btn--primary" onclick="showImport()">Ajouter un export</button>
-      <p class="mini-line">Chaque nouvel export s'ajoute, les doublons sont ignorés automatiquement.</p>
+      <div class="dropzone dropzone--compact" id="dropzoneReg">
+        <div class="dz-icon">&#9095;</div><h3>Dépose ton export ici</h3>
+        <p>Export Vitisoft (.csv) · ou clique pour choisir</p>
+        <input type="file" id="fileInputReg" accept=".csv" multiple style="display:none">
+      </div>
+      <p class="mini-line">Chaque nouvel export s'ajoute, les doublons sont ignorés automatiquement. Réservé aux utilisateurs de Vitisoft.</p>
     </div>
     <div class="card"><div class="card__title"><span>Vider la base</span></div>
       <button class="btn btn--danger" onclick="viderBase()">Vider la base</button>
@@ -3563,9 +3681,16 @@ function renderBase(){
   </div>`;
 
   el('p-base').innerHTML=html;
+  // Le panneau vient d'etre reconstruit, la zone de depot qu'il contient est neuve.
+  bindZoneDepot('dropzoneReg','fileInputReg');
 }
 async function viderBase(){
-  if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées.'))return;
+  // Le texte dit maintenant les DEUX cotes. Vider seulement le navigateur n'aurait plus aucun
+  // sens : la prochaine ouverture rapatrierait tout depuis le compte, et le vigneron croirait
+  // que le bouton ne marche pas.
+  const surServeur=syncPret()?' et de ton compte':'';
+  if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées de ce navigateur'+surServeur+'.'))return;
+  if(syncPret())await BdvSync.effacerTout();
   await dbClear();
   ROWS=[];computeMeta();
   status('success','Base vidée.');
@@ -3598,7 +3723,7 @@ function prSec(t){return `<div class="pr-seclabel">${esc(t)}</div>`;}
 function buildReport(){
   const rows=ROWS.filter(r=>r._vin);
   const ca=sum(rows,r=>r._total),btl=sum(rows,r=>r._qte);
-  const factures=new Set(rows.map(r=>r.numFacture)).size,clients=new Set(rows.map(r=>r.numClient||r.client)).size;
+  const factures=new Set(rows.map(r=>r.numFacture)).size,clients=new Set(rows.map(r=>clientKey(r))).size;
   const panier=factures?ca/factures:0,at=computeAtterrissage(),yt=yoyTotals();
   const per=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'';
   let h=`<div class="pr">`;
@@ -3630,7 +3755,7 @@ function buildReport(){
     <div class="pr-pv__item pr-pv__tot"><span>Variation totale</span><b>${(pv.delta>=0?'+':'-')+fmtMoney(Math.abs(pv.delta))}</b></div>
   </div>`;
 
-  const cliMap={};rows.forEach(r=>{const id=r.client||r.numClient||'(inconnu)';cliMap[id]=(cliMap[id]||0)+r._total;});
+  const cliMap={};rows.forEach(r=>{const id=clientKey(r);cliMap[id]=(cliMap[id]||0)+r._total;});
   h+=prSec('Qui et quoi font ton chiffre')+`<div class="pr-2col"><div><div class="pr-h3">Top clients</div>${prTable(allEntries(cliMap).slice(0,8),'Client',ca)}</div><div><div class="pr-h3">Top cuvées</div>${prTable(allEntries(groupCA(rows,r=>r.produit)).slice(0,8),'Cuvée',ca)}</div></div>`;
 
   h+=prSec('Répartitions')+`<div class="pr-2col"><div><div class="pr-h3">Par couleur</div>${prTable(allEntries(groupCA(rows,r=>r.couleur)),'Couleur',ca)}</div><div><div class="pr-h3">Par canal de vente</div>${prTable(allEntries(groupCA(rows,r=>r._canal)),'Canal',ca)}</div></div><div class="pr-2col"><div><div class="pr-h3">Par famille</div>${prTable(allEntries(groupCA(rows,r=>r.famille)),'Famille',ca)}</div><div><div class="pr-h3">Par code tarif</div>${prTable(allEntries(groupCA(rows,r=>r.codeTarif)),'Code tarif',ca)}</div></div>`;
@@ -3658,7 +3783,7 @@ function exportExcel(){
   }
   const wb=XLSX.utils.book_new();
   const yt=yoyTotals(),at=computeAtterrissage();
-  const syn=[['Indicateur','Valeur'],['CA HT',Math.round(ca)],['Bouteilles',Math.round(sum(rows,r=>r._qte))],['Factures',new Set(rows.map(r=>r.numFacture)).size],['Clients actifs',new Set(rows.map(r=>r.numClient||r.client)).size]];
+  const syn=[['Indicateur','Valeur'],['CA HT',Math.round(ca)],['Bouteilles',Math.round(sum(rows,r=>r._qte))],['Factures',new Set(rows.map(r=>r.numFacture)).size],['Clients actifs',new Set(rows.map(r=>clientKey(r))).size]];
   if(yt&&yt.d!=null)syn.push(['Évolution YoY à date (%)',+yt.d.toFixed(1)]);
   if(at&&!at.complete)syn.push(['Atterrissage estimé',Math.round(at.central)]);
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(syn),'Synthèse');
@@ -3759,8 +3884,29 @@ function evoExportSheets(){
 function exportEvo(fmt){if(!ROWS.length){status('error','Rien à exporter.');return;}const sh=evoExportSheets();fmt==='csv'?forceCsv(sh,'evolution-vitisoft'):toXlsxOrCsv(sh,'evolution-vitisoft');}
 
 /* ======================= INIT ======================= */
-bindImport();
-refreshResume();
+// La porte passe devant depuis le 04/09/2026 : le tableau de bord n'est plus visitable sans
+// compte. Le verrou pose dans l'en-tete cache deja tout, il ne se leve qu'ici.
+//
+// Trois choses a ne pas defaire :
+//   1. DOMContentLoaded, et pas un appel direct. bdv-compte.js est charge en defer, donc
+//      BdvCompte n'existe pas encore au moment ou ce script est lu par le navigateur.
+//   2. Le verrou se leve dans tous les cas de sortie de porte(). Si la configuration Supabase
+//      est absente, porte() renvoie null immediatement et l'outil s'ouvre : notre propre
+//      infrastructure ne prend jamais les donnees du vigneron en otage.
+//   3. La regle d'or tient. Une session deja ouverte une fois sur ce navigateur suffit a
+//      entrer, meme reseau coupe, meme Supabase en panne : lireSession() ne parle a personne.
+document.addEventListener('DOMContentLoaded', async function(){
+  try{
+    if(!BdvCompte.session()) await BdvCompte.porte({titre:'Ton tableau de bord t\'attend.'});
+  }catch(e){ /* jamais bloquer sur une porte cassee, voir le point 2 */ }
+  document.documentElement.classList.remove('bdv-verrou');
+  bindImport();
+  // Rapatriement AVANT refreshResume : sinon le vigneron qui arrive sur un nouvel appareil
+  // lirait « aucune ligne en base » une seconde avant que ses lignes n'apparaissent.
+  // Attendu, contrairement aux poussees : ici l'affichage depend du resultat.
+  await tirerDuServeur();
+  refreshResume();
+});
 </script>
 </body>
 </html>

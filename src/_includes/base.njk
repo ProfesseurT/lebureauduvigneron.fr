@@ -12,6 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <!-- Charge sur TOUTES les pages, volontairement : c'est ce module qui intercepte les clics
+       sur les boutons portant data-bdv-compte, ou qu'ils soient sur le site. -->
+  <script src="/js/bdv-compte.js" data-outil="site" defer></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
 </head>
 <body>
@@ -24,10 +27,23 @@
         <li><a href="/conseil-terrain/">Conseil terrain</a></li>
         <li><a href="/outils/dashboard-vigneron/">Tableau de bord</a></li>
         <li><a href="/teddy/">À propos</a></li>
-        <li><a href="/#waitlist" class="nav__cta">Liste d'attente</a></li>
+        <li><a href="/compte/" class="nav__cta" id="navCompte" data-bdv-compte
+               data-bdv-titre="Ton tableau de bord t'attend."
+               data-bdv-apres="/outils/dashboard-vigneron/">Créer mon compte</a></li>
       </ul>
     </div>
   </nav>
+  <!-- Lu ici et pas dans le module : bdv-compte.js est en defer, l'etiquette changerait apres
+       le premier rendu et le menu clignoterait de « Créer mon compte » a « Mon compte ». -->
+  <script>
+    try{
+      var _bdvN = JSON.parse(localStorage.getItem('bdv_session'));
+      if(_bdvN && _bdvN.access_token && _bdvN.user){
+        var _bdvL = document.getElementById('navCompte');
+        if(_bdvL){ _bdvL.textContent = 'Mon compte'; _bdvL.removeAttribute('data-bdv-compte'); }
+      }
+    }catch(e){}
+  </script>
 
   {{ content | safe }}
 

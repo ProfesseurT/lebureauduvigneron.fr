@@ -51,4 +51,4 @@ Le storytelling n'est pas une technique de plus. C'est une invitation à partage
 
 ---
 
-*Article de la série « Vendre & fidéliser ». À lire aussi : [le marketing d'un domaine viticole](/posts/marketing-domaine-viticole/) et [le marketing sensoriel](/posts/marketing-sensoriel-vin/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Vendre & fidéliser ». À lire aussi : [le marketing d'un domaine viticole](/posts/marketing-domaine-viticole/) et [le marketing sensoriel](/posts/marketing-sensoriel-vin/). [Crée ton compte](/compte/).*

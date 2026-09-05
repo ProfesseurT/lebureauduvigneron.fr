@@ -14,12 +14,16 @@
 (function(){
   'use strict';
 
-  // TODO Teddy : URL du projet Supabase et cle anon, a renseigner avant mise en ligne.
+  // Projet qukmncqqwomhmrdhvetj, West EU (Ireland). Renseignes le 04/09/2026.
   // La cle anon est publique par construction (elle vit dans ce fichier JS, visible de
   // quiconque ouvre l'outil) : la securite tient entierement aux politiques RLS posees sur
-  // les tables Supabase, jamais au secret de cette cle.
-  const SUPABASE_URL = '';
-  const SUPABASE_ANON_KEY = '';
+  // les tables Supabase, jamais au secret de cette cle. La faire tourner ne protege rien,
+  // corriger une politique RLS protege tout.
+  // Cle `anon` historique et non la cle `sb_publishable_...` moderne : ce module appelle
+  // GoTrue et PostgREST a la main, sans supabase-js, et c'est pour cette cle que tout a ete
+  // ecrit et controle. Le passage a l'autre est une ligne, mais ce n'est pas gratuit a verifier.
+  const SUPABASE_URL = 'https://qukmncqqwomhmrdhvetj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a21uY3Fxd29taG1yZGh2ZXRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTUwMzksImV4cCI6MjEwMzgzMTAzOX0.jGCPLploiALbFMPt1edpVOyyr0emk8DP8ZdvnPLSLEM';
 
   // Doit rester aligne sur Authentication > Providers > Email > Minimum password length.
   // Si les deux divergent, le refus vient du serveur et le message est en anglais.
@@ -365,7 +369,7 @@
         + '<button class="bdv-porte__btn" id="bdvBtnConnexion" type="button">Me connecter</button>'
         + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvBtnInscription" type="button">Créer mon compte</button>'
         + '<button class="bdv-porte__lien" id="bdvOublie" type="button">Mot de passe oublié ?</button>'
-        + (options.esquivable ? '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvPlusTard" type="button">Plus tard</button>' : '')
+        + ((options.esquivable || options.fermable) ? '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvPlusTard" type="button">' + (options.esquivable ? 'Plus tard' : 'Fermer') + '</button>' : '')
         + '<p class="bdv-porte__erreur" id="bdvErreurAcces" hidden></p>'
         + '</div>'
         // Etape 2 : le code a six chiffres. Le meme ecran sert a confirmer une inscription et
@@ -439,13 +443,16 @@
         resolve(session);
       }
       function esquiver(){
-        reporterPorte();
+        // Seul le report « Plus tard » propose apres un import se souvient d'avoir ete refuse.
+        // Une fermeture depuis un bouton du site ne memorise rien : sinon le meme bouton
+        // resterait muet pendant sept jours, ce qui ressemblerait a une panne.
+        if(options.esquivable) reporterPorte();
         document.removeEventListener('keydown', surEchap);
         overlay.remove();
         resolve(null);
       }
       function surEchap(e){ if(e.key === 'Escape') esquiver(); }
-      if(options.esquivable){
+      if(options.esquivable || options.fermable){
         btnPlusTard.addEventListener('click', esquiver);
         document.addEventListener('keydown', surEchap);
       }
@@ -600,6 +607,66 @@
 
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
 
+  // ---------------- ACCES BRUT A POSTGREST, POUR LES AUTRES MODULES ----------------
+  // Expose pour que la synchronisation (bdv-sync.js) n'ait pas a recopier l'URL du projet,
+  // la cle anon et la lecture de session. Une seule verite pour les trois : le jour ou la
+  // cle tourne, un seul endroit change.
+  // Renvoie null, sans lever d'erreur, si la configuration manque ou s'il n'y a pas de
+  // session : l'appelant traite ce cas comme « pas de serveur », jamais comme une panne.
+  async function api(chemin, options){
+    if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    const s = lireSession();
+    if(!s) return null;
+    options = options || {};
+    const entetes = Object.assign({
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + s.access_token,
+      'Content-Type': 'application/json'
+    }, options.entetes || {});
+    const r = await fetch(SUPABASE_URL + '/rest/v1' + chemin, {
+      method: options.methode || 'GET',
+      headers: entetes,
+      body: (options.corps === undefined) ? undefined : JSON.stringify(options.corps)
+    });
+    if(!r.ok){
+      const detail = await r.text().catch(function(){ return ''; });
+      const err = new Error('Supabase a refuse ' + chemin + ' (' + r.status + ')');
+      err.status = r.status;
+      err.detail = detail;
+      throw err;
+    }
+    const t = await r.text();
+    return t ? JSON.parse(t) : null;
+  }
+  function monId(){ const s = lireSession(); return s ? s.user.id : null; }
+
+  // ---------------- OUVERTURE DEPUIS N'IMPORTE QUEL BOUTON ----------------
+  // Fermable par defaut : on arrive ici par un clic volontaire, pas par une interruption.
+  function ouvrir(options){
+    options = Object.assign({ fermable: true }, options || {});
+    return porte(options);
+  }
+
+  // Tout element portant data-bdv-compte ouvre la fenetre par dessus la page en cours.
+  // Son href reste une vraie adresse (/compte/), volontairement : le lien fonctionne sans
+  // JavaScript, il reste partageable, et il s'ouvre normalement dans un nouvel onglet.
+  // L'interception ne fait que remplacer un changement de page par une surimpression.
+  //   data-bdv-titre : le titre affiche en haut de la fenetre, propre a ce bouton
+  //   data-bdv-apres : l'adresse ou aller une fois entre. Absente, on reste sur place.
+  function surClicCompte(e){
+    if(!e.target || !e.target.closest) return;
+    const cible = e.target.closest('[data-bdv-compte]');
+    if(!cible) return;
+    // Ctrl, cmd, maj ou clic du milieu : c'est une demande d'ouvrir ailleurs, on ne touche pas.
+    if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button > 0) return;
+    e.preventDefault();
+    const apres = cible.getAttribute('data-bdv-apres');
+    if(lireSession()){ if(apres) location.href = apres; return; }
+    ouvrir({ titre: cible.getAttribute('data-bdv-titre') || undefined })
+      .then(function(session){ if(session && apres) location.href = apres; });
+  }
+  document.addEventListener('click', surClicCompte);
+
   window.BdvCompte = {
     session: lireSession,
     inscription: inscription,
@@ -613,7 +680,10 @@
     deconnexion: deconnexion,
     profil: profil,
     majProfil: majProfil,
-    porte: porte
+    porte: porte,
+    ouvrir: ouvrir,
+    api: api,
+    monId: monId
   };
 
   if(lireSession()){

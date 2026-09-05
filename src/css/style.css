@@ -2348,7 +2348,7 @@ em { font-style: italic; }
 .dcompte-rgpd__link--danger { color: var(--danger); }
 .dcompte-rgpd__link--danger:hover { color: var(--danger-deep); }
 
-/* -- dbtn : boutons liens → #waitlist dans le mock -- */
+/* -- dbtn : boutons liens vers /compte/ dans le mock -- */
 .dbtn {
   display: inline-block;
   font-family: var(--font-mono);

@@ -57,4 +57,4 @@ L'œnotourisme ne peut plus être géré « à côté ». Pour qu'il devienne un
 
 ---
 
-*Article de la série « Vente directe & Œnotourisme ». Voir aussi [vendre plus au domaine sans ouvrir plus](/posts/vendre-plus-au-domaine-sans-ouvrir-plus/) et [segmenter ses clients](/posts/segmentation-clients-vigneron/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Vente directe & Œnotourisme ». Voir aussi [vendre plus au domaine sans ouvrir plus](/posts/vendre-plus-au-domaine-sans-ouvrir-plus/) et [segmenter ses clients](/posts/segmentation-clients-vigneron/). [Crée ton compte](/compte/).*

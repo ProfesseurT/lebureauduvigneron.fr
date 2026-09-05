@@ -95,4 +95,4 @@ Ne pars pas des statuts. Pars des six questions. Le reste en découle.
 
 ---
 
-*Article de la série « Se lancer ». Pour la suite — monter une distillerie, structurer sa gestion — [rejoins la liste](/#waitlist).*
+*Article de la série « Se lancer ». Pour la suite — monter une distillerie, structurer sa gestion — [crée ton compte](/compte/).*

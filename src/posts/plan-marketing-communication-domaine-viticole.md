@@ -79,4 +79,4 @@ Tu as désormais la trame. Un plan marketing n'a pas besoin d'être compliqué :
 
 ---
 
-*Article de la série « Vendre & fidéliser ». Voir aussi [le marketing d'un domaine viticole](/posts/marketing-domaine-viticole/) et [le storytelling viticole](/posts/storytelling-viticole/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Vendre & fidéliser ». Voir aussi [le marketing d'un domaine viticole](/posts/marketing-domaine-viticole/) et [le storytelling viticole](/posts/storytelling-viticole/). [Crée ton compte](/compte/).*

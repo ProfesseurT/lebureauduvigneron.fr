@@ -66,4 +66,4 @@ C'est pour répondre à cette obligation qu'on a lancé **Viticode** : une solut
 
 ---
 
-*Article de la série « Réglementation ». Voir aussi [la facturation électronique obligatoire](/posts/facturation-electronique-obligatoire-vigneron-2026/) et [la Déclaration Annuelle d'Inventaire](/posts/declaration-annuelle-inventaire-dai-vigneron/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Réglementation ». Voir aussi [la facturation électronique obligatoire](/posts/facturation-electronique-obligatoire-vigneron-2026/) et [la Déclaration Annuelle d'Inventaire](/posts/declaration-annuelle-inventaire-dai-vigneron/). [Crée ton compte](/compte/).*

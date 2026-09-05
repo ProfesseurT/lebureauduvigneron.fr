@@ -46,4 +46,4 @@ Un conseil pour finir : ne lance pas les cinq chantiers en même temps. Choisis-
 
 ---
 
-*Article de la série « Gérer & s'organiser ». Voir aussi [réorganiser son domaine](/posts/reorganiser-exploitation-viticole/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Gérer & s'organiser ». Voir aussi [réorganiser son domaine](/posts/reorganiser-exploitation-viticole/). [Crée ton compte](/compte/).*

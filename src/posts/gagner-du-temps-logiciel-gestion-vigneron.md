@@ -47,4 +47,4 @@ C'est peut-être ça, le vrai calcul : non pas combien coûte un logiciel, mais 
 
 ---
 
-*Article de la série « Gérer & s'organiser ». Voir aussi [l'audit de données](/posts/audit-donnees-performance-domaine/) et [optimiser ses tournées de livraison](/posts/optimiser-tournees-livraison-viticole/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Gérer & s'organiser ». Voir aussi [l'audit de données](/posts/audit-donnees-performance-domaine/) et [optimiser ses tournées de livraison](/posts/optimiser-tournees-livraison-viticole/). [Crée ton compte](/compte/).*

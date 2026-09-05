@@ -64,4 +64,4 @@ Moins d'ouverture subie, plus de visites utiles. C'est tout l'enjeu.
 
 ---
 
-*Article de la série « Vente directe & Œnotourisme ». Voir aussi [structurer son œnotourisme](/posts/oenotourisme-structurer-reservations-vente-directe/) et [vendre son vin sans avoir la fibre commerciale](/posts/vendre-son-vin-sans-fibre-commerciale/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Vente directe & Œnotourisme ». Voir aussi [structurer son œnotourisme](/posts/oenotourisme-structurer-reservations-vente-directe/) et [vendre son vin sans avoir la fibre commerciale](/posts/vendre-son-vin-sans-fibre-commerciale/). [Crée ton compte](/compte/).*

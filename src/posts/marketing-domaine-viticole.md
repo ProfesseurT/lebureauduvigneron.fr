@@ -73,4 +73,4 @@ Tu n'as pas besoin d'un budget pub. Tu as besoin d'une histoire vraie, de la gé
 
 ---
 
-*Ceci est un article de fond de la série « Vendre & fidéliser ». Pour la suite — plan marketing, segmentation, vente directe — [rejoins la liste](/#waitlist) et reçois chaque nouvelle analyse.*
+*Ceci est un article de fond de la série « Vendre & fidéliser ». Pour la suite — plan marketing, segmentation, vente directe — [crée ton compte](/compte/) et reçois chaque nouvelle analyse.*

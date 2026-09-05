@@ -53,4 +53,4 @@ La rigueur sur les stocks n'est pas qu'une contrainte légale. C'est une des inf
 
 ---
 
-*Chaque semaine, une analyse de terrain sur la gestion d'un domaine — sans jargon, vu depuis le bureau du vigneron. [Rejoins la liste pour les recevoir](/#waitlist).*
+*Chaque semaine, une analyse de terrain sur la gestion d'un domaine — sans jargon, vu depuis le bureau du vigneron. [Crée ton compte pour les recevoir](/compte/).*

@@ -71,4 +71,4 @@ Tu n'as pas besoin d'aimer vendre. Tu as besoin d'une méthode et de t'y tenir.
 
 ---
 
-*Je publie chaque semaine une analyse de terrain comme celle-ci — admin, marketing, organisation, vu depuis le bureau du vigneron. [Rejoins la liste pour les recevoir](/#waitlist).*
+*Je publie chaque semaine une analyse de terrain comme celle-ci — admin, marketing, organisation, vu depuis le bureau du vigneron. [Crée ton compte pour les recevoir](/compte/).*

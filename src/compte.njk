@@ -1,0 +1,94 @@
+---
+layout: base.njk
+title: Mon compte
+description: Crée ton compte du Bureau du Vigneron, ou connecte-toi pour retrouver ton tableau de bord.
+permalink: /compte/
+---
+
+<section class="about-hero">
+  <div class="container">
+    <h1>Ton compte</h1>
+  </div>
+</section>
+
+<section class="waitlist">
+  <div class="container">
+
+    <div class="waitlist__header" id="compteInvite">
+      <p class="waitlist__eyebrow">Gratuit</p>
+      <h2>Un email, un mot de passe.<br>Rien d'autre ne nous parvient.</h2>
+      <p class="waitlist__sub">
+        Ton compte ouvre le tableau de bord des ventes et les outils à venir. Tes ventes, tes
+        clients et tes montants sont lus depuis ton export Vitisoft.
+      </p>
+      <p class="waitlist__sub"><b>Réservé aux utilisateurs de Vitisoft.</b> Le tableau de bord lit le
+        fichier d'export de Vitisoft et refuse tout autre format.</p>
+    </div>
+
+    <div class="waitlist__header" id="compteConnecte" hidden>
+      <p class="waitlist__eyebrow">Connecté</p>
+      <h2>Te voilà chez toi.</h2>
+      <p class="waitlist__sub">Tu es connecté avec <b id="compteEmail"></b>.</p>
+    </div>
+
+    <div class="waitlist__proof">
+      <span class="waitlist__proof-item">Vignerons</span>
+      <span class="waitlist__proof-sep">·</span>
+      <span class="waitlist__proof-item">Étudiants vin</span>
+      <span class="waitlist__proof-sep">·</span>
+      <span class="waitlist__proof-item">Pros filière</span>
+    </div>
+
+    <div class="waitlist__form-wrap" style="text-align:center">
+      <a href="/compte/" class="btn btn--bordeaux" id="compteBtnOuvrir"
+         data-bdv-compte data-bdv-titre="Ton tableau de bord t'attend."
+         data-bdv-apres="/outils/dashboard-vigneron/">Créer mon compte ou me connecter</a>
+      <a href="/outils/dashboard-vigneron/" class="btn btn--bordeaux" id="compteBtnTableau" hidden>Ouvrir mon tableau de bord</a>
+      <button type="button" class="btn btn--ghost" id="compteBtnSortir" hidden>Me déconnecter</button>
+    </div>
+
+    <p class="waitlist__reassurance">Teddy Pereira · Co-fondateur Solumatic · Nantes · Données hébergées en Europe</p>
+
+  </div>
+</section>
+
+<script>
+(function(){
+  'use strict';
+  // Cette page a deux etats, et un seul est vrai a la fois. Le basculement se lit dans
+  // localStorage sans attendre bdv-compte.js, charge en defer : sinon la page proposerait de
+  // creer un compte pendant une fraction de seconde a quelqu'un qui en a deja un.
+  function session(){
+    try{
+      var s = JSON.parse(localStorage.getItem('bdv_session'));
+      return (s && s.access_token && s.user) ? s : null;
+    }catch(e){ return null; }
+  }
+  function afficher(){
+    var s = session();
+    document.getElementById('compteInvite').hidden = !!s;
+    document.getElementById('compteConnecte').hidden = !s;
+    document.getElementById('compteBtnOuvrir').hidden = !!s;
+    document.getElementById('compteBtnTableau').hidden = !s;
+    document.getElementById('compteBtnSortir').hidden = !s;
+    if(s) document.getElementById('compteEmail').textContent = s.user.email;
+  }
+  afficher();
+
+  document.getElementById('compteBtnSortir').addEventListener('click', function(){
+    if(window.BdvCompte) BdvCompte.deconnexion();
+    afficher();
+  });
+
+  // Ouverture automatique de la fenetre a l'arrivee : on vient ici pour entrer, pas pour lire.
+  // Fermable, contrairement a celle du tableau de bord : quelqu'un qui atterrit ici par erreur
+  // doit pouvoir retourner au site sans creer de compte.
+  document.addEventListener('DOMContentLoaded', function(){
+    if(!window.BdvCompte || session()) return;
+    BdvCompte.ouvrir({ titre: "Ton tableau de bord t'attend." }).then(function(sess){
+      afficher();
+      if(sess) location.href = '/outils/dashboard-vigneron/';
+    });
+  });
+})();
+</script>

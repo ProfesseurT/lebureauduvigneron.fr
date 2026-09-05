@@ -56,4 +56,4 @@ La segmentation n'est pas un exercice théorique. C'est ce qui transforme une li
 
 ---
 
-*Article de la série « Vendre & fidéliser ». À lire avant de lancer une campagne : [construire un plan marketing](/posts/plan-marketing-communication-domaine-viticole/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Vendre & fidéliser ». À lire avant de lancer une campagne : [construire un plan marketing](/posts/plan-marketing-communication-domaine-viticole/). [Crée ton compte](/compte/).*

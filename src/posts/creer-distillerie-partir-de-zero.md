@@ -81,4 +81,4 @@ Merci à Arnaud Valour pour le partage d'expérience qui a nourri ce guide. La d
 
 ---
 
-*Article de la série « Se lancer ». Pour les volets gestion, fiscalité et outils de la filière, [rejoins la liste](/#waitlist).*
+*Article de la série « Se lancer ». Pour les volets gestion, fiscalité et outils de la filière, [crée ton compte](/compte/).*

@@ -41,4 +41,4 @@ Dans un marché compétitif, le marketing sensoriel n'est pas un supplément d'�
 
 ---
 
-*Article de la série « Vendre & fidéliser ». Voir aussi [le storytelling viticole](/posts/storytelling-viticole/) et [le marketing d'un domaine](/posts/marketing-domaine-viticole/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Vendre & fidéliser ». Voir aussi [le storytelling viticole](/posts/storytelling-viticole/) et [le marketing d'un domaine](/posts/marketing-domaine-viticole/). [Crée ton compte](/compte/).*

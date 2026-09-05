@@ -46,4 +46,4 @@ Pour le détail officiel, la documentation de l'administration fiscale fait foi 
 
 ---
 
-*Article de la série « Réglementation ». Voir aussi [la facturation électronique obligatoire](/posts/facturation-electronique-obligatoire-vigneron-2026/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Réglementation ». Voir aussi [la facturation électronique obligatoire](/posts/facturation-electronique-obligatoire-vigneron-2026/). [Crée ton compte](/compte/).*

@@ -39,4 +39,4 @@ Optimiser ses tournées, ce n'est pas une question de technologie. C'est une que
 
 ---
 
-*Article de la série « Gérer & s'organiser ». Voir aussi [combien de temps fait perdre une gestion sans logiciel adapté](/posts/gagner-du-temps-logiciel-gestion-vigneron/). [Rejoins la liste](/#waitlist).*
+*Article de la série « Gérer & s'organiser ». Voir aussi [combien de temps fait perdre une gestion sans logiciel adapté](/posts/gagner-du-temps-logiciel-gestion-vigneron/). [Crée ton compte](/compte/).*

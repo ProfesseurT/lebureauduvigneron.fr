@@ -49,4 +49,4 @@ Le reste — l'émission — se gérera tranquillement d'ici 2027, à condition 
 
 *Pour aller plus loin, la fiche officielle de l'administration : [economie.gouv.fr — la facturation électronique entre entreprises](https://www.economie.gouv.fr/cedef/fiches-pratiques/la-facturation-electronique-entre-entreprises).*
 
-*Je décrypte chaque semaine ce genre d'échéance pour les vignerons, sans jargon. [Rejoins la liste](/#waitlist).*
+*Je décrypte chaque semaine ce genre d'échéance pour les vignerons, sans jargon. [Crée ton compte](/compte/).*
