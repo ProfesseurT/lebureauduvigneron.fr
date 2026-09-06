@@ -76,6 +76,83 @@ filière à s'inscrire pour l'envoyer contre une porte fermée. Le titre de la f
 tableau de bord t'attend » à « Ton bureau t'attend » partout, sauf dans `dashboard-preview.njk`, qui
 parle vraiment du tableau de bord et garde les deux.
 
+### Audit d'expérience, et ce qu'il a trouvé
+
+Passage du site en ligne au crible, parcours visiteur puis inscription.
+
+**Le domaine ne répond pas.** Ni `lebureauduvigneron.fr`, ni `www`. Le site n'existe que sur
+`lebureauduvigneron.vercel.app`. Tant que ça dure, chaque lien envoyé tombe dans le vide et le
+référencement se construit sur l'adresse Vercel. À régler côté DNS IONOS, avant tout le reste.
+
+**Trois défauts corrigés dans la foulée :**
+
+- **Le bouton d'inscription du bandeau final était invisible.** `btn--bordeaux` sur
+  `--bordeaux-deep`, contraste mesuré **1,17:1** : le libellé se lisait, la forme du bouton non.
+  Corrigé en `.btn` nu, qui est déjà papier plein sur texte bordeaux. Règle à retenir : **sur fond
+  sombre, le bouton plein est en papier, jamais en bordeaux**. Le cadre qui l'entourait était la
+  boîte du formulaire Tally, restée en place après son retrait, et ressemblait à un champ qui
+  n'avait pas chargé.
+- **Deux mentions échouaient au contraste** sur ce même fond : l'étiquette « Gratuit » (opacité
+  0,4, soit 2,9:1) et la ligne de réassurance (opacité 0,35, soit 2,67:1). Remontées à 0,7 et 0,62.
+- **Deux chiffres faux, affichés côte à côte avec leur démenti.** « 1 article publié » dans une
+  section nommée « compteurs honnêtes », juste au-dessus d'une grille en montrant trois et d'une
+  page en contenant vingt : le compteur est maintenant calculé sur la collection. Et « le premier
+  épisode arrive en juillet 2026 », affiché en septembre. La date a été retirée plutôt
+  qu'inventée, en attendant celle que Ted donnera.
+
+**La fenêtre d'inscription, reprise.** C'est le seul écran que tout le monde traverse et c'était le
+moins soigné. Elle parlait entièrement en JetBrains Mono, la police que la charte réserve aux
+chiffres : elle avait l'air d'appartenir à un autre produit. Seul le champ du code la garde
+désormais, c'est sa seule place justifiée. Le bouton plein était « Me connecter » alors que la
+quasi-totalité du trafic arrive sans compte : « Créer mon compte » prend sa place, et la connexion
+devient « J'ai déjà un compte, me connecter », qui lève l'ambiguïté. « Fermer » ne prend plus une
+ligne de bouton pleine largeur au même rang que les deux actions, c'est une croix dans le coin,
+cible tactile de 44 px. Enfin les règles de mot de passe sont annoncées **avant** la saisie, et la
+phrase est générée depuis `MDP_REGLES` au lieu d'être recopiée : c'est la même famille de panne que
+`MDP_MIN` désaccordé de son réglage serveur, un refus muet sur une règle jamais annoncée.
+
+**Et une correction de ce que j'avais moi-même cassé le matin.** `.waitlist__sub` est italique,
+centré, étroit, opacité 0,72 : conçu pour une phrase d'accroche. J'y avais mis quatre paragraphes
+de promesse, ce qui donnait douze lignes d'italique centré, au passage le plus important de la
+page. Ils passent en `.waitlist__sub--lecture`, à plat et alignés à gauche. Dans le même geste, la
+fenêtre ne s'ouvre plus toute seule sur `/compte/` : elle recouvrait la promesse qu'on venait
+d'écrire, personne ne l'aurait jamais lue.
+
+**Un bug trouvé par une capture d'écran de Ted, et il vivait là depuis le début.** Sur `/compte/`
+en état connecté, les trois boutons s'affichaient ensemble : « Créer mon compte ou me connecter »,
+« Ouvrir mon tableau de bord » et « Me déconnecter ». La cause n'a rien à voir avec le travail du
+jour. **L'attribut `hidden` perdait contre `.btn { display: inline-block }`** : la feuille par
+défaut du navigateur pose `[hidden]{display:none}`, mais n'importe quelle règle du site qui fixe un
+`display` la bat en spécificité. Le JavaScript faisait son travail, le CSS l'annulait en silence.
+Corrigé par une règle globale `[hidden]{display:none !important}` en tête de `style.css`.
+How to apply: à retenir pour tout composant à venir. Un élément masqué par `hidden` et portant une
+classe qui fixe un `display` reste visible, sans erreur, sans trace en console. Le tableau de bord
+a été vérifié dans la foulée : il n'utilise `hidden` sur aucun élément à classe, il n'est pas
+touché.
+
+Au passage, les trois publics (« Vignerons · Étudiants vin · Pros filière ») sont désormais masqués
+quand on est connecté : ils s'adressent à quelqu'un qui n'a pas encore de compte.
+
+**Piège de test, revu une fois de plus** : Ted a d'abord vu l'ancien style, cadre du formulaire
+Tally compris, alors que `_site` était à jour. C'était le cache du navigateur sur `style.css`, servi
+sans empreinte dans l'URL. Un rechargement forcé règle le cas. Vérifier les dates de `src/` et
+`_site/` reste le bon premier réflexe, mais quand elles concordent, le suspect suivant est le cache.
+
+### Reste à faire sur l'expérience, par ordre d'impact
+
+1. Le domaine.
+2. Le premier écran ne montre aucun article : un « média de référence » doit montrer du contenu
+   avant un formulaire. Hero à raccourcir, ou première carte à faire remonter.
+3. Les cartes d'articles réservent 190 px pour une image qu'aucun des vingt articles ne possède.
+   Soit des visuels, soit pas de place réservée.
+4. Le titre de l'onglet est doublé sur l'accueil (« Le Bureau du Vigneron — Le Bureau du
+   Vigneron ») : le gabarit ajoute le nom du site à un titre qui est déjà le nom du site.
+5. `/articles/` n'a aucun filtre alors que chaque article porte un pilier et une catégorie.
+6. Le bouton fantôme du hero (« Créer mon compte ») est posé sur l'écran de l'ordinateur de la
+   photo, et s'y perd.
+7. Les deux autres compteurs restent écrits en dur (« 3 podcasts en route », « 8 partenaires en
+   discussion ») : eux, seul Ted peut les tenir à jour.
+
 ### Piège rencontré
 
 **Une réécriture Python en mode texte convertit les fins de ligne sans le dire.** `src/teddy.njk` et

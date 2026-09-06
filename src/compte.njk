@@ -17,23 +17,23 @@ permalink: /compte/
     <div class="waitlist__header" id="compteInvite">
       <p class="waitlist__eyebrow">Gratuit</p>
       <h2>Ouvre ton bureau.<br>Un email, un mot de passe.</h2>
-      <p class="waitlist__sub">
+      <p class="waitlist__sub waitlist__sub--lecture">
         Le compte est gratuit et ouvert à toute la filière. Il sert à retrouver ce que tu as
         trouvé : les articles que tu mets de côté, les webinaires et les interviews, les outils,
         et l'édition si tu la veux.
       </p>
-      <p class="waitlist__sub">
+      <p class="waitlist__sub waitlist__sub--lecture">
         Juste après, on te pose trois questions : ce que tu fais, où tu es, et si tu travailles
         avec Vitisoft. Elles servent à deux choses, et autant te le dire franchement : te montrer
         ce qui te concerne plutôt que tout le reste, et proposer aux partenaires de la filière un
         espace visible par les bons interlocuteurs. Tu peux les passer, ton compte marche quand
         même.
       </p>
-      <p class="waitlist__sub"><b>Tes ventes ne servent jamais à ça.</b> Les lignes de ton export
+      <p class="waitlist__sub waitlist__sub--lecture"><b>Tes ventes ne servent jamais à ça.</b> Les lignes de ton export
         Vitisoft alimentent ton tableau de bord, et rien d'autre : aucun ciblage, aucune
         statistique partagée, rien qui parte chez un partenaire. Elles sont enregistrées sur ton
         compte, hébergé en Europe, pour que tu les retrouves depuis n'importe quel appareil.</p>
-      <p class="waitlist__sub"><b>Le tableau de bord des ventes est réservé aux utilisateurs de
+      <p class="waitlist__sub waitlist__sub--lecture"><b>Le tableau de bord des ventes est réservé aux utilisateurs de
         Vitisoft.</b> Il lit le fichier d'export de Vitisoft et refuse tout autre format. Le reste
         du bureau est ouvert à tous.</p>
     </div>
@@ -44,7 +44,7 @@ permalink: /compte/
       <p class="waitlist__sub">Tu es connecté avec <b id="compteEmail"></b>.</p>
     </div>
 
-    <div class="waitlist__proof">
+    <div class="waitlist__proof" id="compteProof">
       <span class="waitlist__proof-item">Vignerons</span>
       <span class="waitlist__proof-sep">·</span>
       <span class="waitlist__proof-item">Étudiants vin</span>
@@ -53,9 +53,9 @@ permalink: /compte/
     </div>
 
     <div class="waitlist__form-wrap" style="text-align:center">
-      <a href="/compte/" class="btn btn--bordeaux" id="compteBtnOuvrir"
+      <a href="/compte/" class="btn" id="compteBtnOuvrir"
          data-bdv-compte data-bdv-titre="Ton bureau t'attend.">Créer mon compte ou me connecter</a>
-      <a href="/outils/dashboard-vigneron/" class="btn btn--bordeaux" id="compteBtnTableau" hidden>Ouvrir mon tableau de bord</a>
+      <a href="/outils/dashboard-vigneron/" class="btn" id="compteBtnTableau" hidden>Ouvrir mon tableau de bord</a>
       <button type="button" class="btn btn--ghost" id="compteBtnSortir" hidden>Me déconnecter</button>
     </div>
 
@@ -79,6 +79,7 @@ permalink: /compte/
   function afficher(){
     var s = session();
     document.getElementById('compteInvite').hidden = !!s;
+    document.getElementById('compteProof').hidden = !!s;
     document.getElementById('compteConnecte').hidden = !s;
     document.getElementById('compteBtnOuvrir').hidden = !!s;
     document.getElementById('compteBtnTableau').hidden = !s;
@@ -92,14 +93,9 @@ permalink: /compte/
     afficher();
   });
 
-  // Ouverture automatique de la fenetre a l'arrivee : on vient ici pour entrer, pas pour lire.
-  // Fermable, contrairement a celle du tableau de bord : quelqu'un qui atterrit ici par erreur
-  // doit pouvoir retourner au site sans creer de compte.
-  document.addEventListener('DOMContentLoaded', function(){
-    if(!window.BdvCompte || session()) return;
-    BdvCompte.ouvrir({ titre: "Ton bureau t'attend." }).then(function(){
-      afficher();
-    });
-  });
+  // La fenetre ne s'ouvre PLUS toute seule. Elle le faisait tant que cette page n'avait rien
+  // a dire ; depuis le 06/09/2026 elle porte la promesse (ce qu'on demande, a quoi ca sert, ce
+  // qu'on ne fait jamais des ventes), et une fenetre posee par dessus la rendait illisible.
+  // Le bouton plus bas ouvre la meme fenetre au clic, via data-bdv-compte.
 })();
 </script>

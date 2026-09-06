@@ -306,12 +306,12 @@
     if(stylesInjectes) return;
     stylesInjectes = true;
     const css = '.bdv-porte{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--bordeaux-veil, rgba(40,10,18,.7))}'
-      + '.bdv-porte__carte{max-width:440px;width:100%;background:var(--white,#FFFFFF);border-top:3px solid var(--bordeaux,#5A1525);box-shadow:var(--ombre-dure, 6px 6px 0 rgba(30,37,54,0.18));padding:2.2rem 2rem;text-align:left}'
-      + '.bdv-porte__eyebrow{font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-large,.15em);color:var(--bordeaux,#5A1525);margin-bottom:.6rem}'
+      + '.bdv-porte__carte{max-width:440px;width:100%;background:var(--white,#FFFFFF);border-top:3px solid var(--bordeaux,#5A1525);position:relative;box-shadow:var(--ombre-dure, 6px 6px 0 rgba(30,37,54,0.18));padding:2.2rem 2rem;text-align:left}'
+      + '.bdv-porte__eyebrow{font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-large,.15em);color:var(--bordeaux,#5A1525);margin-bottom:.6rem}'
       + '.bdv-porte__titre{font-family:var(--font-titre,\'Fraunces\',Georgia,\'Times New Roman\',serif);font-weight:400;font-size:1.5rem;color:var(--ink,#1E2536);margin-bottom:.6rem}'
       + '.bdv-porte__reassure{font-size:var(--t-base,.88rem);color:var(--muted,#63523D);margin-bottom:1.4rem;line-height:var(--lh-normal,1.5)}'
       + '.bdv-porte__note{font-size:var(--t-petit,.78rem);color:var(--muted,#63523D);margin-bottom:.9rem;line-height:var(--lh-normal,1.5)}'
-      + '.bdv-porte__label{display:block;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-doux,.05em);color:var(--muted,#63523D);margin-bottom:.35rem}'
+      + '.bdv-porte__label{display:block;font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-doux,.05em);color:var(--muted,#63523D);margin-bottom:.35rem}'
       + '.bdv-porte__input{width:100%;padding:.65rem .75rem;border:1px solid var(--rule-fort,rgba(30,37,54,.42));background:var(--paper-light,#F5EFE0);font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-corps,1rem);color:var(--ink,#1E2536);margin-bottom:.9rem;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__input:focus{outline:2px solid var(--bordeaux,#5A1525);outline-offset:1px}'
       + '.bdv-porte__input--code{letter-spacing:.3em;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);text-align:center;font-size:1.2rem}'
@@ -320,17 +320,21 @@
       + '.bdv-porte__regles-titre{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:0 0 .25rem}'
       + '.bdv-porte__regle{display:flex;gap:.4rem;align-items:baseline;font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:0;line-height:1.7}'
       + '.bdv-porte__regle--ok{color:var(--ok,#2D6A2D)}'
-      + '.bdv-porte__puce{font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);flex:0 0 .8rem}'
+      + '.bdv-porte__puce{font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);flex:0 0 .8rem}'
       + '.bdv-porte__chk{display:flex;align-items:flex-start;gap:.5rem;font-size:var(--t-petit,.78rem);color:var(--muted,#63523D);margin-bottom:1.1rem;line-height:var(--lh-normal,1.5)}'
-      + '.bdv-porte__btn{width:100%;padding:.7rem 1rem;background:var(--bordeaux,#5A1525);color:var(--on-dark,#EFE7D6);border:none;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-doux,.05em);font-weight:500;cursor:pointer;border-radius:var(--r-nul,0)}'
+      + '.bdv-porte__btn{width:100%;padding:.7rem 1rem;background:var(--bordeaux,#5A1525);color:var(--on-dark,#EFE7D6);border:none;font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-doux,.05em);font-weight:500;cursor:pointer;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__btn:hover{background:var(--bordeaux-vif,#7A1525)}'
       + '.bdv-porte__btn:disabled{opacity:.6;cursor:default}'
       + '.bdv-porte__btn--secondaire{background:transparent;color:var(--bordeaux,#5A1525);border:1px solid var(--rule-fort,rgba(30,37,54,.42));margin-top:.6rem}'
       + '.bdv-porte__btn--secondaire:hover{background:var(--paper-light,#F5EFE0)}'
-      + '.bdv-porte__lien{display:block;margin:.7rem auto 0;background:none;border:none;padding:0;color:var(--bordeaux,#5A1525);font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);font-size:var(--t-mini,.7rem);text-decoration:underline;cursor:pointer}'
+      + '.bdv-porte__lien{display:block;margin:.7rem auto 0;background:none;border:none;padding:0;color:var(--bordeaux,#5A1525);font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-decoration:underline;cursor:pointer}'
       + '.bdv-porte__erreur{color:var(--danger-deep,#A03530);font-size:var(--t-petit,.78rem);margin-top:.6rem}'
-      + '.bdv-porte__legal{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin-top:1.4rem;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace)}'
-      + '.bdv-porte__legal a{color:var(--bordeaux,#5A1525)}';
+      + '.bdv-porte__legal{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin-top:1.4rem;font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif)}'
+      + '.bdv-porte__legal a{color:var(--bordeaux,#5A1525)}'
+      // Sortir n'est pas une action : la croix se range dans le coin, elle ne prend plus
+      // une ligne de bouton pleine largeur au meme rang que « creer » et « se connecter ».
+      + '.bdv-porte__croix{position:absolute;top:.4rem;right:.4rem;min-width:44px;min-height:44px;background:none;border:none;padding:0;font-size:1.4rem;line-height:1;color:var(--muted,#63523D);cursor:pointer}'
+      + '.bdv-porte__croix:hover{color:var(--bordeaux,#5A1525)}';
     const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
@@ -353,6 +357,7 @@
       overlay.setAttribute('aria-labelledby', 'bdvPorteTitre');
       overlay.innerHTML =
         '<div class="bdv-porte__carte">'
+        + ((options.esquivable || options.fermable) ? '<button class="bdv-porte__croix" id="bdvCroix" type="button" aria-label="Fermer">\u00d7</button>' : '')
         + '<p class="bdv-porte__eyebrow">Le Bureau du Vigneron</p>'
         + '<h2 id="bdvPorteTitre" class="bdv-porte__titre">' + esc(options.titre || 'Tes chiffres sont prêts.') + '</h2>'
         // Etape 1 : acces. Deux boutons distincts, volontairement. Un seul bouton obligerait a
@@ -363,12 +368,17 @@
         + '<input class="bdv-porte__input" type="email" id="bdvEmail" autocomplete="email" placeholder="toi@domaine.fr">'
         + '<label class="bdv-porte__label" for="bdvMdp">Ton mot de passe</label>'
         + '<input class="bdv-porte__input" type="password" id="bdvMdp" autocomplete="current-password">'
+        // Annonce statique construite depuis MDP_REGLES, jamais recopiee : un refus muet
+        // sur une regle qu'on n'avait pas annoncee est la panne la plus couteuse de cet ecran.
+        + '<p class="bdv-porte__aide">Nouveau compte : ' + esc(MDP_REGLES.map(function(r){ return r.texte; }).join(', ')) + '.</p>'
         + listeRegles('bdvReglesAcces', 'Pour créer un compte, il faut :')
         + '<label class="bdv-porte__chk"><input type="checkbox" id="bdvNews"> Recevoir l\'édition bimensuelle du Bureau du Vigneron</label>'
-        + '<button class="bdv-porte__btn" id="bdvBtnConnexion" type="button">Me connecter</button>'
-        + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvBtnInscription" type="button">Créer mon compte</button>'
+        // Presque tout le monde arrive ici sans compte : le bouton plein est celui qui en cree un.
+        // Celui qui revient sait ce qu'il cherche et lit l'etiquette, l'inverse n'est pas vrai.
+        + '<button class="bdv-porte__btn" id="bdvBtnInscription" type="button">Créer mon compte</button>'
+        + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvBtnConnexion" type="button">J\'ai déjà un compte, me connecter</button>'
         + '<button class="bdv-porte__lien" id="bdvOublie" type="button">Mot de passe oublié ?</button>'
-        + ((options.esquivable || options.fermable) ? '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvPlusTard" type="button">' + (options.esquivable ? 'Plus tard' : 'Fermer') + '</button>' : '')
+        + (options.esquivable ? '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvPlusTard" type="button">Plus tard</button>' : '')
         + '<p class="bdv-porte__erreur" id="bdvErreurAcces" hidden></p>'
         + '</div>'
         // Etape 2 : le code a six chiffres. Le meme ecran sert a confirmer une inscription et
@@ -412,6 +422,7 @@
       const btnInscription = overlay.querySelector('#bdvBtnInscription');
       const btnOublie = overlay.querySelector('#bdvOublie');
       const btnPlusTard = overlay.querySelector('#bdvPlusTard');
+      const btnCroix = overlay.querySelector('#bdvCroix');
       const erreurAcces = overlay.querySelector('#bdvErreurAcces');
       const noteCode = overlay.querySelector('#bdvNoteCode');
       const champCode = overlay.querySelector('#bdvCode');
@@ -457,7 +468,8 @@
       }
       function surEchap(e){ if(e.key === 'Escape') esquiver(); }
       if(options.esquivable || options.fermable){
-        btnPlusTard.addEventListener('click', esquiver);
+        if(btnPlusTard) btnPlusTard.addEventListener('click', esquiver);
+        if(btnCroix) btnCroix.addEventListener('click', esquiver);
         document.addEventListener('keydown', surEchap);
       }
 

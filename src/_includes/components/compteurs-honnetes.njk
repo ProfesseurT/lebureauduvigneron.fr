@@ -7,8 +7,8 @@
         <span class="compteur-item__label">podcasts en route</span>
       </div>
       <div class="compteur-item">
-        <span class="compteur-item__nb">1</span>
-        <span class="compteur-item__label">article publié</span>
+        <span class="compteur-item__nb">{{ collections.posts | length }}</span>
+        <span class="compteur-item__label">article{{ 's' if (collections.posts | length) > 1 }} publié{{ 's' if (collections.posts | length) > 1 }}</span>
       </div>
       <div class="compteur-item">
         <span class="compteur-item__nb">8</span>

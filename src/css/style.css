@@ -150,6 +150,15 @@ a:hover { text-decoration: underline; }
 strong { font-weight: 600; }
 em { font-style: italic; }
 
+/* ---- ATTRIBUT HIDDEN ----
+   La feuille par defaut du navigateur pose [hidden]{display:none}, mais elle perd contre
+   n'importe quelle regle du site qui fixe un display : .btn est en inline-block, donc un
+   bouton marque hidden restait AFFICHE. Constate le 06/09/2026 sur /compte/, ou la page
+   connectee montrait « Cree mon compte » a cote de « Me deconnecter ».
+   Cette regle vaut pour tout le site : sans elle, chaque nouveau composant qui fixe un
+   display casse silencieusement le hidden de ses enfants. */
+[hidden] { display: none !important; }
+
 /* ---- FOCUS CLAVIER ----
    Une seule regle pour les 124 elements focalisables du site.
    :where() ne pese rien : n'importe quelle regle existante peut la couvrir. */
@@ -1298,7 +1307,7 @@ em { font-style: italic; }
   text-transform: uppercase;
   letter-spacing: var(--ls-large);
   color: var(--paper);
-  opacity: 0.4;
+  opacity: 0.7;   /* 0.4 donnait 2,9:1 sur bordeaux-deep, sous le seuil AA */
   margin-bottom: 1rem;
 }
 .waitlist__header { margin-bottom: 2.5rem; }
@@ -1309,6 +1318,15 @@ em { font-style: italic; }
   margin: 0 auto;
   font-size: var(--t-corps);
   line-height: 1.65;
+}
+/* .waitlist__sub est italique, centre et etroit : parfait pour une phrase d'accroche.
+   La page /compte/ y met une promesse en quatre paragraphes, qui se lit a plat. */
+.waitlist__sub--lecture {
+  font-style: normal;
+  text-align: left;
+  max-width: 560px;
+  opacity: 0.85;
+  margin-bottom: 0.9rem;
 }
 .waitlist__proof {
   display: flex;
@@ -1327,12 +1345,11 @@ em { font-style: italic; }
   opacity: 0.6;
 }
 .waitlist__proof-sep { opacity: 0.2; font-size: 1.2rem; }
+/* Simple centrage. Le fond et le filet servaient a encadrer le formulaire Tally,
+   retire depuis : ils ne dessinaient plus qu'une boite vide autour d'un bouton. */
 .waitlist__form-wrap {
   max-width: 520px;
   margin: 0 auto;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--on-dark-rule);
-  padding: 2rem 2rem 1rem;
 }
 .tally-wrapper { width: 100%; }
 .waitlist__reassurance {
@@ -1340,7 +1357,7 @@ em { font-style: italic; }
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   letter-spacing: var(--ls-doux);
-  opacity: 0.35;
+  opacity: 0.62;  /* 0.35 donnait 2,67:1 sur bordeaux-deep, sous le seuil AA */
 }
 
 /* ---- FOOTER RICHE 3 COLONNES ---- */
