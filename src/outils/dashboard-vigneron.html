@@ -1158,7 +1158,7 @@ async function handleFiles(list){
     const env=await BdvSync.pousserVentes(aPousser,function(fait,total){
       status('loading','Enregistrement sur ton compte, '+fmtNum(fait)+' / '+fmtNum(total)+'...');
     });
-    if(env.echecs)status('error',fmtNum(env.echecs)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles restent dans ce navigateur, réimporte le fichier plus tard.');
+    if(env.echecs)status('error',fmtNum(env.echecs)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles sont bien sur cet appareil, réimporte le fichier plus tard.');
   }
   await reloadFromDB();
   const total=ROWS.length;
@@ -2783,7 +2783,8 @@ function produitHTML(c,A){
 /* ======================= FICHE CLIENT (modale) =======================
    Tout ce que la base sait d'un client, plus ce qu'on peut en deduire d'utile :
    ce qu'il achete, ce que ses semblables achetent et pas lui, quand il commande,
-   et un message pre-ecrit avec ses propres donnees. Aucune donnee ne sort du navigateur. */
+   et un message pre-ecrit avec ses propres donnees. Le message part par la messagerie du
+   vigneron, en mailto : l'outil n'envoie rien lui-meme. */
 
 // Nom de cuvee sans le millesime : « Le Rosé 2024 » et « Le Rosé 2025 » sont la meme cuvee.
 // Sans ce nettoyage, l'outil recommanderait a un client le millesime precedent de ce qu'il boit deja.
@@ -3550,7 +3551,7 @@ function renderReglages(){
       ${regle?'<button class="btn btn--ghost" onclick="oublierReglages()">Revenir au classement automatique</button>':''}
       <button class="btn btn--ghost" onclick="BROUILLON=null;renderReglages()">Annuler mes modifications</button>
     </div>
-    <p class="mini-line">Tes réglages restent dans ce navigateur, comme tes lignes de vente. Rien n'est envoyé.</p>
+    <p class="mini-line">Tes réglages et tes lignes de vente sont enregistrés sur ton compte, hébergé en Europe. Tu les retrouves depuis n'importe quel appareil.</p>
   </div>`;
   el('p-reglages').innerHTML=html;
 }
@@ -3676,7 +3677,7 @@ function renderBase(){
     </div>
     <div class="card"><div class="card__title"><span>Vider la base</span></div>
       <button class="btn btn--danger" onclick="viderBase()">Vider la base</button>
-      <p class="mini-line">Efface toutes les lignes cumulées de ce navigateur. Action définitive.</p>
+      <p class="mini-line">Efface toutes les lignes cumulées, sur cet appareil comme sur ton compte. Action définitive.</p>
     </div>
   </div>`;
 
@@ -3689,7 +3690,7 @@ async function viderBase(){
   // sens : la prochaine ouverture rapatrierait tout depuis le compte, et le vigneron croirait
   // que le bouton ne marche pas.
   const surServeur=syncPret()?' et de ton compte':'';
-  if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées de ce navigateur'+surServeur+'.'))return;
+  if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées de cet appareil'+surServeur+'.'))return;
   if(syncPret())await BdvSync.effacerTout();
   await dbClear();
   ROWS=[];computeMeta();
@@ -3703,7 +3704,7 @@ async function refreshResume(){
   const box=el('resumeBox');
   if(n>0){
     box.style.display='block';
-    box.innerHTML=`<b>${fmtNum(n)} lignes déjà en base</b> dans ce navigateur. <a href="#" onclick="reopen();return false;">Ouvrir mon tableau de bord</a> ou dépose un nouvel export pour l'enrichir.`;
+    box.innerHTML=`<b>${fmtNum(n)} lignes déjà en base</b>. <a href="#" onclick="reopen();return false;">Ouvrir mon tableau de bord</a> ou dépose un nouvel export pour l'enrichir.`;
   }else box.style.display='none';
 }
 async function reopen(){

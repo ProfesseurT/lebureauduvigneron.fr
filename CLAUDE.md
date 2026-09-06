@@ -94,11 +94,16 @@ bordeaux, du blanc pur est plus dur que le papier du site.
 
 ## Ce que le dashboard ne fait pas, volontairement
 
-- **Aucune donnee de vente ne sort du navigateur.** Depuis les comptes, l'outil parle au reseau
-  pour exactement deux choses : ouvrir une session et lire ou ecrire la fiche de profil. Les
-  lignes de vente, les noms de clients et les montants ne sont jamais transmis, jamais stockes
-  ailleurs qu'en IndexedDB. Toute evolution qui enverrait une donnee issue de l'export doit etre
-  arbitree a part, avec le message produit et la page de confidentialite.
+- **Les donnees de vente sont stockees sur le compte, plus seulement dans le navigateur.**
+  Decision du 04/09/2026, assumee : reglages, suivi client et lignes de vente vivent en base
+  (Supabase, Irlande) et sont redistribues a la demande, l'IndexedDB locale n'en etant plus que
+  le miroir de travail. La promesse « rien ne quitte ton navigateur » est morte : tout texte
+  d'interface qui la repete encore est un defaut de contenu, a corriger.
+  **Ce qui reste vrai et se defend** : les lignes de vente ne servent QU'a l'affichage du tableau
+  de bord de leur proprietaire. Aucun ciblage publicitaire, aucune statistique agregee, aucune
+  transmission a un partenaire, jamais. C'est ce que `src/compte.njk` promet noir sur blanc depuis
+  le 06/09/2026. Le ciblage des annonces Vitimedia se fait sur le profil declare (metier, region,
+  Vitisoft oui/non, canaux de vente), jamais sur l'export.
   Regle d'or du module de compte (`src/js/bdv-compte.js`) : le compte ne conditionne jamais la
   lecture des donnees locales. Si Supabase est en panne ou le reseau coupe, l'outil s'ouvre quand
   meme des lors qu'une session a deja ete ouverte une fois sur ce navigateur.

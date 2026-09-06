@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: Mon compte
-description: Crée ton compte du Bureau du Vigneron, ou connecte-toi pour retrouver ton tableau de bord.
+description: Crée ton compte du Bureau du Vigneron, gratuit et ouvert à toute la filière, ou connecte-toi pour retrouver ton bureau.
 permalink: /compte/
 ---
 
@@ -16,13 +16,26 @@ permalink: /compte/
 
     <div class="waitlist__header" id="compteInvite">
       <p class="waitlist__eyebrow">Gratuit</p>
-      <h2>Un email, un mot de passe.<br>Rien d'autre ne nous parvient.</h2>
+      <h2>Ouvre ton bureau.<br>Un email, un mot de passe.</h2>
       <p class="waitlist__sub">
-        Ton compte ouvre le tableau de bord des ventes et les outils à venir. Tes ventes, tes
-        clients et tes montants sont lus depuis ton export Vitisoft.
+        Le compte est gratuit et ouvert à toute la filière. Il sert à retrouver ce que tu as
+        trouvé : les articles que tu mets de côté, les webinaires et les interviews, les outils,
+        et l'édition si tu la veux.
       </p>
-      <p class="waitlist__sub"><b>Réservé aux utilisateurs de Vitisoft.</b> Le tableau de bord lit le
-        fichier d'export de Vitisoft et refuse tout autre format.</p>
+      <p class="waitlist__sub">
+        Juste après, on te pose trois questions : ce que tu fais, où tu es, et si tu travailles
+        avec Vitisoft. Elles servent à deux choses, et autant te le dire franchement : te montrer
+        ce qui te concerne plutôt que tout le reste, et proposer aux partenaires de la filière un
+        espace visible par les bons interlocuteurs. Tu peux les passer, ton compte marche quand
+        même.
+      </p>
+      <p class="waitlist__sub"><b>Tes ventes ne servent jamais à ça.</b> Les lignes de ton export
+        Vitisoft alimentent ton tableau de bord, et rien d'autre : aucun ciblage, aucune
+        statistique partagée, rien qui parte chez un partenaire. Elles sont enregistrées sur ton
+        compte, hébergé en Europe, pour que tu les retrouves depuis n'importe quel appareil.</p>
+      <p class="waitlist__sub"><b>Le tableau de bord des ventes est réservé aux utilisateurs de
+        Vitisoft.</b> Il lit le fichier d'export de Vitisoft et refuse tout autre format. Le reste
+        du bureau est ouvert à tous.</p>
     </div>
 
     <div class="waitlist__header" id="compteConnecte" hidden>
@@ -41,8 +54,7 @@ permalink: /compte/
 
     <div class="waitlist__form-wrap" style="text-align:center">
       <a href="/compte/" class="btn btn--bordeaux" id="compteBtnOuvrir"
-         data-bdv-compte data-bdv-titre="Ton tableau de bord t'attend."
-         data-bdv-apres="/outils/dashboard-vigneron/">Créer mon compte ou me connecter</a>
+         data-bdv-compte data-bdv-titre="Ton bureau t'attend.">Créer mon compte ou me connecter</a>
       <a href="/outils/dashboard-vigneron/" class="btn btn--bordeaux" id="compteBtnTableau" hidden>Ouvrir mon tableau de bord</a>
       <button type="button" class="btn btn--ghost" id="compteBtnSortir" hidden>Me déconnecter</button>
     </div>
@@ -85,9 +97,8 @@ permalink: /compte/
   // doit pouvoir retourner au site sans creer de compte.
   document.addEventListener('DOMContentLoaded', function(){
     if(!window.BdvCompte || session()) return;
-    BdvCompte.ouvrir({ titre: "Ton tableau de bord t'attend." }).then(function(sess){
+    BdvCompte.ouvrir({ titre: "Ton bureau t'attend." }).then(function(){
       afficher();
-      if(sess) location.href = '/outils/dashboard-vigneron/';
     });
   });
 })();
