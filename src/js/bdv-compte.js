@@ -355,7 +355,6 @@
         '<div class="bdv-porte__carte">'
         + '<p class="bdv-porte__eyebrow">Le Bureau du Vigneron</p>'
         + '<h2 id="bdvPorteTitre" class="bdv-porte__titre">' + esc(options.titre || 'Tes chiffres sont prêts.') + '</h2>'
-        + '<p class="bdv-porte__reassure">On stocke ton email et ton mot de passe, rien d\'autre. Tes ventes ne quittent pas ton navigateur.</p>'
         // Etape 1 : acces. Deux boutons distincts, volontairement. Un seul bouton obligerait a
         // deviner l'intention, et le 400 du serveur ne dit pas si c'est le mot de passe qui est
         // faux ou le compte qui n'existe pas.
@@ -377,7 +376,12 @@
         + '<div data-etape="code" hidden>'
         + '<p class="bdv-porte__note" id="bdvNoteCode"></p>'
         + '<label class="bdv-porte__label" for="bdvCode">Code reçu</label>'
-        + '<input class="bdv-porte__input bdv-porte__input--code" type="text" id="bdvCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code">'
+        // maxlength volontairement large et pas cale sur une longueur precise. Le 05/09/2026
+        // ce champ etait bloque a 6 alors que le reglage Supabase avait ete passe a 8 : le code
+        // arrivait bien, et les deux derniers chiffres refusaient de s'ecrire, sans un seul
+        // message d'erreur. Meme famille de panne que MDP_MIN desaccorde de son reglage serveur.
+        // Ici on ne duplique plus le reglage du tout : le serveur tranche, l'ecran suit.
+        + '<input class="bdv-porte__input bdv-porte__input--code" type="text" id="bdvCode" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="one-time-code">'
         + '<button class="bdv-porte__btn" id="bdvBtnCode" type="button">Valider</button>'
         + '<button class="bdv-porte__lien" id="bdvRenvoyer" type="button">Renvoyer le code</button>'
         + '<p class="bdv-porte__erreur" id="bdvErreurCode" hidden></p>'
@@ -601,6 +605,13 @@
       champEmail.addEventListener('keydown', function(e){ if(e.key === 'Enter') champMdp.focus(); });
       champMdp.addEventListener('keydown', function(e){ if(e.key === 'Enter') seConnecter(); });
       champCode.addEventListener('keydown', function(e){ if(e.key === 'Enter') validerCode(); });
+      // Un code colle depuis une application de messagerie arrive souvent avec une espace, un
+      // tiret ou un retour a la ligne. On ne garde que les chiffres, sinon GoTrue repond
+      // « code incorrect » sur un code parfaitement juste.
+      champCode.addEventListener('input', function(){
+        const propre = champCode.value.replace(/\D+/g, '');
+        if(propre !== champCode.value) champCode.value = propre;
+      });
       champNouveau.addEventListener('keydown', function(e){ if(e.key === 'Enter') poserNouveauMdp(); });
     });
   }
