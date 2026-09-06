@@ -138,6 +138,321 @@ Tally compris, alors que `_site` était à jour. C'était le cache du navigateur
 sans empreinte dans l'URL. Un rechargement forcé règle le cas. Vérifier les dates de `src/` et
 `_site/` reste le bon premier réflexe, mais quand elles concordent, le suspect suivant est le cache.
 
+### Le bureau connecté, développé
+
+Reproche de Ted, fondé : la session avait produit des correctifs et des promesses de texte, rien
+de ce qu'il avait demandé. Reprise du besoin point par point, puis développement.
+
+**Les trois questions** (`bdv-compte.js`). Un quatrième écran dans la fenêtre, affiché **après une
+inscription réussie seulement**, jamais à la connexion : métier, structure et code postal, usage de
+Vitisoft. Tout est sautable et rien ne conditionne l'ouverture du compte. Un enregistrement qui
+échoue part en file d'attente locale et se rejoue au chargement suivant, plutôt que d'afficher une
+panne à quelqu'un dont le compte vient d'être créé.
+Why: `utilise_vitisoft` est du texte et pas un booléen. « Je ne sais pas » est une réponse fréquente
+et utile, un booléen l'aurait écrasée sur `null`, qui veut déjà dire « n'a pas répondu ». Les deux
+ne se confondent pas : l'un se redemande, l'autre non.
+
+**Les signets** (`bdv-signets.js`, nouveau). Trois états, `absent` / `a_lire` / `lu`. Le module ne
+connaît ni l'URL Supabase ni la clé anon : il passe par `BdvCompte.api()`. Le cache local est un
+miroir d'affichage, jamais un stockage : le serveur écrase tout à chaque chargement.
+How to apply: **un clic sur une punaise sans compte ouvre la fenêtre, et l'action s'exécute toute
+seule une fois le compte créé.** C'est le meilleur moment du site pour demander un compte, la
+personne vient d'exprimer une envie précise. Ne pas remplacer ça par un bouton générique.
+
+**`/mon-bureau/`** avec quatre zones : le sous-main (à lire), le classeur (lu), le courrier (paru
+depuis le dernier passage), les outils. Déconnecté, la page n'est pas une erreur mais une
+invitation. Le menu gagne « Mon bureau » et une pastille comptant les articles en attente, lue dans
+le même miroir local, en script synchrone comme le reste.
+Why: la marque du courrier (`bdv_bureau_vu_le`) n'est déplacée que si la visite précédente a plus
+de six heures. Sans ce délai, un simple rechargement viderait la liste qu'on est en train de lire.
+
+**Le piège du `dump` Nunjucks a été évité de justesse** : la liste des contenus est injectée dans
+la page en JSON, et un titre contenant une apostrophe ou un guillemet casserait le bloc. Le filtre
+`dump` échappe correctement. Validé en relisant le JSON produit avec `JSON.parse`, 19 contenus.
+
+**Un contrôle qui vaut d'être répété** : `npx @11ty/eleventy --output=$HOME/verif-eleventy` construit
+le site hors du dépôt, sans toucher `_site` ni gêner le `npm start` de Ted. Le shell Cowork n'a pas
+le droit de supprimer, donc un build dans `_site` échouerait sur `EPERM unlink` ; celui-là passe, et
+il valide la syntaxe Nunjucks avant de livrer.
+
+### Le compte à rebours réglementaire, et l'accueil du non-Vitisoft
+
+**Premier outil gratuit ouvert à toute la filière**, `/outils/echeances/`. DRM, DAI, déclaration de
+récolte, facturation électronique. Chaque échéance affiche dans combien de jours elle tombe, qui
+elle concerne, un lien vers l'article du Bureau quand il existe, et **sa source officielle**.
+
+**Les dates ont été vérifiées avant d'être écrites**, pas reprises de mémoire :
+- DRM, le 10 du mois suivant, tous les mois, y compris à néant. Source douane.
+- DAI, le 10 septembre pour les opérateurs en campagne viticole, dépôt via CIEL. Source douane.
+- Déclaration de récolte, le 10 décembre, module VENDANGES. Source guide du viticulteur.
+- Facturation électronique : réception obligatoire pour toutes les entreprises au 01/09/2026,
+  émission des grandes entreprises et ETI à la même date, émission des PME, TPE, micro et
+  indépendants au 01/09/2027. Sources impots.gouv.fr et Cegid.
+
+**Deux décisions d'architecture :**
+- Les échéances vivent dans `src/_data/echeances.json`, jamais dans le code. Une date qui change se
+  corrige dans un fichier de données, par quelqu'un qui ne programme pas.
+- **Le compte à rebours se calcule dans le navigateur, jamais à la construction du site.** Une page
+  construite en septembre et consultée en décembre afficherait sinon un décompte faux, sans que
+  rien ne le signale. C'est la même famille de panne que les réglages recopiés en dur.
+
+Contrôlé au 06/09/2026 : DRM et DAI à 4 jours (elles tombent le même jour, c'est le pic de charge
+réel d'un vigneron début septembre), récolte à 95 jours, émission à 360 jours, réception affichée
+comme déjà en vigueur depuis 5 jours.
+
+**L'accueil du non-Vitisoft sur le tableau de bord.** Quelqu'un qui a répondu « non » à la question
+Vitisoft voit maintenant un bloc qui le lui dit avant qu'il dépose un fichier, et qui l'oriente vers
+le compte à rebours, son bureau et les articles.
+Why: un refus qui ne propose rien est un refus raté. Sans ce bloc, cette personne déposait son
+export, recevait une erreur de format et repartait en pensant que l'outil était cassé.
+How to apply: la règle `[hidden]{display:none !important}` a dû être ajoutée aussi dans le CSS du
+tableau de bord, pour la même raison que sur le site.
+
+### La présentation du bureau, et la cohérence du bandeau
+
+Trois directions maquettées et soumises à Ted sur un canevas : « le bureau du matin » (ce qui
+presse d'abord), « le sous-main » (la métaphore prise au mot, feuilles posées et post-it manuscrit)
+et « le classeur » (des intercalaires et une liste dense). **Ted a suivi ma recommandation : le
+bureau du matin, avec les accents du sous-main.**
+
+Why: un vigneron n'ouvre pas son bureau pour admirer son rangement, il l'ouvre entre deux tâches
+pour savoir ce qui lui tombe dessus. Le sous-main est la plus belle des trois et la plus fidèle à
+la marque, mais il tient à six fiches : à trente signets c'est un fouillis, et sur téléphone les
+feuilles se remettent en colonne, donc l'effet disparaît là où sont la plupart des lecteurs. Le
+classeur est le plus solide et le plus froid, c'est vers lui qu'il faudra glisser le jour où le
+volume l'exigera, et le composant à onglets existe déjà dans le site.
+How to apply: gardés du sous-main, la punaise sur chaque fiche et une ligne manuscrite en Caveat.
+Le classeur reste la piste de repli quand les listes deviendront longues.
+
+**`/mon-bureau/` réécrit** : en-tête bordeaux avec le jour, le prénom et un résumé en une phrase,
+puis « ce qui presse » en pleine largeur (l'échéance la plus proche, et **le plus ancien signet non
+lu**, celui qui risque de ne jamais l'être), puis deux colonnes, le sous-main d'un côté, les outils,
+le classeur et le courrier de l'autre.
+
+**Le calcul des échéances est sorti dans `src/js/bdv-echeances.js`**, partagé par la page du compte
+à rebours et par le bureau.
+Why: deux copies du même calcul auraient fini par diverger, et rien ne l'aurait signalé.
+
+**Le bandeau, décision prise :** « Tableau de bord » sort du menu, « Outils » le remplace et mène à
+une nouvelle page `/outils/`.
+Why: le tableau de bord est réservé aux utilisateurs de Vitisoft. Il occupait une entrée de
+navigation devant des gens qui ne l'ont pas, et le compte à rebours n'était atteignable depuis aucun
+menu. Une fois connecté, « Mon compte » sort aussi et « Mon bureau » prend sa place en bouton :
+cinq entrées dans les deux états, au lieu de six.
+
+### Mixer le bureau et le tableau de bord
+
+Demande de Ted : « mes clients me ferait arriver sur l'interface clients du tableau de bord ». Oui,
+et c'est la partie la moins chère de la journée, parce que le tableau de bord savait déjà changer
+d'écran, il ne savait juste pas qu'on pouvait le lui demander de l'extérieur.
+
+**Ce qui a été posé :**
+- `navTo()` écrit l'écran dans l'adresse (`#clients`), en `replaceState`. Trois effets voulus : le
+  bureau pointe droit sur un écran, le bouton Retour du navigateur circule DANS l'outil au lieu
+  d'en sortir, et un écran peut être mis en favori.
+- Un écouteur `hashchange` rejoue le changement d'écran quand l'outil est déjà ouvert.
+- À l'ouverture, `/outils/dashboard-vigneron/#clients` ouvre directement cet écran, **mais
+  seulement s'il y a des lignes en base**. Sans données, l'écran de dépôt reste la bonne réponse :
+  le lien ne se transforme jamais en page vide.
+- La barre du tableau de bord dit « ← Mon bureau » au lieu de « ← Retour au site ».
+- Le bureau affiche les quatre écrans en raccourcis, masqués pour qui a déclaré ne pas utiliser
+  Vitisoft.
+- `/mon-bureau/` passe de `.container` (760 px, le gabarit d'un article) à `.container--wide`
+  (1100 px). C'était toute l'explication de l'espace perdu que Ted voyait sur sa capture.
+
+**Le piège évité, à ne pas réintroduire** : l'écran de départ est un PARAMÈTRE d'`openApp()`, il ne
+peut pas être posé par un `navTo()` juste après l'appel. `runBusy` diffère le rendu de deux frames
+dès que la base est grosse, et son `navTo('annee')` écraserait le nôtre une fraction de seconde
+plus tard. Le bug n'apparaîtrait que sur une grosse base, donc jamais en test et toujours chez le
+vigneron.
+
+**Décision d'architecture prise pour la suite** : le bureau ne recalcule JAMAIS un chiffre de
+vente. Le tableau de bord calcule et dépose un résumé, le bureau l'affiche.
+Why: deux copies du même calcul finiraient par diverger, et le bureau annoncerait un chiffre
+d'affaires que le tableau de bord dément deux clics plus loin. Même famille que le calcul des
+échéances, sorti dans `bdv-echeances.js` pour la même raison.
+How to apply: le résumé va dans une colonne de `reglages`, pas dans le localStorage, pour que le
+bureau ouvert sur le téléphone montre les chiffres du dernier import fait sur l'ordinateur.
+Reste à écrire : la colonne, l'écriture côté tableau de bord, le bloc de quatre chiffres côté
+bureau, et les rappels clients du jour (`suivi_clients.rappel`, qui ne demande aucun calcul).
+
+**Règle de partage retenue** : le bureau ne duplique jamais un écran du tableau de bord, il y mène.
+Le bureau porte des chiffres et des portes ; dès qu'il faut une liste, on est dans l'outil.
+
+### L'écran d'import n'est plus une porte
+
+Constat de Ted : « on tombe toujours sur la page d'upload, c'est pas full intégré, la page d'import
+n'est pas un déclencheur, ça doit être une page de paramétrage ». Fondé. Le tableau de bord
+s'ouvrait sur un formulaire de dépôt même avec 17 000 lignes en base : il ressemblait à un outil
+dans lequel on entre en montrant patte blanche, pas à une pièce du bureau.
+
+**Ce qui a changé :**
+- **`#screenImport` est supprimé.** L'écran plein page n'existe plus, ni dans le HTML ni dans le
+  flux. Avec lui disparaissent `bindImport()` et `refreshResume()`, qui n'avaient plus d'objet.
+- **« Ma base » devient un écran du menu**, avec sa propre entrée entre « Chercher » et
+  « Réglages ». Il portait déjà la zone de dépôt et le bouton « Vider la base » : il était rangé
+  dans Réglages, il en sort.
+- **L'outil s'ouvre toujours.** Base pleine, on arrive sur « Mon année » ou sur l'écran demandé par
+  l'adresse. Base vide, `openApp()` atterrit de lui-même sur « Ma base », avec un mot qui explique
+  quoi déposer. Sur zéro ligne, `renderAll()` n'est pas appelé : certains écrans se construisent
+  mal sans données.
+- **Le volet gagne un pied de navigation** : Mon bureau, Le compte à rebours, Les articles. Le
+  tableau de bord n'est plus une application dont on sort, c'est une pièce dans laquelle on passe.
+  Sur téléphone il se range en ligne dans la barre horizontale.
+- **`.app.replie .topbar__home` repasse en `display:inline`.** Le lien vers le bureau était masqué
+  quand le volet est replié pour gagner de la place, mais le volet replié emporte le pied de
+  navigation avec lui : sans ce lien, il ne restait plus aucune sortie vers le reste du bureau.
+- Le bloc du non-Vitisoft, qui vivait dans l'écran d'import supprimé, revit en tête de « Ma base ».
+
+**Sauvegarde** : `dashboard-avant-remaniement.html` a été déposé dans le dossier de travail de la
+session (hors du dépôt) avant l'opération. Il n'y survivra pas ; le vrai filet est le commit
+précédent.
+
+### Le pseudo-CRM : la file, le journal, les gestes
+
+Ted a validé l'ordre proposé et est parti sans possibilité de valider la suite. Tout ce qui suit
+a été décidé, écrit et audité en son absence.
+
+**Le raisonnement, à garder** : l'outil savait déjà QUI rappeler, il l'écrivait noir sur blanc dans
+ses verdicts. Ce qu'il ne savait pas, c'est SI ça avait été fait. Un constat repart de zéro à
+chaque import, une file garde la mémoire des gestes. C'est toute la bascule.
+
+**Ce qui a été écrit :**
+- **Table `echanges`** (`supabase/schema.sql` section 13, et `supabase/lot4-a-coller.sql` pour Ted).
+  Une entrée ne se modifie jamais, elle s'ajoute. `echange_id` est fabriqué par le navigateur,
+  comme l'empreinte des ventes : le même geste poussé deux fois ne crée pas de doublon.
+- **Écran « Ma journée »**, en tête du menu et écran d'ouverture par défaut. Trois sources : les
+  rappels dus, les clients signalés jamais traités, rien d'autre. Plafond de 25 lignes.
+- **Trois gestes** : Appelé (+30 j), Laissé un message (+7 j), Pas maintenant (+60 j). Chacun écrit
+  au journal, pose un statut et REPOUSSE le rappel.
+  Why: sans le report, la ligne reviendrait le lendemain et la file deviendrait un mur.
+- **« Pas maintenant » n'a pas de colonne dédiée**, volontairement : un rappel repoussé suffit à
+  sortir la ligne, et l'écart laisse une trace au journal comme les autres gestes. Zéro changement
+  de schéma sur `suivi_clients`.
+- **Journal dans la fiche client**, non modifiable et non supprimable depuis l'écran.
+  Why: un historique qu'on peut réécrire ne vaut rien comme historique.
+- **Les rappels dus remontent dans `/mon-bureau/`**, sans les noms : ils vivent dans Vitisoft, pas
+  chez nous. Le bureau annonce le nombre, le tableau de bord montre qui.
+- **`src/rgpd.njk` réécrite**, elle ne disait rien depuis juin.
+
+### L'audit, et ce qu'il a trouvé
+
+Deux agents lancés en parallèle sur le travail : un relecteur de code, un auditeur de cohérence
+entre les promesses des pages et ce que fait le code. Les deux ont trouvé du réel.
+
+**Un bloquant** : `FICHE_OUVERTE` porte l'élément DOM à qui rendre le focus, pas un identifiant
+client. Mon `if(FICHE_OUVERTE===id)` était donc toujours faux et la fiche ne se redessinait jamais
+après un geste : le vigneron aurait tapé sa note, vu le champ se vider, et rien apparaître.
+Corrigé par une variable `FICHE_ID` distincte.
+
+**Six sérieux, tous corrigés :**
+1. `NOMS_CACHE` n'était vidé nulle part. Pire cas trouvé par l'agent : construit une fois alors que
+   `ROWS` est vide, il devient `{}`, qui est *truthy*, et plus aucun nom ne s'affiche de la
+   session. Ajouté à `computeMeta()`, avec les autres caches dérivés de `ROWS`.
+2. Un clic sur un geste déclenchait **trois** `crmSet`, donc trois POST identiques et trois rendus
+   complets, avec scintillement (la ligne restait dans la file aux deux premiers). D'où
+   `crmSetPlusieurs()`.
+3. Une entrée du journal dont l'envoi échouait n'était **jamais** retentée : le journal est
+   immuable, donc rien ne le repoussait, contrairement aux ventes et au suivi. Vingt gestes posés
+   sans réseau, puis un changement d'ordinateur, et tout était perdu. Drapeau `_apousser` et
+   `echRejouer()` au rapatriement.
+4. `lireEchanges` ne paginait pas : PostgREST plafonne à 1000 lignes, le journal aurait été
+   silencieusement tronqué au bout de deux ou trois ans, et seulement sur le deuxième appareil.
+5. « Vider la base » n'effaçait ni `CRM` ni `ECHANGES` sur l'appareil : le rapatriement suivant les
+   **réinstallait** sur un serveur vide. La suppression n'effaçait donc rien de ce que le vigneron
+   voyait dans ses fiches. C'était aussi une promesse fausse de la page de confidentialité.
+6. `contactTexte()` est une chaîne de recherche (numéro deux fois, sans espaces), pas un affichage.
+   Remplacé par `contactCell()`.
+
+**L'audit de cohérence a trouvé pire que des bugs : des promesses fausses.**
+- La page annonçait un ciblage « sur tes canaux de vente déclarés ». Aucun champ de ce genre n'est
+  collecté, et la seule notion de canal qui existe **vient des lignes de vente** : la phrase
+  contredisait frontalement, dans la même page, l'engagement central. Retirée.
+- « Quatre questions » alors que le formulaire en pose cinq depuis l'ajout du prénom, et que la
+  fenêtre elle-même en annonçait trois. Trois chiffres pour le même formulaire, tous les trois
+  corrigés.
+- `vu_le`, `outil_origine` et `cree_le` étaient collectés sans être déclarés. `vu_le` est une
+  mesure de fréquentation nominative écrite depuis **toutes** les pages du site.
+- Google Fonts (États-Unis, toutes les pages), cdnjs, jsDelivr et **Tally** (le formulaire de
+  Conseil terrain, qui héberge nom et adresse) n'étaient pas déclarés. Ajoutés.
+- L'annexe de sous-traitance était annoncée « disponible sur demande » alors que le dépôt dit
+  lui-même qu'elle est reportée. Reformulée honnêtement.
+- La désinscription automatique était promise et n'existe pas : `consent_news` n'est jamais écrit
+  à `false`. Reformulée en désinscription manuelle, qui est ce qui existe.
+
+### Ce que l'audit a laissé ouvert, et qui demande une décision de Ted
+
+1. **`/outils/dashboard-vigneron-v1/` et `/outils/dashboard-vigneron-mockup/` sont construites et
+   publiquement accessibles**, sans compte, sans lien depuis aucun menu. La v1 stocke l'export CSV
+   complet en clair dans le localStorage. Ce n'est pas une fuite vers l'extérieur, mais c'est un
+   contournement de la porte compte, et une vieille version qui ne porte aucune des promesses de
+   la page de confidentialité. Je n'ai rien supprimé : ce sont ses fichiers, il n'était pas là.
+2. **`src/cgu.njk` est un TODO vide**, et `mentions-legales.njk` n'a ni adresse, ni SIRET, ni
+   capital. La page de confidentialité désigne un responsable de traitement dont l'adresse n'est
+   nulle part.
+3. **« Données hébergées en Europe »** au pied de chaque page est plus catégorique que la réalité :
+   Vercel (États-Unis) sert les pages, Google Fonts est appelé à chaque chargement.
+4. La colonne `profils.nom` existe, est accordée en écriture, et n'est remplie par aucun écran.
+5. La suppression de compte n'est outillée nulle part, alors que la page annonce trente jours.
+
+### La file passe du tableau de bord au bureau
+
+Retour de Ted : « ça intervient dans le tableau de bord, ça doit venir alimenter la page du bureau
+directement, tout sera lié et on évite les doublons ».
+
+**L'arbitrage, et il conditionne tout** : la file a besoin des moteurs d'analyse, qui tournent sur
+les lignes de vente, dans le tableau de bord. Le bureau est une page du site, il n'a ni les lignes
+ni les moteurs. Recopier les calculs côté site aurait donné deux moteurs qui divergent, et un
+bureau qui signale un client que l'outil ne signale plus.
+Retenu : **le tableau de bord calcule et dépose, le bureau lit et agit.**
+
+- `fileSignaux()`, `annuaireSuivis()` et `resumeVentes()` déposent dans
+  `reglages.file_travail` (forme `{signaux, noms}`) et `reglages.resume_ventes`.
+- `src/js/bdv-crm.js`, nouveau, lit ce dépôt plus le suivi en direct, fusionne, trie, porte les
+  trois gestes et une file d'attente hors ligne.
+- L'écran « Ma journée » a quitté le tableau de bord. Le journal reste dans la fiche client : ce
+  n'est pas un doublon, c'est le détail d'un client.
+
+**Ce que ça débloque, et qui n'était pas demandé** : la file s'utilise depuis un téléphone sur
+lequel aucun export n'a jamais été importé.
+
+**On ne dépose QUE les signaux.** Les rappels, le bureau les lit lui-même : déposés, ils seraient
+figés au dernier import et un rappel posé depuis le téléphone n'apparaîtrait jamais.
+
+### Le second audit, et ce qu'il a rattrapé
+
+**Un bloquant, et il vidait l'intérêt du lot.** `charger()` ne lisait que les rappels ÉCHUS. Un
+rappel FUTUR était donc invisible, et n'empêchait rien : un client rappelé le matin revenait dans
+la file l'après-midi en « signal », puisque le dépôt du tableau de bord, lui, ne change qu'au
+prochain import. Le vigneron rappelait deux fois. Corrigé en lisant tout le suivi : une fiche
+existante sort le client de la file, quel que soit son rappel.
+
+**Cinq sérieux :**
+1. **Injection HTML.** Le nom du client était protégé, mais `contact` et `detail` étaient encore
+   concaténés dans la chaîne HTML avant d'être réécrits. Un `<img src=x onerror=…>` dans un libellé
+   de cuvée s'exécutait dès l'affectation de `innerHTML`, sur l'origine où vit le jeton de session.
+   Plus aucune donnée du serveur ne rentre dans une chaîne HTML, dans ce fichier.
+2. `Promise.all` faisait tomber les rappels quand la lecture des réglages échouait, alors que les
+   deux sources sont indépendantes. Passé en `allSettled`.
+3. **`BdvCompte.api()` rend `null` sans lever quand la session est tombée.** Un geste posé après
+   expiration paraissait réussir, la ligne quittait l'écran, rien n'était écrit : perdu
+   définitivement. Le `null` est maintenant traité comme un échec.
+4. Un geste raté faisait disparaître la ligne en silence. Elle revient, et un avis le dit.
+5. `rejouer()` n'était pas attendu avant `charger()` : les lignes déjà traitées revenaient.
+
+**Et un défaut de fusion, hérité, que le déplacement a rendu grave.** `CRM=Object.assign({},suivi,
+CRM)` faisait gagner le local **fiche entière**. Une simple note locale sur un client suffisait à
+jeter la fiche serveur, donc à annuler le rappel qu'un geste venait d'y écrire depuis le bureau.
+La fusion se fait maintenant champ par champ, et le serveur fait foi sur `statut`, `rappel` et
+`canal`, que seul le bureau écrit.
+How to apply: cette règle est à tenir. Tout nouveau champ écrit des deux côtés doit être ajouté à
+`CHAMPS_BUREAU`.
+
+**Trois mineurs corrigés** : dates calculées en heure locale et non en UTC (entre minuit et deux
+heures du matin, un rappel du jour passait à la trappe) ; file d'attente dédupliquée par client ;
+annuaire des noms rendu cumulatif et persistant, pour qu'un client absent du dernier export ne
+s'affiche pas sous son numéro Vitisoft.
+
 ### Reste à faire sur l'expérience, par ordre d'impact
 
 1. Le domaine.

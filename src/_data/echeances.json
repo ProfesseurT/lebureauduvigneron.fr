@@ -1,0 +1,52 @@
+[
+  {
+    "cle": "drm",
+    "titre": "DRM, déclaration récapitulative mensuelle",
+    "qui": "Tous ceux qui détiennent du vin en suspension de droits : vignerons indépendants, négociants, caves coopératives.",
+    "detail": "À déposer même à zéro. Une DRM « à néant » reste obligatoire un mois sans mouvement.",
+    "recurrence": { "type": "mensuel", "jour": 10 },
+    "source": "https://www.douane.gouv.fr/",
+    "sourceNom": "Douane",
+    "article": null
+  },
+  {
+    "cle": "dai",
+    "titre": "DAI, déclaration annuelle d'inventaire",
+    "qui": "Récoltants-vinificateurs, négociants-vinificateurs et caves coopératives.",
+    "detail": "Déposée en ligne via le service CIEL. Pour les opérateurs en campagne viticole, la limite est le 10 septembre.",
+    "recurrence": { "type": "annuel", "mois": 9, "jour": 10 },
+    "source": "https://www.douane.gouv.fr/demarche/deposer-une-declaration-annuelle-dinventaire-dai",
+    "sourceNom": "Douane",
+    "article": "/posts/declaration-annuelle-inventaire-dai-vigneron/"
+  },
+  {
+    "cle": "recolte",
+    "titre": "Déclaration de récolte",
+    "qui": "Producteurs de raisins et de moût. Une déclaration par exploitation distincte.",
+    "detail": "Sur douane.gouv.fr, module VENDANGES. Les caves coopératives peuvent déclarer pour leurs apporteurs.",
+    "recurrence": { "type": "annuel", "mois": 12, "jour": 10 },
+    "source": "https://www.douane.gouv.fr/",
+    "sourceNom": "Douane",
+    "article": null
+  },
+  {
+    "cle": "facture-emission",
+    "titre": "Facturation électronique, obligation d'émettre",
+    "qui": "PME, TPE, microentreprises et indépendants. Donc la quasi-totalité des domaines.",
+    "detail": "Émettre ses factures au format électronique, via une plateforme agréée.",
+    "recurrence": { "type": "unique", "date": "2027-09-01" },
+    "source": "https://www.impots.gouv.fr/",
+    "sourceNom": "impots.gouv.fr",
+    "article": "/posts/facturation-electronique-obligatoire-vigneron-2026/"
+  },
+  {
+    "cle": "facture-reception",
+    "titre": "Facturation électronique, obligation de recevoir",
+    "qui": "Toutes les entreprises, sans exception de taille.",
+    "detail": "Être en mesure de recevoir une facture électronique. Les grandes entreprises et les ETI doivent aussi émettre depuis cette date.",
+    "recurrence": { "type": "unique", "date": "2026-09-01" },
+    "source": "https://www.impots.gouv.fr/",
+    "sourceNom": "impots.gouv.fr",
+    "article": "/posts/facturation-electronique-obligatoire-vigneron-2026/"
+  }
+]

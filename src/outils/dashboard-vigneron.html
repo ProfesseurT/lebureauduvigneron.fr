@@ -145,7 +145,22 @@ a{color:var(--bordeaux)}
 .dropzone h3{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;margin-bottom:.25rem}
 .dropzone p{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
 .btn-row{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1.3rem}
+[hidden]{display:none !important}
 .hint{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.8rem}
+.journal__gestes{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+.journal__saisie{display:flex;gap:.4rem;align-items:center;margin-bottom:.8rem}
+.journal__saisie .msg__sujet{flex:1}
+.journal{display:flex;flex-direction:column;border-top:var(--trait) solid var(--rule)}
+.journal__l{display:grid;grid-template-columns:20px 130px 1fr;gap:.5rem;align-items:baseline;padding:.5rem 0;border-bottom:var(--trait) solid var(--rule);font-size:var(--t-base)}
+.journal__ico{color:var(--cork-encre)}
+.journal__quand{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
+.journal__quoi{line-height:var(--lh-normal)}
+@media(max-width:640px){.journal__l{grid-template-columns:20px 1fr}.journal__quand{grid-column:2}}
+.pas-viti{margin-top:1.4rem;padding:1rem 1.2rem;background:var(--info-bg);border:var(--trait) solid var(--info);border-left:var(--trait-accent) solid var(--info);text-align:left;font-size:var(--t-base);line-height:var(--lh-normal)}
+.pas-viti p{margin:0 0 .5rem}
+.pas-viti p:last-child{margin-bottom:0}
+.pas-viti__titre{font-family:var(--font-titre);font-size:var(--t-h3);color:var(--ink)}
+.pas-viti__liens{font-family:var(--font-corps);font-size:var(--t-mini)}
 .resume{margin-top:1.8rem;padding:1rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);font-size:var(--t-base);text-align:left}
 .resume b{font-weight:700}
 
@@ -193,7 +208,7 @@ a{color:var(--bordeaux)}
    dans l'ecran ou il se trouve. */
 .ici{display:none;position:relative}
 .app.replie .ici{display:block}
-.app.replie .topbar__home{display:none}
+.app.replie .topbar__home{display:inline}
 .ici__btn{background:none;border:none;cursor:pointer;padding:.2rem .3rem;
   font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;
   letter-spacing:var(--ls-etiq);color:var(--gold);white-space:nowrap}
@@ -212,6 +227,13 @@ a{color:var(--bordeaux)}
 .navitem:hover{background:var(--ink);color:var(--on-dark)}
 .navitem.on{color:var(--on-dark);background:var(--ink);border-left-color:var(--gold)}
 .navitem__ico{width:16px;text-align:center;flex-shrink:0;color:var(--gold)}
+
+/* Le pied du volet : les autres pieces du bureau. Le tableau de bord n'est pas une
+   application dont on sort, c'est une piece dans laquelle on passe. */
+.navpied{margin-top:1.4rem;padding:1rem 1.1rem 0;border-top:var(--trait) solid var(--on-dark-rule)}
+.navpied__titre{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--on-dark-faint);margin:0 0 .6rem}
+.navpied__lien{display:block;padding:.35rem 0;font-family:var(--font-corps);font-size:var(--t-petit);color:var(--on-dark-soft);text-decoration:none}
+.navpied__lien:hover{color:var(--gold);text-decoration:none}
 .content{background:var(--paper);padding:1.4rem 1.6rem 4rem;overflow-x:hidden;min-width:0}
 
 /* FILTRES */
@@ -490,7 +512,7 @@ table.data tbody tr:hover{background:var(--paper-light)}
   .pr-seclabel{page-break-after:avoid}
   .pr-sig,.pr-pv__item,.pr-kpi{page-break-inside:avoid}
 }
-@media(max-width:900px){.app.on,.app.on.replie{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:var(--trait-accent) solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--gold)}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-rep{grid-template-columns:1fr}.cta__txt{max-width:100%}}
+@media(max-width:900px){.app.on,.app.on.replie{grid-template-columns:1fr}.sidebar{display:flex;overflow-x:auto}.navitem{border-left:none;border-bottom:var(--trait-accent) solid transparent;white-space:nowrap}.navitem.on{border-left:none;border-bottom-color:var(--gold)}.navpied{display:flex;align-items:center;gap:.9rem;margin:0;padding:0 1rem;border-top:none;border-left:var(--trait) solid var(--on-dark-rule);flex-shrink:0}.navpied__titre{display:none}.navpied__lien{padding:0;white-space:nowrap}.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-rep{grid-template-columns:1fr}.cta__txt{max-width:100%}}
 </style>
 </head>
 <body>
@@ -508,31 +530,16 @@ table.data tbody tr:hover{background:var(--paper-light)}
   <div class="busyov__sub">le moteur travaille</div>
 </div></div>
 
-<!-- ============ IMPORT ============ -->
-<section id="screenImport" class="import">
-  <div class="import__box">
-    <p class="eyebrow">Tableau de bord des ventes · lecture d'export Vitisoft</p>
-    <h1>Dépose ton export. Tes chiffres se lisent tout seuls.</h1>
-    <p class="lead">Ton chiffre d'affaires, tes clients à relancer, ceux qui décrochent, tes canaux de vente. L'outil lit ton export, sort tes statistiques et te dit quoi faire.</p>
-    <div class="dropzone" id="dropzone">
-      <div class="dz-icon">&#9095;</div><h3>Dépose ton fichier ici</h3>
-      <p>Export Vitisoft (.csv) · ou clique pour choisir</p>
-      <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
-    </div>
-    <div class="hint"><b>Réservé aux utilisateurs de Vitisoft.</b> L'outil lit le fichier d'export de Vitisoft et refuse tout autre format.</div>
-    <div class="btn-row">
-      <button class="btn btn--primary" onclick="document.getElementById('fileInput').click()">Choisir un fichier</button>
-    </div>
-    <div class="hint">Tu retrouveras cette zone à tout moment dans « Ma base ».</div>
-    <div class="resume" id="resumeBox" style="display:none"></div>
-  </div>
-</section>
+<!-- L'ecran d'import plein page a ete retire le 06/09/2026. Il servait de porte : on
+     tombait dessus a chaque ouverture, meme avec une base pleine, et le tableau de bord
+     ressemblait a un formulaire d'upload plutot qu'a une piece du bureau. Le depot de
+     fichier vit desormais dans l'ecran « Ma base », comme un reglage parmi d'autres. -->
 
 <!-- ============ APP ============ -->
 <div class="app" id="app">
   <div class="topbar">
     <div class="topbar__gauche"><button class="volet" id="volet" type="button" aria-expanded="true" aria-controls="sidebar"
-        title="Replier le menu (touche crochet ouvrant)" onclick="basculerVolet()"><span class="volet__filets" aria-hidden="true"></span><span class="sr">Replier le menu</span></button><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><div class="ici" id="ici"><button class="ici__btn" id="tbSection" type="button" aria-haspopup="true" aria-expanded="false" onclick="basculerIci(event)"></button><div class="ici__menu" id="iciMenu" role="menu"></div></div><a href="/" class="topbar__home">&#8592; Retour au site</a> <span class="topbar__file" id="tbFile"></span></div>
+        title="Replier le menu (touche crochet ouvrant)" onclick="basculerVolet()"><span class="volet__filets" aria-hidden="true"></span><span class="sr">Replier le menu</span></button><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><div class="ici" id="ici"><button class="ici__btn" id="tbSection" type="button" aria-haspopup="true" aria-expanded="false" onclick="basculerIci(event)"></button><div class="ici__menu" id="iciMenu" role="menu"></div></div><a href="/mon-bureau/" class="topbar__home">&#8592; Mon bureau</a> <span class="topbar__file" id="tbFile"></span></div>
     <div class="topbar__actions">
       <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
       <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
@@ -553,9 +560,11 @@ table.data tbody tr:hover{background:var(--paper-light)}
     <section class="panel" id="p-chercher">
       <div id="p-explorer"></div>
     </section>
+    <section class="panel" id="p-base-panel">
+      <div id="p-base"></div>
+    </section>
     <section class="panel" id="p-parametres">
       <div id="p-reglages"></div>
-      <div id="p-base"></div>
     </section>
     <!-- Panneaux techniques : les moteurs historiques ecrivent toujours dedans, mais ils ne
          sont plus des destinations. « Mes clients » lit leurs donnees, pas leur HTML. -->
@@ -737,19 +746,78 @@ async function tirerDuServeur(){
       if(reg.perso_labels){persoLabels=reg.perso_labels;savePersoLabels();}
       if(reg.classement)await regEcrire(reg.classement);
     }
-    const suivi=await BdvSync.lireSuivi();
+    // Le journal d'echanges suit le meme chemin que le suivi. Le serveur fait foi ici,
+  // contrairement au suivi ou le local gagne : une entree ne se modifie jamais, donc deux
+  // appareils ne peuvent pas se contredire, ils ne peuvent que s'additionner.
+  if(BdvSync.lireEchanges){
+    try{
+      const lignes=await BdvSync.lireEchanges();
+      const parClient={};
+      (lignes||[]).forEach(function(e){(parClient[e.client_id]||(parClient[e.client_id]=[])).push(e);});
+      // Fusion par identifiant : ce qui est parti d'ici et n'est pas encore revenu du
+      // serveur ne doit pas disparaitre de l'ecran.
+      Object.keys(ECHANGES).forEach(function(id){
+        const connus=new Set((parClient[id]||[]).map(e=>e.echange_id));
+        (ECHANGES[id]||[]).forEach(function(e){if(!connus.has(e.echange_id))(parClient[id]||(parClient[id]=[])).push(e);});
+      });
+      ECHANGES=parClient;echSave();
+      echRejouer();
+    }catch(e){ /* silencieux, comme tout le sync : on garde le miroir local */ }
+  }
+  const suivi=await BdvSync.lireSuivi();
     if(suivi&&Object.keys(suivi).length){
       // Le local gagne sur le serveur en cas de conflit : une note ecrite ici et pas encore
       // partie ne doit pas etre effacee par une version plus ancienne venue d'ailleurs.
-      CRM=Object.assign({},suivi,CRM);crmSave();
+      // Fusion CHAMP PAR CHAMP, et non fiche par fiche. « Le local gagne » avait du sens
+  // quand cet ecran etait seul a ecrire ; depuis que /mon-bureau/ pose des gestes, une
+  // simple note locale sur un client suffisait a jeter la fiche serveur entiere, donc a
+  // annuler le rappel qu'un geste venait d'y ecrire. Le client revenait dans la file.
+  // Regle retenue : le local gagne SAUF sur les champs que seul le bureau ecrit
+  // (statut, rappel, canal), ou le serveur fait foi quand il porte quelque chose.
+  const CHAMPS_BUREAU=['statut','rappel','canal'];
+  Object.keys(suivi||{}).forEach(function(id){
+    const distant=suivi[id]||{}, local=CRM[id];
+    if(!local){CRM[id]=distant;return;}
+    Object.keys(distant).forEach(function(k){
+      if(local[k]==null||CHAMPS_BUREAU.indexOf(k)>=0)local[k]=distant[k];
+    });
+  });
+  crmSave();
     }
   }catch(e){ /* jamais bloquant */ }
 }
+// Le nom lisible d'un client, y compris pour un identifiant qui ne figure dans aucune
+// liste d'analyse. Cache construit une fois : la file relit des noms a chaque rendu.
+let NOMS_CACHE=null;
+function nomClient(id){
+  if(!NOMS_CACHE){
+    NOMS_CACHE={};
+    ROWS.forEach(function(r){const k=clientKey(r);if(k&&!NOMS_CACHE[k])NOMS_CACHE[k]=r.client||k;});
+  }
+  return NOMS_CACHE[id]||id;
+}
 function crmVide(c){return !c||(!c.statut&&!c.notes&&!c.rappel&&!c.canal&&!(c.tags&&c.tags.length));}
-function crmRafraichirListe(){const p=el('p-clients');if(p&&p.classList.contains('on'))renderClients();}
+function crmRafraichirListe(){
+  const p=el('p-clients');if(p&&p.classList.contains('on'))renderClients();
+  // Le bureau sert la file deposee : un client traite ici doit en sortir tout de suite,
+  // pas au prochain import.
+  if(typeof deposerPourLeBureau==='function')deposerPourLeBureau();
+}
 function crmSet(id,champ,valeur){
   const c=CRM[id]||{};
   if(valeur==='')delete c[champ];else c[champ]=valeur;
+  if(crmVide(c))delete CRM[id];else CRM[id]=c;
+  crmSave();syncSuivi(id);crmRafraichirListe();
+}
+// Ecrit plusieurs champs d'un coup. crmSet appelle a la suite persistait, synchronisait et
+// redessinait TROIS fois pour un seul clic, avec un scintillement : aux deux premiers
+// rendus la ligne etait encore dans la file, le rappel n'etant pose qu'au troisieme.
+function crmSetPlusieurs(id,champs){
+  const c=CRM[id]||{};
+  Object.keys(champs||{}).forEach(function(k){
+    const v=champs[k];
+    if(v===''||v==null)delete c[k];else c[k]=v;
+  });
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
   crmSave();syncSuivi(id);crmRafraichirListe();
 }
@@ -766,6 +834,77 @@ const STATUTS_SUIVI={
   traite:{label:'Traité',cls:'m-statut-traite'}
 };
 const CANAUX_SUIVI=['Téléphone','E-mail','En personne','Courrier'];
+
+/* ======================= LE JOURNAL D'ECHANGES =======================
+   Le suivi porte UNE note : ecrire quelque chose en septembre effacait ce qu'on avait
+   note en aout. Le journal empile des entrees datees, et une entree ne se modifie
+   jamais, elle s'ajoute. C'est toute la difference entre un historique et un bloc-notes.
+
+   Meme motif que le suivi : un miroir dans le localStorage pour afficher sans attendre
+   le reseau, le serveur pousse en tache de fond et ne bloque jamais un geste. */
+const ECH_KEY='bdv_echanges_v1';
+let ECHANGES={};
+try{ECHANGES=JSON.parse(localStorage.getItem(ECH_KEY))||{};}catch(e){ECHANGES={};}
+function echSave(){try{localStorage.setItem(ECH_KEY,JSON.stringify(ECHANGES));}catch(e){}}
+// Du plus recent au plus ancien, toujours. C'est le seul ordre dans lequel on lit un suivi.
+function echDe(id){return (ECHANGES[id]||[]).slice().sort((a,b)=>String(b.le).localeCompare(String(a.le)));}
+// Identifiant fabrique ici, comme l'empreinte d'une ligne de vente : le meme geste pousse
+// deux fois ne cree pas de doublon, et l'ecran affiche l'entree avant la reponse du serveur.
+function echId(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);}
+function echAjouter(id,type,canal,resume){
+  if(!id)return null;
+  const e={echange_id:echId(),client_id:String(id),le:new Date().toISOString(),
+           type:type||'note',canal:canal||null,resume:resume||null};
+  (ECHANGES[id]||(ECHANGES[id]=[])).push(e);
+  echSave();
+  echPousser(e);
+  return e;
+}
+// Une entree du journal ne se reecrit jamais : sans marque, un envoi rate ne serait
+// JAMAIS retente, contrairement aux ventes (repoussees a chaque import) et au suivi
+// (repousse a chaque modification). Le drapeau reste pose tant que le serveur n'a pas
+// confirme, et echRejouer() vide la file au chargement suivant.
+function echPousser(e){
+  if(!syncPret()||!BdvSync.ecrireEchange){e._apousser=true;echSave();return;}
+  BdvSync.ecrireEchange(e).then(function(ok){
+    if(ok){ if(e._apousser){delete e._apousser;echSave();} }
+    else { e._apousser=true;echSave(); }
+  }).catch(function(){ e._apousser=true;echSave(); });
+}
+function echRejouer(){
+  if(!syncPret())return;
+  Object.keys(ECHANGES).forEach(function(id){
+    (ECHANGES[id]||[]).forEach(function(e){ if(e._apousser)echPousser(e); });
+  });
+}
+const TYPES_ECHANGE={
+  appel:  {label:'Appel',           ico:'&#9990;'},
+  message:{label:'Message laissé',  ico:'&#9993;'},
+  note:   {label:'Note',            ico:'&#9998;'},
+  ecarte: {label:'Écarté',          ico:'&#8987;'}
+};
+
+/* Les trois gestes de la file. Chacun fait exactement trois choses : il ecrit une entree
+   au journal, il pose un statut, et il REPOUSSE le rappel. Le troisieme point est le plus
+   important : sans lui la ligne reviendrait le lendemain et la file deviendrait un mur.
+   « Pas maintenant » n'a volontairement pas de champ dedie en base : un rappel repousse a
+   soixante jours suffit a sortir la ligne de la file, et l'ecart laisse une trace au
+   journal comme les autres gestes. */
+const GESTES={
+  appel:  {label:'Appelé',            type:'appel',  canal:'Téléphone',statut:'relance',jours:30,resume:'Appel passé'},
+  message:{label:'Laissé un message', type:'message',canal:'Téléphone',statut:'relance',jours:7, resume:'Message laissé, sans réponse'},
+  ecarte: {label:'Pas maintenant',    type:'ecarte', canal:null,       statut:null,     jours:60,resume:'Écarté de la file'}
+};
+function dansNJours(n){return isoDepuisJour(Math.floor(Date.now()/86400000)+n);}
+function geste(cle,id){
+  const g=GESTES[cle];if(!g||!id)return;
+  echAjouter(id,g.type,g.canal,g.resume);
+  const champs={rappel:dansNJours(g.jours)};
+  if(g.statut)champs.statut=g.statut;
+  if(g.canal)champs.canal=g.canal;
+  crmSetPlusieurs(id,champs);
+  status('success',g.label+' · '+nomClient(id)+' revient dans '+plur(g.jours,'jour'));
+}
 function fmtDateIso(iso){if(!iso)return '';const [y,m,d]=iso.split('-').map(Number);return fmtDate({y,m,d});}
 function rappelCell(iso){
   const auj=new Date().toISOString().slice(0,10);
@@ -1134,7 +1273,8 @@ function bindZoneDepot(idZone,idChamp){
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files);});
   dz.addEventListener('click',()=>fi.click());
 }
-function bindImport(){ bindZoneDepot('dropzone','fileInput'); }
+// bindImport() a disparu avec l'ecran plein page : la seule zone de depot vit dans
+// « Ma base », et renderBase() la relie a chaque rendu.
 async function handleFiles(list){
   const files=Array.from(list).filter(f=>f.name.toLowerCase().endsWith('.csv'));
   if(!files.length){status('error','Dépose un fichier .csv exporté depuis Vitisoft.');return;}
@@ -1339,7 +1479,7 @@ function computeMeta(){
   // est fragile, et l'ecran Ma base le dit au lieu de le taire.
   SANS_NUM=ROWS.filter(r=>!String(r.numClient||'').trim()).length;
   buildEmailIndex();     // adresses regroupees par client, avant le profil
-  RECO=null;CLASSEMENT=null;   // index de recommandation et classement : reconstruits a la demande
+  RECO=null;CLASSEMENT=null;NOMS_CACHE=null;   // index de recommandation et classement : reconstruits a la demande
   PROFIL=profilBase();   // recalcule le profil a chaque changement de base
 }
 
@@ -1527,17 +1667,34 @@ const NAV=[
   {id:'clients', ico:'&#128101;', label:'Mes clients'},
   {id:'produits',ico:'&#127863;', label:'Mes produits'},
   {id:'chercher',ico:'&#128301;', label:'Chercher'},
+  {id:'base',    ico:'&#128193;', label:'Ma base'},
   {id:'parametres',ico:'⚙',      label:'Réglages'}
 ];
-function openApp(){
-  el('screenImport').style.display='none';
+// Les autres pieces du bureau, en pied de volet. Le tableau de bord n'est pas une
+// application a part dans laquelle on entre et dont on ressort : on doit pouvoir passer
+// a un article ou au compte a rebours sans repasser par la porte du site.
+const NAV_BUREAU=[
+  {href:'/mon-bureau/',      label:'Ma journée'},
+  {href:'/mon-bureau/',      label:'Mon bureau'},
+  {href:'/outils/echeances/',label:'Le compte à rebours'},
+  {href:'/articles/',        label:'Les articles'}
+];
+function openApp(ecranDepart){
   el('app').classList.add('on');
   el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
-  el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.id==='annee'?('Mon '+exMot()):n.label}</button>`).join('');
+  el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.id==='annee'?('Mon '+exMot()):n.label}</button>`).join('')
+    +`<div class="navpied"><p class="navpied__titre">Le Bureau</p>`
+    +NAV_BUREAU.map(n=>`<a class="navpied__lien" href="${n.href}">${n.label}</a>`).join('')
+    +`</div>`;
   peuplerIci();
   appliquerVolet(voletReplie());
   buildFilterBar();
-  runBusy('Analyse de tes ventes…',()=>{renderAll();navTo('annee');});
+  // Base vide : on ouvre quand meme, sur « Ma base ». renderAll() n'a rien a calculer et
+  // certains ecrans se construisent mal sur zero ligne ; on ne l'appelle donc pas.
+  if(!ROWS.length){ navTo('base'); return; }
+  // Ecran d'accueil : « Mon annee ». Ce qu'il y a A FAIRE vit dans /mon-bureau/ depuis le
+  // 06/09/2026 ; ici on analyse, on ne travaille pas sa file.
+  runBusy('Analyse de tes ventes…',()=>{renderAll();navTo(ecranDepart||'annee');});
 }
 /* ---------------- VOLET DE NAVIGATION ----------------
    Replier le menu rend 230 px de large au tableau. La preference suit le
@@ -1599,18 +1756,33 @@ document.addEventListener('keydown',e=>{
   e.preventDefault(); basculerVolet();
 });
 
-function showImport(){el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();}
+// Ne sort plus de l'application : le depot de fichier est un ecran comme un autre.
+function showImport(){ navTo('base'); }
 function navTo(id){
   document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   const ici=NAV.find(n=>n.id===id);
   if(ici) el('tbSection').textContent='· '+ici.label;
   document.querySelectorAll('.ici__item').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   fermerIci();
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
+  if(id==='base') renderBase();
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
   window.scrollTo(0,0);
+  // L'ecran s'ecrit dans l'adresse. Trois consequences voulues : le bureau peut pointer
+  // droit sur « Mes clients », le bouton Retour du navigateur circule dans l'outil, et un
+  // vigneron peut mettre un ecran en favori. replaceState et pas pushState au premier
+  // rendu : ouvrir l'outil ne doit pas ajouter une entree d'historique par ecran traverse.
+  try{
+    if(location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+  }catch(e){}
 }
+// Le bouton Retour du navigateur ramene sur l'ecran precedent plutot que de sortir de l'outil.
+window.addEventListener('hashchange', function(){
+  const id = (location.hash || '').replace('#','');
+  if(!id || !NAV.some(n => n.id === id)) return;
+  if(el('app').classList.contains('on')) navTo(id);
+});
 /* La barre de periode. Trois familles de choix, separees par un filet, dans l'ordre ou
    on s'en sert : l'exercice entier (la maille des comparatifs), les fenetres glissantes,
    puis les dates a la main. Le perimetre effectif est reecrit en clair a droite, parce
@@ -1673,6 +1845,7 @@ function renderAll(){
   renderReactivation();renderPremierAchat();renderDecrochage();  // calculent et memorisent
   renderClients();renderProduits();
   renderExplo();renderReglages();renderBase();
+  deposerPourLeBureau();   // le bureau sert cette file, le tableau de bord ne l'affiche plus
 }
 
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
@@ -3028,10 +3201,17 @@ function messageHTML(f,motif){
 }
 
 let FICHE_OUVERTE=null;
+// L'identifiant du client dont la fiche est ouverte. Distinct de FICHE_OUVERTE, qui porte
+// l'element a qui rendre le focus a la fermeture : comparer un element DOM a une chaine
+// est toujours faux, et la fiche ne se redessinait donc jamais apres un geste.
+let FICHE_ID=null;
 function ouvrirFiche(id,motif){
   const f=ficheClient(id);
   if(!f){status('error','Client introuvable.');return;}
-  FICHE_OUVERTE=document.activeElement;
+  // On ne memorise l'element focalise QUE si la fiche n'etait pas deja ouverte : un
+  // redessin apres un geste garderait sinon un bouton du journal comme cible de retour.
+  if(FICHE_ID!==id)FICHE_OUVERTE=document.activeElement;
+  FICHE_ID=id;
   const m=el('modale');
   m.innerHTML=ficheHTML(f,motif||(CLIENTS.find(c=>c.id===id)||{}).motif||'');
   m.classList.add('on');
@@ -3044,7 +3224,7 @@ function fermerFiche(){
   const m=el('modale');m.classList.remove('on');m.setAttribute('aria-hidden','true');
   m.innerHTML='';document.body.style.overflow='';
   if(FICHE_OUVERTE&&FICHE_OUVERTE.focus)FICHE_OUVERTE.focus();
-  FICHE_OUVERTE=null;
+  FICHE_OUVERTE=null;FICHE_ID=null;
 }
 function ficheHTML(f,motif){
   const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
@@ -3109,6 +3289,8 @@ function ficheHTML(f,motif){
       <textarea class="msg__texte" rows="4" placeholder="Ce qu'il faut se rappeler sur ce client…" onchange="crmSet('${esc(f.id)}','notes',this.value)">${esc(s.notes||'')}</textarea>
     </div>
 
+    ${journalHTML(f)}
+
     ${messageHTML(f,motif||'premier')}
 
     <div class="fiche__cols">
@@ -3144,8 +3326,136 @@ function ficheHTML(f,motif){
     </div>
   </div>`;
 }
+/* Le journal de la fiche : ce qui s'est passe avec ce client, du plus recent au plus
+   ancien. Trois boutons pour les gestes courants, et un champ libre pour le reste.
+
+   Les entrees ne sont ni modifiables ni supprimables depuis ici, volontairement : un
+   historique qu'on peut reecrire ne vaut rien comme historique. La suppression complete
+   passe par « tout effacer », qui efface tout, et c'est le bon niveau pour ce geste. */
+function journalHTML(f){
+  const ech=echDe(f.id);
+  const arg=JSON.stringify(String(f.id)).replace(/"/g,'&quot;');
+  let h=`<div class="msg">
+    <div class="msg__lbl">Journal des échanges</div>
+    <div class="journal__gestes">
+      ${Object.keys(GESTES).map(k=>`<button class="btn btn--ghost btn--sm" onclick="gesteFiche('${k}',${arg})">${esc(GESTES[k].label)}</button>`).join('')}
+    </div>
+    <div class="journal__saisie">
+      <input class="msg__sujet" type="text" id="journalNote" placeholder="Noter un échange : ce qui s'est dit, ce qu'il attend…"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();noterFiche(${arg});}">
+      <button class="btn btn--ghost btn--sm" onclick="noterFiche(${arg})">Noter</button>
+    </div>`;
+  if(!ech.length){
+    h+=`<p class="note">Rien encore. Le premier geste que tu poses s'inscrit ici, daté.</p>`;
+  }else{
+    h+=`<div class="journal">`+ech.slice(0,30).map(function(e){
+      const t=TYPES_ECHANGE[e.type]||{label:e.type,ico:'&#9998;'};
+      const d=new Date(e.le);
+      const quand=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+      return `<div class="journal__l">
+        <span class="journal__ico" aria-hidden="true">${t.ico}</span>
+        <span class="journal__quand">${esc(quand)}</span>
+        <span class="journal__quoi"><b>${esc(t.label)}</b>${e.resume?' · '+esc(e.resume):''}</span>
+      </div>`;
+    }).join('')+`</div>`;
+    if(ech.length>30)h+=`<p class="note">${plur(ech.length-30,'entrée')} plus ancienne(s) non affichée(s).</p>`;
+  }
+  return h+`</div>`;
+}
+// Un geste pose depuis la fiche : meme effet que dans la file, plus le redessin de la
+// fiche ouverte, sinon le vigneron ne voit pas ce qu'il vient d'ecrire.
+function gesteFiche(cle,id){geste(cle,id);if(FICHE_ID===id)ouvrirFiche(id);}
+function noterFiche(id){
+  const champ=el('journalNote');if(!champ)return;
+  const t=champ.value.trim();if(!t)return;
+  echAjouter(id,'note',null,t);
+  champ.value='';
+  if(FICHE_ID===id)ouvrirFiche(id);
+  status('success','Note enregistrée.');
+}
 function ficheKpi(val,lbl,sub){
   return `<div class="fiche__kpi"><div class="fiche__kpi-v">${val}</div><div class="fiche__kpi-l">${esc(lbl)}</div><div class="fiche__kpi-s">${esc(sub||'')}</div></div>`;
+}
+
+
+/* ======================= CE QU'ON DEPOSE POUR LE BUREAU =======================
+   Decision du 06/09/2026 : le poste de travail est /mon-bureau/, pas cet outil. Mais les
+   moteurs qui savent QUI rappeler tournent ici, sur les lignes de vente.
+
+   Alors le tableau de bord calcule et DEPOSE, le bureau lit et AGIT. Aucun calcul n'est
+   recopie cote site : deux moteurs finiraient par diverger, et le bureau signalerait un
+   client que cet outil ne signale plus.
+
+   On ne depose QUE les signaux. Les rappels poses a la main, le bureau les lit lui-meme
+   dans `suivi_clients`, en direct : deposes ici, ils seraient figes au dernier import et
+   un rappel pose depuis le telephone n'apparaitrait jamais.
+
+   PLAFOND : 40 clients. Au-dela ce n'est plus une file, c'est la liste des clients, et
+   elle vit dans l'ecran d'a cote. */
+const FILE_MAX=40;
+function fileSignaux(){
+  const base=(CLIENTS&&CLIENTS.length)?CLIENTS:agentClients();
+  return base.filter(function(c){
+    // Un client deja suivi sort de la file : le vigneron a decide de le revoir plus tard,
+    // ou l'a traite. Sa decision prime sur le signal.
+    const suivi=CRM[c.id];
+    return !(suivi&&(suivi.rappel||suivi.statut==='traite'));
+  }).slice(0,FILE_MAX).map(function(c){
+    return {id:c.id,nom:c.nom,motif:c.motif,montant:c.montant||0,lib:c.lib||'',
+            detail:c.detail||'',contact:contactTexte(c.id)||''};
+  });
+}
+
+/* L'annuaire des clients SUIVIS. Indispensable et pas evident : un client sur lequel un
+   rappel est pose sort de fileSignaux() par construction. Le jour ou son rappel tombe, le
+   bureau a son identifiant et rien d'autre, et afficherait un numero client a la place
+   d'un nom. L'annuaire ne porte que les clients qui ont une fiche de suivi, pas les
+   milliers de la base. */
+const ANNU_KEY='bdv_annuaire_v1';
+function annuaireSuivis(){
+  // L'annuaire est CUMULATIF et persistant. Un client suivi mais absent du dernier
+  // export (base videe, export plus etroit) n'a plus de nom dans ROWS : sans memoire,
+  // le bureau afficherait son numero Vitisoft brut le jour ou son rappel tombe.
+  let out={};
+  try{out=JSON.parse(localStorage.getItem(ANNU_KEY))||{};}catch(e){out={};}
+  Object.keys(CRM).forEach(function(id){
+    const n=nomClient(id);
+    if(n&&n!==id)out[id]=n;
+  });
+  try{localStorage.setItem(ANNU_KEY,JSON.stringify(out));}catch(e){}
+  return out;
+}
+
+/* Le resume des ventes, quatre chiffres pour l'en-tete du bureau. Meme regle : ils sont
+   CALCULES ici, jamais recalcules la-bas. */
+function resumeVentes(){
+  if(!ROWS.length)return null;
+  const xs=META.exercices;
+  const cur=xs.length?xs[xs.length-1]:null;
+  const curRows=cur!=null?ROWS.filter(r=>r._vin&&r._exY===cur):[];
+  const ca=sum(curRows,r=>r._total);
+  const factures=new Set();curRows.forEach(r=>{if(r.numFacture)factures.add(r.numFacture);});
+  const clients=new Set();curRows.forEach(r=>clients.add(clientKey(r)));
+  return {
+    exercice: cur!=null?exLabel(cur):null,
+    ca: Math.round(ca),
+    objectif: objectif||null,
+    objectifPct: (objectif&&objectif>0)?Math.round(ca/objectif*100):null,
+    clients: clients.size,
+    panier: factures.size?Math.round(ca/factures.size):null,
+    lignes: ROWS.length,
+    du: META.min?fmtDate(META.min):null,
+    au: META.max?fmtDate(META.max):null
+  };
+}
+
+// Depot silencieux, jamais bloquant : le tableau de bord ne doit pas dependre du reseau
+// pour s'afficher, c'est la regle d'or du projet.
+function deposerPourLeBureau(){
+  if(!syncPret()||!BdvSync.deposerFile)return;
+  try{
+    BdvSync.deposerFile({signaux:fileSignaux(),noms:annuaireSuivis()},resumeVentes()).catch(function(){});
+  }catch(e){}
 }
 
 /* ======================= ECRAN : MES CLIENTS =======================
@@ -3615,6 +3925,9 @@ function impactHtml(){
 }
 function majImpact(){const z=el('impactReg');if(z)z.innerHTML=impactHtml();}
 
+// Vrai seulement si le vigneron a repondu « non » a la question Vitisoft de l'inscription.
+// Un refus qui ne propose rien est un refus rate : le bloc l'oriente au lieu de le planter.
+let PAS_VITISOFT=false;
 function renderBase(){
   const vin=ROWS.filter(r=>r._vin);
   const horsVin=ROWS.filter(r=>r._horsVin && !r._offert);
@@ -3624,7 +3937,20 @@ function renderBase(){
   const prix=prixVenteMoyen();
   const coutOffert=sum(offerts,r=>coutOffertLigne(r,prix));
 
-  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">État de la base cumulée (tout l'historique). La sélection de période ne s'applique pas ici.</div>`;
+  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">Ton export, l'état de ta base, et de quoi tout effacer. La sélection de période ne s'applique pas ici.</div>`;
+
+  if(PAS_VITISOFT){
+    html+=`<div class="pas-viti">
+      <p class="pas-viti__titre">Cet outil ne lira pas tes fichiers.</p>
+      <p>Tu as indiqué ne pas utiliser Vitisoft. Le tableau de bord est construit sur son format d'export et refusera tout autre fichier. Ce n'est pas une porte fermée : le reste du Bureau est ouvert, et gratuit.</p>
+      <p class="pas-viti__liens"><a href="/outils/echeances/">Le compte à rebours réglementaire</a> · <a href="/mon-bureau/">Mon bureau</a> · <a href="/articles/">Les articles</a></p>
+    </div>`;
+  }
+
+  if(!ROWS.length){
+    html+=`<div class="card"><div class="card__title"><span>Ta base est vide</span></div>
+      <p class="mini-line">Dépose ton export Vitisoft ci-dessous. Chaque nouvel export s'ajoute au précédent, les doublons sont ignorés, et rien ne t'oblige à tout importer d'un coup.</p></div>`;
+  }
 
   // ZONE A : etat de la base (compteurs alignes, memes dimensions).
   const yearpills=META.exercices.length?`<div class="yearpills">${META.exercices.map(y=>`<span class="yearpill">${esc(exLabelCourt(y))}</span>`).join('')}</div>`:'n/d';
@@ -3693,20 +4019,19 @@ async function viderBase(){
   if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées de cet appareil'+surServeur+'.'))return;
   if(syncPret())await BdvSync.effacerTout();
   await dbClear();
+  // Le serveur a tout efface (ventes, suivi, journal, reglages) : l'appareil doit suivre,
+  // sinon le prochain rapatriement REINSTALLE le suivi et le journal locaux sur un serveur
+  // vide, et la suppression n'aura rien efface de ce que le vigneron voyait.
+  CRM={};ECHANGES={};
+  try{localStorage.removeItem(CRM_KEY);localStorage.removeItem(ECH_KEY);}catch(e){}
   ROWS=[];computeMeta();
   status('success','Base vidée.');
-  el('app').classList.remove('on');el('screenImport').style.display='flex';refreshResume();
+  navTo('base');
 }
 
-/* ======================= REPRISE (resume au demarrage) ======================= */
-async function refreshResume(){
-  const n=await dbCount();
-  const box=el('resumeBox');
-  if(n>0){
-    box.style.display='block';
-    box.innerHTML=`<b>${fmtNum(n)} lignes déjà en base</b>. <a href="#" onclick="reopen();return false;">Ouvrir mon tableau de bord</a> ou dépose un nouvel export pour l'enrichir.`;
-  }else box.style.display='none';
-}
+/* La fonction refreshResume() a disparu avec l'ecran d'import plein page : le nombre de
+   lignes en base s'affiche desormais dans la barre du haut et dans l'ecran « Ma base ». */
+
 async function reopen(){
   status('loading','Chargement de ta base...');
   await reloadFromDB();
@@ -3901,12 +4226,22 @@ document.addEventListener('DOMContentLoaded', async function(){
     if(!BdvCompte.session()) await BdvCompte.porte({titre:'Ton tableau de bord t\'attend.'});
   }catch(e){ /* jamais bloquer sur une porte cassee, voir le point 2 */ }
   document.documentElement.classList.remove('bdv-verrou');
-  bindImport();
-  // Rapatriement AVANT refreshResume : sinon le vigneron qui arrive sur un nouvel appareil
+  // Rapatriement AVANT l'ouverture : sinon le vigneron qui arrive sur un nouvel appareil
   // lirait « aucune ligne en base » une seconde avant que ses lignes n'apparaissent.
   // Attendu, contrairement aux poussees : ici l'affichage depend du resultat.
   await tirerDuServeur();
-  refreshResume();
+  await reloadFromDB();
+  // L'outil s'ouvre TOUJOURS, avec ou sans lignes. Sans base, openApp() atterrit de lui-meme
+  // sur « Ma base », qui porte la zone de depot. Plus d'ecran d'accueil a franchir : le
+  // tableau de bord est une piece du bureau, on y entre, on n'y frappe pas.
+  const ecran = (location.hash || '').replace('#','');
+  openApp(NAV.some(n => n.id === ecran) ? ecran : undefined);
+  // Lecture du profil en dernier, et sans await bloquant sur l'affichage : un reseau lent ne
+  // doit pas retarder l'ouverture du tableau de bord de quelqu'un qui, lui, a bien Vitisoft.
+  try{
+    const p = await BdvCompte.profil();
+    if(p && p.utilise_vitisoft === 'non'){ PAS_VITISOFT = true; renderBase(); }
+  }catch(e){ /* sans profil lisible, on ne montre rien : le doute ne se transforme pas en refus */ }
 });
 </script>
 </body>

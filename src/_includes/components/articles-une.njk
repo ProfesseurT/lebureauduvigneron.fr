@@ -10,6 +10,14 @@
       {% for post in collections.posts %}
         {% if loop.index <= 3 %}
         <article class="articles-une__card">
+          <!-- Hors du lien : un bouton ne peut pas vivre a l'interieur d'un <a>. -->
+          <button type="button" class="signet signet--punaise" data-signet
+                  data-signet-ref="{{ post.url }}"
+                  data-signet-titre="{{ post.data.title }}"
+                  data-signet-type="article"
+                  aria-label="Mettre de côté">
+            <span class="signet__icone" aria-hidden="true"></span>
+          </button>
           <a href="{{ post.url }}" class="articles-une__card-link">
             <div class="articles-une__card-img">
               {% if post.data.image %}

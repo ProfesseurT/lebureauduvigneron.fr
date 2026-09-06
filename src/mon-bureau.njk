@@ -1,0 +1,498 @@
+---
+layout: base.njk
+title: Mon bureau
+description: Ce qui presse, ce que tu as mis de côté, ce que tu as lu, et tes outils.
+permalink: /mon-bureau/
+---
+
+{# Deux blocs de donnees poses par le site, lus par le script plus bas. Les signets ne
+   stockent qu'une adresse et un titre : la date et le pilier viennent d'ici, pour qu'un
+   article corrige sur le site le soit aussi dans le bureau de chacun. #}
+<script id="bdvContenus" type="application/json">
+[{% for post in collections.posts %}{"url":{{ post.url | dump | safe }},"titre":{{ post.data.title | dump | safe }},"date":"{{ post.date | dateISO }}","pilier":{{ (post.data.pilier or "") | dump | safe }},"temps":{{ (post.data.temps_lecture or "") | dump | safe }}}{% if not loop.last %},
+{% endif %}{% endfor %}]
+</script>
+<script id="bdvEcheances" type="application/json">
+{{ echeances | dump | safe }}
+</script>
+
+<!-- ETAT DECONNECTE. Pas une page d'erreur : une invitation qui dit ce qu'on y trouve. -->
+<section class="about-hero" id="bureauInviteHero" hidden>
+  <div class="container">
+    <p class="section__label" style="color:var(--on-dark-soft)">Ton espace</p>
+    <h1>Mon bureau</h1>
+  </div>
+</section>
+<section class="section" id="bureauInvite" hidden>
+  <div class="container">
+    <div class="bureau-vide">
+      <h2>Ton bureau t'attend.</h2>
+      <p>Le compte est gratuit et ouvert à toute la filière. Il te dit ce qui presse, garde ce que
+        tu mets de côté, et range ce que tu as déjà lu.</p>
+      <p>
+        <a href="/compte/" class="btn btn--bordeaux" data-bdv-compte
+           data-bdv-titre="Ton bureau t'attend.">Créer mon compte ou me connecter</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ETAT CONNECTE -->
+<div id="bureauContenu" hidden>
+
+  <section class="bureau-tete">
+    <div class="container--wide">
+      <p class="bureau-tete__jour" id="bureauJour"></p>
+      <h1 id="bureauSalut">Te voilà chez toi.</h1>
+      <p class="bureau-tete__resume" id="bureauResume"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container--wide">
+
+      <div class="bureau-entete bureau-entete--file" id="bureauEnteteFile" hidden>
+        <h2>Ma journée</h2>
+        <span class="bureau-entete__compte" id="bureauFileCompte"></span>
+      </div>
+      <p class="bureau-avis" id="bureauAvis" hidden></p>
+      <div class="bureau-file" id="bureauFile"></div>
+
+      <p class="bureau-etiquette">Ce qui presse</p>
+      <div class="bureau-presse" id="bureauPresse"></div>
+
+      <div id="bureauVentes" hidden>
+        <div class="bureau-entete bureau-entete--suite">
+          <h2>Mes ventes</h2>
+          <span class="bureau-entete__compte" id="bureauVentesQuand"></span>
+        </div>
+        <div class="bureau-chiffres" id="bureauChiffres"></div>
+      </div>
+
+      <div class="bureau-colonnes">
+
+        <div>
+          <div class="bureau-entete">
+            <h2>Le sous-main</h2>
+            <span class="bureau-entete__compte" id="bureauCompteALire"></span>
+          </div>
+          <p class="bureau-manuscrit">à lire quand tu auras cinq minutes</p>
+          <div id="bureauALire" class="bureau-liste"></div>
+        </div>
+
+        <div>
+          <div class="bureau-entete">
+            <h2>Les outils</h2>
+            <span class="bureau-entete__compte">2</span>
+          </div>
+          <div class="bureau-outils bureau-outils--colonne">
+            <a class="bureau-outil" href="/outils/echeances/">
+              <span class="bureau-outil__nom">Le compte à rebours</span>
+              <span class="bureau-outil__quoi">DRM, DAI, récolte, facturation électronique. Ce qui
+                tombe, et dans combien de jours.</span>
+              <span class="bureau-outil__note">Ouvert à tous</span>
+            </a>
+            <a class="bureau-outil" href="/outils/dashboard-vigneron/">
+              <span class="bureau-outil__nom">Le tableau de bord des ventes</span>
+              <span class="bureau-outil__quoi">Ton chiffre d'affaires, tes clients, tes cuvées, lus
+                depuis ton export.</span>
+              <span class="bureau-outil__note" id="bureauNoteViti">Utilisateurs Vitisoft</span>
+            </a>
+          </div>
+
+          <div class="bureau-entete bureau-entete--suite" id="bureauEnteteVentes" hidden>
+            <h2>Mes ventes</h2>
+            <span class="bureau-entete__compte"><a href="/outils/dashboard-vigneron/">ouvrir</a></span>
+          </div>
+          <div class="bureau-ecrans" id="bureauEcrans" hidden>
+            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#annee">
+              <span class="bureau-ecran__nom">Mon année</span>
+              <span class="bureau-ecran__quoi">Mois par mois, canaux, familles</span>
+            </a>
+            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#clients">
+              <span class="bureau-ecran__nom">Mes clients</span>
+              <span class="bureau-ecran__quoi">Fiches, relances, décrochages</span>
+            </a>
+            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#produits">
+              <span class="bureau-ecran__nom">Mes produits</span>
+              <span class="bureau-ecran__quoi">Cuvées, millésimes, rotations</span>
+            </a>
+            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#chercher">
+              <span class="bureau-ecran__nom">Chercher</span>
+              <span class="bureau-ecran__quoi">Un client, une cuvée, une ligne</span>
+            </a>
+          </div>
+
+          <div class="bureau-entete bureau-entete--suite">
+            <h2>Le classeur</h2>
+            <span class="bureau-entete__compte" id="bureauCompteLu"></span>
+          </div>
+          <div id="bureauLu" class="bureau-classeur"></div>
+
+          <div class="bureau-entete bureau-entete--suite">
+            <h2>Le courrier</h2>
+            <span class="bureau-entete__compte" id="bureauCompteCourrier"></span>
+          </div>
+          <div id="bureauCourrier" class="bureau-classeur"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="/js/bdv-echeances.js" defer></script>
+<script src="/js/bdv-crm.js" defer></script>
+<script>
+(function(){
+  'use strict';
+
+  // L'etat se lit dans localStorage sans attendre les modules charges en defer : sinon le
+  // bureau proposerait de creer un compte une fraction de seconde a quelqu'un qui en a un.
+  function session(){
+    try{
+      var s = JSON.parse(localStorage.getItem('bdv_session'));
+      return (s && s.access_token && s.user) ? s : null;
+    }catch(e){ return null; }
+  }
+  var connecte = !!session();
+  document.getElementById('bureauInviteHero').hidden = connecte;
+  document.getElementById('bureauInvite').hidden = connecte;
+  document.getElementById('bureauContenu').hidden = !connecte;
+  if(!connecte) return;
+
+  var CONTENUS = [];
+  try{ CONTENUS = JSON.parse(document.getElementById('bdvContenus').textContent) || []; }catch(e){}
+  var PAR_URL = {};
+  CONTENUS.forEach(function(c){ PAR_URL[c.url] = c; });
+
+  function signets(){
+    try{ return JSON.parse(localStorage.getItem('bdv_signets_v1')) || {}; }
+    catch(e){ return {}; }
+  }
+  function parEtat(etat){
+    var s = signets();
+    return Object.keys(s).filter(function(r){ return s[r].etat === etat; });
+  }
+  function txt(el, t){ el.textContent = t; }
+
+  // ---- L'EN-TETE ----
+  var jour = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+  txt(document.getElementById('bureauJour'), jour.charAt(0).toUpperCase() + jour.slice(1));
+
+  // ---- CE QUI PRESSE ----
+  // Deux lignes au maximum, et une seule si rien ne presse : le bloc perd tout son sens
+  // s'il se remplit de choses qui peuvent attendre.
+  // Le comptage des rappels a ete retire le 06/09/2026 : la file de travail les porte
+  // desormais, avec les noms, et un bloc « 3 clients à rappeler » juste au-dessus d'elle
+  // aurait dit deux fois la meme chose.
+
+  function peindrePresse(){
+    var boite = document.getElementById('bureauPresse');
+    var blocs = [];
+    var ech = null;
+
+    if(window.BdvEcheances){
+      ech = BdvEcheances.laPlusPressante(BdvEcheances.depuisLaPage('bdvEcheances'));
+    }
+    if(ech){
+      var e = ech.e;
+      blocs.push(''
+        + '<article class="presse" data-niveau="' + ech.niveau + '">'
+        + '<div class="presse__compte">'
+        +   '<span class="presse__quand">' + ech.phrase + '</span>'
+        +   '<span class="presse__date">' + ech.dateCourte + '</span>'
+        + '</div>'
+        + '<div class="presse__corps">'
+        +   '<h3 class="presse__titre">' + e.titre + '</h3>'
+        +   '<p class="presse__qui">' + e.qui + '</p>'
+        +   '<p class="presse__liens">'
+        +     (e.article ? '<a href="' + e.article + '">Lire l\'article</a> · ' : '')
+        +     '<a href="/outils/echeances/">Toutes les échéances</a>'
+        +   '</p>'
+        + '</div>'
+        + '</article>');
+    }
+
+    // Le plus ancien signet non lu : c'est celui qui risque de ne jamais l'etre.
+    var aLire = parEtat('a_lire');
+    if(aLire.length){
+      var s = signets();
+      var vieux = aLire.slice().sort(function(a, b){
+        return new Date(s[a].maj_le || 0) - new Date(s[b].maj_le || 0);
+      })[0];
+      var c = PAR_URL[vieux] || { titre: s[vieux].titre, pilier: '', temps: '' };
+      blocs.push(''
+        + '<article class="presse" data-niveau="signet">'
+        + '<div class="presse__compte">'
+        +   '<span class="presse__quand">Mis de côté</span>'
+        +   '<span class="presse__date">' + (aLire.length > 1 ? 'le plus ancien des ' + aLire.length : 'ton seul') + '</span>'
+        + '</div>'
+        + '<div class="presse__corps">'
+        +   '<h3 class="presse__titre"><a href="' + vieux + '">' + (c.titre || vieux) + '</a></h3>'
+        +   '<p class="presse__qui">' + [c.pilier, c.temps].filter(Boolean).join(' · ') + '</p>'
+        + '</div>'
+        + '</article>');
+    }
+
+    boite.innerHTML = blocs.join('');
+
+    var n = aLire.length;
+    var morceaux = [];
+    if(ech && ech.jours <= 7) morceaux.push('une échéance dans ' + ech.jours + ' jour' + (ech.jours > 1 ? 's' : ''));
+    var enFile = (window.BdvCrm && ETAT_FILE) ? BdvCrm.file(ETAT_FILE).length : 0;
+    if(enFile) morceaux.push(enFile + ' client' + (enFile > 1 ? 's' : '') + ' dans ta file');
+    if(n) morceaux.push(n + ' article' + (n > 1 ? 's' : '') + ' qui t\'attend' + (n > 1 ? 'ent' : ''));
+    var resume = morceaux.length
+      ? (morceaux.join(', ').charAt(0).toUpperCase() + morceaux.join(', ').slice(1) + '.')
+      : 'Rien ne presse aujourd\'hui.';
+    txt(document.getElementById('bureauResume'), resume);
+  }
+
+  // ---- LES LISTES ----
+  function fiche(ref, titre){
+    var c = PAR_URL[ref] || {};
+    var meta = [c.pilier, c.temps].filter(Boolean).join(' · ');
+    return '<article class="bureau-fiche">'
+      + '<span class="bureau-fiche__punaise" aria-hidden="true"></span>'
+      + '<a class="bureau-fiche__titre" href="' + ref + '">' + (c.titre || titre || ref) + '</a>'
+      + (meta ? '<p class="bureau-fiche__meta">' + meta + '</p>' : '')
+      + '<button type="button" class="signet signet--carte" data-signet'
+      +   ' data-signet-ref="' + ref + '" data-signet-titre="' + (c.titre || titre || '') + '"'
+      +   ' data-signet-type="article"><span class="signet__icone" aria-hidden="true"></span>'
+      +   '<span data-signet-texte>Retirer</span></button>'
+      + '</article>';
+  }
+
+  // Meme regle que pour la file : le titre d'un signet vient de la base, il ne rentre
+  // jamais dans une chaine HTML.
+  function ligne(ref, titre){
+    var c = PAR_URL[ref] || {};
+    var p = document.createElement('p');
+    p.className = 'bureau-ligne';
+    var a = document.createElement('a');
+    a.href = ref;
+    a.textContent = c.titre || titre || ref;
+    p.appendChild(a);
+    return p.outerHTML;
+  }
+
+  function peindreListes(){
+    var s = signets();
+    var aLire = parEtat('a_lire');
+    var lus = parEtat('lu');
+
+    document.getElementById('bureauALire').innerHTML = aLire.length
+      ? aLire.map(function(r){ return fiche(r, s[r].titre); }).join('')
+      : '<p class="bureau-vide__ligne">Rien pour l\'instant. Sur un article, le bouton « Mettre de côté » le range ici.</p>';
+
+    document.getElementById('bureauLu').innerHTML = lus.length
+      ? lus.slice(0, 6).map(function(r){ return ligne(r, s[r].titre); }).join('')
+      : '<p class="bureau-vide__ligne">Rien encore. Le bouton « J\'ai lu » d\'un article le classe ici.</p>';
+
+    txt(document.getElementById('bureauCompteALire'), aLire.length ? aLire.length + ' à lire' : '—');
+    txt(document.getElementById('bureauCompteLu'), lus.length ? lus.length + ' lus' : '—');
+
+    if(window.BdvSignets) BdvSignets.peindre();
+  }
+
+  // ---- LE COURRIER ----
+  // La marque n'est deplacee que si la visite precedente a plus de six heures, sinon un
+  // simple rechargement viderait la liste qu'on est en train de lire.
+  var MARQUE = 'bdv_bureau_vu_le';
+  function peindreCourrier(){
+    var precedent = null;
+    try{ precedent = localStorage.getItem(MARQUE); }catch(e){}
+    var seuil = precedent ? new Date(precedent) : null;
+    var nouveaux = seuil
+      ? CONTENUS.filter(function(c){ return new Date(c.date) > seuil; })
+      : CONTENUS.slice(0, 3);
+
+    document.getElementById('bureauCourrier').innerHTML = nouveaux.length
+      ? nouveaux.slice(0, 5).map(function(c){ return ligne(c.url, c.titre); }).join('')
+      : '<p class="bureau-vide__ligne">Rien de neuf depuis ton dernier passage.</p>';
+    txt(document.getElementById('bureauCompteCourrier'),
+        seuil ? (nouveaux.length ? nouveaux.length + ' nouveau' + (nouveaux.length > 1 ? 'x' : '') : '—')
+              : 'les 3 derniers');
+
+    try{
+      var maj = !precedent || (Date.now() - new Date(precedent).getTime()) > 6 * 3600 * 1000;
+      if(maj) localStorage.setItem(MARQUE, new Date().toISOString());
+    }catch(e){}
+  }
+
+  /* ---- LA FILE DE TRAVAIL ----
+     Elle ne calcule rien : le tableau de bord depose ses signaux, le bureau les sert et
+     porte les gestes. Peinte d'abord depuis le miroir local, corrigee quand le reseau
+     repond : un vigneron qui ouvre son bureau ne doit jamais attendre pour voir sa file. */
+  var ETAT_FILE = null;
+  var FILE_MAX_VUE = 12;
+
+  function libelleMotif(m){
+    return ({recul:'Recul confirmé', cadence:'Retard de cadence', premier:'Premier achat'})[m] || 'Signalé';
+  }
+
+  function ligneFile(l){
+    var el = document.createElement('article');
+    el.className = 'filel';
+    el.setAttribute('data-source', l.source);
+    el.setAttribute('data-id', l.id);
+
+    var quoi = l.source === 'rappel'
+      ? (l.retard > 0 ? 'Rappel en retard de ' + l.retard + ' jour' + (l.retard > 1 ? 's' : '')
+                      : 'Rappel du jour')
+      : libelleMotif(l.motif);
+    var sous = [];
+    if(l.source === 'rappel' && l.rappel) sous.push('posé pour le ' + l.rappel.split('-').reverse().join('/'));
+    if(l.detail) sous.push(l.detail);
+    if(l.montant) sous.push(Math.round(l.montant).toLocaleString('fr-FR') + ' € ' + (l.lib || ''));
+
+    // AUCUNE donnee du serveur dans cette chaine : uniquement des enveloppes vides,
+    // remplies plus bas en textContent. Le nom d'un client, son contact et le detail
+    // viennent de son export CSV ; un « <img src=x onerror=...> » dans un libelle de
+    // cuvee s'executerait des l'affectation de innerHTML, avant meme les reecritures,
+    // et sur l'origine ou vit le jeton de session.
+    var h = '<div class="filel__qui">'
+      + '<a class="filel__nom" href="/outils/dashboard-vigneron/#clients"></a>'
+      + (l.contact ? '<span class="filel__contact"></span>' : '')
+      + '</div>'
+      + '<div class="filel__quoi">'
+      + '<span class="filel__motif"></span>'
+      + (sous.length ? '<span class="filel__sous"></span>' : '')
+      + '</div>'
+      + '<div class="filel__gestes">'
+      + Object.keys(BdvCrm.GESTES).map(function(k){
+          return '<button type="button" class="btn btn--mini" data-geste="' + k + '">'
+               + BdvCrm.GESTES[k].label + '</button>';
+        }).join('')
+      + '</div>';
+    el.innerHTML = h;
+    // Le texte vient du serveur : on le pose comme texte, jamais comme HTML.
+    el.querySelector('.filel__nom').textContent = l.nom || l.id;
+    if(l.contact) el.querySelector('.filel__contact').textContent = l.contact;
+    el.querySelector('.filel__motif').textContent = quoi;
+    if(sous.length) el.querySelector('.filel__sous').textContent = sous.join(' · ');
+    return el;
+  }
+
+  function peindreFile(){
+    var boite = document.getElementById('bureauFile');
+    var entete = document.getElementById('bureauEnteteFile');
+    if(!window.BdvCrm || !ETAT_FILE){ boite.innerHTML = ''; entete.hidden = true; return; }
+    var lignes = BdvCrm.file(ETAT_FILE);
+    entete.hidden = !lignes.length;
+    boite.innerHTML = '';
+    if(!lignes.length) return;
+
+    var retards = lignes.filter(function(l){ return l.source === 'rappel' && l.retard > 0; }).length;
+    txt(document.getElementById('bureauFileCompte'),
+        lignes.length + ' à traiter' + (retards ? ' · ' + retards + ' en retard' : ''));
+
+    lignes.slice(0, FILE_MAX_VUE).forEach(function(l){ boite.appendChild(ligneFile(l)); });
+    if(lignes.length > FILE_MAX_VUE){
+      var p = document.createElement('p');
+      p.className = 'bureau-vide__ligne';
+      p.textContent = (lignes.length - FILE_MAX_VUE) + ' autres attendent. Traite ceux-là d\'abord.';
+      boite.appendChild(p);
+    }
+  }
+
+  // Un clic rend la main tout de suite : la ligne s'efface, le reseau suit.
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-geste]');
+    if(!b || !window.BdvCrm) return;
+    var ligne = b.closest('.filel');
+    if(!ligne) return;
+    var id = ligne.getAttribute('data-id');
+    ligne.classList.add('filel--parti');
+    BdvCrm.geste(b.getAttribute('data-geste'), id).then(function(ok){
+      ETAT_FILE = BdvCrm.miroir();
+      peindreFile();
+      peindrePresse();
+      // Le geste n'est pas parti : la ligne est revenue, il faut le dire. La laisser
+      // disparaitre en silence ferait croire le client traite alors que rien n'est ecrit.
+      if(!ok){
+        var av = document.getElementById('bureauAvis');
+        if(av){
+          av.textContent = "Pas de réseau : ce geste est mis de côté et repartira tout seul à ta prochaine visite.";
+          av.hidden = false;
+        }
+      }
+    });
+  });
+
+  function peindreVentes(){
+    if(!ETAT_FILE || !ETAT_FILE.resume) return;
+    var r = ETAT_FILE.resume;
+    var cases = [];
+    if(r.ca != null) cases.push(['Chiffre d\'affaires', r.ca.toLocaleString('fr-FR') + ' €', r.exercice || '']);
+    if(r.objectifPct != null) cases.push(['Objectif', r.objectifPct + ' %', 'de ' + (r.objectif || 0).toLocaleString('fr-FR') + ' €']);
+    if(r.clients != null) cases.push(['Clients', String(r.clients), 'sur l\'exercice']);
+    if(r.panier != null) cases.push(['Panier moyen', r.panier.toLocaleString('fr-FR') + ' €', 'par commande']);
+    if(!cases.length) return;
+    document.getElementById('bureauChiffres').innerHTML = cases.map(function(c, i){
+      return '<div class="chiffre' + (i === 0 ? ' chiffre--hi' : '') + '">'
+        + '<span class="chiffre__l">' + c[0] + '</span>'
+        + '<span class="chiffre__v">' + c[1] + '</span>'
+        + '<span class="chiffre__s">' + c[2] + '</span></div>';
+    }).join('');
+    document.getElementById('bureauVentes').hidden = false;
+    if(ETAT_FILE.deposeLe){
+      var d = new Date(ETAT_FILE.deposeLe);
+      if(!isNaN(d)) txt(document.getElementById('bureauVentesQuand'),
+        'au dernier import, le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' }));
+    }
+  }
+
+  peindreListes();
+  peindreCourrier();
+
+  document.addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('[data-signet]')){
+      setTimeout(function(){ peindreListes(); peindrePresse(); }, 0);
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){
+    if(window.BdvCrm){
+      ETAT_FILE = BdvCrm.miroir();
+      peindreFile();peindreVentes();
+    }
+    // Le resume de l'en-tete compte la file : le peindre avant elle affichait « rien ne
+    // presse » juste au-dessus de huit clients a rappeler, et hors ligne ca ne se
+    // corrigeait jamais.
+    peindrePresse();
+    if(window.BdvCrm){
+      // Rejouer AVANT de relire : sinon le GET part avant que les gestes en attente
+      // aient atterri, et les lignes deja traitees reviennent a l'ecran.
+      Promise.resolve(BdvCrm.rejouer())
+        .then(function(){ return BdvCrm.charger(); })
+        .then(function(etat){
+          if(!etat) return;
+          ETAT_FILE = etat;
+          peindreFile();peindreVentes();peindrePresse();
+        });
+    }
+    if(window.BdvSignets) BdvSignets.charger().then(function(){ peindreListes(); peindrePresse(); });
+    if(window.BdvCompte && BdvCompte.profil){
+      BdvCompte.profil().then(function(p){
+        if(!p) return;
+        var prenom = (p.prenom || '').trim();
+        if(prenom) txt(document.getElementById('bureauSalut'), 'Bonjour ' + prenom + '.');
+        // Quelqu'un qui a declare ne pas utiliser Vitisoft n'a pas a lire « reservé » comme
+        // un refus : on lui dit ce qui le concerne, lui.
+        var note = document.getElementById('bureauNoteViti');
+        if(note && p.utilise_vitisoft === 'non') txt(note, 'Ne lira pas tes fichiers');
+        // Les ecrans du tableau de bord n'apparaissent que pour qui peut s'en servir. Un
+        // cadre grise « reserve aux utilisateurs de Vitisoft » se remarque bien plus qu'une
+        // absence : on ne montre pas a quelqu'un une porte qu'on lui ferme.
+        if(p.utilise_vitisoft !== 'non'){
+          document.getElementById('bureauEnteteVentes').hidden = false;
+          document.getElementById('bureauEcrans').hidden = false;
+        }
+      }).catch(function(){});
+    }
+  });
+})();
+</script>

@@ -56,7 +56,8 @@ create policy "modifier sa fiche"
 -- de trace. Le droit se restreint donc colonne par colonne.
 revoke insert, delete on public.profils from anon, authenticated;
 revoke update on public.profils from anon, authenticated;
-grant update (prenom, nom, domaine, code_postal, profil, outil_origine, consent_news, vu_le)
+grant update (prenom, nom, domaine, code_postal, profil, outil_origine, consent_news, vu_le,
+              utilise_vitisoft)
   on public.profils to authenticated;
 
 -- `id`, `email` et `cree_le` sont volontairement absents de ce grant. Les declencheurs des
@@ -251,3 +252,160 @@ grant execute on function public.effacer_mes_donnees() to authenticated;
 -- SECURITY DEFINER joignable de l'exterieur n'a rien a faire dans une surface publique.
 revoke all on function public.creer_profil() from public, anon, authenticated;
 revoke all on function public.synchroniser_email_profil() from public, anon, authenticated;
+
+
+-- ===========================================================================
+-- LOT 3, ajoute le 06/09/2026 : le bureau connecte.
+-- ===========================================================================
+-- Le compte s'ouvre a toute la filiere, pas seulement aux clients Vitisoft. Ce qu'il apporte
+-- des le premier jour : mettre de cote ce qu'on veut relire, et etre reconnu par les ecrans
+-- qui s'adaptent. Le tableau de bord des ventes reste, lui, reserve a Vitisoft.
+
+-- ---------------------------------------------------------------------------
+-- 11. La troisieme question de l'inscription
+-- ---------------------------------------------------------------------------
+-- Texte et pas booleen : « je ne sais pas » est une reponse frequente et utile, un booleen
+-- l'ecraserait sur `null`, qui veut deja dire « n'a pas repondu ». Les deux ne se confondent
+-- pas : l'un se redemande, l'autre non.
+alter table public.profils add column if not exists utilise_vitisoft text;  -- oui / non / inconnu
+
+-- Le grant de la section 3 a ete etendu a cette colonne. `id`, `email` et `cree_le` restent
+-- dehors : un compte ne reecrit jamais sa propre identite.
+
+-- ---------------------------------------------------------------------------
+-- 12. Les signets
+-- ---------------------------------------------------------------------------
+-- Ce que le vigneron met de cote. Sans cette table les signets vivraient dans le localStorage
+-- et mourraient avec le navigateur : le compte n'apporterait alors rien du tout.
+--
+-- `ref` est l'adresse du contenu sur le site (`/posts/marketing-sensoriel-vin/`), pas un
+-- identifiant interne. C'est volontaire : le site est statique, il n'a pas de base d'articles,
+-- et l'adresse est la seule cle qui existe des deux cotes. Consequence assumee : renommer un
+-- article orpheline ses signets. Un article renomme doit donc garder une redirection.
+--
+-- `titre` est une copie d'affichage. Elle evite d'avoir a resoudre vingt adresses pour
+-- dessiner la liste, et elle survit a la disparition d'un contenu.
+create table if not exists public.signets (
+  id       uuid not null references auth.users on delete cascade,
+  ref      text not null,
+  type     text not null default 'article',   -- article / video / outil
+  etat     text not null default 'a_lire',    -- a_lire / lu
+  titre    text,
+  cree_le  timestamptz not null default now(),
+  maj_le   timestamptz not null default now(),
+  primary key (id, ref)
+);
+
+-- « Ce que j'ai mis de cote, du plus recent au plus ancien » est la seule lecture de l'ecran.
+create index if not exists signets_maj_le on public.signets (id, maj_le desc);
+
+alter table public.signets enable row level security;
+
+drop policy if exists "lire ses signets" on public.signets;
+create policy "lire ses signets" on public.signets for select using (auth.uid() = id);
+drop policy if exists "creer ses signets" on public.signets;
+create policy "creer ses signets" on public.signets for insert with check (auth.uid() = id);
+drop policy if exists "modifier ses signets" on public.signets;
+create policy "modifier ses signets" on public.signets for update using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists "supprimer ses signets" on public.signets;
+create policy "supprimer ses signets" on public.signets for delete using (auth.uid() = id);
+
+revoke all on public.signets from anon;
+grant select, insert, update, delete on public.signets to authenticated;
+
+-- Volontairement PAS ajoutee a effacer_mes_donnees(). Cette fonction est appelee par le bouton
+-- « Vider la base » du tableau de bord, qui parle des lignes de vente : quelqu'un qui reimporte
+-- un export propre ne s'attend pas a y perdre ses articles mis de cote. La suppression complete
+-- d'un compte est un autre geste, a ecrire a part le jour ou elle existera.
+
+-- ===========================================================================
+-- LOT 4, ajoute le 06/09/2026 : le journal d'echanges.
+-- ===========================================================================
+-- Le suivi client portait UNE note, un seul champ de texte : ecrire quelque chose en
+-- septembre effacait ce qu'on avait note en aout. Un suivi commercial a besoin d'une pile
+-- d'entrees datees, pas d'un bloc-notes qu'on ecrase.
+--
+-- ATTENTION, ces lignes sont des notes sur des personnes reelles, ecrites a la main par le
+-- vigneron sur ses propres clients. Elles ne servent QU'A lui les rendre. Aucune lecture
+-- croisee, aucune statistique, aucun ciblage : c'est ecrit dans la page de confidentialite
+-- et ca ne se negocie pas.
+
+-- ---------------------------------------------------------------------------
+-- 13. Les echanges
+-- ---------------------------------------------------------------------------
+-- `echange_id` est genere par le navigateur, comme `empreinte` pour les ventes. La cle
+-- primaire (id, echange_id) fait la deduplication cote serveur pour rien : reimporter deux
+-- fois le meme geste ne cree pas de doublon, meme depuis deux appareils.
+--
+-- `type` reste du texte libre plutot qu'une enumeration Postgres : ajouter un type de geste
+-- ne doit pas demander une migration. Les valeurs utilisees a ce jour : appel, message,
+-- note, ecarte.
+create table if not exists public.echanges (
+  id         uuid not null references auth.users on delete cascade,
+  echange_id text not null,
+  client_id  text not null,
+  le         timestamptz not null default now(),
+  type       text not null,
+  canal      text,
+  resume     text,
+  primary key (id, echange_id)
+);
+
+-- La seule lecture de l'ecran : « l'historique de ce client, du plus recent au plus ancien ».
+create index if not exists echanges_client on public.echanges (id, client_id, le desc);
+
+alter table public.echanges enable row level security;
+
+drop policy if exists "lire ses echanges" on public.echanges;
+create policy "lire ses echanges" on public.echanges for select using (auth.uid() = id);
+drop policy if exists "creer ses echanges" on public.echanges;
+create policy "creer ses echanges" on public.echanges for insert with check (auth.uid() = id);
+drop policy if exists "modifier ses echanges" on public.echanges;
+create policy "modifier ses echanges" on public.echanges for update using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists "supprimer ses echanges" on public.echanges;
+create policy "supprimer ses echanges" on public.echanges for delete using (auth.uid() = id);
+
+revoke all on public.echanges from anon;
+grant select, insert, update, delete on public.echanges to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 14. Tout effacer : les echanges partent avec le reste
+-- ---------------------------------------------------------------------------
+-- Contrairement aux signets, les echanges SONT des donnees de suivi commercial : ils
+-- suivent le meme sort que les ventes et le suivi client.
+create or replace function public.effacer_mes_donnees()
+returns void language plpgsql security definer set search_path = public as $$
+declare moi uuid := auth.uid();
+begin
+  if moi is null then raise exception 'aucune session'; end if;
+  delete from public.echanges      where id = moi;
+  delete from public.ventes        where id = moi;
+  delete from public.suivi_clients where id = moi;
+  delete from public.reglages      where id = moi;
+end $$;
+
+revoke all on function public.effacer_mes_donnees() from public, anon;
+grant execute on function public.effacer_mes_donnees() to authenticated;
+
+
+-- ===========================================================================
+-- LOT 5, ajoute le 06/09/2026 : la file de travail passe dans le bureau.
+-- ===========================================================================
+-- Decision de Ted : le poste de travail, c'est /mon-bureau/, pas le tableau de bord.
+-- Mais la file a besoin des moteurs d'analyse (decrochage, cadence, premier achat) qui
+-- tournent sur les lignes de vente, dans le tableau de bord.
+--
+-- Recopier ces calculs cote site serait la pire decision possible : deux moteurs qui
+-- divergent, et un bureau qui signale un client que le tableau de bord ne signale plus.
+-- Donc le tableau de bord CALCULE et DEPOSE, le bureau LIT et AGIT.
+--
+-- Consequence, et c'est elle qui justifie tout le lot : la file devient utilisable depuis
+-- un telephone sur lequel aucun export n'a jamais ete importe.
+
+alter table public.reglages add column if not exists file_travail jsonb;
+alter table public.reglages add column if not exists resume_ventes jsonb;
+alter table public.reglages add column if not exists depose_le timestamptz;
+
+-- Les droits de la section 6 couvrent deja ces colonnes : `grant select, insert, update,
+-- delete on public.reglages to authenticated` porte sur la table entiere, pas colonne par
+-- colonne, contrairement a `profils`. Rien a ajouter.

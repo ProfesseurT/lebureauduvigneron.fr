@@ -19,6 +19,23 @@ layout: base.njk
   <div class="container">
     {{ content | safe }}
 
+    <div class="signet-barre">
+      <button type="button" class="signet" data-signet
+              data-signet-ref="{{ page.url }}"
+              data-signet-titre="{{ title }}"
+              data-signet-type="article">
+        <span class="signet__icone" aria-hidden="true"></span>
+        <span data-signet-texte>Mettre de côté</span>
+      </button>
+      <button type="button" class="signet" data-signet-lu
+              data-signet-ref="{{ page.url }}"
+              data-signet-titre="{{ title }}"
+              data-signet-type="article">
+        <span class="signet__coche" aria-hidden="true">&#10003;</span>
+        <span data-signet-texte>J'ai lu</span>
+      </button>
+    </div>
+
     <div class="article-back">
       <a href="/articles/">← Tous les articles</a>
     </div>

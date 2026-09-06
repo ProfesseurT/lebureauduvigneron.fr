@@ -173,6 +173,89 @@
   /* ============================== TOUT EFFACER ============================== */
   // Appelle la fonction SQL, qui vide les trois tables du compte appelant en une transaction.
   // Bornee a auth.uid() cote serveur : elle ne peut rien effacer chez quelqu'un d'autre.
+  // ---------------- LA FILE DEPOSEE POUR LE BUREAU ----------------
+  // Le tableau de bord est le seul a savoir calculer qui rappeler. Il depose ici le
+  // resultat, et /mon-bureau/ le sert sans rien recalculer. Un instantane, ecrase a
+  // chaque analyse : ce n'est pas un historique, c'est l'etat du jour.
+  //
+  // La file porte des NOMS de clients. C'est deja le cas de `ventes.brut`, qui contient
+  // les colonnes brutes de l'export : aucune frontiere nouvelle n'est franchie ici.
+  async function deposerFile(file, resume){
+    if(!pret()) return false;
+    const corps = {
+      id: BdvCompte.monId(),
+      file_travail: file || [],
+      resume_ventes: resume || null,
+      depose_le: new Date().toISOString()
+    };
+    try{
+      await BdvCompte.api('/reglages?on_conflict=id', {
+        methode: 'POST',
+        entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        corps: [corps]
+      });
+      return true;
+    }catch(e){ return false; }
+  }
+
+  // ---------------- LE JOURNAL D'ECHANGES ----------------
+  // Une entree par geste : appel passe, message laisse, note ecrite, relance ecartee.
+  // Contrairement au suivi, une entree ne se modifie jamais : elle s'ajoute. C'est ce qui
+  // fait la difference entre un historique et un bloc-notes qu'on ecrase.
+  //
+  // `echange_id` est fabrique par le navigateur, comme l'empreinte des lignes de vente.
+  // Deux consequences voulues : le meme geste pousse deux fois ne cree pas de doublon, et
+  // l'ecran peut afficher l'entree avant que le reseau ait repondu.
+  async function lireEchanges(clientId){
+    if(!pret()) return [];
+    // Meme plafond que pour les ventes : PostgREST rend au plus 1000 lignes par appel.
+    // Sans pagination, un vigneron actif verrait son journal silencieusement tronque au
+    // bout de deux ou trois ans, et seulement sur son deuxieme appareil.
+    const filtre = clientId ? '&client_id=eq.' + encodeURIComponent(clientId) : '';
+    const out = [];   // PAGE est la constante du module, la meme que pour les ventes
+    for(let debut = 0; ; debut += PAGE){
+      const page = await BdvCompte.api(
+        '/echanges?select=echange_id,client_id,le,type,canal,resume' + filtre +
+        '&order=le.desc&limit=' + PAGE + '&offset=' + debut);
+      if(!page || !page.length) break;
+      out.push.apply(out, page);
+      if(page.length < PAGE) break;
+    }
+    return out;
+  }
+
+  async function ecrireEchange(entree){
+    if(!pret() || !entree || !entree.client_id || !entree.echange_id) return false;
+    const corps = {
+      id: BdvCompte.monId(),
+      echange_id: String(entree.echange_id),
+      client_id: String(entree.client_id),
+      le: entree.le || new Date().toISOString(),
+      type: entree.type || 'note',
+      canal: entree.canal || null,
+      resume: entree.resume || null
+    };
+    try{
+      await BdvCompte.api('/echanges?on_conflict=id,echange_id', {
+        methode: 'POST',
+        entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        corps: [corps]
+      });
+      return true;   // le dashboard s'appuie sur ce booleen pour vider sa file d'attente
+    }catch(e){ return false; }
+  }
+
+  async function supprimerEchange(echangeId){
+    if(!pret() || !echangeId) return false;
+    try{
+      await BdvCompte.api('/echanges?echange_id=eq.' + encodeURIComponent(echangeId), {
+        methode: 'DELETE',
+        entetes: { 'Prefer': 'return=minimal' }
+      });
+      return true;
+    }catch(e){ return false; }
+  }
+
   async function effacerTout(){
     if(!pret()) return false;
     try{
@@ -190,6 +273,10 @@
     lireSuivi: lireSuivi,
     ecrireSuivi: ecrireSuivi,
     supprimerSuivi: supprimerSuivi,
+    deposerFile: deposerFile,
+    lireEchanges: lireEchanges,
+    ecrireEchange: ecrireEchange,
+    supprimerEchange: supprimerEchange,
     effacerTout: effacerTout
   };
 })();

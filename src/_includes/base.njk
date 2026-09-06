@@ -15,6 +15,9 @@
   <!-- Charge sur TOUTES les pages, volontairement : c'est ce module qui intercepte les clics
        sur les boutons portant data-bdv-compte, ou qu'ils soient sur le site. -->
   <script src="/js/bdv-compte.js" data-outil="site" defer></script>
+  <!-- Apres bdv-compte.js, et pas avant : les signets passent par BdvCompte.api() pour
+       ne pas recopier une deuxieme fois l'URL et la cle Supabase dans le site. -->
+  <script src="/js/bdv-signets.js" defer></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
 </head>
 <body>
@@ -24,10 +27,17 @@
       <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
       <ul class="nav__links">
         <li><a href="/articles/">Articles</a></li>
+        <!-- « Outils » a remplace « Tableau de bord » le 06/09/2026. Le tableau de bord est
+             reserve aux utilisateurs de Vitisoft : il n'a pas a occuper une entree de
+             navigation devant des gens qui ne l'ont pas. Il vit dans /outils/, avec le
+             compte a rebours, qui n'etait atteignable depuis aucun menu. -->
+        <li><a href="/outils/">Outils</a></li>
         <li><a href="/conseil-terrain/">Conseil terrain</a></li>
-        <li><a href="/outils/dashboard-vigneron/">Tableau de bord</a></li>
         <li><a href="/teddy/">À propos</a></li>
-        <li><a href="/compte/" class="nav__cta" id="navCompte" data-bdv-compte
+        <!-- Le hidden est porte par le <li> et pas par le lien : la liste du menu est une
+             grille espacee, un element vide y laisserait un trou. -->
+        <li id="navBureau" hidden><a href="/mon-bureau/" class="nav__cta">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span></a></li>
+        <li id="navCompteLi"><a href="/compte/" class="nav__cta" id="navCompte" data-bdv-compte
                data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a></li>
       </ul>
     </div>
@@ -38,8 +48,21 @@
     try{
       var _bdvN = JSON.parse(localStorage.getItem('bdv_session'));
       if(_bdvN && _bdvN.access_token && _bdvN.user){
-        var _bdvL = document.getElementById('navCompte');
-        if(_bdvL){ _bdvL.textContent = 'Mon compte'; _bdvL.removeAttribute('data-bdv-compte'); }
+        // Se deconnecter et gerer son compte se font depuis le bureau, pas depuis un menu de
+        // navigation : cinq entrees dans les deux etats plutot que six une fois connecte.
+        var _bdvC = document.getElementById('navCompteLi');
+        if(_bdvC) _bdvC.hidden = true;
+        var _bdvB = document.getElementById('navBureau');
+        if(_bdvB) _bdvB.hidden = false;
+        // Le compte a lire se lit dans le meme miroir que les boutons de signet. Il vaut mieux
+        // un compte d'une seconde d'age affiche tout de suite qu'un compte juste affiche apres
+        // un aller-retour reseau, qui ferait sauter le menu sous le curseur.
+        try{
+          var _bdvS = JSON.parse(localStorage.getItem('bdv_signets_v1')) || {};
+          var _bdvN2 = Object.keys(_bdvS).filter(function(k){ return _bdvS[k].etat === 'a_lire'; }).length;
+          var _bdvP = document.getElementById('navPastille');
+          if(_bdvP && _bdvN2 > 0){ _bdvP.textContent = _bdvN2; _bdvP.hidden = false; }
+        }catch(e){}
       }
     }catch(e){}
   </script>

@@ -1,0 +1,87 @@
+---
+layout: base.njk
+title: Le compte à rebours réglementaire
+description: DRM, DAI, déclaration de récolte, facturation électronique. Ce qui tombe pour un domaine, et dans combien de jours. Gratuit, sans compte, sans Vitisoft.
+permalink: /outils/echeances/
+---
+
+{# Les echeances vivent dans src/_data/echeances.json et pas dans cette page : une date qui
+   change se corrige dans un fichier de donnees, sans toucher au code ni au calcul. #}
+<script id="bdvEcheances" type="application/json">
+{{ echeances | dump | safe }}
+</script>
+
+<section class="about-hero">
+  <div class="container">
+    <p class="section__label" style="color:var(--on-dark-soft)">Outil gratuit</p>
+    <h1>Le compte à rebours</h1>
+    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
+      Ce qui tombe, et dans combien de jours. Sans compte, sans logiciel.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div id="echeancesListe" class="echeances"></div>
+
+    <p class="echeances__avis">
+      Les dates viennent des textes officiels, chaque échéance porte sa source. Un dépôt qui tombe
+      un samedi, un dimanche ou un jour férié se reporte au premier jour ouvré suivant. Ce compte à
+      rebours est un pense-bête, il ne remplace ni ton comptable ni ton service des douanes.
+    </p>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container">
+    <div class="bureau-vide">
+      <h2>Ne rate plus une date.</h2>
+      <p>Crée ton compte du Bureau, gratuit et ouvert à toute la filière, et retrouve ce compte à
+        rebours dans ton bureau avec ce que tu as mis de côté.</p>
+      <p>
+        <a href="/compte/" class="btn btn--bordeaux" data-bdv-compte
+           data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a>
+        <a href="/mon-bureau/" class="btn btn--bordeaux" id="echeancesVersBureau" hidden>Ouvrir mon bureau</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<script src="/js/bdv-echeances.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  'use strict';
+  if(!window.BdvEcheances) return;
+
+  var lignes = BdvEcheances.calculer(BdvEcheances.depuisLaPage('bdvEcheances'));
+
+  document.getElementById('echeancesListe').innerHTML = lignes.map(function(l){
+    var e = l.e;
+    return '<article class="echeance" data-niveau="' + l.niveau + '">'
+      + '<div class="echeance__compte">'
+      +   '<span class="echeance__quand">' + l.phrase + '</span>'
+      +   '<span class="echeance__date">' + l.dateLongue + '</span>'
+      + '</div>'
+      + '<div class="echeance__corps">'
+      +   '<h2 class="echeance__titre">' + e.titre + '</h2>'
+      +   '<p class="echeance__qui">' + e.qui + '</p>'
+      +   (e.detail ? '<p class="echeance__detail">' + e.detail + '</p>' : '')
+      +   '<p class="echeance__liens">'
+      +     (e.article ? '<a href="' + e.article + '">Lire l\'article</a> · ' : '')
+      +     '<a href="' + e.source + '" target="_blank" rel="noopener">Source : ' + e.sourceNom + '</a>'
+      +   '</p>'
+      + '</div>'
+      + '</article>';
+  }).join('');
+
+  // Deja connecte : on ne lui repropose pas de creer un compte, on lui ouvre son bureau.
+  try{
+    var s = JSON.parse(localStorage.getItem('bdv_session'));
+    if(s && s.access_token && s.user){
+      document.querySelector('[data-bdv-compte]').hidden = true;
+      document.getElementById('echeancesVersBureau').hidden = false;
+    }
+  }catch(e){}
+});
+</script>

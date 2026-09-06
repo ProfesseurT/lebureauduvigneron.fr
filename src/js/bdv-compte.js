@@ -67,8 +67,35 @@
       + '</div>';
   }
 
+  // Les trois questions posees juste apres l'inscription. Valeurs stockees en base, libelles
+  // affiches : les deux ne bougent jamais ensemble, la valeur est un identifiant, pas du texte.
+  const QUI = [
+    { v:'vigneron',       t:'Vigneron' },
+    { v:'caviste-negoce', t:'Caviste ou négociant' },
+    { v:'etudiant',       t:'Étudiant ou école' },
+    { v:'pro-filiere',    t:'Pro de la filière' },
+    { v:'autre',          t:'Autre' }
+  ];
+  const VITI = [
+    { v:'oui',     t:'Oui' },
+    { v:'non',     t:'Non' },
+    { v:'inconnu', t:'Je ne sais pas' }
+  ];
+  // Boutons plutot que des ronds natifs : la charte du site n'a pas de rayon et les ronds
+  // systeme ne se stylent pas proprement. aria-pressed et pas role=radio, parce qu'un
+  // radiogroup promet une navigation aux fleches que ces boutons n'ont pas.
+  function groupeChoix(nom, options){
+    return '<div class="bdv-porte__choix" data-choix="' + nom + '">'
+      + options.map(function(o){
+          return '<button type="button" class="bdv-porte__choix-btn" aria-pressed="false" data-valeur="'
+            + esc(o.v) + '">' + esc(o.t) + '</button>';
+        }).join('')
+      + '</div>';
+  }
+
   const SESSION_KEY = 'bdv_session';
   const TRACE_KEY = 'bdv_trace_envoyee';
+  const PROFIL_ATTENTE_KEY = 'bdv_profil_attente';
   const REPORT_KEY = 'bdv_porte_reportee';
   const REPORT_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -333,6 +360,10 @@
       + '.bdv-porte__legal a{color:var(--bordeaux,#5A1525)}'
       // Sortir n'est pas une action : la croix se range dans le coin, elle ne prend plus
       // une ligne de bouton pleine largeur au meme rang que « creer » et « se connecter ».
+      + '.bdv-porte__choix{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .9rem}'
+      + '.bdv-porte__choix-btn{padding:.45rem .8rem;min-height:44px;background:var(--paper-light,#F5EFE0);border:1px solid var(--rule-fort,rgba(30,37,54,.42));color:var(--ink,#1E2536);font-family:var(--font-corps,\'Inter\',sans-serif);font-size:var(--t-petit,.78rem);cursor:pointer;border-radius:var(--r-nul,0)}'
+      + '.bdv-porte__choix-btn:hover{border-color:var(--bordeaux,#5A1525)}'
+      + '.bdv-porte__choix-btn[aria-pressed="true"]{background:var(--bordeaux,#5A1525);color:var(--on-dark,#EFE7D6);border-color:var(--bordeaux,#5A1525)}'
       + '.bdv-porte__croix{position:absolute;top:.4rem;right:.4rem;min-width:44px;min-height:44px;background:none;border:none;padding:0;font-size:1.4rem;line-height:1;color:var(--muted,#63523D);cursor:pointer}'
       + '.bdv-porte__croix:hover{color:var(--bordeaux,#5A1525)}';
     const style = document.createElement('style');
@@ -406,6 +437,24 @@
         + '<button class="bdv-porte__btn" id="bdvBtnNouveau" type="button">Enregistrer et entrer</button>'
         + '<p class="bdv-porte__erreur" id="bdvErreurNouveau" hidden></p>'
         + '</div>'
+        // Etape 4 : les trois questions, uniquement apres une INSCRIPTION reussie. Jamais a la
+        // connexion : quelqu'un qui revient n'a pas a repasser un formulaire. Chaque question est
+        // sautable, et rien de ce qui est ici ne conditionne l'ouverture du compte.
+        + '<div data-etape="profil" hidden>'
+        + '<p class="bdv-porte__note">Ton compte est ouvert. Cinq questions rapides pour te montrer ce qui te concerne plutôt que tout le reste. Tu peux les passer.</p>'
+        + '<label class="bdv-porte__label" for="bdvPrenom">Ton prénom</label>'
+        + '<input class="bdv-porte__input" type="text" id="bdvPrenom" autocomplete="given-name">'
+        + '<p class="bdv-porte__label">Tu es</p>'
+        + groupeChoix('qui', QUI)
+        + '<label class="bdv-porte__label" for="bdvDomaine">Ton domaine ou ta structure</label>'
+        + '<input class="bdv-porte__input" type="text" id="bdvDomaine" autocomplete="organization">'
+        + '<label class="bdv-porte__label" for="bdvCp">Ton code postal</label>'
+        + '<input class="bdv-porte__input" type="text" id="bdvCp" inputmode="numeric" maxlength="5" autocomplete="postal-code">'
+        + '<p class="bdv-porte__label">Tu utilises Vitisoft</p>'
+        + groupeChoix('viti', VITI)
+        + '<button class="bdv-porte__btn" id="bdvBtnProfil" type="button">Enregistrer et entrer</button>'
+        + '<button class="bdv-porte__lien" id="bdvProfilPasser" type="button">Passer cette étape</button>'
+        + '</div>'
         + '<p class="bdv-porte__legal">En continuant, tu acceptes la <a href="/politique-confidentialite/" target="_blank" rel="noopener">politique de confidentialité</a>.</p>'
         + '</div>';
       document.body.appendChild(overlay);
@@ -413,7 +462,8 @@
       const etapes = {
         acces: overlay.querySelector('[data-etape="acces"]'),
         code: overlay.querySelector('[data-etape="code"]'),
-        nouveau: overlay.querySelector('[data-etape="nouveau"]')
+        nouveau: overlay.querySelector('[data-etape="nouveau"]'),
+        profil: overlay.querySelector('[data-etape="profil"]')
       };
       const champEmail = overlay.querySelector('#bdvEmail');
       const champMdp = overlay.querySelector('#bdvMdp');
@@ -436,6 +486,58 @@
 
       // 'signup' ou 'recovery'. Decide ce que valide l'etape 2 et ou elle mene ensuite.
       let modeCode = 'signup';
+      // La session obtenue par inscription, gardee le temps des trois questions.
+      let sessionFraiche = null;
+
+      const champPrenom = overlay.querySelector('#bdvPrenom');
+      const champDomaine = overlay.querySelector('#bdvDomaine');
+      const champCp = overlay.querySelector('#bdvCp');
+      const btnProfil = overlay.querySelector('#bdvBtnProfil');
+      const btnProfilPasser = overlay.querySelector('#bdvProfilPasser');
+
+      // Un seul choix retenu par groupe. Recliquer sur le meme le retire : une question
+      // repondue par erreur doit pouvoir redevenir sans reponse.
+      overlay.addEventListener('click', function(e){
+        const btn = e.target.closest && e.target.closest('.bdv-porte__choix-btn');
+        if(!btn) return;
+        const actif = btn.getAttribute('aria-pressed') === 'true';
+        btn.parentNode.querySelectorAll('.bdv-porte__choix-btn').forEach(function(b){
+          b.setAttribute('aria-pressed', 'false');
+        });
+        btn.setAttribute('aria-pressed', actif ? 'false' : 'true');
+      });
+      function choixDe(nom){
+        const b = overlay.querySelector('[data-choix="' + nom + '"] [aria-pressed="true"]');
+        return b ? b.getAttribute('data-valeur') : null;
+      }
+
+      function versProfil(session){
+        sessionFraiche = session;
+        montrer('profil');
+        champPrenom.focus();
+      }
+
+      async function enregistrerProfil(){
+        const champs = {};
+        const pre = champPrenom.value.trim(); if(pre) champs.prenom = pre;
+        const qui = choixDe('qui');           if(qui) champs.profil = qui;
+        const dom = champDomaine.value.trim();if(dom) champs.domaine = dom;
+        const cp  = champCp.value.trim();     if(cp)  champs.code_postal = cp;
+        const viti = choixDe('viti');         if(viti) champs.utilise_vitisoft = viti;
+        if(!Object.keys(champs).length){ entrer(sessionFraiche); return; }
+        occupe(btnProfil, 'Enregistrement…');
+        try{
+          await majProfil(champs);
+        }catch(e){
+          // Regle d'or : rien de notre infrastructure ne retient quelqu'un dehors. L'echec est
+          // mis en file d'attente et rejoue au prochain chargement, il n'est jamais perdu ni
+          // affiche comme une panne a quelqu'un dont le compte vient d'etre cree.
+          try{ localStorage.setItem(PROFIL_ATTENTE_KEY, JSON.stringify(champs)); }catch(e2){}
+        }finally{
+          libre(btnProfil);
+        }
+        entrer(sessionFraiche);
+      }
 
       function montrer(nom){
         Object.keys(etapes).forEach(function(k){ etapes[k].hidden = (k !== nom); });
@@ -518,7 +620,7 @@
           const issue = await inscription(email, champMdp.value);
           if(issue.session){
             majTrace(issue.session, extraConsent()).catch(function(){});
-            entrer(issue.session);
+            versProfil(issue.session);
             return;
           }
           versCode('signup', 'Un code à 6 chiffres vient d\'être envoyé à <b>' + esc(email) + '</b>.');
@@ -550,7 +652,7 @@
         occupe(btnCode, 'Vérification…');
         try{
           if(modeCode === 'signup'){
-            entrer(await confirmerInscription(email, code, extraConsent()));
+            versProfil(await confirmerInscription(email, code, extraConsent()));
             return;
           }
           await validerReprise(email, code);
@@ -591,6 +693,8 @@
       btnCode.addEventListener('click', validerCode);
       btnRenvoyer.addEventListener('click', renvoyer);
       btnNouveau.addEventListener('click', poserNouveauMdp);
+      btnProfil.addEventListener('click', enregistrerProfil);
+      btnProfilPasser.addEventListener('click', function(){ entrer(sessionFraiche); });
       // La liste ne s'affiche qu'au focus ou a la saisie sur l'ecran d'acces : un vigneron qui
       // revient juste se connecter n'a pas a lire les regles d'inscription. Sur l'ecran de
       // reprise elle est visible tout de suite, il n'y a la que du nouveau mot de passe.
@@ -709,8 +813,21 @@
     monId: monId
   };
 
+  // Un profil que le reseau avait refuse repart a la premiere occasion, et la file se vide
+  // seulement quand l'ecriture a reussi.
+  async function rejouerProfilEnAttente(){
+    let champs = null;
+    try{ champs = JSON.parse(localStorage.getItem(PROFIL_ATTENTE_KEY)); }catch(e){ return; }
+    if(!champs) return;
+    try{
+      await majProfil(champs);
+      localStorage.removeItem(PROFIL_ATTENTE_KEY);
+    }catch(e){ /* on retentera au prochain chargement */ }
+  }
+
   if(lireSession()){
     rafraichir();
     majTrace(lireSession(), {}).catch(function(){});
+    rejouerProfilEnAttente();
   }
 })();

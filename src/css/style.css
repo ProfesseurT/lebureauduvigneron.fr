@@ -1242,6 +1242,7 @@ em { font-style: italic; }
   margin-top: 2.5rem;
 }
 .article-card {
+  position: relative;   /* ancre la punaise du signet */
   background: var(--paper-light);
   border: 1px solid var(--rule);
   padding: 1.75rem;
@@ -2617,6 +2618,7 @@ em { font-style: italic; }
   margin-bottom: 3rem;
 }
 .articles-une__card {
+  position: relative;   /* ancre la punaise du signet */
   background: var(--paper-light);
   border: 1px solid var(--rule);
   transition: border-color var(--tr-rapide) ease, transform var(--tr-rapide) ease, box-shadow var(--tr-rapide) ease;
@@ -4298,4 +4300,640 @@ em { font-style: italic; }
   .demo-pinboard__board { height: 420px; }
   .article-body h2 { font-size: 1.5rem; }
   .compteur-item { padding: 1.25rem 0.75rem; }
+}
+
+
+/* ============================================================================
+   SIGNETS
+   ============================================================================
+   Le geste qui donne son sens au compte : mettre de cote, et marquer lu.
+   Deux formes du meme bouton. Sur une page d'article il porte son texte, sur
+   une carte de liste il se reduit a la punaise pour ne pas voler le titre.
+   Un etat pose remplit le bouton en bordeaux : de loin, on voit ce qui est
+   deja range sans avoir a lire.
+   ============================================================================ */
+.signet-barre {
+  display: flex;
+  gap: var(--e-s);
+  flex-wrap: wrap;
+  margin-top: var(--e-xl);
+  padding-top: var(--e-l);
+  border-top: var(--trait) solid var(--rule);
+}
+.signet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;          /* cible tactile, la plupart des lecteurs sont sur telephone */
+  padding: 0.5rem 0.9rem;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule-fort);
+  border-radius: var(--r-nul);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-petit);
+  letter-spacing: var(--ls-doux);
+  cursor: pointer;
+  transition: background var(--tr-rapide) ease, border-color var(--tr-rapide) ease,
+              color var(--tr-rapide) ease;
+}
+.signet:hover { border-color: var(--bordeaux); }
+.signet__icone {
+  width: 0.7rem;
+  height: 0.7rem;
+  flex: 0 0 auto;
+  border-radius: var(--r-rond);
+  border: var(--trait) solid var(--cork-encre);
+  background: transparent;
+}
+.signet__coche { font-size: var(--t-base); line-height: 1; }
+
+/* Etat pose : le bouton se remplit, quel que soit lequel des trois. */
+.signet[data-etat="a_lire"],
+.signet[data-etat="lu"] {
+  background: var(--bordeaux);
+  border-color: var(--bordeaux);
+  color: var(--on-dark);
+}
+.signet[data-etat="a_lire"] .signet__icone,
+.signet[data-etat="lu"] .signet__icone {
+  background: var(--on-dark);
+  border-color: var(--on-dark);
+}
+
+/* La punaise seule, posee dans le coin d'une carte. */
+.signet--punaise {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  border: none;
+}
+.signet--punaise:hover .signet__icone { border-color: var(--bordeaux); }
+.signet--punaise[data-etat="a_lire"],
+.signet--punaise[data-etat="lu"] {
+  background: transparent;
+  border: none;
+}
+.signet--punaise[data-etat="a_lire"] .signet__icone,
+.signet--punaise[data-etat="lu"] .signet__icone {
+  background: var(--bordeaux);
+  border-color: var(--bordeaux);
+}
+
+
+/* ============================================================================
+   MON BUREAU
+   ============================================================================
+   L'espace connecte. Il ne reinvente rien : ce sont les surfaces, les filets et
+   les angles vifs du reste du site, organises en quatre zones nommees comme un
+   vrai bureau. Le sous-main, le classeur, le courrier, les outils.
+   ============================================================================ */
+.bureau-zone__titre {
+  font-size: var(--t-h3);
+  margin-bottom: 0.25rem;
+}
+.bureau-zone__sous {
+  color: var(--muted);
+  font-style: italic;
+  margin: 0 0 var(--e-l);
+  font-size: var(--t-base);
+}
+.bureau-liste {
+  display: grid;
+  gap: var(--e-m);
+}
+.bureau-carte {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule);
+  border-left: var(--trait-accent) solid var(--cork);
+  padding: var(--e-m) var(--e-l);
+  transition: border-color var(--tr-rapide) ease;
+}
+.bureau-carte:hover { border-color: var(--ink); }
+.bureau-carte__titre {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  color: var(--ink);
+  text-decoration: none;
+  line-height: var(--lh-serre);
+}
+.bureau-carte__titre:hover { color: var(--bordeaux); }
+.bureau-carte__meta {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  margin: 0;
+}
+/* Le bouton de retrait vit dans la carte, discret, pas en concurrence avec le titre. */
+.signet--carte {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  font-size: var(--t-mini);
+}
+
+.bureau-vide {
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.bureau-vide__ligne {
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+  padding: var(--e-l);
+  border: var(--trait) dashed var(--rule-fort);
+  font-size: var(--t-base);
+}
+
+.bureau-outils {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--e-m);
+}
+.bureau-outil {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule-fort);
+  padding: var(--e-l);
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform var(--tr-rapide) ease, box-shadow var(--tr-rapide) ease;
+}
+a.bureau-outil:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: var(--ombre-dure);
+  text-decoration: none;
+}
+.bureau-outil__nom {
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  line-height: var(--lh-serre);
+}
+.bureau-outil__quoi {
+  font-size: var(--t-base);
+  color: var(--muted);
+  line-height: var(--lh-normal);
+}
+.bureau-outil__note {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  color: var(--cork-encre);
+}
+.bureau-outil--bientot { opacity: 0.72; }
+
+/* La pastille du menu : le nombre d'articles qui attendent d'etre lus. */
+.nav__pastille {
+  display: inline-block;
+  margin-left: 0.4rem;
+  min-width: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: var(--r-rond);
+  background: var(--bordeaux);
+  color: var(--on-dark);
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  line-height: 1.15rem;
+  text-align: center;
+}
+
+
+/* ============================================================================
+   LE COMPTE A REBOURS REGLEMENTAIRE
+   ============================================================================
+   Une echeance se lit en deux temps : dans combien de jours, puis quoi. La
+   colonne de gauche porte le delai, seule, en grand. Le liseré de gauche dit
+   l'urgence sans qu'on ait besoin de lire le chiffre.
+   ============================================================================ */
+.echeances {
+  display: grid;
+  gap: var(--e-m);
+}
+.echeance {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: var(--e-l);
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule);
+  border-left: var(--trait-accent) solid var(--cork);
+  padding: var(--e-l);
+}
+.echeance__compte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-right: var(--trait) solid var(--rule);
+  padding-right: var(--e-m);
+}
+.echeance__quand {
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  line-height: var(--lh-serre);
+  color: var(--ink);
+}
+.echeance__date {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  color: var(--muted);
+}
+.echeance__titre {
+  font-size: var(--t-lead);
+  margin: 0 0 0.35rem;
+}
+.echeance__qui {
+  font-size: var(--t-base);
+  color: var(--ink);
+  margin: 0 0 0.35rem;
+}
+.echeance__detail {
+  font-size: var(--t-base);
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+  line-height: var(--lh-normal);
+}
+.echeance__liens {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  margin: 0;
+}
+
+/* Les quatre tons. Le rouge ne sert qu'a ce qui tombe dans la semaine : s'il servait
+   partout, il ne voudrait plus rien dire. */
+.echeance[data-niveau="urgent"],
+.echeance[data-niveau="aujourdhui"] {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
+.echeance[data-niveau="urgent"] .echeance__quand,
+.echeance[data-niveau="aujourdhui"] .echeance__quand { color: var(--danger-deep); }
+.echeance[data-niveau="proche"] { border-left-color: var(--warn); }
+.echeance[data-niveau="proche"] .echeance__quand { color: var(--warn); }
+.echeance[data-niveau="loin"] { border-left-color: var(--cork); }
+.echeance[data-niveau="passe"] {
+  border-left-color: var(--rule-fort);
+  background: var(--paper);
+}
+.echeance[data-niveau="passe"] .echeance__quand {
+  font-size: var(--t-base);
+  color: var(--muted);
+}
+
+.echeances__avis {
+  margin-top: var(--e-xl);
+  padding-top: var(--e-m);
+  border-top: var(--trait) solid var(--rule);
+  font-size: var(--t-base);
+  color: var(--muted);
+  line-height: var(--lh-normal);
+}
+
+@media (max-width: 640px) {
+  .echeance { grid-template-columns: 1fr; gap: var(--e-s); }
+  .echeance__compte {
+    border-right: none;
+    border-bottom: var(--trait) solid var(--rule);
+    padding-right: 0;
+    padding-bottom: var(--e-s);
+  }
+}
+
+
+/* ============================================================================
+   MON BUREAU — direction « le bureau du matin »
+   ============================================================================
+   Le bureau dit d'abord ce qui presse, ensuite ce qu'on possede. Un vigneron
+   l'ouvre entre deux taches, souvent le soir : la premiere ligne doit repondre
+   a « qu'est-ce qui me tombe dessus », pas a « qu'est-ce que j'ai range ».
+   ============================================================================ */
+.bureau-tete {
+  background: var(--bordeaux-deep);
+  color: var(--on-dark);
+  padding-block: var(--e-2xl) var(--e-xl);
+}
+.bureau-tete__jour {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  color: var(--on-dark-soft);
+  margin-bottom: 0.6rem;
+}
+.bureau-tete h1 { color: var(--on-dark); }
+.bureau-tete__resume {
+  color: var(--on-dark-soft);
+  font-style: italic;
+  font-size: var(--t-lead);
+  margin: 0.5rem 0 0;
+}
+
+.bureau-etiquette {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  color: var(--muted);
+  margin-bottom: var(--e-m);
+}
+.bureau-presse {
+  display: grid;
+  gap: var(--e-s);
+  margin-bottom: var(--e-2xl);
+}
+
+/* La ligne d'urgence : le delai a gauche, seul, en grand. */
+.presse {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: var(--e-l);
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule);
+  border-left: var(--trait-accent) solid var(--cork);
+  padding: var(--e-l);
+}
+.presse__compte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-right: var(--trait) solid var(--rule);
+  padding-right: var(--e-m);
+}
+.presse__quand {
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  line-height: var(--lh-serre);
+  color: var(--ink);
+}
+.presse__date { font-family: var(--font-corps); font-size: var(--t-mini); color: var(--muted); }
+.presse__titre { font-size: var(--t-lead); margin: 0 0 0.35rem; }
+.presse__qui { font-size: var(--t-base); color: var(--muted); margin: 0 0 0.4rem; }
+.presse__liens { font-family: var(--font-corps); font-size: var(--t-mini); margin: 0; }
+
+.presse[data-niveau="urgent"],
+.presse[data-niveau="aujourdhui"] {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
+.presse[data-niveau="urgent"] .presse__quand,
+.presse[data-niveau="aujourdhui"] .presse__quand { color: var(--danger-deep); }
+.presse[data-niveau="proche"] { border-left-color: var(--warn); }
+.presse[data-niveau="proche"] .presse__quand { color: var(--warn); }
+.presse[data-niveau="signet"] .presse__quand { color: var(--cork-encre); }
+
+.bureau-colonnes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-2xl);
+}
+.bureau-entete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: var(--trait-fort) solid var(--rule-fort);
+  padding-bottom: 0.5rem;
+  margin-bottom: var(--e-m);
+}
+.bureau-entete--suite { margin-top: var(--e-xl); }
+.bureau-entete h2 { font-size: var(--t-h3); }
+.bureau-entete__compte {
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--muted);
+}
+
+/* L'accent manuscrit de la direction « sous-main », gardé pour la respiration. */
+.bureau-manuscrit {
+  font-family: var(--font-manuscrit);
+  font-size: 1.35rem;
+  color: var(--cork-encre);
+  transform: rotate(-1deg);
+  margin: -0.4rem 0 var(--e-m);
+}
+
+/* La fiche du sous-main : une feuille posee, avec sa punaise. */
+.bureau-fiche {
+  position: relative;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule);
+  border-left: var(--trait-accent) solid var(--cork);
+  padding: var(--e-m) var(--e-l) var(--e-s);
+  margin-bottom: var(--e-s);
+}
+.bureau-fiche__punaise {
+  position: absolute;
+  top: -6px;
+  right: 18px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-rond);
+  background: var(--bordeaux);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+.bureau-fiche__titre {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  line-height: var(--lh-serre);
+  color: var(--ink);
+  text-decoration: none;
+}
+.bureau-fiche__titre:hover { color: var(--bordeaux); }
+.bureau-fiche__meta {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  margin: 0.25rem 0 0;
+}
+
+/* Le classeur et le courrier : des lignes, pas des cartes. Ce sont des rappels. */
+.bureau-classeur { display: grid; gap: 0; }
+.bureau-ligne {
+  margin: 0;
+  padding: 0.55rem 0;
+  border-bottom: var(--trait) solid var(--rule);
+  font-size: var(--t-base);
+  line-height: var(--lh-normal);
+}
+.bureau-ligne:last-child { border-bottom: none; }
+
+.bureau-outils--colonne { grid-template-columns: 1fr; }
+
+@media (max-width: 780px) {
+  .bureau-colonnes { grid-template-columns: 1fr; gap: var(--e-xl); }
+  .presse { grid-template-columns: 1fr; gap: var(--e-s); }
+  .presse__compte {
+    border-right: none;
+    border-bottom: var(--trait) solid var(--rule);
+    padding-right: 0;
+    padding-bottom: var(--e-s);
+  }
+}
+
+
+/* Les ecrans du tableau de bord, atteignables directement depuis le bureau.
+   Volontairement plus sobres que les cartes d'outils : ce ne sont pas d'autres
+   outils, ce sont des portes vers l'interieur du meme. */
+.bureau-ecrans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-s);
+}
+.bureau-ecran {
+  display: block;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule-fort);
+  padding: var(--e-s) var(--e-m);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color var(--tr-rapide) ease;
+}
+.bureau-ecran:hover { border-color: var(--bordeaux); text-decoration: none; }
+.bureau-ecran__nom {
+  display: block;
+  font-family: var(--font-titre);
+  font-size: var(--t-corps);
+  line-height: var(--lh-serre);
+}
+.bureau-ecran__quoi {
+  display: block;
+  font-size: var(--t-mini);
+  color: var(--muted);
+  line-height: var(--lh-normal);
+  margin-top: 0.15rem;
+}
+
+
+/* ============================================================================
+   LA FILE DE TRAVAIL
+   ============================================================================
+   Le bloc le plus utilise du bureau, donc le plus dense. Une ligne, trois zones :
+   qui, pourquoi, quoi faire. Les gestes sont a droite, toujours a la meme place,
+   pour qu'on descende la file au pouce sans relire les etiquettes.
+   ============================================================================ */
+.bureau-entete--file { margin-bottom: var(--e-s); }
+.bureau-file {
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+  border: var(--trait) solid var(--rule-fort);
+  margin-bottom: var(--e-2xl);
+}
+.filel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto;
+  gap: var(--e-m);
+  align-items: center;
+  background: var(--paper-light);
+  padding: 0.8rem var(--e-m);
+  transition: background var(--tr-rapide) ease, opacity var(--tr-rapide) ease;
+}
+.filel:hover { background: var(--white); }
+/* La ligne s'efface des le clic : le reseau suit, il ne fait pas attendre. */
+.filel--parti { opacity: 0.35; pointer-events: none; }
+.filel[data-source="rappel"] { border-left: var(--trait-accent) solid var(--danger); }
+.filel[data-source="signal"] { border-left: var(--trait-accent) solid var(--cork); }
+.filel__qui { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.filel__nom {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  line-height: var(--lh-serre);
+  overflow-wrap: anywhere;
+}
+.filel__contact {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.filel__quoi { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.filel__motif {
+  font-family: var(--font-corps);
+  font-size: var(--t-petit);
+  font-weight: 500;
+  color: var(--ink);
+}
+.filel__sous { font-size: var(--t-mini); color: var(--muted); line-height: var(--lh-normal); }
+.filel__gestes { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Un bouton de file : petit, mais jamais sous la cible tactile de 44 px. */
+.btn--mini {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.4rem 0.7rem;
+  background: var(--paper);
+  border: var(--trait) solid var(--rule-fort);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  letter-spacing: var(--ls-doux);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn--mini:hover { background: var(--bordeaux); border-color: var(--bordeaux); color: var(--on-dark); }
+
+/* Les quatre chiffres deposes par le tableau de bord. */
+.bureau-chiffres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--e-s);
+  margin-bottom: var(--e-2xl);
+}
+.chiffre {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--white);
+  border: var(--trait) solid var(--rule);
+  border-top: var(--trait-accent) solid var(--bordeaux);
+  padding: var(--e-m);
+}
+.chiffre--hi { background: var(--bordeaux); border-top-color: var(--bordeaux-deep); }
+.chiffre--hi .chiffre__l, .chiffre--hi .chiffre__s { color: var(--on-dark-soft); }
+.chiffre--hi .chiffre__v { color: var(--on-dark); }
+.chiffre__l {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  color: var(--muted);
+}
+.chiffre__v {
+  font-family: var(--font-titre);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+.chiffre__s { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
+
+@media (max-width: 780px) {
+  .filel { grid-template-columns: 1fr; gap: var(--e-xs); }
+  .filel__gestes { justify-content: flex-start; margin-top: var(--e-xs); }
+}
+
+
+/* L'avis de la file : dit qu'un geste n'est pas parti. Rare, donc discret, mais jamais
+   silencieux : laisser croire un client traite alors que rien n'est ecrit est pire que
+   de ne rien afficher du tout. */
+.bureau-avis {
+  margin: 0 0 var(--e-s);
+  padding: var(--e-s) var(--e-m);
+  background: var(--warn-bg);
+  border-left: var(--trait-accent) solid var(--warn);
+  font-size: var(--t-base);
+  color: var(--ink);
 }
