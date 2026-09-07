@@ -4913,7 +4913,6 @@ button.bureau-nav__item:hover {
 .zone--classeur  { grid-column: span 4; }
 .zone--courrier  { grid-column: span 4; }
 .zone--panneau   { grid-column: span 12; }
-.zone--tiroir    { grid-column: span 12; }
 
 .zone {
   background: var(--paper-light);
@@ -5076,21 +5075,6 @@ button.bureau-nav__item:hover {
 }
 
 /* ---- LE TIROIR ---- */
-.tiroir { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--e-s); }
-.tiroir__o {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: var(--e-m);
-  background: var(--paper);
-  border: var(--trait) solid var(--rule-fort);
-  text-decoration: none;
-  color: var(--ink);
-  transition: transform var(--tr-rapide) ease, box-shadow var(--tr-rapide) ease;
-}
-.tiroir__o:hover { transform: translate(-3px, -3px); box-shadow: var(--ombre-dure); text-decoration: none; }
-.tiroir__nom { font-family: var(--font-titre); font-size: var(--t-lead); line-height: var(--lh-serre); }
-.tiroir__q { font-size: var(--t-mini); color: var(--muted); }
 
 /* ---- L'AVIS ---- */
 .bureau-avis {
@@ -5194,7 +5178,7 @@ button.bureau-nav__item:hover {
    jamais : le sous-main reste le premier bloc qu'on voit, partout. */
 @media (max-width: 1100px) {
   /* Le sous-main prend toute la largeur, le reste se range par deux. */
-  .zone--sousmain, .zone--ardoise, .zone--panneau, .zone--tiroir { grid-column: span 12; }
+  .zone--sousmain, .zone--ardoise, .zone--panneau { grid-column: span 12; }
   .zone--mot, .zone--pensebete, .zone--lecture, .zone--classeur, .zone--courrier { grid-column: span 6; }
 }
 @media (max-width: 700px) {

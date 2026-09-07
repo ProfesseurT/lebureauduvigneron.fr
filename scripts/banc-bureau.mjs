@@ -149,9 +149,12 @@ B.window.BdvNav.sansVitisoft(false);
 t('avec Vitisoft, tout revient', lignes.filter(l => l.hidden).length === 0);
 
 /* ---- le tiroir ---- */
-const tiroir = B.doc.getElementById('zoneTiroir');
-t('le tiroir est masque et vide, ses deux entrees sont dans la barre',
-  !!tiroir && tiroir.hidden && tiroir.querySelectorAll('a').length === 0);
+/* Supprime au lot 3. Ses deux entrees sont dans la barre depuis le lot 1, et il n'y avait
+   qu'un seul outil ouvert a tous a lui rendre, deja dans la barre lui aussi. Le controle
+   reste, a l'envers : c'est ce qui empechera de le reintroduire par inadvertance en
+   recopiant une ancienne version du gabarit. */
+t('le tiroir a bien disparu du bureau',
+  B.doc.getElementById('zoneTiroir') === null && !HTML.includes('zone--tiroir'));
 
 /* ======================= LES ECRANS DE VENTE (lot 2c) ======================= */
 titre('Les ecrans de vente dans le bureau');
