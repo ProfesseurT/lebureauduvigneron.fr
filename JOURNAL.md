@@ -14,8 +14,9 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ## Session du 06/09/2026, en soirée : la feuille de route des six chantiers
 
-Aucune ligne de code ce soir. Ted a posé six chantiers pour la suite. Ils sont notés ici avec ce
-que chacun suppose et ce qui coince, pour que la reprise ne redécouvre pas les mêmes murs.
+Ted a posé six chantiers pour la suite. Ils sont notés ici avec ce que chacun suppose et ce qui
+coince, pour que la reprise ne redécouvre pas les mêmes murs. Puis le premier a été attaqué : voir
+« Le chantier CRM » plus bas.
 
 ### Les six chantiers, tels qu'ils ont été demandés
 
@@ -90,9 +91,81 @@ besoin du précédent. L'agenda est indépendant et peut avancer en parallèle. 
 l'arbitrage sur le `mailto:`. Le tableau de bord d'administration attend l'arbitrage sur la
 promesse.
 
+### Le chantier CRM, premier des six
+
+**Décision de Ted sur la signature, prise dans la même séance** : signature riche déposée dans le
+presse-papier, à associer à l'outil de création de message existant. Point à traiter le jour où on
+y viendra : le bouton actuel ouvre un lien `mailto:`, qui ne peut pas porter la signature riche. Il
+faudra donc soit un second bouton « copier le message complet », soit remplacer le `mailto:` par la
+copie. Ce n'est pas tranché.
+
+**Les treize canaux retenus**, en quatre groupes : le socle (Appel, Répondeur, SMS, E-mail, Note
+interne), le terrain (Visite au domaine, Reçu au caveau, Salon ou dégustation), les messageries
+(WhatsApp, LinkedIn, Visio), le papier et l'envoi (Courrier postal, Échantillon envoyé).
+
+**La correction laisse une trace.** Le texte et le canal se modifient, `le` ne bouge jamais, et une
+colonne `maj_le` dit quand la ligne a été réécrite. L'écran n'affiche « corrigé le » que si la ligne
+a vraiment bougé : l'afficher partout ferait douter de tout le journal.
+
+#### Ce que l'audit du code a révélé, et qui a changé le chantier
+
+La liste des moyens de communication n'était pas recopiée à quatre endroits mais à **neuf**, sur
+deux fichiers qui ne se parlent pas, le tableau de bord ayant sa propre copie du CRM. Et ces listes
+avaient **déjà divergé** : un « Message » enregistré depuis la fiche était classé canal E-mail, le
+même geste posé depuis la file était classé Téléphone. Deux lignes du même journal disaient deux
+choses du même acte, et rien ne le signalait. C'est le troisième cas de la semaine du même piège,
+le réglage recopié en dur.
+
+Neuvième endroit trouvé en fin de passe : `CANAUX_SUIVI`, quatre canaux figés dans le tableau de
+bord, **déclarée et appelée par personne**. Du code mort qui ressemblait à la liste qui fait foi.
+Supprimée.
+
+#### Ce qui a été écrit
+
+- `src/js/bdv-canaux.js`, **nouveau**. La liste des canaux, écrite une fois. Chargé **sans
+  `defer`** dans les deux pages : les scripts en ligne s'exécutent avant les modules différés, donc
+  une liste lue au chargement depuis un fichier différé serait vide. C'est le même piège que le
+  `if(window.BdvCrm)` en tête de `mon-bureau.njk`.
+- `src/js/bdv-crm.js` : les gestes portent une clé de canal, `noter()` reçoit le canal au lieu de
+  le deviner, `fil()` rapporte `maj_le`, et `corriger()` est nouvelle.
+- `src/mon-bureau.njk` : choix du canal à la saisie, canal affiché dans le fil, correction en place
+  dans la ligne avec sauvegarde du brouillon si la fiche se repeint entre-temps.
+- `src/outils/dashboard-vigneron.html` : mêmes branchements, plus la colonne « Canal » du tableau
+  des clients qui résout la clé au lieu de l'afficher brute.
+- `src/css/style.css` et les styles internes du tableau de bord.
+- Une migration : `maj_le` sur `echanges`, appliquée en base, et les trois lignes existantes
+  alignées sur `le` pour qu'elles ne s'affichent pas comme corrigées.
+
+#### Ce qui a été décidé contre la demande, et pourquoi
+
+**Le stockage garde la clé du canal, pas son libellé.** Un libellé stocké fige la formulation : le
+jour où « Reçu au caveau » devient « Passé au caveau », la base porte deux orthographes du même
+geste et rien ne permet de les rapprocher. Les valeurs historiques `Téléphone` et `E-mail` restent
+lisibles par une table de compatibilité, jamais réécrites.
+
+**Les trois gestes rapides de la file restent trois.** Treize choix par ligne feraient de la file
+le mur qu'elle est censée éviter. Les treize canaux vivent dans la fiche, là où on prend le temps
+d'écrire.
+
+**La correction n'est pas encore dans le fil du tableau de bord**, seulement dans celui du bureau.
+Motif : là-bas le fil est peint en chaînes HTML et le journal passe par un miroir local avec file
+de rejeu. C'est un second passage, pas un ajout de bouton.
+
+#### Ce qui a été vérifié
+
+- `node --check` passe sur les deux fichiers JavaScript et sur les blocs en ligne des deux pages.
+- Aucune trace de `Téléphone` en dur, ni de `ACTIVITE_TYPE`, `TYPES_ECHANGE` ou `TYPE_SAISIE`.
+- Politiques de la table `echanges` contrôlées en base avant d'écrire : modification et suppression
+  existaient déjà, donc l'édition ne demandait aucune migration de sécurité.
+- Contrôle de charte du site : **deux échecs, tous deux antérieurs à ce chantier**, et l'un des deux
+  est un faux positif. `var(--tour)` est déclaré sans déclaration CSS parce qu'il est posé en
+  JavaScript par `mon-bureau.njk` ligne 927, ce que le script de contrôle ne sait pas voir. L'autre
+  est réel : deux `letter-spacing` en dur, `.la-une__label` et `.postit__v[data-mot]`.
+
 ### Reste ouvert
 
-1. Signature de mail : texte seul, presse-papier, ou envoi réel ? Rien ne s'écrit avant.
+1. Signature de mail : le `mailto:` ne peut pas porter la signature riche retenue. Second bouton
+   « copier le message complet », ou abandon du `mailto:` ?
 2. Tableau de bord d'administration : compteurs d'usage seuls, ou lecture des données de vente ?
    Le second oblige à réécrire `src/compte.njk` d'abord.
 3. Journal d'échanges : la modification écrase, ou corrige en laissant la trace ?

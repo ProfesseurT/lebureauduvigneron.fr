@@ -22,6 +22,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-compte.js" data-outil="dashboard-vigneron" defer></script>
 <script src="/js/bdv-sync.js" defer></script>
 <!-- Verrou pose AVANT le premier pixel. Sans compte, rien du tableau de bord ne s'affiche,
@@ -159,7 +160,9 @@ a{color:var(--bordeaux)}
 .saisie__txt{display:block;width:100%;box-sizing:border-box;border:none;background:none;padding:.7rem .8rem;font-family:var(--font-corps);font-size:var(--t-corps);color:var(--ink);resize:vertical}
 .saisie__txt:focus{outline:none}
 .saisie__pied{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding:.4rem .5rem;border-top:var(--trait) solid var(--rule)}
-.saisie__types{display:flex;gap:.3rem}
+.saisie__types{display:flex;gap:.3rem;align-items:center}
+.saisie__etiq{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
+.saisie__canal{border:var(--trait) solid var(--rule);background:var(--white);padding:.25rem .4rem;font-family:var(--font-mono);font-size:var(--t-mini);color:var(--ink);max-width:14rem}
 .btn--type{min-height:34px;padding:.25rem .6rem;background:none;border:var(--trait) solid transparent;color:var(--muted);font-family:var(--font-mono);font-size:var(--t-mini);cursor:pointer}
 .btn--type:hover{color:var(--ink)}
 .btn--type[aria-pressed="true"]{background:var(--bordeaux);border-color:var(--bordeaux);color:var(--on-dark)}
@@ -866,12 +869,20 @@ const STATUTS_SUIVI={
   relance:{label:'Relancé',cls:'m-statut-relance'},
   traite:{label:'Traité',cls:'m-statut-traite'}
 };
-const CANAUX_SUIVI=['Téléphone','E-mail','En personne','Courrier'];
+/* La liste des moyens de communication est dans /js/bdv-canaux.js, et nulle part
+   ailleurs. Une constante CANAUX_SUIVI vivait ici, figee a quatre valeurs et appelee par
+   personne : elle ne servait qu'a faire croire, a la relecture, qu'elle faisait foi. */
 
 /* ======================= LE JOURNAL D'ECHANGES =======================
    Le suivi porte UNE note : ecrire quelque chose en septembre effacait ce qu'on avait
-   note en aout. Le journal empile des entrees datees, et une entree ne se modifie
-   jamais, elle s'ajoute. C'est toute la difference entre un historique et un bloc-notes.
+   note en aout. Le journal empile des entrees datees. C'est toute la difference entre un
+   historique et un bloc-notes.
+
+   Depuis le 06/09/2026, une entree peut etre CORRIGEE : on repare une faute de frappe ou
+   un canal mal choisi. Ce qui ne bouge jamais, c'est `le`, la date de ce qui s'est passe,
+   et la colonne `maj_le` dit quand le texte a ete reecrit. Une ligne dont `maj_le` vaut
+   `le` n'a jamais ete retouchee, et l'ecran ne dit « corrigé le » que dans le cas
+   contraire : l'afficher partout ferait douter de tout le journal.
 
    Meme motif que le suivi : un miroir dans le localStorage pour afficher sans attendre
    le reseau, le serveur pousse en tache de fond et ne bloque jamais un geste. */
@@ -910,12 +921,18 @@ function echRejouer(){
     (ECHANGES[id]||[]).forEach(function(e){ if(e._apousser)echPousser(e); });
   });
 }
-const TYPES_ECHANGE={
-  appel:  {label:'Appel',           ico:'&#9990;'},
-  message:{label:'Message laissé',  ico:'&#9993;'},
-  note:   {label:'Note',            ico:'&#9998;'},
-  ecarte: {label:'Écarté',          ico:'&#8987;'}
-};
+/* Les libelles et les icones du journal viennent de bdv-canaux.js, seul endroit ou la
+   liste des moyens de communication est ecrite. Cette table-ci n'est qu'un repli pour le
+   cas ou le fichier ne serait pas charge : mieux vaut un fil un peu pauvre qu'un fil vide.
+   Avant, cette table et sa jumelle de bdv-crm.js avaient deja divergé l'une de l'autre. */
+function libEchange(e){
+  if(window.BdvCanaux)return{label:BdvCanaux.libelleEntree(e),ico:BdvCanaux.icoEntree(e)};
+  return{label:String((e&&(e.canal||e.type))||''),ico:'&#9998;'};
+}
+/* Un canal stocke en base est une CLE ('appel', 'sms'), pas un libelle. La colonne
+   « Canal » du tableau des clients doit donc le resoudre avant de l'afficher, sinon le
+   vigneron y lit « repondeur » en minuscules au lieu de « Répondeur ». */
+function libCanal(v){ return window.BdvCanaux?BdvCanaux.libelle(v):(v||''); }
 
 /* Les trois gestes de la file. Chacun fait exactement trois choses : il ecrit une entree
    au journal, il pose un statut, et il REPOUSSE le rappel. Le troisieme point est le plus
@@ -924,8 +941,8 @@ const TYPES_ECHANGE={
    soixante jours suffit a sortir la ligne de la file, et l'ecart laisse une trace au
    journal comme les autres gestes. */
 const GESTES={
-  appel:  {label:'Appelé',            type:'appel',  canal:'Téléphone',statut:'relance',jours:30,resume:'Appel passé'},
-  message:{label:'Laissé un message', type:'message',canal:'Téléphone',statut:'relance',jours:7, resume:'Message laissé, sans réponse'},
+  appel:  {label:'Appelé',            type:'appel',  canal:'appel',    statut:'relance',jours:30,resume:'Appel passé'},
+  message:{label:'Laissé un message', type:'message',canal:'repondeur',statut:'relance',jours:7, resume:'Message laissé, sans réponse'},
   ecarte: {label:'Pas maintenant',    type:'ecarte', canal:null,       statut:null,     jours:60,resume:'Écarté de la file'}
 };
 function dansNJours(n){return isoDepuisJour(Math.floor(Date.now()/86400000)+n);}
@@ -3251,6 +3268,7 @@ function ouvrirFiche(id,motif){
   FICHE_ID=id;
   const m=el('modale');
   m.innerHTML=ficheHTML(f,motif||(CLIENTS.find(c=>c.id===id)||{}).motif||'');
+  monterSelectCanal();
   m.classList.add('on');
   m.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';
@@ -3370,17 +3388,17 @@ function ficheHTML(f,motif){
        redaction, pas du suivi.
 
    Les notes deja ecrites ne sont pas perdues : elles s'affichent en tete du fil. */
-const ACTIVITES=[
-  {k:'appel',   label:'Appel',   ico:'&#9990;'},
-  {k:'message', label:'Message', ico:'&#9993;'},
-  {k:'note',    label:'Note',    ico:'&#9998;'}
-];
-let ACTIVITE_TYPE='appel';
-function choisirType(k){
-  ACTIVITE_TYPE=k;
-  document.querySelectorAll('[data-type]').forEach(function(b){
-    b.setAttribute('aria-pressed',b.getAttribute('data-type')===k?'true':'false');
-  });
+/* Le canal du prochain enregistrement. Treize choix desormais, donc une liste deroulante
+   et non plus trois boutons : treize boutons pousseraient le champ de saisie hors de
+   l'ecran sur un telephone. La valeur par defaut vient de bdv-canaux.js. */
+let ACTIVITE_CANAL=(window.BdvCanaux?BdvCanaux.DEFAUT:'appel');
+function choisirCanal(v){ACTIVITE_CANAL=v;}
+/* Le <select> est rempli en DOM apres l'insertion du HTML de la fiche : construire des
+   <option> en chaine obligerait a echapper des libelles, et un jour l'un d'eux porterait
+   une apostrophe qui casserait la fiche entiere. */
+function monterSelectCanal(){
+  const s=el('saisieCanal');
+  if(s&&window.BdvCanaux)BdvCanaux.remplirSelect(s,ACTIVITE_CANAL);
 }
 
 function suiviHTML(f,s){
@@ -3424,9 +3442,8 @@ function suiviCorps(f,s){
         placeholder="Qu'est-ce qui s'est passé avec ce client ?"></textarea>
       <div class="saisie__pied">
         <div class="saisie__types">
-          ${ACTIVITES.map(a=>`<button type="button" class="btn--type" data-type="${a.k}"
-             aria-pressed="${a.k===ACTIVITE_TYPE?'true':'false'}"
-             onclick="choisirType('${a.k}')">${a.ico} ${a.label}</button>`).join('')}
+          <label class="saisie__etiq" for="saisieCanal">Par</label>
+          <select class="saisie__canal" id="saisieCanal" onchange="choisirCanal(this.value)"></select>
         </div>
         <button class="btn btn--primary btn--sm" onclick="noter(${arg})">Enregistrer</button>
       </div>
@@ -3451,7 +3468,7 @@ function suiviCorps(f,s){
     h+=`<p class="fil__vide">Rien encore. La première chose que tu écris s'inscrit ici, datée.</p>`;
   }else{
     h+=ech.slice(0,40).map(function(e){
-      const t=TYPES_ECHANGE[e.type]||{label:e.type,ico:'&#9998;'};
+      const t=libEchange(e);
       const d=new Date(e.le);
       const quand=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
       return `<div class="fil__l">
@@ -3472,9 +3489,11 @@ function noter(id){
   const champ=el('saisieTxt');if(!champ)return;
   const t=champ.value.trim();
   if(!t){status('error','Écris ce qui s\'est passé avant d\'enregistrer.');champ.focus();return;}
-  const type=ACTIVITE_TYPE;
-  const canal=(type==='appel')?'Téléphone':(type==='message'?'E-mail':null);
-  echAjouter(id,type,canal,t);
+  // Le canal n'est plus DEDUIT du type. La deduction d'avant classait tout « message »
+  // en E-mail ici, alors que le meme geste pose depuis la file du bureau etait classe
+  // Telephone : deux lignes du meme journal disaient deux choses du meme acte.
+  const c=window.BdvCanaux?BdvCanaux.canal(ACTIVITE_CANAL):null;
+  echAjouter(id,c?c.type:'note',c?c.cle:null,t);
   champ.value='';
   const s=CRM[id]||{};
   redessinerSuivi(id);
@@ -3501,6 +3520,7 @@ function redessinerSuivi(id){
   const boite=el('suiviBloc');if(!boite||FICHE_ID!==id)return;
   const f=ficheClient(id);if(!f)return;
   boite.innerHTML=suiviCorps(f,CRM[id]||{});
+  monterSelectCanal();
 }
 
 // Un geste pose depuis la fiche : meme effet que dans la file, plus le redessin de la
@@ -3708,7 +3728,7 @@ function renderClients(){
       <td>${s.statut&&STATUTS_SUIVI[s.statut]?`<span class="motif ${STATUTS_SUIVI[s.statut].cls}">${STATUTS_SUIVI[s.statut].label}</span>`:'<span class="muted-cell">-</span>'}</td>
       <td>${s.rappel?rappelCell(s.rappel):'<span class="muted-cell">-</span>'}</td>
       <td>${(s.tags&&s.tags.length)?s.tags.map(esc).join(', '):'<span class="muted-cell">-</span>'}</td>
-      <td>${s.canal?esc(s.canal):'<span class="muted-cell">-</span>'}</td>
+      <td>${s.canal?esc(libCanal(s.canal)):'<span class="muted-cell">-</span>'}</td>
     </tr>`;}).join('')}
     </tbody></table></div></div>`;
   html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul motif dont le taux de retour soit mesurable sur ${PROFIL&&PROFIL.moisCouverts?PROFIL.moisCouverts:'la'} mois d'historique. Pour les deux autres, il faudrait respectivement 30 et 36 mois. Mieux vaut une case vide qu'un chiffre inventé.</p>`;

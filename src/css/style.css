@@ -5022,6 +5022,36 @@ a.bureau-outil:hover {
 .filb__q { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
 .filb__t { line-height: var(--lh-normal); }
 
+/* Le canal sous la date : c'est une precision de contexte, pas une information de meme
+   poids que ce qui s'est dit. Il se lit en second, en petit, et jamais a la place du texte. */
+.filb__c { color: var(--muted); }
+/* « corrige le » ne s'affiche que sur une ligne vraiment reecrite. Discret par construction :
+   il dit que le texte a bouge, il ne met pas la ligne en accusation. */
+.filb__maj { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); margin-left: 0.4rem; }
+.filb__mod { margin-left: 0.5rem; }
+.filb__ed { display: block; border: var(--trait) solid var(--rule-fort); background: var(--white); }
+.filb__edtxt { border-bottom: var(--trait) solid var(--rule); }
+.filb__edpied {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.5rem;
+}
+/* Le choix du moyen de communication. Un select et pas treize boutons : sur un telephone,
+   treize boutons repoussent le champ de saisie hors de l'ecran. */
+.saisieb__etiq { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
+.saisieb__canal {
+  border: var(--trait) solid var(--rule);
+  background: var(--white);
+  padding: 0.25rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--ink);
+  max-width: 14rem;
+}
+.saisieb__types { align-items: center; }
+
 /* Une tache est un bouton : il doit ressembler a une ligne, pas a un bouton. */
 button.tache {
   width: 100%;

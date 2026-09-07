@@ -230,6 +230,7 @@ permalink: /mon-bureau/
   </div>
 </div>
 
+<script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
 <script>
@@ -413,7 +414,13 @@ permalink: /mon-bureau/
      calcules par le tableau de bord, et le bureau ne recalcule jamais rien. Un lien mene
      a sa fiche complete pour qui veut le detail. */
   var FICHE_ID = null;
-  var TYPE_SAISIE = 'appel';
+  var CANAL_SAISIE = (window.BdvCanaux ? BdvCanaux.DEFAUT : 'appel');
+  // L'entree du journal en cours de correction, et le texte tape mais pas encore
+  // enregistre. La fiche se repeint a chaque geste et a chaque reponse reseau : sans ces
+  // deux variables, une correction a moitie ecrite disparaissait sans un mot.
+  var EDITION_ID = null;
+  var EDITION_TXT = null;
+  var EDITION_CANAL = null;
 
   var RETOUR_FICHE = null;
   function avisFiche(texte, ok){
@@ -438,7 +445,8 @@ permalink: /mon-bureau/
     if(!window.BdvCrm) return;
     RETOUR_FICHE = document.activeElement;
     FICHE_ID = id;
-    TYPE_SAISIE = 'appel';
+    CANAL_SAISIE = (window.BdvCanaux ? BdvCanaux.DEFAUT : 'appel');
+    EDITION_ID = null; EDITION_TXT = null; EDITION_CANAL = null;
     avisFiche('');
     el('voile').hidden = false;
     document.body.style.overflow = 'hidden';
@@ -522,17 +530,14 @@ permalink: /mon-bureau/
     sais.appendChild(ta);
     var pied = document.createElement('div'); pied.className = 'saisieb__pied';
     var types = document.createElement('div'); types.className = 'saisieb__types';
-    [['appel','Appel'], ['message','Message'], ['note','Note']].forEach(function(t){
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'btn--type'; b.textContent = t[1];
-      b.setAttribute('aria-pressed', t[0] === TYPE_SAISIE ? 'true' : 'false');
-      b.onclick = function(){
-        TYPE_SAISIE = t[0];
-        types.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', 'false'); });
-        b.setAttribute('aria-pressed', 'true');
-      };
-      types.appendChild(b);
-    });
+    var etiq = document.createElement('label');
+    etiq.className = 'saisieb__etiq'; etiq.setAttribute('for', 'ficheCanal');
+    etiq.textContent = 'Par';
+    var sel = document.createElement('select');
+    sel.className = 'saisieb__canal'; sel.id = 'ficheCanal';
+    if(window.BdvCanaux) BdvCanaux.remplirSelect(sel, CANAL_SAISIE);
+    sel.onchange = function(){ CANAL_SAISIE = sel.value; };
+    types.appendChild(etiq); types.appendChild(sel);
     pied.appendChild(types);
     var ok = document.createElement('button');
     ok.type = 'button'; ok.className = 'btn--geste'; ok.textContent = 'Enregistrer';
@@ -540,7 +545,7 @@ permalink: /mon-bureau/
       var t = ta.value.trim();
       if(!t){ ta.focus(); return; }
       ok.disabled = true;
-      BdvCrm.noter(id, TYPE_SAISIE, t).then(function(){
+      BdvCrm.noter(id, CANAL_SAISIE, t).then(function(){
         ta.value = '';
         avisFiche('');
         BdvCrm.fil(id).then(function(f){ if(FICHE_ID === id) peindreFiche(f); });
@@ -566,16 +571,111 @@ permalink: /mon-bureau/
       var v = document.createElement('p'); v.className = 'zone__vide';
       v.textContent = 'Rien encore. Ce que tu écris ci-dessus s’inscrit ici, daté.'; f.appendChild(v);
     }else{
-      var LIB = { appel:'Appel', message:'Message', note:'Note', ecarte:'Écarté' };
+      var C = window.BdvCanaux;
       fil.forEach(function(e){
         var l = document.createElement('div'); l.className = 'filb__l';
+
+        // La date de gauche est celle de CE QUI S'EST PASSE (`le`), jamais celle de la
+        // derniere retouche. Un appel de mardi corrige jeudi reste un appel de mardi.
         var d = new Date(e.le);
         var q = document.createElement('span'); q.className = 'filb__q';
         q.textContent = isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
-        var t = document.createElement('span'); t.className = 'filb__t';
-        t.textContent = e.resume || LIB[e.type] || e.type;
-        l.appendChild(q); l.appendChild(t); f.appendChild(l);
+        var can = document.createElement('span'); can.className = 'filb__c';
+        can.textContent = C ? C.libelleEntree(e) : (e.canal || e.type || '');
+        q.appendChild(document.createElement('br')); q.appendChild(can);
+        l.appendChild(q);
+
+        var zone = document.createElement('span'); zone.className = 'filb__t';
+        l.appendChild(zone);
+
+        if(EDITION_ID && EDITION_ID === e.echange_id){ editer(e, zone); }
+        else { lire(e, zone); }
+        f.appendChild(l);
       });
+
+      // Une entree telle qu'on la lit, avec le bouton qui ouvre la correction.
+      function lire(e, zone){
+        zone.textContent = '';
+        var txt = document.createElement('span');
+        txt.textContent = e.resume || (C ? C.libelleEntree(e) : e.type);
+        zone.appendChild(txt);
+        // « corrigé le » ne s'affiche que si la ligne a VRAIMENT ete reecrite. Le mettre
+        // partout ferait douter de tout le journal, y compris de ce qui n'a pas bouge.
+        if(e.maj_le && e.le && String(e.maj_le) !== String(e.le)){
+          var md = new Date(e.maj_le);
+          var m = document.createElement('span'); m.className = 'filb__maj';
+          m.textContent = isNaN(md) ? 'corrigé' :
+            ('corrigé le ' + md.toLocaleDateString('fr-FR', { day:'numeric', month:'short' }));
+          zone.appendChild(m);
+        }
+        if(!e.echange_id) return;
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn--lienb filb__mod';
+        b.textContent = 'corriger';
+        b.setAttribute('aria-label', 'Corriger cette entrée du journal');
+        b.onclick = function(){
+          EDITION_ID = e.echange_id;
+          EDITION_TXT = e.resume || '';
+          EDITION_CANAL = (C && C.canal(e.canal)) ? C.canal(e.canal).cle : (C ? C.DEFAUT : 'appel');
+          editer(e, zone);
+          var z = zone.querySelector('textarea'); if(z) z.focus();
+        };
+        zone.appendChild(b);
+      }
+
+      // La correction, en place dans le fil. Pas de fenetre par-dessus une fenetre : la
+      // fiche est deja en surimpression, et un deuxieme etage n'a plus d'issue au clavier.
+      function editer(e, zone){
+        zone.textContent = '';
+        var boite = document.createElement('span'); boite.className = 'filb__ed';
+        var ta = document.createElement('textarea');
+        ta.className = 'saisieb__txt filb__edtxt'; ta.rows = 2;
+        ta.value = (EDITION_TXT != null) ? EDITION_TXT : (e.resume || '');
+        ta.oninput = function(){ EDITION_TXT = ta.value; };
+        boite.appendChild(ta);
+
+        var barre = document.createElement('span'); barre.className = 'filb__edpied';
+        var sc = document.createElement('select'); sc.className = 'saisieb__canal';
+        sc.setAttribute('aria-label', 'Moyen de communication');
+        if(C) C.remplirSelect(sc, EDITION_CANAL);
+        sc.onchange = function(){ EDITION_CANAL = sc.value; };
+        barre.appendChild(sc);
+
+        var ok = document.createElement('button');
+        ok.type = 'button'; ok.className = 'btn--geste'; ok.textContent = 'Enregistrer';
+        ok.onclick = function(){
+          var v = ta.value.trim();
+          if(!v){ ta.focus(); return; }
+          ok.disabled = true;
+          BdvCrm.corriger(FICHE_ID, e.echange_id, { resume: v, canal: sc.value })
+            .then(function(){
+              // On modifie l'entree en place plutot que de relire le fil : le serveur a
+              // confirme, et un aller-retour de plus ferait clignoter la ligne corrigee.
+              e.resume = v;
+              e.canal = sc.value;
+              e.maj_le = new Date().toISOString();
+              if(C && C.canal(sc.value)) e.type = C.canal(sc.value).type;
+              EDITION_ID = null; EDITION_TXT = null; EDITION_CANAL = null;
+              avisFiche('');
+              peindreFiche(fil);
+            })
+            .catch(function(){
+              ok.disabled = false;
+              avisFiche('Cette correction n’a pas pu être enregistrée. Ton texte est toujours là : réessaie tout à l’heure.', false);
+            });
+        };
+        barre.appendChild(ok);
+
+        var non = document.createElement('button');
+        non.type = 'button'; non.className = 'btn--lienb'; non.textContent = 'annuler';
+        non.onclick = function(){
+          EDITION_ID = null; EDITION_TXT = null; EDITION_CANAL = null;
+          lire(e, zone);
+        };
+        barre.appendChild(non);
+        boite.appendChild(barre);
+        zone.appendChild(boite);
+      }
     }
     boite.appendChild(f);
 

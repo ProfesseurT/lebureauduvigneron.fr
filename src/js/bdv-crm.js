@@ -27,8 +27,12 @@
   // Les trois gestes. Chacun ecrit au journal, pose un statut, et surtout REPOUSSE le
   // rappel : sans le report la ligne reviendrait demain, et la file deviendrait un mur.
   var GESTES = {
-    appel:   { label: 'Appelé',            type: 'appel',   canal: 'Téléphone', statut: 'relance', jours: 30, resume: 'Appel passé' },
-    message: { label: 'Laissé un message', type: 'message', canal: 'Téléphone', statut: 'relance', jours: 7,  resume: 'Message laissé, sans réponse' },
+    // `canal` est une CLE de bdv-canaux.js, jamais un libelle. Ce qui part en base est
+    // donc 'appel' et 'repondeur', et l'affichage resout la cle a la lecture. Avant, ces
+    // deux gestes ecrivaient tous les deux le libelle 'Téléphone', et un message laisse
+    // etait indistinguable d'un appel decroche dans la colonne Canal.
+    appel:   { label: 'Appelé',            type: 'appel',   canal: 'appel',     statut: 'relance', jours: 30, resume: 'Appel passé' },
+    message: { label: 'Laissé un message', type: 'message', canal: 'repondeur', statut: 'relance', jours: 7,  resume: 'Message laissé, sans réponse' },
     ecarte:  { label: 'Pas maintenant',    type: 'ecarte',  canal: null,        statut: null,      jours: 60, resume: 'Écarté de la file' }
   };
 
@@ -178,7 +182,7 @@
   async function fil(clientId) {
     if (!session()) return [];
     try {
-      var l = await api('/echanges?select=echange_id,le,type,canal,resume&client_id=eq.'
+      var l = await api('/echanges?select=echange_id,le,maj_le,type,canal,resume&client_id=eq.'
         + encodeURIComponent(clientId) + '&order=le.desc&limit=50');
       // null, et pas [] : api() rend null sans lever quand la session est tombee, et la
       // table `echanges` peut ne pas exister encore. Annoncer « rien encore » sur un
@@ -187,10 +191,20 @@
     } catch (e) { return null; }
   }
 
-  // Une note libre depuis le bureau. Le type suit ce que le vigneron a choisi.
-  async function noter(clientId, type, texte) {
+  // Une note libre depuis le bureau. Le CANAL est celui que le vigneron a choisi dans la
+  // liste, et il n'est plus DEDUIT du type : la deduction d'avant classait tout
+  // « message » en E-mail ici, alors que le meme geste pose depuis la file etait classe
+  // Telephone. Deux lignes du meme journal disaient deux choses differentes du meme acte.
+  //
+  // `canalCle` est une cle de bdv-canaux.js. Une valeur inconnue n'est pas inventee : on
+  // n'ecrit alors aucun canal, et le type sert de repli d'affichage.
+  async function noter(clientId, canalCle, texte) {
     if (!session()) throw new Error('aucune session');
-    var canal = (type === 'appel') ? 'Téléphone' : (type === 'message' ? 'E-mail' : null);
+    var C = window.BdvCanaux;
+    var connu = C ? C.canal(canalCle) : null;
+    var canal = connu ? connu.cle : null;
+    var type = connu ? connu.type
+      : ((C && C.types[canalCle]) ? canalCle : 'note');
     // return=REPRESENTATION, et pas minimal : api() rend null aussi bien pour un corps
     // vide que pour une session tombee. Avec minimal, PostgREST rend 201 sans corps, donc
     // null, donc toute note ECRITE etait annoncee au vigneron comme un echec. Une reponse
@@ -200,10 +214,47 @@
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [{
         id: BdvCompte.monId(), echange_id: echId(), client_id: String(clientId),
-        le: new Date().toISOString(), type: type || 'note', canal: canal, resume: texte
+        le: new Date().toISOString(), type: type, canal: canal, resume: texte
       }]
     });
     if (r === null) throw new Error('ecriture refusee');
+    return true;
+  }
+
+  // ---------------- CORRIGER UNE ENTREE DEJA ECRITE ----------------
+  // `le` n'est JAMAIS touche : c'est la date de ce qui s'est passe, et la reecrire ferait
+  // glisser un appel de mardi au jeudi ou on s'est relu. Seuls le texte et le canal
+  // changent, et `maj_le` dit quand. Sans cette colonne, une ligne corrigee six mois plus
+  // tard se lirait comme la trace d'origine : le journal ne serait plus une memoire, mais
+  // une note revisable sans preuve.
+  //
+  // PATCH sur la paire (id, echange_id), et pas sur echange_id seul : la politique de
+  // securite borne deja chaque compte a ses lignes, mais un filtre qui s'appuie sur elle
+  // pour etre correct est un filtre qui devient faux le jour ou la politique bouge.
+  async function corriger(clientId, echangeId, champs) {
+    if (!session()) throw new Error('aucune session');
+    if (!echangeId) throw new Error('entree sans identifiant');
+    var corps = {};
+    if (Object.prototype.hasOwnProperty.call(champs || {}, 'resume')) corps.resume = champs.resume;
+    if (Object.prototype.hasOwnProperty.call(champs || {}, 'canal')) {
+      var C = window.BdvCanaux;
+      var connu = C ? C.canal(champs.canal) : null;
+      corps.canal = connu ? connu.cle : null;
+      if (connu) corps.type = connu.type;
+    }
+    if (!Object.keys(corps).length) return false;
+    corps.maj_le = new Date().toISOString();
+    // representation, comme partout ailleurs : api() rend null aussi bien pour une session
+    // tombee que pour un corps vide, et une correction ECRITE serait annoncee comme un
+    // echec. Le vigneron reecrirait sa phrase une deuxieme fois pour rien.
+    var r = await api('/echanges?id=eq.' + encodeURIComponent(BdvCompte.monId())
+      + '&echange_id=eq.' + encodeURIComponent(echangeId), {
+      methode: 'PATCH',
+      entetes: { 'Prefer': 'return=representation' },
+      corps: corps
+    });
+    if (r === null) throw new Error('correction refusee');
+    if (!r.length) throw new Error('entree introuvable');
     return true;
   }
 
@@ -391,6 +442,7 @@
     GESTES: GESTES,
     fil: fil,
     noter: noter,
+    corriger: corriger,
     planifier: planifier,
     dansNJours: dansNJours,
     charger: charger,
