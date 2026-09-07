@@ -49,8 +49,14 @@
       if(!page || !page.length) break;
       page.forEach(function(l){ sorties.push({ h: l.empreinte, raw: l.brut }); });
       if(surProgres) surProgres(sorties.length);
-      if(page.length < PAGE) break;
-      depuis += PAGE;
+      // On avance de ce qu'on a RECU, et on ne s'arrete que sur une page vide.
+      // L'ancienne sortie de boucle etait `page.length < PAGE` : elle supposait que le
+      // serveur rende toujours autant de lignes qu'on en demande. Le jour ou le plafond de
+      // lignes du projet Supabase passe sous PAGE, cette hypothese fait croire a une fin de
+      // donnees des la premiere page, et la base redescend tronquee sans un mot.
+      // Depuis que se deconnecter efface ce navigateur (07/09/2026), cette boucle est le
+      // SEUL moyen de retrouver ses ventes. Elle n'a plus le droit de deviner.
+      depuis += page.length;
     }
     return sorties;
   }
@@ -257,13 +263,14 @@
     // bout de deux ou trois ans, et seulement sur son deuxieme appareil.
     const filtre = clientId ? '&client_id=eq.' + encodeURIComponent(clientId) : '';
     const out = [];   // PAGE est la constante du module, la meme que pour les ventes
-    for(let debut = 0; ; debut += PAGE){
+    let debut = 0;
+    for(;;){
       const page = await BdvCompte.api(
         '/echanges?select=echange_id,client_id,le,type,canal,resume' + filtre +
         '&order=le.desc&limit=' + PAGE + '&offset=' + debut);
       if(!page || !page.length) break;
       out.push.apply(out, page);
-      if(page.length < PAGE) break;
+      debut += page.length;   // meme regle que tirerVentes : on avance de ce qu'on a recu
     }
     return out;
   }

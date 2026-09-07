@@ -88,7 +88,14 @@ permalink: /compte/
   }
   afficher();
 
+  // Depuis le 07/09/2026 ce bouton EFFACE le navigateur. Il ne peut plus se cliquer sans
+  // avertissement. Le garde-fou complet (comparaison des lignes locales et du compte) vit
+  // dans le bureau, qui a deja tout ce qu'il faut sous la main ; ici on previent, au moins.
   document.getElementById('compteBtnSortir').addEventListener('click', function(){
+    if(!confirm('Te déconnecter ?\n\nCe navigateur sera vidé : lignes de vente, notes de '
+      + 'suivi et réglages. Tout reste sur ton compte et redescendra à ta prochaine '
+      + 'connexion. Si un import n\'est pas encore remonté, vérifie-le depuis ton bureau '
+      + 'avant de partir.')) return;
     if(window.BdvCompte) BdvCompte.deconnexion();
     afficher();
   });

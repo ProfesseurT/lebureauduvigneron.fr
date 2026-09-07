@@ -94,6 +94,9 @@
   }
 
   const SESSION_KEY = 'bdv_session';
+  // A qui appartiennent les donnees posees dans CE navigateur. Sert au menage automatique
+  // quand un autre compte se connecte sur le meme poste, cf. ecrireSession().
+  const PROPRIO_KEY = 'bdv_proprietaire';
   const TRACE_KEY = 'bdv_trace_envoyee';
   const PROFIL_ATTENTE_KEY = 'bdv_profil_attente';
   const REPORT_KEY = 'bdv_porte_reportee';
@@ -112,7 +115,12 @@
   function lireSession(){
     try{
       const s = JSON.parse(localStorage.getItem(SESSION_KEY));
-      return (s && s.access_token && s.user) ? s : null;
+      if(!(s && s.access_token && s.user)) return null;
+      // Rattachement tardif : les navigateurs deja connectes avant le 07/09/2026 n'ont pas
+      // de proprietaire enregistre. Sans ce rattrapage, le tout premier changement de compte
+      // sur un de ces postes passerait sans menage, faute de savoir a qui etait le disque.
+      try{ if(!localStorage.getItem(PROPRIO_KEY)) localStorage.setItem(PROPRIO_KEY, s.user.id); }catch(e){}
+      return s;
     }catch(e){ return null; }
   }
   function ecrireSession(data){
@@ -122,10 +130,60 @@
       expires_at: Math.floor(Date.now()/1000) + (data.expires_in || 3600),
       user: { id: data.user.id, email: data.user.email }
     };
+    // UN NAVIGATEUR NE PORTE LES DONNEES QUE D'UN SEUL COMPTE.
+    //
+    // Sans ce controle, le deuxieme utilisateur d'un poste partage ouvrait le tableau de bord
+    // sur les ventes, les notes et l'objectif du premier. Et pire que de les voir : son
+    // premier enregistrement les renvoyait sur SON compte, parce que rien dans le code local
+    // ne rattache une note a un compte. La fuite ne demandait pas de negligence, juste deux
+    // personnes et un ordinateur.
+    let ancien = null;
+    try{ ancien = localStorage.getItem(PROPRIO_KEY); }catch(e){}
+    const change = !!(ancien && ancien !== s.user.id);
+    if(change) oublierCetAppareil();
     try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch(e){}
+    try{ localStorage.setItem(PROPRIO_KEY, s.user.id); }catch(e){}
+    // On recharge la page, et ce n'est pas de la prudence excessive : les ecrans ont deja lu
+    // en memoire les reglages et les notes du compte precedent au moment ou la page s'est
+    // affichee. Vider le disque ne les enleve pas de la memoire, et le premier enregistrement
+    // les reecrirait sur le compte du nouvel arrivant. Une page neuve est la seule facon
+    // honnete de repartir.
+    if(change){ try{ location.reload(); }catch(e){} }
     return s;
   }
   function viderSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+
+  /* ---------------- OUBLIER CE NAVIGATEUR ----------------
+     Decision de Ted du 07/09/2026 : tout est en base, le compte fait foi, donc se deconnecter
+     EFFACE ce poste, sans exception. Ce qui remplace l'ancienne promesse « rien ne quitte ton
+     navigateur » : c'est maintenant l'inverse qui est promis, rien ne RESTE dans le navigateur.
+
+     La contrepartie est assumee et doit etre dite a l'ecran : hors reseau, un vigneron
+     deconnecte n'a plus ses chiffres tant qu'il ne s'est pas reconnecte. L'ancienne regle d'or
+     (« une session ouverte une fois suffit a entrer, meme reseau coupe ») ne survit que pour
+     qui reste connecte.
+
+     On efface par PREFIXE et non par liste nommee. Une liste se perime : la prochaine cle
+     `bdv_` ajoutee ailleurs dans le site serait oubliee ici, et survivrait a la deconnexion
+     sur un poste partage. Le prefixe, lui, couvre ce qui n'est pas encore ecrit.
+
+     Une seule chose n'est pas en base et disparait donc pour de bon : `bdv_annuaire_v1`, la
+     memoire des noms des clients suivis. Elle se reconstruit a la premiere ouverture du
+     tableau de bord, sauf pour un client suivi qui ne figure plus dans l'export : son nom
+     redevient un numero Vitisoft. C'est le seul prix connu de ce menage. */
+  function oublierCetAppareil(){
+    try{
+      const aJeter = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.indexOf('bdv_') === 0) aJeter.push(k);
+      }
+      aJeter.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+    }catch(e){}
+    // La base des lignes de vente. Supprimee entierement, pas videe store par store : une
+    // base supprimee est recreee proprement par dbOpen() a la prochaine ouverture.
+    try{ if(window.indexedDB) indexedDB.deleteDatabase('bdv_ventes_v4'); }catch(e){}
+  }
 
   // L'ordre des tests compte : invalid_credentials contient "invalid", email_not_confirmed
   // contient "email". Le cas le plus precis passe toujours en premier.
@@ -266,7 +324,9 @@
     }catch(e){ /* echec silencieux, voir regle d'or */ }
   }
 
-  function deconnexion(){ viderSession(); }
+  // Se deconnecter EFFACE ce navigateur. L'appelant DOIT avoir prevenu et fait confirmer :
+  // cette fonction ne pose aucune question, elle execute.
+  function deconnexion(){ oublierCetAppareil(); }
 
   async function profil(){
     const s = lireSession();
@@ -844,6 +904,7 @@
     ouvrir: ouvrir,
     api: api,
     compter: compter,
+    oublierCetAppareil: oublierCetAppareil,
     monId: monId
   };
 

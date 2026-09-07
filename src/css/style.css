@@ -4900,6 +4900,38 @@ a.bureau-outil:hover {
   cursor: pointer;
 }
 .bureau-tete__reglages:hover { background: var(--paper); color: var(--bordeaux); border-color: var(--paper); }
+/* Les deux actions de l'entete, empilees a droite. « Me deconnecter » est un lien souligne
+   et non un cadre : il efface ce navigateur, il ne doit pas peser autant a l'oeil que les
+   reglages. --cork sur du texte est l'exception documentee plus haut, valable sur ce fond. */
+.bureau-tete__actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.55rem;
+}
+.bureau-tete__sortir {
+  background: none;
+  border: none;
+  padding: 0;
+  border-bottom: var(--trait) dashed rgba(239, 231, 214, 0.42);
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  color: var(--on-dark-soft);
+  cursor: pointer;
+}
+.bureau-tete__sortir:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
+.bureau-tete__sortir-avis {
+  max-width: 24rem;
+  margin: 0;
+  text-align: right;
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  line-height: 1.45;
+  color: var(--cork);
+}
 .bureau-tete__resume { color: var(--on-dark-soft); font-style: italic; font-size: var(--t-lead); margin: 0.5rem 0 0; }
 
 /* ---- RESPONSIVE ----

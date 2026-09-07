@@ -49,7 +49,14 @@ permalink: /mon-bureau/
         <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
         <p class="bureau-tete__resume" id="bureauResume"></p>
       </div>
-      <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button">Mes réglages</button>
+      <div class="bureau-tete__actions">
+        <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button">Mes réglages</button>
+        <!-- Se déconnecter EFFACE ce navigateur. Le bouton est donc volontairement discret et
+             en second : une action définitive n'a pas à attirer l'oeil autant que les
+             réglages, et elle ne doit jamais se cliquer par réflexe. -->
+        <button class="bureau-tete__sortir" id="bureauSortir" type="button">Me déconnecter</button>
+        <p class="bureau-tete__sortir-avis" id="bureauSortirAvis" role="status" hidden></p>
+      </div>
     </div>
   </section>
 
@@ -1084,6 +1091,107 @@ permalink: /mon-bureau/
     if(RETOUR_FOCUS && RETOUR_FOCUS.focus) RETOUR_FOCUS.focus();
     RETOUR_FOCUS = null;
   }
+  /* ---------------- SE DECONNECTER, ET LAISSER CE POSTE PROPRE ----------------
+     Le garde-fou n'est pas une politesse. Effacer ce navigateur est definitif, et le seul
+     endroit ou les lignes peuvent survivre est le compte. Donc on COMPTE les deux cotes avant
+     d'effacer, et on refuse au premier clic si le compte en sait moins que ce poste.
+     C'est exactement la situation du 07/09/2026 : 4 442 lignes de Ted n'existaient que sur son
+     ordinateur, et un bouton d'effacement sans ce controle les aurait emportees. */
+  var sortirArme = null;   // null = pas encore verifie ; sinon le texte de la perte annoncee
+
+  function sortirAvis(texte){
+    var a = el('bureauSortirAvis');
+    if(!a) return;
+    a.textContent = texte || '';
+    a.hidden = !texte;
+  }
+
+  // Compte les lignes de vente posees dans ce navigateur. Le bureau et le tableau de bord
+  // partagent la meme origine, donc la meme base IndexedDB.
+  function compterLignesLocales(){
+    return new Promise(function(res){
+      if(!window.indexedDB) return res(0);
+      var rq;
+      try{ rq = indexedDB.open('bdv_ventes_v4'); }catch(e){ return res(0); }
+      rq.onerror = function(){ res(0); };
+      rq.onsuccess = function(e){
+        var db = e.target.result;
+        if(!db.objectStoreNames.contains('lignes')){ db.close(); return res(0); }
+        try{
+          var c = db.transaction('lignes', 'readonly').objectStore('lignes').count();
+          c.onsuccess = function(){ var n = c.result || 0; db.close(); res(n); };
+          c.onerror   = function(){ db.close(); res(0); };
+        }catch(err){ db.close(); res(0); }
+      };
+    });
+  }
+
+  // Les files d'attente des ecritures qui n'ont pas encore atteint le serveur. Les effacer,
+  // c'est perdre un geste que le vigneron croit enregistre.
+  function ecrituresEnAttente(){
+    var n = 0;
+    ['bdv_crm_attente', 'bdv_signets_attente', 'bdv_profil_attente'].forEach(function(k){
+      try{
+        var v = JSON.parse(localStorage.getItem(k));
+        if(Array.isArray(v)) n += v.length;
+        else if(v && typeof v === 'object') n += Object.keys(v).length;
+      }catch(e){}
+    });
+    return n;
+  }
+
+  function partir(){
+    BdvCompte.deconnexion();
+    location.href = '/';
+  }
+
+  async function surClicSortir(){
+    var b = el('bureauSortir');
+
+    // Deuxieme clic : l'ecart a deja ete annonce a l'ecran, on le redit dans la confirmation
+    // avec son chiffre. Personne ne peut perdre de lignes sans avoir lu combien.
+    if(sortirArme){
+      if(confirm(sortirArme + '\n\nPartir quand même et vider ce navigateur ?')) partir();
+      return;
+    }
+
+    var libelle = b.textContent;
+    b.disabled = true;
+    b.textContent = 'Vérification…';
+    var local = await compterLignesLocales();
+    var distant = null;
+    try{ distant = await BdvCompte.compter('/ventes?select=empreinte'); }catch(e){ distant = null; }
+    var attente = ecrituresEnAttente();
+    b.disabled = false;
+
+    var alerte = '';
+    if(distant === null){
+      alerte = 'Impossible de vérifier ce que contient ton compte. Si la sauvegarde est '
+             + 'incomplète et que tu vides ce navigateur maintenant, ce qui manque est perdu.';
+    }else if(local > distant){
+      alerte = 'Ton compte ne contient que ' + distant + ' des ' + local + ' lignes de cet '
+             + 'appareil : ' + (local - distant) + ' lignes n\'existent QUE ici. Redépose ton '
+             + 'export dans le tableau de bord avant de partir.';
+    }else if(attente){
+      alerte = attente + ' enregistrement(s) ne sont pas encore partis vers ton compte. '
+             + 'Attends d\'être en ligne, ils partiront tout seuls.';
+    }
+
+    if(alerte){
+      sortirAvis(alerte);
+      sortirArme = alerte;
+      b.textContent = 'Partir quand même';
+      return;
+    }
+
+    b.textContent = libelle;
+    if(!confirm('Te déconnecter ?\n\nCe navigateur sera vidé. Tes chiffres, tes notes et tes '
+      + 'réglages restent sur ton compte et redescendront à ta prochaine connexion, ici ou '
+      + 'ailleurs. Sans connexion, tu ne les verras plus sur ce poste.')) return;
+    partir();
+  }
+
+  el('bureauSortir').addEventListener('click', surClicSortir);
   el('bureauOuvrirReglages').addEventListener('click', ouvrirReglages);
   el('reglagesFermer').addEventListener('click', fermerReglages);
   el('voileReglages').addEventListener('click', function(e){ if(e.target === el('voileReglages')) fermerReglages(); });
