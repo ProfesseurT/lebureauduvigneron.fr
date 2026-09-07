@@ -109,10 +109,9 @@ permalink: /mon-bureau/
          L'id bureauEcheance ne change pas : c'est le conteneur, il est cite dans le
          script de la page et le renommer n'apporterait rien qu'un risque. -->
     <section class="zone zone--calendrier">
-      <div class="zone__tete">
-        <h2>Le calendrier</h2>
-        <span class="zone__note" id="calNote"></span>
-      </div>
+      {# Pas d'etiquette dans cette tete : le compte des echeances est dans le lien
+         du pied, ou il a toute la largeur. En etiquette il repliait le titre. #}
+      <div class="zone__tete"><h2>Le calendrier</h2></div>
       <div id="bureauEcheance"></div>
     </section>
 
@@ -806,17 +805,18 @@ permalink: /mon-bureau/
     }
     boite.appendChild(bloc);
 
+    /* LE COMPTE EST DANS LE LIEN, PAS DANS L'ETIQUETTE DE LA ZONE. Vu sur
+       capture : « 5 échéances suivies » en etiquette poussait le titre « Le
+       calendrier » sur deux lignes, la zone ne faisant que trois colonnes sur
+       douze. Le lien du pied, lui, a toute la largeur. */
+    var n = BdvEcheances.depuisLaPage('bdvEcheances').length;
     var tout = document.createElement('p');
     tout.className = 'zone__pied';
-    var l = document.createElement('a'); l.href = '/outils/echeances/'; l.textContent = 'Tout le calendrier';
+    var l = document.createElement('a');
+    l.href = '/outils/echeances/';
+    l.textContent = n > 1 ? 'Les ' + n + ' échéances suivies' : 'Tout le calendrier';
     tout.appendChild(l);
     boite.appendChild(tout);
-
-    /* L'etiquette de la zone dit combien il y en a en tout, et d'ou ca vient : une
-       regle du depot, un chiffre affiche dit toujours sa source. */
-    var n = BdvEcheances.depuisLaPage('bdvEcheances').length;
-    var etiq = el('calNote');
-    if (etiq) etiq.textContent = n + (n > 1 ? ' échéances suivies' : ' échéance suivie');
   }
 
   /* ---------------- LE MOT DU JOUR ----------------

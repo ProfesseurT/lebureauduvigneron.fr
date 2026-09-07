@@ -45,6 +45,58 @@ Trois feuilles de style, dont deux ne sont dans AUCUN HTML : `style.css` (le sit
 le layout), `bdv-ecrans.css` (posee par `bdv-nav.js`, et portee par `.bdv-ventes` : voir plus
 bas), `bdv-panneau.css` (posee par `bdv-reglages.js`, portee par `.bdvr-panneau`).
 
+## LA REGLE DU PLATEAU
+
+Depuis la refonte du 07/09/2026, `Ma journee` pose plusieurs matieres sur un meme plateau :
+du liege pour le panneau, du papier continu a picots pour le sous-main, un bloc a effeuiller
+pour le calendrier, de l'ardoise encadree de bois pour les chiffres, du carton kraft pour les
+intercalaires de la barre, une pile, des dos de classeur et une enveloppe pour les trois
+zones du bas.
+
+**Ce qui empeche ce mobilier de faire collage de brocante n'est pas le gout, c'est une regle
+en trois lignes, ecrite en tete de la section MATIERES de `src/css/style.css` :**
+
+1. Un seul plateau, `--paper`, et une seule lumiere, venue du haut a gauche.
+2. Deux ombres seulement. `--ombre-carte` pour un objet pose, qui a une epaisseur.
+   `--ombre-dure` pour la signature du site, dure et sans flou. **Jamais une troisieme.**
+3. Toute matiere ajoutee prend ses couleurs dans les jetons de matiere existants, et si elle
+   en demande un nouveau, ce jeton nomme la MATIERE et pas l'endroit ou il sert.
+
+L'ordre des zones est une demande de Ted et non une preference de mise en page : le panneau,
+le sous-main avec le calendrier a sa droite, l'ardoise, le mot du jour, puis a lire / le
+classeur / le courrier. `npm run banc` le controle.
+
+### Ecrire clair sur sombre : toujours mesurer d'abord
+
+Trois decisions de cette refonte ont ete prises par le calcul de contraste, contre le dessin
+que j'avais propose, et elles se seraient toutes vues a l'usage sans se voir sur une maquette :
+
+- `--gold` sur du carton kraft donne **1,19:1** : il n'existe plus a l'oeil. Il a quitte la
+  barre du bureau, remplace par le bordeaux, 4,93:1.
+- Le bordeaux sur `--ardoise` ne se voit pas non plus. Il a quitte l'ardoise, remplace par le
+  gold, 6,1:1. Les deux couleurs ont donc echange leurs places, chacune la ou elle se lit.
+- `--on-dark-faint`, le creme a 35 %, tombe a **3,0:1** sur l'ardoise. Il est interdit pour du
+  texte a lire, en particulier la ligne qui dit d'ou vient un chiffre.
+
+La table de contraste de `npm run charte` ne controle que les paires qu'elle connait : une
+paire nouvelle se mesure a la main AVANT de l'ecrire, pas apres.
+
+## Trois pieges de CSS qui ne cassent rien et effacent tout
+
+Les trois se sont produits le 07/09/2026, aucun n'a fait echouer la charte, et chacun a
+coute une capture d'ecran pour etre vu.
+
+1. **Un commentaire ouvert au-dessus d'un bloc de regles avale le bloc.** La feuille parse,
+   la charte reste CONFORME, et les elements concernes reprennent l'allure par defaut du
+   navigateur. La section 3 bis de `npm run charte` refuse desormais tout commentaire qui
+   contient un selecteur, une accolade et une declaration.
+2. **`display: block` sur une cellule de tableau la sort de la mise en page du tableau.**
+   Son fond se decale de quelques pixels et trace une bande claire en travers. Une regle
+   `.machin` qui porte sur un `<td class="machin">` doit s'ecrire `td.machin`.
+3. **Une largeur en `em` se calcule sur le corps de l'element qui la porte.** Sur un en-tete
+   en `--t-micro`, dix pixels, une colonne de 14 em fait 140 px et non 224. Les largeurs de
+   colonnes s'ecrivent en `rem` ou en pourcentage.
+
 ## Regles de contenu
 
 - Aucun tiret cadratin nulle part. Remplacer par une virgule, un point ou deux points.

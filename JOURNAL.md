@@ -12,6 +12,77 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/09/2026, soir. La refonte de Ma journée : le bureau devient un plateau
+
+Ted a dicté cinq points après avoir regardé les planches : les post-it comme une to-do
+libre, le sous-main en design « beaucoup plus informatique parce que ça va parler de
+fichiers clients », le calendrier à droite du sous-main, l'ardoise en dessous avec des KPI
+redéfinissables, puis à lire / le classeur / le courrier, « chaque item aura son design qui
+va avec », et la barre de gauche en « design papier intercalaire ».
+
+**Ce qui a été fait, dans cet ordre, et pourquoi cet ordre.**
+
+D'abord le garde-fou, avant le dessin. `charte.mjs` collectait les couleurs en dur, les
+affichait, et ne passait jamais le résultat à `ko()` : une couleur magenta de test restait
+CONFORME. Poser six matières derrière un contrôle qui ne mord pas n'avait pas de sens. Les
+couleurs en dur font maintenant échouer, avec deux dispenses écrites et comptées, les
+maquettes produit tierces et les textures de matière. Les `font-size` en dur ont un plafond
+au lieu d'une porte fermée, parce que 95 valeurs ne se reprennent pas en une passe : le
+plafond ne doit jamais remonter, et il a déjà baissé d'un cran.
+
+Puis dix-sept jetons de matière et **la règle du plateau**, écrite noir sur blanc dans la
+feuille et dans `CLAUDE.md` : un plateau, une lumière, deux ombres. C'est elle qui empêche
+le liège, le papier continu, l'ardoise, le carton et l'enveloppe de faire brocante.
+
+Puis les intercalaires, le plateau réordonné, le sous-main en listing, le calendrier à la
+place du pense-bête, l'ardoise en ardoise, et les trois objets du bas.
+
+**Ce que la mesure a corrigé dans mon propre dessin, trois fois.**
+
+La planche des intercalaires proposait trois profondeurs de carton. Mesuré : 5,86:1 puis
+4,89:1 puis 4,09:1 avec `--ardoise` pour encre. Le troisième échoue AA. Un seul ton de
+carton donc, et la profondeur se dit par le filet d'ombre entre les languettes, ce qui est
+d'ailleurs plus juste. Le gold a quitté la barre, 1,19:1 sur du kraft, et le bordeaux a
+quitté l'ardoise pour la même raison dans l'autre sens : les deux couleurs ont échangé
+leurs places, chacune là où elle se lit.
+
+**Le doublon que l'ordre de Ted a réglé sans qu'il l'ait cherché.** Le pense-bête et le
+compte à rebours disaient la même chose à deux endroits de la même page. En mettant le
+calendrier à la place du pense-bête, le doublon disparaît. C'est la meilleure raison de ce
+déplacement, meilleure que l'esthétique.
+
+**Le nom.** Ted voulait « calendrier éditorial ». Refusé et expliqué : l'objet porte cinq
+échéances réglementaires avec leurs sources officielles, personne ne cherche sa DRM sous un
+nom de planification de contenu, et le jour où il voudra un vrai calendrier de publications
+le nom serait pris. Renommé « Le calendrier » dans le bureau et « Le calendrier
+réglementaire » sur la page publique. **Ce dernier point est en attente de sa réponse** :
+la page est indexée et « compte à rebours réglementaire » est une expression qu'on tape.
+
+**Cinq défauts réels trouvés en chemin, dont quatre étaient les miens.**
+
+- Deux du dépôt : la ligne du sous-main était un `<button>` contenant trois `<button>`, et
+  une ligne traitée recevait `pointer-events: none`, qui n'arrête que la souris, si bien
+  qu'au clavier deux Entrée posaient deux gestes.
+- Un du dépôt, trouvé en faisant tourner le bureau dans un vrai navigateur avec un réseau
+  qui répond n'importe quoi : `bdv-crm.js` testait la vérité de la réponse serveur et non
+  son type. Un objet au lieu d'un tableau, et `suivi.map` levait, ce qui arrêtait TOUTE la
+  peinture : plus d'ardoise, plus de sous-main, un bureau vide sans un mot.
+- Trois à moi, tous invisibles à la charte : un commentaire ouvert qui a avalé le bloc
+  `.btn--geste` en entier, deux grilles séparées pour l'en-tête et les lignes du listing,
+  et `display: block` sur ce qui était en fait une cellule de tableau. Les trois sont
+  documentés dans `CLAUDE.md`, et le premier a maintenant son contrôle de charte.
+
+**Ce qui reste, et ce n'est pas du dessin.** Trois chantiers fonctionnels que la refonte
+prépare mais ne fait pas : la to-do libre des post-it a besoin d'un endroit où vivre, les
+quatre chiffres de l'ardoise à choisir demandent un réglage à enregistrer, et le calendrier
+des dates propres à Ted est le chantier 1 de la feuille de route. Le dessin tient sans eux.
+
+Le banc passe de 65 à 73 contrôles : l'ordre des zones, la disparition du pense-bête, la
+rangée de tableau, l'en-tête de colonnes, les cinq colonnes, la désactivation des boutons
+après un geste, et la garde de type sur la réponse serveur.
+
+---
+
 ## Session du 07/09/2026, fin d'après-midi : le bureau s'ouvre avec 32 ko au lieu de 125
 
 Suite immédiate de la fusion, et c'est elle qui a rendu le problème visible. En sortant les

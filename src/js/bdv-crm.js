@@ -79,15 +79,23 @@
       api('/reglages?select=file_travail,resume_ventes,depose_le,objectif,exercice_debut&limit=1'),
       api('/suivi_clients?select=client_id,statut,rappel,canal')
     ]);
-    var reglages = (r[0].status === 'fulfilled' && r[0].value) || [];
-    var suivi    = (r[1].status === 'fulfilled' && r[1].value) || [];
+    /* Array.isArray ET PAS SEULEMENT LA VERITE DE LA VALEUR. Trouve le 07/09/2026
+       en faisant tourner le bureau dans un vrai navigateur avec un reseau qui
+       repond n'importe quoi : l'API rendait un objet au lieu d'un tableau, le test
+       de verite le laissait passer, et `suivi.map` levait. Une seule ligne de la
+       page lancait l'exception, mais elle arretait toute la peinture : plus
+       d'ardoise, plus de sous-main, un bureau vide sans un mot d'explication.
+       Un serveur qui repond de travers doit vider une liste, pas eteindre la
+       piece. */
+    var reglages = (r[0].status === 'fulfilled' && Array.isArray(r[0].value)) ? r[0].value : [];
+    var suivi    = (r[1].status === 'fulfilled' && Array.isArray(r[1].value)) ? r[1].value : [];
     if (r[0].status !== 'fulfilled' && r[1].status !== 'fulfilled') return lireMiroir();
     // Une source tombee ne doit pas effacer ce que l'autre avait rapporte la veille. Le
     // miroir sert de fond : on n'ecrase que ce qu'on a vraiment relu. Sans ca, un refus
     // sur /reglages (colonnes pas encore creees, par exemple) vidait l'ardoise, le mot du
     // jour et l'age de l'analyse a chaque chargement, et faisait lire l'objectif comme nul.
     var vieux = lireMiroir() || {};
-    var regOk = (r[0].status === 'fulfilled');
+    var regOk = (r[0].status === 'fulfilled') && Array.isArray(r[0].value);
     var reg = reglages[0] || {};
     // file_travail porte {signaux, noms}. La forme historique (un simple tableau) est
     // acceptee : un depot fait par une version anterieure du tableau de bord ne doit pas
@@ -110,7 +118,7 @@
         objectif: (reg.objectif != null) ? Number(reg.objectif) : null,
         exercice_debut: reg.exercice_debut || null
       } : (vieux.reglages || { lus: false, objectif: null, exercice_debut: null }),
-      suivi: (r[1].status === 'fulfilled') ? suivi.map(function (l) {
+      suivi: (r[1].status === 'fulfilled' && Array.isArray(r[1].value)) ? suivi.map(function (l) {
         return { id: l.client_id, rappel: l.rappel || '', statut: l.statut || '' };
       }) : (vieux.suivi || vieux.rappels || [])
     };

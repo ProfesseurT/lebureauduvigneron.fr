@@ -405,6 +405,56 @@ if (!fs.existsSync(REDIR)) {
     ou('#nimportequoi') === '/mon-bureau/', String(ou('#nimportequoi')));
 }
 
+/* ---------------------------------------------------------------------------
+   LE PLATEAU : L'ORDRE DES ZONES ET LEUR MATIERE
+   ---------------------------------------------------------------------------
+   Ajoute le 07/09/2026 avec la refonte. L'ordre des zones est une DEMANDE de
+   Ted, pas une preference de mise en page, et il est facile de le casser sans
+   s'en rendre compte en deplaçant un bloc du gabarit. Les trois defauts de
+   balisage corriges au meme moment sont controles ici pour la meme raison :
+   ils etaient invisibles a l'oeil et a la charte.
+--------------------------------------------------------------------------- */
+titre('Le plateau, dans l\'ordre de Ted');
+{
+  const dom = new JSDOM(HTML);
+  const doc = dom.window.document;
+  const zones = [...doc.querySelectorAll('#bureauJournee > .zone')]
+    .map(z => [...z.classList].find(c => c.startsWith('zone--')));
+  t('les zones sont dans l\'ordre dicte',
+    zones.join(' > ') === 'zone--panneau > zone--sousmain > zone--calendrier > zone--ardoise > zone--mot > zone--lecture > zone--classeur > zone--courrier',
+    zones.join(' > '));
+  /* Le titre AFFICHE, et pas le mot : les commentaires du gabarit expliquent
+     justement pourquoi le pense-bete a disparu, et ils doivent pouvoir le dire. */
+  t('le pense-bete n\'existe plus, le calendrier a pris sa place',
+    !HTML.includes('zone--pensebete')
+    && ![...doc.querySelectorAll('h2')].some(h => /pense-b/i.test(h.textContent))
+    && (doc.querySelector('.zone--calendrier .zone__tete h2') || {}).textContent === 'Le calendrier',
+    zones.join(' > '));
+  t('le calendrier mene a la piece du calendrier et pas a un article',
+    /a\.href = '\/outils\/echeances\/'/.test(HTML) && !/a\.href = ECHEANCE\.e\.article/.test(HTML));
+
+  /* Le defaut : la ligne du sous-main etait un <button> qui contenait trois
+     <button>. Le controle porte sur le CODE qui fabrique la ligne, parce que la
+     ligne n'existe pas dans le HTML livre : elle est montee au chargement. */
+  t('la ligne du sous-main est une rangee de tableau, pas un bouton',
+    /createElement\('tr'\)[\s\S]{0,200}listb__l/.test(HTML) && !/className = 'tache'/.test(HTML));
+  t('le sous-main a un vrai en-tete de colonnes',
+    /createElement\('th'\)/.test(HTML) && /th\.scope = 'col'/.test(HTML));
+  t('les cinq colonnes de Ted sont celles-la',
+    /\['Réf', 'Fichier client', 'Motif', 'Retard', 'Geste'\]/.test(HTML));
+
+  /* Le defaut : `pointer-events: none` n'arrete que la souris. Au clavier, deux
+     Entree posaient deux gestes. */
+  t('un geste pose desactive les boutons de sa ligne, il ne les rend pas juste inertes',
+    /x\.disabled = true/.test(HTML) && !/tache--partie/.test(HTML));
+
+  /* Le defaut : une reponse serveur mal formee eteignait toute la peinture. */
+  const crm = fs.readFileSync(path.join(RACINE, 'src/js/bdv-crm.js'), 'utf8');
+  t('une reponse serveur qui n\'est pas un tableau ne casse plus la peinture',
+    (crm.match(/Array\.isArray\(r\[[01]\]\.value\)/g) || []).length >= 3,
+    (crm.match(/Array\.isArray\(r\[[01]\]\.value\)/g) || []).length + ' garde(s)');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BUREAU NE FAIT PAS CE QU\'IL DIT'); process.exit(1); }

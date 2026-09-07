@@ -286,7 +286,10 @@ if (couleursFautives.length) {
    Deux plafonds parce que deux cibles : le site seul, et le bureau qui charge en
    plus bdv-ecrans.css et bdv-panneau.css. Un seul chiffre ferait echouer l'un ou
    dispenserait l'autre. */
-const PLAFOND_TAILLES = DASH ? 123 : 95;
+/* 94 et 122 depuis le 07/09/2026 : l'ardoise a rendu son `font-size: 1.5rem`
+   pour --t-h3. Le plafond baisse avec chaque valeur reprise, il ne remonte
+   jamais. */
+const PLAFOND_TAILLES = DASH ? 122 : 94;
 if (dur.tailles.length > PLAFOND_TAILLES)
   ko(dur.tailles.length + ' font-size en dur, le plafond est a ' + PLAFOND_TAILLES +
      ' — une nouvelle taille en dur a ete ajoutee, il lui faut un pas de l\'echelle');

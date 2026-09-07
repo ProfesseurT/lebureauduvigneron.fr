@@ -5296,6 +5296,10 @@ button.bureau-nav__item:hover {
 
    Materiaux : --paper-light pour le papier, --ombre-carte pour l'objet pose,
    --ombre-dure au survol. Deux ombres, jamais une troisieme. */
+/* Le titre de cette zone ne se replie pas : trois colonnes sur douze, c'est
+   etroit, et « Le calendrier » sur deux lignes fait desordre a cote d'un bloc
+   bien carre. */
+.zone--calendrier .zone__tete h2 { white-space: nowrap; }
 .calbloc { display: grid; gap: var(--e-s); }
 .calbloc__une {
   display: block;
@@ -5378,30 +5382,67 @@ button.bureau-nav__item:hover {
 .calbloc__q { font-size: var(--t-base); min-width: 0; }
 
 /* ---- L'ARDOISE ---- */
-.ardoise { display: grid; gap: var(--e-s); }
+/* ---- L'ARDOISE, ET C'EN EST UNE MAINTENANT ----
+   Elle s'appelait l'ardoise depuis le premier jour et c'etaient quatre cartes
+   blanches a liseré bordeaux. Ted a demande une ardoise ; en voici une : cadre
+   de bois, surface --ardoise, poussiere de craie par --grain-clair, et les
+   quatre chiffres separes par de simples filets et non enfermes dans des boites.
+   C'est le filet qui fait l'ardoise d'ecolier, pas la boite.
+
+   LES TROIS CONTRASTES SONT MESURES, parce que ecrire clair sur sombre est
+   exactement l'endroit ou on se trompe :
+     l'etiquette en --gold sur --ardoise ........ 6,1:1
+     le chiffre en --on-dark ....................13,9:1
+     la source en --on-dark-soft ................ 7,9:1
+   --on-dark-faint, le creme a 35 %, tombait a 3,0:1 : il aurait ete illisible
+   pour la ligne qui dit d'ou vient le chiffre, et c'est justement celle qu'une
+   regle du depot rend obligatoire. Il n'est donc pas utilise ici.
+
+   Le bordeaux a quitte cette zone : sur --ardoise il ne se voit pas. C'est le
+   meme constat que pour le gold sur le carton des intercalaires, dans l'autre
+   sens. */
+.ardoise {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  background: var(--ardoise);
+  background-image:
+    radial-gradient(circle at 30% 20%, var(--grain-clair) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 75% 70%, var(--grain-clair) 0 1px, transparent 1.5px);
+  background-size: 41px 41px, 29px 29px;
+  border: var(--e-s) solid var(--cork-encre);
+  box-shadow: var(--ombre-dure);
+}
 .chiffre {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.7rem var(--e-m);
-  background: var(--white);
-  border-left: var(--trait-accent) solid var(--bordeaux);
+  padding: var(--e-m);
+  background: none;
+  border-left: var(--trait) solid var(--on-dark-rule);
   text-decoration: none;
+  transition: background var(--tr-rapide) ease;
 }
-.chiffre:hover { text-decoration: none; background: var(--paper); }
-.chiffre--hi { background: var(--bordeaux); border-left-color: var(--bordeaux-deep); }
-.chiffre--hi:hover { background: var(--bordeaux-vif); }
-.chiffre--hi .chiffre__l, .chiffre--hi .chiffre__s { color: var(--on-dark-soft); }
-.chiffre--hi .chiffre__v { color: var(--on-dark); }
+.chiffre:first-child { border-left: none; }
+.chiffre:hover {
+  text-decoration: none;
+  background: color-mix(in srgb, var(--white) 7%, transparent);
+}
+/* Le chiffre principal est SOULIGNE a la craie, il n'est pas mis dans un cadre :
+   sur une ardoise on souligne. */
+.chiffre--hi { box-shadow: inset 0 -2px 0 var(--gold); }
+/* Deux pas de l'echelle et pas deux valeurs choisies a l'oeil : le plafond de
+   font-size en dur de la charte a refuse le 2rem que j'avais ecrit, et il avait
+   raison. --t-h2 pour le chiffre souligne, --t-h3 pour les trois autres. */
+.chiffre--hi .chiffre__v { font-size: var(--t-h2); }
 .chiffre__l {
   font-family: var(--font-mono);
   font-size: var(--t-micro);
   text-transform: uppercase;
   letter-spacing: var(--ls-etiq);
-  color: var(--muted);
+  color: var(--gold);
 }
-.chiffre__v { font-family: var(--font-titre); font-size: 1.5rem; font-weight: 600; line-height: 1; color: var(--ink); }
-.chiffre__s { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
+.chiffre__v { font-family: var(--font-titre); font-size: var(--t-h3); font-weight: 600; line-height: 1; color: var(--on-dark); }
+.chiffre__s { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--on-dark-soft); }
 
 /* ---- LES LECTURES : classeur, pile, courrier ---- */
 .fiche-l {
@@ -5432,6 +5473,64 @@ button.bureau-nav__item:hover {
   border-radius: var(--r-rond);
   background: var(--bordeaux);
 }
+
+/* ============================================================================
+   A LIRE, LE CLASSEUR, LE COURRIER : CHACUN SA MATIERE
+   ----------------------------------------------------------------------------
+   Demande de Ted : « chaque item aura son design qui va avec ». Les trois zones
+   du bas portaient la meme carte de papier. Ce sont trois objets differents :
+   une pile qui a une epaisseur, une rangee de dos de classeur, une enveloppe.
+
+   Tout se fait au bord des zones existantes, sans un element de plus dans le
+   HTML : une epaisseur est une bordure, un dos est une bordure epaisse, un
+   rabat est un pseudo-element. Et les trois se plient a la regle du plateau,
+   une lumiere en haut a gauche, --ombre-carte pour ce qui est pose.
+   ============================================================================ */
+
+/* A LIRE : une pile. L'epaisseur se voit sous le bord bas, deux feuilles
+   depassent, decalees vers la droite comme une pile qu'on n'a pas tapee. */
+.zone--lecture { position: relative; border-top-color: var(--cork); }
+.zone--lecture::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: -4px;
+  bottom: -7px;
+  height: 7px;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule);
+  border-top: none;
+  box-shadow: 3px 3px 0 -1px var(--paper-deep);
+}
+
+/* LE CLASSEUR : une rangee de dos. Chaque piece lue prend un dos de carton, et
+   les dos alternent entre deux cartons : dans un vrai classeur, deux voisins
+   ne sont jamais de la meme annee. */
+.zone--classeur { border-top-color: var(--cork-encre); }
+.zone--classeur .fiche-l {
+  padding-left: var(--e-m);
+  border-left: 7px solid var(--cork-encre);
+}
+.zone--classeur .fiche-l:nth-child(even) { border-left-color: var(--bordeaux-deep); }
+.zone--classeur .fiche-l:nth-child(3n) { border-left-color: var(--cork); }
+
+/* LE COURRIER : une enveloppe, rabat ouvert. Le rabat est un triangle de la
+   couleur du papier en retrait, avec le filet du site pour arete. Il est pose
+   SOUS le titre de la zone, dans la marge que la zone a deja. */
+.zone--courrier { position: relative; border-top-color: var(--bordeaux); overflow: hidden; }
+.zone--courrier::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  background: var(--paper-deep);
+  clip-path: polygon(0 0, 50% 100%, 100% 0);
+  border-bottom: var(--trait) solid var(--rule);
+  pointer-events: none;
+}
+.zone--courrier .zone__tete { position: relative; }
 
 /* ---- LE TIROIR ---- */
 
