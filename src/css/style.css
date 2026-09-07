@@ -168,10 +168,23 @@ em { font-style: italic; }
   outline: 2px solid var(--bordeaux);
   outline-offset: 3px;
 }
-:where(.nav, .hero, .waitlist, .article-header, .about-hero, .conseil-hero, .footer-rich)
-  :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+:where(.nav, .hero, .waitlist, .article-header, .about-hero, .conseil-hero, .footer-rich,
+        .bureau-nav, .bureau-tete)
+  :where(a, button, summary, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline-color: var(--on-dark);
 }
+/* Le bureau et son entete ont ete AJOUTES a cette liste le 07/09/2026, et la barre etait le
+   pire cas du site : l'anneau --bordeaux sur le fond --ink-deep de la barre donne 1,35:1, et
+   1,14:1 sur le fond de la piece active. Autrement dit, aucune des sept pieces ne montrait ou
+   se trouvait le clavier. En --on-dark, la meme paire donne 14,74:1.
+
+   input, select et textarea entrent aussi dans le :where() ci-dessus : ils n'y etaient pas,
+   et chaque champ du site s'est donc invente son propre anneau, quand il en a eu un.
+
+   L'ecart de l'anneau passe a l'INTERIEUR dans la barre : ses items font toute la largeur et
+   .bureau-nav coupe ce qui depasse, donc un anneau pose a trois pixels dehors etait rogne des
+   deux cotes. Un anneau qu'on ne voit pas ne sert a rien, meme quand il est bien contraste. */
+.bureau-nav :focus-visible { outline-offset: calc(-1 * var(--trait-accent)); }
 
 .mono {
   font-family: var(--font-mono);
@@ -5405,37 +5418,100 @@ button.tache {
   border: var(--trait) solid var(--cork-encre);
   padding: var(--e-l) var(--e-m) var(--e-xl);
 }
+/* ---- LE PAPIER ----
+   Repris le 07/09/2026. Trois choses le trahissaient, et aucune n'etait le dessin :
+
+   1. Son ombre etait ecrite en dur, `2px 3px 10px rgba(30,25,15,0.25)`, soit EXACTEMENT
+      --ombre-carte. Le meme papier avait donc deux verites, et le controle de charte ne
+      voyait rien parce qu'il compte les couleurs en dur sans les refuser.
+   2. Le papier etait d'un blanc parfaitement uniforme. Une feuille eclairee par la fenetre
+      du bureau ne l'est jamais : elle prend un peu plus de lumiere en haut. Un degrade
+      minuscule entre deux jetons voisins suffit, --paper-light vers --paper, et il ne se
+      remarque pas, ce qui est exactement le but.
+   3. Le coin bas ne se relevait pas. Un papier epingle par le haut se decolle en bas, et
+      c'est le seul detail qui dit d'un rectangle blanc qu'il est en papier.
+
+   La rotation reste minuscule, sous le degre, et pour la raison deja ecrite plus haut : un
+   post-it penche a cinq degres devient une illustration, et on cesse de lire les
+   illustrations. Le survol le redresse, comme on redresse une feuille pour la lire. */
 .postit {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  background: var(--paper-light);
+  background: linear-gradient(to bottom, var(--paper-light) 0%, var(--paper) 100%);
   padding: 1.6rem 1.1rem 1.1rem;
-  box-shadow: 2px 3px 10px rgba(30, 25, 15, 0.25);
+  box-shadow: var(--ombre-carte);
   /* Declare ici, et pas seulement appele avec un repli : mon-bureau.njk le repose punaise par
      punaise en JavaScript. Un var() sans declaration nulle part est indistinguable d'une
      faute de frappe pour qui relit la charte. */
   --tour: 0deg;
   transform: rotate(var(--tour));
+  /* Le papier tourne autour de son epingle, en haut au milieu, et pas autour de son centre.
+     C'est ce qui fait la difference entre une feuille pendue a une punaise et une vignette
+     inclinee. */
+  transform-origin: 50% 0;
   text-decoration: none;
   color: var(--ink);
 }
-a.postit:hover { text-decoration: none; transform: rotate(0deg); background: var(--paper); }
-/* La punaise. Un pseudo-element, donc rien a lire pour un lecteur d'ecran. */
+.postit:hover {
+  text-decoration: none;
+  transform: rotate(0deg);
+  background: var(--paper-light);
+}
+/* LE COIN QUI SE RELEVE, en bas a droite. Un triangle de la couleur du liege pose sur le
+   papier, avec l'ombre du pli au-dessus de lui. */
+.postit::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(315deg, var(--cork) 0 50%, transparent 50%);
+  box-shadow: -1px -1px 2px rgba(30, 25, 15, 0.18);
+}
+/* LA PUNAISE. C'etait un disque plat ; c'est un dome, par un degrade radial dont le point
+   clair est en haut a gauche, comme la lumiere du reste du bureau. Le rayon est permis ici :
+   la charte interdit les rayons SAUF sur ce qui est rond par nature, et une punaise l'est. */
 .postit::before {
   content: "";
   position: absolute;
   top: -7px; left: 50%;
   width: 13px; height: 13px;
   margin-left: -6.5px;
-  border-radius: 50%;
-  background: var(--bordeaux);
+  border-radius: var(--r-rond);
+  background: radial-gradient(circle at 35% 30%,
+    color-mix(in srgb, var(--white) 60%, transparent) 0 12%,
+    var(--bordeaux) 62%,
+    color-mix(in srgb, var(--ink-deep) 35%, var(--bordeaux)) 100%);
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
 }
-.postit[data-ton="fait"]::before  { background: var(--ok); }
-.postit[data-ton="vieux"]::before { background: var(--danger); }
-.postit[data-ton="vieux"] { background: var(--warn-bg); }
+.postit[data-ton="fait"]::before {
+  background: radial-gradient(circle at 35% 30%,
+    color-mix(in srgb, var(--white) 60%, transparent) 0 12%,
+    var(--ok) 62%,
+    color-mix(in srgb, var(--ink-deep) 35%, var(--ok)) 100%);
+}
+.postit[data-ton="vieux"]::before {
+  background: radial-gradient(circle at 35% 30%,
+    color-mix(in srgb, var(--white) 60%, transparent) 0 12%,
+    var(--danger) 62%,
+    color-mix(in srgb, var(--ink-deep) 35%, var(--danger)) 100%);
+}
+.postit[data-ton="vieux"] {
+  background: linear-gradient(to bottom, var(--warn-bg) 0%,
+    color-mix(in srgb, var(--warn-bg) 88%, var(--warn)) 100%);
+}
+/* L'ETAT « FAIT » NE TENAIT QU'A LA COULEUR DE SA PUNAISE, un vert a 2,25:1 sur le liege :
+   sur un panneau de cinq punaises, celle qui dit « c'est fait » etait la seule dont l'etat
+   reposait sur une couleur, et sur la moins lisible des trois. L'etat « vieux » avait deja
+   son fond ; « fait » a le sien, avec --ok-bg, un jeton declare depuis le debut et que rien
+   n'appelait. */
+.postit[data-ton="fait"] {
+  background: linear-gradient(to bottom, var(--ok-bg) 0%,
+    color-mix(in srgb, var(--ok-bg) 88%, var(--ok)) 100%);
+}
 .postit__v {
   font-family: var(--font-titre);
   font-size: 2rem;

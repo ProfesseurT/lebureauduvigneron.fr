@@ -79,26 +79,81 @@
      charte surveille les entites de src/js, pas celles des pages du site.
      Les deplacer dans mon-bureau.njk les sortirait du filet.
   --------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------
+     LES SEPT TRACES DE LA BARRE
+     -------------------------------------------------------------------------
+     Ecrits le 07/09/2026. C'etaient sept emoji, et c'etait le seul endroit du site
+     ou une couleur arrivait sans avoir ete choisie : un soleil jaune, un graphique
+     rouge, deux bonhommes bleus, sur un fond bleu-encre ou tout le reste est
+     --gold et --on-dark-soft.
+
+     LA REGLE DE CE JEU, pour que le huitieme lui ressemble :
+       - grille de 20 sur 20, aucun remplissage, le trait seul ;
+       - epaisseur 1.4, arrondis aux extremites et aux jointures, parce que le
+         trait du site est celui d'une plume et pas d'un couteau ;
+       - `currentColor` et jamais une couleur : la couleur vient du CSS, donc de
+         --gold, et suit l'etat de la piece sans qu'on ait a y penser ;
+       - un objet de bureau chaque fois que c'est possible. Une page datee plutot
+         qu'un soleil, un registre plutot qu'une loupe. C'est un bureau, pas une
+         barre d'outils.
+       - `vector-effect="non-scaling-stroke"` : le trait garde son epaisseur meme
+         si la barre change d'echelle un jour.
+
+     Ils sont ICI et pas dans un fichier d'images : sept traces de deux cents
+     octets ne valent pas sept requetes, et le CSS doit pouvoir les colorer.
+  --------------------------------------------------------------------------- */
+  function trace(d) {
+    return '<svg viewBox="0 0 20 20" width="16" height="16" fill="none"'
+      + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round"'
+      + ' stroke-linejoin="round" vector-effect="non-scaling-stroke"'
+      + ' aria-hidden="true" focusable="false">' + d + '</svg>';
+  }
+
+  var TRACES = {
+    // Ma journee : la page du jour sur le sous-main, avec sa reglure et sa date soulignee.
+    journee:  '<rect x="3" y="3.5" width="14" height="13"/><path d="M3 7.5h14"/>'
+              + '<path d="M6.5 11h7M6.5 13.5h4.5"/><path d="M7 2v3M13 2v3"/>',
+    // Mon annee : trois barres qui montent. Le meme signe que le favicon du site.
+    annee:    '<path d="M4 16.5h13"/><path d="M6.5 16.5v-4M10 16.5v-7.5M13.5 16.5v-11"/>',
+    // Mes clients : deux tetes, celle de devant entiere, celle de derriere devinee.
+    clients:  '<circle cx="8" cy="7" r="2.6"/><path d="M3.5 16.5c0-2.5 2-4.2 4.5-4.2s4.5 1.7 4.5 4.2"/>'
+              + '<path d="M13.2 5.1a2.6 2.6 0 0 1 0 4.6"/><path d="M14.5 12.9c1.3.7 2 1.9 2 3.6"/>',
+    // Mes cuvees : un verre a pied. Le seul trace qui ne soit pas du mobilier, et
+    // c'est bien : c'est ce qu'il y a dans le verre qu'on vend.
+    produits: '<path d="M6 3.5h8l-.6 5a3.4 3.4 0 0 1-6.8 0z"/><path d="M10 12v4.5"/>'
+              + '<path d="M7 16.5h6"/>',
+    // Chercher : un registre ouvert, plutot qu'une loupe. On cherche dans un registre.
+    chercher: '<path d="M10 5.5v11"/><path d="M10 5.5C8.6 4.4 6.6 4 3.5 4v10.5c3.1 0 5.1.4 6.5 1.5"/>'
+              + '<path d="M10 5.5c1.4-1.1 3.4-1.5 6.5-1.5v10.5c-3.1 0-5.1.4-6.5 1.5"/>',
+    // Le compte a rebours : le sablier, et le sable deja tombe.
+    echeances:'<path d="M6 3h8M6 17h8"/><path d="M6.5 3c0 3.2 3.5 5.2 3.5 7s-3.5 3.8-3.5 7"/>'
+              + '<path d="M13.5 3c0 3.2-3.5 5.2-3.5 7s3.5 3.8 3.5 7"/><path d="M8 17h4"/>',
+    // Mes reglages : un curseur de reglage, pas une roue crantee. On regle son bureau,
+    // on ne le demonte pas.
+    reglages: '<path d="M3.5 6.5h13M3.5 13.5h13"/><circle cx="12.5" cy="6.5" r="2.2"/>'
+              + '<circle cx="7.5" cy="13.5" r="2.2"/>'
+  };
+
   var PIECES = [
-    { id: 'journee',   ico: '&#9728;',   label: 'Ma journée',
+    { id: 'journee',   ico: TRACES.journee,   label: 'Ma journée',
       href: '/mon-bureau/',
       quoi: 'Ce qui presse, tes rappels, ton ardoise' },
-    { id: 'annee', viti: true,     ico: '&#128200;', label: motExercice,
+    { id: 'annee', viti: true,     ico: TRACES.annee, label: motExercice,
       href: '/mon-bureau/#annee',
       quoi: 'Ton chiffre, ton rythme, tes canaux' },
-    { id: 'clients', viti: true,   ico: '&#128101;', label: 'Mes clients',
+    { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mes clients',
       href: '/mon-bureau/#clients',
-      quoi: 'Qui rappeler, qui decroche, qui revient' },
-    { id: 'produits', viti: true,  ico: '&#127863;', label: 'Mes cuvées',
+      quoi: 'Qui rappeler, qui décroche, qui revient' },
+    { id: 'produits', viti: true,  ico: TRACES.produits, label: 'Mes cuvées',
       href: '/mon-bureau/#produits',
       quoi: 'Ce qui part, ce qui dort' },
-    { id: 'chercher', viti: true,  ico: '&#128301;', label: 'Chercher',
+    { id: 'chercher', viti: true,  ico: TRACES.chercher, label: 'Chercher',
       href: '/mon-bureau/#chercher',
       quoi: 'Une ligne, un client, une facture' },
-    { id: 'echeances', ico: '&#8987;',   label: 'Le compte à rebours',
+    { id: 'echeances', ico: TRACES.echeances,   label: 'Le compte à rebours',
       href: '/outils/echeances/',
-      quoi: 'DRM, DAI, recolte, facturation' },
-    { id: 'reglages',  ico: '&#9881;',   label: 'Mes réglages',
+      quoi: 'DRM, DAI, récolte, facturation' },
+    { id: 'reglages',  ico: TRACES.reglages,   label: 'Mes réglages',
       panneau: true,
       quoi: 'Ton domaine, ta base, tes objectifs' }
   ];
@@ -135,7 +190,11 @@
   function appliquer(atelier, bouton, replie) {
     atelier.classList.toggle('bureau-atelier--replie', replie);
     if (!bouton) return;
-    bouton.setAttribute('aria-expanded', String(!replie));
+    /* aria-pressed et pas aria-expanded : le repli ne MASQUE pas la liste, il retire les
+       mots et garde les icones. Annoncer « reduit » a propos d'une liste dont les sept
+       entrees restent presentes, visibles et atteignables au clavier, c'est mentir a un
+       lecteur d'ecran. C'est une bascule a deux etats, donc aria-pressed. */
+    bouton.setAttribute('aria-pressed', String(replie));
     var mot = (replie ? 'Déplier' : 'Replier') + ' le menu';
     bouton.title = mot + ' (touche crochet ouvrant)';
     bouton.setAttribute('aria-label', mot);
@@ -322,7 +381,7 @@
       if (window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();
     })['catch'](function () {
       if (window.BdvReglages && BdvReglages.dire) {
-        BdvReglages.dire('Ta base n\'a pas pu se charger. Verifie ta connexion, puis referme et reouvre tes reglages.');
+        BdvReglages.dire('Deux onglets de tes réglages, Ma base et Le classement, restent vides. Vérifie ta connexion, puis referme et rouvre ce panneau.');
       }
       _moteur = null;   // le prochain essai repart de zero
     });
@@ -374,7 +433,7 @@
       afficher('journee');
       var av = document.getElementById('bureauAvis');
       if (av) {
-        av.textContent = 'Tes ecrans de vente n\'ont pas pu se charger. Verifie ta connexion et reessaie.';
+        av.textContent = 'Tes écrans de vente n\'ont pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
         av.hidden = false;
       }
     });
@@ -407,7 +466,7 @@
     var atelier = conteneur.closest('.bureau-atelier') || document.body;
 
     var html = '<button class="bureau-nav__plier" id="bureauNavPlier" type="button"'
-      + ' aria-controls="bureauNavListe" aria-expanded="true">'
+      + ' aria-pressed="false">'
       + '<span class="bureau-nav__filets" aria-hidden="true"></span></button>'
       + '<ul class="bureau-nav__liste" id="bureauNavListe">';
 
@@ -417,8 +476,8 @@
       var marque = actif ? ' bureau-nav__item--actif" aria-current="page' : '';
       /* title porte le libelle ET ce que la piece contient : replie, l'icone
          seule ne dit rien, et c'est la seule facon de retrouver son chemin. */
-      var t = ' title="' + nom + (p.quoi ? ' — ' + p.quoi : '') + '"';
-      var dedans = '<span class="bureau-nav__ico" aria-hidden="true">' + p.ico + '</span>'
+      var t = ' title="' + nom + (p.quoi ? ' : ' + p.quoi : '') + '"';
+      var dedans = '<span class="bureau-nav__ico">' + trace(p.ico) + '</span>'
         + '<span class="bureau-nav__nom">' + nom + '</span>';
       html += '<li class="bureau-nav__ligne" data-piece="' + p.id + '">';
       /* LA PIECE ACTIVE RESTE UN LIEN. Au lot 1 elle etait rendue en <span> : on ne

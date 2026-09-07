@@ -592,12 +592,15 @@ if (!jsCouleursDur && !jsRayonsDur && !jsRepliFaux && !jsTokenAbsent) ok('CSS em
    n'a plus a revenir au bureau depuis un endroit qui EST le bureau. */
 const ENTITES_ATTENDUES = ['&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;',
                            '&#9095;', '&#9998;', '&#215;',
-                           /* Lot 1, la barre du bureau (src/js/bdv-nav.js) : le soleil de
-                              « Ma journee », le sablier du compte a rebours, la roue des
-                              reglages. Les quatre autres icones de la barre sont celles du
-                              menu des ecrans de vente, deja dans la liste : c'est la meme
-                              barre, ce sont les memes icones. */
-                           '&#9728;', '&#8987;', '&#9881;'];
+                           ];
+/* Les trois entites propres a la barre du bureau (le soleil, le sablier, la roue) ont
+   disparu le 07/09/2026 : la barre porte desormais sept traces SVG monochromes, pas des
+   emoji. Les quatre autres, qui etaient partagees avec le menu des ecrans de vente, sont
+   encore dans la liste ci-dessus parce que NAV les declare toujours dans
+   src/js/bdv-ecrans.js. ATTENTION : ce NAV n'affiche plus rien depuis que son volet a ete
+   supprime au lot 2d, donc ces quatre icones sont du code mort en sursis. Le jour ou on les
+   retire, il faut les retirer d'ici aussi, et ce controle n'aura plus grand-chose a
+   surveiller que le crayon, le sablier de bdv-base et la croix du panneau. */
 
 if (DASH) {
   titre('9. Entites HTML numeriques (les icones du tableau de bord)');
