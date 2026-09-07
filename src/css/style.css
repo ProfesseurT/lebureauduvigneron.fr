@@ -5039,18 +5039,27 @@ button.bureau-nav__item:hover {
 .bureau-nav__item--attente { cursor: progress; }
 .bureau-nav__item--attente .bureau-nav__ico { opacity: 0.45; }
 
-/*   rangee 1 : le sous-main (8) + le mot du jour (4)
-     rangee 2 : l'ardoise (8) + le pense-bete (4)
-     rangee 3 : a lire (4) + le classeur (4) + le courrier (4)
-     rangee 4 : le tiroir (12) */
-.zone--sousmain  { grid-column: span 8; }
-.zone--mot       { grid-column: span 4; }
-.zone--ardoise   { grid-column: span 8; }
-.zone--pensebete { grid-column: span 4; }
-.zone--lecture   { grid-column: span 4; }
-.zone--classeur  { grid-column: span 4; }
-.zone--courrier  { grid-column: span 4; }
-.zone--panneau   { grid-column: span 12; }
+/*   rangee 1 : le panneau (12), ce que tu notes
+     rangee 2 : le sous-main (9) + le calendrier (3)
+     ---------------------------------------------------------------------------
+     NEUF ET TROIS, ET C'EST UNE MESURE QUI L'A DECIDE. En huit sur douze, le
+     listing du sous-main avait 706 px pour cinq colonnes dont trois boutons de
+     44 px : le motif tombait a 98 px et n'affichait plus que « Rappel... ». Le
+     bloc calendrier, lui, est un bloc a effeuiller, il est etroit par nature et
+     280 px lui suffisent. Neuf et trois donnent 236 px au motif, de quoi lire
+     « 2 480 € sur un panier moyen de 640 € » en entier.
+     ---------------------------------------------------------------------------
+     rangee 3 : l'ardoise (12), les chiffres
+     rangee 4 : le mot du jour (12), quand il y en a un
+     rangee 5 : a lire (4) + le classeur (4) + le courrier (4) */
+.zone--panneau    { grid-column: span 12; }
+.zone--sousmain   { grid-column: span 9; }
+.zone--calendrier { grid-column: span 3; }
+.zone--ardoise    { grid-column: span 12; }
+.zone--mot        { grid-column: span 12; }
+.zone--lecture    { grid-column: span 4; }
+.zone--classeur   { grid-column: span 4; }
+.zone--courrier   { grid-column: span 4; }
 
 .zone {
   background: var(--paper-light);
@@ -5091,70 +5100,282 @@ button.bureau-nav__item:hover {
 /* ---- UNE TACHE ----
    La ligne entiere est un lien vers la fiche du client dans le tableau de bord.
    Les trois gestes vivent dedans, et leur clic ne suit pas le lien. */
-.tache {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e-m);
-  flex-wrap: wrap;
-  padding: 0.7rem 0;
-  border-bottom: var(--trait) solid var(--rule);
-  text-decoration: none;
-  color: var(--ink);
-  transition: background var(--tr-rapide) ease;
+/* ============================================================================
+   LE SOUS-MAIN : UN LISTING INFORMATIQUE
+   ----------------------------------------------------------------------------
+   Demande de Ted le 07/09/2026 : « le sous-main avec les taches a faire
+   aujourd'hui ou en retard : c'est un design beaucoup plus informatique parce
+   que ca va parler de fichiers clients ». Il a raison sur le fond : cette zone
+   ne raconte rien, elle liste des dossiers a traiter. Elle etait dessinee comme
+   un sommaire de revue, avec le nom du client en Fraunces corps 18.
+
+   C'est donc du papier continu a picots : bandes perforees a gauche et a droite,
+   bandes alternees, en-tete de colonnes, mono pour les references et les
+   retards. Les picots sont un fond du CONTENEUR et pas deux pseudo-elements par
+   ligne : leur pas est fixe, 26 px, independant de la hauteur des lignes, comme
+   sur du vrai papier continu.
+
+   TROIS DEFAUTS REELS CORRIGES AU PASSAGE, et aucun n'etait cosmetique :
+
+   1. HTML INVALIDE. La ligne etait un <button> qui contenait trois <button>.
+      Un bouton dans un bouton n'est pas permis, et le navigateur reparait le
+      balisage comme il pouvait. Ici la ligne est un <div>, et le nom du client
+      est le bouton : un seul element focalisable par colonne, dans l'ordre.
+      Ce que ca coute : cliquer dans le vide de la ligne n'ouvre plus la fiche.
+      C'est le prix d'un balisage juste, et le survol montre ou cliquer.
+   2. LE GESTE POSABLE DEUX FOIS. Une ligne traitee recevait
+      `pointer-events: none`, qui n'arrete que la souris : au clavier, Entree
+      deux fois posait deux gestes. Les boutons sont maintenant desactives.
+   3. LA HAUTEUR TACTILE. 44 px etait ecrit en dur ; c'est --h-controle.
+
+   Les bandes alternees ont 1,23:1 de contraste entre elles. C'est faible
+   volontairement : une bande de listing guide l'oeil sur la ligne, elle ne doit
+   pas se lire comme une couleur d'etat. Le seul etat de couleur ici est le
+   retard, en --danger-deep.
+   ============================================================================ */
+/* LE PAPIER CONTINU. Les picots sont un fond du CONTENEUR et pas deux
+   pseudo-elements par ligne : leur pas est fixe, 26 px, independant de la
+   hauteur des lignes, comme sur du vrai papier a picots. */
+.listbb {
+  border: var(--trait) solid var(--rule);
+  box-shadow: var(--ombre-carte);
+  padding: 0 18px;
+  background-color: var(--paper-light);
+  background-image:
+    radial-gradient(circle at 9px 13px, var(--paper-deep) 0 2.5px, transparent 3px),
+    radial-gradient(circle at calc(100% - 9px) 13px, var(--paper-deep) 0 2.5px, transparent 3px),
+    linear-gradient(to right, transparent 17px, var(--rule) 17px 18px, transparent 18px),
+    linear-gradient(to left, transparent 17px, var(--rule) 17px 18px, transparent 18px);
+  background-size: 100% 26px, 100% 26px, 100% 100%, 100% 100%;
+  background-repeat: repeat-y, repeat-y, no-repeat, no-repeat;
 }
-.tache:hover { background: var(--white); text-decoration: none; }
-.tache--partie { opacity: 0.35; pointer-events: none; }
-.tache__qui { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1 1 260px; }
-.tache__nom {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  line-height: var(--lh-serre);
+
+/* C'EST UN TABLEAU, ET C'EST UNE CORRECTION. Premiere version : l'en-tete etait
+   une grille et chaque ligne une autre grille, avec les memes colonnes ecrites
+   dans une variable. Deux grilles separees ne partagent pas leurs colonnes :
+   « RETARD » et « GESTE » flottaient a trois cents pixels de la colonne qu'ils
+   nommaient. Vu sur une capture, pas devine.
+   Un listing de colonnes EST un tableau : les colonnes s'alignent par
+   construction, et le lecteur d'ecran annonce enfin l'en-tete de la cellule. */
+/* LARGEURS FIXES, et c'est une capture qui l'a impose : en repartition
+   automatique, le navigateur donnait la place aux boutons de geste et le nom du
+   client passait sur trois lignes. Un listing dont les lignes n'ont pas la meme
+   hauteur ne se balaie plus verticalement, ce qui est tout son objet.
+   Trois colonnes sont fixees a leur contenu, la reference, le retard et les
+   gestes ; le nom prend un quart ; le motif prend ce qui reste. */
+.listb { width: 100%; border-collapse: collapse; table-layout: fixed; }
+/* EN REM ET PAS EN EM, et c'est encore une capture qui l'a montre : l'en-tete
+   est en --t-micro, dix pixels. Une largeur en em s'y calculait donc sur dix
+   pixels, la colonne des gestes faisait 135 px au lieu de 224, et les trois
+   boutons debordaient du tableau. Le rem se calcule sur la racine, il ne depend
+   pas du corps de la cellule qui le porte. */
+.listb th:nth-child(1) { width: 5rem; }
+.listb th:nth-child(2) { width: 26%; }
+.listb th:nth-child(4) { width: 6rem; }
+.listb th:nth-child(5) { width: 11.5rem; }
+.listb th {
+  background: var(--ardoise);
+  color: var(--on-dark);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  text-align: left;
+  padding: 0.34rem var(--e-s);
+  white-space: nowrap;
+}
+.listb th:nth-child(4) { text-align: right; }
+.listb td {
+  height: var(--h-controle);
+  padding: 0.2rem var(--e-s);
+  border-bottom: var(--trait) solid var(--rule);
+  background: var(--paper-light);
+  vertical-align: middle;
+  font-size: var(--t-base);
+}
+/* Les bandes alternees du listing : 1,23:1 entre elles. Volontairement faible,
+   une bande guide l'oeil sur la ligne, elle ne doit pas se lire comme une
+   couleur d'etat. Le seul etat de couleur ici est le retard. */
+.listb tbody tr:nth-child(even) td { background: var(--white); }
+.listb tbody tr:last-child td { border-bottom: none; }
+/* Le survol ne change pas la teinte de la bande, il pose un onglet bordeaux sur
+   le bord : les bandes disent la ligne, la couleur dit l'etat, et les deux ne
+   parlent pas en meme temps. */
+.listb tbody tr:hover td:first-child { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
+.listb tr.listb__l--partie td { opacity: 0.4; }
+.listb__ref {
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* Le nom du client est un fichier, pas un titre : Inter et pas Fraunces. C'est
+   exactement ce que Ted appelle « plus informatique ». */
+.listb__nom {
+  max-width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+  font-weight: 500;
   color: var(--bordeaux);
+  text-align: left;
+  cursor: pointer;
   overflow-wrap: anywhere;
 }
-.tache:hover .tache__nom { text-decoration: underline; }
-.tache__pourquoi { font-size: var(--t-mini); color: var(--muted); }
-.tache[data-source="rappel"] .tache__pourquoi { color: var(--danger-deep); }
-.tache__gestes { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.listb__nom:hover { text-decoration: underline; color: var(--bordeaux-vif); }
+/* Un nom trop long est coupe et pas replie : la ligne garde sa hauteur, et le
+   nom entier reste lisible dans l'infobulle et dans la fiche. */
+/* PAS D'OVERFLOW SUR UNE CELLULE DE TABLEAU. Vu sur capture : avec
+   `overflow: hidden`, la cellule du motif cessait de s'etirer a la hauteur de sa
+   rangee et son fond se decalait de huit pixels vers le haut, une bande claire
+   en travers du listing. La coupe se fait sur l'element INTERIEUR, qui est un
+   bloc ordinaire. */
+.listb td.listb__nom-c .listb__nom {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+/* LE MOTIF EST LA CELLULE, PAS UN ELEMENT DEDANS, et c'est ce qui m'avait
+   echappe : cette regle portait `display: block`, elle transformait donc le
+   <td> lui-meme en bloc. Une cellule en display:block sort de la mise en page du
+   tableau : son fond se decalait de huit pixels et tracait une bande claire en
+   travers du listing, visible sur trois captures avant que je comprenne.
+   La coupe par points de suspension, elle, marche bien sur une cellule quand le
+   tableau est en table-layout: fixed. */
+.listb td.listb__motif {
+  font-size: var(--t-mini);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.listb td.listb__retard {
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.listb tr[data-retard="oui"] td.listb__retard { color: var(--danger-deep); font-weight: 500; }
+.listb td.listb__gestes { white-space: nowrap; text-align: right; }
+.listb__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
+
+/* Le plancher tactile est une HAUTEUR, pas une largeur : on peut serrer
+   horizontalement sans rien perdre, et trois gestes tiennent alors dans
+   11,5 rem de colonne. */
 .btn--geste {
-  min-height: 44px;
-  padding: 0.35rem 0.7rem;
+  min-height: var(--h-controle);
+  padding: 0.35rem 0.5rem;
   background: var(--paper);
   border: var(--trait) solid var(--rule-fort);
   color: var(--ink);
-  font-family: var(--font-corps);
+  font-family: var(--font-mono);
   font-size: var(--t-mini);
   cursor: pointer;
   white-space: nowrap;
 }
 .btn--geste:hover { background: var(--bordeaux); border-color: var(--bordeaux); color: var(--on-dark); }
+.btn--geste:disabled { cursor: default; color: var(--muted); border-color: var(--rule); }
+.btn--geste:disabled:hover { background: var(--paper); border-color: var(--rule); color: var(--muted); }
 
-/* ---- LE PENSE-BETE : une seule note, punaisee ---- */
-.note {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: var(--e-m);
-  background: var(--paper);
-  border-left: var(--trait-accent) solid var(--cork);
-  text-decoration: none;
+/* ---- LE BLOC CALENDRIER ----
+   Un bloc a effeuiller, pose sur le plateau : bandeau du mois, ligne de
+   perforation, le jour en grand, puis ce qui tombe ce jour-la. Les echeances
+   suivantes sont une simple liste dessous, et c'est voulu : deux blocs
+   calendrier dans la meme zone et plus rien ne ressort.
+
+   Il remplace le pense-bete, qui disait la meme chose que le compte a rebours a
+   deux endroits de la meme page. Le bloc entier mene au calendrier, pas a
+   l'article de l'echeance : c'est ce que Ted a demande le 07/09/2026, et c'est
+   plus juste, on clique sur un calendrier pour voir le calendrier.
+
+   Materiaux : --paper-light pour le papier, --ombre-carte pour l'objet pose,
+   --ombre-dure au survol. Deux ombres, jamais une troisieme. */
+.calbloc { display: grid; gap: var(--e-s); }
+.calbloc__une {
+  display: block;
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule);
+  box-shadow: var(--ombre-carte);
   color: var(--ink);
+  text-decoration: none;
+  transition: box-shadow var(--tr-rapide) ease;
 }
-.note:hover { background: var(--white); text-decoration: none; }
-.note[data-niveau="urgent"], .note[data-niveau="aujourdhui"] {
-  background: var(--danger-bg);
-  border-left-color: var(--danger);
+.calbloc__une:hover { text-decoration: none; box-shadow: var(--ombre-dure); }
+.calbloc__mois {
+  display: block;
+  background: var(--bordeaux);
+  color: var(--on-dark);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  text-align: center;
+  padding: 0.35rem 0;
 }
-.note__quand {
+/* La perforation. Le meme piquete que le liege du panneau : une matiere n'est
+   pas une couleur a plat. */
+.calbloc__trous {
+  display: block;
+  height: 8px;
+  background-color: var(--paper-light);
+  background-image: radial-gradient(circle at 8px 50%, var(--paper-deep) 0 2px, transparent 2.5px);
+  background-size: 16px 8px;
+  border-bottom: var(--trait) solid var(--rule);
+}
+.calbloc__jour {
+  display: block;
   font-family: var(--font-titre);
-  font-size: var(--t-h3);
-  line-height: var(--lh-serre);
+  font-size: var(--t-h1);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: var(--ls-serre);
+  text-align: center;
+  padding: 0.5rem 0 0.1rem;
 }
-.note[data-niveau="urgent"] .note__quand,
-.note[data-niveau="aujourdhui"] .note__quand { color: var(--danger-deep); }
-.note__titre { font-size: var(--t-base); line-height: var(--lh-normal); }
-.note__date { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
+.calbloc__quand {
+  display: block;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  padding-bottom: 0.5rem;
+}
+.calbloc__titre {
+  display: block;
+  font-size: var(--t-base);
+  line-height: var(--lh-normal);
+  padding: var(--e-s) var(--e-m) var(--e-m);
+  border-top: var(--trait) solid var(--rule);
+}
+/* Urgent : le bandeau du mois passe au rouge d'etat, et le jour avec. La
+   couleur remplace, elle ne s'ajoute pas : un seul signal a la fois. */
+.calbloc__une[data-niveau="urgent"] .calbloc__mois,
+.calbloc__une[data-niveau="aujourdhui"] .calbloc__mois { background: var(--danger); }
+.calbloc__une[data-niveau="urgent"] .calbloc__jour,
+.calbloc__une[data-niveau="aujourdhui"] .calbloc__jour { color: var(--danger-deep); }
+
+.calbloc__suite { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--trait); }
+.calbloc__ligne {
+  display: flex;
+  gap: var(--e-s);
+  align-items: baseline;
+  background: var(--paper);
+  padding: 0.4rem var(--e-s);
+}
+.calbloc__d {
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  flex-shrink: 0;
+  min-width: 5.2em;
+}
+.calbloc__q { font-size: var(--t-base); min-width: 0; }
 
 /* ---- L'ARDOISE ---- */
 .ardoise { display: grid; gap: var(--e-s); }
@@ -5313,19 +5534,46 @@ button.bureau-nav__item:hover {
 
 /* ---- RESPONSIVE ----
    Deux colonnes en moyen, une seule sur telephone. L'ordre des zones ne change
-   jamais : le sous-main reste le premier bloc qu'on voit, partout. */
+   jamais d'un ecran a l'autre : le panneau reste le premier bloc, le sous-main le
+   deuxieme, partout. */
 @media (max-width: 1100px) {
   /* Le sous-main prend toute la largeur, le reste se range par deux. */
-  .zone--sousmain, .zone--ardoise, .zone--panneau { grid-column: span 12; }
-  .zone--mot, .zone--pensebete, .zone--lecture, .zone--classeur, .zone--courrier { grid-column: span 6; }
+  .zone--sousmain, .zone--ardoise, .zone--panneau, .zone--mot { grid-column: span 12; }
+  .zone--calendrier, .zone--lecture, .zone--classeur, .zone--courrier { grid-column: span 6; }
 }
 @media (max-width: 700px) {
   .container--bureau { padding: 0 var(--e-m); }
   .bureau-plan { gap: var(--e-m); }
   .bureau-plan > .zone { grid-column: span 12; }
   .zone { padding: var(--e-m); }
-  .tache { align-items: flex-start; }
-  .tache__gestes { width: 100%; }
+  /* Sur telephone, le listing perd ses colonnes : la reference et l'en-tete
+     s'effacent, le motif passe sous le nom, les gestes prennent la largeur. Le
+     papier continu garde ses picots, c'est ce qui le rend reconnaissable. */
+  .listbb { padding: 0 12px; }
+  /* Le tableau perd ses colonnes et devient une fiche par ligne : la reference
+     et l'en-tete s'effacent, le motif passe sous le nom, les gestes prennent la
+     largeur. Le papier garde ses picots, c'est ce qui le rend reconnaissable. */
+  .listb thead, .listb td.listb__ref { display: none; }
+  .listb, .listb tbody, .listb tr, .listb td { display: block; }
+  .listb tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5em;
+    grid-template-areas: "nom retard" "motif motif" "gestes gestes";
+    align-items: baseline;
+    row-gap: 0.3rem;
+    padding: var(--e-s) 0;
+    border-bottom: var(--trait) solid var(--rule);
+  }
+  .listb tbody tr:last-child { border-bottom: none; }
+  .listb td { height: auto; border-bottom: none; padding: 0 var(--e-s); background: none; }
+  .listb tbody tr:nth-child(even) { background: var(--white); }
+  .listb tbody tr:nth-child(even) td { background: none; }
+  .listb tbody tr:hover td:first-child { box-shadow: none; }
+  .listb tbody tr:hover { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
+  .listb td.listb__nom-c { grid-area: nom; }
+  .listb td.listb__retard { grid-area: retard; }
+  .listb td.listb__motif { grid-area: motif; }
+  .listb td.listb__gestes { grid-area: gestes; width: auto; display: flex; }
   .btn--geste { flex: 1 1 auto; justify-content: center; text-align: center; }
 }
 
@@ -5461,16 +5709,10 @@ button.bureau-nav__item:hover {
 }
 .saisieb__types { align-items: center; }
 
-/* Une tache est un bouton : il doit ressembler a une ligne, pas a un bouton. */
-button.tache {
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  border-bottom: var(--trait) solid var(--rule);
-  font: inherit;
-  cursor: pointer;
-}
+/* `button.tache` est parti le 07/09/2026 avec la refonte du sous-main : la ligne
+   n'est plus un bouton, c'est une rangee de listing, et un bouton dans un bouton
+   n'etait de toute facon pas du HTML valide. Cette regle deshabillait un bouton
+   pour qu'il ressemble a une ligne ; il n'y a plus de bouton a deshabiller. */
 .btn--lienb {
   background: none;
   border: none;

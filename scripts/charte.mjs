@@ -164,6 +164,39 @@ const norme = s => s.replace(/\s*([,>+~])\s*/g, '$1').replace(/\s+/g, ' ').trim(
 const B = parse(APRES);
 if (B.erreurs.length) ko('le CSS ne parse pas : ' + B.erreurs[0]);
 
+/* ---------------------------------------------------------------------------
+   3 bis. UN COMMENTAIRE QUI AVALE DES REGLES
+   ---------------------------------------------------------------------------
+   Ajoute le 07/09/2026 parce que ca vient d'arriver, et que rien ne l'a vu. En
+   inserant un bloc de regles j'ai laisse un `/* ---- TITRE ----` juste au-dessus
+   de `.btn--geste { ... }` : le commentaire n'etait ferme que trente lignes plus
+   bas, et il a mange le bloc entier. La feuille parse sans erreur, la charte
+   restait CONFORME, et les boutons de geste avaient repris l'allure par defaut
+   du navigateur, Arial 13 px sur 19 px de haut au lieu de 44.
+
+   C'est la pire categorie de panne : elle ne casse rien, elle efface. Le
+   controle est donc bete et sur : un commentaire qui contient un selecteur suivi
+   d'une accolade et d'une declaration est un commentaire qui avale des regles.
+   Une regle commentee doit etre supprimee, pas mise en conserve.
+--------------------------------------------------------------------------- */
+titre('3 bis. Commentaires qui avalent des regles');
+{
+  const brut = fs.readFileSync(APRES, 'utf8');
+  const avales = [];
+  const RE_COM = /\/\*[\s\S]*?\*\//g;
+  const RE_REGLE = /[.#][A-Za-z][\w-]*[^{}]{0,200}\{[^{}]*[a-z-]+\s*:[^{}]*;/;
+  let m;
+  while ((m = RE_COM.exec(brut))) {
+    if (RE_REGLE.test(m[0])) {
+      const ligne = brut.slice(0, m.index).split('\n').length;
+      avales.push([ligne, (m[0].match(RE_REGLE) || [''])[0].replace(/\s+/g, ' ').slice(0, 70)]);
+    }
+  }
+  if (avales.length) avales.forEach(a =>
+    ko('L' + a[0] + ' : un commentaire contient une regle CSS — « ' + a[1] + ' ». Il l\'avale.'));
+  else ok('aucun commentaire ne contient de regle CSS');
+}
+
 titre('4. Valeurs en dur restantes');
 
 const dur = { couleurs: [], textures: [], rayons: [], ls: [], durees: [], tailles: [] };

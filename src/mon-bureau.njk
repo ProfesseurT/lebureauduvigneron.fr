@@ -73,6 +73,23 @@ permalink: /mon-bureau/
     <div class="bureau-atelier__travail">
     <div class="bureau-plan" id="bureauJournee">
 
+    <!-- L'ORDRE DES ZONES EST CELUI QUE TED A DICTE le 07/09/2026 : le panneau de
+         post-it, puis le sous-main avec le calendrier a sa droite, puis l'ardoise,
+         puis a lire / le classeur / le courrier. Chaque objet a sa matiere, et
+         toutes les matieres se plient a LA REGLE DU PLATEAU, ecrite en tete de la
+         section MATIERES de src/css/style.css : une seule lumiere, deux ombres. -->
+
+    <!-- LE PANNEAU DE LIEGE : les chiffres de sa PRATIQUE, pas ceux de ses ventes.
+         L'ardoise dit ou en est le domaine, le panneau dit ou il en est, lui. Deux
+         tableaux de chiffres sur une meme page ne tiennent qu'a cette condition. -->
+    <section class="zone zone--panneau" id="zonePanneau" hidden>
+      <div class="zone__tete">
+        <h2>Le panneau</h2>
+        <span class="zone__note" id="panneauNote"></span>
+      </div>
+      <div class="panneau" id="bureauPanneau"></div>
+    </section>
+
     <!-- LE SOUS-MAIN : ce qu'on fait aujourd'hui. La zone la plus large, en haut a gauche. -->
     <section class="zone zone--sousmain">
       <div class="zone__tete">
@@ -84,18 +101,18 @@ permalink: /mon-bureau/
       <p class="zone__pied" id="filePied" hidden></p>
     </section>
 
-    <!-- LE MOT DU JOUR : un conseil, un seul, celui qui pese le plus lourd. -->
-    <section class="zone zone--mot" id="zoneMot" hidden>
+    <!-- LE CALENDRIER : a la place du pense-bete, et c'est la meilleure raison de
+         ce deplacement. Le pense-bete et le compte a rebours disaient la MEME chose
+         a deux endroits, une echeance qui tombe. En mettant le calendrier ici, le
+         doublon disparait de lui-meme, et le bloc mene a la piece qui porte les cinq
+         echeances avec leurs sources officielles.
+         L'id bureauEcheance ne change pas : c'est le conteneur, il est cite dans le
+         script de la page et le renommer n'apporterait rien qu'un risque. -->
+    <section class="zone zone--calendrier">
       <div class="zone__tete">
-        <h2>Le mot du jour</h2>
-        <span class="zone__note" id="motNote"></span>
+        <h2>Le calendrier</h2>
+        <span class="zone__note" id="calNote"></span>
       </div>
-      <div id="bureauMot"></div>
-    </section>
-
-    <!-- LE PENSE-BETE : l'echeance qui tombe, et rien d'autre. -->
-    <section class="zone zone--pensebete">
-      <div class="zone__tete"><h2>Le pense-bête</h2></div>
       <div id="bureauEcheance"></div>
     </section>
 
@@ -108,15 +125,13 @@ permalink: /mon-bureau/
       <div class="ardoise" id="bureauChiffres"></div>
     </section>
 
-    <!-- LE PANNEAU DE LIEGE : les chiffres de sa PRATIQUE, pas ceux de ses ventes.
-         L'ardoise dit ou en est le domaine, le panneau dit ou il en est, lui. Deux
-         tableaux de chiffres sur une meme page ne tiennent qu'a cette condition. -->
-    <section class="zone zone--panneau" id="zonePanneau" hidden>
+    <!-- LE MOT DU JOUR : un conseil, un seul, celui qui pese le plus lourd. -->
+    <section class="zone zone--mot" id="zoneMot" hidden>
       <div class="zone__tete">
-        <h2>Le panneau</h2>
-        <span class="zone__note" id="panneauNote"></span>
+        <h2>Le mot du jour</h2>
+        <span class="zone__note" id="motNote"></span>
       </div>
-      <div class="panneau" id="bureauPanneau"></div>
+      <div id="bureauMot"></div>
     </section>
 
     <!-- LA PILE DE LECTURE -->
@@ -280,30 +295,60 @@ permalink: /mon-bureau/
     return '/mon-bureau/#client=' + encodeURIComponent(id);
   }
 
+  /* UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
+     retard, geste. Ce sont les colonnes que Ted a dictees.
+
+     LA LIGNE N'EST PLUS UN BOUTON, et c'etait un vrai defaut : elle etait un
+     <button> qui contenait trois <button>, ce que le HTML interdit. Le nom du
+     client porte maintenant le clic ; la ligne n'est plus qu'une rangee. */
+  function cellule(classe, contenu){
+    var td = document.createElement('td');
+    td.className = classe;
+    if(typeof contenu === 'string') td.textContent = contenu;
+    else td.appendChild(contenu);
+    return td;
+  }
+
+  /* UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
+     retard, geste. Ce sont les colonnes que Ted a dictees.
+
+     C'EST UN <tr> ET PAS UN <div>, pour deux raisons qui se cumulent :
+     - la ligne etait un <button> qui contenait trois <button>, ce que le HTML
+       interdit. Le nom du client porte maintenant le clic, seul ;
+     - une grille d'en-tete et une grille de ligne ne partagent pas leurs
+       colonnes. Un tableau, si. */
   function ligneFile(l){
-    var a = document.createElement('button');
-    a.type = 'button';
-    a.className = 'tache';
-    a.setAttribute('data-fiche', l.id);
-    a.setAttribute('data-source', l.source);
+    var tr = document.createElement('tr');
+    tr.className = 'listb__l';
+    tr.setAttribute('data-source', l.source);
+    var enRetard = l.source === 'rappel' && l.retard > 0;
+    if(enRetard) tr.setAttribute('data-retard', 'oui');
 
-    var gauche = document.createElement('span');
-    gauche.className = 'tache__qui';
-    var nom = document.createElement('span');
-    nom.className = 'tache__nom';
+    var ref = cellule('listb__ref', String(l.id));
+    ref.title = 'Référence du fichier client dans ton export';
+    tr.appendChild(ref);
+
+    var nom = document.createElement('button');
+    nom.type = 'button';
+    nom.className = 'listb__nom';
+    nom.setAttribute('data-fiche', l.id);
     nom.textContent = l.nom || l.id;
-    gauche.appendChild(nom);
-    var pourquoi = document.createElement('span');
-    pourquoi.className = 'tache__pourquoi';
-    pourquoi.textContent = l.source === 'rappel'
-      ? (l.retard > 0 ? 'Tu devais le rappeler il y a ' + l.retard + ' jour' + (l.retard > 1 ? 's' : '')
-                      : 'À rappeler aujourd’hui')
-      : (l.montant ? euros(l.montant) + ' ' + (l.lib || '') : (l.detail || 'Signalé'));
-    gauche.appendChild(pourquoi);
-    a.appendChild(gauche);
+    nom.title = l.nom || l.id;   // coupe a l'ecran, entier a l'infobulle
+    tr.appendChild(cellule('listb__nom-c', nom));
 
-    var droite = document.createElement('span');
-    droite.className = 'tache__gestes';
+    var quoi = l.source === 'rappel'
+      ? (enRetard ? 'Rappel prévu, non fait' : 'Rappel prévu aujourd’hui')
+      : (l.montant ? euros(l.montant) + ' ' + (l.lib || '') : (l.detail || 'Signalé'));
+    var cMotif = cellule('listb__motif', quoi);
+    cMotif.title = quoi;   // coupe a l'ecran si la colonne est courte, entier a l'infobulle
+    tr.appendChild(cMotif);
+
+    /* LA COLONNE RETARD DIT DES JOURS, pas une phrase : c'est une colonne de
+       listing, elle se lit en balayant verticalement. Le motif porte la phrase. */
+    tr.appendChild(cellule('listb__retard', l.source !== 'rappel' ? '\u2014'
+      : (enRetard ? 'J+' + l.retard : 'aujourd’hui')));
+
+    var gestes = cellule('listb__gestes', document.createDocumentFragment());
     Object.keys(BdvCrm.GESTES).forEach(function(k){
       var b = document.createElement('button');
       b.type = 'button';
@@ -311,16 +356,37 @@ permalink: /mon-bureau/
       b.setAttribute('data-geste', k);
       b.setAttribute('data-id', l.id);
       b.textContent = BdvCrm.GESTES[k].label;
-      droite.appendChild(b);
+      gestes.appendChild(b);
     });
-    a.appendChild(droite);
-    return a;
+    tr.appendChild(gestes);
+    return tr;
+  }
+
+  /* LE TABLEAU DU LISTING. Monte a chaque peinture, avec ses lignes : hors du
+     listing l'en-tete n'a aucun sens, et un en-tete qui reste au-dessus d'une
+     zone vide donne l'air d'un tableau en panne. */
+  function tableFile(){
+    var t = document.createElement('table');
+    t.className = 'listb';
+    var thead = document.createElement('thead');
+    var tr = document.createElement('tr');
+    ['Réf', 'Fichier client', 'Motif', 'Retard', 'Geste'].forEach(function(m){
+      var th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = m;
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    t.appendChild(thead);
+    t.appendChild(document.createElement('tbody'));
+    return t;
   }
 
   var LECTURE_KO = false;
   function peindreFile(){
     var boite = el('bureauFile');
     if(!window.BdvCrm || !ETAT_FILE){
+      boite.className = '';
       vide(boite, LECTURE_KO
         ? 'Ta file n’a pas pu être lue. Ce n’est pas qu’elle est vide : réessaie tout à l’heure.'
         : 'Ouvre « Mon exercice » une fois : ton bureau déposera ici les clients à rappeler.');
@@ -328,6 +394,7 @@ permalink: /mon-bureau/
     }
     var lignes = BdvCrm.file(ETAT_FILE);
     if(!lignes.length){
+      boite.className = '';
       vide(boite, 'Rien à faire aujourd’hui. Profites-en.');
       txt(el('fileNote'), '');
       el('filePied').hidden = true;
@@ -337,7 +404,11 @@ permalink: /mon-bureau/
     txt(el('fileNote'), retards ? retards + ' en retard' : lignes.length + ' en attente');
 
     boite.innerHTML = '';
-    lignes.slice(0, TOUT_VOIR ? lignes.length : FILE_VUE).forEach(function(l){ boite.appendChild(ligneFile(l)); });
+    boite.className = 'listbb';
+    var table = tableFile();
+    var corps = table.querySelector('tbody');
+    lignes.slice(0, TOUT_VOIR ? lignes.length : FILE_VUE).forEach(function(l){ corps.appendChild(ligneFile(l)); });
+    boite.appendChild(table);
 
     // « Tout voir » déplie la file ICI. Sauter vers le tableau de bord faisait sortir du
     // poste de travail pour retrouver une liste d'analyse, qui n'est pas la même chose.
@@ -368,8 +439,15 @@ permalink: /mon-bureau/
     e.preventDefault();
     e.stopPropagation();
     var id = b.getAttribute('data-id');
-    var ligne = b.closest('.tache');
-    if(ligne) ligne.classList.add('tache--partie');
+    /* LE GESTE NE PEUT PLUS ETRE POSE DEUX FOIS. Avant, la ligne traitee recevait
+       `pointer-events: none`, qui n'arrete que la souris : au clavier, Entree deux
+       fois posait deux gestes. On desactive les boutons, ce que le clavier respecte
+       autant que la souris. */
+    var ligne = b.closest('.listb__l');
+    if(ligne){
+      ligne.classList.add('listb__l--partie');
+      [].forEach.call(ligne.querySelectorAll('.btn--geste'), function(x){ x.disabled = true; });
+    }
     BdvCrm.geste(b.getAttribute('data-geste'), id).then(function(ok){
       ETAT_FILE = BdvCrm.miroir();
       peindreFile(); peindreResume();
@@ -683,20 +761,62 @@ permalink: /mon-bureau/
     ECHEANCE = BdvEcheances.laPlusPressante(BdvEcheances.depuisLaPage('bdvEcheances'));
     if(!ECHEANCE){ vide(boite, 'Rien en vue.'); return; }
     boite.innerHTML = '';
+    var bloc = document.createElement('div');
+    bloc.className = 'calbloc';
+
+    /* LE BLOC MENE AU CALENDRIER, et plus a l'article de l'echeance. Avant, cliquer
+       sur le pense-bete pouvait ouvrir un article de blog : on cliquait sur une date
+       et on tombait sur un texte. On clique sur un calendrier pour voir le
+       calendrier. L'article reste atteignable depuis la piece elle-meme. */
     var a = document.createElement('a');
-    a.className = 'note';
-    a.href = ECHEANCE.e.article || '/outils/echeances/';
+    a.className = 'calbloc__une';
+    a.href = '/outils/echeances/';
     a.setAttribute('data-niveau', ECHEANCE.niveau);
-    var q = document.createElement('span'); q.className = 'note__quand'; q.textContent = ECHEANCE.phrase;
-    var t = document.createElement('span'); t.className = 'note__titre'; t.textContent = ECHEANCE.e.titre;
-    var d = document.createElement('span'); d.className = 'note__date'; d.textContent = ECHEANCE.dateCourte;
-    a.appendChild(q); a.appendChild(t); a.appendChild(d);
-    boite.appendChild(a);
+    var mois = document.createElement('span'); mois.className = 'calbloc__mois';
+    mois.textContent = ECHEANCE.date.toLocaleDateString('fr-FR', { month: 'long' });
+    var trous = document.createElement('span'); trous.className = 'calbloc__trous';
+    trous.setAttribute('aria-hidden', 'true');
+    var jour = document.createElement('span'); jour.className = 'calbloc__jour';
+    jour.textContent = ECHEANCE.date.getDate();
+    var quand = document.createElement('span'); quand.className = 'calbloc__quand';
+    quand.textContent = ECHEANCE.phrase;
+    var t = document.createElement('span'); t.className = 'calbloc__titre';
+    t.textContent = ECHEANCE.e.titre;
+    a.appendChild(mois); a.appendChild(trous); a.appendChild(jour);
+    a.appendChild(quand); a.appendChild(t);
+    bloc.appendChild(a);
+
+    /* LES DEUX SUIVANTES, en liste. Le bloc dit ce qui tombe le plus tot, la liste
+       dit ce qui vient apres : c'est ce que le pense-bete ne disait pas, et ce pour
+       quoi il fallait aller voir ailleurs. */
+    var toutes = BdvEcheances.calculer(BdvEcheances.depuisLaPage('bdvEcheances'))
+      .filter(function (x) { return x.jours >= 0 && x.e.titre !== ECHEANCE.e.titre; })
+      .slice(0, 2);
+    if (toutes.length) {
+      var ul = document.createElement('ul');
+      ul.className = 'calbloc__suite';
+      toutes.forEach(function (x) {
+        var li = document.createElement('li'); li.className = 'calbloc__ligne';
+        var d = document.createElement('span'); d.className = 'calbloc__d';
+        d.textContent = x.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        var q = document.createElement('span'); q.className = 'calbloc__q'; q.textContent = x.e.titre;
+        li.appendChild(d); li.appendChild(q); ul.appendChild(li);
+      });
+      bloc.appendChild(ul);
+    }
+    boite.appendChild(bloc);
+
     var tout = document.createElement('p');
     tout.className = 'zone__pied';
-    var l = document.createElement('a'); l.href = '/outils/echeances/'; l.textContent = 'Toutes les échéances';
+    var l = document.createElement('a'); l.href = '/outils/echeances/'; l.textContent = 'Tout le calendrier';
     tout.appendChild(l);
     boite.appendChild(tout);
+
+    /* L'etiquette de la zone dit combien il y en a en tout, et d'ou ca vient : une
+       regle du depot, un chiffre affiche dit toujours sa source. */
+    var n = BdvEcheances.depuisLaPage('bdvEcheances').length;
+    var etiq = el('calNote');
+    if (etiq) etiq.textContent = n + (n > 1 ? ' échéances suivies' : ' échéance suivie');
   }
 
   /* ---------------- LE MOT DU JOUR ----------------
