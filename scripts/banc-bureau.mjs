@@ -86,8 +86,13 @@ function bureau(hash) {
   };
   window.eval(NAV);
   window.BdvNav.monter(doc.getElementById('bureauNav'), 'journee');
+  /* Mes taches est branchee par la barre a l'ouverture de la piece. Le double note
+     l'appel : ce banc verifie l'enchainement des gestes, pas ce que le module ecrit,
+     qui est le travail de scripts/banc-taches.mjs. */
+  window.BdvTaches = { ouvrir: () => { appels.push({ taches: true }); } };
   return { window, doc, charges, appels,
     journee: doc.getElementById('bureauJournee'),
+    taches: doc.getElementById('bureauTaches'),
     ventes: doc.getElementById('bureauVentes'),
     nav: doc.getElementById('bureauNav'),
     clic(piece) {
@@ -108,45 +113,42 @@ t('la coque de l\'atelier existe dans le HTML produit',
   !!B.nav && !!B.doc.getElementById('bureauAtelier'));
 
 const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
-t('sept pieces montees', lignes.length === 7, lignes.length + ' trouvee(s)');
+t('huit pieces montees', lignes.length === 8, lignes.length + ' trouvee(s)');
 /* L'ORDRE EST UN CONTROLE ET PAS UN DETAIL : il porte l'hypothese H2 du document
    de refonte, le vigneron vient pour ne rien oublier. Si quelqu'un le change, il
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Le calendrier | Mes clients | Mon année | Mes cuvées | Mon registre | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mes clients | Mon année | Mes cuvées | Mon registre | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
-t('les quatre pieces de vente pointent DANS le bureau',
+t('les cinq pieces internes pointent DANS le bureau',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
-    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 4);
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 5);
 t('le calendrier pointe sur son outil',
   [...B.nav.querySelectorAll('a')].some(a => a.getAttribute('href') === '/outils/echeances/'));
 t('les reglages sont un bouton, pas un lien',
   B.nav.querySelector('[data-bdv-nav-panneau]').tagName === 'BUTTON');
 
-/* ---- le repli ---- */
-const plier = B.doc.getElementById('bureauNavPlier');
+/* ---- le repli a ete SUPPRIME le 07/09/2026 ----
+   Ces controles gardent la suppression, ils ne gardent pas un bouton. Motif ecrit
+   en tete de bdv-nav.js : la largeur decide seule, et il ne reste aucun etat a
+   relire. Ils echouent donc si quelqu'un reintroduit un bouton, un raccourci ou
+   la classe de repli sans reintroduire un menu de secours avec. */
 const atelier = B.doc.getElementById('bureauAtelier');
-t('deplie au depart', !atelier.classList.contains('bureau-atelier--replie'));
-plier.dispatchEvent(new B.window.MouseEvent('click', { bubbles: true }));
-t('un clic replie', atelier.classList.contains('bureau-atelier--replie'));
-t('la preference est ecrite sur la cle PARTAGEE avec le volet des ecrans de vente',
-  B.window.localStorage.getItem('bdv_volet_replie') === '1');
-t('le libelle accessible annonce l\'action a venir, pas l\'etat present',
-  plier.getAttribute('aria-label') === 'Déplier le menu', plier.getAttribute('aria-label'));
-plier.dispatchEvent(new B.window.MouseEvent('click', { bubbles: true }));
-t('un second clic deplie', !atelier.classList.contains('bureau-atelier--replie'));
-
+t('la barre n\'a plus de bouton de repli',
+  B.doc.getElementById('bureauNavPlier') === null);
+t('aucune classe de repli sur l\'atelier',
+  !atelier.classList.contains('bureau-atelier--replie'));
+t('la barre ne pose plus de preference de repli',
+  B.window.localStorage.getItem('bdv_volet_replie') === null);
 const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true }));
 frappe(B.doc.body);
-t('le crochet ouvrant replie', atelier.classList.contains('bureau-atelier--replie'));
-const champ = B.doc.createElement('input'); B.doc.body.appendChild(champ);
-frappe(champ);
-t('le crochet ouvrant ne fait RIEN pendant une saisie',
-  atelier.classList.contains('bureau-atelier--replie'),
-  'la barre a bouge alors qu\'on tapait un crochet dans un champ');
+t('le crochet ouvrant ne replie plus rien',
+  !atelier.classList.contains('bureau-atelier--replie'));
+t('les huit languettes restent toutes visibles',
+  lignes.filter(l => !l.hidden).length === 8, lignes.filter(l => !l.hidden).length);
 
 /* ---- sans Vitisoft : regle metier, pas cosmetique ---- */
 B.window.BdvNav.sansVitisoft(true);
@@ -206,13 +208,28 @@ t('les quatre elements hors page sont remontes sous body',
   ['status', 'busyov', 'printReport', 'modale']
     .filter(id => B.doc.getElementById(id).parentNode !== B.doc.body).join(','));
 
-t('a l\'ouverture, « Ma journee » est affichee et les ventes masquees',
-  !B.journee.hidden && B.ventes.hidden);
+t('a l\'ouverture, « Ma journee » est affichee, les taches et les ventes masquees',
+  !B.journee.hidden && B.taches.hidden && B.ventes.hidden);
 t('rien n\'est charge avant le premier clic', B.charges.length === 0, B.charges.join(' '));
 
+/* MES TACHES, ajoutee le 07/09/2026. Trois conteneurs se partagent la zone de travail :
+   le controle nomme les TROIS a chaque bascule, parce que le defaut qu'on attend ici
+   n'est pas « la piece ne s'affiche pas », c'est « l'ancienne reste affichee dessous ». */
+B.clic('taches');
+t('un clic sur « Mes taches » n\'affiche QUE les taches',
+  !B.taches.hidden && B.journee.hidden && B.ventes.hidden);
+t('l\'adresse des taches suit', B.window.location.hash === '#taches', B.window.location.hash);
+t('la piece est branchee a l\'ouverture',
+  B.appels.some(a => a.taches), JSON.stringify(B.appels));
+t('et rien n\'a ete charge pour ca : le module part avec la page',
+  B.charges.length === 0, B.charges.join(' '));
+B.clic('journee');
+t('revenir a « Ma journee » remasque les taches',
+  !B.journee.hidden && B.taches.hidden);
+
 B.clic('clients');
-t('un clic sur « Mes clients » masque la journee et montre les ventes',
-  B.journee.hidden && !B.ventes.hidden);
+t('un clic sur « Mes clients » masque la journee, les taches, et montre les ventes',
+  B.journee.hidden && B.taches.hidden && !B.ventes.hidden);
 t('l\'adresse suit', B.window.location.hash === '#clients', B.window.location.hash);
 t('la piece cliquee devient la piece active',
   B.doc.querySelector('.bureau-nav__ligne[data-piece="clients"] .bureau-nav__item--actif') !== null);
@@ -231,14 +248,19 @@ const ATTENDU = [
 ].join(' | ');
 t('le moteur puis les ecrans, dans cet ordre',
   B.charges.join(' | ') === ATTENDU, B.charges.join(' | ') || '(aucune)');
+/* On FILTRE les appels au demarrage des ecrans, au lieu de lire le tableau entier :
+   depuis que Mes taches se branche aussi par la barre, `appels` porte les deux sortes
+   et un controle cale sur un indice cassait des qu'une piece etait ajoutee. Il aurait
+   dit « les ecrans ne demarrent pas » alors qu'ils demarraient tres bien. */
+const ecransDemarres = () => B.appels.filter(a => a.ecran || a.client);
 t('les ecrans sont demarres sur la bonne piece',
-  JSON.stringify(B.appels) === '[{"ecran":"clients"}]', JSON.stringify(B.appels));
+  JSON.stringify(ecransDemarres()) === '[{"ecran":"clients"}]', JSON.stringify(B.appels));
 
 B.clic('produits');
 await B.repos();
 t('un second clic ne recharge RIEN', B.charges.length === 7, B.charges.length + ' ressources');
 t('mais il navigue',
-  JSON.stringify(B.appels[1]) === '{"ecran":"produits"}', JSON.stringify(B.appels[1]));
+  JSON.stringify(ecransDemarres()[1]) === '{"ecran":"produits"}', JSON.stringify(ecransDemarres()));
 
 B.clic('journee');
 t('revenir a « Ma journee » remontre la journee et masque les ventes',

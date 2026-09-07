@@ -171,6 +171,50 @@ permalink: /mon-bureau/
 
     </div><!-- /.bureau-plan -->
 
+    <!-- MES TACHES, demande par Ted le 07/09/2026. Une PIECE et pas une zone du
+         plateau : ce qu'on y fait n'est pas de la consultation, on y ecrit et on y
+         coche. Elle porte deux natures et deux seulement, les taches ecrites a la
+         main et les obligations du calendrier ; les clients a rappeler restent au
+         sous-main. Le motif est en tete de src/js/bdv-taches.js, et il tient a une
+         phrase : deux endroits qui repondent « qui dois-je appeler » se
+         contrediraient des le premier geste pose d'un cote.
+
+         Comme les ecrans de vente, le HTML est dans le document des l'ouverture et
+         masque. Ici il n'y a meme rien a charger au clic : le module fait 12 ko et
+         part avec la page. -->
+    <div class="bureau-plan" id="bureauTaches" hidden>
+      <section class="zone zone--taches">
+        <div class="zone__tete">
+          <h2>Mes tâches</h2>
+          <span class="zone__note" id="tachesNote"></span>
+        </div>
+
+        <!-- La saisie EN HAUT, et le champ garde le focus apres l'ajout : on en note
+             rarement une seule, et descendre chercher le formulaire entre deux notes
+             est ce qui fait abandonner une liste de taches. -->
+        <form class="tachesf" id="tachesForm" novalidate>
+          <label class="tachesf__l" for="tachesTitre">Qu'est-ce qu'il y a à faire ?</label>
+          <div class="tachesf__ligne">
+            <input class="tachesf__i" id="tachesTitre" type="text" autocomplete="off"
+                   placeholder="ex. commander des bouchons" maxlength="200">
+            <input class="tachesf__d" id="tachesDate" type="date"
+                   aria-label="Pour quand, si tu as une date">
+            {# btn--bordeaux et pas btn--ghost : le ghost porte `color: var(--paper)`,
+               il est dessine pour un fond sombre et devient illisible sur le papier de
+               la zone. Meme piege que .btn--light dans le bureau, vu sur une capture le
+               07/09/2026 et jamais par la charte, qui verifie des paires nommees et pas
+               un bouton pose sur un fond pour lequel il n'a pas ete dessine. #}
+            <button class="btn btn--bordeaux" type="submit">Ajouter</button>
+          </div>
+          <p class="tachesf__aide">La date est facultative. Sans date, la tâche attend
+            sagement en bas de liste.</p>
+        </form>
+
+        <div id="tachesAFaire"></div>
+        <div id="tachesFaites"></div>
+      </section>
+    </div>
+
     <!-- LES ECRANS DE VENTE, lot 2c du 07/09/2026. La MEME coque que celle du tableau de
          bord, par le meme include : deux coques recopiees auraient divergé le jour ou
          l'une des deux aurait gagne un ecran.
@@ -223,6 +267,10 @@ permalink: /mon-bureau/
 <script src="/js/bdv-reglages.js" defer></script>
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
+<!-- Mes taches : APRES bdv-echeances.js, dont il lit le calcul des obligations, et
+     apres bdv-compte.js, dont il lit la session. Tous en defer, donc dans l'ordre
+     de declaration. -->
+<script src="/js/bdv-taches.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
 <!-- La liste unique des pieces du bureau, et la barre qui la peint. Sans defer : le
      script de cette page appelle BdvNav.monter() a l'ouverture du document. -->
@@ -975,6 +1023,12 @@ permalink: /mon-bureau/
     var cartes = [];
     var auj = new Date();
 
+    // 0. CE QUI PRESSE, EN PREMIER SUR LE LIEGE. Les taches et les obligations passent
+    // devant les indicateurs : un panneau qui annonce « 4 clients dans ton carnet » au
+    // dessus d'une DRM qui tombe demain a le bon contenu dans le mauvais ordre.
+    // Trois au plus, plus une punaise de renvoi : voir punaises() dans bdv-taches.js.
+    if(window.BdvTaches){ try{ cartes = cartes.concat(BdvTaches.punaises()); }catch(e){} }
+
     // 1 et 4. Ce qu'il a fait. Absents tant que le journal n'est pas lisible : annoncer
     // « 0 geste cette semaine » a quelqu'un dont la table n'existe pas encore serait un
     // reproche fonde sur rien.
@@ -1059,6 +1113,12 @@ permalink: /mon-bureau/
     // undefined = pas encore arrive (on se tait), null = illisible (on le dit).
     txt(el('panneauNote'), JOURNAL === null ? 'ton journal n\u2019est pas encore lisible' : '');
   }
+  /* Le liege est peint une fois, au chargement, depuis ce qu'on a alors sous la main. Les
+     taches, elles, arrivent du serveur APRES : sans ce point d'entree, une DRM qui tombe
+     demain n'apparaissait au panneau qu'au rechargement suivant. Meme motif que
+     window.bdvMajBandeau pour la pastille des signets : c'est la donnee qui rappelle
+     l'ecran, et pas l'ecran qui interroge en boucle. */
+  window.bdvMajPanneau = peindrePanneau;
 
   /* ---------------- QUI EST LA ----------------
      Le prenom et le nom du domaine ne sont pas des decorations : ils sont demandes a

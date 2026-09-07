@@ -12,6 +12,174 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/09/2026, nuit. Le bandeau nettoyé, et « Mes tâches »
+
+Ted, sur une capture : « ça c'est pas beau. Le liseré gris autour, et l'hamburger, aucun
+style. L'hamburger sert à ranger le bandeau, c'est nul. » Puis, dans le même message :
+« il faut créer aussi un nouvel onglet : mes tâches. »
+
+Trois décisions ont été prises AVANT d'écrire une ligne, et c'est la seule façon dont
+celle-ci pouvait bien se passer.
+
+### Le liseré et le hamburger : deux suppressions, pas deux redessins
+
+Le liseré était le fond `--paper-deep` de `.bureau-nav`, plus un trait d'encre en haut de
+la pile et un retrait à gauche. Il est parti en entier. Les intercalaires sortent
+maintenant directement du papier de la page, comme les onglets d'un vrai classeur
+dépassent de la feuille au lieu d'être posés sur une plaque.
+
+Le bouton de repli est parti aussi : bouton, raccourci clavier, préférence
+`bdv_volet_replie` et classe `--replie`. Motif, qui vaut pour tout bouton qu'on serait
+tenté d'ajouter là : **personne ne clique pour gagner 170 pixels sur un écran qui en a
+1670.** La largeur décide seule, en CSS : intercalaires complets, icônes seules sous
+1180 px, barre horizontale sous 901 px. Il n'y a plus d'état à garder.
+
+Une finition trouvée sur la capture et par rien d'autre : à 58 px, la pointe de la
+languette mange la moitié de l'intercalaire et se fait couper au bord de la colonne, ce
+qui donne une flèche tronquée. Étroit, les languettes sont franches.
+
+### « Mes tâches » : le vrai risque du message, et l'arbitrage
+
+Le bureau avait déjà TROIS endroits qui répondent « qu'est-ce que je dois faire » : le
+sous-main (qui rappeler), le calendrier (DRM, DAI, récolte) et le panneau de post-it. Un
+quatrième sans périmètre, et plus personne ne sait lequel dit vrai. Question posée à Ted,
+trois options ; il a tranché : **les tâches écrites plus les obligations cochables, les
+clients restent au sous-main.**
+
+Le motif de cette frontière est écrit en règle 7 de `CLAUDE.md` : le sous-main repousse un
+rappel de 30, 7 ou 60 jours selon le geste posé, une case à cocher ne sait pas faire ça.
+
+**Les obligations ne sont pas stockées.** Elles sont calculées dans le navigateur par
+`bdv-echeances.js`. Ce que la base porte, ce sont celles qui ont été cochées, et
+l'occurrence est DANS l'identifiant : `ech:drm:2026-09-10`. Ce qui est fait, ce n'est pas
+« la DRM », c'est la DRM du 10 septembre, et celle d'octobre arrive vierge toute seule,
+sans tâche planifiée ni calcul côté serveur. Décocher une obligation supprime la ligne :
+une obligation pas encore faite est l'état par défaut du monde, il n'y a rien à stocker
+pour le dire.
+
+Le second arbitrage, plus discret : la saisie du panneau n'écrit pas à travers un moteur.
+`bdv-taches.js` fait 12 ko et part avec la page, donc la pièce n'a **rien** à charger au
+clic, contrairement aux écrans de vente. Pas de voile d'attente, pas de retour en arrière
+à prévoir.
+
+### Le liège reçoit trois punaises, pas la liste entière
+
+Ted voulait que les tâches alimentent les post-it. Elles passent devant les indicateurs :
+un panneau qui annonce « 4 clients dans ton carnet » au-dessus d'une DRM qui tombe demain
+a le bon contenu dans le mauvais ordre. Mais **trois au plus**, plus une punaise de
+renvoi : un panneau de liège où l'on épingle tout n'est plus un panneau, c'est un mur.
+
+Et `window.bdvMajPanneau` a été exposé pour que les tâches, qui arrivent du serveur après
+le premier rendu, rappellent le liège. Sans ça une DRM qui tombe demain n'apparaissait au
+panneau qu'au rechargement suivant. Même motif que `window.bdvMajBandeau` pour la pastille
+des signets : c'est la donnée qui rappelle l'écran, jamais l'écran qui interroge en boucle.
+
+### Ce qui a été vérifié
+
+`scripts/banc-taches.mjs`, 38 contrôles, ajouté à `npm run verif`. Il ne regarde aucun
+écran : il vérifie la charge envoyée pour chaque geste, y compris qu'une suppression en
+file d'attente se rejoue en suppression et pas en écriture vide, et que la file ne garde
+jamais l'identifiant de compte. Table `taches` créée en base par la migration
+`lot5_taches`, RLS active, quatre politiques, `anon` sans aucun droit, zéro ligne.
+
+Deux défauts trouvés par la CAPTURE et par rien d'autre, ce qui confirme la règle du
+06/09 : le bouton « Ajouter » était en `btn--ghost`, dessiné pour un fond sombre, donc
+illisible sur le papier de la zone (même piège que `.btn--light`) ; et « Il y a 2 jours »
+disait quand c'était au lieu de dire ce qu'on doit faire, devenu « En retard de 2 jours ».
+
+### Une note d'environnement, qui change la façon de travailler ici
+
+`npm run build` échouait depuis le shell Cowork parce qu'Eleventy doit SUPPRIMER un fichier
+pour le recopier, et que la suppression était refusée sur le dossier monté. Une fois
+l'autorisation demandée et accordée, le build tourne, et `npm run verif` en entier avec
+lui. Ce n'était pas une limite de l'outil, c'était un droit qui manquait.
+
+---
+
+## 07/09/2026, nuit. Audit de fonctionnement : ce qui écrit vraiment en base
+
+Ted a posé la seule question qui compte après une refonte : « est-on sûr que tous les
+mécanismes présents avant fonctionnent, et que les actions sont bien enregistrées ? »
+
+La réponse ne pouvait pas venir d'une relecture. Elle est venue du **compte des lignes par
+table**, en une requête. `ventes` 4 939, `echanges` 6, `suivi_clients` 4, `reglages` 1 ligne
+complète, `profils` 1, et `signets` **zéro**. Cinq mécanismes prouvés par des lignes datées,
+un non prouvé.
+
+**Le cadre à garder en tête : `auth.users` ne contient qu'un seul compte, le sien.** Aucun de
+ces mécanismes n'a jamais été exercé sur un autre navigateur. « Ça marche » ne veut donc dire
+que « ça marche chez Ted, où toutes les données sont déjà en local ». Les deux pannes trouvées
+ce soir sont exactement de celles que ce poste ne peut pas montrer.
+
+### Panne 1 : l'objectif de chiffre d'affaires pouvait s'effacer tout seul
+
+`syncReglages()` renvoyait les QUATRE colonnes de `reglages` à chaque geste. Or le panneau
+écrit `objectif` et `exercice_debut` directement en base, sans passer par le moteur. Enchaîner
+« j'enregistre mon objectif » puis « je change mon mois d'exercice » repoussait donc l'ancien
+objectif, celui que le moteur avait encore en mémoire, par-dessus le neuf. Sans un message.
+
+Le même envoi, appelé par `tirerDuServeur()` au démarrage via `savePersoLabels()` alors que
+`REG` n'était pas encore lu, expédiait `classement: null` : le classement du compte était
+effacé à chaque ouverture. C'est probablement pour ça que la colonne était vide en base.
+
+**Arbitrage.** Deux réparations étaient possibles : faire écrire le panneau à travers le
+moteur, ou découper l'écriture du moteur. La première a été écartée, et le motif vaut d'être
+retenu : le panneau doit s'ouvrir sans attendre les 83 ko du moteur, donc son bouton
+« Enregistrer » ne peut pas dépendre d'un fichier pas encore arrivé. C'est le découpage qui a
+été retenu : quatre fonctions, une colonne chacune, plus deux fonctions d'adoption pour que le
+moteur prenne la valeur enregistrée par le panneau sans la renvoyer. Écrit en règle 6 de
+`CLAUDE.md`.
+
+### Panne 2 : sur un appareil neuf, le panneau montrait une base vide
+
+Ouvrir les réglages chargeait le moteur mais n'appelait pas `tirerDuServeur()` : seul
+`demarrerEcransVente()` le faisait. `rafraichirMoteur()` ne relisait qu'IndexedDB, et relire
+une base vide ne rend rien. « Ma base » et « Le classement » annonçaient donc zéro ligne sur
+un compte qui en portait 4 939.
+
+Le rapatriement est devenu un **tirage unique par visite**, gardé par une promesse partagée
+et pas par un drapeau : les deux appels peuvent se croiser, et le second doit attendre le
+premier au lieu de repartir en parallèle. `TIRAGE_AJOUTS` dit au panneau s'il doit relire la
+base locale, ce qui règle au passage le cas des lignes arrivées d'un autre poste.
+
+### Corrigé au passage
+
+« Revenir au classement automatique » n'était pas envoyé en base : les regroupements restaient
+sur le compte et le prochain appareil les réappliquait. Un classement abandonné part maintenant
+en `null`, et pas en `{valide:false}`, pour que le rapatriement ne le reprenne pas comme un
+classement valide.
+
+### Le banc, et la leçon de son écriture
+
+`scripts/banc-reglages.mjs`, 27 contrôles, ajouté à `npm run verif`. Il ne regarde aucun
+écran : il vérifie **la charge envoyée** au serveur pour chaque geste. C'est ce que la
+relecture visuelle ne peut pas voir, et c'est là qu'étaient les deux pannes, comme pour les
+signets le matin même.
+
+Deux pièges rencontrés en l'écrivant, tous les deux du même genre, celui d'un banc qui
+condamne du code correct :
+
+- **Deux `eval` séparés ne partagent pas les `let` de premier niveau**, alors que deux
+  `<script>` classiques d'une même page, si. Chargé fichier par fichier, le banc déclarait
+  `ROWS` et `TIRAGE_AJOUTS` introuvables et annonçait une panne inexistante. Les fichiers sont
+  donc posés comme de vrais `<script>` (`runScripts: 'dangerously'`).
+- **Le décor doit porter `#statusTxt` et `#statusSpin`**, pas seulement `#status` : sans eux
+  `status()` lève et emporte le rapatriement entier, ce qui ressemble à s'y méprendre à un bug
+  du rapatriement.
+
+Vérification négative faite, parce qu'un banc qui n'a jamais échoué ne prouve rien : remis sur
+l'ancien moteur, il sort en code 1.
+
+### Reste ouvert
+
+- **Les signets n'ont toujours aucune ligne en base.** Le correctif du matin est bien poussé,
+  mais rien ne prouve qu'il passe : il faut un clic sur « Mettre de côté », puis un comptage.
+- Le PATCH de `suivi_clients` dans `bdv-crm.js` filtre encore sur `client_id` seul et dépend
+  de RLS pour être juste.
+- `BdvSync.supprimerEchange` et `BdvSync.compterVentes` n'ont plus aucun appelant.
+
+---
+
 ## 07/09/2026, en soirée. Deux bugs signalés par Ted, deux causes sans aucun rapport
 
 Ted a signalé deux symptômes dans le même message : une entrée du journal qui naît

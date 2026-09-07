@@ -422,3 +422,51 @@ alter table public.reglages add column if not exists depose_le timestamptz;
 -- Les droits de la section 6 couvrent deja ces colonnes : `grant select, insert, update,
 -- delete on public.reglages to authenticated` porte sur la table entiere, pas colonne par
 -- colonne, contrairement a `profils`. Rien a ajouter.
+
+
+-- ===========================================================================
+-- LOT 5, ajoute le 07/09/2026 : MES TACHES
+-- ===========================================================================
+-- Le bureau savait dire ce qui tombait (DRM, DAI, recolte) sans jamais pouvoir
+-- apprendre que c'etait fait, et le vigneron n'avait aucun endroit pour noter ce
+-- qu'aucun calcul ne peut deviner. Cette piece repond aux deux.
+--
+-- Le detail des choix, l'occurrence dans l'identifiant et la raison pour laquelle
+-- decocher supprime la ligne sont ecrits en tete de supabase/lot5-taches.sql, dont
+-- ces lignes sont la copie. Ne pas en garder deux versions qui divergent : ce
+-- fichier est la reference, l'autre est ce qu'on colle.
+
+-- ---------------------------------------------------------------------------
+-- 14. Les taches
+-- ---------------------------------------------------------------------------
+create table if not exists public.taches (
+  id        uuid not null references auth.users on delete cascade,
+  tache_id  text not null,
+  titre     text,
+  source    text not null default 'libre',   -- libre / echeance
+  ref       text,                            -- pour une obligation : sa cle (drm, dai...)
+  echue_le  date,
+  fait_le   timestamptz,                     -- nul = a faire
+  cree_le   timestamptz not null default now(),
+  maj_le    timestamptz not null default now(),
+  primary key (id, tache_id)
+);
+
+create index if not exists taches_a_faire on public.taches (id, echue_le) where fait_le is null;
+
+alter table public.taches enable row level security;
+
+drop policy if exists "lire ses taches" on public.taches;
+create policy "lire ses taches" on public.taches for select using (auth.uid() = id);
+drop policy if exists "creer ses taches" on public.taches;
+create policy "creer ses taches" on public.taches for insert with check (auth.uid() = id);
+drop policy if exists "modifier ses taches" on public.taches;
+create policy "modifier ses taches" on public.taches for update using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists "supprimer ses taches" on public.taches;
+create policy "supprimer ses taches" on public.taches for delete using (auth.uid() = id);
+
+revoke all on public.taches from anon;
+grant select, insert, update, delete on public.taches to authenticated;
+
+-- PAS dans effacer_mes_donnees(), meme motif que les signets : cette fonction vide
+-- LA BASE DE VENTES, pas le compte.

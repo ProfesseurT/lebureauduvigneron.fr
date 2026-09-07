@@ -4765,14 +4765,23 @@ a.bureau-outil:hover {
    A gauche et pas en haut, decide avec Ted : les ecrans de vente portent des
    tableaux de dix colonnes et deux cents lignes. Un bandeau horizontal leur
    prendrait de la hauteur en permanence, une colonne ne prend de la largeur
-   qu'une fois, et elle se replie.
+   qu'une fois, et sous 1180 px elle se reduit a ses icones.
 
    La barre reprend la forme du volet des ecrans de vente (fond --ink-deep,
    liserre --gold sur la piece active, libelles en mono) : au lot 2 ce sera la
    MEME barre pour le vigneron, elle ne doit pas changer d'allure en changeant
-   de piece. Une difference assumee : ici le repli laisse les icones au lieu de
-   tout escamoter. C'est ce qui permet de se passer du menu de secours que la
-   barre haute du tableau de bord doit afficher quand son volet tombe a zero.
+   de piece.
+
+   PAS DE FOND SOUS LA PILE, decide le 07/09/2026. Les intercalaires sortent
+   directement du papier de la page, comme les onglets d'un vrai classeur
+   depassent de la feuille : ils ne sont pas poses sur une plaque. Le fond
+   `--paper-deep` et le trait d'encre qui coiffait la pile faisaient un liseré
+   gris de deux cotes, que Ted a vu tout de suite. Ne pas les remettre : si la
+   pile a besoin d'etre delimitee, c'est le dessin des languettes qu'il faut
+   revoir, pas un cadre autour.
+
+   PLUS DE BOUTON DE REPLI non plus : la largeur decide seule, voir la media
+   query des icones seules plus bas.
    ============================================================================ */
 .bureau-atelier {
   /* 1440 pour le travail, comme avant la barre, plus la largeur de la barre :
@@ -4787,18 +4796,16 @@ a.bureau-outil:hover {
   align-items: start;
   transition: grid-template-columns var(--tr-rapide) ease;
 }
-/* Replie : les icones restent. La navigation ne disparait jamais, on ne
-   s'enferme donc jamais dans la piece ou l'on se trouve. */
-.bureau-atelier--replie { grid-template-columns: 58px minmax(0, 1fr); }
 
 /* Le bureau-plan garde ses douze colonnes et son gabarit ; c'est l'atelier qui
    porte desormais le rythme vertical, sinon les deux s'ajoutent. */
 .bureau-atelier__travail > .bureau-plan { padding-top: 0; padding-bottom: 0; }
 
 .bureau-nav {
-  background: var(--paper-deep);
-  border-top: var(--trait-accent) solid var(--cork-encre);
-  padding: var(--e-s) 0 var(--e-l) var(--e-s);
+  /* Ni fond, ni cadre, ni retrait a gauche : la pile pose ses languettes sur le
+     papier de la page. `overflow: hidden` reste, il coupe ce qui depasse de la
+     colonne au survol d'une languette. */
+  padding: 0;
   overflow: hidden;
   min-width: 0;
 }
@@ -4818,44 +4825,10 @@ a.bureau-outil:hover {
   }
 }
 
-/* Le bouton de repli : trois filets, la meme figure que dans les ecrans de
-   vente. Son libelle accessible est repose en JavaScript a chaque bascule,
-   parce qu'il dit l'action a venir et non l'etat present. */
-.bureau-nav__plier {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 22px;
-  margin: 0 0 var(--e-s) var(--e-m);
-  background: none;
-  border: var(--trait) solid var(--cork-encre);
-  border-radius: var(--r-nul);
-  cursor: pointer;
-  transition: border-color var(--tr-rapide), background var(--tr-rapide);
-}
-.bureau-nav__plier:hover { border-color: var(--bordeaux); }
-.bureau-nav__filets {
-  display: block;
-  width: 13px;
-  height: 9px;
-  border-top: var(--trait) solid var(--cork-encre);
-  border-bottom: var(--trait) solid var(--cork-encre);
-  position: relative;
-}
-.bureau-nav__filets::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(50% - 0.5px);
-  border-top: var(--trait) solid var(--cork-encre);
-}
-
 .bureau-nav__liste { list-style: none; margin: 0; padding: 0; }
 .bureau-nav__ligne { margin: 0; }
 /* UNE LANGUETTE DE CARTON, PAS UNE LIGNE DE MENU.
-   Sept intercalaires dans un classeur : celui qu'on a ouvert est tire vers la
+   Huit intercalaires dans un classeur : celui qu'on a ouvert est tire vers la
    page et prend la couleur de la page, les autres restent dans la pile.
 
    La hauteur est fixee a --h-controle parce que l'encoche en depend : elle est
@@ -4939,26 +4912,37 @@ button.bureau-nav__item:hover {
 
 /* Replie : l'icone seule, centree. Le nom de la piece reste accessible par le
    title, pose avec ce que la piece contient. */
-.bureau-atelier--replie .bureau-nav__nom { display: none; }
-.bureau-atelier--replie .bureau-nav__item { justify-content: center; padding-inline: 0; }
-.bureau-atelier--replie .bureau-nav__plier { margin-inline: auto; }
+/* ICONES SEULES QUAND LA PLACE MANQUE, et c'est la largeur qui le decide, plus
+   un bouton. Entre 901 et 1180 px les mots prenaient la moitie du sous-main ;
+   le `title` de chaque languette porte le libelle ET ce que la piece contient,
+   donc l'icone seule ne laisse personne sans reperes. Sous 901 px la barre
+   devient horizontale et les mots reviennent, voir plus bas. */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .bureau-atelier { grid-template-columns: 58px minmax(0, 1fr); }
+  .bureau-nav__nom { display: none; }
+  .bureau-nav__item { justify-content: center; padding-inline: 0; }
+  /* La pointe de la languette tombe : sur 58 px elle mange la moitie de
+     l'intercalaire et se fait couper au bord de la colonne, ce qui donne une
+     fleche tronquee et pas un onglet. Etroit, les languettes sont franches. */
+  .bureau-nav__item::after { display: none; }
+}
 /* Replie, la languette garde son encoche et son icone : c'est ce qui permet de
    se passer d'un menu de secours. Elle perd juste son mot. */
 
 /* Sous 900 px, la barre devient un bandeau a defilement au-dessus du travail, et
    le repli n'a plus d'objet : sur telephone il n'y a pas de largeur a rendre. */
 @media (max-width: 900px) {
-  .bureau-atelier,
-  .bureau-atelier--replie {
+  .bureau-atelier {
     grid-template-columns: minmax(0, 1fr);
     padding-top: var(--e-m);
     gap: var(--e-m);
   }
   .bureau-nav { display: flex; overflow-x: auto; padding: 0; }
-  .bureau-nav__plier { display: none; }
   .bureau-nav__liste { display: flex; }
-  .bureau-atelier--replie .bureau-nav__nom { display: block; }
-  .bureau-atelier--replie .bureau-nav__item { justify-content: flex-start; padding-inline: var(--e-m); }
+  /* Les mots reviennent : une barre horizontale a la largeur pour eux, et huit
+     icones nues cote a cote sur un telephone ne se distinguent pas. */
+  .bureau-nav__nom { display: block; }
+  .bureau-nav__item { justify-content: flex-start; padding-inline: var(--e-m); }
   /* Couche, le classeur se lit de gauche a droite : l'encoche descend, la
      languette tiree monte vers le travail. Meme carton, meme regle. */
   .bureau-nav__item {
@@ -6195,3 +6179,141 @@ button.bureau-nav__item:hover {
   flex-wrap: wrap;
 }
 .bureau-avis[data-ok="oui"] { background: var(--ok-bg); border-left-color: var(--ok); }
+
+/* ============================================================================
+   MES TACHES
+   ----------------------------------------------------------------------------
+   Ajoute le 07/09/2026. Une piece, pas une zone : on y ecrit et on y coche.
+   Deux natures dans la meme liste, les taches ecrites et les obligations du
+   calendrier, et c'est VOLONTAIRE qu'elles se ressemblent : ce qui compte pour
+   celui qui ouvre la piece, c'est ce qui tombe le plus tot, pas de savoir qui a
+   produit la ligne. Un mot en petites capitales suffit a dire la nature.
+
+   Aucune couleur en dur : le retard prend --danger-deep, la coche --bordeaux,
+   le fait passe en --muted. Les memes signaux que partout ailleurs.
+   ============================================================================ */
+.zone--taches {
+  grid-column: span 12;
+  /* Conteneur nomme, comme le sous-main et le calendrier : la liste se reorganise
+     sur la largeur de SA zone et pas sur celle de la fenetre. Sans ces deux lignes
+     la requete de conteneur du bas de section ne s'appliquerait jamais, en silence. */
+  container-type: inline-size;
+  container-name: taches;
+}
+
+/* Le formulaire. En haut de la piece, et le champ garde le focus apres l'ajout. */
+.tachesf { margin: 0 0 var(--e-l); }
+.tachesf__l {
+  display: block;
+  margin: 0 0 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--muted);
+}
+.tachesf__ligne { display: flex; gap: var(--e-s); flex-wrap: wrap; align-items: stretch; }
+.tachesf__i {
+  flex: 1 1 18rem;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+  color: var(--ink);
+  background: var(--white);
+  border: var(--trait) solid var(--rule-fort);
+  border-radius: var(--r-nul);
+}
+.tachesf__d {
+  padding: 0.55rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  color: var(--ink);
+  background: var(--white);
+  border: var(--trait) solid var(--rule-fort);
+  border-radius: var(--r-nul);
+}
+.tachesf__i:focus, .tachesf__d:focus { border-color: var(--bordeaux); }
+/* Le bouton du site fait 0.9rem sur 2rem : dans une ligne de saisie il depasse les deux
+   champs d'un demi-centimetre. On le rentre, sans toucher au bouton du site. */
+.tachesf .btn { padding: 0.55rem 1.4rem; font-size: var(--t-mini); }
+.tachesf__aide { margin: 0.4rem 0 0; font-size: var(--t-mini); color: var(--muted); }
+
+/* Les deux blocs, « A faire » et « Fait ». Le titre porte le compte : un titre qui
+   ne dit pas combien oblige a compter des yeux. */
+.taches__titre {
+  margin: var(--e-l) 0 var(--e-s);
+  padding-bottom: 0.3rem;
+  border-bottom: var(--trait) solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  font-weight: 500;
+  color: var(--muted);
+}
+.taches__vide { margin: 0; font-size: var(--t-base); color: var(--muted); font-style: italic; }
+.taches__liste { list-style: none; margin: 0; padding: 0; }
+
+/* UNE LIGNE, TROIS PARTS : la coche, ce qu'il y a a faire, et la sortie. La coche est a
+   gauche parce que c'est le geste, et le geste se prend avant de lire la suite. */
+.tache {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--e-s);
+  align-items: start;
+  padding: 0.55rem 0;
+  border-bottom: var(--trait) solid var(--rule);
+}
+.tache__coche {
+  width: 20px;
+  height: 20px;
+  margin-top: 0.15rem;
+  padding: 0;
+  background: var(--white);
+  border: var(--trait-fort) solid var(--cork-encre);
+  border-radius: var(--r-nul);
+  cursor: pointer;
+  position: relative;
+  transition: border-color var(--tr-rapide);
+}
+.tache__coche:hover { border-color: var(--bordeaux); }
+/* La coche est DESSINEE, pas ecrite : un caractere de coche change de dessin d'une
+   police a l'autre et d'un systeme a l'autre. Deux traits en angle ne changent pas. */
+.tache__coche::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 10px;
+  height: 6px;
+  border-left: var(--trait-accent) solid var(--bordeaux);
+  border-bottom: var(--trait-accent) solid var(--bordeaux);
+  transform: rotate(-45deg);
+  opacity: 0;
+  transition: opacity var(--tr-rapide);
+}
+.tache__coche[aria-pressed="true"]::after { opacity: 1; }
+.tache__corps { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.tache__titre { font-size: var(--t-base); color: var(--ink); overflow-wrap: anywhere; }
+.tache__quand { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
+.tache[data-ton="retard"] .tache__quand,
+.tache[data-ton="aujourdhui"] .tache__quand { color: var(--danger-deep); }
+/* Faite, la ligne s'efface sans disparaitre : elle est la preuve du travail fait. */
+.tache[data-fait="oui"] .tache__titre { color: var(--muted); text-decoration: line-through; }
+.tache__source, .tache__x {
+  align-self: center;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.tache__source:hover, .tache__x:hover { color: var(--bordeaux); }
+
+/* Etroit : la sortie passe sous le corps plutot que de comprimer le titre a trois
+   mots par ligne. Requete de CONTENEUR, comme le listing du sous-main : c'est la
+   largeur de la zone qui compte, pas celle de la fenetre. */
+@container taches (max-width: 30rem) {
+  .tache { grid-template-columns: auto minmax(0, 1fr); }
+  .tache__source, .tache__x { grid-column: 2; justify-self: start; }
+}

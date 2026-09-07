@@ -156,7 +156,8 @@ coute une capture d'ecran pour etre vu.
 
     npm run verif
 
-Elle enchaine `build`, `charte`, `charte:bureau` et `banc`, et s'arrete au premier echec.
+Elle enchaine `build`, `charte`, `charte:bureau`, `banc`, `banc:reglages` et
+`banc:taches`, et s'arrete au premier echec.
 
 Elle existe depuis le 07/09/2026 pour une raison precise : ce jour-la j'ai lance les quatre
 a la main dans un `&&`, en passant chacun par `| tail -2` pour n'en lire que le verdict. Le
@@ -233,6 +234,52 @@ statistique (`MIN_OBSERVABLES`, `MIN_CLASSE`, `MIN_REVENUS`), qui disent quand s
 Nuance : le CONTENU des champs est libre, pas les EN-TETES. Le nom de la colonne, fixe par
 Vitisoft, prime sur toute statistique. Se fier au champ le plus rempli designe « Vendeur »
 comme canal de vente, ce qui est faux.
+
+### 6. Une ecriture = une colonne
+
+La table `reglages` porte plusieurs reglages sur UNE seule ligne par compte, et deux endroits
+y ecrivent : le moteur (`bdv-base.js`) et le panneau (`bdv-reglages.js`). Comme
+`on_conflict=id` avec `resolution=merge-duplicates` ne touche que les colonnes ENVOYEES,
+chaque geste n'envoie que la sienne : `syncObjectif`, `syncExercice`, `syncLabels`,
+`syncClassement`. Il n'existe plus de fonction qui envoie tout.
+
+Pourquoi : le 07/09/2026, `syncReglages()` renvoyait les quatre colonnes a chaque geste.
+Changer le mois d'exercice repoussait donc l'objectif que le moteur avait encore en memoire
+par-dessus celui que le vigneron venait d'enregistrer dans le panneau. Et au demarrage, avant
+que `REG` soit lu, le meme envoi effacait le classement du compte. Deux pertes de donnees
+silencieuses pour une seule cause, invisibles sur le poste de Ted parce que tout y est deja en
+local.
+
+Corollaire : quand le panneau enregistre un reglage lui-meme, le moteur l'ADOPTE
+(`adopterObjectif`, `adopterExercice`) sans le renvoyer en base. Il y est deja.
+
+`npm run banc:reglages` verifie la charge envoyee pour chaque geste. Ne pas ajouter une
+cinquieme colonne sans sa propre fonction et son controle.
+
+### 7. Mes taches porte DEUX natures, et pas trois
+
+La piece « Mes taches » porte les taches que le vigneron ecrit lui-meme et les
+obligations du calendrier qu'il coche. **Les clients a rappeler restent au sous-main**,
+avec leurs trois gestes qui repoussent le rappel.
+
+Pourquoi : deux endroits qui repondent « qui dois-je appeler » se contrediraient des le
+premier geste pose d'un cote. Le sous-main lit une file deposee par le tableau de bord et
+repousse un rappel de 30, 7 ou 60 jours selon le geste ; une case a cocher ne sait pas
+faire ca, et une tache cochee ne dit pas au moteur que le client a ete traite.
+
+Ne pas ramener les clients ici sans supprimer le sous-main dans le meme mouvement.
+
+Les obligations ne sont PAS stockees : elles sont calculees par `bdv-echeances.js`.
+Ce que la base porte, c'est celles qui ont ete cochees, avec l'OCCURRENCE dans
+l'identifiant (`ech:drm:2026-09-10`), pour que celle du mois suivant arrive vierge sans
+tache planifiee. Decocher une obligation supprime la ligne.
+
+### 8. Trois conteneurs se partagent la zone de travail
+
+`bureauJournee`, `bureauTaches` et `bureauVentes`. La fonction `seule()` de `bdv-nav.js`
+les nomme TOUS LES TROIS a chaque bascule. Ne jamais poser un `hidden` a la main dans une
+branche : le defaut qu'on attend n'est pas « la piece ne s'affiche pas », c'est
+« l'ancienne reste affichee dessous ».
 
 ## La charte graphique : une seule pour le site et l'outil
 

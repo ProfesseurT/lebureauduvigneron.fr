@@ -21,27 +21,21 @@
    copie, s'ouvre dans un autre onglet, se met en favori, et fonctionne encore
    si le JavaScript n'a pas pris.
 
-   DEUX PIEGES REFERMES, notes pour qu'on ne les rouvre pas :
-     1. Le raccourci clavier. Les ecrans de vente ecoutaient DEJA le crochet
-        ouvrant pour replier leur volet ; les deux vivant desormais dans la meme
-        page, deux ecouteurs auraient replie et deplie dans la meme frappe, ce
-        qui ne se voit pas et ne se debugue pas. Leur volet a disparu au lot 2d,
-        mais la garde `window.__bdvNavRaccourci` reste : elle est la reponse au
-        cas ou une autre barre reviendrait un jour.
-     2. Le mecanisme « ici » des ecrans de vente, le menu de secours de la barre
-        haute quand le volet tombait a zero, a ete supprime et non fait
-        cohabiter. Cette barre-ci ne se replie PAS a zero, elle garde ses
-        icones : il n'y a plus de vigneron a sortir de l'ecran ou il se trouve.
-        Ne pas reintroduire un repli a zero sans reintroduire un menu avec.
+   LE REPLI A ETE SUPPRIME le 07/09/2026, sur decision de Ted : bouton, raccourci
+   clavier, preference `bdv_volet_replie` et classe `--replie`. Motif, et il vaut
+   pour tout bouton qu'on serait tente d'ajouter ici : personne ne clique pour
+   gagner 170 pixels sur un ecran qui en a 1670, et un hamburger dans une barre
+   qui ne nomme que des objets du bureau ne ressemble a rien de ce bureau. La
+   largeur decide maintenant seule : intercalaires complets, puis icones seules
+   sous 1180 px, puis barre horizontale sous 901 px. C'est du CSS, il n'y a plus
+   d'etat a garder ni de preference a relire.
+
+   NE PAS REINTRODUIRE un repli a zero sans reintroduire un menu de secours avec :
+   la barre ne doit jamais pouvoir disparaitre completement, sinon on s'enferme
+   dans la piece ou l'on se trouve.
    ================================================================ */
 (function () {
   'use strict';
-
-  /* La preference de repli est PARTAGEE avec le volet des ecrans de vente, meme
-     cle. Replier au bureau replie aussi la-bas, et c'est voulu : pour le
-     vigneron c'est la meme barre, il ne comprendrait pas qu'elle se replie a
-     moitie selon l'endroit ou il se trouve. */
-  var VOLET_KEY = 'bdv_volet_replie';
 
   /* « Mon exercice » ou « Mon annee » : le libelle suit l'exercice comptable du domaine,
      comme partout ailleurs.
@@ -80,14 +74,14 @@
      Les deplacer dans mon-bureau.njk les sortirait du filet.
   --------------------------------------------------------------------------- */
   /* ---------------------------------------------------------------------------
-     LES SEPT TRACES DE LA BARRE
+     LES HUIT TRACES DE LA BARRE
      -------------------------------------------------------------------------
      Ecrits le 07/09/2026. C'etaient sept emoji, et c'etait le seul endroit du site
      ou une couleur arrivait sans avoir ete choisie : un soleil jaune, un graphique
      rouge, deux bonhommes bleus, sur un fond bleu-encre ou tout le reste est
      --gold et --on-dark-soft.
 
-     LA REGLE DE CE JEU, pour que le huitieme lui ressemble :
+     LA REGLE DE CE JEU, pour que le neuvieme lui ressemble :
        - grille de 20 sur 20, aucun remplissage, le trait seul ;
        - epaisseur 1.4, arrondis aux extremites et aux jointures, parce que le
          trait du site est celui d'une plume et pas d'un couteau ;
@@ -99,8 +93,8 @@
        - `vector-effect="non-scaling-stroke"` : le trait garde son epaisseur meme
          si la barre change d'echelle un jour.
 
-     Ils sont ICI et pas dans un fichier d'images : sept traces de deux cents
-     octets ne valent pas sept requetes, et le CSS doit pouvoir les colorer.
+     Ils sont ICI et pas dans un fichier d'images : huit traces de deux cents
+     octets ne valent pas huit requetes, et le CSS doit pouvoir les colorer.
   --------------------------------------------------------------------------- */
   function trace(d) {
     return '<svg viewBox="0 0 20 20" width="16" height="16" fill="none"'
@@ -113,6 +107,11 @@
     // Ma journee : la page du jour sur le sous-main, avec sa reglure et sa date soulignee.
     journee:  '<rect x="3" y="3.5" width="14" height="13"/><path d="M3 7.5h14"/>'
               + '<path d="M6.5 11h7M6.5 13.5h4.5"/><path d="M7 2v3M13 2v3"/>',
+    // Mes taches : le porte-bloc a pince, avec une ligne cochee et une qui attend.
+    // Un objet du bureau, comme les autres, et il dit le geste sans le dessiner : la
+    // coche est DANS la feuille, ce n'est pas une coche posee sur rien.
+    taches:   '<rect x="4" y="4" width="12" height="12.5"/><path d="M8 4V2.8h4V4"/>'
+              + '<path d="M7 9.6l1.7 1.7L12.9 7.1"/><path d="M7 13.6h6"/>',
     // Mon annee : trois barres qui montent. Le meme signe que le favicon du site.
     annee:    '<path d="M4 16.5h13"/><path d="M6.5 16.5v-4M10 16.5v-7.5M13.5 16.5v-11"/>',
     // Mes clients : deux tetes, celle de devant entiere, celle de derriere devinee.
@@ -144,6 +143,16 @@
        seule piece qui repond exactement a « est-ce que j'ai oublie quelque
        chose », et elle etait sixieme, sous une piece ouverte trois fois par an.
        Si l'hypothese tombe, cet ordre se change ici, en une ligne. */
+    /* MES TACHES EST DEUXIEME, juste apres la journee, et devant le calendrier.
+       Meme raison que celle qui avait fait remonter le calendrier : on ouvre son
+       bureau pour ne rien oublier. La difference, c'est qu'ici on peut agir, alors
+       que le calendrier ne fait que dire. Ce qui se fait passe devant ce qui
+       s'informe. Pas `viti` : les obligations et les notes ne demandent pas
+       Vitisoft, et c'est la deuxieme raison pour quelqu'un de la filiere de creer
+       un compte, apres les signets. */
+    { id: 'taches',    ico: TRACES.taches,    label: 'Mes tâches',
+      href: '/mon-bureau/#taches',
+      quoi: 'Ce que tu notes, et tes obligations à cocher' },
     { id: 'echeances', ico: TRACES.echeances,   label: 'Le calendrier',
       href: '/outils/echeances/',
       quoi: 'DRM, DAI, récolte, facturation' },
@@ -187,26 +196,6 @@
       var n = document.querySelector('.bureau-nav__ligne[data-piece="' + p.id + '"]');
       if (n) n.hidden = !!oui;
     });
-  }
-
-  /* ---------------------------------------------------------------------------
-     Le repli
-  --------------------------------------------------------------------------- */
-  function estReplie() {
-    try { return localStorage.getItem(VOLET_KEY) === '1'; } catch (e) { return false; }
-  }
-
-  function appliquer(atelier, bouton, replie) {
-    atelier.classList.toggle('bureau-atelier--replie', replie);
-    if (!bouton) return;
-    /* aria-pressed et pas aria-expanded : le repli ne MASQUE pas la liste, il retire les
-       mots et garde les icones. Annoncer « reduit » a propos d'une liste dont les sept
-       entrees restent presentes, visibles et atteignables au clavier, c'est mentir a un
-       lecteur d'ecran. C'est une bascule a deux etats, donc aria-pressed. */
-    bouton.setAttribute('aria-pressed', String(replie));
-    var mot = (replie ? 'Déplier' : 'Replier') + ' le menu';
-    bouton.title = mot + ' (touche crochet ouvrant)';
-    bouton.setAttribute('aria-label', mot);
   }
 
 
@@ -398,6 +387,19 @@
 
   /* `id` est une piece de la barre. `client` ouvre en plus une fiche. `ecrire` dit
      s'il faut poser l'adresse : faux quand on vient justement de la lire. */
+  /* TROIS PIECES SE PARTAGENT LA ZONE DE TRAVAIL depuis le 07/09/2026 : la journee,
+     les taches, et la coque des ecrans de vente. Une seule fonction decide laquelle est
+     visible, et elle les nomme TOUTES les trois a chaque fois. Trois `hidden` poses a la
+     main dans chaque branche, c'est la garantie qu'un jour l'une des trois reste
+     affichee sous une autre : le bureau montrerait deux pieces empilees. */
+  function seule(quelle) {
+    var zones = { journee: 'bureauJournee', taches: 'bureauTaches', ventes: 'bureauVentes' };
+    Object.keys(zones).forEach(function (k) {
+      var n = document.getElementById(zones[k]);
+      if (n) n.hidden = (k !== quelle);
+    });
+  }
+
   function afficher(id, opts) {
     opts = opts || {};
     var journee = document.getElementById('bureauJournee');
@@ -413,15 +415,24 @@
     if (!piece) id = 'journee';
 
     if (id === 'journee') {
-      ventes.hidden = true;
-      journee.hidden = false;
+      seule('journee');
       marquerActif('journee');
       if (opts.ecrire !== false && location.hash) history.pushState(null, '', location.pathname);
       return;
     }
 
-    journee.hidden = true;
-    ventes.hidden = false;
+    /* Mes taches n'a RIEN a charger : son module part avec la page, il ne lit ni le
+       moteur des ventes ni PapaParse. Pas de voile d'attente, donc, et pas de retour
+       en arriere possible : il n'y a pas de reseau a echouer avant l'affichage. */
+    if (id === 'taches') {
+      seule('taches');
+      marquerActif('taches');
+      if (opts.ecrire !== false && location.hash !== '#taches') history.pushState(null, '', '#taches');
+      if (window.BdvTaches) BdvTaches.ouvrir();
+      return;
+    }
+
+    seule('ventes');
     marquerActif(id);
     if (opts.ecrire !== false) {
       var h = '#' + (opts.client ? 'client=' + encodeURIComponent(opts.client) : id);
@@ -472,19 +483,15 @@
   --------------------------------------------------------------------------- */
   function monter(conteneur, idActif) {
     if (!conteneur) return;
-    var atelier = conteneur.closest('.bureau-atelier') || document.body;
 
-    var html = '<button class="bureau-nav__plier" id="bureauNavPlier" type="button"'
-      + ' aria-pressed="false">'
-      + '<span class="bureau-nav__filets" aria-hidden="true"></span></button>'
-      + '<ul class="bureau-nav__liste" id="bureauNavListe">';
+    var html = '<ul class="bureau-nav__liste" id="bureauNavListe">';
 
     PIECES.forEach(function (p) {
       var actif = p.id === idActif;
       var nom = libelle(p);
       var marque = actif ? ' bureau-nav__item--actif" aria-current="page' : '';
-      /* title porte le libelle ET ce que la piece contient : replie, l'icone
-         seule ne dit rien, et c'est la seule facon de retrouver son chemin. */
+      /* title porte le libelle ET ce que la piece contient. C'est ce qui rend les
+         icones seules utilisables sous 1180 px : sans lui, huit traces nues. */
       var t = ' title="' + nom + (p.quoi ? ' : ' + p.quoi : '') + '"';
       var dedans = '<span class="bureau-nav__ico">' + trace(p.ico) + '</span>'
         + '<span class="bureau-nav__nom">' + nom + '</span>';
@@ -556,27 +563,6 @@
     // /mon-bureau/#clients ouvre les clients, pas la journee.
     suivreAdresse();
 
-    var plier = conteneur.querySelector('#bureauNavPlier');
-    appliquer(atelier, plier, estReplie());
-    if (plier) plier.addEventListener('click', function () {
-      var r = !atelier.classList.contains('bureau-atelier--replie');
-      try { localStorage.setItem(VOLET_KEY, r ? '1' : '0'); } catch (e) {}
-      appliquer(atelier, plier, r);
-    });
-
-    /* Le crochet ouvrant, jamais pendant une saisie. Voir le piege 1 en entete :
-       une seule barre prend le raccourci par page. */
-    if (!window.__bdvNavRaccourci) {
-      window.__bdvNavRaccourci = true;
-      document.addEventListener('keydown', function (e) {
-        if (e.key !== '[' || e.metaKey || e.ctrlKey || e.altKey) return;
-        var t = e.target;
-        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'
-          || t.tagName === 'SELECT' || t.isContentEditable)) return;
-        e.preventDefault();
-        if (plier) plier.click();
-      });
-    }
   }
 
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
