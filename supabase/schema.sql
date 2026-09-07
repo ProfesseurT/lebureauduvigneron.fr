@@ -340,6 +340,13 @@ grant select, insert, update, delete on public.signets to authenticated;
 -- `type` reste du texte libre plutot qu'une enumeration Postgres : ajouter un type de geste
 -- ne doit pas demander une migration. Les valeurs utilisees a ce jour : appel, message,
 -- note, ecarte.
+--
+-- `le` est la date de CE QUI S'EST PASSE, `maj_le` celle de la derniere retouche du texte.
+-- Une ligne dont les deux sont egales n'a jamais ete corrigee, et c'est ce que l'ecran
+-- compare pour afficher « corrigé le ». Le defaut now() de maj_le est donc un piege pour
+-- qui ecrit : une entree qui ne porte pas maj_le se fait horodater a l'arrivee de la
+-- requete, et les cent millisecondes du reseau la font naitre « corrigee ». Toute
+-- ecriture d'echange envoie les deux colonnes, a la meme valeur (voir bdv-crm.js).
 create table if not exists public.echanges (
   id         uuid not null references auth.users on delete cascade,
   echange_id text not null,
@@ -348,8 +355,14 @@ create table if not exists public.echanges (
   type       text not null,
   canal      text,
   resume     text,
+  maj_le     timestamptz not null default now(),
   primary key (id, echange_id)
 );
+
+-- Posee en base le 06/09/2026 avec la correction d'une entree, et absente de ce fichier
+-- jusqu'au 07/09/2026 : une base creee depuis ce script refusait alors toute ecriture
+-- d'echange, la colonne etant inconnue de PostgREST.
+alter table public.echanges add column if not exists maj_le timestamptz not null default now();
 
 -- La seule lecture de l'ecran : « l'historique de ce client, du plus recent au plus ancien ».
 create index if not exists echanges_client on public.echanges (id, client_id, le desc);

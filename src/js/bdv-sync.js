@@ -277,11 +277,17 @@
 
   async function ecrireEchange(entree){
     if(!pret() || !entree || !entree.client_id || !entree.echange_id) return false;
+    // `le` vient de l'entree du miroir, et `maj_le` la suit : l'entree porte sa propre
+    // date de retouche, ou a defaut celle de son ecriture. Laisser maj_le absent
+    // rendait la main au defaut now() de la base, donc a l'heure du REJEU : une entree
+    // posee hors reseau et repoussee le lendemain s'affichait corrigee sans l'avoir ete.
+    const quandE = entree.le || new Date().toISOString();
     const corps = {
       id: BdvCompte.monId(),
       echange_id: String(entree.echange_id),
       client_id: String(entree.client_id),
-      le: entree.le || new Date().toISOString(),
+      le: quandE,
+      maj_le: entree.maj_le || quandE,
       type: entree.type || 'note',
       canal: entree.canal || null,
       resume: entree.resume || null

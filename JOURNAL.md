@@ -12,6 +12,68 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/09/2026, en soirée. Deux bugs signalés par Ted, deux causes sans aucun rapport
+
+Ted a signalé deux symptômes dans le même message : une entrée du journal qui naît
+« corrigée », et la fiche client qui ne s'ouvre plus depuis « Mes clients ». Rien ne les
+relie, et c'est le seul enseignement de la soirée qui vaut d'être retenu : deux symptômes
+arrivés ensemble ne sont pas un indice de cause commune.
+
+**Le faux « corrigé » : un défaut de colonne qui gagnait contre le navigateur.**
+`echanges.maj_le` porte `default now()` en base. Les quatre endroits qui créent une entrée
+envoyaient `le` et laissaient `maj_le` au défaut : la base l'horodatait donc à l'ARRIVÉE de
+la requête. Mesuré sur les trois entrées touchées en production : 88, 111 et 278
+millisecondes d'écart. L'écran, lui, fait exactement ce qu'on lui a demandé, il affiche
+« corrigé le » dès que les deux dates diffèrent. Le règle de mémoire du 06/09 le disait
+déjà — *maj_le est posé égal à `le` à l'écriture* — mais elle n'était appliquée nulle part,
+parce qu'à l'époque seule la correction écrivait cette colonne.
+
+Arbitrage : la correction est du côté de l'ÉCRITURE, aux quatre points d'entrée, et pas du
+côté de l'affichage. On aurait pu tolérer un écart d'une seconde à la comparaison, c'était
+plus court et c'était un mensonge : le journal aurait affirmé qu'une ligne n'a pas bougé
+sans le savoir. Levier à retester si le faux « corrigé » revient : chercher un cinquième
+point d'écriture avant d'accuser l'écran.
+
+Corollaire trouvé en passant : `supabase/schema.sql` ne déclarait pas `maj_le` du tout. La
+colonne avait été posée à la main en base le 06/09. Une base recréée depuis ce fichier
+aurait refusé toute écriture d'échange dès ce soir, PostgREST ne connaissant pas la colonne.
+Elle y est, avec son `add column if not exists` pour les bases déjà en place.
+
+**La fiche client : un sélecteur descendant qui ne pouvait pas atteindre son propre porteur.**
+`.bdv-ventes .modale.on{display:block}`. Or `#modale` PORTE `.bdv-ventes` — c'est l'un des
+quatre éléments « hors page » qui la portent eux-mêmes, par construction, depuis le scope du
+lot 2c. Un sélecteur descendant ne matche jamais son porteur : la fiche restait à
+`display:none`, et le clic depuis « Mes clients » n'ouvrait rien du tout, sans une erreur,
+sans un message dans la console.
+
+Le même défaut frappait quatre autres règles que personne n'avait signalées, et qui étaient
+muettes par nature : les trois états de `.status` (donc **plus aucun message d'erreur, de
+chargement ni de succès dans les écrans de vente**) et `#busyov.on`, le voile d'attente de
+l'import. Un bug qui supprime les messages d'erreur ne se plaint pas.
+
+Les cinq règles sont recollées à leur porteur (`.bdv-ventes.modale.on`, sans espace) : même
+élément, scope conservé, et `npm run charte` reste conforme **sans exception nouvelle** —
+c'est ce qui a fait préférer cette forme à l'ajout des cinq sélecteurs dans
+`SCOPE_EXCEPTIONS`. Une exception nommée en plus, c'est une règle de moins sous contrôle.
+
+**Ce qui a été vérifié.** `npm run verif` : charte conforme, 76 contrôles du banc passés. Et
+la seule vérification qui prouvait vraiment quelque chose : la feuille réelle chargée dans
+un Chromium, sur le DOM réel des quatre éléments, avant et après. Avant : `modale: none`,
+`status: none`, `busyov: none`. Après : `block`, `flex`, `flex`. Aucun contrôle du dépôt
+n'attrapait ça, et aucun ne l'attrapera : la charte lit des sélecteurs, elle ne les fait pas
+matcher. C'est un candidat pour le banc — un contrôle qui, pour chaque règle portée par
+`.bdv-ventes`, vérifie que le premier bloc du sélecteur n'est pas l'un des quatre porteurs.
+
+**Reste ouvert.** Trois entrées en base portent encore leur faux `maj_le` ; le SQL de
+réparation est donné à Ted, borné à un écart de moins de cinq secondes pour ne pas effacer
+une correction réelle. Et un vrai défaut de date, trouvé en chemin et pas corrigé ce soir :
+un geste posé hors réseau met en attente `{cle, id, eid}` sans sa date, donc `bdv-crm.js`
+refabrique `le` au moment du REJEU. Un appel passé mardi dans une cave sans réseau est daté
+du jeudi où le navigateur a retrouvé du signal. Trois lignes à changer, mais c'est une
+correction à part : elle touche la date de ce qui s'est passé, pas son affichage.
+
+---
+
 ## 07/09/2026, tard. L'audit responsive : ce que la capture de Ted a révélé
 
 Ted a envoyé une capture de son bureau en production avec une phrase juste : « il y a des

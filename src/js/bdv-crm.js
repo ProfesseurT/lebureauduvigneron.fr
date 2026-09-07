@@ -224,12 +224,19 @@
     // vide que pour une session tombee. Avec minimal, PostgREST rend 201 sans corps, donc
     // null, donc toute note ECRITE etait annoncee au vigneron comme un echec. Une reponse
     // qui porte la ligne creee est la seule qui distingue les deux cas.
+    // `maj_le` EST POSE EGAL A `le`, et ce n'est pas une redondance : la colonne a un
+    // defaut now() cote base, donc une entree qui ne la porte pas se fait horodater a
+    // l'ARRIVEE de la requete. Cent millisecondes de reseau suffisaient a rendre les
+    // deux dates differentes, et l'ecran ne dit « corrigé le » que dans ce cas : chaque
+    // note neuve s'affichait corrigee a la seconde ou elle etait ecrite. Toute nouvelle
+    // ecriture d'echange pose les deux a la MEME valeur, celle-ci et pas new Date().
+    var quand = new Date().toISOString();
     var r = await api('/echanges?on_conflict=id,echange_id', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [{
         id: BdvCompte.monId(), echange_id: echId(), client_id: String(clientId),
-        le: new Date().toISOString(), type: type, canal: canal, resume: texte
+        le: quand, maj_le: quand, type: type, canal: canal, resume: texte
       }]
     });
     if (r === null) throw new Error('ecriture refusee');
@@ -317,12 +324,15 @@
     // representation, pour la meme raison que noter() : avec minimal, une session tombee
     // et une ecriture reussie rendent toutes les deux null, et le geste serait annonce
     // comme fait alors que le journal n'a rien recu.
+    // maj_le = le, meme motif que dans noter() : sans lui, le defaut now() de la base
+    // horodate a l'arrivee de la requete et le geste s'affiche corrige aussitot.
+    var quand = new Date().toISOString();
     var r = await api('/echanges?on_conflict=id,echange_id', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [{
         id: BdvCompte.monId(), echange_id: eid || echId(), client_id: String(clientId),
-        le: new Date().toISOString(), type: g.type, canal: g.canal, resume: g.resume
+        le: quand, maj_le: quand, type: g.type, canal: g.canal, resume: g.resume
       }]
     });
     if (r === null) throw new Error('journal refuse');

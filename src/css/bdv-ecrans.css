@@ -27,6 +27,14 @@
    quatre elements « hors page » (.status, #busyov, #printReport, .modale) qui portent
    eux-memes cette classe, et le bloc @media print qui pilote la page entiere.
 
+   LE PIEGE DE CES QUATRE-LA, vu le 07/09/2026 : comme ils PORTENT .bdv-ventes, une regle
+   d'etat ecrite en descendant (.bdv-ventes .modale.on) ne les atteint jamais, puisqu'un
+   selecteur descendant ne matche pas son propre porteur. Ecrite ainsi, la fiche client
+   restait a display:none : le clic depuis « Mes clients » n'ouvrait plus rien, sans une
+   erreur, sans un message. Meme silence pour le voile d'attente et les trois messages de
+   .status. Leurs etats se collent donc SANS espace (.bdv-ventes.modale.on) : meme
+   element, scope conserve, et npm run charte reste content sans exception nouvelle.
+
    POURQUOI UN SCOPE ET PAS UN RENOMMAGE. Six noms de classes sont communs avec
    src/css/style.css : btn, btn--ghost, card__title, hero, mono, note. Les renommer ici
    aurait paru plus propre, et c'etait faux : ces noms sont un VOCABULAIRE PARTAGE avec
@@ -118,12 +126,12 @@
 
 /* STATUS */
 .status{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:900;padding:.6rem 1rem;font-family:var(--font-mono);font-size:var(--t-petit);display:none;align-items:center;gap:.5rem;border-radius:var(--r-nul);box-shadow:var(--ombre-carte);max-width:90vw}
-.bdv-ventes .status.error{background:var(--danger-bg);color:var(--danger-deep);display:flex}
-.bdv-ventes .status.loading{background:var(--ink-deep);color:var(--on-dark);display:flex}
-.bdv-ventes .status.success{background:var(--ok-bg);color:var(--ok);display:flex}
+.bdv-ventes.status.error{background:var(--danger-bg);color:var(--danger-deep);display:flex}
+.bdv-ventes.status.loading{background:var(--ink-deep);color:var(--on-dark);display:flex}
+.bdv-ventes.status.success{background:var(--ok-bg);color:var(--ok);display:flex}
 /* OVERLAY DE CHARGEMENT (verre qui se remplit, centre) */
 #busyov{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:var(--bordeaux-veil)}
-.bdv-ventes #busyov.on{display:flex}
+.bdv-ventes#busyov.on{display:flex}
 .bdv-ventes .busyov__card{background:var(--white);border-radius:var(--r-nul);padding:1.9rem 2.4rem;box-shadow:var(--ombre-photo);border-top:var(--trait-accent) solid var(--bordeaux);text-align:center;min-width:210px}
 .bdv-ventes .glass{display:block;margin:0 auto .9rem}
 .bdv-ventes .glass-out{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -372,7 +380,7 @@
 .bdv-ventes .fchip__x{font-size:1.05rem;line-height:1;color:var(--bordeaux)}
 /* ---------- Fiche client (modale) ---------- */
 .modale{position:fixed;inset:0;z-index:400;display:none}
-.bdv-ventes .modale.on{display:block}
+.bdv-ventes.modale.on{display:block}
 .bdv-ventes .modale__bg{position:absolute;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px)}
 .bdv-ventes .modale__box{position:relative;max-width:1020px;margin:2.5vh auto;max-height:95vh;overflow-y:auto;
   background:var(--white);border-radius:var(--r-nul);padding:1.8rem 2rem 2rem;box-shadow:var(--ombre-photo)}

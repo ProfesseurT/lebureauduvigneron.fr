@@ -347,7 +347,13 @@ function echDe(id){return (ECHANGES[id]||[]).slice().sort((a,b)=>String(b.le).lo
 function echId(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);}
 function echAjouter(id,type,canal,resume){
   if(!id)return null;
-  const e={echange_id:echId(),client_id:String(id),le:new Date().toISOString(),
+  // maj_le PORTE LA MEME VALEUR QUE le. La colonne a un defaut now() cote base : une
+  // entree qui ne la porte pas se fait horodater a l'arrivee de la requete, et les cent
+  // millisecondes du reseau suffisaient a faire afficher « corrigé le » sur une note
+  // ecrite a l'instant. L'ecran ne compare que ces deux dates, il a raison de le faire :
+  // c'est l'ecriture qui devait les poser ensemble.
+  const quand=new Date().toISOString();
+  const e={echange_id:echId(),client_id:String(id),le:quand,maj_le:quand,
            type:type||'note',canal:canal||null,resume:resume||null};
   (ECHANGES[id]||(ECHANGES[id]=[])).push(e);
   echSave();
