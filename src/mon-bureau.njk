@@ -190,18 +190,22 @@ permalink: /mon-bureau/
        vrai. -->
 </div>
 
-<!-- LE MOTEUR DE LA BASE, au bureau aussi depuis le 07/09/2026. C'est ce qui permet au
-     panneau de reglages d'y montrer « Ma base » et « Le classement » pour de vrai, et pas un
-     renvoi : ces deux blocs sont des CALCULS sur les lignes de vente, pas des affichages.
-     Trois conditions, dans cet ordre :
-       1. PapaParse avant le moteur, il lit le CSV de l'export.
-       2. bdv-sync.js, sinon un import fait d'ici n'arriverait jamais sur le compte : syncPret()
-          rendrait faux en silence, et on refabriquerait la panne de 500 lignes du matin.
-       3. bdv-base.js SANS defer et AVANT le script de cette page. Un script differe
-          s'execute apres l'analyse du document, donc trop tard. Voir son entete. -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="/js/bdv-sync.js"></script>
-<script src="/js/bdv-base.js"></script>
+<!-- LE MOTEUR DE LA BASE N'EST PLUS CHARGE ICI depuis le 07/09/2026, apres la fusion.
+     PapaParse, bdv-sync.js et bdv-base.js etaient poses la, sans defer, donc ils
+     retardaient le premier pixel de « Ma journee » pour 97 ko et une requete de CDN.
+
+     Or « Ma journee » ne s'en sert pas : ses chiffres viennent du serveur par bdv-crm, qui
+     ne touche a aucune des 161 variables du moteur. Verifie nom par nom avant de les
+     retirer, pas au jugé.
+
+     Ils sont maintenant charges par /js/bdv-nav.js, dans le meme ordre, sur l'un des deux
+     gestes qui en ont vraiment besoin : ouvrir un ecran de vente, ou ouvrir le panneau de
+     reglages, qui montre « Ma base » et « Le classement », lesquels sont des CALCULS sur
+     les lignes de vente. Voir la constante MOTEUR dans ce fichier.
+
+     NE PAS LES REMETTRE ICI « pour etre sur ». Ce serait les charger deux fois : le
+     chargeur les reconnaitrait par leur adresse et n'en poserait pas d'autres, mais le
+     bureau retrouverait ses 97 ko bloquants et personne ne verrait pourquoi. -->
 <script src="/js/bdv-reglages.js" defer></script>
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
@@ -974,6 +978,12 @@ permalink: /mon-bureau/
      Le garde-fou de deconnexion a suivi le meme chemin, et pour la meme raison : un
      garde-fou recopie est un garde-fou qu'on oubliera de corriger d'un cote. */
   function ouvrirReglages(){
+    // PAR BdvNav, jamais par le module directement : c'est lui qui sait que « Ma base » et
+    // « Le classement » ont besoin du moteur de la base, et que le moteur n'est plus charge
+    // a l'ouverture du bureau depuis le 07/09/2026. Appeler BdvReglages.ouvrir() d'ici
+    // rouvrirait la panne que le banc a attrapee : un panneau qui s'ouvre avec deux onglets
+    // vides, sans erreur et sans message.
+    if(window.BdvNav && BdvNav.ouvrirReglages){ BdvNav.ouvrirReglages(); return; }
     if(window.BdvReglages) BdvReglages.ouvrir();
     else location.href = '/compte/';   // module absent : on ne laisse pas un clic sans effet
   }

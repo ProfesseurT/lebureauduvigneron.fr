@@ -27,10 +27,17 @@ Plus rien n'est autonome, et chercher une fonction dans une page avant de cherch
 `src/js/` fait perdre du temps.
 
 - `bdv-base.js` : le moteur. Base IndexedDB, empreintes de ligne, import, exercice comptable.
-  Charge par le bureau, sans `defer`, AVANT tout le reste.
+  **N'est PLUS charge a l'ouverture du bureau** depuis le 07/09/2026 : il pesait 83 ko
+  bloquants pour une page qui ne s'en sert pas. Charge par `bdv-nav.js` sur l'un des deux
+  gestes qui en ont besoin, ouvrir un ecran de vente ou ouvrir le panneau de reglages,
+  toujours precede de PapaParse et de `bdv-sync.js`.
 - `bdv-ecrans.js` : les cinq ecrans de vente. Charge au PREMIER CLIC sur une piece de vente,
-  jamais a l'ouverture du bureau, et toujours apres `bdv-base.js`.
-- `bdv-nav.js` : la liste unique des pieces du bureau, la barre, et le chargement a la demande.
+  jamais a l'ouverture du bureau, et toujours APRES le moteur : il lit ses variables des son
+  analyse. `npm run banc` verifie cet ordre, qui est une condition et pas une preference.
+- `bdv-nav.js` : la liste unique des pieces du bureau, la barre, le chargement a la demande,
+  et le SEUL point d'entree des reglages, `BdvNav.ouvrirReglages()`. Les trois boutons qui
+  ouvrent le panneau passent par lui : sans ca, celui qui l'appelle sans demander le moteur
+  ouvre un panneau dont « Ma base » et « Le classement » restent vides, sans erreur.
 - `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de reglages partage, plus
   `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`, `bdv-canaux.js`.
 
@@ -153,6 +160,19 @@ bordeaux, du blanc pur est plus dur que le papier du site.
   avec les donnees du client. Sept squelettes pour l'instant : si le besoin de varier grandit,
   ecrire plusieurs variantes par bloc et les choisir par une empreinte stable du numero client,
   jamais au hasard, pour que le meme client recoive toujours le meme message.
+
+## Ce qui est charge quand
+
+Le bureau ouvre avec 32 ko de JavaScript bloquant : `bdv-canaux.js` et `bdv-nav.js`. Tout le
+reste est differe ou attend un geste. Avant le 07/09/2026 c'etait 125 ko bloquants, dont un
+moteur de 83 ko que « Ma journee » n'utilise pas.
+
+Avant de reposer un `<script>` dans `src/mon-bureau.njk`, verifier qu'il sert VRAIMENT a
+« Ma journee ». La methode qui a servi a retirer le moteur : lister les noms globaux du
+fichier, puis chercher chacun dans les modules charges au bureau, et lire les resultats un
+par un. Sur les 161 globales du moteur, six ressemblaient a des dependances et les six
+etaient des faux positifs : des chaines de caracteres, des noms de classe CSS, des
+attributs `data-`. La verification au jugé aurait conclu l'inverse.
 
 ## Verifier avant de livrer
 

@@ -79,6 +79,11 @@ function bureau(hash) {
   const appels = [];
   window.demarrerEcransVente = (d) => { appels.push(d || {}); };
   window.ouvrirPanneauReglages = () => { appels.push({ panneau: true }); };
+  window.BdvReglages = {
+    ouvrir: () => { appels.push({ panneau: true }); },
+    rafraichir: () => { appels.push({ rafraichi: true }); },
+    dire: (m) => { appels.push({ dit: m }); }
+  };
   window.eval(NAV);
   window.BdvNav.monter(doc.getElementById('bureauNav'), 'journee');
   return { window, doc, charges, appels,
@@ -106,7 +111,8 @@ const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
 t('sept pieces montees', lignes.length === 7, lignes.length + ' trouvee(s)');
 t('l\'ordre est celui de la journee',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mon exercice | Mes clients | Mes cuvées | Chercher | Le compte à rebours | Mes réglages');
+  === 'Ma journée | Mon année | Mes clients | Mes cuvées | Chercher | Le compte à rebours | Mes réglages',
+  lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
 t('les quatre pieces de vente pointent DANS le bureau',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
@@ -208,15 +214,26 @@ t('l\'adresse suit', B.window.location.hash === '#clients', B.window.location.ha
 t('la piece cliquee devient la piece active',
   B.doc.querySelector('.bureau-nav__ligne[data-piece="clients"] .bureau-nav__item--actif') !== null);
 await B.repos();
-t('les quatre ressources sont demandees, dans l\'ordre',
-  B.charges.join(' | ') === '/css/bdv-ecrans.css | https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js | https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js | /js/bdv-ecrans.js',
-  B.charges.join(' | ') || '(aucune)');
+/* L'ORDRE EST UNE CONDITION, pas une preference : bdv-ecrans.js lit des variables de
+   bdv-base.js des son analyse, et le moteur doit donc etre entierement la avant lui. Ce
+   controle est ce qui empechera de « paralleliser pour aller plus vite » un jour. */
+const ATTENDU = [
+  'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+  '/js/bdv-sync.js',
+  '/js/bdv-base.js',
+  '/css/bdv-ecrans.css',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  '/js/bdv-ecrans.js'
+].join(' | ');
+t('le moteur puis les ecrans, dans cet ordre',
+  B.charges.join(' | ') === ATTENDU, B.charges.join(' | ') || '(aucune)');
 t('les ecrans sont demarres sur la bonne piece',
   JSON.stringify(B.appels) === '[{"ecran":"clients"}]', JSON.stringify(B.appels));
 
 B.clic('produits');
 await B.repos();
-t('un second clic ne recharge RIEN', B.charges.length === 4, B.charges.length + ' ressources');
+t('un second clic ne recharge RIEN', B.charges.length === 7, B.charges.length + ' ressources');
 t('mais il navigue',
   JSON.stringify(B.appels[1]) === '{"ecran":"produits"}', JSON.stringify(B.appels[1]));
 
@@ -231,6 +248,59 @@ t('« Mes reglages » ouvre le panneau',
 t('« Mes reglages » ne change pas d\'ecran : le panneau s\'ouvre par-dessus',
   !B.journee.hidden && B.ventes.hidden);
 t('et n\'ecrit rien dans l\'adresse', B.window.location.hash === '', B.window.location.hash);
+
+/* ======================= LE MOTEUR A LA DEMANDE ======================= */
+titre('Le moteur de la base, charge au besoin');
+
+const M = bureau();
+t('a l\'ouverture du bureau, le moteur n\'est PAS charge',
+  M.charges.length === 0, M.charges.join(' | '));
+
+M.clic('reglages');
+await M.repos();
+t('ouvrir les reglages charge le moteur, et lui seul',
+  M.charges.join(' | ') === ['https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+    '/js/bdv-sync.js', '/js/bdv-base.js'].join(' | '), M.charges.join(' | '));
+t('le panneau s\'ouvre AVANT le moteur : il ne fait pas attendre pour « Toi »',
+  M.appels[0] && M.appels[0].panneau === true, JSON.stringify(M.appels[0]));
+t('puis il se rafraichit quand le moteur est la',
+  M.appels.some(a => a.rafraichi), JSON.stringify(M.appels));
+
+/* LES TROIS BOUTONS DES REGLAGES passent par le meme point d'entree. C'est ce controle-ci
+   qui a trouve la panne : le bouton de la barre ouvrait le panneau sans demander le
+   moteur, et « Ma base » restait vide sans une erreur pour le dire. */
+const R1 = bureau();
+R1.doc.getElementById('bureauNavPlier');
+R1.clic('reglages');
+await R1.repos();
+const R2 = bureau('#base');
+await R2.repos();
+t('le bouton de la barre et l\'adresse #base demandent tous deux le moteur',
+  R1.charges.length === 3 && R2.charges.length === 3,
+  'barre : ' + R1.charges.length + ', adresse : ' + R2.charges.length);
+t('et tous deux rafraichissent le panneau une fois le moteur la',
+  R1.appels.some(a => a.rafraichi) && R2.appels.some(a => a.rafraichi));
+
+M.clic('clients');
+await M.repos();
+t('ouvrir ensuite un ecran de vente ne recharge pas le moteur',
+  M.charges.filter(c => c === '/js/bdv-base.js').length === 1,
+  M.charges.filter(c => c === '/js/bdv-base.js').length + ' fois');
+t('et il charge bien les ecrans par-dessus',
+  M.charges.length === 7, M.charges.length + ' ressources');
+
+/* Le libelle de la piece suit l'exercice comptable, et il doit etre juste DES LE PREMIER
+   AFFICHAGE : un libelle qui change sous la souris une seconde apres le chargement se
+   remarque plus qu'un libelle un peu generique. */
+const EX = new JSDOM(HTML, { runScripts: 'outside-only', pretendToBeVisual: true,
+  url: 'https://x.test/mon-bureau/' });
+EX.window.localStorage.setItem('bdv_exercice_v1', '4');
+EX.window.eval(NAV);
+EX.window.BdvNav.monter(EX.window.document.getElementById('bureauNav'), 'journee');
+t('un domaine dont l\'exercice commence en avril lit « Mon exercice », sans le moteur',
+  EX.window.document.querySelector('.bureau-nav__ligne[data-piece="annee"] .bureau-nav__nom')
+    .textContent === 'Mon exercice',
+  EX.window.document.querySelector('.bureau-nav__ligne[data-piece="annee"] .bureau-nav__nom').textContent);
 
 /* ---- l'adresse d'arrivee fait foi ---- */
 titre('L\'adresse d\'arrivee');

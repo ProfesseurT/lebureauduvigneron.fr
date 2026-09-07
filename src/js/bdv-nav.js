@@ -43,13 +43,29 @@
      moitie selon l'endroit ou il se trouve. */
   var VOLET_KEY = 'bdv_volet_replie';
 
-  /* « Mon exercice » ou « Mon annee » : le libelle suit l'exercice comptable du
-     domaine, comme partout ailleurs. exMot() vient de bdv-base.js, charge avant
-     nous au bureau. On teste sa presence quand meme : cette barre doit pouvoir
-     etre posee sur une page qui n'a pas besoin du moteur de la base. */
+  /* « Mon exercice » ou « Mon annee » : le libelle suit l'exercice comptable du domaine,
+     comme partout ailleurs.
+
+     DEUX CHEMINS, ET C'EST VOULU. Le moteur de la base n'est plus charge a l'ouverture du
+     bureau depuis le 07/09/2026 : exMot() n'existe donc pas encore quand la barre se
+     peint. On lit alors la meme cle de navigateur que lui, directement.
+
+     LA CLE EST DUPLIQUEE ICI, et c'est le prix a payer. Le moteur pese 83 ko et il n'est
+     charge que pour ces deux caracteres-la. La lire de notre cote coute une ligne, mais
+     elle doit rester d'accord avec EX_KEY dans bdv-base.js : la changer d'un seul cote
+     ferait dire « Mon exercice » a un domaine en annee civile, sans erreur et sans que
+     personne ne le remarque. Le meme piege que HASH_COLS, en beaucoup moins grave.
+
+     exMot() garde la priorite des qu'il existe : le jour ou le moteur change de facon de
+     decider, c'est lui qui a raison, pas nous. */
+  var EX_KEY_MIROIR = 'bdv_exercice_v1';   // = EX_KEY dans src/js/bdv-base.js
+
   function motExercice() {
-    try { return typeof exMot === 'function' ? 'Mon ' + exMot() : 'Mon exercice'; }
-    catch (e) { return 'Mon exercice'; }
+    try { if (typeof exMot === 'function') return 'Mon ' + exMot(); } catch (e) {}
+    try {
+      var m = parseInt(localStorage.getItem(EX_KEY_MIROIR), 10);
+      return (m >= 2 && m <= 12) ? 'Mon exercice' : 'Mon année';
+    } catch (e) { return 'Mon année'; }
   }
 
   /* ---------------------------------------------------------------------------
@@ -142,6 +158,29 @@
      et pas lances ensemble : deux <script> ajoutes dynamiquement ne garantissent
      pas leur ordre d'execution.
   ========================================================================= */
+  /* LE MOTEUR DE LA BASE, sorti de l'ouverture du bureau le 07/09/2026.
+
+     Il y etait charge sans defer, donc il retardait le premier pixel de « Ma journee »,
+     pour 83 ko plus PapaParse. Or « Ma journee » ne s'en sert pas : ses chiffres viennent
+     du serveur par bdv-crm, qui ne touche a aucune variable du moteur. Verifie nom par
+     nom sur les 161 globales du moteur : seuls bdv-reglages.js et ce fichier-ci en
+     dependent, et tous deux savent faire sans.
+
+     Deux choses seulement en ont vraiment besoin, et toutes deux se declenchent par un
+     geste : ouvrir un ecran de vente, ou ouvrir le panneau de reglages, qui montre « Ma
+     base » et « Le classement », lesquels sont des CALCULS sur les lignes de vente.
+
+     L'ordre est celui qu'avait la page : PapaParse, bdv-sync, bdv-base. PapaParse n'est
+     en fait appele que depuis handleFiles(), donc bien apres, mais l'en-tete du moteur
+     annonce le contraire et ce n'est pas le jour de le contredire. */
+  var MOTEUR = [
+    { js: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js' },
+    { js: '/js/bdv-sync.js' },
+    { js: '/js/bdv-base.js' }
+  ];
+
+  /* Les ecrans de vente. Ils VIENNENT APRES le moteur, jamais avant : bdv-ecrans.js lit
+     des variables declarees dedans des son analyse. */
   var RESSOURCES = [
     { css: '/css/bdv-ecrans.css' },
     { js: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js' },
@@ -173,12 +212,27 @@
     });
   }
 
+  function enchainer(liste, depart) {
+    return liste.reduce(function (chaine, r) {
+      return chaine.then(function () { return r.css ? poserCss(r.css) : poserJs(r.js); });
+    }, depart || Promise.resolve());
+  }
+
+  var _moteur = null;
+  function chargerMoteur() {
+    if (_moteur) return _moteur;
+    _moteur = enchainer(MOTEUR);
+    /* Le libelle de la piece se corrige quand le moteur arrive : jusque-la il venait de
+       notre lecture de la cle, maintenant il vient d'exMot(). Dans la quasi-totalite des
+       cas les deux disent la meme chose et rien ne bouge a l'ecran. */
+    _moteur = _moteur.then(function () { marquerLibelles(); });
+    return _moteur;
+  }
+
   var _chargement = null;
   function chargerEcrans() {
     if (_chargement) return _chargement;
-    _chargement = RESSOURCES.reduce(function (chaine, r) {
-      return chaine.then(function () { return r.css ? poserCss(r.css) : poserJs(r.js); });
-    }, Promise.resolve());
+    _chargement = enchainer(RESSOURCES, chargerMoteur());
     return _chargement;
   }
 
@@ -220,11 +274,58 @@
     });
   }
 
+  /* Repose le texte de chaque piece sans reconstruire la barre : reconstruire perdrait
+     le repere de la piece courante et l'etat du repli, et ferait clignoter la
+     navigation sous la souris. */
+  function marquerLibelles() {
+    var nav = document.getElementById('bureauNav');
+    if (!nav) return;
+    PIECES.forEach(function (p) {
+      var n = nav.querySelector('.bureau-nav__ligne[data-piece="' + p.id + '"] .bureau-nav__nom');
+      if (n) n.textContent = libelle(p);
+    });
+  }
+
   function attente(id, oui) {
     var nav = document.getElementById('bureauNav');
     var l = nav && nav.querySelector('.bureau-nav__ligne[data-piece="' + id + '"]');
     var it = l && l.querySelector('.bureau-nav__item');
     if (it) it.classList.toggle('bureau-nav__item--attente', !!oui);
+  }
+
+  /* ---------------------------------------------------------------------------
+     LE SEUL POINT D'ENTREE DES REGLAGES, et c'est tout son interet.
+
+     Trois boutons ouvrent ce panneau : « Mes reglages » dans la barre, « Mes reglages »
+     dans l'entete du bureau, et l'adresse /mon-bureau/#base. Avant le 07/09/2026 chacun
+     appelait le module directement, ce qui allait tres bien tant que le moteur de la base
+     etait deja charge par la page.
+
+     Il ne l'est plus. Le banc a attrape la panne le jour meme : le bouton de la barre
+     ouvrait le panneau sans demander le moteur, et « Ma base » comme « Le classement »
+     restaient vides. Vides sans erreur, sans message, et pour la seule raison qu'on avait
+     clique sur un bouton plutot que sur un autre.
+
+     Donc UNE fonction, et les trois boutons passent par elle. En ajouter un quatrieme
+     ailleurs, c'est l'appeler elle.
+  --------------------------------------------------------------------------- */
+  function ouvrirReglages() {
+    /* Le panneau s'ouvre TOUT DE SUITE, sans attendre le moteur : « Toi » et « Le
+       courrier » n'en ont pas besoin, et un panneau qui met une seconde a apparaitre
+       donne l'impression d'un clic rate. « Ma base » et « Le classement » sont des
+       calculs sur les lignes de vente : ils se remplissent quand le moteur arrive, par
+       le rafraichissement que le module expose deja. */
+    if (typeof window.ouvrirPanneauReglages === 'function') window.ouvrirPanneauReglages();
+    else if (window.BdvReglages) window.BdvReglages.ouvrir();
+
+    chargerMoteur().then(function () {
+      if (window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();
+    })['catch'](function () {
+      if (window.BdvReglages && BdvReglages.dire) {
+        BdvReglages.dire('Ta base n\'a pas pu se charger. Verifie ta connexion, puis referme et reouvre tes reglages.');
+      }
+      _moteur = null;   // le prochain essai repart de zero
+    });
   }
 
   /* `id` est une piece de la barre. `client` ouvre en plus une fiche. `ecrire` dit
@@ -238,11 +339,7 @@
     // Les reglages ne sont pas une destination : le panneau s'ouvre PAR-DESSUS ce qui
     // est affiche, et le reperage dans la barre ne bouge pas. Le moteur qu'il lui faut
     // est deja charge par la page, il n'attend pas les ecrans de vente.
-    if (id === 'reglages' || id === 'base') {
-      if (typeof window.ouvrirPanneauReglages === 'function') window.ouvrirPanneauReglages();
-      else if (window.BdvReglages) window.BdvReglages.ouvrir();
-      return;
-    }
+    if (id === 'reglages' || id === 'base') { ouvrirReglages(); return; }
 
     var piece = PIECES.filter(function (p) { return p.id === id; })[0];
     if (!piece) id = 'journee';
@@ -351,9 +448,7 @@
        bdv-reglages.js, chargee en defer, donc pas forcement la au moment ou on
        monte la barre. On la cherche au clic, jamais avant. */
     var b = conteneur.querySelector('[data-bdv-nav-panneau]');
-    if (b) b.addEventListener('click', function () {
-      if (typeof window.ouvrirPanneauReglages === 'function') window.ouvrirPanneauReglages();
-    });
+    if (b) b.addEventListener('click', function () { ouvrirReglages(); });
 
     /* Le clic sur une piece de vente ne quitte plus la page. On laisse passer les clics
        qui ont un sens ailleurs : molette, milieu, ctrl ou cmd enfonce, c'est une demande
@@ -418,5 +513,5 @@
 
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
-                    marquerActif: marquerActif };
+                    marquerActif: marquerActif, ouvrirReglages: ouvrirReglages };
 })();

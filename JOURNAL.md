@@ -12,6 +12,70 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## Session du 07/09/2026, fin d'après-midi : le bureau s'ouvre avec 32 ko au lieu de 125
+
+Suite immédiate de la fusion, et c'est elle qui a rendu le problème visible. En sortant les
+écrans de vente du chargement initial, on a mesuré ce qui restait : **398 ko à l'ouverture
+de `/mon-bureau/`, dont 125 ko de JavaScript bloquant**, sur une page qui affiche « Ma
+journée ».
+
+Le moteur de la base, `bdv-base.js`, pesait 83 ko de ces 125, plus PapaParse en CDN. Or
+« Ma journée » ne s'en sert pas : ses chiffres viennent du serveur par `bdv-crm.js`.
+
+### La vérification qui compte, et pourquoi elle ne pouvait pas se faire au jugé
+
+Retirer un fichier dont 161 variables globales sont visibles par tout le reste de la page
+ne se décide pas à l'intuition. La méthode : extraire les 161 noms, puis chercher chacun
+dans les six modules chargés au bureau et dans le script de la page.
+
+Six noms ressortaient comme des dépendances possibles : `GESTES`, `CANAUX`, `dansNJours`,
+`geste`, `objectif`, `signal`. **Les six étaient des faux positifs** : des constantes
+redéclarées localement dans leur propre module, une chaîne de caractères `source: 'signal'`,
+un nom de classe CSS `btn--geste`, un attribut `data-geste`. Le seul vrai lien était
+`exMot()`, pour deux mots dans un libellé de la barre.
+
+Conclusion inverse de l'intuition, et impossible à obtenir sans la lister.
+
+### Deux mots qui coûtaient 83 ko
+
+Le libellé de la deuxième pièce dit « Mon année » ou « Mon exercice » selon l'exercice
+comptable du domaine, ce que `exMot()` sait et lui seul. C'était la seule raison de charger
+le moteur à l'ouverture.
+
+La clé de navigateur qu'il lit, `bdv_exercice_v1`, est maintenant lue aussi par
+`bdv-nav.js`. **Une constante dupliquée, assumée et documentée des deux côtés** : la changer
+d'un seul côté ferait dire « Mon exercice » à un domaine en année civile, sans erreur et
+sans que personne ne le remarque. Le même piège que `HASH_COLS`, en beaucoup moins grave.
+`exMot()` garde la priorité dès qu'il existe : le jour où le moteur change de façon de
+décider, c'est lui qui a raison.
+
+### Le banc a trouvé la deuxième panne de la journée
+
+Trois boutons ouvrent le panneau de réglages : celui de la barre, celui de l'entête du
+bureau, et l'adresse `#base`. Chacun appelait le module directement, ce qui allait très bien
+tant que le moteur était déjà là.
+
+Le banc l'a attrapé dans l'heure : **le bouton de la barre ouvrait le panneau sans demander
+le moteur**, et « Ma base » comme « Le classement » restaient vides. Vides sans erreur, sans
+message, et pour la seule raison qu'on avait cliqué sur un bouton plutôt que sur un autre.
+
+Il y a donc maintenant UNE fonction, `BdvNav.ouvrirReglages()`, et les trois boutons passent
+par elle. Le contrôle qui a trouvé la panne est resté dans le banc.
+
+### Le résultat
+
+`163 ko` de JavaScript local à l'ouverture au lieu de 398, dont `32 ko` bloquants au lieu de
+125, et une requête de CDN en moins. Vérifié dans un vrai navigateur : à l'ouverture, ni le
+moteur ni PapaParse ne sont demandés ; au clic sur « Mes réglages », le panneau apparaît
+avec ses cinq onglets puis PapaParse, `bdv-sync` et `bdv-base` arrivent dans cet ordre.
+
+Le panneau s'ouvre AVANT le moteur, volontairement : « Toi » et « Le courrier » n'en ont pas
+besoin, et un panneau qui met une seconde à apparaître donne l'impression d'un clic raté.
+
+`npm run banc` : 65 contrôles.
+
+---
+
 ## Session du 07/09/2026, après-midi : le bureau devient le lieu unique
 
 Ted a demandé que le tableau de bord cesse d'être « une page un peu électron libre » et
