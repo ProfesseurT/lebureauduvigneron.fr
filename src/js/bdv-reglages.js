@@ -35,66 +35,123 @@
   let TOUCHES = {};               // champs touches par le vigneron, cf. regle 2
   let RETOUR_FOCUS = null;
   let SUR_PROFIL = null;          // l'hote veut savoir quand le profil change
-  let LARGE = false;              // l'hote y verse des tableaux, il faut de la place
+  let ONGLET = null;              // l'onglet visible, cf. montrerOnglet()
   const BLOCS = [];               // emplacements contribues par l'hote, cf. regle 3
 
   function el(id){ return document.getElementById(id); }
   function pret(){ return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()); }
 
-  /* ============================== LE STYLE ============================== */
+  /* ============================== LE STYLE ==============================
+     Une seule regle a retenir avant d'y toucher : n'utiliser QUE les 52 jetons declares
+     dans les deux :root du projet. --cork, --e-m, --serie-1 n'existent que d'un cote, et le
+     panneau doit avoir la meme tete au bureau et dans le tableau de bord.
+
+     La modale a ete refaite le 07/09/2026 : Ted l'a trouvee « en version verticale ».
+     Elle l'etait pour deux raisons cumulees, et l'une cachait l'autre :
+       1. `.bdvr-panneau--large` etait declaree AVANT `.bdvr-panneau`. A specificite egale
+          c'est la derniere qui gagne, donc les 40rem battaient les 64rem et le panneau
+          restait etroit quoi qu'on fasse. Le mecanisme a disparu : une seule largeur.
+       2. Meme large, cinq sections empilees font un rouleau de deux mille pixels. D'ou les
+          ONGLETS : une section a l'ecran, jamais de defilement du formulaire, et le pied
+          reste colle en bas pour que « Enregistrer » soit toujours a portee de clic. */
 
   const STYLE = `
-.bdvr-voile{position:fixed;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px);z-index:1000;
-  display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto}
-.bdvr-panneau--large{max-width:64rem}
-.bdvr-panneau{position:relative;width:100%;max-width:40rem;background:var(--paper);
-  border:var(--trait) solid var(--rule);border-radius:var(--r-nul);
-  box-shadow:var(--ombre-dure);padding:2rem 1.8rem 1.6rem}
-.bdvr-x{position:absolute;top:.6rem;right:.7rem;background:none;border:none;
-  font-size:var(--t-h3);line-height:1;color:var(--muted);cursor:pointer;padding:.2rem .4rem}
+.bdvr-voile{position:fixed;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px);
+  z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+/* Colonne : entete fixe, corps qui defile, pied colle. C'est ce qui garde « Enregistrer »
+   visible quel que soit le contenu de l'onglet, y compris « Ma base » et ses tableaux. */
+.bdvr-panneau{position:relative;display:flex;flex-direction:column;
+  width:100%;max-width:62rem;max-height:90vh;background:var(--paper);
+  border:var(--trait) solid var(--rule);border-radius:var(--r-nul);box-shadow:var(--ombre-dure)}
+.bdvr-tete{flex:0 0 auto;padding:1.7rem 1.9rem 0;border-bottom:var(--trait) solid var(--rule)}
+.bdvr-x{position:absolute;top:.7rem;right:.9rem;background:none;border:none;
+  font-size:var(--t-h3);line-height:1;color:var(--muted);cursor:pointer;padding:.2rem .45rem}
 .bdvr-x:hover{color:var(--bordeaux)}
 .bdvr-titre{font-family:var(--font-titre);font-size:var(--t-h3);color:var(--ink-deep);margin:0}
-.bdvr-sous{font-family:var(--font-corps);font-size:var(--t-petit);color:var(--muted);
-  margin:.3rem 0 1.4rem}
-.bdvr-bloc{border:none;border-top:var(--trait) solid var(--rule);margin:0 0 1.3rem;padding:1.1rem 0 0}
-.bdvr-legende{font-family:var(--font-corps);font-size:var(--t-mini);text-transform:uppercase;
-  letter-spacing:var(--ls-large);color:var(--bordeaux);padding:0}
+.bdvr-sous{font-family:var(--font-corps);font-size:var(--t-petit);color:var(--muted);margin:.3rem 0 1.2rem}
+
+/* LES ONGLETS. Etiquettes typographiques, pas des boutons a cadre : le panneau est un
+   document de reglages, pas une barre d'outils. L'actif porte le filet dore du site. */
+.bdvr-onglets{display:flex;flex-wrap:wrap;gap:0;margin-bottom:-1px}
+.bdvr-onglet{background:none;border:none;border-bottom:var(--trait-fort) solid transparent;
+  padding:.55rem .95rem;font-family:var(--font-corps);font-size:var(--t-mini);
+  text-transform:uppercase;letter-spacing:var(--ls-large);color:var(--muted);cursor:pointer;
+  transition:var(--tr-rapide)}
+.bdvr-onglet:hover{color:var(--ink-deep)}
+.bdvr-onglet.on{color:var(--bordeaux);border-bottom-color:var(--bordeaux)}
+.bdvr-onglet:first-child{padding-left:0}
+
+.bdvr-form{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+.bdvr-corps{flex:1 1 auto;overflow-y:auto;padding:1.5rem 1.9rem}
+
+/* Un onglet = un bloc. Le defaut est cache, et "data-off" (pose par gateVitisoft) l'emporte
+   sur tout : un bloc retire parce que le vigneron n'a pas Vitisoft ne doit pas pouvoir
+   reapparaitre par un clic d'onglet. */
+.bdvr-bloc{display:none;border:none;margin:0;padding:0;min-width:0}
+.bdvr-bloc--on{display:block}
+.bdvr-bloc[data-off="oui"]{display:none}
+.bdvr-legende{display:none}   /* le titre de section est desormais l'onglet lui-meme */
+
+/* Deux colonnes pour les champs courts. Les champs longs et les blocs du moteur prennent
+   toute la largeur : un tableau de ventes dans une demi-colonne est illisible. */
+.bdvr-grille{display:grid;grid-template-columns:1fr 1fr;gap:1.3rem 1.6rem}
+.bdvr-champ{min-width:0;display:flex;flex-direction:column}
+.bdvr-champ--plein{grid-column:1/-1}
 .bdvr-l{display:block;font-family:var(--font-corps);font-size:var(--t-petit);
-  color:var(--ink);margin:.9rem 0 .3rem}
+  color:var(--ink);margin:0 0 .35rem}
 .bdvr-i{width:100%;background:var(--white);border:var(--trait) solid var(--rule);
-  border-radius:var(--r-nul);padding:.55rem .7rem;font-family:var(--font-corps);
+  border-radius:var(--r-nul);padding:.6rem .75rem;font-family:var(--font-corps);
   font-size:var(--t-corps);color:var(--ink-deep)}
 .bdvr-i:focus{outline:var(--trait-accent) solid var(--bordeaux);outline-offset:1px}
 .bdvr-i:disabled{background:var(--paper-deep);color:var(--muted)}
-.bdvr-i--court{width:7rem}
-.bdvr-aide{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin:.35rem 0 0}
+.bdvr-aide{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);
+  line-height:var(--lh-normal);margin:.35rem 0 0}
 .bdvr-aide--alerte{color:var(--danger-deep);font-weight:600}
-.bdvr-chk{display:flex;align-items:flex-start;gap:.5rem;font-family:var(--font-corps);
+.bdvr-chk{display:flex;align-items:flex-start;gap:.55rem;font-family:var(--font-corps);
   font-size:var(--t-petit);color:var(--ink);line-height:var(--lh-normal)}
-.bdvr-avis{font-family:var(--font-mono);font-size:var(--t-mini);margin:.9rem 0 0;
-  padding:.5rem .7rem;border-radius:var(--r-nul)}
+
+/* LE BANDEAU DE SAUVEGARDE. Il ne repete pas le compteur de lignes, qui est deja dans les
+   cartes juste en dessous : il porte le VERDICT, appareil contre compte. C'est le seul
+   endroit de l'outil qui pouvait dire, le 07/09/2026, que 4 442 lignes n'existaient que
+   sur un ordinateur. Il merite d'etre lu avant le reste, donc il est en haut. */
+.bdvr-etat{border:var(--trait) solid var(--rule);border-left:var(--trait-fort) solid var(--bordeaux);
+  background:var(--white);padding:.85rem 1rem;margin:0 0 1.3rem}
+.bdvr-etat--alerte{border-left-color:var(--danger-deep)}
+.bdvr-etat__verdict{font-family:var(--font-corps);font-size:var(--t-base);
+  color:var(--ink-deep);margin:0}
+.bdvr-etat--alerte .bdvr-etat__verdict{color:var(--danger-deep)}
+.bdvr-etat__detail{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);
+  margin:.3rem 0 0;line-height:var(--lh-normal)}
+.bdvr-duo{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem}
+.bdvr-hote{min-width:0}
+
+.bdvr-pied{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:.9rem 1.2rem;
+  border-top:var(--trait) solid var(--rule);background:var(--paper-light);
+  padding:1rem 1.9rem}
+.bdvr-avis{flex:1 1 100%;order:-1;font-family:var(--font-mono);font-size:var(--t-mini);
+  margin:0;padding:.5rem .7rem;border-radius:var(--r-nul)}
 .bdvr-avis[data-ok="oui"]{background:var(--ok-bg);color:var(--ok)}
 .bdvr-avis[data-ok="non"]{background:var(--danger-bg);color:var(--danger-deep)}
-.bdvr-duo{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem}
-.bdvr-pied{display:flex;flex-wrap:wrap;align-items:center;gap:1rem;
-  border-top:var(--trait) solid var(--rule);margin-top:1.4rem;padding-top:1.1rem}
 .bdvr-btn{background:var(--bordeaux);color:var(--on-dark);border:var(--trait) solid var(--bordeaux);
-  border-radius:var(--r-nul);padding:.6rem 1.2rem;font-family:var(--font-corps);
-  font-size:var(--t-petit);text-transform:uppercase;letter-spacing:var(--ls-large);cursor:pointer}
+  border-radius:var(--r-nul);padding:.6rem 1.3rem;font-family:var(--font-corps);
+  font-size:var(--t-petit);text-transform:uppercase;letter-spacing:var(--ls-large);
+  cursor:pointer;transition:var(--tr-rapide)}
 .bdvr-btn:hover{background:var(--bordeaux-deep);border-color:var(--bordeaux-deep)}
 .bdvr-btn:disabled{opacity:.55;cursor:default}
 .bdvr-btn--creux{background:transparent;color:var(--bordeaux)}
 .bdvr-btn--creux:hover{background:var(--bordeaux);color:var(--on-dark)}
-.bdvr-btn--danger{background:transparent;color:var(--danger-deep);border-color:var(--danger-deep)}
-.bdvr-btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
-.bdvr-lien{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);
-  text-decoration:underline}
+.bdvr-lien{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-mini);
+  color:var(--muted);text-decoration:underline}
 .bdvr-lien:hover{color:var(--bordeaux)}
-.bdvr-chiffre{font-family:var(--font-mono);font-size:var(--t-petit);color:var(--ink-deep);margin:.5rem 0 0}
-.bdvr-hote{margin-top:.9rem}
-@media (max-width:640px){
+
+@media (max-width:820px){
   .bdvr-voile{padding:0}
-  .bdvr-panneau{max-width:none;min-height:100%;border:none}
+  .bdvr-panneau{max-width:none;max-height:100%;height:100%;border:none}
+  .bdvr-grille{grid-template-columns:1fr}
+  .bdvr-tete{padding:1.3rem 1.1rem 0}
+  .bdvr-corps{padding:1.2rem 1.1rem}
+  .bdvr-pied{padding:.9rem 1.1rem}
+  .bdvr-lien{margin-left:0;flex:1 1 100%}
 }`;
 
   function poserStyle(){
@@ -176,79 +233,103 @@
 
   const MARKUP = `
 <div class="bdvr-panneau" role="dialog" aria-modal="true" aria-labelledby="bdvrTitre">
-  <button class="bdvr-x" id="bdvrFermer" type="button" aria-label="Fermer">&#215;</button>
-  <h2 class="bdvr-titre" id="bdvrTitre">Mes réglages</h2>
-  <p class="bdvr-sous">Tout est modifiable, tout le temps. Rien n'est obligatoire.</p>
+  <div class="bdvr-tete">
+    <button class="bdvr-x" id="bdvrFermer" type="button" aria-label="Fermer">&#215;</button>
+    <h2 class="bdvr-titre" id="bdvrTitre">Mes réglages</h2>
+    <p class="bdvr-sous">Tout est modifiable, tout le temps. Rien n'est obligatoire.</p>
+    <div class="bdvr-onglets" id="bdvrOnglets" role="tablist"></div>
+  </div>
 
-  <form id="bdvrForm" novalidate>
-    <fieldset class="bdvr-bloc">
-      <legend class="bdvr-legende">Toi</legend>
-      <label class="bdvr-l" for="bdvrPrenom">Ton prénom</label>
-      <input class="bdvr-i" type="text" id="bdvrPrenom" autocomplete="given-name">
-      <p class="bdvr-aide">C'est ce nom-là qui te dit bonjour en haut de ton bureau.</p>
+  <form id="bdvrForm" class="bdvr-form" novalidate>
+    <div class="bdvr-corps" id="bdvrCorps">
 
-      <label class="bdvr-l" for="bdvrDomaine">Ton domaine ou ta structure</label>
-      <input class="bdvr-i" type="text" id="bdvrDomaine" autocomplete="organization">
+      <fieldset class="bdvr-bloc" id="bdvrBlocToi" data-onglet="Toi">
+        <legend class="bdvr-legende">Toi</legend>
+        <div class="bdvr-grille">
+          <div class="bdvr-champ">
+            <label class="bdvr-l" for="bdvrPrenom">Ton prénom</label>
+            <input class="bdvr-i" type="text" id="bdvrPrenom" autocomplete="given-name">
+            <p class="bdvr-aide">C'est ce nom-là qui te dit bonjour en haut de ton bureau.</p>
+          </div>
+          <div class="bdvr-champ">
+            <label class="bdvr-l" for="bdvrDomaine">Ton domaine ou ta structure</label>
+            <input class="bdvr-i" type="text" id="bdvrDomaine" autocomplete="organization">
+            <p class="bdvr-aide">Gravé sous le bonjour, comme une plaque de porte.</p>
+          </div>
+          <div class="bdvr-champ">
+            <label class="bdvr-l" for="bdvrCp">Ton code postal</label>
+            <input class="bdvr-i" type="text" id="bdvrCp" inputmode="numeric" maxlength="5" autocomplete="postal-code">
+          </div>
+          <div class="bdvr-champ">
+            <label class="bdvr-l" for="bdvrQui">Tu es</label>
+            <select class="bdvr-i" id="bdvrQui">
+              <option value="">Sans réponse</option>
+              <option value="vigneron">Vigneron</option>
+              <option value="caviste-negoce">Caviste ou négociant</option>
+              <option value="etudiant">Étudiant ou école</option>
+              <option value="pro-filiere">Pro de la filière</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div class="bdvr-champ bdvr-champ--plein">
+            <label class="bdvr-l" for="bdvrViti">Tu utilises Vitisoft</label>
+            <select class="bdvr-i" id="bdvrViti">
+              <option value="">Sans réponse</option>
+              <option value="oui">Oui</option>
+              <option value="non">Non</option>
+              <option value="inconnu">Je ne sais pas</option>
+            </select>
+            <p class="bdvr-aide">« Non » retire le tableau de bord du tiroir, et avec lui les onglets Tes ventes, Ma base et Le classement : il ne saurait rien lire.</p>
+          </div>
+        </div>
+      </fieldset>
 
-      <label class="bdvr-l" for="bdvrCp">Ton code postal</label>
-      <input class="bdvr-i bdvr-i--court" type="text" id="bdvrCp" inputmode="numeric" maxlength="5" autocomplete="postal-code">
+      <fieldset class="bdvr-bloc" id="bdvrBlocVentes" data-onglet="Tes ventes">
+        <legend class="bdvr-legende">Tes ventes</legend>
+        <div class="bdvr-grille">
+          <div class="bdvr-champ">
+            <label class="bdvr-l" for="bdvrObjectif">Objectif de chiffre d'affaires annuel (HT)</label>
+            <input class="bdvr-i" type="text" id="bdvrObjectif" inputmode="numeric" placeholder="ex. 500000">
+            <p class="bdvr-aide">Il commande l'ardoise et l'alerte d'atterrissage. Vide : aucun objectif.</p>
+          </div>
+          <div class="bdvr-champ">
+            <label class="bdvr-l" for="bdvrExercice">Mois d'ouverture de ton exercice</label>
+            <select class="bdvr-i" id="bdvrExercice"></select>
+            <p class="bdvr-aide">Le tableau de bord le reprendra à sa prochaine ouverture.</p>
+          </div>
+          <p class="bdvr-aide bdvr-champ--plein" id="bdvrVentesAttente" hidden>Ces deux réglages ne sont pas encore
+            chargés depuis ton compte. Tant qu'ils ne le sont pas, on ne les touche pas : écrire
+            par-dessus une valeur qu'on n'a pas lue, c'est l'effacer.</p>
+        </div>
+      </fieldset>
 
-      <label class="bdvr-l" for="bdvrQui">Tu es</label>
-      <select class="bdvr-i" id="bdvrQui">
-        <option value="">Sans réponse</option>
-        <option value="vigneron">Vigneron</option>
-        <option value="caviste-negoce">Caviste ou négociant</option>
-        <option value="etudiant">Étudiant ou école</option>
-        <option value="pro-filiere">Pro de la filière</option>
-        <option value="autre">Autre</option>
-      </select>
+      <fieldset class="bdvr-bloc" id="bdvrBlocBase" data-onglet="Ma base">
+        <legend class="bdvr-legende">Ma base</legend>
+        <div class="bdvr-etat" id="bdvrEtat">
+          <p class="bdvr-etat__verdict" id="bdvrBaseIci">Lecture de ta base…</p>
+          <p class="bdvr-etat__detail" id="bdvrBaseEcart"></p>
+        </div>
+        <div class="bdvr-hote" id="bdvrHoteBase"></div>
+        <div class="bdvr-duo" id="bdvrBaseActions"></div>
+      </fieldset>
 
-      <label class="bdvr-l" for="bdvrViti">Tu utilises Vitisoft</label>
-      <select class="bdvr-i" id="bdvrViti">
-        <option value="">Sans réponse</option>
-        <option value="oui">Oui</option>
-        <option value="non">Non</option>
-        <option value="inconnu">Je ne sais pas</option>
-      </select>
-      <p class="bdvr-aide">« Non » retire le tableau de bord du tiroir : il ne saurait rien lire.</p>
-    </fieldset>
+      <fieldset class="bdvr-bloc" id="bdvrBlocClassement" data-onglet="Le classement">
+        <legend class="bdvr-legende">Le classement</legend>
+        <div class="bdvr-hote" id="bdvrHoteClassement"></div>
+      </fieldset>
 
-    <fieldset class="bdvr-bloc" id="bdvrBlocVentes">
-      <legend class="bdvr-legende">Tes ventes</legend>
-      <label class="bdvr-l" for="bdvrObjectif">Objectif de chiffre d'affaires annuel (HT)</label>
-      <input class="bdvr-i" type="text" id="bdvrObjectif" inputmode="numeric" placeholder="ex. 500000">
-      <p class="bdvr-aide">Il commande l'ardoise et l'alerte d'atterrissage. Vide : aucun objectif.</p>
+      <fieldset class="bdvr-bloc" id="bdvrBlocCourrier" data-onglet="Le courrier">
+        <legend class="bdvr-legende">Le courrier</legend>
+        <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
+        <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>
+      </fieldset>
 
-      <label class="bdvr-l" for="bdvrExercice">Mois d'ouverture de ton exercice</label>
-      <select class="bdvr-i" id="bdvrExercice"></select>
-      <p class="bdvr-aide">Le tableau de bord le reprendra à sa prochaine ouverture.</p>
-      <p class="bdvr-aide" id="bdvrVentesAttente" hidden>Ces deux réglages ne sont pas encore
-        chargés depuis ton compte. Tant qu'ils ne le sont pas, on ne les touche pas : écrire
-        par-dessus une valeur qu'on n'a pas lue, c'est l'effacer.</p>
-    </fieldset>
+    </div>
 
-    <fieldset class="bdvr-bloc" id="bdvrBlocBase">
-      <legend class="bdvr-legende">Ma base</legend>
-      <p class="bdvr-chiffre" id="bdvrBaseIci">Lecture de ta base…</p>
-      <p class="bdvr-aide" id="bdvrBaseEcart"></p>
-      <div class="bdvr-hote" id="bdvrHoteBase"></div>
-      <div class="bdvr-duo" id="bdvrBaseActions"></div>
-    </fieldset>
-
-    <fieldset class="bdvr-bloc" id="bdvrBlocClassement">
-      <legend class="bdvr-legende">Le classement</legend>
-      <div class="bdvr-hote" id="bdvrHoteClassement"></div>
-    </fieldset>
-
-    <fieldset class="bdvr-bloc">
-      <legend class="bdvr-legende">Le courrier</legend>
-      <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
-    </fieldset>
-
-    <p class="bdvr-avis" id="bdvrAvis" role="status" hidden></p>
-    <p class="bdvr-aide" id="bdvrAttente" hidden>Chargement de tes réglages…</p>
     <div class="bdvr-pied">
+      <p class="bdvr-avis" id="bdvrAvis" role="status" hidden></p>
       <button class="bdvr-btn" id="bdvrEnregistrer" type="submit">Enregistrer</button>
+      <span class="bdvr-aide" id="bdvrAttente" hidden>Chargement de tes réglages…</span>
       <a class="bdvr-lien" href="/compte/">Mot de passe, export, suppression du compte</a>
     </div>
   </form>
@@ -259,9 +340,6 @@
 
   function construire(){
     if(monte) return;
-    // Avant l'injection : la largeur du panneau depend de la presence du moteur, et la classe
-    // se pose sur le markup a peine cree.
-    if(moteurPresent()) LARGE = true;
     poserStyle();
     const voile = document.createElement('div');
     voile.className = 'bdvr-voile';
@@ -269,9 +347,6 @@
     voile.hidden = true;
     voile.innerHTML = MARKUP;
     document.body.appendChild(voile);
-    // Le tableau de bord y verse des grilles de compteurs et des tableaux : a 40rem ils
-    // seraient illisibles. Le bureau, qui n'y met que du formulaire, garde la largeur etroite.
-    if(LARGE) voile.querySelector('.bdvr-panneau').classList.add('bdvr-panneau--large');
 
     const sel = el('bdvrExercice');
     const o0 = document.createElement('option');
@@ -297,6 +372,8 @@
     // reconstruirait a chaque ouverture perdrait l'etat de ses propres champs.
     if(moteurPresent()) monterMoteur();
     BLOCS.forEach(monterBloc);
+    // Apres le montage, jamais avant : un bloc arrive apres coup n'aurait pas eu son onglet.
+    construireOnglets();
     monte = true;
   }
 
@@ -313,6 +390,63 @@
   }
 
   function marquer(e){ if(e.target && e.target.id) TOUCHES[e.target.id] = true; }
+
+  /* ============================== LES ONGLETS ==============================
+     Refonte du 07/09/2026. Cinq sections empilees faisaient un rouleau de deux mille pixels,
+     et Ted l'a dit en un mot : « en version verticale ». Une section a l'ecran, le pied colle
+     en bas, et « Enregistrer » toujours a portee de clic.
+
+     Les onglets sont FABRIQUES a partir des blocs, jamais listes a la main : ajouter un bloc
+     au markup lui donne son onglet, et un bloc ecarte perd le sien. Deux listes a tenir
+     d'accord, c'est une de trop. */
+  function blocs(){
+    return Array.prototype.slice.call(document.querySelectorAll('#bdvrForm .bdvr-bloc'));
+  }
+
+  function construireOnglets(){
+    const barre = el('bdvrOnglets');
+    if(!barre) return;
+    barre.innerHTML = '';
+    blocs().forEach(function(b){
+      const o = document.createElement('button');
+      o.type = 'button';                       // sinon il soumet le formulaire au clic
+      o.className = 'bdvr-onglet';
+      o.setAttribute('role', 'tab');
+      o.dataset.cible = b.id;
+      o.textContent = b.getAttribute('data-onglet') || b.id;
+      o.addEventListener('click', function(){ montrerOnglet(b.id); });
+      barre.appendChild(o);
+    });
+    majOnglets();
+  }
+
+  // Rend visible un onglet, et lui seul. Un bloc ecarte par gateVitisoft ne peut pas etre
+  // choisi : on retombe sur le premier onglet encore ouvert.
+  function montrerOnglet(id){
+    const dispo = blocs().filter(function(b){ return b.getAttribute('data-off') !== 'oui'; });
+    if(!dispo.length) return;
+    if(!dispo.some(function(b){ return b.id === id; })) id = dispo[0].id;
+    const change = (ONGLET !== id);
+    ONGLET = id;
+    blocs().forEach(function(b){ b.classList.toggle('bdvr-bloc--on', b.id === id); });
+    Array.prototype.forEach.call(document.querySelectorAll('.bdvr-onglet'), function(o){
+      const on = (o.dataset.cible === id);
+      o.classList.toggle('on', on);
+      o.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    // On ne remonte le corps QUE sur un vrai changement d'onglet : gateVitisoft appelle ce
+    // chemin apres chaque enregistrement, et le defilement sauterait pour rien.
+    if(change){ const c = el('bdvrCorps'); if(c) c.scrollTop = 0; }
+  }
+
+  function majOnglets(){
+    blocs().forEach(function(b){
+      const o = document.querySelector('.bdvr-onglet[data-cible="' + b.id + '"]');
+      if(o) o.hidden = (b.getAttribute('data-off') === 'oui');
+    });
+    const premier = blocs()[0];
+    montrerOnglet(ONGLET || (premier && premier.id));
+  }
 
   function avis(texte, ok){
     const a = el('bdvrAvis');
@@ -393,9 +527,16 @@
   // porte sur une absence de reponse.
   function gateVitisoft(){
     const sans = (PROFIL && PROFIL.utilise_vitisoft === 'non');
+    // `data-off` et pas `hidden` : `hidden` se battrait avec la classe qui montre l'onglet
+    // actif, et un bloc ecarte pourrait reapparaitre d'un clic. L'attribut, lui, l'emporte
+    // dans la feuille, et il dit une autre chose que « pas l'onglet du moment ».
     ['bdvrBlocVentes','bdvrBlocBase','bdvrBlocClassement'].forEach(function(id){
-      const n = el(id); if(n) n.hidden = !!sans;
+      const n = el(id);
+      if(!n) return;
+      if(sans) n.setAttribute('data-off', 'oui');
+      else n.removeAttribute('data-off');
     });
+    majOnglets();
   }
 
   function remplir(){
@@ -444,28 +585,35 @@
 
   function nb(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 
+  /* Le bandeau d'etat de la sauvegarde. Il ne repete PAS le nombre de lignes, qui est deja
+     dans les cartes juste en dessous : il porte le verdict, appareil contre compte. C'est le
+     seul endroit de l'outil qui pouvait dire, le 07/09/2026, que 4 442 lignes n'existaient
+     que sur un ordinateur. Il se lit en premier, donc il est en haut de l'onglet.
+     Il se tait quand il ne sait pas : un compteur d'ecart qui peut mentir ne sert plus. */
   async function peindreBase(){
-    const ici = el('bdvrBaseIci'), ec = el('bdvrBaseEcart');
-    if(!ici) return;
+    const cadre = el('bdvrEtat'), verdictEl = el('bdvrBaseIci'), detailEl = el('bdvrBaseEcart');
+    if(!verdictEl) return;
     const local = await compterLignesLocales();
     const distant = await compterLignesCompte();
-    ici.textContent = nb(local) + ' ligne(s) sur cet appareil'
-      + (distant == null ? '' : ' · ' + nb(distant) + ' sur ton compte');
-    if(!ec) return;
-    if(!local && (distant == null || !distant)){
-      ec.className = 'bdvr-aide';
-      ec.textContent = 'Aucune ligne pour le moment. Dépose un export Vitisoft pour commencer.';
+    let alerte = false, verdict, detail;
+    if(!local && !distant){
+      verdict = 'Aucune ligne pour le moment.';
+      detail  = 'Dépose ton export Vitisoft ci-dessous : le tableau de bord n\'a rien à lire tant que ta base est vide.';
     }else if(distant == null){
-      ec.className = 'bdvr-aide';
-      ec.textContent = 'Impossible de vérifier ta sauvegarde pour le moment. Les lignes de cet appareil sont intactes.';
+      verdict = 'Sauvegarde non vérifiable pour l\'instant.';
+      detail  = nb(local) + ' ligne(s) sur cet appareil. Elles sont intactes : c\'est ton compte qui ne répond pas.';
     }else if(local > distant){
-      ec.className = 'bdvr-aide bdvr-aide--alerte';
-      ec.textContent = 'Sauvegarde incomplète : ' + nb(local - distant) + ' ligne(s) n\'existent que sur cet appareil. '
-        + 'Redépose ton export pour compléter. En l\'état, un autre appareil n\'en verrait que ' + nb(distant) + '.';
+      alerte = true;
+      verdict = 'Sauvegarde incomplète : ' + nb(local - distant) + ' ligne(s) n\'existent que sur cet appareil.';
+      detail  = nb(local) + ' ligne(s) ici, ' + nb(distant) + ' sur ton compte. Redépose ton export pour compléter : '
+              + 'en l\'état, un autre appareil n\'en verrait que ' + nb(distant) + '.';
     }else{
-      ec.className = 'bdvr-aide';
-      ec.textContent = 'Sauvegarde à jour. Tu retrouveras ta base sur un autre appareil.';
+      verdict = 'Sauvegarde à jour.';
+      detail  = nb(local) + ' ligne(s) ici, ' + nb(distant) + ' sur ton compte. Tu retrouveras ta base sur un autre appareil.';
     }
+    verdictEl.textContent = verdict;
+    if(detailEl) detailEl.textContent = detail;
+    if(cadre) cadre.className = 'bdvr-etat' + (alerte ? ' bdvr-etat--alerte' : '');
   }
 
   /* ====================== ENREGISTREMENT ====================== */
@@ -654,7 +802,6 @@
   function brancher(options){
     options = options || {};
     if(options.surProfil) SUR_PROFIL = options.surProfil;
-    if(options.large) LARGE = true;
     (options.blocs || []).forEach(function(b){
       BLOCS.push(b);
       if(monte) monterBloc(b);
