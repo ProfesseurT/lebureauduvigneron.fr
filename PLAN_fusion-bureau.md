@@ -98,13 +98,35 @@ sur un ecran de vente affiche dans le bureau.
 172 px quand la barre est repliee. Si Ted trouve ca etroit sur « Mes clients », c'est un
 `max-width` a ouvrir sur `.bureau-atelier`, pas une refonte.
 
-### Lot 3 : le vocabulaire et le tiroir
+### Lot 3 : le vocabulaire et le tiroir — EN PARTIE FAIT le 07/09/2026
 
-1. Tout texte qui dit « le tableau de bord » comme un lieu ou l'on va est reecrit.
-2. Le tiroir du bas ne garde que les outils ouverts a tous, pas les ecrans du vigneron.
-3. `CLAUDE.md` recoit la regle : **un nouveau chantier entre par la barre de navigation du
-   bureau, jamais par une nouvelle page autonome.** C'est la promesse de Ted du 07/09/2026,
-   « quand on va attaquer ce plan, on fera pareil ».
+**Fait :**
+
+1. `CLAUDE.md` porte la regle : un nouveau chantier entre par la barre du bureau, jamais par
+   une nouvelle page autonome. Sa premiere section a ete reecrite, ainsi que celles des
+   controles et de la verification sur donnees reelles.
+2. Plus un seul lien du site ne passe par la redirection : la maquette d'accueil (douze
+   boutons), le plan du site, le bouton de la page compte, et les quatre liens internes du
+   bureau menent au bureau.
+3. Les textes devenus FAUX sont reecrits : l'aide Vitisoft du panneau ne parle plus du
+   tiroir, l'invite du sous-main dit « Ouvre Mon exercice une fois », le lien de fiche ne
+   dit plus « dans le tableau de bord » puisqu'on n'y va plus, la punaise de l'age dit
+   « depuis ton dernier export », l'ecran de base vide parle de « tes ecrans de vente », et
+   la page `/outils/` presente « Ton bureau » au lieu d'un tableau de bord separe.
+4. `JOURNAL.md` porte le recit de la session et ses arbitrages.
+
+**A trancher avec Ted avant d'aller plus loin :**
+
+1. **`rgpd.njk`, neuf mentions.** Certaines sont devenues fausses : « uniquement sur la page
+   du tableau de bord », « Depuis le tableau de bord, le bouton Vider la base ». Texte
+   juridique, non touche.
+2. **Deux anciennes versions PUBLIEES** : `/outils/dashboard-vigneron-v1/` et
+   `/outils/dashboard-vigneron-mockup/`, accessibles sans compte et sans redirection. Elles
+   ne lisent pas la vraie base (aucun IndexedDB), donc pas de fuite de donnees, mais elles
+   promettent la meme chose que le bureau. Supprimer, rediriger, ou laisser ?
+3. **Le tiroir du bureau.** Il devait revenir avec les outils ouverts a tous ; il n'y en a
+   qu'un, le compte a rebours, deja dans la barre. Supprimer la zone, ou en faire un renvoi
+   vers `/outils/` ?
 
 ## Ce qui reste ouvert
 

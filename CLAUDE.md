@@ -2,13 +2,41 @@
 
 Site Eleventy deploye sur Vercel au push sur `main`.
 
-Le tableau de bord des ventes, `src/outils/dashboard-vigneron.html`, a longtemps porte
-l'essentiel du travail a lui seul. Ce n'est plus vrai : son moteur est sorti dans
-`src/js/bdv-base.js` le 07/09/2026 (base IndexedDB, empreintes, import), et les modules
-partages vivent a cote : `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de
-reglages, plus `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`. Ce fichier
-n'est plus autonome : y chercher une fonction avant de chercher dans `src/js/` fait perdre
-du temps.
+## LE BUREAU EST LE LIEU UNIQUE
+
+Le tableau de bord des ventes a longtemps ete une page a part,
+`src/outils/dashboard-vigneron.html`, qui portait l'essentiel du travail a elle seule. Ce
+n'est plus vrai depuis la fusion du 07/09/2026. Cette page est aujourd'hui une simple
+redirection, et ses ecrans sont des PIECES du bureau, `/mon-bureau/`, dans une seule barre
+de navigation a plat.
+
+**LA REGLE, demandee par Ted le 07/09/2026 : un nouveau chantier entre par la barre du
+bureau, jamais par une nouvelle page autonome.** Elle vaut pour tout ce qui est destine au
+vigneron connecte : un agenda, un composeur de signature, un ecran d'administration. Les
+outils ouverts a toute la filiere, eux, gardent leur page sous `/outils/` : ils sont lus par
+des gens qui n'ont pas de compte, et ils n'ont rien a faire dans le bureau de quelqu'un.
+
+Concretement, une piece nouvelle s'ajoute dans `PIECES`, en tete de `src/js/bdv-nav.js`, et
+son ecran dans la coque `src/_includes/components/ecrans-vente.njk`. Les identifiants
+doivent etre les memes que ceux de `NAV` dans `src/js/bdv-ecrans.js` : rien ne le garantit
+sauf `npm run banc`, qui compare les deux listes et echoue si elles divergent.
+
+## Ou vivent les choses
+
+Plus rien n'est autonome, et chercher une fonction dans une page avant de chercher dans
+`src/js/` fait perdre du temps.
+
+- `bdv-base.js` : le moteur. Base IndexedDB, empreintes de ligne, import, exercice comptable.
+  Charge par le bureau, sans `defer`, AVANT tout le reste.
+- `bdv-ecrans.js` : les cinq ecrans de vente. Charge au PREMIER CLIC sur une piece de vente,
+  jamais a l'ouverture du bureau, et toujours apres `bdv-base.js`.
+- `bdv-nav.js` : la liste unique des pieces du bureau, la barre, et le chargement a la demande.
+- `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de reglages partage, plus
+  `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`, `bdv-canaux.js`.
+
+Trois feuilles de style, dont deux ne sont dans AUCUN HTML : `style.css` (le site, liee par
+le layout), `bdv-ecrans.css` (posee par `bdv-nav.js`, et portee par `.bdv-ventes` : voir plus
+bas), `bdv-panneau.css` (posee par `bdv-reglages.js`, portee par `.bdvr-panneau`).
 
 ## Regles de contenu
 
@@ -128,16 +156,36 @@ bordeaux, du blanc pur est plus dur que le papier du site.
 
 ## Verifier avant de livrer
 
-Un seul script de controle, `scripts/charte.mjs`, lance de deux facons. Il a besoin de
-`css-tree`, declare en devDependency.
+Deux scripts. `scripts/charte.mjs` a besoin de `css-tree`, `scripts/banc-bureau.mjs` de
+`jsdom`, tous deux en devDependency.
 
-    npm run charte        conformite du CSS du site
-    npm run charte:dash   conformite du tableau de bord
+    npm run build           OBLIGATOIRE avant les deux suivants
+    npm run charte          conformite du CSS du site
+    npm run charte:bureau   conformite du bureau et de ses ecrans de vente
+    npm run banc            le bureau fait-il ce qu'il dit
 
-Ce qu'ils regardent : les couleurs, les rayons, les familles de police et les tailles
+`charte:dash` reste accepte comme ancien nom de `charte:bureau`.
+
+**`charte:bureau` et `banc` lisent la page CONSTRUITE, `_site/mon-bureau/index.html`, et pas
+le gabarit.** Le gabarit ne porte pas ses feuilles de style, elles sont dans le layout : le
+lire, c'est ne rien lire puis l'annoncer conforme. Les deux scripts s'arretent en le disant
+si le build manque. Ce piege s'est referme trois fois dans la journee du 07/09/2026, chaque
+fois pour une raison differente. La regle qui en sort : **un controle qui ne peut pas
+s'executer doit crier, jamais se taire.**
+
+Ce que `charte` regarde : les couleurs, les rayons, les familles de police et les tailles
 encore ecrits en dur avec leur selecteur ; les tokens declares jamais appeles et les
 `var()` sans declaration ; la table des contrastes des paires texte sur fond, avec le
-verdict AA ; et, pour le tableau de bord, que les entites HTML numeriques sont intactes.
+verdict AA ; les entites HTML numeriques, comparees a une liste FIGEE dans le script (ce
+sont les icones, et un chercher-remplacer de couleurs les emporte sans prevenir) ; et que
+**aucune regle de `bdv-ecrans.css` ne sort de son scope `.bdv-ventes`**. Cette derniere
+existe parce que six noms de classes sont communs avec `style.css` : `btn`, `btn--ghost`,
+`card__title`, `hero`, `mono`, `note`. Ne pas les renommer, c'est un vocabulaire partage
+avec `bdv-base.js` ; c'est le scope qui les separe.
+
+Ce que `banc` regarde : la barre du bureau, la bascule entre les pieces, les trois formes
+d'adresse, l'interception des liens, le bouton Retour, la regle « sans Vitisoft, pas
+d'ecrans de vente », et la correspondance des deux listes d'ecrans.
 
 Le controle le plus important est celui qui confronte chaque `font-weight` demande par le
 CSS aux graisses reellement chargees par le lien Google Fonts. C'est lui qui attrape le
@@ -153,9 +201,11 @@ deja, le site non.
 
 ## Verifier le tableau de bord sur donnees reelles
 
-Il n'y a pas de suite de tests dans le depot. La verification se fait en chargeant le fichier
-dans jsdom, en injectant un export reel, et en appelant les fonctions de rendu. A controler
-systematiquement apres une modification :
+`npm run banc` couvre la navigation du bureau, jamais le rendu d'un chiffre : il n'execute
+aucun script de la page et ne connait aucune donnee. Les cinq controles ci-dessous restent
+donc a faire A L'ECRAN, avec un export reel, apres toute modification. `CONFORME` ne veut
+dire que « la charte tient », et `LE BUREAU FAIT CE QU'IL DIT » que « les gestes
+s'enchainent ». Ni l'un ni l'autre ne dit que les chiffres sont bons.
 
 1. Le chiffre d'affaires total est inchange.
 2. Un reimport du meme export donne 0 ligne ajoutee.

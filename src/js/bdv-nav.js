@@ -14,23 +14,25 @@
    pieces du bureau, au meme rang que « Ma journee ». Un chantier nouveau entre
    donc ICI, dans PIECES, et jamais par une page autonome de plus.
 
-   OU EN EST-ON. Au lot 1, la barre est posee au bureau et les pieces de vente
-   sont encore des LIENS vers /outils/dashboard-vigneron/. Au lot 2, ces liens
-   deviennent des changements d'ecran dans la page, et la vieille adresse ne
-   sera plus qu'une redirection. La forme de PIECES est faite pour ce jour-la :
-   remplacer `href` par un appel, sans toucher a l'ordre ni aux libelles.
+   OU EN EST-ON. La fusion est faite. Les pieces de vente sont des adresses du
+   bureau (/mon-bureau/#clients), le clic est intercepte ici, et
+   /outils/dashboard-vigneron/ n'est plus qu'une page de redirection qui traduit
+   les anciennes adresses. Les `href` restent de vrais liens : une adresse se
+   copie, s'ouvre dans un autre onglet, se met en favori, et fonctionne encore
+   si le JavaScript n'a pas pris.
 
-   DEUX PIEGES POUR LE LOT 2, notes pendant qu'ils sont frais :
-     1. Le raccourci clavier. Les ecrans de vente ecoutent DEJA le crochet
-        ouvrant pour replier leur volet. Le jour ou les deux vivront dans la
-        meme page, deux ecouteurs replieraient et deplieraient dans la meme
-        frappe, ce qui ne se voit pas et ne se debugue pas. La garde
-        `window.__bdvNavRaccourci` plus bas existe pour ca : le premier arrive
-        prend la main, le second s'abstient.
-     2. Le mecanisme « ici » des ecrans de vente (le menu de secours de la barre
-        haute quand le volet est replie a zero) devient inutile ici, parce que
-        cette barre-la ne se replie PAS a zero : elle garde ses icones. Il sera a
-        supprimer, pas a faire cohabiter.
+   DEUX PIEGES REFERMES, notes pour qu'on ne les rouvre pas :
+     1. Le raccourci clavier. Les ecrans de vente ecoutaient DEJA le crochet
+        ouvrant pour replier leur volet ; les deux vivant desormais dans la meme
+        page, deux ecouteurs auraient replie et deplie dans la meme frappe, ce
+        qui ne se voit pas et ne se debugue pas. Leur volet a disparu au lot 2d,
+        mais la garde `window.__bdvNavRaccourci` reste : elle est la reponse au
+        cas ou une autre barre reviendrait un jour.
+     2. Le mecanisme « ici » des ecrans de vente, le menu de secours de la barre
+        haute quand le volet tombait a zero, a ete supprime et non fait
+        cohabiter. Cette barre-ci ne se replie PAS a zero, elle garde ses
+        icones : il n'y a plus de vigneron a sortir de l'ecran ou il se trouve.
+        Ne pas reintroduire un repli a zero sans reintroduire un menu avec.
    ================================================================ */
 (function () {
   'use strict';

@@ -12,6 +12,121 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## Session du 07/09/2026, après-midi : le bureau devient le lieu unique
+
+Ted a demandé que le tableau de bord cesse d'être « une page un peu électron libre » et
+qu'il soit intégré au bureau. Le mot qu'il a employé était « un onglet, un tiroir du
+bureau », et c'est ce mot qu'on a écarté en premier.
+
+### L'arbitrage de départ
+
+Un onglet du bureau contenant les cinq écrans du tableau de bord empile deux étages de
+navigation : le bureau, puis dedans le tableau de bord, puis dedans ses écrans. C'est
+exactement la sensation d'électron libre, rangée dans un placard. Trois formes ont été
+posées, Ted a tranché pour la plus ambitieuse : **une seule navigation, à plat**. Le nom
+« tableau de bord » ne désigne plus un lieu, ses écrans sont des pièces du bureau au même
+rang que « Ma journée ».
+
+Écarté : l'onglet « Mes ventes » contenant la navigation actuelle (moitié moins de travail,
+mais deux étages), et le simple habillage commun de deux pages (une session, mais le
+chargement trahit la page à part).
+
+Barre **à gauche et repliable**, pas en haut : les écrans de vente portent des tableaux de
+dix colonnes et deux cents lignes. Un bandeau horizontal leur prend de la hauteur en
+permanence, une colonne n'en prend qu'une fois et elle se replie.
+
+Chantier mené **seul**, sans y mêler les six chantiers de la feuille de route de la veille :
+si quelque chose casse, il faut savoir lequel des deux a cassé.
+
+### Les quatre lots, et ce qu'on a appris dans chacun
+
+**Lot 0.** La mise en forme et les écrans sortent du fichier du tableau de bord vers
+`bdv-ecrans.css` et `bdv-ecrans.js`. Déplacement pur, vérifié par reconstitution : le
+fichier recomposé est identique au caractère près, mêmes 228 351 octets. La page passe de
+3 221 à 135 lignes.
+
+**Lot 1.** La barre du bureau, et `bdv-nav.js` qui porte la **liste unique des pièces**.
+Avant lui, la liste existait à deux endroits qui ne se ressemblaient pas. La barre partage
+la clé de préférence de repli et le raccourci clavier avec le volet des écrans de vente :
+pour le vigneron c'est la même barre. Une différence assumée, qui a payé au lot 2d : ici le
+repli laisse les icônes, là où le volet tombait à zéro.
+
+**Lot 2.** En quatre temps. Le démarrage des écrans devient une fonction, parce qu'un
+écouteur `DOMContentLoaded` ne se déclenche jamais quand le script est chargé au clic. La
+coque devient un include partagé. Le chargement se fait au premier clic. L'ancienne adresse
+devient une redirection qui traduit le fragment.
+
+### Le vrai arbitrage technique du lot 2 : scope contre renommage
+
+Six noms de classes sont communs entre `style.css` et `bdv-ecrans.css` : `btn`,
+`btn--ghost`, `card__title`, `hero`, `mono`, `note`. Le plan du lot 0 annonçait de les
+renommer côté écrans. **C'était faux, et l'annuler est la bonne décision du lot 2.**
+
+Ces noms sont un **vocabulaire partagé** avec `bdv-base.js`, qui génère lui aussi des
+`.btn` et des `.card__title`, et dont les blocs sont stylés par `bdv-panneau.css` sous
+`.bdvr-panneau`. Renommer d'un côté seulement aurait donné deux noms pour la même chose
+selon l'endroit où le bloc s'affiche. Les 373 sélecteurs sont donc portés par
+`.bdv-ventes`, cinq exceptions nommées : les jetons et les quatre éléments hors page, qui
+portent la classe eux-mêmes. C'est le motif déjà retenu pour `bdv-panneau.css`.
+
+Corollaire à retenir : **le précédent existait déjà dans le dépôt**. Avoir cherché comment
+`bdv-panneau.css` résolvait le même problème a évité une centaine de renommages inutiles.
+
+### Cinq règles globales, et l'interlignage du site
+
+`bdv-ecrans.css` stylait `html`, `body`, `a` et tous les titres. Sans danger tant qu'une
+seule page la chargeait ; chargée dans le bureau, sa règle `body` aurait rabattu
+l'interlignage du site de 1,7 à 1,5, sur toute la page, sans que rien ne le signale. Sorties
+dans une feuille que seule la page autonome chargeait, disparue avec elle au lot 2d.
+
+### Ce que les outils ont trouvé, et pas nous
+
+`npm run banc`, **premier test automatisé du dépôt**, 56 contrôles sur la page produite. Il
+a attrapé le bug pour lequel il a été écrit : la pièce active de la barre était rendue en
+`<span>` non cliquable. Juste pour une barre qui rechargeait la page, faux dès qu'elle
+navigue : revenir à « Ma journée » après un détour par « Mes clients » ne faisait plus rien,
+sans un message et sans une erreur.
+
+Une capture d'écran a montré ce qu'aucun contrôle ne voit : `.btn--light` est dessiné pour
+se poser sur le bordeaux de l'ancienne barre haute. Dans le bureau, ces boutons tombent sur
+du papier clair, où « Exporter PDF » et « Ouvrir ma base » se devinaient plus qu'ils ne se
+lisaient. La charte vérifie des paires de couleurs nommées, jamais un bouton posé sur un
+fond pour lequel il n'a pas été dessiné.
+
+### Le contrôle qui rassurait sur du vide, trois fois dans la journée
+
+`charte:dash` a annoncé CONFORME sur du vide trois fois le 07/09/2026, chaque fois pour une
+raison différente : le CSS parti dans une feuille liée, les icônes parties dans un include,
+puis la cible devenue un gabarit qui ne porte pas ses feuilles de style. La règle qui en
+sort et qui vaut pour tout script de contrôle : **un contrôle qui ne peut pas s'exécuter
+doit crier, jamais se taire.** Les deux scripts s'arrêtent maintenant en le disant si le
+build manque ou si `jsdom` est absent.
+
+`charte:dash` est devenu `charte:bureau` et cible `_site/mon-bureau/index.html`. Il lit
+aussi les **deux feuilles chargées en JavaScript** que personne ne surveillait,
+`bdv-ecrans.css` et `bdv-panneau.css` : elles ne sont dans aucun HTML et pourtant elles
+s'appliquent. Nouvelle section : aucune règle de `bdv-ecrans.css` ne peut sortir de son
+scope.
+
+### Ce qui reste ouvert au terme de la session
+
+- **Le RGPD parle encore d'une page qui n'existe plus** : neuf mentions dans `rgpd.njk`,
+  dont « uniquement sur la page du tableau de bord » et « Depuis le tableau de bord, le
+  bouton Vider la base ». C'est un texte juridique, il n'a pas été touché sans l'avis de Ted.
+- **Deux anciennes versions du tableau de bord sont PUBLIÉES** : `dashboard-vigneron-v1` et
+  `dashboard-vigneron-mockup`, accessibles en ligne, sans compte et sans redirection. Elles
+  ne lisent pas la vraie base (aucun IndexedDB), donc pas de fuite, mais ce sont deux
+  électrons libres de plus, qui promettent la même chose que le bureau.
+- **Le tiroir du bureau est vide et masqué.** Il devait revenir avec les outils ouverts à
+  tous, mais il n'y en a qu'un, le compte à rebours, et il est déjà dans la barre. À
+  trancher : le supprimer, ou en faire un renvoi vers `/outils/`.
+- Les icônes de la barre sont des emoji, elles gardent leurs couleurs propres sur le fond
+  sombre. Ça vient des écrans de vente, mais sept en colonne, ça se voit plus que cinq.
+- La largeur : les écrans de vente ont 1 440 px, plus 172 quand la barre est repliée. Si
+  c'est étroit sur « Mes clients », c'est un `max-width` à ouvrir, pas une refonte.
+
+---
+
 ## Session du 06/09/2026, en soirée : la feuille de route des six chantiers
 
 Ted a posé six chantiers pour la suite. Ils sont notés ici avec ce que chacun suppose et ce qui

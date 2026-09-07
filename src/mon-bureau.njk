@@ -323,7 +323,7 @@ permalink: /mon-bureau/
     if(!window.BdvCrm || !ETAT_FILE){
       vide(boite, LECTURE_KO
         ? 'Ta file n’a pas pu être lue. Ce n’est pas qu’elle est vide : réessaie tout à l’heure.'
-        : 'Ouvre ton tableau de bord une fois : il déposera ici les clients à rappeler.');
+        : 'Ouvre « Mon exercice » une fois : ton bureau déposera ici les clients à rappeler.');
       return;
     }
     var lignes = BdvCrm.file(ETAT_FILE);
@@ -663,7 +663,7 @@ permalink: /mon-bureau/
 
     var lien = document.createElement('p'); lien.className = 'zone__pied';
     var a2 = document.createElement('a');
-    a2.href = lienFiche(id); a2.textContent = 'Voir sa fiche complète dans le tableau de bord';
+    a2.href = lienFiche(id); a2.textContent = 'Voir sa fiche complète';
     lien.appendChild(a2); boite.appendChild(lien);
   }
 
@@ -894,7 +894,7 @@ permalink: /mon-bureau/
         cartes.push({
           valeur: age <= 0 ? 'du jour' : (age === 1 ? 'hier' : age + ' jours'),
           libelle: age <= 1 ? 'ta dernière analyse' : 'depuis ta dernière analyse',
-          sous: age > 30 ? 'réimporte ton export, l\u2019ardoise a vieilli' : 'tableau de bord',
+          sous: age > 30 ? 'réimporte ton export, l\u2019ardoise a vieilli' : 'depuis ton dernier export',
           ton: age > 30 ? 'vieux' : '',
           // Cette punaise mene la ou on repare ce qu'elle signale : la base, donc le
           // panneau de reglages, et plus la porte d'un outil qui n'existe plus.

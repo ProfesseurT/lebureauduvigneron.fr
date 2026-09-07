@@ -279,7 +279,7 @@
               <option value="non">Non</option>
               <option value="inconnu">Je ne sais pas</option>
             </select>
-            <p class="bdvr-aide">« Non » retire le tableau de bord du tiroir, et avec lui les onglets Tes ventes, Ma base et Le classement : il ne saurait rien lire.</p>
+            <p class="bdvr-aide">« Non » retire de ton bureau les pièces qui lisent tes ventes, et avec elles les onglets Tes ventes, Ma base et Le classement : elles ne sauraient rien lire.</p>
           </div>
         </div>
       </fieldset>
