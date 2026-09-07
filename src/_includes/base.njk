@@ -36,7 +36,10 @@
         <li><a href="/teddy/">À propos</a></li>
         <!-- Le hidden est porte par le <li> et pas par le lien : la liste du menu est une
              grille espacee, un element vide y laisserait un trou. -->
-        <li id="navBureau" hidden><a href="/mon-bureau/" class="nav__cta">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span></a></li>
+        <!-- nav__compte aussi ici : la zone du compte commence apres le filet dans les DEUX
+             etats, connecte comme deconnecte. Sinon la barre changeait de structure selon
+             qui la regarde. -->
+        <li id="navBureau" class="nav__compte" hidden><a href="/mon-bureau/" class="nav__cta">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span></a></li>
         <!-- DEUX portes visibles, decide le 07/09/2026. Il n'y en avait qu'une, « Creer mon
              compte », et un vigneron qui revenait ne trouvait aucun mot qui lui parlait : il
              devait cliquer sur « creer » pour DECOUVRIR qu'il pouvait se connecter.
@@ -50,32 +53,40 @@
       </ul>
     </div>
   </nav>
-  <!-- Lu ici et pas dans le module : bdv-compte.js est en defer, l'etiquette changerait apres
-       le premier rendu et le menu clignoterait de « Créer mon compte » a « Mon compte ». -->
+  <!-- Lu ici et pas dans le module : bdv-compte.js est en defer, les etiquettes changeraient
+       apres le premier rendu et le menu clignoterait de « Créer mon compte » a « Mon bureau ».
+       Posee sur window et rejouable, et non plus enfermee dans un if : la fenetre de compte
+       emet « bdv:session » quand une session s'ouvre ou se ferme SANS changement de page, et
+       c'est le seul moyen que ce bandeau a de l'apprendre. Elle ecrit les DEUX etats a chaque
+       passage, jamais seulement l'etat connecte : une fonction qui ne sait qu'allumer ne peut
+       pas eteindre, et « Mon bureau » serait reste affiche apres une deconnexion. -->
   <script>
-    try{
-      var _bdvN = JSON.parse(localStorage.getItem('bdv_session'));
-      if(_bdvN && _bdvN.access_token && _bdvN.user){
+    window.bdvMajBandeau = function(){
+      try{
+        var s = JSON.parse(localStorage.getItem('bdv_session'));
+        var connecte = !!(s && s.access_token && s.user);
         // Se deconnecter et gerer son compte se font depuis le bureau, pas depuis un menu de
         // navigation. Les DEUX portes tombent ensemble une fois connecte, « Mon bureau » les
         // remplace : en oublier une laisserait « Connexion » proposee a quelqu'un de connecte.
-        var _bdvC = document.getElementById('navCompteLi');
-        if(_bdvC) _bdvC.hidden = true;
-        var _bdvX = document.getElementById('navConnexionLi');
-        if(_bdvX) _bdvX.hidden = true;
-        var _bdvB = document.getElementById('navBureau');
-        if(_bdvB) _bdvB.hidden = false;
-        // Le compte a lire se lit dans le meme miroir que les boutons de signet. Il vaut mieux
-        // un compte d'une seconde d'age affiche tout de suite qu'un compte juste affiche apres
-        // un aller-retour reseau, qui ferait sauter le menu sous le curseur.
-        try{
-          var _bdvS = JSON.parse(localStorage.getItem('bdv_signets_v1')) || {};
-          var _bdvN2 = Object.keys(_bdvS).filter(function(k){ return _bdvS[k].etat === 'a_lire'; }).length;
-          var _bdvP = document.getElementById('navPastille');
-          if(_bdvP && _bdvN2 > 0){ _bdvP.textContent = _bdvN2; _bdvP.hidden = false; }
-        }catch(e){}
-      }
-    }catch(e){}
+        var c = document.getElementById('navCompteLi');    if(c) c.hidden = connecte;
+        var x = document.getElementById('navConnexionLi');  if(x) x.hidden = connecte;
+        var b = document.getElementById('navBureau');       if(b) b.hidden = !connecte;
+        var p = document.getElementById('navPastille');
+        if(p){
+          p.hidden = true;
+          // Le compte a lire se lit dans le meme miroir que les boutons de signet. Il vaut
+          // mieux un compte d'une seconde d'age affiche tout de suite qu'un compte juste
+          // affiche apres un aller-retour reseau, qui ferait sauter le menu sous le curseur.
+          if(connecte) try{
+            var sg = JSON.parse(localStorage.getItem('bdv_signets_v1')) || {};
+            var n = Object.keys(sg).filter(function(k){ return sg[k].etat === 'a_lire'; }).length;
+            if(n > 0){ p.textContent = n; p.hidden = false; }
+          }catch(e){}
+        }
+      }catch(e){}
+    };
+    window.bdvMajBandeau();
+    document.addEventListener('bdv:session', window.bdvMajBandeau);
   </script>
 
   {{ content | safe }}

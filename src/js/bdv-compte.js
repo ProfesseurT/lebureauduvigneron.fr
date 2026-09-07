@@ -326,7 +326,16 @@
 
   // Se deconnecter EFFACE ce navigateur. L'appelant DOIT avoir prevenu et fait confirmer :
   // cette fonction ne pose aucune question, elle execute.
-  function deconnexion(){ oublierCetAppareil(); }
+  // Emis a chaque bascule d'etat de session, dans un sens comme dans l'autre. Le bandeau du
+  // haut lit la session en script synchrone au premier rendu : il ne peut donc PAS savoir
+  // qu'une session vient de s'ouvrir ou de se fermer dans la page deja affichee. Cet
+  // evenement est le seul lien entre les deux. Sans lui, le bandeau proposait encore
+  // « Connexion » a quelqu'un qui venait de se connecter, jusqu'au prochain rechargement.
+  function signalerSession(){
+    try{ document.dispatchEvent(new CustomEvent('bdv:session')); }catch(e){}
+  }
+
+  function deconnexion(){ oublierCetAppareil(); signalerSession(); }
 
   async function profil(){
     const s = lireSession();
@@ -396,8 +405,13 @@
   function injecterStyles(){
     if(stylesInjectes) return;
     stylesInjectes = true;
-    const css = '.bdv-porte{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--bordeaux-veil, rgba(40,10,18,.7))}'
-      + '.bdv-porte__carte{max-width:440px;width:100%;background:var(--white,#FFFFFF);border-top:3px solid var(--bordeaux,#5A1525);position:relative;box-shadow:var(--ombre-dure, 6px 6px 0 rgba(30,37,54,0.18));padding:2.2rem 2rem;text-align:left}'
+    // align-items:flex-start plus overflow-y:auto sur le voile, et margin:auto sur la carte :
+    // la carte reste centree quand elle tient dans l'ecran, et le voile defile quand elle ne
+    // tient pas. Avec align-items:center et aucun defilement, l'etape des cinq questions
+    // depassait en haut ET en bas sur un portable de 700px : le bouton « Enregistrer et
+    // entrer » etait alors hors d'atteinte, sans le moindre indice a l'ecran.
+    const css = '.bdv-porte{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto;background:var(--bordeaux-veil, rgba(40,10,18,.7))}'
+      + '.bdv-porte__carte{margin:auto;max-width:440px;width:100%;background:var(--white,#FFFFFF);border-top:3px solid var(--bordeaux,#5A1525);position:relative;box-shadow:var(--ombre-dure, 6px 6px 0 rgba(30,37,54,0.18));padding:2.2rem 2rem;text-align:left}'
       + '.bdv-porte__eyebrow{font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-large,.15em);color:var(--bordeaux,#5A1525);margin-bottom:.6rem}'
       + '.bdv-porte__titre{font-family:var(--font-titre,\'Fraunces\',Georgia,\'Times New Roman\',serif);font-weight:400;font-size:1.5rem;color:var(--ink,#1E2536);margin-bottom:.6rem}'
       + '.bdv-porte__reassure{font-size:var(--t-base,.88rem);color:var(--muted,#63523D);margin-bottom:1.4rem;line-height:var(--lh-normal,1.5)}'
@@ -406,7 +420,6 @@
       + '.bdv-porte__input{width:100%;padding:.65rem .75rem;border:1px solid var(--rule-fort,rgba(30,37,54,.42));background:var(--paper-light,#F5EFE0);font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-corps,1rem);color:var(--ink,#1E2536);margin-bottom:.9rem;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__input:focus{outline:2px solid var(--bordeaux,#5A1525);outline-offset:1px}'
       + '.bdv-porte__input--code{letter-spacing:.3em;font-family:var(--font-mono,\'JetBrains Mono\',\'Courier New\',monospace);text-align:center;font-size:1.2rem}'
-      + '.bdv-porte__aide{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:-.5rem 0 .9rem}'
       + '.bdv-porte__regles{margin:-.5rem 0 .9rem}'
       + '.bdv-porte__regles-titre{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:0 0 .25rem}'
       + '.bdv-porte__regle{display:flex;gap:.4rem;align-items:baseline;font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin:0;line-height:1.7}'
@@ -481,9 +494,11 @@
         // ou d'EN GENERER UN (new-password). Fige sur current-password jusqu'au 07/09/2026, il
         // proposait de remplir un compte inexistant a quelqu'un en train de s'inscrire.
         + '<input class="bdv-porte__input" type="password" id="bdvMdp" autocomplete="new-password">'
-        // Annonce statique construite depuis MDP_REGLES, jamais recopiee : un refus muet
-        // sur une regle qu'on n'avait pas annoncee est la panne la plus couteuse de cet ecran.
-        + '<p class="bdv-porte__aide" id="bdvAide">Il te faut : ' + esc(MDP_REGLES.map(function(r){ return r.texte; }).join(', ')) + '.</p>'
+        // La liste, construite depuis MDP_REGLES et jamais recopiee a la main. Un refus muet
+        // sur une regle qu'on n'avait pas annoncee est la panne la plus couteuse de cet ecran,
+        // c'est pourquoi elle est visible d'entree en mode inscription, avant la premiere
+        // frappe, et pas seulement au focus. Une phrase d'annonce statique la doublait mot
+        // pour mot juste au-dessus : deux fois la meme chose a la suite, retiree.
         + listeRegles('bdvReglesAcces', 'Pour créer un compte, il faut :')
         + '<label class="bdv-porte__chk" id="bdvNewsLabel"><input type="checkbox" id="bdvNews"> Recevoir l\'édition bimensuelle du Bureau du Vigneron</label>'
         // Un seul de ces deux boutons est visible, et il est plein : le bouton principal de
@@ -571,7 +586,6 @@
       const btnNouveau = overlay.querySelector('#bdvBtnNouveau');
       const erreurNouveau = overlay.querySelector('#bdvErreurNouveau');
       const titreEl = overlay.querySelector('#bdvPorteTitre');
-      const aideMdp = overlay.querySelector('#bdvAide');
       const newsLabel = overlay.querySelector('#bdvNewsLabel');
       const btnBascule = overlay.querySelector('#bdvBtnBascule');
       const basculeTexte = overlay.querySelector('#bdvBasculeTexte');
@@ -654,6 +668,9 @@
       function entrer(session){
         document.removeEventListener('keydown', surEchap);
         overlay.remove();
+        // Avant resolve(), volontairement : l'appelant enchaine souvent sur un changement de
+        // page, et le bandeau doit etre juste pendant le temps ou la page suivante charge.
+        if(session) signalerSession();
         resolve(session);
       }
       function esquiver(){
@@ -810,8 +827,7 @@
           if(puce) puce.textContent = ok ? '\u2713' : '\u00b7';
         });
       }
-      champMdp.addEventListener('input', function(){ if(mode === 'inscription') majRegles(reglesAcces, champMdp.value); });
-      champMdp.addEventListener('focus', function(){ if(mode === 'inscription') majRegles(reglesAcces, champMdp.value, true); });
+      champMdp.addEventListener('input', function(){ if(mode === 'inscription') majRegles(reglesAcces, champMdp.value, true); });
       champNouveau.addEventListener('input', function(){ majRegles(reglesNouveau, champNouveau.value, true); });
       majRegles(reglesNouveau, '', true);
 
@@ -826,7 +842,6 @@
         // lequel on est entre. Apres une bascule il redevient neutre : « Ton bureau t'attend »
         // au-dessus d'un formulaire de connexion ne veut plus rien dire.
         titreEl.textContent = (mode === modeInitial && options.titre) ? options.titre : TITRES[mode];
-        aideMdp.hidden = co;
         newsLabel.hidden = co;
         btnInscription.hidden = co;
         btnConnexion.hidden = !co;
@@ -838,7 +853,7 @@
         btnBascule.textContent = co ? 'En créer un' : 'Me connecter';
         masquerErreur(erreurAcces);
         if(co) reglesAcces.hidden = true;
-        else majRegles(reglesAcces, champMdp.value);
+        else majRegles(reglesAcces, champMdp.value, true);
       }
       btnBascule.addEventListener('click', function(){
         poserMode(mode === 'connexion' ? 'inscription' : 'connexion');
@@ -952,7 +967,11 @@
     // Ctrl, cmd, maj ou clic du milieu : c'est une demande d'ouvrir ailleurs, on ne touche pas.
     if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button > 0) return;
     e.preventDefault();
-    const apres = cible.getAttribute('data-bdv-apres');
+    // Defaut pose le 07/09/2026 : une connexion ou une inscription reussie mene AU BUREAU.
+    // Un bouton qui veut une autre destination la declare dans data-bdv-apres.
+    // Le verrou du tableau de bord n'est PAS concerne : il appelle porte() directement et pas
+    // cette delegation, donc un vigneron en train d'importer reste sur son import.
+    const apres = cible.getAttribute('data-bdv-apres') || '/mon-bureau/';
     if(lireSession()){ if(apres) location.href = apres; return; }
     ouvrir({
       titre: cible.getAttribute('data-bdv-titre') || undefined,

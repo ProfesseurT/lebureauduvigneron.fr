@@ -92,6 +92,8 @@ permalink: /compte/
     if(s) document.getElementById('compteEmail').textContent = s.user.email;
   }
   afficher();
+  // Meme evenement que le bandeau du haut : la page reflete l'etat sans rechargement.
+  document.addEventListener('bdv:session', afficher);
 
   // Depuis le 07/09/2026 ce bouton EFFACE le navigateur. Il ne peut plus se cliquer sans
   // avertissement. Le garde-fou complet (comparaison des lignes locales et du compte) vit
@@ -119,7 +121,10 @@ permalink: /compte/
     // bdv-compte.js est charge en defer : il n'existe pas encore au moment ou ce script tourne.
     window.addEventListener('load', function(){
       if(window.BdvCompte && !BdvCompte.session()){
-        BdvCompte.ouvrir({ mode: 'connexion', titre: 'Content de te revoir.' });
+        // Le renvoi vers le bureau est ecrit ici en plus de la delegation de clic : cette
+        // ouverture-la ne passe pas par un bouton, elle n'a donc pas de data-bdv-apres.
+        BdvCompte.ouvrir({ mode: 'connexion', titre: 'Content de te revoir.' })
+          .then(function(s){ if(s) location.href = '/mon-bureau/'; });
       }
     });
   }

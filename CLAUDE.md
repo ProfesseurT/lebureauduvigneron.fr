@@ -1,7 +1,14 @@
 # Consignes projet lebureauduvigneron.fr
 
-Site Eleventy deploye sur Vercel au push sur `main`. L'essentiel du travail se concentre dans
-un seul fichier autonome : `src/outils/dashboard-vigneron.html`, le tableau de bord des ventes.
+Site Eleventy deploye sur Vercel au push sur `main`.
+
+Le tableau de bord des ventes, `src/outils/dashboard-vigneron.html`, a longtemps porte
+l'essentiel du travail a lui seul. Ce n'est plus vrai : son moteur est sorti dans
+`src/js/bdv-base.js` le 07/09/2026 (base IndexedDB, empreintes, import), et les modules
+partages vivent a cote : `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de
+reglages, plus `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`. Ce fichier
+n'est plus autonome : y chercher une fonction avant de chercher dans `src/js/` fait perdre
+du temps.
 
 ## Regles de contenu
 
@@ -12,6 +19,9 @@ un seul fichier autonome : `src/outils/dashboard-vigneron.html`, le tableau de b
 ## Le tableau de bord : ce qu'il ne faut jamais casser
 
 ### 1. `HASH_COLS` ne bouge jamais
+
+`HASH_COLS` est declare dans `src/js/bdv-base.js` et repris dans `src/js/bdv-sync.js`. Plus
+dans le fichier du tableau de bord.
 
 Le vigneron cumule ses exports dans IndexedDB (`bdv_ventes_v4`). La deduplication repose sur
 une empreinte `cyrb53` calculee sur les **40 premieres colonnes seulement**, jointes par le
@@ -85,8 +95,10 @@ que pour signaler un lien vers Vitisoft.
 
 Piege : dans le tableau de bord, environ trente valeurs ressemblent a des couleurs
 hexadecimales hors du bloc `<style>`. Certaines n'en sont pas. `&#128200;` et ses voisines
-sont des entites HTML d'emoji. `verif-dash.mjs` les compte avant et apres, justement pour
-attraper celui qui les prendra pour des couleurs.
+sont des entites HTML d'emoji. La section 9 de `npm run charte:dash` les compare a la liste
+`ENTITES_ATTENDUES` figee dans `scripts/charte.mjs`, justement pour attraper celui qui les
+prendra pour des couleurs. Ajouter une icone se declare a la main dans cette liste, et c'est
+voulu.
 
 Deuxieme piege : `#FFF` a deux roles opposes, surface de carte et texte sur fond sombre.
 Le premier est `--white`, le second est `--on-dark`, qui vaut le papier. Sur un fond
@@ -116,11 +128,11 @@ bordeaux, du blanc pur est plus dur que le papier du site.
 
 ## Verifier avant de livrer
 
-Trois scripts de controle sont dans `scripts/`. Ils ont besoin de `css-tree`, declare en
-devDependency.
+Un seul script de controle, `scripts/charte.mjs`, lance de deux facons. Il a besoin de
+`css-tree`, declare en devDependency.
 
-    npm run verif:site    conformite du CSS du site
-    npm run verif:dash    conformite du tableau de bord
+    npm run charte        conformite du CSS du site
+    npm run charte:dash   conformite du tableau de bord
 
 Ce qu'ils regardent : les couleurs, les rayons, les familles de police et les tailles
 encore ecrits en dur avec leur selecteur ; les tokens declares jamais appeles et les

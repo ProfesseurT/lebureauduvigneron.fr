@@ -497,6 +497,37 @@ console.log('  ' + litteralesLues + ' litterale(s) CSS lue(s) dans ' + fichiersJ
 if (!jsCouleursDur && !jsRayonsDur && !jsRepliFaux && !jsTokenAbsent) ok('CSS embarque conforme : couleurs, rayons et reprises de tokens verifies');
 
 /* ---------------------------------------------------------------------------
+   9. Entites HTML numeriques du tableau de bord
+--------------------------------------------------------------------------- */
+/* Le piege que ce controle attrape : dans ce fichier, une trentaine de valeurs ressemblent a
+   des couleurs hexadecimales hors du bloc <style>, et certaines n'en sont pas. `&#128200;` et
+   ses voisines sont des emoji ecrits en entite HTML. Un chercher-remplacer de couleurs passe
+   dessus sans prevenir, et les icones du menu du tableau de bord disparaissent en silence.
+
+   La liste est FIGEE ici, comme HASH_COLS, et ne s'ajuste pas toute seule : ajouter une icone
+   se declare a la main. C'est exactement le but. Une liste qui se met a jour d'elle-meme ne
+   detecte plus rien. */
+const ENTITES_ATTENDUES = ['&#8592;', '&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;'];
+
+if (DASH) {
+  titre('9. Entites HTML numeriques (les icones du tableau de bord)');
+  const brutHtml = fs.readFileSync(CIBLE, 'utf8');
+  const trouvees = (brutHtml.match(/&#\d+;/g) || []);
+  const attendues = [...ENTITES_ATTENDUES];
+  console.log('  ' + trouvees.length + ' entite(s) trouvee(s) pour ' + attendues.length + ' attendue(s)');
+  const manquantes = attendues.filter(e => !trouvees.includes(e));
+  const inconnues = [...new Set(trouvees.filter(e => !attendues.includes(e)))];
+  if (manquantes.length) ko('entite(s) HTML disparue(s) : ' + manquantes.join(' ') + ' — un chercher-remplacer les a probablement emportees');
+  if (inconnues.length) note('entite(s) non declaree(s) dans ENTITES_ATTENDUES : ' + inconnues.join(' ') + ' (a ajouter a la liste si elles sont voulues)');
+  if (!manquantes.length && !inconnues.length) ok('les ' + trouvees.length + ' entites HTML numeriques sont intactes');
+  /* Une entite tombee DANS le CSS est le symptome inverse : quelqu'un a pris une icone pour
+     une valeur de style et l'a deplacee au lieu de la remplacer. */
+  const dansStyle = ([...brutHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]).join('\n').match(/&#\d+;/g) || []);
+  if (dansStyle.length) ko(dansStyle.length + ' entite(s) HTML dans un bloc <style> : une icone a ete prise pour une valeur CSS');
+  else ok('aucune entite HTML egaree dans le CSS');
+}
+
+/* ---------------------------------------------------------------------------
    Verdict
 --------------------------------------------------------------------------- */
 titre('VERDICT');
