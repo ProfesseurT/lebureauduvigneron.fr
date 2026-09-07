@@ -1,0 +1,109 @@
+{#
+  ============================================================================
+  LA COQUE DES ECRANS DE VENTE
+  ----------------------------------------------------------------------------
+  Sortie de src/outils/dashboard-vigneron.html le 07/09/2026, lot 2b de la
+  fusion dans le bureau (PLAN_fusion-bureau.md). DEPLACEMENT PUR : pas une
+  balise reecrite, pas un id renomme, le meme ordre.
+
+  CE N'EST PAS DE LA DECORATION, C'EST LE PLAN DE TRAVAIL DE bdv-ecrans.js.
+  Ce module ecrit dans trente-deux id nommes ici. Un id supprime ou renomme ne
+  provoque pas une erreur visible : la zone concernee reste vide, et personne ne
+  le remarque avant de chercher un chiffre qui manque. Les cinq destinations
+  (p-annee, p-clients, p-produits, p-chercher, p-vide) sont des <section
+  class="panel"> ; les autres <div> sont des zones d'ecriture, pas des ecrans.
+
+  Deux pages l'incluent :
+    - src/outils/dashboard-vigneron.html, qui disparaitra au lot 2d
+    - src/mon-bureau.njk, ou elle vit dans la colonne de droite
+
+  p-base et p-reglages sont un cas a part : le panneau de reglages les DEPLACE
+  chez lui a sa construction (appendChild, pas une copie), ce qui laisse
+  renderBase(), renderReglages() et bindZoneDepot() ecrire au meme endroit
+  qu'avant. Ils sont ici en attendant ce demenagement.
+  ============================================================================
+#}
+<div class="bdv-ventes status" id="status"><div class="spinner" id="statusSpin"></div><span id="statusTxt"></span></div>
+<div class="bdv-ventes" id="busyov"><div class="busyov__card">
+  <svg class="glass" viewBox="0 0 80 104" width="76" height="100" aria-hidden="true">
+    <defs><clipPath id="bowlclip"><path d="M22 6 H58 C58 32 50 48 40 48 C30 48 22 32 22 6 Z"/></clipPath></defs>
+    <g clip-path="url(#bowlclip)"><rect class="liquid" x="20" y="6" width="40" height="44"/></g>
+    <path class="glass-out" d="M22 6 H58 C58 32 50 48 40 48 C30 48 22 32 22 6 Z"/>
+    <line class="glass-out" x1="40" y1="48" x2="40" y2="90"/>
+    <line class="glass-out" x1="26" y1="94" x2="54" y2="94"/>
+  </svg>
+  <div class="busyov__txt" id="busytxt">Analyse…</div>
+  <div class="busyov__sub">le moteur travaille</div>
+</div></div>
+
+<!-- L'ecran d'import plein page a ete retire le 06/09/2026. Il servait de porte : on
+     tombait dessus a chaque ouverture, meme avec une base pleine, et le tableau de bord
+     ressemblait a un formulaire d'upload plutot qu'a une piece du bureau. Le depot de
+     fichier vit desormais dans l'ecran « Ma base », comme un reglage parmi d'autres. -->
+
+<!-- ============ APP ============ -->
+{# Le WRAPPER de scope, pose au lot 2c. Toutes les regles de bdv-ecrans.css sont portees
+   par .bdv-ventes : sans ce div, l'application n'aurait plus une seule regle. Il est
+   AUTOUR de .app et pas SUR lui, parce que les regles sont ecrites en descendant
+   (.bdv-ventes .app) et qu'un selecteur descendant ne matche pas son propre porteur.
+   Les quatre elements « hors page » ci-dessus portent la classe eux-memes : ils sont en
+   position fixe et le panneau comme l'impression les sortent de cet arbre. #}
+<div class="bdv-ventes">
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="topbar__gauche"><button class="volet" id="volet" type="button" aria-expanded="true" aria-controls="sidebar"
+        title="Replier le menu (touche crochet ouvrant)" onclick="basculerVolet()"><span class="volet__filets" aria-hidden="true"></span><span class="sr">Replier le menu</span></button><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><div class="ici" id="ici"><button class="ici__btn" id="tbSection" type="button" aria-haspopup="true" aria-expanded="false" onclick="basculerIci(event)"></button><div class="ici__menu" id="iciMenu" role="menu"></div></div><a href="/mon-bureau/" class="topbar__home">&#8592; Mon bureau</a> <span class="topbar__file" id="tbFile"></span></div>
+    <div class="topbar__actions">
+      <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
+      <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
+      <button class="btn btn--light btn--sm" onclick="exportExcel()">Exporter Excel</button>
+      <!-- Le meme bouton qu'au bureau, servi par le meme garde-fou : se deconnecter EFFACE
+           ce navigateur, et le module refuse de partir si le compte contient moins de
+           lignes que ce poste. Demande de Ted du 07/09/2026 : present dans les deux. -->
+      <button class="btn btn--light btn--sm" id="tbSortir" type="button">Me déconnecter</button>
+    </div>
+  </div>
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="content">
+    <div class="filterbar" id="filterbar"></div>
+    <section class="panel" id="p-annee">
+      <div id="p-diagnostic"></div>
+      <div id="p-apercu"></div>
+      <div id="p-evolution"></div>
+      <div id="p-canaux"></div>
+    </section>
+    <section class="panel" id="p-clients"></section>
+    <section class="panel" id="p-produits"></section>
+    <section class="panel" id="p-chercher">
+      <div id="p-explorer"></div>
+    </section>
+    <!-- p-base et p-reglages n'ont plus d'ecran a eux : le panneau partage les DEPLACE
+         chez lui a sa construction (appendChild, pas une copie). C'est ce qui permet a
+         renderBase(), renderReglages() et bindZoneDepot() de continuer a ecrire exactement
+         au meme endroit, sans une ligne de changee. Ils vivent ici en attendant ce
+         demenagement, le temps que le module se charge. -->
+    <div id="p-base" hidden></div>
+    <div id="p-reglages" hidden></div>
+    <!-- La base vide a besoin d'un ecran a elle depuis que « Ma base » est un panneau :
+         sinon, refermer le panneau laissait un fond blanc sans un mot. -->
+    <section class="panel" id="p-vide">
+      <h2 class="panel__title">Ta base est vide</h2>
+      <div class="panel__sub">Le tableau de bord n'a rien à lire pour l'instant.</div>
+      <div class="card"><div class="card__title"><span>Commencer</span></div>
+        <p class="mini-line">Dépose ton export Vitisoft. Chaque nouvel export s'ajoute au
+          précédent, les doublons sont ignorés, et rien ne t'oblige à tout importer d'un coup.</p>
+        <button class="btn btn--light" type="button" onclick="ouvrirPanneauReglages()">Ouvrir Ma base</button>
+      </div>
+    </section>
+    <!-- Panneaux techniques : les moteurs historiques ecrivent toujours dedans, mais ils ne
+         sont plus des destinations. « Mes clients » lit leurs donnees, pas leur HTML. -->
+    <div id="p-reactivation" hidden></div>
+    <div id="p-premier" hidden></div>
+    <div id="p-decrochage" hidden></div>
+    <footer class="appfoot">Le Bureau du Vigneron, propulsé par Solumatic.</footer>
+  </main>
+</div>
+</div><!-- /.bdv-ventes -->
+
+<div class="bdv-ventes" id="printReport"></div>
+<div id="modale" class="bdv-ventes modale" aria-hidden="true"></div>

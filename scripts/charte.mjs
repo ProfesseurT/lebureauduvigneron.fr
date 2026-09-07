@@ -42,6 +42,22 @@ console.log('cible : ' + path.relative(RACINE, CIBLE));
 /* La liste des fichiers de src/js, declaree ICI parce que trois sections en ont besoin
    et que la premiere est la section 5. La section 8 garde sa propre variable, qui lui
    sert a autre chose : compter les litterales CSS embarquees fichier par fichier. */
+/* Les gabarits inclus par la page. Ajoute le 07/09/2026 au lot 2c : la coque des ecrans
+   de vente est partie dans _includes/components/ecrans-vente.njk, et le controle des
+   icones a immediatement declare disparue la fleche « Mon bureau », qui n'avait pas
+   bouge d'un pixel. Un controle qui ne suit pas les demenagements du depot finit par
+   accuser le depot. */
+function inclusPar(fichier) {
+  if (!fs.existsSync(fichier)) return [];
+  const txt = fs.readFileSync(fichier, 'utf8');
+  const out = [];
+  for (const m of txt.matchAll(/\{%-?\s*include\s+["']([^"']+)["']/g)) {
+    const f = path.join(RACINE, 'src/_includes', m[1]);
+    if (fs.existsSync(f)) out.push(f);
+  }
+  return out;
+}
+
 const DOSSIER_JS_ = path.join(RACINE, 'src/js');
 const fichiersJS_ = fs.existsSync(DOSSIER_JS_)
   ? fs.readdirSync(DOSSIER_JS_).filter(f => f.endsWith('.js')).map(f => path.join(DOSSIER_JS_, f))
@@ -181,7 +197,7 @@ if (DASH) {
   /* cssToken() et palSeries() vivaient dans le <script> de la page. Depuis le lot 0 ils
      sont dans src/js/bdv-ecrans.js et src/js/bdv-base.js : il faut lire la page ET les
      fichiers de src/js, sinon les huit --serie-* repassent pour inutilisees. */
-  const brut = [CIBLE].concat(fichiersJS_).map(f => fs.readFileSync(f, 'utf8')).join('\n');
+  const brut = [CIBLE].concat(inclusPar(CIBLE), fichiersJS_).map(f => fs.readFileSync(f, 'utf8')).join('\n');
   for (const m of brut.matchAll(/cssToken\('(--[a-z0-9-]+)'\)/g)) appeles.add(m[1]);
   if (/palSeries\(/.test(brut)) [...declares].filter(t => /^--serie-\d+$/.test(t)).forEach(t => appeles.add(t));
 }
@@ -559,7 +575,7 @@ if (DASH) {
   titre('9. Entites HTML numeriques (les icones du tableau de bord)');
   /* La page ET les fichiers de src/js : depuis le lot 0, cinq des six icones d'origine ne
      sont plus dans la page. Un controle limite au HTML les declarerait disparues. */
-  const brutHtml = [CIBLE].concat(fichiersJS_).map(f => fs.readFileSync(f, 'utf8')).join('\n');
+  const brutHtml = [CIBLE].concat(inclusPar(CIBLE), fichiersJS_).map(f => fs.readFileSync(f, 'utf8')).join('\n');
   const trouvees = (brutHtml.match(/&#\d+;/g) || []);
   const attendues = [...ENTITES_ATTENDUES];
   console.log('  ' + trouvees.length + ' entite(s) trouvee(s) pour ' + attendues.length + ' attendue(s)');
@@ -573,6 +589,51 @@ if (DASH) {
   const dansStyle = ([...brutHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]).join('\n').match(/&#\d+;/g) || []);
   if (dansStyle.length) ko(dansStyle.length + ' entite(s) HTML dans un bloc <style> : une icone a ete prise pour une valeur CSS');
   else ok('aucune entite HTML egaree dans le CSS');
+}
+
+/* ---------------------------------------------------------------------------
+   10. Le scope de la feuille des ecrans de vente
+--------------------------------------------------------------------------- */
+/* Ce que ce controle attrape : une regle de src/css/bdv-ecrans.css ecrite sans son scope.
+   Cette feuille est chargee DANS la page du bureau, qui a deja src/css/style.css. Six noms
+   de classes sont communs aux deux (btn, btn--ghost, card__title, hero, mono, note) et il y
+   en aura d'autres. Une regle hors scope ne casse rien tout de suite : elle repeint un
+   bouton du site, ou rabat un interlignage, quelque part, un jour.
+
+   Les exceptions sont NOMMEES ici et ne s'ajustent pas toutes seules : les jetons, les
+   quatre elements hors page qui portent la classe eux-memes, et le bloc @media print qui
+   pilote la page entiere pour l'export PDF. */
+const SCOPE_VENTES = '.bdv-ventes';
+const SCOPE_EXCEPTIONS = new Set([':root', '.status', '#busyov', '#printReport', '.modale']);
+const FEUILLE_VENTES = path.join(RACINE, 'src/css/bdv-ecrans.css');
+
+if (fs.existsSync(FEUILLE_VENTES)) {
+  titre('10. Le scope de src/css/bdv-ecrans.css');
+  const astV = csstree.parse(fs.readFileSync(FEUILLE_VENTES, 'utf8'));
+  const fautives = [];
+  let portees = 0;
+  csstree.walk(astV, {
+    visit: 'Rule',
+    enter(node) {
+      if (this.atrule && this.atrule.name === 'keyframes') return;
+      if (this.atrule && this.atrule.name === 'media'
+        && csstree.generate(this.atrule.prelude).includes('print')) return;
+      if (node.prelude.type !== 'SelectorList') return;
+      node.prelude.children.forEach(sel => {
+        const txt = csstree.generate(sel);
+        if (SCOPE_EXCEPTIONS.has(txt)) return;
+        if (txt.startsWith(SCOPE_VENTES)) { portees++; return; }
+        fautives.push(txt);
+      });
+    }
+  });
+  console.log('  ' + portees + ' selecteur(s) porte(s) par ' + SCOPE_VENTES
+    + ', ' + SCOPE_EXCEPTIONS.size + ' exception(s) nommee(s)');
+  if (fautives.length) {
+    [...new Set(fautives)].slice(0, 12).forEach(f =>
+      ko('regle hors scope : ' + f + ' — elle s\'appliquera a tout le site du bureau'));
+    if (fautives.length > 12) ko('et ' + (fautives.length - 12) + ' autre(s)');
+  } else ok('aucune regle ne sort du scope');
 }
 
 /* ---------------------------------------------------------------------------

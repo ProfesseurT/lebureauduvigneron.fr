@@ -1,26 +1,26 @@
 /* ============================================================================
-   scripts/banc-bureau.mjs : le banc de la barre du bureau
+   scripts/banc-bureau.mjs : le banc du bureau
 
      npm run build && npm run banc
 
-   PREMIER TEST AUTOMATISE DU DEPOT, ecrit le 07/09/2026 au lot 1 de la fusion.
-   Jusqu'ici « CONFORME » ne voulait dire que « la charte graphique tient »,
-   jamais « ca marche ». Ce banc ne comble pas tout le trou, il couvre une
-   piece : la barre de navigation du bureau.
+   PREMIER TEST AUTOMATISE DU DEPOT, ecrit le 07/09/2026 au lot 1 de la fusion,
+   etendu au lot 2c. Jusqu'ici « CONFORME » ne voulait dire que « la charte
+   graphique tient », jamais « ca marche ».
 
-   IL DEMANDE jsdom, qui n'est pas une dependance du site :
-
-     npm install --save-dev jsdom
-
+   IL DEMANDE jsdom :  npm install --save-dev jsdom
    Sans lui, le banc s'arrete en le disant, et il ne rend jamais un faux OK.
-   C'est la lecon de charte:dash, qui a annonce CONFORME sur du vide deux fois
-   en une journee : un controle qui ne peut pas s'executer doit crier, pas
-   se taire.
+   C'est la lecon de charte:dash, qui a annonce CONFORME sur du vide deux fois en
+   une journee : un controle qui ne peut pas s'executer doit crier, pas se taire.
 
    IL LIT LE HTML PRODUIT, `_site/mon-bureau/index.html`, et pas le gabarit :
    c'est ce fichier-la que le vigneron recoit. Lancer `npm run build` avant,
-   sinon on controle la page d'hier. Le serveur `npm start` ne suffit pas
-   toujours : il ne recopie pas src/js sur tous les evenements de fichier.
+   sinon on controle la page d'hier.
+
+   CE QU'IL NE FAIT PAS. Il n'execute aucun script de la page : le bureau en
+   charge huit, dont trois depuis un CDN. Il monte la barre a la main et remplace
+   le chargement des ecrans de vente par un faux reseau qui repond tout de suite.
+   Il verifie donc l'enchainement des gestes, jamais le rendu d'un chiffre. Les
+   cinq controles de CLAUDE.md sur un export reel restent a faire a l'ecran.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
@@ -50,108 +50,224 @@ const t = (nom, cond, detail) => {
   if (cond) { ok++; console.log('  ok    : ' + nom); }
   else { ko++; console.log('  ECHEC : ' + nom + (detail ? '  →  ' + detail : '')); }
 };
+const titre = (x) => console.log('\n== ' + x + ' ==');
 
 console.log('page  : ' + path.relative(RACINE, PAGE));
-console.log('module: ' + path.relative(RACINE, MODULE) + '\n');
+console.log('module: ' + path.relative(RACINE, MODULE));
 
-/* runScripts:'outside-only' : on n'execute AUCUN script de la page. Le bureau en
-   charge huit, dont trois depuis un CDN. On monte la barre a la main dans le vrai
-   HTML, ce qui teste ce qu'on veut tester et rien d'autre. */
-const dom = new JSDOM(HTML, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://x.test/mon-bureau/' });
-const { window } = dom;
-const doc = window.document;
+/* Un bureau tout neuf, a l'adresse demandee. Le faux reseau resout chaque <link> et
+   chaque <script> ajoute par le chargeur des ecrans : sans lui, le banc mesurerait la
+   capacite de jsdom a joindre un CDN, ce qui n'apprend rien sur le bureau. */
+function bureau(hash) {
+  const dom = new JSDOM(HTML, {
+    runScripts: 'outside-only', pretendToBeVisual: true,
+    url: 'https://x.test/mon-bureau/' + (hash || '')
+  });
+  const { window } = dom;
+  const doc = window.document;
+  const charges = [];
+  const vrai = doc.head.appendChild.bind(doc.head);
+  doc.head.appendChild = function (n) {
+    const r = vrai(n);
+    if (n.tagName === 'LINK' || n.tagName === 'SCRIPT') {
+      charges.push(n.getAttribute('href') || n.getAttribute('src'));
+      // Dans l'ordre d'un vrai chargement : l'evenement arrive apres le tour de boucle.
+      setTimeout(() => { if (n.onload) n.onload(); }, 0);
+    }
+    return r;
+  };
+  const appels = [];
+  window.demarrerEcransVente = (d) => { appels.push(d || {}); };
+  window.ouvrirPanneauReglages = () => { appels.push({ panneau: true }); };
+  window.eval(NAV);
+  window.BdvNav.monter(doc.getElementById('bureauNav'), 'journee');
+  return { window, doc, charges, appels,
+    journee: doc.getElementById('bureauJournee'),
+    ventes: doc.getElementById('bureauVentes'),
+    nav: doc.getElementById('bureauNav'),
+    clic(piece) {
+      const l = doc.querySelector('.bureau-nav__ligne[data-piece="' + piece + '"]');
+      const it = l && l.querySelector('.bureau-nav__item');
+      if (!it) throw new Error('piece introuvable : ' + piece);
+      it.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    },
+    repos() { return new Promise(r => setTimeout(r, 60)); }
+  };
+}
 
-/* Le moteur de la base n'est pas charge ici : exMot() manque, et la barre doit
-   quand meme se monter en disant « Mon exercice ». C'est le repli prevu dans
-   motExercice(), et c'est deja un controle. */
-window.eval(NAV);
-const B = window.BdvNav;
-t('le module s\'expose', !!B && typeof B.monter === 'function');
+/* ======================= LA BARRE (lot 1) ======================= */
+titre('La barre du bureau');
+const B = bureau();
+t('le module s\'expose', typeof B.window.BdvNav.monter === 'function');
+t('la coque de l\'atelier existe dans le HTML produit',
+  !!B.nav && !!B.doc.getElementById('bureauAtelier'));
 
-const nav = doc.getElementById('bureauNav');
-const atelier = doc.getElementById('bureauAtelier');
-t('la coque de l\'atelier existe dans le HTML produit', !!nav && !!atelier);
-if (!B || !nav) { console.log('\n  banc interrompu : rien a monter.'); process.exit(1); }
-
-B.monter(nav, 'journee');
-
-const lignes = [...nav.querySelectorAll('.bureau-nav__ligne')];
+const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
 t('sept pieces montees', lignes.length === 7, lignes.length + ' trouvee(s)');
-
-const labels = lignes.map(l => l.querySelector('.bureau-nav__nom').textContent);
 t('l\'ordre est celui de la journee',
-  labels.join(' | ') === 'Ma journée | Mon exercice | Mes clients | Mes cuvées | Chercher | Le compte à rebours | Mes réglages',
-  labels.join(' | '));
+  lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
+  === 'Ma journée | Mon exercice | Mes clients | Mes cuvées | Chercher | Le compte à rebours | Mes réglages');
+t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
+t('les quatre pieces de vente pointent DANS le bureau',
+  [...B.nav.querySelectorAll('a.bureau-nav__item')]
+    .map(a => a.getAttribute('href'))
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 4);
+t('le compte a rebours pointe sur son outil',
+  [...B.nav.querySelectorAll('a')].some(a => a.getAttribute('href') === '/outils/echeances/'));
+t('les reglages sont un bouton, pas un lien',
+  B.nav.querySelector('[data-bdv-nav-panneau]').tagName === 'BUTTON');
 
-const actif = nav.querySelector('.bureau-nav__item--actif');
-t('« Ma journee » est la piece active', actif && actif.textContent.includes('Ma journée'));
-t('la piece active n\'est pas un lien', actif && actif.tagName === 'SPAN', actif && actif.tagName);
-t('la piece active porte aria-current', actif && actif.getAttribute('aria-current') === 'page');
-
-const liens = [...nav.querySelectorAll('a.bureau-nav__item')].map(a => a.getAttribute('href'));
-t('les quatre pieces de vente pointent encore sur l\'ancienne page (etat du lot 1)',
-  liens.filter(h => h.startsWith('/outils/dashboard-vigneron/#')).length === 4, liens.join(' '));
-t('le compte a rebours pointe sur son outil', liens.includes('/outils/echeances/'), liens.join(' '));
-
-const reg = nav.querySelector('[data-bdv-nav-panneau]');
-t('les reglages sont un bouton, pas un lien', reg && reg.tagName === 'BUTTON');
-let ouvert = 0;
-window.ouvrirPanneauReglages = () => { ouvert++; };
-reg.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-t('le bouton des reglages ouvre le panneau partage', ouvert === 1, 'appels : ' + ouvert);
-
-/* Le title est tout ce qui reste d'une piece quand la barre est repliee sur ses
-   icones : une piece sans title devient un pictogramme muet. */
-const sansTitle = lignes.filter(l => !l.querySelector('[title]'));
-t('chaque piece porte un title', sansTitle.length === 0, sansTitle.length + ' sans title');
-
-/* ---------------- le repli ---------------- */
-const plier = doc.getElementById('bureauNavPlier');
-t('le bouton de repli existe', !!plier);
+/* ---- le repli ---- */
+const plier = B.doc.getElementById('bureauNavPlier');
+const atelier = B.doc.getElementById('bureauAtelier');
 t('deplie au depart', !atelier.classList.contains('bureau-atelier--replie'));
-plier.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+plier.dispatchEvent(new B.window.MouseEvent('click', { bubbles: true }));
 t('un clic replie', atelier.classList.contains('bureau-atelier--replie'));
 t('la preference est ecrite sur la cle PARTAGEE avec le volet des ecrans de vente',
-  window.localStorage.getItem('bdv_volet_replie') === '1',
-  String(window.localStorage.getItem('bdv_volet_replie')));
+  B.window.localStorage.getItem('bdv_volet_replie') === '1');
 t('le libelle accessible annonce l\'action a venir, pas l\'etat present',
   plier.getAttribute('aria-label') === 'Déplier le menu', plier.getAttribute('aria-label'));
-plier.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+plier.dispatchEvent(new B.window.MouseEvent('click', { bubbles: true }));
 t('un second clic deplie', !atelier.classList.contains('bureau-atelier--replie'));
-t('la preference suit', window.localStorage.getItem('bdv_volet_replie') === '0');
 
-/* ---------------- le raccourci clavier ---------------- */
-const frappe = (cible) => cible.dispatchEvent(
-  new window.KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true }));
-frappe(doc.body);
+const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true }));
+frappe(B.doc.body);
 t('le crochet ouvrant replie', atelier.classList.contains('bureau-atelier--replie'));
-const champ = doc.createElement('input');
-doc.body.appendChild(champ);
+const champ = B.doc.createElement('input'); B.doc.body.appendChild(champ);
 frappe(champ);
 t('le crochet ouvrant ne fait RIEN pendant une saisie',
   atelier.classList.contains('bureau-atelier--replie'),
   'la barre a bouge alors qu\'on tapait un crochet dans un champ');
 
-/* ---------------- sans Vitisoft ----------------
-   Regle metier, pas cosmetique : les ecrans de vente lisent un export Vitisoft.
-   Sans lui on ne montre pas la porte. C'est ce que faisait `tiroirDash`. */
-B.sansVitisoft(true);
-const cachees = lignes.filter(l => l.hidden).map(l => l.dataset.piece);
+/* ---- sans Vitisoft : regle metier, pas cosmetique ---- */
+B.window.BdvNav.sansVitisoft(true);
 t('sans Vitisoft, les quatre pieces de vente disparaissent',
-  cachees.slice().sort().join(',') === 'annee,chercher,clients,produits', cachees.join(','));
+  lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,chercher,clients,produits');
 t('sans Vitisoft, la journee, le compte a rebours et les reglages RESTENT',
   ['journee', 'echeances', 'reglages'].every(id => !lignes.find(l => l.dataset.piece === id).hidden));
-B.sansVitisoft(false);
+B.window.BdvNav.sansVitisoft(false);
 t('avec Vitisoft, tout revient', lignes.filter(l => l.hidden).length === 0);
 
-/* ---------------- le tiroir ---------------- */
-const tiroir = doc.getElementById('zoneTiroir');
-t('le tiroir est masque et vide, ses deux entrees sont montees dans la barre',
+/* ---- le tiroir ---- */
+const tiroir = B.doc.getElementById('zoneTiroir');
+t('le tiroir est masque et vide, ses deux entrees sont dans la barre',
   !!tiroir && tiroir.hidden && tiroir.querySelectorAll('a').length === 0);
-t('plus un seul lien en dur vers le tableau de bord dans le tiroir',
-  !HTML.includes('id="tiroirDash"'));
+
+/* ======================= LES ECRANS DE VENTE (lot 2c) ======================= */
+titre('Les ecrans de vente dans le bureau');
+
+t('la coque des ecrans est dans la page, avec ses trente-deux reperes',
+  ['app', 'sidebar', 'filterbar', 'p-annee', 'p-clients', 'p-produits', 'p-chercher',
+   'p-vide', 'p-base', 'p-reglages', 'printReport', 'modale', 'status', 'busyov']
+   .every(id => !!B.doc.getElementById(id)));
+t('elle est portee par le wrapper de scope',
+  !!B.doc.querySelector('#bureauVentes .bdv-ventes .app'));
+t('les quatre elements hors page sont remontes sous body',
+  ['status', 'busyov', 'printReport', 'modale']
+    .every(id => B.doc.getElementById(id).parentNode === B.doc.body),
+  ['status', 'busyov', 'printReport', 'modale']
+    .filter(id => B.doc.getElementById(id).parentNode !== B.doc.body).join(','));
+
+t('a l\'ouverture, « Ma journee » est affichee et les ventes masquees',
+  !B.journee.hidden && B.ventes.hidden);
+t('rien n\'est charge avant le premier clic', B.charges.length === 0, B.charges.join(' '));
+
+B.clic('clients');
+t('un clic sur « Mes clients » masque la journee et montre les ventes',
+  B.journee.hidden && !B.ventes.hidden);
+t('l\'adresse suit', B.window.location.hash === '#clients', B.window.location.hash);
+t('la piece cliquee devient la piece active',
+  B.doc.querySelector('.bureau-nav__ligne[data-piece="clients"] .bureau-nav__item--actif') !== null);
+await B.repos();
+t('les quatre ressources sont demandees, dans l\'ordre',
+  B.charges.join(' | ') === '/css/bdv-ecrans.css | https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js | https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js | /js/bdv-ecrans.js',
+  B.charges.join(' | ') || '(aucune)');
+t('les ecrans sont demarres sur la bonne piece',
+  JSON.stringify(B.appels) === '[{"ecran":"clients"}]', JSON.stringify(B.appels));
+
+B.clic('produits');
+await B.repos();
+t('un second clic ne recharge RIEN', B.charges.length === 4, B.charges.length + ' ressources');
+t('mais il navigue',
+  JSON.stringify(B.appels[1]) === '{"ecran":"produits"}', JSON.stringify(B.appels[1]));
+
+B.clic('journee');
+t('revenir a « Ma journee » remontre la journee et masque les ventes',
+  !B.journee.hidden && B.ventes.hidden);
+t('et vide l\'adresse', B.window.location.hash === '', B.window.location.hash);
+
+B.clic('reglages');
+t('« Mes reglages » ouvre le panneau',
+  B.appels.some(a => a.panneau));
+t('« Mes reglages » ne change pas d\'ecran : le panneau s\'ouvre par-dessus',
+  !B.journee.hidden && B.ventes.hidden);
+t('et n\'ecrit rien dans l\'adresse', B.window.location.hash === '', B.window.location.hash);
+
+/* ---- l'adresse d'arrivee fait foi ---- */
+titre('L\'adresse d\'arrivee');
+const C = bureau('#clients');
+t('un favori sur #clients ouvre les clients, pas la journee',
+  C.journee.hidden && !C.ventes.hidden);
+await C.repos();
+t('et demarre les ecrans dessus',
+  JSON.stringify(C.appels) === '[{"ecran":"clients"}]', JSON.stringify(C.appels));
+
+const D = bureau('#client=DOMAINE%20X');
+await D.repos();
+t('#client=... ouvre la fiche du client, pas seulement la liste',
+  JSON.stringify(D.appels) === '[{"client":"DOMAINE X"}]', JSON.stringify(D.appels));
+
+await new Promise(r => setTimeout(r, 60));
+const E = bureau('#base');
+t('#base ouvre le panneau et laisse la journee affichee',
+  E.appels.some(a => a.panneau) && !E.journee.hidden);
+
+const F = bureau('#nimportequoi');
+t('une adresse inconnue retombe sur « Ma journee » sans rien charger',
+  !F.journee.hidden && F.ventes.hidden && F.charges.length === 0);
+
+/* ---- les liens du bureau ---- */
+titre('Les liens du bureau');
+const G = bureau();
+const faux = G.doc.createElement('a');
+faux.href = '/mon-bureau/#annee';
+faux.textContent = 'vers mon exercice';
+G.doc.getElementById('bureauJournee').appendChild(faux);
+faux.dispatchEvent(new G.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+t('un lien du bureau vers une piece est intercepte, sans rechargement',
+  G.journee.hidden && !G.ventes.hidden && G.window.location.hash === '#annee',
+  G.window.location.hash);
+
+const H = bureau();
+const fiche = H.doc.createElement('a');
+fiche.href = '/mon-bureau/#client=JAYAMA';
+H.doc.getElementById('bureauJournee').appendChild(fiche);
+fiche.dispatchEvent(new H.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+await H.repos();
+t('un lien de fiche client ouvre la fiche',
+  JSON.stringify(H.appels) === '[{"client":"JAYAMA"}]', JSON.stringify(H.appels));
+
+const I = bureau();
+const nouvelOnglet = I.doc.createElement('a');
+nouvelOnglet.href = '/mon-bureau/#annee';
+I.doc.getElementById('bureauJournee').appendChild(nouvelOnglet);
+nouvelOnglet.dispatchEvent(new I.window.MouseEvent('click',
+  { bubbles: true, cancelable: true, button: 0, metaKey: true }));
+t('cmd-clic est laisse au navigateur : c\'est une demande d\'autre onglet',
+  !I.journee.hidden && I.ventes.hidden);
+
+/* ---- le bouton Retour ---- */
+titre('Le bouton Retour');
+const J = bureau();
+J.clic('clients');
+await J.repos();
+J.window.history.back();
+await new Promise(r => setTimeout(r, 30));
+t('Retour depuis un ecran de vente ramene a « Ma journee » sans quitter le bureau',
+  !J.journee.hidden && J.ventes.hidden,
+  'hash : ' + J.window.location.hash);
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
-if (ko) { console.log('  LA BARRE NE FAIT PAS CE QU\'ELLE DIT'); process.exit(1); }
-console.log('  LA BARRE FAIT CE QU\'ELLE DIT');
+if (ko) { console.log('  LE BUREAU NE FAIT PAS CE QU\'IL DIT'); process.exit(1); }
+console.log('  LE BUREAU FAIT CE QU\'IL DIT');

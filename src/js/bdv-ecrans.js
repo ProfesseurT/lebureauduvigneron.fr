@@ -131,6 +131,11 @@ const NAV_BUREAU=[
 let REG_BRANCHE=false;
 function brancherPanneauReglages(){
   if(REG_BRANCHE||!window.BdvReglages)return;
+  // Pas de barre haute, pas de bouton a brancher : au bureau c'est l'entete du bureau qui
+  // porte « Me deconnecter », et il prend son garde-fou de son cote. Sortir ici plutot que
+  // de passer un null a brancherSortie evite d'avoir a se demander, dans le module, quelle
+  // page l'appelle.
+  if(!el('tbSortir'))return;
   REG_BRANCHE=true;
   // PLUS DE BLOCS CONTRIBUES ICI. Depuis que bdv-base.js est charge par les deux pages, le
   // panneau monte lui-meme « Ma base » et « Le classement », deplace nos deux <div> chez lui,
@@ -2547,7 +2552,36 @@ function exportEvo(fmt){if(!ROWS.length){status('error','Rien à exporter.');ret
 //      infrastructure ne prend jamais les donnees du vigneron en otage.
 //   3. La regle d'or tient. Une session deja ouverte une fois sur ce navigateur suffit a
 //      entrer, meme reseau coupe, meme Supabase en panne : lireSession() ne parle a personne.
-document.addEventListener('DOMContentLoaded', async function(){
+/* Lot 2a de la fusion, 07/09/2026 : CE DEMARRAGE EST DEVENU UNE FONCTION.
+
+   Il vivait dans le corps d'un ecouteur DOMContentLoaded, ce qui allait tres bien tant que
+   ce fichier etait servi par une page qui le chargeait a l'analyse. Le bureau, lui, ne le
+   charge qu'au premier clic sur une piece de vente, donc APRES DOMContentLoaded : l'ecouteur
+   ne se serait jamais declenche, et le tableau de bord serait reste une coque vide, sans
+   une erreur pour le dire.
+
+   La fonction prend un point de depart :
+     demarrerEcransVente()                       lit l'adresse, comportement d'avant
+     demarrerEcransVente({ecran:'clients'})      le bureau dit ou aller
+     demarrerEcransVente({client:'1234'})        et sur quelle fiche s'arreter
+
+   Elle est IDEMPOTENTE. Rappelee, elle ne relit ni le serveur ni la base : elle navigue.
+   C'est ce qui permet a la barre du bureau de l'appeler a chaque clic sans se demander si
+   c'est le premier. */
+let ECRANS_DEMARRES = false;
+
+async function demarrerEcransVente(depart){
+  depart = depart || {};
+
+  // Deja demarre : on ne recharge rien, on va ou on nous dit d'aller.
+  if(ECRANS_DEMARRES){
+    if(depart.client){ navTo('clients'); setTimeout(function(){ ouvrirFiche(depart.client); }, 60); }
+    else if(depart.ecran === 'reglages') ouvrirPanneauReglages();
+    else if(depart.ecran) navTo(depart.ecran);
+    return;
+  }
+  ECRANS_DEMARRES = true;
+
   try{
     if(!BdvCompte.session()) await BdvCompte.porte({titre:'Ton tableau de bord t\'attend.'});
   }catch(e){ /* jamais bloquer sur une porte cassee, voir le point 2 */ }
@@ -2567,9 +2601,11 @@ document.addEventListener('DOMContentLoaded', async function(){
   const brut = (location.hash || '').replace('#','');
   // /outils/dashboard-vigneron/#client=1234 ouvre l'ecran des clients ET la fiche. C'est
   // ce qui permet au bureau de pointer sur un client precis, et pas sur une liste ou il
-  // faut le rechercher a la main.
-  const versClient = brut.indexOf('client=') === 0 ? decodeURIComponent(brut.slice(7)) : null;
-  const ecran = versClient ? 'clients' : brut;
+  // faut le rechercher a la main. Le bureau, lui, le dit par l'argument plutot que par
+  // l'adresse : il n'a pas besoin d'ecrire dans la barre du navigateur pour se parler.
+  const clientHash = brut.indexOf('client=') === 0 ? decodeURIComponent(brut.slice(7)) : null;
+  const versClient = depart.client || clientHash;
+  const ecran = depart.ecran || (versClient ? 'clients' : brut);
   openApp(NAV.some(n => n.id === ecran) && ecran !== 'reglages' ? ecran : undefined);
   // Arriver sur #base, #parametres ou #reglages ouvre le panneau : c'est la que « Ma base »
   // et le classement vivent depuis la fusion, et c'est ce que le bureau met dans ses liens.
@@ -2581,4 +2617,11 @@ document.addEventListener('DOMContentLoaded', async function(){
     const p = await BdvCompte.profil();
     if(p && p.utilise_vitisoft === 'non'){ PAS_VITISOFT = true; renderBase(); }
   }catch(e){ /* sans profil lisible, on ne montre rien : le doute ne se transforme pas en refus */ }
-});
+}
+
+/* La page autonome du tableau de bord demarre toujours de la meme facon : a l'ouverture du
+   document, sans point de depart, en lisant son adresse. Cet ecouteur disparaitra au lot 2d
+   avec la page elle-meme. Le bureau, lui, appelle la fonction directement. */
+document.addEventListener('DOMContentLoaded', function(){ demarrerEcransVente(); });
+
+window.demarrerEcransVente = demarrerEcransVente;

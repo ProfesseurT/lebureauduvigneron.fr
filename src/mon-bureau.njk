@@ -71,7 +71,7 @@ permalink: /mon-bureau/
   <div class="bureau-atelier" id="bureauAtelier">
     <nav class="bureau-nav" id="bureauNav" aria-label="Les pièces de ton bureau"></nav>
     <div class="bureau-atelier__travail">
-    <div class="bureau-plan">
+    <div class="bureau-plan" id="bureauJournee">
 
     <!-- LE SOUS-MAIN : ce qu'on fait aujourd'hui. La zone la plus large, en haut a gauche. -->
     <section class="zone zone--sousmain">
@@ -160,6 +160,17 @@ permalink: /mon-bureau/
     </section>
 
     </div><!-- /.bureau-plan -->
+
+    <!-- LES ECRANS DE VENTE, lot 2c du 07/09/2026. La MEME coque que celle du tableau de
+         bord, par le meme include : deux coques recopiees auraient divergé le jour ou
+         l'une des deux aurait gagne un ecran.
+         Elle est dans le document des l'ouverture, masquee. Ce sont ses feuilles et ses
+         2 500 lignes de JavaScript qui attendent le premier clic, pas son HTML : cinquante
+         lignes de balises ne coutent rien, et les avoir la evite d'injecter du DOM au
+         moment ou le vigneron clique. -->
+    <div id="bureauVentes" hidden>
+      {% include "components/ecrans-vente.njk" %}
+    </div>
     </div><!-- /.bureau-atelier__travail -->
   </div><!-- /.bureau-atelier -->
 
@@ -264,7 +275,9 @@ permalink: /mon-bureau/
   var ETAT_FILE = null;
 
   function lienFiche(id){
-    return '/outils/dashboard-vigneron/#client=' + encodeURIComponent(id);
+    // Depuis le lot 2c, la fiche client s'ouvre DANS le bureau. L'adresse reste un vrai
+    // lien, copiable et rechargeable : c'est bdv-nav.js qui l'intercepte au clic.
+    return '/mon-bureau/#client=' + encodeURIComponent(id);
   }
 
   function ligneFile(l){
@@ -762,7 +775,7 @@ permalink: /mon-bureau/
       var d = document.createElement('a');
       d.className = 'chiffre' + (i === 0 ? ' chiffre--hi' : '');
       if(i === 0 && r2.variation != null) d.setAttribute('data-sens', r2.variation >= 0 ? 'haut' : 'bas');
-      d.href = '/outils/dashboard-vigneron/#annee';
+      d.href = '/mon-bureau/#annee';
       ['chiffre__l','chiffre__v','chiffre__s'].forEach(function(cl, k){
         var sp = document.createElement('span'); sp.className = cl; sp.textContent = c[k]; d.appendChild(sp);
       });
@@ -883,7 +896,9 @@ permalink: /mon-bureau/
           libelle: age <= 1 ? 'ta dernière analyse' : 'depuis ta dernière analyse',
           sous: age > 30 ? 'réimporte ton export, l\u2019ardoise a vieilli' : 'tableau de bord',
           ton: age > 30 ? 'vieux' : '',
-          href: '/outils/dashboard-vigneron/'
+          // Cette punaise mene la ou on repare ce qu'elle signale : la base, donc le
+          // panneau de reglages, et plus la porte d'un outil qui n'existe plus.
+          href: '/mon-bureau/#base'
         });
       }
     }

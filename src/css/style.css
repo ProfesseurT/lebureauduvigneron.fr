@@ -4843,6 +4843,51 @@ button.bureau-nav__item:hover {
   .bureau-nav__item--actif { border-left: none; border-bottom-color: var(--gold); }
 }
 
+/* ============================================================================
+   LES ECRANS DE VENTE DANS LE BUREAU
+   ----------------------------------------------------------------------------
+   Lot 2c du 07/09/2026. La feuille des ecrans, src/css/bdv-ecrans.css, est ecrite
+   pour une page entiere : une grille de deux colonnes avec son propre volet a
+   gauche, une barre haute, et 100 vh de hauteur minimale. Dans le bureau, cette
+   colonne-la est deja tenue par la barre du bureau. Les regles ci-dessous
+   ramenent l'application a ce qu'il reste : une seule colonne de travail.
+
+   Ce qui est masque n'est PAS supprime du HTML, et c'est volontaire jusqu'au lot
+   2d : bdv-ecrans.js ecrit dans #sidebar, #tbFile et #iciMenu au demarrage. Les
+   retirer maintenant demanderait de toucher au module dans le meme lot que la
+   bascule, donc de ne plus savoir lequel des deux a casse.
+
+   Ces regles sont ICI et pas dans bdv-ecrans.css : elles parlent de la place que
+   le bureau donne aux ecrans, pas de l'allure des ecrans. Et `npm run charte`
+   refuserait desormais une regle de cette feuille-la sans son scope.
+   ============================================================================ */
+#bureauVentes .bdv-ventes .app {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+#bureauVentes .bdv-ventes .topbar { grid-column: 1 / 2; }
+/* Le volet, le repere de position, la marque et le retour au bureau : quatre reperes
+   dont la barre du bureau et l'entete de la page repondent deja. « Me deconnecter »
+   aussi : il vit dans l'entete du bureau, et deux boutons definitifs sur un ecran
+   valent moins qu'un seul. */
+#bureauVentes .bdv-ventes .sidebar,
+#bureauVentes .bdv-ventes .volet,
+#bureauVentes .bdv-ventes .ici,
+#bureauVentes .bdv-ventes .topbar__brand,
+#bureauVentes .bdv-ventes .topbar__home,
+#bureauVentes .bdv-ventes #tbSortir { display: none; }
+/* Il reste a la barre haute ce qui appartient vraiment aux ventes : le compte de
+   lignes, et les trois sorties (ajouter un export, PDF, Excel). */
+#bureauVentes .bdv-ventes .topbar { border-bottom: var(--trait) solid var(--rule); background: var(--paper-deep); }
+#bureauVentes .bdv-ventes .topbar__file { color: var(--muted); opacity: 1; }
+#bureauVentes .bdv-ventes .appfoot { display: none; }
+
+/* La piece qu'on vient de demander, pendant que ses 2 500 lignes arrivent. Discret
+   par choix : un clic qui ne renvoie AUCUN signe passe pour un clic rate, mais une
+   attente trop mise en scene fait paraitre lent ce qui prend une seconde. */
+.bureau-nav__item--attente { cursor: progress; }
+.bureau-nav__item--attente .bureau-nav__ico { opacity: 0.45; }
+
 /*   rangee 1 : le sous-main (8) + le mot du jour (4)
      rangee 2 : l'ardoise (8) + le pense-bete (4)
      rangee 3 : a lire (4) + le classeur (4) + le courrier (4)

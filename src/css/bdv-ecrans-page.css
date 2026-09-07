@@ -1,0 +1,21 @@
+/* ============================================================================
+   LE RESET DE LA PAGE AUTONOME DU TABLEAU DE BORD
+   ----------------------------------------------------------------------------
+   Ces cinq regles vivaient dans bdv-ecrans.css et s'appliquaient a html, a body et
+   a tous les titres du document. Elles y etaient sans danger tant que cette feuille
+   n'etait servie qu'a une page qui n'avait qu'elle.
+
+   Le bureau, lui, a deja src/css/style.css. La regle body du tableau de bord y aurait
+   rabattu l'interlignage du site de 1,7 a 1,5 sur toute la page, sans que rien ne le
+   signale : c'est le genre d'ecart qu'on ne voit qu'une semaine plus tard, sur les
+   articles, en se demandant depuis quand.
+
+   Elles sont donc sorties ici, et SEULE src/outils/dashboard-vigneron.html charge ce
+   fichier. Il disparaitra avec elle au lot 2d : le site fournit deja l'equivalent de
+   chacune de ces cinq regles.
+   ============================================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-corps);line-height:var(--lh-normal);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-titre);font-weight:400;line-height:var(--lh-serre);letter-spacing:var(--ls-serre)}
+a{color:var(--bordeaux)}
