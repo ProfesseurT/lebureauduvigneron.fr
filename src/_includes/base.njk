@@ -37,8 +37,15 @@
         <!-- Le hidden est porte par le <li> et pas par le lien : la liste du menu est une
              grille espacee, un element vide y laisserait un trou. -->
         <li id="navBureau" hidden><a href="/mon-bureau/" class="nav__cta">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span></a></li>
+        <!-- DEUX portes visibles, decide le 07/09/2026. Il n'y en avait qu'une, « Creer mon
+             compte », et un vigneron qui revenait ne trouvait aucun mot qui lui parlait : il
+             devait cliquer sur « creer » pour DECOUVRIR qu'il pouvait se connecter.
+             « Connexion » reste un lien de menu ordinaire, sans nav__cta : un seul bouton
+             plein dans la barre, celui qui fait grandir la base. -->
+        <li id="navConnexionLi"><a href="/compte/?mode=connexion" id="navConnexion" data-bdv-compte
+               data-bdv-mode="connexion" data-bdv-titre="Content de te revoir.">Connexion</a></li>
         <li id="navCompteLi"><a href="/compte/" class="nav__cta" id="navCompte" data-bdv-compte
-               data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a></li>
+               data-bdv-mode="inscription" data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a></li>
       </ul>
     </div>
   </nav>
@@ -49,9 +56,12 @@
       var _bdvN = JSON.parse(localStorage.getItem('bdv_session'));
       if(_bdvN && _bdvN.access_token && _bdvN.user){
         // Se deconnecter et gerer son compte se font depuis le bureau, pas depuis un menu de
-        // navigation : cinq entrees dans les deux etats plutot que six une fois connecte.
+        // navigation. Les DEUX portes tombent ensemble une fois connecte, « Mon bureau » les
+        // remplace : en oublier une laisserait « Connexion » proposee a quelqu'un de connecte.
         var _bdvC = document.getElementById('navCompteLi');
         if(_bdvC) _bdvC.hidden = true;
+        var _bdvX = document.getElementById('navConnexionLi');
+        if(_bdvX) _bdvX.hidden = true;
         var _bdvB = document.getElementById('navBureau');
         if(_bdvB) _bdvB.hidden = false;
         // Le compte a lire se lit dans le meme miroir que les boutons de signet. Il vaut mieux

@@ -420,6 +420,11 @@
       + '.bdv-porte__btn--secondaire:hover{background:var(--paper-light,#F5EFE0)}'
       + '.bdv-porte__lien{display:block;margin:.7rem auto 0;background:none;border:none;padding:0;color:var(--bordeaux,#5A1525);font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-decoration:underline;cursor:pointer}'
       + '.bdv-porte__erreur{color:var(--danger-deep,#A03530);font-size:var(--t-petit,.78rem);margin-top:.6rem}'
+      // La bascule vers l'autre etat, sous un filet : elle se lit comme une sortie, pas comme
+      // une action de plus. Le bouton reste en ligne dans la phrase, contrairement aux autres
+      // .bdv-porte__lien qui sont centres sur leur propre ligne.
+      + '.bdv-porte__bascule{margin:1.1rem 0 0;padding-top:.9rem;border-top:1px solid var(--rule,rgba(30,37,54,.15));text-align:center;font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-petit,.78rem);color:var(--muted,#63523D)}'
+      + '.bdv-porte__bascule .bdv-porte__lien{display:inline;margin:0;font-size:var(--t-petit,.78rem)}'
       + '.bdv-porte__legal{font-size:var(--t-mini,.7rem);color:var(--muted,#63523D);margin-top:1.4rem;font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif)}'
       + '.bdv-porte__legal a{color:var(--bordeaux,#5A1525)}'
       // Sortir n'est pas une action : la croix se range dans le coin, elle ne prend plus
@@ -444,6 +449,12 @@
     // immediatement sur un nouvel import (l'appelant ne passe alors pas esquivable:true).
     if(options.esquivable && porteRecemmentEsquivee()) return Promise.resolve(null);
     injecterStyles();
+    // 'inscription' ou 'connexion'. Decide ce que MONTRE l'ecran d'acces, pas ce qu'il sait
+    // faire : les deux actions restent atteignables en un clic par la ligne de bascule.
+    // Defaut volontaire a l'inscription : presque tout le monde arrive ici sans compte, et
+    // celui qui revient a desormais une entree « Connexion » a lui dans le menu du site.
+    const modeInitial = (options.mode === 'connexion') ? 'connexion' : 'inscription';
+    const TITRES = { inscription: 'Ouvre ton bureau.', connexion: 'Content de te revoir.' };
     return new Promise(function(resolve){
       const overlay = document.createElement('div');
       overlay.className = 'bdv-porte';
@@ -454,27 +465,40 @@
         '<div class="bdv-porte__carte">'
         + ((options.esquivable || options.fermable) ? '<button class="bdv-porte__croix" id="bdvCroix" type="button" aria-label="Fermer">\u00d7</button>' : '')
         + '<p class="bdv-porte__eyebrow">Le Bureau du Vigneron</p>'
-        + '<h2 id="bdvPorteTitre" class="bdv-porte__titre">' + esc(options.titre || 'Tes chiffres sont prêts.') + '</h2>'
-        // Etape 1 : acces. Deux boutons distincts, volontairement. Un seul bouton obligerait a
-        // deviner l'intention, et le 400 du serveur ne dit pas si c'est le mot de passe qui est
-        // faux ou le compte qui n'existe pas.
+        + '<h2 id="bdvPorteTitre" class="bdv-porte__titre"></h2>'
+        // Etape 1 : acces. UN seul ecran, DEUX etats. L'etat affiche ne montre que ce qui le
+        // concerne : celui qui vient se connecter ne lit pas les regles d'un mot de passe qu'il
+        // possede deja, celui qui s'inscrit ne voit pas « mot de passe oublie ». Les deux
+        // boutons restent dans la page, un seul est visible a la fois. Le 400 du serveur ne dit
+        // pas si c'est le mot de passe qui est faux ou le compte qui n'existe pas : l'intention
+        // doit donc venir de l'ecran, jamais d'une devinette.
         + '<div data-etape="acces">'
         + '<label class="bdv-porte__label" for="bdvEmail">Ton email</label>'
         + '<input class="bdv-porte__input" type="email" id="bdvEmail" autocomplete="email" placeholder="toi@domaine.fr">'
         + '<label class="bdv-porte__label" for="bdvMdp">Ton mot de passe</label>'
-        + '<input class="bdv-porte__input" type="password" id="bdvMdp" autocomplete="current-password">'
+        // L'attribut autocomplete est repose par poserMode a chaque bascule, et c'est lui SEUL
+        // qui decide si le gestionnaire de mots de passe propose de REMPLIR (current-password)
+        // ou d'EN GENERER UN (new-password). Fige sur current-password jusqu'au 07/09/2026, il
+        // proposait de remplir un compte inexistant a quelqu'un en train de s'inscrire.
+        + '<input class="bdv-porte__input" type="password" id="bdvMdp" autocomplete="new-password">'
         // Annonce statique construite depuis MDP_REGLES, jamais recopiee : un refus muet
         // sur une regle qu'on n'avait pas annoncee est la panne la plus couteuse de cet ecran.
-        + '<p class="bdv-porte__aide">Nouveau compte : ' + esc(MDP_REGLES.map(function(r){ return r.texte; }).join(', ')) + '.</p>'
+        + '<p class="bdv-porte__aide" id="bdvAide">Il te faut : ' + esc(MDP_REGLES.map(function(r){ return r.texte; }).join(', ')) + '.</p>'
         + listeRegles('bdvReglesAcces', 'Pour créer un compte, il faut :')
-        + '<label class="bdv-porte__chk"><input type="checkbox" id="bdvNews"> Recevoir l\'édition bimensuelle du Bureau du Vigneron</label>'
-        // Presque tout le monde arrive ici sans compte : le bouton plein est celui qui en cree un.
-        // Celui qui revient sait ce qu'il cherche et lit l'etiquette, l'inverse n'est pas vrai.
+        + '<label class="bdv-porte__chk" id="bdvNewsLabel"><input type="checkbox" id="bdvNews"> Recevoir l\'édition bimensuelle du Bureau du Vigneron</label>'
+        // Un seul de ces deux boutons est visible, et il est plein : le bouton principal de
+        // l'ecran est toujours l'action de l'etat affiche. Plus de second bouton fantome au
+        // meme rang, qui obligeait l'oeil a choisir entre deux propositions equivalentes.
         + '<button class="bdv-porte__btn" id="bdvBtnInscription" type="button">Créer mon compte</button>'
-        + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvBtnConnexion" type="button">J\'ai déjà un compte, me connecter</button>'
+        + '<button class="bdv-porte__btn" id="bdvBtnConnexion" type="button">Me connecter</button>'
         + '<button class="bdv-porte__lien" id="bdvOublie" type="button">Mot de passe oublié ?</button>'
         + (options.esquivable ? '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvPlusTard" type="button">Plus tard</button>' : '')
         + '<p class="bdv-porte__erreur" id="bdvErreurAcces" hidden></p>'
+        // La bascule, separee du reste par un filet : ce n'est pas une action de l'ecran, c'est
+        // la sortie vers l'autre etat. Elle est TOUJOURS visible ; c'est la seule chose qui
+        // empeche l'ecran de rester muet devant quelqu'un qui n'est pas dans le bon etat.
+        + '<p class="bdv-porte__bascule"><span id="bdvBasculeTexte"></span> '
+        + '<button class="bdv-porte__lien" id="bdvBtnBascule" type="button"></button></p>'
         + '</div>'
         // Etape 2 : le code a six chiffres. Le meme ecran sert a confirmer une inscription et
         // a reprendre un mot de passe oublie ; seule la variable modeCode change.
@@ -546,7 +570,16 @@
       const champNouveau = overlay.querySelector('#bdvNouveauMdp');
       const btnNouveau = overlay.querySelector('#bdvBtnNouveau');
       const erreurNouveau = overlay.querySelector('#bdvErreurNouveau');
+      const titreEl = overlay.querySelector('#bdvPorteTitre');
+      const aideMdp = overlay.querySelector('#bdvAide');
+      const newsLabel = overlay.querySelector('#bdvNewsLabel');
+      const btnBascule = overlay.querySelector('#bdvBtnBascule');
+      const basculeTexte = overlay.querySelector('#bdvBasculeTexte');
       champEmail.focus();
+
+      // 'inscription' ou 'connexion'. Repose par poserMode, lu par la touche Entree et par
+      // l'affichage des regles de mot de passe.
+      let mode = modeInitial;
 
       // 'signup' ou 'recovery'. Decide ce que valide l'etape 2 et ou elle mene ensuite.
       let modeCode = 'signup';
@@ -777,13 +810,50 @@
           if(puce) puce.textContent = ok ? '\u2713' : '\u00b7';
         });
       }
-      champMdp.addEventListener('input', function(){ majRegles(reglesAcces, champMdp.value); });
-      champMdp.addEventListener('focus', function(){ majRegles(reglesAcces, champMdp.value, true); });
+      champMdp.addEventListener('input', function(){ if(mode === 'inscription') majRegles(reglesAcces, champMdp.value); });
+      champMdp.addEventListener('focus', function(){ if(mode === 'inscription') majRegles(reglesAcces, champMdp.value, true); });
       champNouveau.addEventListener('input', function(){ majRegles(reglesNouveau, champNouveau.value, true); });
       majRegles(reglesNouveau, '', true);
 
+      // Bascule d'un etat a l'autre SANS rien perdre : l'email et le mot de passe deja tapes
+      // restent en place. Quelqu'un qui s'est trompe d'etat ne doit pas payer sa meprise en
+      // retapant son adresse. Declaree ici et pas plus haut : elle lit reglesAcces, qui est
+      // un const declare juste au-dessus.
+      function poserMode(m){
+        mode = (m === 'connexion') ? 'connexion' : 'inscription';
+        const co = (mode === 'connexion');
+        // Le titre passe par le bouton d'ouverture (data-bdv-titre) uniquement pour l'etat par
+        // lequel on est entre. Apres une bascule il redevient neutre : « Ton bureau t'attend »
+        // au-dessus d'un formulaire de connexion ne veut plus rien dire.
+        titreEl.textContent = (mode === modeInitial && options.titre) ? options.titre : TITRES[mode];
+        aideMdp.hidden = co;
+        newsLabel.hidden = co;
+        btnInscription.hidden = co;
+        btnConnexion.hidden = !co;
+        btnOublie.hidden = !co;
+        // Voir le commentaire du champ : cette ligne fait toute la difference entre « remplir »
+        // et « generer » dans le gestionnaire de mots de passe du vigneron.
+        champMdp.setAttribute('autocomplete', co ? 'current-password' : 'new-password');
+        basculeTexte.textContent = co ? 'Pas encore de compte ?' : 'Tu as déjà un compte ?';
+        btnBascule.textContent = co ? 'En créer un' : 'Me connecter';
+        masquerErreur(erreurAcces);
+        if(co) reglesAcces.hidden = true;
+        else majRegles(reglesAcces, champMdp.value);
+      }
+      btnBascule.addEventListener('click', function(){
+        poserMode(mode === 'connexion' ? 'inscription' : 'connexion');
+        (champEmail.value.trim() ? champMdp : champEmail).focus();
+      });
+      poserMode(modeInitial);
+
       champEmail.addEventListener('keydown', function(e){ if(e.key === 'Enter') champMdp.focus(); });
-      champMdp.addEventListener('keydown', function(e){ if(e.key === 'Enter') seConnecter(); });
+      // Entree valide l'action de l'etat AFFICHE, et pas systematiquement la connexion :
+      // sinon une inscription faite au clavier repartait en « adresse ou mot de passe
+      // incorrect », sur un compte qui n'existait effectivement pas encore.
+      champMdp.addEventListener('keydown', function(e){
+        if(e.key !== 'Enter') return;
+        if(mode === 'connexion') seConnecter(); else sInscrire();
+      });
       champCode.addEventListener('keydown', function(e){ if(e.key === 'Enter') validerCode(); });
       // Un code colle depuis une application de messagerie arrive souvent avec une espace, un
       // tiret ou un retour a la ligne. On ne garde que les chiffres, sinon GoTrue repond
@@ -873,6 +943,8 @@
   // L'interception ne fait que remplacer un changement de page par une surimpression.
   //   data-bdv-titre : le titre affiche en haut de la fenetre, propre a ce bouton
   //   data-bdv-apres : l'adresse ou aller une fois entre. Absente, on reste sur place.
+  //   data-bdv-mode  : « connexion » pour ouvrir directement sur l'ecran de connexion.
+  //                    Absente, la fenetre s'ouvre sur l'inscription.
   function surClicCompte(e){
     if(!e.target || !e.target.closest) return;
     const cible = e.target.closest('[data-bdv-compte]');
@@ -882,7 +954,10 @@
     e.preventDefault();
     const apres = cible.getAttribute('data-bdv-apres');
     if(lireSession()){ if(apres) location.href = apres; return; }
-    ouvrir({ titre: cible.getAttribute('data-bdv-titre') || undefined })
+    ouvrir({
+      titre: cible.getAttribute('data-bdv-titre') || undefined,
+      mode: cible.getAttribute('data-bdv-mode') || undefined
+    })
       .then(function(session){ if(session && apres) location.href = apres; });
   }
   document.addEventListener('click', surClicCompte);

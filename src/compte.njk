@@ -54,7 +54,11 @@ permalink: /compte/
 
     <div class="waitlist__form-wrap" style="text-align:center">
       <a href="/compte/" class="btn" id="compteBtnOuvrir"
-         data-bdv-compte data-bdv-titre="Ton bureau t'attend.">Créer mon compte ou me connecter</a>
+         data-bdv-compte data-bdv-mode="inscription"
+         data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a>
+      <p id="compteDejaInscrit" style="margin-top:.9rem">Tu as déjà un compte ?
+        <a href="/compte/?mode=connexion" id="compteBtnConnexion" data-bdv-compte
+           data-bdv-mode="connexion" data-bdv-titre="Content de te revoir.">Me connecter</a></p>
       <a href="/outils/dashboard-vigneron/" class="btn" id="compteBtnTableau" hidden>Ouvrir mon tableau de bord</a>
       <button type="button" class="btn btn--ghost" id="compteBtnSortir" hidden>Me déconnecter</button>
     </div>
@@ -82,6 +86,7 @@ permalink: /compte/
     document.getElementById('compteProof').hidden = !!s;
     document.getElementById('compteConnecte').hidden = !s;
     document.getElementById('compteBtnOuvrir').hidden = !!s;
+    document.getElementById('compteDejaInscrit').hidden = !!s;
     document.getElementById('compteBtnTableau').hidden = !s;
     document.getElementById('compteBtnSortir').hidden = !s;
     if(s) document.getElementById('compteEmail').textContent = s.user.email;
@@ -100,9 +105,23 @@ permalink: /compte/
     afficher();
   });
 
-  // La fenetre ne s'ouvre PLUS toute seule. Elle le faisait tant que cette page n'avait rien
-  // a dire ; depuis le 06/09/2026 elle porte la promesse (ce qu'on demande, a quoi ca sert, ce
-  // qu'on ne fait jamais des ventes), et une fenetre posee par dessus la rendait illisible.
-  // Le bouton plus bas ouvre la meme fenetre au clic, via data-bdv-compte.
+  // La fenetre ne s'ouvre PLUS toute seule a l'arrivee nue sur /compte/. Elle le faisait tant
+  // que cette page n'avait rien a dire ; depuis le 06/09/2026 elle porte la promesse (ce qu'on
+  // demande, a quoi ca sert, ce qu'on ne fait jamais des ventes), et une fenetre posee par
+  // dessus la rendait illisible. Le bouton ouvre la meme fenetre au clic, via data-bdv-compte.
+  //
+  // UNE exception, posee le 07/09/2026 : /compte/?mode=connexion. C'est l'adresse de l'entree
+  // « Connexion » du menu quand le clic n'a pas ete intercepte (nouvel onglet, lien copie,
+  // module pas encore charge). L'intention y est deja exprimee : faire relire toute la
+  // promesse d'inscription a quelqu'un qui demande a se connecter serait le meme defaut
+  // qu'avant, dans l'autre sens.
+  if(!session() && /(^|[?&])mode=connexion(&|$)/.test(location.search)){
+    // bdv-compte.js est charge en defer : il n'existe pas encore au moment ou ce script tourne.
+    window.addEventListener('load', function(){
+      if(window.BdvCompte && !BdvCompte.session()){
+        BdvCompte.ouvrir({ mode: 'connexion', titre: 'Content de te revoir.' });
+      }
+    });
+  }
 })();
 </script>
