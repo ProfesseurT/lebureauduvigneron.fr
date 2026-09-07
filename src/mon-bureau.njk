@@ -60,7 +60,18 @@ permalink: /mon-bureau/
     </div>
   </section>
 
-  <div class="container--bureau bureau-plan">
+  <!-- L'ATELIER : la barre a gauche, le travail a droite. Pose le 07/09/2026, lot 1 de
+       la fusion (PLAN_fusion-bureau.md). Deux niveaux de navigation cohabitent sur cette
+       page, et c'est voulu parce qu'ils n'ont pas la meme nature : la barre du site, en
+       haut, mene au media (les articles, le conseil terrain) ; celle-ci mene au travail du
+       vigneron. Ce sont deux lieux, pas deux etages du meme lieu.
+       La barre est PEINTE par /js/bdv-nav.js, qui porte la liste unique des pieces. Rien
+       n'est ecrit en dur ici : une piece ajoutee dans le gabarit et pas dans le module
+       serait une piece que le tableau de bord ne connaitrait pas. -->
+  <div class="bureau-atelier" id="bureauAtelier">
+    <nav class="bureau-nav" id="bureauNav" aria-label="Les pièces de ton bureau"></nav>
+    <div class="bureau-atelier__travail">
+    <div class="bureau-plan">
 
     <!-- LE SOUS-MAIN : ce qu'on fait aujourd'hui. La zone la plus large, en haut a gauche. -->
     <section class="zone zone--sousmain">
@@ -135,22 +146,22 @@ permalink: /mon-bureau/
       <div id="bureauCourrier"></div>
     </section>
 
-    <!-- LE TIROIR : les outils. En bas, parce qu'on sait ou ils sont. -->
-    <section class="zone zone--tiroir">
+    <!-- LE TIROIR, vide et masque depuis le 07/09/2026, lot 1 de la fusion.
+         Ses deux entrees, le compte a rebours et le tableau de bord, sont montees dans la
+         barre de gauche. Les laisser ici en plus aurait fait deux chemins vers la meme
+         chose, c'est-a-dire exactement le doublon que ce chantier supprime.
+         Le tiroir REVIENDRA au lot 3, avec ce pour quoi il est fait : les outils gratuits
+         ouverts a toute la filiere, qui ne sont pas des pieces du bureau du vigneron et
+         n'ont donc rien a faire dans sa barre. La zone reste ici, vide, pour que ce
+         retour soit une ligne a decommenter et pas une zone a reinventer. -->
+    <section class="zone zone--tiroir" id="zoneTiroir" hidden>
       <div class="zone__tete"><h2>Le tiroir</h2></div>
-      <div class="tiroir">
-        <a class="tiroir__o" href="/outils/echeances/">
-          <span class="tiroir__nom">Le compte à rebours</span>
-          <span class="tiroir__q">DRM, DAI, récolte, facturation électronique</span>
-        </a>
-        <a class="tiroir__o" href="/outils/dashboard-vigneron/" id="tiroirDash">
-          <span class="tiroir__nom">Le tableau de bord</span>
-          <span class="tiroir__q">Tes ventes, tes clients, tes cuvées</span>
-        </a>
-      </div>
+      <div class="tiroir" id="bureauTiroir"></div>
     </section>
 
-  </div>
+    </div><!-- /.bureau-plan -->
+    </div><!-- /.bureau-atelier__travail -->
+  </div><!-- /.bureau-atelier -->
 
   <!-- La fiche de suivi, en surimpression. On ne quitte pas le bureau pour travailler
        un client : c'est ici qu'on pose un geste, ici qu'on lit ce qui s'est dit. -->
@@ -188,6 +199,9 @@ permalink: /mon-bureau/
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
+<!-- La liste unique des pieces du bureau, et la barre qui la peint. Sans defer : le
+     script de cette page appelle BdvNav.monter() a l'ouverture du document. -->
+<script src="/js/bdv-nav.js"></script>
 <script>
 (function(){
   'use strict';
@@ -927,7 +941,7 @@ permalink: /mon-bureau/
     // affaire depuis la fusion : le module le fait lui-meme, sur la meme fiche profil,
     // cf. gateVitisoft() dans bdv-reglages.js.
     var sansViti = (p.utilise_vitisoft === 'non');
-    var t = el('tiroirDash'); if(t) t.hidden = sansViti;
+    if(window.BdvNav) BdvNav.sansVitisoft(sansViti);
   }
 
   // UNE seule lecture du profil pour les deux ecrans, et elle vit dans le module : deux
@@ -1045,6 +1059,8 @@ permalink: /mon-bureau/
   });
 
   document.addEventListener('DOMContentLoaded', function(){
+    // La barre en premier : elle est le cadre, tout le reste se peint dedans.
+    if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
     brancherReglages();
     peindreEcheance(); peindreResume();
     if(window.BdvCrm){

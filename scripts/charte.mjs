@@ -547,7 +547,13 @@ if (!jsCouleursDur && !jsRayonsDur && !jsRepliFaux && !jsTokenAbsent) ok('CSS em
    personne ne surveillait jusqu'ici. Les trois dernieres sont donc une COUVERTURE NOUVELLE,
    pas un ajout d'icone. */
 const ENTITES_ATTENDUES = ['&#8592;', '&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;',
-                           '&#9095;', '&#9998;', '&#215;'];
+                           '&#9095;', '&#9998;', '&#215;',
+                           /* Lot 1, la barre du bureau (src/js/bdv-nav.js) : le soleil de
+                              « Ma journee », le sablier du compte a rebours, la roue des
+                              reglages. Les quatre autres icones de la barre sont celles du
+                              menu des ecrans de vente, deja dans la liste : c'est la meme
+                              barre, ce sont les memes icones. */
+                           '&#9728;', '&#8987;', '&#9881;'];
 
 if (DASH) {
   titre('9. Entites HTML numeriques (les icones du tableau de bord)');

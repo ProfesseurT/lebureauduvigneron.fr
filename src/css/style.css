@@ -4677,6 +4677,172 @@ a.bureau-outil:hover {
   padding-bottom: var(--e-2xl);
   align-items: start;
 }
+/* ============================================================================
+   L'ATELIER : LA BARRE DU BUREAU ET LA ZONE DE TRAVAIL
+   ----------------------------------------------------------------------------
+   Pose le 07/09/2026, lot 1 de la fusion (PLAN_fusion-bureau.md). Le tableau de
+   bord cesse d'etre une page a part : ses ecrans deviennent des pieces du
+   bureau, dans UNE barre a plat. Cette barre est celle-la.
+
+   A gauche et pas en haut, decide avec Ted : les ecrans de vente portent des
+   tableaux de dix colonnes et deux cents lignes. Un bandeau horizontal leur
+   prendrait de la hauteur en permanence, une colonne ne prend de la largeur
+   qu'une fois, et elle se replie.
+
+   La barre reprend la forme du volet des ecrans de vente (fond --ink-deep,
+   liserre --gold sur la piece active, libelles en mono) : au lot 2 ce sera la
+   MEME barre pour le vigneron, elle ne doit pas changer d'allure en changeant
+   de piece. Une difference assumee : ici le repli laisse les icones au lieu de
+   tout escamoter. C'est ce qui permet de se passer du menu de secours que la
+   barre haute du tableau de bord doit afficher quand son volet tombe a zero.
+   ============================================================================ */
+.bureau-atelier {
+  /* 1440 pour le travail, comme avant la barre, plus la largeur de la barre :
+     poser la barre ne doit pas retrecir le bureau de quelqu'un qui a l'ecran
+     pour l'afficher. */
+  max-width: calc(1440px + 230px);
+  margin: 0 auto;
+  padding: var(--e-xl) var(--e-l) var(--e-2xl);
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: var(--e-l);
+  align-items: start;
+  transition: grid-template-columns var(--tr-rapide) ease;
+}
+/* Replie : les icones restent. La navigation ne disparait jamais, on ne
+   s'enferme donc jamais dans la piece ou l'on se trouve. */
+.bureau-atelier--replie { grid-template-columns: 58px minmax(0, 1fr); }
+
+/* Le bureau-plan garde ses douze colonnes et son gabarit ; c'est l'atelier qui
+   porte desormais le rythme vertical, sinon les deux s'ajoutent. */
+.bureau-atelier__travail > .bureau-plan { padding-top: 0; padding-bottom: 0; }
+
+.bureau-nav {
+  background: var(--ink-deep);
+  border-top: var(--trait-accent) solid var(--gold);
+  padding-block: var(--e-s) var(--e-m);
+  overflow: hidden;
+  min-width: 0;
+}
+/* Collee en haut : changer de piece ne demande pas de remonter, meme au bas
+   d'un ecran long. align-self:start est obligatoire, sans lui la barre est
+   etiree sur toute la hauteur de sa ligne de grille et il n'y a rien a faire
+   glisser. Au-dessus de 900 px seulement : en dessous c'est une barre
+   horizontale, la coller superposerait la navigation au contenu. */
+@media (min-width: 901px) {
+  .bureau-nav {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+/* Le bouton de repli : trois filets, la meme figure que dans les ecrans de
+   vente. Son libelle accessible est repose en JavaScript a chaque bascule,
+   parce qu'il dit l'action a venir et non l'etat present. */
+.bureau-nav__plier {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  margin: 0 0 var(--e-s) var(--e-m);
+  background: none;
+  border: var(--trait) solid var(--on-dark-rule);
+  border-radius: var(--r-nul);
+  cursor: pointer;
+  transition: border-color var(--tr-rapide), background var(--tr-rapide);
+}
+.bureau-nav__plier:hover { border-color: var(--gold); }
+.bureau-nav__filets {
+  display: block;
+  width: 13px;
+  height: 9px;
+  border-top: var(--trait) solid var(--on-dark);
+  border-bottom: var(--trait) solid var(--on-dark);
+  position: relative;
+}
+.bureau-nav__filets::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 0.5px);
+  border-top: var(--trait) solid var(--on-dark);
+}
+
+.bureau-nav__liste { list-style: none; margin: 0; padding: 0; }
+.bureau-nav__ligne { margin: 0; }
+.bureau-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--e-s);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: var(--trait-accent) solid transparent;
+  color: var(--on-dark-soft);
+  font-family: var(--font-mono);
+  font-size: var(--t-petit);
+  letter-spacing: var(--ls-doux);
+  padding: 0.68rem var(--e-m);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--tr-rapide), color var(--tr-rapide);
+}
+a.bureau-nav__item:hover,
+button.bureau-nav__item:hover {
+  background: var(--ink);
+  color: var(--on-dark);
+  text-decoration: none;
+}
+/* La piece ou l'on est n'est pas un lien : c'est un reperage. */
+.bureau-nav__item--actif {
+  color: var(--on-dark);
+  background: var(--ink);
+  border-left-color: var(--gold);
+  cursor: default;
+}
+.bureau-nav__ico {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--gold);
+}
+.bureau-nav__nom { min-width: 0; }
+
+/* Replie : l'icone seule, centree. Le nom de la piece reste accessible par le
+   title, pose avec ce que la piece contient. */
+.bureau-atelier--replie .bureau-nav__nom { display: none; }
+.bureau-atelier--replie .bureau-nav__item { justify-content: center; padding-inline: 0; }
+.bureau-atelier--replie .bureau-nav__plier { margin-inline: auto; }
+
+/* Sous 900 px, la barre devient un bandeau a defilement au-dessus du travail, et
+   le repli n'a plus d'objet : sur telephone il n'y a pas de largeur a rendre. */
+@media (max-width: 900px) {
+  .bureau-atelier,
+  .bureau-atelier--replie {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: var(--e-m);
+    gap: var(--e-m);
+  }
+  .bureau-nav { display: flex; overflow-x: auto; padding-block: 0; }
+  .bureau-nav__plier { display: none; }
+  .bureau-nav__liste { display: flex; }
+  .bureau-atelier--replie .bureau-nav__nom { display: block; }
+  .bureau-atelier--replie .bureau-nav__item { justify-content: flex-start; padding-inline: var(--e-m); }
+  .bureau-nav__item {
+    border-left: none;
+    border-bottom: var(--trait-accent) solid transparent;
+    white-space: nowrap;
+  }
+  .bureau-nav__item--actif { border-left: none; border-bottom-color: var(--gold); }
+}
+
 /*   rangee 1 : le sous-main (8) + le mot du jour (4)
      rangee 2 : l'ardoise (8) + le pense-bete (4)
      rangee 3 : a lire (4) + le classeur (4) + le courrier (4)

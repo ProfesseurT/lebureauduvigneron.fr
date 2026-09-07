@@ -7,10 +7,12 @@
     "start": "eleventy --serve",
     "dev": "eleventy --serve",
     "charte": "node scripts/charte.mjs",
-    "charte:dash": "node scripts/charte.mjs --dash"
+    "charte:dash": "node scripts/charte.mjs --dash",
+    "banc": "node scripts/banc-bureau.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
-    "css-tree": "^3.2.1"
+    "css-tree": "^3.2.1",
+    "jsdom": "^30.0.1"
   }
 }

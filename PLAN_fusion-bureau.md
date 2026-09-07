@@ -18,7 +18,7 @@ Chantier mene seul, sans y melanger les six autres chantiers de la feuille de ro
 
 ## Les quatre lots
 
-### Lot 0 : sortir la mise en forme et les ecrans du fichier (rien ne change a l'ecran)
+### Lot 0 : sortir la mise en forme et les ecrans du fichier — FAIT le 07/09/2026
 
 Deplacement pur, meme methode que la sortie de `bdv-base.js` : aucune reecriture, la portee
 globale est conservee, l'ordre de chargement est une condition et pas une preference.
@@ -26,25 +26,45 @@ globale est conservee, l'ordre de chargement est une condition et pas une prefer
 1. Le bloc `<style>` part dans `src/css/bdv-ecrans.css`.
 2. Le script en ligne (lignes 653 a 3219) part dans `src/js/bdv-ecrans.js`, charge apres
    `bdv-base.js` et sans `defer`.
-3. Les six noms de classes communs sont renommes du cote des ecrans, pas du cote du site :
-   le site est lu par des lecteurs, les ecrans par un seul vigneron connecte.
-4. `scripts/charte.mjs` est adapte dans le meme lot. Sinon `npm run charte:dash` passe sur
+3. `scripts/charte.mjs` est adapte dans le meme lot. Sinon `npm run charte:dash` passe sur
    un fichier vide de couleurs et declare tout conforme, panne deja rencontree.
 
-Verification : les cinq controles de `CLAUDE.md` sur un export reel, plus `charte` et
-`charte:dash`. Le chiffre d'affaires total doit etre identique au centime.
+**Ecart assume, decide en cours de route** : le renommage des six noms de classes communs
+est REPORTE au lot 2. Il ne sert a rien tant que les deux feuilles ne se croisent pas dans
+une meme page, et le faire ici aurait casse la seule garantie forte du lot 0, le
+deplacement pur. Les six sont notes en tete de `src/css/bdv-ecrans.css`.
 
-### Lot 1 : le bureau gagne sa barre de navigation (les ecrans de vente sont encore ailleurs)
+Verifie : reconstitution du fichier d'origine a partir des trois morceaux, identique au
+caractere pres, meme empreinte, memes 228 351 octets. `charte` et `charte:dash` CONFORME,
+zero echec, 67 tokens et 29 declarations de graisse retrouves. Les cinq controles de
+`CLAUDE.md` sur un export reel restent a la charge de Ted, a l'ecran.
 
-Une seule barre, une seule liste : Ma journee, Mon exercice, Mes clients, Mes cuvees,
-Chercher, Le compte a rebours, Mes reglages. « Ma journee » est le bureau d'aujourd'hui,
-inchange. Les entrees de vente pointent encore vers l'ancienne page.
+### Lot 1 : le bureau gagne sa barre de navigation — FAIT le 07/09/2026
 
-A trancher avant d'ecrire : barre a gauche, repliable, comme le volet actuel du tableau de
-bord, ou barre en haut comme le site. Les ecrans de vente ont besoin de largeur et de
-hauteur : un tableau a dix colonnes et deux cents lignes se lit mal sous un bandeau.
+Barre **a gauche, repliable**, comme le volet des ecrans de vente. Un bandeau horizontal
+aurait pris de la hauteur en permanence a des tableaux de dix colonnes et deux cents
+lignes ; une colonne ne prend de la largeur qu'une fois, et elle se replie.
 
-Verification : le bureau se rend comme avant, la barre navigue, rien de casse hors ligne.
+- `src/js/bdv-nav.js` porte la LISTE UNIQUE des pieces et peint la barre. Une piece
+  nouvelle entre la, jamais dans un gabarit.
+- `src/mon-bureau.njk` : la coque de l'atelier, barre a gauche et travail a droite.
+- `src/css/style.css` : `.bureau-atelier` et `.bureau-nav`.
+- La preference de repli partage la cle `bdv_volet_replie` avec le volet des ecrans de
+  vente, et le raccourci reste le crochet ouvrant. Replier au bureau replie aussi la-bas :
+  pour le vigneron c'est la meme barre.
+- Le repli laisse les ICONES, la ou le volet des ecrans de vente tombe a zero. C'est ce qui
+  permettra de supprimer son menu de secours « ici » au lot 2.
+- Le tiroir du bas est vide et masque : ses deux entrees sont montees dans la barre. Il
+  revient au lot 3 avec les outils gratuits.
+- `tiroirDash` est remplace par `BdvNav.sansVitisoft()` : sans Vitisoft, les quatre pieces
+  de vente restent invisibles. C'est une regle metier, elle a suivi la barre.
+
+Verifie : `npm run banc`, premier test automatise du depot, 26 controles. Plus `charte` et
+`charte:dash` CONFORME, et le rendu regarde en 1500 px, replie, et en 390 px.
+
+**Ajout assume** : `jsdom` entre en `devDependencies` pour faire tourner le banc. C'est du
+developpement seulement, mais Vercel installe aussi les devDependencies pendant le build :
+si le temps de build compte un jour, c'est la premiere chose a sortir.
 
 ### Lot 2 : les ecrans de vente s'affichent dans le bureau
 
@@ -68,6 +88,9 @@ Verification : les cinq controles, plus l'ouverture d'une adresse ancienne de ch
 
 ## Ce qui reste ouvert
 
-- La place de la barre, a gauche ou en haut. Bloque le lot 1.
-- Le nom de l'ecran « Mon annee » : il suit deja l'exercice comptable et s'affiche
-  « Mon exercice » quand l'exercice n'est pas l'annee civile. A l'unifier dans la barre.
+- Les six noms de classes communs, renommes au lot 2 du cote des ecrans.
+- Le menu « ici » des ecrans de vente, a supprimer au lot 2 et non a faire cohabiter.
+- Les icones de la barre sont des emoji : elles gardent leurs couleurs propres sur le fond
+  sombre, la ou tout le reste de la barre est en `--gold` et `--on-dark-soft`. Ca vient des
+  ecrans de vente, ce n'est pas nouveau, mais ca se voit plus maintenant qu'elles sont sept
+  en colonne. A trancher un jour : des emoji, ou un jeu de sept traces monochromes.
