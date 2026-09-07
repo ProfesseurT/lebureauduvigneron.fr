@@ -2547,7 +2547,10 @@ async function demarrerEcransVente(depart){
   ECRANS_DEMARRES = true;
 
   try{
-    if(!BdvCompte.session()) await BdvCompte.porte({titre:'Ton tableau de bord t\'attend.'});
+    // Le meme titre que les seize autres portes du site. Le bureau ferme la sienne avant
+    // que ce fichier soit charge, donc cette ligne ne sert plus qu'au cas ou la session
+    // tomberait entre l'ouverture du bureau et le premier clic sur un ecran de vente.
+    if(!BdvCompte.session()) await BdvCompte.porte({titre:'Ton bureau t\'attend.'});
   }catch(e){ /* jamais bloquer sur une porte cassee, voir le point 2 */ }
   document.documentElement.classList.remove('bdv-verrou');
   // Rapatriement AVANT l'ouverture : sinon le vigneron qui arrive sur un nouvel appareil
