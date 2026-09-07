@@ -1,0 +1,105 @@
+/* Le Bureau du Vigneron, LE STYLE DES BLOCS DU PANNEAU DE REGLAGES.
+
+   Ecrit le 07/09/2026, deuxieme temps de la fusion demandee par Ted : « ca doit etre les
+   memes ». Le panneau montre desormais « Ma base » et « Le classement » dans les DEUX pages,
+   et ces deux blocs sont rendus par le moteur (bdv-base.js) avec les classes du tableau de
+   bord : .card, .kpi-grid, .dropzone, .data, .btn, .signal...
+
+   POURQUOI TOUT EST PORTE SOUS .bdvr-panneau
+
+   Ces noms de classes existent AUSSI dans la feuille du site, avec un autre dessin. Charger
+   les regles du tableau de bord telles quelles au bureau redessinerait le bureau, et les
+   regles du site redessineraient le panneau. Les porter sous .bdvr-panneau les enferme dans
+   le panneau : elles ne peuvent plus toucher la page qui l'accueille, et la page ne peut plus
+   les prendre de vitesse.
+
+   Les 32 variables utilisees ici sont toutes declaree dans les DEUX :root du projet (site et
+   tableau de bord). C'est verifie, et c'est la condition pour que le panneau ait la meme tete
+   des deux cotes. Ne pas y introduire --cork, --e-m, --serie-1 ni les autres jetons
+   d'un seul cote.
+
+   Ce fichier est injecte par bdv-reglages.js, pas declare dans les pages : le panneau
+   emmene son style avec lui. */
+
+.bdvr-panneau .dropzone{border:var(--trait-fort) dashed var(--bordeaux);border-radius:var(--r-nul);padding:2.6rem 2rem;cursor:pointer;transition:var(--tr-rapide);background:var(--paper-light)}
+.bdvr-panneau .dropzone:hover,
+.bdvr-panneau .dropzone.over{border-color:var(--bordeaux-vif);background:var(--paper-deep)}
+.bdvr-panneau .dropzone.over{border-style:solid}
+.bdvr-panneau .dropzone--compact{padding:1.3rem 1rem;text-align:center;margin-bottom:.7rem}
+.bdvr-panneau .dropzone--compact .dz-icon{font-size:1.5rem;margin-bottom:.3rem}
+.bdvr-panneau .dropzone--compact h3{font-size:.95rem}
+.bdvr-panneau .dz-icon{font-size:2.1rem;margin-bottom:.5rem;color:var(--bordeaux)}
+.bdvr-panneau .dropzone h3{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;margin-bottom:.25rem}
+.bdvr-panneau .dropzone p{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
+.bdvr-panneau .pas-viti{margin-top:1.4rem;padding:1rem 1.2rem;background:var(--info-bg);border:var(--trait) solid var(--info);border-left:var(--trait-accent) solid var(--info);text-align:left;font-size:var(--t-base);line-height:var(--lh-normal)}
+.bdvr-panneau .pas-viti p{margin:0 0 .5rem}
+.bdvr-panneau .pas-viti p:last-child{margin-bottom:0}
+.bdvr-panneau .pas-viti__titre{font-family:var(--font-titre);font-size:var(--t-h3);color:var(--ink)}
+.bdvr-panneau .pas-viti__liens{font-family:var(--font-corps);font-size:var(--t-mini)}
+.bdvr-panneau .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-doux);cursor:pointer;border:none;text-decoration:none;transition:var(--tr-rapide);white-space:nowrap;border-radius:var(--r-nul);font-weight:500}
+.bdvr-panneau .btn--primary{background:var(--bordeaux);color:var(--on-dark)}
+.bdvr-panneau .btn--primary:hover{background:var(--bordeaux-vif)}
+.bdvr-panneau .btn--ghost{background:transparent;color:var(--bordeaux);border:var(--trait) solid var(--bordeaux)}
+.bdvr-panneau .btn--ghost:hover{background:var(--bordeaux);color:var(--on-dark)}
+.bdvr-panneau .btn--sm{padding:.42rem .8rem;font-size:var(--t-micro)}
+.bdvr-panneau .btn--light{background:var(--on-dark-rule);color:var(--on-dark);border:var(--trait) solid var(--on-dark-rule)}
+.bdvr-panneau .btn--light:hover{background:var(--on-dark-faint)}
+.bdvr-panneau .btn--danger{background:transparent;color:var(--danger-deep);border:var(--trait) solid var(--danger-deep)}
+.bdvr-panneau .btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
+.bdvr-panneau .panel__title{font-size:1.4rem;font-weight:400;color:var(--ink);margin-bottom:.15rem}
+.bdvr-panneau .panel__sub{font-size:var(--t-base);color:var(--muted);margin-bottom:1.2rem}
+.bdvr-panneau .section-label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux);margin:1.6rem 0 .7rem;font-weight:500}
+.bdvr-panneau .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.9rem;margin-bottom:1.4rem}
+.bdvr-panneau .kpi-grid--base{grid-template-columns:repeat(3,1fr)}
+.bdvr-panneau .kpi-grid--base .kpi{display:flex;flex-direction:column}
+.bdvr-panneau .yearpills{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem}
+.bdvr-panneau .yearpill{font-family:var(--font-mono);font-size:var(--t-mini);font-weight:500;padding:.12rem .45rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--ink)}
+.bdvr-panneau .kpi{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.1rem;border-top:var(--trait-accent) solid var(--bordeaux)}
+.bdvr-panneau .kpi--hi .kpi__label,
+.bdvr-panneau .kpi--hi .kpi__sub{color:var(--on-dark-soft)}
+.bdvr-panneau .kpi--hi .kpi__val{color:var(--on-dark)}
+.bdvr-panneau .kpi__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.4rem}
+.bdvr-panneau .kpi__val{font-size:1.6rem;font-weight:600;line-height:1;font-family:var(--font-titre);color:var(--ink)}
+.bdvr-panneau .kpi__val span{font-size:var(--t-petit);font-weight:400;color:var(--muted)}
+.bdvr-panneau .kpi__sub{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin-top:.4rem}
+.bdvr-panneau .card{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.2rem;margin-bottom:1.2rem}
+.bdvr-panneau .card__title{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:500}
+.bdvr-panneau .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.bdvr-panneau .expl-ctrls{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
+.bdvr-panneau .field{display:flex;flex-direction:column;gap:.25rem}
+.bdvr-panneau .field label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
+.bdvr-panneau .field select,
+.bdvr-panneau .field input{font-family:var(--font-mono);font-size:var(--t-petit);padding:.45rem .5rem;border:var(--trait) solid var(--muted);background:var(--white);color:var(--ink);min-width:180px;border-radius:var(--r-nul)}
+.bdvr-panneau table.data{width:100%;border-collapse:collapse;font-size:var(--t-petit)}
+.bdvr-panneau .tablewrap{max-height:70vh;overflow:auto;border:var(--trait) solid var(--rule);border-radius:var(--r-nul)}
+.bdvr-panneau .tablewrap table.data{border:none}
+.bdvr-panneau .search{font-family:var(--font-corps);font-size:var(--t-base);padding:.45rem .6rem;border:var(--trait) solid var(--muted);border-radius:var(--r-nul);min-width:220px;background:var(--white);color:var(--ink)}
+.bdvr-panneau .pilote__row .field{flex:1 1 170px}
+.bdvr-panneau .pilote__row .field select{width:100%}
+.bdvr-panneau .fiche__reco-l .muted-cell{font-size:var(--t-petit)}
+.bdvr-panneau .panel#p-annee > div + div .panel__title{font-size:var(--t-h3);opacity:.9}
+.bdvr-panneau .chk{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--t-petit);color:var(--muted);cursor:pointer;white-space:nowrap}
+.bdvr-panneau .chk input{accent-color:var(--bordeaux);width:15px;height:15px;cursor:pointer;margin:0}
+.bdvr-panneau .muted-cell{color:var(--muted);font-size:var(--t-petit)}
+.bdvr-panneau .data a{color:var(--bordeaux);text-decoration:none;word-break:break-all}
+.bdvr-panneau .data a.tel{font-variant-numeric:tabular-nums;white-space:nowrap;word-break:normal}
+.bdvr-panneau .data a:hover{text-decoration:underline}
+.bdvr-panneau table.data th,
+.bdvr-panneau table.data td{padding:.45rem .55rem;text-align:left;border-bottom:var(--trait) solid var(--rule)}
+.bdvr-panneau table.data th{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
+.bdvr-panneau table.data td.num,
+.bdvr-panneau table.data th.num{text-align:right;font-family:var(--font-mono)}
+.bdvr-panneau table.data tbody tr:hover{background:var(--paper-light)}
+.bdvr-panneau .signal{display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border:var(--trait) solid var(--rule);border-radius:var(--r-nul);background:var(--white);margin-bottom:.7rem;border-left-width:4px}
+.bdvr-panneau .signal__ico{font-size:var(--t-lead);flex-shrink:0;line-height:1.3}
+.bdvr-panneau .signal__body{font-size:var(--t-base)}
+.bdvr-panneau .signal__verdict{font-weight:700;margin-bottom:.15rem}
+.bdvr-panneau .signal__action{color:var(--muted);font-size:var(--t-base)}
+.bdvr-panneau .signal__action b{color:var(--ink)}
+.bdvr-panneau .note{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.6rem}
+.bdvr-panneau .mini-line{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.7rem}
+@media(max-width:900px){
+  .bdvr-panneau .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .bdvr-panneau .grid-2,
+.bdvr-panneau .grid-rep{grid-template-columns:1fr}
+}

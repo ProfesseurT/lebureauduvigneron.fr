@@ -31,6 +31,21 @@
       page qui ne les a pas, il faudra garder ces appels derriere un test d'existence.
       Cf. la suite du chantier : le bureau. */
 
+/* =============== AIDES PARTAGEES, VENUES DU TABLEAU DE BORD ===============
+   Deplacees ici le 07/09/2026, deuxieme temps du chantier : « Ma base » et « Le classement »
+   s'en servent, il fallait donc qu'elles suivent le moteur pour que le bureau les rende a
+   l'identique. Elles restent globales, le tableau de bord continue de les voir sans qu'un
+   seul de ses appels ait bouge. Neuf lignes, aucune dependance a un ecran. */
+function sum(arr,fn){return arr.reduce((s,r)=>s+fn(r),0);}
+function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
+function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div></div>`;}
+const MOIS_PLEIN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const MOIS_FR=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function dayToDate(dn){if(dn==null)return null;const dt=new Date(dn*86400000);const y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();return {y,m,d,t:y*10000+m*100+d};}
+function isoDepuisDate(d){return d?(d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0')):'';}
+function isoDepuisJour(dn){return dn==null?'':isoDepuisDate(dayToDate(dn));}
+function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}syncReglages();}
+
 /* ======================= CONFIG (a ajuster par domaine) ======================= */
 
 /* ---- Couleurs : le CSS est la seule source de verite ----------------------
@@ -156,6 +171,25 @@ function crmSave(){try{localStorage.setItem(CRM_KEY,JSON.stringify(CRM));}catch(
    valeur reste dans IndexedDB et repartira a la prochaine occasion. C'est la regle 2 du
    module de synchronisation : rien d'ici ne peut empecher l'outil de fonctionner. */
 function syncPret(){return !!(window.BdvSync&&BdvSync.pret());}
+
+/* Rafraichir ce qui est affiche, sans savoir QUI affiche. Le moteur tourne desormais dans
+   deux pages : le tableau de bord, qui a treize ecrans a redessiner, et le bureau, qui n'a
+   que le panneau de reglages. Un seul endroit connait cette difference, plutot que quinze
+   appels a renderAll() semes dans le fichier et qui leveraient au bureau. */
+function ecranRafraichir(){
+  if(typeof renderAll === 'function') renderAll();
+  // Le compteur de la barre du haut. Il etait rafraichi par openApp(), qu'on appelait en fin
+  // d'import : openApp() renvoyait aussi sur « Mon annee », ce qui refermait le panneau depuis
+  // lequel on venait justement d'importer. On garde le compteur, on abandonne le saut d'ecran.
+  const f = el('tbFile');
+  if(f && typeof META !== 'undefined' && typeof ROWS !== 'undefined'){
+    f.textContent = fmtNum(ROWS.length) + ' lignes'
+      + (META.min ? ' · ' + fmtDate(META.min) + ' au ' + fmtDate(META.max) : '');
+  }
+  if(typeof navTo === 'function' && typeof ROWS !== 'undefined' && !ROWS.length) navTo('vide');
+  if(window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();
+  else if(typeof ouvrirPanneauReglages === 'function') ouvrirPanneauReglages();
+}
 function syncReglages(){
   if(!syncPret())return;
   BdvSync.ecrireReglages({
@@ -242,7 +276,7 @@ function nomClient(id){
 }
 function crmVide(c){return !c||(!c.statut&&!c.notes&&!c.rappel&&!c.canal&&!(c.tags&&c.tags.length));}
 function crmRafraichirListe(){
-  const p=el('p-clients');if(p&&p.classList.contains('on'))renderClients();
+  const p=el('p-clients');if(p&&p.classList.contains('on')&&typeof renderClients==='function')renderClients();
   // Le bureau sert la file deposee : un client traite ici doit en sortir tout de suite,
   // pas au prochain import.
   if(typeof deposerPourLeBureau==='function')deposerPourLeBureau();
@@ -256,7 +290,7 @@ function crmSet(id,champ,valeur){
   // Sans ce retour, on tape une note, rien ne bouge, et on conclut qu'il manque un
   // bouton d'enregistrement. L'enregistrement au blur n'est acceptable que s'il se voit.
   status('success',(LIB_CHAMP[champ]||'Suivi')+(valeur===''?' effacé.':' enregistré.'));
-  if(FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
+  if(typeof FICHE_ID!=='undefined'&&FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
 }
 // Ecrit plusieurs champs d'un coup. crmSet appelle a la suite persistait, synchronisait et
 // redessinait TROIS fois pour un seul clic, avec un scintillement : aux deux premiers
@@ -270,7 +304,7 @@ function crmSetPlusieurs(id,champs){
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
   crmSave();syncSuivi(id);crmRafraichirListe();
   // Pas de message ici : geste() annonce deja ce qu'il vient de faire, en mieux.
-  if(FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
+  if(typeof FICHE_ID!=='undefined'&&FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
 }
 function crmSetTags(id,texte){
   const tags=texte.split(',').map(t=>t.trim()).filter(Boolean);
@@ -388,7 +422,13 @@ function fmtNum(n,d){return new Intl.NumberFormat('fr-FR',{maximumFractionDigits
 function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
 function fmtPct(n,d){return (n>=0?'+':'')+fmtNum(n,d==null?1:d)+' %';}
 function plur(n,mot){return n+' '+mot+(n>1?'s':'');}
-function status(type,msg){const b=el('status');b.className='status '+type;el('statusTxt').textContent=msg;el('statusSpin').style.display=type==='loading'?'block':'none';b.style.display='flex';if(type!=='loading')setTimeout(()=>{b.style.display='none';},type==='error'?12000:4000);}
+function status(type,msg){const b=el('status');
+  // Le tableau de bord porte cette barre dans son HTML ; le bureau ne l'a pas. Depuis que ce
+  // moteur tourne aussi la-bas, status() doit savoir parler ailleurs plutot que de lever sur
+  // un element absent : un import qui echoue en silence est exactement le defaut qu'on a
+  // passe la journee du 07/09/2026 a reparer.
+  if(!b){ if(window.BdvReglages && BdvReglages.dire) BdvReglages.dire(msg, type !== 'error'); return; }
+  b.className='status '+type;el('statusTxt').textContent=msg;el('statusSpin').style.display=type==='loading'?'block':'none';b.style.display='flex';if(type!=='loading')setTimeout(()=>{b.style.display='none';},type==='error'?12000:4000);}
 /* Referme le bandeau s'il est ENCORE en chargement, et ne touche a rien sinon.
    Un status('loading') ne disparait jamais tout seul, volontairement : personne ne sait
    combien de temps l'operation prend. La contrepartie, c'est que tout chemin qui en pose un
@@ -730,7 +770,7 @@ async function dbCount(){
 /* ======================= IMPORT ======================= */
 // Echap ferme la fiche client, ou l'ecran d'import si aucune fiche n'est ouverte.
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&el('modale')&&el('modale').classList.contains('on')){e.preventDefault();fermerFiche();}
+  if(e.key==='Escape'&&el('modale')&&el('modale').classList.contains('on')&&typeof fermerFiche==='function'){e.preventDefault();fermerFiche();}
 });
 // Deux zones de depot vivent dans la page depuis le 04/09/2026 : celle de l'ecran d'arrivee,
 // et celle de l'ecran « Ma base », pour qu'ajouter un export ne fasse plus sortir de l'outil.
@@ -791,7 +831,9 @@ async function handleFiles(list){
   if(echecsSync)status('error','Attention, '+fmtNum(echecsSync)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles sont bien sur cet appareil. '+resume);
   else status('success',resume);
   if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});
-  openApp();
+  // Le panneau, s'il est ouvert, doit montrer la base D'APRES l'import. Au bureau c'est le
+  // SEUL rafraichissement : il n'y a pas de renderAll() la-bas, ni d'ecran a rouvrir.
+  ecranRafraichir();
 }
 // Lit le CSV en windows-1252 (PAS UTF-8), separateur ; , renvoie [{h, raw:[...]}].
 // Compare la ligne d'en-tete aux noms attendus. On tolere qu'un export soit plus COURT
@@ -870,7 +912,7 @@ async function appliquerReglages(R){
   REG=R;
   ROWS=ROWS.map(r=>classerLigne(r));
   computeMeta();
-  runBusy('Application de tes réglages…',()=>{renderAll();ouvrirPanneauReglages();});
+  runBusy('Application de tes réglages…',()=>{ecranRafraichir();});
   status('success','Réglages enregistrés. Toute la base a été reclassée.');
 }
 // Revient aux propositions automatiques.
@@ -878,7 +920,7 @@ async function oublierReglages(){
   if(!confirm('Revenir au classement automatique ? Tes regroupements seront perdus.'))return;
   await regEcrire({valide:false});
   await reloadFromDB();
-  runBusy('Retour au classement automatique…',()=>{renderAll();ouvrirPanneauReglages();});
+  runBusy('Retour au classement automatique…',()=>{ecranRafraichir();});
 }
 /* ======================= EXERCICE COMPTABLE =======================
    Un exercice est nomme par son ANNEE D'OUVERTURE. Trois champs derives par ligne,
@@ -931,7 +973,7 @@ function exAppliquer(m){
   ROWS.forEach(exDeriver);
   filters={ex:null,from:null,to:null,preset:'tous'};
   computeMeta();
-  runBusy('Recalcul sur le nouvel exercice…',()=>{buildFilterBar();renderAll();});
+  runBusy('Recalcul sur le nouvel exercice…',()=>{if(typeof buildFilterBar==='function')buildFilterBar();ecranRafraichir();});
 }
 
 // Transforme les 40 champs bruts en objet exploitable + classification vente/non-vente.
@@ -961,7 +1003,9 @@ function computeMeta(){
   // est fragile, et l'ecran Ma base le dit au lieu de le taire.
   SANS_NUM=ROWS.filter(r=>!String(r.numClient||'').trim()).length;
   buildEmailIndex();     // adresses regroupees par client, avant le profil
-  RECO=null;CLASSEMENT=null;NOMS_CACHE=null;   // index de recommandation et classement : reconstruits a la demande
+  if(typeof RECO!=='undefined')RECO=null;
+  if(typeof CLASSEMENT!=='undefined')CLASSEMENT=null;
+  NOMS_CACHE=null;   // index de recommandation et classement : reconstruits a la demande
   PROFIL=profilBase();   // recalcule le profil a chaque changement de base
 }
 
@@ -1356,8 +1400,7 @@ async function viderBase(){
   try{localStorage.removeItem(CRM_KEY);localStorage.removeItem(ECH_KEY);}catch(e){}
   ROWS=[];computeMeta();
   status('success','Base vidée.');
-  navTo('vide');
-  ouvrirPanneauReglages();
+  ecranRafraichir();
 }
 
 /* La fonction refreshResume() a disparu avec l'ecran d'import plein page : le nombre de

@@ -103,6 +103,71 @@
     s.id = PREFIXE + '-style';
     s.textContent = STYLE;
     document.head.appendChild(s);
+    // La feuille des blocs du moteur (.card, .kpi-grid, .dropzone, .data...), portee sous
+    // .bdvr-panneau. Injectee d'ici et pas declaree dans les pages : le panneau emmene son
+    // style avec lui, donc les deux pages l'ont forcement, donc il a la meme tete des deux
+    // cotes. C'est litteralement ce que « ca doit etre les memes » demande.
+    const l = document.createElement('link');
+    l.id = PREFIXE + '-feuille';
+    l.rel = 'stylesheet';
+    l.href = '/css/bdv-panneau.css';
+    document.head.appendChild(l);
+  }
+
+  /* ============ LES DEUX BLOCS DU MOTEUR ============
+     Fin du chantier du 07/09/2026. Tant que chaque page contribuait ses propres blocs, le
+     panneau montrait autre chose selon l'endroit : le tableau de bord « Ma base » et le
+     classement, le bureau des renvois polis. Depuis que bdv-base.js est charge des deux
+     cotes, le panneau les monte LUI-MEME. Ils sont identiques par construction, plus par
+     recopie : il n'y a plus deux versions a tenir d'accord. */
+  function moteurPresent(){
+    return typeof window.renderBase === 'function' && typeof window.renderReglages === 'function';
+  }
+
+  // Le tableau de bord a deja ces deux <div> dans sa page : on les DEPLACE, ce qui laisse
+  // renderBase() et bindZoneDepot() ecrire au meme endroit qu'avant. Le bureau ne les a pas :
+  // on les cree. Meme code de rendu, deux hebergements.
+  function loger(idHote, idBloc){
+    const hote = el(idHote);
+    if(!hote) return;
+    const deja = el(idBloc);
+    if(deja){ deja.hidden = false; hote.appendChild(deja); return; }
+    const d = document.createElement('div');
+    d.id = idBloc;
+    hote.appendChild(d);
+  }
+
+  function monterMoteur(){
+    loger('bdvrHoteBase', 'p-base');
+    loger('bdvrHoteClassement', 'p-reglages');
+  }
+
+  async function rafraichirMoteur(){
+    if(!moteurPresent()) return;
+    try{
+      // Le bureau, contrairement au tableau de bord, n'a pas lu la base au demarrage : sans
+      // cette lecture « Ma base » y afficherait zero ligne alors que la base est pleine.
+      if(typeof ROWS !== 'undefined' && !ROWS.length && typeof reloadFromDB === 'function'){
+        await reloadFromDB();
+      }
+      renderBase();
+      renderReglages();
+    }catch(e){}
+  }
+
+  // Un seul point d'entree de rafraichissement, appele a l'ouverture ET par le moteur apres
+  // un import (cf. ecranRafraichir() dans bdv-base.js).
+  function rafraichirTout(){
+    peindreBase();
+    rafraichirMoteur();
+    BLOCS.forEach(function(b){ if(b.rafraichir){ try{ b.rafraichir(); }catch(e){} } });
+  }
+
+  // Le moteur annonce ses reussites et ses echecs par status(), qui ecrit dans une barre que
+  // seul le tableau de bord possede. Au bureau, il parle ici.
+  function dire(message, ok){
+    if(!el('bdvrVoile')) return;
+    avis(message, ok !== false);
   }
 
   /* ============================== LE MARKUP ==============================
@@ -194,6 +259,9 @@
 
   function construire(){
     if(monte) return;
+    // Avant l'injection : la largeur du panneau depend de la presence du moteur, et la classe
+    // se pose sur le markup a peine cree.
+    if(moteurPresent()) LARGE = true;
     poserStyle();
     const voile = document.createElement('div');
     voile.className = 'bdvr-voile';
@@ -225,8 +293,9 @@
     el('bdvrForm').addEventListener('change', marquer);
     el('bdvrForm').addEventListener('submit', enregistrer);
 
-    // Les emplacements de l'hote sont remplis une seule fois, a la construction : un bloc
-    // qui se reconstruirait a chaque ouverture perdrait l'etat de ses propres champs.
+    // Les emplacements sont remplis une seule fois, a la construction : un bloc qui se
+    // reconstruirait a chaque ouverture perdrait l'etat de ses propres champs.
+    if(moteurPresent()) monterMoteur();
     BLOCS.forEach(monterBloc);
     monte = true;
   }
@@ -485,11 +554,7 @@
     // « Appliquer mes reglages » du classement est clique depuis l'interieur du panneau,
     // et un rappel d'ouverture y faisait sauter le curseur a l'autre bout du formulaire.
     const dejaLa = el('bdvrVoile') && !el('bdvrVoile').hidden;
-    if(dejaLa){
-      peindreBase();
-      BLOCS.forEach(function(b){ if(b.rafraichir){ try{ b.rafraichir(); }catch(e){} } });
-      return;
-    }
+    if(dejaLa){ rafraichirTout(); return; }
     RETOUR_FOCUS = document.activeElement;
     TOUCHES = {};
     remplir();
@@ -497,13 +562,12 @@
     el('bdvrVoile').hidden = false;
     document.body.style.overflow = 'hidden';
     el('bdvrPrenom').focus();
-    peindreBase();
+    rafraichirTout();
     // On rouvre sur ce qu'on a, puis on se corrige avec ce que le serveur dit. Tant que ces
     // lectures n'ont pas abouti, rien ne part : c'est le role des deux verrous.
     const encore = function(){ const v = el('bdvrVoile'); return v && !v.hidden; };
     if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()) remplir(); });
     if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()) remplir(); });
-    BLOCS.forEach(function(b){ if(b.rafraichir){ try{ b.rafraichir(); }catch(e){} } });
   }
 
   function fermer(){
@@ -612,6 +676,9 @@
     brancherSortie: brancherSortie,
     actionsBase: actionsBase,
     peindreBase: peindreBase,
+    rafraichir: rafraichirTout,
+    dire: dire,
+    moteurPresent: moteurPresent,
     compterLignesLocales: compterLignesLocales,
     compterLignesCompte: compterLignesCompte,
     profil: function(){ return PROFIL; },

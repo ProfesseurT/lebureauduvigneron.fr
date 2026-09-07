@@ -692,7 +692,6 @@ function libellePerimetre(){
   return pl||ex||'toute la base';
 }
 // Somme d'un accesseur sur un tableau.
-function sum(arr,fn){return arr.reduce((s,r)=>s+fn(r),0);}
 
 // Cadre des comparatifs « a date egale » : exercice courant, exercice precedent, et la
 // position la plus avancee atteinte dans le courant. Tout se joue sur _exPos, jamais
@@ -718,8 +717,6 @@ function jourDepuisISO(v){
   if(!m)return null;
   return Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/86400000);
 }
-function isoDepuisDate(d){return d?(d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0')):'';}
-function isoDepuisJour(dn){return dn==null?'':isoDepuisDate(dayToDate(dn));}
 
 /* Raccourcis de periode. Tous comptes depuis la DERNIERE DATE PRESENTE EN BASE, jamais
    depuis aujourd'hui : la base est un historique cumule. Un export charge en septembre
@@ -763,19 +760,10 @@ let REG_BRANCHE=false;
 function brancherPanneauReglages(){
   if(REG_BRANCHE||!window.BdvReglages)return;
   REG_BRANCHE=true;
-  BdvReglages.brancher({
-    large:true,
-    blocs:[
-      {hote:'base',
-       monter:function(c){const n=el('p-base');if(n){n.hidden=false;c.appendChild(n);}},
-       // renderBase() a chaque ouverture : les compteurs et l'ecart avec le compte doivent
-       // etre ceux de maintenant, pas ceux du dernier rendu.
-       rafraichir:function(){try{renderBase();}catch(e){}}},
-      {hote:'classement',
-       monter:function(c){const n=el('p-reglages');if(n){n.hidden=false;c.appendChild(n);}},
-       rafraichir:function(){try{renderReglages();}catch(e){}}}
-    ]
-  });
+  // PLUS DE BLOCS CONTRIBUES ICI. Depuis que bdv-base.js est charge par les deux pages, le
+  // panneau monte lui-meme « Ma base » et « Le classement », deplace nos deux <div> chez lui,
+  // et emmene leur feuille de style. Les deux modales sont donc identiques par construction
+  // et non par recopie : il n'y a plus deux versions a tenir d'accord.
   // Le meme garde-fou de deconnexion qu'au bureau, ecrit une seule fois dans le module.
   BdvReglages.brancherSortie(el('tbSortir'),null);
 }
@@ -967,8 +955,6 @@ function renderAll(){
 }
 
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
-function kpiCard(label,val,sub,hi){return `<div class="kpi${hi?' kpi--hi':''}"><div class="kpi__label">${esc(label)}</div><div class="kpi__val">${val}</div><div class="kpi__sub">${esc(sub||'')}</div></div>`;}
-function signal(kind,ico,verdict,action){return `<div class="signal signal--${kind}"><div class="signal__ico">${ico}</div><div class="signal__body"><div class="signal__verdict">${verdict}</div><div class="signal__action">${action}</div></div></div>`;}
 function histCourtNote(){return (PROFIL&&PROFIL.moisCouverts&&PROFIL.moisCouverts<24)?` Historique court (${PROFIL.moisCouverts} mois) : comparatifs annuels à prendre avec prudence.`:'';}
 function exComplet(){return EX_START===1?'année complète':'exercice complet';}
 function incompleteNote(){const f=yoyFrame();return (f?`Comparaison à date égale : même rang dans chaque ${exMot()}, soit le ${String(f.cutD).padStart(2,'0')}/${String(f.cutM).padStart(2,'0')}. ${exLabel(f.cur)} arrêté au ${fmtDate(f.cutDate)}.`:'')+histCourtNote();}
@@ -999,7 +985,6 @@ const AXES=[
 const PERSO_KEYS=['persoProduit1','persoProduit2','persoProduit3','persoProduit4','persoProduit5','persoClient1','persoClient2','persoClient3','persoClient4','persoClient5','persoClient6','persoClient7','persoClient8','persoClient9'];
 function defaultPersoLabel(key){const m=key.match(/^perso(Client|Produit)(\d)$/);return m?('Perso '+(m[1]==='Client'?'client':'produit')+' '+m[2]):key;}
 function persoLabel(key){return (persoLabels[key]&&persoLabels[key].trim())?persoLabels[key].trim():defaultPersoLabel(key);}
-function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}syncReglages();}
 // Un champ est exploitable s'il a plus d'une valeur non vide (sinon masque : vide ou constant).
 function fieldUsable(get){const s=new Set();for(let i=0;i<ROWS.length;i++){const r=ROWS[i];if(!r._vin)continue;const v=get(r);if(v!==''&&v!=null){s.add(String(v));if(s.size>1)return true;}}return false;}
 function usableAxes(){
@@ -1266,8 +1251,6 @@ function renamePerso(key,val){
 // Cle de période selon le pas de temps choisi : 'AAAA' (annuel) ou 'AAAA-MM' (mensuel).
 function periodKey(r){return evoStep==='annee'?exLabel(r._exY):(r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):'');}
 // Mois en toutes lettres : les abreges de MOIS_FR (« juil. ») ne se mettent pas dans une phrase.
-const MOIS_PLEIN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-const MOIS_FR=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 function periodLabel(k){if(/^\d{4}-\d{2}$/.test(k)){const y=k.slice(0,4),m=+k.slice(5,7);return MOIS_FR[m-1]+' '+y;}return k;}
 // Mensuel : respecte la selection de periode (zoom). Annuel : l'ignore, pour garder tous les exercices.
 function evoRows(){return ROWS.filter(r=>r._vin&&r._date&&(evoStep==='annee'||dansSelection(r)));}
@@ -1523,7 +1506,6 @@ function drawTrend(labels,data){
 
 /* ======================= CALIBRAGE + AGENT CADENCE ======================= */
 // Jour absolu -> objet date {y,m,d,t} pour l'affichage.
-function dayToDate(dn){if(dn==null)return null;const dt=new Date(dn*86400000);const y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();return {y,m,d,t:y*10000+m*100+d};}
 // Delai lisible : jours, mois ou annees selon l'ampleur.
 function fmtDelai(days){if(days==null)return 'n/d';if(days<45)return Math.round(days)+' j';const mo=days/30.44;return mo<18?fmtNum(mo,mo<3?1:0)+' mois':fmtNum(mo/12,1)+' ans';}
 // Seuil de dependance RELATIF a la taille : peu de clients => concentration naturellement plus haute, plus toleree.

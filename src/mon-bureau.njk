@@ -172,6 +172,18 @@ permalink: /mon-bureau/
        vrai. -->
 </div>
 
+<!-- LE MOTEUR DE LA BASE, au bureau aussi depuis le 07/09/2026. C'est ce qui permet au
+     panneau de reglages d'y montrer « Ma base » et « Le classement » pour de vrai, et pas un
+     renvoi : ces deux blocs sont des CALCULS sur les lignes de vente, pas des affichages.
+     Trois conditions, dans cet ordre :
+       1. PapaParse avant le moteur, il lit le CSV de l'export.
+       2. bdv-sync.js, sinon un import fait d'ici n'arriverait jamais sur le compte : syncPret()
+          rendrait faux en silence, et on refabriquerait la panne de 500 lignes du matin.
+       3. bdv-base.js SANS defer et AVANT le script de cette page. Un script differe
+          s'execute apres l'analyse du document, donc trop tard. Voir son entete. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="/js/bdv-sync.js"></script>
+<script src="/js/bdv-base.js"></script>
 <script src="/js/bdv-reglages.js" defer></script>
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
@@ -949,40 +961,15 @@ permalink: /mon-bureau/
     if(!window.BdvReglages) return;
     BdvReglages.brancherSortie(el('bureauSortir'), el('bureauSortirAvis'));
     BdvReglages.brancher({
-      // Le prenom et le nom du domaine repeignent l'entete des qu'ils changent : c'est la
-      // seule chose que le bureau ait besoin de savoir de ce panneau.
-      surProfil: function(p){ PROFIL = p; PROFIL_LU = true; peindreIdentite(); },
-      blocs: [
-        {
-          // Deposer un export demande le lecteur de CSV du tableau de bord. Le bouton y
-          // mene, il ne fait pas semblant de savoir lire un fichier.
-          hote: 'base-actions',
-          monter: function(cible){
-            var a = document.createElement('a');
-            a.className = 'bdvr-btn';
-            a.href = '/outils/dashboard-vigneron/#base';
-            a.textContent = 'Déposer un export';
-            cible.appendChild(a);
-          }
-        },
-        {
-          // Le classement se calcule sur les lignes de vente, que seul le tableau de bord
-          // sait lire. On renvoie la ou ca marche plutot que d'afficher un reglage mort.
-          hote: 'classement',
-          monter: function(cible){
-            var p = document.createElement('p');
-            p.className = 'bdvr-aide';
-            p.textContent = 'Le classement de tes familles et de tes canaux se règle depuis '
-              + 'le tableau de bord, seul à savoir lire tes lignes de vente.';
-            cible.appendChild(p);
-            var a = document.createElement('a');
-            a.className = 'bdvr-btn bdvr-btn--creux';
-            a.href = '/outils/dashboard-vigneron/#parametres';
-            a.textContent = 'Ouvrir le tableau de bord';
-            cible.appendChild(a);
-          }
-        }
-      ]
+      // La SEULE chose que le bureau ait encore besoin de dire au panneau : repeindre
+      // l'entete quand le prenom ou le nom du domaine changent.
+      //
+      // Les blocs de renvoi qui vivaient ici (« le classement se regle depuis le tableau de
+      // bord », « deposer un export la-bas ») ont disparu le 07/09/2026 : le moteur est
+      // charge sur cette page, le panneau monte « Ma base » et « Le classement » lui-meme,
+      // et les deux modales sont enfin les memes. Ne pas les reintroduire : un renvoi est
+      // exactement ce que Ted a demande de supprimer.
+      surProfil: function(p){ PROFIL = p; PROFIL_LU = true; peindreIdentite(); }
     });
   }
 
