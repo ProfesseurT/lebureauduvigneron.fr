@@ -1041,7 +1041,7 @@ function diagnosticSignals(){
     }else S.push({sev:0,impact:0,kind:'info',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
   }
   const dec=agentDecrochage();
-  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs le ${exMot()} précédent à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
+  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
   const dor=agentDormants();
   if(dor.dormants.length){const t3=dor.dormants.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
     S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. Détail et liste complète dans l'onglet Réactivation.`});}
@@ -2042,7 +2042,7 @@ function agentClients(){
     if(vus.has(c.id))return;vus.add(c.id);
     out.push({id:c.id,nom:c.nom,motif:'recul',montant:c.perdu,
       lib:'perdu cette année',
-      detail:`${fmtMoney(c.prev)} le ${exMot()} précédent, ${fmtMoney(c.cur)} ${exCe()} à date égale`,
+      detail:`${fmtMoney(c.prev)} ${exPrecedent()}, ${fmtMoney(c.cur)} ${exCe()} à date égale`,
       chance:null});
   });
   // 2. Retard de cadence : le client a un rythme propre, et il l'a rompu.
@@ -2218,7 +2218,7 @@ function renderDecrochage(){
   let html=`<h2 class="panel__title">Clients en décrochage</h2>`;
   if(!f){
     html+=`<div class="panel__sub">Il faut deux ${exMot()}s comparables dans la base pour cette analyse.</div>`+
-      signal('info','ℹ','Comparatif indisponible.',`Ajoute un export couvrant le ${exMot()} précédent pour activer la détection du churn.`);
+      signal('info','ℹ','Comparatif indisponible.',`Ajoute un export couvrant ${exPrecedent()} pour activer la détection du churn.`);
     el('p-decrochage').innerHTML=html;return;
   }
   html+=`<div class="panel__sub">Clients <b>fidèles</b> dont le CA recule anormalement (à date égale). Le seuil de baisse s'adapte à la volatilité propre de chaque client : un client qui oscille beaucoup doit chuter plus fort pour être signalé. ${incompleteNote()}</div>`;
@@ -2233,7 +2233,7 @@ function renderDecrochage(){
     html+=signal('ok','✔','Aucun client en décrochage marqué.',`Aucun client actif les deux années ne recule au-delà de sa volatilité habituelle à date égale.`);
   }else{
     html+=signal('danger','⚠',
-      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs le ${exMot()} précédent à date égale.`,
+      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,
       `C'est l'alerte à traiter avant le départ complet. <b>Action : les appeler en priorité, en partant du plus gros montant perdu.</b>`);
     decroList=decroche; // liste complete memorisee pour l'export
     html+=`<div class="card">

@@ -952,6 +952,16 @@ function exLabel(y){return y==null?'':(EX_START===1?String(y):(y+'/'+(y+1)));}
 function exLabelCourt(y){return y==null?'':(EX_START===1?String(y):(y+'/'+String(y+1).slice(2)));}
 // Le mot juste dans une phrase, et sa forme avec demonstratif.
 function exMot(){return EX_START===1?'année':'exercice';}
+/* « année » est feminin, « exercice » est masculin, et le mot change selon le domaine. Ecrire
+   `le ${exMot()} précédent` donnait donc « le année précédent » a tout domaine en annee
+   civile, c'est-a-dire a la grande majorite. La faute s'affichait sur chaque ligne du tableau
+   des clients, dans le diagnostic de « Mon annee », et dans deux messages de plus.
+
+   C'est exactement le piege que les trois fonctions d'article de ce fichier existent pour
+   eviter, applique cette fois a un mot du depot et non a un nom de cuvee. D'ou cette
+   quatrieme : elle rend le groupe entier, article et accord compris, et il n'y a plus rien
+   a accorder autour. */
+function exPrecedent(){return EX_START===1?'l\u2019année précédente':'l\u2019exercice précédent';}
 function exCe(){return EX_START===1?'cette année':'cet exercice';}
 function exMoisNom(i){return MOIS_PLEIN[i-1];}   // 1..12, mois civil
 // Les douze mois dans l'ordre de l'exercice, pour l'axe des graphiques mensuels.
