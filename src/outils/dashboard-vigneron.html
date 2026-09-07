@@ -147,15 +147,40 @@ a{color:var(--bordeaux)}
 .btn-row{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1.3rem}
 [hidden]{display:none !important}
 .hint{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.8rem}
-.journal__gestes{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
-.journal__saisie{display:flex;gap:.4rem;align-items:center;margin-bottom:.8rem}
-.journal__saisie .msg__sujet{flex:1}
-.journal{display:flex;flex-direction:column;border-top:var(--trait) solid var(--rule)}
-.journal__l{display:grid;grid-template-columns:20px 130px 1fr;gap:.5rem;align-items:baseline;padding:.5rem 0;border-bottom:var(--trait) solid var(--rule);font-size:var(--t-base)}
-.journal__ico{color:var(--cork-encre)}
-.journal__quand{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
-.journal__quoi{line-height:var(--lh-normal)}
-@media(max-width:640px){.journal__l{grid-template-columns:20px 1fr}.journal__quand{grid-column:2}}
+/* ---- LA FICHE DE SUIVI ----
+   La prochaine action en tete, une seule zone de saisie, un seul fil. */
+.action{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;padding:.7rem .9rem;margin-bottom:.9rem;background:var(--paper);border-left:var(--trait-accent) solid var(--cork)}
+.action__oui{font-family:var(--font-titre);font-size:var(--t-lead);color:var(--ink)}
+.action__oui--retard{color:var(--danger-deep)}
+.action__non{font-family:var(--font-titre);font-size:var(--t-lead);color:var(--muted);flex:1 1 100%}
+.action__date{font-family:var(--font-mono);font-size:var(--t-petit);padding:.3rem .4rem;border:var(--trait) solid var(--rule-fort);background:var(--white);color:var(--ink)}
+
+.saisie{border:var(--trait) solid var(--rule-fort);background:var(--white);margin-bottom:.9rem}
+.saisie__txt{display:block;width:100%;box-sizing:border-box;border:none;background:none;padding:.7rem .8rem;font-family:var(--font-corps);font-size:var(--t-corps);color:var(--ink);resize:vertical}
+.saisie__txt:focus{outline:none}
+.saisie__pied{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding:.4rem .5rem;border-top:var(--trait) solid var(--rule)}
+.saisie__types{display:flex;gap:.3rem}
+.btn--type{min-height:34px;padding:.25rem .6rem;background:none;border:var(--trait) solid transparent;color:var(--muted);font-family:var(--font-mono);font-size:var(--t-mini);cursor:pointer}
+.btn--type:hover{color:var(--ink)}
+.btn--type[aria-pressed="true"]{background:var(--bordeaux);border-color:var(--bordeaux);color:var(--on-dark)}
+
+.etiq{display:block;width:100%;box-sizing:border-box;margin-bottom:1rem;padding:.5rem .7rem;border:var(--trait) dashed var(--rule-fort);background:none;font-family:var(--font-corps);font-size:var(--t-petit);color:var(--ink)}
+
+.fil{display:flex;flex-direction:column;border-top:var(--trait) solid var(--rule)}
+.fil__l{display:grid;grid-template-columns:20px 96px 1fr;gap:.5rem;align-items:baseline;padding:.55rem 0;border-bottom:var(--trait) solid var(--rule);font-size:var(--t-base)}
+.fil__l--note{background:var(--warn-bg)}
+.fil__ico{color:var(--cork-encre)}
+.fil__quand{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
+.fil__quoi{line-height:var(--lh-normal)}
+.fil__vide{color:var(--muted);font-style:italic;font-size:var(--t-base);padding:.8rem 0;margin:0}
+.btn--lien{background:none;border:none;padding:0 0 0 .4rem;color:var(--bordeaux);font-family:var(--font-corps);font-size:var(--t-mini);text-decoration:underline;cursor:pointer}
+
+/* Le redacteur de message est un assistant, pas du suivi : il attend qu'on le demande. */
+.msg--replie>summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux)}
+.msg--replie>summary::marker{color:var(--cork-encre)}
+.msg--replie[open]>summary{margin-bottom:.8rem}
+
+@media(max-width:640px){.fil__l{grid-template-columns:20px 1fr}.fil__quand{grid-column:2}}
 .pas-viti{margin-top:1.4rem;padding:1rem 1.2rem;background:var(--info-bg);border:var(--trait) solid var(--info);border-left:var(--trait-accent) solid var(--info);text-align:left;font-size:var(--t-base);line-height:var(--lh-normal)}
 .pas-viti p{margin:0 0 .5rem}
 .pas-viti p:last-child{margin-bottom:0}
@@ -803,11 +828,16 @@ function crmRafraichirListe(){
   // pas au prochain import.
   if(typeof deposerPourLeBureau==='function')deposerPourLeBureau();
 }
+const LIB_CHAMP={statut:'Statut',rappel:'Rappel',canal:'Canal',notes:'Notes'};
 function crmSet(id,champ,valeur){
   const c=CRM[id]||{};
   if(valeur==='')delete c[champ];else c[champ]=valeur;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
   crmSave();syncSuivi(id);crmRafraichirListe();
+  // Sans ce retour, on tape une note, rien ne bouge, et on conclut qu'il manque un
+  // bouton d'enregistrement. L'enregistrement au blur n'est acceptable que s'il se voit.
+  status('success',(LIB_CHAMP[champ]||'Suivi')+(valeur===''?' effacé.':' enregistré.'));
+  if(FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
 }
 // Ecrit plusieurs champs d'un coup. crmSet appelle a la suite persistait, synchronisait et
 // redessinait TROIS fois pour un seul clic, avec un scintillement : aux deux premiers
@@ -820,6 +850,8 @@ function crmSetPlusieurs(id,champs){
   });
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
   crmSave();syncSuivi(id);crmRafraichirListe();
+  // Pas de message ici : geste() annonce deja ce qu'il vient de faire, en mieux.
+  if(FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
 }
 function crmSetTags(id,texte){
   const tags=texte.split(',').map(t=>t.trim()).filter(Boolean);
@@ -827,6 +859,7 @@ function crmSetTags(id,texte){
   if(tags.length)c.tags=tags;else delete c.tags;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
   crmSave();syncSuivi(id);crmRafraichirListe();
+  status('success',tags.length?'Étiquettes enregistrées.':'Étiquettes effacées.');
 }
 const STATUTS_SUIVI={
   a_faire:{label:'À faire',cls:'m-statut-afaire'},
@@ -1780,6 +1813,10 @@ function navTo(id){
 // Le bouton Retour du navigateur ramene sur l'ecran precedent plutot que de sortir de l'outil.
 window.addEventListener('hashchange', function(){
   const id = (location.hash || '').replace('#','');
+  if(id.indexOf('client=') === 0){
+    if(el('app').classList.contains('on')) ouvrirFiche(decodeURIComponent(id.slice(7)));
+    return;
+  }
   if(!id || !NAV.some(n => n.id === id)) return;
   if(el('app').classList.contains('on')) navTo(id);
 });
@@ -3270,28 +3307,9 @@ function ficheHTML(f,motif){
       ${conseils.map(c=>`<p>${c}</p>`).join('')}
     </div>
 
-    <div class="msg">
-      <div class="section-label" style="margin-top:0">Ton suivi</div>
-      <div class="expl-ctrls" style="margin-bottom:.9rem">
-        <div class="field"><label>Statut</label><select onchange="crmSet('${esc(f.id)}','statut',this.value)">
-          <option value=""${!s.statut?' selected':''}>Aucun</option>
-          ${Object.keys(STATUTS_SUIVI).map(k=>`<option value="${k}"${s.statut===k?' selected':''}>${STATUTS_SUIVI[k].label}</option>`).join('')}
-        </select></div>
-        <div class="field"><label>Rappel</label><input type="date" value="${esc(s.rappel||'')}" onchange="crmSet('${esc(f.id)}','rappel',this.value)"></div>
-        <div class="field"><label>Canal préféré</label><select onchange="crmSet('${esc(f.id)}','canal',this.value)">
-          <option value=""${!s.canal?' selected':''}>Non précisé</option>
-          ${CANAUX_SUIVI.map(c=>`<option value="${esc(c)}"${s.canal===c?' selected':''}>${esc(c)}</option>`).join('')}
-        </select></div>
-      </div>
-      <label class="msg__lbl">Étiquettes, séparées par une virgule</label>
-      <input class="msg__sujet" type="text" value="${esc((s.tags||[]).join(', '))}" placeholder="ex. VIP, difficile à joindre" onchange="crmSetTags('${esc(f.id)}',this.value)">
-      <label class="msg__lbl">Notes</label>
-      <textarea class="msg__texte" rows="4" placeholder="Ce qu'il faut se rappeler sur ce client…" onchange="crmSet('${esc(f.id)}','notes',this.value)">${esc(s.notes||'')}</textarea>
-    </div>
+    ${suiviHTML(f,s)}
 
-    ${journalHTML(f)}
-
-    ${messageHTML(f,motif||'premier')}
+    ${(f.emails.length||f.tels.length)?`<details class="msg msg--replie"><summary>Écrire un message à ce client</summary>${messageHTML(f,motif||'premier')}</details>`:''}
 
     <div class="fiche__cols">
       <div>
@@ -3326,53 +3344,170 @@ function ficheHTML(f,motif){
     </div>
   </div>`;
 }
-/* Le journal de la fiche : ce qui s'est passe avec ce client, du plus recent au plus
-   ancien. Trois boutons pour les gestes courants, et un champ libre pour le reste.
+/* ======================= LE SUIVI D'UN CLIENT =======================
+   Refait a zero le 06/09/2026. Il y avait trois systemes empiles qui faisaient le meme
+   travail : un bloc de reglages (statut, rappel, canal, notes), un journal avec ses
+   propres boutons, et un redacteur de message deplie en permanence. Ted : « usine a gaz ».
 
-   Les entrees ne sont ni modifiables ni supprimables depuis ici, volontairement : un
-   historique qu'on peut reecrire ne vaut rien comme historique. La suppression complete
-   passe par « tout effacer », qui efface tout, et c'est le bon niveau pour ce geste. */
-function journalHTML(f){
-  const ech=echDe(f.id);
+   Ce que font tous les bons CRM, et qui tient en deux idees :
+
+     1. UN CLIENT A UNE PROCHAINE ACTION, ou il n'en a pas. C'est l'information la plus
+        importante de la fiche, elle est en haut, en clair, et elle se change en un clic.
+        Un client sans prochaine action est un client qu'on va oublier.
+     2. TOUT LE RESTE EST UN FIL. Un appel, un message, une note : ce sont des evenements
+        dates, dans une seule liste. Pas de « note durable » d'un cote et de « journal »
+        de l'autre : c'est la meme chose ecrite deux fois.
+
+   Ce qui a disparu, et pourquoi :
+     - le STATUT (a faire / relance / traite) : redondant. Un client a une prochaine
+       action ou il n'en a pas, c'est le seul statut qui se verifie tout seul. Le champ
+       reste en base, il n'est plus demande. Seul « traite » subsiste, sous le nom qu'il
+       merite : « ne plus me le proposer ».
+     - le CANAL PREFERE : une preference qu'on saisissait et que rien ne lisait. Le fil
+       dit par quoi on a joint ce client la derniere fois, c'est plus fiable.
+     - la separation NOTES / JOURNAL : une seule zone de saisie.
+     - le redacteur de message : replie derriere un bouton. C'est un assistant de
+       redaction, pas du suivi.
+
+   Les notes deja ecrites ne sont pas perdues : elles s'affichent en tete du fil. */
+const ACTIVITES=[
+  {k:'appel',   label:'Appel',   ico:'&#9990;'},
+  {k:'message', label:'Message', ico:'&#9993;'},
+  {k:'note',    label:'Note',    ico:'&#9998;'}
+];
+let ACTIVITE_TYPE='appel';
+function choisirType(k){
+  ACTIVITE_TYPE=k;
+  document.querySelectorAll('[data-type]').forEach(function(b){
+    b.setAttribute('aria-pressed',b.getAttribute('data-type')===k?'true':'false');
+  });
+}
+
+function suiviHTML(f,s){
+  return `<div class="msg" id="suiviBloc">${suiviCorps(f,s)}</div>`;
+}
+
+function suiviCorps(f,s){
   const arg=JSON.stringify(String(f.id)).replace(/"/g,'&quot;');
-  let h=`<div class="msg">
-    <div class="msg__lbl">Journal des échanges</div>
-    <div class="journal__gestes">
-      ${Object.keys(GESTES).map(k=>`<button class="btn btn--ghost btn--sm" onclick="gesteFiche('${k}',${arg})">${esc(GESTES[k].label)}</button>`).join('')}
-    </div>
-    <div class="journal__saisie">
-      <input class="msg__sujet" type="text" id="journalNote" placeholder="Noter un échange : ce qui s'est dit, ce qu'il attend…"
-             onkeydown="if(event.key==='Enter'){event.preventDefault();noterFiche(${arg});}">
-      <button class="btn btn--ghost btn--sm" onclick="noterFiche(${arg})">Noter</button>
-    </div>`;
-  if(!ech.length){
-    h+=`<p class="note">Rien encore. Le premier geste que tu poses s'inscrit ici, daté.</p>`;
+  const ech=echDe(f.id);
+  const clos=s.statut==='traite';
+
+  // ---- La prochaine action, en tete. Le reste de la fiche en decoule. ----
+  let action;
+  if(clos){
+    action=`<span class="action__non">Client mis de côté.</span>
+      <button class="btn btn--ghost btn--sm" onclick="rouvrir(${arg})">Le remettre dans ma file</button>`;
+  }else if(s.rappel){
+    const j=jourDepuisISO(s.rappel), auj=Math.floor(Date.now()/86400000);
+    const retard=j!=null?auj-j:0;
+    action=`<span class="action__oui${retard>0?' action__oui--retard':''}">`
+      +(retard>0?`À rappeler depuis le ${fmtDateIso(s.rappel)}`
+        :retard===0?`À rappeler aujourd'hui`
+        :`À rappeler le ${fmtDateIso(s.rappel)}`)
+      +`</span>`
+      +`<input type="date" class="action__date" value="${esc(s.rappel)}" aria-label="Changer la date"
+               onchange="crmSet(${arg},'rappel',this.value)">`
+      +`<button class="btn btn--ghost btn--sm" onclick="crmSet(${arg},'rappel','')">Retirer</button>`;
   }else{
-    h+=`<div class="journal">`+ech.slice(0,30).map(function(e){
+    action=`<span class="action__non">Aucune action prévue. Ce client va sortir de ta tête.</span>`
+      +[7,30,90].map(n=>`<button class="btn btn--ghost btn--sm" onclick="planifier(${arg},${n})">Dans ${n} j</button>`).join('')
+      +`<button class="btn btn--ghost btn--sm" onclick="clore(${arg})">Ne plus me le proposer</button>`;
+  }
+
+  let h=`<div class="section-label" style="margin-top:0">Suivi</div>
+    <div class="action">${action}</div>`;
+
+  // ---- La saisie : une seule, toujours au meme endroit. ----
+  if(!clos){
+    h+=`<div class="saisie">
+      <textarea class="saisie__txt" id="saisieTxt" rows="2"
+        placeholder="Qu'est-ce qui s'est passé avec ce client ?"></textarea>
+      <div class="saisie__pied">
+        <div class="saisie__types">
+          ${ACTIVITES.map(a=>`<button type="button" class="btn--type" data-type="${a.k}"
+             aria-pressed="${a.k===ACTIVITE_TYPE?'true':'false'}"
+             onclick="choisirType('${a.k}')">${a.ico} ${a.label}</button>`).join('')}
+        </div>
+        <button class="btn btn--primary btn--sm" onclick="noter(${arg})">Enregistrer</button>
+      </div>
+    </div>`;
+  }
+
+  // ---- Les etiquettes, discretes. ----
+  h+=`<input class="etiq" type="text" value="${esc((s.tags||[]).join(', '))}"
+        placeholder="Étiquettes : VIP, difficile à joindre…" onchange="crmSetTags(${arg},this.value)">`;
+
+  // ---- Le fil. Les anciennes notes ouvrent la marche, elles ne sont pas perdues. ----
+  h+=`<div class="fil">`;
+  if(s.notes){
+    h+=`<div class="fil__l fil__l--note">
+      <span class="fil__ico" aria-hidden="true">&#128204;</span>
+      <span class="fil__quand">épinglé</span>
+      <span class="fil__quoi">${esc(s.notes)}
+        <button class="btn--lien" onclick="crmSet(${arg},'notes','')">retirer</button></span>
+    </div>`;
+  }
+  if(!ech.length&&!s.notes){
+    h+=`<p class="fil__vide">Rien encore. La première chose que tu écris s'inscrit ici, datée.</p>`;
+  }else{
+    h+=ech.slice(0,40).map(function(e){
       const t=TYPES_ECHANGE[e.type]||{label:e.type,ico:'&#9998;'};
       const d=new Date(e.le);
-      const quand=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
-      return `<div class="journal__l">
-        <span class="journal__ico" aria-hidden="true">${t.ico}</span>
-        <span class="journal__quand">${esc(quand)}</span>
-        <span class="journal__quoi"><b>${esc(t.label)}</b>${e.resume?' · '+esc(e.resume):''}</span>
+      const quand=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+      return `<div class="fil__l">
+        <span class="fil__ico" aria-hidden="true">${t.ico}</span>
+        <span class="fil__quand">${esc(quand)}</span>
+        <span class="fil__quoi">${e.resume?esc(e.resume):'<i>'+esc(t.label)+'</i>'}</span>
       </div>`;
-    }).join('')+`</div>`;
-    if(ech.length>30)h+=`<p class="note">${plur(ech.length-30,'entrée')} plus ancienne(s) non affichée(s).</p>`;
+    }).join('');
+    if(ech.length>40)h+=`<p class="fil__vide">${plur(ech.length-40,'entrée')} plus ancienne(s) non affichée(s).</p>`;
   }
-  return h+`</div>`;
+  h+=`</div>`;
+  return h;
 }
+
+/* Enregistrer une activite, puis demander la suite. C'est le geste central : un CRM ne
+   laisse jamais une fiche sans prochaine action apres qu'on y a touche. */
+function noter(id){
+  const champ=el('saisieTxt');if(!champ)return;
+  const t=champ.value.trim();
+  if(!t){status('error','Écris ce qui s\'est passé avant d\'enregistrer.');champ.focus();return;}
+  const type=ACTIVITE_TYPE;
+  const canal=(type==='appel')?'Téléphone':(type==='message'?'E-mail':null);
+  echAjouter(id,type,canal,t);
+  champ.value='';
+  const s=CRM[id]||{};
+  redessinerSuivi(id);
+  // Pas de rappel en cours : c'est le moment de le demander, pas plus tard.
+  if(!s.rappel)status('success','Enregistré. Pose une date de rappel juste au-dessus.');
+  else status('success','Enregistré.');
+}
+function planifier(id,jours){
+  crmSet(id,'rappel',isoDepuisJour(Math.floor(Date.now()/86400000)+jours));
+}
+function clore(id){
+  echAjouter(id,'ecarte',null,'Mis de côté');
+  crmSetPlusieurs(id,{statut:'traite',rappel:''});
+  redessinerSuivi(id);
+  status('success','Ce client ne te sera plus proposé.');
+}
+function rouvrir(id){
+  crmSetPlusieurs(id,{statut:''});
+  redessinerSuivi(id);
+}
+// Redessine le bloc de suivi SEUL. Redessiner la fiche entiere ferait perdre le focus et
+// le contenu en cours de frappe des autres champs.
+function redessinerSuivi(id){
+  const boite=el('suiviBloc');if(!boite||FICHE_ID!==id)return;
+  const f=ficheClient(id);if(!f)return;
+  boite.innerHTML=suiviCorps(f,CRM[id]||{});
+}
+
 // Un geste pose depuis la fiche : meme effet que dans la file, plus le redessin de la
 // fiche ouverte, sinon le vigneron ne voit pas ce qu'il vient d'ecrire.
-function gesteFiche(cle,id){geste(cle,id);if(FICHE_ID===id)ouvrirFiche(id);}
-function noterFiche(id){
-  const champ=el('journalNote');if(!champ)return;
-  const t=champ.value.trim();if(!t)return;
-  echAjouter(id,'note',null,t);
-  champ.value='';
-  if(FICHE_ID===id)ouvrirFiche(id);
-  status('success','Note enregistrée.');
-}
+// Conserve pour la compatibilite : plus aucun ecran ne l'appelle depuis que la fiche a
+// sa propre zone de saisie, mais geste() reste le chemin unique si un bouton revient.
+function gesteFiche(cle,id){geste(cle,id);redessinerSuivi(id);}
 function ficheKpi(val,lbl,sub){
   return `<div class="fiche__kpi"><div class="fiche__kpi-v">${val}</div><div class="fiche__kpi-l">${esc(lbl)}</div><div class="fiche__kpi-s">${esc(sub||'')}</div></div>`;
 }
@@ -3436,11 +3571,18 @@ function resumeVentes(){
   const ca=sum(curRows,r=>r._total);
   const factures=new Set();curRows.forEach(r=>{if(r.numFacture)factures.add(r.numFacture);});
   const clients=new Set();curRows.forEach(r=>clients.add(clientKey(r)));
+  // La comparaison a date egale, et l'atterrissage projete. Un chiffre d'affaires seul
+  // ne dit rien : ce qui compte, c'est s'il monte ou s'il descend, et ou il finira.
+  const y=yoyTotals();
+  const at=computeAtterrissage();
   return {
     exercice: cur!=null?exLabel(cur):null,
     ca: Math.round(ca),
+    variation: (y&&y.d!=null)?Math.round(y.d*10)/10:null,
+    variationEuros: y?Math.round(y.cur-y.prev):null,
     objectif: objectif||null,
     objectifPct: (objectif&&objectif>0)?Math.round(ca/objectif*100):null,
+    atterrissage: (at&&!at.complete&&at.central!=null)?Math.round(at.central):null,
     clients: clients.size,
     panier: factures.size?Math.round(ca/factures.size):null,
     lignes: ROWS.length,
@@ -3449,12 +3591,31 @@ function resumeVentes(){
   };
 }
 
+/* Les conseils, tels que le tableau de bord les formule DEJA dans son diagnostic. On ne
+   les reecrit pas et on n'en invente pas : diagnosticSignals() les produit, tries par
+   gravite puis par euros en jeu, et on depose les six premiers.
+
+   Les conseils purement informatifs (severite 0) sont ecartes : « ton mois le plus creux
+   est fevrier » est vrai toute l'annee, donc ce n'est pas un conseil du jour. */
+function conseilsPourLeBureau(){
+  try{
+    return diagnosticSignals()
+      .filter(function(x){ return x.sev>0; })
+      .slice(0,6)
+      .map(function(x){
+        return {sev:x.sev,kind:x.kind,ico:x.ico,verdict:x.verdict,action:x.action};
+      });
+  }catch(e){ return []; }
+}
+
 // Depot silencieux, jamais bloquant : le tableau de bord ne doit pas dependre du reseau
 // pour s'afficher, c'est la regle d'or du projet.
 function deposerPourLeBureau(){
   if(!syncPret()||!BdvSync.deposerFile)return;
   try{
-    BdvSync.deposerFile({signaux:fileSignaux(),noms:annuaireSuivis()},resumeVentes()).catch(function(){});
+    const r=resumeVentes();
+    if(r)r.conseils=conseilsPourLeBureau();
+    BdvSync.deposerFile({signaux:fileSignaux(),noms:annuaireSuivis()},r).catch(function(){});
   }catch(e){}
 }
 
@@ -4234,8 +4395,14 @@ document.addEventListener('DOMContentLoaded', async function(){
   // L'outil s'ouvre TOUJOURS, avec ou sans lignes. Sans base, openApp() atterrit de lui-meme
   // sur « Ma base », qui porte la zone de depot. Plus d'ecran d'accueil a franchir : le
   // tableau de bord est une piece du bureau, on y entre, on n'y frappe pas.
-  const ecran = (location.hash || '').replace('#','');
+  const brut = (location.hash || '').replace('#','');
+  // /outils/dashboard-vigneron/#client=1234 ouvre l'ecran des clients ET la fiche. C'est
+  // ce qui permet au bureau de pointer sur un client precis, et pas sur une liste ou il
+  // faut le rechercher a la main.
+  const versClient = brut.indexOf('client=') === 0 ? decodeURIComponent(brut.slice(7)) : null;
+  const ecran = versClient ? 'clients' : brut;
   openApp(NAV.some(n => n.id === ecran) ? ecran : undefined);
+  if(versClient && ROWS.length) setTimeout(function(){ ouvrirFiche(versClient); }, 60);
   // Lecture du profil en dernier, et sans await bloquant sur l'affichage : un reseau lent ne
   // doit pas retarder l'ouverture du tableau de bord de quelqu'un qui, lui, a bien Vitisoft.
   try{

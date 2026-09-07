@@ -12,6 +12,96 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## Session du 06/09/2026, en soirée : la feuille de route des six chantiers
+
+Aucune ligne de code ce soir. Ted a posé six chantiers pour la suite. Ils sont notés ici avec ce
+que chacun suppose et ce qui coince, pour que la reprise ne redécouvre pas les mêmes murs.
+
+### Les six chantiers, tels qu'ils ont été demandés
+
+1. **Un agenda interactif**, avec création d'un calendrier éditorial, interactif et affiché sur le
+   bureau. Outil gratuit.
+2. **Un composeur de signature de mail poussé**, du niveau de ce que fait HubSpot, la signature
+   s'ajoutant à tous les messages proposés par le tableau de bord.
+3. **Le CRM enrichi** : tous les moyens de communication dans les choix possibles, et la
+   possibilité de modifier une action déjà enregistrée.
+4. **Une coche « considéré comme envoyé »** dans l'écran d'écriture de message, qui inscrit
+   l'échange au CRM automatiquement.
+5. **La fiche client et les conseils mis à jour en temps réel** selon les actions déjà faites, ce
+   qui permet d'étoffer les phrases proposées.
+6. **Un tableau de bord d'administration** pour Ted, pour tout suivre.
+
+### Ce qui coince, chantier par chantier
+
+**Le point dur, à trancher avant d'écrire quoi que ce soit : la signature de mail.** Un lien
+`mailto:` ne transporte que du texte brut. Le composeur encode déjà son corps de message ainsi,
+ligne 3205 du tableau de bord. Aucun logo, aucune couleur, aucun lien cliquable ne peut y
+survivre, quel que soit le soin mis à composer la signature. Trois sorties possibles, il faut en
+choisir une :
+
+- une signature en texte seul, sobre, qui passe partout et se code en une soirée ;
+- une signature riche que l'outil met dans le presse-papier, que le vigneron colle une fois pour
+  toutes dans les réglages de sa messagerie, avec le mode d'emploi qui va avec ;
+- l'abandon du `mailto:` pour un envoi réel, ce qui rouvre la clé d'envoi dans une page publique,
+  la délivrabilité et la responsabilité de l'envoi, toutes trois écartées de propos délibéré
+  jusqu'ici.
+
+**Le tableau de bord d'administration entre en collision avec la promesse écrite ce matin.**
+`src/compte.njk` dit noir sur blanc, depuis aujourd'hui, qu'aucune statistique agrégée n'est faite
+sur les lignes de vente et qu'elles ne servent qu'à l'affichage du tableau de bord de leur
+propriétaire. La sécurité en base va dans le même sens : chaque compte ne voit que ses lignes, il
+faudrait un droit d'exception pour passer outre. Deux tableaux de bord d'administration sont
+possibles, et ce ne sont pas les mêmes :
+
+- celui qui **compte l'usage**, comptes créés, imports, écrans ouverts, erreurs, ne touche à aucune
+  donnée de vente et ne casse rien ;
+- celui qui **regarde le chiffre d'affaires des vignerons** casse la promesse le jour où il est
+  écrit, pas le jour où il est utilisé.
+
+Décider lequel. Si c'est le second, réécrire la page de compte avant, jamais après.
+
+**La coche « considéré comme envoyé » ne doit pas être pré-cochée.** Le journal d'échanges ne vaut
+que si ce qu'il contient s'est vraiment passé. Une coche déjà cochée le remplit d'envois qui n'ont
+pas eu lieu, et le vigneron ne s'en aperçoit qu'au moment où il relance quelqu'un pour la deuxième
+fois en croyant que c'est la première.
+
+**Modifier une action déjà enregistrée fait perdre au journal son statut de trace.** À trancher :
+soit la modification écrase, et le journal devient une note révisable ; soit elle laisse une
+correction horodatée, et le journal reste une trace. La synchronisation complique le choix,
+puisque le local gagne aujourd'hui sur le serveur pour le suivi client : la même action modifiée
+sur deux appareils ne se départage pas proprement.
+
+**Les conseils mis à jour en temps réel supposent un journal d'actions fiable.** Ce chantier vient
+donc après les trois précédents, jamais avant. Et « étoffer les phrases » ne veut pas dire les
+faire écrire par un modèle : la règle du projet reste des gabarits à blocs. Étoffer, ici, c'est
+ajouter des blocs conditionnés à ce qui s'est passé, pas ouvrir la porte au texte généré. Même
+piège d'accord grammatical qu'ailleurs, mêmes trois fonctions d'article à utiliser.
+
+**L'agenda et le calendrier éditorial ne sont pas un outil de vente.** Ils n'ont rien à faire dans
+le fichier autonome du tableau de bord, qui pèse déjà 242 Ko et se recharge en entier. Ils vivent
+sur le bureau connecté, avec leur propre table en base, et ils s'adressent à tous les comptes
+gratuits de la filière, pas aux seuls clients Vitisoft. C'est cohérent avec le cadre des trois
+cercles posé ce matin.
+
+### L'ordre proposé
+
+CRM enrichi, puis coche d'envoi, puis conseils en temps réel : c'est une chaîne, chaque maillon a
+besoin du précédent. L'agenda est indépendant et peut avancer en parallèle. La signature attend
+l'arbitrage sur le `mailto:`. Le tableau de bord d'administration attend l'arbitrage sur la
+promesse.
+
+### Reste ouvert
+
+1. Signature de mail : texte seul, presse-papier, ou envoi réel ? Rien ne s'écrit avant.
+2. Tableau de bord d'administration : compteurs d'usage seuls, ou lecture des données de vente ?
+   Le second oblige à réécrire `src/compte.njk` d'abord.
+3. Journal d'échanges : la modification écrase, ou corrige en laissant la trace ?
+4. Où vit l'agenda, et quelle table en base le porte.
+5. Quels moyens de communication entrent dans la liste du CRM, et lesquels ouvrent une action
+   réelle (téléphone, message, courrier, visite, salon) plutôt qu'une simple étiquette.
+
+---
+
 ## Session du 06/09/2026, le bureau connecté et la promesse réécrite
 
 ### Le cadre décidé
@@ -452,6 +542,231 @@ How to apply: cette règle est à tenir. Tout nouveau champ écrit des deux côt
 heures du matin, un rappel du jour passait à la trappe) ; file d'attente dédupliquée par client ;
 annuaire des noms rendu cumulatif et persistant, pour qu'un client absent du dernier export ne
 s'affiche pas sous son numéro Vitisoft.
+
+### Les deux blocs de la fiche client n'en font plus qu'un
+
+Retour de Ted sur la fiche : « j'ai un suivi que je ne peux pas enregistrer, il doit fusionner
+avec le suivi que tu viens de faire ». Deux problèmes en un, et le second explique le premier.
+
+**Ça enregistrait déjà.** Les champs de « Ton suivi » se sauvent au `onchange`, donc dès qu'on
+quitte le champ, et rien ne le disait. Aucun bouton, aucun message : on tape une note, rien ne
+bouge, on conclut qu'il manque un bouton d'enregistrement. Rien n'a jamais été perdu.
+How to apply: **tout enregistrement automatique doit se voir.** `crmSet` et `crmSetTags` appellent
+maintenant `status('success', …)`. Un enregistrement au blur sans retour visible est un
+enregistrement auquel personne ne croit.
+
+**Et il y avait bien un doublon.** Les trois gestes du journal écrivent EXACTEMENT le statut, le
+rappel et le canal que les trois menus du bloc du dessus proposaient de saisir à la main. Deux
+endroits pour un seul état, c'est ainsi qu'on cesse de faire confiance à un outil.
+
+Un seul bloc désormais, dans l'ordre où on s'en sert : l'état courant en une phrase lisible, les
+trois gestes, les corrections à la main repliées dans un « Corriger à la main », les étiquettes et
+les notes durables, puis le journal. `journalHTML` est devenu `journalCorpsHTML` et a perdu son
+enveloppe et ses boutons, qui sont remontés en tête.
+
+**Un piège évité** : la ligne d'état est réécrite par `majEtatSuivi()`, jamais en redessinant la
+fiche. Redessiner ferait perdre le focus et le contenu en cours de frappe des autres champs.
+
+**Un piège dans lequel je suis tombé** : le message d'enregistrement s'est d'abord posé à la fin de
+`crmSetPlusieurs`, la fonction appelée par les gestes. Chaque « Appelé » annonçait donc
+« Étiquettes enregistrées ». Corrigé, mais c'est le genre de décalage d'une accolade qu'une
+relecture rapide ne voit pas.
+
+### La fiche de suivi, refaite a zéro
+
+Verdict de Ted sur la capture : « usine à gaz ». Fondé. Trois systèmes empilés faisaient le même
+travail : un bloc de réglages (statut, rappel, canal, notes), un journal avec ses propres boutons,
+et un rédacteur de message déplié en permanence. Demande explicite : tout effacer, s'inspirer des
+bons CRM, recommencer.
+
+**Les deux idées que partagent tous les bons CRM, et sur lesquelles la fiche est reconstruite :**
+
+1. **Un client a une prochaine action, ou il n'en a pas.** C'est l'information la plus importante
+   de la fiche : elle est en haut, en clair, et se change en un clic. Sans action prévue, la fiche
+   le dit sans détour : « Aucune action prévue. Ce client va sortir de ta tête », avec trois
+   raccourcis (7, 30, 90 jours).
+2. **Tout le reste est un fil.** Un appel, un message, une note : des événements datés dans UNE
+   liste. Une seule zone de saisie, toujours au même endroit, avec le type à côté.
+
+**Ce qui a disparu, et pourquoi :**
+- **Le statut** (à faire / relancé / traité). Redondant : un client a une prochaine action ou il
+  n'en a pas, c'est le seul statut qui se vérifie tout seul. La colonne reste en base, plus rien ne
+  la demande. Seul `traite` subsiste, sous le nom qu'il mérite : « Ne plus me le proposer ».
+- **Le canal préféré.** Une préférence qu'on saisissait et que rien ne lisait. Le fil dit par quoi
+  on a joint ce client la dernière fois, c'est plus fiable qu'une déclaration.
+- **La séparation notes / journal.** C'était la même chose écrite deux fois. Les notes déjà
+  écrites ne sont pas perdues : elles ouvrent le fil, épinglées, avec un lien pour les retirer.
+- **Le rédacteur de message** est replié derrière « Écrire un message à ce client ». C'est un
+  assistant de rédaction, pas du suivi.
+
+**Le geste central** : on tape ce qui s'est passé, on choisit le type, on enregistre. Et si aucun
+rappel n'est posé, le message d'après le demande immédiatement.
+Why: un CRM ne laisse jamais une fiche sans prochaine action après qu'on y a touché. C'est la
+seule discipline qui empêche un client de sortir de la tête.
+
+**À tenir** : `redessinerSuivi()` ne redessine que le bloc de suivi, jamais la fiche entière. Un
+`ouvrirFiche()` ferait perdre le focus et le texte en cours de frappe.
+
+### Le bureau, refait a zéro lui aussi
+
+Capture de Ted : quarante lignes identiques, toutes « Recul confirmé », empilées sur une colonne
+étroite. Demande : effacer, recommencer, prendre toute la largeur, rendre les informations
+cliquables, et présenter les choses pour qu'on retrouve ses affaires comme sur un bureau.
+
+**Le vrai problème n'était pas la mise en page.** « 40 à traiter » n'est pas une journée, c'est un
+mur, et un mur on cesse de le regarder. La file montre désormais **cinq lignes**, avec le reste à
+un clic dans le tableau de bord.
+How to apply: ne jamais remonter ce plafond pour « montrer plus ». Une file qu'on peut finir est
+une file qu'on ouvre le lendemain.
+
+**Sept zones nommées, toujours à la même place**, parce qu'on ne cherche pas ses affaires sur un
+bureau : **le sous-main** (la file, la plus grande surface, c'est là qu'on travaille), **le
+pense-bête** (l'échéance qui tombe), **l'ardoise** (les chiffres déposés), **à lire**, **le
+classeur**, **le courrier**, et **le tiroir** (les outils, en bas, parce qu'on l'ouvre rarement).
+
+**Tout est cliquable, et mène à la bonne page** :
+- une ligne de la file ouvre **la fiche du client** dans le tableau de bord, pas une liste où il
+  faudrait le rechercher. Nouveau format d'adresse : `/outils/dashboard-vigneron/#client=<id>`.
+- l'échéance ouvre l'article correspondant, un chiffre de l'ardoise ouvre « Mon année ».
+- les trois gestes restent dans la ligne, et leur clic ne suit pas le lien (`stopPropagation`).
+
+**La grille tient sur douze colonnes.** Une grille en « 2fr 1fr » laissait des trous dès la
+troisième zone, parce que le placement automatique ne sait pas où couper. En douze colonnes chaque
+rangée tombe juste : 8+4, puis 4+4+4, puis 6+6. À 1100 px le sous-main passe pleine largeur et le
+reste se range par deux ; à 700 px tout s'empile, **sans jamais changer l'ordre des zones**.
+
+**Nettoyé** : les styles de l'ancienne page (`filel`, `presse`, `bureau-colonnes`,
+`bureau-fiche`, `bureau-ecran`) ont été retirés de la feuille, pas seulement abandonnés.
+
+### La fiche de suivi s'ouvre dans le bureau
+
+Ted : « quand tu arrives sur les voir tous, j'ai plus rien ». Deux pistes proposées de son côté :
+ouvrir la fiche client en surimpression depuis le bureau, ou garder un « Ma journée » dans le
+tableau de bord.
+
+**Retenu : la première, et elle rend la seconde inutile.** Le saut vers le tableau de bord était le
+défaut de conception : on quittait le poste de travail pour retrouver une liste d'analyse, qui
+n'est pas la même chose qu'une file.
+
+- **« Voir les N autres » déplie la file sur place**, dans le bureau. Plus aucun saut.
+- **Un clic sur une tâche ouvre la fiche de suivi en surimpression** : nom, coordonnées cliquables,
+  prochaine action avec ses raccourcis, une zone de saisie, et le fil des échanges chargé à la
+  demande. Un lien mène à la fiche complète du tableau de bord pour qui veut le détail.
+- Une ligne de file est devenue un `<button>` et non un `<a>` : elle n'ouvre plus une page.
+
+**La frontière tenue** : cette fiche montre ce que la BASE sait du client. Pas ses ventes, ses
+cuvées ni ses factures : ces chiffres sont calculés par le tableau de bord, et le bureau ne
+recalcule jamais rien. C'est la même règle depuis le début.
+
+**Pourquoi PAS de « Ma journée » dans le tableau de bord** : ce serait le doublon qu'on a retiré il
+y a deux lots, à maintenir en double, et l'écran « Mes clients » fait déjà ce travail avec ses
+filtres par motif. Le bureau est le poste de travail, le tableau de bord est l'atelier d'analyse.
+
+**Non diagnostiqué, et à ne pas oublier** : ce que Ted voyait exactement en arrivant sur
+`#clients`. Le lien a disparu du bureau, mais si l'écran « Mes clients » se rend vide dans certains
+cas, le défaut est toujours là, en dessous. À reproduire avec lui.
+
+### Les chiffres et le mot du jour
+
+Demande de Ted : des KPI et des conseils journaliers dans le bureau, « une amélioration au top ».
+
+**Deux réflexes évités.** Empiler des chiffres, alors que c'est exactement ce qu'il a critiqué deux
+fois. Et inventer des conseils, alors que le tableau de bord en **produit déjà** : `diagnosticSignals()`
+assemble les verdicts de tous les agents, triés par gravité puis par euros en jeu, chacun avec sa
+phrase de constat et sa phrase d'action. Ils n'étaient simplement jamais sortis de leur écran.
+
+**Le mot du jour.** UN conseil, pas six, déposé avec la file. Les conseils informatifs (sévérité 0,
+du type « ton mois le plus creux est février ») sont écartés : vrais toute l'année, donc jamais un
+conseil du jour.
+Why: « journalier » veut dire qu'il tourne. Un paragraphe qui ne bouge pas finit par faire partie
+du décor et plus personne ne le lit. La rotation est calée sur le jour de l'année : stable dans la
+journée, différente le lendemain, et rien à mémoriser côté serveur.
+How to apply: **les conseils graves ne tournent pas.** Un décrochage à 8 000 € reste en tête tant
+qu'il est vrai. Ne fait tourner que ce qui peut attendre.
+
+**L'ardoise dit maintenant quelque chose.** Un chiffre d'affaires seul ne renseigne personne : le
+premier chiffre porte sa variation vs l'exercice précédent **à date égale**, et son liseré passe au
+vert ou au rouge. L'objectif dit ce qu'il reste à faire ; sans objectif fixé, c'est l'atterrissage
+projeté qui prend sa place, plutôt qu'une case vide.
+Le vert et le rouge ne servent QU'À ça dans le bureau : ailleurs, ils ne voudraient plus rien dire.
+
+**La grille passe à huit zones**, et les rangées tombent toujours juste : sous-main (8) + mot du
+jour (4), ardoise (8) + pense-bête (4), les trois piles de lecture (4+4+4), le tiroir (12).
+
+### Le panneau, la personnalisation et les réglages depuis le bureau
+
+Demande de Ted : un tableau de post-it avec de **vrais** KPI **en plus** de ce qui existe ; qu'on
+lui parle par son prénom et le nom de son domaine, et sa question — « est-ce déjà intégré dans
+l'onboarding ? » ; pouvoir modifier ses informations et le reste des réglages depuis le bureau.
+
+**Réponse à sa question.** Oui, l'inscription collecte déjà cinq réponses : prénom, métier, domaine
+ou structure, code postal, usage de Vitisoft. Mais **seul le prénom servait à quelque chose** (le
+bonjour de l'en-tête), le nom du domaine était demandé et n'était affiché nulle part, et **aucun
+écran ne permettait de revenir dessus** après l'inscription. L'objectif de CA et le mois d'exercice,
+eux, ne se réglaient que dans un écran interne du tableau de bord.
+
+**Le panneau de liège, et la règle qui l'autorise à exister.** Deux tableaux de chiffres sur une
+même page, et l'un des deux cesse d'être lu. Ils ne coexistent qu'à une condition : **l'ardoise
+mesure le domaine** (ce qui est rentré, où en est l'objectif), **le panneau mesure le vigneron**
+(ce qu'il a fait, ce qu'il s'est promis, depuis quand ses chiffres n'ont pas bougé). Aucun chiffre
+de vente sur le panneau, aucun chiffre d'activité sur l'ardoise.
+Les cinq punaises : gestes cette semaine (comparés à la semaine passée **au même jour**, sinon tous
+les mardis annoncent « -9 » pour la seule raison qu'on est mardi), moyenne sur quatre semaines,
+rappels à venir avec la date du prochain, clients au carnet, âge de la dernière analyse — qui passe
+en alerte au-delà de trente jours, parce qu'une ardoise de six semaines est fausse sans que rien ne
+le dise.
+Rien n'est recalculé : les gestes viennent du journal d'échanges, les rappels du suivi client, l'âge
+de la date de dépôt.
+
+**La plaque de porte.** Le bonjour suit l'heure, et le nom du domaine est gravé dessous, avec le
+métier. Sans prénom ni domaine, la plaque devient une invitation à se présenter, qui ouvre les
+réglages. Un cadre vide annonçant ce qui manque se remarque plus qu'une absence : la plaque
+n'apparaît que s'il y a un nom.
+
+**Les réglages, en surimpression depuis l'en-tête.** Deux tables dans une seule fenêtre : `profils`
+pour qui il est, `reglages` pour son objectif et son mois d'exercice. Un upsert PostgREST ne touche
+que les colonnes présentes dans le corps : écrire l'objectif depuis le bureau ne peut donc pas
+effacer la file déposée par le tableau de bord, ni les libellés perso, ni le classement.
+
+**Ce que l'audit a rattrapé, et qui aurait coûté cher.** Sept bloquants, dont trois du même genre :
+- Le formulaire envoyait **les six colonnes du profil** à chaque enregistrement. Ouvrir la fenêtre
+  avant la réponse réseau, puis cliquer « Enregistrer », écrivait des champs vides par-dessus les
+  réponses de l'inscription — code postal effacé, métier effacé, et une **désinscription silencieuse
+  de la lettre**. Désormais : verrou tant que le profil n'a pas été relu, et seuls les champs
+  modifiés partent.
+- Même mécanique côté `reglages` : saisir un objectif avant que `charger()` ait répondu remettait
+  `exercice_debut` à nul. Le mécanisme de l'upsert protège les colonnes absentes, pas une colonne
+  présente avec une mauvaise valeur.
+- `majProfil()` **rendait sans écrire** quand la session avait expiré : l'écran affichait « c'est
+  enregistré » sur une saisie perdue. Il lève, maintenant. Et les deux écritures partent en
+  `allSettled` : avec `all`, un refus sur le profil faisait annoncer « rien n'est parti » alors que
+  l'objectif, lui, était bien en base.
+
+**Trois pannes muettes, plus anciennes, corrigées au passage :**
+- `noter()` et `ecrireEchange()` utilisaient `Prefer: return=minimal`. PostgREST rend alors un corps
+  vide, `BdvCompte.api()` rend `null`, et `null` était le signal d'échec : **toute note écrite était
+  annoncée au vigneron comme un échec**. `return=representation` lève l'ambiguïté.
+- `fil()` transformait toute panne en tableau vide : une table `echanges` absente affichait « rien
+  encore » sur un client qui porte trente échanges. Rend `null` maintenant, et la fiche le dit.
+- Le message d'erreur d'une note s'écrivait dans le sous-main, **derrière le voile** de la fiche
+  ouverte : invisible sur le moment, et découvert plus tard hors contexte. La fiche a son propre avis.
+
+**Deux corrections de fond sur les gestes, trouvées au second passage :**
+- `echange_id` était refabriqué **à chaque tentative**, ce qui rendait le `on_conflict
+  (id, echange_id)` inopérant : une réponse perdue après une écriture réussie donnait deux
+  entrées au journal pour un seul appel passé. Il est fabriqué une fois, au moment du geste, et
+  rejoué tel quel.
+- Un geste écrit deux choses qui ne valent pas la même : le **suivi** (le rappel repoussé, la ligne
+  qui quitte la file) et le **journal** (la mémoire de ce qui s'est dit). Le suivi passé et le
+  journal tombé, le geste a bien eu lieu : la ligne doit rester partie et seule l'entrée du journal
+  se rejoue. Les traiter en bloc faisait revenir la ligne à l'écran alors que le rappel était déjà
+  repoussé en base, puis repartir à la lecture suivante — elle clignotait, et le message la
+  contredisait.
+
+**Et une promesse du code qui n'était pas tenue :** « il peint d'abord le miroir, puis se corrige
+quand le réseau répond ». Le script en ligne s'exécute pendant l'analyse du document, donc avant les
+modules chargés en `defer` : `window.BdvCrm` n'existait pas encore, et le premier dessin n'avait lieu
+qu'après deux allers-retours réseau. Le miroir est peint au `DOMContentLoaded`, avant tout appel.
 
 ### Reste à faire sur l'expérience, par ordre d'impact
 

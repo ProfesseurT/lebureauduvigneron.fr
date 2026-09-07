@@ -4613,295 +4613,171 @@ a.bureau-outil:hover {
 }
 
 
+
+
 /* ============================================================================
-   MON BUREAU — direction « le bureau du matin »
+   MON BUREAU
    ============================================================================
-   Le bureau dit d'abord ce qui presse, ensuite ce qu'on possede. Un vigneron
-   l'ouvre entre deux taches, souvent le soir : la premiere ligne doit repondre
-   a « qu'est-ce qui me tombe dessus », pas a « qu'est-ce que j'ai range ».
+   Un bureau, vu de dessus : des zones nommees, toujours a la meme place. On ne
+   cherche pas ses affaires sur un bureau, on sait ou elles sont. Le sous-main
+   occupe la plus grande surface parce que c'est la qu'on travaille ; le tiroir
+   est en bas parce qu'on l'ouvre rarement.
+
+   La grille tient sur trois colonnes en large, deux en moyen, une sur telephone.
+   Les zones ne changent jamais d'ordre : sur telephone on retrouve le sous-main
+   en premier, exactement comme sur grand ecran.
    ============================================================================ */
-.bureau-tete {
-  background: var(--bordeaux-deep);
-  color: var(--on-dark);
-  padding-block: var(--e-2xl) var(--e-xl);
-}
-.bureau-tete__jour {
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark-soft);
-  margin-bottom: 0.6rem;
-}
-.bureau-tete h1 { color: var(--on-dark); }
-.bureau-tete__resume {
-  color: var(--on-dark-soft);
-  font-style: italic;
-  font-size: var(--t-lead);
-  margin: 0.5rem 0 0;
+.container--bureau {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--e-l);
 }
 
-.bureau-etiquette {
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--muted);
-  margin-bottom: var(--e-m);
-}
-.bureau-presse {
+/* Douze colonnes, et chaque rangee tombe juste. Une grille en « 2fr 1fr » laissait des
+   trous des la troisieme zone, parce que le placement automatique ne sait pas ou couper.
+     rangee 1 : le sous-main (8) + le pense-bete (4)
+     rangee 2 : l'ardoise (4) + a lire (4) + le classeur (4)
+     rangee 3 : le courrier (6) + le tiroir (6) */
+.bureau-plan {
   display: grid;
-  gap: var(--e-s);
-  margin-bottom: var(--e-2xl);
-}
-
-/* La ligne d'urgence : le delai a gauche, seul, en grand. */
-.presse {
-  display: grid;
-  grid-template-columns: 190px 1fr;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--e-l);
+  padding-top: var(--e-2xl);
+  padding-bottom: var(--e-2xl);
+  align-items: start;
+}
+/*   rangee 1 : le sous-main (8) + le mot du jour (4)
+     rangee 2 : l'ardoise (8) + le pense-bete (4)
+     rangee 3 : a lire (4) + le classeur (4) + le courrier (4)
+     rangee 4 : le tiroir (12) */
+.zone--sousmain  { grid-column: span 8; }
+.zone--mot       { grid-column: span 4; }
+.zone--ardoise   { grid-column: span 8; }
+.zone--pensebete { grid-column: span 4; }
+.zone--lecture   { grid-column: span 4; }
+.zone--classeur  { grid-column: span 4; }
+.zone--courrier  { grid-column: span 4; }
+.zone--panneau   { grid-column: span 12; }
+.zone--tiroir    { grid-column: span 12; }
+
+.zone {
   background: var(--paper-light);
   border: var(--trait) solid var(--rule);
-  border-left: var(--trait-accent) solid var(--cork);
-  padding: var(--e-l);
+  border-top: var(--trait-accent) solid var(--cork);
+  padding: var(--e-m) var(--e-l) var(--e-l);
 }
-.presse__compte {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  border-right: var(--trait) solid var(--rule);
-  padding-right: var(--e-m);
-}
-.presse__quand {
-  font-family: var(--font-titre);
-  font-size: var(--t-h3);
-  line-height: var(--lh-serre);
-  color: var(--ink);
-}
-.presse__date { font-family: var(--font-corps); font-size: var(--t-mini); color: var(--muted); }
-.presse__titre { font-size: var(--t-lead); margin: 0 0 0.35rem; }
-.presse__qui { font-size: var(--t-base); color: var(--muted); margin: 0 0 0.4rem; }
-.presse__liens { font-family: var(--font-corps); font-size: var(--t-mini); margin: 0; }
-
-.presse[data-niveau="urgent"],
-.presse[data-niveau="aujourdhui"] {
-  border-left-color: var(--danger);
-  background: var(--danger-bg);
-}
-.presse[data-niveau="urgent"] .presse__quand,
-.presse[data-niveau="aujourdhui"] .presse__quand { color: var(--danger-deep); }
-.presse[data-niveau="proche"] { border-left-color: var(--warn); }
-.presse[data-niveau="proche"] .presse__quand { color: var(--warn); }
-.presse[data-niveau="signet"] .presse__quand { color: var(--cork-encre); }
-
-.bureau-colonnes {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--e-2xl);
-}
-.bureau-entete {
+.zone--sousmain { border-top-color: var(--bordeaux); }
+.zone__tete {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  border-bottom: var(--trait-fort) solid var(--rule-fort);
+  gap: var(--e-s);
+  border-bottom: var(--trait) solid var(--rule);
   padding-bottom: 0.5rem;
   margin-bottom: var(--e-m);
 }
-.bureau-entete--suite { margin-top: var(--e-xl); }
-.bureau-entete h2 { font-size: var(--t-h3); }
-.bureau-entete__compte {
+.zone__tete h2 { font-size: var(--t-h3); }
+.zone__note {
   font-family: var(--font-mono);
   font-size: var(--t-mini);
   color: var(--muted);
+  white-space: nowrap;
 }
-
-/* L'accent manuscrit de la direction « sous-main », gardé pour la respiration. */
-.bureau-manuscrit {
-  font-family: var(--font-manuscrit);
-  font-size: 1.35rem;
-  color: var(--cork-encre);
-  transform: rotate(-1deg);
-  margin: -0.4rem 0 var(--e-m);
-}
-
-/* La fiche du sous-main : une feuille posee, avec sa punaise. */
-.bureau-fiche {
-  position: relative;
-  background: var(--paper-light);
-  border: var(--trait) solid var(--rule);
-  border-left: var(--trait-accent) solid var(--cork);
-  padding: var(--e-m) var(--e-l) var(--e-s);
-  margin-bottom: var(--e-s);
-}
-.bureau-fiche__punaise {
-  position: absolute;
-  top: -6px;
-  right: 18px;
-  width: 12px;
-  height: 12px;
-  border-radius: var(--r-rond);
-  background: var(--bordeaux);
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
-}
-.bureau-fiche__titre {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  line-height: var(--lh-serre);
-  color: var(--ink);
-  text-decoration: none;
-}
-.bureau-fiche__titre:hover { color: var(--bordeaux); }
-.bureau-fiche__meta {
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
+.zone__vide {
   color: var(--muted);
-  margin: 0.25rem 0 0;
-}
-
-/* Le classeur et le courrier : des lignes, pas des cartes. Ce sont des rappels. */
-.bureau-classeur { display: grid; gap: 0; }
-.bureau-ligne {
-  margin: 0;
-  padding: 0.55rem 0;
-  border-bottom: var(--trait) solid var(--rule);
+  font-style: italic;
   font-size: var(--t-base);
-  line-height: var(--lh-normal);
+  margin: 0;
+  padding: var(--e-s) 0;
 }
-.bureau-ligne:last-child { border-bottom: none; }
-
-.bureau-outils--colonne { grid-template-columns: 1fr; }
-
-@media (max-width: 780px) {
-  .bureau-colonnes { grid-template-columns: 1fr; gap: var(--e-xl); }
-  .presse { grid-template-columns: 1fr; gap: var(--e-s); }
-  .presse__compte {
-    border-right: none;
-    border-bottom: var(--trait) solid var(--rule);
-    padding-right: 0;
-    padding-bottom: var(--e-s);
-  }
-}
-
-
-/* Les ecrans du tableau de bord, atteignables directement depuis le bureau.
-   Volontairement plus sobres que les cartes d'outils : ce ne sont pas d'autres
-   outils, ce sont des portes vers l'interieur du meme. */
-.bureau-ecrans {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--e-s);
-}
-.bureau-ecran {
-  display: block;
-  background: var(--paper-light);
-  border: var(--trait) solid var(--rule-fort);
-  padding: var(--e-s) var(--e-m);
-  text-decoration: none;
-  color: var(--ink);
-  transition: border-color var(--tr-rapide) ease;
-}
-.bureau-ecran:hover { border-color: var(--bordeaux); text-decoration: none; }
-.bureau-ecran__nom {
-  display: block;
-  font-family: var(--font-titre);
-  font-size: var(--t-corps);
-  line-height: var(--lh-serre);
-}
-.bureau-ecran__quoi {
-  display: block;
+.zone__pied {
+  margin: var(--e-m) 0 0;
   font-size: var(--t-mini);
   color: var(--muted);
-  line-height: var(--lh-normal);
-  margin-top: 0.15rem;
 }
 
-
-/* ============================================================================
-   LA FILE DE TRAVAIL
-   ============================================================================
-   Le bloc le plus utilise du bureau, donc le plus dense. Une ligne, trois zones :
-   qui, pourquoi, quoi faire. Les gestes sont a droite, toujours a la meme place,
-   pour qu'on descende la file au pouce sans relire les etiquettes.
-   ============================================================================ */
-.bureau-entete--file { margin-bottom: var(--e-s); }
-.bureau-file {
-  display: grid;
-  gap: 1px;
-  background: var(--rule);
-  border: var(--trait) solid var(--rule-fort);
-  margin-bottom: var(--e-2xl);
-}
-.filel {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto;
-  gap: var(--e-m);
+/* ---- UNE TACHE ----
+   La ligne entiere est un lien vers la fiche du client dans le tableau de bord.
+   Les trois gestes vivent dedans, et leur clic ne suit pas le lien. */
+.tache {
+  display: flex;
   align-items: center;
-  background: var(--paper-light);
-  padding: 0.8rem var(--e-m);
-  transition: background var(--tr-rapide) ease, opacity var(--tr-rapide) ease;
+  justify-content: space-between;
+  gap: var(--e-m);
+  flex-wrap: wrap;
+  padding: 0.7rem 0;
+  border-bottom: var(--trait) solid var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+  transition: background var(--tr-rapide) ease;
 }
-.filel:hover { background: var(--white); }
-/* La ligne s'efface des le clic : le reseau suit, il ne fait pas attendre. */
-.filel--parti { opacity: 0.35; pointer-events: none; }
-.filel[data-source="rappel"] { border-left: var(--trait-accent) solid var(--danger); }
-.filel[data-source="signal"] { border-left: var(--trait-accent) solid var(--cork); }
-.filel__qui { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-.filel__nom {
+.tache:hover { background: var(--white); text-decoration: none; }
+.tache--partie { opacity: 0.35; pointer-events: none; }
+.tache__qui { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1 1 260px; }
+.tache__nom {
   font-family: var(--font-titre);
   font-size: var(--t-lead);
   line-height: var(--lh-serre);
+  color: var(--bordeaux);
   overflow-wrap: anywhere;
 }
-.filel__contact {
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.filel__quoi { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-.filel__motif {
-  font-family: var(--font-corps);
-  font-size: var(--t-petit);
-  font-weight: 500;
-  color: var(--ink);
-}
-.filel__sous { font-size: var(--t-mini); color: var(--muted); line-height: var(--lh-normal); }
-.filel__gestes { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-end; }
-
-/* Un bouton de file : petit, mais jamais sous la cible tactile de 44 px. */
-.btn--mini {
-  display: inline-flex;
-  align-items: center;
+.tache:hover .tache__nom { text-decoration: underline; }
+.tache__pourquoi { font-size: var(--t-mini); color: var(--muted); }
+.tache[data-source="rappel"] .tache__pourquoi { color: var(--danger-deep); }
+.tache__gestes { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.btn--geste {
   min-height: 44px;
-  padding: 0.4rem 0.7rem;
+  padding: 0.35rem 0.7rem;
   background: var(--paper);
   border: var(--trait) solid var(--rule-fort);
   color: var(--ink);
   font-family: var(--font-corps);
   font-size: var(--t-mini);
-  letter-spacing: var(--ls-doux);
   cursor: pointer;
   white-space: nowrap;
 }
-.btn--mini:hover { background: var(--bordeaux); border-color: var(--bordeaux); color: var(--on-dark); }
+.btn--geste:hover { background: var(--bordeaux); border-color: var(--bordeaux); color: var(--on-dark); }
 
-/* Les quatre chiffres deposes par le tableau de bord. */
-.bureau-chiffres {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--e-s);
-  margin-bottom: var(--e-2xl);
+/* ---- LE PENSE-BETE : une seule note, punaisee ---- */
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--e-m);
+  background: var(--paper);
+  border-left: var(--trait-accent) solid var(--cork);
+  text-decoration: none;
+  color: var(--ink);
 }
+.note:hover { background: var(--white); text-decoration: none; }
+.note[data-niveau="urgent"], .note[data-niveau="aujourdhui"] {
+  background: var(--danger-bg);
+  border-left-color: var(--danger);
+}
+.note__quand {
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  line-height: var(--lh-serre);
+}
+.note[data-niveau="urgent"] .note__quand,
+.note[data-niveau="aujourdhui"] .note__quand { color: var(--danger-deep); }
+.note__titre { font-size: var(--t-base); line-height: var(--lh-normal); }
+.note__date { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
+
+/* ---- L'ARDOISE ---- */
+.ardoise { display: grid; gap: var(--e-s); }
 .chiffre {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  padding: 0.7rem var(--e-m);
   background: var(--white);
-  border: var(--trait) solid var(--rule);
-  border-top: var(--trait-accent) solid var(--bordeaux);
-  padding: var(--e-m);
+  border-left: var(--trait-accent) solid var(--bordeaux);
+  text-decoration: none;
 }
-.chiffre--hi { background: var(--bordeaux); border-top-color: var(--bordeaux-deep); }
+.chiffre:hover { text-decoration: none; background: var(--paper); }
+.chiffre--hi { background: var(--bordeaux); border-left-color: var(--bordeaux-deep); }
+.chiffre--hi:hover { background: var(--bordeaux-vif); }
 .chiffre--hi .chiffre__l, .chiffre--hi .chiffre__s { color: var(--on-dark-soft); }
 .chiffre--hi .chiffre__v { color: var(--on-dark); }
 .chiffre__l {
@@ -4911,29 +4787,426 @@ a.bureau-outil:hover {
   letter-spacing: var(--ls-etiq);
   color: var(--muted);
 }
-.chiffre__v {
-  font-family: var(--font-titre);
-  font-size: 1.6rem;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--ink);
-}
+.chiffre__v { font-family: var(--font-titre); font-size: 1.5rem; font-weight: 600; line-height: 1; color: var(--ink); }
 .chiffre__s { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
 
-@media (max-width: 780px) {
-  .filel { grid-template-columns: 1fr; gap: var(--e-xs); }
-  .filel__gestes { justify-content: flex-start; margin-top: var(--e-xs); }
+/* ---- LES LECTURES : classeur, pile, courrier ---- */
+.fiche-l {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 1.4rem 0.6rem 0;
+  border-bottom: var(--trait) solid var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+}
+.fiche-l:last-child { border-bottom: none; }
+.fiche-l:hover { text-decoration: none; }
+.fiche-l__t {
+  font-family: var(--font-titre);
+  font-size: var(--t-corps);
+  line-height: var(--lh-serre);
+}
+.fiche-l:hover .fiche-l__t { color: var(--bordeaux); }
+.fiche-l__m { font-family: var(--font-corps); font-size: var(--t-mini); color: var(--muted); }
+.fiche-l__p {
+  position: absolute;
+  top: 0.75rem;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-rond);
+  background: var(--bordeaux);
 }
 
+/* ---- LE TIROIR ---- */
+.tiroir { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--e-s); }
+.tiroir__o {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--e-m);
+  background: var(--paper);
+  border: var(--trait) solid var(--rule-fort);
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform var(--tr-rapide) ease, box-shadow var(--tr-rapide) ease;
+}
+.tiroir__o:hover { transform: translate(-3px, -3px); box-shadow: var(--ombre-dure); text-decoration: none; }
+.tiroir__nom { font-family: var(--font-titre); font-size: var(--t-lead); line-height: var(--lh-serre); }
+.tiroir__q { font-size: var(--t-mini); color: var(--muted); }
 
-/* L'avis de la file : dit qu'un geste n'est pas parti. Rare, donc discret, mais jamais
-   silencieux : laisser croire un client traite alors que rien n'est ecrit est pire que
-   de ne rien afficher du tout. */
+/* ---- L'AVIS ---- */
 .bureau-avis {
   margin: 0 0 var(--e-s);
   padding: var(--e-s) var(--e-m);
   background: var(--warn-bg);
   border-left: var(--trait-accent) solid var(--warn);
   font-size: var(--t-base);
+}
+
+/* ---- L'EN-TETE ---- */
+.bureau-tete { background: var(--bordeaux-deep); color: var(--on-dark); padding-block: var(--e-2xl) var(--e-xl); }
+.bureau-tete__jour {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  color: var(--on-dark-soft);
+  margin-bottom: 0.6rem;
+}
+.bureau-tete__ligne {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-l);
+}
+.bureau-tete h1 { color: var(--on-dark); }
+/* La plaque de porte : le nom du domaine, grave sous le bonjour.
+   --cork est documente « jamais du texte » : la regle vise le papier, ou il tombe a
+   2,4:1. Ici il est pose sur --bordeaux-deep, ou il monte a 5,8:1. C'est la seule
+   exception du site, et elle ne vaut que sur ce fond-la. */
+.bureau-tete__plaque {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  color: var(--cork);
+}
+.bureau-tete__invite {
+  background: none;
+  border: none;
+  border-bottom: var(--trait) dashed var(--cork);
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--cork);
+  cursor: pointer;
+}
+.bureau-tete__invite:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
+.bureau-tete__reglages {
+  flex: 0 0 auto;
+  margin-top: 0.4rem;
+  background: transparent;
+  color: var(--on-dark-soft);
+  border: var(--trait) solid rgba(239, 231, 214, 0.42);
+  padding: 0.55rem 1.1rem;
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  cursor: pointer;
+}
+.bureau-tete__reglages:hover { background: var(--paper); color: var(--bordeaux); border-color: var(--paper); }
+.bureau-tete__resume { color: var(--on-dark-soft); font-style: italic; font-size: var(--t-lead); margin: 0.5rem 0 0; }
+
+/* ---- RESPONSIVE ----
+   Deux colonnes en moyen, une seule sur telephone. L'ordre des zones ne change
+   jamais : le sous-main reste le premier bloc qu'on voit, partout. */
+@media (max-width: 1100px) {
+  /* Le sous-main prend toute la largeur, le reste se range par deux. */
+  .zone--sousmain, .zone--ardoise, .zone--panneau, .zone--tiroir { grid-column: span 12; }
+  .zone--mot, .zone--pensebete, .zone--lecture, .zone--classeur, .zone--courrier { grid-column: span 6; }
+}
+@media (max-width: 700px) {
+  .container--bureau { padding: 0 var(--e-m); }
+  .bureau-plan { gap: var(--e-m); }
+  .bureau-plan > .zone { grid-column: span 12; }
+  .zone { padding: var(--e-m); }
+  .tache { align-items: flex-start; }
+  .tache__gestes { width: 100%; }
+  .btn--geste { flex: 1 1 auto; justify-content: center; text-align: center; }
+}
+
+
+/* ============================================================================
+   LA FICHE DE SUIVI DU BUREAU
+   ============================================================================
+   En surimpression, pour ne jamais quitter le poste de travail. Elle montre ce
+   que la base sait du client : sa prochaine action, ses coordonnees, le fil de
+   ce qui s'est dit. Pas ses chiffres : ils sont calcules par le tableau de bord,
+   et le bureau ne recalcule jamais rien.
+   ============================================================================ */
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-voile);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--e-xl) var(--e-m);
+  overflow-y: auto;
+  background: var(--bordeaux-veil);
+}
+.ficheb {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  background: var(--paper-light);
+  border-top: var(--trait-accent) solid var(--bordeaux);
+  box-shadow: var(--ombre-dure);
+  padding: var(--e-xl) var(--e-l) var(--e-l);
+}
+.ficheb__x {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+.ficheb__x:hover { color: var(--bordeaux); }
+.ficheb__nom { font-size: var(--t-h2); margin: 0 0 0.2rem; }
+.ficheb__contact { font-family: var(--font-mono); font-size: var(--t-mini); margin: 0 0 0.4rem; }
+.ficheb__quoi { font-size: var(--t-base); color: var(--muted); margin: 0 0 var(--e-m); }
+
+.ficheb__action {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: var(--e-m);
+  background: var(--paper);
+  border-left: var(--trait-accent) solid var(--cork);
+}
+.ficheb__action-l {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  color: var(--ink);
+  flex: 1 1 auto;
+}
+
+.saisieb { border: var(--trait) solid var(--rule-fort); background: var(--white); margin-bottom: var(--e-m); }
+.saisieb__txt {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: none;
+  padding: 0.7rem 0.8rem;
+  font-family: var(--font-corps);
+  font-size: var(--t-corps);
+  color: var(--ink);
+  resize: vertical;
+}
+.saisieb__txt:focus { outline: none; }
+.saisieb__pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.5rem;
+  border-top: var(--trait) solid var(--rule);
+}
+.saisieb__types { display: flex; gap: 0.3rem; }
+
+.filb { display: flex; flex-direction: column; border-top: var(--trait) solid var(--rule); }
+.filb__l {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.55rem 0;
+  border-bottom: var(--trait) solid var(--rule);
+  font-size: var(--t-base);
+}
+.filb__q { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
+.filb__t { line-height: var(--lh-normal); }
+
+/* Une tache est un bouton : il doit ressembler a une ligne, pas a un bouton. */
+button.tache {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: var(--trait) solid var(--rule);
+  font: inherit;
+  cursor: pointer;
+}
+.btn--lienb {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--bordeaux);
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .voile { padding: 0; }
+  .ficheb { max-width: none; min-height: 100%; }
+  .filb__l { grid-template-columns: 1fr; gap: 0.1rem; }
+}
+
+
+/* ---- LE MOT DU JOUR ----
+   Un conseil, un seul, et il porte sa couleur de gravite. Le verdict constate, l'action
+   dit quoi faire : les deux phrases viennent telles quelles du diagnostic du tableau de
+   bord, on ne les reecrit jamais ici. */
+.mot {
+  padding: var(--e-m);
+  background: var(--paper);
+  border-left: var(--trait-accent) solid var(--cork);
+}
+.mot[data-kind="danger"] { background: var(--danger-bg); border-left-color: var(--danger); }
+.mot[data-kind="warn"]   { background: var(--warn-bg);   border-left-color: var(--warn); }
+.mot[data-kind="ok"]     { background: var(--ok-bg);     border-left-color: var(--ok); }
+.mot[data-kind="info"]   { background: var(--info-bg);   border-left-color: var(--info); }
+.mot__v {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  line-height: var(--lh-serre);
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+.mot__a { font-size: var(--t-base); color: var(--muted); line-height: var(--lh-normal); margin: 0; }
+
+/* L'ardoise en large : quatre chiffres sur une ligne quand la place le permet. */
+.zone--ardoise .ardoise { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+/* Le sens de la variation, sur le chiffre de tete uniquement. Le vert et le rouge ne
+   servent qu'a ca : partout ailleurs ils ne voudraient plus rien dire. */
+.chiffre[data-sens="haut"] { border-left-color: var(--ok); }
+.chiffre[data-sens="bas"]  { border-left-color: var(--danger); }
+
+
+/* ============================================================================
+   LE PANNEAU DE LIEGE
+   ============================================================================
+   Cinq punaises sur du liege. Elles ne portent AUCUN chiffre de vente : l'ardoise
+   dit ou en est le domaine, le panneau dit ou en est le vigneron. C'est la seule
+   chose qui autorise deux tableaux de chiffres sur la meme page.
+
+   Le papier est droit, la punaise ne l'est pas : la rotation est minuscule (moins
+   d'un degre) parce qu'un post-it penche a cinq degres devient une illustration,
+   et on cesse de lire les illustrations.
+   ============================================================================ */
+.zone--panneau { border-top-color: var(--cork-encre); }
+.panneau {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--e-m);
+  background: var(--cork);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.07) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,0.07) 0 2px, transparent 3px);
+  background-size: 26px 26px, 34px 34px;
+  border: var(--trait) solid var(--cork-encre);
+  padding: var(--e-l) var(--e-m) var(--e-xl);
+}
+.postit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--paper-light);
+  padding: 1.6rem 1.1rem 1.1rem;
+  box-shadow: 2px 3px 10px rgba(30, 25, 15, 0.25);
+  transform: rotate(var(--tour, 0deg));
+  text-decoration: none;
   color: var(--ink);
 }
+a.postit:hover { text-decoration: none; transform: rotate(0deg); background: var(--paper); }
+/* La punaise. Un pseudo-element, donc rien a lire pour un lecteur d'ecran. */
+.postit::before {
+  content: "";
+  position: absolute;
+  top: -7px; left: 50%;
+  width: 13px; height: 13px;
+  margin-left: -6.5px;
+  border-radius: 50%;
+  background: var(--bordeaux);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+.postit[data-ton="fait"]::before  { background: var(--ok); }
+.postit[data-ton="vieux"]::before { background: var(--danger); }
+.postit[data-ton="vieux"] { background: var(--warn-bg); }
+.postit__v {
+  font-family: var(--font-titre);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+.postit__v[data-mot] { font-size: 1.4rem; letter-spacing: -0.01em; }
+.postit__l {
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+  line-height: var(--lh-serre);
+  color: var(--ink);
+}
+.postit__s {
+  font-family: var(--font-manuscrit);
+  font-size: 1.15rem;
+  line-height: 1.15;
+  color: var(--cork-encre);
+}
+/* --danger sur --warn-bg tombe a 4,3:1, et cette ligne est ecrite en Caveat 1,15rem,
+   donc sous le seuil du « grand texte ». --danger-deep la remonte a 6:1. C'est la seule
+   alerte du panneau : elle doit se lire, pas se deviner. */
+.postit[data-ton="vieux"] .postit__s { color: var(--danger-deep); }
+/* L'avis de la fiche, cale sous la croix de fermeture. */
+#ficheAvis { margin: 0 0 var(--e-m); }
+
+/* ============================================================================
+   LA FENETRE DES REGLAGES
+   ============================================================================
+   Meme voile, meme papier que la fiche client : ce n'est pas une page a part, c'est
+   un tiroir du bureau qu'on ouvre et qu'on referme sans quitter sa place.
+   ============================================================================ */
+.ficheb__sous { margin: 0.3rem 0 var(--e-l); color: var(--muted); font-style: italic; }
+.reg__bloc {
+  border: none;
+  border-top: var(--trait) solid var(--rule);
+  margin: 0 0 var(--e-l);
+  padding: var(--e-m) 0 0;
+}
+.reg__legende {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-large);
+  color: var(--muted);
+  padding: 0 0.6rem 0 0;
+}
+.reg__l {
+  display: block;
+  margin: var(--e-m) 0 0.35rem;
+  font-size: var(--t-mini);
+  font-weight: 500;
+  color: var(--ink);
+}
+.reg__i {
+  width: 100%;
+  background: var(--paper);
+  border: var(--trait) solid var(--rule-fort);
+  padding: 0.6rem 0.75rem;
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+  color: var(--ink);
+}
+.reg__i:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
+/* Un champ verrouille doit se voir verrouille : le paragraphe d'explication ne suffit pas,
+   personne ne lit une explication avant d'avoir essaye de taper. */
+.reg__i:disabled { background: var(--paper-deep); color: var(--muted); cursor: not-allowed; }
+.reg__i--court { max-width: 9rem; }
+.reg__aide { margin: 0.35rem 0 0; font-size: var(--t-mini); color: var(--muted); }
+.reg__chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: var(--t-base); }
+.reg__pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-m);
+  flex-wrap: wrap;
+}
+.bureau-avis[data-ok="oui"] { background: var(--ok-bg); border-left-color: var(--ok); }

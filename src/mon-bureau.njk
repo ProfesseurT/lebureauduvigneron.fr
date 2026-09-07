@@ -1,13 +1,11 @@
 ---
 layout: base.njk
 title: Mon bureau
-description: Ce qui presse, ce que tu as mis de côté, ce que tu as lu, et tes outils.
+description: Ce qui presse, ce que tu as mis de côté, tes outils et tes chiffres.
 permalink: /mon-bureau/
 ---
 
-{# Deux blocs de donnees poses par le site, lus par le script plus bas. Les signets ne
-   stockent qu'une adresse et un titre : la date et le pilier viennent d'ici, pour qu'un
-   article corrige sur le site le soit aussi dans le bureau de chacun. #}
+{# Les contenus du site et les echeances, poses une fois, lus par le script plus bas. #}
 <script id="bdvContenus" type="application/json">
 [{% for post in collections.posts %}{"url":{{ post.url | dump | safe }},"titre":{{ post.data.title | dump | safe }},"date":"{{ post.date | dateISO }}","pilier":{{ (post.data.pilier or "") | dump | safe }},"temps":{{ (post.data.temps_lecture or "") | dump | safe }}}{% if not loop.last %},
 {% endif %}{% endfor %}]
@@ -16,7 +14,7 @@ permalink: /mon-bureau/
 {{ echeances | dump | safe }}
 </script>
 
-<!-- ETAT DECONNECTE. Pas une page d'erreur : une invitation qui dit ce qu'on y trouve. -->
+<!-- DECONNECTE : une invitation, pas une page d'erreur. -->
 <section class="about-hero" id="bureauInviteHero" hidden>
   <div class="container">
     <p class="section__label" style="color:var(--on-dark-soft)">Ton espace</p>
@@ -37,109 +35,199 @@ permalink: /mon-bureau/
   </div>
 </section>
 
-<!-- ETAT CONNECTE -->
+<!-- CONNECTE -->
 <div id="bureauContenu" hidden>
 
   <section class="bureau-tete">
-    <div class="container--wide">
-      <p class="bureau-tete__jour" id="bureauJour"></p>
-      <h1 id="bureauSalut">Te voilà chez toi.</h1>
-      <p class="bureau-tete__resume" id="bureauResume"></p>
+    <div class="container--bureau bureau-tete__ligne">
+      <div>
+        <p class="bureau-tete__jour" id="bureauJour"></p>
+        <h1 id="bureauSalut">Te voilà chez toi.</h1>
+        <!-- La plaque : le nom du domaine, comme sur une porte de bureau. Elle n'apparait
+             que s'il l'a donne : un cadre vide qui annonce ce qui manque se remarque plus
+             qu'une absence. -->
+        <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
+        <p class="bureau-tete__resume" id="bureauResume"></p>
+      </div>
+      <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button">Mes réglages</button>
     </div>
   </section>
 
-  <section class="section">
-    <div class="container--wide">
+  <div class="container--bureau bureau-plan">
 
-      <div class="bureau-entete bureau-entete--file" id="bureauEnteteFile" hidden>
-        <h2>Ma journée</h2>
-        <span class="bureau-entete__compte" id="bureauFileCompte"></span>
+    <!-- LE SOUS-MAIN : ce qu'on fait aujourd'hui. La zone la plus large, en haut a gauche. -->
+    <section class="zone zone--sousmain">
+      <div class="zone__tete">
+        <h2>Le sous-main</h2>
+        <span class="zone__note" id="fileNote"></span>
       </div>
       <p class="bureau-avis" id="bureauAvis" hidden></p>
-      <div class="bureau-file" id="bureauFile"></div>
+      <div id="bureauFile"></div>
+      <p class="zone__pied" id="filePied" hidden></p>
+    </section>
 
-      <p class="bureau-etiquette">Ce qui presse</p>
-      <div class="bureau-presse" id="bureauPresse"></div>
-
-      <div id="bureauVentes" hidden>
-        <div class="bureau-entete bureau-entete--suite">
-          <h2>Mes ventes</h2>
-          <span class="bureau-entete__compte" id="bureauVentesQuand"></span>
-        </div>
-        <div class="bureau-chiffres" id="bureauChiffres"></div>
+    <!-- LE MOT DU JOUR : un conseil, un seul, celui qui pese le plus lourd. -->
+    <section class="zone zone--mot" id="zoneMot" hidden>
+      <div class="zone__tete">
+        <h2>Le mot du jour</h2>
+        <span class="zone__note" id="motNote"></span>
       </div>
+      <div id="bureauMot"></div>
+    </section>
 
-      <div class="bureau-colonnes">
+    <!-- LE PENSE-BETE : l'echeance qui tombe, et rien d'autre. -->
+    <section class="zone zone--pensebete">
+      <div class="zone__tete"><h2>Le pense-bête</h2></div>
+      <div id="bureauEcheance"></div>
+    </section>
 
-        <div>
-          <div class="bureau-entete">
-            <h2>Le sous-main</h2>
-            <span class="bureau-entete__compte" id="bureauCompteALire"></span>
-          </div>
-          <p class="bureau-manuscrit">à lire quand tu auras cinq minutes</p>
-          <div id="bureauALire" class="bureau-liste"></div>
-        </div>
-
-        <div>
-          <div class="bureau-entete">
-            <h2>Les outils</h2>
-            <span class="bureau-entete__compte">2</span>
-          </div>
-          <div class="bureau-outils bureau-outils--colonne">
-            <a class="bureau-outil" href="/outils/echeances/">
-              <span class="bureau-outil__nom">Le compte à rebours</span>
-              <span class="bureau-outil__quoi">DRM, DAI, récolte, facturation électronique. Ce qui
-                tombe, et dans combien de jours.</span>
-              <span class="bureau-outil__note">Ouvert à tous</span>
-            </a>
-            <a class="bureau-outil" href="/outils/dashboard-vigneron/">
-              <span class="bureau-outil__nom">Le tableau de bord des ventes</span>
-              <span class="bureau-outil__quoi">Ton chiffre d'affaires, tes clients, tes cuvées, lus
-                depuis ton export.</span>
-              <span class="bureau-outil__note" id="bureauNoteViti">Utilisateurs Vitisoft</span>
-            </a>
-          </div>
-
-          <div class="bureau-entete bureau-entete--suite" id="bureauEnteteVentes" hidden>
-            <h2>Mes ventes</h2>
-            <span class="bureau-entete__compte"><a href="/outils/dashboard-vigneron/">ouvrir</a></span>
-          </div>
-          <div class="bureau-ecrans" id="bureauEcrans" hidden>
-            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#annee">
-              <span class="bureau-ecran__nom">Mon année</span>
-              <span class="bureau-ecran__quoi">Mois par mois, canaux, familles</span>
-            </a>
-            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#clients">
-              <span class="bureau-ecran__nom">Mes clients</span>
-              <span class="bureau-ecran__quoi">Fiches, relances, décrochages</span>
-            </a>
-            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#produits">
-              <span class="bureau-ecran__nom">Mes produits</span>
-              <span class="bureau-ecran__quoi">Cuvées, millésimes, rotations</span>
-            </a>
-            <a class="bureau-ecran" href="/outils/dashboard-vigneron/#chercher">
-              <span class="bureau-ecran__nom">Chercher</span>
-              <span class="bureau-ecran__quoi">Un client, une cuvée, une ligne</span>
-            </a>
-          </div>
-
-          <div class="bureau-entete bureau-entete--suite">
-            <h2>Le classeur</h2>
-            <span class="bureau-entete__compte" id="bureauCompteLu"></span>
-          </div>
-          <div id="bureauLu" class="bureau-classeur"></div>
-
-          <div class="bureau-entete bureau-entete--suite">
-            <h2>Le courrier</h2>
-            <span class="bureau-entete__compte" id="bureauCompteCourrier"></span>
-          </div>
-          <div id="bureauCourrier" class="bureau-classeur"></div>
-        </div>
-
+    <!-- L'ARDOISE : les chiffres, tels que le tableau de bord les a laisses. -->
+    <section class="zone zone--ardoise" id="zoneArdoise" hidden>
+      <div class="zone__tete">
+        <h2>L'ardoise</h2>
+        <span class="zone__note" id="ardoiseQuand"></span>
       </div>
+      <div class="ardoise" id="bureauChiffres"></div>
+    </section>
+
+    <!-- LE PANNEAU DE LIEGE : les chiffres de sa PRATIQUE, pas ceux de ses ventes.
+         L'ardoise dit ou en est le domaine, le panneau dit ou il en est, lui. Deux
+         tableaux de chiffres sur une meme page ne tiennent qu'a cette condition. -->
+    <section class="zone zone--panneau" id="zonePanneau" hidden>
+      <div class="zone__tete">
+        <h2>Le panneau</h2>
+        <span class="zone__note" id="panneauNote"></span>
+      </div>
+      <div class="panneau" id="bureauPanneau"></div>
+    </section>
+
+    <!-- LA PILE DE LECTURE -->
+    <section class="zone zone--lecture">
+      <div class="zone__tete">
+        <h2>À lire</h2>
+        <span class="zone__note" id="compteALire"></span>
+      </div>
+      <div id="bureauALire"></div>
+    </section>
+
+    <!-- LE CLASSEUR -->
+    <section class="zone zone--classeur">
+      <div class="zone__tete">
+        <h2>Le classeur</h2>
+        <span class="zone__note" id="compteLu"></span>
+      </div>
+      <div id="bureauLu"></div>
+    </section>
+
+    <!-- LE COURRIER -->
+    <section class="zone zone--courrier">
+      <div class="zone__tete">
+        <h2>Le courrier</h2>
+        <span class="zone__note" id="compteCourrier"></span>
+      </div>
+      <div id="bureauCourrier"></div>
+    </section>
+
+    <!-- LE TIROIR : les outils. En bas, parce qu'on sait ou ils sont. -->
+    <section class="zone zone--tiroir">
+      <div class="zone__tete"><h2>Le tiroir</h2></div>
+      <div class="tiroir">
+        <a class="tiroir__o" href="/outils/echeances/">
+          <span class="tiroir__nom">Le compte à rebours</span>
+          <span class="tiroir__q">DRM, DAI, récolte, facturation électronique</span>
+        </a>
+        <a class="tiroir__o" href="/outils/dashboard-vigneron/" id="tiroirDash">
+          <span class="tiroir__nom">Le tableau de bord</span>
+          <span class="tiroir__q">Tes ventes, tes clients, tes cuvées</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- La fiche de suivi, en surimpression. On ne quitte pas le bureau pour travailler
+       un client : c'est ici qu'on pose un geste, ici qu'on lit ce qui s'est dit. -->
+  <div class="voile" id="voile" hidden>
+    <div class="ficheb" role="dialog" aria-modal="true" aria-labelledby="ficheNom">
+      <button class="ficheb__x" id="ficheFermer" type="button" aria-label="Fermer">&#215;</button>
+      <!-- L'avis de la fiche vit DANS la fiche. Le meme message pose dans le sous-main
+           tombait derriere le voile : le vigneron voyait son bouton redevenir cliquable
+           sans savoir pourquoi, et decouvrait l'erreur bien plus tard, hors contexte. -->
+      <p class="bureau-avis" id="ficheAvis" role="status" hidden></p>
+      <div id="ficheContenu"></div>
     </div>
-  </section>
+  </div>
 
+  <!-- LES REGLAGES, EN SURIMPRESSION. Depuis le bureau, a tout moment : ce qu'on a
+       repondu a l'inscription n'est pas grave dans le marbre, et le seul endroit ou
+       l'objectif de CA se reglait jusqu'ici etait un ecran du tableau de bord. -->
+  <div class="voile" id="voileReglages" hidden>
+    <div class="ficheb" role="dialog" aria-modal="true" aria-labelledby="reglagesTitre">
+      <button class="ficheb__x" id="reglagesFermer" type="button" aria-label="Fermer">&#215;</button>
+      <h2 class="ficheb__nom" id="reglagesTitre">Mes réglages</h2>
+      <p class="ficheb__sous">Tout est modifiable, tout le temps. Rien n'est obligatoire.</p>
+
+      <form id="reglagesForm" novalidate>
+        <fieldset class="reg__bloc">
+          <legend class="reg__legende">Toi</legend>
+          <label class="reg__l" for="regPrenom">Ton prénom</label>
+          <input class="reg__i" type="text" id="regPrenom" autocomplete="given-name">
+          <p class="reg__aide">C'est ce nom-là qui te dit bonjour en haut de cette page.</p>
+
+          <label class="reg__l" for="regDomaine">Ton domaine ou ta structure</label>
+          <input class="reg__i" type="text" id="regDomaine" autocomplete="organization">
+
+          <label class="reg__l" for="regCp">Ton code postal</label>
+          <input class="reg__i reg__i--court" type="text" id="regCp" inputmode="numeric" maxlength="5" autocomplete="postal-code">
+
+          <label class="reg__l" for="regQui">Tu es</label>
+          <select class="reg__i" id="regQui">
+            <option value="">Sans réponse</option>
+            <option value="vigneron">Vigneron</option>
+            <option value="caviste-negoce">Caviste ou négociant</option>
+            <option value="etudiant">Étudiant ou école</option>
+            <option value="pro-filiere">Pro de la filière</option>
+            <option value="autre">Autre</option>
+          </select>
+
+          <label class="reg__l" for="regViti">Tu utilises Vitisoft</label>
+          <select class="reg__i" id="regViti">
+            <option value="">Sans réponse</option>
+            <option value="oui">Oui</option>
+            <option value="non">Non</option>
+            <option value="inconnu">Je ne sais pas</option>
+          </select>
+          <p class="reg__aide">« Non » retire le tableau de bord du tiroir : il ne saurait rien lire.</p>
+        </fieldset>
+
+        <fieldset class="reg__bloc" id="regBlocVentes">
+          <legend class="reg__legende">Tes ventes</legend>
+          <label class="reg__l" for="regObjectif">Objectif de chiffre d'affaires annuel (HT)</label>
+          <input class="reg__i" type="text" id="regObjectif" inputmode="numeric" placeholder="ex. 500000">
+          <p class="reg__aide">Il commande l'ardoise et l'alerte d'atterrissage. Vide : aucun objectif.</p>
+
+          <label class="reg__l" for="regExercice">Mois d'ouverture de ton exercice</label>
+          <select class="reg__i" id="regExercice"></select>
+          <p class="reg__aide">Le tableau de bord le reprendra à sa prochaine ouverture.</p>
+          <p class="reg__aide" id="regVentesAttente" hidden>Ces deux réglages ne sont pas encore
+            chargés depuis ton compte. Tant qu'ils ne le sont pas, on ne les touche pas : écrire
+            par-dessus une valeur qu'on n'a pas lue, c'est l'effacer.</p>
+        </fieldset>
+
+        <fieldset class="reg__bloc">
+          <legend class="reg__legende">Le courrier</legend>
+          <label class="reg__chk"><input type="checkbox" id="regNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
+        </fieldset>
+
+        <p class="bureau-avis" id="regAvis" role="status" hidden></p>
+        <p class="reg__aide" id="regAttente" hidden>Chargement de tes réglages…</p>
+        <div class="reg__pied">
+          <button class="btn btn--bordeaux" id="regEnregistrer" type="submit">Enregistrer</button>
+          <a class="btn--lienb" href="/compte/">Mot de passe, export, suppression du compte</a>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="/js/bdv-echeances.js" defer></script>
@@ -148,8 +236,16 @@ permalink: /mon-bureau/
 (function(){
   'use strict';
 
-  // L'etat se lit dans localStorage sans attendre les modules charges en defer : sinon le
-  // bureau proposerait de creer un compte une fraction de seconde a quelqu'un qui en a un.
+  /* Le bureau : des zones nommees, toujours a la meme place. On ne cherche pas ses
+     affaires sur un bureau, on sait ou elles sont. Le sous-main est le plus grand parce
+     que c'est la qu'on travaille ; le tiroir est en bas parce qu'on l'ouvre rarement.
+
+     Regle qui gouverne toute la page : LA FILE NE MONTRE QUE CINQ LIGNES. Quarante
+     clients a traiter n'est pas une journee, c'est un mur, et un mur on cesse de le
+     regarder. Le reste est a un clic, dans le tableau de bord. */
+  var FILE_VUE = 5;
+  var TOUT_VOIR = false;
+
   function session(){
     try{
       var s = JSON.parse(localStorage.getItem('bdv_session'));
@@ -162,8 +258,19 @@ permalink: /mon-bureau/
   document.getElementById('bureauContenu').hidden = !connecte;
   if(!connecte) return;
 
+  function el(id){ return document.getElementById(id); }
+  function txt(n, t){ if(n) n.textContent = t; }
+  function vide(boite, phrase){
+    boite.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'zone__vide';
+    p.textContent = phrase;
+    boite.appendChild(p);
+  }
+  function euros(n){ return Math.round(n).toLocaleString('fr-FR') + ' €'; }
+
   var CONTENUS = [];
-  try{ CONTENUS = JSON.parse(document.getElementById('bdvContenus').textContent) || []; }catch(e){}
+  try{ CONTENUS = JSON.parse(el('bdvContenus').textContent) || []; }catch(e){}
   var PAR_URL = {};
   CONTENUS.forEach(function(c){ PAR_URL[c.url] = c; });
 
@@ -175,324 +282,881 @@ permalink: /mon-bureau/
     var s = signets();
     return Object.keys(s).filter(function(r){ return s[r].etat === etat; });
   }
-  function txt(el, t){ el.textContent = t; }
 
-  // ---- L'EN-TETE ----
+  /* ---------------- L'EN-TETE ---------------- */
   var jour = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
-  txt(document.getElementById('bureauJour'), jour.charAt(0).toUpperCase() + jour.slice(1));
+  txt(el('bureauJour'), jour.charAt(0).toUpperCase() + jour.slice(1));
 
-  // ---- CE QUI PRESSE ----
-  // Deux lignes au maximum, et une seule si rien ne presse : le bloc perd tout son sens
-  // s'il se remplit de choses qui peuvent attendre.
-  // Le comptage des rappels a ete retire le 06/09/2026 : la file de travail les porte
-  // desormais, avec les noms, et un bloc « 3 clients à rappeler » juste au-dessus d'elle
-  // aurait dit deux fois la meme chose.
+  /* ---------------- LE SOUS-MAIN : LA FILE ----------------
+     Chaque ligne est cliquable et mene DROIT a la fiche du client dans le tableau de
+     bord, pas a une liste ou il faudrait le rechercher. Les trois gestes restent a
+     droite, toujours a la meme place, pour descendre la file sans relire. */
+  var ETAT_FILE = null;
 
-  function peindrePresse(){
-    var boite = document.getElementById('bureauPresse');
-    var blocs = [];
-    var ech = null;
-
-    if(window.BdvEcheances){
-      ech = BdvEcheances.laPlusPressante(BdvEcheances.depuisLaPage('bdvEcheances'));
-    }
-    if(ech){
-      var e = ech.e;
-      blocs.push(''
-        + '<article class="presse" data-niveau="' + ech.niveau + '">'
-        + '<div class="presse__compte">'
-        +   '<span class="presse__quand">' + ech.phrase + '</span>'
-        +   '<span class="presse__date">' + ech.dateCourte + '</span>'
-        + '</div>'
-        + '<div class="presse__corps">'
-        +   '<h3 class="presse__titre">' + e.titre + '</h3>'
-        +   '<p class="presse__qui">' + e.qui + '</p>'
-        +   '<p class="presse__liens">'
-        +     (e.article ? '<a href="' + e.article + '">Lire l\'article</a> · ' : '')
-        +     '<a href="/outils/echeances/">Toutes les échéances</a>'
-        +   '</p>'
-        + '</div>'
-        + '</article>');
-    }
-
-    // Le plus ancien signet non lu : c'est celui qui risque de ne jamais l'etre.
-    var aLire = parEtat('a_lire');
-    if(aLire.length){
-      var s = signets();
-      var vieux = aLire.slice().sort(function(a, b){
-        return new Date(s[a].maj_le || 0) - new Date(s[b].maj_le || 0);
-      })[0];
-      var c = PAR_URL[vieux] || { titre: s[vieux].titre, pilier: '', temps: '' };
-      blocs.push(''
-        + '<article class="presse" data-niveau="signet">'
-        + '<div class="presse__compte">'
-        +   '<span class="presse__quand">Mis de côté</span>'
-        +   '<span class="presse__date">' + (aLire.length > 1 ? 'le plus ancien des ' + aLire.length : 'ton seul') + '</span>'
-        + '</div>'
-        + '<div class="presse__corps">'
-        +   '<h3 class="presse__titre"><a href="' + vieux + '">' + (c.titre || vieux) + '</a></h3>'
-        +   '<p class="presse__qui">' + [c.pilier, c.temps].filter(Boolean).join(' · ') + '</p>'
-        + '</div>'
-        + '</article>');
-    }
-
-    boite.innerHTML = blocs.join('');
-
-    var n = aLire.length;
-    var morceaux = [];
-    if(ech && ech.jours <= 7) morceaux.push('une échéance dans ' + ech.jours + ' jour' + (ech.jours > 1 ? 's' : ''));
-    var enFile = (window.BdvCrm && ETAT_FILE) ? BdvCrm.file(ETAT_FILE).length : 0;
-    if(enFile) morceaux.push(enFile + ' client' + (enFile > 1 ? 's' : '') + ' dans ta file');
-    if(n) morceaux.push(n + ' article' + (n > 1 ? 's' : '') + ' qui t\'attend' + (n > 1 ? 'ent' : ''));
-    var resume = morceaux.length
-      ? (morceaux.join(', ').charAt(0).toUpperCase() + morceaux.join(', ').slice(1) + '.')
-      : 'Rien ne presse aujourd\'hui.';
-    txt(document.getElementById('bureauResume'), resume);
+  function lienFiche(id){
+    return '/outils/dashboard-vigneron/#client=' + encodeURIComponent(id);
   }
 
-  // ---- LES LISTES ----
-  function fiche(ref, titre){
-    var c = PAR_URL[ref] || {};
-    var meta = [c.pilier, c.temps].filter(Boolean).join(' · ');
-    return '<article class="bureau-fiche">'
-      + '<span class="bureau-fiche__punaise" aria-hidden="true"></span>'
-      + '<a class="bureau-fiche__titre" href="' + ref + '">' + (c.titre || titre || ref) + '</a>'
-      + (meta ? '<p class="bureau-fiche__meta">' + meta + '</p>' : '')
-      + '<button type="button" class="signet signet--carte" data-signet'
-      +   ' data-signet-ref="' + ref + '" data-signet-titre="' + (c.titre || titre || '') + '"'
-      +   ' data-signet-type="article"><span class="signet__icone" aria-hidden="true"></span>'
-      +   '<span data-signet-texte>Retirer</span></button>'
-      + '</article>';
+  function ligneFile(l){
+    var a = document.createElement('button');
+    a.type = 'button';
+    a.className = 'tache';
+    a.setAttribute('data-fiche', l.id);
+    a.setAttribute('data-source', l.source);
+
+    var gauche = document.createElement('span');
+    gauche.className = 'tache__qui';
+    var nom = document.createElement('span');
+    nom.className = 'tache__nom';
+    nom.textContent = l.nom || l.id;
+    gauche.appendChild(nom);
+    var pourquoi = document.createElement('span');
+    pourquoi.className = 'tache__pourquoi';
+    pourquoi.textContent = l.source === 'rappel'
+      ? (l.retard > 0 ? 'Tu devais le rappeler il y a ' + l.retard + ' jour' + (l.retard > 1 ? 's' : '')
+                      : 'À rappeler aujourd’hui')
+      : (l.montant ? euros(l.montant) + ' ' + (l.lib || '') : (l.detail || 'Signalé'));
+    gauche.appendChild(pourquoi);
+    a.appendChild(gauche);
+
+    var droite = document.createElement('span');
+    droite.className = 'tache__gestes';
+    Object.keys(BdvCrm.GESTES).forEach(function(k){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn--geste';
+      b.setAttribute('data-geste', k);
+      b.setAttribute('data-id', l.id);
+      b.textContent = BdvCrm.GESTES[k].label;
+      droite.appendChild(b);
+    });
+    a.appendChild(droite);
+    return a;
   }
 
-  // Meme regle que pour la file : le titre d'un signet vient de la base, il ne rentre
-  // jamais dans une chaine HTML.
-  function ligne(ref, titre){
-    var c = PAR_URL[ref] || {};
-    var p = document.createElement('p');
-    p.className = 'bureau-ligne';
+  var LECTURE_KO = false;
+  function peindreFile(){
+    var boite = el('bureauFile');
+    if(!window.BdvCrm || !ETAT_FILE){
+      vide(boite, LECTURE_KO
+        ? 'Ta file n’a pas pu être lue. Ce n’est pas qu’elle est vide : réessaie tout à l’heure.'
+        : 'Ouvre ton tableau de bord une fois : il déposera ici les clients à rappeler.');
+      return;
+    }
+    var lignes = BdvCrm.file(ETAT_FILE);
+    if(!lignes.length){
+      vide(boite, 'Rien à faire aujourd’hui. Profites-en.');
+      txt(el('fileNote'), '');
+      el('filePied').hidden = true;
+      return;
+    }
+    var retards = lignes.filter(function(l){ return l.source === 'rappel' && l.retard > 0; }).length;
+    txt(el('fileNote'), retards ? retards + ' en retard' : lignes.length + ' en attente');
+
+    boite.innerHTML = '';
+    lignes.slice(0, TOUT_VOIR ? lignes.length : FILE_VUE).forEach(function(l){ boite.appendChild(ligneFile(l)); });
+
+    // « Tout voir » déplie la file ICI. Sauter vers le tableau de bord faisait sortir du
+    // poste de travail pour retrouver une liste d'analyse, qui n'est pas la même chose.
+    var pied = el('filePied');
+    if(lignes.length > FILE_VUE){
+      pied.innerHTML = '';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn--lienb';
+      b.textContent = TOUT_VOIR
+        ? 'N’en montrer que ' + FILE_VUE
+        : 'Voir les ' + (lignes.length - FILE_VUE) + ' autres';
+      b.onclick = function(){ TOUT_VOIR = !TOUT_VOIR; peindreFile(); };
+      pied.appendChild(b);
+      pied.hidden = false;
+    }else pied.hidden = true;
+  }
+
+  // Le clic sur un geste ne doit pas suivre le lien de la ligne.
+  document.addEventListener('click', function(e){
+    var t = e.target.closest && e.target.closest('[data-fiche]');
+    if(t && !(e.target.closest && e.target.closest('[data-geste]'))){
+      ouvrirFiche(t.getAttribute('data-fiche'));
+      return;
+    }
+    var b = e.target.closest && e.target.closest('[data-geste]');
+    if(!b || !window.BdvCrm) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var id = b.getAttribute('data-id');
+    var ligne = b.closest('.tache');
+    if(ligne) ligne.classList.add('tache--partie');
+    BdvCrm.geste(b.getAttribute('data-geste'), id).then(function(ok){
+      ETAT_FILE = BdvCrm.miroir();
+      peindreFile(); peindreResume();
+      // Le miroir vient d'etre elague de ce client : le panneau compterait un carnet plus
+      // court et ignorerait le rappel qu'on vient de poser. On le repeint sur la verite
+      // du serveur, pas sur l'optimisme local.
+      if(ok) BdvCrm.charger().then(function(etat){
+        if(!etat) return;
+        ETAT_FILE = etat;
+        peindreFile(); peindreArdoise(); peindrePanneau(); peindreResume();
+      });
+      if(!ok){
+        var av = el('bureauAvis');
+        av.textContent = 'Pas de réseau : ce geste est mis de côté et repartira tout seul à ta prochaine visite.';
+        av.hidden = false;
+      }
+    });
+  });
+
+  /* ---------------- LA FICHE DE SUIVI, EN SURIMPRESSION ----------------
+     On ne quitte pas le bureau pour travailler un client. Cette fiche montre ce que la
+     base sait de lui : sa prochaine action, ses coordonnees, et le fil de ce qui s'est
+     dit. Elle ne montre PAS ses ventes, ses cuvees ni ses factures : ces chiffres sont
+     calcules par le tableau de bord, et le bureau ne recalcule jamais rien. Un lien mene
+     a sa fiche complete pour qui veut le detail. */
+  var FICHE_ID = null;
+  var TYPE_SAISIE = 'appel';
+
+  var RETOUR_FICHE = null;
+  function avisFiche(texte, ok){
+    var a = el('ficheAvis');
+    a.textContent = texte || '';
+    a.setAttribute('data-ok', ok ? 'oui' : 'non');
+    a.hidden = !texte;
+  }
+  function fermerFiche(){
+    el('voile').hidden = true;
+    document.body.style.overflow = '';
+    FICHE_ID = null;
+    avisFiche('');
+    if(RETOUR_FICHE && RETOUR_FICHE.focus) RETOUR_FICHE.focus();
+    RETOUR_FICHE = null;
+  }
+  el('ficheFermer').addEventListener('click', fermerFiche);
+  el('voile').addEventListener('click', function(e){ if(e.target === el('voile')) fermerFiche(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !el('voile').hidden) fermerFiche(); });
+
+  function ouvrirFiche(id){
+    if(!window.BdvCrm) return;
+    RETOUR_FICHE = document.activeElement;
+    FICHE_ID = id;
+    TYPE_SAISIE = 'appel';
+    avisFiche('');
+    el('voile').hidden = false;
+    document.body.style.overflow = 'hidden';
+    el('ficheFermer').focus();
+    peindreFiche();
+    BdvCrm.fil(id).then(function(f){ if(FICHE_ID === id) peindreFiche(f); });
+  }
+
+  function infosDe(id){
+    var e = ETAT_FILE || {};
+    var s = (e.signaux || []).filter(function(x){ return x.id === id; })[0] || {};
+    var su = (e.suivi || e.rappels || []).filter(function(x){ return x.id === id; })[0] || {};
+    return { nom: s.nom || (e.noms || {})[id] || id, contact: s.contact || '',
+             montant: s.montant || 0, lib: s.lib || '', detail: s.detail || '',
+             rappel: su.rappel || '' };
+  }
+
+  function peindreFiche(fil){
+    var id = FICHE_ID; if(!id) return;
+    var i = infosDe(id);
+    var boite = el('ficheContenu');
+    boite.innerHTML = '';
+
+    var h1 = document.createElement('h2'); h1.id = 'ficheNom'; h1.className = 'ficheb__nom';
+    h1.textContent = i.nom; boite.appendChild(h1);
+
+    if(i.contact){
+      var c = document.createElement('p'); c.className = 'ficheb__contact';
+      i.contact.split(/\s+/).filter(Boolean).forEach(function(m, k){
+        if(k) c.appendChild(document.createTextNode(' · '));
+        var a = document.createElement('a');
+        a.href = m.indexOf('@') > 0 ? 'mailto:' + m : 'tel:' + m.replace(/[^+0-9]/g, '');
+        a.textContent = m;
+        c.appendChild(a);
+      });
+      boite.appendChild(c);
+    }
+    if(i.montant || i.detail){
+      var d = document.createElement('p'); d.className = 'ficheb__quoi';
+      d.textContent = i.montant ? euros(i.montant) + ' ' + (i.lib || '') : i.detail;
+      boite.appendChild(d);
+    }
+
+    // La prochaine action, en tete, comme dans le tableau de bord.
+    var act = document.createElement('div'); act.className = 'ficheb__action';
+    var lbl = document.createElement('span'); lbl.className = 'ficheb__action-l';
+    if(i.rappel){
+      lbl.textContent = 'À rappeler le ' + i.rappel.split('-').reverse().join('/');
+      act.appendChild(lbl);
+      var retire = document.createElement('button');
+      retire.type = 'button'; retire.className = 'btn--lienb'; retire.textContent = 'retirer';
+      retire.onclick = function(){
+        // Le .catch est pose sur l'ECRITURE seule : chaine apres rafraichirApres, il
+        // annoncerait un echec d'ecriture pour une simple erreur de repeinture.
+        BdvCrm.planifier(id, null)
+          .then(function(){ avisFiche(''); return rafraichirApres(); })
+          .catch(function(){ avisFiche('Ce rappel n’a pas pu être retiré. Réessaie tout à l’heure.', false); });
+      };
+      act.appendChild(retire);
+    }else{
+      lbl.textContent = 'Aucune action prévue.';
+      act.appendChild(lbl);
+      [7, 30, 90].forEach(function(n){
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn--geste'; b.textContent = 'Dans ' + n + ' j';
+        b.onclick = function(){
+          BdvCrm.planifier(id, BdvCrm.dansNJours(n))
+            .then(function(){ avisFiche(''); return rafraichirApres(); })
+            .catch(function(){ avisFiche('Ce rappel n’a pas pu être posé. Réessaie tout à l’heure.', false); });
+        };
+        act.appendChild(b);
+      });
+    }
+    boite.appendChild(act);
+
+    // La saisie : une seule, comme dans le tableau de bord.
+    var sais = document.createElement('div'); sais.className = 'saisieb';
+    var ta = document.createElement('textarea');
+    ta.className = 'saisieb__txt'; ta.rows = 2; ta.id = 'ficheTxt';
+    ta.placeholder = 'Qu’est-ce qui s’est passé avec ce client ?';
+    sais.appendChild(ta);
+    var pied = document.createElement('div'); pied.className = 'saisieb__pied';
+    var types = document.createElement('div'); types.className = 'saisieb__types';
+    [['appel','Appel'], ['message','Message'], ['note','Note']].forEach(function(t){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn--type'; b.textContent = t[1];
+      b.setAttribute('aria-pressed', t[0] === TYPE_SAISIE ? 'true' : 'false');
+      b.onclick = function(){
+        TYPE_SAISIE = t[0];
+        types.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', 'false'); });
+        b.setAttribute('aria-pressed', 'true');
+      };
+      types.appendChild(b);
+    });
+    pied.appendChild(types);
+    var ok = document.createElement('button');
+    ok.type = 'button'; ok.className = 'btn--geste'; ok.textContent = 'Enregistrer';
+    ok.onclick = function(){
+      var t = ta.value.trim();
+      if(!t){ ta.focus(); return; }
+      ok.disabled = true;
+      BdvCrm.noter(id, TYPE_SAISIE, t).then(function(){
+        ta.value = '';
+        avisFiche('');
+        BdvCrm.fil(id).then(function(f){ if(FICHE_ID === id) peindreFiche(f); });
+      }).catch(function(){
+        ok.disabled = false;
+        avisFiche('Pas de réseau : cette note n’a pas pu être enregistrée. Réessaie tout à l’heure.', false);
+      });
+    };
+    pied.appendChild(ok);
+    sais.appendChild(pied);
+    boite.appendChild(sais);
+
+    // Le fil.
+    var f = document.createElement('div'); f.className = 'filb';
+    if(fil === undefined){
+      var att = document.createElement('p'); att.className = 'zone__vide';
+      att.textContent = 'Chargement de son historique…'; f.appendChild(att);
+    }else if(fil === null){
+      var ill = document.createElement('p'); ill.className = 'zone__vide';
+      ill.textContent = 'Son historique n’a pas pu être lu. Ce n’est pas qu’il est vide : réessaie tout à l’heure.';
+      f.appendChild(ill);
+    }else if(!fil.length){
+      var v = document.createElement('p'); v.className = 'zone__vide';
+      v.textContent = 'Rien encore. Ce que tu écris ci-dessus s’inscrit ici, daté.'; f.appendChild(v);
+    }else{
+      var LIB = { appel:'Appel', message:'Message', note:'Note', ecarte:'Écarté' };
+      fil.forEach(function(e){
+        var l = document.createElement('div'); l.className = 'filb__l';
+        var d = new Date(e.le);
+        var q = document.createElement('span'); q.className = 'filb__q';
+        q.textContent = isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+        var t = document.createElement('span'); t.className = 'filb__t';
+        t.textContent = e.resume || LIB[e.type] || e.type;
+        l.appendChild(q); l.appendChild(t); f.appendChild(l);
+      });
+    }
+    boite.appendChild(f);
+
+    var lien = document.createElement('p'); lien.className = 'zone__pied';
+    var a2 = document.createElement('a');
+    a2.href = lienFiche(id); a2.textContent = 'Voir sa fiche complète dans le tableau de bord';
+    lien.appendChild(a2); boite.appendChild(lien);
+  }
+
+  function rafraichirApres(){
+    return BdvCrm.charger().then(function(etat){
+      if(etat) ETAT_FILE = etat;
+      peindreFile(); peindreResume(); peindrePanneau(); peindreFiche();
+      BdvCrm.fil(FICHE_ID).then(function(f){ peindreFiche(f); });
+    });
+  }
+
+  /* ---------------- LE PENSE-BETE ---------------- */
+  var ECHEANCE = null;
+  function peindreEcheance(){
+    var boite = el('bureauEcheance');
+    if(!window.BdvEcheances) return;
+    ECHEANCE = BdvEcheances.laPlusPressante(BdvEcheances.depuisLaPage('bdvEcheances'));
+    if(!ECHEANCE){ vide(boite, 'Rien en vue.'); return; }
+    boite.innerHTML = '';
     var a = document.createElement('a');
-    a.href = ref;
-    a.textContent = c.titre || titre || ref;
-    p.appendChild(a);
-    return p.outerHTML;
+    a.className = 'note';
+    a.href = ECHEANCE.e.article || '/outils/echeances/';
+    a.setAttribute('data-niveau', ECHEANCE.niveau);
+    var q = document.createElement('span'); q.className = 'note__quand'; q.textContent = ECHEANCE.phrase;
+    var t = document.createElement('span'); t.className = 'note__titre'; t.textContent = ECHEANCE.e.titre;
+    var d = document.createElement('span'); d.className = 'note__date'; d.textContent = ECHEANCE.dateCourte;
+    a.appendChild(q); a.appendChild(t); a.appendChild(d);
+    boite.appendChild(a);
+    var tout = document.createElement('p');
+    tout.className = 'zone__pied';
+    var l = document.createElement('a'); l.href = '/outils/echeances/'; l.textContent = 'Toutes les échéances';
+    tout.appendChild(l);
+    boite.appendChild(tout);
   }
 
-  function peindreListes(){
+  /* ---------------- LE MOT DU JOUR ----------------
+     UN conseil, pas six. Ceux du tableau de bord sont déjà triés par gravité puis par
+     euros en jeu ; on prend le premier, et on offre de voir les suivants.
+
+     « Journalier » veut dire qu'il tourne : sans rotation, le même paragraphe finit par
+     faire partie du décor et plus personne ne le lit. La rotation est calée sur le jour
+     de l'année, donc stable dans la journée et différente le lendemain, sans rien avoir
+     à mémoriser côté serveur. */
+  var MOT_I = 0;
+  function jourDeLAnnee(){
+    var d = new Date();
+    return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  }
+  function peindreMot(){
+    var c = (ETAT_FILE && ETAT_FILE.resume && ETAT_FILE.resume.conseils) || [];
+    var zone = el('zoneMot');
+    if(!c.length){ zone.hidden = true; return; }
+    zone.hidden = false;
+    // Les conseils graves (sévérité 3) ne tournent pas : ils restent en tête tant qu'ils
+    // sont vrais. On ne fait tourner que ce qui peut attendre.
+    var graves = c.filter(function(x){ return x.sev >= 3; });
+    var liste = graves.length ? graves : c;
+    var i = graves.length ? 0 : (jourDeLAnnee() + MOT_I) % liste.length;
+    var m = liste[i];
+
+    var boite = el('bureauMot');
+    boite.innerHTML = '';
+    var d = document.createElement('div');
+    d.className = 'mot';
+    d.setAttribute('data-kind', m.kind || 'info');
+    var v = document.createElement('p'); v.className = 'mot__v'; v.textContent = m.verdict;
+    var a = document.createElement('p'); a.className = 'mot__a'; a.textContent = m.action;
+    d.appendChild(v); d.appendChild(a);
+    boite.appendChild(d);
+
+    txt(el('motNote'), liste.length > 1 ? (i + 1) + ' sur ' + liste.length : '');
+    if(liste.length > 1){
+      var p = document.createElement('p'); p.className = 'zone__pied';
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn--lienb'; b.textContent = 'Le suivant';
+      b.onclick = function(){ MOT_I++; peindreMot(); };
+      p.appendChild(b); boite.appendChild(p);
+    }
+  }
+
+  /* ---------------- L'ARDOISE ---------------- */
+  function peindreArdoise(){
+    if(!ETAT_FILE || !ETAT_FILE.resume) return;
+    var r = ETAT_FILE.resume, cases = [];
+    // Chaque chiffre porte sa comparaison. Un chiffre d'affaires seul ne dit rien : ce
+    // qui compte, c'est s'il monte ou s'il descend, et où il finira.
+    if(r.ca != null){
+      var sous = r.exercice || '';
+      if(r.variation != null){
+        sous = (r.variation >= 0 ? '+' : '') + r.variation.toString().replace('.', ',')
+             + ' % vs l’an dernier à date égale';
+      }
+      cases.push(['Chiffre d’affaires', euros(r.ca), sous]);
+    }
+    if(r.objectifPct != null){
+      var reste = (r.objectif || 0) - (r.ca || 0);
+      cases.push(['Objectif', r.objectifPct + ' %',
+        reste > 0 ? 'il reste ' + euros(reste) : 'objectif dépassé']);
+    }else if(r.atterrissage != null){
+      cases.push(['Fin d’exercice', euros(r.atterrissage), 'projection au rythme actuel']);
+    }
+    if(r.clients != null) cases.push(['Clients', String(r.clients), 'sur l’exercice']);
+    if(r.panier != null) cases.push(['Panier moyen', euros(r.panier), 'par commande']);
+    if(!cases.length) return;
+    var boite = el('bureauChiffres');
+    boite.innerHTML = '';
+    var r2 = ETAT_FILE.resume;
+    cases.forEach(function(c, i){
+      var d = document.createElement('a');
+      d.className = 'chiffre' + (i === 0 ? ' chiffre--hi' : '');
+      if(i === 0 && r2.variation != null) d.setAttribute('data-sens', r2.variation >= 0 ? 'haut' : 'bas');
+      d.href = '/outils/dashboard-vigneron/#annee';
+      ['chiffre__l','chiffre__v','chiffre__s'].forEach(function(cl, k){
+        var sp = document.createElement('span'); sp.className = cl; sp.textContent = c[k]; d.appendChild(sp);
+      });
+      boite.appendChild(d);
+    });
+    el('zoneArdoise').hidden = false;
+    if(ETAT_FILE.deposeLe){
+      var dt = new Date(ETAT_FILE.deposeLe);
+      if(!isNaN(dt)) txt(el('ardoiseQuand'), 'au ' + dt.toLocaleDateString('fr-FR', { day:'numeric', month:'long' }));
+    }
+  }
+
+  /* ---------------- LE PANNEAU DE LIEGE ----------------
+     Cinq punaises, et pas un chiffre de vente dedans. C'est la regle qui autorise ce
+     panneau a coexister avec l'ardoise : l'ardoise mesure le DOMAINE (ce qui est rentre,
+     ou on en est de l'objectif), le panneau mesure le VIGNERON (ce qu'il a fait, ce qu'il
+     s'est promis, depuis quand ses chiffres n'ont pas bouge). Deux tableaux de chiffres
+     qui mesurent la meme chose, c'est le plus court chemin pour qu'on cesse de lire les
+     deux.
+
+     Aucun de ces cinq chiffres n'est recalcule a partir des ventes : ils sortent du
+     journal d'echanges, du suivi client et de la date de depot. Le bureau ne recalcule
+     jamais rien du tableau de bord. */
+  var JOURNAL = undefined;   // undefined : pas encore lu. null : illisible. [] : lu, vide.
+
+  function minuit(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function lundi(){
+    var d = minuit(new Date());
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));   // lundi = debut de semaine
+    return d;
+  }
+  function jours(a, b){ return Math.round((minuit(a) - minuit(b)) / 86400000); }
+  function pluriel(n, mot){ return n + ' ' + mot + (n > 1 ? 's' : ''); }
+  function dateCourte(iso){
+    var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
+    return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+  }
+
+  function postit(o){
+    var n = document.createElement(o.href ? 'a' : 'div');
+    n.className = 'postit';
+    if(o.href) n.href = o.href;
+    if(o.ton) n.setAttribute('data-ton', o.ton);
+    var v = document.createElement('span'); v.className = 'postit__v'; v.textContent = o.valeur;
+    if(String(o.valeur).length > 4) v.setAttribute('data-mot', 'oui');
+    var l = document.createElement('span'); l.className = 'postit__l'; l.textContent = o.libelle;
+    n.appendChild(v); n.appendChild(l);
+    if(o.sous){ var sp = document.createElement('span'); sp.className = 'postit__s'; sp.textContent = o.sous; n.appendChild(sp); }
+    return n;
+  }
+
+  function peindrePanneau(){
+    var cartes = [];
+    var auj = new Date();
+
+    // 1 et 4. Ce qu'il a fait. Absents tant que le journal n'est pas lisible : annoncer
+    // « 0 geste cette semaine » a quelqu'un dont la table n'existe pas encore serait un
+    // reproche fonde sur rien.
+    if(JOURNAL){
+      var debutSem = lundi(), debutPrec = new Date(debutSem); debutPrec.setDate(debutPrec.getDate() - 7);
+      // La semaine en cours est INCOMPLETE. La comparer a une semaine pleine annoncerait
+      // « -9 » tous les mardis matin, pour la seule raison qu'on est mardi. On coupe donc
+      // la semaine passee au meme jour, et on compare deux tranches de meme longueur.
+      var finPrec = new Date(debutPrec);
+      finPrec.setDate(finPrec.getDate() + jours(auj, debutSem) + 1);
+      var sem = 0, prec = 0, mois = 0;
+      JOURNAL.forEach(function(e){
+        var d = new Date(e.le);
+        if(isNaN(d)) return;
+        if(d >= debutSem) sem++;
+        else if(d >= debutPrec && d < finPrec) prec++;
+        if(jours(auj, d) < 28) mois++;
+      });
+      var ecart = sem - prec;
+      cartes.push({
+        valeur: String(sem), libelle: sem === 1 ? 'geste cette semaine' : 'gestes cette semaine',
+        sous: prec ? ((ecart >= 0 ? '+' : '') + ecart + ' vs la semaine passée, au même jour')
+                   : 'appels, messages et notes',
+        ton: sem ? 'fait' : ''
+      });
+      cartes.push({
+        valeur: (Math.round(mois / 4 * 10) / 10).toString().replace('.', ','),
+        libelle: 'gestes par semaine', sous: 'ta moyenne sur quatre semaines'
+      });
+    }
+
+    // 2. Ce qu'il s'est promis. Les rappels a venir, ceux qui ne sont pas encore dans la
+    // file : c'est le seul endroit du bureau qui montre l'avenir plutot que le jour meme.
+    var suivi = (ETAT_FILE && (ETAT_FILE.suivi || ETAT_FILE.rappels)) || [];
+    var aujISO = window.BdvCrm ? BdvCrm.isoLocal(new Date()) : '';
+    var venir = suivi.filter(function(l){ return l.statut !== 'traite' && l.rappel && l.rappel > aujISO; });
+    venir.sort(function(a, b){ return a.rappel < b.rappel ? -1 : 1; });
+    cartes.push({
+      valeur: String(venir.length), libelle: venir.length === 1 ? 'rappel à venir' : 'rappels à venir',
+      sous: venir.length ? ('le prochain le ' + dateCourte(venir[0].rappel)) : 'ton carnet est vide'
+    });
+
+    // 3. Son carnet. Le nombre de clients qui portent quelque chose : un statut, un
+    // rappel, une trace. Pas le nombre de clients de l'export, qui est un chiffre du
+    // tableau de bord et vit sur l'ardoise.
+    // Une fiche videe ne compte pas : `planifier(id, null)` laisse une ligne qui ne porte
+    // plus rien, et la compter ferait grossir le carnet a chaque rappel retire.
+    var portent = suivi.filter(function(l){ return l.statut || l.rappel; });
+    var clos = portent.filter(function(l){ return l.statut === 'traite'; }).length;
+    if(portent.length) cartes.push({
+      valeur: String(portent.length), libelle: 'clients dans ton carnet',
+      sous: clos ? (pluriel(clos, 'classé') + ' terminé' + (clos > 1 ? 's' : '')) : 'suivis à la main'
+    });
+
+    // 5. L'age des chiffres. Un tableau de bord qui date de six semaines rend l'ardoise
+    // fausse sans que rien ne le dise : c'est la seule alerte du panneau.
+    if(ETAT_FILE && ETAT_FILE.deposeLe){
+      var d = new Date(ETAT_FILE.deposeLe);
+      if(!isNaN(d)){
+        var age = jours(auj, d);
+        cartes.push({
+          valeur: age <= 0 ? 'du jour' : (age === 1 ? 'hier' : age + ' jours'),
+          libelle: age <= 1 ? 'ta dernière analyse' : 'depuis ta dernière analyse',
+          sous: age > 30 ? 'réimporte ton export, l\u2019ardoise a vieilli' : 'tableau de bord',
+          ton: age > 30 ? 'vieux' : '',
+          href: '/outils/dashboard-vigneron/'
+        });
+      }
+    }
+
+    var boite = el('bureauPanneau');
+    if(!cartes.length){ el('zonePanneau').hidden = true; return; }
+    boite.innerHTML = '';
+    cartes.forEach(function(c, i){
+      var n = postit(c);
+      n.style.setProperty('--tour', ((i % 3) - 1) * 0.7 + 'deg');
+      boite.appendChild(n);
+    });
+    el('zonePanneau').hidden = false;
+    // undefined = pas encore arrive (on se tait), null = illisible (on le dit).
+    txt(el('panneauNote'), JOURNAL === null ? 'ton journal n\u2019est pas encore lisible' : '');
+  }
+
+  /* ---------------- QUI EST LA ----------------
+     Le prenom et le nom du domaine ne sont pas des decorations : ils sont demandes a
+     l'inscription, et jusqu'ici seul le prenom servait a quelque chose. Un bureau ou
+     rien ne porte votre nom n'est pas votre bureau. */
+  var PROFIL = null;
+  var METIERS = { 'vigneron':'Vigneron', 'caviste-negoce':'Caviste ou négociant',
+                  'etudiant':'Étudiant', 'pro-filiere':'Pro de la filière', 'autre':'' };
+
+  function peindreIdentite(){
+    var p = PROFIL || {};
+    var prenom = (p.prenom || '').trim();
+    var h = new Date().getHours();
+    var salut = (h >= 5 && h < 18) ? 'Bonjour' : 'Bonsoir';
+    txt(el('bureauSalut'), prenom ? (salut + ' ' + prenom + '.') : 'Te voilà chez toi.');
+
+    var plaque = el('bureauPlaque');
+    plaque.innerHTML = '';
+    var dom = (p.domaine || '').trim();
+    if(dom){
+      var bits = [dom];
+      if(METIERS[p.profil]) bits.push(METIERS[p.profil]);
+      plaque.textContent = bits.join(' · ');
+      plaque.hidden = false;
+    }else if(!prenom){
+      // Ni prenom ni domaine : une invitation, une seule fois, la ou le nom devrait etre.
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'bureau-tete__invite';
+      b.textContent = 'Dis-moi comment t’appeler';
+      b.onclick = ouvrirReglages;
+      plaque.appendChild(b);
+      plaque.hidden = false;
+    }else{
+      plaque.hidden = true;
+    }
+
+    // Sans Vitisoft, le tableau de bord ne lira rien : on ne montre ni la porte, ni les
+    // reglages qui la commandent.
+    var sansViti = (p.utilise_vitisoft === 'non');
+    var t = el('tiroirDash'); if(t) t.hidden = sansViti;
+    var bv = el('regBlocVentes'); if(bv) bv.hidden = sansViti;
+  }
+
+  // On lit la fiche nous-memes plutot que par BdvCompte.profil(), qui rend null aussi bien
+  // pour « fiche absente » que pour « lecture refusee ». La difference compte ici : une
+  // fiche absente est une fiche LUE, et un compte qui n'en a pas doit pouvoir en remplir
+  // une ; une lecture refusee doit garder le verrou. api() leve sur un refus et rend un
+  // tableau sur une lecture reussie, meme vide : c'est ce qui les separe.
+  function chargerProfil(){
+    if(!(window.BdvCompte && BdvCompte.api && BdvCompte.monId())) return Promise.resolve(null);
+    return BdvCompte.api('/profils?id=eq.' + encodeURIComponent(BdvCompte.monId()) + '&select=*')
+      .then(function(lignes){
+        if(!Array.isArray(lignes)) return null;
+        PROFIL = lignes[0] || {};
+        PROFIL_LU = true;
+        peindreIdentite(); verrouReglages();
+        return PROFIL;
+      }).catch(function(){ return null; });
+  }
+
+  /* ---------------- LES REGLAGES, DEPUIS LE BUREAU ----------------
+     Deux tables, une seule fenetre : `profils` pour qui il est, `reglages` pour son
+     objectif et son exercice. L'upsert des reglages ne touche que les colonnes envoyees,
+     donc ecrire l'objectif d'ici n'efface ni la file deposee par le tableau de bord, ni
+     ses libelles perso. Le tableau de bord relit ces deux valeurs a chaque ouverture :
+     ce qui est change ici est vrai la-bas au prochain chargement. */
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  (function remplirMois(){
+    var sel = el('regExercice');
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Année civile (janvier)';
+    sel.appendChild(o0);
+    MOIS.forEach(function(m, i){
+      var o = document.createElement('option'); o.value = String(i + 1); o.textContent = m;
+      sel.appendChild(o);
+    });
+  })();
+
+  function avis(texte, ok){
+    var a = el('regAvis');
+    a.textContent = texte;
+    a.setAttribute('data-ok', ok ? 'oui' : 'non');
+    a.hidden = !texte;
+  }
+
+  // Tant que le profil n'a pas ete RELU sur le serveur, la fenetre ne peut pas enregistrer.
+  // Sans ce verrou, ouvrir les reglages avant la reponse reseau (ou apres une lecture
+  // ratee) puis cliquer « Enregistrer » ecrivait des champs vides par-dessus les reponses
+  // de l'inscription : code postal efface, metier efface, et une desinscription silencieuse
+  // de la lettre. Un formulaire qui ne sait pas ce qu'il remplace n'a pas le droit d'ecrire.
+  var PROFIL_LU = false;
+  var RETOUR_FOCUS = null;
+
+  function verrouReglages(){
+    el('regEnregistrer').disabled = !PROFIL_LU;
+    el('regAttente').hidden = PROFIL_LU;
+    // Meme verrou, meme raison, pour les deux reglages de vente : ils vivent dans une
+    // autre table, lue par un autre appel, qui peut avoir echoue de son cote.
+    var r = (ETAT_FILE && ETAT_FILE.reglages) || {};
+    el('regObjectif').disabled = !r.lus;
+    el('regExercice').disabled = !r.lus;
+    el('regVentesAttente').hidden = !!r.lus;
+  }
+
+  // Un champ que le vigneron a touche n'est plus jamais rerempli. La fenetre s'ouvre
+  // pendant que deux lectures sont encore en vol : sans ce garde, une reponse arrivee
+  // trois cents millisecondes apres l'ouverture effacait le prenom qu'il etait en train
+  // de taper, sans un mot. Une saisie perdue en silence est la pire panne de cet ecran.
+  var TOUCHES = {};
+  function marquer(e){ if(e.target && e.target.id) TOUCHES[e.target.id] = true; }
+  el('reglagesForm').addEventListener('input', marquer);
+  el('reglagesForm').addEventListener('change', marquer);
+
+  function poser(id, valeur){
+    if(TOUCHES[id]) return;
+    var n = el(id);
+    if(n.type === 'checkbox') n.checked = !!valeur;
+    else n.value = (valeur == null) ? '' : String(valeur);
+  }
+
+  function remplirReglages(){
+    var p = PROFIL || {};
+    poser('regPrenom', p.prenom);
+    poser('regDomaine', p.domaine);
+    poser('regCp', p.code_postal);
+    poser('regQui', p.profil);
+    poser('regViti', p.utilise_vitisoft);
+    poser('regNews', p.consent_news);
+    var r = (ETAT_FILE && ETAT_FILE.reglages) || {};
+    poser('regObjectif', r.objectif);
+    poser('regExercice', r.exercice_debut);
+    verrouReglages();
+  }
+
+  function ouvrirReglages(){
+    RETOUR_FOCUS = document.activeElement;
+    TOUCHES = {};
+    remplirReglages();
+    avis('', true);
+    el('voileReglages').hidden = false;
+    document.body.style.overflow = 'hidden';
+    el('regPrenom').focus();
+    // Le profil peut avoir change ailleurs : on rouvre sur ce qu'on a, puis on se corrige
+    // avec ce que le serveur dit. Tant que cette lecture n'a pas abouti, rien ne part.
+    if(!PROFIL_LU) chargerProfil().then(function(np){
+      if(np && !el('voileReglages').hidden) remplirReglages();
+    });
+  }
+  function fermerReglages(){
+    el('voileReglages').hidden = true;
+    document.body.style.overflow = '';
+    if(RETOUR_FOCUS && RETOUR_FOCUS.focus) RETOUR_FOCUS.focus();
+    RETOUR_FOCUS = null;
+  }
+  el('bureauOuvrirReglages').addEventListener('click', ouvrirReglages);
+  el('reglagesFermer').addEventListener('click', fermerReglages);
+  el('voileReglages').addEventListener('click', function(e){ if(e.target === el('voileReglages')) fermerReglages(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !el('voileReglages').hidden) fermerReglages(); });
+
+  function nombreOuNull(v){
+    var n = parseFloat(String(v).replace(/[^0-9.,-]/g, '').replace(',', '.'));
+    return (isNaN(n) || n <= 0) ? null : n;
+  }
+
+  el('reglagesForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!PROFIL_LU){ avis('Tes réglages ne sont pas encore chargés. Un instant.', false); return; }
+    var btn = el('regEnregistrer');
+    var p = PROFIL || {};
+    // Une chaine vide devient null, pas "" : effacer son prenom doit vraiment l'effacer.
+    // Et SEULS les champs qui ont bouge partent : une colonne absente du corps n'est pas
+    // touchee, donc on ne peut pas ecraser ce qu'on n'a pas relu.
+    var vus = {
+      prenom:      el('regPrenom').value.trim() || null,
+      domaine:     el('regDomaine').value.trim() || null,
+      code_postal: el('regCp').value.trim() || null,
+      profil:      el('regQui').value || null,
+      utilise_vitisoft: el('regViti').value || null,
+      consent_news: !!el('regNews').checked
+    };
+    var champs = {};
+    Object.keys(vus).forEach(function(k){
+      var avant = (k === 'consent_news') ? !!p[k] : (p[k] || null);
+      if(vus[k] !== avant) champs[k] = vus[k];
+    });
+
+    var r = (ETAT_FILE && ETAT_FILE.reglages) || {};
+    var nouv = {};
+    if(r.lus){
+      var obj = nombreOuNull(el('regObjectif').value);
+      var ex  = el('regExercice').value ? parseInt(el('regExercice').value, 10) : null;
+      if(obj !== (r.objectif != null ? r.objectif : null)) nouv.objectif = obj;
+      if(ex !== (r.exercice_debut || null)) nouv.exercice_debut = ex;
+    }
+    var bougeReglages = Object.keys(nouv).length > 0;
+    var bougeProfil = Object.keys(champs).length > 0;
+    if(!bougeProfil && !bougeReglages){ fermerReglages(); return; }
+
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    // allSettled, et pas all : les deux ecritures sont independantes. Avec all, un refus
+    // sur le profil faisait annoncer « rien n'est parti » alors que l'objectif, lui, etait
+    // bien en base, et l'ecran repartait sur une valeur que le serveur dementait.
+    Promise.allSettled([
+      bougeProfil ? BdvCompte.majProfil(champs) : Promise.resolve(),
+      bougeReglages ? BdvCrm.ecrireReglages(nouv) : Promise.resolve()
+    ]).then(function(res){
+      var profilOk = res[0].status === 'fulfilled';
+      var reglagesOk = res[1].status === 'fulfilled';
+      if(profilOk && bougeProfil){ PROFIL = Object.assign({}, PROFIL, champs); peindreIdentite(); }
+      if(reglagesOk && bougeReglages && ETAT_FILE) ETAT_FILE.reglages = Object.assign({}, r, nouv);
+      if(profilOk && reglagesOk){
+        avis('C’est enregistré.', true);
+        setTimeout(function(){ if(!el('voileReglages').hidden) fermerReglages(); }, 900);
+      }else if(!profilOk && !reglagesOk){
+        avis('Rien n’est parti. Vérifie ta connexion et réessaie.', false);
+      }else if(!bougeProfil || !bougeReglages){
+        // Une seule moitie etait en jeu : pas de demi-succes a raconter.
+        avis('Rien n’est parti. Vérifie ta connexion et réessaie.', false);
+      }else{
+        avis(profilOk ? 'Tes informations sont enregistrées, mais pas ton objectif. Réessaie.'
+                      : 'Ton objectif est enregistré, mais pas tes informations. Réessaie.', false);
+      }
+      btn.disabled = false; btn.textContent = 'Enregistrer';
+    });
+  });
+
+  /* ---------------- LES CONTENUS ---------------- */
+  function carteLecture(ref, titre, avecPunaise){
+    var c = PAR_URL[ref] || {};
+    var a = document.createElement('a');
+    a.className = 'fiche-l';
+    a.href = ref;
+    var t = document.createElement('span'); t.className = 'fiche-l__t';
+    t.textContent = c.titre || titre || ref;
+    a.appendChild(t);
+    var meta = [c.pilier, c.temps].filter(Boolean).join(' · ');
+    if(meta){ var m = document.createElement('span'); m.className = 'fiche-l__m'; m.textContent = meta; a.appendChild(m); }
+    if(avecPunaise){ var p = document.createElement('span'); p.className = 'fiche-l__p'; a.appendChild(p); }
+    return a;
+  }
+
+  function peindreLectures(){
     var s = signets();
-    var aLire = parEtat('a_lire');
-    var lus = parEtat('lu');
+    var aLire = parEtat('a_lire'), lus = parEtat('lu');
 
-    document.getElementById('bureauALire').innerHTML = aLire.length
-      ? aLire.map(function(r){ return fiche(r, s[r].titre); }).join('')
-      : '<p class="bureau-vide__ligne">Rien pour l\'instant. Sur un article, le bouton « Mettre de côté » le range ici.</p>';
+    var bA = el('bureauALire'); bA.innerHTML = '';
+    if(!aLire.length) vide(bA, 'Sur un article, « Mettre de côté » le range ici.');
+    else aLire.slice(0, 6).forEach(function(r){ bA.appendChild(carteLecture(r, s[r].titre, true)); });
+    txt(el('compteALire'), aLire.length ? String(aLire.length) : '');
 
-    document.getElementById('bureauLu').innerHTML = lus.length
-      ? lus.slice(0, 6).map(function(r){ return ligne(r, s[r].titre); }).join('')
-      : '<p class="bureau-vide__ligne">Rien encore. Le bouton « J\'ai lu » d\'un article le classe ici.</p>';
-
-    txt(document.getElementById('bureauCompteALire'), aLire.length ? aLire.length + ' à lire' : '—');
-    txt(document.getElementById('bureauCompteLu'), lus.length ? lus.length + ' lus' : '—');
+    var bL = el('bureauLu'); bL.innerHTML = '';
+    if(!lus.length) vide(bL, 'Ce que tu marques comme lu se range ici.');
+    else lus.slice(0, 6).forEach(function(r){ bL.appendChild(carteLecture(r, s[r].titre, false)); });
+    txt(el('compteLu'), lus.length ? String(lus.length) : '');
 
     if(window.BdvSignets) BdvSignets.peindre();
   }
 
-  // ---- LE COURRIER ----
-  // La marque n'est deplacee que si la visite precedente a plus de six heures, sinon un
-  // simple rechargement viderait la liste qu'on est en train de lire.
   var MARQUE = 'bdv_bureau_vu_le';
   function peindreCourrier(){
     var precedent = null;
     try{ precedent = localStorage.getItem(MARQUE); }catch(e){}
     var seuil = precedent ? new Date(precedent) : null;
-    var nouveaux = seuil
-      ? CONTENUS.filter(function(c){ return new Date(c.date) > seuil; })
-      : CONTENUS.slice(0, 3);
-
-    document.getElementById('bureauCourrier').innerHTML = nouveaux.length
-      ? nouveaux.slice(0, 5).map(function(c){ return ligne(c.url, c.titre); }).join('')
-      : '<p class="bureau-vide__ligne">Rien de neuf depuis ton dernier passage.</p>';
-    txt(document.getElementById('bureauCompteCourrier'),
-        seuil ? (nouveaux.length ? nouveaux.length + ' nouveau' + (nouveaux.length > 1 ? 'x' : '') : '—')
-              : 'les 3 derniers');
-
+    var nouveaux = seuil ? CONTENUS.filter(function(c){ return new Date(c.date) > seuil; }) : CONTENUS.slice(0, 3);
+    var b = el('bureauCourrier'); b.innerHTML = '';
+    if(!nouveaux.length) vide(b, 'Rien de neuf depuis ton dernier passage.');
+    else nouveaux.slice(0, 5).forEach(function(c){ b.appendChild(carteLecture(c.url, c.titre, false)); });
+    txt(el('compteCourrier'), seuil ? (nouveaux.length ? String(nouveaux.length) : '') : 'les 3 derniers');
     try{
       var maj = !precedent || (Date.now() - new Date(precedent).getTime()) > 6 * 3600 * 1000;
       if(maj) localStorage.setItem(MARQUE, new Date().toISOString());
     }catch(e){}
   }
 
-  /* ---- LA FILE DE TRAVAIL ----
-     Elle ne calcule rien : le tableau de bord depose ses signaux, le bureau les sert et
-     porte les gestes. Peinte d'abord depuis le miroir local, corrigee quand le reseau
-     repond : un vigneron qui ouvre son bureau ne doit jamais attendre pour voir sa file. */
-  var ETAT_FILE = null;
-  var FILE_MAX_VUE = 12;
-
-  function libelleMotif(m){
-    return ({recul:'Recul confirmé', cadence:'Retard de cadence', premier:'Premier achat'})[m] || 'Signalé';
+  /* ---------------- LA PHRASE D'EN-TETE ---------------- */
+  function peindreResume(){
+    var m = [];
+    if(ECHEANCE && ECHEANCE.jours <= 7) m.push('une échéance dans ' + ECHEANCE.jours + ' jour' + (ECHEANCE.jours > 1 ? 's' : ''));
+    var n = (window.BdvCrm && ETAT_FILE) ? BdvCrm.file(ETAT_FILE).length : 0;
+    if(n) m.push(n + ' client' + (n > 1 ? 's' : '') + ' à rappeler');
+    var l = parEtat('a_lire').length;
+    if(l) m.push(l + ' article' + (l > 1 ? 's' : '') + ' de côté');
+    txt(el('bureauResume'), m.length
+      ? m.join(', ').charAt(0).toUpperCase() + m.join(', ').slice(1) + '.'
+      : 'Rien ne presse aujourd’hui.');
   }
 
-  function ligneFile(l){
-    var el = document.createElement('article');
-    el.className = 'filel';
-    el.setAttribute('data-source', l.source);
-    el.setAttribute('data-id', l.id);
-
-    var quoi = l.source === 'rappel'
-      ? (l.retard > 0 ? 'Rappel en retard de ' + l.retard + ' jour' + (l.retard > 1 ? 's' : '')
-                      : 'Rappel du jour')
-      : libelleMotif(l.motif);
-    var sous = [];
-    if(l.source === 'rappel' && l.rappel) sous.push('posé pour le ' + l.rappel.split('-').reverse().join('/'));
-    if(l.detail) sous.push(l.detail);
-    if(l.montant) sous.push(Math.round(l.montant).toLocaleString('fr-FR') + ' € ' + (l.lib || ''));
-
-    // AUCUNE donnee du serveur dans cette chaine : uniquement des enveloppes vides,
-    // remplies plus bas en textContent. Le nom d'un client, son contact et le detail
-    // viennent de son export CSV ; un « <img src=x onerror=...> » dans un libelle de
-    // cuvee s'executerait des l'affectation de innerHTML, avant meme les reecritures,
-    // et sur l'origine ou vit le jeton de session.
-    var h = '<div class="filel__qui">'
-      + '<a class="filel__nom" href="/outils/dashboard-vigneron/#clients"></a>'
-      + (l.contact ? '<span class="filel__contact"></span>' : '')
-      + '</div>'
-      + '<div class="filel__quoi">'
-      + '<span class="filel__motif"></span>'
-      + (sous.length ? '<span class="filel__sous"></span>' : '')
-      + '</div>'
-      + '<div class="filel__gestes">'
-      + Object.keys(BdvCrm.GESTES).map(function(k){
-          return '<button type="button" class="btn btn--mini" data-geste="' + k + '">'
-               + BdvCrm.GESTES[k].label + '</button>';
-        }).join('')
-      + '</div>';
-    el.innerHTML = h;
-    // Le texte vient du serveur : on le pose comme texte, jamais comme HTML.
-    el.querySelector('.filel__nom').textContent = l.nom || l.id;
-    if(l.contact) el.querySelector('.filel__contact').textContent = l.contact;
-    el.querySelector('.filel__motif').textContent = quoi;
-    if(sous.length) el.querySelector('.filel__sous').textContent = sous.join(' · ');
-    return el;
-  }
-
-  function peindreFile(){
-    var boite = document.getElementById('bureauFile');
-    var entete = document.getElementById('bureauEnteteFile');
-    if(!window.BdvCrm || !ETAT_FILE){ boite.innerHTML = ''; entete.hidden = true; return; }
-    var lignes = BdvCrm.file(ETAT_FILE);
-    entete.hidden = !lignes.length;
-    boite.innerHTML = '';
-    if(!lignes.length) return;
-
-    var retards = lignes.filter(function(l){ return l.source === 'rappel' && l.retard > 0; }).length;
-    txt(document.getElementById('bureauFileCompte'),
-        lignes.length + ' à traiter' + (retards ? ' · ' + retards + ' en retard' : ''));
-
-    lignes.slice(0, FILE_MAX_VUE).forEach(function(l){ boite.appendChild(ligneFile(l)); });
-    if(lignes.length > FILE_MAX_VUE){
-      var p = document.createElement('p');
-      p.className = 'bureau-vide__ligne';
-      p.textContent = (lignes.length - FILE_MAX_VUE) + ' autres attendent. Traite ceux-là d\'abord.';
-      boite.appendChild(p);
-    }
-  }
-
-  // Un clic rend la main tout de suite : la ligne s'efface, le reseau suit.
-  document.addEventListener('click', function(e){
-    var b = e.target.closest && e.target.closest('[data-geste]');
-    if(!b || !window.BdvCrm) return;
-    var ligne = b.closest('.filel');
-    if(!ligne) return;
-    var id = ligne.getAttribute('data-id');
-    ligne.classList.add('filel--parti');
-    BdvCrm.geste(b.getAttribute('data-geste'), id).then(function(ok){
-      ETAT_FILE = BdvCrm.miroir();
-      peindreFile();
-      peindrePresse();
-      // Le geste n'est pas parti : la ligne est revenue, il faut le dire. La laisser
-      // disparaitre en silence ferait croire le client traite alors que rien n'est ecrit.
-      if(!ok){
-        var av = document.getElementById('bureauAvis');
-        if(av){
-          av.textContent = "Pas de réseau : ce geste est mis de côté et repartira tout seul à ta prochaine visite.";
-          av.hidden = false;
-        }
-      }
-    });
-  });
-
-  function peindreVentes(){
-    if(!ETAT_FILE || !ETAT_FILE.resume) return;
-    var r = ETAT_FILE.resume;
-    var cases = [];
-    if(r.ca != null) cases.push(['Chiffre d\'affaires', r.ca.toLocaleString('fr-FR') + ' €', r.exercice || '']);
-    if(r.objectifPct != null) cases.push(['Objectif', r.objectifPct + ' %', 'de ' + (r.objectif || 0).toLocaleString('fr-FR') + ' €']);
-    if(r.clients != null) cases.push(['Clients', String(r.clients), 'sur l\'exercice']);
-    if(r.panier != null) cases.push(['Panier moyen', r.panier.toLocaleString('fr-FR') + ' €', 'par commande']);
-    if(!cases.length) return;
-    document.getElementById('bureauChiffres').innerHTML = cases.map(function(c, i){
-      return '<div class="chiffre' + (i === 0 ? ' chiffre--hi' : '') + '">'
-        + '<span class="chiffre__l">' + c[0] + '</span>'
-        + '<span class="chiffre__v">' + c[1] + '</span>'
-        + '<span class="chiffre__s">' + c[2] + '</span></div>';
-    }).join('');
-    document.getElementById('bureauVentes').hidden = false;
-    if(ETAT_FILE.deposeLe){
-      var d = new Date(ETAT_FILE.deposeLe);
-      if(!isNaN(d)) txt(document.getElementById('bureauVentesQuand'),
-        'au dernier import, le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' }));
-    }
-  }
-
-  peindreListes();
+  peindreLectures();
   peindreCourrier();
+  peindreEcheance();
+  if(window.BdvCrm){ ETAT_FILE = BdvCrm.miroir(); peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); }
+  peindreResume();
 
   document.addEventListener('click', function(e){
-    if(e.target.closest && e.target.closest('[data-signet]')){
-      setTimeout(function(){ peindreListes(); peindrePresse(); }, 0);
-    }
+    if(e.target.closest && e.target.closest('[data-signet]')) setTimeout(function(){ peindreLectures(); peindreResume(); }, 0);
   });
 
   document.addEventListener('DOMContentLoaded', function(){
+    peindreEcheance(); peindreResume();
     if(window.BdvCrm){
+      // Le miroir AVANT le reseau. Ce script s'execute pendant l'analyse du document,
+      // donc avant les modules charges en defer : au premier passage plus haut,
+      // window.BdvCrm n'existait pas encore et rien n'etait peint. Sans cette ligne, le
+      // sous-main restait vide le temps d'un aller-retour, alors que la reponse etait
+      // deja sur le disque.
       ETAT_FILE = BdvCrm.miroir();
-      peindreFile();peindreVentes();
-    }
-    // Le resume de l'en-tete compte la file : le peindre avant elle affichait « rien ne
-    // presse » juste au-dessus de huit clients a rappeler, et hors ligne ca ne se
-    // corrigeait jamais.
-    peindrePresse();
-    if(window.BdvCrm){
-      // Rejouer AVANT de relire : sinon le GET part avant que les gestes en attente
-      // aient atterri, et les lignes deja traitees reviennent a l'ecran.
+      peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
       Promise.resolve(BdvCrm.rejouer())
         .then(function(){ return BdvCrm.charger(); })
         .then(function(etat){
-          if(!etat) return;
+          // Pas de reponse ET pas de miroir : la zone doit dire quelque chose. Un titre
+          // au-dessus du vide se lit comme une panne muette.
+          if(!etat){ if(!ETAT_FILE){ LECTURE_KO = true; peindreFile(); } return; }
           ETAT_FILE = etat;
-          peindreFile();peindreVentes();peindrePresse();
+          peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
+          // Fenetre des reglages deja ouverte quand la reponse arrive : elle se remplit
+          // plutot que de rester verrouillee jusqu'a la prochaine ouverture.
+          if(!el('voileReglages').hidden) remplirReglages();
         });
+      // Le journal part en parallele : le panneau se peint sans lui et se complete quand
+      // il arrive. Quatre semaines, pas plus : c'est tout ce que les deux punaises
+      // « gestes » ont besoin de savoir.
+      var depuis = new Date(); depuis.setDate(depuis.getDate() - 28);
+      BdvCrm.journal(depuis.toISOString()).then(function(j){ JOURNAL = j; peindrePanneau(); });
     }
-    if(window.BdvSignets) BdvSignets.charger().then(function(){ peindreListes(); peindrePresse(); });
-    if(window.BdvCompte && BdvCompte.profil){
-      BdvCompte.profil().then(function(p){
-        if(!p) return;
-        var prenom = (p.prenom || '').trim();
-        if(prenom) txt(document.getElementById('bureauSalut'), 'Bonjour ' + prenom + '.');
-        // Quelqu'un qui a declare ne pas utiliser Vitisoft n'a pas a lire « reservé » comme
-        // un refus : on lui dit ce qui le concerne, lui.
-        var note = document.getElementById('bureauNoteViti');
-        if(note && p.utilise_vitisoft === 'non') txt(note, 'Ne lira pas tes fichiers');
-        // Les ecrans du tableau de bord n'apparaissent que pour qui peut s'en servir. Un
-        // cadre grise « reserve aux utilisateurs de Vitisoft » se remarque bien plus qu'une
-        // absence : on ne montre pas a quelqu'un une porte qu'on lui ferme.
-        if(p.utilise_vitisoft !== 'non'){
-          document.getElementById('bureauEnteteVentes').hidden = false;
-          document.getElementById('bureauEcrans').hidden = false;
-        }
-      }).catch(function(){});
-    }
+    if(window.BdvSignets) BdvSignets.charger().then(function(){ peindreLectures(); peindreResume(); });
+    chargerProfil();
   });
 })();
 </script>

@@ -3,10 +3,17 @@
 -- Projet qukmncqqwomhmrdhvetj (lebureauduvigneron.fr, West EU Ireland).
 -- Rejouable : le passer deux fois ne casse rien.
 -- ===========================================================================
--- Tant que ce script n'est pas passe, l'ecran « Ma journee » fonctionne, les gestes
--- s'enregistrent sur l'appareil, mais le journal d'echanges ne suit pas d'un appareil
--- a l'autre. Rien ne casse, rien ne se perd : la synchronisation echoue en silence,
--- comme le reste du sync.
+-- Ce fichier porte DEUX lots : le journal d'echanges (lot 4) et les trois colonnes que
+-- le tableau de bord depose pour le bureau (lot 5, en bas). Les deux sont necessaires.
+--
+-- Tant qu'il n'est pas passe, et sans que rien ne casse ni ne se perde :
+--   - les gestes s'enregistrent sur l'appareil, mais le journal ne suit pas d'un
+--     appareil a l'autre, et la fiche client du bureau annonce un historique illisible ;
+--   - /mon-bureau/ n'a ni ardoise, ni mot du jour, ni age d'analyse : le tableau de bord
+--     n'a nulle part ou deposer ce qu'il calcule ;
+--   - dans « Mes reglages » du bureau, l'objectif de CA et le mois d'exercice restent
+--     verrouilles, volontairement : ecrire par-dessus une valeur qu'on n'a pas pu lire,
+--     ce serait l'effacer.
 
 create table if not exists public.echanges (
   id         uuid not null references auth.users on delete cascade,

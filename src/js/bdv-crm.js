@@ -72,12 +72,18 @@
     // reglages echoue (colonnes pas encore creees en base, par exemple), les rappels,
     // eux, ont ete lus, et une file de rappels seuls reste une file utile.
     var r = await Promise.allSettled([
-      api('/reglages?select=file_travail,resume_ventes,depose_le&limit=1'),
+      api('/reglages?select=file_travail,resume_ventes,depose_le,objectif,exercice_debut&limit=1'),
       api('/suivi_clients?select=client_id,statut,rappel,canal')
     ]);
     var reglages = (r[0].status === 'fulfilled' && r[0].value) || [];
     var suivi    = (r[1].status === 'fulfilled' && r[1].value) || [];
     if (r[0].status !== 'fulfilled' && r[1].status !== 'fulfilled') return lireMiroir();
+    // Une source tombee ne doit pas effacer ce que l'autre avait rapporte la veille. Le
+    // miroir sert de fond : on n'ecrase que ce qu'on a vraiment relu. Sans ca, un refus
+    // sur /reglages (colonnes pas encore creees, par exemple) vidait l'ardoise, le mot du
+    // jour et l'age de l'analyse a chaque chargement, et faisait lire l'objectif comme nul.
+    var vieux = lireMiroir() || {};
+    var regOk = (r[0].status === 'fulfilled');
     var reg = reglages[0] || {};
     // file_travail porte {signaux, noms}. La forme historique (un simple tableau) est
     // acceptee : un depot fait par une version anterieure du tableau de bord ne doit pas
@@ -86,13 +92,23 @@
     var signaux = Array.isArray(brut) ? brut : (brut.signaux || []);
     var noms = (!Array.isArray(brut) && brut.noms) ? brut.noms : {};
     var etat = {
-      signaux: signaux,
-      noms: noms,
-      resume: reg.resume_ventes || null,
-      deposeLe: reg.depose_le || null,
-      suivi: suivi.map(function (l) {
+      signaux: regOk ? signaux : (vieux.signaux || []),
+      noms: regOk ? noms : (vieux.noms || {}),
+      resume: regOk ? (reg.resume_ventes || null) : (vieux.resume || null),
+      deposeLe: regOk ? (reg.depose_le || null) : (vieux.deposeLe || null),
+      // Les deux reglages que le bureau sait modifier. Le reste (libelles perso,
+      // classement) reste dans le tableau de bord : ca ne se regle qu'en le regardant.
+      // `lus` dit si la valeur vient du serveur : la fenetre des reglages refuse
+      // d'ecrire tant qu'elle n'a pas relu, sinon elle proposerait un champ vide et
+      // enregistrerait ce vide par-dessus une valeur posee au tableau de bord.
+      reglages: regOk ? {
+        lus: true,
+        objectif: (reg.objectif != null) ? Number(reg.objectif) : null,
+        exercice_debut: reg.exercice_debut || null
+      } : (vieux.reglages || { lus: false, objectif: null, exercice_debut: null }),
+      suivi: (r[1].status === 'fulfilled') ? suivi.map(function (l) {
         return { id: l.client_id, rappel: l.rappel || '', statut: l.statut || '' };
-      })
+      }) : (vieux.suivi || vieux.rappels || [])
     };
     ecrireMiroir(etat);
     return etat;
@@ -157,6 +173,45 @@
     return Math.round((b - a) / 86400000);
   }
 
+  // Le fil d'un client : ce qui s'est passe avec lui, du plus recent au plus ancien.
+  // Lu a la demande, quand on ouvre sa fiche, jamais en bloc au chargement de la page.
+  async function fil(clientId) {
+    if (!session()) return [];
+    try {
+      var l = await api('/echanges?select=echange_id,le,type,canal,resume&client_id=eq.'
+        + encodeURIComponent(clientId) + '&order=le.desc&limit=50');
+      // null, et pas [] : api() rend null sans lever quand la session est tombee, et la
+      // table `echanges` peut ne pas exister encore. Annoncer « rien encore » sur un
+      // client qui porte trente echanges est un mensonge, pas un affichage vide.
+      return Array.isArray(l) ? l : null;
+    } catch (e) { return null; }
+  }
+
+  // Une note libre depuis le bureau. Le type suit ce que le vigneron a choisi.
+  async function noter(clientId, type, texte) {
+    if (!session()) throw new Error('aucune session');
+    var canal = (type === 'appel') ? 'Téléphone' : (type === 'message' ? 'E-mail' : null);
+    // return=REPRESENTATION, et pas minimal : api() rend null aussi bien pour un corps
+    // vide que pour une session tombee. Avec minimal, PostgREST rend 201 sans corps, donc
+    // null, donc toute note ECRITE etait annoncee au vigneron comme un echec. Une reponse
+    // qui porte la ligne creee est la seule qui distingue les deux cas.
+    var r = await api('/echanges?on_conflict=id,echange_id', {
+      methode: 'POST',
+      entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      corps: [{
+        id: BdvCompte.monId(), echange_id: echId(), client_id: String(clientId),
+        le: new Date().toISOString(), type: type || 'note', canal: canal, resume: texte
+      }]
+    });
+    if (r === null) throw new Error('ecriture refusee');
+    return true;
+  }
+
+  // Poser ou retirer une date de rappel, sans passer par un geste tout fait.
+  async function planifier(clientId, iso) {
+    return ecrireSuivi(clientId, { rappel: iso || null });
+  }
+
   // ---------------- ECRITURE ----------------
   // PATCH puis POST, jamais l'inverse : un upsert POST remettrait `notes` et `tags` a
   // leur defaut, et le vigneron perdrait ce qu'il a ecrit dans sa fiche client.
@@ -188,16 +243,23 @@
 
   function echId() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
 
-  async function ecrireEchange(clientId, g) {
+  // `eid` est fabrique UNE FOIS, au moment du geste, et rejoue tel quel. Regenere a chaque
+  // tentative, il rendait le `on_conflict=(id, echange_id)` inoperant : une reponse perdue
+  // apres une ecriture reussie donnait deux entrees au journal pour un seul appel passe.
+  async function ecrireEchange(clientId, g, eid) {
     if (!session()) throw new Error('aucune session');
-    await api('/echanges?on_conflict=id,echange_id', {
+    // representation, pour la meme raison que noter() : avec minimal, une session tombee
+    // et une ecriture reussie rendent toutes les deux null, et le geste serait annonce
+    // comme fait alors que le journal n'a rien recu.
+    var r = await api('/echanges?on_conflict=id,echange_id', {
       methode: 'POST',
-      entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [{
-        id: BdvCompte.monId(), echange_id: echId(), client_id: String(clientId),
+        id: BdvCompte.monId(), echange_id: eid || echId(), client_id: String(clientId),
         le: new Date().toISOString(), type: g.type, canal: g.canal, resume: g.resume
       }]
     });
+    if (r === null) throw new Error('journal refuse');
   }
 
   // Ce qui n'a pas pu partir est mis de cote et rejoue au chargement suivant. Un geste
@@ -211,29 +273,51 @@
     f.push(op);
     try { localStorage.setItem(ATTENTE_KEY, JSON.stringify(f)); } catch (e) {}
   }
+  function reste(f) {
+    try {
+      if (f.length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(f));
+      else localStorage.removeItem(ATTENTE_KEY);
+    } catch (e) {}
+  }
   async function rejouer() {
     var f = [];
     try { f = JSON.parse(localStorage.getItem(ATTENTE_KEY)) || []; } catch (e) { return; }
     if (!f.length || !session()) return;
     var restant = [];
     for (var i = 0; i < f.length; i++) {
-      try { await appliquer(f[i].cle, f[i].id); }
-      catch (e) { restant.push(f[i]); }
+      var o = f[i];
+      try { await appliquer(o.cle, o.id, o.eid, o.suiviFait); }
+      catch (e) {
+        // Le suivi etait deja passe : on ne le rejouera pas, seul le journal reste du.
+        if (e && e.suiviFait) o.suiviFait = true;
+        restant.push(o);
+      }
     }
-    try {
-      if (restant.length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(restant));
-      else localStorage.removeItem(ATTENTE_KEY);
-    } catch (e) {}
+    reste(restant);
   }
 
-  async function appliquer(cle, clientId) {
+  // Deux ecritures, et elles ne valent pas la meme chose. Le SUIVI est ce que le vigneron
+  // voit : rappel repousse, ligne qui quitte la file. Le JOURNAL est la memoire de ce qui
+  // s'est dit. Si le suivi passe et que le journal tombe, le geste a bien eu lieu : la
+  // ligne doit rester partie, et seule l'entree du journal se rejoue. Traiter les deux
+  // comme un bloc faisait revenir la ligne a l'ecran alors que le rappel etait deja
+  // repousse en base, puis repartir a la lecture suivante : elle clignotait.
+  async function appliquer(cle, clientId, eid, suiviFait) {
     var g = GESTES[cle];
     if (!g) return;
-    var champs = { rappel: dansNJours(g.jours) };
-    if (g.statut) champs.statut = g.statut;
-    if (g.canal) champs.canal = g.canal;
-    await ecrireSuivi(clientId, champs);
-    await ecrireEchange(clientId, g);
+    if (!suiviFait) {
+      var champs = { rappel: dansNJours(g.jours) };
+      if (g.statut) champs.statut = g.statut;
+      if (g.canal) champs.canal = g.canal;
+      await ecrireSuivi(clientId, champs);
+    }
+    try {
+      await ecrireEchange(clientId, g, eid);
+    } catch (e) {
+      var err = new Error('journal seul');
+      err.suiviFait = true;
+      throw err;
+    }
   }
 
   // Le geste rend la main tout de suite : l'ecran retire la ligne, le reseau suit.
@@ -250,25 +334,72 @@
       delete etat.rappels;
       ecrireMiroir(etat);
     }
-    return appliquer(cle, clientId)
+    var eid = echId();
+    return appliquer(cle, clientId, eid, false)
       .then(function () { return true; })
-      .catch(function () {
-        // Le geste n'est pas parti : il est mis en attente ET la ligne revient a l'ecran.
-        // Un vigneron qui voit une ligne disparaitre croit le client traite ; lui laisser
-        // croire ca alors que rien n'a ete ecrit est la pire des issues.
-        enfiler({ cle: cle, id: clientId });
+      .catch(function (err) {
+        enfiler({ cle: cle, id: clientId, eid: eid, suiviFait: !!(err && err.suiviFait) });
+        // Le suivi est passe : le rappel EST repousse en base, la ligne doit rester
+        // partie. Seule la trace au journal manque, et elle se rejouera toute seule.
+        if (err && err.suiviFait) return true;
+        // Rien n'est parti : la ligne revient a l'ecran. Un vigneron qui voit une ligne
+        // disparaitre croit le client traite ; lui laisser croire ca alors que rien n'a
+        // ete ecrit est la pire des issues.
         var e = lireMiroir();
         if (e) { e.signaux = signauxAvant; e.suivi = suiviAvant; ecrireMiroir(e); }
         return false;
       });
   }
 
+  // ---------------- LE JOURNAL, EN BLOC ----------------
+  // Pour COMPTER, pas pour afficher : le panneau du bureau a besoin du nombre de gestes
+  // de la semaine, pas de leur contenu. On ne demande donc que la date et le type.
+  //
+  // Rend null, et pas [], quand la lecture echoue : une table `echanges` pas encore creee
+  // et une semaine sans un seul geste ne sont pas la meme chose, et le bureau doit
+  // pouvoir se taire dans le premier cas plutot que d'annoncer un zero faux.
+  async function journal(depuisISO) {
+    if (!session()) return null;
+    try {
+      var l = await api('/echanges?select=le,type&le=gte.' + encodeURIComponent(depuisISO)
+        + '&order=le.desc&limit=1000');
+      return Array.isArray(l) ? l : null;
+    } catch (e) { return null; }
+  }
+
+  // ---------------- LES REGLAGES, ECRITS DEPUIS LE BUREAU ----------------
+  // Un upsert ne touche QUE les colonnes presentes dans le corps. Ecrire l'objectif
+  // depuis le bureau ne peut donc pas effacer la file deposee par le tableau de bord,
+  // ni les libelles perso, ni le classement. C'est ce qui rend ce raccourci sans danger.
+  async function ecrireReglages(champs) {
+    if (!session()) throw new Error('aucune session');
+    var corps = Object.assign({ id: BdvCompte.monId(), maj_le: new Date().toISOString() }, champs);
+    var r = await api('/reglages?on_conflict=id', {
+      methode: 'POST',
+      entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      corps: [corps]
+    });
+    if (r === null) throw new Error('ecriture refusee');
+    // Le miroir suit tout de suite : sans ca, rouvrir les reglages dans la minute
+    // reafficherait l'ancienne valeur, et le vigneron croirait sa saisie perdue.
+    var e = lireMiroir();
+    if (e) { e.reglages = Object.assign({}, e.reglages, champs); ecrireMiroir(e); }
+    return true;
+  }
+
   window.BdvCrm = {
     GESTES: GESTES,
+    fil: fil,
+    noter: noter,
+    planifier: planifier,
+    dansNJours: dansNJours,
     charger: charger,
     miroir: lireMiroir,
     file: file,
     geste: geste,
-    rejouer: rejouer
+    rejouer: rejouer,
+    journal: journal,
+    ecrireReglages: ecrireReglages,
+    isoLocal: isoLocal
   };
 })();

@@ -283,7 +283,11 @@
 
   async function majProfil(champs){
     const s = lireSession();
-    if(!s) return;
+    // LEVE, et ne rend pas : un appelant qui attend cette promesse doit pouvoir
+    // distinguer « ecrit » de « rien fait ». Rendre sans ecrire faisait afficher
+    // « c'est enregistre » a quelqu'un dont la session avait expire, et sa saisie
+    // etait perdue sans un mot.
+    if(!s) throw new Error('aucune session');
     const r = await fetch(SUPABASE_URL + '/rest/v1/profils?id=eq.' + encodeURIComponent(s.user.id), {
       method: 'PATCH',
       headers: {
