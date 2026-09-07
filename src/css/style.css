@@ -5401,14 +5401,17 @@ button.bureau-nav__item:hover {
    Le bordeaux a quitte cette zone : sur --ardoise il ne se voit pas. C'est le
    meme constat que pour le gold sur le carton des intercalaires, dans l'autre
    sens. */
+/* LES FILETS DE CRAIE SONT LES INTERSTICES DE LA GRILLE, et non des bordures
+   sur les cases. Vu sur capture de telephone : avec un `border-left`, la grille
+   passee a une seule colonne ne separait plus rien, le filet etant contre le
+   cadre. Ici c'est le FOND de la grille qui affleure par un jeu d'un pixel, ce
+   qui trace une ligne dans les deux sens, a une, deux ou quatre colonnes, sans
+   une regle de plus. La matiere, grain compris, descend donc sur les cases. */
 .ardoise {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  background: var(--ardoise);
-  background-image:
-    radial-gradient(circle at 30% 20%, var(--grain-clair) 0 1.5px, transparent 2px),
-    radial-gradient(circle at 75% 70%, var(--grain-clair) 0 1px, transparent 1.5px);
-  background-size: 41px 41px, 29px 29px;
+  gap: var(--trait);
+  background: var(--on-dark-rule);
   border: var(--e-s) solid var(--cork-encre);
   box-shadow: var(--ombre-dure);
 }
@@ -5417,15 +5420,18 @@ button.bureau-nav__item:hover {
   flex-direction: column;
   gap: 0.2rem;
   padding: var(--e-m);
-  background: none;
-  border-left: var(--trait) solid var(--on-dark-rule);
+  background-color: var(--ardoise);
+  background-image:
+    radial-gradient(circle at 30% 20%, var(--grain-clair) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 75% 70%, var(--grain-clair) 0 1px, transparent 1.5px);
+  background-size: 41px 41px, 29px 29px;
+  border: none;
   text-decoration: none;
-  transition: background var(--tr-rapide) ease;
+  transition: background-color var(--tr-rapide) ease;
 }
-.chiffre:first-child { border-left: none; }
 .chiffre:hover {
   text-decoration: none;
-  background: color-mix(in srgb, var(--white) 7%, transparent);
+  background-color: color-mix(in srgb, var(--white) 7%, var(--ardoise));
 }
 /* Le chiffre principal est SOULIGNE a la craie, il n'est pas mis dans un cadre :
    sur une ardoise on souligne. */
