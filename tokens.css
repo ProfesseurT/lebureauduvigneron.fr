@@ -91,6 +91,8 @@
   --ls-large:  0.15em; /* etiquettes capitales tres espacees */
   --ls-etiq:   0.10em; /* etiquettes capitales, valeur de reference */
   --ls-doux:   0.05em; /* boutons */
+  --ls-max:    0.25em; /* l'etiquette de la une, la plus espacee du site */
+  --ls-serre: -0.01em; /* resserrement optique des titres et grands nombres, jamais du texte courant */
 
   /* ---- FORMES -------------------------------------------------------- */
   /* Le site n'a pas de rayon. C'est un parti pris, pas un oubli : la texture

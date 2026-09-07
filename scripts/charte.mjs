@@ -41,15 +41,27 @@ const titre = t => console.log('\n== ' + t + ' ==');
    Parsing
 --------------------------------------------------------------------------- */
 function parse(fichier) {
+  const erreursHtml = [];
   let txt = fs.readFileSync(fichier, 'utf8');
   if (fichier.endsWith('.html')) {
-    const i = txt.indexOf('<style'), j = txt.indexOf('</style>');
-    txt = txt.slice(txt.indexOf('>', i) + 1, j);
+    /* TOUS les blocs <style>, pas seulement le premier. Le tableau de bord en porte deux
+       depuis que le verrou du compte est pose dans l'en-tete (04/09/2026), et la version qui
+       ne lisait que le premier controlait UNE ligne en croyant controler le fichier entier :
+       zero couleur en dur, zero jeton declare, et les 151 ECHEC qui en decoulaient tous.
+       Un controle qui passe sur du vide est pire qu'un controle absent. */
+    const blocs = [...txt.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]);
+    if (!blocs.length) erreursHtml.push('aucun bloc <style> trouve dans ' + fichier);
+    txt = blocs.join('\n');
   }
-  const erreurs = [];
+  const erreurs = erreursHtml;
   const ast = csstree.parse(txt, { positions: true, onParseError: e => erreurs.push(e.message + ' (ligne ' + e.line + ')') });
   const regles = [];
   const tokens = {};
+  /* Une variable declaree sur un composant plutot que dans :root n'est PAS un jeton de charte,
+     mais ce n'est pas une faute non plus : --tour vaut 0deg sur .postit, et mon-bureau.njk le
+     repose punaise par punaise en JavaScript. Les compter a part evite de rendre un ECHEC sur
+     une variable parfaitement declaree, la ou l'ECHEC doit rester reserve a la faute de frappe. */
+  const locaux = {};
   const marche = (noeud, ctx) => {
     if (!noeud.children) return;
     noeud.children.forEach(ch => {
@@ -62,14 +74,16 @@ function parse(fichier) {
         ch.block.children.forEach(d => {
           if (d.type !== 'Declaration') return;
           decls.push({ prop: d.property, val: csstree.generate(d.value), ligne: d.loc ? d.loc.start.line : 0 });
-          if (sel === ':root' && d.property.startsWith('--')) tokens[d.property] = csstree.generate(d.value);
+          if (!d.property.startsWith('--')) return;
+          if (sel === ':root') tokens[d.property] = csstree.generate(d.value);
+          else locaux[d.property] = csstree.generate(d.value);
         });
         regles.push({ ctx: ctx.join(' >> '), sel, decls, ligne: ch.loc ? ch.loc.start.line : 0 });
       }
     });
   };
   marche(ast, []);
-  return { txt, erreurs, regles, tokens };
+  return { txt, erreurs, regles, tokens, locaux };
 }
 
 const norme = s => s.replace(/\s*([,>+~])\s*/g, '$1').replace(/\s+/g, ' ').trim();
@@ -142,8 +156,12 @@ const jamaisAppeles = [...declares].filter(t => !appeles.has(t)).sort();
 const jamaisDeclares = [...appeles].filter(t => !declares.has(t)).sort();
 
 console.log('  tokens declares : ' + declares.size + ', tokens appeles : ' + appeles.size);
-if (jamaisDeclares.length) jamaisDeclares.forEach(t => ko('var(' + t + ') sans declaration'));
-else ok('aucun var() sans declaration');
+const declaresLocaux = new Set(Object.keys(B.locaux));
+const absents = jamaisDeclares.filter(t => !declaresLocaux.has(t));
+const surComposant = jamaisDeclares.filter(t => declaresLocaux.has(t));
+if (absents.length) absents.forEach(t => ko('var(' + t + ') sans declaration'));
+else ok('aucun var() sans declaration nulle part');
+if (surComposant.length) note('declares sur un composant et non dans :root, donc hors charte : ' + surComposant.join(', '));
 if (jamaisAppeles.length) { note('tokens declares jamais appeles : ' + jamaisAppeles.join(', ')); }
 else ok('tous les tokens declares sont utilises');
 

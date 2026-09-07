@@ -55,6 +55,12 @@
   --bordeaux-veil:rgba(40,10,18,0.70);
   --bordeaux-voile:rgba(90,21,37,0.16); /* remplissage pale des barres de repartition */
   --gold:#C4A24E;
+  /* Le liege manquait a ce bloc alors que .action, .fil__ico et le marqueur des messages
+     replies l'appellent : les trois tombaient donc sur une couleur invalide, sans repli.
+     Trouve le 07/09/2026, quand le controle de la charte a recommence a lire ce fichier
+     en entier. --cork est un ornement, il ne porte JAMAIS de texte : c'est --cork-encre
+     qui passe AA. */
+  --cork:#B89066;--cork-encre:#704C22;
   /* ---- SUR FOND SOMBRE ---- */
   --on-dark:#EFE7D6;--on-dark-soft:rgba(239,231,214,0.75);
   --on-dark-faint:rgba(239,231,214,0.35);--on-dark-rule:rgba(239,231,214,0.15);
@@ -91,7 +97,7 @@
   --t-corps:1.00rem;--t-lead:1.15rem;--t-h3:1.35rem;
   /* ---- RYTHME ---- */
   --lh-serre:1.2;--lh-normal:1.5;
-  --ls-large:0.15em;--ls-etiq:0.10em;--ls-doux:0.05em;
+  --ls-large:0.15em;--ls-etiq:0.10em;--ls-doux:0.05em;--ls-max:0.25em;--ls-serre:-0.01em;
   /* ---- FORMES ---- */
   /* Le site n'a pas de rayon : la texture d'imprime vient de l'angle vif. */
   --tr-rapide:0.15s;
@@ -106,7 +112,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-corps);line-height:var(--lh-normal);-webkit-font-smoothing:antialiased}
-h1,h2,h3{font-family:var(--font-titre);font-weight:400;line-height:var(--lh-serre);letter-spacing:-.01em}
+h1,h2,h3{font-family:var(--font-titre);font-weight:400;line-height:var(--lh-serre);letter-spacing:var(--ls-serre)}
 a{color:var(--bordeaux)}
 .mono{font-family:var(--font-mono)}
 .hidden{display:none!important}
@@ -512,7 +518,7 @@ table.data tbody tr:hover{background:var(--paper-light)}
 .pr-cover{background:var(--bordeaux-deep);color:var(--on-dark);padding:26px 28px 22px;border-bottom:4px solid var(--gold);margin-bottom:18px}
 .pr-cover__brand{font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:var(--ls-large);text-transform:uppercase;color:var(--gold);margin-bottom:10px}
 .pr-cover__brand::before{content:"";display:inline-block;width:8px;height:8px;background:var(--gold);border-radius:var(--r-nul);margin-right:7px;vertical-align:middle}
-.pr-cover__title{font-family:var(--font-titre);font-size:30px;font-weight:400;letter-spacing:-.01em;line-height:1.05}
+.pr-cover__title{font-family:var(--font-titre);font-size:30px;font-weight:400;letter-spacing:var(--ls-serre);line-height:1.05}
 .pr-cover__sub{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--on-dark-soft);margin-top:9px}
 .pr-cover__tag{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--on-dark-soft);margin-top:3px}
 .pr-hero{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px;padding:0 28px;margin-bottom:12px}

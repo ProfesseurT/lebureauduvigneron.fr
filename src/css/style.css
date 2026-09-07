@@ -82,6 +82,8 @@
   --ls-large:  0.15em; /* etiquettes capitales tres espacees */
   --ls-etiq:   0.10em; /* etiquettes capitales, valeur de reference */
   --ls-doux:   0.05em; /* boutons */
+  --ls-max:    0.25em; /* l'etiquette de la une, la plus espacee du site */
+  --ls-serre: -0.01em; /* resserrement optique des titres et grands nombres, jamais du texte courant */
 
   /* ---- FORMES -------------------------------------------------------- */
   /* Le site n'a pas de rayon. C'est un parti pris, pas un oubli : la texture
@@ -238,6 +240,29 @@ em { font-style: italic; }
   font-weight: 500;
 }
 .nav__cta:hover { opacity: 0.9 !important; }
+/* La zone du compte, detachee des sections du site. Constate le 07/09/2026 : « Connexion »
+   avait exactement le poids d'ARTICLES ou d'OUTILS, et l'oeil la lisait comme une cinquieme
+   rubrique du site au lieu d'un acces a son compte. Deux choses la sortent du rang, et
+   aucune n'en fait un deuxieme bouton plein : LE filet, pose a la verticale, et l'opacite
+   pleine quand les rubriques restent a 0,75. */
+.nav__compte {
+  position: relative;
+  padding-left: 1.7rem;
+}
+.nav__compte::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--trait);
+  height: 1.15em;
+  background: var(--on-dark-rule);
+}
+.nav__links a.nav__connexion {
+  opacity: 1;
+  font-weight: 500;
+}
 
 /* ---- HERO (LANDING) ---- */
 .hero--photo {
@@ -515,7 +540,7 @@ em { font-style: italic; }
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   text-transform: uppercase;
-  letter-spacing: 0.25em;
+  letter-spacing: var(--ls-max);
   color: var(--ink);
   font-weight: 500;
 }
@@ -3473,6 +3498,12 @@ em { font-style: italic; }
   }
   .nav__links::-webkit-scrollbar { display: none; }
   .nav__links li { flex: 0 0 auto; }
+  /* Sous 600px la nav est une bande qui defile : le filet vertical n'y separe plus rien
+     (il se retrouve au milieu d'un defilement) et son retrait de 1,7rem repousse d'autant
+     « Creer mon compte » hors de l'ecran. On le retire, l'opacite pleine et la graisse 500
+     suffisent a distinguer « Connexion » des rubriques. */
+  .nav__compte { padding-left: 0; }
+  .nav__compte::before { content: none; }
   .nav__links a { white-space: nowrap; }
   .tiroir-tab__sub { display: none; }
   .agenda-grid { grid-template-columns: 1fr; }
@@ -5174,7 +5205,11 @@ button.tache {
   background: var(--paper-light);
   padding: 1.6rem 1.1rem 1.1rem;
   box-shadow: 2px 3px 10px rgba(30, 25, 15, 0.25);
-  transform: rotate(var(--tour, 0deg));
+  /* Declare ici, et pas seulement appele avec un repli : mon-bureau.njk le repose punaise par
+     punaise en JavaScript. Un var() sans declaration nulle part est indistinguable d'une
+     faute de frappe pour qui relit la charte. */
+  --tour: 0deg;
+  transform: rotate(var(--tour));
   text-decoration: none;
   color: var(--ink);
 }
@@ -5200,7 +5235,7 @@ a.postit:hover { text-decoration: none; transform: rotate(0deg); background: var
   line-height: 1;
   color: var(--ink);
 }
-.postit__v[data-mot] { font-size: 1.4rem; letter-spacing: -0.01em; }
+.postit__v[data-mot] { font-size: 1.4rem; letter-spacing: var(--ls-serre); }
 .postit__l {
   font-family: var(--font-corps);
   font-size: var(--t-base);
