@@ -9,7 +9,8 @@
     "charte": "node scripts/charte.mjs",
     "charte:dash": "node scripts/charte.mjs --bureau",
     "banc": "node scripts/banc-bureau.mjs",
-    "charte:bureau": "node scripts/charte.mjs --bureau"
+    "charte:bureau": "node scripts/charte.mjs --bureau",
+    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",

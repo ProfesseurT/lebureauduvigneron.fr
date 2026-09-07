@@ -152,6 +152,24 @@ coute une capture d'ecran pour etre vu.
    en `--t-micro`, dix pixels, une colonne de 14 em fait 140 px et non 224. Les largeurs de
    colonnes s'ecrivent en `rem` ou en pourcentage.
 
+## Une seule commande avant de pousser
+
+    npm run verif
+
+Elle enchaine `build`, `charte`, `charte:bureau` et `banc`, et s'arrete au premier echec.
+
+Elle existe depuis le 07/09/2026 pour une raison precise : ce jour-la j'ai lance les quatre
+a la main dans un `&&`, en passant chacun par `| tail -2` pour n'en lire que le verdict. Le
+code de sortie d'un tuyau est celui de sa DERNIERE commande, donc celui de `tail`, qui
+reussit toujours. Le banc a annonce un echec, la chaine a continue, et le commit est parti.
+**Un enchainement de controles ne doit jamais passer par un tuyau.**
+
+Note d'environnement : le depot est parfois monte a travers un pont reseau. L'ecriture
+d'Eleventy peut alors n'etre visible qu'une seconde apres la fin du processus, et un banc
+lance immediatement apres lit une page a moitie ecrite. Un echec isole qui ne se reproduit
+pas au deuxieme essai vient de la, pas du code : le relancer suffit, mais il faut le
+relancer, pas l'ignorer.
+
 ## Regles de contenu
 
 - Aucun tiret cadratin nulle part. Remplacer par une virgule, un point ou deux points.
