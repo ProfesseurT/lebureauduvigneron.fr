@@ -165,78 +165,14 @@ permalink: /mon-bureau/
     </div>
   </div>
 
-  <!-- LES REGLAGES, EN SURIMPRESSION. Depuis le bureau, a tout moment : ce qu'on a
-       repondu a l'inscription n'est pas grave dans le marbre, et le seul endroit ou
-       l'objectif de CA se reglait jusqu'ici etait un ecran du tableau de bord. -->
-  <div class="voile" id="voileReglages" hidden>
-    <div class="ficheb" role="dialog" aria-modal="true" aria-labelledby="reglagesTitre">
-      <button class="ficheb__x" id="reglagesFermer" type="button" aria-label="Fermer">&#215;</button>
-      <h2 class="ficheb__nom" id="reglagesTitre">Mes réglages</h2>
-      <p class="ficheb__sous">Tout est modifiable, tout le temps. Rien n'est obligatoire.</p>
-
-      <form id="reglagesForm" novalidate>
-        <fieldset class="reg__bloc">
-          <legend class="reg__legende">Toi</legend>
-          <label class="reg__l" for="regPrenom">Ton prénom</label>
-          <input class="reg__i" type="text" id="regPrenom" autocomplete="given-name">
-          <p class="reg__aide">C'est ce nom-là qui te dit bonjour en haut de cette page.</p>
-
-          <label class="reg__l" for="regDomaine">Ton domaine ou ta structure</label>
-          <input class="reg__i" type="text" id="regDomaine" autocomplete="organization">
-
-          <label class="reg__l" for="regCp">Ton code postal</label>
-          <input class="reg__i reg__i--court" type="text" id="regCp" inputmode="numeric" maxlength="5" autocomplete="postal-code">
-
-          <label class="reg__l" for="regQui">Tu es</label>
-          <select class="reg__i" id="regQui">
-            <option value="">Sans réponse</option>
-            <option value="vigneron">Vigneron</option>
-            <option value="caviste-negoce">Caviste ou négociant</option>
-            <option value="etudiant">Étudiant ou école</option>
-            <option value="pro-filiere">Pro de la filière</option>
-            <option value="autre">Autre</option>
-          </select>
-
-          <label class="reg__l" for="regViti">Tu utilises Vitisoft</label>
-          <select class="reg__i" id="regViti">
-            <option value="">Sans réponse</option>
-            <option value="oui">Oui</option>
-            <option value="non">Non</option>
-            <option value="inconnu">Je ne sais pas</option>
-          </select>
-          <p class="reg__aide">« Non » retire le tableau de bord du tiroir : il ne saurait rien lire.</p>
-        </fieldset>
-
-        <fieldset class="reg__bloc" id="regBlocVentes">
-          <legend class="reg__legende">Tes ventes</legend>
-          <label class="reg__l" for="regObjectif">Objectif de chiffre d'affaires annuel (HT)</label>
-          <input class="reg__i" type="text" id="regObjectif" inputmode="numeric" placeholder="ex. 500000">
-          <p class="reg__aide">Il commande l'ardoise et l'alerte d'atterrissage. Vide : aucun objectif.</p>
-
-          <label class="reg__l" for="regExercice">Mois d'ouverture de ton exercice</label>
-          <select class="reg__i" id="regExercice"></select>
-          <p class="reg__aide">Le tableau de bord le reprendra à sa prochaine ouverture.</p>
-          <p class="reg__aide" id="regVentesAttente" hidden>Ces deux réglages ne sont pas encore
-            chargés depuis ton compte. Tant qu'ils ne le sont pas, on ne les touche pas : écrire
-            par-dessus une valeur qu'on n'a pas lue, c'est l'effacer.</p>
-        </fieldset>
-
-        <fieldset class="reg__bloc">
-          <legend class="reg__legende">Le courrier</legend>
-          <label class="reg__chk"><input type="checkbox" id="regNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
-        </fieldset>
-
-        <p class="bureau-avis" id="regAvis" role="status" hidden></p>
-        <p class="reg__aide" id="regAttente" hidden>Chargement de tes réglages…</p>
-        <div class="reg__pied">
-          <button class="btn btn--bordeaux" id="regEnregistrer" type="submit">Enregistrer</button>
-          <a class="btn--lienb" href="/compte/">Mot de passe, export, suppression du compte</a>
-        </div>
-      </form>
-    </div>
-  </div>
+  <!-- LES REGLAGES ont quitte cette page le 07/09/2026. Ils vivent dans
+       /js/bdv-reglages.js : un panneau unique, que le bureau ET le tableau de bord
+       ouvrent. Il pose son markup et son style lui-meme, il n'y a plus rien a declarer
+       ici, et plus deux endroits ou lire son objectif de CA en se demandant lequel dit
+       vrai. -->
 </div>
 
+<script src="/js/bdv-reglages.js" defer></script>
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
@@ -974,295 +910,81 @@ permalink: /mon-bureau/
       plaque.hidden = true;
     }
 
-    // Sans Vitisoft, le tableau de bord ne lira rien : on ne montre ni la porte, ni les
-    // reglages qui la commandent.
+    // Sans Vitisoft, le tableau de bord ne lira rien : on ne montre pas la porte.
+    // Le meme filtre s'applique aux blocs du panneau de reglages, mais ce n'est plus notre
+    // affaire depuis la fusion : le module le fait lui-meme, sur la meme fiche profil,
+    // cf. gateVitisoft() dans bdv-reglages.js.
     var sansViti = (p.utilise_vitisoft === 'non');
     var t = el('tiroirDash'); if(t) t.hidden = sansViti;
-    var bv = el('regBlocVentes'); if(bv) bv.hidden = sansViti;
   }
 
-  // On lit la fiche nous-memes plutot que par BdvCompte.profil(), qui rend null aussi bien
-  // pour « fiche absente » que pour « lecture refusee ». La difference compte ici : une
-  // fiche absente est une fiche LUE, et un compte qui n'en a pas doit pouvoir en remplir
-  // une ; une lecture refusee doit garder le verrou. api() leve sur un refus et rend un
-  // tableau sur une lecture reussie, meme vide : c'est ce qui les separe.
-  function chargerProfil(){
-    if(!(window.BdvCompte && BdvCompte.api && BdvCompte.monId())) return Promise.resolve(null);
-    return BdvCompte.api('/profils?id=eq.' + encodeURIComponent(BdvCompte.monId()) + '&select=*')
-      .then(function(lignes){
-        if(!Array.isArray(lignes)) return null;
-        PROFIL = lignes[0] || {};
-        PROFIL_LU = true;
-        peindreIdentite(); verrouReglages();
-        return PROFIL;
-      }).catch(function(){ return null; });
-  }
-
-  /* ---------------- LES REGLAGES, DEPUIS LE BUREAU ----------------
-     Deux tables, une seule fenetre : `profils` pour qui il est, `reglages` pour son
-     objectif et son exercice. L'upsert des reglages ne touche que les colonnes envoyees,
-     donc ecrire l'objectif d'ici n'efface ni la file deposee par le tableau de bord, ni
-     ses libelles perso. Le tableau de bord relit ces deux valeurs a chaque ouverture :
-     ce qui est change ici est vrai la-bas au prochain chargement. */
-  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  (function remplirMois(){
-    var sel = el('regExercice');
-    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Année civile (janvier)';
-    sel.appendChild(o0);
-    MOIS.forEach(function(m, i){
-      var o = document.createElement('option'); o.value = String(i + 1); o.textContent = m;
-      sel.appendChild(o);
-    });
-  })();
-
-  function avis(texte, ok){
-    var a = el('regAvis');
-    a.textContent = texte;
-    a.setAttribute('data-ok', ok ? 'oui' : 'non');
-    a.hidden = !texte;
-  }
-
-  // Tant que le profil n'a pas ete RELU sur le serveur, la fenetre ne peut pas enregistrer.
-  // Sans ce verrou, ouvrir les reglages avant la reponse reseau (ou apres une lecture
-  // ratee) puis cliquer « Enregistrer » ecrivait des champs vides par-dessus les reponses
-  // de l'inscription : code postal efface, metier efface, et une desinscription silencieuse
-  // de la lettre. Un formulaire qui ne sait pas ce qu'il remplace n'a pas le droit d'ecrire.
+  // UNE seule lecture du profil pour les deux ecrans, et elle vit dans le module : deux
+  // lectures voulaient dire deux verrous a tenir d'accord, et c'est exactement ce genre de
+  // doublon que la fusion du 07/09/2026 supprime. Le module rappelle surProfil quand la
+  // fiche arrive, ce qui repeint l'entete d'ici.
   var PROFIL_LU = false;
-  var RETOUR_FOCUS = null;
-
-  function verrouReglages(){
-    el('regEnregistrer').disabled = !PROFIL_LU;
-    el('regAttente').hidden = PROFIL_LU;
-    // Meme verrou, meme raison, pour les deux reglages de vente : ils vivent dans une
-    // autre table, lue par un autre appel, qui peut avoir echoue de son cote.
-    var r = (ETAT_FILE && ETAT_FILE.reglages) || {};
-    el('regObjectif').disabled = !r.lus;
-    el('regExercice').disabled = !r.lus;
-    el('regVentesAttente').hidden = !!r.lus;
+  function chargerProfil(){
+    if(!window.BdvReglages) return Promise.resolve(null);
+    return BdvReglages.chargerProfil();
   }
 
-  // Un champ que le vigneron a touche n'est plus jamais rerempli. La fenetre s'ouvre
-  // pendant que deux lectures sont encore en vol : sans ce garde, une reponse arrivee
-  // trois cents millisecondes apres l'ouverture effacait le prenom qu'il etait en train
-  // de taper, sans un mot. Une saisie perdue en silence est la pire panne de cet ecran.
-  var TOUCHES = {};
-  function marquer(e){ if(e.target && e.target.id) TOUCHES[e.target.id] = true; }
-  el('reglagesForm').addEventListener('input', marquer);
-  el('reglagesForm').addEventListener('change', marquer);
+  /* ---------------- LES REGLAGES, PANNEAU UNIQUE ----------------
+     Tout ce qui vivait ici (le formulaire, ses deux verrous, le garde TOUCHES, l'ecriture
+     des deux tables, les quatre messages du allSettled) a demenage dans
+     /js/bdv-reglages.js le 07/09/2026, pour que le tableau de bord ouvre exactement le
+     meme panneau. Il ne reste que le branchement : qui salue, et qui ouvre.
 
-  function poser(id, valeur){
-    if(TOUCHES[id]) return;
-    var n = el(id);
-    if(n.type === 'checkbox') n.checked = !!valeur;
-    else n.value = (valeur == null) ? '' : String(valeur);
-  }
-
-  function remplirReglages(){
-    var p = PROFIL || {};
-    poser('regPrenom', p.prenom);
-    poser('regDomaine', p.domaine);
-    poser('regCp', p.code_postal);
-    poser('regQui', p.profil);
-    poser('regViti', p.utilise_vitisoft);
-    poser('regNews', p.consent_news);
-    var r = (ETAT_FILE && ETAT_FILE.reglages) || {};
-    poser('regObjectif', r.objectif);
-    poser('regExercice', r.exercice_debut);
-    verrouReglages();
-  }
-
+     Le garde-fou de deconnexion a suivi le meme chemin, et pour la meme raison : un
+     garde-fou recopie est un garde-fou qu'on oubliera de corriger d'un cote. */
   function ouvrirReglages(){
-    RETOUR_FOCUS = document.activeElement;
-    TOUCHES = {};
-    remplirReglages();
-    avis('', true);
-    el('voileReglages').hidden = false;
-    document.body.style.overflow = 'hidden';
-    el('regPrenom').focus();
-    // Le profil peut avoir change ailleurs : on rouvre sur ce qu'on a, puis on se corrige
-    // avec ce que le serveur dit. Tant que cette lecture n'a pas abouti, rien ne part.
-    if(!PROFIL_LU) chargerProfil().then(function(np){
-      if(np && !el('voileReglages').hidden) remplirReglages();
+    if(window.BdvReglages) BdvReglages.ouvrir();
+    else location.href = '/compte/';   // module absent : on ne laisse pas un clic sans effet
+  }
+
+  // Appele depuis DOMContentLoaded, jamais a l'analyse du document : bdv-reglages.js est
+  // charge en defer, window.BdvReglages n'existe pas encore quand ce script est lu.
+  function brancherReglages(){
+    var b = el('bureauOuvrirReglages');
+    if(b) b.addEventListener('click', ouvrirReglages);
+    if(!window.BdvReglages) return;
+    BdvReglages.brancherSortie(el('bureauSortir'), el('bureauSortirAvis'));
+    BdvReglages.brancher({
+      // Le prenom et le nom du domaine repeignent l'entete des qu'ils changent : c'est la
+      // seule chose que le bureau ait besoin de savoir de ce panneau.
+      surProfil: function(p){ PROFIL = p; PROFIL_LU = true; peindreIdentite(); },
+      blocs: [
+        {
+          // Deposer un export demande le lecteur de CSV du tableau de bord. Le bouton y
+          // mene, il ne fait pas semblant de savoir lire un fichier.
+          hote: 'base-actions',
+          monter: function(cible){
+            var a = document.createElement('a');
+            a.className = 'bdvr-btn';
+            a.href = '/outils/dashboard-vigneron/#base';
+            a.textContent = 'Déposer un export';
+            cible.appendChild(a);
+          }
+        },
+        {
+          // Le classement se calcule sur les lignes de vente, que seul le tableau de bord
+          // sait lire. On renvoie la ou ca marche plutot que d'afficher un reglage mort.
+          hote: 'classement',
+          monter: function(cible){
+            var p = document.createElement('p');
+            p.className = 'bdvr-aide';
+            p.textContent = 'Le classement de tes familles et de tes canaux se règle depuis '
+              + 'le tableau de bord, seul à savoir lire tes lignes de vente.';
+            cible.appendChild(p);
+            var a = document.createElement('a');
+            a.className = 'bdvr-btn bdvr-btn--creux';
+            a.href = '/outils/dashboard-vigneron/#parametres';
+            a.textContent = 'Ouvrir le tableau de bord';
+            cible.appendChild(a);
+          }
+        }
+      ]
     });
   }
-  function fermerReglages(){
-    el('voileReglages').hidden = true;
-    document.body.style.overflow = '';
-    if(RETOUR_FOCUS && RETOUR_FOCUS.focus) RETOUR_FOCUS.focus();
-    RETOUR_FOCUS = null;
-  }
-  /* ---------------- SE DECONNECTER, ET LAISSER CE POSTE PROPRE ----------------
-     Le garde-fou n'est pas une politesse. Effacer ce navigateur est definitif, et le seul
-     endroit ou les lignes peuvent survivre est le compte. Donc on COMPTE les deux cotes avant
-     d'effacer, et on refuse au premier clic si le compte en sait moins que ce poste.
-     C'est exactement la situation du 07/09/2026 : 4 442 lignes de Ted n'existaient que sur son
-     ordinateur, et un bouton d'effacement sans ce controle les aurait emportees. */
-  var sortirArme = null;   // null = pas encore verifie ; sinon le texte de la perte annoncee
-
-  function sortirAvis(texte){
-    var a = el('bureauSortirAvis');
-    if(!a) return;
-    a.textContent = texte || '';
-    a.hidden = !texte;
-  }
-
-  // Compte les lignes de vente posees dans ce navigateur. Le bureau et le tableau de bord
-  // partagent la meme origine, donc la meme base IndexedDB.
-  function compterLignesLocales(){
-    return new Promise(function(res){
-      if(!window.indexedDB) return res(0);
-      var rq;
-      try{ rq = indexedDB.open('bdv_ventes_v4'); }catch(e){ return res(0); }
-      rq.onerror = function(){ res(0); };
-      rq.onsuccess = function(e){
-        var db = e.target.result;
-        if(!db.objectStoreNames.contains('lignes')){ db.close(); return res(0); }
-        try{
-          var c = db.transaction('lignes', 'readonly').objectStore('lignes').count();
-          c.onsuccess = function(){ var n = c.result || 0; db.close(); res(n); };
-          c.onerror   = function(){ db.close(); res(0); };
-        }catch(err){ db.close(); res(0); }
-      };
-    });
-  }
-
-  // Les files d'attente des ecritures qui n'ont pas encore atteint le serveur. Les effacer,
-  // c'est perdre un geste que le vigneron croit enregistre.
-  function ecrituresEnAttente(){
-    var n = 0;
-    ['bdv_crm_attente', 'bdv_signets_attente', 'bdv_profil_attente'].forEach(function(k){
-      try{
-        var v = JSON.parse(localStorage.getItem(k));
-        if(Array.isArray(v)) n += v.length;
-        else if(v && typeof v === 'object') n += Object.keys(v).length;
-      }catch(e){}
-    });
-    return n;
-  }
-
-  function partir(){
-    BdvCompte.deconnexion();
-    location.href = '/';
-  }
-
-  async function surClicSortir(){
-    var b = el('bureauSortir');
-
-    // Deuxieme clic : l'ecart a deja ete annonce a l'ecran, on le redit dans la confirmation
-    // avec son chiffre. Personne ne peut perdre de lignes sans avoir lu combien.
-    if(sortirArme){
-      if(confirm(sortirArme + '\n\nPartir quand même et vider ce navigateur ?')) partir();
-      return;
-    }
-
-    var libelle = b.textContent;
-    b.disabled = true;
-    b.textContent = 'Vérification…';
-    var local = await compterLignesLocales();
-    var distant = null;
-    try{ distant = await BdvCompte.compter('/ventes?select=empreinte'); }catch(e){ distant = null; }
-    var attente = ecrituresEnAttente();
-    b.disabled = false;
-
-    var alerte = '';
-    if(distant === null){
-      alerte = 'Impossible de vérifier ce que contient ton compte. Si la sauvegarde est '
-             + 'incomplète et que tu vides ce navigateur maintenant, ce qui manque est perdu.';
-    }else if(local > distant){
-      alerte = 'Ton compte ne contient que ' + distant + ' des ' + local + ' lignes de cet '
-             + 'appareil : ' + (local - distant) + ' lignes n\'existent QUE ici. Redépose ton '
-             + 'export dans le tableau de bord avant de partir.';
-    }else if(attente){
-      alerte = attente + ' enregistrement(s) ne sont pas encore partis vers ton compte. '
-             + 'Attends d\'être en ligne, ils partiront tout seuls.';
-    }
-
-    if(alerte){
-      sortirAvis(alerte);
-      sortirArme = alerte;
-      b.textContent = 'Partir quand même';
-      return;
-    }
-
-    b.textContent = libelle;
-    if(!confirm('Te déconnecter ?\n\nCe navigateur sera vidé. Tes chiffres, tes notes et tes '
-      + 'réglages restent sur ton compte et redescendront à ta prochaine connexion, ici ou '
-      + 'ailleurs. Sans connexion, tu ne les verras plus sur ce poste.')) return;
-    partir();
-  }
-
-  el('bureauSortir').addEventListener('click', surClicSortir);
-  el('bureauOuvrirReglages').addEventListener('click', ouvrirReglages);
-  el('reglagesFermer').addEventListener('click', fermerReglages);
-  el('voileReglages').addEventListener('click', function(e){ if(e.target === el('voileReglages')) fermerReglages(); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !el('voileReglages').hidden) fermerReglages(); });
-
-  function nombreOuNull(v){
-    var n = parseFloat(String(v).replace(/[^0-9.,-]/g, '').replace(',', '.'));
-    return (isNaN(n) || n <= 0) ? null : n;
-  }
-
-  el('reglagesForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    if(!PROFIL_LU){ avis('Tes réglages ne sont pas encore chargés. Un instant.', false); return; }
-    var btn = el('regEnregistrer');
-    var p = PROFIL || {};
-    // Une chaine vide devient null, pas "" : effacer son prenom doit vraiment l'effacer.
-    // Et SEULS les champs qui ont bouge partent : une colonne absente du corps n'est pas
-    // touchee, donc on ne peut pas ecraser ce qu'on n'a pas relu.
-    var vus = {
-      prenom:      el('regPrenom').value.trim() || null,
-      domaine:     el('regDomaine').value.trim() || null,
-      code_postal: el('regCp').value.trim() || null,
-      profil:      el('regQui').value || null,
-      utilise_vitisoft: el('regViti').value || null,
-      consent_news: !!el('regNews').checked
-    };
-    var champs = {};
-    Object.keys(vus).forEach(function(k){
-      var avant = (k === 'consent_news') ? !!p[k] : (p[k] || null);
-      if(vus[k] !== avant) champs[k] = vus[k];
-    });
-
-    var r = (ETAT_FILE && ETAT_FILE.reglages) || {};
-    var nouv = {};
-    if(r.lus){
-      var obj = nombreOuNull(el('regObjectif').value);
-      var ex  = el('regExercice').value ? parseInt(el('regExercice').value, 10) : null;
-      if(obj !== (r.objectif != null ? r.objectif : null)) nouv.objectif = obj;
-      if(ex !== (r.exercice_debut || null)) nouv.exercice_debut = ex;
-    }
-    var bougeReglages = Object.keys(nouv).length > 0;
-    var bougeProfil = Object.keys(champs).length > 0;
-    if(!bougeProfil && !bougeReglages){ fermerReglages(); return; }
-
-    btn.disabled = true; btn.textContent = 'Enregistrement…';
-    // allSettled, et pas all : les deux ecritures sont independantes. Avec all, un refus
-    // sur le profil faisait annoncer « rien n'est parti » alors que l'objectif, lui, etait
-    // bien en base, et l'ecran repartait sur une valeur que le serveur dementait.
-    Promise.allSettled([
-      bougeProfil ? BdvCompte.majProfil(champs) : Promise.resolve(),
-      bougeReglages ? BdvCrm.ecrireReglages(nouv) : Promise.resolve()
-    ]).then(function(res){
-      var profilOk = res[0].status === 'fulfilled';
-      var reglagesOk = res[1].status === 'fulfilled';
-      if(profilOk && bougeProfil){ PROFIL = Object.assign({}, PROFIL, champs); peindreIdentite(); }
-      if(reglagesOk && bougeReglages && ETAT_FILE) ETAT_FILE.reglages = Object.assign({}, r, nouv);
-      if(profilOk && reglagesOk){
-        avis('C’est enregistré.', true);
-        setTimeout(function(){ if(!el('voileReglages').hidden) fermerReglages(); }, 900);
-      }else if(!profilOk && !reglagesOk){
-        avis('Rien n’est parti. Vérifie ta connexion et réessaie.', false);
-      }else if(!bougeProfil || !bougeReglages){
-        // Une seule moitie etait en jeu : pas de demi-succes a raconter.
-        avis('Rien n’est parti. Vérifie ta connexion et réessaie.', false);
-      }else{
-        avis(profilOk ? 'Tes informations sont enregistrées, mais pas ton objectif. Réessaie.'
-                      : 'Ton objectif est enregistré, mais pas tes informations. Réessaie.', false);
-      }
-      btn.disabled = false; btn.textContent = 'Enregistrer';
-    });
-  });
 
   /* ---------------- LES CONTENUS ---------------- */
   function carteLecture(ref, titre, avecPunaise){
@@ -1336,6 +1058,7 @@ permalink: /mon-bureau/
   });
 
   document.addEventListener('DOMContentLoaded', function(){
+    brancherReglages();
     peindreEcheance(); peindreResume();
     if(window.BdvCrm){
       // Le miroir AVANT le reseau. Ce script s'execute pendant l'analyse du document,
@@ -1353,9 +1076,9 @@ permalink: /mon-bureau/
           if(!etat){ if(!ETAT_FILE){ LECTURE_KO = true; peindreFile(); } return; }
           ETAT_FILE = etat;
           peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
-          // Fenetre des reglages deja ouverte quand la reponse arrive : elle se remplit
-          // plutot que de rester verrouillee jusqu'a la prochaine ouverture.
-          if(!el('voileReglages').hidden) remplirReglages();
+          // Le crochet qui remplissait la fenetre des reglages a disparu avec elle : le
+          // panneau lit lui-meme la table `reglages` et se corrige tout seul quand la
+          // reponse arrive, cf. bdv-reglages.js.
         });
       // Le journal part en parallele : le panneau se peint sans lui et se complete quand
       // il arrive. Quatre semaines, pas plus : c'est tout ce que les deux punaises

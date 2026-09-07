@@ -25,6 +25,9 @@
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-compte.js" data-outil="dashboard-vigneron" defer></script>
 <script src="/js/bdv-sync.js" defer></script>
+<!-- Le panneau de reglages, partage avec /mon-bureau/. Fusion du 07/09/2026 : « Reglages »
+     et « Ma base » ne sont plus des ecrans d'ici, ce sont deux blocs de ce panneau-la. -->
+<script src="/js/bdv-reglages.js" defer></script>
 <!-- Verrou pose AVANT le premier pixel. Sans compte, rien du tableau de bord ne s'affiche,
      pas meme la zone de depot. On lit la session directement dans localStorage au lieu
      d'attendre bdv-compte.js, qui est charge en defer : sinon la page s'afficherait une
@@ -218,6 +221,22 @@ a{color:var(--bordeaux)}
 .topbar__file{font-family:var(--font-mono);font-size:var(--t-micro);opacity:.6;text-transform:uppercase;letter-spacing:var(--ls-doux)}
 .topbar__actions{display:flex;gap:.5rem;flex-wrap:wrap}
 .sidebar{background:var(--ink-deep);padding:.5rem 0 2rem;overflow:hidden;min-width:0}
+/* LE VOLET MAGNETIQUE, demande de Ted du 07/09/2026. Il reste colle en haut quand on
+   descend dans un ecran long : changer d'ecran ne demande plus de remonter.
+   Trois choses a ne pas defaire :
+     1. align-self:start est OBLIGATOIRE. Sans lui le volet est etire sur toute la hauteur
+        de sa ligne de grille (comportement par defaut d'une grille), il n'y a donc rien a
+        faire glisser et « colle » n'a aucun effet visible.
+     2. max-height + overflow-y : un volet plus haut que l'ecran doit rester atteignable,
+        sinon les liens du pied deviennent inaccessibles.
+     3. Au-dessus de 900px seulement. En dessous, le volet est une barre horizontale a
+        defilement dans une grille a une colonne : la coller superposerait la navigation au
+        contenu au lieu de le pousser.
+   La barre bordeaux, elle, n'est PAS collee, et c'est un choix : elle ne porte rien dont on
+   ait besoin en cours de lecture, et la coller mangeait de la hauteur utile en permanence. */
+@media(min-width:901px){
+  .sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;overflow-x:hidden}
+}
 .navitem{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;background:none;border:none;border-left:var(--trait-accent) solid transparent;color:var(--on-dark-soft);font-family:var(--font-mono);font-size:var(--t-petit);padding:.68rem 1.1rem;cursor:pointer;transition:var(--tr-rapide);letter-spacing:var(--ls-doux)}
 
 /* ---- VOLET : bouton et repere de position ---- */
@@ -478,7 +497,6 @@ table.data tbody tr:hover{background:var(--paper-light)}
 .foot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.4rem;padding-top:1rem;border-top:var(--trait) solid var(--rule)}
 .appfoot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.6rem;padding-top:1.1rem;border-top:var(--trait) solid var(--rule)}
 .note{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.6rem}
-.note--alerte{color:var(--danger-deep);font-weight:600}
 .pourquoi{margin-top:.6rem;font-size:var(--t-petit)}
 .pourquoi summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--bordeaux);user-select:none}
 .pourquoi__in{margin-top:.5rem;padding:.6rem .8rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--muted);line-height:var(--lh-normal)}
@@ -573,6 +591,10 @@ table.data tbody tr:hover{background:var(--paper-light)}
       <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
       <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
       <button class="btn btn--light btn--sm" onclick="exportExcel()">Exporter Excel</button>
+      <!-- Le meme bouton qu'au bureau, servi par le meme garde-fou : se deconnecter EFFACE
+           ce navigateur, et le module refuse de partir si le compte contient moins de
+           lignes que ce poste. Demande de Ted du 07/09/2026 : present dans les deux. -->
+      <button class="btn btn--light btn--sm" id="tbSortir" type="button">Me déconnecter</button>
     </div>
   </div>
   <nav class="sidebar" id="sidebar"></nav>
@@ -589,11 +611,23 @@ table.data tbody tr:hover{background:var(--paper-light)}
     <section class="panel" id="p-chercher">
       <div id="p-explorer"></div>
     </section>
-    <section class="panel" id="p-base-panel">
-      <div id="p-base"></div>
-    </section>
-    <section class="panel" id="p-parametres">
-      <div id="p-reglages"></div>
+    <!-- p-base et p-reglages n'ont plus d'ecran a eux : le panneau partage les DEPLACE
+         chez lui a sa construction (appendChild, pas une copie). C'est ce qui permet a
+         renderBase(), renderReglages() et bindZoneDepot() de continuer a ecrire exactement
+         au meme endroit, sans une ligne de changee. Ils vivent ici en attendant ce
+         demenagement, le temps que le module se charge. -->
+    <div id="p-base" hidden></div>
+    <div id="p-reglages" hidden></div>
+    <!-- La base vide a besoin d'un ecran a elle depuis que « Ma base » est un panneau :
+         sinon, refermer le panneau laissait un fond blanc sans un mot. -->
+    <section class="panel" id="p-vide">
+      <h2 class="panel__title">Ta base est vide</h2>
+      <div class="panel__sub">Le tableau de bord n'a rien à lire pour l'instant.</div>
+      <div class="card"><div class="card__title"><span>Commencer</span></div>
+        <p class="mini-line">Dépose ton export Vitisoft. Chaque nouvel export s'ajoute au
+          précédent, les doublons sont ignorés, et rien ne t'oblige à tout importer d'un coup.</p>
+        <button class="btn btn--light" type="button" onclick="ouvrirPanneauReglages()">Ouvrir Ma base</button>
+      </div>
     </section>
     <!-- Panneaux techniques : les moteurs historiques ecrivent toujours dedans, mais ils ne
          sont plus des destinations. « Mes clients » lit leurs donnees, pas leur HTML. -->
@@ -1456,7 +1490,7 @@ async function appliquerReglages(R){
   REG=R;
   ROWS=ROWS.map(r=>classerLigne(r));
   computeMeta();
-  runBusy('Application de tes réglages…',()=>{renderAll();navTo('parametres');});
+  runBusy('Application de tes réglages…',()=>{renderAll();ouvrirPanneauReglages();});
   status('success','Réglages enregistrés. Toute la base a été reclassée.');
 }
 // Revient aux propositions automatiques.
@@ -1464,7 +1498,7 @@ async function oublierReglages(){
   if(!confirm('Revenir au classement automatique ? Tes regroupements seront perdus.'))return;
   await regEcrire({valide:false});
   await reloadFromDB();
-  runBusy('Retour au classement automatique…',()=>{renderAll();navTo('parametres');});
+  runBusy('Retour au classement automatique…',()=>{renderAll();ouvrirPanneauReglages();});
 }
 /* ======================= EXERCICE COMPTABLE =======================
    Un exercice est nomme par son ANNEE D'OUVERTURE. Trois champs derives par ligne,
@@ -1735,8 +1769,9 @@ const NAV=[
   {id:'clients', ico:'&#128101;', label:'Mes clients'},
   {id:'produits',ico:'&#127863;', label:'Mes produits'},
   {id:'chercher',ico:'&#128301;', label:'Chercher'},
-  {id:'base',    ico:'&#128193;', label:'Ma base'},
-  {id:'parametres',ico:'⚙',      label:'Réglages'}
+  // « Ma base » et « Réglages » ont fusionné le 07/09/2026. Ce ne sont plus deux écrans de
+  // l'outil mais deux blocs du panneau partagé avec le bureau : une seule entrée, qui ouvre.
+  {id:'reglages',ico:'⚙',        label:'Réglages', panneau:true}
 ];
 // Les autres pieces du bureau, en pied de volet. Le tableau de bord n'est pas une
 // application a part dans laquelle on entre et dont on ressort : on doit pouvoir passer
@@ -1747,10 +1782,44 @@ const NAV_BUREAU=[
   {href:'/outils/echeances/',label:'Le compte à rebours'},
   {href:'/articles/',        label:'Les articles'}
 ];
+/* ---------------- LE PANNEAU DE REGLAGES, PARTAGE AVEC LE BUREAU ----------------
+   Les deux <div> sont DEPLACES dans le panneau, pas recopies : renderBase(),
+   renderReglages() et bindZoneDepot() continuent d'ecrire au meme endroit, sans une ligne
+   de changee. C'est ce qui rend cette fusion tenable sur un fichier de 4 400 lignes.
+
+   `large` parce qu'on y verse une grille de compteurs et deux tableaux : le bureau, qui
+   n'y met que du formulaire, garde le panneau etroit. */
+let REG_BRANCHE=false;
+function brancherPanneauReglages(){
+  if(REG_BRANCHE||!window.BdvReglages)return;
+  REG_BRANCHE=true;
+  BdvReglages.brancher({
+    large:true,
+    blocs:[
+      {hote:'base',
+       monter:function(c){const n=el('p-base');if(n){n.hidden=false;c.appendChild(n);}},
+       // renderBase() a chaque ouverture : les compteurs et l'ecart avec le compte doivent
+       // etre ceux de maintenant, pas ceux du dernier rendu.
+       rafraichir:function(){try{renderBase();}catch(e){}}},
+      {hote:'classement',
+       monter:function(c){const n=el('p-reglages');if(n){n.hidden=false;c.appendChild(n);}},
+       rafraichir:function(){try{renderReglages();}catch(e){}}}
+    ]
+  });
+  // Le meme garde-fou de deconnexion qu'au bureau, ecrit une seule fois dans le module.
+  BdvReglages.brancherSortie(el('tbSortir'),null);
+}
+function ouvrirPanneauReglages(){
+  brancherPanneauReglages();
+  if(window.BdvReglages)BdvReglages.ouvrir();
+  else navTo('vide');   // module absent : au moins la zone de depot n'est pas hors d'atteinte
+}
 function openApp(ecranDepart){
   el('app').classList.add('on');
   el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
-  el('sidebar').innerHTML=NAV.map(n=>`<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.id==='annee'?('Mon '+exMot()):n.label}</button>`).join('')
+  el('sidebar').innerHTML=NAV.map(n=>n.panneau
+      ? `<button class="navitem" type="button" onclick="ouvrirPanneauReglages()"><span class="navitem__ico">${n.ico}</span>${n.label}</button>`
+      : `<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.id==='annee'?('Mon '+exMot()):n.label}</button>`).join('')
     +`<div class="navpied"><p class="navpied__titre">Le Bureau</p>`
     +NAV_BUREAU.map(n=>`<a class="navpied__lien" href="${n.href}">${n.label}</a>`).join('')
     +`</div>`;
@@ -1759,7 +1828,7 @@ function openApp(ecranDepart){
   buildFilterBar();
   // Base vide : on ouvre quand meme, sur « Ma base ». renderAll() n'a rien a calculer et
   // certains ecrans se construisent mal sur zero ligne ; on ne l'appelle donc pas.
-  if(!ROWS.length){ navTo('base'); return; }
+  if(!ROWS.length){ navTo('vide'); ouvrirPanneauReglages(); return; }
   // Ecran d'accueil : « Mon annee ». Ce qu'il y a A FAIRE vit dans /mon-bureau/ depuis le
   // 06/09/2026 ; ici on analyse, on ne travaille pas sa file.
   runBusy('Analyse de tes ventes…',()=>{renderAll();navTo(ecranDepart||'annee');});
@@ -1794,8 +1863,9 @@ if(window.ResizeObserver){
 }
 /* Le menu de la barre haute : meme source que le volet, jamais une copie. */
 function peuplerIci(){
-  el('iciMenu').innerHTML=NAV.map(n=>
-    `<button class="ici__item" role="menuitem" data-p="${n.id}" onclick="navTo('${n.id}')">${n.label}</button>`).join('');
+  el('iciMenu').innerHTML=NAV.map(n=>n.panneau
+    ? `<button class="ici__item" role="menuitem" type="button" onclick="ouvrirPanneauReglages()">${n.label}</button>`
+    : `<button class="ici__item" role="menuitem" data-p="${n.id}" onclick="navTo('${n.id}')">${n.label}</button>`).join('');
 }
 function fermerIci(){
   const d=el('ici'); if(!d)return;
@@ -1825,7 +1895,7 @@ document.addEventListener('keydown',e=>{
 });
 
 // Ne sort plus de l'application : le depot de fichier est un ecran comme un autre.
-function showImport(){ navTo('base'); }
+function showImport(){ ouvrirPanneauReglages(); }
 function navTo(id){
   document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   const ici=NAV.find(n=>n.id===id);
@@ -1833,7 +1903,6 @@ function navTo(id){
   document.querySelectorAll('.ici__item').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   fermerIci();
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
-  if(id==='base') renderBase();
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
   window.scrollTo(0,0);
@@ -1850,6 +1919,13 @@ window.addEventListener('hashchange', function(){
   const id = (location.hash || '').replace('#','');
   if(id.indexOf('client=') === 0){
     if(el('app').classList.contains('on')) ouvrirFiche(decodeURIComponent(id.slice(7)));
+    return;
+  }
+  // #base et #parametres sont les adresses d'avant la fusion, et le bureau pointe encore
+  // dessus. Elles ouvrent le panneau plutot que de ne rien faire : une adresse mise en
+  // favori par un vigneron n'a pas a mourir parce qu'on a reorganise nos ecrans.
+  if(id === 'base' || id === 'parametres' || id === 'reglages'){
+    if(el('app').classList.contains('on')) ouvrirPanneauReglages();
     return;
   }
   if(!id || !NAV.some(n => n.id === id)) return;
@@ -3981,14 +4057,13 @@ function coutOffertLigne(r,prix){
    tant que le vigneron n'a pas cliqué sur le bouton d'enregistrement. */
 let BROUILLON=null;
 function renderReglages(){
-  if(!ROWS.length){el('p-reglages').innerHTML='<h2 class="panel__title">Réglages</h2>';return;}
+  if(!ROWS.length){el('p-reglages').innerHTML='<p class="mini-line">Le classement se règle sur tes lignes de vente. Dépose un export, il apparaîtra ici.</p>';return;}
   if(!BROUILLON)BROUILLON=REG&&REG.valide?JSON.parse(JSON.stringify(REG)):(PROPOSE||reglagesProposes());
   if(!BROUILLON._profils)BROUILLON._profils=reglagesProposes()._profils;
   const B=BROUILLON, P=B._profils;
   const regle=!!(REG&&REG.valide);
 
-  let html=`<h2 class="panel__title">Réglages</h2>
-  <div class="panel__sub">Dans ton logiciel, tu remplis Origine, Lieu de vente et les champs Perso comme tu veux. L'outil ne peut donc pas deviner ce que veulent dire tes valeurs. Il te propose une lecture, tu la corriges une fois, il s'en souvient.</div>`;
+  let html=`<div class="panel__sub">Dans ton logiciel, tu remplis Origine, Lieu de vente et les champs Perso comme tu veux. L'outil ne peut donc pas deviner ce que veulent dire tes valeurs. Il te propose une lecture, tu la corriges une fois, il s'en souvient.</div>`;
 
   html+=regle
     ? signal('ok','✔','Tes réglages sont enregistrés.','Les chiffres de tous les écrans les utilisent. Tu peux les modifier ici à tout moment.')
@@ -4127,27 +4202,12 @@ function majImpact(){const z=el('impactReg');if(z)z.innerHTML=impactHtml();}
 // Vrai seulement si le vigneron a repondu « non » a la question Vitisoft de l'inscription.
 // Un refus qui ne propose rien est un refus rate : le bloc l'oriente au lieu de le planter.
 let PAS_VITISOFT=false;
-/* Compare ce qu'il y a ICI a ce qu'il y a SUR LE COMPTE, et le dit en clair.
-   Sans cet ecart affiche, une sauvegarde interrompue est indetectable : les chiffres de cet
-   appareil restent justes, et c'est justement ce qui endort. Le 07/09/2026 la base de Ted a
-   passe la matinee a 500 lignes sur 4942 sans qu'aucun ecran ne puisse le dire.
-   Le compteur se tait quand il ne sait pas : un compteur d'ecart qui peut mentir ne sert plus. */
-async function majCompteurServeur(){
-  const p=el('baseSync');if(!p)return;
-  if(!ROWS.length){p.textContent='';return;}
-  if(!syncPret()){p.textContent='Tu n\'es pas connecté à ton compte : ces lignes ne vivent que dans ce navigateur.';return;}
-  let n=null;
-  try{n=await BdvSync.compterVentes();}catch(e){n=null;}
-  const q=el('baseSync');if(!q)return;   // l'ecran a pu etre reconstruit pendant l'attente
-  if(n==null){q.className='note';q.textContent='Impossible de vérifier ta sauvegarde pour le moment. Les lignes de cet appareil sont intactes.';return;}
-  if(n>=ROWS.length){
-    q.className='note';
-    q.textContent=fmtNum(n)+' ligne(s) sauvegardées sur ton compte. Tu retrouveras ta base sur un autre appareil.';
-  }else{
-    q.className='note note--alerte';
-    q.textContent='Sauvegarde incomplète : '+fmtNum(ROWS.length)+' ligne(s) sur cet appareil, mais seulement '+fmtNum(n)+' sur ton compte. Redépose ton export ci-dessous pour compléter. En l\'état, un autre appareil n\'en verrait que '+fmtNum(n)+'.';
-  }
-}
+/* majCompteurServeur() a vecu une demi-journee, le 07/09/2026. Il comparait les lignes de
+   cet appareil a celles du compte, et il a servi : c'est ce qui manquait le matin meme,
+   quand la base est restee a 500 lignes sur 4942 sans qu'aucun ecran ne puisse le dire.
+   Il est mort le soir avec la fusion des reglages : le panneau partage affiche le meme
+   ecart, au-dessus de ce bloc, et le bureau en profite aussi. Un seul compteur, corrige une
+   seule fois. Voir peindreBase() dans bdv-reglages.js. */
 function renderBase(){
   const vin=ROWS.filter(r=>r._vin);
   const horsVin=ROWS.filter(r=>r._horsVin && !r._offert);
@@ -4157,7 +4217,9 @@ function renderBase(){
   const prix=prixVenteMoyen();
   const coutOffert=sum(offerts,r=>coutOffertLigne(r,prix));
 
-  let html=`<h2 class="panel__title">Ma base</h2><div class="panel__sub">Ton export, l'état de ta base, et de quoi tout effacer. La sélection de période ne s'applique pas ici.</div>`;
+  // Plus de <h2> ici : le panneau porte deja la legende « Ma base » au-dessus de ce bloc,
+  // et deux titres identiques a la suite se lisent comme un bug d'affichage.
+  let html=`<div class="panel__sub">Ton export, l'état de ta base, et de quoi tout effacer. La sélection de période ne s'applique pas ici.</div>`;
 
   if(PAS_VITISOFT){
     html+=`<div class="pas-viti">
@@ -4187,9 +4249,10 @@ function renderBase(){
   if(SANS_NUM){
     html+=`<p class="note">${fmtNum(SANS_NUM)} ligne(s) sans numéro client. Elles sont suivies sous le nom du client, ce qui fonctionne, mais leur fiche de suivi se perdra si l'orthographe du nom change dans Vitisoft.</p>`;
   }
-  // Rempli apres coup par majCompteurServeur(), appele en fin de rendu : le panneau ne doit
-  // pas attendre le reseau pour s'afficher.
-  html+=`<p class="note" id="baseSync">Vérification de ta sauvegarde…</p>`;
+  // Plus de compteur d'ecart ici : depuis la fusion du 07/09/2026, le panneau l'affiche
+  // lui-meme juste au-dessus de ce bloc (peindreBase() dans bdv-reglages.js), et il est
+  // partage avec le bureau. Deux compteurs disant la meme chose a dix lignes d'ecart, c'est
+  // un de trop a tenir a jour.
 
   // ZONE B : details.
   html+=`<div class="section-label">Détails</div>`;
@@ -4233,8 +4296,9 @@ function renderBase(){
   el('p-base').innerHTML=html;
   // Le panneau vient d'etre reconstruit, la zone de depot qu'il contient est neuve.
   bindZoneDepot('dropzoneReg','fileInputReg');
-  // Sans await : le reseau ne retarde pas l'affichage du panneau.
-  majCompteurServeur();
+  // Pas d'appel au compteur d'ecart ici, volontairement : renderBase() tourne a chaque
+  // renderAll(), donc a chaque changement de periode. Le panneau compte quand il S'OUVRE,
+  // seul moment ou quelqu'un le regarde, cf. ouvrir() dans bdv-reglages.js.
 }
 async function viderBase(){
   // Le texte dit maintenant les DEUX cotes. Vider seulement le navigateur n'aurait plus aucun
@@ -4251,7 +4315,8 @@ async function viderBase(){
   try{localStorage.removeItem(CRM_KEY);localStorage.removeItem(ECH_KEY);}catch(e){}
   ROWS=[];computeMeta();
   status('success','Base vidée.');
-  navTo('base');
+  navTo('vide');
+  ouvrirPanneauReglages();
 }
 
 /* La fonction refreshResume() a disparu avec l'ecran d'import plein page : le nombre de
@@ -4456,6 +4521,10 @@ document.addEventListener('DOMContentLoaded', async function(){
   // Attendu, contrairement aux poussees : ici l'affichage depend du resultat.
   await tirerDuServeur();
   await reloadFromDB();
+  // Le panneau est branche AU DEMARRAGE, et pas seulement quand on l'ouvre : le bouton
+  // « Me deconnecter » de la barre du haut y prend son garde-fou. Sans cette ligne il
+  // restait muet jusqu'a ce qu'on ouvre les reglages, ce qui n'a aucun sens pour lui.
+  brancherPanneauReglages();
   // L'outil s'ouvre TOUJOURS, avec ou sans lignes. Sans base, openApp() atterrit de lui-meme
   // sur « Ma base », qui porte la zone de depot. Plus d'ecran d'accueil a franchir : le
   // tableau de bord est une piece du bureau, on y entre, on n'y frappe pas.
@@ -4465,7 +4534,10 @@ document.addEventListener('DOMContentLoaded', async function(){
   // faut le rechercher a la main.
   const versClient = brut.indexOf('client=') === 0 ? decodeURIComponent(brut.slice(7)) : null;
   const ecran = versClient ? 'clients' : brut;
-  openApp(NAV.some(n => n.id === ecran) ? ecran : undefined);
+  openApp(NAV.some(n => n.id === ecran) && ecran !== 'reglages' ? ecran : undefined);
+  // Arriver sur #base, #parametres ou #reglages ouvre le panneau : c'est la que « Ma base »
+  // et le classement vivent depuis la fusion, et c'est ce que le bureau met dans ses liens.
+  if(ecran === 'base' || ecran === 'parametres' || ecran === 'reglages') ouvrirPanneauReglages();
   if(versClient && ROWS.length) setTimeout(function(){ ouvrirFiche(versClient); }, 60);
   // Lecture du profil en dernier, et sans await bloquant sur l'affichage : un reseau lent ne
   // doit pas retarder l'ouverture du tableau de bord de quelqu'un qui, lui, a bien Vitisoft.
