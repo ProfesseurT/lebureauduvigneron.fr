@@ -23,7 +23,9 @@
   --bordeaux-deep: #45101D;  /* navigation, pied de page, fonds sombres */
   --bordeaux-vif:  #7A1525;  /* survol des boutons pleins : plus rouge, jamais plus pale */
   --bordeaux-veil: rgba(40, 10, 18, 0.70);  /* voile photo du hero */
-  --cork:          #B89066;  /* liege : ornements, details editoriaux, jamais du texte */
+  --cork:          #B89066;  /* liege et carton kraft : panneaux, intercalaires. Porte du
+                                texte a 5,26:1, conforme AA mais trois fois moins que le
+                                creme sur bordeaux. A eviter pour du texte long. */
   --cork-encre:    #704C22;  /* le liege quand il porte du texte : 6,2:1 sur papier, 4,9:1 sur --paper-deep */
 
   /* ---- MARQUES TIERCES ----------------------------------------------- */
@@ -98,8 +100,49 @@
   /* ---- OMBRES -------------------------------------------------------- */
   /* Le site en utilise tres peu, et c'est ce qui fait sa texture. */
   --ombre-dure:  6px 6px 0 rgba(30, 37, 54, 0.18);   /* signature : ombre sans flou */
+  --ombre-dure-xl: 10px 10px 0 rgba(0, 0, 0, 0.28);  /* la meme, a l'echelle d'une video */
   --ombre-carte: 2px 3px 10px rgba(30, 25, 15, 0.25);
   --ombre-photo: 0 20px 60px rgba(0, 0, 0, 0.35);
+
+  /* ---- MATIERES ------------------------------------------------------ */
+  /* LA REGLE DU PLATEAU. Le bureau pose plusieurs matieres sur un meme
+     plateau : liege, papier continu, ardoise, carton, enveloppe. Ce qui les
+     empeche de faire collage, c'est qu'elles partagent UNE lumiere, venue du
+     haut a gauche, et qu'elles n'ont droit qu'a DEUX ombres :
+       --ombre-carte  un objet pose sur le plateau, il a une epaisseur ;
+       --ombre-dure   la signature du site, dure et sans flou.
+     Toute matiere ajoutee ici se plie a cette regle. Aucune troisieme ombre. */
+
+  /* Le carton kraft, en trois profondeurs : ce qui est plus loin dans une pile
+     recoit moins de lumiere. Trois valeurs, pas sept. */
+  --cork-loin:   #A9825A;  /* intercalaire en deuxieme plan */
+  --cork-fond:   #9A7550;  /* intercalaire au fond de la pile */
+  /* Le liege du panneau de la page d'accueil. Plus clair que --cork de trois
+     tons, et personne n'a jamais tranche lequel des deux est le bon liege. */
+  --cork-clair:  #C4A07A;
+  --filet-liege: rgba(90, 60, 25, 0.25);  /* le cadre interieur d'un panneau de liege */
+
+  /* Le papier a note. Deux teintes, celles du panneau de la page d'accueil. */
+  --postit-jaune: #F4E2A0;
+  --postit-kraft: #D9C9A7;
+  --ombre-papier: 2px 3px 10px rgba(30, 25, 15, 0.25), 0 1px 3px rgba(30, 25, 15, 0.15);
+  --ombre-coin:  -1px -1px 2px rgba(30, 25, 15, 0.18);  /* le coin d'une feuille qui se releve */
+
+  /* La punaise. Le dome est un degrade : un reflet, puis le corps. */
+  --punaise-clair: #E06060;
+  --punaise-fonce: #8B1A1A;
+  --ombre-punaise: 0 2px 3px rgba(0, 0, 0, 0.35);
+  --reflet:        rgba(255, 255, 255, 0.40);  /* le point de lumiere sur une surface bombee */
+
+  /* L'ardoise. Le seul noir du site, et il est brun, pas gris. */
+  --ardoise:      #241A12;
+
+  /* Le grain. Une matiere n'est pas une couleur a plat : elle a un piquete
+     clair et un piquete sombre, toujours ces deux-la. */
+  --grain-clair: rgba(255, 255, 255, 0.07);
+  --grain-fonce: rgba(0, 0, 0, 0.07);
+
+  --paper-light-voile: rgba(245, 239, 224, 0.90);  /* papier pose sur une image */
 
   /* ---- ESPACEMENT ---------------------------------------------------- */
   --e-xs:   0.35rem;
@@ -827,7 +870,7 @@ em { font-style: italic; }
   aspect-ratio: 16 / 9;
   background: var(--ink);
   border: 1px solid color-mix(in srgb, var(--paper) 18%, transparent);
-  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.28);
+  box-shadow: var(--ombre-dure-xl);
   overflow: hidden;
   position: relative;
 }
@@ -3634,7 +3677,7 @@ em { font-style: italic; }
   opacity: 1;
   transform: scale(1);
   /* Cork texture via radial gradients */
-  background-color: #C4A07A;
+  background-color: var(--cork-clair);
   background-image:
     radial-gradient(ellipse at 18% 22%, rgba(155,112,62,0.55) 0%, transparent 42%),
     radial-gradient(ellipse at 82% 68%, rgba(138,100,55,0.45) 0%, transparent 38%),
@@ -3656,7 +3699,7 @@ em { font-style: italic; }
 .demo-pinboard__inner-border {
   position: absolute;
   inset: 12px;
-  border: 2px solid rgba(90,60,25,0.25);
+  border: var(--trait-fort) solid var(--filet-liege);
   pointer-events: none;
 }
 
@@ -3673,7 +3716,7 @@ em { font-style: italic; }
   width: 22%;
   height: 30%;
   padding: 14px 13px 12px;
-  box-shadow: 2px 3px 10px rgba(30,25,15,0.25), 0 1px 3px rgba(30,25,15,0.15);
+  box-shadow: var(--ombre-papier);
   overflow: hidden;
   /* transitions applied only after .ready is set on the board */
 }
@@ -3683,8 +3726,8 @@ em { font-style: italic; }
     top    var(--tr-choregraphie) cubic-bezier(0.65, 0, 0.35, 1),
     transform var(--tr-choregraphie) cubic-bezier(0.65, 0, 0.35, 1);
 }
-.note-card--yellow { background: #F4E2A0; }
-.note-card--kraft  { background: #D9C9A7; }
+.note-card--yellow { background: var(--postit-jaune); }
+.note-card--kraft  { background: var(--postit-kraft); }
 .note-card--white  { background: var(--paper-light); }
 .note-card--cream  { background: var(--paper-light); }
 
@@ -3694,8 +3737,8 @@ em { font-style: italic; }
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #E06060, #8B1A1A);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  background: radial-gradient(circle at 35% 35%, var(--punaise-clair), var(--punaise-fonce));
+  box-shadow: var(--ombre-punaise);
   margin: 0 auto 8px;
   position: relative;
 }
@@ -3708,7 +3751,7 @@ em { font-style: italic; }
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.4);
+  background: var(--reflet);
 }
 
 /* Card content typography */
@@ -3791,7 +3834,7 @@ em { font-style: italic; }
   bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(245,239,224,0.9);
+  background: var(--paper-light-voile);
   border: 1px solid var(--rule-fort);
   font-family: var(--font-mono);
   font-size: var(--t-micro);
@@ -5143,7 +5186,7 @@ button.bureau-nav__item:hover {
   margin-top: 0.4rem;
   background: transparent;
   color: var(--on-dark-soft);
-  border: var(--trait) solid rgba(239, 231, 214, 0.42);
+  border: var(--trait) solid var(--on-dark-faint);
   padding: 0.55rem 1.1rem;
   font-family: var(--font-corps);
   font-size: var(--t-mini);
@@ -5166,7 +5209,7 @@ button.bureau-nav__item:hover {
   background: none;
   border: none;
   padding: 0;
-  border-bottom: var(--trait) dashed rgba(239, 231, 214, 0.42);
+  border-bottom: var(--trait) dashed var(--on-dark-faint);
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   text-transform: uppercase;
@@ -5412,8 +5455,8 @@ button.tache {
   gap: var(--e-m);
   background: var(--cork);
   background-image:
-    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.07) 0 2px, transparent 3px),
-    radial-gradient(circle at 70% 60%, rgba(0,0,0,0.07) 0 2px, transparent 3px);
+    radial-gradient(circle at 20% 30%, var(--grain-clair) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, var(--grain-fonce) 0 2px, transparent 3px);
   background-size: 26px 26px, 34px 34px;
   border: var(--trait) solid var(--cork-encre);
   padding: var(--e-l) var(--e-m) var(--e-xl);
@@ -5469,7 +5512,7 @@ button.tache {
   width: 14px;
   height: 14px;
   background: linear-gradient(315deg, var(--cork) 0 50%, transparent 50%);
-  box-shadow: -1px -1px 2px rgba(30, 25, 15, 0.18);
+  box-shadow: var(--ombre-coin);
 }
 /* LA PUNAISE. C'etait un disque plat ; c'est un dome, par un degrade radial dont le point
    clair est en haut a gauche, comme la lumiere du reste du bureau. Le rayon est permis ici :
@@ -5485,7 +5528,7 @@ button.tache {
     color-mix(in srgb, var(--white) 60%, transparent) 0 12%,
     var(--bordeaux) 62%,
     color-mix(in srgb, var(--ink-deep) 35%, var(--bordeaux)) 100%);
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--ombre-punaise);
 }
 .postit[data-ton="fait"]::before {
   background: radial-gradient(circle at 35% 30%,

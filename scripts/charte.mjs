@@ -166,14 +166,43 @@ if (B.erreurs.length) ko('le CSS ne parse pas : ' + B.erreurs[0]);
 
 titre('4. Valeurs en dur restantes');
 
-const dur = { couleurs: [], rayons: [], ls: [], durees: [], tailles: [] };
+const dur = { couleurs: [], textures: [], rayons: [], ls: [], durees: [], tailles: [] };
 const RE_COULEUR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(/;
+
+/* LES DEUX SEULES DISPENSES, ecrites ici pour qu'on puisse les compter.
+
+   1. LES MAQUETTES PRODUIT. Le site montre Vitisoft et Vitimedia en maquette :
+      ces blocs reproduisent la charte d'un autre, pas la notre. Ils sont deja
+      dispenses de la regle du rayon, pour la meme raison.
+   2. LES TEXTURES DE MATIERE. Un empilement de degrades qui imite le grain du
+      liege n'a pas de couleur a tokeniser : il a une recette. Elle est comptee
+      et affichee, mais elle ne fait pas echouer.
+
+   Tout le reste, surface, encre, filet, ombre, doit passer par un jeton. Cette
+   regle a ete posee le 07/09/2026 : elle etait ecrite dans le script mais le
+   resultat n'etait jamais passe a ko(), et une couleur magenta de test est
+   restee CONFORME. Un controle qui ne mord pas est un controle absent. */
+const RE_MAQUETTE = /^\.(viti|vitisoft|vitimedia|dnav|dtool|dform|dchart|dcard|dkpi)[-_.]/;
+const EST_TEXTURE = val => {
+  /* Une recette de texture : au moins deux degrades, et rien d'autre que des
+     degrades et des mots-cles. Un seul degre de degrade n'est pas une texture,
+     c'est un fond, et un fond se tokenise. */
+  const parts = (val.match(/(radial|linear|conic)-gradient\(/g) || []).length;
+  return parts >= 2;
+};
 
 B.regles.forEach(r => {
   const sel = norme(r.sel);
   if (sel === ':root') return;
   r.decls.forEach(d => {
-    if (RE_COULEUR.test(d.val)) dur.couleurs.push([sel, d.prop, d.val, d.ligne]);
+    if (RE_COULEUR.test(d.val)) {
+      /* Une texture de matiere est un empilement de degrades : le grain du liege,
+         la fibre du papier. Ses arrets ne se tokenisent pas un par un, mais elle
+         reste comptee et affichee, jamais silencieuse. */
+      if (d.prop === 'background-image' && EST_TEXTURE(d.val))
+        dur.textures.push([sel, d.prop, d.val, d.ligne]);
+      else dur.couleurs.push([sel, d.prop, d.val, d.ligne]);
+    }
     if (d.prop === 'border-radius' && !/var\(|50%|^0$/.test(d.val)) dur.rayons.push([sel, d.val, d.ligne]);
     if (d.prop === 'letter-spacing' && !/var\(/.test(d.val) && d.val !== '0') dur.ls.push([sel, d.val, d.ligne]);
     if (/^transition(-duration)?$/.test(d.prop)) {
@@ -184,8 +213,13 @@ B.regles.forEach(r => {
   });
 });
 
-console.log('  couleurs en dur       : ' + dur.couleurs.length);
-dur.couleurs.forEach(c => console.log('        L' + c[3] + '  ' + c[0] + ' { ' + c[1] + ': ' + c[2] + ' }'));
+const couleursMaquette = dur.couleurs.filter(c => RE_MAQUETTE.test(c[0]));
+const couleursFautives = dur.couleurs.filter(c => !RE_MAQUETTE.test(c[0]));
+console.log('  couleurs en dur       : ' + dur.couleurs.length +
+            '  (dont ' + couleursMaquette.length + ' en maquette produit tiers)');
+couleursFautives.forEach(c => console.log('        L' + c[3] + '  ' + c[0] + ' { ' + c[1] + ': ' + c[2] + ' }'));
+console.log('  textures de matiere   : ' + dur.textures.length + '  (recettes de degrades, dispensees)');
+dur.textures.forEach(c => console.log('        L' + c[3] + '  ' + c[0]));
 console.log('  rayons non ronds      : ' + dur.rayons.length);
 dur.rayons.forEach(c => console.log('        L' + c[2] + '  ' + c[0] + ' { border-radius: ' + c[1] + ' }'));
 console.log('  letter-spacing en dur : ' + dur.ls.length);
@@ -205,6 +239,26 @@ else ok('letter-spacing : ' + lsEcartement.length + ' valeur en dur, plus ' +
 const dureesReelles = dur.durees.filter(d => !/0\.01ms/.test(d[1]));
 if (dureesReelles.length) ko(dureesReelles.length + ' duree(s) de transition en dur');
 else ok('aucune duree de transition en dur hors prefers-reduced-motion');
+if (couleursFautives.length) {
+  couleursFautives.slice(0, 12).forEach(c =>
+    ko('couleur en dur : ' + c[0] + ' { ' + c[1] + ' } L' + c[3] + ' — il lui faut un jeton'));
+  if (couleursFautives.length > 12) ko('et ' + (couleursFautives.length - 12) + ' autre(s) couleur(s) en dur');
+} else ok('aucune couleur en dur hors maquette produit et texture de matiere');
+
+/* LES TAILLES DE POLICE : un plafond, pas une porte fermee. 95 valeurs en dur
+   ne se reprennent pas en une passe, et la moitie vit dans les maquettes. Ce
+   qu'on interdit, c'est que ca EMPIRE. Le jour ou le chantier des tailles se
+   fait, on baisse ce nombre ; il ne doit jamais monter.
+
+   Deux plafonds parce que deux cibles : le site seul, et le bureau qui charge en
+   plus bdv-ecrans.css et bdv-panneau.css. Un seul chiffre ferait echouer l'un ou
+   dispenserait l'autre. */
+const PLAFOND_TAILLES = DASH ? 123 : 95;
+if (dur.tailles.length > PLAFOND_TAILLES)
+  ko(dur.tailles.length + ' font-size en dur, le plafond est a ' + PLAFOND_TAILLES +
+     ' — une nouvelle taille en dur a ete ajoutee, il lui faut un pas de l\'echelle');
+else ok('font-size en dur : ' + dur.tailles.length + ' sous le plafond de ' + PLAFOND_TAILLES);
+
 const rayonsHorsMaquette = dur.rayons.filter(r => !/^\.(viti|vitisoft|vitimedia)/.test(r[0]));
 if (rayonsHorsMaquette.length) ko(rayonsHorsMaquette.length + ' rayon(s) hors maquette produit tiers');
 else ok('les ' + dur.rayons.length + ' rayons restants sont tous dans les maquettes .viti* / .vitimedia*');
