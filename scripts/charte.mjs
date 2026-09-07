@@ -22,14 +22,30 @@ import * as csstree from 'css-tree';
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DASH = process.argv.includes('--dash');
 
-/* Le tableau de bord est un fichier autonome : son CSS est dans un <style>
-   inline, et c'est lui qui porte son propre lien Google Fonts. */
+/* Le tableau de bord N'EST PLUS un fichier autonome. Depuis le lot 0 de la fusion
+   dans le bureau (07/09/2026), sa mise en forme est dans /css/bdv-ecrans.css et ses
+   ecrans dans /js/bdv-ecrans.js. `--dash` ne controle donc plus un fichier mais un
+   ensemble : la page, les feuilles de style qu'elle LIE, et les fichiers de src/js.
+
+   C'est le meme piege qu'en septembre, deplace d'un cran : un controle qui lit le
+   HTML seul trouve desormais une ligne de CSS et six icones absentes, et il le dit
+   avec aplomb. Trois endroits en dependent et sont annotes plus bas : le parsing
+   (section Parsing), les tokens lus depuis le JS (section 5) et les entites HTML
+   (section 9). Le lien Google Fonts, lui, est reste dans la page. */
 const CIBLE = DASH ? path.join(RACINE, 'src/outils/dashboard-vigneron.html')
                    : path.join(RACINE, 'src/css/style.css');
 const APRES = CIBLE;
 const LIEN_FONTS = DASH ? CIBLE : path.join(RACINE, 'src/_includes/base.njk');
 
 console.log('cible : ' + path.relative(RACINE, CIBLE));
+
+/* La liste des fichiers de src/js, declaree ICI parce que trois sections en ont besoin
+   et que la premiere est la section 5. La section 8 garde sa propre variable, qui lui
+   sert a autre chose : compter les litterales CSS embarquees fichier par fichier. */
+const DOSSIER_JS_ = path.join(RACINE, 'src/js');
+const fichiersJS_ = fs.existsSync(DOSSIER_JS_)
+  ? fs.readdirSync(DOSSIER_JS_).filter(f => f.endsWith('.js')).map(f => path.join(DOSSIER_JS_, f))
+  : [];
 
 let ERR = 0, NOTES = 0;
 const ok = m => console.log('  ok    : ' + m);
@@ -50,8 +66,23 @@ function parse(fichier) {
        zero couleur en dur, zero jeton declare, et les 151 ECHEC qui en decoulaient tous.
        Un controle qui passe sur du vide est pire qu'un controle absent. */
     const blocs = [...txt.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]);
-    if (!blocs.length) erreursHtml.push('aucun bloc <style> trouve dans ' + fichier);
-    txt = blocs.join('\n');
+
+    /* Puis les feuilles LIEES par la page. Sans ca, depuis la sortie de
+       /css/bdv-ecrans.css le 07/09/2026, ce controle lisait la seule ligne du verrou de
+       compte et rendait le meme faux CONFORME qu'avant, pour une raison nouvelle. On ne
+       suit que les href locaux : une feuille Google Fonts n'est pas notre charte. */
+    const liees = [];
+    for (const m of txt.matchAll(/<link\b[^>]*rel=["']stylesheet["'][^>]*>/gi)) {
+      const h = (m[0].match(/href=["']([^"']+)["']/i) || [])[1];
+      if (!h || /^(https?:)?\/\//.test(h)) continue;
+      const f = path.join(RACINE, 'src', h.replace(/^\//, ''));
+      if (fs.existsSync(f)) liees.push(f);
+      else erreursHtml.push('feuille liee introuvable : ' + h);
+    }
+    if (!blocs.length && !liees.length) erreursHtml.push('aucun CSS trouve dans ' + fichier + ' : ni bloc <style>, ni feuille liee');
+    console.log('  CSS lu : ' + blocs.length + ' bloc(s) <style> + ' + liees.length + ' feuille(s) liee(s)'
+      + (liees.length ? ' (' + liees.map(f => path.basename(f)).join(', ') + ')' : ''));
+    txt = blocs.concat(liees.map(f => fs.readFileSync(f, 'utf8'))).join('\n');
   }
   const erreurs = erreursHtml;
   const ast = csstree.parse(txt, { positions: true, onParseError: e => erreurs.push(e.message + ' (ligne ' + e.line + ')') });
@@ -147,7 +178,10 @@ for (const m of B.txt.matchAll(/var\(\s*(--[\w-]+)/g)) appeles.add(m[1]);
 /* Le tableau de bord lit ses couleurs de serie depuis le JS, pas depuis une
    regle CSS : sans ca, les huit --serie-* passeraient pour inutilisees. */
 if (DASH) {
-  const brut = fs.readFileSync(CIBLE, 'utf8');
+  /* cssToken() et palSeries() vivaient dans le <script> de la page. Depuis le lot 0 ils
+     sont dans src/js/bdv-ecrans.js et src/js/bdv-base.js : il faut lire la page ET les
+     fichiers de src/js, sinon les huit --serie-* repassent pour inutilisees. */
+  const brut = [CIBLE].concat(fichiersJS_).map(f => fs.readFileSync(f, 'utf8')).join('\n');
   for (const m of brut.matchAll(/cssToken\('(--[a-z0-9-]+)'\)/g)) appeles.add(m[1]);
   if (/palSeries\(/.test(brut)) [...declares].filter(t => /^--serie-\d+$/.test(t)).forEach(t => appeles.add(t));
 }
@@ -507,11 +541,19 @@ if (!jsCouleursDur && !jsRayonsDur && !jsRepliFaux && !jsTokenAbsent) ok('CSS em
    La liste est FIGEE ici, comme HASH_COLS, et ne s'ajuste pas toute seule : ajouter une icone
    se declare a la main. C'est exactement le but. Une liste qui se met a jour d'elle-meme ne
    detecte plus rien. */
-const ENTITES_ATTENDUES = ['&#8592;', '&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;'];
+/* Liste elargie le 07/09/2026, lot 0 : les cinq icones du menu ont suivi les ecrans dans
+   src/js/bdv-ecrans.js, et le controle voit desormais aussi src/js/bdv-base.js (&#9095; le
+   sablier, &#9998; le crayon) et src/js/bdv-reglages.js (&#215; la croix de fermeture), que
+   personne ne surveillait jusqu'ici. Les trois dernieres sont donc une COUVERTURE NOUVELLE,
+   pas un ajout d'icone. */
+const ENTITES_ATTENDUES = ['&#8592;', '&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;',
+                           '&#9095;', '&#9998;', '&#215;'];
 
 if (DASH) {
   titre('9. Entites HTML numeriques (les icones du tableau de bord)');
-  const brutHtml = fs.readFileSync(CIBLE, 'utf8');
+  /* La page ET les fichiers de src/js : depuis le lot 0, cinq des six icones d'origine ne
+     sont plus dans la page. Un controle limite au HTML les declarerait disparues. */
+  const brutHtml = [CIBLE].concat(fichiersJS_).map(f => fs.readFileSync(f, 'utf8')).join('\n');
   const trouvees = (brutHtml.match(/&#\d+;/g) || []);
   const attendues = [...ENTITES_ATTENDUES];
   console.log('  ' + trouvees.length + ' entite(s) trouvee(s) pour ' + attendues.length + ' attendue(s)');
