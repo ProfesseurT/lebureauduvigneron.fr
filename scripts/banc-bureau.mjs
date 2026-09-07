@@ -109,16 +109,19 @@ t('la coque de l\'atelier existe dans le HTML produit',
 
 const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
 t('sept pieces montees', lignes.length === 7, lignes.length + ' trouvee(s)');
-t('l\'ordre est celui de la journee',
+/* L'ORDRE EST UN CONTROLE ET PAS UN DETAIL : il porte l'hypothese H2 du document
+   de refonte, le vigneron vient pour ne rien oublier. Si quelqu'un le change, il
+   doit le changer ICI aussi, donc en connaissance de cause. */
+t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mon année | Mes clients | Mes cuvées | Chercher | Le compte à rebours | Mes réglages',
+  === 'Ma journée | Le calendrier | Mes clients | Mon année | Mes cuvées | Mon registre | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
 t('les quatre pieces de vente pointent DANS le bureau',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
     .filter(h => /^\/mon-bureau\/#/.test(h)).length === 4);
-t('le compte a rebours pointe sur son outil',
+t('le calendrier pointe sur son outil',
   [...B.nav.querySelectorAll('a')].some(a => a.getAttribute('href') === '/outils/echeances/'));
 t('les reglages sont un bouton, pas un lien',
   B.nav.querySelector('[data-bdv-nav-panneau]').tagName === 'BUTTON');
@@ -149,7 +152,7 @@ t('le crochet ouvrant ne fait RIEN pendant une saisie',
 B.window.BdvNav.sansVitisoft(true);
 t('sans Vitisoft, les quatre pieces de vente disparaissent',
   lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,chercher,clients,produits');
-t('sans Vitisoft, la journee, le compte a rebours et les reglages RESTENT',
+t('sans Vitisoft, la journee, le calendrier et les reglages RESTENT',
   ['journee', 'echeances', 'reglages'].every(id => !lignes.find(l => l.dataset.piece === id).hidden));
 B.window.BdvNav.sansVitisoft(false);
 t('avec Vitisoft, tout revient', lignes.filter(l => l.hidden).length === 0);

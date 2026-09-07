@@ -125,7 +125,7 @@
     // Chercher : un registre ouvert, plutot qu'une loupe. On cherche dans un registre.
     chercher: '<path d="M10 5.5v11"/><path d="M10 5.5C8.6 4.4 6.6 4 3.5 4v10.5c3.1 0 5.1.4 6.5 1.5"/>'
               + '<path d="M10 5.5c1.4-1.1 3.4-1.5 6.5-1.5v10.5c-3.1 0-5.1.4-6.5 1.5"/>',
-    // Le compte a rebours : le sablier, et le sable deja tombe.
+    // Le calendrier : le sablier, et le sable deja tombe.
     echeances:'<path d="M6 3h8M6 17h8"/><path d="M6.5 3c0 3.2 3.5 5.2 3.5 7s-3.5 3.8-3.5 7"/>'
               + '<path d="M13.5 3c0 3.2-3.5 5.2-3.5 7s3.5 3.8 3.5 7"/><path d="M8 17h4"/>',
     // Mes reglages : un curseur de reglage, pas une roue crantee. On regle son bureau,
@@ -138,21 +138,30 @@
     { id: 'journee',   ico: TRACES.journee,   label: 'Ma journée',
       href: '/mon-bureau/',
       quoi: 'Ce qui presse, tes rappels, ton ardoise' },
-    { id: 'annee', viti: true,     ico: TRACES.annee, label: motExercice,
-      href: '/mon-bureau/#annee',
-      quoi: 'Ton chiffre, ton rythme, tes canaux' },
+    /* LE CALENDRIER EST DEUXIEME, ET C'EST UNE HYPOTHESE ASSUMEE. Elle est
+       ecrite dans le document de refonte du 07/09/2026 : on ouvre son bureau
+       pour ne rien oublier, et on regarde son annee deux fois l'an. C'est la
+       seule piece qui repond exactement a « est-ce que j'ai oublie quelque
+       chose », et elle etait sixieme, sous une piece ouverte trois fois par an.
+       Si l'hypothese tombe, cet ordre se change ici, en une ligne. */
+    { id: 'echeances', ico: TRACES.echeances,   label: 'Le calendrier',
+      href: '/outils/echeances/',
+      quoi: 'DRM, DAI, récolte, facturation' },
     { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mes clients',
       href: '/mon-bureau/#clients',
       quoi: 'Qui rappeler, qui décroche, qui revient' },
+    { id: 'annee', viti: true,     ico: TRACES.annee, label: motExercice,
+      href: '/mon-bureau/#annee',
+      quoi: 'Ton chiffre, ton rythme, tes canaux' },
     { id: 'produits', viti: true,  ico: TRACES.produits, label: 'Mes cuvées',
       href: '/mon-bureau/#produits',
       quoi: 'Ce qui part, ce qui dort' },
-    { id: 'chercher', viti: true,  ico: TRACES.chercher, label: 'Chercher',
+    /* « Chercher » etait le seul des sept a nommer un geste et pas un objet,
+       dans une barre qui ne nomme que des objets. Et son trace est deja un
+       registre ouvert. */
+    { id: 'chercher', viti: true,  ico: TRACES.chercher, label: 'Mon registre',
       href: '/mon-bureau/#chercher',
       quoi: 'Une ligne, un client, une facture' },
-    { id: 'echeances', ico: TRACES.echeances,   label: 'Le compte à rebours',
-      href: '/outils/echeances/',
-      quoi: 'DRM, DAI, récolte, facturation' },
     { id: 'reglages',  ico: TRACES.reglages,   label: 'Mes réglages',
       panneau: true,
       quoi: 'Ton domaine, ta base, tes objectifs' }
@@ -519,7 +528,7 @@
       var l = a.closest('.bureau-nav__ligne');
       var id = l && l.dataset.piece;
       if (!id) return;
-      // Le compte a rebours est une autre page : on ne l'intercepte pas.
+      // Le calendrier est une autre page : on ne l'intercepte pas.
       if (id === 'echeances') return;
       e.preventDefault();
       afficher(id);

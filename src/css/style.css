@@ -96,6 +96,11 @@
   --trait:    1px;     /* epaisseur de filet standard */
   --trait-fort: 2px;   /* soulignement de titre de tableau */
   --trait-accent: 3px; /* liseré d'accent sur un bord */
+  /* LA HAUTEUR D'UN CONTROLE QU'ON TOUCHE. 44 px est le plancher tactile, et il
+     etait deja ecrit en dur sept fois dans le depot sans avoir jamais ete une
+     regle. Il en est une maintenant. */
+  --h-controle: 44px;
+  --encoche: 12px;     /* la pointe d'une languette d'intercalaire */
 
   /* ---- OMBRES -------------------------------------------------------- */
   /* Le site en utilise tres peu, et c'est ce qui fait sa texture. */
@@ -113,10 +118,17 @@
        --ombre-dure   la signature du site, dure et sans flou.
      Toute matiere ajoutee ici se plie a cette regle. Aucune troisieme ombre. */
 
-  /* Le carton kraft, en trois profondeurs : ce qui est plus loin dans une pile
-     recoit moins de lumiere. Trois valeurs, pas sept. */
-  --cork-loin:   #A9825A;  /* intercalaire en deuxieme plan */
-  --cork-fond:   #9A7550;  /* intercalaire au fond de la pile */
+  /* LE CARTON KRAFT N'A QU'UN TON, ET C'EST UNE MESURE QUI L'A DECIDE.
+     La planche dessinait trois profondeurs, #B89066 puis #A9825A puis #9A7550,
+     l'idee etant qu'un carton plus loin dans la pile recoit moins de lumiere.
+     Mesure faite : avec --ardoise pour encre, le premier donne 5,86:1, le
+     deuxieme 4,89:1 et le troisieme 4,09:1. Le troisieme echoue AA, le deuxieme
+     le passe de justesse. Deux des trois languettes auraient ete moins lisibles
+     que les autres sans que rien ne le dise.
+     La profondeur se dit donc autrement, et c'est meme plus juste : dans un vrai
+     classeur vu de dessus, toutes les languettes sont du meme carton, et c'est
+     le filet d'ombre entre elles qui fait la pile. --cork-clair pour l'arete
+     eclairee, --cork-encre pour celle dans l'ombre. */
   /* Le liege du panneau de la page d'accueil. Plus clair que --cork de trois
      tons, et personne n'a jamais tranche lequel des deux est le bon liege. */
   --cork-clair:  #C4A07A;
@@ -4774,9 +4786,9 @@ a.bureau-outil:hover {
 .bureau-atelier__travail > .bureau-plan { padding-top: 0; padding-bottom: 0; }
 
 .bureau-nav {
-  background: var(--ink-deep);
-  border-top: var(--trait-accent) solid var(--gold);
-  padding-block: var(--e-s) var(--e-m);
+  background: var(--paper-deep);
+  border-top: var(--trait-accent) solid var(--cork-encre);
+  padding: var(--e-s) 0 var(--e-l) var(--e-s);
   overflow: hidden;
   min-width: 0;
 }
@@ -4807,18 +4819,18 @@ a.bureau-outil:hover {
   height: 22px;
   margin: 0 0 var(--e-s) var(--e-m);
   background: none;
-  border: var(--trait) solid var(--on-dark-rule);
+  border: var(--trait) solid var(--cork-encre);
   border-radius: var(--r-nul);
   cursor: pointer;
   transition: border-color var(--tr-rapide), background var(--tr-rapide);
 }
-.bureau-nav__plier:hover { border-color: var(--gold); }
+.bureau-nav__plier:hover { border-color: var(--bordeaux); }
 .bureau-nav__filets {
   display: block;
   width: 13px;
   height: 9px;
-  border-top: var(--trait) solid var(--on-dark);
-  border-bottom: var(--trait) solid var(--on-dark);
+  border-top: var(--trait) solid var(--cork-encre);
+  border-bottom: var(--trait) solid var(--cork-encre);
   position: relative;
 }
 .bureau-nav__filets::before {
@@ -4827,48 +4839,92 @@ a.bureau-outil:hover {
   left: 0;
   right: 0;
   top: calc(50% - 0.5px);
-  border-top: var(--trait) solid var(--on-dark);
+  border-top: var(--trait) solid var(--cork-encre);
 }
 
 .bureau-nav__liste { list-style: none; margin: 0; padding: 0; }
 .bureau-nav__ligne { margin: 0; }
+/* UNE LANGUETTE DE CARTON, PAS UNE LIGNE DE MENU.
+   Sept intercalaires dans un classeur : celui qu'on a ouvert est tire vers la
+   page et prend la couleur de la page, les autres restent dans la pile.
+
+   La hauteur est fixee a --h-controle parce que l'encoche en depend : elle est
+   dessinee par deux triangles de bordure qui font chacun la moitie de la
+   hauteur. C'est aussi le plancher tactile, donc la contrainte sert deux fois.
+
+   Pourquoi deux triangles de bordure et pas un clip-path, alors que le clip-path
+   serait plus court a ecrire : un clip-path rogne AUSSI l'anneau de focus. La
+   languette resterait jolie et deviendrait inutilisable au clavier. Ici la
+   languette est un rectangle, et c'est un cache de la couleur de la paroi qui
+   lui donne sa pointe. */
 .bureau-nav__item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--e-s);
   width: 100%;
+  height: var(--h-controle);
+  margin-right: calc(var(--encoche) + 2px);
   text-align: left;
-  background: none;
+  background: var(--cork);
   border: none;
   border-left: var(--trait-accent) solid transparent;
-  color: var(--on-dark-soft);
+  /* Les deux aretes du carton : celle qui prend la lumiere, celle qui est dans
+     l'ombre de la languette du dessus. C'est ce qui fait la pile, et non trois
+     teintes de kraft dont deux echouaient au contraste. */
+  box-shadow: inset 0 1px 0 var(--cork-clair), inset 0 -1px 0 var(--cork-encre);
+  color: var(--ardoise);
   font-family: var(--font-mono);
   font-size: var(--t-petit);
   letter-spacing: var(--ls-doux);
-  padding: 0.68rem var(--e-m);
+  padding: 0 var(--e-m);
   cursor: pointer;
   text-decoration: none;
-  transition: background var(--tr-rapide), color var(--tr-rapide);
+  transition: margin-right var(--tr-rapide) ease, background var(--tr-rapide);
 }
+/* L'ENCOCHE. Un cache de la couleur de la paroi, deux triangles de bordure qui
+   se rejoignent a mi-hauteur : la languette finit en pointe. */
+.bureau-nav__item::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-left: var(--encoche) solid transparent;
+  border-top: calc(var(--h-controle) / 2) solid var(--paper-deep);
+  border-bottom: calc(var(--h-controle) / 2) solid var(--paper-deep);
+}
+/* Survol : la languette avance vers la page. Elle ne change pas de couleur, et
+   surtout elle ne palit pas : c'est la regle des boutons du site. */
 a.bureau-nav__item:hover,
 button.bureau-nav__item:hover {
-  background: var(--ink);
-  color: var(--on-dark);
+  margin-right: 2px;
   text-decoration: none;
 }
-/* La piece ou l'on est n'est pas un lien : c'est un reperage. */
+/* LA LANGUETTE TIREE. La piece ou l'on est n'est pas un lien, c'est un
+   reperage : elle rejoint le papier du plateau, perd son encoche, et porte le
+   liseré bordeaux. Encre sur papier, 13,33:1, le meilleur contraste de la
+   barre est sur le mot qu'on lit le plus. */
 .bureau-nav__item--actif {
-  color: var(--on-dark);
-  background: var(--ink);
-  border-left-color: var(--gold);
+  color: var(--ink);
+  background: var(--paper-light);
+  border-left-color: var(--bordeaux);
+  box-shadow: var(--ombre-carte);
+  margin-right: 0;
   cursor: default;
 }
+.bureau-nav__item--actif::after { display: none; }
+/* Le gold est parti de cette barre, et c'est une mesure qui l'a decide : sur du
+   carton kraft il donne 1,19:1, il n'existe plus. Le bordeaux donne 4,93:1 et
+   c'est deja la couleur du site. */
 .bureau-nav__ico {
   width: 16px;
   text-align: center;
   flex-shrink: 0;
-  color: var(--gold);
+  color: var(--bordeaux-deep);
 }
+.bureau-nav__item--actif .bureau-nav__ico { color: var(--bordeaux); }
 .bureau-nav__nom { min-width: 0; }
 
 /* Replie : l'icone seule, centree. Le nom de la piece reste accessible par le
@@ -4876,6 +4932,8 @@ button.bureau-nav__item:hover {
 .bureau-atelier--replie .bureau-nav__nom { display: none; }
 .bureau-atelier--replie .bureau-nav__item { justify-content: center; padding-inline: 0; }
 .bureau-atelier--replie .bureau-nav__plier { margin-inline: auto; }
+/* Replie, la languette garde son encoche et son icone : c'est ce qui permet de
+   se passer d'un menu de secours. Elle perd juste son mot. */
 
 /* Sous 900 px, la barre devient un bandeau a defilement au-dessus du travail, et
    le repli n'a plus d'objet : sur telephone il n'y a pas de largeur a rendre. */
@@ -4886,17 +4944,41 @@ button.bureau-nav__item:hover {
     padding-top: var(--e-m);
     gap: var(--e-m);
   }
-  .bureau-nav { display: flex; overflow-x: auto; padding-block: 0; }
+  .bureau-nav { display: flex; overflow-x: auto; padding: 0; }
   .bureau-nav__plier { display: none; }
   .bureau-nav__liste { display: flex; }
   .bureau-atelier--replie .bureau-nav__nom { display: block; }
   .bureau-atelier--replie .bureau-nav__item { justify-content: flex-start; padding-inline: var(--e-m); }
+  /* Couche, le classeur se lit de gauche a droite : l'encoche descend, la
+     languette tiree monte vers le travail. Meme carton, meme regle. */
   .bureau-nav__item {
+    width: auto;
+    margin-right: 0;
+    margin-bottom: var(--encoche);
     border-left: none;
     border-bottom: var(--trait-accent) solid transparent;
+    box-shadow: inset 1px 0 0 var(--cork-clair), inset -1px 0 0 var(--cork-encre);
     white-space: nowrap;
   }
-  .bureau-nav__item--actif { border-left: none; border-bottom-color: var(--gold); }
+  /* Couche, l'encoche est un cache pose sous la languette. Ici le clip-path est
+     sans danger : il rogne un pseudo-element, pas l'element qui prend le focus. */
+  .bureau-nav__item::after {
+    border: none;
+    right: auto;
+    left: 0;
+    top: 100%;
+    width: 100%;
+    height: var(--encoche);
+    background: var(--paper-deep);
+    clip-path: polygon(0 0, 50% 100%, 100% 0);
+  }
+  a.bureau-nav__item:hover,
+  button.bureau-nav__item:hover { margin-right: 0; margin-bottom: calc(var(--encoche) - 4px); }
+  .bureau-nav__item--actif {
+    border-left: none;
+    border-bottom-color: var(--bordeaux);
+    margin-bottom: 0;
+  }
 }
 
 /* ============================================================================

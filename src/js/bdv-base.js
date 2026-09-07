@@ -1320,7 +1320,7 @@ function renderBase(){
     html+=`<div class="pas-viti">
       <p class="pas-viti__titre">Cet outil ne lira pas tes fichiers.</p>
       <p>Tu as indiqué ne pas utiliser Vitisoft. Le tableau de bord est construit sur son format d'export et refusera tout autre fichier. Ce n'est pas une porte fermée : le reste du Bureau est ouvert, et gratuit.</p>
-      <p class="pas-viti__liens"><a href="/outils/echeances/">Le compte à rebours réglementaire</a> · <a href="/mon-bureau/">Mon bureau</a> · <a href="/articles/">Les articles</a></p>
+      <p class="pas-viti__liens"><a href="/outils/echeances/">Le calendrier réglementaire</a> · <a href="/mon-bureau/">Mon bureau</a> · <a href="/articles/">Les articles</a></p>
     </div>`;
   }
 
