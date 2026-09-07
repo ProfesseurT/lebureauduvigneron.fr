@@ -63,27 +63,71 @@
   // recent peut porter des colonnes hors empreinte (les adresses e-mail arrivees en aout 2026).
   // Ignorer le doublon garderait l'ancienne ligne incomplete, exactement ce que rawEnrichit()
   // evite en local. On ecrase donc la ligne par la version qui arrive.
+  // LE PIEGE DU 07/09/2026, A NE JAMAIS REINTRODUIRE
+  //
+  // Deux lignes identiques dans un meme export portent la MEME empreinte. C'est sans
+  // consequence en local, dbAddMany les compte en doublons et passe. Mais a l'envoi c'est
+  // mortel : PostgreSQL refuse un INSERT ... ON CONFLICT DO UPDATE dont deux lignes visent la
+  // meme cle, et il refuse TOUT le lot, avec
+  //     21000 : ON CONFLICT DO UPDATE command cannot affect row a second time
+  // Un seul doublon interne faisait donc perdre les 500 lignes qui l'accompagnaient. La base
+  // de Ted est restee bloquee a 500 lignes sur 4942, deux imports de suite, sans rien dire.
+  //
+  // On garde la DERNIERE occurrence, par coherence avec resolution=merge-duplicates : ici
+  // comme cote serveur, c'est la version la plus recente d'une ligne qui gagne.
+  function dedoublonner(items){
+    const vus = new Map();
+    (items || []).forEach(function(it){ if(it && it.h) vus.set(it.h, it); });
+    return Array.from(vus.values());
+  }
+
+  function envoyerLot(lot){
+    return BdvCompte.api('/ventes?on_conflict=id,empreinte', {
+      methode: 'POST',
+      corps: lot,
+      entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+    });
+  }
+
+  // Un lot refuse est recoupe en deux et reessaye, jusqu'a la ligne seule. Une ligne fautive
+  // coute donc une ligne, et plus jamais les 499 qui voyageaient avec elle. Le dedoublonnage
+  // ci-dessus supprime la cause connue ; ceci protege de toutes celles qu'on ne connait pas
+  // encore, et c'est la moitie qui compte : une sauvegarde ne doit pas etre tout ou rien.
+  async function envoyerAvecReprise(lot){
+    try{
+      await envoyerLot(lot);
+      return { envoyees: lot.length, echecs: 0 };
+    }catch(e){
+      if(lot.length === 1) return { envoyees: 0, echecs: 1 };
+      const milieu = Math.floor(lot.length / 2);
+      const a = await envoyerAvecReprise(lot.slice(0, milieu));
+      const b = await envoyerAvecReprise(lot.slice(milieu));
+      return { envoyees: a.envoyees + b.envoyees, echecs: a.echecs + b.echecs };
+    }
+  }
+
   async function pousserVentes(items, surProgres){
-    if(!pret() || !items || !items.length) return { envoyees: 0, echecs: 0 };
+    if(!pret() || !items || !items.length) return { envoyees: 0, echecs: 0, doublons: 0 };
     const moi = BdvCompte.monId();
+    const uniques = dedoublonner(items);
+    const doublons = items.length - uniques.length;
     let envoyees = 0, echecs = 0;
-    for(let i = 0; i < items.length; i += LOT){
-      const lot = items.slice(i, i + LOT).map(function(it){
+    for(let i = 0; i < uniques.length; i += LOT){
+      const lot = uniques.slice(i, i + LOT).map(function(it){
         return { id: moi, empreinte: it.h, brut: it.raw, maj_le: new Date().toISOString() };
       });
-      try{
-        await BdvCompte.api('/ventes?on_conflict=id,empreinte', {
-          methode: 'POST',
-          corps: lot,
-          entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
-        });
-        envoyees += lot.length;
-      }catch(e){
-        echecs += lot.length;
-      }
-      if(surProgres) surProgres(Math.min(i + LOT, items.length), items.length);
+      const r = await envoyerAvecReprise(lot);
+      envoyees += r.envoyees;
+      echecs   += r.echecs;
+      if(surProgres) surProgres(Math.min(i + LOT, uniques.length), uniques.length);
     }
-    return { envoyees: envoyees, echecs: echecs };
+    return { envoyees: envoyees, echecs: echecs, doublons: doublons };
+  }
+
+  // Combien de lignes le compte contient-il vraiment. Sert au compteur d'ecart de « Ma base ».
+  async function compterVentes(){
+    if(!pret() || !BdvCompte.compter) return null;
+    return await BdvCompte.compter('/ventes?select=empreinte');
   }
 
   /* ============================== LES REGLAGES ============================== */
@@ -268,6 +312,7 @@
     pret: pret,
     tirerVentes: tirerVentes,
     pousserVentes: pousserVentes,
+    compterVentes: compterVentes,
     lireReglages: lireReglages,
     ecrireReglages: ecrireReglages,
     lireSuivi: lireSuivi,

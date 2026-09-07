@@ -769,6 +769,35 @@
     const t = await r.text();
     return t ? JSON.parse(t) : null;
   }
+  // Compte les lignes d'une table SANS les rapatrier. PostgREST rend le total dans l'en-tete
+  // Content-Range quand on demande `count=exact` : « 0-0/4942 ». On ne lit qu'une seule ligne,
+  // donc c'est utilisable a chaque rendu d'ecran.
+  //
+  // Rend null quand le compte n'est pas lisible, JAMAIS un nombre approximatif : l'appelant
+  // doit pouvoir se taire plutot qu'afficher une comparaison inventee. C'est tout l'interet
+  // d'un compteur d'ecart : s'il peut mentir, il ne sert plus a rien.
+  async function compter(chemin){
+    if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    const s = lireSession();
+    if(!s) return null;
+    try{
+      const r = await fetch(SUPABASE_URL + '/rest/v1' + chemin, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + s.access_token,
+          'Range': '0-0',
+          'Prefer': 'count=exact'
+        }
+      });
+      if(!r.ok) return null;
+      const cr = r.headers.get('Content-Range');   // « 0-0/4942 », ou « */0 » si la table est vide
+      if(!cr) return null;
+      const n = parseInt(String(cr).split('/')[1], 10);
+      return isNaN(n) ? null : n;
+    }catch(e){ return null; }
+  }
+
   function monId(){ const s = lireSession(); return s ? s.user.id : null; }
 
   // ---------------- OUVERTURE DEPUIS N'IMPORTE QUEL BOUTON ----------------
@@ -814,6 +843,7 @@
     porte: porte,
     ouvrir: ouvrir,
     api: api,
+    compter: compter,
     monId: monId
   };
 

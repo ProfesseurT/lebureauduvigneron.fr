@@ -478,6 +478,7 @@ table.data tbody tr:hover{background:var(--paper-light)}
 .foot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.4rem;padding-top:1rem;border-top:var(--trait) solid var(--rule)}
 .appfoot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.6rem;padding-top:1.1rem;border-top:var(--trait) solid var(--rule)}
 .note{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.6rem}
+.note--alerte{color:var(--danger-deep);font-weight:600}
 .pourquoi{margin-top:.6rem;font-size:var(--t-petit)}
 .pourquoi summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--bordeaux);user-select:none}
 .pourquoi__in{margin-top:.5rem;padding:.6rem .8rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--muted);line-height:var(--lh-normal)}
@@ -813,6 +814,7 @@ async function tirerDuServeur(){
   crmSave();
     }
   }catch(e){ /* jamais bloquant */ }
+  finally{ statusFin(); }
 }
 // Le nom lisible d'un client, y compris pour un identifiant qui ne figure dans aucune
 // liste d'analyse. Cache construit une fois : la file relit des noms a chaque rendu.
@@ -972,7 +974,15 @@ function fmtNum(n,d){return new Intl.NumberFormat('fr-FR',{maximumFractionDigits
 function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
 function fmtPct(n,d){return (n>=0?'+':'')+fmtNum(n,d==null?1:d)+' %';}
 function plur(n,mot){return n+' '+mot+(n>1?'s':'');}
-function status(type,msg){const b=el('status');b.className='status '+type;el('statusTxt').textContent=msg;el('statusSpin').style.display=type==='loading'?'block':'none';b.style.display='flex';if(type!=='loading')setTimeout(()=>{b.style.display='none';},4000);}
+function status(type,msg){const b=el('status');b.className='status '+type;el('statusTxt').textContent=msg;el('statusSpin').style.display=type==='loading'?'block':'none';b.style.display='flex';if(type!=='loading')setTimeout(()=>{b.style.display='none';},type==='error'?12000:4000);}
+/* Referme le bandeau s'il est ENCORE en chargement, et ne touche a rien sinon.
+   Un status('loading') ne disparait jamais tout seul, volontairement : personne ne sait
+   combien de temps l'operation prend. La contrepartie, c'est que tout chemin qui en pose un
+   doit en sortir, y compris le chemin « rien de nouveau ». Le 07/09/2026, tirerDuServeur()
+   n'annoncait la fin que si des lignes avaient ete ajoutees : quand le compte ne rendait que
+   des lignes deja connues, le bandeau tournait a l'ecran jusqu'au rechargement de la page, et
+   Ted a legitimement cru que ses chiffres etaient en train de se construire sous ses yeux. */
+function statusFin(){const b=el('status');if(b&&b.className.indexOf('loading')>=0)b.style.display='none';}
 // Indicateur "le moteur travaille" : affiche la barre, laisse le navigateur la peindre, PUIS lance le calcul lourd.
 function busy(on,msg){const b=el('busyov');if(!b)return;if(on){const t=el('busytxt');if(t)t.textContent=msg||'Analyse…';b.classList.add('on');}else b.classList.remove('on');}
 function runBusy(msg,fn){if(!ROWS||ROWS.length<BUSY_MIN){fn();return;}busy(true,msg);const raf=window.requestAnimationFrame||(g=>setTimeout(g,16));raf(()=>raf(()=>{try{fn();}finally{busy(false);}}));}
@@ -1343,12 +1353,18 @@ async function handleFiles(list){
   // lesquelles il a retenues, et le serveur fusionne les doublons de toute facon. Un reimport
   // renvoie donc des lignes deja connues : c'est du reseau pour rien, mais c'est sans risque,
   // alors qu'un suivi approximatif de « ce qui est nouveau » laisserait des trous en base.
+  // UN SEUL compte rendu, a la fin, et il dit la verite sur les DEUX cotes.
+  // Jusqu'au 07/09/2026 l'echec de sauvegarde etait annonce ICI, puis efface quelques
+  // millisecondes plus tard par le message de succes pose dix lignes plus bas. Ted a donc vu
+  // « tout va bien » alors que 4 442 lignes n'etaient jamais arrivees sur son compte, et ce
+  // message vert est ce qui a rendu le trou indetectable pendant toute une matinee.
+  let echecsSync=0;
   if(syncPret()&&aPousser.length){
     status('loading','Enregistrement sur ton compte...');
     const env=await BdvSync.pousserVentes(aPousser,function(fait,total){
       status('loading','Enregistrement sur ton compte, '+fmtNum(fait)+' / '+fmtNum(total)+'...');
     });
-    if(env.echecs)status('error',fmtNum(env.echecs)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles sont bien sur cet appareil, réimporte le fichier plus tard.');
+    echecsSync=env.echecs;
   }
   await reloadFromDB();
   const total=ROWS.length;
@@ -1357,7 +1373,9 @@ async function handleFiles(list){
   const enrichTxt=totEnrich?', '+fmtNum(totEnrich)+' ligne(s) complétée(s) avec les adresses e-mail':'';
   const couvTxt=COUV.total?' '+fmtNum(COUV.joignables)+' client(s) sur '+fmtNum(COUV.total)+' sont joignables ('
     +fmtNum(COUV.mail)+' par e-mail, '+fmtNum(COUV.tel)+' par téléphone).':'';
-  status('success',totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s)'+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt);
+  const resume=totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s)'+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt;
+  if(echecsSync)status('error','Attention, '+fmtNum(echecsSync)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles sont bien sur cet appareil. '+resume);
+  else status('success',resume);
   if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});
   openApp();
 }
@@ -4109,6 +4127,27 @@ function majImpact(){const z=el('impactReg');if(z)z.innerHTML=impactHtml();}
 // Vrai seulement si le vigneron a repondu « non » a la question Vitisoft de l'inscription.
 // Un refus qui ne propose rien est un refus rate : le bloc l'oriente au lieu de le planter.
 let PAS_VITISOFT=false;
+/* Compare ce qu'il y a ICI a ce qu'il y a SUR LE COMPTE, et le dit en clair.
+   Sans cet ecart affiche, une sauvegarde interrompue est indetectable : les chiffres de cet
+   appareil restent justes, et c'est justement ce qui endort. Le 07/09/2026 la base de Ted a
+   passe la matinee a 500 lignes sur 4942 sans qu'aucun ecran ne puisse le dire.
+   Le compteur se tait quand il ne sait pas : un compteur d'ecart qui peut mentir ne sert plus. */
+async function majCompteurServeur(){
+  const p=el('baseSync');if(!p)return;
+  if(!ROWS.length){p.textContent='';return;}
+  if(!syncPret()){p.textContent='Tu n\'es pas connecté à ton compte : ces lignes ne vivent que dans ce navigateur.';return;}
+  let n=null;
+  try{n=await BdvSync.compterVentes();}catch(e){n=null;}
+  const q=el('baseSync');if(!q)return;   // l'ecran a pu etre reconstruit pendant l'attente
+  if(n==null){q.className='note';q.textContent='Impossible de vérifier ta sauvegarde pour le moment. Les lignes de cet appareil sont intactes.';return;}
+  if(n>=ROWS.length){
+    q.className='note';
+    q.textContent=fmtNum(n)+' ligne(s) sauvegardées sur ton compte. Tu retrouveras ta base sur un autre appareil.';
+  }else{
+    q.className='note note--alerte';
+    q.textContent='Sauvegarde incomplète : '+fmtNum(ROWS.length)+' ligne(s) sur cet appareil, mais seulement '+fmtNum(n)+' sur ton compte. Redépose ton export ci-dessous pour compléter. En l\'état, un autre appareil n\'en verrait que '+fmtNum(n)+'.';
+  }
+}
 function renderBase(){
   const vin=ROWS.filter(r=>r._vin);
   const horsVin=ROWS.filter(r=>r._horsVin && !r._offert);
@@ -4148,6 +4187,9 @@ function renderBase(){
   if(SANS_NUM){
     html+=`<p class="note">${fmtNum(SANS_NUM)} ligne(s) sans numéro client. Elles sont suivies sous le nom du client, ce qui fonctionne, mais leur fiche de suivi se perdra si l'orthographe du nom change dans Vitisoft.</p>`;
   }
+  // Rempli apres coup par majCompteurServeur(), appele en fin de rendu : le panneau ne doit
+  // pas attendre le reseau pour s'afficher.
+  html+=`<p class="note" id="baseSync">Vérification de ta sauvegarde…</p>`;
 
   // ZONE B : details.
   html+=`<div class="section-label">Détails</div>`;
@@ -4191,6 +4233,8 @@ function renderBase(){
   el('p-base').innerHTML=html;
   // Le panneau vient d'etre reconstruit, la zone de depot qu'il contient est neuve.
   bindZoneDepot('dropzoneReg','fileInputReg');
+  // Sans await : le reseau ne retarde pas l'affichage du panneau.
+  majCompteurServeur();
 }
 async function viderBase(){
   // Le texte dit maintenant les DEUX cotes. Vider seulement le navigateur n'aurait plus aucun
