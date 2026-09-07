@@ -218,6 +218,13 @@
       }
       renderBase();
       renderReglages();
+      /* ET LE BANDEAU D'ETAT UNE SECONDE FOIS. rafraichirTout() l'a peint AVANT ce
+         rapatriement, donc avec ce que l'appareil avait alors, c'est-a-dire rien sur un
+         poste neuf : il annoncait « Aucune ligne pour le moment, depose ton export » a
+         dix pixels au-dessus des cartes qui affichaient les 4 939 lignes qui venaient
+         d'arriver. Un ecran qui se contredit lui-meme sur la meme hauteur d'ecran, c'est
+         « tout est pete » pour celui qui le lit, et il a raison de le penser. */
+      peindreBase();
     }catch(e){}
   }
 
