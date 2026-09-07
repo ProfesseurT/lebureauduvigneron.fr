@@ -1,69 +1,64 @@
+---
+permalink: /outils/dashboard-vigneron/
+eleventyExcludeFromCollections: true
+---
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Le Bureau du Vigneron, tableau de bord des ventes</title>
-<meta name="description" content="Dépose ton export Vitisoft. Tableau de bord des ventes, conseils commerciaux automatiques. Réservé aux utilisateurs de Vitisoft.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjNDUxMDFEIi8+PHJlY3QgeD0iNi41IiB5PSIxNyIgd2lkdGg9IjQuNSIgaGVpZ2h0PSI4IiBmaWxsPSIjQzRBMjRFIi8+PHJlY3QgeD0iMTMuNzUiIHk9IjEyIiB3aWR0aD0iNC41IiBoZWlnaHQ9IjEzIiBmaWxsPSIjQzRBMjRFIi8+PHJlY3QgeD0iMjEiIHk9IjciIHdpZHRoPSI0LjUiIGhlaWdodD0iMTgiIGZpbGw9IiNDNEEyNEUiLz48L3N2Zz4=">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Le Bureau du Vigneron">
-<meta property="og:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
-<meta property="og:description" content="Dépose ton export Vitisoft : ton CA, tes clients à relancer, tes canaux et des conseils commerciaux automatiques. Réservé aux utilisateurs de Vitisoft.">
-<meta property="og:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Tableau de bord des ventes · Le Bureau du Vigneron">
-<meta name="twitter:description" content="Ton export Vitisoft se lit tout seul : CA, clients, canaux, conseils. Réservé aux utilisateurs de Vitisoft.">
-<meta name="twitter:image" content="https://lebureauduvigneron.vercel.app/assets/og-dashboard.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="/js/bdv-canaux.js"></script>
-<script src="/js/bdv-compte.js" data-outil="dashboard-vigneron" defer></script>
-<script src="/js/bdv-sync.js" defer></script>
-<!-- Le panneau de reglages, partage avec /mon-bureau/. Fusion du 07/09/2026 : « Reglages »
-     et « Ma base » ne sont plus des ecrans d'ici, ce sont deux blocs de ce panneau-la. -->
-<script src="/js/bdv-reglages.js" defer></script>
-<!-- Verrou pose AVANT le premier pixel. Sans compte, rien du tableau de bord ne s'affiche,
-     pas meme la zone de depot. On lit la session directement dans localStorage au lieu
-     d'attendre bdv-compte.js, qui est charge en defer : sinon la page s'afficherait une
-     fraction de seconde avant que la porte ne la recouvre, et ce clignotement montrerait
-     justement ce qu'on veut cacher. Le verrou est leve par le bloc INIT en fin de page. -->
+<title>Le tableau de bord a demenage dans ton bureau</title>
+<meta name="robots" content="noindex">
+<!--
+  ============================================================================
+  CETTE PAGE N'EST PLUS UN OUTIL, C'EST UNE REDIRECTION
+  ----------------------------------------------------------------------------
+  Lot 2d de la fusion, 07/09/2026. Le tableau de bord des ventes n'est plus un
+  lieu ou l'on va : ses ecrans sont des pieces du bureau, dans la barre de
+  gauche de /mon-bureau/.
+
+  Elle reste ici, et elle ne doit pas etre supprimee, parce que des adresses de
+  cette forme circulent deja : un vigneron a pu mettre « Mes clients » en
+  favori, l'ecran s'ecrivant dans l'adresse depuis le debut. Une adresse qu'on
+  a donnee ne se reprend pas.
+
+  LA TRADUCTION SE FAIT EN JAVASCRIPT ET PAS PAR UNE REGLE DE SERVEUR, pour une
+  raison precise : le fragment (#clients, #client=JAYAMA) n'est jamais envoye au
+  serveur. Une redirection 301 le laisserait au navigateur, qui le rattacherait
+  a la nouvelle adresse par chance plus que par contrat. Ici on le lit, on le
+  traduit, et on sait ce qu'on ecrit.
+
+  replace() et pas assign() : la page traversee ne doit pas s'inscrire dans
+  l'historique, sinon le bouton Retour du bureau repasse par elle et rebondit.
+  ============================================================================
+-->
 <script>
-  try{
-    var _bdvS = JSON.parse(localStorage.getItem('bdv_session'));
-    if(!(_bdvS && _bdvS.access_token && _bdvS.user)) document.documentElement.className += ' bdv-verrou';
-  }catch(e){ document.documentElement.className += ' bdv-verrou'; }
+  (function () {
+    var brut = (location.hash || '').replace('#', '');
+    // « Ma base », « parametres » et « reglages » designaient tous le meme endroit,
+    // qui est aujourd'hui le panneau de reglages du bureau.
+    if (brut === 'parametres' || brut === 'reglages') brut = 'base';
+    var connues = ['annee', 'clients', 'produits', 'chercher', 'base'];
+    var cible = '/mon-bureau/';
+    if (brut.indexOf('client=') === 0 || connues.indexOf(brut) >= 0) cible += '#' + brut;
+    location.replace(cible);
+  })();
 </script>
-<style>html.bdv-verrou body > *:not(.bdv-porte){visibility:hidden}</style>
-<!-- La mise en forme des ecrans a demenage dans /css/bdv-ecrans.css le 07/09/2026,
-     lot 0 de la fusion dans le bureau. Posee ICI et pas ailleurs : juste apres le
-     verrou ci-dessus, pour que la cascade reste celle du fichier d'origine. -->
-<link rel="stylesheet" href="/css/bdv-ecrans.css">
-<!-- Le reset global (html, body, les titres, les liens) que cette page-ci est seule a
-     avoir besoin : elle n'a pas src/css/style.css. Le bureau, lui, l'a deja, et charger
-     ces cinq regles chez lui aurait rabattu l'interlignage du site de 1,7 a 1,5.
-     Disparait avec cette page au lot 2d. -->
-<link rel="stylesheet" href="/css/bdv-ecrans-page.css">
+<style>
+  body{margin:0;padding:3rem 1.5rem;background:#EFE7D6;color:#1E2536;
+       font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;line-height:1.7}
+  .b{max-width:34rem;margin:0 auto}
+  a{color:#5A1525}
+</style>
 </head>
 <body>
-
-<!-- La coque des ecrans de vente a demenage dans _includes/components/ecrans-vente.njk
-     le 07/09/2026, lot 2b de la fusion. Le bureau inclut la MEME, ce qui garantit que
-     les trente-deux id dont bdv-ecrans.js a besoin sont les memes aux deux endroits.
-     Une coque recopiee aurait divergé le jour ou l'un des deux aurait gagne un ecran. -->
-{% include "components/ecrans-vente.njk" %}
-
-<!-- LE MOTEUR DE LA BASE. Sans defer et AVANT le script ci-dessous : ce dernier lit des
-     variables declarees la-dedans des son analyse. Voir l'entete de bdv-base.js. -->
-<script src="/js/bdv-base.js"></script>
-<!-- Les ecrans de vente ont demenage dans /js/bdv-ecrans.js le 07/09/2026, lot 0 de
-     la fusion dans le bureau. Sans defer et APRES bdv-base.js : cet ordre est une
-     condition, pas une preference. Voir l'entete de bdv-ecrans.js. -->
-<script src="/js/bdv-ecrans.js"></script>
+<!-- Ce texte ne s'affiche que si le script n'a pas pris. Il dit ou aller, et il le dit en
+     francais : une page blanche avec une adresse technique n'aide personne. -->
+<div class="b">
+  <h1>Ton tableau de bord a rejoint ton bureau.</h1>
+  <p>Tes ventes, tes clients et tes cuvées ne sont plus un outil à part : ce sont des pièces
+    de ton bureau, dans la barre de gauche.</p>
+  <p><a href="/mon-bureau/">Aller à mon bureau</a></p>
+</div>
 </body>
 </html>

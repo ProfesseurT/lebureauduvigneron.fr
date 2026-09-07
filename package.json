@@ -7,8 +7,9 @@
     "start": "eleventy --serve",
     "dev": "eleventy --serve",
     "charte": "node scripts/charte.mjs",
-    "charte:dash": "node scripts/charte.mjs --dash",
-    "banc": "node scripts/banc-bureau.mjs"
+    "charte:dash": "node scripts/charte.mjs --bureau",
+    "banc": "node scripts/banc-bureau.mjs",
+    "charte:bureau": "node scripts/charte.mjs --bureau"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",

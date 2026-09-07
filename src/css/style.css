@@ -4866,20 +4866,33 @@ button.bureau-nav__item:hover {
   min-height: 0;
 }
 #bureauVentes .bdv-ventes .topbar { grid-column: 1 / 2; }
-/* Le volet, le repere de position, la marque et le retour au bureau : quatre reperes
-   dont la barre du bureau et l'entete de la page repondent deja. « Me deconnecter »
-   aussi : il vit dans l'entete du bureau, et deux boutons definitifs sur un ecran
-   valent moins qu'un seul. */
-#bureauVentes .bdv-ventes .sidebar,
-#bureauVentes .bdv-ventes .volet,
-#bureauVentes .bdv-ventes .ici,
-#bureauVentes .bdv-ventes .topbar__brand,
-#bureauVentes .bdv-ventes .topbar__home,
-#bureauVentes .bdv-ventes #tbSortir { display: none; }
-/* Il reste a la barre haute ce qui appartient vraiment aux ventes : le compte de
-   lignes, et les trois sorties (ajouter un export, PDF, Excel). */
+/* Les six reperes en trop ne sont plus masques : ils ont ete retires de la coque au lot
+   2d. Il reste a la barre haute ce qui appartient vraiment aux ventes, le compte de
+   lignes et les trois sorties. */
 #bureauVentes .bdv-ventes .topbar { border-bottom: var(--trait) solid var(--rule); background: var(--paper-deep); }
 #bureauVentes .bdv-ventes .topbar__file { color: var(--muted); opacity: 1; }
+/* LES BOUTONS PALES, RHABILLES POUR LE PAPIER. .btn--light a ete dessine pour se poser
+   sur le bordeaux de l'ancienne barre haute du tableau de bord : creme sur bordeaux, tres
+   lisible. Dans le bureau, ces memes boutons tombent sur une bande claire et sur des
+   cartes blanches, ou ils devenaient a peine visibles : « Exporter PDF » et « Ouvrir ma
+   base » se devinaient plus qu'ils ne se lisaient.
+
+   Vu sur une capture le 07/09/2026, et c'est le genre de defaut qu'aucun controle
+   n'attrape : la charte verifie des paires de couleurs nommees, pas un bouton pose sur un
+   fond pour lequel il n'a pas ete dessine. La regle est ici et pas dans bdv-ecrans.css :
+   c'est le bureau qui change le fond, donc c'est au bureau de payer le rhabillage. Les
+   memes boutons dans le panneau de reglages ne sont pas touches, ils sont hors
+   #bureauVentes et leur fond n'a pas change. */
+#bureauVentes .bdv-ventes .btn--light {
+  background: var(--paper-light);
+  color: var(--ink);
+  border: var(--trait) solid var(--rule-fort);
+}
+#bureauVentes .bdv-ventes .btn--light:hover {
+  background: var(--bordeaux);
+  color: var(--on-dark);
+  border-color: var(--bordeaux);
+}
 #bureauVentes .bdv-ventes .appfoot { display: none; }
 
 /* La piece qu'on vient de demander, pendant que ses 2 500 lignes arrivent. Discret

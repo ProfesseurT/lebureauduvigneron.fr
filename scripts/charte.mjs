@@ -2,7 +2,7 @@
    scripts/charte.mjs : controle de conformite a la charte graphique.
 
      node scripts/charte.mjs           le CSS du site
-     node scripts/charte.mjs --dash    le tableau de bord
+     node scripts/charte.mjs --bureau  le bureau et ses ecrans de vente
 
    Ne modifie rien. Sortie 0 seulement si tout est conforme.
 
@@ -20,21 +20,32 @@ import { fileURLToPath } from 'url';
 import * as csstree from 'css-tree';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DASH = process.argv.includes('--dash');
+/* `--dash` a ete renomme `--bureau` le 07/09/2026 au lot 2d : le tableau de bord n'existe
+   plus comme page, ses ecrans sont des pieces du bureau. L'ancien nom est encore accepte,
+   parce qu'il est dans les habitudes et dans les commandes qu'on se recopie. */
+const DASH = process.argv.includes('--bureau') || process.argv.includes('--dash');
 
-/* Le tableau de bord N'EST PLUS un fichier autonome. Depuis le lot 0 de la fusion
-   dans le bureau (07/09/2026), sa mise en forme est dans /css/bdv-ecrans.css et ses
-   ecrans dans /js/bdv-ecrans.js. `--dash` ne controle donc plus un fichier mais un
-   ensemble : la page, les feuilles de style qu'elle LIE, et les fichiers de src/js.
+/* CE QUE `--bureau` CONTROLE, ET POURQUOI C'EST UNE PAGE CONSTRUITE.
 
-   C'est le meme piege qu'en septembre, deplace d'un cran : un controle qui lit le
-   HTML seul trouve desormais une ligne de CSS et six icones absentes, et il le dit
-   avec aplomb. Trois endroits en dependent et sont annotes plus bas : le parsing
-   (section Parsing), les tokens lus depuis le JS (section 5) et les entites HTML
-   (section 9). Le lien Google Fonts, lui, est reste dans la page. */
-const CIBLE = DASH ? path.join(RACINE, 'src/outils/dashboard-vigneron.html')
+   Le tableau de bord n'est plus un fichier autonome, et depuis le lot 2d il n'est plus
+   une page du tout : ses ecrans sont des pieces de /mon-bureau/. La cible est donc le
+   bureau, et c'est sa version PRODUITE, _site/mon-bureau/index.html, parce que le
+   gabarit src/mon-bureau.njk ne porte pas ses propres feuilles de style : elles sont
+   dans le layout. Lire le gabarit, c'est ne rien lire, et l'annoncer CONFORME.
+
+   Il faut donc `npm run build` avant. Sans le fichier, ce script s'arrete en le disant
+   plutot que de controler autre chose : deux fois dans la journee du 07/09/2026, ce
+   controle a annonce CONFORME sur du vide, et deux fois pour une raison differente. */
+const CIBLE = DASH ? path.join(RACINE, '_site/mon-bureau/index.html')
                    : path.join(RACINE, 'src/css/style.css');
+if (DASH && !fs.existsSync(CIBLE)) {
+  console.error('\n  ' + path.relative(RACINE, CIBLE) + ' est absent : lance npm run build d\'abord.');
+  console.error('  Rien n\'a ete controle.\n');
+  process.exit(2);
+}
 const APRES = CIBLE;
+/* La page produite porte deja son lien Google Fonts, recopie du layout : on le lit la,
+   et pas dans le gabarit, pour la meme raison que ci-dessus. */
 const LIEN_FONTS = DASH ? CIBLE : path.join(RACINE, 'src/_includes/base.njk');
 
 console.log('cible : ' + path.relative(RACINE, CIBLE));
@@ -94,6 +105,21 @@ function parse(fichier) {
       const f = path.join(RACINE, 'src', h.replace(/^\//, ''));
       if (fs.existsSync(f)) liees.push(f);
       else erreursHtml.push('feuille liee introuvable : ' + h);
+    }
+    /* LES FEUILLES CHARGEES EN JAVASCRIPT. Elles ne sont pas dans le HTML, donc aucune
+       lecture du document ne les trouvera, et pourtant elles s'appliquent a la page :
+         - bdv-ecrans.css, posee par bdv-nav.js au premier clic sur une piece de vente ;
+           elle porte huit jetons que le site n'a pas, dont --bordeaux-voile, appele par
+           bdv-base.js. Sans elle, le controle les declare non declares, avec aplomb.
+         - bdv-panneau.css, posee par bdv-reglages.js quand le panneau s'ouvre.
+       Nommees a la main : une feuille chargee par du code ne se devine pas, et une liste
+       qui se devinerait toute seule finirait par ne plus rien surveiller. */
+    if (DASH) {
+      for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css']) {
+        const abs = path.join(RACINE, f);
+        if (fs.existsSync(abs)) liees.push(abs);
+        else erreursHtml.push('feuille chargee en JavaScript introuvable : ' + f);
+      }
     }
     if (!blocs.length && !liees.length) erreursHtml.push('aucun CSS trouve dans ' + fichier + ' : ni bloc <style>, ni feuille liee');
     console.log('  CSS lu : ' + blocs.length + ' bloc(s) <style> + ' + liees.length + ' feuille(s) liee(s)'
@@ -562,7 +588,9 @@ if (!jsCouleursDur && !jsRayonsDur && !jsRepliFaux && !jsTokenAbsent) ok('CSS em
    sablier, &#9998; le crayon) et src/js/bdv-reglages.js (&#215; la croix de fermeture), que
    personne ne surveillait jusqu'ici. Les trois dernieres sont donc une COUVERTURE NOUVELLE,
    pas un ajout d'icone. */
-const ENTITES_ATTENDUES = ['&#8592;', '&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;',
+/* &#8592; est partie au lot 2d avec le lien « Mon bureau » de la barre des ecrans : on
+   n'a plus a revenir au bureau depuis un endroit qui EST le bureau. */
+const ENTITES_ATTENDUES = ['&#127863;', '&#128101;', '&#128200;', '&#128204;', '&#128301;',
                            '&#9095;', '&#9998;', '&#215;',
                            /* Lot 1, la barre du bureau (src/js/bdv-nav.js) : le soleil de
                               « Ma journee », le sablier du compte a rebours, la roue des

@@ -50,20 +50,25 @@
    position fixe et le panneau comme l'impression les sortent de cet arbre. #}
 <div class="bdv-ventes">
 <div class="app" id="app">
+  {#
+    LA BARRE DES ECRANS, allegee au lot 2d. Six reperes en sont partis, et chacun parce
+    qu'un autre endroit du bureau le porte deja :
+      - le bouton de repli et le volet de gauche  -> la barre du bureau
+      - le menu de secours et son libelle « ici » -> la barre du bureau, qui ne se
+        replie jamais a zero et n'a donc rien a rattraper
+      - la marque et le retour « Mon bureau »     -> la barre du site, en haut de page
+      - « Me deconnecter »                        -> l'entete du bureau, qui porte le
+        garde-fou. Deux boutons definitifs sur un meme ecran valent moins qu'un seul.
+    Il reste ce qui appartient vraiment aux ventes : le compte de lignes, et les trois
+    sorties. #}
   <div class="topbar">
-    <div class="topbar__gauche"><button class="volet" id="volet" type="button" aria-expanded="true" aria-controls="sidebar"
-        title="Replier le menu (touche crochet ouvrant)" onclick="basculerVolet()"><span class="volet__filets" aria-hidden="true"></span><span class="sr">Replier le menu</span></button><a href="/" class="topbar__brand" title="Retour au site">Le Bureau du Vigneron</a><div class="ici" id="ici"><button class="ici__btn" id="tbSection" type="button" aria-haspopup="true" aria-expanded="false" onclick="basculerIci(event)"></button><div class="ici__menu" id="iciMenu" role="menu"></div></div><a href="/mon-bureau/" class="topbar__home">&#8592; Mon bureau</a> <span class="topbar__file" id="tbFile"></span></div>
+    <div class="topbar__gauche"><span class="topbar__file" id="tbFile"></span></div>
     <div class="topbar__actions">
       <button class="btn btn--light btn--sm" onclick="showImport()">+ Ajouter un export</button>
       <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
       <button class="btn btn--light btn--sm" onclick="exportExcel()">Exporter Excel</button>
-      <!-- Le meme bouton qu'au bureau, servi par le meme garde-fou : se deconnecter EFFACE
-           ce navigateur, et le module refuse de partir si le compte contient moins de
-           lignes que ce poste. Demande de Ted du 07/09/2026 : present dans les deux. -->
-      <button class="btn btn--light btn--sm" id="tbSortir" type="button">Me déconnecter</button>
     </div>
   </div>
-  <nav class="sidebar" id="sidebar"></nav>
   <main class="content">
     <div class="filterbar" id="filterbar"></div>
     <section class="panel" id="p-annee">

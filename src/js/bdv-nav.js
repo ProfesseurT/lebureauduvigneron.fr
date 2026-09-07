@@ -415,5 +415,6 @@
   }
 
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
-                    sansVitisoft: sansVitisoft, afficher: afficher };
+                    sansVitisoft: sansVitisoft, afficher: afficher,
+                    marquerActif: marquerActif };
 })();

@@ -102,7 +102,17 @@ function jourMoisRecule(n){
   return Math.floor(Date.UTC(META.max.y,META.max.m-1-n,1)/86400000);
 }
 
-/* ======================= APP / NAV ======================= */
+/* ======================= APP / NAV =======================
+   NAV N'EST PLUS UNE NAVIGATION. Depuis le lot 2d du 07/09/2026, la barre du bureau
+   est la seule navigation, et elle vit dans src/js/bdv-nav.js. Ce qui reste ici est la
+   liste des ecrans que CE fichier sait rendre, avec leurs libelles : navTo() s'en sert
+   pour nommer l'ecran courant, et demarrerEcransVente() pour refuser une adresse qui ne
+   designe aucun ecran.
+
+   LES IDENTIFIANTS DOIVENT RESTER LES MEMES QUE CEUX DE bdv-nav.js. C'est le seul lien
+   entre les deux fichiers, et il n'est tenu par aucun mecanisme : `npm run banc` compare
+   les deux listes et echoue si elles divergent. Ajouter un ecran, c'est donc l'ajouter
+   aux deux endroits, dans le meme commit. */
 const NAV=[
   {id:'annee',   ico:'&#128200;', label:'Mon année'},
   {id:'clients', ico:'&#128101;', label:'Mes clients'},
@@ -112,15 +122,9 @@ const NAV=[
   // l'outil mais deux blocs du panneau partagé avec le bureau : une seule entrée, qui ouvre.
   {id:'reglages',ico:'⚙',        label:'Réglages', panneau:true}
 ];
-// Les autres pieces du bureau, en pied de volet. Le tableau de bord n'est pas une
-// application a part dans laquelle on entre et dont on ressort : on doit pouvoir passer
-// a un article ou au compte a rebours sans repasser par la porte du site.
-const NAV_BUREAU=[
-  {href:'/mon-bureau/',      label:'Ma journée'},
-  {href:'/mon-bureau/',      label:'Mon bureau'},
-  {href:'/outils/echeances/',label:'Le compte à rebours'},
-  {href:'/articles/',        label:'Les articles'}
-];
+// NAV_BUREAU a disparu au lot 2d. C'etait le pied du volet : quatre liens vers les autres
+// pieces du bureau, pour ne pas etre enferme dans l'outil. On n'est plus enferme : ces
+// pieces sont dans la barre du bureau, a cote de celles-ci, au meme rang.
 /* ---------------- LE PANNEAU DE REGLAGES, PARTAGE AVEC LE BUREAU ----------------
    Les deux <div> sont DEPLACES dans le panneau, pas recopies : renderBase(),
    renderReglages() et bindZoneDepot() continuent d'ecrire au meme endroit, sans une ligne
@@ -152,14 +156,10 @@ function ouvrirPanneauReglages(){
 function openApp(ecranDepart){
   el('app').classList.add('on');
   el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
-  el('sidebar').innerHTML=NAV.map(n=>n.panneau
-      ? `<button class="navitem" type="button" onclick="ouvrirPanneauReglages()"><span class="navitem__ico">${n.ico}</span>${n.label}</button>`
-      : `<button class="navitem" data-p="${n.id}" onclick="navTo('${n.id}')"><span class="navitem__ico">${n.ico}</span>${n.id==='annee'?('Mon '+exMot()):n.label}</button>`).join('')
-    +`<div class="navpied"><p class="navpied__titre">Le Bureau</p>`
-    +NAV_BUREAU.map(n=>`<a class="navpied__lien" href="${n.href}">${n.label}</a>`).join('')
-    +`</div>`;
-  peuplerIci();
-  appliquerVolet(voletReplie());
+  /* Le volet de gauche a disparu au lot 2d, avec son pied et avec le menu de secours de la
+     barre haute. Ces trois-la existaient parce que cette page etait un lieu ou l'on entrait
+     et dont il fallait pouvoir sortir. La barre du bureau tient ce role, elle est toujours
+     la, et elle ne se replie jamais a zero : il n'y a plus de sortie a prevoir. */
   buildFilterBar();
   // Base vide : on ouvre quand meme, sur « Ma base ». renderAll() n'a rien a calculer et
   // certains ecrans se construisent mal sur zero ligne ; on ne l'appelle donc pas.
@@ -168,20 +168,10 @@ function openApp(ecranDepart){
   // 06/09/2026 ; ici on analyse, on ne travaille pas sa file.
   runBusy('Analyse de tes ventes…',()=>{renderAll();navTo(ecranDepart||'annee');});
 }
-/* ---------------- VOLET DE NAVIGATION ----------------
-   Replier le menu rend 230 px de large au tableau. La preference suit le
-   navigateur du vigneron, comme l'objectif de CA et les libelles perso. */
-const VOLET_KEY='bdv_volet_replie';
-function voletReplie(){try{return localStorage.getItem(VOLET_KEY)==='1';}catch(e){return false;}}
-function appliquerVolet(replie){
-  const app=el('app'), b=el('volet');
-  app.classList.toggle('replie',replie);
-  if(b){
-    b.setAttribute('aria-expanded',String(!replie));
-    b.title=(replie?'Deplier':'Replier')+' le menu (touche crochet ouvrant)';
-    b.querySelector('.sr').textContent=(replie?'Deplier':'Replier')+' le menu';
-  }
-}
+/* ---------------- LE VOLET A DEMENAGE ----------------
+   Le volet de navigation, sa preference de repli (cle bdv_volet_replie) et le raccourci
+   crochet ouvrant vivent dans src/js/bdv-nav.js depuis le lot 1. La cle est la meme : ce
+   n'est pas une reprise, c'est la meme preference, pour la meme barre. */
 
 /* Chart.js dimensionne un canvas au moment ou il le cree. Un canvas cree
    pendant que la grille est encore en train de bouger nait a 0 de large et y
@@ -196,47 +186,21 @@ function redimGraphiques(){
 if(window.ResizeObserver){
   new ResizeObserver(redimGraphiques).observe(document.querySelector('.content'));
 }
-/* Le menu de la barre haute : meme source que le volet, jamais une copie. */
-function peuplerIci(){
-  el('iciMenu').innerHTML=NAV.map(n=>n.panneau
-    ? `<button class="ici__item" role="menuitem" type="button" onclick="ouvrirPanneauReglages()">${n.label}</button>`
-    : `<button class="ici__item" role="menuitem" data-p="${n.id}" onclick="navTo('${n.id}')">${n.label}</button>`).join('');
-}
-function fermerIci(){
-  const d=el('ici'); if(!d)return;
-  d.classList.remove('ouvert'); el('tbSection').setAttribute('aria-expanded','false');
-}
-function basculerIci(e){
-  e.stopPropagation();
-  const d=el('ici'), o=!d.classList.contains('ouvert');
-  d.classList.toggle('ouvert',o); el('tbSection').setAttribute('aria-expanded',String(o));
-}
-document.addEventListener('click',fermerIci);
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fermerIci();});
-
-function basculerVolet(){
-  fermerIci();
-  const r=!el('app').classList.contains('replie');
-  try{localStorage.setItem(VOLET_KEY,r?'1':'0');}catch(e){}
-  appliquerVolet(r);
-}
-// Le crochet ouvrant ne sert a rien d'autre ici, mais jamais pendant une saisie.
-document.addEventListener('keydown',e=>{
-  if(e.key!=='['||e.metaKey||e.ctrlKey||e.altKey)return;
-  const t=e.target;
-  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;
-  if(!el('app').classList.contains('on'))return;
-  e.preventDefault(); basculerVolet();
-});
+/* Le menu de secours de la barre haute a disparu au lot 2d. Il existait pour une raison
+   precise : le volet se repliait a ZERO, et replier enfermait alors le vigneron dans
+   l'ecran ou il se trouvait. La barre du bureau garde ses icones en se repliant, donc il
+   n'y a plus rien a rattraper. C'etait la difference assumee du lot 1, et voici ce
+   qu'elle achete : quatre fonctions et deux ecouteurs de document en moins. */
 
 // Ne sort plus de l'application : le depot de fichier est un ecran comme un autre.
 function showImport(){ ouvrirPanneauReglages(); }
 function navTo(id){
-  document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
-  const ici=NAV.find(n=>n.id===id);
-  if(ici) el('tbSection').textContent='· '+ici.label;
-  document.querySelectorAll('.ici__item').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
-  fermerIci();
+  /* LE REPERAGE VIT DANS LA BARRE DU BUREAU. Trois endroits le portaient avant le lot 2d :
+     le volet, le menu de secours et le libelle de la barre haute. Un seul le porte
+     maintenant, et il n'est pas dans ce fichier. navTo est appele aussi de l'interieur des
+     ecrans (un filtre, un lien de fiche) : sans cette ligne, la barre resterait sur la
+     piece precedente alors que l'ecran a change. */
+  if(window.BdvNav && BdvNav.marquerActif) BdvNav.marquerActif(id);
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';

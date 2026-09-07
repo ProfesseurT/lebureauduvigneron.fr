@@ -66,17 +66,37 @@ Verifie : `npm run banc`, premier test automatise du depot, 26 controles. Plus `
 developpement seulement, mais Vercel installe aussi les devDependencies pendant le build :
 si le temps de build compte un jour, c'est la premiere chose a sortir.
 
-### Lot 2 : les ecrans de vente s'affichent dans le bureau
+### Lot 2 : les ecrans de vente s'affichent dans le bureau — FAIT le 07/09/2026
 
-1. Le bureau apprend a passer en pleine largeur sur les ecrans qui le demandent.
-2. `bdv-ecrans.css` et `bdv-ecrans.js`, Chart.js et le lecteur xlsx ne sont charges qu'au
-   premier clic sur un ecran de vente. Ouvrir le bureau pour lire une echeance ne doit pas
-   couter le prix de tout l'outil.
-3. `/outils/dashboard-vigneron/` devient une redirection vers le bureau, en conservant
-   l'ecran demande. Les quatre liens internes de `mon-bureau.njk` et les favoris deja poses
-   par un vigneron doivent continuer de tomber au bon endroit, fiche client comprise.
+Mene en quatre temps, chacun verifiable seul :
 
-Verification : les cinq controles, plus l'ouverture d'une adresse ancienne de chaque forme.
+**2a.** Le demarrage des ecrans devient une fonction, `demarrerEcransVente({ecran, client})`,
+idempotente. Il vivait dans un ecouteur `DOMContentLoaded`, qui ne se declenche jamais quand
+le script est charge au clic : la colonne serait restee vide, sans une erreur pour le dire.
+
+**2b.** La coque des ecrans sort dans `_includes/components/ecrans-vente.njk`, incluse par
+les deux pages. Deplacement pur, verifie : coque produite identique au caractere pres,
+memes 4 901 octets, memes trente-deux id.
+
+**2c.** Le chargement a la demande, la bascule, et LE SCOPE. Les 373 selecteurs de
+`bdv-ecrans.css` sont portes par `.bdv-ventes`, cinq exceptions nommees. **Le renommage des
+six classes communes est ANNULE, pas reporte** : ces noms sont un vocabulaire partage avec
+`bdv-base.js`, qui genere lui aussi des `.btn` et des `.card__title`. Renommer d'un cote
+seulement aurait donne deux noms pour la meme chose selon l'endroit d'affichage. Le scope
+suit le motif deja retenu pour `bdv-panneau.css`.
+
+**2d.** `/outils/dashboard-vigneron/` devient une page de redirection qui TRADUIT le
+fragment (`#clients`, `#client=JAYAMA`, `#parametres` vers `#base`). En JavaScript et pas
+par une regle de serveur : le fragment n'est jamais envoye au serveur. Le volet de gauche,
+son menu de secours et le bouton de deconnexion quittent la coque, quatre fonctions et deux
+ecouteurs de document avec eux.
+
+Verifie : `npm run banc`, 56 controles. `charte` et `charte:bureau` CONFORME. Rendu regarde
+sur un ecran de vente affiche dans le bureau.
+
+**La largeur** : l'atelier garde son gabarit, les ecrans de vente ont donc 1 440 px, plus
+172 px quand la barre est repliee. Si Ted trouve ca etroit sur « Mes clients », c'est un
+`max-width` a ouvrir sur `.bureau-atelier`, pas une refonte.
 
 ### Lot 3 : le vocabulaire et le tiroir
 
@@ -88,8 +108,10 @@ Verification : les cinq controles, plus l'ouverture d'une adresse ancienne de ch
 
 ## Ce qui reste ouvert
 
-- Les six noms de classes communs, renommes au lot 2 du cote des ecrans.
-- Le menu « ici » des ecrans de vente, a supprimer au lot 2 et non a faire cohabiter.
+- **Le texte du panneau de reglages parle encore du tiroir** : « Non » retire le tableau de
+  bord du tiroir, dit l'aide sous « Tu utilises Vitisoft ». Le tiroir est vide depuis le lot
+  1 et le tableau de bord n'est plus un lieu. A reecrire au lot 3, avec le reste du
+  vocabulaire.
 - Les icones de la barre sont des emoji : elles gardent leurs couleurs propres sur le fond
   sombre, la ou tout le reste de la barre est en `--gold` et `--on-dark-soft`. Ca vient des
   ecrans de vente, ce n'est pas nouveau, mais ca se voit plus maintenant qu'elles sont sept

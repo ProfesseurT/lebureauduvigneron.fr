@@ -156,10 +156,36 @@ t('le tiroir est masque et vide, ses deux entrees sont dans la barre',
 /* ======================= LES ECRANS DE VENTE (lot 2c) ======================= */
 titre('Les ecrans de vente dans le bureau');
 
-t('la coque des ecrans est dans la page, avec ses trente-deux reperes',
-  ['app', 'sidebar', 'filterbar', 'p-annee', 'p-clients', 'p-produits', 'p-chercher',
-   'p-vide', 'p-base', 'p-reglages', 'printReport', 'modale', 'status', 'busyov']
-   .every(id => !!B.doc.getElementById(id)));
+/* LES REPERES DE LA COQUE, liste FIGEE comme ENTITES_ATTENDUES dans charte.mjs, et pour
+   la meme raison : bdv-ecrans.js ecrit dans ces id, et un id disparu ne provoque aucune
+   erreur visible. La zone reste vide, et personne ne le remarque avant de chercher un
+   chiffre qui manque. Une liste qui se deduirait de la coque elle-meme ne detecterait
+   plus rien. Elle est passee de trente-deux a vingt-six au lot 2d : le volet, son menu de
+   secours et le bouton de deconnexion sont partis, la barre du bureau les porte. */
+const REPERES = ['app', 'bowlclip', 'busyov', 'busytxt', 'filterbar', 'modale',
+  'p-annee', 'p-apercu', 'p-base', 'p-canaux', 'p-chercher', 'p-clients', 'p-decrochage',
+  'p-diagnostic', 'p-evolution', 'p-explorer', 'p-premier', 'p-produits', 'p-reactivation',
+  'p-reglages', 'p-vide', 'printReport', 'status', 'statusSpin', 'statusTxt', 'tbFile'];
+const manquants = REPERES.filter(id => !B.doc.getElementById(id));
+t('la coque des ecrans porte ses ' + REPERES.length + ' reperes',
+  manquants.length === 0, 'manquant(s) : ' + manquants.join(', '));
+
+/* Le seul lien entre bdv-nav.js et bdv-ecrans.js est la liste des identifiants d'ecran,
+   et rien ne le tient. Ce controle est ce mecanisme : ajouter un ecran d'un cote sans
+   l'autre echoue ici, au lieu d'echouer chez le vigneron par une piece qui ne mene
+   nulle part. */
+const ECRANS = fs.readFileSync(path.join(RACINE, 'src/js/bdv-ecrans.js'), 'utf8');
+const bloc = ECRANS.slice(ECRANS.indexOf('const NAV=['), ECRANS.indexOf('];', ECRANS.indexOf('const NAV=[')));
+const idsEcrans = [...bloc.matchAll(/id:\s*'([^']+)'/g)].map(m => m[1]).sort();
+const idsBarre = B.window.BdvNav.pieces
+  .filter(p => p.viti || p.id === 'reglages').map(p => p.id).sort();
+t('les identifiants d\'ecran sont les memes dans bdv-nav.js et bdv-ecrans.js',
+  idsEcrans.join(',') === idsBarre.join(','),
+  'ecrans : ' + idsEcrans.join(',') + '  /  barre : ' + idsBarre.join(','));
+
+t('le volet, son menu de secours et la deconnexion ont quitte la coque',
+  ['sidebar', 'volet', 'ici', 'iciMenu', 'tbSection', 'tbSortir']
+    .every(id => !B.doc.querySelector('#bureauVentes #' + id)));
 t('elle est portee par le wrapper de scope',
   !!B.doc.querySelector('#bureauVentes .bdv-ventes .app'));
 t('les quatre elements hors page sont remontes sous body',
@@ -266,6 +292,42 @@ await new Promise(r => setTimeout(r, 30));
 t('Retour depuis un ecran de vente ramene a « Ma journee » sans quitter le bureau',
   !J.journee.hidden && J.ventes.hidden,
   'hash : ' + J.window.location.hash);
+
+/* ======================= L'ANCIENNE ADRESSE ======================= */
+titre("L'ancienne adresse du tableau de bord");
+const REDIR = path.join(RACINE, '_site/outils/dashboard-vigneron/index.html');
+if (!fs.existsSync(REDIR)) {
+  t('la page de redirection est publiee', false, path.relative(RACINE, REDIR) + ' est absent');
+} else {
+  const html = fs.readFileSync(REDIR, 'utf8');
+  t('la page de redirection ne contient plus l\'outil',
+    !html.includes('id="app"') && html.length < 4000, html.length + ' octets');
+  t('elle offre un lien de secours si le script ne prend pas',
+    html.includes('href="/mon-bureau/"'));
+
+  /* On extrait le script de la page et on l'execute avec un faux `location` : jsdom ne
+     sait pas suivre une navigation, et son location.replace n'est pas remplacable. Ce
+     qu'on verifie n'est de toute facon pas la navigation mais la TRADUCTION de l'adresse,
+     seule chose que cette page ait a faire correctement. */
+  const codeRedir = (html.match(/<script>([\s\S]*?)<\/script>/) || [])[1];
+  t('la page porte bien un script de redirection', !!codeRedir);
+  function ou(hash) {
+    let vers = null;
+    const faux = { hash: hash || '', replace: (u) => { vers = u; } };
+    new Function('location', codeRedir)(faux);
+    return vers;
+  }
+  t('sans fragment, elle mene au bureau', ou() === '/mon-bureau/', String(ou()));
+  t('#clients garde son ecran', ou('#clients') === '/mon-bureau/#clients', String(ou('#clients')));
+  t('#annee garde son ecran', ou('#annee') === '/mon-bureau/#annee', String(ou('#annee')));
+  t('#client=JAYAMA garde sa fiche',
+    ou('#client=JAYAMA') === '/mon-bureau/#client=JAYAMA', String(ou('#client=JAYAMA')));
+  t('#parametres et #reglages menent tous deux au panneau, devenu #base',
+    ou('#parametres') === '/mon-bureau/#base' && ou('#reglages') === '/mon-bureau/#base',
+    ou('#parametres') + ' / ' + ou('#reglages'));
+  t('un fragment inconnu ne fabrique pas une adresse inconnue',
+    ou('#nimportequoi') === '/mon-bureau/', String(ou('#nimportequoi')));
+}
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
