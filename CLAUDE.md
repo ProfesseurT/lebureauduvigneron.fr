@@ -304,7 +304,11 @@ attributs `data-`. La verification au jugé aurait conclu l'inverse.
 Deux scripts. `scripts/charte.mjs` a besoin de `css-tree`, `scripts/banc-bureau.mjs` de
 `jsdom`, tous deux en devDependency.
 
-    npm run build           OBLIGATOIRE avant les deux suivants
+    npm run verif           les quatre d'un coup, arret au premier echec
+
+Ou, un par un, quand on veut lire le detail :
+
+    npm run build           OBLIGATOIRE avant les trois suivants
     npm run charte          conformite du CSS du site
     npm run charte:bureau   conformite du bureau et de ses ecrans de vente
     npm run banc            le bureau fait-il ce qu'il dit
@@ -319,9 +323,11 @@ fois pour une raison differente. La regle qui en sort : **un controle qui ne peu
 s'executer doit crier, jamais se taire.**
 
 Ce que `charte` regarde : les couleurs, les rayons, les familles de police et les tailles
-encore ecrits en dur avec leur selecteur ; les tokens declares jamais appeles et les
-`var()` sans declaration ; la table des contrastes des paires texte sur fond, avec le
-verdict AA ; les entites HTML numeriques, comparees a une liste FIGEE dans le script (ce
+encore ecrits en dur avec leur selecteur, les couleurs et les tailles faisant desormais
+ECHOUER et non plus seulement s'afficher ; les commentaires qui avalent des regles ; les
+tokens declares jamais appeles et les `var()` sans declaration ; la table des contrastes des
+paires texte sur fond, avec le verdict AA, PLUS les paires qu'il decouvre lui-meme dans la
+feuille ; les entites HTML numeriques, comparees a une liste FIGEE dans le script (ce
 sont les icones, et un chercher-remplacer de couleurs les emporte sans prevenir) ; et que
 **aucune regle de `bdv-ecrans.css` ne sort de son scope `.bdv-ventes`**. Cette derniere
 existe parce que six noms de classes sont communs avec `style.css` : `btn`, `btn--ghost`,
