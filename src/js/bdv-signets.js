@@ -66,8 +66,16 @@
     if (!refs.length || !session()) return;
     var restant = {};
     for (var i = 0; i < refs.length; i++) {
-      try { await pousser(f[refs[i]]); }
-      catch (e) { restant[refs[i]] = f[refs[i]]; }
+      var l = f[refs[i]];
+      try {
+        // Une SUPPRESSION en attente se rejoue comme une suppression. Elle repartait en
+        // ecriture avec `etat: null`, que la base refuse (colonne NOT NULL) : la ligne ne
+        // quittait donc jamais la file, et la premiere suppression ratee bloquait derriere
+        // elle toutes les ecritures suivantes, indefiniment.
+        if (!l || l.etat === null || l.etat === undefined) await retirer(refs[i]);
+        else await pousser(l);
+      }
+      catch (e) { restant[refs[i]] = l; }
     }
     try {
       if (Object.keys(restant).length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(restant));
@@ -76,18 +84,39 @@
   }
 
   // ---------------- LE SERVEUR ----------------
-  // `resolution=merge-duplicates` sur la cle (id, ref) : poser deux fois le meme signet
-  // met la ligne a jour au lieu de tomber en doublon. L'ecran n'a donc jamais a savoir si
-  // la ligne existait deja.
+  // LA panne du 07/09/2026, et elle etait totale : ce module n'envoyait jamais `id`, la
+  // colonne qui porte l'identifiant du compte. Elle est NOT NULL sans valeur par defaut, et
+  // la politique RLS exige `auth.uid() = id`. Chaque enregistrement repartait donc en
+  // « 23502 null value in column id », sans un seul message a l'ecran : le bouton changeait
+  // d'etat parce que le miroir local, lui, acceptait tout, et la table `signets` est restee
+  // vide. C'est le pire genre de panne, celle qui a l'air de marcher.
+  //
+  // L'identifiant est pose ICI et pas chez l'appelant, volontairement : la file d'attente
+  // garde des lignes ecrites hors ligne, et une ligne enfilee sans identifiant serait rejouee
+  // sans identifiant jusqu'a la fin des temps. Pose au moment de l'envoi, la file deja en
+  // souffrance dans le navigateur du vigneron se repare toute seule au prochain chargement.
   function pousser(ligne) {
-    return BdvCompte.api('/signets', {
+    var moi = BdvCompte.monId();
+    // Pas de session : on echoue tout de suite pour que l'appelant enfile. Ne JAMAIS laisser
+    // partir une requete sans identifiant, elle reviendrait en erreur serveur.
+    if (!moi) return Promise.reject(new Error('pas de session'));
+    // on_conflict explicite sur la cle primaire (id, ref), comme bdv-sync.js le fait pour les
+    // reglages : poser deux fois le meme signet met la ligne a jour au lieu de tomber en
+    // doublon. L'ecran n'a donc jamais a savoir si la ligne existait deja.
+    return BdvCompte.api('/signets?on_conflict=id,ref', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      corps: [ligne]
+      corps: [Object.assign({}, ligne, { id: moi })]
     });
   }
   function retirer(ref) {
-    return BdvCompte.api('/signets?ref=eq.' + encodeURIComponent(ref), { methode: 'DELETE' });
+    var moi = BdvCompte.monId();
+    if (!moi) return Promise.reject(new Error('pas de session'));
+    // Le filtre porte sur les DEUX colonnes de la cle. La politique RLS suffirait a proteger
+    // les lignes des autres, mais une requete qui dit exactement ce qu'elle veut supprimer ne
+    // depend pas d'une politique pour etre juste.
+    return BdvCompte.api('/signets?id=eq.' + encodeURIComponent(moi)
+      + '&ref=eq.' + encodeURIComponent(ref), { methode: 'DELETE' });
   }
 
   async function charger() {
@@ -99,10 +128,19 @@
       lignes.forEach(function (l) { map[l.ref] = l; });
       ecrireCache(map);
       peindre();
+      majBandeau();
     } catch (e) { /* le miroir precedent reste affiche, c'est mieux que rien */ }
   }
 
   // ---------------- L'AFFICHAGE ----------------
+  // La pastille du bandeau est calculee par base.njk depuis le miroir, en script synchrone au
+  // premier rendu. Quand le miroir change apres ce rendu (un clic, ou une lecture serveur qui
+  // rend autre chose), il faut le lui dire : sinon la pastille reste sur l'ancien compte
+  // jusqu'au prochain changement de page.
+  function majBandeau() {
+    try { if (window.bdvMajBandeau) window.bdvMajBandeau(); } catch (e) {}
+  }
+
   function peindre() {
     var connecte = !!session();
     document.querySelectorAll('[data-signet]').forEach(function (btn) {
@@ -132,6 +170,7 @@
     if (etat === null) { delete map[ref]; } else { map[ref] = { ref: ref, etat: etat, titre: titre, type: type }; }
     ecrireCache(map);
     peindre();                       // l'ecran repond tout de suite, le reseau suit
+    majBandeau();
     try {
       if (etat === null) await retirer(ref);
       else await pousser({ ref: ref, etat: etat, titre: titre, type: type, maj_le: new Date().toISOString() });
@@ -174,10 +213,20 @@
 
   document.addEventListener('click', surClic);
 
-  // Peint depuis le miroir sans attendre le reseau, puis rafraichit depuis le serveur.
+  // Peint depuis le miroir sans attendre le reseau. Ensuite, dans CET ordre : on vide la file
+  // d'attente AVANT de relire le serveur. L'inverse, qui tournait jusqu'au 07/09/2026, lancait
+  // une lecture en meme temps que les ecritures en retard ; la reponse du serveur, plus vieille
+  // que la file, ecrasait le miroir et le geste fait hors ligne disparaissait de l'ecran.
   peindre();
-  charger();
-  viderAttente();
+  viderAttente().then(charger);
+
+  // Une session qui s'ouvre ou se ferme dans la page deja affichee. Sans ca, les boutons
+  // gardaient l'etat d'avant jusqu'au prochain chargement, et apres une deconnexion ils
+  // montraient encore les signets de la personne precedente sur ce navigateur.
+  document.addEventListener('bdv:session', function () {
+    peindre();
+    if (session()) viderAttente().then(charger);
+  });
 
   window.BdvSignets = {
     etat: etatDe,
