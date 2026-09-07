@@ -78,8 +78,63 @@ que j'avais propose, et elles se seraient toutes vues a l'usage sans se voir sur
 - `--on-dark-faint`, le creme a 35 %, tombe a **3,0:1** sur l'ardoise. Il est interdit pour du
   texte a lire, en particulier la ligne qui dit d'ou vient un chiffre.
 
-La table de contraste de `npm run charte` ne controle que les paires qu'elle connait : une
-paire nouvelle se mesure a la main AVANT de l'ecrire, pas apres.
+La table de contraste de `npm run charte` ne controle que les paires qu'on a pensé a lui
+declarer, et c'est ce trou qui a laisse passer un bandeau de mois a 4,00:1. Le controle
+**6 bis**, ajoute le meme jour, ne demande plus rien a personne : il parcourt la feuille et
+prend chaque regle qui pose a la fois une encre et un fond en jetons, une soixantaine sur le
+site, une centaine sur le bureau. Il a trouve du premier coup un bouton qui posait du creme
+sur du creme, 1:1, dans deux feuilles a la fois, invisible seulement parce qu'une regle plus
+specifique le recouvrait. **Une rustine qui masque un defaut le garde en vie.**
+
+Ce controle ne voit que la moitie du probleme, celle d'une regle qui pose les deux couleurs ;
+il ne peut rien dire d'une encre heritee d'un parent. Une paire de ce genre se mesure donc
+toujours a la main AVANT de l'ecrire, et s'ajoute a la table.
+
+## Le responsive se juge sur la ZONE, pas sur la fenetre
+
+Audit du 07/09/2026, apres une capture de Ted montrant des boutons qui sortaient du cadre.
+Le listing du sous-main debordait de sa zone **a toutes les largeurs de 320 a 1920 px**, et
+la page defilait a l'horizontale sur cinq d'entre elles. La cause n'etait pas un point de
+rupture mal place, c'etait une facon de raisonner :
+
+**La largeur de la fenetre ne dit rien de la place disponible.** Mesures reelles de la zone
+du sous-main : 722 px sur une fenetre de 1024, **728 px sur une fenetre de 1280**, 848 sur
+1440. Elle ne fait presque pas la difference entre 1024 et 1280, parce que la barre des
+pieces prend 230 px et que l'atelier est plafonne. Un point de rupture pose sur la fenetre
+se trompe donc de cible.
+
+**Ce qu'on fait a la place.** La zone porte `container-type: inline-size` et le composant
+bascule sur une requete de conteneur. Deux pieges verifies a la mesure :
+
+1. **Une requete de conteneur compare la boite de CONTENU**, donc la zone moins ses
+   retraits. Une zone de 728 px a 680 px de contenu, soit 42,5 rem : un seuil pose a 44 rem
+   basculait en fiches le portable le plus repandu.
+2. **Une largeur en `em` se calcule sur le corps de l'element qui la porte.** Sur un
+   en-tete en `--t-micro`, dix pixels, une colonne de 14 em fait 140 px et non 224. Les
+   largeurs de colonnes s'ecrivent en `rem` ou en pourcentage.
+
+**Le budget de colonnes se mesure, il ne s'estime pas.** Cinq colonnes plus trois boutons a
+libelle complet demandent 858 px ; le tableau du sous-main n'en fait jamais plus de 934 et
+tombe a 640. D'ou trois decisions, chacune adossee a un nombre : les boutons portent un mot
+court avec leur nom complet en `title` et `aria-label`, la reference passe sous le nom ou
+elle ne coute aucun pixel de largeur, et le montant sort du motif pour avoir sa colonne de
+nombres alignes a droite.
+
+**Et un cadre qui peut deborder porte `overflow-x: auto`.** Un contenu trop large doit
+defiler DANS son cadre, jamais pousser la page.
+
+## L'anneau de focus a la couleur de la SURFACE, pas du composant
+
+Deux fois le meme defaut le meme jour. La barre du bureau avait recu un anneau creme parce
+qu'elle etait sombre ; devenue du carton kraft clair, le meme anneau est tombe de 14,74:1 a
+**2,36:1**, sous le seuil de 3:1 des indicateurs de focus. Et dans le listing, l'anneau
+standard du site se pose a trois pixels DEHORS : sur un bouton de 44 px dans une rangee de
+50, ses segments haut et bas tombaient pile sur les filets de la rangee et disparaissaient
+dedans.
+
+Donc : quand une surface change de couleur, **relire l'anneau de focus de ce qu'elle
+porte**, et le verifier en posant le focus au clavier dans un vrai navigateur puis en
+LISANT la couleur calculee. A l'oeil, sur une capture, un anneau pale se voit encore un peu.
 
 ## Trois pieges de CSS qui ne cassent rien et effacent tout
 

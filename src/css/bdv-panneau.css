@@ -42,8 +42,12 @@
 .bdvr-panneau .btn--ghost{background:transparent;color:var(--bordeaux);border:var(--trait) solid var(--bordeaux)}
 .bdvr-panneau .btn--ghost:hover{background:var(--bordeaux);color:var(--on-dark)}
 .bdvr-panneau .btn--sm{padding:.42rem .8rem;font-size:var(--t-micro)}
-.bdvr-panneau .btn--light{background:var(--on-dark-rule);color:var(--on-dark);border:var(--trait) solid var(--on-dark-rule)}
-.bdvr-panneau .btn--light:hover{background:var(--on-dark-faint)}
+/* Meme correction que dans bdv-ecrans.css, meme jour, meme raison : ce bouton
+   posait du creme sur du creme a 15 %, 1:1, dans un panneau dont tous les fonds
+   sont clairs. Il venait de la barre haute bordeaux de l'ancien tableau de bord.
+   Trouve par le controle 6 bis de la charte. */
+.bdvr-panneau .btn--light{background:var(--paper-light);color:var(--ink);border:var(--trait) solid var(--rule-fort)}
+.bdvr-panneau .btn--light:hover{background:var(--bordeaux);color:var(--on-dark);border-color:var(--bordeaux)}
 .bdvr-panneau .btn--danger{background:transparent;color:var(--danger-deep);border:var(--trait) solid var(--danger-deep)}
 .bdvr-panneau .btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
 .bdvr-panneau .panel__title{font-size:1.4rem;font-weight:400;color:var(--ink);margin-bottom:.15rem}

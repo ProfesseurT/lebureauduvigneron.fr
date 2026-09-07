@@ -224,9 +224,19 @@ em { font-style: italic; }
   outline-offset: 3px;
 }
 :where(.nav, .hero, .waitlist, .article-header, .about-hero, .conseil-hero, .footer-rich,
-        .bureau-nav, .bureau-tete)
+        .bureau-tete)
   :where(a, button, summary, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline-color: var(--on-dark);
+}
+/* LA BARRE DU BUREAU EST SORTIE DE CETTE LISTE le 07/09/2026, deuxieme passe : ses
+   intercalaires sont en carton kraft clair et non plus en --ink-deep, et l'anneau
+   creme qui y donnait 14,74:1 n'y donne plus que 2,36:1. Un anneau de focus doit
+   ressortir a 3:1 de ce qui l'entoure ; celui-la ne se voyait plus. En --ardoise il
+   donne 5,86:1 sur le carton et 13,86:1 sur la languette tiree.
+   Trouve en posant le focus au clavier dans un vrai navigateur et en LISANT la
+   couleur calculee : a l'oeil, sur une capture, un anneau pale se voit encore un peu. */
+.bureau-nav :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline-color: var(--ardoise);
 }
 /* Le bureau et son entete ont ete AJOUTES a cette liste le 07/09/2026, et la barre etait le
    pire cas du site : l'anneau --bordeaux sur le fond --ink-deep de la barre donne 1,35:1, et
@@ -5009,28 +5019,13 @@ button.bureau-nav__item:hover {
    lignes et les trois sorties. */
 #bureauVentes .bdv-ventes .topbar { border-bottom: var(--trait) solid var(--rule); background: var(--paper-deep); }
 #bureauVentes .bdv-ventes .topbar__file { color: var(--muted); opacity: 1; }
-/* LES BOUTONS PALES, RHABILLES POUR LE PAPIER. .btn--light a ete dessine pour se poser
-   sur le bordeaux de l'ancienne barre haute du tableau de bord : creme sur bordeaux, tres
-   lisible. Dans le bureau, ces memes boutons tombent sur une bande claire et sur des
-   cartes blanches, ou ils devenaient a peine visibles : « Exporter PDF » et « Ouvrir ma
-   base » se devinaient plus qu'ils ne se lisaient.
-
-   Vu sur une capture le 07/09/2026, et c'est le genre de defaut qu'aucun controle
-   n'attrape : la charte verifie des paires de couleurs nommees, pas un bouton pose sur un
-   fond pour lequel il n'a pas ete dessine. La regle est ici et pas dans bdv-ecrans.css :
-   c'est le bureau qui change le fond, donc c'est au bureau de payer le rhabillage. Les
-   memes boutons dans le panneau de reglages ne sont pas touches, ils sont hors
-   #bureauVentes et leur fond n'a pas change. */
-#bureauVentes .bdv-ventes .btn--light {
-  background: var(--paper-light);
-  color: var(--ink);
-  border: var(--trait) solid var(--rule-fort);
-}
-#bureauVentes .bdv-ventes .btn--light:hover {
-  background: var(--bordeaux);
-  color: var(--on-dark);
-  border-color: var(--bordeaux);
-}
+/* LE RHABILLAGE DE .btn--light EST PARTI D'ICI, et c'est un progres. Il corrigeait
+   depuis le bureau un bouton dessine pour un fond bordeaux qui n'existe plus, en le
+   recouvrant d'une regle plus specifique. Le controle 6 bis de la charte, ajoute le
+   07/09/2026, a montre que la regle recouverte posait du creme sur du creme, 1:1, et
+   qu'elle n'attendait qu'une occasion de se voir. Elle est donc corrigee a sa source,
+   dans src/css/bdv-ecrans.css, et cette rustine n'a plus de raison d'etre.
+   La lecon vaut plus que la regle : une rustine qui masque un defaut le garde en vie. */
 #bureauVentes .bdv-ventes .appfoot { display: none; }
 
 /* La piece qu'on vient de demander, pendant que ses 2 500 lignes arrivent. Discret
@@ -5067,7 +5062,18 @@ button.bureau-nav__item:hover {
   border-top: var(--trait-accent) solid var(--cork);
   padding: var(--e-m) var(--e-l) var(--e-l);
 }
-.zone--sousmain { border-top-color: var(--bordeaux); }
+/* LA ZONE EST LE CONTENEUR DE REFERENCE DU LISTING, ET PAS LA FENETRE. C'est le
+   defaut de fond que l'audit du 07/09/2026 a mis au jour : le listing basculait
+   en fiches sous 700 px de FENETRE, alors que ce qui compte est la largeur de la
+   ZONE. Sur une fenetre de 1280 px la zone ne fait que 728 px, et sur une de
+   1024 px elle en fait 722, presque autant : la fenetre ne dit rien de la place
+   disponible, parce que la barre des pieces et le plafond de l'atelier
+   s'interposent. Une requete de conteneur, si. */
+.zone--sousmain {
+  border-top-color: var(--bordeaux);
+  container-type: inline-size;
+  container-name: sousmain;
+}
 .zone__tete {
   display: flex;
   align-items: baseline;
@@ -5136,9 +5142,17 @@ button.bureau-nav__item:hover {
 /* LE PAPIER CONTINU. Les picots sont un fond du CONTENEUR et pas deux
    pseudo-elements par ligne : leur pas est fixe, 26 px, independant de la
    hauteur des lignes, comme sur du vrai papier a picots. */
+/* LE PAPIER EST UNE FENETRE FERMEE. Sans ca, une valeur plus longue que prevu
+   sort du listing, sort de la zone, et fait defiler la PAGE a l'horizontale.
+   C'est ce qui est arrive : les trois boutons de geste a libelle complet
+   depassaient de 87 px de la zone et de 112 px du papier, a TOUTES les largeurs
+   de 320 a 1920 px. Un contenu trop large doit defiler DANS son cadre, jamais
+   pousser la page. Les largeurs de colonnes sont calculees pour que ca n'arrive
+   pas ; ceci est la ceinture en plus des bretelles. */
 .listbb {
   border: var(--trait) solid var(--rule);
   box-shadow: var(--ombre-carte);
+  overflow-x: auto;
   padding: 0 18px;
   background-color: var(--paper-light);
   background-image:
@@ -5157,22 +5171,56 @@ button.bureau-nav__item:hover {
    nommaient. Vu sur une capture, pas devine.
    Un listing de colonnes EST un tableau : les colonnes s'alignent par
    construction, et le lecteur d'ecran annonce enfin l'en-tete de la cellule. */
-/* LARGEURS FIXES, et c'est une capture qui l'a impose : en repartition
-   automatique, le navigateur donnait la place aux boutons de geste et le nom du
-   client passait sur trois lignes. Un listing dont les lignes n'ont pas la meme
-   hauteur ne se balaie plus verticalement, ce qui est tout son objet.
-   Trois colonnes sont fixees a leur contenu, la reference, le retard et les
-   gestes ; le nom prend un quart ; le motif prend ce qui reste. */
-.listb { width: 100%; border-collapse: collapse; table-layout: fixed; }
-/* EN REM ET PAS EN EM, et c'est encore une capture qui l'a montre : l'en-tete
-   est en --t-micro, dix pixels. Une largeur en em s'y calculait donc sur dix
-   pixels, la colonne des gestes faisait 135 px au lieu de 224, et les trois
-   boutons debordaient du tableau. Le rem se calcule sur la racine, il ne depend
-   pas du corps de la cellule qui le porte. */
-.listb th:nth-child(1) { width: 5rem; }
-.listb th:nth-child(2) { width: 26%; }
-.listb th:nth-child(4) { width: 6rem; }
-.listb th:nth-child(5) { width: 11.5rem; }
+/* LARGEURS FIXES ET MESUREES. Fixes parce qu'en repartition automatique le
+   navigateur donne la place aux boutons et le nom du client passe sur trois
+   lignes : un listing dont les lignes n'ont pas la meme hauteur ne se balaie
+   plus verticalement, ce qui est tout son objet.
+
+   MESUREES parce qu'estimees elles etaient fausses. Prises dans un vrai
+   navigateur avec les vraies valeurs, le 07/09/2026 :
+     une reference « 1428 » ................. 27 px, « C-01428 » 47
+     un retard « J+120 » .................... 49 px
+     les trois gestes a mot court ........... 205 px, jeux compris
+     le plus long motif reel ................ 214 px
+     le plus long nom de client reel ........ 238 px
+   Et la largeur du tableau, elle, ne depasse JAMAIS 934 px : elle tombe a 640 px
+   sur un portable de 1280, parce que la zone fait neuf colonnes sur douze dans
+   un atelier plafonne. C'est ce budget-la qu'il faut tenir.
+
+   EN REM ET PAS EN EM : l'en-tete est en --t-micro, dix pixels, donc une largeur
+   en em s'y calculait sur dix pixels et valait la moitie de ce qu'elle
+   annoncait. Le rem se calcule sur la racine. */
+.listb {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  /* En dessous de quoi le papier defile plutot que le tableau ne se casse. */
+  min-width: 33rem;
+}
+/* LE BUDGET, COLONNE PAR COLONNE, sur le tableau le plus etroit de la bande
+   « listing », 640 px, qui est la largeur reelle sur un portable de 1280 :
+     fichier client .... 28 %, soit 179 px, 158 utiles ; le plus long nom reel
+                         hors exception en fait 152
+     motif ............. ce qui reste, 141 px, 120 utiles ; « Rappel non fait »
+                         en fait 120
+     montant ........... 4,5 rem ; « 95 510 € » en fait 62
+     retard ............ 3,25 rem ; « J+120 » en fait 49
+     geste ............. 12,25 rem ; les trois mots courts en font 181, plus
+                         deux jeux d'un pixel et un retrait de 10 px a droite
+   Total : 640. Au-dessus, tout respire ; en dessous de 40 rem on passe en
+   fiches, parce qu'a ce moment-la aucun decoupage ne tient plus.
+
+   LA CELLULE DES GESTES N'A PAS DE RETRAIT A GAUCHE, et c'est une mesure qui l'a
+   impose : avec le retrait standard des cellules, 10 px de chaque cote, les
+   trois boutons avaient 163 px utiles pour 183, et depassaient de neuf pixels
+   par-dessus la bande perforee du papier. Vu sur capture. */
+.listb th:nth-child(1) { width: 28%; }
+.listb th:nth-child(3) { width: 4.5rem; }
+.listb th:nth-child(4) { width: 3.25rem; }
+.listb th:nth-child(5) { width: 12.25rem; }
+.listb th:nth-child(3),
+.listb th:nth-child(4),
+.listb th:nth-child(5) { text-align: right; }
 .listb th {
   background: var(--ardoise);
   color: var(--on-dark);
@@ -5204,9 +5252,13 @@ button.bureau-nav__item:hover {
    parlent pas en meme temps. */
 .listb tbody tr:hover td:first-child { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
 .listb tr.listb__l--partie td { opacity: 0.4; }
+/* LE FICHIER CLIENT : le nom, et sous lui sa reference. Deux lignes dans le
+   plancher tactile de 44 px que la ligne a de toute facon, donc une colonne
+   rendue pour zero pixel de largeur. */
+.listb__fichier { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .listb__ref {
   font-family: var(--font-mono);
-  font-size: var(--t-mini);
+  font-size: var(--t-micro);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -5261,9 +5313,85 @@ button.bureau-nav__item:hover {
   text-align: right;
   white-space: nowrap;
 }
+/* LE MONTANT A DROITE, EN MONO : c'est l'idiome du listing, des nombres alignes
+   sur leur derniere unite se comparent d'un coup d'oeil. Les chiffres tabulaires
+   ne sont pas necessaires en JetBrains Mono, qui les a deja de largeur egale. */
+.listb td.listb__montant {
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  text-align: right;
+  white-space: nowrap;
+}
 .listb tr[data-retard="oui"] td.listb__retard { color: var(--danger-deep); font-weight: 500; }
-.listb td.listb__gestes { white-space: nowrap; text-align: right; }
+.listb td.listb__gestes { white-space: nowrap; text-align: right; padding-left: 0; }
+/* L'ANNEAU DE FOCUS PASSE A L'INTERIEUR DANS LE LISTING. Meme raison que dans la
+   barre du bureau : un bouton de 44 px dans une rangee de 50 laisse trois pixels
+   au-dessus et au-dessous, or l'anneau standard du site se pose a trois pixels
+   dehors. Ses segments haut et bas tombaient donc exactement sur les filets de
+   la rangee et disparaissaient dedans : il ne restait qu'un trait vertical a
+   gauche du groupe, ce qu'on prend pour une decoration et pas pour un focus. */
+.listbb :where(button, a):focus-visible { outline-offset: -2px; }
 .listb__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
+
+/* ============================================================================
+   LE LISTING QUAND SA ZONE EST ETROITE : UNE FICHE PAR LIGNE
+   ----------------------------------------------------------------------------
+   Requete de CONTENEUR et non de fenetre, et c'est tout l'objet de la
+   correction : sous 34 rem de zone, cinq colonnes et trois boutons ne tiennent
+   pas, quelle que soit la taille de l'ecran autour. La reference et l'en-tete
+   s'effacent, le motif passe sous le nom, les gestes prennent la largeur et
+   peuvent se replier. Le papier garde ses picots : c'est ce qui le fait
+   reconnaitre comme le meme objet.
+   ============================================================================ */
+/* 40 REM, ET C'EST LA BOITE DE CONTENU DE LA ZONE, PAS LA ZONE. Piege verifie a
+   la mesure : une requete de conteneur compare la boite de CONTENU, donc la zone
+   moins ses 48 px de retrait. Sur une fenetre de 1280 px la zone fait 728 px
+   mais son contenu 680, soit 42,5 rem : un seuil pose a 44 rem basculait en
+   fiches le portable le plus repandu, et je ne l'ai vu qu'en mesurant les
+   cellules. Le seuil est donc a 40 rem, ce qui garde le listing jusqu'a 640 px
+   de contenu, soit un tableau de 604 px. */
+@container sousmain (max-width: 40rem) {
+  .listbb { padding: 0 12px; }
+  .listb { min-width: 0; }
+  .listb thead { display: none; }
+  .listb, .listb tbody, .listb tr, .listb td { display: block; }
+  .listb tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 3.25rem;
+    grid-template-areas: "nom montant retard" "motif motif motif" "gestes gestes gestes";
+    align-items: baseline;
+    row-gap: 0.3rem;
+    padding: var(--e-s) 0;
+    border-bottom: var(--trait) solid var(--rule);
+  }
+  .listb tbody tr:last-child { border-bottom: none; }
+  .listb td { height: auto; border-bottom: none; padding: 0 var(--e-s); background: none; }
+  .listb tbody tr:nth-child(even) { background: var(--white); }
+  .listb tbody tr:nth-child(even) td { background: none; }
+  .listb tbody tr:hover td:first-child { box-shadow: none; }
+  .listb tbody tr:hover { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
+  .listb td.listb__nom-c { grid-area: nom; }
+  /* Etroit, le nom se replie au lieu d'etre coupe : il y a la hauteur pour ca,
+     et un nom de client coupe est un nom qu'on ne reconnait pas. */
+  .listb td.listb__nom-c .listb__nom { white-space: normal; overflow: visible; }
+  .listb td.listb__nom-c { min-width: 0; }
+  .listb td.listb__montant { grid-area: montant; }
+  .listb td.listb__retard { grid-area: retard; }
+  .listb td.listb__motif { grid-area: motif; white-space: normal; overflow: visible; }
+  /* Les gestes se replient s'il le faut : sur 320 px, trois boutons cote a cote
+     poussaient la page a 369 px de large. */
+  .listb td.listb__gestes {
+    grid-area: gestes;
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--trait);
+    white-space: normal;
+    padding-left: var(--e-s);
+  }
+  .listb__gestes .btn--geste + .btn--geste { margin-left: 0; }
+  .listb .btn--geste { flex: 1 1 auto; }
+}
 
 /* Le plancher tactile est une HAUTEUR, pas une largeur : on peut serrer
    horizontalement sans rien perdre, et trois gestes tiennent alors dans
@@ -5300,6 +5428,13 @@ button.bureau-nav__item:hover {
    etroit, et « Le calendrier » sur deux lignes fait desordre a cote d'un bloc
    bien carre. */
 .zone--calendrier .zone__tete h2 { white-space: nowrap; }
+/* La zone est son propre conteneur de reference, comme le sous-main : a 1280 px
+   de fenetre elle ne fait que 227 px, a 1100 px elle en fait 387. La fenetre ne
+   dit rien de la place ici non plus. */
+.zone--calendrier {
+  container-type: inline-size;
+  container-name: calendrier;
+}
 .calbloc { display: grid; gap: var(--e-s); }
 .calbloc__une {
   display: block;
@@ -5358,17 +5493,27 @@ button.bureau-nav__item:hover {
   border-top: var(--trait) solid var(--rule);
 }
 /* Urgent : le bandeau du mois passe au rouge d'etat, et le jour avec. La
-   couleur remplace, elle ne s'ajoute pas : un seul signal a la fois. */
+   couleur remplace, elle ne s'ajoute pas : un seul signal a la fois.
+
+   --danger-deep ET PAS --danger, et c'est un calcul qui l'a decide : le creme
+   sur --danger donne 4,00:1, or ce bandeau porte « SEPTEMBRE » en --t-micro,
+   dix pixels, qui demande 4,50. Sur --danger-deep il donne 5,60. La paire est
+   entree dans la table de contraste de la charte, qui ne la connaissait pas et
+   ne pouvait donc pas la refuser. */
 .calbloc__une[data-niveau="urgent"] .calbloc__mois,
-.calbloc__une[data-niveau="aujourdhui"] .calbloc__mois { background: var(--danger); }
+.calbloc__une[data-niveau="aujourdhui"] .calbloc__mois { background: var(--danger-deep); }
 .calbloc__une[data-niveau="urgent"] .calbloc__jour,
 .calbloc__une[data-niveau="aujourdhui"] .calbloc__jour { color: var(--danger-deep); }
 
 .calbloc__suite { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--trait); }
+/* LA DATE AU-DESSUS DU LIBELLE PAR DEFAUT. Mesure : dans une zone de 227 px, la
+   colonne de date prenait 58 px et « DAI, déclaration annuelle d'inventaire »
+   tombait sur QUATRE lignes de 87 px de large. Empile, le libelle a toute la
+   largeur et tient sur deux lignes. La date passe a cote des qu'il y a la place,
+   et c'est la zone qui le dit, pas la fenetre. */
 .calbloc__ligne {
-  display: flex;
-  gap: var(--e-s);
-  align-items: baseline;
+  display: grid;
+  gap: 1px;
   background: var(--paper);
   padding: 0.4rem var(--e-s);
 }
@@ -5376,10 +5521,16 @@ button.bureau-nav__item:hover {
   font-family: var(--font-mono);
   font-size: var(--t-mini);
   color: var(--muted);
-  flex-shrink: 0;
-  min-width: 5.2em;
+  min-width: 0;
 }
 .calbloc__q { font-size: var(--t-base); min-width: 0; }
+@container calendrier (min-width: 18rem) {
+  .calbloc__ligne {
+    grid-template-columns: 5.2em minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--e-s);
+  }
+}
 
 /* ---- L'ARDOISE ---- */
 /* ---- L'ARDOISE, ET C'EN EST UNE MAINTENANT ----
@@ -5654,31 +5805,6 @@ button.bureau-nav__item:hover {
   /* Sur telephone, le listing perd ses colonnes : la reference et l'en-tete
      s'effacent, le motif passe sous le nom, les gestes prennent la largeur. Le
      papier continu garde ses picots, c'est ce qui le rend reconnaissable. */
-  .listbb { padding: 0 12px; }
-  /* Le tableau perd ses colonnes et devient une fiche par ligne : la reference
-     et l'en-tete s'effacent, le motif passe sous le nom, les gestes prennent la
-     largeur. Le papier garde ses picots, c'est ce qui le rend reconnaissable. */
-  .listb thead, .listb td.listb__ref { display: none; }
-  .listb, .listb tbody, .listb tr, .listb td { display: block; }
-  .listb tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 5em;
-    grid-template-areas: "nom retard" "motif motif" "gestes gestes";
-    align-items: baseline;
-    row-gap: 0.3rem;
-    padding: var(--e-s) 0;
-    border-bottom: var(--trait) solid var(--rule);
-  }
-  .listb tbody tr:last-child { border-bottom: none; }
-  .listb td { height: auto; border-bottom: none; padding: 0 var(--e-s); background: none; }
-  .listb tbody tr:nth-child(even) { background: var(--white); }
-  .listb tbody tr:nth-child(even) td { background: none; }
-  .listb tbody tr:hover td:first-child { box-shadow: none; }
-  .listb tbody tr:hover { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
-  .listb td.listb__nom-c { grid-area: nom; }
-  .listb td.listb__retard { grid-area: retard; }
-  .listb td.listb__motif { grid-area: motif; }
-  .listb td.listb__gestes { grid-area: gestes; width: auto; display: flex; }
   .btn--geste { flex: 1 1 auto; justify-content: center; text-align: center; }
 }
 
@@ -5878,9 +6004,15 @@ button.bureau-nav__item:hover {
    et on cesse de lire les illustrations.
    ============================================================================ */
 .zone--panneau { border-top-color: var(--cork-encre); }
+/* 160 PX ET NON 190, mesure a l'appui : le panneau interieur fait 896 px sur un
+   portable de 1280, ce qui donnait quatre colonnes pour cinq post-it, donc une
+   deuxieme rangee avec un post-it seul et trois cases de liege nu. Avec 160 px
+   de minimum les cinq tiennent sur une rangee a cette largeur-la, qui est la
+   plus courante. Une derniere rangee incomplete reste possible et ce n'est pas
+   un defaut : un panneau de liege a de la place libre, c'est meme sa fonction. */
 .panneau {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--e-m);
   background: var(--cork);
   background-image:

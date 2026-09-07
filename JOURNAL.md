@@ -12,6 +12,67 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/09/2026, tard. L'audit responsive : ce que la capture de Ted a révélé
+
+Ted a envoyé une capture de son bureau en production avec une phrase juste : « il y a des
+détails bizarres ». Il y en avait, et le principal était grave.
+
+**Le listing du sous-main débordait de sa zone à TOUTES les largeurs, de 320 à 1920 px**, de
+87 px hors de la zone et de 112 px hors du papier, et la page défilait à l'horizontale sur
+cinq des quinze largeurs testées. Cause : j'avais dimensionné la colonne des gestes avec des
+libellés de test courts (« Appelé / Message / Note ») alors que les vrais font 306 px à eux
+trois (« Appelé / Laissé un message / Pas maintenant »).
+
+**La leçon de fond, et elle vaut plus que la correction.** La largeur de la fenêtre ne dit
+rien de la place disponible. Mesuré : la zone du sous-main fait 722 px sur une fenêtre de
+1024 et 728 px sur une fenêtre de 1280. Presque rien ne les sépare, parce que la barre des
+pièces prend 230 px et que l'atelier est plafonné. Tous mes points de rupture étaient donc
+posés sur la mauvaise grandeur. La zone porte maintenant `container-type: inline-size` et le
+listing bascule sur une requête de conteneur. Deux pièges vérifiés à la mesure : une requête
+de conteneur compare la boîte de CONTENU, et une largeur en `em` se calcule sur le corps de
+l'élément qui la porte, donc dix pixels sur un en-tête en `--t-micro`.
+
+**Le budget de colonnes, mesuré au lieu d'estimé.** Cinq colonnes plus trois boutons à
+libellé complet demandent 858 px ; le tableau n'en fait jamais plus de 934 et tombe à 640.
+Trois décisions en découlent, chacune adossée à un nombre : les boutons portent un mot court
+avec leur nom complet en `title` et `aria-label`, la référence passe sous le nom où elle ne
+coûte aucun pixel de largeur puisque la rangée a déjà 44 px de plancher tactile, et le
+montant sort du motif pour avoir sa colonne de nombres alignés à droite, ce qui est l'idiome
+même d'un listing. **Aucune des cinq informations que Ted a dictées n'a été perdue.**
+
+**Deux autres défauts trouvés en auditant, et personne ne les cherchait.**
+
+Le contrôle de contraste de la charte ne vérifiait que les paires qu'on avait pensé à lui
+déclarer. C'est ce trou qui a laissé passer, le matin même, un bandeau de mois en crème sur
+`--danger` à 4,00:1 pour du texte de dix pixels qui en demande 4,50. Le contrôle **6 bis**
+ne demande plus rien : il parcourt la feuille et prend chaque règle qui pose une encre ET un
+fond en jetons. Il a trouvé du premier coup un bouton crème sur crème, 1:1, dans DEUX
+feuilles, invisible seulement parce qu'une règle plus spécifique le recouvrait. Une rustine
+qui masque un défaut le garde en vie : la source est corrigée, la rustine est partie.
+
+L'anneau de focus de la barre était resté crème, choisi quand la barre était sombre. Sur le
+carton kraft il donne 2,36:1, sous le seuil de 3:1 des indicateurs de focus : il ne se voyait
+plus. Et dans le listing, l'anneau posé à trois pixels dehors voyait ses segments haut et bas
+tomber pile sur les filets de la rangée. Les deux sont corrigés et vérifiés en posant le
+focus au clavier dans un vrai navigateur, puis en LISANT la couleur calculée. À l'œil, sur
+une capture, un anneau pâle se voit encore un peu.
+
+**Trois détails de mise en page, tous vus à la mesure.** Le panneau donnait quatre colonnes
+pour cinq post-it sur un portable de 1280, donc une deuxième rangée avec un post-it seul et
+trois cases de liège nu ; le minimum passe de 190 à 160 px et les cinq tiennent. La liste des
+échéances suivantes du calendrier faisait tomber « DAI, déclaration annuelle d'inventaire »
+sur QUATRE lignes de 87 px dans une zone de 227 ; la date passe au-dessus du libellé, et à
+côté dès qu'il y a la place, ce que dit la zone et pas la fenêtre. Et le sous-main passe de
+huit colonnes sur douze à neuf, décidé par la mesure et non par le goût.
+
+**Il reste un seul texte coupé** dans tout le bureau, à toutes les largeurs : un nom de
+client de 33 caractères, avec ses points de suspension et son infobulle. C'est voulu.
+
+Le banc passe de 73 à 76 contrôles. Le contrôle 6 bis et le plafond de tailles ont été
+vérifiés en réinjectant une faute : les deux font passer le verdict à NON CONFORME.
+
+---
+
 ## 07/09/2026, soir. La refonte de Ma journée : le bureau devient un plateau
 
 Ted a dicté cinq points après avoir regardé les planches : les post-it comme une to-do

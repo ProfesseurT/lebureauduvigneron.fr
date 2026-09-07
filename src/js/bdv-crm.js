@@ -31,9 +31,16 @@
     // donc 'appel' et 'repondeur', et l'affichage resout la cle a la lecture. Avant, ces
     // deux gestes ecrivaient tous les deux le libelle 'Téléphone', et un message laisse
     // etait indistinguable d'un appel decroche dans la colonne Canal.
-    appel:   { label: 'Appelé',            type: 'appel',   canal: 'appel',     statut: 'relance', jours: 30, resume: 'Appel passé' },
-    message: { label: 'Laissé un message', type: 'message', canal: 'repondeur', statut: 'relance', jours: 7,  resume: 'Message laissé, sans réponse' },
-    ecarte:  { label: 'Pas maintenant',    type: 'ecarte',  canal: null,        statut: null,      jours: 60, resume: 'Écarté de la file' }
+    // `court` est le mot ECRIT SUR LE BOUTON du sous-main, `label` reste le nom
+    // complet du geste : c'est lui qui part dans le title et dans l'aria-label, et
+    // c'est lui qu'on lit partout ailleurs. Mesure faite le 07/09/2026 dans un vrai
+    // navigateur : les trois boutons a libelle complet font 306 px a eux seuls, et
+    // le tableau du sous-main ne fait jamais plus de 934 px, souvent 640. Ils
+    // debordaient de la zone a TOUTES les largeurs, de 320 a 1920. Les trois mots
+    // courts font 183 px, ce qui laisse enfin de la place au motif.
+    appel:   { label: 'Appelé',            court: 'Appelé',  type: 'appel',   canal: 'appel',     statut: 'relance', jours: 30, resume: 'Appel passé' },
+    message: { label: 'Laissé un message', court: 'Message', type: 'message', canal: 'repondeur', statut: 'relance', jours: 7,  resume: 'Message laissé, sans réponse' },
+    ecarte:  { label: 'Pas maintenant',    court: 'Écarté',  type: 'ecarte',  canal: null,        statut: null,      jours: 60, resume: 'Écarté de la file' }
   };
 
   function session() { return (window.BdvCompte && BdvCompte.session()) || null; }

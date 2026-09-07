@@ -440,8 +440,25 @@ titre('Le plateau, dans l\'ordre de Ted');
     /createElement\('tr'\)[\s\S]{0,200}listb__l/.test(HTML) && !/className = 'tache'/.test(HTML));
   t('le sous-main a un vrai en-tete de colonnes',
     /createElement\('th'\)/.test(HTML) && /th\.scope = 'col'/.test(HTML));
-  t('les cinq colonnes de Ted sont celles-la',
-    /\['Réf', 'Fichier client', 'Motif', 'Retard', 'Geste'\]/.test(HTML));
+  /* CINQ COLONNES, ET LA REFERENCE EST SOUS LE NOM. Ted a dicte Ref, Fichier
+     client, Motif, Retard, Geste. La mesure a impose deux amenagements sans
+     rien retirer : la reference passe sous le nom, dans la meme cellule, ou
+     elle ne coute aucun pixel de largeur, et le montant sort du motif pour
+     avoir sa colonne de nombres alignes a droite. Les cinq informations sont
+     toutes la. */
+  t('les colonnes du listing sont celles-la',
+    /\['Fichier client', 'Motif', 'Montant', 'Retard', 'Geste'\]/.test(HTML));
+  t('la reference du fichier vit sous le nom, elle n\'a pas disparu',
+    /listb__fichier/.test(HTML) && /'réf\. ' \+ l\.id/.test(HTML));
+  t('le montant a sa colonne, il n\'est plus collé au motif',
+    /listb__montant/.test(HTML) && !/euros\(l\.montant\) \+ ' ' \+ \(l\.lib/.test(HTML));
+  /* Le defaut de Ted : les trois boutons a libelle complet font 306 px mesures
+     et debordaient de la zone a toutes les largeurs. Le mot court est sur le
+     bouton, le nom complet dans le title et l'aria-label. */
+  t('les boutons de geste portent un mot court et leur nom complet en title',
+    /b\.textContent = g\.court \|\| g\.label/.test(HTML)
+    && /b\.title = g\.label/.test(HTML)
+    && /aria-label', g\.label/.test(HTML));
 
   /* Le defaut : `pointer-events: none` n'arrete que la souris. Au clavier, deux
      Entree posaient deux gestes. */

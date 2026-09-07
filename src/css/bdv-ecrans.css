@@ -207,8 +207,17 @@
 .bdv-ventes .btn--ghost{background:transparent;color:var(--bordeaux);border:var(--trait) solid var(--bordeaux)}
 .bdv-ventes .btn--ghost:hover{background:var(--bordeaux);color:var(--on-dark)}
 .bdv-ventes .btn--sm{padding:.42rem .8rem;font-size:var(--t-micro)}
-.bdv-ventes .btn--light{background:var(--on-dark-rule);color:var(--on-dark);border:var(--trait) solid var(--on-dark-rule)}
-.bdv-ventes .btn--light:hover{background:var(--on-dark-faint)}
+/* .btn--light A ETE REPRIS A LA SOURCE le 07/09/2026. Il posait du creme sur du
+   creme a 15 %, soit un contraste de 1:1 sur le papier : il avait ete dessine
+   pour la barre haute bordeaux de l'ancien tableau de bord, qui n'existe plus.
+   La regle n'etait invisible que parce qu'une autre, plus specifique, la
+   recouvrait dans #bureauVentes. Un bouton illisible sauve par une regle plus
+   forte reste un bouton illisible : la source est corrigee, la rustine est
+   partie. Encre sur papier clair donne 13,33:1.
+   Trouve par le controle 6 bis de la charte, celui qui parcourt la feuille au
+   lieu d'attendre qu'on lui declare les paires. */
+.bdv-ventes .btn--light{background:var(--paper-light);color:var(--ink);border:var(--trait) solid var(--rule-fort)}
+.bdv-ventes .btn--light:hover{background:var(--bordeaux);color:var(--on-dark);border-color:var(--bordeaux)}
 .bdv-ventes .btn--danger{background:transparent;color:var(--danger-deep);border:var(--trait) solid var(--danger-deep)}
 .bdv-ventes .btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
 

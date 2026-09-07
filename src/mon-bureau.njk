@@ -323,38 +323,62 @@ permalink: /mon-bureau/
     var enRetard = l.source === 'rappel' && l.retard > 0;
     if(enRetard) tr.setAttribute('data-retard', 'oui');
 
-    var ref = cellule('listb__ref', String(l.id));
-    ref.title = 'Référence du fichier client dans ton export';
-    tr.appendChild(ref);
-
+    /* LA REFERENCE PASSE SOUS LE NOM, dans la meme cellule. Elle avait sa
+       colonne ; mesure faite, les cinq colonnes plus trois boutons demandent
+       858 px et le tableau n'en fait que 644 sur un portable de 1280. Sous le
+       nom elle ne coute RIEN : la ligne a un plancher de 44 px pour le tactile,
+       et deux lignes de texte y tiennent. Une colonne rendue pour zero pixel. */
+    var boite = document.createElement('span');
+    boite.className = 'listb__fichier';
     var nom = document.createElement('button');
     nom.type = 'button';
     nom.className = 'listb__nom';
     nom.setAttribute('data-fiche', l.id);
     nom.textContent = l.nom || l.id;
     nom.title = l.nom || l.id;   // coupe a l'ecran, entier a l'infobulle
-    tr.appendChild(cellule('listb__nom-c', nom));
+    var ref = document.createElement('span');
+    ref.className = 'listb__ref';
+    ref.textContent = 'réf. ' + l.id;
+    ref.title = 'Référence de ce fichier client dans ton export';
+    boite.appendChild(nom);
+    boite.appendChild(ref);
+    tr.appendChild(cellule('listb__nom-c', boite));
 
+    /* LE MOTIF DIT LA RAISON, LE MONTANT EST A PART, ET C'EST L'IDIOME D'UN
+       LISTING : le texte a gauche, les nombres a droite, alignes pour se
+       comparer d'un coup d'oeil. Avant, le motif etait « 5 922 € CA historique »,
+       une phrase qui melangeait les deux et qu'il fallait relire ligne a ligne.
+       Les deux morceaux existaient deja separement dans la file, l.montant et
+       l.lib : rien de nouveau n'est calcule. */
     var quoi = l.source === 'rappel'
-      ? (enRetard ? 'Rappel prévu, non fait' : 'Rappel prévu aujourd’hui')
-      : (l.montant ? euros(l.montant) + ' ' + (l.lib || '') : (l.detail || 'Signalé'));
+      ? (enRetard ? 'Rappel non fait' : 'Rappel ce jour')
+      : (l.lib || l.detail || 'Signalé');
     var cMotif = cellule('listb__motif', quoi);
     cMotif.title = quoi;   // coupe a l'ecran si la colonne est courte, entier a l'infobulle
     tr.appendChild(cMotif);
 
+    tr.appendChild(cellule('listb__montant', l.montant ? euros(l.montant) : '\u2014'));
+
     /* LA COLONNE RETARD DIT DES JOURS, pas une phrase : c'est une colonne de
-       listing, elle se lit en balayant verticalement. Le motif porte la phrase. */
+       listing, elle se lit en balayant verticalement une suite de J+quelque
+       chose. « J+0 » et pas « aujourd'hui » : 39 px contre 91 mesures. */
     tr.appendChild(cellule('listb__retard', l.source !== 'rappel' ? '\u2014'
-      : (enRetard ? 'J+' + l.retard : 'aujourd’hui')));
+      : (enRetard ? 'J+' + l.retard : 'J+0')));
 
     var gestes = cellule('listb__gestes', document.createDocumentFragment());
     Object.keys(BdvCrm.GESTES).forEach(function(k){
+      var g = BdvCrm.GESTES[k];
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn--geste';
       b.setAttribute('data-geste', k);
       b.setAttribute('data-id', l.id);
-      b.textContent = BdvCrm.GESTES[k].label;
+      /* Le mot court sur le bouton, le nom complet dans le title ET dans
+         l'aria-label : ce que la souris apprend en survolant, le clavier et le
+         lecteur d'ecran l'ont sans survoler. */
+      b.textContent = g.court || g.label;
+      b.title = g.label;
+      b.setAttribute('aria-label', g.label);
       gestes.appendChild(b);
     });
     tr.appendChild(gestes);
@@ -369,7 +393,7 @@ permalink: /mon-bureau/
     t.className = 'listb';
     var thead = document.createElement('thead');
     var tr = document.createElement('tr');
-    ['Réf', 'Fichier client', 'Motif', 'Retard', 'Geste'].forEach(function(m){
+    ['Fichier client', 'Motif', 'Montant', 'Retard', 'Geste'].forEach(function(m){
       var th = document.createElement('th');
       th.scope = 'col';
       th.textContent = m;

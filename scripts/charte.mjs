@@ -406,7 +406,25 @@ const PAIRES = [
   ['var(--cork)',       'var(--paper)',         'liege ORNEMENT sur papier',       1.5, true,  'decor seul : filets, guillemets, pastilles'],
   ['var(--rule-fort)',  'var(--paper)',         'filet de section (non textuel)',  1.25, true, ''],
   ['var(--rule)',       'var(--paper)',         'filet de carte (non textuel)',    1.10, true, ''],
-  ['var(--paper-deep)', 'var(--paper)',         'alternance des bandes',           1.25, true, '']
+  ['var(--paper-deep)', 'var(--paper)',         'alternance des bandes',           1.25, true, ''],
+  /* LES PAIRES DE LA REFONTE DU 07/09/2026. Elles n'existaient pas dans cette
+     table, donc rien ne les controlait, et c'est un calcul a la main qui a
+     trouve la seule qui echouait : le creme sur --danger donne 4,00:1, pour un
+     bandeau de mois ecrit en --t-micro, dix pixels, qui en demande 4,50. Une
+     paire nouvelle qui n'entre pas ici n'est pas controlee : c'est la lecon. */
+  ['var(--ardoise)',    'var(--cork)',          'intercalaire : encre sur carton', 4.5, true,  ''],
+  ['var(--bordeaux-deep)','var(--cork)',        'icone d\'intercalaire',            3.0, true,  'trace non textuel, seuil des elements graphiques'],
+  ['var(--on-dark)',    'var(--ardoise)',       'chiffre sur l\'ardoise',           4.5, true,  ''],
+  ['var(--gold)',       'var(--ardoise)',       'etiquette sur l\'ardoise',         4.5, true,  ''],
+  ['var(--on-dark-soft)','var(--ardoise)',      'source du chiffre sur l\'ardoise', 4.5, true,  ''],
+  ['var(--on-dark-faint)','var(--ardoise)',     'creme pale sur l\'ardoise',        4.5, false, '3,0:1 : interdit pour du texte sur l\'ardoise, ecrit dans CLAUDE.md'],
+  ['var(--on-dark)',    'var(--danger-deep)',   'bandeau de mois urgent',          4.5, true,  ''],
+  ['var(--on-dark)',    'var(--bordeaux)',      'bandeau de mois du calendrier',   4.5, true,  ''],
+  ['var(--danger-deep)','var(--white)',         'retard sur bande blanche',        4.5, true,  ''],
+  ['var(--muted)',      'var(--white)',         'reference et motif sur bande blanche', 4.5, true, ''],
+  ['var(--bordeaux)',   'var(--white)',         'nom de client sur bande blanche', 4.5, true,  ''],
+  ['var(--cork-clair)', 'var(--cork)',          'arete eclairee du carton (non textuel)', 1.10, true, ''],
+  ['var(--cork-encre)', 'var(--cork)',          'arete ombree du carton (non textuel)', 1.5, true, '']
 ];
 
 let echecsContraste = 0;
@@ -431,6 +449,61 @@ PAIRES.filter(p => !p[4] && rgba(p[0]) && rgba(p[1]) && ratio(p[0], p[1]) < p[3]
       .forEach(p => note('paire hors usage sous AA : ' + p[2] + ' (' + p[5] + ')'));
 if (echecsContraste) ko(echecsContraste + ' paire(s) en usage sous le seuil');
 else ok('toutes les paires en usage passent leur seuil');
+
+/* ---------------------------------------------------------------------------
+   6 bis. LES PAIRES QUE PERSONNE N'A DECLAREES
+   ---------------------------------------------------------------------------
+   La table ci-dessus ne controle que ce qu'on a pense a y ecrire. C'est ce trou
+   qui a laisse passer, le 07/09/2026, un bandeau de mois en creme sur --danger
+   a 4,00:1, pour du texte de dix pixels qui en demande 4,50 : la paire
+   --on-dark / --danger n'etait pas dans la table, donc rien ne la regardait.
+
+   Ce controle-ci ne demande rien a personne : il PARCOURT la feuille et prend
+   chaque regle qui pose a la fois une encre et un fond, tous deux en jeton. Il
+   en trouve une soixantaine. C'est la moitie du probleme, celle qui se voit :
+   il ne peut rien dire d'une encre heritee d'un parent, qui demanderait de
+   rejouer la cascade. La moitie qui se voit est deja celle qui casse.
+
+   Seuil unique a 4,50. Le seuil de 3,00 des grands textes existe, mais aucune
+   paire du depot n'en a besoin aujourd'hui, et un seuil qu'on n'utilise pas est
+   un seuil qui finit par excuser une faute.
+--------------------------------------------------------------------------- */
+titre('6 bis. Paires trouvees dans la feuille, hors table');
+{
+  const SEUL_JETON = /^var\(--[\w-]+\)$/;
+  const trouvees = [];
+  const declarees = new Set(PAIRES.map(p => p[0] + '|' + p[1]));
+  B.regles.forEach(r => {
+    const sel = norme(r.sel);
+    if (sel === ':root') return;
+    let fg = null, bg = null;
+    r.decls.forEach(d => {
+      if (d.prop === 'color') fg = d.val.trim();
+      if (d.prop === 'background' || d.prop === 'background-color') bg = d.val.trim();
+    });
+    if (!SEUL_JETON.test(fg || '') || !SEUL_JETON.test(bg || '')) return;
+    trouvees.push([sel, fg, bg, r.ligne]);
+  });
+  const vues = new Map();
+  trouvees.forEach(([sel, fg, bg, ligne]) => {
+    const cle = fg + '|' + bg;
+    if (!vues.has(cle)) vues.set(cle, { fg, bg, sel, ligne, n: 0 });
+    vues.get(cle).n++;
+  });
+  let sous = 0, insolubles = 0;
+  console.log('  ' + vues.size + ' paire(s) distincte(s) dans ' + trouvees.length + ' regle(s)');
+  vues.forEach(v => {
+    if (!rgba(v.fg) || !rgba(v.bg)) { insolubles++; return; }
+    const r = ratio(v.fg, v.bg);
+    if (r >= 4.5) return;
+    sous++;
+    ko('contraste ' + r.toFixed(2) + ':1 sous 4,50 — ' + v.sel + ' L' + v.ligne +
+       ' pose ' + v.fg + ' sur ' + v.bg +
+       (declarees.has(v.fg + '|' + v.bg) ? '' : ' (paire absente de la table)'));
+  });
+  if (insolubles) note(insolubles + ' paire(s) dont un jeton n\'est pas une couleur simple : non calculees');
+  if (!sous) ok('les ' + (vues.size - insolubles) + ' paires trouvees dans la feuille passent AA');
+}
 
 /* ---------------------------------------------------------------------------
    7. Graisses demandees contre graisses chargees  (LE controle du faux gras)
