@@ -202,9 +202,18 @@
   async function rafraichirMoteur(){
     if(!moteurPresent()) return;
     try{
-      // Le bureau, contrairement au tableau de bord, n'a pas lu la base au demarrage : sans
-      // cette lecture « Ma base » y afficherait zero ligne alors que la base est pleine.
-      if(typeof ROWS !== 'undefined' && !ROWS.length && typeof reloadFromDB === 'function'){
+      // Le bureau, contrairement au tableau de bord, n'a rien lu au demarrage. DEUX lectures
+      // sont donc necessaires ici, et dans cet ordre :
+      //   1. le serveur, parce que sur un appareil neuf IndexedDB est vide et que relire une
+      //      base vide ne rend rien : « Ma base » annoncait 0 ligne sur un compte plein.
+      //      L'appel est un tirage UNIQUE par visite (cf. bdv-base.js), il ne double donc pas
+      //      celui des ecrans de vente quand les deux sont ouverts.
+      //   2. IndexedDB, si elle n'a pas encore ete lue OU si le tirage vient d'y ajouter des
+      //      lignes venues d'un autre poste.
+      if(typeof tirerDuServeur === 'function') await tirerDuServeur();
+      const ajouts = (typeof TIRAGE_AJOUTS !== 'undefined') ? TIRAGE_AJOUTS : 0;
+      if(typeof ROWS !== 'undefined' && (!ROWS.length || ajouts) && typeof reloadFromDB === 'function'){
+        if(typeof TIRAGE_AJOUTS !== 'undefined') TIRAGE_AJOUTS = 0;
         await reloadFromDB();
       }
       renderBase();
@@ -677,7 +686,16 @@
         gateVitisoft();
         if(SUR_PROFIL){ try{ SUR_PROFIL(PROFIL); }catch(e){} }
       }
-      if(reglagesOk && bougeReglages) REGL = Object.assign({}, r, nouv);
+      if(reglagesOk && bougeReglages){
+        REGL = Object.assign({}, r, nouv);
+        // Le moteur adopte la valeur enregistree SANS la renvoyer en base : elle y est deja.
+        // Sans ces deux lignes, l'ardoise et l'alerte d'atterrissage gardaient l'ancien
+        // objectif jusqu'au prochain rechargement, et le premier geste du moteur
+        // (mois d'exercice, classement, libelles) repoussait cette vieille valeur par-dessus
+        // la neuve. C'est la moitie manquante de « un seul endroit dit vrai ».
+        if('objectif' in nouv && typeof adopterObjectif === 'function') adopterObjectif(nouv.objectif);
+        if('exercice_debut' in nouv && typeof adopterExercice === 'function') adopterExercice(nouv.exercice_debut);
+      }
       if(profilOk && reglagesOk){
         avis('C’est enregistré.', true);
         setTimeout(function(){ const v = el('bdvrVoile'); if(v && !v.hidden) fermer(); }, 900);

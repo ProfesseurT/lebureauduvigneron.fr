@@ -44,7 +44,11 @@ const MOIS_FR=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept
 function dayToDate(dn){if(dn==null)return null;const dt=new Date(dn*86400000);const y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();return {y,m,d,t:y*10000+m*100+d};}
 function isoDepuisDate(d){return d?(d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0')):'';}
 function isoDepuisJour(dn){return dn==null?'':isoDepuisDate(dayToDate(dn));}
-function savePersoLabels(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}syncReglages();}
+// Deux fonctions et pas une : tirerDuServeur() vient d'appliquer les libelles LUS en base,
+// il ne doit pas les y renvoyer. C'est cet aller-retour qui, en repartant avec les quatre
+// colonnes, effacait le classement du compte a chaque ouverture.
+function savePersoLabelsLocal(){try{localStorage.setItem(PERSO_LABELS_KEY,JSON.stringify(persoLabels));}catch(e){}}
+function savePersoLabels(){savePersoLabelsLocal();syncLabels();}
 
 /* ======================= CONFIG (a ajuster par domaine) ======================= */
 
@@ -190,14 +194,55 @@ function ecranRafraichir(){
   if(window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();
   else if(typeof ouvrirPanneauReglages === 'function') ouvrirPanneauReglages();
 }
-function syncReglages(){
+/* UNE ECRITURE = UNE COLONNE.
+
+   Cette fonction s'appelait syncReglages() et renvoyait les QUATRE colonnes a chaque geste.
+   Or le panneau de reglages ecrit `objectif` et `exercice_debut` directement en base, sans
+   passer par le moteur. Changer le mois d'exercice reexpediait donc l'objectif que le moteur
+   avait encore en memoire, PAR-DESSUS celui que le vigneron venait d'enregistrer. Perdu,
+   sans un mot. Et au demarrage, tirerDuServeur() appelait savePersoLabels() alors que REG
+   n'etait pas encore lu : le classement du compte repartait donc en `null` a chaque
+   ouverture. Deux pertes de donnees silencieuses pour une seule cause.
+
+   `on_conflict=id` + merge-duplicates ne touche QUE les colonnes envoyees : n'envoyer que
+   la sienne suffit a ce qu'aucun geste ne puisse en effacer un autre.
+
+   NE PAS remettre une fonction qui envoie tout, meme « pour etre sur ». Une cinquieme
+   colonne prend sa propre fonction. */
+function syncUneColonne(champs){
   if(!syncPret())return;
-  BdvSync.ecrireReglages({
-    objectif:objectif,
-    exercice_debut:EX_START,
-    perso_labels:persoLabels,
-    classement:REG||null
-  }).catch(function(){});
+  BdvSync.ecrireReglages(champs).catch(function(){});
+}
+function syncObjectif(){syncUneColonne({objectif:objectif});}
+function syncExercice(){syncUneColonne({exercice_debut:EX_START});}
+function syncLabels(){syncUneColonne({perso_labels:persoLabels});}
+// Un classement abandonne part en `null`, pas en `{valide:false}` : « revenir au classement
+// automatique » doit s'effacer sur les AUTRES appareils aussi, et pas y arriver sous la forme
+// d'un objet que tirerDuServeur() reappliquerait comme un classement valide.
+function syncClassement(){syncUneColonne({classement:(REG&&REG.valide)?REG:null});}
+
+/* Les deux reglages que le PANNEAU enregistre lui-meme, adoptes par le moteur sans repartir
+   en base : c'est deja ecrit, et un aller-retour de plus rouvrirait la porte a l'ecrasement.
+   Sans elles, l'ardoise gardait l'ancien objectif jusqu'au prochain rechargement complet. */
+function adopterObjectif(v){
+  const n=(v==null||v==='')?null:(Number(v)||null);
+  objectif=(n&&n>0)?n:null;
+  try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}
+  ecranRafraichir();
+}
+function adopterExercice(m){
+  const n=parseInt(m,10);
+  if(!(n>=1&&n<=12)||n===EX_START)return;
+  EX_START=n;
+  try{if(n===1)localStorage.removeItem(EX_KEY);else localStorage.setItem(EX_KEY,String(n));}catch(e){}
+  // Meme recalcul que exAppliquer(), MOINS l'ecriture en base : le decoupage du temps change,
+  // donc les trois champs derives de chaque ligne et la selection courante ne veulent plus
+  // rien dire. buildFilterBar() n'existe qu'au tableau de bord, d'ou le garde.
+  if(typeof ROWS!=='undefined'&&ROWS.length)ROWS.forEach(exDeriver);
+  filters={ex:null,from:null,to:null,preset:'tous'};
+  computeMeta();
+  if(typeof buildFilterBar==='function')buildFilterBar();
+  ecranRafraichir();
 }
 // Une fiche videe par le vigneron est SUPPRIMEE du serveur, pas gardee vide : sinon la table
 // se remplit de fiches fantomes qu'aucun ecran ne montre plus.
@@ -208,19 +253,39 @@ function syncSuivi(id){
 }
 // Rapatriement au demarrage. Les lignes du serveur passent par dbAddMany comme n'importe quel
 // import : meme deduplication, meme enrichissement hors empreinte, aucun chemin special.
-async function tirerDuServeur(){
-  if(!syncPret())return;
+/* TIRAGE UNIQUE PAR VISITE. Deux endroits le demandent maintenant : l'ouverture des ecrans
+   de vente, et l'ouverture du panneau de reglages, qui montre « Ma base » et « Le classement »
+   sans qu'aucun ecran de vente ait forcement ete affiche. Sur un appareil neuf, le panneau
+   annoncait « 0 ligne » alors que le compte en portait des milliers.
+
+   Une PROMESSE partagee, et pas un simple drapeau : les deux appels peuvent se croiser, et le
+   second doit attendre le premier au lieu de repartir en parallele. En cas d'echec elle est
+   remise a zero, pour que le geste suivant ait sa chance. */
+let _tirage=null;
+// Nombre de lignes que le dernier tirage a ajoutees a IndexedDB. Le panneau s'en sert pour
+// savoir s'il doit relire la base : sans ca, un appareil qui avait deja des lignes n'affichait
+// pas celles qui venaient d'arriver d'un autre poste.
+let TIRAGE_AJOUTS=0;
+function tirerDuServeur(){
+  if(!syncPret())return Promise.resolve();
+  if(_tirage)return _tirage;
+  _tirage=tirerDuServeurUneFois().catch(function(){_tirage=null;});
+  return _tirage;
+}
+async function tirerDuServeurUneFois(){
   try{
     const lignes=await BdvSync.tirerVentes(function(n){status('loading','Récupération de tes ventes, '+fmtNum(n)+' lignes...');});
     if(lignes.length){
       const r=await dbAddMany(lignes);
+      TIRAGE_AJOUTS=r.added||0;
       if(r.added)status('success',fmtNum(r.added)+' ligne(s) récupérée(s) depuis ton compte.');
     }
     const reg=await BdvSync.lireReglages();
     if(reg){
       if(reg.objectif!=null){objectif=Number(reg.objectif)||null;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));}catch(e){}}
       if(reg.exercice_debut>=1&&reg.exercice_debut<=12){EX_START=reg.exercice_debut;try{localStorage.setItem(EX_KEY,String(EX_START));}catch(e){}}
-      if(reg.perso_labels){persoLabels=reg.perso_labels;savePersoLabels();}
+      // Local SEUL : ce qu'on vient de lire en base n'a rien a y refaire.
+      if(reg.perso_labels){persoLabels=reg.perso_labels;savePersoLabelsLocal();}
       if(reg.classement)await regEcrire(reg.classement);
     }
     // Le journal d'echanges suit le meme chemin que le suivi. Le serveur fait foi ici,
@@ -914,7 +979,7 @@ let PROPOSE=null;
 async function appliquerReglages(R){
   R.valide=true;delete R._profils;
   await regEcrire(R);
-  REG=R;syncReglages();
+  REG=R;syncClassement();
   REG=R;
   ROWS=ROWS.map(r=>classerLigne(r));
   computeMeta();
@@ -926,6 +991,10 @@ async function oublierReglages(){
   if(!confirm('Revenir au classement automatique ? Tes regroupements seront perdus.'))return;
   await regEcrire({valide:false});
   await reloadFromDB();
+  // APRES reloadFromDB, qui vient de relire REG : abandonner le classement est un geste comme
+  // un autre, il doit partir en base. Sans cette ligne, les regroupements restaient sur le
+  // compte et le prochain appareil les reappliquait.
+  syncClassement();
   runBusy('Retour au classement automatique…',()=>{ecranRafraichir();});
 }
 /* ======================= EXERCICE COMPTABLE =======================
@@ -985,7 +1054,7 @@ function exAppliquer(m){
   if(!(n>=1&&n<=12)||n===EX_START)return;
   EX_START=n;
   try{if(n===1)localStorage.removeItem(EX_KEY);else localStorage.setItem(EX_KEY,String(n));}catch(e){}
-  syncReglages();
+  syncExercice();
   ROWS.forEach(exDeriver);
   filters={ex:null,from:null,to:null,preset:'tous'};
   computeMeta();

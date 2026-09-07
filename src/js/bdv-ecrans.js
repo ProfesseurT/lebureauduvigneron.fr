@@ -730,7 +730,7 @@ function drawEvo(periods,segs,bySeg,multi){
 
 /* ======================= DIAGNOSTIC (agents statistiques) ======================= */
 // Objectif de CA annuel, memorise dans le navigateur.
-function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}syncReglages();runBusy('Analyse…',renderDiagnostic);}
+function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}syncObjectif();runBusy('Analyse…',renderDiagnostic);}
 
 // AGENT A : atterrissage de l'annee en cours (projection fin d'annee).
 function computeAtterrissage(){
