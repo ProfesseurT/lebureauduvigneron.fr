@@ -323,6 +323,10 @@ t('la date de la note reste facultative',
 /* LA DATE DE FIN, 08/09/2026 : « imagine c'est un salon sur plusieurs jours ». Elle
    est dans les DEUX formulaires, celui du calendrier et celui de Mes taches : c'est la
    meme table, et un salon note d'un cote doit pouvoir durer autant que de l'autre. */
+/* LE FILTRE DE FAMILLES EST DANS LES DEUX PIECES, 08/09/2026. Le conteneur doit
+   exister dans le gabarit : monte a la volee, il echapperait a la charte. */
+t('« Mes taches » porte son propre conteneur de filtre',
+  CAL.doc.getElementById('tachesFiltre') !== null);
 t('les deux formulaires proposent une date de fin, et elle est facultative',
   CAL.doc.getElementById('calFin') !== null
   && CAL.doc.getElementById('tachesFin') !== null

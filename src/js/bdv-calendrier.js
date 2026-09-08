@@ -845,8 +845,9 @@
     lesFamilles().forEach(function (f) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'calfam';
+      b.className = 'filtfam';
       b.setAttribute('data-cal-famille', f.cle);
+      b.setAttribute('data-fam', f.cle);
       b.title = f.quoi;
       b.textContent = f.label;
       hote.appendChild(b);
@@ -858,12 +859,12 @@
     [].forEach.call(document.querySelectorAll('[data-cal-famille]'), function (b) {
       var on = act.indexOf(b.getAttribute('data-cal-famille')) >= 0;
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.classList.toggle('calfam--off', !on);
+      b.classList.toggle('filtfam--off', !on);
     });
     var f = el('calFond');
     if (f) {
       f.setAttribute('aria-pressed', fond ? 'true' : 'false');
-      f.classList.toggle('calfam--off', !fond);
+      f.classList.toggle('filtfam--off', !fond);
     }
   }
 

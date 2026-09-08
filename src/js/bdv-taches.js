@@ -118,9 +118,56 @@
   }
   function idOccurrence(cle, d) { return 'ech:' + cle + ':' + iso(d); }
 
+  /* ---------------- LES FAMILLES AFFICHEES ICI ----------------
+     REGRESSION CORRIGEE LE 08/09/2026, ET IL FAUT SAVOIR COMMENT ELLE EST
+     ARRIVEE. Cette fonction prend TOUT le fichier de donnees. Jusqu'au lot 2 il
+     portait cinq obligations, et la regle 7 de CLAUDE.md tenait toute seule.
+     Le lot 2 y a ajoute les travaux du domaine, les salons et les temps forts
+     commerciaux : « Mes taches » est passee de 5 lignes a 28, et s'est mise a
+     proposer de cocher « Taille de la vigne » comme une DRM.
+
+     PERSONNE NE L'A VU, et le banc non plus : son bac d'essai ne contient qu'une
+     seule echeance, une DRM. Un jeu d'essai plus petit que la realite ne verifie
+     que ce qu'il contient. Le banc en porte desormais une de chaque famille.
+
+     LES DEFAUTS NE SONT PAS CEUX DU CALENDRIER, et c'est voulu. Le calendrier
+     montre tout, c'est une carte : on veut y voir les vendanges. Une liste de
+     choses a faire, non : elle ne porte que ce qui se coche vraiment, les
+     obligations et ce que le vigneron a note. Les reperes de saison s'y
+     rallument d'un clic pour qui les veut. */
+  var FAM_KEY = 'bdv_taches_familles';
+  var ETEINTES_PAR_DEFAUT = ['travaux', 'rendezvous', 'tempsforts'];
+
+  function famillesEteintes() {
+    try {
+      var brut = JSON.parse(localStorage.getItem(FAM_KEY));
+      return Array.isArray(brut) ? brut : ETEINTES_PAR_DEFAUT.slice();
+    } catch (e) { return ETEINTES_PAR_DEFAUT.slice(); }
+  }
+  function familleAffichee(cle) { return famillesEteintes().indexOf(cle) < 0; }
+  function basculerFamille(cle) {
+    var off = famillesEteintes(), i = off.indexOf(cle);
+    if (i >= 0) off.splice(i, 1); else off.push(cle);
+    try { localStorage.setItem(FAM_KEY, JSON.stringify(off)); } catch (e) {}
+    rendre();
+  }
+  /* La liste montree par le filtre : les quatre familles du fichier de donnees,
+     plus « Mes notes », qui n'en vient pas. Elle est lue chez BdvEcheances pour
+     ne pas exister a deux endroits. */
+  function famillesDuFiltre() {
+    var l = (window.BdvEcheances && BdvEcheances.familles) || [];
+    return l.map(function (f) {
+      return f.cle === 'taches'
+        ? { cle: 'notes', label: 'Mes notes', quoi: 'Ce que j’ai écrit moi-même' }
+        : f;
+    });
+  }
+
   function obligations() {
     if (!window.BdvEcheances) return [];
-    var brut = BdvEcheances.depuisLaPage('bdvEcheances');
+    var brut = BdvEcheances.depuisLaPage('bdvEcheances').filter(function (e) {
+      return familleAffichee(e.famille || 'obligations');
+    });
     if (!brut.length) return [];
     var map = lireCache();
     // Une seule occurrence par obligation, la prochaine : c'est ce que calculer() rend.
@@ -139,6 +186,7 @@
   }
 
   function libres() {
+    if (!familleAffichee('notes')) return [];
     var map = lireCache(), auj = minuit(new Date()), out = [];
     Object.keys(map).forEach(function (k) {
       var l = map[k];
@@ -369,6 +417,34 @@
     hote.appendChild(ul);
   }
 
+  /* Le filtre se monte une fois, a partir de la liste unique des familles, et se
+     repeint a chaque rendu. Les etiquettes empruntent `.filtfam` au calendrier :
+     le meme geste doit avoir la meme allure aux deux endroits, sinon il faut
+     l'apprendre deux fois. */
+  function monterFiltre() {
+    var hote = el('tachesFiltre');
+    if (!hote || hote.dataset.monte) return;
+    hote.dataset.monte = '1';
+    famillesDuFiltre().forEach(function (f) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'filtfam';
+      b.setAttribute('data-tache-famille', f.cle);
+      b.setAttribute('data-fam', f.cle);
+      b.title = f.quoi;
+      b.textContent = f.label;
+      hote.appendChild(b);
+    });
+  }
+  function peindreFiltre() {
+    var off = famillesEteintes();
+    [].forEach.call(document.querySelectorAll('[data-tache-famille]'), function (b) {
+      var on = off.indexOf(b.getAttribute('data-tache-famille')) < 0;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.classList.toggle('filtfam--off', !on);
+    });
+  }
+
   function rendre() {
     /* Le panneau de liege est repeint AVANT le test de sortie : ses punaises viennent
        d'ici, et elles doivent se mettre a jour meme quand la piece Mes taches n'a
@@ -383,6 +459,8 @@
        meme quand la piece « Mes taches » n'a jamais ete ouverte. */
     try { document.dispatchEvent(new CustomEvent('bdv:taches')); } catch (e) {}
     if (!el('tachesAFaire')) return;
+    monterFiltre();
+    peindreFiltre();
     var t = toutes();
     var afaire = t.filter(function (x) { return !x.fait_le; });
     // Les faites, les vingt dernieres et les plus recentes d'abord : la liste des choses
@@ -429,7 +507,9 @@
     var c = e.target.closest && e.target.closest('[data-tache-coche]');
     if (c) { e.preventDefault(); basculer(c.getAttribute('data-tache-coche')); return; }
     var s = e.target.closest && e.target.closest('[data-tache-suppr]');
-    if (s) { e.preventDefault(); supprimer(s.getAttribute('data-tache-suppr')); }
+    if (s) { e.preventDefault(); supprimer(s.getAttribute('data-tache-suppr')); return; }
+    var f = e.target.closest && e.target.closest('[data-tache-famille]');
+    if (f) { e.preventDefault(); basculerFamille(f.getAttribute('data-tache-famille')); }
   });
 
   function brancherForm() {
@@ -497,6 +577,7 @@
     ouvrir: ouvrir, rendre: rendre, charger: charger, punaises: punaises,
     ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes,
     estFaite: estFaite, basculerOccurrence: basculerOccurrence,
-    datees: datees, sansDate: sansDate
+    datees: datees, sansDate: sansDate,
+    familleAffichee: familleAffichee, basculerFamille: basculerFamille
   };
 })();

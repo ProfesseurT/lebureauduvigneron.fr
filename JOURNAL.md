@@ -12,6 +12,62 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 09/09/2026, nuit. Le filtre des tâches, une régression du lot 2, et deux captures qui mentaient
+
+Ted : « faut pouvoir choisir aussi dans les tâches les catégories à afficher ou pas ».
+
+**Sa demande était le symptôme, pas la cause.** `obligations()` dans `bdv-taches.js` prend TOUT le
+fichier de données. Tant qu'il portait cinq obligations, la règle 7 tenait toute seule. Le lot 2 y
+a ajouté les travaux du domaine, les salons et les temps forts : « Mes tâches » est passée de 5
+lignes à 28, et s'est mise à proposer de cocher « Taille de la vigne » comme une DRM.
+
+**Le banc n'a rien vu parce que son bac d'essai ne contenait qu'une DRM.** Un jeu d'essai plus
+petit que la réalité ne vérifie que ce qu'il contient. Il porte maintenant une occurrence de
+chaque famille, et sept contrôles sur le filtre.
+
+Les défauts du filtre ne sont pas ceux du calendrier, et c'est voulu : obligations et notes
+allumées, repères de saison, salons et temps forts éteints. Le calendrier est une carte, on veut y
+voir les vendanges ; une liste de choses à faire ne porte que ce qui se coche. Et le choix est
+propre à chaque pièce : le partager voudrait dire qu'éteindre « Travaux » pour nettoyer sa liste
+retire les vendanges de la grille.
+
+### `tokens.css` n'est servi à personne, et deux contrôles ne l'ont pas dit
+
+C'est la deuxième erreur du soir, et la plus grave. `tokens.css` est un document de RÉFÉRENCE : il
+n'est lié par aucune page et n'est pas copié dans `_site`. Les vraies déclarations vivent dans le
+`:root` de `style.css` et dans celui de `bdv-ecrans.css`.
+
+J'y ai ajouté quatre couleurs de famille au lot 2. **Elles n'ont jamais existé dans le
+navigateur.** Deux garde-fous ont regardé ailleurs :
+
+1. `npm run charte` ne lit pas les feuilles chargées en JavaScript. Un `var()` écrit dans
+   `bdv-calendrier.css` échappait au contrôle du site.
+2. `charte:bureau`, lui, lit aussi `bdv-ecrans.css`, **qui déclare déjà `--serie-1` à
+   `--serie-8`**. Le nom existait, le contrôle était content. Il ne pouvait pas savoir que la
+   déclaration venait d'une autre feuille, avec d'autres valeurs, pour un autre usage.
+
+Une collision de noms rend une déclaration manquante indétectable. C'est le seul cas où la charte
+peut dire CONFORME sur du `var()` cassé. Le défaut n'est apparu que le jour où une règle est
+descendue dans `style.css`, ce qui l'a fait entrer dans le périmètre du contrôle du site.
+
+**Les huit séries existaient donc depuis le début**, avec leurs luminances documentées, pour les
+courbes des écrans de vente. Je les avais déclarées absentes dans le journal du lot 2 : c'était
+faux. Les familles du calendrier s'appellent maintenant `--fam-1` à `--fam-4`, un jeu séparé, et
+c'est justifié par la mesure : sur `--paper-light`, `--serie-4` tombe à 2,37:1, `--serie-6` à
+2,95:1, `--serie-8` à 1,94:1. Une échelle pour des aplats de graphique n'est pas une échelle pour
+des filets de trois pixels sur du papier.
+
+### Et mes captures montraient les bonnes couleurs
+
+Parce que le harnais inlinait `tokens.css`. Trois captures envoyées à Ted montraient un écran que
+le navigateur n'aurait jamais rendu. **Un harnais qui ne charge pas exactement ce que la page
+charge n'illustre qu'une intention.** Sa liste de feuilles est maintenant celle de la page,
+`style.css` plus les feuilles posées en JavaScript par la pièce, et rien d'autre.
+
+`npm run verif` : conforme, 52 contrôles pour les tâches seules, 0 échec.
+
+---
+
 ## 08/09/2026, nuit. Une tâche peut durer plusieurs jours
 
 Ted : « la création d'une occurrence doit demander aussi une date de fin facultative : imagine

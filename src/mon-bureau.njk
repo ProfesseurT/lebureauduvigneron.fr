@@ -215,6 +215,16 @@ permalink: /mon-bureau/
             sagement en bas de liste. La seconde ne sert qu'à ce qui dure plusieurs jours.</p>
         </form>
 
+        {# LE MEME FILTRE QUE DANS LE CALENDRIER, demande de Ted le 08/09/2026.
+           Les defauts, eux, ne sont PAS les memes : le calendrier montre tout,
+           c'est une carte. Une liste de choses a faire ne porte que ce qui se
+           coche vraiment, les obligations et ce que le vigneron a note ; les
+           reperes de saison s'y rallument d'un clic pour qui les veut.
+           Le conteneur est vide : le module le remplit a partir de la liste
+           unique des familles. #}
+        <div class="taches__filtres" id="tachesFiltre" role="group"
+             aria-label="Ce que tu veux voir dans ta liste"></div>
+
         <div id="tachesAFaire"></div>
         <div id="tachesFaites"></div>
       </section>
@@ -284,7 +294,7 @@ permalink: /mon-bureau/
            L'interrupteur du fond de carte, lui, est unique et statique. #}
         <div class="cal__filtres" role="group" aria-label="Ce que tu veux voir">
           <div class="cal__filtres" id="calFiltre"></div>
-          <button class="calfam cal__fond" type="button" id="calFond" aria-pressed="true"
+          <button class="filtfam cal__fond" type="button" id="calFond" aria-pressed="true"
                   title="La lune, les saisons et les jours fériés, en fond de la grille. On ne les coche pas.">Lune et fériés</button>
         </div>
 

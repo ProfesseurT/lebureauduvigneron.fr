@@ -28,6 +28,29 @@
                                 creme sur bordeaux. A eviter pour du texte long. */
   --cork-encre:    #704C22;  /* le liege quand il porte du texte : 6,2:1 sur papier, 4,9:1 sur --paper-deep */
 
+  /* ---- FAMILLES DU CALENDRIER ------------------------------------------
+     CE NE SONT PAS LES SERIES DE GRAPHIQUE. Les huit `--serie-1` a `--serie-8`
+     existent depuis longtemps dans src/css/bdv-ecrans.css : une echelle
+     categorielle pour les COURBES et les APLATS des ecrans de vente. Les
+     reutiliser ici serait une collision de noms avec deux valeurs differentes,
+     et la derniere feuille chargee gagnerait, au hasard de l'ordre des clics.
+
+     ET ELLES NE CONVIENDRAIENT PAS. Mesure du 08/09/2026 : sur --paper-light,
+     --serie-4 tombe a 2,37:1, --serie-6 a 2,95:1, --serie-8 a 1,94:1. Une
+     echelle dessinee pour des aplats de graphique n'est pas une echelle pour des
+     filets de trois pixels sur du papier. Deux metiers, deux echelles.
+
+     Celles-ci sont mesurees POUR CE PAPIER : ecart de luminance minimum 11,8 en
+     vision normale, 11,2 en simulation deuteranope, et toutes au-dessus des 3:1
+     des objets graphiques sur --paper-light. La quatrieme passe tout juste et
+     tombe a 2,3:1 sur --paper-deep : elle ne se pose que sur le papier clair.
+     Une cinquieme famille n'aurait PAS de place, la bande utilisable s'arrete a
+     L* 56 : elle prend une matiere, pas une teinte. */
+  --fam-1: #4A1220;  /* obligations : bordeaux profond, L* 15,4, 13,09:1 */
+  --fam-2: #3D5233;  /* travaux : vert-olive de vigne, L* 32,4, 7,46:1 */
+  --fam-3: #3A6E8F;  /* rendez-vous : bleu ardoise, L* 44,3, 4,81:1 */
+  --fam-4: #B07D22;  /* temps forts : ocre, L* 56,1, 3,15:1 */
+
   /* ---- MARQUES TIERCES ----------------------------------------------- */
   /* Ne jamais utiliser comme accent du site : ce sont les couleurs des
      produits montres en maquette, elles suivent leur charte, pas la notre. */
@@ -6227,6 +6250,65 @@ button.bureau-nav__item:hover {
      jamais, en silence. */
   container-type: inline-size;
   container-name: calendrier;
+}
+
+/* ============================================================================
+   LES ETIQUETTES DE FAMILLE, partagees par le calendrier et par « Mes taches »
+   ============================================================================
+   Elles vivent ICI et pas dans src/css/bdv-calendrier.css, qui n'est chargee
+   qu'au premier clic sur le calendrier : laissees la-bas, les etiquettes de
+   « Mes taches » auraient ete nues chez quelqu'un qui n'ouvre jamais l'autre
+   piece. Le meme geste doit avoir la meme allure aux deux endroits, sinon il
+   faut l'apprendre deux fois.
+
+   La couleur vient de la famille, en lisere a gauche. `--serie-4` passe tout
+   juste 3:1 sur --paper-light et tombe a 2,3:1 sur --paper-deep : le fond d'une
+   etiquette allumee reste donc le papier clair. Ne pas le changer sans
+   remesurer. La cinquieme famille n'a PAS de couleur, il n'y a pas la place sur
+   ce papier : elle est ecrite a la main.
+============================================================================ */
+.filtfam {
+  padding: 2px var(--e-s);
+  border: var(--trait) solid var(--rule-fort);
+  border-left: var(--trait-accent) solid var(--fam-1);
+  border-radius: var(--r-nul);
+  background: var(--paper-light);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  letter-spacing: var(--ls-doux);
+  cursor: pointer;
+  transition: background var(--tr-rapide), color var(--tr-rapide);
+}
+.filtfam[data-fam="travaux"]    { border-left-color: var(--fam-2); }
+.filtfam[data-fam="rendezvous"] { border-left-color: var(--fam-3); }
+.filtfam[data-fam="tempsforts"] { border-left-color: var(--fam-4); }
+.filtfam[data-fam="taches"],
+.filtfam[data-fam="notes"] {
+  border-left-color: var(--rule-fort);
+  border-left-style: dotted;
+  font-family: var(--font-manuscrit);
+  font-size: var(--t-petit);
+}
+.filtfam:hover { background: var(--paper-deep); }
+/* ETEINTE : le libelle barre et l'encre en retrait. Pas un bouton grise, qui se
+   lirait « indisponible » alors qu'il est le seul moyen de rallumer. */
+.filtfam--off {
+  background: var(--paper-deep);
+  color: var(--muted);
+  border-left-color: var(--rule-fort);
+  text-decoration: line-through;
+}
+.filtfam:focus-visible {
+  outline: var(--trait-fort) solid var(--bordeaux);
+  outline-offset: var(--trait);
+}
+
+.taches__filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-xs);
+  margin-bottom: var(--e-m);
 }
 
 /* LE « AU » ENTRE LES DEUX DATES, 08/09/2026. Deux champs de date cote a cote sans

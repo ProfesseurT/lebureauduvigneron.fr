@@ -45,11 +45,29 @@ const dit = (b, m, det) => {
 };
 
 /* Une obligation MENSUELLE, pour que le banc ne depende pas du mois ou il tourne :
-   le 10 du mois prochain existe toujours, et il est toujours a plus de zero jour. */
-const ECHEANCES = [{
-  cle: 'drm', titre: 'DRM, declaration recapitulative mensuelle',
-  recurrence: { type: 'mensuel', jour: 10 }
-}];
+   le 10 du mois prochain existe toujours, et il est toujours a plus de zero jour.
+
+   UNE DE CHAQUE FAMILLE, depuis le 08/09/2026, et c'est une correction de banc
+   autant que de code. Ce bac d'essai n'a longtemps contenu QUE la DRM. Quand le
+   lot 2 a ajoute les travaux, les salons et les temps forts au fichier de
+   donnees, « Mes taches » est passee de 5 lignes a 28 et s'est mise a proposer
+   de cocher « Taille de la vigne » comme une DRM. Le banc n'a rien vu : il ne
+   contenait pas de travaux. UN JEU D'ESSAI PLUS PETIT QUE LA REALITE NE VERIFIE
+   QUE CE QU'IL CONTIENT. */
+const ECHEANCES = [
+  { cle: 'drm', titre: 'DRM, declaration recapitulative mensuelle',
+    famille: 'obligations', statut: 'obligation',
+    recurrence: { type: 'mensuel', jour: 10 } },
+  { cle: 'taille', titre: 'Taille de la vigne',
+    famille: 'travaux', statut: 'repere',
+    recurrence: { type: 'mensuel', jour: 12 } },
+  { cle: 'salon', titre: 'Un salon',
+    famille: 'rendezvous', statut: 'repere',
+    recurrence: { type: 'mensuel', jour: 14 } },
+  { cle: 'noel', titre: 'Campagne de fin d\'annee',
+    famille: 'tempsforts', statut: 'repere',
+    recurrence: { type: 'mensuel', jour: 16 } }
+];
 
 const CORPS = '<!doctype html><html><body>'
   + '<script id="bdvEcheances" type="application/json">' + JSON.stringify(ECHEANCES) + '<\/script>'
@@ -338,6 +356,54 @@ console.log('\n== 7. Une tache qui dure plusieurs jours ==');
   const recoche = u.ecritures()[0].corps[0];
   dit(recoche.fin_le === jour(1),
     'cocher une periode garde sa date de fin', recoche.fin_le);
+}
+
+/* ==========================================================================
+   8. CHOISIR LES FAMILLES AFFICHEES DANS LA LISTE
+   ==========================================================================
+   Demande de Ted le 08/09/2026, et correction de la regression ci-dessus.
+   ========================================================================== */
+console.log('\n== 8. Choisir les familles affichees ==');
+{
+  const t = monter();
+  await dormir(30);
+  t.T.ajouter('Une note a moi', null);
+  await dormir(30);
+
+  const titres = () => t.T.toutes().map(x => x.titre);
+  /* LES DEFAUTS NE SONT PAS CEUX DU CALENDRIER, et c'est voulu. Le calendrier
+     montre tout, c'est une carte. Une liste de choses a faire ne porte que ce
+     qui se coche vraiment : les obligations et ce que le vigneron a note. */
+  dit(titres().indexOf('DRM, declaration recapitulative mensuelle') >= 0,
+    'par defaut, les obligations sont dans la liste');
+  dit(titres().indexOf('Une note a moi') >= 0,
+    'par defaut, les notes du vigneron aussi');
+  dit(titres().indexOf('Taille de la vigne') < 0
+    && titres().indexOf('Un salon') < 0
+    && titres().indexOf('Campagne de fin d\'annee') < 0,
+    'MAIS PAS LES REPERES DE SAISON, LES SALONS NI LES TEMPS FORTS : une liste de '
+    + 'choses a faire n\'est pas le calendrier', JSON.stringify(titres()));
+
+  t.T.basculerFamille('travaux');
+  dit(titres().indexOf('Taille de la vigne') >= 0,
+    'rallumer les travaux les fait entrer dans la liste');
+  t.T.basculerFamille('travaux');
+  dit(titres().indexOf('Taille de la vigne') < 0,
+    'et les eteindre les ressort');
+
+  t.T.basculerFamille('notes');
+  dit(titres().indexOf('Une note a moi') < 0
+    && titres().indexOf('DRM, declaration recapitulative mensuelle') >= 0,
+    'eteindre « Mes notes » ne cache que les notes, pas les obligations',
+    JSON.stringify(titres()));
+  t.T.basculerFamille('notes');
+
+  /* LE CHOIX EST PROPRE A CETTE PIECE. Le partager avec le calendrier voudrait
+     dire qu'eteindre « Travaux » pour nettoyer sa liste retire les vendanges de
+     la grille, qui est justement l'endroit ou on veut les voir. */
+  dit(t.w.localStorage.getItem('bdv_taches_familles') !== null
+    && t.w.localStorage.getItem('bdv_cal_familles') === null,
+    'le choix des taches ne touche pas celui du calendrier');
 }
 
 console.log('\n== VERDICT ==');

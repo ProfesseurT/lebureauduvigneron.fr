@@ -282,6 +282,32 @@ lance immediatement apres lit une page a moitie ecrite. Un echec isole qui ne se
 pas au deuxieme essai vient de la, pas du code : le relancer suffit, mais il faut le
 relancer, pas l'ignorer.
 
+## `tokens.css` N'EST PAS SERVI AU NAVIGATEUR, et deux controles ne l'ont pas dit
+
+Piege paye le 08/09/2026, et il est vicieux parce que deux garde-fous ont regarde ailleurs.
+
+`tokens.css`, a la racine, est la REFERENCE. Il n'est lie par aucune page et n'est pas copie
+dans `_site`. Les vraies declarations vivent dans le `:root` de `src/css/style.css` pour le
+site et le bureau, et dans celui de `src/css/bdv-ecrans.css` pour les ecrans de vente.
+**Un jeton ajoute a `tokens.css` seul n'existe pas dans le navigateur.**
+
+Ce qui a rendu la chose invisible :
+
+1. **`npm run charte` ne lit pas les feuilles chargees en JavaScript.** Seul `charte:bureau`
+   les ajoute. Un `var()` ecrit dans `bdv-calendrier.css` echappait donc au controle du site.
+2. **`charte:bureau`, lui, lisait AUSSI `bdv-ecrans.css`**, qui declare `--serie-1` a
+   `--serie-8`. Le nom existait, le controle etait content. Il ne pouvait pas savoir que la
+   declaration venait d'une autre feuille, avec d'autres valeurs, pour un autre usage.
+
+**Une collision de noms rend une declaration manquante indetectable.** C'est le seul cas ou
+la charte peut dire CONFORME sur du var() casse. Le defaut n'est apparu que le jour ou une
+regle est descendue dans `style.css`, ce qui l'a fait entrer dans le perimetre du controle du
+site.
+
+Et le harnais de capture chargeait `tokens.css`, donc **les captures montraient les bonnes
+couleurs alors que le navigateur en aurait montre d'autres**. Un harnais qui ne charge pas
+exactement ce que la page charge ne verifie rien : il illustre une intention.
+
 ## Ce qui se CALCULE ne se saisit jamais, 08/09/2026
 
 Regle nee du lot 2 du chantier calendrier, et elle vaut au-dela de lui.
@@ -387,6 +413,21 @@ egale au debut est effacee (un jour n'est pas une periode), une fin sans debut d
 debut. Le calendrier convertit ensuite la paire en `duree`, la forme que le calcul connait
 deja : la tache porte deux vraies dates parce qu'elle ne se repete pas, la regle porte une
 duree parce qu'elle recalcule sa fin chaque annee.
+
+**« MES TACHES » NE MONTRE PAS TOUT LE FICHIER DE DONNEES.** Regression du lot 2, corrigee le
+meme jour : `obligations()` prenait TOUT `echeances.json`. Tant qu'il portait cinq obligations
+la regle 7 tenait toute seule ; avec les travaux, les salons et les temps forts, la piece est
+passee de 5 lignes a 28 et proposait de cocher « Taille de la vigne » comme une DRM.
+
+La piece porte donc son propre filtre de familles, avec ses propres defauts, ENREGISTRES A
+PART de ceux du calendrier : obligations et notes allumees, reperes de saison, salons et temps
+forts eteints. Partager le choix avec le calendrier voudrait dire qu'eteindre « Travaux » pour
+nettoyer sa liste retire les vendanges de la grille, qui est justement l'endroit ou on veut
+les voir.
+
+Le banc n'avait rien vu parce que son bac d'essai ne contenait qu'une DRM. **Un jeu d'essai
+plus petit que la realite ne verifie que ce qu'il contient.** Il porte desormais une occurrence
+de chaque famille.
 
 **Le calendrier n'affiche que les taches DATEES.** Une tache sans date n'a pas de place dans
 une grille : le calendrier en annonce le nombre et mene a « Mes taches ». C'est la frontiere
@@ -601,14 +642,22 @@ Trois regles portent l'identite, et ce sont elles qu'on casse en premier sans y 
    LUMINANCE pour rester distinguables en niveaux de gris et en vision deuteranope. Pas
    seulement en teinte.
 
-   **Il y en a QUATRE, `--serie-1` a `--serie-4`, et pas huit.** Ce paragraphe en annoncait
-   huit pendant des semaines alors qu'aucune n'existait dans `tokens.css` ; les quatre
-   premieres ont ete creees et mesurees le 08/09/2026, pour les familles du calendrier.
-   **Il n'y a pas la place pour une cinquieme sur ce papier** : la bande utilisable va de
-   L* 15 a L* 56, au-dela un objet graphique passe sous les 3:1, et cinq series dans 41
-   points de luminance ne tiennent pas l'ecart. Une cinquieme categorie prend une MATIERE,
-   pas une teinte : c'est ce qu'on a fait pour les taches du calendrier, ecrites a la main
-   sur le calendrier imprime.
+   **LES HUIT SERIES EXISTENT, dans `src/css/bdv-ecrans.css`**, et pas dans `tokens.css`.
+   Elles sont categorielles, dessinees pour les COURBES et les APLATS des ecrans de vente,
+   avec leurs luminances documentees. Je les ai crues absentes le 08/09/2026 et j'en ai
+   cree quatre autres sous le meme nom : deux valeurs pour un meme jeton, et la derniere
+   feuille chargee gagnait, au hasard de l'ordre des clics.
+
+   **Les familles du calendrier sont `--fam-1` a `--fam-4`, un jeu SEPARE**, et pas par
+   gout du rangement : sur `--paper-light`, `--serie-4` tombe a 2,37:1, `--serie-6` a
+   2,95:1 et `--serie-8` a 1,94:1. Une echelle dessinee pour des aplats de graphique n'est
+   pas une echelle pour des filets de trois pixels sur du papier. Deux metiers, deux
+   echelles.
+
+   **Il n'y a pas la place pour une CINQUIEME famille sur ce papier** : la bande utilisable
+   s'arrete a L* 56, et cinq teintes dans 41 points de luminance ne tiennent pas l'ecart.
+   Une cinquieme categorie prend une MATIERE, pas une teinte : c'est ce qu'on a fait pour
+   les taches, ecrites a la main sur le calendrier imprime.
 
 L'orange `#E87722` est la couleur de Vitisoft, la maison mere. Il n'apparait sur ce site
 que pour signaler un lien vers Vitisoft.

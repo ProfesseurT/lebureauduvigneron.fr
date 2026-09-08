@@ -132,31 +132,10 @@
   margin-bottom: var(--e-m);
 }
 
-.bdv-cal .calfam {
-  padding: 2px var(--e-s);
-  border: var(--trait) solid var(--rule-fort);
-  border-left: var(--trait-accent) solid var(--serie-1);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  letter-spacing: var(--ls-doux);
-  cursor: pointer;
-  transition: background var(--tr-rapide), color var(--tr-rapide);
-}
-.bdv-cal .calfam[data-cal-famille="travaux"]    { border-left-color: var(--serie-2); }
-.bdv-cal .calfam[data-cal-famille="rendezvous"] { border-left-color: var(--serie-3); }
-.bdv-cal .calfam[data-cal-famille="tempsforts"] { border-left-color: var(--serie-4); }
-.bdv-cal .calfam:hover { background: var(--paper-deep); }
-/* ETEINTE : le libelle barre et l'encre en retrait. Pas un bouton grise, qui se
-   lirait « indisponible » alors qu'il est le seul moyen de rallumer. */
-.bdv-cal .calfam--off {
-  background: var(--paper-deep);
-  color: var(--muted);
-  border-left-color: var(--rule-fort);
-  text-decoration: line-through;
-}
+/* LES ETIQUETTES DE FAMILLE SONT DANS src/css/style.css, `.filtfam`, depuis le
+   08/09/2026 : « Mes taches » a le meme filtre, et cette feuille-ci n'est chargee
+   qu'au premier clic sur le calendrier. Laissees ici, les etiquettes des taches
+   auraient ete nues chez qui n'ouvre jamais le calendrier. */
 
 .bdv-cal .cal__fond { margin-left: auto; }
 
@@ -170,7 +149,6 @@
 --------------------------------------------------------------------------- */
 .bdv-cal .cal__fleche:focus-visible,
 .bdv-cal .cal__vue:focus-visible,
-.bdv-cal .calfam:focus-visible,
 .bdv-cal .cal__coche:focus-visible,
 .bdv-cal .cala__t:focus-visible {
   outline: var(--trait-fort) solid var(--bordeaux);
@@ -304,7 +282,7 @@
   height: 1.15rem;
   padding: 0 var(--e-xs);
   border: 0;
-  border-left: var(--trait-accent) solid var(--serie-1);
+  border-left: var(--trait-accent) solid var(--fam-1);
   border-radius: var(--r-nul);
   background: var(--paper-light);
   color: var(--ink);
@@ -327,9 +305,9 @@
    LE FOND RESTE --paper-light PARTOUT, y compris sous un bandeau : c'est la
    seule surface sur laquelle les quatre series sont mesurees. Sur --paper-deep
    la quatrieme tombe a 2,3:1. */
-.bdv-cal .calo[data-famille="travaux"]    .calo__b { border-left-color: var(--serie-2); }
-.bdv-cal .calo[data-famille="rendezvous"] .calo__b { border-left-color: var(--serie-3); }
-.bdv-cal .calo[data-famille="tempsforts"] .calo__b { border-left-color: var(--serie-4); }
+.bdv-cal .calo[data-famille="travaux"]    .calo__b { border-left-color: var(--fam-2); }
+.bdv-cal .calo[data-famille="rendezvous"] .calo__b { border-left-color: var(--fam-3); }
+.bdv-cal .calo[data-famille="tempsforts"] .calo__b { border-left-color: var(--fam-4); }
 
 /* CE QUI DURE PLUSIEURS JOURS TRAVERSE LA SEMAINE. Un jour porte un liseré a
    gauche ; une periode porte un SOULIGNEMENT qui court d'une case a l'autre.
@@ -340,11 +318,11 @@
    aurait rempli l'hiver d'un seul mot. */
 .bdv-cal .calo[data-long="oui"] .calo__b {
   border-left: 0;
-  border-bottom: var(--trait-fort) solid var(--serie-1);
+  border-bottom: var(--trait-fort) solid var(--fam-1);
 }
-.bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b { border-bottom-color: var(--serie-2); }
-.bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b { border-bottom-color: var(--serie-3); }
-.bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b { border-bottom-color: var(--serie-4); }
+.bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b { border-bottom-color: var(--fam-2); }
+.bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b { border-bottom-color: var(--fam-3); }
+.bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b { border-bottom-color: var(--fam-4); }
 /* Le dernier jour d'une periode s'arrete avant le bord de la case : sans ca,
    deux periodes qui se suivent se lisent comme une seule. */
 .bdv-cal .calo[data-bord="fin"] .calo__b,
@@ -383,12 +361,6 @@
   font-family: var(--font-manuscrit);
   font-size: var(--t-petit);
   color: var(--ink);
-}
-.bdv-cal .calfam[data-cal-famille="taches"] {
-  border-left-color: var(--rule-fort);
-  border-left-style: dotted;
-  font-family: var(--font-manuscrit);
-  font-size: var(--t-petit);
 }
 .bdv-cal .echeance[data-tache="oui"] {
   border-left: var(--trait-accent) dotted var(--ink);
@@ -581,9 +553,9 @@
 
 /* La famille se lit sur le bord de la fiche, comme sur la pastille de la grille.
    Le meme code couleur aux deux endroits, sinon il faut l'apprendre deux fois. */
-.bdv-cal .echeance[data-famille="travaux"]    { border-left: var(--trait-accent) solid var(--serie-2); }
-.bdv-cal .echeance[data-famille="rendezvous"] { border-left: var(--trait-accent) solid var(--serie-3); }
-.bdv-cal .echeance[data-famille="tempsforts"] { border-left: var(--trait-accent) solid var(--serie-4); }
+.bdv-cal .echeance[data-famille="travaux"]    { border-left: var(--trait-accent) solid var(--fam-2); }
+.bdv-cal .echeance[data-famille="rendezvous"] { border-left: var(--trait-accent) solid var(--fam-3); }
+.bdv-cal .echeance[data-famille="tempsforts"] { border-left: var(--trait-accent) solid var(--fam-4); }
 
 /* SANS SOURCE OFFICIELLE, ON LE DIT. Un repere de saison affiche avec l'allure
    d'une obligation, c'est le genre de chose qui se retourne contre la maison. */
