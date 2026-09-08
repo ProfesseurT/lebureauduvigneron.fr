@@ -113,7 +113,7 @@ restent les pièces du bureau, on n'y touche pas.
 
 ## Les cinq lots
 
-### Lot 1 : le calendrier entre dans le bureau
+### Lot 1 : le calendrier entre dans le bureau — FAIT le 08/09/2026
 
 Sur les données d'aujourd'hui, sans une ligne de base de données. C'est le lot qui se juge à
 l'écran, et il faut le juger avant d'écrire les suivants.
@@ -133,7 +133,7 @@ l'écran, et il faut le juger avant d'écrire les suivants.
 huit pièces et vérifie explicitement, ligne 130, que le calendrier pointe encore vers
 `/outils/echeances/`. Les deux assertions changent. Ne pas les contourner.
 
-### Lot 2 : le modèle à deux dates, et la bibliothèque
+### Lot 2 : le modèle à deux dates, et la bibliothèque — FAIT le 08/09/2026, voir le bilan en fin de document
 
 `src/_data/echeances.json` devient `src/_data/calendrier.json`, et chaque entrée gagne :
 
@@ -201,3 +201,92 @@ chose qui se retourne contre la maison.
   donc une promesse de confidentialité de plus à tenir. Ce n'est pas le sujet du chantier.
 - **Pas de notification par e-mail.** Le site n'envoie aucun e-mail par lui-même, c'est une
   décision de CLAUDE.md, et l'abonnement agenda rend le rappel au client de messagerie.
+
+---
+
+# LOT 2, FAIT le 08/09/2026
+
+## Ce que la base Notion a appris, avant d'ecrire une ligne
+
+`solumatic.notion.site/calendrier`, mesure du 08/09/2026 : **257 lignes, 193 noms distincts,
+sur deux annees** (100 en 2025, 149 en 2026, 4 sans date).
+
+**Ce n'est pas une bibliotheque de regles, c'est une liste de dates, et elle meurt le 31
+decembre 2026.**
+
+- La DRM occupe **24 lignes** : douze pour 2025 etiquetees « Administratif », douze pour 2026
+  etiquetees « Reglementaire (Douanes) ». La meme obligation, deux etiquettes, 24 saisies.
+  C'est une regle d'une ligne.
+- Les jours feries y sont **deux fois**, sous « Jour ferie » et sous « Marketing (calendrier
+  national) ».
+- Les 43 journees mondiales sont **toutes en 2025**, zero en 2026. Famille deja morte.
+- Le calendrier lunaire, **55 lignes**, les quatre phases tapees mois par mois pour 2026, et
+  **une d'elles fausse** (pleine lune de juin datee du 29, elle tombe le 30 a 01 h 57).
+
+Les 29 etiquettes n'etaient pas le probleme : elles en etaient le symptome d'une base retapee
+a la main chaque annee.
+
+## La correspondance des 29 etiquettes vers les 4 familles
+
+A utiliser pour le lot 5. Les lignes du fond de carte ne sont PAS a reprendre : elles se
+calculent.
+
+| Etiquette Notion | Lignes | Devient |
+| --- | --- | --- |
+| Reglementaire (Douanes) | 15 | `obligations` |
+| Administratif | 15 | `obligations` (doublons de la DRM a fusionner) |
+| Metier (vigne) | 4 | `travaux` |
+| Metier (phenologie) | 3 | `travaux` |
+| Metier (vendanges) | 2 | `travaux` |
+| Metier (chai) | 1 | `travaux` |
+| Metier (risque climatique) | 1 | `travaux` |
+| Salons | 13 | `rendezvous` |
+| Salon pro | 9 | `rendezvous` |
+| Salon particuliers | 7 | `rendezvous` |
+| Concours | 7 | `rendezvous` |
+| Salon (grand public) | 1 | `rendezvous` |
+| Evenement pro (marche) | 1 | `rendezvous` |
+| Evenements | 25 | `rendezvous` a trier, certains sont des temps forts |
+| Webinaires Vitisoft | 2 | `rendezvous` |
+| Journee mondiale / internationale | 43 | `tempsforts`, en regles `annuel` |
+| Marketing (saisonnier) | 10 | `tempsforts` |
+| Marketing (retail) | 7 | `tempsforts` |
+| Marketing (oenotourisme) | 1 | `tempsforts` |
+| Marketing (evenement culturel) | 1 | `tempsforts` |
+| Marketing (vin primeur) | 1 | `tempsforts` |
+| Marketing (B2B) | 1 | `tempsforts` |
+| Vie vigneronne | 2 | `tempsforts` |
+| Calendrier (organisation) | 2 | a jeter, c'est de l'organisation interne |
+| Organisation | 1 | a jeter |
+| Marketing (calendrier national) | 11 | **a jeter** : ce sont les jours feries, calcules |
+| Jour ferie | 12 | **a jeter** : calcules |
+| Calendrier Lunaire | 55 | **a jeter** : calcule (dont les 4 saisons) |
+| Astronomie | 4 | **a jeter** sauf les eclipses, qui ne sont pas calculees |
+
+**257 lignes tapees chaque annee deviennent 56.** Le reste est soit une regle qui ne se retape
+jamais, soit un calcul.
+
+## Ce qui a ete livre
+
+- Trois champs de plus : `famille`, `statut` (`obligation` ou `repere`), et `duree` en jours
+  dans la recurrence.
+- `bdv-almanach.js` : lune, saisons, jours feries, calcules. Valide contre les 50 phases de
+  2026 : 50 sur 50 au bon jour en heure locale.
+- Le filtre par famille dans la piece, et l'interrupteur du fond de carte.
+- Quatre tokens `--serie-1` a `--serie-4`, mesures : ecart de luminance minimum 11,8 en vision
+  normale, 11,2 en simulation deuteranope.
+- La page publique ne montre plus que les obligations, et sa phrase sur le report au jour
+  ouvre est retiree.
+- Le fichier de donnees passe de 5 a 29 occurrences : les 8 obligations, les 11 travaux, et
+  quelques temps forts et rendez-vous en exemple.
+
+## Ce que le lot 2 N'A PAS fait, et pourquoi
+
+**Les deux types de recurrence annonces n'ont pas ete ecrits.** `annuel-periode` n'existe pas :
+une periode annuelle, c'est `annuel` avec une `duree`, et deux types pour la meme chose
+auraient donne deux chemins de code a garder d'accord. `hebdomadaire` n'a aucun usage dans la
+bibliotheque. Le lot 2 etait annonce plus gros qu'il ne l'etait.
+
+**L'activation par compte est reportee au lot 3.** Aujourd'hui le vigneron eteint des FAMILLES
+entieres, dans son navigateur. Eteindre une ligne, et la retrouver d'un poste a l'autre,
+demande la table `calendrier_choix` du lot 3.

@@ -12,6 +12,108 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, soir. Le lot 2 : quatre familles, et un fond de carte qui se calcule
+
+Ted a ouvert sa base Notion du calendrier et m'a dit d'aller y regarder : « par contre je
+trouve qu'y'a trop de catégories, à voir pour réduire et faire qqch de cohérent ».
+
+**Les catégories n'étaient pas le problème, elles en étaient le symptôme.** 257 lignes, 193
+noms distincts, réparties sur deux années. Quatre mesures ont suffi à le montrer :
+
+- **La DRM occupe 24 lignes.** Douze pour 2025 étiquetées « Administratif », douze pour 2026
+  étiquetées « Réglementaire (Douanes) ». La même obligation, tapée à la main 24 fois, sous
+  deux étiquettes différentes selon l'année. C'est une règle d'une ligne.
+- **Les jours fériés y sont deux fois**, sous « Jour férié » et sous « Marketing (calendrier
+  national) ».
+- **Les 43 journées mondiales sont toutes en 2025**, zéro en 2026. Cette famille était déjà
+  morte, et personne ne l'avait vu.
+- **Le calendrier lunaire, 55 lignes**, les quatre phases tapées mois par mois pour 2026.
+
+La taxonomie avait dérivé entre deux années parce que la base est retapée chaque année. Vingt-
+neuf étiquettes ne sont pas maintenables, et la base le prouvait elle-même.
+
+### Cinq familles, choisies sur ce que le vigneron en fait
+
+Obligations (ça coûte une amende), Travaux (ce que je fais dehors), Rendez-vous (je m'inscris,
+je me déplace), Temps forts (ce que je poste et ce que je vends), et le Fond de carte, qui
+n'est pas une famille. Chacune répond à une question différente, donc un filtre dessus sert à
+quelque chose. 29 étiquettes vers 5, et surtout 257 lignes à retaper chaque année vers 56.
+
+### Le fond de carte se calcule, il ne se liste pas
+
+Décision de Ted : lune, saisons et jours fériés en fond de grille, non cochables.
+
+`bdv-almanach.js` : Meeus chapitre 49 pour les phases, chapitre 27 pour les saisons,
+l'algorithme grégorien anonyme pour Pâques et ce qui en découle. **Validé avant d'être livré**,
+contre les 50 phases de 2026 de la base Notion : 50 sur 50 au bon jour en heure locale.
+
+**Et la cinquantième a donné raison au calcul contre la donnée.** La ligne Notion date la
+pleine lune de juin 2026 du 29 ; le calcul dit le 30 à 01 h 57 heure de Paris, parce qu'elle
+tombe à 23 h 57 en temps universel. La ligne était étiquetée « calendrier lunaire, Paris ».
+C'est la donnée qui était fausse, et rien ne l'aurait jamais signalé.
+
+Les saisons tombent à 6 à 13 minutes des éphémérides de référence, donc toujours au bon jour.
+Pâques, l'Ascension et le lundi de Pentecôte sont exacts sur 2025, 2026 et 2027.
+
+### Ce que le modèle a gagné, et ce qu'il n'a pas gagné
+
+Trois champs : `famille`, `statut` (obligation ou repère), et `duree` en jours dans la
+récurrence.
+
+**Le plan prévoyait deux types de récurrence de plus, et aucun des deux n'a été écrit.**
+`annuel-periode` n'existe pas : une période annuelle, c'est `annuel` avec une durée, et deux
+types pour la même chose auraient donné deux chemins de code à garder d'accord. `hebdomadaire`
+n'a aucun usage dans la bibliothèque. Le lot 2 était annoncé plus gros qu'il ne l'était.
+
+**Une occurrence commencée mais pas finie est « la prochaine ».** Sans cette règle, un vigneron
+qui ouvre son bureau le 15 janvier, en pleine taille, lit « Taille de la vigne, dans 320
+jours ». La réponse juste est « en ce moment », et elle passe devant tout le reste.
+
+### Quatre couleurs de série, mesurées avant d'être choisies
+
+`CLAUDE.md` promettait huit tokens `--serie-1` à `--serie-8` depuis des semaines. Ils
+n'existaient pas dans `tokens.css`. Quatre ont été créés, un par famille, **séparés en
+luminance et pas seulement en teinte** : écart minimum 11,8 en vision normale et 11,2 en
+simulation deutéranope, donc distinguables en niveaux de gris et pour un daltonien.
+
+La quatrième, l'ocre, passe tout juste le seuil de 3:1 des objets graphiques sur
+`--paper-light` et tombe à 2,3:1 sur `--paper-deep`. **C'est ce qui a décidé que le fond d'une
+pastille de famille est `--paper-light` et rien d'autre**, y compris sous un bandeau. Une
+décision de dessin prise par le calcul, contre ce que j'allais écrire.
+
+### Deux défauts que seule la capture a montrés, encore
+
+Ni la charte ni le banc n'en ont vu un seul.
+
+1. **Les bandeaux ne se raccordaient pas.** Un intitulé faisait 19 px de haut, sa continuation
+   4. Une période de soixante jours se lisait comme cinq rangées de rayures grises. La hauteur
+   est maintenant figée pour les deux états, et la forme distingue les deux natures sans
+   couleur : un jour porte un liseré à gauche, une période porte un soulignement qui court.
+2. **La vue année était entièrement noire.** La taille, les travaux en vert, les vendanges et
+   la vinification couvrent dix mois sur douze : en remplissant chaque jour traversé, l'année
+   ne disait plus rien du tout, ce qui est exactement l'inverse de ce que cette vue existe
+   pour faire. Un jour est plein quand quelque chose y **tombe** ; une période le **souligne**.
+
+### La page publique
+
+La phrase sur le report au jour ouvré est retirée, sur décision de Ted. Elle promettait un
+calcul que le code ne fait pas.
+
+Et la page ne montre plus que les **obligations**, ce qui est la promesse de son titre. Y
+déverser les travaux, les salons et les temps forts en aurait fait une page longue qui ne
+tient plus son titre, et aurait retiré au Bureau la seule chose qu'il offre de plus.
+
+### Ce qui reste
+
+Lot 3, les occurrences du vigneron et l'activation par compte. Lot 4, l'abonnement agenda.
+Lot 5, le remplissage de la bibliothèque : 56 rendez-vous datés par an, et une soixantaine de
+temps forts qui deviennent des règles annuelles. La table de correspondance des 29 étiquettes
+Notion vers les 4 familles est dans `PLAN_calendrier.md`.
+
+`npm run verif` : conforme, 244 contrôles au vert, 0 échec.
+
+---
+
 ## 08/09/2026, fin de journée. Quatre défauts des réglages, quatre causes
 
 Ted : « tu dois réparer la fonction réglages. Je viens de supprimer ma base, j'ai désactivé /

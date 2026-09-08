@@ -448,8 +448,22 @@
           td.textContent = String(d.getDate());
           var occs = parJour[iso(d)];
           if (occs && occs.length) {
-            td.setAttribute('data-plein', 'oui');
-            td.title = occs.map(function (o) { return o.e.titre; }).join(' · ');
+            /* UN JOUR EST PLEIN QUAND QUELQUE CHOSE Y TOMBE, pas quand une
+               periode le traverse. Sans cette distinction, la taille, les
+               travaux en vert, les vendanges et la vinification couvrent a
+               elles seules dix mois sur douze : l'annee est entierement noire
+               et ne dit plus rien du tout. Vu a la capture du 08/09/2026,
+               invisible pour tous les controles.
+               Une periode laisse donc un simple soulignement, un jour qui tombe
+               remplit la case. Le premier et le dernier jour d'une periode
+               comptent comme des jours qui tombent : ce sont eux qu'on retient. */
+            var tombe = occs.filter(function (o) {
+              return o.duree === 1 || memeJour(d, o.debut) || memeJour(d, o.fin);
+            });
+            td.setAttribute(tombe.length ? 'data-plein' : 'data-bande', 'oui');
+            td.title = occs.map(function (o) {
+              return o.e.titre + (o.periode ? ' (' + o.periode + ')' : '');
+            }).join(' · ');
           }
           if (memeJour(d, ajd)) td.setAttribute('data-auj', 'oui');
         } else {
@@ -485,9 +499,12 @@
 
     var p = document.createElement('p');
     p.className = 'cal__vide';
+    var longues = toutes.filter(function (o) { return o.duree > 1; }).length;
     p.textContent = toutes.length
-      ? (toutes.length > 1 ? toutes.length + ' dates en ' + an + '. Clique sur un mois pour le détail.'
-                           : 'Une date en ' + an + '. Clique sur le mois pour le détail.')
+      ? (toutes.length + ' date' + (toutes.length > 1 ? 's' : '') + ' en ' + an
+         + (longues ? ', dont ' + longues + ' période' + (longues > 1 ? 's' : '') + ' soulignée'
+                      + (longues > 1 ? 's' : '') : '')
+         + '. Clique sur un mois pour le détail.')
       : 'Rien en ' + an + '.';
     hote.appendChild(p);
   }

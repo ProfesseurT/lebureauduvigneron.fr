@@ -293,10 +293,16 @@
 
 .bdv-cal .calo { margin-bottom: 2px; }
 
+/* TOUS LES SEGMENTS ONT LA MEME HAUTEUR, ET C'EST LA CONDITION DU BANDEAU.
+   Premiere version : l'intitule faisait 19 px et sa continuation 4. Les deux ne
+   se raccordaient pas, et une periode de soixante jours se lisait comme cinq
+   rangees de rayures grises. Vu a la capture, invisible pour tous les
+   controles. La hauteur est donc figee ici, et pour les deux etats. */
 .bdv-cal .calo__b {
   display: block;
   width: 100%;
-  padding: 2px var(--e-xs);
+  height: 1.15rem;
+  padding: 0 var(--e-xs);
   border: 0;
   border-left: var(--trait-accent) solid var(--serie-1);
   border-radius: var(--r-nul);
@@ -304,7 +310,7 @@
   color: var(--ink);
   font-family: var(--font-corps);
   font-size: var(--t-micro);
-  line-height: var(--lh-normal);
+  line-height: 1.15rem;
   text-align: left;
   /* Un intitule tient sur une ligne dans une case de cent pixels, ou il ne
      tient pas. Le titre complet est dans le title et dans la liste du dessous. */
@@ -315,27 +321,30 @@
 .bdv-cal button.calo__b { cursor: pointer; }
 .bdv-cal button.calo__b:hover { background: var(--paper-deep); }
 
-/* LA COULEUR DIT LA FAMILLE, le liseré et rien d'autre. Un fond colore par
+/* LA COULEUR DIT LA FAMILLE, un liseré et rien d'autre. Un fond colore par
    famille aurait donne quatre fonds a mesurer contre quatre encres, et le
-   quatrieme n'aurait pas passe le seuil. */
+   quatrieme n'aurait pas passe le seuil.
+   LE FOND RESTE --paper-light PARTOUT, y compris sous un bandeau : c'est la
+   seule surface sur laquelle les quatre series sont mesurees. Sur --paper-deep
+   la quatrieme tombe a 2,3:1. */
 .bdv-cal .calo[data-famille="travaux"]    .calo__b { border-left-color: var(--serie-2); }
 .bdv-cal .calo[data-famille="rendezvous"] .calo__b { border-left-color: var(--serie-3); }
 .bdv-cal .calo[data-famille="tempsforts"] .calo__b { border-left-color: var(--serie-4); }
 
-/* CE QUI DURE PLUSIEURS JOURS traverse la semaine. Les jours qui ne portent pas
-   l'intitule n'ont qu'un filet : c'est ce qui fait lire un bandeau plutot que
-   cent cinq repetitions du mot « taille ». */
-.bdv-cal .calo[data-suite="oui"] .calo__b {
-  height: 4px;
-  padding: 0;
+/* CE QUI DURE PLUSIEURS JOURS TRAVERSE LA SEMAINE. Un jour porte un liseré a
+   gauche ; une periode porte un SOULIGNEMENT qui court d'une case a l'autre.
+   Les deux formes se distinguent sans couleur, ce qui compte : le lecteur voit
+   d'un coup ce qui tombe un jour et ce qui s'etale. Les jours qui ne portent
+   pas l'intitule gardent la meme hauteur et le meme soulignement, ils n'ont
+   simplement pas de texte : repeter « taille de la vigne » cent cinq fois
+   aurait rempli l'hiver d'un seul mot. */
+.bdv-cal .calo[data-long="oui"] .calo__b {
   border-left: 0;
-  background: var(--paper-deep);
-  box-shadow: inset 0 0 0 99px var(--serie-1);
-  opacity: 0.35;
+  border-bottom: var(--trait-fort) solid var(--serie-1);
 }
-.bdv-cal .calo[data-suite="oui"][data-famille="travaux"]    .calo__b { box-shadow: inset 0 0 0 99px var(--serie-2); }
-.bdv-cal .calo[data-suite="oui"][data-famille="rendezvous"] .calo__b { box-shadow: inset 0 0 0 99px var(--serie-3); }
-.bdv-cal .calo[data-suite="oui"][data-famille="tempsforts"] .calo__b { box-shadow: inset 0 0 0 99px var(--serie-4); }
+.bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b { border-bottom-color: var(--serie-2); }
+.bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b { border-bottom-color: var(--serie-3); }
+.bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b { border-bottom-color: var(--serie-4); }
 /* Le dernier jour d'une periode s'arrete avant le bord de la case : sans ca,
    deux periodes qui se suivent se lisent comme une seule. */
 .bdv-cal .calo[data-bord="fin"] .calo__b,
@@ -446,6 +455,12 @@
   color: var(--on-dark);
   font-weight: 500;
 }
+/* UNE PERIODE QUI TRAVERSE NE REMPLIT PAS LA CASE, elle la souligne. La taille,
+   les travaux en vert, les vendanges et la vinification couvrent dix mois sur
+   douze : remplies, elles noircissaient l'annee entiere et cette vue ne servait
+   plus a rien. Un soulignement dit « ca dure » sans manger la place de « ca
+   tombe ». */
+.bdv-cal td.cala__c[data-bande="oui"] { box-shadow: inset 0 -2px 0 0 var(--cork-encre); }
 .bdv-cal td.cala__c[data-auj="oui"] { box-shadow: inset 0 -2px 0 0 var(--cork); }
 
 /* ---------------------------------------------------------------------------

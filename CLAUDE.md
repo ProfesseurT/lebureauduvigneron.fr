@@ -103,11 +103,19 @@ Plus rien n'est autonome, et chercher une fonction dans une page avant de cherch
   et le SEUL point d'entree des reglages, `BdvNav.ouvrirReglages()`. Les trois boutons qui
   ouvrent le panneau passent par lui : sans ca, celui qui l'appelle sans demander le moteur
   ouvre un panneau dont « Ma base » et « Le classement » restent vides, sans erreur.
-- `bdv-calendrier.js` : la piece « Le calendrier », ses trois vues et sa bascule. Chargee au
-  PREMIER CLIC sur la piece, avec `bdv-calendrier.css`, et rien d'autre : elle ne demande ni
-  le moteur, ni Chart.js, ni le lecteur xlsx, parce qu'elle ne lit aucune ligne de vente.
-  **Elle ne calcule aucune date et n'ecrit dans aucune table.** Le calcul est dans
-  `bdv-echeances.js`, la coche passe par `BdvTaches.basculerOccurrence()`.
+- `bdv-calendrier.js` : la piece « Le calendrier », ses trois vues, son filtre par famille et
+  sa bascule. Chargee au PREMIER CLIC sur la piece, avec `bdv-calendrier.css` et
+  `bdv-almanach.js`, et rien d'autre : elle ne demande ni le moteur, ni Chart.js, ni le lecteur
+  xlsx, parce qu'elle ne lit aucune ligne de vente.
+  **Elle ne calcule aucune date et n'ecrit dans aucune table.** Les recurrences sont dans
+  `bdv-echeances.js`, la lune et les feries dans `bdv-almanach.js`, la coche passe par
+  `BdvTaches.basculerOccurrence()`.
+- `bdv-almanach.js` : la lune, les saisons et les jours feries, CALCULES et jamais listes.
+  Meeus 49 pour les phases, Meeus 27 pour les saisons, l'algorithme gregorien anonyme pour
+  Paques. Valide contre les 50 phases de 2026 de la base Notion : 50 sur 50 au bon jour, et
+  la cinquantieme a donne raison au calcul contre la donnee (voir plus bas). Chargé AVANT
+  `bdv-calendrier.js`, c'est une condition et pas une preference : la piece l'appelle des son
+  premier rendu. `npm run banc` verifie cet ordre.
 - `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de reglages partage, plus
   `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`, `bdv-canaux.js`.
 
@@ -274,15 +282,52 @@ lance immediatement apres lit une page a moitie ecrite. Un echec isole qui ne se
 pas au deuxieme essai vient de la, pas du code : le relancer suffit, mais il faut le
 relancer, pas l'ignorer.
 
+## Ce qui se CALCULE ne se saisit jamais, 08/09/2026
+
+Regle nee du lot 2 du chantier calendrier, et elle vaut au-dela de lui.
+
+La base Notion du calendrier portait 55 phases de lune, 12 jours feries et 4 saisons, tapes a
+la main, pour la SEULE annee 2026. Trois defauts dans un seul geste : ces lignes sont a
+retaper fin 2026 puis fin 2027 ; elles etaient deja en double, les feries figurant sous deux
+etiquettes ; et l'une d'elles etait fausse.
+
+**La pleine lune de juin 2026 y etait datee du 29. Elle tombe le 30 a 01 h 57, heure de
+Paris.** La ligne portait l'etiquette « calendrier lunaire, Paris ». Une donnee saisie ne se
+verifie pas toute seule ; un calcul, si, et il vaut pour 2030 comme pour 2026.
+
+Donc : **une date qui se deduit d'une formule connue ne rentre pas dans un fichier de
+donnees.** Lune, saisons, jours feries, et le report au jour ouvre le jour ou on l'ecrira.
+Ce qui reste dans `src/_data/echeances.json`, ce sont les dates qu'aucune formule ne donne :
+les textes officiels et les rendez-vous.
+
+## Le calendrier : quatre familles, et le fond de carte n'en est pas une
+
+Les quatre familles trient par CE QUE LE VIGNERON EN FAIT, pas par ce que la chose est :
+`obligations` (ca coute une amende), `travaux` (ce que je fais dehors), `rendezvous` (je
+m'inscris, je me deplace), `tempsforts` (ce que je poste et ce que je vends). La liste vit a
+UN seul endroit, `FAMILLES` en bas de `src/js/bdv-echeances.js`.
+
+Le fond de carte, lune et feries, n'est pas une famille : il ne se coche pas, il ne porte pas
+de source, il ne s'inscrit pas dans les taches. Un seul interrupteur l'eteint. Les melanger
+aurait noye huit dates qui comptent sous soixante-dix qui ne demandent rien.
+
+**La ligne a tenir dans `tempsforts` :** le calendrier porte des CAMPAGNES, le sous-main porte
+des CLIENTS. Le jour ou une occurrence du calendrier nomme un client, le doublon de la regle 7
+est de retour.
+
+**La page publique `/outils/echeances/` ne montre QUE les obligations**, c'est la promesse de
+son titre. Y deverser les travaux et les temps forts en ferait une page longue qui ne tient
+plus son titre, et retirerait au bureau la seule chose qu'il offre de plus.
+
 ## Un ecart de contenu ouvert, repere le 08/09/2026
 
-La page `/outils/echeances/` promet noir sur blanc qu'« un depot qui tombe un samedi, un
-dimanche ou un jour ferie se reporte au premier jour ouvre suivant ». `prochaine()` dans
-`bdv-echeances.js` NE LE FAIT PAS : elle rend la date brute de la regle. La page promet donc
-un calcul que le code ne fait pas.
+REFERME LE MEME JOUR. La page promettait qu'« un depot qui tombe un samedi, un dimanche ou un
+jour ferie se reporte au premier jour ouvre suivant », et `prochaine()` ne le faisait pas :
+elle rend la date brute de la regle. Ted a tranche, la phrase est retiree.
 
-Trois etats possibles, et celui d'aujourd'hui est le pire : soit on ecrit le report, soit on
-retire la phrase. A trancher au lot 2 du chantier calendrier.
+**Ne pas la remettre sans ecrire le report.** Les jours feries sont desormais calculables,
+`BdvAlmanach.feries()`, donc le report est a portee : c'est une demi-journee, pas un chantier.
+Mais promettre un calcul qu'on ne fait pas reste le pire des trois etats.
 
 ## Regles de contenu
 
