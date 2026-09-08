@@ -593,6 +593,54 @@
 }
 
 /* ---------------------------------------------------------------------------
+   LES GESTES DE CHOIX : decaler, ne plus suivre, rallumer.
+   Ils vivent dans le pied de la fiche, avec les liens, et ils empruntent
+   l'allure du bouton de coche. Ce sont des reglages, pas des actions du
+   quotidien : ils s'effacent derriere le contenu au lieu de le concurrencer.
+--------------------------------------------------------------------------- */
+.bdv-cal .cal__coche--choix {
+  border-color: var(--rule-fort);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+}
+.bdv-cal .cal__coche--choix:hover {
+  background: var(--paper-deep);
+  border-color: var(--bordeaux);
+  color: var(--bordeaux);
+}
+
+/* CE QUI EST ETEINT SE RALLUME D'UN CLIC, et son titre EST le bouton : une
+   liste de noms suivie d'un bouton « rallumer » aurait demande de viser le bon,
+   et un reglage qui se cache une fois pose n'est pas un reglage. */
+.bdv-cal .cal__eteints {
+  margin: 0 0 var(--e-s);
+  color: var(--muted);
+  font-size: var(--t-base);
+  font-style: italic;
+}
+.bdv-cal .cal__rallume {
+  padding: 0;
+  border: 0;
+  border-bottom: var(--trait) dotted var(--bordeaux);
+  border-radius: var(--r-nul);
+  background: none;
+  color: var(--bordeaux);
+  font-family: var(--font-corps);
+  /* Le pas de l'echelle, pas `inherit` : la charte compte toute taille qui ne
+     vient pas d'un jeton, et elle a raison, `inherit` cache d'ou vient la
+     valeur. Ce bouton vit dans .cal__eteints, qui est en --t-base. */
+  font-size: var(--t-base);
+  font-style: italic;
+  cursor: pointer;
+}
+.bdv-cal .cal__rallume:hover { color: var(--bordeaux-vif); }
+.bdv-cal .cal__rallume:focus-visible {
+  outline: var(--trait-fort) solid var(--bordeaux);
+  outline-offset: var(--trait);
+}
+
+/* ---------------------------------------------------------------------------
    QUAND LA ZONE SE RESSERRE
    Le seuil est pose sur le CONTENU de la zone, ce que compare une requete de
    conteneur, et pas sur sa largeur exterieure. Une zone de 728 px n'offre que

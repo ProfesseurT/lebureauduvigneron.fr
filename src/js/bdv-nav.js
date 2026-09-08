@@ -278,6 +278,11 @@
        saisons et les jours feries dans les cases. Charge apres, il n'existerait
        pas encore, le fond de carte serait vide, et rien ne le signalerait. */
     { js: '/js/bdv-almanach.js' },
+    /* Les choix du vigneron, AVANT la piece pour la meme raison que l'almanach :
+       reglesActives() les lit des le premier rendu. Charges apres, tous les
+       reperes eteints reapparaitraient une fraction de seconde, puis
+       disparaitraient : un clignotement que personne ne saurait expliquer. */
+    { js: '/js/bdv-calchoix.js' },
     { js: '/js/bdv-calendrier.js' }
   ];
 

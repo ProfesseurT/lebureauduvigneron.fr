@@ -10,10 +10,11 @@
     "charte:dash": "node scripts/charte.mjs --bureau",
     "banc": "node scripts/banc-bureau.mjs",
     "charte:bureau": "node scripts/charte.mjs --bureau",
-    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:sync",
+    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:sync",
     "banc:reglages": "node scripts/banc-reglages.mjs",
     "banc:journee": "node scripts/banc-journee.mjs",
     "banc:taches": "node scripts/banc-taches.mjs",
+    "banc:calchoix": "node scripts/banc-calchoix.mjs",
     "banc:sync": "node scripts/banc-sync.mjs"
   },
   "devDependencies": {

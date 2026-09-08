@@ -304,15 +304,18 @@ est une occurrence : titre, date, date de réalisation. La table `taches` porte 
 Une deuxième table pour la même chose donnerait deux endroits qui répondent « qu'est-ce que
 j'ai à faire le 12 ».
 
-Ce qui reste vraiment au lot 3 :
+Ce qui restait au lot 3 :
 
-1. **L'activation des repères compte par compte**, table `calendrier_choix` (`id`, `cle`,
-   `actif`, `decale_de`). Aujourd'hui le vigneron éteint des FAMILLES entières, dans son
-   navigateur. Éteindre une ligne, décaler une taille de trois semaines, et retrouver ces choix
-   d'un poste à l'autre, demande cette table.
+1. ~~**L'activation des repères compte par compte**, table `calendrier_choix`.~~ **FAIT le
+   08/09/2026.** Le vigneron éteint un repère précis, le décale par semaines, et retrouve ses
+   choix d'un poste à l'autre. Une ligne n'existe que s'il y a un écart ; rallumer et remettre
+   à zéro la supprime. Une obligation ne s'éteint ni ne se décale.
 2. **Les occurrences perso RÉCURRENTES.** « Portes ouvertes, tous les ans le premier week-end
    de juin » n'est pas une tâche : la table des tâches ne porte pas de règle de récurrence.
-   C'est le seul cas qui justifie encore une table à lui.
+   C'est le seul cas qui justifie encore une table à lui, et il n'est pas urgent.
+
+**À faire tourner une fois avant que ça marche :** `supabase/lot7-calendrier-choix.sql`, dans
+l'éditeur SQL de Supabase. Sans la table, chaque geste part dans la file d'attente et y reste.
 
 Les repères de saison se déplacent, les obligations non : une taille en février n'est pas la
 même en Loire et dans l'Hérault. Un repère activé porte donc un décalage propre au compte ;

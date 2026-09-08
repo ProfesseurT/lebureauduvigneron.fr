@@ -329,17 +329,19 @@ t('l\'adresse du calendrier suit',
 t('la piece cliquee devient la piece active',
   CAL.doc.querySelector('.bureau-nav__ligne[data-piece="calendrier"] .bureau-nav__item--actif') !== null);
 await CAL.repos();
-/* TROIS FICHIERS, ET PAS SEPT. Le calendrier ne lit aucune ligne de vente : lui faire
+/* QUATRE FICHIERS, ET PAS SEPT. Le calendrier ne lit aucune ligne de vente : lui faire
    tirer le moteur, Chart.js et le lecteur xlsx couterait 83 ko et plus pour afficher
    une grille de trente et un jours. Ce controle est ce qui empechera qu'on l'accroche
    au chargeur des ecrans de vente « parce que c'est deja ecrit ».
 
    ET L'ORDRE EST UNE CONDITION, pas une preference, comme pour le moteur et les
-   ecrans de vente : la piece appelle BdvAlmanach.entre() des son premier rendu pour
-   poser la lune, les saisons et les jours feries. L'almanach charge apres elle
-   n'existerait pas encore, le fond de carte serait vide, et rien ne le dirait. */
-t('le calendrier charge sa feuille, l\'almanach, puis son module, et RIEN d\'autre',
-  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-almanach.js | /js/bdv-calendrier.js',
+   ecrans de vente. La piece appelle BdvAlmanach.entre() des son premier rendu pour
+   poser la lune et les feries, et BdvCalchoix.choix() pour savoir ce que le vigneron
+   suit. Charges apres elle : le fond de carte serait vide, et les reperes eteints
+   reapparaitraient une fraction de seconde avant de disparaitre. Deux defauts que
+   rien ne signalerait. */
+t('le calendrier charge sa feuille, l\'almanach, les choix, puis son module, et RIEN d\'autre',
+  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-almanach.js | /js/bdv-calchoix.js | /js/bdv-calendrier.js',
   CAL.charges.join(' | ') || '(aucune)');
 t('la piece est ouverte apres le chargement',
   CAL.appels.some(a => a.calendrier), JSON.stringify(CAL.appels));
@@ -349,7 +351,7 @@ t('revenir a « Ma journee » remasque le calendrier',
   !CAL.journee.hidden && CAL.calendrier.hidden);
 CAL.clic('calendrier');
 await CAL.repos();
-t('un second passage ne recharge rien', CAL.charges.length === 3, CAL.charges.length + ' ressources');
+t('un second passage ne recharge rien', CAL.charges.length === 4, CAL.charges.length + ' ressources');
 
 /* L'ADRESSE FAIT FOI A L'ARRIVEE, et pas seulement pour les pieces de vente. Ce
    filtre exigeait `viti` jusqu'au 08/09/2026 : un favori sur /mon-bureau/#taches

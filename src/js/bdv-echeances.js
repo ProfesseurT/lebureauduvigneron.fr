@@ -63,25 +63,39 @@
   // bureau le 15 janvier, en pleine taille, lit « Taille de la vigne, dans 320
   // jours ». La reponse juste est « en ce moment ». On regarde donc d'abord si
   // l'occurrence PRECEDENTE court encore, et seulement ensuite la suivante.
-  function prochaine(r, ref) {
+  /* LE DECALAGE DU VIGNERON S'APPLIQUE A LA DATE CANDIDATE, ET AVANT TOUT LE
+     RESTE. Lot 3, 08/09/2026 : une taille en fevrier n'est pas la meme en Loire
+     et dans l'Herault, le vigneron deplace donc ses reperes de quelques semaines.
+     Le decaler APRES avoir decide si l'occurrence tombe dans la fenetre, ou si
+     elle court encore, donnerait une date juste dans une fenetre fausse : un
+     repere decale de trois semaines disparaitrait du mois ou il tombe. */
+  function decale(e) {
+    var n = parseInt((e || {}).decale, 10);
+    if (!n) return 0;
+    return Math.max(-180, Math.min(180, n));
+  }
+  function pose(d, n) { return n ? plusJours(d, n) : d; }
+
+  function prochaine(r, ref, n) {
     if (!r) return null;
+    n = n || 0;
     if (r.type === 'unique') {
       var u = minuit(new Date(r.date + 'T00:00:00'));
-      return isNaN(u.getTime()) ? null : u;
+      return isNaN(u.getTime()) ? null : pose(u, n);
     }
     if (r.type === 'mensuel') {
-      var pm = jourDuMois(ref.getFullYear(), ref.getMonth() - 1, r.jour);
+      var pm = pose(jourDuMois(ref.getFullYear(), ref.getMonth() - 1, r.jour), n);
       if (finDe(pm, r) >= ref) return pm;
-      var d = jourDuMois(ref.getFullYear(), ref.getMonth(), r.jour);
+      var d = pose(jourDuMois(ref.getFullYear(), ref.getMonth(), r.jour), n);
       if (finDe(d, r) >= ref) return d;
-      return jourDuMois(ref.getFullYear(), ref.getMonth() + 1, r.jour);
+      return pose(jourDuMois(ref.getFullYear(), ref.getMonth() + 1, r.jour), n);
     }
     if (r.type === 'annuel') {
-      var pa = jourDuMois(ref.getFullYear() - 1, r.mois - 1, r.jour);
+      var pa = pose(jourDuMois(ref.getFullYear() - 1, r.mois - 1, r.jour), n);
       if (finDe(pa, r) >= ref) return pa;
-      var a = jourDuMois(ref.getFullYear(), r.mois - 1, r.jour);
+      var a = pose(jourDuMois(ref.getFullYear(), r.mois - 1, r.jour), n);
       if (finDe(a, r) >= ref) return a;
-      return jourDuMois(ref.getFullYear() + 1, r.mois - 1, r.jour);
+      return pose(jourDuMois(ref.getFullYear() + 1, r.mois - 1, r.jour), n);
     }
     return null;
   }
@@ -133,7 +147,8 @@
       // « du 1er decembre au 15 mars », pour tout ce qui dure plus d'un jour.
       periode: duree(r) > 1 ? ('du ' + sansJour(d) + ' au ' + sansJour(f)) : null,
       famille: e.famille || 'obligations',
-      statut: e.statut || 'obligation'
+      statut: e.statut || 'obligation',
+      decale: decale(e)
     };
   }
 
@@ -144,7 +159,7 @@
   // journee ». Une faute de frappe dans src/_data/echeances.json ne doit couter que
   // la ligne fautive. Ajoute le 08/09/2026, avant d'ouvrir le fichier a l'edition.
   function lisible(e, ref) {
-    var d = prochaine((e || {}).recurrence, ref);
+    var d = prochaine((e || {}).recurrence, ref, decale(e));
     return d && !isNaN(d.getTime()) ? d : null;
   }
 
@@ -185,12 +200,15 @@
     var out = [];
     du = minuit(du); au = minuit(au);
     (echeances || []).forEach(function (e) {
-      var r = e.recurrence || {}, d, a;
-      // On remonte d'une duree avant la borne basse : une occurrence commencee
-      // avant la fenetre peut tres bien la traverser.
-      var marge = plusJours(du, -(duree(r) - 1));
+      var r = e.recurrence || {}, d, a, n = decale(e);
+      // On remonte d'une duree avant la borne basse, ET du decalage : une
+      // occurrence commencee avant la fenetre peut tres bien la traverser, et un
+      // repere pousse de trois semaines vers l'avant commence trois semaines plus
+      // tot dans le calendrier de la bibliotheque.
+      var marge = plusJours(du, -(duree(r) - 1) - Math.abs(n));
       function garder(x) {
         if (!x || isNaN(x.getTime())) return;
+        x = pose(x, n);
         if (finDe(x, r) >= du && x <= au) out.push(poser(e, x, ref));
       }
       if (r.type === 'unique') {

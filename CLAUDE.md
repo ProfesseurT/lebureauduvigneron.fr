@@ -326,6 +326,42 @@ vision deuteranope, ce qu'une cinquieme teinte n'aurait pas fait.
 **Corollaire a ne pas oublier :** une sixieme famille ne pourra pas non plus prendre une
 couleur. Elle prendra une matiere, ou elle n'existera pas.
 
+### Les choix du vigneron : `calendrier_choix`, et la file qui appartient a quelqu'un
+
+Lot 3, 08/09/2026. La table porte les ECARTS par rapport a la bibliotheque : le repere qu'il
+ne suit pas, et celui qu'il decale. `src/js/bdv-calchoix.js` en est le SEUL ecrivain.
+
+**Une ligne n'existe que s'il y a un ecart.** Suivi et non decale est l'etat par defaut du
+monde : rallumer un repere et remettre son decalage a zero SUPPRIME la ligne. Sans cette
+regle, la table porterait une ligne par occurrence et par compte, toutes neutres. Meme regle
+que decocher une obligation dans la table des taches.
+
+**Une obligation ne s'eteint ni ne se decale**, et le garde-fou est double : l'ecran ne montre
+pas les gestes, et `reglesActives()` les ignorerait de toute facon. Deplacer une DRM de trois
+semaines donnerait une date fausse avec l'autorite d'un texte de loi.
+
+**LE DECALAGE S'APPLIQUE A LA DATE CANDIDATE, ET AVANT LE FILTRE DE FENETRE.** Le poser apres
+avoir decide si l'occurrence tombe dans le mois donnerait une date juste dans une fenetre
+fausse : un repere decale de trois semaines disparaitrait du mois ou il tombe, sans erreur.
+`npm run banc:calchoix` garde les deux sens, celui qui entre dans le mois et celui qui en sort.
+
+#### LA FILE D'ATTENTE APPARTIENT A QUELQU'UN, et c'est un defaut trouve par le banc
+
+`id` pose a l'envoi et jamais chez l'appelant protege d'une premiere fuite : une ligne enfilee
+hors ligne ne repart pas sous un compte fige (panne des signets du 07/09/2026). **Mais il en
+cause exactement une seconde**, et elle n'etait dans aucun plan : le vigneron eteint un repere
+hors ligne, se deconnecte, quelqu'un d'autre se connecte sur le meme navigateur, et le rejeu
+ecrit le choix du premier SUR LE COMPTE DU SECOND.
+
+`bdv-calchoix.js` retient donc, a cote de la file, QUI l'a remplie. Une file etrangere se
+jette au lieu de se rejouer. Une file sans proprietaire, celle d'un geste pose avant toute
+session, se reprend : c'est le vigneron qui note dans le train avant d'ouvrir son compte.
+
+**`bdv-taches.js` ET `bdv-signets.js` ONT LA MEME FORME ET DONC LE MEME DEFAUT.** Signale a
+Ted le 08/09/2026, pas corrige : ce sont deux modules qui marchent, et le chantier du jour ne
+les touchait pas. Le correctif fait une quinzaine de lignes par module, sur le modele de
+`bdv-calchoix.js`.
+
 ### Les taches datees ne sont PAS dans le fichier de donnees
 
 Elles sont fabriquees en regles synthetiques par `reglesDesTaches()` dans

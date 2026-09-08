@@ -12,6 +12,79 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, nuit. Activer ligne par ligne, et une fuite entre deux comptes que le banc a trouvée
+
+Ted a choisi le reste du lot 3 plutôt que le remplissage de la bibliothèque, ce qui est le bon
+ordre : sans l'activation ligne par ligne, soixante temps forts de plus étouffent la grille du
+mois pour tout le monde, y compris pour celui qui ne fait ni salon ni œnotourisme.
+
+### La table porte les écarts, pas la bibliothèque
+
+`calendrier_choix` : `cle`, `actif`, `decale_de`, et c'est tout. Elle ne porte ni la
+bibliothèque, qui vit dans le fichier de données, ni ses occurrences à lui, qui sont des
+tâches.
+
+**Une ligne n'existe que s'il y a un écart.** Suivi et non décalé est l'état par défaut du
+monde : rallumer un repère et remettre son décalage à zéro supprime la ligne. Sans cette règle,
+la table porterait une ligne par occurrence et par compte, toutes neutres. Même règle que
+décocher une obligation, et même motif.
+
+Une obligation ne s'éteint ni ne se décale. Le garde-fou est double : l'écran ne montre pas les
+gestes, et `reglesActives()` les ignorerait de toute façon. Un jour quelqu'un écrira une ligne
+à la main, ou par un vieux bouton oublié ; le calendrier ne doit pas pour autant cacher une DRM.
+
+### Le décalage s'applique avant le filtre de fenêtre, et c'est tout le piège
+
+Le poser après avoir décidé si l'occurrence tombe dans le mois donnerait une date juste dans
+une fenêtre fausse : un repère décalé de trois semaines disparaîtrait du mois où il tombe, sans
+erreur, et personne ne le chercherait là. Le banc garde les deux sens, celui qui entre dans le
+mois depuis le mois d'avant et celui qui en sort.
+
+### Ce qui est éteint doit pouvoir se rallumer, et c'est la moitié du travail
+
+Un réglage qui se cache une fois posé n'est pas un réglage, c'est une perte : le vigneron
+éteint un repère par curiosité et ne le retrouve plus jamais. La ligne « Un repère que tu ne
+suis plus : Foire aux vins » est donc toujours là dès qu'il y en a un, elle les nomme, et
+chaque nom **est** le bouton qui le rallume.
+
+Elle repart des règles et pas du cache : une clé enregistrée pour une occurrence disparue du
+fichier de données afficherait sinon une ligne fantôme que personne ne peut rallumer.
+
+### LA FUITE ENTRE DEUX COMPTES, trouvée par le banc et pas par moi
+
+`id` posé à l'envoi et jamais chez l'appelant protège d'une première fuite : une ligne enfilée
+hors ligne ne repart pas sous un compte figé. C'est la leçon de la panne des signets du
+07/09/2026, écrite dans `CLAUDE.md`, et je l'ai appliquée sans réfléchir plus loin.
+
+**Elle cause exactement une seconde fuite, dans l'autre sens.** Ted éteint un repère hors
+ligne, se déconnecte, un collègue se connecte sur le même navigateur, et le rejeu écrit le
+choix de Ted **sur le compte du collègue**. Le geste qui protège de la première cause la
+seconde, et aucune des deux ne lève d'erreur.
+
+La file retient donc, à côté d'elle, qui l'a remplie. Une file étrangère se jette au lieu de se
+rejouer. Une file sans propriétaire, celle d'un geste posé avant toute session, se reprend :
+c'est le vigneron qui note dans le train avant d'ouvrir son compte. Deux contrôles gardent les
+deux cas, parce qu'un garde-fou qui jette tout marcherait aussi bien au premier test.
+
+Et le miroir se vide maintenant à **chaque** changement de session, pas seulement à la
+déconnexion. Le garder en attendant la réponse du serveur montrait au suivant, pendant une
+seconde ou deux, ce que le précédent ne suivait pas. Une seconde suffit à poser un geste.
+
+**`bdv-taches.js` et `bdv-signets.js` ont la même forme, donc le même défaut.** Signalé à Ted,
+pas corrigé : ce sont deux modules qui marchent, et le chantier du jour ne les touchait pas.
+Une quinzaine de lignes par module sur le modèle de `bdv-calchoix.js`.
+
+### Ce qui reste du lot 3
+
+Les occurrences perso **récurrentes**, du genre « portes ouvertes, premier week-end de juin ».
+Une tâche porte une date, pas une règle. C'est le seul cas qui justifie encore une table à lui,
+et il n'est pas urgent.
+
+`npm run verif` enchaîne désormais aussi `banc:calchoix` : 38 contrôles pour cette table seule,
+0 échec.
+
+---
+
 ## 08/09/2026, tard. Les tâches entrent dans le calendrier, et le lot 3 fond de moitié
 
 Ted, trois puces : afficher les tâches datées dans le calendrier, pouvoir créer une occurrence

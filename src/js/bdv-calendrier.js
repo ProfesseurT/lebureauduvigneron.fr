@@ -138,10 +138,37 @@
       };
     });
   }
+  /* CE QUE LE VIGNERON A CHOISI, applique ici et a un seul endroit.
+     UNE OBLIGATION NE S'ETEINT PAS ET NE SE DECALE PAS, et le garde-fou est
+     double : l'ecran ne montre pas les gestes, et cette fonction les ignorerait
+     de toute facon. Un jour quelqu'un ecrira une ligne dans la table a la main,
+     ou par un vieux bouton oublie ; le calendrier ne doit pas pour autant cacher
+     une DRM ou la deplacer de trois semaines. */
   function reglesActives() {
     var f = famillesActives();
+    var ch = window.BdvCalchoix;
     return toutesLesRegles().filter(function (e) {
-      return f.indexOf(e.famille || 'obligations') >= 0;
+      if (f.indexOf(e.famille || 'obligations') < 0) return false;
+      if (!ch || (e.statut || 'obligation') !== 'repere') return true;
+      return ch.choix(e.cle).actif;
+    }).map(function (e) {
+      if (!ch || (e.statut || 'obligation') !== 'repere') return e;
+      var d = ch.choix(e.cle).decale;
+      return d ? Object.assign({}, e, { decale: d }) : e;
+    });
+  }
+
+  /* Les reperes eteints, retrouves dans la bibliotheque a partir de leurs cles.
+     On repart des REGLES et pas du cache : une cle enregistree pour une
+     occurrence qui a disparu du fichier de donnees ne doit pas afficher une
+     ligne fantome que personne ne peut rallumer. */
+  function reperesEteints() {
+    var ch = window.BdvCalchoix;
+    if (!ch) return [];
+    var cles = ch.eteints();
+    if (!cles.length) return [];
+    return toutesLesRegles().filter(function (e) {
+      return (e.statut || 'obligation') === 'repere' && cles.indexOf(e.cle) >= 0;
     });
   }
   function etaler(du, au) {
@@ -449,6 +476,7 @@
     var sous = document.createElement('div');
     sous.className = 'cal__detail';
     posterSansDate(sous);
+    posterEteints(sous);
     var h = document.createElement('h3');
     h.className = 'cal__detailt';
     h.textContent = duMois.length
@@ -670,6 +698,29 @@
         b.textContent = faite(o) ? 'Remettre à faire' : 'C’est fait';
         liens.appendChild(b);
       }
+      /* UN REPERE SE DEPLACE ET SE RETIRE DU SUIVI, une obligation non. La
+         difference n'est pas cosmetique : deplacer une DRM de trois semaines
+         donnerait une date fausse avec l'autorite d'un texte de loi, et
+         l'eteindre ferait disparaitre une amende de l'ecran. */
+      if (o.statut === 'repere' && window.BdvCalchoix) {
+        separer();
+        liens.appendChild(boutonChoix('data-cal-decaler', o.e.cle + '|-7',
+          '\u2039 7 jours', 'Avancer ce repère d’une semaine'));
+        liens.appendChild(boutonChoix('data-cal-decaler', o.e.cle + '|7',
+          '7 jours \u203a', 'Retarder ce repère d’une semaine'));
+        if (o.decale) {
+          liens.appendChild(boutonChoix('data-cal-recaler', o.e.cle,
+            'Remettre', 'Remettre ce repère à sa date de la bibliothèque'));
+          var dec = document.createElement('span');
+          dec.className = 'echeance__repere';
+          dec.textContent = ' décalé de ' + (o.decale > 0 ? '+' : '') + o.decale + ' j';
+          liens.appendChild(dec);
+        }
+        separer();
+        liens.appendChild(boutonChoix('data-cal-eteindre', o.e.cle,
+          'Ne plus suivre', 'Retirer ce repère de ton calendrier'));
+      }
+
       /* UNE TACHE SE RETIRE, une obligation non : elle reviendrait le mois
          suivant de toute facon, et la retirer ne voudrait rien dire. */
       if (estUneTache(o)) {
@@ -715,12 +766,50 @@
     return box;
   }
 
+  function boutonChoix(attr, valeur, texte, titre) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cal__coche cal__coche--choix';
+    b.setAttribute(attr, valeur);
+    b.textContent = texte;
+    b.title = titre;
+    b.setAttribute('aria-label', titre);
+    return b;
+  }
+
+  /* CE QUI EST ETEINT DOIT POUVOIR SE RALLUMER, et c'est la moitie du travail.
+     Un reglage qui se cache une fois pose n'est pas un reglage, c'est une perte :
+     le vigneron eteint un repere par curiosite, et ne le retrouve plus jamais.
+     La ligne est donc toujours la des qu'un repere est eteint, elle les nomme,
+     et chacun se rallume d'un clic. */
+  function posterEteints(hote) {
+    var l = reperesEteints();
+    if (!l.length) return;
+    var p = document.createElement('p');
+    p.className = 'cal__eteints';
+    p.appendChild(document.createTextNode(
+      l.length > 1 ? l.length + ' repères que tu ne suis plus : ' : 'Un repère que tu ne suis plus : '));
+    l.forEach(function (e, i) {
+      if (i) p.appendChild(document.createTextNode(', '));
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cal__rallume';
+      b.setAttribute('data-cal-rallumer', e.cle);
+      b.textContent = e.titre;
+      b.title = 'Suivre à nouveau : ' + e.titre;
+      p.appendChild(b);
+    });
+    p.appendChild(document.createTextNode('.'));
+    hote.appendChild(p);
+  }
+
   function vueListe(hote) {
     /* calculer() rend LA PROCHAINE occurrence de chaque regle, triee par
        urgence, ce qui est en cours devant, les obligations deja en vigueur en
        dernier. C'est ce que fait la page publique, et c'est ce qu'on veut ici :
        la liste repond a « qu'est-ce qui tombe le plus tot », pas a « qu'y a-t-il
        en octobre ». */
+    posterEteints(hote);
     var l = window.BdvEcheances ? BdvEcheances.calculer(reglesActives()) : [];
     if (!l.length) {
       var p = document.createElement('p');
@@ -859,6 +948,32 @@
         return;
       }
 
+      var dec = e.target.closest && e.target.closest('[data-cal-decaler]');
+      if (dec) {
+        e.preventDefault();
+        var q2 = dec.getAttribute('data-cal-decaler').split('|');
+        if (window.BdvCalchoix) BdvCalchoix.decaler(q2[0], parseInt(q2[1], 10));
+        return;
+      }
+      var rec = e.target.closest && e.target.closest('[data-cal-recaler]');
+      if (rec) {
+        e.preventDefault();
+        if (window.BdvCalchoix) BdvCalchoix.recaler(rec.getAttribute('data-cal-recaler'));
+        return;
+      }
+      var et = e.target.closest && e.target.closest('[data-cal-eteindre]');
+      if (et) {
+        e.preventDefault();
+        if (window.BdvCalchoix) BdvCalchoix.eteindre(et.getAttribute('data-cal-eteindre'));
+        return;
+      }
+      var ral = e.target.closest && e.target.closest('[data-cal-rallumer]');
+      if (ral) {
+        e.preventDefault();
+        if (window.BdvCalchoix) BdvCalchoix.rallumer(ral.getAttribute('data-cal-rallumer'));
+        return;
+      }
+
       var tc = e.target.closest && e.target.closest('[data-cal-tache]');
       if (tc) {
         e.preventDefault();
@@ -923,10 +1038,18 @@
       var z = el('bureauCalendrier');
       if (z && !z.hidden) rendre();
     });
+    /* Meme motif pour les choix : le module qui les porte previent par un
+       evenement, celui-ci repeint. Il previent aussi apres la lecture du serveur,
+       donc un choix pose sur un autre poste arrive tout seul. */
+    document.addEventListener('bdv:calchoix', function () {
+      var z = el('bureauCalendrier');
+      if (z && !z.hidden) rendre();
+    });
   }
 
   /* Appelee par la barre a chaque ouverture de la piece. Idempotente. */
   function ouvrir() {
+    if (window.BdvCalchoix) BdvCalchoix.ouvrir();
     vue = lireVue();
     fond = lireFond();
     if (!curseur) curseur = premierDuMois(new Date());
