@@ -352,9 +352,20 @@ await CAL.repos();
    suit. Charges apres elle : le fond de carte serait vide, et les reperes eteints
    reapparaitraient une fraction de seconde avant de disparaitre. Deux defauts que
    rien ne signalerait. */
-t('le calendrier charge sa feuille, l\'almanach, les choix, puis son module, et RIEN d\'autre',
-  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-almanach.js | /js/bdv-calchoix.js | /js/bdv-calendrier.js',
+/* L'ALMANACH A QUITTE CETTE LISTE LE 08/09/2026, et il n'a pas disparu : le gabarit
+   le porte en defer, parce que la lune de l'entete doit etre la dans TOUTES les
+   pieces, des la premiere seconde. Il reste declare dans RESSOURCES_CAL, ou il
+   documente la dependance de la piece et la rattraperait si le gabarit changeait ;
+   le chargeur le reconnait a son adresse et n'en pose pas un second. C'est ce que
+   ce controle observe : le comportement reel, trois ressources, pas la liste ecrite.
+   Les deux controles qui suivent tiennent la place que celui-ci a laissee : l'ordre
+   reste une condition, il est juste garanti ailleurs. */
+t('le calendrier charge sa feuille, les choix, puis son module, et RIEN d\'autre',
+  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-calchoix.js | /js/bdv-calendrier.js',
   CAL.charges.join(' | ') || '(aucune)');
+t('l\'almanach n\'est pas charge deux fois',
+  CAL.charges.filter(x => x === '/js/bdv-almanach.js').length === 0,
+  CAL.charges.join(' | '));
 t('la piece est ouverte apres le chargement',
   CAL.appels.some(a => a.calendrier), JSON.stringify(CAL.appels));
 
@@ -363,7 +374,7 @@ t('revenir a « Ma journee » remasque le calendrier',
   !CAL.journee.hidden && CAL.calendrier.hidden);
 CAL.clic('calendrier');
 await CAL.repos();
-t('un second passage ne recharge rien', CAL.charges.length === 4, CAL.charges.length + ' ressources');
+t('un second passage ne recharge rien', CAL.charges.length === 3, CAL.charges.length + ' ressources');
 
 /* L'ADRESSE FAIT FOI A L'ARRIVEE, et pas seulement pour les pieces de vente. Ce
    filtre exigeait `viti` jusqu'au 08/09/2026 : un favori sur /mon-bureau/#taches
@@ -608,6 +619,51 @@ titre('Le plateau, dans l\'ordre de Ted');
     (crm.match(/Array\.isArray\(r\[[01]\]\.value\)/g) || []).length >= 3,
     (crm.match(/Array\.isArray\(r\[[01]\]\.value\)/g) || []).length + ' garde(s)');
 }
+
+/* ======================= LA LUNE DE L'ENTETE (08/09/2026) =======================
+   Le calcul et le dessin sont eprouves par scripts/banc-lune.mjs. Ici on ne
+   controle que le BRANCHEMENT, c'est-a-dire ce que banc-lune ne peut pas voir :
+   le bloc existe dans la page produite, l'almanach y est declare, et il y est
+   declare AVANT le module de la barre. */
+titre("La lune de l'entete");
+const L = bureau();
+t('le bloc de la lune est dans le HTML produit',
+  !!L.doc.getElementById('bureauLune')
+  && !!L.doc.getElementById('bureauLuneClair')
+  && !!L.doc.getElementById('bureauLuneNom')
+  && !!L.doc.getElementById('bureauLuneNote')
+  && !!L.doc.getElementById('bureauLuneSuite'));
+/* Cache au depart. Un cadre vide en attendant un script en defer se remarque plus
+   qu'une absence, et c'est la regle deja ecrite pour la plaque de porte. */
+t('il est cache tant que rien ne l\'a peint',
+  L.doc.getElementById('bureauLune').hasAttribute('hidden'));
+t('il est la troisieme zone de la ligne, entre le bonjour et les actions',
+  L.doc.querySelector('.bureau-tete__ligne > .bureau-tete__lune + .bureau-tete__actions') !== null);
+/* L'ALMANACH DANS LE GABARIT, ET EN DEFER. Sans defer il entrerait dans le budget
+   documente de 32 ko bloquants du bureau, que ce chantier n'a pas le droit
+   d'augmenter. */
+const BAL = L.doc.querySelector('script[src="/js/bdv-almanach.js"]');
+t('l\'almanach est declare dans le gabarit', !!BAL);
+t('et il y est en defer, donc hors du budget bloquant',
+  !!BAL && BAL.hasAttribute('defer'));
+/* L'ORDRE RESTE UNE CONDITION, il est seulement garanti ici plutot que dans la
+   liste du calendrier : les defer s'executent dans l'ordre de declaration, donc
+   BdvAlmanach existe avant que bdv-nav.js n'ouvre quoi que ce soit. */
+const SRCS = [...L.doc.querySelectorAll('script[src]')].map(x => x.getAttribute('src'));
+t('il est declare AVANT bdv-nav.js',
+  SRCS.indexOf('/js/bdv-almanach.js') !== -1
+  && SRCS.indexOf('/js/bdv-almanach.js') < SRCS.indexOf('/js/bdv-nav.js'),
+  SRCS.join(' | '));
+/* LA LUNE NE DOIT RIEN A L'INTERRUPTEUR « Lune et feries » du calendrier, et c'est
+   un choix de Ted du 08/09/2026 : cet interrupteur nettoie les cases d'un mois, la
+   lune de l'entete est le decor du bureau. Le jour ou quelqu'un les branchera
+   ensemble « par coherence », ce controle le dira. */
+const PEINTRE = HTML.slice(HTML.indexOf('function peindreLune'),
+                           HTML.indexOf('function peindreLune') + 2600);
+t('le peintre de la lune n\'appelle pas les choix du calendrier',
+  !/BdvCalchoix|reglesActives/.test(PEINTRE));
+t('il retourne le dessin quand la lune decroit, et pas autrement',
+  /scale\(-1,1\)/.test(PEINTRE) && /removeAttribute\('transform'\)/.test(PEINTRE));
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');

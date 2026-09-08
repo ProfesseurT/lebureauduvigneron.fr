@@ -12,6 +12,84 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026. La lune du bandeau, et deux cycles qu'il ne faut pas confondre
+
+Une lune calculée est posée dans l'en-tête du bureau, entre le bonjour et les actions : le dessin,
+le nom de la phase, le pourcentage éclairé, la lune montante ou descendante, et la prochaine phase
+en clair.
+
+### Aucune lune n'est branchée à rien, et c'était le point de départ
+
+Ted demandait une lune « connectée à la vraie lune pour être sûr à 100 % ». Il n'existe pas de flux
+temps réel de la Lune, et c'est une bonne nouvelle pour un site statique : sa position se calcule.
+`bdv-almanach.js` le faisait déjà pour les quatre instants du mois (Meeus, chapitre 49). Il ne
+savait pas dire où en est la lune un mardi quelconque, ce dont l'en-tête a besoin tous les jours.
+
+### On n'a pas interpolé entre deux nouvelles lunes
+
+Compter les jours depuis la dernière nouvelle lune et diviser par 29,53 tient en cinq lignes. Écarté :
+l'orbite n'est pas parcourue à vitesse constante, l'écart atteint six heures, soit deux à trois
+points de pourcentage — et surtout un croissant dessiné du mauvais côté un jour sur trente. Un
+croissant à l'envers, un vigneron le voit en levant les yeux. Retenu : la position réelle des deux
+astres, Meeus chapitres 47, 25 et 48. Quarante lignes de plus, et un résultat vérifiable.
+
+### Ce qui prouve que le calcul est juste
+
+`scripts/banc-lune.mjs`, ajouté à `npm run verif`. Il ne vérifie pas une cohérence interne, il
+confronte le calcul aux **exemples imprimés** de Meeus : 47.a, 25.b et 48.a sont retrouvés au
+millième de degré. Deux contrôles vont plus loin :
+
+- la déclinaison sort à ±28,4° sur 2026, et non ±23,4°. C'est le cycle de 18,6 ans des nœuds
+  lunaires — 2025 était un grand arrêt — que le calcul retrouve seul, sans qu'on le lui ait donné.
+- l'aire de la figure dessinée est mesurée et comparée à la fraction éclairée. C'est ce qui attrape
+  une inversion croissant/gibbeuse, le seul défaut du dessin qui ne se verrait pas sur un écran sans
+  avoir la vraie lune sous les yeux au même instant.
+
+### Croissante et montante ne sont PAS la même chose
+
+Le point de fond, et il ne se devine pas. **Croissante / décroissante** est la phase, 29,53 jours,
+c'est ce que montrent les symboles du calendrier. **Montante / descendante** est la déclinaison,
+27,32 jours : la lune passe chaque jour plus haut ou moins haut dans le ciel. Un vigneron en
+biodynamie travaille sur la seconde. Les deux se décalent en permanence — une lune peut être
+croissante et descendante le même jour, et le banc l'exige : 208 coïncidences sur 400 jours, ni 400
+ni 0. Déduire l'une de l'autre pour économiser un calcul aurait été une faute de fond, invisible.
+Le survol du bloc porte cette explication, parce que deux mots ne peuvent pas la dire.
+
+### Le dessin n'est pas un caractère de police
+
+Aucune police ne sait faire un croissant à 9 % ni le retourner. Deux arcs SVG : un demi-disque, et
+une demi-ellipse retirée (croissant) ou ajoutée (gibbeuse), de demi-largeur `R × |1 − 2k|`. À 50 %
+cette demi-largeur tombe à zéro, et SVG traite un rayon nul comme une droite : le terminateur d'un
+quartier devient rectiligne sans cas particulier. `BdvAlmanach.chemin(k)` est dans l'almanach et non
+dans le gabarit, pour une seule raison : une fonction de dessin cachée dans une page ne se teste pas.
+
+### L'almanach passe dans le gabarit, en defer
+
+Il n'était chargé qu'au premier clic sur le calendrier, par `RESSOURCES_CAL` de `bdv-nav.js`. La lune
+de l'en-tête doit être là dès la première seconde et dans **toutes** les pièces, y compris « Ma
+journée ». Donc dans `mon-bureau.njk`, et en `defer` : le budget documenté du bureau est de 32 ko
+**bloquants**, un defer n'en consomme aucun. Il reste déclaré dans `RESSOURCES_CAL`, où il documente
+la dépendance de la pièce et la rattraperait si le gabarit changeait ; le chargeur le reconnaît à son
+adresse et n'en pose pas un second. Le banc du bureau observe donc désormais trois ressources au clic
+sur le calendrier, et deux nouveaux contrôles tiennent la place laissée : l'almanach est déclaré, en
+defer, et avant `bdv-nav.js`.
+
+### Arbitrages de Ted
+
+- L'interrupteur « Lune et fériés » du calendrier **n'éteint pas** celle du bandeau. Deux endroits,
+  deux natures : cet interrupteur nettoie les cases d'un mois, la lune de l'en-tête est le décor du
+  bureau. Un contrôle du banc interdit qu'on les branche ensemble « par cohérence ».
+- Montante / descendante affichée **tout de suite**, et pas remise à un lot ultérieur.
+
+### Ce qu'on s'est promis de regarder
+
+- Le nœud lunaire et le périgée / apogée, qui comptent aussi en biodynamie, ne sont pas calculés.
+- Le repeint est un intervalle de trente minutes, et non une minuterie posée sur minuit : un portable
+  qui dort rate son rendez-vous de minuit sans moyen de le savoir, un intervalle repart au réveil.
+- La lune n'est pas dans le tableau de bord, seulement dans le bureau.
+
+---
+
 ## 09/09/2026, nuit. Le filtre des tâches, une régression du lot 2, et deux captures qui mentaient
 
 Ted : « faut pouvoir choisir aussi dans les tâches les catégories à afficher ou pas ».

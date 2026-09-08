@@ -49,6 +49,32 @@ permalink: /mon-bureau/
         <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
         <p class="bureau-tete__resume" id="bureauResume"></p>
       </div>
+
+      <!-- LA LUNE, ENTRE LE BONJOUR ET LES ACTIONS. Elle est CALCULEE, jamais
+           tapee : bdv-almanach.js rend la position reelle du Soleil et de la
+           Lune, la fraction eclairee au millieme, et la declinaison. Le dessin
+           n'est pas un caractere de police mais deux arcs SVG, parce qu'aucune
+           police ne sait faire un croissant a 9 % ni le retourner.
+           ELLE NE DEPEND PAS DE L'INTERRUPTEUR « Lune et feries » du
+           calendrier, et c'est un choix : cet interrupteur nettoie les cases
+           d'un mois, celle-ci est le decor du bureau. Deux endroits, deux
+           natures, deux commandes.
+           Cachee au depart : on ne montre pas un cadre vide en attendant que
+           l'almanach arrive en defer. -->
+      <div class="bureau-tete__lune" id="bureauLune" hidden>
+        <svg class="bureau-tete__lune-dessin" viewBox="-52 -52 104 104"
+             aria-hidden="true" focusable="false">
+          <circle class="bureau-tete__lune-ombre" cx="0" cy="0" r="50"/>
+          <path class="bureau-tete__lune-clair" id="bureauLuneClair" d=""/>
+          <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
+        </svg>
+        <div>
+          <p class="bureau-tete__lune-nom" id="bureauLuneNom"></p>
+          <p class="bureau-tete__lune-note" id="bureauLuneNote"></p>
+          <p class="bureau-tete__lune-suite" id="bureauLuneSuite" hidden></p>
+        </div>
+      </div>
+
       <div class="bureau-tete__actions">
         <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button">Mes réglages</button>
         <!-- Se déconnecter EFFACE ce navigateur. Le bouton est donc volontairement discret et
@@ -397,6 +423,15 @@ permalink: /mon-bureau/
      de declaration. -->
 <script src="/js/bdv-taches.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
+<!-- L'ALMANACH. Il etait charge au premier clic sur le calendrier, par la constante
+     RESSOURCES_CAL de bdv-nav.js. La lune de l'entete, elle, doit etre la des la
+     premiere seconde et dans TOUTES les pieces, y compris « Ma journee ». Donc ici, et
+     en DEFER : le budget documente du bureau est de 32 ko BLOQUANTS, un defer n'en
+     consomme aucun. Le chargeur de bdv-nav.js reconnait le fichier a son adresse et
+     n'en posera pas un second ; et comme les defer s'executent avant DOMContentLoaded,
+     BdvAlmanach existe forcement avant le premier clic sur le calendrier.
+     Aucune dependance : ce fichier ne fait que calculer, il ne lit pas le document. -->
+<script src="/js/bdv-almanach.js" defer></script>
 <!-- La liste unique des pieces du bureau, et la barre qui la peint. Sans defer : le
      script de cette page appelle BdvNav.monter() a l'ouverture du document. -->
 <script src="/js/bdv-nav.js"></script>
@@ -1318,6 +1353,58 @@ permalink: /mon-bureau/
   var METIERS = { 'vigneron':'Vigneron', 'caviste-negoce':'Caviste ou négociant',
                   'etudiant':'Étudiant', 'pro-filiere':'Pro de la filière', 'autre':'' };
 
+  /* ---------------- LA LUNE DE L'ENTETE ----------------
+     Posee le 08/09/2026. Le calcul ET le dessin sont dans bdv-almanach.js, ou
+     scripts/banc-lune.mjs les met a l'epreuve contre les exemples publies de
+     Meeus. Ici il ne reste que les mots et le cote eclaire. */
+  function peindreLune(){
+    var bloc = el('bureauLune');
+    if(!bloc || !window.BdvAlmanach) return;
+    var L = BdvAlmanach.lune(new Date());
+
+    var clair = el('bureauLuneClair');
+    clair.setAttribute('d', BdvAlmanach.chemin(L.eclairee));
+    if(L.croissante) clair.removeAttribute('transform');
+    else clair.setAttribute('transform', 'scale(-1,1)');
+
+    txt(el('bureauLuneNom'), L.nom);
+    txt(el('bureauLuneNote'), L.pourcent + ' % éclairée · lune ' +
+        (L.montante ? 'montante' : 'descendante'));
+
+    /* « Dans 3 jours » se compte de minuit a minuit, pas en heures divisees : le
+       chiffre doit tomber sur la case du calendrier, sinon les deux ecrans se
+       contredisent le meme jour. Le calcul est fait dans l'almanach. */
+    var pr = L.prochaine, suite = el('bureauLuneSuite');
+    if(pr){
+      txt(suite, pr.jours <= 0 ? pr.nom + " aujourd'hui"
+               : pr.jours === 1 ? pr.nom + ' demain'
+               : pr.nom + ' dans ' + pr.jours + ' jours');
+      suite.hidden = false;
+    }else{
+      suite.hidden = true;
+    }
+
+    /* LE SURVOL PORTE LA SEULE CHOSE QUE DEUX MOTS NE PEUVENT PAS DIRE : que
+       croissante et montante ne sont pas la meme chose. C'est le piege de fond de
+       ce bloc pour qui travaille au calendrier lunaire, et il ne se devine pas. */
+    bloc.title =
+      L.nom + ' — ' + L.pourcent + ' % de la surface éclairée.\n\n' +
+      'Phase ' + (L.croissante ? 'croissante' : 'décroissante') + ' : la part ' +
+      'éclairée ' + (L.croissante ? 'grossit' : 'diminue') + '. Cycle de 29,5 jours, ' +
+      "c'est ce que montrent les symboles du calendrier.\n\n" +
+      'Lune ' + (L.montante ? 'montante' : 'descendante') + ' : elle passe chaque ' +
+      'jour ' + (L.montante ? 'plus haut' : 'moins haut') + ' dans le ciel. ' +
+      'Déclinaison ' + L.declinaison.toFixed(0) + '°, cycle de 27,3 jours.\n\n' +
+      'Les deux cycles se décalent en permanence : une lune peut être croissante ' +
+      'et descendante le même jour.';
+
+    bloc.hidden = false;
+  }
+
+  /* On repeint toutes les demi-heures, et non par une minuterie posee sur minuit :
+     un portable qui dort rate son rendez-vous de minuit et n'a aucun moyen de le
+     savoir, alors qu'un intervalle repart tout seul au reveil. Le cout est de
+     quelques dizaines de sinus, une fois par demi-heure. */
   function peindreIdentite(){
     var p = PROFIL || {};
     var prenom = (p.prenom || '').trim();
@@ -1523,6 +1610,12 @@ permalink: /mon-bureau/
     }
     if(window.BdvSignets) BdvSignets.charger().then(function(){ peindreLectures(); peindreResume(); });
     chargerProfil();
+
+    /* La lune. L'almanach arrive en defer, donc avant nous : on peint tout de
+       suite. Si jamais il manquait, peindreLune() sort sans rien faire et le bloc
+       reste cache - un decor absent ne casse pas un bureau. */
+    peindreLune();
+    setInterval(peindreLune, 30 * 60 * 1000);
   });
 })();
 </script>
