@@ -76,13 +76,25 @@
     return new Date(an, mois, Math.min(jour, dernier));
   }
 
+  // UNE REGLE QU'ON NE SAIT PAS LIRE EST IGNOREE, ELLE NE FAIT PAS TOMBER LE RESTE.
+  // prochaine() rend null pour un type de recurrence inconnu ou une date mal ecrite.
+  // Sans ce filtre, poser() appelle toLocaleDateString sur null : le script s'arrete,
+  // et TOUT le calendrier disparait, plus la page publique, plus le bloc de « Ma
+  // journee ». Une faute de frappe dans src/_data/echeances.json ne doit couter que
+  // la ligne fautive. Ajoute le 08/09/2026, avant d'ouvrir le fichier a l'edition.
+  function lisible(e, ref) {
+    var d = prochaine((e || {}).recurrence, ref);
+    return d && !isNaN(d.getTime()) ? d : null;
+  }
+
   // Liste triee : les echeances a venir d'abord, de la plus proche a la plus lointaine.
   // Celles deja en vigueur ferment la marche, elles informent sans plus alerter.
   function calculer(echeances) {
     var ref = aujourdhui();
     return (echeances || []).map(function (e) {
-      return poser(e, prochaine(e.recurrence, ref), ref);
-    }).sort(function (a, b) {
+      var d = lisible(e, ref);
+      return d ? poser(e, d, ref) : null;
+    }).filter(Boolean).sort(function (a, b) {
       if (a.jours < 0 && b.jours >= 0) return 1;
       if (b.jours < 0 && a.jours >= 0) return -1;
       return a.jours - b.jours;
@@ -110,6 +122,7 @@
       var r = e.recurrence || {}, d, a;
       if (r.type === 'unique') {
         d = minuit(new Date(r.date + 'T00:00:00'));
+        if (isNaN(d.getTime())) return;      // date mal ecrite : on ignore la ligne
         if (d >= du && d <= au) out.push(poser(e, d, ref));
         return;
       }
