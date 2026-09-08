@@ -552,10 +552,19 @@ Trois regles portent l'identite, et ce sont elles qu'on casse en premier sans y 
    d'imprime vient de la et du filet. Seuls sont ronds les elements ronds par nature.
 2. **Aucune ombre floue.** La signature est `--ombre-dure`, une ombre sans flou, decalee.
 3. **Les tokens d'etat ne servent jamais d'accent.** `--ok`, `--danger`, `--warn` et
-   `--info` disent un etat. Une serie de graphique verte se lirait « bon » : les huit
-   couleurs de serie `--serie-1` a `--serie-8` existent pour ca, ancrees sur le bordeaux
-   et les terres du site, et separees en LUMINANCE pour rester distinguables en niveaux
-   de gris et en vision deuteranope. Pas seulement en teinte.
+   `--info` disent un etat. Une serie de graphique verte se lirait « bon » : les couleurs
+   de serie existent pour ca, ancrees sur le bordeaux et les terres du site, et separees en
+   LUMINANCE pour rester distinguables en niveaux de gris et en vision deuteranope. Pas
+   seulement en teinte.
+
+   **Il y en a QUATRE, `--serie-1` a `--serie-4`, et pas huit.** Ce paragraphe en annoncait
+   huit pendant des semaines alors qu'aucune n'existait dans `tokens.css` ; les quatre
+   premieres ont ete creees et mesurees le 08/09/2026, pour les familles du calendrier.
+   **Il n'y a pas la place pour une cinquieme sur ce papier** : la bande utilisable va de
+   L* 15 a L* 56, au-dela un objet graphique passe sous les 3:1, et cinq series dans 41
+   points de luminance ne tiennent pas l'ecart. Une cinquieme categorie prend une MATIERE,
+   pas une teinte : c'est ce qu'on a fait pour les taches du calendrier, ecrites a la main
+   sur le calendrier imprime.
 
 L'orange `#E87722` est la couleur de Vitisoft, la maison mere. Il n'apparait sur ce site
 que pour signaler un lien vers Vitisoft.
