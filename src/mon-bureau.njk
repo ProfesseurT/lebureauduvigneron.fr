@@ -459,7 +459,40 @@ permalink: /mon-bureau/
   document.getElementById('bureauInviteHero').hidden = connecte;
   document.getElementById('bureauInvite').hidden = connecte;
   document.getElementById('bureauContenu').hidden = !connecte;
-  if(!connecte) return;
+  /* LE BUREAU FERME SAIT SE REVEILLER. Ajoute le 08/09/2026.
+
+     Tout ce qui suit ce point — les treize zones, la barre des pieces, le branchement du
+     panneau, jusqu'a window.bdvMajJournee elle-meme — n'existe pas quand la page s'ouvre
+     sans session. Il n'y a donc aucun « demarrer » a rappeler plus tard : le module entier
+     s'est tu. Une page neuve avec une session, elle, peint tout, et c'est la seule sortie
+     honnete d'ici.
+
+     Ce que ca repare : jusqu'a present on comptait sur surClicCompte() (bdv-compte.js)
+     pour poser location.href apres une inscription reussie. Depuis /mon-bureau/, cette
+     adresse est /mon-bureau/ ou /mon-bureau/#base : la MEME page. Le navigateur n'y voit
+     alors qu'un changement d'ancre, pas une navigation, et ne recharge rien. Le vigneron
+     venait de creer son compte et restait devant la page d'invitation.
+
+     La destination demandee par la porte est reprise avant de recharger : « Deposer ma
+     base maintenant » doit atterrir sur l'onglet Ma base, pas sur Ma journee. On la pose
+     dans l'adresse, PUIS on recharge — location.replace() sur une simple ancre ne
+     rechargerait pas davantage, c'est exactement le piege qu'on repare. */
+  if(!connecte){
+    document.addEventListener('bdv:session', function(){
+      if(!session()) return;
+      var ou = null;
+      try{
+        if(window.BdvCompte && BdvCompte.destinationDemandee) ou = BdvCompte.destinationDemandee();
+      }catch(e){ ou = null; }
+      try{
+        // Une autre page se rejoint normalement : c'est une vraie navigation.
+        if(ou && ou.indexOf(location.pathname) !== 0){ location.href = ou; return; }
+        if(ou) history.replaceState(null, '', ou);
+        location.reload();
+      }catch(e){}
+    });
+    return;
+  }
 
   function el(id){ return document.getElementById(id); }
   function txt(n, t){ if(n) n.textContent = t; }

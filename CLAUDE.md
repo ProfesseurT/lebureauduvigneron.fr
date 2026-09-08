@@ -626,6 +626,33 @@ suivant le renvoyait en base. **Il ne perdait donc rien chez lui, et tout sur so
 appareil.** C'est la meme forme de panne que « une ecriture = une colonne » : silencieuse
 la ou on la cherche, visible seulement ailleurs.
 
+### 11. UN IMPORT DOIT ANALYSER, PUIS RELIRE, PUIS REPEINDRE, 08/09/2026
+
+`analyserPourLeBureau()` (bdv-base.js), appelee a la fin de `handleFiles()` et **de la
+seulement**. Quatre pas, dans cet ordre, et aucun n'est decoratif :
+
+1. charger `bdv-ecrans.js` s'il manque (`BdvNav.chargerEcrans()`) — c'est lui qui sait
+   calculer la file et le resume, et le bureau ne le charge qu'au premier clic sur une piece
+   de vente. Un import n'est pas un clic.
+2. deposer (`deposerPourLeBureau()`), **attendu** : la fonction rend sa promesse pour ca.
+3. relire le serveur (`BdvCrm.charger()`), qui pose le depot dans le miroir local.
+4. repeindre (`window.bdvMajJournee()`), qui lit ce miroir.
+
+Le defaut repare : Ted importait et devait se deconnecter/reconnecter pour voir ses chiffres.
+Ce n'etait pas la reconnexion, c'etait le rechargement de page. Enlever un pas ramene le
+defaut sous une autre forme, et **sauter le depot quand `renderAll` existe** casse le
+deuxieme import du bureau. Ne pas appeler cette chaine depuis `ecranRafraichir()` : celle-la
+tourne a chaque reglage modifie.
+
+Corollaire pour toute page qui rend la main sur `if(!connecte) return;` : elle DOIT ecouter
+`bdv:session`. Une session ouverte dans la page ne recharge rien quand la destination est la
+page elle-meme — `location.href` sur la meme adresse, ancre comprise, n'est qu'un changement
+d'ancre pour le navigateur. `/mon-bureau/` le fait maintenant, en reprenant la destination
+demandee (`BdvCompte.destinationDemandee()`), en la posant par `history.replaceState()` puis
+en rechargeant.
+
+**Reste ouvert** : apres « Vider la base », les autres appareils gardent le depot perime.
+
 ## La charte graphique : une seule pour le site et l'outil
 
 `tokens.css`, a la racine, est la source unique. Le site et le tableau de bord declarent

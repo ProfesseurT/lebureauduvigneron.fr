@@ -2015,15 +2015,26 @@ function conseilsPourLeBureau(){
   }catch(e){ return []; }
 }
 
-// Depot silencieux, jamais bloquant : le tableau de bord ne doit pas dependre du reseau
-// pour s'afficher, c'est la regle d'or du projet.
+/* Depot silencieux, jamais bloquant : le tableau de bord ne doit pas dependre du reseau
+   pour s'afficher, c'est la regle d'or du projet.
+
+   ELLE REND SA PROMESSE DEPUIS LE 08/09/2026, et l'appelant reste libre de l'ignorer.
+   renderAll() l'appelle cinquante fois par session et ne l'attend pas, comme avant. Mais
+   analyserPourLeBureau() (bdv-base.js), lui, doit RELIRE le serveur juste apres pour
+   repeindre « Ma journee » : sans cette promesse il relisait la table avant que le depot
+   y soit arrive, et le bureau repeignait l'analyse precedente. Une course invisible, qui
+   se serait vue une fois sur trois selon la latence du reseau.
+
+   Rendre `null` quand il n'y a rien a deposer est volontaire : l'appelant distingue
+   « depose » de « rien a faire » sans avoir a refaire le test de session. */
 function deposerPourLeBureau(){
-  if(!syncPret()||!BdvSync.deposerFile)return;
+  if(!syncPret()||!BdvSync.deposerFile)return null;
   try{
     const r=resumeVentes();
     if(r)r.conseils=conseilsPourLeBureau();
-    BdvSync.deposerFile({signaux:fileSignaux(),noms:annuaireSuivis()},r).catch(function(){});
-  }catch(e){}
+    return BdvSync.deposerFile({signaux:fileSignaux(),noms:annuaireSuivis()},r)
+      .catch(function(){ return false; });
+  }catch(e){ return null; }
 }
 
 /* ======================= ECRAN : MES CLIENTS =======================

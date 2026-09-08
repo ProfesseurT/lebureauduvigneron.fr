@@ -12,6 +12,63 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026. « Il faut que je me déconnecte et reconnecte pour voir mes données »
+
+Ted, après avoir créé son compte et importé son export : rien ne s'affiche, aucune tuile de
+« Ma journée » ne se met en route, et seule une déconnexion/reconnexion répare. Ce n'était pas
+la reconnexion qui réparait : c'était le **rechargement de page** qu'elle provoquait au passage.
+Et il fallait même une deuxième condition, invisible pour lui : avoir ouvert une pièce de vente
+entre les deux.
+
+### Trois manques enchaînés, un seul symptôme
+
+1. **Personne ne faisait l'analyse après un import.** « Ma journée » ne calcule rien, par
+   construction : elle lit une analyse toute prête dans `reglages.file_travail` et
+   `reglages.resume_ventes`. Or ce dépôt ne se fait que dans `renderAll()` (bdv-ecrans.js),
+   un fichier que le bureau ne charge qu'au **premier clic sur une pièce de vente**. Un import
+   n'est pas un clic : les lignes partaient bien sur le compte, et rien ne les analysait.
+2. **Et quand l'analyse existait, le bureau ne l'apprenait pas.** `bdvMajJournee()` relit le
+   miroir local ; le dépôt, lui, vient d'être écrit sur le serveur. Seul `BdvCrm.charger()`,
+   appelé au chargement de la page, va lire la table.
+3. **Une session ouverte dans la page laissait le bureau mort.** Tout le module de « Ma
+   journée » rend la main sur `if(!connecte) return;` — jusqu'à `window.bdvMajJournee`, qui
+   n'existe alors même pas. Ça tenait uniquement à `surClicCompte()` qui posait
+   `location.href = '/mon-bureau/'`. Depuis /mon-bureau/, c'est la **même page** : le
+   navigateur n'y voit qu'un changement d'ancre et ne recharge rien.
+
+### La réparation, et l'ordre qui est tout le sujet
+
+`analyserPourLeBureau()` dans bdv-base.js, appelée à la fin d'un import et de là seulement :
+charger le calcul s'il manque (`BdvNav.chargerEcrans()`, exposé pour ça) → déposer → **relire
+le serveur** → repeindre. Retirer l'un des quatre pas ramène le défaut, sous une forme
+différente chaque fois. `deposerPourLeBureau()` rend désormais sa promesse : sans elle la
+relecture partait avant que le dépôt soit arrivé, une course qui se serait vue une fois sur
+trois selon la latence.
+
+**Ce qu'on a écarté** : appeler cette chaîne depuis `ecranRafraichir()`, qui tourne à chaque
+réglage modifié — charger 83 ko et écrire en base pour un objectif de CA changé n'a aucun sens.
+Et **sauter le dépôt quand `renderAll` existe** : ça cassait le deuxième import du bureau, où
+`renderAll` existe depuis le premier, en laissant les tuiles sur l'analyse précédente. Une
+écriture de plus sur une seule ligne coûte moins cher qu'une condition fausse.
+
+Le bureau fermé sait maintenant se réveiller : il écoute `bdv:session`, reprend la destination
+demandée par la porte (`/mon-bureau/#base` doit atterrir sur l'onglet Ma base), la pose dans
+l'adresse **puis** recharge — `location.replace()` sur une simple ancre ne rechargerait pas
+davantage, c'est exactement le piège réparé.
+
+### Ce qui reste ouvert, et qui n'a pas été touché
+
+Après « Vider la base », les **autres appareils** gardent le dépôt périmé : rien n'écrit une
+analyse vide sur le compte à ce moment-là. Le poste qui vide, lui, se repeint correctement
+(`BdvCrm.oublier()` + `ecranRafraichir()`). Signalé, pas réparé : recréer une ligne `reglages`
+juste après un « tout effacer » demande un arbitrage qu'on n'a pas pris.
+
+Aucun banc ajouté, décision de Ted. Vérifié à la main : les huit bancs existants passent, plus
+deux contrôles jetables hors dépôt (le réveil du bureau dans jsdom, 11 contrôles ; l'ordre des
+quatre pas de la chaîne, 8 contrôles).
+
+---
+
 ## 08/09/2026. Le guide d'import, après « oui j'utilise Vitisoft »
 
 Un sixième écran s'ajoute à la fenêtre de compte. Il n'apparaît que pour qui vient de répondre

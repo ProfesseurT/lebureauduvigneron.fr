@@ -201,6 +201,57 @@ function ecranRafraichir(){
   if(window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();
   else if(typeof ouvrirPanneauReglages === 'function') ouvrirPanneauReglages();
 }
+
+/* ============ L'ANALYSE POUR LE BUREAU, JUSTE APRES UN IMPORT ============
+   Ajoutee le 08/09/2026. Le defaut repare, tel que Ted l'a decrit : « quand je cree mon
+   compte et que j'importe mes donnees, il faut que je me deconnecte et reconnecte pour
+   que ca affiche des donnees et que toutes les tuiles se mettent en route ».
+
+   Ce n'etait pas la reconnexion qui reparait, c'etait le RECHARGEMENT qu'elle provoquait.
+   Et il fallait meme une deuxieme condition : avoir ouvert une piece de vente entre les
+   deux. Trois manques enchaines, et un seul symptome.
+
+   1. « Ma journee » ne CALCULE rien, par construction (voir l'entete de bdv-crm.js) : elle
+      lit une analyse toute prete dans `reglages.file_travail` et `reglages.resume_ventes`.
+   2. Cette analyse n'est deposee que par renderAll(), dans bdv-ecrans.js, un fichier que le
+      bureau ne charge qu'au premier clic sur une piece de vente. Un import n'est pas un
+      clic : les lignes partaient bien sur le compte, mais RIEN ne les analysait.
+   3. Et quand l'analyse finissait par exister, le bureau ne l'apprenait pas :
+      bdvMajJournee() relit le miroir local, or le depot vient d'etre ecrit sur le serveur.
+      Seul BdvCrm.charger(), appele au chargement de la page, va chercher la table.
+
+   D'ou l'ordre ci-dessous, qui est tout le contenu de cette fonction : charger le calcul
+   s'il manque, deposer, RELIRE le serveur, repeindre. Enlever l'une des quatre etapes
+   ramene le defaut, et sous une forme differente a chaque fois.
+
+   Elle n'est PAS appelee depuis ecranRafraichir() : celle-la tourne a chaque reglage
+   modifie, et charger 83 ko plus une ecriture reseau pour un objectif de CA change n'a
+   aucun sens. Son seul appelant est la fin d'un import, ou l'analyse a vraiment change.
+
+   Jamais bloquante, jamais parlante : un reseau qui lache laisse le compte rendu de
+   l'import a l'ecran, et l'analyse repartira au prochain. */
+async function analyserPourLeBureau(){
+  if(!syncPret())return;
+  if(typeof deposerPourLeBureau!=='function'){
+    // Au tableau de bord le calcul part avec la page et on ne passe jamais ici. Au bureau
+    // on le demande a la barre, qui porte la liste des ressources et sait ne les charger
+    // qu'une fois : c'est le meme chargement que le premier clic sur « Mon annee ».
+    if(!(window.BdvNav&&BdvNav.chargerEcrans))return;
+    try{ await BdvNav.chargerEcrans(); }catch(e){ return; }
+    if(typeof deposerPourLeBureau!=='function')return;
+  }
+  /* Attendu, contrairement aux cinquante autres appels : la relecture qui suit doit lire CE
+     depot, pas celui d'avant.
+
+     Et on depose SANS SE DEMANDER si renderAll() vient de le faire, alors que c'est le cas
+     au tableau de bord et au deuxieme import du bureau. Une ecriture de plus sur une seule
+     ligne coute moins cher qu'une condition fausse : « sauter le depot quand renderAll
+     existe » cassait justement le deuxieme import au bureau, ou renderAll existe depuis le
+     premier, et laissait les tuiles sur l'analyse precedente. */
+  try{ await deposerPourLeBureau(); }catch(e){ /* on repeint quand meme ce qu'on a */ }
+  if(window.BdvCrm&&BdvCrm.charger){ try{ await BdvCrm.charger(); }catch(e){} }
+  if(typeof window.bdvMajJournee==='function'){ try{ window.bdvMajJournee(); }catch(e){} }
+}
 /* UNE ECRITURE = UNE COLONNE.
 
    Cette fonction s'appelait syncReglages() et renvoyait les QUATRE colonnes a chaque geste.
@@ -919,6 +970,10 @@ async function handleFiles(list){
   // Le panneau, s'il est ouvert, doit montrer la base D'APRES l'import. Au bureau c'est le
   // SEUL rafraichissement : il n'y a pas de renderAll() la-bas, ni d'ecran a rouvrir.
   ecranRafraichir();
+  // Puis l'analyse que « Ma journee » sert sans la calculer. En dernier et sans await :
+  // le compte rendu ci-dessus est deja a l'ecran, et le bureau se repeint quand elle
+  // revient. Voir l'entete de analyserPourLeBureau() pour le pourquoi des quatre etapes.
+  analyserPourLeBureau();
 }
 // Lit le CSV en windows-1252 (PAS UTF-8), separateur ; , renvoie [{h, raw:[...]}].
 // Compare la ligne d'en-tete aux noms attendus. On tolere qu'un export soit plus COURT

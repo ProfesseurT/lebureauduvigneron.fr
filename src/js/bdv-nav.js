@@ -650,7 +650,17 @@
 
   }
 
+  /* `chargerEcrans` est expose depuis le 08/09/2026, et il n'a qu'un seul appelant :
+     analyserPourLeBureau() dans bdv-base.js, apres un import fait au bureau. Le moteur
+     des ventes sait cumuler des lignes, mais il ne sait pas les ANALYSER : le calcul de
+     la file et du resume vit dans bdv-ecrans.js, que le bureau ne charge qu'au premier
+     clic sur une piece de vente. Un vigneron qui importait puis regardait « Ma journee »
+     voyait donc des tuiles vides, et seul un rechargement de page les remplissait.
+
+     Expose et pas recopie : deux endroits qui enchainent la meme liste de ressources,
+     c'est un doublon qui divergera le jour ou un fichier s'ajoutera a RESSOURCES. */
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
-                    marquerActif: marquerActif, ouvrirReglages: ouvrirReglages };
+                    marquerActif: marquerActif, ouvrirReglages: ouvrirReglages,
+                    chargerEcrans: chargerEcrans };
 })();
