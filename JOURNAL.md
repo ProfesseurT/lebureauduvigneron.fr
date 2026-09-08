@@ -12,6 +12,77 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, tard. Les tâches entrent dans le calendrier, et le lot 3 fond de moitié
+
+Ted, trois puces : afficher les tâches datées dans le calendrier, pouvoir créer une occurrence
+depuis le calendrier, créer une catégorie « Tâches ».
+
+**Les trois ne font qu'une seule fonctionnalité, et elle est beaucoup plus petite que le lot 3
+que j'avais planifié.** Une tâche datée EST une occurrence : elle a un titre et une date, il ne
+lui manque qu'une règle de récurrence, et `unique` la lui donne. La table `taches` porte déjà
+titre, échéance et date de réalisation.
+
+Donc : **pas de table `calendrier_perso`, et il ne faut pas en créer une.** Elle donnerait deux
+endroits qui répondent « qu'est-ce que j'ai à faire le 12 ». Ce qui reste vraiment au lot 3,
+c'est l'activation des repères compte par compte et les occurrences perso **récurrentes**, que
+la table des tâches ne sait pas porter.
+
+### Les tâches passent par le même calcul, en règles synthétiques
+
+`reglesDesTaches()` emballe chaque tâche datée dans la forme d'une ligne du fichier de données,
+avec `recurrence: { type: 'unique', date: echue_le }`. Tout le reste du module les traite sans
+le savoir : la grille, la vue année, la liste, le filtre. Zéro chemin de code en plus.
+
+Une tâche se coche par **son** identifiant, jamais par un identifiant d'occurrence. Une tâche
+est une ligne unique, elle ne revient pas tous les mois : lui fabriquer un `ech:…` créerait une
+deuxième ligne à côté de la sienne, et la première resterait non cochée pour toujours.
+
+Et le calendrier n'affiche que les tâches **datées**. Une tâche sans date n'a pas de place dans
+une grille ; le calendrier en annonce le nombre et mène à « Mes tâches ». C'est la frontière que
+Ted avait posée lui-même le matin.
+
+### La cinquième famille n'a pas de couleur, et c'est la mesure qui l'a décidé
+
+J'allais ajouter un `--serie-5`. **Il n'y a pas de place pour une cinquième série sur ce
+papier.** La bande utilisable va de L* 15 à L* 56 : au-delà, un objet graphique passe sous les
+3:1. Trois répartitions essayées, trois échecs :
+
+| Essai | Écart de luminance minimum | Contraste le plus faible |
+| --- | --- | --- |
+| Les 4 actuelles + une 5e plus claire | 11,8 | **2,09:1** |
+| 5 respacées, écart visé 11 | **0,8** | 3,15:1 |
+| 5 respacées, la 5e au milieu | **6,6** | **2,68:1** |
+
+Cinq séries dans 41 points de luminance, c'est dix points d'écart au mieux, et les extrémités
+tombent sous le seuil dès qu'on écarte vraiment.
+
+**La cinquième famille se distingue donc par la matière**, ce qui est la règle du plateau : le
+calendrier est imprimé, les tâches sont écrites à la main dessus. Caveat, l'encre du site, un
+filet pointillé. Ça se lit sans couleur, donc aussi en niveaux de gris et en vision
+deutéranope, ce qu'une cinquième teinte n'aurait pas fait. Caveat était déjà chargée par le
+lien Google Fonts du site, vérifié avant d'écrire la règle.
+
+Corollaire à ne pas oublier : une sixième famille ne pourra pas non plus prendre une couleur.
+Elle prendra une matière, ou elle n'existera pas.
+
+### Un formulaire, et pas quarante-deux
+
+Le « + » de chaque case ne crée rien : il pré-remplit la date du seul formulaire de la pièce et
+y pose le curseur. Un formulaire par case, ce sont quarante-deux champs dans le document ; une
+bulle qui s'ouvre sur la case, c'est une mécanique de fenêtre flottante à écrire, à placer et à
+fermer au clavier. Un geste, aucune surface nouvelle.
+
+Le formulaire emprunte `.tachesf` à « Mes tâches », volontairement : le même geste doit avoir la
+même allure aux deux endroits. Et la date **ne se vide pas** après l'ajout, contrairement au
+titre : on note souvent plusieurs choses pour le même jour.
+
+Le « + » n'apparaît qu'au survol de la case **et au focus clavier**. Sans la seconde condition
+il n'existerait que pour ceux qui ont une souris.
+
+`npm run verif` : conforme, 93 contrôles au banc du bureau, 0 échec.
+
+---
+
 ## 08/09/2026, soir. Le lot 2 : quatre familles, et un fond de carte qui se calcule
 
 Ted a ouvert sa base Notion du calendrier et m'a dit d'aller y regarder : « par contre je

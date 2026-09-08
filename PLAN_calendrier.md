@@ -156,7 +156,7 @@ premier jour ouvré suivant ». `prochaine()` dans `bdv-echeances.js` ne le fait
 promet un calcul que le code ne fait pas. Soit on écrit le report, soit on retire la phrase ;
 laisser les deux est le pire des trois états.
 
-### Lot 3 : ses occurrences à lui
+### Lot 3 : ses occurrences à lui — À MOITIÉ FAIT le 08/09/2026, voir la note en fin de document
 
 Table `calendrier_perso` : `id`, `evt_id`, `titre`, `nature`, `debut`, `fin`, `recurrence`,
 `note`. Plus une table `calendrier_choix` pour ce qu'il active ou désactive de la
@@ -290,3 +290,30 @@ bibliotheque. Le lot 2 etait annonce plus gros qu'il ne l'etait.
 **L'activation par compte est reportee au lot 3.** Aujourd'hui le vigneron eteint des FAMILLES
 entieres, dans son navigateur. Eteindre une ligne, et la retrouver d'un poste a l'autre,
 demande la table `calendrier_choix` du lot 3.
+
+---
+
+# Le lot 3 a fondu de moitié, 08/09/2026
+
+Ted a demandé d'afficher les tâches datées dans le calendrier, de pouvoir y créer une
+occurrence, et d'ajouter une catégorie « Tâches ». Les trois sont une seule fonctionnalité, et
+elle mange la plus grosse moitié du lot 3.
+
+**Il n'y a pas de table `calendrier_perso`, et il ne faut pas en créer une.** Une tâche datée
+est une occurrence : titre, date, date de réalisation. La table `taches` porte déjà les trois.
+Une deuxième table pour la même chose donnerait deux endroits qui répondent « qu'est-ce que
+j'ai à faire le 12 ».
+
+Ce qui reste vraiment au lot 3 :
+
+1. **L'activation des repères compte par compte**, table `calendrier_choix` (`id`, `cle`,
+   `actif`, `decale_de`). Aujourd'hui le vigneron éteint des FAMILLES entières, dans son
+   navigateur. Éteindre une ligne, décaler une taille de trois semaines, et retrouver ces choix
+   d'un poste à l'autre, demande cette table.
+2. **Les occurrences perso RÉCURRENTES.** « Portes ouvertes, tous les ans le premier week-end
+   de juin » n'est pas une tâche : la table des tâches ne porte pas de règle de récurrence.
+   C'est le seul cas qui justifie encore une table à lui.
+
+Les repères de saison se déplacent, les obligations non : une taille en février n'est pas la
+même en Loire et dans l'Hérault. Un repère activé porte donc un décalage propre au compte ;
+une obligation de la douane ne s'en laisse pas appliquer.

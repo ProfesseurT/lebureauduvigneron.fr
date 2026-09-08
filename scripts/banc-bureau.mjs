@@ -307,6 +307,19 @@ t('a l\'ouverture, le calendrier est masque et rien n\'est charge pour lui',
    dans le gabarit : monte a la volee, il echapperait a la charte du bureau. */
 t('le conteneur du filtre et l\'interrupteur du fond de carte sont dans la page',
   CAL.doc.getElementById('calFiltre') !== null && CAL.doc.getElementById('calFond') !== null);
+/* NOTER UNE TACHE DEPUIS LE CALENDRIER, 08/09/2026. Un SEUL formulaire pour toute la
+   piece : le « + » de chaque case ne fait que pre-remplir sa date. Le controle porte
+   sur l'unicite autant que sur la presence, parce que la tentation du formulaire par
+   case reviendra, et qu'elle mettrait quarante-deux champs dans le document. */
+t('le calendrier porte UN formulaire de note, et un seul',
+  CAL.doc.querySelectorAll('#calForm').length === 1
+  && CAL.doc.getElementById('calTitre') !== null
+  && CAL.doc.getElementById('calDate') !== null);
+/* La date est facultative : sans elle la note part dans « Mes taches » et attend. Un
+   champ `required` ici forcerait a dater ce qui n'a pas de date, ce qui est
+   exactement la frontiere que Ted a posee entre les deux pieces. */
+t('la date de la note reste facultative',
+  !CAL.doc.getElementById('calDate').hasAttribute('required'));
 
 CAL.clic('calendrier');
 t('un clic n\'affiche QUE le calendrier',

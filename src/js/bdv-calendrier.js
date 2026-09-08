@@ -89,13 +89,54 @@
   }
 
   function el(id) { return document.getElementById(id); }
+  function o_dateLongue(d) {
+    return window.BdvEcheances ? BdvEcheances.enFrancais(d) : iso(d);
+  }
 
   /* ---------------- LES DONNEES ----------------
      Le bloc JSON de la page, lu par le module de calcul. Ni cache ni copie : le
      lot 3 y ajoutera les occurrences du vigneron, et un cache pose ici serait
      le premier endroit a mentir. */
   function toutesLesRegles() {
-    return window.BdvEcheances ? BdvEcheances.depuisLaPage('bdvEcheances') : [];
+    var base = window.BdvEcheances ? BdvEcheances.depuisLaPage('bdvEcheances') : [];
+    return base.concat(reglesDesTaches());
+  }
+
+  /* ---------------- LES TACHES DATEES, EN REGLES SYNTHETIQUES ----------------
+     Demande de Ted le 08/09/2026 : « afficher les taches datees dans le
+     calendrier », et « creer une occurrence a partir du calendrier ».
+
+     UNE TACHE DATEE EST UNE OCCURRENCE, ET RIEN D'AUTRE. Elle a un titre et une
+     date ; il ne lui manque qu'une regle de recurrence, et `unique` la lui donne.
+     On les emballe donc dans la MEME forme que les lignes du fichier de donnees,
+     et tout le reste du module les traite sans le savoir : la grille du mois, la
+     vue annee, la liste, le filtre. Zero chemin de code en plus.
+
+     C'EST AUSSI POURQUOI IL N'Y A PAS DE TABLE NOUVELLE. Le plan prevoyait une
+     table `calendrier_perso` au lot 3 ; la table `taches` fait deja le travail,
+     avec son titre, son echeance et sa date de realisation. Une deuxieme table
+     pour la meme chose aurait donne deux endroits qui repondent « qu'est-ce que
+     j'ai a faire le 12 ».
+
+     LA CLE PORTE LE PREFIXE `tache:`, et il sert a deux choses : reconnaitre une
+     tache au moment de cocher (elle se coche par son propre identifiant, pas par
+     celui d'une occurrence d'echeance), et garantir qu'elle ne collisionne jamais
+     avec une cle du fichier de donnees. */
+  function reglesDesTaches() {
+    if (!window.BdvTaches || !BdvTaches.datees) return [];
+    return BdvTaches.datees().map(function (t) {
+      return {
+        cle: 'tache:' + t.tache_id,
+        tacheId: t.tache_id,
+        titre: t.titre || 'Sans titre',
+        famille: 'taches',
+        statut: 'tache',
+        faitLe: t.fait_le || null,
+        qui: null, detail: null,
+        recurrence: { type: 'unique', date: t.echue_le },
+        source: null, sourceNom: null, article: null
+      };
+    });
   }
   function reglesActives() {
     var f = famillesActives();
@@ -119,8 +160,22 @@
     return !!(window.BdvTaches && BdvTaches.basculerOccurrence && BdvTaches.estFaite);
   }
   function idOccurrence(cle, d) { return 'ech:' + cle + ':' + iso(d); }
+  function estUneTache(o) { return !!(o.e && o.e.tacheId); }
+  /* UNE TACHE SE COCHE PAR SON PROPRE IDENTIFIANT, pas par une occurrence
+     d'echeance. Une tache est une ligne unique en base, elle ne revient pas tous
+     les mois : lui fabriquer un identifiant d'occurrence creerait une deuxieme
+     ligne a cote de la sienne, et la premiere resterait non cochee pour
+     toujours. */
   function faite(o) {
+    if (estUneTache(o)) return !!o.e.faitLe;
     return tachesLa() ? BdvTaches.estFaite(idOccurrence(o.e.cle, o.debut || o.date)) : false;
+  }
+  function marqueCoche(bouton, o) {
+    if (estUneTache(o)) bouton.setAttribute('data-cal-tache', o.e.tacheId);
+    else {
+      bouton.setAttribute('data-cal-coche', o.e.cle + '|' + iso(o.debut));
+      bouton.setAttribute('data-cal-titre', o.e.titre);
+    }
   }
 
   /* ---------------- CE QUI EST MEMORISE ----------------
@@ -244,6 +299,7 @@
     li.setAttribute('data-fait', estFaite ? 'oui' : 'non');
     li.setAttribute('data-niveau', o.niveau);
     li.setAttribute('data-famille', o.famille);
+    if (estUneTache(o)) li.setAttribute('data-tache', 'oui');
     if (o.duree > 1) {
       li.setAttribute('data-long', 'oui');
       if (memeJour(jour, o.debut)) li.setAttribute('data-bord', 'debut');
@@ -265,8 +321,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'calo__b';
-      b.setAttribute('data-cal-coche', o.e.cle + '|' + iso(o.debut));
-      b.setAttribute('data-cal-titre', o.e.titre);
+      marqueCoche(b, o);
       b.setAttribute('aria-pressed', estFaite ? 'true' : 'false');
       b.title = (estFaite ? 'Remettre à faire : ' : 'Marquer comme fait : ') + infobulle;
       b.setAttribute('aria-label', b.title);
@@ -296,6 +351,23 @@
     n.textContent = String(d.getDate());
     tete.appendChild(n);
     poserFond(tete, fondDuJour);
+    /* LE « + » NE REMPLACE PAS LE FORMULAIRE, IL LE VISE. Un formulaire par case,
+       ce sont quarante-deux formulaires dans le document ; une bulle qui s'ouvre
+       sur la case, c'est une mecanique de fenetre flottante a ecrire, a placer et
+       a fermer au clavier. Le bouton se contente de pre-remplir la date du seul
+       formulaire de la piece et d'y poser le curseur : un geste, aucune surface
+       nouvelle. Il n'apparait qu'au survol et au focus clavier, sinon quarante-deux
+       croix couvriraient la grille. */
+    if (tachesLa() && dansLeMois) {
+      var plus = document.createElement('button');
+      plus.type = 'button';
+      plus.className = 'calm__plus';
+      plus.setAttribute('data-cal-ajout', iso(d));
+      plus.textContent = '+';
+      plus.title = 'Noter une tâche le ' + o_dateLongue(d);
+      plus.setAttribute('aria-label', plus.title);
+      tete.appendChild(plus);
+    }
     td.appendChild(tete);
 
     if (!occs.length) return td;
@@ -376,6 +448,7 @@
     });
     var sous = document.createElement('div');
     sous.className = 'cal__detail';
+    posterSansDate(sous);
     var h = document.createElement('h3');
     h.className = 'cal__detailt';
     h.textContent = duMois.length
@@ -391,6 +464,27 @@
       sous.appendChild(listeDe(duMois));
     }
     hote.appendChild(sous);
+  }
+
+  /* UNE TACHE SANS DATE N'A PAS DE PLACE DANS UNE GRILLE, mais l'oublier
+     completement serait pire : le vigneron a note quelque chose et ne le voit
+     nulle part ici. On en annonce le nombre, et on mene a la piece qui les
+     porte. C'est la frontiere que Ted a posee lui-meme : une occurrence porte
+     une date, une tache peut n'en avoir aucune. */
+  function posterSansDate(hote) {
+    if (!window.BdvTaches || !BdvTaches.sansDate) return;
+    var n = BdvTaches.sansDate();
+    if (!n) return;
+    var p = document.createElement('p');
+    p.className = 'cal__sansdate';
+    p.appendChild(document.createTextNode(
+      n > 1 ? n + ' tâches sans date attendent dans ' : 'Une tâche sans date attend dans '));
+    var a = document.createElement('a');
+    a.href = '/mon-bureau/#taches';
+    a.textContent = 'Mes tâches';
+    p.appendChild(a);
+    p.appendChild(document.createTextNode('.'));
+    hote.appendChild(p);
   }
 
   /* =========================================================================
@@ -525,6 +619,7 @@
       art.className = 'echeance';
       art.setAttribute('data-niveau', o.niveau);
       art.setAttribute('data-famille', o.famille);
+      if (estUneTache(o)) art.setAttribute('data-tache', 'oui');
       if (faite(o)) art.setAttribute('data-fait', 'oui');
 
       var g = document.createElement('div');
@@ -570,11 +665,21 @@
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'cal__coche';
-        b.setAttribute('data-cal-coche', o.e.cle + '|' + iso(o.debut));
-        b.setAttribute('data-cal-titre', o.e.titre);
+        marqueCoche(b, o);
         b.setAttribute('aria-pressed', faite(o) ? 'true' : 'false');
         b.textContent = faite(o) ? 'Remettre à faire' : 'C’est fait';
         liens.appendChild(b);
+      }
+      /* UNE TACHE SE RETIRE, une obligation non : elle reviendrait le mois
+         suivant de toute facon, et la retirer ne voudrait rien dire. */
+      if (estUneTache(o)) {
+        separer();
+        var xb = document.createElement('button');
+        xb.type = 'button';
+        xb.className = 'cal__coche cal__coche--x';
+        xb.setAttribute('data-cal-tache-suppr', o.e.tacheId);
+        xb.textContent = 'Retirer';
+        liens.appendChild(xb);
       }
       if (o.e.article) {
         separer();
@@ -745,6 +850,29 @@
         return;
       }
 
+      var aj = e.target.closest && e.target.closest('[data-cal-ajout]');
+      if (aj) {
+        e.preventDefault();
+        var champD = el('calDate'), champT = el('calTitre');
+        if (champD) champD.value = aj.getAttribute('data-cal-ajout');
+        if (champT) { champT.focus(); champT.scrollIntoView({ block: 'nearest' }); }
+        return;
+      }
+
+      var tc = e.target.closest && e.target.closest('[data-cal-tache]');
+      if (tc) {
+        e.preventDefault();
+        if (window.BdvTaches) BdvTaches.basculer(tc.getAttribute('data-cal-tache'));
+        return;
+      }
+
+      var tx = e.target.closest && e.target.closest('[data-cal-tache-suppr]');
+      if (tx) {
+        e.preventDefault();
+        if (window.BdvTaches) BdvTaches.supprimer(tx.getAttribute('data-cal-tache-suppr'));
+        return;
+      }
+
       var c = e.target.closest && e.target.closest('[data-cal-coche]');
       if (c) {
         e.preventDefault();
@@ -754,6 +882,28 @@
         return;                 // le rendu suit l'evenement, pas ce clic
       }
     });
+
+    /* LE FORMULAIRE. Le meme geste que dans « Mes taches », volontairement : le
+       champ garde le focus apres l'ajout, on en note rarement une seule. Et il
+       ecrit par BdvTaches.ajouter(), donc dans la table des taches et nulle part
+       ailleurs. Une tache creee ici apparait dans « Mes taches » sans un mot de
+       code de plus, parce que c'est la meme ligne. */
+    var f = el('calForm');
+    if (f) {
+      f.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var champ = el('calTitre'), date = el('calDate');
+        if (!window.BdvTaches || !BdvTaches.ajouter) return;
+        if (!BdvTaches.ajouter(champ.value, date && date.value ? date.value : null)) {
+          champ.focus();
+          return;
+        }
+        champ.value = '';
+        champ.focus();
+        // La date NE se vide PAS : on note souvent plusieurs choses pour le meme
+        // jour, et la retaper a chaque fois est ce qui fait abandonner une liste.
+      });
+    }
 
     var prec = el('calPrec'), suiv = el('calSuiv'), auj = el('calAuj');
     if (prec) prec.addEventListener('click', function () { deplacer(-1); });

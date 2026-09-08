@@ -236,7 +236,14 @@
     { cle: 'obligations', label: 'Obligations',  quoi: 'Ça coûte une amende' },
     { cle: 'travaux',     label: 'Travaux',      quoi: 'Ce que je fais dehors' },
     { cle: 'rendezvous',  label: 'Rendez-vous',  quoi: 'Je m’inscris, je me déplace' },
-    { cle: 'tempsforts',  label: 'Temps forts',  quoi: 'Ce que je poste et ce que je vends' }
+    { cle: 'tempsforts',  label: 'Temps forts',  quoi: 'Ce que je poste et ce que je vends' },
+    /* LA CINQUIEME FAMILLE NE VIENT PAS DE CE FICHIER DE DONNEES. Les taches
+       datees du vigneron sont fabriquees en regles synthetiques par le module du
+       calendrier, a partir de la table des taches, et passent ensuite par le MEME
+       calcul que les autres. Elle est declaree ici quand meme, parce que c'est la
+       liste que le filtre affiche, et que deux listes de familles dans deux
+       fichiers, c'est une occasion d'en oublier une. */
+    { cle: 'taches',      label: 'Mes tâches',   quoi: 'Ce que j’ai noté moi-même' }
   ];
   function deLaFamille(echeances, cle) {
     return (echeances || []).filter(function (e) {

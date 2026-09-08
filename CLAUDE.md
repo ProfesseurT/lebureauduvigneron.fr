@@ -300,12 +300,53 @@ donnees.** Lune, saisons, jours feries, et le report au jour ouvre le jour ou on
 Ce qui reste dans `src/_data/echeances.json`, ce sont les dates qu'aucune formule ne donne :
 les textes officiels et les rendez-vous.
 
-## Le calendrier : quatre familles, et le fond de carte n'en est pas une
+## Le calendrier : cinq familles, et le fond de carte n'en est pas une
 
-Les quatre familles trient par CE QUE LE VIGNERON EN FAIT, pas par ce que la chose est :
+Les familles trient par CE QUE LE VIGNERON EN FAIT, pas par ce que la chose est :
 `obligations` (ca coute une amende), `travaux` (ce que je fais dehors), `rendezvous` (je
-m'inscris, je me deplace), `tempsforts` (ce que je poste et ce que je vends). La liste vit a
-UN seul endroit, `FAMILLES` en bas de `src/js/bdv-echeances.js`.
+m'inscris, je me deplace), `tempsforts` (ce que je poste et ce que je vends), et `taches`
+(ce que j'ai note moi-meme). La liste vit a UN seul endroit, `FAMILLES` en bas de
+`src/js/bdv-echeances.js`.
+
+### La cinquieme famille n'a PAS de couleur, et c'est une mesure qui l'a decide
+
+Ted, 08/09/2026 : « afficher les taches datees dans le calendrier », « creer une occurrence a
+partir du calendrier », « creer une nouvelle categorie Tache ».
+
+**Il n'y a pas de place pour une cinquieme serie sur ce papier.** La bande utilisable va de
+L* 15 a L* 56 : au-dela, un objet graphique passe sous les 3:1. Cinq series dans 41 points de
+luminance, c'est dix points d'ecart au mieux, et les trois repartitions mesurees donnent soit
+deux series a 0,8 point l'une de l'autre, soit une derniere a 2,68:1. Aucune ne passe.
+
+La cinquieme famille se distingue donc par la MATIERE, ce qui est la regle du plateau : le
+calendrier est imprime, les taches sont ECRITES A LA MAIN dessus. `--font-manuscrit`, l'encre
+du site, un filet pointille. Ca se lit sans couleur, donc aussi en niveaux de gris et en
+vision deuteranope, ce qu'une cinquieme teinte n'aurait pas fait.
+
+**Corollaire a ne pas oublier :** une sixieme famille ne pourra pas non plus prendre une
+couleur. Elle prendra une matiere, ou elle n'existera pas.
+
+### Les taches datees ne sont PAS dans le fichier de donnees
+
+Elles sont fabriquees en regles synthetiques par `reglesDesTaches()` dans
+`src/js/bdv-calendrier.js`, a partir de `BdvTaches.datees()`, puis passent par le MEME calcul
+que les autres. La cle porte le prefixe `tache:`, qui sert a deux choses : reconnaitre une
+tache au moment de cocher, et garantir qu'elle ne collisionne jamais avec une cle du fichier.
+
+**Une tache se coche par SON identifiant, jamais par un identifiant d'occurrence.** Une tache
+est une ligne unique, elle ne revient pas tous les mois : lui fabriquer un `ech:...` creerait
+une deuxieme ligne a cote de la sienne, et la premiere resterait non cochee pour toujours.
+
+**Il n'y a pas de table `calendrier_perso`, et il ne faut pas en creer une.** Le plan en
+prevoyait une au lot 3 ; la table `taches` fait deja le travail, avec son titre, son echeance
+et sa date de realisation. Une deuxieme table pour la meme chose donnerait deux endroits qui
+repondent « qu'est-ce que j'ai a faire le 12 ». Ce qui reste au lot 3, c'est l'activation des
+reperes de la bibliotheque compte par compte, et les occurrences perso RECURRENTES, que la
+table des taches ne sait pas porter.
+
+**Le calendrier n'affiche que les taches DATEES.** Une tache sans date n'a pas de place dans
+une grille : le calendrier en annonce le nombre et mene a « Mes taches ». C'est la frontiere
+que Ted a posee lui-meme, une occurrence porte une date, une tache peut n'en avoir aucune.
 
 Le fond de carte, lune et feries, n'est pas une famille : il ne se coche pas, il ne porte pas
 de source, il ne s'inscrit pas dans les taches. Un seul interrupteur l'eteint. Les melanger

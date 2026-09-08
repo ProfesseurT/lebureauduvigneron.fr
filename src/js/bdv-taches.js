@@ -436,9 +436,30 @@
      ligne par une reponse serveur plus vieille que lui (panne des signets, 07/09/2026). */
   if (pret()) { LU = true; viderAttente().then(charger); } else { rendre(); }
 
+  /* ---------------- CE QUE LE CALENDRIER LIT ----------------
+     Ajoute le 08/09/2026 sur demande de Ted : « afficher les taches datees dans
+     le calendrier ».
+
+     DATEES SEULEMENT, ET C'EST LA REGLE QU'IL A LUI-MEME POSEE : une occurrence
+     du calendrier porte une date, une tache peut n'en avoir aucune. Une tache
+     sans date n'a pas de place dans une grille ; elle attend en bas de « Mes
+     taches », et le calendrier se contente d'en annoncer le nombre.
+
+     ON NE REND PAS LES OBLIGATIONS ICI. Elles sont deja dans le calendrier par
+     leur propre chemin, le fichier de donnees. Les rendre aussi par celui-ci les
+     afficherait deux fois, et cocher l'une des deux copies laisserait l'autre
+     non cochee : exactement le doublon que la regle 7 interdit. */
+  function datees() {
+    return libres().filter(function (t) { return !!t.echue_le; });
+  }
+  function sansDate() {
+    return libres().filter(function (t) { return !t.echue_le && !t.fait_le; }).length;
+  }
+
   window.BdvTaches = {
     ouvrir: ouvrir, rendre: rendre, charger: charger, punaises: punaises,
     ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes,
-    estFaite: estFaite, basculerOccurrence: basculerOccurrence
+    estFaite: estFaite, basculerOccurrence: basculerOccurrence,
+    datees: datees, sansDate: sansDate
   };
 })();

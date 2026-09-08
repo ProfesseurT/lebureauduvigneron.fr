@@ -362,6 +362,87 @@
 }
 
 /* ---------------------------------------------------------------------------
+   LES TACHES DU VIGNERON : UNE MATIERE, PAS UNE CINQUIEME COULEUR.
+   -----------------------------------------------------------------------------
+   MESURE DU 08/09/2026, AVANT DE DESSINER. Une cinquieme serie ne tient pas sur
+   ce papier. La bande utilisable va de L* 15 a L* 56 : au-dela, le contraste
+   passe sous les 3:1 des objets graphiques. Cinq series dans 41 points de
+   luminance, c'est 10 points d'ecart au mieux, et les trois repartitions
+   essayees donnent soit deux series a 0,8 point l'une de l'autre, soit une
+   derniere a 2,68:1. Aucune ne passe.
+
+   Donc la cinquieme famille se distingue par la MATIERE, ce qui est la regle du
+   plateau de CLAUDE.md : le calendrier est imprime, les taches sont ECRITES A LA
+   MAIN dessus. Caveat, l'encre du site, un filet pointille. Ca se lit sans
+   couleur, donc aussi en niveaux de gris et pour un daltonien, ce qu'une
+   cinquieme teinte n'aurait pas fait.
+--------------------------------------------------------------------------- */
+.bdv-cal .calo[data-tache="oui"] .calo__b {
+  border-left: 0;
+  border-bottom: var(--trait) dotted var(--ink);
+  font-family: var(--font-manuscrit);
+  font-size: var(--t-petit);
+  color: var(--ink);
+}
+.bdv-cal .calfam[data-cal-famille="taches"] {
+  border-left-color: var(--rule-fort);
+  border-left-style: dotted;
+  font-family: var(--font-manuscrit);
+  font-size: var(--t-petit);
+}
+.bdv-cal .echeance[data-tache="oui"] {
+  border-left: var(--trait-accent) dotted var(--ink);
+}
+.bdv-cal .echeance[data-tache="oui"] .echeance__titre {
+  font-family: var(--font-manuscrit);
+}
+
+/* LE « + » DE CHAQUE CASE. Invisible au repos, sinon quarante-deux croix
+   couvrent la grille ; visible au survol de la case ET au focus clavier, sans
+   quoi il n'existerait que pour ceux qui ont une souris. */
+.bdv-cal .calm__plus {
+  padding: 0 var(--e-xs);
+  border: 0;
+  border-radius: var(--r-nul);
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--tr-rapide);
+}
+.bdv-cal td.calm__c:hover .calm__plus,
+.bdv-cal .calm__plus:focus-visible { opacity: 1; }
+.bdv-cal .calm__plus:focus-visible {
+  outline: var(--trait-fort) solid var(--bordeaux);
+  outline-offset: calc(var(--trait-fort) * -1);
+}
+.bdv-cal .calm__plus:hover { color: var(--bordeaux); }
+
+/* Le formulaire emprunte `.tachesf` a « Mes taches » : le meme geste doit avoir
+   la meme allure aux deux endroits, sinon il faut l'apprendre deux fois. */
+.bdv-cal .calform { margin-top: var(--e-l); }
+
+.bdv-cal .cal__sansdate {
+  margin: 0 0 var(--e-s);
+  color: var(--muted);
+  font-size: var(--t-base);
+  font-style: italic;
+}
+
+.bdv-cal .cal__coche--x {
+  border-color: var(--rule-fort);
+  color: var(--muted);
+}
+.bdv-cal .cal__coche--x:hover {
+  background: var(--danger-deep);
+  border-color: var(--danger-deep);
+  color: var(--on-dark);
+}
+
+/* ---------------------------------------------------------------------------
    LE DETAIL SOUS LA GRILLE, et sous la vue annee.
 --------------------------------------------------------------------------- */
 .bdv-cal .cal__detail { margin-top: var(--e-l); }

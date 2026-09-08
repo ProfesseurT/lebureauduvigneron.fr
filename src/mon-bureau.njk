@@ -285,6 +285,28 @@ permalink: /mon-bureau/
 
         <div id="calCorps"></div>
 
+        {# NOTER UNE TACHE DEPUIS LE CALENDRIER, demande de Ted le 08/09/2026.
+           UN SEUL FORMULAIRE POUR TOUTE LA PIECE, et il est ici, sous la grille.
+           Le « + » de chaque case ne fait que pre-remplir sa date et poser le
+           curseur dans le champ : quarante-deux formulaires dans le document, ou
+           une bulle flottante a placer et a fermer au clavier, coutaient beaucoup
+           pour le meme geste.
+           Il ecrit dans la table des taches par BdvTaches.ajouter(), et nulle part
+           ailleurs : une tache notee ici apparait dans « Mes taches » parce que
+           c'est la meme ligne, pas parce qu'on l'y recopie. #}
+        <form class="tachesf calform" id="calForm" novalidate>
+          <label class="tachesf__l" for="calTitre">Noter quelque chose dans ton calendrier</label>
+          <div class="tachesf__ligne">
+            <input class="tachesf__i" id="calTitre" type="text" autocomplete="off"
+                   placeholder="ex. rendez-vous avec le comptable" maxlength="200">
+            <input class="tachesf__d" id="calDate" type="date"
+                   aria-label="Pour quel jour">
+            <button class="btn btn--bordeaux" type="submit">Ajouter</button>
+          </div>
+          <p class="tachesf__aide">Sans date, ta note part dans « Mes tâches » et attend son
+            heure. Le <span aria-hidden="true">+</span> d'une case remplit la date pour toi.</p>
+        </form>
+
         <p class="zone__pied">
           Les dates viennent des textes officiels, chaque occurrence porte sa source.
           Ce calendrier est un pense-bête, il ne remplace ni ton comptable ni ton service

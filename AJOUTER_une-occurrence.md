@@ -41,7 +41,7 @@ C'est plus sûr que d'en écrire un de zéro : tu ne peux pas oublier une accola
 | --- | --- | --- |
 | `cle` | Un nom court, sans accent ni espace, avec des tirets | **Il doit être unique.** C'est lui qui sert à retenir qu'un vigneron a coché cette occurrence. Deux occurrences avec la même clé, et cocher l'une coche l'autre. |
 | `titre` | Ce qui s'affiche en gros | Court : dans une case de calendrier il est coupé. |
-| `famille` | Le tri et le filtre. Quatre valeurs, voir l'étape 3 | Une famille inconnue range l'occurrence dans les obligations. |
+| `famille` | Le tri et le filtre. Quatre valeurs ici, voir l'étape 3 | Une famille inconnue range l'occurrence dans les obligations. **Jamais `taches`** : cette cinquième famille vient de la table des tâches, pas de ce fichier. |
 | `statut` | `obligation` ou `repere` | Voir l'étape 4. Ça change ce qu'on promet au vigneron. |
 | `qui` | Qui est concerné | Une phrase. C'est la question que le vigneron se pose en premier. |
 | `detail` | La précision utile | Facultatif. Mets `"detail": null` si tu n'en as pas. |
@@ -61,6 +61,12 @@ est. C'est ce qui rend le filtre utile : chacune répond à une question différ
 | `travaux` | Ce que je fais dehors | Taille, travaux en vert, vendanges, vinification |
 | `rendezvous` | Je m'inscris, je me déplace | Wine Paris, ProWein, Vinitech, concours |
 | `tempsforts` | Ce que je poste et ce que je vends | Saint-Valentin, foire aux vins, campagne de fin d'année |
+
+Il existe une cinquième famille, **`taches`**, mais **elle ne s'écrit pas ici**. Ce sont les
+notes datées que le vigneron prend lui-même, dans « Mes tâches » ou directement dans son
+calendrier. Elles se reconnaissent à l'écran parce qu'elles sont écrites à la main sur le
+calendrier imprimé, et pas à une couleur : le papier n'a pas la place d'une cinquième couleur
+lisible.
 
 **La ligne à ne pas franchir dans `tempsforts` :** le calendrier porte des **campagnes**, le
 sous-main porte des **clients**. « Campagne de fin d'année, du 15 novembre au 20 décembre »
@@ -169,9 +175,17 @@ vigneron l'éteint d'un clic s'il n'en veut pas.
 
 ## Ce que tu ne peux pas encore faire
 
-- **Créer une occurrence depuis l'écran, sans toucher au fichier.** C'est le lot 3.
 - **Proposer un repère que le vigneron active ou non, compte par compte.** Aujourd'hui tout
-  s'affiche chez tout le monde, et il éteint des familles entières, pas des lignes. Lot 3.
+  s'affiche chez tout le monde, et il éteint des familles entières, dans son navigateur. Lot 3.
+- **Une occurrence perso qui revient tous les ans**, du genre « portes ouvertes, premier
+  week-end de juin ». Le vigneron peut noter une date, pas encore une règle. Lot 3.
 - **Une récurrence hebdomadaire.** Elle s'ajoutera le jour où une ligne en aura besoin.
+
+## Ce que le vigneron peut faire, lui, sans toi
+
+Depuis le 08/09/2026 il note ce qu'il veut directement dans son calendrier : le formulaire est
+sous la grille, et le **+** d'une case remplit la date pour lui. Sa note part dans la table des
+tâches, donc elle apparaît aussi dans « Mes tâches ». Sans date, elle y attend son heure et le
+calendrier se contente d'en annoncer le nombre.
 
 Détail des lots dans `PLAN_calendrier.md`.
