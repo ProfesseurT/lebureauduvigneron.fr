@@ -122,6 +122,20 @@
      tache au moment de cocher (elle se coche par son propre identifiant, pas par
      celui d'une occurrence d'echeance), et garantir qu'elle ne collisionne jamais
      avec une cle du fichier de donnees. */
+  /* LA PERIODE D'UNE TACHE DEVIENT UNE DUREE, parce que c'est la forme que le
+     calcul connait deja. Une tache porte deux vraies dates et ne se repete pas ;
+     une regle de la bibliotheque porte une duree, parce qu'elle recalcule sa fin
+     chaque annee. Les deux disent la meme chose, et la conversion se fait ici,
+     une fois. Ajoute le 08/09/2026 : « imagine c'est un salon sur plusieurs
+     jours ». */
+  function dureeTache(t) {
+    if (!t.fin_le || !t.echue_le) return 1;
+    var d1 = minuit(new Date(t.echue_le + 'T00:00:00'));
+    var d2 = minuit(new Date(t.fin_le + 'T00:00:00'));
+    if (isNaN(d1) || isNaN(d2) || d2 <= d1) return 1;
+    return Math.round((d2 - d1) / 86400000) + 1;
+  }
+
   function reglesDesTaches() {
     if (!window.BdvTaches || !BdvTaches.datees) return [];
     return BdvTaches.datees().map(function (t) {
@@ -133,7 +147,7 @@
         statut: 'tache',
         faitLe: t.fait_le || null,
         qui: null, detail: null,
-        recurrence: { type: 'unique', date: t.echue_le },
+        recurrence: { type: 'unique', date: t.echue_le, duree: dureeTache(t) },
         source: null, sourceNom: null, article: null
       };
     });
@@ -942,8 +956,11 @@
       var aj = e.target.closest && e.target.closest('[data-cal-ajout]');
       if (aj) {
         e.preventDefault();
-        var champD = el('calDate'), champT = el('calTitre');
+        var champD = el('calDate'), champT = el('calTitre'), champF = el('calFin');
         if (champD) champD.value = aj.getAttribute('data-cal-ajout');
+        /* La fin se vide : on clique sur un JOUR, et garder la fin de la note
+           precedente ferait un salon de trois jours a partir d'un clic sur le 12. */
+        if (champF) champF.value = '';
         if (champT) { champT.focus(); champT.scrollIntoView({ block: 'nearest' }); }
         return;
       }
@@ -1007,9 +1024,11 @@
     if (f) {
       f.addEventListener('submit', function (ev) {
         ev.preventDefault();
-        var champ = el('calTitre'), date = el('calDate');
+        var champ = el('calTitre'), date = el('calDate'), fin = el('calFin');
         if (!window.BdvTaches || !BdvTaches.ajouter) return;
-        if (!BdvTaches.ajouter(champ.value, date && date.value ? date.value : null)) {
+        if (!BdvTaches.ajouter(champ.value,
+                               date && date.value ? date.value : null,
+                               fin && fin.value ? fin.value : null)) {
           champ.focus();
           return;
         }

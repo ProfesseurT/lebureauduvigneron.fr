@@ -188,4 +188,8 @@ sous la grille, et le **+** d'une case remplit la date pour lui. Sa note part da
 tâches, donc elle apparaît aussi dans « Mes tâches ». Sans date, elle y attend son heure et le
 calendrier se contente d'en annoncer le nombre.
 
+**Sa note peut durer plusieurs jours** : la seconde date du formulaire est facultative et sert
+aux salons. Deux dates à l'envers sont remises dans l'ordre, et le retard se compte sur la fin,
+pas sur le début : un salon du 9 au 11 n'est pas en retard le 10, il a lieu.
+
 Détail des lots dans `PLAN_calendrier.md`.

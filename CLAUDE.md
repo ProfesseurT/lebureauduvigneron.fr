@@ -380,6 +380,14 @@ repondent « qu'est-ce que j'ai a faire le 12 ». Ce qui reste au lot 3, c'est l
 reperes de la bibliotheque compte par compte, et les occurrences perso RECURRENTES, que la
 table des taches ne sait pas porter.
 
+**UNE TACHE PEUT DURER PLUSIEURS JOURS depuis le 08/09/2026**, colonne `fin_le`, facultative.
+Le retard se compte alors sur la FIN et pas sur le debut : un salon du 9 au 11 fevrier n'est
+pas en retard le 10, il a lieu. Deux dates a l'envers sont ECHANGEES et pas refusees, une fin
+egale au debut est effacee (un jour n'est pas une periode), une fin sans debut devient le
+debut. Le calendrier convertit ensuite la paire en `duree`, la forme que le calcul connait
+deja : la tache porte deux vraies dates parce qu'elle ne se repete pas, la regle porte une
+duree parce qu'elle recalcule sa fin chaque annee.
+
 **Le calendrier n'affiche que les taches DATEES.** Une tache sans date n'a pas de place dans
 une grille : le calendrier en annonce le nombre et mene a « Mes taches ». C'est la frontiere
 que Ted a posee lui-meme, une occurrence porte une date, une tache peut n'en avoir aucune.

@@ -554,3 +554,33 @@ grant select, insert, update, delete on public.calendrier_choix to authenticated
 
 -- PAS dans effacer_mes_donnees(), meme motif que les signets et les taches :
 -- cette fonction vide LA BASE DE VENTES, pas le compte.
+
+
+-- ---------------------------------------------------------------------------
+-- 17. Une tache peut durer plusieurs jours, 08/09/2026
+-- ---------------------------------------------------------------------------
+-- Demande de Ted : « imagine c'est un salon sur plusieurs jours ». La fin est
+-- FACULTATIVE ; sans elle la tache tombe un jour, comme avant.
+--
+-- POURQUOI UNE COLONNE ET PAS UNE DUREE. Les occurrences de la bibliotheque
+-- portent une `duree` en jours, parce qu'une regle annuelle recalcule sa fin
+-- chaque annee. Une tache ne se repete pas : elle a une vraie date de fin.
+--
+-- LE RETARD SE COMPTE SUR LA FIN. Un salon du 9 au 11 fevrier n'est pas en
+-- retard le 10. C'est une regle d'affichage, elle vit dans le code.
+--
+-- Copie de supabase/lot8-taches-fin.sql, qui est ce qu'on colle.
+
+alter table public.taches add column if not exists fin_le date;
+
+-- Deux garde-fous, et aucun n'est decoratif :
+--   - une fin avant son debut inverserait l'affichage sans rien signaler ;
+--   - une fin SANS debut n'a aucun sens, et le calendrier ne saurait pas ou la
+--     poser. Le code echange deja les deux dates si elles arrivent a l'envers,
+--     mais une contrainte tient meme quand l'ecriture ne vient pas du code.
+alter table public.taches drop constraint if exists taches_fin_apres_debut;
+alter table public.taches add constraint taches_fin_apres_debut
+  check (fin_le is null or (echue_le is not null and fin_le >= echue_le));
+
+-- Rien d'autre a changer : les politiques RLS de `taches` portent sur la ligne
+-- entiere, pas sur la liste des colonnes.

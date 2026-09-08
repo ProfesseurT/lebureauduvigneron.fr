@@ -6229,6 +6229,15 @@ button.bureau-nav__item:hover {
   container-name: calendrier;
 }
 
+/* LE « AU » ENTRE LES DEUX DATES, 08/09/2026. Deux champs de date cote a cote sans
+   rien entre eux se lisent comme deux dates independantes ; le mot dit que c'est une
+   periode. Il est masque aux lecteurs d'ecran, qui ont les deux `aria-label`. */
+.tachesf__au {
+  color: var(--muted);
+  font-size: var(--t-petit);
+  align-self: center;
+}
+
 /* Le formulaire. En haut de la piece, et le champ garde le focus apres l'ajout. */
 .tachesf { margin: 0 0 var(--e-l); }
 .tachesf__l {

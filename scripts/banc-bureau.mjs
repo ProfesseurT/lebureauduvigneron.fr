@@ -320,6 +320,14 @@ t('le calendrier porte UN formulaire de note, et un seul',
    exactement la frontiere que Ted a posee entre les deux pieces. */
 t('la date de la note reste facultative',
   !CAL.doc.getElementById('calDate').hasAttribute('required'));
+/* LA DATE DE FIN, 08/09/2026 : « imagine c'est un salon sur plusieurs jours ». Elle
+   est dans les DEUX formulaires, celui du calendrier et celui de Mes taches : c'est la
+   meme table, et un salon note d'un cote doit pouvoir durer autant que de l'autre. */
+t('les deux formulaires proposent une date de fin, et elle est facultative',
+  CAL.doc.getElementById('calFin') !== null
+  && CAL.doc.getElementById('tachesFin') !== null
+  && !CAL.doc.getElementById('calFin').hasAttribute('required')
+  && !CAL.doc.getElementById('tachesFin').hasAttribute('required'));
 
 CAL.clic('calendrier');
 t('un clic n\'affiche QUE le calendrier',

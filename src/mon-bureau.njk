@@ -199,6 +199,11 @@ permalink: /mon-bureau/
                    placeholder="ex. commander des bouchons" maxlength="200">
             <input class="tachesf__d" id="tachesDate" type="date"
                    aria-label="Pour quand, si tu as une date">
+            {# La meme paire de dates que dans le calendrier : c'est la meme table, et
+               un salon note ici doit pouvoir durer autant qu'un salon note la-bas. #}
+            <span class="tachesf__au" aria-hidden="true">au</span>
+            <input class="tachesf__d" id="tachesFin" type="date"
+                   aria-label="Jusqu'à quand, si ça dure plusieurs jours">
             {# btn--bordeaux et pas btn--ghost : le ghost porte `color: var(--paper)`,
                il est dessine pour un fond sombre et devient illisible sur le papier de
                la zone. Meme piege que .btn--light dans le bureau, vu sur une capture le
@@ -206,8 +211,8 @@ permalink: /mon-bureau/
                un bouton pose sur un fond pour lequel il n'a pas ete dessine. #}
             <button class="btn btn--bordeaux" type="submit">Ajouter</button>
           </div>
-          <p class="tachesf__aide">La date est facultative. Sans date, la tâche attend
-            sagement en bas de liste.</p>
+          <p class="tachesf__aide">Les dates sont facultatives. Sans date, la tâche attend
+            sagement en bas de liste. La seconde ne sert qu'à ce qui dure plusieurs jours.</p>
         </form>
 
         <div id="tachesAFaire"></div>
@@ -300,11 +305,21 @@ permalink: /mon-bureau/
             <input class="tachesf__i" id="calTitre" type="text" autocomplete="off"
                    placeholder="ex. rendez-vous avec le comptable" maxlength="200">
             <input class="tachesf__d" id="calDate" type="date"
-                   aria-label="Pour quel jour">
+                   aria-label="À partir de quel jour">
+            {# LA FIN EST FACULTATIVE, demande de Ted le 08/09/2026 : « imagine c'est
+               un salon sur plusieurs jours ». Laissee vide, la note tombe un jour.
+               Les deux dates sont remises dans l'ordre a l'enregistrement plutot que
+               refusees : « du 11 au 9 » ne veut dire qu'une chose, et un formulaire
+               qui refuse sans expliquer fait abandonner. #}
+            <span class="tachesf__au" aria-hidden="true">au</span>
+            <input class="tachesf__d" id="calFin" type="date"
+                   aria-label="Jusqu'à quel jour, si ça dure plusieurs jours">
             <button class="btn btn--bordeaux" type="submit">Ajouter</button>
           </div>
-          <p class="tachesf__aide">Sans date, ta note part dans « Mes tâches » et attend son
-            heure. Le <span aria-hidden="true">+</span> d'une case remplit la date pour toi.</p>
+          <p class="tachesf__aide">Les deux dates sont facultatives. Sans date, ta note part
+            dans « Mes tâches » et attend son heure ; la seconde ne sert qu'à ce qui dure
+            plusieurs jours, un salon par exemple. Le <span aria-hidden="true">+</span> d'une
+            case remplit la première pour toi.</p>
         </form>
 
         <p class="zone__pied">

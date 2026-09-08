@@ -97,7 +97,7 @@
   async function charger() {
     if (!pret()) return;
     try {
-      var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fait_le,maj_le');
+      var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fin_le,fait_le,maj_le');
       if (!lignes) return;       // null = session tombee ou corps vide, on garde le miroir
       var map = {};
       lignes.forEach(function (l) { map[l.tache_id] = l; });
@@ -143,13 +143,23 @@
     Object.keys(map).forEach(function (k) {
       var l = map[k];
       if (!l || l.source === 'echeance') return;
-      var j = null;
+      var j = null, encours = false;
       if (l.echue_le) {
         var d = minuit(new Date(l.echue_le + 'T00:00:00'));
-        if (!isNaN(d)) j = Math.round((d - auj) / JOUR);
+        var f = l.fin_le ? minuit(new Date(l.fin_le + 'T00:00:00')) : d;
+        if (isNaN(f)) f = d;
+        if (!isNaN(d)) {
+          /* LE RETARD SE COMPTE SUR LA FIN, PAS SUR LE DEBUT. Un salon du 9 au 11
+             fevrier n'est pas en retard le 10 : il a lieu. Compter sur le debut
+             aurait mis en retard, des le deuxieme jour, tout ce qui dure. */
+          encours = (d <= auj && f >= auj && l.fin_le && +f !== +d);
+          j = Math.round(((f < auj ? f : d) - auj) / JOUR);
+          if (encours) j = 0;
+        }
       }
       out.push({ tache_id: k, titre: l.titre || '', source: 'libre', ref: null,
-                 echue_le: l.echue_le || null, fait_le: l.fait_le || null, jours: j });
+                 echue_le: l.echue_le || null, fin_le: l.fin_le || null,
+                 fait_le: l.fait_le || null, jours: j, enCours: encours });
     });
     return out;
   }
@@ -166,6 +176,7 @@
      Les memes que le calendrier, volontairement : le vigneron lit « Dans 3 jours »
      au meme endroit du sens, qu'il regarde ses obligations ou ses taches. */
   function quand(t) {
+    if (t.enCours) return 'En ce moment';
     if (t.jours === null) return '';
     // « En retard de 2 jours » et pas « Il y a 2 jours » : la seconde formule dit quand
     // c'etait, la premiere dit ce qu'on doit faire. Une liste de taches parle du present.
@@ -176,6 +187,7 @@
   }
   function ton(t) {
     if (t.fait_le) return 'fait';
+    if (t.enCours) return 'aujourdhui';
     if (t.jours === null) return '';
     if (t.jours < 0) return 'retard';
     if (t.jours === 0) return 'aujourdhui';
@@ -185,6 +197,12 @@
   function dateCourte(isoJour) {
     var d = new Date(isoJour + 'T00:00:00');
     return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  }
+  /* « du 9 au 11 fevrier » plutot que « 9 fevrier » : une periode dit sa fin, sinon
+     le vigneron croit que son salon tient sur une journee. */
+  function quandDate(t) {
+    var a = dateCourte(t.echue_le);
+    return t.fin_le ? ('du ' + a + ' au ' + dateCourte(t.fin_le)) : a;
   }
 
   /* ---------------- LES GESTES ----------------
@@ -199,13 +217,29 @@
     (ligne === null ? retirer(tid) : pousser(ligne)).catch(function () { enfiler(tid, ligne); });
   }
 
-  function ajouter(titre, echueLe) {
+  /* UNE TACHE PEUT DURER PLUSIEURS JOURS depuis le 08/09/2026. Ted : « imagine
+     c'est un salon sur plusieurs jours ». La fin est FACULTATIVE, et sans elle
+     la tache tombe un jour, comme avant.
+
+     LES DEUX DATES SONT REMISES DANS L'ORDRE plutot que refusees. « Du 11 au 9 »
+     ne veut dire qu'une chose, et un formulaire qui refuse sans expliquer fait
+     abandonner. L'echange se voit tout de suite dans la liste, donc il ne cache
+     rien.
+
+     UNE FIN SANS DEBUT N'EXISTE PAS : elle ne saurait pas ou se poser dans la
+     grille. Elle devient le debut, ce qui est la seule lecture possible. */
+  function ajouter(titre, echueLe, finLe) {
     titre = String(titre || '').trim();
     if (!titre) return false;
+    echueLe = echueLe || null;
+    finLe = finLe || null;
+    if (finLe && !echueLe) { echueLe = finLe; finLe = null; }
+    if (echueLe && finLe && finLe < echueLe) { var t = echueLe; echueLe = finLe; finLe = t; }
+    if (echueLe && finLe === echueLe) finLe = null;   // un jour n'est pas une periode
     var tid = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
     var maintenant = new Date().toISOString();
     ecrire(tid, { tache_id: tid, titre: titre, source: 'libre', ref: null,
-                  echue_le: echueLe || null, fait_le: null,
+                  echue_le: echueLe, fin_le: finLe, fait_le: null,
                   cree_le: maintenant, maj_le: maintenant });
     return true;
   }
@@ -219,8 +253,8 @@
     // nul remplirait la table d'occurrences vides que plus aucun ecran ne montre.
     if (t.fait_le && t.source === 'echeance') { ecrire(tid, null); return; }
     ecrire(tid, { tache_id: tid, titre: t.titre, source: t.source, ref: t.ref,
-                  echue_le: t.echue_le, fait_le: t.fait_le ? null : maintenant,
-                  maj_le: maintenant });
+                  echue_le: t.echue_le, fin_le: t.fin_le || null,
+                  fait_le: t.fait_le ? null : maintenant, maj_le: maintenant });
   }
   function supprimer(tid) { ecrire(tid, null); }
 
@@ -287,7 +321,7 @@
     var bas = document.createElement('span');
     bas.className = 'tache__quand';
     var mots = [];
-    if (t.echue_le) mots.push(quand(t), dateCourte(t.echue_le));
+    if (t.echue_le) mots.push(quand(t), quandDate(t));
     if (t.source === 'echeance') mots.push('obligation');
     bas.textContent = mots.filter(Boolean).join(' · ');
     if (bas.textContent) corps.appendChild(bas);
@@ -404,10 +438,13 @@
     f.dataset.branche = '1';
     f.addEventListener('submit', function (e) {
       e.preventDefault();
-      var champ = el('tachesTitre'), date = el('tachesDate');
-      if (!ajouter(champ.value, date && date.value ? date.value : null)) { champ.focus(); return; }
+      var champ = el('tachesTitre'), date = el('tachesDate'), fin = el('tachesFin');
+      if (!ajouter(champ.value,
+                   date && date.value ? date.value : null,
+                   fin && fin.value ? fin.value : null)) { champ.focus(); return; }
       champ.value = '';
       if (date) date.value = '';
+      if (fin) fin.value = '';
       champ.focus();               // on en ecrit rarement une seule
     });
   }

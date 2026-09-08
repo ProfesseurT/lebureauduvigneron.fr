@@ -12,6 +12,50 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, nuit. Une tâche peut durer plusieurs jours
+
+Ted : « la création d'une occurrence doit demander aussi une date de fin facultative : imagine
+c'est un salon sur plusieurs jours. »
+
+**Ça demandait une colonne, pas un champ de formulaire.** La table `taches` ne portait que
+`echue_le`. D'où un deuxième SQL le même soir, `supabase/lot8-taches-fin.sql`.
+
+### Le retard se compte sur la fin
+
+C'est la seule vraie décision du lot. Un salon du 9 au 11 février n'est pas en retard le 10 :
+il a lieu. Compter sur le début aurait mis en retard, dès son deuxième jour, tout ce qui dure.
+Une période commencée mais pas finie affiche donc « En ce moment » et vaut zéro jour, exactement
+comme les périodes de la bibliothèque.
+
+### Trois cas de saisie tordue, tranchés dans le code plutôt que refusés
+
+- **Deux dates à l'envers sont échangées.** « Du 11 au 9 » ne veut dire qu'une chose, et un
+  formulaire qui refuse sans expliquer fait abandonner. L'échange se voit tout de suite dans la
+  liste, donc il ne cache rien.
+- **Une fin égale au début est effacée.** Un jour n'est pas une période, et la garder ferait
+  afficher « du 9 au 9 ».
+- **Une fin sans début devient le début.** Sinon la note ne saurait pas où se poser dans la
+  grille.
+
+Une contrainte en base tient les mêmes règles, pour le jour où une écriture ne viendra pas du
+code.
+
+### La colonne d'un côté, la durée de l'autre
+
+La bibliothèque porte une `duree` en jours parce qu'une règle annuelle recalcule sa fin chaque
+année. Une tâche porte deux vraies dates parce qu'elle ne se répète pas. Les deux disent la
+même chose, et la conversion se fait à un seul endroit, quand le calendrier emballe la tâche en
+règle synthétique.
+
+Le champ est dans les **deux** formulaires, celui du calendrier et celui de « Mes tâches » :
+c'est la même table, et un salon noté d'un côté doit pouvoir durer autant que de l'autre. Le
+« + » d'une case vide la fin, parce qu'on clique sur un jour et que garder la fin de la note
+précédente ferait un salon de trois jours à partir d'un clic sur le 12.
+
+`npm run verif` : conforme, 45 contrôles pour les tâches seules, 0 échec.
+
+---
+
 ## 08/09/2026, nuit. Activer ligne par ligne, et une fuite entre deux comptes que le banc a trouvée
 
 Ted a choisi le reste du lot 3 plutôt que le remplissage de la bibliothèque, ce qui est le bon

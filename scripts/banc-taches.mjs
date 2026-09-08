@@ -263,6 +263,83 @@ console.log('\n== 6. La deconnexion ==');
     'les obligations restent, elles ne sont pas des donnees de compte');
 }
 
+/* ==========================================================================
+   7. UNE TACHE QUI DURE PLUSIEURS JOURS
+   ==========================================================================
+   Ajoute le 08/09/2026. Ted : « la creation d'une occurrence doit demander aussi
+   une date de fin facultative : imagine c'est un salon sur plusieurs jours ».
+   ========================================================================== */
+console.log('\n== 7. Une tache qui dure plusieurs jours ==');
+{
+  const jour = (n) => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+         + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
+  const t = monter();
+  await dormir(30);
+  t.appels.length = 0;
+  t.T.ajouter('Wine Paris', jour(30), jour(32));
+  await dormir(30);
+  let l = t.ecritures()[0].corps[0];
+  dit(l.echue_le === jour(30) && l.fin_le === jour(32),
+    'les deux dates partent en base', JSON.stringify([l.echue_le, l.fin_le]));
+
+  /* LES DEUX DATES SONT REMISES DANS L'ORDRE, pas refusees. « Du 11 au 9 » ne veut
+     dire qu'une chose, et un formulaire qui refuse sans expliquer fait abandonner.
+     L'echange se voit tout de suite dans la liste, donc il ne cache rien. */
+  t.appels.length = 0;
+  t.T.ajouter('Salon a l\'envers', jour(40), jour(38));
+  await dormir(30);
+  l = t.ecritures()[0].corps[0];
+  dit(l.echue_le === jour(38) && l.fin_le === jour(40),
+    'des dates a l\'envers sont remises dans l\'ordre', JSON.stringify([l.echue_le, l.fin_le]));
+
+  t.appels.length = 0;
+  t.T.ajouter('Un seul jour', jour(50), jour(50));
+  await dormir(30);
+  l = t.ecritures()[0].corps[0];
+  dit(l.fin_le === null,
+    'une fin egale au debut n\'est pas une periode : elle est effacee', l.fin_le);
+
+  /* Une fin SANS debut ne saurait pas ou se poser dans la grille. Elle devient le
+     debut, ce qui est la seule lecture possible. */
+  t.appels.length = 0;
+  t.T.ajouter('Fin sans debut', null, jour(60));
+  await dormir(30);
+  l = t.ecritures()[0].corps[0];
+  dit(l.echue_le === jour(60) && l.fin_le === null,
+    'une fin sans debut devient le debut', JSON.stringify([l.echue_le, l.fin_le]));
+
+  /* LE RETARD SE COMPTE SUR LA FIN, PAS SUR LE DEBUT. Un salon du 9 au 11 fevrier
+     n'est pas en retard le 10 : il a lieu. Compter sur le debut aurait mis en
+     retard, des le deuxieme jour, tout ce qui dure. */
+  const u = monter();
+  await dormir(30);
+  u.T.ajouter('Salon en cours', jour(-1), jour(1));
+  await dormir(30);
+  const enCours = u.T.toutes().filter(x => x.titre === 'Salon en cours')[0];
+  dit(enCours && enCours.enCours === true && enCours.jours === 0,
+    'une periode commencee mais pas finie n\'est PAS en retard, elle est en cours',
+    JSON.stringify([enCours && enCours.enCours, enCours && enCours.jours]));
+
+  u.T.ajouter('Salon fini', jour(-10), jour(-8));
+  await dormir(30);
+  const fini = u.T.toutes().filter(x => x.titre === 'Salon fini')[0];
+  dit(fini && fini.jours === -8 && !fini.enCours,
+    'une periode finie hier est en retard depuis SA FIN, pas depuis son debut',
+    fini && fini.jours);
+
+  /* Cocher ne doit pas perdre la fin : la ligne est reecrite entiere. */
+  u.appels.length = 0;
+  u.T.basculer(u.T.toutes().filter(x => x.titre === 'Salon en cours')[0].tache_id);
+  await dormir(30);
+  const recoche = u.ecritures()[0].corps[0];
+  dit(recoche.fin_le === jour(1),
+    'cocher une periode garde sa date de fin', recoche.fin_le);
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DES TACHES REFUSE\n'); process.exit(1); }
