@@ -263,6 +263,33 @@ coute une capture d'ecran pour etre vu.
    en `--t-micro`, dix pixels, une colonne de 14 em fait 140 px et non 224. Les largeurs de
    colonnes s'ecrivent en `rem` ou en pourcentage.
 
+## DEUX COLLANTS A `top: 0` NE SE PARTAGENT PAS LE HAUT, 08/09/2026
+
+`.nav`, l'entete du site, est `position: sticky; top: 0` avec un fond OPAQUE et
+`--z-nav` (100). Tout ce qui se colle aussi a `top: 0` passe DESSOUS et disparait des
+qu'on fait defiler. C'est ce qui cachait « Ma journee » et « Mes taches » dans la barre
+des pieces du bureau, signale par Ted.
+
+La regle : **tout element collant se decale de `--h-entete`**, le token qui porte la
+hauteur de l'entete. Deux consequences, et la seconde s'oublie :
+
+    top: calc(var(--h-entete) + var(--e-s));
+    max-height: calc(100vh - var(--h-entete) - var(--e-s) - var(--e-m));
+
+Sans la soustraction sur la hauteur, l'element descendu **depasse par le bas exactement
+autant qu'il depassait par le haut** : le probleme change de bout, il ne disparait pas.
+Avec `overflow-y: auto`, l'element garde alors son propre defilement et toutes ses
+commandes restent atteignables sur un ecran court ou a fort zoom.
+
+`--h-entete` porte un repli en CSS (4rem) et la **vraie hauteur mesuree** par
+`mesurerEntete()` dans `bdv-nav.js`, au chargement, au redimensionnement et une fois les
+polices arrivees. Ne pas figer un chiffre a la place : il se perimerait au premier
+changement de l'entete, en silence, et seulement pour qui fait defiler.
+
+**Reste a faire** : `.bdv-ventes table.data--sticky thead th` est encore a `top: 0`. Sur
+un long tableau, la ligne d'en-tete se colle donc sous l'entete du site au lieu de sous
+son propre bord. Meme cause, meme correction.
+
 ## Une seule commande avant de pousser
 
     npm run verif

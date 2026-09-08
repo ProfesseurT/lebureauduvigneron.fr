@@ -642,6 +642,7 @@
     });
 
     sortirHorsPage();
+    mesurerEntete();
     // Le bouton Retour du navigateur circule dans le bureau au lieu d'en sortir.
     window.addEventListener('popstate', suivreAdresse);
     // Et l'adresse d'arrivee decide de la premiere piece affichee : un favori sur
@@ -649,6 +650,50 @@
     suivreAdresse();
 
   }
+
+  /* ---------------------------------------------------------------------------
+     LA HAUTEUR DE L'ENTETE, MESUREE ET PAS DEVINEE, 08/09/2026
+
+     `.nav`, l'entete du site, est collee en haut de toutes les pages avec un fond
+     opaque et --z-nav (100). La barre des pieces est collee aussi : avec `top: 0`
+     des deux cotes, elle passait DESSOUS, et « Ma journee » comme « Mes taches »
+     disparaissaient des qu'on faisait defiler. C'est ce que Ted a vu.
+
+     Le decalage est ecrit en CSS (`--h-entete`), avec une valeur de repli qui
+     tient tant que le JavaScript n'a pas pris. Mais un chiffre en dur se perime
+     au premier changement de l'entete, en silence et seulement pour qui fait
+     defiler. On mesure donc l'entete reelle et on repose la vraie valeur.
+
+     Pourquoi sur <html> et pas sur la barre : c'est une propriete de la PAGE, et
+     tout ce qui se collera un jour en haut en aura besoin. Un deuxieme element
+     collant qui remesurerait l'entete pour son compte, c'est le meme chiffre a
+     deux endroits.
+
+     Au redimensionnement aussi : entre 900 et 901 px la barre change de nature,
+     et sous 600 px l'entete change de hauteur. Sans le reglage sur `resize`, une
+     fenetre reduite gardait la mesure de l'ancienne.
+  --------------------------------------------------------------------------- */
+  function mesurerEntete() {
+    var entete = document.querySelector('.nav');
+    if (!entete) return;
+    var h = Math.round(entete.getBoundingClientRect().height);
+    // Une hauteur nulle veut dire « pas encore mise en page » ou « masquee » : on
+    // garde alors le repli du CSS plutot que de coller la barre sous rien.
+    if (h > 0) document.documentElement.style.setProperty('--h-entete', h + 'px');
+  }
+  // Une seule mesure par salve de redimensionnement : `resize` part des dizaines de
+  // fois pendant qu'on tire un coin de fenetre, et chaque lecture de
+  // getBoundingClientRect force un recalcul de mise en page.
+  var _mesure = null;
+  window.addEventListener('resize', function () {
+    if (_mesure) clearTimeout(_mesure);
+    _mesure = setTimeout(function () { _mesure = null; mesurerEntete(); }, 120);
+  });
+  /* ET UNE FOIS LES POLICES ARRIVEES. La hauteur de l'entete depend de la police du
+     logo : mesuree avant l'echange de police, elle peut se tromper de quelques
+     pixels, et ces pixels sont exactement ce qui laisse voir un liseré de languette
+     sous l'entete. Le `catch` couvre les navigateurs sans document.fonts. */
+  try{ if (document.fonts && document.fonts.ready) document.fonts.ready.then(mesurerEntete); }catch(e){}
 
   /* `chargerEcrans` est expose depuis le 08/09/2026, et il n'a qu'un seul appelant :
      analyserPourLeBureau() dans bdv-base.js, apres un import fait au bureau. Le moteur

@@ -67,6 +67,31 @@ Aucun banc ajouté, décision de Ted. Vérifié à la main : les huit bancs exis
 deux contrôles jetables hors dépôt (le réveil du bureau dans jsdom, 11 contrôles ; l'ordre des
 quatre pas de la chaîne, 8 contrôles).
 
+### Et la barre des pièces qui passait sous l'entête
+
+Repéré par Ted dans la foulée, sur capture d'écran : les deux premières languettes,
+« Ma journée » et « Mes tâches », disparaître dès qu'on fait défiler. `.nav` et
+`.bureau-nav` étaient **toutes les deux collées à `top: 0`**, et `.nav` a un fond opaque
+plus `--z-nav` (100) : elle gagne toujours.
+
+La barre reste magnétique, elle se cale simplement sous l'entête. Deux détails qui font
+la différence entre « déplacé » et « réparé » :
+
+- la hauteur disponible est `100vh` **moins** l'entête, sinon la barre descendue dépasse
+  par le bas exactement autant qu'elle dépassait par le haut, et « Mes réglages » devient
+  injoignable sur un écran court ;
+- `--h-entete` est **mesurée** par `bdv-nav.js` (chargement, redimensionnement, polices
+  arrivées), avec un repli CSS de 4 rem. Un chiffre en dur se périmerait au premier
+  changement de l'entête, sans un mot.
+
+Mesuré dans Chromium sur trois hauteurs de fenêtre, défilement engagé : entête 0..59 px,
+barre 69..421 px, les huit languettes dans la fenêtre. À 420 px de haut, la barre passe
+sur son propre défilement et les huit restent atteignables.
+
+**Reste ouvert** : `.bdv-ventes table.data--sticky thead th` est encore à `top: 0`. Sur un
+long tableau de ventes, la ligne d'en-tête se colle sous l'entête du site. Même cause,
+correction non faite.
+
 ---
 
 ## 08/09/2026. Le guide d'import, après « oui j'utilise Vitisoft »
