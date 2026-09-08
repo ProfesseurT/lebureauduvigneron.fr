@@ -125,7 +125,7 @@
     chercher: '<path d="M10 5.5v11"/><path d="M10 5.5C8.6 4.4 6.6 4 3.5 4v10.5c3.1 0 5.1.4 6.5 1.5"/>'
               + '<path d="M10 5.5c1.4-1.1 3.4-1.5 6.5-1.5v10.5c-3.1 0-5.1.4-6.5 1.5"/>',
     // Le calendrier : le sablier, et le sable deja tombe.
-    echeances:'<path d="M6 3h8M6 17h8"/><path d="M6.5 3c0 3.2 3.5 5.2 3.5 7s-3.5 3.8-3.5 7"/>'
+    calendrier:'<path d="M6 3h8M6 17h8"/><path d="M6.5 3c0 3.2 3.5 5.2 3.5 7s-3.5 3.8-3.5 7"/>'
               + '<path d="M13.5 3c0 3.2-3.5 5.2-3.5 7s3.5 3.8 3.5 7"/><path d="M8 17h4"/>',
     // Mes reglages : un curseur de reglage, pas une roue crantee. On regle son bureau,
     // on ne le demonte pas.
@@ -153,8 +153,16 @@
     { id: 'taches',    ico: TRACES.taches,    label: 'Mes tâches',
       href: '/mon-bureau/#taches',
       quoi: 'Ce que tu notes, et tes obligations à cocher' },
-    { id: 'echeances', ico: TRACES.echeances,   label: 'Le calendrier',
-      href: '/outils/echeances/',
+    /* LE CALENDRIER EST UNE PIECE DU BUREAU depuis le 08/09/2026, et plus une
+       sortie vers la page publique. C'etait la SEULE piece de la barre qui
+       ejectait hors du bureau, vers un ecran sans intercalaires, et c'est ce
+       que Ted a signale en ouvrant le chantier.
+       La page publique /outils/echeances/ ne disparait pas pour autant : elle
+       reste la porte d'entree, gratuite et sans compte, en vue liste. Ce qui est
+       reserve au bureau, c'est de choisir sa vue, de cocher, de creer ses
+       propres occurrences et de synchroniser son agenda. Voir PLAN_calendrier.md. */
+    { id: 'calendrier', ico: TRACES.calendrier, label: 'Le calendrier',
+      href: '/mon-bureau/#calendrier',
       quoi: 'DRM, DAI, récolte, facturation' },
     { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mes clients',
       href: '/mon-bureau/#clients',
@@ -245,6 +253,17 @@
     { js: '/js/bdv-ecrans.js' }
   ];
 
+  /* LE CALENDRIER : deux fichiers, et rien d'autre. Ni Chart.js, ni le lecteur
+     xlsx, ni le moteur de la base : cette piece ne lit aucune ligne de vente.
+     Elle lit le bloc JSON des echeances, deja dans la page, et le calcul de
+     bdv-echeances.js, deja charge en defer par le gabarit. Elle attend quand
+     meme le premier clic : le bureau ouvre a 32 ko bloquants, et ce chantier
+     n'a pas le droit de les augmenter. */
+  var RESSOURCES_CAL = [
+    { css: '/css/bdv-calendrier.css' },
+    { js: '/js/bdv-calendrier.js' }
+  ];
+
   function poserCss(href) {
     return new Promise(function (ok) {
       if (document.querySelector('link[href="' + href + '"]')) return ok();
@@ -284,6 +303,13 @@
        cas les deux disent la meme chose et rien ne bouge a l'ecran. */
     _moteur = _moteur.then(function () { marquerLibelles(); });
     return _moteur;
+  }
+
+  var _cal = null;
+  function chargerCalendrier() {
+    if (_cal) return _cal;
+    _cal = enchainer(RESSOURCES_CAL);
+    return _cal;
   }
 
   var _chargement = null;
@@ -387,13 +413,14 @@
 
   /* `id` est une piece de la barre. `client` ouvre en plus une fiche. `ecrire` dit
      s'il faut poser l'adresse : faux quand on vient justement de la lire. */
-  /* TROIS PIECES SE PARTAGENT LA ZONE DE TRAVAIL depuis le 07/09/2026 : la journee,
-     les taches, et la coque des ecrans de vente. Une seule fonction decide laquelle est
-     visible, et elle les nomme TOUTES les trois a chaque fois. Trois `hidden` poses a la
-     main dans chaque branche, c'est la garantie qu'un jour l'une des trois reste
+  /* QUATRE PIECES SE PARTAGENT LA ZONE DE TRAVAIL depuis le 08/09/2026 : la journee,
+     les taches, le calendrier, et la coque des ecrans de vente. Une seule fonction decide
+     laquelle est visible, et elle les nomme TOUTES a chaque fois. Un `hidden` pose a la
+     main dans une branche, c'est la garantie qu'un jour l'une des quatre reste
      affichee sous une autre : le bureau montrerait deux pieces empilees. */
   function seule(quelle) {
-    var zones = { journee: 'bureauJournee', taches: 'bureauTaches', ventes: 'bureauVentes' };
+    var zones = { journee: 'bureauJournee', taches: 'bureauTaches',
+                  calendrier: 'bureauCalendrier', ventes: 'bureauVentes' };
     Object.keys(zones).forEach(function (k) {
       var n = document.getElementById(zones[k]);
       if (n) n.hidden = (k !== quelle);
@@ -429,6 +456,34 @@
       marquerActif('taches');
       if (opts.ecrire !== false && location.hash !== '#taches') history.pushState(null, '', '#taches');
       if (window.BdvTaches) BdvTaches.ouvrir();
+      return;
+    }
+
+    /* LE CALENDRIER. Meme forme que les ecrans de vente, chargement au premier
+       clic et voile d'attente sur la languette, mais sans le moteur : il n'y a
+       rien a calculer sur les ventes ici. En cas d'echec reseau on revient a
+       « Ma journee » plutot que de laisser une colonne vide, et on remet le
+       chargement a zero pour redonner sa chance au prochain clic. */
+    if (id === 'calendrier') {
+      seule('calendrier');
+      marquerActif('calendrier');
+      if (opts.ecrire !== false && location.hash !== '#calendrier') {
+        history.pushState(null, '', '#calendrier');
+      }
+      attente('calendrier', true);
+      chargerCalendrier().then(function () {
+        attente('calendrier', false);
+        if (window.BdvCalendrier) BdvCalendrier.ouvrir();
+      })['catch'](function () {
+        attente('calendrier', false);
+        _cal = null;
+        afficher('journee');
+        var avc = document.getElementById('bureauAvis');
+        if (avc) {
+          avc.textContent = 'Ton calendrier n\'a pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+          avc.hidden = false;
+        }
+      });
       return;
     }
 
@@ -468,7 +523,17 @@
       return { id: 'clients', client: decodeURIComponent(brut.slice(7)) };
     }
     if (brut === 'base' || brut === 'parametres' || brut === 'reglages') return { id: 'reglages' };
-    var p = PIECES.filter(function (x) { return x.id === brut && x.viti; })[0];
+    /* `echeances` etait le nom de la piece jusqu'au 08/09/2026. L'alias reste :
+       une adresse se copie et se met en favori, c'est tout l'interet d'en avoir
+       une, et un favori qui tombe a cote n'affiche aucune erreur. */
+    if (brut === 'echeances') return { id: 'calendrier' };
+    /* TOUTE piece de la barre est une adresse, et pas seulement les quatre pieces
+       de vente. Ce filtre exigeait `viti` jusqu'au 08/09/2026 : un favori sur
+       /mon-bureau/#taches ouvrait « Ma journee », sans erreur et sans que personne
+       ne comprenne pourquoi. Les reglages restent hors liste, ils sont traites deux
+       lignes plus haut : ce n'est pas une destination, c'est un panneau qui s'ouvre
+       par-dessus ce qui est affiche. */
+    var p = PIECES.filter(function (x) { return x.id === brut && !x.panneau; })[0];
     return p ? { id: brut } : { id: 'journee' };
   }
 
@@ -535,8 +600,6 @@
       var l = a.closest('.bureau-nav__ligne');
       var id = l && l.dataset.piece;
       if (!id) return;
-      // Le calendrier est une autre page : on ne l'intercepte pas.
-      if (id === 'echeances') return;
       e.preventDefault();
       afficher(id);
     });

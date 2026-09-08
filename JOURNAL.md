@@ -12,6 +12,113 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, après-midi. Le calendrier entre dans le bureau
+
+Ted : « on attaque la partie calendrier. L'outil doit s'intégrer comme le reste dans mon bureau.
+Quand je clique sur le raccourci du bureau j'arrive ici (capture). »
+
+**La capture montrait la page publique.** C'était le défaut, et il était plus simple que la
+demande qui l'entourait : « Le calendrier » était le seul intercalaire de la barre à éjecter hors
+du bureau, vers un écran sans intercalaires. Six autres pièces restaient dans le bureau, celle-là
+partait. Tout le reste de la demande, les vues au choix, les occurrences à créer, la synchro
+d'agenda, se construit par-dessus cette correction-là.
+
+### Les quatre arbitrages, tranchés avant d'écrire
+
+Détail dans `PLAN_calendrier.md`. Ce qui compte ici, c'est ce qu'ils écartent.
+
+**1. La frontière entre « Mes tâches » et « Le calendrier » est la DATE, pas la propriété.** Ted :
+« on peut le faire dans les 2. Le calendrier donnera une date début et fin obligatoire, les tâches
+non pas obligatoire. » C'est mieux que ce que j'avais proposé, qui était de donner la propriété
+des obligations à une seule des deux pièces.
+
+Deux pièces qui cochent, ça ne redevient dangereux qu'à une condition : qu'elles écrivent deux
+lignes. Elles écrivent la même, `ech:<clé>:<AAAA-MM-JJ>`, par une seule fonction, et
+`bdv-taches.js` reste le seul fichier qui écrit dans la table des tâches. C'est la règle 7 bis de
+`CLAUDE.md`.
+
+`basculer()` n'y suffisait pas : elle cherche sa tâche dans `toutes()`, qui ne connaît que la
+**prochaine** occurrence de chaque obligation. Le calendrier, lui, affiche octobre en septembre.
+D'où `basculerOccurrence()`, qui construit la ligne elle-même.
+
+**2. La synchro sera un abonnement vivant, pas un fichier téléchargé.** Une adresse secrète par
+compte, relue toute seule par Google Agenda, Apple Calendrier et Outlook. Le coût est écrit dans
+le plan et il n'est pas la fonction serveur : c'est que `bdv-echeances.js` est aujourd'hui une
+fonction anonyme qui pose `window.BdvEcheances`, donc illisible hors d'un navigateur. Le lot 4
+commencera par sortir le calcul dans un module partagé, sinon on recopie le calcul côté serveur et
+on retombe exactement dans ce que l'en-tête de ce fichier interdit depuis le premier jour.
+
+**3. La bibliothèque ira jusqu'au commercial.** Ce qui ouvre une collision avec le sous-main, qui
+sait repousser un rappel de 30, 7 ou 60 jours. La ligne à tenir : le calendrier porte des
+**campagnes**, le sous-main porte des **clients**. Le jour où le calendrier nomme un client, le
+doublon de la règle 7 est de retour.
+
+**4. La page publique ne bouge pas.** Elle reste en liste, gratuite, sans compte. Le calendrier
+devient donc le premier objet du site à vivre à deux endroits, et l'exception est écrite dans
+`CLAUDE.md` : sans ça, quelqu'un la « corrigera » de bonne foi en appliquant la règle du dessus.
+
+### L'affichage : trois vues, et la quatrième écartée
+
+Ted : « à toi de me trouver la meilleure option. »
+
+**La vue mois n'était pas défendable avant l'arbitrage 3, et je l'ai proposée quand même parce que
+cet arbitrage la rendait défendable.** Avec cinq échéances par an, une grille de mois est vide
+vingt-huit jours sur trente et un, et une grille vide dit « cet outil ne sert à rien ». Avec la
+bibliothèque complète, un vigneron aura trois à huit choses par mois. C'est ce qui la fait tenir.
+Si l'arbitrage 3 tombe, cette vue tombe avec.
+
+Son défaut propre est réglé sous la grille et pas dans la case : une case de mois fait cent pixels
+de large, elle ne porte pas un intitulé, un public et une source. Le détail complet est en liste
+sous la grille, la case ne fait que dire qu'il y a quelque chose.
+
+**La vue année est celle qui vend l'outil.** Douze mini-mois, un point par occurrence. La DRM du
+10 de chaque mois s'y lit d'un coup d'œil, ce qu'aucune autre vue ne montre.
+
+**La semaine est écartée, et pas faute de temps.** Un agenda de semaine est une grille d'heures.
+Aucune occurrence de ce calendrier n'en porte, et ce serait un emploi du temps vide.
+
+### Trois défauts que seule la capture a montrés
+
+Aucun n'a fait échouer la charte ni le banc. Le harnais est celui du 07/09/2026 : monter le module
+en jsdom sur le vrai dépôt, assembler une page avec les vraies feuilles, capturer avec Playwright.
+
+1. **La zone s'écrasait sur quarante pixels.** `.bureau-plan` est une grille de douze colonnes et
+   ma zone n'en demandait aucune. Corrigé, mais surtout **déplacé** : la règle est dans
+   `style.css` et pas dans la feuille de la pièce, parce que `seule()` montre le conteneur AVANT
+   que la feuille chargée au clic soit posée. Dans la feuille de la pièce, la zone se serait
+   écrasée pendant tout le chargement.
+2. **Une barre de défilement apparaissait pour six pixels d'ombre.** `--ombre-dure` déborde du
+   tableau, le cadre en `overflow-x: auto` croyait déborder. Le retrait à droite et en bas n'est
+   pas de l'espacement, c'est la place de l'ombre.
+3. **« Lire l'articleSource : Douane »**, en un seul mot. La page publique joint ses liens par
+   « · » dans une chaîne HTML ; en construisant les nœuds un par un pour respecter la règle du
+   bureau, on perd le séparateur sans rien casser.
+
+### Un écart de contenu, signalé et pas corrigé
+
+La page publique promet qu'« un dépôt qui tombe un samedi, un dimanche ou un jour férié se reporte
+au premier jour ouvré suivant ». `prochaine()` ne le fait pas. La page promet un calcul que le
+code ne fait pas. Soit on écrit le report, soit on retire la phrase ; laisser les deux est le pire
+des trois états. À trancher au lot 2, c'est noté dans `CLAUDE.md`.
+
+### Un défaut ancien réparé en passant
+
+`lireAdresse()` n'acceptait comme adresse que les quatre pièces de vente, celles qui portent
+`viti`. Un favori sur `/mon-bureau/#taches` ouvrait donc « Ma journée », sans erreur et sans que
+personne ne comprenne pourquoi. Le filtre porte maintenant sur toutes les pièces sauf le panneau
+de réglages, qui n'est pas une destination. `#echeances` reste un alias du calendrier, pour les
+favoris déjà posés.
+
+### Ce qui reste
+
+Les lots 2 à 5 sont dans `PLAN_calendrier.md` : le modèle à deux dates et la bibliothèque, les
+occurrences du vigneron, l'abonnement agenda, puis le paquet d'occurrences prêtes, qui est du
+travail d'édition et peut avancer en parallèle.
+
+`npm run verif` : conforme, 90 contrôles au banc du bureau, 0 échec.
+
+---
+
 ## 08/09/2026, matin. « Ça tourne fluide et ça monte en puissance ? » — mesuré, puis corrigé
 
 Ted : « peut-on optimiser la base pour que ça tourne de façon fluide et permette une

@@ -1,0 +1,378 @@
+/* ===========================================================================
+   LE BUREAU DU VIGNERON — LA FEUILLE DE LA PIECE « LE CALENDRIER »
+   ===========================================================================
+   Posee par src/js/bdv-nav.js au premier clic sur la piece, jamais a
+   l'ouverture du bureau. Elle n'est donc dans AUCUN HTML, comme bdv-ecrans.css
+   et bdv-panneau.css, et elle est nommee a la main dans scripts/charte.mjs :
+   une feuille chargee par du code ne se devine pas.
+
+   TOUT EST SOUS `.bdv-cal`, ET C'EST UNE CONDITION. Cette feuille s'ajoute a
+   src/css/style.css dans une page qui l'a deja. Elle reutilise volontairement
+   les classes `.echeances` et `.echeance` de la page publique pour la vue
+   liste : sans le scope, la moindre retouche ici changerait aussi l'allure de
+   /outils/echeances/, et personne ne ferait le lien.
+
+   LA MATIERE. Un bloc a effeuiller, du papier a en-tete pour la grille, du
+   carton en retrait pour les jours qui ne sont pas du mois. Aucun rayon, une
+   seule ombre, celle du site. Cf. LA REGLE DU PLATEAU dans CLAUDE.md.
+
+   LES PAIRES DE CONTRASTE, mesurees avant d'etre ecrites :
+     --muted sur --paper-deep .............. 4,8:1  AA
+     --ink sur --paper-light ............... > 12:1 AAA
+     --on-dark sur --bordeaux-deep ......... > 11:1 AAA
+     --bordeaux sur --paper-light .......... > 11:1 AAA
+   --cork n'apparait qu'en filet, jamais en encre, et --on-dark-faint nulle
+   part : il tombe a 3,0:1 et c'est du texte a lire.
+   =========================================================================== */
+
+/* LA ZONE ELLE-MEME EST DANS src/css/style.css, `.bdv-cal > .zone` : sa colonne
+   de grille et son conteneur nomme doivent exister AVANT que cette feuille-ci soit
+   posee, parce que la piece est montree avant d'etre habillee. */
+
+/* ---------------------------------------------------------------------------
+   LA BARRE : la periode a gauche, les trois vues a droite.
+--------------------------------------------------------------------------- */
+.bdv-cal .cal__barre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-s);
+  margin-bottom: var(--e-m);
+  padding-bottom: var(--e-s);
+  border-bottom: var(--trait) solid var(--rule);
+}
+
+.bdv-cal .cal__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--e-xs);
+}
+
+.bdv-cal .cal__periode {
+  margin: 0;
+  min-width: 9rem;
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  line-height: var(--lh-serre);
+  letter-spacing: var(--ls-serre);
+  text-transform: capitalize;
+}
+
+.bdv-cal .cal__fleche {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: var(--trait) solid var(--rule-fort);
+  border-radius: var(--r-nul);
+  background: var(--paper-light);
+  color: var(--bordeaux);
+  cursor: pointer;
+  transition: background var(--tr-rapide);
+}
+.bdv-cal .cal__fleche:hover { background: var(--paper-deep); }
+
+.bdv-cal .cal__auj {
+  margin-left: var(--e-xs);
+  padding: var(--e-xs) var(--e-s);
+  font-size: var(--t-petit);
+}
+
+.bdv-cal .cal__vues { display: flex; }
+
+.bdv-cal .cal__vue {
+  padding: var(--e-xs) var(--e-s);
+  border: var(--trait) solid var(--rule-fort);
+  border-radius: var(--r-nul);
+  background: var(--paper-light);
+  color: var(--muted);
+  font-family: var(--font-corps);
+  font-size: var(--t-petit);
+  letter-spacing: var(--ls-doux);
+  cursor: pointer;
+  transition: background var(--tr-rapide), color var(--tr-rapide);
+}
+/* Les trois se touchent, comme les onglets d'un classeur : un seul filet
+   entre deux, et pas deux filets colles qui feraient une barre grasse. */
+.bdv-cal .cal__vue + .cal__vue { border-left: 0; }
+.bdv-cal .cal__vue:hover { background: var(--paper-deep); color: var(--ink); }
+.bdv-cal .cal__vue--actif {
+  background: var(--bordeaux-deep);
+  color: var(--on-dark);
+}
+
+/* ---------------------------------------------------------------------------
+   L'ANNEAU DE FOCUS. Il est POSE A L'INTERIEUR sur tout ce qui vit dans une
+   case de calendrier : une case de mois fait une centaine de pixels, et un
+   anneau a trois pixels dehors tomberait pile sur le filet de la case voisine
+   et y disparaitrait. Le meme defaut qu'au listing du sous-main, 07/09/2026.
+   La surface est claire partout ici, donc l'anneau est bordeaux : 11:1, tres
+   au-dessus du seuil de 3:1 des indicateurs de focus.
+--------------------------------------------------------------------------- */
+.bdv-cal .cal__fleche:focus-visible,
+.bdv-cal .cal__vue:focus-visible,
+.bdv-cal .cal__coche:focus-visible,
+.bdv-cal .cala__t:focus-visible {
+  outline: var(--trait-fort) solid var(--bordeaux);
+  outline-offset: var(--trait);
+}
+.bdv-cal .calo__b:focus-visible {
+  outline: var(--trait-fort) solid var(--bordeaux);
+  outline-offset: calc(var(--trait-fort) * -1);
+}
+
+/* ---------------------------------------------------------------------------
+   LA VUE MOIS
+   Un cadre qui peut deborder defile DANS son cadre, jamais en poussant la page.
+--------------------------------------------------------------------------- */
+/* Le retrait a droite et en bas n'est pas de l'espacement : c'est la place de
+   --ombre-dure, qui deborde de 6 px. Sans lui, le cadre croit qu'il deborde et
+   fait apparaitre une barre de defilement pour une ombre. */
+.bdv-cal #calCorps[data-vue="mois"] {
+  overflow-x: auto;
+  padding: 0 var(--e-s) var(--e-s) 0;
+}
+
+.bdv-cal .calm {
+  width: 100%;
+  min-width: 38rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+  box-shadow: var(--ombre-dure);
+}
+
+.bdv-cal .calm th {
+  padding: var(--e-xs) var(--e-s);
+  border: var(--trait) solid var(--rule);
+  background: var(--paper-deep);
+  color: var(--muted);
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+}
+.bdv-cal .calm th abbr { text-decoration: none; }
+
+.bdv-cal td.calm__c {
+  height: 5.5rem;
+  padding: var(--e-xs);
+  border: var(--trait) solid var(--rule);
+  background: var(--paper-light);
+  color: var(--ink);
+  vertical-align: top;
+}
+/* Le samedi et le dimanche respirent autrement : c'est le papier du plateau et
+   pas celui de la page, la difference se sent sans se lire. */
+.bdv-cal td.calm__c[data-repos="oui"] { background: var(--paper); }
+/* Les jours du mois d'avant et d'apres sont la pour que la semaine soit
+   entiere, pas pour etre lus. */
+.bdv-cal td.calm__c[data-hors="oui"] {
+  background: var(--paper-deep);
+  color: var(--muted);
+}
+
+.bdv-cal .calm__n {
+  display: inline-block;
+  min-width: 1.5rem;
+  padding: 0 var(--e-xs);
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  line-height: 1.5;
+  text-align: center;
+}
+/* AUJOURD'HUI : un cachet, pas une couleur de fond sur toute la case. Une case
+   entierement bordeaux avalerait les intitules qu'elle porte. */
+.bdv-cal td.calm__c[data-auj="oui"] .calm__n {
+  background: var(--bordeaux-deep);
+  color: var(--on-dark);
+  font-weight: 500;
+}
+
+.bdv-cal .calm__l {
+  margin: var(--e-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bdv-cal .calo { margin-bottom: 2px; }
+
+.bdv-cal .calo__b {
+  display: block;
+  width: 100%;
+  padding: 2px var(--e-xs);
+  border: 0;
+  border-left: var(--trait-accent) solid var(--bordeaux);
+  border-radius: var(--r-nul);
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  line-height: var(--lh-normal);
+  text-align: left;
+  /* Un intitule tient sur une ligne dans une case de cent pixels, ou il ne
+     tient pas. Le titre complet est dans le title et dans la liste du dessous. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+button.calo__b { cursor: pointer; }
+button.calo__b:hover { background: var(--cork); }
+
+.bdv-cal .calo[data-niveau="urgent"] .calo__b,
+.bdv-cal .calo[data-niveau="aujourdhui"] .calo__b { border-left-color: var(--danger-deep); }
+.bdv-cal .calo[data-niveau="passe"] .calo__b { border-left-color: var(--cork); }
+
+.bdv-cal .calo[data-fait="oui"] .calo__b {
+  background: var(--ok-bg);
+  color: var(--muted);
+  border-left-color: var(--ok);
+  text-decoration: line-through;
+}
+
+/* ---------------------------------------------------------------------------
+   LE DETAIL SOUS LA GRILLE, et sous la vue annee.
+--------------------------------------------------------------------------- */
+.bdv-cal .cal__detail { margin-top: var(--e-l); }
+
+.bdv-cal .cal__detailt {
+  margin: 0 0 var(--e-s);
+  padding-bottom: var(--e-xs);
+  border-bottom: var(--trait-fort) solid var(--rule-fort);
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  color: var(--muted);
+}
+
+.bdv-cal .cal__vide {
+  margin: var(--e-s) 0 0;
+  color: var(--muted);
+  font-size: var(--t-base);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   LA VUE ANNEE : douze mini-mois. La grille se remplit toute seule selon la
+   place disponible, elle ne compte pas les colonnes a la main.
+--------------------------------------------------------------------------- */
+.bdv-cal .cala {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: var(--e-m);
+}
+
+.bdv-cal .cala__m {
+  padding: var(--e-s);
+  border: var(--trait) solid var(--rule);
+  background: var(--paper-light);
+}
+
+.bdv-cal .cala__t {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--e-xs);
+  padding: 0 0 var(--e-xs);
+  border: 0;
+  border-bottom: var(--trait) solid var(--rule);
+  border-radius: var(--r-nul);
+  background: none;
+  color: var(--bordeaux);
+  font-family: var(--font-titre);
+  font-size: var(--t-base);
+  text-align: left;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.bdv-cal .cala__t:hover { color: var(--bordeaux-vif); }
+
+.bdv-cal .cala__g {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.bdv-cal .cala__g th {
+  padding: 0;
+  color: var(--muted);
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  font-weight: 400;
+  text-align: center;
+}
+.bdv-cal .cala__g th abbr { text-decoration: none; }
+
+.bdv-cal td.cala__c {
+  padding: 1px 0;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  line-height: 1.6;
+  text-align: center;
+}
+/* Rien du tout pour les jours d'un autre mois : un fond, meme pale, se lisait
+   comme une barre pleine dans une grille de trois centimetres. */
+.bdv-cal td.cala__c[data-hors="oui"] { visibility: hidden; }
+/* UN JOUR PLEIN SE VOIT DE LOIN, c'est tout l'objet de cette vue : on ne lit
+   pas douze grilles, on repere les mois charges. */
+.bdv-cal td.cala__c[data-plein="oui"] {
+  background: var(--bordeaux-deep);
+  color: var(--on-dark);
+  font-weight: 500;
+}
+.bdv-cal td.cala__c[data-auj="oui"] { box-shadow: inset 0 -2px 0 0 var(--cork); }
+
+/* ---------------------------------------------------------------------------
+   LA VUE LISTE : elle emprunte `.echeances` et `.echeance` a la page publique.
+   Rien a redefinir, sauf ce que la page publique ne connait pas, parce qu'on
+   n'y coche rien : l'etat « fait » et son bouton.
+--------------------------------------------------------------------------- */
+.bdv-cal .cal__coche {
+  /* Pas de marge a droite : le « · » qui suit fait l'espacement, et les deux
+     ensemble creusaient un trou entre le bouton et le premier lien. */
+  padding: 2px var(--e-s);
+  border: var(--trait) solid var(--bordeaux);
+  border-radius: var(--r-nul);
+  background: var(--paper-light);
+  color: var(--bordeaux);
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  letter-spacing: var(--ls-doux);
+  cursor: pointer;
+  transition: background var(--tr-rapide), color var(--tr-rapide);
+}
+.bdv-cal .cal__coche:hover {
+  background: var(--bordeaux);
+  color: var(--on-dark);
+}
+.bdv-cal .cal__coche[aria-pressed="true"] {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.bdv-cal .cal__coche[aria-pressed="true"]:hover {
+  background: var(--ok);
+  color: var(--on-dark);
+}
+
+.bdv-cal .echeance[data-fait="oui"] .echeance__titre { text-decoration: line-through; }
+.bdv-cal .echeance[data-fait="oui"] .echeance__quand { color: var(--ok); }
+
+/* ---------------------------------------------------------------------------
+   QUAND LA ZONE SE RESSERRE
+   Le seuil est pose sur le CONTENU de la zone, ce que compare une requete de
+   conteneur, et pas sur sa largeur exterieure. Une zone de 728 px n'offre que
+   680 px de contenu, soit 42,5 rem : un seuil a 44 rem basculerait le portable
+   le plus repandu, ce qui n'est pas voulu.
+--------------------------------------------------------------------------- */
+@container calendrier (max-width: 38rem) {
+  .bdv-cal .cal__barre { flex-direction: column; align-items: stretch; }
+  .bdv-cal .cal__periode { min-width: 0; }
+  .bdv-cal .cal__vues > .cal__vue { flex: 1 1 0; text-align: center; }
+  .bdv-cal .cala { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
+  .bdv-cal td.calm__c { height: 4.5rem; }
+}

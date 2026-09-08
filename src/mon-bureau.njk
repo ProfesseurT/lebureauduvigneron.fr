@@ -215,6 +215,74 @@ permalink: /mon-bureau/
       </section>
     </div>
 
+    <!-- LE CALENDRIER, lot 1 du chantier du 08/09/2026. Voir PLAN_calendrier.md.
+
+         POURQUOI CETTE PIECE EXISTE. Jusqu'ici « Le calendrier » etait le seul
+         intercalaire de la barre qui EJECTAIT hors du bureau, vers la page
+         publique /outils/echeances/, qui n'a pas d'intercalaires. C'est ce que
+         Ted a signale en ouvrant le chantier.
+
+         La coque est ici et masquee des l'ouverture, comme les ecrans de vente :
+         ce sont sa feuille et son module qui attendent le premier clic, pas ses
+         balises. La classe `bdv-cal` porte le scope de src/css/bdv-calendrier.css,
+         qui reutilise volontairement les classes `.echeance` de la page publique
+         pour sa vue liste. Sans le scope, retoucher l'une changerait l'autre.
+
+         Le corps est vide : src/js/bdv-calendrier.js le remplit. Ce qui est ecrit
+         ici est le chrome, qui ne bouge pas d'une vue a l'autre, et il est dans le
+         gabarit pour que la charte du bureau le voie. -->
+    <div class="bureau-plan bdv-cal" id="bureauCalendrier" hidden>
+      <section class="zone">
+        <div class="zone__tete">
+          <h2>Le calendrier</h2>
+          <span class="zone__note" id="calNote"></span>
+        </div>
+
+        <div class="cal__barre">
+          {# Les fleches sont des traces SVG et pas des entites HTML, comme les
+             huit traces de la barre du bureau : meme grille de 20 sur 20, meme
+             epaisseur, meme currentColor. Une entite de plus demanderait une
+             ligne dans ENTITES_ATTENDUES de scripts/charte.mjs, et ce serait une
+             fleche de navigation rangee parmi des icones. #}
+          <div class="cal__nav" id="calNav">
+            <button class="cal__fleche" type="button" id="calPrec" aria-label="La période précédente">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor"
+                   stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"
+                   vector-effect="non-scaling-stroke" aria-hidden="true" focusable="false">
+                <path d="M12 4L6 10l6 6"/>
+              </svg>
+            </button>
+            <p class="cal__periode" id="calPeriode" aria-live="polite"></p>
+            <button class="cal__fleche" type="button" id="calSuiv" aria-label="La période suivante">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor"
+                   stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"
+                   vector-effect="non-scaling-stroke" aria-hidden="true" focusable="false">
+                <path d="M8 4l6 6-6 6"/>
+              </svg>
+            </button>
+            <button class="btn btn--bordeaux cal__auj" type="button" id="calAuj">Aujourd'hui</button>
+          </div>
+
+          {# Trois vues et pas quatre. La semaine a ete ecartee : un agenda de
+             semaine est une grille d'heures, et aucune occurrence de ce
+             calendrier n'en porte. Ce serait un emploi du temps vide. #}
+          <div class="cal__vues" role="group" aria-label="Comment afficher ton calendrier">
+            <button class="cal__vue" type="button" data-cal-vue="mois" aria-pressed="false">Le mois</button>
+            <button class="cal__vue" type="button" data-cal-vue="annee" aria-pressed="false">L'année</button>
+            <button class="cal__vue" type="button" data-cal-vue="liste" aria-pressed="false">La liste</button>
+          </div>
+        </div>
+
+        <div id="calCorps"></div>
+
+        <p class="zone__pied">
+          Les dates viennent des textes officiels, chaque occurrence porte sa source.
+          Ce calendrier est un pense-bête, il ne remplace ni ton comptable ni ton service
+          des douanes.
+        </p>
+      </section>
+    </div>
+
     <!-- LES ECRANS DE VENTE, lot 2c du 07/09/2026. La MEME coque que celle du tableau de
          bord, par le meme include : deux coques recopiees auraient divergé le jour ou
          l'une des deux aurait gagne un ecran.
@@ -838,10 +906,13 @@ permalink: /mon-bureau/
     /* LE BLOC MENE AU CALENDRIER, et plus a l'article de l'echeance. Avant, cliquer
        sur le pense-bete pouvait ouvrir un article de blog : on cliquait sur une date
        et on tombait sur un texte. On clique sur un calendrier pour voir le
-       calendrier. L'article reste atteignable depuis la piece elle-meme. */
+       calendrier. L'article reste atteignable depuis la piece elle-meme.
+       Depuis le 08/09/2026 il mene A LA PIECE du bureau et plus a la page publique :
+       le clic est intercepte par bdv-nav.js, qui attrape tous les liens en
+       /mon-bureau/# poses ailleurs que dans la barre. On ne quitte plus le bureau. */
     var a = document.createElement('a');
     a.className = 'calbloc__une';
-    a.href = '/outils/echeances/';
+    a.href = '/mon-bureau/#calendrier';
     a.setAttribute('data-niveau', ECHEANCE.niveau);
     var mois = document.createElement('span'); mois.className = 'calbloc__mois';
     mois.textContent = ECHEANCE.date.toLocaleDateString('fr-FR', { month: 'long' });
@@ -885,7 +956,7 @@ permalink: /mon-bureau/
     var tout = document.createElement('p');
     tout.className = 'zone__pied';
     var l = document.createElement('a');
-    l.href = '/outils/echeances/';
+    l.href = '/mon-bureau/#calendrier';
     l.textContent = n > 1 ? 'Les ' + n + ' échéances suivies' : 'Tout le calendrier';
     tout.appendChild(l);
     boite.appendChild(tout);

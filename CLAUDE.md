@@ -16,6 +16,24 @@ vigneron connecte : un agenda, un composeur de signature, un ecran d'administrat
 outils ouverts a toute la filiere, eux, gardent leur page sous `/outils/` : ils sont lus par
 des gens qui n'ont pas de compte, et ils n'ont rien a faire dans le bureau de quelqu'un.
 
+### L'EXCEPTION DU CALENDRIER, 08/09/2026 : un objet, DEUX endroits
+
+Le calendrier reglementaire est le premier objet du site a vivre aux deux endroits a la
+fois, et ce n'est pas un oubli de rangement.
+
+- `/outils/echeances/` reste la PAGE PUBLIQUE, en vue liste, gratuite, sans compte,
+  referencee. C'est la porte d'entree, et la premiere raison pour un inconnu de venir.
+- `/mon-bureau/#calendrier` est la PIECE, avec ses trois vues, la coche des obligations,
+  et bientot les occurrences que le vigneron cree lui-meme et la synchro de son agenda.
+  C'est la difference qui justifie de creer un compte.
+
+Le calcul est commun, `bdv-echeances.js`, et il n'y en aura jamais deux. Ce qui separe les
+deux endroits, c'est ce qu'on peut y FAIRE, jamais ce qu'ils calculent.
+
+Avant ce jour-la, l'intercalaire « Le calendrier » de la barre etait le SEUL a ejecter hors
+du bureau, vers un ecran sans intercalaires. C'est le defaut que Ted a signale en ouvrant le
+chantier. Ne pas le retablir en croyant appliquer la regle du dessus.
+
 Concretement, une piece nouvelle s'ajoute dans `PIECES`, en tete de `src/js/bdv-nav.js`, et
 son ecran dans la coque `src/_includes/components/ecrans-vente.njk`. Les identifiants
 doivent etre les memes que ceux de `NAV` dans `src/js/bdv-ecrans.js` : rien ne le garantit
@@ -38,12 +56,20 @@ Plus rien n'est autonome, et chercher une fonction dans une page avant de cherch
   et le SEUL point d'entree des reglages, `BdvNav.ouvrirReglages()`. Les trois boutons qui
   ouvrent le panneau passent par lui : sans ca, celui qui l'appelle sans demander le moteur
   ouvre un panneau dont « Ma base » et « Le classement » restent vides, sans erreur.
+- `bdv-calendrier.js` : la piece « Le calendrier », ses trois vues et sa bascule. Chargee au
+  PREMIER CLIC sur la piece, avec `bdv-calendrier.css`, et rien d'autre : elle ne demande ni
+  le moteur, ni Chart.js, ni le lecteur xlsx, parce qu'elle ne lit aucune ligne de vente.
+  **Elle ne calcule aucune date et n'ecrit dans aucune table.** Le calcul est dans
+  `bdv-echeances.js`, la coche passe par `BdvTaches.basculerOccurrence()`.
 - `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de reglages partage, plus
   `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`, `bdv-canaux.js`.
 
-Trois feuilles de style, dont deux ne sont dans AUCUN HTML : `style.css` (le site, liee par
+Quatre feuilles de style, dont trois ne sont dans AUCUN HTML : `style.css` (le site, liee par
 le layout), `bdv-ecrans.css` (posee par `bdv-nav.js`, et portee par `.bdv-ventes` : voir plus
-bas), `bdv-panneau.css` (posee par `bdv-reglages.js`, portee par `.bdvr-panneau`).
+bas), `bdv-panneau.css` (posee par `bdv-reglages.js`, portee par `.bdvr-panneau`), `bdv-calendrier.css`
+(posee par `bdv-nav.js` au premier clic sur le calendrier, portee par `.bdv-cal`). Les trois
+feuilles chargees en JavaScript sont nommees A LA MAIN dans `scripts/charte.mjs` : une feuille
+oubliee la echappe entierement au controle, et rien ne le signale.
 
 ## LA REGLE DU PLATEAU
 
@@ -171,6 +197,16 @@ lance immediatement apres lit une page a moitie ecrite. Un echec isole qui ne se
 pas au deuxieme essai vient de la, pas du code : le relancer suffit, mais il faut le
 relancer, pas l'ignorer.
 
+## Un ecart de contenu ouvert, repere le 08/09/2026
+
+La page `/outils/echeances/` promet noir sur blanc qu'« un depot qui tombe un samedi, un
+dimanche ou un jour ferie se reporte au premier jour ouvre suivant ». `prochaine()` dans
+`bdv-echeances.js` NE LE FAIT PAS : elle rend la date brute de la regle. La page promet donc
+un calcul que le code ne fait pas.
+
+Trois etats possibles, et celui d'aujourd'hui est le pire : soit on ecrit le report, soit on
+retire la phrase. A trancher au lot 2 du chantier calendrier.
+
 ## Regles de contenu
 
 - Aucun tiret cadratin nulle part. Remplacer par une virgule, un point ou deux points.
@@ -256,6 +292,21 @@ Corollaire : quand le panneau enregistre un reglage lui-meme, le moteur l'ADOPTE
 `npm run banc:reglages` verifie la charge envoyee pour chaque geste. Ne pas ajouter une
 cinquieme colonne sans sa propre fonction et son controle.
 
+### 7 bis. Le calendrier et Mes taches peuvent COCHER TOUS LES DEUX, 08/09/2026
+
+Decision de Ted, et la frontiere entre les deux pieces n'est pas la propriete, c'est la DATE :
+une occurrence du calendrier porte toujours un debut et une fin, une tache peut n'en porter
+aucune.
+
+**C'est sans danger a une seule condition, et elle n'est tenue que par une fonction :** les
+deux ecrivent LA MEME LIGNE, `ech:<cle>:<AAAA-MM-JJ>`, par `BdvTaches.basculerOccurrence()`.
+`bdv-taches.js` reste le seul fichier qui ecrive dans la table des taches. Donner au
+calendrier son propre stockage de « fait », c'est deux endroits qui repondront
+« la DRM de septembre est-elle faite » et qui se contrediront au premier geste.
+
+`basculer()` ne suffisait pas : elle cherche sa tache dans `toutes()`, qui ne connait que la
+PROCHAINE occurrence de chaque obligation. Le calendrier affiche octobre en septembre.
+
 ### 7. Mes taches porte DEUX natures, et pas trois
 
 La piece « Mes taches » porte les taches que le vigneron ecrit lui-meme et les
@@ -274,10 +325,10 @@ Ce que la base porte, c'est celles qui ont ete cochees, avec l'OCCURRENCE dans
 l'identifiant (`ech:drm:2026-09-10`), pour que celle du mois suivant arrive vierge sans
 tache planifiee. Decocher une obligation supprime la ligne.
 
-### 8. Trois conteneurs se partagent la zone de travail
+### 8. Quatre conteneurs se partagent la zone de travail
 
-`bureauJournee`, `bureauTaches` et `bureauVentes`. La fonction `seule()` de `bdv-nav.js`
-les nomme TOUS LES TROIS a chaque bascule. Ne jamais poser un `hidden` a la main dans une
+`bureauJournee`, `bureauTaches`, `bureauCalendrier` et `bureauVentes`. La fonction `seule()`
+de `bdv-nav.js` les nomme TOUS LES QUATRE a chaque bascule. Ne jamais poser un `hidden` a la main dans une
 branche : le defaut qu'on attend n'est pas « la piece ne s'affiche pas », c'est
 « l'ancienne reste affichee dessous ».
 

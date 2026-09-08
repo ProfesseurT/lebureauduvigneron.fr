@@ -6201,6 +6201,26 @@ button.bureau-nav__item:hover {
   container-name: taches;
 }
 
+/* LA ZONE DE LA PIECE « LE CALENDRIER », 08/09/2026.
+   Elle est designee par le scope de la piece, `.bdv-cal > .zone`, et pas par un
+   modificateur a elle : `zone--calendrier` existe deja, c'est le petit bloc du
+   calendrier dans « Ma journee », et deux classes qui se ressemblent a une lettre
+   pres dans la meme feuille sont un piege pose pour plus tard.
+
+   ELLE EST ICI ET PAS DANS src/css/bdv-calendrier.css, et ce n'est pas un detail
+   de rangement : seule() montre le conteneur AVANT que la feuille de la piece soit
+   posee. Sans sa colonne de grille dans la feuille du site, la zone s'ecrase sur
+   une quarantaine de pixels pendant tout le chargement. Vu a la capture. */
+.bdv-cal > .zone {
+  grid-column: span 12;
+  /* Conteneur nomme, comme le sous-main et les taches : la grille du mois se juge
+     sur la largeur de SA zone, jamais sur celle de la fenetre. Sans ces deux
+     lignes, la requete de conteneur de bdv-calendrier.css ne s'appliquerait
+     jamais, en silence. */
+  container-type: inline-size;
+  container-name: calendrier;
+}
+
 /* Le formulaire. En haut de la piece, et le champ garde le focus apres l'ajout. */
 .tachesf { margin: 0 0 var(--e-l); }
 .tachesf__l {

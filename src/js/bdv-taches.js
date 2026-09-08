@@ -224,6 +224,39 @@
   }
   function supprimer(tid) { ecrire(tid, null); }
 
+  /* ---------------- CE QUE LE CALENDRIER APPELLE ----------------
+     Ajoute le 08/09/2026, lot 1 du chantier calendrier. La piece « Le
+     calendrier » et cette piece-ci peuvent toutes les deux cocher une
+     obligation, et c'est une demande de Ted. C'EST SANS DANGER A UNE SEULE
+     CONDITION, et ces deux fonctions sont cette condition : les deux ecrivent
+     LA MEME LIGNE, `ech:<cle>:<AAAA-MM-JJ>`, par le meme chemin. Le jour ou le
+     calendrier se donnera son propre stockage de « fait », les deux pieces se
+     contrediront au premier geste pose d'un cote.
+
+     POURQUOI basculer() NE SUFFISAIT PAS. Elle cherche sa tache dans toutes(),
+     qui ne connait que la PROCHAINE occurrence de chaque obligation. Le
+     calendrier, lui, affiche octobre en septembre : il doit pouvoir cocher une
+     DRM que toutes() n'a jamais listee. La ligne est donc construite ici, et
+     pas chez l'appelant, pour que ce fichier reste le seul endroit qui ecrive
+     dans la table des taches. */
+  function estFaite(tid) {
+    var l = lireCache()[tid];
+    return !!(l && l.fait_le);
+  }
+
+  function basculerOccurrence(cle, titre, jourIso) {
+    if (!cle || !jourIso) return false;
+    var tid = idOccurrence(cle, minuit(new Date(jourIso + 'T00:00:00')));
+    var maintenant = new Date().toISOString();
+    // Decocher SUPPRIME la ligne, exactement comme dans basculer() : une
+    // obligation pas faite est l'etat par defaut du monde, il n'y a rien a
+    // stocker pour le dire.
+    if (estFaite(tid)) { ecrire(tid, null); return false; }
+    ecrire(tid, { tache_id: tid, titre: titre || cle, source: 'echeance', ref: cle,
+                  echue_le: jourIso, fait_le: maintenant, maj_le: maintenant });
+    return true;
+  }
+
   /* ---------------- L'ECRAN ----------------
      Aucune donnee du vigneron ne passe par une chaine HTML : enveloppes construites
      ici, textes poses en textContent. Regle du bureau, pas une precaution de style. */
@@ -262,10 +295,12 @@
 
     if (t.source === 'echeance') {
       // Le lien vers la piece qui porte les sources officielles : cocher une DRM sans
-      // pouvoir relire ce qu'elle exige serait un piege.
+      // pouvoir relire ce qu'elle exige serait un piege. Depuis le 08/09/2026 c'est la
+      // PIECE du bureau et plus la page publique : on ne sort pas du bureau pour lire
+      // ce qu'une obligation exige.
       var a = document.createElement('a');
       a.className = 'tache__source';
-      a.href = '/outils/echeances/';
+      a.href = '/mon-bureau/#calendrier';
       a.textContent = 'Ce que ça exige';
       li.appendChild(a);
     } else {
@@ -306,6 +341,13 @@
        jamais ete ouverte. C'est le cas normal, pas un cas limite : on arrive sur
        « Ma journee », et c'est la qu'on doit voir ce qui presse. */
     if (window.bdvMajPanneau) { try { window.bdvMajPanneau(); } catch (e) {} }
+    /* ET ON PREVIENT LE RESTE DU BUREAU, par un evenement et pas par un appel.
+       La piece « Le calendrier » arrive au premier clic, ce fichier part avec la
+       page : un appel direct d'ici vers elle serait, la plupart du temps, un
+       appel a quelque chose qui n'existe pas encore. L'evenement est pose AVANT
+       le test de sortie ci-dessous, parce que le calendrier doit se repeindre
+       meme quand la piece « Mes taches » n'a jamais ete ouverte. */
+    try { document.dispatchEvent(new CustomEvent('bdv:taches')); } catch (e) {}
     if (!el('tachesAFaire')) return;
     var t = toutes();
     var afaire = t.filter(function (x) { return !x.fait_le; });
@@ -396,6 +438,7 @@
 
   window.BdvTaches = {
     ouvrir: ouvrir, rendre: rendre, charger: charger, punaises: punaises,
-    ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes
+    ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes,
+    estFaite: estFaite, basculerOccurrence: basculerOccurrence
   };
 })();

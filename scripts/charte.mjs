@@ -111,11 +111,16 @@ function parse(fichier) {
          - bdv-ecrans.css, posee par bdv-nav.js au premier clic sur une piece de vente ;
            elle porte huit jetons que le site n'a pas, dont --bordeaux-voile, appele par
            bdv-base.js. Sans elle, le controle les declare non declares, avec aplomb.
-         - bdv-panneau.css, posee par bdv-reglages.js quand le panneau s'ouvre.
+         - bdv-panneau.css, posee par bdv-reglages.js quand le panneau s'ouvre ;
+         - bdv-calendrier.css, posee par bdv-nav.js au premier clic sur « Le calendrier »,
+           ajoutee le 08/09/2026. Elle reutilise les classes `.echeance` de la page
+           publique sous son scope `.bdv-cal` : oubliee ici, ses regles echapperaient
+           entierement au controle, et personne ne le verrait.
        Nommees a la main : une feuille chargee par du code ne se devine pas, et une liste
        qui se devinerait toute seule finirait par ne plus rien surveiller. */
     if (DASH) {
-      for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css']) {
+      for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css',
+                       'src/css/bdv-calendrier.css']) {
         const abs = path.join(RACINE, f);
         if (fs.existsSync(abs)) liees.push(abs);
         else erreursHtml.push('feuille chargee en JavaScript introuvable : ' + f);

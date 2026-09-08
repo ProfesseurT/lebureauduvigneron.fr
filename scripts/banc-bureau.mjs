@@ -90,9 +90,15 @@ function bureau(hash) {
      l'appel : ce banc verifie l'enchainement des gestes, pas ce que le module ecrit,
      qui est le travail de scripts/banc-taches.mjs. */
   window.BdvTaches = { ouvrir: () => { appels.push({ taches: true }); } };
+  /* Le calendrier, comme les taches : la barre l'ouvre, le double note l'appel. La
+     difference est qu'il arrive par le chargeur, donc APRES le faux onload du script.
+     On pose le double des maintenant : jsdom n'execute pas le fichier charge, et sans
+     lui la branche trouverait `window.BdvCalendrier` indefini et ne dirait rien. */
+  window.BdvCalendrier = { ouvrir: () => { appels.push({ calendrier: true }); } };
   return { window, doc, charges, appels,
     journee: doc.getElementById('bureauJournee'),
     taches: doc.getElementById('bureauTaches'),
+    calendrier: doc.getElementById('bureauCalendrier'),
     ventes: doc.getElementById('bureauVentes'),
     nav: doc.getElementById('bureauNav'),
     clic(piece) {
@@ -122,12 +128,18 @@ t('l\'ordre porte l\'hypothese du document',
   === 'Ma journée | Mes tâches | Le calendrier | Mes clients | Mon année | Mes cuvées | Mon registre | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
-t('les cinq pieces internes pointent DANS le bureau',
+t('les six pieces internes pointent DANS le bureau',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
-    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 5);
-t('le calendrier pointe sur son outil',
-  [...B.nav.querySelectorAll('a')].some(a => a.getAttribute('href') === '/outils/echeances/'));
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 6);
+/* LE CALENDRIER EST UNE ADRESSE DU BUREAU depuis le 08/09/2026, et ce controle est
+   a l'envers de celui qu'il remplace. Il gardait l'inverse : que la piece pointe sur
+   /outils/echeances/. C'etait le defaut signale par Ted, la seule piece de la barre
+   qui ejectait hors du bureau. La page publique existe toujours, elle n'est
+   simplement plus la destination de cet intercalaire. */
+t('le calendrier ne sort plus du bureau',
+  [...B.nav.querySelectorAll('a')].every(a => a.getAttribute('href') !== '/outils/echeances/')
+  && [...B.nav.querySelectorAll('a')].some(a => a.getAttribute('href') === '/mon-bureau/#calendrier'));
 t('les reglages sont un bouton, pas un lien',
   B.nav.querySelector('[data-bdv-nav-panneau]').tagName === 'BUTTON');
 
@@ -154,8 +166,9 @@ t('les huit languettes restent toutes visibles',
 B.window.BdvNav.sansVitisoft(true);
 t('sans Vitisoft, les quatre pieces de vente disparaissent',
   lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,chercher,clients,produits');
-t('sans Vitisoft, la journee, le calendrier et les reglages RESTENT',
-  ['journee', 'echeances', 'reglages'].every(id => !lignes.find(l => l.dataset.piece === id).hidden));
+t('sans Vitisoft, la journee, les taches, le calendrier et les reglages RESTENT',
+  ['journee', 'taches', 'calendrier', 'reglages']
+    .every(id => !lignes.find(l => l.dataset.piece === id).hidden));
 B.window.BdvNav.sansVitisoft(false);
 t('avec Vitisoft, tout revient', lignes.filter(l => l.hidden).length === 0);
 
@@ -208,8 +221,8 @@ t('les quatre elements hors page sont remontes sous body',
   ['status', 'busyov', 'printReport', 'modale']
     .filter(id => B.doc.getElementById(id).parentNode !== B.doc.body).join(','));
 
-t('a l\'ouverture, « Ma journee » est affichee, les taches et les ventes masquees',
-  !B.journee.hidden && B.taches.hidden && B.ventes.hidden);
+t('a l\'ouverture, « Ma journee » est affichee, les trois autres pieces masquees',
+  !B.journee.hidden && B.taches.hidden && B.calendrier.hidden && B.ventes.hidden);
 t('rien n\'est charge avant le premier clic', B.charges.length === 0, B.charges.join(' '));
 
 /* MES TACHES, ajoutee le 07/09/2026. Trois conteneurs se partagent la zone de travail :
@@ -273,6 +286,59 @@ t('« Mes reglages » ouvre le panneau',
 t('« Mes reglages » ne change pas d\'ecran : le panneau s\'ouvre par-dessus',
   !B.journee.hidden && B.ventes.hidden);
 t('et n\'ecrit rien dans l\'adresse', B.window.location.hash === '', B.window.location.hash);
+
+/* ======================= LE CALENDRIER (08/09/2026) =======================
+   Un bureau NEUF, et pas celui des essais precedents : les controles des ecrans de
+   vente comptent les ressources chargees, et deux fichiers de plus dans le tableau
+   les feraient echouer pour une raison qui n'a rien a voir avec eux. */
+titre('Le calendrier, piece du bureau');
+
+const CAL = bureau();
+t('a l\'ouverture, le calendrier est masque et rien n\'est charge pour lui',
+  CAL.calendrier !== null && CAL.calendrier.hidden && CAL.charges.length === 0);
+
+CAL.clic('calendrier');
+t('un clic n\'affiche QUE le calendrier',
+  !CAL.calendrier.hidden && CAL.journee.hidden && CAL.taches.hidden && CAL.ventes.hidden);
+t('l\'adresse du calendrier suit',
+  CAL.window.location.hash === '#calendrier', CAL.window.location.hash);
+t('la piece cliquee devient la piece active',
+  CAL.doc.querySelector('.bureau-nav__ligne[data-piece="calendrier"] .bureau-nav__item--actif') !== null);
+await CAL.repos();
+/* DEUX FICHIERS, ET PAS SEPT. Le calendrier ne lit aucune ligne de vente : lui faire
+   tirer le moteur, Chart.js et le lecteur xlsx couterait 83 ko et plus pour afficher
+   une grille de trente et un jours. Ce controle est ce qui empechera qu'on l'accroche
+   au chargeur des ecrans de vente « parce que c'est deja ecrit ». */
+t('le calendrier charge sa feuille puis son module, et RIEN d\'autre',
+  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-calendrier.js',
+  CAL.charges.join(' | ') || '(aucune)');
+t('la piece est ouverte apres le chargement',
+  CAL.appels.some(a => a.calendrier), JSON.stringify(CAL.appels));
+
+CAL.clic('journee');
+t('revenir a « Ma journee » remasque le calendrier',
+  !CAL.journee.hidden && CAL.calendrier.hidden);
+CAL.clic('calendrier');
+await CAL.repos();
+t('un second passage ne recharge rien', CAL.charges.length === 2, CAL.charges.length + ' ressources');
+
+/* L'ADRESSE FAIT FOI A L'ARRIVEE, et pas seulement pour les pieces de vente. Ce
+   filtre exigeait `viti` jusqu'au 08/09/2026 : un favori sur /mon-bureau/#taches
+   ouvrait « Ma journee », sans erreur et sans que personne ne comprenne pourquoi.
+   Les deux pieces sans Vitisoft sont donc controlees ici. */
+const FAV1 = bureau('#calendrier');
+await FAV1.repos();
+t('un favori sur #calendrier ouvre le calendrier',
+  !FAV1.calendrier.hidden && FAV1.journee.hidden);
+const FAV2 = bureau('#taches');
+t('un favori sur #taches ouvre les taches',
+  !FAV2.taches.hidden && FAV2.journee.hidden);
+/* L'ancien nom de la piece reste une adresse valable : une adresse se met en favori,
+   c'est tout l'interet d'en avoir une, et un favori qui tombe a cote n'affiche rien. */
+const FAV3 = bureau('#echeances');
+await FAV3.repos();
+t('l\'ancien #echeances mene encore au calendrier',
+  !FAV3.calendrier.hidden && FAV3.journee.hidden);
 
 /* ======================= LE MOTEUR A LA DEMANDE ======================= */
 titre('Le moteur de la base, charge au besoin');
@@ -452,8 +518,11 @@ titre('Le plateau, dans l\'ordre de Ted');
     && ![...doc.querySelectorAll('h2')].some(h => /pense-b/i.test(h.textContent))
     && (doc.querySelector('.zone--calendrier .zone__tete h2') || {}).textContent === 'Le calendrier',
     zones.join(' > '));
+  /* Le bloc de « Ma journee » mene DANS le bureau depuis le 08/09/2026 : le calendrier
+     est une piece, plus une page. Le clic est intercepte par bdv-nav.js, qui attrape
+     tous les liens en /mon-bureau/# poses ailleurs que dans la barre. */
   t('le calendrier mene a la piece du calendrier et pas a un article',
-    /a\.href = '\/outils\/echeances\/'/.test(HTML) && !/a\.href = ECHEANCE\.e\.article/.test(HTML));
+    /a\.href = '\/mon-bureau\/#calendrier'/.test(HTML) && !/a\.href = ECHEANCE\.e\.article/.test(HTML));
 
   /* Le defaut : la ligne du sous-main etait un <button> qui contenait trois
      <button>. Le controle porte sur le CODE qui fabrique la ligne, parce que la
