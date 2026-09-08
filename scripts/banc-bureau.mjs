@@ -250,11 +250,17 @@ await B.repos();
 /* L'ORDRE EST UNE CONDITION, pas une preference : bdv-ecrans.js lit des variables de
    bdv-base.js des son analyse, et le moteur doit donc etre entierement la avant lui. Ce
    controle est ce qui empechera de « paralleliser pour aller plus vite » un jour. */
+/* La feuille des ecrans est passee EN TETE le 08/09/2026 : elle habille le bandeau de
+   statut et le voile d'attente, les deux seules choses que le moteur dise a l'ecran, et le
+   moteur peut parler sans qu'aucun ecran de vente n'ait jamais ete ouvert (un import lance
+   depuis le panneau de reglages). Une feuille n'a pas d'ordre d'execution a respecter, elle
+   n'apporte aucune variable : la seule condition reste que bdv-ecrans.js vienne apres le
+   moteur, et ce controle la garde. */
 const ATTENDU = [
+  '/css/bdv-ecrans.css',
   'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
   '/js/bdv-sync.js',
   '/js/bdv-base.js',
-  '/css/bdv-ecrans.css',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   '/js/bdv-ecrans.js'
@@ -349,8 +355,11 @@ t('a l\'ouverture du bureau, le moteur n\'est PAS charge',
 
 M.clic('reglages');
 await M.repos();
+/* « Et lui seul » veut dire : le moteur, sa feuille de statut, et RIEN des ecrans de vente.
+   Ni Chart.js, ni le lecteur xlsx, ni les 2 500 lignes de bdv-ecrans.js. */
 t('ouvrir les reglages charge le moteur, et lui seul',
-  M.charges.join(' | ') === ['https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+  M.charges.join(' | ') === ['/css/bdv-ecrans.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
     '/js/bdv-sync.js', '/js/bdv-base.js'].join(' | '), M.charges.join(' | '));
 t('le panneau s\'ouvre AVANT le moteur : il ne fait pas attendre pour « Toi »',
   M.appels[0] && M.appels[0].panneau === true, JSON.stringify(M.appels[0]));
@@ -367,7 +376,7 @@ await R1.repos();
 const R2 = bureau('#base');
 await R2.repos();
 t('le bouton de la barre et l\'adresse #base demandent tous deux le moteur',
-  R1.charges.length === 3 && R2.charges.length === 3,
+  R1.charges.length === 4 && R2.charges.length === 4,
   'barre : ' + R1.charges.length + ', adresse : ' + R2.charges.length);
 t('et tous deux rafraichissent le panneau une fois le moteur la',
   R1.appels.some(a => a.rafraichi) && R2.appels.some(a => a.rafraichi));

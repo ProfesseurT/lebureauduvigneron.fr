@@ -50,6 +50,19 @@
     try { return JSON.parse(localStorage.getItem(MIROIR_KEY)) || null; }
     catch (e) { return null; }
   }
+  /* OUBLIER LE MIROIR. Ajoute le 08/09/2026, appele par viderBase() dans bdv-base.js.
+     Cette cle est la seule source du sous-main et de l'ardoise du bureau : tant que
+     personne ne l'effacait, vider sa base laissait a l'ecran une file de rappels et un
+     chiffre d'affaires calcules sur des lignes qui n'existaient plus, et seul un
+     rechargement de la page les faisait disparaitre.
+
+     Elle vit ICI parce que la cle vit ici. Un removeItem ecrit depuis le moteur aurait
+     marche aujourd'hui et casse au premier renommage, sans un mot. */
+  function oublier() {
+    try { localStorage.removeItem(MIROIR_KEY); } catch (e) {}
+    return null;
+  }
+
   function ecrireMiroir(etat) {
     try { localStorage.setItem(MIROIR_KEY, JSON.stringify(etat)); } catch (e) {}
   }
@@ -472,6 +485,7 @@
     dansNJours: dansNJours,
     charger: charger,
     miroir: lireMiroir,
+    oublier: oublier,
     file: file,
     geste: geste,
     rejouer: rejouer,

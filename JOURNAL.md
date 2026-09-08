@@ -12,6 +12,73 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, fin de journée. Quatre défauts des réglages, quatre causes
+
+Ted : « tu dois réparer la fonction réglages. Je viens de supprimer ma base, j'ai désactivé /
+activé la coche Vitisoft pour voir les différences. » Quatre symptômes : les tableaux ne se
+mettent pas à jour seuls, le sous-main doit disparaître, impossible de remettre la base, et les
+messages de calcul passent derrière la modale.
+
+**Quatre symptômes, quatre causes indépendantes.** Aucune n'était « la fonction réglages ». Et la
+plus grosse n'avait rien à voir avec la coche Vitisoft : elle était là depuis la fusion du 07/09,
+à *chaque* ouverture des réglages depuis le bureau.
+
+### 1. « Ma base » était vide en permanence au bureau
+
+`monterMoteur()` n'était appelé que depuis `construire()`. Au tableau de bord ça suffit, le
+moteur part avec la page. Au bureau il arrive *après* le panneau, et plus personne ne rangeait
+les deux blocs. `renderBase()` écrivait donc bien sa zone de dépôt, mais dans le `p-base` de la
+coque des écrans de vente, resté `hidden` dans un conteneur masqué. Aucune erreur.
+
+**Ce qui est instructif, c'est pourquoi le banc ne l'a pas vu** : sa section 2 charge le moteur
+AVANT le panneau, l'ordre du tableau de bord et pas celui du bureau. Un banc doit reproduire
+l'ordre d'arrivée de la vraie page, pas seulement ses pièces. D'où la section 3, qui monte les
+deux dans l'ordre du bureau et vérifie où finit le div, pas ce qu'il contient.
+
+### 2. L'ardoise et le sous-main gardaient leurs chiffres
+
+Trois causes empilées. `viderBase()` effaçait les clés du moteur et oubliait celle de
+`bdv-crm.js`, la seule que lisent le sous-main et l'ardoise. `peindreArdoise()` ne savait que
+montrer la zone, jamais la cacher : ses deux `return` de tête sortaient sans y toucher. Et ces
+zones étaient peintes au chargement de la page, puis plus jamais.
+
+**Arbitrage demandé à Ted : quand le sous-main s'en va ?** Sa réponse : il n'existe pas si
+Vitisoft est répondu « non », sinon il s'en va seulement si aucun export n'a jamais été déposé.
+Un jour où tout est traité, la zone reste et dit « Rien à faire aujourd'hui. Profites-en. » On y
+a ajouté une règle non demandée mais du même esprit : une lecture qui a *échoué* ne cache jamais
+la zone, sinon une panne de réseau se lit « tu n'as rien à faire ».
+
+### 3. Les messages du moteur passaient derrière la modale
+
+`bdv-ecrans.css` n'était chargée qu'avec les écrans de vente, alors qu'elle habille les deux
+seules choses que le moteur dise à l'écran. Un import lancé depuis le panneau posait donc un
+bandeau **sans aucun style**, qui tombait dans le flux de la page. Et même habillé il était
+dessous : le statut à 900, le voile d'attente à 1000, à égalité avec le voile du panneau.
+L'échelle des couches est maintenant complète et ordonnée, et le panneau lit le jeton au lieu
+d'écrire 1000 en dur.
+
+### 4. Un drapeau qui ne savait que monter
+
+`PAS_VITISOFT` ne redescendait jamais. D'où `adopterVitisoft()`, sur le modèle d'`adopterObjectif`.
+
+### L'écart trouvé en chemin, et corrigé sur demande de Ted
+
+`effacer_mes_donnees()` supprimait la **ligne entière** de `reglages` : vider sa base effaçait
+donc aussi l'objectif, le mois d'exercice, les libellés et le classement. Invisible sur le poste
+de celui qui clique (l'objectif reste dans son navigateur et repart en base au geste suivant),
+total sur son deuxième appareil. Même forme de panne que « une écriture = une colonne ».
+
+Ted a tranché : on corrige dans la foulée. Le SQL est dans `supabase/lot6-vider-la-base.sql`,
+**à coller dans Supabase**, et tant qu'il n'est pas passé le défaut est encore en production.
+
+### Ce qu'on s'est promis de regarder
+
+Le report des échéances au premier jour ouvré, toujours ouvert depuis ce matin. Et le report du
+constat : `banc:journee` ne vérifie aucun chiffre, seulement si une zone est visible ou cachée.
+Les cinq contrôles à l'écran sur un export réel restent à faire.
+
+---
+
 ## 08/09/2026, après-midi. Le calendrier entre dans le bureau
 
 Ted : « on attaque la partie calendrier. L'outil doit s'intégrer comme le reste dans mon bureau.

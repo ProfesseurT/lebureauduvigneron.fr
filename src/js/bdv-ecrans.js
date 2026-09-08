@@ -2582,7 +2582,9 @@ async function demarrerEcransVente(depart){
   // doit pas retarder l'ouverture du tableau de bord de quelqu'un qui, lui, a bien Vitisoft.
   try{
     const p = await BdvCompte.profil();
-    if(p && p.utilise_vitisoft === 'non'){ PAS_VITISOFT = true; renderBase(); }
+    // Dans les DEUX sens, par la meme fonction que le panneau de reglages : un drapeau qui
+    // ne sait que monter est un drapeau qu'on oublie de baisser, et c'est arrive.
+    if(p) adopterVitisoft(p.utilise_vitisoft);
   }catch(e){ /* sans profil lisible, on ne montre rien : le doute ne se transforme pas en refus */ }
 }
 

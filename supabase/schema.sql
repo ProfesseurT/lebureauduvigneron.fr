@@ -382,10 +382,18 @@ revoke all on public.echanges from anon;
 grant select, insert, update, delete on public.echanges to authenticated;
 
 -- ---------------------------------------------------------------------------
--- 14. Tout effacer : les echanges partent avec le reste
+-- 14. Tout effacer : les echanges partent avec le reste, LES REGLAGES NON
 -- ---------------------------------------------------------------------------
 -- Contrairement aux signets, les echanges SONT des donnees de suivi commercial : ils
 -- suivent le meme sort que les ventes et le suivi client.
+--
+-- CORRIGE LE 08/09/2026, cf. supabase/lot6-vider-la-base.sql. Cette fonction faisait un
+-- DELETE sur la ligne entiere de `reglages`. Cette ligne porte deux natures : ce qui
+-- DECRIT la base (file_travail, resume_ventes, depose_le, deposes par le tableau de bord)
+-- et ce que le VIGNERON a choisi (objectif, exercice_debut, perso_labels, classement).
+-- « Vider la base » effacait les deux, sans le dire, et de facon invisible sur le poste
+-- de celui qui cliquait : l'objectif reste dans son navigateur et repart en base au geste
+-- suivant. Il ne perdait donc rien chez lui, et tout sur son deuxieme appareil.
 create or replace function public.effacer_mes_donnees()
 returns void language plpgsql security definer set search_path = public as $$
 declare moi uuid := auth.uid();
@@ -394,7 +402,10 @@ begin
   delete from public.echanges      where id = moi;
   delete from public.ventes        where id = moi;
   delete from public.suivi_clients where id = moi;
-  delete from public.reglages      where id = moi;
+  -- La ligne SURVIT : on ne vide que ce qui est le reflet des ventes qu'on vient d'effacer.
+  update public.reglages
+     set file_travail = null, resume_ventes = null, depose_le = null, maj_le = now()
+   where id = moi;
 end $$;
 
 revoke all on function public.effacer_mes_donnees() from public, anon;

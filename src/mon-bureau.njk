@@ -91,7 +91,7 @@ permalink: /mon-bureau/
     </section>
 
     <!-- LE SOUS-MAIN : ce qu'on fait aujourd'hui. La zone la plus large, en haut a gauche. -->
-    <section class="zone zone--sousmain">
+    <section class="zone zone--sousmain" id="zoneSousMain">
       <div class="zone__tete">
         <h2>Le sous-main</h2>
         <span class="zone__note" id="fileNote"></span>
@@ -522,8 +522,40 @@ permalink: /mon-bureau/
   }
 
   var LECTURE_KO = false;
+
+  /* LE SOUS-MAIN PEUT S'EN ALLER. Decision de Ted du 08/09/2026, apres avoir decoche
+     Vitisoft et vide sa base : la zone restait a l'ecran avec ses rappels, alors qu'elle
+     n'avait plus rien a montrer et plus aucun moyen d'en montrer un jour.
+
+     Trois etats, et l'ordre compte :
+       1. Sans Vitisoft, la zone n'existe pas. La file est deposee par le tableau de bord,
+          qui ne lit qu'un export Vitisoft : la promesse serait vide pour toujours. C'est la
+          meme regle que les quatre pieces de vente retirees de la barre par
+          BdvNav.sansVitisoft(), et c'est la reponse de Ted a la question posee.
+       2. Une lecture qui a ECHOUE se dit, elle ne se cache pas. Cacher la zone ici
+          transformerait une panne de reseau en « tu n'as rien a faire », le pire des deux.
+       3. Sinon la zone vit des qu'un export a ete depose une fois (`deposeLe`). Tant que
+          rien n'a jamais ete depose, elle ne promet rien ; une fois qu'elle a servi, elle
+          reste, y compris les jours ou tout est traite : « Rien a faire aujourd'hui.
+          Profites-en. » est un message, pas un vide. */
+  function sousMainUtile(){
+    if(SANS_VITI) return false;
+    if(LECTURE_KO) return true;
+    return !!(ETAT_FILE && ETAT_FILE.deposeLe);
+  }
+
   function peindreFile(){
     var boite = el('bureauFile');
+    var zone = el('zoneSousMain');
+    if(zone) zone.hidden = !sousMainUtile();
+    if(zone && zone.hidden){
+      // On vide aussi le contenu : une zone cachee qui garde ses lignes les reafficherait
+      // telles quelles au prochain deshabillage, et elles seraient perimees.
+      boite.innerHTML = ''; boite.className = '';
+      txt(el('fileNote'), '');
+      el('filePied').hidden = true;
+      return;
+    }
     if(!window.BdvCrm || !ETAT_FILE){
       boite.className = '';
       vide(boite, LECTURE_KO
@@ -1008,8 +1040,19 @@ permalink: /mon-bureau/
   }
 
   /* ---------------- L'ARDOISE ---------------- */
+  /* L'ARDOISE SAIT MAINTENANT SE CACHER, et c'est tout le defaut du 08/09/2026 : elle ne
+     savait que se montrer. Les deux `return` de tete sortaient sans toucher a la zone, donc
+     une base videe laissait le dernier chiffre d'affaires connu affiche jusqu'au
+     rechargement de la page, ou la zone repartait cachee par son attribut `hidden` de
+     depart. D'ou l'impression, juste, que « il faut recharger pour que ca disparaisse ».
+
+     Sans Vitisoft, meme regle que le sous-main : ces chiffres viennent d'un export qui
+     n'arrivera jamais. */
   function peindreArdoise(){
-    if(!ETAT_FILE || !ETAT_FILE.resume) return;
+    var zone = el('zoneArdoise');
+    var effacer = function(){ if(zone) zone.hidden = true; el('bureauChiffres').innerHTML = '';
+                              txt(el('ardoiseQuand'), ''); };
+    if(SANS_VITI || !ETAT_FILE || !ETAT_FILE.resume) return effacer();
     var r = ETAT_FILE.resume, cases = [];
     // Chaque chiffre porte sa comparaison. Un chiffre d'affaires seul ne dit rien : ce
     // qui compte, c'est s'il monte ou s'il descend, et où il finira.
@@ -1030,7 +1073,7 @@ permalink: /mon-bureau/
     }
     if(r.clients != null) cases.push(['Clients', String(r.clients), 'sur l’exercice']);
     if(r.panier != null) cases.push(['Panier moyen', euros(r.panier), 'par commande']);
-    if(!cases.length) return;
+    if(!cases.length) return effacer();
     var boite = el('bureauChiffres');
     boite.innerHTML = '';
     var r2 = ETAT_FILE.resume;
@@ -1191,11 +1234,30 @@ permalink: /mon-bureau/
      l'ecran, et pas l'ecran qui interroge en boucle. */
   window.bdvMajPanneau = peindrePanneau;
 
+  /* REPEINDRE « MA JOURNEE » SUR DEMANDE DU MOTEUR. Ajoute le 08/09/2026, appele par
+     ecranRafraichir() dans bdv-base.js apres un import ou un vidage de base.
+
+     Le probleme repare : ces zones etaient peintes au chargement de la page, puis plus
+     jamais. Un vidage fait depuis le panneau de reglages, qui s'ouvre PAR-DESSUS le plan,
+     laissait donc l'ardoise et le sous-main afficher les chiffres d'une base qui venait
+     d'etre effacee, a dix centimetres de la modale qui annoncait « Aucune ligne ».
+
+     On relit le miroir plutot que de faire confiance a ETAT_FILE : viderBase() vient
+     justement de l'effacer (BdvCrm.oublier()), et c'est cette relecture qui rend le vide. */
+  window.bdvMajJournee = function(){
+    if(window.BdvCrm) ETAT_FILE = BdvCrm.miroir();
+    peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
+  };
+
   /* ---------------- QUI EST LA ----------------
      Le prenom et le nom du domaine ne sont pas des decorations : ils sont demandes a
      l'inscription, et jusqu'ici seul le prenom servait a quelque chose. Un bureau ou
      rien ne porte votre nom n'est pas votre bureau. */
   var PROFIL = null;
+  /* Faux par defaut, et c'est volontaire : la fiche profil arrive du reseau APRES les
+     premieres peintures. On ne cache pas une zone sur une absence de reponse, on la cache
+     sur un « non » lu. peindreIdentite() repeint les deux zones quand la reponse arrive. */
+  var SANS_VITI = false;
   var METIERS = { 'vigneron':'Vigneron', 'caviste-negoce':'Caviste ou négociant',
                   'etudiant':'Étudiant', 'pro-filiere':'Pro de la filière', 'autre':'' };
 
@@ -1232,6 +1294,14 @@ permalink: /mon-bureau/
     // cf. gateVitisoft() dans bdv-reglages.js.
     var sansViti = (p.utilise_vitisoft === 'non');
     if(window.BdvNav) BdvNav.sansVitisoft(sansViti);
+    /* LES DEUX ZONES DE VENTE DU PLAN SUIVENT LA BARRE, depuis le 08/09/2026. Retirer les
+       pieces de vente de la barre sans toucher au plan laissait le sous-main promettre des
+       rappels et l'ardoise afficher un chiffre d'affaires a quelqu'un qui vient de dire
+       qu'il n'a pas Vitisoft. La barre et le plan doivent dire la meme chose. */
+    if(sansViti !== SANS_VITI){
+      SANS_VITI = sansViti;
+      peindreFile(); peindreArdoise(); peindreResume();
+    }
   }
 
   // UNE seule lecture du profil pour les deux ecrans, et elle vit dans le module : deux
@@ -1239,6 +1309,15 @@ permalink: /mon-bureau/
   // doublon que la fusion du 07/09/2026 supprime. Le module rappelle surProfil quand la
   // fiche arrive, ce qui repeint l'entete d'ici.
   var PROFIL_LU = false;
+
+  /* UN SEUL CHEMIN POUR L'ARRIVEE DU PROFIL, et il est nomme. Le panneau de reglages le
+     rappelle quand il a lu la fiche ET a chaque enregistrement, donc c'est ici que passe
+     « le vigneron vient de repondre non a Vitisoft », et c'est d'ici que la barre et le
+     plan se remettent d'accord. Expose sur window pour que banc-journee.mjs puisse rejouer
+     cette arrivee sans monter tout le module de reglages. */
+  function profilLu(p){ PROFIL = p; PROFIL_LU = true; peindreIdentite(); }
+  window.bdvProfilLu = profilLu;
+
   function chargerProfil(){
     if(!window.BdvReglages) return Promise.resolve(null);
     return BdvReglages.chargerProfil();
@@ -1279,7 +1358,7 @@ permalink: /mon-bureau/
       // charge sur cette page, le panneau monte « Ma base » et « Le classement » lui-meme,
       // et les deux modales sont enfin les memes. Ne pas les reintroduire : un renvoi est
       // exactement ce que Ted a demande de supprimer.
-      surProfil: function(p){ PROFIL = p; PROFIL_LU = true; peindreIdentite(); }
+      surProfil: profilLu
     });
   }
 

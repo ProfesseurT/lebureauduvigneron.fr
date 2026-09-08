@@ -238,7 +238,19 @@
      L'ordre est celui qu'avait la page : PapaParse, bdv-sync, bdv-base. PapaParse n'est
      en fait appele que depuis handleFiles(), donc bien apres, mais l'en-tete du moteur
      annonce le contraire et ce n'est pas le jour de le contredire. */
+  /* LA FEUILLE PART AVEC LE MOTEUR depuis le 08/09/2026, et pas seulement avec les ecrans
+     de vente. C'est elle qui habille les deux seules choses que le moteur dit a l'ecran :
+     le bandeau de statut (`.status`) et le voile « le moteur travaille » (`#busyov`).
+
+     Sans elle, un import lance depuis le panneau de reglages, qui charge le moteur sans
+     charger les ecrans, posait un bandeau SANS AUCUN STYLE : ni position fixe, ni fond, ni
+     couleur. Il tombait donc au bout du <body>, dans le flux de la page, derriere la
+     modale. C'est le « les calculs et disclaimers se font derriere la modale » signale par
+     Ted. Le reste de la feuille est inerte ici : toutes ses autres regles sont portees par
+     `.bdv-ventes`, et cette coque reste masquee tant qu'on n'ouvre pas un ecran de vente.
+     poserCss() ne la reposera pas quand les ecrans arriveront a leur tour. */
   var MOTEUR = [
+    { css: '/css/bdv-ecrans.css' },
     { js: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js' },
     { js: '/js/bdv-sync.js' },
     { js: '/js/bdv-base.js' }

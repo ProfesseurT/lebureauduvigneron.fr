@@ -191,6 +191,13 @@ function ecranRafraichir(){
       + (META.min ? ' · ' + fmtDate(META.min) + ' au ' + fmtDate(META.max) : '');
   }
   if(typeof navTo === 'function' && typeof ROWS !== 'undefined' && !ROWS.length) navTo('vide');
+  /* ET « MA JOURNEE » AVEC, depuis le 08/09/2026. Le bureau peignait son ardoise et son
+     sous-main au chargement de la page, et plus jamais : un import ou un vidage fait depuis
+     le panneau de reglages laissait donc a l'ecran des chiffres qui n'existaient plus. Ted
+     a vide sa base et a vu son chiffre d'affaires rester affiche derriere la modale. Meme
+     motif que window.bdvMajPanneau : c'est la donnee qui rappelle l'ecran, et jamais
+     l'ecran qui interroge en boucle. */
+  if(typeof window.bdvMajJournee === 'function'){ try{ window.bdvMajJournee(); }catch(e){} }
   if(window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();
   else if(typeof ouvrirPanneauReglages === 'function') ouvrirPanneauReglages();
 }
@@ -1379,6 +1386,21 @@ function majImpact(){const z=el('impactReg');if(z)z.innerHTML=impactHtml();}
 // Vrai seulement si le vigneron a repondu « non » a la question Vitisoft de l'inscription.
 // Un refus qui ne propose rien est un refus rate : le bloc l'oriente au lieu de le planter.
 let PAS_VITISOFT=false;
+/* Le drapeau se pose ET SE RETIRE, depuis le 08/09/2026. Il ne montait qu'a `true` : Ted a
+   decoche Vitisoft pour voir ce que ca changeait, l'a recoche, et « Ma base » a continue de
+   lui annoncer « cet outil ne lira pas tes fichiers » au-dessus de sa zone de depot jusqu'au
+   rechargement de la page.
+
+   Meme forme que adopterObjectif et adopterExercice : le panneau de reglages a la reponse
+   (il vient de l'ecrire en base), le moteur l'adopte sans rien renvoyer. Le garde sur
+   `p-base` n'est pas une precaution de style : renderBase() ecrit dans ce div sans le
+   chercher, et il n'existe pas sur une page qui n'a pas la coque des ecrans de vente. */
+function adopterVitisoft(reponse){
+  const sans=(reponse==='non');
+  if(sans===PAS_VITISOFT)return;
+  PAS_VITISOFT=sans;
+  if(el('p-base'))renderBase();
+}
 /* majCompteurServeur() a vecu une demi-journee, le 07/09/2026. Il comparait les lignes de
    cet appareil a celles du compte, et il a servi : c'est ce qui manquait le matin meme,
    quand la base est restee a 500 lignes sur 4942 sans qu'aucun ecran ne puisse le dire.
@@ -1490,6 +1512,16 @@ async function viderBase(){
   // vide, et la suppression n'aura rien efface de ce que le vigneron voyait.
   CRM={};ECHANGES={};
   try{localStorage.removeItem(CRM_KEY);localStorage.removeItem(ECH_KEY);}catch(e){}
+  /* ET LE MIROIR DE LA FILE, qui manquait ici jusqu'au 08/09/2026. Les deux cles effacees
+     juste au-dessus sont celles du MOTEUR ; le sous-main et l'ardoise du bureau, eux,
+     lisent MIROIR_KEY, la cle de bdv-crm.js. Elle survivait au vidage, donc le bureau
+     continuait de peindre un chiffre d'affaires et une file de rappels tires d'une base
+     effacee, jusqu'au rechargement de la page.
+
+     On passe par oublier() et pas par un removeItem d'ici : la cle appartient a bdv-crm.js,
+     et deux fichiers qui ecrivent la meme cle, c'est un renommage silencieux qui attend son
+     heure. Meme regle que « bdv-taches.js est le seul a ecrire dans la table des taches ». */
+  if(window.BdvCrm&&BdvCrm.oublier)BdvCrm.oublier();
   ROWS=[];computeMeta();
   status('success','Base vidée.');
   ecranRafraichir();

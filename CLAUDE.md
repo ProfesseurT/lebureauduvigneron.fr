@@ -39,6 +39,53 @@ son ecran dans la coque `src/_includes/components/ecrans-vente.njk`. Les identif
 doivent etre les memes que ceux de `NAV` dans `src/js/bdv-ecrans.js` : rien ne le garantit
 sauf `npm run banc`, qui compare les deux listes et echoue si elles divergent.
 
+### LE PANNEAU SE CONSTRUIT AVANT LE MOTEUR, 08/09/2026
+
+Quatre defauts signales par Ted le meme jour, apres avoir vide sa base puis decoche et
+recoche Vitisoft. Ils n'avaient aucune cause commune, et le plus gros n'avait rien a voir
+avec Vitisoft : **« Ma base » etait vide a CHAQUE ouverture des reglages depuis le bureau,
+depuis la fusion du 07/09.**
+
+`monterMoteur()` n'etait appele que depuis `construire()`. Au tableau de bord ca suffit, le
+moteur part avec la page. **Au bureau c'est l'inverse** : le panneau s'ouvre tout de suite,
+sans moteur, et le moteur arrive apres. Personne ne rangeait plus rien.
+
+Le defaut est invisible a la lecture, et c'est ce qui le rend cher : `renderBase()` trouve
+bien son `p-base`, qui existe dans la coque des ecrans de vente, et il ecrit dedans. Sauf
+que ce div est reste `hidden`, dans `#bureauVentes` lui-meme masque. Ecran vide, aucune
+erreur. **Le banc ne le voyait pas parce qu'il chargeait le moteur AVANT le panneau,
+l'ordre du tableau de bord et pas celui du bureau.** La lecon est plus large que la
+reparation : **un banc doit reproduire l'ORDRE D'ARRIVEE de la vraie page, pas seulement
+ses pieces.** Section 3 de `banc-reglages.mjs`.
+
+`monterMoteur()` est donc appele aussi en tete de `rafraichirMoteur()`. C'est sans effet la
+deuxieme fois : `loger()` retrouve le div et le repose au meme endroit.
+
+### Un drapeau qui ne sait que monter est un drapeau qu'on oublie de baisser
+
+`PAS_VITISOFT` montait a `true` et n'en redescendait jamais. Recocher « oui » laissait donc
+« cet outil ne lira pas tes fichiers » par-dessus la zone de depot jusqu'au rechargement.
+D'ou `adopterVitisoft()` dans `bdv-base.js`, sur le modele exact de `adopterObjectif` : le
+panneau a la reponse, le moteur l'adopte sans rien renvoyer en base. Les DEUX appelants
+(`gateVitisoft()` et la lecture de profil de `bdv-ecrans.js`) passent par elle.
+
+### Ce que le moteur dit a l'ecran doit passer DEVANT la modale
+
+Deux causes cumulees, et la premiere cachait la seconde.
+
+1. `bdv-ecrans.css` n'etait chargee qu'avec les ecrans de vente. Or elle habille les deux
+   seules choses que le moteur dise a l'ecran, `.status` et `#busyov`, et le moteur peut
+   parler sans qu'aucun ecran de vente n'ait ete ouvert : un import lance depuis le panneau
+   de reglages. Sans feuille, le bandeau tombait **nu dans le flux de la page**, au bout du
+   `<body>`, donc derriere la modale. La feuille est maintenant en tete de `MOTEUR` dans
+   `bdv-nav.js`. Le reste de la feuille est inerte : tout est porte par `.bdv-ventes`.
+2. Meme habille, il etait dessous. **L'echelle des couches est desormais complete et
+   ordonnee** : `--z-modale: 400` < `--z-voile: 1000` < `--z-busy: 1050` < `--z-statut:
+   1100`. Avant, le statut etait a 900 et le voile d'attente a 1000, a EGALITE avec le voile
+   du panneau, donc tranche par l'ordre du document, ou le panneau gagne. Le panneau lit le
+   jeton et n'ecrit plus 1000 en dur : **une echelle dont un barreau est ecrit en dur
+   ailleurs est une echelle qu'on casse sans le voir.**
+
 ## Ou vivent les choses
 
 Plus rien n'est autonome, et chercher une fonction dans une page avant de chercher dans
@@ -91,6 +138,36 @@ en trois lignes, ecrite en tete de la section MATIERES de `src/css/style.css` :*
 L'ordre des zones est une demande de Ted et non une preference de mise en page : le panneau,
 le sous-main avec le calendrier a sa droite, l'ardoise, le mot du jour, puis a lire / le
 classeur / le courrier. `npm run banc` le controle.
+
+### UNE ZONE QUI SAIT SE MONTRER DOIT SAVOIR SE CACHER, 08/09/2026
+
+Ted a vide sa base et son chiffre d'affaires est reste affiche, sa file de rappels aussi,
+jusqu'au rechargement. Trois causes, dans cet ordre de gravite :
+
+1. **`viderBase()` oubliait le miroir de la file.** Il effacait `bdv_crm_v1` et
+   `bdv_echanges_v1`, les cles du MOTEUR ; le sous-main et l'ardoise lisent `MIROIR_KEY`,
+   la cle de `bdv-crm.js`. Elle survivait, donc le bureau peignait une base effacee.
+   Le vidage passe par `BdvCrm.oublier()` et **jamais par un `removeItem` ecrit dans le
+   moteur** : la cle appartient a son module, deux fichiers qui l'ecrivent, c'est un
+   renommage silencieux qui attend son heure. `banc:reglages` refuse desormais le nom de
+   cette cle dans `bdv-base.js`.
+2. **`peindreArdoise()` ne savait que MONTRER la zone.** Ses `return` de tete sortaient
+   sans y toucher. Au rechargement la zone repartait cachee par son attribut de depart,
+   d'ou l'impression, juste, qu'il fallait recharger pour que ca disparaisse.
+3. **Ces zones etaient peintes au chargement, puis plus jamais.** D'ou
+   `window.bdvMajJournee`, appelee par `ecranRafraichir()` : c'est la donnee qui rappelle
+   l'ecran, jamais l'ecran qui interroge en boucle. Meme motif que `window.bdvMajPanneau`.
+
+**Quand le sous-main s'en va, decision de Ted :** il n'existe pas si Vitisoft est repondu
+« non » (la file est deposee par le tableau de bord, qui ne lit qu'un export Vitisoft : la
+promesse serait vide pour toujours, meme regle que les pieces de vente retirees de la
+barre), sinon il s'en va seulement si **aucun export n'a jamais ete depose** (`deposeLe`).
+Un jour ou tout est traite, la zone RESTE et dit « Rien a faire aujourd'hui. Profites-en. » :
+c'est un message, pas un vide. **Une lecture qui a ECHOUE ne cache jamais la zone** : ca
+transformerait une panne de reseau en « tu n'as rien a faire », le pire des deux.
+
+L'arrivee du profil passe par UN seul chemin nomme, `profilLu()`, expose en
+`window.bdvProfilLu` : c'est lui qui remet la barre et le plan d'accord.
 
 ### Ecrire clair sur sombre : toujours mesurer d'abord
 
@@ -182,8 +259,8 @@ coute une capture d'ecran pour etre vu.
 
     npm run verif
 
-Elle enchaine `build`, `charte`, `charte:bureau`, `banc`, `banc:reglages`, `banc:taches`
-et `banc:sync`, et s'arrete au premier echec.
+Elle enchaine `build`, `charte`, `charte:bureau`, `banc`, `banc:journee`, `banc:reglages`,
+`banc:taches` et `banc:sync`, et s'arrete au premier echec.
 
 Elle existe depuis le 07/09/2026 pour une raison precise : ce jour-la j'ai lance les quatre
 a la main dans un `&&`, en passant chacun par `| tail -2` pour n'en lire que le verdict. Le
@@ -358,6 +435,26 @@ journal d'echanges, trie par date, garde son decalage : voir le commentaire dans
 
 `npm run banc:sync` garde les deux corrections ET les cinq cas de doute.
 
+### 10. Vider la base n'efface pas les REGLAGES, 08/09/2026
+
+`effacer_mes_donnees()`, la fonction appelee par « Vider la base », faisait un `DELETE` sur
+la LIGNE ENTIERE de la table `reglages`. Cette ligne porte deux natures :
+
+- ce qui **decrit la base** : `file_travail`, `resume_ventes`, `depose_le`, deposes par le
+  tableau de bord. Ca part avec les ventes, c'en est le reflet.
+- ce que le **vigneron a choisi** : `objectif`, `exercice_debut`, `perso_labels`,
+  `classement`. Il n'a pas efface ses reglages, il a efface sa base.
+
+La ligne n'est donc plus supprimee, elle est mise a jour. Le SQL est dans
+`supabase/lot6-vider-la-base.sql`, **a coller dans Supabase** : le fichier ne s'applique pas
+tout seul, et tant qu'il n'est pas passe le defaut est encore la en production.
+
+Ce defaut etait invisible sur le poste de celui qui cliquait : l'objectif reste dans son
+navigateur (`bdv_objectif_v5`), l'ardoise continuait de l'afficher, et le premier geste
+suivant le renvoyait en base. **Il ne perdait donc rien chez lui, et tout sur son deuxieme
+appareil.** C'est la meme forme de panne que « une ecriture = une colonne » : silencieuse
+la ou on la cherche, visible seulement ailleurs.
+
 ## La charte graphique : une seule pour le site et l'outil
 
 `tokens.css`, a la racine, est la source unique. Le site et le tableau de bord declarent
@@ -432,10 +529,11 @@ Deux scripts. `scripts/charte.mjs` a besoin de `css-tree`, `scripts/banc-bureau.
 
 Ou, un par un, quand on veut lire le detail :
 
-    npm run build           OBLIGATOIRE avant les trois suivants
+    npm run build           OBLIGATOIRE avant les suivants
     npm run charte          conformite du CSS du site
     npm run charte:bureau   conformite du bureau et de ses ecrans de vente
     npm run banc            le bureau fait-il ce qu'il dit
+    npm run banc:journee    le plan de travail se vide-t-il quand la base se vide
 
 `charte:dash` reste accepte comme ancien nom de `charte:bureau`.
 
@@ -461,6 +559,20 @@ avec `bdv-base.js` ; c'est le scope qui les separe.
 Ce que `banc` regarde : la barre du bureau, la bascule entre les pieces, les trois formes
 d'adresse, l'interception des liens, le bouton Retour, la regle « sans Vitisoft, pas
 d'ecrans de vente », et la correspondance des deux listes d'ecrans.
+
+`banc:journee`, ecrit le 08/09/2026, existe parce que `banc` **n'execute aucun script de la
+page** : il monte la barre a la main. Or les zones de « Ma journee » sont peintes par le
+script INLINE de `src/mon-bureau.njk`, le seul morceau de code du bureau qu'aucun banc ne
+touchait, et le defaut vivait exactement dans cet angle mort. Celui-la charge donc la page
+CONSTRUITE **avec ses scripts**, et pose son faux `BdvCrm` par le crochet `beforeParse` de
+jsdom : c'est la seule facon pour que le script inline le voie, puisqu'il peint pendant
+l'analyse puis au `DOMContentLoaded`. Deux pieges deja payes en l'ecrivant :
+
+- **Sans session en stockage local, le script sort par `if(!connecte) return;`** et ne
+  peint rien. Un banc qui l'ignore verifie une page vide en annoncant que tout va bien.
+- **`BdvCrm.charger()` rend toujours un etat quand la lecture a abouti**, meme sur une base
+  vide ; `null` veut dire « la lecture a echoue ». Un faux qui rend `null` sur un compte
+  neuf le fait passer pour une panne de reseau.
 
 Le controle le plus important est celui qui confronte chaque `font-weight` demande par le
 CSS aux graisses reellement chargees par le lien Google Fonts. C'est lui qui attrape le

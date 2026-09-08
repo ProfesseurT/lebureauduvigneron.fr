@@ -174,8 +174,16 @@
   --z-sticky: 2;
   --z-nav:    100;
   --z-modale: 400;
-  --z-statut: 900;
   --z-voile:  1000;
+  /* AU-DESSUS DU VOILE, ET C'EST LA CORRECTION DU 08/09/2026.
+     Le voile du panneau de reglages est a 1000. Le bandeau de statut etait a 900 et le
+     voile d'attente du moteur a 1000, donc a egalite tranchee par l'ordre du document, ou
+     le panneau gagne : les deux seules choses que le moteur dise a l'ecran passaient
+     DERRIERE la modale depuis laquelle on venait de lancer l'import. Un message qu'on ne
+     peut pas lire ne vaut pas mieux que pas de message. Le statut passe devant le voile
+     d'attente : c'est lui qui porte le texte. */
+  --z-busy:   1050;
+  --z-statut: 1100;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

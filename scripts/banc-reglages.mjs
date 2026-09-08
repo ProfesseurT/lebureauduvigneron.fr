@@ -193,7 +193,111 @@ console.log('\n== 2. Le panneau ouvert seul, sur un appareil neuf ==');
   dit(t.tirages === 1, 'rouvrir ne rapatrie pas une seconde fois (' + t.tirages + ')');
 }
 
+/* ==========================================================================
+   3. LE PANNEAU D'ABORD, LE MOTEUR ENSUITE : L'ORDRE DU VRAI BUREAU
+   --------------------------------------------------------------------------
+   ECRIT LE 08/09/2026, apres le « impossible de remettre ma base » de Ted.
+
+   La section 2 ci-dessus pose bdv-base.js AVANT bdv-reglages.js. C'est l'ordre
+   du tableau de bord, ou le moteur part avec la page. LE BUREAU FAIT L'INVERSE
+   depuis que le moteur est charge a la demande : le panneau s'ouvre tout de
+   suite, sans moteur, et le moteur arrive apres. C'est ce trou dans le banc qui
+   a laisse passer la panne pendant une journee.
+
+   Ce qu'elle attrape : monterMoteur() n'etait appele que depuis construire().
+   Appele une fois, sans moteur, il ne rangeait rien, et personne ne le
+   rappelait. renderBase() ecrivait donc bien son HTML, mais dans le `p-base` de
+   la coque des ecrans de vente, reste `hidden` a l'interieur d'un conteneur
+   masque. Aucune erreur, aucun message, et un onglet « Ma base » vide sous son
+   bandeau d'etat.
+
+   Le controle ne regarde donc pas un texte : il regarde OU se trouve le div, et
+   s'il porte encore son `hidden`.
+   ========================================================================== */
+console.log('\n== 3. Le panneau ouvert AVANT que le moteur arrive (l\'ordre du bureau) ==');
+{
+  const t = monter({ objectif: 500000, exercice_debut: 4 });
+  // La coque des ecrans de vente, reduite a ce qui compte ici : les deux div que le panneau
+  // doit deplacer, masques comme ils le sont dans la vraie page.
+  const coque = t.w.document.createElement('div');
+  coque.id = 'bureauVentes';
+  coque.hidden = true;
+  coque.innerHTML = '<div id="p-base" hidden></div><div id="p-reglages" hidden></div>';
+  t.w.document.body.appendChild(coque);
+
+  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  dit(typeof t.w.BdvReglages === 'object', 'le panneau se charge SEUL, sans moteur');
+  dit(t.w.BdvReglages.moteurPresent() === false, 'et il sait qu\'il n\'a pas de moteur');
+
+  t.w.BdvReglages.ouvrir();
+  await dormir(200);
+  dit(!!t.w.document.getElementById('bdvrHoteBase'), 'la modale est montee avec son emplacement « Ma base »');
+  dit(t.w.document.getElementById('p-base').parentNode.id === 'bureauVentes',
+    'sans moteur, le bloc de la base reste dans la coque : rien a ranger');
+
+  // LE MOTEUR ARRIVE, comme le fait chargerMoteur() dans bdv-nav.js, puis on rafraichit.
+  t.poser(lire('bdv-base.js'), 'bdv-base.js');
+  t.poser(DECOR, 'decor');
+  dit(t.w.BdvReglages.moteurPresent() === true, 'le moteur est la');
+  t.w.BdvReglages.rafraichir();
+  await dormir(600);
+
+  const pb = t.w.document.getElementById('p-base');
+  const pr = t.w.document.getElementById('p-reglages');
+  dit(pb.parentNode.id === 'bdvrHoteBase',
+    '« Ma base » est RANGEE dans la modale (trouvee dans : ' + pb.parentNode.id + ')');
+  dit(pr.parentNode.id === 'bdvrHoteClassement',
+    '« Le classement » est range dans la modale (trouve dans : ' + pr.parentNode.id + ')');
+  dit(pb.hidden === false, 'et le bloc de la base n\'est plus masque');
+  dit(pb.innerHTML.indexOf('dropzoneReg') >= 0,
+    'la zone de depot de l\'export est bien dedans : la base est redeposable');
+  dit(pb.innerHTML.indexOf('viderBase') >= 0, 'et le bouton « Vider la base » aussi');
+
+  /* LE DRAPEAU VITISOFT DESCEND. Il ne montait qu'a `true` : recocher « oui » laissait le
+     refus affiche par-dessus la zone de depot jusqu'au rechargement de la page. */
+  t.P('adopterVitisoft("non");');
+  dit(t.P('PAS_VITISOFT') === true, 'repondre « non » a Vitisoft leve le drapeau du moteur');
+  dit(pb.innerHTML.indexOf('pas-viti') >= 0, 'et « Ma base » affiche le refus');
+  t.P('adopterVitisoft("oui");');
+  dit(t.P('PAS_VITISOFT') === false, 'repondre « oui » le REDESCEND');
+  dit(pb.innerHTML.indexOf('pas-viti') < 0, 'et le refus disparait sans recharger la page');
+  dit(pb.innerHTML.indexOf('dropzoneReg') >= 0, 'la zone de depot est revenue');
+}
+
+/* ==========================================================================
+   4. VIDER LA BASE VIDE AUSSI L'ECRAN
+   --------------------------------------------------------------------------
+   Le sous-main et l'ardoise du bureau lisent `bdv_file_v1`, la cle de
+   bdv-crm.js. viderBase() effacait `bdv_crm_v1` et `bdv_echanges_v1`, les cles
+   du moteur, et oubliait celle-la : le bureau continuait donc de peindre un
+   chiffre d'affaires tire d'une base effacee, jusqu'au rechargement.
+   ========================================================================== */
+console.log('\n== 4. Vider la base efface le miroir de la file, et repeint Ma journee ==');
+{
+  const t = monter({ objectif: 500000, exercice_debut: 4 });
+  t.poser(lire('bdv-base.js'), 'bdv-base.js');
+  t.poser(DECOR, 'decor');
+
+  let oublis = 0, repeintures = 0;
+  t.w.BdvCrm = { oublier: () => { oublis++; }, miroir: () => null };
+  t.w.bdvMajJournee = () => { repeintures++; };
+  t.w.confirm = () => true;
+  t.w.BdvSync.effacerTout = () => Promise.resolve(true);
+  t.P('dbClear = async function(){ LOCAL = []; return true; };');
+
+  await t.P('viderBase()');
+  dit(oublis === 1, 'viderBase() demande a bdv-crm.js d\'oublier son miroir (' + oublis + ')');
+  dit(repeintures >= 1, '« Ma journee » est repeinte sans rechargement (' + repeintures + ')');
+  dit(t.P('ROWS.length') === 0, 'et la base du moteur est bien vide');
+
+  /* La cle appartient a bdv-crm.js : le moteur ne doit PAS l'ecrire lui-meme. Un removeItem
+     ecrit dans bdv-base.js marcherait aujourd'hui et casserait au premier renommage. */
+  dit(lire('bdv-base.js').indexOf('bdv_file_v1') < 0,
+    'le moteur ne nomme jamais la cle du miroir : il passe par BdvCrm.oublier()');
+  dit(lire('bdv-crm.js').indexOf('function oublier') > 0, 'et oublier() vit bien dans bdv-crm.js');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DES REGLAGES REFUSE\n'); process.exit(1); }
-console.log('  UNE ECRITURE = UNE COLONNE, ET LE PANNEAU VOIT LA BASE\n');
+console.log('  UNE ECRITURE = UNE COLONNE, ET LE PANNEAU VOIT LA BASE DANS LES DEUX ORDRES\n');

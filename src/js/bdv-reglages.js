@@ -57,7 +57,10 @@
 
   const STYLE = `
 .bdvr-voile{position:fixed;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px);
-  z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  /* Le jeton et pas 1000 en dur : le bandeau de statut du moteur et son voile d'attente se
+     placent PAR RAPPORT a cette valeur (--z-busy, --z-statut), et une echelle dont un
+     barreau est ecrit en dur ailleurs est une echelle qu'on casse sans le voir. */
+  z-index:var(--z-voile);display:flex;align-items:center;justify-content:center;padding:1.5rem}
 /* Colonne : entete fixe, corps qui defile, pied colle. C'est ce qui garde « Enregistrer »
    visible quel que soit le contenu de l'onglet, y compris « Ma base » et ses tableaux. */
 .bdvr-panneau{position:relative;display:flex;flex-direction:column;
@@ -201,6 +204,25 @@
 
   async function rafraichirMoteur(){
     if(!moteurPresent()) return;
+    /* LE RANGEMENT D'ABORD, ET C'EST LA REPARATION DU 08/09/2026.
+
+       monterMoteur() n'etait appele QUE depuis construire(). Au tableau de bord ca suffit :
+       le moteur part avec la page, donc il est la quand le panneau se construit. AU BUREAU
+       C'EST L'INVERSE, depuis que le moteur est charge a la demande : le panneau se
+       construit d'abord, sans moteur, puis le moteur arrive et personne ne range plus rien.
+
+       Le defaut n'a rien de visible pour qui lit le code : renderBase() trouve bien son
+       `p-base`, qui existe dans la coque des ecrans de vente, et il ecrit dedans. Sauf que
+       ce div est reste `hidden`, dans `#bureauVentes` qui est lui-meme masque. Le vigneron
+       voyait donc un onglet « Ma base » avec son bandeau d'etat et RIEN dessous : pas de
+       zone de depot, pas de bouton « Vider la base », aucune erreur. C'est le « impossible
+       de remettre ma base » signale par Ted.
+
+       Appele ici, loger() est sans effet la deuxieme fois : il retrouve le div et le repose
+       au meme endroit. Le rangement suit donc le moteur, quel que soit l'ordre d'arrivee.
+       Le banc ne le voyait pas parce qu'il chargeait le moteur AVANT le panneau, l'ordre du
+       tableau de bord et pas celui du bureau. Section 3 de banc-reglages.mjs. */
+    monterMoteur();
     try{
       // Le bureau, contrairement au tableau de bord, n'a rien lu au demarrage. DEUX lectures
       // sont donc necessaires ici, et dans cet ordre :
@@ -552,6 +574,11 @@
       if(sans) n.setAttribute('data-off', 'oui');
       else n.removeAttribute('data-off');
     });
+    /* ET LE MOTEUR SUIT, DANS LES DEUX SENS. Son drapeau PAS_VITISOFT montait a `true` et
+       n'en redescendait jamais : recocher « oui » laissait « Ma base » afficher « cet outil
+       ne lira pas tes fichiers » par-dessus la zone de depot, jusqu'au rechargement de la
+       page. Meme motif qu'adopterObjectif : le panneau a la reponse, le moteur l'adopte. */
+    if(typeof adopterVitisoft === 'function') adopterVitisoft(PROFIL && PROFIL.utilise_vitisoft);
     majOnglets();
   }
 

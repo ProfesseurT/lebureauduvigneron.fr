@@ -113,7 +113,7 @@
   /* ---- FORMES ---- */
   /* Le site n'a pas de rayon : la texture d'imprime vient de l'angle vif. */
   --tr-rapide:0.15s;
-  --z-nav:100;
+  --z-nav:100;--z-voile:1000;--z-busy:1050;--z-statut:1100;
   --r-nul:0;--r-rond:50%;
   --trait:1px;--trait-fort:2px;--trait-accent:3px;
   /* ---- OMBRES ---- */
@@ -125,12 +125,12 @@
 .bdv-ventes .hidden{display:none!important}
 
 /* STATUS */
-.status{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:900;padding:.6rem 1rem;font-family:var(--font-mono);font-size:var(--t-petit);display:none;align-items:center;gap:.5rem;border-radius:var(--r-nul);box-shadow:var(--ombre-carte);max-width:90vw}
+.status{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:var(--z-statut);padding:.6rem 1rem;font-family:var(--font-mono);font-size:var(--t-petit);display:none;align-items:center;gap:.5rem;border-radius:var(--r-nul);box-shadow:var(--ombre-carte);max-width:90vw}
 .bdv-ventes.status.error{background:var(--danger-bg);color:var(--danger-deep);display:flex}
 .bdv-ventes.status.loading{background:var(--ink-deep);color:var(--on-dark);display:flex}
 .bdv-ventes.status.success{background:var(--ok-bg);color:var(--ok);display:flex}
 /* OVERLAY DE CHARGEMENT (verre qui se remplit, centre) */
-#busyov{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:var(--bordeaux-veil)}
+#busyov{position:fixed;inset:0;z-index:var(--z-busy);display:none;align-items:center;justify-content:center;background:var(--bordeaux-veil)}
 .bdv-ventes#busyov.on{display:flex}
 .bdv-ventes .busyov__card{background:var(--white);border-radius:var(--r-nul);padding:1.9rem 2.4rem;box-shadow:var(--ombre-photo);border-top:var(--trait-accent) solid var(--bordeaux);text-align:center;min-width:210px}
 .bdv-ventes .glass{display:block;margin:0 auto .9rem}
