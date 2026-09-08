@@ -401,6 +401,14 @@
   }
 
   // ---------------- ECRAN DE PORTE ----------------
+  // Une adresse demandee par un ecran de la porte lui-meme, et pas par le bouton qui l'a
+  // ouverte. Un seul cas aujourd'hui : « Deposer ma base maintenant » veut la piece Ma base
+  // du bureau, alors que le bouton du site, lui, ne demandait que le bureau.
+  //
+  // Consommee UNE fois par lecture, et remise a zero a chaque ouverture : sans ca, un choix
+  // fait dans une inscription se rejouerait au prochain clic sur un bouton de compte.
+  let destinationForcee = null;
+  function destinationDemandee(){ const d = destinationForcee; destinationForcee = null; return d; }
   let stylesInjectes = false;
   function injecterStyles(){
     if(stylesInjectes) return;
@@ -446,6 +454,12 @@
       + '.bdv-porte__choix-btn{padding:.45rem .8rem;min-height:44px;background:var(--paper-light,#F5EFE0);border:1px solid var(--rule-fort,rgba(30,37,54,.42));color:var(--ink,#1E2536);font-family:var(--font-corps,\'Inter\',sans-serif);font-size:var(--t-petit,.78rem);cursor:pointer;border-radius:var(--r-nul,0)}'
       + '.bdv-porte__choix-btn:hover{border-color:var(--bordeaux,#5A1525)}'
       + '.bdv-porte__choix-btn[aria-pressed="true"]{background:var(--bordeaux,#5A1525);color:var(--on-dark,#EFE7D6);border-color:var(--bordeaux,#5A1525)}'
+      // Le guide d'import, 6e ecran. Liste numerotee et pave d'aide : deux blocs qui
+      // n'existent nulle part ailleurs dans la porte.
+      + '.bdv-porte__etapes{margin:0 0 1.1rem;padding-left:1.3rem;font-size:var(--t-petit,.78rem);color:var(--ink,#1E2536);line-height:var(--lh-normal,1.5)}'
+      + '.bdv-porte__etapes li{margin-bottom:.5rem}'
+      + '.bdv-porte__aide{margin:1.1rem 0 0;padding-top:.9rem;border-top:1px solid var(--rule,rgba(30,37,54,.15));font-size:var(--t-petit,.78rem);color:var(--muted,#63523D);line-height:var(--lh-normal,1.5)}'
+      + '.bdv-porte__aide a{color:var(--bordeaux,#5A1525)}'
       + '.bdv-porte__croix{position:absolute;top:.4rem;right:.4rem;min-width:44px;min-height:44px;background:none;border:none;padding:0;font-size:1.4rem;line-height:1;color:var(--muted,#63523D);cursor:pointer}'
       + '.bdv-porte__croix:hover{color:var(--bordeaux,#5A1525)}';
     const style = document.createElement('style');
@@ -468,6 +482,7 @@
     // celui qui revient a desormais une entree « Connexion » a lui dans le menu du site.
     const modeInitial = (options.mode === 'connexion') ? 'connexion' : 'inscription';
     const TITRES = { inscription: 'Ouvre ton bureau.', connexion: 'Content de te revoir.' };
+    destinationForcee = null;
     return new Promise(function(resolve){
       const overlay = document.createElement('div');
       overlay.className = 'bdv-porte';
@@ -558,6 +573,23 @@
         + '<button class="bdv-porte__btn" id="bdvBtnProfil" type="button">Enregistrer et entrer</button>'
         + '<button class="bdv-porte__lien" id="bdvProfilPasser" type="button">Passer cette étape</button>'
         + '</div>'
+        // Etape 5 : le guide d'import, montre UNIQUEMENT a qui vient de repondre oui a
+        // Vitisoft, et seulement quand la porte a ete ouverte par un bouton du site
+        // (voir options.guideImport). Le verrou pose depuis l'interieur d'un outil ne le
+        // montre jamais : proposer « depose ta base » a quelqu'un qui vient justement de
+        // deposer un fichier n'aurait aucun sens.
+        + '<div data-etape="import" hidden>'
+        + '<p class="bdv-porte__note">Tu utilises Vitisoft. Ton bureau n\'attend plus qu\'une chose : ta base. C\'est une seule manipulation, et tu ne la refais que quand tu veux mettre tes chiffres à jour.</p>'
+        + '<ol class="bdv-porte__etapes">'
+        + '<li><b>Dans Vitisoft</b>, sors l\'export de tes ventes au format CSV, et enregistre-le sur ton ordinateur.</li>'
+        + '<li><b>Dans ton bureau</b>, ouvre « Ma base » et glisse le fichier dans le cadre prévu.</li>'
+        + '<li>Rien d\'autre à faire : tes clients, tes cuvées et ton année se remplissent tout seuls.</li>'
+        + '</ol>'
+        + '<p class="bdv-porte__note">Chaque nouvel export s\'ajoute au précédent, les doublons sont ignorés, et rien ne t\'oblige à tout importer d\'un coup. Tes lignes de vente restent sur ton ordinateur.</p>'
+        + '<button class="bdv-porte__btn" id="bdvBtnImport" type="button">Déposer ma base maintenant</button>'
+        + '<button class="bdv-porte__btn bdv-porte__btn--secondaire" id="bdvImportPlusTard" type="button">Plus tard, entrer dans mon bureau</button>'
+        + '<p class="bdv-porte__aide">Tu ne sais pas faire, ou tu préfères qu\'on s\'en occupe ? Écris à <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a> : on le fait avec toi.</p>'
+        + '</div>'
         + '<p class="bdv-porte__legal">En continuant, tu acceptes la <a href="/politique-confidentialite/" target="_blank" rel="noopener">politique de confidentialité</a>.</p>'
         + '</div>';
       document.body.appendChild(overlay);
@@ -566,7 +598,8 @@
         acces: overlay.querySelector('[data-etape="acces"]'),
         code: overlay.querySelector('[data-etape="code"]'),
         nouveau: overlay.querySelector('[data-etape="nouveau"]'),
-        profil: overlay.querySelector('[data-etape="profil"]')
+        profil: overlay.querySelector('[data-etape="profil"]'),
+        import: overlay.querySelector('[data-etape="import"]')
       };
       const champEmail = overlay.querySelector('#bdvEmail');
       const champMdp = overlay.querySelector('#bdvMdp');
@@ -647,6 +680,11 @@
         }finally{
           libre(btnProfil);
         }
+        // Le guide d'import s'intercale ICI et seulement ici : la reponse « oui » vient
+        // d'etre donnee, et elle est deja ecrite en base. « Passer cette etape » ne passe
+        // donc jamais par lui, ce qui est juste : sans reponse a la question Vitisoft, on
+        // n'a aucune raison de parler d'export.
+        if(options.guideImport && choixDe('viti') === 'oui'){ montrer('import'); return; }
         entrer(sessionFraiche);
       }
 
@@ -665,7 +703,8 @@
         if(btn.dataset.repos) btn.textContent = btn.dataset.repos;
       }
 
-      function entrer(session){
+      function entrer(session, destination){
+        if(destination) destinationForcee = destination;
         document.removeEventListener('keydown', surEchap);
         overlay.remove();
         // Avant resolve(), volontairement : l'appelant enchaine souvent sur un changement de
@@ -809,6 +848,14 @@
       btnNouveau.addEventListener('click', poserNouveauMdp);
       btnProfil.addEventListener('click', enregistrerProfil);
       btnProfilPasser.addEventListener('click', function(){ entrer(sessionFraiche); });
+      // La piece « Ma base » du bureau porte la zone de depot. L'adresse s'ecrit en fragment
+      // (#base), comme toutes les pieces du bureau depuis la fusion du 07/09/2026.
+      overlay.querySelector('#bdvBtnImport').addEventListener('click', function(){
+        entrer(sessionFraiche, '/mon-bureau/#base');
+      });
+      overlay.querySelector('#bdvImportPlusTard').addEventListener('click', function(){
+        entrer(sessionFraiche);
+      });
       // La liste ne s'affiche qu'au focus ou a la saisie sur l'ecran d'acces : un vigneron qui
       // revient juste se connecter n'a pas a lire les regles d'inscription. Sur l'ecran de
       // reprise elle est visible tout de suite, il n'y a la que du nouveau mot de passe.
@@ -948,7 +995,11 @@
   // ---------------- OUVERTURE DEPUIS N'IMPORTE QUEL BOUTON ----------------
   // Fermable par defaut : on arrive ici par un clic volontaire, pas par une interruption.
   function ouvrir(options){
-    options = Object.assign({ fermable: true }, options || {});
+    // guideImport: true par defaut ICI seulement. ouvrir() est l'entree depuis un bouton du
+    // site ou depuis /compte/ : quelqu'un qui arrive par la n'a pas encore vu son bureau.
+    // Les trois porte() appelees depuis l'interieur des outils (bdv-base, bdv-ecrans) ne
+    // passent pas par ici et ne montrent donc pas le guide.
+    options = Object.assign({ fermable: true, guideImport: true }, options || {});
     return porte(options);
   }
 
@@ -977,7 +1028,13 @@
       titre: cible.getAttribute('data-bdv-titre') || undefined,
       mode: cible.getAttribute('data-bdv-mode') || undefined
     })
-      .then(function(session){ if(session && apres) location.href = apres; });
+      .then(function(session){
+        // La destination demandee par un ecran de la porte passe devant celle du bouton :
+        // « Deposer ma base maintenant » est une intention plus recente et plus precise
+        // que le data-bdv-apres du bouton clique deux minutes plus tot.
+        const ou = destinationDemandee() || apres;
+        if(session && ou) location.href = ou;
+      });
   }
   document.addEventListener('click', surClicCompte);
 
@@ -996,6 +1053,7 @@
     majProfil: majProfil,
     porte: porte,
     ouvrir: ouvrir,
+    destinationDemandee: destinationDemandee,
     api: api,
     compter: compter,
     oublierCetAppareil: oublierCetAppareil,

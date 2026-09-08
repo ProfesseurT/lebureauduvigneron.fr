@@ -124,7 +124,11 @@ permalink: /compte/
         // Le renvoi vers le bureau est ecrit ici en plus de la delegation de clic : cette
         // ouverture-la ne passe pas par un bouton, elle n'a donc pas de data-bdv-apres.
         BdvCompte.ouvrir({ mode: 'connexion', titre: 'Content de te revoir.' })
-          .then(function(s){ if(s) location.href = '/mon-bureau/'; });
+          .then(function(s){
+            // Meme regle que la delegation de clic : un ecran de la porte peut demander une
+            // adresse plus precise que le bureau (« Deposer ma base maintenant » veut #base).
+            if(s) location.href = BdvCompte.destinationDemandee() || '/mon-bureau/';
+          });
       }
     });
   }

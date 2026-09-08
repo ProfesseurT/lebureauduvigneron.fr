@@ -12,6 +12,89 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026. Le guide d'import, après « oui j'utilise Vitisoft »
+
+Un sixième écran s'ajoute à la fenêtre de compte. Il n'apparaît que pour qui vient de répondre
+**oui** à la question Vitisoft, juste après les cinq questions, et il dit trois choses : sortir
+l'export de ses ventes depuis Vitisoft, le glisser dans « Ma base », et à qui écrire s'il ne sait
+pas faire — `teddy@solumatic.fr`.
+
+### Quatre emplacements possibles, Ted a choisi l'écran
+
+Une carte dans le bureau qui reste jusqu'au premier import, une page à part `/importer-vitisoft/`,
+les deux, ou un écran de plus dans la fenêtre. Ted a pris l'écran : il enchaîne pendant que le
+vigneron est encore attentif, au lieu de le laisser retrouver un bandeau qu'il apprendra à ignorer.
+Le revers assumé : rien ne le rappelle plus tard. Si les imports ne suivent pas, la carte de rappel
+est le premier levier à ajouter, et les deux emplacements se cumulent sans se gêner.
+
+### La règle qui décide, et pourquoi elle n'est pas « toujours »
+
+Le guide ne s'affiche que si la porte a été ouverte par un **bouton du site** (`ouvrir()`, où
+`guideImport` vaut vrai par défaut) et pas par un verrou posé depuis l'intérieur d'un outil
+(`porte()` nue, appelée par `bdv-base.js` et `bdv-ecrans.js`). La raison est nette :
+`bdv-base.js:918` ouvre la porte **au moment où le vigneron dépose un fichier**. Lui expliquer
+comment déposer un fichier à cet instant-là serait ridicule. Les trois appels internes n'ont pas
+eu une ligne à changer, ils n'appellent pas `ouvrir()`.
+
+Deuxième condition, `utilise_vitisoft === 'oui'`. « Non » et « je ne sais pas » entrent
+directement, et **« Passer cette étape » ne montre jamais le guide** : cette étape n'écrit rien,
+donc on ne sait pas ce que le vigneron utilise, donc on ne lui promet rien.
+
+Et le guide s'intercale **après** l'envoi de la fiche en base, jamais avant : quelqu'un qui ferme
+la fenêtre sur le guide a déjà ses cinq réponses enregistrées.
+
+### « Déposer ma base maintenant » ne mène pas au bureau, mais à la pièce
+
+Le bouton du site ne demandait que `/mon-bureau/`. L'écran, lui, veut `/mon-bureau/#base`, là où
+se trouve la zone de dépôt. D'où `destinationForcee` et `destinationDemandee()` au niveau du
+module : un écran de la porte peut demander une adresse plus précise que le bouton qui l'a
+ouverte, et cette demande passe devant, parce qu'elle est plus récente et plus précise.
+
+Trois garde-fous, chacun tenu par un contrôle du banc. La demande est **consommée une seule fois**.
+Elle est **remise à zéro à chaque ouverture** : sans ça, un choix fait pendant une inscription
+renverrait encore vers « Ma base » au prochain clic sur un bouton de compte, des jours plus tard.
+Et **les deux endroits qui redirigent la lisent** — la délégation de clic dans `bdv-compte.js` et
+le `.then` de `/compte/?mode=connexion` dans `compte.njk`. En oublier un laissait la demande en
+attente, prête à fuiter ailleurs.
+
+### Ce qui reste à écrire, et que je ne peux pas inventer
+
+L'étape 1 dit « dans Vitisoft, sors l'export de tes ventes au format CSV ». **Le chemin exact dans
+le menu de Vitisoft n'y est pas**, parce que je ne l'ai pas. Une ligne à remplacer.
+
+### Le banc, et les deux pièges de jsdom
+
+`npm run banc:porte` (`scripts/banc-porte-import.mjs`), 23 contrôles, ajouté à `npm run verif`.
+Il couvre les deux sorties du guide, les trois réponses qui ne l'ouvrent pas, « Passer cette
+étape », le verrou interne, et la non-fuite de la destination.
+
+Deux choses payées en l'écrivant, et notées dans l'en-tête du fichier. **jsdom n'a ni `fetch` ni
+`Response`** : un `new Response(...)` lève « is not a constructor », et le message part dans
+l'écran d'erreur de la porte au lieu du rapport — le banc annonce alors huit échecs qui n'ont rien
+à voir avec le code testé. Et **jsdom ne laisse ni remplacer `location` ni observer une
+navigation**, les deux propriétés étant non configurables : on lit donc l'intention de sortie, sauf
+dans un contrôle qui monte la page sur `/mon-bureau/`, où le renvoi vers `#base` n'est plus qu'un
+changement de fragment que jsdom exécute pour de vrai.
+
+Ce que le banc ne voit pas : la mise en page. L'écran est plus long que les autres, et
+« le bouton est-il atteignable sur un téléphone » reste un contrôle à faire à l'œil, une fois.
+
+### Le blocage signalé par Ted, non reproduit
+
+Ted signale un message rouge, sur l'étape des questions, qui lui dit que des cartouches ne sont pas
+remplis et le renvoie à ce qu'il faut remplir. **Aucune version de ce site n'a jamais pu produire
+ce message à cet endroit** : l'étape des questions n'a ni validation, ni élément d'erreur — les
+cinq réponses sont toutes facultatives, et `git log -S` ne trouve aucune validation passée.
+Vérifié aussi, et sain : la colonne `utilise_vitisoft`, son droit d'écriture, la règle de sécurité,
+le déclencheur de création de fiche, la production Vercel à jour du dernier commit, et sa propre
+inscription du jour passée de bout en bout à 14h08 avec les cinq réponses en base.
+
+Les seuls messages rouges de la fenêtre vivent sur **l'écran d'accès** : l'adresse invalide, et le
+refus de mot de passe qui liste ce qui manque au-dessus du bouton, avec la liste des règles cochées
+juste sous le champ. Reste à faire confirmer par une capture avant de corriger quoi que ce soit.
+
+---
+
 ## 08/09/2026. La lune du bandeau, et deux cycles qu'il ne faut pas confondre
 
 Une lune calculée est posée dans l'en-tête du bureau, entre le bonjour et les actions : le dessin,
