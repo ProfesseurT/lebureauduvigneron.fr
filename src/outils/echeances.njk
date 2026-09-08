@@ -25,9 +25,13 @@ permalink: /outils/echeances/
   <div class="container">
     <div id="echeancesListe" class="echeances"></div>
 
+    {# LA PHRASE SUR LE REPORT AU JOUR OUVRE A ETE RETIREE LE 08/09/2026, sur
+       decision de Ted. Elle promettait un calcul que `prochaine()` ne fait pas :
+       la date affichee est celle du texte, brute. Promettre un calcul qu'on ne
+       fait pas est pire que ne rien promettre. Ne pas la remettre sans ecrire le
+       report ET les jours feries, qui sont calculables (cf. bdv-almanach.js). #}
     <p class="echeances__avis">
-      Les dates viennent des textes officiels, chaque échéance porte sa source. Un dépôt qui tombe
-      un samedi, un dimanche ou un jour férié se reporte au premier jour ouvré suivant. Ce compte à
+      Les dates viennent des textes officiels, chaque échéance porte sa source. Ce compte à
       rebours est un pense-bête, il ne remplace ni ton comptable ni ton service des douanes.
     </p>
   </div>
@@ -37,8 +41,9 @@ permalink: /outils/echeances/
   <div class="container">
     <div class="bureau-vide">
       <h2>Ne rate plus une date.</h2>
-      <p>Crée ton compte du Bureau, gratuit et ouvert à toute la filière, et retrouve ce compte à
-        rebours dans ton bureau avec ce que tu as mis de côté.</p>
+      <p>Crée ton compte du Bureau, gratuit et ouvert à toute la filière. Tu y retrouves ce
+        compte à rebours en calendrier, en année ou en liste, avec les travaux de la vigne, les
+        salons et les temps forts de vente, et tu coches ce qui est fait.</p>
       <p>
         <a href="/compte/" class="btn btn--bordeaux" data-bdv-compte
            data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a>
@@ -54,14 +59,21 @@ document.addEventListener('DOMContentLoaded', function(){
   'use strict';
   if(!window.BdvEcheances) return;
 
-  var lignes = BdvEcheances.calculer(BdvEcheances.depuisLaPage('bdvEcheances'));
+  /* LA PAGE PUBLIQUE NE MONTRE QUE LES OBLIGATIONS, et c'est la promesse de son
+     titre : « Le calendrier réglementaire ». Depuis le lot 2 du 08/09/2026 le
+     fichier de données porte aussi les travaux du domaine, les rendez-vous et les
+     temps forts commerciaux. Les déverser ici ferait une page longue qui ne tient
+     plus son titre, et surtout ça retirerait au Bureau la seule chose qu'il offre
+     de plus : choisir ses familles, cocher, créer ses propres occurrences. */
+  var lignes = BdvEcheances.calculer(
+    BdvEcheances.deLaFamille(BdvEcheances.depuisLaPage('bdvEcheances'), 'obligations'));
 
   document.getElementById('echeancesListe').innerHTML = lignes.map(function(l){
     var e = l.e;
     return '<article class="echeance" data-niveau="' + l.niveau + '">'
       + '<div class="echeance__compte">'
       +   '<span class="echeance__quand">' + l.phrase + '</span>'
-      +   '<span class="echeance__date">' + l.dateLongue + '</span>'
+      +   '<span class="echeance__date">' + (l.periode || l.dateLongue) + '</span>'
       + '</div>'
       + '<div class="echeance__corps">'
       +   '<h2 class="echeance__titre">' + e.titre + '</h2>'
@@ -69,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function(){
       +   (e.detail ? '<p class="echeance__detail">' + e.detail + '</p>' : '')
       +   '<p class="echeance__liens">'
       +     (e.article ? '<a href="' + e.article + '">Lire l\'article</a> · ' : '')
-      +     '<a href="' + e.source + '" target="_blank" rel="noopener">Source : ' + e.sourceNom + '</a>'
+      +     (e.source ? '<a href="' + e.source + '" target="_blank" rel="noopener">Source : ' + e.sourceNom + '</a>' : '')
       +   '</p>'
       + '</div>'
       + '</article>';

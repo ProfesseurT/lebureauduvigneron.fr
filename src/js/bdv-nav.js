@@ -273,6 +273,11 @@
      n'a pas le droit de les augmenter. */
   var RESSOURCES_CAL = [
     { css: '/css/bdv-calendrier.css' },
+    /* L'ALMANACH AVANT LE CALENDRIER, et l'ordre est une condition : la piece
+       appelle BdvAlmanach.entre() des son premier rendu, pour poser la lune, les
+       saisons et les jours feries dans les cases. Charge apres, il n'existerait
+       pas encore, le fond de carte serait vide, et rien ne le signalerait. */
+    { js: '/js/bdv-almanach.js' },
     { js: '/js/bdv-calendrier.js' }
   ];
 

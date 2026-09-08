@@ -302,6 +302,11 @@ titre('Le calendrier, piece du bureau');
 const CAL = bureau();
 t('a l\'ouverture, le calendrier est masque et rien n\'est charge pour lui',
   CAL.calendrier !== null && CAL.calendrier.hidden && CAL.charges.length === 0);
+/* LE FILTRE EST DANS LA PAGE, VIDE, et il se remplit au premier rendu depuis la
+   liste unique des familles de bdv-echeances.js. Le conteneur, lui, doit exister
+   dans le gabarit : monte a la volee, il echapperait a la charte du bureau. */
+t('le conteneur du filtre et l\'interrupteur du fond de carte sont dans la page',
+  CAL.doc.getElementById('calFiltre') !== null && CAL.doc.getElementById('calFond') !== null);
 
 CAL.clic('calendrier');
 t('un clic n\'affiche QUE le calendrier',
@@ -311,12 +316,17 @@ t('l\'adresse du calendrier suit',
 t('la piece cliquee devient la piece active',
   CAL.doc.querySelector('.bureau-nav__ligne[data-piece="calendrier"] .bureau-nav__item--actif') !== null);
 await CAL.repos();
-/* DEUX FICHIERS, ET PAS SEPT. Le calendrier ne lit aucune ligne de vente : lui faire
+/* TROIS FICHIERS, ET PAS SEPT. Le calendrier ne lit aucune ligne de vente : lui faire
    tirer le moteur, Chart.js et le lecteur xlsx couterait 83 ko et plus pour afficher
    une grille de trente et un jours. Ce controle est ce qui empechera qu'on l'accroche
-   au chargeur des ecrans de vente « parce que c'est deja ecrit ». */
-t('le calendrier charge sa feuille puis son module, et RIEN d\'autre',
-  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-calendrier.js',
+   au chargeur des ecrans de vente « parce que c'est deja ecrit ».
+
+   ET L'ORDRE EST UNE CONDITION, pas une preference, comme pour le moteur et les
+   ecrans de vente : la piece appelle BdvAlmanach.entre() des son premier rendu pour
+   poser la lune, les saisons et les jours feries. L'almanach charge apres elle
+   n'existerait pas encore, le fond de carte serait vide, et rien ne le dirait. */
+t('le calendrier charge sa feuille, l\'almanach, puis son module, et RIEN d\'autre',
+  CAL.charges.join(' | ') === '/css/bdv-calendrier.css | /js/bdv-almanach.js | /js/bdv-calendrier.js',
   CAL.charges.join(' | ') || '(aucune)');
 t('la piece est ouverte apres le chargement',
   CAL.appels.some(a => a.calendrier), JSON.stringify(CAL.appels));
@@ -326,7 +336,7 @@ t('revenir a « Ma journee » remasque le calendrier',
   !CAL.journee.hidden && CAL.calendrier.hidden);
 CAL.clic('calendrier');
 await CAL.repos();
-t('un second passage ne recharge rien', CAL.charges.length === 2, CAL.charges.length + ' ressources');
+t('un second passage ne recharge rien', CAL.charges.length === 3, CAL.charges.length + ' ressources');
 
 /* L'ADRESSE FAIT FOI A L'ARRIVEE, et pas seulement pour les pieces de vente. Ce
    filtre exigeait `viti` jusqu'au 08/09/2026 : un favori sur /mon-bureau/#taches

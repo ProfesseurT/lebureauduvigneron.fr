@@ -21,8 +21,22 @@
      --ink sur --paper-light ............... > 12:1 AAA
      --on-dark sur --bordeaux-deep ......... > 11:1 AAA
      --bordeaux sur --paper-light .......... > 11:1 AAA
+     --cork-encre sur --paper-light ........ 6,7:1  AA
    --cork n'apparait qu'en filet, jamais en encre, et --on-dark-faint nulle
    part : il tombe a 3,0:1 et c'est du texte a lire.
+
+   LES QUATRE FAMILLES, mesurees le 08/09/2026 avant d'etre choisies. Elles sont
+   separees en LUMINANCE et pas seulement en teinte, ecart minimum 11,8 en
+   vision normale et 11,2 en vision deuteranope, donc elles restent
+   distinguables en niveaux de gris et pour un daltonien :
+     --serie-1 obligations  L* 15,4   13,09:1 sur --paper-light
+     --serie-2 travaux      L* 32,4    7,46:1
+     --serie-3 rendez-vous  L* 44,3    4,81:1
+     --serie-4 temps forts  L* 56,1    3,15:1  (objet graphique, seuil 3:1)
+   La quatrieme est la plus claire des quatre et elle passe TOUT JUSTE le seuil
+   des objets graphiques sur --paper-light. C'est pour ca que les pastilles de
+   famille sont posees sur --paper-light et sur rien d'autre : sur --paper-deep
+   elle tomberait a 2,3:1. Ne pas changer le fond d'une pastille sans remesurer.
    =========================================================================== */
 
 /* LA ZONE ELLE-MEME EST DANS src/css/style.css, `.bdv-cal > .zone` : sa colonne
@@ -38,7 +52,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--e-s);
-  margin-bottom: var(--e-m);
+  margin-bottom: var(--e-s);
   padding-bottom: var(--e-s);
   border-bottom: var(--trait) solid var(--rule);
 }
@@ -105,6 +119,48 @@
 }
 
 /* ---------------------------------------------------------------------------
+   LE FILTRE PAR FAMILLE
+   Quatre etiquettes, chacune avec sa couleur de serie en liseré. Une famille
+   eteinte garde sa place : un filtre dont les options disparaissent quand on
+   les decoche ne se rallume jamais.
+--------------------------------------------------------------------------- */
+.bdv-cal .cal__filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-xs);
+  margin-bottom: var(--e-m);
+}
+
+.bdv-cal .calfam {
+  padding: 2px var(--e-s);
+  border: var(--trait) solid var(--rule-fort);
+  border-left: var(--trait-accent) solid var(--serie-1);
+  border-radius: var(--r-nul);
+  background: var(--paper-light);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  letter-spacing: var(--ls-doux);
+  cursor: pointer;
+  transition: background var(--tr-rapide), color var(--tr-rapide);
+}
+.bdv-cal .calfam[data-cal-famille="travaux"]    { border-left-color: var(--serie-2); }
+.bdv-cal .calfam[data-cal-famille="rendezvous"] { border-left-color: var(--serie-3); }
+.bdv-cal .calfam[data-cal-famille="tempsforts"] { border-left-color: var(--serie-4); }
+.bdv-cal .calfam:hover { background: var(--paper-deep); }
+/* ETEINTE : le libelle barre et l'encre en retrait. Pas un bouton grise, qui se
+   lirait « indisponible » alors qu'il est le seul moyen de rallumer. */
+.bdv-cal .calfam--off {
+  background: var(--paper-deep);
+  color: var(--muted);
+  border-left-color: var(--rule-fort);
+  text-decoration: line-through;
+}
+
+.bdv-cal .cal__fond { margin-left: auto; }
+
+/* ---------------------------------------------------------------------------
    L'ANNEAU DE FOCUS. Il est POSE A L'INTERIEUR sur tout ce qui vit dans une
    case de calendrier : une case de mois fait une centaine de pixels, et un
    anneau a trois pixels dehors tomberait pile sur le filet de la case voisine
@@ -114,12 +170,13 @@
 --------------------------------------------------------------------------- */
 .bdv-cal .cal__fleche:focus-visible,
 .bdv-cal .cal__vue:focus-visible,
+.bdv-cal .calfam:focus-visible,
 .bdv-cal .cal__coche:focus-visible,
 .bdv-cal .cala__t:focus-visible {
   outline: var(--trait-fort) solid var(--bordeaux);
   outline-offset: var(--trait);
 }
-.bdv-cal .calo__b:focus-visible {
+.bdv-cal button.calo__b:focus-visible {
   outline: var(--trait-fort) solid var(--bordeaux);
   outline-offset: calc(var(--trait-fort) * -1);
 }
@@ -127,10 +184,10 @@
 /* ---------------------------------------------------------------------------
    LA VUE MOIS
    Un cadre qui peut deborder defile DANS son cadre, jamais en poussant la page.
---------------------------------------------------------------------------- */
-/* Le retrait a droite et en bas n'est pas de l'espacement : c'est la place de
+   Le retrait a droite et en bas n'est pas de l'espacement : c'est la place de
    --ombre-dure, qui deborde de 6 px. Sans lui, le cadre croit qu'il deborde et
-   fait apparaitre une barre de defilement pour une ombre. */
+   fait apparaitre une barre de defilement pour une ombre.
+--------------------------------------------------------------------------- */
 .bdv-cal #calCorps[data-vue="mois"] {
   overflow-x: auto;
   padding: 0 var(--e-s) var(--e-s) 0;
@@ -160,7 +217,7 @@
 
 .bdv-cal td.calm__c {
   height: 5.5rem;
-  padding: var(--e-xs);
+  padding: var(--e-xs) 0 var(--e-xs) 0;
   border: var(--trait) solid var(--rule);
   background: var(--paper-light);
   color: var(--ink);
@@ -174,6 +231,17 @@
 .bdv-cal td.calm__c[data-hors="oui"] {
   background: var(--paper-deep);
   color: var(--muted);
+}
+/* UN JOUR FERIE est un fait, pas une alerte : un filet de liege en haut de la
+   case, et rien de plus. Le nom du jour est dans l'infobulle du marqueur. */
+.bdv-cal td.calm__c[data-ferie="oui"] { border-top: var(--trait-accent) solid var(--cork); }
+
+.bdv-cal .calm__tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-xs);
+  padding: 0 var(--e-xs);
 }
 
 .bdv-cal .calm__n {
@@ -193,6 +261,30 @@
   font-weight: 500;
 }
 
+/* ---------------------------------------------------------------------------
+   LE FOND DE CARTE : lune, saisons, jours feries.
+   Discret par construction. Ce sont des reperes, pas des choses a faire : ils
+   ne se cochent pas, ils ne portent pas d'intitule, et ils n'ont droit qu'a un
+   signe dans le coin de la case. --cork-encre et pas --cork : le liege brut
+   tombe sous 3:1 sur le papier, il ne se verrait plus.
+--------------------------------------------------------------------------- */
+.bdv-cal .calf {
+  display: inline-flex;
+  gap: 2px;
+  align-items: baseline;
+  color: var(--cork-encre);
+  font-size: var(--t-micro);
+  line-height: 1;
+  cursor: help;
+}
+.bdv-cal .calf__m[data-nature="ferie"] {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+   LES OCCURRENCES DANS LA GRILLE
+--------------------------------------------------------------------------- */
 .bdv-cal .calm__l {
   margin: var(--e-xs) 0 0;
   padding: 0;
@@ -206,9 +298,9 @@
   width: 100%;
   padding: 2px var(--e-xs);
   border: 0;
-  border-left: var(--trait-accent) solid var(--bordeaux);
+  border-left: var(--trait-accent) solid var(--serie-1);
   border-radius: var(--r-nul);
-  background: var(--paper-deep);
+  background: var(--paper-light);
   color: var(--ink);
   font-family: var(--font-corps);
   font-size: var(--t-micro);
@@ -220,8 +312,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-button.calo__b { cursor: pointer; }
-button.calo__b:hover { background: var(--cork); }
+.bdv-cal button.calo__b { cursor: pointer; }
+.bdv-cal button.calo__b:hover { background: var(--paper-deep); }
+
+/* LA COULEUR DIT LA FAMILLE, le liseré et rien d'autre. Un fond colore par
+   famille aurait donne quatre fonds a mesurer contre quatre encres, et le
+   quatrieme n'aurait pas passe le seuil. */
+.bdv-cal .calo[data-famille="travaux"]    .calo__b { border-left-color: var(--serie-2); }
+.bdv-cal .calo[data-famille="rendezvous"] .calo__b { border-left-color: var(--serie-3); }
+.bdv-cal .calo[data-famille="tempsforts"] .calo__b { border-left-color: var(--serie-4); }
+
+/* CE QUI DURE PLUSIEURS JOURS traverse la semaine. Les jours qui ne portent pas
+   l'intitule n'ont qu'un filet : c'est ce qui fait lire un bandeau plutot que
+   cent cinq repetitions du mot « taille ». */
+.bdv-cal .calo[data-suite="oui"] .calo__b {
+  height: 4px;
+  padding: 0;
+  border-left: 0;
+  background: var(--paper-deep);
+  box-shadow: inset 0 0 0 99px var(--serie-1);
+  opacity: 0.35;
+}
+.bdv-cal .calo[data-suite="oui"][data-famille="travaux"]    .calo__b { box-shadow: inset 0 0 0 99px var(--serie-2); }
+.bdv-cal .calo[data-suite="oui"][data-famille="rendezvous"] .calo__b { box-shadow: inset 0 0 0 99px var(--serie-3); }
+.bdv-cal .calo[data-suite="oui"][data-famille="tempsforts"] .calo__b { box-shadow: inset 0 0 0 99px var(--serie-4); }
+/* Le dernier jour d'une periode s'arrete avant le bord de la case : sans ca,
+   deux periodes qui se suivent se lisent comme une seule. */
+.bdv-cal .calo[data-bord="fin"] .calo__b,
+.bdv-cal .calo[data-bord="seul"] .calo__b { margin-right: var(--e-xs); }
 
 .bdv-cal .calo[data-niveau="urgent"] .calo__b,
 .bdv-cal .calo[data-niveau="aujourdhui"] .calo__b { border-left-color: var(--danger-deep); }
@@ -319,7 +437,10 @@ button.calo__b:hover { background: var(--cork); }
    comme une barre pleine dans une grille de trois centimetres. */
 .bdv-cal td.cala__c[data-hors="oui"] { visibility: hidden; }
 /* UN JOUR PLEIN SE VOIT DE LOIN, c'est tout l'objet de cette vue : on ne lit
-   pas douze grilles, on repere les mois charges. */
+   pas douze grilles, on repere les mois charges. Le remplissage est bordeaux
+   pour TOUTES les familles, volontairement : quatre fonds differents derriere
+   un chiffre de dix pixels donneraient quatre paires de contraste a tenir, et
+   la plus claire ne les tiendrait pas. Les familles se lisent dans la vue mois. */
 .bdv-cal td.cala__c[data-plein="oui"] {
   background: var(--bordeaux-deep);
   color: var(--on-dark);
@@ -330,7 +451,7 @@ button.calo__b:hover { background: var(--cork); }
 /* ---------------------------------------------------------------------------
    LA VUE LISTE : elle emprunte `.echeances` et `.echeance` a la page publique.
    Rien a redefinir, sauf ce que la page publique ne connait pas, parce qu'on
-   n'y coche rien : l'etat « fait » et son bouton.
+   n'y coche rien : l'etat « fait », son bouton, et la mention de repere.
 --------------------------------------------------------------------------- */
 .bdv-cal .cal__coche {
   /* Pas de marge a droite : le « · » qui suit fait l'espacement, et les deux
@@ -362,6 +483,19 @@ button.calo__b:hover { background: var(--cork); }
 .bdv-cal .echeance[data-fait="oui"] .echeance__titre { text-decoration: line-through; }
 .bdv-cal .echeance[data-fait="oui"] .echeance__quand { color: var(--ok); }
 
+/* La famille se lit sur le bord de la fiche, comme sur la pastille de la grille.
+   Le meme code couleur aux deux endroits, sinon il faut l'apprendre deux fois. */
+.bdv-cal .echeance[data-famille="travaux"]    { border-left: var(--trait-accent) solid var(--serie-2); }
+.bdv-cal .echeance[data-famille="rendezvous"] { border-left: var(--trait-accent) solid var(--serie-3); }
+.bdv-cal .echeance[data-famille="tempsforts"] { border-left: var(--trait-accent) solid var(--serie-4); }
+
+/* SANS SOURCE OFFICIELLE, ON LE DIT. Un repere de saison affiche avec l'allure
+   d'une obligation, c'est le genre de chose qui se retourne contre la maison. */
+.bdv-cal .echeance__repere {
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* ---------------------------------------------------------------------------
    QUAND LA ZONE SE RESSERRE
    Le seuil est pose sur le CONTENU de la zone, ce que compare une requete de
@@ -373,6 +507,7 @@ button.calo__b:hover { background: var(--cork); }
   .bdv-cal .cal__barre { flex-direction: column; align-items: stretch; }
   .bdv-cal .cal__periode { min-width: 0; }
   .bdv-cal .cal__vues > .cal__vue { flex: 1 1 0; text-align: center; }
+  .bdv-cal .cal__fond { margin-left: 0; }
   .bdv-cal .cala { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
   .bdv-cal td.calm__c { height: 4.5rem; }
 }

@@ -273,6 +273,16 @@ permalink: /mon-bureau/
           </div>
         </div>
 
+        {# LES QUATRE FAMILLES, montees par le module a partir de la liste unique de
+           bdv-echeances.js. Elles ne sont pas ecrites ici : cinq listes de familles
+           dans cinq fichiers, c'est quatre occasions d'en oublier une.
+           L'interrupteur du fond de carte, lui, est unique et statique. #}
+        <div class="cal__filtres" role="group" aria-label="Ce que tu veux voir">
+          <div class="cal__filtres" id="calFiltre"></div>
+          <button class="calfam cal__fond" type="button" id="calFond" aria-pressed="true"
+                  title="La lune, les saisons et les jours fériés, en fond de la grille. On ne les coche pas.">Lune et fériés</button>
+        </div>
+
         <div id="calCorps"></div>
 
         <p class="zone__pied">
