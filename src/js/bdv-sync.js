@@ -37,26 +37,65 @@
 
   /* ============================ LES LIGNES DE VENTE ============================ */
 
-  // Rend toutes les lignes du serveur au format local {h, raw}, pret pour dbAddMany.
-  // `surProgres(recues)` est optionnel, appele apres chaque page.
-  async function tirerVentes(surProgres){
+  /* Rend les lignes du serveur au format local {h, raw}, pret pour dbAddMany.
+     `surProgres(recues)` est optionnel, appele apres chaque page.
+     `dejaLa` est le nombre de lignes que cet appareil possede DEJA (dbCount()).
+
+     ================= DEUX CORRECTIONS MESUREES, 08/09/2026 =================
+
+     Mesure de depart, sur 4 939 lignes puis 15 000 et 40 000, dans un vrai navigateur :
+     le premier clic sur une piece de vente retelechargeait la base ENTIERE a chaque
+     visite. 1,8 Mo et 1,9 s a 4 939 lignes ; 14,7 Mo et 11,7 s a 40 000. Et sans aucune
+     latence reseau dans la mesure : sur la 4G d'un domaine, c'est une minute.
+
+     1. ON COMPTE AVANT DE LIRE. Le compteur passe par l'en-tete Content-Range, il ne
+        rapatrie AUCUNE donnee. Autant de lignes ici que sur le compte : il n'y a rien a
+        aller chercher, on rend un tableau vide. Mesure : 11,7 s -> 2,9 s a 40 000 lignes,
+        et 14,7 Mo -> zero.
+
+        CE N'EST PAS UNE SUPPOSITION, c'est une verification, et la nuance est tout le
+        sujet : au MOINDRE doute on refait le rapatriement complet. Compteur illisible,
+        appelant qui ne sait pas ce qu'il a, ecart dans un sens ou dans l'autre : on lit
+        tout. La regle de cette fonction reste « elle n'a pas le droit de deviner ».
+
+        L'ecart assume, et il est etroit : un AUTRE appareil qui enrichit une ligne
+        existante sans changer le nombre de lignes (le cas des colonnes e-mail arrivees
+        en aout 2026) ne serait pas vu par ce poste avant son prochain import. Sans effet
+        sur les chiffres, qui ne lisent pas ces colonnes.
+
+     2. PAGINATION PAR CURSEUR, plus par decalage. Le plan d'execution de Postgres le
+        disait : pour rendre la 5e page de 1 000 lignes, `offset 4000` parcourait les
+        4 939 lignes, 4 998 blocs, 87 ms. Le cout total devenait quadratique avec le
+        volume. « Les lignes apres la derniere que j'ai recue » est une recherche dans
+        l'index (id, empreinte), donc un cout CONSTANT par page.
+
+        La cle (id, empreinte) est unique et RLS borne la lecture a un seul compte :
+        `empreinte > la derniere` ne peut donc ni sauter ni repeter une ligne. Ne pas
+        remplacer `order=empreinte.asc` par un autre tri sans changer la borne avec.
+
+     LA SORTIE DE BOUCLE NE CHANGE PAS : on s'arrete sur une page VIDE, jamais sur une
+     page plus courte que demandee. Le jour ou le plafond de lignes du projet Supabase
+     passe sous PAGE, l'hypothese « moins que demande = fin des donnees » ferait
+     redescendre la base tronquee, sans un mot. Depuis que se deconnecter efface ce
+     navigateur, cette boucle est le SEUL moyen de retrouver ses ventes. */
+  async function tirerVentes(surProgres, dejaLa){
     if(!pret()) return [];
+
+    if(typeof dejaLa === 'number' && dejaLa >= 0){
+      const distant = await compterVentes();
+      if(distant != null && distant === dejaLa) return [];
+    }
+
     const sorties = [];
-    let depuis = 0;
+    let apres = null;                 // l'empreinte de la derniere ligne recue
     for(;;){
+      const borne = (apres == null) ? '' : '&empreinte=gt.' + encodeURIComponent(apres);
       const page = await BdvCompte.api(
-        '/ventes?select=empreinte,brut&order=empreinte.asc&limit=' + PAGE + '&offset=' + depuis);
+        '/ventes?select=empreinte,brut&order=empreinte.asc&limit=' + PAGE + borne);
       if(!page || !page.length) break;
       page.forEach(function(l){ sorties.push({ h: l.empreinte, raw: l.brut }); });
+      apres = page[page.length - 1].empreinte;
       if(surProgres) surProgres(sorties.length);
-      // On avance de ce qu'on a RECU, et on ne s'arrete que sur une page vide.
-      // L'ancienne sortie de boucle etait `page.length < PAGE` : elle supposait que le
-      // serveur rende toujours autant de lignes qu'on en demande. Le jour ou le plafond de
-      // lignes du projet Supabase passe sous PAGE, cette hypothese fait croire a une fin de
-      // donnees des la premiere page, et la base redescend tronquee sans un mot.
-      // Depuis que se deconnecter efface ce navigateur (07/09/2026), cette boucle est le
-      // SEUL moyen de retrouver ses ventes. Elle n'a plus le droit de deviner.
-      depuis += page.length;
     }
     return sorties;
   }
@@ -270,7 +309,15 @@
         '&order=le.desc&limit=' + PAGE + '&offset=' + debut);
       if(!page || !page.length) break;
       out.push.apply(out, page);
-      debut += page.length;   // meme regle que tirerVentes : on avance de ce qu'on a recu
+      debut += page.length;
+      /* LE DECALAGE RESTE ICI, ET C'EST VOLONTAIRE. tirerVentes() est passe au curseur le
+         08/09/2026 parce que sa cle de tri, `empreinte`, est UNIQUE : « les lignes apres la
+         derniere » ne peut alors ni sauter ni repeter une ligne. Ici le tri est `le`, une
+         date d'echange, que deux entrees du meme jour partagent tres bien. Un curseur sur
+         une cle non unique perd des lignes en silence, ce qui est bien pire que de relire
+         quelques pages. Et le volume ne le justifie pas : un journal d'echanges compte des
+         dizaines de lignes, pas des milliers. Le jour ou il en comptera, la borne devra
+         porter le couple (le, echange_id), pas `le` seul. */
     }
     return out;
   }

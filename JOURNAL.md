@@ -12,6 +12,92 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08/09/2026, matin. « Ça tourne fluide et ça monte en puissance ? » — mesuré, puis corrigé
+
+Ted : « peut-on optimiser la base pour que ça tourne de façon fluide et permette une
+montée en puissance ? »
+
+**La base n'était pas le sujet, et c'est la première chose que la mesure a dite.** Postgres
+rend une page de 1 000 lignes en 87 ms. Ce qui coûtait, c'était de faire traverser ces
+lignes au réseau à chaque premier clic.
+
+### La courbe, avant
+
+Vrai navigateur, site construit, faux Supabase, trois volumes :
+
+| Lignes | 1er clic, appareil neuf | Transféré | 1er clic, base déjà locale | Bascules |
+|---|---|---|---|---|
+| 4 939 | 1,9 s | 1,8 Mo | 0,9 s | 23 à 121 ms |
+| 15 000 | 4,4 s | 5,5 Mo | 1,3 s | 33 à 291 ms |
+| 40 000 | 11,7 s | 14,7 Mo | 2,9 s | 23 à 57 ms |
+
+Sans latence réseau dans la mesure : sur la 4G d'un domaine, 14,7 Mo c'est une minute.
+
+**Le résultat rassurant, et il est structurel** : les bascules entre pièces restent entre
+23 et 291 ms quel que soit le volume. Le modèle « tout en mémoire dans le navigateur »
+tient jusqu'à 40 000 lignes. Il n'y avait pas d'architecture à refaire, et c'est ce qui a
+permis de ne toucher qu'un fichier.
+
+### Les deux corrections, et la ligne qu'elles ne franchissent pas
+
+**On compte avant de lire.** Le compteur passe par `Content-Range`, il ne rapatrie aucune
+donnée. Autant de lignes ici que sur le compte, il n'y a rien à aller chercher.
+
+**Au moindre doute, rapatriement complet.** C'est la moitié du travail et tout l'enjeu :
+la règle écrite dans cette boucle est qu'elle n'a pas le droit de deviner, après la panne
+où la base de Ted était restée bloquée à 500 lignes sur 4 942. Compteur illisible,
+appelant qui ne sait pas ce qu'il a, écart dans un sens ou dans l'autre : on lit tout.
+Cinq contrôles du banc ne gardent que ça.
+
+**Pagination par curseur.** Le plan d'exécution le disait sans ambiguïté : pour rendre la
+5e page, `offset 4000` parcourait les 4 939 lignes, 4 998 blocs, 87 ms. Avec
+`empreinte > la dernière reçue` : 3 blocs, 0,9 ms, et les deux conditions dans l'Index
+Cond. Le coût par page devient constant au lieu de croître avec le volume.
+
+Le journal d'échanges garde son décalage, volontairement : son tri est une date, que deux
+entrées du même jour partagent. Un curseur sur une clé non unique saute des lignes en
+silence, ce qui est bien pire que de relire quelques pages.
+
+### La mesure après
+
+| | Avant | Après |
+|---|---|---|
+| 4 939 lignes, le lendemain | 1 416 ms · 1 807 ko | **716 ms · 0 ko** |
+| 40 000 lignes, le lendemain | — | **2 831 ms · 0 ko** |
+
+Le premier import sur un appareil neuf ne bouge pas, et ne peut pas bouger : il faut bien
+descendre la base une fois.
+
+### Côté base
+
+`ventes` portait 11 878 réécritures de lignes pour 4 939 lignes vivantes, et **zéro en
+mode économique**. Une ligne fait 458 octets, une page 8 ko : à remplissage 100 %, une
+page est pleine et une mise à jour doit en écrire une autre, plus les deux index.
+`fillfactor = 90` laisse la place. Appliqué en base et consigné en section 15 de
+`schema.sql`. Ne s'applique qu'aux pages écrites ensuite, il n'y a rien à forcer.
+
+### Ce qui a été écarté, et pourquoi je l'écris
+
+**Les 28 avertissements RLS de Supabase** (un appel de fonction réévalué par ligne) sont
+réels dans l'absolu. Mesuré sur la requête de cet outil, le planificateur remonte déjà
+l'appel dans la condition d'index : 0,128 ms. Un gain non constaté ne se vend pas. À
+corriger un jour par propreté.
+
+**Ne pousser que les lignes nouvelles à l'import** était le troisième item annoncé. Écarté
+après lecture : `resolution=merge-duplicates` existe précisément pour qu'un export plus
+récent enrichisse une ligne déjà connue (les colonnes e-mail d'août 2026). Ne pousser que
+les empreintes inconnues supprimerait cet enrichissement. Le sujet reste ouvert, il
+demande que `dbAddMany` dise ce qu'il a enrichi.
+
+### Le chiffre pour le plan, pas pour le code
+
+458 octets par ligne. 500 vignerons × 5 000 lignes = 2,5 M lignes = **1,1 Go**. Palier
+gratuit Supabase 500 Mo, Pro 8 Go : le stockage n'est pas un mur avant plusieurs milliers
+de clients. Le mur est le navigateur, vers 100 000 lignes — un vigneron n'y arrive pas, un
+négociant si.
+
+---
+
 ## 07/09/2026, nuit. Le bandeau nettoyé, et « Mes tâches »
 
 Ted, sur une capture : « ça c'est pas beau. Le liseré gris autour, et l'hamburger, aucun

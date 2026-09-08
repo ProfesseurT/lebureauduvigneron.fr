@@ -470,3 +470,22 @@ grant select, insert, update, delete on public.taches to authenticated;
 
 -- PAS dans effacer_mes_donnees(), meme motif que les signets : cette fonction vide
 -- LA BASE DE VENTES, pas le compte.
+
+
+-- ---------------------------------------------------------------------------
+-- 15. Reglage de stockage de `ventes`, 08/09/2026
+-- ---------------------------------------------------------------------------
+-- Constat mesure : 11 878 reecritures de lignes pour 4 939 lignes vivantes, et ZERO en
+-- mode economique (HOT). Chaque import reecrit toute la base, index compris, y compris
+-- les lignes dont le contenu n'a pas change : `resolution=merge-duplicates` fait un
+-- UPDATE sur chaque ligne deja connue.
+--
+-- Une ligne fait 458 octets, une page 8 ko : a remplissage 100 %, une page contient
+-- environ 17 lignes et n'a plus un octet libre. Un UPDATE ne peut donc pas rester sur sa
+-- page, il en ecrit une nouvelle et met a jour les deux index. A 90 %, la place laissee
+-- suffit, la mise a jour reste sur place et les index ne bougent pas.
+--
+-- Ne s'applique qu'aux pages ECRITES APRES ce reglage : les pages deja pleines le
+-- restent jusqu'a ce qu'elles soient reecrites. Il n'y a rien a forcer, le prochain
+-- import en profite.
+alter table public.ventes set (fillfactor = 90);

@@ -156,8 +156,8 @@ coute une capture d'ecran pour etre vu.
 
     npm run verif
 
-Elle enchaine `build`, `charte`, `charte:bureau`, `banc`, `banc:reglages` et
-`banc:taches`, et s'arrete au premier echec.
+Elle enchaine `build`, `charte`, `charte:bureau`, `banc`, `banc:reglages`, `banc:taches`
+et `banc:sync`, et s'arrete au premier echec.
 
 Elle existe depuis le 07/09/2026 pour une raison precise : ce jour-la j'ai lance les quatre
 a la main dans un `&&`, en passant chacun par `| tail -2` pour n'en lire que le verdict. Le
@@ -280,6 +280,32 @@ tache planifiee. Decocher une obligation supprime la ligne.
 les nomme TOUS LES TROIS a chaque bascule. Ne jamais poser un `hidden` a la main dans une
 branche : le defaut qu'on attend n'est pas « la piece ne s'affiche pas », c'est
 « l'ancienne reste affichee dessous ».
+
+### 9. On compte avant de lire, et on lit par curseur
+
+Le rapatriement des ventes (`tirerVentes`) compare d'abord DEUX NOMBRES : les lignes de
+cet appareil et celles du compte. Le compteur passe par l'en-tete `Content-Range`, il ne
+rapatrie aucune donnee. Autant des deux cotes, il ne telecharge rien.
+
+Mesure du 08/09/2026, vrai navigateur : premier clic sur une piece de vente a 40 000
+lignes, 11,7 s et 14,7 Mo avant, 2,8 s et zero octet apres.
+
+**Au MOINDRE doute, rapatriement complet.** Compteur illisible, appelant qui ne sait pas
+ce qu'il a, ecart dans un sens ou dans l'autre : on lit tout. Cette fonction n'a pas le
+droit de deviner, c'est la regle qui l'a sauvee une fois deja.
+
+Et la pagination porte sur la CLE, pas sur un decalage : `empreinte=gt.<la derniere recue>`
+avec `order=empreinte.asc`. Le plan d'execution mesure la difference sur la 5e page :
+`offset 4000` parcourait 4 939 lignes et 4 998 blocs en 87 ms, la borne fait 3 blocs en
+0,9 ms.
+
+Deux conditions a ne pas defaire : la cle de tri doit etre UNIQUE par compte (ici
+`(id, empreinte)` est la cle primaire), et la borne doit porter la meme colonne que le
+tri. Un curseur sur une cle non unique saute des lignes en silence. C'est pour ca que le
+journal d'echanges, trie par date, garde son decalage : voir le commentaire dans
+`bdv-sync.js`.
+
+`npm run banc:sync` garde les deux corrections ET les cinq cas de doute.
 
 ## La charte graphique : une seule pour le site et l'outil
 
