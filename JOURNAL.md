@@ -260,6 +260,23 @@ le jour où quelqu'un simplifiera cette vue. Corrigé par `revoke all ... from a
 authenticated` puis le grant. La règle est passée dans `CLAUDE.md`, parce qu'elle vaudra pour
 chaque objet créé ensuite.
 
+### LOT 2 FAIT, et prouvé sur de vraies données
+
+Ted a cliqué « Appelé » sur une ligne de son sous-main le 09/09/2026. Contrôlé depuis la
+session, juste après :
+
+- `suivi_clients` : 1 ligne, avec rappel. `echanges` : 1 ligne. Le geste a donc bien écrit ses
+  **deux** choses de nature différente, comme la règle l'exige.
+- **L'anti-jointure : 39 signaux gardés sur 40 déposés** sur son compte, 40 sur 40 sur l'autre,
+  qui n'a aucun suivi. Le client traité sort de la file, et le mail ne le nommera pas.
+
+C'était le seul contrôle qui ne pouvait pas se passer sur une table vide, et il est passé sur
+un vrai rappel, pas sur une simulation. Le lot 2 est clos.
+
+Note qui vaut pour la suite : un clic sur « Appelé » dans le sous-main est le chemin le plus
+court pour fabriquer un rappel de test. Il pose 30 jours, écrit le journal, et passe par
+`bdv-crm.js`, celui des deux chemins qui sait avouer un échec.
+
 ### Deux pièges de méthode, payés dans la session
 
 **Un bloc de commandes est collé en entier, toujours.** J'ai donné `npm run verif` dans un
