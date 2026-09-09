@@ -9,10 +9,19 @@
     "Chaque cas teste une chose precise. Ne pas les fusionner en un seul beau cas :",
     "c'est justement ce qui ferait passer le vide et le perime inapercus."
   ],
+
   "normal": {
-    "_but": "Le matin ordinaire. C'est le cas de reference pour juger le contenu.",
+    "_but": "Le matin ordinaire. C'est le cas de reference pour juger le contenu. Taches et rappels sont MELANGES dans « Ce matin », le plus en retard d'abord.",
     "aujourdhui": "2026-09-09",
     "depose_le": "2026-09-08T14:26:17+00:00",
+    "taches": [
+      { "tache_id": "t1", "titre": "Commander des bouchons et des coiffes", "source": "libre",
+        "echue_le": "2026-09-05", "fin_le": null, "fait_le": null },
+      { "tache_id": "t2", "titre": "DRM, déclaration récapitulative mensuelle", "source": "echeance",
+        "echue_le": "2026-09-09", "fin_le": null, "fait_le": null },
+      { "tache_id": "t3", "titre": "Rendez-vous avec le comptable", "source": "libre",
+        "echue_le": "2026-09-11", "fin_le": null, "fait_le": null }
+    ],
     "file_travail": {
       "noms": {
         "C-1001": "Cave du Vieux Pressoir",
@@ -22,239 +31,132 @@
         "C-1005": "Domaine voisin, Mme Roussel"
       },
       "signaux": [
-        {
-          "id": "C-2001",
-          "nom": "Caviste Beauregard",
-          "motif": "recul",
-          "montant": 4820,
-          "lib": "perdu sur un an",
-          "detail": "Il prenait 12 cartons par an, il en a pris 4.",
-          "contact": "06 12 34 56 78"
-        },
-        {
-          "id": "C-2002",
-          "nom": "Epicerie Fine du Marche",
-          "motif": "recul",
-          "montant": 2140,
-          "lib": "perdu sur un an",
-          "detail": "Deux commandes en moins par rapport à la même période.",
-          "contact": "contact@exemple-epicerie.test"
-        },
-        {
-          "id": "C-2003",
-          "nom": "Hotel des Vignes",
-          "motif": "cadence",
-          "montant": 1680,
-          "lib": "panier habituel",
-          "detail": "Une commande tous les 45 jours, rien depuis 118 jours.",
-          "contact": "04 90 00 00 00"
-        },
-        {
-          "id": "C-2004",
-          "nom": "Bistrot du Port",
-          "motif": "cadence",
-          "montant": 940,
-          "lib": "panier habituel",
-          "detail": "Rythme déduit de 3 commandes seulement, à vérifier avant d'insister.",
-          "contact": ""
-        },
-        {
-          "id": "C-2005",
-          "nom": "Madame Aubertin",
-          "motif": "unique",
-          "montant": 310,
-          "lib": "sa seule commande",
-          "detail": "Venue une fois au caveau le 14/07/2026.",
-          "contact": "07 88 88 88 88"
-        },
-        {
-          "id": "C-2006",
-          "nom": "Monsieur Lefranc",
-          "motif": "unique",
-          "montant": 168,
-          "lib": "sa seule commande",
-          "detail": "Venu une fois au caveau le 02/08/2026.",
-          "contact": "m.lefranc@exemple.test"
-        }
+        { "id": "C-2001", "nom": "Caviste Beauregard", "motif": "recul", "montant": 4820,
+          "lib": "perdu sur un an", "detail": "Il prenait 12 cartons par an, il en a pris 4.",
+          "contact": "06 12 34 56 78" },
+        { "id": "C-2002", "nom": "Epicerie Fine du Marche", "motif": "recul", "montant": 2140,
+          "lib": "perdu sur un an", "detail": "Deux commandes en moins par rapport à la même période.",
+          "contact": "contact@exemple-epicerie.test" },
+        { "id": "C-2003", "nom": "Hotel des Vignes", "motif": "cadence", "montant": 1680,
+          "lib": "panier habituel", "detail": "Une commande tous les 45 jours, rien depuis 118 jours.",
+          "contact": "04 90 00 00 00" },
+        { "id": "C-2004", "nom": "Bistrot du Port", "motif": "cadence", "montant": 940,
+          "lib": "panier habituel", "detail": "Rythme déduit de 3 commandes seulement, à vérifier avant d'insister.",
+          "contact": "" },
+        { "id": "C-2005", "nom": "Madame Aubertin", "motif": "unique", "montant": 310,
+          "lib": "sa seule commande", "detail": "Venue une fois au caveau le 14/07/2026.",
+          "contact": "07 88 88 88 88" },
+        { "id": "C-2006", "nom": "Monsieur Lefranc", "motif": "unique", "montant": 168,
+          "lib": "sa seule commande", "detail": "Venu une fois au caveau le 02/08/2026.",
+          "contact": "m.lefranc@exemple.test" }
       ]
     },
     "resume_ventes": {
       "conseils": [
-        {
-          "sev": 2,
-          "kind": "concentration",
+        { "sev": 2, "kind": "concentration",
           "verdict": "<b>Trois clients font 41 % de ton chiffre.</b> Une seule défection coûte un mois de ventes.",
-          "action": "Action : élargir la base avant d'aller chercher du volume chez eux."
-        },
-        {
-          "sev": 1,
-          "kind": "canal",
+          "action": "Action : élargir la base avant d'aller chercher du volume chez eux." },
+        { "sev": 1, "kind": "canal",
           "verdict": "Le caveau represente <b>62 %</b> de tes passages mais <b>28 %</b> du chiffre.",
-          "action": "Action : le panier moyen au caveau est ton levier le plus court."
-        },
-        {
-          "sev": 1,
-          "kind": "millesime",
+          "action": "Action : le panier moyen au caveau est ton levier le plus court." },
+        { "sev": 1, "kind": "millesime",
           "verdict": "Il reste du <b>2023</b> en vente à côté du 2024 sur deux cuvées.",
-          "action": "Action : écouler l'ancien millésime avant d'ouvrir la nouvelle campagne."
-        }
+          "action": "Action : écouler l'ancien millésime avant d'ouvrir la nouvelle campagne." }
       ]
     },
     "suivis": [
-      {
-        "client_id": "C-1001",
-        "statut": "relance",
-        "rappel": "2026-09-02",
-        "canal": "appel",
-        "notes": "Il attendait le tarif 2026. Envoyé le 28/08, jamais rappelé."
-      },
-      {
-        "client_id": "C-1002",
-        "statut": "a_faire",
-        "rappel": "2026-09-08",
-        "canal": "appel",
-        "notes": ""
-      },
-      {
-        "client_id": "C-1003",
-        "statut": "relance",
-        "rappel": "2026-09-09",
-        "canal": "email",
-        "notes": "Veut goûter le rosé avant de commander la saison."
-      },
-      {
-        "client_id": "C-1004",
-        "statut": "a_faire",
-        "rappel": "2026-09-11",
-        "canal": "appel",
-        "notes": ""
-      },
-      {
-        "client_id": "C-1005",
-        "statut": "a_faire",
-        "rappel": "2026-09-12",
-        "canal": "visite",
-        "notes": "Passe au domaine, prévoir une dégustation."
-      }
+      { "client_id": "C-1001", "statut": "relance", "rappel": "2026-09-02", "canal": "appel",
+        "notes": "Il attendait le tarif 2026. Envoyé le 28/08, jamais rappelé." },
+      { "client_id": "C-1002", "statut": "a_faire", "rappel": "2026-09-08", "canal": "appel",
+        "notes": "" },
+      { "client_id": "C-1003", "statut": "relance", "rappel": "2026-09-09", "canal": "email",
+        "notes": "Veut goûter le rosé avant de commander la saison." },
+      { "client_id": "C-1004", "statut": "a_faire", "rappel": "2026-09-11", "canal": "appel",
+        "notes": "" },
+      { "client_id": "C-1005", "statut": "a_faire", "rappel": "2026-09-12", "canal": "visite",
+        "notes": "Passe au domaine, prévoir une dégustation." }
     ]
   },
+
   "vide": {
     "_but": "Rien du tout. Verifie le sujet, le bloc « Rien ce matin », et que `vide` remonte a true.",
     "aujourdhui": "2026-09-09",
     "depose_le": "2026-09-08T14:26:17+00:00",
-    "file_travail": {
-      "noms": {},
-      "signaux": []
-    },
-    "resume_ventes": {
-      "conseils": []
-    },
+    "taches": [],
+    "file_travail": { "noms": {}, "signaux": [] },
+    "resume_ventes": { "conseils": [] },
     "suivis": []
   },
+
   "perime": {
-    "_but": "Un depot de plus de 60 jours. Les signaux doivent DISPARAITRE et le mail doit dire pourquoi. Le rappel echu, lui, reste : il est lu en direct.",
+    "_but": "Un depot de plus de 60 jours. Les signaux doivent DISPARAITRE et le mail doit dire pourquoi. Le rappel echu et la tache echue, eux, restent : ils sont lus en direct et ne peuvent pas etre perimes.",
     "aujourdhui": "2026-09-09",
     "depose_le": "2026-06-01T09:00:00+00:00",
+    "taches": [
+      { "tache_id": "t9", "titre": "Arrêté des stocks au 31 juillet", "source": "echeance",
+        "echue_le": "2026-09-08", "fin_le": null, "fait_le": null }
+    ],
     "file_travail": {
-      "noms": {
-        "C-1001": "Cave du Vieux Pressoir"
-      },
+      "noms": { "C-1001": "Cave du Vieux Pressoir" },
       "signaux": [
-        {
-          "id": "C-2001",
-          "nom": "Caviste Beauregard",
-          "motif": "recul",
-          "montant": 4820,
-          "lib": "perdu sur un an",
-          "detail": "Ce constat a trois mois.",
-          "contact": "06 12 34 56 78"
-        }
+        { "id": "C-2001", "nom": "Caviste Beauregard", "motif": "recul", "montant": 4820,
+          "lib": "perdu sur un an", "detail": "Ce constat a trois mois.", "contact": "06 12 34 56 78" }
       ]
     },
-    "resume_ventes": {
-      "conseils": []
-    },
+    "resume_ventes": { "conseils": [] },
     "suivis": [
-      {
-        "client_id": "C-1001",
-        "statut": "relance",
-        "rappel": "2026-09-05",
-        "canal": "appel",
-        "notes": "Toujours a rappeler."
-      }
+      { "client_id": "C-1001", "statut": "relance", "rappel": "2026-09-05", "canal": "appel",
+        "notes": "Toujours à rappeler." }
     ]
   },
+
   "limites": {
-    "_but": "Les cas laids, ceux qui cassent une mise en page. Un nom tres long, un montant a zero, aucun contact, des notes qui contiennent du HTML, un signal dont le client a recu un rappel depuis le depot (il doit SORTIR), et un rappel sur un client absent de l'annuaire (il doit s'afficher par son numero, pas disparaitre).",
+    "_but": "Les cas laids et les deux regles des taches. Un nom tres long, un montant a zero, aucun contact, des notes qui contiennent du HTML, un signal dont le client a recu un rappel depuis le depot (il doit SORTIR), un rappel sur un client absent de l'annuaire (il doit s'afficher par son numero), une tache SANS DATE (elle ne doit JAMAIS apparaitre), une tache FAITE (elle ne doit pas apparaitre), et une tache EN COURS (elle ne doit pas etre annoncee en retard).",
     "aujourdhui": "2026-09-09",
     "depose_le": "2026-09-08T14:26:17+00:00",
+    "taches": [
+      { "tache_id": "L1", "titre": "TACHE SANS DATE, elle ne doit jamais entrer dans le courrier",
+        "source": "libre", "echue_le": null, "fin_le": null, "fait_le": null },
+      { "tache_id": "L2", "titre": "TACHE DEJA FAITE, elle ne doit pas apparaitre",
+        "source": "libre", "echue_le": "2026-09-07", "fin_le": null, "fait_le": "2026-09-08T10:00:00+00:00" },
+      { "tache_id": "L3", "titre": "Vendanges de la parcelle du haut",
+        "source": "libre", "echue_le": "2026-09-07", "fin_le": "2026-09-12", "fait_le": null },
+      { "tache_id": "L4", "titre": "Facturation électronique, obligation d'émettre",
+        "source": "echeance", "echue_le": "2026-08-20", "fin_le": null, "fait_le": null }
+    ],
     "file_travail": {
       "noms": {
-        "C-0042": "Domaine partenaire des Hautes Terrasses et Coteaux Reunis",
-        "C-9998": "Le Verre a Pied"
+        "C-0042": "Domaine partenaire des Hautes Terrasses et Coteaux Réunis",
+        "C-9998": "Le Verre à Pied"
       },
       "signaux": [
-        {
-          "id": "C-0042",
-          "nom": "Domaine partenaire des Hautes Terrasses et Coteaux Reunis",
-          "motif": "recul",
-          "montant": 15400,
-          "lib": "perdu sur un an",
-          "detail": "CE SIGNAL DOIT DISPARAITRE : un rappel a ete pose sur ce client depuis le depot.",
-          "contact": "05 00 00 00 00"
-        },
-        {
-          "id": "C-0043",
-          "nom": "Bar a vins sans telephone ni adresse",
-          "motif": "cadence",
-          "montant": 0,
-          "lib": "panier habituel",
-          "detail": "Montant a zero et aucun contact : la ligne doit rester lisible et le dire.",
-          "contact": ""
-        },
-        {
-          "id": "C-0044",
-          "nom": "Chez Mo",
-          "motif": "inconnu-du-mail",
-          "montant": 77,
-          "lib": "",
-          "detail": "Motif que le mail ne connait pas : il doit s'afficher brut, pas tomber.",
-          "contact": "09 99 99 99 99"
-        }
+        { "id": "C-0042", "nom": "Domaine partenaire des Hautes Terrasses et Coteaux Réunis",
+          "motif": "recul", "montant": 15400, "lib": "perdu sur un an",
+          "detail": "CE SIGNAL DOIT DISPARAITRE : un rappel a été posé sur ce client depuis le dépôt.",
+          "contact": "05 00 00 00 00" },
+        { "id": "C-0043", "nom": "Bar à vins sans téléphone ni adresse", "motif": "cadence",
+          "montant": 0, "lib": "panier habituel",
+          "detail": "Montant à zéro et aucun contact : la ligne doit rester lisible et le dire.",
+          "contact": "" },
+        { "id": "C-0044", "nom": "Chez Mo", "motif": "inconnu-du-mail", "montant": 77,
+          "lib": "", "detail": "Motif que le mail ne connaît pas : il doit s'afficher brut, pas tomber.",
+          "contact": "09 99 99 99 99" }
       ]
     },
     "resume_ventes": {
       "conseils": [
-        {
-          "sev": 2,
-          "kind": "injection",
-          "verdict": "Un verdict avec <b>du gras</b> et un chevron mal ferme : <script>alert(1)</script>",
-          "action": "Action : le chevron doit s'afficher en texte, jamais s'executer."
-        }
+        { "sev": 2, "kind": "injection",
+          "verdict": "Un verdict avec <b>du gras</b> et un chevron mal fermé : <script>alert(1)</script>",
+          "action": "Action : le chevron doit s'afficher en texte, jamais s'exécuter." }
       ]
     },
     "suivis": [
-      {
-        "client_id": "C-0042",
-        "statut": "relance",
-        "rappel": "2026-09-06",
-        "canal": "appel",
-        "notes": "Notes avec <b>du HTML</b> dedans, qui doit s'afficher en texte brut."
-      },
-      {
-        "client_id": "C-9999",
-        "statut": "a_faire",
-        "rappel": "2026-09-07",
-        "canal": "appel",
-        "notes": "Client absent de l'annuaire : son numero doit s'afficher a la place du nom."
-      },
-      {
-        "client_id": "C-9998",
-        "statut": "traite",
-        "rappel": "2026-09-01",
-        "canal": "appel",
-        "notes": "Deja traite : ne doit PAS apparaitre."
-      }
+      { "client_id": "C-0042", "statut": "relance", "rappel": "2026-09-06", "canal": "appel",
+        "notes": "Notes avec <b>du HTML</b> dedans, qui doit s'afficher en texte brut." },
+      { "client_id": "C-9999", "statut": "a_faire", "rappel": "2026-09-07", "canal": "appel",
+        "notes": "Client absent de l'annuaire : son numéro doit s'afficher à la place du nom." },
+      { "client_id": "C-9998", "statut": "traite", "rappel": "2026-09-01", "canal": "appel",
+        "notes": "Déjà traité : ne doit PAS apparaître." }
     ]
   }
 }

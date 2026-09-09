@@ -17,6 +17,12 @@
    D'ou le bloc d'export en bas de fichier. Ne pas y introduire de `import`
    ni de `require` : ca fermerait deux des trois mondes.
 
+   CE QU'IL PORTE, depuis le 09/09/2026 : les TACHES echues autant que les
+   rappels. C'est un virage, decide avec Ted : le mail n'est plus « les
+   clients a voir », c'est SA JOURNEE. Motif mesure : `suivi_clients` etait a
+   zero ligne pendant que `taches` en portait treize, dont quatre posees dans
+   l'heure. La matiere qui bouge vraiment d'un jour a l'autre, c'est celle-la.
+
    CE QU'IL NE FAIT PAS, VOLONTAIREMENT :
    - il ne decide pas s'il faut envoyer. Il le DIT (`vide`), l'appelant tranche.
    - il ne connait pas l'heure. On lui passe le jour, en texte.
@@ -60,11 +66,15 @@ var F_CORPS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-ser
    bord. [Supposition] 60 jours est un choix a regler a l'usage : un client
    detecte en recul il y a deux mois a soit ete traite, soit change de
    situation, et le repeter chaque matin est le defaut qui fait decrocher.
-   Les rappels, eux, ne sont JAMAIS masques : ils sont lus en direct. */
+   Les rappels et les taches, eux, ne sont JAMAIS masques : ils sont lus en
+   direct, ils ne peuvent pas etre perimes. */
 var PEREMPTION_J = 60;
 /* On ne deverse pas la file entiere dans un mail. Le mail ouvre le bureau. */
 var MAX_SIGNAUX = 8;
 var MAX_CONSEILS = 3;
+/* Combien de jours a l'avance on annonce ce qui vient. Trois : au-dela, le
+   vigneron lit une liste au lieu d'une journee. */
+var HORIZON_J = 3;
 
 /* ======================= PETITS OUTILS =======================
    Recopies de bdv-base.js et pas importes, parce que ce fichier doit tourner
@@ -164,20 +174,64 @@ function nomDe(annuaire, id){
   return String(id||'');
 }
 
-/* Repartit les fiches de suivi en deux piles a partir du jour d'aujourd'hui. */
-function trierRappels(suivis, annuaire, jAuj){
-  var echus = [], venir = [];
-  (suivis||[]).forEach(function(s){
-    if(!s || !s.rappel || s.statut==='traite') return;
-    var jr = jour(s.rappel);
-    if(!jr) return;
-    var ecart = jAuj.n - jr.n;                 /* positif = en retard */
-    var o = { id:s.client_id, nom:nomDe(annuaire,s.client_id), canal:s.canal||'',
-              notes:s.notes||'', jour:jr, ecart:ecart };
-    if(ecart >= 0) echus.push(o);
-    else if(ecart >= -3) venir.push(o);        /* les trois jours qui viennent, pas plus */
+/* ---- UNE SEULE FORME POUR CE QUI TOMBE AUJOURD'HUI ----
+   Un rappel client et une tache sont deux choses differentes en base, et la
+   MEME chose pour le vigneron a 8 h du matin : quelque chose qui lui tombe
+   dessus. Les deux sont donc normalisees vers une seule forme, et une seule
+   fonction les dessine. Deux dessinateurs auraient diverge au premier
+   ajustement, exactement comme les neuf listes de canaux avant
+   bdv-canaux.js. */
+function normRappel(s, annuaire, jAuj){
+  if(!s || !s.rappel || s.statut === 'traite') return null;
+  var jr = jour(s.rappel);
+  if(!jr) return null;
+  var meta = [];
+  if(s.canal) meta.push('prévu : '+s.canal);
+  meta.push('rappel du '+fmtJourCourt(jr));
+  return { type:'rappel', titre:nomDe(annuaire, s.client_id), jour:jr,
+           ecart:jAuj.n - jr.n, encours:false, meta:meta,
+           note:sansBalise(s.notes).trim() };
+}
+/* DEUX REGLES ICI, ET AUCUNE DES DEUX N'EST COSMETIQUE.
+
+   1. UNE TACHE SANS DATE N'ENTRE JAMAIS DANS LE COURRIER. Le mail dit ce qui
+      tombe aujourd'hui. Une tache qu'on n'a pas datee n'a, par definition,
+      aucune raison de tomber ce matin plutot qu'un autre : la faire
+      apparaitre chaque jour est precisement le defaut qui fait decrocher un
+      lecteur en dix jours. Elle reste dans le bureau, ou elle est a sa place.
+
+   2. EN COURS N'EST PAS EN RETARD. Une tache qui porte une date de fin et
+      qui court encore n'est pas en retard, et l'annoncer en rouge est la meme
+      faute que nommer un client deja traite : le mail perd sa credibilite
+      d'un seul coup, et on ne la regagne pas. */
+function normTache(t, jAuj){
+  if(!t || t.fait_le) return null;      /* deja faite : elle n'a plus rien a dire */
+  var jd = jour(t.echue_le);
+  if(!jd) return null;                  /* sans date : jamais dans le courrier */
+  var jf = jour(t.fin_le);
+  var encours = !!(jf && jf.n >= jAuj.n && jd.n <= jAuj.n);
+  var meta = [];
+  if(t.source === 'echeance') meta.push('échéance du métier');
+  meta.push(jf ? ('du '+fmtJourCourt(jd)+' au '+fmtJourCourt(jf))
+               : ('à faire le '+fmtJourCourt(jd)));
+  return { type:'tache', titre:String(t.titre||'(sans titre)'), jour:jd,
+           ecart:jAuj.n - jd.n, encours:encours, meta:meta, note:'' };
+}
+
+/* Les deux piles de la journee, rappels et taches melanges. Melanges et pas
+   separes, et c'est voulu : le vigneron ne trie pas sa matinee par table de
+   base de donnees. Le plus en retard d'abord, et ce qui est EN COURS passe
+   apres ce qui est vraiment en retard. */
+function trierAFaire(suivis, taches, annuaire, jAuj){
+  var tout = [];
+  (suivis||[]).forEach(function(s){ var o=normRappel(s,annuaire,jAuj); if(o)tout.push(o); });
+  (taches||[]).forEach(function(t){ var o=normTache(t,jAuj);           if(o)tout.push(o); });
+  var echus = tout.filter(function(o){ return o.ecart >= 0; });
+  var venir = tout.filter(function(o){ return o.ecart < 0 && o.ecart >= -HORIZON_J; });
+  echus.sort(function(a,b){
+    if(a.encours !== b.encours) return a.encours ? 1 : -1;
+    return b.ecart - a.ecart;
   });
-  echus.sort(function(a,b){ return b.ecart - a.ecart; });   /* le plus en retard d'abord */
   venir.sort(function(a,b){ return a.jour.n - b.jour.n; });
   return { echus:echus, venir:venir };
 }
@@ -199,23 +253,21 @@ function bloc(titre, contenuHtml){
   + '</td></tr>';
 }
 
-/* Une ligne de rappel. La date compte plus que le nom : c'est elle qui dit
-   pourquoi cette ligne est la ce matin. */
-function ligneRappel(r, enRetard){
-  var quand = enRetard
-    ? '<span style="color:'+C.danger+';font-weight:600;">'+esc(fmtRetard(r.ecart))+'</span>'
-    : '<span style="color:'+C.muted+';">'+esc(fmtRetard(r.ecart))+'</span>';
-  var bas = [];
-  if(r.canal) bas.push('prévu : '+esc(r.canal));
-  bas.push('rappel du '+esc(fmtJourCourt(r.jour)));
-  var notes = sansBalise(r.notes).trim();
+/* Une ligne de la journee, rappel ou tache. Le QUAND compte plus que le
+   titre : c'est lui qui dit pourquoi cette ligne est la ce matin. */
+function ligneAFaire(o){
+  var quand;
+  if(o.encours)        quand = '<span style="color:'+C.muted+';">en cours</span>';
+  else if(o.ecart > 0) quand = '<span style="color:'+C.danger+';font-weight:600;">'+esc(fmtRetard(o.ecart))+'</span>';
+  else if(o.ecart===0) quand = '<span style="font-weight:600;">'+esc(fmtRetard(o.ecart))+'</span>';
+  else                 quand = '<span style="color:'+C.muted+';">'+esc(fmtRetard(o.ecart))+'</span>';
   return ''
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
   +   ' style="border-collapse:collapse;border-bottom:1px solid '+C.filet+';">'
   + '<tr><td style="padding:9px 0;font-family:'+F_CORPS+';font-size:15px;line-height:1.45;color:'+C.ink+';">'
-  +   '<div><strong style="font-weight:600;">'+esc(r.nom)+'</strong> &nbsp;'+quand+'</div>'
-  +   '<div style="font-size:12px;color:'+C.muted+';padding-top:2px;">'+bas.join(' &middot; ')+'</div>'
-  +   (notes ? '<div style="font-size:13px;color:'+C.ink+';padding-top:5px;font-style:italic;">'+esc(notes)+'</div>' : '')
+  +   '<div><strong style="font-weight:600;">'+esc(o.titre)+'</strong> &nbsp;'+quand+'</div>'
+  +   (o.meta.length ? '<div style="font-size:12px;color:'+C.muted+';padding-top:2px;">'+esc(o.meta.join(' · '))+'</div>' : '')
+  +   (o.note ? '<div style="font-size:13px;color:'+C.ink+';padding-top:5px;font-style:italic;">'+esc(o.note)+'</div>' : '')
   + '</td></tr></table>';
 }
 
@@ -268,17 +320,18 @@ function batir(d){
   var annuaire  = file.noms || {};
   var resume    = d.resume_ventes || {};
   var suivis    = d.suivis || [];
+  var taches    = d.taches || [];
   var jDepot    = jour(String(d.depose_le||'').slice(0,10));
   var ageDepot  = jDepot ? (jAuj.n - jDepot.n) : null;
   var perime    = (ageDepot == null) || (ageDepot > PEREMPTION_J);
 
-  var rappels  = trierRappels(suivis, annuaire, jAuj);
+  var journee  = trierAFaire(suivis, taches, annuaire, jAuj);
   var signaux  = perime ? [] : ecarterLesSuivis(file.signaux, suivis);
   var conseils = (resume.conseils || []).filter(function(c){ return c && c.verdict; }).slice(0, MAX_CONSEILS);
 
   var compteurs = {
-    echus:    rappels.echus.length,
-    venir:    rappels.venir.length,
+    echus:    journee.echus.length,
+    venir:    journee.venir.length,
     signaux:  signaux.length,
     conseils: conseils.length,
     ageDepot: ageDepot,
@@ -293,19 +346,19 @@ function batir(d){
      faire du volume. Deux chiffres au maximum : au-dela, la messagerie coupe
      et le vigneron ne lit que la moitie. ---- */
   var bouts = [];
-  if(compteurs.echus)   bouts.push(plur(compteurs.echus,'rappel'));
+  if(compteurs.echus)   bouts.push(compteurs.echus+' à faire');
   if(compteurs.signaux) bouts.push(plur(compteurs.signaux,'client')+' à voir');
-  if(!bouts.length && compteurs.venir) bouts.push(plur(compteurs.venir,'rappel')+' cette semaine');
+  if(!bouts.length && compteurs.venir) bouts.push(plur(compteurs.venir,'échéance')+' cette semaine');
   var sujet = 'Ton bureau, '+fmtJourLong(jAuj)+' : '+(bouts.length ? bouts.join(', ') : 'rien à faire ce matin');
 
   /* ---- LE CORPS ---- */
   var corps = '';
 
   if(compteurs.echus){
-    corps += bloc('Ce matin', rappels.echus.map(function(r){ return ligneRappel(r,true); }).join(''));
+    corps += bloc('Ce matin', journee.echus.map(ligneAFaire).join(''));
   }
   if(compteurs.venir){
-    corps += bloc('Les jours qui viennent', rappels.venir.map(function(r){ return ligneRappel(r,false); }).join(''));
+    corps += bloc('Les jours qui viennent', journee.venir.map(ligneAFaire).join(''));
   }
 
   if(signaux.length){
@@ -356,7 +409,7 @@ function batir(d){
 
   if(vide){
     corps += bloc('Rien ce matin',
-        '<div style="font-size:15px;">Aucun rappel échu, aucun client signalé. Profites-en.</div>');
+        '<div style="font-size:15px;">Aucune tâche échue, aucun rappel, aucun client signalé. Profites-en.</div>');
   }
 
   /* ---- L'ENVELOPPE ----
@@ -403,19 +456,23 @@ function batir(d){
      Elle n'est pas decorative : un mail sans partie texte part plus souvent
      dans les indesirables, et c'est aussi la seule version lisible dans un
      terminal, donc celle qu'on relit en developpant. */
+  function ligneTexte(o){
+    var q = o.encours ? 'en cours' : fmtRetard(o.ecart);
+    var t = ['- '+o.titre+' ('+q+')'];
+    if(o.meta.length) t.push('  '+o.meta.join(' · '));
+    if(o.note)        t.push('  '+o.note);
+    return t;
+  }
   var t = [];
   t.push(sujet, '');
   if(compteurs.echus){
     t.push('CE MATIN');
-    rappels.echus.forEach(function(r){
-      t.push('- '+r.nom+' ('+fmtRetard(r.ecart)+', rappel du '+fmtJourCourt(r.jour)+')');
-      var n = sansBalise(r.notes).trim(); if(n) t.push('  '+n);
-    });
+    journee.echus.forEach(function(o){ t.push.apply(t, ligneTexte(o)); });
     t.push('');
   }
   if(compteurs.venir){
     t.push('LES JOURS QUI VIENNENT');
-    rappels.venir.forEach(function(r){ t.push('- '+r.nom+' ('+fmtRetard(r.ecart)+')'); });
+    journee.venir.forEach(function(o){ t.push.apply(t, ligneTexte(o)); });
     t.push('');
   }
   if(signaux.length){
@@ -435,7 +492,7 @@ function batir(d){
     });
     t.push('');
   }
-  if(vide) t.push('Aucun rappel échu, aucun client signalé. Profites-en.', '');
+  if(vide) t.push('Aucune tâche échue, aucun rappel, aucun client signalé. Profites-en.', '');
   t.push('Ouvrir mon bureau : '+urlBureau);
 
   return { sujet:sujet, html:html, texte:t.join('\n'), vide:vide, compteurs:compteurs };
@@ -446,8 +503,9 @@ function batir(d){
    Node : l'apercu du lot 1 fait un require() de ce fichier.
    Deno, au lot 3 : globalThis.BdvCourrier apres un import de l'URL du fichier.
    Ne pas remplacer ce bloc par un `export` : il fermerait les deux autres. */
-var api = { batir:batir, PEREMPTION_J:PEREMPTION_J,
-            _outils:{ jour:jour, fmtMoney:fmtMoney, htmlLimite:htmlLimite, trierRappels:trierRappels } };
+var api = { batir:batir, PEREMPTION_J:PEREMPTION_J, HORIZON_J:HORIZON_J,
+            _outils:{ jour:jour, fmtMoney:fmtMoney, htmlLimite:htmlLimite,
+                      normTache:normTache, normRappel:normRappel, trierAFaire:trierAFaire } };
 racine.BdvCourrier = api;
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 

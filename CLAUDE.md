@@ -885,6 +885,32 @@ Trois consequences a ne pas defaire :
 - `--rule` est aplati en `#C9C4B9`. Un rgba sur une bordure de tableau n'est pas fiable en
   messagerie.
 
+### LE COURRIER PORTE LES TACHES, ET DEUX REGLES VIENNENT AVEC, 09/09/2026
+
+Virage decide avec Ted : le mail n'est plus « les clients a voir », c'est SA JOURNEE. Taches
+echues et rappels sont MELANGES dans le bloc « Ce matin », le plus en retard d'abord.
+Melanges et pas separes : le vigneron ne trie pas sa matinee par table de base de donnees.
+Motif mesure : `suivi_clients` etait a zero ligne pendant que `taches` en portait treize,
+dont quatre posees dans l'heure. La matiere qui bouge vraiment d'un jour a l'autre, c'est
+celle-la.
+
+Consequence de forme : rappels et taches sont normalises vers UNE seule forme
+(`normRappel()`, `normTache()`) et UNE seule fonction les dessine (`ligneAFaire()`). Deux
+dessinateurs auraient diverge au premier ajustement, comme les neuf listes de canaux avant
+`bdv-canaux.js`.
+
+**1. UNE TACHE SANS DATE N'ENTRE JAMAIS DANS LE COURRIER.** Le mail dit ce qui tombe
+aujourd'hui. Une tache non datee n'a, par definition, aucune raison de tomber ce matin
+plutot qu'un autre : la faire apparaitre chaque jour est precisement le defaut qui fait
+decrocher un lecteur en dix jours. Elle reste dans le bureau, ou elle est a sa place.
+
+**2. EN COURS N'EST PAS EN RETARD.** Une tache qui porte une date de fin et qui court encore
+n'est pas en retard. L'annoncer en rouge est la meme faute que nommer un client deja traite :
+le mail perd sa credibilite d'un seul coup, et on ne la regagne pas. Les taches en cours
+passent APRES celles qui sont vraiment en retard, et portent « en cours », pas « depuis ».
+
+Les trois controles 7, 8 et 9 de `npm run courrier` gardent ces deux regles.
+
 ### `ecarterLesSuivis()` DOIT DISPARAITRE AU LOT 2
 
 `fileSignaux()` ecarte deja les clients suivis, mais **au moment du depot**, dans le

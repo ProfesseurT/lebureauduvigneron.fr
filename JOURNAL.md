@@ -186,6 +186,25 @@ Corrigé le 09/09/2026, trois retouches : `return=representation` sur les deux �
 suivi, un drapeau `_apousser` et un `crmRejouer()` calqués sur `echPousser()`, et un second
 message à l'écran quand le compte n'a pas confirmé.
 
+### Le virage : le courrier porte les tâches
+
+Décidé le 09/09/2026, après la correction ci-dessus. `suivi_clients` était à zéro ligne
+pendant que `taches` en portait treize, dont quatre posées dans l'heure. Autrement dit : la
+moitié « ce matin » du courrier était bâtie sur la seule matière que Ted n'utilise pas encore,
+et ignorait celle qu'il utilise tous les jours.
+
+Le mail n'est donc plus « les clients à voir », c'est **sa journée**. Tâches échues et rappels
+mélangés dans un seul bloc, le plus en retard d'abord. Mélangés et pas séparés : personne ne
+trie sa matinée par table de base de données.
+
+Deux règles sont venues avec, et aucune n'est cosmétique. Une tâche **sans date** n'entre
+jamais dans le courrier, sinon elle y reparaît chaque matin, ce qui est le défaut qui fait
+décrocher. Et **en cours n'est pas en retard** : « Vendanges de la parcelle du haut », du 07
+au 12 septembre, ne doit pas s'afficher en rouge un 9 septembre. C'est la même faute que
+nommer un client déjà traité, et elle coûte la même chose : la crédibilité du mail d'un seul
+coup. Les deux sont gardées par les contrôles 7, 8 et 9 de `npm run courrier`, et vérifiées à
+la capture d'écran.
+
 ### Deux pièges de méthode, payés dans la session
 
 **Un bloc de commandes est collé en entier, toujours.** J'ai donné `npm run verif` dans un

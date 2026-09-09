@@ -93,6 +93,40 @@ function verifier(cas, r, donnees){
       ennuis.push(`${cas} : le libelle « ${s.lib} » s'affiche sans montant. Une case vide vaut mieux.`);
     }
   }
+  /* 7. UNE TACHE SANS DATE N'ENTRE JAMAIS DANS LE COURRIER. Le mail dit ce qui
+        tombe aujourd'hui ; une tache non datee tomberait chaque matin, et c'est
+        le defaut qui fait decrocher un lecteur en dix jours. */
+  for(const t of (donnees.taches||[])){
+    if(t && !t.echue_le && t.titre && r.html.includes(t.titre)){
+      ennuis.push(`${cas} : la tache « ${t.titre} » n'a pas de date et se retrouve dans le mail.`);
+    }
+  }
+  /* 8. Une tache DEJA FAITE n'a plus rien a dire. */
+  for(const t of (donnees.taches||[])){
+    if(t && t.fait_le && t.titre && r.html.includes(t.titre)){
+      ennuis.push(`${cas} : la tache « ${t.titre} » est faite et reste affichee.`);
+    }
+  }
+  /* 9. EN COURS N'EST PAS EN RETARD. Une tache datee d'hier qui court jusqu'a
+        demain n'est pas en retard : l'annoncer en rouge est la meme faute que
+        nommer un client deja traite, et le mail perd sa credibilite d'un coup. */
+  const auj = BdvCourrier._outils.jour(donnees.aujourdhui);
+  for(const t of (donnees.taches||[])){
+    if(!t || t.fait_le || !t.echue_le || !t.fin_le) continue;
+    const d = BdvCourrier._outils.jour(t.echue_le), f = BdvCourrier._outils.jour(t.fin_le);
+    if(!d || !f || !auj) continue;
+    if(d.n <= auj.n && f.n >= auj.n){
+      const o = BdvCourrier._outils.normTache(t, auj);
+      if(!o || !o.encours){
+        ennuis.push(`${cas} : la tache « ${t.titre} » court encore et n'est pas marquee « en cours ».`);
+      }
+      /* Le mot « depuis » a cote de son titre voudrait dire « en retard ». */
+      const i = r.texte.indexOf(t.titre);
+      if(i >= 0 && /^[^\n]*depuis/.test(r.texte.slice(i))){
+        ennuis.push(`${cas} : la tache « ${t.titre} » court encore et le mail la dit en retard.`);
+      }
+    }
+  }
   /* 5. Un depot perime ne doit afficher aucun signal. */
   if(r.compteurs.perime && r.compteurs.signaux > 0){
     ennuis.push(`${cas} : depot perime (${r.compteurs.ageDepot} jours) et ${r.compteurs.signaux} signaux affiches.`);
