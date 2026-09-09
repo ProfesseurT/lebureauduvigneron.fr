@@ -205,6 +205,43 @@ nommer un client déjà traité, et elle coûte la même chose : la crédibilit�
 coup. Les deux sont gardées par les contrôles 7, 8 et 9 de `npm run courrier`, et vérifiées à
 la capture d'écran.
 
+### Lot 2 : la vue, et le bon argument pour elle
+
+`supabase/lot9-courrier-vues.sql`, **à coller** dans l'éditeur SQL. Pas par le MCP : depuis
+que `profils` porte des adresses de vignerons, la décision du 01/09 est que tout DDL repasse
+à la main.
+
+L'argument que j'avançais d'abord (ne pas écrire la règle du suivi à deux endroits) est le
+plus faible des deux. Le vrai : **sans vue, la fonction d'envoi fait trois lectures par
+compte**, soit 1 500 allers-retours à 8 h du matin pour 500 vignerons. Avec elle, une seule
+requête pour tout l'envoi.
+
+Ce que la vue écarte, et pourquoi ces deux-là seulement : les signaux dont le client a depuis
+reçu un rappel ou a été traité, et les tâches faites. Ce sont des **faits**. Elle laisse
+passer les tâches sans date, parce que « une tâche sans date n'entre jamais dans le courrier »
+est une règle de **présentation**, qui vit dans `normTache()` et y reste. L'écrire aux deux
+endroits serait exactement le défaut que cette vue existe pour supprimer.
+
+`security_invoker = true` est la ligne la plus importante du fichier. [Certain] Sans elle, une
+vue Postgres s'exécute avec les droits de son propriétaire : la sécurité par ligne des tables
+ne s'applique plus, et n'importe quel vigneron connecté lirait la file de travail, les rappels
+et l'adresse e-mail de tous les autres.
+
+Vérifié avant de livrer le fichier, en lecture seule sur la vraie base : une ligne par compte,
+40 signaux, l'annuaire et le résumé présents, et l'ordre du dépôt conservé (`with ordinality`,
+sinon `jsonb_agg` perd le classement par importance qu'a fait le tableau de bord). L'anti-jointure
+est prouvée avec une fiche de suivi **simulée** dans une CTE, sans rien écrire : les signaux
+passent de 40 à 39. Elle reste à contrôler sur un vrai rappel, et le fichier dit pourquoi ce
+contrôle-là ne peut pas se passer sur une table vide.
+
+Mesure au passage : 9,1 ko de signaux par compte, donc environ 4,5 Mo pour 500 vignerons en
+une requête. Ça passe. Les deux leviers si ça devient un mur sont écrits en section 3.4 du
+fichier, à ne pas actionner avant d'avoir mesuré en situation.
+
+`ecarterLesSuivis()` dans `bdv-courrier.js` reste en place jusqu'au lot 3 : le jeu d'essai
+n'est pas filtré, et c'est lui qui porte le cas de test. Elle sera supprimée quand la fonction
+d'envoi lira la vue.
+
 ### Deux pièges de méthode, payés dans la session
 
 **Un bloc de commandes est collé en entier, toujours.** J'ai donné `npm run verif` dans un
