@@ -136,11 +136,22 @@ l'empêche de revenir en silence.
 Confirmation de la leçon du 08/09 : les défauts de dessin ne se voient qu'en capture d'écran,
 jamais en relisant le code.
 
-## LE DÉFAUT TROUVÉ EN CHERCHANT LES RAPPELS
+## MA PROPRE ERREUR DE LECTURE, ET LES DEUX FAIBLESSES QUI RESTENT VRAIES
 
-Ted a posé des rappels dans sa fiche client le 09/09. L'écran a répondu « Rappel enregistré. »
-à chaque fois. En base, `suivi_clients` ET `echanges` étaient à **zéro ligne**, et rien n'avait
-été écrit sur son compte de toute la journée. Il était pourtant bien connecté.
+**Correction du 09/09/2026, à lire avant le paragraphe suivant.** Ted a dit avoir posé des
+rappels, `suivi_clients` était à zéro ligne, et j'en ai conclu à une écriture cassée. C'était
+une erreur de ma part : ce qu'il avait posé, ce sont des **tâches**, pas des rappels. Deux
+fonctions différentes, deux tables différentes. `taches` portait bien ses 13 lignes, dont deux
+créées à 13 h 00 et 13 h 01, et `reglages.depose_le` avait été réécrit à 12 h 59. Les écritures
+partaient donc, la session était vivante, et **aucun incident n'a jamais été constaté sur le
+suivi**.
+
+La leçon, et elle vaut plus que le correctif : une table vide n'est pas la preuve d'une panne.
+Avant de diagnostiquer, vérifier QUELLE fonction a été utilisée, pas seulement quelle table est
+vide. J'ai écrit dans ce journal, dans `CLAUDE.md` et dans Notion un constat que je n'avais pas.
+
+Ce qui suit reste vrai, mais c'est du **durcissement** et pas la réparation d'un incident : la
+lecture du code a trouvé deux faiblesses réelles sur ce chemin.
 
 La cause est dans `bdv-base.js`, ligne 307 :
 
@@ -166,12 +177,14 @@ applique la règle : « un geste raté rend la ligne à l'écran et le dit », e
 lève `new Error('aucune session')` plutôt que de rendre la main. La fiche du tableau de bord,
 elle, ne l'applique pas. Deux chemins pour poser un rappel, un seul qui sait avouer un échec.
 
-Conséquence qui dépasse le courrier : [Certain] un rappel qui ne vit que dans le navigateur est
-perdu le jour où Ted change d'appareil, et `projet_deconnexion_efface_le_poste.md` a déjà posé
-que la base fait foi et que le navigateur n'est qu'une vitre.
+Conséquence qui dépasse le courrier : [Certain] un rappel qui ne vivrait que dans le navigateur
+serait perdu le jour où Ted change d'appareil, et `projet_deconnexion_efface_le_poste.md` a déjà
+posé que la base fait foi et que le navigateur n'est qu'une vitre. C'est ce risque-là qui
+justifie le correctif, pas un incident.
 
-Non corrigé à la clôture : la cause de l'échec (`syncPret()` faux, ou l'écriture refusée) n'est
-pas encore établie, et le défaut de report est à réparer dans les deux cas.
+Corrigé le 09/09/2026, trois retouches : `return=representation` sur les deux écritures du
+suivi, un drapeau `_apousser` et un `crmRejouer()` calqués sur `echPousser()`, et un second
+message à l'écran quand le compte n'a pas confirmé.
 
 ### Deux pièges de méthode, payés dans la session
 
@@ -187,8 +200,15 @@ bancs jsdom prennent chacun jusqu'à une minute et demie. Un banc par appel.
 
 ### Ce qui reste ouvert
 
-- **Le geste muet ci-dessus**, à instruire puis réparer. Il bloque le lot 2 : sans rappels en
-  base, la vue Postgres filtrerait sur du vide.
+- **Le lot 2 attend toujours de la matière.** `suivi_clients` est à zéro ligne parce qu'aucun
+  rappel n'a encore été posé. En revanche `taches` en porte 13, datées et vivantes : la
+  question de savoir si le courrier du matin doit porter les TÂCHES plutôt que, ou en plus
+  des, rappels est posée et non tranchée.
+- **Une suppression ratée n'est pas rejouée** : la fiche a déjà quitté `CRM`, il n'y a plus
+  rien à marquer. Écrit en commentaire dans `bdv-base.js`.
+- **Cinq tâches d'échéance sont cochées « fait »**, dont « Véraison » échue en juillet 2027 et
+  « Arrêté des stocks au 31 juillet ». Soit un essai de Ted, soit un défaut du chemin de
+  coche. À lui demander avant de chercher.
 - **L'annuaire des noms peut manquer une entrée.** `annuaireSuivis()` est cumulatif dans le
   `localStorage` du poste qui importe. Une fiche créée sur le téléphone, où aucun export n'a
   été importé, n'entre jamais dans l'annuaire déposé depuis le bureau : le mail afficherait

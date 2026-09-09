@@ -237,12 +237,17 @@
       maj_le: new Date().toISOString()
     };
     try{
-      await BdvCompte.api('/suivi_clients?on_conflict=id,client_id', {
+      /* return=representation, et PAS minimal. BdvCompte.api() rend `null` SANS LEVER dans
+         DEUX cas : session tombee, et reponse 2xx a corps vide. En minimal, une ecriture
+         reussie et une session morte se ressemblent donc exactement, et cette fonction
+         repondait `true` dans les deux cas. La regle est deja ecrite dans le projet : toute
+         ecriture dont l'issue est exploitee demande la representation. */
+      const r = await BdvCompte.api('/suivi_clients?on_conflict=id,client_id', {
         methode: 'POST',
         corps: [corps],
-        entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+        entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
       });
-      return true;
+      return Array.isArray(r) && r.length > 0;
     }catch(e){ return false; }
   }
 
@@ -251,11 +256,14 @@
   async function supprimerSuivi(clientId){
     if(!pret() || !clientId) return false;
     try{
-      await BdvCompte.api('/suivi_clients?client_id=eq.' + encodeURIComponent(clientId), {
+      /* Meme motif que ecrireSuivi. Difference a connaitre : ici un tableau VIDE est un
+         succes, il n'y avait simplement rien a supprimer. C'est `null` qui trahit la
+         session tombee. */
+      const r = await BdvCompte.api('/suivi_clients?client_id=eq.' + encodeURIComponent(clientId), {
         methode: 'DELETE',
-        entetes: { 'Prefer': 'return=minimal' }
+        entetes: { 'Prefer': 'return=representation' }
       });
-      return true;
+      return Array.isArray(r);
     }catch(e){ return false; }
   }
 

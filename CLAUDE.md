@@ -946,8 +946,15 @@ Puis `crmSet()` annonce « Rappel enregistre. » sur la foi du seul `crmSave()` 
 `localStorage`. Le message dit vrai sur le navigateur et faux sur le compte, et rien ne
 distingue les deux cas a l'ecran.
 
-Constate le 09/09/2026 : Ted a pose des rappels, l'ecran a confirme chaque fois,
-`suivi_clients` et `echanges` etaient a zero ligne alors qu'il etait connecte.
+A LIRE AVEC SA CORRECTION. Le 09/09/2026 j'ai cru constater cet incident : Ted disait avoir
+pose des rappels et `suivi_clients` etait vide. Erreur de ma part, il avait pose des TACHES,
+une autre fonction et une autre table. AUCUN incident n'a ete constate sur ce chemin. La
+faiblesse du code, elle, est reelle et lue dans le code : en `return=minimal` une session
+morte et un succes sont indistinguables, et le suivi n'avait aucune file de rejeu. C'est du
+durcissement, pas une reparation.
+
+Et la lecon vaut au-dela : **une table vide n'est pas la preuve d'une panne**. Verifier
+QUELLE fonction a ete utilisee avant de diagnostiquer quelle table est vide.
 
 How to apply: **aucun `.catch(function(){})` vide sur une ecriture dont l'issue est montree a
 l'ecran.** Un message de succes ne se pose qu'apres l'ecriture serveur, ou alors il dit

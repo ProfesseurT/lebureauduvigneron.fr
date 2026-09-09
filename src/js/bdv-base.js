@@ -304,10 +304,58 @@ function adopterExercice(m){
 }
 // Une fiche videe par le vigneron est SUPPRIMEE du serveur, pas gardee vide : sinon la table
 // se remplit de fiches fantomes qu'aucun ecran ne montre plus.
+/* LE SUIVI N'AVAIT AUCUNE FILE DE REJEU, et le commentaire de echPousser() qui justifiait
+   cette absence disait qu'il etait « repousse a chaque modification ». C'est vrai, mais une
+   modification n'arrive que si le vigneron retouche CETTE fiche : un rappel pose une fois et
+   jamais retouche partait une seule fois, et si cette fois-la ratait, il ne quittait jamais
+   le navigateur.
+   Trouve le 09/09/2026 : `suivi_clients` etait a zero ligne alors que l'ecran avait confirme
+   chaque rappel, et Ted etait bien connecte. Un rappel qui ne vit que dans un navigateur est
+   perdu au changement d'appareil, et la base fait foi.
+   Meme motif que echPousser() : un drapeau sur la fiche, et crmRejouer() vide la file a la
+   prochaine synchronisation. Rien ici ne bloque une saisie : la regle 2 du module tient.
+
+   TROU CONNU, non rebouche : si c'est une SUPPRESSION qui echoue, la fiche a deja quitte
+   CRM et il n'y a plus rien a marquer. La suppression se represente au prochain vidage de
+   la fiche, pas avant. Reboucher demanderait une deuxieme liste, en attente de
+   suppression : a faire le jour ou ca se voit, pas avant. */
 function syncSuivi(id){
-  if(!syncPret()||!id)return;
+  if(!id)return Promise.resolve(false);
   const c=CRM[id];
-  (c?BdvSync.ecrireSuivi(id,c):BdvSync.supprimerSuivi(id)).catch(function(){});
+  if(!syncPret()){ if(c){c._apousser=true;crmSave();} return Promise.resolve(false); }
+  return (c?BdvSync.ecrireSuivi(id,c):BdvSync.supprimerSuivi(id)).then(function(ok){
+    const f=CRM[id];
+    if(ok){ if(f&&f._apousser){delete f._apousser;crmSave();} }
+    else if(f){ f._apousser=true;crmSave(); }
+    return !!ok;
+  }).catch(function(){
+    const f=CRM[id];
+    if(f){f._apousser=true;crmSave();}
+    return false;
+  });
+}
+/* Vide la file du suivi. Appelee par tirerDuServeurUneFois() juste AVANT de relire le suivi
+   du serveur, et l'ordre est tout le sujet : pousser d'abord, lire ensuite. Dans l'autre
+   sens, la fusion ecraserait le rappel qui attendait ici avec une version du serveur qui ne
+   le connait pas encore. */
+function crmRejouer(){
+  if(!syncPret())return Promise.resolve([]);
+  const ids=Object.keys(CRM).filter(function(id){return CRM[id]&&CRM[id]._apousser;});
+  return Promise.all(ids.map(function(id){return syncSuivi(id);}));
+}
+/* Le drapeau `_apousser` ne part JAMAIS en base : BdvSync.ecrireSuivi() construit son corps
+   a partir de champs nommes, il ne recopie pas la fiche. Et crmVide() l'ignore, donc une
+   fiche qui ne porterait que lui reste consideree comme vide. */
+
+/* Dire la verite sur une ecriture partie en tache de fond, sans bloquer la saisie. Ecrit une
+   fois ici plutot que dans chaque appelant : deux versions de ce message auraient diverge. */
+function crmDireSiPasParti(p,quoi){
+  if(!p||!p.then)return;
+  p.then(function(ok){
+    // Pas de session, pas de reproche : le tableau de bord tourne aussi sans compte, et
+    // dans ce cas le localStorage EST la destination, pas un pis-aller.
+    if(!ok&&syncPret())status('error',quoi+" n'est enregistré que sur cet appareil : ton compte ne l'a pas reçu. Ça repartira à la prochaine synchronisation.");
+  });
 }
 // Rapatriement au demarrage. Les lignes du serveur passent par dbAddMany comme n'importe quel
 // import : meme deduplication, meme enrichissement hors empreinte, aucun chemin special.
@@ -371,6 +419,9 @@ async function tirerDuServeurUneFois(){
       echRejouer();
     }catch(e){ /* silencieux, comme tout le sync : on garde le miroir local */ }
   }
+  // Pousser ce qui attendait ici AVANT de relire : dans l'autre sens, la fusion plus bas
+  // ecraserait un rappel en attente avec une version du serveur qui l'ignore encore.
+  await crmRejouer();
   const suivi=await BdvSync.lireSuivi();
     if(suivi&&Object.keys(suivi).length){
       // Le local gagne sur le serveur en cas de conflit : une note ecrite ici et pas encore
@@ -416,10 +467,13 @@ function crmSet(id,champ,valeur){
   const c=CRM[id]||{};
   if(valeur==='')delete c[champ];else c[champ]=valeur;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
-  crmSave();syncSuivi(id);crmRafraichirListe();
+  crmSave();const _p=syncSuivi(id);crmRafraichirListe();
   // Sans ce retour, on tape une note, rien ne bouge, et on conclut qu'il manque un
   // bouton d'enregistrement. L'enregistrement au blur n'est acceptable que s'il se voit.
   status('success',(LIB_CHAMP[champ]||'Suivi')+(valeur===''?' effacé.':' enregistré.'));
+  // Ce message dit vrai sur CET appareil, et c'est tout ce qu'on sait a cet instant. Si le
+  // compte ne l'a pas recu, le second message le corrige.
+  crmDireSiPasParti(_p,'« '+(LIB_CHAMP[champ]||'Suivi')+' »');
   if(typeof FICHE_ID!=='undefined'&&FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
 }
 // Ecrit plusieurs champs d'un coup. crmSet appelle a la suite persistait, synchronisait et
@@ -441,8 +495,9 @@ function crmSetTags(id,texte){
   const c=CRM[id]||{};
   if(tags.length)c.tags=tags;else delete c.tags;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
-  crmSave();syncSuivi(id);crmRafraichirListe();
+  crmSave();const _p=syncSuivi(id);crmRafraichirListe();
   status('success',tags.length?'Étiquettes enregistrées.':'Étiquettes effacées.');
+  crmDireSiPasParti(_p,'Les étiquettes');
 }
 const STATUTS_SUIVI={
   a_faire:{label:'À faire',cls:'m-statut-afaire'},
