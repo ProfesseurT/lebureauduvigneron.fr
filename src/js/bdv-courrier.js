@@ -65,6 +65,7 @@ var C = {
   bordeaux:   '#5A1525',  /* --bordeaux */
   bxDeep:     '#45101D',  /* --bordeaux-deep */
   ardoise:    '#241A12',  /* --ardoise, LES BANDES D'EN-TETE du listing */
+  cork:       '#B89066',  /* --cork, ornement seul : les barres, jamais du texte */
   filet:      '#C9C4B9',  /* --rule, aplati sur --paper */
   danger:     '#A03530',  /* --danger-deep, et pas --danger : 4,00:1 ne passe pas AA */
   onDark:     '#EFE7D6'   /* --on-dark */
@@ -118,6 +119,12 @@ var CACHER_LES_EMAILS = true;
    elles doivent afficher le meme chiffre a l'identique. */
 var MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 var JOURS_FR = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+/* Les abreviations de l'histogramme. RECOPIEES DE `MOIS_FR` dans bdv-base.js,
+   points finaux retires pour la largeur de colonne. Ce sont celles du site, et
+   pas une troncature : couper les noms longs a trois lettres donnait « JUI »
+   pour juin ET pour juillet, vu sur la capture du 09/09/2026. Le francais ne
+   se tronque pas a longueur fixe, il a ses abreviations d'usage. */
+var MOIS_COURT = ['JANV','FÉVR','MARS','AVR','MAI','JUIN','JUIL','AOÛT','SEPT','OCT','NOV','DÉC'];
 
 function esc(s){
   return String(s==null?'':s).replace(/[&<>"]/g,function(c){
@@ -374,6 +381,156 @@ function ligneSignal(s, pair){
   return ligne(pair, gauche, droite);
 }
 
+/* ======================= LES TOTAUX, EN BAS =======================
+   Un listing finit par ses totaux, et c'est aussi pourquoi ce bloc est en bas :
+   le mail est « ta journee », donc les actions d'abord. Le chiffre de
+   l'exercice est du contexte, pas une action.
+
+   AUCUNE IMAGE, ET CE N'EST PAS UN CHOIX DE STYLE. [Certain] Les messageries
+   bloquent les images externes par defaut et Gmail supprime les images
+   embarquees en `data:` : un graphique en image serait un rectangle vide a la
+   premiere ouverture, pour la majorite des lecteurs. Tout est donc dessine en
+   cases de tableau et en couleurs de fond, ce qui tient partout, Outlook
+   compris. Ca tombe bien : une imprimante a bande dessinait ses histogrammes
+   de la meme facon, en remplissant des cases. */
+
+/* Une barre horizontale. `bgcolor` en attribut ET en style : Outlook ignore
+   `background` sur une cellule dans certains contextes, il lit l'attribut. */
+function barre(pct, couleur, hauteur){
+  var p = Math.max(0, Math.min(100, Math.round(pct||0)));
+  var h = hauteur || 10;
+  var vide = 100 - p;
+  return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
+       + ' style="border-collapse:collapse;table-layout:fixed;">'
+       + '<tr>'
+       + (p > 0
+         ? '<td width="'+p+'%" bgcolor="'+couleur+'" style="width:'+p+'%;background:'+couleur+';'
+           + 'height:'+h+'px;font-size:0;line-height:0;">&nbsp;</td>'
+         : '')
+       + (vide > 0
+         ? '<td width="'+vide+'%" bgcolor="'+C.paperDeep+'" style="width:'+vide+'%;background:'+C.paperDeep+';'
+           + 'height:'+h+'px;font-size:0;line-height:0;">&nbsp;</td>'
+         : '')
+       + '</tr></table>';
+}
+
+function menu(txt){
+  return '<div style="font-family:'+F_MONO+';font-size:10px;letter-spacing:0.06em;'
+       + 'text-transform:uppercase;color:'+C.muted+';padding:6px 0 2px 0;">'+esc(txt)+'</div>';
+}
+
+/* LA JAUGE. Elle ne se dessine QUE s'il y a un objectif : sans lui, une barre
+   n'a pas d'echelle, et une barre sans echelle ne dit rien. Dans ce cas on
+   n'affiche que le chiffre et sa variation, ce qui est deja quelque chose. */
+function jauge(r){
+  if(!r || r.ca == null) return '';
+  var dedans = '';
+  var variation = '';
+  if(r.variation != null){
+    var signe = r.variation > 0 ? '+' : '';
+    var coul  = r.variation < 0 ? C.danger : C.ink;
+    variation = '<span style="color:'+coul+';">'+esc(signe+fmtNum(r.variation,1)+' %')+'</span>'
+              + (r.variationEuros != null
+                ? '<span style="color:'+C.muted+';"> ('+esc((r.variationEuros>0?'+':'')+fmtMoney(r.variationEuros))+')</span>'
+                : '');
+  }
+  dedans += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
+         +  ' style="border-collapse:collapse;"><tr>'
+         +  '<td style="font-family:'+F_MONO+';font-size:19px;color:'+C.ink+';">'+esc(fmtMoney(r.ca))+'</td>'
+         +  '<td align="right" style="font-family:'+F_MONO+';font-size:12px;white-space:nowrap;">'+variation+'</td>'
+         +  '</tr></table>';
+
+  if(r.objectif){
+    var pctFait = r.objectifPct != null ? r.objectifPct : Math.round(r.ca / r.objectif * 100);
+    dedans += menu('réalisé, '+fmtNum(pctFait,0)+' % de l\'objectif');
+    dedans += barre(pctFait, C.bordeaux, 12);
+    /* L'ATTERRISSAGE EST UNE PROJECTION, ET LA BARRE DOIT LE DIRE. Deux barres
+       et pas une : la premiere est un FAIT, la seconde une estimation. Les
+       superposer, ou n'en faire qu'une, ferait lire la projection comme un
+       acquis. Le libelle porte le mot « estime », la couleur est plus pale. */
+    if(r.atterrissage != null){
+      var pctAtt = Math.round(r.atterrissage / r.objectif * 100);
+      dedans += menu('atterrissage estimé, '+fmtMoney(r.atterrissage)+', soit '+fmtNum(pctAtt,0)+' %');
+      dedans += barre(pctAtt, C.cork, 8);
+    }
+    dedans += '<div style="font-family:'+F_MONO+';font-size:10px;color:'+C.muted+';padding-top:6px;">'
+           +  esc('la barre pleine vaut ton objectif, '+fmtMoney(r.objectif))+'</div>';
+  } else {
+    dedans += '<div style="font-family:'+F_MONO+';font-size:10px;color:'+C.muted+';padding-top:4px;">'
+           +  'Pas d\'objectif posé : pose-le dans tes réglages et cette ligne devient une jauge.</div>';
+  }
+  return dedans;
+}
+
+/* L'HISTOGRAMME DES DOUZE MOIS DE L'EXERCICE.
+   `mois` est deja dans l'ordre de l'exercice et pas de l'annee civile : un
+   domaine qui ouvre en avril a avril en premiere case. `moisDebut` sert a
+   ecrire les initiales dans le bon ordre.
+
+   UN MOIS A VENIR N'EST PAS UN MOIS A ZERO, et c'est tout l'objet de
+   `dernierMois`. Sans lui, les deux se dessinent pareil, une barre absente, et
+   le mail ferait lire « aucune vente en mars » d'un mois qui n'est pas arrive.
+   Les mois a venir portent donc un fond, pas une barre, et l'initiale palie. */
+function histogramme(r){
+  if(!r || !r.mois || !r.mois.length) return '';
+  var mois = r.mois, debut = r.moisDebut || 1, dernier = r.dernierMois || mois.length;
+  var max = 0, total = 0, iMax = 0;
+  mois.forEach(function(v,i){ total += v||0; if((v||0) > max){ max = v||0; iMax = i; } });
+  if(max <= 0) return '';
+  var H = 46;
+  var cases = '', etiq = '';
+  /* TROIS ETATS ET PAS DEUX, correction vue a la capture du 09/09/2026.
+     Un mois ECOULE A ZERO et un mois A VENIR se dessinaient pareil, un trait
+     de deux pixels : le mail faisait lire « rien vendu » d'un mois qui n'est
+     pas arrive, et inversement. C'est le meme piege qu'« en cours n'est pas en
+     retard », et il coute la meme chose.
+       a venir ......... aucune marque, initiale palie
+       ecoule a zero ... un trait de 2 px en --muted, initiale normale
+       ecoule vendu .... la barre, --cork, et --bordeaux sur le plus haut mois
+     Les trois se distinguent sans legende, et la legende le redit quand meme. */
+  mois.forEach(function(v,i){
+    var aVenir = (i+1) > dernier;
+    var val = v || 0;
+    var h, couleur, marque;
+    if(aVenir){ marque = false; h = 0; couleur = ''; }
+    else if(val <= 0){ marque = true; h = 2; couleur = C.muted; }
+    else { marque = true; h = Math.max(3, Math.round(val / max * H)); couleur = (i === iMax) ? C.bordeaux : C.cork; }
+    cases += '<td width="8.33%" valign="bottom" align="center"'
+          +  ' style="width:8.33%;padding:0 2px;">'
+          +  '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
+          +  ' style="border-collapse:collapse;"><tr>'
+          +  '<td style="height:'+(H-h)+'px;font-size:0;line-height:0;">&nbsp;</td></tr>'
+          +  (marque
+            ? '<tr><td bgcolor="'+couleur+'" style="height:'+h+'px;background:'+couleur+';font-size:0;line-height:0;">&nbsp;</td></tr>'
+            : '')
+          +  '</table></td>';
+    /* LES ABREVIATIONS DU SITE, PAS UNE TRONCATURE. Les initiales seules
+       donnaient « A M J J A S » sur un exercice ouvrant en avril : deux A,
+       deux J. Couper a trois lettres donnait « JUI » pour juin ET juillet.
+       MOIS_COURT reprend les abreviations de `MOIS_FR` dans bdv-base.js, donc
+       celles que le site emploie deja. Elles tiennent dans la colonne :
+       8,33 % de 560 px font 46 px, quatre caracteres de Courier a 9 px en
+       font 22. */
+    var m = ((debut - 1 + i) % 12);
+    etiq += '<td width="8.33%" align="center" style="width:8.33%;font-family:'+F_MONO+';font-size:9px;'
+         +  'letter-spacing:0.04em;padding:3px 0 0 0;color:'+(aVenir ? C.paperDeep : C.muted)+';">'
+         +  esc(MOIS_COURT[m])+'</td>';
+  });
+  /* D'OU VIENT L'ECHELLE. Un histogramme sans echelle ne dit rien : deux
+     barres de meme hauteur sur deux mails differents ne valent pas la meme
+     chose. La legende donne le plus haut mois, qui EST la hauteur de la barre
+     la plus grande, et le total. */
+  var legende = 'le plus haut mois, ' + MOIS_FR[(debut - 1 + iMax) % 12] + ', vaut '
+              + fmtMoney(max) + '. Total de l\'exercice, ' + fmtMoney(total) + '.'
+              + (dernier < mois.length ? ' Les mois à venir sont vides.' : '');
+  return menu('le chiffre d\'affaires, mois par mois')
+       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
+       + ' style="border-collapse:collapse;table-layout:fixed;">'
+       + '<tr>'+cases+'</tr><tr>'+etiq+'</tr></table>'
+       + '<div style="font-family:'+F_MONO+';font-size:10px;line-height:1.5;color:'+C.muted+';'
+       + 'padding-top:6px;">'+esc(legende)+'</div>';
+}
+
 function bouton(url, libelle){
   return ''
   + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">'
@@ -510,6 +667,22 @@ function batir(d){
     corps += ligne(false, '<div>Aucune tâche échue, aucun rappel, aucun client signalé. Profites-en.</div>', '');
   }
 
+  /* ---- LES TOTAUX. Ils ne partent QUE si le resume porte un chiffre : un
+     depot d'avant le 09/09/2026 n'a pas de serie mensuelle, et le mail doit
+     s'en passer sans rien casser jusqu'au prochain import. ---- */
+  var totaux = '';
+  var laJauge = jauge(resume), lHisto = histogramme(resume);
+  if(laJauge || lHisto){
+    totaux = bande('Ton exercice', resume.exercice || '')
+           + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
+           + ' style="border-collapse:collapse;background:'+C.paperLight+';"><tr>'
+           + '<td style="padding:10px;border-bottom:1px solid '+C.filet+';">'
+           + laJauge
+           + (laJauge && lHisto ? '<div style="height:14px;font-size:0;line-height:0;">&nbsp;</div>' : '')
+           + lHisto
+           + '</td></tr></table>';
+  }
+
   /* ---- L'ENVELOPPE : LE PAPIER CONTINU ----
      Les picots sont un fond du CONTENEUR et pas un element par ligne : leur pas
      est fixe, 26 px, independant de la hauteur des lignes, comme sur du vrai
@@ -560,6 +733,7 @@ function batir(d){
 
   + corps
 
+  + totaux
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
   +   ' style="border-collapse:collapse;"><tr><td style="padding:20px 0 4px 0;">'
   + bouton(urlBureau,'Ouvrir mon bureau')
@@ -645,6 +819,44 @@ function batir(d){
     t.push('');
   }
   if(vide) t.push('Aucune tâche échue, aucun rappel, aucun client signalé. Profites-en.', '');
+  /* LES TOTAUX EN TEXTE. Les barres sont faites de caracteres, ce qui n'est pas
+     un pis-aller : c'est exactement ce qu'une imprimante a bande dessinait. */
+  if(resume && resume.ca != null){
+    t.push('TON EXERCICE'+(resume.exercice ? '  '+resume.exercice : ''));
+    t.push(colonne('  chiffre d\'affaires', fmtMoney(resume.ca)));
+    if(resume.variation != null){
+      t.push(colonne('  variation', (resume.variation>0?'+':'')+fmtNum(resume.variation,1)+' %'));
+    }
+    if(resume.objectif){
+      var pf = resume.objectifPct != null ? resume.objectifPct : Math.round(resume.ca/resume.objectif*100);
+      var n = Math.max(0, Math.min(40, Math.round(pf/100*40)));
+      t.push('  objectif '+fmtMoney(resume.objectif));
+      t.push('  ['+'#'.repeat(n)+'.'.repeat(40-n)+'] '+fmtNum(pf,0)+' % réalisé');
+      if(resume.atterrissage != null){
+        var pa = Math.round(resume.atterrissage/resume.objectif*100);
+        var na = Math.max(0, Math.min(40, Math.round(pa/100*40)));
+        t.push('  ['+'+'.repeat(na)+'.'.repeat(40-na)+'] '+fmtNum(pa,0)+' % atterrissage estimé');
+      }
+    }
+    if(resume.mois && resume.mois.length){
+      var mx = 0, tot = 0;
+      resume.mois.forEach(function(v){ tot += v||0; if((v||0)>mx) mx = v||0; });
+      if(mx > 0){
+        var deb = resume.moisDebut || 1, der = resume.dernierMois || resume.mois.length;
+        t.push('', '  LE CHIFFRE D\'AFFAIRES, MOIS PAR MOIS');
+        resume.mois.forEach(function(v,i){
+          var nom = MOIS_COURT[(deb - 1 + i) % 12];
+          var aVenir = (i+1) > der;
+          var val = v || 0;
+          var larg = (aVenir || val <= 0) ? 0 : Math.max(1, Math.round(val/mx*30));
+          t.push('  '+nom.padEnd(5)+' |'+'#'.repeat(larg)
+                 +(aVenir ? ' (à venir)' : val <= 0 ? ' rien vendu' : ' '+fmtMoney(val)));
+        });
+        t.push('  Le plus haut mois vaut '+fmtMoney(mx)+'. Total '+fmtMoney(tot)+'.');
+      }
+    }
+    t.push('');
+  }
   t.push('-'.repeat(70));
   t.push('Ouvrir mon bureau : '+urlBureau);
 

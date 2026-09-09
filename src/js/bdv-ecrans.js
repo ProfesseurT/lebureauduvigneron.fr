@@ -1982,8 +1982,26 @@ function resumeVentes(){
   // ne dit rien : ce qui compte, c'est s'il monte ou s'il descend, et ou il finira.
   const y=yoyTotals();
   const at=computeAtterrissage();
+  /* LA SERIE MENSUELLE DE L'EXERCICE, ajoutee le 09/09/2026 pour l'histogramme
+     du courrier du matin. `_exM` est le rang du mois DANS l'exercice, 1 a 12,
+     donc cette serie est deja dans l'ordre de l'exercice et pas de l'annee
+     civile : un domaine qui ouvre en avril aura avril en premiere case.
+     On depose AUSSI `moisDebut` et `dernierMois`, et le second n'est pas du
+     confort. Sans lui, un mois a venir et un mois a zero se dessinent
+     pareil : une barre absente. Le courrier dirait « aucune vente en mars »
+     d'un mois qui n'est pas arrive. `dernierMois` est le dernier mois qui
+     PORTE des ventes, et le nom le dit : ce n'est pas exactement le nombre de
+     mois ecoules si le mois en cours n'a encore rien vendu. */
+  const parMois=new Array(13).fill(0);
+  let dernierMois=0;
+  curRows.forEach(r=>{
+    if(r._exM>=1&&r._exM<=12){parMois[r._exM]+=r._total;if(r._exM>dernierMois)dernierMois=r._exM;}
+  });
   return {
     exercice: cur!=null?exLabel(cur):null,
+    mois: parMois.slice(1).map(v=>Math.round(v)),
+    moisDebut: EX_START,
+    dernierMois: dernierMois||null,
     ca: Math.round(ca),
     variation: (y&&y.d!=null)?Math.round(y.d*10)/10:null,
     variationEuros: y?Math.round(y.cur-y.prev):null,
