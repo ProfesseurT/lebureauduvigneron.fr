@@ -31,11 +31,31 @@
    mettre.
 
    TROIS GARDE-FOUS, dans cet ordre :
-   1. Seul le porteur de la cle maitresse peut declencher un envoi.
+   1. Un secret DEDIE, `COURRIER_CLE`, dans l'en-tete `x-courrier-cle`.
    2. `?apercu=1` fabrique le mail et le REND, sans rien envoyer.
    3. La liste des destinataires autorises est ECRITE EN DUR plus bas. Tant
       qu'elle n'est pas vide, aucune autre adresse ne recoit quoi que ce soit,
       meme si elle figure dans la base.
+
+   POURQUOI UN SECRET DEDIE ET PAS LA CLE DE SERVICE, correction du 09/09/2026.
+   La premiere version comparait l'en-tete Authorization a
+   `SUPABASE_SERVICE_ROLE_KEY`. Deux defauts, le second plus grave que le
+   premier :
+   - Supabase expose maintenant DEUX generations de cles, les anciennes
+     (`eyJ...`, anon et service_role) et les nouvelles (`sb_secret_...`). Selon
+     l'age du projet, la variable injectee dans la fonction ne porte pas
+     forcement celle que le tableau de bord affiche. La comparaison echouait
+     sans qu'on puisse savoir laquelle des deux avait ete copiee, d'autant que
+     les apercus tronques d'`anon` et de `service_role` sont identiques a
+     l'oeil.
+   - Surtout : ca obligeait a promener la CLE MAITRESSE du projet dans des
+     lignes de commande, pour un simple essai. Un secret dedie ne donne accces
+     qu'a cette fonction, il se revoque seul, et c'est lui que le declencheur
+     de 8 h utilisera au lot 4.
+
+   [Supposition] La comparaison ci-dessous n'est pas a temps constant. Sur un
+   secret de 48 caracteres hexadecimaux derriere un `verify_jwt` de plateforme,
+   l'attaque temporelle est theorique. A revoir si ce verrou devient le seul.
    ============================================================================ */
 
 import './bdv-courrier.js';
@@ -69,6 +89,9 @@ const MAX_PAR_PASSAGE = 40;
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const RESEND_KEY    = Deno.env.get('RESEND_API_KEY') ?? '';
+/* Le verrou de declenchement. La cle de service, elle, sert UNIQUEMENT a lire
+   la vue : elle ne quitte jamais Supabase et personne n'a a la manipuler. */
+const CLE_DECLENCHEUR = Deno.env.get('COURRIER_CLE') ?? '';
 
 // deno-lint-ignore no-explicit-any
 const BdvCourrier = (globalThis as any).BdvCourrier;
@@ -188,24 +211,33 @@ Deno.serve(async (req: Request) => {
       continue;
     }
 
+    const autorise = !DESTINATAIRES_AUTORISES.length ||
+                     DESTINATAIRES_AUTORISES.includes(adresse);
+
+    /* ---- GARDE-FOU 2 : l'apercu n'envoie rien ----
+       Il passe AVANT le filtre des destinataires, et c'est voulu : on veut
+       pouvoir relire le mail de tous les comptes, y compris ceux a qui rien ne
+       partira. Il rend le TEXTE et pas le HTML : le HTML pese 15 ko par
+       compte, il noierait le compte rendu, et le dessin se juge deja sur
+       `npm run courrier`. */
+    if (apercu) {
+      rapport.detail.push({
+        compte: id, issue: 'apercu', autorise,
+        sujet: mail.sujet, compteurs: mail.compteurs,
+        html_octets: (mail.html || '').length,
+        texte: mail.texte,
+      });
+      continue;
+    }
+
     /* ---- GARDE-FOU 3 : la liste en dur ---- */
-    if (DESTINATAIRES_AUTORISES.length &&
-        !DESTINATAIRES_AUTORISES.includes(adresse)) {
+    if (!autorise) {
       rapport.hors_liste++;
       rapport.detail.push({ compte: id, issue: 'hors liste autorisee' });
       continue;
     }
     if (rapport.envoyes >= MAX_PAR_PASSAGE) {
       rapport.plafonnes++;
-      continue;
-    }
-
-    /* ---- GARDE-FOU 2 : l'apercu n'envoie rien ---- */
-    if (apercu) {
-      rapport.detail.push({
-        compte: id, issue: 'apercu', sujet: mail.sujet,
-        compteurs: mail.compteurs, texte: mail.texte, html: mail.html,
-      });
       continue;
     }
 

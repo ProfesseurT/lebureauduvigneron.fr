@@ -277,6 +277,57 @@ Note qui vaut pour la suite : un clic sur « Appelé » dans le sous-main est le
 court pour fabriquer un rappel de test. Il pose 30 jours, écrit le journal, et passe par
 `bdv-crm.js`, celui des deux chemins qui sait avouer un échec.
 
+### LOT 3 : le premier courrier est parti
+
+09/09/2026, 20 h 38. Un mail, un seul, à l'adresse de Ted. Resend l'a accepté,
+identifiant `8e6fa168-cc33-43c2-bbe8-93e1899b5996`. Compte rendu : 2 comptes lus, 1 envoyé,
+**1 « hors liste autorisée »**, 0 échec. Le garde-fou a donc travaillé pour de vrai : le second
+compte n'a rien reçu.
+
+Sujet reçu : « Ton bureau, mercredi 9 septembre : 3 à faire, 39 clients à voir ». **39 et pas
+40** : l'anti-jointure du lot 2 travaille dans le mail réel.
+
+`supabase/functions/courrier-matin/index.ts`, version 2 déployée. La fabrique
+`src/js/bdv-courrier.js` est JOINTE au déploiement, commentaires allégés pour tenir dans le
+paquet, code identique. C'est un écart assumé : il existe une seconde copie le temps du
+déploiement. La sortie propre serait `import 'https://lebureauduvigneron.fr/js/bdv-courrier.js'`,
+que Deno gèle au déploiement, mais ni le conteneur ni WebFetch n'ont pu confirmer que cette URL
+est servie, et une dépendance non vérifiée n'a rien à faire dans le chemin d'envoi.
+
+#### Le verrou a changé, et c'est une correction de conception
+
+La v1 comparait l'en-tête `Authorization` à `SUPABASE_SERVICE_ROLE_KEY`. Ted a copié la bonne
+clé, celle de la ligne `service_role`, et la comparaison a échoué quand même : [Certain] la
+variable injectée dans la fonction ne porte pas la même chaîne que celle affichée par le
+tableau de bord, qui expose désormais deux générations de clés (`eyJ...` héritées, et
+`sb_secret_...`). Piège aggravant : les aperçus tronqués d'`anon` et de `service_role` sont
+**identiques à l'œil**, impossible de savoir laquelle a été copiée.
+
+Remplacé par un secret dédié, `COURRIER_CLE`, dans l'en-tête `x-courrier-cle`. Et le vrai
+argument n'est pas la robustesse : la v1 obligeait à promener la **clé maîtresse du projet**
+dans des lignes de commande pour un simple essai. Un secret dédié n'ouvre que cette fonction
+et se révoque seul. C'est lui que le déclencheur du lot 4 utilisera.
+
+Deux verrous en série au final : `verify_jwt` de la plateforme sur la clé publique, puis le
+secret de la fonction. Vérifié en négatif : un `Invalid JWT` a bien refusé un envoi avant même
+d'atteindre la fonction.
+
+#### Trois défauts vus dans le mail réel, non corrigés
+
+1. **Le mien.** Le sujet annonce « 40 clients à voir », le corps en liste 8, et la version
+   TEXTE ne porte pas la ligne « Et 32 autres dans ton bureau » que la version HTML porte.
+   Promettre 40 et montrer 8 sans le dire est le genre de chose qui fait douter du reste.
+2. **« 40 » n'informe pas.** `fileSignaux()` dépose au maximum 40 signaux, donc le sujet dira
+   40 presque tous les matins. Un nombre qui ne bouge jamais ne dit rien. Y mettre le nombre
+   réellement affiché, ou le retirer du sujet.
+3. **Le mail porte les ADRESSES E-MAIL des clients**, embarquées par `contactTexte()`. Ted
+   avait validé « noms et montants » ; des coordonnées de personnes identifiables sont un cran
+   au-dessus, et ce n'était pas une décision, c'était un effet de bord. Elles transitent chez
+   Resend et restent dans ses journaux. À trancher avant qu'un vigneron reçoive ce mail.
+   Ma recommandation : garder le téléphone, retirer l'e-mail. L'outil dit lui-même « appelle-le
+   plutôt que de lui écrire » sur ces motifs, et une adresse dans le mail invite à faire
+   exactement ce que le conseil déconseille.
+
 ### Deux pièges de méthode, payés dans la session
 
 **Un bloc de commandes est collé en entier, toujours.** J'ai donné `npm run verif` dans un
