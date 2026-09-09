@@ -845,3 +845,111 @@ s'enchainent ». Ni l'un ni l'autre ne dit que les chiffres sont bons.
 Le dernier point n'est pas un detail : les noms de cuvee portent deja un article, ce qui produit
 « Votre Le Rosé 2024 » ou « ceux qui aiment du Miracle » si on concatene naivement. Trois helpers
 existent selon la position dans la phrase : `avecArticle()`, `avecDe()` et `avecLe()`.
+
+## Le courrier du matin, 09/09/2026
+
+Un mail quotidien a 8 h qui porte les rappels echus et les signaux de la file. Lot 1 fait :
+la fabrique et son apercu. Rien n'est encore envoye a personne.
+
+### `bdv-courrier.js` FABRIQUE, et ne fait que ca
+
+Il ne lit aucune base, il n'envoie rien, il ne connait ni Supabase ni Resend. On lui passe les
+donnees d'un compte, il rend `{sujet, html, texte, vide, compteurs}`.
+
+**Il doit tourner dans TROIS mondes sans etre modifie** : le navigateur (balise script), Node
+(l'apercu `npm run courrier`) et Deno (la fonction serveur du lot 3). D'ou le bloc d'export en
+bas de fichier.
+
+**Ne jamais y ecrire un `import` ni un `require`** : ca fermerait deux des trois mondes, et il
+faudrait alors tenir deux versions du contenu du mail, qui divergeraient au premier changement
+de texte. C'est la meme regle que pour le CRM : le calcul est a UN endroit, et ce qui l'entoure
+change.
+
+**Il ne decide pas s'il faut envoyer.** Il le DIT, par `vide`. L'appelant tranche.
+
+### Les couleurs en dur dans `bdv-courrier.js` : la seule exception a la charte
+
+`var(--bordeaux)` n'existe pas dans Outlook, et une feuille de style externe n'est pas chargee
+par la plupart des messageries. Un mail est donc entierement en style de ligne, en valeurs
+brutes, et il n'y a pas de contournement.
+
+**La regle de remplacement : chaque valeur porte le NOM du jeton dont elle est copiee**, en
+commentaire, a cote. Le jour ou un jeton change, on cherche son nom dans ce fichier. Sans ces
+noms, le bloc `C` devient un deuxieme nuancier orphelin, et c'est exactement ce que la charte
+existe pour empecher.
+
+Trois consequences a ne pas defaire :
+- ni Fraunces ni Inter, une messagerie ne charge pas de police web. Georgia et la pile
+  systeme, qui sont les replis declares dans `--font-titre` et `--font-corps`.
+- `--danger-deep` et pas `--danger` : 4,00:1 sur papier ne passe pas AA.
+- `--rule` est aplati en `#C9C4B9`. Un rgba sur une bordure de tableau n'est pas fiable en
+  messagerie.
+
+### `ecarterLesSuivis()` DOIT DISPARAITRE AU LOT 2
+
+`fileSignaux()` ecarte deja les clients suivis, mais **au moment du depot**, dans le
+navigateur. Un rappel pose depuis le telephone le lendemain ne ressort pas du depot de la
+veille : sans deuxieme passage, le mail nommerait un client deja traite.
+
+Au lot 2 cette regle passe dans une **vue Postgres**, et la fonction est SUPPRIMEE. Elle ne
+doit pas survivre a la vue : deux endroits qui repondent « ce client est-il encore a voir » se
+contrediront au premier geste.
+
+### LE SEUIL : le premier destinataire qui n'est pas Ted
+
+En phase de test, Ted a garde `courrier.` comme sous-domaine d'envoi et le palier Resend
+gratuit. C'est tenable a deux comptes qui sont les siens.
+
+**La reputation d'un domaine n'est pas un reglage** : elle se construit et se repare en
+semaines. Si le recap quotidien fait classer `courrier.` en courrier commercial, ce sont les
+codes de reprise de mot de passe qui n'arrivent plus, et le vigneron reste enferme dehors sans
+message d'erreur.
+
+Donc, au premier destinataire qui n'est pas Ted, et STRICTEMENT AVANT l'envoi :
+1. sortir le recap de `courrier.` ;
+2. passer au palier Resend payant. Le gratuit plafonne a 100 par jour, et c'est le meme quota
+   que les codes d'inscription ;
+3. ecrire les textes legaux. Le pied de page promet que les ventes restent dans le navigateur,
+   et `src/rgpd.njk` ne nomme aucun sous-traitant. Le mail porte des noms de clients et des
+   montants : ces deux textes deviennent faux.
+
+**Le garde-fou est dans le code, pas dans une note** : tant que l'expediteur est `courrier.`,
+la fonction d'envoi refuse tout destinataire hors d'une liste ecrite en dur. Ouvrir demande de
+toucher au code, ce qui est la que la decision doit se reprendre.
+
+### La cle `service_role` ne sort pas de Supabase
+
+La fonction d'envoi du lot 3 devra lire les donnees de TOUS les comptes, donc utiliser la cle
+`service_role`, qui court-circuite entierement la securite par ligne. C'est le premier
+composant du projet a pouvoir le faire. Elle reste dans les secrets Supabase : jamais dans le
+depot, jamais chez Vercel, jamais dans un fichier du site.
+
+## UN GESTE QUI ECHOUE DOIT LE DIRE, DES DEUX COTES, 09/09/2026
+
+Il y a DEUX chemins pour poser un rappel, et un seul sait avouer un echec.
+
+`bdv-crm.js`, la file du bureau, applique la regle : `ecrireSuivi()` leve
+`new Error('aucune session')` plutot que de rendre la main, `geste()` remet la ligne a l'ecran
+si rien n'est parti, et le dit.
+
+`bdv-base.js`, la fiche du tableau de bord, ne l'applique pas :
+
+```js
+function syncSuivi(id){
+  if(!syncPret()||!id)return;                                    // sortie muette 1
+  const c=CRM[id];
+  (c?BdvSync.ecrireSuivi(id,c):BdvSync.supprimerSuivi(id)).catch(function(){});  // sortie muette 2
+}
+```
+
+Puis `crmSet()` annonce « Rappel enregistre. » sur la foi du seul `crmSave()` dans le
+`localStorage`. Le message dit vrai sur le navigateur et faux sur le compte, et rien ne
+distingue les deux cas a l'ecran.
+
+Constate le 09/09/2026 : Ted a pose des rappels, l'ecran a confirme chaque fois,
+`suivi_clients` et `echanges` etaient a zero ligne alors qu'il etait connecte.
+
+How to apply: **aucun `.catch(function(){})` vide sur une ecriture dont l'issue est montree a
+l'ecran.** Un message de succes ne se pose qu'apres l'ecriture serveur, ou alors il dit
+explicitement que la synchronisation reste a faire. Un rappel qui ne vit que dans le navigateur
+est perdu au changement d'appareil, et la base fait foi.

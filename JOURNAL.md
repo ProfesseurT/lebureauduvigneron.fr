@@ -12,6 +12,194 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 08 au 09/09/2026. Le courrier du matin, et un geste qui mentait
+
+Demande de Ted : « envoyer tous les jours un mail le matin avec toutes les recos à
+l'utilisateur ». Ce qui suit est le cadrage, les quatre arbitrages qu'il a pris contre ma
+recommandation, le lot 1 qui est en place, et un défaut d'écriture trouvé au passage.
+
+### Ce qui a été mesuré avant de proposer quoi que ce soit
+
+`suivi_clients` contenait **0 ligne** au 08/09. Deux comptes, 4 939 lignes de vente chacun,
+dernier dépôt de la file le 08/09 à 16 h 26. Donc la seule matière qui bouge d'un jour à
+l'autre, les rappels, n'existait pas encore en base.
+
+C'est le mur de toute l'idée. `reglages.file_travail` ne se rafraîchit qu'à l'ouverture du
+tableau de bord et à un import : un mail quotidien construit dessus renvoie la MÊME liste
+chaque matin jusqu'au prochain import. Trois semaines sans import, vingt-et-un mails
+identiques, et un lecteur qui décroche en dix jours.
+
+### Ce qui a été retenu
+
+Les rappels échus PLUS les signaux de la file. Pas les recos de cuvées : `recoPour()` et son
+calcul de similarité ne sont déposés nulle part, ils vivent dans le navigateur, par client, à
+la demande. Les mettre dans un mail imposerait un deuxième moteur côté serveur, ce que le
+projet a déjà refusé pour le CRM.
+
+### Les quatre arbitrages de Ted, dont trois contre ma recommandation
+
+**1. `courrier.` reste le sous-domaine d'envoi.** Je recommandais un troisième sous-domaine,
+`bureau.`, distinct de `courrier.` (transactionnel) et de `edition.` (la newsletter à venir).
+
+Motif de Ted : phase de test, deux comptes qui sont les siens, « on monte des process et on
+changera si il faut changer ».
+
+Ce qu'il faut savoir en relisant : c'est le SEUL choix de la liste qu'un changement d'avis ne
+rattrape pas. La réputation d'un domaine se construit et se répare en semaines, pas par un
+réglage. Si le récap quotidien fait classer `courrier.` en courrier commercial par Gmail ou
+Outlook, ce sont les **codes de reprise de mot de passe** qui n'arrivent plus, et le vigneron
+reste enfermé dehors sans message d'erreur.
+
+**Le levier à actionner si la délivrabilité se dégrade** : sortir le récap de `courrier.`. Et
+le seuil au-delà duquel il ne faut plus attendre : le premier destinataire qui n'est pas Ted.
+
+**2. Palier Resend gratuit.** Correct à deux comptes : 30 mails par mois contre 3 000. Le
+point à ne pas oublier est que c'est le **même quota** que les codes d'inscription, plafonné à
+100 par jour. À 100 inscrits, les 100 récaps partent à 8 h et le vigneron qui perd son mot de
+passe à 8 h 05 n'a plus de code. C'est ce jour-là que le gratuit s'arrête.
+
+**3. Tous les matins à 8 h.** Ted a d'abord choisi un récap hebdomadaire du lundi, puis est
+revenu au quotidien dans le même échange. Le quotidien amplifie par sept le défaut de
+répétition décrit plus haut, ce qui rend la péremption des signaux et la règle « rien de neuf,
+pas d'envoi » indispensables et pas cosmétiques.
+
+**4. Noms de clients et montants DANS le mail.** C'est le franchissement délibéré de la
+« frontière à ne pas franchir » écrite le 01/09 : le compositeur reste en `mailto:` pour
+qu'aucun nom de client ni montant ne transite chez un tiers.
+
+Trois conséquences signalées, aucune corrigée à ce jour :
+- le pied de page (« Vos ventes restent dans votre navigateur ») et `src/rgpd.njk`, qui ne
+  nomme aucun sous-traitant, deviennent faux ;
+- Resend conserve vraisemblablement le contenu des mails quelques jours dans ses journaux de
+  dépannage. À vérifier chez eux, et signer un DPA ;
+- la fonction d'envoi devra lire les données de TOUS les comptes avec la clé `service_role`,
+  qui court-circuite entièrement la sécurité par ligne. C'est le premier composant du projet à
+  pouvoir le faire. Cette clé reste dans les secrets Supabase, jamais dans le dépôt, jamais
+  chez Vercel.
+
+### L'ordre des lots, et pourquoi le lot 2 n'est pas le premier
+
+| Lot | Ce qu'on fait | Ce qui part |
+|---|---|---|
+| 1 | La fabrique du mail et son aperçu à l'écran | rien, FAIT |
+| 2 | La vue Postgres qui écarte les clients déjà suivis | rien |
+| 3 | Clé Resend et garde-fou destinataires, envoi à Ted seul | 1 mail |
+| 4 | Déclencheur horaire et contrôle « déjà envoyé aujourd'hui » | 1 par jour |
+
+La vue ne servait à rien tant que `suivi_clients` était vide : elle aurait filtré sur zéro
+ligne et le contrôle aurait passé sur du vide, le piège déjà payé trois fois le 07/09.
+
+Les lots légaux (RGPD, pied de page, case à cocher, désinscription) sont **sortis du plan pour
+la phase de test**, parce qu'à deux comptes qui sont les siens ils n'ont pas d'objet. Ils
+redeviennent bloquants, et strictement avant l'envoi, au premier destinataire qui n'est pas
+Ted. Même seuil que le garde-fou du lot 3 et que le sous-domaine.
+
+### Le lot 1, ce qui a été écrit
+
+Trois fichiers, aucun envoi, aucune lecture de base.
+
+`src/js/bdv-courrier.js` fabrique le mail et rien d'autre. La seule décision d'architecture du
+lot : il doit tourner dans trois mondes sans être modifié, le navigateur, Node pour l'aperçu,
+et Deno pour la fonction serveur du lot 3. D'où le bloc d'export en bas de fichier, et
+l'interdiction d'y écrire un `import` ou un `require`, qui fermerait deux des trois mondes.
+Sans ça, deux versions du contenu à tenir d'accord, et elles divergeraient au premier
+changement de texte.
+
+`scripts/fixtures/courrier-exemple.json` porte quatre cas : le matin ordinaire, le matin vide,
+un dépôt périmé, et les cas laids. Tout y est **inventé, et doit le rester** : le dépôt est
+public, un vrai export ici partirait sur GitHub avec les clients du vigneron dedans.
+
+`scripts/apercu-courrier.mjs`, soit `npm run courrier`, écrit `_apercu/index.html` avec les
+quatre versions côte à côte, leur sujet, leurs compteurs et leur version texte. Ajouté à
+`npm run verif`. `_apercu/` est dans `.gitignore`.
+
+### Les choix de contenu, et celui qui contredit la charte
+
+**Les couleurs sont écrites en dur dans `bdv-courrier.js`, et c'est la seule exception admise
+à la charte.** `var(--bordeaux)` n'existe pas dans Outlook, et une feuille de style externe
+n'est pas chargée par la plupart des messageries : tout doit être en style de ligne, en valeur
+brute. La règle de remplacement est que **chaque valeur porte le nom du jeton dont elle est
+copiée**. Sans ces noms, la liste devient un deuxième nuancier orphelin.
+
+Le reste : ni Fraunces ni Inter, une messagerie ne charge pas de police web, donc Georgia et
+la pile système, qui sont exactement les replis déclarés dans les jetons. `--danger-deep` et
+pas `--danger`, qui tombe à 4,00:1 sur papier. Péremption des signaux à 60 jours, un chiffre à
+régler à l'usage. Les rappels ne sont jamais masqués, eux : ils sont lus en direct.
+
+### Le piège trouvé par la capture, et pas par la relecture
+
+« panier habituel » s'affichait tout seul, sans chiffre au-dessus, sur un client dont le
+montant était à zéro. C'est la règle « un chiffre dit d'où il vient » prise à l'envers : une
+source sans son chiffre. Une case vide vaut mieux. Corrigé, et un sixième contrôle de l'aperçu
+l'empêche de revenir en silence.
+
+Confirmation de la leçon du 08/09 : les défauts de dessin ne se voient qu'en capture d'écran,
+jamais en relisant le code.
+
+## LE DÉFAUT TROUVÉ EN CHERCHANT LES RAPPELS
+
+Ted a posé des rappels dans sa fiche client le 09/09. L'écran a répondu « Rappel enregistré. »
+à chaque fois. En base, `suivi_clients` ET `echanges` étaient à **zéro ligne**, et rien n'avait
+été écrit sur son compte de toute la journée. Il était pourtant bien connecté.
+
+La cause est dans `bdv-base.js`, ligne 307 :
+
+```js
+function syncSuivi(id){
+  if(!syncPret()||!id)return;
+  const c=CRM[id];
+  (c?BdvSync.ecrireSuivi(id,c):BdvSync.supprimerSuivi(id)).catch(function(){});
+}
+```
+
+**Deux sorties muettes sur trois lignes.** `syncPret()` faux : on rend la main sans rien dire.
+L'écriture serveur qui échoue : `.catch(function(){})` avale l'erreur entière. Et
+`crmSet()` annonce « Rappel enregistré. » juste après, sur la foi du seul `crmSave()` dans le
+`localStorage`.
+
+Donc le message dit vrai sur le navigateur et faux sur le compte, et rien ne distingue les deux
+cas à l'écran.
+
+**C'est une divergence entre les deux côtés du même geste**, la même famille que les neuf
+copies de la liste des canaux avant `bdv-canaux.js`. La file du bureau, dans `bdv-crm.js`,
+applique la règle : « un geste raté rend la ligne à l'écran et le dit », et `ecrireSuivi()` y
+lève `new Error('aucune session')` plutôt que de rendre la main. La fiche du tableau de bord,
+elle, ne l'applique pas. Deux chemins pour poser un rappel, un seul qui sait avouer un échec.
+
+Conséquence qui dépasse le courrier : [Certain] un rappel qui ne vit que dans le navigateur est
+perdu le jour où Ted change d'appareil, et `projet_deconnexion_efface_le_poste.md` a déjà posé
+que la base fait foi et que le navigateur n'est qu'une vitre.
+
+Non corrigé à la clôture : la cause de l'échec (`syncPret()` faux, ou l'écriture refusée) n'est
+pas encore établie, et le défaut de report est à réparer dans les deux cas.
+
+### Deux pièges de méthode, payés dans la session
+
+**Un bloc de commandes est collé en entier, toujours.** J'ai donné `npm run verif` dans un
+bloc, puis `git add`, `git commit` et `git push` dans un second. Ted a collé les deux : les
+commandes git se sont mises en file d'attente dans le terminal pendant que `verif` tournait, il
+a fait Ctrl+C, et le commit est parti avec six bancs sur douze non passés. Les six ont été
+contrôlés après coup et sont bons, mais c'était de la chance. Désormais : un seul bloc enchaîné
+avec `&&`, et le `cd` du dépôt en première ligne.
+
+**Le shell distant coupe vers 90 secondes.** `npm run verif` en entier n'y rentre pas, les
+bancs jsdom prennent chacun jusqu'à une minute et demie. Un banc par appel.
+
+### Ce qui reste ouvert
+
+- **Le geste muet ci-dessus**, à instruire puis réparer. Il bloque le lot 2 : sans rappels en
+  base, la vue Postgres filtrerait sur du vide.
+- **L'annuaire des noms peut manquer une entrée.** `annuaireSuivis()` est cumulatif dans le
+  `localStorage` du poste qui importe. Une fiche créée sur le téléphone, où aucun export n'a
+  été importé, n'entre jamais dans l'annuaire déposé depuis le bureau : le mail afficherait
+  alors un numéro client Vitisoft brut à la place du nom. Le cas `limites` du jeu d'essai
+  reproduit ce défaut volontairement.
+- `ecarterLesSuivis()` dans `bdv-courrier.js` **doit disparaître au lot 2**, remplacé par la
+  vue Postgres. Deux endroits qui répondent « ce client est-il encore à voir » se
+  contrediront au premier geste.
+
+---
+
 ## 08/09/2026. « Il faut que je me déconnecte et reconnecte pour voir mes données »
 
 Ted, après avoir créé son compte et importé son export : rien ne s'affiche, aucune tuile de
