@@ -119,7 +119,22 @@ select r.id,
 -- tables. La fonction d'envoi du lot 3, elle, utilisera la cle `service_role`,
 -- qui court-circuite la securite par ligne de toute facon : c'est la seule
 -- raison pour laquelle elle pourra lire les 500 lignes d'un coup.
-revoke all on public.v_courrier from anon;
+-- LE `revoke` PORTE SUR `authenticated` AUSSI, ET C'EST LA CORRECTION DU 09/09/2026.
+-- Premier passage : j'avais ecrit `revoke ... from anon` puis `grant select to
+-- authenticated`, en croyant que le grant DEFINISSAIT les droits. Faux. Supabase pose des
+-- droits PAR DEFAUT sur le schema public : toute table ou vue nouvellement creee arrive avec
+-- INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES et TRIGGER deja accordes a `authenticated`.
+-- Le `grant select` etait donc redondant, et les six autres droits sont restes en place.
+--
+-- Inoffensif aujourd'hui, verifie : `information_schema.views.is_updatable` vaut NO, cette
+-- vue porte des agregats et des jointures, Postgres refuse toute ecriture dessus. Mais c'est
+-- un piege pose pour plus tard : le jour ou quelqu'un simplifie cette vue et la rend
+-- modifiable, les six droits se reveillent.
+--
+-- How to apply, pour toute vue ou table future de ce projet : `revoke all` D'ABORD, sur anon
+-- ET sur authenticated, puis accorder ce dont on a besoin. Ne jamais partir du principe qu'un
+-- objet neuf arrive sans droits.
+revoke all on public.v_courrier from anon, authenticated;
 grant select on public.v_courrier to authenticated;
 
 comment on view public.v_courrier is

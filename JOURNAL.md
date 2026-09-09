@@ -242,6 +242,24 @@ fichier, à ne pas actionner avant d'avoir mesuré en situation.
 n'est pas filtré, et c'est lui qui porte le cas de test. Elle sera supprimée quand la fonction
 d'envoi lira la vue.
 
+### La vue est en base, et le contrôle a trouvé un piège
+
+Collée par Ted le 09/09/2026. Contrôlée depuis la session : deux lignes, 40 signaux chacune,
+6 tâches pour un compte et 1 pour l'autre, annuaire et résumé présents,
+`reloptions = {security_invoker=true}`. Exactement ce que la simulation annonçait.
+
+**Ce que le contrôle des droits a trouvé.** [Certain] Supabase pose des droits par défaut sur
+le schéma public : `authenticated` s'est retrouvé avec INSERT, UPDATE, DELETE, TRUNCATE,
+REFERENCES et TRIGGER sur la vue, en plus du SELECT. Mon `revoke all ... from anon` ne portait
+que sur `anon`, et mon `grant select` était redondant : je croyais que le grant définissait les
+droits, il ne fait que les ajouter.
+
+Inoffensif ce jour-là, et vérifié plutôt que supposé : `is_updatable` vaut NO, la vue porte des
+agrégats et des jointures, Postgres refuse toute écriture dessus. Mais c'est un piège posé pour
+le jour où quelqu'un simplifiera cette vue. Corrigé par `revoke all ... from anon,
+authenticated` puis le grant. La règle est passée dans `CLAUDE.md`, parce qu'elle vaudra pour
+chaque objet créé ensuite.
+
 ### Deux pièges de méthode, payés dans la session
 
 **Un bloc de commandes est collé en entier, toujours.** J'ai donné `npm run verif` dans un

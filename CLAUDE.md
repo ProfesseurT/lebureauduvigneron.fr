@@ -921,6 +921,22 @@ Au lot 2 cette regle passe dans une **vue Postgres**, et la fonction est SUPPRIM
 doit pas survivre a la vue : deux endroits qui repondent « ce client est-il encore a voir » se
 contrediront au premier geste.
 
+### `grant` NE DEFINIT PAS LES DROITS, IL LES AJOUTE, 09/09/2026
+
+[Certain] Supabase pose des droits PAR DEFAUT sur le schema public. Toute table ou vue
+nouvellement creee arrive avec INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES et TRIGGER deja
+accordes a `authenticated` et `service_role`. Un `grant select to authenticated` seul est
+donc REDONDANT, et il laisse les six autres droits en place.
+
+Trouve en controlant `v_courrier` juste apres sa creation : j'avais ecrit
+`revoke all ... from anon` puis `grant select ... to authenticated`, et `authenticated` se
+retrouvait avec tout. Inoffensif ce jour-la, `is_updatable` valant NO sur une vue a agregats,
+mais c'est un piege pose pour le jour ou la vue sera simplifiee.
+
+How to apply: pour tout nouvel objet, **`revoke all` d'abord, sur `anon` ET sur
+`authenticated`**, puis accorder le strict necessaire. Et apres chaque creation, controler avec
+`information_schema.role_table_grants` plutot que de supposer.
+
 ### LE SEUIL : le premier destinataire qui n'est pas Ted
 
 En phase de test, Ted a garde `courrier.` comme sous-domaine d'envoi et le palier Resend
