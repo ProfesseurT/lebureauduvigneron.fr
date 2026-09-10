@@ -309,6 +309,23 @@ lance immediatement apres lit une page a moitie ecrite. Un echec isole qui ne se
 pas au deuxieme essai vient de la, pas du code : le relancer suffit, mais il faut le
 relancer, pas l'ignorer.
 
+### Claude ne lance plus de commande git dans ce depot, 10/09/2026
+
+Le pont reseau qui monte le depot **interdit la suppression de fichiers**. Or une commande
+git ordinaire, `git status` comprise, pose `.git/index.lock` et le retire en sortant : ici
+elle le pose et n'a pas le droit de le retirer. Le verrou reste, et le `git add` suivant, le
+mien comme celui de Ted, echoue sur « un autre processus git semble en cours ». Pire : le
+`git push` qui suit repond « Everything up-to-date », qui se lit comme une reussite alors
+que rien n'a ete commite.
+
+Regle : depuis la session, tout git de LECTURE passe par `GIT_OPTIONAL_LOCKS=0`, qui lit
+l'index sans le verrouiller. Aucun git d'ECRITURE, ni `add`, ni `commit`, ni `push` : c'est
+Ted qui les lance, et c'est deja la regle du projet.
+
+Si le verrou traine malgre tout, Ted le retire lui-meme :
+
+    rm -f .git/index.lock
+
 ## `tokens.css` N'EST PAS SERVI AU NAVIGATEUR, et deux controles ne l'ont pas dit
 
 Piege paye le 08/09/2026, et il est vicieux parce que deux garde-fous ont regarde ailleurs.
@@ -487,6 +504,68 @@ Mais promettre un calcul qu'on ne fait pas reste le pire des trois etats.
 - Aucun tiret cadratin nulle part. Remplacer par une virgule, un point ou deux points.
 - Le vigneron est tutoye dans l'interface, ses clients sont vouvoyes dans les messages generes.
 - Un chiffre affiche doit toujours dire d'ou il vient. Une case vide vaut mieux qu'une valeur inventee.
+
+### Qui parle, decide le 10/09/2026
+
+- **Le « je » porte l'avis, la conviction, le vecu.** Ce que Ted pense, a vu, a compris. Une
+  conviction n'a pas de pluriel.
+- **Le « nous » porte les realisations de Solumatic.** Ce qui a ete construit, forme, livre,
+  visite. Ted n'etait pas seul, et l'ecrire au singulier est faux.
+- **Un « nous » doit rester chiffre sur la meme page.** Un pluriel jamais rattache a un nombre
+  ni a un nom se lit comme du remplissage marketing, et se saute. Ted a choisi le nombre plutot
+  que les noms.
+- **Les guillemets sont reserves aux mots reellement prononces par la personne citee**, a la
+  premiere personne. Une description ecrite par le Bureau n'en porte pas. Le modele du vrai
+  temoignage est dans `conseil-temoignage.njk`.
+
+## LE FLAMBEAU : le site doit survivre au depart de Ted, 10/09/2026
+
+Ted a pose la contrainte : un jour il partira, et le site ne doit pas tourner autour de lui. Il
+reste **une voix experte parmi d'autres**, jamais l'identite du site. C'est la meme regle que
+« rien de vivant en production ne doit etre inconnu du depot », appliquee aux comptes et aux
+roles au lieu du code.
+
+Le piege a eviter est l'inverse du probleme : depersonnaliser sans creer le role transforme
+« le site de Ted » en « le site de personne », et le second se lit plus mal que le premier. On
+nomme donc des SIEGES, pas des absences.
+
+### Ce qui depend encore d'une personne, par gravite
+
+1. **Les comptes du projet sont sous un Gmail personnel**, `teddypereira88@gmail.com` : GitHub,
+   Vercel, Supabase. C'est le SEUL point de cette liste qui devient irreparable apres un depart,
+   les trois autres ne sont que du texte. **DETTE ACCEPTEE PAR TED le 10/09/2026**, en
+   connaissance de cause, pour ne pas bloquer la refonte. A reprendre avant tout depart annonce.
+   Le geste minimal si la migration parait lourde : ajouter un second administrateur sur les
+   trois comptes, ce qui prend quelques minutes et eteint l'essentiel du risque.
+2. **`teddy@solumatic.fr` est l'adresse du site**, a neuf endroits : `mentions-legales.njk`,
+   `rgpd.njk` (quatre fois), `cgu.njk`, `footer-rich.njk`, `conseil-form.njk` et
+   `src/js/bdv-compte.js`. Ted a choisi une adresse du Bureau pour les remplacer.
+   **NE PAS LES BASCULER avant que la boite recoive vraiment** : une page legale qui pointe
+   vers une boite morte est pire que celle qui pointe vers une boite personnelle. Noter que
+   `courrier.lebureauduvigneron.fr` sert a EMETTRE via Resend, ce qui ne fait pas du domaine une
+   boite qui recoit.
+3. **La signature des articles etait en dur dans le gabarit.** Corrige le 10/09/2026, voir
+   ci-dessous.
+4. **`/teddy/` occupe l'entree « A propos » du menu**, l'avatar de Ted signe `manifeste.njk`, et
+   `waitlist.njk` comme `compte.njk` se terminent par son nom en gage de confiance. A remanier
+   en roles : une redaction qui signe, et une page qui liste les voix. Ted a choisi les ROLES
+   D'ABORD, les noms ensuite : la structure se pose avec des fonctions et des emplacements
+   vides, on ne nomme personne sans son accord.
+
+### La signature d'un article est une donnee, pas une identite
+
+`src/_includes/article.njk` lit maintenant `{{ auteur }}`. Le defaut vit dans
+`src/posts/posts.11tydata.js`, donnee de repertoire Eleventy, et un article peut le remplacer
+par son propre `auteur:`. Les vingt articles existants restent signes Teddy Pereira : il les a
+ecrits, et les faire signer « la redaction » serait une fausse attribution.
+
+### Ce qui manque encore, et que personne ne voit
+
+`CLAUDE.md` et `JOURNAL.md` documentent tres bien les DECISIONS et les pieges. Aucun des deux ne
+documente les OPERATIONS : comment on deploie, comment on ajoute un article, ou vivent les
+comptes, comment on tourne une cle Resend ou Supabase. Un successeur heriterait d'un
+raisonnement complet et d'aucun mode d'emploi. Un `EXPLOITATION.md` reste a ecrire, et c'est la
+piece qui manque vraiment au flambeau.
 
 ## Le tableau de bord : ce qu'il ne faut jamais casser
 
@@ -1002,3 +1081,85 @@ How to apply: **aucun `.catch(function(){})` vide sur une ecriture dont l'issue 
 l'ecran.** Un message de succes ne se pose qu'apres l'ecriture serveur, ou alors il dit
 explicitement que la synchronisation reste a faire. Un rappel qui ne vit que dans le navigateur
 est perdu au changement d'appareil, et la base fait foi.
+
+## ON NE DÉPLOIE QUE DEPUIS LE DÉPÔT, ET UN BANC LE VÉRIFIE, 10/09/2026
+
+Il n'y a pas de CLI Supabase sur le poste. La fonction `courrier-matin` est donc déployée depuis le
+conteneur, à partir de copies qui vivent là-bas, pendant que le dépôt vit sur le Mac. Deux endroits,
+aucun lien mécanique entre les deux.
+
+Ce qu'on a payé le 10/09/2026 : le `index.ts` **commité** portait encore l'ancien verrou d'entrée
+(comparaison de l'en-tête `Authorization` à la clé de service) alors que la production tournait
+depuis la veille avec le secret dédié `COURRIER_CLE`. **Le dépôt avait cessé d'être la source de
+vérité de ce qui tourne, et rien ne le disait.** L'empreinte inscrite dans l'en-tête annonçait
+512 lignes quand la fabrique en faisait 880.
+
+How to apply :
+
+1. **Avant tout déploiement**, `npm run courrier:joindre`. Il recopie `src/js/bdv-courrier.js` dans
+   `_deploiement/courrier-matin/` et tamponne l'empreinte dans l'en-tête de `index.ts`.
+2. **On déploie ce dossier-là, et rien d'autre.** Pas une copie du conteneur, pas un fichier
+   recollé à la main.
+3. **L'empreinte ne s'écrit jamais à la main.** `npm run verif` appelle `courrier:verif`, qui échoue
+   si elle ne correspond plus. Un commentaire faux fait conclure à tort : il est pire que pas de
+   commentaire. Donc c'est un banc, plus une convention.
+4. **Un correctif déployé sans être commité n'existe pas.** Le déploiement suit le commit, jamais
+   l'inverse.
+
+## UNE ADRESSE QUI PEUT MOURIR EST UN RÉGLAGE, PAS UNE CONSTANTE, 10/09/2026
+
+Le bouton « Ouvrir mon bureau » est la seule action du courrier du matin. Il pointait vers
+`https://lebureauduvigneron.fr/mon-bureau/`, valeur de repli de `batir()`, et **ce domaine n'a
+jamais été branché sur Vercel** : il résout encore vers IONOS et ne sert aucun certificat. Le
+premier vrai courrier est parti avec un bouton mort.
+
+Ce qui rend cette panne mauvaise n'est pas le lien cassé, c'est qu'**elle ne remonte pas**. L'envoi
+réussit, le rapport dit « envoyé », et c'est le vigneron qui tombe sur une erreur de navigateur.
+
+How to apply :
+
+- L'adresse du bureau est le secret Supabase **`URL_BUREAU`**, passé à `batir()` par la fonction
+  d'envoi. Au branchement du domaine, on change une variable : ni code, ni redéploiement.
+- Le repli dans le code reste l'adresse **définitive**, pour que ce soit le réglage temporaire qui
+  se voie dans les secrets, et pas l'inverse.
+- **Toute adresse que le mail fait cliquer figure dans le rapport de la fonction**, à chaque appel,
+  `?apercu=1` compris. C'est le seul moyen de s'apercevoir qu'elle est fausse avant le destinataire.
+- Règle générale : quand un envoi réussit alors que ce qu'il transporte est cassé, le garde-fou ne
+  peut pas être dans le code de l'envoi. Il doit être dans ce que l'envoi RACONTE.
+
+## LE SITE N'ENTRE PAS DANS LE CHEMIN D'ENVOI DU MAIL, 10/09/2026
+
+Tentation vérifiée puis refusée : faire lire `bdv-courrier.js` à la fonction Edge depuis le site,
+par `import 'https://lebureauduvigneron.fr/js/bdv-courrier.js'`, pour n'avoir plus rien à recoller.
+Le fichier **est** bien servi, 200 et à jour, donc techniquement ça marche.
+
+Refusé parce que le jour où on l'a vérifié, le domaine était injoignable : le courrier de 8 h ne
+serait pas parti, et le rapport aurait annoncé une erreur d'import, pas un domaine.
+
+How to apply : **le site et l'envoi du mail sont deux pannes qui doivent rester indépendantes.** Une
+gêne de confort dans la chaîne de déploiement se règle par un script, pas en ajoutant une dépendance
+réseau dans un chemin qui doit fonctionner à 8 h sans personne devant.
+
+## RIEN DE VIVANT EN PRODUCTION NE DOIT ETRE INCONNU DU DEPOT, 10/09/2026
+
+Deux fois le meme jour, sur deux organes differents :
+
+- le `index.ts` commite de `courrier-matin` portait encore l'ancien verrou d'entree alors que la
+  production tournait avec `COURRIER_CLE` : un correctif deploye sans etre commite ;
+- les deux gabarits d'e-mail de l'authentification, les seuls ecrits que le produit envoie a ses
+  utilisateurs, ne vivaient nulle part dans le depot. Ni `npm run charte` ni `npm run verif` ne les
+  voyaient, et leur couleur en dur ne portait pas le nom de son jeton.
+
+Ce qui rend cette classe de panne mauvaise : **elle ne se manifeste jamais au moment ou elle est
+creee.** Elle attend qu'on relise, qu'on redeploie, ou qu'un jeton change.
+
+How to apply :
+
+1. **Tout ce qui vit dans un tableau de bord tiers a un fichier de reference dans le depot.**
+   Fonctions Edge, gabarits d'e-mail, vues SQL, reglages qui portent du texte ou une couleur.
+2. **L'ordre est : on modifie le fichier, on relit, puis on colle dans le tableau de bord.** Jamais
+   l'inverse. Une modification faite directement dans l'interface est invisible pour toujours.
+3. **Un correctif deploye sans etre commite n'existe pas.** Le deploiement suit le commit.
+4. Quand le fichier de reference n'est lu par aucun programme, il porte en tete ce qu'il est, ou il
+   est deploye, et la correspondance entre ses valeurs en dur et les jetons de la charte. Sinon
+   c'est une copie qui derive, et une copie qui derive est pire que pas de copie.

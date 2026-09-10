@@ -9,7 +9,7 @@ layout: base.njk
     {% endif %}
     <h1>{{ title }}</h1>
     <div class="article-header__meta">
-      Par Teddy Pereira · {{ page.date | dateReadable }}
+      Par {{ auteur }} · {{ page.date | dateReadable }}
       {% if temps_lecture %} · {{ temps_lecture }} de lecture{% endif %}
     </div>
   </div>
