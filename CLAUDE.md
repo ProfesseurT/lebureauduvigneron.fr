@@ -1253,3 +1253,25 @@ sinon un telephone de 390 px deborde.
    attrape une largeur non bornee.
 3. Puis un envoi reel dans une vraie boite. C'est le seul qui attrape ce que la messagerie
    jette. Les deux premiers ne le remplacent pas.
+
+### 4. UN CHIFFRE DE TRAVAIL SE MET DANS LE RAPPORT, 10/09/2026
+
+Regle tiree du defaut le plus dangereux de la journee, et il etait de moi.
+`heureAParis()` formatait en `fr-FR`, qui rend « 14 h » et pas « 14 ». `Number('14 h')` vaut
+NaN, et **NaN n'est egal a rien** : la comparaison `heure !== HEURE_ENVOI` etait TOUJOURS
+vraie. Le declencheur horaire aurait repondu « hors heure » vingt-quatre fois par jour, en
+code 200, sans jamais envoyer un courrier -- pendant des semaines, sans une ligne rouge.
+C'est exactement la panne que le lot 4 existe pour empecher, ecrite dans le lot 4.
+
+**Aucun controle hors ligne ne pouvait la voir** : ni Node ni le banc ne formatent avec l'ICU
+de Deno. Ce qui l'a attrapee, c'est `heure_paris` expose dans le compte rendu, qui valait
+`null`.
+
+How to apply : toute valeur dont depend une DECISION du programme -- une heure, un seuil, une
+adresse, un compteur -- se met dans le rapport, meme si elle n'interesse personne un jour
+normal. Ca ne coute rien, et c'est le seul filet quand le comportement depend d'un
+environnement qu'on ne peut pas reproduire. Meme motif que `url_bureau` : un bouton mort ne
+fait echouer aucun envoi, donc rien ne le signale.
+
+Et pour les dates et heures : ne jamais faire `Number()` sur un `Intl.DateTimeFormat` en
+locale francaise. Locale `en-GB`, ET retrait de tout ce qui n'est pas un chiffre.

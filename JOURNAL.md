@@ -65,9 +65,29 @@ de la fonction, il a recu un **504**, `curl` attendait une reponse qui ne venait
 tiree de la : **demander le texte exact affiche avant de proposer un contournement**, et lire
 les journaux de la fonction avant de soupconner le poste.
 
+### Le defaut le plus dangereux de la journee, et il etait de moi
+
+`heureAParis()` formatait l'heure en `fr-FR`, qui rend « 14 h ». `Number('14 h')` vaut NaN, et
+NaN n'est egal a rien : la comparaison `heure !== HEURE_ENVOI` etait **toujours vraie**.
+L'horloge aurait repondu « hors heure » vingt-quatre fois par jour, en 200, sans jamais
+envoyer un courrier. Des semaines de silence sans une seule ligne rouge -- la panne exacte que
+le lot 4 existe pour empecher.
+
+Ni Node ni le banc ne formatent avec l'ICU de Deno : aucun controle hors ligne ne pouvait la
+voir. Ce qui l'a attrapee, c'est `heure_paris` expose dans le rapport, qui valait `null`. D'ou
+la quatrieme regle ajoutee a CLAUDE.md : **toute valeur dont depend une decision du programme
+se met dans le compte rendu**, meme si elle n'interesse personne un jour normal.
+
+Corrige en `0e12447`. Fonction en version 9, `heure_paris` rend maintenant 14, `comptes_lus`
+2, aucun echec. **La fonction est reparee et porte le bon dessin.**
+
+Reste : l'horloge de 8 h, `URL_BUREAU` que Ted regle avec le branchement du domaine (assume :
+il est seul destinataire, un bouton mort ne coute rien avant le premier vigneron), et
+`ecarterLesSuivis()` a supprimer.
+
 ### Reste ouvert, par ordre
 
-1. **La fonction en ligne ne repond plus depuis 12 h 10** : `index.ts` a recu le contenu de la
+1. ~~La fonction en ligne ne repond plus depuis 12 h 10~~ REPARE, version 9 : `index.ts` a recu le contenu de la
    fabrique lors d'un copier-coller. Elle demarre en 23 ms puis n'ecoute rien, d'ou les 504 et
    les expirations. A reparer en recollant `_deploiement/courrier-matin/index.ts`.
 2. Le dessin du courrier attend la validation de Ted sur l'essai 3.
