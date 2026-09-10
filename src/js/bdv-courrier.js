@@ -314,15 +314,15 @@ function trierAFaire(suivis, taches, annuaire, jAuj){
    de hauteur fixe, un pas fixe finirait par percer un texte en deux.
    `border-radius` fait le rond partout sauf sous Outlook, qui rendra un petit
    carre. Un carre dans la marge se lit encore comme une perforation. */
+/* Un `div` et pas un tableau imbrique pour le rond : le trou est repete deux
+   fois par ligne, soit une centaine de fois dans un courrier plein. La version
+   en tableaux pesait 49 ko par compte, celle-ci 36. A 500 vignerons, c'est
+   6 Mo d'envoi en moins par matin pour le meme dessin. */
 var TROU = '<td width="18" valign="middle" align="center" bgcolor="'+C.paperLight+'"'
   + ' style="width:18px;background-color:'+C.paperLight+';padding:0;'
   +   'font-size:0;line-height:0;">'
-  + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"'
-  +   ' style="border-collapse:collapse;"><tr>'
-  + '<td width="5" height="5" bgcolor="'+C.paperDeep+'"'
-  +   ' style="width:5px;height:5px;background-color:'+C.paperDeep+';border-radius:3px;'
-  +   'font-size:0;line-height:0;">&nbsp;</td>'
-  + '</tr></table></td>';
+  + '<div style="width:5px;height:5px;margin:0 auto;background-color:'+C.paperDeep+';'
+  +   'border-radius:3px;font-size:0;line-height:0;">&nbsp;</div></td>';
 
 function bande(gauche, droite){
   return ''
