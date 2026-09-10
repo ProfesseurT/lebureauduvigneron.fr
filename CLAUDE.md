@@ -171,6 +171,17 @@ un titre ne l'est pas, et c'est la seule chose que le dessin ait besoin de savoi
 **Le lien vit sur la LIGNE DE TETE**, le libelle s'il existe et la valeur sinon. Jamais sur un
 chiffre nu, qu'on ne songerait pas a cliquer.
 
+### L'ECRAN DIT « ACTION », LE CODE DIT « GESTE », 10/09/2026
+
+Demande de Ted : « on change gestes par actions et faits par accomplis ». Seuls les mots
+d'ECRAN ont change - l'etiquette du panneau, le bilan, l'en-tete de colonne du sous-main.
+`BdvCrm.GESTES`, `.postit__gestes` et `data-punaise` gardent leur nom : un renommage
+traversant trois fichiers pour un mot d'ecran n'apporte qu'un risque, meme regle que `date`
+dans `bdv-echeances.js`. **Le savoir en relisant, et ne pas "corriger" l'un vers l'autre.**
+
+Le bouton « Fait » n'est PAS devenu « Accompli » : ce mot se lit comme un etat, pas comme un
+ordre. Un compte se dit « 9 accomplis », un bouton se dit « Fait ».
+
 ### Un post-it n'est plus un `<a>`, et il ne doit plus le redevenir
 
 Il porte des boutons de geste, et un element interactif dans un element interactif est interdit

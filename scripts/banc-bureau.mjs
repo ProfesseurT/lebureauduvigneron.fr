@@ -593,9 +593,14 @@ titre('Le plateau, dans l\'ordre de Ted');
      rien retirer : la reference passe sous le nom, dans la meme cellule, ou
      elle ne coute aucun pixel de largeur, et le montant sort du motif pour
      avoir sa colonne de nombres alignes a droite. Les cinq informations sont
-     toutes la. */
+     toutes la.
+
+     LA DERNIERE S'APPELLE « ACTION » DEPUIS LE 10/09/2026, sur demande de Ted :
+     le mot a change au panneau, et une meme page ne dit pas deux mots pour la
+     meme chose. Seul le mot d'ECRAN a bouge ; `BdvCrm.GESTES` et les noms de
+     classes disent toujours « geste », et ce banc en parle encore ailleurs. */
   t('les colonnes du listing sont celles-la',
-    /\['Fichier client', 'Motif', 'Montant', 'Retard', 'Geste'\]/.test(HTML));
+    /\['Fichier client', 'Motif', 'Montant', 'Retard', 'Action'\]/.test(HTML));
   t('la reference du fichier vit sous le nom, elle n\'a pas disparu',
     /listb__fichier/.test(HTML) && /'réf\. ' \+ l\.id/.test(HTML));
   t('le montant a sa colonne, il n\'est plus collé au motif',

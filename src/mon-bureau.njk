@@ -634,7 +634,14 @@ permalink: /mon-bureau/
     t.className = 'listb';
     var thead = document.createElement('thead');
     var tr = document.createElement('tr');
-    ['Fichier client', 'Motif', 'Montant', 'Retard', 'Geste'].forEach(function(m){
+    /* « ACTION » ET PLUS « GESTE », 10/09/2026, sur demande de Ted. Le mot a change au
+       panneau ; le laisser ici aurait fait dire deux mots a la meme page pour la meme
+       chose. Les NOMS DE CODE, eux, ne bougent pas : `BdvCrm.GESTES`, `.postit__gestes`,
+       `data-punaise="crm-appel"`. Un renommage traversant trois fichiers pour un mot
+       d'ecran n'apporterait qu'un risque, et c'est la regle deja posee pour `date` dans
+       bdv-echeances.js. A savoir en relisant : l'ecran dit « action », le code dit
+       « geste ». */
+    ['Fichier client', 'Motif', 'Montant', 'Retard', 'Action'].forEach(function(m){
       var th = document.createElement('th');
       th.scope = 'col';
       th.textContent = m;
@@ -1537,7 +1544,7 @@ permalink: /mon-bureau/
       bilan = {
         cle: 'bilan',
         valeur: String(faits),
-        libelle: faits > 1 ? 'faits aujourd’hui' : 'fait aujourd’hui',
+        libelle: faits > 1 ? 'accomplis aujourd’hui' : 'accompli aujourd’hui',
         sous: momentDuJour() === 'soir' ? 'ta journée est pliée' : 'continue comme ça',
         ton: 'fait',
         href: '/mon-bureau/#taches'
@@ -1590,11 +1597,11 @@ permalink: /mon-bureau/
         if(jours(auj, dj) < 28) mois++;
       });
       var ecart = sem - prec;
-      note.push(pluriel(sem, 'geste') + ' cette semaine'
+      note.push(pluriel(sem, 'action') + ' cette semaine'
         + (prec ? (' (' + (ecart >= 0 ? '+' : '') + ecart + ' vs la semaine passée)') : ''));
       note.push((Math.round(mois / 4 * 10) / 10).toString().replace('.', ',') + ' par semaine en moyenne');
     }
-    if(faits) note.push(pluriel(faits, 'fait') + ' aujourd’hui');
+    if(faits) note.push(pluriel(faits, 'accompli') + ' aujourd’hui');
     if(portent.length) note.push(pluriel(portent.length, 'client') + ' au carnet');
     if(age !== null && age <= 15) note.push(age <= 0 ? 'analyse du jour' : ('analyse d’il y a ' + pluriel(age, 'jour')));
     if(JOURNAL === null) note.push('ton journal n’est pas encore lisible');

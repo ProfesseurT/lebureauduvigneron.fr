@@ -155,8 +155,32 @@ vert sans dire lequel il avait lu. Ils sont verifies separement. Et une section 
 ajoutee pour la forme « compte » a trois retards, qui n'existait dans aucun jeu d'essai : un
 banc qui ne verifie qu'une branche sur deux laisse l'autre pourrir tranquillement.
 
+### Le vocabulaire : « action » et « accompli »
+
+Ted, en fin de session : « on change gestes par actions et faits par accomplis ».
+
+**Le premier est un echange direct, le second ne l'est pas.** Le mot « fait » vit a deux
+endroits de nature differente : un COMPTE (« 9 faits aujourd'hui ») et un BOUTON (« Fait »,
+sur la punaise et dans Mes taches). « 9 accomplis aujourd'hui » se lit ; un bouton marque
+« Accompli » se lit comme un etat et plus comme un ordre. **Le compte a change, le bouton
+non**, et Ted arbitrera s'il veut aussi le bouton.
+
+**L'en-tete de colonne du sous-main a suivi**, « Geste » devenu « Action » : le mot avait
+change au panneau, et une meme page ne dit pas deux mots pour la meme chose.
+
+**Les NOMS DE CODE ne bougent pas** : `BdvCrm.GESTES`, `.postit__gestes`,
+`data-punaise="crm-appel"`, `tache-fait`. Un renommage traversant trois fichiers pour un mot
+d'ecran n'apporterait qu'un risque - c'est la regle deja posee pour `date` dans
+`bdv-echeances.js`. **A savoir en relisant : l'ecran dit « action », le code dit « geste ».**
+
+Le controle ajoute au banc est ecrit **en negatif sur l'ancien mot** (« le panneau ne dit
+plus geste nulle part ») : c'est ce qui attrape une punaise oubliee lors d'un ajout futur,
+alors qu'un controle sur le nouveau mot ne verifierait que la ligne qu'on vient d'ecrire.
+
 ### Ce qui reste ouvert
 
+- **Le bouton « Fait » n'est pas devenu « Accompli »**, faute d'un mot qui marche a la fois
+  comme etat et comme ordre. A trancher avec Ted.
 - **Le faux `BdvTaches` de `scripts/apercu-panneau.mjs` rejoue `punaises()` a l'identique.** C'est
   un doublon assume : jsdom ne charge pas les `<script src>`. Si l'ordre des punaises change dans
   `src/js/bdv-taches.js`, il faut le changer la aussi, sinon l'apercu montre un panneau qui

@@ -301,10 +301,23 @@ titre('5. Le panneau : ce qui presse, et cliquable');
   /* Les deux compteurs qui disaient la MEME chose : « 5 gestes cette semaine » et
      « 1,3 geste par semaine », la seconde etant la premiere divisee par quatre. */
   t('les compteurs ne mangent plus de punaise',
-    html().indexOf('gestes par semaine') < 0 && html().indexOf('clients dans ton carnet') < 0,
+    html().indexOf('par semaine') < 0 && html().indexOf('clients dans ton carnet') < 0,
     html().slice(0, 200));
   t('ils sont passes dans l\'etiquette de la zone',
     b.el('panneauNote').textContent.indexOf('au carnet') >= 0,
+    b.el('panneauNote').textContent);
+  /* LE MOT EST « ACTION », PLUS « GESTE », et « ACCOMPLI », plus « FAIT ». Demande de
+     Ted le 10/09/2026. Le controle est ecrit en NEGATIF sur l'ancien mot : c'est ce qui
+     attrape une punaise ou une etiquette oubliee lors d'un ajout futur, alors qu'un
+     controle sur le nouveau mot ne verifierait que la ligne qu'on vient d'ecrire.
+     Les NOMS DE CODE gardent « geste » (BdvCrm.GESTES, .postit__gestes) : on ne
+     controle que ce que le vigneron lit. */
+  t('le panneau ne dit plus « geste » nulle part',
+    (b.el('panneauNote').textContent + ' ' + html()).indexOf('geste') < 0,
+    b.el('panneauNote').textContent);
+  t('il dit « actions cette semaine »',
+    b.el('panneauNote').textContent.indexOf('actions cette semaine') >= 0
+    || b.el('panneauNote').textContent.indexOf('action cette semaine') >= 0,
     b.el('panneauNote').textContent);
   t('la fraicheur de l\'analyse aussi, tant qu\'elle ne derange pas',
     b.el('panneauNote').textContent.indexOf('analyse du jour') >= 0,

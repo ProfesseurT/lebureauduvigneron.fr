@@ -6977,7 +6977,13 @@ button.bureau-nav__item:hover {
    telephone, sans barre de defilement pour le dire : elle disparaissait, simplement.
    Ici elle se replie. Elle reste alignee a droite pour ne pas se lire comme la suite
    du titre. */
-.zone--panneau .zone__note { white-space: normal; text-align: right; }
+/* `text-wrap: balance` REGLE UN ORPHELIN, PAS UN CAPRICE. « action » et « accompli »
+   sont plus longs que « geste » et « fait » : au 10/09/2026 l'etiquette est passee a deux
+   lignes sur 1200 px, la seconde ne portant que le mot « jour », cale a droite. Un mot
+   seul aligne a droite se lit comme une coquille. L'equilibrage repartit les lignes ;
+   la ou il n'est pas connu, le repli est le retour a la ligne ordinaire, qui est
+   exactement ce qu'on avait. */
+.zone--panneau .zone__note { white-space: normal; text-align: right; text-wrap: balance; }
 
 /* DEUX COLONNES PLUTOT QU'UNE SOUS 380 PX DE ZONE. En une seule colonne, cinq
    punaises font 2 300 px de haut : le panneau ouvre « Ma journee », et il fallait le
