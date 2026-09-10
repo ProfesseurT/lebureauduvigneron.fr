@@ -6816,6 +6816,12 @@ button.bureau-nav__item:hover {
   color: var(--ink);
 }
 .postit__v[data-mot] { font-size: 1.4rem; letter-spacing: var(--ls-serre); }
+/* TROISIEME PALIER, 10/09/2026. Depuis que la ligne de tete peut porter un TITRE et
+   plus seulement un chiffre, « Commander des bouchons » passait a 1,4 rem et prenait
+   trois lignes sur un post-it de 160 px. Au-dela de seize signes on redescend au corps
+   du chapo. La regle suit la LONGUEUR et pas la nature : un chiffre est court, un titre
+   ne l'est pas, et c'est la seule chose que le dessin ait besoin de savoir. */
+.postit__v[data-mot="long"] { font-size: var(--t-lead); line-height: var(--lh-serre); }
 .postit__l {
   font-family: var(--font-corps);
   font-size: var(--t-base);
@@ -6849,13 +6855,37 @@ button.bureau-nav__item:hover {
    des boutons, ce que le HTML interdit et ce que le clavier traverse de travers.
    C'est donc le libelle qui porte le lien, et son ::after qui couvre le papier. Une
    seule cible pour la souris, deux arrets nets pour le clavier. */
-.postit__l--lien { color: var(--ink); text-decoration: none; }
-.postit__l--lien::after { content: ""; position: absolute; inset: 0; }
-.postit:hover .postit__l--lien { text-decoration: underline; }
+.postit__lien { color: var(--ink); text-decoration: none; }
+.postit__lien::after { content: ""; position: absolute; inset: 0; }
+.postit:hover .postit__lien { text-decoration: underline; }
 /* L'anneau se pose sur le PAPIER et jamais sur le liege : --bordeaux sur --paper-light
    se lit, --bordeaux sur --cork se devine. C'est la lecon du 07/09/2026, l'anneau a la
    couleur de la surface qui le porte. */
-.postit__l--lien:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+.postit__lien:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+
+/* ---- LE TAMPON, 10/09/2026 ----
+   Ted, devant sa vraie page : « les gros mots AUJOURD'HUI et DEMAIN en gros, ca perd le
+   message ». Sur une punaise qui porte une chose a faire, l'echeance n'est pas le
+   message, c'est une mention posee dessus. Elle prend donc l'allure d'un tampon :
+   capitales, mono, petit, espace entre les lettres. Exactement le traitement des
+   etiquettes de zone, et c'est voulu - une mention se lit comme une mention partout
+   sur le site.
+
+   PAS DE PASTILLE, PAS DE FOND. Une etiquette coloree de plus sur un panneau qui porte
+   deja trois couleurs de punaise ferait un quatrieme signal a apprendre. Le tampon
+   emprunte l'encre du liege, et vire au rouge dans le seul cas ou le panneau s'alarme. */
+.postit__tampon {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  font-weight: 500;
+  color: var(--cork-encre);
+  margin-bottom: 0.15rem;
+}
+/* Le seul cas ou le tampon change d'encre. L'etat « fait » n'en porte jamais : ses
+   punaises sont des punaises de compte, elles n'ont pas d'echeance a tamponner. */
+.postit[data-ton="vieux"] .postit__tampon { color: var(--danger-deep); }
 
 /* LES DEUX GESTES. Ils passent AU-DESSUS du lien etendu par leur z-index : sans lui,
    le ::after du libelle les recouvrirait et « Fait » ouvrirait Mes taches. */
@@ -6967,6 +6997,7 @@ button.bureau-nav__item:hover {
   .postit { padding: 1.25rem 0.7rem 0.8rem; }
   .postit__v { font-size: var(--t-h3); }
   .postit__v[data-mot] { font-size: var(--t-lead); }
+  .postit__v[data-mot="long"] { font-size: var(--t-base); }
   .postit__s { font-size: var(--t-lead); }
 }
 /* L'avis de la fiche, cale sous la croix de fermeture. */

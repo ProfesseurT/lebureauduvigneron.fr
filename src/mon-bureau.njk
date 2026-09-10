@@ -1316,27 +1316,70 @@ permalink: /mon-bureau/
      element interactif dans un element interactif, ce que le HTML interdit et ce que
      le clavier traverse de travers.
 
-     LE PAPIER RESTE CLIQUABLE ENTIEREMENT quand meme : c'est le libelle qui porte le
-     lien, et son `::after` s'etend sur tout le post-it (voir style.css). Les boutons
-     de geste repassent au-dessus par leur z-index. Une seule cible pour la souris,
-     deux arrets nets pour le clavier. */
+     LE PAPIER RESTE CLIQUABLE ENTIEREMENT quand meme : c'est la ligne de tete qui
+     porte le lien, et son `::after` s'etend sur tout le post-it (voir style.css). Les
+     boutons de geste repassent au-dessus par leur z-index. Une seule cible pour la
+     souris, deux arrets nets pour le clavier.
+
+     ---- DEUX NATURES DE PUNAISE, ET C'EST TOUT LE SUJET ----
+     Corrige le 10/09/2026, sur une remarque de Ted devant sa vraie page : « les gros
+     mots AUJOURD'HUI et DEMAIN en gros, ca perd le message ».
+
+       1. LA PUNAISE DE COMPTE : « 3 rappels en retard », « 5 autres taches », « 9
+          faits aujourd'hui ». Le chiffre EST le message, il tient le grand
+          emplacement, et le libelle dit de quoi on compte.
+       2. LA PUNAISE DE CHOSE A FAIRE : « DRM de septembre », « Domaine Jayama ». Le
+          message est le titre. L'echeance descend en TAMPON, une etiquette en
+          capitales posee au-dessus, comme sur un papier qu'on a tamponne. Ces
+          punaises-la n'ont pas de libelle : le titre le remplace.
+
+     CE N'ETAIT PAS UNE PERMUTATION. Le grand emplacement est dessine pour un chiffre,
+     2 rem en serif grasse : « Commander des bouchons » dedans ferait trois lignes.
+     D'ou la regle de taille ci-dessous, qui suit la LONGUEUR et pas la nature - un
+     chiffre est court, un titre ne l'est pas, et c'est la seule chose que le dessin
+     ait besoin de savoir.
+
+     LE LIEN SUIT LA TETE. Il se pose sur le libelle quand il y en a un, sinon sur la
+     ligne de tete. Autrement dit : toujours sur le texte qui porte le sens, jamais sur
+     un chiffre nu, qu'on ne songerait pas a cliquer. */
   function postit(o){
     var n = document.createElement('div');
     n.className = 'postit';
     if(o.ton) n.setAttribute('data-ton', o.ton);
     if(o.cle) n.setAttribute('data-cle', o.cle);
 
-    var v = document.createElement('span');
-    v.className = 'postit__v';
-    if(String(o.valeur).length > 4) v.setAttribute('data-mot', 'oui');
-    animerChiffre(v, String(o.valeur));
+    /* LE LIEN SE POSE SUR LA LIGNE DE TETE, et la ligne de tete est le libelle quand
+       il y en a un, sinon la valeur. Autrement dit : toujours sur le texte qui porte
+       le sens, jamais sur un chiffre nu qu'on ne songerait pas a cliquer. On decide
+       AVANT de construire, parce qu'un element deja peint puis remplace laisserait le
+       compteur anime ecrire dans un noeud detache du document. */
+    var surValeur = !o.libelle;
+    function ligne(classe, texte, lien){
+      var e = document.createElement(lien ? 'a' : 'span');
+      e.className = classe + (lien ? ' postit__lien' : '');
+      if(lien) e.href = o.href;
+      e.textContent = texte;
+      return e;
+    }
+
+    if(o.tampon){
+      var tp = document.createElement('span');
+      tp.className = 'postit__tampon';
+      tp.textContent = o.tampon;
+      n.appendChild(tp);
+    }
+
+    var mot = String(o.valeur);
+    var v = ligne('postit__v', '', !!o.href && surValeur);
+    // Trois paliers, mesures sur un post-it de 160 px : un chiffre tient a 2 rem, un
+    // mot court a 1,4 rem, et au-dela de seize signes il faut redescendre au corps du
+    // chapo sous peine de trois lignes.
+    if(mot.length > 16) v.setAttribute('data-mot', 'long');
+    else if(mot.length > 4) v.setAttribute('data-mot', 'oui');
+    animerChiffre(v, mot);
     n.appendChild(v);
 
-    var l = document.createElement(o.href ? 'a' : 'span');
-    l.className = 'postit__l' + (o.href ? ' postit__l--lien' : '');
-    if(o.href) l.href = o.href;
-    l.textContent = o.libelle;
-    n.appendChild(l);
+    if(o.libelle) n.appendChild(ligne('postit__l', o.libelle, !!o.href));
 
     if(o.sous){
       var sp = document.createElement('span');
@@ -1404,16 +1447,18 @@ permalink: /mon-bureau/
     if(retards.length){
       var vieux = retards[0];
       var age = jours(auj, new Date(vieux.rappel + 'T00:00:00'));
-      pile.push({
-        cle: 'crm-retard',
-        valeur: String(retards.length),
-        libelle: retards.length > 1 ? 'rappels en retard' : 'rappel en retard',
-        sous: nomDe(vieux.id) + ', depuis ' + pluriel(age, 'jour'),
-        ton: 'vieux',
-        href: lienFiche(vieux.id),
-        gestes: [{ cle: 'crm-appel', id: vieux.id, mot: 'Appelé',
-                   titre: 'Noter un appel passé à ' + nomDe(vieux.id) }]
-      });
+      var appel = [{ cle: 'crm-appel', id: vieux.id, mot: 'Appelé',
+                     titre: 'Noter un appel passé à ' + nomDe(vieux.id) }];
+      /* A UN SEUL, ON NOMME ; A PLUSIEURS, ON COMPTE. Decision de Ted le 10/09/2026,
+         dans le meme mouvement que le tampon : un gros « 1 » n'apprend rien a
+         personne, alors que le nom du client dit tout, et c'est lui qu'on appelle. */
+      pile.push(retards.length === 1
+        ? { cle: 'crm-retard', tampon: 'en retard', valeur: nomDe(vieux.id),
+            sous: 'depuis ' + pluriel(age, 'jour'), ton: 'vieux',
+            href: lienFiche(vieux.id), gestes: appel }
+        : { cle: 'crm-retard', valeur: String(retards.length), libelle: 'rappels en retard',
+            sous: 'le plus vieux : ' + nomDe(vieux.id) + ', ' + pluriel(age, 'jour'),
+            ton: 'vieux', href: lienFiche(vieux.id), gestes: appel });
     }
 
     /* 2. CE QUI TOMBE AUJOURD'HUI, COTE CLIENTS. Pas de ton particulier : le mot
@@ -1421,15 +1466,15 @@ permalink: /mon-bureau/
        devine. */
     var duJour = aujISO ? vivants.filter(function(l){ return l.rappel === aujISO; }).sort(parDate) : [];
     if(duJour.length){
-      pile.push({
-        cle: 'crm-jour',
-        valeur: String(duJour.length),
-        libelle: duJour.length > 1 ? 'rappels aujourd’hui' : 'rappel aujourd’hui',
-        sous: nomDe(duJour[0].id),
-        href: lienFiche(duJour[0].id),
-        gestes: [{ cle: 'crm-appel', id: duJour[0].id, mot: 'Appelé',
-                   titre: 'Noter un appel passé à ' + nomDe(duJour[0].id) }]
-      });
+      var prem = duJour[0];
+      var appelJ = [{ cle: 'crm-appel', id: prem.id, mot: 'Appelé',
+                      titre: 'Noter un appel passé à ' + nomDe(prem.id) }];
+      pile.push(duJour.length === 1
+        ? { cle: 'crm-jour', tampon: 'aujourd’hui', valeur: nomDe(prem.id),
+            sous: 'ton rappel du jour', href: lienFiche(prem.id), gestes: appelJ }
+        : { cle: 'crm-jour', valeur: String(duJour.length), libelle: 'rappels aujourd’hui',
+            sous: 'à commencer par ' + nomDe(prem.id),
+            href: lienFiche(prem.id), gestes: appelJ });
     }
 
     /* 3. LES TROIS CHOSES A FAIRE LES PLUS PRESSANTES, plus le renvoi vers le reste.
@@ -1442,10 +1487,13 @@ permalink: /mon-bureau/
        qui ne pressent pas encore n'a rien a faire sur une pile de travail. */
     var venir = aujISO ? vivants.filter(function(l){ return l.rappel > aujISO; }).sort(parDate) : [];
     if(venir.length){
+      /* Elle etait deja de la deuxieme nature sans qu'on l'ait vu : « 9 oct. » en gros
+         et le nom du client en dessous, alors que c'est le client qu'on rappelle. La
+         date devient le tampon, comme sur les autres. */
       pile.push({
         cle: 'crm-venir',
-        valeur: dateBreve(venir[0].rappel),
-        libelle: nomDe(venir[0].id),
+        tampon: dateBreve(venir[0].rappel),
+        valeur: nomDe(venir[0].id),
         sous: venir.length > 1 ? ('ton prochain rappel · ' + venir.length + ' à venir') : 'ton prochain rappel',
         href: lienFiche(venir[0].id)
       });

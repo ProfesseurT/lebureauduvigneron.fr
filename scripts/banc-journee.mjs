@@ -274,14 +274,22 @@ titre('5. Le panneau : ce qui presse, et cliquable');
     html().indexOf('Domaine Jayama') >= 0, html().slice(0, 200));
   t('il dit aussi ce qui tombe aujourd\'hui',
     html().indexOf('aujourd’hui') >= 0);
-  t('le retard porte bien son compte, une fois le chiffre monte',
-    !!p.querySelector('[data-cle="crm-retard"] .postit__v')
-    && p.querySelector('[data-cle="crm-retard"] .postit__v').textContent === '1',
-    p.querySelector('[data-cle="crm-retard"] .postit__v')
-      ? p.querySelector('[data-cle="crm-retard"] .postit__v').textContent : 'punaise absente');
+  /* A UN SEUL, ON NOMME ; A PLUSIEURS, ON COMPTE. Decide par Ted le 10/09/2026 devant
+     sa vraie page : « les gros mots AUJOURD'HUI et DEMAIN en gros, ca perd le
+     message ». Un gros « 1 » n'apprend rien ; le nom du client dit tout, et c'est lui
+     qu'on appelle. La ligne de tete doit donc porter le NOM ici, pas le compte. */
+  const tete = (cle) => {
+    const e = p.querySelector('[data-cle="' + cle + '"] .postit__v');
+    return e ? e.textContent : 'punaise absente';
+  };
+  t('un seul retard : la ligne de tete porte le NOM, pas un « 1 » qui n\'apprend rien',
+    tete('crm-retard') === 'Domaine Jayama', tete('crm-retard'));
+  t('et l\'echeance descend en tampon au-dessus',
+    (p.querySelector('[data-cle="crm-retard"] .postit__tampon') || {}).textContent === 'en retard',
+    (p.querySelector('[data-cle="crm-retard"] .postit__tampon') || {}).textContent);
 
   t('la punaise du retard mene DROIT a la fiche du client, pas a une liste',
-    !!p.querySelector('[data-cle="crm-retard"] a.postit__l--lien[href*="#client=JAYAMA"]'));
+    !!p.querySelector('[data-cle="crm-retard"] a.postit__lien[href*="#client=JAYAMA"]'));
   t('la prochaine promesse est la, avec son nom',
     html().indexOf('Clos du Pierrier') >= 0 && html().indexOf('prochain rappel') >= 0);
 
@@ -301,6 +309,40 @@ titre('5. Le panneau : ce qui presse, et cliquable');
   t('la fraicheur de l\'analyse aussi, tant qu\'elle ne derange pas',
     b.el('panneauNote').textContent.indexOf('analyse du jour') >= 0,
     b.el('panneauNote').textContent);
+}
+
+/* ==========================================================================
+   5 ter. TROIS RETARDS : LA PUNAISE REPREND SA FORME DE COMPTE
+   --------------------------------------------------------------------------
+   L'autre moitie de la regle du 10/09/2026, et elle n'etait dans aucun jeu
+   d'essai : a plusieurs, le compte reprend la tete et le plus vieux est nomme
+   en dessous. Un banc qui ne verifie qu'une branche sur deux laisse l'autre
+   pourrir tranquillement.
+   ========================================================================== */
+titre('5 ter. Plusieurs retards : le compte reprend la tete');
+{
+  const j = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+      + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const b = await monter(Object.assign({}, ETAT_PLEIN, {
+    noms: { A: 'Domaine Jayama', B: 'Château Bellevue', C: 'Clos du Pierrier' },
+    signaux: [],
+    suivi: [{ id: 'A', rappel: j(-6), statut: 'relance' },
+            { id: 'B', rappel: j(-2), statut: 'relance' },
+            { id: 'C', rappel: j(-1), statut: 'relance' }]
+  }));
+  await dormir(700);
+  const v = b.el('bureauPanneau').querySelector('[data-cle="crm-retard"] .postit__v');
+  t('a trois, la ligne de tete redevient le compte', v && v.textContent === '3',
+    v ? v.textContent : 'punaise absente');
+  t('et le plus vieux est nomme en dessous',
+    b.el('bureauPanneau').textContent.indexOf('le plus vieux : Domaine Jayama') >= 0,
+    b.el('bureauPanneau').textContent.slice(0, 160));
+  t('a plusieurs, plus de tampon : ce n\'est plus une chose, c\'est un compte',
+    !b.el('bureauPanneau').querySelector('[data-cle="crm-retard"] .postit__tampon'));
 }
 
 /* ==========================================================================

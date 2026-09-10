@@ -258,7 +258,20 @@ console.log('\n== 5. L\'ordre et les punaises ==');
   dit(p.length <= 4, 'le liege recoit au plus trois taches, plus une punaise de renvoi', p.length);
   dit(p[0] && p[0].ton === 'vieux', 'le retard prend le ton du danger', p[0] && p[0].ton);
   dit(p.every(x => x.href === '/mon-bureau/#taches'), 'chaque punaise mene a la piece');
-  dit(p.some(x => x.libelle === 'en retard'), 'et elle porte le titre de la tache, pas un compte');
+  /* LE TITRE EST EN TETE, L'ECHEANCE EST UN TAMPON. Change le 10/09/2026 sur une
+     remarque de Ted devant sa vraie page : « les gros mots AUJOURD'HUI et DEMAIN en
+     gros, ca perd le message ». Le grand emplacement du post-it porte desormais le
+     TITRE, et l'echeance descend en etiquette au-dessus.
+     Le jeu d'essai est piegeux et c'est assume : la tache s'appelle « en retard », ce
+     qui est aussi le mot du tampon. On verifie donc les deux champs SEPAREMENT, sinon
+     un test vert ne dirait pas laquelle des deux valeurs il a lue. */
+  const enRetard = p.filter(x => x.valeur === 'en retard')[0];
+  dit(!!enRetard, 'la ligne de tete porte le TITRE de la tache, pas son echeance',
+    p.map(x => x.valeur).join(' | '));
+  dit(enRetard && enRetard.tampon === 'en retard',
+    'et l\'echeance descend en tampon au-dessus', enRetard && enRetard.tampon);
+  dit(p.every(x => !x.gestes || x.libelle === undefined),
+    'une punaise de chose a faire n\'a pas de libelle : le titre le remplace');
 }
 
 /* ==========================================================================

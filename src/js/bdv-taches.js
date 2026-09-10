@@ -506,10 +506,17 @@
       if (t.source !== 'echeance' && t.jours < 1) {
         gestes.push({ cle: 'tache-demain', id: t.tache_id, mot: 'Demain' });
       }
+      /* L'ECHEANCE EST UN TAMPON, LE TITRE EST LE MESSAGE. Corrige le 10/09/2026 apres
+         une capture de Ted : « les gros mots AUJOURD'HUI et DEMAIN en gros, ca perd le
+         message ». Il avait raison, et la cause est une nature forcee dans la mauvaise
+         forme : le grand emplacement du post-it est un emplacement de CHIFFRE, et sur
+         une chose a faire le chiffre n'est pas le message, le titre l'est. Une punaise
+         de compte garde son chiffre en tete ; une punaise de chose a faire porte un
+         tampon en capitales, puis ce qu'il y a a faire. */
       return {
         cle: 'tache:' + t.tache_id,
-        valeur: t.jours < 0 ? 'en retard' : (t.jours === 0 ? 'aujourd’hui' : (t.jours === 1 ? 'demain' : 'dans ' + t.jours + 'j')),
-        libelle: t.titre,
+        tampon: t.jours < 0 ? 'en retard' : (t.jours === 0 ? 'aujourd’hui' : (t.jours === 1 ? 'demain' : 'dans ' + t.jours + ' j')),
+        valeur: t.titre,
         sous: t.source === 'echeance' ? 'obligation' : 'ta tâche',
         ton: t.jours < 0 ? 'vieux' : '',
         href: '/mon-bureau/#taches',

@@ -83,8 +83,8 @@ function fauxTaches() {
       const tete = af.filter(x => x.jours !== null && x.jours <= 7).slice(0, 3);
       const out = tete.map(t => ({
         cle: 'tache:' + t.tache_id,
-        valeur: t.jours < 0 ? 'en retard' : (t.jours === 0 ? 'aujourd’hui' : (t.jours === 1 ? 'demain' : 'dans ' + t.jours + 'j')),
-        libelle: t.titre,
+        tampon: t.jours < 0 ? 'en retard' : (t.jours === 0 ? 'aujourd’hui' : (t.jours === 1 ? 'demain' : 'dans ' + t.jours + ' j')),
+        valeur: t.titre,
         sous: t.source === 'echeance' ? 'obligation' : 'ta tâche',
         ton: t.jours < 0 ? 'vieux' : '',
         href: '/mon-bureau/#taches',

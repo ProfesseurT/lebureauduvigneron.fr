@@ -149,6 +149,28 @@ Et la regle qui tenait deja tient toujours : **aucun chiffre de VENTE ici.** L'a
 domaine, le panneau mesure le vigneron. C'est la seule chose qui autorise deux tableaux de
 chiffres sur la meme page.
 
+### DEUX NATURES DE PUNAISE, ET IL NE FAUT PAS LES REMELANGER, 10/09/2026
+
+Ted, devant sa vraie page : « les gros mots AUJOURD'HUI et DEMAIN en gros, ca perd le
+message. » Le grand emplacement du post-it, `.postit__v`, est dessine pour un CHIFFRE.
+
+1. **La punaise de COMPTE** porte son chiffre en tete et un libelle qui dit de quoi on
+   compte : « 3 / rappels en retard ».
+2. **La punaise de CHOSE A FAIRE** porte son TITRE en tete, et l'echeance descend en
+   `.postit__tampon`, une etiquette en capitales au-dessus. Elle n'a pas de libelle : le
+   titre le remplace.
+
+**A un seul, on nomme ; a plusieurs, on compte.** Un gros « 1 » n'apprend rien ; le nom du
+client dit tout, et c'est lui qu'on appelle.
+
+**La taille de la ligne de tete suit la LONGUEUR, pas la nature.** Trois paliers, mesures sur
+un post-it de 160 px : 2 rem jusqu'a quatre signes (un chiffre), 1,4 rem jusqu'a seize, puis
+`--t-lead` au-dela, sinon « Commander des bouchons » prend trois lignes. Un chiffre est court,
+un titre ne l'est pas, et c'est la seule chose que le dessin ait besoin de savoir.
+
+**Le lien vit sur la LIGNE DE TETE**, le libelle s'il existe et la valeur sinon. Jamais sur un
+chiffre nu, qu'on ne songerait pas a cliquer.
+
 ### Un post-it n'est plus un `<a>`, et il ne doit plus le redevenir
 
 Il porte des boutons de geste, et un element interactif dans un element interactif est interdit

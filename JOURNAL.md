@@ -119,6 +119,42 @@ Le controle ajoute au banc est ecrit **en negatif et sans fixture d'echeance** :
 d'accueil n'annonce jamais un futur negatif ». Il attrape la classe entiere, pas le cas du
 jour, et il n'a besoin d'aucune donnee particuliere pour mordre.
 
+### Troisieme passe : deux natures de punaise, pas une
+
+Ted, devant sa vraie page : « les gros mots AUJOURD'HUI et DEMAIN en gros, ca perd le
+message. Autant mettre l'information importante. » Il avait raison, et la cause etait plus
+profonde qu'une hierarchie mal reglee : **j'avais force deux natures dans une seule forme.**
+
+- **La punaise de COMPTE** : « 3 rappels en retard », « 5 autres taches », « 9 faits
+  aujourd'hui ». Le chiffre EST le message, il garde le grand emplacement.
+- **La punaise de CHOSE A FAIRE** : « DRM de septembre », « Domaine Jayama ». Le message est
+  le titre. L'echeance descend en TAMPON, une etiquette en capitales posee au-dessus.
+
+**Ce n'etait pas une permutation, et c'est ce qui m'a arrete d'abord.** Le grand emplacement
+est dessine pour un chiffre, 2 rem en serif grasse : « Commander des bouchons » dedans fait
+trois lignes. D'ou un troisieme palier de taille, qui suit **la longueur et pas la nature** -
+un chiffre est court, un titre ne l'est pas, et c'est tout ce que le dessin a besoin de
+savoir. Mesure faite dans un vrai navigateur apres coup : 22,4 px jusqu'a seize signes,
+18,4 px au-dela.
+
+**Le troisieme cas, que Ted n'avait pas signale et qui avait le meme defaut** : quand il n'y
+a qu'UN rappel en retard, le gros « 1 » n'apprend rien a personne, alors que le nom du client
+dit tout et que c'est lui qu'on appelle. Regle adoptee : **a un seul on nomme, a plusieurs on
+compte**, et le plus vieux est nomme en dessous. Meme chose pour les rappels du jour. Et la
+punaise « prochain rappel » etait deja de cette nature sans qu'on l'ait vu : « 9 oct. » en
+gros et le client en petit. La date y est devenue le tampon.
+
+**Le lien a suivi.** Il ne vit plus sur le libelle (les punaises de chose a faire n'en ont
+plus) mais sur la LIGNE DE TETE, quelle qu'elle soit : le libelle s'il existe, la valeur
+sinon. Jamais sur un chiffre nu, qu'on ne songerait pas a cliquer. `.postit__l--lien` est
+devenu `.postit__lien`.
+
+**Un piege evite de justesse dans le banc des taches** : la tache d'essai s'appelle « en
+retard », ce qui est aussi le mot du tampon. Un seul controle sur les deux champs aurait ete
+vert sans dire lequel il avait lu. Ils sont verifies separement. Et une section 5 ter a ete
+ajoutee pour la forme « compte » a trois retards, qui n'existait dans aucun jeu d'essai : un
+banc qui ne verifie qu'une branche sur deux laisse l'autre pourrir tranquillement.
+
 ### Ce qui reste ouvert
 
 - **Le faux `BdvTaches` de `scripts/apercu-panneau.mjs` rejoue `punaises()` a l'identique.** C'est
