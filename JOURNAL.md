@@ -85,6 +85,20 @@ Reste : l'horloge de 8 h, `URL_BUREAU` que Ted regle avec le branchement du doma
 il est seul destinataire, un bouton mort ne coute rien avant le premier vigneron), et
 `ecarterLesSuivis()` a supprimer.
 
+### L'HORLOGE EST POSEE, 15 h
+
+`supabase/lot11-courrier-horloge.sql`. pg_cron et pg_net installes, une tache
+`courrier-du-matin`, rythme `5 * * * *`, active. Controle en base : la commande de la tache ne
+contient PAS `maintenant=1` -- c'est le seul controle qui compte sur cette ligne, ce parametre
+annule le test de l'heure et ferait partir le courrier vingt-quatre fois par jour.
+
+Elle frappe toutes les heures et la fonction refuse 23 fois sur 24. Pas de cron a 8 h :
+pg_cron travaille en UTC, ce qui donnerait 10 h a Paris l'ete et 9 h l'hiver.
+
+**Ce qu'il faut regarder demain, et rien d'autre** : une ligne dans `courrier_envois` au jour
+du 11/09. Une horloge qui ne se declenche pas ne produit aucune erreur, elle produit du
+silence. Le frein est `select cron.unschedule('courrier-du-matin');`, garde en bas du fichier.
+
 ### Reste ouvert, par ordre
 
 1. ~~La fonction en ligne ne repond plus depuis 12 h 10~~ REPARE, version 9 : `index.ts` a recu le contenu de la
