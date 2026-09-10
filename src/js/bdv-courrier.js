@@ -297,11 +297,39 @@ function trierAFaire(suivis, taches, annuaire, jAuj){
    sur fond sombre, mono, capitales tres espacees. C'est ce qui remplace les
    titres en Georgia de la premiere version : sur un listing, un titre est une
    bande, pas une ligne de revue. */
+/* ---- LES TROUS DE PERFORATION, EN VRAIES CELLULES, 10/09/2026 ----
+   Ils etaient un `radial-gradient` pose sur le fond du papier. [Certain] Gmail
+   jette les degrades, Outlook aussi : le courrier arrivait sans trous, et c'est
+   la premiere chose que Ted a vue manquer dans sa boite. Le commentaire de ce
+   fichier annoncait la perte pour Outlook et la jugeait acceptable ; elle ne
+   l'etait pas, parce que l'effet imprimante EST le dessin.
+
+   Une image de fond hebergee n'est pas une option : les messageries bloquent
+   les images par defaut, le trou ne s'afficherait qu'apres un clic, et le mail
+   ne doit dependre d'aucune adresse du site -- l'envoi de 8 h et le site sont
+   deux pannes qui restent independantes.
+
+   Donc UN TROU PAR LIGNE, en cellules de tableau. Le pas n'est plus de 26 px
+   fixes, il suit les lignes. C'est meme plus juste : une ligne de mail n'a pas
+   de hauteur fixe, un pas fixe finirait par percer un texte en deux.
+   `border-radius` fait le rond partout sauf sous Outlook, qui rendra un petit
+   carre. Un carre dans la marge se lit encore comme une perforation. */
+var TROU = '<td width="18" valign="middle" align="center" bgcolor="'+C.paperLight+'"'
+  + ' style="width:18px;background-color:'+C.paperLight+';padding:0;'
+  +   'font-size:0;line-height:0;">'
+  + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"'
+  +   ' style="border-collapse:collapse;"><tr>'
+  + '<td width="5" height="5" bgcolor="'+C.paperDeep+'"'
+  +   ' style="width:5px;height:5px;background-color:'+C.paperDeep+';border-radius:3px;'
+  +   'font-size:0;line-height:0;">&nbsp;</td>'
+  + '</tr></table></td>';
+
 function bande(gauche, droite){
   return ''
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
   +   ' style="border-collapse:collapse;background-color:'+C.ardoise+';">'
   + '<tr>'
+  + TROU
   + '<td bgcolor="'+C.ardoise+'" style="background-color:'+C.ardoise+';'
   +   'padding:6px 10px;font-family:'+F_MONO+';font-size:11px;line-height:1.4;'
   +   'letter-spacing:0.10em;text-transform:uppercase;color:'+C.onDark+';">'+esc(gauche)+'</td>'
@@ -311,6 +339,7 @@ function bande(gauche, droite){
       + 'line-height:1.4;letter-spacing:0.10em;text-transform:uppercase;'
       + 'color:rgba(239,231,214,0.75);white-space:nowrap;">'+esc(droite)+'</td>'
     : '')
+  + TROU
   + '</tr></table>';
 }
 
@@ -331,6 +360,7 @@ function ligne(pair, gaucheHtml, droiteHtml){
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
   +   ' style="border-collapse:collapse;background-color:'+fond+';">'
   + '<tr>'
+  + TROU
   + '<td bgcolor="'+fond+'" style="background-color:'+fond+';'
   +   'padding:7px 10px;border-bottom:1px solid '+C.filet+';font-family:'+F_CORPS+';'
   +   'font-size:14px;line-height:1.45;color:'+C.ink+';">'+gaucheHtml+'</td>'
@@ -338,6 +368,7 @@ function ligne(pair, gaucheHtml, droiteHtml){
   +   ' style="background-color:'+fond+';padding:7px 10px 7px 4px;border-bottom:1px solid '+C.filet+';'
   +   'font-family:'+F_MONO+';font-size:13px;line-height:1.45;color:'+C.ink+';'
   +   'white-space:nowrap;">'+droiteHtml+'</td>'
+  + TROU
   + '</tr></table>';
 }
 
@@ -635,6 +666,7 @@ function batir(d){
       var libGroupe = porteur ? sansBalise(porteur.lib).trim() : '';
       corps += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
             + ' style="border-collapse:collapse;background-color:'+C.paperDeep+';"><tr>'
+            + TROU
             + '<td bgcolor="'+C.paperDeep+'" style="background-color:'+C.paperDeep+';'
             + 'padding:4px 10px;font-family:'+F_MONO+';font-size:10px;'
             + 'letter-spacing:0.10em;text-transform:uppercase;color:'+C.muted+';">'
@@ -645,6 +677,7 @@ function batir(d){
                 + 'letter-spacing:0.10em;text-transform:uppercase;color:'+C.muted+';white-space:nowrap;">'
                 + esc(libGroupe)+'</td>'
               : '')
+            + TROU
             + '</tr></table>';
       g.lignes.forEach(function(s){ corps += ligneSignal(s, pair); pair = !pair; });
     });
@@ -655,8 +688,9 @@ function batir(d){
     pied.push('Calculée à ton dernier import, le '+fmtJourCourt(jDepot)
               + (ageDepot > 7 ? ', il y a '+plur(ageDepot,'jour') : '')+'.');
     corps += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-          + ' style="border-collapse:collapse;"><tr><td style="padding:8px 10px;font-family:'+F_MONO+';'
+          + ' style="border-collapse:collapse;"><tr><td style="padding:8px 28px;font-family:'+F_MONO+';'
           + 'font-size:11px;line-height:1.5;color:'+C.muted+';">'+esc(pied.join(' '))+'</td></tr></table>';
+    /* padding 8px 28px : les 10 px de la ligne, plus les 18 px de l'encart. */
   } else if(perime && (file.signaux||[]).length){
     corps += bande('Ta file de travail', 'périmée');
     corps += ligne(false,
@@ -689,7 +723,7 @@ function batir(d){
     totaux = bande('Ton exercice', resume.exercice || '')
            + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
            + ' style="border-collapse:collapse;background:'+C.paperLight+';"><tr>'
-           + '<td style="padding:10px;border-bottom:1px solid '+C.filet+';">'
+           + '<td style="padding:10px 28px;border-bottom:1px solid '+C.filet+';">'
            + laJauge
            + (laJauge && lHisto ? '<div style="height:14px;font-size:0;line-height:0;">&nbsp;</div>' : '')
            + lHisto
@@ -703,12 +737,9 @@ function batir(d){
      [Certain] Outlook ignore les degrades et n'affichera que du papier nu. Les
      deux filets de perforation, eux, sont de vraies bordures et tiennent
      partout : meme sans les trous, la bande se lit. */
-  var picots = 'background-color:'+C.paperLight+';'
-    + 'background-image:'
-    +   'radial-gradient(circle at 9px 13px, '+C.paperDeep+' 0 2.5px, transparent 3px),'
-    +   'radial-gradient(circle at calc(100% - 9px) 13px, '+C.paperDeep+' 0 2.5px, transparent 3px);'
-    + 'background-size:100% 26px, 100% 26px;'
-    + 'background-repeat:repeat-y, repeat-y;';
+  /* Plus de degrade : les trous sont des cellules, voir TROU plus haut. Ce qui
+     reste ici, c'est la couleur du papier, et elle tient partout. */
+  var picots = 'background-color:'+C.paperLight+';';
 
   var html = ''
   + '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8">'
@@ -747,27 +778,33 @@ function batir(d){
      ensemble, jamais l'un sans l'autre. */
   + '<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"'
   +   ' style="border-collapse:collapse;width:100%;max-width:560px;'+picots+'">'
-  + '<tr><td style="padding:0 18px;border-left:1px solid '+C.filet+';border-right:1px solid '+C.filet+';">'
+  /* L'ENCART DE 18 PX N'EST PLUS ICI. Il etait sur cette cellule, donc les
+     trous, qui doivent tomber DANS cet encart, etaient hors d'atteinte des
+     lignes. Chaque bloc porte desormais son propre encart : les lignes du
+     listing par une cellule-trou de 18 px, les autres par leur padding. Si un
+     bloc futur oublie l'un ou l'autre, il touchera les filets de perforation --
+     et ca se voit tout de suite. */
+  + '<tr><td style="padding:0;border-left:1px solid '+C.filet+';border-right:1px solid '+C.filet+';">'
 
   /* L'en-tete du listing : une ligne d'imprimante, pas un titre de revue. */
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
   +   ' style="border-collapse:collapse;"><tr>'
-  + '<td style="padding:16px 0 4px 0;font-family:'+F_MONO+';font-size:12px;letter-spacing:0.14em;'
+  + '<td style="padding:16px 0 4px 18px;font-family:'+F_MONO+';font-size:12px;letter-spacing:0.14em;'
   +   'text-transform:uppercase;color:'+C.bordeaux+';">Le Bureau du Vigneron</td>'
-  + '<td align="right" style="padding:16px 0 4px 0;font-family:'+F_MONO+';font-size:11px;'
+  + '<td align="right" style="padding:16px 18px 4px 0;font-family:'+F_MONO+';font-size:11px;'
   +   'color:'+C.muted+';white-space:nowrap;">'+esc(fmtJourLong(jAuj))+'</td>'
   + '</tr></table>'
-  + '<div style="border-top:2px solid '+C.ink+';font-size:0;line-height:0;margin-bottom:14px;">&nbsp;</div>'
+  + '<div style="border-top:2px solid '+C.ink+';font-size:0;line-height:0;margin:0 18px 14px 18px;">&nbsp;</div>'
 
   + corps
 
   + totaux
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-  +   ' style="border-collapse:collapse;"><tr><td style="padding:20px 0 4px 0;">'
+  +   ' style="border-collapse:collapse;"><tr><td style="padding:20px 18px 4px 18px;">'
   + bouton(urlBureau,'Ouvrir mon bureau')
   + '</td></tr></table>'
 
-  + '<div style="border-top:1px solid '+C.filet+';margin-top:16px;padding:12px 0 18px 0;'
+  + '<div style="border-top:1px solid '+C.filet+';margin:16px 18px 0 18px;padding:12px 0 18px 0;'
   +   'font-family:'+F_MONO+';font-size:10px;line-height:1.6;color:'+C.muted+';">'
   +   'Tu reçois ce courrier parce que tu l\'as demandé dans les réglages de ton bureau.'
   +   (d.urlDesinscription
