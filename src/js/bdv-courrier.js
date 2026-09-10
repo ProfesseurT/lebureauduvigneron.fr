@@ -300,12 +300,14 @@ function trierAFaire(suivis, taches, annuaire, jAuj){
 function bande(gauche, droite){
   return ''
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-  +   ' style="border-collapse:collapse;background:'+C.ardoise+';">'
+  +   ' style="border-collapse:collapse;background-color:'+C.ardoise+';">'
   + '<tr>'
-  + '<td style="padding:6px 10px;font-family:'+F_MONO+';font-size:11px;line-height:1.4;'
+  + '<td bgcolor="'+C.ardoise+'" style="background-color:'+C.ardoise+';'
+  +   'padding:6px 10px;font-family:'+F_MONO+';font-size:11px;line-height:1.4;'
   +   'letter-spacing:0.10em;text-transform:uppercase;color:'+C.onDark+';">'+esc(gauche)+'</td>'
   + (droite
-    ? '<td align="right" style="padding:6px 10px;font-family:'+F_MONO+';font-size:11px;'
+    ? '<td align="right" bgcolor="'+C.ardoise+'"'
+      + ' style="background-color:'+C.ardoise+';padding:6px 10px;font-family:'+F_MONO+';font-size:11px;'
       + 'line-height:1.4;letter-spacing:0.10em;text-transform:uppercase;'
       + 'color:rgba(239,231,214,0.75);white-space:nowrap;">'+esc(droite)+'</td>'
     : '')
@@ -317,14 +319,23 @@ function bande(gauche, droite){
    c'est elle qui fait le listing : les montants et les retards s'y empilent
    et se comparent sans etre lus un par un. */
 function ligne(pair, gaucheHtml, droiteHtml){
+  /* LE FOND VA SUR LES CELLULES, EN ATTRIBUT `bgcolor` ET EN STYLE, JAMAIS SUR
+     LA SEULE BALISE <table>. Constate le 10/09/2026 dans un vrai Gmail : les
+     bandes de section sont arrivees SANS fond, donc en creme clair sur creme
+     clair, illisibles -- et l'alternance des lignes avait disparu avec. Les
+     jauges et l'histogramme, eux, tenaient : ils portaient deja `bgcolor`.
+     La regle etait ecrite au-dessus de barre() et n'avait pas ete appliquee
+     partout. Une regle appliquee a moitie ne protege rien. */
+  var fond = pair ? C.white : C.paperLight;
   return ''
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-  +   ' style="border-collapse:collapse;background:'+(pair?C.white:C.paperLight)+';">'
+  +   ' style="border-collapse:collapse;background-color:'+fond+';">'
   + '<tr>'
-  + '<td style="padding:7px 10px;border-bottom:1px solid '+C.filet+';font-family:'+F_CORPS+';'
+  + '<td bgcolor="'+fond+'" style="background-color:'+fond+';'
+  +   'padding:7px 10px;border-bottom:1px solid '+C.filet+';font-family:'+F_CORPS+';'
   +   'font-size:14px;line-height:1.45;color:'+C.ink+';">'+gaucheHtml+'</td>'
-  + '<td width="92" align="right" valign="top"'
-  +   ' style="padding:7px 10px 7px 4px;border-bottom:1px solid '+C.filet+';'
+  + '<td width="92" align="right" valign="top" bgcolor="'+fond+'"'
+  +   ' style="background-color:'+fond+';padding:7px 10px 7px 4px;border-bottom:1px solid '+C.filet+';'
   +   'font-family:'+F_MONO+';font-size:13px;line-height:1.45;color:'+C.ink+';'
   +   'white-space:nowrap;">'+droiteHtml+'</td>'
   + '</tr></table>';
@@ -534,7 +545,7 @@ function histogramme(r){
 function bouton(url, libelle){
   return ''
   + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">'
-  + '<tr><td style="background:'+C.bordeaux+';">'
+  + '<tr><td bgcolor="'+C.bordeaux+'" style="background-color:'+C.bordeaux+';">'
   +   '<a href="'+esc(url)+'" style="display:inline-block;padding:11px 20px;font-family:'+F_MONO+';'
   +     'font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:'+C.onDark+';'
   +     'text-decoration:none;">'+esc(libelle)+'</a>'
@@ -623,12 +634,14 @@ function batir(d){
       var porteur = g.lignes.filter(function(s){ return s.montant; })[0];
       var libGroupe = porteur ? sansBalise(porteur.lib).trim() : '';
       corps += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-            + ' style="border-collapse:collapse;background:'+C.paperDeep+';"><tr>'
-            + '<td style="padding:4px 10px;font-family:'+F_MONO+';font-size:10px;'
+            + ' style="border-collapse:collapse;background-color:'+C.paperDeep+';"><tr>'
+            + '<td bgcolor="'+C.paperDeep+'" style="background-color:'+C.paperDeep+';'
+            + 'padding:4px 10px;font-family:'+F_MONO+';font-size:10px;'
             + 'letter-spacing:0.10em;text-transform:uppercase;color:'+C.muted+';">'
             + esc(titreMotif(g.motif))+'</td>'
             + (libGroupe
-              ? '<td align="right" style="padding:4px 10px;font-family:'+F_MONO+';font-size:10px;'
+              ? '<td align="right" bgcolor="'+C.paperDeep+'"'
+                + ' style="background-color:'+C.paperDeep+';padding:4px 10px;font-family:'+F_MONO+';font-size:10px;'
                 + 'letter-spacing:0.10em;text-transform:uppercase;color:'+C.muted+';white-space:nowrap;">'
                 + esc(libGroupe)+'</td>'
               : '')
@@ -704,10 +717,21 @@ function batir(d){
   + '<title>'+esc(sujet)+'</title></head>'
   /* PLUS DE MARGES, 09/09/2026, demande de Ted. Le fond de la page EST le
      papier : il n'y a plus de bande de couleur autour de la feuille, donc plus
-     rien qui ressemble a une carte posee sur un plateau. Le papier continu d'une
-     imprimante ne flotte pas au milieu d'un cadre, il sort du bac et il occupe
-     toute la largeur. Les deux filets de perforation restent : ce ne sont pas
-     des marges, c'est le bord du papier. */
+     rien qui ressemble a une carte posee sur un plateau. Les deux filets de
+     perforation restent : ce ne sont pas des marges, c'est le bord du papier.
+
+     REPRIS LE 10/09/2026, apres le premier vrai mail dans une vraie boite.
+     « Occupe toute la largeur » avait ete lu comme « le TABLEAU fait 100 % ».
+     Dans un Gmail ouvert en grand, le courrier s'est etale sur 1800 px : les
+     montants a un metre des noms, l'histogramme etire, illisible. Et personne
+     ne l'avait vu, parce que l'apercu enferme chaque mail dans un cadre etroit
+     -- on validait un dessin qu'on n'a jamais recu.
+
+     Ce qui occupe toute la largeur, c'est le FOND, pose sur le body. Le papier,
+     lui, tient dans la colonne de 560 px pour laquelle il a ete dessine (voir
+     l'arithmetique de l'histogramme, 8,33 % de 560 px). Rien ne flotte : la
+     couleur autour de la feuille est la meme que la feuille. La regle de Ted
+     est tenue, le dessin redevient celui des captures. */
   + '<body style="margin:0;padding:0;background:'+C.paperLight+';">'
   /* Le pre-en-tete : la ligne que la messagerie affiche a cote du sujet. Sans
      elle, elle affiche le premier texte trouve. */
@@ -717,8 +741,12 @@ function batir(d){
   + '<tr><td align="center" style="padding:0;">'
 
   /* Le papier, avec ses picots et ses deux filets de perforation. */
-  + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-  +   ' style="border-collapse:collapse;width:100%;'+picots+'">'
+  /* `width="560"` en ATTRIBUT pour Outlook, qui ignore max-width, et
+     `width:100%;max-width:560px` en style pour tous les autres : sur un
+     telephone de 390 px la colonne se retracte au lieu de deborder. Les deux
+     ensemble, jamais l'un sans l'autre. */
+  + '<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"'
+  +   ' style="border-collapse:collapse;width:100%;max-width:560px;'+picots+'">'
   + '<tr><td style="padding:0 18px;border-left:1px solid '+C.filet+';border-right:1px solid '+C.filet+';">'
 
   /* L'en-tete du listing : une ligne d'imprimante, pas un titre de revue. */

@@ -18,7 +18,7 @@
    controlee par `npm run verif`. Ne pas la modifier a la main, ne pas la
    reformater : elle est lue par une expression exacte.
 
-   empreinte de la fabrique deployee : sha256 c234a02d8eb38a7d, 880 lignes.
+   empreinte de la fabrique deployee : sha256 80ff52e999460f42, 908 lignes.
 
    POURQUOI ELLE N'EST PLUS TENUE A LA MAIN, 10/09/2026. Elle l'etait, et elle
    annoncait 512 lignes quand la fabrique en faisait 880. Pire : le depot
