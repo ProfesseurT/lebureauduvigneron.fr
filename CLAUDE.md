@@ -1163,3 +1163,50 @@ How to apply :
 4. Quand le fichier de reference n'est lu par aucun programme, il porte en tete ce qu'il est, ou il
    est deploye, et la correspondance entre ses valeurs en dur et les jetons de la charte. Sinon
    c'est une copie qui derive, et une copie qui derive est pire que pas de copie.
+
+## Le courrier du matin, lot 4 : l'heure et le doublon, 10/09/2026
+
+Ces trois regles portent le declenchement automatique. Elles ne se voient pas dans l'interface,
+et une seule d'entre elles casse le mail de facon irreparable si on la defait.
+
+### 1. UN SEUL MAIL PAR COMPTE ET PAR JOUR, ET C'EST LA BASE QUI LE TIENT
+
+La cle primaire `(compte, jour)` de `public.courrier_envois` EST le garde-fou. La fonction ne
+verifie pas « ai-je deja envoye ? » avant d'ecrire : entre le verifier et le ecrire d'un tel code,
+un second appel passe. Elle POSE la ligne et regarde si Postgres l'a acceptee.
+
+Ne jamais remplacer ce mecanisme par un `select` suivi d'un `insert`, meme si ca se lit mieux. Et
+ne jamais ecrire la trace APRES l'envoi : la reservation vient avant l'appel a Resend, sinon une
+relance pendant que Resend repond envoie deux mails.
+
+Un mail double n'est pas un petit defaut. C'est celui qui apprend a ne plus ouvrir le mail,
+exactement comme la tache sans date qui reparait chaque matin.
+
+### 2. L'HEURE SE DECIDE DANS LA FONCTION, PAS DANS LE CRON
+
+Le declencheur passe TOUTES LES HEURES et c'est `index.ts` qui compare l'heure de Paris a
+`HEURE_ENVOI`. Un cron ecrit en UTC donnerait 8 h l'ete et 7 h l'hiver, et personne ne se
+souviendrait de le corriger au changement d'heure. Meme piege que celui deja documente pour
+`jourAParis()`.
+
+Consequence a ne pas prendre pour un defaut : 23 passages par jour ne font rien et rendent **200**,
+pas une erreur. Un 4xx ferait 23 lignes rouges quotidiennes dans le journal de la fonction, et une
+vraie panne s'y noierait.
+
+### 3. UNE RESERVATION EN ECHEC NE SE REJOUE PAS TOUTE SEULE
+
+Quand Resend refuse, la ligne du jour RESTE POSEE avec son motif dans `echec`. Elle n'est pas
+effacee, donc aucun passage suivant ne retente.
+
+Arbitrage, et l'alternative a ete pesee : effacer la ligne pour permettre une nouvelle tentative
+reintroduit le doublon qu'on vient d'interdire, parce qu'un refus de Resend ne dit PAS si le mail
+est parti -- une reponse perdue ressemble a un refus. On prefere un mail manquant, qui coute un
+jour, a un mail double, qui coute un lecteur. La reprise se demande a la main, `?rejouer=1`, qui
+n'efface que les lignes portant un `echec`.
+
+### Les deux derogations, et pourquoi elles sont dans l'URL
+
+`?maintenant=1` ignore l'heure. `?rejouer=1` efface les echecs du jour. Aucune des deux n'est
+utilisee par le declencheur : ce sont des gestes de Ted, depuis son terminal. Le plafond
+`MAX_PAR_PASSAGE` est verifie AVANT la reservation, et pas apres : reserver la journee d'un compte
+qu'on ne va pas servir lui interdirait son mail jusqu'au lendemain.

@@ -13,29 +13,65 @@
    premier ajustement de texte, et le mail envoye ne ressemblerait plus a celui
    que montre `npm run courrier`.
 
-   POUR QUE LA DERIVE SE VOIE. Le fichier joint doit etre exactement
-   `src/js/bdv-courrier.js`. Empreinte de la version deployee le 09/09/2026 :
-   sha256 caa1c170fb9294a3..., 512 lignes. Controle avant tout redeploiement :
-       shasum -a 256 src/js/bdv-courrier.js | cut -c1-16
-   Si l'empreinte a change, c'est normal : le contenu du mail a bouge. Mettre
-   la nouvelle ici. Si elle n'a PAS change alors qu'on vient de modifier le
-   mail, c'est qu'on a deploye l'ancien fichier.
+   POUR QUE LA DERIVE SE VOIE, ET SANS COMPTER SUR PERSONNE.
+   La ligne ci-dessous est ECRITE PAR UN SCRIPT, `npm run courrier:joindre`, et
+   controlee par `npm run verif`. Ne pas la modifier a la main, ne pas la
+   reformater : elle est lue par une expression exacte.
 
-   [Supposition] Une simplification possible, non retenue faute de pouvoir la
-   verifier : `import 'https://lebureauduvigneron.fr/js/bdv-courrier.js'`.
+   empreinte de la fabrique deployee : sha256 c234a02d8eb38a7d, 880 lignes.
+
+   POURQUOI ELLE N'EST PLUS TENUE A LA MAIN, 10/09/2026. Elle l'etait, et elle
+   annoncait 512 lignes quand la fabrique en faisait 880. Pire : le depot
+   portait encore l'ANCIEN verrou d'entree (comparaison de l'en-tete
+   Authorization a la cle de service) alors que la production tournait deja
+   avec le secret dedie. Le depot avait cesse d'etre la source de verite de ce
+   qui tournait, et rien ne le disait. Un commentaire faux fait conclure a
+   tort : il est pire que pas de commentaire. Donc c'est un banc, plus une
+   convention.
+
+   LA SIMPLIFICATION PAR URL EST VERIFIEE, ET REFUSEE QUAND MEME, 09/09/2026.
+   L'idee etait `import 'https://lebureauduvigneron.fr/js/bdv-courrier.js'` :
    Deno gele la dependance au deploiement, donc pas de derive silencieuse, et
-   il n'y aurait plus rien a joindre. Ni le conteneur ni WebFetch n'ont pu
-   confirmer que cette URL est bien servie par Vercel. A tenter le jour ou
-   quelqu'un peut l'ouvrir dans un navigateur, pas avant : une dependance non
-   verifiee dans le chemin d'envoi est exactement ce qu'il ne faut pas y
-   mettre.
+   il n'y aurait plus rien a joindre.
+   [Certain] Le fichier EST bien servi : `/js/bdv-courrier.js` rend 200 sur
+   l'adresse Vercel du projet, avec la version a jour et
+   `cache-control: must-revalidate`. Techniquement, ca marche.
+   REFUSE POUR UNE RAISON DECOUVERTE EN LE VERIFIANT. Ce jour-la,
+   `lebureauduvigneron.fr` etait injoignable : le domaine n'avait jamais ete
+   branche sur Vercel, il pointait encore chez le registraire. Si la fonction
+   avait lu son contenu depuis le site, LE COURRIER DE 8 H NE SERAIT PAS PARTI,
+   et le rapport aurait annonce une erreur d'import, pas un domaine. Le site et
+   l'envoi du mail sont deux pannes qui doivent rester independantes : on ne
+   met pas le premier dans le chemin du second.
+   La vraie douleur, le redeploiement manuel penible, se regle par un script
+   qui recolle et deploie, pas en deplacant la dependance sur le reseau.
 
-   TROIS GARDE-FOUS, dans cet ordre :
+   QUATRE GARDE-FOUS, dans cet ordre :
    1. Un secret DEDIE, `COURRIER_CLE`, dans l'en-tete `x-courrier-cle`.
    2. `?apercu=1` fabrique le mail et le REND, sans rien envoyer.
    3. La liste des destinataires autorises est ECRITE EN DUR plus bas. Tant
       qu'elle n'est pas vide, aucune autre adresse ne recoit quoi que ce soit,
       meme si elle figure dans la base.
+   4. UN SEUL MAIL PAR COMPTE ET PAR JOUR, tenu par la cle primaire de
+      `public.courrier_envois`. Voir supabase/lot10-courrier-envois.sql.
+
+   LOT 4, LE 10/09/2026 : L'HEURE ET LE DOUBLON.
+   Deux choses ont ete ajoutees, et ce sont les deux seules qui manquaient pour
+   qu'une horloge puisse appeler cette fonction sans surveillance.
+
+   L'HEURE SE DECIDE ICI, PAS DANS LE CRON. Le declencheur tourne TOUTES LES
+   HEURES et cette fonction refuse de travailler si l'heure de Paris n'est pas
+   `HEURE_ENVOI`. Un cron ecrit en UTC donnerait 8 h l'ete et 7 h l'hiver, et
+   personne ne se souviendrait de le corriger au changement d'heure -- c'est
+   exactement le piege deja documente pour `jourAParis()`.
+   `?maintenant=1` deroge a cette regle, et c'est le seul moyen d'essayer un
+   envoi a une heure quelconque.
+
+   LE DOUBLON EST INTERDIT PAR LA BASE, PAS PAR CE FICHIER. La fonction ne
+   verifie pas « ai-je deja envoye ? » avant d'ecrire : entre le verifier et le
+   ecrire, un second appel passerait. Elle POSE une ligne (compte, jour) et
+   regarde si Postgres l'a acceptee. Un refus veut dire « c'est deja fait », et
+   il n'y a aucun intervalle ou deux appels peuvent gagner tous les deux.
 
    POURQUOI UN SECRET DEDIE ET PAS LA CLE DE SERVICE, correction du 09/09/2026.
    La premiere version comparait l'en-tete Authorization a
@@ -86,12 +122,35 @@ const EXPEDITEUR = 'Le Bureau du Vigneron <bureau@courrier.lebureauduvigneron.fr
    reprendre son mot de passe a 8 h 05. */
 const MAX_PAR_PASSAGE = 40;
 
+/* L'heure d'envoi, en heure de PARIS. Changer ce chiffre suffit a deplacer le
+   courrier : le declencheur, lui, passe toutes les heures et n'a pas a le
+   savoir. C'est pour ca qu'il n'a pas besoin d'etre un secret. */
+const HEURE_ENVOI = 8;
+
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const RESEND_KEY    = Deno.env.get('RESEND_API_KEY') ?? '';
 /* Le verrou de declenchement. La cle de service, elle, sert UNIQUEMENT a lire
    la vue : elle ne quitte jamais Supabase et personne n'a a la manipuler. */
 const CLE_DECLENCHEUR = Deno.env.get('COURRIER_CLE') ?? '';
+
+/* ---- L'ADRESSE DU BUREAU, ET POURQUOI ELLE EST UN SECRET ET PAS UNE CONSTANTE
+   Le bouton « Ouvrir mon bureau » est la SEULE action du mail. Une adresse
+   morte dans ce bouton ne casse rien de visible cote serveur : l'envoi
+   reussit, le rapport dit « envoye », et c'est le vigneron qui tombe sur une
+   erreur de navigateur. C'est le pire genre de panne, celle qui ne remonte pas.
+
+   Constate le 09/09/2026 : `lebureauduvigneron.fr` n'a jamais ete branche sur
+   Vercel, et la fabrique retombait sur cette adresse par defaut. Le premier
+   vrai mail portait donc un bouton mort.
+
+   D'ou un secret et pas une constante : le jour ou le domaine est branche, on
+   change UNE variable dans Supabase, sans toucher au code ni redeployer la
+   fonction. Le repli reste l'adresse definitive, pour que ce soit le reglage
+   temporaire qui soit visible dans les secrets, et pas l'inverse.
+   A REGLER MAINTENANT sur l'adresse Vercel du projet, jusqu'au branchement. */
+const URL_BUREAU = Deno.env.get('URL_BUREAU')
+  ?? 'https://lebureauduvigneron.fr/mon-bureau/';
 
 // deno-lint-ignore no-explicit-any
 const BdvCourrier = (globalThis as any).BdvCourrier;
@@ -104,6 +163,15 @@ function jourAParis(): string {
   return new Intl.DateTimeFormat('fr-CA', {
     timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date());   // fr-CA rend justement AAAA-MM-JJ
+}
+
+/* L'heure a Paris, de 0 a 23. `hourCycle: 'h23'` et pas `hour12: false` : selon
+   la version d'ICU, ce dernier rend « 24 » a minuit, et `24 !== 0` ferait rater
+   un envoi de minuit si l'heure changeait un jour. */
+function heureAParis(): number {
+  return Number(new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23',
+  }).format(new Date()));
 }
 
 function reponse(corps: unknown, code = 200): Response {
@@ -146,24 +214,104 @@ async function envoyerParResend(a: string, sujet: string, html: string, texte: s
   return JSON.parse(corps) as { id?: string };
 }
 
+/* ---- LE JOURNAL DES ENVOIS : public.courrier_envois ----
+   Trois acces, et un seul est subtil. Voir supabase/lot10-courrier-envois.sql
+   pour la table, ses droits et le controle qui prouve l'anti-doublon. */
+const JOURNAL = `${SUPABASE_URL}/rest/v1/courrier_envois`;
+
+function enTetesJournal(): Record<string, string> {
+  return {
+    apikey: SERVICE_KEY,
+    Authorization: `Bearer ${SERVICE_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+/* POSER LA RESERVATION AVANT D'ENVOYER, ET PAS LA TRACE APRES.
+   Rend `true` si ce compte n'avait pas encore sa ligne du jour, donc si l'envoi
+   nous appartient. Rend `false` si la ligne existait deja : quelqu'un, ou un
+   passage precedent, a deja fait le travail.
+   `resolution=ignore-duplicates` traduit en `on conflict do nothing`, et
+   `return=representation` fait rendre la ligne ecrite -- donc RIEN quand rien
+   n'a ete ecrit. C'est ce tableau vide qui porte toute l'information. */
+async function reserver(compte: string, jour: string, sujet: string): Promise<boolean> {
+  const r = await fetch(JOURNAL, {
+    method: 'POST',
+    headers: { ...enTetesJournal(),
+               Prefer: 'return=representation,resolution=ignore-duplicates' },
+    body: JSON.stringify({ compte, jour, sujet }),
+  });
+  if (!r.ok) throw new Error(`journal, reservation : ${r.status} ${await r.text()}`);
+  const lignes = await r.json() as unknown[];
+  return Array.isArray(lignes) && lignes.length > 0;
+}
+
+async function marquer(compte: string, jour: string, champs: Record<string, unknown>) {
+  const r = await fetch(`${JOURNAL}?compte=eq.${compte}&jour=eq.${jour}`, {
+    method: 'PATCH',
+    headers: enTetesJournal(),
+    body: JSON.stringify(champs),
+  });
+  if (!r.ok) throw new Error(`journal, marquage : ${r.status} ${await r.text()}`);
+}
+
+/* `?rejouer=1` : efface les reservations du jour QUI PORTENT UN ECHEC, et
+   elles seules. Une reservation reussie ne s'efface jamais, sinon le garde-fou
+   ne vaut plus rien. Geste manuel : le declencheur ne l'utilise pas, et c'est
+   pour ca qu'il ne peut pas doubler un mail apres une panne. */
+async function rejouerLesEchecs(jour: string): Promise<number> {
+  const r = await fetch(`${JOURNAL}?jour=eq.${jour}&echec=not.is.null`, {
+    method: 'DELETE',
+    headers: { ...enTetesJournal(), Prefer: 'return=representation' },
+  });
+  if (!r.ok) throw new Error(`journal, rejeu : ${r.status} ${await r.text()}`);
+  const lignes = await r.json() as unknown[];
+  return Array.isArray(lignes) ? lignes.length : 0;
+}
+
 Deno.serve(async (req: Request) => {
   /* ---- GARDE-FOU 1 : la cle maitresse, et rien d'autre ----
      Cette fonction lit les donnees de TOUS les comptes. Elle ne doit pas etre
      declenchable par un vigneron connecte, ni par quiconque connait son URL. */
-  const porte = req.headers.get('Authorization') ?? '';
-  if (!SERVICE_KEY || porte !== `Bearer ${SERVICE_KEY}`) {
-    return reponse({ erreur: 'Il faut la cle de service pour declencher le courrier.' }, 401);
+  if (!CLE_DECLENCHEUR) {
+    return reponse({ erreur: 'Le secret COURRIER_CLE est absent des reglages de la fonction.' }, 500);
+  }
+  if ((req.headers.get('x-courrier-cle') ?? '') !== CLE_DECLENCHEUR) {
+    return reponse({ erreur: 'En-tete x-courrier-cle absente ou fausse.' }, 401);
+  }
+  if (!SERVICE_KEY) {
+    return reponse({ erreur: 'SUPABASE_SERVICE_ROLE_KEY absente : impossible de lire la vue.' }, 500);
   }
   if (!BdvCourrier || typeof BdvCourrier.batir !== 'function') {
     return reponse({ erreur: 'bdv-courrier.js n\'a pas ete joint au deploiement.' }, 500);
   }
 
-  const params  = new URL(req.url).searchParams;
-  const apercu  = params.get('apercu') === '1';
+  const params     = new URL(req.url).searchParams;
+  const apercu     = params.get('apercu') === '1';
+  const maintenant = params.get('maintenant') === '1';
+  const rejouer    = params.get('rejouer') === '1';
   const aujourdhui = params.get('jour') || jourAParis();
+  const heure      = heureAParis();
+
+  /* ---- L'HEURE, ET POURQUOI CE N'EST PAS UNE ERREUR ----
+     Le declencheur passe 24 fois par jour et 23 de ces passages doivent ne
+     rien faire. Ils rendent donc 200 : un 4xx ferait 23 lignes rouges par jour
+     dans le journal de la fonction, et une vraie panne s'y noierait. */
+  if (!apercu && !maintenant && heure !== HEURE_ENVOI) {
+    return reponse({
+      jour: aujourdhui, heure_paris: heure, heure_envoi: HEURE_ENVOI,
+      issue: 'hors heure', rien_fait: true,
+    });
+  }
 
   if (!apercu && !RESEND_KEY) {
     return reponse({ erreur: 'Le secret RESEND_API_KEY est absent.' }, 500);
+  }
+
+  let rejoues = 0;
+  if (rejouer && !apercu) {
+    try { rejoues = await rejouerLesEchecs(aujourdhui); }
+    catch (e) { return reponse({ erreur: String(e) }, 502); }
   }
 
   let comptes;
@@ -174,8 +322,16 @@ Deno.serve(async (req: Request) => {
     jour: aujourdhui,
     apercu,
     expediteur: EXPEDITEUR,
+    /* L'adresse du bouton est DANS le rapport, et c'est le garde-fou qui
+       manquait : un bouton mort ne fait echouer aucun envoi, donc rien ne le
+       signale. La voir a chaque appel, `?apercu=1` compris, est le seul moyen
+       de s'apercevoir qu'elle est fausse avant le vigneron. */
+    url_bureau: URL_BUREAU,
+    heure_paris: heure,
     comptes_lus: comptes.length,
     envoyes: 0,
+    deja_envoyes: 0,
+    rejoues,
     vides: 0,
     sans_adresse: 0,
     hors_liste: 0,
@@ -190,6 +346,7 @@ Deno.serve(async (req: Request) => {
 
     const mail = BdvCourrier.batir({
       aujourdhui,
+      urlBureau: URL_BUREAU,
       depose_le: c.depose_le,
       file_travail: { signaux: c.signaux, noms: c.noms },
       resume_ventes: c.resume_ventes,
@@ -241,13 +398,43 @@ Deno.serve(async (req: Request) => {
       continue;
     }
 
+    /* ---- GARDE-FOU 4 : un seul mail par compte et par jour ----
+       Le plafond passe AVANT, volontairement : on ne reserve pas une journee
+       pour un mail qu'on ne va pas envoyer, sinon un passage plafonne
+       interdirait l'envoi de tout le reste de la journee. */
+    let reserve: boolean;
+    try {
+      reserve = await reserver(id, aujourdhui, mail.sujet);
+    } catch (e) {
+      rapport.echecs.push({ compte: id, pourquoi: String(e) });
+      continue;
+    }
+    if (!reserve) {
+      rapport.deja_envoyes++;
+      rapport.detail.push({ compte: id, issue: 'deja envoye aujourd hui' });
+      continue;
+    }
+
     try {
       const env = await envoyerParResend(adresse, mail.sujet, mail.html, mail.texte);
       rapport.envoyes++;
       rapport.detail.push({ compte: id, issue: 'envoye', sujet: mail.sujet,
                             compteurs: mail.compteurs, resend_id: env.id });
+      /* Le mail est parti. Si le marquage echoue, on ne rate rien de grave :
+         la reservation, elle, est deja en base, donc le doublon reste
+         impossible. On ne fait donc PAS echouer l'envoi pour ca. */
+      try { await marquer(id, aujourdhui, { resend_id: env.id ?? null }); }
+      catch { /* volontairement ignore, voir juste au-dessus */ }
     } catch (e) {
       rapport.echecs.push({ compte: id, pourquoi: String(e) });
+      /* LA RESERVATION RESTE POSEE, et c'est un arbitrage.
+         Un refus de Resend ne dit pas si le mail est parti : une reponse
+         perdue ressemble a un refus. Effacer la ligne pour retenter
+         reintroduirait le doublon qu'on vient d'interdire. Donc pas de reprise
+         automatique -- la trace garde son motif, et la reprise se demande a la
+         main avec `?rejouer=1`. */
+      try { await marquer(id, aujourdhui, { echec: String(e).slice(0, 500) }); }
+      catch { /* rien de mieux a faire, l'echec est deja dans le rapport */ }
     }
   }
 

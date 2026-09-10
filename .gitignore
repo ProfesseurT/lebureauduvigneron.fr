@@ -5,3 +5,8 @@ node_modules/
 _test-porte/
 Claude outputs/
 _apercu/
+
+# Le dossier recolle pour le deploiement de la fonction Edge.
+# Il est REFAIT a chaque `npm run courrier:joindre` : le versionner
+# ferait exactement la deuxieme copie que ce recollage existe pour eviter.
+_deploiement/

@@ -12,6 +12,214 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 10/09/2026, suite. Lot 4 : l'heure de Paris et l'interdiction du doublon
+
+Ecrit et commite, **pas encore deploye, et l'horloge n'est pas posee**. Ted a choisi l'essai a la
+main d'abord : un defaut se voit tout de suite plutot qu'a 8 h le lendemain.
+
+### Ce que le lot ajoute, et ou vit chaque regle
+
+`supabase/lot10-courrier-envois.sql` cree `public.courrier_envois`, une ligne par compte et par
+jour. RLS active et **aucune politique** : personne de connecte n'y lit quoi que ce soit, seule la
+cle de service y accede, et un vigneron n'y apprendrait rien qu'il ne voie deja dans sa boite.
+
+`supabase/functions/courrier-matin/index.ts` passe de 303 a 445 lignes. Trois choses :
+le controle de l'heure de Paris, la reservation avant envoi, et deux derogations dans l'URL.
+
+### L'arbitrage qui compte : la reservation vient AVANT l'envoi
+
+Le reflexe est d'ecrire la trace apres avoir envoye. C'est faux ici : une relance pendant que
+Resend repond enverrait deux mails. La ligne est donc posee avant l'appel, et c'est **Postgres**
+qui refuse la seconde, pas un `if`. Entre le « verifier » et le « ecrire » d'un code qui
+verifierait lui-meme, un second appel passe.
+
+Corollaire assume : quand Resend refuse, la ligne reste en place et **rien ne retente**. Un refus
+ne dit pas si le mail est parti -- une reponse perdue ressemble a un refus. Un mail manquant coute
+un jour, un mail double coute un lecteur. La reprise se demande a la main, `?rejouer=1`.
+
+### Ce que la session a appris en passant, et qui n'etait pas le sujet
+
+**Le 401 du premier essai ne venait pas de la fonction.** Message `UNAUTHORIZED_INVALID_JWT_FORMAT`,
+en anglais : c'est la passerelle Supabase qui a rejete l'appel avant de l'atteindre, parce que la
+variable de la cle anon etait vide. Le verrou `x-courrier-cle` n'avait pas ete teste du tout. A
+retenir pour la lecture des codes : un refus **en anglais** vient de la passerelle, un refus **en
+francais** vient de la fonction.
+
+**Ni le conteneur ni le shell pilote sur le Mac n'atteignent `*.supabase.co`.** Verifie des deux
+cotes, code 000. Tout appel a la fonction passe donc par le terminal de Ted, aujourd'hui comme a la
+recette. Ce n'est pas une gene, c'est une contrainte a inscrire dans le plan de chaque lot.
+
+**`npm run courrier:joindre` echoue depuis le shell pilote**, EPERM a l'`unlink` : le bac a sable
+interdit la suppression de fichiers dans le dossier monte, et le script vide son dossier de sortie
+avant de le remplir. Il marche depuis le terminal de Ted. Les deux fichiers ont ete recopies a la
+main cette fois, empreintes verifiees identiques.
+
+**Il n'existe aucun controle hors ligne de `index.ts`.** Pas de Deno, pas de `tsc` sur le poste.
+Le seul filet trouve est `node --experimental-strip-types --check`, qui valide la syntaxe et rien
+d'autre : ni les types, ni les appels reseau, ni le comportement. Il est passe. Le vrai test reste
+l'appel de Ted.
+
+### Reste ouvert, dans l'ordre
+
+1. `COURRIER_CLE` est masquee dans Supabase et irrecuperable. A **remplacer** par une nouvelle
+   valeur, pas a retrouver.
+2. Coller `lot10-courrier-envois.sql`, dont le controle 3.4 qui prouve l'anti-doublon.
+3. Deployer la fonction depuis le tableau de bord, avec les deux fichiers de
+   `_deploiement/courrier-matin/`.
+4. Essai a la main avec `?maintenant=1`, puis relance immediate pour verifier que le second appel
+   annonce `deja_envoyes: 1` et n'envoie rien.
+5. Seulement apres : l'horloge. Ni `pg_cron` ni `pg_net` ne sont installes dans la base, il faudra
+   choisir entre les deux et la page Cron du tableau de bord.
+6. Le compte `teddypereira88@gmail.com` existe en base et n'est pas dans la liste autorisee : il
+   apparaitra en `hors_liste` a chaque passage. C'est le garde-fou qui parle, pas un defaut.
+
+
+---
+
+## 10/09/2026. Le domaine n'a jamais été branché, et le dépôt avait cessé de dire la vérité
+
+Parti pour une simplification de confort, arrivé sur deux choses qui comptent davantage. C'est le
+genre de session où le résultat cherché est le moins intéressant des trois.
+
+### Ce que je cherchais : ne plus embarquer une copie de la fabrique
+
+La fonction d'envoi a besoin de `src/js/bdv-courrier.js` à côté d'elle au moment du déploiement.
+L'idée était de la faire lire le fichier depuis le site : `import
+'https://lebureauduvigneron.fr/js/bdv-courrier.js'`. Deno gèle la dépendance au déploiement, donc
+pas de dérive silencieuse, et il n'y aurait plus rien à recoller.
+
+**Vérifié, et ça marche** : `/js/bdv-courrier.js` rend 200 sur l'adresse Vercel du projet, avec la
+version à jour et `cache-control: must-revalidate`.
+
+**Refusé quand même, pour une raison découverte en le vérifiant.** Ce jour-là,
+`lebureauduvigneron.fr` était injoignable. Si la fonction avait lu son contenu depuis le site, **le
+courrier de 8 h ne serait pas parti**, et le rapport aurait annoncé une erreur d'import, pas un
+domaine. Le site et l'envoi du mail sont deux pannes qui doivent rester indépendantes.
+
+La vraie douleur, le recollage manuel, se règle par un script. Pas en déplaçant une dépendance sur
+le réseau.
+
+### Le domaine `.fr` n'a jamais été branché sur Vercel
+
+`lebureauduvigneron.fr` résout vers 217.160.0.84, dont le nom inverse est
+`217-160-0-84.elastic-ssl.ui-r.com` : IONOS, le registraire. Pas Vercel. Le projet Vercel ne liste
+que ses trois adresses `*.vercel.app`, et `www` ne résout pas du tout. D'où
+l'`ERR_SSL_PROTOCOL_ERROR` : un domaine parqué qui ne sert aucun certificat.
+
+Ted confirme : **le `.fr` n'a jamais servi.** Donc rien n'est cassé, quelque chose n'a jamais été
+branché — et il le branchera au moment de la mise en ligne. Les enregistrements du sous-domaine
+`courrier.` sont, eux, bien en place chez IONOS : c'est par là que le premier courrier est parti.
+
+**Mais le mail portait quand même un bouton mort.** `batir()` retombait sur
+`https://lebureauduvigneron.fr/mon-bureau/` par défaut, et la fonction d'envoi ne lui passait
+aucune adresse. Le bouton « Ouvrir mon bureau » est la seule action du mail.
+
+Corrigé, et pas par une constante : **`URL_BUREAU` est un secret Supabase**, passé à la fabrique.
+Le jour où le domaine est branché, on change une variable, sans toucher au code ni redéployer. Le
+repli reste l'adresse définitive, pour que ce soit le réglage temporaire qui se voie dans les
+secrets, et pas l'inverse.
+
+Et surtout : **l'adresse est dans le rapport de la fonction**, à chaque appel, `?apercu=1` compris.
+C'est le garde-fou qui manquait. Une adresse morte dans un bouton ne fait échouer aucun envoi : le
+rapport dit « envoyé », et c'est le vigneron qui tombe sur une erreur de navigateur. C'est le pire
+genre de panne, celle qui ne remonte pas.
+
+### LE DÉPÔT AVAIT CESSÉ D'ÊTRE LA SOURCE DE VÉRITÉ DE CE QUI TOURNE
+
+Découvert par accident, en relisant le diff de ma propre modification. Le `index.ts` **commité**
+portait encore l'ANCIEN verrou d'entrée, la comparaison de l'en-tête `Authorization` à la clé de
+service, alors que **la fonction en production tournait depuis la veille avec le secret dédié
+`COURRIER_CLE`**. Le correctif avait été déployé sans être commité.
+
+Deuxième symptôme de la même cause : l'empreinte inscrite dans l'en-tête annonçait
+`sha256 caa1c170fb9294a3, 512 lignes` quand la fabrique en faisait **880**, empreinte
+`c234a02d8eb38a7d`.
+
+La cause est structurelle, pas une étourderie. Il n'y a pas de CLI Supabase sur le poste de Ted :
+le déploiement se fait depuis le conteneur, à partir de copies qui vivent là-bas, pendant que le
+dépôt vit sur son Mac. Deux endroits, aucun lien mécanique. La convention « mettre la nouvelle
+empreinte ici » reposait sur quelqu'un qui y pense.
+
+**Une convention que personne ne tient n'est pas une convention, c'est un commentaire faux. Et un
+commentaire faux est pire que pas de commentaire : il fait conclure à tort.**
+
+D'où `scripts/joindre-courrier.mjs`, deux modes :
+
+- `npm run courrier:joindre` recopie la fabrique dans `_deploiement/courrier-matin/` (non
+  versionné, refait à chaque fois) et **tamponne** l'empreinte dans l'en-tête de `index.ts`.
+  Personne ne l'écrit plus à la main.
+- `npm run courrier:verif` n'écrit rien et compare l'empreinte inscrite à celle du fichier présent.
+  **Ajouté à `npm run verif`** : si le contenu du mail bouge sans que le recollage soit refait, le
+  banc le dit avant le commit.
+
+Le script refuse aussi un `import` ou un `require` dans la fabrique. Ce contrôle existe déjà dans
+l'aperçu ; il est répété là où un fichier part vers la production, parce qu'un garde-fou se place
+là où la faute coûte.
+
+Il ne déploie pas, et ne retire pas les commentaires. La première version du recollage les retirait
+pour alléger l'envoi : un script qui réécrit du code pour l'alléger est un script qui peut casser du
+code, le gain était de quelques kilo-octets, le risque était un mail cassé.
+
+### L'URL de site : ma mauvaise hypothèse, et ce qu'elle a quand même révélé
+
+J'avais annoncé que si `Site URL` portait le `.fr`, les liens de confirmation d'inscription et de
+reprise de mot de passe seraient morts. **Faux, et le code de Ted le prouve.** `bdv-compte.js`
+appelle `/verify` avec `{ token: code, type: 'signup' }` puis `type: 'recovery'` : ce sont des
+**codes à six chiffres tapés dans la page**, jamais des liens. Aucun `redirectTo` ni
+`emailRedirectTo` dans tout `src/`. `Site URL` n'est consommé par aucun des deux parcours, et c'est
+pour ça qu'ils fonctionnent aujourd'hui.
+
+Ce que la vérification a montré à la place : **`Site URL` valait `http://localhost:3000`**, le
+défaut de Supabase que personne n'avait changé, et la liste **Redirect URLs** était vide.
+
+Inerte aujourd'hui, piège demain. Le jour où un parcours passe une redirection — lien magique,
+fournisseur OAuth, reprise par lien plutôt que par code — Supabase retombe sur `Site URL` puisque
+la liste d'autorisation est vide, et l'utilisateur atterrit sur sa propre machine. Cette panne ne
+remonte pas davantage que le bouton mort : elle ressemble à un navigateur cassé.
+
+Décision : poser `Site URL` sur l'adresse **définitive** tout de suite, `https://lebureauduvigneron.fr`.
+Même raison que pour le repli de `URL_BUREAU` : une valeur juste au lancement et inerte d'ici là ne
+demande aucun suivi, une valeur provisoire demande qu'on y repense. La liste `Redirect URLs` reste
+vide tant que rien ne passe de redirection ; le jour où ça change, elle devient un prérequis.
+
+### Les gabarits d'e-mail : la question fermée, et le vrai problème à côté
+
+Les deux gabarits relus. **Ni lien, ni `{{ .SiteURL }}`, ni `{{ .ConfirmationURL }}` : uniquement
+`{{ .Token }}`.** `localhost:3000` était donc entièrement inerte, et ma crainte de départ ne valait
+rien. Question fermée.
+
+Ce que la relecture a trouvé à la place, et qui compte davantage : **ces deux gabarits étaient les
+seuls écrits du produit à ne vivre nulle part dans le dépôt.** Ni `npm run charte` ni
+`npm run verif` ne les voyaient, et leur `#63523D` était un jeton copié en dur sans que rien ne dise
+lequel. Le jour où `--muted` change, personne ne les trouve.
+
+C'est la même maladie que celle du dépôt qui avait cessé d'être la source de vérité de la fonction
+d'envoi, sur un autre organe. Versés dans `supabase/gabarits-email/`, texte inchangé au caractère
+près, avec un LISEZ-MOI qui dit que le fichier est la référence et le tableau de bord la cible :
+**on modifie le fichier, on relit, puis on colle.** Jamais l'inverse. Règle générale ajoutée à
+`CLAUDE.md`.
+
+**Deux défauts de contenu relevés, non corrigés — c'est le texte de Ted :**
+
+- **« Il expire dans dix minutes », écrit dans les deux.** Le défaut Supabase n'est pas dix minutes.
+  Si le mail annonce plus court que le vrai réglage, un vigneron revenu au bout de vingt minutes
+  croit son code mort, en redemande un, et consomme un e-mail du quota de cent par jour pour rien.
+  À faire correspondre au réglage, dans un sens ou dans l'autre.
+- **Deux voix pour la même instruction.** L'inscription dit « la fenêtre restée ouverte sur ton
+  écran », la reprise dit « la fenêtre du Bureau du Vigneron ». Les deux supposent qu'une fenêtre
+  existe sur l'écran où le mail est lu, ce que le cas le plus banal démentit : inscription sur
+  l'ordinateur, mail relevé sur le téléphone. Même mécanisme que « SANS CONTACT » affiché pour un
+  client qui a une adresse : un message qui affirme ce que la situation dément coûte plus cher qu'un
+  message vague.
+
+### Ce qu'on s'est promis de regarder
+- Au branchement du domaine : poser `URL_BUREAU` sur l'adresse définitive, et se souvenir que
+  l'émission du certificat et la propagation ne se répètent pas. C'est l'étape qu'on ne peut pas
+  répéter à blanc, donc pas celle à garder pour la dernière minute.
+- `ecarterLesSuivis()` attend toujours sa suppression, maintenant que `v_courrier` fait
+  l'anti-jointure en SQL.
+
+
 ## 08 au 09/09/2026. Le courrier du matin, et un geste qui mentait
 
 Demande de Ted : « envoyer tous les jours un mail le matin avec toutes les recos à

@@ -10,7 +10,7 @@
     "charte:dash": "node scripts/charte.mjs --bureau",
     "banc": "node scripts/banc-bureau.mjs",
     "charte:bureau": "node scripts/charte.mjs --bureau",
-    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:sync && npm run banc:lune && npm run banc:porte && npm run courrier",
+    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:sync && npm run banc:lune && npm run banc:porte && npm run courrier && npm run courrier:verif",
     "banc:reglages": "node scripts/banc-reglages.mjs",
     "banc:journee": "node scripts/banc-journee.mjs",
     "banc:taches": "node scripts/banc-taches.mjs",
@@ -18,7 +18,9 @@
     "banc:sync": "node scripts/banc-sync.mjs",
     "banc:lune": "node scripts/banc-lune.mjs",
     "banc:porte": "node scripts/banc-porte-import.mjs",
-    "courrier": "node scripts/apercu-courrier.mjs"
+    "courrier": "node scripts/apercu-courrier.mjs",
+    "courrier:joindre": "node scripts/joindre-courrier.mjs",
+    "courrier:verif": "node scripts/joindre-courrier.mjs --verifier"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
