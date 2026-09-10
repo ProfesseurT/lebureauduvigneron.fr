@@ -167,11 +167,27 @@ function jourAParis(): string {
 
 /* L'heure a Paris, de 0 a 23. `hourCycle: 'h23'` et pas `hour12: false` : selon
    la version d'ICU, ce dernier rend « 24 » a minuit, et `24 !== 0` ferait rater
-   un envoi de minuit si l'heure changeait un jour. */
+   un envoi de minuit si l'heure changeait un jour.
+
+   DEFAUT CORRIGE LE 10/09/2026, ET IL AURAIT ETE MUET.
+   La premiere version formatait en `fr-FR`, qui rend « 14 h » et pas « 14 ».
+   `Number('14 h')` vaut NaN, et NaN n'est egal a RIEN : la comparaison
+   `heure !== HEURE_ENVOI` etait donc TOUJOURS vraie. Le declencheur aurait
+   repondu « hors heure » vingt-quatre fois par jour, en 200, sans jamais
+   envoyer un seul courrier -- exactement la panne silencieuse que le lot 4
+   existe pour empecher.
+   Trouve parce que `heure_paris` est DANS le rapport et valait `null`. Un
+   chiffre de travail expose dans le compte rendu ne coute rien et attrape ce
+   qu'aucun controle hors ligne ne pouvait voir : ni Node ni le banc ne
+   formatent avec l'ICU de Deno.
+   D'ou les deux precautions : une locale qui ne colle pas d'unite, ET le
+   retrait de tout ce qui n'est pas un chiffre. L'une des deux suffirait, les
+   deux ensemble ne dependent d'aucune version d'ICU. */
 function heureAParis(): number {
-  return Number(new Intl.DateTimeFormat('fr-FR', {
+  const brut = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23',
-  }).format(new Date()));
+  }).format(new Date());
+  return Number(String(brut).replace(/[^0-9]/g, ''));
 }
 
 function reponse(corps: unknown, code = 200): Response {
