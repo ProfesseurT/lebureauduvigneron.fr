@@ -1,16 +1,34 @@
+<!-- Hook decide le 10/09/2026. Avant : « Le media de reference de la filiere ».
+     Le site n'est plus un media, c'est un bureau, et le produit avait quatre mois
+     d'avance sur cette page. Trois arbitrages tiennent ce texte :
+       1. la preuve avant la promesse. Les 2 000 bureaux etaient en cinquieme
+          position, dans le manifeste. Ils passent en h1 : un nombre travaille,
+          un superlatif se saute.
+       2. les deux cercles dits haut. « Ouvert a toute la filiere » ET « si tu es
+          sur Vitisoft » dans le meme paragraphe, pour qu'aucun visiteur ne
+          decouvre la restriction apres son inscription.
+       3. les deux boutons echangent leur role. Le plein va vers l'inscription,
+          plus vers une ancre. Et il est en .btn (papier) et non .btn--bordeaux :
+          le voile de la photo EST bordeaux, un bouton bordeaux s'y noyait. -->
 <section class="hero hero--photo">
   <div class="hero__overlay"></div>
   <div class="hero__content">
-    <h1>Le média de référence de la filière.</h1>
+    <p class="hero__eyebrow">Propulsé par Solumatic, créateur de Vitisoft</p>
+    <h1>On a vu 2&nbsp;000 bureaux de vignerons de l'intérieur.</h1>
     <p class="hero__lead">
-      Vu depuis le bureau du vigneron.
+      Pas les vignes. Les bureaux.
     </p>
     <p class="hero__desc">
-      Articles fond, podcasts terrain, catalogue de partenaires bienveillants. Ici on parle de l'admin, du marketing et des heures qu'on passe à faire tourner la boîte — pas du vin.
+      C'est là qu'on a construit Vitisoft. Le Bureau du Vigneron, c'est le bureau qu'on aurait
+      voulu y trouver : ce qui presse aujourd'hui, tes échéances réglementaires, tes clients à
+      rappeler, ce qu'il faut lire. Gratuit, ouvert à toute la filière. Tes ventes s'y lisent
+      aussi, si tu es sur Vitisoft.
     </p>
     <div class="hero__ctas">
-      <a href="#a-la-une" class="btn btn--bordeaux">Découvrir le média →</a>
-      <a href="/compte/" class="btn btn--ghost" data-bdv-compte data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a>
+      <a href="/compte/" class="btn" data-bdv-compte
+         data-bdv-mode="inscription"
+         data-bdv-titre="Ton bureau t'attend.">Ouvrir mon bureau · gratuit</a>
+      <a href="#demo-pinboard" class="btn btn--ghost">Voir le bureau en image</a>
     </div>
   </div>
 </section>
