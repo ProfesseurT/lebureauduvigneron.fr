@@ -221,7 +221,118 @@ titre('4. Le vigneron repond « non » a Vitisoft');
   }
 }
 
+/* ==========================================================================
+   5. LE PANNEAU DE LIEGE EST UNE PILE DE TRAVAIL, 10/09/2026
+   --------------------------------------------------------------------------
+   Demande de Ted : « il y a des KPI qui servent a rien, il faut que ca soit
+   cliquable ». Le panneau n'etait couvert par AUCUN banc : c'est exactement
+   pour ca que son pire defaut a vecu si longtemps sans etre vu.
+
+   LE DEFAUT QUE CETTE SECTION EXISTE POUR EMPECHER DE REVENIR : le filtre des
+   rappels etait `rappel > aujourd'hui`, strictement l'avenir. Une promesse
+   faite pour le 3 septembre et pas tenue n'apparaissait nulle part sur le
+   liege. Le premier controle ci-dessous est celui-la, et il doit rester le
+   premier.
+   ========================================================================== */
+titre('5. Le panneau : ce qui presse, et cliquable');
+{
+  const jourDecale = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+      + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  /* Trois rappels et trois ages : un en retard de six jours, un pour aujourd'hui,
+     un pour dans un mois. Un jeu d'essai plus petit que la realite ne verifie que
+     ce qu'il contient — la lecon du 08/09/2026 sur « Mes taches ». */
+  const AVEC_RAPPELS = Object.assign({}, ETAT_PLEIN, {
+    noms: { JAYAMA: 'Domaine Jayama', BELLEVUE: 'Château Bellevue', PIERRIER: 'Clos du Pierrier' },
+    signaux: [],
+    suivi: [
+      { id: 'JAYAMA',   rappel: jourDecale(-6), statut: 'relance' },
+      { id: 'BELLEVUE', rappel: jourDecale(0),  statut: 'relance' },
+      { id: 'PIERRIER', rappel: jourDecale(30), statut: 'relance' }
+    ]
+  });
+
+  const b = await monter(AVEC_RAPPELS);
+  await dormir(700);          // le chiffre monte de 0 a sa valeur en 0,42 s
+  const p = b.el('bureauPanneau');
+  const html = () => p.textContent;
+
+  t('le panneau est visible', b.el('zonePanneau').hidden === false);
+  t('IL DIT CE QUI EST EN RETARD (le defaut repare le 10/09/2026)',
+    html().indexOf('en retard') >= 0, html().slice(0, 120));
+  t('et il nomme le client le plus vieux',
+    html().indexOf('Domaine Jayama') >= 0, html().slice(0, 200));
+  t('il dit aussi ce qui tombe aujourd\'hui',
+    html().indexOf('aujourd’hui') >= 0);
+  t('le retard porte bien son compte, une fois le chiffre monte',
+    !!p.querySelector('[data-cle="crm-retard"] .postit__v')
+    && p.querySelector('[data-cle="crm-retard"] .postit__v').textContent === '1',
+    p.querySelector('[data-cle="crm-retard"] .postit__v')
+      ? p.querySelector('[data-cle="crm-retard"] .postit__v').textContent : 'punaise absente');
+
+  t('la punaise du retard mene DROIT a la fiche du client, pas a une liste',
+    !!p.querySelector('[data-cle="crm-retard"] a.postit__l--lien[href*="#client=JAYAMA"]'));
+  t('la prochaine promesse est la, avec son nom',
+    html().indexOf('Clos du Pierrier') >= 0 && html().indexOf('prochain rappel') >= 0);
+
+  t('on peut AGIR depuis la punaise : le geste est un bouton, pas un lien',
+    p.querySelectorAll('button[data-punaise="crm-appel"]').length > 0);
+  t('et aucun bouton n\'est enferme dans un lien (le HTML l\'interdit)',
+    p.querySelectorAll('a button, button button').length === 0);
+
+  /* Les deux compteurs qui disaient la MEME chose : « 5 gestes cette semaine » et
+     « 1,3 geste par semaine », la seconde etant la premiere divisee par quatre. */
+  t('les compteurs ne mangent plus de punaise',
+    html().indexOf('gestes par semaine') < 0 && html().indexOf('clients dans ton carnet') < 0,
+    html().slice(0, 200));
+  t('ils sont passes dans l\'etiquette de la zone',
+    b.el('panneauNote').textContent.indexOf('au carnet') >= 0,
+    b.el('panneauNote').textContent);
+  t('la fraicheur de l\'analyse aussi, tant qu\'elle ne derange pas',
+    b.el('panneauNote').textContent.indexOf('analyse du jour') >= 0,
+    b.el('panneauNote').textContent);
+}
+
+/* ==========================================================================
+   5 bis. LA PILE VIDE EST UN MESSAGE, LE BUREAU NEUF EST UN SILENCE
+   --------------------------------------------------------------------------
+   Deux etats qu'on confond facilement, et qui ne veulent pas dire la meme
+   chose. Regle du 08/09/2026 : une zone qui sait se montrer doit savoir se
+   cacher, mais elle ne doit pas se cacher quand elle a quelque chose a dire.
+   ========================================================================== */
+titre('5 bis. Rien a faire, contre rien du tout');
+{
+  const rienAFaire = await monter(ETAT_PLEIN);   // un export depose, aucun rappel
+  await dormir(120);
+  t('un export depose et rien qui presse : le panneau RESTE',
+    rienAFaire.el('zonePanneau').hidden === false);
+  t('et il dit que rien ne presse, plutot que d\'afficher six chiffres',
+    rienAFaire.el('bureauPanneau').textContent.indexOf('ne presse') >= 0,
+    rienAFaire.el('bureauPanneau').textContent.slice(0, 120));
+
+  const neuf = await monter(null);
+  await dormir(120);
+  t('un bureau tout neuf : le panneau ne promet rien, il se cache',
+    neuf.el('zonePanneau').hidden === true);
+  t('et il ne garde pas de punaise en reserve',
+    neuf.el('bureauPanneau').innerHTML === '');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  MA JOURNEE NE FAIT PAS CE QU\'ELLE DIT\n'); process.exit(1); }
 console.log('  MA JOURNEE SE VIDE QUAND LA BASE SE VIDE\n');
+
+/* CE BANC NE SORTAIT JAMAIS TOUT SEUL, et personne ne le voyait parce qu'il
+   affichait son verdict avant de rester en l'air. La page pose
+   `setInterval(peindreLune, 30 minutes)` au DOMContentLoaded : ce minuteur
+   appartient a la fenetre jsdom, il tient la boucle d'evenements de node
+   ouverte, et `npm run verif` s'arretait la sans un mot d'erreur — un
+   enchainement de controles bloque se lit comme un controle qui reflechit.
+
+   On sort donc explicitement, et le code de sortie reste celui du verdict.
+   Trouve le 10/09/2026 en ajoutant la section 5. */
+process.exit(0);

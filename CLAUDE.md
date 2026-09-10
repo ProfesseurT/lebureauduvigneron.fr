@@ -126,6 +126,37 @@ bas), `bdv-panneau.css` (posee par `bdv-reglages.js`, portee par `.bdvr-panneau`
 feuilles chargees en JavaScript sont nommees A LA MAIN dans `scripts/charte.mjs` : une feuille
 oubliee la echappe entierement au controle, et rien ne le signale.
 
+## LE PANNEAU EST UNE PILE DE TRAVAIL, PAS UN TABLEAU DE BORD, 10/09/2026
+
+Le panneau de liege de « Ma journee » a ete refait ce jour-la parce qu'il repondait six fois a
+« combien » et jamais a « et maintenant, quoi ». **Une punaise porte UNE chose a faire, dans
+l'ordre ou elle presse, avec les gestes qui la font disparaitre.** Un compteur qui ne se traduit
+pas en geste n'a pas droit a une punaise : il va dans l'etiquette de la zone, `#panneauNote`.
+
+Trois consequences a ne pas defaire :
+
+1. **Le retard passe avant tout**, y compris avant une obligation legale qui tombe dans trois
+   jours. Le filtre des rappels etait `rappel > aujourd'hui`, strictement l'avenir : une promesse
+   pas tenue n'apparaissait NULLE PART. C'est le premier controle de la section 5 de
+   `banc-journee.mjs`, et il doit rester le premier.
+2. **Cinq punaises au plus.** Mesure sur 1200 px : a six, la sixieme part seule sur une deuxieme
+   rangee. Ce qui ne tient pas ici n'est pas perdu, il est dans Mes taches ou au sous-main.
+3. **Pas de troisieme couleur de punaise.** L'etat « fait » a du recevoir un FOND parce que sa
+   punaise verte tombait a 2,25:1 sur le liege ; une teinte de plus rejouerait ce defaut. Ce qui
+   presse le dit en toutes lettres dans le chiffre du post-it.
+
+Et la regle qui tenait deja tient toujours : **aucun chiffre de VENTE ici.** L'ardoise mesure le
+domaine, le panneau mesure le vigneron. C'est la seule chose qui autorise deux tableaux de
+chiffres sur la meme page.
+
+### Un post-it n'est plus un `<a>`, et il ne doit plus le redevenir
+
+Il porte des boutons de geste, et un element interactif dans un element interactif est interdit
+par le HTML, le sous-main avait deja paye ce defaut avec ses trois boutons dans un `<button>`.
+C'est le LIBELLE qui porte le lien, et son `::after` s'etend sur tout le papier ; les boutons
+repassent au-dessus par leur `z-index`. Une seule cible pour la souris, deux arrets nets pour le
+clavier. `banc-journee.mjs` refuse desormais tout `a button` dans le panneau.
+
 ## LA REGLE DU PLATEAU
 
 Depuis la refonte du 07/09/2026, `Ma journee` pose plusieurs matieres sur un meme plateau :
@@ -308,6 +339,19 @@ d'Eleventy peut alors n'etre visible qu'une seconde apres la fin du processus, e
 lance immediatement apres lit une page a moitie ecrite. Un echec isole qui ne se reproduit
 pas au deuxieme essai vient de la, pas du code : le relancer suffit, mais il faut le
 relancer, pas l'ignorer.
+
+### UN BANC JSDOM DOIT SORTIR EXPLICITEMENT, 10/09/2026
+
+`npm run banc:journee` n'est jamais sorti tout seul, et personne ne l'a vu pendant deux jours
+parce qu'il affichait son verdict AVANT de rester en l'air. La page pose
+`setInterval(peindreLune, 30 minutes)` au `DOMContentLoaded` : ce minuteur appartient a la fenetre
+jsdom et tient la boucle d'evenements de node ouverte pour toujours. `npm run verif` s'arretait
+la, sans message, **un enchainement de controles bloque se lit comme un controle qui reflechit**,
+et c'est exactement pour ca que ca ne se voit pas.
+
+Regle : **tout banc qui monte une page dans jsdom finit par `process.exit`**, avec le code de
+sortie de son verdict. Un `setInterval`, un `setTimeout` long ou une animation de la page suffit a
+le retenir, et aucun de ces trois n'est un defaut de la page.
 
 ### Claude ne lance plus de commande git dans ce depot, 10/09/2026
 

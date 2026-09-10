@@ -1220,16 +1220,34 @@ permalink: /mon-bureau/
   }
 
   /* ---------------- LE PANNEAU DE LIEGE ----------------
-     Cinq punaises, et pas un chiffre de vente dedans. C'est la regle qui autorise ce
-     panneau a coexister avec l'ardoise : l'ardoise mesure le DOMAINE (ce qui est rentre,
-     ou on en est de l'objectif), le panneau mesure le VIGNERON (ce qu'il a fait, ce qu'il
-     s'est promis, depuis quand ses chiffres n'ont pas bouge). Deux tableaux de chiffres
-     qui mesurent la meme chose, c'est le plus court chemin pour qu'on cesse de lire les
-     deux.
+     Refait le 10/09/2026, sur demande de Ted : « il faut le rendre bcp plus usefull,
+     il y a des KPI qui servent a rien, il faut que ca soit cliquable et que les
+     elements decides apparents servent a quelque chose. Je veux du dynamisme. »
 
-     Aucun de ces cinq chiffres n'est recalcule a partir des ventes : ils sortent du
-     journal d'echanges, du suivi client et de la date de depot. Le bureau ne recalcule
-     jamais rien du tableau de bord. */
+     CE QUE LE PANNEAU ETAIT, ET POURQUOI IL NE SERVAIT PAS. Six punaises qui
+     repondaient toutes a « combien », aucune a « et maintenant, quoi ». Deux d'entre
+     elles disaient meme la MEME chose : « 5 gestes cette semaine » et « 1,3 geste par
+     semaine » sortent du meme tableau, la seconde etant la premiere divisee par
+     quatre. Deux punaises, un seul fait. Et quatre des six ne se cliquaient pas.
+
+     LE PIRE N'ETAIT PAS CE QU'IL MONTRAIT, C'EST CE QU'IL CACHAIT : le filtre des
+     rappels etait `rappel > aujourd'hui`, strictement l'avenir. Une promesse faite
+     pour le 3 septembre et pas tenue n'apparaissait NULLE PART sur le liege. Le
+     chiffre le plus actionnable du bureau etait le seul absent.
+
+     CE QU'IL EST DEVENU : une pile de travail. Une punaise porte UNE chose a faire,
+     dans l'ordre ou elle presse, avec les gestes qui la font disparaitre. La pile se
+     vide au fil de la journee, et c'est ce qui la rend lisible : un panneau qui
+     affiche les memes six chiffres a 8 h et a 18 h n'est pas un panneau, c'est un
+     cadre.
+
+     LES COMPTEURS N'ONT PAS ETE JETES, ils ont ete DECLASSES : gestes de la semaine,
+     moyenne, carnet et fraicheur de l'analyse tiennent maintenant dans l'etiquette de
+     la zone. Ils meritaient une ligne, pas une punaise chacun.
+
+     LA REGLE QUI TIENT TOUJOURS : aucun chiffre de VENTE ici. L'ardoise mesure le
+     domaine, le panneau mesure le vigneron. C'est la seule chose qui autorise deux
+     tableaux de chiffres sur la meme page. */
   var JOURNAL = undefined;   // undefined : pas encore lu. null : illisible. [] : lu, vide.
 
   function minuit(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
@@ -1244,35 +1262,272 @@ permalink: /mon-bureau/
     var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
     return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
   }
+  /* Une date de punaise tient sur une ligne : « 9 oct. » et pas « 9 octobre ». Le
+     post-it fait 160 px de large au minimum mesure, et « septembre » seul en fait 92
+     dans la fonte des chiffres : le mois long repliait la valeur sur deux lignes et
+     poussait le libelle hors du papier. */
+  function dateBreve(iso){
+    var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
+    return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+  }
 
+  /* LE MOMENT DE LA JOURNEE. Il ne change pas les chiffres, il change ce que le
+     panneau MET EN AVANT : le matin on montre ce qui reste a faire, le soir on
+     montre aussi ce qui a ete fait. C'est la meme donnee, lue a l'heure ou elle
+     compte. */
+  function momentDuJour(){
+    var h = new Date().getHours();
+    return h < 12 ? 'matin' : (h < 17 ? 'apresmidi' : 'soir');
+  }
+
+  /* LE MOUVEMENT EST UN CHOIX DE L'UTILISATEUR, PAS DU DEVELOPPEUR. Tout ce qui
+     bouge sur ce panneau passe par ce test : la cascade d'arrivee, le chiffre qui
+     monte, la punaise qui se decroche. Sans lui, un vigneron qui a demande a son
+     systeme de calmer les animations verrait son bureau sautiller quand meme. */
+  function sansMouvement(){
+    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    catch(e){ return false; }
+  }
+
+  /* LE CHIFFRE QUI MONTE. Seulement sur un entier : « 9 oct. » ou « en retard » n'ont
+     pas de valeur de depart, et les faire defiler serait du bruit.
+
+     LE TEXTE FINAL EST POSE D'ABORD, l'animation ne fait que le remplacer pendant un
+     tiers de seconde. Une page lue par un lecteur d'ecran, un banc, ou un navigateur
+     qui n'a pas de requestAnimationFrame lit donc toujours la bonne valeur. */
+  function animerChiffre(node, texte){
+    node.textContent = texte;
+    if(sansMouvement() || !window.requestAnimationFrame) return;
+    if(!/^\d+$/.test(texte)) return;
+    var cible = parseInt(texte, 10);
+    if(cible < 2) return;                      // de 0 a 1, il n'y a rien a regarder monter
+    var debut = null, duree = 420;
+    node.textContent = '0';
+    requestAnimationFrame(function pas(t){
+      if(debut === null) debut = t;
+      var p = Math.min(1, (t - debut) / duree);
+      node.textContent = String(Math.round(cible * (p * (2 - p))));   // freine a l'arrivee
+      if(p < 1) requestAnimationFrame(pas); else node.textContent = texte;
+    });
+  }
+
+  /* UN POST-IT N'EST PLUS UN <a>, ET C'EST LE MEME DEFAUT QUE LE SOUS-MAIN AVAIT
+     DEJA PAYE : un lien qui contiendrait les boutons « Fait » et « Demain » serait un
+     element interactif dans un element interactif, ce que le HTML interdit et ce que
+     le clavier traverse de travers.
+
+     LE PAPIER RESTE CLIQUABLE ENTIEREMENT quand meme : c'est le libelle qui porte le
+     lien, et son `::after` s'etend sur tout le post-it (voir style.css). Les boutons
+     de geste repassent au-dessus par leur z-index. Une seule cible pour la souris,
+     deux arrets nets pour le clavier. */
   function postit(o){
-    var n = document.createElement(o.href ? 'a' : 'div');
+    var n = document.createElement('div');
     n.className = 'postit';
-    if(o.href) n.href = o.href;
     if(o.ton) n.setAttribute('data-ton', o.ton);
-    var v = document.createElement('span'); v.className = 'postit__v'; v.textContent = o.valeur;
+    if(o.cle) n.setAttribute('data-cle', o.cle);
+
+    var v = document.createElement('span');
+    v.className = 'postit__v';
     if(String(o.valeur).length > 4) v.setAttribute('data-mot', 'oui');
-    var l = document.createElement('span'); l.className = 'postit__l'; l.textContent = o.libelle;
-    n.appendChild(v); n.appendChild(l);
-    if(o.sous){ var sp = document.createElement('span'); sp.className = 'postit__s'; sp.textContent = o.sous; n.appendChild(sp); }
+    animerChiffre(v, String(o.valeur));
+    n.appendChild(v);
+
+    var l = document.createElement(o.href ? 'a' : 'span');
+    l.className = 'postit__l' + (o.href ? ' postit__l--lien' : '');
+    if(o.href) l.href = o.href;
+    l.textContent = o.libelle;
+    n.appendChild(l);
+
+    if(o.sous){
+      var sp = document.createElement('span');
+      sp.className = 'postit__s';
+      sp.textContent = o.sous;
+      n.appendChild(sp);
+    }
+
+    if(o.gestes && o.gestes.length){
+      var barre = document.createElement('span');
+      barre.className = 'postit__gestes';
+      o.gestes.forEach(function(g){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'postit__g';
+        b.setAttribute('data-punaise', g.cle);
+        b.setAttribute('data-id', g.id);
+        b.textContent = g.mot;
+        b.title = g.titre || g.mot;
+        barre.appendChild(b);
+      });
+      n.appendChild(barre);
+    }
     return n;
   }
 
+  /* LE PANNEAU SE FIGE PENDANT QU'UNE PUNAISE TOMBE, et c'est la seule raison de ces
+     trois variables. Sans elles, cocher une tache appelait `rendre()` dans
+     bdv-taches.js, qui rappelle `bdvMajPanneau` DANS LA FOULEE : le panneau se
+     repeignait avant la premiere image de l'animation, et la punaise disparaissait
+     d'un coup. On retient donc les repeintures le temps de la chute, et on en joue
+     UNE seule a la sortie, meme si trois sont arrivees entre-temps. */
+  var PANNEAU_GELE = 0, PANNEAU_DU = false;
+  function gelerPanneau(ms){
+    if(sansMouvement()) return;               // rien ne tombe, rien a attendre
+    PANNEAU_GELE++;
+    setTimeout(function(){
+      PANNEAU_GELE--;
+      if(!PANNEAU_GELE && PANNEAU_DU){ PANNEAU_DU = false; peindrePanneau(); }
+    }, ms);
+  }
+
   function peindrePanneau(){
-    var cartes = [];
-    var auj = new Date();
+    if(PANNEAU_GELE){ PANNEAU_DU = true; return; }
 
-    // 0. CE QUI PRESSE, EN PREMIER SUR LE LIEGE. Les taches et les obligations passent
-    // devant les indicateurs : un panneau qui annonce « 4 clients dans ton carnet » au
-    // dessus d'une DRM qui tombe demain a le bon contenu dans le mauvais ordre.
-    // Trois au plus, plus une punaise de renvoi : voir punaises() dans bdv-taches.js.
-    if(window.BdvTaches){ try{ cartes = cartes.concat(BdvTaches.punaises()); }catch(e){} }
+    var pile = [], auj = new Date();
+    var aujISO = window.BdvCrm ? BdvCrm.isoLocal(auj) : '';
+    var suivi = (ETAT_FILE && (ETAT_FILE.suivi || ETAT_FILE.rappels)) || [];
+    var noms = (ETAT_FILE && ETAT_FILE.noms) || {};
+    var signaux = (ETAT_FILE && Array.isArray(ETAT_FILE.signaux)) ? ETAT_FILE.signaux : [];
+    function nomDe(id){
+      var s = signaux.filter(function(x){ return x.id === id; })[0];
+      return (s && s.nom) || noms[id] || id;
+    }
+    // Une fiche videe ne compte pas : `planifier(id, null)` laisse une ligne qui ne
+    // porte plus rien, et la compter ferait grossir le carnet a chaque rappel retire.
+    var portent = suivi.filter(function(l){ return l.statut || l.rappel; });
+    var vivants = suivi.filter(function(l){ return l.statut !== 'traite' && l.rappel; });
+    function parDate(a, b){ return a.rappel < b.rappel ? -1 : 1; }
 
-    // 1 et 4. Ce qu'il a fait. Absents tant que le journal n'est pas lisible : annoncer
-    // « 0 geste cette semaine » a quelqu'un dont la table n'existe pas encore serait un
-    // reproche fonde sur rien.
+    /* 1. CE QUI EST EN RETARD, ET RIEN AU-DESSUS. C'est la punaise qui manquait :
+       une promesse qu'on s'est faite et qu'on n'a pas tenue passe devant tout, y
+       compris devant une obligation legale qui tombe dans trois jours. */
+    var retards = aujISO ? vivants.filter(function(l){ return l.rappel < aujISO; }).sort(parDate) : [];
+    if(retards.length){
+      var vieux = retards[0];
+      var age = jours(auj, new Date(vieux.rappel + 'T00:00:00'));
+      pile.push({
+        cle: 'crm-retard',
+        valeur: String(retards.length),
+        libelle: retards.length > 1 ? 'rappels en retard' : 'rappel en retard',
+        sous: nomDe(vieux.id) + ', depuis ' + pluriel(age, 'jour'),
+        ton: 'vieux',
+        href: lienFiche(vieux.id),
+        gestes: [{ cle: 'crm-appel', id: vieux.id, mot: 'Appelé',
+                   titre: 'Noter un appel passé à ' + nomDe(vieux.id) }]
+      });
+    }
+
+    /* 2. CE QUI TOMBE AUJOURD'HUI, COTE CLIENTS. Pas de ton particulier : le mot
+       « aujourd'hui » est dans le libelle, et un mot se lit quand une teinte se
+       devine. */
+    var duJour = aujISO ? vivants.filter(function(l){ return l.rappel === aujISO; }).sort(parDate) : [];
+    if(duJour.length){
+      pile.push({
+        cle: 'crm-jour',
+        valeur: String(duJour.length),
+        libelle: duJour.length > 1 ? 'rappels aujourd’hui' : 'rappel aujourd’hui',
+        sous: nomDe(duJour[0].id),
+        href: lienFiche(duJour[0].id),
+        gestes: [{ cle: 'crm-appel', id: duJour[0].id, mot: 'Appelé',
+                   titre: 'Noter un appel passé à ' + nomDe(duJour[0].id) }]
+      });
+    }
+
+    /* 3. LES TROIS CHOSES A FAIRE LES PLUS PRESSANTES, plus le renvoi vers le reste.
+       Elles viennent de bdv-taches.js, qui est le seul a savoir fusionner les taches
+       ecrites et les obligations du calendrier. */
+    if(window.BdvTaches){ try{ pile = pile.concat(BdvTaches.punaises()); }catch(e){} }
+
+    /* 4. LA PROCHAINE PROMESSE. C'est le seul endroit du bureau qui montre l'avenir
+       plutot que le jour meme, et il ne montre que la PREMIERE : une liste de choses
+       qui ne pressent pas encore n'a rien a faire sur une pile de travail. */
+    var venir = aujISO ? vivants.filter(function(l){ return l.rappel > aujISO; }).sort(parDate) : [];
+    if(venir.length){
+      pile.push({
+        cle: 'crm-venir',
+        valeur: dateBreve(venir[0].rappel),
+        libelle: nomDe(venir[0].id),
+        sous: venir.length > 1 ? ('ton prochain rappel · ' + venir.length + ' à venir') : 'ton prochain rappel',
+        href: lienFiche(venir[0].id)
+      });
+    }
+
+    /* 5. L'AGE DES CHIFFRES, MAIS SEULEMENT QUAND IL DERANGE. Cette punaise annoncait
+       « du jour » tous les jours ou tout allait bien : elle occupait une place de la
+       pile pour dire qu'il n'y avait rien a faire. Elle ne revient qu'au-dela de
+       quinze jours, et la fraicheur ordinaire passe dans l'etiquette de zone. */
+    var age = null;
+    if(ETAT_FILE && ETAT_FILE.deposeLe){
+      var d = new Date(ETAT_FILE.deposeLe);
+      if(!isNaN(d)) age = jours(auj, d);
+    }
+    if(age !== null && age > 15){
+      pile.push({
+        cle: 'analyse',
+        valeur: pluriel(age, 'jour'),
+        libelle: 'depuis ta dernière analyse',
+        sous: age > 30 ? 'l’ardoise a vieilli, réimporte ton export' : 'ton export commence à dater',
+        ton: age > 30 ? 'vieux' : '',
+        // Cette punaise mene la ou on repare ce qu'elle signale.
+        href: '/mon-bureau/#base'
+      });
+    }
+
+    /* 6. LE BILAN. Il n'apparait pas le matin : ouvrir son bureau a 8 h sur « 0 fait
+       aujourd'hui » est un reproche, pas un bilan. L'apres-midi il recompense, et le
+       soir il cloture. Il apparait aussi des que la pile est vide, a n'importe quelle
+       heure : c'est le moment ou il a le plus de sens. */
+    var faits = 0;
+    if(window.BdvTaches && BdvTaches.faitsAujourdhui){ try{ faits = BdvTaches.faitsAujourdhui(); }catch(e){} }
+    /* LE BILAN NE CHASSE JAMAIS DU TRAVAIL. Premiere capture du 10/09/2026 : il
+       prenait la cinquieme place et poussait dehors « dans 3j · Commander des
+       bouchons » ET la punaise de renvoi vers Mes taches, c'est-a-dire la seule
+       porte du panneau vers tout le reste. Une felicitation qui coute une chose a
+       faire est un mauvais echange. Il ne se montre donc que s'il reste une place,
+       et son compte est de toute facon dans l'etiquette de zone. */
+    var bilan = null;
+    if(faits && pile.length < 5 && (momentDuJour() !== 'matin' || !pile.length)){
+      bilan = {
+        cle: 'bilan',
+        valeur: String(faits),
+        libelle: faits > 1 ? 'faits aujourd’hui' : 'fait aujourd’hui',
+        sous: momentDuJour() === 'soir' ? 'ta journée est pliée' : 'continue comme ça',
+        ton: 'fait',
+        href: '/mon-bureau/#taches'
+      };
+    }
+
+    /* 7. LA PILE VIDE EST UN MESSAGE, PAS UN TROU. Une zone qui disparait quand tout
+       est fait retire au vigneron le seul moment ou son bureau lui dit merci. Meme
+       raisonnement que « Rien a faire aujourd'hui. Profites-en. » au sous-main. */
+    if(!pile.length && !bilan){
+      pile.push({
+        cle: 'vide',
+        valeur: 'Rien',
+        libelle: 'ne presse aujourd’hui',
+        sous: momentDuJour() === 'soir' ? 'ta journée est pliée' : 'profites-en',
+        ton: 'fait'
+      });
+    }
+
+    if(bilan) pile.push(bilan);
+
+    /* CINQ PUNAISES AU PLUS. LE CHIFFRE VIENT D'UNE CAPTURE, pas d'un avis : a six
+       punaises, sur une fenetre de 1200 px, la cinquieme finit la rangee et la
+       sixieme part seule sur une deuxieme, avec quatre cases de liege nu a cote
+       d'elle. Une pile de travail qui deborde n'est plus une pile, c'est un mur — le
+       defaut qu'on evitait deja avec les taches. Ce qui ne tient pas ici n'est jamais
+       perdu : il est dans Mes taches ou au sous-main, ou la punaise de renvoi mene en
+       un clic. */
+    pile = pile.slice(0, 5);
+
+    /* LES COMPTEURS DECLASSES. Ils ne valent plus une punaise chacun, mais ils valent
+       une ligne : ce sont eux qui disent si la semaine avance. Le journal absent se
+       tait, le journal ILLISIBLE le dit — un compte neuf et une table en panne ne
+       sont pas la meme chose. */
+    var note = [];
     if(JOURNAL){
-      var debutSem = lundi(), debutPrec = new Date(debutSem); debutPrec.setDate(debutPrec.getDate() - 7);
+      var debutSem = lundi(), debutPrec = new Date(debutSem);
+      debutPrec.setDate(debutPrec.getDate() - 7);
       // La semaine en cours est INCOMPLETE. La comparer a une semaine pleine annoncerait
       // « -9 » tous les mardis matin, pour la seule raison qu'on est mardi. On coupe donc
       // la semaine passee au meme jour, et on compare deux tranches de meme longueur.
@@ -1280,77 +1535,42 @@ permalink: /mon-bureau/
       finPrec.setDate(finPrec.getDate() + jours(auj, debutSem) + 1);
       var sem = 0, prec = 0, mois = 0;
       JOURNAL.forEach(function(e){
-        var d = new Date(e.le);
-        if(isNaN(d)) return;
-        if(d >= debutSem) sem++;
-        else if(d >= debutPrec && d < finPrec) prec++;
-        if(jours(auj, d) < 28) mois++;
+        var dj = new Date(e.le);
+        if(isNaN(dj)) return;
+        if(dj >= debutSem) sem++;
+        else if(dj >= debutPrec && dj < finPrec) prec++;
+        if(jours(auj, dj) < 28) mois++;
       });
       var ecart = sem - prec;
-      cartes.push({
-        valeur: String(sem), libelle: sem === 1 ? 'geste cette semaine' : 'gestes cette semaine',
-        sous: prec ? ((ecart >= 0 ? '+' : '') + ecart + ' vs la semaine passée, au même jour')
-                   : 'appels, messages et notes',
-        ton: sem ? 'fait' : ''
-      });
-      cartes.push({
-        valeur: (Math.round(mois / 4 * 10) / 10).toString().replace('.', ','),
-        libelle: 'gestes par semaine', sous: 'ta moyenne sur quatre semaines'
-      });
+      note.push(pluriel(sem, 'geste') + ' cette semaine'
+        + (prec ? (' (' + (ecart >= 0 ? '+' : '') + ecart + ' vs la semaine passée)') : ''));
+      note.push((Math.round(mois / 4 * 10) / 10).toString().replace('.', ',') + ' par semaine en moyenne');
     }
+    if(faits) note.push(pluriel(faits, 'fait') + ' aujourd’hui');
+    if(portent.length) note.push(pluriel(portent.length, 'client') + ' au carnet');
+    if(age !== null && age <= 15) note.push(age <= 0 ? 'analyse du jour' : ('analyse d’il y a ' + pluriel(age, 'jour')));
+    if(JOURNAL === null) note.push('ton journal n’est pas encore lisible');
+    txt(el('panneauNote'), note.join(' · '));
 
-    // 2. Ce qu'il s'est promis. Les rappels a venir, ceux qui ne sont pas encore dans la
-    // file : c'est le seul endroit du bureau qui montre l'avenir plutot que le jour meme.
-    var suivi = (ETAT_FILE && (ETAT_FILE.suivi || ETAT_FILE.rappels)) || [];
-    var aujISO = window.BdvCrm ? BdvCrm.isoLocal(new Date()) : '';
-    var venir = suivi.filter(function(l){ return l.statut !== 'traite' && l.rappel && l.rappel > aujISO; });
-    venir.sort(function(a, b){ return a.rappel < b.rappel ? -1 : 1; });
-    cartes.push({
-      valeur: String(venir.length), libelle: venir.length === 1 ? 'rappel à venir' : 'rappels à venir',
-      sous: venir.length ? ('le prochain le ' + dateCourte(venir[0].rappel)) : 'ton carnet est vide'
-    });
-
-    // 3. Son carnet. Le nombre de clients qui portent quelque chose : un statut, un
-    // rappel, une trace. Pas le nombre de clients de l'export, qui est un chiffre du
-    // tableau de bord et vit sur l'ardoise.
-    // Une fiche videe ne compte pas : `planifier(id, null)` laisse une ligne qui ne porte
-    // plus rien, et la compter ferait grossir le carnet a chaque rappel retire.
-    var portent = suivi.filter(function(l){ return l.statut || l.rappel; });
-    var clos = portent.filter(function(l){ return l.statut === 'traite'; }).length;
-    if(portent.length) cartes.push({
-      valeur: String(portent.length), libelle: 'clients dans ton carnet',
-      sous: clos ? (pluriel(clos, 'classé') + ' terminé' + (clos > 1 ? 's' : '')) : 'suivis à la main'
-    });
-
-    // 5. L'age des chiffres. Un tableau de bord qui date de six semaines rend l'ardoise
-    // fausse sans que rien ne le dise : c'est la seule alerte du panneau.
-    if(ETAT_FILE && ETAT_FILE.deposeLe){
-      var d = new Date(ETAT_FILE.deposeLe);
-      if(!isNaN(d)){
-        var age = jours(auj, d);
-        cartes.push({
-          valeur: age <= 0 ? 'du jour' : (age === 1 ? 'hier' : age + ' jours'),
-          libelle: age <= 1 ? 'ta dernière analyse' : 'depuis ta dernière analyse',
-          sous: age > 30 ? 'réimporte ton export, l\u2019ardoise a vieilli' : 'depuis ton dernier export',
-          ton: age > 30 ? 'vieux' : '',
-          // Cette punaise mene la ou on repare ce qu'elle signale : la base, donc le
-          // panneau de reglages, et plus la porte d'un outil qui n'existe plus.
-          href: '/mon-bureau/#base'
-        });
-      }
-    }
-
+    /* UNE ZONE QUI SAIT SE MONTRER DOIT SAVOIR SE CACHER. Le panneau ne vit que si le
+       vigneron a DEJA quelque chose quelque part : un export depose, une fiche suivie,
+       ou une tache ecrite. Sur un bureau tout neuf, « Rien ne presse aujourd'hui » ne
+       serait pas une recompense, ce serait une promesse vide. */
+    var aQuelqueChose = !!(ETAT_FILE && ETAT_FILE.deposeLe) || portent.length > 0
+      || !!(window.BdvTaches && BdvTaches.toutes && BdvTaches.toutes().length);
     var boite = el('bureauPanneau');
-    if(!cartes.length){ el('zonePanneau').hidden = true; return; }
+    if(!aQuelqueChose){ boite.innerHTML = ''; el('zonePanneau').hidden = true; return; }
+
     boite.innerHTML = '';
-    cartes.forEach(function(c, i){
+    pile.forEach(function(c, i){
       var n = postit(c);
       n.style.setProperty('--tour', ((i % 3) - 1) * 0.7 + 'deg');
+      // Le rang commande le retard d'arrivee : les punaises se posent de gauche a
+      // droite, comme une main qui epingle, et pas toutes ensemble.
+      n.style.setProperty('--rang', String(i));
       boite.appendChild(n);
     });
     el('zonePanneau').hidden = false;
-    // undefined = pas encore arrive (on se tait), null = illisible (on le dit).
-    txt(el('panneauNote'), JOURNAL === null ? 'ton journal n\u2019est pas encore lisible' : '');
   }
   /* Le liege est peint une fois, au chargement, depuis ce qu'on a alors sous la main. Les
      taches, elles, arrivent du serveur APRES : sans ce point d'entree, une DRM qui tombe
@@ -1358,6 +1578,52 @@ permalink: /mon-bureau/
      window.bdvMajBandeau pour la pastille des signets : c'est la donnee qui rappelle
      l'ecran, et pas l'ecran qui interroge en boucle. */
   window.bdvMajPanneau = peindrePanneau;
+
+  /* ---------------- AGIR DEPUIS LA PUNAISE, 10/09/2026 ----------------
+     Ted : « je peux agir depuis la punaise ». Trois gestes, pas un de plus, et chacun
+     est celui qui fait DISPARAITRE la punaise sur laquelle on clique. Un bouton qui
+     laisse la punaise en place apprend au vigneron que ses clics ne servent a rien.
+
+     LE PANNEAU EST GELE AVANT L'ECRITURE, et pas apres : `BdvTaches.basculer()` peint
+     tout de suite, et rappelle `bdvMajPanneau` dans la foulee. Geler apres l'appel
+     serait geler apres la repeinture, donc trop tard, et la punaise sauterait au lieu
+     de tomber.
+
+     LES BOUTONS SONT DESACTIVES DES LE PREMIER CLIC. Le sous-main avait paye ce
+     defaut : `pointer-events: none` n'arrete que la souris, et Entree deux fois de
+     suite posait deux gestes. */
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-punaise]');
+    if(!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var cle = b.getAttribute('data-punaise'), id = b.getAttribute('data-id');
+    var carte = b.closest('.postit');
+    if(carte){
+      carte.classList.add('postit--decroche');
+      [].forEach.call(carte.querySelectorAll('.postit__g'), function(x){ x.disabled = true; });
+    }
+    gelerPanneau(320);
+
+    if(cle === 'tache-fait' && window.BdvTaches){ BdvTaches.basculer(id); return; }
+    if(cle === 'tache-demain' && window.BdvTaches){ BdvTaches.repousser(id, 1); return; }
+    if(cle === 'crm-appel' && window.BdvCrm){
+      /* MEME CHEMIN QUE LE SOUS-MAIN, volontairement : un appel note depuis la punaise
+         et un appel note depuis la ligne doivent ecrire la meme chose, sinon le meme
+         client se retrouve traite d'un cote et pas de l'autre. On repeint sur le
+         miroir tout de suite, puis sur la verite du serveur quand elle arrive. */
+      BdvCrm.geste('appel', id).then(function(ok){
+        ETAT_FILE = BdvCrm.miroir();
+        peindreFile(); peindreResume(); peindrePanneau();
+        if(ok) BdvCrm.charger().then(function(etat){
+          if(!etat) return;
+          ETAT_FILE = etat;
+          peindreFile(); peindreArdoise(); peindrePanneau(); peindreResume();
+        });
+        if(!ok && carte) carte.classList.remove('postit--decroche');
+      });
+    }
+  });
 
   /* REPEINDRE « MA JOURNEE » SUR DEMANDE DU MOTEUR. Ajoute le 08/09/2026, appele par
      ecranRafraichir() dans bdv-base.js apres un import ou un vidage de base.

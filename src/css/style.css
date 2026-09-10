@@ -6832,6 +6832,143 @@ button.bureau-nav__item:hover {
    donc sous le seuil du « grand texte ». --danger-deep la remonte a 6:1. C'est la seule
    alerte du panneau : elle doit se lire, pas se deviner. */
 .postit[data-ton="vieux"] .postit__s { color: var(--danger-deep); }
+
+/* ---- LA PILE DE TRAVAIL, 10/09/2026 ----
+   Demande de Ted : « il faut que ca soit cliquable et que les elements decides
+   apparents servent a quelque chose. Je veux du dynamisme. »
+
+   TROIS CHOSES SEULEMENT ONT ETE AJOUTEES AU DESSIN, et aucune n'ajoute de matiere :
+   un lien qui couvre tout le papier, deux petits boutons de geste, et du mouvement.
+   Le liege, le papier, la punaise et le coin releve ne changent pas d'un pixel.
+
+   AUCUNE TROISIEME OMBRE. La regle du plateau n'en autorise que deux, et le
+   soulevement au survol se joue donc au deplacement seul, pas a l'ombre portee :
+   le papier monte de trois pixels, son ombre reste --ombre-carte. */
+
+/* LE LIEN S'ETEND SUR TOUT LE POST-IT. Le papier n'est plus un <a> : il contenait
+   des boutons, ce que le HTML interdit et ce que le clavier traverse de travers.
+   C'est donc le libelle qui porte le lien, et son ::after qui couvre le papier. Une
+   seule cible pour la souris, deux arrets nets pour le clavier. */
+.postit__l--lien { color: var(--ink); text-decoration: none; }
+.postit__l--lien::after { content: ""; position: absolute; inset: 0; }
+.postit:hover .postit__l--lien { text-decoration: underline; }
+/* L'anneau se pose sur le PAPIER et jamais sur le liege : --bordeaux sur --paper-light
+   se lit, --bordeaux sur --cork se devine. C'est la lecon du 07/09/2026, l'anneau a la
+   couleur de la surface qui le porte. */
+.postit__l--lien:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+
+/* LES DEUX GESTES. Ils passent AU-DESSUS du lien etendu par leur z-index : sans lui,
+   le ::after du libelle les recouvrirait et « Fait » ouvrirait Mes taches. */
+.postit__gestes {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-xs);
+  margin-top: var(--e-xs);
+}
+.postit__g {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  line-height: var(--lh-serre);
+  padding: 0.3rem 0.6rem;
+  /* Un plancher tactile, releve au doigt. 2,2rem suffit a la souris ; sous le doigt
+     la cible recommandee est plus haute, et le panneau se lit surtout au telephone. */
+  min-height: 2.2rem;
+  background: var(--paper-light);
+  color: var(--ink);
+  border: var(--trait) solid var(--rule-fort);
+  border-radius: var(--r-nul);
+  cursor: pointer;
+  transition: background var(--tr-rapide), color var(--tr-rapide), border-color var(--tr-rapide);
+}
+@media (pointer: coarse) {
+  .postit__g { min-height: 2.75rem; padding-left: 0.85rem; padding-right: 0.85rem; }
+}
+.postit__g:hover { background: var(--bordeaux); color: var(--on-dark); border-color: var(--bordeaux); }
+.postit__g:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
+.postit__g:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- LE MOUVEMENT ----
+   L'ARRIVEE SE JOUE EN `backwards` ET SURTOUT PAS EN `forwards`. Une animation qui
+   garde sa derniere image garde aussi sa transformation, et une transformation
+   d'animation bat toujours une declaration ordinaire : le post-it serait reste fige
+   dans sa rotation finale, et le redressement au survol n'aurait plus jamais joue.
+   `backwards` ne tient que l'image de DEPART, pendant le retard ; apres, l'element
+   reprend ses regles normales, survol compris. */
+.postit { --rang: 0; }
+@keyframes bdv-punaise-pose {
+  from { opacity: 0; transform: translateY(-12px) rotate(0deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(var(--tour)); }
+}
+.panneau .postit {
+  animation: bdv-punaise-pose 0.34s ease-out backwards;
+  /* De gauche a droite, comme une main qui epingle. Six punaises tiennent en 0,64 s :
+     au-dela on attend le panneau au lieu de le lire. */
+  animation-delay: calc(var(--rang) * 65ms);
+}
+/* Le papier se souleve, l'ombre ne change pas : deux ombres au projet, pas trois. */
+.postit:hover { transform: rotate(0deg) translateY(-3px); }
+
+/* LA PUNAISE RESTE AU MUR, LE PAPIER TOMBE. C'est ce detail qui fait lire la chute
+   comme « c'est fait » plutot que comme « ca a disparu » : on decroche une feuille,
+   on n'arrache pas l'epingle avec. */
+@keyframes bdv-punaise-tombe {
+  0%   { opacity: 1; transform: rotate(var(--tour)) translateY(0); }
+  30%  { transform: rotate(5deg) translateY(3px); }
+  100% { opacity: 0; transform: rotate(14deg) translateY(28px); }
+}
+.panneau .postit--decroche {
+  animation: bdv-punaise-tombe 0.3s ease-in forwards;
+  pointer-events: none;
+}
+.postit--decroche .postit__l { text-decoration: line-through; }
+.postit--decroche::before { opacity: 0; }
+
+/* CE QUI BOUGE EST UN CHOIX DE L'UTILISATEUR. Le systeme le dit, on l'ecoute : plus
+   de cascade, plus de chute, plus de soulevement. Le panneau reste entierement
+   utilisable, il ne fait qu'arreter de raconter. Le chiffre qui monte, lui, est
+   arrete cote JavaScript par la meme requete de media. */
+@media (prefers-reduced-motion: reduce) {
+  .panneau .postit,
+  .panneau .postit--decroche { animation: none; }
+  .postit:hover { transform: rotate(0deg); }
+}
+
+/* ---- LA ZONE DU PANNEAU EST SON PROPRE CONTENEUR, 10/09/2026 ----
+   Meme raison que le sous-main et le calendrier, et c'est la regle du projet : le
+   responsive se juge sur la ZONE, pas sur la fenetre. Sur « Ma journee » le panneau
+   prend toute la largeur du plan, mais le plan a deja perdu la barre des pieces et
+   le plafond de l'atelier : la fenetre ne dit rien de la place qui reste. */
+.zone--panneau { container-type: inline-size; container-name: panneau; }
+
+/* L'ETIQUETTE PORTE MAINTENANT QUATRE COMPTEURS, et plus « 3 en retard ». Le
+   `white-space: nowrap` commun a toutes les zones la poussait hors de l'ecran sur un
+   telephone, sans barre de defilement pour le dire : elle disparaissait, simplement.
+   Ici elle se replie. Elle reste alignee a droite pour ne pas se lire comme la suite
+   du titre. */
+.zone--panneau .zone__note { white-space: normal; text-align: right; }
+
+/* DEUX COLONNES PLUTOT QU'UNE SOUS 380 PX DE ZONE. En une seule colonne, cinq
+   punaises font 2 300 px de haut : le panneau ouvre « Ma journee », et il fallait le
+   franchir en entier avant d'atteindre le sous-main. Mesure faite sur un telephone
+   de 420 px. */
+@container panneau (max-width: 380px) {
+  .panneau {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--e-s);
+    padding: var(--e-m) var(--e-s) var(--e-l);
+  }
+  /* Les trois tailles descendent d'un pas de l'ECHELLE, et pas d'une valeur inventee
+     pour l'occasion : --t-h3 pour le chiffre, --t-lead pour un chiffre devenu mot,
+     --t-lead pour la ligne manuscrite. Le controle 6 de la charte plafonne les
+     tailles en dur, et il a raison : une echelle qui gagne trois marches par
+     telephone n'est plus une echelle. */
+  .postit { padding: 1.25rem 0.7rem 0.8rem; }
+  .postit__v { font-size: var(--t-h3); }
+  .postit__v[data-mot] { font-size: var(--t-lead); }
+  .postit__s { font-size: var(--t-lead); }
+}
 /* L'avis de la fiche, cale sous la croix de fermeture. */
 #ficheAvis { margin: 0 0 var(--e-m); }
 

@@ -481,25 +481,104 @@
   /* ---------------- LES PUNAISES DU PANNEAU ----------------
      Ted : « mes taches alimentera les post it ». Trois au plus, et seulement ce qui
      presse : un panneau de liege ou l'on epingle tout n'est plus un panneau, c'est un
-     mur. Le reste s'ouvre en un clic sur la punaise. */
+     mur. Le reste s'ouvre en un clic sur la punaise.
+
+     REPRIS LE 10/09/2026, sur demande de Ted : « il faut le rendre bcp plus usefull,
+     il y a des KPI qui servent a rien, il faut que ca soit cliquable ». Une punaise
+     n'annonce plus un nombre : elle porte UNE chose a faire, et les deux gestes qui
+     la font disparaitre. Le panneau devient une pile de travail qui se vide.
+
+     AUCUN TON « aujourd'hui » N'A ETE AJOUTE, et c'est deliberе : l'etat « fait » a
+     du recevoir un fond parce que sa punaise verte tombait a 2,25:1 sur le liege
+     (voir style.css). Une troisieme couleur de punaise aurait rejoue exactement ce
+     defaut. Ce qui presse le dit donc en TOUTES LETTRES dans le chiffre du post-it,
+     « aujourd'hui », « demain », « en retard » : un mot se lit, une teinte se devine. */
   function punaises() {
     var afaire = toutes().filter(function (x) { return !x.fait_le; });
     var presse = afaire.filter(function (x) { return x.jours !== null && x.jours <= 7; });
-    var out = presse.slice(0, 3).map(function (t) {
+    var tete = presse.slice(0, 3);
+    var out = tete.map(function (t) {
+      var gestes = [{ cle: 'tache-fait', id: t.tache_id, mot: 'Fait' }];
+      /* UNE OBLIGATION NE SE REPOUSSE PAS. Une DRM tombe le 10 du mois, et un bouton
+         qui pretendrait la decaler d'un jour mentirait sur ce qui est negociable.
+         Et on ne repousse que ce qui presse VRAIMENT : proposer « demain » sur une
+         tache prevue dans six jours, c'est proposer de l'avancer. */
+      if (t.source !== 'echeance' && t.jours < 1) {
+        gestes.push({ cle: 'tache-demain', id: t.tache_id, mot: 'Demain' });
+      }
       return {
+        cle: 'tache:' + t.tache_id,
         valeur: t.jours < 0 ? 'en retard' : (t.jours === 0 ? 'aujourd’hui' : (t.jours === 1 ? 'demain' : 'dans ' + t.jours + 'j')),
         libelle: t.titre,
         sous: t.source === 'echeance' ? 'obligation' : 'ta tâche',
         ton: t.jours < 0 ? 'vieux' : '',
-        href: '/mon-bureau/#taches'
+        href: '/mon-bureau/#taches',
+        gestes: gestes
       };
     });
-    var reste = afaire.length - presse.slice(0, 3).length;
-    if (reste > 0) out.push({
-      valeur: String(reste), libelle: reste > 1 ? 'autres tâches' : 'autre tâche',
-      sous: 'dans Mes tâches', href: '/mon-bureau/#taches'
-    });
+    var reste = afaire.length - tete.length;
+    if (reste > 0) {
+      // « 5 sans date » dit ou elles sont et pourquoi elles ne pressent pas ; « dans
+      // Mes taches » ne disait que l'endroit, qu'on connait deja par le clic.
+      var sansD = afaire.filter(function (x) { return x.jours === null; }).length;
+      out.push({
+        cle: 'taches-reste',
+        valeur: String(reste), libelle: reste > 1 ? 'autres tâches' : 'autre tâche',
+        sous: sansD ? (sansD > 1 ? sansD + ' sans date' : '1 sans date') : 'dans Mes tâches',
+        href: '/mon-bureau/#taches'
+      });
+    }
     return out;
+  }
+
+  /* REPOUSSER A DEMAIN, DEPUIS LA PUNAISE. Ajoute le 10/09/2026.
+
+     LA NOUVELLE DATE SE COMPTE A PARTIR D'AUJOURD'HUI, jamais de l'ancienne. Un
+     « demain » qui rendrait le 4 septembre pour une tache du 3 laisserait la tache en
+     retard apres le clic, et le bouton passerait pour casse alors qu'il aurait fait
+     exactement ce qu'on lui a demande.
+
+     LES OBLIGATIONS SONT REFUSEES ICI AUSSI, et pas seulement absentes du bouton :
+     `libres()` ne les contient pas, donc un appel qui les viserait sort par `false`.
+     Le garde-fou est dans la donnee, pas dans l'ecran.
+
+     UNE TACHE QUI DURE GARDE SA DUREE : la fin se decale d'autant que le debut, sinon
+     un salon de trois jours repousse a demain deviendrait un salon d'un jour. */
+  function repousser(tid, n) {
+    var t = libres().filter(function (x) { return x.tache_id === tid; })[0];
+    if (!t) return false;
+    var base = minuit(new Date());
+    base.setDate(base.getDate() + (n || 1));
+    var fin = null;
+    if (t.echue_le && t.fin_le) {
+      var d0 = minuit(new Date(t.echue_le + 'T00:00:00'));
+      var f0 = minuit(new Date(t.fin_le + 'T00:00:00'));
+      if (!isNaN(d0) && !isNaN(f0)) {
+        var f = new Date(base);
+        f.setDate(f.getDate() + Math.round((f0 - d0) / JOUR));
+        fin = iso(f);
+      }
+    }
+    ecrire(tid, { tache_id: tid, titre: t.titre, source: 'libre', ref: null,
+                  echue_le: iso(base), fin_le: fin, fait_le: null,
+                  maj_le: new Date().toISOString() });
+    return true;
+  }
+
+  /* CE QUI A ETE FAIT AUJOURD'HUI. Sert au bilan du soir sur le panneau : une pile de
+     travail qui se vide doit dire ce qu'elle a avale, sinon elle ne recompense rien.
+
+     ON COMPARE DEUX MINUITS LOCAUX, et pas les dix premiers caracteres de `fait_le`.
+     Cette colonne porte un horodatage UTC : entre minuit et deux heures du matin en
+     France, sa tranche de date rend la VEILLE, et le bilan aurait annonce zero a
+     quelqu'un qui vient de cocher. Meme piege que isoLocal() dans bdv-crm.js. */
+  function faitsAujourdhui() {
+    var auj = minuit(new Date());
+    return toutes().filter(function (t) {
+      if (!t.fait_le) return false;
+      var d = new Date(t.fait_le);
+      return !isNaN(d) && +minuit(d) === +auj;
+    }).length;
   }
 
   /* ---------------- BRANCHEMENTS ---------------- */
@@ -576,6 +655,7 @@
   window.BdvTaches = {
     ouvrir: ouvrir, rendre: rendre, charger: charger, punaises: punaises,
     ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes,
+    repousser: repousser, faitsAujourdhui: faitsAujourdhui,
     estFaite: estFaite, basculerOccurrence: basculerOccurrence,
     datees: datees, sansDate: sansDate,
     familleAffichee: familleAffichee, basculerFamille: basculerFamille

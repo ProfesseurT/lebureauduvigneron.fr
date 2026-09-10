@@ -38,7 +38,7 @@ Le probleme n'etait pas que certains chiffres etaient inutiles, c'est que **les 
 
 - **Le panneau devient une pile de travail**, et pas un tableau de bord. Une punaise porte UNE
   chose a faire, dans l'ordre ou elle presse, avec les gestes qui la font disparaitre. Ecarte :
-  « garder les six et tout rendre cliquable », qui n'aurait rien regle au fond — « 1,3 geste par
+  « garder les six et tout rendre cliquable », qui n'aurait rien regle au fond, « 1,3 geste par
   semaine » reste inactionnable meme cliquable.
 - **Le retard prend la premiere punaise, en rouge**, et disparait quand il n'y a rien en retard.
   Ecarte : le fondre dans « rappels a venir », ou il se serait noye dans le total.
@@ -60,12 +60,12 @@ Le probleme n'etait pas que certains chiffres etaient inutiles, c'est que **les 
   panneau vers le reste. Il ne se montre que s'il reste une place.
 - **Cinq punaises au plus, et le chiffre vient d'une capture.** A six, sur 1200 px, la sixieme
   part seule sur une deuxieme rangee avec quatre cases de liege nu a cote d'elle.
-- **Un post-it n'est plus un `<a>`.** Il contenait des boutons, ce que le HTML interdit — le meme
+- **Un post-it n'est plus un `<a>`.** Il contenait des boutons, ce que le HTML interdit, le meme
   defaut que le sous-main avait deja paye. C'est le libelle qui porte le lien, et son `::after`
   couvre tout le papier : une seule cible pour la souris, deux arrets nets pour le clavier.
 - **Aucune troisieme couleur de punaise.** L'etat « fait » avait deja du recevoir un FOND parce
   que sa punaise verte tombait a 2,25:1 sur le liege. Ce qui presse le dit donc en toutes lettres
-  dans le chiffre du post-it — « aujourd'hui », « en retard », « dans 3j » : un mot se lit, une
+  dans le chiffre du post-it, « aujourd'hui », « en retard », « dans 3j » : un mot se lit, une
   teinte se devine.
 
 ### Un defaut trouve par accident, et il bloquait `npm run verif`
@@ -73,14 +73,14 @@ Le probleme n'etait pas que certains chiffres etaient inutiles, c'est que **les 
 **`npm run banc:journee` n'est jamais sorti tout seul, et personne ne le voyait** parce qu'il
 affichait son verdict avant de rester en l'air. La page pose `setInterval(peindreLune, 30 minutes)`
 au `DOMContentLoaded` : ce minuteur appartient a la fenetre jsdom et tient la boucle d'evenements
-de node ouverte. La chaine de controles s'arretait la, sans un mot — **un enchainement bloque se lit
+de node ouverte. La chaine de controles s'arretait la, sans un mot, **un enchainement bloque se lit
 comme un controle qui reflechit.** C'etait deja vrai avant cette session, sur `HEAD`. Corrige par
 un `process.exit` explicite en fin de banc, code de sortie du verdict.
 
 ### Ce qui a ete verifie
 
 `npm run verif` complet, au vert de bout en bout (et il se termine, maintenant). Le panneau
-n'etait couvert par AUCUN banc — c'est exactement pour ca que son pire defaut a vecu si longtemps.
+n'etait couvert par AUCUN banc, c'est exactement pour ca que son pire defaut a vecu si longtemps.
 Section 5 et 5 bis ajoutees a `banc-journee.mjs`, 16 controles, dont le premier porte sur le
 retard et doit rester le premier. Deux captures, 1200 px et 420 px, relues avant de clore : la
 premiere a fait tomber le bilan de la cinquieme place, la seconde a fait passer le panneau a deux
