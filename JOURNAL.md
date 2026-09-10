@@ -12,6 +12,95 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 10/09/2026, fin de journee. Le panneau de liege devient une pile de travail
+
+Demande de Ted, mot pour mot : « il faut le rendre bcp plus usefull. il y a des KPI qui servent a
+rien. il faut que ca soit cliquable et que les elements decides apparents servent a quelque chose.
+je veux du dynamisme. »
+
+### Le diagnostic, avant de toucher au code
+
+Le probleme n'etait pas que certains chiffres etaient inutiles, c'est que **les six repondaient a
+« combien » et aucun a « et maintenant, quoi »**. Quatre constats, tous verifies dans le code :
+
+1. **Deux punaises disaient la meme chose.** « 5 gestes cette semaine » et « 1,3 geste par
+   semaine » sortent du meme tableau, la seconde etant la premiere divisee par quatre. Deux
+   punaises, un seul fait.
+2. **Quatre des six ne se cliquaient pas.** Seules « autres taches » et « ta derniere analyse »
+   portaient un lien.
+3. **Le pire n'etait pas ce qu'il montrait, c'est ce qu'il cachait.** Le filtre des rappels etait
+   `rappel > aujourd'hui`, strictement l'avenir. **Une promesse faite pour le 3 septembre et pas
+   tenue n'apparaissait nulle part sur le liege.** Le chiffre le plus actionnable du bureau etait
+   le seul absent.
+4. **Le panneau ne bougeait jamais** : peint d'un coup, sans transition, identique a 8 h et a 18 h.
+
+### Les arbitrages, tranches par Ted
+
+- **Le panneau devient une pile de travail**, et pas un tableau de bord. Une punaise porte UNE
+  chose a faire, dans l'ordre ou elle presse, avec les gestes qui la font disparaitre. Ecarte :
+  « garder les six et tout rendre cliquable », qui n'aurait rien regle au fond — « 1,3 geste par
+  semaine » reste inactionnable meme cliquable.
+- **Le retard prend la premiere punaise, en rouge**, et disparait quand il n'y a rien en retard.
+  Ecarte : le fondre dans « rappels a venir », ou il se serait noye dans le total.
+- **Du dynamisme, trois sens sur quatre** : le contenu change dans la journee, ca bouge a l'ecran,
+  on peut agir depuis la punaise. Ted n'avait pas coche « ca reagit sans recharger » ; c'est venu
+  avec le troisieme, parce qu'un bouton « Fait » qui laisse la punaise en place apprend au
+  vigneron que ses clics ne servent a rien.
+
+### Ce qui a ete decide en cours de route, et pourquoi
+
+- **Les compteurs ne sont pas jetes, ils sont declasses.** Gestes de la semaine, moyenne, faits du
+  jour, carnet, fraicheur de l'analyse tiennent dans l'etiquette de la zone. Ils meritaient une
+  ligne, pas une punaise chacun.
+- **L'age de l'analyse ne revient qu'au-dela de quinze jours.** Cette punaise annoncait « du jour »
+  tous les jours ou tout allait bien : elle occupait une place pour dire qu'il n'y avait rien a
+  faire.
+- **Le bilan du soir ne chasse jamais du travail.** Premiere capture : il prenait la cinquieme
+  place et poussait dehors une tache ET la punaise de renvoi vers Mes taches, seule porte du
+  panneau vers le reste. Il ne se montre que s'il reste une place.
+- **Cinq punaises au plus, et le chiffre vient d'une capture.** A six, sur 1200 px, la sixieme
+  part seule sur une deuxieme rangee avec quatre cases de liege nu a cote d'elle.
+- **Un post-it n'est plus un `<a>`.** Il contenait des boutons, ce que le HTML interdit — le meme
+  defaut que le sous-main avait deja paye. C'est le libelle qui porte le lien, et son `::after`
+  couvre tout le papier : une seule cible pour la souris, deux arrets nets pour le clavier.
+- **Aucune troisieme couleur de punaise.** L'etat « fait » avait deja du recevoir un FOND parce
+  que sa punaise verte tombait a 2,25:1 sur le liege. Ce qui presse le dit donc en toutes lettres
+  dans le chiffre du post-it — « aujourd'hui », « en retard », « dans 3j » : un mot se lit, une
+  teinte se devine.
+
+### Un defaut trouve par accident, et il bloquait `npm run verif`
+
+**`npm run banc:journee` n'est jamais sorti tout seul, et personne ne le voyait** parce qu'il
+affichait son verdict avant de rester en l'air. La page pose `setInterval(peindreLune, 30 minutes)`
+au `DOMContentLoaded` : ce minuteur appartient a la fenetre jsdom et tient la boucle d'evenements
+de node ouverte. La chaine de controles s'arretait la, sans un mot — **un enchainement bloque se lit
+comme un controle qui reflechit.** C'etait deja vrai avant cette session, sur `HEAD`. Corrige par
+un `process.exit` explicite en fin de banc, code de sortie du verdict.
+
+### Ce qui a ete verifie
+
+`npm run verif` complet, au vert de bout en bout (et il se termine, maintenant). Le panneau
+n'etait couvert par AUCUN banc — c'est exactement pour ca que son pire defaut a vecu si longtemps.
+Section 5 et 5 bis ajoutees a `banc-journee.mjs`, 16 controles, dont le premier porte sur le
+retard et doit rester le premier. Deux captures, 1200 px et 420 px, relues avant de clore : la
+premiere a fait tomber le bilan de la cinquieme place, la seconde a fait passer le panneau a deux
+colonnes sur telephone (en une seule, cinq punaises font 2 300 px de haut, et il fallait franchir
+le panneau en entier avant d'atteindre le sous-main).
+
+### Ce qui reste ouvert
+
+- **Le faux `BdvTaches` de `scripts/apercu-panneau.mjs` rejoue `punaises()` a l'identique.** C'est
+  un doublon assume : jsdom ne charge pas les `<script src>`. Si l'ordre des punaises change dans
+  `src/js/bdv-taches.js`, il faut le changer la aussi, sinon l'apercu montre un panneau qui
+  n'existe plus.
+- **La punaise de renvoi vers Mes taches saute les jours charges**, faute de place. Chaque punaise
+  de tache mene deja a `#taches`, donc la porte existe ; a surveiller si Ted la cherche.
+- **`npm run apercu:panneau`** ecrit `_apercu/panneau.html`, autonome, a ouvrir d'un double-clic.
+  Le panneau a cinq etats et aucun ne se voit sans compte : on les regardait en poussant en
+  production, ce qui est la plus mauvaise facon de juger un dessin.
+
+---
+
 ## 10/09/2026, apres-midi. Le premier vrai courrier, et ce que la messagerie en avait jete
 
 Trois defauts du dessin, tous trouves dans la meme heure, tous dans le PREMIER courrier
@@ -84,6 +173,33 @@ Corrige en `0e12447`. Fonction en version 9, `heure_paris` rend maintenant 14, `
 Reste : l'horloge de 8 h, `URL_BUREAU` que Ted regle avec le branchement du domaine (assume :
 il est seul destinataire, un bouton mort ne coute rien avant le premier vigneron), et
 `ecarterLesSuivis()` a supprimer.
+
+### L'HORLOGE FRAPPE, MAIS ELLE SE FAIT REFUSER, 17 h
+
+Verification du premier declenchement reel, faite sans rien demander a Ted.
+
+**Bonne nouvelle : toute la chaine tient.** `cron.job_run_details` montre les passages de 16 h 05
+et 17 h 05, `status: succeeded`. pg_cron declenche, pg_net poste, la fonction recoit et repond.
+Chaque maillon est prouve.
+
+**Mauvaise nouvelle : elle repond 401.** « En-tete x-courrier-cle absente ou fausse. » Deux
+passages, deux refus, et `courrier_envois` toujours vide.
+
+**La cause, trouvee en mesurant la valeur plutot qu'en la lisant** : le secret inscrit dans la
+tache fait **50 caracteres**, commence par `<` et finit par `>`. Le vrai secret en fait 48. Les
+chevrons du gabarit (`'<COURRIER_CLE>'`) sont partis avec la valeur : le mot a ete remplace,
+les chevrons sont restes.
+
+REGLE, et c'est la deuxieme fois de la journee que ce piege coute une heure : **un gabarit ne
+doit pas porter de delimiteurs qui ressemblent a de la valeur.** `<COURRIER_CLE>` et `TON-CODE`
+ont tous les deux ete colles tels quels ou a moitie. Ecrire `colle-ton-secret-ici`, sans
+chevrons ni majuscules, ne laisse rien a retirer.
+
+**Ce que ce controle a evite** : demain a 8 h 05, l'horloge aurait frappe, la fonction aurait
+repondu 401, aucun mail ne serait parti, et RIEN ne l'aurait signale. Ni erreur, ni ligne rouge.
+Juste une boite vide et un journal `courrier_envois` sans ligne. C'est exactement la panne que
+la regle 4 -- mettre les chiffres de travail dans le rapport -- existe pour rendre visible, et
+c'est la premiere fois qu'elle sert avant le dommage plutot qu'apres.
 
 ### L'HORLOGE EST POSEE, 15 h
 
