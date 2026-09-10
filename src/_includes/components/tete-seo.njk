@@ -1,0 +1,161 @@
+{#
+  TOUT CE QUE LES MOTEURS LISENT, EN UN SEUL ENDROIT.
+  Pose le 10/09/2026 avec la refonte des articles.
+
+  Avant ce fichier, la tete du site n'avait ni canonical, ni og:url, ni la moindre
+  donnee structuree, et `og:type` valait « website » sur les vingt articles. Un
+  article sans canonical est un article que Google peut choisir de ne pas indexer
+  au profit d'une variante d'adresse ; un article sans `datePublished` structuree
+  est un article dont la date n'apparait pas dans les resultats.
+
+  Deux regles a ne pas defaire :
+
+  1. TOUTE ADRESSE EST ABSOLUE. Les robots de partage et schema.org ignorent en
+     silence un chemin relatif. D'ou le filtre `absolu` partout.
+
+  2. LA DATE AFFICHEE ET LA DATE STRUCTUREE SONT LA MEME. Google recoupe les deux
+     et deprecie la page quand elles divergent. Le gabarit d'article affiche
+     `page.date` et `maj`, ce fichier declare exactement les memes.
+
+  Deux champs d'entete facultatifs sont lus ici et nulle part ailleurs :
+  `titre_seo` (le titre court, pour l'onglet et le resultat Google, quand le vrai
+  titre depasse soixante signes) et `resume` (la meta description courte, quand le
+  chapo depasse cent soixante signes). Absents, on retombe sur `title` et
+  `description` : aucun article n'a besoin d'etre modifie pour que le site marche.
+#}
+{%- set nomSite = "Le Bureau du Vigneron" -%}
+{%- set titrePage = titre_seo if titre_seo else title -%}
+{%- set descPage = (resume if resume else description) | court(158) -%}
+{%- set descDefaut = "Le bureau du vigneron, déjà rangé : échéances réglementaires, clients à rappeler, analyses de terrain. Par Solumatic, créateur de Vitisoft. Gratuit, ouvert à toute la filière." -%}
+{%- set descFinale = descPage if descPage else descDefaut -%}
+{%- set urlPage = page.url | absolu -%}
+{%- set imagePage = (image if image else "/assets/og-dashboard.png") | absolu -%}
+{%- set rub = (categorie | rubriqueDe) if categorie else none -%}
+{%- set rubriqueNom = rub.nom if rub else "" -%}
+{%- set rubriqueUrl = ("/articles/rubrique/" + rub.slug + "/") | absolu if rub else "" -%}
+
+  <title>{{ titrePage }}{% if titrePage != nomSite %} · {{ nomSite }}{% endif %}</title>
+  <meta name="description" content="{{ descFinale }}">
+  <link rel="canonical" href="{{ urlPage }}">
+{%- if noindex %}
+  {# Une page de compte ou un bureau prive n'a rien a faire dans un resultat de
+     recherche : elle n'apporte rien a qui la trouve, et elle dilue le site. #}
+  <meta name="robots" content="noindex, follow">
+{%- endif %}
+
+  <meta property="og:title" content="{{ titrePage }}{% if titrePage != nomSite %} · {{ nomSite }}{% endif %}">
+  <meta property="og:description" content="{{ descFinale }}">
+  <meta property="og:type" content="{% if estArticle %}article{% else %}website{% endif %}">
+  <meta property="og:url" content="{{ urlPage }}">
+  <meta property="og:image" content="{{ imagePage }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="{{ nomSite }}">
+  <meta property="og:locale" content="fr_FR">
+  <meta name="twitter:card" content="summary_large_image">
+{%- if estArticle %}
+  <meta property="article:published_time" content="{{ page.date | dateISO }}">
+  <meta property="article:modified_time" content="{{ (maj if maj else page.date) | dateISO }}">
+  <meta property="article:author" content="{{ auteur }}">
+  {%- if rubriqueNom %}<meta property="article:section" content="{{ rubriqueNom }}">{% endif %}
+{%- endif %}
+
+{#  UN SEUL bloc de donnees structurees pour toute la page, relie par des `@id`.
+    Deux blocs separes decrivant la meme entite obligent le moteur a deviner
+    laquelle fait foi ; le graphe unique ne lui laisse pas ce choix. #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://lebureauduvigneron.fr/#organisation",
+        "name": {{ nomSite | dump | safe }},
+        "url": "https://lebureauduvigneron.fr/",
+        "inLanguage": "fr-FR",
+        "parentOrganization": { "@type": "Organization", "name": "Solumatic" },
+        "knowsAbout": [
+          "Gestion de domaine viticole",
+          "Réglementation vitivinicole",
+          "Commercialisation du vin",
+          "Logiciel de gestion vigneron"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://lebureauduvigneron.fr/#site",
+        "url": "https://lebureauduvigneron.fr/",
+        "name": {{ nomSite | dump | safe }},
+        "inLanguage": "fr-FR",
+        "publisher": { "@id": "https://lebureauduvigneron.fr/#organisation" }
+      }
+{%- if estArticle %},
+      {
+        "@type": "BlogPosting",
+        "@id": {{ (urlPage + "#article") | dump | safe }},
+        "mainEntityOfPage": { "@id": {{ urlPage | dump | safe }} },
+        "url": {{ urlPage | dump | safe }},
+        "headline": {{ title | dump | safe }},
+        "description": {{ (description or "") | dump | safe }},
+        "image": {{ imagePage | dump | safe }},
+        "datePublished": {{ page.date | dateISO | dump | safe }},
+        "dateModified": {{ (maj if maj else page.date) | dateISO | dump | safe }},
+        "inLanguage": "fr-FR",
+        {%- if rubriqueNom %}
+        "articleSection": {{ rubriqueNom | dump | safe }},
+        {%- endif %}
+        {%- if temps_lecture %}
+        "timeRequired": {{ ("PT" + (temps_lecture | replace(" min", "") | trim) + "M") | dump | safe }},
+        {%- endif %}
+        {#- L'auteur est une DONNEE, jamais un nom ecrit en dur. Voir « LE FLAMBEAU »
+            dans CLAUDE.md : le site ne tourne pas autour d'une personne. Le champ
+            `auteur` vient de src/posts/posts.11tydata.js, et un article signe par
+            quelqu'un d'autre porte le sien dans son entete. La page de reference
+            est /la-redaction/, la meme pour tout le monde. -#}
+        "author": {
+          "@type": "Person",
+          "name": {{ (auteur or "La rédaction") | dump | safe }},
+          "url": "https://lebureauduvigneron.fr/la-redaction/"
+        },
+        "publisher": { "@id": "https://lebureauduvigneron.fr/#organisation" },
+        "isPartOf": { "@id": "https://lebureauduvigneron.fr/#site" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": {{ (urlPage + "#fil") | dump | safe }},
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://lebureauduvigneron.fr/" },
+          { "@type": "ListItem", "position": 2, "name": "Articles", "item": "https://lebureauduvigneron.fr/articles/" }
+          {%- if rubriqueNom %},
+          { "@type": "ListItem", "position": 3, "name": {{ rubriqueNom | dump | safe }}, "item": {{ rubriqueUrl | dump | safe }} },
+          { "@type": "ListItem", "position": 4, "name": {{ title | dump | safe }} }
+          {%- else %},
+          { "@type": "ListItem", "position": 3, "name": {{ title | dump | safe }} }
+          {%- endif %}
+        ]
+      }
+{%- endif %}
+{%- if estRubrique %},
+      {
+        "@type": "CollectionPage",
+        "@id": {{ urlPage | dump | safe }},
+        "url": {{ urlPage | dump | safe }},
+        "name": {{ rubrique.titre | dump | safe }},
+        "description": {{ rubrique.descSeo | dump | safe }},
+        "inLanguage": "fr-FR",
+        "isPartOf": { "@id": "https://lebureauduvigneron.fr/#site" },
+        "about": { "@id": "https://lebureauduvigneron.fr/#organisation" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": {{ (urlPage + "#fil") | dump | safe }},
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://lebureauduvigneron.fr/" },
+          { "@type": "ListItem", "position": 2, "name": "Articles", "item": "https://lebureauduvigneron.fr/articles/" },
+          { "@type": "ListItem", "position": 3, "name": {{ rubrique.nom | dump | safe }} }
+        ]
+      }
+{%- endif %}
+    ]
+  }
+  </script>

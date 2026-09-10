@@ -1,0 +1,29 @@
+---
+permalink: /sitemap.xml
+eleventyExcludeFromCollections: true
+---
+{#- LE PLAN DU SITE POUR LES ROBOTS. Pose le 10/09/2026 ; il n'y en avait aucun.
+
+    A ne pas confondre avec /plan-du-site/, qui est la page lisible par un humain.
+
+    `lastmod` est la SEULE balise facultative gardee. Google dit s'en servir quand
+    elle est « constamment et verifiablement exacte », et ignorer `changefreq` et
+    `priority` — les ecrire serait du bruit. Corollaire a tenir : `lastmod` sort
+    de la date de l'article (ou de son champ `maj`), jamais de la date du build,
+    sinon les dix-neuf articles seraient modifies chaque nuit et la balise perdrait
+    toute credibilite pour l'ensemble du site.
+
+    Sont ecartees : les pages qui portent `noindex`, celles dont le permalink est
+    faux (les brouillons), et le tableau de bord, qui est une application et pas
+    un document. -#}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- for p in collections.all %}
+{%- if p.url and not p.data.noindex and "/outils/dashboard-vigneron" not in p.url %}
+  <url>
+    <loc>{{ p.url | absolu }}</loc>
+    <lastmod>{{ (p.data.maj if p.data.maj else p.date) | dateISO }}</lastmod>
+  </url>
+{%- endif %}
+{%- endfor %}
+</urlset>

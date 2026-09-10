@@ -1,50 +1,120 @@
 ---
 layout: base.njk
 title: Articles
-description: Ressources et analyses sur la gestion de domaine vitivinicole, par la rédaction du Bureau.
+titre_seo: "Articles pour gérer son domaine viticole"
+description: "Vendre, s'organiser, tenir ses obligations, se lancer : les articles de terrain du Bureau du Vigneron, écrits par Teddy Pereira. Du concret, pas de théorie."
 permalink: /articles/
 ---
+{#
+  LA PAGE /articles/, REFAITE LE 10/09/2026.
+
+  Ce qu'elle etait : dix-neuf cartes identiques dans une grille de trois colonnes,
+  posee dans un conteneur de 760 px. Aucun filtre, aucune hierarchie, et deux
+  donnees deja presentes dans les entetes — le temps de lecture et la categorie —
+  affichees nulle part. Un lecteur qui cherchait la DAI devait lire dix-neuf
+  titres casses sur six lignes.
+
+  Ce qu'elle est : une ouverture, quatre rubriques, dix-neuf lignes numerotees.
+  Trois etages de lecture, dans cet ordre :
+
+  1. L'OUVERTURE. Le dernier article publie, en grand. C'est la une du journal :
+     elle decide a la place de celui qui arrive sans rien connaitre du corpus.
+  2. LES RUBRIQUES. Quatre liens vers quatre VRAIES pages, pas un filtre en
+     JavaScript. Une page par rubrique, c'est quatre adresses de plus dans
+     l'index de Google, un fil d'Ariane possible sur chaque article, et un filtre
+     qui marche meme sans script.
+  3. LE SOMMAIRE. Les articles groupes par rubrique, en lignes numerotees.
+
+  L'ouverture est reprise dans le sommaire de sa rubrique, volontairement : un
+  lecteur qui parcourt « Vendre & fidéliser » doit y trouver les huit articles de
+  la rubrique, pas sept plus une exception qu'il a deja vue en haut.
+#}
+{%- set une = collections.posts[0] -%}
+{%- set rubUne = une.data.categorie | rubriqueDe -%}
 
 <section class="about-hero">
-  <div class="container">
+  <div class="container container--wide">
     <p class="section__label" style="color:var(--on-dark-soft)">Ressources</p>
     <h1>Articles</h1>
-    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
-      Du terrain. Du concret. Pas de théorie.
+    <p class="artintro__accroche">Du terrain. Du concret. Pas de théorie.</p>
+    <p class="artintro__compte">
+      {{ collections.posts | length }} articles ·
+      {{ collections.rubriques | length }} rubriques ·
+      le plus récent du <time datetime="{{ une.date | dateISO }}">{{ une.date | dateReadable }}</time>
     </p>
   </div>
 </section>
 
-<section class="section">
-  <div class="container">
-    {% if collections.posts | length > 0 %}
-    <div class="articles-grid">
-      {% for post in collections.posts %}
-      <div class="article-card">
-        <button type="button" class="signet signet--punaise" data-signet
-                data-signet-ref="{{ post.url }}"
-                data-signet-titre="{{ post.data.title }}"
-                data-signet-type="article"
-                aria-label="Mettre de côté">
-          <span class="signet__icone" aria-hidden="true"></span>
-        </button>
-        {% if post.data.pilier %}
-        <p class="article-card__pilier">{{ post.data.pilier }}</p>
-        {% endif %}
-        <a href="{{ post.url }}" class="article-card__title">{{ post.data.title }}</a>
-        {% if post.data.description %}
-        <p class="article-card__excerpt">{{ post.data.description }}</p>
-        {% endif %}
-        <p class="article-card__meta">{{ post.date | dateReadable }}</p>
+<main id="contenu">
+
+  {# ---- 1. L'OUVERTURE ------------------------------------------------- #}
+  <section class="artune">
+    <div class="container container--wide">
+      <p class="artune__etiq">À la une{% if rubUne %} · <a href="/articles/rubrique/{{ rubUne.slug }}/">{{ rubUne.nom }}</a>{% endif %}</p>
+      <div class="artune__grille">
+        <div class="artune__texte">
+          <h2 class="artune__titre"><a href="{{ une.url }}">{{ une.data.title }}</a></h2>
+          {%- if une.data.description %}
+          <p class="artune__chapo">{{ une.data.description }}</p>
+          {%- endif %}
+          <p class="artune__meta">
+            Par {{ une.data.auteur }} ·
+            <time datetime="{{ une.date | dateISO }}">{{ une.date | dateReadable }}</time>
+            {%- if une.data.temps_lecture %} · {{ une.data.temps_lecture }} de lecture{% endif %}
+          </p>
+          <a href="{{ une.url }}" class="btn btn--bordeaux">Lire l'article</a>
+        </div>
+        {#- L'emplacement de l'image existe des aujourd'hui, et ne dessine rien tant
+            qu'aucun article ne porte de champ `image`. Une image absente ne doit
+            jamais laisser un cadre vide : la mise en page se referme d'elle-meme
+            sur une seule colonne. -#}
+        {%- if une.data.image %}
+        <figure class="artune__figure">
+          <img src="{{ une.data.image }}" alt="{{ une.data.image_alt if une.data.image_alt else '' }}"
+               width="1200" height="800" fetchpriority="high" decoding="async">
+        </figure>
+        {%- endif %}
       </div>
-      {% endfor %}
     </div>
+  </section>
 
-    {% else %}
-    <p style="color:var(--muted); font-style:italic; text-align:center; padding: 3rem 0;">
-      Les premiers articles arrivent bientôt.<br>
-      <a href="/compte/" data-bdv-compte data-bdv-titre="Ton bureau t&#39;attend.">Créer mon compte →</a>
-    </p>
-    {% endif %}
-  </div>
-</section>
+  {# ---- 2. LES RUBRIQUES ------------------------------------------------ #}
+  <nav class="artfil" aria-label="Rubriques">
+    <div class="container container--wide">
+      <ul class="artfil__liste">
+        <li><span class="artfil__lien artfil__lien--actif" aria-current="page">Tout <span class="artfil__n">{{ collections.posts | length }}</span></span></li>
+        {%- for r in collections.rubriques %}
+        <li><a class="artfil__lien" href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }} <span class="artfil__n">{{ r.articles | length }}</span></a></li>
+        {%- endfor %}
+      </ul>
+    </div>
+  </nav>
+
+  {# ---- 3. LE SOMMAIRE --------------------------------------------------- #}
+  {%- if collections.posts | length > 0 %}
+  {%- for r in collections.rubriques %}
+  <section class="artcahier" id="{{ r.slug }}">
+    <div class="container container--wide">
+      <div class="artcahier__tete">
+        <h2 class="artcahier__titre"><a href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }}</a></h2>
+        <p class="artcahier__n">{{ r.articles | length }} article{% if r.articles | length > 1 %}s{% endif %}</p>
+      </div>
+      <p class="artcahier__intro">{{ r.intro }}</p>
+      {%- set lot = r.articles %}
+      {% include "components/liste-articles.njk" %}
+    </div>
+  </section>
+  {%- endfor %}
+
+  {%- else %}
+  <section class="section">
+    <div class="container">
+      <p class="artvide">
+        Les premiers articles arrivent bientôt.<br>
+        <a href="/compte/" data-bdv-compte data-bdv-titre="Ton bureau t&#39;attend.">Créer mon compte →</a>
+      </p>
+    </div>
+  </section>
+  {%- endif %}
+
+</main>

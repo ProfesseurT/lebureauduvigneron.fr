@@ -1,0 +1,45 @@
+{#
+  LA LISTE D'ARTICLES, EN LIGNES NUMEROTEES.
+
+  Un seul dessin, utilise par /articles/ et par les quatre pages de rubrique :
+  deux dessins pour la meme chose finiraient par diverger.
+
+  Le gabarit appelant pose `lot` (le tableau d'articles) avant l'inclusion.
+  Nunjucks partage le contexte avec l'include, il n'y a rien d'autre a passer.
+
+  POURQUOI DES LIGNES ET PAS DES CARTES. La grille de trois cartes tenait dans un
+  conteneur de 760 px : chaque colonne faisait 213 px moins 56 px de marge
+  interieure, soit une mesure de trois mots par ligne. Un titre de quatre-vingt-dix
+  signes s'y cassait sur six lignes. Le probleme n'etait pas la carte, c'etait la
+  largeur ; et une fois la largeur rendue au titre, la carte n'a plus de raison
+  d'etre. Les listes en une colonne sont d'ailleurs ce qu'utilisent tous les
+  editeurs serieux — la grille de cartes est le reflexe des themes de blog.
+
+  Le numero n'est pas une decoration : il dit au lecteur combien il en reste, et
+  c'est ce qui transforme un flux sans fin en collection finie. Il est
+  `aria-hidden`, un lecteur d'ecran annonce deja le rang dans une liste ordonnee.
+#}
+<ol class="artliste">
+{%- for p in lot %}
+  <li class="artligne">
+    <span class="artligne__num" aria-hidden="true">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
+    <div class="artligne__corps">
+      <h3 class="artligne__titre"><a href="{{ p.url }}">{{ p.data.title }}</a></h3>
+      {%- if p.data.description %}
+      <p class="artligne__chapo">{{ p.data.description | court(130) }}</p>
+      {%- endif %}
+    </div>
+    <p class="artligne__meta">
+      {%- if p.data.temps_lecture %}<span class="artligne__duree">{{ p.data.temps_lecture }}</span>{% endif %}
+      <time datetime="{{ p.date | dateISO }}">{{ p.date | dateReadable }}</time>
+    </p>
+    <button type="button" class="signet signet--punaise" data-signet
+            data-signet-ref="{{ p.url }}"
+            data-signet-titre="{{ p.data.title }}"
+            data-signet-type="article"
+            aria-label="Mettre « {{ p.data.title }} » de côté">
+      <span class="signet__icone" aria-hidden="true"></span>
+    </button>
+  </li>
+{%- endfor %}
+</ol>

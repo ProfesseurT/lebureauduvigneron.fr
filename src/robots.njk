@@ -1,0 +1,25 @@
+---
+permalink: /robots.txt
+eleventyExcludeFromCollections: true
+---
+# Le Bureau du Vigneron — pose le 10/09/2026.
+# Il n'y avait aucun robots.txt : le site etait entierement ouvert par defaut,
+# ce qui est le bon reglage, mais rien n'indiquait ou trouver le plan du site.
+#
+# Les robots des moteurs de reponse sont autorises EXPRES. Les autoriser est la
+# condition pour etre cite par eux ; les bloquer serait un choix editorial
+# defendable, mais il coupe le site de la recherche generative. Ted a choisi la
+# visibilite.
+#
+# Le CSS et les images ne sont jamais bloques : Google demande a pouvoir les
+# charger pour juger la page.
+
+# AUCUN Disallow, ET C'EST VOULU. Le bureau et la porte du compte portent une
+# balise noindex dans leur en-tete ; pour la LIRE, le robot doit pouvoir charger
+# la page. Les interdire ici ferait exactement l'inverse de ce qu'on veut : la
+# page resterait indexable, simplement jamais relue.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://lebureauduvigneron.fr/sitemap.xml

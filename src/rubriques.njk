@@ -1,0 +1,72 @@
+---
+layout: base.njk
+pagination:
+  data: collections.rubriques
+  size: 1
+  alias: rubrique
+permalink: "/articles/rubrique/{{ rubrique.slug }}/"
+estRubrique: true
+eleventyComputed:
+  title: "{{ rubrique.titre }}"
+  description: "{{ rubrique.descSeo }}"
+---
+{#
+  UNE PAGE PAR RUBRIQUE. Posee le 10/09/2026.
+
+  Quatre pages fabriquees par ce seul fichier, une par entree de
+  src/_data/rubriques.js. Elles servent trois choses a la fois :
+
+  - un filtre qui marche sans JavaScript, et qui a une adresse partageable ;
+  - quatre pages de plus dans l'index de Google, chacune sur un theme unique,
+    ce qui est le levier le plus direct sur un petit corpus ;
+  - le deuxieme etage du fil d'Ariane de chaque article. Sans elles, un article
+    est a un clic de la racine et n'a aucun voisinage declare.
+
+  Le bloc « les autres rubriques » en bas n'est pas un ornement : c'est ce qui
+  relie les quatre pages entre elles. Sans lui, chacune serait un cul-de-sac ou
+  l'on n'entre que par /articles/.
+#}
+<section class="about-hero">
+  <div class="container container--wide">
+    <nav class="filariane filariane--clair" aria-label="Fil d'Ariane">
+      <a href="/">Accueil</a> <span aria-hidden="true">›</span>
+      <a href="/articles/">Articles</a> <span aria-hidden="true">›</span>
+      <span aria-current="page">{{ rubrique.nom }}</span>
+    </nav>
+    <p class="section__label" style="color:var(--on-dark-soft)">Rubrique</p>
+    <h1>{{ rubrique.nom }}</h1>
+    <p class="artintro__texte">{{ rubrique.intro }}</p>
+    <p class="artintro__compte">
+      {{ rubrique.articles | length }} article{% if rubrique.articles | length > 1 %}s{% endif %}
+    </p>
+  </div>
+</section>
+
+<main id="contenu">
+  <section class="artcahier artcahier--seule">
+    <div class="container container--wide">
+      {%- set lot = rubrique.articles %}
+      {% include "components/liste-articles.njk" %}
+    </div>
+  </section>
+
+  <section class="artautres">
+    <div class="container container--wide">
+      <h2 class="artautres__titre">Les autres rubriques</h2>
+      <ul class="artautres__liste">
+        {%- for r in collections.rubriques %}
+        {%- if r.slug != rubrique.slug %}
+        <li class="artautres__item">
+          <a class="artautres__lien" href="/articles/rubrique/{{ r.slug }}/">
+            <span class="artautres__nom">{{ r.nom }}</span>
+            <span class="artautres__n">{{ r.articles | length }} article{% if r.articles | length > 1 %}s{% endif %}</span>
+          </a>
+          <p class="artautres__intro">{{ r.intro | court(120) }}</p>
+        </li>
+        {%- endif %}
+        {%- endfor %}
+      </ul>
+      <p class="artautres__tout"><a href="/articles/">Voir les {{ collections.posts | length }} articles →</a></p>
+    </div>
+  </section>
+</main>

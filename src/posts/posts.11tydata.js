@@ -11,7 +11,16 @@
    corrigee le meme jour sur les fiches partenaires.
 
    Un article ecrit par quelqu'un d'autre porte son propre `auteur:` dans son
-   entete, qui gagne sur ce defaut. Rien d'autre a changer. */
+   entete, qui gagne sur ce defaut. Rien d'autre a changer.
+
+   `estArticle` a ete ajoute le meme jour, avec la refonte des articles. C'est le
+   seul drapeau qui distingue un article d'une page dans la tete du document :
+   `components/tete-seo.njk` s'en sert pour basculer `og:type` en « article » et
+   pour emettre le balisage BlogPosting. Le tester sur l'adresse de la page ne
+   marcherait pas, /articles/ commence par le meme chemin que ses articles ; le
+   tester sur `layout` non plus, la valeur vue depuis le gabarit de base est
+   toujours « base.njk ». */
 module.exports = {
-  auteur: "Teddy Pereira"
+  auteur: "Teddy Pereira",
+  estArticle: true
 };
