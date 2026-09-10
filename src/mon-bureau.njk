@@ -1856,7 +1856,32 @@ permalink: /mon-bureau/
   /* ---------------- LA PHRASE D'EN-TETE ---------------- */
   function peindreResume(){
     var m = [];
-    if(ECHEANCE && ECHEANCE.jours <= 7) m.push('une échéance dans ' + ECHEANCE.jours + ' jour' + (ECHEANCE.jours > 1 ? 's' : ''));
+    /* « UNE ECHEANCE DANS -26 JOUR », signale par Ted le 10/09/2026 sur sa vraie page.
+       Deux fautes dans quatre mots, et la seconde vient de la premiere.
+
+       LA CAUSE : `laPlusPressante()` garde `jours >= 0 OU enCours`. Un nombre negatif
+       ne passe donc QUE pour un evenement EN COURS, quelque chose qui a commence il y
+       a 26 jours et qui dure encore - les vendanges, chez lui. Ce n'etait pas une
+       echeance en retard, c'etait une echeance en train d'avoir lieu, et le bloc du
+       calendrier l'affichait deja correctement, « En ce moment ». Ecrire « en retard
+       de 26 jours » aurait remplace une phrase fausse par une autre.
+
+       Le pluriel se calculait sur `jours > 1`, donc -26 restait au singulier : une
+       faute d'accord n'est jamais qu'une faute d'accord, c'est le symptome d'un
+       nombre qu'on n'a pas regarde.
+
+       LE VOCABULAIRE VIENT DU MODULE, pas d'ici. bdv-echeances.js sait deja dire
+       « En ce moment », « C'est aujourd'hui », « Demain », « Dans N jours » : c'est sa
+       fonction phrase(). On s'aligne dessus au mot pres plutot que d'en inventer un
+       deuxieme, sinon la meme obligation se dit de deux facons a deux endroits de la
+       meme page. */
+    if(ECHEANCE && (ECHEANCE.enCours || ECHEANCE.jours <= 7)){
+      var je = ECHEANCE.jours;
+      m.push(ECHEANCE.enCours ? 'une échéance en ce moment'
+           : je === 0 ? 'une échéance aujourd’hui'
+           : je === 1 ? 'une échéance demain'
+           : 'une échéance dans ' + je + ' jours');
+    }
     var n = (window.BdvCrm && ETAT_FILE) ? BdvCrm.file(ETAT_FILE).length : 0;
     if(n) m.push(n + ' client' + (n > 1 ? 's' : '') + ' à rappeler');
     var l = parEtat('a_lire').length;

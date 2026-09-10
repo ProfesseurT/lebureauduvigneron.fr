@@ -132,6 +132,13 @@ titre('1. Un export a ete depose une fois');
     !!b.el('zoneSousMain'));
   t('le sous-main est visible', b.el('zoneSousMain') && b.el('zoneSousMain').hidden === false);
   t('et il porte bien une ligne', b.el('bureauFile').innerHTML.indexOf('Jayama') >= 0);
+  /* « UNE ECHEANCE DANS -26 JOUR », vu par Ted sur sa vraie page le 10/09/2026. Le
+     controle est ecrit en NEGATIF et sans fixture d'echeance expres : il attrape toute
+     la classe de defauts, pas le seul cas de ce jour-la. Un futur ne porte jamais de
+     signe moins, quelle que soit l'echeance que la page porte au moment du banc. */
+  t('la phrase d\'accueil n\'annonce jamais un futur negatif',
+    b.el('bureauResume').textContent.indexOf('dans -') < 0,
+    b.el('bureauResume').textContent);
   t('l\'ardoise est visible', b.el('zoneArdoise').hidden === false);
   t('et elle porte le chiffre d\'affaires',
     b.el('bureauChiffres').textContent.indexOf('affaires') >= 0);

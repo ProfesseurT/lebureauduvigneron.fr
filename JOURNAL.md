@@ -87,6 +87,38 @@ premiere a fait tomber le bilan de la cinquieme place, la seconde a fait passer 
 colonnes sur telephone (en une seule, cinq punaises font 2 300 px de haut, et il fallait franchir
 le panneau en entier avant d'atteindre le sous-main).
 
+### Deuxieme passe, sur la vraie page de Ted
+
+Il a envoye une capture de son bureau reel, et elle a dit trois choses que le banc et
+l'apercu ne pouvaient pas dire, parce qu'aucun des deux ne porte SA donnee.
+
+1. **Ses cinq taches n'ont aucune date.** Elles tombent donc toutes dans le bloc « 5 autres
+   taches » et aucune ne monte sur le liege : `punaises()` ne promeut que ce qui tombe dans
+   les sept jours. Le panneau ne compte pas mal, il n'a rien de date a epingler.
+2. **Le panneau ne voit pas ses quarante clients**, et c'est voulu : il lit `suivi`, les
+   rappels poses A LA MAIN, pas les `signaux` deposes par le tableau de bord. Ses cinq
+   rappels sont tous a venir, donc ni retard ni « aujourd'hui ».
+3. **« Une echeance dans -26 jour »**, dans sa phrase d'accueil, et ce n'etait pas moi.
+
+**Les deux arbitrages de Ted sur les deux premiers points : on ne change rien.** Une tache
+sans date n'est pas du travail du jour, elle attend, et le panneau maigre est un signal
+honnete. Les quarante restent au sous-main, qui est juste en dessous et les liste deja avec
+leurs trois gestes : deux endroits qui repondent « qui j'appelle » finiraient par se
+contredire, et c'est deja ecrit dans `CLAUDE.md`.
+
+**Le troisieme etait un vrai defaut, et ma premiere correction etait fausse.** J'allais
+ecrire « une echeance en retard de 26 jours ». Le code dit autre chose :
+`laPlusPressante()` filtre sur `jours >= 0 OU enCours`, donc **un nombre negatif ne passe
+que pour un evenement EN COURS** - chez lui, les vendanges, commencees il y a 26 jours et
+qui durent encore. Son bloc calendrier l'affichait deja correctement, « En ce moment ».
+J'aurais remplace une phrase fausse par une autre. Le vocabulaire vient maintenant de
+`bdv-echeances.js`, sa fonction `phrase()`, plutot que d'un deuxieme jeu de mots invente
+ici : la meme obligation ne doit pas se dire de deux facons sur la meme page.
+
+Le controle ajoute au banc est ecrit **en negatif et sans fixture d'echeance** : « la phrase
+d'accueil n'annonce jamais un futur negatif ». Il attrape la classe entiere, pas le cas du
+jour, et il n'a besoin d'aucune donnee particuliere pour mordre.
+
 ### Ce qui reste ouvert
 
 - **Le faux `BdvTaches` de `scripts/apercu-panneau.mjs` rejoue `punaises()` a l'identique.** C'est

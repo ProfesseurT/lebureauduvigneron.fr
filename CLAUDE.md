@@ -157,6 +157,22 @@ C'est le LIBELLE qui porte le lien, et son `::after` s'etend sur tout le papier 
 repassent au-dessus par leur `z-index`. Une seule cible pour la souris, deux arrets nets pour le
 clavier. `banc-journee.mjs` refuse desormais tout `a button` dans le panneau.
 
+### Un nombre negatif dans une phrase de futur, 10/09/2026
+
+« Une echeance dans **-26 jour** », vu par Ted sur sa vraie page. Le test etait
+`ECHEANCE.jours <= 7`, qui laisse passer les negatifs, et le pluriel se calculait sur
+`jours > 1`, d'ou le singulier absurde.
+
+**La lecon n'est pas le signe, c'est d'ou il vient.** `laPlusPressante()` garde
+`jours >= 0 OU enCours` : un negatif ne passe QUE pour un evenement en cours, pas pour un
+retard. La correction evidente, « en retard de 26 jours », aurait remplace une phrase fausse
+par une autre. **Avant de corriger un affichage, remonter a la fonction qui a produit le
+nombre** : elle dit ce que le nombre veut dire, l'ecran ne fait que le supposer.
+
+Et le vocabulaire des echeances vient de `phrase()` dans `bdv-echeances.js`, jamais d'un
+deuxieme jeu de mots ecrit dans l'ecran qui l'affiche. Sinon la meme obligation se dit de
+deux facons a deux endroits de la meme page.
+
 ## LA REGLE DU PLATEAU
 
 Depuis la refonte du 07/09/2026, `Ma journee` pose plusieurs matieres sur un meme plateau :
