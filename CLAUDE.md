@@ -1210,3 +1210,46 @@ n'efface que les lignes portant un `echec`.
 utilisee par le declencheur : ce sont des gestes de Ted, depuis son terminal. Le plafond
 `MAX_PAR_PASSAGE` est verifie AVANT la reservation, et pas apres : reserver la journee d'un compte
 qu'on ne va pas servir lui interdirait son mail jusqu'au lendemain.
+
+## CE QU'UNE MESSAGERIE JETTE, ET LA REGLE QUI VA AVEC, 10/09/2026
+
+Trois defauts trouves le meme apres-midi, tous dans le PREMIER vrai courrier recu dans une
+vraie boite. Aucun n'etait visible dans `npm run courrier` : l'apercu enferme chaque mail dans
+un cadre etroit, et il rend le HTML dans un navigateur, pas dans Gmail. **On validait un
+dessin qu'on n'a jamais recu.** C'est le defaut de methode a retenir avant les trois autres.
+
+### 1. Un fond va sur la CELLULE, en `bgcolor` ET en `background-color`
+
+Jamais sur la seule balise `<table>`, jamais en propriete raccourcie `background`. Gmail a
+jete le fond des bandes de section : creme clair sur creme clair, illisible, et l'alternance
+des lignes disparue avec. Les jauges et l'histogramme tenaient, eux : ils portaient deja
+`bgcolor`. La regle etait ecrite dans `bdv-courrier.js`, au-dessus de `barre()`, et n'avait
+pas ete appliquee partout. **Une regle appliquee a moitie ne protege rien.**
+
+### 2. Aucun degrade, et aucune image hebergee
+
+`radial-gradient` est ignore par Gmail comme par Outlook : les trous de perforation
+n'arrivaient pas. Le remplacement evident, une image de fond, est REFUSE pour deux raisons
+qui valent pour tout futur ornement : les messageries bloquent les images par defaut, donc le
+dessin n'apparaitrait qu'apres un clic ; et le mail ne doit dependre d'aucune adresse du site,
+parce que l'envoi de 8 h et le site sont deux pannes qui restent independantes.
+Ce qui reste : des cellules de tableau. Un trou par ligne, `border-radius` pour le rond, un
+carre sous Outlook, et c'est tres bien.
+
+### 3. Une largeur se borne, meme quand la consigne dit « toute la largeur »
+
+« Le papier occupe toute la largeur » vaut pour le FOND, pose sur le `body`. Le contenu tient
+dans la colonne pour laquelle il a ete dessine, 560 px ici. Sans borne, un Gmail ouvert en
+grand etale le courrier sur 1800 px : les montants a un metre des noms, l'histogramme etire.
+`width="560"` en attribut pour Outlook, qui ignore `max-width`, et
+`width:100%;max-width:560px` en style pour tous les autres. **Jamais l'un sans l'autre**,
+sinon un telephone de 390 px deborde.
+
+### How to apply, avant de toucher au dessin du courrier
+
+1. `npm run courrier` juge le CONTENU et l'ordre, pas le rendu en messagerie. Ne jamais
+   conclure « c'est bon » sur cet apercu seul.
+2. Photographier le rendu a 1280 px et a 400 px avant tout envoi. C'est le seul controle qui
+   attrape une largeur non bornee.
+3. Puis un envoi reel dans une vraie boite. C'est le seul qui attrape ce que la messagerie
+   jette. Les deux premiers ne le remplacent pas.

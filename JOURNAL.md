@@ -12,6 +12,70 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 10/09/2026, apres-midi. Le premier vrai courrier, et ce que la messagerie en avait jete
+
+Trois defauts du dessin, tous trouves dans la meme heure, tous dans le PREMIER courrier
+reellement recu dans une boite. Le point commun, et c'est le vrai enseignement : **aucun
+n'etait visible dans `npm run courrier`.** L'apercu enferme chaque mail dans un cadre etroit et
+le rend dans un navigateur. On validait un dessin qu'on n'a jamais recu.
+
+### Les trois defauts
+
+1. **Les bandes de section arrivaient sans fond.** Leur couleur etait posee sur la seule balise
+   `<table>`, en propriete raccourcie `background` ; Gmail l'a jetee. Creme clair sur creme
+   clair : « Ce matin », « Les jours qui viennent », « Ta file de travail » illisibles, et
+   l'alternance beige/blanc des lignes disparue avec. Les jauges tenaient : elles portaient deja
+   `bgcolor`. La regle etait ecrite dans le fichier et n'avait pas ete appliquee partout.
+2. **La largeur n'etait pas bornee.** La consigne du 09/09, « le papier occupe toute la
+   largeur », avait ete traduite par « le tableau fait 100 % ». Dans un Gmail ouvert en grand :
+   1800 px, montants a un metre des noms, histogramme etire. Ce qui doit occuper toute la
+   largeur, c'est le fond ; le contenu tient dans les 560 px pour lesquels il a ete dessine --
+   c'est l'arithmetique de l'histogramme, 8,33 % de 560 px.
+3. **Les trous de perforation n'arrivaient pas.** Ils etaient un `radial-gradient`. Gmail jette
+   les degrades, Outlook aussi. Le commentaire du fichier l'annoncait pour Outlook et jugeait la
+   perte acceptable : elle ne l'etait pas, l'effet imprimante EST le dessin.
+
+### Les arbitrages, dont un refus
+
+**L'image de fond hebergee est refusee**, et pas par gout : les messageries bloquent les images
+par defaut, donc le trou n'apparaitrait qu'apres un clic, et le mail ne doit dependre d'aucune
+adresse du site -- l'envoi de 8 h et le site restent deux pannes independantes. Donc des
+cellules de tableau, un trou par ligne. Le pas ne fait plus 26 px fixes, il suit les lignes, et
+c'est plus juste : une ligne de mail n'a pas de hauteur fixe, un pas fixe finit par percer un
+texte en deux. Sous Outlook le trou sera un carre, faute de `border-radius`.
+
+**Consequence de structure a connaitre** : l'encart de 18 px n'est plus porte par la cellule du
+papier, il est porte par chaque bloc. Sinon les trous, qui tombent DANS cet encart, etaient hors
+d'atteinte des lignes. Un bloc futur qui oublie son encart touchera les filets de perforation,
+et ca se voit tout de suite.
+
+**Poids** : 41,9 ko par compte au lieu de 29,8. Le trou a ete allege d'un tableau imbrique a un
+simple `div` en cours de route, ce qui a recupere 7 ko sur 49 -- a 500 vignerons, 3,5 Mo d'envoi
+en moins chaque matin pour un rendu identique au pixel.
+
+### La methode qui a fini par marcher, et celle qui a coute une heure
+
+Ce qui a marche : fabriquer le mail en local, le **photographier a 1280 px et a 400 px**, le lire
+soi-meme, puis l'envoyer dans la boite de Ted par sa propre messagerie -- sans Resend, sans la
+fonction, sans son terminal. Trois essais en vingt minutes.
+
+Ce qui a coute une heure : deviner. « Ca marche pas » et « il se passe rien » ont ete lus comme
+des pannes de terminal alors que le terminal marchait -- l'appel de 12 h 22 est dans le journal
+de la fonction, il a recu un **504**, `curl` attendait une reponse qui ne venait jamais. Regle
+tiree de la : **demander le texte exact affiche avant de proposer un contournement**, et lire
+les journaux de la fonction avant de soupconner le poste.
+
+### Reste ouvert, par ordre
+
+1. **La fonction en ligne ne repond plus depuis 12 h 10** : `index.ts` a recu le contenu de la
+   fabrique lors d'un copier-coller. Elle demarre en 23 ms puis n'ecoute rien, d'ou les 504 et
+   les expirations. A reparer en recollant `_deploiement/courrier-matin/index.ts`.
+2. Le dessin du courrier attend la validation de Ted sur l'essai 3.
+3. L'horloge de 8 h. `pg_net` est installe depuis cet apres-midi, `pg_cron` ne l'est pas.
+4. `ecarterLesSuivis()` a supprimer, la vue fait deja ce travail.
+
+---
+
 ## 10/09/2026, suite. Refonte des articles : la liste, la page de lecture, et le socle de référencement
 
 Écrit et commité, **pas encore poussé**. Le contrôle `npm run charte` passe : 0 échec, 8 notes.
