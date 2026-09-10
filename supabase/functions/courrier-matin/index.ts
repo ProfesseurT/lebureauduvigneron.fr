@@ -111,20 +111,28 @@ import './bdv-courrier.js';
    payant, et ecrire les textes legaux (le pied de page promet que les ventes
    restent dans le navigateur, `src/rgpd.njk` ne nomme aucun sous-traitant, et
    ce mail porte des noms de clients et des montants). */
-const DESTINATAIRES_AUTORISES = [
-  'teddy@solumatic.fr',
-  /* Ajoutee le 10/09/2026 : Ted veut l'essai en conditions reelles sur TOUS les
-     comptes inscrits, et a ce jour les deux comptes de la base sont les siens.
-     Chaque compte recoit a SON adresse : celui-ci arrive dans la boite Gmail,
-     pas dans celle de Solumatic.
+/* LA LISTE EST OUVERTE, 10/09/2026, demande de Ted : le courrier part a TOUT
+   compte inscrit, present et futur. Vide = aucun filtre par adresse.
 
-     CE QUI N'A PAS ETE FAIT, ET POURQUOI. Vider cette liste ouvrirait l'envoi a
-     tout inscrit futur, automatiquement, sans que personne ne le decide ce
-     jour-la. Ca ne changerait RIEN aujourd'hui -- les deux inscrits sont Ted --
-     et ca armerait un piege pour le premier vigneron. Les quatre choses a
-     regler AVANT d'y toucher sont dans CLAUDE.md, section du seuil. La plus
-     concrete : ce mail ne porte AUCUN lien de desinscription, parce que la
-     fonction ne passe pas `urlDesinscription` a la fabrique. */
+   CE QUI REMPLACE LE FILTRE, ET POURQUOI C'EST MIEUX QU'UNE LISTE.
+   Une liste en dur protegeait par accident : elle bloquait le premier vigneron
+   parce qu'elle bloquait tout le monde. Elle ne disait pas POURQUOI, donc le
+   jour ou on l'ouvre -- aujourd'hui -- la vraie raison de ne pas ecrire a un
+   inconnu disparait avec elle, sans que personne ne la relise.
+   Le garde-fou est donc deplace sur le FAIT qui manque vraiment : un courrier
+   quotidien qui porte des noms de clients et des montants doit offrir un moyen
+   d'arreter (RGPD, article 7-3). Tant que `URL_DESINSCRIPTION` est absente, la
+   fonction REFUSE d'ecrire a une adresse qui n'a pas deja consenti en direct.
+   Le jour ou cette adresse existe, on renseigne UN SECRET et la porte s'ouvre
+   d'elle-meme, sans redeploiement et sans qu'on ait a se souvenir de rien. */
+const DESTINATAIRES_AUTORISES: string[] = [];
+
+/* Les adresses de Ted. Elles n'ont pas besoin d'un lien de desinscription : il
+   a mis le systeme en place, il sait comment l'arreter, et il est le seul a
+   pouvoir toucher au declencheur. Ce n'est PAS une liste d'autorisation, c'est
+   la liste de ceux pour qui la question du consentement ne se pose pas. */
+const CONSENTEMENT_ACQUIS = [
+  'teddy@solumatic.fr',
   'teddypereira88@gmail.com',
 ];
 const EXPEDITEUR = 'Le Bureau du Vigneron <bureau@courrier.lebureauduvigneron.fr>';
@@ -164,6 +172,15 @@ const CLE_DECLENCHEUR = Deno.env.get('COURRIER_CLE') ?? '';
    A REGLER MAINTENANT sur l'adresse Vercel du projet, jusqu'au branchement. */
 const URL_BUREAU = Deno.env.get('URL_BUREAU')
   ?? 'https://lebureauduvigneron.fr/mon-bureau/';
+
+/* L'adresse ou un vigneron peut arreter de recevoir le courrier. Un secret et
+   pas une constante, pour la meme raison qu'URL_BUREAU : le jour ou elle
+   existe, on la renseigne et le courrier s'ouvre, sans toucher au code.
+   TANT QU'ELLE EST VIDE, seules les adresses de CONSENTEMENT_ACQUIS recoivent.
+   La fabrique sait deja dessiner le lien, elle attend qu'on lui en donne un --
+   verifie le 10/09/2026 : `urlDesinscription` existe dans bdv-courrier.js et
+   n'etait passee par personne. */
+const URL_DESINSCRIPTION = Deno.env.get('URL_DESINSCRIPTION') ?? '';
 
 // deno-lint-ignore no-explicit-any
 const BdvCourrier = (globalThis as any).BdvCourrier;
@@ -356,10 +373,14 @@ Deno.serve(async (req: Request) => {
        signale. La voir a chaque appel, `?apercu=1` compris, est le seul moyen
        de s'apercevoir qu'elle est fausse avant le vigneron. */
     url_bureau: URL_BUREAU,
+    /* Regle 4 de CLAUDE.md : la valeur dont depend une decision va dans le
+       rapport. Celle-ci decide qui recoit. */
+    url_desinscription: URL_DESINSCRIPTION || null,
     heure_paris: heure,
     comptes_lus: comptes.length,
     envoyes: 0,
     deja_envoyes: 0,
+    sans_desinscription: 0,
     rejoues,
     vides: 0,
     sans_adresse: 0,
@@ -376,6 +397,7 @@ Deno.serve(async (req: Request) => {
     const mail = BdvCourrier.batir({
       aujourdhui,
       urlBureau: URL_BUREAU,
+      urlDesinscription: URL_DESINSCRIPTION || null,
       depose_le: c.depose_le,
       file_travail: { signaux: c.signaux, noms: c.noms },
       resume_ventes: c.resume_ventes,
@@ -416,10 +438,25 @@ Deno.serve(async (req: Request) => {
       continue;
     }
 
-    /* ---- GARDE-FOU 3 : la liste en dur ---- */
+    /* ---- GARDE-FOU 3 : la liste en dur, vide depuis le 10/09/2026 ---- */
     if (!autorise) {
       rapport.hors_liste++;
       rapport.detail.push({ compte: id, issue: 'hors liste autorisee' });
+      continue;
+    }
+
+    /* ---- GARDE-FOU 3bis : PAS DE MOYEN D'ARRETER, PAS D'ENVOI ----
+       Ce courrier est quotidien et il porte des noms de clients et des
+       montants. Sans lien de desinscription, l'envoyer a quelqu'un qui n'a pas
+       consenti en direct est un manquement, pas une finition (RGPD 7-3).
+       Ce refus est mecanique et il se leve tout seul : le jour ou le secret
+       `URL_DESINSCRIPTION` porte une adresse, cette branche ne se declenche
+       plus. C'est ce qui remplace la liste en dur, et c'est plus honnete
+       qu'elle : elle bloquait tout le monde sans dire pourquoi. */
+    if (!URL_DESINSCRIPTION && !CONSENTEMENT_ACQUIS.includes(adresse)) {
+      rapport.sans_desinscription++;
+      rapport.detail.push({ compte: id,
+        issue: 'refuse : aucun lien de desinscription, et consentement non acquis en direct' });
       continue;
     }
     if (rapport.envoyes >= MAX_PAR_PASSAGE) {
