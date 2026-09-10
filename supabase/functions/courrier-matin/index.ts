@@ -113,6 +113,19 @@ import './bdv-courrier.js';
    ce mail porte des noms de clients et des montants). */
 const DESTINATAIRES_AUTORISES = [
   'teddy@solumatic.fr',
+  /* Ajoutee le 10/09/2026 : Ted veut l'essai en conditions reelles sur TOUS les
+     comptes inscrits, et a ce jour les deux comptes de la base sont les siens.
+     Chaque compte recoit a SON adresse : celui-ci arrive dans la boite Gmail,
+     pas dans celle de Solumatic.
+
+     CE QUI N'A PAS ETE FAIT, ET POURQUOI. Vider cette liste ouvrirait l'envoi a
+     tout inscrit futur, automatiquement, sans que personne ne le decide ce
+     jour-la. Ca ne changerait RIEN aujourd'hui -- les deux inscrits sont Ted --
+     et ca armerait un piege pour le premier vigneron. Les quatre choses a
+     regler AVANT d'y toucher sont dans CLAUDE.md, section du seuil. La plus
+     concrete : ce mail ne porte AUCUN lien de desinscription, parce que la
+     fonction ne passe pas `urlDesinscription` a la fabrique. */
+  'teddypereira88@gmail.com',
 ];
 const EXPEDITEUR = 'Le Bureau du Vigneron <bureau@courrier.lebureauduvigneron.fr>';
 
