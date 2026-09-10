@@ -12,6 +12,131 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 10/09/2026, suite. Refonte des articles : la liste, la page de lecture, et le socle de référencement
+
+Écrit et commité, **pas encore poussé**. Le contrôle `npm run charte` passe : 0 échec, 8 notes.
+
+### Le vrai défaut n'était pas le dessin des cartes, c'était la largeur
+
+La grille de trois cartes vivait dans `.container`, large de 760 px. Chaque colonne faisait donc
+(760 − 48 de marge − 48 de gouttières) / 3 = 213 px, moins 56 px de marge intérieure de carte :
+**157 px de mesure utile**. Un titre de quatre-vingt-dix signes en Fraunces s'y casse sur six
+lignes, trois mots par ligne. Aucun réglage de carte ne répare ça. Une fois la largeur rendue au
+titre, la carte n'a plus de raison d'être — d'où la liste en une colonne, qui est d'ailleurs ce
+qu'utilisent tous les éditeurs sérieux ; la grille de cartes est le réflexe des thèmes de blog.
+
+### La taxonomie affichée était la mauvaise
+
+Les articles portaient **deux** étiquettes depuis le départ : `pilier` (« Process 🔧 »,
+« Marketing 📈 »…), seule affichée, et `categorie` (« Réglementation », « Vendre & fidéliser »…),
+affichée nulle part. Et c'est la mauvaise qui était montrée : « Process » ramassait dix articles
+dont les tournées de livraison et la politique RSE, « Organisation » ramassait l'œnotourisme et la
+vente au domaine.
+
+Ted a tranché : on part de `categorie`, et on regroupe ses six valeurs en **quatre rubriques**
+(`src/_data/rubriques.js`). « Vente directe & Œnotourisme » rejoint « Vendre & fidéliser »,
+« Outils & données » rejoint « Gérer & s'organiser » : deux rubriques à un ou deux articles
+auraient fait deux pages maigres, et une page maigre ne se classe pas.
+
+Résultat : Vendre & fidéliser 8, Gérer & s'organiser 5, Réglementation & obligations 4,
+Se lancer 2. Total 19 — et pas 20 : `exemple-qr-code-viti.md` porte `permalink: false`, c'est un
+brouillon.
+
+`pilier` n'est plus lu par aucun gabarit. Il reste dans les en-têtes des vingt fichiers, sans
+effet. **À décider : l'effacer ou non.**
+
+### Les filtres sont des pages, pas du JavaScript
+
+Quatre vraies pages `/articles/rubrique/<slug>/`, fabriquées par `src/rubriques.njk`. Un filtre en
+JavaScript aurait donné le même confort et rien d'autre. Quatre pages donnent quatre adresses de
+plus dans l'index, un deuxième étage au fil d'Ariane de chaque article, un filtre partageable, et
+un filtre qui marche sans script.
+
+**ATTENTION AUX ADRESSES** : le `slug` de `rubriques.js` fabrique l'adresse publique. Le renommer
+casse ce que Google a indexé. Le nom affiché se change librement, le slug non.
+
+### Le socle de référencement, qui n'existait pas du tout
+
+`src/_includes/components/tete-seo.njk` rassemble toute la tête lisible par les moteurs. Avant :
+aucun `canonical`, aucun `og:url`, aucune donnée structurée, et `og:type="website"` sur les vingt
+articles.
+
+Maintenant, et vérifié sur les 35 pages construites : `canonical` absolu partout, Open Graph
+complet, `og:type="article"` sur les articles, `article:published_time` et `article:modified_time`,
+et un **graphe JSON-LD unique** par page (Organization + WebSite, plus BlogPosting + BreadcrumbList
+sur un article, plus CollectionPage + BreadcrumbList sur une rubrique). Les 35 blocs JSON-LD
+parsent sans erreur.
+
+Trois arbitrages dans ce fichier :
+
+- **Un seul bloc `@graph`, pas plusieurs `<script>`.** Deux blocs décrivant la même entité
+  obligent le moteur à deviner lequel fait foi.
+- **`BreadcrumbList` est gardé, `FAQPage` et `HowTo` ne sont pas ajoutés.** Le fil d'Ariane est le
+  seul résultat enrichi encore actif côté article ; les résultats enrichis FAQ ont été retirés de
+  Google Search en mai 2026, HowTo en 2023.
+- **L'auteur est une donnée, jamais un nom en dur.** Règle du flambeau : `"author"` sort du champ
+  `auteur`, et la page de référence est `/la-redaction/` pour tout le monde.
+
+`src/sitemap.njk` et `src/robots.njk` : il n'y en avait aucun. Le sitemap porte `lastmod` et
+**rien d'autre** — Google ignore `changefreq` et `priority`. `lastmod` sort de la date de l'article,
+jamais de la date du build : sinon les dix-neuf articles seraient « modifiés » chaque nuit et la
+balise perdrait toute crédibilité pour l'ensemble du site. `robots.txt` n'a **aucun `Disallow`**, et
+c'est voulu : une page qu'on veut désindexer doit être explorable pour que sa balise `noindex` soit
+lue.
+
+### La page de lecture : l'ordre des blocs
+
+fil d'Ariane → rubrique → titre → chapô → signature et dates → image → sommaire → corps →
+signets → qui écrit → du même rayon → plus ancien / plus récent → porte du compte.
+
+Deux choix contre-intuitifs :
+
+- **Le sommaire est dans le flux, pas en rail collant.** Le rail de gauche impose deux colonnes à
+  toute la page, celui de droite se confond avec de la publicité, et dans les tests publiés les
+  lecteurs ne *remarquent* pas un sommaire collant. Il n'apparaît qu'à partir de trois sections :
+  un sommaire de deux lignes fait perdre du temps au lieu d'en faire gagner.
+- **Le chapô est dans le bandeau, pas dans le corps**, et il vient de `description` : un seul texte
+  à écrire, une seule promesse, aucun risque de divergence avec la méta description.
+
+Les ancres des titres de section sont posées par un filtre (`avecAncres`) qui relit le HTML déjà
+rendu, et le sommaire par un autre (`sommaire`) qui lit le même. Fait par expression régulière et
+pas par un module markdown-it : le dépôt n'a que trois dépendances de développement.
+
+`scroll-margin-top: 5rem` sur les `h2` et `h3` du corps. Sans lui, un saut depuis le sommaire cache
+le titre visé derrière la barre de navigation collante.
+
+### Deux défauts trouvés à la capture, et pas autrement
+
+1. **Le compte d'articles s'affichait en italique de corps 1,1 rem au lieu de petites capitales**,
+   et à 0,6 d'opacité réelle. La feuille porte depuis longtemps une règle sur le paragraphe du
+   bandeau, de spécificité (0,1,1) ; une classe seule vaut (0,1,0) et perd. Les trois règles de
+   `.artintro__*` sont donc écrites sous le sélecteur du bandeau. Et l'opacité est remise à 1
+   explicitement : la transparence d'un texte se règle par le jeton de couleur, jamais deux fois.
+2. **La carte « du même rayon » s'étirait sur 1 100 px** quand la rubrique n'avait qu'un voisin —
+   « Se lancer » n'a que deux articles. `auto-fit` remplacé par trois colonnes fixes.
+
+Le contrôle `charte` en a trouvé deux autres : sept tailles en dur ajoutées au-dessus du plafond
+(rabattues sur les pas de l'échelle), et un commentaire qui **avalait une règle** parce qu'il citait
+un sélecteur suivi d'accolades. Le garde-fou a bien mordu.
+
+### Ce qui reste, et qui n'est pas fait
+
+- **Dix-neuf titres sur vingt dépassent soixante signes**, et **les vingt descriptions dépassent
+  cent soixante**. Tous sont donc tronqués dans les résultats Google. Les gabarits lisent déjà deux
+  champs facultatifs, `titre_seo` et `resume`, qui gagnent sur `title` et `description` quand ils
+  sont présents. **Aucun article n'en porte encore.**
+- **Les adresses des articles sont `/posts/<slug>/`**, pas `/articles/<slug>/`. Un mot anglais dans
+  une adresse française, et un chemin qui ne correspond pas au fil d'Ariane. Changer coûte des
+  redirections : à décider avant que le référencement ne s'installe.
+- **Les polices sont chargées depuis Google Fonts en feuille bloquante.** C'est le premier poste de
+  gain sur le temps d'affichage. Les auto-héberger est un lot à part.
+- **Aucun article ne porte d'image.** L'emplacement existe dans les deux gabarits (`image`,
+  `image_alt`, `image_legende`) et ne dessine rien tant qu'il est vide.
+- La barre de navigation déborde à 390 px de large : elle est antérieure à cette refonte.
+- `.articles-page-header` et `.articles-page-grid` sont du CSS mort, appelés par aucun gabarit.
+
+---
+
 ## 10/09/2026, suite. Lot 4 : l'heure de Paris et l'interdiction du doublon
 
 Ecrit et commite, **pas encore deploye, et l'horloge n'est pas posee**. Ted a choisi l'essai a la
