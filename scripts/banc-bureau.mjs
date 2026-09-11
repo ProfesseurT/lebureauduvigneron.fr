@@ -188,9 +188,11 @@ titre('Les ecrans de vente dans le bureau');
    erreur visible. La zone reste vide, et personne ne le remarque avant de chercher un
    chiffre qui manque. Une liste qui se deduirait de la coque elle-meme ne detecterait
    plus rien. Elle est passee de trente-deux a vingt-six au lot 2d : le volet, son menu de
-   secours et le bouton de deconnexion sont partis, la barre du bureau les porte. */
+   secours et le bouton de deconnexion sont partis, la barre du bureau les porte. Puis a
+   vingt-cinq le 11/09/2026 : `p-canaux` a disparu de la coque, les canaux sont entres dans
+   « Mes cuvees » et blocsCanaux() retourne son HTML au lieu de peindre chez elle. */
 const REPERES = ['app', 'bowlclip', 'busyov', 'busytxt', 'filterbar', 'modale',
-  'p-annee', 'p-apercu', 'p-base', 'p-canaux', 'p-chercher', 'p-clients', 'p-decrochage',
+  'p-annee', 'p-apercu', 'p-base', 'p-chercher', 'p-clients', 'p-decrochage',
   'p-diagnostic', 'p-evolution', 'p-explorer', 'p-premier', 'p-produits', 'p-reactivation',
   'p-reglages', 'p-vide', 'printReport', 'status', 'statusSpin', 'statusTxt', 'tbFile'];
 const manquants = REPERES.filter(id => !B.doc.getElementById(id));

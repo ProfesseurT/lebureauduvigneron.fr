@@ -116,7 +116,9 @@ function jourMoisRecule(n){
 const NAV=[
   {id:'annee',   ico:'&#128200;', label:'Mon année'},
   {id:'clients', ico:'&#128101;', label:'Mon commerce'},
-  {id:'produits',ico:'&#127863;', label:'Mes produits'},
+  // « Mes cuvees » et plus « Mes produits » depuis le 11/09/2026 : la barre du bureau disait
+  // deja « Mes cuvees », et le titre de l'ecran disait autre chose. Deux noms pour une piece.
+  {id:'produits',ico:'&#127863;', label:'Mes cuvées'},
   {id:'chercher',ico:'&#128301;', label:'Chercher'},
   // « Ma base » et « Réglages » ont fusionné le 07/09/2026. Ce ne sont plus deux écrans de
   // l'outil mais deux blocs du panneau partagé avec le bureau : une seule entrée, qui ouvre.
@@ -286,8 +288,10 @@ function setBorne(quelle,v){
   buildFilterBar();runBusy('Analyse…',renderAll);
 }
 function renderAll(){
-  // Mon annee : quatre anciens ecrans empiles dans une seule page, dans l'ordre de lecture.
-  renderDiagnostic();renderApercu();renderEvolution();renderCanaux();
+  /* Mon annee : TROIS panneaux, et c'en etait quatre. Le panneau Canaux est parti dans
+     « Mes cuvees » le 11/09/2026, lot 2 : le chemin de vente et le prix moyen repondent a
+     « ce qui part, et a quel prix », qui est la question de cette piece-la. */
+  renderDiagnostic();renderApercu();renderEvolution();
   // Mes clients : une seule liste, alimentee par les trois moteurs.
   renderReactivation();renderPremierAchat();renderDecrochage();  // calculent et memorisent
   renderClients();renderProduits();
@@ -431,10 +435,11 @@ function renderApercu(){
   html+=`<div class="section-label">La forme de ton ${exMot()}</div>
     <div class="card"><div class="card__title"><span>${uiMesure==='ca'?'CA HT':'Bouteilles'} par mois${f?' · '+exLabelCourt(f.cur)+' vs '+exLabelCourt(f.prev):''}</span></div><div class="chart-wrap"><canvas id="chApMonth"></canvas></div></div>`;
 
-  html+=`<div class="section-label">Ton mix</div><div class="grid-2">
-    <div class="card"><div class="card__title"><span>Répartition par couleur</span></div><div class="chart-wrap"><canvas id="chApDonut"></canvas></div></div>
-    <div class="card"><div class="card__title"><span>Top cuvées</span></div>${(()=>{const e=allEntries(groupSum(rows,r=>r.produit)).slice(0,7);return e.length?barListHTML(e):'<p class="note">Aucune donnée.</p>';})()}</div>
-  </div>`;
+  /* LA SECTION « TON MIX » A ETE VIDEE LE 11/09/2026, lot 2 :
+       - la repartition par couleur est dans le pied replie de « Mes cuvees ». La couleur
+         est une propriete du vin, pas un fait de l'annee.
+       - « Top cuvees » etait les SEPT PREMIERES LIGNES du tableau « Toutes tes cuvees »,
+         qui est deja trie par CA. Supprime, pas deplace : rien ne se perd. */
 
   /* LA SECTION « QUI FAIT TON CHIFFRE » A ETE VIDEE LE 11/09/2026, et ses trois blocs sont
      partis chacun la ou on les cherche :
@@ -453,7 +458,6 @@ function renderApercu(){
 
   el('p-apercu').innerHTML=html;
   drawApMonth();
-  drawApDonut(rows);
 }
 // Serie mensuelle d'un exercice, rangee dans l'ordre DE L'EXERCICE (case 0 = mois d'ouverture).
 function apMonthly(ex){const a=new Array(12).fill(0);for(const r of ROWS){if(!r._vin||r._exY!==ex||r._exM==null)continue;a[r._exM-1]+=mesureVal(r);}return a;}
@@ -464,11 +468,20 @@ function drawApMonth(){
   if(prev)ds.push({label:exLabelCourt(prev),data:apMonthly(prev),borderColor:cssToken('--muted'),backgroundColor:'transparent',borderDash:[5,4],fill:false,tension:.3,borderWidth:1.5,pointRadius:0});
   charts.chApMonth=new Chart(ctx,{type:'line',data:{labels:exMoisLabels(),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:!!prev,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
-function drawApDonut(rows){
+/* LA REPARTITION PAR COULEUR A CHANGE DE PIECE le 11/09/2026 : de l'apercu de « Mon annee »
+   au pied replie de « Mes cuvees ».
+
+   ELLE LIT TOUTE LA BASE, EN CA HT, et ne prend plus `rows` : meme raison que le pied de
+   « Mon commerce ». La barre de periode et la bascule CA / bouteilles ne s'affichent que
+   sur l'ecran « annee ». Passer par vinRows() et mesureVal() depuis ici aurait donne un
+   camembert calcule sur deux reglages qu'on ne peut pas voir d'ou on le regarde. */
+function drawCouleur(){
   destroyChart('chApDonut');const ctx=el('chApDonut');if(!ctx)return;
-  const entries=allEntries(groupSum(rows,r=>r.couleur)).filter(e=>e[1]>0);
+  const m={};
+  ROWS.forEach(r=>{if(!r._vin)return;const k=(r.couleur===''||r.couleur==null)?'(non renseigné)':String(r.couleur);m[k]=(m[k]||0)+r._total;});
+  const entries=allEntries(m).filter(e=>e[1]>0);
   const pal=palSeries(8);
-  charts.chApDonut=new Chart(ctx,{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:pal,borderWidth:1,borderColor:cssToken('--white')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label+' : '+fmtMes(c.parsed)}}}}});
+  charts.chApDonut=new Chart(ctx,{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:pal,borderWidth:1,borderColor:cssToken('--white')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label+' : '+fmtMoney(c.parsed)}}}}});
 }
 function setMesure(m){uiMesure=m;runBusy('Analyse…',renderAll);}
 function axisGetByKey(k){const a=axisDef(k);return a?a.get:(r=>r[k]);}
@@ -1263,9 +1276,39 @@ function alertesProduits(A){
   return out.sort((a,b)=>(b.rang-a.rang)||(b.enjeu-a.enjeu))
             .filter(a=>{parFamille[a.famille]=(parFamille[a.famille]||0)+1;return parFamille[a.famille]<=2;});
 }
+/* ================= MES CUVEES : L'ETAGE 3, REPLIE =================
+   Meme discipline que « Mon commerce », et elle est ecrite dans CLAUDE.md : un verdict en
+   haut, la liste ou l'on agit au milieu, ce qui explique replie en bas.
+
+   LES DEUX GRAPHES NE SONT DESSINES QU'AU PREMIER DEPLI, et c'est une precaution avant
+   d'etre une economie. Un <canvas> dans un <details> ferme a une hauteur de ZERO : Chart.js
+   s'y dessine a zero pixel, et rien ne garantit qu'il se rattrape a l'ouverture. Les poser
+   sur l'evenement `toggle` supprime la question, et epargne deux graphes a qui n'ouvre pas.
+   Le marqueur `data-peint` evite de les redessiner a chaque repli.
+   ================================================================== */
+function piedCuvees(CAN){
+  if(!CAN||!CAN.tableaux)return '';
+  return `<div class="card"><details class="msg--replie" id="pied-cuvees">
+    <summary>Par quel chemin tu vends, et la couleur de ton chiffre</summary>
+    ${CAN.tableaux}
+    <div class="card"><div class="card__title"><span>Répartition par couleur</span></div><div class="chart-wrap"><canvas id="chApDonut"></canvas></div><p class="note">Sur toute ta base, en CA HT.</p></div>
+  </details></div>`;
+}
+function brancherPiedCuvees(CAN){
+  const d=el('pied-cuvees');if(!d)return;
+  d.addEventListener('toggle',function(){
+    if(!d.open||d.dataset.peint)return;
+    d.dataset.peint='1';
+    if(CAN&&CAN.A)drawCanal(CAN.A);
+    drawCouleur();
+  });
+}
+
 function renderProduits(){
   const A=agentProduits();
-  let html=`<h2 class="panel__title">Mes produits</h2>`;
+  // « Mes cuvees », comme la barre du bureau. L'ecran disait « Mes produits », et c'etait
+  // le seul endroit du bureau ou une piece portait deux noms.
+  let html=`<h2 class="panel__title">Mes cuvées</h2>`;
   if(!A.ok){html+=signal('info','ℹ','Aucune vente en base.','Ajoute un export pour voir ton portefeuille.');el('p-produits').innerHTML=html;return;}
   const top3=A.liste.slice(0,3).reduce((s,c)=>s+c.part,0);
   html+=`<div class="panel__sub">Ton portefeuille vu par <b>cuvée</b>, tous millésimes confondus. C'est le seul niveau où une tendance veut dire quelque chose : un millésime qui s'arrête pendant que le suivant démarre n'est pas une baisse, c'est une rotation.</div>`;
@@ -1277,11 +1320,17 @@ function renderProduits(){
     ${kpiCard(fmtMoney(A.caTotal),'chiffre d\'affaires','toutes cuvées, tout l\'historique')}
   </div>`;
 
+  /* ETAGE 1, LE VERDICT. Les alertes du portefeuille d'abord, parce que c'est le sujet de
+     la piece, puis ce que disent les canaux : un chemin de vente qui monte ou qui recule,
+     un prix moyen au caveau qui glisse. Trois natures, une seule section : ce sont toutes
+     des choses a regarder avant d'ouvrir la liste. */
+  const CAN=blocsCanaux();
   const al=alertesProduits(A);
   html+=`<div class="section-label">Ce qui mérite ton attention</div>`;
   if(!al.length)html+=signal('ok','✔','Rien d\'anormal sur ton portefeuille.','Aucune cuvée dépendante d\'un client unique, aucun écart de prix marqué, aucun millésime qui traîne.');
   else al.slice(0,6).forEach(a=>{html+=signal(a.t,a.ico,a.titre,a.txt+` <a href="#" onclick="event.preventDefault();ouvrirProduit(${JSON.stringify(a.cuvee).replace(/"/g,'&quot;')})">Voir la cuvée</a>`);});
   if(al.length>6)html+=`<p class="note">${al.length-6} autre(s) point(s) de vigilance, visibles en ouvrant les cuvées concernées.</p>`;
+  html+=CAN.signaux;
 
   html+=`<div class="section-label">Toutes tes cuvées</div>
   <div class="card"><div class="tablewrap"><table class="data data--sticky"><thead><tr>
@@ -1303,7 +1352,9 @@ function renderProduits(){
     </tbody></table></div>
     <p class="note">« Reprise » = part des clients ayant acheté cette cuvée qui en ont repris au moins une deuxième fois. C'est la mesure la plus proche de « est-ce qu'elle plaît ».</p>
     <button class="btn btn--ghost btn--sm" onclick="exportProduits()" style="margin-top:.6rem">Exporter le portefeuille</button></div>`;
+  html+=piedCuvees(CAN);   // etage 3 : replie, il ne pousse jamais la liste hors de l'ecran
   el('p-produits').innerHTML=html;
+  brancherPiedCuvees(CAN);
 }
 function exportProduits(){
   const A=agentProduits();if(!A.ok)return;
@@ -2338,11 +2389,19 @@ function renderDecrochage(){
 }
 
 /* ======================= EXPERTISE 4 : MIX CANAL + PRIX MOYEN ======================= */
-function renderCanaux(){
-  let html=`<h2 class="panel__title">Canaux & prix moyen</h2>`;
+/* ====== LES CANAUX, DANS « MES CUVEES » DEPUIS LE 11/09/2026 (lot 2) ======
+   C'etait le quatrieme panneau empile dans « Mon annee ». Il repond a « a quel prix je
+   vends, et par quel chemin » : la question des cuvees, pas celle du bilan.
+
+   ELLE NE PEINT PLUS, ELLE RETOURNE SES MORCEAUX. renderProduits() pose les deux signaux
+   a l'etage du verdict et les tableaux a l'etage replie ; un `innerHTML` dans un conteneur
+   a elle ne pouvait plus servir. Les calculs, eux, n'ont pas bouge d'une ligne.
+
+   `labels` est parti au passage : la variable etait construite et jamais lue. */
+function blocsCanaux(){
+  let signaux='',tableaux='';
   const f=yoyFrame();
-  // Fenetre : si YoY dispo, à date égale sur cur/prev. Sinon, annee active ou toute la base.
-  const labels=[...new Set(CANAUX.map(c=>c.label)).add('Autre / non renseigne')];
+  // Fenetre : si YoY dispo, à date égale sur cur/prev. Sinon, toute la base.
 
   // Agregation part de CA + prix moyen par canal.
   function agg(ex){
@@ -2358,7 +2417,7 @@ function renderCanaux(){
   }
 
   if(f){
-    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date égale. ${incompleteNote()}</div>`;
+    tableaux+=`<p class="note" style="margin-top:0">Part de CA par canal et prix moyen par bouteille, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date égale. ${incompleteNote()}</p>`;
     const A=agg(f.cur),B=agg(f.prev);
     const keys=[...new Set([...Object.keys(A.m),...Object.keys(B.m)])];
     const rows=keys.map(k=>{
@@ -2372,37 +2431,38 @@ function renderCanaux(){
     const mover=[...rows].filter(r=>Math.abs(r.dPts)>=1).sort((a,b)=>Math.abs(b.dPts)-Math.abs(a.dPts))[0];
     if(mover){
       const sens=mover.dPts>=0?'progresse':'recule';
-      html+=signal(mover.dPts>=0?'ok':'warn',mover.dPts>=0?'↗':'↘',
+      signaux+=signal(mover.dPts>=0?'ok':'warn',mover.dPts>=0?'↗':'↘',
         `Le canal ${mover.k} ${sens} de ${fmtNum(Math.abs(mover.dPts),1)} points de CA.`,
         `<b>Action : ${mover.dPts>=0?'capitaliser sur ce canal qui monte':'comprendre pourquoi ce canal décroche et réagir'}.</b>`);
     }
     // Alerte valeur : prix moyen caveau vs pro/export.
     const cav=rows.find(r=>r.k==='Caveau');
     if(cav&&cav.prixCur>0){
-      html+=signal('info','ℹ',`Prix moyen au caveau : ${fmtMoney(cav.prixCur)} par bouteille (${exLabelCourt(f.cur)} à date).`,
+      signaux+=signal('info','ℹ',`Prix moyen au caveau : ${fmtMoney(cav.prixCur)} par bouteille (${exLabelCourt(f.cur)} à date).`,
         `La vente directe doit rester ton canal le plus cher. Si un canal pro ou export s'en rapproche, tu perds de la valeur. Vérifie l'écart dans le tableau.`);
     }
 
-    html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
+    tableaux+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
       <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${exLabelCourt(f.prev)}</th><th class="num">Part ${exLabelCourt(f.cur)}</th><th class="num">Évol. (pts)</th><th class="num">Prix moyen ${exLabelCourt(f.prev)}</th><th class="num">Prix moyen ${exLabelCourt(f.cur)}</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtNum(r.partPrev,1)} %</td><td class="num">${fmtNum(r.partCur,1)} %</td><td class="num ${r.dPts>=0?'pos':'neg'}">${fmtNum(r.dPts,1)}</td><td class="num">${r.prixPrev?fmtMoney(r.prixPrev):'n/d'}</td><td class="num">${r.prixCur?fmtMoney(r.prixCur):'n/d'}</td></tr>`).join('')}
       </tbody></table></div>`;
-    html+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${exLabelCourt(f.cur)}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
-    el('p-canaux').innerHTML=html;
-    drawCanal(A);
+    tableaux+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${exLabelCourt(f.cur)}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
+    return {signaux:signaux,tableaux:tableaux,A:A};
   }else{
-    const ex=filters.ex;
-    html+=`<div class="panel__sub">Part de CA par canal et prix moyen par bouteille. Périmètre : ${ex!=null?(exMot()+' '+exLabel(ex)):'toute la base'}.</div>`;
-    const A=agg(ex);
+    /* PLUS DE `filters.ex` ICI DEPUIS LE 11/09/2026. La barre de periode ne s'affiche que
+       sur l'ecran « annee » (voir navTo), donc un perimetre lu dans `filters` serait
+       invisible depuis « Mes cuvees », et parfois vieux de plusieurs semaines. C'est toute
+       la base, et le texte le dit. */
+    const A=agg(null);
     const rows=Object.entries(A.m).map(([k,v])=>({k,ca:v.ca,part:A.tot?v.ca/A.tot*100:0,prix:v.qte?v.ca/v.qte:0})).sort((a,b)=>b.ca-a.ca);
-    html+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
+    tableaux+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
+      <p class="note" style="margin-top:0">Part de CA par canal et prix moyen par bouteille, sur toute ta base.</p>
       <table class="data"><thead><tr><th>Canal</th><th class="num">CA</th><th class="num">Part</th><th class="num">Prix moyen / btl</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtMoney(r.ca)}</td><td class="num">${fmtNum(r.part,1)} %</td><td class="num">${r.prix?fmtMoney(r.prix):'n/d'}</td></tr>`).join('')}
       </tbody></table>
       <p class="note">Ajoute un export couvrant l'année précédente pour voir l'évolution d'un canal à l'autre.</p></div>`;
-    html+=`<div class="card"><div class="card__title"><span>Part de CA par canal</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
-    el('p-canaux').innerHTML=html;
-    drawCanal(A);
+    tableaux+=`<div class="card"><div class="card__title"><span>Part de CA par canal</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
+    return {signaux:signaux,tableaux:tableaux,A:A};
   }
 }
 function drawCanal(A){

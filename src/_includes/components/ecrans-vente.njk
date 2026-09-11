@@ -75,7 +75,9 @@
       <div id="p-diagnostic"></div>
       <div id="p-apercu"></div>
       <div id="p-evolution"></div>
-      <div id="p-canaux"></div>
+      {# p-canaux est parti dans « Mes cuvees » le 11/09/2026 : ses deux signaux sont a
+         l'etage du verdict, son tableau a l'etage replie. blocsCanaux() ne peint plus
+         dans un conteneur a lui, elle retourne ses morceaux a renderProduits(). #}
     </section>
     <section class="panel" id="p-clients"></section>
     <section class="panel" id="p-produits"></section>

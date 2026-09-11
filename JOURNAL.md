@@ -82,12 +82,42 @@ pas un defaut du depot : la session Claude n'avait pas le droit de supprimer dan
 Eleventy remplace `_site` a chaque construction. Debloque par une autorisation ponctuelle. Sur la
 machine de Ted, le cas ne se pose pas.
 
+### Lot 2, « Mes cuvees », fait dans la foulee
+
+Le panneau Canaux entier et la repartition par couleur sont entres dans la piece. Deux
+suppressions de plus, sur le meme principe que le lot 1 :
+
+- **« Top cuvees (7) » de l'Apercu**, qui etait les sept premieres lignes du tableau
+  « Toutes tes cuvees », deja trie par CA.
+- **`labels` dans renderCanaux**, une variable construite a chaque appel et jamais lue.
+
+**`renderCanaux()` est devenue `blocsCanaux()`, et elle ne peint plus.** Elle retourne
+`{signaux, tableaux, A}`, parce que ses morceaux ne vont plus au meme etage : les deux
+signaux (le canal qui monte ou recule, le prix moyen au caveau) rejoignent le verdict en
+haut, les tableaux vont dans le repli. Aucun calcul n'a change. `p-canaux` disparait de la
+coque, et la liste figee des reperes du banc passe de 26 a 25.
+
+**Le titre de l'ecran disait « Mes produits » pendant que la barre disait « Mes cuvees ».**
+C'etait le seul endroit du bureau ou une piece portait deux noms. Corrige des deux cotes.
+
+**Le piege du jour : un `<canvas>` dans un `<details>` ferme a une hauteur de zero.** Chart.js
+s'y dessine a zero pixel, et rien ne garantit qu'il se rattrape a l'ouverture. Les deux graphes
+du pied (part de CA par canal, repartition par couleur) sont donc dessines sur l'evenement
+`toggle`, au PREMIER depli seulement, avec un marqueur `data-peint` pour ne pas recommencer a
+chaque fois. Effet de bord heureux : qui n'ouvre pas le pied ne paye pas deux graphes.
+
+Meme regle de perimetre qu'au lot 1, et pour la meme raison : `drawCouleur()` ne prend plus
+`rows` et la branche sans comparatif de `blocsCanaux()` ne lit plus `filters.ex`. Tout lit la
+base entiere, en CA HT, et le texte le dit sous chaque tableau.
+
+`npm run verif` : deux chartes CONFORME, 354 controles, zero echec.
+
 ### Ce qui reste ouvert
 
-Les trois lots suivants, dans cet ordre propose : **Mes cuvees** (recoit les quatre blocs de
-Canaux et la repartition par couleur), **Mon registre** (fusionne avec Evolution, et gagne au
+Les lots 1 et 2 sont faits. Restent : **Mon registre** (fusion avec Evolution, qui gagne au
 passage le croisement du temps avec un critere, impossible aujourd'hui des deux cotes), puis
-**Mon cap** (ce qui reste, renomme et allege).
+**Mon cap** (ce qui reste de « Mon annee », renomme et allege, plus le champ « Objectif de CA
+annuel » qui part dans Mes reglages).
 
 Deux questions non tranchees, posees et laissees ouvertes : les quatre mouvements de clientele
 (nouveaux, hausse, baisse, perdus) et les trois motifs existants (recul, cadence, premier achat)
