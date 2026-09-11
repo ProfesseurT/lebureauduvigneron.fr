@@ -1460,3 +1460,25 @@ on ne change pas la barre par accident.
 depuis cet ecran vers un autre ne doit donc plus lire `filters`, ni passer par `mesureVal()` : il
 suivrait un reglage pose ailleurs, invisible la ou il s'affiche, parfois des semaines plus tot.
 Il lit toute la base, en CA HT, et il le dit dans sa note. Applique au pied de « Mon commerce ».
+
+## QUAND DEUX ECRANS FUSIONNENT, C'EST LE TEXTE DES CELLULES QUI TRAHIT, 11/09/2026
+
+Lot 3 de la redecoupe. « Evolution dans le temps » est entre dans « Mon registre ». Les deux
+affichaient un tableau periode par periode, et les deux le remplissaient avec les memes cles.
+Mais l'un passait ses en-tetes par `periodLabel()` et l'autre non : apres la fusion, les mois
+s'ecrivaient « 2026-03 » au lieu de « mars 2026 ».
+
+La charte ne regarde pas ce texte. Les bancs de structure verifient qu'un bloc est present, pas
+ce qu'il y a ecrit dedans. **Aucun controle du depot ne voyait la regression.**
+
+La regle : **quand un bloc change d'ecran, comparer ce qu'il AFFICHAIT avec ce qu'il affiche**,
+cellule par cellule, et pas seulement verifier qu'il est toujours la. Les deux endroits ou ca se
+joue d'habitude : le formatage des cles (dates, montants, pourcentages) et les libelles qui
+citaient l'ecran d'origine.
+
+### Ecrire un banc qui monte le moteur : un seul `eval`
+
+`bdv-base.js` declare ses globales en `let` et `const`. Dans un `eval`, elles restent scopees a
+CET eval. Charger `bdv-base.js` puis `bdv-ecrans.js` en deux appels donne « ROWS is not
+defined », sans que rien n'ait echoue avant. Les deux fichiers et le scenario de test partent
+ensemble, en une seule chaine. Voir `scripts/banc-registre.mjs`.

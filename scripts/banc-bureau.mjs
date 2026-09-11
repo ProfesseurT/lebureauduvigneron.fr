@@ -190,10 +190,12 @@ titre('Les ecrans de vente dans le bureau');
    plus rien. Elle est passee de trente-deux a vingt-six au lot 2d : le volet, son menu de
    secours et le bouton de deconnexion sont partis, la barre du bureau les porte. Puis a
    vingt-cinq le 11/09/2026 : `p-canaux` a disparu de la coque, les canaux sont entres dans
-   « Mes cuvees » et blocsCanaux() retourne son HTML au lieu de peindre chez elle. */
+   « Mes cuvees » et blocsCanaux() retourne son HTML au lieu de peindre chez elle. Puis a
+   vingt-quatre au lot 3 : `p-evolution` a suivi, la courbe et la lecture experte vivent
+   maintenant dans « Mon registre ». */
 const REPERES = ['app', 'bowlclip', 'busyov', 'busytxt', 'filterbar', 'modale',
   'p-annee', 'p-apercu', 'p-base', 'p-chercher', 'p-clients', 'p-decrochage',
-  'p-diagnostic', 'p-evolution', 'p-explorer', 'p-premier', 'p-produits', 'p-reactivation',
+  'p-diagnostic', 'p-explorer', 'p-premier', 'p-produits', 'p-reactivation',
   'p-reglages', 'p-vide', 'printReport', 'status', 'statusSpin', 'statusTxt', 'tbFile'];
 const manquants = REPERES.filter(id => !B.doc.getElementById(id));
 t('la coque des ecrans porte ses ' + REPERES.length + ' reperes',

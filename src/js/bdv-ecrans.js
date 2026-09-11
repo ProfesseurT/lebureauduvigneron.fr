@@ -119,7 +119,9 @@ const NAV=[
   // « Mes cuvees » et plus « Mes produits » depuis le 11/09/2026 : la barre du bureau disait
   // deja « Mes cuvees », et le titre de l'ecran disait autre chose. Deux noms pour une piece.
   {id:'produits',ico:'&#127863;', label:'Mes cuvées'},
-  {id:'chercher',ico:'&#128301;', label:'Chercher'},
+  // « Mon registre » et plus « Chercher » depuis le 11/09/2026, lot 3 : meme correction
+  // qu'aux cuvees, la barre du bureau et l'ecran ne disaient pas la meme chose.
+  {id:'chercher',ico:'&#128301;', label:'Mon registre'},
   // « Ma base » et « Réglages » ont fusionné le 07/09/2026. Ce ne sont plus deux écrans de
   // l'outil mais deux blocs du panneau partagé avec le bureau : une seule entrée, qui ouvre.
   {id:'reglages',ico:'⚙',        label:'Réglages', panneau:true}
@@ -206,6 +208,11 @@ function navTo(id){
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
+  /* MON REGISTRE SE REPEINT A L'ARRIVEE, depuis le 11/09/2026 : il porte une courbe, et
+     renderAll() l'a peinte alors que le panneau etait masque, donc dans un canvas haut de
+     zero pixel. Chart.js n'y dessine rien de visible et ne s'en plaint pas. Un seul clic,
+     un seul recalcul : c'est moins cher que de surveiller la taille du conteneur. */
+  if(id==='chercher'&&ROWS.length)renderExplo();
   window.scrollTo(0,0);
   // L'ecran s'ecrit dans l'adresse. Trois consequences voulues : le bureau peut pointer
   // droit sur « Mes clients », le bouton Retour du navigateur circule dans l'outil, et un
@@ -291,7 +298,7 @@ function renderAll(){
   /* Mon annee : TROIS panneaux, et c'en etait quatre. Le panneau Canaux est parti dans
      « Mes cuvees » le 11/09/2026, lot 2 : le chemin de vente et le prix moyen repondent a
      « ce qui part, et a quel prix », qui est la question de cette piece-la. */
-  renderDiagnostic();renderApercu();renderEvolution();
+  renderDiagnostic();renderApercu();
   // Mes clients : une seule liste, alimentee par les trois moteurs.
   renderReactivation();renderPremierAchat();renderDecrochage();  // calculent et memorisent
   renderClients();renderProduits();
@@ -522,7 +529,7 @@ function renderExplo(){
   const rows=exploRows(),base=ROWS.filter(r=>r._vin);
   const a1=axisDef(exploAxis1);
 
-  let html=`<h2 class="panel__title">Chercher</h2><div class="panel__sub">Choisis ce que tu veux voir, affine si besoin, le résultat se met à jour en dessous. Mesure : ${mesureLabel()}.</div>`;
+  let html=`<h2 class="panel__title">Mon registre</h2><div class="panel__sub">Choisis ce que tu veux voir, affine si besoin, le résultat se met à jour en dessous. Répartis par mois ou par ${EX_START===1?'année':'exercice'} et la courbe apparaît. Mesure : ${mesureLabel()}.</div>`;
 
   /* ---------- BARRE DE PILOTAGE, en haut ----------
      Quatre reglages seulement sont visibles en permanence : ils suffisent a repondre a la
@@ -566,12 +573,65 @@ function renderExplo(){
   if(restF.length)facetHtml+=`<div class="facet-cat"><div class="facet-cat__lbl">Autres critères</div><div class="expl-ctrls">`+restF.map(fSel).join('')+`</div></div>`;
   if(perso.length)facetHtml+=`<div class="facet-cat"><div class="facet-cat__lbl">Champs perso Vitisoft</div><div class="expl-ctrls">`+perso.map(fSel).join('')+`</div></div>`;
   html+=`<div id="moreFilters" class="pilote__facets ${exploShowFilters?'':'hidden'}">${facetHtml}</div>`;
+
+  /* LES VUES RAPIDES remplacent les deux « repartitions detaillees » de l'apercu de « Mon
+     annee » (par famille, par code tarif), parties le 11/09/2026. C'etaient deux
+     croisements figes, affiches sans qu'on les demande. Ce sont maintenant deux boutons
+     qui reglent le menu du dessus : meme resultat, et onze autres criteres a cote. */
+  const VUES=[{k:'famille',l:'Par famille'},{k:'codeTarif',l:'Par code tarif'},
+              {k:'_canal',l:'Par canal de vente'},{k:'_mois',l:'Par mois'},{k:'client',l:'Par client'}];
+  const dispo=VUES.filter(v=>std.some(a=>a.key===v.k));
+  if(dispo.length)html+=`<div class="pilote__row pilote__row--sec">
+      <span class="pilote__count" style="margin:0">Vues rapides</span>
+      ${dispo.map(v=>`<button class="btn btn--ghost btn--sm" onclick="setExploAxis(1,'${v.k}')">${v.l}</button>`).join('')}
+    </div>`;
   html+=`</div>`;
+
+  /* ---------- REPARTIR PAR UN TEMPS : LA COURBE ET LA LECTURE EXPERTE ----------
+     Lot 3 du 11/09/2026. C'est tout ce que l'ecran « Evolution dans le temps » avait de
+     plus que celui-ci, et il n'avait rien d'autre : segmenter, lire un tableau periode par
+     periode et exporter etaient deja ici, en plus souple.
+
+     LE PAS DE TEMPS N'EST PLUS UN REGLAGE. « Mensuel / Annuel » etait une bascule de
+     l'ancien ecran ; c'est maintenant « Repartir par Mois » ou « Repartir par Annee », qui
+     existait deja dans ce menu. Un reglage de moins pour exactement la meme chose.
+
+     ET LA SELECTION S'APPLIQUE ENFIN AUX DEUX. L'ancien ecran ignorait la periode choisie
+     en vue annuelle, et le disait dans une note en bas de tableau. Ici, les dates et les
+     dix-neuf facettes valent pour la courbe comme pour le tableau : on voit ce qu'on a
+     demande, sans exception a retenir. */
+  let lecture=[],dessin=null;
+  if(isTimeAxis(exploAxis1)){
+    const a2=exploAxis2?axisDef(exploAxis2):null;
+    const cle=r=>{const v=a1.get(r);return (v===''||v==null)?'':String(v);};
+    const setP=new Set();rows.forEach(r=>{const k=cle(r);if(k)setP.add(k);});
+    const periods=[...setP].sort();
+    if(periods.length){
+      const bySeg={},segTot={};
+      rows.forEach(r=>{
+        const k=cle(r);if(!k)return;
+        let seg=a2?a2.get(r):'Total';seg=(seg===''||seg==null)?'(non renseigné)':String(seg);
+        if(!bySeg[seg])bySeg[seg]={};
+        bySeg[seg][k]=(bySeg[seg][k]||0)+mesureVal(r);
+        segTot[seg]=(segTot[seg]||0)+mesureVal(r);
+      });
+      const segs=Object.keys(segTot).sort((x,y)=>segTot[y]-segTot[x]);
+      const totByPeriod=periods.map(k=>segs.reduce((a,s)=>a+((bySeg[s]&&bySeg[s][k])||0),0));
+      lecture=evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,a2?a2.get:null,
+                             exploAxis1==='_mois'?'mois':'annee',a2?a2.label:'');
+      const dense=!!a2&&segs.length>12;
+      dessin={periods:periods,segs:segs,bySeg:bySeg,multi:!!a2,dense:dense,totByPeriod:totByPeriod};
+      // ETAGE 1 : un seul verdict, la tendance de fond. Les sept autres sont replies en bas.
+      if(lecture.length)html+=`<div class="section-label">Ce que dit la courbe</div>`+lecture[0];
+      html+=`<div class="card"><div class="card__title"><span>${a2?('Évolution par '+esc(a2.label.toLowerCase())):'Évolution du total'}</span></div><div class="chart-wrap"><canvas id="chEvo"></canvas></div>${dense?`<p class="note">${segs.length} segments : trop pour un graphe lisible, la courbe montre le total. Le détail par segment est dans le tableau ci-dessous.</p>`:''}</div>`;
+    }
+  }
 
   /* ---------- LE RESULTAT ---------- */
   html+=`<div class="card"><div class="card__title"><span>${esc(a1.label)}${exploAxis2?' croisé avec '+esc(axisDef(exploAxis2).label):''}</span><span><button class="btn btn--ghost btn--sm" onclick="exportExplo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportExplo('csv')">CSV</button></span></div>`;
   if(!exploAxis2){
-    const entries=isTimeAxis(exploAxis1)?chronoEntries(groupSum(rows,a1.get)):allEntries(groupSum(rows,a1.get));
+    let entries=isTimeAxis(exploAxis1)?chronoEntries(groupSum(rows,a1.get)):allEntries(groupSum(rows,a1.get));
+    entries=entries.map(e=>[libAxe(exploAxis1,e[0]),e[1]]);
     html+=entries.length?barListHTML(entries):`<p class="note">Aucune donnée sur cette sélection.</p>`;
   }else{
     const a2=axisDef(exploAxis2);
@@ -580,13 +640,27 @@ function renderExplo(){
     const cell={},rowTot={},colTot={};let grand=0;
     rows.forEach(r=>{let rk=a1.get(r);rk=(rk===''||rk==null)?'(non renseigné)':String(rk);if(!rowSet.has(rk))rk='Autres';let ck=a2.get(r);ck=(ck===''||ck==null)?'(non renseigné)':String(ck);if(!colSet.has(ck))ck='Autres';const v=mesureVal(r);cell[rk]=cell[rk]||{};cell[rk][ck]=(cell[rk][ck]||0)+v;rowTot[rk]=(rowTot[rk]||0)+v;colTot[ck]=(colTot[ck]||0)+v;grand+=v;});
     const rk2=rowKeys.filter(k=>rowTot[k]),ck2=colKeys.filter(k=>colTot[k]);
-    html+=`<div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${esc(a1.label)} \ ${esc(a2.label)}</th>${ck2.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
-    rk2.forEach(rkey=>{html+=`<tr><td class="rowh">${esc(rkey)}</td>${ck2.map(c=>`<td>${(cell[rkey]&&cell[rkey][c])?fmtMes(cell[rkey][c]):'-'}</td>`).join('')}<td>${fmtMes(rowTot[rkey])}</td></tr>`;});
+    html+=`<div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${esc(a1.label)} \ ${esc(a2.label)}</th>${ck2.map(c=>`<th>${esc(libAxe(exploAxis2,c))}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+    rk2.forEach(rkey=>{html+=`<tr><td class="rowh">${esc(libAxe(exploAxis1,rkey))}</td>${ck2.map(c=>`<td>${(cell[rkey]&&cell[rkey][c])?fmtMes(cell[rkey][c]):'-'}</td>`).join('')}<td>${fmtMes(rowTot[rkey])}</td></tr>`;});
     html+=`<tr><td class="rowh"><b>Total</b></td>${ck2.map(c=>`<td>${fmtMes(colTot[c])}</td>`).join('')}<td>${fmtMes(grand)}</td></tr>`;
     html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}. Toutes les valeurs affichées, sans regroupement.</p>`;
   }
   html+=`</div>`;
+
+  /* ETAGE 3 : les sept autres signaux, replies. Les poser tous en haut, c'etait refaire
+     « Mon annee » dans une piece de plus : sept verdicts avant de voir sa courbe. */
+  if(lecture.length>1)html+=`<div class="card"><details class="msg--replie">
+    <summary>La lecture experte, en détail</summary>${lecture.slice(1).join('')}</details></div>`;
+
   p.innerHTML=html;
+
+  /* LE DESSIN VIENT APRES L'ECRITURE, toujours : le canvas doit exister. Et cette piece est
+     peinte par renderAll() alors qu'elle est encore masquee, ou un canvas a une hauteur de
+     zero ; c'est navTo() qui rappelle renderExplo() a l'arrivee, panneau visible. */
+  if(dessin){
+    if(dessin.dense){const tot={};dessin.periods.forEach((k,i)=>tot[k]=dessin.totByPeriod[i]);drawEvo(dessin.periods,['Total'],{Total:tot},false);}
+    else drawEvo(dessin.periods,dessin.segs,dessin.bySeg,dessin.multi);
+  }
 }
 
 function renamePerso(key,val){
@@ -598,23 +672,43 @@ function renamePerso(key,val){
 
 /* ======================= VUE EVOLUTION (le film dans le temps) ======================= */
 // Cle de période selon le pas de temps choisi : 'AAAA' (annuel) ou 'AAAA-MM' (mensuel).
-function periodKey(r){return evoStep==='annee'?exLabel(r._exY):(r._date?(r._date.y+'-'+String(r._date.m).padStart(2,'0')):'');}
+/* `periodKey()` est partie avec l'ecran Evolution : elle lisait `evoStep`, et l'axe
+   `_mois` de AXES fabrique la meme cle depuis toujours. periodLabel(), elle, reste : la
+   courbe et la lecture experte s'en servent pour ecrire « mars 2026 » et pas « 2026-03 ».
+*/
 // Mois en toutes lettres : les abreges de MOIS_FR (« juil. ») ne se mettent pas dans une phrase.
 function periodLabel(k){if(/^\d{4}-\d{2}$/.test(k)){const y=k.slice(0,4),m=+k.slice(5,7);return MOIS_FR[m-1]+' '+y;}return k;}
-// Mensuel : respecte la selection de periode (zoom). Annuel : l'ignore, pour garder tous les exercices.
-function evoRows(){return ROWS.filter(r=>r._vin&&r._date&&(evoStep==='annee'||dansSelection(r)));}
-function evoDimGet(){if(!evoDim)return null;const a=axisDef(evoDim);return a?a.get:null;}
+/* AFFICHER UNE CLE D'AXE. Pour un axe de temps, « 2026-03 » s'ecrit « mars 2026 » ; pour
+   tous les autres, la cle est deja le mot. Ajoute le 11/09/2026 : en fusionnant l'ecran
+   Evolution dans le registre, les mois du tableau croise revenaient en « 2026-03 », parce
+   que l'ancien tableau passait par periodLabel() et pas celui-ci. Un banc jetable l'a
+   attrape ; aucun controle du depot ne regardait ce texte-la. */
+function libAxe(axe,k){return isTimeAxis(axe)?periodLabel(k):k;}
+/* `evoRows()` et `evoDimGet()` sont parties avec l'ecran Evolution. La premiere disait
+   « en vue annuelle, ignore la periode choisie », une exception que le registre n'a pas
+   besoin d'avoir : ses filtres valent pour tout ce qu'il affiche, courbe comprise. */
 /* ======================= LECTURE EXPERTE (commentaire auto de la vue Evolution) ======================= */
 function _mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0;}
 function _stdev(a){if(a.length<2)return 0;const m=_mean(a);return Math.sqrt(_mean(a.map(x=>(x-m)*(x-m))));}
 function _slope(a){const n=a.length;if(n<2)return 0;const mx=(n-1)/2,my=_mean(a);let num=0,den=0;for(let i=0;i<n;i++){num+=(i-mx)*(a[i]-my);den+=(i-mx)*(i-mx);}return den?num/den:0;}
-function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
-  const n=periods.length;if(!n)return '';
+/* ELLE REND UN TABLEAU DE SIGNAUX, et plus une chaine, depuis le 11/09/2026 (lot 3).
+
+   Motif : « Mon registre » pose le PREMIER signal en verdict, bien visible, et replie les
+   sept autres. Une chaine unique ne se coupe pas en deux. Le `section-label` est sorti
+   d'ici pour la meme raison : c'est l'appelant qui sait sous quel titre il les range.
+
+   ELLE NE LIT PLUS NI `evoStep` NI `evoDim`, qui etaient les reglages de l'ecran Evolution.
+   Ces deux-la ont disparu avec lui : le pas de temps est devenu le choix « Repartir par
+   Mois » ou « Repartir par Annee » du registre, et la dimension son « Croiser avec ».
+   D'ou les deux parametres `pas` et `dimLabel`, qui disent la meme chose sans dependre
+   d'un ecran. */
+function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet,pas,dimLabel){
+  const n=periods.length;if(!n)return [];
   const grand=totByPeriod.reduce((s,v)=>s+v,0),avg=grand/n;
-  const pw=evoStep==='annee'?exMot():'mois',pwpl=evoStep==='annee'?(exMot()+'s'):'mois';
-  const dimLbl=dimGet?axisDef(evoDim).label.toLowerCase():'';
+  const pw=pas==='annee'?exMot():'mois',pwpl=pas==='annee'?(exMot()+'s'):'mois';
+  const dimLbl=dimGet?String(dimLabel||'').toLowerCase():'';
   const lbl=i=>periodLabel(periods[i]);
-  let out=`<div class="section-label">Lecture experte</div>`;
+  const out=[];
 
   // 1. Tendance de fond
   if(n>=2){
@@ -623,23 +717,23 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
     const sl=_slope(totByPeriod),seuil=Math.max(1,Math.abs(avg)*0.02);
     const trend=sl>seuil?'orientée à la hausse':(sl<-seuil?'orientée à la baisse':'globalement stable');
     const k=d==null?'info':(d>=0?'ok':'warn'),ic=d==null?'≈':(d>=0?'↗':'↘');
-    out+=signal(k,ic,`Tendance de fond ${trend} : ${fmtMes(first)} en ${lbl(0)} vers ${fmtMes(last)} en ${lbl(n-1)}${d==null?'':' ('+fmtPct(d)+')'}.`,`Pente moyenne ${sl>=0?'+':'-'}${fmtMes(Math.abs(sl))} par ${pw} sur ${n} ${pwpl}. Moyenne par ${pw} : ${fmtMes(avg)}.`);
+    out.push(signal(k,ic,`Tendance de fond ${trend} : ${fmtMes(first)} en ${lbl(0)} vers ${fmtMes(last)} en ${lbl(n-1)}${d==null?'':' ('+fmtPct(d)+')'}.`,`Pente moyenne ${sl>=0?'+':'-'}${fmtMes(Math.abs(sl))} par ${pw} sur ${n} ${pwpl}. Moyenne par ${pw} : ${fmtMes(avg)}.`));
   }else{
-    out+=signal('info','≈',`Une seule ${pw} dans la sélection (${lbl(0)}) : ${fmtMes(grand)}.`,`Ajoute de l'historique pour dégager une tendance.`);
+    out.push(signal('info','≈',`Une seule ${pw} dans la sélection (${lbl(0)}) : ${fmtMes(grand)}.`,`Ajoute de l'historique pour dégager une tendance.`));
   }
 
   // 2. Pic / creux
   if(n>=2){
     let iMax=0,iMin=0;totByPeriod.forEach((v,i)=>{if(v>totByPeriod[iMax])iMax=i;if(v<totByPeriod[iMin])iMin=i;});
     const ratio=totByPeriod[iMin]>0?totByPeriod[iMax]/totByPeriod[iMin]:null;
-    out+=signal('info','◆',`Meilleur ${pw} : ${lbl(iMax)} (${fmtMes(totByPeriod[iMax])}). Plus faible : ${lbl(iMin)} (${fmtMes(totByPeriod[iMin])}).`,ratio?`Rapport de ${fmtNum(ratio,1)} entre le haut et le bas de la période.`:`Le point bas est à zéro ou négatif.`);
+    out.push(signal('info','◆',`Meilleur ${pw} : ${lbl(iMax)} (${fmtMes(totByPeriod[iMax])}). Plus faible : ${lbl(iMin)} (${fmtMes(totByPeriod[iMin])}).`,ratio?`Rapport de ${fmtNum(ratio,1)} entre le haut et le bas de la période.`:`Le point bas est à zéro ou négatif.`));
   }
 
   // 3. Momentum du dernier point
   if(n>=3){
     const last=totByPeriod[n-1],prev=totByPeriod[n-2];
     const dp=prev?(last-prev)/Math.abs(prev)*100:null,above=last>=avg;
-    out+=signal(dp==null?'info':(dp>=0?'ok':'warn'),dp>=0?'▲':'▼',`Dernier ${pw} (${lbl(n-1)})${dp==null?'':(dp>=0?' en accélération de ':' en repli de ')+fmtPct(dp)+' vs le '+pw+' précédent'}, ${above?'au-dessus':'en dessous'} de la moyenne (${fmtMes(avg)}).`,`Le dernier point ${above?'confirme plutôt':'contraste avec'} le niveau moyen : à surveiller sur le ${pw} suivant.`);
+    out.push(signal(dp==null?'info':(dp>=0?'ok':'warn'),dp>=0?'▲':'▼',`Dernier ${pw} (${lbl(n-1)})${dp==null?'':(dp>=0?' en accélération de ':' en repli de ')+fmtPct(dp)+' vs le '+pw+' précédent'}, ${above?'au-dessus':'en dessous'} de la moyenne (${fmtMes(avg)}).`,`Le dernier point ${above?'confirme plutôt':'contraste avec'} le niveau moyen : à surveiller sur le ${pw} suivant.`));
   }
 
   // 4. Concentration entre segments
@@ -651,7 +745,7 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
       let cum=0,pareto=0;for(const v of shares){cum+=v;pareto++;if(cum/tot>=0.8)break;}
       const hhi=shares.reduce((s,v)=>s+Math.pow(v/tot*100,2),0);
       const niveau=hhi>2500?'très concentré':(hhi>1500?'modérément concentré':'plutôt réparti');
-      out+=signal(hhi>2500?'warn':'info','▤',`Concentration : répartition ${niveau}. Le 1er ${dimLbl} pèse ${fmtNum(top1,0)}% du total, le top 3 ${fmtNum(top3,0)}%.`,`${pareto} ${dimLbl}${pareto>1?'s':''} sur ${shares.length} font 80% du total. ${hhi>2500?'Dépendance à surveiller : un décrochage ferait mal.':'Base assez équilibrée.'}`);
+      out.push(signal(hhi>2500?'warn':'info','▤',`Concentration : répartition ${niveau}. Le 1er ${dimLbl} pèse ${fmtNum(top1,0)}% du total, le top 3 ${fmtNum(top3,0)}%.`,`${pareto} ${dimLbl}${pareto>1?'s':''} sur ${shares.length} font 80% du total. ${hhi>2500?'Dépendance à surveiller : un décrochage ferait mal.':'Base assez équilibrée.'}`));
     }
   }
 
@@ -669,64 +763,44 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet){
     if(risers.length&&totDelta>0)act.push(`${esc(risers[0].s)} explique ${fmtNum(risers[0].d/totDelta*100,0)}% de la hausse`);
     if(emerging.length)act.push(`nouveau${emerging.length>1?'x':''} : ${emerging.slice(0,3).map(esc).join(', ')}`);
     if(vanish.length)act.push(`disparu${vanish.length>1?'s':''} : ${vanish.slice(0,3).map(esc).join(', ')}`);
-    if(parts.length)out+=signal('info','⇅',`Le total est ${parts.join(', et ')}.`,act.length?act.join(' · ')+'.':`Compare les segments qui montent et ceux qui refluent dans le tableau.`);
+    if(parts.length)out.push(signal('info','⇅',`Le total est ${parts.join(', et ')}.`,act.length?act.join(' · ')+'.':`Compare les segments qui montent et ceux qui refluent dans le tableau.`));
   }
 
   // 6. Saisonnalite (vue mensuelle)
-  if(evoStep==='mois'&&n>=6){
+  if(pas==='mois'&&n>=6){
     const byM={},cM={};periods.forEach((p,i)=>{const mm=+p.slice(5,7);byM[mm]=(byM[mm]||0)+totByPeriod[i];cM[mm]=(cM[mm]||0)+1;});
     const avgM={};for(const mm in byM)avgM[mm]=byM[mm]/cM[mm];
     const arr=Object.keys(avgM).map(Number);let pk=arr[0],tr=arr[0];arr.forEach(mm=>{if(avgM[mm]>avgM[pk])pk=mm;if(avgM[mm]<avgM[tr])tr=mm;});
     const cv=avg?_stdev(totByPeriod)/Math.abs(avg)*100:0;
-    out+=signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Variabilité ${cv>40?'forte':(cv>20?'modérée':'faible')} (CV ${fmtNum(cv,0)}%).`,`${cv>40?'Anticipe la trésorerie autour des creux et charge les actions commerciales avant les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`);
+    out.push(signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Variabilité ${cv>40?'forte':(cv>20?'modérée':'faible')} (CV ${fmtNum(cv,0)}%).`,`${cv>40?'Anticipe la trésorerie autour des creux et charge les actions commerciales avant les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`));
   }
 
   // 7. Qualite : poids du non renseigne
   if(dimGet){
     const nr=segTot['(non renseigné)'];
-    if(nr&&grand>0&&nr/grand>0.05)out+=signal('warn','⚑',`${fmtNum(nr/grand*100,0)}% du total tombe dans « (non renseigné) » sur ${dimLbl}.`,`Fiabilise la saisie de ce champ dans Vitisoft pour une lecture nette.`);
+    if(nr&&grand>0&&nr/grand>0.05)out.push(signal('warn','⚑',`${fmtNum(nr/grand*100,0)}% du total tombe dans « (non renseigné) » sur ${dimLbl}.`,`Fiabilise la saisie de ce champ dans Vitisoft pour une lecture nette.`));
   }
   return out;
 }
 
-function renderEvolution(){
-  const rows=evoRows();
-  const scope=evoStep==='annee'?('tous '+exMot()+'s'):(filters.ex!=null||plageLibre()?libellePerimetre():'toute la base, tous mois confondus');
-  let html=`<h2 class="panel__title">Évolution dans le temps</h2><div class="panel__sub">Comment tes chiffres bougent ${evoStep==='annee'?"d'une année sur l'autre":"mois après mois"}. Mesure : ${mesureLabel()}. Périmètre : ${scope}.</div>`;
-  const {std,perso}=usableAxes();
-  const dimOpts=`<option value=""${evoDim===''?' selected':''}>Total (pas de segmentation)</option>`+catOptions(std.filter(a=>!isTimeAxis(a.key)),perso,evoDim,false);
-  html+=`<div class="expl-ctrls">
-    <div class="field"><label>Segmenter par</label><select onchange="setEvoDim(this.value)">${dimOpts}</select></div>
-    <div class="field"><label>Pas de temps</label><span class="toggle"><button class="${evoStep==='mois'?'on':''}" onclick="setEvoStep('mois')">Mensuel</button><button class="${evoStep==='annee'?'on':''}" onclick="setEvoStep('annee')">Annuel</button></span></div>
-    <div class="field"><label>Mesure</label><span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span></div>
-  </div>`;
-  const periodsSet=new Set();rows.forEach(r=>{const p=periodKey(r);if(p)periodsSet.add(p);});
-  const periods=[...periodsSet].sort();
-  if(!periods.length){el('p-evolution').innerHTML=html+`<p class="note">Aucune donnée datée sur ce périmètre.</p>`;return;}
-  const dimGet=evoDimGet();
-  const bySeg={},segTot={};
-  rows.forEach(r=>{
-    const p=periodKey(r);if(!p)return;
-    let seg=dimGet?dimGet(r):'Total';seg=(seg===''||seg==null)?'(non renseigné)':String(seg);
-    if(!bySeg[seg])bySeg[seg]={};
-    bySeg[seg][p]=(bySeg[seg][p]||0)+mesureVal(r);
-    segTot[seg]=(segTot[seg]||0)+mesureVal(r);
-  });
-  const segs=Object.keys(segTot).sort((a,b)=>segTot[b]-segTot[a]);
-  const totByPeriod=periods.map(p=>segs.reduce((a,seg)=>a+((bySeg[seg]&&bySeg[seg][p])||0),0));
-  html+=evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet);
-  const dense=dimGet&&segs.length>12;
-  html+=`<div class="card"><div class="card__title"><span>${dimGet?('Évolution par '+esc(axisDef(evoDim).label.toLowerCase())):'Évolution du total'}</span></div><div class="chart-wrap"><canvas id="chEvo"></canvas></div>${dense?`<p class="note">${segs.length} segments : trop pour un graphe lisible, la courbe montre le total. Le détail par segment est dans le tableau ci-dessous.</p>`:''}</div>`;
-  html+=`<div class="card"><div class="card__title"><span>Détail chiffré</span><span><button class="btn btn--ghost btn--sm" onclick="exportEvo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportEvo('csv')">CSV</button></span></div><div style="overflow-x:auto"><table class="heat"><thead><tr><th class="rowh">${dimGet?esc(axisDef(evoDim).label):'Période'}</th>${periods.map(p=>`<th>${esc(periodLabel(p))}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
-  segs.forEach(seg=>{html+=`<tr><td class="rowh">${esc(seg)}</td>${periods.map(p=>`<td>${(bySeg[seg]&&bySeg[seg][p])?fmtMes(bySeg[seg][p]):'-'}</td>`).join('')}<td>${fmtMes(segTot[seg])}</td></tr>`;});
-  if(dimGet)html+=`<tr><td class="rowh"><b>Total</b></td>${periods.map((p,i)=>`<td>${fmtMes(totByPeriod[i])}</td>`).join('')}<td>${fmtMes(totByPeriod.reduce((a,v)=>a+v,0))}</td></tr>`;
-  html+=`</tbody></table></div><p class="note">Mesure : ${mesureLabel()}.${evoStep==='mois'&&filters.ex==null&&!plageLibre()?" Astuce : choisis une période en haut de l'écran pour zoomer.":''}${evoStep==='annee'&&(filters.ex!=null||plageLibre())?" La sélection de période ne s'applique pas à la vue par "+exMot()+".":''}</p></div>`;
-  el('p-evolution').innerHTML=html;
-  if(dense){const tot={};periods.forEach((p,i)=>tot[p]=totByPeriod[i]);drawEvo(periods,['Total'],{Total:tot},false);}
-  else drawEvo(periods,segs,bySeg,!!dimGet);
-}
-function setEvoDim(v){evoDim=v;runBusy('Analyse…',renderEvolution);}
-function setEvoStep(st){evoStep=st;runBusy('Analyse…',renderEvolution);}
+/* « EVOLUTION DANS LE TEMPS » A DISPARU LE 11/09/2026, lot 3 de la redecoupe, et ses
+   deux reglages `setEvoDim` / `setEvoStep` avec elle.
+
+   CE N'ETAIT PAS UN DOUBLON, c'etait un recouvrement. Elle partageait avec « Mon registre »
+   le tableau periode par periode et les exports, mais elle avait deux choses a elle : la
+   COURBE et la LECTURE EXPERTE (huit signaux calcules : tendance et sa pente, pic et creux,
+   momentum du dernier point, concentration par indice de Herfindahl, moteurs et freins,
+   saisonnalite, poids du non renseigne). Le registre, lui, avait dix-neuf facettes, la
+   plage de dates libre et le croisement de deux criteres quelconques.
+
+   Ce sont ces deux choses-la, et elles seules, qui ont demenage dans renderExplo(). Le
+   reste de cette fonction ne faisait que refaire, en moins souple, ce que le registre
+   savait deja : `evoStep` est devenu « Repartir par Mois / Annee », `evoDim` est devenu
+   « Croiser avec ». Deux reglages de moins, aucune fonction perdue.
+
+   drawEvo() et evoCommentaire() n'ont PAS bouge : elles sont appelees depuis le registre,
+   avec les memes cles de periode. C'est ce qui a rendu la fusion possible en une seule
+   passe : `periodKey()` et l'axe `_mois` fabriquaient deja exactement le meme format. */
 function drawEvo(periods,segs,bySeg,multi){
   destroyChart('chEvo');
   const ctx=el('chEvo');if(!ctx)return;
@@ -2642,17 +2716,9 @@ function exploExportSheets(){
 }
 function exportExplo(fmt){if(!ROWS.length){status('error','Rien à exporter.');return;}const sh=exploExportSheets();fmt==='csv'?forceCsv(sh,'exploration-vitisoft'):toXlsxOrCsv(sh,'exploration-vitisoft');}
 // Évolution : le tableau segment × période affiché
-function evoExportSheets(){
-  const rows=evoRows(),dimGet=evoDimGet();
-  const ps=new Set();rows.forEach(r=>{const p=periodKey(r);if(p)ps.add(p);});const periods=[...ps].sort();
-  const bySeg={},segTot={};
-  rows.forEach(r=>{const p=periodKey(r);if(!p)return;let seg=dimGet?dimGet(r):'Total';seg=(seg===''||seg==null)?'(non renseigné)':String(seg);if(!bySeg[seg])bySeg[seg]={};bySeg[seg][p]=(bySeg[seg][p]||0)+mesureVal(r);segTot[seg]=(segTot[seg]||0)+mesureVal(r);});
-  const segs=Object.keys(segTot).sort((a,b)=>segTot[b]-segTot[a]);
-  const head=[dimGet?axisDef(evoDim).label:'Total'].concat(periods.map(periodLabel),['Total']);
-  const body=segs.map(seg=>[seg].concat(periods.map(p=>Math.round((bySeg[seg]&&bySeg[seg][p])||0)),[Math.round(segTot[seg])]));
-  return [{name:'Évolution',aoa:[head].concat(body)}];
-}
-function exportEvo(fmt){if(!ROWS.length){status('error','Rien à exporter.');return;}const sh=evoExportSheets();fmt==='csv'?forceCsv(sh,'evolution-vitisoft'):toXlsxOrCsv(sh,'evolution-vitisoft');}
+/* `evoExportSheets()` et `exportEvo()` sont parties avec l'ecran Evolution : le registre
+   exporte deja le meme tableau par `exportExplo()`, avec en plus ses filtres. Deux boutons
+   d'export qui produisent le meme fichier, c'est un bouton de trop. */
 
 /* ======================= INIT ======================= */
 // La porte passe devant depuis le 04/09/2026 : le tableau de bord n'est plus visitable sans

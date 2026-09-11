@@ -112,12 +112,76 @@ base entiere, en CA HT, et le texte le dit sous chaque tableau.
 
 `npm run verif` : deux chartes CONFORME, 354 controles, zero echec.
 
+### Lot 3, « Mon registre » : la fusion, et une correction de ma part
+
+**J'avais vendu ce lot sur un argument faux, et je l'ai dit avant de coder.** J'avais affirme
+que croiser le temps avec un critere etait impossible des deux cotes. C'est inexact : « Mois »
+et « Annee » etaient deja dans le menu « Repartir par » du registre, rubrique Temps. Je ne
+l'avais pas verifie avant de l'affirmer.
+
+**Et ce n'etaient pas le meme outil, mais deux outils qui se recouvrent.** Chacun avait quelque
+chose que l'autre n'avait pas :
+
+- Evolution : la COURBE, et une LECTURE EXPERTE de huit signaux calcules (tendance de fond et
+  sa pente, meilleur et pire mois, momentum du dernier point, concentration par indice de
+  Herfindahl, moteurs et freins, saisonnalite, poids du non renseigne).
+- Le registre : dix-neuf facettes, la plage de dates libre, le croisement de deux criteres
+  quelconques.
+
+Ils ne partageaient vraiment que le tableau periode par periode et les exports.
+
+**Arbitrage de Ted : la fusion reelle, pas le demenagement.** Le registre garde sa barre de
+pilotage et gagne la courbe plus la lecture experte des qu'on repartit par mois ou par annee.
+L'ecran Evolution disparait, avec `evoStep`, `evoDim`, `periodKey`, `evoRows`, `evoDimGet`,
+`evoExportSheets` et `exportEvo`. `drawEvo()` et `evoCommentaire()` n'ont pas bouge d'un
+calcul : ce sont les memes cles de periode des deux cotes, et c'est ce qui a rendu la fusion
+possible en une passe.
+
+**Deux gains qui n'etaient pas demandes.** Le pas de temps n'est plus un reglage a lui : c'est
+le choix « Repartir par Mois / Annee », qui existait deja. Et la selection de periode s'applique
+enfin a la courbe : l'ancien ecran l'ignorait en vue annuelle, et le disait dans une note en
+bas de tableau, qu'il fallait avoir lue.
+
+**`evoCommentaire()` rend maintenant un TABLEAU de signaux et plus une chaine.** Le premier,
+la tendance de fond, est le verdict visible ; les sept autres sont replies sous « La lecture
+experte, en detail ». Huit verdicts avant de voir sa courbe, c'etait refaire « Mon annee »
+dans une piece de plus.
+
+**Les deux repartitions de l'apercu (par famille, par code tarif) sont devenues des boutons.**
+Une ligne « Vues rapides » sous la barre de pilotage : par famille, par code tarif, par canal,
+par mois, par client. Meme resultat que les deux cartes figees, plus onze autres criteres a
+cote.
+
+### Le banc qui a servi le jour meme
+
+`npm run banc:registre`, ajoute au depot et a `npm run verif`. Il monte le moteur et les ecrans
+en jsdom, fabrique vingt-quatre mois de ventes, et verifie que la courbe et la lecture experte
+apparaissent sur un axe de temps et disparaissent sinon.
+
+**Piege a connaitre pour le prochain banc du meme genre : un seul `eval`.** Le moteur declare
+ses globales en `let` et `const`, qui restent scopees a l'eval qui les execute. Charger
+bdv-base.js puis bdv-ecrans.js en deux appels donne « ROWS is not defined ». Les deux fichiers
+et le scenario partent ensemble, en une seule chaine.
+
+**Il a attrape une regression au premier passage**, que ni la charte ni les onze autres bancs
+ne voyaient : les mois du tableau croise revenaient en « 2026-03 » au lieu de « mars 2026 »,
+parce que l'ancien tableau d'Evolution passait par `periodLabel()` et pas celui du registre.
+D'ou `libAxe()`. Sans ce banc, Ted l'aurait trouve lui-meme apres le deploiement.
+
+Effet de bord assume : l'export du registre garde les cles brutes (`2026-03`), la ou
+`exportEvo` ecrivait « mars 2026 ». C'est mieux ainsi, une colonne de dates doit se trier.
+
+`npm run verif` : deux chartes CONFORME, 367 controles, zero echec.
+
 ### Ce qui reste ouvert
 
-Les lots 1 et 2 sont faits. Restent : **Mon registre** (fusion avec Evolution, qui gagne au
-passage le croisement du temps avec un critere, impossible aujourd'hui des deux cotes), puis
-**Mon cap** (ce qui reste de « Mon annee », renomme et allege, plus le champ « Objectif de CA
-annuel » qui part dans Mes reglages).
+Les lots 1, 2 et 3 sont faits. Reste le **lot 4, Mon cap** : renommer et alleger ce qui reste
+de « Mon annee », et sortir le champ « Objectif de CA annuel » vers Mes reglages.
+
+A traiter au passage : `p-reactivation`, `p-premier` et `p-decrochage` sont marques `hidden` en
+dur dans la coque depuis leur fusion dans « Mon commerce », mais les trois fonctions continuent
+de fabriquer des tableaux complets a chaque rendu, ecrits dans des conteneurs que personne ne
+verra. Le calcul sert, il alimente les filtres ; c'est le HTML qui est construit pour rien.
 
 Deux questions non tranchees, posees et laissees ouvertes : les quatre mouvements de clientele
 (nouveaux, hausse, baisse, perdus) et les trois motifs existants (recul, cadence, premier achat)

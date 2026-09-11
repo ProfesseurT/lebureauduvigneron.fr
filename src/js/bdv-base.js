@@ -146,7 +146,9 @@ let charts={};
 let BUSY_MIN=1500;   // en dessous, calcul synchrone (instantane) ; au dela, indicateur de chargement
 let uiMesure='ca';           // 'ca' (CA HT) ou 'btl' (bouteilles/cols)
 let explAxe1='famille', explAxe2='';   // explorateur libre de l'Apercu
-let evoDim='codeTarif', evoStep='mois';   // vue Evolution : dimension + pas de temps
+// evoDim et evoStep ont disparu le 11/09/2026 avec l'ecran « Evolution dans le temps » :
+// « Mon registre » porte la meme chose dans exploAxis1 (le pas de temps) et exploAxis2 (la
+// dimension), avec ses filtres en plus.
 let exploAxis1='famille', exploAxis2='', exploEx=null, exploFrom=null, exploTo=null, exploFilters={}, exploShowFilters=false;   // onglet Explorer
 const OBJ_KEY='bdv_objectif_v5';
 let objectif=null;try{const _o=parseFloat(localStorage.getItem(OBJ_KEY));objectif=(_o>0)?_o:null;}catch(e){objectif=null;}
