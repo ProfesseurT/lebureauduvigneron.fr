@@ -552,7 +552,25 @@
      defaut. Ce qui presse le dit donc en TOUTES LETTRES dans le chiffre du post-it,
      « aujourd'hui », « demain », « en retard » : un mot se lit, une teinte se devine. */
   function punaises() {
-    var afaire = toutes().filter(function (x) { return !x.fait_le; });
+    /* LES CLIENTS NE PASSENT PAS PAR ICI, ET C'EST UN DOUBLON REPARE LE 11/09/2026.
+
+       Vu au banc sur le panneau : « Domaine de la Jayama » epingle DEUX FOIS, une fois
+       en punaise de rappel (« en retard, depuis 6 jours », bouton « Appele ») et une
+       fois en punaise de tache (« ta tache », boutons « Fait » et « Demain »). Depuis
+       que « Mes clients » est une famille de cette piece, `toutes()` rend aussi les
+       rappels clients, et le panneau les lisait des deux cotes.
+
+       CE N'ETAIT PAS QU'UN DOUBLON D'AFFICHAGE. La punaise de tache proposait « Fait »
+       et « Demain » sur un identifiant `client:C0170` : `basculer()` ne le trouve pas
+       dans `libres()`, `repousser()` non plus, et les deux boutons ne faisaient donc
+       rien du tout. Un bouton qui ne fait rien apprend a ne plus cliquer.
+
+       LE PANNEAU EST LE SEUL A LIRE LES CLIENTS, et il les lit a la source, dans le
+       miroir de bdv-crm.js : il sait dire « en retard », « aujourd'hui », « ton
+       prochain rappel », et il pose « Appele », qui ecrit vraiment. La regle du projet
+       tient : un seul endroit repond a « qui dois-je appeler ». La PIECE « Mes taches »,
+       elle, continue de les lister, avec « Ouvrir sa fiche » et sans case a cocher. */
+    var afaire = toutes().filter(function (x) { return !x.fait_le && x.source !== 'client'; });
     var presse = afaire.filter(function (x) { return x.jours !== null && x.jours <= 7; });
     var tete = presse.slice(0, 3);
     var out = tete.map(function (t) {

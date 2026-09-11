@@ -475,6 +475,21 @@
 
     if (!occs.length) return td;
 
+    /* LA CASE DIT QUEL JOUR ELLE EST, ET DEVIENT UNE CIBLE, 11/09/2026.
+
+       Sur telephone la grille ne porte plus d'intitules : sept colonnes dans 308 px
+       donnaient 86 px par case, et les etiquettes etaient coupees net — « Vinification
+       e… », « Rappeler le … », « DRM, dé… ». Sept textes perdus par mois, mesures au
+       banc. Elles deviennent des pastilles, et la case renvoie vers la liste du mois,
+       qui est juste dessous et qui, elle, dit tout : le titre entier, la source
+       officielle, et les gestes.
+
+       ON NE REECRIT PAS LA LISTE POUR AUTANT. Elle existe deja sous la grille depuis le
+       lot 1 du calendrier, avec ses boutons qui ecrivent vraiment. Une deuxieme liste
+       dans une bulle flottante, ce serait deux endroits qui repondent « qu'est-ce qui
+       tombe ce jour-la », et la regle du projet l'interdit. */
+    td.setAttribute('data-jour', iso(d));
+
     var ul = document.createElement('ul');
     ul.className = 'calm__l';
     occs.forEach(function (o) {
@@ -721,6 +736,9 @@
     occs.forEach(function (o) {
       var art = document.createElement('article');
       art.className = 'echeance';
+      // Le jour de DEBUT, celui que porte la case cliquee. Une periode de trois
+      // semaines n'a qu'une carte : c'est vers elle qu'on renvoie, d'ou qu'on parte.
+      art.setAttribute('data-jour', iso(o.debut));
       art.setAttribute('data-niveau', o.niveau);
       art.setAttribute('data-famille', o.famille);
       if (estUneTache(o)) art.setAttribute('data-tache', 'oui');
@@ -1047,6 +1065,32 @@
         if (champF) champF.value = '';
         if (champT) { champT.focus(); champT.scrollIntoView({ block: 'nearest' }); }
         return;
+      }
+
+      /* UNE CASE CLIQUEE MENE A CE QU'ELLE CONTIENT, 11/09/2026.
+
+         Ce gestionnaire est pose APRES celui du « + » et apres ceux des pastilles,
+         volontairement : sur ordinateur on clique une pastille, une coche ou le « + »,
+         et ces gestes-la doivent sortir avant. La case n'attrape donc que le clic qui
+         ne visait rien de precis, ce qui est exactement le geste du pouce sur une
+         grille de 44 px.
+
+         IL NE TOUCHE PAS A LA LISTE, il y emmene. Le surlignage est une classe qui
+         s'efface au clic suivant ; la carte garde ses boutons, ses sources et ses
+         libelles entiers, parce que c'est la MEME carte que sur ordinateur. */
+      var caseJour = e.target.closest && e.target.closest('td.calm__c[data-jour]');
+      if (caseJour) {
+        var cible = document.querySelector('.cal__detail .echeance[data-jour="'
+          + caseJour.getAttribute('data-jour') + '"]');
+        if (cible) {
+          e.preventDefault();
+          [].forEach.call(document.querySelectorAll('.echeance--visee'), function (x) {
+            x.classList.remove('echeance--visee');
+          });
+          cible.classList.add('echeance--visee');
+          cible.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          return;
+        }
       }
 
       var dec = e.target.closest && e.target.closest('[data-cal-decaler]');

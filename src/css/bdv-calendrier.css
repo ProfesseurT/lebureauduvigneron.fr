@@ -663,3 +663,144 @@
   .bdv-cal .cala { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
   .bdv-cal td.calm__c { height: 4.5rem; }
 }
+
+/* ============================================================================
+   LA GRILLE DU MOIS SUR TELEPHONE, 11/09/2026
+   ============================================================================
+   Mesure au banc, a 390 px : la table faisait 618 px de large dans une colonne de
+   308. On voyait QUATRE colonnes sur sept et il fallait la faire glisser pour
+   atteindre le week-end. Pire, les intitules etaient coupes net dans 86 px :
+   « Vinification e… », « Rappeler le … », « DRM, dé… », « Clos du … ». Sept textes
+   perdus par mois. Ce n'est pas serre, c'est illisible.
+
+   CE QUI CHANGE : la grille devient une CARTE et plus une liste. Sept colonnes de
+   44 px, le numero du jour, et une pastille par occurrence a la place de son
+   intitule. Un appui sur la case emmene a la carte du jour dans la liste qui est
+   deja sous la grille, celle qui porte le titre entier, la source officielle et les
+   boutons.
+
+   POURQUOI PAS UNE BULLE FLOTTANTE SUR LA CASE : ce serait une deuxieme liste des
+   occurrences du jour, a ecrire, a placer, a fermer au clavier, et surtout un
+   deuxieme endroit qui repond « qu'est-ce qui tombe ce jour-la ». La liste existe,
+   elle est juste dessous, et ses boutons ecrivent vraiment.
+
+   LES COULEURS DE FAMILLE SURVIVENT AU PASSAGE. C'etait la seule chose que la
+   pastille risquait de perdre, et c'est ce qui rend la carte lisible d'un coup
+   d'oeil : le filet gauche de l'intitule devient le fond du point.
+   ============================================================================ */
+@media (max-width: 700px) {
+  /* 38rem de largeur minimale, c'est 608 px : c'est CE jeton qui forcait le
+     defilement. Sur telephone la table tient dans la colonne, et pas l'inverse. */
+  .bdv-cal .calm { min-width: 0; table-layout: fixed; box-shadow: none; }
+  .bdv-cal .calm th {
+    padding: var(--e-xs) 2px;
+    text-align: center;
+    letter-spacing: 0;
+  }
+  .bdv-cal td.calm__c {
+    /* 44 px de haut, le plancher tactile, et la case ENTIERE est la cible. */
+    height: 44px;
+    min-width: 0;
+    padding: 2px 0;
+    text-align: center;
+    cursor: pointer;
+  }
+  .bdv-cal .calm__tete { justify-content: center; padding: 0; }
+  .bdv-cal .calm__n { min-width: 0; padding: 0; font-size: var(--t-micro); }
+  /* Le « + » par case n'a pas sa place ici : il n'apparait qu'au survol, et il n'y a
+     pas de survol sur un telephone. Le formulaire de la piece reste en bas, entier. */
+  .bdv-cal .calm__plus { display: none; }
+
+  /* LES PASTILLES. La liste d'intitules devient une rangee de points qui se replie,
+     et le texte part : c'est lui qui etait coupe.
+
+     TOUTES CES REGLES SONT PORTEES PAR `.calm__l`, LA LISTE D'UNE CASE DU MOIS, et
+     jamais par `.calo__b` seule. Premiere ecriture, elles ne l'etaient pas : elles
+     atteignaient alors AUSSI les occurrences de la vue « L'annee » et de la frise, ou
+     l'intitule a la place de s'ecrire. Trois vues reduites en pastilles pour en
+     reparer une. Le scope est le meme piege que celui du 07/09/2026 sur
+     `.bdv-ventes`, et il se paie de la meme facon : en silence. */
+  .bdv-cal .calm__l {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    gap: 2px;
+    padding: 1px 2px 0;
+    margin: 0;
+    list-style: none;
+  }
+  .bdv-cal .calm__l .calo { margin: 0; }
+  .bdv-cal .calm__l .calo__b {
+    /* Le point : pas de texte, pas de cadre, une surface de 6 px. `font-size: 0`
+       plutot que `display: none` sur le texte, pour que le libelle reste dans
+       l'arbre d'accessibilite et dans le title. */
+    display: block;
+    width: 6px;
+    height: 6px;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    font-size: 0;
+    line-height: 0;
+    overflow: hidden;
+    border: none;
+    border-radius: var(--r-rond);
+    background: var(--cork-encre);
+    /* LA PASTILLE NE SE CLIQUE PAS, LA CASE SE CLIQUE. Defaut introduit par cette
+       passe meme, et attrape a la relecture : la pastille reste un <button> qui COCHE
+       l'obligation. A 6 px dans une case de 44, un pouce qui vise la case tombe une
+       fois sur deux dessus, et marque une DRM comme faite sans l'avoir voulu. La vraie
+       coche vit dans la liste du dessous, a 44 px. */
+    pointer-events: none;
+  }
+  /* La couleur de famille passe du filet gauche au fond du point. Sans ces quatre
+     lignes, toutes les pastilles seraient du meme brun et la carte ne dirait plus
+     rien de ce qu'elle porte. */
+  .bdv-cal .calm__l .calo[data-famille="obligations"] .calo__b { background: var(--fam-1); }
+  .bdv-cal .calm__l .calo[data-famille="travaux"]    .calo__b { background: var(--fam-2); }
+  .bdv-cal .calm__l .calo[data-famille="rendezvous"] .calo__b { background: var(--fam-3); }
+  .bdv-cal .calm__l .calo[data-famille="tempsforts"] .calo__b { background: var(--fam-4); }
+  .bdv-cal .calm__l .calo[data-niveau="urgent"] .calo__b,
+  .bdv-cal .calm__l .calo[data-niveau="aujourdhui"] .calo__b { background: var(--danger-deep); }
+  .bdv-cal .calm__l .calo[data-niveau="passe"] .calo__b { background: var(--cork); }
+  /* Ce qui est fait se creuse au lieu de se remplir : un anneau, pas un point. */
+  .bdv-cal .calm__l .calo[data-fait="oui"] .calo__b {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--ok);
+  }
+  /* Une occurrence qui DURE se lit comme un trait continu, pas comme un point de
+     plus : c'est ce que disait la barre pleine sur ordinateur. */
+  .bdv-cal .calm__l .calo[data-long="oui"] .calo__b { width: 14px; height: 4px; border-radius: var(--r-nul); }
+  .bdv-cal .calm__l .calo[data-suite="oui"] .calo__b { opacity: 0.55; }
+
+  /* LA BARRE DU CALENDRIER ET SES BOUTONS. Mesures a 360 px : la barre debordait de
+     15 px, la fleche de mois faisait 25 sur 32 et « Aujourd'hui » 116 sur 30. Trois
+     cibles sous le seuil sur la commande la plus utilisee de la piece. */
+  .bdv-cal .cal__barre { row-gap: var(--e-s); }
+  /* La rangee de navigation se replie elle aussi. Premiere ecriture, seul
+     `.cal__barre` le faisait, et `.cal__nav` gardait ses quatre elements sur une
+     ligne : la barre est passee de 293 a 323 px dans 317, et la PAGE ENTIERE s'est
+     mise a deborder de 4 px. Un plancher tactile pose sans regarder ce qui tient a
+     cote fabrique le defaut qu'il pretendait corriger. */
+  .bdv-cal .cal__nav { flex-wrap: wrap; row-gap: var(--e-xs); }
+  /* 9rem de largeur minimale sur « Septembre 2026 », plus les deux fleches, plus
+     « Aujourd'hui » : a 360 px la barre debordait de 15 px. Le titre du mois se replie
+     comme le reste plutot que d'imposer sa largeur aux autres. */
+  .bdv-cal .cal__periode { min-width: 0; }
+  .bdv-cal .cal__nav button { min-height: 44px; min-width: 44px; }
+  /* « Aujourd'hui » fait deja 116 px de large : lui imposer 44 px de plus n'aurait
+     servi qu'a pousser ses voisins dehors. Seule sa hauteur manquait. */
+  .bdv-cal .cal__auj { min-height: 44px; }
+  /* Les gestes des cartes de la liste : « C'est fait », « ‹ 7 jours », « Ne plus
+     suivre ». Mesures a 17 et 19 px, et ce sont eux qui ecrivent vraiment. */
+  .bdv-cal .calf__m { min-height: 44px; display: inline-flex; align-items: center; }
+  .bdv-cal .cal__vue { min-height: 44px; }
+
+  /* LA CARTE VISEE PAR UN APPUI SUR LA GRILLE. Un filet et un fond, le temps de la
+     retrouver ; rien qui reste. */
+  .bdv-cal .echeance--visee {
+    box-shadow: inset var(--trait-accent) 0 0 0 var(--bordeaux);
+    background: var(--paper-deep);
+  }
+}

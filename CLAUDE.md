@@ -281,6 +281,51 @@ Ce controle ne voit que la moitie du probleme, celle d'une regle qui pose les de
 il ne peut rien dire d'une encre heritee d'un parent. Une paire de ce genre se mesure donc
 toujours a la main AVANT de l'ecrire, et s'ajoute a la table.
 
+## LE BUREAU SUR TELEPHONE : TROIS REGLES, 11/09/2026
+
+Passe responsive du 11/09/2026. Sous **700 px**, et seulement quand le corps de page porte
+`bdv-poste` (session ouverte sur /mon-bureau/), le bureau n'est plus une page du site, c'est
+une application.
+
+1. **Le site public sort du bureau.** Son bandeau et son pied de page sont masques ; une
+   seule porte ressort, `.bureau-sortie`. Ils fournissaient la moitie des cibles tactiles
+   hors norme et environ 900 px de hauteur par piece. Sur ordinateur on ne touche a rien.
+2. **La barre des pieces est en bas de l'ecran**, fixe, huit icones de 45 px minimum, avec
+   `env(safe-area-inset-bottom)` et un retrait equivalent sous `.bureau-atelier` pour que la
+   derniere zone ne passe pas derriere. Pas de mots sous les icones : « Le calendrier » ne
+   tient pas dans 45 px, et une etiquette coupee est pire qu'une etiquette absente.
+3. **Le plancher tactile est 44 px**, et on agrandit la CIBLE, pas le dessin. Une liste dont
+   tous les mots doublent ne tient plus sur un telephone ; une liste dont les cibles doublent,
+   si.
+
+**Un plancher pose sans regarder ce qui tient a cote fabrique le defaut qu'il pretendait
+corriger.** `min-width: 44px` sur les fleches du calendrier a fait deborder la page entiere
+de 4 px. Toujours remesurer la RANGEE apres avoir agrandi un de ses elements.
+
+### La grille du mois devient une carte, et la liste reste le contenu
+
+Sept colonnes de 44 px, le numero du jour, une pastille de famille par occurrence, et un
+appui sur la case emmene a la carte du jour dans la liste qui est deja sous la grille. **Pas
+de bulle flottante** : ce serait un deuxieme endroit qui repond « qu'est-ce qui tombe ce
+jour-la », et la regle 7 l'interdit.
+
+Deux choses a ne pas defaire :
+
+- **les regles des pastilles sont portees par `.calm__l`**, la liste d'une case du mois, et
+  jamais par `.calo__b` seule : sans ce scope elles reduisent aussi « L'annee » et la frise,
+  ou l'intitule a toute la place de s'ecrire ;
+- **la pastille porte `pointer-events: none`.** Elle reste un `<button>` qui coche
+  l'obligation : a 6 px dans une case de 44, un pouce qui vise la case marque une DRM comme
+  faite sans l'avoir voulu. La vraie coche est dans la liste, a 44 px.
+
+### Un bloc dont la feuille arrive plus tard est du contenu en attendant
+
+`#busyov` et `#status` sont dans la page des le chargement, mais `bdv-ecrans.css` n'est
+chargee qu'a l'ouverture d'une piece de vente : entre les deux, le verre de chargement et
+« Analyse… le moteur travaille » s'affichaient en bas de toutes les pieces, sur ordinateur
+compris. **Tout bloc pose d'avance doit etre cache par une feuille chargee partout**, pas par
+celle qui l'habillera un jour.
+
 ## Le responsive se juge sur la ZONE, pas sur la fenetre
 
 Audit du 07/09/2026, apres une capture de Ted montrant des boutons qui sortaient du cadre.

@@ -12,6 +12,123 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 11/09/2026, soir. Le bureau sur un telephone : la passe severe, premiere moitie
+
+Demande de Ted : « il faut que ca soit utilisable sur un telephone comme sur un ordinateur.
+J'ai l'impression que la partie ordinateur c'est plutot bien foutue, par contre au niveau du
+telephone c'est un peu plus complique. Sois tres severe avec toi-meme. »
+
+### On a commence par MESURER, et c'est la moitie du travail
+
+Une impression ne se corrige pas, elle se verifie. Un banc de captures a ete monte AVANT
+d'ecrire une ligne de CSS : il sert `_site` en local, injecte une session, trois rappels
+clients, cinq taches et 260 lignes de ventes en IndexedDB, coupe le reseau, ouvre chaque
+piece par sa vraie languette, et photographie a 360 et 390 px en relevant trois choses :
+la hauteur de la page, ce qui deborde de son conteneur, et toute cible tactile sous 40 px.
+
+**Trois pieges du banc, chacun paye une fois, et chacun aurait rendu l'inventaire faux :**
+
+1. **Playwright execute le DERNIER gestionnaire de routes en premier.** Un `route('**')` pose
+   apres un `route(supabase)` avale tout, et son `continue()` envoyait les appels Supabase
+   sur le vrai reseau, ou ils echouaient. Le banc photographiait un bureau sans profil en
+   annoncant qu'il en avait un. Un seul gestionnaire qui decide, desormais.
+2. **Les polices sont servies EN LOCAL, et ce n'est pas un detail de confort.** Le conteneur
+   n'a pas acces a Google Fonts : les captures se faisaient sur Georgia au lieu de Fraunces.
+   Les chasses different, donc les retours a la ligne, donc les hauteurs, donc l'inventaire
+   entier. Un audit responsive sur des polices de repli invente des defauts et en cache
+   d'autres. PapaParse, Chart.js et xlsx sont servis pareil, sinon les pieces de vente ne
+   montent jamais.
+3. **C'est le `<a>` qu'il faut cliquer, pas le `<li>`.** Le gestionnaire de bdv-nav.js sort
+   par `closest('a.bureau-nav__item')` : un clic sur la rangee ne fait rien, sans erreur, et
+   le banc a photographie quatre fois « Ma journee » en annoncant quatre pieces
+   differentes. Un banc qui se trompe de cible ment avec aplomb.
+
+### Ce que la mesure a dit, a 390 px
+
+| | avant | apres |
+| --- | --- | --- |
+| Ma journee | 4 730 px | 3 851 px |
+| Le calendrier | 6 157 px | 5 054 px |
+| Mes taches | 3 501 px | 3 090 px |
+| cibles sous 40 px | 17 | 4, toutes fausses (voir plus bas) |
+| grille du mois | 618 px dans 308, quatre colonnes sur sept | tient dans la colonne |
+| intitules perdus | 7 par mois | 0 |
+
+**Le premier defaut n'etait pas un defaut de mise en page, c'etait un defaut de PERIMETRE.**
+Le site public entourait le poste de travail : son bandeau marchand au-dessus, tronque a
+« LA RE », debordant de 555 px dans une fenetre de 342 ; son pied de page complet en
+dessous, neuf liens et mentions legales, environ 900 px de brochure sous CHAQUE piece. A eux
+deux ils fournissaient la moitie des cibles tactiles hors norme.
+
+### Les trois arbitrages de Ted
+
+- **Le decor sort du bureau sur telephone.** Une classe `bdv-poste` sur le corps de page,
+  posee quand la session existe et RETIREE quand elle disparait, et deux regles sous 700 px.
+  Une seule porte pour ressortir, `.bureau-sortie`, en pied de poste. Sur ordinateur on ne
+  touche a rien : c'est sa consigne.
+- **La barre des huit pieces passe en bas de l'ecran**, comme dans une application. **Ecart
+  assume sur ce qui avait ete envisage** : cinq icones plus un bouton « Plus » etait la
+  proposition, huit icones ont ete faites. La mesure a tranche : a 360 px, huit cellules font
+  45 px, donc au-dessus du plancher. Un tiroir « Plus » cacherait trois pieces derriere un
+  geste de plus pour resoudre un probleme de place qui n'existe pas.
+- **La grille du mois devient une CARTE.** Sept colonnes de 44 px, le numero du jour, et une
+  pastille de couleur de famille a la place de l'intitule. Un appui sur la case emmene a la
+  carte du jour dans la liste qui etait deja sous la grille, celle qui porte le titre entier,
+  la source officielle et les boutons. **Pas de bulle flottante** : ce serait un deuxieme
+  endroit qui repond « qu'est-ce qui tombe ce jour-la ».
+
+### Trois defauts trouves au passage, dont deux qui n'ont rien de responsive
+
+1. **Un verre a moitie rempli et « Analyse… le moteur travaille » s'affichaient en bas de
+   TOUTES les pieces, sur ordinateur comme sur telephone.** `#busyov` et `#status` sont dans
+   la page des le chargement, mais la feuille qui les cache, `bdv-ecrans.css`, n'arrive qu'a
+   l'ouverture d'une piece de vente. Entre les deux, c'est du contenu ordinaire. La regle qui
+   les cache vit maintenant dans `style.css`, chargee partout, et elle est ecrite en negatif
+   sur l'etat visible pour ne pas gener `.on`.
+2. **« Domaine de la Jayama » etait epingle DEUX FOIS au panneau**, une fois en punaise de
+   rappel et une fois en punaise de tache, depuis que « Mes clients » est une famille de
+   « Mes taches ». Et la punaise de tache proposait « Fait » et « Demain » sur un identifiant
+   `client:C0170` : ni `basculer()` ni `repousser()` ne le trouvent, les deux boutons ne
+   faisaient rien du tout. `punaises()` ecarte desormais `source === 'client'` ; le panneau
+   lit les clients a la source, ou il sait poser « Appele », qui ecrit vraiment.
+3. **Un plancher tactile pose sans regarder ce qui tient a cote fabrique le defaut qu'il
+   pretendait corriger.** `min-width: 44px` sur les fleches du calendrier a fait passer
+   `.cal__nav` de 293 a 323 px dans 317, et la PAGE ENTIERE s'est mise a deborder de 4 px.
+   Corrige en repliant la rangee et en ne donnant a « Aujourd'hui », deja large de 116 px,
+   que la hauteur qui lui manquait.
+
+### Un defaut introduit par cette passe, et attrape a la relecture
+
+La pastille du calendrier reste un `<button>` qui COCHE l'obligation. A 6 px dans une case de
+44, un pouce qui vise la case tombe une fois sur deux dessus et marque une DRM comme faite
+sans l'avoir voulu. Elle a recu `pointer-events: none` : elle garde son libelle et son etat
+dans l'arbre d'accessibilite, et la vraie coche vit dans la liste du dessous, a 44 px.
+
+Et les regles des pastilles ont du etre reportees de `.calo__b` a **`.calm__l .calo__b`** :
+ecrites sans scope, elles atteignaient AUSSI les occurrences de « L'annee » et de la frise,
+ou l'intitule a toute la place de s'ecrire. Trois vues reduites en pastilles pour en reparer
+une. Meme piege que le scope de `.bdv-ventes` le 07/09/2026, et il se paie de la meme facon :
+en silence.
+
+### Ce qui reste ouvert
+
+- **Les quatre pieces de vente n'ont pas ete mesurees.** Le banc les ouvre, le moteur charge,
+  mais la zone de travail reste vide — et c'est vrai a 1280 px aussi, donc le trou est dans
+  le banc et pas dans le telephone. Piste non explorée : la difference tient a l'une des
+  donnees semees, pas au code de la page. A reprendre.
+- **Quatre cibles restent signalees a 390 px, et ce sont de fausses alertes** : ce sont les
+  liens de tete des post-it, dont la zone cliquable est le papier entier par un `::after`
+  etendu. Le detecteur mesure le `<a>`, pas sa surface reelle. A corriger dans le banc, pas
+  dans la page.
+- **La hauteur de « Mes taches » a baisse moins que les autres** : les cibles agrandies
+  reprennent une partie de ce que le decor retire avait rendu. C'est le prix du plancher
+  tactile, et il est bon a payer.
+- Le banc de captures vit dans la session et **n'est pas dans le depot** : il demande
+  Playwright et quatre bibliotheques recopiees en local. Tout ce qu'il faut pour le
+  reconstruire est ecrit ci-dessus.
+
+---
+
 ## 11/09/2026. UNE SEULE FICHE CLIENT, ET ELLE SE REMPLIT
 
 Demande de Ted, mot pour mot : « je clique sur appelé / Message ou écarter. ça génère l'action. ou
@@ -113,8 +230,40 @@ D'où `npm run banc:calclients`, qui le garde, et `npm run apercu:fiche`, qui mo
 ses quatre états sans compte ni base : trois blocs neufs ne se voyaient que sur la vraie page, et
 on allait encore juger un dessin en production.
 
+### APURER UN RAPPEL : la question de Ted en fin de session, et le trou qu'elle a trouvé
+
+« Comment apurer un rappel client alors ? » Posée après coup, et elle tombe juste. Décision :
+**on ne touche à rien pour l'instant.** Ce qui suit est le constat, à reprendre au prochain
+chantier du sous-main.
+
+Trois sorties existent, et une seule apure vraiment : « Ne plus me le proposer » (statut traité,
+réversible), « Retirer » la date, et enregistrer une note après « Appelé », qui ne fait que
+repousser de 30 jours.
+
+Deux défauts, et le second vient de cette session :
+
+1. **« Ne plus me le proposer » n'existe QUE dans la branche sans date.** Dès qu'un rappel est
+   posé, le bouton disparaît : il faut Retirer, attendre le redessin, puis cliquer sur le bouton
+   qui vient d'apparaître. Deux gestes pour une intention, et personne ne devine le premier.
+2. **Écrire une note sans poser de date ne sort pas le client de la file.** Avant, ouvrir la fiche
+   par le nom était rare ; depuis aujourd'hui c'est le geste normal, donc le cas est devenu
+   fréquent. `noter()` écrit l'échange et rien d'autre : sans statut ni date, `BdvCrm.file()` garde
+   le client, et il est encore là demain matin.
+
+Le correctif proposé, non écrit : un bouton **« C'est réglé »** dans la branche « rappel posé »,
+qui efface la date ET pose le statut, donc sort le client de la file sans le mettre au placard.
+Trois mots pour trois intentions : une date pour « plus tard », « C'est réglé » pour « j'ai fini
+avec lui cette fois », « Ne plus me le proposer » pour le geste dur.
+
+**La question restée sans réponse, et il faut Ted pour la trancher :** après « C'est réglé », est-ce
+que ce client peut revenir tout seul dans la file le jour où il décroche à nouveau, ou en est-il
+sorti jusqu'à ce qu'on y remette une date ? Ma proposition était qu'il revienne. Ne pas l'écrire
+sans son arbitrage : c'est le genre de choix qui se découvre trois semaines plus tard, quand un
+client qu'on croyait traité réapparaît, ou pire, quand il ne réapparaît jamais.
+
 ### Ce qui reste ouvert
 
+- **Apurer un rappel**, ci-dessus. Un bouton à écrire, un arbitrage à demander.
 - **Le courrier du matin ne dit pas le motif du rappel.** `v_courrier` ne remonte pas
   `rappel_titre`, et `bdv-courrier.js` ne l'afficherait pas. Ça se fait, mais ça demande de
   rejouer la vue, `npm run courrier:joindre` et un redéploiement de la fonction Edge : c'est un lot

@@ -5628,6 +5628,200 @@ button.bureau-nav__item:hover {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   LA BARRE DES PIECES PASSE EN BAS DE L'ECRAN, 11/09/2026
+   ---------------------------------------------------------------------------
+   Deuxieme defaut de l'inventaire telephone, et c'etait le plus grave : la barre
+   des huit pieces mesurait 1164 px dans une fenetre de 342. On en voyait DEUX ET
+   DEMIE, et rien ne disait qu'elle defilait. La navigation principale du bureau
+   etait, sur telephone, a moitie invisible.
+
+   HUIT ICONES ET PAS CINQ PLUS UN BOUTON « PLUS », et c'est un ecart assume par
+   rapport a ce qui avait ete envisage. La mesure a tranche : sur le plus etroit
+   des telephones courants, 360 px, huit cellules font 45 px chacune, donc
+   au-dessus du plancher tactile de 44. Un tiroir « Plus » cacherait trois pieces
+   derriere un geste supplementaire pour resoudre un probleme de place qui
+   n'existe pas.
+
+   PAS DE MOTS SOUS LES ICONES. « Le calendrier » ne tient pas dans 45 px, et une
+   etiquette coupee est pire qu'une etiquette absente. Sept pieces sur huit
+   annoncent deja leur nom en tete de leur zone de travail, et chaque cellule
+   garde son `title` et son `aria-label`.
+
+   LA LANGUETTE DE CLASSEUR N'A PLUS DE SENS ICI. Encoche, pointe, ombres
+   internes : tout ce dessin dit « onglet tire d'une pile », et une barre
+   d'application collee au bas de l'ecran n'est pas une pile. On le retire pour de
+   bon sous 700 px plutot que de le tordre.
+   --------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  body.bdv-poste .bureau-nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    /* Sous le voile de la fiche client et des reglages, au-dessus du travail : une
+       barre de navigation ne doit jamais passer devant une modale ouverte. */
+    z-index: var(--z-nav);
+    display: block;
+    overflow: visible;
+    background: var(--paper-light);
+    border-top: var(--trait) solid var(--rule-fort);
+    box-shadow: var(--ombre-carte);
+    /* La barre d'accueil des iPhones mange le bas de l'ecran. Sans ce retrait, la
+       derniere rangee d'icones tombe dessous et ne se touche plus. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body.bdv-poste .bureau-nav__liste {
+    display: flex;
+    width: 100%;
+  }
+  body.bdv-poste .bureau-nav__ligne {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  body.bdv-poste .bureau-nav__item {
+    width: 100%;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-top: var(--trait-accent) solid transparent;
+    box-shadow: none;
+    background: transparent;
+    border-radius: var(--r-nul);
+  }
+  body.bdv-poste .bureau-nav__item::after { display: none; }
+  body.bdv-poste .bureau-nav__nom { display: none; }
+  body.bdv-poste .bureau-nav__ico { font-size: 1.25rem; color: var(--cork-encre); }
+  /* L'etat actif tient a DEUX signes et pas a la seule couleur : un filet plein en
+     haut de la cellule, et un fond. La regle est la meme que pour la punaise
+     « fait » du panneau, ou une couleur seule tombait a 2,25:1. */
+  body.bdv-poste .bureau-nav__item--actif {
+    border-top-color: var(--bordeaux);
+    background: var(--paper-deep);
+    margin: 0;
+  }
+  body.bdv-poste .bureau-nav__item--actif .bureau-nav__ico { color: var(--bordeaux); }
+  body.bdv-poste a.bureau-nav__item:hover,
+  body.bdv-poste button.bureau-nav__item:hover { margin: 0; background: var(--paper-deep); }
+
+  /* LE TRAVAIL SE TERMINE AU-DESSUS DE LA BARRE. Une barre fixe ne prend pas de
+     place dans le flux : sans ce retrait, les dernieres lignes de chaque piece
+     passent DERRIERE elle, et la derniere zone d'une page de 4 700 px est
+     precisement celle qu'on cherchait. */
+  body.bdv-poste .bureau-atelier {
+    padding-bottom: calc(52px + var(--e-xl) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   LE PLANCHER TACTILE DU POSTE, 11/09/2026
+   ---------------------------------------------------------------------------
+   Troisieme defaut de l'inventaire telephone, et le plus repandu : une fois le
+   decor du site retire, il restait DIX-SEPT cibles sous le seuil dans le bureau
+   lui-meme. Les mesures, a 390 px : les filtres de famille 19 px de haut,
+   « Ouvrir sa fiche » et « Retirer » 11 px, « Voir les 2 autres » 13 px, la coche
+   d'une tache 20 sur 20, le « + » d'une case du calendrier 18 sur 11, et
+   « Me deconnecter » 14 px.
+
+   LE SEUIL EST 44 PX, et il n'est pas negociable sur un ecran qu'on touche : c'est
+   la taille d'un bout de doigt, pas une convention de gout. Sous ce seuil on vise a
+   cote, et viser a cote sur « Retirer » ou sur une coche, c'est perdre une tache.
+
+   ON AGRANDIT LA CIBLE, PAS LE DESSIN. Partout ou c'est possible le texte garde sa
+   taille et c'est la zone cliquable qui grandit, par du remplissage ou par un
+   `min-height`. Une liste de taches dont tous les mots doublent de taille ne tient
+   plus sur un telephone ; une liste dont les cibles doublent, si.
+
+   PORTE PAR `body.bdv-poste` ET SOUS 700 PX : le site public garde son dessin, et
+   l'ordinateur aussi. Ted : « la partie ordinateur c'est plutot bien foutue ».
+   --------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  /* Les filtres de famille, communs a « Mes taches » et au calendrier. Ils sont
+     nombreux et se touchent souvent : c'est la cible la plus rentable de la liste. */
+  body.bdv-poste .filtfam {
+    min-height: 44px;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    display: inline-flex;
+    align-items: center;
+  }
+  /* La coche d'une tache : 20 px de dessin, 44 px de cible. Le carre reste petit,
+     c'est le bouton qui s'elargit autour de lui. */
+  body.bdv-poste .tache__coche {
+    min-width: 44px;
+    min-height: 44px;
+    background-clip: content-box;
+    padding: 12px;
+    margin: -12px 0 -12px -12px;
+  }
+  /* Les deux actions de fin de ligne, « Ce que ca exige » et « Retirer », et les
+     liens de pied de zone du meme genre. */
+  body.bdv-poste .tache__source,
+  body.bdv-poste .tache__x,
+  body.bdv-poste .btn--lienb,
+  body.bdv-poste .zone__pied a,
+  body.bdv-poste .zone__pied button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 0.2rem;
+  }
+  /* La sortie de session et l'entree des reglages, dans la tete du poste. */
+  body.bdv-poste .bureau-tete__sortir {
+    min-height: 44px;
+    padding-block: 0.5rem;
+  }
+  /* Les trois gestes du sous-main etaient a 36 px : ils sont le geste le plus
+     frequent du bureau, ils passent au plancher comme les autres. */
+  body.bdv-poste .btn--geste,
+  body.bdv-poste .postit__g { min-height: 44px; }
+  /* Le nom du client, dans le sous-main : c'est LUI qui ouvre la fiche, et il faisait
+     16 px de haut sur deux lignes de texte de 8. La cible s'etale sur toute la
+     cellule ; le nom, lui, ne bouge pas d'un point. */
+  body.bdv-poste .listb__nom {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    width: 100%;
+    text-align: left;
+  }
+  /* L'entree des reglages, a cote de la sortie de session : les deux boutons de la
+     tete du poste sont au meme plancher. */
+  body.bdv-poste .bureau-tete__reglages { min-height: 44px; }
+  /* Les champs de saisie. 35 px n'est pas loin du seuil, mais un champ de date rate
+     se rattrape en rouvrant un calendrier natif, ce qui est le pire des deux. */
+  body.bdv-poste .tachesf__i,
+  body.bdv-poste .tachesf__d,
+  /* Le formulaire du calendrier emprunte les MEMES classes que celui des taches,
+     `tachesf__*` : une seule regle couvre les deux, et c'est ce qu'on veut. Ecrire un
+     selecteur `.cal__ajoutf` qui n'existe nulle part aurait fait une regle morte de
+     plus, exactement ce que la charte du projet traque. */
+  body.bdv-poste .tachesf button { min-height: 44px; }
+}
+
+/* ---------------------------------------------------------------------------
+   DEUX BLOCS DE L'OUTIL DE VENTE QUI S'AFFICHAIENT DANS TOUTES LES PIECES
+   ---------------------------------------------------------------------------
+   Trouve au banc le 11/09/2026, en bas de « Ma journee » : un verre a moitie
+   rempli, « Analyse… », « le moteur travaille », poses sur le papier apres le pied
+   de page, hors de tout cadre. Ce n'est pas un defaut de telephone, il est la sur
+   ordinateur aussi, simplement sous la ligne de flottaison.
+
+   LA CAUSE : `#busyov` et `#status` sont dans la page DES LE CHARGEMENT, parce
+   qu'il ne faut pas injecter du DOM au moment ou le vigneron clique. Mais la
+   feuille qui les cache, `bdv-ecrans.css`, n'est chargee qu'a l'ouverture d'une
+   piece de vente (bdv-nav.js). Entre les deux, ces deux blocs sont du contenu
+   ordinaire, et ils se voient.
+
+   LA REGLE VIT DONC ICI, dans la feuille chargee par toutes les pages, et elle est
+   ecrite EN NEGATIF sur l'etat visible : `#busyov.on` et `#status.loading` gardent
+   leur `display:flex` de bdv-ecrans.css, qui est plus specifique. Un bloc qui sait
+   se montrer doit savoir se cacher, y compris avant que sa feuille arrive. */
+#busyov:not(.on) { display: none; }
+#status:not(.loading):not(.success) { display: none; }
+
 /* ============================================================================
    LES ECRANS DE VENTE DANS LE BUREAU
    ----------------------------------------------------------------------------
@@ -6566,6 +6760,62 @@ button.bureau-nav__item:hover {
 .chiffre[data-sens="haut"] { border-left-color: var(--ok); }
 .chiffre[data-sens="bas"]  { border-left-color: var(--danger); }
 
+
+/* ============================================================================
+   LE POSTE DE TRAVAIL SUR TELEPHONE, 11/09/2026
+   ============================================================================
+   Passe responsive demandee par Ted : « il faut que ca soit utilisable sur un
+   telephone comme sur un ordinateur ». L'inventaire a ete fait au banc, en
+   photographiant chaque piece a 360 et 390 px, et le premier defaut n'etait pas un
+   defaut de mise en page : c'etait un defaut de PERIMETRE.
+
+   CE QUI A ETE MESURE, a 390 px :
+     - le bandeau marchand du site coiffait le bureau, debordait de 555 px dans une
+       fenetre de 342, et s'arretait sur « LA RE » ;
+     - son pied de page complet, neuf liens et mentions legales, ajoutait environ
+       900 px de brochure SOUS CHAQUE PIECE ;
+     - a eux deux ils fournissaient la moitie des cibles tactiles sous le seuil :
+       15 px pour les entrees du bandeau, 16 px pour les liens du pied, 14 px pour
+       « Me deconnecter ».
+
+   Quand on est connecte et sur un telephone, le bureau est une APPLICATION, pas une
+   page du site. Le site ressort par une seule porte, `.bureau-sortie`, en pied de
+   poste.
+
+   SUR ORDINATEUR ON NE TOUCHE A RIEN, et c'est un choix de Ted : « la partie
+   ordinateur c'est plutot bien foutue ». Le seuil est 700 px, celui ou la barre des
+   pieces passe deja en bas de l'ecran. */
+@media (max-width: 700px) {
+  body.bdv-poste > .nav,
+  body.bdv-poste > .footer-rich { display: none; }
+  /* Le bureau prend alors toute la page : sans ca il gardait la marge que le bandeau
+     lui laissait, et le haut de l'ecran restait vide. */
+  body.bdv-poste { padding-top: 0; }
+}
+/* La porte de sortie n'existe QUE la ou le decor a ete retire. Sur ordinateur le
+   bandeau est toujours en haut, et un deuxieme chemin vers l'accueil ne serait qu'un
+   doublon de plus a entretenir. */
+.bureau-sortie { display: none; }
+@media (max-width: 700px) {
+  body.bdv-poste .bureau-sortie {
+    display: block;
+    margin: var(--e-l) 0 0;
+    padding: var(--e-m) 0 var(--e-l);
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--t-mini);
+  }
+  body.bdv-poste .bureau-sortie a {
+    color: var(--muted);
+    /* Un plancher tactile, meme pour une porte qu'on prend rarement : une cible de
+       14 px etait exactement le defaut releve sur « Me deconnecter ». */
+    display: inline-block;
+    min-height: 44px;
+    line-height: 44px;
+    padding: 0 var(--e-m);
+  }
+  body.bdv-poste .bureau-sortie a:hover { color: var(--bordeaux); }
+}
 
 /* ============================================================================
    LE PANNEAU DE LIEGE
