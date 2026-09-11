@@ -388,11 +388,9 @@ function barListHTML(entries){
     return `<div class="rep__row"><div class="rep__bar"><div class="rep__fill" style="width:${w.toFixed(1)}%"></div><div class="rep__lbl">${esc(k)}</div></div><div class="rep__val">${fmtMes(v)} <span class="rep__pct">${fmtNum(pct,0)}%</span></div></div>`;
   }).join('')+`</div>`;
 }
-function repCard(title,get){
-  const entries=allEntries(groupSum(vinRows(),get));
-  const body=entries.length?barListHTML(entries):`<p class="note">Aucune donnée sur la période.</p>`;
-  return `<div class="card"><div class="card__title"><span>${esc(title)}</span></div>${body}</div>`;
-}
+/* `repCard()` est morte le 11/09/2026 avec les « Repartitions detaillees » de l'apercu
+   (par famille, par code tarif), devenues deux boutons « Vues rapides » de « Mon registre ».
+   Une carte figee qui ne repond qu'a une question vaut moins qu'un menu qui en pose treize. */
 
 /* ======================= APERCU (3 couches) ======================= */
 /* « APERCU DES VENTES » A DISPARU LE 11/09/2026, lot 4, absorbee par renderCap().
@@ -879,7 +877,9 @@ function seuilDependance(n){if(n<10)return 100;return Math.max(25,Math.min(75,60
 // Bloc "pourquoi" depliable (les chiffres qui fondent le conseil).
 function pourquoi(inner){return `<details class="pourquoi"><summary>Pourquoi ce conseil</summary><div class="pourquoi__in">${inner}</div></details>`;}
 // Badge de niveau de confiance quand la donnee est limite.
-function confBadge(level){const lib={faible:'confiance faible',moyenne:'confiance moyenne',bonne:'confiance bonne'};return `<span class="conf conf--${level}">${lib[level]||level}</span>`;}
+/* `confBadge()` est morte le 11/09/2026 avec l'ecran fantome de reactivation, le seul qui
+   l'affichait. La colonne « Fiabilite » vit toujours dans l'export des clients a relancer,
+   en toutes lettres : dans un fichier Excel, une pastille coloree ne sert a rien. */
 
 // AGENT CADENCE : rythme d'achat par client, a partir de ses dates de facture distinctes.
 function agentCadence(){
@@ -1066,10 +1066,10 @@ function diagnosticSignals(){
     }else S.push({sev:0,impact:0,kind:'info',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
   }
   const dec=agentDecrochage();
-  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. Détail dans l'onglet Décrochage.`});
+  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
   const dor=agentDormants();
   if(dor.dormants.length){const t3=dor.dormants.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
-    S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. Détail et liste complète dans l'onglet Réactivation.`});}
+    S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
   const pv=computePriceVolume();
   if(pv){
     if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
@@ -1079,7 +1079,7 @@ function diagnosticSignals(){
   const con=agentConcentration();
   if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
   const cm=agentCanalMover();
-  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Détail dans l'onglet Canaux.`});
+  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Le détail est dans <b>Mes cuvées</b>, au pied de l'écran.`});
   const series=monthlySeries();
   if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Anticipe la trésorerie et charge les actions commerciales juste avant.`});}
   S.sort((a,b)=>b.sev-a.sev||b.impact-a.impact);
@@ -2361,7 +2361,8 @@ function exportClients(){
   liste.forEach(c=>{const s=CRM[c.id]||{};aoa.push([c.nom,emailOf(c.id),telOf(c.id),autresContacts(c.id),MOTIFS[c.motif].label,
     Math.round(c.montant),c.lib,c.chance!=null?+(c.chance*100).toFixed(1):'',c.detail,
     s.statut&&STATUTS_SUIVI[s.statut]?STATUTS_SUIVI[s.statut].label:'',s.rappel||'',(s.tags||[]).join(', '),s.canal||'',s.notes||'']);});
-  toXlsxOrCsv([{name:'Mes clients',aoa}],'mes-clients-'+filtreMotif);
+  // Le fichier porte le nom de la piece, comme partout ailleurs : c'etait « Mes clients ».
+  toXlsxOrCsv([{name:'Mon commerce',aoa}],'mon-commerce-'+filtreMotif);
 }
 
 /* RENDER-PREMIER-ACHAT

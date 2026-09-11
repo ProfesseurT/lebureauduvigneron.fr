@@ -1532,3 +1532,25 @@ directement.
 demonstration achetaient tous les mois, en croissance. Personne a rappeler, donc pas de liste,
 donc pas de boutons. **Un banc d'ecran doit fabriquer la situation que l'ecran est fait pour
 montrer**, pas une base en bonne sante.
+
+## QUAND UNE PIECE BOUGE, RELIRE CE QUE LES TEXTES DISENT, 11/09/2026
+
+Verification de cloture de la redecoupe, par capture d'ecran. Trois signaux de « Mon cap »
+renvoyaient encore le vigneron « a l'onglet Decrochage », « a l'onglet Reactivation » et « a
+l'onglet Canaux ». Ces trois ecrans avaient ete supprimes pendant le chantier.
+
+Le code marchait. La charte etait CONFORME. Les quatorze bancs etaient verts. Et la phrase
+envoyait le lecteur vers un endroit qui n'existe plus.
+
+**Un renvoi est du contenu, pas du code : rien ne le verifie.** Apres avoir deplace, renomme ou
+supprime un ecran, chercher dans tout le fichier les textes qui le NOMMENT : « l'onglet X »,
+« voir X », « detail dans X ». Un renvoi doit citer la piece telle qu'elle s'appelle dans la barre,
+et si possible le filtre exact : « la liste est dans Mon commerce, filtre Recul confirme ».
+
+### La capture reste le seul controle qui lit les phrases
+
+Le harnais : une page autonome avec les vraies feuilles et le vrai moteur, des ventes fabriquees,
+les pieces peintes puis photographiees avec Playwright. Deux limites, le conteneur de capture
+n'ayant pas de reseau : pas de Google Fonts (substituts systeme) et pas de Chart.js (un tracage de
+secours prend sa place). Elle vaut pour la mise en page et les textes, jamais pour la typographie
+ni pour la fidelite des graphiques.

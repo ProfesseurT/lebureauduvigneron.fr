@@ -265,6 +265,47 @@ Les reperes figes du banc passent de 23 a 20.
 
 `npm run verif` : deux chartes CONFORME, 397 controles, zero echec.
 
+### Verification de cloture : le code, puis le rendu
+
+**Dans le code.** Trois trouvailles.
+
+1. L'export de « Mon commerce » produisait encore un fichier `mes-clients-*.xlsx`, avec un onglet
+   « Mes clients ». Corrige : le fichier porte le nom de la piece.
+2. Deux fonctions rendues orphelines par la redecoupe, supprimees : `repCard()` (morte avec les
+   « Repartitions detaillees » de l'apercu) et `confBadge()` (morte avec l'ecran fantome de
+   reactivation).
+3. **Six fonctions etaient DEJA mortes avant le chantier**, verifie en relisant le fichier au
+   commit qui le precede : `clientStats`, `gesteFiche`, `monthsBetween`, `renamePerso`,
+   `topEntries`, `topKeys`. Elles ne viennent pas de la refonte, elles ne sont pas touchees, et
+   elles sont signalees a Ted. La distinction valait le detour : elle separe ce que j'ai casse de
+   ce qui trainait deja.
+
+**En vrai, par capture.** Une page autonome montee avec les vraies feuilles et le vrai moteur,
+443 lignes de vente fabriquees sur 19 mois, les quatre pieces peintes et photographiees. Elle a
+trouve un defaut que ni la charte, ni les quatorze bancs, ni la relecture n'avaient vu :
+
+**TROIS SIGNAUX DE « MON CAP » RENVOYAIENT A DES ECRANS SUPPRIMES.** « Detail dans l'onglet
+Decrochage », « liste complete dans l'onglet Reactivation », « detail dans l'onglet Canaux ». Les
+trois avaient disparu pendant la redecoupe. Le code marchait, les bancs etaient verts, et la
+phrase envoyait le vigneron nulle part. Ils nomment maintenant la piece ET le filtre : « la liste
+est dans Mon commerce, filtre Recul confirme ».
+
+C'est la lecon du chantier, et elle est dans CLAUDE.md : **quand une piece bouge, relire ce que les
+textes DISENT, pas seulement ce que le code calcule.**
+
+**Trois defauts preexistants signales, pas corriges** (ils ne viennent pas de la refonte) :
+
+- les quatre compteurs de « Mes cuvees » ont titre et valeur INVERSES : « cuvees » en gros, « 6 »
+  en petit au-dessus. Les arguments de `kpiCard()` sont passes a l'envers, sur les quatre cartes.
+- « Ton mois le plus creux est historiquement janv.. », avec deux points : la phrase prend un
+  abrege de `MOIS_FR`, ce que le commentaire de `periodLabel()` deconseille explicitement.
+- le bandeau de « Mon commerce » titre « 2025 vs 2026 » quand tout le reste ecrit « 2026 vs
+  2025 ». C'est `bridgeHero()`, qui passe `prev` avant `cur`.
+
+**Limites de la capture, pour qui la refera** : le conteneur n'atteint ni Google Fonts ni le CDN de
+Chart.js. Les fontes tombent sur les substituts systeme, un tracage de secours remplace Chart.js.
+Elle vaut pour la MISE EN PAGE et les TEXTES, pas pour la typographie ni la fidelite des graphes.
+
 ### Ce qui reste ouvert
 
 Les quatre lots de la redecoupe sont faits. « Mon annee » et ses vingt-six blocs sont devenus
