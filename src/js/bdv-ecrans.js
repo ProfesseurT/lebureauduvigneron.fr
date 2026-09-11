@@ -301,8 +301,10 @@ function renderAll(){
      « Mes cuvees » le 11/09/2026, lot 2 : le chemin de vente et le prix moyen repondent a
      « ce qui part, et a quel prix », qui est la question de cette piece-la. */
   renderCap();
-  // Mes clients : une seule liste, alimentee par les trois moteurs.
-  renderReactivation();renderPremierAchat();renderDecrochage();  // calculent et memorisent
+  /* LES TROIS APPELS FANTOMES SONT PARTIS LE 11/09/2026 (lot 5). Le commentaire disait
+     « calculent et memorisent » : ils ne calculaient rien. Les calculs sont dans les agents,
+     que `agentClients()` appelle lui-meme pour composer la liste de « Mon commerce ». Ces
+     trois-la ne faisaient que peindre des tableaux dans des conteneurs masques. */
   renderClients();renderProduits();
   renderExplo();renderReglages();renderBase();
   deposerPourLeBureau();   // le bureau sert cette file, le tableau de bord ne l'affiche plus
@@ -1229,43 +1231,19 @@ function clientStats(){
   return Object.values(map);
 }
 function monthsBetween(a,b){if(!a||!b)return 0;return (b.y-a.y)*12+(b.m-a.m);}
-function renderReactivation(){
-  const P=PROFIL||profilBase();
-  const ref=META.max;
-  let html=`<h2 class="panel__title">Réactivation clients</h2>`;
+/* RENDER-REACTIVATION
 
-  // Abstention : pas assez de matiere pour une analyse de cadence fiable.
-  if(!P||P.nClients<5||P.nFactures<10){
-    html+=`<div class="panel__sub">Relance fondée sur la cadence d'achat propre à chaque client.</div>`+
-      signal('info','ℹ','Pas assez de données pour cette analyse.',`Il faut au moins quelques clients et une dizaine de factures. Base actuelle : ${fmtNum(P?P.nClients:0)} clients, ${fmtNum(P?P.nFactures:0)} factures.`);
-    el('p-reactivation').innerHTML=html;return;
-  }
+   TROIS ECRANS FANTOMES, SUPPRIMES LE 11/09/2026 (lot 5). Depuis la fusion du 07/09, leurs
+   trois conteneurs etaient `hidden` en dur dans la coque : plus aucune piece de la barre n'y
+   menait, leurs listes avaient fusionne dans « Mon commerce ». Mais `renderAll()` appelait
+   toujours les trois fonctions, qui fabriquaient a chaque rendu des tableaux HTML complets,
+   avec leurs lignes, leurs colonnes et leurs boutons, ecrits dans des div que personne ne
+   verrait jamais.
 
-  const _ar=agentDormants();const dormants=_ar.dormants,caDormant=_ar.ca;
-  const cadTxt=P.intervalleMedianBase?fmtDelai(P.intervalleMedianBase):'n/d';
-  html+=`<div class="panel__sub">Un client est « en retard » quand son silence dépasse ${SEUILS.cadenceK} fois sa cadence habituelle (à défaut, l'intervalle médian de la base, ${cadTxt}). Référence = ${fmtDate(ref)}. Cadence calculée à partir de ${SEUILS.cadenceMinAchats} achats.</div>`;
-
-  if(!dormants.length){
-    html+=signal('ok','✔','Aucun client en retard sur sa cadence.',`Tes clients réguliers commandent dans les temps. Rien à relancer pour l'instant.`);
-  }else{
-    reactList=dormants; // liste complete memorisee pour l'export
-    html+=signal('warn','↻',
-      `${plur(dormants.length,'client')} en retard sur leur cadence, ${fmtMoney(caDormant)} de CA historique à réveiller.`,
-      `<b>Action : relance ciblée en partant du haut (valeur du client croisée avec l'ampleur du retard).</b>`
-      +pourquoi(`Retard = silence actuel supérieur à ${SEUILS.cadenceK} × la cadence propre du client. La cadence est la médiane des intervalles entre ses achats (fiable à partir de ${SEUILS.cadenceMinAchats} achats ; en dessous, on retombe sur l'intervalle médian de la base, ${cadTxt}). Les clients à achat annuel ne sont signalés que si le retard dépasse un cycle, jamais hors saison.`));
-    html+=`<div class="card">
-      <div class="toolbar"><span class="card__title" style="margin:0">Clients à relancer (valeur × ampleur du retard), ${fmtNum(dormants.length)} au total</span>
-        ${listTools('reactBody','exportReactList')}</div>
-      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>Contact</th><th class="num">CA historique</th><th class="num">Achats</th><th class="num">Cadence</th><th>Rythme</th><th class="num">Dernier achat</th><th class="num">En retard de</th><th class="num">Prochaine attendue</th><th>Fiabilité</th></tr></thead><tbody id="reactBody">
-      ${dormants.map(c=>{const rythme=c.annuel?'annuel':(c.fiable?'régulier/occasionnel':'indicatif');
-        return `<tr data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}"><td>${esc(c.nom)}</td><td>${emailCell(c.id)}</td><td class="num">${fmtMoney(c.montant)}</td><td class="num">${c.n}</td><td class="num">${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}</td><td>${rythme}</td><td class="num">${fmtDate(c.last)}</td><td class="num">${fmtDelai(c.silence)}</td><td class="num">${c.prochaine!=null?fmtDate(dayToDate(c.prochaine)):'n/d'}</td><td>${confBadge(c.conf)}</td></tr>`;}).join('')}
-      </tbody></table></div></div>`;
-  }
-  el('p-reactivation').innerHTML=html;
-  // Les controles viennent d'etre recrees vierges : on remet l'etat du filtre a zero et on compte.
-  FILTRES.reactBody={q:'',joign:false};applyFilters('reactBody');
-}
-
+   LE CALCUL, LUI, N'EST PAS PERDU : il n'a jamais ete ici. Il vit dans `agentDormants()` et `agentCadence()`, que
+   `agentClients()` appelle pour composer la liste unifiee de « Mon commerce ». Ces fonctions
+   ne faisaient que peindre.
+*/
 /* ======================= MES PRODUITS =======================
    Piege central de cet ecran, verifie sur la base reelle : raisonner par produit-millesime
    fait crier au drame a chaque changement de millesime. « Le Rosé 2024 » chute de 53 677 €
@@ -2347,6 +2325,29 @@ function renderClients(){
     </tr>`;}).join('')}
     </tbody></table></div></div>`;
   html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul motif dont le taux de retour soit mesurable sur ${PROFIL&&PROFIL.moisCouverts?PROFIL.moisCouverts:'la'} mois d'historique. Pour les deux autres, il faudrait respectivement 30 et 36 mois. Mieux vaut une case vide qu'un chiffre inventé.</p>`;
+  /* LES TROIS LISTES COMPLETES, REBRANCHEES ICI LE 11/09/2026 (lot 5).
+
+     Leurs boutons vivaient dans les trois ecrans fantomes, masques depuis la fusion du
+     07/09 : Ted ne pouvait plus les atteindre, et personne ne s'en etait apercu parce que
+     rien n'echoue quand un bouton n'est pas affiche. Arbitrage pris avec lui : les
+     rebrancher plutot que les supprimer avec le reste du menage.
+
+     ILS NE FONT PAS DOUBLON avec « Exporter la liste » de la liste ci-dessus. Celui-la sort
+     CE QUI EST AFFICHE : la liste unifiee, un client une seule fois, avec la raison la plus
+     solide qui le concerne. Ceux-ci sortent les listes ENTIERES de chaque analyse, avec les
+     colonnes qui servent a travailler et que l'autre n'a pas : cadence, rythme, fiabilite et
+     date de prochaine commande attendue pour la relance ; CA de l'exercice precedent, CA en
+     cours et euros perdus pour le decrochage. L'e-mail est en deuxieme colonne dans les
+     trois : le fichier part tel quel dans un outil d'emailing. */
+  html+=`<div class="card"><div class="card__title"><span>Sortir tes listes complètes</span></div>
+    <p class="note" style="margin-top:0">Le bouton « Exporter la liste » ci-dessus sort ce que tu vois : un client une seule fois, avec sa raison principale. Ces quatre-là sortent les listes entières de chaque analyse, avec leurs colonnes de travail.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+      <button class="btn btn--ghost btn--sm" onclick="exportReactList()">Clients à relancer</button>
+      <button class="btn btn--ghost btn--sm" onclick="exportDecroList()">Clients en décrochage</button>
+      <button class="btn btn--ghost btn--sm" onclick="exportPremierList()">Premiers achats, les prioritaires</button>
+      <button class="btn btn--ghost btn--sm" onclick="exportReste()">Premiers achats, le reste</button>
+    </div></div>`;
+
   html+=piedCommerce();   // etage 3 : replie, il ne pousse jamais la liste hors de l'ecran
   el('p-clients').innerHTML=html;
   FILTRES.clientsBody={q:'',joign:false};applyFilters('clientsBody');
@@ -2363,119 +2364,54 @@ function exportClients(){
   toXlsxOrCsv([{name:'Mes clients',aoa}],'mes-clients-'+filtreMotif);
 }
 
-/* ======================= ECRAN : PREMIERS ACHATS SANS SUITE ======================= */
-let premierList=[];
-function renderPremierAchat(){
-  const A=agentPremierAchat();
-  let html=`<h2 class="panel__title">Premiers achats sans suite</h2>`;
-  if(!A.ok){
-    html+=`<div class="panel__sub">Clients venus une seule fois, classés par ce qu'ils rapporteraient s'ils revenaient.</div>`+
-      signal('info','ℹ','Analyse impossible pour l\'instant.',
-        A.observables!=null
-          ? `Pour savoir qui revient, il faut des clients dont le premier achat a plus d'un an. Tu en as ${A.observables}, il en faut au moins ${MIN_OBSERVABLES}. Ajoute des exports plus anciens.`
-          : 'Base insuffisante.');
-    el('p-premier').innerHTML=html;return;
-  }
-  const pc=t=>t==null?'pas assez de recul':fmtNum(t*100,0)+' %';
-  premierList=A.prioritaires;
+/* RENDER-PREMIER-ACHAT
 
-  html+=`<div class="panel__sub">Sur les clients dont le premier achat a plus d'un an, <b>${pc(A.global)}</b> sont revenus. Ce qui suit classe tes clients venus une seule fois par ce qu'ils rapporteraient s'ils revenaient, c'est-à-dire leur premier achat multiplié par leur chance réelle de revenir. ${histCourtNote()}</div>`;
+   TROIS ECRANS FANTOMES, SUPPRIMES LE 11/09/2026 (lot 5). Depuis la fusion du 07/09, leurs
+   trois conteneurs etaient `hidden` en dur dans la coque : plus aucune piece de la barre n'y
+   menait, leurs listes avaient fusionne dans « Mon commerce ». Mais `renderAll()` appelait
+   toujours les trois fonctions, qui fabriquaient a chaque rendu des tableaux HTML complets,
+   avec leurs lignes, leurs colonnes et leurs boutons, ecrits dans des div que personne ne
+   verrait jamais.
 
-  // Ce que la base dit vraiment, avant toute liste : qui revient et qui ne revient pas.
-  html+=`<div class="section-label">Chez toi, qui revient ?</div><div class="grid-2">
-    <div class="card"><div class="card__title"><span>Selon le montant du premier achat</span></div>
-      <table class="data"><thead><tr><th>Premier achat</th><th class="num">Clients observés</th><th class="num">Sont revenus</th></tr></thead><tbody>
-      ${A.classes.map(c=>`<tr><td>${c.lib}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${pc(c.taux)}</td></tr>`).join('')}
-      </tbody></table>
-      <p class="note">Mesuré sur ${fmtNum(A.observables)} clients dont le premier achat a plus d'un an. Un taux n'est affiché qu'à partir de ${MIN_CLASSE} clients.</p></div>
-    <div class="card"><div class="card__title"><span>Selon le type de client</span></div>
-      ${A.types.filter(t=>t.lib&&t.lib!=='Non typé').length
-        ? `<table class="data"><thead><tr><th>Type</th><th class="num">Clients observés</th><th class="num">Sont revenus</th></tr></thead><tbody>
-           ${A.types.filter(t=>t.lib&&t.lib!=='Non typé').map(t=>`<tr><td>${esc(t.lib)}</td><td class="num">${fmtNum(t.n)}</td><td class="num">${pc(t.taux)}</td></tr>`).join('')}
-           </tbody></table>`
-        : `<p class="mini-line">Tes clients ne sont pas encore typés. Va dans <b>Réglages</b> pour indiquer quelle colonne distingue tes particuliers, tes cavistes et tes restaurants : ce classement affine nettement les priorités ci-dessous.</p>`}
-    </div></div>`;
-
-  // La liste d'action : le plus petit nombre de clients qui porte l'essentiel du potentiel.
-  if(!A.liste.length){
-    html+=signal('ok','✔','Aucun client venu une seule fois.','Toute ta clientèle a commandé au moins deux fois.');
-  }else{
-    html+=`<div class="section-label">À rappeler en priorité</div>`;
-    html+=signal('warn','◷',
-      `${plur(A.prioritaires.length,'client')} portent 80 % du potentiel, sur ${fmtNum(A.liste.length)} venus une seule fois.`,
-      `<b>Action : commencer par le haut de cette liste, pas par les plus anciens.</b> Le temps écoulé depuis leur achat ne dit rien de leurs chances de revenir. Le montant de leur premier achat, si.`
-      +pourquoi(`Chaque client est noté par son premier achat multiplié par le taux de retour réellement observé chez toi pour sa classe de montant et son type. Les clients au-delà de cette liste ne sont pas perdus, ils rapportent simplement beaucoup moins par heure passée.`));
-    html+=`<div class="card">
-      <div class="toolbar"><span class="card__title" style="margin:0">Classés par ce qu'ils rapporteraient</span>
-        ${listTools('premierBody','exportPremierList')}</div>
-      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>Contact</th><th class="num">Premier achat</th><th>Type</th><th class="num">Chance de revenir</th><th class="num">Le</th><th class="num">Depuis</th><th>Ce qu'il a pris</th></tr></thead><tbody id="premierBody">
-      ${A.prioritaires.map(c=>`<tr data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}">
-        <td>${esc(c.nom)}</td><td>${emailCell(c.id)}</td><td class="num">${fmtMoney(c.montant)}</td>
-        <td>${c.type&&c.type!=='Non typé'?esc(c.type):'<span class="muted-cell">n/d</span>'}</td>
-        <td class="num">${fmtNum(c.chance*100,0)} %</td>
-        <td class="num">${fmtDate(c.date)}</td><td class="num">${fmtDelai(c.age)}</td><td>${esc(c.cuvee)}</td></tr>`).join('')}
-      </tbody></table></div></div>`;
-    if(A.reste.length){
-      html+=`<div class="card"><div class="card__title"><span>Le reste</span></div>
-        <div class="kpi__val">${fmtNum(A.reste.length)}</div>
-        <p class="mini-line">Ces clients pèsent les 20 % restants du potentiel, ${fmtMoney(sum(A.reste,c=>c.montant))} de premiers achats cumulés. À garder pour un envoi de masse, pas pour du travail soigné.</p>
-        <button class="btn btn--ghost btn--sm" onclick="exportReste()">Exporter cette liste</button></div>`;
-    }
-    FILTRES.premierBody={q:'',joign:false};applyFilters('premierBody');
-  }
-  el('p-premier').innerHTML=html;
-  if(A.prioritaires.length){FILTRES.premierBody={q:'',joign:false};applyFilters('premierBody');}
-}
+   LE CALCUL, LUI, N'EST PAS PERDU : il n'a jamais ete ici. Il vit dans `agentPremierAchat()`, que
+   `agentClients()` appelle pour composer la liste unifiee de « Mon commerce ». Ces fonctions
+   ne faisaient que peindre.
+*/
 function lignesPremier(arr){
   const aoa=[['Client','E-mail','Telephone','Autres contacts','Premier achat','Type','Chance de revenir %','Date','Jours ecoules','Cuvee','Ville']];
   arr.forEach(c=>aoa.push([c.nom,emailOf(c.id),telOf(c.id),autresContacts(c.id),Math.round(c.montant),c.type||'',
     +(c.chance*100).toFixed(1),fmtDate(c.date),Math.round(c.age),c.cuvee,c.ville]));
   return aoa;
 }
+/* LES TROIS EXPORTS PRENNENT LEURS DONNEES A LA SOURCE depuis le 11/09/2026 (lot 5).
+
+   Ils lisaient `premierList`, `reactList` et `decroList`, trois listes que les ecrans
+   fantomes remplissaient en se peignant. Un export qui depend d'un ecran affiche est un
+   export qui rend un fichier vide le jour ou l'ecran n'est plus affiche : c'est exactement
+   ce qui leur serait arrive. Ils appellent maintenant leur agent, comme tout le reste. */
 function exportPremierList(){
-  if(!premierList.length){status('error','Aucun client a exporter.');return;}
-  toXlsxOrCsv([{name:'A rappeler',aoa:lignesPremier(premierList)}],'premier-achat-prioritaires');
+  const A=agentPremierAchat();
+  if(!A.ok||!A.prioritaires.length){status('error','Aucun client a exporter.');return;}
+  toXlsxOrCsv([{name:'A rappeler',aoa:lignesPremier(A.prioritaires)}],'premier-achat-prioritaires');
 }
 function exportReste(){
   const A=agentPremierAchat();if(!A.ok||!A.reste.length){status('error','Aucun client a exporter.');return;}
   toXlsxOrCsv([{name:'Le reste',aoa:lignesPremier(A.reste)}],'premier-achat-reste');
 }
 
-/* ======================= EXPERTISE 2 : DECROCHAGE (YoY à date égale) ======================= */
-function renderDecrochage(){
-  const f=yoyFrame();
-  let html=`<h2 class="panel__title">Clients en décrochage</h2>`;
-  if(!f){
-    html+=`<div class="panel__sub">Il faut deux ${exMot()}s comparables dans la base pour cette analyse.</div>`+
-      signal('info','ℹ','Comparatif indisponible.',`Ajoute un export couvrant ${exPrecedent()} pour activer la détection du churn.`);
-    el('p-decrochage').innerHTML=html;return;
-  }
-  html+=`<div class="panel__sub">Clients <b>fidèles</b> dont le CA recule anormalement (à date égale). Le seuil de baisse s'adapte à la volatilité propre de chaque client : un client qui oscille beaucoup doit chuter plus fort pour être signalé. ${incompleteNote()}</div>`;
+/* RENDER-DECROCHAGE
 
-  // CA par client sur la fenetre à date égale, pour cur et prev.
-  const _ad=agentDecrochage();const decroche=_ad.decroche,totPerdu=_ad.totPerdu;
-  if(_ad.ecartes){
-    html+=`<p class="note" style="margin:0 0 1rem">${plur(_ad.ecartes,'client')} venu${_ad.ecartes>1?'s':''} une seule fois ont été écartés de cette liste, pour ${fmtMoney(_ad.caEcarte)}. Ils n'ont jamais été des habitués, donc ils ne décrochent pas : va les voir dans <b>1er achat sans suite</b>, qui mesure la bonne chose pour eux.</p>`;
-  }
+   TROIS ECRANS FANTOMES, SUPPRIMES LE 11/09/2026 (lot 5). Depuis la fusion du 07/09, leurs
+   trois conteneurs etaient `hidden` en dur dans la coque : plus aucune piece de la barre n'y
+   menait, leurs listes avaient fusionne dans « Mon commerce ». Mais `renderAll()` appelait
+   toujours les trois fonctions, qui fabriquaient a chaque rendu des tableaux HTML complets,
+   avec leurs lignes, leurs colonnes et leurs boutons, ecrits dans des div que personne ne
+   verrait jamais.
 
-  if(!decroche.length){
-    html+=signal('ok','✔','Aucun client en décrochage marqué.',`Aucun client actif les deux années ne recule au-delà de sa volatilité habituelle à date égale.`);
-  }else{
-    html+=signal('danger','⚠',
-      `${plur(decroche.length,'client')} en recul, ${fmtMoney(totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,
-      `C'est l'alerte à traiter avant le départ complet. <b>Action : les appeler en priorité, en partant du plus gros montant perdu.</b>`);
-    decroList=decroche; // liste complete memorisee pour l'export
-    html+=`<div class="card">
-      <div class="toolbar"><span class="card__title" style="margin:0">Clients en décrochage (par euros perdus), ${fmtNum(decroche.length)} au total</span>
-        ${listTools('decroBody','exportDecroList')}</div>
-      <div class="tablewrap"><table class="data data--sticky"><thead><tr><th>Client</th><th>Contact</th><th class="num">${exLabelCourt(f.prev)} à date</th><th class="num">${exLabelCourt(f.cur)} à date</th><th class="num">Perdu</th><th class="num">Évolution</th></tr></thead><tbody id="decroBody">
-      ${decroche.map(c=>`<tr data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}"><td>${esc(c.nom)}</td><td>${emailCell(c.id)}</td><td class="num">${fmtMoney(c.prev)}</td><td class="num">${fmtMoney(c.cur)}</td><td class="num neg">-${fmtMoney(c.perdu)}</td><td class="num neg">${fmtPct(c.pct)}</td></tr>`).join('')}
-      </tbody></table></div></div>`;
-  }
-  el('p-decrochage').innerHTML=html;
-  FILTRES.decroBody={q:'',joign:false};applyFilters('decroBody');
-}
-
+   LE CALCUL, LUI, N'EST PAS PERDU : il n'a jamais ete ici. Il vit dans `agentDecrochage()`, que
+   `agentClients()` appelle pour composer la liste unifiee de « Mon commerce ». Ces fonctions
+   ne faisaient que peindre.
+*/
 /* ======================= EXPERTISE 4 : MIX CANAL + PRIX MOYEN ======================= */
 /* ====== LES CANAUX, DANS « MES CUVEES » DEPUIS LE 11/09/2026 (lot 2) ======
    C'etait le quatrieme panneau empile dans « Mon annee ». Il repond a « a quel prix je
@@ -2685,6 +2621,7 @@ function listTools(tbodyId,exportFn){
 }
 // Export de la liste COMPLETE de relance (tous les clients en retard, pas seulement l'ecran).
 function exportReactList(){
+  const reactList=agentDormants().dormants;
   if(!reactList.length){status('error','Aucun client a exporter.');return;}
   // La colonne E-mail est en 2e position : le fichier part tel quel dans un outil d'emailing.
   const aoa=[['Client','E-mail','Telephone','Autres contacts','CA historique','Achats','Cadence (jours)','Rythme','Dernier achat','En retard (jours)','Prochaine attendue','Fiabilite']];
@@ -2693,6 +2630,7 @@ function exportReactList(){
 }
 // Export de la liste COMPLETE de decrochage.
 function exportDecroList(){
+  const decroList=agentDecrochage().decroche;
   if(!decroList.length){status('error','Aucun client a exporter.');return;}
   const aoa=[['Client','E-mail','Telephone','Autres contacts','CA annee precedente','CA annee en cours','Perdu','Evolution %']];
   decroList.forEach(c=>aoa.push([c.nom,emailOf(c.id),telOf(c.id),autresContacts(c.id),Math.round(c.prev),Math.round(c.cur),Math.round(c.perdu),+c.pct.toFixed(1)]));

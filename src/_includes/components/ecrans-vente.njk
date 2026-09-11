@@ -107,9 +107,10 @@
     </section>
     <!-- Panneaux techniques : les moteurs historiques ecrivent toujours dedans, mais ils ne
          sont plus des destinations. « Mes clients » lit leurs donnees, pas leur HTML. -->
-    <div id="p-reactivation" hidden></div>
-    <div id="p-premier" hidden></div>
-    <div id="p-decrochage" hidden></div>
+    {# p-reactivation, p-premier et p-decrochage sont partis le 11/09/2026 (lot 5). Ils
+       etaient `hidden` en dur depuis la fusion du 07/09, et trois fonctions continuaient
+       d'y peindre des tableaux complets a chaque rendu. Leurs listes vivent dans
+       « Mon commerce », leurs trois exports sous la liste de cette piece. #}
     <footer class="appfoot">Le Bureau du Vigneron, propulsé par Solumatic.</footer>
   </main>
 </div>

@@ -134,7 +134,8 @@ let ROWS=[];                 // lignes derivees en memoire
 let META={min:null,max:null,years:[],exercices:[]};
 let PROFIL=null;             // profil de la base (calcule une fois apres import, cf. profilBase)
 let SANS_NUM=0;              // lignes sans numero client, cf. computeMeta et clientKey
-let reactList=[],decroList=[]; // listes completes affichees (relance / decrochage), pour l'export
+// `reactList` et `decroList` ont disparu le 11/09/2026 : les exports de relance et de
+// decrochage appellent leur agent au lieu de relire ce qu'un ecran avait affiche.
 // Selection temporelle active. Deux couches, volontairement distinctes :
 //   ex        un exercice entier (null = tous). C'est la maille des comparatifs.
 //   from/to   une plage libre en jour absolu (_dayNum), bornes incluses. Elle ne pilote

@@ -217,20 +217,66 @@ base de Ted. Une piece qui s'appelle « Mon cap » se controle sur un exercice e
 
 `npm run verif` : deux chartes CONFORME, 385 controles, zero echec.
 
+### Lot 5, le nettoyage : et ce qu'il a fait remonter
+
+**Trois ecrans fantomes supprimes.** `p-reactivation`, `p-premier` et `p-decrochage` etaient
+`hidden` en dur dans la coque depuis la fusion du 07/09 : plus aucune piece n'y menait, leurs
+listes avaient fusionne dans « Mon commerce ». Mais `renderAll()` appelait toujours leurs trois
+fonctions, qui fabriquaient a chaque rendu des tableaux HTML complets, lignes, colonnes et
+boutons compris, ecrits dans des conteneurs que personne ne verrait. Le commentaire disait
+« calculent et memorisent » : elles ne calculaient rien, les calculs sont dans les agents, que
+`agentClients()` appelle lui-meme.
+
+**Ce n'etait pas que du menage : quatre exports etaient perdus avec eux.** Leurs boutons vivaient
+dans ces trois ecrans masques. Ted ne pouvait plus les cliquer depuis quatre jours, et rien
+n'avait echoue, parce qu'un bouton qu'on n'affiche pas ne se plaint jamais.
+
+Ils ne font pas doublon avec « Exporter la liste » de « Mon commerce », qui sort la liste unifiee,
+un client une fois avec sa raison principale. Ceux-ci sortent les listes ENTIERES de chaque
+analyse, avec les colonnes de travail que l'autre n'a pas : cadence, rythme, fiabilite et date de
+prochaine commande attendue pour la relance ; CA de l'exercice precedent, CA en cours et euros
+perdus pour le decrochage. L'e-mail est en deuxieme colonne dans les quatre, pour que le fichier
+parte tel quel dans un outil d'emailing.
+
+**Arbitrage de Ted : les rebrancher, pas les supprimer.** Ils sont sous la liste de « Mon
+commerce », dans un bloc qui dit en une phrase en quoi ils different du bouton du dessus.
+
+**Et ils prennent leurs donnees a la source, maintenant.** Ils lisaient `premierList`, `reactList`
+et `decroList`, trois listes que les ecrans fantomes remplissaient en se peignant. Un export qui
+depend d'un ecran affiche rend un fichier vide le jour ou l'ecran ne s'affiche plus : c'est
+exactement ce qui les attendait. Ils appellent leur agent, comme tout le reste.
+
+**Nouveau banc, `npm run banc:commerce`**, douze controles. Il garde deux choses qu'aucun autre
+ne voyait : le verdict reste au-dessus de la liste, et les quatre exports restent atteignables.
+
+Il a trouve deux defauts de banc avant de trouver un defaut de code, et les deux valent d'etre
+notes :
+
+- **Un scenario de test trop sage ne teste rien.** Cinq clients qui achetent tous les mois en
+  croissance, c'est une piece vide : personne a rappeler, donc pas de liste, donc pas d'exports, et
+  cinq controles en echec pour une seule raison. Il a fallu fabriquer trois habitues de 2025 qui ne
+  reviennent pas en 2026.
+- **Reperer un bloc par un texte qu'un autre bloc porte aussi.** Le controle « le top clients est
+  DANS le pied » cherchait `<th>Client</th>`, que la grande liste du dessus porte egalement : il
+  comparait deux positions dans le mauvais tableau. Il cherche maintenant `CA HT</th>`, qui
+  n'existe que dans le pied.
+
+Les reperes figes du banc passent de 23 a 20.
+
+`npm run verif` : deux chartes CONFORME, 397 controles, zero echec.
+
 ### Ce qui reste ouvert
 
 Les quatre lots de la redecoupe sont faits. « Mon annee » et ses vingt-six blocs sont devenus
 quatre pieces a trois etages, et deux ecrans ont disparu (Apercu, Evolution) sans qu'aucune
 fonction soit perdue.
 
-Reste un **lot 5 de nettoyage**, signale mais pas traite : `p-reactivation`, `p-premier` et `p-decrochage` sont marques `hidden` en
-dur dans la coque depuis leur fusion dans « Mon commerce », mais les trois fonctions continuent
-de fabriquer des tableaux complets a chaque rendu, ecrits dans des conteneurs que personne ne
-verra. Le calcul sert, il alimente les filtres ; c'est le HTML qui est construit pour rien.
+Le lot 5 de nettoyage est fait lui aussi : le chantier est clos.
 
-Deux questions non tranchees, posees et laissees ouvertes : les quatre mouvements de clientele
-(nouveaux, hausse, baisse, perdus) et les trois motifs existants (recul, cadence, premier achat)
-decoupent la meme population de deux facons differentes, dans un seul ecran. Et les trois chiffres
+**Deux questions posees pendant la redecoupe et laissees ouvertes, a rouvrir un jour.** Les quatre
+mouvements de clientele (nouveaux, hausse, baisse, perdus) et les trois motifs existants (recul,
+cadence, premier achat) decoupent la meme population de deux facons differentes, dans un seul
+ecran : en garder une, ou expliquer clairement la difference. Et les trois chiffres
 du cap pourraient remonter dans le bandeau du haut, qui porte deja la date, la lune et la phrase
 du jour.
 

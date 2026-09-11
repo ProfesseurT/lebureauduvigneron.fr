@@ -1507,3 +1507,28 @@ jusqu'au prochain calcul.
 La regle : **un reglage se saisit dans les reglages, et nulle part ailleurs.** Un ecran qui a
 besoin de le montrer affiche sa VALEUR et dit ou la changer. Vaut pour tout ce qui vit dans
 `profils` : objectif, mois d'exercice, libelles perso, preferences de courrier.
+
+## UN BOUTON QU'ON N'AFFICHE PLUS NE SE PLAINT JAMAIS, 11/09/2026
+
+Lot 5 de la redecoupe. La fusion du 07/09 avait masque trois ecrans (`p-reactivation`,
+`p-premier`, `p-decrochage`) dont les listes etaient parties dans « Mon commerce ». Quatre
+boutons d'export vivaient dedans, avec des colonnes que rien d'autre ne produit : cadence,
+rythme, date de prochaine commande attendue, CA de l'exercice precedent. Ils sont devenus
+inatteignables ce jour-la, et **aucun controle n'a rien dit**, parce qu'il n'y a rien a signaler
+quand un bouton n'est pas dessine.
+
+La regle, quand on masque ou fusionne un ecran : **lister ce qu'il portait d'ACTIONNABLE**, pas
+seulement ce qu'il affichait. Un tableau perdu se remarque, un bouton perdu ne se remarque pas.
+
+Corollaire technique, verifie le meme jour : **un export ne doit jamais lire une liste qu'un
+ecran a remplie en se peignant.** Les quatre exports lisaient `premierList`, `reactList` et
+`decroList`, garnies par les fonctions de rendu. Un export construit comme ca rend un fichier
+VIDE, sans erreur, le jour ou son ecran n'est plus peint. Ils appellent maintenant leur agent
+directement.
+
+### Et un scenario de banc trop sage ne teste rien
+
+`banc-commerce.mjs` a d'abord echoue sur cinq controles pour une seule raison : ses clients de
+demonstration achetaient tous les mois, en croissance. Personne a rappeler, donc pas de liste,
+donc pas de boutons. **Un banc d'ecran doit fabriquer la situation que l'ecran est fait pour
+montrer**, pas une base en bonne sante.

@@ -10,7 +10,7 @@
     "charte:dash": "node scripts/charte.mjs --bureau",
     "banc": "node scripts/banc-bureau.mjs",
     "charte:bureau": "node scripts/charte.mjs --bureau",
-    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:sync && npm run banc:lune && npm run banc:porte && npm run banc:registre && npm run banc:cap && npm run courrier && npm run courrier:verif",
+    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:sync && npm run banc:lune && npm run banc:porte && npm run banc:registre && npm run banc:cap && npm run banc:commerce && npm run courrier && npm run courrier:verif",
     "banc:reglages": "node scripts/banc-reglages.mjs",
     "banc:journee": "node scripts/banc-journee.mjs",
     "apercu:panneau": "node scripts/apercu-panneau.mjs",
@@ -21,6 +21,7 @@
     "banc:porte": "node scripts/banc-porte-import.mjs",
     "banc:registre": "node scripts/banc-registre.mjs",
     "banc:cap": "node scripts/banc-cap.mjs",
+    "banc:commerce": "node scripts/banc-commerce.mjs",
     "courrier": "node scripts/apercu-courrier.mjs",
     "courrier:joindre": "node scripts/joindre-courrier.mjs",
     "courrier:verif": "node scripts/joindre-courrier.mjs --verifier"

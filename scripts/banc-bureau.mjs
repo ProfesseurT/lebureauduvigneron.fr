@@ -193,11 +193,13 @@ titre('Les ecrans de vente dans le bureau');
    « Mes cuvees » et blocsCanaux() retourne son HTML au lieu de peindre chez elle. Puis a
    vingt-quatre au lot 3 : `p-evolution` a suivi, la courbe et la lecture experte vivent
    maintenant dans « Mon registre ». Et a vingt-trois au lot 4 : `p-apercu` a disparu,
-   renderCap() ecrit toute la piece dans `p-diagnostic`. */
+   renderCap() ecrit toute la piece dans `p-diagnostic`. Et a VINGT au lot 5 :
+   `p-reactivation`, `p-premier` et `p-decrochage` etaient `hidden` en dur depuis la fusion
+   du 07/09, et trois fonctions y peignaient encore des tableaux complets a chaque rendu. */
 const REPERES = ['app', 'bowlclip', 'busyov', 'busytxt', 'filterbar', 'modale',
-  'p-annee', 'p-base', 'p-chercher', 'p-clients', 'p-decrochage',
-  'p-diagnostic', 'p-explorer', 'p-premier', 'p-produits', 'p-reactivation',
-  'p-reglages', 'p-vide', 'printReport', 'status', 'statusSpin', 'statusTxt', 'tbFile'];
+  'p-annee', 'p-base', 'p-chercher', 'p-clients', 'p-diagnostic', 'p-explorer',
+  'p-produits', 'p-reglages', 'p-vide', 'printReport', 'status', 'statusSpin',
+  'statusTxt', 'tbFile'];
 const manquants = REPERES.filter(id => !B.doc.getElementById(id));
 t('la coque des ecrans porte ses ' + REPERES.length + ' reperes',
   manquants.length === 0, 'manquant(s) : ' + manquants.join(', '));
