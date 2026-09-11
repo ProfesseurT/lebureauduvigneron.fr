@@ -628,11 +628,41 @@ titre('Le plateau, dans l\'ordre de Ted');
     /listb__montant/.test(HTML) && !/euros\(l\.montant\) \+ ' ' \+ \(l\.lib/.test(HTML));
   /* Le defaut de Ted : les trois boutons a libelle complet font 306 px mesures
      et debordaient de la zone a toutes les largeurs. Le mot court est sur le
-     bouton, le nom complet dans le title et l'aria-label. */
+     bouton, la phrase complete dans le title et l'aria-label.
+
+     LA SOURCE DU LIBELLE A CHANGE LE 11/09/2026, et c'est le controle qui suit qui
+     dit pourquoi : deux de ces trois boutons ne posent plus de geste, ils ouvrent la
+     fiche. Un libelle tire de `BdvCrm.GESTES` decrirait donc un geste qu'ils ne font
+     plus. Ils lisent la liste ACTIONS, qui porte l'endroit a ouvrir ; seul « Ecarte »
+     y reprend son libelle dans GESTES, parce que lui pose toujours son geste. */
   t('les boutons de geste portent un mot court et leur nom complet en title',
-    /b\.textContent = g\.court \|\| g\.label/.test(HTML)
-    && /b\.title = g\.label/.test(HTML)
-    && /aria-label', g\.label/.test(HTML));
+    /b\.textContent = a\.court/.test(HTML)
+    && /b\.title = a\.label/.test(HTML)
+    && /aria-label', a\.label/.test(HTML));
+  /* LE SOUS-MAIN N'ECRIT PLUS AU CLIC, demande de Ted du 11/09/2026. « Appele » et
+     « Message » ouvrent la vraie fiche client, a l'endroit qui correspond, et rien ne
+     part en base tant que le vigneron n'a pas ecrit ce qui s'est passe. Si ce controle
+     tombe, c'est que le tri rapide d'avant est revenu : la fiche ne s'ouvre plus, et
+     un client quitte la file sans qu'on sache ce qu'il a dit. */
+  t('« Appele » et « Message » ouvrent la fiche au lieu de poser le geste au clic',
+    /if\(act && !act\.direct\)\{\s*ouvrirFiche\(id, act\.cible, act\.cle\)/.test(HTML)
+    && /cible: 'suivi'/.test(HTML) && /cible: 'message'/.test(HTML));
+  t('« Ecarte » reste un geste sec, sans fiche',
+    /cle: 'ecarte',\s+court: 'Écarté',\s+direct: true/.test(HTML));
+  /* LA MODALE DOIT ETRE HORS DU BLOC MASQUE. Elle vivait au bas de la coque des
+     ecrans de vente, donc dans `#bureauVentes`, masque tant qu'aucune piece de vente
+     n'a ete ouverte : ouverte depuis « Ma journee », elle se peignait dans du vide,
+     sans une erreur. Meme piege que « Ma base » le 08/09/2026, et il ne se voit qu'a
+     l'ecran. Ce controle est le seul qui l'attrape. */
+  t('la modale de la fiche client est hors de #bureauVentes',
+    /<div id="modale"/.test(HTML)
+    && HTML.indexOf('<div id="modale"') > HTML.indexOf('id="bureauVentes"')
+    && !/id="bureauVentes"[\s\S]*?<div id="modale"[\s\S]*?<\/div>\s*<\/div><!-- \/\.bureau-atelier/.test(HTML));
+  /* ET LA PETITE FICHE NE REVIENT PAS. Deux fiches pour un meme client, c'est deux
+     endroits ou noter un appel : celui qui les remplit tous les deux perd la moitie
+     de son travail le jour ou il n'en ouvre qu'un. */
+  t('le bureau ne peint plus sa propre fiche client',
+    !/id="voile"/.test(HTML) && !/ficheContenu/.test(HTML) && !/class="ficheb"/.test(HTML));
 
   /* Le defaut : `pointer-events: none` n'arrete que la souris. Au clavier, deux
      Entree posaient deux gestes. */

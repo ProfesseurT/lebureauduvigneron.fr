@@ -212,12 +212,46 @@
     return out;
   }
 
+  /* ---------------- LES RAPPELS CLIENTS, LUS ET JAMAIS STOCKES ----------------
+     Demande de Ted le 11/09/2026. Jusqu'ici cette piece portait DEUX natures et pas
+     trois, et les clients restaient au sous-main : deux endroits qui repondent « qui
+     dois-je appeler » se contredisent au premier geste pose d'un cote.
+
+     CE QUI A CHANGE, ET POURQUOI LA REGLE TIENT TOUJOURS : ces lignes ne sont pas
+     stockees ici, elles sont LUES dans le miroir de bdv-crm.js, dont la verite est
+     `suivi_clients`. Et elles NE SE COCHENT PAS : elles menent a la fiche du client,
+     qui est le seul endroit ou l'on note ce qu'il a dit. Il n'y a donc toujours qu'un
+     seul endroit qui repond, et un seul geste qui ecrit.
+
+     Ne pas leur donner de case a cocher « pour faire comme les autres » : ce serait
+     rendre au calendrier et a cette piece le tri rapide qu'on vient de retirer du
+     sous-main, et un client sortirait de la file sans qu'on sache ce qu'il a dit. */
+  function rappelsClients() {
+    if (!familleAffichee('clients')) return [];
+    if (!window.BdvCrm || !BdvCrm.miroir) return [];
+    var e = BdvCrm.miroir();
+    if (!e) return [];
+    var noms = e.noms || {}, auj = minuit(new Date());
+    return (e.suivi || e.rappels || []).filter(function (l) {
+      return l.rappel && l.statut !== 'traite';
+    }).map(function (l) {
+      var d = minuit(new Date(l.rappel + 'T00:00:00'));
+      return {
+        tache_id: 'client:' + l.id, titre: noms[l.id] || ('Client ' + l.id),
+        source: 'client', ref: String(l.id), motif: l.titre || '',
+        echue_le: l.rappel, fin_le: null, fait_le: null,
+        jours: isNaN(d) ? null : Math.round((d - auj) / JOUR)
+      };
+    });
+  }
+
   /* Sans date, une tache n'est ni en retard ni pressante : elle attend. Elle passe donc
      APRES tout ce qui porte une date, et pas avant, sinon une note ecrite en passant
      couvrirait une DRM qui tombe demain. */
   function rang(t) { return t.jours === null ? 99999 : t.jours; }
   function toutes() {
-    return obligations().concat(libres()).sort(function (a, b) { return rang(a) - rang(b); });
+    return obligations().concat(libres(), rappelsClients())
+      .sort(function (a, b) { return rang(a) - rang(b); });
   }
 
   /* ---------------- LES MOTS DU TEMPS ----------------
@@ -350,14 +384,25 @@
     li.setAttribute('data-fait', t.fait_le ? 'oui' : 'non');
     var to = ton(t); if (to) li.setAttribute('data-ton', to);
 
-    var coche = document.createElement('button');
-    coche.type = 'button';
-    coche.className = 'tache__coche';
-    coche.setAttribute('data-tache-coche', t.tache_id);
-    coche.setAttribute('aria-pressed', t.fait_le ? 'true' : 'false');
-    coche.title = t.fait_le ? 'Remettre à faire' : 'Marquer comme fait';
-    coche.setAttribute('aria-label', coche.title);
-    li.appendChild(coche);
+    /* UN CLIENT N'A PAS DE CASE, il a une pastille inerte. La rangee est une grille
+       de trois colonnes : lui retirer sa premiere cellule decalerait tout le texte de
+       la ligne, et l'oeil perdrait la colonne des titres. La pastille tient la place
+       et porte la matiere de cette famille, le combine, comme dans le calendrier. */
+    if (t.source === 'client') {
+      var pu = document.createElement('span');
+      pu.className = 'tache__puce';
+      pu.setAttribute('aria-hidden', 'true');
+      li.appendChild(pu);
+    } else {
+      var coche = document.createElement('button');
+      coche.type = 'button';
+      coche.className = 'tache__coche';
+      coche.setAttribute('data-tache-coche', t.tache_id);
+      coche.setAttribute('aria-pressed', t.fait_le ? 'true' : 'false');
+      coche.title = t.fait_le ? 'Remettre à faire' : 'Marquer comme fait';
+      coche.setAttribute('aria-label', coche.title);
+      li.appendChild(coche);
+    }
 
     var corps = document.createElement('span');
     corps.className = 'tache__corps';
@@ -371,11 +416,24 @@
     var mots = [];
     if (t.echue_le) mots.push(quand(t), quandDate(t));
     if (t.source === 'echeance') mots.push('obligation');
+    /* LE MOTIF DU RAPPEL SE LIT ICI. « Rappeler MARTIN » sans le pourquoi oblige a
+       ouvrir la fiche pour savoir ce qu'on avait promis, et c'est exactement le
+       voyage que ce motif existe pour eviter. */
+    if (t.source === 'client') mots.push(t.motif || 'à rappeler');
     bas.textContent = mots.filter(Boolean).join(' · ');
     if (bas.textContent) corps.appendChild(bas);
     li.appendChild(corps);
 
-    if (t.source === 'echeance') {
+    if (t.source === 'client') {
+      // Le seul geste possible sur un client : ouvrir sa fiche. C'est la qu'on note ce
+      // qu'il a dit, et c'est le meme ouvreur que le sous-main, expose par le bureau.
+      var ac = document.createElement('button');
+      ac.type = 'button';
+      ac.className = 'tache__source';
+      ac.setAttribute('data-tache-client', t.ref);
+      ac.textContent = 'Ouvrir sa fiche';
+      li.appendChild(ac);
+    } else if (t.source === 'echeance') {
       // Le lien vers la piece qui porte les sources officielles : cocher une DRM sans
       // pouvoir relire ce qu'elle exige serait un piege. Depuis le 08/09/2026 c'est la
       // PIECE du bureau et plus la page publique : on ne sort pas du bureau pour lire
@@ -595,7 +653,16 @@
     var s = e.target.closest && e.target.closest('[data-tache-suppr]');
     if (s) { e.preventDefault(); supprimer(s.getAttribute('data-tache-suppr')); return; }
     var f = e.target.closest && e.target.closest('[data-tache-famille]');
-    if (f) { e.preventDefault(); basculerFamille(f.getAttribute('data-tache-famille')); }
+    if (f) { e.preventDefault(); basculerFamille(f.getAttribute('data-tache-famille')); return; }
+    /* Le meme ouvreur que le sous-main et que le calendrier, expose par le bureau. Trois
+       endroits montrent un rappel client, UN SEUL sait ouvrir sa fiche. */
+    var cl = e.target.closest && e.target.closest('[data-tache-client]');
+    if (cl) {
+      e.preventDefault();
+      if (typeof window.bdvOuvrirFiche === 'function') {
+        window.bdvOuvrirFiche(cl.getAttribute('data-tache-client'));
+      }
+    }
   });
 
   function brancherForm() {

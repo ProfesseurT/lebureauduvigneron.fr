@@ -91,6 +91,11 @@ function monter(opts) {
       return Promise.resolve((o.methode || 'GET') === 'GET' ? (opts.lignes || []) : null);
     }
   };
+  /* LE MIROIR DE LA FILE, quand le banc en demande un. « Mes taches » lit les rappels
+     clients ICI, et n'ecrit jamais dedans : c'est `suivi_clients` qui fait foi, par
+     bdv-crm.js. Un faux miroir suffit donc a tout verifier, y compris qu'aucune
+     ecriture ne part vers /taches. */
+  if (opts.crm) w.BdvCrm = { miroir: () => opts.crm };
   const poser = (js, nom) => {
     const s = w.document.createElement('script');
     s.textContent = js;
@@ -417,6 +422,81 @@ console.log('\n== 8. Choisir les familles affichees ==');
   dit(t.w.localStorage.getItem('bdv_taches_familles') !== null
     && t.w.localStorage.getItem('bdv_cal_familles') === null,
     'le choix des taches ne touche pas celui du calendrier');
+}
+
+/* ==========================================================================
+   9. LES RAPPELS CLIENTS, LUS ET JAMAIS STOCKES
+   ==========================================================================
+   Demande de Ted le 11/09/2026. Jusque-la cette piece portait DEUX natures et pas
+   trois, et la regle 7 de CLAUDE.md l'interdisait : deux endroits qui repondent
+   « qui dois-je appeler » se contredisent au premier geste.
+
+   CE QUI REND LA REGLE TENABLE, et c'est exactement ce que cette section garde :
+   ces lignes ne sont pas stockees ici, elles sont LUES dans le miroir de la file,
+   et elles NE SE COCHENT PAS. Si un jour une ecriture part vers /taches pour un
+   rappel client, ou si une case a cocher apparait sur ces lignes, il y aura DEUX
+   endroits qui disent « fait » pour le meme client, et ils se contrediront.
+   ========================================================================== */
+console.log('\n== 9. Les rappels clients ==');
+{
+  const j = (n) => {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')
+         + '-' + String(d.getDate()).padStart(2,'0');
+  };
+  const miroir = {
+    noms: { '706': 'VINOBILIS SRL', '34': 'Oenophil' },
+    suivi: [
+      { id: '706', rappel: j(-2), titre: 'Lui reparler du reassort', statut: 'relance' },
+      { id: '34',  rappel: j(5),  titre: '', statut: '' },
+      { id: '99',  rappel: j(1),  titre: 'deja traite', statut: 'traite' }
+    ]
+  };
+  const t = monter({ crm: miroir });
+  await dormir(30);
+
+  const cl = t.T.toutes().filter(x => x.source === 'client');
+  dit(cl.length === 2, 'les rappels poses sur des clients entrent dans la liste', cl.length);
+  dit(cl.every(x => x.tache_id.indexOf('client:') === 0),
+    'leur identifiant porte le prefixe client:, il ne peut pas heurter celui d\'une tache',
+    cl.map(x => x.tache_id).join(' | '));
+  dit(!cl.some(x => x.ref === '99'),
+    'UN CLIENT MIS DE COTE N\'EST PAS UNE CHOSE A FAIRE : il ne remonte pas ici');
+  dit(cl.filter(x => x.ref === '706')[0].titre === 'VINOBILIS SRL',
+    'la ligne porte le NOM du client, pas son numero');
+  dit(cl.filter(x => x.ref === '706')[0].motif === 'Lui reparler du reassort',
+    'et le motif du rappel, qui dit ce qu\'on s\'etait promis');
+  dit(t.T.toutes()[0].source === 'client' && t.T.toutes()[0].ref === '706',
+    'un rappel en retard passe devant tout, comme une tache en retard',
+    t.T.toutes()[0].titre);
+
+  t.appels.length = 0;
+  t.T.rendre();
+  await dormir(30);
+  dit(t.ecritures().length === 0,
+    'AFFICHER DES RAPPELS CLIENTS N\'ECRIT RIEN DANS LA TABLE DES TACHES',
+    JSON.stringify(t.ecritures()));
+  const html = t.w.document.getElementById('tachesAFaire').innerHTML;
+  dit(html.indexOf('data-tache-coche="client:') < 0,
+    'UN CLIENT N\'A PAS DE CASE A COCHER : « fait » pour un client, c\'est ce qu\'il a dit, et ca s\'ecrit dans sa fiche');
+  dit(html.indexOf('data-tache-client="706"') >= 0,
+    'il a un bouton qui mene a sa fiche, et c\'est son seul geste');
+
+  t.T.basculerFamille('clients');
+  dit(t.T.toutes().filter(x => x.source === 'client').length === 0,
+    'eteindre « Mes clients » les retire de la liste');
+  dit(t.T.toutes().filter(x => x.source === 'echeance').length === 1,
+    'et ne touche pas aux obligations');
+  t.T.basculerFamille('clients');
+
+  /* SANS MIROIR, RIEN. Le module de la file peut ne pas etre charge, ou le miroir
+     etre vide au premier passage : la piece doit alors montrer ses taches, et pas
+     lever. */
+  const v = monter();
+  await dormir(30);
+  dit(v.T.toutes().filter(x => x.source === 'client').length === 0
+    && v.T.toutes().length > 0,
+    'sans file chargee, la piece montre ses taches sans broncher');
 }
 
 console.log('\n== VERDICT ==');

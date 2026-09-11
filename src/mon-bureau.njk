@@ -379,18 +379,16 @@ permalink: /mon-bureau/
     </div><!-- /.bureau-atelier__travail -->
   </div><!-- /.bureau-atelier -->
 
-  <!-- La fiche de suivi, en surimpression. On ne quitte pas le bureau pour travailler
-       un client : c'est ici qu'on pose un geste, ici qu'on lit ce qui s'est dit. -->
-  <div class="voile" id="voile" hidden>
-    <div class="ficheb" role="dialog" aria-modal="true" aria-labelledby="ficheNom">
-      <button class="ficheb__x" id="ficheFermer" type="button" aria-label="Fermer">&#215;</button>
-      <!-- L'avis de la fiche vit DANS la fiche. Le meme message pose dans le sous-main
-           tombait derriere le voile : le vigneron voyait son bouton redevenir cliquable
-           sans savoir pourquoi, et decouvrait l'erreur bien plus tard, hors contexte. -->
-      <p class="bureau-avis" id="ficheAvis" role="status" hidden></p>
-      <div id="ficheContenu"></div>
-    </div>
-  </div>
+  <!-- LA FICHE CLIENT, EN SURIMPRESSION. Il n'y en a plus qu'UNE depuis le 11/09/2026,
+       et c'est la vraie, celle des ecrans de vente : le bureau avait la sienne, plus
+       petite, qui ne montrait ni les chiffres du client ni le redacteur de message. Deux
+       fiches pour un meme client, c'est deux endroits ou noter un appel.
+
+       CE DIV EST ICI, ET PAS DANS LA COQUE DES ECRANS DE VENTE, parce que la coque vit
+       dans `#bureauVentes`, masque tant qu'on n'a pas ouvert une piece de vente. La fiche
+       s'ouvre maintenant depuis « Ma journee » : laissee la-bas, elle se peignait dans du
+       vide, sans une erreur. Elle est remplie par ouvrirFiche() de bdv-ecrans.js. -->
+  <div id="modale" class="bdv-ventes modale" aria-hidden="true"></div>
 
   <!-- LES REGLAGES ont quitte cette page le 07/09/2026. Ils vivent dans
        /js/bdv-reglages.js : un panneau unique, que le bureau ET le tableau de bord
@@ -549,6 +547,34 @@ permalink: /mon-bureau/
     return td;
   }
 
+  /* LES TROIS BOUTONS DE LA LIGNE, ET CE QU'ILS FONT DEPUIS LE 11/09/2026.
+
+     Ils etaient dessines a partir de `BdvCrm.GESTES`, parce qu'ils POSAIENT les trois
+     gestes. Deux d'entre eux ne les posent plus : ils ouvrent la fiche du client a
+     l'endroit qui correspond, et c'est le vigneron qui ecrit ce qui s'est passe avant que
+     quoi que ce soit ne parte en base. Un bouton dont le libelle vient d'une liste de
+     gestes qu'il ne pose plus est un libelle qui ment, d'ou cette liste-ci.
+
+     « Ecarte » reste un geste sec, et c'est voulu : c'est le bouton qui dit « je ne veux
+     pas m'en occuper ». Lui ouvrir une fiche serait le contraire de ce qu'il veut dire.
+     Il lit donc son libelle dans BdvCrm.GESTES, qui reste le seul endroit ou vit un geste.
+
+     « Message » ouvre le redacteur, et plus « laisse un message sur le repondeur » : c'est
+     de la que part « Considere comme envoye ». Un appel tombe sur un repondeur se note
+     dans le bloc de suivi, canal Repondeur, comme n'importe quel autre echange. */
+  var ACTIONS = [
+    { cle: 'appel',   court: 'Appelé',  cible: 'suivi',
+      label: 'Je l’ai appelé : ouvrir sa fiche pour noter ce qui s’est dit' },
+    { cle: 'message', court: 'Message', cible: 'message',
+      label: 'Écrire un message à ce client' },
+    { cle: 'ecarte',  court: 'Écarté',  direct: true,
+      label: (window.BdvCrm && BdvCrm.GESTES.ecarte.label) || 'Pas maintenant' }
+  ];
+
+  function actionDe(cle){
+    return ACTIONS.filter(function(a){ return a.cle === cle; })[0] || null;
+  }
+
   /* UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
      retard, geste. Ce sont les colonnes que Ted a dictees.
 
@@ -591,8 +617,12 @@ permalink: /mon-bureau/
        une phrase qui melangeait les deux et qu'il fallait relire ligne a ligne.
        Les deux morceaux existaient deja separement dans la file, l.montant et
        l.lib : rien de nouveau n'est calcule. */
+    /* LE MOTIF DIT CE QUE LE VIGNERON S'ETAIT PROMIS, quand il l'a ecrit. Depuis le
+       11/09/2026 un rappel porte un motif facultatif : « lui reparler du reassort » vaut
+       mieux que « Rappel ce jour », qui ne dit que ce que la colonne Retard dit deja.
+       Sans motif, la phrase d'avant. */
     var quoi = l.source === 'rappel'
-      ? (enRetard ? 'Rappel non fait' : 'Rappel ce jour')
+      ? (l.titre || (enRetard ? 'Rappel non fait' : 'Rappel ce jour'))
       : (l.lib || l.detail || 'Signalé');
     var cMotif = cellule('listb__motif', quoi);
     cMotif.title = quoi;   // coupe a l'ecran si la colonne est courte, entier a l'infobulle
@@ -607,19 +637,18 @@ permalink: /mon-bureau/
       : (enRetard ? 'J+' + l.retard : 'J+0')));
 
     var gestes = cellule('listb__gestes', document.createDocumentFragment());
-    Object.keys(BdvCrm.GESTES).forEach(function(k){
-      var g = BdvCrm.GESTES[k];
+    ACTIONS.forEach(function(a){
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn--geste';
-      b.setAttribute('data-geste', k);
+      b.setAttribute('data-geste', a.cle);
       b.setAttribute('data-id', l.id);
-      /* Le mot court sur le bouton, le nom complet dans le title ET dans
+      /* Le mot court sur le bouton, la phrase complete dans le title ET dans
          l'aria-label : ce que la souris apprend en survolant, le clavier et le
          lecteur d'ecran l'ont sans survoler. */
-      b.textContent = g.court || g.label;
-      b.title = g.label;
-      b.setAttribute('aria-label', g.label);
+      b.textContent = a.court;
+      b.title = a.label;
+      b.setAttribute('aria-label', a.label);
       gestes.appendChild(b);
     });
     tr.appendChild(gestes);
@@ -730,7 +759,11 @@ permalink: /mon-bureau/
     }else pied.hidden = true;
   }
 
-  // Le clic sur un geste ne doit pas suivre le lien de la ligne.
+  /* LE CLIC SUR LA LIGNE. Trois issues, et deux d'entre elles n'ecrivent rien :
+       - le NOM ouvre la fiche en haut ;
+       - « Appele » et « Message » ouvrent la fiche a leur endroit, le geste reste EN
+         ATTENTE : si le vigneron ferme sans rien ecrire, la ligne est toujours la ;
+       - « Ecarte » pose son geste tout de suite, sans fiche. */
   document.addEventListener('click', function(e){
     var t = e.target.closest && e.target.closest('[data-fiche]');
     if(t && !(e.target.closest && e.target.closest('[data-geste]'))){
@@ -742,6 +775,11 @@ permalink: /mon-bureau/
     e.preventDefault();
     e.stopPropagation();
     var id = b.getAttribute('data-id');
+    var act = actionDe(b.getAttribute('data-geste'));
+    if(act && !act.direct){
+      ouvrirFiche(id, act.cible, act.cle);
+      return;
+    }
     /* LE GESTE NE PEUT PLUS ETRE POSE DEUX FOIS. Avant, la ligne traitee recevait
        `pointer-events: none`, qui n'arrete que la souris : au clavier, Entree deux
        fois posait deux gestes. On desactive les boutons, ce que le clavier respecte
@@ -770,291 +808,93 @@ permalink: /mon-bureau/
     });
   });
 
-  /* ---------------- LA FICHE DE SUIVI, EN SURIMPRESSION ----------------
-     On ne quitte pas le bureau pour travailler un client. Cette fiche montre ce que la
-     base sait de lui : sa prochaine action, ses coordonnees, et le fil de ce qui s'est
-     dit. Elle ne montre PAS ses ventes, ses cuvees ni ses factures : ces chiffres sont
-     calcules par le tableau de bord, et le bureau ne recalcule jamais rien. Un lien mene
-     a sa fiche complete pour qui veut le detail. */
-  var FICHE_ID = null;
-  var CANAL_SAISIE = (window.BdvCanaux ? BdvCanaux.DEFAUT : 'appel');
-  // L'entree du journal en cours de correction, et le texte tape mais pas encore
-  // enregistre. La fiche se repeint a chaque geste et a chaque reponse reseau : sans ces
-  // deux variables, une correction a moitie ecrite disparaissait sans un mot.
-  var EDITION_ID = null;
-  var EDITION_TXT = null;
-  var EDITION_CANAL = null;
+  /* ---------------- LA FICHE CLIENT : UNE SEULE, ET C'EST LA VRAIE ----------------
+     Demande de Ted, 11/09/2026 : « la petite modale disparait a jamais ».
 
-  var RETOUR_FICHE = null;
-  function avisFiche(texte, ok){
-    var a = el('ficheAvis');
-    a.textContent = texte || '';
-    a.setAttribute('data-ok', ok ? 'oui' : 'non');
-    a.hidden = !texte;
-  }
-  function fermerFiche(){
-    el('voile').hidden = true;
-    document.body.style.overflow = '';
-    FICHE_ID = null;
-    avisFiche('');
-    if(RETOUR_FICHE && RETOUR_FICHE.focus) RETOUR_FICHE.focus();
-    RETOUR_FICHE = null;
-  }
-  el('ficheFermer').addEventListener('click', fermerFiche);
-  el('voile').addEventListener('click', function(e){ if(e.target === el('voile')) fermerFiche(); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !el('voile').hidden) fermerFiche(); });
+     Le bureau avait sa propre fiche, 280 lignes, qui montrait la prochaine action, les
+     coordonnees et le fil. Elle ne montrait NI les chiffres du client, NI le redacteur de
+     message, parce qu'elle ne savait pas lire les lignes de vente. Resultat : deux fiches
+     pour un meme client, deux endroits ou noter un appel, et un vigneron qui devait sortir
+     du bureau pour voir ce que le client achete avant de l'appeler.
 
-  function ouvrirFiche(id){
-    if(!window.BdvCrm) return;
-    RETOUR_FICHE = document.activeElement;
-    FICHE_ID = id;
-    CANAL_SAISIE = (window.BdvCanaux ? BdvCanaux.DEFAUT : 'appel');
-    EDITION_ID = null; EDITION_TXT = null; EDITION_CANAL = null;
-    avisFiche('');
-    el('voile').hidden = false;
-    document.body.style.overflow = 'hidden';
-    el('ficheFermer').focus();
-    peindreFiche();
-    BdvCrm.fil(id).then(function(f){ if(FICHE_ID === id) peindreFiche(f); });
+     Le nom ET les boutons d'action ouvrent donc la MEME fiche, celle de bdv-ecrans.js.
+     Chacun ouvre a l'endroit qui correspond a son geste : le nom en haut, « Appele » sur le
+     bloc de suivi, « Message » sur le redacteur.
+
+     CE QUE CA COUTE, ET C'EST ASSUME. Cette fiche se fabrique a partir des lignes de vente,
+     et « Ma journee » ne charge pas le moteur (32 ko au lieu de 125, decision du 07/09). Le
+     premier clic de la session le charge donc, et le dit : voir attenteFiche(). Les clics
+     suivants sont instantanes. Arbitrage pris avec Ted le 11/09/2026 : pas de prechargement
+     en tache de fond, on ne paye que si on s'en sert.
+
+     ET SI LE MOTEUR NE CONNAIT PAS CE CLIENT, ON LE DIT. La file se lit depuis un appareil
+     sur lequel aucun export n'a jamais ete depose : la petite fiche s'en moquait, celle-ci
+     ne peut pas. Un message clair vaut mieux qu'une fiche vide. */
+  var FICHE_EN_COURS = null;
+
+  /* L'attente se voit SUR LA LIGNE qu'on vient de cliquer, et nulle part ailleurs : un
+     voile sur toute la page pour une fiche qui s'ouvre ferait croire a un rechargement. */
+  function attenteFiche(ligne, oui){
+    if(ligne) ligne.setAttribute('data-attente', oui ? 'oui' : 'non');
+    txt(el('fileNote'), oui ? 'Ouverture de la fiche…' : '');
+    if(!oui) peindreFile();   // rend au pied sa vraie phrase, « 3 en retard » ou autre
   }
 
-  function infosDe(id){
+  function motifDe(id){
     var e = ETAT_FILE || {};
-    var s = (e.signaux || []).filter(function(x){ return x.id === id; })[0] || {};
-    var su = (e.suivi || e.rappels || []).filter(function(x){ return x.id === id; })[0] || {};
-    return { nom: s.nom || (e.noms || {})[id] || id, contact: s.contact || '',
-             montant: s.montant || 0, lib: s.lib || '', detail: s.detail || '',
-             rappel: su.rappel || '' };
+    var s = (e.signaux || []).filter(function(x){ return x.id === id; })[0];
+    return s ? (s.motif || '') : '';
   }
 
-  function peindreFiche(fil){
-    var id = FICHE_ID; if(!id) return;
-    var i = infosDe(id);
-    var boite = el('ficheContenu');
-    boite.innerHTML = '';
+  /* `cible` dit OU ouvrir : null (en haut), 'suivi' (le bloc de suivi, curseur dans la
+     zone de notes), 'message' (le redacteur, deplie). `geste` est le geste en attente :
+     rien n'est ecrit tant que le vigneron n'a pas enregistre sa note. */
+  function ouvrirFiche(id, cible, geste){
+    if(!id || FICHE_EN_COURS) return;
+    if(!window.BdvNav || !BdvNav.chargerEcrans) return;
+    FICHE_EN_COURS = id;
+    var ligne = document.querySelector('.listb__l [data-fiche="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+    ligne = ligne ? ligne.closest('.listb__l') : null;
+    attenteFiche(ligne, true);
+    var av = el('bureauAvis'); av.hidden = true;
 
-    var h1 = document.createElement('h2'); h1.id = 'ficheNom'; h1.className = 'ficheb__nom';
-    h1.textContent = i.nom; boite.appendChild(h1);
-
-    if(i.contact){
-      var c = document.createElement('p'); c.className = 'ficheb__contact';
-      i.contact.split(/\s+/).filter(Boolean).forEach(function(m, k){
-        if(k) c.appendChild(document.createTextNode(' · '));
-        var a = document.createElement('a');
-        a.href = m.indexOf('@') > 0 ? 'mailto:' + m : 'tel:' + m.replace(/[^+0-9]/g, '');
-        a.textContent = m;
-        c.appendChild(a);
-      });
-      boite.appendChild(c);
-    }
-    if(i.montant || i.detail){
-      var d = document.createElement('p'); d.className = 'ficheb__quoi';
-      d.textContent = i.montant ? euros(i.montant) + ' ' + (i.lib || '') : i.detail;
-      boite.appendChild(d);
-    }
-
-    // La prochaine action, en tete, comme dans le tableau de bord.
-    var act = document.createElement('div'); act.className = 'ficheb__action';
-    var lbl = document.createElement('span'); lbl.className = 'ficheb__action-l';
-    if(i.rappel){
-      lbl.textContent = 'À rappeler le ' + i.rappel.split('-').reverse().join('/');
-      act.appendChild(lbl);
-      var retire = document.createElement('button');
-      retire.type = 'button'; retire.className = 'btn--lienb'; retire.textContent = 'retirer';
-      retire.onclick = function(){
-        // Le .catch est pose sur l'ECRITURE seule : chaine apres rafraichirApres, il
-        // annoncerait un echec d'ecriture pour une simple erreur de repeinture.
-        BdvCrm.planifier(id, null)
-          .then(function(){ avisFiche(''); return rafraichirApres(); })
-          .catch(function(){ avisFiche('Ce rappel n’a pas pu être retiré. Réessaie tout à l’heure.', false); });
-      };
-      act.appendChild(retire);
-    }else{
-      lbl.textContent = 'Aucune action prévue.';
-      act.appendChild(lbl);
-      [7, 30, 90].forEach(function(n){
-        var b = document.createElement('button');
-        b.type = 'button'; b.className = 'btn--geste'; b.textContent = 'Dans ' + n + ' j';
-        b.onclick = function(){
-          BdvCrm.planifier(id, BdvCrm.dansNJours(n))
-            .then(function(){ avisFiche(''); return rafraichirApres(); })
-            .catch(function(){ avisFiche('Ce rappel n’a pas pu être posé. Réessaie tout à l’heure.', false); });
-        };
-        act.appendChild(b);
-      });
-    }
-    boite.appendChild(act);
-
-    // La saisie : une seule, comme dans le tableau de bord.
-    var sais = document.createElement('div'); sais.className = 'saisieb';
-    var ta = document.createElement('textarea');
-    ta.className = 'saisieb__txt'; ta.rows = 2; ta.id = 'ficheTxt';
-    ta.placeholder = 'Qu’est-ce qui s’est passé avec ce client ?';
-    sais.appendChild(ta);
-    var pied = document.createElement('div'); pied.className = 'saisieb__pied';
-    var types = document.createElement('div'); types.className = 'saisieb__types';
-    var etiq = document.createElement('label');
-    etiq.className = 'saisieb__etiq'; etiq.setAttribute('for', 'ficheCanal');
-    etiq.textContent = 'Par';
-    var sel = document.createElement('select');
-    sel.className = 'saisieb__canal'; sel.id = 'ficheCanal';
-    if(window.BdvCanaux) BdvCanaux.remplirSelect(sel, CANAL_SAISIE);
-    sel.onchange = function(){ CANAL_SAISIE = sel.value; };
-    types.appendChild(etiq); types.appendChild(sel);
-    pied.appendChild(types);
-    var ok = document.createElement('button');
-    ok.type = 'button'; ok.className = 'btn--geste'; ok.textContent = 'Enregistrer';
-    ok.onclick = function(){
-      var t = ta.value.trim();
-      if(!t){ ta.focus(); return; }
-      ok.disabled = true;
-      BdvCrm.noter(id, CANAL_SAISIE, t).then(function(){
-        ta.value = '';
-        avisFiche('');
-        BdvCrm.fil(id).then(function(f){ if(FICHE_ID === id) peindreFiche(f); });
-      }).catch(function(){
-        ok.disabled = false;
-        avisFiche('Pas de réseau : cette note n’a pas pu être enregistrée. Réessaie tout à l’heure.', false);
-      });
-    };
-    pied.appendChild(ok);
-    sais.appendChild(pied);
-    boite.appendChild(sais);
-
-    // Le fil.
-    var f = document.createElement('div'); f.className = 'filb';
-    if(fil === undefined){
-      var att = document.createElement('p'); att.className = 'zone__vide';
-      att.textContent = 'Chargement de son historique…'; f.appendChild(att);
-    }else if(fil === null){
-      var ill = document.createElement('p'); ill.className = 'zone__vide';
-      ill.textContent = 'Son historique n’a pas pu être lu. Ce n’est pas qu’il est vide : réessaie tout à l’heure.';
-      f.appendChild(ill);
-    }else if(!fil.length){
-      var v = document.createElement('p'); v.className = 'zone__vide';
-      v.textContent = 'Rien encore. Ce que tu écris ci-dessus s’inscrit ici, daté.'; f.appendChild(v);
-    }else{
-      var C = window.BdvCanaux;
-      fil.forEach(function(e){
-        var l = document.createElement('div'); l.className = 'filb__l';
-
-        // La date de gauche est celle de CE QUI S'EST PASSE (`le`), jamais celle de la
-        // derniere retouche. Un appel de mardi corrige jeudi reste un appel de mardi.
-        var d = new Date(e.le);
-        var q = document.createElement('span'); q.className = 'filb__q';
-        q.textContent = isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
-        var can = document.createElement('span'); can.className = 'filb__c';
-        can.textContent = C ? C.libelleEntree(e) : (e.canal || e.type || '');
-        q.appendChild(document.createElement('br')); q.appendChild(can);
-        l.appendChild(q);
-
-        var zone = document.createElement('span'); zone.className = 'filb__t';
-        l.appendChild(zone);
-
-        if(EDITION_ID && EDITION_ID === e.echange_id){ editer(e, zone); }
-        else { lire(e, zone); }
-        f.appendChild(l);
-      });
-
-      // Une entree telle qu'on la lit, avec le bouton qui ouvre la correction.
-      function lire(e, zone){
-        zone.textContent = '';
-        var txt = document.createElement('span');
-        txt.textContent = e.resume || (C ? C.libelleEntree(e) : e.type);
-        zone.appendChild(txt);
-        // « corrigé le » ne s'affiche que si la ligne a VRAIMENT ete reecrite. Le mettre
-        // partout ferait douter de tout le journal, y compris de ce qui n'a pas bouge.
-        if(e.maj_le && e.le && String(e.maj_le) !== String(e.le)){
-          var md = new Date(e.maj_le);
-          var m = document.createElement('span'); m.className = 'filb__maj';
-          m.textContent = isNaN(md) ? 'corrigé' :
-            ('corrigé le ' + md.toLocaleDateString('fr-FR', { day:'numeric', month:'short' }));
-          zone.appendChild(m);
-        }
-        if(!e.echange_id) return;
-        var b = document.createElement('button');
-        b.type = 'button'; b.className = 'btn--lienb filb__mod';
-        b.textContent = 'corriger';
-        b.setAttribute('aria-label', 'Corriger cette entrée du journal');
-        b.onclick = function(){
-          EDITION_ID = e.echange_id;
-          EDITION_TXT = e.resume || '';
-          EDITION_CANAL = (C && C.canal(e.canal)) ? C.canal(e.canal).cle : (C ? C.DEFAUT : 'appel');
-          editer(e, zone);
-          var z = zone.querySelector('textarea'); if(z) z.focus();
-        };
-        zone.appendChild(b);
-      }
-
-      // La correction, en place dans le fil. Pas de fenetre par-dessus une fenetre : la
-      // fiche est deja en surimpression, et un deuxieme etage n'a plus d'issue au clavier.
-      function editer(e, zone){
-        zone.textContent = '';
-        var boite = document.createElement('span'); boite.className = 'filb__ed';
-        var ta = document.createElement('textarea');
-        ta.className = 'saisieb__txt filb__edtxt'; ta.rows = 2;
-        ta.value = (EDITION_TXT != null) ? EDITION_TXT : (e.resume || '');
-        ta.oninput = function(){ EDITION_TXT = ta.value; };
-        boite.appendChild(ta);
-
-        var barre = document.createElement('span'); barre.className = 'filb__edpied';
-        var sc = document.createElement('select'); sc.className = 'saisieb__canal';
-        sc.setAttribute('aria-label', 'Moyen de communication');
-        if(C) C.remplirSelect(sc, EDITION_CANAL);
-        sc.onchange = function(){ EDITION_CANAL = sc.value; };
-        barre.appendChild(sc);
-
-        var ok = document.createElement('button');
-        ok.type = 'button'; ok.className = 'btn--geste'; ok.textContent = 'Enregistrer';
-        ok.onclick = function(){
-          var v = ta.value.trim();
-          if(!v){ ta.focus(); return; }
-          ok.disabled = true;
-          BdvCrm.corriger(FICHE_ID, e.echange_id, { resume: v, canal: sc.value })
-            .then(function(){
-              // On modifie l'entree en place plutot que de relire le fil : le serveur a
-              // confirme, et un aller-retour de plus ferait clignoter la ligne corrigee.
-              e.resume = v;
-              e.canal = sc.value;
-              e.maj_le = new Date().toISOString();
-              if(C && C.canal(sc.value)) e.type = C.canal(sc.value).type;
-              EDITION_ID = null; EDITION_TXT = null; EDITION_CANAL = null;
-              avisFiche('');
-              peindreFiche(fil);
-            })
-            .catch(function(){
-              ok.disabled = false;
-              avisFiche('Cette correction n’a pas pu être enregistrée. Ton texte est toujours là : réessaie tout à l’heure.', false);
-            });
-        };
-        barre.appendChild(ok);
-
-        var non = document.createElement('button');
-        non.type = 'button'; non.className = 'btn--lienb'; non.textContent = 'annuler';
-        non.onclick = function(){
-          EDITION_ID = null; EDITION_TXT = null; EDITION_CANAL = null;
-          lire(e, zone);
-        };
-        barre.appendChild(non);
-        boite.appendChild(barre);
-        zone.appendChild(boite);
-      }
-    }
-    boite.appendChild(f);
-
-    var lien = document.createElement('p'); lien.className = 'zone__pied';
-    var a2 = document.createElement('a');
-    a2.href = lienFiche(id); a2.textContent = 'Voir sa fiche complète';
-    lien.appendChild(a2); boite.appendChild(lien);
-  }
-
-  function rafraichirApres(){
-    return BdvCrm.charger().then(function(etat){
-      if(etat) ETAT_FILE = etat;
-      peindreFile(); peindreResume(); peindrePanneau(); peindreFiche();
-      BdvCrm.fil(FICHE_ID).then(function(f){ peindreFiche(f); });
+    BdvNav.chargerEcrans().then(function(){
+      if(typeof window.ouvrirFicheClient !== 'function') throw new Error('ecrans absents');
+      return window.ouvrirFicheClient(id, { cible: cible, geste: geste, motif: motifDe(id) });
+    }).then(function(ok){
+      FICHE_EN_COURS = null;
+      attenteFiche(ligne, false);
+      if(ok) return;
+      // Le moteur a bien demarre, mais ce client n'est dans aucune ligne de vente de cet
+      // appareil. On ne bricole pas une demi-fiche : on dit ce qui manque et quoi faire.
+      av.textContent = 'Ce client n’est pas dans les ventes de cet appareil. Ouvre « Mon commerce » une fois pour récupérer tes lignes, puis reclique sur son nom.';
+      av.hidden = false;
+    })['catch'](function(){
+      FICHE_EN_COURS = null;
+      attenteFiche(ligne, false);
+      av.textContent = 'Sa fiche n’a pas pu s’ouvrir : vérifie ta connexion et reclique.';
+      av.hidden = false;
     });
   }
+
+  /* IL N'Y A QU'UN OUVREUR DE FICHE DANS LE BUREAU, et le voici. Le calendrier s'en
+     sert pour ses rappels clients : lui donner le sien voudrait dire deux endroits qui
+     savent charger le moteur et rattraper une panne de reseau, et ces deux-la
+     divergeraient au premier message d'erreur reecrit. */
+  window.bdvOuvrirFiche = ouvrirFiche;
+
+  /* Le bureau se repeint quand la fiche a ecrit quelque chose. C'est bdv-base.js qui
+     appelle, APRES la reponse du serveur et jamais avant : repeindre sur l'optimisme
+     local ferait reapparaitre une ligne que le compte a deja vu partir. */
+  window.bdvFicheAEcrit = function(){
+    if(!window.BdvCrm) return;
+    BdvCrm.charger().then(function(etat){
+      if(!etat) return;
+      ETAT_FILE = etat;
+      peindreFile(); peindreArdoise(); peindrePanneau(); peindreResume();
+    });
+  };
+
 
   /* ---------------- LE PENSE-BETE ---------------- */
   var ECHEANCE = null;
@@ -1662,21 +1502,18 @@ permalink: /mon-bureau/
 
     if(cle === 'tache-fait' && window.BdvTaches){ BdvTaches.basculer(id); return; }
     if(cle === 'tache-demain' && window.BdvTaches){ BdvTaches.repousser(id, 1); return; }
-    if(cle === 'crm-appel' && window.BdvCrm){
+    if(cle === 'crm-appel'){
       /* MEME CHEMIN QUE LE SOUS-MAIN, volontairement : un appel note depuis la punaise
          et un appel note depuis la ligne doivent ecrire la meme chose, sinon le meme
-         client se retrouve traite d'un cote et pas de l'autre. On repeint sur le
-         miroir tout de suite, puis sur la verite du serveur quand elle arrive. */
-      BdvCrm.geste('appel', id).then(function(ok){
-        ETAT_FILE = BdvCrm.miroir();
-        peindreFile(); peindreResume(); peindrePanneau();
-        if(ok) BdvCrm.charger().then(function(etat){
-          if(!etat) return;
-          ETAT_FILE = etat;
-          peindreFile(); peindreArdoise(); peindrePanneau(); peindreResume();
-        });
-        if(!ok && carte) carte.classList.remove('postit--decroche');
-      });
+         client se retrouve traite d'un cote et pas de l'autre. Depuis le 11/09/2026 ce
+         chemin ouvre la fiche au lieu de poser le geste : rien n'est ecrit tant que le
+         vigneron n'a pas dit ce qui s'est passe. La punaise ne tombe donc plus toute
+         seule, on la remet en place et c'est l'ecriture qui la fera disparaitre. */
+      if(carte){
+        carte.classList.remove('postit--decroche');
+        [].forEach.call(carte.querySelectorAll('.postit__g'), function(x){ x.disabled = false; });
+      }
+      ouvrirFiche(id, 'suivi', 'appel');
     }
   });
 

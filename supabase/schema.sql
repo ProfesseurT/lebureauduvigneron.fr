@@ -158,6 +158,8 @@ create table if not exists public.suivi_clients (
   statut     text,               -- a_faire / relance / traite
   notes      text,               -- texte libre. Voir l'avertissement en tete de ce lot.
   rappel     date,
+  -- Le motif du rappel, 11/09/2026 (lot 14). Facultatif. Vit et meurt avec `rappel`.
+  rappel_titre text,
   canal      text,
   tags       text[] not null default '{}',
   maj_le     timestamptz not null default now(),

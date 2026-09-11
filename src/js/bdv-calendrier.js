@@ -99,7 +99,7 @@
      le premier endroit a mentir. */
   function toutesLesRegles() {
     var base = window.BdvEcheances ? BdvEcheances.depuisLaPage('bdvEcheances') : [];
-    return base.concat(reglesDesTaches());
+    return base.concat(reglesDesTaches(), reglesDesRappels());
   }
 
   /* ---------------- LES TACHES DATEES, EN REGLES SYNTHETIQUES ----------------
@@ -152,6 +152,46 @@
       };
     });
   }
+  /* ---------------- LES RAPPELS CLIENTS, LUS ET JAMAIS RECOPIES ----------------
+     Demande de Ted le 11/09/2026 : un rappel pose sur un client doit se voir dans le
+     calendrier, avec le motif qu'il a ecrit.
+
+     ILS NE SONT PAS DES TACHES, ET ON N'EN FABRIQUE PAS. L'autre chemin a ete pese ce
+     jour-la : creer une ligne dans `taches` pour chaque rappel aurait donne DEUX tables
+     qui repondent « qui dois-je appeler », a tenir d'accord a chaque geste, des deux
+     cotes, et jusque dans la vue Postgres du courrier de 8 h. Ici le calendrier LIT le
+     miroir de bdv-crm.js et n'ecrit rien : la verite reste dans `suivi_clients`, une
+     seule fois.
+
+     LE MIROIR ET PAS LE RESEAU : ce module se charge sans le moteur et ne fait aucun
+     appel. Le miroir est repose a chaque passage de BdvCrm.charger(), donc a l'ouverture
+     du bureau. Un rappel pose il y a dix secondes depuis la fiche y est deja.
+
+     CE QUI EST ECRIT DANS LA CASE, c'est le NOM du client, jamais le motif : c'est lui
+     qu'on cherche des yeux dans une grille. Le motif descend en detail, dans la vue
+     liste, ou il y a la place de le lire. */
+  function reglesDesRappels() {
+    if (!window.BdvCrm || !BdvCrm.miroir) return [];
+    var e = BdvCrm.miroir();
+    if (!e) return [];
+    var noms = e.noms || {};
+    return (e.suivi || e.rappels || []).filter(function (l) {
+      return l.rappel && l.statut !== 'traite';
+    }).map(function (l) {
+      return {
+        cle: 'client:' + l.id,
+        clientId: String(l.id),
+        titre: noms[l.id] || ('Client ' + l.id),
+        famille: 'clients',
+        statut: 'client',
+        faitLe: null,
+        qui: null, detail: l.titre || null,
+        recurrence: { type: 'unique', date: l.rappel, duree: 1 },
+        source: null, sourceNom: null, article: null
+      };
+    });
+  }
+
   /* CE QUE LE VIGNERON A CHOISI, applique ici et a un seul endroit.
      UNE OBLIGATION NE S'ETEINT PAS ET NE SE DECALE PAS, et le garde-fou est
      double : l'ecran ne montre pas les gestes, et cette fonction les ignorerait
@@ -202,6 +242,10 @@
   }
   function idOccurrence(cle, d) { return 'ech:' + cle + ':' + iso(d); }
   function estUneTache(o) { return !!(o.e && o.e.tacheId); }
+  /* UN RAPPEL CLIENT NE SE COCHE PAS, et ce n'est pas un manque : « fait » pour un
+     client, c'est ce qu'il a dit, et ca s'ecrit dans sa fiche. Une case a cocher ici
+     rendrait au calendrier le tri rapide qu'on vient justement de retirer du sous-main. */
+  function estUnClient(o) { return !!(o.e && o.e.clientId); }
   /* UNE TACHE SE COCHE PAR SON PROPRE IDENTIFIANT, pas par une occurrence
      d'echeance. Une tache est une ligne unique en base, elle ne revient pas tous
      les mois : lui fabriquer un identifiant d'occurrence creerait une deuxieme
@@ -341,6 +385,7 @@
     li.setAttribute('data-niveau', o.niveau);
     li.setAttribute('data-famille', o.famille);
     if (estUneTache(o)) li.setAttribute('data-tache', 'oui');
+    if (estUnClient(o)) li.setAttribute('data-client', 'oui');
     if (o.duree > 1) {
       li.setAttribute('data-long', 'oui');
       if (memeJour(jour, o.debut)) li.setAttribute('data-bord', 'debut');
@@ -358,7 +403,24 @@
 
     var libelle = o.e.titre;
     var infobulle = libelle + (o.periode ? ', ' + o.periode : ', ' + o.dateLongue);
-    if (tachesLa()) {
+    /* UN RAPPEL CLIENT N'EST PAS UNE CASE A COCHER, dans la grille non plus. Sans ce
+       cas, la pastille prenait le bouton de coche commun et `basculerOccurrence` aurait
+       ecrit une ligne « ech:client:706:2026-09-13 » dans la table des taches : une
+       fausse tache, a cote du vrai rappel, qui aurait repondu « fait » pendant que le
+       sous-main continuait de reclamer le client. Trouve a la verification du
+       11/09/2026, et invisible a la relecture : le bouton se construisait deux
+       fonctions plus loin. */
+    if (estUnClient(o)) {
+      var bc = document.createElement('button');
+      bc.type = 'button';
+      bc.className = 'calo__b';
+      bc.setAttribute('data-cal-client', o.e.clientId);
+      bc.title = 'Ouvrir la fiche de ' + infobulle
+        + (o.e.detail ? ' — ' + o.e.detail : '');
+      bc.setAttribute('aria-label', bc.title);
+      bc.textContent = libelle;
+      li.appendChild(bc);
+    } else if (tachesLa()) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'calo__b';
@@ -662,6 +724,7 @@
       art.setAttribute('data-niveau', o.niveau);
       art.setAttribute('data-famille', o.famille);
       if (estUneTache(o)) art.setAttribute('data-tache', 'oui');
+      if (estUnClient(o)) art.setAttribute('data-client', 'oui');
       if (faite(o)) art.setAttribute('data-fait', 'oui');
 
       var g = document.createElement('div');
@@ -703,7 +766,14 @@
       function separer() {
         if (liens.childNodes.length) liens.appendChild(document.createTextNode(' · '));
       }
-      if (tachesLa()) {
+      if (estUnClient(o)) {
+        var bc = document.createElement('button');
+        bc.type = 'button';
+        bc.className = 'cal__coche';
+        bc.setAttribute('data-cal-client', o.e.clientId);
+        bc.textContent = 'Ouvrir sa fiche';
+        liens.appendChild(bc);
+      } else if (tachesLa()) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'cal__coche';
@@ -941,6 +1011,19 @@
 
       var fa = e.target.closest && e.target.closest('[data-cal-famille]');
       if (fa) { e.preventDefault(); basculerFamille(fa.getAttribute('data-cal-famille')); return; }
+
+      /* LE RAPPEL CLIENT MENE A SA FICHE, et il n'y a qu'un chemin pour l'ouvrir :
+         celui du sous-main, expose par le bureau. Le calendrier ne sait pas charger le
+         moteur des ventes et n'a pas a l'apprendre : un deuxieme ouvreur, c'est un
+         deuxieme endroit ou rattraper une panne de reseau. */
+      var cl = e.target.closest && e.target.closest('[data-cal-client]');
+      if (cl) {
+        e.preventDefault();
+        if (typeof window.bdvOuvrirFiche === 'function') {
+          window.bdvOuvrirFiche(cl.getAttribute('data-cal-client'));
+        }
+        return;
+      }
 
       var fo = e.target.closest && e.target.closest('#calFond');
       if (fo) { e.preventDefault(); basculerFond(); return; }

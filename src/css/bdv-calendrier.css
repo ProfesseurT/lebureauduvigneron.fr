@@ -369,6 +369,42 @@
   font-family: var(--font-manuscrit);
 }
 
+/* ---------------------------------------------------------------------------
+   LA SIXIEME FAMILLE : LES RAPPELS CLIENTS, 11/09/2026
+   ---------------------------------------------------------------------------
+   Meme raisonnement que la cinquieme, et la meme conclusion : il n'y a pas de
+   place pour une teinte de plus sur ce papier, la bande utilisable s'arretant a
+   L* 56. Elle prend donc une MATIERE.
+
+   Laquelle : la meme ecriture a la main que les taches, parce que c'est le
+   vigneron qui l'a ecrite, PLUS un combine en tete. Deux choses ecrites a la
+   main sur le meme calendrier doivent quand meme se distinguer, et le combine
+   le fait sans couleur : il se lit en niveaux de gris, en vision deuteranope,
+   et il dit ce qu'il y a a faire au lieu de le coder.
+
+   IL EST POSE EN CSS ET PAS DANS LE TEXTE, pour que le nom du client reste un
+   nom propre : c'est lui qui part dans l'infobulle, dans l'aria-label et dans
+   la recherche du navigateur. Un pictogramme colle devant en ferait un mot
+   qu'on ne retrouve plus.
+--------------------------------------------------------------------------- */
+.bdv-cal .calo[data-client="oui"] .calo__b {
+  border-left: 0;
+  border-bottom: var(--trait) dotted var(--ink);
+  font-family: var(--font-manuscrit);
+  font-size: var(--t-petit);
+  color: var(--ink);
+}
+.bdv-cal .calo[data-client="oui"] .calo__b::before,
+.bdv-cal .echeance[data-client="oui"] .echeance__titre::before {
+  content: "\260E\00A0";
+}
+.bdv-cal .echeance[data-client="oui"] {
+  border-left: var(--trait-accent) dotted var(--ink);
+}
+.bdv-cal .echeance[data-client="oui"] .echeance__titre {
+  font-family: var(--font-manuscrit);
+}
+
 /* LE « + » DE CHAQUE CASE. Invisible au repos, sinon quarante-deux croix
    couvrent la grille ; visible au survol de la case ET au focus clavier, sans
    quoi il n'existerait que pour ceux qui ont une souris. */

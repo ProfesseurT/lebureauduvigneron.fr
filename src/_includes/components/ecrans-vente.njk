@@ -117,4 +117,10 @@
 </div><!-- /.bdv-ventes -->
 
 <div class="bdv-ventes" id="printReport"></div>
-<div id="modale" class="bdv-ventes modale" aria-hidden="true"></div>
+{# LA MODALE N'EST PLUS ICI, 11/09/2026. Elle vivait au bas de cette coque, donc DANS
+   `#bureauVentes`, qui est masque tant qu'aucune piece de vente n'a ete ouverte. Depuis
+   que le sous-main de « Ma journee » ouvre la vraie fiche client, elle doit pouvoir
+   s'afficher par-dessus une piece qui n'est PAS une piece de vente : laissee ici, elle
+   se peignait dans un conteneur masque, sans une erreur. Meme piege que « Ma base » le
+   08/09/2026. Elle est desormais posee en fin de src/mon-bureau.njk, hors du bloc
+   masque. #}

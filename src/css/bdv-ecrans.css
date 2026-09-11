@@ -171,6 +171,14 @@
 .bdv-ventes .action__oui--retard{color:var(--danger-deep)}
 .bdv-ventes .action__non{font-family:var(--font-titre);font-size:var(--t-lead);color:var(--muted);flex:1 1 100%}
 .bdv-ventes .action__date{font-family:var(--font-mono);font-size:var(--t-petit);padding:.3rem .4rem;border:var(--trait) solid var(--rule-fort);background:var(--white);color:var(--ink)}
+/* LE MOTIF DU RAPPEL, 11/09/2026. Il prend la ligne entiere et passe AVANT les boutons :
+   les quatre facons de poser la date le lisent, et un champ pose apres elles n'aurait ete
+   lu par aucune. Meme cadre que le champ de date, c'est la meme phrase en deux morceaux. */
+.bdv-ventes .action__lbl{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
+.bdv-ventes .action__titre{flex:1 1 100%;box-sizing:border-box;font-family:var(--font-corps);font-size:var(--t-petit);padding:.35rem .5rem;border:var(--trait) solid var(--rule-fort);background:var(--white);color:var(--ink)}
+/* Ce que l'enregistrement fera EN PLUS, dit avant de le faire. Sur le papier de la zone
+   de saisie, separe du champ par le meme filet que le pied. */
+.bdv-ventes .saisie__att{margin:0;padding:.5rem .8rem;border-bottom:var(--trait) solid var(--rule)}
 
 .bdv-ventes .saisie{border:var(--trait) solid var(--rule-fort);background:var(--white);margin-bottom:.9rem}
 .bdv-ventes .saisie__txt{display:block;width:100%;box-sizing:border-box;border:none;background:none;padding:.7rem .8rem;font-family:var(--font-corps);font-size:var(--t-corps);color:var(--ink);resize:vertical}

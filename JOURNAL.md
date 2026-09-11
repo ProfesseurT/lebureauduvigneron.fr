@@ -12,6 +12,111 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 11/09/2026. UNE SEULE FICHE CLIENT, ET ELLE SE REMPLIT
+
+Demande de Ted, mot pour mot : « je clique sur appelé / Message ou écarter. ça génère l'action. ou
+alors je peux cliquer sur le nom et ça m'ouvre une petite modale. Je veux pu ça. la petite modale
+disparait à jamais. Je veux que ça ouvre la vrai grosse fiche en modale dans les 2 cas, mais au bon
+endroit dans les 2 cas aussi. parce que je veux que l'utilisateur puisse remplir quand il a
+appelé. »
+
+### Ce que le recensement a trouvé avant d'écrire une ligne
+
+Il y avait **deux fiches client**, et personne ne l'avait écrit nulle part. La petite, 280 lignes
+dans `src/mon-bureau.njk`, montrait la prochaine action, les coordonnées et le fil. La grosse,
+dans `bdv-ecrans.js`, montre en plus les chiffres du client, ce qu'il achète, ce qu'il ne prend
+jamais, et le rédacteur de message. Deux endroits pour noter un appel : celui qui remplit les deux
+perd la moitié de son travail le jour où il n'en ouvre qu'un.
+
+Trois obstacles, tous réels, aucun visible à la lecture :
+
+1. **`#modale` vivait dans `#bureauVentes`**, masqué tant qu'aucune pièce de vente n'a été ouverte.
+   Ouverte depuis « Ma journée », la fiche se serait peinte dans du vide, sans une erreur. C'est le
+   piège déjà payé le 08/09 avec « Ma base », et le seul contrôle qui l'attrape est maintenant dans
+   `banc-bureau.mjs`.
+2. **La grosse fiche se fabrique à partir des lignes de vente**, et « Ma journée » ne charge pas le
+   moteur depuis le 07/09 (32 ko au lieu de 125). Le premier clic de la session le charge donc.
+   Arbitrage pris avec Ted : pas de préchargement en tâche de fond, une attente visible sur la
+   ligne cliquée, et les clics suivants sont instantanés. On ne paye que si on s'en sert.
+3. **La file se lit depuis un appareil où aucun export n'a jamais été déposé.** La petite fiche s'en
+   moquait ; celle-ci ne peut pas. `ouvrirFicheClient()` rend `false` plutôt que d'ouvrir une fiche
+   vide, et le bureau dit quoi faire.
+
+### Les arbitrages
+
+**Rien n'est écrit tant que le vigneron n'a pas écrit.** C'est le choix de Ted contre les deux
+autres proposés. « Appelé » n'est plus un geste, c'est une porte : il ouvre la fiche sur le bloc de
+suivi, canal Téléphone déjà choisi, curseur dans la zone de notes, et c'est l'enregistrement de la
+note qui repousse le rappel de 30 jours. Fermer sans rien écrire ne laisse aucune trace, et la
+ligne est toujours dans le sous-main.
+
+Ce qu'on perd, et c'est assumé : le tri rapide de quinze relances en quinze clics. Ce qu'on gagne :
+plus jamais un client qui quitte la file sans qu'on sache ce qu'il a dit.
+
+**« Écarté » reste un geste sec, sans fiche.** C'est le bouton qui dit « je ne veux pas m'en
+occuper » : lui ouvrir une fiche serait le contraire de ce qu'il veut dire. Signalé à Ted, à
+rouvrir d'un mot s'il préfère l'autre.
+
+**« Message » a changé de sens.** Il voulait dire « j'ai laissé un message sur le répondeur » ; il
+ouvre maintenant le rédacteur, et c'est de là que part « Considéré comme envoyé ». Un appel tombé
+sur un répondeur se note dans le bloc de suivi, canal Répondeur, comme n'importe quel autre
+échange. Conséquence : les trois boutons ne tirent plus leur libellé de `BdvCrm.GESTES`, parce
+qu'un libellé tiré d'une liste de gestes qu'on ne pose plus est un libellé qui ment.
+
+**La punaise « Appeler X » du panneau passe par le même chemin.** Un appel noté depuis la punaise
+et un appel noté depuis la ligne doivent écrire la même chose : c'était déjà la règle, elle tient.
+
+### Le rappel porte son motif, et il ne déménage pas
+
+Demande : « en plus des raccourcis de temps, je veux pouvoir choisir la date et donner un texte à
+ce rappel (qui devient une tache finalement + calendrier) définir cette catégorie de tache
+clients ».
+
+Ted avait d'abord choisi de déplacer la vérité des rappels vers la table des tâches. Recommandation
+faite et acceptée : **le chemin court.** Ce que le déménagement aurait touché : le sous-main, le
+panneau, la règle « un client déjà suivi sort de la file », la vue Postgres `v_courrier` et la
+fonction d'envoi de 8 h, plus la reprise des rappels déjà posés. À l'écran, aucune différence.
+
+Donc : une colonne `rappel_titre` sur `suivi_clients` (lot 14), et le calendrier comme « Mes
+tâches » vont LIRE ce rappel là où il est. Une chose à faire, un seul endroit qui la porte.
+
+**La sixième famille n'a pas de couleur, et ne pouvait pas en avoir.** La bande utilisable du
+papier s'arrête à L* 56 : cinq teintes n'y tenaient déjà pas l'écart de 3:1. Elle prend une
+matière, comme la cinquième : écrite à la main, plus un combiné en tête. Ça se lit en niveaux de
+gris et en vision deutéranope.
+
+**Et elle ne se coche pas.** « Fait » pour un client, ce n'est pas une case, c'est ce qu'il a dit.
+Ces lignes mènent à sa fiche. C'est ce qui permet de les montrer à trois endroits sans jamais avoir
+deux réponses à « ce client est-il traité ».
+
+### Le défaut trouvé en vérifiant, et il était invisible
+
+La vue liste du calendrier avait bien son cas particulier pour les clients. **La pastille de la
+grille, elle, prenait le bouton de coche commun**, deux fonctions plus loin. Un clic dessus aurait
+écrit une ligne `ech:client:706:2026-09-13` dans la table des tâches : une fausse tâche, à côté du
+vrai rappel, qui aurait répondu « fait » pendant que le sous-main continuait de réclamer le client.
+
+Rien n'échouait, rien ne s'affichait de travers. Il ne se voyait qu'en lisant le HTML produit.
+D'où `npm run banc:calclients`, qui le garde, et `npm run apercu:fiche`, qui montre la fiche dans
+ses quatre états sans compte ni base : trois blocs neufs ne se voyaient que sur la vraie page, et
+on allait encore juger un dessin en production.
+
+### Ce qui reste ouvert
+
+- **Le courrier du matin ne dit pas le motif du rappel.** `v_courrier` ne remonte pas
+  `rappel_titre`, et `bdv-courrier.js` ne l'afficherait pas. Ça se fait, mais ça demande de
+  rejouer la vue, `npm run courrier:joindre` et un redéploiement de la fonction Edge : c'est un lot
+  à part, pas une ligne à glisser dans celui-ci.
+- **Les liens `#client=` du panneau** ouvrent toujours « Mon commerce » puis la fiche, au lieu de
+  l'ouvrir sur place. C'est la même fiche, donc ce n'est pas faux ; c'est juste un voyage inutile.
+- **`.modale` porte `z-index:400` en dur** au lieu du jeton `--z-modale`. Une échelle dont un
+  barreau est écrit en dur ailleurs est une échelle qu'on casse sans le voir.
+- **« domaine NaN € »** apparaît dans le KPI des bouteilles quand `prixVenteMoyen()` n'a rien à
+  calculer. Vu sur le banc d'essai, pas sur une vraie base. Un chiffre affiché doit dire d'où il
+  vient, et une case vide vaut mieux qu'une valeur inventée.
+
+---
+
 ## 11/09/2026. La redecoupe du bureau, lot 1 : « Mon commerce »
 
 Demande de Ted, mot pour mot : « la page : mon annee me va pas. c'est le fouilli, on ne fait que

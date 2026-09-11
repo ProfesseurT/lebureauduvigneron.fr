@@ -97,7 +97,7 @@
     // eux, ont ete lus, et une file de rappels seuls reste une file utile.
     var r = await Promise.allSettled([
       api('/reglages?select=file_travail,resume_ventes,depose_le,objectif,exercice_debut&limit=1'),
-      api('/suivi_clients?select=client_id,statut,rappel,canal')
+      api('/suivi_clients?select=client_id,statut,rappel,rappel_titre,canal')
     ]);
     /* Array.isArray ET PAS SEULEMENT LA VERITE DE LA VALEUR. Trouve le 07/09/2026
        en faisant tourner le bureau dans un vrai navigateur avec un reseau qui
@@ -139,7 +139,12 @@
         exercice_debut: reg.exercice_debut || null
       } : (vieux.reglages || { lus: false, objectif: null, exercice_debut: null }),
       suivi: (r[1].status === 'fulfilled' && Array.isArray(r[1].value)) ? suivi.map(function (l) {
-        return { id: l.client_id, rappel: l.rappel || '', statut: l.statut || '' };
+        /* `titre` est le MOTIF du rappel, depuis le 11/09/2026. Il descend jusqu'ici
+           parce que trois ecrans le lisent : le sous-main, le panneau et le calendrier.
+           « Rappeler le 18 » ne dit pas pourquoi, et trois semaines plus tard personne
+           ne sait ce qui avait ete promis. */
+        return { id: l.client_id, rappel: l.rappel || '', titre: l.rappel_titre || '',
+                 statut: l.statut || '' };
       }) : (vieux.suivi || vieux.rappels || [])
     };
     ecrireMiroir(etat);
@@ -169,6 +174,7 @@
         source: 'rappel',
         retard: joursEntre(l.rappel, auj),
         rappel: l.rappel,
+        titre: l.titre || '',
         montant: s.montant || 0,
         lib: s.lib || '',
         motif: s.motif || '',
@@ -293,9 +299,12 @@
     return true;
   }
 
-  // Poser ou retirer une date de rappel, sans passer par un geste tout fait.
-  async function planifier(clientId, iso) {
-    return ecrireSuivi(clientId, { rappel: iso || null });
+  /* Poser ou retirer une date de rappel, sans passer par un geste tout fait.
+     LE MOTIF PART AVEC LA DATE, dans la meme ecriture. Retirer un rappel efface son
+     motif : un motif sans date est une phrase orpheline que plus aucun ecran ne montre,
+     et qui reapparaitrait collee au prochain rappel pose sur ce client. */
+  async function planifier(clientId, iso, titre) {
+    return ecrireSuivi(clientId, { rappel: iso || null, rappel_titre: iso ? (titre || null) : null });
   }
 
   // ---------------- ECRITURE ----------------

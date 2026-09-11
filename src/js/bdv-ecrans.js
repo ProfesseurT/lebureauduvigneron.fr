@@ -1719,6 +1719,36 @@ function majLienMail(){
   if(!a||!ta||!z)return;
   a.href=`mailto:${encodeURIComponent(z.dataset.mail)}?subject=${encodeURIComponent(el('msgSujet').value)}&body=${encodeURIComponent(ta.value)}`;
 }
+/* « CONSIDERE COMME ENVOYE », demande de Ted le 11/09/2026.
+
+   L'outil N'ENVOIE RIEN, et ne le fera pas : le bouton d'a cote remplit un lien
+   `mailto:`, c'est la messagerie du vigneron qui envoie. Personne ne peut donc savoir si
+   le message est parti. Ce bouton est la ou se referme cette boucle : c'est le vigneron
+   qui dit « c'est envoye », et cette phrase entre au journal du client comme n'importe
+   quel autre echange. Sans lui, un message ecrit ici ne laissait aucune trace, et le
+   client revenait dans la file le lendemain comme si rien ne s'etait passe.
+
+   IL N'INVENTE PAS DE CANAL. Avec une adresse, c'est un e-mail. Sans adresse, le texte a
+   ete copie pour partir on ne sait comment : l'entree porte le type « message » et aucun
+   canal, plutot qu'un canal suppose qu'on relirait dans six mois comme un fait.
+
+   IL NE POSE PAS DE DATE. Arbitrage de Ted : c'est le bloc de suivi qui la demande,
+   juste apres, et c'est lui qui tranche. Un report automatique de dix jours ici aurait
+   ete un choix de l'outil deguise en fait. */
+function messageEnvoye(btn){
+  const z=el('msgZone');if(!z)return;
+  const id=z.dataset.id;const mail=z.dataset.mail||'';
+  const sujet=(el('msgSujet')||{}).value||'';
+  echAjouter(id,'message',mail?'email':null,'Message envoyé'+(sujet?' : '+sujet:''));
+  btn.disabled=true;btn.textContent='Noté comme envoyé';
+  const s=CRM[id]||{};
+  DEMANDE_DATE=s.rappel?null:String(id);
+  redessinerSuivi(id);
+  status('success','Message noté dans son suivi.');
+  // On remonte au bloc de suivi : c'est la que se pose la date, et la question qu'il
+  // vient d'y ecrire n'a aucun interet si le vigneron ne la voit pas.
+  const b=el('suiviBloc');if(b)b.scrollIntoView({block:'start'});
+}
 function copierMessage(btn){
   const ta=el('msgTexte');if(!ta)return;
   const fini=ok=>{btn.textContent=ok?'Copié':'Sélectionne et copie';setTimeout(()=>{btn.textContent='Copier le texte';},1800);};
@@ -1747,6 +1777,7 @@ function messageHTML(f,motif){
       ${mail?`<a class="btn btn--primary btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
       <button class="btn btn--ghost btn--sm" onclick="copierMessage(this)">Copier le texte</button>
       ${f.tels.length?`<a class="btn btn--ghost btn--sm" href="tel:${esc(f.tels[0].appel)}">Appeler ${esc(f.tels[0].affiche)}</a>`:''}
+      <button class="btn btn--ghost btn--sm" onclick="messageEnvoye(this)">Considéré comme envoyé</button>
     </div>
     ${mail?'':'<p class="note">Pas d\'adresse e-mail pour ce client : copie le texte ou appelle-le.</p>'}
   </div>`;
@@ -1778,7 +1809,68 @@ function fermerFiche(){
   m.innerHTML='';document.body.style.overflow='';
   if(FICHE_OUVERTE&&FICHE_OUVERTE.focus)FICHE_OUVERTE.focus();
   FICHE_OUVERTE=null;FICHE_ID=null;
+  // Un geste en attente meurt avec la fiche : fermer sans rien ecrire, c'est ne rien
+  // faire. C'est toute la difference avec les trois boutons d'avant, qui ecrivaient au clic.
+  GESTE_ATTENDU=null;DEMANDE_DATE=null;
 }
+
+/* ======================= LA FICHE, OUVERTE DEPUIS LE BUREAU =======================
+   11/09/2026. « Ma journee » n'a plus sa petite fiche a elle : le nom d'un client et les
+   boutons de son sous-main ouvrent CELLE-CI. Trois choses a savoir avant d'y toucher.
+
+   1. CETTE FONCTION NE CHANGE PAS D'ECRAN. Elle n'appelle ni openApp(), ni navTo() : le
+      vigneron reste sur « Ma journee », la fiche s'ouvre par-dessus. Passer par
+      demarrerEcransVente() l'aurait fait atterrir dans « Mon commerce », ce qui est
+      exactement le voyage qu'on lui epargne.
+
+   2. ELLE CHARGE LA BASE SI ELLE MANQUE. La fiche se fabrique a partir des lignes de
+      vente, et le bureau ne les lit pas : `tirerDuServeur()` puis `reloadFromDB()`, les
+      deux memes appels que le demarrage des ecrans, dans le meme ordre. `tirerDuServeur`
+      porte sa propre promesse partagee : deux clics rapproches ne font qu'un tirage.
+
+   3. ELLE REND `false` PLUTOT QUE D'OUVRIR UNE FICHE VIDE. Un client de la file peut ne
+      figurer dans aucune ligne de vente de cet appareil : la file se lit depuis un
+      telephone ou rien n'a jamais ete importe. C'est l'appelant qui le dit au vigneron,
+      parce que c'est lui qui sait d'ou venait le clic. */
+let GESTE_ATTENDU=null;   // {id, cle, jours, statut} : ecrit a l'enregistrement, jamais avant
+let DEMANDE_DATE=null;    // l'id dont on vient de noter un echange, et a qui il manque une date
+async function ouvrirFicheClient(id,opts){
+  opts=opts||{};
+  if(!id)return false;
+  if(!ROWS.length){
+    try{ await tirerDuServeur(); }catch(e){}
+    try{ await reloadFromDB(); }catch(e){}
+  }
+  if(!ficheClient(id))return false;
+  // Le canal du prochain enregistrement est celui du geste : un appel note depuis la file
+  // doit arriver au journal en « Telephone », sans que le vigneron ait a le choisir.
+  const g=opts.geste&&window.BdvCrm?BdvCrm.GESTES[opts.geste]:null;
+  ACTIVITE_CANAL=(g&&g.canal)?g.canal:(window.BdvCanaux?BdvCanaux.DEFAUT:'appel');
+  ouvrirFiche(id,opts.motif||'');
+  GESTE_ATTENDU=(g&&g.jours)?{id:String(id),cle:opts.geste,jours:g.jours,statut:g.statut||''}:null;
+  if(GESTE_ATTENDU)redessinerSuivi(id);   // la phrase d'attente vit dans le bloc de suivi
+  viserDansLaFiche(opts.cible);
+  return true;
+}
+/* OUVRIR AU BON ENDROIT. Le nom ouvre en haut, « Appele » sur le bloc de suivi avec le
+   curseur dans la zone de notes, « Message » sur le redacteur, deplie. Le defilement se
+   fait dans la boite de la modale, qui porte l'ascenseur ; requestAnimationFrame parce
+   que la boite vient d'etre posee et n'a pas encore sa hauteur. */
+function viserDansLaFiche(cible){
+  if(!cible)return;
+  requestAnimationFrame(function(){
+    if(cible==='message'){
+      const d=el('modale').querySelector('details.msg--replie');
+      if(d){d.open=true;d.scrollIntoView({block:'start'});}
+      return;
+    }
+    const b=el('suiviBloc');
+    if(!b)return;
+    b.scrollIntoView({block:'start'});
+    const t=el('saisieTxt');if(t)t.focus({preventScroll:true});
+  });
+}
+window.ouvrirFicheClient=ouvrirFicheClient;
 function ficheHTML(f,motif){
   const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
   const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
@@ -1923,10 +2015,38 @@ function suiviCorps(f,s){
       +`</span>`
       +`<input type="date" class="action__date" value="${esc(s.rappel)}" aria-label="Changer la date"
                onchange="crmSet(${arg},'rappel',this.value)">`
-      +`<button class="btn btn--ghost btn--sm" onclick="crmSet(${arg},'rappel','')">Retirer</button>`;
+      +`<button class="btn btn--ghost btn--sm" onclick="crmSetPlusieurs(${arg},{rappel:'',rappel_titre:''})">Retirer</button>`
+      /* LE MOTIF DU RAPPEL, demande de Ted le 11/09/2026. « Rappeler LE 18 » ne dit pas
+         POURQUOI, et trois semaines plus tard le vigneron rouvre une fiche qui lui
+         demande d'appeler sans lui dire ce qu'il avait promis. Il vit dans
+         `suivi_clients.rappel_titre`, a cote de la date : c'est le meme rappel, pas une
+         deuxieme chose a faire. Il est facultatif, et une date sans motif reste valable. */
+      +`<input type="text" class="action__titre" maxlength="120" value="${esc(s.rappel_titre||'')}"
+               placeholder="Pourquoi ? (lui reparler du réassort)" aria-label="Le motif de ce rappel"
+               onchange="crmSet(${arg},'rappel_titre',this.value.trim())">`;
   }else{
-    action=`<span class="action__non">Aucune action prévue. Ce client va sortir de ta tête.</span>`
+    /* DEUX PHRASES POSSIBLES, et la seconde n'arrive qu'apres un geste. Un CRM ne laisse
+       jamais une fiche sans prochaine action APRES qu'on y a touche : quand le vigneron
+       vient de noter un echange ou de declarer un message envoye, l'ecran ne constate
+       plus, il demande. */
+    action=`<span class="action__non">`
+      +(DEMANDE_DATE===String(f.id)
+        ? `C'est noté. Et maintenant, tu le rappelles quand ?`
+        : `Aucune action prévue. Ce client va sortir de ta tête.`)
+      +`</span>`
+      /* LE MOTIF SE TAPE AVANT LA DATE, et c'est voulu : les quatre facons de poser la
+         date le lisent, les trois raccourcis comme le calendrier. Un champ pose apres
+         les boutons n'aurait ete lu par aucun d'eux, et il aurait fallu un cinquieme
+         bouton pour l'enregistrer. */
+      +`<input type="text" class="action__titre" id="rappelTitre" maxlength="120"
+               placeholder="Pourquoi ? (lui reparler du réassort)" aria-label="Le motif de ce rappel">`
       +[7,30,90].map(n=>`<button class="btn btn--ghost btn--sm" onclick="planifier(${arg},${n})">Dans ${n} j</button>`).join('')
+      /* « ou le » n'est pas une decoration : un champ de date nu, pose apres trois
+         boutons de delai, se lit comme un quatrieme bouton qu'on ne sait pas remplir.
+         Deux mots disent que c'est l'autre facon de faire la meme chose. */
+      +`<label class="action__lbl" for="rappelDate">ou le</label>`
+      +`<input type="date" class="action__date" id="rappelDate" min="${esc(isoDepuisJour(Math.floor(Date.now()/86400000)))}"
+               aria-label="Choisir la date du rappel" onchange="poserRappel(${arg},this.value)">`
       +`<button class="btn btn--ghost btn--sm" onclick="clore(${arg})">Ne plus me le proposer</button>`;
   }
 
@@ -1935,7 +2055,13 @@ function suiviCorps(f,s){
 
   // ---- La saisie : une seule, toujours au meme endroit. ----
   if(!clos){
+    /* CE QUE L'ENREGISTREMENT VA FAIRE EN PLUS, dit AVANT de le faire. Quand la fiche a
+       ete ouverte par « Appele » depuis le sous-main, le report du rappel attend la note :
+       le vigneron doit savoir que son bouton « Enregistrer » fait deux choses, sinon la
+       ligne disparait de sa file sans qu'il ait rien demande. */
+    const att=(GESTE_ATTENDU&&GESTE_ATTENDU.id===String(f.id)&&!s.rappel)?GESTE_ATTENDU:null;
     h+=`<div class="saisie">
+      ${att?`<p class="note saisie__att">Note ce qui s'est dit : en enregistrant, ce client repartira dans ${att.jours} jours. Tant que tu n'as rien écrit, rien n'est parti.</p>`:''}
       <textarea class="saisie__txt" id="saisieTxt" rows="2"
         placeholder="Qu'est-ce qui s'est passé avec ce client ?"></textarea>
       <div class="saisie__pied">
@@ -1994,13 +2120,47 @@ function noter(id){
   echAjouter(id,c?c.type:'note',c?c.cle:null,t);
   champ.value='';
   const s=CRM[id]||{};
+  /* LE GESTE EN ATTENTE S'APPLIQUE ICI, ET PAS AU CLIC. Depuis le 11/09/2026, « Appele »
+     dans le sous-main n'ecrit plus rien : il ouvre cette fiche. C'est l'enregistrement de
+     la note qui repousse le rappel, une seule fois, et avec la trace de ce qui s'est dit.
+     Fermer la fiche sans ecrire ne laisse donc AUCUNE trace, et la ligne du sous-main est
+     toujours la : c'est exactement ce que Ted a demande.
+
+     Le report ne s'applique que si le vigneron n'a pas pose sa date lui-meme entre-temps :
+     sa date est un choix, le report du geste n'est qu'un defaut. */
+  if(GESTE_ATTENDU&&GESTE_ATTENDU.id===String(id)){
+    const g=GESTE_ATTENDU;GESTE_ATTENDU=null;
+    if(!s.rappel){
+      crmSetPlusieurs(id,{statut:g.statut||'relance',
+        rappel:isoDepuisJour(Math.floor(Date.now()/86400000)+g.jours),
+        rappel_titre:motifTape()});
+      status('success','Noté. Ce client revient dans ta file dans '+g.jours+' jours.');
+      return;
+    }
+  }
+  DEMANDE_DATE=s.rappel?null:String(id);
   redessinerSuivi(id);
   // Pas de rappel en cours : c'est le moment de le demander, pas plus tard.
   if(!s.rappel)status('success','Enregistré. Pose une date de rappel juste au-dessus.');
   else status('success','Enregistré.');
 }
+/* LES QUATRE FACONS DE POSER UNE DATE passent toutes par ici, et toutes emportent le
+   motif tape juste au-dessus. Ecrire les deux champs d'un seul geste n'est pas un detail
+   de confort : `crmSet` appele deux fois de suite persiste, synchronise et redessine deux
+   fois, et au premier des deux rendus le champ de motif est deja efface par le redessin.
+   Le motif est facultatif ; une date seule reste une date valable. */
+function motifTape(){
+  const c=el('rappelTitre');
+  return c&&c.value.trim()?c.value.trim():'';
+}
+function poserRappel(id,iso){
+  if(!iso)return;
+  crmSetPlusieurs(id,{rappel:iso,rappel_titre:motifTape()});
+  DEMANDE_DATE=null;
+  status('success','Rappel enregistré pour le '+fmtDateIso(iso)+'.');
+}
 function planifier(id,jours){
-  crmSet(id,'rappel',isoDepuisJour(Math.floor(Date.now()/86400000)+jours));
+  poserRappel(id,isoDepuisJour(Math.floor(Date.now()/86400000)+jours));
 }
 function clore(id){
   echAjouter(id,'ecarte',null,'Mis de côté');

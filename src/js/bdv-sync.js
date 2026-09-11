@@ -206,16 +206,22 @@
   // remplie dans un export, donc une fiche ne s'orpheline pas quand le vigneron corrige
   // l'orthographe d'un nom. Le nom ne sert plus qu'a l'affichage.
 
-  // Rend la meme forme que la structure CRM locale : {clientId: {statut, notes, rappel, canal, tags}}
+  // Rend la meme forme que la structure CRM locale :
+  // {clientId: {statut, notes, rappel, rappel_titre, canal, tags}}
   async function lireSuivi(){
     if(!pret()) return {};
-    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,canal,tags');
+    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,rappel_titre,canal,tags');
     const out = {};
     (lignes || []).forEach(function(l){
       const c = {};
       if(l.statut) c.statut = l.statut;
       if(l.notes)  c.notes  = l.notes;
       if(l.rappel) c.rappel = l.rappel;
+      /* LE MOTIF DU RAPPEL SE LIT ICI, ET C'EST OBLIGATOIRE, pas decoratif :
+         ecrireSuivi() renvoie la LIGNE ENTIERE a chaque geste. Une colonne qu'on
+         n'aurait pas relue repartirait a `null` au premier rappel repousse depuis
+         le tableau de bord, et le motif tape au bureau disparaitrait sans un mot. */
+      if(l.rappel_titre) c.rappel_titre = l.rappel_titre;
       if(l.canal)  c.canal  = l.canal;
       if(l.tags && l.tags.length) c.tags = l.tags;
       out[l.client_id] = c;
@@ -232,6 +238,7 @@
       statut: fiche.statut || null,
       notes:  fiche.notes  || null,
       rappel: fiche.rappel || null,
+      rappel_titre: fiche.rappel_titre || null,
       canal:  fiche.canal  || null,
       tags:   fiche.tags   || [],
       maj_le: new Date().toISOString()

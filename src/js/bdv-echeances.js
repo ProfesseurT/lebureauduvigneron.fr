@@ -261,7 +261,21 @@
        calcul que les autres. Elle est declaree ici quand meme, parce que c'est la
        liste que le filtre affiche, et que deux listes de familles dans deux
        fichiers, c'est une occasion d'en oublier une. */
-    { cle: 'taches',      label: 'Mes tâches',   quoi: 'Ce que j’ai noté moi-même' }
+    { cle: 'taches',      label: 'Mes tâches',   quoi: 'Ce que j’ai noté moi-même' },
+    /* LA SIXIEME FAMILLE NE VIENT PAS DE CE FICHIER NON PLUS, et elle n'est stockee
+       nulle part : ce sont les rappels poses sur des clients, lus dans `suivi_clients`
+       par le calendrier et par « Mes taches ». Demande de Ted le 11/09/2026.
+
+       ELLE N'A PAS DE COULEUR, et ce n'est pas un oubli. La bande utilisable du papier
+       s'arrete a L* 56 : cinq teintes n'y tenaient deja pas l'ecart de 3:1, une sixieme
+       encore moins. Elle se distingue par la MATIERE, comme les taches : ecrite a la
+       main, et marquee d'un combine. Ca se lit en niveaux de gris et en vision
+       deuteranope, ce qu'une teinte de plus n'aurait pas fait.
+
+       ET ELLE NE SE COCHE PAS. « Fait » pour un client, ce n'est pas une case : c'est
+       ce qu'il a dit. Ces lignes menent a sa fiche, qui est le seul endroit ou l'on
+       note un echange depuis le 11/09/2026. */
+    { cle: 'clients',     label: 'Mes clients',  quoi: 'Ceux que j’ai promis de rappeler' }
   ];
   function deLaFamille(echeances, cle) {
     return (echeances || []).filter(function (e) {

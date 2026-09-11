@@ -374,8 +374,16 @@ son propre bord. Meme cause, meme correction.
 
     npm run verif
 
-Elle enchaine `build`, `charte`, `charte:bureau`, `banc`, `banc:journee`, `banc:reglages`,
-`banc:taches` et `banc:sync`, et s'arrete au premier echec.
+Elle enchaine `build`, `charte`, `charte:bureau`, puis les quatorze bancs (`banc`,
+`banc:journee`, `banc:reglages`, `banc:taches`, `banc:calchoix`, `banc:calclients`, `banc:sync`,
+`banc:lune`, `banc:porte`, `banc:registre`, `banc:cap`, `banc:commerce`) et les deux controles du
+courrier, et s'arrete au premier echec.
+
+Deux apercus ne sont PAS dans cette chaine, parce qu'ils ne verifient rien : ils MONTRENT, et
+c'est a regarder avec des yeux. `npm run apercu:panneau` pour le panneau de liege,
+`npm run apercu:fiche` pour la fiche client dans ses quatre etats. Les ouvrir avant de livrer un
+changement de dessin : `npm run courrier` avait deja laisse passer trois defauts que seule une
+capture a montres.
 
 Elle existe depuis le 07/09/2026 pour une raison precise : ce jour-la j'ai lance les quatre
 a la main dans un `&&`, en passant chacun par `| tail -2` pour n'en lire que le verdict. Le
@@ -611,6 +619,102 @@ Mais promettre un calcul qu'on ne fait pas reste le pire des trois etats.
   premiere personne. Une description ecrite par le Bureau n'en porte pas. Le modele du vrai
   temoignage est dans `conseil-temoignage.njk`.
 
+## IL N'Y A QU'UNE FICHE CLIENT, ET ELLE NE S'ECRIT PAS TOUTE SEULE, 11/09/2026
+
+Le bureau avait la sienne, 280 lignes dans `src/mon-bureau.njk` : prochaine action, coordonnees,
+fil. Elle est partie ce jour-la, avec ses 150 lignes de style. Celle qui reste est celle des
+ecrans de vente, `ouvrirFiche()` dans `bdv-ecrans.js`, et elle s'ouvre depuis les deux endroits.
+
+**Ne pas en recreer une deuxieme, meme petite, meme « juste pour le bureau ».** Deux fiches pour un
+meme client, ce sont deux endroits ou noter un appel, et celui qui remplit les deux perd la moitie
+de son travail le jour ou il n'en ouvre qu'un.
+
+### Trois choses a savoir avant d'y toucher
+
+1. **`#modale` vit dans `src/mon-bureau.njk`, PAS dans la coque des ecrans de vente.** La coque est
+   dans `#bureauVentes`, masque tant qu'aucune piece de vente n'a ete ouverte : la modale y etait,
+   et ouverte depuis « Ma journee » elle se serait peinte dans du vide, sans une erreur. Meme piege
+   que « Ma base » le 08/09. `npm run banc` le garde, et c'est le seul controle qui le voit.
+2. **`ouvrirFicheClient()` ne change pas d'ecran.** Ni `openApp()`, ni `navTo()` : le vigneron
+   reste sur « Ma journee ». Elle charge la base si elle manque (`tirerDuServeur()` puis
+   `reloadFromDB()`, dans cet ordre) et rend **`false`** si le moteur ne connait pas ce client, ce
+   qui arrive sur un appareil ou aucun export n'a jamais ete depose. C'est l'appelant qui le dit au
+   vigneron, parce que c'est lui qui sait d'ou venait le clic.
+3. **Le bureau a UN seul ouvreur, `window.bdvOuvrirFiche`.** Le sous-main, le panneau, le
+   calendrier et « Mes taches » passent tous par lui. Un deuxieme, c'est un deuxieme endroit ou
+   rattraper une panne de reseau, et ils divergeront au premier message d'erreur reecrit.
+
+### LE SOUS-MAIN N'ECRIT PLUS AU CLIC, et c'est la demande centrale
+
+« Appele » et « Message » n'ont jamais rien ecrit depuis ce jour-la : ils ouvrent la fiche a
+l'endroit qui correspond, et le geste reste EN ATTENTE. C'est l'enregistrement de la note qui
+repousse le rappel de 30 jours, une seule fois, avec la trace de ce qui s'est dit. Fermer la fiche
+sans rien ecrire ne laisse AUCUNE trace, et la ligne est toujours dans le sous-main.
+
+Le report ne s'applique que si le vigneron n'a pas pose sa date lui-meme entre-temps : sa date est
+un choix, le report du geste n'est qu'un defaut.
+
+Ce qu'on a perdu, et c'est assume : le tri rapide de quinze relances en quinze clics. Ne pas le
+retablir « pour aller plus vite » sans rouvrir la question avec Ted : c'est exactement ce qu'il a
+demande de supprimer.
+
+**`BdvCrm.GESTES` N'EST PLUS LA SOURCE DES LIBELLES DE CES BOUTONS.** La liste `ACTIONS`, en tete
+du script de `mon-bureau.njk`, porte le mot court, la phrase complete et l'endroit a ouvrir. Seul
+« Ecarte » y reprend son libelle dans `GESTES`, parce que lui pose toujours son geste. Un libelle
+tire d'une liste de gestes qu'on ne pose plus est un libelle qui ment.
+
+**« Message » ouvre le redacteur, et ne veut plus dire « repondeur ».** Un appel tombe sur un
+repondeur se note dans le bloc de suivi, canal Repondeur, comme n'importe quel autre echange.
+
+### Le bureau se repeint APRES la reponse du serveur, jamais avant
+
+La fiche ecrit par `bdv-base.js` (`CRM`, `syncSuivi`), le sous-main lit le miroir de
+`bdv-crm.js` : deux caches differents de la meme table. D'ou `window.bdvFicheAEcrit()`, appelee
+dans `syncSuivi()` **quand le serveur a confirme**. Relire avant, c'est ramener l'ancienne date,
+donc la ligne qu'on vient de traiter.
+
+## UN RAPPEL PORTE SON MOTIF, ET IL NE DEMENAGE PAS, 11/09/2026
+
+`suivi_clients.rappel_titre`, lot 14, facultatif. « Rappeler le 18 » ne dit pas POURQUOI, et trois
+semaines plus tard la fiche demande d'appeler sans dire ce qu'on avait promis.
+
+**L'AUTRE CHEMIN A ETE PESE ET REFUSE.** Ted avait d'abord choisi de faire du rappel une vraie
+tache dans `taches`. Ce que ca deplacait : le sous-main, le panneau, la regle « un client deja
+suivi sort de la file », la vue `v_courrier` et la fonction d'envoi de 8 h, plus la reprise des
+rappels deja poses. A l'ecran, aucune difference. Ne pas y revenir sans cette liste sous les yeux.
+
+- **Le motif vit et meurt avec la date.** `planifier()` efface l'un avec l'autre. Un motif sans
+  date est une phrase orpheline qu'aucun ecran ne montre, et qui se recollerait au prochain rappel
+  pose sur ce client.
+- **Les quatre facons de poser la date passent par `poserRappel()`** et emportent le motif tape
+  au-dessus. Deux `crmSet` a la suite persistent, synchronisent et redessinent deux fois, et au
+  premier des deux rendus le champ de motif est deja efface par le redessin.
+- **Toute colonne ajoutee a `suivi_clients` doit etre RELUE par `lireSuivi()`** dans
+  `bdv-sync.js`. `ecrireSuivi()` renvoie la LIGNE ENTIERE a chaque geste : une colonne qu'on
+  n'aurait pas relue repartirait a `null` au premier rappel repousse depuis le tableau de bord.
+  Ce n'est pas la regle « une ecriture = une colonne » de `reglages`, c'est son inverse, et les
+  deux tables ne se traitent donc pas pareil.
+
+### LA SIXIEME FAMILLE : LUE, PAS STOCKEE, PAS COCHABLE
+
+Les rappels clients apparaissent dans le calendrier et dans « Mes taches », famille `clients`.
+
+1. **Ils ne sont jamais recopies.** `reglesDesRappels()` dans `bdv-calendrier.js` et
+   `rappelsClients()` dans `bdv-taches.js` LISENT le miroir de `bdv-crm.js`. Aucune ligne n'est
+   ecrite dans `taches`. `npm run banc:calclients` et la section 9 de `npm run banc:taches` le
+   gardent.
+2. **Ils ne se cochent pas**, nulle part, grille comprise. Le defaut a ete paye le jour meme : la
+   vue liste avait son cas particulier, la pastille de la grille prenait le bouton de coche commun
+   deux fonctions plus loin, et un clic aurait ecrit `ech:client:706:2026-09-13` dans la table des
+   taches. Une fausse tache qui repond « fait » pendant que le sous-main reclame encore le client.
+   **Rien n'echouait, rien ne s'affichait de travers.** Un cas particulier pose dans une vue se
+   pose dans toutes.
+3. **Elle n'a pas de couleur, et ne peut pas en avoir.** La bande utilisable s'arrete a L* 56 :
+   cinq teintes n'y tenaient deja pas l'ecart. Elle prend une MATIERE, comme la cinquieme : ecrite
+   a la main, plus un combine pose en `::before`. Le pictogramme est en CSS et pas dans le texte,
+   pour que le nom du client reste un nom propre : c'est lui qui part dans l'infobulle, dans
+   l'aria-label et dans la recherche du navigateur.
+
 ## LE FLAMBEAU : le site doit survivre au depart de Ted, 10/09/2026
 
 Ted a pose la contrainte : un jour il partira, et le site ne doit pas tourner autour de lui. Il
@@ -754,11 +858,16 @@ calendrier son propre stockage de « fait », c'est deux endroits qui repondront
 `basculer()` ne suffisait pas : elle cherche sa tache dans `toutes()`, qui ne connait que la
 PROCHAINE occurrence de chaque obligation. Le calendrier affiche octobre en septembre.
 
-### 7. Mes taches porte DEUX natures, et pas trois
+### 7. Mes taches porte deux natures QU'ELLE ECRIT, et une TROISIEME qu'elle lit
 
-La piece « Mes taches » porte les taches que le vigneron ecrit lui-meme et les
-obligations du calendrier qu'il coche. **Les clients a rappeler restent au sous-main**,
-avec leurs trois gestes qui repoussent le rappel.
+**AMENDEE LE 11/09/2026, lire la suite avant d'appliquer.** La piece porte les taches que le
+vigneron ecrit lui-meme et les obligations du calendrier qu'il coche. Depuis le 11/09 elle
+MONTRE aussi les rappels poses sur des clients, famille `clients` : elle ne les stocke pas, elle
+ne les coche pas, et le seul geste possible dessus est d'ouvrir la fiche du client. La regle du
+dessous tient donc toujours, et c'est precisement ce qui la rend tenable : il n'y a toujours
+qu'un endroit qui ECRIT, et qu'un endroit qui repond « ce client est-il traite ».
+
+**Les clients a rappeler restent au sous-main**, avec leurs gestes.
 
 Pourquoi : deux endroits qui repondent « qui dois-je appeler » se contrediraient des le
 premier geste pose d'un cote. Le sous-main lit une file deposee par le tableau de bord et

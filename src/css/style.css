@@ -6502,136 +6502,17 @@ button.bureau-nav__item:hover {
 
 
 /* ============================================================================
-   LA FICHE DE SUIVI DU BUREAU
+   CE QUI RESTE DE LA FICHE DE SUIVI DU BUREAU
    ============================================================================
-   En surimpression, pour ne jamais quitter le poste de travail. Elle montre ce
-   que la base sait du client : sa prochaine action, ses coordonnees, le fil de
-   ce qui s'est dit. Pas ses chiffres : ils sont calcules par le tableau de bord,
-   et le bureau ne recalcule jamais rien.
+   Elle est partie le 11/09/2026, avec ses 150 lignes de style : .voile, .ficheb,
+   .saisieb et .filb habillaient une DEUXIEME fiche client, plus petite, que le
+   bureau peignait lui-meme. Il n'y en a plus qu'une, celle des ecrans de vente,
+   et son style vit dans bdv-ecrans.css. Ne pas les remettre : deux fiches, c'est
+   deux endroits ou noter un appel.
+
+   Seul survit le bouton-lien ci-dessous, qui sert au pied du listing et au
+   panneau.
    ============================================================================ */
-.voile {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-voile);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: var(--e-xl) var(--e-m);
-  overflow-y: auto;
-  background: var(--bordeaux-veil);
-}
-.ficheb {
-  position: relative;
-  width: 100%;
-  max-width: 620px;
-  background: var(--paper-light);
-  border-top: var(--trait-accent) solid var(--bordeaux);
-  box-shadow: var(--ombre-dure);
-  padding: var(--e-xl) var(--e-l) var(--e-l);
-}
-.ficheb__x {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  min-width: 44px;
-  min-height: 44px;
-  background: none;
-  border: none;
-  font-size: 1.4rem;
-  line-height: 1;
-  color: var(--muted);
-  cursor: pointer;
-}
-.ficheb__x:hover { color: var(--bordeaux); }
-.ficheb__nom { font-size: var(--t-h2); margin: 0 0 0.2rem; }
-.ficheb__contact { font-family: var(--font-mono); font-size: var(--t-mini); margin: 0 0 0.4rem; }
-.ficheb__quoi { font-size: var(--t-base); color: var(--muted); margin: 0 0 var(--e-m); }
-
-.ficheb__action {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  padding: 0.7rem 0.9rem;
-  margin-bottom: var(--e-m);
-  background: var(--paper);
-  border-left: var(--trait-accent) solid var(--cork);
-}
-.ficheb__action-l {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  color: var(--ink);
-  flex: 1 1 auto;
-}
-
-.saisieb { border: var(--trait) solid var(--rule-fort); background: var(--white); margin-bottom: var(--e-m); }
-.saisieb__txt {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  border: none;
-  background: none;
-  padding: 0.7rem 0.8rem;
-  font-family: var(--font-corps);
-  font-size: var(--t-corps);
-  color: var(--ink);
-  resize: vertical;
-}
-.saisieb__txt:focus { outline: none; }
-.saisieb__pied {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  padding: 0.4rem 0.5rem;
-  border-top: var(--trait) solid var(--rule);
-}
-.saisieb__types { display: flex; gap: 0.3rem; }
-
-.filb { display: flex; flex-direction: column; border-top: var(--trait) solid var(--rule); }
-.filb__l {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 0.5rem;
-  align-items: baseline;
-  padding: 0.55rem 0;
-  border-bottom: var(--trait) solid var(--rule);
-  font-size: var(--t-base);
-}
-.filb__q { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
-.filb__t { line-height: var(--lh-normal); }
-
-/* Le canal sous la date : c'est une precision de contexte, pas une information de meme
-   poids que ce qui s'est dit. Il se lit en second, en petit, et jamais a la place du texte. */
-.filb__c { color: var(--muted); }
-/* « corrige le » ne s'affiche que sur une ligne vraiment reecrite. Discret par construction :
-   il dit que le texte a bouge, il ne met pas la ligne en accusation. */
-.filb__maj { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); margin-left: 0.4rem; }
-.filb__mod { margin-left: 0.5rem; }
-.filb__ed { display: block; border: var(--trait) solid var(--rule-fort); background: var(--white); }
-.filb__edtxt { border-bottom: var(--trait) solid var(--rule); }
-.filb__edpied {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  padding: 0.4rem 0.5rem;
-}
-/* Le choix du moyen de communication. Un select et pas treize boutons : sur un telephone,
-   treize boutons repoussent le champ de saisie hors de l'ecran. */
-.saisieb__etiq { font-family: var(--font-mono); font-size: var(--t-mini); color: var(--muted); }
-.saisieb__canal {
-  border: var(--trait) solid var(--rule);
-  background: var(--white);
-  padding: 0.25rem 0.4rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--ink);
-  max-width: 14rem;
-}
-.saisieb__types { align-items: center; }
-
 /* `button.tache` est parti le 07/09/2026 avec la refonte du sous-main : la ligne
    n'est plus un bouton, c'est une rangee de listing, et un bouton dans un bouton
    n'etait de toute facon pas du HTML valide. Cette regle deshabillait un bouton
@@ -6647,12 +6528,14 @@ button.bureau-nav__item:hover {
   cursor: pointer;
 }
 
-@media (max-width: 640px) {
-  .voile { padding: 0; }
-  .ficheb { max-width: none; min-height: 100%; }
-  .filb__l { grid-template-columns: 1fr; gap: 0.1rem; }
-}
 
+/* L'ATTENTE D'UNE FICHE QUI S'OUVRE. Elle se voit SUR LA LIGNE cliquee, jamais
+   sur toute la page : un voile plein ecran pour une fiche qui s'ouvre se lit
+   comme un rechargement. Le premier clic de la session charge le moteur des
+   ventes, mesure a 2,8 s sur 40 000 lignes ; les suivants sont instantanes. */
+.listb__l[data-attente="oui"] { opacity: 0.55; }
+.listb__l[data-attente="oui"] .listb__nom,
+.listb__l[data-attente="oui"] .btn--geste { cursor: progress; }
 
 /* ---- LE MOT DU JOUR ----
    Un conseil, un seul, et il porte sa couleur de gravite. Le verdict constate, l'action
@@ -7006,16 +6889,12 @@ button.bureau-nav__item:hover {
   .postit__v[data-mot="long"] { font-size: var(--t-base); }
   .postit__s { font-size: var(--t-lead); }
 }
-/* L'avis de la fiche, cale sous la croix de fermeture. */
-#ficheAvis { margin: 0 0 var(--e-m); }
-
 /* ============================================================================
    LA FENETRE DES REGLAGES
    ============================================================================
    Meme voile, meme papier que la fiche client : ce n'est pas une page a part, c'est
    un tiroir du bureau qu'on ouvre et qu'on referme sans quitter sa place.
    ============================================================================ */
-.ficheb__sous { margin: 0.3rem 0 var(--e-l); color: var(--muted); font-style: italic; }
 .reg__bloc {
   border: none;
   border-top: var(--trait) solid var(--rule);
@@ -7260,6 +7139,21 @@ button.bureau-nav__item:hover {
   transition: opacity var(--tr-rapide);
 }
 .tache__coche[aria-pressed="true"]::after { opacity: 1; }
+/* LA PASTILLE D'UN RAPPEL CLIENT. Elle tient la place de la case a cocher, qu'un
+   client n'a pas : « fait » pour un client, c'est ce qu'il a dit, et ca s'ecrit dans
+   sa fiche. Elle porte la matiere de cette famille, le combine, le meme que dans le
+   calendrier : c'est ce qui la distingue sans lui donner une sixieme couleur, qui ne
+   tiendrait de toute facon pas l'ecart de contraste sur ce papier. */
+.tache__puce {
+  width: 20px;
+  height: 20px;
+  margin-top: 0.15rem;
+  font-size: var(--t-micro);
+  line-height: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.tache__puce::before { content: "\260E"; }
 .tache__corps { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .tache__titre { font-size: var(--t-base); color: var(--ink); overflow-wrap: anywhere; }
 .tache__quand { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }

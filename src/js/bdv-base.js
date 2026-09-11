@@ -330,6 +330,16 @@ function syncSuivi(id){
     const f=CRM[id];
     if(ok){ if(f&&f._apousser){delete f._apousser;crmSave();} }
     else if(f){ f._apousser=true;crmSave(); }
+    /* LE BUREAU SE REPEINT ICI, ET APRES LA REPONSE DU SERVEUR. Ajoute le 11/09/2026,
+       quand la fiche client est devenue le seul endroit ou l'on pose un rappel : le
+       sous-main lit le miroir de bdv-crm.js, que cette ecriture-ci ne touche pas. Sans
+       ce rappel, un client traite depuis sa fiche restait dans la file jusqu'au
+       rechargement de la page.
+       APRES et pas avant : BdvCrm.charger() relit le compte, et relire avant que
+       l'ecriture ne soit arrivee ramenerait l'ancienne date, donc la ligne qu'on vient
+       de traiter. La fonction n'existe que dans le bureau ; au tableau de bord autonome
+       il n'y a rien a repeindre. */
+    if(ok&&typeof window.bdvFicheAEcrit==='function'){try{window.bdvFicheAEcrit();}catch(e){}}
     return !!ok;
   }).catch(function(){
     const f=CRM[id];
@@ -465,7 +475,7 @@ function crmRafraichirListe(){
   // pas au prochain import.
   if(typeof deposerPourLeBureau==='function')deposerPourLeBureau();
 }
-const LIB_CHAMP={statut:'Statut',rappel:'Rappel',canal:'Canal',notes:'Notes'};
+const LIB_CHAMP={statut:'Statut',rappel:'Rappel',rappel_titre:'Motif du rappel',canal:'Canal',notes:'Notes'};
 function crmSet(id,champ,valeur){
   const c=CRM[id]||{};
   if(valeur==='')delete c[champ];else c[champ]=valeur;
