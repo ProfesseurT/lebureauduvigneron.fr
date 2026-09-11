@@ -266,6 +266,32 @@ Reste : l'horloge de 8 h, `URL_BUREAU` que Ted regle avec le branchement du doma
 il est seul destinataire, un bouton mort ne coute rien avant le premier vigneron), et
 `ecarterLesSuivis()` a supprimer.
 
+### LE PREMIER COURRIER EST PARTI TOUT SEUL, 11/09/2026 a 8 h 05
+
+Rapport du passage : `heure_paris: 8`, `comptes_lus: 2`, **`envoyes: 2`**, `echecs: []`,
+`deja_envoyes: 0`, `hors_liste: 0`, `sans_desinscription: 0`. Et dans `courrier_envois`, deux
+lignes au 2026-09-11, reservees a 08:05:04 toutes les deux, chacune avec son `resend_id` et
+aucun `echec`. Sujets : « 2 a faire, 5 clients a voir » et « 1 a faire, 5 clients a voir ».
+
+Le passage de 7 h 05, juste avant, disait encore « hors heure ». La bascule s'est donc faite
+sur le seul critere de l'heure de Paris, sans intervention.
+
+Lot 4 termine. Le courrier du matin est en service.
+
+### LA CHAINE EST PROUVEE DE BOUT EN BOUT, nuit du 10 au 11/09
+
+Apres correction de la cle : neuf passages, zero rate, zero 401. Chaque heure, la fonction
+repond 200 avec `issue: "hors heure"` et l'heure de Paris juste.
+
+Deux details de ces passages ont verifie EN PRODUCTION deux choix qui n'avaient ete que
+raisonnes :
+
+- a 00 h 05, le rapport dit `heure_paris: 0` et non 24. C'est `hourCycle: 'h23'` qui tient, le
+  cas exact pour lequel il avait ete choisi contre `hour12: false`.
+- au meme passage, `jour` dit **2026-09-11**. Minuit cinq a Paris, c'est 22 h 05 UTC la veille :
+  un code qui aurait lu la date en UTC aurait ecrit 2026-09-10. C'est precisement le piege que
+  `jourAParis()` existe pour eviter, et il s'est verifie tout seul.
+
 ### L'HORLOGE FRAPPE, MAIS ELLE SE FAIT REFUSER, 17 h
 
 Verification du premier declenchement reel, faite sans rien demander a Ted.
