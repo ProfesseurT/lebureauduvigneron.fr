@@ -72,8 +72,10 @@
   <main class="content">
     <div class="filterbar" id="filterbar"></div>
     <section class="panel" id="p-annee">
+      {# p-diagnostic porte toute la piece depuis le 11/09/2026 : renderCap() a absorbe
+         renderApercu(), qui n'etait plus qu'une seconde moitie avec son propre titre et
+         le meme chiffre d'evolution. p-apercu n'a plus rien a recevoir. #}
       <div id="p-diagnostic"></div>
-      <div id="p-apercu"></div>
       {# p-evolution est parti dans « Mon registre » le 11/09/2026 : la courbe et la
          lecture experte s'affichent la-bas des qu'on repartit par mois ou par annee.
          p-canaux est parti dans « Mes cuvees » le 11/09/2026 : ses deux signaux sont a

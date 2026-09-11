@@ -173,12 +173,57 @@ Effet de bord assume : l'export du registre garde les cles brutes (`2026-03`), l
 
 `npm run verif` : deux chartes CONFORME, 367 controles, zero echec.
 
+### Lot 4, « Mon cap » : la piece de bilan, de vingt-six blocs a sept
+
+**Le doublon d'ouverture est enfin ferme.** `renderDiagnostic()` et `renderApercu()` etaient deux
+panneaux empiles dans la meme piece, avec deux titres, deux sous-titres, et le meme chiffre
+d'evolution ecrit de deux facons a quatre cents pixels d'ecart. Une seule fonction les remplace,
+`renderCap()`. Le bandeau de comparaison garde l'evolution (il dit en plus les deux totaux et
+l'atterrissage) ; le compteur « Evolution vs N-1 » est retire de la grille.
+
+**Une decouverte en ouvrant : l'objectif de CA etait DEJA dans les reglages**, onglet « Tes
+ventes », a cote du mois d'exercice. Je comptais l'y deplacer ; il n'y avait rien a deplacer, juste
+un sixieme doublon a supprimer. Deux champs de saisie pour une seule valeur, dans deux ecrans, et
+celui de « Mon annee » ne se repeignait qu'au rendu de la piece : de quoi lire deux montants
+differents pour le meme reglage. Le champ est retire, `setObjectif()` est morte avec lui, et la
+piece dit maintenant en une phrase ou aller le regler.
+
+**Deux grilles de compteurs au lieu d'une, et la difference est le sujet.** « Ou en es-tu » porte
+les chiffres d'EXERCICE, qui ne bougent pas avec le filtre de periode : realise, atterrissage,
+ecart a l'objectif. « Sur la periode affichee » porte ceux de la selection. Les melanger, c'etait
+laisser croire qu'un filtre change l'atterrissage.
+
+**Le nom a supprime une duplication de cle.** La piece s'appelait « Mon annee » ou « Mon
+exercice » selon le mois d'ouverture du domaine. Pour l'ecrire sans charger le moteur (83 ko pour
+deux caracteres), `bdv-nav.js` relisait la cle d'exercice de son cote, avec un commentaire qui
+declarait lui-meme le danger : « la changer d'un seul cote ferait dire Mon exercice a un domaine en
+annee civile, sans erreur et sans que personne ne le remarque ». « Mon cap » tient sur les deux
+exercices : `motExercice()` et le miroir de cle ont disparu.
+
+**Et le controle du banc a change de sens, ce qui etait le but.** Il verifiait qu'un exercice
+ouvrant en avril lisait « Mon exercice ». Il verifie maintenant que le libelle NE BOUGE PAS quand
+la cle change, et que le nom de cette cle n'apparait plus nulle part dans `bdv-nav.js`. Qui
+voudrait reintroduire un libelle variable devra reintroduire la lecture, et echouera ici.
+
+**Nouveau banc, `npm run banc:cap`**, ajoute a `npm run verif`. Seize controles, dont celui qui
+compte vraiment : le chiffre d'evolution n'est ecrit qu'une fois, et aucun `<input>` n'est revenu
+dans la piece. C'est le doublon qui a ouvert toute la redecoupe ; rien dans le depot ne l'aurait vu
+revenir.
+
+Piege de calibrage, pour le prochain banc du meme genre : avec vingt-quatre mois de ventes,
+l'exercice courant est COMPLET, `computeAtterrissage()` repond « annee cloturee », et ni
+l'atterrissage ni l'ecart a l'objectif ne s'affichent. Le banc en fabrique dix-neuf, comme la vraie
+base de Ted. Une piece qui s'appelle « Mon cap » se controle sur un exercice en cours.
+
+`npm run verif` : deux chartes CONFORME, 385 controles, zero echec.
+
 ### Ce qui reste ouvert
 
-Les lots 1, 2 et 3 sont faits. Reste le **lot 4, Mon cap** : renommer et alleger ce qui reste
-de « Mon annee », et sortir le champ « Objectif de CA annuel » vers Mes reglages.
+Les quatre lots de la redecoupe sont faits. « Mon annee » et ses vingt-six blocs sont devenus
+quatre pieces a trois etages, et deux ecrans ont disparu (Apercu, Evolution) sans qu'aucune
+fonction soit perdue.
 
-A traiter au passage : `p-reactivation`, `p-premier` et `p-decrochage` sont marques `hidden` en
+Reste un **lot 5 de nettoyage**, signale mais pas traite : `p-reactivation`, `p-premier` et `p-decrochage` sont marques `hidden` en
 dur dans la coque depuis leur fusion dans « Mon commerce », mais les trois fonctions continuent
 de fabriquer des tableaux complets a chaque rendu, ecrits dans des conteneurs que personne ne
 verra. Le calcul sert, il alimente les filtres ; c'est le HTML qui est construit pour rien.

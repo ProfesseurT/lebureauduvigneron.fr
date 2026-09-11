@@ -125,7 +125,7 @@ t('huit pieces montees', lignes.length === 8, lignes.length + ' trouvee(s)');
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon année | Mes cuvées | Mon registre | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes cuvées | Mon registre | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
 t('les six pieces internes pointent DANS le bureau',
@@ -192,9 +192,10 @@ titre('Les ecrans de vente dans le bureau');
    vingt-cinq le 11/09/2026 : `p-canaux` a disparu de la coque, les canaux sont entres dans
    « Mes cuvees » et blocsCanaux() retourne son HTML au lieu de peindre chez elle. Puis a
    vingt-quatre au lot 3 : `p-evolution` a suivi, la courbe et la lecture experte vivent
-   maintenant dans « Mon registre ». */
+   maintenant dans « Mon registre ». Et a vingt-trois au lot 4 : `p-apercu` a disparu,
+   renderCap() ecrit toute la piece dans `p-diagnostic`. */
 const REPERES = ['app', 'bowlclip', 'busyov', 'busytxt', 'filterbar', 'modale',
-  'p-annee', 'p-apercu', 'p-base', 'p-chercher', 'p-clients', 'p-decrochage',
+  'p-annee', 'p-base', 'p-chercher', 'p-clients', 'p-decrochage',
   'p-diagnostic', 'p-explorer', 'p-premier', 'p-produits', 'p-reactivation',
   'p-reglages', 'p-vide', 'printReport', 'status', 'statusSpin', 'statusTxt', 'tbFile'];
 const manquants = REPERES.filter(id => !B.doc.getElementById(id));
@@ -441,18 +442,32 @@ t('ouvrir ensuite un ecran de vente ne recharge pas le moteur',
 t('et il charge bien les ecrans par-dessus',
   M.charges.length === 7, M.charges.length + ' ressources');
 
-/* Le libelle de la piece suit l'exercice comptable, et il doit etre juste DES LE PREMIER
-   AFFICHAGE : un libelle qui change sous la souris une seconde apres le chargement se
-   remarque plus qu'un libelle un peu generique. */
-const EX = new JSDOM(HTML, { runScripts: 'outside-only', pretendToBeVisual: true,
-  url: 'https://x.test/mon-bureau/' });
-EX.window.localStorage.setItem('bdv_exercice_v1', '4');
-EX.window.eval(NAV);
-EX.window.BdvNav.monter(EX.window.document.getElementById('bureauNav'), 'journee');
-t('un domaine dont l\'exercice commence en avril lit « Mon exercice », sans le moteur',
-  EX.window.document.querySelector('.bureau-nav__ligne[data-piece="annee"] .bureau-nav__nom')
-    .textContent === 'Mon exercice',
-  EX.window.document.querySelector('.bureau-nav__ligne[data-piece="annee"] .bureau-nav__nom').textContent);
+/* CE CONTROLE A CHANGE DE SENS LE 11/09/2026, lot 4, et c'est le but du lot.
+
+   Il verifiait qu'un domaine en exercice decale lisait « Mon exercice » et pas « Mon
+   annee », des le premier affichage. Pour cela, cette barre relisait `bdv_exercice_v1` de
+   son cote, une cle dupliquee que son propre commentaire declarait dangereuse.
+
+   La piece s'appelle « Mon cap ». Le nom tient sur les deux exercices, donc la barre n'a
+   plus a savoir quel mois ouvre l'annee du domaine. Ce qu'on verifie maintenant, c'est
+   exactement l'inverse : que le libelle NE BOUGE PAS quand la cle change. Si quelqu'un
+   reintroduit un libelle variable ici, il devra reintroduire la lecture de la cle, et ce
+   controle echouera. */
+const nomCap = (ex) => {
+  const D = new JSDOM(HTML, { runScripts: 'outside-only', pretendToBeVisual: true,
+    url: 'https://x.test/mon-bureau/' });
+  D.window.localStorage.setItem('bdv_exercice_v1', ex);
+  D.window.eval(NAV);
+  D.window.BdvNav.monter(D.window.document.getElementById('bureauNav'), 'journee');
+  return D.window.document
+    .querySelector('.bureau-nav__ligne[data-piece="annee"] .bureau-nav__nom').textContent;
+};
+t('la piece s\'appelle « Mon cap » en annee civile', nomCap('1') === 'Mon cap', nomCap('1'));
+t('et « Mon cap » aussi sur un exercice ouvrant en avril, la cle n\'est plus lue ici',
+  nomCap('4') === 'Mon cap', nomCap('4'));
+t('la barre ne lit plus la cle d\'exercice',
+  !NAV.includes('bdv_exercice_v1'),
+  'bdv_exercice_v1 est encore cite dans bdv-nav.js');
 
 /* ---- l'adresse d'arrivee fait foi ---- */
 titre('L\'adresse d\'arrivee');

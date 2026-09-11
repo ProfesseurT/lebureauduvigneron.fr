@@ -37,30 +37,27 @@
 (function () {
   'use strict';
 
-  /* « Mon exercice » ou « Mon annee » : le libelle suit l'exercice comptable du domaine,
-     comme partout ailleurs.
+  /* LA CLE DUPLIQUEE A DISPARU LE 11/09/2026, lot 4 de la redecoupe, et avec elle
+     `motExercice()`.
 
-     DEUX CHEMINS, ET C'EST VOULU. Le moteur de la base n'est plus charge a l'ouverture du
-     bureau depuis le 07/09/2026 : exMot() n'existe donc pas encore quand la barre se
-     peint. On lit alors la meme cle de navigateur que lui, directement.
+     CE QU'ELLE COUTAIT. La piece s'appelait « Mon annee » ou « Mon exercice » selon le
+     mois d'ouverture du domaine. Pour l'ecrire sans charger le moteur (83 ko, pour deux
+     caracteres), cette barre relisait de son cote la cle d'exercice du navigateur, celle
+     que bdv-base.js appelle EX_KEY. Le commentaire d'ici disait lui-meme le danger : « la
+     changer d'un seul cote ferait dire Mon exercice a un domaine en annee civile, sans
+     erreur et sans que personne ne le remarque ».
 
-     LA CLE EST DUPLIQUEE ICI, et c'est le prix a payer. Le moteur pese 83 ko et il n'est
-     charge que pour ces deux caracteres-la. La lire de notre cote coute une ligne, mais
-     elle doit rester d'accord avec EX_KEY dans bdv-base.js : la changer d'un seul cote
-     ferait dire « Mon exercice » a un domaine en annee civile, sans erreur et sans que
-     personne ne le remarque. Le meme piege que HASH_COLS, en beaucoup moins grave.
+     LE NOM DE CETTE CLE NE DOIT PLUS APPARAITRE DANS CE FICHIER : `npm run banc` le
+     verifie, et c'est ce qui empeche de reintroduire la lecture sans y penser.
 
-     exMot() garde la priorite des qu'il existe : le jour ou le moteur change de facon de
-     decider, c'est lui qui a raison, pas nous. */
-  var EX_KEY_MIROIR = 'bdv_exercice_v1';   // = EX_KEY dans src/js/bdv-base.js
+     CE QUI L'A REGLE. La piece s'appelle « Mon cap ». Le nom pose la question a laquelle
+     elle repond au lieu de nommer une periode, il tient sur les deux exercices, et il ne
+     depend plus d'aucun reglage. Un nom mieux choisi a supprime une duplication de cle
+     que deux commentaires ne suffisaient pas a rendre sure.
 
-  function motExercice() {
-    try { if (typeof exMot === 'function') return 'Mon ' + exMot(); } catch (e) {}
-    try {
-      var m = parseInt(localStorage.getItem(EX_KEY_MIROIR), 10);
-      return (m >= 2 && m <= 12) ? 'Mon exercice' : 'Mon année';
-    } catch (e) { return 'Mon année'; }
-  }
+     `libelle()` reste plus bas et sait encore appeler une fonction : aucune piece ne s'en
+     sert aujourd'hui, mais c'est une ligne, et le jour ou un libelle redevient variable
+     elle evite de rouvrir les deux endroits qui peignent la barre. */
 
   /* ---------------------------------------------------------------------------
      LES PIECES DU BUREAU, dans l'ordre de la journee et pas dans l'ordre
@@ -176,9 +173,9 @@
     { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mon commerce',
       href: '/mon-bureau/#clients',
       quoi: 'Qui rappeler, qui décroche, d\'où vient ton chiffre' },
-    { id: 'annee', viti: true,     ico: TRACES.annee, label: motExercice,
+    { id: 'annee', viti: true,     ico: TRACES.annee, label: 'Mon cap',
       href: '/mon-bureau/#annee',
-      quoi: 'Ton chiffre, ton rythme, tes canaux' },
+      quoi: 'Où tu en es, où tu finis l\'année' },
     { id: 'produits', viti: true,  ico: TRACES.produits, label: 'Mes cuvées',
       href: '/mon-bureau/#produits',
       quoi: 'Ce qui part, ce qui dort' },

@@ -114,7 +114,9 @@ function jourMoisRecule(n){
    les deux listes et echoue si elles divergent. Ajouter un ecran, c'est donc l'ajouter
    aux deux endroits, dans le meme commit. */
 const NAV=[
-  {id:'annee',   ico:'&#128200;', label:'Mon année'},
+  // « Mon cap » depuis le 11/09/2026, lot 4 : le nom pose la question a laquelle la piece
+  // repond, au lieu de nommer une periode. Et il ne varie plus avec l'exercice comptable.
+  {id:'annee',   ico:'&#128200;', label:'Mon cap'},
   {id:'clients', ico:'&#128101;', label:'Mon commerce'},
   // « Mes cuvees » et plus « Mes produits » depuis le 11/09/2026 : la barre du bureau disait
   // deja « Mes cuvees », et le titre de l'ecran disait autre chose. Deux noms pour une piece.
@@ -298,7 +300,7 @@ function renderAll(){
   /* Mon annee : TROIS panneaux, et c'en etait quatre. Le panneau Canaux est parti dans
      « Mes cuvees » le 11/09/2026, lot 2 : le chemin de vente et le prix moyen repondent a
      « ce qui part, et a quel prix », qui est la question de cette piece-la. */
-  renderDiagnostic();renderApercu();
+  renderCap();
   // Mes clients : une seule liste, alimentee par les trois moteurs.
   renderReactivation();renderPremierAchat();renderDecrochage();  // calculent et memorisent
   renderClients();renderProduits();
@@ -391,81 +393,18 @@ function repCard(title,get){
 }
 
 /* ======================= APERCU (3 couches) ======================= */
-function renderApercu(){
-  const rows=vinRows();
-  const ca=sum(rows,r=>r._total);
-  const factures=new Set(rows.map(r=>r.numFacture)).size;
-  const btl=sum(rows,r=>r._qte);
-  const clients=new Set(rows.map(r=>clientKey(r))).size;
-  const panier=factures?ca/factures:0;
-  const scope=libellePerimetre();
-  const f=yoyFrame(),at=computeAtterrissage();
-  let html=`<h2 class="panel__title">Aperçu des ventes</h2><div class="panel__sub">L'état de ton activité en un coup d'œil. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
+/* « APERCU DES VENTES » A DISPARU LE 11/09/2026, lot 4, absorbee par renderCap().
 
-  // Garde-fou anti-écran-vide : des lignes en base mais aucune vente détectée.
-  if(!rows.length && ROWS.length){
-    html+=signal('danger','⚠',
-      `Aucune vente détectée, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
-      `Certaines familles sont peut-être classées à tort en hors-vente (transport, remises, pub, divers). Le réglage des familles arrivera dans l'onglet Colonnes. En attendant, vérifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
-    el('p-apercu').innerHTML=html;
-    return;
-  }
+   Ce n'etait plus un ecran, c'etait la moitie basse d'un autre : « Mon annee » affichait
+   le panneau Diagnostic puis le panneau Apercu, l'un sous l'autre, avec DEUX titres, DEUX
+   sous-titres, et le meme chiffre d'evolution ecrit de deux facons a quatre cents pixels
+   d'ecart. C'est le doublon qui a ouvert toute la redecoupe.
 
-  if(f){
-    const curW=sum(ROWS.filter(r=>r._vin&&r._exY===f.cur&&avantCoupe(r,f.cutPos)),r=>r._total);
-    const prevW=sum(ROWS.filter(r=>r._vin&&r._exY===f.prev&&avantCoupe(r,f.cutPos)),r=>r._total);
-    const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
-    const cls=d==null?'':(d>=0?'up':'down');
-    html+=`<div class="hero">
-      <div class="hero__label">Où en est ton ${exMot()}, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date</div>
-      <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
-      <div class="hero__sub">Au ${fmtDate(f.cutDate)} : ${fmtMoney(curW)} ${exCe()} contre ${fmtMoney(prevW)} le précédent au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
-    </div>`;
-    // Une plage libre n'a pas de periode precedente equivalente : ce bloc reste donc cale
-    // sur l'exercice, et il doit le dire. Sans cette phrase, le lecteur croit comparer sa plage.
-    if(plageLibre())html+=`<p class="note" style="margin:-.7rem 0 1.1rem">Ce comparatif reste calé sur ${exLabel(f.cur)} contre ${exLabel(f.prev)}, <b>pas sur la plage de dates choisie</b> : une plage quelconque n'a pas de période précédente équivalente. Les compteurs et les répartitions ci-dessous, eux, suivent bien ta plage.</p>`;
-  }
+   Ce qu'elle avait et que renderCap() a repris : le bandeau de comparaison a date (le
+   verdict de la piece), les cinq compteurs de la periode affichee, la bascule CA /
+   bouteilles, la courbe des mois, et le garde-fou anti-ecran-vide.
 
-  html+=`<div class="kpi-grid">
-    ${kpiCard('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
-    ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantité vendue')}
-    ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
-    ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
-    ${kpiCard('Clients actifs',fmtNum(clients),'ont acheté sur la période')}
-  </div>`;
-
-  html+=`<div style="margin:.2rem 0 1.1rem"><span class="toggle">
-    <button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA HT</button>
-    <button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button>
-  </span></div>`;
-
-  html+=`<div class="section-label">La forme de ton ${exMot()}</div>
-    <div class="card"><div class="card__title"><span>${uiMesure==='ca'?'CA HT':'Bouteilles'} par mois${f?' · '+exLabelCourt(f.cur)+' vs '+exLabelCourt(f.prev):''}</span></div><div class="chart-wrap"><canvas id="chApMonth"></canvas></div></div>`;
-
-  /* LA SECTION « TON MIX » A ETE VIDEE LE 11/09/2026, lot 2 :
-       - la repartition par couleur est dans le pied replie de « Mes cuvees ». La couleur
-         est une propriete du vin, pas un fait de l'annee.
-       - « Top cuvees » etait les SEPT PREMIERES LIGNES du tableau « Toutes tes cuvees »,
-         qui est deja trie par CA. Supprime, pas deplace : rien ne se perd. */
-
-  /* LA SECTION « QUI FAIT TON CHIFFRE » A ETE VIDEE LE 11/09/2026, et ses trois blocs sont
-     partis chacun la ou on les cherche :
-       - le top clients et le signal de dependance au top 3 sont dans « Mon commerce ». La
-         question « qui pese quoi » se pose au moment ou l'on decide qui appeler, pas au
-         milieu d'un bilan.
-       - « Par canal de vente » etait le TROISIEME affichage du meme chiffre : le panneau
-         Canaux le donne deja en part ET en prix moyen, sur deux exercices. Il est supprime,
-         pas deplace : rien ne se perd.
-     La grille a deux colonnes disparait avec eux, il n'y avait plus rien a mettre en face. */
-
-  html+=`<div class="section-label">Répartitions détaillées</div><div class="grid-rep">
-    ${repCard('Par famille',r=>r.famille)}
-    ${repCard('Par code tarif',r=>r.codeTarif)}
-  </div>`;
-
-  el('p-apercu').innerHTML=html;
-  drawApMonth();
-}
+   drawApMonth() n'a pas bouge. */
 // Serie mensuelle d'un exercice, rangee dans l'ordre DE L'EXERCICE (case 0 = mois d'ouverture).
 function apMonthly(ex){const a=new Array(12).fill(0);for(const r of ROWS){if(!r._vin||r._exY!==ex||r._exM==null)continue;a[r._exM-1]+=mesureVal(r);}return a;}
 function drawApMonth(){
@@ -667,7 +606,7 @@ function renamePerso(key,val){
   const v=(val||'').trim();
   if(v)persoLabels[key]=v; else delete persoLabels[key];
   savePersoLabels();
-  renderApercu();
+  renderCap();
 }
 
 /* ======================= VUE EVOLUTION (le film dans le temps) ======================= */
@@ -812,7 +751,9 @@ function drawEvo(periods,segs,bySeg,multi){
 
 /* ======================= DIAGNOSTIC (agents statistiques) ======================= */
 // Objectif de CA annuel, memorise dans le navigateur.
-function setObjectif(v){const n=parseNum(v);objectif=(isNaN(n)||n<=0)?null:n;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}syncObjectif();runBusy('Analyse…',renderDiagnostic);}
+/* `setObjectif()` est morte le 11/09/2026 avec le champ qui l'appelait. L'objectif se
+   saisit dans « Mes réglages », onglet « Tes ventes », qui passe par `majObjectif()` du
+   moteur : meme cle de navigateur, meme ecriture en base, et une seule fois. */
 
 // AGENT A : atterrissage de l'annee en cours (projection fin d'annee).
 function computeAtterrissage(){
@@ -1143,61 +1084,134 @@ function diagnosticSignals(){
   return S;
 }
 
-function renderDiagnostic(){
+/* =========================== MON CAP ===========================================
+   Ecrit le 11/09/2026, lot 4 de la redecoupe. Cette fonction remplace renderDiagnostic()
+   ET renderApercu(), qui etaient deux panneaux empiles dans la meme piece, avec deux
+   titres, deux sous-titres et le meme chiffre d'evolution ecrit deux fois.
+
+   LA PIECE S'APPELLE « MON CAP » ET PLUS « MON ANNEE ». Ted voulait la supprimer ; elle
+   est gardee mais elle passe de VINGT-SIX blocs a sept, parce que ces sept-la ne repondent
+   a aucune autre question que « ou j'en suis sur l'ensemble ». Le nom pose la question au
+   lieu de nommer une periode, et il ne varie plus avec l'exercice comptable : c'est
+   `motExercice()` en moins dans bdv-nav.js, et surtout la cle `bdv_exercice_v1` qui n'a
+   plus a y etre dupliquee.
+
+   LES TROIS ETAGES, comme les trois autres pieces (voir CLAUDE.md) : le bandeau de
+   comparaison en verdict, les chiffres et la courbe au milieu, ce qui explique replie.
+
+   DEUX GRILLES DE COMPTEURS, ET LA DIFFERENCE EST VOULUE. « Ou en es-tu » porte des
+   chiffres d'EXERCICE, qui ne bougent pas avec le filtre de periode : realise,
+   atterrissage, ecart a l'objectif. « Sur la periode affichee » porte ceux de la selection
+   en cours. Les melanger, c'etait laisser croire qu'un filtre change l'atterrissage.
+   ============================================================================== */
+function renderCap(){
   const p=el('p-diagnostic');if(!p)return;
-  let html=`<h2 class="panel__title">Mon ${exMot()}</h2><div class="panel__sub">Où va ton argent, et pourquoi. Tout est calculé sur le CA HT.</div>`;
+  const rows=vinRows();
+  const ca=sum(rows,r=>r._total);
+  const factures=new Set(rows.map(r=>r.numFacture)).size;
+  const btl=sum(rows,r=>r._qte);
+  const clients=new Set(rows.map(r=>clientKey(r))).size;
+  const panier=factures?ca/factures:0;
+  const scope=libellePerimetre();
+  const f=yoyFrame(),at=computeAtterrissage(),yt=yoyTotals();
 
-  /* LE VERDICT « D'OU VIENT TA VARIATION » EST PARTI DANS « MON COMMERCE » le 11/09/2026,
-     avec ses quatre lignes de mouvement de clientele. Motif : c'est une conclusion sur les
-     CLIENTS (« la question n'est pas d'en trouver plus, c'est de garder ceux que tu as »),
-     et le geste qu'elle reclame se fait dans l'autre piece. La laisser en tete d'un ecran
-     de bilan, c'etait demander au vigneron de changer d'onglet pour agir.
+  let html=`<h2 class="panel__title">Mon cap</h2><div class="panel__sub">Où tu en es, où tu finis ton ${exMot()}, et pourquoi. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
 
-     bridgeHero() n'a pas bouge d'un caractere : seul son point d'appel a change. */
+  // Garde-fou anti-ecran-vide : des lignes en base, mais aucune vente detectee.
+  if(!rows.length && ROWS.length){
+    html+=signal('danger','⚠',
+      `Aucune vente détectée, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
+      `Certaines familles sont peut-être classées à tort en hors-vente (transport, remises, pub, divers). Le réglage des familles arrivera dans l'onglet Colonnes. En attendant, vérifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
+    p.innerHTML=html;
+    return;
+  }
 
-  // 1. Synthese chiffree
-  const at=computeAtterrissage(),yt=yoyTotals();
+  /* ------------------------- ETAGE 1 : LE VERDICT -------------------------
+     UN SEUL ENDROIT DIT L'EVOLUTION, depuis le 11/09/2026. Ce bandeau et le compteur
+     « Evolution vs N-1 » du diagnostic affichaient le meme calcul et les deux memes
+     montants. Le bandeau gagne : il dit en plus les deux totaux et l'atterrissage, et il
+     se lit d'un coup d'oeil. Le compteur a ete retire de la grille. */
+  if(f){
+    const curW=sum(ROWS.filter(r=>r._vin&&r._exY===f.cur&&avantCoupe(r,f.cutPos)),r=>r._total);
+    const prevW=sum(ROWS.filter(r=>r._vin&&r._exY===f.prev&&avantCoupe(r,f.cutPos)),r=>r._total);
+    const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
+    const cls=d==null?'':(d>=0?'up':'down');
+    html+=`<div class="hero">
+      <div class="hero__label">Où en est ton ${exMot()}, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date</div>
+      <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
+      <div class="hero__sub">Au ${fmtDate(f.cutDate)} : ${fmtMoney(curW)} ${exCe()} contre ${fmtMoney(prevW)} le précédent au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
+    </div>`;
+    if(plageLibre())html+=`<p class="note" style="margin:-.7rem 0 1.1rem">Ce comparatif reste calé sur ${exLabel(f.cur)} contre ${exLabel(f.prev)}, <b>pas sur la plage de dates choisie</b> : une plage quelconque n'a pas de période précédente équivalente. Les compteurs et la courbe ci-dessous, eux, suivent bien ta plage.</p>`;
+  }
+
+  // ------------------------- Les chiffres d'exercice -------------------------
   html+=`<div class="section-label">Où en es-tu</div><div class="kpi-grid">`;
   if(at&&!at.complete){
     html+=kpiCard('Réalisé '+exLabelCourt(at.cur),fmtMoney(at.done),at.months+' mois connus',true);
     html+=kpiCard('Atterrissage estimé',fmtMoney(at.central),'fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high));
   }else if(at&&at.complete){html+=kpiCard(exLabel(at.cur)+', '+exComplet(),fmtMoney(at.total),exMot()+' clôturé'+(EX_START===1?'e':''),true);}
-  if(yt&&yt.d!=null)html+=kpiCard('Évolution vs '+exLabelCourt(yt.f.prev),fmtPct(yt.d),'à date, '+fmtMoney(yt.cur)+' vs '+fmtMoney(yt.prev));
   if(objectif&&at&&!at.complete){const gap=at.central-objectif;html+=kpiCard('Écart vs objectif',(gap>=0?'+':'-')+fmtMoney(Math.abs(gap)),gap>=0?'objectif jouable':'objectif menacé');}
   html+=`</div>`;
-  html+=`<div class="expl-ctrls"><div class="field"><label>Objectif de CA annuel (HT), optionnel</label><input type="text" value="${objectif?esc(fmtNum(objectif)):''}" placeholder="ex. 500000" onchange="setObjectif(this.value)"></div></div>`;
   if(at&&!at.complete)html+=`<p class="note">Atterrissage ${at.method==='saison'?('calé sur la saisonnalité de '+exLabel(at.cur-1)):('linéaire (faute d\'un '+exMot()+' précédent en base)')}.</p>`;
 
-  // 2. Plan d'action priorise (tous les agents)
+  /* LE CHAMP « OBJECTIF DE CA ANNUEL » A ETE RETIRE D'ICI LE 11/09/2026, et il n'a pas
+     demenage : il EXISTAIT DEJA dans « Mes réglages », onglet « Tes ventes », a cote du
+     mois d'ouverture de l'exercice. Deux champs de saisie pour une seule valeur, dans deux
+     ecrans differents, et celui-ci ne se repeignait qu'au rendu de la piece : de quoi voir
+     deux montants differents pour le meme reglage. Il reste une phrase qui dit ou aller. */
+  html+=`<p class="note">${objectif?`Objectif fixé à ${fmtMoney(objectif)}.`:`Aucun objectif de CA fixé.`} Il se règle dans <b>Mes réglages</b>, onglet « Tes ventes ».</p>`;
+
+  // ------------------------- Ce qui presse -------------------------
   html+=`<div class="section-label">À regarder en priorité</div>`;
   const sigs=diagnosticSignals();
   if(sigs.length)sigs.forEach(x=>html+=signal(x.kind,x.ico,x.verdict,x.action));
   else html+=signal('ok','✔','Rien d\'urgent sur la base chargée.','Tes indicateurs sont au vert. Continue le suivi régulier.');
 
-  // 3. Tendance desaisonnalisee
-  html+=`<div class="section-label">Tendance de fond, corrigée de la saisonnalité</div>`;
-  const series=monthlySeries();
-  if(series.length>=6)html+=`<div class="card"><div class="card__title"><span>Élan réel mois après mois</span></div><div class="chart-wrap"><canvas id="chTrend"></canvas></div><p class="note">On neutralise tes pics et tes creux de saison pour voir ta vraie dynamique. Une pente qui monte, c'est du progrès hors effet calendaire.</p></div>`;
-  else html+=signal('info','ℹ','Pas assez de mois pour dégager une tendance.','Il faut au moins six mois de données datées dans la base.');
+  /* ------------------------- ETAGE 2 : LA FORME ET LES CHIFFRES ------------------------- */
+  html+=`<div style="margin:.2rem 0 1.1rem"><span class="toggle">
+    <button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA HT</button>
+    <button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button>
+  </span></div>`;
 
-  // 4. D'ou vient l'evolution : prix/volume + contribution clients
-  html+=`<div class="section-label">D'où vient l'évolution</div>`;
+  html+=`<div class="section-label">La forme de ton ${exMot()}</div>
+    <div class="card"><div class="card__title"><span>${uiMesure==='ca'?'CA HT':'Bouteilles'} par mois${f?' · '+exLabelCourt(f.cur)+' vs '+exLabelCourt(f.prev):''}</span></div><div class="chart-wrap"><canvas id="chApMonth"></canvas></div></div>`;
+
+  html+=`<div class="section-label">Sur la période affichée</div><div class="kpi-grid">
+    ${kpiCard('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
+    ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantité vendue')}
+    ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
+    ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
+    ${kpiCard('Clients actifs',fmtNum(clients),'ont acheté sur la période')}
+  </div>`;
+
+  /* ------------------------- ETAGE 3 : CE QUI EXPLIQUE, REPLIE -------------------------
+     LA COURBE DE TENDANCE EST DESSINEE AU PREMIER DEPLI, comme celles du pied de « Mes
+     cuvees » : un <canvas> dans un <details> ferme a une hauteur de zero, et Chart.js s'y
+     dessine a zero pixel sans rien dire. */
+  const series=monthlySeries();
   const pv=computePriceVolume();
+  let fond='';
+  if(series.length>=6)fond+=`<div class="card"><div class="card__title"><span>Élan réel mois après mois, corrigé de la saisonnalité</span></div><div class="chart-wrap"><canvas id="chTrend"></canvas></div><p class="note">On neutralise tes pics et tes creux de saison pour voir ta vraie dynamique. Une pente qui monte, c'est du progrès hors effet calendaire.</p></div>`;
+  else fond+=signal('info','ℹ','Pas assez de mois pour dégager une tendance.','Il faut au moins six mois de données datées dans la base.');
   if(pv){
-    html+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${exLabelCourt(pv.cur)} vs ${exLabelCourt(pv.prev)} à date égale</span></div>
+    fond+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${exLabelCourt(pv.cur)} vs ${exLabelCourt(pv.prev)} à date égale</span></div>
       <table class="data"><tbody>
       <tr><td>Effet volume (quantités vendues)</td><td class="num" style="color:${pv.volEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.volEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.volEff))}</td></tr>
       <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${pv.priceEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.priceEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.priceEff))}</td></tr>
       <tr><td><b>Variation totale</b></td><td class="num"><b>${pv.delta>=0?'+':'-'}${fmtMoney(Math.abs(pv.delta))}</b></td></tr>
       </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
-  }else html+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
-  /* LES PLUS GROS MOUVEMENTS PAR CLIENT SONT PARTIS AVEC LE VERDICT, dans « Mon commerce »,
-     le 11/09/2026. Ils nomment les clients derriere les quatre lignes de mouvement : les
-     separer du tableau qu'ils detaillent n'avait plus de sens des lors que ce tableau a
-     change de piece. */
+  }else fond+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
+  html+=`<div class="card"><details class="msg--replie" id="pied-cap">
+    <summary>Ce qui explique ta variation</summary>${fond}</details></div>`;
 
   p.innerHTML=html;
-  if(series.length>=6){const si=seasonalIndex(series),labels=[],data=[];series.forEach(pt=>{const idx=si.idx[pt.m]||1;labels.push(MOIS_FR[pt.m-1]+' '+String(pt.y).slice(2));data.push(idx?pt.v/idx:pt.v);});drawTrend(labels,data);}
+  drawApMonth();
+  const d=el('pied-cap');
+  if(d)d.addEventListener('toggle',function(){
+    if(!d.open||d.dataset.peint)return;
+    d.dataset.peint='1';
+    if(series.length>=6){const si=seasonalIndex(series),labels=[],data=[];series.forEach(pt=>{const idx=si.idx[pt.m]||1;labels.push(MOIS_FR[pt.m-1]+' '+String(pt.y).slice(2));data.push(idx?pt.v/idx:pt.v);});drawTrend(labels,data);}
+  });
 }
 
 /* ======================= EXPERTISE 1 : REACTIVATION (RFM) ======================= */

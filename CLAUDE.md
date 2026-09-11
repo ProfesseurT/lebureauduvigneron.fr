@@ -1482,3 +1482,28 @@ citaient l'ecran d'origine.
 CET eval. Charger `bdv-base.js` puis `bdv-ecrans.js` en deux appels donne « ROWS is not
 defined », sans que rien n'ait echoue avant. Les deux fichiers et le scenario de test partent
 ensemble, en une seule chaine. Voir `scripts/banc-registre.mjs`.
+
+## UN NOM BIEN CHOISI SUPPRIME DU CODE, 11/09/2026
+
+Lot 4 de la redecoupe. La piece de bilan s'appelait « Mon annee » ou « Mon exercice » selon le
+mois d'ouverture du domaine. Pour ecrire ce libelle sans charger le moteur, `bdv-nav.js` relisait
+la cle d'exercice du navigateur de son cote : une cle dupliquee, avec quinze lignes de commentaire
+pour expliquer pourquoi c'etait dangereux et pourquoi on le faisait quand meme.
+
+Elle s'appelle « Mon cap ». Le nom pose la question a laquelle la piece repond au lieu de nommer
+une periode, il tient sur les deux exercices, et il ne depend plus d'aucun reglage. La duplication,
+sa fonction et ses quinze lignes de commentaire ont disparu avec lui.
+
+**Avant d'ecrire du code pour faire varier un libelle, chercher le nom qui n'a pas besoin de
+varier.** C'est presque toujours le meilleur nom, et c'est toujours le moins cher.
+
+## DEUX CHAMPS DE SAISIE POUR UNE VALEUR, C'EST UN CHAMP DE TROP, 11/09/2026
+
+L'objectif de CA annuel se saisissait dans « Mon annee » ET dans « Mes reglages », onglet « Tes
+ventes ». Meme cle, meme ecriture en base, deux formulaires. Celui de la piece ne se repeignait
+qu'au rendu de l'ecran : apres une saisie dans les reglages, il pouvait afficher l'ancien montant
+jusqu'au prochain calcul.
+
+La regle : **un reglage se saisit dans les reglages, et nulle part ailleurs.** Un ecran qui a
+besoin de le montrer affiche sa VALEUR et dit ou la changer. Vaut pour tout ce qui vit dans
+`profils` : objectif, mois d'exercice, libelles perso, preferences de courrier.
