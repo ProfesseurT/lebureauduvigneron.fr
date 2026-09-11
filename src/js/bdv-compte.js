@@ -990,6 +990,45 @@
     }catch(e){ return null; }
   }
 
+  // ---------------- APPEL DE FONCTION SANS SESSION ----------------
+  // `api()` et `compter()` rendent null hors session, volontairement : tout ce qu'ils
+  // atteignent est protege par ligne et n'a aucun sens sans jeton d'utilisateur.
+  //
+  // LA PAGE DES PREFERENCES D'E-MAIL EST LE CAS CONTRAIRE, et ce n'est pas une commodite :
+  // se retirer doit etre aussi simple que consentir (RGPD 7-3). Quelqu'un qui a perdu son
+  // mot de passe, ou qui lit le mail sur un telephone ou il n'est pas connecte, doit pouvoir
+  // s'arreter quand meme. Exiger une connexion pour se desinscrire, c'est rendre le retrait
+  // plus difficile que le consentement.
+  //
+  // CE QUE CETTE PORTE OUVRE, EXACTEMENT : les deux fonctions `emails_lire` et
+  // `emails_ecrire`, qui sont `security definer` et ne rendent rien sans un jeton exact de
+  // 128 bits. La cle anon seule ne donne acces a aucune ligne d'aucune table : c'est la
+  // securite par ligne qui protege, jamais le secret de cette cle.
+  //
+  // `Authorization: Bearer <cle anon>` et pas seulement `apikey` : sans en-tete
+  // d'autorisation, PostgREST refuse avec un message anglais de passerelle, celui-la meme
+  // qui nous a coute une heure le 10/09/2026 sur la fonction du courrier.
+  async function rpcPublic(nom, corps){
+    if(!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('configuration absente');
+    const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + nom, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(corps || {})
+    });
+    if(!r.ok){
+      const detail = await r.text().catch(function(){ return ''; });
+      const err = new Error('Supabase a refuse ' + nom + ' (' + r.status + ')');
+      err.status = r.status;
+      err.detail = detail;
+      throw err;
+    }
+    const t = await r.text();
+    return t ? JSON.parse(t) : null;
+  }
+
   function monId(){ const s = lireSession(); return s ? s.user.id : null; }
 
   // ---------------- OUVERTURE DEPUIS N'IMPORTE QUEL BOUTON ----------------
@@ -1055,6 +1094,7 @@
     ouvrir: ouvrir,
     destinationDemandee: destinationDemandee,
     api: api,
+    rpcPublic: rpcPublic,
     compter: compter,
     oublierCetAppareil: oublierCetAppareil,
     monId: monId

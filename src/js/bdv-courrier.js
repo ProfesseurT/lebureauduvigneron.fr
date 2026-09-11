@@ -588,6 +588,17 @@ function bouton(url, libelle){
 function batir(d){
   d = d || {};
   var urlBureau = d.urlBureau || 'https://lebureauduvigneron.fr/mon-bureau/';
+
+  /* L'ADRESSE DES PREFERENCES D'E-MAIL, ET POURQUOI ELLE N'A PAS DE REPLI.
+     `urlBureau` a un repli parce qu'un bouton mort est moins grave qu'un mail
+     sans bouton. Ici c'est l'inverse : une adresse de desinscription qui ne
+     marche pas est PIRE que pas de lien du tout, parce qu'elle fait croire au
+     vigneron qu'il s'est desinscrit. Donc pas de repli, et l'appelant qui n'en
+     fournit pas obtient un mail sans lien -- que la fonction d'envoi refusera
+     d'expedier (garde-fou 3bis d'index.ts).
+     L'ancien nom `urlDesinscription` est encore accepte : le script d'apercu et
+     les fixtures du depot le passent, et les casser pour un nom n'apporte rien. */
+  var urlPrefs = d.urlPreferences || d.urlDesinscription || '';
   var jAuj      = jour(d.aujourdhui) || jour(new Date().toISOString().slice(0,10));
   var file      = d.file_travail || {};
   var annuaire  = file.noms || {};
@@ -804,13 +815,29 @@ function batir(d){
   + bouton(urlBureau,'Ouvrir mon bureau')
   + '</td></tr></table>'
 
+  /* ---- LE PIED, ET LA PHRASE QU'IL NE FAUT PAS ECRIRE A LA LEGERE ----
+     Ce pied disait, jusqu'au 11/09/2026 : « Tu recois ce courrier parce que tu
+     l'as demande dans les reglages de ton bureau. » C'ETAIT FAUX : le bloc « Le
+     courrier » des reglages ne portait que la case de l'edition bimensuelle, et
+     le courrier du matin partait a tout compte present dans la vue. Une phrase
+     qui affirme un consentement inexistant est pire qu'une phrase absente --
+     c'est celle qu'on citerait contre nous.
+     Elle est vraie depuis le lot 12 : `profils.consent_courrier` est eteint par
+     defaut, la vue v_courrier ne rend que les comptes qui l'ont allume, et les
+     deux chemins pour le faire sont nommes ici meme.
+     LE LIEN EST AU MEME RANG QUE LA PHRASE, pas en petit en dessous : se
+     retirer doit etre aussi simple que consentir (RGPD 7-3), et il marche sans
+     mot de passe, parce que quelqu'un qui a perdu son acces doit pouvoir
+     s'arreter quand meme. */
   + '<div style="border-top:1px solid '+C.filet+';margin:16px 18px 0 18px;padding:12px 0 18px 0;'
   +   'font-family:'+F_MONO+';font-size:10px;line-height:1.6;color:'+C.muted+';">'
-  +   'Tu reçois ce courrier parce que tu l\'as demandé dans les réglages de ton bureau.'
-  +   (d.urlDesinscription
-      ? ' <a href="'+esc(d.urlDesinscription)+'" style="color:'+C.muted+';">Ne plus le recevoir</a>.'
+  +   'Tu reçois ce courrier parce que tu as demandé les rappels du matin.'
+  +   (urlPrefs
+      ? ' <a href="'+esc(urlPrefs)+'" style="color:'+C.muted+';text-decoration:underline;">'
+        + 'Choisir mes e-mails ou ne plus rien recevoir</a>'
+        + ' &mdash; sans mot de passe.'
       : '')
-  +   '<br>Le Bureau du Vigneron, un service Solumatic.'
+  +   '<br>Le Bureau du Vigneron, un service Solumatic SAS, Nantes.'
   + '</div>'
 
   + '</td></tr></table>'
@@ -924,6 +951,17 @@ function batir(d){
   }
   t.push('-'.repeat(70));
   t.push('Ouvrir mon bureau : '+urlBureau);
+  /* LA VERSION TEXTE PORTE LE MEME PIED, et ce n'est pas du zele. Un lecteur
+     qui a coupe le HTML -- terminal, lecteur d'ecran, client ancien -- voit
+     CETTE version et rien d'autre. Un mail sans moyen d'arreter reste un mail
+     sans moyen d'arreter, quelle que soit la partie que le destinataire lit. */
+  t.push('');
+  t.push('Tu recois ce courrier parce que tu as demande les rappels du matin.');
+  if(urlPrefs){
+    t.push('Choisir mes e-mails ou ne plus rien recevoir, sans mot de passe :');
+    t.push(urlPrefs);
+  }
+  t.push('Le Bureau du Vigneron, un service Solumatic SAS, Nantes.');
 
   return { sujet:sujet, html:html, texte:t.join('\n'), vide:vide, compteurs:compteurs };
 }

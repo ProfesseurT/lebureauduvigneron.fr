@@ -18,7 +18,7 @@
    controlee par `npm run verif`. Ne pas la modifier a la main, ne pas la
    reformater : elle est lue par une expression exacte.
 
-   empreinte de la fabrique deployee : sha256 d4c7a2486e7bb1bf, 945 lignes.
+   empreinte de la fabrique deployee : sha256 50553fe12caf1ce7, 983 lignes.
 
    POURQUOI ELLE N'EST PLUS TENUE A LA MAIN, 10/09/2026. Elle l'etait, et elle
    annoncait 512 lignes quand la fabrique en faisait 880. Pire : le depot
@@ -121,20 +121,25 @@ import './bdv-courrier.js';
    inconnu disparait avec elle, sans que personne ne la relise.
    Le garde-fou est donc deplace sur le FAIT qui manque vraiment : un courrier
    quotidien qui porte des noms de clients et des montants doit offrir un moyen
-   d'arreter (RGPD, article 7-3). Tant que `URL_DESINSCRIPTION` est absente, la
-   fonction REFUSE d'ecrire a une adresse qui n'a pas deja consenti en direct.
-   Le jour ou cette adresse existe, on renseigne UN SECRET et la porte s'ouvre
-   d'elle-meme, sans redeploiement et sans qu'on ait a se souvenir de rien. */
+   d'arreter (RGPD, article 7-3). */
 const DESTINATAIRES_AUTORISES: string[] = [];
 
-/* Les adresses de Ted. Elles n'ont pas besoin d'un lien de desinscription : il
-   a mis le systeme en place, il sait comment l'arreter, et il est le seul a
-   pouvoir toucher au declencheur. Ce n'est PAS une liste d'autorisation, c'est
-   la liste de ceux pour qui la question du consentement ne se pose pas. */
-const CONSENTEMENT_ACQUIS = [
-  'teddy@solumatic.fr',
-  'teddypereira88@gmail.com',
-];
+/* LOT 12, 11/09/2026 : LE CONSENTEMENT N'EST PLUS UNE AFFAIRE DE CETTE FONCTION.
+   Il y avait ici une liste de deux adresses -- les miennes -- pour lesquelles
+   « la question du consentement ne se pose pas », et un refus d'ecrire a toute
+   autre tant qu'un secret `URL_DESINSCRIPTION` restait vide. Les deux ont
+   disparu, et c'est un progres et non un relachement :
+
+   `profils.consent_courrier` est ETEINT PAR DEFAUT et la vue `v_courrier` ne
+   rend que les comptes qui l'ont allume. Le consentement est donc verifie par
+   la REQUETE, une fois, pour tout appelant present et futur -- y compris celui
+   qui lira cette vue dans six mois sans avoir lu ce fichier. Une regle posee
+   dans la requete ne s'oublie pas ; une liste d'exceptions dans le code de
+   l'expediteur, si.
+
+   CE QUI RESTE VERIFIE ICI est l'autre moitie, celle que la base ne peut pas
+   voir : que le mail PARTE AVEC un lien qui permet d'arreter. C'est le
+   garde-fou 3bis, plus bas, et il porte maintenant sur le jeton du compte. */
 const EXPEDITEUR = 'Le Bureau du Vigneron <bureau@courrier.lebureauduvigneron.fr>';
 
 /* Le plafond gratuit de Resend est de 100 mails par jour, et c'est le MEME
@@ -173,14 +178,33 @@ const CLE_DECLENCHEUR = Deno.env.get('COURRIER_CLE') ?? '';
 const URL_BUREAU = Deno.env.get('URL_BUREAU')
   ?? 'https://lebureauduvigneron.fr/mon-bureau/';
 
-/* L'adresse ou un vigneron peut arreter de recevoir le courrier. Un secret et
-   pas une constante, pour la meme raison qu'URL_BUREAU : le jour ou elle
-   existe, on la renseigne et le courrier s'ouvre, sans toucher au code.
-   TANT QU'ELLE EST VIDE, seules les adresses de CONSENTEMENT_ACQUIS recoivent.
-   La fabrique sait deja dessiner le lien, elle attend qu'on lui en donne un --
-   verifie le 10/09/2026 : `urlDesinscription` existe dans bdv-courrier.js et
-   n'etait passee par personne. */
-const URL_DESINSCRIPTION = Deno.env.get('URL_DESINSCRIPTION') ?? '';
+/* ---- L'ADRESSE DES PREFERENCES, DEDUITE ET NON RENSEIGNEE ----
+   Il y avait ici un SECOND secret, `URL_DESINSCRIPTION`. Il est supprime, et
+   pas par economie : deux secrets qui doivent designer le meme deploiement sont
+   deux secrets qui peuvent le designer differemment. Le jour ou on branche
+   enfin le domaine, on change `URL_BUREAU` et on oublie l'autre -- et le mail
+   part avec un bouton vivant et un lien de desinscription mort, c'est-a-dire
+   exactement le defaut qu'on ne verra pas, puisque l'envoi reussit.
+
+   La page des preferences vit sur le MEME site que le bureau. Son adresse se
+   deduit donc de celle du bureau, et les deux liens du mail ne peuvent plus
+   diverger. Un secret de moins a se rappeler, une panne de moins a decouvrir.
+
+   PAS DE REPLI EN DUR, volontairement, et c'est l'inverse du choix fait pour
+   `URL_BUREAU`. Un bouton mort est moins grave qu'un mail sans bouton ; une
+   adresse de desinscription morte est PIRE que pas de lien, parce qu'elle fait
+   croire au vigneron qu'il s'est desinscrit. Si le calcul echoue, cette valeur
+   reste vide, le garde-fou 3bis refuse tout envoi, et `url_preferences: null`
+   le dit dans le rapport. Le systeme s'arrete au lieu de mentir. */
+const URL_PREFERENCES = (() => {
+  try { return new URL('/mes-emails/', URL_BUREAU).toString(); }
+  catch { return ''; }
+})();
+
+/* Le nom du parametre qui porte le jeton dans l'URL. Court exprès : cette
+   adresse se retrouve dans des mails qu'on relit sur un telephone, et elle se
+   recopie parfois a la main. */
+const PARAM_JETON = 'j';
 
 // deno-lint-ignore no-explicit-any
 const BdvCourrier = (globalThis as any).BdvCourrier;
@@ -374,13 +398,13 @@ Deno.serve(async (req: Request) => {
        de s'apercevoir qu'elle est fausse avant le vigneron. */
     url_bureau: URL_BUREAU,
     /* Regle 4 de CLAUDE.md : la valeur dont depend une decision va dans le
-       rapport. Celle-ci decide qui recoit. */
-    url_desinscription: URL_DESINSCRIPTION || null,
+       rapport. Celle-ci decide si QUELQU'UN recoit : vide, plus rien ne part. */
+    url_preferences: URL_PREFERENCES || null,
     heure_paris: heure,
     comptes_lus: comptes.length,
     envoyes: 0,
     deja_envoyes: 0,
-    sans_desinscription: 0,
+    sans_jeton: 0,
     rejoues,
     vides: 0,
     sans_adresse: 0,
@@ -394,10 +418,21 @@ Deno.serve(async (req: Request) => {
     const id = String(c.id ?? '');
     const adresse = String(c.email ?? '').trim().toLowerCase();
 
+    /* LE LIEN EST PROPRE A CHAQUE COMPTE : il porte le jeton de sa ligne. Pas
+       l'identifiant du compte -- celui-la est l'identifiant d'authentification,
+       il traine dans des journaux et des exports. Le jeton ne sert qu'a ca et se
+       revoque d'un `update` sans toucher au compte.
+       `encodeURIComponent` alors qu'un UUID n'a rien a echapper : le jour ou ce
+       jeton change de forme, cette ligne n'aura pas a etre relue. */
+    const jeton = String(c.jeton_emails ?? '').trim();
+    const lienPrefs = (URL_PREFERENCES && jeton)
+      ? URL_PREFERENCES + '?' + PARAM_JETON + '=' + encodeURIComponent(jeton)
+      : '';
+
     const mail = BdvCourrier.batir({
       aujourdhui,
       urlBureau: URL_BUREAU,
-      urlDesinscription: URL_DESINSCRIPTION || null,
+      urlPreferences: lienPrefs || null,
       depose_le: c.depose_le,
       file_travail: { signaux: c.signaux, noms: c.noms },
       resume_ventes: c.resume_ventes,
@@ -447,16 +482,25 @@ Deno.serve(async (req: Request) => {
 
     /* ---- GARDE-FOU 3bis : PAS DE MOYEN D'ARRETER, PAS D'ENVOI ----
        Ce courrier est quotidien et il porte des noms de clients et des
-       montants. Sans lien de desinscription, l'envoyer a quelqu'un qui n'a pas
-       consenti en direct est un manquement, pas une finition (RGPD 7-3).
-       Ce refus est mecanique et il se leve tout seul : le jour ou le secret
-       `URL_DESINSCRIPTION` porte une adresse, cette branche ne se declenche
-       plus. C'est ce qui remplace la liste en dur, et c'est plus honnete
-       qu'elle : elle bloquait tout le monde sans dire pourquoi. */
-    if (!URL_DESINSCRIPTION && !CONSENTEMENT_ACQUIS.includes(adresse)) {
-      rapport.sans_desinscription++;
+       montants. Un mail comme celui-la doit offrir un moyen de l'arreter
+       (RGPD 7-3), et ce n'est pas une finition : c'est une condition d'envoi.
+
+       CE REFUS EST DEVENU SEC, et c'est ce qu'il faut. Avant le lot 12 il
+       tolerait deux adresses connues faute de lien ; maintenant le lien existe
+       pour tout le monde, donc son absence sur une ligne ne signale plus une
+       fonctionnalite qui manque, mais une ANOMALIE : un jeton vide alors que la
+       colonne est `not null default gen_random_uuid()`, ou une adresse de
+       preferences que le calcul n'a pas pu faire. Dans les deux cas on ne sait
+       plus ce qu'on envoie, et on n'envoie pas.
+
+       Il ne peut pas se declencher en silence : `sans_jeton` et
+       `url_preferences` sont tous les deux dans le rapport. */
+    if (!lienPrefs) {
+      rapport.sans_jeton++;
       rapport.detail.push({ compte: id,
-        issue: 'refuse : aucun lien de desinscription, et consentement non acquis en direct' });
+        issue: !URL_PREFERENCES
+          ? 'refuse : adresse des preferences introuvable, verifier le secret URL_BUREAU'
+          : 'refuse : ce compte n\'a pas de jeton de preferences' });
       continue;
     }
     if (rapport.envoyes >= MAX_PAR_PASSAGE) {

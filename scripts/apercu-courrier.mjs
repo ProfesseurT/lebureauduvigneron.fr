@@ -137,7 +137,16 @@ function verifier(cas, r, donnees){
 const faits = [];
 for(const nom of aFaire){
   const d = JEU[nom];
-  const r = BdvCourrier.batir(d);
+  /* LE LIEN DE PREFERENCES EST POSE ICI, et pas dans les fixtures : il ne
+     depend pas du jeu d'essai, il depend du deploiement. Sans lui, l'apercu
+     dessinerait un pied SANS lien de desinscription, c'est-a-dire le seul pied
+     que la fonction d'envoi refuse d'expedier -- on relirait un mail qui ne
+     peut pas partir en croyant relire celui qui part.
+     Le jeton est faux et il le dit : cet apercu ne joint jamais Supabase. */
+  const r = BdvCourrier.batir(Object.assign({
+    urlPreferences: 'https://lebureauduvigneron.fr/mes-emails/'
+                  + '?j=00000000-0000-0000-0000-000000000000'
+  }, d));
   verifier(nom, r, d);
   writeFileSync(join(SORTIE, `${nom}.html`), r.html, 'utf8');
   writeFileSync(join(SORTIE, `${nom}.txt`), r.texte, 'utf8');

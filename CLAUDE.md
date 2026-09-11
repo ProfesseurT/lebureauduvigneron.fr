@@ -1368,3 +1368,54 @@ fait echouer aucun envoi, donc rien ne le signale.
 
 Et pour les dates et heures : ne jamais faire `Number()` sur un `Intl.DateTimeFormat` en
 locale francaise. Locale `en-GB`, ET retrait de tout ce qui n'est pas un chiffre.
+
+## UN CONSENTEMENT QU'ON AFFIRME DOIT EXISTER QUELQUE PART, 11/09/2026
+
+Le pied du courrier du matin a dit pendant deux jours : « Tu recois ce courrier parce que tu l'as
+demande dans les reglages de ton bureau. » Le bloc « Le courrier » des reglages ne portait qu'une
+case, celle de l'edition bimensuelle. **Le courrier du matin n'avait aucun interrupteur** : il
+partait a tout compte present dans la vue.
+
+La phrase n'etait pas une approximation, c'etait une declaration fausse sur un consentement, dans
+un mail quotidien qui porte des noms de clients et des montants. C'est exactement la phrase qu'un
+vigneron mecontent citerait, et elle etait de notre main.
+
+**Les trois regles qui en sortent.**
+
+1. **Une phrase de pied de mail est une affirmation verifiable.** Avant d'ecrire « tu l'as
+   demande », montrer la colonne qui le stocke. Si elle n'existe pas, la phrase ne s'ecrit pas.
+2. **Le consentement se verifie dans la REQUETE, jamais dans l'expediteur.** `v_courrier` se
+   termine par `where p.consent_courrier`. Une regle posee dans la vue protege tout appelant
+   present et futur, y compris celui qui la lira dans six mois sans avoir lu index.ts. Une liste
+   d'exceptions dans le code de l'expediteur, elle, s'oublie.
+3. **Un booleen de consentement se double d'une date.** Le RGPD 7-1 met la charge de la preuve
+   sur nous. Un booleen dit l'etat d'aujourd'hui, pas l'histoire, et le jour ou quelqu'un ecrit
+   « je n'ai jamais demande ca », la seule reponse qui tient est une date. La date est posee par
+   un DECLENCHEUR et pas par l'appelant : il y a trois chemins qui touchent ces cases, et il
+   suffit qu'un seul l'oublie pour que la preuve manque sur la ligne contestee.
+
+## UNE DUREE ANNONCEE SANS TACHE QUI L'APPLIQUE EST UNE DECLARATION FAUSSE, 11/09/2026
+
+En corrigeant `src/rgpd.njk`, j'ai ecrit que le journal des envois est « conserve un an, puis
+efface ». Rien ne l'effacait : `courrier_envois` grossit d'une ligne par compte et par jour, pour
+toujours. J'ai ecrit la phrase avant d'avoir la tache.
+
+Une duree de conservation annoncee et non tenue se verifie en une requete, et elle coute plus cher
+qu'une duree absente : c'est une declaration fausse, pas un oubli. Le lot 13 pose la purge.
+
+**La regle : toute phrase de la politique de confidentialite qui decrit un COMPORTEMENT
+(« conserve un an », « efface immediatement », « ne quitte jamais ton appareil ») se relit comme
+une specification. Soit le code la tient deja, soit les deux partent ensemble, soit la phrase ne
+s'ecrit pas.** Et si l'un des deux doit attendre, c'est la page.
+
+## UN BOUTON DE DESINSCRIPTION SE REGARDE, IL NE SE RELIT PAS, 11/09/2026
+
+La page `/mes-emails/` a ete ecrite avec `class="btn btn--ghost"` sur le bouton « Ne plus rien
+recevoir ». Cette classe pose `color: var(--paper)` : elle est faite pour les sections sombres.
+Sur le fond clair de la page, **le bouton etait parfaitement invisible**. Le code se relisait
+bien ; c'est la capture d'ecran qui l'a montre.
+
+Un bouton de desinscription invisible est le pire defaut possible sur cette page, et c'est celui
+que personne ne signale : on ne rale pas contre un bouton qu'on ne voit pas, on rale contre le
+mail qu'on continue de recevoir. Meme famille que les fonds de mail manges par Gmail, meme
+methode : **capturer avant de livrer, aux deux largeurs, et regarder l'image**.

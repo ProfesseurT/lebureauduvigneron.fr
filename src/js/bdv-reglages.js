@@ -358,8 +358,23 @@
 
       <fieldset class="bdvr-bloc" id="bdvrBlocCourrier" data-onglet="Le courrier">
         <legend class="bdvr-legende">Le courrier</legend>
+        <!-- LA CASE DU COURRIER DU MATIN EST LA PREMIERE, et pas par ordre d'arrivee : c'est
+             celle qui envoie un mail PAR JOUR, et celle qui porte des noms de clients et des
+             montants. Elle passe donc devant celle qui envoie deux fois par mois des nouvelles
+             de la filiere. Rangee dans l'ordre inverse, la plus engageante des deux se serait
+             lue en second, apres qu'on a decide que ce bloc etait sans enjeu.
+             Posee le 11/09/2026 : jusque-la ce bloc n'avait que la case de l'edition, et le
+             courrier du matin partait SANS interrupteur -- alors que son pied affirmait qu'on
+             l'avait demande ici meme. -->
+        <label class="bdvr-chk"><input type="checkbox" id="bdvrCourrier"> Recevoir le courrier du matin</label>
+        <p class="bdvr-aide">Chaque matin à 8 h, s'il y a quelque chose à dire : tes rappels du
+          jour, tes tâches en retard et ta file de travail. Rien de nouveau, rien dans ta boîte.
+          Il porte les noms de tes clients et tes montants, donc il ne part que si tu coches.</p>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
         <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>
+        <p class="bdvr-aide">Chaque envoi porte aussi un lien qui ramène à ces deux cases, sans
+          mot de passe : s'arrêter doit être aussi simple que commencer, et depuis n'importe
+          quel appareil.</p>
       </fieldset>
 
     </div>
@@ -589,6 +604,7 @@
     poser('bdvrCp',      p.code_postal);
     poser('bdvrQui',     p.profil);
     poser('bdvrViti',    p.utilise_vitisoft);
+    poser('bdvrCourrier', p.consent_courrier);
     poser('bdvrNews',    p.consent_news);
     const r = REGL || {};
     poser('bdvrObjectif', r.objectif);
@@ -680,11 +696,17 @@
       code_postal: el('bdvrCp').value.trim() || null,
       profil:      el('bdvrQui').value || null,
       utilise_vitisoft: el('bdvrViti').value || null,
+      consent_courrier: !!el('bdvrCourrier').checked,
       consent_news: !!el('bdvrNews').checked
     };
     const champs = {};
     Object.keys(vus).forEach(function(k){
-      const avant = (k === 'consent_news') ? !!p[k] : (p[k] || null);
+      /* Les deux consentements se comparent en booleen et pas avec `|| null` : `false ||
+         null` rend null, donc DECOCHER une case ne se voyait pas comme un changement et ne
+         partait jamais. Le piege etait deja evite pour `consent_news` ; il fallait le dire
+         pour deux, avant que la troisieme case ne le retrouve. */
+      const boolean = (k === 'consent_news' || k === 'consent_courrier');
+      const avant = boolean ? !!p[k] : (p[k] || null);
       if(vus[k] !== avant) champs[k] = vus[k];
     });
 

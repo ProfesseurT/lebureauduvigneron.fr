@@ -12,6 +12,69 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 11/09/2026. Le courrier demande la permission, et sait s'arreter
+
+Demande de Ted, mot pour mot : « on va resoudre les 3 choses. lien de desinscription avec le choix :
+emails de rappel / email bimensuel choisir ses preferences d'email / le footer d'email / courrier va
+rester pour l'instant. / Corrige src/rgpd.njk ».
+
+### Ce qu'on a trouve en ouvrant, et qui n'etait pas dans la demande
+
+Le pied du courrier disait « tu l'as demande dans les reglages de ton bureau ». **C'etait faux.**
+Le bloc « Le courrier » des reglages ne portait que la case de l'edition bimensuelle ; le courrier
+du matin, lui, partait a tout compte present dans la vue, sans interrupteur. La demande portait sur
+le lien qui manquait ; le trou reel etait le consentement qui n'existait pas.
+
+C'est ce qui a decide la forme du lot 12 : ajouter un lien sans ajouter la case aurait produit une
+page de desinscription qui coupe quelque chose que personne n'avait allume.
+
+### Les deux decisions de Ted
+
+1. **On entre par les deux chemins.** Un jeton dans le lien du mail, qui marche sans mot de passe,
+   ET les memes cases dans les reglages pour qui est connecte. Le premier est celui qui compte :
+   se retirer doit etre aussi simple que consentir (RGPD 7-3), et quelqu'un qui a perdu son acces
+   doit pouvoir s'arreter quand meme.
+2. **Le courrier du matin est eteint par defaut.** Un nouvel inscrit ne recoit rien tant qu'il n'a
+   pas coche. C'est ce qui rend la phrase du pied vraie.
+
+### Ce qu'on a ecarte
+
+**L'identifiant du compte dans l'URL de desinscription.** `profils.id` est l'identifiant
+d'authentification : il traine dans des jetons de session, des journaux, des exports. Un jeton
+dedie se revoque d'un `update` sans toucher au compte, et il ne sert qu'a ca. Meme raisonnement
+que `COURRIER_CLE` plutot que la cle de service.
+
+**Un second secret `URL_DESINSCRIPTION`.** Il existait, vide. Deux secrets qui doivent designer le
+meme deploiement sont deux secrets qui peuvent le designer differemment : le jour ou on branche le
+domaine, on change `URL_BUREAU`, on oublie l'autre, et le mail part avec un bouton vivant et un
+lien de desinscription mort. L'adresse des preferences se DEDUIT maintenant de celle du bureau.
+
+**Une confirmation avant de couper.** Le bouton « Ne plus rien recevoir » agit tout de suite. Une
+desinscription qui demande « es-tu sur ? » est une desinscription qu'on peut rater ; le sens
+inverse, lui, ne coute rien a qui s'est trompe.
+
+### Deux erreurs de ma main, toutes deux rattrapees avant livraison
+
+**J'ai ecrit dans la politique de confidentialite que le journal des envois est conserve un an,
+alors que rien ne l'effacait.** Une duree annoncee et non tenue est une declaration fausse, pas un
+oubli. Le lot 13 pose la purge hebdomadaire. Regle consignee dans CLAUDE.md.
+
+**Le bouton « Ne plus rien recevoir » etait invisible.** `btn--ghost` peint en couleur papier,
+pour les sections sombres ; sur le fond clair de la page, il n'existait pas a l'oeil. Le code se
+relisait bien. C'est la capture d'ecran qui l'a montre. Un bouton de desinscription invisible est
+le pire defaut possible sur cette page, et personne ne l'aurait signale.
+
+### Ce qui reste ouvert
+
+- Le sous-domaine `courrier.` reste, decision de Ted, a revoir si la delivrabilite bouge.
+- Rien ne limite le nombre d'appels aux deux fonctions publiques. A 128 bits d'entropie c'est hors
+  d'atteinte, et le gain serait de basculer la case d'un inconnu. A revoir si ces fonctions servent
+  un jour a autre chose.
+- La region de Resend n'est pas verifiee. La politique dit desormais que le courrier du matin
+  transite par eux avec son contenu : il faut regarder si le compte est bien en region europeenne.
+
+---
+
 ## 10/09/2026, fin de journee. Le panneau de liege devient une pile de travail
 
 Demande de Ted, mot pour mot : « il faut le rendre bcp plus usefull. il y a des KPI qui servent a

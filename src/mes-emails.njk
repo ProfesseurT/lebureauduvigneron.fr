@@ -1,0 +1,113 @@
+---
+layout: base.njk
+title: Mes e-mails
+description: Choisis les e-mails que Le Bureau du Vigneron t'envoie, ou arrête tout. Sans mot de passe.
+permalink: /mes-emails/
+eleventyExcludeFromCollections: true
+noindex: true
+---
+
+{#- CETTE PAGE S'OUVRE SANS MOT DE PASSE, ET C'EST LE POINT.
+    Le RGPD 7-3 demande que se retirer soit aussi simple que consentir. Exiger
+    une connexion pour se desinscrire, ce serait rendre le retrait plus
+    difficile que le consentement : quelqu'un qui a perdu son acces, ou qui lit
+    le mail sur un telephone ou il n'est pas connecte, resterait inscrit.
+    La porte est donc le jeton pose dans le lien du mail. Il ne donne acces a
+    rien d'autre que ces deux cases : ni au bureau, ni aux ventes, ni meme a
+    l'adresse e-mail en clair, qui est rendue masquee.
+    `eleventyExcludeFromCollections` : elle n'a rien a faire dans un menu ni
+    dans un fil d'articles. On y arrive par un mail, jamais par le site. -#}
+
+{#- `noindex: true` dans l'entete, et pas une balise ecrite ici : une balise
+    <meta> posee dans le corps de la page est IGNOREE par les robots, elle n'a
+    de valeur que dans <head>. Le drapeau de l'entete passe par
+    components/tete-seo.njk, qui l'ecrit au bon endroit -- et c'est deja lui qui
+    ecarte la page du plan du site. Une adresse qui porte un jeton n'a rien a
+    faire dans un moteur de recherche. -#}
+
+<section class="about-hero">
+  <div class="container">
+    <h1>Tes e-mails</h1>
+    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
+      Ce que tu reçois, et ce que tu ne reçois plus. Sans mot de passe.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:44rem;">
+
+    <p id="mailsAttente">Chargement de tes préférences…</p>
+
+    <div id="mailsIntrouvable" hidden>
+      <h2>Ce lien ne correspond à rien</h2>
+      <p>Il a peut-être été coupé en deux par ta messagerie, ou il a été remplacé depuis.
+        Ouvre le dernier courrier que tu as reçu et reclique dessus, ou change tes
+        préférences depuis ton bureau : <b>Mes réglages</b>, onglet <b>Le courrier</b>.</p>
+      <p><a class="btn" href="/mon-bureau/">Ouvrir mon bureau</a></p>
+      <p>Si rien ne marche, écris à <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a>
+        et on te désinscrit à la main, le jour même.</p>
+    </div>
+
+    <form id="mailsForm" hidden>
+      <p>Préférences de <b id="mailsAdresse"></b>.</p>
+
+      <fieldset style="border:1px solid var(--filet, #ddd); border-radius:6px; padding:1rem 1.25rem; margin:0 0 1.25rem 0;">
+        <legend style="padding:0 .5rem; font-weight:600;">Le courrier du matin</legend>
+        <label style="display:block; margin:0 0 .5rem 0;">
+          <input type="checkbox" id="mailsRappels"> Me l'envoyer
+        </label>
+        <p style="margin:0; font-size:.92rem; color:var(--muted, #666);">
+          Chaque matin à 8 h, s'il y a quelque chose à dire : tes rappels du jour, tes tâches
+          en retard et ta file de travail. Rien de nouveau, rien dans ta boîte.
+          Il porte les noms de tes clients et tes montants.
+          <span id="mailsRappelsDepuis" hidden></span>
+        </p>
+      </fieldset>
+
+      <fieldset style="border:1px solid var(--filet, #ddd); border-radius:6px; padding:1rem 1.25rem; margin:0 0 1.25rem 0;">
+        <legend style="padding:0 .5rem; font-weight:600;">L'édition du Bureau</legend>
+        <label style="display:block; margin:0 0 .5rem 0;">
+          <input type="checkbox" id="mailsEdition"> Me l'envoyer
+        </label>
+        <p style="margin:0; font-size:.92rem; color:var(--muted, #666);">
+          Deux fois par mois : ce qui bouge dans la filière et dans l'outil.
+          <span id="mailsEditionDepuis" hidden></span>
+        </p>
+      </fieldset>
+
+      <p role="status" id="mailsAvis" hidden style="font-weight:600;"></p>
+
+      <p>
+        <button class="btn" type="submit" id="mailsEnregistrer">Enregistrer</button>
+        {#- LE BOUTON « TOUT ARRETER » EST UN BOUTON, pas une case a decocher deux fois.
+            Quelqu'un qui arrive ici parce qu'il en a assez ne doit pas avoir a comprendre
+            la difference entre deux envois pour obtenir le silence. -#}
+        {#- PAS DE `btn--ghost` ICI, ET C'EST UNE CORRECTION ET NON UN GOUT.
+            Cette classe pose `color: var(--paper)` : elle est faite pour les sections
+            SOMBRES du site. Posee sur ce fond clair, le bouton etait parfaitement
+            invisible -- vu a la capture du 11/09/2026, pas a la relecture du code.
+            Un bouton de desinscription invisible, c'est une page de desinscription qui
+            n'en est pas une : le pire defaut possible sur cette page precise, et celui
+            que personne ne signale, puisqu'on ne rale pas contre un bouton qu'on ne
+            voit pas. Les couleurs sont donc ecrites ici, en clair. -#}
+        <button class="btn" type="button" id="mailsToutCouper"
+                style="margin-left:.75rem; background:transparent; color:var(--bordeaux);
+                       border:1px solid var(--bordeaux);">Ne plus rien recevoir</button>
+      </p>
+
+      <p style="font-size:.92rem; color:var(--muted, #666);">
+        Ça ne supprime pas ton compte et ça ne touche pas à tes données. Les e-mails de
+        service — confirmation d'adresse, réinitialisation de mot de passe — partent de toute
+        façon : sans eux tu ne pourrais plus entrer chez toi.
+        Pour supprimer ton compte, écris à
+        <a href="mailto:teddy@solumatic.fr">teddy@solumatic.fr</a>.
+      </p>
+    </form>
+
+    <p style="margin-top:2rem;"><a href="/politique-confidentialite/">Politique de confidentialité</a> ·
+      <a href="/">← Accueil</a></p>
+  </div>
+</section>
+
+<script src="/js/bdv-emails.js" defer></script>
