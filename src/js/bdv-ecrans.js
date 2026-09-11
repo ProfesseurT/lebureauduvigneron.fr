@@ -115,7 +115,7 @@ function jourMoisRecule(n){
    aux deux endroits, dans le meme commit. */
 const NAV=[
   {id:'annee',   ico:'&#128200;', label:'Mon année'},
-  {id:'clients', ico:'&#128101;', label:'Mes clients'},
+  {id:'clients', ico:'&#128101;', label:'Mon commerce'},
   {id:'produits',ico:'&#127863;', label:'Mes produits'},
   {id:'chercher',ico:'&#128301;', label:'Chercher'},
   // « Ma base » et « Réglages » ont fusionné le 07/09/2026. Ce ne sont plus deux écrans de
@@ -436,20 +436,15 @@ function renderApercu(){
     <div class="card"><div class="card__title"><span>Top cuvées</span></div>${(()=>{const e=allEntries(groupSum(rows,r=>r.produit)).slice(0,7);return e.length?barListHTML(e):'<p class="note">Aucune donnée.</p>';})()}</div>
   </div>`;
 
-  const tot=sum(rows,mesureVal);
-  const cliMap={};rows.forEach(r=>{const id=clientKey(r);cliMap[id]=(cliMap[id]||0)+mesureVal(r);});
-  const topCli=allEntries(cliMap).slice(0,8);
-  html+=`<div class="section-label">Qui fait ton chiffre</div><div class="grid-2">
-    <div class="card"><div class="card__title"><span>Top clients</span></div><table class="data"><thead><tr><th>Client</th><th class="num">${mesureLabel()}</th><th class="num">Part</th></tr></thead><tbody>${topCli.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${fmtMes(v)}</td><td class="num">${tot>0?fmtNum(v/tot*100,0)+'%':'-'}</td></tr>`).join('')}</tbody></table></div>
-    <div class="card"><div class="card__title"><span>Par canal de vente</span></div>${(()=>{const e=allEntries(groupSum(rows,r=>r._canal));return e.length?barListHTML(e):'<p class="note">Aucune donnée.</p>';})()}</div>
-  </div>`;
-
-  const byCli={};rows.forEach(r=>{const id=clientKey(r);byCli[id]=(byCli[id]||0)+r._total;});
-  const partsCA=Object.values(byCli).sort((a,b)=>b-a);
-  if(partsCA.length>=3&&ca>0){
-    const top3=partsCA.slice(0,3).reduce((s,v)=>s+v,0),partTop3=top3/ca*100,dep=partTop3>SEUILS.dependanceTop3;
-    html+=signal(dep?'warn':'ok',dep?'⚠':'✔',`Le top 3 clients pèse ${fmtNum(partTop3,0)}% de ton CA (${scope}).`,dep?`<b>Dépendance forte à surveiller.</b> Un départ ferait mal. Élargis ta base de gros clients.`:`Répartition saine, pas de dépendance excessive sur les 3 premiers clients.`);
-  }
+  /* LA SECTION « QUI FAIT TON CHIFFRE » A ETE VIDEE LE 11/09/2026, et ses trois blocs sont
+     partis chacun la ou on les cherche :
+       - le top clients et le signal de dependance au top 3 sont dans « Mon commerce ». La
+         question « qui pese quoi » se pose au moment ou l'on decide qui appeler, pas au
+         milieu d'un bilan.
+       - « Par canal de vente » etait le TROISIEME affichage du meme chiffre : le panneau
+         Canaux le donne deja en part ET en prix moyen, sur deux exercices. Il est supprime,
+         pas deplace : rien ne se perd.
+     La grille a deux colonnes disparait avec eux, il n'y avait plus rien a mettre en face. */
 
   html+=`<div class="section-label">Répartitions détaillées</div><div class="grid-rep">
     ${repCard('Par famille',r=>r.famille)}
@@ -1065,10 +1060,13 @@ function renderDiagnostic(){
   const p=el('p-diagnostic');if(!p)return;
   let html=`<h2 class="panel__title">Mon ${exMot()}</h2><div class="panel__sub">Où va ton argent, et pourquoi. Tout est calculé sur le CA HT.</div>`;
 
-  // 0. LE CHIFFRE QUI COMMANDE TOUT : d'ou vient la variation du chiffre d'affaires.
-  // Ce bloc etait le dernier de l'ecran. Il est le plus important : il montre qu'un domaine
-  // peut gagner beaucoup de nouveaux clients et faire du surplace parce qu'il en perd autant.
-  html+=bridgeHero();
+  /* LE VERDICT « D'OU VIENT TA VARIATION » EST PARTI DANS « MON COMMERCE » le 11/09/2026,
+     avec ses quatre lignes de mouvement de clientele. Motif : c'est une conclusion sur les
+     CLIENTS (« la question n'est pas d'en trouver plus, c'est de garder ceux que tu as »),
+     et le geste qu'elle reclame se fait dans l'autre piece. La laisser en tete d'un ecran
+     de bilan, c'etait demander au vigneron de changer d'onglet pour agir.
+
+     bridgeHero() n'a pas bouge d'un caractere : seul son point d'appel a change. */
 
   // 1. Synthese chiffree
   const at=computeAtterrissage(),yt=yoyTotals();
@@ -1106,14 +1104,10 @@ function renderDiagnostic(){
       <tr><td><b>Variation totale</b></td><td class="num"><b>${pv.delta>=0?'+':'-'}${fmtMoney(Math.abs(pv.delta))}</b></td></tr>
       </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
   }else html+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
-  // Le detail des plus gros mouvements reste ici ; la synthese, elle, est remontee en tete.
-  const br=computeBridge();
-  if(br&&br.movers.length){
-    html+=`<div class="card"><div class="card__title"><span>Plus gros mouvements par client, ${br.cur} vs ${br.prev} à date égale</span></div>
-      <table class="data"><thead><tr><th>Client</th><th class="num">Effet</th></tr></thead><tbody>
-      ${br.movers.slice(0,10).map(c=>`<tr><td>${esc(c[0])}</td><td class="num" style="color:${c[1]>=0?'var(--ok)':'var(--danger-deep)'}">${c[1]>=0?'+':'-'}${fmtMoney(Math.abs(c[1]))}</td></tr>`).join('')}
-      </tbody></table><p class="note">Calculé à mois comparables entre les deux années.</p></div>`;
-  }
+  /* LES PLUS GROS MOUVEMENTS PAR CLIENT SONT PARTIS AVEC LE VERDICT, dans « Mon commerce »,
+     le 11/09/2026. Ils nomment les clients derriere les quatre lignes de mouvement : les
+     separer du tableau qu'ils detaillent n'avait plus de sens des lors que ce tableau a
+     change de piece. */
 
   p.innerHTML=html;
   if(series.length>=6){const si=seasonalIndex(series),labels=[],data=[];series.forEach(pt=>{const idx=si.idx[pt.m]||1;labels.push(MOIS_FR[pt.m-1]+' '+String(pt.y).slice(2));data.push(idx?pt.v/idx:pt.v);});drawTrend(labels,data);}
@@ -2098,18 +2092,84 @@ const MOTIFS={
   premier:{label:'Premier achat',     cls:'m-premier', aide:'Clients venus une seule fois. Le taux de retour est mesuré sur ta base, par montant et par type.'}
 };
 let filtreMotif='tous';
+/* ================= MON COMMERCE : L'ETAGE 3, REPLIE =================
+   Ecrit le 11/09/2026, lot 1 de la redecoupe du bureau.
+
+   TROIS ETAGES, ET PAS UNE PILE. La piece s'ouvre sur un VERDICT (bridgeHero), continue
+   par la LISTE ou l'on agit, et finit par ce qui explique sans rien demander. Ce
+   troisieme etage est replie : visible, cliquable, mais il ne pousse pas la liste hors
+   de l'ecran. C'est cette discipline qui evite de refabriquer « Mon annee » ailleurs.
+   Tout bloc qui entrera ensuite dans cette piece devra se ranger dans un des trois.
+
+   LE PERIMETRE EST TOUTE LA BASE, ET C'EST UN CHANGEMENT ASSUME. Ces deux tableaux
+   venaient de l'apercu, ou ils suivaient la barre de periode. Or cette barre ne s'affiche
+   QUE sur l'ecran « Mon annee » (voir navTo : `filterbar` y est le seul a passer en flex).
+   Les poser ici en leur laissant lire `filters` aurait donne un top clients calcule sur un
+   filtre INVISIBLE, pose dans une autre piece, parfois des semaines plus tot. Un chiffre
+   dont on ne peut pas voir le perimetre est un chiffre faux.
+
+   ET LA MESURE EST LE CA HT, toujours. La bascule CA / bouteilles est restee elle aussi
+   dans « Mon annee » : passer par mesureVal() aurait fait suivre a ces tableaux un reglage
+   qui n'a aucune commande visible ici.
+   ==================================================================== */
+function piedCommerce(){
+  const rows=ROWS.filter(r=>r._vin);
+  if(!rows.length)return '';
+  const parCli={};
+  rows.forEach(r=>{const id=clientKey(r);const o=parCli[id]||(parCli[id]={nom:r.client||id,ca:0});o.ca+=r._total;});
+  const liste=Object.values(parCli).sort((a,b)=>b.ca-a.ca);
+  const ca=liste.reduce((s,c)=>s+c.ca,0);
+  if(!liste.length||ca<=0)return '';
+
+  let dedans=`<table class="data"><thead><tr><th>Client</th><th class="num">CA HT</th><th class="num">Part</th></tr></thead><tbody>`
+    +liste.slice(0,8).map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.ca)}</td><td class="num">${fmtNum(c.ca/ca*100,0)}%</td></tr>`).join('')
+    +`</tbody></table>`;
+
+  if(liste.length>=3){
+    const part3=liste.slice(0,3).reduce((s,c)=>s+c.ca,0)/ca*100, dep=part3>SEUILS.dependanceTop3;
+    dedans+=signal(dep?'warn':'ok',dep?'⚠':'✔',
+      `Le top 3 clients pèse ${fmtNum(part3,0)}% de ton CA, sur tout l'historique.`,
+      dep?`<b>Dépendance forte à surveiller.</b> Un départ ferait mal. Élargis ta base de gros clients.`
+         :`Répartition saine, pas de dépendance excessive sur les 3 premiers clients.`);
+  }
+
+  const br=computeBridge();
+  if(br&&br.movers.length){
+    dedans+=`<div class="card"><div class="card__title"><span>Plus gros mouvements par client, ${br.cur} vs ${br.prev} à date égale</span></div>
+      <table class="data"><thead><tr><th>Client</th><th class="num">Effet</th></tr></thead><tbody>
+      ${br.movers.slice(0,10).map(c=>`<tr><td>${esc(c[0])}</td><td class="num" style="color:${c[1]>=0?'var(--ok)':'var(--danger-deep)'}">${c[1]>=0?'+':'-'}${fmtMoney(Math.abs(c[1]))}</td></tr>`).join('')}
+      </tbody></table><p class="note">Calculé à mois comparables entre les deux années.</p></div>`;
+  }
+
+  return `<div class="card"><details class="msg--replie">
+    <summary>Qui pèse quoi dans ton chiffre</summary>
+    <p class="note" style="margin-top:0">Sur tout l'historique de ta base, en CA HT. Ces tableaux expliquent, ils ne demandent rien.</p>
+    ${dedans}</details></div>`;
+}
+
 function renderClients(){
   CLIENTS=agentClients();
-  let html=`<h2 class="panel__title">Mes clients</h2>`;
+  let html=`<h2 class="panel__title">Mon commerce</h2>`;
+
+  /* ETAGE 1, LE VERDICT. Arrive de « Mon annee » le 11/09/2026, et il est EN TETE, avant
+     meme le test de liste vide : « tu fais du surplace » reste vrai un jour ou il n'y a
+     personne a rappeler, et c'est meme ce jour-la qu'il est le plus utile a lire. */
+  html+=bridgeHero();
+
   if(!CLIENTS.length){
-    html+=`<div class="panel__sub">Les clients à qui il se passe quelque chose, réunis en une seule liste.</div>`
-      +signal('ok','✔','Personne à relancer.','Aucun client ne recule, ne rompt son rythme ni ne reste sans suite. Profites-en.');
+    html+=`<div class="section-label">Qui rappeler</div>`
+      +`<div class="panel__sub">Les clients à qui il se passe quelque chose, réunis en une seule liste.</div>`
+      +signal('ok','✔','Personne à relancer.','Aucun client ne recule, ne rompt son rythme ni ne reste sans suite. Profites-en.')
+      +piedCommerce();
     el('p-clients').innerHTML=html;return;
   }
   const parMotif=m=>CLIENTS.filter(c=>c.motif===m);
   const nb=m=>parMotif(m).length, som=m=>sum(parMotif(m),c=>c.montant);
-  const br=computeBridge();
-  html+=`<div class="panel__sub">Un client n'apparaît qu'une seule fois, avec la raison la plus solide qui le concerne. Les trois analyses tournent toujours, elles sont devenues les filtres ci-dessous.${br?` Ces clients sont ceux qui composent les lignes « perdus » et « en baisse » de <b>Mon ${exMot()}</b>.`:''}</div>`;
+  /* LA PHRASE DE RENVOI VERS « MON ANNEE » A DISPARU, et computeBridge() avec elle : elle
+     annoncait que ces clients composent les lignes « perdus » et « en baisse » d'un autre
+     ecran. Ces deux lignes sont maintenant juste au-dessus. Renvoyer ailleurs serait faux. */
+  html+=`<div class="section-label">Qui rappeler</div>`
+    +`<div class="panel__sub">Un client n'apparaît qu'une seule fois, avec la raison la plus solide qui le concerne. Les trois analyses tournent toujours, elles sont devenues les filtres ci-dessous.</div>`;
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
   html+=`<div class="motif-cards">${['recul','cadence','premier'].map(m=>`
@@ -2148,6 +2208,7 @@ function renderClients(){
     </tr>`;}).join('')}
     </tbody></table></div></div>`;
   html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul motif dont le taux de retour soit mesurable sur ${PROFIL&&PROFIL.moisCouverts?PROFIL.moisCouverts:'la'} mois d'historique. Pour les deux autres, il faudrait respectivement 30 et 36 mois. Mieux vaut une case vide qu'un chiffre inventé.</p>`;
+  html+=piedCommerce();   // etage 3 : replie, il ne pousse jamais la liste hors de l'ecran
   el('p-clients').innerHTML=html;
   FILTRES.clientsBody={q:'',joign:false};applyFilters('clientsBody');
 }

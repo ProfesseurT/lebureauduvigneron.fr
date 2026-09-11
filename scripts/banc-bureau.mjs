@@ -125,7 +125,7 @@ t('huit pieces montees', lignes.length === 8, lignes.length + ' trouvee(s)');
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mes clients | Mon année | Mes cuvées | Mon registre | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon année | Mes cuvées | Mon registre | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
 t('les six pieces internes pointent DANS le bureau',
@@ -241,7 +241,7 @@ t('revenir a « Ma journee » remasque les taches',
   !B.journee.hidden && B.taches.hidden);
 
 B.clic('clients');
-t('un clic sur « Mes clients » masque la journee, les taches, et montre les ventes',
+t('un clic sur « Mon commerce » masque la journee, les taches, et montre les ventes',
   B.journee.hidden && B.taches.hidden && !B.ventes.hidden);
 t('l\'adresse suit', B.window.location.hash === '#clients', B.window.location.hash);
 t('la piece cliquee devient la piece active',

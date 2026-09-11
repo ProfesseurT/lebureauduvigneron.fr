@@ -12,6 +12,91 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 11/09/2026. La redecoupe du bureau, lot 1 : « Mon commerce »
+
+Demande de Ted, mot pour mot : « la page : mon annee me va pas. c'est le fouilli, on ne fait que
+scroller pour avoir des informations. [...] ce bureau doit etre fait pour travailler. Propose moi
+une autre organisation de l'intercalaire a gauche. [...] Mes clients : ca pourrait s'appeler :
+Commerce. Mon annee .. a supprimer et refondre en d'autres menus. »
+
+### Ce qu'on a trouve en recensant, et qui n'etait pas dans la demande
+
+`renderAll()` empilait quatre anciens ecrans dans la seule piece « Mon annee » : Diagnostic,
+Apercu, Evolution, Canaux. Recensement bloc par bloc : **26 blocs**, dont **trois ecrits deux
+fois** et trois autres qui disent la meme chose autrement.
+
+Le doublon qui a emporte la decision : le KPI « Evolution vs N-1 » du Diagnostic et le bandeau
+« Ou en est ton annee, N vs N-1 a date » de l'Apercu affichent le meme calcul, le meme chiffre et
+les memes deux montants, a quatre cents pixels l'un de l'autre. Une partie du scroll de Ted
+n'etait pas de l'information, c'etait de la repetition.
+
+Deuxieme trouvaille, celle qui commande le lot 3 : **« Evolution dans le temps » et « Mon
+registre » sont le meme outil.** Choisir un critere, en croiser un second, lire un tableau,
+exporter. La seule difference est que l'un a le critere « temps » fige d'avance.
+
+### Les arbitrages
+
+**On ne supprime PAS la piece de bilan, contre la demande initiale de Ted.** Il voulait la faire
+disparaitre. Recommandation faite et acceptee : apres avoir renvoye dix-neuf blocs ailleurs, il en
+reste sept qui ne repondent a aucune autre question que « ou j'en suis sur l'ensemble » (realise,
+atterrissage, objectif, courbe des mois, tendance corrigee, effet prix contre volume). Les pousser
+dans « Mon commerce » ne les rangerait pas, ca les cacherait. La piece est donc gardee, allegee de
+26 blocs a 7, et renommee **« Mon cap »** : le nom pose une question au lieu de nommer une periode.
+Levier a retester si Ted ne l'ouvre jamais : c'est que les trois chiffres du haut suffisaient, et
+il faudra alors les remonter dans le bandeau et disperser le reste.
+
+**« Mon commerce » et pas « Commerce ».** La barre ne nomme que des objets de bureau, tous au
+possessif, et c'est une regle ecrite dans `bdv-nav.js`. Ted a tranche pour la forme possessive
+plutot que de reecrire la regle.
+
+**L'identifiant `clients` ne change pas, seul le libelle bouge.** Il tient l'adresse
+`/mon-bureau/#clients`, donc les signets et les liens copies, et c'est lui que `npm run banc`
+compare avec `NAV` dans `bdv-ecrans.js`. Renommer le libelle ne coute rien ; renommer
+l'identifiant casserait les deux, pour zero gain visible.
+
+**Le perimetre du pied de « Mon commerce » est toute la base, et c'est un changement assume.** Le
+top clients et le signal de dependance venaient de l'Apercu, ou ils suivaient la barre de periode.
+Or `navTo()` n'affiche `filterbar` que sur l'ecran « annee ». Les deplacer en leur laissant lire
+`filters` aurait donne un chiffre calcule sur un filtre invisible, pose dans une autre piece,
+parfois des semaines plus tot. Meme raison pour la mesure, figee au CA HT : la bascule
+CA / bouteilles est restee, elle aussi, dans l'autre piece.
+
+### La discipline des trois etages
+
+C'est la regle qui vaut pour les trois lots suivants, et sans elle on reconstruit « Mon annee »
+ailleurs : **un verdict en haut** (une phrase, un chiffre), **la liste ou l'on agit au milieu**,
+**les tableaux qui expliquent replies en bas**. Le troisieme etage reutilise le `<details
+class="msg--replie">` deja style dans `bdv-ecrans.css` : replie par defaut, mais son titre reste
+visible et cliquable. Choix de Ted, formule ainsi : « replie par defaut mais visible pour le
+deplier ».
+
+### Ce qui a ete verifie
+
+`npm run verif` en entier, apres avoir mis a jour l'ordre attendu dans `scripts/banc-bureau.mjs` :
+deux chartes CONFORME, et 104 + 46 + 47 + 54 + 38 + 19 + 23 + 23 controles passes, zero echec.
+
+### Piege rencontre
+
+Le build a d'abord echoue sur `EPERM: operation not permitted, unlink '_site/css/...'`. Ce n'est
+pas un defaut du depot : la session Claude n'avait pas le droit de supprimer dans le dossier, et
+Eleventy remplace `_site` a chaque construction. Debloque par une autorisation ponctuelle. Sur la
+machine de Ted, le cas ne se pose pas.
+
+### Ce qui reste ouvert
+
+Les trois lots suivants, dans cet ordre propose : **Mes cuvees** (recoit les quatre blocs de
+Canaux et la repartition par couleur), **Mon registre** (fusionne avec Evolution, et gagne au
+passage le croisement du temps avec un critere, impossible aujourd'hui des deux cotes), puis
+**Mon cap** (ce qui reste, renomme et allege).
+
+Deux questions non tranchees, posees et laissees ouvertes : les quatre mouvements de clientele
+(nouveaux, hausse, baisse, perdus) et les trois motifs existants (recul, cadence, premier achat)
+decoupent la meme population de deux facons differentes, dans un seul ecran. Et les trois chiffres
+du cap pourraient remonter dans le bandeau du haut, qui porte deja la date, la lune et la phrase
+du jour.
+
+---
+
 ## 11/09/2026. Le courrier demande la permission, et sait s'arreter
 
 Demande de Ted, mot pour mot : « on va resoudre les 3 choses. lien de desinscription avec le choix :

@@ -1419,3 +1419,44 @@ Un bouton de desinscription invisible est le pire defaut possible sur cette page
 que personne ne signale : on ne rale pas contre un bouton qu'on ne voit pas, on rale contre le
 mail qu'on continue de recevoir. Meme famille que les fonds de mail manges par Gmail, meme
 methode : **capturer avant de livrer, aux deux largeurs, et regarder l'image**.
+
+## UNE PIECE DU BUREAU A TROIS ETAGES, ELLE N'EST PAS UNE PILE, 11/09/2026
+
+Constat qui a ouvert la redecoupe : « Mon annee » portait **26 blocs**, parce que la fusion du
+07/09 y avait empile quatre anciens ecrans (Diagnostic, Apercu, Evolution, Canaux) sans jamais en
+alleger aucun. Trois blocs y etaient meme ecrits deux fois. Ted l'a dit ainsi : « c'est le
+fouilli, on ne fait que scroller ».
+
+**La regle, pour toute piece du bureau et pour tout bloc qu'on y ajoute :**
+
+1. **Un verdict en haut.** Une phrase, un chiffre, et le geste qu'ils reclament. Rien d'autre.
+2. **La liste ou l'on agit au milieu.** C'est ce pour quoi le vigneron a ouvert la piece.
+3. **Ce qui explique, replie en bas**, dans un `<details class="msg--replie">`. Le style existe
+   deja dans `src/css/bdv-ecrans.css`. Replie par defaut, titre visible et cliquable.
+
+Un bloc qui n'entre dans aucun des trois n'a pas sa place dans cette piece. C'est la seule chose
+qui empeche de refabriquer « Mon annee » ailleurs, un bloc a la fois, sans que personne ne s'en
+apercoive.
+
+**Corollaire : une piece repond a UNE question.** Mon commerce, ce sont les gens. Mes cuvees, ce
+sont les vins. Mon cap, c'est le total. Un bloc se range par la question qu'il pose, pas par la
+nature de sa donnee.
+
+### Et le libelle d'une piece n'est pas son identifiant
+
+Renommer une piece, c'est changer son `label` dans `bdv-nav.js` et son entree dans `NAV` de
+`bdv-ecrans.js`. **Jamais son `id`.** L'identifiant tient l'adresse `/mon-bureau/#<id>`, donc les
+signets du vigneron et tous les liens qu'il a copies, et c'est lui que `npm run banc` compare
+entre les deux fichiers. « Mes clients » est devenu « Mon commerce » le 11/09/2026 : l'adresse est
+restee `#clients`.
+
+**Et l'ordre de la barre est controle.** `scripts/banc-bureau.mjs` porte la liste des huit
+libelles, dans l'ordre. Renommer une piece sans y toucher fait echouer le banc, et c'est voulu :
+on ne change pas la barre par accident.
+
+### Un chiffre dont on ne peut pas voir le perimetre est un chiffre faux
+
+`navTo()` n'affiche la barre de periode (`filterbar`) que sur l'ecran « annee ». Un bloc deplace
+depuis cet ecran vers un autre ne doit donc plus lire `filters`, ni passer par `mesureVal()` : il
+suivrait un reglage pose ailleurs, invisible la ou il s'affiche, parfois des semaines plus tot.
+Il lit toute la base, en CA HT, et il le dit dans sa note. Applique au pied de « Mon commerce ».

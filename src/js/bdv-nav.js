@@ -164,9 +164,18 @@
     { id: 'calendrier', ico: TRACES.calendrier, label: 'Le calendrier',
       href: '/mon-bureau/#calendrier',
       quoi: 'DRM, DAI, récolte, facturation' },
-    { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mes clients',
+    /* « MON COMMERCE » DEPUIS LE 11/09/2026, et c'etait « Mes clients ». La piece ne dit
+       plus seulement qui rappeler : elle porte maintenant le verdict « d'ou vient ta
+       variation » et les quatre mouvements de clientele, qui etaient empiles dans « Mon
+       annee » avec vingt-deux autres blocs.
+
+       L'IDENTIFIANT NE CHANGE PAS, et c'est une precaution, pas un oubli : `clients` tient
+       l'adresse /mon-bureau/#clients, donc les signets du vigneron et les liens qu'il a
+       copies, et c'est lui que `npm run banc` compare avec NAV dans bdv-ecrans.js.
+       Renommer le libelle ne coute rien ; renommer l'identifiant casserait les deux. */
+    { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mon commerce',
       href: '/mon-bureau/#clients',
-      quoi: 'Qui rappeler, qui décroche, qui revient' },
+      quoi: 'Qui rappeler, qui décroche, d\'où vient ton chiffre' },
     { id: 'annee', viti: true,     ico: TRACES.annee, label: motExercice,
       href: '/mon-bureau/#annee',
       quoi: 'Ton chiffre, ton rythme, tes canaux' },
