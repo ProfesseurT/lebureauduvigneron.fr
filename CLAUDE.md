@@ -666,6 +666,23 @@ tire d'une liste de gestes qu'on ne pose plus est un libelle qui ment.
 **« Message » ouvre le redacteur, et ne veut plus dire « repondeur ».** Un appel tombe sur un
 repondeur se note dans le bloc de suivi, canal Repondeur, comme n'importe quel autre echange.
 
+### Le suivi se replie, MAIS IL EST OUVERT A L'ARRIVEE
+
+Demande de Ted le 11/09/2026 : le bloc de suivi se plie comme le redacteur de message. Il porte
+donc un `<details id="suiviRepli" open>`, et **le `open` n'est pas negociable sans rouvrir la
+question avec lui** : « un client a une prochaine action, ou il n'en a pas » est l'information la
+plus importante de la fiche, et c'est la regle des trois etages du bureau. Un suivi replie par
+defaut cacherait ce qu'on vient chercher.
+
+Deux consequences a ne pas defaire :
+
+- **Le `<details>` ENVELOPPE `#suiviBloc`, il ne le remplace pas.** `redessinerSuivi()` reecrit
+  l'interieur a chaque geste : le repli survit au redessin. L'inverse rouvrirait le bloc a chaque
+  note enregistree.
+- **Tout ce qui renvoie vers ce bloc le deplie d'abord** (`deplierSuivi()`) : l'ouverture par
+  « Appele » et le retour de « Considere comme envoye ». Un renvoi vers un bloc ferme est un renvoi
+  vers rien.
+
 ### Le bureau se repeint APRES la reponse du serveur, jamais avant
 
 La fiche ecrit par `bdv-base.js` (`CRM`, `syncSuivi`), le sous-main lit le miroir de

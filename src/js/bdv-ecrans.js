@@ -1747,6 +1747,7 @@ function messageEnvoye(btn){
   status('success','Message noté dans son suivi.');
   // On remonte au bloc de suivi : c'est la que se pose la date, et la question qu'il
   // vient d'y ecrire n'a aucun interet si le vigneron ne la voit pas.
+  deplierSuivi();
   const b=el('suiviBloc');if(b)b.scrollIntoView({block:'start'});
 }
 function copierMessage(btn){
@@ -1856,6 +1857,12 @@ async function ouvrirFicheClient(id,opts){
    curseur dans la zone de notes, « Message » sur le redacteur, deplie. Le defilement se
    fait dans la boite de la modale, qui porte l'ascenseur ; requestAnimationFrame parce
    que la boite vient d'etre posee et n'a pas encore sa hauteur. */
+/* Le bloc de suivi est le seul endroit ou l'on pose une date et une note : tout ce qui y
+   renvoie le deplie d'abord. Un renvoi vers un bloc ferme est un renvoi vers rien. */
+function deplierSuivi(){
+  const d=el('suiviRepli');
+  if(d&&!d.open)d.open=true;
+}
 function viserDansLaFiche(cible){
   if(!cible)return;
   requestAnimationFrame(function(){
@@ -1866,6 +1873,9 @@ function viserDansLaFiche(cible){
     }
     const b=el('suiviBloc');
     if(!b)return;
+    // Deplier avant de viser : depuis que le bloc se replie, l'ouvrir par « Appele » sur
+    // un bloc ferme aurait fait defiler jusqu'a un titre, sans la zone de saisie dessous.
+    deplierSuivi();
     b.scrollIntoView({block:'start'});
     const t=el('saisieTxt');if(t)t.focus({preventScroll:true});
   });
@@ -1991,8 +2001,23 @@ function monterSelectCanal(){
   if(s&&window.BdvCanaux)BdvCanaux.remplirSelect(s,ACTIVITE_CANAL);
 }
 
+/* LE SUIVI SE REPLIE, COMME LE REDACTEUR DE MESSAGE. Demande de Ted le 11/09/2026.
+
+   MAIS IL EST OUVERT A L'ARRIVEE, et ce n'est pas une demi-mesure : « un client a une
+   prochaine action, ou il n'en a pas » est l'information la plus importante de la fiche,
+   et c'est la regle des trois etages du bureau, le verdict en haut et ce qui explique
+   replie en bas. Un suivi replie par defaut cacherait justement ce qu'on vient chercher.
+   Ce qu'on gagne : sur un client au long fil, on plie le bloc pour lire ce qu'il achete
+   sans faire defiler trente entrees.
+
+   LE <details> ENVELOPPE `#suiviBloc`, il ne le remplace pas : `redessinerSuivi()` reecrit
+   l'interieur a chaque geste, et le repli survit au redessin. L'inverse aurait rouvert le
+   bloc a chaque note enregistree. */
 function suiviHTML(f,s){
-  return `<div class="msg" id="suiviBloc">${suiviCorps(f,s)}</div>`;
+  return `<details class="msg msg--replie" id="suiviRepli" open>
+    <summary>Suivi</summary>
+    <div id="suiviBloc">${suiviCorps(f,s)}</div>
+  </details>`;
 }
 
 function suiviCorps(f,s){
@@ -2050,8 +2075,9 @@ function suiviCorps(f,s){
       +`<button class="btn btn--ghost btn--sm" onclick="clore(${arg})">Ne plus me le proposer</button>`;
   }
 
-  let h=`<div class="section-label" style="margin-top:0">Suivi</div>
-    <div class="action">${action}</div>`;
+  // Plus de `section-label` ici : le titre du bloc est desormais le summary du repli, et
+  // deux fois le mot « Suivi » l'un sous l'autre se lit comme un defaut d'affichage.
+  let h=`<div class="action">${action}</div>`;
 
   // ---- La saisie : une seule, toujours au meme endroit. ----
   if(!clos){

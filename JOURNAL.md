@@ -89,6 +89,18 @@ gris et en vision deutéranope.
 Ces lignes mènent à sa fiche. C'est ce qui permet de les montrer à trois endroits sans jamais avoir
 deux réponses à « ce client est-il traité ».
 
+### Le suivi se replie aussi
+
+Demandé dans la foulée : « le suivi dans la fiche doit pouvoir se replier comme écrire un
+message ». Fait, avec une nuance qui n'était pas dans la demande : **il est ouvert à l'arrivée**.
+Le replier par défaut aurait caché la prochaine action, qui est l'information la plus importante de
+la fiche et la règle des trois étages du bureau. Ce qu'on gagne quand même : sur un client au long
+fil, le bloc se plie pour lire ce qu'il achète sans faire défiler trente entrées.
+
+Le `<details>` enveloppe `#suiviBloc` au lieu de le remplacer, sinon le repli sauterait à chaque
+note enregistrée, `redessinerSuivi()` réécrivant l'intérieur du bloc. Et tout ce qui renvoie vers
+le suivi le déplie d'abord.
+
 ### Le défaut trouvé en vérifiant, et il était invisible
 
 La vue liste du calendrier avait bien son cas particulier pour les clients. **La pastille de la
