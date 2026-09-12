@@ -2,27 +2,37 @@
   var board = document.querySelector('[data-pinboard]');
   if (!board) return;
 
-  var STATES   = ['chaos', 'organized', 'digital'];
+  /* LE TROISIEME ETAT S'APPELAIT `digital`, ET IL MONTRAIT VITISOFT. Renomme
+     `bureau` le 12/09/2026, en meme temps que sa couche : ce n'est pas un
+     changement de mot, c'est un changement de destination. Le raisonnement est en
+     tete de src/_includes/components/demo-pinboard.njk.
+
+     LES TEXTES SUIVENT, et « passer au numerique » est celui qui devait partir en
+     premier : le vigneron ne cherche pas a passer au numerique, il y est deja, il
+     a un tableur et un logiciel. Ce qu'il cherche, c'est que tout soit au meme
+     endroit et qu'on lui dise quoi faire aujourd'hui. L'etape 03 ne promet donc
+     plus un support, elle promet un lieu. */
+  var STATES   = ['chaos', 'organized', 'bureau'];
   var CAPTIONS = {
     chaos:      "Le bureau d'un vigneron, un mardi de fin de mois.",
-    organized:  "Mieux. Mais on peut aller plus loin.",
-    digital:    "Le bureau, devenu outil. Tout au même endroit."
+    organized:  "Rangé, c'est déjà mieux. Mais rien ne te dit par quoi commencer.",
+    bureau:     "Les mêmes papiers, dans ton bureau. Chacun devient un geste."
   };
   var HINTS = {
     chaos:      'Cliquez sur le tableau pour ranger',
-    organized:  'Cliquez pour passer au numérique',
-    digital:    'Cliquez pour recommencer'
+    organized:  'Cliquez pour ouvrir le bureau',
+    bureau:     'Cliquez pour recommencer'
   };
-  var STEP_LABELS = { chaos: '01', organized: '02', digital: '03' };
+  var STEP_LABELS = { chaos: '01', organized: '02', bureau: '03' };
   var BADGES = {
     chaos:     'État : chaos administratif · 23:47',
     organized: 'État : organisé · 09:42',
-    digital:   ''
+    bureau:    ''
   };
 
   var cards    = board.querySelectorAll('[data-card]');
   var layerPaper   = board.querySelector('[data-pinboard-pinboard]');
-  var layerDigital = board.querySelector('[data-pinboard-digital]');
+  var layerDigital = board.querySelector('[data-pinboard-bureau]');
   var badge    = board.querySelector('[data-pinboard-state-badge]');
   var stepEl   = document.querySelector('[data-pinboard-step]');
   var capEl    = document.querySelector('[data-pinboard-caption]');
@@ -45,7 +55,7 @@
     void layerPaper.offsetHeight;
     void layerDigital.offsetHeight;
 
-    var isDigital = (next === 'digital');
+    var isDigital = (next === 'bureau');
 
     layerPaper.style.opacity      = isDigital ? '0'      : '1';
     layerPaper.style.transform    = isDigital ? 'scale(0.97)' : 'scale(1)';
@@ -56,7 +66,7 @@
     layerDigital.style.pointerEvents= isDigital ? 'auto'  : 'none';
     layerDigital.setAttribute('aria-hidden', isDigital ? 'false' : 'true');
 
-    if (next !== 'digital') applyPositions(next);
+    if (next !== 'bureau') applyPositions(next);
 
     if (stepEl) stepEl.textContent = 'Démonstration · étape ' + STEP_LABELS[next] + ' / 03';
     if (capEl)  capEl.textContent  = CAPTIONS[next];

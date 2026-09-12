@@ -2201,3 +2201,62 @@ comme `scripts/capture-telephone.mjs`. Le mode d'emploi est dans son en-tete.
 Trois choses a savoir avant d'y toucher, et elles y sont ecrites : `opacity` n'est pas une couleur
 de texte, `.btn` plein est un faux positif nomme (il porte son propre fond `--paper`), et il faut
 mesurer aux DEUX largeurs, parce que ce sont deux reglages de voile differents.
+
+## L'ETAPE 03 DE LA DEMONSTRATION MONTRE LE BUREAU, PAS VITISOFT, 12/09/2026
+
+**Le produit de la page d'accueil est Le Bureau du Vigneron.** Pendant des mois, la troisieme
+etape du pinboard etait une reproduction du tableau de bord de VITISOFT : sa barre de titre, ses
+sept menus, son donut de familles, ses KPI, sa courbe, VINCA. La demonstration racontait donc
+« papier en vrac, papier range, puis Vitisoft », et un visiteur qui allait au bout comprenait
+qu'on lui vendait le logiciel de la maison mere. Signale par Ted : « il faut que ca reprenne le
+detail du bureau, pas de Vitisoft reinvente. »
+
+**La regle : quand une page du site montre le produit, elle montre les VRAIS composants du
+bureau, avec leurs vraies classes.** `.bureau-nav`, `.bureau-plan`, `.zone--panneau`, `.postit`,
+`.zone--ardoise`, `.chiffre`, `.fiche-l`, `.lettre`. Leur CSS vit dans `src/css/style.css`, que
+toutes les pages chargent : reproduire un ecran a la main coute une maquette a maintenir, et cette
+maquette derive du vrai produit des la premiere semaine. C'est exactement ce qui s'etait passe.
+
+**Ne jamais redessiner un ecran qui existe.** Pour le VOIR sans compte, `npm run apercu:ardoise`
+et `npm run apercu:panneau` montent la vraie page dans jsdom avec un faux CRM et ecrivent un
+fichier autonome. C'est la source, et c'est de la que vient le balisage recopie dans
+`demo-pinboard.njk`.
+
+### La continuite du liege est le coeur de la demonstration
+
+Le panneau du bureau EST un tableau de liege avec des punaises, et `tokens.css` le dit noir sur
+blanc : « Le papier a note. Deux teintes, celles du panneau de la page d'accueil. » Le liege ne
+disparait donc jamais entre les trois etapes, il devient l'outil. **Les cinq post-it de l'etape 03
+reprennent nommement cinq des huit papiers de l'etape 01** : M. Dubreuil et sa facture, la TVA du
+15, les Caves Bertrand, le QR nutritionnel, la cuve 4. Changer un papier a l'etape 01 sans changer
+son post-it casse la demonstration sans casser la page.
+
+### L'ordre des zones dit qui a le droit a quoi
+
+Le panneau d'abord, l'ardoise ensuite, la rangee de lecture en bas. C'est l'ordre du vrai bureau,
+dicte par Ted le 07/09/2026, et il tombe juste ici pour une deuxieme raison : le panneau, le
+classeur, le courrier et les articles mis de cote sont ouverts a toute la filiere ; l'ardoise
+demande un export Vitisoft. La partie gratuite passe devant, et **l'ardoise porte sa mention dans
+son propre `zone__note`** : « tes ventes, si tu es sur Vitisoft ». Meme regle que le hero, celle du
+10/09 : personne ne decouvre la restriction apres son inscription.
+
+### Sur telephone, l'etape 03 ne montre que le panneau
+
+Mesure du 12/09/2026 : 1 194 px de contenu pour un cadre de 420. Reduire assez pour tout faire
+tenir donnerait des lettres de six pixels, c'est-a-dire une capture illisible presentee comme une
+demonstration. La barre, l'ardoise et la rangee de lecture sortent du champ ; les cinq post-it
+defilent horizontalement au lieu de s'empiler, parce que cinq post-it empiles font 750 px et que le
+visiteur en verrait deux.
+
+### Ce qui a ete supprime avec, et qu'il ne faut pas ressusciter
+
+Environ 450 lignes de CSS (`.viti-*`, `.vitisoft-todo-*`, `.vitimedia-*`) ont ete SUPPRIMEES de
+`src/css/style.css`, pas commentees : une maquette d'un produit tiers laissee dans la feuille finit
+par revenir. Elle est dans git. Le bloc « Partenaires ecosysteme » part avec : ses trois
+emplacements decides le 06/09/2026 sont le bas d'article, une carte dans Mon bureau et un encart
+dans l'edition, jamais la page d'accueil. Les jetons `--vitimedia-rouge` et `--vitimedia-fonce`
+restent declares, ils serviront la.
+
+La carte « VINCA · IA » de l'etape 01 est devenue « Question en suspens », et elle ne porte plus la
+reponse. Deux defauts pour un : VINCA est un produit de Vitisoft, et une question deja repondue
+n'a rien a faire dans l'etape qui s'appelle « chaos administratif ».

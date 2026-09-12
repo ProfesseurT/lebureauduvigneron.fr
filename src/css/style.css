@@ -4623,12 +4623,101 @@ em { font-style: italic; }
   pointer-events: none;
 }
 
-.demo-pinboard__layer--digital {
+/* ---- ETAPE 03 : LE VRAI BUREAU, DANS LE CADRE DE LA DEMONSTRATION ----
+   12/09/2026. Cette couche ne dessine RIEN : elle pose les vrais composants du
+   bureau, qui ont deja tout leur CSS dans ce fichier. Les six regles ci-dessous
+   ne font que defaire ce qui n'a pas de sens dans un cadre de 720 px, et il faut
+   savoir pourquoi chacune existe avant d'en retirer une.
+
+   1. LA BARRE DES PIECES EST `position: sticky` au-dessus de 900 px, calee sous
+      l'en-tete du site avec `max-height: calc(100vh - ...)`. Dans une page, c'est
+      juste. Dans une boite de 720 px qui defile avec la page, la barre se
+      decollerait de son atelier et partirait vers le bas du cadre.
+   2. L'ATELIER porte `max-width: 1670px` et un `padding` de page. Ici il vit dans
+      le cadre, qui a deja le sien.
+   3. LA COLONNE DE LA BARRE fait 230 px dans le bureau, ou la fenetre fait 1440.
+      Le cadre en fait environ 1 050 : 230 px y prendraient 22 % de la largeur.
+   4. L'ECHELLE. Le bureau est dessine pour une fenetre de 1 440 px et le cadre en
+      fait 1 050. Sans reduction, le panneau et l'ardoise sont a l'etroit et les
+      post-it se cassent en deux lignes. `zoom` plutot que `transform: scale()` :
+      scale() ne reduit PAS la place occupee, donc le contenu depasserait du cadre
+      par le bas tout en paraissant tenir. zoom reduit la mise en page elle-meme.
+      La valeur est basse a dessein, on montre une vue d'ensemble, pas un ecran
+      lisible mot a mot : ce qui doit se lire de loin, c'est qu'il y a un panneau
+      de liege avec des gestes dessus, et une ardoise. */
+.demo-pinboard__layer--bureau {
   opacity: 0;
   transform: scale(1.04);
   pointer-events: none;
-  background: var(--paper-light);
+  background: var(--paper);
+  overflow: hidden;
+  /* CENTRE VERTICALEMENT, et ce n'est pas de la coquetterie. Le cadre a une
+     hauteur fixe, la meme pour les trois etapes, et le bureau reduit ne la
+     remplit pas au pixel. Cale en haut, il laissait une bande de papier vide en
+     bas qui se lisait comme un chargement inacheve. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.demo-bureau > .bureau-atelier { width: 100%; }
+.demo-bureau .bureau-atelier {
+  max-width: none;
+  padding: var(--e-m);
+  zoom: 0.74;
+}
+@media (min-width: 901px) {
+  .demo-bureau .bureau-atelier {
+    grid-template-columns: 178px minmax(0, 1fr);
+    gap: var(--e-m);
+  }
+}
+/* ---- L'ETAPE 03 SUR PETIT ECRAN ----
+   Le bureau entier ne rentre pas dans 390 px, et il ne doit pas essayer : mesure
+   du 12/09/2026, 1 194 px de contenu pour un cadre de 420. Le reduire assez pour
+   qu'il tienne donnerait des lettres de six pixels, c'est-a-dire une capture
+   d'ecran illisible presentee comme une demonstration.
+
+   CE QUI RESTE, DONC, C'EST LE PANNEAU, et c'est le bon choix par elimination :
+   c'est la zone qui continue le tableau de liege des deux etapes precedentes,
+   c'est celle qui montre un GESTE, et c'est la seule des trois qui soit ouverte
+   a quelqu'un qui n'a pas Vitisoft. La barre des pieces, l'ardoise et la rangee
+   de lecture sortent du champ : elles se verront sur le vrai bureau.
+
+   Et les post-it defilent horizontalement au lieu de s'empiler. Cinq post-it
+   empiles font 750 px de haut : le visiteur en verrait deux et croirait qu'il
+   n'y a que deux choses a faire. */
+@media (max-width: 900px) {
+  .demo-bureau .bureau-nav,
+  .demo-bureau .zone--ardoise,
+  .demo-bureau .zone--lecture,
+  .demo-bureau .zone--classeur,
+  .demo-bureau .zone--courrier { display: none; }
+  .demo-bureau .bureau-atelier { display: block; zoom: 1; padding: var(--e-s); }
+  .demo-bureau .panneau {
+    display: flex;
+    gap: var(--e-m);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .demo-bureau .panneau > .postit { flex: 0 0 62%; }
+  /* La note du panneau tient sur trois lignes a 390 px et pousse le titre
+     « Le panneau » a se casser en deux. Elle porte un comptage, pas la
+     demonstration : elle sort du champ avec le reste. */
+  .demo-bureau .zone__note { display: none; }
+}
+.demo-bureau .bureau-nav {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+/* Les languettes ne sont pas cliquables ici : ce sont des `<span>`, pas des
+   liens. Le curseur doit le dire, sinon on clique sur « Mon cap » et c'est la
+   demonstration entiere qui repart a l'etape 01, ce qui se lit comme un bug. */
+.demo-bureau .bureau-nav__item { cursor: inherit; }
+.demo-bureau .postit__g { cursor: inherit; }
+/* Le plan du bureau n'a que deux zones ici, il n'a pas besoin de son rythme de
+   page complet. */
+.demo-bureau .bureau-plan { padding: 0; gap: var(--e-m); }
 
 /* Note cards */
 .note-card {
@@ -4795,264 +4884,31 @@ em { font-style: italic; }
   color: var(--muted);
 }
 
-/* ---- VITISOFT DASHBOARD MOCK ---- */
-.viti-dashboard {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  font-family: -apple-system, 'Segoe UI', sans-serif;
-  background: var(--paper-light);
-  overflow: hidden;
-}
+/* ---- LA MAQUETTE VITISOFT A ETE SUPPRIMEE LE 12/09/2026 ----
+   Environ 450 lignes vivaient ici : `.viti-dashboard` et ses deux barres
+   laterales, ses six panneaux, son donut, ses trois graphiques, `.vitisoft-todo`
+   et `.vitimedia-*`. Elles peignaient la troisieme etape du pinboard, qui etait
+   une reproduction du tableau de bord de Vitisoft.
 
-.viti-titlebar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0 12px;
-  height: 30px;
-  background: var(--ink);
-  flex-shrink: 0;
-}
-.viti-titlebar__app {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--viti-orange);
-  letter-spacing: var(--ls-etiq);
-}
-.viti-titlebar__domain {
-  font-size: 11px;
-  color: color-mix(in srgb, var(--paper) 70%, transparent);
-  flex: 1;
-}
-.viti-titlebar__user {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: color-mix(in srgb, var(--paper) 50%, transparent);
-}
+   Cette etape montre maintenant le VRAI bureau, avec les vrais composants du
+   site (`.bureau-nav`, `.zone--panneau`, `.postit`, `.zone--ardoise`,
+   `.chiffre`), qui ont deja leur CSS plus bas dans ce fichier. Toute cette
+   section n'avait donc plus un seul element pour la porter.
 
-.viti-body {
-  display: grid;
-  grid-template-columns: 200px 1fr 130px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
+   Elle est SUPPRIMEE et pas commentee, et c'est la raison qui compte : une
+   maquette d'un produit tiers laissee dans la feuille finit par revenir. Elle est
+   dans git, au commit qui precede celui-ci, si un jour Vitisoft a besoin d'une
+   maquette de lui-meme sur une page a lui.
 
-/* Sidebar left */
-.viti-sidebar-left {
-  background: var(--paper);
-  border-right: 1px solid var(--rule);
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-.viti-menu-section { border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); }
-.viti-menu-header {
-  background: var(--ink);
-  color: var(--paper);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  padding: 4px 8px;
-}
-.viti-menu-items { list-style: none; padding: 2px 0; }
-.viti-menu-item {
-  font-size: 10px;
-  color: var(--ink);
-  padding: 3px 10px;
-  cursor: default;
-  transition: background var(--tr-rapide);
-  line-height: 1.3;
-}
-.viti-menu-item:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
-.viti-menu-item--active { background: color-mix(in srgb, var(--bordeaux) 8%, transparent); color: var(--bordeaux); font-weight: 500; }
-
-/* Main content grid */
-.viti-main {
-  padding: 8px;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: 120px 130px 140px 140px 100px;
-  gap: 8px;
-}
-.viti-panel {
-  background: var(--paper-light);
-  border: 1px solid var(--rule);
-  padding: 8px 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.viti-panel__title {
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  color: color-mix(in srgb, var(--ink) 50%, transparent);
-  margin-bottom: 6px;
-  flex-shrink: 0;
-}
-
-/* KPI rouge */
-.viti-panel--red {
-  background: var(--danger);
-  border-color: var(--danger-deep);
-  grid-column: 1;
-  grid-row: 1 / 3;
-  justify-content: center;
-  gap: 4px;
-}
-.viti-panel--red .viti-panel__title { color: color-mix(in srgb, var(--paper) 60%, transparent); }
-.viti-kpi-big {
-  font-family: var(--font-titre);
-  font-size: 32px;
-  color: var(--paper-light);
-  line-height: 1;
-  margin-bottom: 2px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-.viti-kpi-desc {
-  font-size: 9px;
-  color: color-mix(in srgb, var(--paper) 75%, transparent);
-  line-height: 1.4;
-}
-.viti-kpi-sep {
-  width: 100%;
-  height: 1px;
-  background: color-mix(in srgb, var(--paper) 20%, transparent);
-  margin: 6px 0;
-}
-.viti-kpi-sub {
-  font-family: var(--font-titre);
-  font-size: 18px;
-  color: var(--paper-light);
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-/* KPI ink */
-.viti-panel--kpi { justify-content: space-between; }
-.viti-kpi-value {
-  font-family: var(--font-titre);
-  font-size: 18px;
-  color: var(--ink);
-  line-height: 1;
-}
-.viti-badge-green {
-  display: inline-block;
-  background: var(--ok);
-  color: var(--white);
-  font-family: var(--font-mono);
-  font-size: 8px;
-  padding: 2px 5px;
-  border-radius: 2px;
-  align-self: flex-start;
-}
-
-/* Donut chart */
-.viti-donut-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
-}
-.viti-donut {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: conic-gradient(
-    #E8B43A  0%  30%,
-    var(--ok) 30%  55%,
-    var(--danger) 55%  70%,
-    #7B5EA7 70%  82%,
-    #4A90D9 82%  90%,
-    #E87D1E 90%  95%,
-    var(--bordeaux) 95%  98%,
-    #8B7355 98% 100%
-  );
-  position: relative;
-  flex-shrink: 0;
-}
-.viti-donut::after {
-  content: '';
-  position: absolute;
-  inset: 18px;
-  border-radius: 50%;
-  background: var(--paper-light);
-}
-.viti-donut-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 8px;
-  color: color-mix(in srgb, var(--ink) 70%, transparent);
-  overflow: hidden;
-}
-.viti-legend-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-.viti-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
-/* Charts SVG */
-.viti-chart-wrap { flex: 1; min-height: 0; overflow: hidden; }
-.viti-chart-wrap svg { width: 100%; height: 100%; }
-
-/* Sidebar right */
-.viti-sidebar-right {
-  background: var(--paper);
-  border-left: 1px solid var(--rule);
-  padding: 8px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow: hidden;
-}
-.viti-dispo-label {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  color: color-mix(in srgb, var(--ink) 45%, transparent);
-  margin-bottom: 2px;
-}
-.viti-dispo-select {
-  font-size: 9px;
-  color: var(--ink);
-  border: 1px solid var(--rule-fort);
-  background: var(--paper-light);
-  padding: 3px 5px;
-  margin-bottom: 6px;
-  cursor: default;
-}
-.viti-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 9px;
-  color: var(--ink);
-  padding: 4px 6px;
-  background: var(--paper-light);
-  border: 1px solid var(--rule);
-  cursor: default;
-  transition: background var(--tr-rapide);
-  white-space: nowrap;
-}
-.viti-action-btn:hover { background: var(--paper-light); }
-.viti-action-btn--yellow { color: #8B6300; border-color: #E8B43A; }
-.viti-action-btn--red { color: var(--danger); border-color: var(--danger); }
+   `.vitimedia-*` part avec le reste. Ce n'etait pas sa place : les trois
+   emplacements decides le 06/09/2026 sont le bas d'article, une carte dans Mon
+   bureau et un encart dans l'edition, jamais la page d'accueil. Les jetons
+   --vitimedia-rouge et --vitimedia-fonce restent declares, ils serviront la. */
 
 /* ---- RESPONSIVE PINBOARD ---- */
 @media (max-width: 1023px) {
   .demo-pinboard__board { height: 640px; }
   .note-card { width: 28%; height: 28%; }
-  .viti-kpi-big { font-size: 24px; }
-  .viti-body { grid-template-columns: 160px 1fr 110px; }
-  .viti-main { grid-template-rows: 100px 110px 120px 130px 60px; }
-  .vitimedia-slots { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 767px) {
   .demo-pinboard__board { height: 540px; }
@@ -5063,225 +4919,7 @@ em { font-style: italic; }
   .note-card[data-card="rdv"],
   .note-card[data-card="cahier"],
   .note-card[data-card="client"] { display: none; }
-  .viti-body { grid-template-columns: 0 1fr 0; }
-  .viti-sidebar-left, .viti-sidebar-right { display: none; }
-  .viti-main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto; gap: 6px; padding: 6px; }
-  .viti-panel--red { grid-column: 1; grid-row: 1; }
-  .viti-panel--kpi:first-of-type { grid-column: 2; grid-row: 1; }
-  .viti-panel--donut,
-  .viti-panel--kpi ~ .viti-panel--kpi,
-  .viti-panel--line,
-  .viti-panel--bar1,
-  .viti-panel--bar2 { display: none; }
-  .vitisoft-todo { grid-column: 1 / 3 !important; grid-row: 2 !important; }
-  .vitimedia-zone { grid-column: 1 / 3 !important; grid-row: 3 !important; }
-  /* Cacher les 2 derniers items todo sur mobile */
-  .vitisoft-todo-item:nth-child(n+4) { display: none; }
-  .vitimedia-slots { grid-template-columns: 1fr; }
-  .vitimedia-avatar { width: 28px !important; height: 28px !important; font-size: 9px !important; }
-  .vitimedia-tagline { font-size: 9.5px !important; }
 }
-
-/* ---- VITISOFT TODOLIST ---- */
-.vitisoft-todo {
-  background: var(--white);
-  border: 1px solid var(--paper-deep);
-  padding: 8px 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.vitisoft-panel-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: var(--ls-doux);
-  text-transform: uppercase;
-  border-bottom: 1px dotted color-mix(in srgb, var(--ink) 20%, transparent);
-  margin-bottom: 6px;
-  padding-bottom: 5px;
-  flex-shrink: 0;
-}
-.vitisoft-todo-count {
-  font-size: 9px;
-  font-weight: 400;
-  opacity: 0.6;
-  letter-spacing: var(--ls-doux);
-}
-.vitisoft-todo-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  flex: 1;
-  overflow: hidden;
-}
-.vitisoft-todo-item {
-  display: grid;
-  grid-template-columns: 14px 90px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  padding: 5px 0;
-  border-bottom: 1px dotted color-mix(in srgb, var(--ink) 10%, transparent);
-}
-.vitisoft-todo-item:last-child { border-bottom: none; }
-.vitisoft-todo-check {
-  width: 12px;
-  height: 12px;
-  border: 1.5px solid var(--ink);
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 8px;
-}
-.vitisoft-todo-check.checked {
-  background: var(--ok);
-  border-color: var(--ok);
-  color: var(--white);
-}
-.vitisoft-todo-check.checked::after {
-  content: '✓';
-  font-size: 8px;
-  line-height: 1;
-  color: var(--white);
-}
-.vitisoft-todo-cat {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: var(--ls-large);
-  text-transform: uppercase;
-  color: var(--bordeaux);
-  opacity: 0.85;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.vitisoft-todo-cat.done { opacity: 0.4; text-decoration: line-through; }
-.vitisoft-todo-label {
-  font-family: var(--font-titre);
-  font-size: 11px;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.vitisoft-todo-label.done { text-decoration: line-through; opacity: 0.5; }
-.vitisoft-todo-meta {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--ink);
-  opacity: 0.55;
-  white-space: nowrap;
-}
-
-/* ---- VITIMEDIA ZONE ---- */
-.vitimedia-zone {
-  background: #FBF7EC;
-  border: 1px dashed var(--vitimedia-rouge);
-  padding: 10px 12px;
-  box-shadow: inset 0 1px 0 rgba(178,34,69,0.1);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.vitimedia-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.vitimedia-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: var(--ls-large);
-  text-transform: uppercase;
-  color: var(--vitimedia-rouge);
-}
-.vitimedia-slots {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
-}
-.vitimedia-slot {
-  background: var(--white);
-  border: 1px solid var(--paper-deep);
-  border-radius: 4px;
-  padding: 8px 10px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: center;
-  text-decoration: none;
-  transition: border-color var(--tr-rapide), transform var(--tr-rapide);
-}
-.vitimedia-slot:hover {
-  border-color: var(--vitimedia-rouge);
-  transform: translateY(-1px);
-  text-decoration: none;
-}
-.vitimedia-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--white);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: var(--ls-doux);
-  flex-shrink: 0;
-}
-.vitimedia-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow: hidden;
-}
-.vitimedia-name {
-  font-family: var(--font-titre);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.vitimedia-tagline {
-  font-family: var(--font-titre);
-  font-style: italic;
-  font-size: 10.5px;
-  opacity: 0.75;
-  color: var(--ink);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.vitimedia-cta {
-  background: var(--vitimedia-rouge);
-  color: var(--white);
-  border-radius: 12px;
-  padding: 4px 10px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: var(--ls-etiq);
-  white-space: nowrap;
-  transition: background var(--tr-rapide);
-}
-.vitimedia-slot:hover .vitimedia-cta { background: var(--vitimedia-fonce); }
 
 /* ---- MOUVEMENT REDUIT ----
    Le hero et le bloc video sont en background-attachment fixed, deux
@@ -7541,9 +7179,9 @@ button.bureau-nav__item:hover {
 .compteur-item__nb,
 .chiffre__nb,
 .card__amount,
-.viti-kpi-big,
-.viti-kpi-sub,
-.viti-kpi-value,
+/* .viti-kpi-big, .viti-kpi-sub et .viti-kpi-value etaient ici, et sont partis avec
+   la maquette Vitisoft le 12/09/2026. Voir la note a l'emplacement de l'ancienne
+   section, plus haut dans ce fichier. */
 /* Deux crans de specificite, donc repris tel quel : une regle a une seule
    classe ne battrait pas `.score-inline__text .big`. */
 .score-inline__text .big {

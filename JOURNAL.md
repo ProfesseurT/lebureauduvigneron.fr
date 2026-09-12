@@ -96,6 +96,59 @@ fond `--paper` : son texte bordeaux se lit sur du papier, a 11:1, et pas sur la 
 la photo, il rend 1,2:1 et un echec qui n'existe pas. Il est ecarte NOMMEMENT, avec sa raison ecrite
 dans le banc, et pas silencieusement.
 
+### LE SECOND TOUR : « PAS DE VITISOFT REINVENTE »
+
+Ted, apres la premiere livraison : « j'ai un souci avec le pinboard. il faut que ca reprenne le
+detail du bureau, pas de Vitisoft reinvente. »
+
+Il avait raison, et le defaut etait plus gros que remonter la demonstration ne le laissait voir.
+**L'etape 03 etait une reproduction du tableau de bord de Vitisoft** : barre de titre « VITISOFT »,
+ses sept menus, son donut de familles, ses KPI, sa courbe verte et jaune, VINCA. La page d'accueil
+du Bureau du Vigneron faisait donc, en trois clics, la demonstration du logiciel de la maison mere.
+Remonter cette section a 0,9 ecran, comme je venais de le faire, ne faisait qu'amplifier l'erreur :
+la premiere chose montree apres le hook etait le mauvais produit.
+
+Et le vrai bureau etait la, construit, avec ses sept pieces, son ardoise et son panneau de liege.
+On dessinait un ecran qui n'existe pas pendant qu'on avait le vrai sous la main.
+
+**L'etape 03 pose desormais les VRAIS composants** : `.bureau-nav`, `.zone--panneau`, `.postit`,
+`.zone--ardoise`, `.chiffre`, `.fiche-l`, `.lettre`. Rien n'est redessine, et rien n'est ajoute en
+CSS pour les peindre : leur feuille est deja `src/css/style.css`, que cette page charge. Le
+balisage a ete recopie depuis `npm run apercu:ardoise` et `npm run apercu:panneau`, qui montent la
+vraie page dans jsdom : la source est le produit, pas mon idee du produit.
+
+**La continuite du liege, et c'est la trouvaille de ce tour.** Le panneau du bureau EST un tableau
+de liege avec des punaises, et les jetons le disent depuis toujours (« Le papier a note. Deux
+teintes, celles du panneau de la page d'accueil »). Le liege ne disparait donc plus entre les
+etapes : il se range, puis il devient l'outil. Les cinq post-it de l'etape 03 reprennent nommement
+cinq des huit papiers de l'etape 01, M. Dubreuil, la TVA du 15, les Caves Bertrand, le QR, la cuve
+4. Ce n'est plus une transition entre deux images, c'est la meme chose deux fois.
+
+**Trois arbitrages pris seul, a relire s'ils genent.**
+
+1. **L'ardoise reste, avec sa mention.** Elle demande un export Vitisoft, contrairement au panneau
+   et a la rangee de lecture. La tentation etait de la retirer pour ne montrer que le gratuit. Elle
+   reste parce que c'est un vrai morceau du bureau, et son `zone__note` porte « tes ventes, si tu es
+   sur Vitisoft » a la place de sa date. Meme regle que le hero, celle du 10/09.
+2. **La carte « VINCA · IA » de l'etape 01 devient « Question en suspens »**, sans reponse. VINCA
+   est un produit de Vitisoft, et une question deja repondue n'avait rien a faire dans l'etape qui
+   s'appelle « chaos administratif ».
+3. **Les 450 lignes de CSS de la maquette sont supprimees, pas commentees.** Une maquette d'un
+   produit tiers laissee dans la feuille revient. Elle est dans git, au commit precedent.
+
+**Le libelle du pied renvoyait a une chose disparue.** « Faites defiler · Decouvrez les piliers » :
+les piliers sont devenus les rubriques le 10/09, et ce texte designait un objet qui n'existe plus.
+C'est le defaut type de `CLAUDE.md`, « quand une piece bouge, relire ce que les textes disent ».
+Il dit maintenant ce qui suit vraiment : « Pourquoi ce bureau existe ».
+
+**Ce que la capture a trouve et qu'aucune mesure n'aurait vu** : a 390 px, le bureau entier faisait
+1 194 px de contenu dans un cadre de 420, avec la barre des pieces qui sortait par la droite. Le
+reduire assez pour tout faire tenir aurait donne des lettres de six pixels. Le telephone ne montre
+donc que le panneau, post-it en defilement horizontal.
+
+Controles apres ce tour : charte CONFORME, charte:bureau CONFORME, banc 110/110, banc-hero
+CONFORME.
+
 ### CE QUI RESTE OUVERT
 
 **La barre de navigation sur telephone.** Signale, pas corrige, hors perimetre. A 390 px les liens
