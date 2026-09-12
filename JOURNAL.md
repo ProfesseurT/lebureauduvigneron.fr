@@ -123,9 +123,19 @@ d'autre que le nombre de lignes déjà visibles.
 
 ### CE QUI RESTE OUVERT
 
-- **« À lire » et « Le classeur » affichent toujours le `pilier` et ses emojis.** Signalé, pas
-  corrigé : changer l'étiquette de ces deux zones est une décision de contenu, et la remplacer par
-  `categorie` demande d'ajouter le champ au JSON `bdvContenus`, qui ne le porte pas.
+- ~~« À lire » et « Le classeur » affichent toujours le `pilier` et ses emojis.~~ **Fermé le
+  12/09** : Ted a donné son feu vert dans la foulée. Le JSON `bdvContenus` porte maintenant
+  `rubrique` au lieu de `pilier`, alimenté par un nouveau filtre `rubriqueNom`. Deux points
+  d'arbitrage : c'est le nom de la **rubrique** qui est affiché et pas la `categorie` brute, parce
+  que les six catégories se regroupent en quatre rubriques et que ce sont ces quatre-là que le
+  vigneron voit déjà dans la navigation de /articles/ ; lui en montrer six ici lui ferait croire à
+  deux classements. Et le filtre rend une chaîne et jamais `null`, parce que `rubriqueDe` rend
+  `null` quand rien ne correspond et qu'un `null.nom` écrit dans un gabarit fait échouer le build
+  entier. Vérifié sur les 19 articles de la collection : quatre rubriques, aucune chaîne vide,
+  aucun emoji restant, et aucune ligne de méta sur deux lignes à 1240, 900, 430 ni 360 px.
+- **`articles-une.njk` et `articles-recent.njk`, deux composants PUBLICS, affichent toujours le
+  `pilier` et ses emojis.** Signalé, pas corrigé : c'est la page d'accueil, et changer ce qu'elle
+  montre est une décision de Ted.
 - **Les dernières parutions datent de mai.** Le courrier d'un bureau de septembre affiche donc
   « 28 MAI ». C'est honnête et c'est le vrai contenu du site, mais ça dit surtout qu'il n'y a pas
   eu de publication depuis.
