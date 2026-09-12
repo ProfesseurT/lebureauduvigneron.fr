@@ -2,7 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- `viewport-fit=cover` AJOUTE LE 11/09/2026, et ce n'est pas une coquetterie.
+       Sans lui, iOS calait lui-meme la mise en page dans la zone sure, et TOUS les
+       `env(safe-area-inset-*)` du depot valaient ZERO : la protection ecrite sous la
+       barre des pieces du bureau, avec son commentaire qui explique pourquoi elle
+       existe, ne s'appliquait jamais. Du code mort que le prochain lecteur aurait
+       cru actif, et qui n'aurait tenu aucune de ses promesses le jour ou le bureau
+       est pose sur un ecran d'accueil.
+       On ne met JAMAIS `maximum-scale=1` ni `user-scalable=no` ici : ca reglerait le
+       zoom involontaire des champs de saisie en supprimant aussi le zoom VOLONTAIRE,
+       celui dont a besoin quelqu'un qui voit mal. Ce defaut-la se corrige dans le
+       CSS, en portant les saisies a 16 px. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <!-- Le nom du site n'est ajoute que si le titre de la page n'est pas deja ce nom :
        sinon l'accueil affichait « Le Bureau du Vigneron, Le Bureau du Vigneron ». -->
   {#- TOUTE la tete lisible par les moteurs est dans cet include depuis le
@@ -21,6 +32,43 @@
        ne pas recopier une deuxieme fois l'URL et la cle Supabase dans le site. -->
   <script src="/js/bdv-signets.js" defer></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+
+  <!-- ================================================================
+       L'INSTALLATION SUR UN ECRAN D'ACCUEIL, 11/09/2026
+       ================================================================
+       Ted va dire a des vignerons d'installer /mon-bureau/ sur leur iPhone. Jusqu'a
+       ce jour, le geste « Partager, Sur l'ecran d'accueil » ne produisait qu'un
+       SIGNET : pas de plein ecran, une vignette floue de la page en guise d'icone,
+       et aucune notification possible, Apple les reservant aux applications posees
+       sur l'ecran d'accueil.
+
+       L'ORDRE A COMPTE, et il faut le savoir avant de toucher a ce bloc : declarer
+       le mode plein ecran rend REELS, d'un seul coup, tous les culs-de-sac d'une
+       page sans bouton retour. Ils ont ete fermes d'abord (voir l'ecouteur en bas de
+       `monterBarre()` dans bdv-nav.js, la deconnexion de bdv-reglages.js et la porte
+       de `mon-bureau.njk`), et ce bloc n'est arrive qu'ensuite.
+
+       `scope` vaut « / » et pas « /mon-bureau/ » VOLONTAIREMENT. Un scope etroit
+       ejecterait vers Safari tout lien vers un article, et le vigneron reviendrait
+       par l'icone de son ecran d'accueil. bdv-nav.js fait mieux : il ouvre ces liens
+       dans la vue integree d'iOS, qui porte son propre bouton « OK ». Le systeme
+       fournit le retour, et on ne quitte pas l'application.
+
+       `apple-mobile-web-app-capable` reste NECESSAIRE malgre le manifeste : Safari
+       ne lit pas `display: standalone` pour decider du plein ecran, il lit cette
+       balise. La retirer parce qu'elle est marquee obsolete ailleurs ferait retomber
+       toutes les installations existantes en signet, sans erreur et sans prevenir.
+
+       `status-bar-style` vaut `default` et PAS `black-translucent` : le second fait
+       passer le contenu SOUS la barre d'etat, et le haut du bureau n'a aucun retrait
+       pour ca. On ne pose pas une regle qui demande un travail qui n'est pas fait. -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mon bureau">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#45101D">
 </head>
 <body>
 

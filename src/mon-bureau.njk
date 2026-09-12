@@ -28,7 +28,17 @@ permalink: /mon-bureau/
       <p>Le compte est gratuit et ouvert à toute la filière. Il te dit ce qui presse, garde ce que
         tu mets de côté, et range ce que tu as déjà lu.</p>
       <p>
-        <a href="/compte/" class="btn btn--bordeaux" data-bdv-compte
+        <!-- `data-bdv-mode="connexion"` AJOUTE LE 11/09/2026. Sans lui la modale
+             s'ouvrait en mode INSCRIPTION, et c'est exactement ce que voit un vigneron
+             a la PREMIERE ouverture de l'application posee sur son ecran d'accueil :
+             une app iOS a son propre stockage, distinct de Safari, donc la session
+             ouverte dans Safari au moment d'installer n'y est pas. Il reinscrivait son
+             adresse et recevait « Un compte existe deja avec cette adresse ».
+             Le libelle dit « ou me connecter » depuis toujours : le bouton devait
+             ouvrir sur la moitie qui concerne quelqu'un qui revient, la bascule vers
+             l'inscription etant deja dans la fenetre. -->
+        <a href="/compte/?mode=connexion" class="btn btn--bordeaux" data-bdv-compte
+           data-bdv-mode="connexion"
            data-bdv-titre="Ton bureau t'attend.">Créer mon compte ou me connecter</a>
       </p>
     </div>

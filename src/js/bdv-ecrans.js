@@ -1804,9 +1804,91 @@ function ouvrirFiche(id,motif){
   document.body.style.overflow='hidden';
   const btn=m.querySelector('.modale__close');if(btn)btn.focus();
   majLienMail();   // le lien de messagerie se construit a partir des champs affiches
+  reprendreBrouillon(id);   // APRES majLienMail : le brouillon refait le lien s'il reprend le message
 }
+/* ======================= LE BROUILLON DE LA FICHE, 11/09/2026 =======================
+   Ecrit le jour ou le bureau est devenu une application de telephone, et c'est le seul
+   endroit du chantier ou l'on perdait du TRAVAIL et pas seulement du confort.
+
+   LE SCENARIO, ET IL EST LE PLUS COURANT DE TOUS. Le sous-main dit « rappeler le
+   Domaine X ». Le vigneron ouvre la fiche, appuie sur « Appeler », parle quatre minutes.
+   Sur un iPhone, ce lien tel: fait QUITTER la page pour l'application Telephone. Au
+   retour, si iOS a recycle l'onglet sous la pression memoire (et cette page tient tout
+   ROWS en memoire vive), la page se RECHARGE : fiche fermee, note perdue.
+
+   ET C'EST LA QUE LA DECISION DU 11/09 SE RETOURNE CONTRE ELLE-MEME. Puisque « Appele »
+   n'ecrit plus rien au clic, RIEN n'a ete pose : l'appel a bien eu lieu, la ligne est
+   toujours dans le sous-main, le rappel n'est pas repousse, et il faut retrouver le
+   client, rouvrir, et retaper. La regle est bonne, il lui manquait ce filet.
+
+   TROIS CHOSES A NE PAS DEFAIRE.
+
+   1. ON SAUVE SUR `visibilitychange`, ET PAS SUR `beforeunload`. iOS ne declenche pas
+      `beforeunload` quand on part vers une autre application. `visibilitychange` est le
+      seul evenement fiable pour « je m'en vais peut-etre pour toujours ».
+
+   2. ON REPREND LE TEXTE, JAMAIS LE GESTE EN ATTENTE. Le texte est le travail du
+      vigneron, le geste n'est qu'un defaut de l'outil. Ressusciter un `GESTE_ATTENDU`
+      repousserait un rappel de trente jours sur la foi d'un brouillon, ce qui ecrit en
+      base quelque chose que personne n'a valide. Meme distinction que pour la date de
+      rappel dans noter() : son choix prime sur notre defaut.
+
+   3. FERMER LA FICHE EFFACE LE BROUILLON, PARTIR DE L'APPLICATION LE GARDE. Fermer est
+      un geste, et « fermer sans rien ecrire ne laisse aucune trace » est une demande de
+      Ted. Partir vers l'application Telephone n'est pas un geste de fermeture.
+
+   `sessionStorage` et pas `localStorage` : un brouillon n'a pas a survivre a la fermeture
+   du navigateur, et il ne doit pas se retrouver chez la personne suivante qui ouvre une
+   session sur le meme appareil. C'est la lecon de la file des choix de calendrier. */
+const BROUILLON_CLE='bdv_brouillon_';
+function brouillonChamps(){
+  return {txt:el('saisieTxt'),motif:el('rappelTitre'),canal:el('saisieCanal'),
+          msgS:el('msgSujet'),msgT:el('msgTexte'),msgD:el('modale')?el('modale').querySelector('details.msg--replie'):null};
+}
+function sauverBrouillon(){
+  if(!FICHE_ID)return;
+  const c=brouillonChamps();
+  const b={txt:c.txt?c.txt.value:'',motif:c.motif?c.motif.value:'',canal:c.canal?c.canal.value:'',
+           msgS:c.msgS?c.msgS.value:'',msgT:c.msgT?c.msgT.value:'',msgOuvert:!!(c.msgD&&c.msgD.open)};
+  // Rien de tape, rien a garder : on n'encombre pas le stockage avec des fiches vides.
+  if(!b.txt&&!b.motif&&!b.msgOuvert)return oublierBrouillon(FICHE_ID);
+  try{ sessionStorage.setItem(BROUILLON_CLE+FICHE_ID,JSON.stringify(b)); }catch(e){}
+}
+function oublierBrouillon(id){
+  try{ sessionStorage.removeItem(BROUILLON_CLE+id); }catch(e){}
+}
+function reprendreBrouillon(id){
+  let b=null;
+  try{ b=JSON.parse(sessionStorage.getItem(BROUILLON_CLE+id)); }catch(e){}
+  if(!b)return;
+  const c=brouillonChamps();
+  if(c.txt&&b.txt){c.txt.value=b.txt;deplierSuivi();}
+  if(c.motif&&b.motif){c.motif.value=b.motif;deplierSuivi();}
+  if(c.canal&&b.canal)c.canal.value=b.canal;
+  if(b.msgOuvert&&c.msgD){
+    c.msgD.open=true;
+    if(c.msgS&&b.msgS)c.msgS.value=b.msgS;
+    if(c.msgT&&b.msgT)c.msgT.value=b.msgT;
+    majLienMail();   // le lien de messagerie se refait sur les champs REPRIS
+  }
+  // On le DIT. Un texte qui revient tout seul sans un mot se lit comme un bug, et le
+  // vigneron le reecrit par-dessus en croyant bien faire.
+  /* 'success' et PAS 'info' : `status()` pose `class="status <type>"`, et
+     `bdv-ecrans.css` ne definit que trois etats, error, loading et success. Un
+     quatrieme nom sort un bandeau SANS fond ni couleur, c'est-a-dire le bandeau nu
+     deja paye le 08/09/2026 quand la feuille n'etait pas chargee. Ne pas inventer un
+     type ici : ou il existe dans la feuille, ou on prend celui qui existe. */
+  if(b.txt||b.motif)status('success','On a gardé ce que tu avais commencé à écrire.');
+}
+/* Pose UNE fois, sur le document, et pas a chaque ouverture de fiche : un ecouteur par
+   fiche se serait empile a chaque client consulte. */
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden')sauverBrouillon();
+});
+
 function fermerFiche(){
   const m=el('modale');m.classList.remove('on');m.setAttribute('aria-hidden','true');
+  if(FICHE_ID)oublierBrouillon(FICHE_ID);   // fermer EST un geste : voir le point 3 ci-dessus
   m.innerHTML='';document.body.style.overflow='';
   if(FICHE_OUVERTE&&FICHE_OUVERTE.focus)FICHE_OUVERTE.focus();
   FICHE_OUVERTE=null;FICHE_ID=null;
@@ -1888,7 +1970,7 @@ function ficheHTML(f,motif){
   const s=CRM[f.id]||{};
   const maxCuvee=f.cuvees.length?f.cuvees[0][1].ca:0;
   const reco=recoPour(f.id,3);
-  const prixBase=prixVenteMoyen();
+  const prixBase=prixMoyenBouteilleDomaine();   // un NOMBRE. prixVenteMoyen() rend un objet, et fmtNum(objet) vaut NaN
   const moisMax=Math.max(...f.parMois);
   return `<div class="modale__bg" onclick="fermerFiche()"></div>
   <div class="modale__box" role="dialog" aria-modal="true" aria-label="Fiche de ${esc(f.nom)}">
@@ -2145,6 +2227,7 @@ function noter(id){
   const c=window.BdvCanaux?BdvCanaux.canal(ACTIVITE_CANAL):null;
   echAjouter(id,c?c.type:'note',c?c.cle:null,t);
   champ.value='';
+  oublierBrouillon(id);   // c'est ecrit : le brouillon n'a plus de raison d'exister
   const s=CRM[id]||{};
   /* LE GESTE EN ATTENTE S'APPLIQUE ICI, ET PAS AU CLIC. Depuis le 11/09/2026, « Appele »
      dans le sous-main n'ecrit plus rien : il ouvre cette fiche. C'est l'enregistrement de

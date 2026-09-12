@@ -62,6 +62,15 @@ const test = `
   exploAxis1='famille'; exploAxis2='';
   renderExplo();
   SORTIE.hors = document.getElementById('p-explorer').innerHTML;
+  /* LA FICHE CLIENT, rendue ici parce que le moteur est deja monte et que c'est
+     gratuit. Voir le controle « pas de valeur aberrante » plus bas : il existe
+     depuis le 11/09/2026, jour ou on a trouve « domaine NaN € » sur TOUTES les
+     fiches clients, en production, depuis longtemps.
+     L'apercu de la fiche montrait deja cette phrase, et personne ne l'avait vue :
+     un apercu se REGARDE, et on finit par ne plus regarder. Un banc, lui, crie.
+     (Et pas d'apostrophe inverse dans ce commentaire : il vit DANS un litteral de
+     gabarit, et la premiere le refermerait. Paye en l'ecrivant.) */
+  SORTIE.fiche = ficheHTML(ficheClient('C1'), 'recul');
   window.__SORTIE = SORTIE;
 `;
 
@@ -92,5 +101,19 @@ t('pas de courbe', !h2.includes('id="chEvo"'));
 t('pas de lecture experte', !h2.includes('La lecture experte'));
 t('mais le resultat est bien la', h2.includes('class="rep"'));
 t('et les vues rapides restent', h2.includes('Vues rapides'));
-console.log('\n== VERDICT ==\n  ' + (ko ? ko + ' echec(s)' : '13 controles passes, 0 en echec'));
+console.log('== La fiche client ==');
+t('la fiche se rend', !!S.fiche && S.fiche.includes('fiche__nom'));
+/* AUCUNE VALEUR ABERRANTE A L'ECRAN. La regle du depot dit qu'un chiffre affiche
+   doit toujours dire d'ou il vient, et qu'une case vide vaut mieux qu'une valeur
+   inventee : NaN, Infinity et undefined sont pires que les deux. On regarde le
+   TEXTE rendu, pas le code, parce que ces trois-la ne se voient qu'a l'affichage.
+   On retire d'abord les balises : un attribut peut legitimement porter le mot. */
+const texteFiche = String(S.fiche || '').replace(/<[^>]*>/g, ' ');
+const aberrantes = (texteFiche.match(/\bNaN\b|\bInfinity\b|\bundefined\b/g) || []);
+t('aucun NaN, Infinity ou undefined affiche dans la fiche', aberrantes.length === 0,
+  aberrantes.join(', ') + '  (contexte : ' + (texteFiche.match(/.{0,45}(NaN|Infinity|undefined).{0,25}/) || [''])[0].trim() + ')');
+t('le prix moyen du domaine est un nombre lisible',
+  !S.fiche.includes('domaine NaN') && /domaine \d/.test(texteFiche));
+
+console.log('\n== VERDICT ==\n  ' + (ko ? ko + ' echec(s)' : '16 controles passes, 0 en echec'));
 process.exit(ko ? 1 : 0);

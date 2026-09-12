@@ -60,6 +60,14 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/css");
   eleventyConfig.addPassthroughCopy("src/js");
   eleventyConfig.addPassthroughCopy("src/assets");
+  /* LE MANIFESTE VA A LA RACINE, 11/09/2026. C'est lui qui fait la difference entre un
+     raccourci et une application : sans lui, « Sur l'ecran d'accueil » sur un iPhone ne
+     produit qu'un signet qui rouvre Safari avec sa barre, et AUCUNE notification n'est
+     possible, Apple les conditionnant a une vraie application installee.
+     Il n'est copie par aucune des trois lignes du dessus, et une regle oubliee ici ne
+     leve aucune erreur : la page declare simplement un manifeste qui rend 404, et
+     l'installation retombe sur le comportement de signet, en silence. */
+  eleventyConfig.addPassthroughCopy({ "src/manifest.webmanifest": "manifest.webmanifest" });
   // Trier les posts du plus récent au plus ancien
   eleventyConfig.addCollection("posts", function(collectionApi) {
     return collectionApi.getFilteredByGlob("src/posts/*.md").reverse();

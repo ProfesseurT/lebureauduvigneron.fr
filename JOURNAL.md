@@ -12,6 +12,211 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 11/09/2026, nuit. Le bureau devient une application qu'on POSE sur un iPhone
+
+Demande de Ted : « tu vas auditer la partie mon bureau, sur utilisation telephone. Je vais dire
+a certains clients de l'installer comme une app sur leur iPhone. Il y a surement des liens a
+faire sur les appels / messages pour une fiche client. On va donc aussi regarder pour les
+notifications. »
+
+Cinq audits lances en parallele, sur l'installation, les huit pieces au doigt, la fiche client,
+le calendrier et le terrain des notifications. Puis les corrections, dans un ordre qui n'est pas
+negociable.
+
+### CE QUI A OUVERT LA SESSION : le plan de Ted ne marchait pas encore
+
+Il n'y avait ni manifeste, ni icone d'application, ni service worker. Le geste « Partager, Sur
+l'ecran d'accueil » ne produisait donc qu'un SIGNET : pas de plein ecran, une vignette floue de
+la page en guise d'icone, et **aucune notification possible**, Apple les reservant aux
+applications reellement installees. La moitie de la demande etait bloquee par cinq lignes de
+balises qui n'existaient pas.
+
+### L'ARBITRAGE CENTRAL : les sorties avant le manifeste
+
+Poser le manifeste en premier aurait rendu REELS, d'un seul coup, tous les culs-de-sac d'une
+page sans bouton retour. Tant qu'il n'y en avait pas, la barre de Safari restait la et son
+bouton retour rattrapait tout. On a donc ferme les sorties d'abord, pose le manifeste ensuite,
+et **ecrit un banc qui garde les deux moities ensemble** : `npm run banc:app` echoue si le
+manifeste est la sans les sorties, et si les sorties sont la sans le manifeste. C'est la seule
+facon de ne pas livrer la moitie qui casse.
+
+### LE DEFAUT LE PLUS CHER, ET IL N'ETAIT PAS DANS LE PERIMETRE
+
+`parseTels()` composait de faux numeros pendant que l'ecran affichait les bons. Une cellule
+« 0612345678, 0494123456 » donnait un appel a vingt chiffres. Un « (+33) 6 12... » perdait son
+indicatif. Un mobile belge devenait un fixe valide en Ardeche, donc on appelait un inconnu en
+croyant joindre son client export.
+
+Sur un ordinateur, c'etait un texte un peu sale dans une colonne. **Sur un iPhone, c'est le
+bouton « Appeler ».** Ce chantier n'a pas cree ce defaut, il l'a rendu couteux, et c'est pour ca
+qu'il est passe en premier : tout canal qu'on aurait ajoute par-dessus (SMS, WhatsApp) aurait
+herite du meme numero casse, et on aurait multiplie par quatre des liens qui mentent.
+
+La correction qui compte n'est pas une des quatre reparations de cas, c'est la cinquieme :
+`formatTel()` ne PEUT plus diverger de `appel`. Les quatre premieres reparent ce qu'on a vu, la
+derniere interdit la classe entiere. `npm run banc:tels`, 26 controles.
+
+### L'AUTRE DEFAUT QUI N'ETAIT PAS DANS LE PERIMETRE : le stockage
+
+WebKit dit noir sur blanc qu'une application posee sur l'ecran d'accueil n'a **aucune** exemption
+d'eviction du stockage. La session vit dans `localStorage`, les ventes dans IndexedDB : **une
+semaine sans ouvrir et le vigneron rouvrait son bureau deconnecte, base vide.** Sur un outil
+qu'on ouvre quand il y a quelque chose a faire, donc pas tous les jours, c'etait la panne la
+plus probable de toutes, et elle serait arrivee aux tout premiers clients installes.
+La parade fait une ligne, `navigator.storage.persist()`, et elle n'etait nulle part.
+
+Meme famille, meme silence : `rafraichir()` n'etait appelee qu'au chargement du document. Une
+app d'ecran d'accueil ne recharge pas. Au retour d'un week-end, tout repondait 401, les
+compteurs redescendaient a vide, la synchronisation s'arretait, **et le bureau avait l'air
+normal.**
+
+### CE QU'ON A ECARTE, ET POURQUOI
+
+- **Peindre les articles en surimpression dans le bureau.** Ce serait un deuxieme endroit qui
+  affiche un article, et il divergerait de la vraie page au premier changement de gabarit. On
+  les ouvre hors de l'application, ou iOS pose sa propre vue avec un bouton « OK » : le systeme
+  fournit le retour que la page ne peut pas fournir.
+- **Un `scope` etroit dans le manifeste** (`/mon-bureau/`). Il aurait ejecte vers Safari tout
+  lien vers un article, et le vigneron serait revenu par l'icone de son ecran d'accueil. La vue
+  integree est meilleure : un bouton, on revient.
+- **`maximum-scale=1` dans le viewport.** Ca reglait d'un coup le zoom involontaire des champs.
+  Ca supprimait aussi le zoom volontaire, celui dont a besoin quelqu'un qui voit mal. Le defaut
+  se corrige dans le CSS, en portant les saisies a 16 px. `banc:app` refuse les deux mots-cles
+  pour que la tentation ne revienne pas.
+- **`facetime:` sur la fiche client.** Ca marche, mais on ne lance pas une video sur un caviste,
+  et ca echoue en silence pour tout correspondant Android. Ecarte, et note comme ecarte pour
+  qu'on ne repose pas la question dans six mois.
+- **Le fichier `.ics` telecharge**, comme PRODUIT et pas comme code. Une copie morte est un
+  deuxieme endroit qui repond « quand tombe ma DRM », et il repond faux des que la date bouge.
+  C'est la regle 7, avec l'autorite d'une entree d'agenda en plus. L'ecrivain ICS, lui, sera le
+  meme module dans les deux cas : un seul ecrivain, deux livraisons possibles.
+- **Toucher a `bdv-courrier.js`** pour son repli `toISOString()`, qui porte le meme decalage de
+  date que celui corrige dans `bdv-base.js`. Le fichier est joint au deploiement avec une
+  empreinte : le modifier force un redeploiement de `courrier-matin` pour un defaut qui ne mord
+  que sur l'apercu hors ligne. Signale, pas corrige.
+
+### L'ICONE : dessinee en geometrie, et il faut savoir pourquoi
+
+Il n'existait aucun asset carre dans le depot, aucun logo, aucune marque. La seule identite
+disponible est typographique, le nom en Fraunces italique. Une icone a partir de ca se dessine,
+elle ne se recadre pas, et le conteneur n'a pas pu recuperer Fraunces.
+
+Plutot qu'un monogramme dans une fonte approchante, qui aurait ete une fausse signature, le
+verre est dessine en LIGNES DROITES, dans les trois couleurs de `tokens.css` : l'angle vif est
+le parti pris du site, et il tient mieux qu'une courbe a 60 points sur un ecran d'accueil.
+**Verifie a la taille reelle**, 60 px, et pas seulement en grand : c'est la seule taille qui
+compte, et une icone qui se lit a 512 px ne prouve rien.
+
+### LA LECON DE METHODE DE LA SESSION
+
+Le harnais de mesure a valide « 390 px de page pour 390 px de fenetre, zero cible sous 44 px,
+zero saisie sous 16 px ». La capture du MEME etat montrait « Domaine / des / Hauts / Coteaux »
+sur quatre lignes.
+
+**Une mesure dit qu'une page ne deborde pas. Une capture dit qu'elle se lit.** Les deux ne se
+remplacent pas, et il faut les deux dans cet ordre : la mesure trouve ce qu'on ne voit pas, la
+capture voit ce qu'on ne mesure pas. C'est la meme lecon que le bouton de desinscription
+invisible du matin, et que les fonds de mail manges par Gmail la veille. Elle revient une fois
+par jour depuis trois jours.
+
+Et le harnais a attrape un defaut **que je venais de creer** : porter les champs de dates a
+16 px et 44 px faisait sortir leur rangee a 438 px. La regle « remesurer la rangee apres avoir
+grossi un de ses elements » avait ete ecrite le matin meme, pour les fleches du calendrier. Elle
+n'a pas empeche de la refaire l'apres-midi, parce qu'un plancher tactile se pose element par
+element pendant qu'un debordement se mesure rangee par rangee.
+
+### LES NOTIFICATIONS : rien n'est construit, le terrain est leve
+
+Ted a choisi « jusqu'au bout ». Rien n'a ete code : le chantier demande un service worker, des
+cles VAPID, une table d'abonnements, une fonction Edge d'envoi et un declencheur, soit cinq
+lots. Ce qui est acquis ce soir, c'est ce sans quoi aucun de ces cinq lots ne sert a rien : le
+manifeste et l'installation.
+
+Deux arbitrages sont poses et attendent Ted :
+
+- **Le service worker sera un organe a fonction UNIQUE** : aucun ecouteur `fetch`, donc aucun
+  cache, donc aucune possibilite de servir une version perimee du bureau. La specification
+  n'exige qu'une inscription, pas un cache. Un banc devra l'interdire mecaniquement, sur le
+  modele du controle « ni import ni require » de `joindre-courrier.mjs`. Et sa procedure de
+  RETRAIT doit etre posee des le premier jour, parce qu'elle devient impossible plus tard : on
+  ne supprime pas le fichier, on le remplace par une pierre tombale qui se desinscrit.
+- **Le courrier de 8 h repond a « qu'est-ce que je fais aujourd'hui ». La notification repond a
+  « qu'est-ce qui sera trop tard demain ».** Une chose qui n'a pas de « trop tard » n'est jamais
+  une notification. Environ 50 notifications par an contre 365 courriers : c'est ce rapport de
+  1 a 7 qui la rend credible. Et elle ne porte **ni nom de client ni montant**, parce qu'elle
+  s'affiche sur un ecran verrouille pose sur une table, devant qui passe.
+
+### A savoir avant de relire un article sur le sujet
+
+Plusieurs guides dates 2026 affirment encore que la push web est indisponible dans l'Union
+europeenne a cause du DMA. **C'est l'etat de fevrier 2024, avant le revirement d'Apple de mars
+2024.** Quelqu'un qui relit ce dossier dans six mois et tombe sur un de ces articles conclura
+que tout le chantier est mort-ne. Il ne l'est pas.
+
+### L'AUTO-AUDIT DEMANDE PAR TED, ET IL A PAYE
+
+Ted, avant de pousser : « audite-toi et corrige-toi. Tu n'as pas le droit de me pousser un
+truc incoherent ou moche. »
+
+Ce qui avait ete verifie jusque-la, c'etait une page de test ECRITE POUR L'OCCASION, avec du
+balisage recopie a la main. Elle ne pouvait valider que ce qu'on avait pense a y mettre, et
+elle avait donne un feu vert complet. Le vrai banc, lui, sert `_site`, pose 286 lignes de
+vente dans la VRAIE IndexedDB et ouvre chaque piece par son vrai identifiant.
+
+**Il a trouve six defauts de plus en un passage, dont trois etaient de ce chantier meme.**
+
+- `min-height` sur `.chip` etait INERTE, faute de `display` : les chips de periode sont
+  restes a 21 px. Troisieme fois de la journee que la meme faute se produit.
+- `status('info')` n'existait pas dans la feuille : un bandeau sans fond ni couleur.
+- Les deux champs d'ajout d'une tache etaient toujours a 14 px et 11 px : ils vivent dans
+  `style.css`, et le bloc du soir ne corrigeait que `bdv-ecrans.css`.
+- Les `<summary>` des blocs repliables faisaient 17 px, et avaient echappe aux DEUX passes.
+- La bascule CA / Bouteilles faisait 25 px, alors qu'elle change l'unite de tous les
+  chiffres de deux pieces.
+- Et surtout : **« domaine NaN € » sur TOUTES les fiches clients**, `prixVenteMoyen()`
+  rendant un objet passe a `fmtNum()`. Pre-existant, visible dans `npm run apercu:fiche`,
+  jamais vu, parce qu'un apercu se regarde et qu'on finit par ne plus regarder.
+
+**Le banc lui-meme a menti deux fois avant de dire vrai**, et c'est la lecon principale :
+
+1. Premier essai avec les identifiants 'cuvees', 'cap' et 'registre', qui n'existent pas.
+   `afficher()` retombait sur « Ma journee » et les sept pieces rendaient la meme hauteur.
+   Le symptome se lisait « la bascule ne marche pas ». **Le libelle d'une piece n'est pas
+   son identifiant**, c'est ecrit dans CLAUDE.md, et je l'ai quand meme refait.
+2. Sans doublure des trois bibliotheques de CDN, `chargerEcrans()` echouait et AUCUN ecran
+   de vente ne se peignait : on photographiait « Ma journee » en croyant photographier
+   « Mon commerce ». Un harnais qui ne charge pas ce que la page charge n'illustre qu'une
+   intention.
+
+Et une troisieme fois, plus betement : le commentaire que j'ai ecrit DANS `banc-registre.mjs`
+contenait une apostrophe inverse, qui refermait le litteral de gabarit qui l'entourait. Le
+fichier ne se chargeait plus.
+
+### Ce que je n'ai PAS corrige, et le chiffre pour en decider
+
+L'en-tete du bureau occupe **434 px sur 844, soit 51 % du premier ecran**, et la barre des
+pieces 53 px en bas : il reste **357 px de contenu visible sans faire defiler**. Sur « Mon
+cap », ils sont pris par la barre d'exports et les chips de periode. Le vigneron ouvre son
+bureau et ne voit encore rien de ce qu'il vient chercher.
+
+Ce n'est pas un defaut, c'est un dessin, decide ailleurs : le salut, les deux boutons, la
+lune. **A rouvrir avec Ted.** Ce qui est acquis, c'est le chiffre.
+
+Meme traitement pour trois autres : les chips de periode prennent trois rangees une fois a
+44 px ; les trois boutons d'export ouvrent « Mon commerce » et « Mon cap » alors qu'un
+export ne marche meme pas dans une application posee sur l'ecran d'accueil ; et rien
+n'annonce qu'un tableau defile.
+
+### Compte
+
+`npm run verif` : 511 controles, 16 bancs, 0 echec. Deux bancs nouveaux, `banc:tels` (26) et
+`banc:app` (30), plus trois controles ajoutes a `banc:registre` sur la fiche client.
+Et `scripts/capture-telephone.mjs`, HORS de la chaine parce qu'il demande playwright :
+c'est lui qui a trouve tout ce qui precede. Rien n'est deploye : Ted pousse et met en prod
+lui-meme.
+
+---
+
 ## 11/09/2026, soir. Le bureau sur un telephone : la passe severe, premiere moitie
 
 Demande de Ted : « il faut que ca soit utilisable sur un telephone comme sur un ordinateur.

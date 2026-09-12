@@ -1117,4 +1117,76 @@
     majTrace(lireSession(), {}).catch(function(){});
     rejouerProfilEnAttente();
   }
+
+  /* ================================================================
+     UNE APPLICATION POSEE SUR UN ECRAN D'ACCUEIL NE SE RECHARGE PAS, 11/09/2026
+     ================================================================
+     `rafraichir()` n'etait appelee qu'au demarrage du module, c'est-a-dire au
+     chargement du document. Dans un onglet de navigateur c'est suffisant : on ferme,
+     on rouvre, la page repart. Une application posee sur un ecran d'accueil, elle,
+     reste en arriere-plan des jours entiers et iOS la restaure le plus souvent SANS
+     recharger le document.
+
+     Or le jeton d'acces vaut environ une heure (voir `expires_at`, plus haut). Au
+     retour, PostgREST repond 401 ; et comme `api()` et `compter()` avalent l'erreur
+     par la regle d'or, les compteurs redescendent a vide et la synchronisation
+     s'arrete. Le bureau a l'air normal et n'ecrit plus rien. C'est exactement la
+     forme de panne que ce fichier passe son temps a refuser ailleurs : silencieuse,
+     et visible seulement ou personne ne regarde.
+
+     `visibilitychange` et pas `focus` : c'est le seul evenement qu'iOS declenche de
+     facon fiable quand on revient d'une autre application, et revenir de l'app
+     Telephone apres un appel client est precisement le geste le plus frequent du
+     bureau sur un telephone.
+     `pageshow` avec `persisted` couvre l'autre chemin, le retour depuis le cache de
+     page apres un aller-retour dans Safari.
+
+     Le garde-fou horaire n'est pas une optimisation, c'est ce qui empeche un
+     aller-retour toutes les dix secondes de devenir un appel reseau toutes les dix
+     secondes : on ne rafraichit que si le jeton a plus de la moitie de sa vie. */
+  var DERNIER_RAFRAICHI = Date.now();
+  function rafraichirSiPerime(){
+    var s = lireSession();
+    if(!s) return;
+    var maintenant = Math.floor(Date.now()/1000);
+    var perime = !s.expires_at || (s.expires_at - maintenant) < 600;   // moins de dix minutes de vie
+    if(!perime && (Date.now() - DERNIER_RAFRAICHI) < 600000) return;
+    DERNIER_RAFRAICHI = Date.now();
+    rafraichir();
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') rafraichirSiPerime();
+  });
+  window.addEventListener('pageshow', function(e){
+    if(e.persisted) rafraichirSiPerime();
+  });
+
+  /* ================================================================
+     LE STOCKAGE QUI SURVIT A UNE SEMAINE SANS OUVRIR, 11/09/2026
+     ================================================================
+     WebKit efface le stockage ecrit par script des sites qu'on n'a pas visites depuis
+     quelque temps, et sa documentation est explicite sur un point que tout le monde
+     croit faux : une application posee sur l'ecran d'accueil n'a AUCUNE exemption,
+     elle a « le meme quota d'origine et le meme quota global que dans un navigateur ».
+
+     Ce que ca voulait dire ici, concretement : un vigneron qui n'ouvre pas son bureau
+     pendant une semaine le rouvre DECONNECTE et BASE VIDE. Sa session est dans
+     `localStorage`, ses lignes de vente dans IndexedDB, et les deux partent ensemble.
+     Sur un outil qu'on ouvre quand il y a quelque chose a faire, donc pas tous les
+     jours, c'etait la panne la plus probable de toutes.
+
+     La parade tient en une ligne et elle est dans la meme documentation : une origine
+     en mode PERSISTANT est exclue de l'eviction. On la demande une fois, au
+     chargement, et seulement pour quelqu'un qui a deja une session : demander une
+     faveur de stockage a un visiteur de passage n'aurait aucun sens, et le navigateur
+     accorde de toute facon sur l'engagement.
+
+     ELLE PEUT ETRE REFUSEE, et on n'en fait pas une histoire : le bureau marche
+     pareil, il se vide seulement plus tot. C'est pour ca que ca n'affiche rien et
+     que ca ne bloque rien. */
+  if(lireSession() && navigator.storage && navigator.storage.persist){
+    navigator.storage.persisted().then(function(deja){
+      if(!deja) return navigator.storage.persist();
+    })['catch'](function(){});
+  }
 })();

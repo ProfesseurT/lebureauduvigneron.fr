@@ -610,8 +610,20 @@ function geste(cle,id){
   status('success',g.label+' · '+nomClient(id)+' revient dans '+plur(g.jours,'jour'));
 }
 function fmtDateIso(iso){if(!iso)return '';const [y,m,d]=iso.split('-').map(Number);return fmtDate({y,m,d});}
+/* Le jour COURANT en heure locale, jamais par toISOString(). Defaut corrige le
+   11/09/2026 : `new Date().toISOString().slice(0,10)` rend le jour UTC, alors que
+   `iso` est un jour local venu de la colonne `rappel`. Entre minuit et deux heures
+   du matin a Paris, les deux ne sont pas le meme jour : un rappel pose pour
+   AUJOURD'HUI s'affichait en rouge comme un retard, et celui de la veille passait
+   pour celui du jour. `bdv-crm.js` avait deja ecrit `isoLocal()` exactement pour ca,
+   avec le commentaire qui l'explique ; ce fichier ne s'en servait pas, et les deux
+   ecrans lisaient donc la meme donnee en repondant deux choses. */
+function jourLocalISO(d){
+  const x=d||new Date();
+  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+}
 function rappelCell(iso){
-  const auj=new Date().toISOString().slice(0,10);
+  const auj=jourLocalISO();
   if(iso<auj)return `<span style="color:var(--danger-deep);font-weight:600">${fmtDateIso(iso)}</span>`;
   if(iso===auj)return `<span style="font-weight:600">${fmtDateIso(iso)}</span>`;
   return fmtDateIso(iso);
@@ -711,15 +723,37 @@ function parseEmails(cell){
    et quelques cellules a deux numeros separes par une barre oblique.
    On produit deux formes : une forme AFFICHEE lisible et une forme APPELABLE
    utilisable dans un lien tel:, sans jamais inventer un indicatif qu'on n'a pas. */
-function parseTels(cell){
+/* SEPARATEURS d'une cellule qui porte PLUSIEURS numeros, elargis le 11/09/2026.
+   Le tiret n'est reconnu qu'ENTOURE D'ESPACES : « 06-12-34-56-78 » est un seul numero,
+   « 06 12 34 56 78 - 04 94 12 34 56 » en fait deux.
+   Un separateur oublie ne fabrique pas un numero manquant, il fabrique un numero FAUX :
+   « 0612345678, 0494123456 » composait les vingt chiffres d'un seul tenant pendant que
+   l'ecran affichait les deux numeros justes, et rien ne levait d'erreur. */
+const SEP_TELS=/\s*(?:[|;\/,]|\s-\s|\bou\b|\bet\b|\bpuis\b)\s*/i;
+function parseTels(cell,pays){
   if(!cell)return [];
   const out=[],vus=new Set();
-  String(cell).split(/[|;\/]+/).forEach(part=>{
-    let s=part.trim();
+  /* Le repli sur la France ne vaut que pour un pays VIDE ou francais. Ailleurs, un
+     mobile belge « 0475 12 34 56 » devenait +33 475 123 456, un fixe VALIDE en Ardeche :
+     le vigneron appelait un inconnu en croyant joindre son client export, sans aucun
+     signe que quoi que ce soit ait rate. C'est la regle deja ecrite au-dessus,
+     « sans jamais inventer un indicatif qu'on n'a pas », qui n'etait pas tenue ici. */
+  const fr=!pays||/^(fr|france)$/i.test(String(pays).trim());
+  String(cell).split(SEP_TELS).forEach(part=>{
+    const s=part.trim();
     if(!s)return;
-    // On garde les chiffres et un eventuel + de tete, on jette le reste (espaces, points, parentheses).
-    let plus=s.trim().startsWith('+');
-    let d=s.replace(/[^\d]/g,'');
+    /* On ne retient que le PREMIER bloc qui ressemble a un numero, jamais toute la
+       cellule : « 04 94 12 34 56 poste 12 » ne doit pas composer 049412345612, et
+       « tel 2 : 06 12 34 56 78 » ne doit pas composer 20612345678. */
+    const m=s.match(/\+?\s*(?:\d[\s.\-()]*){8,15}/);
+    if(!m)return;
+    const trouve=m[0];
+    /* Le + se cherche DEVANT le premier chiffre, pas en tete de chaine : « (+33) 6 12... »
+       et « Tel. +33 6 12... » commencent par autre chose, perdaient leur +, et
+       « 33612345678 » sans + est compose par l'iPhone comme un numero national. */
+    const avant=s.slice(0,m.index+trouve.search(/\d/));
+    let plus=/\+\D*$/.test(avant);
+    let d=trouve.replace(/\D/g,'');
     if(!d)return;
     // « 00 » international equivaut a « + ».
     if(!plus&&d.startsWith('00')){plus=true;d=d.slice(2);}
@@ -727,13 +761,13 @@ function parseTels(cell){
     if(plus&&d.startsWith('330'))d='33'+d.slice(3);
     let appel;
     if(plus){appel='+'+d;}
-    else if(d.length===10&&d.startsWith('0')){appel='+33'+d.slice(1);}   // numero francais standard
-    else if(d.length===9&&!d.startsWith('0')){appel='+33'+d;}            // zero de tete perdu a la saisie
+    else if(fr&&d.length===10&&d.startsWith('0')){appel='+33'+d.slice(1);}  // numero francais standard
+    else if(fr&&d.length===9&&!d.startsWith('0')){appel='+33'+d;}           // zero de tete perdu a la saisie
     else {appel=d;}                                                      // format inconnu : on n'invente pas
     if(appel.replace(/\D/g,'').length<8)return;                          // trop court pour etre un numero
     if(vus.has(appel))return;
     vus.add(appel);
-    out.push({appel,affiche:formatTel(appel,s)});
+    out.push({appel,affiche:formatTel(appel,trouve)});   // trouve, pas s : on affiche le bloc qu'on compose
   });
   return out;
 }
@@ -747,7 +781,12 @@ function formatTel(appel,brut){
     return n.replace(/(\d{2})(?=\d)/g,'$1 ').trim();
   }
   const propre=String(brut||'').replace(/[().]/g,' ').replace(/\s+/g,' ').trim();
-  return propre||appel;
+  /* GARDE-FOU du 11/09/2026 : l'affichage ne peut plus DIVERGER de ce qui sera compose.
+     Avant, cette fonction rendait la saisie brute quoi qu'il arrive, donc l'ecran montrait
+     un numero juste pendant que le lien tel: en composait un faux. C'est le pire des deux
+     etats : pas d'erreur, pas de soupcon, juste un appel qui n'aboutit pas.
+     Si les chiffres ne correspondent pas, on affiche CE QU'ON COMPOSE. */
+  return propre&&propre.replace(/\D/g,'')===appel.replace(/\D/g,'')?propre:appel;
 }
 
 /* ======================= REGLAGES DU DOMAINE =======================
@@ -1209,7 +1248,7 @@ function deriveRow(raw){
   o._qte=parseNum(o.quantite);
   o._emails=parseEmails(o.emails);        // adresses nettoyees de la ligne (0, 1 ou plusieurs)
   o._email=o._emails[0]||'';              // adresse principale, pour l'affichage
-  o._tels=parseTels(o.mobile).concat(parseTels(o.fixe));  // mobile d'abord : on joint plus vite un portable
+  o._tels=parseTels(o.mobile,o.pays).concat(parseTels(o.fixe,o.pays));  // mobile d'abord : on joint plus vite un portable
   o._tel=o._tels.length?o._tels[0].appel:'';
   o._joignable=o._emails.length>0||o._tels.length>0;      // joignable par un canal au moins
   // Classification (vente, hors CA, offert, canal, typologie) : entierement deleguee
@@ -1352,6 +1391,28 @@ function prixVenteMoyen(){
   for(const k in prod)parProduit[k]=prod[k].q?prod[k].ca/prod[k].q:0;
   for(const k in fam)parFamille[k]=fam[k].q?fam[k].ca/fam[k].q:0;
   return {parProduit,parFamille};
+}
+/* LE PRIX MOYEN DE LA BOUTEILLE SUR TOUT LE DOMAINE, un NOMBRE, 11/09/2026.
+
+   Ecrite parce que la fiche client passait `prixVenteMoyen()` a `fmtNum()`. Cette
+   fonction-la rend un OBJET de deux tables de prix, et `fmtNum({...})` vaut NaN :
+   toutes les fiches clients affichaient « 9,62 € en moyenne, domaine NaN € ».
+   Le test `prixBase ?` ne rattrapait rien, un objet etant toujours vrai.
+
+   DEUX NOMS QUI DISENT LA MEME CHOSE POUR DEUX FORMES DIFFERENTES, c'est la cause,
+   pas le symptome : « prix de vente moyen » designait une carte de prix par produit
+   et par famille, et l'appelant a lu le nom, pas la valeur. Celle-ci dit
+   BOUTEILLE et DOMAINE dans son nom, et rend un scalaire. Ne pas les re-fusionner.
+
+   LA BASE DE CALCUL EST CELLE DU CLIENT, et c'est ce qui rend la comparaison juste :
+   `ficheClient()` fait `ca/btl` sur ses lignes `_vin`, sans autre filtre. On fait
+   pareil sur toutes les lignes. Reprendre le filtre plus severe de `prixVenteMoyen`
+   (total et quantite strictement positifs) donnerait deux chiffres qui ne se
+   comparent pas, cote a cote, dans la meme phrase. */
+function prixMoyenBouteilleDomaine(){
+  let ca=0,q=0;
+  ROWS.forEach(r=>{ if(!r._vin)return; ca+=r._total; q+=r._qte; });
+  return q>0?ca/q:0;
 }
 // Cout estime d'une ligne offerte : prix produit, sinon prix famille, sinon 0 (jamais planter).
 function coutOffertLigne(r,prix){

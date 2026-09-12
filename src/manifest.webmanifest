@@ -1,0 +1,17 @@
+{
+  "name": "Le Bureau du Vigneron",
+  "short_name": "Mon bureau",
+  "description": "Ce qui presse aujourd'hui, tes échéances, tes clients et tes chiffres.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/mon-bureau/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EFE7D6",
+  "theme_color": "#45101D",
+  "icons": [
+    { "src": "/assets/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icone-512-masquable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

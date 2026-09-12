@@ -647,6 +647,52 @@
       else afficher(brut || 'journee');
     });
 
+    /* ================================================================
+       UNE APPLICATION POSEE SUR UN ECRAN D'ACCUEIL N'A PAS DE BOUTON RETOUR, 11/09/2026
+       ================================================================
+       Ted va dire a des vignerons d'installer le bureau sur leur iPhone. En mode
+       plein ecran, il n'y a NI barre d'adresse NI fleche retour : tout lien qui
+       sort de /mon-bureau/ est un cul-de-sac. On en comptait plusieurs, et le plus
+       frequent est celui que le bureau INVITE a prendre : « A lire », « Lu »,
+       « Nouveaux » et le « Lire l'article » d'une echeance mènent aux articles du
+       site, qui ne portent ni la barre des pieces ni la classe du poste de travail.
+       Le vigneron se retrouvait devant un article, dans son app, sans rien pour
+       revenir. La seule issue etait de fermer l'app et de la rouvrir.
+
+       CE QU'ON FAIT, ET POURQUOI PAS AUTRE CHOSE. On ne masque pas ces liens :
+       lire un article est une bonne chose, et un bureau qui range des lectures
+       qu'on ne peut pas ouvrir ne sert a rien. On ne les intercepte pas non plus
+       pour les peindre en surimpression : ce serait un deuxieme endroit qui affiche
+       un article, et il divergerait de la vraie page au premier changement de
+       gabarit. On les ouvre HORS de l'application, ou iOS pose sa propre vue avec
+       son bouton « OK ». Le systeme fournit le retour que la page ne peut pas
+       fournir, et l'article reste l'article.
+
+       CE QUI RESTE DEDANS : les ancres, les pieces du bureau (traitees juste
+       au-dessus), et tout ce qui n'est pas une page web, tel: et mailto: en tete.
+       Un lien tel: ouvert dans un onglet ne composerait rien du tout.
+
+       SUR ORDINATEUR, RIEN NE CHANGE : la condition est lue une fois, au montage.
+       Hors mode plein ecran, cet ecouteur n'est jamais pose. */
+    var enApp = (navigator.standalone === true)
+      || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    if (enApp) {
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        if (a.target || a.hasAttribute('download')) return;      // deja dit ou c'est un fichier
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        if (e.defaultPrevented) return;                          // un autre ecouteur s'en charge
+        var u;
+        try { u = new URL(a.href, location.href); } catch (err) { return; }
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return;   // tel:, mailto:, sms:
+        if (u.origin !== location.origin) return;                // un domaine tiers sort deja seul
+        if (u.pathname.indexOf('/mon-bureau/') === 0) return;    // on reste chez nous
+        a.target = '_blank';
+        a.rel = 'noopener';
+      });
+    }
+
     sortirHorsPage();
     mesurerEntete();
     // Le bouton Retour du navigateur circule dans le bureau au lieu d'en sortir.

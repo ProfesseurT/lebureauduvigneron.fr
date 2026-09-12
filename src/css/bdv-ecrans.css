@@ -549,3 +549,186 @@
   .pr-sig,.pr-pv__item,.pr-kpi{page-break-inside:avoid}
 }
 @media(max-width:900px){.bdv-ventes .kpi-grid{grid-template-columns:repeat(2,1fr)}.bdv-ventes .grid-2,.bdv-ventes .grid-rep{grid-template-columns:1fr}.bdv-ventes .cta__txt{max-width:100%}}
+
+/* ==========================================================================
+   LE TELEPHONE, 11/09/2026
+   ==========================================================================
+   Pendant, pour les cinq ecrans de vente et la fiche client, du bloc ecrit le
+   meme jour dans `style.css` pour « Ma journee », « Mes taches » et le calendrier.
+   Il manquait ENTIEREMENT : cette feuille ne portait aucun point de rupture sous
+   640 px, et « Mon commerce », « Mon cap », « Mes cuvees », « Mon registre » et la
+   fiche client restaient en version ordinateur retrecie.
+
+   Ce bloc existe parce que le bureau va etre POSE SUR DES ECRANS D'ACCUEIL. Tant
+   qu'on le lisait sur un ordinateur, une cible de 25 px etait un inconfort ; au
+   pouce, c'est un mauvais client ouvert ou un CA recalcule sans l'avoir voulu.
+
+   QUATRE REGLES. Les trois premieres sont celles de `style.css`, la quatrieme
+   n'appartient qu'ici.
+
+   1. LE PLANCHER TACTILE EST 44 px, et on agrandit la CIBLE, pas le DESSIN. Les
+      cases a cocher gardent leurs 15 px de dessin ; c'est leur `<label>` qui prend
+      les 44 px. Une liste dont tous les objets doublent ne tient plus sur un
+      telephone, une liste dont les cibles doublent, si.
+
+   2. AUCUNE SAISIE SOUS 16 px, donc `--t-corps` et rien d'autre. Sous ce seuil,
+      Safari iOS ZOOME la page a la mise au point du champ et n'en ressort pas seul :
+      chaque note prise coutait un pincement pour dezoomer. Ne JAMAIS corriger ce
+      defaut par un `maximum-scale=1` dans le viewport : ca supprimerait aussi le
+      zoom VOLONTAIRE, celui dont a besoin quelqu'un qui voit mal.
+
+   3. UN CADRE QUI PEUT DEBORDER PORTE `overflow-x: auto`. La regle etait deja
+      ecrite dans le depot, elle n'etait pas tenue ici, et son absence ne se voyait
+      pas : `.content` porte `overflow-x: hidden`, donc une colonne qui depassait
+      n'etait pas repoussee, elle etait RASEE. Le tableau « Mix canal et prix moyen »
+      demande environ 500 px et en avait 298 : les deux colonnes de prix moyen
+      n'existaient tout simplement pas sur iPhone, sans barre de defilement et sans
+      le moindre signe. Un debordement qui se voit est un defaut de mise en page ;
+      un debordement qui se cache est un CHIFFRE FAUX.
+      On porte donc le defilement sur la CARTE et pas sur `.content` : le tableau
+      defile dans son cadre, la page ne bouge pas. `:has(> table.data)` vise les
+      seules cartes concernees, pour ne pas transformer en conteneur de defilement
+      les cartes a graphique ni celles a en-tete collant.
+
+   4. `100dvh` ET PAS `100vh`. Sur iOS, `100vh` vaut la hauteur SANS les barres du
+      navigateur : une modale calee dessus depasse la zone visible d'une centaine de
+      pixels, et « Enregistrer », qui est en pied, passe dessous. La fiche client est
+      plein ecran sur telephone : son bouton d'enregistrement etait donc le plus
+      difficile a atteindre de tout le bureau, alors que c'est LUI qui pose la trace
+      de l'appel depuis le 11/09/2026.
+   ========================================================================== */
+@media (max-width: 700px) {
+
+  /* --- 1. Les saisies, a 16 px, sinon iOS zoome ------------------------- */
+  .bdv-ventes .field select,
+  .bdv-ventes .field input,
+  .bdv-ventes .filterbar__dates input,
+  .bdv-ventes .search,
+  .bdv-ventes .msg__sujet,
+  .bdv-ventes .msg__texte,
+  .bdv-ventes .action__date,
+  .bdv-ventes .action__titre,
+  .bdv-ventes .etiq,
+  .bdv-ventes .saisie__canal { font-size: var(--t-corps); }
+
+  /* Les champs de l'explorateur ne tiennent plus a 180 px de large une fois
+     leur texte a 16 px : ils prennent la ligne. */
+  .bdv-ventes .field select,
+  .bdv-ventes .field input { min-width: 0; width: 100%; }
+  .bdv-ventes .field { width: 100%; }
+  .bdv-ventes .search { min-width: 0; width: 100%; }
+
+  /* --- 2. Le plancher tactile, sur la CIBLE ----------------------------- */
+  /* `.chip` est un <span> SANS `display` declare, donc en ligne, et `min-height`
+     n'a AUCUN effet sur un element en ligne. Ecrite sans cette ligne, la regle
+     ci-dessous etait morte pour lui : exactement le defaut de `.calf__m` corrige
+     deux heures plus tot, refait par-dessus. Une regle qui ne s'applique pas ne
+     leve rien, ne casse rien, et se relit tres bien. */
+  .bdv-ventes .chip { display: inline-flex; align-items: center; }
+  .bdv-ventes .btn,
+  .bdv-ventes .btn--sm,
+  .bdv-ventes .chipc,
+  .bdv-ventes .chip,
+  .bdv-ventes .field select,
+  .bdv-ventes .field input,
+  .bdv-ventes .search,
+  .bdv-ventes .action__date,
+  .bdv-ventes .action__titre,
+  .bdv-ventes .etiq,
+  /* La bascule CA / Bouteilles de « Mon cap » et « Mon registre ». Elle ne change
+     pas la mise en page, elle change L'UNITE DE TOUS LES CHIFFRES de l'ecran : la
+     rater se lit comme un chiffre qui a bouge tout seul, pas comme un clic rate.
+     Elle etait a 25 px. */
+  .bdv-ventes .toggle button,
+  .bdv-ventes .saisie__canal { min-height: 44px; }
+
+  /* LE TITRE D'UN BLOC QUI SE REPLIE EST UNE CIBLE, et il faisait 17 px.
+     « Suivi », « Ecrire un message a ce client », « Qui pese quoi dans ton
+     chiffre » : c'est le troisieme etage de la regle des trois etages, celui
+     qu'on deplie pour comprendre. Un `<summary>` ne se voit pas comme un bouton
+     a la relecture du code, et c'est pour ca qu'il avait ete oublie dans les deux
+     passes. `display: flex` parce qu'un summary sans lui ne prend pas sa hauteur
+     minimale, meme piege que `.chip`. */
+  .bdv-ventes details > summary { min-height: 44px; display: flex; align-items: center; }
+  /* La fleche de repli reste : `display:flex` sur un summary emporte son ::marker
+     dans certains navigateurs, et un bloc qui se deplie sans rien pour le dire est
+     un bloc que personne n'ouvre. */
+  .bdv-ventes details > summary::before { content: "▸ "; margin-right: var(--e-xs); }
+  .bdv-ventes details[open] > summary::before { content: "▾ "; }
+
+  /* Le dessin de la case ne bouge pas, c'est son etiquette qui prend la place.
+     Ces cases-la changent le chiffre d'affaires affiche (« Compte dans le CA »,
+     « Sortie gratuite ou perte ») : les rater n'est pas anodin. */
+  .bdv-ventes .chk { min-height: 44px; }
+
+  /* La croix est l'UNIQUE sortie d'un panneau plein ecran, et elle est posee dans
+     l'angle ou le pouce est le moins precis. La rater, c'est rester enferme. */
+  .bdv-ventes .modale__close { min-width: 44px; min-height: 44px; display: flex;
+    align-items: center; justify-content: center; padding: 0; }
+
+  /* Les rangees qui ouvrent une fiche : l'ecran dit « clique sur un nom », et
+     c'est la navigation principale de « Mon commerce ». A 29 px et jointives,
+     viser le bon client dans une liste de trente relevait de la chance. */
+  .bdv-ventes tr.clic > td { padding-top: .8rem; padding-bottom: .8rem; }
+
+  /* LA RANGEE SE REMESURE APRES AVOIR GROSSI UN DE SES ELEMENTS, et ce banc-ci
+     l'a attrape sur MOI : porter les deux champs de dates a 16 px et 44 px a fait
+     sortir `.filterbar__dates` a 438 px dans une fenetre de 390. C'est mot pour mot
+     le defaut deja paye sur les fleches du calendrier le 11/09/2026 au matin, et
+     il se reproduit parce qu'un plancher tactile se pose element par element
+     pendant qu'un debordement se mesure rangee par rangee. La `.filterbar` se
+     repliait deja ; c'est ce groupe, a l'interieur, qui ne se repliait pas. */
+  .bdv-ventes .filterbar__dates { flex-wrap: wrap; }
+  .bdv-ventes .filterbar__dates input { min-height: 44px; }
+
+  /* Les contacts d'une ligne de tableau : c'est LE geste du telephone, et c'etait
+     la plus petite cible de tout le bureau, 15 px de haut. On agrandit la cible du
+     lien, pas son texte, et l'adresse reste au-dessus du numero : `contactCell()`
+     les separe par un <br>, donc chacun prend sa ligne et ses 44 px. */
+  /* `inline-flex` et pas `inline-block` avec une interligne de 44 px : une adresse
+     longue se replie en deux lignes, et une interligne forcee en aurait fait une
+     cible de 88 px de haut au milieu d'un tableau. */
+  .bdv-ventes table.data a { display: inline-flex; align-items: center; min-height: 44px; }
+
+  /* --- 3. Ce qui deborde defile DANS son cadre -------------------------- */
+  .bdv-ventes .card:has(> table.data) { overflow-x: auto; overscroll-behavior-x: contain; }
+  .bdv-ventes .card:has(> details table.data) { overflow-x: auto; overscroll-behavior-x: contain; }
+  /* LE CADRE NE SUFFIT PAS : un tableau se comprime AVANT de deborder. Mesure a
+     390 px, les six colonnes de « Mix canal et prix moyen » tenaient dans 368 px,
+     donc elles ne defilaient pas, elles etaient ILLISIBLES, ce qui est le meme
+     resultat par un autre chemin. On rend leur largeur naturelle aux en-tetes et
+     aux colonnes de nombres, qui sont les plus courtes et les moins compressibles,
+     et le cadre defile. Les colonnes de texte, elles, gardent le droit de se
+     replier : leur imposer `max-content` ferait defiler un tableau sur trois ecrans
+     de large des qu'un client porte une longue adresse. */
+  .bdv-ventes .card table.data th,
+  .bdv-ventes .card table.data td.num { white-space: nowrap; }
+  /* ET LA PREMIERE COLONNE GARDE UN PLANCHER, sinon la correction ci-dessus se
+     paie sur elle. Vu a la capture, et pas a la mesure : rendre leur largeur aux
+     nombres compressait la colonne de gauche jusqu'a ecrire « Domaine / des /
+     Hauts / Coteaux » sur quatre lignes. C'est le NOM du client, c'est ce qu'on
+     cherche des yeux dans une liste, et c'etait devenu la colonne la plus etroite
+     du tableau. Une mesure dit qu'une page ne deborde pas ; seule une capture dit
+     qu'elle se lit. */
+  .bdv-ventes .card table.data th:first-child,
+  .bdv-ventes .card table.data td:first-child { min-width: 9rem; }
+
+  /* --- 4. La fiche client plein ecran ----------------------------------- */
+  .bdv-ventes .modale__box { max-height: 100dvh; overscroll-behavior: contain; }
+  /* Le tableau des commandes defile DEJA dans sa propre boite. Sans cette ligne,
+     un glissement commence dessus n'atteint jamais la fiche qui le porte, et le
+     vigneron se croit bloque au milieu. */
+  .bdv-ventes .tablewrap { overscroll-behavior: contain; }
+
+  /* --- 5. Les vignettes de chiffres ------------------------------------- */
+  /* A deux colonnes sur 390 px, une vignette a environ 127 px utiles : « 1 234 567 € »
+     s'y replie en deux lignes. Une colonne se lit, deux colonnes se devinent. */
+  .bdv-ventes .kpi-grid,
+  .bdv-ventes .kpi-grid--base { grid-template-columns: 1fr; }
+  .bdv-ventes .kpi { padding: .9rem 1rem; }
+
+  /* Le menu de correspondance des colonnes etait fige a 340 px dans un panneau
+     qui n'en offre que 325 : un formulaire qui defile a l'horizontale. */
+  .bdv-ventes select,
+  .bdv-ventes .pilote__row .field select { max-width: 100%; }
+}

@@ -827,9 +827,20 @@
       if(zoneAvis){ zoneAvis.textContent = t || ''; zoneAvis.hidden = !t; }
       else if(t) alert(t);
     };
+    /* ON REPOSE LE VIGNERON DANS SON BUREAU, PAS SUR LA BROCHURE, 11/09/2026.
+       Ce bouton renvoyait sur `/`, la page d'accueil marchande. Sur un ordinateur
+       c'est seulement curieux : on se deconnecte et on se retrouve devant
+       « Cree ton compte ». Dans une application posee sur un ecran d'accueil, il
+       n'y a NI barre d'adresse NI bouton retour : le vigneron se retrouvait sur le
+       site public, dans son app, et le seul chemin de retour etait une entree de
+       menu hors ecran derriere un glissement lateral que rien n'annonce.
+       `/mon-bureau/` sait deja peindre proprement l'etat deconnecte, et c'est
+       l'adresse que l'icone de l'ecran d'accueil pointe. On y reste.
+       `replace` et pas `href` : on ne laisse pas derriere soi une entree
+       d'historique vers une page dont la session vient d'etre fermee. */
     const partir = function(){
       if(window.BdvCompte && BdvCompte.deconnexion) BdvCompte.deconnexion();
-      location.href = '/';
+      location.replace('/mon-bureau/');
     };
     bouton.addEventListener('click', async function(){
       if(arme){

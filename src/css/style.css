@@ -5666,8 +5666,17 @@ button.bureau-nav__item:hover {
     border-top: var(--trait) solid var(--rule-fort);
     box-shadow: var(--ombre-carte);
     /* La barre d'accueil des iPhones mange le bas de l'ecran. Sans ce retrait, la
-       derniere rangee d'icones tombe dessous et ne se touche plus. */
+       derniere rangee d'icones tombe dessous et ne se touche plus.
+       CE RETRAIT NE S'APPLIQUAIT PAS AVANT LE 11/09/2026 : il faut `viewport-fit=cover`
+       dans le viewport pour que `env()` rende autre chose que zero, et il manquait.
+       Le commentaire ci-dessus decrivait une protection qui n'avait jamais tourne.
+       Les retraits LATERAUX arrivent avec la meme correction : en paysage, l'encoche
+       et les coins arrondis mangent les bords, et les deux icones des extremites de
+       cette barre tombaient dedans. Ils valent zero en portrait, ou tout ceci ne
+       change rien. */
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
   body.bdv-poste .bureau-nav__liste {
     display: flex;
@@ -5792,6 +5801,18 @@ button.bureau-nav__item:hover {
   body.bdv-poste .bureau-tete__reglages { min-height: 44px; }
   /* Les champs de saisie. 35 px n'est pas loin du seuil, mais un champ de date rate
      se rattrape en rouvrant un calendrier natif, ce qui est le pire des deux. */
+  /* LES DEUX CHAMPS D'AJOUT D'UNE TACHE PASSENT A 16 px, 11/09/2026 (nuit).
+     Ils avaient recu leurs 44 px de HAUTEUR le matin, pas leur taille de TEXTE :
+     le titre etait a 14 px et la date a 11 px. Sous 16 px, Safari iOS zoome la
+     page a la mise au point et n'en ressort pas seul. C'est le geste le plus
+     frequent du bureau au telephone, noter une tache debout dans un rang, et il
+     coutait un pincement pour dezoomer a chaque fois.
+     Trouve par la mesure sur la VRAIE page, pas a la relecture : le bloc de
+     bdv-ecrans.css corrigeait les saisies des ecrans de vente et laissait
+     celles-ci, qui vivent ici. Deux feuilles, un seul defaut, et c'est pour ca
+     qu'un controle qui ouvre la vraie page voit ce qu'une relecture ne voit pas. */
+  body.bdv-poste .tachesf__i,
+  body.bdv-poste .tachesf__d { font-size: var(--t-corps); }
   body.bdv-poste .tachesf__i,
   body.bdv-poste .tachesf__d,
   /* Le formulaire du calendrier emprunte les MEMES classes que celui des taches,

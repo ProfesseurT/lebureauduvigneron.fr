@@ -792,9 +792,38 @@
   /* « Aujourd'hui » fait deja 116 px de large : lui imposer 44 px de plus n'aurait
      servi qu'a pousser ses voisins dehors. Seule sa hauteur manquait. */
   .bdv-cal .cal__auj { min-height: 44px; }
-  /* Les gestes des cartes de la liste : « C'est fait », « ‹ 7 jours », « Ne plus
-     suivre ». Mesures a 17 et 19 px, et ce sont eux qui ecrivent vraiment. */
-  .bdv-cal .calf__m { min-height: 44px; display: inline-flex; align-items: center; }
+  /* LES GESTES DES CARTES DE LA LISTE : « C'est fait », « ‹ 7 jours », « Ne plus
+     suivre », « Retirer », « Ouvrir sa fiche ». Mesures a 17 et 19 px, et ce sont
+     eux qui ECRIVENT vraiment.
+
+     DEFAUT CORRIGE LE 11/09/2026, ET IL FAUT LE LIRE EN ENTIER. Cette regle visait
+     `.calf__m`, qui n'est PAS un bouton de carte : c'est le signe de lune ou de ferie
+     du fond de carte, un `<span aria-hidden>` qu'on ne clique pas. La mesure etait
+     juste, le selecteur non. Aucune des coches n'a donc jamais recu ses 44 px.
+
+     Et c'etait la SEULE cible possible : la pastille de la grille porte
+     `pointer-events: none` exactement parce que « la vraie coche vit dans la liste
+     du dessous, a 44 px ». Elle n'y etait pas. Resultat net : sur iPhone, cocher une
+     DRM n'avait aucune cible conforme, dans aucune vue.
+     Au passage, le `min-height` sur le glyphe gonflait une case sur trois de la
+     grille du mois, ce qui est un deuxieme defaut et n'en etait que le symptome.
+
+     Corollaire deja paye une fois sur les fleches : on ne grossit pas un element
+     sans REMESURER SA RANGEE. `.echeance__liens` etait un `<p>` en 11 px ou sept
+     boutons de 19 px s'empilaient sans ecart, et viser « 7 jours › » retirait un
+     repere. Elle devient donc une rangee qui se replie, avec un vrai ecart entre
+     des cibles dont les consequences sont opposees. */
+  .bdv-cal .echeance__liens {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--e-xs) var(--e-s);
+  }
+  .bdv-cal .cal__coche,
+  .bdv-cal .cal__coche--choix,
+  .bdv-cal .cal__rallume,
+  .bdv-cal .cal__sansdate a,
+  .bdv-cal .echeance__liens a {
+    min-height: 44px; display: inline-flex; align-items: center;
+  }
   .bdv-cal .cal__vue { min-height: 44px; }
 
   /* LA CARTE VISEE PAR UN APPUI SUR LA GRILLE. Un filet et un fond, le temps de la

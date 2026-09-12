@@ -326,6 +326,325 @@ chargee qu'a l'ouverture d'une piece de vente : entre les deux, le verre de char
 compris. **Tout bloc pose d'avance doit etre cache par une feuille chargee partout**, pas par
 celle qui l'habillera un jour.
 
+## LE BUREAU EST UNE APPLICATION POSEE SUR UN ECRAN D'ACCUEIL, 11/09/2026
+
+Ted va dire a des clients d'installer `/mon-bureau/` sur leur iPhone. Ce chantier est le
+second du jour sur le telephone : la passe du matin a traite « Ma journee », « Mes taches »
+et le calendrier, celle-ci traite l'INSTALLATION et les cinq ecrans de vente, qui n'avaient
+recu aucune regle telephone.
+
+### L'ORDRE N'EST PAS NEGOCIABLE : les sorties AVANT le manifeste
+
+Declarer le mode plein ecran rend REELS, d'un seul coup, tous les culs-de-sac d'une page
+sans bouton retour. Tant qu'il n'y avait pas de manifeste, « Sur l'ecran d'accueil » ne
+produisait qu'un signet, la barre de Safari restait la, et son bouton retour rattrapait
+tout. C'est pour ca que les quatre sorties ont ete fermees d'abord, et le manifeste pose
+apres.
+
+`npm run banc:app` garde les DEUX moities ensemble, et c'est sa raison d'etre : il echoue
+si le manifeste est la sans les sorties, et si les sorties sont la sans le manifeste. Ces
+deux-la ne voyagent pas separement.
+
+### Les quatre sorties fermees
+
+1. **Les articles.** « A lire », « Lu », « Nouveaux » et le « Lire l'article » d'une
+   echeance menent a des pages du site, qui ne portent ni la barre des pieces ni
+   `bdv-poste`. C'est le cul-de-sac le plus frequent parce que c'est celui que le bureau
+   INVITE a prendre. Un ecouteur en bas de `monterBarre()` (`bdv-nav.js`) ouvre en
+   `target="_blank"` tout lien de meme origine sortant de `/mon-bureau/`, **et seulement
+   en plein ecran** : iOS pose alors sa propre vue avec un bouton « OK ». Le systeme
+   fournit le retour que la page ne peut pas fournir, et l'article reste l'article.
+   On ne peint PAS l'article en surimpression : ce serait un deuxieme endroit qui affiche
+   un article, et il divergerait au premier changement de gabarit.
+2. **La deconnexion** renvoyait sur `/`, la brochure. Elle renvoie sur `/mon-bureau/`, qui
+   sait deja peindre l'etat deconnecte, et par `replace` pour ne pas laisser derriere soi
+   une entree d'historique vers une session fermee.
+3. **La porte du bureau deconnecte** ouvrait la modale en mode INSCRIPTION. Or une app iOS
+   a son propre stockage, distinct de Safari : a la premiere ouverture le vigneron est
+   toujours deconnecte, il reinscrivait son adresse et recevait « Un compte existe deja ».
+   `data-bdv-mode="connexion"`.
+4. **Le lien `/compte/` du panneau de reglages** reste ouvert, et c'est le seul :
+   il sort vers une page publique ou la session n'est pas visible. La vraie correction est
+   de rapatrier mot de passe, export et suppression dans le panneau. **Pas fait.**
+
+Bonne nouvelle a ne pas re-verifier : la connexion se fait par adresse et **mot de passe**,
+avec un code a six chiffres pour l'inscription et la reprise. Le piege classique du lien
+magique, qui s'ouvre dans Safari et laisse l'app deconnectee pour toujours, **n'existe pas
+ici**. C'est un choix de `bdv-compte.js` qui se revele payant.
+
+### `viewport-fit=cover`, ou le code de zone sure etait MORT
+
+Tous les `env(safe-area-inset-*)` du depot valaient zero, faute de `viewport-fit=cover`
+dans le viewport. Le retrait ecrit sous la barre des pieces, avec le commentaire qui
+explique pourquoi il existe, ne s'appliquait jamais. **Une protection ecrite, jamais
+executee, et que le prochain lecteur aurait crue active.**
+
+Et on n'ecrit JAMAIS `maximum-scale=1` ni `user-scalable=no` ici. La tentation est reelle :
+ca reglerait d'un coup le zoom involontaire des champs de saisie. Ca supprimerait aussi le
+zoom VOLONTAIRE, celui dont a besoin quelqu'un qui voit mal. Ce defaut se corrige dans le
+CSS, en portant les saisies a 16 px, et nulle part ailleurs. `banc:app` refuse les deux
+mots-cles.
+
+### LE STOCKAGE N'A AUCUNE EXEMPTION, et c'etait la panne la plus probable
+
+WebKit est explicite : une application posee sur l'ecran d'accueil a « le meme quota
+d'origine et le meme quota global que dans un navigateur ». Elle n'echappe donc pas a
+l'eviction du stockage ecrit par script.
+
+Ce que ca voulait dire ici : la session vit dans `localStorage`, les lignes de vente dans
+IndexedDB, et **une semaine sans ouvrir rendait le bureau deconnecte et la base vide.** Sur
+un outil qu'on ouvre quand il y a quelque chose a faire, donc pas tous les jours, c'est la
+panne la plus probable de toutes, et elle serait arrivee aux premiers clients installes.
+
+`navigator.storage.persist()` est demande une fois au chargement, et **seulement pour
+quelqu'un qui a deja une session** : le navigateur accorde sur l'engagement, et demander
+une faveur de stockage a un visiteur de passage n'a aucun sens. Un refus n'est pas une
+erreur, le bureau marche pareil, il se vide seulement plus tot : ca n'affiche rien et ca ne
+bloque rien.
+
+Volume mesure : environ 370 octets par ligne de vente, soit 2 a 5 Mo pour 5 000 lignes,
+loin du plafond d'environ 50 Mo par origine. Le seuil se rapproche vers 40 000 lignes.
+
+### UNE APPLICATION NE RECHARGE PAS SON DOCUMENT
+
+`rafraichir()` n'etait appelee qu'au demarrage du module. Un onglet se ferme et se rouvre ;
+une app d'ecran d'accueil reste en arriere-plan des jours et iOS la restaure **sans
+recharger**. Le jeton vaut une heure : au retour, PostgREST repondait 401, et comme `api()`
+avale l'erreur par la regle d'or, les compteurs redescendaient a vide et la synchronisation
+s'arretait. **Le bureau avait l'air normal et n'ecrivait plus rien.**
+
+`visibilitychange` et pas `focus` : c'est le seul evenement qu'iOS declenche de facon fiable
+au retour d'une autre application, et revenir de l'app Telephone apres un appel client est
+le geste le plus frequent du bureau sur un telephone. Garde-fou horaire obligatoire, sinon
+un aller-retour toutes les dix secondes devient un appel reseau toutes les dix secondes.
+
+## UN LIEN `tel:` QUI COMPOSE FAUX PENDANT QUE L'ECRAN AFFICHE JUSTE, 11/09/2026
+
+Le pire defaut trouve ce jour-la, et il dormait depuis toujours. `parseTels()` ne coupait
+une cellule que sur `|`, `;` et `/`. Sur une colonne Fixe/Mobile saisie a la main :
+
+    « 0612345678, 0494123456 »        composait  06123456780494123456
+    « 04 94 12 34 56 poste 12 »       composait  049412345612
+    « tel 2 : 06 12 34 56 78 »        composait  20612345678
+    « (+33) 6 12 34 56 78 »           perdait son + et devenait inappelable
+    « 0475 12 34 56 » en Belgique     devenait +33 475 123 456, un fixe VALIDE en Ardeche
+
+Et `formatTel()` rendait le mensonge invisible : hors `+33` a neuf chiffres, elle affichait
+la SAISIE BRUTE au lieu de la forme appelee. **L'ecran disait vrai, le lien composait faux,
+et rien ne levait d'erreur.** Tant qu'on lisait l'outil sur un ordinateur, c'etait un texte
+un peu sale ; sur un iPhone, c'est un bouton « Appeler » et un appel qui n'aboutit pas, ou
+pire un inconnu qu'on appelle en croyant joindre son client export.
+
+Les cinq corrections, et la derniere est la seule qui soit structurelle :
+
+1. separateurs elargis, le tiret **entoure d'espaces seulement** (`06-12-34-56-78` est UN
+   numero, `06 12 34 56 78 - 04 94...` en fait deux) ;
+2. le `+` se cherche DEVANT le premier chiffre, pas en tete de chaine ;
+3. on ne retient que le PREMIER bloc de 8 a 15 chiffres, pas toute la cellule ;
+4. le repli `+33` ne s'applique que si `pays` est vide ou francais, et `deriveRow()` passe
+   donc la colonne. C'est la regle deja ecrite en commentaire, « sans jamais inventer un
+   indicatif qu'on n'a pas », qui n'etait pas tenue ;
+5. **`formatTel()` ne peut PLUS diverger** : si les chiffres affiches ne sont pas ceux de
+   `appel`, elle affiche `appel`. C'est le controle 6 de `npm run banc:tels`, et c'est lui
+   qui compte : les quatre premiers reparent des cas, celui-la interdit la classe entiere.
+
+## LE BROUILLON DE LA FICHE, ou la decision du 11/09 qui se retournait contre elle-meme
+
+Depuis ce jour-la, « Appele » n'ecrit plus rien au clic : c'est l'enregistrement de la note
+qui pose la trace. La regle est bonne. Sur un telephone, il lui manquait un filet.
+
+Le lien `tel:` fait QUITTER la page pour l'application Telephone. Si iOS recycle l'onglet
+sous la pression memoire (et cette page tient tout `ROWS` en memoire vive), la page se
+**recharge** : fiche fermee, note perdue. Et comme rien n'a ete pose au clic, **rien
+n'existe** : l'appel a eu lieu, la ligne est toujours au sous-main, le rappel n'est pas
+repousse, et il faut retrouver le client, rouvrir, retaper.
+
+Trois choses a ne pas defaire dans `bdv-ecrans.js` :
+
+1. **On sauve sur `visibilitychange`, pas sur `beforeunload`.** iOS ne declenche pas
+   `beforeunload` quand on part vers une autre application.
+2. **On reprend le TEXTE, jamais le GESTE EN ATTENTE.** Le texte est le travail du vigneron,
+   le geste n'est qu'un defaut de l'outil. Ressusciter un `GESTE_ATTENDU` repousserait un
+   rappel de trente jours sur la foi d'un brouillon, donc ecrirait en base quelque chose que
+   personne n'a valide. Meme distinction que pour la date de rappel dans `noter()`.
+3. **Fermer la fiche efface le brouillon, partir de l'application le garde.** Fermer est un
+   geste, et « fermer sans rien ecrire ne laisse aucune trace » est une demande de Ted.
+   Partir vers l'app Telephone n'est pas un geste de fermeture.
+
+`sessionStorage` et pas `localStorage` : un brouillon n'a pas a survivre a la fermeture du
+navigateur, et il ne doit pas se retrouver chez la personne suivante qui ouvre une session
+sur le meme appareil. C'est la lecon de la file des choix de calendrier.
+Et **on le DIT** en le reprenant : un texte qui revient tout seul sans un mot se lit comme
+un bug, et le vigneron le reecrit par-dessus en croyant bien faire.
+
+## `bdv-ecrans.css` N'AVAIT AUCUN POINT DE RUPTURE TELEPHONE, 11/09/2026
+
+Cette feuille de 48 ko ne contenait pas une seule fois `max-width: 700px` ni `bdv-poste` :
+ses points de rupture s'arretaient a 640. « Mon commerce », « Mon cap », « Mes cuvees »,
+« Mon registre » et la fiche client restaient donc en version ordinateur retrecie, alors que
+la passe du matin avait traite les trois autres pieces. Le bloc ajoute en bas de la feuille
+porte quatre regles, et les trois premieres sont celles de `style.css`. La quatrieme est a
+elle :
+
+**`100dvh` ET PAS `100vh`.** Sur iOS, `100vh` vaut la hauteur SANS les barres du navigateur :
+la fiche client, qui est plein ecran sur telephone, depassait la zone visible d'une centaine
+de pixels, et son bouton « Enregistrer », place en pied, passait dessous. C'est-a-dire
+precisement le bouton qui pose la trace de l'appel.
+
+### UN TABLEAU SE COMPRIME AVANT DE DEBORDER
+
+`.content` porte `overflow-x: hidden`. On croyait donc que les colonnes qui depassaient
+etaient rasees ; **la mesure dit autre chose et c'est pire a corriger** : le tableau se
+comprime pour tenir, et les six colonnes de « Mix canal et prix moyen » se serraient dans
+368 px. Pas de defilement, pas de coupure, juste des colonnes illisibles. Le meme resultat
+par un autre chemin.
+
+Il a donc fallu DEUX regles, et la premiere seule ne servait a rien :
+
+- la CARTE qui porte un tableau defile (`:has(> table.data)`), pour que le debordement
+  reste dans son cadre et ne pousse jamais la page ;
+- les en-tetes et les colonnes de nombres reprennent leur largeur naturelle
+  (`white-space: nowrap`), sans quoi le tableau continue de se comprimer et ne defile pas.
+  Les colonnes de TEXTE gardent le droit de se replier : leur imposer `max-content` ferait
+  defiler un tableau sur trois ecrans de large des qu'un client porte une longue adresse.
+
+### LA RANGEE SE REMESURE APRES AVOIR GROSSI UN DE SES ELEMENTS
+
+Deja paye le matin sur les fleches du calendrier, repaye l'apres-midi sur moi : porter les
+deux champs de dates a 16 px et 44 px a fait sortir `.filterbar__dates` a 438 px dans une
+fenetre de 390. La `filterbar` se repliait deja, c'est le GROUPE a l'interieur qui ne se
+repliait pas. Un plancher tactile se pose element par element, un debordement se mesure
+rangee par rangee, et c'est pour ca que ca recommence.
+
+### LA REGLE DES 44 px DU CALENDRIER VISAIT UN ELEMENT DECORATIF
+
+`bdv-calendrier.css` portait bien la regle, avec le bon commentaire et les bonnes mesures.
+Elle visait `.calf__m`, qui n'est pas un bouton de carte : c'est le signe de lune ou de
+ferie du fond de carte, un `<span aria-hidden>` qu'on ne clique pas. **La mesure etait
+juste, le selecteur non, et aucune des coches n'a jamais recu ses 44 px.**
+
+Ce qui rend la chose grave plutot que penible : la pastille de la grille porte
+`pointer-events: none` EXACTEMENT parce que « la vraie coche vit dans la liste du dessous,
+a 44 px ». Elle n'y etait pas. **Sur iPhone, cocher une DRM n'avait aucune cible conforme,
+dans aucune vue.** Et le `min-height` pose sur le glyphe gonflait au passage une case sur
+trois de la grille du mois, ce qui n'etait que le symptome visible du meme defaut.
+
+### UNE MESURE DIT QU'UNE PAGE NE DEBORDE PAS, UNE CAPTURE DIT QU'ELLE SE LIT
+
+Le harnais de mesure a valide « 390 px de page pour 390 px de fenetre, zero cible sous
+44 px, zero saisie sous 16 px ». La capture du meme etat montrait « Domaine / des / Hauts /
+Coteaux » sur quatre lignes : rendre leur largeur aux colonnes de nombres avait comprime la
+colonne de gauche, celle qui porte le NOM du client, celle qu'on cherche des yeux. D'ou un
+plancher de 9 rem sur la premiere colonne.
+
+**Les deux controles ne se remplacent pas, et l'ordre compte** : la mesure trouve ce qu'on
+ne voit pas, la capture voit ce qu'on ne mesure pas.
+
+### L'AUTO-AUDIT : ce que ce chantier a trouve DANS SON PROPRE TRAVAIL
+
+Ted, avant de pousser : « audite-toi et corrige-toi. Tu n'as pas le droit de me pousser un
+truc incoherent ou moche. » Il avait raison, et voici ce que le controle a trouve.
+
+**Le premier constat est de methode.** Ce qui avait ete verifie, c'etait une page de test
+ECRITE POUR L'OCCASION, avec du balisage recopie a la main. Elle ne pouvait valider que ce
+qu'on avait pense a y mettre. Le vrai banc sert `_site`, pose 286 lignes de vente dans la
+VRAIE IndexedDB et ouvre chaque piece par son vrai identifiant : il a trouve six defauts de
+plus en un passage, dont trois etaient de ce chantier meme.
+
+1. **`min-height` sur `.chip` etait INERTE.** `.chip` est un `<span>` sans `display`
+   declare, donc en ligne, et `min-height` n'a aucun effet sur un element en ligne. Les
+   chips de periode, qui pilotent TOUS les chiffres de l'ecran, sont restes a 21 px.
+   **C'est la troisieme fois de la journee que la meme faute se produit** : `.calf__m` le
+   matin, les selecteurs non portes le 07/09, celle-ci le soir. La regle qui en sort :
+   **avant d'ecrire `min-height` sur une classe, verifier son `display`.** Et surtout,
+   un banc qui ne mesure pas un type d'element ne peut pas signaler qu'une regle est morte
+   dessus : le premier harnais ne regardait pas les `span`, donc il a valide une regle qui
+   ne s'appliquait pas.
+
+2. **`status('info')` n'existait pas.** `status()` pose `class="status <type>"`, et
+   `bdv-ecrans.css` ne definit que trois etats, error, loading et success. Un quatrieme nom
+   sort un bandeau SANS fond ni couleur, c'est-a-dire le bandeau nu deja paye le 08/09.
+   **Ou le type existe dans la feuille, ou on prend celui qui existe.** Ne pas en inventer
+   un quatrieme sans l'ecrire ET sans mesurer sa paire de contraste.
+
+3. **Les deux champs d'ajout d'une tache etaient a 14 px et 11 px.** Ils avaient recu leurs
+   44 px de hauteur le matin, jamais leur taille de TEXTE. Le bloc telephone ecrit le soir
+   corrigeait les saisies de `bdv-ecrans.css` et laissait celles-la, qui vivent dans
+   `style.css`. **Un meme defaut reparti sur deux feuilles se repare a moitie**, et la
+   moitie oubliee est celle du geste le plus frequent : noter une tache debout dans un rang.
+
+4. **Un `<summary>` est une cible, et ca ne se voit pas a la relecture.** « Suivi »,
+   « Ecrire un message a ce client », « Qui pese quoi dans ton chiffre » : le troisieme
+   etage de la regle des trois etages, celui qu'on deplie pour comprendre, faisait 17 px.
+   Un `<summary>` ne ressemble pas a un bouton dans le code, et il avait echappe aux DEUX
+   passes du jour.
+
+5. **La bascule CA / Bouteilles faisait 25 px.** Elle ne change pas la mise en page, elle
+   change L'UNITE DE TOUS LES CHIFFRES de « Mon cap » et « Mon registre » : la rater se lit
+   comme un chiffre qui a bouge tout seul, pas comme un clic rate.
+
+### « domaine NaN € », sur TOUTES les fiches clients, depuis longtemps
+
+Le defaut le plus grave de la soiree, et il n'appartenait pas a ce chantier.
+
+    const prixBase = prixVenteMoyen();          // rend un OBJET {parProduit, parFamille}
+    ... fmtNum(prixBase, 2) ...                 // vaut NaN
+
+Le garde `prixBase ?` ne rattrapait rien, un objet etant toujours vrai. Toutes les fiches
+affichaient donc « 9,62 € en moyenne, domaine NaN € », sur l'ecran le plus consulte de
+l'outil, et `npm run apercu:fiche` le MONTRAIT deja. **Un apercu se regarde, et on finit
+par ne plus regarder.**
+
+**La cause n'est pas l'appel, c'est le NOM.** « Prix de vente moyen » designait une carte de
+prix par produit et par famille ; l'appelant a lu le nom et suppose un nombre. D'ou
+`prixMoyenBouteilleDomaine()`, qui dit BOUTEILLE et DOMAINE et rend un scalaire. **Ne pas
+les re-fusionner**, et la regle generale : *quand deux formes different, deux noms
+different, et le nom porte la FORME autant que le sujet.*
+
+Sa base de calcul est celle du client, `ca/btl` sur les lignes `_vin`, et pas le filtre plus
+severe de `prixVenteMoyen()` : deux chiffres cote a cote dans la meme phrase doivent se
+comparer.
+
+**Le garde-fou est dans `npm run banc:registre`**, sections « La fiche client » : la fiche
+est rendue, son TEXTE est passe au crible de `NaN`, `Infinity` et `undefined`, et le
+controle a ete verifie EN REMETTANT LE DEFAUT. Un controle qui n'a jamais echoue ne garde
+rien. La regle du depot le disait deja, « une case vide vaut mieux qu'une valeur inventee » :
+NaN est pire que les deux.
+
+### 434 px d'en-tete pour 844 px d'ecran, SIGNALE ET NON CORRIGE
+
+Mesure sur la vraie page : l'en-tete du bureau occupe **434 px, soit 51 % du premier
+ecran**, et la barre des pieces 53 px en bas. Il reste **357 px de contenu visible sans
+faire defiler**, et sur « Mon cap » ils sont pris par la barre d'exports et les chips de
+periode. Le vigneron ouvre son bureau et ne voit encore rien de ce qu'il vient chercher.
+
+Ce n'est pas un defaut, c'est un dessin, et il a ete decide ailleurs : le salut, les deux
+boutons, la lune. **A rouvrir avec Ted, pas a trancher seul.** Ce qui est acquis, c'est le
+chiffre : une piece qui ne repond qu'apres 434 px de decor ne repond pas.
+
+### Ce qui reste ouvert sur le telephone, et qui n'a PAS ete fait
+
+- **Rien n'annonce qu'un tableau defile.** Il defile, mais un pouce ne le devine pas.
+- **Les libelles des huit icones de la barre n'existent que dans `title`**, donc pour
+  personne sur un ecran tactile. La regle du matin l'assume (« une etiquette coupee est pire
+  qu'une etiquette absente ») : a rouvrir avec Ted, pas a trancher seul.
+- **Les montants mensuels de la fiche, les noms de lune et de ferie, l'avertissement de
+  fenetre de `bdv-ecrans.js`** : tous dans des `title`, tous invisibles sur iPhone.
+- **La vue « L'annee » du calendrier ne dit rien au doigt** : son contenu entier est dans
+  des `title`, et sa seule cible est le titre du mois, a 24 px.
+- **Un appui sur une case de grille au MILIEU d'une periode ne fait rien** : la carte porte
+  le jour de DEBUT. 17 des 29 regles durent plus d'un jour.
+- **Pas de balayage lateral pour changer de mois**, alors qu'aucun ecouteur tactile n'existe
+  nulle part et que le terrain est donc libre.
+- **`/compte/` depuis le panneau de reglages** (voir plus haut).
+- **`bdv-taches.js` et `bdv-signets.js` n'ont toujours pas de proprietaire sur leur file
+  hors ligne.** Signale le 08/09, et le telephone le rend urgent : la vigne est precisement
+  l'endroit ou l'on est hors ligne.
+- **Le repli de `jour()` dans `bdv-courrier.js` fait un `toISOString()`** et porte donc le
+  decalage corrige ailleurs. Non touche VOLONTAIREMENT : ce fichier est joint au
+  deploiement avec une empreinte, le modifier force un redeploiement de `courrier-matin`
+  pour un defaut qui ne mord que sur l'apercu hors ligne.
+
 ## Le responsive se juge sur la ZONE, pas sur la fenetre
 
 Audit du 07/09/2026, apres une capture de Ted montrant des boutons qui sortaient du cadre.
