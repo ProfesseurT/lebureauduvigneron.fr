@@ -12,6 +12,129 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 12/09/2026. L'ardoise, le courrier, et la police des chiffres
+
+Demande de Ted, en trois mots : « améliore : ardoise, courrier, la police des chiffres affichés,
+c'est pas bon. » Puis, après la première capture : « c'est le design du courrier qui me va pas,
+la lettre est vraiment pas belle. »
+
+### CE QUE LA CAPTURE A VU, ET QU'AUCUN CONTRÔLE NE VOYAIT
+
+Aucun banc ne criait. La charte passait, les 110 contrôles du bureau passaient. Six défauts
+n'existaient que sur l'image, et ils ont été trouvés en montant la vraie page dans jsdom avec
+un faux CRM, puis en la photographiant avec les **vraies polices variables** du site. Le banc
+est `scripts/apercu-ardoise.mjs`, ajouté ici, sur le modèle de `apercu-panneau.mjs`.
+
+Le piège évité, et c'est celui du 08/09 rejoué : les polices de Google ne sont pas joignables
+depuis le conteneur. Les charger en version **statique** aurait montré des chiffres qui
+n'existent pas sur le site, Fraunces étant servi en variable avec ses axes `opsz` et `wght`.
+Les fichiers variables ont donc été récupérés depuis le registre npm et posés en dur dans le
+harnais. Une capture de police faite avec la mauvaise instance ne vaut rien.
+
+### L'ARDOISE
+
+**Les quatre chiffres n'étaient pas sur la même ligne.** Base à 71 px du haut de la case pour le
+chiffre d'affaires, 58 px pour les trois autres. La cause est structurelle : le chiffre de tête
+est en `--t-h2`, les trois autres en `--t-h3`, et quatre colonnes flex n'ont **aucun moyen de se
+parler**. L'ardoise partage maintenant trois rangées, étiquette / chiffre / source, et chaque
+case les reprend par `subgrid` au lieu d'ouvrir les siennes. Les quatre valeurs sont alors dans
+la même rangée de la même grille, et `align-self: baseline` les pose sur une seule ligne
+d'écriture quel que soit leur corps.
+
+Le piège du partage : l'écart entre rangées du parent est le **filet de craie**, l'interstice de
+la grille. Laissé à `var(--trait)`, il se serait mis à traverser l'ardoise horizontalement entre
+l'étiquette et le chiffre, dans les quatre cases à la fois. Il est donc à zéro sur le parent et
+remis à 0,2 rem dans chaque case. Sous 640 px le partage est abandonné : une colonne, un chiffre
+par rangée, il n'y a plus rien à aligner.
+
+**Le vide sous les cases passe de 16 / 30 / 30 / 30 px à 16 partout.** Les trois petites cases
+n'étaient étirées que par la hauteur de la grande.
+
+**Le filet d'or soulignait la CASE.** Mesuré à 36 px sous le chiffre et sur toute la largeur de
+la case. Le commentaire du fichier disait pourtant, depuis le premier jour, « sur une ardoise on
+souligne ». L'intention écrite et le dessin ne disaient pas la même chose, et personne ne l'avait
+vu parce que personne n'avait regardé l'image. Le trait est maintenant porté par le chiffre
+lui-même, qui a pour cela une largeur de contenu et non la largeur étirée de sa case.
+
+**Deux règles mortes retirées.** `.zone--ardoise .ardoise` rouvrait la grille en `auto-fit` et
+aurait écrasé le partage de rangées. `.chiffre[data-sens]` peignait un `border-left-color` sur un
+élément qui porte `border: none` depuis toujours : **la variation du chiffre d'affaires n'était
+signalée nulle part**, ni en vert ni en rouge, alors que le JavaScript posait consciencieusement
+l'attribut à chaque peinture.
+
+Arbitrage sur le remplacement : pas de couleur. `--ok` tombe à **2,6:1** sur `--ardoise`, sous le
+plancher de 3:1 des éléments non textuels, et il n'existe pas de vert clair dans les jetons. Une
+flèche ▲ ou ▼ devant la source dit le sens par la forme. C'est de toute façon la bonne règle :
+une information portée par la seule couleur n'en est pas une.
+
+### LA POLICE DES CHIFFRES
+
+Cinq variantes montées sur la vraie ardoise et photographiées côte à côte.
+
+- **Forcer `lining-nums` et `tabular-nums` sur Fraunces ne change rien.** Ses chiffres sont déjà
+  alignés, les captures A et B étaient identiques. Cette piste, qui était la plus économique,
+  est morte.
+- **Le mono de JetBrains impose sa chasse** et décolle le symbole euro de deux espaces sur
+  « 532 201  € ». On ne peut pas le rattraper sans changer le formateur de montants.
+- **Fraunces est un serif de titre à fort contraste.** Sur fond sombre ses déliés s'amincissent
+  optiquement et le chiffre perd sa masse. C'est ça que Ted voyait sans le nommer.
+
+Retenu : **Inter 700 en `tabular-nums`**. Les étiquettes et les sources restent en JetBrains Mono,
+c'est la même division que dans le courrier du matin, le mono porte les références et pas les
+montants qu'on lit d'un coup d'œil. `tabular-nums` n'est pas décoratif ici : d'un passage à
+l'autre le chiffre d'affaires change de chiffres sans changer de longueur, et sans chasse fixe il
+danserait sous son propre filet d'or.
+
+Écarté : Inter 600, trop discret sur ce fond. Écarté : Fraunces avec `WONK` coupé et `opsz`
+bloqué, qui gagne en masse mais reste une lettre de titre.
+
+### LE COURRIER
+
+**Le rabat coupait le titre.** Un triangle de 34 px de haut sur toute la largeur, censé figurer un
+rabat d'enveloppe. Le titre de la zone commence à 19 px. Il passait donc dans « Le courrier » et
+dans sa note. Et un rabat qui descend au milieu d'une zone de 376 px est trop mou pour se lire
+comme un rabat : on voyait une forme beige.
+
+Remplacé par le **bord déchiré**, c'est-à-dire l'enveloppe déjà ouverte, qui est l'état dans lequel
+on la regarde. Dix pixels de dents en masque conique répété, donc la dent garde sa taille à toutes
+les largeurs de zone, et la bande s'arrête 9 px avant le titre : elle ne peut plus le rencontrer.
+`overflow: hidden` est parti avec le triangle, il coupait le halo de focus des liens au ras de la
+zone.
+
+**Les trois zones du bas portaient la même ligne.** `.fiche-l` pour « À lire », « Le classeur » et
+« Le courrier » : trois matières, un seul objet. Or elles ne répondent pas à la même question.
+À lire dit « ce que j'ai mis de côté », le classeur dit « ce que j'ai lu », le courrier dit
+**« ce qui est arrivé depuis mon dernier passage »**. Une date est ce qui lui manquait, et c'est
+aussi ce qui en fait une lettre plutôt qu'une fiche : sur une lettre on lit d'abord la date.
+
+`.lettre` porte donc la date d'arrivée en mono dans sa propre colonne alignée à droite, comme un
+cachet dans la marge, puis le titre, puis le temps de lecture. La colonne évite que trois dates de
+longueurs différentes décalent le fer des titres. Le filet est en pointillé et pas en trait plein
+comme chez les deux voisines : c'est la perforation, et c'est le seul endroit du bureau qui en
+porte. Sous 400 px la date remonte au-dessus du titre, la colonne aurait laissé moins de 200 px au
+texte.
+
+**Le `pilier` et ses emojis quittent le courrier.** `src/_data/rubriques.js` dit noir sur blanc,
+depuis l'arbitrage du 10/09, que « pilier n'est plus lu par aucun gabarit ». Le bureau l'affichait
+encore, avec ses 📈 et ses 🔧 en couleur au milieu d'un dessin de papier et d'encre.
+
+La note de zone dit « depuis le 9 septembre » au lieu de « les 3 derniers », qui ne disait rien
+d'autre que le nombre de lignes déjà visibles.
+
+### CE QUI RESTE OUVERT
+
+- **« À lire » et « Le classeur » affichent toujours le `pilier` et ses emojis.** Signalé, pas
+  corrigé : changer l'étiquette de ces deux zones est une décision de contenu, et la remplacer par
+  `categorie` demande d'ajouter le champ au JSON `bdvContenus`, qui ne le porte pas.
+- **Les dernières parutions datent de mai.** Le courrier d'un bureau de septembre affiche donc
+  « 28 MAI ». C'est honnête et c'est le vrai contenu du site, mais ça dit surtout qu'il n'y a pas
+  eu de publication depuis.
+- **L'ardoise reste une frise.** 1 126 px de large pour 127 px de haut. La hiérarchie tient
+  maintenant à la largeur de la première case et au filet d'or ; si Ted la trouve encore plate, le
+  levier suivant est de sortir le chiffre d'affaires de la grille et d'en faire un bloc à part.
+
+---
+
 ## 12/09/2026. La modale d'une tâche, et pourquoi elle n'est pas la même pour tout le monde
 
 Demande de Ted : « tu vas ajouter sur la partie tache : une modale qui s'ouvre pour créer la
