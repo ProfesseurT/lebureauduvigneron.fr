@@ -6609,18 +6609,44 @@ button.bureau-nav__item:hover {
    cadre. Ici c'est le FOND de la grille qui affleure par un jeu d'un pixel, ce
    qui trace une ligne dans les deux sens, a une, deux ou quatre colonnes, sans
    une regle de plus. La matiere, grain compris, descend donc sur les cases. */
+/* ----------------------------------------------------------------------------
+   LES QUATRE CHIFFRES SONT SUR UNE SEULE LIGNE, 12/09/2026
+   ----------------------------------------------------------------------------
+   Defaut mesure sur capture : la base du chiffre d'affaires tombait a 71 px du
+   haut de sa case, celle des trois autres a 58 px. Treize pixels d'ecart, et la
+   cause est simple : le chiffre de tete est en --t-h2, les trois autres en
+   --t-h3, et quatre colonnes flex n'ont aucun moyen de se parler.
+
+   LA GRILLE EST DONC PARTAGEE. L'ardoise porte trois rangees, etiquette, chiffre
+   et source ; chaque case reprend ces trois rangees-la par `subgrid` au lieu
+   d'ouvrir les siennes. Les quatre chiffres sont alors dans la MEME rangee de la
+   MEME grille, et `align-self: baseline` les pose sur une seule ligne d'ecriture,
+   quel que soit leur corps. C'est aussi ce qui supprime le vide : les trois
+   petites cases avaient 30 px de blanc sous leur source parce qu'elles etaient
+   etirees a la hauteur de la grande.
+
+   L'ECART ENTRE LES RANGEES EST A ZERO SUR LE PARENT, et remis a 0,2 rem dans
+   chaque case. Sans ca, le filet de craie du parent, qui est l'interstice de la
+   grille, se serait mis a traverser l'ardoise horizontalement entre l'etiquette
+   et le chiffre, dans toutes les cases a la fois.
+
+   SOUS 640 px ON ABANDONNE LE PARTAGE : une colonne, un chiffre par rangee, il
+   n'y a plus rien a aligner et la grille redevient ce qu'elle etait. */
 .ardoise {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: var(--trait);
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  grid-template-rows: repeat(3, auto);
+  column-gap: var(--trait);
+  row-gap: 0;
   background: var(--on-dark-rule);
   border: var(--e-s) solid var(--cork-encre);
   box-shadow: var(--ombre-dure);
 }
 .chiffre {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  row-gap: 0.2rem;
   padding: var(--e-m);
   background-color: var(--ardoise);
   background-image:
@@ -6635,13 +6661,19 @@ button.bureau-nav__item:hover {
   text-decoration: none;
   background-color: color-mix(in srgb, var(--white) 7%, var(--ardoise));
 }
-/* Le chiffre principal est SOULIGNE a la craie, il n'est pas mis dans un cadre :
-   sur une ardoise on souligne. */
-.chiffre--hi { box-shadow: inset 0 -2px 0 var(--gold); }
+/* LE FILET D'OR SOULIGNE LE CHIFFRE, ET PAS LA CASE. Le commentaire disait deja
+   « sur une ardoise on souligne » ; ce qui etait dessine soulignait le bas de la
+   case, mesure a 36 px sous le chiffre et sur toute sa largeur. Le trait est
+   maintenant porte par le chiffre lui-meme, qui a pour cela une largeur de
+   contenu et non la largeur etiree de sa case. */
 /* Deux pas de l'echelle et pas deux valeurs choisies a l'oeil : le plafond de
    font-size en dur de la charte a refuse le 2rem que j'avais ecrit, et il avait
    raison. --t-h2 pour le chiffre souligne, --t-h3 pour les trois autres. */
-.chiffre--hi .chiffre__v { font-size: var(--t-h2); }
+.chiffre--hi .chiffre__v {
+  font-size: var(--t-h2);
+  padding-bottom: 0.16em;
+  box-shadow: 0 3px 0 var(--gold);
+}
 .chiffre__l {
   font-family: var(--font-mono);
   font-size: var(--t-micro);
@@ -6649,8 +6681,48 @@ button.bureau-nav__item:hover {
   letter-spacing: var(--ls-etiq);
   color: var(--gold);
 }
-.chiffre__v { font-family: var(--font-titre); font-size: var(--t-h3); font-weight: 600; line-height: 1; color: var(--on-dark); }
+/* ----------------------------------------------------------------------------
+   LA POLICE DES CHIFFRES, 12/09/2026
+   ----------------------------------------------------------------------------
+   Demande de Ted : « la police des chiffres affiches, c'est pas bon ». Cinq
+   variantes montees sur cette ardoise et photographiees avec les VRAIES polices
+   variables du site, pas des versions statiques qui n'auraient pas ete les memes
+   instances.
+
+   CE QUI A ETE ECARTE. Forcer `lining-nums` et `tabular-nums` sur Fraunces ne
+   change rien : ses chiffres sont deja alignes, la capture A et la capture B
+   etaient identiques. Le mono de JetBrains, lui, impose sa chasse et decolle le
+   symbole euro de deux espaces sur « 532 201  € » : on ne peut pas le rattraper.
+
+   CE QUI RESTE. Fraunces est un serif de titre a fort contraste ; sur un fond
+   sombre ses delies s'amincissent optiquement et le chiffre perd sa masse. Inter
+   700 la garde. Les etiquettes et les sources restent en JetBrains Mono : c'est
+   la meme division que dans le courrier du matin, le mono porte les references,
+   pas les montants qu'on lit d'un coup d'oeil.
+
+   `tabular-nums` n'est pas decoratif ici : d'un passage a l'autre le chiffre
+   d'affaires change de chiffres sans changer de longueur, et sans chasse fixe il
+   danserait sous son propre filet d'or. */
+.chiffre__v {
+  align-self: baseline;
+  justify-self: center;
+  width: max-content;
+  max-width: 100%;
+  font-family: var(--font-corps);
+  font-size: var(--t-h3);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: var(--ls-serre);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  color: var(--on-dark);
+}
 .chiffre__s { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--on-dark-soft); }
+/* La fleche dit le sens, la couleur ne le dit pas : --ok tombe a 2,6:1 sur
+   --ardoise, sous le plancher de 3:1 des elements non textuels, et une
+   information portee par la seule couleur n'en est pas une. */
+.chiffre[data-sens="haut"] .chiffre__s::before { content: "\25B2\00A0"; }
+.chiffre[data-sens="bas"]  .chiffre__s::before { content: "\25BC\00A0"; }
 
 /* ---- LES LECTURES : classeur, pile, courrier ---- */
 .fiche-l {
@@ -6722,23 +6794,124 @@ button.bureau-nav__item:hover {
 .zone--classeur .fiche-l:nth-child(even) { border-left-color: var(--bordeaux-deep); }
 .zone--classeur .fiche-l:nth-child(3n) { border-left-color: var(--cork); }
 
-/* LE COURRIER : une enveloppe, rabat ouvert. Le rabat est un triangle de la
-   couleur du papier en retrait, avec le filet du site pour arete. Il est pose
-   SOUS le titre de la zone, dans la marge que la zone a deja. */
-.zone--courrier { position: relative; border-top-color: var(--bordeaux); overflow: hidden; }
+/* ============================================================================
+   LE COURRIER : UNE ENVELOPPE OUVERTE, 12/09/2026
+   ============================================================================
+   Demande de Ted, apres capture : « c'est le design du courrier qui me va pas,
+   la lettre est vraiment pas belle ».
+
+   CE QUI ETAIT DESSINE ET POURQUOI C'ETAIT RATE. Un grand triangle de 34 px de
+   haut occupant toute la largeur de la zone, cense figurer un rabat. Mesure : le
+   titre de la zone commence a 19 px, le triangle en faisait 34. Il passait donc
+   DANS le titre et coupait « Le courrier » et sa note. Et un rabat qui descend
+   au milieu d'une zone de 376 px de large est trop mou pour se lire comme un
+   rabat : on voyait une forme beige, pas une enveloppe.
+
+   CE QUI EST DESSINE MAINTENANT. Le bord DECHIRE, c'est-a-dire l'enveloppe deja
+   ouverte, ce qui est l'etat dans lequel on la regarde. Dix pixels de dents en
+   haut de la zone, sous le filet bordeaux, au-dessus du titre : la bande ne peut
+   plus le rencontrer, elle s'arrete 9 px avant lui. C'est un masque conique
+   repete et non un polygone a trente sommets, donc la dent garde sa taille a
+   toutes les largeurs de zone.
+
+   `overflow: hidden` a ete retire avec le triangle : plus rien ne deborde, et il
+   coupait le halo de focus des liens au ras de la zone. */
+.zone--courrier {
+  position: relative;
+  border-top-color: var(--bordeaux);
+}
 .zone--courrier::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 34px;
+  height: 10px;
   background: var(--paper-deep);
-  clip-path: polygon(0 0, 50% 100%, 100% 0);
-  border-bottom: var(--trait) solid var(--rule);
+  /* Le masque ne prend que l'alpha de son degrade : `currentColor` y est
+     n'importe quelle couleur opaque, et evite d'ecrire un noir en dur que la
+     charte refuse a juste titre. */
+  -webkit-mask: conic-gradient(from -45deg at bottom, transparent 90deg, currentColor 0) 50% / 14px 100% repeat-x;
+  mask: conic-gradient(from -45deg at bottom, transparent 90deg, currentColor 0) 50% / 14px 100% repeat-x;
   pointer-events: none;
 }
 .zone--courrier .zone__tete { position: relative; }
+
+/* ----------------------------------------------------------------------------
+   LA LETTRE : L'OBJET PROPRE DU COURRIER
+   ----------------------------------------------------------------------------
+   L'autre moitie du defaut, et la plus lourde : les trois zones du bas portaient
+   la MEME ligne, `.fiche-l`, donc le meme objet. « A lire » a sa punaise, « Le
+   classeur » son dos de carton, et le courrier n'avait rien, ses lignes etaient
+   nues. Trois matieres pour un seul contenu.
+
+   Or ces trois zones ne repondent pas a la meme question. A lire dit « ce que
+   j'ai mis de cote », le classeur dit « ce que j'ai lu », le courrier dit « ce
+   qui est ARRIVE depuis mon dernier passage ». Une date est donc ce qu'il lui
+   manquait, et c'est aussi ce qui en fait une lettre plutot qu'une fiche : sur
+   une lettre on lit d'abord la date.
+
+   LA DATE EST DANS SA PROPRE COLONNE, en mono et alignee a droite, comme un
+   cachet dans la marge. Les titres commencent alors tous au meme fer, ce que
+   trois dates de longueurs differentes en tete de ligne auraient interdit.
+
+   LE FILET EST EN POINTILLE, pas en trait plein comme dans les deux zones
+   voisines : c'est la perforation, et c'est le seul endroit du bureau qui en
+   porte. */
+.lettre {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.2em minmax(0, 1fr);
+  column-gap: var(--e-s);
+  padding: 0.65rem 1.1rem 0.65rem 0;
+  border-bottom: var(--trait) dashed var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+}
+.lettre:last-child { border-bottom: none; }
+.lettre:hover { text-decoration: none; }
+.lettre__d {
+  grid-row: 1 / span 2;
+  align-self: start;
+  padding-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  line-height: var(--lh-serre);
+  text-align: right;
+  color: var(--cork-encre);
+}
+.lettre__t {
+  font-family: var(--font-titre);
+  font-size: var(--t-corps);
+  line-height: var(--lh-serre);
+}
+.lettre:hover .lettre__t { color: var(--bordeaux); }
+.lettre__m {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+/* La pastille dit « arrive depuis ton dernier passage », et elle ne s'affiche
+   que quand ce dernier passage est connu. Sans repere, les trois dernieres
+   publications ne sont pas des nouveautes : les marquer toutes serait mentir. */
+.lettre__p {
+  position: absolute;
+  top: 0.8rem;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-rond);
+  background: var(--bordeaux);
+}
+/* Sous 400 px la colonne de date passerait le titre a moins de 200 px : la date
+   remonte alors au-dessus du titre, sur sa propre ligne. */
+@media (max-width: 400px) {
+  .lettre { grid-template-columns: 1fr; }
+  .lettre__d { grid-row: auto; text-align: left; padding-top: 0; margin-bottom: 0.1rem; }
+}
 
 /* ---- LE TIROIR ---- */
 
@@ -6973,12 +7146,19 @@ button.bureau-nav__item:hover {
 }
 .mot__a { font-size: var(--t-base); color: var(--muted); line-height: var(--lh-normal); margin: 0; }
 
-/* L'ardoise en large : quatre chiffres sur une ligne quand la place le permet. */
-.zone--ardoise .ardoise { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
-/* Le sens de la variation, sur le chiffre de tete uniquement. Le vert et le rouge ne
-   servent qu'a ca : partout ailleurs ils ne voudraient plus rien dire. */
-.chiffre[data-sens="haut"] { border-left-color: var(--ok); }
-.chiffre[data-sens="bas"]  { border-left-color: var(--danger); }
+/* DEUX REGLES MORTES RETIREES LE 12/09/2026.
+   `.zone--ardoise .ardoise` rouvrait la grille en auto-fit et ecrasait le partage
+   de rangees, donc les quatre chiffres n'auraient jamais pu s'aligner.
+   `.chiffre[data-sens]` peignait un `border-left-color` sur un element qui porte
+   `border: none` depuis le premier jour : la variation du chiffre d'affaires
+   n'etait signalee nulle part, en vert comme en rouge. Elle l'est maintenant par
+   la fleche posee plus haut sur `.chiffre__s`. */
+/* L'ardoise sous 640 px : une colonne, et le partage de rangees n'a plus d'objet. */
+@media (max-width: 640px) {
+  .ardoise { grid-template-columns: 1fr; grid-template-rows: none; row-gap: var(--trait); }
+  .chiffre { grid-row: auto; display: flex; flex-direction: column; }
+  .chiffre__v { align-self: center; }
+}
 
 
 /* ============================================================================

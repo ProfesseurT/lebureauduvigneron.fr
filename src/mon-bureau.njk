@@ -1782,6 +1782,49 @@ permalink: /mon-bureau/
   }
 
   var MARQUE = 'bdv_bureau_vu_le';
+
+  /* UNE LETTRE, ET PAS UNE FICHE DE PLUS. Refait le 12/09/2026 avec le dessin de
+     la zone : le courrier partageait `carteLecture` avec « A lire » et « Le
+     classeur », donc les trois zones du bas montraient le meme objet, un titre
+     d'article et son etiquette.
+
+     CE QUE LA LETTRE PORTE, ET DANS CET ORDRE : la DATE d'arrivee d'abord, parce
+     que c'est la seule des trois zones qui reponde a « depuis quand », puis le
+     titre, puis le temps de lecture.
+
+     CE QU'ELLE NE PORTE PLUS : le `pilier`. Ted a tranche le 10/09/2026 que la
+     classification du site partait de `categorie` et non de `pilier`, et le
+     fichier des rubriques le dit noir sur blanc, « pilier n'est plus lu par aucun
+     gabarit ». Le bureau, lui, l'affichait encore, avec ses emojis en couleur au
+     milieu d'un dessin de papier et d'encre. Les deux zones voisines l'affichent
+     TOUJOURS : c'est signale a Ted, ce n'est pas corrige ici, parce que changer
+     l'etiquette de « A lire » et du « classeur » est une decision de contenu et
+     pas de dessin. */
+  function dateLettre(iso){
+    var d = new Date(iso && iso.length > 10 ? iso : iso + 'T00:00:00');
+    if(isNaN(d)) return '';
+    var meme = d.getFullYear() === new Date().getFullYear();
+    return d.toLocaleDateString('fr-FR', meme ? { day:'numeric', month:'short' }
+                                              : { day:'numeric', month:'short', year:'2-digit' });
+  }
+
+  function lettre(c, neuve){
+    var a = document.createElement('a');
+    a.className = 'lettre';
+    a.href = c.url;
+    var d = document.createElement('span'); d.className = 'lettre__d';
+    d.textContent = dateLettre(c.date);
+    a.appendChild(d);
+    var t = document.createElement('span'); t.className = 'lettre__t';
+    t.textContent = (PAR_URL[c.url] || {}).titre || c.titre || c.url;
+    a.appendChild(t);
+    var m = (PAR_URL[c.url] || {}).temps || c.temps;
+    if(m){ var sm = document.createElement('span'); sm.className = 'lettre__m';
+           sm.textContent = m + ' de lecture'; a.appendChild(sm); }
+    if(neuve){ var p = document.createElement('span'); p.className = 'lettre__p'; a.appendChild(p); }
+    return a;
+  }
+
   function peindreCourrier(){
     var precedent = null;
     try{ precedent = localStorage.getItem(MARQUE); }catch(e){}
@@ -1789,8 +1832,13 @@ permalink: /mon-bureau/
     var nouveaux = seuil ? CONTENUS.filter(function(c){ return new Date(c.date) > seuil; }) : CONTENUS.slice(0, 3);
     var b = el('bureauCourrier'); b.innerHTML = '';
     if(!nouveaux.length) vide(b, 'Rien de neuf depuis ton dernier passage.');
-    else nouveaux.slice(0, 5).forEach(function(c){ b.appendChild(carteLecture(c.url, c.titre, false)); });
-    txt(el('compteCourrier'), seuil ? (nouveaux.length ? String(nouveaux.length) : '') : 'les 3 derniers');
+    else nouveaux.slice(0, 5).forEach(function(c){ b.appendChild(lettre(c, !!seuil)); });
+    /* LA NOTE DIT DEPUIS QUAND, et plus « les 3 derniers », qui ne disait rien
+       d'autre que le nombre de lignes qu'on voyait deja. Sans repere de derniere
+       visite, elle dit ce que la zone montre vraiment : les dernieres parutions. */
+    txt(el('compteCourrier'), seuil
+        ? (nouveaux.length ? 'depuis le ' + dateLettre(precedent) : '')
+        : 'les dernières parutions');
     try{
       var maj = !precedent || (Date.now() - new Date(precedent).getTime()) > 6 * 3600 * 1000;
       if(maj) localStorage.setItem(MARQUE, new Date().toISOString());
