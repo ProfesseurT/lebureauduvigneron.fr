@@ -114,6 +114,86 @@ grille. A nettoyer le jour ou on tranche que le podcast ne redeviendra pas une s
 
 ---
 
+## 12/09/2026, suite. Une seule police pour tous les chiffres
+
+Demande de Ted, après l'ardoise : « répercute cette police de chiffres sur tous les chiffres du
+bureau et du site en entier. »
+
+### IL N'EXISTE PAS DE SÉLECTEUR « UN CHIFFRE »
+
+C'est le premier obstacle, et il décide de tout le reste. Une règle CSS vise un **élément**, pas
+les caractères qu'il contient. Or la moitié des endroits où un chiffre apparaît sur ce site sont
+des éléments qui mélangent mots et nombres : « 3 rubriques · 19 articles », « Dans 28 jours »,
+« 7 min de lecture », « 500 € HT » au milieu d'un paragraphe. Leur changer la police changerait
+celle des mots avec.
+
+La liste a donc été **relevée et pas devinée** : un navigateur sur les 37 pages construites plus
+les quatre aperçus du bureau, en gardant les éléments dont le **texte propre** est un nombre et
+rien d'autre, et en lisant leur police calculée. Lire la feuille de style aurait donné une liste
+plausible et fausse, parce qu'on ne voit pas dans le CSS ce que l'élément contient à l'arrivée.
+
+### CE QUE LE RELEVÉ A DONNÉ
+
+Neuf éléments portaient un nombre pur en Fraunces. Deux le portaient déjà dans la police du corps
+mais en graisse 800. **Trois traitements pour un seul objet**, et personne ne pouvait s'en rendre
+compte parce qu'ils ne sont jamais visibles sur le même écran.
+
+Tous les autres étaient déjà en JetBrains Mono, et **ils y restent**. Ce n'est pas un oubli : le
+mono est le registre des références que le courrier du matin s'est donné le 09/09, « le mono porte
+les références, pas les montants ». C'est aussi lui qui aligne les colonnes des tableaux de vente,
+et les en sortir les casserait. Les dates, les durées, les numéros d'article et les compteurs de
+zone en font partie.
+
+### CE QUI EST POSÉ
+
+Un **jeton**, `--font-chiffre`, déclaré dans `style.css` et dans `bdv-ecrans.css`. La décision se
+change à un endroit, pas dans les treize règles qui portent un nombre.
+
+Un **bloc unique**, « LES CHIFFRES DU SITE », en bas de `style.css`, qui liste les neuf sélecteurs
+et porte le motif en commentaire. Un bloc scopé équivalent dans `bdv-ecrans.css` et
+`bdv-panneau.css` pour les écrans de vente, parce que la règle de ces feuilles est que rien n'en
+sort.
+
+Deux points de mécanique à ne pas défaire :
+
+- `.score-inline__text .big` est repris **tel quel** dans le bloc, à deux crans de spécificité.
+  Une règle à une seule classe ne l'aurait pas battu, et le chiffre serait resté en Fraunces sans
+  que rien ne le signale.
+- **La punaise est le cas particulier.** `.postit__v` porte tantôt un nombre, tantôt un titre de
+  tâche depuis le 10/09. Le dessin le savait déjà : il pose `data-mot` dès que c'est un mot. On
+  s'accroche à cet attribut plutôt que d'en inventer un deuxième, sinon la même distinction se
+  dirait de deux façons à deux endroits. Vérifié dans les deux sens sur la vraie page : un « 2 »
+  sans `data-mot` rend Inter 700 tabulaire, « Ranger le chai » avec `data-mot` reste Fraunces 600.
+
+### DEUX DÉFAUTS TROUVÉS EN CHEMIN
+
+**`npm run apercu:panneau` écrivait depuis des jours une page à ZÉRO punaise, sans se plaindre.**
+Le bandeau du bureau lit `BdvCrm.GESTES.ecarte.label` au chargement, et le faux CRM du banc avait
+un `GESTES` vide : ce `undefined.label` jetait avant que le panneau ne soit peint. Le script
+écrivait quand même son fichier et annonçait « 0 punaise » sur une ligne qu'on ne lisait pas. Un
+banc muet est pire qu'un banc absent, parce qu'on croit avoir regardé.
+
+**Inter 700 n'était pas chargé.** Le lien Google demandait 400, 500 et 600. Le 700 de tous ces
+chiffres serait tombé à 600, ou en faux gras, dans un vrai navigateur — et mes captures, qui
+posaient la police variable complète, ne l'auraient jamais montré. C'est le contrôle 7 de la
+charte qui l'a vu, celui qui compare les graisses demandées par le CSS aux graisses chargées par
+Google. La graisse est ajoutée au gabarit et aux deux aperçus qui portent leur propre lien.
+
+C'est la deuxième fois de la journée qu'un contrôle automatique attrape quelque chose qu'une
+capture ne pouvait pas attraper. La capture voit ce qu'on ne mesure pas, la mesure voit ce qu'on ne
+regarde pas, et il faut les deux.
+
+### CE QUI RESTE OUVERT
+
+- **`.dform-card__price` et toute la famille `.score-inline*` sont du CSS mort** : aucun gabarit ne
+  les émet. Signalé, pas supprimé.
+- **Les compteurs de l'accueil sont le changement le plus visible du lot.** « 3 / 19 / 8 » en
+  clamp(3rem, 6vw, 5rem) passent d'un serif éditorial à un sans-serif appuyé. C'est cohérent avec
+  le reste, mais c'est un changement de ton sur le premier écran du site : si Ted le regrette,
+  c'est une ligne à retirer du bloc, `.compteur-item__nb`, et rien d'autre.
+
+---
+
 ## 12/09/2026. L'ardoise, le courrier, et la police des chiffres
 
 Demande de Ted, en trois mots : « améliore : ardoise, courrier, la police des chiffres affichés,
