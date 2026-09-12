@@ -14,13 +14,15 @@ permalink: /outils/
 {{ echeances | dump | safe }}
 </script>
 
+{# LE BANDEAU PREND `container--wide`, COMME LE CONTENU, et c'est une correction du
+   12/09/2026 : avec `container` il etait cale sur 760 px quand les cartes tenaient
+   sur 1100. Le titre demarrait 170 px a droite du bord des cartes, et rien dans la
+   page ne justifiait ce decrochement. #}
 <section class="about-hero">
-  <div class="container">
-    <p class="section__label" style="color:var(--on-dark-soft)">Outils viticoles</p>
+  <div class="container--wide">
+    <p class="section__label">Outils viticoles</p>
     <h1>La boîte à outils du vigneron</h1>
-    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
-      Faits pour le bureau, pas pour la vigne. Chacun dit ce qu'il coûte et où il t'emmène.
-    </p>
+    <p>Faits pour le bureau, pas pour la vigne. Chacun dit ce qu'il coûte et où il t'emmène.</p>
   </div>
 </section>
 
@@ -30,61 +32,75 @@ permalink: /outils/
     {# ===== LA VEDETTE =====
        Le calendrier passe devant, et ce n'est pas un choix d'humeur : c'est le seul
        outil de la page qui serve a quelque chose en trois secondes, sans compte, sans
-       logiciel et sans quitter le site. Il fait la preuve, les trois autres suivent. #}
-    <a class="boite-vedette" href="/outils/echeances/">
+       logiciel et sans quitter le site. Il fait la preuve, les trois autres suivent.
+
+       LA CARTE N'EST PAS UN LIEN, C'EST LE TITRE QUI L'EST, et la carte entiere reste
+       cliquable par le calque pose en `::after` sur ce lien. Mesure du 12/09/2026 :
+       quand toute la carte etait une balise `a`, son nom accessible faisait 385 signes
+       — un lecteur d'ecran annoncait l'etiquette de prix, le titre, le descriptif ET
+       les trois echeances comme UN SEUL libelle de lien. Il annonce maintenant « Le
+       calendrier reglementaire ». #}
+    <article class="boite-vedette">
       <div class="boite-vedette__dire">
         <span class="boite-prix boite-prix--libre">Gratuit · sans compte</span>
-        <h2 class="boite-vedette__nom">Le calendrier réglementaire</h2>
+        <h2 class="boite-vedette__nom"><a href="/outils/echeances/">Le calendrier réglementaire</a></h2>
         <p class="boite-vedette__quoi">
           DRM, DAI, déclaration de récolte, facturation électronique. Ce qui tombe, pour qui,
           et dans combien de jours. Chaque échéance porte sa source officielle.
         </p>
-        <span class="boite-vedette__aller">Ouvrir le calendrier</span>
+        <span class="boite-vedette__aller" aria-hidden="true">Ouvrir le calendrier</span>
       </div>
-      <div class="boite-apercu" id="boiteApercuCadre">
+      {# `hidden` DES LE HTML, retire par le script quand il a vraiment des lignes a
+         montrer. Sans JavaScript, ce cadre affichait un titre et 276 px de vide :
+         exactement le cadre vide que le commentaire d'en dessous dit d'eviter, et
+         que je n'avais evite que pour le cas des donnees illisibles. #}
+      <div class="boite-apercu" id="boiteApercuCadre" hidden>
         {# LE TITRE DIT « LES TROIS PROCHAINES » ET PAS « CE QUI TOMBE EN CE MOMENT ».
            Verifie le 12/09/2026 sur la page rendue : la troisieme ligne etait a 245 jours.
            Un cadre qui annonce l'urgence et affiche huit mois se decredibilise tout seul. #}
         <p class="boite-apercu__titre">Les trois prochaines</p>
         <div class="boite-apercu__lignes" id="boiteApercu"></div>
       </div>
-    </a>
+    </article>
 
     {# ===== LES TROIS AUTRES ===== #}
     <div class="boite-grille">
 
-      <a class="boite-carte" href="/mon-bureau/">
+      <article class="boite-carte">
         <span class="boite-prix boite-prix--compte">Gratuit · compte requis</span>
-        <span class="boite-carte__nom">Ton bureau</span>
-        <span class="boite-carte__quoi">
+        <h2 class="boite-carte__nom"><a href="/mon-bureau/">Ton bureau</a></h2>
+        <p class="boite-carte__quoi">
           Ce qui presse aujourd'hui, tes clients à rappeler, ton chiffre d'affaires, ceux qui
           décrochent, tes cuvées et tes canaux de vente.
-        </span>
+        </p>
         <ul class="boite-carte__points">
           <li>Le calendrier en vues, et coché</li>
           <li>Ton export de ventes lu tout seul</li>
           <li>S'installe sur l'écran d'accueil du téléphone</li>
         </ul>
-        <span class="boite-carte__reserve">Les ventes demandent un export Vitisoft.</span>
-        <span class="boite-carte__aller">Entrer</span>
-      </a>
+        <p class="boite-carte__reserve">Les ventes demandent un export Vitisoft.</p>
+        <span class="boite-carte__aller" aria-hidden="true">Entrer</span>
+      </article>
 
-      <a class="boite-carte boite-carte--tiers" href="https://viticode.fr/"
-         target="_blank" rel="noopener">
+      {# LA MENTION « NOUVELLE FENETRE » EST DANS LE NOM DU LIEN, pas seulement dans la
+         fleche oblique : une fleche ne s'annonce pas, et une fenetre qui s'ouvre sans
+         prevenir est exactement le detail qui fait perdre pied a quelqu'un qui ne
+         maitrise pas l'outil. #}
+      <article class="boite-carte boite-carte--tiers">
         <span class="boite-prix boite-prix--libre">Gratuit · sur viticode.fr</span>
-        <span class="boite-carte__nom">Viticode</span>
-        <span class="boite-carte__quoi">
+        <h2 class="boite-carte__nom"><a href="https://viticode.fr/" target="_blank" rel="noopener">Viticode<span class="hors-ecran"> — sur viticode.fr, nouvelle fenêtre</span></a></h2>
+        <p class="boite-carte__quoi">
           Le QR code nutritionnel obligatoire sur les bouteilles vendues dans l'Union
           européenne. Ingrédients et valeurs nutritionnelles, une fiche par cuvée.
-        </span>
+        </p>
         <ul class="boite-carte__points">
           <li>Nombre de produits illimité</li>
           <li>Aucune donnée consommateur collectée</li>
           <li>Les fiches restent hébergées</li>
         </ul>
-        <span class="boite-carte__reserve">Une fiche jamais mise à jour vaut une fiche fausse.</span>
-        <span class="boite-carte__aller">Aller sur viticode.fr</span>
-      </a>
+        <p class="boite-carte__reserve">Une fiche jamais mise à jour vaut une fiche fausse.</p>
+        <span class="boite-carte__aller" aria-hidden="true">Aller sur viticode.fr</span>
+      </article>
 
       {# LA CARTE PAYANTE PORTE LA COULEUR DE VITISOFT, ET ELLE EST LA SEULE.
          tokens.css autorise --viti-orange « pour signaler explicitement un lien vers
@@ -93,24 +109,117 @@ permalink: /outils/
          Il ne porte donc AUCUN texte et ne fait AUCUN filet : il est pose en aplat
          sous --ink-deep, ou il vaut 8,82:1. Le sens est dans le texte, l'orange n'est
          que le drapeau. #}
-      <a class="boite-carte boite-carte--tiers boite-carte--vitisoft"
-         href="https://vitisoft.fr/Site/index.php" target="_blank" rel="noopener">
+      <article class="boite-carte boite-carte--tiers boite-carte--vitisoft">
         <span class="boite-prix boite-prix--devis">Sur devis · vitisoft.fr</span>
-        <span class="boite-carte__nom">Vitisoft</span>
-        <span class="boite-carte__quoi">
+        <h2 class="boite-carte__nom"><a href="https://vitisoft.fr/Site/index.php" target="_blank" rel="noopener">Vitisoft<span class="hors-ecran"> — sur vitisoft.fr, nouvelle fenêtre</span></a></h2>
+        <p class="boite-carte__quoi">
           L'ERP et le CRM du domaine : devis, factures, clients, stock, caveau. C'est lui qui
           produit l'export que ton bureau sait lire.
-        </span>
+        </p>
         <ul class="boite-carte__points">
           <li>Plus de 2 000 domaines équipés</li>
           <li>DRM et DAE depuis le logiciel</li>
           <li>Préparé pour la facture électronique</li>
         </ul>
-        <span class="boite-carte__reserve">Démonstration sur rendez-vous, pas d'essai en ligne.</span>
-        <span class="boite-carte__aller">Aller sur vitisoft.fr</span>
-      </a>
+        <p class="boite-carte__reserve">Démonstration sur rendez-vous, pas d'essai en ligne.</p>
+        <span class="boite-carte__aller" aria-hidden="true">Aller sur vitisoft.fr</span>
+      </article>
 
     </div>
+
+    {# ===== CE QUE LES MOTEURS LISENT DE CETTE PAGE =====
+       Un DEUXIEME bloc de donnees structurees, et ce n'est pas une entorse a la regle
+       de `components/tete-seo.njk`. Celle-ci interdit deux blocs qui decrivent la MEME
+       entite, parce que le moteur doit alors deviner lequel fait foi. Ici on decrit
+       d'autres entites — les quatre outils, et le fil d'Ariane — et on les rattache au
+       graphe de la tete par l'identifiant `#organisation`, qui y est deja declare.
+
+       IL DOIT RESTER EN PHASE AVEC LES CARTES DU DESSUS. Ce n'est pas une promesse,
+       c'est un controle : `npm run banc:outils` relit la page CONSTRUITE, compare les
+       titres et les adresses des cartes a ceux de cette liste, et echoue s'ils
+       divergent. Un outil ajoute a la page sans etre ajoute ici fait echouer le banc.
+
+       LE PRIX EST DECLARE POUR CE QUI EST GRATUIT, ET OMIS POUR VITISOFT : annoncer un
+       prix qu'on ne connait pas serait faux, et `price: 0` sur un logiciel sur devis
+       est exactement le genre de balisage qui fait sauter une page des resultats. #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          "@id": "https://lebureauduvigneron.fr/outils/#fil",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://lebureauduvigneron.fr/" },
+            { "@type": "ListItem", "position": 2, "name": "La boîte à outils du vigneron" }
+          ]
+        },
+        {
+          "@type": "ItemList",
+          "@id": "https://lebureauduvigneron.fr/outils/#outils",
+          "name": "La boîte à outils du vigneron",
+          "itemListOrder": "https://schema.org/ItemListOrderAscending",
+          "numberOfItems": 4,
+          "itemListElement": [
+            {
+              "@type": "ListItem", "position": 1,
+              "item": {
+                "@type": "WebApplication",
+                "name": "Le calendrier réglementaire",
+                "url": "https://lebureauduvigneron.fr/outils/echeances/",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Navigateur web",
+                "inLanguage": "fr-FR",
+                "description": "DRM, DAI, déclaration de récolte, facturation électronique : ce qui tombe pour un domaine, et dans combien de jours. Sans compte.",
+                "publisher": { "@id": "https://lebureauduvigneron.fr/#organisation" },
+                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+              }
+            },
+            {
+              "@type": "ListItem", "position": 2,
+              "item": {
+                "@type": "WebApplication",
+                "name": "Ton bureau",
+                "url": "https://lebureauduvigneron.fr/mon-bureau/",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Navigateur web",
+                "inLanguage": "fr-FR",
+                "description": "Les échéances, les clients à rappeler, le chiffre d'affaires et les canaux de vente d'un domaine, sur un compte gratuit.",
+                "publisher": { "@id": "https://lebureauduvigneron.fr/#organisation" },
+                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+              }
+            },
+            {
+              "@type": "ListItem", "position": 3,
+              "item": {
+                "@type": "WebApplication",
+                "name": "Viticode",
+                "url": "https://viticode.fr/",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Navigateur web",
+                "inLanguage": "fr-FR",
+                "description": "Le QR code nutritionnel obligatoire sur les bouteilles vendues dans l'Union européenne : ingrédients et valeurs nutritionnelles, une fiche par cuvée.",
+                "publisher": { "@type": "Organization", "name": "Solumatic" },
+                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+              }
+            },
+            {
+              "@type": "ListItem", "position": 4,
+              "item": {
+                "@type": "SoftwareApplication",
+                "name": "Vitisoft",
+                "url": "https://vitisoft.fr/Site/index.php",
+                "applicationCategory": "BusinessApplication",
+                "inLanguage": "fr-FR",
+                "description": "L'ERP et le CRM du domaine viticole : devis, factures, clients, stock, caveau.",
+                "publisher": { "@type": "Organization", "name": "Solumatic" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
 
     {# L'AVEU, DEMANDE PAR TED LE 12/09/2026. Un visiteur qui decouvre tout seul que les
        quatre outils sortent de la meme maison se sent manipule ; on le lui dit avant.
@@ -136,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
   'use strict';
   var zone = document.getElementById('boiteApercu');
   var cadre = document.getElementById('boiteApercuCadre');
-  if (!zone || !cadre || !window.BdvEcheances) { if (cadre) cadre.hidden = true; return; }
+  if (!zone || !cadre || !window.BdvEcheances) return;
 
   /* LES OBLIGATIONS SEULEMENT, comme sur /outils/echeances/. La vedette annonce un
      calendrier reglementaire : y glisser les travaux de la vigne ou les salons ferait
@@ -146,9 +255,10 @@ document.addEventListener('DOMContentLoaded', function () {
     .filter(function (l) { return l.jours >= 0 || l.enCours; })
     .slice(0, 3);
 
-  /* UN CADRE VIDE EST PIRE QUE PAS DE CADRE : si le fichier de donnees ne rend rien de
-     lisible, la vedette redevient une carte simple au lieu d'exposer un trou. */
-  if (!lignes.length) { cadre.hidden = true; return; }
+  /* LE CADRE RESTE CACHE tant qu'il n'a pas de quoi le remplir : c'est l'etat par
+     defaut du HTML, on ne fait que le lever ici. Un fichier de donnees illisible, ou
+     un navigateur sans JavaScript, rendent donc une vedette simple, pas un trou. */
+  if (!lignes.length) return;
 
   zone.innerHTML = lignes.map(function (l) {
     return '<span class="boite-apercu__ligne" data-niveau="' + l.niveau + '">'
@@ -156,5 +266,6 @@ document.addEventListener('DOMContentLoaded', function () {
       + '<span class="boite-apercu__quoi">' + l.e.titre + '</span>'
       + '</span>';
   }).join('');
+  cadre.hidden = false;
 });
 </script>

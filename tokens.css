@@ -82,6 +82,13 @@
   --danger-deep: #A03530;  /* survol et filet d'un bloc rouge */
   --danger-bg:   #FBE9E7;
   --warn:        #8B6300;
+  /* --warn-deep AJOUTE LE 12/09/2026, et par symetrie avec --danger-deep, qui
+     existait seul. Mesure : --warn vaut 4,40:1 sur --paper et 3,43:1 sur
+     --paper-deep. Il PASSE tout juste sur --paper-light (4,71:1) et nulle part
+     ailleurs : c'est une couleur de FILET et de pastille, pas de texte courant.
+     --warn-deep vaut 6,20 / 6,65 / 4,84 sur les trois papiers : c'est lui qu'on
+     pose des qu'un avertissement porte des lettres. */
+  --warn-deep:   #6E4E00;
   --warn-bg:     #F8EFE3;
   --info:        #2F6DB5;
   --info-bg:     #E8EFF7;

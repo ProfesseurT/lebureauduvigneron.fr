@@ -316,6 +316,76 @@ trois largeurs, la vedette se casse proprement en deux sous 820 px.
   logo Viticode et un logo Vitisoft sur leurs cartes leur donneraient leur identite propre.
 - `/la-redaction/` decrit encore Viticode d'une ligne. Un lien vers sa carte y aurait sa place.
 
+### L'AUTO-AUDIT, DEMANDE PAR TED LE MEME JOUR : « audite-toi, travail de fond »
+
+Methode de `feedback_auditer_son_propre_travail.md`, appliquee dans l'ordre. Les polices
+Fraunces et Inter ont ete servies en local pendant la mesure : sans elles on mesure des
+retours a la ligne qui n'existent pas. Cinq defauts reels, trois faux positifs de mon
+propre harnais.
+
+**Le nom accessible des liens faisait 325 a 385 signes.** Toute la carte etait une balise
+`a` : un lecteur d'ecran annoncait l'etiquette de prix, le titre, le descriptif, les puces
+et les trois echeances comme UN SEUL libelle de lien. La carte est devenue un `article`,
+le nom un `h2` qui porte le lien, et un calque `::after` garde la carte cliquable en
+entier. Noms accessibles apres : 27, 10, 44 et 44 signes. Effet de bord gagne au passage :
+le plan de titres de la page etait `h1` + UN `h2`, il en compte quatre maintenant, un par
+outil, ce qui est la seule facon de parcourir une page d'outils au clavier ou a l'oreille.
+
+**Le compte a rebours « proche » etait sous le seuil AA.** `--warn` sur `--paper` donne
+4,40:1 pour des lettres de 21,6 px, qui en demandent 4,50. Ajout de `--warn-deep` (#6E4E00,
+6,20 / 6,65 / 4,84 sur les trois papiers), par symetrie avec `--danger-deep` qui existait
+seul. La page des echeances passe avec, elle aussi : elle tenait a 4,71 uniquement parce
+que sa carte est en `--paper-light`, et surtout **les deux comptes a rebours doivent porter
+la meme couleur**, c'est le meme calcul et le meme mot.
+
+**Et la charte ne regardait pas cette paire.** `--warn` n'y figurait que face a `--warn-bg`,
+un fond appele nulle part. Face aux vrais papiers du site, personne ne l'avait jamais
+calcule : `npm run charte` repondait CONFORME sur un texte sous le seuil. Huit paires
+ajoutees a la table, dont les trois de `--warn-deep` et la ligne d'avertissement de
+`--viti-orange` a 1,79:1. C'est la deuxieme fois que ce trou se referme au meme endroit.
+
+**Sans JavaScript, le cadre d'apercu affichait un titre et 276 px de vide.** J'avais ecrit
+le commentaire « un cadre vide est pire que pas de cadre » et ne l'avais applique qu'au cas
+des donnees illisibles. Le cadre part `hidden` du HTML, le script le leve seulement quand
+il a des lignes. Et la vedette se recolle en une colonne par `:has(.boite-apercu[hidden])`,
+sans quoi, mesure faite, le texte restait cale sur 562 px avec 488 px de papier vide a sa
+droite.
+
+**Deux defauts que seule l'image a montres.** Le bandeau etait en `container` (760 px)
+quand les cartes tenaient sur `container--wide` (1100) : le titre demarrait 170 px a droite
+du bord des cartes. Et l'etiquette « gratuit », en `--paper-deep` sur une carte
+`--paper-light`, ne se detachait que de 1,28:1 : **les deux outils gratuits chuchotaient
+pendant que le seul payant criait en orange**, exactement l'inverse de ce que la page
+raconte. Les trois etiquettes sont pleines maintenant. Ajoute a la meme passe : les filets
+de reserve des trois cartes tombaient a 1101, 1124 et 1148 px, la rangee boitait.
+
+**Les trois faux positifs, ecartes avec autant de soin.** Les cibles tactiles annoncees
+« sous 44 px » etaient le rectangle du `a` en ligne, pas la zone cliquable, que le calque
+etend a toute la carte : verifie par `elementFromPoint` sur six points de chaque carte.
+L'ordre de tabulation annonce comme inverse venait de ce que mon harnais avait laisse le
+focus sur la derniere carte avant de compter. Et « Fraunces non chargee » etait
+`document.fonts.check` interroge sur une graisse que la page n'appelle pas : la mesure de
+largeur prouve que Fraunces s'applique bien.
+
+**Un banc pour que rien de tout ca ne revienne.** `npm run banc:outils`, 46 controles sur
+la page CONSTRUITE : chaque carte a son etiquette de prix, aucune carte n'est elle-meme un
+lien, aucun nom accessible ne depasse 80 signes, tout lien sortant annonce qu'il sort a
+l'oeil ET a l'oreille, l'apercu part cache, le bandeau est cale comme le contenu. **Les six
+garde-fous ont ete verifies en remettant le defaut** : ils levent de 1 a 6 echecs chacun.
+Un controle qui n'a jamais echoue ne garde rien.
+
+**Les donnees structurees.** La page n'en avait aucune qui lui soit propre : le fil
+d'Ariane et l'`ItemList` des quatre outils sont poses, avec un prix de 0 declare pour les
+gratuits et AUCUN prix pour Vitisoft, qui est sur devis. Le banc compare titre par titre et
+adresse par adresse ce que disent les cartes et ce que dit la liste : un outil ajoute d'un
+cote sans l'autre fait echouer la construction.
+
+Hors perimetre, pour information : sous 768 px, `.nav__links` mesure 708 px dans 342 px
+visibles. Rien n'est perdu, la barre defile lateralement (`overflow-x: auto`), mais elle ne
+le dit pas : aucun degrade, aucune fleche. C'est un choix de dessin, pas un defaut, et il
+n'a pas ete touche.
+
+
 ---
 
 ## 11/09/2026, nuit. Le bureau devient une application qu'on POSE sur un iPhone

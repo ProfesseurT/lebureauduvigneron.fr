@@ -75,6 +75,13 @@
   --danger-deep: #A03530;  /* survol et filet d'un bloc rouge */
   --danger-bg:   #FBE9E7;
   --warn:        #8B6300;
+  /* --warn-deep AJOUTE LE 12/09/2026, et par symetrie avec --danger-deep, qui
+     existait seul. Mesure : --warn vaut 4,40:1 sur --paper et 3,43:1 sur
+     --paper-deep. Il PASSE tout juste sur --paper-light (4,71:1) et nulle part
+     ailleurs : c'est une couleur de FILET et de pastille, pas de texte courant.
+     --warn-deep vaut 6,20 / 6,65 / 4,84 sur les trois papiers : c'est lui qu'on
+     pose des qu'un avertissement porte des lettres. */
+  --warn-deep:   #6E4E00;
   --warn-bg:     #F8EFE3;
   --info:        #2F6DB5;
   --info-bg:     #E8EFF7;
@@ -5217,26 +5224,65 @@ em { font-style: italic; }
    pour ca que `.boite-prix` est le premier enfant de chaque carte, et pas une
    mention en pied comme dans l'ancienne version.
 
-   LA VEDETTE PORTE UN APERCU VIVANT, et c'est la seule chose de la page qui
-   prouve au lieu de dire : trois obligations qui comptent vraiment leurs jours,
-   calculees par bdv-echeances.js, le meme moteur que la page qu'elle ouvre.
+   LA CARTE N'EST PAS UN LIEN, LE TITRE L'EST. Corrige a l'audit du 12/09/2026 :
+   avec une balise `a` autour de toute la carte, le nom accessible du lien faisait
+   325 a 385 signes, etiquette de prix et trois echeances comprises. Un lecteur
+   d'ecran annoncait un paragraphe entier en guise de libelle. Le titre porte donc
+   le lien, et un calque `::after` rend la carte cliquable en entier. Deux effets
+   a connaitre avant de defaire ce motif : le calque doit etre en `z-index: 1`,
+   sinon les enfants qui SUIVENT le titre dans le HTML (descriptif, puces) se
+   peignent par-dessus et ne sont plus cliquables ; et la selection de texte a la
+   souris est perdue sur la carte, ce qui etait deja le cas avec le lien global.
    ============================================================================ */
 
+/* ---- UTILITAIRE : lu par les lecteurs d'ecran, jamais affiche ----
+   Pose ici le 12/09/2026 parce que le depot n'en avait aucun. Il sert a mettre
+   dans le NOM d'un lien ce que seul un signe visuel disait (la fleche oblique
+   d'un lien sortant, par exemple) : une fleche ne s'annonce pas. `clip-path` et
+   pas `display: none` ni `visibility: hidden`, qui retirent aussi du texte a qui
+   ecoute. Largeur et hauteur a 1px, pas 0 : a 0, certains moteurs sautent le
+   noeud. */
+.hors-ecran {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip-path: inset(50%);
+}
+
+/* ---- L'ETIQUETTE DE BANDEAU SUR FOND SOMBRE ----
+   `.section__label` est en --muted, illisible sur --bordeaux-deep. Chaque page
+   a bandeau sombre reecrivait donc la couleur en style en ligne. La regle est
+   ici depuis le 12/09/2026, et les styles en ligne peuvent disparaitre. */
+.about-hero .section__label { color: var(--on-dark-soft); }
+
 .boite-vedette {
+  position: relative;
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 0;
   background: var(--paper-light);
   border: var(--trait) solid var(--rule-fort);
   margin-bottom: var(--e-xl);
-  text-decoration: none;
   color: var(--ink);
   transition: transform var(--tr-rapide) ease, box-shadow var(--tr-rapide) ease;
 }
-a.boite-vedette:hover {
+/* L'APERCU RETIRE, LA VEDETTE SE RECOLLE. Sans cette regle, mesure du
+   12/09/2026 : le texte restait cale sur 562 px et laissait 488 px de papier
+   vide a sa droite. `:has()` et pas une classe posee en JavaScript, parce que le
+   cas qu'on repare le plus souvent est justement celui d'une page SANS
+   JavaScript, ou aucune classe ne serait posee. */
+.boite-vedette:has(.boite-apercu[hidden]) { grid-template-columns: 1fr; }
+.boite-vedette:hover,
+.boite-vedette:focus-within,
+.boite-carte:hover,
+.boite-carte:focus-within {
   transform: translate(-3px, -3px);
   box-shadow: var(--ombre-dure);
-  text-decoration: none;
 }
 .boite-vedette__dire {
   display: flex;
@@ -5245,12 +5291,25 @@ a.boite-vedette:hover {
   gap: var(--e-s);
   padding: var(--e-xl);
 }
-.boite-vedette__nom {
+.boite-vedette__nom,
+.boite-carte__nom {
   font-family: var(--font-titre);
-  font-size: var(--t-h2);
   line-height: var(--lh-serre);
-  letter-spacing: var(--ls-serre);
   margin: 0;
+}
+.boite-vedette__nom { font-size: var(--t-h2); letter-spacing: var(--ls-serre); }
+.boite-carte__nom   { font-size: var(--t-h3); }
+.boite-vedette__nom a,
+.boite-carte__nom a { color: var(--ink); text-decoration: none; }
+.boite-vedette__nom a:hover,
+.boite-carte__nom a:hover { text-decoration: none; }
+/* LE CALQUE QUI REND LA CARTE CLIQUABLE. `z-index: 1` obligatoire, voir l'en-tete. */
+.boite-vedette__nom a::after,
+.boite-carte__nom a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 .boite-vedette__quoi {
   font-size: var(--t-corps);
@@ -5258,6 +5317,12 @@ a.boite-vedette:hover {
   line-height: var(--lh-lecture);
   margin: 0;
 }
+/* LE PIED DE CARTE COLLE EN BAS, ET C'EST LA RESERVE QUI PORTE LA POUSSEE quand
+   elle existe : sinon, mesure du 12/09/2026, les trois filets de reserve tombaient
+   a 1101, 1124 et 1148 px selon la longueur du descriptif au-dessus. Seuls les
+   appels a l'action s'alignaient, et la rangee avait l'air de boiter. */
+.boite-carte__reserve { margin-top: auto; }
+.boite-carte:has(.boite-carte__reserve) .boite-carte__aller { margin-top: 0; }
 .boite-vedette__aller,
 .boite-carte__aller {
   margin-top: auto;
@@ -5271,16 +5336,19 @@ a.boite-vedette:hover {
 }
 .boite-vedette__aller::after,
 .boite-carte__aller::after { content: " \2192"; }
-/* La fleche oblique dit qu'on QUITTE le site. `target="_blank"` seul ne se voit
-   pas avant le clic, et une nouvelle fenetre qui s'ouvre sans prevenir est le
-   genre de detail qui fait perdre confiance a quelqu'un qui ne maitrise pas. */
+/* La fleche oblique dit qu'on QUITTE le site, a l'oeil. Ce qu'elle dit, la mention
+   `.hors-ecran` du lien le dit a l'oreille : les deux sont necessaires. */
 .boite-carte--tiers .boite-carte__aller::after { content: " \2197"; }
 
 /* ---- L'APERCU VIVANT DE LA VEDETTE ---- */
 .boite-apercu {
   background: var(--paper);
   border-left: var(--trait) solid var(--rule-fort);
-  padding: var(--e-l) var(--e-xl);
+  /* MEME RETRAIT HAUT QUE LA COLONNE DE TEXTE, et pas --e-l : avec 24 px contre 32,
+     le titre de l'apercu se posait 19 px plus haut que l'etiquette de prix d'en
+     face. Deux alignements a un demi-centimetre l'un de l'autre se lisent comme
+     une erreur, pas comme une intention. */
+  padding: var(--e-xl);
 }
 .boite-apercu__titre {
   font-family: var(--font-corps);
@@ -5306,25 +5374,27 @@ a.boite-vedette:hover {
   color: var(--ink);
   font-feature-settings: "tnum" 1;
 }
+/* Un titre d'echeance peut faire trois lignes (« DRM, declaration recapitulative
+   mensuelle »). On en garde deux : au-dela, l'apercu pousse la vedette plus haut
+   que la carte d'a cote et la rangee se desaligne. */
 .boite-apercu__quoi {
-  display: block;
-  font-size: var(--t-mini);
-  color: var(--muted);
-  line-height: var(--lh-normal);
-  /* Un titre d'echeance peut faire trois lignes (« DRM, declaration recapitulative
-     mensuelle »). On en garde deux : au-dela, l'apercu pousse la vedette plus haut
-     que la carte d'a cote et la rangee se desaligne. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-size: var(--t-mini);
+  color: var(--muted);
+  line-height: var(--lh-normal);
 }
 /* Les memes couleurs d'urgence que `.echeance`, et pour la meme raison : deux
    echelles pour un seul compte a rebours, c'est une divergence qui se voit un
-   jour sur un ecran et jamais dans une relecture. */
+   jour sur un ecran et jamais dans une relecture.
+   « PROCHE » PREND --warn-deep ET PAS --warn. Mesure du 12/09/2026 : sur ce
+   papier-ci, qui est --paper et non --paper-light, --warn tombait a 4,40:1 pour
+   des lettres de 21,6 px, sous les 4,50 exiges. --warn-deep donne 6,20. */
 .boite-apercu__ligne[data-niveau="urgent"] .boite-apercu__quand,
 .boite-apercu__ligne[data-niveau="aujourdhui"] .boite-apercu__quand { color: var(--danger-deep); }
-.boite-apercu__ligne[data-niveau="proche"] .boite-apercu__quand { color: var(--warn); }
+.boite-apercu__ligne[data-niveau="proche"] .boite-apercu__quand { color: var(--warn-deep); }
 
 /* ---- LES TROIS AUTRES CARTES ---- */
 .boite-grille {
@@ -5333,6 +5403,7 @@ a.boite-vedette:hover {
   gap: var(--e-m);
 }
 .boite-carte {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -5340,24 +5411,14 @@ a.boite-vedette:hover {
   background: var(--paper-light);
   border: var(--trait) solid var(--rule-fort);
   padding: var(--e-l);
-  text-decoration: none;
   color: var(--ink);
   transition: transform var(--tr-rapide) ease, box-shadow var(--tr-rapide) ease;
-}
-a.boite-carte:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: var(--ombre-dure);
-  text-decoration: none;
-}
-.boite-carte__nom {
-  font-family: var(--font-titre);
-  font-size: var(--t-h3);
-  line-height: var(--lh-serre);
 }
 .boite-carte__quoi {
   font-size: var(--t-base);
   color: var(--muted);
   line-height: var(--lh-normal);
+  margin: 0;
 }
 .boite-carte__points {
   list-style: none;
@@ -5386,6 +5447,7 @@ a.boite-carte:hover {
    sur la carte et pas en bas de page volontairement — une limite qu'on lit apres
    avoir clique est une limite qu'on a cachee. */
 .boite-carte__reserve {
+  margin-bottom: 0;
   font-size: var(--t-mini);
   font-style: italic;
   color: var(--cork-encre);
@@ -5404,7 +5466,13 @@ a.boite-carte:hover {
   letter-spacing: var(--ls-etiq);
   padding: 0.28rem 0.6rem;
 }
-.boite-prix--libre  { background: var(--paper-deep); color: var(--ink); }       /* 9,71:1 */
+/* LES TROIS ETIQUETTES SONT PLEINES, ET AUCUNE N'EST PLUS DISCRETE QUE LES AUTRES.
+   Constate a l'oeil le 12/09/2026, sur la capture et pas dans le code : en
+   --paper-deep sur une carte en --paper-light, l'etiquette « gratuit » ne se
+   detachait que de 1,28:1 de son fond. Les deux outils GRATUITS chuchotaient
+   pendant que le seul PAYANT criait en orange. C'est l'inverse de ce que cette
+   page raconte. */
+.boite-prix--libre  { background: var(--ink-deep);   color: var(--on-dark); }   /* 14,7:1 */
 .boite-prix--compte { background: var(--bordeaux);   color: var(--on-dark); }   /* 11,0:1 */
 /* L'ORANGE VITISOFT, ET C'EST LE SEUL ENDROIT DU SITE PUBLIC OU IL AIT LE DROIT
    D'ETRE. tokens.css l'autorise « pour signaler explicitement un lien vers
@@ -5527,8 +5595,16 @@ a.boite-carte:hover {
 }
 .echeance[data-niveau="urgent"] .echeance__quand,
 .echeance[data-niveau="aujourdhui"] .echeance__quand { color: var(--danger-deep); }
+/* LE FILET GARDE --warn, LES LETTRES PRENNENT --warn-deep, 12/09/2026. Un filet
+   est un objet graphique, il lui suffit de 3:1 ; un compte a rebours est du texte
+   et il lui en faut 4,50. --warn donnait 4,71:1 ici — il passait, de justesse, et
+   seulement parce que cette carte est en --paper-light. Le meme mot sur --paper
+   tombe a 4,40. Et il fallait surtout que ce compte a rebours et celui de la
+   vedette de /outils/ portent LA MEME couleur : c'est le meme calcul, le meme
+   mot, la meme taille. Deux teintes pour un seul compte a rebours, c'est une
+   divergence qui se voit un jour sur un ecran et jamais dans une relecture. */
 .echeance[data-niveau="proche"] { border-left-color: var(--warn); }
-.echeance[data-niveau="proche"] .echeance__quand { color: var(--warn); }
+.echeance[data-niveau="proche"] .echeance__quand { color: var(--warn-deep); }
 .echeance[data-niveau="loin"] { border-left-color: var(--cork); }
 .echeance[data-niveau="passe"] {
   border-left-color: var(--rule-fort);

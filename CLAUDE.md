@@ -62,9 +62,20 @@ jour ou un deuxieme outil payant arrive, il prend une etiquette neutre. Peindre 
 la couleur d'une marque, c'est apprendre au visiteur que orange veut dire cher.
 
 Enfin, **toute carte qui sort du site porte `.boite-carte--tiers`**, qui remplace la fleche
-droite par une fleche oblique. `target="_blank"` ne se voit pas avant le clic, et une fenetre
-qui s'ouvre sans prevenir est exactement le detail qui fait perdre confiance a quelqu'un qui
-ne maitrise pas l'outil.
+droite par une fleche oblique, ET une mention `.hors-ecran` dans le nom du lien. Une fleche
+ne s'annonce pas : `target="_blank"` ne se voit pas avant le clic pour qui regarde, et ne
+s'entend pas du tout pour qui ecoute.
+
+**UNE CARTE N'EST JAMAIS UNE BALISE `a`.** Le nom est un `h2` qui porte le lien, et un calque
+`::after` en `z-index: 1` rend la carte cliquable en entier. Mesure du 12/09/2026 : avec la
+carte entiere en lien, son nom accessible faisait 325 a 385 signes — un lecteur d'ecran
+annoncait l'etiquette de prix, le descriptif, les puces et les trois echeances comme un seul
+libelle. Le `z-index` n'est pas decoratif : sans lui, les enfants qui SUIVENT le titre dans
+le HTML se peignent par-dessus le calque et cessent d'etre cliquables.
+
+`npm run banc:outils` garde tout cela, sur la page CONSTRUITE, et compare en plus les cartes
+aux donnees structurees de la page : un outil ajoute d'un cote sans l'autre fait echouer la
+construction.
 
 ### LE PANNEAU SE CONSTRUIT AVANT LE MOTEUR, 08/09/2026
 
@@ -1420,6 +1431,14 @@ en rechargeant.
 
 `tokens.css`, a la racine, est la source unique. Le site et le tableau de bord declarent
 le meme bloc `:root`. Aucune couleur, aucune taille, aucun rayon ecrit en dur ailleurs.
+
+**UN JETON D'ETAT N'EST PAS UNE COULEUR DE TEXTE TANT QU'ON NE L'A PAS MESURE SUR LE VRAI
+PAPIER, 12/09/2026.** `--warn` figurait dans la table de `scripts/charte.mjs` face au seul
+`--warn-bg`, un fond appele nulle part. Face aux papiers reels il donne 4,40:1 sur `--paper`
+et 3,43:1 sur `--paper-deep` : un compte a rebours est parti en production sous le seuil, et
+la charte a repondu CONFORME. `--warn-deep` porte les lettres depuis, `--warn` reste une
+couleur de filet et de pastille. **La lecon est la meme qu'au 07/09 : une paire nouvelle qui
+n'entre pas dans la table de `charte.mjs` n'est controlee par rien.**
 
 Trois regles portent l'identite, et ce sont elles qu'on casse en premier sans y penser :
 

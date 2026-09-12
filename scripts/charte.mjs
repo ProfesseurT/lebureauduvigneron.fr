@@ -429,7 +429,29 @@ const PAIRES = [
   ['var(--muted)',      'var(--white)',         'reference et motif sur bande blanche', 4.5, true, ''],
   ['var(--bordeaux)',   'var(--white)',         'nom de client sur bande blanche', 4.5, true,  ''],
   ['var(--cork-clair)', 'var(--cork)',          'arete eclairee du carton (non textuel)', 1.10, true, ''],
-  ['var(--cork-encre)', 'var(--cork)',          'arete ombree du carton (non textuel)', 1.5, true, '']
+  ['var(--cork-encre)', 'var(--cork)',          'arete ombree du carton (non textuel)', 1.5, true, ''],
+
+  /* LES PAIRES DE LA BOITE A OUTILS, 12/09/2026. La lecon du 07/09 s'est
+     verifiee une deuxieme fois, et au meme endroit : `--warn` etait dans cette
+     table UNIQUEMENT face a `--warn-bg`, un fond qui n'est appele nulle part.
+     Face aux vrais papiers du site, personne ne l'avait jamais calcule. Il
+     donne 4,40:1 sur --paper et 3,43:1 sur --paper-deep : le compte a rebours
+     « proche » de /outils/ est passe en production sous le seuil, et la charte
+     a repondu CONFORME. C'est --warn-deep qui porte les lettres depuis.
+
+     LES DEUX DERNIERES LIGNES NE SONT PAS DU TEXTE. --viti-orange est le seul
+     endroit ou une couleur de marque tierce entre dans la page : elle n'a le
+     droit d'exister qu'en APLAT sous --ink-deep. Sa ligne « non textuel » est
+     marquee non bloquante et sert d'avertissement ecrit : a 1,79:1 elle ne
+     tient meme pas les 3:1 d'un objet graphique, donc jamais de filet orange. */
+  ['var(--warn)',       'var(--paper)',         'alerte sur papier',               4.5, false, '4,40:1 : --warn est une couleur de FILET, pas de texte. Pour des lettres, --warn-deep'],
+  ['var(--warn)',       'var(--paper-deep)',    'alerte sur bande en retrait',     4.5, false, '3,43:1 : idem, ornement seulement'],
+  ['var(--warn-deep)',  'var(--paper)',         'alerte ecrite sur papier',        4.5, true,  ''],
+  ['var(--warn-deep)',  'var(--paper-light)',   'alerte ecrite sur carte',         4.5, true,  ''],
+  ['var(--warn-deep)',  'var(--paper-deep)',    'alerte ecrite sur bande',         4.5, true,  ''],
+  ['var(--on-dark)',    'var(--ink-deep)',      'etiquette de prix gratuite',      4.5, true,  ''],
+  ['var(--ink-deep)',   'var(--viti-orange)',   'etiquette de prix Vitisoft',      4.5, true,  ''],
+  ['var(--viti-orange)','var(--paper-light)',   'orange Vitisoft POSE sur la carte (non textuel)', 3.0, false, '1,79:1 : il ne tient pas meme le seuil graphique. Aplat uniquement, jamais un filet ni des lettres']
 ];
 
 let echecsContraste = 0;
