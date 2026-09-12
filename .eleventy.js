@@ -105,6 +105,17 @@ module.exports = function(eleventyConfig) {
     return RUBRIQUES.filter(function(r) { return r.categories.indexOf(categorie) !== -1; })[0] || null;
   });
 
+  /* LE NOM DE LA RUBRIQUE, ET PAS SON OBJET. Ajoute le 12/09/2026 pour le JSON de
+     contenus du bureau. `rubriqueDe` rend `null` quand rien ne correspond, et un
+     `null.nom` ecrit dans un gabarit fait echouer le build entier : ici on rend
+     toujours une chaine, vide au pire. Les six categories se regroupent en quatre
+     rubriques, c'est donc le nom de la RUBRIQUE qu'on affiche, celui que porte
+     deja la navigation de /articles/, et pas la categorie brute. */
+  eleventyConfig.addFilter("rubriqueNom", function(categorie) {
+    var r = RUBRIQUES.filter(function(x) { return x.categories.indexOf(categorie) !== -1; })[0];
+    return r ? r.nom : "";
+  });
+
   // Date machine, pour les comparaisons faites dans le navigateur. Le filtre lisible
   // ci-dessous produit du francais, illisible par Date.parse().
   eleventyConfig.addFilter("dateISO", function(dateObj) {

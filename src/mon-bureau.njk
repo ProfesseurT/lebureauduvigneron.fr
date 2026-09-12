@@ -7,7 +7,7 @@ permalink: /mon-bureau/
 
 {# Les contenus du site et les echeances, poses une fois, lus par le script plus bas. #}
 <script id="bdvContenus" type="application/json">
-[{% for post in collections.posts %}{"url":{{ post.url | dump | safe }},"titre":{{ post.data.title | dump | safe }},"date":"{{ post.date | dateISO }}","pilier":{{ (post.data.pilier or "") | dump | safe }},"temps":{{ (post.data.temps_lecture or "") | dump | safe }}}{% if not loop.last %},
+[{% for post in collections.posts %}{"url":{{ post.url | dump | safe }},"titre":{{ post.data.title | dump | safe }},"date":"{{ post.date | dateISO }}","rubrique":{{ (post.data.categorie | rubriqueNom) | dump | safe }},"temps":{{ (post.data.temps_lecture or "") | dump | safe }}}{% if not loop.last %},
 {% endif %}{% endfor %}]
 </script>
 <script id="bdvEcheances" type="application/json">
@@ -1758,7 +1758,22 @@ permalink: /mon-bureau/
     var t = document.createElement('span'); t.className = 'fiche-l__t';
     t.textContent = c.titre || titre || ref;
     a.appendChild(t);
-    var meta = [c.pilier, c.temps].filter(Boolean).join(' · ');
+    /* LA RUBRIQUE, ET PLUS LE PILIER. 12/09/2026, feu vert de Ted.
+       `pilier` etait l'ancienne classification (« Process 🔧 », « Marketing 📈 »),
+       abandonnee par l'arbitrage du 10/09 au profit de `categorie` : le fichier des
+       rubriques dit depuis ce jour-la que « pilier n'est plus lu par aucun gabarit ».
+       Le bureau, lui, l'affichait encore dans « A lire » et « Le classeur », et c'est
+       de la qu'arrivaient les emojis en couleur au milieu d'un dessin de papier.
+
+       Ce qui est affiche est le nom de la RUBRIQUE et pas la categorie brute : les
+       six categories se regroupent en quatre rubriques, et ce sont ces quatre-la que
+       le vigneron voit deja dans la navigation de /articles/. Lui en montrer six ici
+       lui ferait croire a deux classements.
+
+       LE PILIER RESTE AFFICHE SUR DEUX COMPOSANTS PUBLICS, articles-une.njk et
+       articles-recent.njk. Signale a Ted le 12/09, pas corrige : c'est la page
+       d'accueil, et changer ce qu'elle montre est sa decision. */
+    var meta = [c.rubrique, c.temps].filter(Boolean).join(' · ');
     if(meta){ var m = document.createElement('span'); m.className = 'fiche-l__m'; m.textContent = meta; a.appendChild(m); }
     if(avecPunaise){ var p = document.createElement('span'); p.className = 'fiche-l__p'; a.appendChild(p); }
     return a;
