@@ -15,6 +15,7 @@
     "banc:journee": "node scripts/banc-journee.mjs",
     "apercu:panneau": "node scripts/apercu-panneau.mjs",
     "apercu:fiche": "node scripts/apercu-fiche.mjs",
+    "apercu:modale": "node scripts/apercu-modale.mjs",
     "banc:taches": "node scripts/banc-taches.mjs",
     "banc:calchoix": "node scripts/banc-calchoix.mjs",
     "banc:calclients": "node scripts/banc-calclients.mjs",

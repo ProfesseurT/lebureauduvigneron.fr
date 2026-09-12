@@ -313,11 +313,11 @@
   function ajouter(titre, echueLe, finLe) {
     titre = String(titre || '').trim();
     if (!titre) return false;
-    echueLe = echueLe || null;
-    finLe = finLe || null;
-    if (finLe && !echueLe) { echueLe = finLe; finLe = null; }
-    if (echueLe && finLe && finLe < echueLe) { var t = echueLe; echueLe = finLe; finLe = t; }
-    if (echueLe && finLe === echueLe) finLe = null;   // un jour n'est pas une periode
+    // Les trois regles sont ecrites une seule fois, dans normaliserDates() : la modale
+    // les applique aussi, et un formulaire qui accepte « du 11 au 9 » a la creation mais
+    // le refuse a la correction apprend deux comportements pour un seul geste.
+    var dd = normaliserDates(echueLe, finLe);
+    echueLe = dd.debut; finLe = dd.fin;
     var tid = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
     var maintenant = new Date().toISOString();
     ecrire(tid, { tache_id: tid, titre: titre, source: 'libre', ref: null,
@@ -339,6 +339,73 @@
                   fait_le: t.fait_le ? null : maintenant, maj_le: maintenant });
   }
   function supprimer(tid) { ecrire(tid, null); }
+
+  /* ---------------- MODIFIER UNE TACHE ECRITE ----------------
+     Ajoutee le 12/09/2026 avec la modale. Jusqu'ici une tache mal notee ne se
+     corrigeait qu'en la retirant et en la reecrivant : on y perdait sa date de
+     creation, et si elle etait cochee, la preuve qu'elle avait ete faite.
+
+     LES TROIS REGLES DE DATES SONT CELLES DE ajouter(), et elles sont desormais
+     ecrites UNE fois, dans normaliserDates(). Un formulaire qui accepte « du 11 au
+     9 » a la creation et le refuse a la modification apprend deux comportements
+     pour un seul geste.
+
+     UNE OBLIGATION EST REFUSEE ICI, et pas seulement absente du formulaire : son
+     titre et sa date viennent du fichier de donnees, on ne renomme pas une DRM.
+     Le garde-fou est dans la donnee, pas dans l'ecran ; cacher un bouton
+     n'empeche rien. */
+  function normaliserDates(echueLe, finLe) {
+    echueLe = echueLe || null;
+    finLe = finLe || null;
+    if (finLe && !echueLe) { echueLe = finLe; finLe = null; }
+    if (echueLe && finLe && finLe < echueLe) { var t = echueLe; echueLe = finLe; finLe = t; }
+    if (echueLe && finLe === echueLe) finLe = null;   // un jour n'est pas une periode
+    return { debut: echueLe, fin: finLe };
+  }
+
+  function modifier(tid, titre, echueLe, finLe) {
+    var l = lireCache()[tid];
+    if (!l || l.source === 'echeance') return false;
+    titre = String(titre || '').trim();
+    if (!titre) return false;
+    var d = normaliserDates(echueLe, finLe);
+    var ligneMaj = { tache_id: tid, titre: titre, source: 'libre', ref: null,
+                     echue_le: d.debut, fin_le: d.fin, fait_le: l.fait_le || null,
+                     maj_le: new Date().toISOString() };
+    // La date de creation n'est pas renvoyee quand on ne l'a pas : l'upsert fusionne,
+    // et une colonne absente garde la valeur du serveur. L'ecraser par null ferait
+    // perdre l'age d'une tache a chaque correction de faute de frappe.
+    if (l.cree_le) ligneMaj.cree_le = l.cree_le;
+    ecrire(tid, ligneMaj);
+    return true;
+  }
+
+  /* POSER LE DEBUT D'UNE TACHE, un seul chemin pour les deux boutons de report.
+     repousser() compte a partir d'aujourd'hui, reporterAu() prend la date donnee ;
+     au-dela de ce calcul elles font exactement la meme chose, et elles doivent
+     continuer a la faire, notamment garder la duree d'une tache qui dure. */
+  function poserDebut(tid, dateIso) {
+    var t = libres().filter(function (x) { return x.tache_id === tid; })[0];
+    if (!t || !dateIso) return false;
+    var base = minuit(new Date(dateIso + 'T00:00:00'));
+    if (isNaN(base)) return false;
+    var fin = null;
+    if (t.echue_le && t.fin_le) {
+      var d0 = minuit(new Date(t.echue_le + 'T00:00:00'));
+      var f0 = minuit(new Date(t.fin_le + 'T00:00:00'));
+      if (!isNaN(d0) && !isNaN(f0)) {
+        var f = new Date(base);
+        f.setDate(f.getDate() + Math.round((f0 - d0) / JOUR));
+        fin = iso(f);
+      }
+    }
+    ecrire(tid, { tache_id: tid, titre: t.titre, source: 'libre', ref: null,
+                  echue_le: iso(base), fin_le: fin, fait_le: null,
+                  maj_le: new Date().toISOString() });
+    return true;
+  }
+
+  function reporterAu(tid, jourIso) { return poserDebut(tid, jourIso); }
 
   /* ---------------- CE QUE LE CALENDRIER APPELLE ----------------
      Ajoute le 08/09/2026, lot 1 du chantier calendrier. La piece « Le
@@ -404,8 +471,19 @@
       li.appendChild(coche);
     }
 
-    var corps = document.createElement('span');
+    /* LE CORPS OUVRE LA MODALE, depuis le 12/09/2026. C'est un <button> et pas un
+       <span> qu'on ecoute : une ligne qui s'ouvre a la souris doit s'ouvrir au clavier,
+       et un <li> avec un ecouteur de clic ne s'atteint pas au clavier. UN CLIENT GARDE
+       SON <span> INERTE : il a deja son bouton « Ouvrir sa fiche », et sa fiche est le
+       seul endroit ou l'on note ce qu'il a dit. */
+    var ouvrable = t.source !== 'client';
+    var corps = document.createElement(ouvrable ? 'button' : 'span');
     corps.className = 'tache__corps';
+    if (ouvrable) {
+      corps.type = 'button';
+      corps.setAttribute('data-tache-ouvrir', t.tache_id);
+      corps.title = 'Ouvrir cette tâche';
+    }
     var titre = document.createElement('span');
     titre.className = 'tache__titre';
     titre.textContent = t.titre;
@@ -516,6 +594,23 @@
        le test de sortie ci-dessous, parce que le calendrier doit se repeindre
        meme quand la piece « Mes taches » n'a jamais ete ouverte. */
     try { document.dispatchEvent(new CustomEvent('bdv:taches')); } catch (e) {}
+    /* LA MODALE OUVERTE SE REMET A JOUR, MAIS SANS TOUCHER AUX CHAMPS. Le serveur repond
+       plusieurs secondes apres l'ouverture ; reecrire un titre pendant qu'il se tape est
+       la pire facon de rafraichir un ecran. Seul le chrome est repeint — le tampon de
+       retard, le libelle du bouton, la ligne d'explication. Et c'est pose AVANT le test
+       de sortie ci-dessous, parce que la modale s'ouvre aussi depuis le panneau, ou la
+       piece « Mes taches » n'est pas forcement a l'ecran. */
+    if (modOuverte() && MOD_ETAT && MOD_ETAT.mode !== 'neuve') {
+      var vue = toutes().filter(function (x) { return x.tache_id === MOD_ETAT.tid; })[0];
+      if (vue) {
+        MOD_ETAT.fait_le = vue.fait_le || null;
+        MOD_ETAT.jours = vue.jours;
+        MOD_ETAT.echue_le = vue.echue_le || null;
+        MOD_ETAT.fin_le = vue.fin_le || null;
+        MOD_ETAT.enCours = !!vue.enCours;
+      }
+      peindreModale(false);
+    }
     if (!el('tachesAFaire')) return;
     monterFiltre();
     peindreFiltre();
@@ -596,6 +691,10 @@
         sous: t.source === 'echeance' ? 'obligation' : 'ta tâche',
         ton: t.jours < 0 ? 'vieux' : '',
         href: '/mon-bureau/#taches',
+        /* LA PUNAISE OUVRE LA MODALE plutot que de changer de piece, depuis le
+           12/09/2026. Le `href` reste : c'est lui qui sert si le module n'a pas
+           encore parle, et c'est la seule chose qu'un clic milieu peut ouvrir. */
+        ouvre: t.tache_id,
         gestes: gestes
       };
     });
@@ -628,24 +727,9 @@
      UNE TACHE QUI DURE GARDE SA DUREE : la fin se decale d'autant que le debut, sinon
      un salon de trois jours repousse a demain deviendrait un salon d'un jour. */
   function repousser(tid, n) {
-    var t = libres().filter(function (x) { return x.tache_id === tid; })[0];
-    if (!t) return false;
     var base = minuit(new Date());
     base.setDate(base.getDate() + (n || 1));
-    var fin = null;
-    if (t.echue_le && t.fin_le) {
-      var d0 = minuit(new Date(t.echue_le + 'T00:00:00'));
-      var f0 = minuit(new Date(t.fin_le + 'T00:00:00'));
-      if (!isNaN(d0) && !isNaN(f0)) {
-        var f = new Date(base);
-        f.setDate(f.getDate() + Math.round((f0 - d0) / JOUR));
-        fin = iso(f);
-      }
-    }
-    ecrire(tid, { tache_id: tid, titre: t.titre, source: 'libre', ref: null,
-                  echue_le: iso(base), fin_le: fin, fait_le: null,
-                  maj_le: new Date().toISOString() });
-    return true;
+    return poserDebut(tid, iso(base));
   }
 
   /* CE QUI A ETE FAIT AUJOURD'HUI. Sert au bilan du soir sur le panneau : une pile de
@@ -664,6 +748,316 @@
     }).length;
   }
 
+
+  /* ======================= LA MODALE D'UNE TACHE =======================
+     Demandee par Ted le 12/09/2026 : « une modale qui s'ouvre pour creer la tache
+     et la visualiser. Quand on clique dessus a partir de la zone des taches, ca
+     ouvre la modale aussi et permet de la traiter, ou la repousser. »
+
+     ELLE NE PORTE PAS LES TROIS NATURES DE LA MEME FACON, et c'est l'arbitrage du
+     jour. La liste affiche trois sortes de lignes qui n'obeissent pas aux memes
+     regles, et une modale uniforme aurait casse deux decisions deja prises :
+
+       - UNE TACHE ECRITE : tout est modifiable. Elle se coche, se repousse, se
+         retire, et son titre comme ses deux dates se corrigent.
+       - UNE OBLIGATION : titre et date viennent du fichier de donnees. Elle ne
+         propose que « C'est fait » et le renvoi vers ce que l'echeance exige. Une
+         DRM NE SE REPOUSSE PAS : un bouton qui pretendrait la decaler d'un jour
+         mentirait sur ce qui est negociable.
+       - UN CLIENT : il n'entre pas ici du tout. Son seul geste reste « Ouvrir sa
+         fiche », arbitrage de Ted du 11/09/2026 : c'est dans la fiche qu'on note
+         ce qu'il a dit, et deux endroits qui repondent « qui dois-je appeler » se
+         contrediraient des le premier geste pose d'un cote.
+
+     TOUT GESTE FERME LA MODALE. Meme motif que les punaises du panneau : un geste
+     qui laisse l'ecran identique apprend a ne plus cliquer. Le resultat se lit
+     dans la liste, derriere, qui vient d'etre repeinte par ecrire().
+
+     LE MARKUP EST CONSTRUIT ICI ET POSE SOUS <body>. Pas dans le gabarit : cette
+     modale s'ouvre depuis TROIS endroits (la piece, le panneau, le calendrier), et
+     le gabarit de l'un des trois n'est le bon domicile d'aucun des deux autres.
+     Sous <body> directement, parce qu'un parent en `transform` ou en `overflow`
+     reclasserait un `position: fixed` sans rien dire — le meme piege que les
+     quatre elements hors page de bdv-nav.js.
+
+     LES DONNEES DU VIGNERON NE PASSENT PAS PAR LA CHAINE HTML : celle-ci ne porte
+     que le chrome, qui est ecrit ici et ne bouge jamais. Titres, motifs et valeurs
+     de champs sont poses en textContent et en .value, plus bas. Regle du bureau.
+     =================================================================== */
+  var MOD = null;          // le noeud, monte une seule fois
+  var MOD_ETAT = null;     // ce que la modale montre en ce moment
+  var MOD_RETOUR = null;   // a qui rendre le focus en sortant
+
+  var MOD_HTML =
+    '<div class="tmod__voile" data-tache-fermer="oui"></div>' +
+    '<div class="tmod__boite" role="dialog" aria-modal="true" aria-labelledby="tmodTitre">' +
+      '<button class="tmod__x" type="button" data-tache-fermer="oui" aria-label="Fermer">&#215;</button>' +
+      '<p class="tmod__tampon" id="tmodTampon" hidden></p>' +
+      '<h2 class="tmod__titre" id="tmodTitre"></h2>' +
+      '<p class="tmod__sous" id="tmodSous" hidden></p>' +
+      '<form class="tmod__form" id="tmodForm" novalidate>' +
+        '<div class="tmod__champ">' +
+          '<label class="tmod__l" for="tmodNom">Qu’est-ce qu’il y a à faire ?</label>' +
+          '<input class="tmod__i" id="tmodNom" type="text" maxlength="200" autocomplete="off" ' +
+                 'placeholder="ex. commander des bouchons">' +
+        '</div>' +
+        '<div class="tmod__duo">' +
+          '<div class="tmod__champ">' +
+            '<label class="tmod__l" for="tmodDebut">Pour quand</label>' +
+            '<input class="tmod__d" id="tmodDebut" type="date">' +
+          '</div>' +
+          '<div class="tmod__champ">' +
+            '<label class="tmod__l" for="tmodFin">Jusqu’à quand</label>' +
+            '<input class="tmod__d" id="tmodFin" type="date">' +
+          '</div>' +
+        '</div>' +
+        '<p class="tmod__aide">Les deux dates sont facultatives. Sans date, la tâche attend ' +
+          'sagement en bas de liste. La seconde ne sert qu’à ce qui dure plusieurs jours.</p>' +
+        '<p class="tmod__erreur" id="tmodErreur" role="alert" hidden></p>' +
+        '<div class="tmod__pied">' +
+          '<button class="btn btn--bordeaux" type="submit" id="tmodValider">Enregistrer</button>' +
+          '<button class="tmod__lien" type="button" data-tache-fermer="oui">Annuler</button>' +
+        '</div>' +
+      '</form>' +
+      '<div class="tmod__bloc" id="tmodReports">' +
+        '<p class="tmod__l" id="tmodReportL">Pas maintenant ?</p>' +
+        '<div class="tmod__gestes">' +
+          '<button class="tmod__g" type="button" id="tmodVite1" data-tache-report="1">Demain</button>' +
+          '<button class="tmod__g" type="button" id="tmodVite7" data-tache-report="7">Dans 7 jours</button>' +
+          /* LE « ou », LA DATE ET SON BOUTON SONT SOLIDAIRES. Vu a la capture du
+             12/09/2026 : les cinq elements de cette rangee se repartissaient au fil de
+             l'eau, et « Repousser » tombait seul a la ligne suivante, sous un champ de
+             date qui restait, lui, en haut. Un bouton orphelin sous un champ vide ne dit
+             plus a quoi il sert. Groupes, ils passent a la ligne ensemble ou pas du tout. */
+          '<span class="tmod__ouj">' +
+            '<span class="tmod__ou">ou</span>' +
+            '<input class="tmod__d" id="tmodReportDate" type="date" ' +
+                   'aria-label="Repousser à une date précise">' +
+            '<button class="tmod__g" type="button" data-tache-report="date">Repousser</button>' +
+          '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tmod__bloc tmod__bloc--gestes" id="tmodGestes">' +
+        '<button class="btn btn--bordeaux" type="button" data-tache-fait="oui" id="tmodFait">C’est fait</button>' +
+        '<a class="tmod__lien" id="tmodExige" href="/mon-bureau/#calendrier">Ce que ça exige</a>' +
+        '<button class="tmod__lien tmod__lien--x" type="button" data-tache-oter="oui" id="tmodSuppr">Retirer cette tâche</button>' +
+      '</div>' +
+    '</div>';
+
+  function monterModale() {
+    if (MOD) return MOD;
+    MOD = document.createElement('div');
+    MOD.className = 'tmod';
+    MOD.id = 'tacheModale';
+    MOD.hidden = true;
+    MOD.innerHTML = MOD_HTML;
+    document.body.appendChild(MOD);
+    var f = el('tmodForm');
+    if (f) f.addEventListener('submit', function (e) { e.preventDefault(); validerModale(); });
+    return MOD;
+  }
+
+  function modOuverte() { return !!(MOD && !MOD.hidden); }
+
+  function fermerModale() {
+    if (!modOuverte()) return;
+    MOD.hidden = true;
+    MOD_ETAT = null;
+    var r = MOD_RETOUR; MOD_RETOUR = null;
+    // Le focus revient d'ou il venait, et seulement si ce noeud est encore dans la page :
+    // une ligne cochee depuis la modale a pu etre repeinte entre-temps, et rendre le focus
+    // a un noeud detache le renvoie au <body>, donc en haut de la page.
+    if (r && r.isConnected && typeof r.focus === 'function') { try { r.focus(); } catch (e) {} }
+  }
+
+  function montrer(node, oui) { if (node) node.hidden = !oui; }
+
+  /* La peinture est coupee en deux, et ce n'est pas du zele : `rendre()` repasse ici
+     quand le serveur repond, et il ne doit JAMAIS reecrire les champs pendant que le
+     vigneron tape dedans. Le chrome se repeint a chaque fois, les champs seulement a
+     l'ouverture. */
+  function peindreModale(avecChamps) {
+    var s = MOD_ETAT; if (!s) return;
+    var neuve = s.mode === 'neuve', ech = s.mode === 'echeance', fait = !!s.fait_le;
+
+    var tampon = el('tmodTampon');
+    var mot = neuve ? '' : (s.echue_le ? quand(s) : 'sans date');
+    tampon.textContent = fait ? 'fait' : mot;
+    montrer(tampon, !!tampon.textContent);
+    tampon.setAttribute('data-ton', fait ? 'fait' : (ton(s) || ''));
+
+    el('tmodTitre').textContent = neuve ? 'Une nouvelle tâche'
+      : (ech ? s.titre : 'Ta tâche');
+
+    var sous = el('tmodSous');
+    if (neuve) {
+      sous.textContent = 'Elle rejoindra ta liste, et ton calendrier si tu lui donnes une date.';
+    } else if (ech) {
+      sous.textContent = 'Obligation du calendrier, ' + quandDate(s)
+        + '. Son titre et sa date viennent du calendrier officiel : ils ne se modifient pas, '
+        + 'et elle ne se repousse pas.';
+    } else if (fait) {
+      sous.textContent = 'Cochée le ' + dateCourte(String(s.fait_le).slice(0, 10)) + '.';
+    } else {
+      sous.textContent = '';
+    }
+    montrer(sous, !!sous.textContent);
+
+    montrer(el('tmodForm'), !ech);
+    el('tmodValider').textContent = neuve ? 'Ajouter cette tâche' : 'Enregistrer';
+    montrer(el('tmodErreur'), false);
+
+    // Pas de report sur une obligation, ni sur une tache deja cochee : repousser ce qui
+    // est fait n'a pas de sens, et le bouton remettrait la tache a faire sans le dire.
+    montrer(el('tmodReports'), s.mode === 'libre' && !fait);
+    /* ON NE REPOUSSE QUE CE QUI PRESSE, et c'est la regle deja ecrite pour les punaises
+       du panneau : « proposer demain sur une tache prevue dans six jours, c'est proposer
+       de l'avancer ». La capture du 12/09/2026 montrait exactement ce defaut ici — un
+       salon dans douze jours, et un bouton « Demain » sous le titre « Pas maintenant ? ».
+       Une tache pas encore due ne se repousse pas, elle se DEPLACE, et le champ de date
+       fait ce travail-la. Les mots changent avec les boutons : un titre qui ne decrit
+       plus ce qu'il surmonte est la moitie du defaut. */
+    var presse = s.jours === null || s.jours <= 0;
+    montrer(el('tmodVite1'), presse);
+    montrer(el('tmodVite7'), presse);
+    el('tmodReportL').textContent = presse ? 'Pas maintenant ?' : 'La déplacer ?';
+    montrer(el('tmodGestes'), !neuve);
+    el('tmodFait').textContent = fait ? 'Remettre à faire' : 'C’est fait';
+    montrer(el('tmodExige'), ech);
+    montrer(el('tmodSuppr'), s.mode === 'libre');
+
+    if (!avecChamps || ech) return;
+    el('tmodNom').value = s.titre || '';
+    el('tmodDebut').value = s.echue_le || '';
+    el('tmodFin').value = s.fin_le || '';
+    el('tmodReportDate').value = '';
+  }
+
+  function ouvrirModale(s, declencheur) {
+    monterModale();
+    MOD_ETAT = s;
+    MOD_RETOUR = declencheur || null;
+    peindreModale(true);
+    MOD.hidden = false;
+    // Une obligation n'a pas de champ a remplir : le focus va sur son seul geste, sinon
+    // il resterait sur le voile et la premiere tabulation repartirait du haut du document.
+    var premier = s.mode === 'echeance' ? el('tmodFait') : el('tmodNom');
+    if (premier) { try { premier.focus(); } catch (e) {} }
+  }
+
+  /* RECONSTRUIRE UNE OCCURRENCE QUE toutes() NE LISTE PAS. Elle ne connait que la
+     PROCHAINE occurrence de chaque obligation ; le calendrier, lui, affiche octobre en
+     septembre. Meme motif que basculerOccurrence() : la ligne se fabrique ici, pour que
+     ce fichier reste le seul endroit qui sache ce qu'est une tache. */
+  function depuisIdOccurrence(tid) {
+    if (String(tid).slice(0, 4) !== 'ech:') return null;
+    var reste = String(tid).slice(4);
+    var jour = reste.slice(-10), cle = reste.slice(0, -11);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(jour) || !cle) return null;
+    var d = minuit(new Date(jour + 'T00:00:00'));
+    if (isNaN(d)) return null;
+    var titre = cle;
+    if (window.BdvEcheances) {
+      var r = BdvEcheances.depuisLaPage('bdvEcheances').filter(function (e) {
+        return e.cle === cle;
+      })[0];
+      if (r && r.titre) titre = r.titre;
+    }
+    var l = lireCache()[tid];
+    return { tache_id: tid, titre: titre, source: 'echeance', ref: cle,
+             echue_le: jour, fin_le: null, fait_le: (l && l.fait_le) || null,
+             jours: Math.round((d - minuit(new Date())) / JOUR) };
+  }
+
+  function modaleNeuve(dateIso, declencheur) {
+    ouvrirModale({ mode: 'neuve', tid: null, titre: '', ref: null,
+                   echue_le: dateIso || null, fin_le: null, fait_le: null, jours: null },
+                 declencheur);
+    return true;
+  }
+
+  function modale(tid, declencheur) {
+    var t = toutes().filter(function (x) { return x.tache_id === tid; })[0]
+         || depuisIdOccurrence(tid);
+    // UN CLIENT SORT ICI, et ce n'est pas un oubli d'ecran : sa fiche est le seul
+    // endroit ou l'on note ce qu'il a dit. Le refus est dans la donnee.
+    if (!t || t.source === 'client') return false;
+    ouvrirModale({ mode: t.source === 'echeance' ? 'echeance' : 'libre',
+                   tid: t.tache_id, titre: t.titre, ref: t.ref,
+                   echue_le: t.echue_le || null, fin_le: t.fin_le || null,
+                   fait_le: t.fait_le || null, jours: t.jours,
+                   enCours: !!t.enCours }, declencheur);
+    return true;
+  }
+
+  function modaleOccurrence(cle, titre, jourIso, declencheur) {
+    if (!cle || !jourIso) return false;
+    var d = minuit(new Date(jourIso + 'T00:00:00'));
+    if (isNaN(d)) return false;
+    var tid = idOccurrence(cle, d);
+    var l = lireCache()[tid];
+    ouvrirModale({ mode: 'echeance', tid: tid, titre: titre || cle, ref: cle,
+                   echue_le: jourIso, fin_le: null, fait_le: (l && l.fait_le) || null,
+                   jours: Math.round((d - minuit(new Date())) / JOUR) }, declencheur);
+    return true;
+  }
+
+  function direErreur(mot) {
+    var p = el('tmodErreur');
+    if (!p) return;
+    p.textContent = mot;
+    montrer(p, !!mot);
+  }
+
+  function validerModale() {
+    var s = MOD_ETAT;
+    if (!s || s.mode === 'echeance') return false;
+    var nom = el('tmodNom').value;
+    var d1 = el('tmodDebut').value || null;
+    var d2 = el('tmodFin').value || null;
+    var ok = s.mode === 'neuve' ? ajouter(nom, d1, d2) : modifier(s.tid, nom, d1, d2);
+    // Le seul refus possible est un titre vide, et il se dit : un bouton qui ne fait
+    // rien sans expliquer fait chercher la panne ailleurs.
+    if (!ok) { direErreur('Il manque le titre : dis ce qu’il y a à faire.'); el('tmodNom').focus(); return false; }
+    fermerModale();
+    return true;
+  }
+
+  function gesteReport(quoi) {
+    var s = MOD_ETAT;
+    if (!s || s.mode !== 'libre') return false;
+    var ok;
+    if (quoi === 'date') {
+      var v = el('tmodReportDate').value;
+      if (!v) { el('tmodReportDate').focus(); return false; }
+      ok = reporterAu(s.tid, v);
+    } else {
+      ok = repousser(s.tid, quoi);
+    }
+    if (ok) fermerModale();
+    return ok;
+  }
+
+  function gesteFait() {
+    var s = MOD_ETAT;
+    if (!s || s.mode === 'neuve') return false;
+    // Une obligation passe par basculerOccurrence : basculer() la chercherait dans
+    // toutes(), qui ne connait que la prochaine, et une DRM d'octobre ouverte depuis
+    // le calendrier en septembre n'y est pas.
+    if (s.mode === 'echeance') basculerOccurrence(s.ref, s.titre, s.echue_le);
+    else basculer(s.tid);
+    fermerModale();
+    return true;
+  }
+
+  function gesteOter() {
+    var s = MOD_ETAT;
+    if (!s || s.mode !== 'libre') return false;
+    supprimer(s.tid);
+    fermerModale();
+    return true;
+  }
+
   /* ---------------- BRANCHEMENTS ---------------- */
   document.addEventListener('click', function (e) {
     var c = e.target.closest && e.target.closest('[data-tache-coche]');
@@ -674,6 +1068,31 @@
     if (f) { e.preventDefault(); basculerFamille(f.getAttribute('data-tache-famille')); return; }
     /* Le meme ouvreur que le sous-main et que le calendrier, expose par le bureau. Trois
        endroits montrent un rappel client, UN SEUL sait ouvrir sa fiche. */
+    /* LA MODALE. Ces quatre branches sont posees APRES la coche et le retrait :
+       un clic sur la case a cocher d'une ligne ne doit pas aussi ouvrir la modale,
+       et c'est le premier `return` rencontre qui le garantit. */
+    var mo = e.target.closest && e.target.closest('[data-tache-ouvrir]');
+    if (mo) { e.preventDefault(); modale(mo.getAttribute('data-tache-ouvrir'), mo); return; }
+    var mn = e.target.closest && e.target.closest('[data-tache-neuve]');
+    if (mn) {
+      e.preventDefault();
+      modaleNeuve(mn.getAttribute('data-tache-neuve') || null, mn);
+      return;
+    }
+    var mx = e.target.closest && e.target.closest('[data-tache-fermer]');
+    if (mx) { e.preventDefault(); fermerModale(); return; }
+    var mr = e.target.closest && e.target.closest('[data-tache-report]');
+    if (mr) {
+      e.preventDefault();
+      var q = mr.getAttribute('data-tache-report');
+      gesteReport(q === 'date' ? 'date' : (parseInt(q, 10) || 1));
+      return;
+    }
+    var mk = e.target.closest && e.target.closest('[data-tache-fait]');
+    if (mk) { e.preventDefault(); gesteFait(); return; }
+    var mz = e.target.closest && e.target.closest('[data-tache-oter]');
+    if (mz) { e.preventDefault(); gesteOter(); return; }
+
     var cl = e.target.closest && e.target.closest('[data-tache-client]');
     if (cl) {
       e.preventDefault();
@@ -681,6 +1100,14 @@
         window.bdvOuvrirFiche(cl.getAttribute('data-tache-client'));
       }
     }
+  });
+
+  /* ECHAP FERME, et seulement quand CETTE modale est ouverte. bdv-base.js ecoute deja
+     Echap pour la fiche client ; deux ecouteurs qui ferment deux choses differentes ne se
+     genent que si l'un d'eux agit quand l'autre est a l'ecran. Le test de MOD est ce
+     garde-fou, et il ne coute rien. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modOuverte()) { e.preventDefault(); fermerModale(); }
   });
 
   function brancherForm() {
@@ -747,7 +1174,10 @@
   window.BdvTaches = {
     ouvrir: ouvrir, rendre: rendre, charger: charger, punaises: punaises,
     ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes,
-    repousser: repousser, faitsAujourdhui: faitsAujourdhui,
+    repousser: repousser, reporterAu: reporterAu, modifier: modifier,
+    faitsAujourdhui: faitsAujourdhui,
+    modale: modale, modaleNeuve: modaleNeuve, modaleOccurrence: modaleOccurrence,
+    fermerModale: fermerModale,
     estFaite: estFaite, basculerOccurrence: basculerOccurrence,
     datees: datees, sansDate: sansDate,
     familleAffichee: familleAffichee, basculerFamille: basculerFamille

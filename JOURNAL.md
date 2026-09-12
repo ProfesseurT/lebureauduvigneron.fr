@@ -12,6 +12,100 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 12/09/2026. La modale d'une tâche, et pourquoi elle n'est pas la même pour tout le monde
+
+Demande de Ted : « tu vas ajouter sur la partie tache : une modale qui s'ouvre pour créer la
+tache et la visualiser. Quand on clique dessus à partir de la zone des taches, ça ouvre la modale
+aussi et permet de la traiter, ou la repousser. »
+
+### CE QUI A ÉTÉ POSÉ AVANT D'ÉCRIRE UNE LIGNE
+
+La zone des tâches n'affiche pas une nature de ligne, elle en affiche **trois**, et elles
+n'obéissent pas aux mêmes règles. Une modale uniforme « traiter ou repousser » aurait cassé deux
+arbitrages pris cette semaine : une DRM ne se repousse pas, et un client ne s'ouvre que dans sa
+fiche. Les quatre choix de Ted, posés avant le code :
+
+1. **La ligne rapide reste**, la modale s'ajoute à côté par « Ajouter en détail… ». On en note
+   rarement une seule, et le champ garde le focus après l'ajout. Écarté : remplacer le
+   formulaire par un bouton, qui aurait coûté la saisie en rafale.
+2. **La modale s'ouvre sur ses tâches et sur les obligations, jamais sur un client.** Une
+   obligation s'y ouvre en lecture seule : titre et date viennent du fichier de données, un seul
+   geste, « C'est fait », et le renvoi vers ce qu'elle exige. Un client garde « Ouvrir sa fiche »,
+   décision du 11/09.
+3. **Trois façons de repousser** : demain, dans sept jours, ou une date au choix.
+4. **Trois portes** : la ligne de la pièce, la punaise du panneau, et le titre d'une tâche dans la
+   vue liste du calendrier.
+
+### LE REFUS EST DANS LA DONNÉE, PAS DANS L'ÉCRAN
+
+`modifier()` et `poserDebut()` refusent une obligation même appelées à la main. Cacher un bouton
+n'a jamais empêché un appel : le banc les appelle donc directement sur une DRM et vérifie qu'il ne
+part rien vers le serveur. Même motif que le garde-fou de `repousser()` écrit le 10/09.
+
+`modifier()` est neuve, et elle règle un trou : jusqu'ici une tâche mal notée ne se corrigeait
+qu'en la retirant et en la réécrivant, ce qui perdait sa date de création et, si elle était
+cochée, la preuve qu'elle avait été faite. Les trois règles de dates (une fin sans début devient
+le début, deux dates à l'envers se remettent à l'endroit, un jour n'est pas une période) sont
+passées dans `normaliserDates()`, écrite une fois pour la création et pour la correction.
+
+`repousser()` et `reporterAu()` passent désormais par `poserDebut()`. Un seul chemin, donc une
+seule façon de garder la durée d'un salon de trois jours.
+
+### CE QUE L'IMAGE A TROUVÉ ET QUE 115 CONTRÔLES N'AVAIENT PAS VU
+
+La leçon du 11/09 s'est encore vérifiée. Le banc validait tout ; la capture sur la vraie feuille
+de style a montré quatre défauts.
+
+**Le plus grave était une règle du projet enfreinte.** Sur un salon prévu dans douze jours, le
+bloc « Pas maintenant ? » proposait « Demain ». Demain, c'était **l'avancer**. La règle existait
+déjà, écrite pour les punaises du panneau : « proposer demain sur une tâche prévue dans six jours,
+c'est proposer de l'avancer ». Une tâche pas encore due ne se repousse pas, elle se **déplace** :
+les deux boutons rapides disparaissent, le champ de date reste, et le titre du bloc devient « La
+déplacer ? ». Un titre qui ne décrit plus ce qu'il surmonte est la moitié du défaut.
+
+**« Repousser » tombait seul à la ligne**, sous un champ de date resté en haut. Les cinq éléments
+de la rangée se répartissaient au fil de l'eau. Le « ou », le champ et son bouton sont maintenant
+solidaires : ils passent à la ligne ensemble ou pas du tout.
+
+**Trois cibles sous le plancher tactile** sur 390 px : « Annuler » 42×11, « Retirer cette tâche »
+113×11, « Ce que ça exige » 89×17, et les champs à 39-41 px de haut. Un lien typographique se lit
+très bien et se vise très mal. Le dessin ne change pas ; la zone de clic descend à 44.
+
+**L'aperçu lui-même mentait, deux fois.** Sa grille imposait 480 px de colonne sur un écran de
+390, et le document débordait de 122 px : la mesure accusait la modale d'un défaut venu de la page
+de contrôle. Et `cloneNode` ne recopie que les attributs : la première image montrait quatre
+modales vides, avec le placeholder gris à la place du titre. On allait juger un écran qui n'existe
+pas. Les deux sont corrigés dans `scripts/apercu-modale.mjs`, qui monte la vraie page avec les
+vrais modules et écrit les cinq états côte à côte.
+
+### LE GARDE-FOU NEUF A ÉTÉ VÉRIFIÉ EN ÉCHEC
+
+`var presse = true` remis à la main : deux contrôles tombent, le banc refuse. Un contrôle qui n'a
+jamais échoué ne garde rien.
+
+### CE QUI RESTE OUVERT, ET QUI ATTEND L'ARBITRAGE DE TED
+
+- **Dans la grille du mois, la pastille reste la case à cocher.** Lui faire ouvrir la modale
+  demanderait deux clics pour cocher ce qui s'en coche un. Seule la vue liste a reçu la porte.
+  À rouvrir d'un mot s'il préfère l'inverse.
+- **« Retirer cette tâche » ne demande aucune confirmation**, exactement comme le « Retirer » de la
+  liste. Cohérent, et destructif sans filet. Signalé, non corrigé.
+- **Le titre de la modale dit « Ta tâche »** et non le titre réel, qui est juste en dessous dans le
+  champ. C'est un intitulé de fiche, comme « Mes réglages ». À changer s'il le trouve creux.
+- **Le formulaire du calendrier n'a pas reçu son bouton « Ajouter en détail… »** : la création y
+  passe déjà par le « + » d'un jour, qui pré-remplit la date.
+
+### CE QUI A ÉTÉ TOUCHÉ
+
+`src/js/bdv-taches.js` (la modale, `modifier`, `poserDebut`, `reporterAu`, `normaliserDates`, la
+porte sur chaque ligne, la punaise qui ouvre), `src/js/bdv-calendrier.js` (le titre ouvrable en vue
+liste, deux portes), `src/mon-bureau.njk` (le bouton « Ajouter en détail… », la punaise),
+`src/css/style.css` (la modale, le plancher tactile, la remise à plat du corps devenu bouton),
+`scripts/banc-taches.mjs` (section 10, de 66 à 120 contrôles), `scripts/apercu-modale.mjs` (neuf,
+`npm run apercu:modale`). `npm run verif` passe en entier.
+
+---
+
 ## 12/09/2026. La page des outils cesse de faire semblant que tout se vaut
 
 Demande de Ted : « reorganise la page : outils afin qu'elle soit beaucoup plus sexy : ajoute

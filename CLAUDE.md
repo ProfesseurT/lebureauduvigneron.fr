@@ -1123,6 +1123,53 @@ Les rappels clients apparaissent dans le calendrier et dans « Mes taches », fa
    pour que le nom du client reste un nom propre : c'est lui qui part dans l'infobulle, dans
    l'aria-label et dans la recherche du navigateur.
 
+## LA MODALE D'UNE TACHE N'EST PAS LA MEME POUR LES TROIS NATURES, 12/09/2026
+
+Demande de Ted : une modale pour creer une tache, la voir, la traiter, la repousser. Elle
+s'ouvre depuis TROIS endroits : la ligne de la piece « Mes taches », la punaise du panneau,
+et le titre d'une tache dans la vue LISTE du calendrier.
+
+**La zone des taches affiche trois natures de lignes, et elles n'ont pas les memes droits.**
+
+| | modifier | cocher | repousser | retirer |
+|---|---|---|---|---|
+| une tache ecrite | oui | oui | oui | oui |
+| une obligation | **non** | oui | **non** | **non** |
+| un rappel client | **la modale ne s'ouvre pas du tout** | | | |
+
+Why: une DRM tombe le 10 du mois, son titre et sa date viennent du fichier de donnees ; un
+bouton qui pretendrait la decaler mentirait sur ce qui est negociable. Et un client ne se
+traite que dans sa fiche, ou l'on note ce qu'il a dit (regle du 11/09) : deux endroits qui
+repondent « qui dois-je appeler » se contrediraient des le premier geste pose d'un cote.
+
+How to apply :
+
+- **Le refus est dans la donnee, pas dans l'ecran.** `modifier()`, `poserDebut()` et
+  `modale()` refusent, respectivement, une obligation, une obligation et un client, meme
+  appelees a la main. Cacher un bouton n'a jamais empeche un appel. Le banc les appelle
+  directement pour le verifier.
+- **`bdv-taches.js` reste le seul fichier qui ecrive dans la table des taches.** Le
+  calendrier passe par `BdvTaches.modale()` et `BdvTaches.modaleOccurrence()`, jamais par
+  une ligne construite chez lui. Meme motif que `basculerOccurrence()`.
+- **`normaliserDates()` porte les trois regles de dates**, pour la creation comme pour la
+  correction. Ne pas les reecrire ailleurs : un formulaire qui accepte « du 11 au 9 » a la
+  creation et le refuse a la correction apprend deux comportements pour un seul geste.
+- **`repousser()` et `reporterAu()` passent par `poserDebut()`.** Un seul chemin, donc une
+  seule facon de garder la duree d'un salon de trois jours.
+
+**ON NE REPOUSSE QUE CE QUI PRESSE.** Si la tache n'est pas encore due (`jours > 0`), les
+boutons « Demain » et « Dans 7 jours » disparaissent et le bloc s'appelle « La deplacer ? ».
+Why: sur une tache prevue dans douze jours, « Demain » l'AVANCE. La regle existait deja pour
+les punaises du panneau, et la modale l'a enfreinte jusqu'a la capture du 12/09/2026.
+
+**Dans la GRILLE du mois, la pastille reste la case a cocher.** La porte vers la modale n'est
+que dans la vue liste : ailleurs, ouvrir une modale demanderait deux clics pour cocher ce qui
+s'en coche un.
+
+Le banc : `npm run banc:taches`, section 10. L'image : `npm run apercu:modale`, cinq etats
+sur la vraie feuille de style. **Regarder l'image apres toute retouche de cette modale** —
+le banc a valide 115 controles sur un ecran qui enfreignait une regle du projet.
+
 ## LE FLAMBEAU : le site doit survivre au depart de Ted, 10/09/2026
 
 Ted a pose la contrainte : un jour il partira, et le site ne doit pas tourner autour de lui. Il

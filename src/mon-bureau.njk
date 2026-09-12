@@ -246,6 +246,14 @@ permalink: /mon-bureau/
                07/09/2026 et jamais par la charte, qui verifie des paires nommees et pas
                un bouton pose sur un fond pour lequel il n'a pas ete dessine. #}
             <button class="btn btn--bordeaux" type="submit">Ajouter</button>
+            {# LA MEME TACHE, EN GRAND. Demande de Ted le 12/09/2026. La ligne rapide
+               reste : on en note rarement une seule, et le champ garde le focus apres
+               l'ajout. Ce bouton-ci ouvre la modale, pour la tache qui merite qu'on s'y
+               arrete. Les deux ecrivent par BdvTaches.ajouter(), donc la meme ligne dans
+               la meme table : il n'y a pas deux facons de creer une tache, il y a deux
+               portes. #}
+            <button class="tachesf__grand" type="button" data-tache-neuve=""
+                    title="Ouvrir la fiche de la tâche pour la noter en détail">Ajouter en détail…</button>
           </div>
           <p class="tachesf__aide">Les dates sont facultatives. Sans date, la tâche attend
             sagement en bas de liste. La seconde ne sert qu'à ce qui dure plusieurs jours.</p>
@@ -1243,6 +1251,12 @@ permalink: /mon-bureau/
       var e = document.createElement(lien ? 'a' : 'span');
       e.className = classe + (lien ? ' postit__lien' : '');
       if(lien) e.href = o.href;
+      /* LA PUNAISE D'UNE TACHE OUVRE SA MODALE, depuis le 12/09/2026, au lieu de
+         changer de piece pour aller la rechercher dans une liste. Le `href` reste
+         pose dessous : il sert quand le module des taches n'a pas encore parle, et
+         c'est le seul chemin qu'un clic milieu sache suivre. C'est bdv-taches.js qui
+         intercepte, comme pour toutes les autres portes de cette modale. */
+      if(lien && o.ouvre) e.setAttribute('data-tache-ouvrir', o.ouvre);
       e.textContent = texte;
       return e;
     }

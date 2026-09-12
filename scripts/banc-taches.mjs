@@ -499,6 +499,213 @@ console.log('\n== 9. Les rappels clients ==');
     'sans file chargee, la piece montre ses taches sans broncher');
 }
 
+/* ==========================================================================
+   10. LA MODALE D'UNE TACHE
+   ==========================================================================
+   Demandee par Ted le 12/09/2026. CE BANC NE REGARDE PAS SI C'EST JOLI : il
+   verifie les deux choses qu'une capture ne montre pas.
+
+   1. QUE LES TROIS NATURES N'OUVRENT PAS LA MEME MODALE. Une tache ecrite se
+      modifie et se repousse ; une obligation ne se modifie ni ne se repousse ;
+      un client n'ouvre pas cette modale du tout. Trois regles deja tranchees,
+      qu'une modale uniforme aurait cassees en silence.
+
+   2. QUE LE REFUS EST DANS LA DONNEE ET PAS DANS L'ECRAN. On appelle donc
+      modifier() et reporterAu() SUR UNE OBLIGATION, a la main, comme le ferait
+      un bouton mal branche : elles doivent refuser et n'ecrire nulle part.
+      Cacher un bouton n'a jamais empeche un appel.
+   ========================================================================== */
+console.log('\n== 10. La modale d\'une tache ==');
+{
+  const t = monter();
+  await dormir(30);
+  const w = t.w, doc = w.document;
+  const el = (id) => doc.getElementById(id);
+  const vu = (id) => { const n = el(id); return !!n && !n.hidden; };
+  const jour = (n) => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+      + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
+  /* ---- une tache ecrite : tout est ouvert ---- */
+  t.T.ajouter('commander des bouchons', jour(3));
+  const tid = t.T.toutes().filter(x => x.source === 'libre')[0].tache_id;
+  dit(t.T.modale(tid) === true, 'la modale s\'ouvre sur une tache ecrite');
+  dit(vu('tacheModale'), 'le noeud est pose et visible');
+  dit(el('tacheModale').parentNode === doc.body,
+    'et pose SOUS <body> : un parent en transform reclasserait un position:fixed sans rien dire');
+  dit(el('tmodNom').value === 'commander des bouchons', 'le titre est dans le champ', el('tmodNom').value);
+  dit(el('tmodDebut').value === jour(3), 'la date aussi', el('tmodDebut').value);
+  dit(vu('tmodForm'), 'le formulaire est la : une tache ecrite se corrige');
+  dit(vu('tmodReports'), 'les reports sont la');
+  dit(vu('tmodSuppr'), 'et le retrait');
+  dit(!vu('tmodExige'), 'mais pas « ce que ca exige » : une note n\'exige rien');
+
+  /* ---- une obligation : lecture seule, et un seul geste ---- */
+  const obl = t.T.toutes().filter(x => x.source === 'echeance')[0];
+  dit(t.T.modale(obl.tache_id) === true, 'la modale s\'ouvre aussi sur une obligation');
+  dit(!vu('tmodForm'),
+    'SON TITRE ET SA DATE NE SE MODIFIENT PAS : ils viennent du fichier de donnees');
+  dit(!vu('tmodReports'),
+    'UNE DRM NE SE REPOUSSE PAS : un bouton qui la decalerait mentirait sur ce qui est negociable');
+  dit(!vu('tmodSuppr'),
+    'et elle ne se retire pas : elle reviendrait le mois suivant de toute facon');
+  dit(vu('tmodExige'), 'elle mene a ce que l\'echeance exige');
+  dit(el('tmodTitre').textContent === obl.titre, 'son titre est affiche en clair', el('tmodTitre').textContent);
+
+  /* ---- un client : la porte est fermee, et elle l'est dans la donnee ---- */
+  const c = monter({ crm: { noms: { 706: 'Domaine Martin' },
+    suivi: [{ id: 706, rappel: jour(1), titre: 'rappeler pour la livraison' }] } });
+  await dormir(30);
+  const cli = c.T.toutes().filter(x => x.source === 'client')[0];
+  dit(!!cli, 'le rappel client est bien dans la liste');
+  dit(c.T.modale(cli.tache_id) === false,
+    'UN CLIENT N\'OUVRE PAS CETTE MODALE : sa fiche est le seul endroit ou l\'on note ce qu\'il a dit');
+  dit(!c.w.document.getElementById('tacheModale'),
+    'et rien n\'a meme ete monte pour lui');
+  const htmlC = c.w.document.getElementById('tachesAFaire').innerHTML;
+  dit(htmlC.indexOf('data-tache-ouvrir="client:') < 0,
+    'sa ligne ne porte aucune porte vers la modale');
+
+  /* ---- la ligne de la liste porte la porte ---- */
+  t.T.rendre();
+  const html = doc.getElementById('tachesAFaire').innerHTML;
+  dit(html.indexOf('data-tache-ouvrir="' + tid + '"') >= 0,
+    'la ligne d\'une tache ecrite porte de quoi ouvrir la modale');
+  dit(html.indexOf('data-tache-ouvrir="' + obl.tache_id + '"') >= 0,
+    'celle d\'une obligation aussi');
+  dit(html.indexOf('<button type="button" class="tache__corps"') >= 0
+      || html.indexOf('class="tache__corps" data-tache-ouvrir') >= 0
+      || /<button[^>]*class="tache__corps"/.test(html),
+    'et c\'est un <button> : ce qui s\'ouvre a la souris doit s\'ouvrir au clavier');
+
+  /* ---- la punaise du panneau porte la meme porte ---- */
+  const p = t.T.punaises().filter(x => String(x.cle).indexOf('tache:') === 0)[0];
+  dit(!!p && p.ouvre === tid,
+    'la punaise du panneau ouvre la modale de SA tache', p && p.ouvre);
+  dit(!!p && p.href === '/mon-bureau/#taches',
+    'et garde son lien dessous, pour le clic milieu et pour le module absent');
+
+  /* ---- modifier : une seule ecriture, et rien de perdu ---- */
+  t.T.modale(tid);
+  t.appels.length = 0;
+  dit(t.T.modifier(tid, 'commander des bouchons de liege', jour(5), null) === true,
+    'modifier accepte une tache ecrite');
+  await dormir(30);
+  let e = t.ecritures();
+  dit(e.length === 1 && e[0].methode === 'POST', 'et ecrit UNE fois, en POST', e.length);
+  let l = e.length ? e[0].corps[0] : {};
+  dit(l.titre === 'commander des bouchons de liege', 'le nouveau titre part', l.titre);
+  dit(l.id === 'moi', 'la charge porte l\'identifiant du compte');
+  dit(!!l.cree_le, 'LA DATE DE CREATION SURVIT : corriger une faute de frappe ne rajeunit pas une tache');
+  dit(l.echue_le === jour(5) && l.fin_le === null, 'et la nouvelle date', l.echue_le);
+
+  t.appels.length = 0;
+  dit(t.T.modifier(tid, '   ') === false && t.ecritures().length === 0,
+    'un titre vide ne modifie rien');
+  dit(t.T.modifier(obl.tache_id, 'DRM renommee') === false,
+    'UNE OBLIGATION NE SE RENOMME PAS, meme appelee a la main');
+  await dormir(30);
+  dit(t.ecritures().length === 0, 'et l\'appel refuse n\'ecrit nulle part',
+    JSON.stringify(t.ecritures()));
+
+  /* ---- modifier garde ce qui est fait ---- */
+  t.T.basculer(tid);
+  await dormir(30);
+  t.appels.length = 0;
+  t.T.modifier(tid, 'bouchons de liege', jour(5), null);
+  await dormir(30);
+  e = t.ecritures();
+  dit(e.length === 1 && !!e[0].corps[0].fait_le,
+    'corriger une tache COCHEE ne la remet pas a faire : la preuve du travail reste');
+
+  /* ---- reporter a une date : la duree suit ---- */
+  const s = monter();
+  await dormir(30);
+  s.T.ajouter('salon de Loire', jour(2), jour(4));   // trois jours
+  const sid = s.T.toutes().filter(x => x.source === 'libre')[0].tache_id;
+  s.appels.length = 0;
+  dit(s.T.reporterAu(sid, jour(20)) === true, 'reporterAu accepte une tache ecrite');
+  await dormir(30);
+  e = s.ecritures();
+  l = e.length ? e[0].corps[0] : {};
+  dit(e.length === 1, 'et ecrit une seule fois', e.length);
+  dit(l.echue_le === jour(20), 'le debut se pose a la date demandee', l.echue_le);
+  dit(l.fin_le === jour(22),
+    'UNE TACHE QUI DURE GARDE SA DUREE : un salon de trois jours reporte reste un salon de trois jours',
+    l.fin_le);
+  dit(l.fait_le === null, 'et repousser remet a faire');
+
+  s.appels.length = 0;
+  dit(s.T.reporterAu(obl.tache_id, jour(20)) === false,
+    'UNE OBLIGATION NE SE REPOUSSE PAS, meme appelee a la main');
+  dit(s.T.reporterAu(sid, '') === false, 'ni nulle part');
+  await dormir(30);
+  dit(s.ecritures().length === 0, 'et ces refus n\'ecrivent rien');
+
+  /* ---- repousser passe par le meme chemin ---- */
+  s.appels.length = 0;
+  s.T.repousser(sid, 1);
+  await dormir(30);
+  e = s.ecritures();
+  dit(e.length === 1 && e[0].corps[0].echue_le === jour(1),
+    'LE « DEMAIN » SE COMPTE A PARTIR D\'AUJOURD\'HUI, jamais de l\'ancienne date',
+    e.length && e[0].corps[0].echue_le);
+
+  /* ---- une occurrence que toutes() ne liste pas ---- */
+  const f = monter();
+  await dormir(30);
+  const loin = jour(200).slice(0, 8) + '10';
+  dit(f.T.modaleOccurrence('drm', 'DRM, declaration recapitulative mensuelle', loin) === true,
+    'la modale s\'ouvre sur une occurrence LOINTAINE, que toutes() n\'a jamais listee');
+  const fw = f.w.document;
+  dit(fw.getElementById('tmodFait').textContent.indexOf('fait') >= 0,
+    'et propose de la cocher', fw.getElementById('tmodFait').textContent);
+  f.appels.length = 0;
+  f.T.basculerOccurrence('drm', 'DRM', loin);
+  await dormir(30);
+  e = f.ecritures();
+  dit(e.length === 1 && e[0].corps[0].tache_id === 'ech:drm:' + loin,
+    'cocher de la ecrit la ligne de CETTE occurrence-la', e.length && e[0].corps[0].tache_id);
+
+  /* ---- ON NE REPOUSSE QUE CE QUI PRESSE ----
+     La regle existait deja pour les punaises du panneau, et la modale l'a enfreinte
+     jusqu'a la capture du 12/09/2026 : un salon dans douze jours, et un bouton
+     « Demain » sous le titre « Pas maintenant ? ». Demain, c'etait l'AVANCER. */
+  const r = monter();
+  await dormir(30);
+  r.T.ajouter('deja en retard', jour(-3));
+  r.T.ajouter('un salon dans douze jours', jour(12), jour(14));
+  const rw = r.w.document;
+  const rvu = (id) => { const n = rw.getElementById(id); return !!n && !n.hidden; };
+  const enRetard = r.T.toutes().filter(x => x.source === 'libre' && x.jours < 0)[0];
+  const plusTard = r.T.toutes().filter(x => x.source === 'libre' && x.jours > 1)[0];
+
+  r.T.modale(enRetard.tache_id);
+  dit(rvu('tmodVite1') && rvu('tmodVite7'),
+    'sur une tache en retard, « Demain » et « Dans 7 jours » sont proposes');
+  dit(rw.getElementById('tmodReportL').textContent === 'Pas maintenant ?',
+    'et le bloc s\'appelle « Pas maintenant ? »', rw.getElementById('tmodReportL').textContent);
+
+  r.T.modale(plusTard.tache_id);
+  dit(!rvu('tmodVite1') && !rvu('tmodVite7'),
+    'SUR UNE TACHE PAS ENCORE DUE, « Demain » DISPARAIT : il l\'avancerait au lieu de la repousser');
+  dit(rvu('tmodReports'), 'le champ de date, lui, reste : une tache a venir se DEPLACE');
+  dit(rw.getElementById('tmodReportL').textContent === 'La déplacer ?',
+    'et le titre du bloc le dit avec les bons mots', rw.getElementById('tmodReportL').textContent);
+
+  /* ---- fermer ---- */
+  t.T.modale(tid);
+  dit(vu('tacheModale'), 'la modale est ouverte');
+  t.T.fermerModale();
+  dit(!vu('tacheModale'), 'fermerModale la ferme');
+  t.appels.length = 0;
+  t.T.rendre();
+  await dormir(30);
+  dit(t.ecritures().length === 0, 'OUVRIR ET FERMER N\'ECRIT RIEN : regarder n\'est pas un geste');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DES TACHES REFUSE\n'); process.exit(1); }

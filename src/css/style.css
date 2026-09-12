@@ -7651,3 +7651,180 @@ button.bureau-nav__item:hover {
   .tache { grid-template-columns: auto minmax(0, 1fr); }
   .tache__source, .tache__x { grid-column: 2; justify-self: start; }
 }
+/* ===========================================================================
+   LA MODALE D'UNE TACHE, demandee par Ted le 12/09/2026
+   ===========================================================================
+   Elle s'ouvre depuis TROIS endroits : la ligne de la piece « Mes taches », la
+   punaise du panneau, et le titre d'une tache dans la vue liste du calendrier.
+   Un seul dessin pour les trois, sinon il faudrait l'apprendre trois fois.
+
+   ELLE PASSE AU-DESSUS DE LA FICHE CLIENT, et c'est le motif de --z-voile plutot
+   que --z-modale. La fiche client (--z-modale, 400) est ouverte depuis les ecrans
+   de vente ; celle-ci s'ouvre depuis n'importe ou, y compris depuis le panneau qui
+   reste visible derriere une fiche. A egalite, l'ordre du document trancherait, et
+   il trancherait au hasard.
+
+   PAS DE TROISIEME OMBRE : --ombre-dure, la signature du site, comme le panneau de
+   reglages. Et le fond est du papier, pas du blanc : on ouvre une fiche cartonnee
+   posee sur le bureau, pas une boite de dialogue de systeme.
+   =========================================================================== */
+.tmod { position: fixed; inset: 0; z-index: var(--z-voile);
+  display: flex; align-items: center; justify-content: center; padding: var(--e-l); }
+.tmod[hidden] { display: none; }
+.tmod__voile { position: absolute; inset: 0; background: var(--bordeaux-veil); backdrop-filter: blur(2px); }
+.tmod__boite {
+  position: relative;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.7rem 1.9rem 1.5rem;
+  background: var(--paper);
+  border: var(--trait) solid var(--rule);
+  border-radius: var(--r-nul);
+  box-shadow: var(--ombre-dure);
+}
+.tmod__x {
+  position: absolute; top: 0.6rem; right: 0.8rem;
+  padding: 0.2rem 0.45rem;
+  background: none; border: none;
+  font-size: var(--t-h3); line-height: 1;
+  color: var(--muted); cursor: pointer;
+}
+.tmod__x:hover { color: var(--bordeaux); }
+
+/* LE TAMPON, la meme etiquette en capitales que sur la punaise du panneau : le
+   vigneron lit « EN RETARD » au meme endroit du sens, qu'il regarde son liege ou
+   qu'il ouvre la tache. Un mot se lit, une teinte se devine. */
+.tmod__tampon {
+  display: inline-block; margin: 0 0 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border: var(--trait) solid var(--rule);
+  font-family: var(--font-mono); font-size: var(--t-micro);
+  text-transform: uppercase; letter-spacing: var(--ls-large);
+  color: var(--muted);
+}
+.tmod__tampon[data-ton="retard"],
+.tmod__tampon[data-ton="aujourdhui"] { color: var(--danger-deep); border-color: var(--danger-deep); }
+.tmod__tampon[data-ton="fait"] { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+.tmod__titre { font-family: var(--font-titre); font-size: var(--t-h3); color: var(--ink-deep); margin: 0; }
+.tmod__sous {
+  margin: 0.4rem 0 0; font-family: var(--font-corps); font-size: var(--t-petit);
+  color: var(--muted); line-height: var(--lh-normal);
+}
+
+.tmod__form { margin-top: var(--e-m); }
+.tmod__champ { display: flex; flex-direction: column; min-width: 0; }
+.tmod__duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-s) var(--e-m); margin-top: var(--e-s); }
+.tmod__l {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-corps); font-size: var(--t-petit); color: var(--ink);
+}
+.tmod__i, .tmod__d {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  background: var(--white);
+  border: var(--trait) solid var(--rule);
+  border-radius: var(--r-nul);
+  font-family: var(--font-corps); font-size: var(--t-corps); color: var(--ink-deep);
+}
+.tmod__i:focus, .tmod__d:focus { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
+.tmod__aide {
+  margin: 0.45rem 0 0; font-family: var(--font-mono); font-size: var(--t-mini);
+  color: var(--muted); line-height: var(--lh-normal);
+}
+.tmod__erreur {
+  margin: 0.6rem 0 0; padding: 0.5rem 0.7rem;
+  background: var(--danger-bg); color: var(--danger-deep);
+  font-family: var(--font-mono); font-size: var(--t-mini);
+}
+.tmod__pied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); margin-top: var(--e-m); }
+/* btn--bordeaux et pas btn--ghost : le ghost porte `color: var(--paper)`, il est
+   dessine pour un fond sombre et devient illisible sur le papier de cette boite.
+   Meme piege que .btn--light, paye deux fois deja. */
+.tmod .btn { padding: 0.55rem 1.4rem; font-size: var(--t-mini); }
+.tmod__lien {
+  padding: 0; background: none; border: none;
+  font-family: var(--font-mono); font-size: var(--t-micro);
+  color: var(--muted); cursor: pointer; text-decoration: underline;
+}
+.tmod__lien:hover { color: var(--bordeaux); }
+.tmod__lien--x:hover { color: var(--danger-deep); }
+.tmod__lien[hidden] { display: none; }
+
+/* Les blocs du bas sont separes par un filet, pas par un cadre : la boite est deja
+   un cadre, et un cadre dans un cadre fait boite dans boite. */
+.tmod__bloc { margin-top: var(--e-l); padding-top: var(--e-m); border-top: var(--trait) solid var(--rule); }
+.tmod__bloc[hidden] { display: none; }
+.tmod__gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s); }
+/* Le « ou », le champ et son bouton sont un seul morceau : ils passent a la ligne
+   ensemble ou pas du tout. Sans ce groupe, « Repousser » tombait seul sous un champ
+   reste en haut — vu a la capture du 12/09/2026, invisible pour tout controle ecrit. */
+.tmod__ouj { display: inline-flex; align-items: center; gap: var(--e-s); }
+.tmod__gestes .tmod__d { width: auto; flex: 0 1 10rem; }
+.tmod__g {
+  padding: 0.45rem 0.9rem;
+  background: transparent;
+  border: var(--trait) solid var(--rule);
+  border-radius: var(--r-nul);
+  font-family: var(--font-mono); font-size: var(--t-mini);
+  color: var(--ink); cursor: pointer;
+  transition: var(--tr-rapide);
+}
+.tmod__g:hover { border-color: var(--bordeaux); color: var(--bordeaux); background: var(--paper-light); }
+.tmod__ou { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
+.tmod__bloc--gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); }
+.tmod__bloc--gestes .tmod__lien--x { margin-left: auto; }
+
+/* Sur telephone la boite prend l'ecran : une fiche a mi-hauteur sur 380 px de large
+   laisse deux bandes de voile qui ne servent qu'a retrecir le texte. */
+@media (max-width: 620px) {
+  .tmod { padding: 0; }
+  .tmod__boite { max-width: none; max-height: 100%; height: 100%; border: none; padding: 1.4rem 1.1rem 1.2rem; }
+  .tmod__duo { grid-template-columns: 1fr; }
+  .tmod__bloc--gestes .tmod__lien--x { margin-left: 0; }
+  /* LE PLANCHER TACTILE VAUT AUSSI POUR LES LIENS. Mesure du 12/09/2026 sur un
+     ecran de 390 px : « Annuler » faisait 42x11, « Retirer cette tache » 113x11 et
+     « Ce que ca exige » 89x17. Un lien typographique se lit tres bien et se vise
+     tres mal ; le dessin ne change pas, c'est la zone de clic qui descend a 44. */
+  .tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d { min-height: 44px; }
+  .tmod__lien { display: inline-flex; align-items: center; }
+  .tmod__x { display: flex; align-items: center; min-width: 44px; justify-content: center; }
+  .tmod__gestes .tmod__d, .tmod__ouj { flex: 1 1 100%; }
+}
+
+/* LA PORTE VERS LA MODALE, aux trois endroits d'ou elle s'ouvre.
+   `.tache__corps` est devenu un <button> le 12/09/2026 : une ligne qui s'ouvre a la
+   souris doit s'ouvrir au clavier. Il faut donc lui retirer tout ce qu'un bouton
+   apporte par defaut — son fond, son cadre, sa police, son centrage — sans rien
+   changer a ce qui se voit. */
+.tache__corps {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
+  min-width: 0; padding: 0; background: none; border: none;
+  font: inherit; color: inherit; text-align: left;
+}
+button.tache__corps { cursor: pointer; }
+button.tache__corps:hover .tache__titre { color: var(--bordeaux); }
+button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+
+/* La seconde porte du formulaire. Un lien typographique et pas un deuxieme bouton
+   plein : deux boutons pleins cote a cote se disputent le geste, et celui qui compte
+   ici reste « Ajouter ». */
+.tachesf__grand {
+  padding: 0; background: none; border: none;
+  font-family: var(--font-mono); font-size: var(--t-micro);
+  color: var(--muted); cursor: pointer; text-decoration: underline;
+  align-self: center;
+}
+.tachesf__grand:hover { color: var(--bordeaux); }
+
+/* Le titre d'une occurrence du calendrier, en vue liste. Il garde exactement la
+   typographie du <h3> qui le porte : une porte qui se voit comme une porte ferait
+   de cette liste une liste de boutons. */
+.echeance__ouvrir {
+  padding: 0; background: none; border: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.echeance__ouvrir:hover { color: var(--bordeaux); }
+.echeance__ouvrir:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+

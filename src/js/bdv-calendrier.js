@@ -760,9 +760,32 @@
 
       var c = document.createElement('div');
       c.className = 'echeance__corps';
+      /* LE TITRE OUVRE LA MODALE DE LA TACHE, demande de Ted le 12/09/2026.
+         DANS LA VUE LISTE SEULEMENT, ET C'EST DELIBERE : dans la grille du mois, la
+         pastille EST la case a cocher, et lui faire ouvrir une modale demanderait deux
+         clics pour cocher ce qui s'en coche un. Ici il y a la place d'un titre, donc la
+         place d'une porte.
+         UN RAPPEL CLIENT N'Y ENTRE PAS : il mene a sa fiche. Le refus est aussi dans la
+         donnee, chez BdvTaches.modale(), et pas seulement dans ce test d'ecran. */
+      var ouvrable = !estUnClient(o) && !!window.BdvTaches
+        && !!(estUneTache(o) ? BdvTaches.modale : BdvTaches.modaleOccurrence);
       var h = document.createElement('h3');
       h.className = 'echeance__titre';
-      h.textContent = o.e.titre;
+      if (ouvrable) {
+        var ho = document.createElement('button');
+        ho.type = 'button';
+        ho.className = 'echeance__ouvrir';
+        if (estUneTache(o)) ho.setAttribute('data-cal-ouvrir', o.e.tacheId);
+        else {
+          ho.setAttribute('data-cal-ouvrir-ech', o.e.cle + '|' + iso(o.debut));
+          ho.setAttribute('data-cal-ouvrir-titre', o.e.titre);
+        }
+        ho.textContent = o.e.titre;
+        ho.title = 'Ouvrir : ' + o.e.titre;
+        h.appendChild(ho);
+      } else {
+        h.textContent = o.e.titre;
+      }
       c.appendChild(h);
       var qui = document.createElement('p');
       qui.className = 'echeance__qui';
@@ -1116,6 +1139,30 @@
       if (ral) {
         e.preventDefault();
         if (window.BdvCalchoix) BdvCalchoix.rallumer(ral.getAttribute('data-cal-rallumer'));
+        return;
+      }
+
+      /* LES DEUX PORTES DE LA MODALE DES TACHES. Elles sont deux et pas une parce
+         qu'une tache se designe par son identifiant, tandis qu'une obligation se
+         designe par sa cle ET son jour : le calendrier affiche octobre en septembre, et
+         cette occurrence-la n'a encore aucune ligne en base. C'est bdv-taches.js qui la
+         fabrique, exactement comme pour la coche — ce fichier ne sait toujours pas ce
+         qu'est une tache, et il ne doit pas l'apprendre. */
+      var ov = e.target.closest && e.target.closest('[data-cal-ouvrir]');
+      if (ov) {
+        e.preventDefault();
+        if (window.BdvTaches && BdvTaches.modale) {
+          BdvTaches.modale(ov.getAttribute('data-cal-ouvrir'), ov);
+        }
+        return;
+      }
+      var oe = e.target.closest && e.target.closest('[data-cal-ouvrir-ech]');
+      if (oe) {
+        e.preventDefault();
+        if (window.BdvTaches && BdvTaches.modaleOccurrence) {
+          var qo = oe.getAttribute('data-cal-ouvrir-ech').split('|');
+          BdvTaches.modaleOccurrence(qo[0], oe.getAttribute('data-cal-ouvrir-titre'), qo[1], oe);
+        }
         return;
       }
 
