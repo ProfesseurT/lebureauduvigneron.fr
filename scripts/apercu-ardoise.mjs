@@ -97,7 +97,7 @@ const morceaux = [d.getElementById('zoneArdoise')]
 if (!morceaux.length) { console.error('  aucune zone trouvee.'); process.exit(1); }
 morceaux.forEach(z => { z.hidden = false; z.removeAttribute('hidden'); });
 
-const POLICES = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap';
+const POLICES = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap';
 
 const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
   + '<title>Aperçu de l\'ardoise et du courrier</title>'

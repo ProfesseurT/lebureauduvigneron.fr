@@ -113,8 +113,18 @@ const dom = new JSDOM(fs.readFileSync(PAGE, 'utf8'), {
     }));
     const iso = (d) => new Date(d).toISOString().slice(0, 10);
     const gestes = [0, 0, 2, 9, 12].map(n => ({ le: new Date(Date.now() - n * 86400000).toISOString(), type: 'appel' }));
+    /* LES TROIS GESTES SONT UNE DEPENDANCE DURE, et l'oubli a coute cher : le
+       bandeau du bureau lit `BdvCrm.GESTES.ecarte.label` au chargement. Avec un
+       `GESTES` vide, ce `undefined.label` jetait AVANT que le panneau ne soit
+       peint, et cet apercu ecrivait depuis des jours une page a zero punaise sans
+       se plaindre. Constate le 12/09/2026. Un banc muet est pire qu'un banc absent. */
     w.BdvCrm = {
-      GESTES: {}, isoLocal: iso, miroir: () => ETAT, file: () => [],
+      GESTES: {
+        appel:   { label: 'Appelé',            court: 'Appelé',  type: 'appel',   canal: 'appel',     statut: 'relance', jours: 30, resume: 'Appel passé' },
+        message: { label: 'Laissé un message', court: 'Message', type: 'message', canal: 'repondeur', statut: 'relance', jours: 7,  resume: 'Message laissé, sans réponse' },
+        ecarte:  { label: 'Pas maintenant',    court: 'Écarté',  type: 'ecarte',  canal: null,        statut: null,      jours: 60, resume: 'Écarté de la file' }
+      },
+      isoLocal: iso, miroir: () => ETAT, file: () => [],
       charger: () => Promise.resolve(ETAT), journal: () => Promise.resolve(gestes),
       fil: () => Promise.resolve([]), geste: () => Promise.resolve(true), rejouer: () => Promise.resolve(true)
     };

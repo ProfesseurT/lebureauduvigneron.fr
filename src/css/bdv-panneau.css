@@ -63,7 +63,7 @@
 .bdvr-panneau .kpi--hi .kpi__sub{color:var(--on-dark-soft)}
 .bdvr-panneau .kpi--hi .kpi__val{color:var(--on-dark)}
 .bdvr-panneau .kpi__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.4rem}
-.bdvr-panneau .kpi__val{font-size:1.6rem;font-weight:600;line-height:1;font-family:var(--font-titre);color:var(--ink)}
+.bdvr-panneau .kpi__val{font-size:1.6rem;line-height:1;color:var(--ink)}
 .bdvr-panneau .kpi__val span{font-size:var(--t-petit);font-weight:400;color:var(--muted)}
 .bdvr-panneau .kpi__sub{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin-top:.4rem}
 .bdvr-panneau .card{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.2rem;margin-bottom:1.2rem}
@@ -107,3 +107,7 @@
   .bdvr-panneau .grid-2,
 .bdvr-panneau .grid-rep{grid-template-columns:1fr}
 }
+
+/* Meme chiffre que dans les ecrans de vente, meme traitement. Voir le bloc
+   « LES CHIFFRES DU SITE » de style.css pour le motif. */
+.bdvr-panneau .kpi__val{font-family:var(--font-chiffre);font-weight:700;letter-spacing:var(--ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}

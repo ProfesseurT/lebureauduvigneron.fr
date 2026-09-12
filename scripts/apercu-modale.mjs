@@ -114,7 +114,7 @@ const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
   + '<title>Aperçu de la modale d’une tâche</title>'
   + '<link rel="preconnect" href="https://fonts.googleapis.com">'
   + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-  + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
+  + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
   + '<style>' + fs.readFileSync(FEUILLE, 'utf8') + '</style>'
   + '<style>body{background:var(--paper-deep);padding:2rem;margin:0}'
   /* PAS DE minmax(30rem) : sur un ecran de 390 px cette grille imposait 480 px a la

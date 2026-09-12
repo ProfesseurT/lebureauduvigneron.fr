@@ -105,6 +105,7 @@
   --font-titre:'Fraunces',Georgia,'Times New Roman',serif;
   --font-corps:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   --font-mono:'JetBrains Mono','Courier New',monospace;
+  --font-chiffre:var(--font-corps);
   --t-micro:0.62rem;--t-mini:0.70rem;--t-petit:0.78rem;--t-base:0.88rem;
   --t-corps:1.00rem;--t-lead:1.15rem;--t-h3:1.35rem;
   /* ---- RYTHME ---- */
@@ -301,7 +302,7 @@
 .bdv-ventes .kpi--hi .kpi__label,.bdv-ventes .kpi--hi .kpi__sub{color:var(--on-dark-soft)}
 .bdv-ventes .kpi--hi .kpi__val{color:var(--on-dark)}
 .bdv-ventes .kpi__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.4rem}
-.bdv-ventes .kpi__val{font-size:1.6rem;font-weight:600;line-height:1;font-family:var(--font-titre);color:var(--ink)}
+.bdv-ventes .kpi__val{font-size:1.6rem;line-height:1;color:var(--ink)}
 .bdv-ventes .kpi__val span{font-size:var(--t-petit);font-weight:400;color:var(--muted)}
 .bdv-ventes .kpi__sub{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin-top:.4rem}
 
@@ -345,7 +346,7 @@
 /* HERO rythme */
 .bdv-ventes .hero{background:var(--ink-deep);color:var(--on-dark);border-radius:var(--r-nul);padding:1.6rem 1.8rem;margin-bottom:1.4rem;border-left:var(--trait-accent) solid var(--gold)}
 .bdv-ventes .hero__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--on-dark-soft);margin-bottom:.5rem}
-.bdv-ventes .hero__val{font-size:2.6rem;font-weight:600;font-family:var(--font-titre);line-height:1}
+.bdv-ventes .hero__val{font-size:2.6rem;line-height:1}
 .bdv-ventes .hero__val.up{color:var(--ok-clair)}
 .bdv-ventes .hero__val.down{color:var(--danger-clair)}
 .bdv-ventes .hero__sub{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--on-dark-soft);margin-top:.6rem}
@@ -405,7 +406,7 @@
 .bdv-ventes .chipc:hover{border-color:var(--bordeaux)}
 .bdv-ventes .fiche__kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin-bottom:1.2rem}
 .bdv-ventes .fiche__kpi{background:var(--paper);border-radius:var(--r-nul);padding:.75rem .9rem}
-.bdv-ventes .fiche__kpi-v{font-size:var(--t-h3);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.bdv-ventes .fiche__kpi-v{font-size:var(--t-h3);line-height:1.1}
 .bdv-ventes .fiche__kpi-l{font-size:var(--t-petit);font-weight:600;color:var(--ink);margin-top:.15rem}
 .bdv-ventes .fiche__kpi-s{font-size:var(--t-mini);color:var(--muted);margin-top:.1rem}
 .bdv-ventes .fiche__conseil{background:var(--paper-light);border:var(--trait) solid var(--rule);border-left:var(--trait-accent) solid var(--bordeaux);
@@ -438,7 +439,7 @@
   padding:.85rem 1rem;transition:border-color var(--tr-rapide),transform var(--tr-rapide),box-shadow var(--tr-rapide);color:inherit}
 .bdv-ventes .motif-card:hover{border-color:var(--bordeaux);transform:translate(-3px,-3px);box-shadow:var(--ombre-dure)}
 .bdv-ventes .motif-card.on{border-color:var(--bordeaux);border-top-color:var(--bordeaux);background:var(--paper-light)}
-.bdv-ventes .motif-card__n{font-size:1.7rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.bdv-ventes .motif-card__n{font-size:1.7rem;line-height:1}
 .bdv-ventes .motif-card__l{font-weight:700;font-size:var(--t-base)}
 .bdv-ventes .motif-card__s{font-size:var(--t-petit);color:var(--muted)}
 .bdv-ventes .motif{font-family:var(--font-mono);font-size:var(--t-mini);letter-spacing:var(--ls-doux);text-transform:uppercase;
@@ -510,7 +511,7 @@
 .bdv-ventes .pr-kpi--hero .pr-kpi__l,.bdv-ventes .pr-kpi--hero .pr-kpi__s{color:var(--on-dark-soft)}
 .bdv-ventes .pr-kpi--hero .pr-kpi__v{color:var(--on-dark)}
 .bdv-ventes .pr-kpi__l{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:5px}
-.bdv-ventes .pr-kpi__v{font-family:var(--font-titre);font-size:23px;font-weight:600;line-height:1}
+.bdv-ventes .pr-kpi__v{font-size:23px;line-height:1}
 .bdv-ventes .pr-kpi__v.up{color:var(--ok)}.bdv-ventes .pr-kpi__v.down{color:var(--danger-deep)}
 .bdv-ventes .pr-kpi__s{font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:5px}
 .bdv-ventes .pr-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 28px;margin-bottom:14px}
@@ -732,3 +733,15 @@
   .bdv-ventes select,
   .bdv-ventes .pilote__row .field select { max-width: 100%; }
 }
+
+/* LES CHIFFRES DE « MON ANNEE », 12/09/2026. Meme traitement que le bloc « LES
+   CHIFFRES DU SITE » de style.css, et pour la meme raison : ce sont les memes
+   chiffres, lus par la meme personne, dans la meme journee. Quatre d'entre eux
+   etaient en Fraunces, deux etaient deja dans la police du corps mais en graisse
+   800 : trois traitements pour un seul objet. Le scope .bdv-ventes est conserve,
+   c'est la regle de cette feuille. */
+.bdv-ventes .kpi__val,
+.bdv-ventes .hero__val,
+.bdv-ventes .fiche__kpi-v,
+.bdv-ventes .motif-card__n,
+.bdv-ventes .pr-kpi__v{font-family:var(--font-chiffre);font-weight:700;letter-spacing:var(--ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}

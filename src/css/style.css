@@ -101,6 +101,11 @@
   /* ---- TYPOGRAPHIE : familles ---------------------------------------- */
   --font-titre:     'Fraunces', Georgia, 'Times New Roman', serif;
   --font-corps:     'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* LA POLICE DES CHIFFRES. Un jeton et pas une famille recopiee : la decision
+     du 12/09/2026 se change a UN endroit, ici, et pas dans les treize regles qui
+     portent un nombre. Voir le bloc « LES CHIFFRES DU SITE » en bas du fichier
+     pour la liste de ces regles et le motif du choix. */
+  --font-chiffre:   var(--font-corps);
   --font-mono:      'JetBrains Mono', 'Courier New', monospace;
   --font-manuscrit: 'Caveat', cursive;
 
@@ -840,13 +845,12 @@ em { font-style: italic; }
   letter-spacing: var(--ls-large);
   color: var(--ink);
 }
+/* La note Google, « 4,9 ». Police, graisse et chasse viennent du bloc
+   « LES CHIFFRES DU SITE », en bas de ce fichier. */
 .score-inline__text .big {
-  font-family: var(--font-titre);
   font-size: 1.5rem;
   text-transform: none;
-  letter-spacing: 0;
   color: var(--bordeaux);
-  font-weight: 700;
   vertical-align: middle;
   margin: 0 0.25rem;
   font-variant-numeric: tabular-nums;
@@ -7058,18 +7062,16 @@ button.bureau-nav__item:hover {
    `tabular-nums` n'est pas decoratif ici : d'un passage a l'autre le chiffre
    d'affaires change de chiffres sans changer de longueur, et sans chasse fixe il
    danserait sous son propre filet d'or. */
+/* La police, la graisse et la chasse viennent du bloc « LES CHIFFRES DU SITE »,
+   en bas de ce fichier. Ne rien en redeclarer ici : ce sont les memes chiffres
+   que ceux de l'accueil et des maquettes, et ils doivent le rester. */
 .chiffre__v {
   align-self: baseline;
   justify-self: center;
   width: max-content;
   max-width: 100%;
-  font-family: var(--font-corps);
   font-size: var(--t-h3);
-  font-weight: 700;
   line-height: 1;
-  letter-spacing: var(--ls-serre);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
   color: var(--on-dark);
 }
 .chiffre__s { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--on-dark-soft); }
@@ -7500,6 +7502,57 @@ button.bureau-nav__item:hover {
   margin: 0 0 0.5rem;
 }
 .mot__a { font-size: var(--t-base); color: var(--muted); line-height: var(--lh-normal); margin: 0; }
+
+/* ============================================================================
+   LES CHIFFRES DU SITE, 12/09/2026
+   ============================================================================
+   Demande de Ted : « repercute cette police de chiffres sur tous les chiffres du
+   bureau et du site en entier ».
+
+   IL N'EXISTE PAS DE SELECTEUR « UN CHIFFRE ». Une regle CSS vise un ELEMENT, et
+   beaucoup d'elements melangent des mots et des nombres : « 3 rubriques · 19
+   articles », « Dans 28 jours », « 500 € HT » au milieu d'un paragraphe. Changer
+   leur police changerait celle des mots avec. La liste ci-dessous est donc celle
+   des elements dont le texte est un NOMBRE ET RIEN D'AUTRE, relevee au navigateur
+   sur les 37 pages construites plus les quatre apercus du bureau, et pas devinee
+   en lisant la feuille.
+
+   LE MOTIF. Fraunces est un serif de titre a fort contraste. Ses delies
+   s'amincissent optiquement des que le chiffre est petit ou pose sur un fond
+   sombre, et un nombre qui perd sa masse cesse de se lire d'un coup d'oeil. Inter
+   700 la garde. Les ETIQUETTES et les SOURCES autour ne bougent pas : elles
+   restent en JetBrains Mono, c'est la division que le courrier du matin s'est
+   deja donnee, « le mono porte les references, pas les montants ».
+
+   `tabular-nums` n'est pas decoratif : un chiffre d'affaires change de chiffres
+   sans changer de longueur d'un passage a l'autre, et sans chasse fixe il danse
+   sous son propre filet.
+
+   LA PUNAISE EST LE CAS PARTICULIER. `.postit__v` porte tantot un nombre, tantot
+   un titre de tache depuis le 10/09/2026, et le dessin le sait deja : il pose
+   `data-mot` des que c'est un mot. On s'accroche a cet attribut plutot que d'en
+   inventer un deuxieme, sinon la meme distinction se dirait de deux facons.
+
+   NE SONT PAS ICI, ET C'EST VOULU : les dates et les durees (« 28 mai »,
+   « 7 min », « Dans 30 j »), deja en mono partout, et les nombres pris dans une
+   phrase. */
+.chiffre__v,
+.postit__v:not([data-mot]),
+.compteur-item__nb,
+.chiffre__nb,
+.card__amount,
+.viti-kpi-big,
+.viti-kpi-sub,
+.viti-kpi-value,
+/* Deux crans de specificite, donc repris tel quel : une regle a une seule
+   classe ne battrait pas `.score-inline__text .big`. */
+.score-inline__text .big {
+  font-family: var(--font-chiffre);
+  font-weight: 700;
+  letter-spacing: var(--ls-serre);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
 
 /* DEUX REGLES MORTES RETIREES LE 12/09/2026.
    `.zone--ardoise .ardoise` rouvrait la grille en auto-fit et ecrasait le partage
