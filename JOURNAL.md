@@ -12,6 +12,85 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 12/09/2026. La page des outils cesse de faire semblant que tout se vaut
+
+Demande de Ted : « reorganise la page : outils afin qu'elle soit beaucoup plus sexy : ajoute
+viticode.fr (sachant que c'est nous) mais fait en sorte que ca soit utilisable et attractif. »
+Puis, en cours de route : « on va ajouter un lien vers Vitisoft aussi du coup. »
+
+### CE QUI N'ALLAIT PAS, ET CE N'ETAIT PAS L'HABILLAGE
+
+La page portait deux cartes strictement identiques pour deux objets qui ne coutent pas la meme
+chose au visiteur : le calendrier, qui s'ouvre sans rien donner, et le bureau, qui demande un
+compte. Avec Viticode et Vitisoft, ca faisait quatre objets de quatre natures dans une grille
+uniforme : deux qui restent sur le site, deux qui en sortent, trois gratuits, un payant.
+
+**Une grille uniforme, la, ment par mise en page.** Rendre les cartes plus jolies sans regler ca
+aurait produit une page plus belle et aussi malhonnete. La refonte porte donc sur la HIERARCHIE
+avant l'esthetique : le prix et la destination se lisent AVANT le nom, sur chaque carte.
+
+### LES ARBITRAGES
+
+**Le calendrier passe en vedette, en grand.** C'est le seul outil de la page qui serve a quelque
+chose en trois secondes, sans compte, sans logiciel, sans quitter le site. Ecarte : mettre le
+bureau en vedette, ce qui aurait fait de la page un tunnel d'inscription et aurait coute la
+credibilite que le calendrier lui donne. Levier a retester si les creations de compte chutent.
+
+**La vedette porte un apercu VIVANT**, trois obligations qui comptent vraiment leurs jours, par
+`bdv-echeances.js`, le meme moteur que la page qu'elle ouvre. C'est la seule chose de la page qui
+prouve au lieu de dire, et c'est ce qui la rend « sexy » sans ajouter un seul ornement.
+
+**Le lien avec Solumatic est ecrit noir sur blanc**, choix de Ted. Un visiteur qui decouvre tout
+seul que les quatre outils sortent de la meme maison se sent manipule ; `/la-redaction/` le disait
+deja, la page se serait contredite en le taisant. Ecarte : la mention discrete en pied de carte.
+
+**Le titre change, et c'est Ted qui a tranche.** « Les outils » + etiquette « Gratuits » devenait
+faux le jour ou Vitisoft entrait. On a d'abord retenu « La boite a outils du vigneron » avec la
+gratuite portee par l'etiquette, puis Ted a decide de repositionner franchement : outils gratuits
+-> **outils viticoles**. Le prix descend sur chaque carte, la page ne promet plus rien en bloc.
+Consequence a accepter : on perd le referencement possible sur « outils gratuits vigneron ».
+
+**Vitisoft ne devient PAS une carte comme les autres.** Il porte son orange, et c'est le seul
+endroit du site public ou cet orange ait le droit d'exister : `tokens.css` l'autorise « pour
+signaler explicitement un lien vers Vitisoft ». Mesure faite ce jour : `#FF9F00` vaut 1,79:1 sur
+`--paper-light`, il ne tient meme pas les 3:1 d'un objet graphique. Donc **pas de filet orange,
+pas de texte orange** : un aplat sous `--ink-deep`, ou il vaut 8,82:1. Le sens est dans le texte,
+l'orange n'est qu'un drapeau. Et c'est le drapeau de VITISOFT, pas l'etiquette du payant : un
+deuxieme outil payant prendrait une etiquette neutre, sinon la couleur d'une marque devient la
+couleur d'un prix.
+
+**Chaque carte porte une reserve**, c'est-a-dire ce que l'outil ne fait pas ou ce qu'il exige en
+plus : l'export Vitisoft pour les ventes, la fiche Viticode qui vaut faux si on ne la met jamais
+a jour, la demo Vitisoft sur rendez-vous sans essai en ligne. Sur la carte et pas en bas de page :
+une limite qu'on lit apres avoir clique est une limite qu'on a cachee.
+
+### LE DEFAUT TROUVE SUR LA PAGE RENDUE, ET PAS AVANT
+
+Le cadre d'apercu s'intitulait « Ce qui tombe en ce moment ». Capture prise a trois largeurs sur
+le vrai moteur : la troisieme ligne affichait **« Dans 245 jours »**. Un cadre qui annonce
+l'urgence et montre huit mois se decredibilise tout seul, et aucune relecture du code ne l'aurait
+signale, puisque le code etait juste. Titre corrige en « Les trois prochaines ». C'est la
+troisieme fois que la capture sur le vrai moteur trouve ce qu'une relecture ne trouve pas.
+
+### CE QUI A ETE VERIFIE
+
+`npm run verif` en entier : 0 echec. `npm run charte` conforme, y compris sur le bloc CSS neuf.
+Captures a 1280, 820 et 390 px : aucun debordement horizontal, l'apercu rend ses trois lignes aux
+trois largeurs, la vedette se casse proprement en deux sous 820 px.
+
+### CE QUI RESTE OUVERT
+
+- **L'adresse de Vitisoft n'est pas verifiee.** `https://vitisoft.fr/` ne repond pas, seule
+  `https://vitisoft.fr/Site/index.php` s'affiche. C'est cette adresse qui est posee dans la page.
+  Si la racine est censee marcher, c'est un defaut du site Vitisoft, pas d'ici.
+- **Les trois arguments de la carte Vitisoft** (2 000 domaines, DRM et DAE, facture electronique)
+  sont tires de la page publique de vitisoft.fr. A relire par quelqu'un qui vend le produit.
+- Les logos de `src/assets/logos/README.md` sont toujours en TODO. La page marche sans, mais un
+  logo Viticode et un logo Vitisoft sur leurs cartes leur donneraient leur identite propre.
+- `/la-redaction/` decrit encore Viticode d'une ligne. Un lien vers sa carte y aurait sa place.
+
+---
+
 ## 11/09/2026, nuit. Le bureau devient une application qu'on POSE sur un iPhone
 
 Demande de Ted : « tu vas auditer la partie mon bureau, sur utilisation telephone. Je vais dire

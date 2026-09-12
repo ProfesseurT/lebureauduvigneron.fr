@@ -39,6 +39,33 @@ son ecran dans la coque `src/_includes/components/ecrans-vente.njk`. Les identif
 doivent etre les memes que ceux de `NAV` dans `src/js/bdv-ecrans.js` : rien ne le garantit
 sauf `npm run banc`, qui compare les deux listes et echoue si elles divergent.
 
+### LA PAGE DES OUTILS DIT LE PRIX AVANT LE NOM, 12/09/2026
+
+`/outils/` n'est plus « les outils gratuits », c'est **les outils viticoles** : arbitrage de
+Ted le jour ou Vitisoft, qui est payant, y est entre. La gratuite ne se promet donc plus en
+bloc dans le titre, **elle se dit outil par outil** et c'est ce qui rend la page honnete.
+
+**Tout outil ajoute a cette page porte une etiquette `.boite-prix`, posee en PREMIER enfant
+de sa carte, avant le nom.** Elle dit deux choses et jamais une seule : ce que l'outil coute
+(gratuit, compte requis, sur devis) et ou il emmene (ici, ou sur un autre domaine). Un outil
+sans etiquette casse la seule promesse que la page tient encore.
+
+Trois variantes existent, et il n'en faut pas une quatrieme sans raison mesuree :
+`--libre` (papier profond), `--compte` (bordeaux) et `--devis`.
+
+**`--devis` EST LE DRAPEAU DE VITISOFT, PAS L'ETIQUETTE DU PAYANT.** C'est le seul endroit
+du site public ou `--viti-orange` ait le droit d'exister, et `tokens.css` le dit deja : « sauf
+pour signaler explicitement un lien vers Vitisoft ». Mesure du 12/09/2026 : `#FF9F00` vaut
+**1,79:1 sur `--paper-light`**, il ne tient meme pas les 3:1 d'un objet graphique. Donc jamais
+de filet orange, jamais de texte orange : un APLAT sous `--ink-deep`, ou il vaut 8,82:1. Le
+jour ou un deuxieme outil payant arrive, il prend une etiquette neutre. Peindre un prix avec
+la couleur d'une marque, c'est apprendre au visiteur que orange veut dire cher.
+
+Enfin, **toute carte qui sort du site porte `.boite-carte--tiers`**, qui remplace la fleche
+droite par une fleche oblique. `target="_blank"` ne se voit pas avant le clic, et une fenetre
+qui s'ouvre sans prevenir est exactement le detail qui fait perdre confiance a quelqu'un qui
+ne maitrise pas l'outil.
+
 ### LE PANNEAU SE CONSTRUIT AVANT LE MOTEUR, 08/09/2026
 
 Quatre defauts signales par Ted le meme jour, apres avoir vide sa base puis decoche et

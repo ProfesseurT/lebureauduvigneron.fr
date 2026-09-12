@@ -1,45 +1,160 @@
 ---
 layout: base.njk
-title: Les outils
-description: Les outils gratuits du Bureau du Vigneron. Le calendrier réglementaire, ouvert à tous, et ton bureau, qui lit tes ventes si tu utilises Vitisoft.
+title: La boîte à outils du vigneron
+description: Les outils viticoles édités par Solumatic. Le calendrier réglementaire, gratuit et sans compte. Ton bureau. Viticode pour le QR nutritionnel. Vitisoft pour la gestion du domaine.
 permalink: /outils/
 ---
 
+{# LES ECHEANCES SONT DEPOSEES ICI POUR LE SEUL APERCU DE LA VEDETTE.
+   Elles vivent dans src/_data/echeances.json, et le calcul est celui de
+   bdv-echeances.js : il n'y en a jamais deux dans ce depot. Trois lignes qui
+   comptent vraiment les jours valent mieux qu'une phrase qui promet qu'on les
+   compte. C'est la seule chose de cette page qui prouve au lieu de dire. #}
+<script id="bdvOutilsEcheances" type="application/json">
+{{ echeances | dump | safe }}
+</script>
+
 <section class="about-hero">
   <div class="container">
-    <p class="section__label" style="color:var(--on-dark-soft)">Gratuits</p>
-    <h1>Les outils</h1>
+    <p class="section__label" style="color:var(--on-dark-soft)">Outils viticoles</p>
+    <h1>La boîte à outils du vigneron</h1>
     <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
-      Faits pour le bureau, pas pour la vigne.
+      Faits pour le bureau, pas pour la vigne. Chacun dit ce qu'il coûte et où il t'emmène.
     </p>
   </div>
 </section>
 
 <section class="section">
-  <div class="container">
-    <div class="bureau-outils">
+  <div class="container--wide">
 
-      <a class="bureau-outil" href="/outils/echeances/">
-        <span class="bureau-outil__nom">Le calendrier réglementaire</span>
-        <span class="bureau-outil__quoi">DRM, DAI, déclaration de récolte, facturation
-          électronique. Ce qui tombe, pour qui, et dans combien de jours. Chaque échéance porte
-          sa source officielle.</span>
-        <span class="bureau-outil__note">Ouvert à tous, sans compte</span>
+    {# ===== LA VEDETTE =====
+       Le calendrier passe devant, et ce n'est pas un choix d'humeur : c'est le seul
+       outil de la page qui serve a quelque chose en trois secondes, sans compte, sans
+       logiciel et sans quitter le site. Il fait la preuve, les trois autres suivent. #}
+    <a class="boite-vedette" href="/outils/echeances/">
+      <div class="boite-vedette__dire">
+        <span class="boite-prix boite-prix--libre">Gratuit · sans compte</span>
+        <h2 class="boite-vedette__nom">Le calendrier réglementaire</h2>
+        <p class="boite-vedette__quoi">
+          DRM, DAI, déclaration de récolte, facturation électronique. Ce qui tombe, pour qui,
+          et dans combien de jours. Chaque échéance porte sa source officielle.
+        </p>
+        <span class="boite-vedette__aller">Ouvrir le calendrier</span>
+      </div>
+      <div class="boite-apercu" id="boiteApercuCadre">
+        {# LE TITRE DIT « LES TROIS PROCHAINES » ET PAS « CE QUI TOMBE EN CE MOMENT ».
+           Verifie le 12/09/2026 sur la page rendue : la troisieme ligne etait a 245 jours.
+           Un cadre qui annonce l'urgence et affiche huit mois se decredibilise tout seul. #}
+        <p class="boite-apercu__titre">Les trois prochaines</p>
+        <div class="boite-apercu__lignes" id="boiteApercu"></div>
+      </div>
+    </a>
+
+    {# ===== LES TROIS AUTRES ===== #}
+    <div class="boite-grille">
+
+      <a class="boite-carte" href="/mon-bureau/">
+        <span class="boite-prix boite-prix--compte">Gratuit · compte requis</span>
+        <span class="boite-carte__nom">Ton bureau</span>
+        <span class="boite-carte__quoi">
+          Ce qui presse aujourd'hui, tes clients à rappeler, ton chiffre d'affaires, ceux qui
+          décrochent, tes cuvées et tes canaux de vente.
+        </span>
+        <ul class="boite-carte__points">
+          <li>Le calendrier en vues, et coché</li>
+          <li>Ton export de ventes lu tout seul</li>
+          <li>S'installe sur l'écran d'accueil du téléphone</li>
+        </ul>
+        <span class="boite-carte__reserve">Les ventes demandent un export Vitisoft.</span>
+        <span class="boite-carte__aller">Entrer</span>
       </a>
 
-      <a class="bureau-outil" href="/mon-bureau/">
-        <span class="bureau-outil__nom">Ton bureau</span>
-        <span class="bureau-outil__quoi">Ce qui presse aujourd'hui, tes clients à rappeler, ton
-          chiffre d'affaires, ceux qui décrochent, tes cuvées et tes canaux de vente. Ton export
-          se lit tout seul et te dit quoi regarder. Les échéances y sont aussi.</span>
-        <span class="bureau-outil__note">Compte gratuit · les ventes demandent Vitisoft</span>
+      <a class="boite-carte boite-carte--tiers" href="https://viticode.fr/"
+         target="_blank" rel="noopener">
+        <span class="boite-prix boite-prix--libre">Gratuit · sur viticode.fr</span>
+        <span class="boite-carte__nom">Viticode</span>
+        <span class="boite-carte__quoi">
+          Le QR code nutritionnel obligatoire sur les bouteilles vendues dans l'Union
+          européenne. Ingrédients et valeurs nutritionnelles, une fiche par cuvée.
+        </span>
+        <ul class="boite-carte__points">
+          <li>Nombre de produits illimité</li>
+          <li>Aucune donnée consommateur collectée</li>
+          <li>Les fiches restent hébergées</li>
+        </ul>
+        <span class="boite-carte__reserve">Une fiche jamais mise à jour vaut une fiche fausse.</span>
+        <span class="boite-carte__aller">Aller sur viticode.fr</span>
+      </a>
+
+      {# LA CARTE PAYANTE PORTE LA COULEUR DE VITISOFT, ET ELLE EST LA SEULE.
+         tokens.css autorise --viti-orange « pour signaler explicitement un lien vers
+         Vitisoft », et nulle part ailleurs. Mesure du 12/09/2026 : cet orange tombe a
+         1,79:1 sur --paper-light, il ne tient meme pas les 3:1 d'un objet graphique.
+         Il ne porte donc AUCUN texte et ne fait AUCUN filet : il est pose en aplat
+         sous --ink-deep, ou il vaut 8,82:1. Le sens est dans le texte, l'orange n'est
+         que le drapeau. #}
+      <a class="boite-carte boite-carte--tiers boite-carte--vitisoft"
+         href="https://vitisoft.fr/Site/index.php" target="_blank" rel="noopener">
+        <span class="boite-prix boite-prix--devis">Sur devis · vitisoft.fr</span>
+        <span class="boite-carte__nom">Vitisoft</span>
+        <span class="boite-carte__quoi">
+          L'ERP et le CRM du domaine : devis, factures, clients, stock, caveau. C'est lui qui
+          produit l'export que ton bureau sait lire.
+        </span>
+        <ul class="boite-carte__points">
+          <li>Plus de 2 000 domaines équipés</li>
+          <li>DRM et DAE depuis le logiciel</li>
+          <li>Préparé pour la facture électronique</li>
+        </ul>
+        <span class="boite-carte__reserve">Démonstration sur rendez-vous, pas d'essai en ligne.</span>
+        <span class="boite-carte__aller">Aller sur vitisoft.fr</span>
       </a>
 
     </div>
 
-    <p class="echeances__avis">
-      D'autres outils arrivent. Ils seront gratuits, et ceux qui ne dépendent pas d'un logiciel
-      resteront ouverts à toute la filière.
+    {# L'AVEU, DEMANDE PAR TED LE 12/09/2026. Un visiteur qui decouvre tout seul que les
+       quatre outils sortent de la meme maison se sent manipule ; on le lui dit avant.
+       Ce n'est pas une precaution juridique, c'est ce qui rend la page credible. #}
+    <p class="boite-aveu">
+      Le calendrier, ton bureau, Viticode et Vitisoft sont tous édités par
+      <strong>Solumatic</strong>, la maison qui tient aussi ce site. Ce n'est pas un
+      comparateur : on te montre ce qu'on a construit, on te dit ce que ça coûte, et tu vas
+      voir ailleurs si tu veux.
     </p>
+
+    <p class="echeances__avis">
+      D'autres outils arrivent. Ceux qui ne dépendent d'aucun logiciel resteront gratuits et
+      ouverts à toute la filière.
+    </p>
+
   </div>
 </section>
+
+<script src="/js/bdv-echeances.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  var zone = document.getElementById('boiteApercu');
+  var cadre = document.getElementById('boiteApercuCadre');
+  if (!zone || !cadre || !window.BdvEcheances) { if (cadre) cadre.hidden = true; return; }
+
+  /* LES OBLIGATIONS SEULEMENT, comme sur /outils/echeances/. La vedette annonce un
+     calendrier reglementaire : y glisser les travaux de la vigne ou les salons ferait
+     un apercu qui ne ressemble pas a la page qu'il ouvre. */
+  var lignes = BdvEcheances.calculer(
+      BdvEcheances.deLaFamille(BdvEcheances.depuisLaPage('bdvOutilsEcheances'), 'obligations'))
+    .filter(function (l) { return l.jours >= 0 || l.enCours; })
+    .slice(0, 3);
+
+  /* UN CADRE VIDE EST PIRE QUE PAS DE CADRE : si le fichier de donnees ne rend rien de
+     lisible, la vedette redevient une carte simple au lieu d'exposer un trou. */
+  if (!lignes.length) { cadre.hidden = true; return; }
+
+  zone.innerHTML = lignes.map(function (l) {
+    return '<span class="boite-apercu__ligne" data-niveau="' + l.niveau + '">'
+      + '<span class="boite-apercu__quand">' + l.phrase + '</span>'
+      + '<span class="boite-apercu__quoi">' + l.e.titre + '</span>'
+      + '</span>';
+  }).join('');
+});
+</script>
