@@ -2137,3 +2137,67 @@ les pieces peintes puis photographiees avec Playwright. Deux limites, le contene
 n'ayant pas de reseau : pas de Google Fonts (substituts systeme) et pas de Chart.js (un tracage de
 secours prend sa place). Elle vaut pour la mise en page et les textes, jamais pour la typographie
 ni pour la fidelite des graphiques.
+
+## LA PAGE D'ACCUEIL : APRES LA PROMESSE, LA PREUVE, 12/09/2026
+
+**Rien ne s'intercale entre le hook et `demo-pinboard`.** C'est la regle d'ordre de l'accueil, et
+elle a un chiffre derriere elle. Avant ce jour, l'ordre etait : hero, articles, podcast,
+partenaires, manifeste, compteurs, demonstration, inscription. Mesure sur la page produite, fenetre
+de 1440 x 900 : 6 077 px en tout, et la demonstration du bureau commencait a 3 802 px, soit **4,2
+ecrans de defilement**. Le visiteur traversait trois articles, un podcast qui n'existe pas encore,
+deux partenaires reels etales sur trois cartes, un manifeste qui redit les 2 000 bureaux deja dits
+dans le h1, et trois compteurs qui annoncent que tout demarre, AVANT de voir ce qu'on fait.
+
+La page vendait un media. Le produit est un bureau. Le pinboard est le seul objet de cette page qui
+MONTRE le produit, et c'est aussi le meilleur objet du site.
+
+L'ordre est maintenant : **hero, demo-pinboard, manifeste, articles-une, filiere-bande, compteurs,
+waitlist**. La demonstration commence a 839 px, soit 0,9 ecran. Le raisonnement complet et
+l'alternance des fonds sont commentes en tete de `src/index.njk` : c'est la qu'il faut lire avant
+de deplacer une section.
+
+Un cas ou la regle ne s'applique plus : le jour ou la page portera une VRAIE preuve sociale, des
+temoignages de vignerons qui s'en servent. Elle passerait alors juste apres la demonstration. Pas
+avant : une promesse, une preuve, puis ce que les autres en disent.
+
+### `compteurs-honnetes` reste juste avant l'inscription, et ce n'est pas un oubli
+
+Il dit « 3 podcasts en route, N articles, 8 partenaires en discussion » : c'est un aveu de
+demarrage, et il est bon qu'il y soit. Le mettre plus haut reviendrait a prevenir qu'il n'y a rien
+avant d'avoir montre qu'il y a quelque chose.
+
+## DU TEXTE SUR UNE PHOTO N'A PAS DE CONTRASTE, IL EN A UN PAR ENDROIT, 12/09/2026
+
+**Un voile plat ne protege rien.** Le hero posait `--bordeaux-veil`, 0,70 sur toute la largeur, et
+centrait son texte. Deux consequences, et la charte ne pouvait voir ni l'une ni l'autre :
+
+1. la photo devenait marron. Le bureau, le cahier ouvert, le verre, les caisses : tout ce qui fait
+   l'argument de la page etait eteint uniformement ;
+2. le texte etant centre et la piece etant photographiee de face, le paragraphe et les deux boutons
+   tombaient **sur l'ecran allume**, la zone la plus claire de l'image. Le contraste y etait le
+   pire de toute la page, a l'endroit exact ou on avait pose les lettres.
+
+La regle : **le voile est directionnel, et le texte est borne pour ne jamais sortir de sa zone
+franche.** `--voile-hero-fort` tient le texte a gauche, `--voile-hero-doux` libere la photo a
+droite, `--voile-pied` raccorde le bas au papier de la section suivante. `.hero__bloc` borne le
+texte a 600 px, la zone franche va jusqu'a 60 % : la marge entre les deux est voulue, elle existe
+parce qu'a 56 % la derniere lettre d'une ligne pleine tombait pile sur le debut du degrade.
+
+**Sous 900 px, le voile redevient franc sur toute la largeur.** Le reglage directionnel repond a un
+probleme de largeur ; sur un telephone le texte traverse la fenetre, et le meme reglage qui protege
+le contraste en grand le detruirait en petit.
+
+### `npm run charte` ne peut rien dire de tout ca, et `scripts/banc-hero.mjs` le mesure
+
+La charte lit des regles CSS. Le contraste d'un texte sur une photo depend, pixel par pixel, de ce
+que la photo montre a cet endroit et du cadrage que le navigateur a choisi pour la fenetre
+courante. `scripts/banc-hero.mjs` photographie la page deux fois, une fois telle quelle et une fois
+le bloc de texte rendu invisible, puis compare chaque texte au **pixel de fond le plus clair** de sa
+boite, pas a la moyenne : une ligne illisible sur dix suffit a perdre un lecteur.
+
+Il demande `playwright`, qui n'est pas une devDependency : il n'est donc pas dans `npm run verif`,
+comme `scripts/capture-telephone.mjs`. Le mode d'emploi est dans son en-tete.
+
+Trois choses a savoir avant d'y toucher, et elles y sont ecrites : `opacity` n'est pas une couleur
+de texte, `.btn` plein est un faux positif nomme (il porte son propre fond `--paper`), et il faut
+mesurer aux DEUX largeurs, parce que ce sont deux reglages de voile differents.

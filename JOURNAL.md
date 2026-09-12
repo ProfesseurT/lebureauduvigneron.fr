@@ -12,6 +12,108 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 12/09/2026, soir. La page d'accueil : le hook, le voile, et l'ordre des sections
+
+Demande de Ted : « on va ameliorer la page d'accueil / landing avec le hook et le design afin de la
+rendre vraiment bureau du vigneron. »
+
+### L'ARBITRAGE D'OUVERTURE, ET IL EST ALLE CONTRE LA DEMANDE
+
+Le hook n'etait pas le probleme. Il avait ete repris le 10/09, deux jours plus tot, avec trois
+arbitrages ecrits et defendables, et le h1 « On a vu 2 000 bureaux de vignerons de l'interieur »
+tient. Ce qui n'allait pas se mesurait ailleurs : **la demonstration du produit commencait a 4,2
+ecrans de defilement**, derriere trois articles, un podcast qui n'existe pas, deux partenaires
+etales sur trois cartes et un manifeste qui redit le h1. La page vendait un media alors que le
+produit est un bureau.
+
+Ted a tranche sur trois questions. Ampleur : hero ET ordre des sections, pas le hero seul. Visuel :
+**garder la photo** et mieux la traiter, contre ma recommandation de passer a une surface de papier
+dessinee dans les jetons. Sections vides : degonfler le podcast et les partenaires, et les
+descendre, plutot que de les sortir de l'accueil.
+
+**Le levier a retester si le resultat decoit** : la photo. C'est une piece de chateau, prise de
+face, avec un ecran allume en plein centre. Elle impose un voile directionnel et un texte borne a
+gauche pour que le contraste tienne. Un hero en papier, filets et post-it, dans les jetons du site,
+n'aurait eu aucune de ces contraintes et aurait dit « bureau du vigneron » sans photographie de
+bureau. L'option reste ouverte, et elle est moins chere a tenter maintenant que le reste est propre.
+
+### CE QUI A CHANGE
+
+**L'ordre.** hero, demo-pinboard, manifeste, articles-une, filiere-bande, compteurs, waitlist. La
+demonstration passe de 3 802 px a 839 px, de 4,2 ecrans a 0,9. La page passe de 6 077 a 5 775 px.
+La regle et le detail sont dans `CLAUDE.md` et en tete de `src/index.njk`.
+
+**Le voile du hero.** Il etait plat a 0,70 sur toute la largeur, et le texte etait centre, donc pose
+sur l'ecran allume de la photo : la zone la plus claire de l'image portait le paragraphe et les deux
+boutons. Trois jetons remplacent le jeton unique, un par role, et le texte est borne a 600 px a
+gauche. Sous 900 px le voile redevient franc, parce que le reglage directionnel repond a un probleme
+de largeur qui n'existe pas sur un telephone.
+
+**Le paragraphe du hero.** Il portait cinq idees en quatre lignes pleines. Il en garde deux, d'ou ca
+vient et ce que ca fait. La gratuite et la restriction Vitisoft descendent sous les boutons, en
+mention : l'arbitrage du 10/09 exigeait qu'elles soient dites HAUT, elles le sont toujours, au-dessus
+de la ligne de flottaison.
+
+**Le deuxieme bouton.** « Voir le bureau en image » envoyait a 4,2 ecrans. La demonstration est
+maintenant la section suivante : le libelle devient « Voir a quoi il ressemble ↓ ».
+
+**La bande filiere.** `podcast-teaser` et `voix-filiere` pesaient 1 235 px a elles deux, entre le
+hook et la preuve, pour annoncer un podcast a venir et deux partenaires reels. Elles fusionnent en
+une section de 789 px, placee apres la demonstration. Rien n'est dit de moins : le podcast est
+annonce, les deux partenaires sont nommes et cliquables, les six autres sont annonces. Les trois
+cartes deviennent trois lignes, parce qu'une grille de cartes annonce un catalogue et qu'il y a deux
+partenaires. **Les deux composants d'origine sont gardes dans le depot**, avec leur CSS : le jour ou
+l'episode 1 sort, le podcast redevient une vraie section, il ne faudra pas la reecrire.
+
+**L'alternance des fonds.** Le nouvel ordre posait trois `--paper` a la suite puis deux
+`--paper-deep` : un ventre clair, un ventre fonce. Le manifeste prend le fond fonce, les compteurs
+le rendent. L'alternance redevient stricte : photo, papier, fonce, papier, fonce, papier, bordeaux.
+
+### CE QUI A ETE VERIFIE
+
+`npm run charte` et `charte:bureau` CONFORMES, 0 echec. `npm run banc`, 110 controles, 0 echec.
+
+Et surtout **`scripts/banc-hero.mjs`, ecrit ici**, parce qu'aucun controle existant ne pouvait voir
+le defaut de depart : la charte lit des regles CSS, et le contraste d'un texte sur une photo depend
+des pixels. Il photographie la page deux fois, une fois telle quelle et une fois le bloc de texte
+rendu invisible, et compare chaque texte au pixel de fond **le plus clair** de sa boite. Verdict a
+1440 et a 390 px : le pire texte du hero est a 7,41:1, le meilleur a 12,63:1, seuil 4,5:1.
+
+**Le banc a ete verifie a l'envers avant d'etre cru** : voile ramene a 0,08, 12 echecs, code de
+sortie 1. Un banc qui n'echoue jamais ne prouve rien.
+
+### DEUX PIEGES DE HARNAIS, PAYES ICI
+
+**`loading="lazy"` et la capture pleine page ne s'entendent pas.** Les deux photos de partenaires
+sont sorties vides de trois captures de suite, et j'ai failli les declarer cassees. Elles chargent
+parfaitement : une capture `fullPage` ne fait pas entrer les images dans le champ, donc le
+navigateur ne les demande jamais. Il faut parcourir la page AVANT de photographier. C'est le meme
+genre de faux positif que les trois du banc telephone du 11/09 : un harnais qui ne reproduit pas ce
+que fait un visiteur accuse le depot.
+
+**Le bouton plein est un faux positif structurel du banc de contraste.** `.btn` porte son propre
+fond `--paper` : son texte bordeaux se lit sur du papier, a 11:1, et pas sur la photo. Mesure contre
+la photo, il rend 1,2:1 et un echec qui n'existe pas. Il est ecarte NOMMEMENT, avec sa raison ecrite
+dans le banc, et pas silencieusement.
+
+### CE QUI RESTE OUVERT
+
+**La barre de navigation sur telephone.** Signale, pas corrige, hors perimetre. A 390 px les liens
+tiennent sur 712 px dans une bande de 342 px en `overflow-x: auto` : la page ne deborde pas, mais
+« LA REDACTION » est coupee en « LA RE », et surtout **« Connexion » et « Creer mon compte » sont
+entierement hors champ**. Sur une landing, le bouton principal est invisible au telephone, et rien
+n'indique que la bande se fait defiler. A trancher : un menu, ou deux liens seulement plus le
+bouton.
+
+**Le CSS de `podcast-teaser` et `voix-filiere` reste en place** alors que leurs sections sont sorties
+de l'accueil. `filiere-bande` reutilise le lecteur, donc rien n'est mort de ce cote, mais les regles
+de cartes de `voix-filiere` ne servent plus a personne tant que les partenaires ne reviennent pas en
+grille. A nettoyer le jour ou on tranche que le podcast ne redeviendra pas une section.
+
+**La photo du hero**, voir l'arbitrage plus haut.
+
+---
+
 ## 12/09/2026. L'ardoise, le courrier, et la police des chiffres
 
 Demande de Ted, en trois mots : « améliore : ardoise, courrier, la police des chiffres affichés,

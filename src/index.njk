@@ -4,11 +4,45 @@ title: Le Bureau du Vigneron
 description: "On a vu 2 000 bureaux de vignerons de l'intérieur. Voici celui qu'on aurait voulu y trouver : échéances réglementaires, clients à rappeler, analyses de terrain. Par Solumatic, créateur de Vitisoft."
 ---
 
+{#- L'ORDRE DE LA PAGE, REPRIS LE 12/09/2026.
+
+    L'ORDRE D'AVANT, ET CE QU'IL COUTAIT. hero, articles, podcast, partenaires,
+    manifeste, compteurs, demonstration, inscription. Mesure de la page produite,
+    fenetre de 1440 x 900 : 6 077 px en tout, et la demonstration du bureau
+    commencait a 3 802 px, soit 4,2 ecrans de defilement. Le visiteur voyait donc,
+    dans cet ordre : une promesse, trois articles, un podcast qui n'existe pas
+    encore, deux partenaires sur trois cartes, un manifeste qui redit les 2 000
+    bureaux deja dits dans le h1, trois compteurs qui annoncent honnetement que
+    tout demarre — puis, enfin, le produit. La page vendait un media ; le produit
+    est un bureau.
+
+    L'ORDRE D'AUJOURD'HUI, et la regle qui le tient : APRES LA PROMESSE, LA
+    PREUVE. Rien ne s'intercale entre le hook et la seule chose de cette page qui
+    montre ce qu'on fait.
+
+      1. hero             la promesse
+      2. demo-pinboard    la preuve, et c'est le meilleur objet du site
+      3. manifeste        pourquoi nous, une fois qu'on a vu quoi
+      4. articles-une     ce qu'on publie
+      5. filiere-bande    ce qui se prepare, podcast et partenaires reunis
+      6. compteurs        l'etat reel, dit sans farder
+      7. waitlist         l'inscription
+
+    CE QUI N'EST PAS DEPLACE, ET C'EST VOULU. `compteurs-honnetes` reste juste
+    avant l'inscription. Il dit « 3 podcasts en route, N articles, 8 partenaires
+    en discussion » : c'est un aveu de demarrage, et le mettre AVANT la
+    demonstration reviendrait a prevenir qu'il n'y a rien avant d'avoir montre
+    qu'il y a quelque chose.
+
+    LES DEUX SECTIONS SORTIES. `podcast-teaser.njk` et `voix-filiere.njk` ne sont
+    plus incluses ici, elles sont fondues dans `filiere-bande.njk`. Les fichiers
+    restent dans le depot : voir l'en-tete de filiere-bande.njk pour savoir quand
+    les remettre. -#}
+
 {% include "components/hero.njk" %}
-{% include "components/articles-une.njk" %}
-{% include "components/podcast-teaser.njk" %}
-{% include "components/voix-filiere.njk" %}
-{% include "components/manifeste.njk" %}
-{% include "components/compteurs-honnetes.njk" %}
 {% include "components/demo-pinboard.njk" %}
+{% include "components/manifeste.njk" %}
+{% include "components/articles-une.njk" %}
+{% include "components/filiere-bande.njk" %}
+{% include "components/compteurs-honnetes.njk" %}
 {% include "components/waitlist.njk" %}

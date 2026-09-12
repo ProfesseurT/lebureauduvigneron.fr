@@ -1,34 +1,57 @@
-<!-- Hook decide le 10/09/2026. Avant : « Le media de reference de la filiere ».
-     Le site n'est plus un media, c'est un bureau, et le produit avait quatre mois
-     d'avance sur cette page. Trois arbitrages tiennent ce texte :
+<!-- Hook decide le 10/09/2026, resserre le 12/09/2026. Avant le 10 : « Le media de
+     reference de la filiere ». Le site n'est plus un media, c'est un bureau, et le
+     produit avait quatre mois d'avance sur cette page. Trois arbitrages tiennent ce
+     texte, et ils sont toujours valables :
        1. la preuve avant la promesse. Les 2 000 bureaux etaient en cinquieme
           position, dans le manifeste. Ils passent en h1 : un nombre travaille,
           un superlatif se saute.
        2. les deux cercles dits haut. « Ouvert a toute la filiere » ET « si tu es
-          sur Vitisoft » dans le meme paragraphe, pour qu'aucun visiteur ne
+          sur Vitisoft » avant la ligne de flottaison, pour qu'aucun visiteur ne
           decouvre la restriction apres son inscription.
        3. les deux boutons echangent leur role. Le plein va vers l'inscription,
           plus vers une ancre. Et il est en .btn (papier) et non .btn--bordeaux :
-          le voile de la photo EST bordeaux, un bouton bordeaux s'y noyait. -->
+          le voile de la photo EST bordeaux, un bouton bordeaux s'y noyait.
+
+     CE QUI CHANGE LE 12/09/2026, et c'est du texte, pas du dessin :
+
+     A. LE PARAGRAPHE PORTAIT CINQ IDEES. Ou Vitisoft a ete construit, ce qu'est
+        le Bureau, quatre natures de contenu, la gratuite, et la restriction
+        Vitisoft. Quatre lignes pleines en tete de page. Il en garde deux : d'ou
+        ca vient, et ce que ca fait. La gratuite et la restriction descendent sous
+        les boutons, en mention. L'arbitrage 2 tient toujours, elles sont
+        toujours au-dessus de la ligne de flottaison.
+
+     B. LE DEUXIEME BOUTON POINTAIT LOIN. « Voir le bureau en image » envoyait a
+        4,2 ecrans de scroll. La demonstration est maintenant la section qui suit
+        immediatement : l'ancre ne traverse plus la page, elle la descend d'un
+        cran. Le libelle le dit.
+
+     C. `hero__bloc` EST NOUVEAU, et il n'est pas decoratif. Le texte n'est plus
+        centre : il est borne a gauche pour ne jamais tomber sur l'ecran allume de
+        la photo. Retirer ce conteneur remet le paragraphe sur le tableur. -->
 <section class="hero hero--photo">
   <div class="hero__overlay"></div>
   <div class="hero__content">
-    <p class="hero__eyebrow">Propulsé par Solumatic, créateur de Vitisoft</p>
-    <h1>On a vu 2&nbsp;000 bureaux de vignerons de l'intérieur.</h1>
-    <p class="hero__lead">
-      Pas les vignes. Les bureaux.
-    </p>
-    <p class="hero__desc">
-      C'est là qu'on a construit Vitisoft. Le Bureau du Vigneron, c'est le bureau qu'on aurait
-      voulu y trouver : ce qui presse aujourd'hui, tes échéances réglementaires, tes clients à
-      rappeler, ce qu'il faut lire. Gratuit, ouvert à toute la filière. Tes ventes s'y lisent
-      aussi, si tu es sur Vitisoft.
-    </p>
-    <div class="hero__ctas">
-      <a href="/compte/" class="btn" data-bdv-compte
-         data-bdv-mode="inscription"
-         data-bdv-titre="Ton bureau t'attend.">Ouvrir mon bureau · gratuit</a>
-      <a href="#demo-pinboard" class="btn btn--ghost">Voir le bureau en image</a>
+    <div class="hero__bloc">
+      <p class="hero__eyebrow">Propulsé par Solumatic, créateur de Vitisoft</p>
+      <h1>On a vu 2&nbsp;000 bureaux de vignerons de l'intérieur.</h1>
+      <p class="hero__lead">
+        Pas les vignes. Les bureaux.
+      </p>
+      <p class="hero__desc">
+        C'est là qu'on a construit Vitisoft. Le Bureau du Vigneron, c'est ce qu'on aurait voulu
+        trouver posé sur ces 2&nbsp;000 bureaux, réuni sur un seul : ce qui presse aujourd'hui, tes
+        échéances réglementaires, tes clients à rappeler, ce qu'il faut lire.
+      </p>
+      <div class="hero__ctas">
+        <a href="/compte/" class="btn" data-bdv-compte
+           data-bdv-mode="inscription"
+           data-bdv-titre="Ton bureau t'attend.">Ouvrir mon bureau · gratuit</a>
+        <a href="#demo-pinboard" class="btn btn--ghost">Voir à quoi il ressemble ↓</a>
+      </div>
+      <p class="hero__fineprint">
+        Gratuit, ouvert à toute la filière. Tes ventes s'y lisent aussi, si tu es sur Vitisoft.
+      </p>
     </div>
   </div>
 </section>

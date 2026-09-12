@@ -1,0 +1,99 @@
+{#- LA BANDE « FILIERE », ECRITE LE 12/09/2026.
+
+    CE QU'ELLE REMPLACE, ET LE CALCUL QUI L'A DECIDEE. Sur la page d'accueil,
+    `podcast-teaser` pesait 584 px et `voix-filiere` 651 px : 1 235 px, soit 1,4
+    ecran de 900, pour annoncer UN podcast qui n'existe pas encore et DEUX
+    partenaires reels sur trois cartes, la troisieme etant un texte d'attente.
+    Ces 1 235 px se tenaient entre le hook et la seule demonstration du produit.
+    Le probleme n'etait pas leur contenu, qui est juste : c'etait leur PLACE et
+    leur ENCOMBREMENT, devant la preuve.
+
+    CE QU'ELLE NE FAIT PAS. Elle ne retire aucune promesse. Le podcast est
+    toujours annonce, les deux partenaires sont toujours nommes et cliquables,
+    les six autres sont toujours annonces. Rien n'est dit de moins, tout est dit
+    plus court, et apres la demonstration au lieu d'avant.
+
+    LES DEUX COMPOSANTS D'ORIGINE SONT GARDES. `podcast-teaser.njk` et
+    `voix-filiere.njk` restent dans le depot, sortis de l'accueil, avec leur CSS.
+    Le jour ou l'episode 1 sort, le podcast redevient une vraie section : il ne
+    faudra pas la reecrire, il faudra la remettre.
+
+    SI UN TROISIEME PARTENAIRE REEL ARRIVE, il prend la place de la ligne
+    d'attente. A partir du quatrieme, cette bande n'est plus la bonne forme et
+    `voix-filiere.njk` redevient la bonne : une grille de cartes se justifie
+    quand il y a des cartes a mettre dedans. -#}
+<section class="filiere-bande section section--alt" id="voix-filiere">
+  <div class="container--wide">
+
+    <div class="filiere-bande__header">
+      <p class="section__label">Ce qui se prépare</p>
+      <h2>Les voix de la filière</h2>
+      <p class="filiere-bande__sub">Les pros qui apportent tous les jours à la filière, et un podcast qui démarre.</p>
+    </div>
+
+    <div class="filiere-bande__grid">
+
+      {#- COLONNE 1 : le podcast. Le lecteur garde les classes d'origine, donc
+          son CSS, donc son etat desactive et son libelle « a venir ». -#}
+      <div class="filiere-bande__podcast">
+        <div class="podcast-teaser__player podcast-teaser__player--disabled" aria-label="Podcast non disponible pour l'instant">
+          <div class="podcast-teaser__player-inner">
+            <div class="podcast-teaser__player-icon">▶</div>
+            <div class="podcast-teaser__player-bars">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <p class="podcast-teaser__player-label">Épisode 1 · à venir</p>
+          </div>
+        </div>
+        <div class="filiere-bande__podcast-texte">
+          <h3 class="filiere-bande__titre">Le podcast</h3>
+          <p>Format long, 35 à 45 min. Un partenaire de la filière vient parler de son métier vu du bureau du vigneron. Tu l'entends, tu choisis, tu décides.</p>
+          <a href="/compte/" class="filiere-bande__lien"
+             data-bdv-compte
+             data-bdv-titre="Le premier épisode arrive. Crée ton compte pour être prévenu.">Être prévenu du premier épisode →</a>
+        </div>
+      </div>
+
+      {#- COLONNE 2 : les partenaires, en lignes et non plus en cartes. Une carte
+          annonce un catalogue ; trois lignes annoncent un debut, ce qui est
+          l'etat reel. -#}
+      <ul class="filiere-bande__pros">
+
+        <li class="filiere-bande__pro">
+          <img src="/assets/partenaires/benoit-tesson.jpg" alt="" class="filiere-bande__photo" width="400" height="400" loading="lazy" onerror="this.outerHTML='<span class=\'filiere-bande__photo filiere-bande__photo--vide\' aria-hidden=\'true\'>BT</span>'">
+          <div class="filiere-bande__pro-corps">
+            <p class="filiere-bande__pro-specialite">Ecommerce vin · Vente directe</p>
+            <h3 class="filiere-bande__pro-nom">WineTailors</h3>
+            <p class="filiere-bande__pro-desc">Benoît Tesson travaille la vente directe en ligne et la stratégie digitale des domaines.</p>
+            <a href="https://youtu.be/MH_LNK3EE4o?si=FCC2T5ZPXFTpACUu" target="_blank" rel="ugc noopener" class="filiere-bande__lien">Voir la vidéo →</a>
+          </div>
+        </li>
+
+        <li class="filiere-bande__pro">
+          <img src="/assets/partenaires/emilie-barbottin.jpg" alt="" class="filiere-bande__photo" width="400" height="400" loading="lazy" onerror="this.outerHTML='<span class=\'filiere-bande__photo filiere-bande__photo--vide\' aria-hidden=\'true\'>EB</span>'">
+          <div class="filiere-bande__pro-corps">
+            <p class="filiere-bande__pro-specialite">Formatrice Vitisoft · Audit de données</p>
+            <h3 class="filiere-bande__pro-nom">Emilie Barbottin</h3>
+            <p class="filiere-bande__pro-desc">Elle audite les données des domaines, remet de l'ordre dans les bases et fait gagner des heures aux équipes.</p>
+            <a href="https://padawine.notion.site/?p=319c905819fa80d099daffd60b7178a3&pm=c" target="_blank" rel="ugc noopener" class="filiere-bande__lien">Voir le profil →</a>
+          </div>
+        </li>
+
+        <li class="filiere-bande__pro filiere-bande__pro--soon">
+          <span class="filiere-bande__photo filiere-bande__photo--vide" aria-hidden="true">+6</span>
+          <div class="filiere-bande__pro-corps">
+            <p class="filiere-bande__pro-specialite">En cours de référencement</p>
+            <h3 class="filiere-bande__pro-nom">Six autres partenaires</h3>
+            <p class="filiere-bande__pro-desc">Œnologues conseil, comptables filière, juristes vin, tonneliers, distributeurs.</p>
+            <a href="/compte/" class="filiere-bande__lien" data-bdv-compte
+               data-bdv-titre="Le catalogue complet arrive. Crée ton compte pour être prévenu.">Voir le catalogue complet →</a>
+          </div>
+        </li>
+
+      </ul>
+
+    </div>
+
+  </div>
+</section>

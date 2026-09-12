@@ -22,7 +22,19 @@
   --bordeaux:      #5A1525;  /* accent principal */
   --bordeaux-deep: #45101D;  /* navigation, pied de page, fonds sombres */
   --bordeaux-vif:  #7A1525;  /* survol des boutons pleins : plus rouge, jamais plus pale */
-  --bordeaux-veil: rgba(40, 10, 18, 0.70);  /* voile photo du hero */
+  --bordeaux-veil: rgba(40, 10, 18, 0.70);  /* voile plat : modales et voile d'attente */
+  /* LE VOILE DU HERO, REPRIS LE 12/09/2026. Il etait plat a 0,70 sur toute la
+     largeur, et c'est ce qui rendait la photo marron. Un voile plat fait deux
+     choses a la fois, mal : il eteint l'image partout, et il ne garantit le
+     contraste nulle part, parce que sous le texte passait justement l'ecran
+     allume du bureau. Trois valeurs a la place d'une, et chacune a un role.
+     --fort tient le texte, --doux laisse voir le bureau, --pied raccorde la
+     photo au papier de la section suivante sans trait de coupe.
+     Mesure au navigateur apres coup, sur les vrais pixels du texte : voir
+     scripts/banc-hero.mjs, qui echoue si le hero repasse sous 4,5:1. */
+  --voile-hero-fort: rgba(28, 8, 14, 0.90);
+  --voile-hero-doux: rgba(40, 10, 18, 0.30);
+  --voile-pied:      rgba(14, 5, 9, 0.55);
   --cork:          #B89066;  /* liege et carton kraft : panneaux, intercalaires. Porte du
                                 texte a 5,26:1, conforme AA mais trois fois moins que le
                                 creme sur bordeaux. A eviter pour du texte long. */
@@ -392,39 +404,101 @@ em { font-style: italic; }
   font-weight: 500;
 }
 
-/* ---- HERO (LANDING) ---- */
+/* ---- HERO (LANDING) ----
+   REPRIS LE 12/09/2026. Ce qui change, et pourquoi chaque point etait un defaut
+   et pas un gout.
+
+   1. LE TEXTE ETAIT CENTRE, LA PHOTO NE L'EST PAS. Le bloc vivait dans un
+      `max-width: 760px; margin: 0 auto`, donc au milieu de la fenetre, donc
+      exactement sur l'ecran allume du bureau, qui est la zone la plus claire de
+      l'image. Le paragraphe et les deux boutons se lisaient sur un tableur. Le
+      bloc s'ancre desormais a GAUCHE, dans la meme gouttiere que le reste de la
+      page, et sa largeur est bornee pour qu'il n'atteigne jamais l'ecran.
+
+   2. LE VOILE ETAIT PLAT. 0,70 partout : l'image devenait marron, et le
+      contraste n'etait garanti nulle part en particulier. Il est maintenant
+      DIRECTIONNEL. A gauche, la ou vivent les lettres, il est franc et le
+      contraste ne depend plus de ce qui passe sous elles. A droite il s'ouvre :
+      on voit enfin le bureau, le cahier ouvert, le verre, les caisses. C'est
+      l'argument de la page, il n'y avait aucune raison de l'eteindre.
+
+   3. UN VOILE DE PIED. La photo s'arretait net sur le papier de la section
+      suivante. Un degrade bas raccorde les deux.
+
+   4. LA HAUTEUR. 640 px fixes sur une fenetre de 900 : le hero occupait 71 % de
+      l'ecran et le titre de la section suivante entrait dans le champ, ce qui
+      coupait le hook en deux. `min(88vh, 780px)` lui rend l'ecran, et les 12 %
+      qui restent suffisent a dire qu'il y a une suite.
+
+   Le contraste reel est mesure sur les pixels peints, pas sur le calcul :
+   scripts/banc-hero.mjs. */
 .hero--photo {
   position: relative;
   background-image: url('/assets/hero-bureau.jpg');
   background-size: cover;
-  background-position: center 30%;
+  background-position: center 32%;
   background-attachment: fixed;
   background-color: var(--bordeaux);
-  min-height: 640px;
+  min-height: min(88vh, 780px);
   display: flex;
   align-items: center;
 }
 .hero__overlay {
   position: absolute;
   inset: 0;
-  background: var(--bordeaux-veil);
+  /* Deux couches. La premiere tient le texte a gauche et libere la photo a
+     droite ; la seconde ferme le bas. L'ordre compte : la couche de pied est
+     declaree en second, donc peinte SOUS la premiere, et n'eclaircit jamais le
+     coin bas-gauche, qui porte les boutons. */
+  background:
+    linear-gradient(to right,
+      var(--voile-hero-fort) 0%,
+      var(--voile-hero-fort) 60%,
+      var(--voile-hero-doux) 95%,
+      var(--voile-hero-doux) 100%),
+    linear-gradient(to top,
+      var(--voile-pied) 0%,
+      transparent 32%);
 }
 .hero__content {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 5rem 1.5rem 4rem;
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
+  padding: 5rem 1.5rem 4rem;
 }
+/* La borne du texte. 600 px sur une fenetre de 1440 : la gouttiere commence a
+   170 px, donc le bloc s'arrete a 53 % de la largeur, et la zone franche du voile
+   va jusqu'a 60 %. La marge de 7 % est voulue, et elle a ete elargie une fois :
+   a 56 %, la derniere lettre d'une ligne pleine tombait pile sur le debut du
+   degrade, la ou le cadre clair de l'ecran traverse justement le paragraphe. */
+.hero__bloc {
+  max-width: 600px;
+}
+/* Le filet du hero. C'est l'element structurant du site, il n'avait pas de
+   raison de manquer sur la premiere chose qu'on voit. */
 .hero__eyebrow {
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   text-transform: uppercase;
   letter-spacing: var(--ls-large);
   color: var(--paper);
-  opacity: 0.55;
+  /* ETAIT 0,55, ET C'ETAIT SOUS LE SEUIL. Du --paper a 0,55 sur le voile donne
+     environ 3,6:1 : sous les 4,5:1 exiges pour un texte de 11 px. A 0,78 il
+     passe, et la ligne reste une mention discrete, pas un deuxieme titre. */
+  opacity: 0.78;
   margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: var(--e-s);
+}
+.hero__eyebrow::before {
+  content: '';
+  width: 2.25rem;
+  height: var(--trait);
+  background: var(--on-dark-faint);
+  flex: none;
 }
 .hero h1 {
   color: var(--paper);
@@ -515,9 +589,17 @@ em { font-style: italic; }
 }
 
 /* ---- MANIFESTE ---- */
+/* LE FOND DU MANIFESTE EST PASSE EN --paper-deep LE 12/09/2026, et c'est une
+   consequence de la redecoupe de l'accueil, pas un gout. Le nouvel ordre posait
+   trois sections de --paper a la suite (demonstration, manifeste, articles),
+   puis deux de --paper-deep (bande filiere, compteurs) : la page avait un ventre
+   clair et un ventre fonce au lieu d'un rythme. Avec ce seul changement, et
+   `compteurs-honnetes` repasse en --paper, l'alternance redevient stricte du
+   hero au pied : photo, papier, fonce, papier, fonce, papier, bordeaux.
+   Contraste verifie : --muted vaut 4,8:1 sur --paper-deep, --ink 9,9:1. */
 .manifeste {
   padding-block: var(--section);
-  background: var(--paper);
+  background: var(--paper-deep);
   border-top: 1px solid var(--rule-fort);
 }
 .manifeste__body {
@@ -3327,18 +3409,39 @@ em { font-style: italic; }
    ============================================================ */
 .hero__desc {
   font-family: var(--font-corps);
-  font-size: var(--t-base);
+  /* ETAIT --t-base, 14 px. C'est la taille du texte DENSE, des tableaux. Sur la
+     premiere phrase que lit un visiteur, et par-dessus une photo, elle
+     demandait un effort. --t-corps est la taille du texte courant : c'est celle
+     qui convient a un paragraphe qu'on veut voir lu. */
+  font-size: var(--t-corps);
   color: var(--paper);
-  opacity: 0.75;
-  max-width: 560px;
-  margin-bottom: 2.5rem;
-  line-height: 1.7;
+  /* 0,75 donnait environ 5,9:1 : conforme, mais delave. 0,88 garde la
+     hierarchie sous le chapo tout en rendant le paragraphe franc. */
+  opacity: 0.88;
+  margin-bottom: 2.25rem;
+  line-height: var(--lh-lecture);
   font-style: normal;
 }
 .hero .hero__lead {
   font-size: var(--t-h3);
   opacity: 0.88;
   margin-bottom: 1rem;
+}
+/* LA LIGNE DE PIED DU HERO, AJOUTEE LE 12/09/2026, et elle porte une regle, pas
+   un detail de mise en page. L'arbitrage du 10/09/2026 disait : les deux cercles
+   d'acces se disent HAUT, pour que personne ne decouvre la restriction Vitisoft
+   apres son inscription. Ils etaient dits dans le paragraphe, qui pesait quatre
+   lignes et cinq idees a la fois. Ils descendent sous les boutons : toujours
+   au-dessus de la ligne de flottaison, donc la regle tient, mais dans le
+   registre d'une mention et plus dans celui de l'argument. */
+.hero__fineprint {
+  margin-top: 1.5rem;
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  color: var(--paper);
+  opacity: 0.72;
+  line-height: var(--lh-normal);
+  max-width: 46ch;
 }
 
 /* ============================================================
@@ -3700,6 +3803,151 @@ em { font-style: italic; }
 }
 
 /* charte-bloc supprimé — décision Teddy 26 mai 2026 */
+
+/* ============================================================
+   LA BANDE FILIERE — 12/09/2026
+   ============================================================
+   Le podcast et les partenaires en une seule section, apres la demonstration du
+   produit et plus avant elle. Le raisonnement est dans
+   src/_includes/components/filiere-bande.njk.
+
+   DEUX REPRISES DU LECTEUR D'ORIGINE, et aucune n'est cosmetique.
+
+   1. LE FOND. `.podcast-teaser__player--disabled` pose `--paper-deep`. Dans sa
+      section d'origine il se detachait, parce que cette section-la etait sur
+      `--paper`. Ici la section EST en `--paper-deep` : la tuile disparaissait
+      dans son propre fond. Elle passe en `--paper-light`.
+
+   2. L'OPACITE. La tuile entiere portait `opacity: 0.45`. Une opacite globale ne
+      grise pas « un bouton eteint », elle delave AUSSI le libelle « Episode 1 ·
+      a venir », qui tombait alors tres au-dessous de 4,5:1 : le seul texte qui
+      dise quand le podcast arrive etait le moins lisible de la section. La
+      tuile revient a 1, et c'est la COULEUR de chaque element qui dit
+      l'attente : --muted sur le pictogramme et les barres, qui n'ont rien a
+      lire, et la couleur pleine sur le libelle, qui a quelque chose a dire. */
+.filiere-bande__header {
+  margin-bottom: 2.5rem;
+}
+.filiere-bande__sub {
+  font-style: italic;
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+}
+.filiere-bande__grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 3rem;
+  align-items: start;
+}
+.filiere-bande__podcast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-l);
+}
+/* LA TUILE DEVIENT CARREE ET BORNEE. Dans sa section d'origine elle remplissait
+   une colonne de 1 fr sur 1 100 px, soit 590 x 280 : un grand rectangle creme
+   presque vide, qui pesait plus que le podcast qu'il annonce. Un podcast se
+   represente par une pochette, et une pochette est carree. 260 px de cote, et la
+   colonne respire au lieu de se remplir. */
+.filiere-bande .podcast-teaser__player--disabled {
+  background: var(--paper-light);
+  opacity: 1;
+  padding: 1.5rem;
+  max-width: 260px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.filiere-bande .podcast-teaser__player-label {
+  opacity: 1;
+  color: var(--muted);
+}
+.filiere-bande__titre {
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  margin: 0 0 var(--e-s);
+}
+.filiere-bande__podcast-texte p {
+  color: var(--muted);
+  font-size: var(--t-base);
+  line-height: var(--lh-lecture);
+  margin: 0 0 var(--e-m);
+}
+.filiere-bande__lien {
+  font-family: var(--font-corps);
+  font-size: var(--t-petit);
+  font-weight: 500;
+  letter-spacing: var(--ls-doux);
+  color: var(--bordeaux);
+  text-decoration: none;
+}
+.filiere-bande__lien:hover { text-decoration: underline; }
+
+/* LES PARTENAIRES EN LIGNES. Trois cartes cote a cote annoncaient un catalogue
+   fourni ; il y a deux partenaires reels. Trois lignes empilees annoncent un
+   debut, ce qui est l'etat vrai, et tiennent dans un tiers de la hauteur. */
+.filiere-bande__pros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.filiere-bande__pro {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--e-l);
+  align-items: start;
+  padding-block: var(--e-l);
+  border-top: var(--trait) solid var(--rule);
+}
+.filiere-bande__pro:first-child { border-top: none; padding-top: 0; }
+.filiere-bande__pro:last-child  { padding-bottom: 0; }
+.filiere-bande__photo {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--r-rond);
+  flex: none;
+}
+/* La pastille de repli : elle sert quand la photo manque, et elle sert telle
+   quelle pour la ligne d'attente, qui n'a pas de visage a montrer. */
+.filiere-bande__photo--vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-deep);
+  border: var(--trait) solid var(--cork);
+  color: var(--cork-encre);
+  font-family: var(--font-corps);
+  font-size: var(--t-petit);
+  font-weight: 500;
+  letter-spacing: var(--ls-doux);
+}
+.filiere-bande__pro-specialite {
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-etiq);
+  color: var(--cork-encre);
+  margin: 0 0 var(--e-xs);
+}
+.filiere-bande__pro-nom {
+  font-family: var(--font-titre);
+  font-size: var(--t-corps);
+  margin: 0 0 var(--e-xs);
+}
+.filiere-bande__pro-desc {
+  color: var(--muted);
+  font-size: var(--t-base);
+  line-height: var(--lh-normal);
+  margin: 0 0 var(--e-s);
+}
+
+@media (max-width: 900px) {
+  .filiere-bande__grid { grid-template-columns: 1fr; gap: var(--e-2xl); }
+}
 
 /* ============================================================
    COMPTEURS HONNÊTES
@@ -5044,6 +5292,37 @@ em { font-style: italic; }
   }
   .hero--photo { background-attachment: scroll; }
   .video-block { background-attachment: scroll; }
+}
+
+/* ---- LE HERO SUR PETIT ECRAN, 12/09/2026 ----
+   LE VOILE DIRECTIONNEL EST UNE REPONSE A UN PROBLEME DE LARGEUR, et il n'y a
+   pas de largeur ici. Sur 1440 px, le texte tient dans les 56 % franchement
+   voiles et la photo respire dans les 44 % qui restent. Sur 390 px, le texte
+   traverse toute la fenetre : la moitie droite de chaque ligne tomberait dans la
+   partie CLAIRE du degrade. Le meme reglage qui protege le contraste en grand le
+   detruirait en petit. Le voile redevient donc franc sur toute la largeur, et la
+   photo n'est plus un decor a voir, seulement une matiere.
+
+   ET `background-attachment: fixed` TOMBE. Il est ignore ou rendu de travers par
+   la plupart des navigateurs mobiles, ou il produit un cadrage saute pendant le
+   defilement. `scroll` est le comportement qu'on obtient de toute facon : autant
+   le demander. */
+@media (max-width: 900px) {
+  .hero--photo {
+    background-attachment: scroll;
+    min-height: min(92vh, 700px);
+  }
+  .hero__overlay {
+    background:
+      linear-gradient(to bottom,
+        var(--voile-hero-fort) 0%,
+        var(--voile-hero-fort) 100%),
+      linear-gradient(to top,
+        var(--voile-pied) 0%,
+        transparent 26%);
+  }
+  .hero__content { padding: 3.5rem 1.5rem 3rem; }
+  .hero__bloc { max-width: none; }
 }
 
 /* ---- PALIER 480 PX ----

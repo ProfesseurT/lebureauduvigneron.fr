@@ -31,7 +31,19 @@
   --bordeaux:      #5A1525;  /* accent principal */
   --bordeaux-deep: #45101D;  /* navigation, pied de page, fonds sombres */
   --bordeaux-vif:  #7A1525;  /* survol des boutons pleins : plus rouge, jamais plus pale */
-  --bordeaux-veil: rgba(40, 10, 18, 0.70);  /* voile photo du hero */
+  --bordeaux-veil: rgba(40, 10, 18, 0.70);  /* voile plat : modales et voile d'attente */
+  /* LE VOILE DU HERO, REPRIS LE 12/09/2026. Il etait plat a 0,70 sur toute la
+     largeur, et c'est ce qui rendait la photo marron. Un voile plat fait deux
+     choses a la fois, mal : il eteint l'image partout, et il ne garantit le
+     contraste nulle part, parce que sous le texte passait justement l'ecran
+     allume du bureau. Trois valeurs a la place d'une, et chacune a un role.
+     --fort tient le texte, --doux laisse voir le bureau, --pied raccorde la
+     photo au papier de la section suivante sans trait de coupe.
+     Mesure au navigateur apres coup, sur les vrais pixels du texte : voir
+     scripts/banc-hero.mjs, qui echoue si le hero repasse sous 4,5:1. */
+  --voile-hero-fort: rgba(28, 8, 14, 0.90);
+  --voile-hero-doux: rgba(40, 10, 18, 0.30);
+  --voile-pied:      rgba(14, 5, 9, 0.55);
   --cork:          #B89066;  /* liege : ornements seulement, filets, guillemets, pastilles */
   --cork-encre:    #704C22;  /* le liege quand il porte du texte : 6,2:1 sur papier, 4,9:1 sur --paper-deep */
 
