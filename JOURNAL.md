@@ -12,6 +12,96 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 13/09/2026. Le courrier du matin ne partait plus, et il avait quatre raisons de ne pas partir
+
+Ted, en ouverture : « fais moi un topo sur les regles en place en ce qui concerne les emails
+automatiques quotidien ? » Le topo a montre autre chose : **aucune ligne dans `courrier_envois`
+depuis le 11/09**. Deux matins sans courrier, sans une erreur nulle part.
+
+### L'ARBITRAGE D'OUVERTURE, ET IL ETAIT DE TED
+
+Le seul symptome visible etait un **504 sur la lecture de `v_courrier`**, ce matin a 8 h 05. Le
+reflexe aurait ete de rattraper l'envoi du jour et de regarder ensuite. Ted a dit « va creuser le
+504 » d'abord. C'etait le bon ordre : le 504 n'etait pas la cause, il n'etait meme pas la cause du
+12/09, et un rattrapage lance tout de suite serait parti avec un mail sans lien de desinscription.
+
+### LES QUATRE CAUSES, EMPILEES, ET CHACUNE MASQUAIT LA SUIVANTE
+
+**1. Une colonne lue et jamais demandee.** `jeton_emails` est entre dans la vue au lot 12 le 11/09,
+jamais dans la liste `?select=`, qui datait du lot 3. PostgREST ne rend QUE les colonnes nommees :
+la colonne n'arrivait pas `null`, elle n'arrivait pas. Plus de lien de preferences, donc le
+garde-fou 3bis refusait tous les comptes, en 200, et le refus tombant AVANT la reservation, le
+journal des envois restait vierge. Deux jours de silence pour un mot manquant.
+
+**2. La fabrique deployee avait deux jours de retard.** Trouve par la CAPTURE du mail recu, pas par
+le code : le pied disait encore « tu l'as demande dans les reglages de ton bureau », phrase
+supprimee le 11/09 par `d7e3596`. `bdv-courrier.js` n'avait pas bouge DANS LE DEPOT, et je lui ai
+donc dit de ne pas le redeployer. **L'erreur est de moi** : la copie en production etait plus
+vieille que le depot, et rien dans le projet ne le disait.
+
+**3. Le secret `URL_BUREAU` n'avait jamais ete pose.** Le rapport affichait le repli du code,
+`lebureauduvigneron.fr`, domaine jamais branche sur Vercel et qui ne sert aucun certificat. Les deux
+liens du mail tombaient dans le vide. C'est le defaut du 10/09, jamais referme.
+
+**4. Le 504.** Refus immediat de la passerelle, 30 millisecondes, alors que la requete s'execute en
+0,3 ms sur 3 ko de donnees. C'etait la premiere requete REST depuis 22 h 47 la veille, et ce sera le
+cas tous les matins : le controle de l'heure sort AVANT la lecture, donc les 23 autres passages ne
+reveillent jamais PostgREST.
+
+### LE DIAGNOSTIC QUI A TOUT OUVERT, ET IL NE VENAIT PAS DU CODE
+
+`consent_courrier_le` est date de 10 h 04 le 11/09, **apres** l'envoi de 8 h 05 du meme jour. Donc
+la chaine avec consentement et jeton n'avait jamais abouti une seule fois : il n'y avait pas de
+regression a chercher, il y avait un chemin qui n'avait jamais marche. **Un envoi reussi la veille
+d'un lot ne prouve rien sur le lot.**
+
+### L'ARBITRAGE SUR LA REPRISE
+
+Le lot 4 interdit le rejeu automatique. Decision prise quand meme d'ajouter **deux essais sur la
+lecture de la vue**, deux secondes d'ecart, et la frontiere est nette : **la reservation**. Avant
+elle, rien n'est pose et rien n'est parti chez Resend, donc aucun doublon n'est possible ; apres
+elle, l'interdiction reste entiere. L'une protege un lecteur contre un mail double, l'autre protege
+une journee contre un reveil rate. Ne pas etendre la reprise au-dela de ce point.
+
+Le nombre d'essais part dans le rapport, `essais_lecture`. Sans lui, la reprise masquerait en
+silence le fait que le premier appel echoue tous les matins, ce qui est exactement le defaut que la
+regle 4 existe pour empecher.
+
+### CE QUI A ETE VERIFIE, ET COMMENT
+
+Le nouveau controle de `courrier:verif` a ete valide **en remettant le defaut** : ECHEC, code 1.
+Un controle qui n'a jamais echoue ne garde rien.
+
+L'etat final n'a pas ete laisse a demain. La fonction reellement deployee a ete **relue par le pont
+MCP Supabase**, elle porte bien `CHAMPS`, `jeton_emails`, la reprise et le pied a jour. Puis un
+`?apercu=1` declenche depuis la base, qui n'envoie rien, a rendu `url_bureau` et `url_preferences`
+sur `lebureauduvigneron.vercel.app`, `comptes_lus: 2`, `essais_lecture: 1`.
+
+Le rattrapage du jour est parti a 11 h 55, deux mails, mais avec l'ancienne fabrique : sans lien.
+**Refus de vider les deux lignes du 13/09 pour en renvoyer une version propre** : Ted a prefere
+attendre le 14 plutot que de recevoir deux fois le meme courrier. Le journal des envois n'a donc
+jamais ete touche a la main.
+
+### CE QUI RESTE OUVERT
+
+- **Rien ne verifie ce qui TOURNE.** L'empreinte tamponnee dans `index.ts` garantit que le depot est
+  coherent avec lui-meme, pas que la production lui ressemble. C'est la cause n° 2, et c'est la
+  troisieme fois que ce projet la paie. Le pont MCP sait relire une fonction deployee
+  (`get_edge_function`) : de quoi comparer l'empreinte annoncee a celle du fichier en ligne.
+- **`URL_BUREAU` pointe sur Vercel, et c'est temporaire.** Au branchement du `.fr`, changer cette
+  seule variable. Le repli du code reste l'adresse definitive, pour que ce soit le reglage
+  provisoire qui se voie dans les secrets.
+- **Le `.fr` n'est toujours pas branche.** Tant que ca dure, tout lien envoye par mail pointe sur
+  une adresse Vercel.
+- **`&mdash;` dans le pied du mail**, ligne 838 de `bdv-courrier.js`. La regle du depot dit aucun
+  tiret cadratin nulle part. Signale, non corrige.
+- **`?apercu=1` sort de la boucle AVANT le controle du jeton.** Il n'aurait donc jamais pu detecter
+  la cause n° 1, et ne le pourra pas davantage. Trois lignes a deplacer.
+- **Le pied du mail est en 10 px.** Son contraste est bon, 6,09:1 mesure, mais Ted n'a pas trouve le
+  lien en regardant. A rouvrir avec lui, c'est un arbitrage de dessin.
+
+---
+
 ## 12/09/2026, soir. La page d'accueil : le hook, le voile, et l'ordre des sections
 
 Demande de Ted : « on va ameliorer la page d'accueil / landing avec le hook et le design afin de la
