@@ -46,6 +46,26 @@
   function session() { return (window.BdvCompte && BdvCompte.session()) || null; }
   function api(chemin, options) { return BdvCompte.api(chemin, options); }
 
+  /* LE BUREAU, DEPUIS LE LOT 17. Une note client, un echange et les reglages
+     appartiennent au BUREAU et plus a la personne. Cette fonction LEVE plutot que de
+     rendre null : une ecriture sans proprietaire ne doit pas partir, et l'appelant de ce
+     fichier traite deja les exceptions (c'est ce qui remet la ligne au sous-main). */
+  function bureau() {
+    var b = window.BdvCompte && BdvCompte.monBureau && BdvCompte.monBureau();
+    if (!b) throw new Error('aucun bureau');
+    return b;
+  }
+  function auBureau() { return '&bureau=eq.' + encodeURIComponent(bureau()); }
+
+  // Le refus d'ecrire sur la ligne d'un collegue, dit en francais. Arbitrage de Ted du
+  // 13/09/2026 : chacun n'ecrit que ses propres lignes, maitre compris.
+  function traduireRefus(e, quoi) {
+    if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
+      return new Error(quoi + ' a ete cree par quelqu\'un d\'autre de ton bureau : lui seul peut le modifier.');
+    }
+    return e;
+  }
+
   function lireMiroir() {
     try { return JSON.parse(localStorage.getItem(MIROIR_KEY)) || null; }
     catch (e) { return null; }
@@ -250,11 +270,11 @@
     // note neuve s'affichait corrigee a la seconde ou elle etait ecrite. Toute nouvelle
     // ecriture d'echange pose les deux a la MEME valeur, celle-ci et pas new Date().
     var quand = new Date().toISOString();
-    var r = await api('/echanges?on_conflict=id,echange_id', {
+    var r = await api('/echanges?on_conflict=bureau,echange_id', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [{
-        id: BdvCompte.monId(), echange_id: echId(), client_id: String(clientId),
+        bureau: bureau(), echange_id: echId(), client_id: String(clientId),
         le: quand, maj_le: quand, type: type, canal: canal, resume: texte
       }]
     });
@@ -288,7 +308,7 @@
     // representation, comme partout ailleurs : api() rend null aussi bien pour une session
     // tombee que pour un corps vide, et une correction ECRITE serait annoncee comme un
     // echec. Le vigneron reecrirait sa phrase une deuxieme fois pour rien.
-    var r = await api('/echanges?id=eq.' + encodeURIComponent(BdvCompte.monId())
+    var r = await api('/echanges?bureau=eq.' + encodeURIComponent(bureau())
       + '&echange_id=eq.' + encodeURIComponent(echangeId), {
       methode: 'PATCH',
       entetes: { 'Prefer': 'return=representation' },
@@ -318,20 +338,28 @@
     // un geste pose apres expiration paraissait reussir, la ligne quittait l'ecran, et
     // rien n'etait ecrit nulle part : le geste etait definitivement perdu.
     if (!session()) throw new Error('aucune session');
-    var faits = await api('/suivi_clients?client_id=eq.' + encodeURIComponent(clientId), {
+    var faits = await api('/suivi_clients?client_id=eq.' + encodeURIComponent(clientId) + auBureau(), {
       methode: 'PATCH',
       entetes: { 'Prefer': 'return=representation' },
       corps: corps
     });
     if (faits === null) throw new Error('ecriture refusee');
     if (faits.length) return true;
-    corps.id = BdvCompte.monId();
+    /* ZERO LIGNE TOUCHEE VEUT DIRE DEUX CHOSES DEPUIS LE LOT 17, et il faut les
+       distinguer : la fiche n'existe pas encore (cas normal, on la cree juste apres), ou
+       elle existe et appartient a un collegue, auquel cas la politique de securite ne la
+       laisse pas modifier et la creation qui suit se heurte a la cle primaire. C'est de
+       la que vient l'erreur traduite. */
+    corps.bureau = bureau();
     corps.client_id = String(clientId);
-    var cree = await api('/suivi_clients?on_conflict=id,client_id', {
-      methode: 'POST',
-      entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-      corps: [corps]
-    });
+    var cree;
+    try {
+      cree = await api('/suivi_clients?on_conflict=bureau,client_id', {
+        methode: 'POST',
+        entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        corps: [corps]
+      });
+    } catch (e) { throw traduireRefus(e, 'Ce suivi client'); }
     if (cree === null) throw new Error('creation refusee');
     return true;
   }
@@ -349,11 +377,11 @@
     // maj_le = le, meme motif que dans noter() : sans lui, le defaut now() de la base
     // horodate a l'arrivee de la requete et le geste s'affiche corrige aussitot.
     var quand = new Date().toISOString();
-    var r = await api('/echanges?on_conflict=id,echange_id', {
+    var r = await api('/echanges?on_conflict=bureau,echange_id', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [{
-        id: BdvCompte.monId(), echange_id: eid || echId(), client_id: String(clientId),
+        bureau: bureau(), echange_id: eid || echId(), client_id: String(clientId),
         le: quand, maj_le: quand, type: g.type, canal: g.canal, resume: g.resume
       }]
     });
@@ -471,8 +499,8 @@
   // ni les libelles perso, ni le classement. C'est ce qui rend ce raccourci sans danger.
   async function ecrireReglages(champs) {
     if (!session()) throw new Error('aucune session');
-    var corps = Object.assign({ id: BdvCompte.monId(), maj_le: new Date().toISOString() }, champs);
-    var r = await api('/reglages?on_conflict=id', {
+    var corps = Object.assign({ bureau: bureau(), maj_le: new Date().toISOString() }, champs);
+    var r = await api('/reglages?on_conflict=bureau', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       corps: [corps]

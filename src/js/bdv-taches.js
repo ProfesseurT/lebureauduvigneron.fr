@@ -46,7 +46,12 @@
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch (e) {}
   }
   function session() { return (window.BdvCompte && BdvCompte.session()) || null; }
-  function pret() { return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()); }
+  // Le bureau est une condition au meme titre que la session depuis le lot 17 : une
+  // tache appartient a un bureau, et sans bureau connu on ne sait pas ou l'ecrire.
+  function pret() {
+    return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()
+      && BdvCompte.monBureau && BdvCompte.monBureau());
+  }
 
   function lireAttente() {
     try { return JSON.parse(localStorage.getItem(ATTENTE_KEY)) || {}; } catch (e) { return {}; }
@@ -78,26 +83,38 @@
 
   /* ---------------- LE SERVEUR ---------------- */
   function pousser(ligne) {
-    var moi = BdvCompte.monId();
-    if (!moi) return Promise.reject(new Error('pas de session'));
-    return BdvCompte.api('/taches?on_conflict=id,tache_id', {
+    var bureau = BdvCompte.monBureau();
+    if (!bureau) return Promise.reject(new Error('pas de bureau'));
+    /* CE QUI PEUT ECHOUER ICI DEPUIS LE LOT 17, et qu'il faut savoir lire : une tache
+       ecrite par quelqu'un d'autre du bureau est refusee par la base, arbitrage de Ted
+       du 13/09/2026. L'erreur est franche et pas silencieuse. On la traduit, sinon
+       l'ecran affiche « Supabase a refuse /taches (403) » a un vigneron. */
+    return BdvCompte.api('/taches?on_conflict=bureau,tache_id', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      corps: [Object.assign({}, ligne, { id: moi })]
+      corps: [Object.assign({}, ligne, { bureau: bureau })]
+    }).catch(function (e) {
+      if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
+        throw new Error('Cette tache a ete ecrite par quelqu\'un d\'autre de ton bureau : lui seul peut la modifier.');
+      }
+      throw e;
     });
   }
   function retirer(tid) {
-    var moi = BdvCompte.monId();
-    if (!moi) return Promise.reject(new Error('pas de session'));
+    var bureau = BdvCompte.monBureau();
+    if (!bureau) return Promise.reject(new Error('pas de bureau'));
     // Le filtre nomme les DEUX colonnes de la cle. La politique RLS suffirait, mais une
-    // requete qui dit exactement ce qu'elle supprime ne depend pas d'une politique.
-    return BdvCompte.api('/taches?id=eq.' + encodeURIComponent(moi)
+    // requete qui dit exactement ce qu'elle supprime ne depend pas d'une politique. Et
+    // depuis le lot 17 elle ne le peut plus : sans `bureau`, cette suppression viserait
+    // la meme cle de tache dans TOUS les bureaux de la personne.
+    return BdvCompte.api('/taches?bureau=eq.' + encodeURIComponent(bureau)
       + '&tache_id=eq.' + encodeURIComponent(tid), { methode: 'DELETE' });
   }
   async function charger() {
     if (!pret()) return;
     try {
-      var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fin_le,fait_le,maj_le');
+      var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fin_le,fait_le,maj_le'
+        + '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()));
       if (!lignes) return;       // null = session tombee ou corps vide, on garde le miroir
       var map = {};
       lignes.forEach(function (l) { map[l.tache_id] = l; });

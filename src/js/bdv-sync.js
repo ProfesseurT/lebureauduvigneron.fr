@@ -31,9 +31,27 @@
   // peut afficher une progression honnete au passage.
   const LOT = 500;
 
+  /* LE BUREAU EST AUSSI UNE CONDITION, 13/09/2026. Depuis le lot 17 une ligne
+     appartient a un bureau, pas a une personne : sans bureau connu, on ne sait pas ou
+     ecrire, et on prefere refuser franchement que d'envoyer une ligne sans proprietaire.
+     Le cas se produit une fois, au tout premier chargement suivant la mise en ligne :
+     BdvCompte.chargerBureau() va le chercher et previent par l'evenement `bdv:bureau`. */
   function pret(){
-    return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId());
+    return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()
+      && BdvCompte.monBureau && BdvCompte.monBureau());
   }
+
+  /* LA REGLE DE TOUT CE FICHIER DEPUIS LE LOT 17, et elle ne se devine pas a la lecture
+     d'une seule requete : la securite par ligne dit ce qu'on A LE DROIT de lire, le
+     bureau courant dit ce qu'on DOIT lire. Ce ne sont pas les memes. Mesure du
+     13/09/2026 sur un Postgres d'essai : un compte membre de DEUX bureaux lit 57 lignes
+     de vente sans filtre et 50 avec. Sans filtre, deux domaines se melangent dans la
+     meme ardoise sans lever la moindre erreur, et le chiffre d'affaires affiche est faux.
+
+     Donc `auBureau()` est colle a CHAQUE requete : les lectures et les suppressions
+     autant que les ecritures. Une suppression sans filtre de bureau effacerait la meme
+     cle metier dans TOUS les bureaux de la personne. */
+  function auBureau(){ return '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()); }
 
   /* ============================ LES LIGNES DE VENTE ============================ */
 
@@ -91,7 +109,7 @@
     for(;;){
       const borne = (apres == null) ? '' : '&empreinte=gt.' + encodeURIComponent(apres);
       const page = await BdvCompte.api(
-        '/ventes?select=empreinte,brut&order=empreinte.asc&limit=' + PAGE + borne);
+        '/ventes?select=empreinte,brut&order=empreinte.asc&limit=' + PAGE + borne + auBureau());
       if(!page || !page.length) break;
       page.forEach(function(l){ sorties.push({ h: l.empreinte, raw: l.brut }); });
       apres = page[page.length - 1].empreinte;
@@ -127,7 +145,7 @@
   }
 
   function envoyerLot(lot){
-    return BdvCompte.api('/ventes?on_conflict=id,empreinte', {
+    return BdvCompte.api('/ventes?on_conflict=bureau,empreinte', {
       methode: 'POST',
       corps: lot,
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
@@ -153,13 +171,13 @@
 
   async function pousserVentes(items, surProgres){
     if(!pret() || !items || !items.length) return { envoyees: 0, echecs: 0, doublons: 0 };
-    const moi = BdvCompte.monId();
+    const bureau = BdvCompte.monBureau();
     const uniques = dedoublonner(items);
     const doublons = items.length - uniques.length;
     let envoyees = 0, echecs = 0;
     for(let i = 0; i < uniques.length; i += LOT){
       const lot = uniques.slice(i, i + LOT).map(function(it){
-        return { id: moi, empreinte: it.h, brut: it.raw, maj_le: new Date().toISOString() };
+        return { bureau: bureau, empreinte: it.h, brut: it.raw, maj_le: new Date().toISOString() };
       });
       const r = await envoyerAvecReprise(lot);
       envoyees += r.envoyees;
@@ -172,7 +190,7 @@
   // Combien de lignes le compte contient-il vraiment. Sert au compteur d'ecart de « Ma base ».
   async function compterVentes(){
     if(!pret() || !BdvCompte.compter) return null;
-    return await BdvCompte.compter('/ventes?select=empreinte');
+    return await BdvCompte.compter('/ventes?select=empreinte' + auBureau());
   }
 
   /* ============================== LES REGLAGES ============================== */
@@ -182,17 +200,17 @@
 
   async function lireReglages(){
     if(!pret()) return null;
-    const lignes = await BdvCompte.api('/reglages?select=*&limit=1');
+    const lignes = await BdvCompte.api('/reglages?select=*' + auBureau() + '&limit=1');
     return (lignes && lignes[0]) || null;
   }
 
   // Ecriture complete, jamais partielle : c'est un enregistrement unique, et l'appelant
-  // connait toujours l'etat entier. `on_conflict=id` cree la ligne au premier appel.
+  // connait toujours l'etat entier. `on_conflict=bureau` cree la ligne au premier appel.
   async function ecrireReglages(champs){
     if(!pret()) return false;
-    const corps = Object.assign({ id: BdvCompte.monId(), maj_le: new Date().toISOString() }, champs);
+    const corps = Object.assign({ bureau: BdvCompte.monBureau(), maj_le: new Date().toISOString() }, champs);
     try{
-      await BdvCompte.api('/reglages?on_conflict=id', {
+      await BdvCompte.api('/reglages?on_conflict=bureau', {
         methode: 'POST',
         corps: [corps],
         entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
@@ -210,7 +228,7 @@
   // {clientId: {statut, notes, rappel, rappel_titre, canal, tags}}
   async function lireSuivi(){
     if(!pret()) return {};
-    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,rappel_titre,canal,tags');
+    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,rappel_titre,canal,tags' + auBureau());
     const out = {};
     (lignes || []).forEach(function(l){
       const c = {};
@@ -233,7 +251,7 @@
     if(!pret() || !clientId) return false;
     fiche = fiche || {};
     const corps = {
-      id: BdvCompte.monId(),
+      bureau: BdvCompte.monBureau(),
       client_id: String(clientId),
       statut: fiche.statut || null,
       notes:  fiche.notes  || null,
@@ -249,7 +267,7 @@
          reussie et une session morte se ressemblent donc exactement, et cette fonction
          repondait `true` dans les deux cas. La regle est deja ecrite dans le projet : toute
          ecriture dont l'issue est exploitee demande la representation. */
-      const r = await BdvCompte.api('/suivi_clients?on_conflict=id,client_id', {
+      const r = await BdvCompte.api('/suivi_clients?on_conflict=bureau,client_id', {
         methode: 'POST',
         corps: [corps],
         entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
@@ -266,7 +284,7 @@
       /* Meme motif que ecrireSuivi. Difference a connaitre : ici un tableau VIDE est un
          succes, il n'y avait simplement rien a supprimer. C'est `null` qui trahit la
          session tombee. */
-      const r = await BdvCompte.api('/suivi_clients?client_id=eq.' + encodeURIComponent(clientId), {
+      const r = await BdvCompte.api('/suivi_clients?client_id=eq.' + encodeURIComponent(clientId) + auBureau(), {
         methode: 'DELETE',
         entetes: { 'Prefer': 'return=representation' }
       });
@@ -287,13 +305,13 @@
   async function deposerFile(file, resume){
     if(!pret()) return false;
     const corps = {
-      id: BdvCompte.monId(),
+      bureau: BdvCompte.monBureau(),
       file_travail: file || [],
       resume_ventes: resume || null,
       depose_le: new Date().toISOString()
     };
     try{
-      await BdvCompte.api('/reglages?on_conflict=id', {
+      await BdvCompte.api('/reglages?on_conflict=bureau', {
         methode: 'POST',
         entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         corps: [corps]
@@ -320,7 +338,7 @@
     let debut = 0;
     for(;;){
       const page = await BdvCompte.api(
-        '/echanges?select=echange_id,client_id,le,type,canal,resume' + filtre +
+        '/echanges?select=echange_id,client_id,le,type,canal,resume' + filtre + auBureau() +
         '&order=le.desc&limit=' + PAGE + '&offset=' + debut);
       if(!page || !page.length) break;
       out.push.apply(out, page);
@@ -345,7 +363,7 @@
     // posee hors reseau et repoussee le lendemain s'affichait corrigee sans l'avoir ete.
     const quandE = entree.le || new Date().toISOString();
     const corps = {
-      id: BdvCompte.monId(),
+      bureau: BdvCompte.monBureau(),
       echange_id: String(entree.echange_id),
       client_id: String(entree.client_id),
       le: quandE,
@@ -355,7 +373,7 @@
       resume: entree.resume || null
     };
     try{
-      await BdvCompte.api('/echanges?on_conflict=id,echange_id', {
+      await BdvCompte.api('/echanges?on_conflict=bureau,echange_id', {
         methode: 'POST',
         entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         corps: [corps]
@@ -367,7 +385,7 @@
   async function supprimerEchange(echangeId){
     if(!pret() || !echangeId) return false;
     try{
-      await BdvCompte.api('/echanges?echange_id=eq.' + encodeURIComponent(echangeId), {
+      await BdvCompte.api('/echanges?echange_id=eq.' + encodeURIComponent(echangeId) + auBureau(), {
         methode: 'DELETE',
         entetes: { 'Prefer': 'return=minimal' }
       });
@@ -375,10 +393,16 @@
     }catch(e){ return false; }
   }
 
+  /* « VIDER LA BASE » EST DEVENU UN GESTE DE MAITRE, ET IL A CHANGE DE NOM, 13/09/2026.
+     `effacer_mes_donnees()` disait « mes donnees » a quelqu'un qui s'appretait a effacer
+     celles de tout un domaine ; elle est supprimee cote base, un appel a l'ancien nom
+     rend 404. La nouvelle verifie qui appelle AVANT d'effacer quoi que ce soit : un simple
+     utilisateur recoit un refus, et rien n'est touche. */
   async function effacerTout(){
     if(!pret()) return false;
     try{
-      await BdvCompte.api('/rpc/effacer_mes_donnees', { methode: 'POST', corps: {} });
+      await BdvCompte.api('/rpc/vider_la_base_du_bureau', {
+        methode: 'POST', corps: { b: BdvCompte.monBureau() } });
       return true;
     }catch(e){ return false; }
   }

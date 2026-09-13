@@ -54,6 +54,8 @@ const dom = new JSDOM('<!doctype html><body>'
                  runScripts: 'dangerously', pretendToBeVisual: true });
 const w = dom.window;
 w.BdvCompte = { monId: () => 'moi', session: () => ({ user: { id: 'moi' } }),
+                monBureau: () => 'b0000000-0000-0000-0000-000000000001',
+                refusDeProprietaire: () => false,
                 api: () => Promise.resolve([]) };
 /* LE MIROIR DE LA FILE, et rien d'autre : ce module ne fait aucun appel reseau, il
    lit ce que BdvCrm a depose. Trois lignes, trois cas : un rappel avec motif, un

@@ -91,6 +91,8 @@ function monter(reglages) {
   };
   w.BdvCompte = {
     monId: () => 'moi',
+    monBureau: () => 'b0000000-0000-0000-0000-000000000001',
+    refusDeProprietaire: () => false,
     session: () => ({ user: { id: 'moi' } }),
     profil: () => Promise.resolve({ utilise_vitisoft: 'oui' }),
     majProfil: () => Promise.resolve(true),

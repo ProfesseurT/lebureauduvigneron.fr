@@ -149,6 +149,13 @@
     // les reecrirait sur le compte du nouvel arrivant. Une page neuve est la seule facon
     // honnete de repartir.
     if(change){ try{ location.reload(); }catch(e){} }
+    /* LE BUREAU SE RELIT A CHAQUE SESSION NEUVE, 13/09/2026.
+       Un changement de compte est deja traite au-dessus : `oublierCetAppareil()` efface
+       toute cle `bdv_`, donc le bureau part avec le reste. Ce qui reste a couvrir est le
+       cas inverse et le plus frequent, la PREMIERE connexion sur ce navigateur : la cle
+       n'existe pas encore, et sans cet appel elle n'arriverait qu'au prochain chargement
+       de page. Entre les deux, tout ecran qui ecrit refuserait d'ecrire. */
+    chargerBureau().catch(function(){});
     return s;
   }
   function viderSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
@@ -1077,6 +1084,80 @@
   }
   document.addEventListener('click', surClicCompte);
 
+  /* ================================================================
+     LE BUREAU COURANT, 13/09/2026
+     ================================================================
+     Depuis le lot 17, une ligne de vente n'appartient plus a une PERSONNE mais a un
+     BUREAU. Toute requete doit donc dire de quel bureau elle parle.
+
+     POURQUOI UNE COPIE DANS LE NAVIGATEUR. `monId()` est synchrone, il lit la session
+     deja posee dans le stockage local, et les vingt-huit appels du projet comptent
+     dessus. Le bureau, lui, vit en base, dans `profils.bureau_courant`. Le lire a
+     chaque appel ferait un aller-retour reseau avant chaque ecriture. Il est donc
+     recopie ici a l'ouverture de session, et relu a chaque changement de bureau.
+
+     LA CLE COMMENCE PAR `bdv_`, ET CE N'EST PAS UN DETAIL. `oublierCetAppareil()`
+     efface TOUTE cle de ce prefixe : le bureau s'en va donc avec la deconnexion et
+     avec le changement de compte, sans qu'on ait a y penser. La fuite entre deux
+     comptes sur un poste partage, documentee le 07/09/2026, ne peut pas se rejouer
+     ici. Ne jamais renommer cette cle hors du prefixe.
+
+     ET SI ELLE MANQUE, ON N'ECRIT PAS. Un bureau nul fait echouer `pret()` dans tous
+     les modules, donc l'ecriture est refusee franchement au lieu de partir sans
+     proprietaire. C'est le cas du tout premier chargement apres la mise en ligne :
+     personne n'a encore la cle, `chargerBureau()` va la chercher, et l'evenement
+     `bdv:bureau` reveille les modules qui n'avaient rien pu lire. */
+  const BUREAU_KEY = 'bdv_bureau_v1';
+
+  function monBureau(){
+    try{ return localStorage.getItem(BUREAU_KEY) || null; }catch(e){ return null; }
+  }
+  function poserBureau(b){
+    try{
+      if(b) localStorage.setItem(BUREAU_KEY, b);
+      else localStorage.removeItem(BUREAU_KEY);
+    }catch(e){}
+  }
+  function signalerBureau(){
+    try{ document.dispatchEvent(new CustomEvent('bdv:bureau')); }catch(e){}
+  }
+
+  // Une seule requete, meme si cinq modules la demandent au meme instant au chargement.
+  let bureauEnRoute = null;
+
+  function chargerBureau(){
+    const s = lireSession();
+    if(!s){ poserBureau(null); return Promise.resolve(null); }
+    const deja = monBureau();
+    if(deja) return Promise.resolve(deja);
+    if(bureauEnRoute) return bureauEnRoute;
+    bureauEnRoute = (async function(){
+      try{
+        const r = await fetch(SUPABASE_URL + '/rest/v1/profils?id=eq.'
+          + encodeURIComponent(s.user.id) + '&select=bureau_courant', {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + s.access_token }
+        });
+        if(!r.ok) return null;
+        const lignes = await r.json();
+        const b = (lignes && lignes[0] && lignes[0].bureau_courant) || null;
+        if(b){ poserBureau(b); signalerBureau(); }
+        return b;
+      }catch(e){ return null; }
+      finally{ bureauEnRoute = null; }
+    })();
+    return bureauEnRoute;
+  }
+
+  /* RECONNAITRE LE REFUS DE PROPRIETAIRE, et lui, il faut le dire en francais.
+     Arbitrage de Ted du 13/09/2026 : chacun n'ecrit que ses propres lignes. Un collegue
+     qui modifie une fiche qu'il n'a pas creee ne recoit pas un refus poli, il recoit une
+     erreur franche de PostgreSQL (code 42501). Sans traduction, l'ecran afficherait
+     « Supabase a refuse /suivi_clients (403) » a un vigneron. */
+  function refusDeProprietaire(err){
+    if(!err || err.status !== 403) return false;
+    return String(err.detail || '').indexOf('row-level security') >= 0;
+  }
+
   window.BdvCompte = {
     session: lireSession,
     inscription: inscription,
@@ -1097,7 +1178,10 @@
     rpcPublic: rpcPublic,
     compter: compter,
     oublierCetAppareil: oublierCetAppareil,
-    monId: monId
+    monId: monId,
+    monBureau: monBureau,
+    chargerBureau: chargerBureau,
+    refusDeProprietaire: refusDeProprietaire
   };
 
   // Un profil que le reseau avait refuse repart a la premiere occasion, et la file se vide
@@ -1114,6 +1198,8 @@
 
   if(lireSession()){
     rafraichir();
+    // Avant majTrace : c'est le bureau qui conditionne toute ecriture, la trace non.
+    chargerBureau().catch(function(){});
     majTrace(lireSession(), {}).catch(function(){});
     rejouerProfilEnAttente();
   }

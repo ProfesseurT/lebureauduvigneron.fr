@@ -19,6 +19,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const BUREAU = 'b0000000-0000-0000-0000-000000000001';
 const JS = path.join(RACINE, 'src/js');
 
 let JSDOM;
@@ -51,6 +52,11 @@ function monter(opts) {
   const etat = { appels: [], horsLigne: !!opts.horsLigne };
   w.BdvCompte = {
     monId: () => opts.sansSession ? null : 'moi',
+    // Depuis le lot 17 la file d'attente appartient au BUREAU et plus a la personne :
+    // c'est `monBureau()` que `qui()` interroge, et donc lui qui doit varier ici.
+    monBureau: () => opts.sansSession ? null
+      : (opts.bureau || 'b0000000-0000-0000-0000-000000000001'),
+    refusDeProprietaire: () => false,
     session: () => opts.sansSession ? null : { user: { id: 'moi' } },
     api: (chemin, o) => {
       o = o || {};
@@ -94,10 +100,11 @@ console.log('\n== 1. Ne plus suivre un repere ==');
   await dormir(30);
   const e = t.ecritures();
   dit(e.length === 1 && e[0].methode === 'POST', 'eteindre ecrit une fois, en POST', e.length);
-  dit(e.length === 1 && e[0].chemin === '/calendrier_choix?on_conflict=id,cle',
-    'sur la cle (id, cle)', e.length && e[0].chemin);
+  dit(e.length === 1 && e[0].chemin === '/calendrier_choix?on_conflict=bureau,cle',
+    'sur la cle (bureau, cle)', e.length && e[0].chemin);
   const l = e.length ? e[0].corps[0] : {};
-  dit(l.id === 'moi', 'LA CHARGE PORTE L\'IDENTIFIANT DU COMPTE', JSON.stringify(l.id));
+  dit(l.bureau === BUREAU && l.id === undefined,
+    'LA CHARGE PORTE LE BUREAU, ET PLUS L\'IDENTIFIANT DU COMPTE', JSON.stringify(l.bureau));
   dit(l.cle === 'taille' && l.actif === false, 'et dit que ce repere n\'est plus suivi');
   dit(t.C.choix('taille').actif === false, 'l\'ecran le sait tout de suite');
   dit(t.C.eteints().indexOf('taille') >= 0, 'et il est retrouvable pour etre rallume');
@@ -121,7 +128,7 @@ console.log('\n== 2. Rallumer supprime la ligne ==');
      compte, toutes sans information. Meme regle que decocher une obligation. */
   dit(e.length === 1 && e[0].methode === 'DELETE',
     'rallumer SUPPRIME la ligne au lieu d\'ecrire un etat neutre', e.length && e[0].methode);
-  dit(e.length === 1 && e[0].chemin.indexOf('id=eq.moi') > 0 && e[0].chemin.indexOf('cle=eq.taille') > 0,
+  dit(e.length === 1 && e[0].chemin.indexOf('bureau=eq.' + BUREAU) > 0 && e[0].chemin.indexOf('cle=eq.taille') > 0,
     'et la requete nomme les DEUX colonnes de la cle', e.length && e[0].chemin);
   dit(t.C.eteints().length === 0, 'il n\'est plus dans les eteints');
 }
@@ -221,8 +228,8 @@ console.log('\n== 5. Hors ligne, puis rejeu ==');
   /* LE DEFAUT DES SIGNETS, 07/09/2026 : une ligne enfilee avec l'identifiant du
      compte repart sous CET identifiant, meme si quelqu'un d'autre se connecte
      entre-temps. `id` se pose a l'envoi, jamais chez l'appelant. */
-  dit(file.taille && file.taille.id === undefined,
-    'LA FILE NE GARDE PAS L\'IDENTIFIANT DU COMPTE : il est pose a l\'envoi',
+  dit(file.taille && file.taille.id === undefined && file.taille.bureau === undefined,
+    'LA FILE NE GARDE NI COMPTE NI BUREAU : ils sont poses a l\'envoi',
     JSON.stringify(file.taille));
 
   t.C.rallumer('taille');
@@ -269,7 +276,7 @@ console.log('\n== 6. Sans session, et a la deconnexion ==');
    navigateur, et le rejeu ecrit le choix de Ted SUR LE COMPTE DU COLLEGUE.
    La file se souvient donc de qui l'a remplie, et une file etrangere se jette.
    ========================================================================== */
-console.log('\n== 7. La file d\'un autre compte ne se rejoue pas ==');
+console.log('\n== 7. La file d\'un autre bureau ne se rejoue pas ==');
 {
   const t = monter({ horsLigne: true });
   await dormir(30);
@@ -277,17 +284,25 @@ console.log('\n== 7. La file d\'un autre compte ne se rejoue pas ==');
   await dormir(30);
   dit(!!JSON.parse(t.w.localStorage.getItem('bdv_calchoix_attente') || '{}').taille,
     'un geste hors ligne attend dans la file');
-  dit(t.w.localStorage.getItem('bdv_calchoix_attente_qui') === 'moi',
-    'et la file se souvient du compte qui l\'a remplie',
+  /* LOT 17 : LA FILE SE SOUVIENT DU BUREAU, PLUS DU COMPTE. Le defaut ferme le
+     08/09/2026 demandait deux personnes ; celui-ci n'en demande qu'une, qui eteint un
+     repere hors ligne puis change de bureau. */
+  dit(t.w.localStorage.getItem('bdv_calchoix_attente_qui') === BUREAU,
+    'et la file se souvient du BUREAU qui l\'a remplie',
     t.w.localStorage.getItem('bdv_calchoix_attente_qui'));
 
   t.horsLigne = false;
-  t.w.BdvCompte.monId = () => 'un-collegue';   // quelqu'un d'autre se connecte
+  /* ON CHANGE DE BUREAU, ET PLUS DE COMPTE. C'est le meme defaut avec une personne de
+     moins : Ted eteint un repere hors ligne dans son domaine, bascule sur le bureau du
+     domaine voisin dont il est aussi membre, et le rejeu ecrirait son choix la-bas.
+     Changer le compte marche aussi, puisque changer de compte change le bureau, mais ce
+     scenario-la est le plus etroit des deux et c'est lui qu'il faut garder. */
+  t.w.BdvCompte.monBureau = () => 'b0000000-0000-0000-0000-000000000002';
   t.appels.length = 0;
   t.w.document.dispatchEvent(new t.w.CustomEvent('bdv:session'));
   await dormir(40);
   dit(t.ecritures().length === 0,
-    'LE CHOIX DE L\'UN NE PART PAS SUR LE COMPTE DE L\'AUTRE',
+    'LE CHOIX D\'UN BUREAU NE PART PAS DANS L\'AUTRE',
     JSON.stringify(t.ecritures()));
   dit(t.w.localStorage.getItem('bdv_calchoix_attente') === null,
     'la file etrangere est jetee, pas gardee pour plus tard');
@@ -308,7 +323,7 @@ console.log('\n== 7. La file d\'un autre compte ne se rejoue pas ==');
   t.w.document.dispatchEvent(new t.w.CustomEvent('bdv:session'));
   await dormir(40);
   const e = t.ecritures();
-  dit(e.length === 1 && e[0].corps[0].cle === 'taille' && e[0].corps[0].id === 'moi',
+  dit(e.length === 1 && e[0].corps[0].cle === 'taille' && e[0].corps[0].bureau === BUREAU,
     'la meme personne, elle, rejoue sa file au retour du reseau',
     JSON.stringify(e.map(x => x.methode + ' ' + x.chemin)));
 }

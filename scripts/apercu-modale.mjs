@@ -50,6 +50,8 @@ const dom = new JSDOM(fs.readFileSync(PAGE, 'utf8'), {
        serveur des le chargement de la page, pas a l'ouverture de la piece. */
     w.BdvCompte = {
       monId: () => 'moi',
+      monBureau: () => 'b0000000-0000-0000-0000-000000000001',
+      refusDeProprietaire: () => false,
       session: () => ({ user: { id: 'moi' } }),
       api: () => Promise.resolve([])
     };

@@ -24,6 +24,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const BUREAU = 'b0000000-0000-0000-0000-000000000001';
 const JS = path.join(RACINE, 'src/js');
 
 let JSDOM;
@@ -56,15 +57,29 @@ function monter(opts) {
   const w = dom.window;
   const LIGNES = [];
   for (let i = 0; i < total; i++) LIGNES.push({ empreinte: 'h' + String(i).padStart(6, '0'), brut: ['x'] });
-  const etat = { appels: [], compteurs: 0, lignesRendues: 0 };
+  /* `comptesChemins` est SEPARE de `appels` a dessein : les sections 1 a 3 verifient
+     qu'AUCUNE lecture de ventes ne part, et un compteur range dans la meme liste les
+     ferait echouer alors qu'il ne lit aucune donnee. C'est le compteur d'en-tete
+     Content-Range, pas une lecture. */
+  const etat = { appels: [], comptesChemins: [], compteurs: 0, lignesRendues: 0 };
   w.BdvCompte = {
     monId: () => 'moi',
+    // Depuis le lot 17, `pret()` exige AUSSI un bureau : sans lui, pas une requete ne
+    // part, et tous les controles de ce banc tombent a zero d'un coup.
+    monBureau: () => opts.sansBureau ? null : BUREAU,
+    refusDeProprietaire: () => false,
     session: () => ({ user: { id: 'moi' } }),
     compter: opts.compteurCasse
       ? () => Promise.resolve(null)
-      : (chemin) => { etat.compteurs++; return Promise.resolve(total); },
+      : (chemin) => { etat.compteurs++; etat.comptesChemins.push(chemin); return Promise.resolve(total); },
     api: (chemin) => {
       etat.appels.push(chemin);
+      /* LE FAUX SERVEUR NE CONNAIT QUE `/ventes`, et c'est un piege paye en ecrivant la
+         section 5 : sur `/echanges`, qui pagine par decalage, il rendait la meme page de
+         ventes a l'infini et le banc mourait sur un « Invalid array length ». Le mode
+         muet rend un tableau vide, ce qui suffit quand on ne verifie que l'ADRESSE
+         demandee et pas ce qu'elle rapporte. */
+      if (opts.muet) return Promise.resolve([]);
       const u = new URL('https://x.test' + chemin);
       const limite = parseInt(u.searchParams.get('limit') || '1000', 10);
       const gt = u.searchParams.get('empreinte');   // « gt.h000123 »
@@ -172,6 +187,58 @@ console.log('\n== 4. Sans session ==');
   t.w.BdvCompte.monId = () => null;
   const l = await t.S.tirerVentes(null, 0);
   dit(l.length === 0 && t.lectures().length === 0, 'aucune requete ne part sans compte');
+}
+
+/* ==========================================================================
+   5. TOUTE REQUETE NOMME SON BUREAU, 13/09/2026
+   ==========================================================================
+   LE CONTROLE LE PLUS IMPORTANT DE CE BANC DEPUIS LE LOT 17, et le seul qui
+   attrape la classe entiere de defauts au lieu d'un cas.
+
+   La securite par ligne dit ce qu'on A LE DROIT de lire, le bureau courant dit
+   ce qu'on DOIT lire. Une requete qui oublie `bureau=eq.` ne leve AUCUNE erreur
+   et ne casse rien tant que la personne n'a qu'un bureau. Le jour ou elle en a
+   deux, elle melange deux domaines dans la meme ardoise, ou elle efface la meme
+   cle metier dans les deux. Mesure du 13/09/2026 sur un Postgres d'essai : 57
+   lignes lues sans filtre, 50 avec.
+
+   Aucune relecture ne garde ca. Un banc, si. */
+console.log('\n== 5. Toute requete nomme son bureau ==');
+{
+  const t = monter({ total: 120, muet: true });
+  await t.S.tirerVentes(null, 0);
+  await t.S.compterVentes();
+  await t.S.lireReglages();
+  await t.S.ecrireReglages({ objectif: 1000 });
+  await t.S.lireSuivi();
+  await t.S.ecrireSuivi('706', { statut: 'relance' });
+  await t.S.supprimerSuivi('812');
+  await t.S.lireEchanges('706');
+  await t.S.ecrireEchange({ echange_id: 'ec1', client_id: '706', type: 'appel' });
+  await t.S.supprimerEchange('ec1');
+  await t.S.deposerFile([], null);
+
+  const toutes = t.appels.concat(t.comptesChemins);
+  const sansBureau = toutes.filter(a => a.indexOf('/rpc/') !== 0
+    && a.indexOf('bureau=eq.' + BUREAU) < 0
+    && a.indexOf('on_conflict=bureau') < 0);
+  dit(toutes.length >= 11, toutes.length + ' requetes observees, compteur compris');
+  dit(sansBureau.length === 0,
+    'aucune requete ne part sans nommer son bureau, le compteur inclus'
+    + (sansBureau.length ? ' -> ' + sansBureau[0] : ''));
+
+  // Et les upserts nomment le bureau dans leur cle de conflit, sinon PostgREST
+  // ecraserait la ligne d'un autre bureau portant la meme cle metier.
+  const upserts = t.appels.filter(a => a.indexOf('on_conflict=') >= 0);
+  dit(upserts.length >= 4 && upserts.every(a => a.indexOf('on_conflict=bureau') >= 0),
+    'tout upsert porte `bureau` en tete de sa cle de conflit');
+}
+{
+  const t = monter({ total: 120, sansBureau: true, muet: true });
+  const l = await t.S.tirerVentes(null, 0);
+  const ecrit = await t.S.ecrireSuivi('706', { statut: 'relance' });
+  dit(l.length === 0 && ecrit === false && t.appels.length === 0,
+    'bureau inconnu : rien ne part, ni lecture ni ecriture');
 }
 
 console.log('\n== VERDICT ==');

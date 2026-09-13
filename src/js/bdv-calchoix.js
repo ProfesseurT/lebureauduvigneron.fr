@@ -41,12 +41,22 @@
   function ecrireCache(map) {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch (e) {}
   }
-  function pret() { return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()); }
+  function pret() {
+    return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()
+      && BdvCompte.monBureau && BdvCompte.monBureau());
+  }
 
   function lireAttente() {
     try { return JSON.parse(localStorage.getItem(ATTENTE_KEY)) || {}; } catch (e) { return {}; }
   }
-  function qui() { return (window.BdvCompte && BdvCompte.monId && BdvCompte.monId()) || null; }
+  /* LA FILE APPARTIENT A UN BUREAU, PLUS A UNE PERSONNE, 13/09/2026.
+     Le defaut ferme le 08/09/2026 etait : Ted eteint un repere hors ligne, se deconnecte,
+     un collegue se connecte sur le meme navigateur, et le rejeu ecrit le choix de Ted sur
+     le compte du collegue. Depuis le lot 17 le meme defaut existe dans une DIMENSION DE
+     PLUS, et il n'a pas besoin de deux personnes : une seule qui eteint un repere hors
+     ligne, change de bureau, et voit son choix atterrir dans l'autre domaine. Le
+     proprietaire de la file est donc le bureau. */
+  function qui() { return (window.BdvCompte && BdvCompte.monBureau && BdvCompte.monBureau()) || null; }
 
   function enfiler(cle, ligne) {
     var f = lireAttente();
@@ -105,26 +115,32 @@
 
   /* ---------------- LE SERVEUR ---------------- */
   function pousser(ligne) {
-    var moi = BdvCompte.monId();
-    if (!moi) return Promise.reject(new Error('pas de session'));
-    return BdvCompte.api('/calendrier_choix?on_conflict=id,cle', {
+    var bureau = BdvCompte.monBureau();
+    if (!bureau) return Promise.reject(new Error('pas de bureau'));
+    return BdvCompte.api('/calendrier_choix?on_conflict=bureau,cle', {
       methode: 'POST',
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      corps: [Object.assign({}, ligne, { id: moi })]
+      corps: [Object.assign({}, ligne, { bureau: bureau })]
+    }).catch(function (e) {
+      if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
+        throw new Error('Ce repere a ete regle par quelqu\'un d\'autre de ton bureau : lui seul peut le changer.');
+      }
+      throw e;
     });
   }
   function retirer(cle) {
-    var moi = BdvCompte.monId();
-    if (!moi) return Promise.reject(new Error('pas de session'));
-    // Le filtre nomme les DEUX colonnes de la cle. La politique RLS suffirait, mais
-    // une requete qui dit exactement ce qu'elle supprime ne depend pas d'une politique.
-    return BdvCompte.api('/calendrier_choix?id=eq.' + encodeURIComponent(moi)
+    var bureau = BdvCompte.monBureau();
+    if (!bureau) return Promise.reject(new Error('pas de bureau'));
+    // Le filtre nomme les DEUX colonnes de la cle. Sans `bureau`, cette suppression
+    // viserait le meme repere dans TOUS les bureaux de la personne.
+    return BdvCompte.api('/calendrier_choix?bureau=eq.' + encodeURIComponent(bureau)
       + '&cle=eq.' + encodeURIComponent(cle), { methode: 'DELETE' });
   }
   async function charger() {
     if (!pret()) return;
     try {
-      var lignes = await BdvCompte.api('/calendrier_choix?select=cle,actif,decale_de,maj_le');
+      var lignes = await BdvCompte.api('/calendrier_choix?select=cle,actif,decale_de,maj_le'
+        + '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()));
       if (!lignes) return;   // null = session tombee ou corps vide, on garde le miroir
       var map = {};
       lignes.forEach(function (l) { map[l.cle] = l; });

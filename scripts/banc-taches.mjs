@@ -22,6 +22,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const BUREAU = 'b0000000-0000-0000-0000-000000000001';
 const JS = path.join(RACINE, 'src/js');
 
 let JSDOM;
@@ -83,6 +84,9 @@ function monter(opts) {
   const etat = { appels: [], horsLigne: !!opts.horsLigne };
   w.BdvCompte = {
     monId: () => opts.sansSession ? null : 'moi',
+    // Le lot 17 fait du bureau une condition d'ecriture au meme titre que la session.
+    monBureau: () => opts.sansSession ? null : 'b0000000-0000-0000-0000-000000000001',
+    refusDeProprietaire: () => false,
     session: () => opts.sansSession ? null : { user: { id: 'moi' } },
     api: (chemin, o) => {
       o = o || {};
@@ -127,10 +131,14 @@ console.log('\n== 1. Une tache ecrite a la main ==');
   await dormir(30);
   const e = t.ecritures();
   dit(e.length === 1 && e[0].methode === 'POST', 'ajouter ecrit une fois, en POST', e.length);
-  dit(e.length === 1 && e[0].chemin === '/taches?on_conflict=id,tache_id',
-    'sur la cle (id, tache_id)', e.length && e[0].chemin);
+  dit(e.length === 1 && e[0].chemin === '/taches?on_conflict=bureau,tache_id',
+    'sur la cle (bureau, tache_id)', e.length && e[0].chemin);
   const l = e.length ? e[0].corps[0] : {};
-  dit(l.id === 'moi', 'LA CHARGE PORTE L\'IDENTIFIANT DU COMPTE', JSON.stringify(l.id));
+  // Lot 17 : une tache appartient a un BUREAU. `cree_par` n'est PAS envoye par le
+  // navigateur, c'est le defaut `auth.uid()` de la base qui le pose, et c'est ce qui
+  // empeche un compte d'ecrire le nom d'un autre sur une ligne.
+  dit(l.bureau === BUREAU && l.id === undefined,
+    'LA CHARGE PORTE LE BUREAU, ET PLUS L\'IDENTIFIANT DU COMPTE', JSON.stringify(l.bureau));
   dit(l.titre === 'commander des bouchons', 'et le titre saisi');
   dit(l.source === 'libre', 'la nature est « libre »', l.source);
   dit(l.fait_le === null, 'une tache neuve n\'est pas faite');
@@ -161,7 +169,7 @@ console.log('\n== 2. Une obligation du calendrier ==');
   let e = t.ecritures();
   dit(e.length === 1 && e[0].methode === 'POST', 'cocher ecrit une ligne', e.length);
   const l = e.length ? e[0].corps[0] : {};
-  dit(l.id === 'moi', 'la charge porte l\'identifiant du compte');
+  dit(l.bureau === BUREAU, 'la charge porte le bureau');
   dit(l.source === 'echeance' && l.ref === 'drm', 'la nature et la cle de l\'obligation', l.source + '/' + l.ref);
   dit(!!l.fait_le, 'avec la date du geste');
   dit(!!l.echue_le, 'et la date de l\'occurrence', l.echue_le);
@@ -173,7 +181,7 @@ console.log('\n== 2. Une obligation du calendrier ==');
   dit(e.length === 1 && e[0].methode === 'DELETE',
     'DECOCHER UNE OBLIGATION SUPPRIME LA LIGNE, il n\'y a rien a retenir d\'une obligation pas faite',
     e.length && e[0].methode);
-  dit(e.length === 1 && e[0].chemin.indexOf('id=eq.moi') > 0 && e[0].chemin.indexOf('tache_id=eq.') > 0,
+  dit(e.length === 1 && e[0].chemin.indexOf('bureau=eq.' + BUREAU) > 0 && e[0].chemin.indexOf('tache_id=eq.') > 0,
     'et la requete nomme les DEUX colonnes de la cle', e.length && e[0].chemin);
   dit(t.T.toutes().filter(x => x.source === 'echeance' && x.fait_le).length === 0,
     'l\'obligation est revenue a faire');
@@ -226,8 +234,8 @@ console.log('\n== 4. Hors ligne, puis rejeu ==');
   dit(!!tid, 'le geste tient a l\'ecran malgre le reseau coupe');
   const file = JSON.parse(t.w.localStorage.getItem('bdv_taches_attente') || '{}');
   dit(!!file[tid], 'et il part dans la file d\'attente');
-  dit(file[tid] && file[tid].id === undefined,
-    'LA FILE NE GARDE PAS L\'IDENTIFIANT DU COMPTE : il est pose a l\'envoi, sinon une ligne enfilee sous un autre compte repartirait sur celui-la');
+  dit(file[tid] && file[tid].id === undefined && file[tid].bureau === undefined,
+    'LA FILE NE GARDE NI COMPTE NI BUREAU : ils sont poses a l\'envoi, sinon une ligne enfilee ailleurs repartirait sur le mauvais proprietaire');
 
   // Le reseau revient : le rejeu doit envoyer la meme charge, et poser l'identifiant.
   t.horsLigne = false;
@@ -597,7 +605,7 @@ console.log('\n== 10. La modale d\'une tache ==');
   dit(e.length === 1 && e[0].methode === 'POST', 'et ecrit UNE fois, en POST', e.length);
   let l = e.length ? e[0].corps[0] : {};
   dit(l.titre === 'commander des bouchons de liege', 'le nouveau titre part', l.titre);
-  dit(l.id === 'moi', 'la charge porte l\'identifiant du compte');
+  dit(l.bureau === BUREAU, 'la charge porte le bureau');
   dit(!!l.cree_le, 'LA DATE DE CREATION SURVIT : corriger une faute de frappe ne rajeunit pas une tache');
   dit(l.echue_le === jour(5) && l.fin_le === null, 'et la nouvelle date', l.echue_le);
 

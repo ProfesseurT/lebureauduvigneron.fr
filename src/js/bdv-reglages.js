@@ -39,7 +39,13 @@
   const BLOCS = [];               // emplacements contribues par l'hote, cf. regle 3
 
   function el(id){ return document.getElementById(id); }
-  function pret(){ return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()); }
+  // Le bureau conditionne l'ecriture depuis le lot 17, au meme titre que la session.
+  // `chargerProfil()` ci-dessous est la seule exception du fichier : la fiche `profils`
+  // appartient toujours a la PERSONNE, pas au bureau. Elle se lit donc par `monId()`.
+  function pret(){
+    return !!(window.BdvCompte && BdvCompte.monId && BdvCompte.monId()
+      && BdvCompte.monBureau && BdvCompte.monBureau());
+  }
 
   /* ============================== LE STYLE ==============================
      Une seule regle a retenir avant d'y toucher : n'utiliser QUE les 52 jetons declares
@@ -530,7 +536,10 @@
 
   function chargerReglages(){
     if(!pret() || !BdvCompte.api) return Promise.resolve(null);
-    return BdvCompte.api('/reglages?select=objectif,exercice_debut&limit=1')
+    // `limit=1` ne suffit plus : le jour ou quelqu'un est membre de deux bureaux, il
+    // rendrait l'objectif de l'un ou de l'autre au hasard du plan d'execution.
+    return BdvCompte.api('/reglages?select=objectif,exercice_debut'
+      + '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()) + '&limit=1')
       .then(function(lignes){
         if(!Array.isArray(lignes)) return null;
         REGL = lignes[0] || {};
@@ -539,13 +548,13 @@
       }).catch(function(){ return null; });
   }
 
-  // Ecriture partielle assumee : `on_conflict=id` + merge-duplicates ne touche QUE les
+  // Ecriture partielle assumee : `on_conflict=bureau` + merge-duplicates ne touche QUE les
   // colonnes envoyees. Ecrire l'objectif d'ici n'efface donc ni la file deposee par le
   // tableau de bord, ni les libelles perso, ni le classement.
   function ecrireReglages(champs){
     if(!pret()) return Promise.reject(new Error('pas de compte'));
-    const corps = Object.assign({ id: BdvCompte.monId(), maj_le: new Date().toISOString() }, champs);
-    return BdvCompte.api('/reglages?on_conflict=id', {
+    const corps = Object.assign({ bureau: BdvCompte.monBureau(), maj_le: new Date().toISOString() }, champs);
+    return BdvCompte.api('/reglages?on_conflict=bureau', {
       methode: 'POST',
       corps: [corps],
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }

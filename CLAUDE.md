@@ -1726,6 +1726,84 @@ et `est_maitre` y apparaissent comme executables par les comptes connectes, et e
 pas le choix, une fonction appelee dans une politique s'execute avec les droits de celui
 qui lit.
 
+## LE BUREAU EST LE PROPRIETAIRE, PLUS LA PERSONNE, 13/09/2026
+
+Depuis le lot 17, une ligne de vente, une note client, un echange, une tache et un choix de
+calendrier appartiennent a un BUREAU. Les six tables portent `bureau` et `cree_par` la ou
+elles portaient `id`. Le detail du chantier est dans `PLAN_multi-utilisateurs.md`.
+
+### La securite par ligne dit ce qu'on A LE DROIT de lire, le bureau courant dit ce qu'on DOIT lire
+
+**C'est la regle la plus facile a perdre du chantier, parce que l'oublier ne casse rien
+aujourd'hui.** Une requete sans `bureau=eq.` fonctionne parfaitement tant que la personne
+n'a qu'un seul bureau. Le jour ou elle en a deux, la meme requete melange deux domaines
+dans la meme ardoise, sans lever la moindre erreur et sans qu'aucun ecran ne change d'allure.
+
+Mesure du 13/09/2026, sur un PostgreSQL d'essai : un compte membre de deux bureaux lit
+**57 lignes de vente sans filtre et 50 avec**.
+
+Donc : **toute requete du navigateur nomme son bureau, les LECTURES et les SUPPRESSIONS
+autant que les ecritures.** Une suppression qui ne nomme que sa cle metier effacerait la
+meme tache, le meme repere ou la meme fiche dans TOUS les bureaux de la personne.
+
+Le garde-fou est la section 5 de `npm run banc:sync` : elle joue les onze appels du module,
+compteur compris, et echoue en nommant la requete fautive. Verifiee en remettant le defaut.
+
+### Le bureau courant vit dans `bdv_bureau_v1`, et ce prefixe n'est pas decoratif
+
+`BdvCompte.monBureau()` est synchrone et lit le stockage local, comme `monId()` : les
+vingt-huit appels du projet en dependent. La cle commence par `bdv_`, donc
+`oublierCetAppareil()` l'efface avec le reste a la deconnexion et au changement de compte.
+**Ne jamais la renommer hors de ce prefixe** : ce serait rouvrir la fuite entre deux comptes
+sur un poste partage, fermee le 07/09/2026.
+
+Sans bureau connu, `pret()` est faux dans tous les modules et **rien ne part** : ni lecture
+ni ecriture. C'est le cas du tout premier chargement qui suit la mise en ligne, ou personne
+n'a encore la cle. `BdvCompte.chargerBureau()` va la chercher et previent par l'evenement
+`bdv:bureau`.
+
+### Chacun n'ecrit que ses propres lignes, et le maitre n'y echappe pas
+
+Arbitrage de Ted du 13/09/2026. Sur `suivi_clients`, `echanges`, `taches` et
+`calendrier_choix`, seul `cree_par` peut modifier ou supprimer. Consequences a connaitre
+avant de croire a un bug :
+
+- la premiere personne qui touche une fiche client la verrouille pour les autres ;
+- **le maitre du bureau ne peut pas corriger la fiche creee par un simple utilisateur** ;
+- le refus n'est pas poli, c'est une erreur franche de PostgreSQL sur l'upsert.
+  `BdvCompte.refusDeProprietaire(err)` la reconnait, et les modules la traduisent en
+  francais. Un message anglais avec un code 403 qui remonte a l'ecran est un defaut.
+
+`ventes` et `reglages` suivent l'autre regle : tout le bureau LIT, le maitre seul ECRIT. Un
+import de travers ne se trompe pas d'une ligne, il double le chiffre d'affaires du domaine.
+
+**Ce choix vit entierement dans les politiques, pas dans la forme des donnees.** L'ouvrir au
+bureau entier le jour ou il genera coute un `drop policy` et un `create policy`, sans
+migration et sans toucher au navigateur.
+
+### `v_courrier` depend de colonnes qu'on renomme, et Postgres le refuse
+
+Une vue qui lit une colonne EMPECHE de la supprimer. Le lot 17 supprime donc la vue en tete
+de script et la reconstruit a la fin, **a l'identique pour celui qui la lit** : memes neuf
+colonnes, meme ordre, donc pas une ligne a changer dans `courrier-matin`. Elle garde
+`with (security_invoker = true)`, sans quoi elle s'executerait avec les droits de son
+proprietaire et tout compte connecte lirait les adresses, les jetons de desinscription et
+les notes clients de tous les autres.
+
+### Ce qui N'A PAS bascule, et qu'il ne faut pas basculer par symetrie
+
+`profils` et `signets` appartiennent toujours a la PERSONNE. Une fiche de compte et ce qu'on
+met de cote a lire ne sont pas des donnees de domaine. `chargerProfil()` dans
+`bdv-reglages.js` est donc la seule lecture du fichier qui interroge encore `monId()`.
+
+### Reste ouvert
+
+`bdv-taches.js` et `bdv-signets.js` n'ont toujours pas de proprietaire sur leur file hors
+ligne, defaut signale le 08/09/2026. Pour les taches, il change de nature avec le lot 17 :
+une file remplie hors ligne et rejouee apres un changement de bureau ecrirait dans le mauvais
+domaine. **A fermer AVANT le lot du selecteur de bureau**, sur le modele de
+`bdv-calchoix.js`, qui retient desormais le BUREAU et plus le compte.
+
 ### LE SEUIL : le premier destinataire qui n'est pas Ted
 
 En phase de test, Ted a garde `courrier.` comme sous-domaine d'envoi et le palier Resend
