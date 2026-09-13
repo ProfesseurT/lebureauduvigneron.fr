@@ -36,6 +36,8 @@
 
   var CACHE_KEY   = 'bdv_taches_v1';
   var ATTENTE_KEY = 'bdv_taches_attente';
+  // Le proprietaire de la file, pose le 13/09/2026 sur le modele de bdv-calchoix.js.
+  var ATTENTE_QUI = 'bdv_taches_attente_qui';
   var JOUR = 24 * 3600 * 1000;
 
   /* ---------------- LE MIROIR ET LA FILE ---------------- */
@@ -56,12 +58,43 @@
   function lireAttente() {
     try { return JSON.parse(localStorage.getItem(ATTENTE_KEY)) || {}; } catch (e) { return {}; }
   }
+  function qui() { return (window.BdvCompte && BdvCompte.monBureau && BdvCompte.monBureau()) || null; }
+
   function enfiler(tid, ligne) {
     var f = lireAttente();
     f[tid] = ligne;              // seul le dernier etat d'une tache compte
-    try { localStorage.setItem(ATTENTE_KEY, JSON.stringify(f)); } catch (e) {}
+    try {
+      localStorage.setItem(ATTENTE_KEY, JSON.stringify(f));
+      /* LA FILE SE SOUVIENT DU BUREAU QUI L'A REMPLIE, 13/09/2026.
+         Signale le 08/09/2026, laisse ouvert, et devenu atteignable avec le lot 17 : la
+         LIGNE ne porte pas son proprietaire, il est pose a l'envoi (defaut des signets du
+         07/09/2026). Sans cette memoire, une tache notee hors ligne dans un domaine et
+         rejouee apres un changement de bureau partirait dans l'AUTRE domaine.
+
+         Il ne faut plus deux personnes pour declencher le defaut, une seule suffit, et
+         c'est ce qui le rend urgent maintenant.
+
+         Hors ligne et sans bureau, `qui()` est nul : la file n'appartient a personne
+         encore, et le premier bureau ouvert la reprendra. C'est voulu, c'est le vigneron
+         qui note dans le rang avant d'avoir du reseau. */
+      localStorage.setItem(ATTENTE_QUI, qui() || '');
+    } catch (e) {}
+  }
+  function jeterAttente() {
+    try {
+      localStorage.removeItem(ATTENTE_KEY);
+      localStorage.removeItem(ATTENTE_QUI);
+    } catch (e) {}
+  }
+  function fileEtrangere() {
+    var moi = qui();
+    if (!moi) return false;
+    var proprio;
+    try { proprio = localStorage.getItem(ATTENTE_QUI); } catch (e) { return false; }
+    return !!proprio && proprio !== moi;
   }
   async function viderAttente() {
+    if (fileEtrangere()) { jeterAttente(); return; }
     var f = lireAttente(), tids = Object.keys(f);
     if (!tids.length || !pret()) return;
     var restant = {};
@@ -77,7 +110,7 @@
     }
     try {
       if (Object.keys(restant).length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(restant));
-      else localStorage.removeItem(ATTENTE_KEY);
+      else jeterAttente();
     } catch (e) {}
   }
 

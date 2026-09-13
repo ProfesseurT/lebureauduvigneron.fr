@@ -248,6 +248,41 @@ console.log('\n== 4. Hors ligne, puis rejeu ==');
 }
 
 /* ==========================================================================
+   4 bis. LA FILE D'UN AUTRE BUREAU NE SE REJOUE PAS, 13/09/2026
+   ==========================================================================
+   Le defaut avait ete signale le 08/09/2026 et laisse ouvert, parce qu'il
+   demandait deux personnes sur un meme navigateur. Le lot 17 le rend
+   atteignable par UNE SEULE : noter une tache hors ligne dans un domaine,
+   basculer sur l'autre bureau, et le rejeu ecrirait la tache dans le mauvais
+   domaine. Sans erreur, et sans que rien ne se voie a l'ecran.
+
+   La ligne enfilee ne porte toujours PAS son proprietaire, il est pose a
+   l'envoi : c'est ce qui protege de la premiere fuite, et c'est exactement ce
+   qui cause celle-ci. La file, elle, se souvient. */
+console.log('\n== 4 bis. La file d\'un autre bureau ne se rejoue pas ==');
+{
+  const t = monter({ horsLigne: true });
+  await dormir(30);
+  t.T.ajouter('rincer la cuve 4', null);
+  await dormir(30);
+  dit(Object.keys(JSON.parse(t.w.localStorage.getItem('bdv_taches_attente') || '{}')).length === 1,
+    'un geste hors ligne attend dans la file');
+  dit(t.w.localStorage.getItem('bdv_taches_attente_qui') === BUREAU,
+    'et la file se souvient du BUREAU qui l\'a remplie',
+    t.w.localStorage.getItem('bdv_taches_attente_qui'));
+
+  t.horsLigne = false;
+  t.w.BdvCompte.monBureau = () => 'b0000000-0000-0000-0000-000000000002';
+  t.appels.length = 0;
+  t.w.document.dispatchEvent(new t.w.CustomEvent('bdv:session'));
+  await dormir(40);
+  dit(t.ecritures().length === 0,
+    'LA TACHE D\'UN BUREAU NE PART PAS DANS L\'AUTRE', JSON.stringify(t.ecritures()));
+  dit(!t.w.localStorage.getItem('bdv_taches_attente'),
+    'et la file etrangere est jetee, pas gardee pour plus tard');
+}
+
+/* ==========================================================================
    5. L'ORDRE, ET LES PUNAISES DU PANNEAU
    ========================================================================== */
 console.log('\n== 5. L\'ordre et les punaises ==');
