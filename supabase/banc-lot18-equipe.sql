@@ -1,0 +1,44 @@
+-- ===========================================================================
+-- BANC DE L'EQUIPE, lot 18, 13/09/2026. NE PAS PASSER DANS SUPABASE.
+-- ===========================================================================
+-- Se joue APRES supabase/banc-lot15-cloison.sql (qui monte le decor Supabase sur
+-- un PostgreSQL jetable) puis lot15, lot17 et lot18. Voir l'en-tete du banc du
+-- lot 15 pour les commandes exactes.
+--
+-- Alice est maitresse de « Domaine Alice ». Bob a son propre bureau. Bob2 n'a pas
+-- encore de compte au debut du scenario : c'est tout l'interet, un invite n'en a
+-- pas forcement un.
+--
+-- IL A TROUVE UN DEFAUT, le controle 11 : Alice, maitresse de son propre bureau,
+-- nomme un associe maitre a son tour puis s'en va. Elle n'appartenait alors a
+-- AUCUN bureau, `monBureau()` rendait nul, et tout le bureau devenait muet sans
+-- un message. D'ou le garde du dernier bureau, ajoute le jour meme.
+
+-- 1.  Alice invite « Bob2@EX.fr » : l'adresse est normalisee, un jeton de 64
+--     signes est rendu UNE FOIS.
+-- 2.  Le jeton clair n'est nulle part en base ; seule son empreinte y est.
+-- 3.  invitation_apercu marche SANS session (l'invite n'a pas de compte) et rend
+--     le nom du bureau, le prenom de celui qui invite, l'etat. Rien d'autre.
+-- 3b. Un jeton invente ne rend aucune ligne.
+-- 4.  Bob, connecte avec une AUTRE adresse, accepte : refuse. C'est le verrou
+--     central : le lien seul ne suffit jamais, il faut le lien ET l'adresse.
+-- 5.  Bob2 cree son compte, accepte : il entre, et son bureau courant est pose
+--     sur le bureau rejoint (sinon il atterrit devant son bureau solo vide).
+-- 6.  Le meme lien une deuxieme fois : refuse, usage unique.
+-- 7.  Bob2, simple utilisateur, essaie d'inviter : refuse.
+-- 8.  Bob2 voit l'equipe AVEC les noms et les adresses, par la fonction
+--     `equipe()` : la politique de `profils` ne laisse pas lire la fiche d'un
+--     collegue, et l'ouvrir exposerait jeton_emails.
+-- 9.  Bob2 essaie de se nommer maitre : refuse.
+-- 10. Alice le nomme maitre : passe.
+-- 11. Alice part, il reste un maitre : passe, et son bureau courant est range.
+-- 11 bis. Alice quitte son DERNIER bureau : refuse (le defaut trouve ici).
+-- 11 ter. Bob2, qui garde son bureau solo, part sans probleme et retombe dessus.
+-- 12. Bob2, dernier maitre, essaie de partir : refuse.
+-- 13. Un compte connecte ne lit PAS `jeton_hash` (droit retire colonne par
+--     colonne), mais lit bien le reste de la ligne.
+
+-- Le scenario complet est dans l'historique de la session du 13/09/2026. Le
+-- reecrire ici en SQL executable est le chantier du jour ou ce banc devra tourner
+-- tout seul : pour l'instant il documente CE QUI A ETE VERIFIE, et les verdicts
+-- attendus de chaque pas.
