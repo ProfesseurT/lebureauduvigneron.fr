@@ -76,17 +76,23 @@ a regler avant d'ecrire une ligne de SQL.
 | `calendrier_choix` | les reperes du domaine | tout le monde, avec `maj_par`. |
 | `signets` | ma lecture | **reste attache a la PERSONNE**, hors bureau. |
 
-### RESERVE A LEVER AVANT LE LOT 2
+### LA RESERVE, TRANCHEE PAR TED LE 13/09/2026
 
 `suivi_clients` porte une seule ligne par client pour tout le bureau (statut, notes, rappel,
-canal, tags). Si seul son createur peut l'ecrire, **le premier qui touche un client le
-verrouille pour les autres a jamais** : personne ne peut plus changer le statut ni poser un
-rappel. Idem pour `taches` : une tache creee par Alice ne pourrait pas etre cochee par Bob.
+canal, tags). La regle « mes propres lignes » y a une consequence que Ted a assumee en
+connaissance de cause : **le premier qui touche un client le verrouille pour les autres.**
+Personne d'autre ne peut plus changer son statut, poser un rappel ni corriger la date. Idem
+pour `taches` : une tache ecrite par Alice ne peut etre cochee que par Alice.
 
-La regle « mes propres lignes » est juste pour un JOURNAL, elle casse un ETAT PARTAGE.
-Proposition, a valider par Ted : la regle s'applique a `echanges`, et `suivi_clients` comme
-`taches` restent ouvertes a tout le bureau en portant `maj_par` pour qu'on sache qui a
-touche en dernier. Tant que ce n'est pas tranche, le lot 2 n'est pas ecrivable.
+**Arbitrage : la regle s'applique partout, sans exception.** Le tableau du dessus est donc a
+lire au pied de la lettre, y compris ses deux lignes « tout le monde », qui deviennent « son
+auteur seul ».
+
+Ce qui rend ce choix reversible, et c'est la raison de l'ecrire ici : **il vit entierement
+dans les politiques de securite, pas dans la forme des donnees.** La colonne `cree_par` est
+posee dans les deux cas. Ouvrir `suivi_clients` au bureau entier le jour ou le verrouillage
+genera coutera un `drop policy` et un `create policy`, sans migration et sans toucher au
+navigateur. Ne pas prendre ce choix pour une contrainte de structure.
 
 ## LES SIX VERROUS
 
@@ -173,8 +179,7 @@ verrous du dernier maitre.
 
 ## CE QUI RESTE OUVERT
 
-1. **La reserve sur `suivi_clients` et `taches`** (voir plus haut). Bloquant pour le lot 2.
-2. Un simple utilisateur peut-il importer un export de ventes ? La reponse proposee est non,
+1. Un simple utilisateur peut-il importer un export de ventes ? La reponse proposee est non,
    parce qu'un import de travers touche la base entiere du domaine.
-3. Que voit un invite AVANT d'accepter : le nom du bureau et celui qui invite, rien d'autre.
-4. Que devient un bureau dont le maitre supprime son compte, s'il est seul dedans.
+2. Que voit un invite AVANT d'accepter : le nom du bureau et celui qui invite, rien d'autre.
+3. Que devient un bureau dont le maitre supprime son compte, s'il est seul dedans.
