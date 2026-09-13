@@ -1692,6 +1692,40 @@ How to apply: pour tout nouvel objet, **`revoke all` d'abord, sur `anon` ET sur
 `authenticated`**, puis accorder le strict necessaire. Et apres chaque creation, controler avec
 `information_schema.role_table_grants` plutot que de supposer.
 
+### ET UN REVOKE SUR `public` NE RETIRE PAS UN DROIT NOMINATIF, 13/09/2026
+
+Le symetrique de la regle du dessus, paye sur les FONCTIONS. Le lot 13 croyait fermer sa
+fonction de purge avec `revoke all on function ... from public;`. Ca n'a rien retire :
+Supabase n'accorde pas l'execution par PUBLIC, il l'accorde NOMMEMENT a `anon`,
+`authenticated` et `service_role` sur toute fonction creee dans le schema public. Mesure
+sur un PostgreSQL 16 jetable qui reproduit ce reglage :
+
+    a la creation                                       anon=oui  connecte=oui
+    apres `revoke ... from public`                      anon=OUI  connecte=OUI
+    apres `revoke ... from public, anon, authenticated` anon=non  connecte=non
+
+`courrier_envois_purger()` est donc restee appelable SANS SESSION, avec la seule cle
+publique du site, pendant deux jours. Elle efface les lignes de plus d'un an du journal
+des envois, c'est-a-dire la preuve que `src/rgpd.njk` promet de garder un an.
+
+**Tout revoke de fermeture nomme les trois roles**, comme le fait deja la section 10 de
+`schema.sql`. Et `service_role` et `postgres` gardent leur droit quand un planificateur
+appelle la fonction : les retirer arreterait la tache en silence.
+
+### Un droit accorde COLONNE PAR COLONNE ne se lit pas dans la meme vue, 13/09/2026
+
+`information_schema.role_table_grants` ne montre PAS un `grant update (nom) on ...`. Le
+controle de fin du lot 15 affirmait le contraire et aurait fait conclure a un grant rate.
+Un droit de table se lit dans `role_table_grants`, un droit de colonne dans
+`information_schema.column_privileges`. Les deux questions se posent separement.
+
+**Et le controle de securite de Supabase se lance apres tout lot SQL** (`get_advisors`,
+type `security`). C'est lui qui a trouve les deux points ci-dessus, deux jours et quatre
+jours apres les lots qui les avaient poses. Savoir y lire les faux positifs : `est_membre`
+et `est_maitre` y apparaissent comme executables par les comptes connectes, et elles n'ont
+pas le choix, une fonction appelee dans une politique s'execute avec les droits de celui
+qui lit.
+
 ### LE SEUIL : le premier destinataire qui n'est pas Ted
 
 En phase de test, Ted a garde `courrier.` comme sous-domaine d'envoi et le palier Resend

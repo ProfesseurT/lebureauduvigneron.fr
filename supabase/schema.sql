@@ -893,3 +893,17 @@ end $$;
 --     where table_schema = 'public' and table_name in ('bureaux','membres')
 --       and grantee in ('anon','authenticated') and privilege_type <> 'SELECT'
 --     order by table_name, column_name;
+
+
+-- ===========================================================================
+-- LOT 16, ajoute le 13/09/2026 : fermer deux fonctions joignables de dehors.
+-- ===========================================================================
+-- Copie de supabase/lot16-fermer-fonctions.sql, qui est ce qu'on colle, et ou le
+-- raisonnement complet et la mesure sont ecrits.
+--
+-- LA REGLE, et c'est le symetrique de celle du 09/09/2026 sur les tables :
+-- **un revoke sur PUBLIC ne retire pas un droit nominatif.** Supabase accorde
+-- l'execution a anon, authenticated et service_role NOMMEMENT sur toute fonction
+-- creee dans le schema public. Tout revoke de fermeture nomme donc les roles.
+revoke all on function public.courrier_envois_purger()      from public, anon, authenticated;
+revoke all on function public.profils_dater_consentements() from public, anon, authenticated;

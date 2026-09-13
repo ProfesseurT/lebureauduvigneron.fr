@@ -49,7 +49,16 @@ $$;
 
 -- Personne n'appelle cette fonction a la main. Le planificateur tourne en
 -- `postgres`, qui est proprietaire : il n'a besoin d'aucun droit accorde.
-revoke all on function public.courrier_envois_purger() from public;
+--
+-- CORRIGE LE 13/09/2026, cf. supabase/lot16-fermer-fonctions.sql. Cette ligne
+-- ne disait `from public` que, et un revoke sur PUBLIC NE RETIRE PAS un droit
+-- nominatif : Supabase accorde l'execution a `anon`, `authenticated` et
+-- `service_role` NOMMEMENT sur toute fonction creee dans le schema public. La
+-- fonction est donc restee appelable sans session, avec la seule cle publique,
+-- pendant deux jours. Les trois roles se nomment, comme le fait deja la
+-- section 10 de schema.sql. `service_role` et `postgres` gardent le leur : c'est
+-- `postgres` qui fait tourner la tache planifiee.
+revoke all on function public.courrier_envois_purger() from public, anon, authenticated;
 
 comment on function public.courrier_envois_purger() is
   'Efface les lignes de courrier_envois de plus d''un an. Tenue de la duree de '

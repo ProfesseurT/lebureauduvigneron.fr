@@ -1,0 +1,89 @@
+-- ===========================================================================
+-- LOT 16, 13/09/2026 : FERMER DEUX FONCTIONS RESTEES JOIGNABLES DE DEHORS.
+-- ===========================================================================
+-- A coller tel quel dans l'editeur SQL Supabase (projet qukmncqqwomhmrdhvetj).
+-- Recopie dans supabase/schema.sql, qui est la REFERENCE.
+--
+-- Deux lignes utiles, et une lecon qui vaut pour tous les lots a venir.
+--
+-- CE QU'ON CROYAIT. La section 10 de schema.sql pose la regle depuis le
+-- 04/09/2026 : « une fonction SECURITY DEFINER joignable de l'exterieur n'a rien
+-- a faire dans une surface publique ». Le lot 13 croyait l'appliquer en ecrivant
+-- `revoke all on function public.courrier_envois_purger() from public;`.
+--
+-- CE QUI SE PASSAIT VRAIMENT. Ce revoke ne retire RIEN a `anon` ni a
+-- `authenticated`. Supabase ne leur donne pas le droit par PUBLIC : il le leur
+-- accorde NOMMEMENT, a chaque fonction creee dans le schema public, par un
+-- `alter default privileges`. Retirer le droit de PUBLIC laisse donc les trois
+-- droits nominatifs intacts.
+--
+-- MESURE, sur un PostgreSQL 16 jetable qui reproduit ce reglage (13/09/2026) :
+--
+--   a la creation                          anon=oui  connecte=oui  service=oui
+--   apres `revoke ... from public`         anon=OUI  connecte=OUI  service=oui
+--   apres `revoke ... from public, anon, authenticated`
+--                                          anon=non  connecte=non  service=oui
+--
+-- C'est le symetrique exact de la regle deja ecrite pour les TABLES le
+-- 09/09/2026, « grant ne definit pas les droits, il les ajoute ». Dans l'autre
+-- sens : **un revoke sur PUBLIC ne retire pas un droit nominatif.** La section 10
+-- de schema.sql avait raison de nommer les trois roles ; le lot 13 ne l'a pas
+-- fait, et son commentaire affirmait le contraire.
+--
+-- CE QUE CA OUVRAIT, exactement. `courrier_envois_purger()` efface les lignes de
+-- `courrier_envois` de plus d'un an, et elle etait appelable SANS SESSION, avec
+-- la seule cle anon lisible dans un fichier JavaScript du site. Sans effet a ce
+-- jour, le journal ayant quatre jours. Le jour ou il aura plus d'un an, c'est la
+-- preuve de ce qui a ete envoye qui devient effacable par n'importe qui,
+-- c'est-a-dire exactement ce que `src/rgpd.njk` promet de conserver un an.
+--
+-- `profils_dater_consentements()` est une fonction de DECLENCHEUR : appelee a la
+-- main elle echouerait, elle lit `new`. Aucun trou reel, le meme cas exactement
+-- que `creer_profil()` et `synchroniser_email_profil()`, fermees le 04/09/2026.
+-- On la ferme par coherence, pas par urgence.
+
+-- ---------------------------------------------------------------------------
+-- 1. Les deux revokes
+-- ---------------------------------------------------------------------------
+-- `service_role` et `postgres` GARDENT leur droit, et ce n'est pas un oubli : la
+-- purge est lancee par la tache planifiee `courrier-envois-purge`, qui tourne en
+-- `postgres`. Les retirer arreterait la purge en silence, donc casserait la duree
+-- de conservation qu'on vient de proteger. Ces deux roles ne sont joignables
+-- qu'avec une cle qui ne quitte jamais le serveur.
+revoke all on function public.courrier_envois_purger()      from public, anon, authenticated;
+revoke all on function public.profils_dater_consentements() from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 2. A CONTROLER APRES AVOIR PASSE CE SCRIPT
+-- ---------------------------------------------------------------------------
+-- La liste complete de ce qui est joignable, et par qui. A lancer tel quel :
+--
+--   select p.proname,
+--          has_function_privilege('anon', p.oid, 'execute')          as anon_peut,
+--          has_function_privilege('authenticated', p.oid, 'execute') as connecte_peut
+--     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--    where n.nspname = 'public' and p.prokind = 'f'
+--    order by 2 desc, 3 desc, 1;
+--
+-- CE QU'ON ATTEND, ligne par ligne, et il faut savoir lire les trois familles :
+--
+--   anon = oui, VOULU     emails_lire, emails_ecrire. C'est la porte de
+--                         desinscription sans connexion : se retirer doit etre
+--                         aussi simple que consentir (RGPD 7-3). Elles ne rendent
+--                         rien sans un jeton exact de 128 bits.
+--
+--   connecte = oui, VOULU effacer_mes_donnees (bornee a auth.uid()),
+--                         est_membre et est_maitre. Ces deux dernieres N'ONT PAS
+--                         LE CHOIX : une fonction appelee dans une politique
+--                         s'execute avec les droits de celui qui lit. Leur
+--                         retirer ce droit ferait echouer toutes les lectures du
+--                         bureau. Elles ne repondent que sur l'appelant.
+--
+--   tout a non            les six fonctions de declencheur : creer_profil,
+--                         synchroniser_email_profil, profils_dater_consentements,
+--                         garder_un_maitre, verifier_bureau_courant, et
+--                         courrier_envois_purger qui n'est appelee que par la
+--                         tache planifiee.
+--
+-- Et la tache planifiee doit toujours etre vivante :
+--   select jobname, schedule, active from cron.job where jobname = 'courrier-envois-purge';
