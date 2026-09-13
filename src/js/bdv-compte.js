@@ -178,18 +178,26 @@
      memoire des noms des clients suivis. Elle se reconstruit a la premiere ouverture du
      tableau de bord, sauf pour un client suivi qui ne figure plus dans l'export : son nom
      redevient un numero Vitisoft. C'est le seul prix connu de ce menage. */
-  function oublierCetAppareil(){
+  /* `garder` est la liste des cles qui SURVIVENT. Vide, c'est la deconnexion, qui
+     emporte tout. Le changement de bureau, lui, garde la session et le proprietaire :
+     c'est la meme personne, ce n'est plus le meme domaine. Voir changerDeBureau(). */
+  function viderLePoste(garder){
+    garder = garder || [];
     try{
       const aJeter = [];
       for(let i = 0; i < localStorage.length; i++){
         const k = localStorage.key(i);
-        if(k && k.indexOf('bdv_') === 0) aJeter.push(k);
+        if(k && k.indexOf('bdv_') === 0 && garder.indexOf(k) < 0) aJeter.push(k);
       }
       aJeter.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
     }catch(e){}
-    // La base des lignes de vente. Supprimee entierement, pas videe store par store : une
-    // base supprimee est recreee proprement par dbOpen() a la prochaine ouverture.
     try{ if(window.indexedDB) indexedDB.deleteDatabase('bdv_ventes_v4'); }catch(e){}
+  }
+
+  function oublierCetAppareil(){
+    viderLePoste();
+    // La base des lignes de vente est supprimee par viderLePoste(), entierement et pas
+    // store par store : une base supprimee est recreee proprement par dbOpen().
   }
 
   // L'ordre des tests compte : invalid_credentials contient "invalid", email_not_confirmed
@@ -1148,6 +1156,47 @@
     return bureauEnRoute;
   }
 
+  /* LA LISTE DES BUREAUX DE CETTE PERSONNE, pour le selecteur de la barre.
+     Passe par la relation entre `membres` et `bureaux` : la securite par ligne borne
+     deja les deux tables a ce dont on est membre, il n'y a donc rien a filtrer ici. */
+  async function mesBureaux(){
+    const lignes = await api('/membres?select=bureau,role,bureaux(nom)&order=depuis.asc');
+    if(!Array.isArray(lignes)) return [];
+    return lignes.map(function(l){
+      return { bureau: l.bureau, role: l.role, nom: (l.bureaux && l.bureaux.nom) || 'Mon bureau' };
+    });
+  }
+
+  /* CHANGER DE BUREAU, ET POURQUOI CA VIDE LE POSTE.
+     ================================================================
+     C'est le geste le plus dangereux du chantier multi-utilisateurs, et le danger
+     ne se voit pas : il ne vient pas des droits, il vient de la MEMOIRE LOCALE.
+
+     Ce navigateur porte les lignes de vente du bureau qu'on quitte, dans IndexedDB,
+     plus le miroir du suivi client, les taches, les choix de calendrier et l'objectif.
+     Si on change de bureau sans rien jeter, `tirerVentes()` compare le nombre de
+     lignes d'ICI avec celui du NOUVEAU bureau, trouve un ecart, rapatrie tout, et
+     AJOUTE les lignes du second aux lignes du premier. Deux domaines melanges dans
+     une seule ardoise, un chiffre d'affaires faux, et pas une erreur nulle part.
+
+     On vide donc exactement comme a la deconnexion, a ceci pres que la session
+     reste : c'est la meme personne, ce n'est plus le meme domaine.
+
+     ET ON RECHARGE LA PAGE. Vider le disque n'enleve rien de la MEMOIRE VIVE : les
+     ecrans ont deja lu les chiffres du bureau precedent au moment ou la page s'est
+     affichee. C'est le meme raisonnement, et les memes mots, que le changement de
+     compte du 07/09/2026 : une page neuve est la seule facon honnete de repartir. */
+  async function changerDeBureau(b){
+    if(!b) throw new Error('aucun bureau');
+    const s = lireSession();
+    if(!s) throw new Error('aucune session');
+    // La base d'abord : si elle refuse (on n'est pas membre), on n'a rien casse ici.
+    await majProfil({ bureau_courant: b });
+    viderLePoste([SESSION_KEY, PROPRIO_KEY]);
+    poserBureau(b);
+    try{ location.replace('/mon-bureau/'); }catch(e){ location.reload(); }
+  }
+
   /* RECONNAITRE LE REFUS DE PROPRIETAIRE, et lui, il faut le dire en francais.
      Arbitrage de Ted du 13/09/2026 : chacun n'ecrit que ses propres lignes. Un collegue
      qui modifie une fiche qu'il n'a pas creee ne recoit pas un refus poli, il recoit une
@@ -1180,7 +1229,10 @@
     oublierCetAppareil: oublierCetAppareil,
     monId: monId,
     monBureau: monBureau,
+    poserBureau: poserBureau,
     chargerBureau: chargerBureau,
+    mesBureaux: mesBureaux,
+    changerDeBureau: changerDeBureau,
     refusDeProprietaire: refusDeProprietaire
   };
 

@@ -8054,3 +8054,219 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 .echeance__ouvrir:hover { color: var(--bordeaux); }
 .echeance__ouvrir:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
 
+
+/* ==========================================================================
+   L'EQUIPE, ET LE BANDEAU D'INVITATION, 13/09/2026
+   --------------------------------------------------------------------------
+   Aucun jeton nouveau : cette piece n'apporte pas de matiere, elle range des
+   lignes sur le papier du bureau. Les seules paires de couleurs employees sont
+   deja mesurees ailleurs dans cette feuille (--ink sur --paper, --muted sur
+   --paper, --on-dark sur --bordeaux, --danger-deep sur --paper).
+
+   LE BOUTON SECONDAIRE EST `.btn--geste` ET JAMAIS `.btn--ghost`. Le fantome
+   pose `color: var(--paper)` : il est fait pour les sections sombres, et sur le
+   papier il est parfaitement invisible. Defaut paye le 11/09/2026 sur la page
+   de desinscription, ou le bouton le plus important ne se voyait pas.
+   ========================================================================== */
+.equipe-liste {
+  list-style: none;
+  margin: var(--e-m) 0 0;
+  padding: 0;
+  border-top: var(--trait) solid var(--rule);
+}
+.equipe-ligne {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.4fr) minmax(0, 1.6fr) auto auto;
+  align-items: center;
+  gap: var(--e-s);
+  padding: var(--e-s) 0;
+  border-bottom: var(--trait) solid var(--rule);
+}
+.equipe-ligne__nom { font-weight: 500; }
+.equipe-ligne__moi { color: var(--muted); font-weight: 400; }
+.equipe-ligne__adresse {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+  overflow-wrap: anywhere;
+}
+.equipe-ligne__gestes { text-align: right; white-space: nowrap; }
+.equipe-ligne__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
+
+/* L'etiquette de role dit un ETAT, pas un geste : elle ne se clique pas et ne
+   prend donc ni le dessin ni la hauteur d'un bouton. */
+.equipe-role {
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border: var(--trait) solid var(--rule-fort);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.equipe-role--maitre {
+  background: var(--bordeaux);
+  border-color: var(--bordeaux);
+  color: var(--on-dark);
+}
+
+.equipe-note,
+.equipe-inviter__aide,
+.equipe-lien__aide {
+  color: var(--muted);
+  font-size: var(--t-petit);
+  line-height: var(--lh-lecture);
+  margin-top: var(--e-s);
+}
+
+.equipe-avis {
+  margin: var(--e-s) 0 0;
+  padding: var(--e-s);
+  background: var(--paper-deep);
+  border-left: var(--trait-accent) solid var(--bordeaux);
+}
+.equipe-avis--souci {
+  background: var(--danger-bg);
+  border-left-color: var(--danger-deep);
+  color: var(--danger-deep);
+}
+
+.equipe-inviter { margin-top: var(--e-l); }
+.equipe-inviter__l {
+  display: block;
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--e-xs);
+}
+.equipe-inviter__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-inviter__i { flex: 1 1 16rem; }
+.equipe-inviter__i,
+.equipe-inviter__r,
+.equipe-lien__i {
+  min-height: var(--h-controle);
+  padding: 0.4rem 0.6rem;
+  background: var(--white);
+  border: var(--trait) solid var(--rule-fort);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  /* 16 px, et pas moins : sous cette taille, iOS zoome tout seul a la saisie et
+     ne redezoome jamais. C'est la regle du bureau sur telephone. */
+  font-size: var(--t-base);
+}
+
+.equipe-lien {
+  margin-top: var(--e-m);
+  padding: var(--e-m);
+  background: var(--paper-deep);
+  box-shadow: var(--ombre-carte);
+}
+.equipe-lien__titre { margin: 0; }
+.equipe-lien__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-s);
+  margin-top: var(--e-s);
+}
+.equipe-lien__i {
+  flex: 1 1 20rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-mini);
+}
+
+.equipe-attentes { margin-top: var(--e-l); }
+.equipe-attentes__t {
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+.equipe-partir-ligne { margin-top: var(--e-xl); }
+
+/* LE BANDEAU D'INVITATION est la premiere chose que voit quelqu'un qui arrive
+   par un lien, et souvent la seule qu'il lira : il porte le filet d'accent du
+   bureau, pas une couleur d'alerte. Une invitation n'est pas un incident. */
+.invitation {
+  margin: var(--e-m) 0;
+  padding: var(--e-m);
+  background: var(--paper-deep);
+  border-left: var(--trait-accent) solid var(--bordeaux);
+  box-shadow: var(--ombre-carte);
+}
+.invitation__titre {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  margin: 0 0 var(--e-xs);
+}
+.invitation__note {
+  color: var(--muted);
+  font-size: var(--t-petit);
+  line-height: var(--lh-lecture);
+  margin: 0 0 var(--e-s);
+}
+.invitation__souci { color: var(--danger-deep); margin: 0; }
+
+/* SUR TELEPHONE, LA LIGNE S'EMPILE. Quatre colonnes dans 390 px donneraient une
+   adresse e-mail coupee en quatre lignes et deux boutons de six pixels. La
+   mesure de la RANGEE, pas de l'element : regle du 11/09/2026. */
+@media (max-width: 700px) {
+  body.bdv-poste .equipe-ligne {
+    grid-template-columns: 1fr auto;
+    row-gap: var(--e-xs);
+  }
+  body.bdv-poste .equipe-ligne__adresse { grid-column: 1 / -1; }
+  body.bdv-poste .equipe-ligne__gestes { grid-column: 1 / -1; text-align: left; }
+}
+
+/* Le nom du bureau courant, en tete de la barre. Il est sur le papier de la page
+   et pas sur une languette : --muted sur --paper est la paire deja mesuree de
+   toutes les notes du site. Il ne s'affiche qu'a partir de deux bureaux. */
+.bureau-nav__bureau {
+  display: block;
+  padding: 0 var(--e-m) var(--e-xs);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.bureau-nav__bureau:hover { color: var(--bordeaux); text-decoration: underline; }
+
+.equipe-bureau {
+  margin-bottom: var(--e-l);
+  padding-bottom: var(--e-m);
+  border-bottom: var(--trait) solid var(--rule);
+}
+.equipe-bureau__l {
+  display: block;
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--e-xs);
+}
+.equipe-bureau__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-bureau__s {
+  flex: 1 1 16rem;
+  min-height: var(--h-controle);
+  padding: 0.4rem 0.6rem;
+  background: var(--white);
+  border: var(--trait) solid var(--rule-fort);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+}
+.equipe-bureau__aide {
+  color: var(--muted);
+  font-size: var(--t-petit);
+  line-height: var(--lh-lecture);
+  margin-top: var(--e-s);
+}

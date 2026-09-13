@@ -124,6 +124,12 @@
     // Le calendrier : le sablier, et le sable deja tombe.
     calendrier:'<path d="M6 3h8M6 17h8"/><path d="M6.5 3c0 3.2 3.5 5.2 3.5 7s-3.5 3.8-3.5 7"/>'
               + '<path d="M13.5 3c0 3.2-3.5 5.2-3.5 7s3.5 3.8 3.5 7"/><path d="M8 17h4"/>',
+    /* L'equipe : une CLE, et pas deux tetes de plus. « Mes clients » porte deja deux
+       tetes, et cette piece ne parle pas de gens en general : elle parle de qui a la
+       cle du bureau. Un objet, comme les huit autres, et il dit le sujet sans le
+       dessiner. */
+    equipe:   '<circle cx="5.5" cy="10" r="3"/><path d="M8.5 10h8"/>'
+              + '<path d="M13 10v2.6M15.5 10v2"/>',
     // Mes reglages : un curseur de reglage, pas une roue crantee. On regle son bureau,
     // on ne le demonte pas.
     reglages: '<path d="M3.5 6.5h13M3.5 13.5h13"/><circle cx="12.5" cy="6.5" r="2.2"/>'
@@ -185,6 +191,14 @@
     { id: 'chercher', viti: true,  ico: TRACES.chercher, label: 'Mon registre',
       href: '/mon-bureau/#chercher',
       quoi: 'Une ligne, un client, une facture' },
+    /* L'EQUIPE EST AVANT-DERNIERE, juste devant les reglages, et pour la meme
+       raison qu'eux : on y va quand on invite quelqu'un ou quand on change de
+       bureau, pas tous les jours. Pas `viti` : travailler a plusieurs ne demande
+       aucun export, et un domaine sans Vitisoft a autant besoin d'inviter son
+       salarie qu'un autre. */
+    { id: 'equipe',    ico: TRACES.equipe,     label: 'L\'équipe',
+      href: '/mon-bureau/#equipe',
+      quoi: 'Qui travaille ici, et dans quel bureau tu es' },
     { id: 'reglages',  ico: TRACES.reglages,   label: 'Mes réglages',
       panneau: true,
       quoi: 'Ton domaine, ta base, tes objectifs' }
@@ -291,6 +305,16 @@
     { js: '/js/bdv-calchoix.js' },
     { js: '/js/bdv-calendrier.js' }
   ];
+
+  /* L'EQUIPE, chargee au premier clic comme le calendrier. Un seul fichier, pas de
+     feuille a part : cette piece ne pose aucune matiere nouvelle, elle range des
+     lignes sur le papier du bureau, et son habillage vit dans style.css. */
+  var RESSOURCES_EQUIPE = [{ js: '/js/bdv-equipe.js' }];
+  var _equipe = null;
+  function chargerEquipe() {
+    if (!_equipe) _equipe = enchainer(RESSOURCES_EQUIPE);
+    return _equipe;
+  }
 
   function poserCss(href) {
     return new Promise(function (ok) {
@@ -448,7 +472,8 @@
      affichee sous une autre : le bureau montrerait deux pieces empilees. */
   function seule(quelle) {
     var zones = { journee: 'bureauJournee', taches: 'bureauTaches',
-                  calendrier: 'bureauCalendrier', ventes: 'bureauVentes' };
+                  calendrier: 'bureauCalendrier', equipe: 'bureauEquipe',
+                  ventes: 'bureauVentes' };
     Object.keys(zones).forEach(function (k) {
       var n = document.getElementById(zones[k]);
       if (n) n.hidden = (k !== quelle);
@@ -510,6 +535,32 @@
         if (avc) {
           avc.textContent = 'Ton calendrier n\'a pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
           avc.hidden = false;
+        }
+      });
+      return;
+    }
+
+    /* L'EQUIPE. Meme forme que le calendrier : chargement au premier clic, voile
+       d'attente, et retour a « Ma journee » si le reseau lache, plutot qu'une
+       colonne vide. */
+    if (id === 'equipe') {
+      seule('equipe');
+      marquerActif('equipe');
+      if (opts.ecrire !== false && location.hash !== '#equipe') {
+        history.pushState(null, '', '#equipe');
+      }
+      attente('equipe', true);
+      chargerEquipe().then(function () {
+        attente('equipe', false);
+        if (window.BdvEquipe) BdvEquipe.ouvrir();
+      })['catch'](function () {
+        attente('equipe', false);
+        _equipe = null;
+        afficher('journee');
+        var ave = document.getElementById('bureauAvis');
+        if (ave) {
+          ave.textContent = 'L\'équipe n\'a pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+          ave.hidden = false;
         }
       });
       return;
@@ -577,7 +628,17 @@
   function monter(conteneur, idActif) {
     if (!conteneur) return;
 
-    var html = '<ul class="bureau-nav__liste" id="bureauNavListe">';
+    /* DANS QUEL BUREAU SUIS-JE. La ligne est vide et masquee tant qu'on ne le sait
+       pas : elle n'apparait qu'une fois la liste des bureaux lue, et seulement s'il
+       y en a plus d'un. Quelqu'un qui n'a que le sien n'a pas besoin qu'on le lui
+       rappelle, et un libelle qui ne sert a rien est un libelle qu'on cesse de lire.
+
+       ELLE MENE A « L'EQUIPE » ET NE CHANGE RIEN ELLE-MEME : le changement de
+       bureau vide le poste et recharge la page, ce n'est pas un geste qu'on pose
+       dans une barre de navigation en passant la souris dessus. */
+    var html = '<a class="bureau-nav__bureau" id="bureauNavBureau"'
+      + ' href="/mon-bureau/#equipe" hidden></a>'
+      + '<ul class="bureau-nav__liste" id="bureauNavListe">';
 
     PIECES.forEach(function (p) {
       var actif = p.id === idActif;
@@ -701,6 +762,45 @@
     // /mon-bureau/#clients ouvre les clients, pas la journee.
     suivreAdresse();
 
+    nommerLeBureau();
+    invitationEventuelle();
+  }
+
+  /* ---------------------------------------------------------------------------
+     LE NOM DU BUREAU COURANT, quand il y en a plusieurs
+     -------------------------------------------------------------------------
+     Lecture reseau, donc tardive : la barre est deja montee quand la reponse
+     arrive. C'est voulu, et c'est la meme regle que pour Vitisoft : on MASQUE une
+     ligne deja posee plutot que de remonter la barre a l'arrivee du profil, ce
+     qui ferait clignoter la navigation sous la souris.
+  --------------------------------------------------------------------------- */
+  function nommerLeBureau() {
+    if (!(window.BdvCompte && BdvCompte.mesBureaux && BdvCompte.monBureau
+          && BdvCompte.monBureau())) return;
+    BdvCompte.mesBureaux().then(function (liste) {
+      if (!liste || liste.length < 2) return;
+      var n = document.getElementById('bureauNavBureau');
+      if (!n) return;
+      var ici = liste.filter(function (b) { return b.bureau === BdvCompte.monBureau(); })[0];
+      if (!ici) return;
+      n.textContent = ici.nom;
+      n.title = 'Tu travailles dans ' + ici.nom + '. Changer de bureau : L\'équipe.';
+      n.hidden = false;
+    })['catch'](function () { /* pas de nom, pas de ligne : rien de casse */ });
+  }
+
+  /* UNE INVITATION N'ATTEND PAS UN CLIC. Elle arrive par l'adresse, et souvent
+     chez quelqu'un qui n'a pas encore de compte : le module part donc tout de
+     suite, et lui seul. Les 32 ko bloquants du bureau ne bougent pas, parce que
+     personne ne charge ce fichier sans un jeton dans l'adresse ou en attente. */
+  function invitationEventuelle() {
+    var enAdresse = location.search.indexOf('invitation=') >= 0;
+    var enAttente = false;
+    try { enAttente = !!sessionStorage.getItem('bdv_invitation_en_cours'); } catch (e) {}
+    if (!enAdresse && !enAttente) return;
+    chargerEquipe().then(function () {
+      if (window.BdvEquipe) BdvEquipe.traiterInvitation();
+    })['catch'](function () { /* sans le module, le lien reste cliquable plus tard */ });
   }
 
   /* ---------------------------------------------------------------------------
@@ -759,5 +859,5 @@
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
                     marquerActif: marquerActif, ouvrirReglages: ouvrirReglages,
-                    chargerEcrans: chargerEcrans };
+                    chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe };
 })();

@@ -1798,11 +1798,58 @@ met de cote a lire ne sont pas des donnees de domaine. `chargerProfil()` dans
 
 ### Reste ouvert
 
-`bdv-taches.js` et `bdv-signets.js` n'ont toujours pas de proprietaire sur leur file hors
-ligne, defaut signale le 08/09/2026. Pour les taches, il change de nature avec le lot 17 :
-une file remplie hors ligne et rejouee apres un changement de bureau ecrirait dans le mauvais
-domaine. **A fermer AVANT le lot du selecteur de bureau**, sur le modele de
-`bdv-calchoix.js`, qui retient desormais le BUREAU et plus le compte.
+`bdv-signets.js` n'a toujours pas de proprietaire sur sa file hors ligne, defaut signale le
+08/09/2026. Les signets restent attaches a la PERSONNE, le risque est donc celui d'origine,
+deux comptes sur un poste partage, et pas celui du bureau. Celle des taches a ete fermee le
+13/09/2026, sur le modele de `bdv-calchoix.js` : la file retient le BUREAU.
+
+## CHANGER DE BUREAU VIDE LE POSTE, 13/09/2026
+
+**C'est le geste le plus dangereux du chantier, et le danger ne vient pas des droits : il
+vient de la MEMOIRE LOCALE.** Ce navigateur porte les lignes de vente du bureau qu'on
+quitte, dans IndexedDB, plus le miroir du suivi client, les taches, les choix de calendrier
+et l'objectif. Changer de bureau sans rien jeter, et `tirerVentes()` compare le nombre de
+lignes d'ICI avec celui du NOUVEAU bureau, trouve un ecart, rapatrie tout, et AJOUTE les
+lignes du second aux lignes du premier. Deux domaines melanges dans une seule ardoise, un
+chiffre d'affaires faux, et pas une erreur nulle part.
+
+**Tout changement de bureau passe donc par `BdvCompte.changerDeBureau()`**, jamais par une
+ecriture directe de `profils.bureau_courant`. Elle ecrit en base d'abord (si on n'est pas
+membre, la base refuse et rien n'a ete casse ici), vide le poste comme a la deconnexion mais
+GARDE la session (`viderLePoste([SESSION_KEY, PROPRIO_KEY])`), repose la cle du bureau, puis
+recharge la page. Le rechargement n'est pas de la prudence : vider le disque n'enleve rien de
+la memoire vive, et les ecrans ont deja lu les chiffres du bureau precedent. Meme
+raisonnement, et memes mots, que le changement de compte du 07/09/2026.
+
+L'acceptation d'une invitation passe par le MEME chemin, pour la meme raison.
+
+## LA PIECE « L'EQUIPE », 13/09/2026
+
+Neuvieme piece de la barre, avant-derniere, juste devant les reglages : on y va quand on
+invite quelqu'un ou quand on change de bureau, pas tous les jours. Pas `viti` : travailler a
+plusieurs ne demande aucun export.
+
+**L'INVITATION EST UN LIEN, PAS UN MAIL.** La regle du SEUIL, plus haut dans ce fichier, veut
+qu'au premier destinataire qui n'est pas Ted on sorte du sous-domaine `courrier.`, qu'on
+passe Resend au palier payant et qu'on ecrive les textes legaux. Un lien ne declenche aucun
+des trois. `inviter()` rend deja le jeton : le jour ou l'envoi par mail arrivera, il se
+posera par-dessus sans rien changer.
+
+**Le jeton ne s'affiche qu'une fois, et l'ecran le DIT.** La base n'en garde que l'empreinte.
+Un lien perdu se remplace en reinvitant la meme adresse, ce qui annule le precedent.
+
+**Cacher un bouton n'est pas une securite.** Les sept fonctions du lot 18 verifient chacune
+qui appelle avant d'ecrire. L'ecran masque seulement les gestes qui finiraient en refus.
+
+**Le selecteur de bureau est DANS la piece, pas dans la barre.** La barre n'affiche que le
+NOM du bureau courant, et seulement a partir de deux bureaux : un selecteur a une seule ligne
+est un ecran mort. Et un geste qui vide le poste et recharge la page ne se pose pas dans une
+navigation, sous la souris de quelqu'un qui passe.
+
+**`.btn--ghost` EST INTERDIT SUR LE PAPIER.** Il pose `color: var(--paper)` : il est fait
+pour les sections sombres, et sur fond clair il est parfaitement invisible. Defaut paye le
+11/09/2026 sur la page de desinscription. Le bouton secondaire du bureau est `.btn--geste`.
+Je m'appretais a repayer ce defaut deux fois dans cette piece.
 
 ### LE SEUIL : le premier destinataire qui n'est pas Ted
 

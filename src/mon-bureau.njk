@@ -133,6 +133,13 @@ permalink: /mon-bureau/
         <span class="zone__note" id="fileNote"></span>
       </div>
       <p class="bureau-avis" id="bureauAvis" hidden></p>
+
+      {# LE BANDEAU D'INVITATION. Il est ICI, dans le travail du bureau et pas dans une
+         page a part : la regle du 07/09/2026 veut qu'un chantier entre par le bureau.
+         Il est rempli par src/js/bdv-equipe.js, qui n'est charge QUE si l'adresse porte
+         un jeton, ou si une invitation attend dans sessionStorage. Vide et masque le
+         reste du temps, il ne coute que ses deux balises. #}
+      <div class="invitation" id="invitationBandeau" hidden></div>
       <div id="bureauFile"></div>
       <p class="zone__pied" id="filePied" hidden></p>
     </section>
@@ -391,6 +398,94 @@ permalink: /mon-bureau/
          2 500 lignes de JavaScript qui attendent le premier clic, pas son HTML : cinquante
          lignes de balises ne coutent rien, et les avoir la evite d'injecter du DOM au
          moment ou le vigneron clique. -->
+    {# ================= L'EQUIPE =================
+       Le corps des deux listes est vide : src/js/bdv-equipe.js les remplit, et lui
+       seul. Ce qui est ecrit ici est le chrome, comme pour le calendrier, et il est
+       dans le gabarit pour que la charte du bureau le voie.
+
+       LES BOUTONS QU'UN SIMPLE UTILISATEUR NE PEUT PAS UTILISER SONT MASQUES, ET CE
+       N'EST PAS LA SECURITE : cacher un bouton n'a jamais empeche un appel. Les sept
+       fonctions du lot 18 verifient chacune qui appelle avant d'ecrire. Ici on evite
+       seulement de proposer un geste qui finirait en refus. #}
+    <div class="bureau-plan" id="bureauEquipe" hidden>
+      <section class="zone">
+        <div class="zone__tete">
+          <h2>L'équipe</h2>
+          <span class="zone__note">Qui travaille dans ce bureau</span>
+        </div>
+
+        {# LE CHANGEMENT DE BUREAU EST ICI, et pas dans la barre : il vide le poste et
+           recharge la page. Ce n'est pas un geste qu'on pose en passant la souris sur
+           une navigation. Le bloc reste masque tant qu'il n'y a qu'un bureau : un
+           sélecteur à une seule ligne est un écran mort. #}
+        <div class="equipe-bureau" id="equipeBureauBloc" hidden>
+          <label class="equipe-bureau__l" for="equipeBureauChoix">Tu travailles dans</label>
+          <div class="equipe-bureau__ligne">
+            <select class="equipe-bureau__s" id="equipeBureauChoix"></select>
+            <button type="button" class="btn btn--geste" id="equipeBureauAller">Y aller</button>
+          </div>
+          <p class="equipe-bureau__aide">
+            Changer de bureau recharge la page et vide ce navigateur de ce qu'il
+            garde du bureau précédent. Rien n'est perdu : tout est sur le compte.
+          </p>
+        </div>
+
+        <p class="equipe-avis" id="equipeAvis" hidden></p>
+
+        <ul class="equipe-liste" id="equipeListe"></ul>
+
+        <p class="equipe-note" id="equipeNoteSimple" hidden>
+          Seul un maître de ce bureau peut inviter quelqu'un ou changer un rôle.
+        </p>
+
+        <form class="equipe-inviter" id="equipeInviterForme" novalidate hidden>
+          <label class="equipe-inviter__l" for="equipeAdresse">Inviter quelqu'un dans ce bureau</label>
+          <div class="equipe-inviter__ligne">
+            <input class="equipe-inviter__i" id="equipeAdresse" type="email" autocomplete="off"
+                   placeholder="son adresse e-mail" maxlength="200">
+            <select class="equipe-inviter__r" id="equipeRole" aria-label="Avec quels droits">
+              <option value="simple">Utilisateur</option>
+              <option value="maitre">Maître</option>
+            </select>
+            <button type="submit" class="btn">Créer le lien</button>
+          </div>
+          {# La difference entre les deux roles se dit ICI, au moment ou on choisit, et
+             pas dans une aide qu'il faudrait aller chercher. #}
+          <p class="equipe-inviter__aide">
+            Un utilisateur voit tout le bureau et n'écrit que ses propres lignes.
+            Un maître peut en plus importer les ventes, changer les réglages et inviter.
+          </p>
+        </form>
+
+        {# LE LIEN NE S'AFFICHE QU'UNE FOIS, et on le DIT : la base n'en garde que
+           l'empreinte, personne ne pourra le retrouver. Un lien perdu se remplace en
+           reinvitant la meme adresse, ce qui annule le precedent. #}
+        <div class="equipe-lien" id="equipeLien" hidden>
+          <p class="equipe-lien__titre">
+            Le lien pour <strong id="equipeLienQui"></strong>. Il ne s'affichera qu'une fois.
+          </p>
+          <div class="equipe-lien__ligne">
+            <input class="equipe-lien__i" id="equipeLienTexte" type="text" readonly
+                   aria-label="Le lien d'invitation">
+            <button type="button" class="btn btn--geste" id="equipeCopier">Copier</button>
+          </div>
+          <p class="equipe-lien__aide">
+            Envoie-le par le moyen que tu veux. Il vaut sept jours, ne sert qu'une fois,
+            et ne marche que pour l'adresse invitée.
+          </p>
+        </div>
+
+        <div class="equipe-attentes" id="equipeAttentesBloc" hidden>
+          <h3 class="equipe-attentes__t">Invitations en attente</h3>
+          <ul class="equipe-liste" id="equipeAttentes"></ul>
+        </div>
+
+        <p class="equipe-partir-ligne">
+          <button type="button" class="btn btn--geste" id="equipePartir" hidden>Quitter ce bureau</button>
+        </p>
+      </section>
+    </div>
+
     <div id="bureauVentes" hidden>
       {% include "components/ecrans-vente.njk" %}
     </div>

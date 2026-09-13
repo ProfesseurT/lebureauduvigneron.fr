@@ -119,19 +119,19 @@ t('la coque de l\'atelier existe dans le HTML produit',
   !!B.nav && !!B.doc.getElementById('bureauAtelier'));
 
 const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
-t('huit pieces montees', lignes.length === 8, lignes.length + ' trouvee(s)');
+t('neuf pieces montees', lignes.length === 9, lignes.length + ' trouvee(s)');
 /* L'ORDRE EST UN CONTROLE ET PAS UN DETAIL : il porte l'hypothese H2 du document
    de refonte, le vigneron vient pour ne rien oublier. Si quelqu'un le change, il
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes cuvées | Mon registre | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
-t('les six pieces internes pointent DANS le bureau',
+t('les sept pieces internes pointent DANS le bureau',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
-    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 6);
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 7);
 /* LE CALENDRIER EST UNE ADRESSE DU BUREAU depuis le 08/09/2026, et ce controle est
    a l'envers de celui qu'il remplace. Il gardait l'inverse : que la piece pointe sur
    /outils/echeances/. C'etait le defaut signale par Ted, la seule piece de la barre
@@ -159,8 +159,8 @@ const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { ke
 frappe(B.doc.body);
 t('le crochet ouvrant ne replie plus rien',
   !atelier.classList.contains('bureau-atelier--replie'));
-t('les huit languettes restent toutes visibles',
-  lignes.filter(l => !l.hidden).length === 8, lignes.filter(l => !l.hidden).length);
+t('les neuf languettes restent toutes visibles',
+  lignes.filter(l => !l.hidden).length === 9, lignes.filter(l => !l.hidden).length);
 
 /* ---- sans Vitisoft : regle metier, pas cosmetique ---- */
 B.window.BdvNav.sansVitisoft(true);
