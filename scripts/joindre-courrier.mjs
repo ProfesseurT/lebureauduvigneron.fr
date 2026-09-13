@@ -38,6 +38,10 @@
        sans que le recollage soit refait, le banc le dit avant le commit, et
        pas trois semaines plus tard devant un mail qui ne ressemble a rien.
 
+   Les DEUX modes controlent aussi que `index.ts` ne lit aucune colonne qu'il
+   n'a pas demandee a PostgREST. Voir le bloc « LES CHAMPS LUS SONT-ILS
+   DEMANDES » plus bas : c'est une faute qui ne leve aucune erreur.
+
    ----------------------------------------------------------------------------
    CE QU'IL NE FAIT PAS
    ----------------------------------------------------------------------------
@@ -105,6 +109,41 @@ if (interdits.length) {
   process.exit(1);
 }
 
+/* ----------------------------------------------------------------------------
+   LES CHAMPS LUS SONT-ILS DEMANDES
+   ----------------------------------------------------------------------------
+   PostgREST ne rend QUE les colonnes nommees dans `?select=`. Une colonne lue
+   mais pas demandee ne vaut pas `null`, elle vaut `undefined`, et le code qui la
+   lit continue comme si de rien n'etait.
+
+   CE QUE CA A COUTE, constate le 13/09/2026. `jeton_emails` est entre dans la
+   vue au lot 12, le 11/09, et jamais dans la liste des champs demandes. Le lien
+   de preferences ne se fabriquait donc plus pour personne, le garde-fou 3bis
+   refusait TOUS les comptes, la fonction repondait 200 et `courrier_envois`
+   restait vide. Le courrier du matin n'est pas parti pendant deux jours, sans
+   une seule ligne rouge, et c'est le silence qui l'a signale, pas un journal.
+
+   Ce controle compare les deux listes du MEME fichier. Il ne sait pas ce que la
+   vue porte, c'est le travail de Postgres ; il attrape la faute qui ne leve
+   aucune erreur, et c'est la seule qu'on ne voit pas venir. */
+const LISTE = /const\s+CHAMPS\s*=\s*'([^']*)'/.exec(envoi);
+if (!LISTE) {
+  console.error('\n  ECHEC  Pas de `const CHAMPS` dans supabase/functions/courrier-matin/index.ts.');
+  console.error('         C\'est la liste des colonnes demandees a PostgREST, et le');
+  console.error('         controle des champs lus ne peut pas se faire sans elle.\n');
+  process.exit(1);
+}
+const demandes = new Set(LISTE[1].split(',').map((n) => n.trim()).filter(Boolean));
+const lus      = [...new Set([...envoi.matchAll(/\bc\.([a-z_][a-z0-9_]*)/g)].map((m) => m[1]))];
+const manquants = lus.filter((n) => !demandes.has(n));
+if (manquants.length) {
+  console.error('\n  ECHEC  index.ts lit des colonnes que la requete ne demande pas :');
+  manquants.forEach((n) => console.error('         c.' + n + '   absent de CHAMPS'));
+  console.error('         PostgREST ne rend que les colonnes nommees : celles-la vaudront');
+  console.error('         undefined, en silence, et le mail ne partira pas.\n');
+  process.exit(1);
+}
+
 const inscrite = MARQUE.exec(envoi);
 
 /* ---------------------------------------------------------------- VERIFIER */
@@ -122,6 +161,7 @@ if (verifierSeulement) {
     process.exit(1);
   }
   console.log('  courrier:joindre  empreinte a jour, ' + sha + ', ' + lignes + ' lignes.');
+  console.log('  courrier:joindre  ' + demandes.size + ' colonnes demandees, ' + lus.length + ' lues, aucune manquante.');
   process.exit(0);
 }
 

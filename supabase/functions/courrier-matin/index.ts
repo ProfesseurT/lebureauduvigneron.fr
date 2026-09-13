@@ -256,18 +256,60 @@ function reponse(corps: unknown, code = 200): Response {
    clients suivis et taches faites deja ecartees. Sans elle, ce serait trois
    lectures par compte, soit 1 500 allers-retours a 8 h du matin pour 500
    vignerons. Elle est definie dans supabase/lot9-courrier-vues.sql. */
+/* LES CHAMPS DEMANDES SONT CEUX QUE LA BOUCLE D'ENVOI LIT, et il n'y a pas de
+   marge d'erreur : PostgREST ne rend QUE les colonnes nommees ici. Une colonne
+   oubliee n'arrive pas `null`, elle n'arrive PAS, et le code qui la lit trouve
+   `undefined` sans qu'une ligne rouge apparaisse nulle part.
+   Paye du 11 au 13/09/2026 : `jeton_emails` est entre dans la vue au lot 12 et
+   jamais dans cette liste. Le lien de preferences ne se fabriquait donc plus, le
+   garde-fou 3bis refusait TOUS les comptes, la fonction repondait 200, et
+   `courrier_envois` restait vide. Deux jours de silence pour un mot manquant.
+   `npm run courrier:verif` compare desormais cette liste aux champs lus. */
+const CHAMPS = 'id,email,jeton_emails,depose_le,noms,signaux,suivis,taches,resume_ventes';
+
+/* ---- UNE SEULE REPRISE, ET ELLE N'EST LEGITIME QUE SUR CETTE LECTURE ----
+   Le 13/09/2026 a 8 h 05, cette requete a rendu 504 en 30 millisecondes : la
+   passerelle a refuse tout de suite, la base n'a rien vu -- la meme requete
+   s'execute en 0,3 ms. C'etait la PREMIERE requete REST depuis 22 h 47 la
+   veille, et ce sera le cas tous les matins : le controle de l'heure sort AVANT
+   de lire, donc les 23 autres passages ne reveillent jamais PostgREST. Le seul
+   appel qui le sollicite est celui qui doit reussir.
+   Reprendre ICI ne peut pas produire de doublon : aucune reservation n'est
+   posee a ce stade et rien n'est parti chez Resend. C'est l'inverse exact du
+   refus de rejeu apres un echec d'envoi, et les deux regles ne se contredisent
+   pas : l'une protege un lecteur, l'autre protege une journee.
+   Deux essais et pas plus. Au-dela, on tiendrait la fonction ouverte devant une
+   panne reelle au lieu de la dire. */
+const ESSAIS_LECTURE = 2;
+const PAUSE_LECTURE  = 2000;
+
 async function lireLesComptes() {
-  const url = `${SUPABASE_URL}/rest/v1/v_courrier`
-            + `?select=id,email,depose_le,noms,signaux,suivis,taches,resume_ventes`;
-  const r = await fetch(url, {
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      Accept: 'application/json',
-    },
-  });
-  if (!r.ok) throw new Error(`lecture de v_courrier : ${r.status} ${await r.text()}`);
-  return await r.json() as Array<Record<string, unknown>>;
+  const url = `${SUPABASE_URL}/rest/v1/v_courrier?select=${CHAMPS}`;
+  let dernier = '';
+  for (let essai = 1; essai <= ESSAIS_LECTURE; essai++) {
+    try {
+      const r = await fetch(url, {
+        headers: {
+          apikey: SERVICE_KEY,
+          Authorization: `Bearer ${SERVICE_KEY}`,
+          Accept: 'application/json',
+        },
+      });
+      if (r.ok) {
+        return {
+          comptes: await r.json() as Array<Record<string, unknown>>,
+          essais: essai,
+        };
+      }
+      dernier = `${r.status} ${await r.text()}`;
+    } catch (e) {
+      dernier = String(e);
+    }
+    if (essai < ESSAIS_LECTURE) {
+      await new Promise((suite) => setTimeout(suite, PAUSE_LECTURE));
+    }
+  }
+  throw new Error(`lecture de v_courrier, ${ESSAIS_LECTURE} essais : ${dernier}`);
 }
 
 async function envoyerParResend(a: string, sujet: string, html: string, texte: string) {
@@ -385,8 +427,14 @@ Deno.serve(async (req: Request) => {
   }
 
   let comptes;
-  try { comptes = await lireLesComptes(); }
-  catch (e) { return reponse({ erreur: String(e) }, 502); }
+  let essaisLecture = 0;
+  try {
+    const lu = await lireLesComptes();
+    comptes       = lu.comptes;
+    essaisLecture = lu.essais;
+  } catch (e) {
+    return reponse({ erreur: String(e) }, 502);
+  }
 
   const rapport = {
     jour: aujourdhui,
@@ -402,6 +450,10 @@ Deno.serve(async (req: Request) => {
     url_preferences: URL_PREFERENCES || null,
     heure_paris: heure,
     comptes_lus: comptes.length,
+    /* Meme regle 4 : un 1 dit que la lecture est passee du premier coup, un 2
+       dit que la passerelle a refuse une fois. C'est le seul endroit ou un
+       reveil rate se voit, puisque la reprise le rattrape en silence. */
+    essais_lecture: essaisLecture,
     envoyes: 0,
     deja_envoyes: 0,
     sans_jeton: 0,

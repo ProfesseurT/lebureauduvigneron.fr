@@ -2003,6 +2003,48 @@ que personne ne signale : on ne rale pas contre un bouton qu'on ne voit pas, on 
 mail qu'on continue de recevoir. Meme famille que les fonds de mail manges par Gmail, meme
 methode : **capturer avant de livrer, aux deux largeurs, et regarder l'image**.
 
+## UNE COLONNE LUE ET PAS DEMANDEE NE LEVE AUCUNE ERREUR, 13/09/2026
+
+Le courrier du matin n'est parti ni le 12 ni le 13. Aucune ligne rouge, aucun 4xx, aucune
+ligne dans `courrier_envois`. Du silence, qui est exactement le seul symptome que le lot 4
+annoncait.
+
+**La cause : `jeton_emails` etait LU par `index.ts` et jamais DEMANDE a PostgREST.** La liste
+`?select=` datait du lot 3, le 09/09 ; le lot 12 a ajoute le jeton a la vue le 11/09 sans la
+toucher. PostgREST ne rend que les colonnes nommees : la colonne n'arrivait pas `null`, elle
+n'arrivait pas. `c.jeton_emails` valait `undefined`, le lien de preferences ne se fabriquait
+plus, et le garde-fou 3bis refusait TOUS les comptes en repondant 200.
+
+Ce qui le prouve, et ce qui doit servir de methode la prochaine fois : `consent_courrier_le`
+est date de 10 h 04 le 11/09, donc APRES l'envoi de 8 h 05 du meme jour. **La chaine avec
+consentement et jeton n'avait jamais abouti une seule fois.** Un envoi reussi la veille d'un
+lot ne prouve rien sur le lot.
+
+**La regle : une colonne lue et pas demandee est une faute qui ne se voit nulle part.** Ni a
+la relecture, ni dans un journal, ni dans un code HTTP. Le seul endroit ou elle s'attrape est
+un controle qui compare les deux listes du meme fichier. La liste s'appelle maintenant
+`CHAMPS`, en tete de `lireLesComptes()`, et `npm run courrier:verif` echoue si `index.ts` lit
+un `c.<nom>` qui n'y figure pas. Verifie en remettant le defaut, comme le veut la regle du
+depot : un controle qui n'a jamais echoue ne garde rien.
+
+### La lecture de la vue a droit a UNE reprise, et elle seule
+
+Le 13/09 a 8 h 05, la meme requete a rendu **504 en 30 millisecondes** : un refus immediat de
+la passerelle, pas une expiration. La requete s'execute en 0,3 ms et les donnees pesent 3 ko
+par compte, la base n'y est donc pour rien. C'etait la PREMIERE requete REST depuis 22 h 47 la
+veille, et ce sera le cas tous les matins : **le controle de l'heure sort AVANT de lire**,
+donc les 23 autres passages ne sollicitent jamais PostgREST. Le seul appel qui le reveille est
+celui qui doit reussir.
+
+Deux essais, deux secondes d'ecart. **Reprendre ICI ne contredit pas la regle 3 du lot 4** :
+aucune reservation n'est posee a ce stade et rien n'est parti chez Resend, donc aucun doublon
+n'est possible. L'interdiction de rejeu protege un lecteur contre un mail double ; cette
+reprise protege une journee contre un reveil rate. Ne pas les confondre, et ne pas etendre la
+reprise apres la reservation.
+
+Et le nombre d'essais va dans le rapport, `essais_lecture` : sans lui, la reprise masquerait
+en silence le fait que le premier appel echoue tous les matins. Regle 4, encore.
+
 ## UNE PIECE DU BUREAU A TROIS ETAGES, ELLE N'EST PAS UNE PILE, 11/09/2026
 
 Constat qui a ouvert la redecoupe : « Mon annee » portait **26 blocs**, parce que la fusion du
