@@ -31,6 +31,7 @@
     "courrier": "node scripts/apercu-courrier.mjs",
     "courrier:joindre": "node scripts/joindre-courrier.mjs",
     "courrier:verif": "node scripts/joindre-courrier.mjs --verifier",
+    "apercu:mot": "node scripts/apercu-mot.mjs",
     "apercu:equipe": "node scripts/apercu-equipe.mjs"
   },
   "devDependencies": {

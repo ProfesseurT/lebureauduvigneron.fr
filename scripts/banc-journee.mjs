@@ -68,13 +68,13 @@ console.log('page  : ' + path.relative(RACINE, PAGE));
    sont ecrits en gras) et un nom de client passe par `esc()` (une esperluette suffit). Un jeu
    d'essai plus sage que la realite ne verifie que ce qu'il contient. */
 const CONSEILS = [
-  { sev: 3, kind: 'danger', ico: '!', verdict: '3 clients en decrochage : 8 200 euros de CA en moins.',
+  { sev: 3, kind: 'danger', cible: 'clients', ico: '\u26a0', verdict: '3 clients en decrochage : 8 200 euros de CA en moins.',
     action: 'A rappeler en priorite. La liste est dans <b>Mon commerce</b>, filtre « Recul confirme ».' },
-  { sev: 3, kind: 'danger', ico: '!', verdict: 'Objectif menace : il manquerait 41 000 euros.',
+  { sev: 3, kind: 'danger', cible: 'annee', ico: '\u2691', verdict: 'Objectif menace : il manquerait 41 000 euros.',
     action: 'Atterrissage estime 559 000 euros.' },
-  { sev: 2, kind: 'warn', ico: '!', verdict: '7 clients en retard sur leur cadence d\'achat.',
+  { sev: 2, kind: 'warn', cible: 'clients', ico: '\u21bb', verdict: '7 clients en retard sur leur cadence d\'achat.',
     action: 'A relancer en priorite : Chapelle &amp; Fils (3 100 euros), Cave d&#39;Anjou (2 400 euros).' },
-  { sev: 1, kind: 'ok', ico: '!', verdict: 'Croissance saine : +12 000 euros.',
+  { sev: 1, kind: 'ok', cible: 'annee', ico: '\u2714', verdict: 'Croissance saine : +12 000 euros.',
     action: 'Continue sur le levier qui marche.' }
 ];
 
@@ -458,6 +458,95 @@ titre('6. Le mot du jour : du texte, et rien que du texte');
     t('une entite inconnue n\'est pas mangee', f('a &machin; b') === 'a &machin; b');
     t('rien du tout ne casse rien', f(null) === '' && f(undefined) === '');
   }
+}
+
+/* ==========================================================================
+   7. LE MOT DU JOUR SE PARCOURT, ET IL MENE QUELQUE PART, 14/09/2026
+   --------------------------------------------------------------------------
+   Lot 2, trois defauts signales par Ted dans la meme phrase.
+
+   LE PREMIER EST CELUI QUI COMPTE, et il doit rester le premier controle :
+   « les conseils graves ne tournent pas » etait applique au sens fort, donc
+   `i` valait 0 des qu'un conseil etait grave et `MOT_I` s'incrementait dans le
+   vide. Le bouton marchait les jours ou il ne sert a rien, et mourait les jours
+   ou il y a plusieurs choses a comparer. La fixture porte DEUX conseils graves
+   expres : sans eux, ce controle passe sur le code casse.
+   ========================================================================== */
+titre('7. Le mot du jour : parcourable, et il mene quelque part');
+{
+  const b = await monter(ETAT_PLEIN);
+  const boite = () => b.el('bureauMot');
+  const verdict = () => boite().querySelector('.mot__v').textContent;
+  const bouton = () => boite().querySelector('.zone__pied button');
+
+  t('avec deux conseils graves, le bouton existe', !!bouton());
+  const avant = verdict(), note0 = b.el('motNote').textContent;
+  if (bouton()) {
+    bouton().click();
+    await dormir(40);
+    t('UN CLIC CHANGE DE CONSEIL, MEME QUAND UN CONSEIL EST GRAVE',
+      verdict() !== avant, avant.slice(0, 60));
+    t('et l\'etiquette suit', b.el('motNote').textContent !== note0,
+      note0 + ' -> ' + b.el('motNote').textContent);
+    t('le focus reste sur le bouton, qui vient pourtant d\'etre recree',
+      b.w.document.activeElement === bouton());
+  }
+
+  /* La liste entiere est parcourable. Elle etait reduite aux seuls graves : le vigneron
+     lisait « 1 sur 2 » alors que le tableau de bord en avait depose quatre, et les deux
+     autres etaient inatteignables. On compte les verdicts distincts sur un tour complet. */
+  const vus = new Set();
+  for (let k = 0; k < 4; k++) { vus.add(verdict()); if (bouton()) bouton().click(); await dormir(20); }
+  t('les QUATRE conseils sont atteignables, pas seulement les deux graves',
+    vus.size === 4, vus.size + ' verdict(s) distinct(s)');
+  t('et l\'etiquette annonce bien quatre',
+    /sur 4$/.test(b.el('motNote').textContent), b.el('motNote').textContent);
+}
+
+/* ==========================================================================
+   7 bis. Le lien, le signe, et ce qui s'entend
+   ========================================================================== */
+titre('7 bis. Le lien, le signe, et ce qui s\'entend');
+{
+  // Un seul conseil : l'index est force a zero, donc on sait lequel est peint.
+  const un = (conseil) => monter({
+    resume: { ca: 532201, exercice: 'exercice 2026', clients: 128, panier: 415, conseils: [conseil] },
+    deposeLe: new Date().toISOString(), signaux: {}, noms: {}
+  });
+
+  const b = await un(CONSEILS[0]);            // decrochage, cible 'clients'
+  const boite = b.el('bureauMot');
+  const lien = boite.querySelector('.mot__v a');
+  t('LE CONSEIL MENE QUELQUE PART : la zone n\'avait aucun lien', !!lien);
+  t('et il mene a la piece que le tableau de bord a designee',
+    lien && lien.getAttribute('href') === '/mon-bureau/#clients',
+    lien && lien.getAttribute('href'));
+  t('le lien dit ou il va, pour qui ne voit pas la page',
+    lien && lien.textContent.indexOf('Mon commerce') >= 0);
+  t('aucun bouton n\'est enferme dans un lien (le HTML l\'interdit)',
+    boite.querySelectorAll('a button').length === 0);
+  /* Le lien etait POSE et INVISIBLE : encre heritee, pas de soulignement. Le banc le
+     voyait, la capture a montre un bloc mort. Ce controle garde le signe, pas le style. */
+  t('et il SE VOIT : une fleche dit que la carte mene quelque part',
+    !!boite.querySelector('.mot__fleche')
+    && boite.querySelector('.mot__fleche').getAttribute('aria-hidden') === 'true');
+
+  t('le signe de gravite est POSE, et pas seulement transporte',
+    !!boite.querySelector('.mot__ico') && boite.querySelector('.mot__ico').textContent.trim().length > 0);
+  t('il est cache a la synthese vocale : c\'est un doublon de ce qui est dit en mots',
+    boite.querySelector('.mot__ico').getAttribute('aria-hidden') === 'true');
+  t('et la gravite est dite EN TOUTES LETTRES hors ecran (WCAG 1.4.1)',
+    boite.textContent.indexOf('Urgent') >= 0, boite.textContent.slice(0, 70));
+
+  t('la zone est vivante : un clic remplace le texte sur place',
+    b.el('bureauMot').getAttribute('aria-live') === 'polite');
+
+  // Un depot d'avant le 14/09/2026 n'a pas de cible : pas de lien, et rien qui casse.
+  const vieux = await un({ sev: 2, kind: 'warn', ico: '\u21bb',
+                           verdict: 'Un conseil depose avant la cible.', action: 'Rien de plus.' });
+  t('un depot sans cible s\'affiche quand meme, simplement sans lien',
+    vieux.el('zoneMot').hidden === false
+    && vieux.el('bureauMot').querySelectorAll('.mot__v a').length === 0);
 }
 
 console.log('\n== VERDICT ==');

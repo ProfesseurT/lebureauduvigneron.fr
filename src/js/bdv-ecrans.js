@@ -1061,27 +1061,27 @@ function diagnosticSignals(){
   const at=computeAtterrissage();
   if(at&&!at.complete){
     if(objectif){const gap=at.central-objectif;
-      if(gap<0)S.push({sev:3,impact:Math.abs(gap),kind:'danger',ico:'⚑',verdict:`Objectif menacé : au rythme actuel il manquerait ${fmtMoney(Math.abs(gap))} pour tenir ${fmtMoney(objectif)}.`,action:`Atterrissage estimé ${fmtMoney(at.central)}. Active les leviers ci-dessous d'ici la fin d'année.`});
-      else S.push({sev:1,impact:gap,kind:'ok',ico:'✔',verdict:`Objectif jouable : atterrissage estimé ${fmtMoney(at.central)}, soit ${fmtMoney(gap)} au-dessus de l'objectif.`,action:`Sécurise la trajectoire, ne relâche pas sur les clients à risque.`});
-    }else S.push({sev:0,impact:0,kind:'info',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
+      if(gap<0)S.push({sev:3,impact:Math.abs(gap),kind:'danger',cible:'annee',ico:'⚑',verdict:`Objectif menacé : au rythme actuel il manquerait ${fmtMoney(Math.abs(gap))} pour tenir ${fmtMoney(objectif)}.`,action:`Atterrissage estimé ${fmtMoney(at.central)}. Active les leviers ci-dessous d'ici la fin d'année.`});
+      else S.push({sev:1,impact:gap,kind:'ok',cible:'annee',ico:'✔',verdict:`Objectif jouable : atterrissage estimé ${fmtMoney(at.central)}, soit ${fmtMoney(gap)} au-dessus de l'objectif.`,action:`Sécurise la trajectoire, ne relâche pas sur les clients à risque.`});
+    }else S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
   }
   const dec=agentDecrochage();
-  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
+  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',cible:'clients',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
   const dor=agentDormants();
   if(dor.dormants.length){const t3=dor.dormants.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
-    S.push({sev:2,impact:dor.ca,kind:'warn',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
+    S.push({sev:2,impact:dor.ca,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
   const pv=computePriceVolume();
   if(pv){
-    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
-    else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Le sujet, c'est le nombre de bouteilles vendues. Pousse acquisition et réactivation.`});
-    else if(pv.delta>=0)S.push({sev:1,impact:pv.delta,kind:'ok',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
+    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
+    else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',cible:'annee',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Le sujet, c'est le nombre de bouteilles vendues. Pousse acquisition et réactivation.`});
+    else if(pv.delta>=0)S.push({sev:1,impact:pv.delta,kind:'ok',cible:'annee',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
   }
   const con=agentConcentration();
-  if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
+  if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',cible:'clients',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
   const cm=agentCanalMover();
-  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Le détail est dans <b>Mes cuvées</b>, au pied de l'écran.`});
+  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,cible:'produits',kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Le détail est dans <b>Mes cuvées</b>, au pied de l'écran.`});
   const series=monthlySeries();
-  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Anticipe la trésorerie et charge les actions commerciales juste avant.`});}
+  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Anticipe la trésorerie et charge les actions commerciales juste avant.`});}
   S.sort((a,b)=>b.sev-a.sev||b.impact-a.impact);
   return S;
 }
@@ -2401,14 +2401,26 @@ function resumeVentes(){
    gravite puis par euros en jeu, et on depose les six premiers.
 
    Les conseils purement informatifs (severite 0) sont ecartes : « ton mois le plus creux
-   est fevrier » est vrai toute l'annee, donc ce n'est pas un conseil du jour. */
+   est fevrier » est vrai toute l'annee, donc ce n'est pas un conseil du jour.
+
+   CHAQUE SIGNAL PORTE SA CIBLE DEPUIS LE 14/09/2026, lot 2 du mot du jour. Le renvoi
+   etait ecrit EN TOUTES LETTRES dans l'action, « la liste est dans Mon commerce », et le
+   bureau n'avait aucun moyen d'en faire un lien : une phrase qui decrit un chemin au lieu
+   de l'ouvrir. `cible` est l'identifiant d'une piece de `bdv-nav.js` (clients, annee,
+   produits), jamais une adresse ecrite en dur : le libelle d'une piece change, son
+   identifiant tient l'adresse. Le champ est ADDITIF, aucun texte ne bouge, donc le
+   courrier du matin n'est pas concerne.
+
+   Un depot fait avant ce jour n'a pas de cible : le bureau affiche alors le conseil sans
+   lien, ce qui est l'etat d'avant. Une absence ne casse rien, et le prochain import la
+   comble. */
 function conseilsPourLeBureau(){
   try{
     return diagnosticSignals()
       .filter(function(x){ return x.sev>0; })
       .slice(0,6)
       .map(function(x){
-        return {sev:x.sev,kind:x.kind,ico:x.ico,verdict:x.verdict,action:x.action};
+        return {sev:x.sev,kind:x.kind,cible:x.cible,ico:x.ico,verdict:x.verdict,action:x.action};
       });
   }catch(e){ return []; }
 }

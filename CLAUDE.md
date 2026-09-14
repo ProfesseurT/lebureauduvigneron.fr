@@ -340,6 +340,64 @@ UN, propre, en severite 2, c'est-a-dire le seul etat ou aucun de ces defauts ne 
 **Troisieme fois que la meme lecon se paie : un jeu d'essai plus sage que la realite ne
 verifie que ce qu'il contient.**
 
+#### « LES CONSEILS GRAVES NE TOURNENT PAS » NE VEUT PAS DIRE « ILS NE BOUGENT PAS »
+
+La regle etait appliquee au sens fort : `i` valait 0 des qu'un conseil etait grave, `MOT_I`
+s'incrementait dans le vide, et le bouton « Le suivant » etait mort exactement les jours ou il
+y a plusieurs choses a comparer. Ce qui ne doit pas tourner, c'est la ROTATION AUTOMATIQUE du
+jour ; **un clic est un geste, pas une rotation.** Seul le point de depart change donc, zero
+quand un conseil est grave et le jour de l'annee sinon, et le geste s'ajoute par-dessus dans
+les deux cas.
+
+Et la liste parcourue est ENTIERE. Elle etait reduite aux seuls graves : « 1 sur 2 » affiche
+quand le tableau de bord en avait depose quatre, les deux autres inatteignables. Les conseils
+arrivent DEJA tries par gravite puis par euros en jeu, donc un grave est en tete sans qu'on ait
+rien a filtrer dans la zone.
+
+#### LE CONSEIL MENE QUELQUE PART, ET LA CIBLE VIENT DE LA SOURCE
+
+`diagnosticSignals()` pose une `cible` sur chaque signal : l'identifiant d'une piece de
+`bdv-nav.js` (`clients`, `annee`, `produits`), **jamais une adresse ecrite en dur**, parce que
+le libelle d'une piece change et que son identifiant tient l'adresse. Ne pas deduire la cible
+du TEXTE du conseil cote bureau : ce serait un deuxieme endroit qui decide ou mene un signal,
+et il divergerait au premier signal ajoute.
+
+Le champ est ADDITIF : aucun texte ne bouge, donc le courrier du matin n'est pas concerne. Un
+depot anterieur au 14/09/2026 n'a pas de cible, le conseil s'affiche alors sans lien, et le
+prochain import comble le trou. Une absence ne casse rien.
+
+C'est le VERDICT qui porte le lien, avec un calque `::after` en `z-index: 1` sur la carte, et
+non la carte entiere en `<a>` : le nom accessible serait fait des DEUX phrases. Meme motif et
+meme raison que les cartes de la page des outils. **Le bouton « Le suivant » reste DEHORS de
+la carte** : un element interactif dans un element interactif est interdit par le HTML, et ce
+projet l'a deja paye deux fois, au sous-main et au post-it.
+
+#### UN LIEN POSE N'EST PAS UN LIEN VISIBLE
+
+Le lien etait la, le banc le voyait, et a l'ecran rien ne disait qu'on pouvait cliquer : encre
+heritee, pas de soulignement, donc un paragraphe comme un autre. **Un lien qu'on ne voit pas ne
+vaut pas mieux que la phrase qui decrit le chemin.** Une fleche le dit, cachee a la synthese
+vocale puisque le hors-ecran du lien annonce deja la destination en mots. Le verdict garde son
+encre : un titre de deux lignes souligne se lit comme une rature.
+
+Trouve par `npm run apercu:mot`, pas par les 78 controles du banc. Encore la regle du
+11/09/2026 : la mesure trouve ce qu'on ne voit pas, la capture voit ce qu'on ne mesure pas.
+
+#### LA GRAVITE NE SE DIT PLUS PAR LA SEULE COULEUR
+
+Quatre fonds et quatre filets, et rien d'autre : ca ne se voit pas en niveaux de gris, pas en
+vision deuteranope, et ca ne s'entend pas du tout. C'est WCAG 1.4.1, et c'est la meme contrainte
+que la cinquieme famille du calendrier, qui a pris une MATIERE faute de couleur disponible. Ici
+le signe existait deja : `ico` etait transporte du tableau de bord jusqu'a la zone et pose nulle
+part. Il est pose, **sans couleur** (`--warn` et `--danger` ne tiennent pas AA sur ces papiers,
+et un glyphe qui se distingue par sa FORME n'en a pas besoin), et un mot hors ecran dit la meme
+chose a qui ecoute.
+
+La zone porte `aria-live="polite"`, sans quoi un clic ne produit rien du tout a la synthese
+vocale. Et le bouton se detruit lui-meme en repeignant : le focus est repose sur celui qui vient
+de naitre, au CLIC seulement, jamais au premier rendu, sinon la page volerait le focus a
+l'arrivee.
+
 ### Ecrire clair sur sombre : toujours mesurer d'abord
 
 Trois decisions de cette refonte ont ete prises par le calcul de contraste, contre le dessin
@@ -826,11 +884,13 @@ Elle enchaine `build`, `charte`, `charte:bureau`, puis les quatorze bancs (`banc
 `banc:lune`, `banc:porte`, `banc:registre`, `banc:cap`, `banc:commerce`) et les deux controles du
 courrier, et s'arrete au premier echec.
 
-Deux apercus ne sont PAS dans cette chaine, parce qu'ils ne verifient rien : ils MONTRENT, et
+Les apercus ne sont PAS dans cette chaine, parce qu'ils ne verifient rien : ils MONTRENT, et
 c'est a regarder avec des yeux. `npm run apercu:panneau` pour le panneau de liege,
-`npm run apercu:fiche` pour la fiche client dans ses quatre etats. Les ouvrir avant de livrer un
-changement de dessin : `npm run courrier` avait deja laisse passer trois defauts que seule une
-capture a montres.
+`npm run apercu:fiche` pour la fiche client dans ses quatre etats, `npm run apercu:modale`,
+`npm run apercu:equipe`, et `npm run apercu:mot` pour le mot du jour dans ses quatre gravites.
+Les ouvrir avant de livrer un changement de dessin : `npm run courrier` avait deja laisse passer
+trois defauts que seule une capture a montres, et `apercu:mot` a trouve un lien invisible que
+les 78 controles du banc declaraient pose.
 
 Elle existe depuis le 07/09/2026 pour une raison precise : ce jour-la j'ai lance les quatre
 a la main dans un `&&`, en passant chacun par `| tail -2` pour n'en lire que le verdict. Le

@@ -66,17 +66,57 @@ sur quatre. D'où un second montage, avec une liste d'UN conseil, qui force l'in
 
 `npm run verif` : deux CONFORME, onze bancs, zéro échec.
 
+### Lot 2 : le bouton, le lien, le signe, la voix
+
+**« Les conseils graves ne tournent pas » avait été appliqué au sens fort.** `i` valait 0 dès
+qu'un conseil était grave, `MOT_I` s'incrémentait dans le vide, et l'étiquette restait figée
+sur « 1 sur 2 ». Le bouton marchait donc les jours où il ne sert à rien.
+
+Ce qui ne doit pas tourner, c'est la rotation AUTOMATIQUE du jour : un décrochage à 8 000 €
+reste en tête tant qu'il est vrai. Un clic est un geste, pas une rotation. Seul le point de
+départ change désormais, zéro quand un conseil est grave et le jour de l'année sinon, et le
+geste s'ajoute par-dessus dans les deux cas.
+
+**Et la liste était amputée.** Elle se réduisait aux seuls conseils graves dès qu'il y en
+avait un : le vigneron lisait « 1 sur 2 » alors que le tableau de bord en avait déposé quatre,
+et les deux autres étaient inatteignables. Les conseils arrivent déjà triés par gravité puis
+par euros en jeu, donc un grave est en tête sans qu'on ait rien à filtrer ici.
+
+**Le conseil mène quelque part.** `diagnosticSignals()` pose maintenant une `cible` sur chaque
+signal, l'identifiant d'une pièce de la barre et jamais une adresse écrite en dur. Le champ est
+ADDITIF, aucun texte ne bouge, donc le courrier du matin n'est pas concerné. Un dépôt antérieur
+n'a pas de cible : le conseil s'affiche alors sans lien, ce qui est l'état d'avant, et le
+prochain import comble le trou.
+
+C'est le VERDICT qui porte le lien, avec un calque `::after` sur la carte, comme les cartes de
+la page des outils. La carte entière en `<a>` donnerait un nom accessible fait des deux
+phrases. Et le bouton reste dehors de la carte : un élément interactif dans un élément
+interactif est interdit par le HTML, et ce projet l'a déjà payé deux fois.
+
+**La gravité ne se dit plus par la seule couleur.** `ico` était transporté depuis le tableau de
+bord jusqu'à cette zone et posé nulle part. Il est posé, et un mot hors écran dit la même chose
+à qui écoute. Le signe n'est pas coloré : `--warn` et `--danger` ne tiennent pas AA sur ces
+papiers, et un glyphe qui se distingue par sa forme n'a pas besoin d'une teinte.
+
+**Deux détails que seul le clavier et l'oreille voient.** La zone porte `aria-live="polite"` :
+sans elle, un clic sur le bouton ne produisait rien du tout à la synthèse vocale. Et le bouton
+se détruit lui-même en repeignant, donc le focus tombait sur le corps de page : il est reposé
+sur le bouton qui vient de naître, et seulement au clic, jamais au premier rendu.
+
+### Ce que la capture a trouvé et que le banc ne pouvait pas dire
+
+**Le lien était posé et invisible.** Encre héritée, pas de soulignement : à l'écran, un
+paragraphe comme un autre. Le banc le voyait, la capture montrait un bloc mort. Un lien qu'on
+ne voit pas ne vaut pas mieux qu'une phrase qui décrit un chemin. Une flèche le dit maintenant,
+cachée à la synthèse vocale puisque le hors écran annonce déjà la destination en mots.
+
+D'où `npm run apercu:mot`, qui monte la vraie page quatre fois, une par gravité, plus le cas à
+quatre conseils. Il ne vérifie rien, il MONTRE, donc il n'est pas dans `npm run verif`.
+Mesuré à 1 280 px et à 390 px : aucun débordement, et la phrase la plus longue que le tableau
+de bord produise tient à côté du signe.
+
 ### Ce qui a été signalé et NON corrigé
 
-- **Le bouton « Le suivant » est mort dès qu'un conseil est grave.** `i` vaut 0 quand `graves`
-  n'est pas vide, `MOT_I` s'incrémente dans le vide, et l'étiquette reste figée sur « 1 sur 2 ».
-  Le bouton marche donc les jours où il ne sert à rien. Lot 2, en attente du feu vert de Ted.
-- **Aucun lien dans la zone**, alors que tout le reste du bureau se clique, et que le conseil dit
-  en toutes lettres « la liste est dans Mon commerce ». `ico` est transporté depuis
-  `conseilsPourLeBureau()` jusqu'au bureau et n'est posé nulle part : la gravité passe donc
-  uniquement par la couleur, ce qui est un défaut WCAG 1.4.1. Lot 2.
-- **La zone change son contenu sans `aria-live`.** Un clic sur le bouton ne produit rien à la
-  synthèse vocale. Lot 2.
 - **« Active les leviers ci-dessous d'ici la fin d'année »**, dans le conseil « Objectif menacé »
   de `bdv-ecrans.js`. Écrit pour l'écran du tableau de bord, où il y a effectivement des leviers
   en dessous. Dans le bureau il n'y a rien en dessous, et la phrase part aussi dans le courrier

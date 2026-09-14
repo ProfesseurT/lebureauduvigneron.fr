@@ -7123,10 +7123,47 @@ button.bureau-nav__item:hover {
    Un conseil, un seul, et il porte sa couleur de gravite. Le verdict constate, l'action
    dit quoi faire : les deux phrases viennent telles quelles du diagnostic du tableau de
    bord, on ne les reecrit jamais ici. */
+/* LA CARTE EST CLIQUABLE, ET CE N'EST PAS UNE BALISE `a`, 14/09/2026. C'etait le seul bloc
+   du bureau qui ne menait nulle part : les chiffres de l'ardoise sont des liens, les lignes
+   du sous-main aussi, et la punaise du panneau porte le sien sur sa ligne de tete. Meme
+   motif que les cartes de la page des outils, et pour la meme raison : la carte entiere en
+   lien donnerait un nom accessible fait des DEUX phrases, verdict et action annonces comme
+   un seul libelle. C'est le verdict qui porte le lien, et son calque couvre le papier.
+   Le `z-index` n'est pas decoratif : sans lui, l'action, qui SUIT le verdict dans le HTML,
+   se peint par-dessus le calque et une moitie de la carte cesse d'etre cliquable. */
 .mot {
+  position: relative;
+  display: flex;
+  gap: var(--e-s);
+  align-items: flex-start;
   padding: var(--e-m);
   background: var(--paper);
   border-left: var(--trait-accent) solid var(--cork);
+}
+/* Le signe de gravite. PAS DE COULEUR : `--warn` et `--danger` ne tiennent pas AA sur ces
+   papiers (voir la note des jetons d'etat dans CLAUDE.md), et un glyphe qui se distingue
+   par sa FORME n'a pas besoin d'une teinte pour faire son travail. */
+.mot__ico {
+  font-size: var(--t-lead);
+  line-height: var(--lh-serre);
+  flex-shrink: 0;
+}
+.mot__corps { min-width: 0; }
+.mot__aller {
+  color: inherit;
+  text-decoration: none;
+}
+.mot__aller:hover { text-decoration: underline; }
+/* La fleche est le SEUL signe visible que la carte mene quelque part : le verdict garde
+   son encre et son absence de soulignement, parce qu'un titre de deux lignes souligne se
+   lit comme une rature. Le survol souligne, et il porte sur toute la carte grace au
+   calque ci-dessous. */
+.mot__fleche { color: var(--bordeaux); white-space: nowrap; }
+.mot__aller::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 .mot[data-kind="danger"] { background: var(--danger-bg); border-left-color: var(--danger); }
 .mot[data-kind="warn"]   { background: var(--warn-bg);   border-left-color: var(--warn); }
