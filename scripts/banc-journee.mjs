@@ -57,10 +57,30 @@ console.log('page  : ' + path.relative(RACINE, PAGE));
 
 /* Un etat de file comme le tableau de bord en depose un : un resume de ventes, un client a
    rappeler, et la date du depot. `deposeLe` est ce qui dit « un export a servi une fois ».  */
+/* LES CONSEILS SONT COPIES SUR CE QUE `diagnosticSignals()` PRODUIT VRAIMENT, 14/09/2026,
+   et pas sur ce qui se peint bien. La fixture d'origine portait UN conseil, propre, en
+   severite 2 : c'est-a-dire exactement l'etat dans lequel AUCUN des defauts du mot du jour
+   ne se declenche. Elle a donc valide pendant deux jours une zone qui affichait ses balises
+   en clair, et c'est Ted qui l'a vue.
+
+   NE PAS LA RESIMPLIFIER. Il faut PLUSIEURS conseils, dont DEUX graves (sinon la rotation
+   n'est jamais sollicitee), une balise `<b>` dans une action (les renvois du tableau de bord
+   sont ecrits en gras) et un nom de client passe par `esc()` (une esperluette suffit). Un jeu
+   d'essai plus sage que la realite ne verifie que ce qu'il contient. */
+const CONSEILS = [
+  { sev: 3, kind: 'danger', ico: '!', verdict: '3 clients en decrochage : 8 200 euros de CA en moins.',
+    action: 'A rappeler en priorite. La liste est dans <b>Mon commerce</b>, filtre « Recul confirme ».' },
+  { sev: 3, kind: 'danger', ico: '!', verdict: 'Objectif menace : il manquerait 41 000 euros.',
+    action: 'Atterrissage estime 559 000 euros.' },
+  { sev: 2, kind: 'warn', ico: '!', verdict: '7 clients en retard sur leur cadence d\'achat.',
+    action: 'A relancer en priorite : Chapelle &amp; Fils (3 100 euros), Cave d&#39;Anjou (2 400 euros).' },
+  { sev: 1, kind: 'ok', ico: '!', verdict: 'Croissance saine : +12 000 euros.',
+    action: 'Continue sur le levier qui marche.' }
+];
+
 const ETAT_PLEIN = {
   resume: { ca: 532201, exercice: 'exercice 2026', variation: 4.2, clients: 128, panier: 415,
-            conseils: [{ sev: 2, kind: 'info', ico: '!', verdict: 'Trois clients ont decroche.',
-                         action: 'Rappelle-les cette semaine.' }] },
+            conseils: CONSEILS },
   deposeLe: new Date().toISOString(),
   signaux: {}, noms: {}
 };
@@ -221,10 +241,16 @@ titre('4. Le vigneron repond « non » a Vitisoft');
     await dormir(60);
     t('l\'ardoise s\'en va', b.el('zoneArdoise').hidden === true);
     t('le sous-main s\'en va', b.el('zoneSousMain').hidden === true);
+    /* LE MOT DU JOUR MANQUAIT A CETTE LISTE, corrige le 14/09/2026. La zone est nee
+       apres le defaut du 08/09 et n'avait jamais ete branchee sur la reponse du profil :
+       l'ardoise s'en allait, un conseil sur le chiffre d'affaires restait affiche. */
+    t('le mot du jour s\'en va aussi', b.el('zoneMot').hidden === true);
+    t('et il ne garde pas son conseil en reserve', b.el('bureauMot').innerHTML === '');
     b.w.bdvProfilLu({ prenom: 'Ted', utilise_vitisoft: 'oui' });
     await dormir(60);
     t('et repondre « oui » les fait revenir, sans rechargement',
       b.el('zoneArdoise').hidden === false && b.el('zoneSousMain').hidden === false);
+    t('le mot du jour revient lui aussi', b.el('zoneMot').hidden === false);
   }
 }
 
@@ -381,6 +407,57 @@ titre('5 bis. Rien a faire, contre rien du tout');
     neuf.el('zonePanneau').hidden === true);
   t('et il ne garde pas de punaise en reserve',
     neuf.el('bureauPanneau').innerHTML === '');
+}
+
+/* ==========================================================================
+   6. LE MOT DU JOUR ECRIT DU TEXTE, PAS DU HTML, 14/09/2026
+   --------------------------------------------------------------------------
+   Defaut signale par Ted. Les deux phrases viennent telles quelles de
+   `diagnosticSignals()`, qui ecrit ses renvois en gras et passe les noms de
+   clients par `esc()`. La zone les peint avec `textContent` : le vigneron
+   lisait « la liste est dans <b>Mon commerce</b> » et « Chapelle &amp; Fils ».
+
+   LES CONTROLES SONT ECRITS EN NEGATIF, expres : ils n'attrapent pas les deux
+   cas du jour, ils attrapent la CLASSE. Une balise ou une entite, quelle
+   qu'elle soit, dans la zone, fait echouer le banc.
+   ========================================================================== */
+titre('6. Le mot du jour : du texte, et rien que du texte');
+{
+  const b = await monter(ETAT_PLEIN);
+  const zone = b.el('bureauMot');
+  t('la zone est peinte', zone.textContent.trim().length > 0);
+  t('aucune balise ne s\'affiche en clair',
+    !/<\/?[a-z][^>]*>/i.test(zone.textContent), zone.textContent.slice(0, 90));
+  t('aucune entite HTML ne s\'affiche en clair',
+    !/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/.test(zone.textContent), zone.textContent.slice(0, 90));
+  t('et le gras n\'a pas ete recree en vraie balise', zone.querySelectorAll('b, i').length === 0);
+
+  /* UN SEUL CONSEIL, QUI PORTE LES DEUX PIEGES. Avec la fixture complete, la zone ne peint
+     que le premier conseil grave : celui qui porte l'esperluette n'est jamais atteint, et le
+     controle d'entite ci-dessus passerait meme si le defaut etait la. Et on ne peut pas viser
+     le troisieme par la rotation : elle est calee sur le jour de l'annee, donc un controle qui
+     en depend echouerait un jour sur quatre. Une liste d'UN force l'index a zero. */
+  const seul = await monter({
+    resume: { ca: 532201, exercice: 'exercice 2026', clients: 128, panier: 415, conseils: [CONSEILS[2]] },
+    deposeLe: new Date().toISOString(), signaux: {}, noms: {}
+  });
+  const z2 = seul.el('bureauMot').textContent;
+  t('le conseil qui nomme des clients ne montre aucune entite',
+    !/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/.test(z2), z2.slice(0, 110));
+  t('et le nom du client se lit en clair', z2.indexOf('Chapelle & Fils') >= 0, z2.slice(0, 110));
+
+  /* Le troisieme conseil porte les deux pieges a la fois. On le vise directement
+     plutot que d'esperer que la rotation tombe dessus. */
+  t('le deshabillage est expose au banc', typeof b.w.bdvTexteDuConseil === 'function');
+  if (typeof b.w.bdvTexteDuConseil === 'function') {
+    const f = b.w.bdvTexteDuConseil;
+    t('la balise part', f('dans <b>Mon commerce</b>, filtre') === 'dans Mon commerce, filtre');
+    t('l\'esperluette revient', f('Chapelle &amp; Fils') === 'Chapelle & Fils');
+    t('l\'apostrophe numerique revient', f('Cave d&#39;Anjou') === "Cave d'Anjou");
+    t('un chevron volontairement echappe reste du texte', f('&lt;b&gt;') === '<b>');
+    t('une entite inconnue n\'est pas mangee', f('a &machin; b') === 'a &machin; b');
+    t('rien du tout ne casse rien', f(null) === '' && f(undefined) === '');
+  }
 }
 
 console.log('\n== VERDICT ==');

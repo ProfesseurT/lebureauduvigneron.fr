@@ -295,6 +295,51 @@ transformerait une panne de reseau en « tu n'as rien a faire », le pire des de
 L'arrivee du profil passe par UN seul chemin nomme, `profilLu()`, expose en
 `window.bdvProfilLu` : c'est lui qui remet la barre et le plan d'accord.
 
+#### ET UNE ZONE NEE APRES UN DEFAUT N'EST BRANCHEE SUR RIEN, 14/09/2026
+
+Le mot du jour est arrive apres cette section. Il n'a jamais ete ajoute a la liste de
+repeinture de `peindreIdentite()`, et il n'avait pas de garde `SANS_VITI` : quelqu'un qui
+repondait « non » a Vitisoft voyait l'ardoise et le sous-main partir, et gardait un conseil
+sur son chiffre d'affaires. Le meme defaut, six jours apres, sur la zone d'a cote.
+
+**Toute zone ajoutee au plan de « Ma journee » se branche sur les TROIS chemins**, pas
+seulement sur celui qui la fait apparaitre : `window.bdvMajJournee` (la base bouge),
+`peindreIdentite()` (le profil arrive), et son propre garde en tete de fonction. Une zone
+qui n'a que le premier marche parfaitement le jour ou on l'ecrit.
+
+### UNE PHRASE ECRITE POUR UN ECRAN NE SE REPEINT PAS TELLE QUELLE DANS UN AUTRE, 14/09/2026
+
+Les conseils du mot du jour viennent tels quels de `diagnosticSignals()`, et c'est la bonne
+regle : on ne les reecrit pas. Mais ils sont ecrits pour le tableau de bord, **en HTML** :
+les renvois sont en gras, « la liste est dans `<b>Mon commerce</b>` », et les noms de clients
+passent par `esc()`. Le bureau les peint avec `textContent`. Le vigneron lisait donc les
+balises en clair et « Chapelle &amp; Fils » a la place du nom de son client.
+
+**Un texte qui voyage entre deux ecrans voyage avec son ENCODAGE.** Avant de reposer ailleurs
+une phrase produite par un autre ecran, regarder comment l'ecran d'origine la peint. Trois
+consommateurs existent deja pour ces memes phrases, et chacun a sa reponse : `htmlLimite()`
+pour le mail HTML, `sansBalise()` pour le mail texte, `texteDuConseil()` pour le bureau.
+
+Deux choses a ne pas defaire dans `texteDuConseil()` (script inline de `src/mon-bureau.njk`) :
+
+1. **Les balises partent AVANT le decodage des entites**, jamais l'inverse. Dans l'autre sens,
+   un `&lt;b&gt;` volontairement echappe deviendrait une vraie balise puis disparaitrait, au
+   lieu de s'afficher comme le texte qu'il est.
+2. **On ne passe pas par l'`innerHTML` d'un element jetable**, qui ferait les deux d'un coup.
+   Ce serait rouvrir une porte d'injection sur du texte qui traverse la base, pour economiser
+   dix lignes.
+
+`sansBalise()` retire les balises et **ne decode pas les entites** : la version texte du
+courrier du matin porte encore la moitie de ce defaut. Signale, non corrige, parce que ce
+fichier part au deploiement avec une empreinte.
+
+Le garde-fou est la section 6 de `npm run banc:journee`, ecrite en NEGATIF : elle refuse toute
+balise et toute entite dans la zone, pas les deux cas du jour. Et sa fixture porte desormais
+quatre conseils dont deux graves, avec une balise et une esperluette : celle d'avant en portait
+UN, propre, en severite 2, c'est-a-dire le seul etat ou aucun de ces defauts ne se declenche.
+**Troisieme fois que la meme lecon se paie : un jeu d'essai plus sage que la realite ne
+verifie que ce qu'il contient.**
+
 ### Ecrire clair sur sombre : toujours mesurer d'abord
 
 Trois decisions de cette refonte ont ete prises par le calcul de contraste, contre le dessin

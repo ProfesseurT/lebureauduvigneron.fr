@@ -12,6 +12,83 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026. Le mot du jour écrivait du HTML en toutes lettres
+
+Ted : « le mot du jour ne se comporte pas bien. Tu devrais regarder les liens et variables,
+plus design et bouton suivant. »
+
+### Ce qui a été corrigé, lot 1 : la plomberie
+
+**Les deux phrases du conseil arrivent en HTML, et la zone les écrit en texte.**
+`diagnosticSignals()` écrit ses renvois en gras, « la liste est dans `<b>Mon commerce</b>` », et
+passe les noms de clients par `esc()`. Peintes avec `textContent`, ces deux précautions se
+retournent : le vigneron lisait les balises en clair, et « Chapelle &amp;amp; Fils » à la place du
+nom de son client. Un `texteDuConseil()` déshabille maintenant les deux phrases, dans cet ordre :
+balises d'abord, entités ensuite.
+
+L'ordre n'est pas une commodité. Dans l'autre sens, un `&amp;lt;b&amp;gt;` volontairement échappé
+deviendrait une vraie balise puis disparaîtrait, au lieu de s'afficher comme le texte qu'il est.
+
+**Ce qui a été écarté :** passer par l'`innerHTML` d'un élément jetable, qui fait les deux d'un
+coup en trois lignes. Ce serait rouvrir une porte d'injection sur du texte qui traverse la base,
+pour économiser dix lignes de décodage.
+
+**`sansBalise()` de `bdv-courrier.js` n'a PAS été appelée**, et la copie est assumée : ce fichier
+n'est pas chargé au bureau, il part au déploiement de `courrier-matin` avec une empreinte, et il
+lui manque de toute façon le décodage des entités. Voir le point ouvert plus bas.
+
+**Le mot du jour ne savait pas se cacher sans Vitisoft.** La zone est née après le défaut du
+08/09 et n'avait jamais été branchée sur la réponse du profil : l'ardoise et le sous-main
+s'en allaient, un conseil sur le chiffre d'affaires restait affiché. `peindreMot()` entre dans
+la liste de repeinture de `peindreIdentite()`, et porte son propre garde `SANS_VITI`, comme
+l'ardoise. Elle rend aussi son contenu au lieu de le garder en réserve.
+
+### La leçon de méthode, et c'est la vraie
+
+**La fixture du banc portait UN conseil, propre, en sévérité 2.** C'est-à-dire exactement l'état
+dans lequel aucun des défauts ne se déclenche : pas de balise, pas d'entité, pas de rotation
+sollicitée. Vingt-deux contrôles verts sur une zone cassée, et c'est Ted qui l'a vue.
+
+Elle porte maintenant quatre conseils copiés sur ce que `diagnosticSignals()` produit vraiment,
+dont deux graves, une balise `<b>` et une esperluette. La règle du 08/09 se répète donc une
+troisième fois : **un jeu d'essai plus sage que la réalité ne vérifie que ce qu'il contient.**
+
+Section 6 de `npm run banc:journee`, écrite en négatif : elle n'attrape pas les deux cas du jour,
+elle refuse toute balise et toute entité dans la zone. Plus six contrôles sur la fonction
+elle-même, exposée en `window.bdvTexteDuConseil`, parce que lire la zone peinte ne prouve que ce
+que la fixture contient. **Les trois contrôles ont été vérifiés en remettant le défaut**, comme
+le veut la règle du dépôt.
+
+Un piège en l'écrivant : le contrôle d'entité sur la zone peinte ne pouvait pas échouer, parce
+qu'avec un conseil grave en tête le conseil qui porte l'esperluette n'est jamais atteint. Et on ne
+peut pas le viser par la rotation, calée sur le jour de l'année : le contrôle échouerait un jour
+sur quatre. D'où un second montage, avec une liste d'UN conseil, qui force l'index à zéro.
+
+`npm run verif` : deux CONFORME, onze bancs, zéro échec.
+
+### Ce qui a été signalé et NON corrigé
+
+- **Le bouton « Le suivant » est mort dès qu'un conseil est grave.** `i` vaut 0 quand `graves`
+  n'est pas vide, `MOT_I` s'incrémente dans le vide, et l'étiquette reste figée sur « 1 sur 2 ».
+  Le bouton marche donc les jours où il ne sert à rien. Lot 2, en attente du feu vert de Ted.
+- **Aucun lien dans la zone**, alors que tout le reste du bureau se clique, et que le conseil dit
+  en toutes lettres « la liste est dans Mon commerce ». `ico` est transporté depuis
+  `conseilsPourLeBureau()` jusqu'au bureau et n'est posé nulle part : la gravité passe donc
+  uniquement par la couleur, ce qui est un défaut WCAG 1.4.1. Lot 2.
+- **La zone change son contenu sans `aria-live`.** Un clic sur le bouton ne produit rien à la
+  synthèse vocale. Lot 2.
+- **« Active les leviers ci-dessous d'ici la fin d'année »**, dans le conseil « Objectif menacé »
+  de `bdv-ecrans.js`. Écrit pour l'écran du tableau de bord, où il y a effectivement des leviers
+  en dessous. Dans le bureau il n'y a rien en dessous, et la phrase part aussi dans le courrier
+  du matin. Lot 3, à valider séparément pour cette raison.
+- **`sansBalise()` de `bdv-courrier.js` retire les balises et ne décode pas les entités.** La
+  version TEXTE du courrier du matin écrit donc « Chapelle &amp;amp; Fils ». Non touché : ce fichier
+  est joint au déploiement avec une empreinte, et le corriger force un redéploiement de
+  `courrier-matin`.
+- **Aucune date de fraîcheur sur la zone.** L'ardoise dit « au 21 août », le mot du jour dit
+  « 1 sur 2 ». Un conseil calculé sur un export de trois semaines se présente comme le conseil du
+  jour, et le courrier a une notion de dépôt périmé que le bureau n'a pas.
+
 ## 13/09/2026. Le courrier du matin ne partait plus, et il avait quatre raisons de ne pas partir
 
 Ted, en ouverture : « fais moi un topo sur les regles en place en ce qui concerne les emails

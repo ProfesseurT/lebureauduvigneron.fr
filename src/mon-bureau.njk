@@ -1142,6 +1142,45 @@ permalink: /mon-bureau/
      de l'année, donc stable dans la journée et différente le lendemain, sans rien avoir
      à mémoriser côté serveur. */
   var MOT_I = 0;
+
+  /* LE CONSEIL ARRIVE EN HTML, ET CETTE ZONE L'ECRIT EN TEXTE, 14/09/2026.
+     Les deux phrases viennent telles quelles de `diagnosticSignals()` (bdv-ecrans.js),
+     qui ecrit ses renvois en gras, « la liste est dans <b>Mon commerce</b> », et qui
+     passe les noms de clients par `esc()`. Peintes avec `textContent`, ces deux
+     precautions se retournent : le vigneron lisait les balises en clair, et
+     « Chapelle &amp; Fils » a la place du nom de son client. Defaut signale par Ted.
+
+     ON NE REECRIT PAS LES PHRASES ICI, c'est la regle de la zone, on les DESHABILLE.
+
+     Le courrier du matin avait deja la moitie de la reponse, `sansBalise()` dans
+     `bdv-courrier.js`. On ne l'appelle pas, et la copie est assumee : ce fichier n'est
+     pas charge au bureau, il part au deploiement de `courrier-matin` avec une empreinte,
+     et il lui manque de toute facon le decodage des entites. Sa version texte porte donc
+     encore la moitie du defaut, signalee et non corrigee.
+
+     ON NE PASSE PAS PAR `innerHTML` d'un element jetable, qui ferait les deux d'un coup :
+     ce serait rouvrir une porte d'injection sur du texte qui traverse la base, pour
+     economiser dix lignes. Et on retire les balises AVANT de decoder, jamais l'inverse :
+     dans l'autre sens, un `&lt;b&gt;` volontairement echappe deviendrait une vraie balise
+     puis disparaitrait, au lieu de s'afficher comme le texte qu'il est. */
+  var ENTITES = { amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:'\u00a0' };
+  function texteDuConseil(s){
+    return String(s == null ? '' : s)
+      .replace(/<[^>]*>/g, '')
+      .replace(/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/g, function(tout, corps){
+        if(corps.charAt(0) === '#'){
+          var hexa = corps.charAt(1) === 'x' || corps.charAt(1) === 'X';
+          var n = hexa ? parseInt(corps.slice(2), 16) : parseInt(corps.slice(1), 10);
+          return isNaN(n) ? tout : String.fromCharCode(n);
+        }
+        var nom = corps.toLowerCase();
+        return ENTITES[nom] != null ? ENTITES[nom] : tout;
+      });
+  }
+  /* Expose pour le banc, au meme titre que `bdvMajJournee` et `bdvProfilLu`. Lire la zone
+     peinte ne prouve que les cas que la fixture contient ; appeler la fonction permet
+     d'interdire la CLASSE, chevron volontairement echappe et entite inconnue compris. */
+  window.bdvTexteDuConseil = texteDuConseil;
   function jourDeLAnnee(){
     var d = new Date();
     return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
@@ -1149,7 +1188,17 @@ permalink: /mon-bureau/
   function peindreMot(){
     var c = (ETAT_FILE && ETAT_FILE.resume && ETAT_FILE.resume.conseils) || [];
     var zone = el('zoneMot');
-    if(!c.length){ zone.hidden = true; return; }
+    /* MEME REGLE QUE L'ARDOISE, et elle manquait ici : ces conseils sont calcules sur un
+       export Vitisoft qui n'arrivera jamais pour qui a repondu « non ». Une zone qui sait
+       se montrer doit savoir se cacher (08/09/2026) ; celle-ci ne le savait que pour une
+       base vide, et elle ne rendait pas non plus son contenu, qui repartait donc au
+       prochain affichage de la zone. */
+    if(SANS_VITI || !c.length){
+      zone.hidden = true;
+      el('bureauMot').innerHTML = '';
+      txt(el('motNote'), '');
+      return;
+    }
     zone.hidden = false;
     // Les conseils graves (sévérité 3) ne tournent pas : ils restent en tête tant qu'ils
     // sont vrais. On ne fait tourner que ce qui peut attendre.
@@ -1163,8 +1212,10 @@ permalink: /mon-bureau/
     var d = document.createElement('div');
     d.className = 'mot';
     d.setAttribute('data-kind', m.kind || 'info');
-    var v = document.createElement('p'); v.className = 'mot__v'; v.textContent = m.verdict;
-    var a = document.createElement('p'); a.className = 'mot__a'; a.textContent = m.action;
+    var v = document.createElement('p'); v.className = 'mot__v';
+    v.textContent = texteDuConseil(m.verdict);
+    var a = document.createElement('p'); a.className = 'mot__a';
+    a.textContent = texteDuConseil(m.action);
     d.appendChild(v); d.appendChild(a);
     boite.appendChild(d);
 
@@ -1808,7 +1859,10 @@ permalink: /mon-bureau/
        qu'il n'a pas Vitisoft. La barre et le plan doivent dire la meme chose. */
     if(sansViti !== SANS_VITI){
       SANS_VITI = sansViti;
-      peindreFile(); peindreArdoise(); peindreResume();
+      /* LE MOT DU JOUR MANQUAIT A CETTE LISTE, 14/09/2026. La zone est nee apres le
+         defaut du 08/09 et n'a jamais ete branchee sur la reponse du profil : l'ardoise
+         et le sous-main s'en allaient, un conseil sur le chiffre d'affaires restait. */
+      peindreFile(); peindreArdoise(); peindreMot(); peindreResume();
     }
   }
 
