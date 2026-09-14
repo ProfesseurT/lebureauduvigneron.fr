@@ -441,6 +441,23 @@ permalink: /mon-bureau/
 
         <p class="equipe-avis" id="equipeAvis" hidden></p>
 
+        {# AUCUN BUREAU. État possible depuis le lot 20 : qui s'est inscrit PAR une
+           invitation n'a pas de bureau à lui, et le jour où on le retire il n'en a plus
+           aucun. C'est un état valide, pas une panne, et sans cet écran tout le bureau
+           serait muet sans qu'on sache pourquoi. #}
+        <div class="equipe-aucun" id="equipeAucun" hidden>
+          <p class="equipe-aucun__t">Tu n'appartiens à aucun bureau pour le moment.</p>
+          <p class="equipe-aucun__n">
+            Soit tu attends une invitation, soit tu ouvres le tien. Rien n'est perdu :
+            ce que tu as écrit ailleurs appartient au bureau où tu l'as écrit.
+          </p>
+          <div class="equipe-aucun__ligne">
+            <input class="equipe-aucun__i" id="equipeAucunNom" type="text" maxlength="120"
+                   placeholder="le nom de ton domaine" aria-label="Le nom de ton bureau">
+            <button type="button" class="btn" id="equipeAucunCreer">Ouvrir mon bureau</button>
+          </div>
+        </div>
+
         <ul class="equipe-liste" id="equipeListe"></ul>
 
         <p class="equipe-note" id="equipeNoteSimple" hidden>

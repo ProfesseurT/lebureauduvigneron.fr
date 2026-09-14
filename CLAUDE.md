@@ -1872,6 +1872,61 @@ piege pose pour plus tard.
 **`justify-self` sur une etiquette.** Sans lui, elle prend toute sa cellule de grille, et
 sur telephone « MAITRE » devenait un bandeau de bord a bord qu'on prend pour un bouton.
 
+### UN INVITE N'A PAS DE DOMAINE, 14/09/2026
+
+Defaut signale par Ted : « ca dedouble le bureau que tu as deja ». Le lot 15 donnait un
+bureau solo a CHAQUE compte. C'etait juste quand tout le monde etait independant ; pour un
+salarie qu'on invite, ce bureau vide encombre le selecteur, et c'est lui qui obligeait a
+interdire de quitter son dernier bureau.
+
+**`creer_profil()` regarde s'il existe une invitation en attente pour cette adresse** au
+moment de l'inscription, et ne cree alors aucun bureau. C'est la seule facon de le savoir
+sans rien demander au navigateur, et la plus sure : le client ne peut pas mentir sur une
+invitation qu'il n'a pas.
+
+**Consequence assumee : on peut n'appartenir a AUCUN bureau.** Le garde du lot 18 est
+retire, remplace par un ecran qui le dit et propose d'en ouvrir un (`creer_bureau`).
+Interdire de partir, c'est enfermer quelqu'un chez son ancien patron. Le garde du DERNIER
+MAITRE, lui, reste : aucun ecran ne rattrape un bureau que plus personne ne peut administrer.
+
+### L'INVITATION PART PAR MAIL, ET LE SEUIL EST AMENDE, 14/09/2026
+
+Ted a choisi `equipe@courrier.lebureauduvigneron.fr`, donc le meme sous-domaine que le
+courrier du matin. **La regle du SEUIL, plus haut, avait ete ecrite pour le RECAP
+QUOTIDIEN** : un mail qui revient tous les matins, que les messageries classent volontiers
+en commercial. Une invitation est transactionnelle, elle part une fois, elle est attendue,
+elle nomme la personne qui invite. Le risque pour la reputation n'est pas le meme. Les trois
+conditions du seuil restent entieres pour le RECAP.
+
+**Ce que l'envoi ouvre, et qu'il fallait fermer dans le meme mouvement : un bouton qui
+envoie un mail a une adresse quelconque est un relais a courrier indesirable**, et il porte
+le nom de domaine du Bureau du Vigneron. D'ou un plafond de vingt invitations par jour, PAR
+BUREAU **et** PAR PERSONNE (le premier seul se contourne en creant des bureaux, le second
+seul se contourne a plusieurs), plus un plafond de dix bureaux par compte. **Les plafonds
+sont dans la BASE et pas dans la fonction d'envoi** : c'est la base qui fait foi, et elle
+protege aussi l'appel direct a `/rest/v1/rpc/inviter`.
+
+**La fonction `invitation` ne verifie AUCUN droit de son cote.** Elle rappelle
+`rpc/inviter` avec le jeton de session de l'appelant : est-il maitre, l'adresse est-elle
+valide, le plafond est-il atteint, tout reste dans la base. Elle ne lit meme pas la cle de
+service. Ce qu'elle sait faire de plus que le navigateur, c'est parler a Resend.
+
+**Le jeton ne revient au navigateur QUE si l'envoi a echoue.** Le mail parti, le secret ne
+s'affiche plus nulle part. L'envoi rate, l'invitation existe quand meme et vaut sept jours :
+rendre le lien evite de perdre le geste parce que Resend a tousse.
+
+### LA QUESTION « AS-TU DEJA UN COMPTE ? » SE POSE DANS LE BANDEAU
+
+Un bouton unique « Me connecter » envoyait quelqu'un sans compte se cogner a un ecran de
+connexion. Deux boutons nets, et **l'adresse invitee est dite puis IMPOSEE au formulaire**
+(`porte({ mode, email })`, champ en lecture seule avec sa note). Sans elle, l'invite cree un
+compte avec l'adresse de son choix et l'acceptation echoue APRES coup, une fois le compte
+cree, c'est-a-dire au pire moment.
+
+Ce que ca coute : qui tient le lien apprend l'adresse invitee. Il tient deja un jeton de
+244 bits. Ce qui protege reste entier : accepter demande le lien ET d'etre connecte avec
+cette adresse.
+
 ### `npm run apercu:equipe`
 
 Ecrit apres ce defaut, et pour qu'il ne se reproduise pas : il monte la piece dans la PAGE

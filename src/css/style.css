@@ -8307,3 +8307,46 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   line-height: var(--lh-lecture);
   margin-top: var(--e-s);
 }
+
+/* Aucun bureau : un etat nomme, pas une panne. Meme matiere que le bandeau
+   d'invitation, filet d'accent compris : ce sont les deux seuls blocs du bureau
+   qui s'adressent a quelqu'un qui n'a encore rien. */
+.equipe-aucun {
+  grid-column: 1 / -1;
+  margin-bottom: var(--e-l);
+  padding: var(--e-m);
+  background: var(--paper-deep);
+  border-left: var(--trait-accent) solid var(--bordeaux);
+}
+.equipe-aucun__t {
+  font-family: var(--font-titre);
+  font-size: var(--t-lead);
+  margin: 0 0 var(--e-xs);
+}
+.equipe-aucun__n {
+  color: var(--muted);
+  font-size: var(--t-petit);
+  line-height: var(--lh-lecture);
+  margin: 0 0 var(--e-s);
+}
+.equipe-aucun__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-aucun__i {
+  flex: 1 1 16rem;
+  min-height: var(--h-controle);
+  padding: 0.4rem 0.6rem;
+  background: var(--white);
+  border: var(--trait) solid var(--rule-fort);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+}
+
+/* Les deux chemins de l'invitation, cote a cote : « je cree mon compte » et
+   « j'ai deja un compte ». Ils se replient l'un sous l'autre quand la place
+   manque, et le premier reste le premier. */
+.invitation__gestes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-s);
+  margin: 0;
+}

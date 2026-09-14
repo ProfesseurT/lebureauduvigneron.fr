@@ -164,26 +164,75 @@
   }
 
   /* ---------------- INVITER ---------------- */
+  /* L'INVITATION PART PAR MAIL, 14/09/2026, demande de Ted.
+     ================================================================
+     La fonction serveur `invitation` ne verifie AUCUN droit de son cote : elle
+     rappelle `rpc/inviter` avec le jeton de session de celui qui clique, et c'est la
+     base qui decide. Les refus arrivent donc en francais, ecrits dans le SQL pour le
+     vigneron : « seul un maitre de ce bureau peut inviter », « cette personne est
+     deja dans ce bureau », le plafond de vingt par jour.
+
+     LE JETON NE REVIENT PLUS AU NAVIGATEUR quand le mail est parti, et c'est un
+     progres sur le lien a copier : le secret ne s'affiche plus, ne traine pas dans
+     une capture d'ecran et ne reste pas dans le presse-papier.
+
+     IL REVIENT SI L'ENVOI A ECHOUE, et c'est la moitie qui compte : l'invitation
+     EXISTE quand meme en base, elle vaut sept jours, et perdre le lien parce que
+     Resend a tousse serait perdre le geste entier. */
   async function inviter(adresse, role) {
     dire('');
-    var jeton;
+    var r;
     try {
-      jeton = await rpc('inviter', { b: BdvCompte.monBureau(), courriel: adresse, r: role });
-    } catch (e) { dire(raison(e), true); return; }
-    if (typeof jeton !== 'string' || !jeton) { dire('Le lien n’a pas pu être créé.', true); return; }
+      r = await BdvCompte.fonction('invitation',
+        { bureau: BdvCompte.monBureau(), email: adresse, role: role });
+    } catch (e) { dire((e && e.message) || raison(e), true); return; }
 
-    var lien = location.origin + '/mon-bureau/?invitation=' + encodeURIComponent(jeton);
     var zone = el('equipeLien');
-    var champ = el('equipeLienTexte');
-    if (zone && champ) {
-      champ.value = lien;
-      zone.hidden = false;
-      champ.focus();
-      champ.select();
+    if (r && r.envoye) {
+      if (zone) zone.hidden = true;
+      dire('Invitation envoyée à ' + adresse + '. Le lien vaut sept jours.');
+    } else {
+      var champ = el('equipeLienTexte');
+      if (zone && champ && r && r.lien) {
+        champ.value = r.lien;
+        zone.hidden = false;
+        champ.focus();
+        champ.select();
+        var q = el('equipeLienQui');
+        if (q) q.textContent = adresse;
+      }
+      dire('L’invitation est créée, mais le mail n’est pas parti'
+        + ((r && r.motif) ? ' (' + r.motif + ')' : '')
+        + '. Copie le lien ci-dessous et envoie-le toi-même.', true);
     }
-    var q = el('equipeLienQui');
-    if (q) q.textContent = adresse;
     await rendreInvitations();
+  }
+
+  /* ---------------- QUAND ON N'APPARTIENT A AUCUN BUREAU ----------------
+     Etat possible depuis le lot 20 : quelqu'un qui s'est inscrit PAR une invitation
+     n'a pas de bureau solo, et le jour ou on le retire il n'en a plus aucun. C'est
+     un etat valide, pas une panne, et il doit se dire en toutes lettres avec une
+     sortie. Sans cet ecran, tout le bureau serait muet : `pret()` est faux partout,
+     donc aucune requete ne part, et rien n'expliquerait pourquoi. */
+  function montrerAucunBureau() {
+    var bloc = el('equipeAucun');
+    if (bloc) bloc.hidden = false;
+    ['equipeBureauBloc', 'equipeInviterForme', 'equipeAttentesBloc', 'equipeLien']
+      .forEach(function (id) { var n = el(id); if (n) n.hidden = true; });
+    var liste = el('equipeListe'); if (liste) liste.innerHTML = '';
+    var note = el('equipeNoteSimple'); if (note) note.hidden = true;
+    var partir = el('equipePartir'); if (partir) partir.hidden = true;
+  }
+
+  async function creerBureau(nom) {
+    dire('');
+    var b;
+    try { b = await rpc('creer_bureau', { nom: nom }); }
+    catch (e) { dire(raison(e), true); return; }
+    if (typeof b !== 'string' || !b) { dire('Le bureau n’a pas pu être créé.', true); return; }
+    // Meme chemin que le selecteur : on entre dans un bureau, donc on vide le poste.
+    BdvCompte.poserBureau(null);
+    await BdvCompte.changerDeBureau(b);
   }
 
   /* ---------------- LES GESTES DE LA LISTE ---------------- */
@@ -285,6 +334,14 @@
     var p = el('equipePartir');
     if (p) p.addEventListener('click', function (ev) { ev.preventDefault(); partir(); });
 
+    var creer = el('equipeAucunCreer');
+    if (creer) creer.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var nom = (el('equipeAucunNom') || {}).value || '';
+      if (!nom.trim()) { dire('Il manque le nom de ton bureau.', true); return; }
+      creerBureau(nom.trim());
+    });
+
     var aller = el('equipeBureauAller');
     if (aller) aller.addEventListener('click', async function () {
       var choix = el('equipeBureauChoix');
@@ -302,7 +359,15 @@
 
   async function ouvrir() {
     monter();
-    if (!pret()) return;
+    var aucun = el('equipeAucun');
+    if (aucun) aucun.hidden = true;
+    /* SANS BUREAU MAIS AVEC UNE SESSION, ce n'est pas « pas pret », c'est un etat
+       nomme. Le distinguer de « pas de session » est tout l'interet : l'un se dit,
+       l'autre se tait. */
+    if (!pret()) {
+      if (window.BdvCompte && BdvCompte.session && BdvCompte.session()) montrerAucunBureau();
+      return;
+    }
     dire('');
     var lien = el('equipeLien'); if (lien) lien.hidden = true;
     try {
@@ -397,18 +462,31 @@
     }
 
     var qui = esc(inv.invite_par_prenom), ou = esc(inv.bureau_nom);
+    var adresse = String(inv.email || '');
     var connecte = !!(BdvCompte.session && BdvCompte.session());
 
+    /* DEUX CHEMINS NETS, ET PAS UN BOUTON POUR LES DEUX, 14/09/2026.
+       Un bouton « Me connecter » unique envoyait quelqu'un qui n'a pas de compte se
+       cogner a un ecran de connexion. La question « as-tu deja un compte ? » se pose
+       ICI, ou la personne connait la reponse, et pas trois ecrans plus loin.
+
+       ET L'ADRESSE EST DITE, puis IMPOSEE au formulaire. Sans elle, l'invite cree un
+       compte avec l'adresse de son choix, et l'acceptation echoue APRES coup sur
+       « cette invitation a ete envoyee a une autre adresse », c'est-a-dire au pire
+       moment : une fois le compte cree. */
     bandeau('<p class="invitation__titre">' + qui + ' t’invite à travailler dans '
       + '<strong>' + ou + '</strong>.</p>'
       + (connecte
-        ? '<p class="invitation__note">Tu garderas aussi ton propre bureau : tu passeras '
+        ? '<p class="invitation__note">Tu garderas aussi tes autres bureaux : tu passeras '
           + 'de l’un à l’autre quand tu veux.</p>'
           + '<button type="button" class="btn" id="invitationOui">Rejoindre ' + ou + '</button>'
-        : '<p class="invitation__note">Connecte-toi avec l’adresse à laquelle '
-          + 'l’invitation a été envoyée, ou crée ton compte : '
-          + 'tu rejoindras ' + ou + ' juste après.</p>'
-          + '<button type="button" class="btn" id="invitationPorte">Me connecter</button>'));
+        : '<p class="invitation__note">L’invitation a été envoyée à <strong>' + esc(adresse)
+          + '</strong>. C’est avec cette adresse-là, et elle seule, que tu rejoindras '
+          + ou + '.</p>'
+          + '<p class="invitation__gestes">'
+          + '<button type="button" class="btn" id="invitationInscription">Je crée mon compte</button>'
+          + '<button type="button" class="btn btn--geste" id="invitationConnexion">J’ai déjà un compte</button>'
+          + '</p>'));
 
     var oui = el('invitationOui');
     if (oui) oui.addEventListener('click', function () {
@@ -416,10 +494,13 @@
       oui.textContent = 'Un instant…';
       accepter(jeton);
     });
-    var porte = el('invitationPorte');
-    if (porte) porte.addEventListener('click', function () {
-      if (BdvCompte.ouvrir) BdvCompte.ouvrir({});
-    });
+    function porte(mode) {
+      if (BdvCompte.ouvrir) BdvCompte.ouvrir({ mode: mode, email: adresse });
+    }
+    var neuf = el('invitationInscription');
+    if (neuf) neuf.addEventListener('click', function () { porte('inscription'); });
+    var deja = el('invitationConnexion');
+    if (deja) deja.addEventListener('click', function () { porte('connexion'); });
   }
 
   /* La session peut s'ouvrir APRES l'affichage du bandeau : c'est meme le cas

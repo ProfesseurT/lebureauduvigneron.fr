@@ -68,15 +68,16 @@ function monter(opts) {
 function compte(opts) {
   return {
     monId: () => MOI,
-    monBureau: () => BUREAU_A,
+    monBureau: () => opts.sansBureau ? null : BUREAU_A,
     session: () => ({ user: { id: MOI } }),
     mesBureaux: () => Promise.resolve(opts.unSeulBureau
       ? [{ bureau: BUREAU_A, nom: 'Solucorp', role: 'maitre' }]
       : [{ bureau: BUREAU_A, nom: 'Solucorp', role: 'maitre' },
          { bureau: BUREAU_B, nom: 'Domaine Solugroup', role: 'simple' }]),
     refusDeProprietaire: () => false,
-    rpcPublic: () => Promise.resolve([{ bureau_nom: 'Solucorp',
-                                        invite_par_prenom: 'Teddy', etat: 'valide' }]),
+    rpcPublic: () => Promise.resolve([{ bureau_nom: 'Solucorp', invite_par_prenom: 'Teddy',
+                                        email: 'romane@solumatic.fr', etat: 'valide' }]),
+    ouvrir: () => {},
     api: (chemin) => {
       if (chemin.indexOf('/rpc/equipe') === 0) return Promise.resolve(opts.equipe);
       if (chemin.indexOf('/invitations') === 0) return Promise.resolve(opts.invitations || []);
@@ -140,6 +141,30 @@ const dormir = (ms) => new Promise(r => setTimeout(r, ms));
   await dormir(40);
   vues.push({ titre: 'Le bandeau d’invitation, deja connecte',
               note: 'Il vit AU-DESSUS des pieces : range dans « Ma journee », il disparaissait des qu’on changeait de piece',
+              html: w.document.getElementById('invitationBandeau').outerHTML });
+}
+
+/* 4. AUCUN BUREAU. L'etat le moins regarde du lot 20, et celui ou quelqu'un se
+      retrouve enferme dehors si l'ecran ne dit rien. */
+{
+  const w = monter({ equipe: [], sansBureau: true });
+  await w.BdvEquipe.ouvrir();
+  await dormir(30);
+  vues.push({ titre: 'Quand on n\u2019appartient a aucun bureau',
+              note: 'Possible depuis le lot 20 : un invite n\u2019a pas de bureau solo, et on peut le retirer du seul qu\u2019il avait',
+              html: w.document.querySelector('.zone--equipe').outerHTML });
+}
+
+/* 5. LE BANDEAU POUR QUELQU'UN QUI N'A PAS ENCORE DE COMPTE. Deux chemins nets,
+      et l'adresse dite : c'est le cas que Ted a trouve « tres complexe ». */
+{
+  const w = monter({ equipe: EQUIPE, sansSession: true });
+  w.BdvCompte.session = () => null;
+  w.history.replaceState(null, '', '/mon-bureau/?invitation=essai');
+  await w.BdvEquipe.traiterInvitation();
+  await dormir(40);
+  vues.push({ titre: 'Le bandeau, pour quelqu\u2019un qui n\u2019a pas de compte',
+              note: 'La question « as-tu deja un compte ? » se pose ici, pas trois ecrans plus loin, et l\u2019adresse invitee est dite',
               html: w.document.getElementById('invitationBandeau').outerHTML });
 }
 

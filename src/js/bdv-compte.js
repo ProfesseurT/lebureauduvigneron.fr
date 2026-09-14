@@ -637,7 +637,25 @@
       const newsLabel = overlay.querySelector('#bdvNewsLabel');
       const btnBascule = overlay.querySelector('#bdvBtnBascule');
       const basculeTexte = overlay.querySelector('#bdvBasculeTexte');
-      champEmail.focus();
+      /* UNE ADRESSE IMPOSEE, 14/09/2026. Quand on arrive par une invitation, le compte
+         DOIT se creer avec l'adresse invitee : l'acceptation verifie que les deux
+         correspondent, et un compte cree avec une autre adresse echouerait apres coup,
+         c'est-a-dire au pire moment. Le champ est donc rempli et en lecture seule, et
+         l'ecran dit pourquoi plutot que de laisser quelqu'un se demander pourquoi il ne
+         peut pas taper. */
+      if(options.email){
+        champEmail.value = options.email;
+        champEmail.readOnly = true;
+        champEmail.setAttribute('aria-describedby', 'bdvEmailImpose');
+        const note = document.createElement('p');
+        note.id = 'bdvEmailImpose';
+        note.className = 'bdv-porte__note';
+        note.textContent = 'C\u2019est l\u2019adresse \u00e0 laquelle l\u2019invitation a \u00e9t\u00e9 envoy\u00e9e.';
+        champEmail.insertAdjacentElement('afterend', note);
+        (champMdp || champEmail).focus();
+      } else {
+        champEmail.focus();
+      }
 
       // 'inscription' ou 'connexion'. Repose par poserMode, lu par la touche Entree et par
       // l'affichage des regles de mot de passe.
@@ -1156,6 +1174,40 @@
     return bureauEnRoute;
   }
 
+  /* APPELER UNE FONCTION SERVEUR, avec le jeton de session de l'appelant.
+     ================================================================
+     La fonction `invitation` NE VERIFIE AUCUN DROIT de son cote : elle rappelle
+     `rpc/inviter` avec ce meme jeton, et c'est la base qui decide. Ce qu'elle sait
+     faire de plus que ce navigateur, c'est parler a Resend.
+
+     Elle LEVE avec le message de la base quand la base refuse : « seul un maitre de
+     ce bureau peut inviter », « cette personne est deja dans ce bureau », le plafond
+     du jour. Ces phrases sont ecrites pour le vigneron, elles remontent telles quelles
+     jusqu'a l'ecran. */
+  async function fonction(nom, corps){
+    if(!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('configuration absente');
+    const s = lireSession();
+    if(!s) throw new Error('aucune session');
+    const r = await fetch(SUPABASE_URL + '/functions/v1/' + nom, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + s.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(corps || {})
+    });
+    const t = await r.text();
+    let data = null;
+    try{ data = t ? JSON.parse(t) : null; }catch(e){ data = null; }
+    if(!r.ok){
+      const err = new Error((data && data.erreur) || ('la fonction ' + nom + ' a refuse (' + r.status + ')'));
+      err.status = r.status;
+      throw err;
+    }
+    return data;
+  }
+
   /* LA LISTE DES BUREAUX DE CETTE PERSONNE, pour le selecteur de la barre.
      Passe par la relation entre `membres` et `bureaux` : la securite par ligne borne
      deja les deux tables a ce dont on est membre, il n'y a donc rien a filtrer ici. */
@@ -1233,6 +1285,7 @@
     chargerBureau: chargerBureau,
     mesBureaux: mesBureaux,
     changerDeBureau: changerDeBureau,
+    fonction: fonction,
     refusDeProprietaire: refusDeProprietaire
   };
 
