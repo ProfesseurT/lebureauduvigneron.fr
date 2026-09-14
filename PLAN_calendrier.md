@@ -36,7 +36,7 @@ deux vitres.
 qui répondent « est-ce que la DRM de septembre est faite » se contrediraient au premier
 geste. Ne pas le faire.
 
-### 2. L'abonnement vivant, pas le fichier téléchargé
+### 2. L'abonnement vivant, ET le fichier téléchargé, AMENDÉ le 14/09/2026
 
 Retenu : une adresse secrète par compte, que Google Agenda, Apple Calendrier et Outlook
 relisent tout seuls. Une date corrigée par nous remonte chez tout le monde sans rien faire.
@@ -45,6 +45,28 @@ relisent tout seuls. Une date corrigée par nous remonte chez tout le monde sans
 dépôt. Aujourd'hui le site est entièrement statique. Il faudra une fonction Vercel, une clé
 de service Supabase dans les variables d'environnement, et un jeton révocable par compte.
 Détail en Lot 4.
+
+**AMENDEMENT DU 14/09/2026, TRANCHÉ PAR TED.** Le titre de cet arbitrage disait « PAS le
+fichier téléchargé ». C'est faux depuis aujourd'hui : **les deux coexistent, et ils ne
+servent pas le même public.**
+
+- Le **PDF téléchargé** est un objet marketing. Il se range sur le mur du chai, il se
+  partage entre voisins, il ne se met jamais à jour. C'est l'hameçon.
+- L'**abonnement .ics** est un outil. Il ne s'imprime pas, il suit les corrections, il
+  demande un compte. C'est la profondeur.
+
+**Le danger que cet arbitrage doit continuer de tenir** : que le PDF soit si complet qu'il
+retire toute raison d'ouvrir un compte. Le PDF MONTRE l'année ; le bureau seul permet
+d'agir dessus : cocher, décaler un repère, synchroniser. Une fonctionnalité du bureau qui
+se retrouve dans le PDF est une erreur, pas un bonus.
+
+**La capture d'adresses n'est PAS dans ce chantier.** Ted, le 14/09/2026 : « on pourra
+pécho des mails avec ça plus tard, mais c'est un autre chantier. » Le PDF se télécharge
+donc librement, sans formulaire. Motif, et il n'est pas que de calendrier : `consent_news`
+est déjà une case cochée qui ne promet rien à personne (voir la vérification du 10/09/2026).
+Une deuxième collecte d'adresses sans programme d'envoi derrière serait la même faute en
+plus gros. Le jour où ce chantier s'ouvre, il commence par ce qu'on envoie, pas par le
+formulaire.
 
 ### 3. La bibliothèque va jusqu'au commercial
 

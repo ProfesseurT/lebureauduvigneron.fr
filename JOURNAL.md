@@ -12,6 +12,140 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026. Le calendrier marketing : ce qui se calcule, et ce qui se périme
+
+Ted arrive avec le calendrier marketing 2027 du Blog du Modérateur, 17 pages, environ 500
+marronniers, et la question « c'est facilement intégrable ? ».
+
+### La mesure avant la réponse
+
+Le PDF est un calendrier pour community managers de marques grand public, sponsorisé par un
+éditeur de jeux concours. Échantillon réel de février et mai 2027 : journée mondiale du
+parapluie, Pokémon Day, Star Wars Day, journée mondiale du houmous. Son novembre 2027 ne
+contient pas le Beaujolais nouveau. Ce n'est pas un calendrier de filière.
+
+**Mais il a servi de révélateur, et c'est pour ça qu'il compte.** Trois lignes de notre
+bibliothèque portaient une date FIXE pour une fête qui n'en a pas, et leur propre champ
+`detail` avouait « repère calé sur la date la plus fréquente, à vérifier chaque année ».
+En 2027 les trois tombaient à côté :
+
+| Repère | Ce qu'on affichait | La vraie date 2027 |
+| --- | --- | --- |
+| Fête des mères | 31 mai (un lundi) | dimanche 30 mai |
+| Fête des pères | 21 juin | dimanche 20 juin |
+| Black Friday | 27 novembre (un samedi) | vendredi 26 novembre |
+
+Un vigneron qui cale sa campagne fête des mères sur un lundi a raté son week-end de vente.
+
+### L'objection de Ted, et pourquoi elle a changé le plan
+
+J'ai commencé par dire que verser ce PDF dans la bibliothèque ressusciterait le problème que
+le Lot 2 avait supprimé : une liste de dates qui meurt le 31 décembre. Ted a répondu que la
+réécriture annuelle ferait partie du jeu marketing.
+
+**Il a raison sur l'intention et j'avais tort sur la mesure.** Découpe des 500 entrées par ce
+qui les fait vivre : date fixe (règle `annuel`, jamais retapée), nième jour de semaine
+(nouveau type, jamais retapée), calée sur Pâques (déjà calculée par `bdv-almanach.js`),
+lunaire (Meeus, déjà là). Ce qui reste à retaper chaque automne, ce sont les salons, les
+cérémonies et les vacances scolaires : une vingtaine à une quarantaine de lignes, pas 500.
+
+**Et c'est l'asymétrie qui vaut le chantier.** Le Blog du Modérateur retape 500 lignes chaque
+été pour sortir son PDF. Nous en retaperons trente, et le nôtre se GÉNÉRERA depuis
+`src/_data/echeances.json`.
+
+### Ce qui a été livré, Lot A
+
+**1. Le quatrième type de récurrence, `annuel-jour-semaine`.** Mois, jour de semaine en
+numérotation ISO (1 = lundi, 7 = dimanche), rang de 1 à 5 ou `"dernier"`. Plus un champ
+facultatif `puis`, un décalage en jours appliqué après le calcul, et il existe pour une seule
+raison réelle : **le Black Friday n'est pas le quatrième vendredi de novembre**, c'est le
+lendemain du quatrième jeudi, et les deux diffèrent quand le 1er novembre tombe un vendredi.
+
+`puis` appartient à la RÈGLE, `decale` appartient au COMPTE du vigneron. Deux champs, deux
+propriétaires, et le fichier le dit en toutes lettres pour que personne ne les fusionne.
+
+Les trois dates sont corrigées pour toujours, et le Beaujolais nouveau (troisième jeudi de
+novembre) entre dans la bibliothèque. Elle passe de 29 à 30 occurrences.
+
+**2. Le garde-fou d'annualité, `scripts/banc-annuel.mjs`, dans `npm run verif`.**
+
+Le défaut qu'il existe pour attraper : un calendrier ne tombe jamais en panne, il continue
+d'afficher des dates fausses avec le même aplomb qu'une DRM. Un champ `detail` qui dit « à
+vérifier chaque année » ne réveille personne. Un `npm run verif` rouge, si.
+
+Six contrôles, 20 assertions :
+
+1. Toute ligne `unique` porte `verifieLe`, et cette vérification a moins de douze mois. C'est
+   ce qui FORCE la passe annuelle. Les six lignes existantes portent `2026-09-08`, le jour où
+   elles ont été écrites. Elles devront donc être confirmées avant septembre 2027.
+2. Aucun rendez-vous pourri. **Exception assumée et codée** : une `unique` de la famille
+   `obligations` a le droit d'être passée. « Facturation électronique, obligation de recevoir »
+   au 01/09/2026 est une date d'entrée en vigueur, elle reste utile pour toujours. Un salon
+   passé, non. Sans cette exception, le banc bloquait le déploiement sur une ligne légitime.
+3. Les quatre dates mobiles confrontées au calendrier réel sur 2026 à 2029. Ce contrôle vaut
+   parce qu'il compare le moteur à des dates vérifiables AILLEURS, pas à lui-même.
+4. 5 544 combinaisons année, mois, jour, rang : jamais de débordement sur le mois suivant.
+5. Toute ligne du fichier est lisible par le moteur. `lisible()` avale en silence une règle
+   mal écrite, et la ligne disparaît du calendrier sans erreur.
+6. La fête des mères contre la Pentecôte, quinze ans devant.
+
+**Le calibrage du contrôle 6 mérite d'être lu.** La fête des mères française est le dernier
+dimanche de mai SAUF quand ce jour est celui de Pentecôte, où elle bascule au premier
+dimanche de juin. Ça dépend de Pâques, que `bdv-echeances.js` ne calcule pas. Ça arrive six
+fois en trente-cinq ans, la première en 2034. Deux mauvaises réponses étaient possibles :
+l'encoder (coupler deux modules pour un cas tous les six ans), ou l'ignorer. Une troisième
+a été retenue : **la détecter, et ne faire ÉCHOUER que si la collision tombe cette année ou
+la suivante.** Un banc qui bloque le déploiement pour un problème de 2034 serait désactivé
+par le premier qui le croise, et ce jour-là on perdrait aussi les cinq autres contrôles.
+Au-delà, il prévient. Il prévient donc aujourd'hui pour 2034 et 2039.
+
+### L'arbitrage 2 de PLAN_calendrier.md est amendé
+
+Il disait « l'abonnement vivant, PAS le fichier téléchargé ». Ted a tranché l'inverse : les
+deux coexistent. Le PDF est un objet marketing, il se range sur le mur du chai et ne se met
+jamais à jour. L'abonnement `.ics` est un outil, il suit les corrections et demande un compte.
+**Le danger que l'arbitrage doit continuer de tenir** : que le PDF soit si complet qu'il
+retire toute raison d'ouvrir un compte. Le PDF MONTRE l'année, le bureau seul permet d'agir
+dessus.
+
+**La capture d'adresses n'est pas dans ce chantier**, Ted : « on pourra pécho des mails avec
+ça plus tard, mais c'est un autre chantier. » Le PDF se téléchargera librement. Motif :
+`consent_news` est déjà une case cochée qui ne promet rien à personne (vérification du
+10/09/2026). Une deuxième collecte sans programme d'envoi derrière serait la même faute en
+plus gros.
+
+### Ce que le banc réclame déjà, et qui n'est pas fait
+
+- `vinitech-2026` se termine dans 80 jours. Poser l'édition suivante AVANT, pas après.
+- Les quatre salons portent « dates à confirmer » et n'ont jamais été confrontés au site de
+  l'organisateur. Le banc l'exigera avant septembre 2027.
+
+### Les lots qui restent, décidés avec Ted le 14/09/2026
+
+- **Lot B**, la sélection vigneron. Le vrai coût, et ce n'est pas du code. La famille
+  `tempsforts` passe de 7 lignes à une quarantaine. **La règle d'entrée fait tout le tri :
+  une ligne n'entre que si on sait écrire le GESTE du vigneron.** « Journée mondiale du
+  parapluie » n'a pas de geste. C'est aussi ce qui nous sépare du Blog du Modérateur : eux
+  donnent la date, nous donnons ce qu'on en fait. Manquent aussi les vacances scolaires par
+  zone (source education.gouv.fr, jamais le PDF), le Salon de l'agriculture, la Saint-Vincent
+  tournante.
+- **Lot C**, le téléchargeable, généré. Une page `/outils/calendrier-2027/` construite par
+  Eleventy depuis le fichier de données, avec sa feuille d'impression, et le PDF est cette
+  page imprimée par Playwright, exactement le motif de `scripts/capture-telephone.mjs`. Rien
+  n'est redessiné.
+- **Lot D**, l'atterrissage, sans formulaire.
+- **Lot E**, l'abonnement `.ics`, l'ancien Lot 4, inchangé et après.
+
+### Sur la reprise du PDF du Blog du Modérateur
+
+Signalé à Ted, non tranché par moi : les dates prises une par une sont des faits que personne
+ne possède, mais la SÉLECTION et l'agencement sont le travail éditorial de HelloWork. Tant
+que le PDF sert de déclencheur et de contrôle, rien à dire. Le jour où nous publions notre
+propre calendrier annuel, notre sélection doit être la nôtre. De toute façon la leur est
+mauvaise pour notre public, donc l'intérêt commercial et la prudence vont dans le même sens.
+
+---
+
 ## 14/09/2026, audit. Le lien d'invitation ne marchait pas sans compte
 
 Ted : « audit la fonction maintenant et améliore si ça mérite d'être amélioré / patché ou

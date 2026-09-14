@@ -31,6 +31,56 @@
    Une duree qui traverse le 31 decembre se calcule toute seule, puisqu'on
    compte des jours a partir d'un debut. C'est la deuxieme raison de ne pas
    avoir ecrit une date de fin.
+
+   ---------------------------------------------------------------------------
+   LOT A, 14/09/2026 : LE QUATRIEME TYPE, `annuel-jour-semaine`.
+
+   MOTIF, ET IL EST MESURE. Trois lignes de la bibliotheque portaient une date
+   fixe pour une fete qui n'en a pas : fete des meres au 31 mai, fete des peres
+   au 21 juin, Black Friday au 27 novembre. Leur propre champ `detail` avouait
+   deja « repere cale sur la date la plus frequente, a verifier chaque annee ».
+   En 2027 les TROIS tombent a cote : le vrai dernier dimanche de mai est le 30,
+   le troisieme dimanche de juin le 20, le Black Friday le 26. Un vigneron qui
+   cale sa campagne fete des meres sur un lundi a rate son week-end de vente.
+
+   La regle porte donc le MOIS, le JOUR DE SEMAINE et le RANG, et la date se
+   calcule pour l'annee demandee. Elle n'est plus jamais a retaper.
+
+     { "type": "annuel-jour-semaine", "mois": 11, "jourSemaine": 4, "rang": 3 }
+
+   - `mois`        : 1 a 12, comme dans `annuel`.
+   - `jourSemaine` : 1 = lundi ... 7 = dimanche. C'est la numerotation ISO, celle
+                     qu'un humain ecrit sans se tromper. `getDay()` compte
+                     autrement, dimanche a zero, et la conversion tient dans un
+                     modulo. Exposer `getDay()` dans le fichier de donnees aurait
+                     fait ecrire « 0 » pour dimanche a quelqu'un qui pense « 7 ».
+   - `rang`        : 1 a 5, ou la chaine `"dernier"`.
+   - `puis`        : facultatif, un decalage en JOURS applique apres le calcul.
+                     Il existe pour une seule raison, et elle est reelle : le
+                     Black Friday n'est PAS le quatrieme vendredi de novembre.
+                     C'est le LENDEMAIN du quatrieme jeudi, et les deux ne
+                     coincident pas quand le 1er novembre tombe un vendredi.
+                     Ecrit `"rang": 4, "jourSemaine": 4, "puis": 1`, il est juste
+                     toutes les annees. Le Cyber Monday, c'est `"puis": 4`.
+
+   NE PAS CONFONDRE `puis` ET `decale`. `puis` appartient a la REGLE et vaut pour
+   tout le monde. `decale` appartient au COMPTE du vigneron, il vit dans la table
+   `calendrier_choix`, et il ne s'applique jamais a une obligation. Deux champs,
+   deux proprietaires.
+
+   UN CINQUIEME JEUDI QUI N'EXISTE PAS NE DEBORDE PAS SUR LE MOIS SUIVANT. Meme
+   motif que `jourDuMois()` juste en dessous : une date construite naivement
+   sortirait du mois vise et se lirait fausse d'une semaine entiere sans qu'aucun
+   calcul ne leve d'erreur. On retombe sur le dernier du mois.
+
+   CE QUE CE TYPE NE SAIT PAS FAIRE, ET QUI EST TRAITE AILLEURS. La fete des
+   meres francaise est le dernier dimanche de mai SAUF quand ce jour est la
+   Pentecote, et elle bascule alors au premier dimanche de juin. Cette exception
+   depend de Paques, que ce fichier ne calcule pas. Elle ne se produit que six
+   fois en trente-cinq ans, la premiere en 2034. Elle n'est donc pas encodee ici
+   mais DETECTEE : `scripts/banc-annuel.mjs` fait echouer la construction du site
+   l'annee ou elle tombe, avec la conduite a tenir. Mieux vaut un site qui refuse
+   de partir qu'une date fausse affichee avec l'aplomb d'une DRM.
    =========================================================================== */
 (function () {
   'use strict';
@@ -53,6 +103,37 @@
   function jourDuMois(an, mois, jour) {
     var dernier = new Date(an, mois + 1, 0).getDate();
     return new Date(an, mois, Math.min(jour, dernier));
+  }
+
+  // Le RANG-ieme jour de semaine d'un mois. Voir l'en-tete pour la forme de la
+  // regle et pour les deux pieges (la numerotation ISO, et le cinquieme jeudi).
+  function jourSemaineDuMois(an, mois, js, rang) {
+    var vise = parseInt(js, 10) % 7;          // 7 (dimanche) devient 0, comme getDay()
+    if (!(vise >= 0 && vise <= 6)) return null;
+    var dernierJour = new Date(an, mois + 1, 0);
+    if (rang === 'dernier' || rang === -1) {
+      return new Date(an, mois, dernierJour.getDate() - ((dernierJour.getDay() - vise + 7) % 7));
+    }
+    var n = parseInt(rang, 10);
+    if (!(n >= 1)) return null;
+    var premier = new Date(an, mois, 1);
+    var jour = 1 + ((vise - premier.getDay() + 7) % 7) + (n - 1) * 7;
+    while (jour > dernierJour.getDate()) jour -= 7;   // pas de debordement de mois
+    return new Date(an, mois, jour);
+  }
+
+  // `puis` appartient a la REGLE, `decale` au COMPTE. Voir l'en-tete.
+  function puis(r) {
+    var n = parseInt((r || {}).puis, 10);
+    return n ? n : 0;
+  }
+
+  // Le debut de l'occurrence `annuel-jour-semaine` pour une annee donnee.
+  // Ecrit UNE fois : prochaine() et etaler() s'en servent tous les deux, et deux
+  // calculs du meme jour auraient fini par ne plus rendre le meme.
+  function debutJourSemaine(r, an) {
+    var d = jourSemaineDuMois(an, r.mois - 1, r.jourSemaine, r.rang);
+    return d ? plusJours(d, puis(r)) : null;
   }
 
   // Prochaine occurrence a venir. Pour une echeance unique deja passee on renvoie
@@ -96,6 +177,17 @@
       var a = pose(jourDuMois(ref.getFullYear(), r.mois - 1, r.jour), n);
       if (finDe(a, r) >= ref) return a;
       return pose(jourDuMois(ref.getFullYear() + 1, r.mois - 1, r.jour), n);
+    }
+    if (r.type === 'annuel-jour-semaine') {
+      // Meme enchainement que `annuel` : on regarde d'abord si celle de l'an
+      // dernier court encore, sinon celle de cette annee, sinon la prochaine.
+      var an = ref.getFullYear(), js, i;
+      for (i = -1; i <= 0; i++) {
+        js = debutJourSemaine(r, an + i);
+        if (js) { js = pose(js, n); if (finDe(js, r) >= ref) return js; }
+      }
+      js = debutJourSemaine(r, an + 1);
+      return js ? pose(js, n) : null;
     }
     return null;
   }
@@ -226,6 +318,12 @@
       if (r.type === 'annuel') {
         for (a = marge.getFullYear(); a <= au.getFullYear(); a++) {
           garder(jourDuMois(a, r.mois - 1, r.jour));
+        }
+        return;
+      }
+      if (r.type === 'annuel-jour-semaine') {
+        for (a = marge.getFullYear(); a <= au.getFullYear(); a++) {
+          garder(debutJourSemaine(r, a));
         }
       }
     });
