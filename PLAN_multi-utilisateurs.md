@@ -177,6 +177,32 @@ l'acceptation.
 **Lot 5, les traces.** `cree_par` et `maj_par` affiches, le journal des suppressions, et les
 verrous du dernier maitre.
 
+## OU EN EST-ON, AU 14/09/2026
+
+Les cinq lots ci-dessus ont ete decoupes plus fin a l'execution. Etat reel :
+
+- **Lots 15 a 18, passes en production** : le socle (`bureaux`, `membres`, `est_membre()`,
+  `est_maitre()`), la fermeture des fonctions, la bascule des six tables sur `bureau` +
+  `cree_par`, et les invitations avec leur jeton hache.
+- **Lot 19** : la piece « L'equipe », le selecteur de bureau, l'invitation recue.
+- **Lot 20, SQL ecrit, PAS ENCORE PASSE** : l'invite par mail, pas de bureau solo pour qui
+  s'inscrit via une invitation, les plafonds d'envoi.
+- **Lot 21** : le travail non envoye retient la bascule.
+- **Lot 22** : renommer le bureau.
+- **Lot 23** : qui a ecrit quoi (le lot 5 du plan ci-dessus, moins le journal des
+  suppressions, qui reste a faire).
+
+### Les arbitrages de Ted, qui ne se rediscutent pas sans lui
+
+- **Chacun voit tout, chacun n'ecrit que ses propres lignes.** Pas d'exception pour le maitre,
+  demandee explicitement le 13/09/2026 en connaissance de la consequence : un maitre ne peut
+  pas corriger la fiche d'un simple utilisateur.
+- **Objectif, exercice et classement appartiennent au BUREAU**, le maitre seul les ecrit.
+- **L'import des ventes est reserve au maitre** : un import de travers touche toute la base.
+- **Le courrier se choisit dans ses preferences**, par personne. Pas encore par bureau.
+- **Qui s'inscrit via une invitation n'obtient pas de bureau solo.** Sinon « ca dedouble le
+  bureau que tu as deja ».
+
 ## CE QUI RESTE OUVERT
 
 1. Un simple utilisateur peut-il importer un export de ventes ? La reponse proposee est non,

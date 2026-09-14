@@ -12,6 +12,94 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026, suite. Travailler à plusieurs : les lots 21 à 23
+
+Ted : « oui, et tu fais les choses bien sans t'arrêter, mais tu peux les séparer en lots.
+ne t'arrête pas. »
+
+### Lot 21. Changer de bureau jetait le travail non envoyé
+
+`changerDeBureau()` vide le poste, et c'est indispensable : ce navigateur porte les lignes de
+vente du bureau qu'on quitte, entrer dans un autre sans rien jeter mélangerait deux ardoises.
+Mais le vidage emportait **aussi** les files de ce qui a été noté sans réseau et pas encore
+envoyé. Quelqu'un note trois tâches dans un rang, revient, bascule : les trois disparaissent,
+sans un mot et sans une erreur. Défaut introduit le 13/09 avec la bascule, trouvé le 14.
+
+Deux gardes, et le second est celui qui compte. Chaque pièce qui tient une file s'annonce par
+`avantDeQuitterLeBureau()`, et on lui demande de la vider avant de toucher à quoi que ce soit.
+Puis on **relit** le stockage : s'il reste quelque chose, la bascule n'a pas lieu. Pas de base
+modifiée, pas de poste vidé, un message.
+
+La détection est **par suffixe** (`bdv_*_attente`) et pas par liste nommée, comme
+`oublierCetAppareil()` efface par préfixe : la prochaine file ajoutée ailleurs sera couverte
+sans que personne y pense. Une liste se périme, un suffixe non.
+
+Le compte se fait **avant** `majProfil`. Dans l'autre ordre, un refus laisserait le compte sur
+le nouveau bureau et le navigateur sur l'ancien, c'est-à-dire le pire des deux états.
+
+### Lot 22. Renommer le bureau
+
+Le nom se changeait nulle part. Bloc « Le nom de ce bureau » dans la pièce L'équipe, visible du
+maître seul, `PATCH` avec `return=representation` pour que le refus se voie plutôt que de
+passer pour un succès, et la barre du haut se met à jour sans attendre le rechargement.
+
+### Lot 23. On sait qui a écrit, et on se tait quand c'est inutile
+
+`cree_par` est posé sur chaque ligne depuis le lot 17 et n'était affiché nulle part. Avec la
+règle arbitrée le 13/09 — chacun n'écrit que ses propres lignes, maître compris — ça donnait le
+pire des deux mondes : Romane pose un rappel, on essaie de le corriger, la base refuse, et rien
+à l'écran ne dit que ce rappel est le sien. **Un refus sans auteur est une panne ; un refus avec
+l'auteur est une règle.**
+
+Ce qui est difficile ici n'est pas d'afficher un nom, c'est de **se taire**. Trois silences :
+
+1. Un bureau **seul** ne nomme personne. C'est presque tous les comptes : leur coller leur
+   propre nom sur chacune de leurs lignes serait du bruit pur.
+2. **Mes** lignes ne portent pas **mon** nom, même à plusieurs. Une ligne sans nom veut dire
+   « de moi », et les seuls noms affichés sont ceux qui expliqueront un refus.
+3. Un identifiant inconnu dit « ancien membre », jamais un uuid. Deux cas y tombent et disent
+   la même chose au vigneron : quelqu'un retiré du bureau, et un compte supprimé.
+
+La liste des gens se lit par `rpc/equipe` et **pas** par `profils`, dont la politique est
+`auth.uid() = id` : personne ne lit la fiche de son collègue, et c'est volontaire, elle porte
+`jeton_emails`. Une relecture par jour, la copie périmée servie tout de suite (un nom d'un jour
+de retard vaut mieux qu'un écran qui attend), et une relecture forcée dès que la pièce L'équipe
+change la composition du bureau.
+
+Deux pièges de stockage, tous les deux déjà payés ailleurs dans ce projet : la clé de cache
+porte **son** bureau, sinon elle servirait les noms de l'autre après une bascule ; et elle ne
+finit **pas** par `_attente`, sinon `filesEnAttente()` la compterait comme du travail à envoyer
+et refuserait toute bascule pour une copie de ce que la base sait déjà. Les lots 21 et 23 se
+seraient cassés l'un l'autre en silence.
+
+Aucun pronom de genre dans les phrases de refus : « elle seule peut la modifier » obligerait à
+connaître le genre de chacun, que la base ne porte pas et n'a pas à porter. « Seul son auteur »
+ne pose pas la question. Et `mentionAuteur()` fait l'élision une fois pour tous les écrans —
+« de Romane » se dit, « de ancien membre » ne se dit pas — sinon la correction serait juste à un
+endroit et fausse au suivant.
+
+### Deux défauts trouvés en chemin, tous les deux antérieurs
+
+**bdv-crm.js lisait trois tables sans filtre de bureau** depuis le lot 17 : `reglages`,
+`suivi_clients` et `echanges`. La sécurité par ligne disait ce qu'on a le droit de lire, elle ne
+dit pas ce qu'on doit lire : quelqu'un membre de deux bureaux voyait les deux mélangés sur la
+fiche client et dans le courrier du matin. Même leçon que pour `tirerVentes()` le 13/09.
+
+**Sur téléphone, le fil de la fiche client s'écrivait un mot par ligne.** La grille passe à deux
+colonnes sous 640 px et seule l'heure était renvoyée en colonne 2 : le texte retombait en
+colonne 1, large de 20 px. Présent depuis que ce media existe, jamais vu parce que personne
+n'avait regardé le fil d'un client à 400 px. C'est exactement la raison pour laquelle les
+aperçus existent depuis le 13/09.
+
+### Ce que ça laisse ouvert
+
+- Le courrier du matin n'est toujours pas réglable par personne **et par bureau** : la
+  préférence est celle du compte, où qu'il travaille.
+- Les invitations expirées ne sont jamais purgées.
+- Vider la base d'un bureau partagé ne laisse aucune trace de qui l'a fait.
+
+---
+
 ## 14/09/2026. Le mot du jour écrivait du HTML en toutes lettres
 
 Ted : « le mot du jour ne se comporte pas bien. Tu devrais regarder les liens et variables,
