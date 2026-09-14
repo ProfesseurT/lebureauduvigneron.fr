@@ -2186,13 +2186,27 @@ function suiviCorps(f,s){
   h+=`<input class="etiq" type="text" value="${esc((s.tags||[]).join(', '))}"
         placeholder="Étiquettes : VIP, difficile à joindre…" onchange="crmSetTags(${arg},this.value)">`;
 
+  /* ---- QUI A ECRIT QUOI, 14/09/2026. ----
+     `quiEcrit` se tait dans un bureau seul et sur mes propres lignes : le nom
+     n'apparait donc que la ou il explique quelque chose, c'est-a-dire exactement la
+     ou la base me refusera la correction. C'est la meme fonction et la meme regle
+     que dans « Mes taches », pour que le vigneron n'ait a l'apprendre qu'une fois. */
+  function auteur(uuid){
+    const q=(window.BdvCompte&&BdvCompte.mentionAuteur)?BdvCompte.mentionAuteur(uuid):null;
+    return q?`<span class="fil__par">${esc(q)}</span>`:'';
+  }
+
   // ---- Le fil. Les anciennes notes ouvrent la marche, elles ne sont pas perdues. ----
   h+=`<div class="fil">`;
   if(s.notes){
+    /* LA NOTE EPINGLEE PORTE L'AUTEUR DE LA FICHE, et pas celui d'une entree : le
+       suivi est UNE ligne par client, donc une seule main l'a ecrite, et c'est cette
+       main-la qui peut la retirer. Le bouton « retirer » reste affiche meme si c'est
+       celle d'un collegue : le refus vient de la base, et il dit maintenant de qui. */
     h+=`<div class="fil__l fil__l--note">
       <span class="fil__ico" aria-hidden="true">&#128204;</span>
       <span class="fil__quand">épinglé</span>
-      <span class="fil__quoi">${esc(s.notes)}
+      <span class="fil__quoi">${esc(s.notes)} ${auteur(s.cree_par)}
         <button class="btn--lien" onclick="crmSet(${arg},'notes','')">retirer</button></span>
     </div>`;
   }
@@ -2206,7 +2220,7 @@ function suiviCorps(f,s){
       return `<div class="fil__l">
         <span class="fil__ico" aria-hidden="true">${t.ico}</span>
         <span class="fil__quand">${esc(quand)}</span>
-        <span class="fil__quoi">${e.resume?esc(e.resume):'<i>'+esc(t.label)+'</i>'}</span>
+        <span class="fil__quoi">${e.resume?esc(e.resume):'<i>'+esc(t.label)+'</i>'} ${auteur(e.cree_par)}</span>
       </div>`;
     }).join('');
     if(ech.length>40)h+=`<p class="fil__vide">${plur(ech.length-40,'entrée')} plus ancienne(s) non affichée(s).</p>`;

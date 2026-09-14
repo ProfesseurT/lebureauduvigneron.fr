@@ -228,7 +228,7 @@
   // {clientId: {statut, notes, rappel, rappel_titre, canal, tags}}
   async function lireSuivi(){
     if(!pret()) return {};
-    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,rappel_titre,canal,tags' + auBureau());
+    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,rappel_titre,canal,tags,cree_par' + auBureau());
     const out = {};
     (lignes || []).forEach(function(l){
       const c = {};
@@ -242,6 +242,11 @@
       if(l.rappel_titre) c.rappel_titre = l.rappel_titre;
       if(l.canal)  c.canal  = l.canal;
       if(l.tags && l.tags.length) c.tags = l.tags;
+      /* QUI A ECRIT CETTE FICHE, depuis le 14/09/2026. Ce champ ne repart JAMAIS en
+         ecriture : `ecrireSuivi()` construit son corps colonne par colonne et ne
+         l'inclut pas, et la base le pose elle-meme. Il ne compte pas non plus dans
+         `crmVide()` : une fiche qui ne porterait que son auteur reste une fiche vide. */
+      if(l.cree_par) c.cree_par = l.cree_par;
       out[l.client_id] = c;
     });
     return out;
@@ -338,7 +343,7 @@
     let debut = 0;
     for(;;){
       const page = await BdvCompte.api(
-        '/echanges?select=echange_id,client_id,le,type,canal,resume' + filtre + auBureau() +
+        '/echanges?select=echange_id,client_id,le,type,canal,resume,cree_par' + filtre + auBureau() +
         '&order=le.desc&limit=' + PAGE + '&offset=' + debut);
       if(!page || !page.length) break;
       out.push.apply(out, page);

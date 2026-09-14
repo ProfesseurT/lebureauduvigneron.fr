@@ -59,9 +59,10 @@
 
   // Le refus d'ecrire sur la ligne d'un collegue, dit en francais. Arbitrage de Ted du
   // 13/09/2026 : chacun n'ecrit que ses propres lignes, maitre compris.
-  function traduireRefus(e, quoi) {
+  function traduireRefus(e, quoi, par) {
     if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
-      return new Error(quoi + ' a ete cree par quelqu\'un d\'autre de ton bureau : lui seul peut le modifier.');
+      return new Error(BdvCompte.refusEnFrancais(quoi + ' a \u00e9t\u00e9 cr\u00e9\u00e9',
+        par, 'Seul son auteur peut le modifier.'));
     }
     return e;
   }
@@ -107,6 +108,11 @@
   // il peint d'abord le miroir, puis se corrige quand le reseau repond.
   async function charger() {
     if (!session()) return null;
+    /* SANS BUREAU ON NE LIT RIEN, ET ON LE DIT PAR null. Ajoute le 14/09/2026 avec le
+       filtre `bureau` sur les deux lectures : `auBureau()` LEVE quand la cle n'est pas
+       encore posee, et une exception ici laisserait l'ecran sur son miroir sans jamais
+       reessayer. null est deja la valeur que cette fonction rend quand elle ne sait pas. */
+    if (!(window.BdvCompte && BdvCompte.monBureau && BdvCompte.monBureau())) return null;
     // On lit TOUT le suivi, pas seulement les rappels echus. Un rappel FUTUR doit sortir
     // le client de la file : sans lui, un client qu'on vient de rappeler revenait en
     // « signal » au rechargement suivant, puisque le depot du tableau de bord, lui, ne
@@ -116,8 +122,8 @@
     // reglages echoue (colonnes pas encore creees en base, par exemple), les rappels,
     // eux, ont ete lus, et une file de rappels seuls reste une file utile.
     var r = await Promise.allSettled([
-      api('/reglages?select=file_travail,resume_ventes,depose_le,objectif,exercice_debut&limit=1'),
-      api('/suivi_clients?select=client_id,statut,rappel,rappel_titre,canal')
+      api('/reglages?select=file_travail,resume_ventes,depose_le,objectif,exercice_debut' + auBureau() + '&limit=1'),
+      api('/suivi_clients?select=client_id,statut,rappel,rappel_titre,canal,cree_par' + auBureau())
     ]);
     /* Array.isArray ET PAS SEULEMENT LA VERITE DE LA VALEUR. Trouve le 07/09/2026
        en faisant tourner le bureau dans un vrai navigateur avec un reseau qui
@@ -163,8 +169,12 @@
            parce que trois ecrans le lisent : le sous-main, le panneau et le calendrier.
            « Rappeler le 18 » ne dit pas pourquoi, et trois semaines plus tard personne
            ne sait ce qui avait ete promis. */
+        /* `par` est QUI a ecrit cette fiche, depuis le 14/09/2026. Il descend par le
+           miroir pour la meme raison que le motif : la piece Mes taches fabrique ses
+           lignes de client a partir d'ici, et un rappel qu'on ne peut pas corriger
+           doit dire de qui il est. Dans un bureau seul, personne ne l'affiche. */
         return { id: l.client_id, rappel: l.rappel || '', titre: l.rappel_titre || '',
-                 statut: l.statut || '' };
+                 statut: l.statut || '', par: l.cree_par || null };
       }) : (vieux.suivi || vieux.rappels || [])
     };
     ecrireMiroir(etat);
@@ -236,8 +246,8 @@
   async function fil(clientId) {
     if (!session()) return [];
     try {
-      var l = await api('/echanges?select=echange_id,le,maj_le,type,canal,resume&client_id=eq.'
-        + encodeURIComponent(clientId) + '&order=le.desc&limit=50');
+      var l = await api('/echanges?select=echange_id,le,maj_le,type,canal,resume,cree_par&client_id=eq.'
+        + encodeURIComponent(clientId) + auBureau() + '&order=le.desc&limit=50');
       // null, et pas [] : api() rend null sans lever quand la session est tombee, et la
       // table `echanges` peut ne pas exister encore. Annoncer « rien encore » sur un
       // client qui porte trente echanges est un mensonge, pas un affichage vide.
@@ -330,6 +340,17 @@
   // ---------------- ECRITURE ----------------
   // PATCH puis POST, jamais l'inverse : un upsert POST remettrait `notes` et `tags` a
   // leur defaut, et le vigneron perdrait ce qu'il a ecrit dans sa fiche client.
+  /* QUI TIENT CETTE FICHE. Le delta qu'on ecrit ne porte pas `cree_par` (la base le
+     pose, jamais nous), donc l'auteur se relit dans le miroir, ou il est descendu avec
+     le reste du suivi. Absent du miroir, la phrase de refus reste generique. */
+  function auteurDeLaFiche(clientId) {
+    var m = lireMiroir();
+    var l = ((m && (m.suivi || m.rappels)) || []).filter(function (x) {
+      return String(x.id) === String(clientId);
+    })[0];
+    return l ? (l.par || null) : null;
+  }
+
   async function ecrireSuivi(clientId, champs) {
     var corps = {};
     Object.keys(champs).forEach(function (k) { corps[k] = champs[k]; });
@@ -359,7 +380,7 @@
         entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         corps: [corps]
       });
-    } catch (e) { throw traduireRefus(e, 'Ce suivi client'); }
+    } catch (e) { throw traduireRefus(e, 'Ce suivi client', auteurDeLaFiche(clientId)); }
     if (cree === null) throw new Error('creation refusee');
     return true;
   }
@@ -488,7 +509,7 @@
     if (!session()) return null;
     try {
       var l = await api('/echanges?select=le,type&le=gte.' + encodeURIComponent(depuisISO)
-        + '&order=le.desc&limit=1000');
+        + auBureau() + '&order=le.desc&limit=1000');
       return Array.isArray(l) ? l : null;
     } catch (e) { return null; }
   }

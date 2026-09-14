@@ -128,7 +128,9 @@
       corps: [Object.assign({}, ligne, { bureau: bureau })]
     }).catch(function (e) {
       if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
-        throw new Error('Cette tache a ete ecrite par quelqu\'un d\'autre de ton bureau : lui seul peut la modifier.');
+        var vieux = lireCache()[ligne.tache_id] || {};
+        throw new Error(BdvCompte.refusEnFrancais('Cette t\u00e2che a \u00e9t\u00e9 \u00e9crite',
+          ligne.cree_par || vieux.cree_par, 'Seul son auteur peut la modifier.'));
       }
       throw e;
     });
@@ -146,15 +148,24 @@
   async function charger() {
     if (!pret()) return;
     try {
-      var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fin_le,fait_le,maj_le'
+      var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fin_le,fait_le,maj_le,cree_par'
         + '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()));
       if (!lignes) return;       // null = session tombee ou corps vide, on garde le miroir
       var map = {};
       lignes.forEach(function (l) { map[l.tache_id] = l; });
       ecrireCache(map);
       rendre();
+      /* LE TROMBINOSCOPE SE DEMANDE ICI, ET APRES LE RENDU. L'ecran est deja peint
+         quand la liste des gens du bureau arrive : les noms d'auteur s'ajoutent au
+         repaint suivant, declenche par `bdv:trombinoscope`. Une piece qui attendrait
+         cette liste pour montrer une tache en retard serait cassee par un reseau lent,
+         pour une information qui n'est qu'une precision. */
+      if (BdvCompte.trombinoscope) BdvCompte.trombinoscope().catch(function () {});
     } catch (e) { /* le miroir precedent reste affiche, c'est mieux que rien */ }
   }
+  document.addEventListener('bdv:trombinoscope', function () {
+    try { rendre(); } catch (e) {}
+  });
 
   /* ---------------- LES DEUX SOURCES, FUSIONNEES ----------------
      Les obligations ne sont PAS stockees : elles sont calculees par
@@ -229,6 +240,10 @@
         var l = map[tid];
         return {
           tache_id: tid, titre: x.e.titre, source: 'echeance', ref: x.e.cle,
+          /* L'AUTEUR VIENT DE LA LIGNE COCHEE, ET N'EXISTE QUE SI ELLE EXISTE. Une
+             obligation non cochee n'est stockee nulle part : elle est calculee ici,
+             elle n'a donc pas d'auteur, et son nom ne doit pas etre le mien. */
+          cree_par: (l && l.cree_par) || null,
           echue_le: iso(x.date), fait_le: (l && l.fait_le) || null,
           jours: x.jours, lien: '/outils/echeances/'
         };
@@ -256,6 +271,7 @@
         }
       }
       out.push({ tache_id: k, titre: l.titre || '', source: 'libre', ref: null,
+                 cree_par: l.cree_par || null,
                  echue_le: l.echue_le || null, fin_le: l.fin_le || null,
                  fait_le: l.fait_le || null, jours: j, enCours: encours });
     });
@@ -289,6 +305,7 @@
       return {
         tache_id: 'client:' + l.id, titre: noms[l.id] || ('Client ' + l.id),
         source: 'client', ref: String(l.id), motif: l.titre || '',
+        cree_par: l.par || null,
         echue_le: l.rappel, fin_le: null, fait_le: null,
         jours: isNaN(d) ? null : Math.round((d - auj) / JOUR)
       };
@@ -342,6 +359,14 @@
      donnerait l'impression d'un clic rate sur un reseau de cave. */
   function ecrire(tid, ligne) {
     var map = lireCache();
+    /* L'AUTEUR SURVIT A LA REECRITURE LOCALE. Les gestes reconstruisent la ligne de
+       zero et ne portent pas `cree_par` : c'est la base qui le pose, jamais le
+       navigateur. Sans ce report, cocher une tache d'un collegue effacait son auteur
+       du cache une milliseconde avant que la base refuse l'ecriture, et le message
+       d'erreur ne pouvait plus nommer personne. */
+    if (ligne && map[tid] && map[tid].cree_par && !ligne.cree_par) {
+      ligne = Object.assign({}, ligne, { cree_par: map[tid].cree_par });
+    }
     if (ligne === null) delete map[tid]; else map[tid] = ligne;
     ecrireCache(map);
     rendre();
@@ -548,6 +573,11 @@
        ouvrir la fiche pour savoir ce qu'on avait promis, et c'est exactement le
        voyage que ce motif existe pour eviter. */
     if (t.source === 'client') mots.push(t.motif || 'à rappeler');
+    /* QUI L'A ECRITE, ET SEULEMENT QUAND CA SERT. `quiEcrit` se tait dans un bureau
+       seul et sur mes propres lignes : le nom n'apparait que la ou il explique
+       quelque chose, c'est-a-dire la ou je ne pourrai pas modifier la ligne. */
+    var par = window.BdvCompte && BdvCompte.mentionAuteur ? BdvCompte.mentionAuteur(t.cree_par) : null;
+    if (par) mots.push(par);
     bas.textContent = mots.filter(Boolean).join(' · ');
     if (bas.textContent) corps.appendChild(bas);
     li.appendChild(corps);

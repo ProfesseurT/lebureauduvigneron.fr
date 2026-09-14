@@ -200,6 +200,10 @@
 .bdv-ventes .fil__ico{color:var(--cork-encre)}
 .bdv-ventes .fil__quand{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
 .bdv-ventes .fil__quoi{line-height:var(--lh-normal)}
+/* L'AUTEUR D'UNE ENTREE, 14/09/2026. Discret et jamais sur sa propre ligne : il ne
+   s'affiche que dans un bureau a plusieurs et que sur ce qu'un autre a ecrit. Meme
+   ton que l'heure, en petites capitales : c'est une precision, pas du contenu. */
+.bdv-ventes .fil__par{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);white-space:nowrap}
 .bdv-ventes .fil__vide{color:var(--muted);font-style:italic;font-size:var(--t-base);padding:.8rem 0;margin:0}
 .bdv-ventes .btn--lien{background:none;border:none;padding:0 0 0 .4rem;color:var(--bordeaux);font-family:var(--font-corps);font-size:var(--t-mini);text-decoration:underline;cursor:pointer}
 
@@ -208,7 +212,12 @@
 .bdv-ventes .msg--replie>summary::marker{color:var(--cork-encre)}
 .bdv-ventes .msg--replie[open]>summary{margin-bottom:.8rem}
 
-@media(max-width:640px){.bdv-ventes .fil__l{grid-template-columns:20px 1fr}.bdv-ventes .fil__quand{grid-column:2}}
+/* SUR TELEPHONE, LE TEXTE DOIT SUIVRE L'HEURE DANS LA MEME COLONNE, corrige le
+   14/09/2026. La grille passe a deux colonnes et l'heure etait seule renvoyee en
+   colonne 2 : le texte, lui, retombait donc en colonne 1, large de 20 px, et
+   s'ecrivait UN MOT PAR LIGNE. Defaut present depuis que ce media existe, jamais vu
+   parce que personne n'avait regarde le fil d'un client a 400 px. */
+@media(max-width:640px){.bdv-ventes .fil__l{grid-template-columns:20px 1fr}.bdv-ventes .fil__quand,.bdv-ventes .fil__quoi{grid-column:2}}
 .bdv-ventes .pas-viti{margin-top:1.4rem;padding:1rem 1.2rem;background:var(--info-bg);border:var(--trait) solid var(--info);border-left:var(--trait-accent) solid var(--info);text-align:left;font-size:var(--t-base);line-height:var(--lh-normal)}
 .bdv-ventes .pas-viti p{margin:0 0 .5rem}
 .bdv-ventes .pas-viti p:last-child{margin-bottom:0}

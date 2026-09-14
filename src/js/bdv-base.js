@@ -455,6 +455,11 @@ async function tirerDuServeurUneFois(){
   });
   crmSave();
     }
+  /* LA LISTE DES GENS DU BUREAU, EN DERNIER ET SANS ATTENDRE. Elle ne sert qu'a
+     nommer l'auteur d'une ligne dans la fiche client : rien ne doit s'arreter si elle
+     tarde, et rien ne doit l'attendre. Dans un bureau seul elle ne change rien du
+     tout, `quiEcrit` se taisant des qu'il n'y a qu'une personne. */
+  if(window.BdvCompte&&BdvCompte.trombinoscope)BdvCompte.trombinoscope().catch(function(){});
   }catch(e){ /* jamais bloquant */ }
   finally{ statusFin(); }
 }

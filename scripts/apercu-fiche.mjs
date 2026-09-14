@@ -99,6 +99,36 @@ const test = `
   sortie.avecRappel = poser('C2', null, null);
   sortie.appel      = poser('C3', 'suivi', 'appel');
   sortie.message    = poser('C1', 'message', null);
+
+  /* CINQUIEME ETAT, 14/09/2026 : LE MEME CLIENT DANS UN BUREAU A PLUSIEURS.
+     Rien d'autre ne change que l'auteur des lignes, et c'est exactement ce qu'on
+     vient regarder : « de Romane » doit se lire sans peser plus que l'heure, et ma
+     propre ligne ne doit porter aucun nom. Le trombinoscope est pose a la main, la
+     ou la vraie page le tient de la fonction equipe. */
+  window.BdvCompte = { mentionAuteur: function(u){
+    if(!u || u === 'moi') return null;
+    var n = ({ romane: 'Romane', mariel: 'Marie L.' })[u];
+    return n ? ('de ' + n) : 'd\u2019un ancien membre';
+  } };
+  CRM['C2'] = { rappel: ${JSON.stringify(demain)},
+                rappel_titre: 'Lui reparler du réassort de la cuvée du Clos',
+                statut: 'relance', cree_par: 'romane',
+                notes: 'Ne jamais appeler avant 10h, il est au chai.' };
+  ECHANGES['C2'] = [
+    {echange_id:'a1',client_id:'C2',le:'2026-09-02T09:00:00.000Z',
+     maj_le:'2026-09-02T09:00:00.000Z',type:'appel',canal:'appel',cree_par:'romane',
+     resume:'Appelé, il rappelle son associé avant de commander.'},
+    {echange_id:'a2',client_id:'C2',le:'2026-09-05T09:00:00.000Z',
+     maj_le:'2026-09-05T09:00:00.000Z',type:'note',canal:null,cree_par:'mariel',
+     resume:'Passé au caveau, reparti avec deux cartons de la cuvée du Clos.'},
+    {echange_id:'a3',client_id:'C2',le:'2026-09-09T09:00:00.000Z',
+     maj_le:'2026-09-09T09:00:00.000Z',type:'message',canal:'email',cree_par:'moi',
+     resume:'Devis envoyé pour le réassort, 18 cartons.'},
+    {echange_id:'a4',client_id:'C2',le:'2026-09-11T09:00:00.000Z',
+     maj_le:'2026-09-11T09:00:00.000Z',type:'note',canal:null,cree_par:'ancien',
+     resume:'Avait demandé une facture séparée pour le restaurant.'}
+  ];
+  sortie.equipe = poser('C2', null, null);
   window.__SORTIE = sortie;
 `;
 
@@ -140,6 +170,7 @@ ${section('1. Aucune action prévue','Le bloc neuf : le motif se tape avant la d
 ${section('2. Un rappel posé, avec son motif','« À rappeler le… », la date modifiable, et en dessous ce qu’on s’était promis.',S.avecRappel)}
 ${section('3. Ouverte par « Appelé » depuis le sous-main','La phrase d’attente : rien n’est parti tant que rien n’est écrit.',S.appel)}
 ${section('4. Le rédacteur de message, déplié','Avec « Considéré comme envoyé », à côté d’« Ouvrir dans ma messagerie ».',S.message)}
+${section('5. Le même client, dans un bureau à plusieurs','Qui a écrit quoi. « de Romane », « de Marie L. » — et ma propre ligne, la troisième, ne porte aucun nom : sans nom veut dire de moi. La dernière est d’une personne qui a quitté le bureau.',S.equipe)}
 </body></html>`;
 
 fs.mkdirSync(path.join(RACINE,'_apercu'),{recursive:true});

@@ -135,6 +135,12 @@
     if (!zone) return;
     var gens = await rpc('equipe', { b: BdvCompte.monBureau() });
     if (!Array.isArray(gens)) return;
+    /* LA LISTE DES NOMS SE REFAIT ICI, ET C'EST LE SEUL ENDROIT QUI LA SAIT PERIMEE.
+       Le trombinoscope que lisent « Mes taches » et la fiche client ne se relit sinon
+       qu'une fois par jour. Cet ecran est le seul par lequel quelqu'un entre ou sort :
+       une personne retiree a midi doit apparaitre comme « ancien membre » a midi cinq,
+       pas le lendemain. On force donc la relecture apres chaque peinture d'ici. */
+    if (BdvCompte.trombinoscope) BdvCompte.trombinoscope(true).catch(function () {});
     MOI = BdvCompte.monId();
     MAITRE = gens.some(function (g) { return g.personne === MOI && g.role === 'maitre'; });
 

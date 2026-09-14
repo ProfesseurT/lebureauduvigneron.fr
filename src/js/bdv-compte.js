@@ -1174,6 +1174,135 @@
     return bureauEnRoute;
   }
 
+
+  /* ================================================================
+     LE TROMBINOSCOPE : QUI A ECRIT CETTE LIGNE
+     ================================================================
+     Depuis le lot 17, chaque ligne de chaque table porte `cree_par`, l'identifiant
+     de la personne qui l'a ecrite. Jusqu'ici il n'etait affiche NULLE PART, et avec
+     la regle de Ted du 13/09/2026 (chacun n'ecrit que ses propres lignes, maitre
+     compris) ca donnait le pire des deux mondes : Romane pose un rappel, tu essaies
+     de le corriger, la base refuse, et rien a l'ecran ne dit que ce rappel est le
+     sien. Un refus sans auteur est une panne ; un refus avec l'auteur est une regle.
+
+     TROIS DECISIONS QUI TIENNENT TOUT LE LOT :
+
+     1. UN BUREAU SEUL N'AFFICHE AUCUN AUTEUR. La grande majorite des comptes sont
+        et resteront solo. Leur coller « Ted » sur chacune de leurs propres lignes
+        serait du bruit pur, pour une information qu'ils connaissent deja. Le nom
+        n'apparait donc que si le bureau compte au moins deux personnes.
+
+     2. TES PROPRES LIGNES NE PORTENT PAS TON NOM. Meme raison, poussee d'un cran :
+        dans un bureau a trois, une ligne sans nom veut dire « de moi », et les
+        seuls noms affiches sont ceux qui expliquent quelque chose. Le silence est
+        la valeur par defaut, exactement comme ailleurs dans le site.
+
+     3. UN IDENTIFIANT INCONNU DIT « ancien membre », pas un identifiant brut.
+        Deux cas y tombent : quelqu'un retire du bureau (son uuid reste sur ses
+        lignes mais `equipe` ne le rend plus), et un compte supprime (`cree_par`
+        passe a null par `on delete set null`). Les deux disent la meme chose au
+        vigneron, donc les deux disent la meme phrase.
+
+     LA LECTURE PASSE PAR `rpc/equipe`, PAS PAR `profils`. La politique de `profils`
+     est `auth.uid() = id` : personne ne lit la fiche de son collegue, et c'est
+     volontaire, elle porte `jeton_emails`. La fonction rend les six champs dont
+     l'ecran a besoin et rien d'autre.
+
+     LA CLE DE CACHE NE FINIT PAS PAR `_attente` : ce n'est pas du travail a
+     envoyer, c'est une copie de ce que la base sait deja. Elle ne doit donc PAS
+     retenir la bascule de bureau, et elle porte son bureau en clair pour qu'une
+     copie de l'autre bureau ne soit jamais servie ici. */
+  const TROMBI_KEY = 'bdv_trombinoscope_v1';
+  let TROMBI = null;           // { bureau, gens: {uuid: nom}, combien }
+  let trombiEnRoute = null;
+
+  function lireTrombi(){
+    if(TROMBI && TROMBI.bureau === monBureau()) return TROMBI;
+    let t = null;
+    try{ t = JSON.parse(localStorage.getItem(TROMBI_KEY)); }catch(e){ t = null; }
+    if(!t || !t.gens || t.bureau !== monBureau()) return null;
+    TROMBI = t;
+    return t;
+  }
+
+  /* LE NOM AFFICHE SE CHOISIT ICI, ET LA COLLISION EST PREVUE. Deux Marie dans un
+     bureau, c'est courant dans une famille de vignerons. On donne donc le prenom
+     seul quand il est unique, et « Marie L. » quand il ne l'est pas. Sans prenom,
+     la partie gauche de l'e-mail : elle est toujours la, et elle se reconnait. */
+  function nommerLesGens(gens){
+    const compte = {};
+    gens.forEach(function(g){
+      const p = (g.prenom || '').trim();
+      if(p) compte[p.toLowerCase()] = (compte[p.toLowerCase()] || 0) + 1;
+    });
+    const out = {};
+    gens.forEach(function(g){
+      const p = (g.prenom || '').trim();
+      const n = (g.nom || '').trim();
+      let label;
+      if(!p) label = String(g.email || '').split('@')[0] || 'quelqu’un';
+      else if(compte[p.toLowerCase()] > 1 && n) label = p + ' ' + n.charAt(0).toUpperCase() + '.';
+      else label = p;
+      out[g.personne] = label;
+    });
+    return out;
+  }
+
+  /* UN JOUR DE FRAICHEUR, ET LA COPIE PERIMEE SERT QUAND MEME. Le trombinoscope
+     change quand quelqu'un entre ou sort du bureau, c'est-a-dire quelques fois par
+     an. Le relire a chaque chargement de page serait un appel reseau par page pour
+     une reponse identique. On relit donc une fois par jour, EN FOND, et on rend
+     immediatement la copie qu'on a : un nom d'une journee de retard vaut mille fois
+     mieux qu'un ecran qui attend. `bdv-equipe` force la relecture des qu'elle change
+     la composition du bureau, donc le cas qui compte n'attend pas le lendemain. */
+  const TROMBI_DUREE = 86400000;
+
+  function chargerTrombinoscope(force){
+    const b = monBureau();
+    if(!b) return Promise.resolve(null);
+    const deja = lireTrombi();
+    if(!force && deja && (Date.now() - (deja.le || 0)) < TROMBI_DUREE) return Promise.resolve(deja);
+    if(trombiEnRoute) return deja ? Promise.resolve(deja) : trombiEnRoute;
+    trombiEnRoute = (async function(){
+      try{
+        const gens = await api('/rpc/equipe', { methode: 'POST', corps: { b: b } });
+        if(!Array.isArray(gens) || !gens.length) return null;
+        const t = { bureau: b, le: Date.now(), gens: nommerLesGens(gens), combien: gens.length };
+        TROMBI = t;
+        try{ localStorage.setItem(TROMBI_KEY, JSON.stringify(t)); }catch(e){}
+        try{ document.dispatchEvent(new CustomEvent('bdv:trombinoscope')); }catch(e){}
+        return t;
+      }catch(e){ return null; }
+      finally{ trombiEnRoute = null; }
+    })();
+    return deja ? Promise.resolve(deja) : trombiEnRoute;
+  }
+
+  /* RENVOIE UNE CHAINE OU null, ET JAMAIS UNE PROMESSE : cette fonction est appelee
+     dans des boucles d'affichage, une fois par ligne. Si le trombinoscope n'est pas
+     encore charge elle rend null, l'ecran s'affiche sans nom, et l'evenement
+     `bdv:trombinoscope` le repeindra. Un ecran qui attend le reseau pour montrer une
+     tache est un ecran casse ; un ecran qui montre la tache puis ajoute le nom, non. */
+  const ANCIEN = 'ancien membre';
+
+  function quiEcrit(id){
+    const t = lireTrombi();
+    if(!t || t.combien < 2) return null;      // bureau seul : personne a nommer
+    if(id && id === monId()) return null;     // mes lignes ne portent pas mon nom
+    if(!id) return ANCIEN;                    // compte supprime : on delete set null
+    return t.gens[id] || ANCIEN;              // retire du bureau : plus dans `equipe`
+  }
+
+  /* LA MENTION PRETE A AFFICHER, ET L'ELISION AVEC. « de Romane » se dit, « de ancien
+     membre » ne se dit pas : il faut « d’un ancien membre ». Cette correction ne peut
+     pas vivre dans chaque ecran, sinon elle sera juste a un endroit et fausse au
+     suivant. Les ecrans appellent ceci, jamais `quiEcrit` directement. */
+  function mentionAuteur(id){
+    const q = quiEcrit(id);
+    if(!q) return null;
+    return (q === ANCIEN) ? 'd’un ancien membre' : 'de ' + q;
+  }
+
   /* ================================================================
      LES FILES DE TRAVAIL HORS LIGNE, ET POURQUOI ELLES BLOQUENT LA BASCULE
      ================================================================
@@ -1316,6 +1445,22 @@
      qui modifie une fiche qu'il n'a pas creee ne recoit pas un refus poli, il recoit une
      erreur franche de PostgreSQL (code 42501). Sans traduction, l'ecran afficherait
      « Supabase a refuse /suivi_clients (403) » a un vigneron. */
+  /* LE REFUS, DIT EN FRANCAIS ET AVEC UN NOM, 14/09/2026.
+     Avant ce lot, les trois modules qui ecrivent disaient « quelqu'un d'autre de ton
+     bureau ». C'est vrai, et ca n'aide pas : le vigneron ne sait ni qui, ni a qui
+     demander. Le nom transforme un refus en regle. Quand le trombinoscope n'est pas
+     encore charge, la phrase generique revient, et elle reste juste.
+
+     AUCUN PRONOM DE GENRE dans ces phrases : « elle seule peut la modifier » obligerait
+     a connaitre le genre de chacun, que la base ne porte pas et n'a pas a porter.
+     « Seul son auteur » ne pose pas la question. */
+  function refusEnFrancais(debut, par, fin){
+    const q = quiEcrit(par);
+    const nom = (q === ANCIEN) ? 'un ancien membre' : q;
+    return debut + (q ? ' par ' + nom + ', de ton bureau.' : ' par quelqu’un d’autre de ton bureau.')
+      + ' ' + fin;
+  }
+
   function refusDeProprietaire(err){
     if(!err || err.status !== 403) return false;
     return String(err.detail || '').indexOf('row-level security') >= 0;
@@ -1350,7 +1495,11 @@
     avantDeQuitterLeBureau: avantDeQuitterLeBureau,
     filesEnAttente: filesEnAttente,
     fonction: fonction,
-    refusDeProprietaire: refusDeProprietaire
+    refusDeProprietaire: refusDeProprietaire,
+    refusEnFrancais: refusEnFrancais,
+    trombinoscope: chargerTrombinoscope,
+    quiEcrit: quiEcrit,
+    mentionAuteur: mentionAuteur
   };
 
   // Un profil que le reseau avait refuse repart a la premiere occasion, et la file se vide

@@ -123,7 +123,9 @@
       corps: [Object.assign({}, ligne, { bureau: bureau })]
     }).catch(function (e) {
       if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
-        throw new Error('Ce repere a ete regle par quelqu\'un d\'autre de ton bureau : lui seul peut le changer.');
+        var vieux = lireCache()[ligne.cle] || {};
+        throw new Error(BdvCompte.refusEnFrancais('Ce rep\u00e8re a \u00e9t\u00e9 r\u00e9gl\u00e9',
+          vieux.cree_par, 'Seul son auteur peut le changer.'));
       }
       throw e;
     });
@@ -139,7 +141,7 @@
   async function charger() {
     if (!pret()) return;
     try {
-      var lignes = await BdvCompte.api('/calendrier_choix?select=cle,actif,decale_de,maj_le'
+      var lignes = await BdvCompte.api('/calendrier_choix?select=cle,actif,decale_de,maj_le,cree_par'
         + '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()));
       if (!lignes) return;   // null = session tombee ou corps vide, on garde le miroir
       var map = {};
@@ -170,6 +172,13 @@
      donnerait l'impression d'un clic rate sur un reseau de cave. */
   function ecrire(cle, ligne) {
     var map = lireCache();
+    /* L'AUTEUR SURVIT A LA REECRITURE LOCALE, meme motif que dans « Mes taches » :
+       `cree_par` est pose par la base et jamais par le navigateur, donc une ligne
+       reconstruite ici le perdrait juste avant que la base refuse l'ecriture, et le
+       message ne pourrait plus nommer celui a qui ce repere appartient. */
+    if (ligne && map[cle] && map[cle].cree_par && !ligne.cree_par) {
+      ligne = Object.assign({}, ligne, { cree_par: map[cle].cree_par });
+    }
     if (ligne === null) delete map[cle]; else map[cle] = ligne;
     ecrireCache(map);
     prevenir();
