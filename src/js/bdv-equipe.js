@@ -87,6 +87,48 @@
     bloc.hidden = false;
   }
 
+  /* ---------------- LE NOM DE CE BUREAU ----------------
+     Le champ est rempli meme quand le selecteur ne s'affiche pas : quelqu'un qui n'a
+     qu'un bureau a autant besoin de le nommer, et c'est meme LUI qui en a le plus
+     besoin, puisque le sien s'appelle « Mon bureau » depuis son inscription.
+
+     L'ecriture est un PATCH direct sur `bureaux` : la politique du lot 15 l'autorise
+     aux maitres, et le droit est accorde sur la SEULE colonne `nom`. Il n'y a donc
+     pas de fonction a ecrire pour ca, et pas de verification a refaire ici. */
+  async function rendreNom() {
+    var bloc = el('equipeNomBloc'), champ = el('equipeNomChamp');
+    if (!bloc || !champ) return;
+    if (!MAITRE) { bloc.hidden = true; return; }
+    var lignes = await BdvCompte.api('/bureaux?select=nom&bureau=eq.'
+      + encodeURIComponent(BdvCompte.monBureau()));
+    if (!Array.isArray(lignes) || !lignes[0]) { bloc.hidden = true; return; }
+    champ.value = lignes[0].nom || '';
+    bloc.hidden = false;
+  }
+
+  async function renommer(nom) {
+    dire('');
+    try {
+      var r = await BdvCompte.api('/bureaux?bureau=eq.'
+        + encodeURIComponent(BdvCompte.monBureau()), {
+        methode: 'PATCH',
+        entetes: { 'Prefer': 'return=representation' },
+        corps: { nom: nom }
+      });
+      /* representation, et pas minimal : api() rend `null` aussi bien pour une session
+         tombee que pour un corps vide, et un renommage refuse serait annonce comme fait.
+         La regle du depot, payee sur le suivi client. */
+      if (!Array.isArray(r) || !r.length) throw new Error('renommage refuse');
+    } catch (e) { dire(raison(e), true); return; }
+
+    dire('Ce bureau s\u2019appelle maintenant ' + nom + '.');
+    // La barre porte le nom du bureau courant : elle ment jusqu'au rechargement si on
+    // ne la reprend pas ici, et c'est le genre de mensonge qu'on ne remarque pas.
+    var enTete = document.getElementById('bureauNavBureau');
+    if (enTete && !enTete.hidden) enTete.textContent = nom;
+    await rendreBureaux();
+  }
+
   /* ---------------- QUI EST LA ---------------- */
   async function rendreEquipe() {
     var zone = el('equipeListe');
@@ -217,7 +259,7 @@
   function montrerAucunBureau() {
     var bloc = el('equipeAucun');
     if (bloc) bloc.hidden = false;
-    ['equipeBureauBloc', 'equipeInviterForme', 'equipeAttentesBloc', 'equipeLien']
+    ['equipeBureauBloc', 'equipeNomBloc', 'equipeInviterForme', 'equipeAttentesBloc', 'equipeLien']
       .forEach(function (id) { var n = el(id); if (n) n.hidden = true; });
     var liste = el('equipeListe'); if (liste) liste.innerHTML = '';
     var note = el('equipeNoteSimple'); if (note) note.hidden = true;
@@ -334,6 +376,14 @@
     var p = el('equipePartir');
     if (p) p.addEventListener('click', function (ev) { ev.preventDefault(); partir(); });
 
+    var renomme = el('equipeNomValider');
+    if (renomme) renomme.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var nom = (el('equipeNomChamp') || {}).value || '';
+      if (!nom.trim()) { dire('Il faut un nom.', true); return; }
+      renommer(nom.trim());
+    });
+
     var creer = el('equipeAucunCreer');
     if (creer) creer.addEventListener('click', function (ev) {
       ev.preventDefault();
@@ -372,7 +422,8 @@
     var lien = el('equipeLien'); if (lien) lien.hidden = true;
     try {
       await rendreBureaux();
-      await rendreEquipe();
+      await rendreEquipe();      // c'est elle qui pose MAITRE
+      await rendreNom();
       await rendreInvitations();
     } catch (e) { dire('La liste n’a pas pu être lue. Vérifie ta connexion.', true); }
   }

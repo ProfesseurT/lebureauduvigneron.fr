@@ -81,6 +81,7 @@ function compte(opts) {
     api: (chemin) => {
       if (chemin.indexOf('/rpc/equipe') === 0) return Promise.resolve(opts.equipe);
       if (chemin.indexOf('/invitations') === 0) return Promise.resolve(opts.invitations || []);
+      if (chemin.indexOf('/bureaux') === 0) return Promise.resolve([{ nom: 'Solucorp' }]);
       return Promise.resolve([]);
     }
   };

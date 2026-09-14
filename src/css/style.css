@@ -8387,3 +8387,37 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   gap: var(--e-s);
   margin: 0;
 }
+
+/* Le nom du bureau : meme dessin que le selecteur juste au-dessus, dont il est la
+   suite logique. Le bloc ne s'affiche qu'aux maitres, comme la politique. */
+.equipe-nom {
+  margin-bottom: var(--e-l);
+  padding-bottom: var(--e-m);
+  border-bottom: var(--trait) solid var(--rule);
+}
+.equipe-nom__l {
+  display: block;
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--e-xs);
+}
+.equipe-nom__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-nom__i {
+  flex: 1 1 16rem;
+  min-height: var(--h-controle);
+  padding: 0.4rem 0.6rem;
+  background: var(--white);
+  border: var(--trait) solid var(--rule-fort);
+  color: var(--ink);
+  font-family: var(--font-corps);
+  font-size: var(--t-base);
+}
+.equipe-nom__aide {
+  color: var(--muted);
+  font-size: var(--t-petit);
+  line-height: var(--lh-lecture);
+  margin-top: var(--e-s);
+}

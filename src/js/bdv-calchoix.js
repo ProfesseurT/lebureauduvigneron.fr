@@ -229,6 +229,14 @@
 
   if (pret()) { LU = true; viderAttente().then(charger); }
 
+  /* LA FILE PART AVANT LA BASCULE, 14/09/2026. Changer de bureau vide le poste, et
+     ce qui n'a pas ete envoye serait perdu sans un mot. On s'annonce donc ici : le
+     module videra sa file quand on le lui demandera, et si quelque chose resiste,
+     `changerDeBureau()` refuse de basculer plutot que de jeter du travail. */
+  if (window.BdvCompte && BdvCompte.avantDeQuitterLeBureau) {
+    BdvCompte.avantDeQuitterLeBureau(viderAttente);
+  }
+
   window.BdvCalchoix = {
     ouvrir: ouvrir, charger: charger, choix: choix, eteints: eteints,
     eteindre: eteindre, rallumer: rallumer, basculer: basculer,

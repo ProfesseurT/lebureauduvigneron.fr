@@ -10,7 +10,7 @@
     "charte:dash": "node scripts/charte.mjs --bureau",
     "banc": "node scripts/banc-bureau.mjs",
     "charte:bureau": "node scripts/charte.mjs --bureau",
-    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:calclients && npm run banc:sync && npm run banc:lune && npm run banc:porte && npm run banc:registre && npm run banc:cap && npm run banc:commerce && npm run banc:tels && npm run banc:app && npm run banc:outils && npm run courrier && npm run courrier:verif",
+    "verif": "npm run build && npm run charte && npm run charte:bureau && npm run banc && npm run banc:journee && npm run banc:reglages && npm run banc:taches && npm run banc:calchoix && npm run banc:calclients && npm run banc:sync && npm run banc:bascule && npm run banc:lune && npm run banc:porte && npm run banc:registre && npm run banc:cap && npm run banc:commerce && npm run banc:tels && npm run banc:app && npm run banc:outils && npm run courrier && npm run courrier:verif",
     "banc:reglages": "node scripts/banc-reglages.mjs",
     "banc:journee": "node scripts/banc-journee.mjs",
     "apercu:panneau": "node scripts/apercu-panneau.mjs",
@@ -32,7 +32,8 @@
     "courrier:joindre": "node scripts/joindre-courrier.mjs",
     "courrier:verif": "node scripts/joindre-courrier.mjs --verifier",
     "apercu:mot": "node scripts/apercu-mot.mjs",
-    "apercu:equipe": "node scripts/apercu-equipe.mjs"
+    "apercu:equipe": "node scripts/apercu-equipe.mjs",
+    "banc:bascule": "node scripts/banc-bascule.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",

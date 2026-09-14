@@ -1174,6 +1174,50 @@
     return bureauEnRoute;
   }
 
+  /* ================================================================
+     LES FILES DE TRAVAIL HORS LIGNE, ET POURQUOI ELLES BLOQUENT LA BASCULE
+     ================================================================
+     Defaut introduit le 13/09/2026 avec `changerDeBureau()`, trouve le 14 : le
+     vidage du poste emporte TOUTES les cles `bdv_`, donc aussi les files de ce qui
+     a ete note sans reseau et pas encore envoye. Quelqu'un note trois taches dans
+     un rang, revient, bascule sur l'autre bureau : les trois disparaissent, sans
+     un mot. C'est la classe de panne que le projet refuse partout ailleurs, et
+     elle etait de ma main.
+
+     DEUX GARDES, ET LE SECOND EST CELUI QUI COMPTE :
+       1. chaque module qui tient une file s'annonce ici, et on lui demande de la
+          vider AVANT de toucher a quoi que ce soit ;
+       2. on relit ENSUITE le stockage, et s'il reste quelque chose, LA BASCULE
+          N'A PAS LIEU. Pas de base modifiee, pas de poste vide, un message.
+
+     LA DETECTION EST PAR SUFFIXE et pas par liste nommee, exactement comme
+     `oublierCetAppareil()` efface par prefixe : la prochaine file `bdv_x_attente`
+     ajoutee ailleurs dans le site sera couverte sans que personne y pense. Une
+     liste se perime, un suffixe non.
+
+     `bdv_profil_attente` est la seule exclue, et elle SURVIT aussi au vidage :
+     c'est une ecriture sur la fiche de la PERSONNE, pas sur le bureau. */
+  const AVANT_BASCULE = [];
+  function avantDeQuitterLeBureau(fn){
+    if(typeof fn === 'function' && AVANT_BASCULE.indexOf(fn) < 0) AVANT_BASCULE.push(fn);
+  }
+
+  function filesEnAttente(){
+    const restes = [];
+    try{
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(!k || k.indexOf('bdv_') !== 0 || k.slice(-8) !== '_attente') continue;
+        if(k === PROFIL_ATTENTE_KEY) continue;
+        let f = null;
+        try{ f = JSON.parse(localStorage.getItem(k)); }catch(e){ f = null; }
+        const n = f ? (Array.isArray(f) ? f.length : Object.keys(f).length) : 0;
+        if(n > 0) restes.push({ cle: k, combien: n });
+      }
+    }catch(e){}
+    return restes;
+  }
+
   /* APPELER UNE FONCTION SERVEUR, avec le jeton de session de l'appelant.
      ================================================================
      La fonction `invitation` NE VERIFIE AUCUN DROIT de son cote : elle rappelle
@@ -1242,9 +1286,27 @@
     if(!b) throw new Error('aucun bureau');
     const s = lireSession();
     if(!s) throw new Error('aucune session');
-    // La base d'abord : si elle refuse (on n'est pas membre), on n'a rien casse ici.
+
+    /* LES FILES D'ABORD, ET AVANT L'ECRITURE EN BASE. L'ordre est une condition :
+       ecrire `bureau_courant` puis refuser la bascule laisserait la base sur le
+       nouveau bureau et le poste sur l'ancien, c'est-a-dire le pire des deux. */
+    for(let i = 0; i < AVANT_BASCULE.length; i++){
+      try{ await AVANT_BASCULE[i](); }catch(e){ /* le controle ci-dessous tranchera */ }
+    }
+    const restes = filesEnAttente();
+    if(restes.length){
+      const combien = restes.reduce(function(n, r){ return n + r.combien; }, 0);
+      throw new Error(combien > 1
+        ? combien + ' gestes n\u2019ont pas encore \u00e9t\u00e9 enregistr\u00e9s sur ce bureau. '
+          + 'V\u00e9rifie ta connexion : ils partiront tout seuls, et tu pourras changer.'
+        : 'Un geste n\u2019a pas encore \u00e9t\u00e9 enregistr\u00e9 sur ce bureau. '
+          + 'V\u00e9rifie ta connexion : il partira tout seul, et tu pourras changer.');
+    }
+
+    // La base ensuite : si elle refuse (on n'est pas membre), on n'a rien casse ici.
     await majProfil({ bureau_courant: b });
-    viderLePoste([SESSION_KEY, PROPRIO_KEY]);
+    // `bdv_profil_attente` survit : c'est une ecriture sur la fiche de la personne.
+    viderLePoste([SESSION_KEY, PROPRIO_KEY, PROFIL_ATTENTE_KEY]);
     poserBureau(b);
     try{ location.replace('/mon-bureau/'); }catch(e){ location.reload(); }
   }
@@ -1285,6 +1347,8 @@
     chargerBureau: chargerBureau,
     mesBureaux: mesBureaux,
     changerDeBureau: changerDeBureau,
+    avantDeQuitterLeBureau: avantDeQuitterLeBureau,
+    filesEnAttente: filesEnAttente,
     fonction: fonction,
     refusDeProprietaire: refusDeProprietaire
   };

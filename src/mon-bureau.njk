@@ -441,6 +441,23 @@ permalink: /mon-bureau/
           </p>
         </div>
 
+        {# LE NOM DU BUREAU. Sans cet écran, tout bureau créé à l'inscription s'appelle
+           « Mon bureau » pour toujours : quelqu'un qui en a deux voit un sélecteur avec
+           deux lignes identiques. La politique du lot 15 autorise le renommage depuis le
+           premier jour, il ne manquait qu'un champ. Maître seul, comme la politique. #}
+        <div class="equipe-nom" id="equipeNomBloc" hidden>
+          <label class="equipe-nom__l" for="equipeNomChamp">Le nom de ce bureau</label>
+          <div class="equipe-nom__ligne">
+            <input class="equipe-nom__i" id="equipeNomChamp" type="text" maxlength="120"
+                   autocomplete="off" placeholder="le nom de ton domaine">
+            <button type="button" class="btn btn--geste" id="equipeNomValider">Renommer</button>
+          </div>
+          <p class="equipe-nom__aide">
+            C'est ce nom que verront les gens que tu invites, dans le mail comme dans
+            leur sélecteur de bureau.
+          </p>
+        </div>
+
         <p class="equipe-avis" id="equipeAvis" hidden></p>
 
         {# AUCUN BUREAU. État possible depuis le lot 20 : qui s'est inscrit PAR une

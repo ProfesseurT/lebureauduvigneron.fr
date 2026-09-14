@@ -1199,6 +1199,14 @@
      piece, ce qui est exactement le vigneron a qui elles servent le plus. La file
      d'attente part d'abord, la lecture ensuite : l'inverse ecrase un geste fait hors
      ligne par une reponse serveur plus vieille que lui (panne des signets, 07/09/2026). */
+  /* LA FILE PART AVANT LA BASCULE, 14/09/2026. Changer de bureau vide le poste, et
+     ce qui n'a pas ete envoye serait perdu sans un mot. On s'annonce donc ici : le
+     module videra sa file quand on le lui demandera, et si quelque chose resiste,
+     `changerDeBureau()` refuse de basculer plutot que de jeter du travail. */
+  if (window.BdvCompte && BdvCompte.avantDeQuitterLeBureau) {
+    BdvCompte.avantDeQuitterLeBureau(viderAttente);
+  }
+
   if (pret()) { LU = true; viderAttente().then(charger); } else { rendre(); }
 
   /* ---------------- CE QUE LE CALENDRIER LIT ----------------
