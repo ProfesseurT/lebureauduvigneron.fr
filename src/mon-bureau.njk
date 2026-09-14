@@ -107,6 +107,21 @@ permalink: /mon-bureau/
   <div class="bureau-atelier" id="bureauAtelier">
     <nav class="bureau-nav" id="bureauNav" aria-label="Les pièces de ton bureau"></nav>
     <div class="bureau-atelier__travail">
+
+    {# LE BANDEAU D'INVITATION EST EN DEHORS DES PIECES, ET C'EST TOUT LE SUJET.
+       Pose d'abord dans « Ma journee », il DISPARAISSAIT des qu'on ouvrait une autre
+       piece : `seule()` masque la piece entiere, bandeau compris. Trouve a la capture
+       du 14/09/2026, et invisible autrement, puisque « Ma journee » est justement la
+       piece ou l'on arrive.
+
+       C'est la meme faute que `#modale` le 11/09/2026 : un bloc qui doit vivre au-dessus
+       des pieces ne se range pas DANS une piece. Il est donc ici, frere des quatre
+       zones et pas enfant de l'une d'elles.
+
+       Rempli par src/js/bdv-equipe.js, charge seulement si l'adresse porte un jeton ou
+       si une invitation attend dans sessionStorage. Vide et masque le reste du temps. #}
+    <div class="invitation" id="invitationBandeau" hidden></div>
+
     <div class="bureau-plan" id="bureauJournee">
 
     <!-- L'ORDRE DES ZONES EST CELUI QUE TED A DICTE le 07/09/2026 : le panneau de
@@ -134,12 +149,6 @@ permalink: /mon-bureau/
       </div>
       <p class="bureau-avis" id="bureauAvis" hidden></p>
 
-      {# LE BANDEAU D'INVITATION. Il est ICI, dans le travail du bureau et pas dans une
-         page a part : la regle du 07/09/2026 veut qu'un chantier entre par le bureau.
-         Il est rempli par src/js/bdv-equipe.js, qui n'est charge QUE si l'adresse porte
-         un jeton, ou si une invitation attend dans sessionStorage. Vide et masque le
-         reste du temps, il ne coute que ses deux balises. #}
-      <div class="invitation" id="invitationBandeau" hidden></div>
       <div id="bureauFile"></div>
       <p class="zone__pied" id="filePied" hidden></p>
     </section>
@@ -408,7 +417,7 @@ permalink: /mon-bureau/
        fonctions du lot 18 verifient chacune qui appelle avant d'ecrire. Ici on evite
        seulement de proposer un geste qui finirait en refus. #}
     <div class="bureau-plan" id="bureauEquipe" hidden>
-      <section class="zone">
+      <section class="zone zone--equipe">
         <div class="zone__tete">
           <h2>L'équipe</h2>
           <span class="zone__note">Qui travaille dans ce bureau</span>

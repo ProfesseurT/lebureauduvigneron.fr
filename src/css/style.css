@@ -8068,34 +8068,60 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
    papier il est parfaitement invisible. Defaut paye le 11/09/2026 sur la page
    de desinscription, ou le bouton le plus important ne se voyait pas.
    ========================================================================== */
+/* LA ZONE OCCUPE LES DOUZE COLONNES, et son absence est le defaut que Ted a vu le
+   14/09/2026 : `.bureau-plan` est une grille de douze colonnes, une `.zone` qui ne
+   dit pas sa largeur tombe donc dans UNE colonne, environ soixante pixels, et tout
+   le texte s'ecrit une lettre par ligne. `.zone--taches` et le calendrier le
+   disaient depuis toujours, je ne l'ai pas recopie.
+
+   ET LE CONTENEUR EST NOMME, comme le sous-main et « Mes taches » : la ligne se
+   reorganise sur la largeur de SA zone et pas sur celle de la fenetre. Regle du
+   07/09/2026, mesuree : la zone fait 722 px dans une fenetre de 1024 et 728 px dans
+   une fenetre de 1280, un point de rupture pose sur la fenetre se trompe de cible. */
+.zone--equipe {
+  grid-column: span 12;
+  container-type: inline-size;
+  container-name: equipe;
+}
+
 .equipe-liste {
   list-style: none;
   margin: var(--e-m) 0 0;
   padding: 0;
   border-top: var(--trait) solid var(--rule);
 }
+/* TROIS COLONNES, ET LA TROISIEME A UNE LARGEUR MINIMALE : sans elle, la ligne
+   d'une personne sans gestes (soi-meme) laisse son etiquette de role glisser vers la
+   droite, et les etiquettes ne s'alignent plus d'une ligne a l'autre. 15,5 rem est la
+   largeur mesuree de la paire « Repasser en simple » + « Retirer ». */
 .equipe-ligne {
   display: grid;
-  grid-template-columns: minmax(9rem, 1.4fr) minmax(0, 1.6fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 8rem minmax(15.5rem, auto);
   align-items: center;
   gap: var(--e-s);
   padding: var(--e-s) 0;
   border-bottom: var(--trait) solid var(--rule);
 }
-.equipe-ligne__nom { font-weight: 500; }
+.equipe-ligne__qui { min-width: 0; }
+.equipe-ligne__nom { display: block; font-weight: 500; }
 .equipe-ligne__moi { color: var(--muted); font-weight: 400; }
 .equipe-ligne__adresse {
+  display: block;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: var(--t-mini);
   overflow-wrap: anywhere;
 }
-.equipe-ligne__gestes { text-align: right; white-space: nowrap; }
+.equipe-ligne__gestes { justify-self: end; text-align: right; white-space: nowrap; }
 .equipe-ligne__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
 
 /* L'etiquette de role dit un ETAT, pas un geste : elle ne se clique pas et ne
    prend donc ni le dessin ni la hauteur d'un bouton. */
+/* `justify-self` N'EST PAS DECORATIF : sans lui l'etiquette prend toute sa cellule de
+   grille, et sur telephone « MAITRE » devenait un bandeau de bord a bord qu'on prend
+   pour un bouton. Une etiquette dit un etat, elle epouse son mot. */
 .equipe-role {
+  justify-self: start;
   font-family: var(--font-corps);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-etiq);
@@ -8192,6 +8218,13 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
    par un lien, et souvent la seule qu'il lira : il porte le filet d'accent du
    bureau, pas une couleur d'alerte. Une invitation n'est pas un incident. */
 .invitation {
+  /* IMMUNISE CONTRE LA GRILLE DE DOUZE COLONNES. Le bandeau vit AU-DESSUS des
+     pieces, donc hors de `.bureau-plan`, et il n'en a pas besoin aujourd'hui. Mais
+     la page d'apercu l'a pose dans un `.bureau-plan` le 14/09/2026 et il s'est
+     ecrit une lettre par ligne, comme la zone une heure plus tot. Un bloc qui se
+     replie a soixante pixels des qu'on le deplace est un piege pose pour plus tard :
+     une ligne le referme. */
+  grid-column: 1 / -1;
   margin: var(--e-m) 0;
   padding: var(--e-m);
   background: var(--paper-deep);
@@ -8211,16 +8244,20 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 }
 .invitation__souci { color: var(--danger-deep); margin: 0; }
 
-/* SUR TELEPHONE, LA LIGNE S'EMPILE. Quatre colonnes dans 390 px donneraient une
-   adresse e-mail coupee en quatre lignes et deux boutons de six pixels. La
-   mesure de la RANGEE, pas de l'element : regle du 11/09/2026. */
-@media (max-width: 700px) {
-  body.bdv-poste .equipe-ligne {
-    grid-template-columns: 1fr auto;
+/* LA LIGNE S'EMPILE QUAND SA ZONE SE SERRE. Quatre colonnes dans une zone etroite
+   donneraient une adresse e-mail coupee en quatre lignes et deux boutons de six
+   pixels. Le seuil porte sur le CONTENEUR et pas sur la fenetre, et il est mesure
+   sur le contenu : nom 9 rem, adresse, etiquette de role et deux boutons de gestes
+   demandent environ 46 rem ensemble. */
+@container equipe (max-width: 46rem) {
+  .equipe-ligne {
+    grid-template-columns: minmax(0, 1fr) auto;
     row-gap: var(--e-xs);
   }
-  body.bdv-poste .equipe-ligne__adresse { grid-column: 1 / -1; }
-  body.bdv-poste .equipe-ligne__gestes { grid-column: 1 / -1; text-align: left; }
+  /* L'etiquette remonte a droite du nom, et les gestes passent sous les deux : la
+     lecture reste « qui, et quel role », puis « ce que je peux en faire ». */
+  .equipe-role { justify-self: end; }
+  .equipe-ligne__gestes { grid-column: 1 / -1; justify-self: start; text-align: left; }
 }
 
 /* Le nom du bureau courant, en tete de la barre. Il est sur le papier de la page

@@ -109,10 +109,15 @@
           + ' <button type="button" class="btn btn--geste" data-retirer="' + esc(g.personne) + '"'
           + ' data-nom="' + esc(nomDe(g)) + '">Retirer</button>';
       }
+      /* LE NOM ET L'ADRESSE SONT DANS LA MEME COLONNE, empiles. En colonnes separees,
+         l'adresse flottait au milieu de la ligne, loin du nom qu'elle designe : vu a la
+         capture du 14/09/2026, et parfaitement invisible a la lecture du code. */
       return '<li class="equipe-ligne">'
+        + '<span class="equipe-ligne__qui">'
         + '<span class="equipe-ligne__nom">' + esc(nomDe(g))
         + (cestMoi ? ' <span class="equipe-ligne__moi">(toi)</span>' : '') + '</span>'
         + '<span class="equipe-ligne__adresse">' + esc(g.email) + '</span>'
+        + '</span>'
         + '<span class="equipe-role equipe-role--' + esc(g.role) + '">'
         + (g.role === 'maitre' ? 'Maître' : 'Utilisateur') + '</span>'
         + '<span class="equipe-ligne__gestes">' + gestes + '</span>'
@@ -145,10 +150,11 @@
     zone.innerHTML = lignes.map(function (l) {
       var expiree = new Date(l.expire_le) < new Date();
       return '<li class="equipe-ligne">'
+        + '<span class="equipe-ligne__qui">'
         + '<span class="equipe-ligne__nom">' + esc(l.email) + '</span>'
         + '<span class="equipe-ligne__adresse">'
         + (expiree ? 'lien expiré' : 'en attente')
-        + '</span>'
+        + '</span></span>'
         + '<span class="equipe-role equipe-role--' + esc(l.role) + '">'
         + (l.role === 'maitre' ? 'Maître' : 'Utilisateur') + '</span>'
         + '<span class="equipe-ligne__gestes">'

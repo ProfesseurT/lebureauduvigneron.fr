@@ -1851,6 +1851,38 @@ pour les sections sombres, et sur fond clair il est parfaitement invisible. Defa
 11/09/2026 sur la page de desinscription. Le bouton secondaire du bureau est `.btn--geste`.
 Je m'appretais a repayer ce defaut deux fois dans cette piece.
 
+### UNE `.zone` QUI NE DIT PAS SA LARGEUR TOMBE DANS UNE COLONNE SUR DOUZE, 14/09/2026
+
+`.bureau-plan` est une grille de douze colonnes. Une `.zone` posee dedans sans
+`grid-column` occupe donc UNE colonne, environ soixante pixels, et tout son texte s'ecrit
+**une lettre par ligne**. C'est l'etat dans lequel la piece « L'equipe » est partie en
+production, et les dix-huit controles de `npm run verif` etaient verts : aucun ne regarde
+une largeur. C'est Ted qui l'a vu.
+
+**Toute zone nouvelle porte `grid-column: span 12` et son conteneur nomme**, comme
+`.zone--taches` et le sous-main. Le conteneur n'est pas decoratif : le repli de la ligne se
+juge sur la largeur de SA zone, jamais sur celle de la fenetre (regle du 07/09/2026, une
+zone fait 722 px dans une fenetre de 1024 et 728 px dans une fenetre de 1280).
+
+**Et tout bloc pose au-dessus des pieces porte `grid-column: 1 / -1`**, meme s'il vit hors
+grille aujourd'hui : le bandeau d'invitation s'est replie a soixante pixels le jour ou la
+page d'apercu l'a mis dans un `.bureau-plan`. Un bloc qui casse des qu'on le deplace est un
+piege pose pour plus tard.
+
+**`justify-self` sur une etiquette.** Sans lui, elle prend toute sa cellule de grille, et
+sur telephone « MAITRE » devenait un bandeau de bord a bord qu'on prend pour un bouton.
+
+### `npm run apercu:equipe`
+
+Ecrit apres ce defaut, et pour qu'il ne se reproduise pas : il monte la piece dans la PAGE
+CONSTRUITE, avec la vraie feuille, dans sa vraie grille de douze colonnes, et rend
+`_apercu/equipe.html` en trois etats (un maitre avec deux bureaux, un simple utilisateur,
+le bandeau d'invitation). **Il ne verifie rien, il MONTRE** : il n'est pas dans
+`npm run verif`, il s'ouvre et se regarde. Une page d'apercu qui poserait la zone sur une
+largeur libre ne pourrait pas montrer ce defaut, et validerait exactement ce qui etait casse.
+
+Il a lui-meme trouve le piege du bandeau ci-dessus, au premier passage.
+
 ### LE SEUIL : le premier destinataire qui n'est pas Ted
 
 En phase de test, Ted a garde `courrier.` comme sous-domaine d'envoi et le palier Resend

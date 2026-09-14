@@ -30,7 +30,8 @@
     "banc:outils": "node scripts/banc-outils.mjs",
     "courrier": "node scripts/apercu-courrier.mjs",
     "courrier:joindre": "node scripts/joindre-courrier.mjs",
-    "courrier:verif": "node scripts/joindre-courrier.mjs --verifier"
+    "courrier:verif": "node scripts/joindre-courrier.mjs --verifier",
+    "apercu:equipe": "node scripts/apercu-equipe.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
