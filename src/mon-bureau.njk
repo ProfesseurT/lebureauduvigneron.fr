@@ -45,6 +45,25 @@ permalink: /mon-bureau/
   </div>
 </section>
 
+{# LE BANDEAU D'INVITATION EST HORS DU BUREAU, ET IL A DEJA DEMENAGE DEUX FOIS.
+
+   Pose d'abord dans « Ma journee », il disparaissait des qu'on ouvrait une autre
+   piece : `seule()` masque la piece entiere, bandeau compris. Sorti des pieces le
+   14/09, il restait DANS `#bureauContenu`, qui porte `hidden` tant qu'il n'y a pas
+   de session. Autrement dit il etait invisible exactement pour la personne a qui il
+   s'adresse : l'invite qui n'a pas encore de compte. C'etait la demande de Ted du
+   14/09 (« si l'utilisateur n'a pas de compte encore ca devient tres complexe »), et
+   elle ne marchait pas.
+
+   IL EST DONC ICI, frere des deux etats de la page et enfant d'aucun. Il se montre
+   a l'invite comme au membre, et c'est la seule position ou les deux sont vrais.
+
+   Rempli par src/js/bdv-equipe.js, charge par bdv-nav.js seulement si l'adresse porte
+   un jeton ou si une invitation attend dans sessionStorage. Vide et masque sinon. #}
+<div class="container--bureau">
+  <div class="invitation" id="invitationBandeau" hidden></div>
+</div>
+
 <!-- CONNECTE -->
 <div id="bureauContenu" hidden>
 
@@ -107,20 +126,6 @@ permalink: /mon-bureau/
   <div class="bureau-atelier" id="bureauAtelier">
     <nav class="bureau-nav" id="bureauNav" aria-label="Les pièces de ton bureau"></nav>
     <div class="bureau-atelier__travail">
-
-    {# LE BANDEAU D'INVITATION EST EN DEHORS DES PIECES, ET C'EST TOUT LE SUJET.
-       Pose d'abord dans « Ma journee », il DISPARAISSAIT des qu'on ouvrait une autre
-       piece : `seule()` masque la piece entiere, bandeau compris. Trouve a la capture
-       du 14/09/2026, et invisible autrement, puisque « Ma journee » est justement la
-       piece ou l'on arrive.
-
-       C'est la meme faute que `#modale` le 11/09/2026 : un bloc qui doit vivre au-dessus
-       des pieces ne se range pas DANS une piece. Il est donc ici, frere des quatre
-       zones et pas enfant de l'une d'elles.
-
-       Rempli par src/js/bdv-equipe.js, charge seulement si l'adresse porte un jeton ou
-       si une invitation attend dans sessionStorage. Vide et masque le reste du temps. #}
-    <div class="invitation" id="invitationBandeau" hidden></div>
 
     <div class="bureau-plan" id="bureauJournee">
 
@@ -492,7 +497,13 @@ permalink: /mon-bureau/
               <option value="simple">Utilisateur</option>
               <option value="maitre">Maître</option>
             </select>
-            <button type="submit" class="btn">Créer le lien</button>
+            {# « Envoyer l'invitation » et plus « Creer le lien », 14/09/2026 : depuis
+               le lot 20 ce bouton ENVOIE un mail. Un libelle qui annonce un lien a
+               copier fait attendre un lien, et celui qui ne le voit pas venir croit
+               que le geste a rate — alors que l'invitation est partie. Le lien
+               reste affiche, mais seulement dans le cas ou le mail n'est PAS parti,
+               et c'est justement pour ca qu'il ne doit plus etre la promesse. #}
+            <button type="submit" class="btn">Envoyer l'invitation</button>
           </div>
           {# La difference entre les deux roles se dit ICI, au moment ou on choisit, et
              pas dans une aide qu'il faudrait aller chercher. #}
@@ -504,7 +515,11 @@ permalink: /mon-bureau/
 
         {# LE LIEN NE S'AFFICHE QU'UNE FOIS, et on le DIT : la base n'en garde que
            l'empreinte, personne ne pourra le retrouver. Un lien perdu se remplace en
-           reinvitant la meme adresse, ce qui annule le precedent. #}
+           reinvitant la meme adresse, ce qui annule le precedent.
+
+           DEPUIS LE LOT 20 CE BLOC EST UN SECOURS, pas le chemin normal : il ne
+           s'ouvre que si le mail n'est pas parti. L'invitation, elle, existe quand
+           meme en base et vaut sept jours. #}
         <div class="equipe-lien" id="equipeLien" hidden>
           <p class="equipe-lien__titre">
             Le lien pour <strong id="equipeLienQui"></strong>. Il ne s'affichera qu'une fois.

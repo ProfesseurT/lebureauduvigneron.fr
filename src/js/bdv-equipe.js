@@ -350,13 +350,31 @@
     var l = el('equipeListe'); if (l) l.addEventListener('click', surClic);
     var a = el('equipeAttentes'); if (a) a.addEventListener('click', surClic);
 
+    /* UN SEUL ENVOI PAR CLIC, ajoute le 14/09/2026.
+       Le bouton restait actif pendant l'appel, qui dure le temps d'un aller-retour
+       chez Resend. Deux clics, ou un clic d'impatience sur un reseau de cave, et
+       `inviter` partait deux fois : la base cree DEUX invitations, la seconde efface
+       la premiere, et DEUX mails partent. L'invite recoit deux liens dont le premier
+       repond « ce lien n'est pas valable » — et les deux comptent dans le plafond de
+       vingt par jour. Le verrou est ici et pas dans la base : c'est un geste d'ecran,
+       pas une regle de droit. */
     var f = el('equipeInviterForme');
-    if (f) f.addEventListener('submit', function (ev) {
+    var enCours = false;
+    if (f) f.addEventListener('submit', async function (ev) {
       ev.preventDefault();
+      if (enCours) return;
       var adresse = (el('equipeAdresse') || {}).value || '';
       var role = (el('equipeRole') || {}).value || 'simple';
       if (!adresse.trim()) { dire('Il manque l’adresse.', true); return; }
-      inviter(adresse.trim(), role);
+      var bouton = f.querySelector('button[type="submit"], button:not([type])');
+      var libelle = bouton ? bouton.textContent : '';
+      enCours = true;
+      if (bouton) { bouton.disabled = true; bouton.textContent = 'Envoi…'; }
+      try { await inviter(adresse.trim(), role); }
+      finally {
+        enCours = false;
+        if (bouton) { bouton.disabled = false; bouton.textContent = libelle; }
+      }
     });
 
     var copier = el('equipeCopier');

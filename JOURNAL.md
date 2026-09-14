@@ -12,6 +12,88 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026, audit. Le lien d'invitation ne marchait pas sans compte
+
+Ted : « audit la fonction maintenant et améliore si ça mérite d'être amélioré / patché ou
+nettoyé. »
+
+### Le défaut qui comptait, et il n'était pas dans la fonction
+
+Le lien envoyé par mail s'adresse, dans le cas le plus fréquent, à quelqu'un qui **n'a pas de
+compte**. C'était la demande de Ted du 14/09 au matin, mot pour mot. Ce parcours était mort, pour
+**deux causes indépendantes, dans deux fichiers sans rapport** :
+
+1. `#invitationBandeau` vivait dans `#bureauContenu`, qui porte `hidden` tant qu'il n'y a pas de
+   session. Le bandeau était rempli, puis démasqué, à l'intérieur d'un parent éteint. `hidden` sur
+   un ancêtre suffit à tout éteindre : le démasquer ne sert à rien.
+2. `invitationEventuelle()` était la dernière ligne de `BdvNav.monter()`, que `/mon-bureau/`
+   n'appelle **que** si une session existe : le script de la page sort par un `return` avant son
+   `DOMContentLoaded` quand personne n'est connecté. Le module de l'invitation n'était donc jamais
+   chargé.
+
+Aucun banc ne pouvait les voir : la cause est dans un gabarit, l'effet dans un module chargé à la
+demande, et les deux fichiers ne se citent pas. Seul un banc qui ouvre la **page construite** sans
+session les attrape. `banc-invitation.mjs`, 17 contrôles, vérifié en réinstallant chacune des deux
+causes séparément (2 puis 1 contrôle tombent).
+
+Le bandeau est maintenant frère des deux états de la page et enfant d'aucun, et
+`invitationEventuelle()` part à l'initialisation du module, indépendamment de la barre.
+
+### La fonction serveur, quatre corrections
+
+Aucune ne change ce qu'elle fait. Elles changent ce qu'elle raconte quand ça se passe mal, et ce
+qu'elle laisse passer.
+
+**Le nom du bureau partait brut dans le sujet du mail.** `bureaux.nom` est du `text` sans
+contrainte, et un maître le change par un simple `PATCH` : il peut porter des retours à la ligne.
+Un retour à la ligne dans un en-tête, c'est l'injection d'en-tête SMTP. Compter sur Resend pour
+nettoyer nos entrées serait exactement l'erreur que le projet refuse ailleurs. Un `propre()` coupe
+les caractères de contrôle et borne la longueur. `esc()` continue son travail à l'affichage : les
+deux ne protègent pas de la même chose.
+
+**Deux lectures sont devenues une.** La fonction lisait `/bureaux` puis `/profils`, cette dernière
+**sans filtre sur l'identifiant** : elle ne rendait la bonne fiche que parce que la politique de
+sécurité l'y oblige. Une sécurité qui tient parce qu'une politique voisine est bien écrite est une
+sécurité qu'on casse sans s'en apercevoir. `invitation_apercu` rend les mêmes champs en un appel,
+et c'est **la même source que le bandeau d'arrivée** : le mail et l'écran ne peuvent plus se
+contredire.
+
+**Le refus de Resend n'était pas lu.** « Resend a refusé (403) » n'apprend rien à personne ; le
+corps de la réponse dit « domain is not verified » ou « you can only send to your own address in
+test mode ». C'était la panne la plus probable de tout le dispositif, et elle était invisible des
+deux côtés : rien à l'écran, rien au journal, puisque la fonction n'écrivait aucune ligne de
+journal. Elle en écrit maintenant, et **jamais le jeton ni le lien qui le contient** : un journal
+se relit, se copie dans un ticket, et survit à l'invitation.
+
+**Quinze secondes de limite sur l'envoi.** Sans elle, un Resend qui ne répond pas tient la
+fonction jusqu'à la coupure de la plateforme, et le maître reste devant un bouton qui tourne alors
+que son invitation existe déjà.
+
+### Deux gestes d'écran
+
+**Le bouton ne se cliquait pas deux fois, mais rien ne l'en empêchait.** Deux clics, ou un clic
+d'impatience sur un réseau de cave, et `inviter` partait deux fois : la base crée deux invitations,
+la seconde efface la première, **deux mails partent**, et l'invité reçoit deux liens dont le
+premier répond « ce lien n'est pas valable ». Les deux comptent dans le plafond de vingt par jour.
+Le verrou est dans l'écran et pas dans la base : c'est un geste, pas une règle de droit.
+
+**« Créer le lien » est devenu « Envoyer l'invitation ».** Depuis le lot 20 ce bouton envoie un
+mail. Un libellé qui annonce un lien à copier fait attendre un lien, et celui qui ne le voit pas
+venir croit que le geste a raté, alors que l'invitation est partie. Le lien reste affiché, mais
+seulement dans le cas où le mail n'est pas parti.
+
+### Ce qui a été regardé et laissé tel quel
+
+- `Access-Control-Allow-Origin: *` : la fonction exige un jeton de session valide, et un site tiers
+  ne peut pas lire le stockage de lebureauduvigneron.fr. Restreindre casserait les déploiements de
+  préversion pour un gain nul.
+- Le plafond compte les invitations **créées**, pas envoyées : vingt échecs d'envoi bloquent la
+  journée. C'est le bon sens pour un anti-relais, et le cas ne se produit que si Resend est cassé.
+- Le jeton revient au navigateur quand l'envoi a échoué. C'est voulu : l'invitation existe en base
+  et vaut sept jours, la perdre parce que Resend a toussé serait perdre le geste entier.
+
+---
+
 ## 14/09/2026, suite. Travailler à plusieurs : les lots 21 à 23
 
 Ted : « oui, et tu fais les choses bien sans t'arrêter, mais tu peux les séparer en lots.

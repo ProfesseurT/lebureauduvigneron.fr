@@ -763,7 +763,6 @@
     suivreAdresse();
 
     nommerLeBureau();
-    invitationEventuelle();
   }
 
   /* ---------------------------------------------------------------------------
@@ -789,10 +788,20 @@
     })['catch'](function () { /* pas de nom, pas de ligne : rien de casse */ });
   }
 
-  /* UNE INVITATION N'ATTEND PAS UN CLIC. Elle arrive par l'adresse, et souvent
-     chez quelqu'un qui n'a pas encore de compte : le module part donc tout de
-     suite, et lui seul. Les 32 ko bloquants du bureau ne bougent pas, parce que
-     personne ne charge ce fichier sans un jeton dans l'adresse ou en attente. */
+  /* UNE INVITATION N'ATTEND PAS UN CLIC, ET SURTOUT PAS UNE SESSION.
+     ------------------------------------------------------------------------
+     Elle arrive par l'adresse, et le plus souvent chez quelqu'un qui n'a PAS
+     encore de compte : le module part donc tout de suite, et lui seul. Les 32 ko
+     bloquants du bureau ne bougent pas, parce que personne ne charge ce fichier
+     sans un jeton dans l'adresse ou en attente.
+
+     APPELEE HORS DE monter(), CORRIGE LE 14/09/2026. Elle etait la derniere ligne
+     de `monter()`, que /mon-bureau/ n'appelle QUE si une session existe : le script
+     de la page sort par un `return` avant son DOMContentLoaded quand personne n'est
+     connecte. Resultat exact : le lien d'invitation ne faisait strictement rien chez
+     l'invite qui n'a pas de compte, c'est-a-dire dans le seul cas pour lequel il a
+     ete ecrit. Aucun banc ne pouvait le voir, les deux fichiers etant sans rapport :
+     la cause est dans le gabarit, l'effet dans un module charge a la demande. */
   function invitationEventuelle() {
     var enAdresse = location.search.indexOf('invitation=') >= 0;
     var enAttente = false;
@@ -856,6 +865,15 @@
 
      Expose et pas recopie : deux endroits qui enchainent la meme liste de ressources,
      c'est un doublon qui divergera le jour ou un fichier s'ajoutera a RESSOURCES. */
+  /* Le document peut etre deja analyse quand ce fichier arrive (il est charge sans
+     `defer` sur /mon-bureau/), donc les deux cas sont couverts : sinon un rechargement
+     avec le jeton encore en sessionStorage ne montrerait rien. */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', invitationEventuelle);
+  } else {
+    invitationEventuelle();
+  }
+
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
                     marquerActif: marquerActif, ouvrirReglages: ouvrirReglages,
