@@ -99,7 +99,17 @@ for (const e of uniques) {
   vrai('`' + e.cle + '` n\'est pas pourri (' + iso(fin) + ')', jours >= -30,
     'Termine depuis ' + (-jours) + ' jours. Le calendrier l\'affiche encore comme un ' +
     'rendez-vous. Remplacer par l\'edition suivante, ou retirer la ligne.');
-  if (jours >= 0 && jours <= 90) prevenir('`' + e.cle + '` se termine dans ' + jours +
+  /* NE PAS PREVENIR QUAND LA RELEVE EST DEJA POSEE. Une edition suivante, c'est
+     une autre ligne de MEME TITRE qui se termine plus tard : « Vacances de la
+     Toussaint » 2027 prend la suite de celle de 2026. Sans ce filtre, le banc
+     reclame a chaque `npm run verif` un travail deja fait, et une alerte qu'on
+     apprend a ignorer ne sert plus a rien le jour ou elle est vraie. */
+  const releve = uniques.some(function (o) {
+    if (o.cle === e.cle || o.titre !== e.titre) return false;
+    const od = minuit(new Date(o.recurrence.date + 'T00:00:00'));
+    return od > debut;
+  });
+  if (jours >= 0 && jours <= 90 && !releve) prevenir('`' + e.cle + '` se termine dans ' + jours +
     ' jour(s). Poser l\'edition suivante AVANT, pas apres.');
 }
 

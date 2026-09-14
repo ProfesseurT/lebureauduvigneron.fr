@@ -12,6 +12,101 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026, suite. Lot B : la sélection vigneron, et deux salons qui étaient faux
+
+Le garde-fou posé le matin a servi le jour même. Trois agents de recherche ont confronté à
+leur source chaque date que nous affichions ou voulions afficher.
+
+### Ce que la vérification a trouvé, et c'est le retour sur investissement du Lot A
+
+**Deux salons sur quatre étaient faux d'une semaine.**
+
+| Salon | Ce qu'on affichait | Ce que l'organisateur annonce |
+| --- | --- | --- |
+| Wine Paris et Vinexpo Paris 2027 | 8 au 10 février | **15 au 17 février** |
+| ProWein Düsseldorf 2027 | 14 au 16 mars | **7 au 9 mars** |
+
+Millésime Bio et Vinitech étaient justes. Les quatre portent maintenant `verifieLe` au
+14/09/2026, donc le banc les laissera tranquilles jusqu'en septembre 2027.
+
+Wine Paris est le salon le plus fréquenté par les vignerons français. Un vigneron qui
+réserve son hôtel sur notre date se déplaçait la mauvaise semaine. **Ces deux lignes
+disaient « dates à confirmer » dans leur champ `detail` depuis le 08/09.** Personne ne lit
+un champ `detail`.
+
+### La bibliothèque passe de 30 à 49 occurrences
+
+**La règle d'entrée, et elle a fait tout le tri : pas de geste, pas de ligne.** Une date
+n'entre que si on sait écrire ce que le vigneron en fait. C'est ce qui nous sépare du Blog
+du Modérateur : eux donnent la date, nous donnons le geste.
+
+Entrées, 19 lignes :
+
+- **Temps forts calculés** : Saint-Vincent (22 janvier), Champagne Day (4e vendredi
+  d'octobre, Comité Champagne), journée mondiale du malbec (17 avril), journée du sauvignon
+  blanc (1er vendredi de mai), journée internationale du grenache (3e vendredi de
+  septembre), Vignobles en Scène (3e week-end d'octobre), Journées du patrimoine (3e
+  week-end de septembre). **Sept lignes, zéro retape annuelle**, toutes en
+  `annuel-jour-semaine` ou `annuel`.
+- **Vacances scolaires**, huit lignes, deux années scolaires.
+- **Rendez-vous**, quatre lignes : Saint-Vincent tournante de Volnay, Salon des vins de
+  Loire, Salon de l'agriculture, Dionysud.
+
+### Trois arbitrages que j'ai pris seul et qui se défont facilement
+
+**1. Les vacances scolaires sont UNE ligne par période, toutes zones confondues**, et pas
+trois. Bande large, du premier jour de la zone la plus précoce au dernier de la plus
+tardive. Motif : la question du caveau n'est pas « quelle est ma zone », c'est « quand y
+a-t-il des familles sur la route ». Trois lignes par période auraient donné quinze lignes
+par an pour une information que le vigneron n'utilise pas ainsi.
+
+**2. Les vacances d'été sont écartées.** Une bande de 61 jours ne dit rien que personne ne
+sache, et elle écrase la grille de juillet et d'août.
+
+**3. Les salons export sont écartés** (Vinexpo Asia, Vinexpo Americas, tous deux confirmés
+pour 2027). Ils sont réels, mais ils s'adressent à une minorité et chaque ligne inutile
+enterre la DRM. À rouvrir si Ted le veut.
+
+### Ce que j'ai refusé d'écrire, et pourquoi ça compte
+
+- **La « journée mondiale du vin » n'existe pas.** Trois dates circulent (25 mai, 27
+  juillet, 19 mai), aucune n'a d'organisme derrière. L'attribution du 27 juillet à l'OIV
+  n'est confirmée nulle part sur le site de l'OIV. Ne pas la remettre.
+- **Journée du rosé** : deux dates concurrentes (2e samedi de juin, dernier vendredi de
+  juin), origine purement commerciale américaine, aucun ancrage français. Écartée malgré
+  son intérêt commercial évident. **C'est l'arbitrage le plus discutable de ce lot**, et il
+  appartient à Ted.
+- **Chardonnay et merlot** : dates instables ou organisateur introuvable.
+- **Cabernet sauvignon** : la règle réelle est « le jeudi précédant le Labor Day
+  américain ». Notre moteur ne sait pas l'exprimer, et la coder en date fixe reproduirait
+  exactement la faute qu'on vient de corriger sur la fête des mères.
+- **Sitevi 2027** : deux agrégateurs annoncent le 30 novembre au 2 décembre 2027, le site
+  de l'organisateur ne dit rien. Un agrégateur ne vaut pas confirmation.
+
+### Deux réserves à porter au dossier
+
+**Les vacances scolaires n'ont pas été lues dans le texte primaire.** Légifrance renvoie un
+403 aux robots, et la page d'education.gouv.fr publie le calendrier en image. Les dates
+viennent de trois sources secondaires concordantes qui citent les arrêtés du 22/10/2025 et
+du 21/07/2026. Concordance totale, aucune divergence, mais ce n'est pas la même chose
+qu'une lecture du Journal officiel. À revérifier à la main avant la sortie du PDF.
+
+**Contradiction non tranchée sur la foire aux vins.** Notre ligne dit que les référencements
+se décident « au printemps ». La recherche dit juillet-août, mais sur une source unique et
+faible. Je n'ai rien changé : deux affirmations, aucune solide, c'est à Ted de dire laquelle
+est vraie, il connaît des gens qui le savent.
+
+### Le test du bruit, mesuré
+
+C'était le risque du lot : 500 marronniers enterrent la DRM. Mesure sur 2027, occurrences
+par mois : 7, 9, 8, 6, 8, 5, 3, 5, 8, 6, 6, 5. **Entre 3 et 9, moyenne 6,3.** Le plan du
+Lot 2 disait qu'une grille de mois n'est défendable qu'entre trois et huit choses par mois.
+On y est. Juillet à 3 est le mois le plus maigre, et c'est cohérent avec la vie du domaine.
+
+`npm run verif` vert, 677 contrôles.
+
+---
+
 ## 14/09/2026. Le calendrier marketing : ce qui se calcule, et ce qui se périme
 
 Ted arrive avec le calendrier marketing 2027 du Blog du Modérateur, 17 pages, environ 500
