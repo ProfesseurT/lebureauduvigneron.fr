@@ -12,6 +12,98 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026, soir. Lot C : une feuille, l'année entière, et ce que seule l'image a dit
+
+`/outils/calendrier-2027/` existe. Une page du site, et un PDF A3 paysage d'une seule page,
+produit en imprimant cette page. Aucun dessin en double.
+
+### L'antériorité, lue avant d'écrire
+
+Le « Calendrier viticole 2025 » de Padawine existait déjà, avec un téléchargement Vitisoft.
+Je l'ai lu. **C'est un autre objet et une autre voix** : un guide saisonnier illustré,
+couverture d'astronaute générée, emoji à chaque ligne, « Que la Force du Vin soit avec
+vous ». Rien à reprendre pour le Bureau, dont la doctrine visuelle est l'imprimé : angle
+vif, filet, ombre dure, aucune couleur qui porte seule du sens.
+
+Ce qui vaut d'être noté : **il n'a pas été refait pour 2026.** Le même objet, la même mort
+au 31 décembre. C'est la troisième fois cette semaine que le motif apparaît.
+
+### La décision de forme, et elle était mesurable
+
+Le plan disait « la vue année, douze mini-mois ». J'ai commencé par là, puis j'ai arrêté.
+
+**Une grille de 12 x 31 demande une hauteur de ligne FIXE** pour que les mois s'alignent
+horizontalement. Or une occurrence porte un titre de quarante caractères. Deux sorties, les
+deux mauvaises : la ligne grandit et les colonnes se désalignent, ou elle coupe le titre. Sur
+un écran on survole à la souris et le titre revient. **Sur du papier, non.**
+
+Retenu : **douze blocs, un par mois, quatre colonnes sur trois rangs.** Un bloc grandit avec
+son contenu, et il porte le NOM des choses, qui est ce qu'on vient lire sur un mur. La grille
+de jours reste la vue année du bureau, à l'écran, là où le survol existe.
+
+**Ce qui traverse un mois sans y commencer se lit quand même**, en tête du bloc, en rappel
+italique. Sans ça, un vigneron qui regarde février croit son mois vide alors que la taille
+court depuis décembre.
+
+### Trois défauts que seule l'image a montrés
+
+Le harnais disait « 53 occurrences, 12 blocs ». Tout allait bien. Puis j'ai regardé le PDF.
+
+1. **Une bande beige de plusieurs centimètres sous la feuille.** `body` porte `--paper`, et
+   ce fond se peint sur toute la hauteur de la page imprimée. Invisible à l'écran, invisible
+   dans les compteurs. Corrigé dans le `@media print` de `style.css`, **et pas dans le
+   script** : un correctif posé dans le harnais ne protège pas le vigneron qui fait
+   Fichier > Imprimer depuis son navigateur, et c'est le cas d'usage principal.
+2. **Janvier n'avait pas de rappel « en cours ».** Une occurrence commencée l'année d'avant
+   voyait sa boucle de rappel démarrer au mois 1 au lieu du mois 0. La taille de la vigne,
+   qui court de décembre à mars, disparaissait de janvier. Une parenthèse mal placée.
+3. **Des apostrophes échappées** s'écrivaient en clair : « je m\'inscris », « d\'une région à
+   l\'autre ». Le contrôle de la charte ne lit pas le texte, le banc ne lit pas le rendu.
+
+### La feuille doit remplir son papier
+
+À l'échelle de l'écran, les douze blocs laissaient un quart d'A3 blanc, et les noms étaient
+trop petits pour se lire depuis l'autre bout du chai. Toute l'échelle typographique du site
+étant en `rem`, **un seul chiffre dans le bloc d'impression la dilate** : `html { font-size }`.
+Mesure : **19 px tient sur une page, 20 px déborde.**
+
+Et parce qu'une mesure qui n'est pas rejouée se périme, `scripts/pdf-calendrier.mjs`
+**compte les pages du PDF et refuse d'en écrire un de deux pages.** Une feuille à punaiser ne
+se coupe pas en deux. Le comptage se fait sans dépendance, en lisant les objets `/Type /Page`
+du fichier.
+
+### Deux choix de rangement qui ne sont pas décoratifs
+
+**Le CSS est allé dans `src/css/style.css` et pas dans une feuille à lui.** Motif : `npm run
+charte` n'inspecte que `style.css` et les feuilles liées par la page du bureau. Une
+`bdv-calendrier-an.css` n'aurait été contrôlée par personne, et c'est exactement le genre
+d'angle mort qu'on découvre deux mois plus tard sur un contraste raté.
+
+**Aucun gabarit nu.** La coque `base.njk` porte la navigation et le pied, donc la feuille est
+une VRAIE page du site, indexable, et pas un PDF orphelin. L'impression masque le reste.
+
+### Ce qui reste, et c'est le Lot D
+
+La feuille n'a **qu'un seul lien vers elle**, depuis `/outils/echeances/`. Elle n'a pas de
+carte dans `/outils/` ni de page d'atterrissage : c'est le Lot D, et le banc `banc-outils`
+impose une forme de carte précise qu'il faut écrire avec soin.
+
+**Ajouter 2028 sera un chiffre** dans `annees:` en tête de `src/outils/calendrier-annee.njk`,
+puis `npm run build` et `npm run pdf:calendrier -- --an 2028`. C'est la promesse du chantier,
+et elle tient.
+
+### Une limite à dire
+
+`npx playwright install chromium` échoue dans l'atelier Cowork : le téléchargement du
+navigateur n'est pas autorisé par le réseau. Le PDF de ce soir a donc été produit ailleurs,
+et `playwright` a été retiré des dépendances aussitôt, pour tenir la règle des deux autres
+harnais de capture. Sur ta machine, avec du réseau, `npm run pdf:calendrier` marchera.
+Et de toute façon le vigneron, lui, fait Cmd+P.
+
+`npm run verif` vert, 677 contrôles, charte CONFORME.
+
+---
+
 ## 14/09/2026, suite. Lot B : la sélection vigneron, et deux salons qui étaient faux
 
 Le garde-fou posé le matin a servi le jour même. Trois agents de recherche ont confronté à

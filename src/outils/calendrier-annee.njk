@@ -1,0 +1,170 @@
+---
+layout: base.njk
+pagination:
+  data: annees
+  size: 1
+  alias: an
+annees: [2027]
+permalink: "/outils/calendrier-{{ an }}/"
+eleventyComputed:
+  title: "Le calendrier du vigneron {{ an }}"
+  description: "Une feuille, l'année entière. Obligations, travaux de la vigne, salons et temps forts de vente. À imprimer et à punaiser au chai. Gratuit, sans compte."
+---
+
+{# ============================================================================
+   LE CALENDRIER DE L'ANNEE, UNE FEUILLE A IMPRIMER. Lot C, 14/09/2026.
+
+   AJOUTER UNE ANNEE, C'EST UN CHIFFRE : `annees: [2027, 2028]` en tete de ce
+   fichier, et Eleventy construit la page. C'est toute la promesse du chantier :
+   le Blog du Moderateur retape cinq cents lignes chaque ete, nous ajoutons un
+   nombre et nous relancons le rendu.
+
+   LE CALCUL N'EST PAS REFAIT ICI. La page appelle `BdvEcheances.etaler`, le
+   MEME moteur que la grille du bureau et que la page publique des echeances.
+   Une deuxieme implementation aurait diverge, et la divergence se serait vue
+   des mois plus tard, sur une feuille imprimee, chez un client.
+
+   POURQUOI PAS DE GABARIT NU. La coque `base.njk` porte la navigation et le
+   pied : c'est ce qui fait de cette page une VRAIE page du site, indexable, et
+   pas un PDF perdu. Tout ce qui n'est pas la feuille disparaît a l'impression,
+   dans le bloc `@media print` de style.css.
+============================================================================ #}
+
+<script id="bdvEcheances" type="application/json">
+{{ echeances | dump | safe }}
+</script>
+
+<section class="section calan-intro">
+  <div class="container">
+    <p class="section__label">Outil gratuit</p>
+    <h1>Le calendrier du vigneron {{ an }}</h1>
+    <p class="calan-intro__p">
+      L'année entière sur une feuille : ce que la douane attend, ce qui se fait dans la vigne,
+      les salons, et les jours où l'on vend. Imprime-la en A3 et punaise-la au chai.
+    </p>
+    <p>
+      <button type="button" class="btn btn--bordeaux" id="calanImprimer">Imprimer la feuille</button>
+      <a href="/mon-bureau/" class="btn" id="calanBureau">Le voir dans mon bureau</a>
+    </p>
+  </div>
+</section>
+
+<div class="calan" id="calan" data-an="{{ an }}">
+  <header class="calan__tete">
+    <p class="calan__sur">Le bureau du vigneron</p>
+    <h2 class="calan__titre">Le calendrier du vigneron <b>{{ an }}</b></h2>
+    <p class="calan__source">lebureauduvigneron.fr</p>
+  </header>
+
+  <div class="calan__grille" id="calanGrille"></div>
+
+  <footer class="calan__pied">
+    <ul class="calan__legende">
+      <li class="calan__l" data-famille="obligations"><b>Obligations</b> ça coûte une amende</li>
+      <li class="calan__l" data-famille="travaux"><b>Travaux</b> ce que je fais dehors</li>
+      <li class="calan__l" data-famille="rendezvous"><b>Rendez-vous</b> je m'inscris, je me déplace</li>
+      <li class="calan__l" data-famille="tempsforts"><b>Temps forts</b> ce que je poste et ce que je vends</li>
+    </ul>
+    <p class="calan__note">
+      Chaque obligation porte sa source officielle sur lebureauduvigneron.fr/outils/echeances/.
+      Les repères de saison se déplacent d'une région à l'autre : ce sont des repères, pas des dates de loi.
+      Un pense-bête ne remplace ni ton comptable ni ton service des douanes.
+    </p>
+  </footer>
+</div>
+
+<script src="/js/bdv-echeances.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  var hote = document.getElementById('calanGrille');
+  if (!hote || !window.BdvEcheances) return;
+  var AN = parseInt(document.getElementById('calan').getAttribute('data-an'), 10);
+  var lignes = BdvEcheances.depuisLaPage('bdvEcheances');
+  var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+              'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+  /* DOUZE BLOCS, PAS UNE GRILLE DE 12 x 31, ET LE MOTIF EST MESURABLE.
+     Une grille de jours demande une hauteur de ligne FIXE pour que les mois
+     s'alignent. Or un jour porte parfois un titre de quarante caracteres :
+     soit la ligne grandit et les colonnes se desalignent, soit elle coupe le
+     titre. Les deux sont inacceptables sur du papier qu'on ne peut pas
+     survoler a la souris. Un bloc par mois n'a pas ce probleme, il grandit
+     avec son contenu, et il porte le NOM des choses, qui est ce qu'on vient
+     lire. La grille de jours reste la vue annee du bureau, a l'ecran, ou le
+     survol rend le titre. */
+  var parMois = [];
+  for (var i = 0; i < 12; i++) parMois.push({ debute: [], traverse: [] });
+
+  BdvEcheances.etaler(lignes, new Date(AN, 0, 1), new Date(AN, 11, 31)).forEach(function (o) {
+    if (o.debut.getFullYear() === AN) parMois[o.debut.getMonth()].debute.push(o);
+    /* CE QUI TRAVERSE UN MOIS SANS Y COMMENCER DOIT QUAND MEME S'Y LIRE. Une
+       taille qui court de decembre a mars n'apparaitrait sinon qu'en decembre,
+       et le lecteur de fevrier croirait son mois vide. Elle se lit donc en tete
+       du bloc, en rappel, sans repeter sa date. */
+    var m = (o.debut.getFullYear() < AN) ? 0 : o.debut.getMonth() + 1;
+    for (; m < 12 && new Date(AN, m, 1) <= o.fin; m++) parMois[m].traverse.push(o);
+  });
+
+  function ligne(o) {
+    var li = document.createElement('li');
+    li.className = 'calan__o';
+    li.setAttribute('data-famille', o.famille);
+    var q = document.createElement('b');
+    q.className = 'calan__q';
+    q.textContent = o.debut.getDate();
+    var n = document.createElement('span');
+    n.className = 'calan__nom';
+    n.textContent = o.e.titre;
+    li.appendChild(q);
+    li.appendChild(n);
+    /* CE QUI DURE PORTE SA FIN, PAS SA PERIODE ENTIERE. `o.periode` dit « du 15
+       novembre au 20 decembre » : le debut est deja le quantieme a gauche, le
+       repeter mangerait la largeur d'une colonne pour rien. */
+    if (o.duree > 1) {
+      var f = document.createElement('i');
+      f.className = 'calan__d';
+      f.textContent = 'jusqu\'au ' + o.fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      li.appendChild(f);
+    }
+    return li;
+  }
+
+  for (var m = 0; m < 12; m++) {
+    var bloc = document.createElement('section');
+    bloc.className = 'calan__b';
+    var t = document.createElement('h3');
+    t.className = 'calan__m';
+    t.textContent = MOIS[m];
+    bloc.appendChild(t);
+
+    if (parMois[m].traverse.length) {
+      var enc = document.createElement('p');
+      enc.className = 'calan__enc';
+      enc.textContent = 'en cours : ' + parMois[m].traverse.map(function (o) { return o.e.titre; }).join(', ');
+      bloc.appendChild(enc);
+    }
+
+    var ul = document.createElement('ul');
+    ul.className = 'calan__liste';
+    /* L'ORDRE EST CELUI DU CALENDRIER, PUIS CELUI DE L'URGENCE. A jour egal,
+       une obligation passe devant un temps fort : c'est celle qui coute une
+       amende. */
+    var O = ['obligations', 'travaux', 'rendezvous', 'tempsforts'];
+    parMois[m].debute.sort(function (a, b) {
+      return (a.debut - b.debut) || (O.indexOf(a.famille) - O.indexOf(b.famille));
+    }).forEach(function (o) { ul.appendChild(ligne(o)); });
+    if (!parMois[m].debute.length) {
+      var vide = document.createElement('li');
+      vide.className = 'calan__vide';
+      vide.textContent = 'Rien de daté.';
+      ul.appendChild(vide);
+    }
+    bloc.appendChild(ul);
+    hote.appendChild(bloc);
+  }
+
+  var bouton = document.getElementById('calanImprimer');
+  if (bouton) bouton.addEventListener('click', function () { window.print(); });
+});
+</script>

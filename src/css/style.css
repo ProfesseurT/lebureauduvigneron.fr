@@ -8421,3 +8421,195 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   line-height: var(--lh-lecture);
   margin-top: var(--e-s);
 }
+
+/* ===========================================================================
+   LA FEUILLE DE L'ANNEE, /outils/calendrier-AAAA/  (Lot C, 14/09/2026)
+   ===========================================================================
+   Une seule feuille A3 paysage, douze blocs, a punaiser au chai. Elle est
+   RENDUE par la meme page qui la montre a l'ecran : ce qui s'imprime est ce
+   qu'on a regarde, et il n'y a pas de gabarit d'impression a garder d'accord
+   avec le gabarit d'ecran.
+
+   DOUZE BLOCS ET PAS UNE GRILLE DE 12 x 31. Le motif est dans le commentaire
+   de src/outils/calendrier-annee.njk : une grille de jours demande une hauteur
+   de ligne fixe, et un titre de quarante caracteres ne tient pas dedans. Sur du
+   papier, on ne survole pas a la souris pour lire un titre coupe.
+
+   AUCUNE COULEUR NE PORTE DE SENS SEUL. La famille se lit au LISERE gauche, le
+   texte reste a l'encre du site. C'est ce qui rend la feuille lisible
+   photocopiee en noir et blanc, et c'est aussi ce qui evite le piege de
+   --fam-4 : l'ocre tient 3,15:1 sur --paper-light et tombe a 2,3:1 sur
+   --paper-deep. En liseré il n'a jamais a porter de lettres.
+   =========================================================================== */
+.calan-intro__p {
+  max-width: 46ch;
+  color: var(--muted);
+  font-size: var(--t-lead);
+  line-height: var(--lh-lecture);
+}
+.calan {
+  background: var(--paper-light);
+  border: var(--trait) solid var(--rule-fort);
+  box-shadow: var(--ombre-dure);
+  padding: var(--e-l);
+  margin: 0 auto var(--e-2xl);
+  max-width: 68rem;
+}
+.calan__tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-s);
+  border-bottom: var(--trait-fort) solid var(--ink);
+  padding-bottom: var(--e-s);
+  margin-bottom: var(--e-m);
+}
+.calan__sur,
+.calan__source {
+  margin: 0;
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.calan__titre {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: var(--t-h3);
+  letter-spacing: var(--ls-serre);
+  color: var(--ink);
+}
+.calan__grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--e-m);
+}
+.calan__b {
+  border-top: var(--trait) solid var(--rule-fort);
+  padding-top: var(--e-xs);
+  break-inside: avoid;
+}
+.calan__m {
+  margin: 0 0 var(--e-xs);
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-etiq);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.calan__enc {
+  margin: 0 0 var(--e-xs);
+  font-size: var(--t-micro);
+  line-height: var(--lh-normal);
+  color: var(--muted);
+  font-style: italic;
+}
+.calan__liste { list-style: none; margin: 0; padding: 0; }
+.calan__o {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0 var(--e-xs);
+  padding: 0.1rem 0 0.1rem var(--e-xs);
+  border-left: var(--trait-accent) solid var(--fam-1);
+  margin-bottom: 0.15rem;
+  line-height: var(--lh-normal);
+}
+.calan__o[data-famille="travaux"]    { border-left-color: var(--fam-2); }
+.calan__o[data-famille="rendezvous"] { border-left-color: var(--fam-3); }
+.calan__o[data-famille="tempsforts"] { border-left-color: var(--fam-4); }
+.calan__q {
+  font-family: var(--font-chiffre);
+  font-size: var(--t-mini);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}
+.calan__nom {
+  font-family: var(--font-corps);
+  font-size: var(--t-mini);
+  color: var(--ink);
+}
+.calan__d {
+  grid-column: 2;
+  font-family: var(--font-corps);
+  font-size: var(--t-micro);
+  font-style: normal;
+  color: var(--muted);
+}
+.calan__vide {
+  font-size: var(--t-micro);
+  color: var(--muted);
+  font-style: italic;
+}
+.calan__pied {
+  border-top: var(--trait-fort) solid var(--ink);
+  margin-top: var(--e-m);
+  padding-top: var(--e-s);
+}
+.calan__legende {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-s) var(--e-m);
+  margin: 0 0 var(--e-s);
+  padding: 0;
+}
+.calan__l {
+  border-left: var(--trait-accent) solid var(--fam-1);
+  padding-left: var(--e-xs);
+  font-size: var(--t-micro);
+  color: var(--muted);
+}
+.calan__l b { color: var(--ink); }
+.calan__l[data-famille="travaux"]    { border-left-color: var(--fam-2); }
+.calan__l[data-famille="rendezvous"] { border-left-color: var(--fam-3); }
+.calan__l[data-famille="tempsforts"] { border-left-color: var(--fam-4); }
+.calan__note {
+  margin: 0;
+  font-size: var(--t-micro);
+  line-height: var(--lh-normal);
+  color: var(--muted);
+  max-width: 90ch;
+}
+
+/* ---------------------------------------------------------------------------
+   A L'IMPRESSION, IL NE RESTE QUE LA FEUILLE.
+
+   `body > *` est masque puis `.calan` remontre, exactement comme le rapport des
+   ecrans de vente (bdv-ecrans.css). Cela impose que `.calan` soit un ENFANT
+   DIRECT de <body> : dans base.njk, `{{ content }}` est pose au niveau du corps,
+   donc c'est le cas. Emballer la feuille dans une `<section>` la ferait
+   disparaitre de l'impression sans rien casser a l'ecran, et personne ne le
+   verrait avant d'avoir du papier dans les mains.
+--------------------------------------------------------------------------- */
+@media print {
+  @page { size: A3 landscape; margin: 8mm; }
+  body > * { display: none !important; }
+  .calan { display: block !important; }
+  /* LE PAPIER DU SITE N'EST PAS LE PAPIER DE LA FEUILLE. `body` porte --paper,
+     et il se peint sur toute la hauteur de la page imprimee : sous la feuille,
+     une bande beige de plusieurs centimetres, invisible a l'ecran, et que seule
+     la mise en PDF a montree. */
+  body { background: var(--white) !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .calan {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: var(--white);
+  }
+  .calan__grille { grid-template-columns: repeat(4, 1fr); }
+  .calan__b { break-inside: avoid; }
+  /* LA FEUILLE DOIT REMPLIR SA PAGE. A l'echelle de l'ecran, les douze blocs
+     n'occupaient que les trois quarts de la hauteur d'un A3 : un quart de
+     papier blanc, et des noms trop petits pour se lire depuis l'autre bout du
+     chai. Toute l'echelle typographique du site est en `rem`, donc UN chiffre
+     ici la dilate d'un bloc. Mesure : 19 px remplit la page sans deborder sur
+     une deuxieme, 20 px deborde. Ne pas monter sans remesurer le nombre de
+     pages du PDF. */
+  html { font-size: 19px; }
+}
