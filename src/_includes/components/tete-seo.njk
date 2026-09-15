@@ -29,6 +29,12 @@
 {%- set descDefaut = "Le bureau du vigneron, déjà rangé : échéances réglementaires, clients à rappeler, analyses de terrain. Par Solumatic, créateur de Vitisoft. Gratuit, ouvert à toute la filière." -%}
 {%- set descFinale = descPage if descPage else descDefaut -%}
 {%- set urlPage = page.url | absolu -%}
+{#- `canonique` EST LU ICI ET NULLE PART AILLEURS, comme titre_seo et resume, et il a
+    ete ajoute le 14/09/2026 pour UN cas : /outils/calendrier/ rend le meme HTML que
+    /outils/calendrier-AAAA/, et deux adresses pour un meme contenu, c'est du duplique.
+    L'adresse datee est celle qui a un sens dans un resultat de recherche. Absent, on
+    retombe sur l'adresse de la page : aucune page existante ne change. -#}
+{%- set urlCanonique = (canonique | absolu) if canonique else urlPage -%}
 {%- set imagePage = (image if image else "/assets/og-dashboard.png") | absolu -%}
 {%- set rub = (categorie | rubriqueDe) if categorie else none -%}
 {%- set rubriqueNom = rub.nom if rub else "" -%}
@@ -36,7 +42,7 @@
 
   <title>{{ titrePage }}{% if titrePage != nomSite %} · {{ nomSite }}{% endif %}</title>
   <meta name="description" content="{{ descFinale }}">
-  <link rel="canonical" href="{{ urlPage }}">
+  <link rel="canonical" href="{{ urlCanonique }}">
 {%- if noindex %}
   {# Une page de compte ou un bureau prive n'a rien a faire dans un resultat de
      recherche : elle n'apporte rien a qui la trouve, et elle dilue le site. #}

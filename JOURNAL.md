@@ -12,6 +12,75 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 14/09/2026, tard. Lot D : l'atterrissage, et l'adresse qui ne vieillit pas
+
+La feuille est dans la boîte à outils. Mais le vrai travail de ce lot n'était pas la carte.
+
+### Le défaut qui n'était pas dans le périmètre annoncé
+
+Le Lot D disait « où elle vit ». En écrivant la carte, la question s'est posée autrement :
+**quelle adresse y met-on ?**
+
+`/outils/calendrier-2027/` vieillit. Le 1er janvier 2028, cette adresse pointe sur un
+calendrier mort. Et elle ne sera pas écrite à un seul endroit : la carte de la boîte à
+outils, les données structurées, le lien depuis la page des échéances, une newsletter, et
+**l'adresse imprimée en bas de la feuille elle-même**, qui part sur un mur de chai pour un
+an. Il faudrait repasser derrière chacun. C'est exactement la retape annuelle que tout ce
+chantier existe pour supprimer, remise à l'endroit où on ne la regardait pas.
+
+### Ce qui a été fait : deux adresses, deux publics
+
+- **`/outils/calendrier-AAAA/`** reste l'adresse canonique de chaque feuille. C'est celle
+  qu'un moteur indexe, et c'est ce qu'on tape en cherchant « calendrier du vigneron 2027 ».
+- **`/outils/calendrier/`** sert **toujours la dernière année** de `src/_data/annees.js`.
+  C'est l'adresse des humains : la carte, le lien, la newsletter, le bas de la feuille.
+
+Elle n'est pas canonique, et c'est voulu : deux adresses qui rendent le même HTML, c'est du
+contenu dupliqué. Un champ d'entête facultatif `canonique` a été ajouté à `tete-seo.njk`,
+troisième du genre après `titre_seo` et `resume`, lu là et nulle part ailleurs. **L'année y
+est calculée par `eleventyComputed`, jamais tapée** : l'écrire en dur aurait remis la retape
+à l'endroit exact où ce lot la supprime.
+
+Et comme un plan de site ne liste que des adresses canoniques, l'adresse stable en est
+sortie (`eleventyExcludeFromCollections`). La page existe, elle ne s'annonce pas.
+
+### Trois fichiers parce que deux pages rendent la même chose
+
+`src/_data/annees.js` porte la liste, **triée**. `src/_includes/components/feuille-annee.njk`
+porte le corps de la feuille et son script, sorti du gabarit daté parce que deux gabarits le
+rendent maintenant. Deux copies du même HTML auraient divergé, et la divergence se serait vue
+sur du papier, chez un client.
+
+### Le contrôle 7, et c'est le réveil annuel de tout le chantier
+
+`banc-annuel.mjs` vérifie deux choses sur cette liste, et les deux cassent en silence :
+
+1. **Elle est triée.** `/outils/calendrier/` sert la DERNIÈRE de la liste. Un nombre posé
+   dans le désordre y publierait une année ancienne, et la page se construirait parfaitement.
+2. **La dernière année n'est pas derrière nous.** Le jour où elle l'est, l'adresse stable
+   distribue un calendrier périmé à tous ceux qui l'ont imprimée. `npm run verif` échoue
+   alors, avec la conduite à tenir : confirmer les salons et les vacances scolaires
+   (contrôles 1 et 2), ajouter l'année, construire, sortir le PDF.
+
+Et quand la dernière année est l'année en cours, il prévient : la feuille suivante se pose en
+octobre-novembre, quand le vigneron sort des vendanges et pose son année.
+
+### Ce que le banc de la boîte à outils a attrapé
+
+`numberOfItems` valait toujours 4 pour cinq cartes. Écrit le 12/09 pour empêcher exactement
+ça, il l'a fait du premier coup.
+
+### Un effet de bord à trancher, et il est à Ted
+
+La grille des cartes passe de trois à quatre, et elle est en `auto-fit` : selon la largeur,
+Vitisoft se retrouve seul sur une deuxième ligne. Ce n'est pas cassé, et ça se lit même comme
+une séparation entre les outils gratuits et celui sur devis. Mais ce n'était pas dessiné
+ainsi. Rien n'a été touché à la grille : c'est ta page, et le choix t'appartient.
+
+`npm run verif` vert, 686 contrôles.
+
+---
+
 ## 14/09/2026, soir. Lot C : une feuille, l'année entière, et ce que seule l'image a dit
 
 `/outils/calendrier-2027/` existe. Une page du site, et un PDF A3 paysage d'une seule page,

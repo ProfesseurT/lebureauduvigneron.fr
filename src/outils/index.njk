@@ -66,6 +66,26 @@ permalink: /outils/
     {# ===== LES TROIS AUTRES ===== #}
     <div class="boite-grille">
 
+      {# L'ADRESSE EST /outils/calendrier/ ET PAS /outils/calendrier-2027/, ET C'EST TOUT
+         LE LOT D. Une carte qui porte l'annee en dur devient fausse le 1er janvier, et il
+         faut repasser derriere elle, derriere les donnees structurees, derriere la
+         newsletter et derriere l'adresse imprimee en bas de la feuille. L'adresse stable
+         sert toujours la derniere annee de src/_data/annees.js. #}
+      <article class="boite-carte">
+        <span class="boite-prix boite-prix--libre">Gratuit · sans compte</span>
+        <h2 class="boite-carte__nom"><a href="/outils/calendrier/">La feuille de l'année</a></h2>
+        <p class="boite-carte__quoi">
+          L'année entière sur une seule feuille : les obligations, les travaux de la vigne,
+          les salons et les jours où l'on vend. À imprimer en A3 et à punaiser au chai.
+        </p>
+        <ul class="boite-carte__points">
+          <li>Une page, douze mois, rien à faire défiler</li>
+          <li>Les dates mobiles sont calculées, jamais recopiées</li>
+          <li>Chaque obligation renvoie à sa source officielle</li>
+        </ul>
+        <span class="boite-carte__aller" aria-hidden="true">Voir la feuille</span>
+      </article>
+
       <article class="boite-carte">
         <span class="boite-prix boite-prix--compte">Gratuit · compte requis</span>
         <h2 class="boite-carte__nom"><a href="/mon-bureau/">Ton bureau</a></h2>
@@ -159,7 +179,7 @@ permalink: /outils/
           "@id": "https://lebureauduvigneron.fr/outils/#outils",
           "name": "La boîte à outils du vigneron",
           "itemListOrder": "https://schema.org/ItemListOrderAscending",
-          "numberOfItems": 4,
+          "numberOfItems": 5,
           "itemListElement": [
             {
               "@type": "ListItem", "position": 1,
@@ -179,6 +199,20 @@ permalink: /outils/
               "@type": "ListItem", "position": 2,
               "item": {
                 "@type": "WebApplication",
+                "name": "La feuille de l'année",
+                "url": "https://lebureauduvigneron.fr/outils/calendrier/",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Navigateur web",
+                "inLanguage": "fr-FR",
+                "description": "L'année viticole entière sur une feuille A3 : obligations, travaux de la vigne, salons et temps forts de vente. À imprimer, sans compte.",
+                "publisher": { "@id": "https://lebureauduvigneron.fr/#organisation" },
+                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+              }
+            },
+            {
+              "@type": "ListItem", "position": 3,
+              "item": {
+                "@type": "WebApplication",
                 "name": "Ton bureau",
                 "url": "https://lebureauduvigneron.fr/mon-bureau/",
                 "applicationCategory": "BusinessApplication",
@@ -190,7 +224,7 @@ permalink: /outils/
               }
             },
             {
-              "@type": "ListItem", "position": 3,
+              "@type": "ListItem", "position": 4,
               "item": {
                 "@type": "WebApplication",
                 "name": "Viticode",
@@ -204,7 +238,7 @@ permalink: /outils/
               }
             },
             {
-              "@type": "ListItem", "position": 4,
+              "@type": "ListItem", "position": 5,
               "item": {
                 "@type": "SoftwareApplication",
                 "name": "Vitisoft",

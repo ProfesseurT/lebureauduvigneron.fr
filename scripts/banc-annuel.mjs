@@ -14,7 +14,7 @@
    Une date pourrie coute un `npm run verif` rouge, pas un client qui se deplace
    un jour ou le salon est ferme.
 
-   LES CINQ CONTROLES
+   LES CONTROLES
    1. Toute ligne `unique` porte `verifieLe`, et cette verification a moins de
       douze mois. C'est ce qui force la passe annuelle.
    2. Aucune ligne `unique` n'est pourrie. EXCEPTION ASSUMEE : une `unique` de
@@ -41,6 +41,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const faux = { BdvEcheances: null };
@@ -195,6 +196,34 @@ const lointaines = collisions.filter((c) => c.an > AN + 1);
 if (lointaines.length) prevenir('la fete des meres tombera un jour de Pentecote en ' +
   lointaines.map((c) => c.an).join(', ') + '. Rien a faire avant ' + (lointaines[0].an - 1) +
   '. ' + CONDUITE);
+
+/* ---------------------------------------------------------------------- 7 */
+titre('7. La feuille telechargeable sert une annee qui n\'est pas derriere nous');
+/* C'EST LE REVEIL ANNUEL DE TOUT CE CHANTIER, et il tient en deux lignes.
+   `/outils/calendrier/` sert la DERNIERE annee de src/_data/annees.js. Le jour
+   ou cette derniere annee est passee, l'adresse stable distribue un calendrier
+   perime a tous ceux qui l'ont imprimee, mise en newsletter ou lue au bas de la
+   feuille. Rien ne leve d'erreur : la page se construit parfaitement, elle est
+   juste fausse. Ici, elle fait echouer `npm run verif`.
+
+   ET LA LISTE DOIT ETRE TRIEE, sinon `| last` ne rend pas ce qu'on croit. Un
+   nombre pose dans le desordre publierait une annee ancienne a l'adresse
+   stable, toujours sans erreur. */
+const ANNEES = createRequire(import.meta.url)('../src/_data/annees.js');
+vrai('src/_data/annees.js rend bien une liste non vide', Array.isArray(ANNEES) && ANNEES.length > 0);
+if (Array.isArray(ANNEES) && ANNEES.length) {
+  const triee = ANNEES.every((a, i) => i === 0 || ANNEES[i - 1] < a);
+  vrai('la liste est triee, de la plus ancienne a la plus recente : [' + ANNEES.join(', ') + ']', triee,
+    '`/outils/calendrier/` sert la DERNIERE de cette liste. Dans le desordre, elle servirait une annee passee.');
+  const derniere = ANNEES[ANNEES.length - 1];
+  vrai('la feuille servie a l\'adresse stable est celle de ' + derniere, derniere >= AN,
+    'Nous sommes en ' + AN + ' et la feuille la plus recente est celle de ' + derniere + '.\n          ' +
+    'C\'EST LA PASSE ANNUELLE : ajouter ' + (AN + 1) + ' dans src/_data/annees.js apres avoir\n          ' +
+    'confirme les salons et les vacances scolaires (controles 1 et 2 ci-dessus), puis\n          ' +
+    '`npm run build` et `npm run pdf:calendrier -- --an ' + (AN + 1) + '`.');
+  if (derniere === AN) prevenir('la feuille de ' + (AN + 1) + ' n\'est pas encore posee. ' +
+    'Le bon moment est octobre-novembre : le vigneron sort des vendanges et pose son annee.');
+}
 
 /* --------------------------------------------------------------------------- */
 console.log('\n== CE QUI TOMBE DANS LES DOUZE PROCHAINS MOIS ==');

@@ -1,0 +1,60 @@
+---
+layout: base.njk
+permalink: "/outils/calendrier/"
+# HORS DU PLAN DU SITE, et c'est la suite logique du `canonique` ci-dessous : un
+# plan de site ne liste que des adresses canoniques. Y laisser cette page aurait
+# annonce aux moteurs une adresse qui, deux lignes plus bas, renvoie ailleurs.
+eleventyExcludeFromCollections: true
+title: "Le calendrier du vigneron"
+description: "Une feuille, l'année entière. Obligations, travaux de la vigne, salons et temps forts de vente. À imprimer en A3 et à punaiser au chai. Gratuit, sans compte."
+# L'ANNEE EST CALCULEE, JAMAIS TAPEE. Ecrire « /outils/calendrier-2027/ » en dur ici
+# aurait remis la retape annuelle a l'endroit exact ou ce lot la supprime.
+eleventyComputed:
+  canonique: "/outils/calendrier-{{ annees | last }}/"
+---
+
+{# ============================================================================
+   L'ADRESSE STABLE. Lot D, 14/09/2026.
+
+   MOTIF, ET IL EST CONCRET. `/outils/calendrier-2027/` vieillit. Une carte de
+   la boite a outils, un lien dans une newsletter, une adresse imprimee EN BAS
+   DE LA FEUILLE elle-meme : tout cela pointerait sur une annee morte des le
+   1er janvier suivant, et il faudrait repasser derriere chaque endroit. C'est
+   exactement la retape annuelle que tout ce chantier existe pour supprimer.
+
+   Cette page sert donc TOUJOURS la derniere annee de src/_data/annees.js.
+
+   ELLE N'EST PAS CANONIQUE, ET C'EST VOULU. Deux adresses qui rendent le meme
+   HTML, c'est du contenu duplique : le champ `canonique` renvoie les moteurs
+   vers l'adresse datee, qui est celle qui a un sens dans un resultat de
+   recherche (« calendrier du vigneron 2027 »). Les humains gardent l'adresse
+   courte, les moteurs gardent l'adresse datee.
+
+   CE QUI CASSERAIT CA : poser une annee dans le desordre dans annees.js. La
+   derniere de la liste serait une annee passee, et cette page servirait un
+   calendrier perime sans qu'aucune erreur ne soit levee. `banc-annuel.mjs` le
+   verifie a chaque `npm run verif`.
+============================================================================ #}
+
+{%- set an = annees | last -%}
+
+<script id="bdvEcheances" type="application/json">
+{{ echeances | dump | safe }}
+</script>
+
+<section class="section calan-intro">
+  <div class="container">
+    <p class="section__label">Outil gratuit</p>
+    <h1>Le calendrier du vigneron {{ an }}</h1>
+    <p class="calan-intro__p">
+      L'année entière sur une feuille : ce que la douane attend, ce qui se fait dans la vigne,
+      les salons, et les jours où l'on vend. Imprime-la en A3 et punaise-la au chai.
+    </p>
+    <p>
+      <button type="button" class="btn btn--bordeaux" id="calanImprimer">Imprimer la feuille</button>
+      <a href="/mon-bureau/" class="btn" id="calanBureau">Le voir dans mon bureau</a>
+    </p>
+  </div>
+</section>
+
+{% include "components/feuille-annee.njk" %}
