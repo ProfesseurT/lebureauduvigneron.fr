@@ -754,3 +754,43 @@
 .bdv-ventes .fiche__kpi-v,
 .bdv-ventes .motif-card__n,
 .bdv-ventes .pr-kpi__v{font-family:var(--font-chiffre);font-weight:700;letter-spacing:var(--ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ============================================================================
+   LE CADRE DES ECRANS DE VENTE SUR TELEPHONE, 15/09/2026
+   ----------------------------------------------------------------------------
+   Meme mesure et meme motif que le bloc du meme jour dans style.css, a lire
+   d'abord. Les quatre pieces de vente sont les pires du bureau parce qu'elles
+   empilent un etage de plus que les autres : la zone de contenu, PUIS la carte,
+   PUIS parfois une carte dans la carte.
+
+   Mesure a 390 px, en remontant du texte jusqu'au corps de page :
+
+     Mon commerce   td 18  |  card 40  |  content 51  |  atelier 48   = 157 px
+     Mes cuvees     th 18  |  card 40  |  card 40  |  content 51  |  atelier 48 = 198 px
+     Mon cap        idem, 198 px
+     Mon registre   lbl 14 |  bar 2  |  card 40  |  content 51  |  atelier 48 = 156 px
+
+   DEUX CARTES IMBRIQUEES FONT 80 PX A ELLES SEULES, soit un cinquieme de
+   l'ecran, pour dessiner deux fois le meme bord blanc sur blanc. La carte
+   interieure perd donc ses cotes et garde sa hauteur : on voit toujours qu'elle
+   est un bloc, on ne paie plus deux fois sa marge.
+
+   ON NE TOUCHE PAS AU HAUT NI AU BAS. Le rythme vertical d'une pile de cartes
+   est ce qui la rend lisible ; c'est la largeur qui manque sur un telephone, pas
+   la hauteur.
+   ============================================================================ */
+@media (max-width: 700px) {
+  /* 1,6 rem de chaque cote, c'etait la valeur de l'ordinateur. */
+  .bdv-ventes .content { padding-left: var(--e-s); padding-right: var(--e-s); }
+  /* La carte garde un vrai remplissage, mais celui d'un telephone. */
+  .bdv-ventes .card { padding-left: var(--e-m); padding-right: var(--e-m); }
+  /* LA CARTE DANS LA CARTE N'A PLUS DE COTES. Elle reste separee de sa voisine
+     par sa bordure haute et basse et par sa marge, donc elle se lit toujours
+     comme un bloc. */
+  .bdv-ventes .card .card {
+    padding-left: 0;
+    padding-right: 0;
+    border-left: none;
+    border-right: none;
+  }
+}

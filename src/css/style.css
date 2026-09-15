@@ -7082,6 +7082,43 @@ button.bureau-nav__item:hover {
   .btn--geste { flex: 1 1 auto; justify-content: center; text-align: center; }
 }
 
+/* ============================================================================
+   LE CADRE DU BUREAU SUR TELEPHONE, 15/09/2026
+   ----------------------------------------------------------------------------
+   Demande de Ted apres ses essais : « y'a pas mal de place perdue quand t'es en
+   iPhone, les marges sont assez grosses ».
+
+   CE N'ETAIT PAS UNE MARGE, C'ETAIT UNE PILE DE MARGES. Mesure faite au banc
+   telephone a 390 px, en remontant du texte le plus profond jusqu'au corps de
+   page et en additionnant remplissage, bordure et marge a chaque etage :
+
+     Ma journee      103 px avales sur 390, soit 26 %
+     Mes taches       82 px, 21 %
+     Le calendrier   167 px, 43 %
+     Mon commerce    157 px, 40 %
+     Mes cuvees      198 px, 51 %
+     Mon cap         198 px, 51 %
+     Mon registre    156 px, 40 %
+
+   Aucun de ces etages n'est gros tout seul. C'est leur SOMME qui coute, et
+   personne ne la voit en relisant une regle. La passe responsive du 11/09/2026
+   avait traite les cibles tactiles, la barre des pieces et la grille du mois,
+   c'est-a-dire ce qui DEBORDAIT. Le cadre, lui, ne deborde pas : il retrecit, et
+   un banc qui mesure les debordements dit OK.
+
+   ON COUPE LES ETAGES EXTERIEURS EN PRIORITE, et pas celui du texte. Le
+   remplissage d'un post-it ou d'une carte tient le dessin ; celui de l'atelier ne
+   tient rien du tout sur un ecran de 390 px, il ne fait que repeter la marge que
+   la zone porte deja un cran plus bas.
+
+   LA ZONE N'EST PAS TOUCHEE : elle est deja passee de 24 a 16 px sous 700 px.
+   ============================================================================ */
+@media (max-width: 700px) {
+  /* L'atelier posait 24 px de chaque cote, la valeur de l'ordinateur, et la zone
+     qu'il contient en repose 16 juste apres. Deux cadres pour un seul bord. */
+  .bureau-atelier { padding-left: var(--e-s); padding-right: var(--e-s); }
+}
+
 
 /* ============================================================================
    CE QUI RESTE DE LA FICHE DE SUIVI DU BUREAU
@@ -8612,4 +8649,100 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
      une deuxieme, 20 px deborde. Ne pas monter sans remesurer le nombre de
      pages du PDF. */
   html { font-size: 19px; }
+}
+
+/* ============================================================================
+   LE PANNEAU SANS LIEGE SUR TELEPHONE, 15/09/2026
+   ----------------------------------------------------------------------------
+   Arbitrage de Ted, le 15/09/2026 : sous 700 px le liege disparait et les
+   punaises deviennent des lignes empilees.
+
+   POURQUOI LE DECOR COUTAIT SI CHER ICI, mesure a 390 px avant de le retirer :
+
+     l'atelier                48 px de cotes   (ramene a 21 par le bloc precedent)
+     la zone                  34 px
+     la plaque de liege       22 px
+     le papier d'une punaise  22 px
+                              --------
+                              126 px de cotes pour une punaise
+
+   Une punaise n'avait donc que 117 px pour ecrire, dans une colonne sur deux.
+   « Faire la commande » y prend trois lignes. Le liege et le papier sont deux
+   cadres de plus qui ne portent aucune information : sur un ecran de 390 px ils
+   coutent un tiers de la largeur pour dire « ceci est un panneau », ce que le
+   titre de la zone dit deja en toutes lettres.
+
+   ET LA GRILLE ETIRAIT LES PUNAISES. Deux colonnes, des rangees a hauteur egale :
+   une punaise de trois mots prenait la hauteur de sa voisine la plus longue, et
+   une rangee incomplete laissait une case de liege nu. Sur un panneau accroche au
+   mur c'est normal, une pile de lignes n'a pas ce probleme.
+
+   CE QUI RESTE, ET CE N'EST PAS DU DECOR :
+   - le lien etendu sur toute la ligne, donc la ligne entiere reste cliquable ;
+   - les deux gestes, remontes a droite de la premiere ligne, toujours a 44 px ;
+   - les deux etats « en retard » et « fait », qui gardent LEUR FOND et gagnent un
+     filet de couleur a gauche. La regle du 11/09/2026 ne change pas : un etat ne
+     tient jamais a la seule couleur.
+   - la chute a l'arrivee. C'est `--tour` qui est mis a plat, pas l'animation :
+     une punaise droite tombe encore, elle ne penche plus.
+   ============================================================================ */
+@media (max-width: 700px) {
+  body.bdv-poste .panneau {
+    display: block;
+    background: none;
+    background-image: none;
+    border: none;
+    padding: 0;
+  }
+  body.bdv-poste .panneau .postit {
+    /* Le papier devient une ligne : plus de matiere, plus d'ombre, plus d'angle.
+       `--tour` a plat plutot que `transform:none`, sinon l'animation d'arrivee
+       ecrase la declaration et la punaise reste penchee. */
+    --tour: 0deg;
+    display: flex;
+    /* `row` EN TOUTES LETTRES, et c'est le piege paye ici. `.postit` est en
+       `flex-direction: column` depuis le premier jour : sans cette ligne, `order`
+       et `margin-left:auto` fabriquaient une colonne bien rangee ou le tampon,
+       les deux gestes, le titre et la ligne manuscrite se suivaient les uns sous
+       les autres, et `align-items` centrait le tout HORIZONTALEMENT. La regle
+       marchait, elle ne faisait simplement pas ce qu'elle disait. Vu a la
+       capture, invisible a la relecture.
+       Deuxieme piege du meme endroit : `align-items: center` et pas `baseline`.
+       Le tampon fait 14 px de haut, les deux gestes 44 ; cale sur la ligne de
+       base, le tampon se collait en haut de la rangee et ouvrait un trou. */
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.15rem var(--e-s);
+    background: none;
+    box-shadow: none;
+    padding: var(--e-s) 0 var(--e-s) var(--e-s);
+    border-bottom: var(--trait) solid var(--rule);
+    border-left: var(--trait-accent) solid transparent;
+  }
+  body.bdv-poste .panneau .postit:last-child { border-bottom: none; }
+  /* La punaise et le coin releve n'ont plus de papier a tenir. */
+  body.bdv-poste .panneau .postit::before,
+  body.bdv-poste .panneau .postit::after { content: none; }
+  body.bdv-poste .panneau .postit[data-ton="vieux"] {
+    background: var(--warn-bg);
+    border-left-color: var(--danger-deep);
+  }
+  body.bdv-poste .panneau .postit[data-ton="fait"] {
+    background: var(--ok-bg);
+    border-left-color: var(--ok);
+  }
+  /* PREMIERE LIGNE : le tampon a gauche, les gestes a droite. Le `margin-left:auto`
+     des gestes mange la place restante, ce qui renvoie tout le reste a la ligne
+     suivante sans avoir a compter des largeurs. */
+  body.bdv-poste .panneau .postit__tampon { order: 1; margin-bottom: 0; }
+  body.bdv-poste .panneau .postit__gestes { order: 2; margin-left: auto; margin-top: 0; }
+  /* UN CHIFFRE RESTE SUR SA LIGNE AVEC SON LIBELLE (« 5 autres taches ») ; un titre
+     prend la ligne entiere. C'est `data-mot`, pose par mon-bureau.njk, qui fait la
+     difference, et pas une nouvelle regle a tenir a jour. */
+  body.bdv-poste .panneau .postit__v { order: 3; flex: 1 0 100%; font-size: var(--t-lead); }
+  body.bdv-poste .panneau .postit__v:not([data-mot]) { flex: 0 0 auto; font-size: 1.6rem; }
+  body.bdv-poste .panneau .postit__v[data-mot="long"] { font-size: var(--t-base); }
+  body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
+  body.bdv-poste .panneau .postit__s { order: 5; flex: 1 0 100%; font-size: 1.05rem; }
 }

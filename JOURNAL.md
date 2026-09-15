@@ -12,6 +12,84 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 15/09/2026, après-midi. La place perdue sur iPhone : ce n'était pas une marge, c'était une pile
+
+Ted, après ses essais sur téléphone : « y'a pas mal de place perdue quand t'es en iPhone,
+les marges sont assez grosses. Il faut peut-être réagencer la façon d'afficher. »
+
+### Ce qu'on a mesuré avant de toucher à quoi que ce soit
+
+La passe responsive du 11/09 avait traité ce qui DÉBORDE : cibles tactiles, barre des
+pièces, grille du mois. Le cadre, lui, ne déborde pas. Il rétrécit, et un banc qui mesure
+les débordements dit OK.
+
+Un deuxième relevé a donc été écrit, `mesure-marges.mjs` : pour l'élément de texte le plus
+profond de chaque pièce, il remonte jusqu'au corps de page et additionne remplissage,
+bordure et marge à chaque étage. À 390 px, avant :
+
+| pièce | avalé | part de l'écran |
+|---|---|---|
+| Ma journée | 103 px | 26 % |
+| Mes tâches | 82 px | 21 % |
+| Le calendrier | 167 px | 43 % |
+| Mon commerce | 157 px | 40 % |
+| Mes cuvées | 198 px | 51 % |
+| Mon cap | 198 px | 51 % |
+| Mon registre | 156 px | 40 % |
+
+**Aucun étage n'était gros tout seul. C'est leur somme qui coûtait**, et personne ne la voit
+en relisant une règle. Les quatre pièces de vente empilaient un étage de plus que les
+autres, et deux d'entre elles une carte DANS une carte : 80 px, un cinquième de l'écran,
+pour dessiner deux fois le même bord blanc sur blanc.
+
+### Lot 1, le cadre, sous 700 px, pour les neuf pièces
+
+Trois coupes, toutes sur les étages EXTÉRIEURS, jamais sur celui qui tient le texte :
+l'atelier passe de 24 à 10 px de côtés, la zone de contenu des écrans de vente de 26 à
+10, et la carte intérieure d'une carte perd ses côtés et garde sa hauteur. La zone n'est
+pas touchée, elle était déjà passée à 16 px le 11/09.
+
+Après : 76 / 55 / 140 / 93 / 93 / 93 / 92 px. **Les quatre pièces de vente passent de 40-51 %
+à 24 %.** Aucune page ne déborde, aucune cible ne descend, zéro erreur JavaScript.
+
+### Lot 2, le panneau perd son liège sous 700 px
+
+Arbitrage de Ted. Le liège et le papier sont deux cadres de plus qui ne portent aucune
+information : ils coûtaient 44 px de côtés pour dire « ceci est un panneau », ce que le
+titre de la zone dit déjà en toutes lettres. Et la grille à deux colonnes étirait les
+punaises à hauteur égale, avec une case de liège nu quand la rangée était incomplète.
+
+Sous 700 px une punaise devient une ligne : tampon à gauche, les deux gestes à droite sur
+la même ligne, titre et ligne manuscrite dessous, un filet de séparation. Restent le lien
+étendu sur toute la ligne, les gestes à 44 px, et les deux états « en retard » et « fait »
+qui gardent leur fond ET gagnent un filet de couleur à gauche, parce qu'un état ne tient
+jamais à la seule couleur.
+
+Mesuré sur les trois punaises de la capture de Ted : la zone passe de 477 à 369 px de haut,
+le panneau de 364 à 256, et **une punaise de 137 px de large en passe à 335**. « Faire la
+commande » tenait sur trois lignes, il tient sur une.
+
+### Deux pièges payés ici, et les deux étaient invisibles à la relecture
+
+1. **`.postit` est en `flex-direction: column` depuis le premier jour.** La règle qui
+   remontait les gestes à droite de la première ligne a été écrite sans `flex-direction:
+   row` : `order` et `margin-left:auto` fabriquaient une colonne bien rangée, et
+   `align-items` centrait tout HORIZONTALEMENT. La règle marchait. Elle ne faisait
+   simplement pas ce qu'elle disait, et seule la capture l'a vu.
+2. **`align-items: baseline` contre une rangée de 44 px.** Le tampon fait 14 px de haut :
+   calé sur la ligne de base, il se collait en haut de la rangée et ouvrait un trou de
+   30 px juste avant le titre.
+
+### Deux défauts ANTÉRIEURS, relevés au passage, pas corrigés
+
+- **`echeance__ouvrir` fait 22 px de haut** dans Le calendrier, sur cinq entrées au moins.
+  La moitié du plancher tactile. Il était déjà là avant cette session.
+- **L'en-tête du bureau fait 434 px sur un écran de 844, soit 51 % du premier écran**, et
+  il est au-dessus de CHAQUE pièce. C'est de loin la plus grosse perte verticale du bureau
+  sur téléphone, et elle n'est pas dans le périmètre décidé ce jour.
+
+---
+
 ## 15/09/2026, 11 h 50. La fonction est en ligne, et elle tourne
 
 `agenda-ics` est deployee, ACTIVE, **vérification de jeton désactivée**. Le piège annoncé

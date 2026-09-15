@@ -309,4 +309,59 @@ if (mf.ouverte) {
   if (mf.zoome.length)  console.log('  SAISIES < 16 px :\n    ' + mf.zoome.join('\n    ')); else console.log('  saisies : toutes a 16 px ou plus');
 }
 console.log('\n--- ERREURS JAVASCRIPT ---\n  ' + (erreurs.length ? erreurs.join('\n  ') : 'aucune'));
+
+/* ==========================================================================
+   LA PLACE PERDUE, AJOUTE LE 15/09/2026
+   ==========================================================================
+   Ted, apres ses essais sur telephone : « y'a pas mal de place perdue quand
+   t'es en iPhone ». Tout ce qui precede mesure ce qui DEBORDE. Rien ne mesurait
+   ce qui est PERDU, et ce n'est pas la meme chose : une page peut tenir dans
+   390 px en n'en donnant que 190 au texte, et ce banc disait OK.
+
+   ON COMPTE LA CHAINE, PAS UNE MARGE ISOLEE. Pour l'element de texte le plus
+   profond de chaque piece, on remonte jusqu'au corps de page en additionnant, a
+   chaque etage, remplissage + bordure + marge des DEUX cotes. La somme est la
+   largeur que le vigneron ne lit pas, et la chaine imprimee dit QUI la prend.
+   C'est ce releve qui a montre que personne n'etait coupable tout seul : quatre
+   etages de 20 a 50 px, aucun aberrant, 198 px au total sur « Mon cap ».
+   ========================================================================== */
+console.log('\n================= LA PLACE PERDUE A 390 PX =================');
+for (const [id, nom] of PIECES) {
+  await p.evaluate(i => window.BdvNav && BdvNav.afficher(i), id);
+  await p.waitForTimeout(1400);
+  const m = await p.evaluate(() => {
+    const W = document.documentElement.clientWidth;
+    let cible = null, best = -1;
+    document.querySelectorAll('.bureau-atelier__travail *').forEach(el => {
+      if (el.children.length) return;
+      const t = (el.textContent||'').trim(); if (t.length < 12) return;
+      const b = el.getBoundingClientRect(); if (b.width < 20 || b.height < 8) return;
+      let prof = 0, q = el; while (q) { prof++; q = q.parentElement; }
+      if (prof > best) { best = prof; cible = el; }
+    });
+    if (!cible) return null;
+    const chaine = []; let total = 0, q = cible;
+    while (q && q.tagName !== 'HTML') {
+      const s = getComputedStyle(q);
+      const c = ['paddingLeft','paddingRight','borderLeftWidth','borderRightWidth','marginLeft','marginRight']
+        .reduce((a,k) => a + (parseFloat(s[k]) || 0), 0);
+      if (c >= 1) {
+        chaine.push(q.tagName.toLowerCase()
+          + (typeof q.className === 'string' && q.className ? '.' + q.className.trim().split(/\s+/)[0] : '')
+          + ' ' + Math.round(c));
+        total += c;
+      }
+      q = q.parentElement;
+    }
+    return { W, texte: Math.round(cible.getBoundingClientRect().width),
+             mot: (cible.textContent||'').trim().replace(/\s+/g,' ').slice(0,28),
+             perdu: Math.round(total), chaine };
+  });
+  if (!m) { console.log('\n--- ' + nom + ' --- rien de mesurable'); continue; }
+  console.log('\n--- ' + nom + ' ---');
+  console.log('  texte le plus profond : ' + m.texte + ' px de large sur ' + m.W + '  (« ' + m.mot + ' »)');
+  console.log('  cadre avale           : ' + m.perdu + ' px, soit ' + Math.round(m.perdu / m.W * 100) + ' %');
+  console.log('  la chaine             : ' + m.chaine.join('  |  '));
+}
+
 await nav.close(); srv.close();
