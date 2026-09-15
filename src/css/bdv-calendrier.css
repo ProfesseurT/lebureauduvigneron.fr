@@ -833,3 +833,39 @@
     background: var(--paper-deep);
   }
 }
+
+/* ============================================================================
+   LE TITRE D'UNE OCCURRENCE, CIBLE TACTILE, 15/09/2026
+   ----------------------------------------------------------------------------
+   Releve au banc telephone du 15/09 : `.echeance__ouvrir` fait 22 px de haut,
+   la moitie du plancher de 44 px pose le 11/09. Le defaut est ANTERIEUR a la
+   passe sur les marges, il figure dans la mesure faite avant toute modification.
+
+   ON AGRANDIT LA CIBLE, PAS LE DESSIN, et ici il faut aller plus loin que
+   d'habitude : un `min-height: 44px` sur ce bouton ajouterait 22 px A CHAQUE
+   carte de la liste, soit pres de 900 px sur une piece qui en aligne une
+   quarantaine. Grossir la cible en gonflant la page serait reprendre d'une main
+   ce que la passe sur les marges vient de rendre.
+
+   C'est donc un rectangle invisible qui s'etend de 11 px au-dessus et en
+   dessous du texte : la cible fait 44 px, la page ne bouge pas d'un pixel. Le
+   motif est deja dans le projet, c'est celui de `.postit__lien::after`.
+
+   CE QUE LE RECTANGLE RECOUVRE A ETE VERIFIE : au-dessus la ligne du compte a
+   rebours, en dessous le nom et le detail. Trois textes, aucune cible. Les
+   liens de la carte (`.echeance__liens`) sont plus bas que 11 px.
+
+   CONSEQUENCE POUR LE BANC : `getBoundingClientRect()` d'un bouton ne voit pas
+   son pseudo-element, donc `capture-telephone.mjs` continuerait a le signaler a
+   22 px. Il est ecarte nommement dans le banc, exactement comme
+   `.postit__lien`, et pour la meme raison.
+   ============================================================================ */
+@media (max-width: 700px) {
+  .bdv-cal .echeance__ouvrir { position: relative; }
+  .bdv-cal .echeance__ouvrir::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: -11px; bottom: -11px;
+  }
+}

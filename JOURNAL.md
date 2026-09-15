@@ -80,10 +80,73 @@ commande » tenait sur trois lignes, il tient sur une.
    calé sur la ligne de base, il se collait en haut de la rangée et ouvrait un trou de
    30 px juste avant le titre.
 
+### Deuxième passe, même jour : « on peut encore manger les marges, voire les supprimer »
+
+Le premier jet ne faisait que rétrécir chaque étage. Il en restait trois empilés sur le bureau
+et trois sur les écrans de vente, **chacun avec son propre bord**.
+
+**Une seule gouttière, et c'est la zone qui la porte.** Sous 700 px la zone perd ses côtés et
+devient une bande pleine largeur : plus de bordure à gauche ni à droite, plus de retrait
+d'atelier autour d'elle. Ce qui la délimite reste son filet de couleur en haut, son fond plus
+clair que le papier de la page, et l'écart vertical du plan. Même chose pour la carte des
+écrans de vente. Sur un téléphone, un cadre de carte de 390 px de large ne fait que répéter le
+bord de l'écran.
+
+**10 px et pas zéro, arbitrage de Ted sur capture.** Trois variantes ont été fabriquées et
+photographiées côte à côte. Le ras du bord gagne encore 21 px et fait basculer des rangées
+entières (les deux dates de « Mes tâches » passent côte à côte, les filtres tiennent à quatre
+par rangée), mais le texte courant colle alors au bord de la vitre, et en paysage l'encoche
+mange les extrémités. 10 px est le dernier palier où rien ne touche le bord.
+
+**Les retraits de sécurité remplacent le remplissage de l'atelier.** Une zone pleine largeur
+sans `env(safe-area-inset-left/right)` passe sous l'encoche en paysage. Même motif que la barre
+des pièces, corrigé le 11/09.
+
+| pièce | au départ | après la 1re passe | après la 2e |
+|---|---|---|---|
+| Ma journée | 26 % | 19 % | **5 %** |
+| Mes tâches | 21 % | 14 % | **5 %** |
+| Le calendrier | 43 % | 36 % | **20 %** |
+| Mon commerce | 40 % | 24 % | **10 %** |
+| Mes cuvées | 51 % | 24 % | **10 %** |
+| Mon cap | 51 % | 24 % | **10 %** |
+| Mon registre | 40 % | 24 % | **9 %** |
+
+Hauteurs de page au passage : Le calendrier 5 415 → 4 638 px, Ma journée 2 110 → 1 881,
+Mon cap 3 591 → 3 371.
+
+### Un rabat de 4 px qui faisait déborder la page entière
+
+`.zone--lecture::after` porte `right: -4px` : c'est le rabat qui fait la pile de la zone
+« À lire ». Tant que l'atelier posait 24 px autour de la zone, ce dépassement tombait dans la
+marge et ne se voyait pas. **Une zone pleine largeur n'a plus de marge où déborder** : la page
+de « Ma journée » est passée à 394 px dans une fenêtre de 390.
+
+Et aucun élément ne le signalait, parce qu'un pseudo-élément n'a pas de
+`getBoundingClientRect()`. Le banc disait « page 394/390 » sans pouvoir nommer le coupable.
+**Troisième fois que ce projet paie la même leçon : on ne change pas la largeur d'un conteneur
+sans regarder ce qui dépasse de lui.**
+
+### Le plancher tactile, soldé
+
+**`echeance__ouvrir` passe de 22 à 44 px sans grandir d'un pixel.** Un `min-height` aurait
+ajouté 22 px à chacune des quarante cartes du calendrier, soit près de 900 px : reprendre d'une
+main ce que la passe sur les marges venait de rendre. C'est donc un rectangle invisible qui
+s'étend de 11 px au-dessus et en dessous du texte, le motif de `.postit__lien::after`. Ce qu'il
+recouvre a été vérifié : trois textes, aucune cible.
+
+Conséquence : `getBoundingClientRect()` ne voit pas un pseudo-élément, donc le banc l'écarte
+nommément, comme `.postit__lien` et pour la même raison.
+
+**`.tache__corps` reçoit un `min-height: 44px`.** Le banc le mesurait à 43 px sur sept tâches :
+à un cheveu du plancher, et c'est le hasard du contenu qui décidait de quel côté il tombait.
+
+**Résultat : zéro défaut sur les sept pièces et la fiche client à 390 px.** Aucune page ne
+déborde, aucune cible sous 44 px, aucune saisie sous 16 px, aucune erreur JavaScript. C'est la
+première fois.
+
 ### Deux défauts ANTÉRIEURS, relevés au passage, pas corrigés
 
-- **`echeance__ouvrir` fait 22 px de haut** dans Le calendrier, sur cinq entrées au moins.
-  La moitié du plancher tactile. Il était déjà là avant cette session.
 - **L'en-tête du bureau fait 434 px sur un écran de 844, soit 51 % du premier écran**, et
   il est au-dessus de CHAQUE pièce. C'est de loin la plus grosse perte verticale du bureau
   sur téléphone, et elle n'est pas dans le périmètre décidé ce jour.

@@ -7111,12 +7111,57 @@ button.bureau-nav__item:hover {
    tient rien du tout sur un ecran de 390 px, il ne fait que repeter la marge que
    la zone porte deja un cran plus bas.
 
-   LA ZONE N'EST PAS TOUCHEE : elle est deja passee de 24 a 16 px sous 700 px.
+   ---------------------------------------------------------------------------
+   DEUXIEME PASSE, MEME JOUR : « on peut encore manger les marges, voire les
+   supprimer ». Le premier jet ne faisait que retrecir chaque etage. Il en
+   restait quand meme trois empiles sur le bureau et trois sur les ecrans de
+   vente, chacun avec son propre bord.
+
+   UNE SEULE GOUTTIERE, ET ELLE EST PORTEE PAR LA ZONE. Sous 700 px la zone perd
+   ses cotes et devient une BANDE PLEINE LARGEUR : plus de bordure a gauche ni a
+   droite, plus de retrait d'atelier autour d'elle. Ce qui la delimite reste son
+   filet de couleur en haut, son fond plus clair que le papier de la page, et
+   l'ecart vertical du plan. Sur un telephone, un cadre de carte de 390 px de
+   large n'apporte rien qu'une repetition du bord de l'ecran.
+
+   10 PX ET PAS ZERO, arbitrage de Ted sur capture. Le ras du bord gagne encore
+   21 px et fait basculer des rangees entieres (les deux dates de « Mes taches »
+   passent cote a cote), mais le texte courant colle alors au bord de la vitre,
+   et en paysage l'encoche et les coins arrondis mangent les extremites. 10 px
+   est le dernier palier ou rien ne touche le bord.
+
+   LES RETRAITS DE SECURITE REMPLACENT LE REMPLISSAGE DE L'ATELIER. Sans eux,
+   une zone a pleine largeur passe sous l'encoche en paysage. Ils valent zero en
+   portrait. Meme motif que la barre des pieces, corrige le 11/09/2026.
+
+   Mesure a 390 px apres cette deuxieme passe : Ma journee et Mes taches 21 px
+   (5 %), les quatre pieces de vente 38 px (10 %), Le calendrier 79 px (20 %).
    ============================================================================ */
 @media (max-width: 700px) {
   /* L'atelier posait 24 px de chaque cote, la valeur de l'ordinateur, et la zone
-     qu'il contient en repose 16 juste apres. Deux cadres pour un seul bord. */
-  .bureau-atelier { padding-left: var(--e-s); padding-right: var(--e-s); }
+     qu'il contient en reposait 16 juste apres. Il ne pose plus que le retrait de
+     l'encoche, qui vaut zero en portrait. */
+  .bureau-atelier {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  /* LA BANDE. `.zone` porte la gouttiere unique du bureau. */
+  body.bdv-poste .zone {
+    border-left: none;
+    border-right: none;
+    padding-left: var(--e-s);
+    padding-right: var(--e-s);
+  }
+  /* LE RABAT DE LA PILE DE LECTURE DEPASSAIT DE 4 PX A DROITE, et c'est tout ce
+     qu'il fallait pour que la page entiere fasse 394 px de large dans une fenetre
+     de 390. `right:-4px` etait invisible tant que l'atelier posait 24 px autour :
+     le depassement tombait dans la marge. Une zone a pleine largeur n'a plus de
+     marge ou deborder. Troisieme fois que ce projet paie la meme lecon : on ne
+     change pas la largeur d'un conteneur sans regarder ce qui depasse de lui. */
+  body.bdv-poste .zone--lecture::after { right: 0; }
+  /* Ces deux-la posaient leur propre gouttiere DANS la zone, donc en double. */
+  body.bdv-poste .calbloc__ligne { padding-left: 0; padding-right: 0; }
+  body.bdv-poste .echeance { padding-left: var(--e-s); padding-right: var(--e-s); }
 }
 
 
@@ -8104,6 +8149,12 @@ button.bureau-nav__item:hover {
   font: inherit; color: inherit; text-align: left;
 }
 button.tache__corps { cursor: pointer; }
+/* UN PIXEL, ET IL COMPTE QUAND MEME. Le banc du 15/09/2026 mesure cette ligne a
+   43 px sur sept taches : elle est a un cheveu du plancher de 44 pose le
+   11/09, et c'est le hasard du contenu qui decide de quel cote elle tombe. Un
+   plancher explicite vaut mieux qu'une hauteur qui se trouve juste. Le dessin ne
+   bouge pas : le texte est deja cale en haut par `align-items: flex-start`. */
+body.bdv-poste button.tache__corps { min-height: 44px; }
 button.tache__corps:hover .tache__titre { color: var(--bordeaux); }
 button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
 

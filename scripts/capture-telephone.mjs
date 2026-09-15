@@ -200,6 +200,12 @@ for (const [id, nom] of PIECES) {
       // 2. Le libelle d'un post-it porte un ::after en `position:absolute; inset:0` :
       //    la vraie cible est tout le papier, pas les 18 px du texte.
       if (el.classList.contains('postit__lien')) return;
+      // 2 bis. MEME CAS, 15/09/2026 : le titre d'une occurrence du calendrier
+      //    porte un ::after en `inset` etendu de 11 px au-dessus et en dessous,
+      //    parce qu'un `min-height` ici ajouterait 22 px a chacune des quarante
+      //    cartes de la piece. Sa vraie cible fait 44 px, pas les 22 du texte.
+      //    Voir le bloc de tete de bdv-calendrier.css.
+      if (el.classList.contains('echeance__ouvrir')) return;
       // 3. Un lien DANS UNE PHRASE n'a pas a faire 44 px : le grossir casserait
       //    l'interligne du paragraphe, et la norme prevoit elle-meme l'exception
       //    pour une cible en ligne dans du texte. « Voir la cuvee » est de ceux-la.

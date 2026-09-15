@@ -780,17 +780,22 @@
    la hauteur.
    ============================================================================ */
 @media (max-width: 700px) {
-  /* 1,6 rem de chaque cote, c'etait la valeur de l'ordinateur. */
-  .bdv-ventes .content { padding-left: var(--e-s); padding-right: var(--e-s); }
-  /* La carte garde un vrai remplissage, mais celui d'un telephone. */
-  .bdv-ventes .card { padding-left: var(--e-m); padding-right: var(--e-m); }
-  /* LA CARTE DANS LA CARTE N'A PLUS DE COTES. Elle reste separee de sa voisine
+  /* DEUXIEME PASSE DU 15/09/2026, meme arbitrage que dans style.css, a lire la-bas :
+     une seule gouttiere, portee par la carte, et la carte devient une BANDE pleine
+     largeur. La zone de contenu ne pose plus rien du tout. 38 px au total au lieu
+     de 157 a 198 au depart, soit 10 % de l'ecran au lieu de 40 a 51. */
+  .bdv-ventes .content { padding-left: 0; padding-right: 0; }
+  .bdv-ventes .card {
+    border-left: none;
+    border-right: none;
+    padding-left: var(--e-s);
+    padding-right: var(--e-s);
+  }
+  /* LA CARTE DANS LA CARTE NE POSE PLUS RIEN. Elle reste separee de sa voisine
      par sa bordure haute et basse et par sa marge, donc elle se lit toujours
      comme un bloc. */
   .bdv-ventes .card .card {
     padding-left: 0;
     padding-right: 0;
-    border-left: none;
-    border-right: none;
   }
 }
