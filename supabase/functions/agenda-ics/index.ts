@@ -21,8 +21,43 @@
    `npm run verif`. Ne pas les modifier a la main, ne pas les reformater :
    elles sont lues par une expression exacte.
 
+   ------------------------------------------------------------------------
+   CE QUI TOURNE AU 15/09/2026, ET EN QUOI IL DIFFERE DE CE FICHIER
+   ------------------------------------------------------------------------
+   La mise en ligne du 15/09/2026 n'est PAS passee par ces fichiers tels quels.
+   Le poste n'ayant pas de CLI Supabase ce jour-la, le deploiement a ete fait
+   par le connecteur, qui ne lit pas de fichiers : il faut lui REDONNER le
+   contenu. Les blocs de commentaires ont donc ete raccourcis pour tenir, et la
+   version qui tourne porte le meme code et la meme bibliotheque, mais pas les
+   memes commentaires.
+
+   CONSEQUENCE, ET IL FAUT LA LIRE COMME UNE DETTE : les deux empreintes
+   ci-dessous decrivent le DEPOT, et le depot seul. Elles ne prouvent plus que
+   les octets deployes sont ceux d'ici. Elles ne le prouvaient d'ailleurs jamais
+   tout a fait, puisqu'elles comparent le depot au depot : c'est le deploiement
+   qui doit garantir l'egalite, et ce jour-la il ne l'a pas fait.
+
+   CE QUI A ETE PROUVE, ET C'EST PLUS FORT QUE L'EMPREINTE. Le 15/09/2026 a
+   11 h 50, le flux rendu par la fonction deployee a ete compare, octet par
+   octet, a celui que `bdv-ics.js` produit ici a partir de `echeances.json` :
+   67 114 octets, 104 rendez-vous, sha256 30be308a47358462 des deux cotes,
+   IDENTIQUES. Le code et la bibliotheque qui tournent rendent donc exactement
+   ce que rend le depot. Ce qui differe est ce qui ne s'execute pas : les
+   commentaires.
+
+   LA METHODE VAUT D'ETRE REPRISE. Une empreinte compare le depot au depot ;
+   une SORTIE comparee a une sortie traverse tout le chemin, y compris le
+   deploiement. Le fichier .ics telecharge par le navigateur suffit : on le
+   pose a cote de ce que rend le banc, et on hache les deux.
+
+   POUR SOLDER LA DETTE : `npx supabase` tourne sur le poste (verifie le
+   15/09/2026, version 2.117.0). Avec un jeton d'acces personnel, un
+   `supabase functions deploy agenda-ics --no-verify-jwt` depuis
+   `_deploiement/agenda-ics/` envoie les octets exacts, et ce bloc peut etre
+   retire.
+
    empreinte du code joint : sha256 4da4ce3cadb2b56d, 601 lignes.
-   empreinte de la bibliotheque deployee : sha256 0ea3b12208a62048, 49 occurrences.
+   empreinte de la bibliotheque deployee : sha256 95e1df263f3b95b0, 49 occurrences.
 
    ----------------------------------------------------------------------------
    CE QUE CE FLUX PORTE, ET CE QU'IL NE PORTERA JAMAIS

@@ -12,6 +12,123 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 15/09/2026, 11 h 50. La fonction est en ligne, et elle tourne
+
+`agenda-ics` est deployee, ACTIVE, **vérification de jeton désactivée**. Le piège annoncé
+depuis hier est donc fermé.
+
+### Ce qui est prouvé, et comment
+
+Je ne peux tester le flux depuis aucun des deux ateliers : le pare-feu de sortie autorise
+npmjs mais **bloque `*.supabase.co`**, côté conteneur comme côté poste (403 sur le CONNECT).
+Même famille de mur que l'installation du navigateur de capture, hier.
+
+**La preuve est venue de la base.** Une requête posée depuis le volet navigateur, **sans
+en-tête Authorization**, a fait avancer `vu_le` de la ligne d'abonnement. Deux fois, à
+quarante secondes d'intervalle, avec deux jetons différents.
+
+Puis le navigateur a déposé le fichier téléchargé dans le dossier du dépôt, et ça a permis
+la vraie preuve : **le flux rendu par la fonction déployée est identique, à l'octet, à celui
+que le dépôt produit ici.** 67 114 octets, 104 rendez-vous, sha256 `30be308a47358462` des
+deux côtés.
+
+**Cette méthode vaut plus que les empreintes, et il faut la retenir.** Une empreinte compare
+le dépôt au dépôt : elle ne dit rien du déploiement. Une SORTIE comparée à une sortie
+traverse tout le chemin. Le .ics téléchargé posé à côté de ce que rend le banc, et les deux
+hachés : trente secondes, et la question est close.
+
+### Une dette, et elle est écrite dans le fichier
+
+Le poste n'a pas de CLI Supabase, et le connecteur ne lit pas de fichiers : il faut lui
+redonner le contenu. Les blocs de commentaires ont donc été raccourcis pour tenir. **Le code
+et la bibliothèque déployés sont les mêmes ; les commentaires, non.**
+
+Conséquence, et elle est plus légère depuis la comparaison ci-dessus : ce qui diffère est
+ce qui ne s'exécute pas. Mais les deux empreintes décrivent toujours le DÉPÔT et le dépôt
+seul, et **c'est le déploiement qui doit garantir l'égalité des octets**. Le bloc est
+consigné en tête de `supabase/functions/agenda-ics/index.ts`, avec la façon de le solder.
+
+**Et elle se solde facilement** : `npx supabase` tourne sur le poste, vérifié aujourd'hui,
+version 2.117.0. Avec un jeton d'accès personnel, un `supabase functions deploy agenda-ics
+--no-verify-jwt` depuis `_deploiement/agenda-ics/` envoie les octets exacts, et le bloc
+disparaît. La phrase de `joindre-courrier.mjs`, « il n'y a pas de CLI Supabase sur le poste »,
+décrivait un choix de septembre, pas une impossibilité.
+
+### Un jeton temporaire vit en base
+
+Posé sur le compte `teddy@solumatic.fr` pour cette vérification, tiré au hasard, 43 signes.
+Il est révocable d'un clic dans l'onglet « L'agenda » dès que le site est en ligne. À ne pas
+oublier : un jeton d'essai qui reste est un jeton d'essai qui traîne.
+
+`npm run verif` vert, 705 contrôles.
+
+---
+
+## 15/09/2026, suite. L'écran de l'agenda, et la fonction qui n'est pas partie
+
+Ted : « c'est passé ». J'ai vérifié avant d'écrire la suite, et c'est à moitié vrai.
+
+### Ce que la base dit, et ce qu'elle ne dit pas
+
+`public.agenda_abonnement` existe, RLS active, **quatre politiques**, zéro ligne. Le SQL est
+passé.
+
+**La fonction `agenda-ics` n'est PAS déployée.** Le projet ne connaît que `courrier-matin` et
+`invitation`.
+
+**Et c'est ma faute, pas la sienne.** J'ai écrit hier soir `cd _deploiement/agenda-ics` puis
+`supabase functions deploy`. Or l'en-tête de `scripts/joindre-courrier.mjs` le dit noir sur
+blanc depuis le 10/09 : « il n'y a pas de CLI Supabase sur le poste : c'est un geste séparé,
+fait sciemment ». J'ai lu ce fichier hier pour en copier la convention d'empreinte, et j'ai
+recopié la convention sans lire la phrase d'à côté. Le déploiement passe par le tableau de
+bord Supabase, ou par le connecteur.
+
+### L'écran, écrit contre du réel
+
+Un onglet « L'agenda » dans le panneau de réglages, à côté du courrier. Quatre gestes :
+créer, copier, s'abonner, révoquer.
+
+**Le jeton est tiré par le navigateur**, 32 octets de `crypto.getRandomValues` en base64url,
+43 signes. Il n'est **pas** dérivé de l'identifiant du compte : un jeton qui serait un hachage
+de `id` laisserait fabriquer l'adresse de n'importe qui à partir d'un identifiant.
+
+**L'adresse de base est en dur et pas `location.origin`**, et c'est une leçon déjà payée par le
+courrier du matin le 09/09 : sur une adresse de préversion Vercel, la réécriture
+`/agenda/:jeton` n'existe pas. Le lien copié serait mort, l'écran n'afficherait aucune erreur,
+et c'est le vigneron qui tomberait dessus trois jours plus tard, dans Google Agenda.
+
+**Deux clics pour révoquer, et pas une fenêtre de confirmation.** Le panneau est déjà une
+fenêtre : en empiler une deuxième, c'est le geste qu'on valide sans lire. Le bouton se
+réécrit lui-même en « Confirmer : couper l'abonnement partout », et un clic ailleurs dans le
+bloc le désarme.
+
+**L'agenda ne passe pas par « Enregistrer ».** Créer et révoquer sont des gestes immédiats,
+pas des champs à valider. Les poser dans le formulaire aurait fait d'une révocation l'effet de
+bord d'un enregistrement qu'on croyait faire pour changer son prénom.
+
+Et un lien `webcal://` à côté de l'adresse `https` : il ouvre directement la fenêtre
+d'abonnement du client de calendrier. L'adresse reste affichée pour le cas, fréquent, où le
+clic ne fait rien et où il faut la coller dans « Ajouter par URL ».
+
+### Ce que seule l'image a dit, encore
+
+Il a fallu écrire un harnais pour voir ce panneau : `apercu-panneau.mjs` montre le panneau
+des punaises, pas celui des réglages. Les deux états rendus, vide et servi.
+
+**Dans l'état vide, l'écran avertissait des conséquences de révoquer un lien qui n'existait
+pas encore.** Trois lignes sur ce qui se passe quand on coupe un abonnement, au-dessus d'un
+bouton « Créer ». Un avertissement sans objet apprend à ne pas lire les avertissements. Il est
+maintenant lié à l'existence du lien.
+
+`npm run verif` vert, 705 contrôles.
+
+### Il reste un geste, et il n'est pas de moi
+
+Déployer `agenda-ics` **avec la vérification de jeton désactivée**. Sans ça, Supabase exige un
+en-tête Authorization, Google Agenda n'en envoie aucun, et le calendrier reste introuvable.
+
+---
+
 ## 15/09/2026. Lot E : l'abonnement agenda, et un plan qui se trompait sur son propre coût
 
 Le dos du chantier est écrit, vérifié, et prêt à déployer. Il reste l'écran qui donne le lien.

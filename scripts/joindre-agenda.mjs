@@ -121,6 +121,11 @@ writeFileSync(
   path.join(CIBLE, 'biblio.ts'),
   '/* ECRIT PAR `npm run agenda:joindre`. NE PAS MODIFIER A LA MAIN.\n' +
   '   La source est src/_data/echeances.json. */\n' +
+  /* RECOPIE TELLE QUELLE, INDENTATION COMPRISE. Une version compactee tiendrait
+     sur la moitie de la place, et c'est ce qui a ete essaye le 15/09/2026. Mais
+     un fichier deploye est un fichier qu'on relit un jour a cote de sa source
+     pour comprendre pourquoi les deux different, et une ligne de 25 ko ne se
+     relit pas. La place gagnee ne valait pas ca. */
   'export default ' + biblioTexte.replace(/\n$/, '') + ' as any[];\n',
   'utf8',
 );

@@ -258,9 +258,128 @@
 
   // Un seul point d'entree de rafraichissement, appele a l'ouverture ET par le moteur apres
   // un import (cf. ecranRafraichir() dans bdv-base.js).
+  /* ===================== L'ABONNEMENT AGENDA (lot E) =====================
+     Une seule ligne par compte dans `agenda_abonnement`, et la revocation est
+     une SUPPRESSION de ligne : l'ancienne adresse rend 404 tout de suite.
+
+     L'ADRESSE EST EN DUR ET PAS `location.origin`, et c'est une lecon deja
+     payee par le courrier du matin le 09/09/2026 : sur une adresse de
+     preversion Vercel, la reecriture `/agenda/:jeton` n'existe pas. Le lien
+     copie serait mort, l'ecran n'afficherait aucune erreur, et c'est le
+     vigneron qui tomberait dessus, trois jours plus tard, dans Google Agenda. */
+  const AGENDA_BASE = 'https://lebureauduvigneron.fr/agenda/';
+  let AGENDA_JETON = null;
+  let AGENDA_LIGNE = null;   // la derniere ligne lue, pour repeindre sans perdre `vu_le`
+  let AGENDA_ARME = false;   // la revocation demande deux clics
+
+  /* 32 octets de hasard cryptographique, en base64url : 43 signes, dans les
+     bornes du `check` de la table. TIRE PAR LE NAVIGATEUR, et surtout PAS
+     derive de l'identifiant du compte : un jeton qui serait un hachage de `id`
+     laisserait fabriquer l'adresse de n'importe qui a partir d'un identifiant. */
+  function nouveauJeton(){
+    const b = new Uint8Array(32);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    let bin = '';
+    for(let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function motAgenda(t){ const e = el('bdvrAgendaMot'); if(e) e.textContent = t || ''; }
+
+  function peindreAgenda(ligne){
+    AGENDA_LIGNE = ligne || null;
+    AGENDA_JETON = ligne && ligne.jeton ? ligne.jeton : null;
+    AGENDA_ARME = false;
+    const zone = el('bdvrAgendaZone'), creer = el('bdvrAgendaCreer');
+    const copier = el('bdvrAgendaCopier'), abonner = el('bdvrAgendaAbonner');
+    const revoquer = el('bdvrAgendaRevoquer'), vu = el('bdvrAgendaVu');
+    if(!zone || !creer) return;
+    const a = AGENDA_JETON ? AGENDA_BASE + AGENDA_JETON + '.ics' : '';
+    zone.hidden = !AGENDA_JETON;
+    creer.hidden = !!AGENDA_JETON;
+    copier.hidden = !AGENDA_JETON;
+    abonner.hidden = !AGENDA_JETON;
+    revoquer.hidden = !AGENDA_JETON;
+    revoquer.textContent = 'Révoquer ce lien';
+    const avertir = el('bdvrAgendaAvertir');
+    if(avertir) avertir.hidden = !AGENDA_JETON;
+    if(AGENDA_JETON){
+      el('bdvrAgendaLien').value = a;
+      /* `webcal://` ouvre directement la fenetre d'abonnement du client de
+         calendrier. L'adresse `https` reste affichee a cote : c'est elle qu'on
+         colle dans « Ajouter par URL » quand le clic ne fait rien. */
+      abonner.href = a.replace(/^https:/, 'webcal:');
+      vu.textContent = ligne && ligne.vu_le
+        ? 'Dernière lecture par ton agenda : ' + new Date(ligne.vu_le).toLocaleString('fr-FR')
+        : 'Aucune lecture pour l\'instant. Les agendas relisent toutes les quelques heures.';
+    }
+  }
+
+  async function rafraichirAgenda(){
+    if(!el('bdvrBlocAgenda')) return;
+    const moi = window.BdvCompte && BdvCompte.monId && BdvCompte.monId();
+    if(!moi){ peindreAgenda(null); return; }
+    try{
+      const l = await BdvCompte.api('/agenda_abonnement?id=eq.' + encodeURIComponent(moi)
+                                    + '&select=jeton,cree_le,vu_le');
+      peindreAgenda(Array.isArray(l) && l.length ? l[0] : null);
+    }catch(e){ /* Hors ligne : on laisse l'ecran tel qu'il est, on n'efface rien. */ }
+  }
+
+  async function creerAgenda(){
+    const moi = window.BdvCompte && BdvCompte.monId && BdvCompte.monId();
+    if(!moi){ motAgenda('Il faut être connecté.'); return; }
+    motAgenda('Création…');
+    try{
+      /* `id` est pose ICI et jamais laisse au defaut : regle 6 de CLAUDE.md,
+         la meme qui avait laisse la table des signets vide pendant deux jours. */
+      await BdvCompte.api('/agenda_abonnement', {
+        method: 'POST', body: { id: moi, jeton: nouveauJeton() }
+      });
+      await rafraichirAgenda();
+      motAgenda('Lien créé. Colle-le dans ton agenda.');
+    }catch(e){ motAgenda('La création a échoué. Réessaie dans un moment.'); }
+  }
+
+  async function revoquerAgenda(){
+    const b = el('bdvrAgendaRevoquer');
+    /* DEUX CLICS, ET PAS UNE FENETRE DE CONFIRMATION. Le panneau est deja une
+       fenetre : en empiler une deuxieme, c'est le geste qu'on valide sans lire.
+       Le bouton dit lui-meme ce qui va se passer, et un deuxieme clic le fait. */
+    if(!AGENDA_ARME){
+      AGENDA_ARME = true;
+      b.textContent = 'Confirmer : couper l\'abonnement partout';
+      motAgenda('Un deuxième clic révoque le lien. Un clic ailleurs annule.');
+      return;
+    }
+    const moi = window.BdvCompte && BdvCompte.monId && BdvCompte.monId();
+    if(!moi) return;
+    motAgenda('Révocation…');
+    try{
+      await BdvCompte.api('/agenda_abonnement?id=eq.' + encodeURIComponent(moi), { method: 'DELETE' });
+      await rafraichirAgenda();
+      motAgenda('Lien révoqué. L\'ancienne adresse ne rend plus rien.');
+    }catch(e){ motAgenda('La révocation a échoué. Réessaie dans un moment.'); }
+  }
+
+  async function copierAgenda(){
+    const i = el('bdvrAgendaLien');
+    if(!i || !i.value) return;
+    try{
+      await navigator.clipboard.writeText(i.value);
+      motAgenda('Adresse copiée.');
+    }catch(e){
+      /* Presse-papiers refuse (page non securisee, permission) : on selectionne
+         le texte pour que le Ctrl+C manuel marche quand meme. */
+      i.focus(); i.select();
+      motAgenda('Copie automatique refusée : le texte est sélectionné, fais Ctrl+C.');
+    }
+  }
+
   function rafraichirTout(){
     peindreBase();
     rafraichirMoteur();
+    rafraichirAgenda();
     BLOCS.forEach(function(b){ if(b.rafraichir){ try{ b.rafraichir(); }catch(e){} } });
   }
 
@@ -383,6 +502,44 @@
           quel appareil.</p>
       </fieldset>
 
+      <!-- L'AGENDA, POSE LE 15/09/2026 avec le lot E.
+           L'AVERTISSEMENT EST AU-DESSUS DU BOUTON, ET PAS EN DESSOUS. Ce lien vaut mot de
+           passe : qui l'a voit le calendrier, pour toujours, sans se connecter. Un
+           avertissement place apres le bouton se lit apres qu'on a clique, c'est-a-dire
+           trop tard. Et il dit aussi ce que le lien NE porte PAS, parce que c'est la
+           question que se pose quelqu'un a qui on demande de coller une adresse chez
+           Google : « qu'est-ce que je donne, exactement ». -->
+      <fieldset class="bdvr-bloc" id="bdvrBlocAgenda" data-onglet="L'agenda">
+        <legend class="bdvr-legende">L'agenda</legend>
+        <p class="bdvr-aide">Tes échéances dans Google Agenda, Apple Calendrier ou Outlook, tenues
+          à jour toutes seules. Une date que nous corrigeons arrive chez toi sans rien faire.</p>
+        <p class="bdvr-aide"><b>Ce lien vaut mot de passe</b> : qui l'a voit ton calendrier, sans
+          se connecter et pour toujours. Ne le publie pas. Il porte tes obligations, les travaux
+          de la vigne, les salons et les temps forts, avec tes repères éteints et tes décalages.
+          <b>Il ne porte ni tes tâches, ni tes clients à rappeler.</b></p>
+        <div class="bdvr-champ bdvr-champ--plein" id="bdvrAgendaZone" hidden>
+          <label class="bdvr-lab" for="bdvrAgendaLien">L'adresse de ton calendrier</label>
+          <input class="bdvr-i" type="text" id="bdvrAgendaLien" readonly>
+          <p class="bdvr-aide" id="bdvrAgendaVu"></p>
+        </div>
+        <p>
+          <button type="button" class="bdvr-btn" id="bdvrAgendaCreer">Créer mon lien d'abonnement</button>
+          <button type="button" class="bdvr-btn" id="bdvrAgendaCopier" hidden>Copier l'adresse</button>
+          <a class="bdvr-lien" id="bdvrAgendaAbonner" hidden href="#">S'abonner maintenant</a>
+        </p>
+        <p class="bdvr-aide" id="bdvrAgendaMot" role="status"></p>
+        <p>
+          <button type="button" class="bdvr-lien" id="bdvrAgendaRevoquer" hidden>Révoquer ce lien</button>
+        </p>
+        <!-- CACHE TANT QU'IL N'Y A RIEN A REVOQUER, et c'est la capture qui l'a dit : dans
+             l'etat vide, l'ecran avertissait des consequences de revoquer un lien qui
+             n'existait pas encore. Un avertissement sans objet apprend a ne pas lire les
+             avertissements. -->
+        <p class="bdvr-aide" id="bdvrAgendaAvertir" hidden>Révoquer coupe l'abonnement chez
+          <b>tous</b> ceux qui l'ont posé, y compris sur ton téléphone. Un nouveau lien se
+          recrée aussitôt, mais il faudra le recoller partout.</p>
+      </fieldset>
+
     </div>
 
     <div class="bdvr-pied">
@@ -426,6 +583,20 @@
     el('bdvrForm').addEventListener('input', marquer);
     el('bdvrForm').addEventListener('change', marquer);
     el('bdvrForm').addEventListener('submit', enregistrer);
+
+    /* L'agenda ne passe PAS par « Enregistrer » : creer et revoquer sont des
+       gestes immediats, pas des champs a valider. Les poser dans le formulaire
+       aurait fait d'un bouton de revocation un effet de bord d'un enregistrement
+       qu'on croyait faire pour changer son prenom. */
+    el('bdvrAgendaCreer').addEventListener('click', creerAgenda);
+    el('bdvrAgendaCopier').addEventListener('click', copierAgenda);
+    el('bdvrAgendaRevoquer').addEventListener('click', revoquerAgenda);
+    el('bdvrBlocAgenda').addEventListener('click', function(e){
+      // Un clic ailleurs dans le bloc desarme la revocation.
+      // On repeint depuis la DERNIERE LIGNE LUE et pas depuis le seul jeton :
+      // reconstruire un objet a la main effacait la date de derniere lecture.
+      if(AGENDA_ARME && e.target !== el('bdvrAgendaRevoquer')) peindreAgenda(AGENDA_LIGNE);
+    });
 
     // Les emplacements sont remplis une seule fois, a la construction : un bloc qui se
     // reconstruirait a chaque ouverture perdrait l'etat de ses propres champs.
