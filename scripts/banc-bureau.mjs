@@ -107,7 +107,25 @@ function bureau(hash) {
       if (!it) throw new Error('piece introuvable : ' + piece);
       it.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
     },
-    repos() { return new Promise(r => setTimeout(r, 60)); }
+    /* UNE ATTENTE FIXE EST UNE COURSE, PAS UN CONTROLE. Corrige le 15/09/2026.
+       Ce banc echouait par intermittence sur « un lien de fiche client ouvre la
+       fiche », et seulement DANS `npm run verif` : jamais lance seul, toujours
+       apres `npm run build`, quand la machine est encore chargee. Soixante
+       millisecondes suffisaient a froid et pas a chaud, et le rouge tombait sur
+       une assertion qui n'avait rien a se reprocher.
+       Un banc qui crie une fois sur trois sur du sain finit par ne plus etre lu,
+       et ce jour-la on perd aussi les cent-neuf controles qui, eux, disent vrai.
+       `repos()` sans argument garde l'ancien comportement ; avec une condition,
+       il attend qu'elle soit vraie, jusqu'a deux secondes. */
+    async repos(condition, budget = 2000) {
+      if (typeof condition !== 'function') return new Promise(r => setTimeout(r, 60));
+      const fin = Date.now() + budget;
+      while (Date.now() < fin) {
+        if (condition()) return;
+        await new Promise(r => setTimeout(r, 10));
+      }
+      return condition();
+    }
   };
 }
 
@@ -511,7 +529,7 @@ const fiche = H.doc.createElement('a');
 fiche.href = '/mon-bureau/#client=JAYAMA';
 H.doc.getElementById('bureauJournee').appendChild(fiche);
 fiche.dispatchEvent(new H.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
-await H.repos();
+await H.repos(() => H.appels.length > 0);
 t('un lien de fiche client ouvre la fiche',
   JSON.stringify(H.appels) === '[{"client":"JAYAMA"}]', JSON.stringify(H.appels));
 

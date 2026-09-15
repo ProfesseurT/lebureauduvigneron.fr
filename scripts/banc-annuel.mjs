@@ -44,11 +44,13 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const faux = { BdvEcheances: null };
-new Function('window', 'document',
-  fs.readFileSync(path.join(RACINE, 'src/js/bdv-echeances.js'), 'utf8')
-)(faux, { getElementById: () => null });
-const B = faux.BdvEcheances;
+/* DEPUIS LE PASSAGE BI-RUNTIME du 15/09/2026, le module se pose sur `globalThis`
+   et plus sur le `window` qu'on lui injectait : il faut donc l'evaluer, puis le
+   relire la ou il s'est pose. Injecter un faux `window` ne servait plus a rien,
+   et le banc aurait lu `null` en annoncant zero echec. */
+new Function(fs.readFileSync(path.join(RACINE, 'src/js/bdv-echeances.js'), 'utf8'))();
+const B = globalThis.BdvEcheances;
+if (!B) { console.error('\n  ECHEC : bdv-echeances.js ne pose plus BdvEcheances.\n'); process.exit(1); }
 const LIGNES = JSON.parse(fs.readFileSync(path.join(RACINE, 'src/_data/echeances.json'), 'utf8'));
 
 let ok = 0, ko = 0, alertes = [];

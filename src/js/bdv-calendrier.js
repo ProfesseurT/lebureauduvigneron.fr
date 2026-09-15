@@ -201,15 +201,16 @@
   function reglesActives() {
     var f = famillesActives();
     var ch = window.BdvCalchoix;
-    return toutesLesRegles().filter(function (e) {
-      if (f.indexOf(e.famille || 'obligations') < 0) return false;
-      if (!ch || (e.statut || 'obligation') !== 'repere') return true;
-      return ch.choix(e.cle).actif;
-    }).map(function (e) {
-      if (!ch || (e.statut || 'obligation') !== 'repere') return e;
-      var d = ch.choix(e.cle).decale;
-      return d ? Object.assign({}, e, { decale: d }) : e;
+    var visibles = toutesLesRegles().filter(function (e) {
+      return f.indexOf(e.famille || 'obligations') >= 0;
     });
+    /* LE FILTRE PAR FAMILLE RESTE ICI, L'APPLICATION DES CHOIX EST PARTIE.
+       15/09/2026 : les douze lignes qui eteignaient et decalaient les reperes
+       vivent maintenant dans `BdvEcheances.appliquerChoix`, parce que la
+       fonction Edge de l'abonnement .ics doit appliquer la MEME regle. Le
+       filtre par famille, lui, n'a de sens qu'a l'ecran : ce sont les
+       intercalaires du bureau, pas un choix enregistre. */
+    return BdvEcheances.appliquerChoix(visibles, ch && ch.choix);
   }
 
   /* Les reperes eteints, retrouves dans la bibliotheque a partir de leurs cles.

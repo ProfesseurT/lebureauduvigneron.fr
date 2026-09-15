@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/agenda/:jeton",
+      "destination": "https://qukmncqqwomhmrdhvetj.supabase.co/functions/v1/agenda-ics?jeton=:jeton"
+    }
+  ]
+}

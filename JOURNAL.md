@@ -12,6 +12,121 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 15/09/2026. Lot E : l'abonnement agenda, et un plan qui se trompait sur son propre coût
+
+Le dos du chantier est écrit, vérifié, et prêt à déployer. Il reste l'écran qui donne le lien.
+
+### Le plan du 08/09 se trompait deux fois, et les deux fois dans le même sens
+
+**« C'est le premier bout de code SERVEUR de ce dépôt. »** Faux depuis le 08/09 :
+`courrier-matin` et `invitation` tournent déjà en fonctions Edge, avec la clé de service déjà
+posée. Aucun hébergement à choisir, aucun secret à générer.
+
+**« Le vrai coût de ce lot, c'est le calcul. »** Ce coût était déjà payé, pour un autre
+fichier. `bdv-courrier.js` se termine par `})(typeof globalThis !== 'undefined' ? globalThis :
+this)`, la fonction Deno l'importe puis le lit sur `globalThis`, et `npm run courrier:joindre`
+tamponne une empreinte sha256 contrôlée à chaque `npm run verif`. Rendre `bdv-echeances.js`
+lisible par Deno a donc coûté **trois lignes** : la première, la dernière, et un garde-fou
+`document` dans `depuisLaPage()`. Aucune ligne de calcul n'a bougé.
+
+Un document de décision se périme par le haut, silencieusement. Celui-ci avait une semaine.
+
+### Les trois arbitrages de Ted, 15/09/2026
+
+**1. Le flux ne porte QUE la bibliothèque.** Ni « Mes tâches », ni les rappels clients.
+Motif : une URL .ics est un mot de passe déguisé en lien. Google Agenda la garde sur ses
+serveurs, elle traîne dans l'historique, elle se recopie dans un mail, et elle ne s'expire
+jamais toute seule. Avec ce choix, une URL qui fuite ne livre rien que le site ne publie déjà.
+C'est l'arbitrage 3 du 08/09 tenu jusqu'au bout : le calendrier porte des campagnes, le
+sous-main porte des clients.
+
+**Le garde-fou est dans le code, pas seulement dans cette phrase.** `FAMILLES_PUBLIQUES` filtre
+deux fois, avant le calcul et à la mise en forme, et le banc injecte de force une tâche et un
+rappel client pour vérifier qu'ils ne ressortent pas.
+
+**2. Une adresse propre**, `lebureauduvigneron.fr/agenda/<jeton>`, par une réécriture Vercel.
+Premier `vercel.json` du dépôt, huit lignes. Motif : le jour où la base change d'hébergeur,
+les abonnements déjà posés chez les clients ne cassent pas.
+
+**3. Un flux par personne**, pas par bureau. Clé primaire = identifiant du compte. Un membre
+qui quitte un bureau emporte son jeton, on le révoque avec son accès, et les autres ne voient
+pas leur abonnement couper.
+
+### Ce qui a été sorti, et pourquoi à cet endroit-là
+
+**`appliquerChoix()` quitte `bdv-calendrier.js` pour `bdv-echeances.js`.** Les douze lignes qui
+éteignent et décalent les repères vivaient dans un module d'écran. Le serveur aurait dû les
+réécrire, et le jour où un vigneron éteint un repère il aurait disparu de sa grille sans
+disparaître de son agenda. Personne n'aurait su lequel des deux avait raison. La fonction prend
+désormais `choixDe`, une fonction `cle -> {actif, decale}` : le navigateur passe
+`BdvCalchoix.choix`, le serveur passe une fonction adossée aux lignes de `calendrier_choix`, et
+aucun des deux ne connaît la forme de stockage de l'autre.
+
+**La mise en forme iCalendar va dans `src/js/bdv-ics.js`, pas dans la fonction Edge.** Motif :
+enfermée dans du TypeScript Deno, elle n'aurait été testable que déployée, c'est-à-dire jamais.
+`scripts/banc-agenda.mjs` la fait tourner sur les 49 occurrences réelles à chaque
+`npm run verif`. **19 contrôles**, dont les trois qui valent le banc :
+
+- **le repliage se compte en OCTETS**, RFC 5545, 75 maximum. « Déclaration récapitulative
+  mensuelle » avec ses accents pèse plus que sa longueur. Aucun client ne lève d'erreur sur une
+  ligne trop longue : Outlook la tronque au milieu d'un mot. Le banc vérifie en plus qu'aucune
+  ligne ne contient de caractère de remplacement, preuve qu'on n'a pas coupé un accent en deux.
+- **`DTEND` est exclusif** en journée entière. Une occurrence d'un jour finit le lendemain ;
+  écrite égale à `DTSTART`, la moitié des clients ne l'affiche pas du tout.
+- **`DTSTAMP` n'est pas l'heure courante.** Avec `new Date()`, deux lectures rendent deux
+  fichiers différents et certains clients re-notifient l'utilisateur à chaque synchronisation.
+  Il est dérivé de la date de l'occurrence, et le banc vérifie que deux fabrications
+  successives rendent le même octet.
+
+### Deux empreintes, et la deuxième est celle qui servira
+
+Le code bouge rarement. **La bibliothèque bouge chaque fois qu'une date est ajoutée ou qu'un
+salon est confirmé**, et une fonction déployée avec la bibliothèque de l'an dernier rend un
+calendrier faux sans lever la moindre erreur. `npm run agenda:joindre` tamponne donc deux
+lignes, contrôlées par `npm run agenda:verif` dans `npm run verif`.
+
+**Et ce garde-fou a servi avant même d'être fini.** En renommant la première marque, le
+remplacement est tombé à côté et n'a rien fait, pendant que le script continuait d'afficher
+l'empreinte qu'il venait de calculer. Le dossier de déploiement portait un nom de marque et le
+script en cherchait un autre. `agenda:verif` l'a dit à la première exécution.
+
+### Un piège qui coûte une soirée à qui ne le connaît pas
+
+**Il faut déployer avec `--no-verify-jwt`.** Par défaut une fonction Edge exige un en-tête
+Authorization. Google Agenda n'en envoie aucun : il reçoit 401 et affiche « calendrier
+introuvable », sans autre détail. C'est écrit en tête de la fonction, dans le script de
+recollage, et dans le message d'échec du contrôle.
+
+Et toutes les erreurs rendent **404** : jeton absent, inconnu ou révoqué, la même réponse. Un
+401 sur un jeton inconnu dirait à qui sonde le site « cette adresse existe, continue ».
+
+### Un défaut hors périmètre, corrigé parce qu'il bloquait tout
+
+`npm run verif` était ROUGE en arrivant ce matin, avant toute modification, sur
+`banc-bureau.mjs` : « un lien de fiche client ouvre la fiche ». Lancé seul, le banc passait
+trois fois sur trois ; dans `npm run verif`, juste après le build, il échouait. La cause est
+une attente FIXE de soixante millisecondes, suffisante à froid et pas à chaud.
+
+**Une attente fixe est une course, pas un contrôle.** `repos()` accepte maintenant une
+condition et l'attend jusqu'à deux secondes. Sans argument, il garde l'ancien comportement :
+un seul appel a changé. Motif de sortir du périmètre : un banc qui crie une fois sur trois sur
+du sain finit par ne plus être lu, et ce jour-là on perd aussi les cent-neuf contrôles qui,
+eux, disent vrai. Les treize autres `repos()` sans condition restent des courses potentielles,
+signalé ici, non corrigé.
+
+### Ce qui reste, et ce qui doit se passer dans l'ordre
+
+1. Le SQL de `supabase/lot12-agenda-abonnement.sql`, à coller dans Supabase.
+2. `npm run agenda:joindre`, puis le déploiement de la fonction avec `--no-verify-jwt`.
+3. La mise en production Vercel, qui prend le `vercel.json`.
+4. **L'écran des réglages**, un onglet « L'agenda » : créer le jeton, montrer l'adresse, la
+   copier, la révoquer. Écrit APRÈS, et pas avant : un écran contre une table qui n'existe pas
+   et une fonction qui n'est pas déployée ne se teste pas, il se suppose.
+
+`npm run verif` vert, 705 contrôles.
+
+---
+
 ## 14/09/2026, tard. Lot D : l'atterrissage, et l'adresse qui ne vieillit pas
 
 La feuille est dans la boîte à outils. Mais le vrai travail de ce lot n'était pas la carte.

@@ -1832,3 +1832,49 @@ grant execute on function public.invitation_apercu(text) to anon, authenticated;
 --    select * from public.invitation_apercu('jeton-invente');   -- zero ligne, sans erreur
 --
 -- c) Et le controle de securite de Supabase, comme apres tout lot SQL.
+
+
+-- ===========================================================================
+-- L'ABONNEMENT AGENDA, Lot E du 15/09/2026. Detail et motifs complets dans
+-- supabase/lot12-agenda-abonnement.sql. Resume : une URL .ics est un mot de
+-- passe deguise en lien, donc le flux ne porte QUE la bibliotheque, le jeton
+-- est tire au hasard et ne derive pas de l'identifiant, et la revocation est
+-- une suppression de ligne et pas un drapeau.
+-- ===========================================================================
+create table if not exists public.agenda_abonnement (
+  id      uuid not null primary key references auth.users on delete cascade,
+  -- Tire au hasard cote navigateur, 32 octets en base64url, soit 43 signes.
+  -- La borne basse n'est pas decorative : elle interdit qu'un jour quelqu'un
+  -- pose a la main un jeton court, devinable par force brute.
+  jeton   text not null unique check (char_length(jeton) between 32 and 64),
+  cree_le timestamptz not null default now(),
+  -- Ecrit par la fonction Edge a chaque lecture du flux. C'est ce qui permet
+  -- de repondre a « est-ce que quelqu'un s'en sert vraiment », et a « depuis
+  -- quand ce jeton n'a-t-il plus servi » avant de le revoquer.
+  vu_le   timestamptz
+);
+
+alter table public.agenda_abonnement enable row level security;
+
+drop policy if exists "lire son abonnement agenda" on public.agenda_abonnement;
+create policy "lire son abonnement agenda" on public.agenda_abonnement
+  for select using (auth.uid() = id);
+drop policy if exists "creer son abonnement agenda" on public.agenda_abonnement;
+create policy "creer son abonnement agenda" on public.agenda_abonnement
+  for insert with check (auth.uid() = id);
+drop policy if exists "remplacer son abonnement agenda" on public.agenda_abonnement;
+create policy "remplacer son abonnement agenda" on public.agenda_abonnement
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists "revoquer son abonnement agenda" on public.agenda_abonnement;
+create policy "revoquer son abonnement agenda" on public.agenda_abonnement
+  for delete using (auth.uid() = id);
+
+-- `anon` NE DOIT RIEN POUVOIR LIRE ICI, et c'est le point le plus important du
+-- fichier. Le flux est servi par la fonction Edge avec la cle de service, qui
+-- ne quitte jamais Supabase. Si `anon` pouvait lire cette table, n'importe qui
+-- pourrait moissonner tous les jetons du site avec la cle publiable.
+revoke all on public.agenda_abonnement from anon;
+grant select, insert, update, delete on public.agenda_abonnement to authenticated;
+
+-- PAS dans effacer_mes_donnees(), meme motif que les signets, les taches et les
+-- choix de calendrier : cette fonction vide LA BASE DE VENTES, pas le compte.

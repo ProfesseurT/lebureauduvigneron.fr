@@ -82,7 +82,7 @@
    l'annee ou elle tombe, avec la conduite a tenir. Mieux vaut un site qui refuse
    de partir qu'une date fausse affichee avec l'aplomb d'une DRM.
    =========================================================================== */
-(function () {
+(function (racine) {
   'use strict';
 
   var JOUR = 24 * 3600 * 1000;
@@ -244,6 +244,36 @@
     };
   }
 
+  /* ---- APPLIQUER LES CHOIX DU VIGNERON -------------------------------------
+     Sorti de `reglesActives()` de bdv-calendrier.js le 15/09/2026, et pose ICI
+     pour une seule raison : la fonction Edge qui rend l'abonnement .ics doit
+     appliquer EXACTEMENT la meme regle que l'ecran. Laisse dans le module du
+     calendrier, il aurait fallu la reecrire cote serveur, et le jour ou un
+     vigneron eteint un repere il aurait disparu de sa grille sans disparaitre
+     de son agenda. Personne n'aurait su lequel des deux avait raison.
+
+     `choixDe` est une FONCTION `cle -> { actif, decale }`, et pas une table :
+     le navigateur passe `BdvCalchoix.choix`, le serveur passe une fonction
+     adossee aux lignes de `calendrier_choix`. Aucun des deux n'a a connaitre
+     la forme de stockage de l'autre.
+
+     UNE OBLIGATION NE S'ETEINT PAS ET NE SE DECALE PAS, et le garde-fou est
+     double : l'ecran ne montre pas les gestes, et cette fonction les ignorerait
+     de toute facon. Un jour quelqu'un ecrira une ligne dans la table a la main,
+     ou par un vieux bouton oublie ; ni le calendrier ni l'agenda ne doivent
+     pour autant cacher une DRM ou la deplacer de trois semaines. */
+  function appliquerChoix(regles, choixDe) {
+    if (typeof choixDe !== 'function') return (regles || []).slice();
+    return (regles || []).filter(function (e) {
+      if ((e.statut || 'obligation') !== 'repere') return true;
+      return choixDe(e.cle).actif !== false;
+    }).map(function (e) {
+      if ((e.statut || 'obligation') !== 'repere') return e;
+      var d = parseInt(choixDe(e.cle).decale, 10);
+      return d ? Object.assign({}, e, { decale: d }) : e;
+    });
+  }
+
   // UNE REGLE QU'ON NE SAIT PAS LIRE EST IGNOREE, ELLE NE FAIT PAS TOMBER LE RESTE.
   // prochaine() rend null pour un type de recurrence inconnu ou une date mal ecrite.
   // Sans ce filtre, poser() appelle toLocaleDateString sur null : le script s'arrete,
@@ -338,7 +368,13 @@
 
   // Lit le bloc JSON pose dans la page. Absent, on renvoie un tableau vide plutot
   // que de lever : une page sans echeances doit s'afficher, pas planter.
+  //
+  // LE GARDE-FOU `document` A ETE AJOUTE LE 15/09/2026 avec le passage bi-runtime.
+  // Cote Deno il n'y a pas de document : sans lui, un appel par megarde depuis la
+  // fonction Edge leverait une ReferenceError au lieu de rendre une liste vide.
+  // Le serveur, lui, lit le fichier de donnees joint, il ne lit jamais de page.
   function depuisLaPage(id) {
+    if (typeof document === 'undefined') return [];
     var el = document.getElementById(id || 'bdvEcheances');
     if (!el) return [];
     try { return JSON.parse(el.textContent) || []; } catch (e) { return []; }
@@ -381,14 +417,35 @@
     });
   }
 
-  window.BdvEcheances = {
+  /* ---- LES TROIS MONDES, 15/09/2026 ----
+     Navigateur : la balise script pose BdvEcheances sur window.
+     Node : les bancs jsdom injectent ce fichier dans une page, meme chose.
+     Deno : globalThis.BdvEcheances apres l'import du fichier joint a la fonction
+     Edge `agenda-ics`.
+
+     MOTIF, ET IL EST ANCIEN. L'en-tete de ce fichier interdit depuis le premier
+     jour d'ecrire le calcul une deuxieme fois. Le serveur qui rend l'abonnement
+     .ics doit donc utiliser CE moteur, pas une copie : une divergence entre la
+     grille du bureau et l'agenda d'un client ne se verrait que des mois plus
+     tard, chez lui, et personne ne saurait lequel des deux a raison.
+
+     C'est le meme motif, la meme forme et le meme garde-fou d'empreinte que
+     `bdv-courrier.js`, qui a fait ce chemin le 09/09/2026. Ne pas remplacer ce
+     bloc par un `export` : il fermerait les deux autres mondes.
+
+     AUCUNE LIGNE DE CALCUL N'A CHANGE ce jour-la. Seules la premiere ligne, la
+     derniere, et le garde-fou `document` de depuisLaPage() ont bouge. */
+  var api = {
     calculer: calculer,
     etaler: etaler,
     laPlusPressante: laPlusPressante,
     depuisLaPage: depuisLaPage,
+    appliquerChoix: appliquerChoix,
     enFrancais: enFrancais,
     courte: courte,
     familles: FAMILLES,
     deLaFamille: deLaFamille
   };
-})();
+  racine.BdvEcheances = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
