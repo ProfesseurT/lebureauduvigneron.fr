@@ -12,6 +12,106 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, matin. Une minute pour ouvrir son bureau : la base n'y était pour rien
+
+Ted a essayé le bureau avec sa base de **facturation**, 171 569 lignes au lieu des 4 939
+habituelles. « La base rame assez fort. J'ai genre une minute pour que mon bureau s'ouvre. »
+
+### Ce qu'on a mesuré avant de toucher à quoi que ce soit
+
+Une page de 1 000 lignes sort de Postgres en **4,8 ms**. La base n'est pas lente. Ce sont les
+journaux Supabase qui ont donné la réponse, pour **une seule ouverture** du bureau :
+
+| Ce qui part | Nombre | Temps moyen |
+|---|---|---|
+| Comptage exact des ventes | 1 | 3 400 à 8 100 ms |
+| Pages de 1 000 lignes | 174 | 299 ms |
+| Préflights CORS | 174 | 1 ms |
+
+Cinquante secondes d'allers-retours, plus le comptage. **La minute était faite de latence
+réseau, pas de calcul.** Aucun index ne l'aurait réparée.
+
+### Le défaut le plus cher était le garde-fou lui-même
+
+La règle 9 de `CLAUDE.md` disait « on compte avant de lire » : si l'appareil a autant de lignes
+que le compte, on ne télécharge rien. Elle était bonne, et elle ne se déclenchait jamais.
+`dbCount()` compte **toute** la base locale, tous bureaux confondus ; `compterVentes()` compte
+les lignes d'**un** bureau. Ted appartient à trois bureaux. Les deux nombres ne pouvaient donc
+plus coïncider, et le rapatriement complet repartait à chaque ouverture, depuis le lot 17.
+
+**Un garde-fou qui compare deux choses différentes ne se déclenche pas, et il ne se plaint pas
+non plus.** C'est la forme de panne la plus chère du dépôt : celle qui marche exactement comme
+écrit et ne protège rien. Elle a vécu quatre jours sans que rien ne la signale, parce qu'à
+4 939 lignes le rapatriement complet coûte deux secondes et passe pour normal.
+
+### Ce qu'on a fait, et ce qu'on a écarté
+
+**Retenu : un repère de synchronisation.** Le module retient la date de mise à jour la plus
+récente qu'il ait reçue, par bureau, et ne redemande que ce qui est plus récent. Rien de neuf,
+c'est **une requête pour toute l'ouverture au lieu de 174**.
+
+**Écarté : remonter le calcul côté serveur.** C'est l'architecture juste à terme, le navigateur
+n'ayant rien à faire de 81 Mo de lignes brutes pour afficher huit chiffres. C'est aussi un
+chantier de plusieurs sessions qui touche les cinq écrans de vente. Ted a choisi les gains
+rapides d'abord. **À rouvrir**, et la mesure qui le justifiera est déjà là : 81 Mo de `brut`
+traversent le réseau pour une ardoise qui affiche quatre nombres.
+
+**Écarté aussi : monter le plafond de lignes par requête.** Le réglage existe (API settings,
+Max rows) et diviserait par dix les allers-retours. Il ne sert plus à grand-chose une fois
+qu'on ne redemande que le neuf, et il ne se voit dans aucun fichier du dépôt : un réglage
+invisible qui change le comportement du produit est une dette, pas une optimisation. À garder
+sous le coude pour la toute première synchronisation d'un gros compte, qui reste longue.
+
+### Les quatre pièges du repère, et pourquoi chacun a coûté une décision
+
+1. **L'horloge.** `maj_le` était posée par le **navigateur**. Une machine qui avance de dix
+   minutes aurait posé un repère dans le futur, et toutes les lignes écrites derrière seraient
+   restées invisibles à cet appareil **pour toujours**. Le serveur la pose maintenant, par un
+   déclencheur et pas par un simple défaut de colonne : un navigateur qui tourne encore sur une
+   version en cache continue d'envoyer la colonne, et un `default` ne s'applique pas dans ce
+   cas. `supabase/lot21-repere-synchronisation.sql`.
+2. **Le réimport.** La date ne bouge que si `brut` a vraiment changé. Sans ça, réimporter deux
+   fois le même export redatait les 171 569 lignes et l'ouverture suivante les faisait toutes
+   redescendre : la minute supprimée, ramenée par la porte de derrière.
+3. **La borne large.** Un lot d'import écrit ses 500 lignes dans une transaction, donc toutes
+   portent la même date à la milliseconde. Une borne stricte (`gt.`) saute la fin du groupe dès
+   qu'une page tombe au milieu. C'est `gte.` plus une marge de cinq minutes, et quelques lignes
+   déjà connues qui reviennent, ce qui ne coûte rien.
+4. **La poussée.** Elle recale le repère, sinon l'import d'un gros export le ferait
+   entièrement redescendre à l'ouverture suivante. Mais **seulement si un tirage a abouti dans
+   la session** : avancer sans avoir lu sauterait les lignes qu'un autre poste du bureau aurait
+   déposées entre-temps. Sans tirage préalable, on ne touche à rien. Ça coûte un rapatriement
+   de trop, et c'est le bon côté où se tromper.
+
+### L'autre moitié : une politique de sécurité appelée 171 569 fois
+
+Cause indépendante, trouvée en lisant le plan d'exécution. La politique de lecture était
+`using (est_membre(bureau))`. La fonction est bien `stable`, mais elle prend une **colonne** en
+argument : Postgres ne peut pas la sortir de la boucle et l'appelle **une fois par ligne**.
+
+| | avant | après |
+|---|---|---|
+| comptage exact | 2 487 ms | 236 ms |
+| blocs lus | 343 467 | 192 |
+| page de 1 000 lignes | 43,7 ms | 4,8 ms |
+
+La forme qui marche compare la colonne à un ensemble calculé une fois
+(`bureau in (select ... where personne = (select auth.uid()))`). **Aucun banc, aucun écran,
+aucun journal ne signale une politique qui coûte cher** : ça ne se voit que dans le plan
+d'exécution, et seulement si on pense à le regarder sous le vrai rôle `authenticated`.
+
+### Ce qui reste ouvert
+
+- **La première synchronisation d'un gros compte reste longue** : 172 allers-retours, une fois.
+  Le repère ne sert qu'à partir de la deuxième ouverture.
+- **`dbAddMany` fait deux requêtes IndexedDB par ligne, l'une après l'autre**, soit 343 000
+  requêtes en file indienne pour la base de Ted. Ça ne se paie qu'à l'import, mais ça se paie.
+- **Le calcul côté serveur**, voir plus haut.
+- **Les autres tables portent la même forme de politique** que `ventes`. Elles tiennent en
+  vingt lignes et n'ont donc rien coûté jusqu'ici. À reprendre le jour où l'une d'elles grossit.
+
+---
+
 ## 15/09/2026, après-midi. La place perdue sur iPhone : ce n'était pas une marge, c'était une pile
 
 Ted, après ses essais sur téléphone : « y'a pas mal de place perdue quand t'es en iPhone,

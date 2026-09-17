@@ -1696,6 +1696,11 @@ async function viderBase(){
   if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées de cet appareil'+surServeur+'.'))return;
   if(syncPret())await BdvSync.effacerTout();
   await dbClear();
+  /* ET LE REPERE DE SYNCHRONISATION, 17/09/2026. effacerTout() l'oublie deja quand elle
+     reussit ; ici on couvre le cas ou elle a ECHOUE : le serveur garde alors ses lignes,
+     l'appareil vient de perdre les siennes, et un repere survivant annoncerait « rien de
+     neuf » sur une base vide. Plus rien ne redescendrait, jamais. */
+  if(window.BdvSync&&BdvSync.oublierRepere)BdvSync.oublierRepere();
   // Le serveur a tout efface (ventes, suivi, journal, reglages) : l'appareil doit suivre,
   // sinon le prochain rapatriement REINSTALLE le suivi et le journal locaux sur un serveur
   // vide, et la suppression n'aura rien efface de ce que le vigneron voyait.

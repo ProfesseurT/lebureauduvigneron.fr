@@ -1461,6 +1461,10 @@ branche : le defaut qu'on attend n'est pas « la piece ne s'affiche pas », c'es
 
 ### 9. On compte avant de lire, et on lit par curseur
 
+**AMENDE LE 17/09/2026, lire la section 9 bis avant d'appliquer celle-ci.** Le
+comptage n'est plus le premier geste : il ne sert que de repli, quand le repere de
+synchronisation manque ou n'est pas lisible.
+
 Le rapatriement des ventes (`tirerVentes`) compare d'abord DEUX NOMBRES : les lignes de
 cet appareil et celles du compte. Le compteur passe par l'en-tete `Content-Range`, il ne
 rapatrie aucune donnee. Autant des deux cotes, il ne telecharge rien.
@@ -1484,6 +1488,94 @@ journal d'echanges, trie par date, garde son decalage : voir le commentaire dans
 `bdv-sync.js`.
 
 `npm run banc:sync` garde les deux corrections ET les cinq cas de doute.
+
+### 9 bis. ET ON NE REDEMANDE QUE CE QUI A CHANGE, 17/09/2026
+
+Ted a essaye le bureau avec sa base de FACTURATION, 171 569 lignes, et son bureau
+mettait une minute a s'ouvrir. La base n'y etait pour rien : une page de 1 000 lignes
+sort de Postgres en 4,8 ms. Journaux Supabase, pour UNE SEULE ouverture : **174
+requetes GET sur `/ventes`, 299 ms en moyenne**, plus autant de preflights CORS.
+
+**LA CAUSE ETAIT LE GARDE-FOU DE LA SECTION 9 LUI-MEME.** `dejaLa` vient de
+`dbCount()`, qui compte TOUTE la base locale, tous bureaux confondus ;
+`compterVentes()` compte les lignes d'UN bureau. Des que la personne appartient a deux
+bureaux, les deux nombres ne peuvent plus coincider, l'egalite n'arrive jamais, et le
+rapatriement complet repart a chaque ouverture. **Un garde-fou qui compare deux choses
+differentes ne se declenche pas, et il ne se plaint pas non plus.** C'est la forme de
+panne la plus chere du depot : celle qui marche exactement comme prevu et ne protege
+rien.
+
+Le module retient donc la date de mise a jour la plus recente qu'il ait recue, par
+bureau, dans `bdv_ventes_repere_v1`, et ne demande que ce qui est plus recent. Rien de
+neuf, c'est **une requete pour toute l'ouverture au lieu de 174**.
+
+**LES QUATRE REGLES QUI TIENNENT CE REPERE, et aucune n'est decorative.**
+
+1. **`maj_le` EST POSE PAR LE SERVEUR.** C'etait le navigateur jusqu'a ce jour, dans le
+   corps de l'upsert. Une machine dont l'horloge avance de dix minutes posait un repere
+   dans le futur, et toutes les lignes ecrites derriere restaient invisibles a cet
+   appareil POUR TOUJOURS. Le declencheur `ventes_maj_le_serveur`
+   (`supabase/lot21-repere-synchronisation.sql`) l'ecrase meme pour un navigateur qui
+   tourne encore sur une version en cache. **Une date de synchronisation ne vient jamais
+   d'une horloge qu'on ne controle pas.**
+2. **Et elle ne bouge QUE si `brut` a change.** Sans cette condition, reimporter deux
+   fois le meme export redaterait les 171 569 lignes, et l'ouverture suivante les ferait
+   toutes redescendre : la minute supprimee, ramenee par la porte de derriere.
+3. **LE CURSEUR EST EN `gte.` ET NON EN `gt.`.** Un lot d'import ecrit ses 500 lignes
+   dans UNE transaction, donc toutes portent la meme date a la milliseconde. Une borne
+   stricte sauterait la fin du groupe des qu'une page tombe au milieu. La borne large
+   rend quelques lignes deja connues, ce qui ne coute rien, `dbAddMany` les reconnait a
+   leur empreinte. **Plus une marge de cinq minutes sous le repere** : une ligne recoit
+   sa date au DEBUT de sa transaction et n'est visible qu'a la FIN, et une lecture qui
+   tombe entre les deux ne repasserait jamais dessus.
+4. **LA POUSSEE NE RECALE LE REPERE QUE SI UN TIRAGE A ABOUTI DANS LA SESSION.** Les
+   lignes qu'on envoie, on les a ; celles qu'un AUTRE poste aurait deposees pendant
+   qu'on ne regardait pas, non. Sans tirage prealable, on ne touche a rien : ca coute un
+   rapatriement de trop, et c'est le bon cote ou se tromper.
+
+**Le repere s'oublie avec la base**, dans `effacerTout()` et dans `viderBase()`. Un
+repere qui survit a un vidage annonce « tu es a jour » sur une base a zero ligne : plus
+rien ne redescend, jamais. Et sa cle commence par `bdv_`, donc elle part avec le reste
+au changement de compte et de bureau (voir CHANGER DE BUREAU VIDE LE POSTE) : un repere
+qui traverserait un changement de bureau ferait passer pour a jour une base qui
+appartient a un autre domaine.
+
+**AU MOINDRE DOUTE, RAPATRIEMENT COMPLET**, la regle de la section 9 n'a pas bouge d'une
+ligne et c'est elle qui rend tout ca tenable. Pas de repere, repere illisible, compteur
+illisible, **lignes sans `maj_le`**, curseur qui n'avance pas : on retombe sur la boucle
+par empreinte. Le cas « lignes sans date » n'est pas theorique, c'est l'etat du projet
+tant que le SQL du lot 21 n'est pas passe.
+
+`npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
+remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
+
+### L'AUTRE MOITIE DE LA MESURE : `est_membre(bureau)` LIGNE PAR LIGNE, 17/09/2026
+
+Meme journee, meme base, cause independante. La politique de lecture de `ventes` etait
+`using (est_membre(bureau))`. La fonction est bien `stable`, mais elle prend une
+COLONNE en argument : Postgres ne peut donc pas la sortir de la boucle, et il l'appelle
+**une fois par ligne**. Sur le comptage des 171 569 lignes, mesure sous le vrai role
+`authenticated` :
+
+| | avant | apres |
+|---|---|---|
+| comptage exact | 2 487 ms | 236 ms |
+| blocs lus | 343 467 | 192 |
+| page de 1 000 lignes | 43,7 ms | 4,8 ms |
+
+La forme qui marche est un test que le planificateur peut hacher une bonne fois :
+
+    using ( bureau in (select m.bureau from public.membres m
+                        where m.personne = (select auth.uid())) )
+
+**La regle : une politique de securite par ligne ne passe JAMAIS une colonne a une
+fonction.** Elle compare la colonne a un ENSEMBLE calcule une fois. Le plan le dit en un
+mot, `hashed SubPlan` d'un cote, `Filter: est_membre(bureau)` de l'autre, et c'est le
+seul endroit ou ca se voit : aucun banc, aucun ecran, aucun journal ne signale une
+politique qui coute cher. Les autres tables portent la meme forme et n'ont rien coute
+jusqu'ici parce qu'elles tiennent en vingt lignes ; **a reprendre le jour ou l'une
+d'elles grossit**.
+
 
 ### 10. Vider la base n'efface pas les REGLAGES, 08/09/2026
 

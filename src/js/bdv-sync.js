@@ -31,6 +31,80 @@
   // peut afficher une progression honnete au passage.
   const LOT = 500;
 
+  /* ============ LE REPERE DE SYNCHRONISATION, 17/09/2026 ============
+
+     MESURE DE DEPART, sur la vraie base de facturation de Ted, 171 569 lignes. Les
+     journaux Supabase du 17/09 au matin disent, POUR UNE SEULE OUVERTURE du bureau :
+     174 requetes GET sur `/ventes`, 299 ms en moyenne, et autant de preflights CORS.
+     Cinquante secondes d'attente, a chaque ouverture, pour des lignes que l'appareil
+     avait deja toutes.
+
+     LA CAUSE N'ETAIT PAS LE VOLUME, C'ETAIT LE GARDE-FOU LUI-MEME. `dejaLa` vient de
+     dbCount(), qui compte TOUTE la base locale, tous bureaux confondus ; `compterVentes()`
+     compte les lignes d'UN bureau. Des que la personne appartient a deux bureaux, les
+     deux nombres ne peuvent plus coincider, l'egalite n'arrive jamais, et le
+     rapatriement complet repart a chaque ouverture. Un garde-fou qui compare deux choses
+     differentes ne se declenche pas, et il ne se plaint pas non plus.
+
+     CE QU'ON FAIT A LA PLACE : on retient la date de mise a jour la plus recente qu'on
+     ait recue, et on ne demande que ce qui est plus recent. Rien de neuf, c'est UNE
+     requete pour toute l'ouverture au lieu de 174.
+
+     TROIS CONDITIONS, ET AUCUNE N'EST DECORATIVE.
+
+     1. `maj_le` EST POSE PAR LE SERVEUR, jamais par le navigateur. C'etait l'inverse
+        jusqu'a aujourd'hui, `new Date().toISOString()` dans le corps de l'upsert. Une
+        machine dont l'horloge avance de dix minutes posait alors un repere dans le
+        futur, et TOUTES les lignes normales ecrites derriere seraient restees invisibles
+        a cet appareil, sans un mot. Le declencheur `ventes_maj_le_serveur` le garantit
+        meme pour un navigateur qui tourne encore sur une version en cache et qui
+        enverrait toujours la colonne.
+     2. UNE MARGE DE CINQ MINUTES SOUS LE REPERE. Une ligne recoit sa date au DEBUT de sa
+        transaction et n'est visible qu'a la FIN : une lecture qui tombe entre les deux la
+        manquerait, et ne repasserait jamais dessus. La marge coute de relire quelques
+        lignes, l'absence de marge coute de ne jamais les voir.
+     3. AU MOINDRE DOUTE, RAPATRIEMENT COMPLET, exactement comme pour le compteur. Pas de
+        repere, compteur illisible, lignes sans date, curseur qui n'avance pas : on
+        retombe sur la boucle par empreinte, qui n'a pas bouge d'une ligne. Cette
+        fonction n'a toujours pas le droit de deviner.
+
+     LA CLE COMMENCE PAR `bdv_`, et ce n'est pas cosmetique : `oublierCetAppareil()`
+     efface tout ce prefixe a la deconnexion et au changement de compte, et
+     `changerDeBureau()` vide le poste de la meme facon. Un repere qui survivrait a un
+     changement de bureau ferait passer pour a jour une base qui appartient a un autre
+     domaine. La renommer hors de ce prefixe rouvrirait la fuite fermee le 07/09/2026. */
+  const REPERE_KEY = 'bdv_ventes_repere_v1';
+  const MARGE_MS   = 5 * 60 * 1000;
+
+  /* Le repere est range PAR BUREAU. Un seul champ ferait croire la base a jour juste
+     apres un changement de bureau, dans la seconde ou le poste n'a pas encore ete vide. */
+  function reperes(){
+    try{ return JSON.parse(localStorage.getItem(REPERE_KEY) || '{}') || {}; }
+    catch(e){ return {}; }
+  }
+  function lireRepere(){
+    try{ const v = reperes()[BdvCompte.monBureau()]; return (typeof v === 'string' && v) ? v : null; }
+    catch(e){ return null; }
+  }
+  function poserRepere(iso){
+    if(typeof iso !== 'string' || !iso) return;
+    try{ const t = reperes(); t[BdvCompte.monBureau()] = iso;
+         localStorage.setItem(REPERE_KEY, JSON.stringify(t)); }catch(e){}
+  }
+  /* Appelee par effacerTout(), et exposee pour tout appelant qui vide la base locale.
+     Un repere qui survit a un vidage annonce « tu es a jour » sur une base a zero ligne :
+     plus rien ne redescend, jamais, et le vigneron croit que le bouton a tout perdu. */
+  function oublierRepere(){
+    try{ const t = reperes(); delete t[BdvCompte.monBureau()];
+         localStorage.setItem(REPERE_KEY, JSON.stringify(t)); }catch(e){}
+  }
+
+  /* Vrai des qu'un rapatriement a abouti dans cette session. Sert UNIQUEMENT a autoriser
+     la poussee a avancer le repere : les lignes qu'on envoie, on les a deja, mais celles
+     qu'un AUTRE poste aurait envoyees pendant qu'on ne regardait pas, non. Sans tirage
+     prealable, on laisse donc le repere ou il est, quitte a relire une fois de trop. */
+  let TIRAGE_ABOUTI = false;
+
   /* LE BUREAU EST AUSSI UNE CONDITION, 13/09/2026. Depuis le lot 17 une ligne
      appartient a un bureau, pas a une personne : sans bureau connu, on ne sait pas ou
      ecrire, et on prefere refuser franchement que d'envoyer une ligne sans proprietaire.
@@ -99,23 +173,100 @@
   async function tirerVentes(surProgres, dejaLa){
     if(!pret()) return [];
 
+    /* LA VOIE RAPIDE D'ABORD. Elle rend `null` quand elle refuse de repondre, et jamais
+       un tableau vide par defaut : « je ne sais pas » et « il n'y a rien » ne doivent pas
+       se ressembler ici, c'est toute la difference entre une ouverture rapide et une base
+       tronquee en silence. */
+    const depuis = lireRepere();
+    if(depuis){
+      const rapide = await tirerDepuis(depuis, surProgres);
+      if(rapide){ TIRAGE_ABOUTI = true; return rapide; }
+    }
+
     if(typeof dejaLa === 'number' && dejaLa >= 0){
       const distant = await compterVentes();
-      if(distant != null && distant === dejaLa) return [];
+      if(distant != null && distant === dejaLa){ TIRAGE_ABOUTI = true; return []; }
     }
 
     const sorties = [];
     let apres = null;                 // l'empreinte de la derniere ligne recue
+    let plusRecente = null;           // la date de mise a jour la plus haute rencontree
     for(;;){
       const borne = (apres == null) ? '' : '&empreinte=gt.' + encodeURIComponent(apres);
       const page = await BdvCompte.api(
-        '/ventes?select=empreinte,brut&order=empreinte.asc&limit=' + PAGE + borne + auBureau());
+        '/ventes?select=empreinte,brut,maj_le&order=empreinte.asc&limit=' + PAGE + borne + auBureau());
       if(!page || !page.length) break;
-      page.forEach(function(l){ sorties.push({ h: l.empreinte, raw: l.brut }); });
+      page.forEach(function(l){
+        sorties.push({ h: l.empreinte, raw: l.brut });
+        if(l.maj_le && (plusRecente == null || l.maj_le > plusRecente)) plusRecente = l.maj_le;
+      });
       apres = page[page.length - 1].empreinte;
       if(surProgres) surProgres(sorties.length);
     }
+    /* Le repere ne se pose qu'apres une boucle ALLEE JUSQU'AU BOUT, donc apres la page
+       vide qui la termine. Le poser au fil des pages ferait qu'un reseau coupe au milieu
+       laisserait un repere en avance sur une base incomplete, et les lignes manquantes ne
+       redescendraient plus jamais. Et il ne se pose pas du tout si le serveur n'a rendu
+       aucune date : une colonne absente est un doute, pas un zero. */
+    if(plusRecente){ poserRepere(plusRecente); TIRAGE_ABOUTI = true; }
     return sorties;
+  }
+
+  /* Ce qui a change depuis le repere, et rien d'autre. Rend `null` des qu'un doute
+     apparait, et l'appelant retombe alors sur le rapatriement complet.
+
+     LE CURSEUR EST EN `gte.` ET NON EN `gt.`, ET C'EST VOULU. Un lot d'import ecrit ses
+     500 lignes dans UNE transaction, donc toutes portent exactement la meme date, celle
+     du debut de la transaction. Une borne stricte sur cette date sauterait la fin du
+     groupe des qu'une page tombe au milieu. La borne large rend donc quelques lignes deja
+     connues, ce qui ne coute rien, dbAddMany les reconnait a leur empreinte.
+
+     LA SORTIE DE BOUCLE NE CHANGE PAS NON PLUS : on s'arrete sur une page VIDE, jamais
+     sur une page plus courte que demandee, meme raison qu'au-dessus. S'y ajoute le seul
+     garde-fou propre a la borne large : une page pleine qui n'apporte AUCUNE ligne neuve
+     et ne fait pas avancer la date voudrait dire qu'un groupe de lignes de meme date est
+     plus gros qu'une page. On ne devine pas ce que ca donnerait, on rend `null`. */
+  async function tirerDepuis(depuis, surProgres){
+    const t = Date.parse(depuis);
+    if(!(t > 0)) return null;
+    const borne = new Date(t - MARGE_MS).toISOString();
+
+    const combien = await compterDepuis(borne);
+    if(combien == null) return null;      // compteur illisible : doute, donc tout
+    if(combien === 0) return [];          // UNE requete pour toute l'ouverture
+
+    const sorties = [];
+    const vues = new Set();
+    let curseur = borne, plusRecente = depuis;
+    for(;;){
+      const page = await BdvCompte.api('/ventes?select=empreinte,brut,maj_le&maj_le=gte.'
+        + encodeURIComponent(curseur) + '&order=maj_le.asc,empreinte.asc&limit=' + PAGE + auBureau());
+      if(!page || !page.length) break;
+      let neuves = 0;
+      let derniere = curseur;
+      for(let i = 0; i < page.length; i++){
+        const l = page[i];
+        if(!l.maj_le) return null;        // une ligne sans date : on ne sait plus ou on en est
+        if(!vues.has(l.empreinte)){ vues.add(l.empreinte); sorties.push({ h: l.empreinte, raw: l.brut }); neuves++; }
+        if(l.maj_le > derniere) derniere = l.maj_le;
+        if(l.maj_le > plusRecente) plusRecente = l.maj_le;
+      }
+      if(surProgres) surProgres(sorties.length);
+      if(derniere === curseur && !neuves) break;
+      if(derniere === curseur) return null;   // le curseur n'avance pas : voir l'en-tete
+      curseur = derniere;
+    }
+    poserRepere(plusRecente);
+    return sorties;
+  }
+
+  /* Combien de lignes ont bouge depuis la borne. Meme mecanique que compterVentes() :
+     l'en-tete Content-Range, donc pas un octet de donnees. C'est cette requete, et elle
+     seule, qui remplace les 174 d'avant les jours ou rien n'a change. */
+  async function compterDepuis(borne){
+    if(!pret() || !BdvCompte.compter) return null;
+    return await BdvCompte.compter('/ventes?select=empreinte&maj_le=gte.'
+      + encodeURIComponent(borne) + auBureau());
   }
 
   // Envoie des lignes {h, raw}. Les doublons sont ignores par le serveur grace a la cle
@@ -177,12 +328,36 @@
     let envoyees = 0, echecs = 0;
     for(let i = 0; i < uniques.length; i += LOT){
       const lot = uniques.slice(i, i + LOT).map(function(it){
-        return { bureau: bureau, empreinte: it.h, brut: it.raw, maj_le: new Date().toISOString() };
+        /* PLUS DE `maj_le` ICI, 17/09/2026. C'etait l'horloge du navigateur qui datait
+           les lignes du serveur. Le declencheur `ventes_maj_le_serveur` la pose
+           desormais, et il ne bouge la date que si `brut` a VRAIMENT change : sans
+           cette derniere condition, reimporter deux fois le meme export redaterait
+           les 171 569 lignes et ferait tout redescendre a l'ouverture suivante. */
+        return { bureau: bureau, empreinte: it.h, brut: it.raw };
       });
       const r = await envoyerAvecReprise(lot);
       envoyees += r.envoyees;
       echecs   += r.echecs;
       if(surProgres) surProgres(Math.min(i + LOT, uniques.length), uniques.length);
+    }
+    /* RECALER LE REPERE, SOUS UNE SEULE CONDITION. Les lignes qu'on vient d'envoyer
+       portent une date toute neuve : sans ce recalage, la prochaine ouverture les
+       redemanderait toutes, et l'import d'un gros export ramenerait exactement la minute
+       d'attente que ce chantier supprime.
+
+       La condition, c'est `TIRAGE_ABOUTI` : on n'avance le repere que si un rapatriement
+       a abouti dans cette session. Avancer sans avoir lu sauterait les lignes qu'un autre
+       poste du bureau aurait deposees entre-temps, et elles ne redescendraient plus
+       jamais. Sans tirage prealable on ne touche a rien : ca coute un rapatriement de
+       trop, ce qui est le mauvais cote ou se tromper, et c'est le bon.
+
+       La date vient du SERVEUR, jamais d'ici : c'est tout l'objet de la bascule du
+       17/09/2026, et se recaler sur l'horloge locale la defairait en trois lignes. */
+    if(envoyees && TIRAGE_ABOUTI){
+      try{
+        const der = await BdvCompte.api('/ventes?select=maj_le&order=maj_le.desc&limit=1' + auBureau());
+        if(der && der.length && der[0].maj_le) poserRepere(der[0].maj_le);
+      }catch(e){ /* tant pis : on relira tout une fois, on ne sautera rien */ }
     }
     return { envoyees: envoyees, echecs: echecs, doublons: doublons };
   }
@@ -408,6 +583,10 @@
     try{
       await BdvCompte.api('/rpc/vider_la_base_du_bureau', {
         methode: 'POST', corps: { b: BdvCompte.monBureau() } });
+      /* Le repere part avec les lignes. S'il restait, il annoncerait « rien de neuf » sur
+         une base a zero ligne, plus rien ne redescendrait, et le vigneron qui a vide par
+         erreur n'aurait aucun moyen de recuperer depuis un autre poste. */
+      oublierRepere();
       return true;
     }catch(e){ return false; }
   }
@@ -426,6 +605,7 @@
     lireEchanges: lireEchanges,
     ecrireEchange: ecrireEchange,
     supprimerEchange: supprimerEchange,
-    effacerTout: effacerTout
+    effacerTout: effacerTout,
+    oublierRepere: oublierRepere
   };
 })();
