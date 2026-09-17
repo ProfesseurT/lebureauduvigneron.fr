@@ -60,11 +60,10 @@ language sql stable security invoker parallel safe
 set search_path = ''
 as $$
 with x as materialized (
-  select max(ex_annee) as cur, count(*) as lignes
-    from public.v_ventes where bureau = b
+  select max(ex_annee) as cur, count(*) as lignes from public.v_ventes where bureau = b
 ),
 d as materialized (
-  select v.ex_annee, v.ex_mois, v.ex_pos, v.total_ht, v.qte, v.client_cle, v.num_facture
+  select v.ex_annee, v.ex_mois, v.ex_pos, v.le_jour, v.total_ht, v.qte, v.client_cle, v.num_facture
     from public.v_ventes v, x
    where v.bureau = b and v.est_vente and v.ex_annee between x.cur - 1 and x.cur
 ),
@@ -75,47 +74,83 @@ c as (
          count(distinct num_facture) filter (where num_facture <> '') as factures
     from d, x where d.ex_annee = x.cur
 ),
+/* Le JOUR de coupe, pour la phrase « Au 31/08/2026 : ... ». C'est la date de la ligne
+   qui porte le `ex_pos` le plus avance, pas le maximum des dates : sur un exercice a
+   cheval, la ligne la plus avancee DANS l'exercice peut etre anterieure en calendrier. */
+j as (
+  select max(le_jour) as jour from d, x, c where d.ex_annee = x.cur and d.ex_pos = c.cut_pos
+),
 p as (
   select sum(total_ht) filter (where d.ex_mois <= c.max_m) as prev_ytd,
          sum(total_ht) as prev_full,
-         sum(total_ht) filter (where d.ex_pos <= c.cut_pos) as prev_coupe
+         sum(total_ht) filter (where d.ex_pos <= c.cut_pos) as prev_coupe,
+         sum(qte)      filter (where d.ex_pos <= c.cut_pos) as prev_qte
     from d, x, c where d.ex_annee = x.cur - 1
 ),
 cc as (
-  select sum(total_ht) as cur_coupe
+  select sum(total_ht) as cur_coupe, sum(qte) as cur_qte
     from d, x, c where d.ex_annee = x.cur and d.ex_pos <= c.cut_pos
 ),
 mm as (
   select d.ex_mois, round(sum(d.total_ht)) as v
     from d, x where d.ex_annee = x.cur and d.ex_mois between 1 and 12 group by 1
 ),
+mp as (
+  select d.ex_mois, round(sum(d.total_ht)) as v
+    from d, x where d.ex_annee = x.cur - 1 and d.ex_mois between 1 and 12 group by 1
+),
 m as (
   select jsonb_agg(coalesce(mm.v, 0) order by g.i) as mois
     from generate_series(1,12) g(i) left join mm on mm.ex_mois = g.i
 ),
-r as (select exercice_debut, objectif from public.reglages where bureau = b)
+mpr as (
+  select jsonb_agg(coalesce(mp.v, 0) order by g.i) as mois
+    from generate_series(1,12) g(i) left join mp on mp.ex_mois = g.i
+),
+r as (select exercice_debut, objectif from public.reglages where bureau = b),
+/* LES DEUX PROJECTIONS, NOMMEES, PARCE QU'ELLES SERVENT QUATRE FOIS. `sai` est nulle
+   quand l'exercice precedent n'a rien encaisse sur les mois connus : c'est ELLE, et
+   pas « un exercice precedent existe en base », qui decide de la methode. La meme
+   regle est ecrite dans computeAtterrissage() cote navigateur, et scripts/
+   banc-cap-serveur.mjs compare les deux sorties champ par champ. */
+lin as (select case when c.max_m > 0 then c.done * 12.0 / c.max_m end as v from c),
+sai as (select case when p.prev_ytd > 0 then c.done / p.prev_ytd * p.prev_full end as v from c, p)
 select jsonb_build_object(
   'exercice', case when coalesce(r.exercice_debut,1) = 1 then x.cur::text
                    else x.cur::text || '/' || (x.cur + 1)::text end,
-  'exerciceNum', x.cur, 'moisDebut', coalesce(r.exercice_debut, 1),
-  'mois', m.mois, 'dernierMois', nullif(c.max_m, 0),
+  'exerciceNum', x.cur, 'precedentNum', x.cur - 1,
+  'moisDebut', coalesce(r.exercice_debut, 1),
+  'mois', m.mois, 'moisPrecedent', mpr.mois, 'dernierMois', nullif(c.max_m, 0),
   'ca', round(c.done), 'bouteilles', round(c.btl, 3),
   'clients', c.clients, 'factures', c.factures,
   'panier', case when c.factures > 0 then round(c.done / c.factures) end,
   'lignes', x.lignes,
+  'coupeJour', to_char(j.jour, 'DD/MM/YYYY'),
+  'coupePos', c.cut_pos,
+  'caCoupe', round(cc.cur_coupe), 'caCoupePrecedent', round(p.prev_coupe),
+  'qteCoupe', round(cc.cur_qte, 3), 'qteCoupePrecedent', round(p.prev_qte, 3),
   'variation', case when p.prev_coupe <> 0
                     then round((cc.cur_coupe - p.prev_coupe) / abs(p.prev_coupe) * 100, 1) end,
   'variationEuros', case when p.prev_coupe is not null then round(cc.cur_coupe - p.prev_coupe) end,
   'objectif', r.objectif,
   'objectifPct', case when r.objectif > 0 then round(c.done / r.objectif * 100) end,
   'complet', c.max_m >= 12,
-  'atterrissage', case when c.max_m >= 12 then null
-                       when p.prev_ytd > 0 then round(c.done / p.prev_ytd * p.prev_full)
-                       when c.max_m > 0 then round(c.done * 12.0 / c.max_m) end,
-  'projectionLineaire', case when c.max_m > 0 then round(c.done * 12.0 / c.max_m) end,
-  'methode', case when p.prev_ytd > 0 then 'saison' else 'lineaire' end
+  'atterrissage', case when c.max_m >= 12 then null else round(coalesce(sai.v, lin.v)) end,
+  /* EN LINEAIRE, LE BAS DE LA FOURCHETTE EST LE REALISE, PAS LA PROJECTION. Une
+     fourchette « 1 456 438 a 1 456 438 » n'informe de rien ; « ce qui est deja
+     encaisse a la projection » dit quelque chose de vrai : au pire, l'exercice
+     finit ou il en est. Le navigateur l'ecrivait deja ainsi, le serveur repondait
+     deux fois la projection : c'etait le seul ecart de rendu entre les deux cotes. */
+  'bas',  case when c.max_m >= 12 then null
+               when sai.v is not null then round(least(sai.v, lin.v))
+               else round(c.done) end,
+  'haut', case when c.max_m >= 12 then null
+               when sai.v is not null then round(greatest(sai.v, lin.v))
+               else round(lin.v) end,
+  'projectionLineaire', round(lin.v),
+  'methode', case when sai.v is not null then 'saison' else 'lineaire' end
 )
-from x, c, p, cc, m, r;
+from x, c, p, cc, m, mpr, r, j, lin, sai;
 $$;
 
 revoke all on function public.cap_resume(uuid) from anon, authenticated, public;

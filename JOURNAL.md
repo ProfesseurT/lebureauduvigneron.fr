@@ -12,6 +12,74 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, soir. « Mon cap » branché, et les deux écarts que le contrôle vert cachait
+
+### Le branchement
+
+`renderCap()` lit maintenant `capCadre()` et `capAtterrissage()`, qui rendent **la même
+forme** selon que le serveur a répondu ou non. L'appel part **en parallèle** du rapatriement
+des ventes, dans `demarrerEcransVente()` : il ne dépend de rien qui soit dans le navigateur,
+il n'a aucune raison d'attendre son tour.
+
+Le calcul local **n'est pas supprimé**, il devient le repli. Un serveur qui tousse ne vide
+pas l'écran.
+
+### Ce que treize champs verts ne disaient pas
+
+`v_cap_controle` rendait zéro ligne, et j'en ai conclu que les deux côtés étaient d'accord.
+Ils ne l'étaient pas. La vue ne compare **que les treize champs que le navigateur dépose**,
+et ni `bas`, ni `haut`, ni `methode` n'en font partie. En branchant, deux divergences sont
+sorties, toutes les deux visibles à l'écran :
+
+1. **La fourchette d'atterrissage en projection linéaire.** Le navigateur écrivait
+   « fourchette [déjà réalisé] à [projection] » ; le serveur rendait deux fois la
+   projection, donc une fourchette d'un seul point. Le navigateur avait raison : au pire,
+   l'exercice finit où il en est. Serveur corrigé.
+2. **Le nom de la méthode sous la fourchette.** Le navigateur annonçait « calé sur la
+   saisonnalité de 2025 » dès qu'un exercice précédent existait en base, même à zéro sur
+   les mois connus, auquel cas le chiffre affiché était linéaire. Navigateur corrigé.
+
+**La leçon est celle du lot 22, reçue une deuxième fois : un contrôle ne prouve que ce
+qu'il compare.** Un tableau tout vert m'a fait croire à un accord complet alors qu'il
+portait sur les trois quarts du sujet.
+
+### Le fichier du dépôt ne disait plus ce que la base faisait
+
+En allant vérifier `bas` et `haut`, j'ai trouvé que `supabase/lot24-mon-cap.sql` **était en
+retard sur la fonction réellement installée** : j'avais étendu `cap_resume()` en base
+(jour de coupe, exercice précédent, quantités, fourchette) sans réécrire le fichier.
+Personne n'aurait pu reconstruire la base à partir du dépôt. Remis d'aplomb, les deux textes
+sont maintenant identiques. **Une fonction modifiée en base et pas dans le dépôt, c'est un
+dépôt qui ment.**
+
+### La péremption, posée à un seul endroit
+
+Un résumé d'avant l'import afficherait un chiffre périmé **avec l'autorité d'un chiffre de
+serveur**. Les trois réglages qui changent ce que le serveur calcule passent tous par
+`syncUneColonne()` : la péremption est là, une fois, plutôt qu'à six endroits d'où elle
+finirait par manquer au septième.
+
+Et elle **attend l'écriture** avant de redemander : redemander avant que le nouveau
+classement soit en base, c'est se faire recalculer l'ancien et le ranger comme s'il était
+neuf. La mise à null, elle, est immédiate, donc entre le geste et la réponse l'écran calcule
+en local. Se tromper du bon côté.
+
+### Ce que ça ne fait pas
+
+**Ça ne supprime toujours pas l'attente.** Quatre choses de « Mon cap » lisent encore
+`ROWS` : les compteurs de la période affichée, les signaux, la courbe de tendance et la
+décomposition prix/volume. Ouvrir « Mon cap » charge encore la base. Ce lot prouve la
+chaîne de bout en bout, il ne fait pas gagner de seconde.
+
+### Le banc
+
+`scripts/banc-cap-serveur.mjs`, 33 contrôles. Il peint le panneau deux fois, en local et
+avec la même vérité mise en forme comme le serveur la rend, et exige **le même HTML au
+caractère près**. Vérifié par mutation : en inversant `bas` et `haut`, trois contrôles
+tombent. Un banc qui ne peut pas échouer ne vaut rien.
+
+---
+
 ## 17/09/2026, fin d'après-midi. « Mon cap » : treize chiffres sur treize
 
 ### Le test que je cherchais était déjà dans la base

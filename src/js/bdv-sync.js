@@ -368,6 +368,28 @@
     return await BdvCompte.compter('/ventes?select=empreinte' + auBureau());
   }
 
+  /* ====================== LES CHIFFRES DE « MON CAP » ======================
+     Lot 24, 17/09/2026. Le serveur rend en UN appel ce que l'ecran calculait sur
+     171 569 lignes : chiffre d'affaires de l'exercice, comparaison a date egale,
+     atterrissage, series mensuelles, panier, clients, factures.
+
+     PROUVE AVANT D'ETRE BRANCHE. `v_cap_controle` compare, champ par champ, ce que
+     rend cette fonction et ce que le NAVIGATEUR a depose dans `reglages.resume_ventes`
+     a son dernier import. Treize champs sur treize identiques le 17/09/2026, sur la
+     vraie base. Le jour ou un champ diverge, l'ecran doit reprendre son calcul local,
+     pas afficher le chiffre du serveur.
+
+     Rend `null` en cas d'echec, comme tout ce fichier : l'appelant retombe alors sur
+     son calcul local, et personne ne voit un ecran vide. */
+  async function capResume(){
+    if(!pret()) return null;
+    try{
+      const r = await BdvCompte.api('/rpc/cap_resume', {
+        methode: 'POST', corps: { b: BdvCompte.monBureau() } });
+      return (r && typeof r === 'object' && !Array.isArray(r)) ? r : null;
+    }catch(e){ return null; }
+  }
+
   /* ============================== LES REGLAGES ============================== */
   // Un seul enregistrement par vigneron. Remplace bdv_objectif_v5, bdv_exercice_v1,
   // bdv_persolabels_v4 et le classement de l'ecran Reglages, qui vivaient dans le
@@ -596,6 +618,7 @@
     tirerVentes: tirerVentes,
     pousserVentes: pousserVentes,
     compterVentes: compterVentes,
+    capResume: capResume,
     lireReglages: lireReglages,
     ecrireReglages: ecrireReglages,
     lireSuivi: lireSuivi,

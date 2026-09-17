@@ -768,11 +768,26 @@ function computeAtterrissage(){
   if(maxM>=12)return{cur,complete:true,total:done};
   const prev=cur-1,hasPrev=xs.includes(prev);
   const linear=maxM?done*(12/maxM):done;
+  /* LA REGLE, ECRITE UNE FOIS ET TENUE DES DEUX COTES, 17/09/2026. Elle est la meme
+     mot pour mot dans `cap_resume()` cote serveur, et le banc du lot 24 compare les
+     deux sorties : c'est la seule facon qu'un ecran serve le meme chiffre selon qui
+     l'a calcule.
+
+       methode  « saison » des que l'exercice precedent a du chiffre A DATE EGALE.
+                Avoir un exercice precedent EN BASE ne suffit pas : s'il est a zero
+                sur les mois connus, la saisonnalite n'existe pas et la projection
+                est lineaire. Jusqu'a ce jour le navigateur disait quand meme
+                « cale sur la saisonnalite de 2025 » sous un chiffre qui ne l'etait
+                pas : une note qui ment sur sa methode est pire que pas de note.
+       fourchette  en saison, les deux projections encadrent. En lineaire, le bas
+                n'est PAS la projection elle-meme (une fourchette d'un seul point
+                n'informe de rien) mais le REALISE : au pire, l'exercice finit ou
+                il en est. */
+  const prevYTD=hasPrev?sum(ROWS.filter(r=>r._vin&&r._exY===prev&&r._exM<=maxM),r=>r._total):0;
   let central,low,high,method;
-  if(hasPrev){
-    const prevYTD=sum(ROWS.filter(r=>r._vin&&r._exY===prev&&r._exM<=maxM),r=>r._total);
+  if(prevYTD>0){
     const prevFull=sum(ROWS.filter(r=>r._vin&&r._exY===prev),r=>r._total);
-    const seasonal=prevYTD>0?done/prevYTD*prevFull:linear;
+    const seasonal=done/prevYTD*prevFull;
     central=seasonal;low=Math.min(seasonal,linear);high=Math.max(seasonal,linear);method='saison';
   }else{central=linear;low=done;high=linear;method='lineaire';}
   return{cur,complete:false,months:maxM,done,central,low,high,method};
@@ -1106,6 +1121,81 @@ function diagnosticSignals(){
    atterrissage, ecart a l'objectif. « Sur la periode affichee » porte ceux de la selection
    en cours. Les melanger, c'etait laisser croire qu'un filtre change l'atterrissage.
    ============================================================================== */
+/* ================= LES CHIFFRES DE « MON CAP » VIENNENT DU SERVEUR =================
+   Lot 24, 17/09/2026, premier ecran du chantier « le calcul remonte au serveur ».
+
+   UN SEUL RENDU, DEUX SOURCES POSSIBLES, ET LE SERVEUR GAGNE. `renderCap()` n'a pas
+   ete dedouble : ce serait deux endroits qui repondent « ou en est mon exercice », et
+   ils divergeraient au premier ajustement. Les deux fonctions ci-dessous rendent la
+   MEME forme d'objet, remplie par `cap_resume()` quand il a repondu, et par le calcul
+   local sinon. L'ecran ne sait pas laquelle l'a servi, et c'est voulu.
+
+   POURQUOI LE LOCAL RESTE. Un serveur qui tousse ne doit pas vider l'ecran : c'est la
+   regle de tout ce depot. Le calcul local n'est donc PAS supprime, il devient le
+   repli. Il disparaitra quand les cinq ecrans seront passes et que plus personne ne
+   chargera les lignes.
+
+   CE QUI N'EST PAS ENCORE SERVI PAR LE SERVEUR, et qui lit donc toujours ROWS : les
+   compteurs « sur la periode affichee » (la barre de periode est un reglage d'ecran
+   que le serveur ne connait pas), les signaux du diagnostic, la courbe de tendance et
+   la decomposition prix/volume. Tant que ces quatre-la sont locaux, ouvrir « Mon cap »
+   charge encore la base : ce lot prouve la chaine, il ne supprime pas encore l'attente. */
+let CAP = null;
+function capPoser(x){ CAP = (x && typeof x === 'object') ? x : null; }
+
+/* Le cadre de la comparaison a date egale. Meme forme que `yoyFrame()` + `yoyTotals()`
+   reunis, parce que l'ecran a toujours besoin des deux ensemble. */
+/* LE RESUME SE REDEMANDE DES QUE LA BASE OU LES REGLAGES BOUGENT, et en attendant il
+   est MIS A NULL, pas garde. Un resume d'avant l'import afficherait un chiffre
+   d'affaires perime avec l'autorite d'un chiffre de serveur ; a null, l'ecran retombe
+   sur son calcul local, qui lui est a jour. Se tromper du bon cote. */
+/* `apres` EST LA MOITIE QUI COMPTE. Le resume est calcule PAR LE SERVEUR, a partir de
+   `reglages.classement` et de `reglages.exercice_debut` : le redemander avant que le
+   nouveau classement soit arrive en base, c'est se faire recalculer l'ANCIEN et le
+   ranger comme s'il etait neuf. Les ecritures de reglages ne sont pas attendues par
+   leurs appelants (`syncUneColonne` part sans await, expres : un reglage ne doit pas
+   faire patienter l'ecran), donc c'est ici qu'on attend. La mise a null, elle, est
+   immediate : entre le geste et la reponse du serveur, l'ecran calcule en local. */
+function capRafraichir(apres){
+  capPoser(null);
+  if(!(window.BdvSync && BdvSync.capResume)) return Promise.resolve(null);
+  const attendre = (apres && typeof apres.then === 'function')
+    ? apres.catch(function(){ return null; })
+    : Promise.resolve(null);
+  return attendre.then(function(){ return BdvSync.capResume(); })
+                 .then(function(x){ capPoser(x); return x; })
+                 .catch(function(){ return null; });
+}
+window.bdvCapRafraichir = capRafraichir;
+
+function capCadre(){
+  if(CAP && CAP.exerciceNum != null && CAP.caCoupePrecedent != null){
+    return { cur: CAP.exerciceNum, prev: CAP.precedentNum,
+             curW: Number(CAP.caCoupe), prevW: Number(CAP.caCoupePrecedent),
+             d: (CAP.variation == null) ? null : Number(CAP.variation),
+             jour: CAP.coupeJour || '', serveur: true };
+  }
+  const f = yoyFrame(); if(!f) return null;
+  const y = yoyTotals(); if(!y) return null;
+  return { cur: f.cur, prev: f.prev, curW: y.cur, prevW: y.prev, d: y.d,
+           jour: fmtDate(f.cutDate), serveur: false };
+}
+
+/* L'atterrissage. `complete` veut dire « exercice clos », et dans ce cas `total` porte
+   le chiffre definitif : ce sont deux affichages differents, pas deux valeurs du meme. */
+function capAtterrissage(){
+  if(CAP && CAP.exerciceNum != null){
+    if(CAP.complet) return { cur: CAP.exerciceNum, complete: true, total: Number(CAP.ca), serveur: true };
+    return { cur: CAP.exerciceNum, complete: false, months: CAP.dernierMois,
+             done: Number(CAP.ca), central: Number(CAP.atterrissage),
+             low: Number(CAP.bas), high: Number(CAP.haut),
+             method: CAP.methode, serveur: true };
+  }
+  const at = computeAtterrissage();
+  if(at) at.serveur = false;
+  return at;
+}
+
 function renderCap(){
   const p=el('p-diagnostic');if(!p)return;
   const rows=vinRows();
@@ -1115,7 +1205,7 @@ function renderCap(){
   const clients=new Set(rows.map(r=>clientKey(r))).size;
   const panier=factures?ca/factures:0;
   const scope=libellePerimetre();
-  const f=yoyFrame(),at=computeAtterrissage(),yt=yoyTotals();
+  const f=capCadre(),at=capAtterrissage(),yt=yoyTotals();
 
   let html=`<h2 class="panel__title">Mon cap</h2><div class="panel__sub">Où tu en es, où tu finis ton ${exMot()}, et pourquoi. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
 
@@ -1134,14 +1224,15 @@ function renderCap(){
      montants. Le bandeau gagne : il dit en plus les deux totaux et l'atterrissage, et il
      se lit d'un coup d'oeil. Le compteur a ete retire de la grille. */
   if(f){
-    const curW=sum(ROWS.filter(r=>r._vin&&r._exY===f.cur&&avantCoupe(r,f.cutPos)),r=>r._total);
-    const prevW=sum(ROWS.filter(r=>r._vin&&r._exY===f.prev&&avantCoupe(r,f.cutPos)),r=>r._total);
-    const d=prevW?(curW-prevW)/Math.abs(prevW)*100:null;
+    /* Les trois valeurs viennent de `capCadre()`, donc du serveur quand il a repondu.
+       Elles etaient recalculees ici alors que `yoyTotals()` les avait deja : un
+       troisieme endroit qui disait l'evolution, apres les deux fusionnes le 11/09. */
+    const curW=f.curW, prevW=f.prevW, d=f.d;
     const cls=d==null?'':(d>=0?'up':'down');
     html+=`<div class="hero">
       <div class="hero__label">Où en est ton ${exMot()}, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date</div>
       <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
-      <div class="hero__sub">Au ${fmtDate(f.cutDate)} : ${fmtMoney(curW)} ${exCe()} contre ${fmtMoney(prevW)} le précédent au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
+      <div class="hero__sub">Au ${f.jour} : ${fmtMoney(curW)} ${exCe()} contre ${fmtMoney(prevW)} le précédent au même jour.${(at&&!at.complete)?' Atterrissage estimé '+fmtMoney(at.central)+'.':''} ${incompleteNote()}</div>
     </div>`;
     if(plageLibre())html+=`<p class="note" style="margin:-.7rem 0 1.1rem">Ce comparatif reste calé sur ${exLabel(f.cur)} contre ${exLabel(f.prev)}, <b>pas sur la plage de dates choisie</b> : une plage quelconque n'a pas de période précédente équivalente. Les compteurs et la courbe ci-dessous, eux, suivent bien ta plage.</p>`;
   }
@@ -3031,8 +3122,15 @@ async function demarrerEcransVente(depart, dire){
   // lirait « aucune ligne en base » une seconde avant que ses lignes n'apparaissent.
   // Attendu, contrairement aux poussees : ici l'affichage depend du resultat.
   dire('Récupération de tes ventes…');
+  /* L'appel au serveur part AVANT le travail local et n'est attendu qu'apres : il dure
+     une seconde, la derivation locale en dure deux, et les deux se recouvrent. Attendre
+     l'un puis l'autre ajouterait une seconde a l'ouverture pour rien. */
+  const capEnRoute = (window.BdvSync && BdvSync.capResume)
+    ? BdvSync.capResume().catch(function(){ return null; })
+    : Promise.resolve(null);
   await tirerDuServeur();
   await reloadFromDB(dire);
+  capPoser(await capEnRoute);
   dire('Dessin de tes écrans…');
   // Le panneau est branche AU DEMARRAGE, et pas seulement quand on l'ouvre : le bouton
   // « Me deconnecter » de la barre du haut y prend son garde-fou. Sans cette ligne il

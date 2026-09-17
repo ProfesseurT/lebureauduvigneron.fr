@@ -1594,12 +1594,70 @@ construire la serie mensuelle un mois a la fois : **3 755 ms**. Les deux exercic
 sont materialises UNE fois et tout en sort : **1 141 ms**. Sans `as materialized`, Postgres
 replonge dans la table a chaque usage du CTE et on revient au point de depart.
 
+### LE BRANCHEMENT, MEME JOUR
+
+`BdvSync.capResume()` appelle la fonction, `demarrerEcransVente()` la lance **en parallele**
+du rapatriement des ventes (elle ne depend de rien qui soit dans le navigateur), et
+`renderCap()` lit `capCadre()` / `capAtterrissage()`, qui rendent **la meme forme** que le
+serveur ait repondu ou non.
+
+**LE CALCUL LOCAL N'EST PAS SUPPRIME, IL DEVIENT LE REPLI.** Un serveur qui tousse ne doit
+pas vider l'ecran : c'est la regle de tout le depot. Les deux fonctions posent `serveur:
+true` ou `false` pour que le prochain lot sache ce qu'il regarde.
+
+#### Les deux ecarts trouves EN BRANCHANT, pas avant
+
+Le controle `v_cap_controle` rendait deja zero ligne : il ne compare **que les treize
+champs que le navigateur depose**, et ni `bas`, ni `haut`, ni `methode` n'en font partie.
+Les deux cotes divergeaient donc en silence sur ce qui s'affiche sous la fourchette.
+
+1. **La fourchette en projection lineaire.** Le navigateur ecrivait « du realise a la
+   projection » ; le serveur rendait deux fois la projection, soit une fourchette d'un
+   seul point, qui n'informe de rien. Le navigateur avait raison : au pire, l'exercice
+   finit ou il en est. **Serveur corrige.**
+2. **Le nom de la methode.** Le navigateur disait « cale sur la saisonnalite de 2025 » des
+   qu'un exercice precedent existait EN BASE, meme s'il etait a zero sur les mois connus,
+   auquel cas le chiffre affiche etait lineaire. **Une note qui ment sur sa methode est
+   pire que pas de note. Navigateur corrige.** La regle tenue des deux cotes : la methode
+   est « saison » quand l'exercice precedent a du chiffre A DATE EGALE, pas quand il
+   existe.
+
+La lecon est la meme qu'au lot 22 : **un controle ne prouve que ce qu'il compare.** Treize
+champs verts ne disaient rien des trois autres.
+
+#### La peremption : un seul point de passage
+
+Un resume d'avant l'import afficherait un chiffre perime **avec l'autorite d'un chiffre de
+serveur**, et l'ecran ne pourrait plus se corriger tout seul : il croirait savoir. Trois
+reglages changent ce que le serveur calcule (`classement` decide de `est_vente`,
+`exercice_debut` decide de `ex_annee` et `ex_pos`, `objectif` sort tel quel), et **tous
+passent par `syncUneColonne()`** : la peremption est posee la, une fois, plutot qu'a six
+endroits d'ou elle manquerait au septieme. `handleFiles()`, `adopterObjectif()`,
+`adopterExercice()` et `viderBase()` l'appellent en plus, parce qu'elles ne passent pas par
+la.
+
+`capRafraichir(apres)` met le resume **a null tout de suite** et n'en redemande un
+qu'apres l'ecriture. Les deux moities comptent : sans la premiere, on garde un faux
+chiffre en attendant ; sans la seconde, on fait recalculer l'ANCIEN classement et on le
+range comme s'il etait neuf.
+
+#### Le banc
+
+`scripts/banc-cap-serveur.mjs`, 33 controles. Le controle central peint « Mon cap » deux
+fois, une fois en local et une fois avec la meme verite mise en forme comme le serveur la
+rend, et exige **le meme HTML au caractere pres**. Il prouve la TRADUCTION (un champ mal
+nomme, une unite prise pour une autre, un `bas` et un `haut` inverses) ; il ne prouve pas
+que le SQL calcule les memes nombres, ca reste le travail de `v_cap_controle`. Un banc en
+jsdom n'a pas de Postgres.
+
 ### CE QUI N'EST PAS FAIT
 
-**Le navigateur ne l'appelle pas encore.** `cap_resume()` est prouvee, elle n'est branchee
-nulle part : `renderCap()` calcule toujours tout en local. Tant que ce branchement n'est pas
-fait, ce lot ne fait gagner aucune seconde a Ted. Ne pas le brancher sans que
-`v_cap_controle` soit vide.
+**Ce lot ne supprime pas encore l'attente.** Quatre choses de « Mon cap » lisent toujours
+`ROWS` : les compteurs « sur la periode affichee » (la barre de periode est un reglage
+d'ecran que le serveur ne connait pas), les signaux du diagnostic, la courbe de tendance et
+la decomposition prix/volume. Tant que ces quatre-la sont locaux, **ouvrir « Mon cap »
+charge encore la base**. Ce lot prouve la chaine de bout en bout, il ne fait pas encore
+gagner de seconde.
 
 ## LE CALCUL REMONTE AU SERVEUR, 17/09/2026. LOTS 22 ET 23.
 

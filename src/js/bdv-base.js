@@ -270,9 +270,27 @@ async function analyserPourLeBureau(){
 
    NE PAS remettre une fonction qui envoie tout, meme « pour etre sur ». Une cinquieme
    colonne prend sa propre fonction. */
+/* UN SEUL POINT DE PASSAGE POUR PERIMER « MON CAP ». Depuis le lot 24, le resume de
+   l'ecran est calcule par le serveur a partir de `reglages` : `classement` decide de
+   `est_vente`, `exercice_debut` decide de `ex_annee` et `ex_pos`, `objectif` sort tel
+   quel. Changer l'un des trois sans redemander le resume, c'est afficher un chiffre
+   perime AVEC L'AUTORITE D'UN CHIFFRE DE SERVEUR : l'ecran ne peut plus se corriger
+   tout seul, il croit savoir.
+
+   Les trois passent tous par ici, alors la peremption se pose ici, une fois, plutot
+   qu'a six endroits d'ou elle finirait par manquer au septieme. `perso_labels` ne
+   change rien au resume, mais un appel de trop coute une requete et un oubli coute un
+   faux chiffre : le filtre est volontairement large. */
+const CAP_REGLAGES = ['classement', 'exercice_debut', 'objectif'];
+function capPerimer(apres){
+  if(typeof window === 'undefined' || typeof window.bdvCapRafraichir !== 'function') return;
+  window.bdvCapRafraichir(apres);
+}
 function syncUneColonne(champs){
-  if(!syncPret())return;
-  BdvSync.ecrireReglages(champs).catch(function(){});
+  if(!syncPret())return null;
+  const envoi = BdvSync.ecrireReglages(champs).catch(function(){});
+  if(CAP_REGLAGES.some(function(c){ return c in champs; })) capPerimer(envoi);
+  return envoi;
 }
 function syncObjectif(){syncUneColonne({objectif:objectif});}
 function syncExercice(){syncUneColonne({exercice_debut:EX_START});}
@@ -289,6 +307,9 @@ function adopterObjectif(v){
   const n=(v==null||v==='')?null:(Number(v)||null);
   objectif=(n&&n>0)?n:null;
   try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));else localStorage.removeItem(OBJ_KEY);}catch(e){}
+  // Sans promesse a attendre : le panneau n'appelle ces deux fonctions QU'APRES que son
+  // ecriture a abouti. C'est la moitie du chemin que syncUneColonne ne voit pas passer.
+  capPerimer();
   ecranRafraichir();
 }
 function adopterExercice(m){
@@ -302,6 +323,7 @@ function adopterExercice(m){
   if(typeof ROWS!=='undefined'&&ROWS.length)ROWS.forEach(exDeriver);
   filters={ex:null,from:null,to:null,preset:'tous'};
   computeMeta();
+  capPerimer();
   if(typeof buildFilterBar==='function')buildFilterBar();
   ecranRafraichir();
 }
@@ -1068,6 +1090,12 @@ async function handleFiles(list){
     });
     echecsSync=env.echecs;
   }
+  /* LES NOUVELLES LIGNES SONT EN BASE, LE RESUME DU SERVEUR NE LES CONNAIT PAS. Ici on
+     n'attend rien : `pousserVentes` est deja resolu, donc le serveur a de quoi
+     recalculer juste. On n'attend pas la REPONSE non plus, l'import a deja fait
+     patienter assez longtemps ; d'ici l'`ecranRafraichir()` du bas, CAP est a null et
+     l'ecran calcule en local, ce qui est plus lent mais jamais faux. */
+  capPerimer();
   await reloadFromDB();
   const total=ROWS.length;
   const per=META.min&&META.max?(' sur la période '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
@@ -1784,6 +1812,9 @@ async function viderBase(){
      et deux fichiers qui ecrivent la meme cle, c'est un renommage silencieux qui attend son
      heure. Meme regle que « bdv-taches.js est le seul a ecrire dans la table des taches ». */
   if(window.BdvCrm&&BdvCrm.oublier)BdvCrm.oublier();
+  // Un resume de serveur survivant a un vidage afficherait un chiffre d'affaires sur une
+  // base vide, et c'est exactement ce que le vigneron vient de demander de faire partir.
+  capPerimer();
   ROWS=[];computeMeta();
   status('success','Base vidée.');
   ecranRafraichir();
