@@ -12,6 +12,75 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, tard. « Mon commerce » : deux heures de filet avant une ligne de portage
+
+Ted a demandé le plus fiable, même si c'est long à mettre en place. C'était le bon
+arbitrage, et voici ce que la mise en place a révélé avant même d'écrire le portage.
+
+### Le contrôle gratuit n'existait plus
+
+Au lot 24 la comparaison était offerte : le navigateur dépose déjà ses chiffres dans
+`reglages.resume_ventes`. Pour « Mon commerce », **rien n'est déposé**. La règle du
+chantier n'avait plus rien à mordre.
+
+### Et la vraie base ne pouvait pas servir de terrain d'essai
+
+Sa base de facturation est un abonnement mensuel : **1 831 clients sur 1 935 sont venus
+trois fois ou plus**, 63 une seule fois, et **34 seulement sont observables à un an, là où
+le moteur en exige 40**. Elle écrase le moteur en volume, ce qui est précieux, et elle ne
+touche presque aucun des cas où un portage se trompe.
+
+**Porter contre elle, c'est mesurer la justesse d'une balance en pesant toujours le même
+sac.** J'ai donc écrit une base d'essai à l'envers : partir de la liste des pièges connus,
+et donner à chacun son client. Elle est chargée dans un bureau `ZZ-ESSAI-COMMERCE`, invisible
+de ses écrans, et elle passe par le même chemin que ses vraies ventes, déclencheur compris.
+
+Elle ne contient **aucune donnée réelle**, et c'est délibéré : la première idée était de
+tirer un extrait de sa base dans le dépôt, ce qui aurait mis 86 000 lignes de noms de clients
+et de chiffre d'affaires dans git. Écarté.
+
+### Les trois conventions invisibles
+
+Le portage ne bute pas sur la logique, il bute sur trois conventions statistiques que le
+JavaScript ne déclare nulle part :
+
+- `median()` fait la **moyenne des deux valeurs centrales** sur un tableau pair, donc
+  `percentile_cont`, pas `percentile_disc`. Vérifié par mutation : **sept cadences sur
+  douze changent**. C-PAIR-2 passe de 60 jours à 30, C-AVOIR de 185 à **six**. Un client à
+  six jours de cadence est en retard en permanence.
+- `stdev()` divise par **n**, donc `stddev_pop`, pas le `stddev` de Postgres. Trois
+  coefficients changent, un client change de classe. Sur sa vraie base : **trois clients
+  sortent de la liste d'appels**, la perte annoncée bouge de 703 €.
+- les quartiles du premier achat s'écrivent `montants[floor(p·n)]`, qui n'est **ni** l'un
+  **ni** l'autre : `percentile_disc` prend un cran plus bas.
+
+Aucune ne casse rien à l'écran. Même famille que le signe des avoirs.
+
+### La fixture s'est attrapée elle-même, deux fois
+
+Elle n'avait **aucune ligne au jour de référence** : la vente la plus récente tombait trente
+jours plus tôt, donc tous les silences étaient trente jours trop courts et les trois clients
+posés de part et d'autre de leur frontière se retrouvaient du même côté. Et les deux clients
+de la volatilité chutaient trop fort pour distinguer les deux conventions. Corrigés, dont un
+résolu numériquement pour tomber pile entre les deux seuils.
+
+**Une base d'essai qui n'attrape pas ses propres défauts n'attrapera pas ceux du portage.**
+
+### Le résultat
+
+73 clients, 14 champs chacun, **zéro écart** entre le vrai moteur et le SQL, du premier coup
+une fois les conventions posées. Et les trois mutations sont bien attrapées par la
+comparaison.
+
+### Ce que je n'ai pas fait, et pourquoi
+
+**« Premier achat sans suite » n'est pas porté.** Sur la base de Ted il refuse de répondre,
+et il a raison : un taux de retour sur 34 personnes ne dit rien. Je ne peux donc le vérifier
+que sur la base fabriquée. Le porter quand même, ce serait poser à l'écran des taux que
+personne n'a jamais pu confronter au réel.
+
+---
+
 ## 17/09/2026, soir. « Mon cap » branché, et les deux écarts que le contrôle vert cachait
 
 ### Le branchement

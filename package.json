@@ -45,7 +45,9 @@
     "banc:amorce": "node scripts/banc-amorce.mjs",
     "apercu:amorce": "node scripts/apercu-amorce.mjs",
     "banc:volume": "node scripts/banc-volume.mjs",
-    "banc:cap-serveur": "node scripts/banc-cap-serveur.mjs"
+    "banc:cap-serveur": "node scripts/banc-cap-serveur.mjs",
+    "temoin:commerce": "node scripts/temoin-commerce.mjs",
+    "controle:commerce": "node scripts/controle-commerce.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",

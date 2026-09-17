@@ -1549,6 +1549,76 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## « MON COMMERCE » : LE FILET D'ABORD, LOT 25, 17/09/2026
+
+### LE CONTROLE GRATUIT N'EXISTAIT PLUS
+
+Au lot 24, la comparaison etait offerte : le navigateur depose deja ses chiffres dans
+`reglages.resume_ventes`. Pour « Mon commerce », **rien n'est depose**. Aucun chiffre de
+cet ecran ne remonte sur le compte, donc aucune comparaison n'existait, et la regle du
+chantier (« tant qu'une ligne sort du controle, on ne retire aucun calcul du navigateur »)
+n'avait plus rien a mordre.
+
+### ET LA VRAIE BASE NE POUVAIT PAS SERVIR DE TERRAIN D'ESSAI
+
+La base de facturation de Ted est un **abonnement mensuel** : 1 831 clients sur 1 935 sont
+venus trois fois ou plus, 63 une seule fois, et **34 seulement sont observables a un an,
+la ou `agentPremierAchat()` en exige 40**. Elle ecrase le moteur en VOLUME, ce qui est
+precieux, et elle ne touche presque **aucun** des cas ou un portage se trompe : pas de
+client a deux achats en nombre, pas de mediane sur un nombre pair d'intervalles, pas de
+quantile pile sur sa borne.
+
+**Porter contre elle, c'est mesurer la justesse d'une balance en pesant toujours le meme
+sac.**
+
+### LE FILET, EN DEUX MORCEAUX
+
+1. `scripts/fixtures/commerce-cas-limites.mjs` : une base ecrite **a l'envers**. On part de
+   la liste des pieges connus, et chaque client existe pour en toucher un. Chargee dans le
+   bureau `ZZ-ESSAI-COMMERCE` par `supabase/lot25-bureau-essai.sql`, elle passe par le
+   **meme chemin** que les vraies ventes (declencheur, table etroite, `est_vente`,
+   `ex_annee`) : le portage est verifie avec sa derivation, pas seulement ses agregats.
+   Aucune donnee reelle : **le depot ne doit pas se mettre a porter les noms et le chiffre
+   d'affaires des clients de Ted.**
+2. `npm run temoin:commerce` fait tourner le **vrai moteur** dessus et fige sa reponse ;
+   `npm run controle:commerce` en fabrique la requete de comparaison, client par client.
+
+**Resultat du 17/09/2026 : 73 clients, 14 champs chacun, zero ecart.**
+
+### LES TROIS CONVENTIONS QUI NE SE VOIENT PAS
+
+| Ce que fait le depot | Ce qu'il faut ecrire en SQL | Ce que coute l'autre |
+|---|---|---|
+| `median()` fait la **moyenne des deux valeurs centrales** sur un tableau pair | `percentile_cont(0.5)` | **Sept cadences sur douze** changent. C-PAIR-2 passe de 60 jours a 30, C-AVOIR de 185 a **six** : un client a six jours de cadence est en retard en permanence et ne sort plus de la liste d'appels |
+| `stdev()` divise par **n** | `stddev_pop`, jamais `stddev` | Trois coefficients de variation changent, un client change de classe. Sur la vraie base de Ted : **trois clients sortent de la liste de decrochage**, la perte annoncee bouge de 703 € |
+| les quartiles s'ecrivent `montants[floor(p * n)]` | un tableau indexe `floor(p*n)+1`, ni `percentile_cont` ni `percentile_disc` | `percentile_disc` prend l'indice un cran plus bas : sur cent clients, un client par borne change de classe, donc de taux de retour, donc de rang |
+
+**Aucune de ces erreurs ne casse quoi que ce soit a l'ecran.** Les listes restent pleines,
+les nombres restent plausibles. C'est la famille du signe des avoirs, 715 347 € parfaitement
+credibles.
+
+### DEUX DEFAUTS QUE LA FIXTURE S'EST FAITS A ELLE-MEME
+
+Ecrits ici parce qu'ils disent comment elle se relit :
+
+1. **Aucune ligne au jour de reference.** La vente la plus recente tombait trente jours
+   avant `REF`, donc `profilBase()` posait `refDay` la, et les trois clients poses de part
+   et d'autre de la frontiere du retard se retrouvaient tous du meme cote. **Le jour de
+   reference n'est pas une date choisie, c'est la derniere vente de la base.**
+2. **Les deux clients de la volatilite chutaient trop fort** pour distinguer les deux
+   conventions : ils alertaient sous l'une comme sous l'autre. Un troisieme a ete resolu
+   numeriquement pour tomber **entre** les deux seuils.
+
+### CE QUI N'EST PAS FAIT
+
+**`agentPremierAchat()` n'est pas porte.** Sur la base de Ted il REFUSE de repondre, et il a
+raison : un taux de retour sur 34 personnes ne dit rien. On ne peut donc le verifier que sur
+la base fabriquee. **Le porter quand meme, ce serait poser a l'ecran des taux que personne
+n'a jamais pu confronter au reel.**
+
+**Et l'ecran lit encore `ROWS` pour tout le reste** : le pied « qui pese quoi », les
+libelles, le tri. Ce lot pose le filet et le portage ; il ne supprime pas l'attente.
+
 ## « MON CAP » CALCULE PAR LE SERVEUR, LOT 24, 17/09/2026
 
 ### LE CONTROLE QUI REND TOUT LE CHANTIER DEFENDABLE, ET IL ETAIT DEJA LA
