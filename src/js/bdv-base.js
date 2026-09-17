@@ -1147,10 +1147,39 @@ function readVitisoftCSV(file){
 function fmtDate(d){return d?String(d.d).padStart(2,'0')+'/'+String(d.m).padStart(2,'0')+'/'+d.y:'';}
 
 /* ======================= DERIVATION EN MEMOIRE ======================= */
-async function reloadFromDB(){
+/* Rendre la main au navigateur, une fois, pour qu'il ait le droit de peindre.
+   Sans ca, une boucle de 171 569 tours tient le fil d'execution du debut a la fin :
+   le message « analyse en cours » est bien ECRIT dans le document, et il n'apparait
+   jamais, parce que rien ne repeint entre son ecriture et la fin du calcul. C'est
+   exactement ce que Ted decrivait : « j'ai meme pas de message pour me dire que ca
+   mouline ». Un message qu'on n'a pas laisse le temps de s'afficher n'existe pas. */
+function souffler(){ return new Promise(function(r){ setTimeout(r, 0); }); }
+
+/* La derivation par paquets. PAQUET vaut 8 000 : mesure du 17/09/2026, c'est environ
+   80 ms de calcul, donc une respiration a peu pres tous les trois battements d'ecran.
+   Plus petit, on paie le va-et-vient pour rien ; plus gros, la barre de progression
+   avance par a-coups et l'onglet se fige entre deux. */
+const PAQUET = 8000;
+async function deriverParPaquets(items, dire){
+  const out = new Array(items.length);
+  for(let i = 0; i < items.length; i += PAQUET){
+    const fin = Math.min(i + PAQUET, items.length);
+    for(let j = i; j < fin; j++) out[j] = deriveRow(items[j].raw);
+    if(dire) dire('Analyse de tes ventes, ' + fmtNum(fin) + ' lignes sur ' + fmtNum(items.length) + '…');
+    if(fin < items.length) await souffler();
+  }
+  return out;
+}
+
+/* `dire` est facultatif : il vient de l'amorcage quand l'ouverture passe par lui, et
+   il manque partout ailleurs. Une relecture declenchee par un reglage ne doit pas
+   poser de voile, elle est deja dans un runBusy. */
+async function reloadFromDB(dire){
+  if(dire) dire('Lecture de ta base sur cet appareil…');
   const items=await dbGetAll();
   REG=await regLire();                    // les reglages doivent etre la AVANT de classer
-  ROWS=items.map(it=>deriveRow(it.raw));
+  ROWS=await deriverParPaquets(items, dire);
+  if(dire){ dire('Mise en ordre de ' + fmtNum(ROWS.length) + ' lignes…'); await souffler(); }
   computeMeta();
   // Sans reglage enregistre, on prepare les propositions pour l'ecran dedie, sans les appliquer.
   if(!REG||!REG.valide)PROPOSE=reglagesProposes();
@@ -1242,9 +1271,48 @@ function exAppliquer(m){
   runBusy('Recalcul sur le nouvel exercice…',()=>{if(typeof buildFilterBar==='function')buildFilterBar();ecranRafraichir();});
 }
 
-// Transforme les 40 champs bruts en objet exploitable + classification vente/non-vente.
+/* ============ LA LIGNE NE RECOPIE PLUS SES 43 COLONNES, 17/09/2026 ============
+
+   MESURE SUR LA BASE DE FACTURATION DE TED, 171 569 lignes, moteur reel :
+
+                                  avant        apres
+     derivation des lignes        2 698 ms     1 597 ms
+     computeMeta()                  971 ms       387 ms
+     memoire des seules colonnes    268 Mo        10 Mo
+
+   `COLS.forEach((k,i)=>o[k]=raw[i])` recopiait QUARANTE-TROIS colonnes dans un objet
+   nomme, pour chaque ligne. Sur 171 569 lignes ca fait sept millions et demi
+   d'ecritures de proprietes et 268 Mo d'objets, dont la plupart des colonnes ne sont
+   jamais lues par aucun ecran. Et le prix ne s'arretait pas la : sous cette pression
+   memoire, `computeMeta()`, qui ne fait que parcourir, mettait presque une seconde.
+
+   LES COLONNES SONT DONC DES ACCESSEURS POSES UNE FOIS SUR UN PROTOTYPE, et la ligne
+   ne garde que le tableau brut. `r.produit` s'ecrit et se lit exactement pareil :
+   AUCUN ecran n'a change d'une virgule. Mesure de lecture, trois colonnes sur toutes
+   les lignes : 147 ms en recopie, 14 ms par le prototype. C'est meme plus rapide a
+   lire, parce que 171 569 objets a 43 proprietes chacun font sortir V8 de ses formes
+   optimisees, alors qu'un prototype unique l'y garde.
+
+   CE QUE CA INTERDIT, ET IL FAUT LE SAVOIR AVANT D'ECRIRE : `Object.keys(r)`,
+   `{...r}` et `Object.assign({}, r)` ne rendront PAS les colonnes, seulement les
+   champs derives. Verifie le 17/09/2026 : aucun des trois n'existe dans le depot, et
+   c'est ce qui rend ce changement sur. Une exportation qui voudrait toutes les
+   colonnes lit `r._r`, le tableau brut, comme le fait deja l'empreinte.
+
+   `enumerable: true` est pose quand meme : une boucle `for...in` sur une ligne
+   continue de voir les colonnes, et c'est la forme la plus probable qu'on ecrirait
+   sans y penser. */
+const LIGNE_PROTO = {};
+COLS.forEach(function(k,i){
+  Object.defineProperty(LIGNE_PROTO, k, {
+    get: function(){ const v = this._r[i]; return v == null ? '' : v; },
+    enumerable: true
+  });
+});
+
+// Transforme les 43 champs bruts en objet exploitable + classification vente/non-vente.
 function deriveRow(raw){
-  const o={};COLS.forEach((k,i)=>o[k]=raw[i]==null?'':raw[i]);
+  const o=Object.create(LIGNE_PROTO);o._r=raw;
   o._date=parseDateFR(o.date);
   o._dayNum=o._date?Math.floor(Date.UTC(o._date.y,o._date.m-1,o._date.d)/86400000):null; // jour absolu, pour les intervalles en jours
   exDeriver(o);            // exercice comptable : _exY, _exM, _exPos (voir plus haut)

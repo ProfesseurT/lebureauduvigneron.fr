@@ -12,6 +12,154 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, après-midi. Le calcul remonte au serveur : lots 22 et 23
+
+Ted : « On va la prendre maintenant tout de suite, le hors-ligne c'est pas possible donc on
+peut abandonner. Au travail. » **La règle 1 de `bdv-sync.js` tombe avec cette phrase**, et
+avec elle la promesse qu'une panne Supabase laisse le bureau ouvert. Accepté explicitement.
+
+### Trois mesures avant d'écrire une ligne
+
+**Les dimensions sont minuscules** : 171 569 lignes, mais 1 936 clients, 131 produits,
+80 mois, 17 familles. Les 81 Mo qui traversent le réseau deviennent une poignée de tableaux.
+
+**Le classement est déjà sur le serveur.** Je craignais de devoir réécrire `classerLigne()`
+en SQL, c'est le cœur de l'honnêteté de l'outil. `reglages.classement` ne contient que des
+tables de correspondance : Postgres y cherche, il ne décide rien.
+
+**Et le JSON brut est inexploitable** : 6 949 ms pour un simple regroupement par client.
+
+### Le défaut qui aurait coûté 715 000 euros de chiffre d'affaires
+
+En portant `parseNum()` en SQL, j'ai écrit `substring(s from '^[+-]?(...)')`. En Postgres,
+`substring(x from motif)` rend **le premier groupe entre parenthèses**, pas le motif entier.
+Le signe était dehors. `-0,02` était lu `0,02`.
+
+La base porte **1 144 lignes négatives, les avoirs, pour -357 673,63 €**. Le CA sortait à
+8 677 677,25 € au lieu de 7 962 329,99 €. Exactement deux fois les avoirs, et un total
+parfaitement crédible. **Trouvé en comparant la fonction au JavaScript sur les vraies
+valeurs, pas en la relisant.**
+
+### Mon erreur de méthode, et c'est elle qui a coûté un lot entier
+
+Le lot 22 a posé les colonnes typées **sur `ventes`**. Résultat : 6 333 ms au lieu de
+6 949 ms. Presque rien.
+
+La cause est physique : `brut` est resté dans la ligne, rangé avant les colonnes typées, et
+Postgres doit le traverser pour les atteindre. Lire trois colonnes revient à lire les 264 Mo
+de la table.
+
+Or les 344 ms que j'avais annoncés la veille étaient mesurés sur une **table d'essai qui ne
+portait pas `brut`**. J'ai présenté comme « le gain des colonnes typées » ce qui était « le
+gain des colonnes typées dans une ligne étroite ». La règle qui en sort vaut pour tout le
+dépôt : **une mesure n'est valable que pour le décor dans lequel elle a été prise, et ce
+décor s'écrit à côté du chiffre.**
+
+### Ce qui existe maintenant
+
+`ventes_lignes`, table étroite de 112 Mo portant les 43 colonnes typées, tenue à jour par un
+déclencheur sur `ventes` : **rien à redéployer dans le navigateur**. Et `v_ventes`, qui
+ajoute vente/offert/canal/typologie/exercice en lisant les réglages.
+
+| sur 171 569 lignes | avant | après |
+|---|---|---|
+| le balayage seul | 5 921 ms | **40 ms** |
+| CA et bouteilles par mois d'exercice | (impossible) | **609 ms** |
+| idem plus factures et clients distincts | (impossible) | **1 108 ms** |
+
+Contrôles d'arithmétique qui tiennent : 163 377 lignes de vente plus 8 192 offertes font les
+171 569 ; 253 709,596 bouteilles vendues plus 9 566,39 offertes font les 263 275,986 du
+total ; le CA des offerts est exactement zéro.
+
+### Pourquoi les 43 colonnes, et pas seulement les utiles
+
+Le registre croise sur n'importe laquelle, colonnes perso comprises, et le canal se lit dans
+celle que le vigneron **désigne** dans ses réglages : `codeTarif` chez l'un, `origine` chez
+l'autre. Une colonne oubliée, c'est un axe qui disparaît sans message.
+
+### Ce qui n'est PAS porté, volontairement
+
+Le mode deviné, quand le vigneron n'a pas validé son classement. Deviner des deux côtés, ce
+sont deux devinettes qui divergeront. La vue rend `classement_valide = false` et laisse
+`est_vente` à nul : l'appelant sait qu'il ne peut pas s'en servir, au lieu de lire un faux
+qui a l'air vrai.
+
+### Ce qui reste
+
+`brut` est encore là, et c'est encore lui que le navigateur envoie à l'import. Quand plus
+rien ne le lira, il disparaît et la table redevient plus petite qu'avant le chantier. Ensuite
+viennent les écrans, Mon cap d'abord.
+
+---
+
+## 17/09/2026, fin de matinée. Les écrans de vente : 268 Mo de colonnes recopiées pour rien
+
+Ted, l'amorçage poussé : « Ma journée s'affiche direct. Par contre Mon commerce non, Mon cap
+non, Mes cuvées non, Mon registre non. J'ai même pas de message pour me dire que ça mouline.
+Il faut optimiser ça, de manière sévère. »
+
+### Ce qu'on a mesuré avant de toucher à quoi que ce soit
+
+Le vrai moteur, ses 171 569 lignes, dans jsdom :
+
+| | avant | après |
+|---|---|---|
+| dérivation des lignes | 2 698 ms | 1 474 ms |
+| `computeMeta()` | 971 ms | 369 ms |
+| mémoire des seules colonnes | **268 Mo** | **10 Mo** |
+
+**La cause n'était pas une fonction lente, c'était un volume d'objets.** Chaque ligne
+recopiait ses **quarante-trois** colonnes dans un objet nommé : sept millions et demi
+d'écritures de propriétés, 268 Mo, et la plupart de ces colonnes ne sont lues par aucun écran.
+Sous cette pression mémoire, `computeMeta()`, qui ne fait que parcourir, mettait presque une
+seconde à lui seul.
+
+L'expérience qui l'a prouvé était un accident : en mesurant trois variantes dans le même
+processus, la troisième est devenue plus lente que les deux premières. Trois copies de
+171 569 lignes en mémoire. **Le ramasse-miettes disait ce que le chronomètre ne disait pas.**
+
+### La correction, et pourquoi elle ne touche aucun écran
+
+Les colonnes sont devenues des accesseurs posés une fois sur un prototype, et la ligne ne
+garde que son tableau brut. `r.produit` s'écrit et se lit exactement pareil. C'est même plus
+rapide à lire, 14 ms contre 147 ms pour trois colonnes sur toutes les lignes : 171 569 objets
+à 43 propriétés font sortir le moteur JavaScript de ses formes optimisées, un prototype unique
+l'y garde.
+
+Ce que ça interdit : `Object.keys(r)`, `{...r}` et `Object.assign({}, r)` ne rendent plus les
+colonnes. **Vérifié avant d'écrire une ligne : aucun des trois n'existe dans le dépôt.** C'est
+la seule chose qui rendait ce changement défendable.
+
+### « J'ai même pas de message » était un reproche aussi grave que le premier
+
+Deux causes cumulées. `runBusy()` ne pose son voile qu'au-dessus d'un seuil de lignes **déjà
+chargées** : au premier clic `ROWS` est vide, donc pas de voile, précisément au moment où
+l'attente est la plus longue. Et même posé, il n'aurait rien montré : tout le travail tenait
+dans un seul tour de boucle.
+
+**Un message qu'on n'a pas laissé le temps de peindre n'existe pas.** Ça ne se répare pas avec
+un texte de plus, ça se répare en rendant la main : dérivation par paquets de 8 000 lignes,
+une respiration entre deux, et le compte qui avance. L'ouverture des écrans passe maintenant
+par l'amorçage écrit le matin même, plutôt que par un deuxième voile qui se serait superposé
+au premier.
+
+### Un défaut de l'amorçage trouvé en le réutilisant
+
+Le premier jet posait un drapeau et rendait la main tout de suite si un amorçage tournait
+déjà. **Un clic sur « Mon cap » pendant que le bureau finissait de se raccorder n'aurait donc
+rien ouvert**, sans un mot, avec un bilan vide qui dit « c'est fait ». Un appel qui ne fait
+rien doit être impossible, pas discret. Remplacé par une file.
+
+### Ce qui reste, et c'est le vrai chantier
+
+**Le navigateur n'a rien à faire de 81 Mo de lignes brutes pour afficher huit chiffres.** Les
+cinq écrans ne montrent que des regroupements, que Postgres calcule en quelques millisecondes.
+Tout ce qui précède **repousse le mur, il ne le supprime pas** : à 400 000 lignes il revient.
+La règle 1 de `bdv-sync.js`, « IndexedDB reste la source de calcul », devra être rouverte avec
+Ted, avec ce qu'elle achète (le hors-ligne, aucun écran à réécrire) et ce qu'elle coûte.
+
+---
+
 ## 17/09/2026, suite. « Quand je me connecte, rien ne s'affiche »
 
 Le repère de synchronisation poussé, Ted rouvre son bureau et envoie une capture : le

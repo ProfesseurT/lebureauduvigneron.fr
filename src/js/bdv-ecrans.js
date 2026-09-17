@@ -2998,8 +2998,18 @@ function exportExplo(fmt){if(!ROWS.length){status('error','Rien à exporter.');r
    c'est le premier. */
 let ECRANS_DEMARRES = false;
 
-async function demarrerEcransVente(depart){
+/* `dire` est facultatif, et c'est l'amorcage qui le fournit depuis le 17/09/2026.
+   Ted, sur sa base de 171 569 lignes : « Mon commerce non, mon cap non, mes cuvees
+   non, mon registre non. J'ai meme pas de message pour me dire que ca mouline. »
+
+   Il avait raison deux fois. `runBusy()` ne pose son voile qu'au-dessus de BUSY_MIN
+   lignes DEJA CHARGEES : au premier clic, ROWS est vide, donc le voile ne parait pas,
+   et c'est precisement le moment ou l'attente est la plus longue. Et meme pose, il
+   n'aurait rien montre : tout le travail tenait dans un seul tour de boucle, sans
+   jamais rendre la main au navigateur pour peindre. */
+async function demarrerEcransVente(depart, dire){
   depart = depart || {};
+  dire = dire || function(){};
 
   // Deja demarre : on ne recharge rien, on va ou on nous dit d'aller.
   if(ECRANS_DEMARRES){
@@ -3020,8 +3030,10 @@ async function demarrerEcransVente(depart){
   // Rapatriement AVANT l'ouverture : sinon le vigneron qui arrive sur un nouvel appareil
   // lirait « aucune ligne en base » une seconde avant que ses lignes n'apparaissent.
   // Attendu, contrairement aux poussees : ici l'affichage depend du resultat.
+  dire('Récupération de tes ventes…');
   await tirerDuServeur();
-  await reloadFromDB();
+  await reloadFromDB(dire);
+  dire('Dessin de tes écrans…');
   // Le panneau est branche AU DEMARRAGE, et pas seulement quand on l'ouvre : le bouton
   // « Me deconnecter » de la barre du haut y prend son garde-fou. Sans cette ligne il
   // restait muet jusqu'a ce qu'on ouvre les reglages, ce qui n'a aucun sens pour lui.

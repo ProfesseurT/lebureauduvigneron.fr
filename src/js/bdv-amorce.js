@@ -78,7 +78,14 @@
      un echec a quelque chose a dire et reste affiche de toute facon. Ne pas l'allonger
      « pour faire serieux », et ne pas l'appliquer a autre chose. */
   var PLANCHER_MS = 450;
-  var voile = null, lignes = {}, enCours = false;
+  var voile = null, lignes = {};
+  /* UNE FILE, ET PAS UN DRAPEAU. Le premier jet posait `enCours` et rendait la main
+     tout de suite quand un amorcage tournait deja. Ca voulait dire qu'un clic sur
+     « Mon cap » pendant que le bureau finissait de se raccorder n'ouvrait RIEN, sans
+     un mot : la promesse se resolvait aussitot, avec un bilan vide, et l'appelant
+     croyait avoir fini. Un appel qui ne fait rien doit etre impossible, pas discret.
+     Les amorcages s'enchainent donc, dans l'ordre ou on les demande. */
+  var file = Promise.resolve();
 
   function session(){
     try{ return !!(window.BdvCompte && BdvCompte.session && BdvCompte.session()); }
@@ -119,6 +126,18 @@
   /* L'etat se dit DEUX FOIS : par la classe, qui peint, et par un mot cache qui se lit
      a la synthese vocale. Une pastille qui change de couleur ne s'entend pas, et c'est
      la meme regle que la gravite du mot du jour : jamais la couleur seule. */
+  /* Une etape peut PRECISER sa ligne pendant qu'elle travaille : « Analyse de tes
+     ventes, 96 000 lignes sur 171 569 ». C'est la difference entre un voile qui dit
+     qu'il travaille et un voile qui dit ou il en est, et sur une base de cette taille
+     ce n'est pas du confort : sans chiffre qui avance, une attente de six secondes ne
+     se distingue pas d'un plantage. */
+  function preciser(cle, texte){
+    var li = lignes[cle];
+    if(!li) return;
+    var t = li.querySelector('.bdv-amorce__texte');
+    if(t) t.textContent = texte;
+  }
+
   function dire(cle, etat, mot){
     var li = lignes[cle];
     if(!li) return;
@@ -167,8 +186,7 @@
     if(rejouer) rejouer.addEventListener('click', function(){
       var aRefaire = etapes.filter(function(e){ return rates.indexOf(e.cle) >= 0; });
       demonter();
-      enCours = false;
-      lancer(aRefaire, { plafondMs: plafond }).then(resoudre);
+      executer(aRefaire, { plafondMs: plafond }).then(resoudre);
     });
   }
 
@@ -177,9 +195,16 @@
      par controle rendraient le banc inutilisable, et un banc qu'on ne lance plus ne
      garde rien. La page, elle, ne passe jamais cette option. */
   function lancer(etapes, options){
-    var plafond = (options && options.plafondMs > 0) ? options.plafondMs : PLAFOND_MS;
     etapes = (etapes || []).filter(function(e){ return e && e.cle && typeof e.faire === 'function'; });
-    if(!etapes.length || enCours) return Promise.resolve({ rates: [] });
+    if(!etapes.length) return Promise.resolve({ rates: [] });
+    var suivant = file.then(function(){ return executer(etapes, options); });
+    // La file ne doit jamais rester cassee : un amorcage rate n'empeche pas le suivant.
+    file = suivant.then(function(){}, function(){});
+    return suivant;
+  }
+
+  function executer(etapes, options){
+    var plafond = (options && options.plafondMs > 0) ? options.plafondMs : PLAFOND_MS;
 
     /* PAS DE SESSION, PAS DE VOILE, MAIS LES ETAPES TOURNENT QUAND MEME. Le bureau
        deconnecte est une porte d'entree, pas un outil en train de charger : y poser un
@@ -193,7 +218,6 @@
       }, Promise.resolve()).then(function(){ return { rates: [] }; });
     }
 
-    enCours = true;
     monter(etapes);
 
     return new Promise(function(resoudre){
@@ -206,7 +230,7 @@
            la page se completera par ses propres rappels quand elles aboutiront. */
         var enRetard = etapes.filter(function(e){ return !faites[e.cle]; }).map(function(e){ return e.cle; });
         enRetard.forEach(function(c){ dire(c, 'rate', 'pas de réponse'); });
-        pied(rates.concat(enRetard), etapes, function(b){ enCours = false; resoudre(b); }, plafond);
+        pied(rates.concat(enRetard), etapes, function(b){ resoudre(b); }, plafond);
       }, plafond);
 
       (async function(){
@@ -214,7 +238,11 @@
           var e = etapes[i];
           if(!fini) dire(e.cle, 'encours', 'en cours');
           var ok = true;
-          try{ ok = (await e.faire()) !== false; }
+          /* Le `dire` remis a l'etape ne fait rien une fois le plafond passe : le voile
+             n'est plus la, et une etape qui continue de tourner en arriere-plan n'a plus
+             personne a qui parler. */
+          var affiner = (function(cle){ return function(t){ if(!fini) preciser(cle, t); }; })(e.cle);
+          try{ ok = (await e.faire(affiner)) !== false; }
           catch(err){ ok = false; }
           faites[e.cle] = true;
           if(!ok) rates.push(e.cle);
@@ -225,11 +253,11 @@
         clearTimeout(minuteur);
         if(!rates.length){
           var reste = PLANCHER_MS - (Date.now() - debut);
-          var fermer = function(){ demonter(); enCours = false; resoudre({ rates: [] }); };
+          var fermer = function(){ demonter(); resoudre({ rates: [] }); };
           if(reste > 0) setTimeout(fermer, reste); else fermer();
           return;
         }
-        pied(rates, etapes, function(b){ enCours = false; resoudre(b); }, plafond);
+        pied(rates, etapes, function(b){ resoudre(b); }, plafond);
       })();
     });
   }

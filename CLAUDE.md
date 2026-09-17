@@ -1549,6 +1549,171 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## LE CALCUL REMONTE AU SERVEUR, 17/09/2026. LOTS 22 ET 23.
+
+Decide par Ted le 17/09/2026, en abandonnant le hors-ligne. **La regle 1 de
+`bdv-sync.js`, « IndexedDB reste la source de calcul », est donc caduque**, et avec elle
+la regle d'or du module de compte : a partir de ce chantier, une panne Supabase veut dire
+zero chiffre. Ted l'a accepte explicitement.
+
+### La mesure qui a tout decide, et l'erreur de methode qui a coute un lot
+
+| | temps |
+|---|---|
+| CA et bouteilles par client, sur `brut` en JSON | 6 949 ms |
+| **apres le lot 22**, colonnes typees POSEES SUR `ventes` | 6 333 ms |
+| les memes lignes, dans une table SANS `brut` | 667 ms |
+
+Le lot 22 n'a presque rien change, et c'est ma faute : **les 344 ms annonces la veille
+etaient mesures sur une table d'essai qui ne portait pas `brut`.** J'ai presente comme
+« le gain des colonnes typees » ce qui etait « le gain des colonnes typees DANS UNE LIGNE
+ETROITE ». La cause est physique : chaque ligne porte un demi-kilo-octet de JSON, range
+AVANT les colonnes typees, et Postgres doit le traverser pour les atteindre. Lire trois
+colonnes revient a lire les 264 Mo de la table.
+
+**LA REGLE QUI EN SORT, ET ELLE DEPASSE CE CHANTIER : une mesure n'est valable que pour
+le decor dans lequel elle a ete prise, et ce decor s'ecrit A COTE DU CHIFFRE.** Un
+« 344 ms » sans son decor est un chiffre faux qui a l'air vrai, exactement ce que ce
+depot passe son temps a traquer ailleurs.
+
+### Ce qui existe maintenant
+
+- **`public.ventes_lignes`**, table etroite, les 43 colonnes typees, 112 Mo. Tenue a jour
+  par le declencheur `ventes_lignes_suivre` sur `ventes` : **rien a redeployer dans le
+  navigateur.** Personne n'y ecrit, pas meme le maitre du bureau ; le declencheur est
+  `security definer` et c'est le seul chemin, ce qui rend la divergence impossible.
+  **LES 43 COLONNES Y SONT, pas seulement les utiles du jour** : le registre croise sur
+  n'importe laquelle, colonnes perso comprises, et le canal se lit dans celle que le
+  vigneron a DESIGNEE. Une colonne oubliee ici, c'est un axe qui disparait sans message.
+- **`public.v_ventes`**, vue `security_invoker`, qui porte ce que `classerLigne()` et
+  `exDeriver()` calculent dans le navigateur. **AUCUNE LOGIQUE N'EST REECRITE** : le
+  classement du vigneron est deja en base, dans `reglages.classement`, et ce ne sont que
+  des tables de correspondance. Postgres y cherche, il ne decide rien.
+- **`bdv_nombre`, `bdv_jour`, `bdv_cuvee`, `bdv_champ`**, portees a l'identique depuis le
+  JavaScript, bizarreries comprises.
+
+### Le defaut le plus cher du lot 22, et il etait invisible
+
+`substring(x from motif)` rend **le premier groupe parenthese** quand le motif en
+contient un, et pas le motif entier. Le signe etait hors du groupe : `-0,02` etait lu
+`0,02`. La base de Ted porte **1 144 lignes negatives, ses avoirs, pour -357 673,63 €**.
+Le chiffre d'affaires sortait a **8 677 677,25 €** au lieu de **7 962 329,99 €**, soit
+715 347 € de trop, et parfaitement credible. Trouve en comparant la fonction au
+JavaScript sur les vraies valeurs, PAS en la relisant.
+
+### Le mode devine n'est PAS porte, et c'est volontaire
+
+Quand le vigneron n'a pas valide son classement, le navigateur devine. Deviner aussi cote
+serveur, ce sont deux devinettes qui divergeront. `v_ventes` rend donc
+`classement_valide = false` et laisse `est_vente` a `null` : l'appelant sait qu'il ne peut
+pas se servir de ces colonnes, au lieu de lire un faux qui a l'air vrai.
+
+### Ou en est la vitesse
+
+| sur 171 569 lignes | temps |
+|---|---|
+| le balayage seul de `ventes_lignes` | **40 ms** (contre 5 921 ms sur `ventes`) |
+| CA et bouteilles par mois d'exercice | **609 ms** |
+| idem + factures et clients distincts | **1 108 ms** |
+
+Le `count(distinct)` est ce qui reste : il force un tri sur disque. A reprendre si les
+ecrans en demandent trop.
+
+### LES TROIS PIEGES A NE PAS OUBLIER EN PORTANT UN CALCUL
+
+1. **Les quantiles et les medianes.** Le JavaScript prend l'element a `floor(p × n)`,
+   sans interpolation : c'est `percentile_disc`, PAS `percentile_cont`. Et il y a DEUX
+   medianes differentes dans le depot, `median()` (moyenne des deux centraux) et le
+   `med()` local d'`agentProduits` (l'element central). Porter l'une pour l'autre decale
+   des seuils d'alerte sans rien casser.
+2. **L'ecart-type est en POPULATION** (`stddev_pop`), pas en echantillon.
+3. **Jamais `now()`.** Les comparaisons « a date egale » se calent sur la derniere vente
+   de la base (`refDay`, `cutPos`), jamais sur aujourd'hui. `ex_pos` est le mois DANS
+   l'exercice fois cent plus le jour, et il se compare comme un entier.
+
+**ET LA REGLE QUI TIENT TOUT LE CHANTIER : le serveur doit dire le meme chiffre que le
+navigateur, au centime, AVANT qu'on retire le moindre calcul.** Sans ca on remplace des
+chiffres justes par des chiffres plausibles, ce qui est la seule chose que cet outil n'a
+pas le droit de faire.
+
+## UNE LIGNE DE VENTE NE RECOPIE PAS SES COLONNES, 17/09/2026
+
+Ted, apres l'amorcage : « Ma journee s'affiche direct. Par contre Mon commerce non, Mon cap
+non, Mes cuvees non, Mon registre non. J'ai meme pas de message pour me dire que ca
+mouline. »
+
+**MESURE SUR SA BASE, 171 569 lignes, moteur reel dans jsdom :**
+
+| | avant | apres |
+|---|---|---|
+| derivation des lignes | 2 698 ms | 1 474 ms |
+| `computeMeta()` | 971 ms | 369 ms |
+| memoire des seules colonnes | **268 Mo** | **10 Mo** |
+
+**LA CAUSE N'ETAIT PAS UNE FONCTION LENTE, C'ETAIT UN VOLUME D'OBJETS.**
+`deriveRow()` faisait `COLS.forEach((k,i)=>o[k]=raw[i])`, soit **quarante-trois** colonnes
+recopiees dans un objet nomme, pour chaque ligne : sept millions et demi d'ecritures de
+proprietes, et 268 Mo dont la plupart des colonnes ne sont lues par aucun ecran. Le prix ne
+s'arretait pas la : sous cette pression memoire, `computeMeta()`, qui ne fait que parcourir,
+mettait presque une seconde.
+
+**Les colonnes sont donc des ACCESSEURS poses une fois sur `LIGNE_PROTO`**, et la ligne ne
+garde que son tableau brut dans `_r`. `r.produit` s'ecrit et se lit exactement pareil :
+**aucun ecran n'a change d'une virgule.** C'est meme plus rapide a LIRE, 14 ms contre 147 ms
+pour trois colonnes sur toutes les lignes, parce que 171 569 objets a 43 proprietes font
+sortir V8 de ses formes optimisees alors qu'un prototype unique l'y garde.
+
+**CE QUE CA INTERDIT, ET IL FAUT LE SAVOIR AVANT D'ECRIRE** : `Object.keys(r)`, `{...r}` et
+`Object.assign({}, r)` ne rendent PAS les colonnes, seulement les champs derives. Verifie le
+17/09/2026 : aucun des trois n'existe dans le depot, et c'est ce qui rend le changement sur.
+Qui veut toutes les colonnes lit `r._r`, comme le fait deja l'empreinte. `enumerable: true`
+est pose quand meme, pour qu'un `for...in` ecrit sans y penser continue de les voir.
+
+### Et le calcul rend la main, sinon le message n'existe pas
+
+Le deuxieme reproche de Ted etait aussi grave que le premier. Deux causes :
+
+1. **`runBusy()` ne pose son voile qu'au-dessus de `BUSY_MIN` lignes DEJA CHARGEES.** Au
+   premier clic, `ROWS` est vide : le voile ne parait pas, et c'est exactement le moment ou
+   l'attente est la plus longue.
+2. **Meme pose, il n'aurait rien montre.** Tout le travail tenait dans un seul tour de
+   boucle. **Un message qu'on n'a pas laisse le temps de peindre n'existe pas**, et ca ne se
+   repare pas avec un texte de plus : ca se repare en rendant la main.
+
+`deriverParPaquets()` decoupe donc par 8 000 lignes, environ 80 ms, avec un `souffler()`
+entre deux paquets, et annonce ou il en est. Et **l'ouverture des ecrans de vente passe par
+l'amorcage**, comme le demarrage du bureau : le moteur d'abord (310 ko qui n'existent pas
+encore au moment du clic), les ventes ensuite. On ne fabrique pas un deuxieme voile d'attente,
+il se superposerait au premier et redirait en moins bien ce qu'il sait deja faire.
+
+**Une etape peut preciser sa propre ligne** pendant qu'elle travaille (« Analyse de tes
+ventes, 96 000 lignes sur 171 569 »). Sur une base de cette taille ce n'est pas du confort :
+sans chiffre qui avance, six secondes d'attente ne se distinguent pas d'un plantage.
+
+### La file de l'amorcage, et le defaut qu'elle a ferme
+
+Le premier jet posait un drapeau `enCours` et rendait la main tout de suite quand un
+amorcage tournait deja. **Un clic sur « Mon cap » pendant que le bureau finissait de se
+raccorder n'aurait donc rien ouvert du tout**, sans un mot : la promesse se resolvait
+aussitot avec un bilan vide, et l'appelant croyait avoir fini. **Un appel qui ne fait rien
+doit etre impossible, pas discret.** Les amorcages s'enchainent maintenant dans l'ordre ou on
+les demande.
+
+`npm run banc:volume` garde la forme qui a produit le gain, et **pas un seuil en
+millisecondes** : un seuil echoue au hasard selon la machine, et un banc qui echoue au hasard
+finit ignore. Il affiche le temps pour qu'on le voie changer, et verifie que les colonnes ne
+sont pas recopiees, qu'elles se lisent quand meme, et que le calcul respire. Verifie en
+remettant la recopie.
+
+### CE QUI RESTE, ET C'EST LE VRAI CHANTIER
+
+**Le navigateur n'a rien a faire de 81 Mo de lignes brutes pour afficher huit chiffres.** Les
+cinq ecrans de vente ne montrent que des regroupements, du CA par mois, par cuvee, par client,
+par canal, que Postgres calcule en quelques millisecondes sur 171 569 lignes. Tout ce qui
+precede repousse le mur, il ne le supprime pas : **a 400 000 lignes il sera de retour**, et
+la regle 1 de `bdv-sync.js` (« IndexedDB reste la source de calcul ») devra etre rouverte avec
+Ted, avec ce qu'elle achete (le hors-ligne, aucun ecran a reecrire) et ce qu'elle coute.
+
 ## LE BUREAU SE RACCORDE DANS UN ORDRE, ET IL LE DIT, 17/09/2026
 
 Ted, capture a l'appui : « quand je me connecte, rien ne s'affiche ». Le sous-main disait

@@ -574,15 +574,31 @@
     }
 
     attente(id, true);
-    chargerEcrans().then(function () {
+    /* ================== LE VOILE COUVRE TOUTE L'OUVERTURE, 17/09/2026 ==================
+
+       Ted, sur sa base de 171 569 lignes : « Mon commerce non, mon cap non, mes cuvees
+       non, mon registre non. J'ai meme pas de message pour me dire que ca mouline. »
+
+       Ce que le premier clic declenche vraiment, et personne ne le disait : 310 ko de
+       JavaScript a telecharger, la base a relire sur l'appareil, 171 569 lignes a
+       analyser, puis cinq ecrans a dessiner. La seule chose qui bougeait pendant ce
+       temps, c'etait `attente()`, qui pose une nuance sur UN onglet de la barre. Sur six
+       secondes d'attente, ca ne se voit pas, et ca ne dit rien.
+
+       On reutilise l'amorcage ecrit le matin meme plutot que d'inventer un deuxieme voile :
+       deux voiles d'attente sur la meme page finiraient par se superposer, et le second
+       redirait en moins bien ce que le premier sait deja faire, plafond compris.
+
+       L'ORDRE EST LA DEPENDANCE, comme au demarrage du bureau : le moteur d'abord, il
+       n'existe pas encore au moment du clic, et rien ne peut lire sans lui. */
+    /* Le retour a « Ma journee » ne se declenche plus sur une exception, parce que
+       l'amorcage n'en laisse plus passer : une etape qui leve devient une etape ratee,
+       nommee dans le voile, avec un bouton pour reessayer. On lit donc son BILAN. Et
+       seul le moteur compte : sans lui il n'y a pas d'ecran du tout, alors qu'une
+       lecture de ventes qui tombe laisse un ecran vide mais utilisable, ou le vigneron
+       peut au moins deposer un export. */
+    var retourJournee = function () {
       attente(id, false);
-      if (typeof window.demarrerEcransVente !== 'function') return;
-      window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id });
-    })['catch'](function () {
-      attente(id, false);
-      // Le reseau a lache au milieu du chargement. On revient a « Ma journee » plutot
-      // que de laisser une colonne vide qui ne dit rien, et on redonne sa chance au
-      // prochain clic : c'est ce que le _chargement remis a zero achete.
       _chargement = null;
       afficher('journee');
       var av = document.getElementById('bureauAvis');
@@ -590,7 +606,28 @@
         av.textContent = 'Tes écrans de vente n\'ont pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
         av.hidden = false;
       }
-    });
+    };
+    var etapes = [
+      { cle: 'moteur', texte: 'Le moteur d\u2019analyse', faire: function () { return chargerEcrans(); } },
+      { cle: 'ventes', texte: 'Tes ventes', faire: function (dire) {
+          if (typeof window.demarrerEcransVente !== 'function') return false;
+          return window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id }, dire);
+        } }
+    ];
+    var ouverture = window.BdvAmorce
+      ? window.BdvAmorce.lancer(etapes)
+      : chargerEcrans().then(function () {
+          if (typeof window.demarrerEcransVente !== 'function') return;
+          return window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id });
+        });
+    ouverture.then(function (bilan) {
+      attente(id, false);
+      var rates = (bilan && bilan.rates) || [];
+      // Le reseau a lache pendant le telechargement du moteur : on revient a « Ma
+      // journee » plutot que de laisser une colonne vide qui ne dit rien, et on redonne
+      // sa chance au prochain clic, c'est ce que le _chargement remis a zero achete.
+      if (rates.indexOf('moteur') >= 0) retourJournee();
+    })['catch'](retourJournee);
   }
 
   /* L'adresse fait foi a l'ouverture et au bouton Retour. Trois formes seulement :
