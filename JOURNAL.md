@@ -72,6 +72,27 @@ résolu numériquement pour tomber pile entre les deux seuils.
 une fois les conventions posées. Et les trois mutations sont bien attrapées par la
 comparaison.
 
+### Le branchement, et deux choses trouvées en branchant
+
+`computeBridge()`, `agentCadence()` et `agentDecrochage()` lisent le serveur quand il a
+répondu, local sinon. Les deux appels partent en parallèle du rapatriement.
+
+**Un ordre de tri qui n'existait que sur son appareil.** `Array.sort` est stable, donc deux
+mouvements de même montant sortaient dans l'ordre où leurs clients apparaissent dans
+IndexedDB, un ordre que rien ne peut reproduire. Le pied d'écran n'affiche que les dix
+premiers : une égalité au dixième rang change qui s'affiche, d'un appareil à l'autre. Les
+deux côtés trient maintenant par montant absolu puis par nom.
+
+**Le banc a laissé passer une mutation.** 32 contrôles verts, et oublier `comNb()` sur
+`caPotentiel` n'en faisait échouer aucun, parce que ce champ n'est lu par aucun écran. Un
+contrôle qui ne regarde que ce qui s'affiche ne voit pas les champs qui ne s'affichent pas,
+et ce sont ceux-là qui s'affichent un jour, en chaîne de caractères. J'ai ajouté un contrôle
+de types sur tout ce que le serveur rend ; il attrape la mutation.
+
+**Et j'ai trouvé du code mort au passage** : `caPotentiel` est calculé pour chaque client,
+sommé, porté jusqu'à `agentDormants()`, et lu par personne. Je le signale, je ne le supprime
+pas.
+
 ### Ce que je n'ai pas fait, et pourquoi
 
 **« Premier achat sans suite » n'est pas porté.** Sur la base de Ted il refuse de répondre,

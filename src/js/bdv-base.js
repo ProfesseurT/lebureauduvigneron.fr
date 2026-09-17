@@ -282,9 +282,16 @@ async function analyserPourLeBureau(){
    change rien au resume, mais un appel de trop coute une requete et un oubli coute un
    faux chiffre : le filtre est volontairement large. */
 const CAP_REGLAGES = ['classement', 'exercice_debut', 'objectif'];
+/* DEUX RESUMES DE SERVEUR MAINTENANT, ET UN SEUL POINT DE PEREMPTION. Depuis le lot 25
+   « Mon commerce » en a un aussi, et il depend des MEMES reglages : `classement` decide
+   de `est_vente`, `exercice_debut` decide de `ex_annee` et `ex_pos`. Les perimer
+   separement, c'est l'oubli programme du jour ou un troisieme ecran arrivera.
+   `objectif` ne sert qu'a « Mon cap », mais le redemander pour rien coute une requete
+   et l'oublier coute un faux chiffre : le filtre reste volontairement large. */
 function capPerimer(apres){
-  if(typeof window === 'undefined' || typeof window.bdvCapRafraichir !== 'function') return;
-  window.bdvCapRafraichir(apres);
+  if(typeof window === 'undefined') return;
+  if(typeof window.bdvCapRafraichir === 'function') window.bdvCapRafraichir(apres);
+  if(typeof window.bdvCommerceRafraichir === 'function') window.bdvCommerceRafraichir(apres);
 }
 function syncUneColonne(champs){
   if(!syncPret())return null;

@@ -390,6 +390,18 @@
     }catch(e){ return null; }
   }
 
+  /* Meme forme que `capResume`, et meme contrat : un objet ou rien. Un resume a
+     moitie lu vaut moins que pas de resume du tout, parce que l'ecran croirait
+     savoir. Le `catch` rend null, l'ecran retombe sur son calcul local. */
+  async function commerceResume(){
+    if(!pret()) return null;
+    try{
+      const r = await BdvCompte.api('/rpc/commerce_resume', {
+        methode: 'POST', corps: { b: BdvCompte.monBureau() } });
+      return (r && typeof r === 'object' && !Array.isArray(r)) ? r : null;
+    }catch(e){ return null; }
+  }
+
   /* ============================== LES REGLAGES ============================== */
   // Un seul enregistrement par vigneron. Remplace bdv_objectif_v5, bdv_exercice_v1,
   // bdv_persolabels_v4 et le classement de l'ecran Reglages, qui vivaient dans le
@@ -619,6 +631,7 @@
     pousserVentes: pousserVentes,
     compterVentes: compterVentes,
     capResume: capResume,
+    commerceResume: commerceResume,
     lireReglages: lireReglages,
     ecrireReglages: ecrireReglages,
     lireSuivi: lireSuivi,

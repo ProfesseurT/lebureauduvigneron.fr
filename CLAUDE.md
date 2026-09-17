@@ -1609,6 +1609,44 @@ Ecrits ici parce qu'ils disent comment elle se relit :
    conventions : ils alertaient sous l'une comme sous l'autre. Un troisieme a ete resolu
    numeriquement pour tomber **entre** les deux seuils.
 
+### LE BRANCHEMENT, MEME JOUR
+
+`computeBridge()`, `agentCadence()` et `agentDecrochage()` lisent le serveur quand il a
+repondu, et restent locaux sinon. Chacune declare sa source (`serveur: true` ou `false`).
+`agentDormants()` en herite sans etre touchee, puisqu'elle passe par `agentCadence()`.
+
+**Un seul point de peremption pour les DEUX resumes.** `capPerimer()` rafraichit maintenant
+« Mon cap » ET « Mon commerce » : ils dependent des memes reglages (`classement` decide de
+`est_vente`, `exercice_debut` de `ex_annee` et `ex_pos`). Les perimer separement, c'est
+l'oubli programme du jour ou un troisieme ecran arrivera.
+
+Les deux appels partent **ensemble**, pas l'un apres l'autre : ils ne dependent de rien
+dans le navigateur ni l'un de l'autre.
+
+#### Un ordre de tri qui n'existait que sur l'appareil de Ted
+
+`Array.sort` est **stable**. Les mouvements de meme montant sortaient donc dans l'ordre ou
+leurs clients apparaissent dans IndexedDB, **un ordre que rien ne peut reproduire** ailleurs.
+Le pied d'ecran n'affiche que les dix premiers : une egalite au dixieme rang change qui
+s'affiche, d'un appareil a l'autre. Les deux cotes trient maintenant par montant absolu
+**puis par nom**.
+
+#### Le banc a laisse passer une mutation, et c'est ce qui l'a rendu bon
+
+`npm run banc:commerce-serveur` peint l'ecran deux fois et exige le meme HTML au caractere
+pres : 32 controles, tous verts. **Oublier `comNb()` sur `caPotentiel` n'en faisait echouer
+aucun.** La raison : ce champ n'est lu par AUCUN ecran, donc il ne peut pas changer un pixel.
+
+**Un controle qui ne regarde que ce qui s'affiche ne voit pas les champs qui ne s'affichent
+pas, et ce sont justement ceux-la qui s'affichent un jour, six mois plus tard, en chaine de
+caracteres.** PostgREST rend les numeriques de jsonb en chaines : « 1200 » + « 800 » fait
+« 1200800 », sans lever. Un controle de TYPES a ete ajoute, sur tout ce que le serveur rend,
+et il attrape la mutation.
+
+Au passage : **`caPotentiel` est calcule pour chaque client, somme, porte jusqu'a
+`agentDormants()`, et lu par personne.** Meme famille que l'evenement `bdv:bureau` sans
+ecouteur et que les trois ecrans fantomes. A supprimer, quand Ted le dira.
+
 ### CE QUI N'EST PAS FAIT
 
 **`agentPremierAchat()` n'est pas porte.** Sur la base de Ted il REFUSE de repondre, et il a

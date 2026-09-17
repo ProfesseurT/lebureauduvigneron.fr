@@ -213,15 +213,24 @@ select jsonb_build_object(
   'bridge', (select jsonb_build_object('nw', round(nw,2), 'up', round(up,2),
                                        'down', round(down,2), 'lost', round(lost,2),
                                        'delta', round(nw+up+down+lost,2)) from br),
+  /* LES PLUS GROS MOUVEMENTS, pour le pied d'ecran. L'ORDRE DES EX AEQUO EST POSE
+     DES DEUX COTES : `Array.sort` de JavaScript est stable, donc le navigateur
+     rendait les montants egaux dans l'ordre ou les clients apparaissent dans
+     IndexedDB, un ordre que rien ne peut reproduire ici. Le pied n'affiche que les
+     dix premiers : une egalite au dixieme rang change qui s'affiche. Les deux cotes
+     trient donc par montant absolu, puis par NOM. */
+  'movers', (select jsonb_agg(jsonb_build_array(nom, round(cur - prev,2))
+                      order by abs(cur - prev) desc, nom asc)
+               from yy where round(cur - prev) <> 0),
   'cadence', (select jsonb_agg(jsonb_build_object(
-                 'id', client_cle, 'n', n, 'montant', round(montant,2),
+                 'id', client_cle, 'nom', nom, 'n', n, 'montant', round(montant,2),
                  'panier', round(panier,4), 'last', last, 'silence', silence,
                  'cadence', cadence, 'cadRef', cad_ref, 'cv', round(cv::numeric,6),
                  'cls', cls, 'fiable', fiable, 'annuel', annuel, 'moisHab', mois_hab,
                  'enRetard', en_retard, 'ampleur', round(ampleur::numeric,6),
                  'prochaine', prochaine, 'conf', conf) order by client_cle) from cad3),
   'decroche', (select jsonb_agg(jsonb_build_object(
-                 'id', client_cle, 'cur', round(cur,2), 'prev', round(prev,2),
+                 'id', client_cle, 'nom', nom, 'cur', round(cur,2), 'prev', round(prev,2),
                  'perdu', round(perdu,2), 'pct', round(pct,6),
                  'cv', round(cv::numeric,6), 'seuil', round(seuil::numeric,6))
                  order by perdu desc) from dec2 where n_jours > 1),

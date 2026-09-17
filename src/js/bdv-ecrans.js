@@ -817,7 +817,51 @@ function computePriceVolume(){
 }
 
 // AGENT D : pont de contribution par client (nouveaux / hausse / baisse / perdus).
+/* ===================== « MON COMMERCE » ET LE SERVEUR, LOT 25 =====================
+
+   MEME FORME QU'AU LOT 24 : le serveur repond, l'ecran s'en sert ; il ne repond pas,
+   l'ecran calcule en local. Le calcul local n'est PAS supprime, il devient le repli,
+   et chaque fonction declare d'ou vient sa reponse (`serveur: true` ou `false`).
+
+   CE QUI VIENT DU SERVEUR : les quatre mouvements de clientele et leur liste de plus
+   gros ecarts, la cadence d'achat par client, le decrochage.
+
+   CE QUI RESTE LOCAL, ET POURQUOI :
+     - `agentPremierAchat()`. Il n'est pas porte, faute de pouvoir le verifier : sur la
+       base de Ted il refuse de repondre (34 clients observables la ou il en exige 40),
+       donc le portage ne serait confronte qu'a une base fabriquee. Poser a l'ecran des
+       taux de retour que personne n'a jamais compares au reel, non.
+     - `piedCommerce()` au-dela des mouvements, les libelles, le tri de la liste. Tant
+       que ceux-la lisent `ROWS`, ouvrir « Mon commerce » charge encore la base : ce lot
+       prouve la chaine, il ne supprime pas l'attente.
+   ================================================================================= */
+let COM = null;
+function comPoser(x){ COM = (x && typeof x === 'object') ? x : null; }
+/* Voir `capRafraichir` : la mise a null est immediate, la redemande attend l'ecriture. */
+function comRafraichir(apres){
+  comPoser(null);
+  if(!(window.BdvSync && BdvSync.commerceResume)) return Promise.resolve(null);
+  const attendre = (apres && typeof apres.then === 'function')
+    ? apres.catch(function(){ return null; })
+    : Promise.resolve(null);
+  return attendre.then(function(){ return BdvSync.commerceResume(); })
+                 .then(function(x){ comPoser(x); return x; })
+                 .catch(function(){ return null; });
+}
+window.bdvCommerceRafraichir = comRafraichir;
+/* Le serveur rend les nombres en jsonb : des chaines pour les numeriques a decimales.
+   Une seule conversion, ici, plutot que trente `Number()` semes dans les fonctions. */
+function comNb(v){ return v == null ? null : Number(v); }
+
 function computeBridge(){
+  if(COM && COM.bridge){
+    const br = COM.bridge;
+    return { cur: COM.exerciceCur, prev: COM.exercicePrev,
+             nw: comNb(br.nw), up: comNb(br.up), down: comNb(br.down), lost: comNb(br.lost),
+             delta: comNb(br.delta),
+             movers: (COM.movers || []).map(function(m){ return [m[0], comNb(m[1])]; }),
+             serveur: true };
+  }
   const f=yoyFrame();if(!f)return null;
   const by={};
   ROWS.forEach(r=>{if(!r._vin||!r._date)return;if(!avantCoupe(r,f.cutPos))return;if(r._exY!==f.cur&&r._exY!==f.prev)return;
@@ -829,8 +873,13 @@ function computeBridge(){
     else if(c.cur<=0&&c.prev>0)lost+=(c.cur-c.prev);
     else if(d>=0)up+=d;else down+=d;
     if(Math.round(d)!==0)movers.push([c.nom,d]);});
-  movers.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
-  return{cur:f.cur,prev:f.prev,nw,up,down,lost,delta:nw+up+down+lost,movers};
+  /* L'ORDRE DES EX AEQUO EST POSE, 17/09/2026. `Array.sort` est stable, donc deux
+     mouvements de meme montant sortaient dans l'ordre ou leurs clients apparaissent
+     dans IndexedDB : un ordre que le serveur ne peut pas reproduire, et que le
+     vigneron voit changer d'un appareil a l'autre. Le pied d'ecran n'affiche que les
+     dix premiers, alors une egalite au dixieme rang change qui s'affiche. */
+  movers.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])||(a[0]<b[0]?-1:a[0]>b[0]?1:0));
+  return{cur:f.cur,prev:f.prev,nw,up,down,lost,delta:nw+up+down+lost,movers,serveur:false};
 }
 
 // Synthese du bridge, en tete du Diagnostic. Quatre mouvements qui bouclent sur le total :
@@ -898,6 +947,26 @@ function pourquoi(inner){return `<details class="pourquoi"><summary>Pourquoi ce 
 
 // AGENT CADENCE : rythme d'achat par client, a partir de ses dates de facture distinctes.
 function agentCadence(){
+  /* LE SERVEUR REND LES CLIENTS, PAS LA LISTE DES RETARDS : le tri par score et le
+     filtre se refont ici, a l'identique, parce qu'ils ne coutent rien sur une liste
+     deja agregee et qu'un tri de plus en SQL serait un endroit de plus ou les deux
+     cotes peuvent diverger. Le score est `montant x min(ampleur, 5)` : le plafond
+     empeche un client silencieux depuis dix ans de passer devant un gros client en
+     retard de deux mois. */
+  if(COM && Array.isArray(COM.cadence)){
+    const clients = COM.cadence.map(function(c){
+      return { id: c.id, nom: c.nom, n: c.n, montant: comNb(c.montant),
+               panier: comNb(c.panier), last: c.last, silence: c.silence,
+               cadence: comNb(c.cadence), cadRef: comNb(c.cadRef), cv: comNb(c.cv),
+               cls: c.cls, fiable: c.fiable, annuel: c.annuel, moisHab: c.moisHab,
+               enRetard: c.enRetard, ampleur: comNb(c.ampleur),
+               prochaine: comNb(c.prochaine), caPotentiel: comNb(c.panier), conf: c.conf };
+    });
+    const enRetard = clients.filter(c=>c.enRetard&&c.montant>0)
+      .map(c=>({...c,score:c.montant*Math.min(c.ampleur,5)})).sort((a,b)=>b.score-a.score);
+    return {ok:true,refDay:COM.refJour,clients,enRetard,
+            caPotentiel:sum(enRetard,c=>c.caPotentiel),serveur:true};
+  }
   const P=PROFIL||profilBase();const refDay=P.refDay;
   if(refDay==null||!P.nClients)return{ok:false,clients:[],enRetard:[],caPotentiel:0,refDay:null};
   const days=clientPurchaseDays();
@@ -921,7 +990,7 @@ function agentCadence(){
     clients.push({id,nom:meta.nom,n,montant:meta.montant,panier,last,silence,cadence,cadRef,cv,cls,fiable,annuel,moisHab,enRetard,ampleur,prochaine,caPotentiel:panier,conf});
   }
   const enRetard=clients.filter(c=>c.enRetard&&c.montant>0).map(c=>({...c,score:c.montant*Math.min(c.ampleur,5)})).sort((a,b)=>b.score-a.score);
-  return{ok:true,refDay,clients,enRetard,caPotentiel:sum(enRetard,c=>c.caPotentiel)};
+  return{ok:true,refDay,clients,enRetard,caPotentiel:sum(enRetard,c=>c.caPotentiel),serveur:false};
 }
 
 /* ======================= AGENTS MUTUALISES (aussi utilisés par le Diagnostic) ======================= */
@@ -1021,6 +1090,18 @@ function agentDormants(){
 }
 function clientStatsHaveCadence(cad){return cad.clients.some(c=>c.cadence!=null);}
 function agentDecrochage(){
+  /* Le serveur a deja ecarte les clients venus une seule fois dans toute la base : ils
+     ne decrochent pas, ils ne sont jamais montes. Il rend quand meme leur nombre et
+     leur montant, parce que l'ecran le dit au vigneron plutot que de le taire. */
+  if(COM && Array.isArray(COM.decroche)){
+    return { f: {cur: COM.exerciceCur, prev: COM.exercicePrev, cutPos: COM.coupePos},
+             decroche: COM.decroche.map(function(c){
+               return { id: c.id, nom: c.nom, cur: comNb(c.cur), prev: comNb(c.prev),
+                        perdu: comNb(c.perdu), pct: comNb(c.pct),
+                        cv: comNb(c.cv), seuil: comNb(c.seuil) }; }),
+             totPerdu: comNb(COM.totPerdu), ecartes: COM.ecartes,
+             caEcarte: comNb(COM.caEcarte), serveur: true };
+  }
   const f=yoyFrame();if(!f)return{f:null,decroche:[],totPerdu:0,ecartes:0,caEcarte:0};
   // Un client venu une seule fois dans TOUTE la base ne decroche pas : il n'est jamais monte.
   // Le signaler comme « en recul » melangeait 169 clients de passage aux 58 vrais habitues
@@ -1046,7 +1127,7 @@ function agentDecrochage(){
   const ecartes=decroche.filter(c=>venuUneFois(c.id));
   const retenus=decroche.filter(c=>!venuUneFois(c.id));
   return{f,decroche:retenus,totPerdu:sum(retenus,c=>c.perdu),
-         ecartes:ecartes.length,caEcarte:sum(ecartes,c=>c.perdu)};
+         ecartes:ecartes.length,caEcarte:sum(ecartes,c=>c.perdu),serveur:false};
 }
 function agentConcentration(){
   const rows=ROWS.filter(r=>r._vin),ca=sum(rows,r=>r._total);if(ca<=0)return null;
@@ -3128,9 +3209,16 @@ async function demarrerEcransVente(depart, dire){
   const capEnRoute = (window.BdvSync && BdvSync.capResume)
     ? BdvSync.capResume().catch(function(){ return null; })
     : Promise.resolve(null);
+  /* LES DEUX PARTENT ENSEMBLE, pas l'un apres l'autre. Ils ne dependent de rien qui
+     soit dans le navigateur et de rien l'un de l'autre : les enchainer ajouterait une
+     seconde a l'ouverture pour le plaisir de les lire dans l'ordre. */
+  const comEnRoute = (window.BdvSync && BdvSync.commerceResume)
+    ? BdvSync.commerceResume().catch(function(){ return null; })
+    : Promise.resolve(null);
   await tirerDuServeur();
   await reloadFromDB(dire);
   capPoser(await capEnRoute);
+  comPoser(await comEnRoute);
   dire('Dessin de tes écrans…');
   // Le panneau est branche AU DEMARRAGE, et pas seulement quand on l'ouvre : le bouton
   // « Me deconnecter » de la barre du haut y prend son garde-fou. Sans cette ligne il

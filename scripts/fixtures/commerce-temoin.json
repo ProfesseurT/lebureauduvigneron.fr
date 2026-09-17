@@ -32,12 +32,12 @@
     -3025
    ],
    [
-    "Venu une fois n°29",
-    -3000
-   ],
-   [
     "A une ligne hors vente",
     3000
+   ],
+   [
+    "Venu une fois n°29",
+    -3000
    ],
    [
     "Venu une fois n°28",
@@ -64,11 +64,11 @@
     -2500
    ],
    [
-    "Venu une fois n°23",
-    -2400
+    "Cadence 60, silence 85",
+    2400
    ],
    [
-    "Cadence 60, silence 85",
+    "Cadence 60, silence 90",
     2400
    ],
    [
@@ -76,8 +76,8 @@
     2400
    ],
    [
-    "Cadence 60, silence 90",
-    2400
+    "Venu une fois n°23",
+    -2400
    ],
    [
     "Venu une fois n°22",
@@ -116,11 +116,11 @@
     -1600
    ],
    [
-    "Médiane paire, deux intervalles",
+    "En hausse",
     1500
    ],
    [
-    "En hausse",
+    "Médiane paire, deux intervalles",
     1500
    ],
    [
@@ -160,12 +160,12 @@
     -900
    ],
    [
-    "Venu une fois n°8",
-    -900
-   ],
-   [
     "Venu récemment n°4",
     900
+   ],
+   [
+    "Venu une fois n°8",
+    -900
    ],
    [
     "Venu récemment n°3",
@@ -176,24 +176,24 @@
     800
    ],
    [
-    "Venu une fois n°7",
-    -800
-   ],
-   [
     "Venu récemment n°2",
     800
+   ],
+   [
+    "Venu une fois n°7",
+    -800
    ],
    [
     "Venu récemment n°1",
     750
    ],
    [
-    "Venu une fois n°6",
-    -700
-   ],
-   [
     "Venu récemment n°0",
     700
+   ],
+   [
+    "Venu une fois n°6",
+    -700
    ],
    [
     "Médiane paire, quatre intervalles",
@@ -224,12 +224,12 @@
     -150
    ],
    [
-    "Venu une fois n°0",
-    -100
-   ],
-   [
     "Dernière vente de la base",
     100
+   ],
+   [
+    "Venu une fois n°0",
+    -100
    ]
   ]
  },
