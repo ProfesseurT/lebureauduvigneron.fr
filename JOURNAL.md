@@ -12,6 +12,55 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, fin d'après-midi. « Mon cap » : treize chiffres sur treize
+
+### Le test que je cherchais était déjà dans la base
+
+Je me demandais comment comparer le serveur au navigateur sur de vraies données, sans
+pouvoir faire tourner le navigateur de Ted. La réponse était là depuis le 09/09 : le tableau
+de bord **dépose déjà ses propres chiffres** dans `reglages.resume_ventes` à chaque import.
+Calculés par le navigateur, sur la vraie base. Il suffisait de les lire.
+
+### Treize champs sur treize
+
+| | navigateur | serveur |
+|---|---|---|
+| Chiffre d'affaires de l'exercice | 970 959 | 970 959 |
+| Clients | 1 617 | 1 617 |
+| Panier moyen | 87 | 87 |
+| Variation à date égale | -2,3 % / -22 936 € | -2,3 % / -22 936 € |
+| Atterrissage | 1 627 963 | 1 627 963 |
+| Les douze valeurs mensuelles | 182173, 103364, 151782... | identiques, une à une |
+
+`v_cap_controle` fige cette comparaison. **Tant qu'une ligne en sort, on ne retire aucun
+calcul du navigateur.**
+
+### Les deux fenêtres qu'il ne faut pas confondre
+
+Le piège le plus sournois du portage. La comparaison d'une année sur l'autre se fait sur
+`ex_pos`, donc **au jour près**. L'atterrissage, lui, compare sur `ex_mois`, donc **au mois
+près**. C'est ce qu'écrit le JavaScript. Prendre l'une pour l'autre déplace l'atterrissage
+de plusieurs dizaines de milliers d'euros, et rien ne casse.
+
+Et l'ancre n'est jamais aujourd'hui : l'exercice courant est le dernier présent en base. La
+base de Ted s'arrête au 31/08/2026 ; dater d'aujourd'hui comparerait huit mois de ventes à
+douze mois de calendrier.
+
+### Dix-sept balayages pour un écran
+
+Première version de la fonction : 3 755 ms. Elle relisait la vue dix-sept fois, dont douze
+pour construire la série mensuelle **un mois à la fois**. Les deux exercices comparés sont
+maintenant matérialisés une seule fois : **1 141 ms**. `as materialized` n'est pas décoratif,
+sans lui Postgres replonge dans la table à chaque usage.
+
+### Ce qui n'est pas fait, et qu'il faut dire
+
+**Le navigateur n'appelle pas encore cette fonction.** Elle est prouvée, elle n'est branchée
+nulle part. Tant que `renderCap()` calcule en local, ce lot ne fait gagner aucune seconde à
+Ted. C'est le prochain pas, et il ne se fait pas tant que `v_cap_controle` n'est pas vide.
+
+---
+
 ## 17/09/2026, après-midi. Le calcul remonte au serveur : lots 22 et 23
 
 Ted : « On va la prendre maintenant tout de suite, le hors-ligne c'est pas possible donc on

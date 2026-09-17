@@ -1549,6 +1549,58 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## « MON CAP » CALCULE PAR LE SERVEUR, LOT 24, 17/09/2026
+
+### LE CONTROLE QUI REND TOUT LE CHANTIER DEFENDABLE, ET IL ETAIT DEJA LA
+
+Le tableau de bord depose ses propres chiffres dans `reglages.resume_ventes` a chaque
+import : calcules par le NAVIGATEUR, sur la vraie base du vigneron. **On tient donc
+gratuitement la seule comparaison qui compte, navigateur contre serveur, sur des donnees
+reelles.** `v_cap_controle` la fige, champ par champ.
+
+Resultat du 17/09/2026 sur les 171 569 lignes de Ted : **treize champs sur treize
+identiques**, dont les douze valeurs mensuelles une a une, l'atterrissage a l'euro
+(1 627 963) et la variation au dixieme (-2,3 %).
+
+**TANT QU'UNE LIGNE SORT DE `v_cap_controle` AVEC `identique = false`, ON NE RETIRE AUCUN
+CALCUL DU NAVIGATEUR.** C'est la regle du chantier, et c'est elle qui empeche de remplacer
+des chiffres justes par des chiffres plausibles.
+
+    select champ, cote_navigateur, cote_serveur from public.v_cap_controle where not identique;
+
+La vue ne vaut que si le depot est RECENT : un resume depose avant un import compare deux
+bases differentes. `depose_le` est rendu pour qu'on en juge.
+
+### LES QUATRE PIEGES PORTES A L'IDENTIQUE
+
+1. **L'ancre n'est jamais `now()`.** L'exercice courant est le dernier PRESENT EN BASE, et
+   le jour de coupe est le `ex_pos` le plus avance qu'il porte. La base de Ted s'arrete au
+   31/08/2026 : une requete qui daterait d'aujourd'hui comparerait huit mois de ventes a
+   douze mois de calendrier.
+2. **DEUX fenetres differentes, et elles ne se confondent pas.** La comparaison d'une annee
+   sur l'autre se fait sur `ex_pos <= cut_pos`, au JOUR pres. L'atterrissage compare sur
+   `ex_mois <= max_m`, au MOIS pres. C'est ce qu'ecrit le JavaScript, et prendre l'une pour
+   l'autre deplace l'atterrissage de plusieurs dizaines de milliers d'euros sans rien
+   casser.
+3. **`ex_pos` est un entier composite**, mois dans l'exercice fois cent plus le jour. Il se
+   compare comme un entier.
+4. **Un mois sans vente vaut zero, il ne disparait pas.** Sinon le douzieme point du
+   graphique serait le huitieme.
+
+### UN SEUL BALAYAGE, ET `as materialized` N'EST PAS DECORATIF
+
+La premiere version de `cap_resume()` lisait `v_ventes` **dix-sept fois**, dont douze pour
+construire la serie mensuelle un mois a la fois : **3 755 ms**. Les deux exercices compares
+sont materialises UNE fois et tout en sort : **1 141 ms**. Sans `as materialized`, Postgres
+replonge dans la table a chaque usage du CTE et on revient au point de depart.
+
+### CE QUI N'EST PAS FAIT
+
+**Le navigateur ne l'appelle pas encore.** `cap_resume()` est prouvee, elle n'est branchee
+nulle part : `renderCap()` calcule toujours tout en local. Tant que ce branchement n'est pas
+fait, ce lot ne fait gagner aucune seconde a Ted. Ne pas le brancher sans que
+`v_cap_controle` soit vide.
+
 ## LE CALCUL REMONTE AU SERVEUR, 17/09/2026. LOTS 22 ET 23.
 
 Decide par Ted le 17/09/2026, en abandonnant le hors-ligne. **La regle 1 de
