@@ -592,6 +592,7 @@ permalink: /mon-bureau/
      NE PAS LES REMETTRE ICI « pour etre sur ». Ce serait les charger deux fois : le
      chargeur les reconnaitrait par leur adresse et n'en poserait pas d'autres, mais le
      bureau retrouverait ses 97 ko bloquants et personne ne verrait pourquoi. -->
+<script src="/js/bdv-amorce.js" defer></script>
 <script src="/js/bdv-reglages.js" defer></script>
 <script src="/js/bdv-canaux.js"></script>
 <script src="/js/bdv-echeances.js" defer></script>
@@ -2209,6 +2210,79 @@ permalink: /mon-bureau/
     if(e.target.closest && e.target.closest('[data-signet]')) setTimeout(function(){ peindreLectures(); peindreResume(); }, 0);
   });
 
+  /* ===================== L'AMORCAGE, 17/09/2026 =====================
+
+     CE QUE TED A VU : « quand je me connecte, rien ne s'affiche ». Le sous-main disait
+     « Ta file n'a pas pu etre lue », le panneau « ton journal n'est pas encore lisible »,
+     et l'ardoise etait absente.
+
+     CE N'ETAIT PAS LA LENTEUR, C'ETAIT UNE COURSE PERDUE. Les quatre lectures partaient
+     EN MEME TEMPS au DOMContentLoaded. Or depuis le lot 17 elles sont toutes filtrees
+     par le bureau courant, range dans `bdv_bureau_v1`, et cette cle est ABSENTE a la
+     premiere ouverture qui suit une connexion : `BdvCompte.chargerBureau()` va la
+     chercher pendant que `BdvCrm.charger()` rend deja `null`, par construction, parce
+     qu'il refuse de lire sans savoir quel bureau lire.
+
+     `chargerBureau()` previent par l'evenement `bdv:bureau` quand il a fini. Mesure du
+     17/09/2026 : AUCUN FICHIER DU DEPOT N'ECOUTAIT CET EVENEMENT. Il etait emis depuis
+     le lot 17 et documente comme « reveille les modules qui n'avaient rien pu lire », et
+     il ne reveillait personne. Le bureau restait sur ses trois messages d'echec jusqu'au
+     rechargement de la page.
+
+     POURQUOI PAS SIMPLEMENT ECOUTER L'EVENEMENT. Ca fermait CE cas et laissait la classe
+     entiere ouverte : rien n'empecherait la prochaine zone d'oublier le meme evenement,
+     et le defaut ne se voit que sur un appareil qui n'a pas encore sa cle, c'est-a-dire
+     jamais sur le poste de celui qui developpe. Ce qu'il fallait, c'est un ORDRE
+     D'ARRIVEE ecrit a un seul endroit : la liste ci-dessous. **Son ordre EST la
+     dependance**, le bureau d'abord, tout le reste ensuite. Ne pas la paralleliser.
+
+     Une etape qui rend `false` a echoue. Chacune traduit elle-meme son « je ne sais
+     pas » : `BdvCrm.charger()` rend `null` quand la lecture echoue et un etat quand elle
+     aboutit, meme sur une base vide, et c'est ici qu'on le sait. */
+  function amorcer(){
+    var depuis = new Date(); depuis.setDate(depuis.getDate() - 28);
+    var etapes = [
+      { cle: 'bureau', texte: 'Ton bureau', faire: function(){
+          if(!(window.BdvCompte && BdvCompte.chargerBureau)) return false;
+          return BdvCompte.chargerBureau().then(function(b){ return b ? true : false; });
+        } },
+      { cle: 'suivi', texte: 'Tes clients et tes rappels', faire: function(){
+          if(!window.BdvCrm) return false;
+          return Promise.resolve(BdvCrm.rejouer())
+            .then(function(){ return BdvCrm.charger(); })
+            .then(function(etat){
+              // Pas de reponse ET pas de miroir : la zone doit dire quelque chose. Un
+              // titre au-dessus du vide se lit comme une panne muette.
+              if(!etat){ if(!ETAT_FILE){ LECTURE_KO = true; peindreFile(); } return false; }
+              LECTURE_KO = false;
+              ETAT_FILE = etat;
+              peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
+            });
+        } },
+      { cle: 'journal', texte: 'Ton journal récent', faire: function(){
+          if(!window.BdvCrm) return false;
+          return BdvCrm.journal(depuis.toISOString()).then(function(j){
+            // Quatre semaines, pas plus : c'est tout ce que les deux punaises
+            // « gestes » ont besoin de savoir.
+            JOURNAL = j; peindrePanneau();
+            return j === null ? false : true;
+          });
+        } },
+      { cle: 'lectures', texte: 'Ce que tu as mis de côté', faire: function(){
+          if(!window.BdvSignets) return false;
+          return BdvSignets.charger().then(function(){ peindreLectures(); peindreResume(); });
+        } },
+      { cle: 'profil', texte: 'Tes réglages', faire: function(){ return chargerProfil(); } }
+    ];
+    /* Sans le module, on garde l'ORDRE et on perd seulement le voile. Un bureau qui
+       s'ouvrirait en parallele parce qu'un fichier manque ramenerait le defaut du jour
+       exactement, et sans rien dire. */
+    if(window.BdvAmorce) return BdvAmorce.lancer(etapes);
+    return etapes.reduce(function(p, e){
+      return p.then(function(){ return Promise.resolve(e.faire()).catch(function(){}); });
+    }, Promise.resolve());
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
     // La barre en premier : elle est le cadre, tout le reste se peint dedans.
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
@@ -2222,26 +2296,8 @@ permalink: /mon-bureau/
       // deja sur le disque.
       ETAT_FILE = BdvCrm.miroir();
       peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
-      Promise.resolve(BdvCrm.rejouer())
-        .then(function(){ return BdvCrm.charger(); })
-        .then(function(etat){
-          // Pas de reponse ET pas de miroir : la zone doit dire quelque chose. Un titre
-          // au-dessus du vide se lit comme une panne muette.
-          if(!etat){ if(!ETAT_FILE){ LECTURE_KO = true; peindreFile(); } return; }
-          ETAT_FILE = etat;
-          peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
-          // Le crochet qui remplissait la fenetre des reglages a disparu avec elle : le
-          // panneau lit lui-meme la table `reglages` et se corrige tout seul quand la
-          // reponse arrive, cf. bdv-reglages.js.
-        });
-      // Le journal part en parallele : le panneau se peint sans lui et se complete quand
-      // il arrive. Quatre semaines, pas plus : c'est tout ce que les deux punaises
-      // « gestes » ont besoin de savoir.
-      var depuis = new Date(); depuis.setDate(depuis.getDate() - 28);
-      BdvCrm.journal(depuis.toISOString()).then(function(j){ JOURNAL = j; peindrePanneau(); });
     }
-    if(window.BdvSignets) BdvSignets.charger().then(function(){ peindreLectures(); peindreResume(); });
-    chargerProfil();
+    amorcer();
 
     /* La lune. L'almanach arrive en defer, donc avant nous : on peint tout de
        suite. Si jamais il manquait, peindreLune() sort sans rien faire et le bloc

@@ -12,6 +12,81 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, suite. « Quand je me connecte, rien ne s'affiche »
+
+Le repère de synchronisation poussé, Ted rouvre son bureau et envoie une capture : le
+sous-main dit « Ta file n'a pas pu être lue », le panneau « ton journal n'est pas encore
+lisible », l'ardoise est absente. Et sa demande, mot pour mot : « il faudrait un système qui
+à la connexion s'assure que tout soit raccordé, avec une modale qui dit que ça travaille
+(pour pas qu'on attende dans le vent) et pour qu'on puisse travailler ensuite. »
+
+### Ce n'était pas la lenteur, c'était une course perdue
+
+Les journaux Supabase disaient pourtant que le repère marchait : 316 requêtes à 10 h 01 pour
+la synchronisation complète, 74 à 10 h 02, **une seule à 10 h 03**. Le réseau n'était plus le
+sujet. Le sujet, c'est que les quatre lectures du bureau partaient **en même temps** au
+chargement de la page, alors qu'elles sont toutes filtrées par le bureau courant, rangé dans
+`bdv_bureau_v1`. Cette clé est absente à la première ouverture qui suit une connexion :
+`chargerBureau()` va la chercher pendant que `BdvCrm.charger()` rend déjà `null`, par
+construction, parce qu'il refuse de lire sans savoir quel bureau lire.
+
+### Le défaut qui fait le plus mal : un événement que personne n'écoutait
+
+`bdv:bureau` existe depuis le lot 17. Il est émis par `bdv-compte.js` dès que la clé est
+ramenée, et `CLAUDE.md` le décrit noir sur blanc comme « réveille les modules qui n'avaient
+rien pu lire ». Mesure du jour : **zéro `addEventListener('bdv:bureau')` dans tout le dépôt.**
+
+Il ne réveillait personne. Le bureau restait donc sur ses trois messages d'échec jusqu'au
+rechargement de la page, depuis quatre jours, et personne ne l'avait vu parce que le poste de
+développement a toujours sa clé. C'est la même famille que le `min-height` sur un `span` et
+que les `env(safe-area-inset-*)` sans `viewport-fit=cover` : **une protection écrite, jamais
+exécutée, et que le prochain lecteur croit active.**
+
+### Ce qu'on a écarté : brancher l'événement
+
+C'était la correction évidente, trois lignes. Elle fermait ce cas-là et laissait la classe
+entière ouverte : rien n'empêcherait la prochaine zone d'oublier le même événement, et le
+défaut ne se voit que chez quelqu'un qui vient de se connecter.
+
+Retenu à la place : **un ordre d'arrivée écrit à un seul endroit.** Le bureau d'abord, puis
+ce qui en dépend. Une zone ne peut plus se peindre avant que ce qu'elle lit soit raccordé,
+parce qu'on ne la laisse plus essayer.
+
+### Les deux arbitrages de Ted
+
+**La modale paraît à chaque connexion**, pas seulement quand ça dépasse un seuil. Conséquence
+qu'il faut assumer : depuis le repère, une ouverture réussie prend deux cents millisecondes,
+et un voile plein écran qui apparaît et disparaît dans cet intervalle se lit comme un défaut
+d'affichage. D'où un plancher de 450 ms, **la seule attente artificielle du projet**.
+
+**Le voile rend la main au bout de quinze secondes**, toujours. L'autre branche a été pesée :
+un voile qui attend le raccordement complet enferme le vigneron dehors de chiffres que son
+appareil porte déjà. Un bureau ouvert qui dit ce qui manque vaut mieux qu'un bureau fermé qui
+a raison. Ce qui n'a pas répondu continue de tourner : le plafond ferme le voile, il n'annule
+rien.
+
+### Le banc a validé 27 contrôles, la capture en a refusé quatre
+
+`npm run banc:amorce` vérifie l'ordre, le plafond, les deux formes d'échec, le cas hors
+session, et que `bureau` est bien la première étape de la vraie page construite. Vérifié en
+remettant le défaut : passer la boucle en parallèle fait échouer neuf contrôles, inverser la
+liste en fait échouer un.
+
+Il a laissé passer quatre choses que `npm run apercu:amorce` a montrées du premier coup :
+trois libellés d'écran sans leurs accents, un titre trop petit pour être un titre, **une carte
+sans hauteur maximale ni défilement** (cinq étapes plus deux boutons ne tiennent pas dans un
+téléphone en paysage, et ce sont les boutons qui rendent la main), et une phrase qui récitait
+les cinq étapes quand tout avait raté. **Cinquième fois que la même leçon se paie.**
+
+### Ce qui reste ouvert
+
+- **Rien ne teste l'amorçage sur un vrai navigateur sans clé de bureau.** Le banc simule
+  cette situation, il ne la reproduit pas. Le seul vrai essai, c'est une session neuve.
+- Les points ouverts de ce matin tiennent toujours : première synchronisation longue,
+  `dbAddMany` à deux requêtes par ligne, le calcul côté serveur.
+
+---
+
 ## 17/09/2026, matin. Une minute pour ouvrir son bureau : la base n'y était pour rien
 
 Ted a essayé le bureau avec sa base de **facturation**, 171 569 lignes au lieu des 4 939

@@ -1549,6 +1549,92 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## LE BUREAU SE RACCORDE DANS UN ORDRE, ET IL LE DIT, 17/09/2026
+
+Ted, capture a l'appui : « quand je me connecte, rien ne s'affiche ». Le sous-main disait
+« Ta file n'a pas pu etre lue », le panneau « ton journal n'est pas encore lisible », et
+l'ardoise etait absente.
+
+**CE N'ETAIT PAS LA LENTEUR, C'ETAIT UNE COURSE PERDUE.** Les quatre lectures partaient EN
+MEME TEMPS au `DOMContentLoaded`. Or depuis le lot 17 elles sont toutes filtrees par le
+bureau courant, range dans `bdv_bureau_v1`, et **cette cle est ABSENTE a la premiere
+ouverture qui suit une connexion** : `chargerBureau()` va la chercher pendant que
+`BdvCrm.charger()` rend deja `null`, par construction, parce qu'il refuse de lire sans
+savoir quel bureau lire.
+
+**ET L'EVENEMENT QUI DEVAIT RATTRAPER CA N'AVAIT AUCUN ECOUTEUR.** `bdv:bureau` est emis
+depuis le lot 17 et documente dans ce fichier comme « reveille les modules qui n'avaient
+rien pu lire ». Mesure du 17/09/2026 : **zero `addEventListener('bdv:bureau')` dans tout le
+depot.** Il ne reveillait personne, et le bureau restait sur ses trois messages d'echec
+jusqu'au rechargement de la page. C'est la meme famille que le `min-height` sur un `span`
+et que les `env(safe-area-inset-*)` sans `viewport-fit=cover` : **une protection ecrite,
+jamais executee, et que le prochain lecteur croit active.**
+
+### Pourquoi on n'a pas simplement branche l'evenement
+
+Ca fermait CE cas et laissait la classe entiere ouverte. Rien n'empecherait la prochaine
+zone d'oublier le meme evenement, et **le defaut ne se voit que sur un appareil qui n'a pas
+encore sa cle de bureau, c'est-a-dire jamais sur le poste de celui qui developpe.** Ce qu'il
+fallait, c'est un ORDRE D'ARRIVEE ecrit a un seul endroit.
+
+`src/js/bdv-amorce.js` tient le voile et la sequence ; `amorcer()`, dans le script inline de
+`src/mon-bureau.njk`, tient la LISTE. **L'ordre de cette liste EST la dependance** : le
+bureau, puis le suivi, le journal, les signets, le profil. Ne pas la paralleliser « pour
+gagner 200 ms », le gain se paierait en zones vides.
+
+### Les quatre regles, et aucune n'est decorative
+
+1. **LES ETAPES SONT SEQUENTIELLES.** Voir ci-dessus. C'est la reparation elle-meme.
+2. **LE VOILE REND LA MAIN AU BOUT DE QUINZE SECONDES, TOUJOURS.** Arbitrage de Ted, et
+   l'autre branche a ete pesee : un voile qui attend le raccordement complet enferme le
+   vigneron DEHORS de chiffres que son appareil porte deja. **Un bureau ouvert qui dit ce
+   qui manque vaut toujours mieux qu'un bureau ferme qui a raison.**
+3. **CE QUI N'A PAS REPONDU CONTINUE DE TOURNER.** Le plafond ferme le voile, il n'annule
+   rien : les etapes aboutissent souvent une seconde plus tard et la page se complete par
+   ses propres rappels.
+4. **UNE ETAPE RATEE SE DIT PAR SON NOM.** « Tes clients et tes rappels n'ont pas repondu »
+   se comprend et se raconte au telephone ; « erreur de chargement » ne se comprend pas.
+   Meme motif que le rapport de la fonction du courrier : ce qui echoue est NOMME.
+
+**Une etape a echoue si elle leve OU si elle rend exactement `false`.** Ce `false` n'est pas
+un detail de style : `BdvCrm.charger()` rend `null` quand la lecture echoue et un etat quand
+elle aboutit, y compris sur une base vide. C'est l'appelant qui traduit son « je ne sais
+pas », parce qu'il est le seul a savoir ce que rend sa fonction.
+
+**Le voile parait a CHAQUE connexion** (choix de Ted) avec un plancher de 450 ms, la seule
+attente artificielle du projet : depuis le repere de synchronisation, une ouverture reussie
+prend deux cent millisecondes, et un voile plein ecran qui apparait et disparait dans cet
+intervalle se lit comme un defaut d'affichage, pas comme un chargement.
+
+### Ce que le banc a valide et que la capture a refuse
+
+`npm run banc:amorce`, 27 controles, verifie en remettant le defaut : passer la boucle en
+parallele en fait echouer neuf, inverser la liste de la page en fait echouer un. Il a
+pourtant laisse passer QUATRE defauts que `npm run apercu:amorce` a montres du premier coup :
+
+- trois libelles d'ecran sans leurs accents (« Tes reglages ») ;
+- un titre a `--t-lead` qui se lisait comme une phrase de plus, passe a `--t-h3` ;
+- **la carte ne defilait pas et n'avait pas de hauteur maximale** : cinq etapes, la phrase
+  d'echec et deux boutons ne tiennent pas dans un telephone en paysage, et ce sont
+  precisement les boutons qui rendent la main. `max-height: calc(100dvh - ...)` et
+  `overflow-y: auto`, meme lecon que la fiche client le 11/09/2026 ;
+- quand TOUT rate, la phrase recitait les cinq etapes. Enumerer sert quand il manque une ou
+  deux choses au milieu de ce qui marche ; **quand il ne reste rien, l'enumeration EST le
+  bruit.** Le message devient « Ton compte n'a pas repondu ».
+
+**Cinquieme fois que la meme lecon se paie : la mesure trouve ce qu'on ne voit pas, la
+capture voit ce qu'on ne mesure pas.** Regarder `_apercu/amorce.html` apres toute retouche
+de ce voile.
+
+### La regle qui en sort, et elle depasse ce chantier
+
+**Toute lecture faite au demarrage du bureau entre dans la liste de `amorcer()`, jamais a
+cote.** Une zone nouvelle qui lancerait sa propre lecture au `DOMContentLoaded` rejouerait le
+defaut du jour a l'identique, et seulement chez quelqu'un qui vient de se connecter. Le
+controle qui le garde est la section 6 de `banc:amorce` : elle lit la fenetre qui va de
+l'ouverture du `DOMContentLoaded` jusqu'a l'appel de la sequence, sur la page CONSTRUITE, et
+elle refuse toute lecture reseau posee avant.
+
 ### L'AUTRE MOITIE DE LA MESURE : `est_membre(bureau)` LIGNE PAR LIGNE, 17/09/2026
 
 Meme journee, meme base, cause independante. La politique de lecture de `ventes` etait

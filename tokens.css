@@ -179,6 +179,7 @@
      d'attente : c'est lui qui porte le texte. */
   --z-busy:   1050;
   --z-statut: 1100;
+  --z-amorce: 1200;   /* le voile d'amorcage, au-dessus du statut le temps du raccordement */
 }
 
 /* ============================================================================

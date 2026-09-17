@@ -243,6 +243,11 @@
      d'attente : c'est lui qui porte le texte. */
   --z-busy:   1050;
   --z-statut: 1100;
+  /* L'AMORCAGE PASSE DEVANT TOUT, y compris le bandeau de statut, 17/09/2026. Il ne
+     dure que le temps du raccordement, et pendant ce temps il EST le statut : deux
+     messages d'attente superposes se contrediraient, celui du dessous disant qu'une
+     lecture a echoue pendant que celui du dessus dit qu'elle est en cours. */
+  --z-amorce: 1200;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8796,4 +8801,86 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   body.bdv-poste .panneau .postit__v[data-mot="long"] { font-size: var(--t-base); }
   body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
   body.bdv-poste .panneau .postit__s { order: 5; flex: 1 0 100%; font-size: 1.05rem; }
+}
+
+/* ============================================================================
+   L'AMORCAGE DU BUREAU, 17/09/2026
+
+   Le voile qui dit « on raccorde ton bureau » pendant que `bdv-amorce.js` enchaine
+   ses etapes. Il vit dans CETTE feuille, chargee par le layout sur toutes les pages,
+   et pas dans une feuille posee en JavaScript : le voile est monte par un module
+   `defer`, donc il peut apparaitre avant qu'une feuille chargee a la demande soit
+   arrivee. C'est exactement le defaut paye le 08/09/2026 par le bandeau de statut,
+   tombe nu dans le flux au bout du body.
+
+   AUCUNE COULEUR NE PORTE SEULE UN ETAT. Chaque etape dit le sien par un GLYPHE, pose
+   en `content` sur la puce, et par un mot cache que la synthese vocale lit. La couleur
+   ne fait que doubler. Meme regle que la gravite du mot du jour, et meme raison : ca
+   doit se lire en niveaux de gris, en vision deuteranope, et a l'oreille.
+
+   Contrastes mesures sur `--paper` le 17/09/2026 : `--ink` 12,43:1, `--muted` 6,09:1,
+   `--warn-deep` 6,20:1. Les trois paires sont declarees dans `scripts/charte.mjs`.
+   ============================================================================ */
+.bdv-amorce {
+  position: fixed; inset: 0; z-index: var(--z-amorce);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--e-m);
+  background: var(--bordeaux-veil);
+}
+.bdv-amorce__carte {
+  width: 100%; max-width: 26rem;
+  padding: var(--e-l);
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: var(--ombre-dure);
+  /* `100dvh` ET PAS `100vh`, meme lecon que la fiche client le 11/09/2026 : sur iOS
+     `100vh` vaut la hauteur SANS les barres du navigateur, donc la carte depasse et
+     ses deux boutons passent dessous. Ici ce sont precisement les boutons qui rendent
+     la main, et une carte qui les cache est un voile dont on ne sort plus.
+
+     ET ELLE DEFILE. Trouve par `npm run apercu:amorce` le 17/09/2026, pas par les 27
+     controles du banc : cinq etapes, la phrase d'echec et deux boutons ne tiennent pas
+     dans un telephone en paysage. Un contenu trop grand doit defiler DANS son cadre. */
+  max-height: calc(100dvh - 2 * var(--e-m));
+  overflow-y: auto;
+}
+.bdv-amorce__titre {
+  margin: 0;
+  font-family: var(--font-titre);
+  /* --t-h3 et pas --t-lead : a 18 px dans une carte de 26 rem, le titre se lisait comme
+     une phrase de plus et la carte n'avait plus de tete. Vu sur l'apercu. */
+  font-size: var(--t-h3);
+  line-height: 1.2;
+  color: var(--ink);
+}
+.bdv-amorce__sous { margin: 0.35rem 0 var(--e-m); color: var(--muted); }
+.bdv-amorce__liste { margin: 0; padding: 0; list-style: none; }
+.bdv-amorce__etape {
+  display: flex; align-items: baseline; gap: var(--e-s);
+  padding: 0.3rem 0;
+  color: var(--muted);
+}
+/* LA PUCE EST UN GLYPHE, PAS UNE PASTILLE. Une pastille ne dit son etat que par sa
+   couleur ; un signe le dit par sa forme, et il reste lisible partout. */
+.bdv-amorce__puce::before { content: '\00B7'; font-weight: 700; }
+.bdv-amorce__etape--encours .bdv-amorce__puce::before { content: '\2026'; }
+.bdv-amorce__etape--fait { color: var(--ink); }
+.bdv-amorce__etape--fait .bdv-amorce__puce::before { content: '\2713'; }
+.bdv-amorce__etape--rate { color: var(--warn-deep); }
+.bdv-amorce__etape--rate .bdv-amorce__puce::before { content: '\0021'; }
+.bdv-amorce__pied:empty { display: none; }
+.bdv-amorce__pied { margin-top: var(--e-m); border-top: 1px solid var(--rule); padding-top: var(--e-m); }
+.bdv-amorce__manque { margin: 0 0 var(--e-s); color: var(--warn-deep); }
+.bdv-amorce__pied .btn + .btn { margin-left: var(--e-s); }
+
+/* Sur telephone la carte prend la largeur, retraits compris : une carte bornee a 26 rem
+   dans une fenetre de 390 px laisserait deux marges pour rien la ou le texte en a besoin. */
+@media (max-width: 700px) {
+  .bdv-amorce { padding: var(--e-s); align-items: flex-start; padding-top: 15vh; }
+  .bdv-amorce__carte { max-width: none; }
+  /* Les deux boutons du pied passent l'un sous l'autre : cote a cote ils tombent sous
+     les 44 px de plancher tactile des que le libelle s'allonge. */
+  .bdv-amorce__pied .btn { display: block; width: 100%; }
+  .bdv-amorce__pied .btn + .btn { margin-left: 0; margin-top: var(--e-s); }
 }
