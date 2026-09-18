@@ -380,6 +380,7 @@
     peindreBase();
     rafraichirMoteur();
     rafraichirAgenda();
+    gateBaseVide();
     BLOCS.forEach(function(b){ if(b.rafraichir){ try{ b.rafraichir(); }catch(e){} } });
   }
 
@@ -758,6 +759,51 @@
   // que pour lui disparaissent, plutot que d'annoncer par leur presence quelque chose qui
   // ne marchera pas. Le doute (vide, « inconnu ») les laisse visibles : on ne ferme pas une
   // porte sur une absence de reponse.
+  /* ============ UNE BASE VIDE N'A PAS DE CLASSEMENT A REGLER ============
+     Demande par Ted le 18/09/2026 : « quand je veux remettre une nouvelle base, qu'on ne
+     me montre pas un reglage pas utilisable. »
+
+     CE QU'IL VOYAIT. Apres un vidage, `openApp()` ouvre ce panneau parce que la base est
+     vide. Il tombait sur « Le classement », qui propose de designer la colonne du canal
+     de vente et celle de la typologie parmi celles de SES lignes. Sans lignes, ces
+     selecteurs n'ont rien a proposer : deux listes vides et un bouton qui ne peut rien
+     appliquer. On lui demandait de regler ce qu'il n'a pas encore.
+
+     Ce qu'il lui faut a ce moment-la tient en un geste : deposer son export. Il vit dans
+     « Ma base ». On ecarte donc « Le classement » tant qu'il n'y a pas une ligne a
+     classer, exactement comme `gateVitisoft` ecarte ce qui ne le concerne pas, et par le
+     meme attribut.
+
+     `data-off` et pas `hidden`, pour la raison ecrite dans gateVitisoft : l'attribut
+     l'emporte dans la feuille, et un bloc ecarte ne peut pas revenir d'un clic. */
+  function baseEstVide(){
+    /* On demande au moteur, et on ne conclut pas sans lui. `baseVide()` vit dans
+       bdv-ecrans.js : si le moteur n'est pas la, on n'ecarte rien, parce qu'un panneau
+       ampute par erreur est pire qu'un onglet inutile. */
+    try{ return (typeof baseVide === 'function') ? baseVide() === true : false; }
+    catch(e){ return false; }
+  }
+
+  function gateBaseVide(){
+    const n = el('bdvrBlocClassement');
+    if(!n) return;
+    const vide = baseEstVide();
+    /* On ne retire PAS `data-off` ici quand la base se remplit : c'est gateVitisoft qui
+       en est proprietaire pour ce bloc, et deux fonctions qui ecrivent le meme attribut
+       finissent par se defaire l'une l'autre. On pose la marque, et on la retire
+       uniquement si c'est nous qui l'avions posee. */
+    if(vide){ n.setAttribute('data-off','oui'); n.setAttribute('data-off-vide','oui'); }
+    else if(n.getAttribute('data-off-vide') === 'oui'){
+      n.removeAttribute('data-off-vide');
+      if(!(PROFIL && PROFIL.utilise_vitisoft === 'non')) n.removeAttribute('data-off');
+    }
+    /* Et on arrive SUR « Ma base », la ou est la zone de depot. Sans cette ligne, le
+       panneau s'ouvrirait sur le premier onglet encore debout, qui n'est pas forcement
+       celui du geste attendu. */
+    if(vide){ const b = el('bdvrBlocBase'); if(b) montrerOnglet(b.id); }
+    majOnglets();
+  }
+
   function gateVitisoft(){
     const sans = (PROFIL && PROFIL.utilise_vitisoft === 'non');
     // `data-off` et pas `hidden` : `hidden` se battrait avec la classe qui montre l'onglet

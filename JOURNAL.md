@@ -12,6 +12,95 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, la nuit. Vider sa base ne peut plus mentir
+
+Ted, après avoir mélangé deux bases : « ok termine le job, l'erreur n'est plus possible. Il
+faut qu'à la suppression, on dit explicitement : attention tu vas perdre TOUT ce que t'as
+fait dans le bureau du vigneron, c'est pas remonté dans Vitisoft. Et que ça soit réellement
+supprimé. Quand on revient sur le bureau, y'aura pas de doute. Et surtout quand je veux
+remettre une nouvelle base, qu'on ne me montre pas un réglage pas utilisable. »
+
+### La mesure, et ma septième erreur de la journée
+
+J'avais annoncé que le vidage serveur expirait, à cause du déclencheur par ligne sur 171 569
+lignes. **Faux.** Monté sur un Postgres 16 local avec les 171 569 lignes et le même
+déclencheur : le `DELETE` prend **1 377 ms**. Il n'a jamais expiré.
+
+Je ne sais toujours pas pourquoi le vidage n'a pas eu lieu chez Ted, et je ne le saurai
+probablement jamais : l'erreur a été avalée au moment où elle s'est produite.
+
+**Et c'est exactement le point.** La correction ne doit pas dépendre du diagnostic. Trois
+pièces se tenaient la main :
+
+1. `vider_la_base_du_bureau` rendait `void`. Rien à vérifier.
+2. `effacerTout()` avalait toute exception et rendait `false`.
+3. `viderBase()` ne regardait pas ce retour et vidait le local quand même.
+
+Chacune prise seule est un petit relâchement. Les trois ensemble font **un bouton qui efface
+ce que le vigneron voit et laisse ce qu'il ne voit pas.**
+
+### Ce qui change
+
+**Le serveur rend une preuve.** Lot 28 : la fonction rend `{vide, ventes, lignes, suivi,
+echanges, reste}`, nettoie explicitement `ventes_lignes` et `resumes` au lieu de compter sur
+les déclencheurs, **relit ce qui reste et lève si ce n'est pas zéro**. Une fonction qui ne
+rend rien ne peut pas être vérifiée, et celle-là le pouvait d'autant moins qu'elle est
+`security definer` : elle lève sur un non-maître, et une exception avalée ressemble à un
+succès.
+
+**Le navigateur exige cette preuve.** `effacerTout()` rend l'objet du serveur ou `null`, et
+`null` veut dire « le compte n'a pas été vidé », jamais « peut-être ». `viderBase()` demande
+la preuve, **s'arrête sans elle**, et ne touche au local qu'après. Un vidage serveur raté
+laisse maintenant le bureau exactement comme il était, avec un message qui le dit et qui
+prévient : ne réimporte pas, les deux bases se mélangeraient.
+
+**Le texte nomme ce qui part.** « Cette action est définitive » ne dit rien à personne. Ce
+qui parle, c'est la liste avec ses chiffres, et la phrase que Ted a demandée :
+
+> ATTENTION. Tu vas perdre TOUT ce que tu as fait dans Le Bureau du Vigneron :
+>   176 779 ligne(s) de vente, 3 fiche(s) de suivi client, 2 échange(s) enregistré(s)
+> RIEN DE TOUT ÇA N'EST REMONTÉ DANS VITISOFT. Tes notes de suivi, tes échanges et ton
+> classement n'existent que dans le bureau : une fois effacés, ils ne se récupèrent nulle
+> part.
+> L'effacement porte sur cet appareil ET sur ton compte, donc aussi pour les autres
+> personnes de ton bureau.
+
+**Pas de doute au retour.** `LIGNES_EN_BASE`, `LIGNES_DISTANTES` et `_lignesChargees`
+repassent à zéro après un vidage réussi. Sans ça, `baseVide()` relisait des valeurs d'avant
+et le bureau hésitait entre « vide » et « pas encore chargée » sur une base qu'on venait de
+vider en connaissance de cause.
+
+**Et plus de réglage inutilisable.** Après un vidage, `openApp()` ouvre le panneau parce que
+la base est vide, et Ted tombait sur « Le classement » : deux sélecteurs qui proposent de
+désigner une colonne parmi celles de ses lignes, sans lignes. On lui demandait de régler ce
+qu'il n'a pas encore. `gateBaseVide()` écarte cet onglet tant qu'il n'y a rien à classer et
+ouvre sur « Ma base », là où se dépose l'export.
+
+Détail qui compte : la marque est `data-off-vide`, distincte du `data-off` de `gateVitisoft`.
+Deux gardes qui écrivent le même attribut finissent par se défaire l'une l'autre.
+
+### Le banc, et il m'a repris aussi
+
+`npm run banc:vidage`, 25 contrôles. Il lit le code plutôt que de le recopier, et il **fait
+tourner `effacerTout()` sur les quatre réponses possibles d'un serveur** : `{vide:true}`,
+`{vide:false}`, `null`, et une exception. Les trois dernières doivent rendre `null` et ne pas
+oublier le repère.
+
+Étalonné : **16 échecs sur la version d'avant**, zéro sur celle-ci.
+
+Il m'a repris une fois au passage : sa première version cherchait la liste de ce qui part
+dans le seul `confirm(...)`, alors qu'elle est assemblée quelques lignes au-dessus parce
+qu'elle porte des chiffres. Il criait sur un texte parfaitement correct. **Un banc qui
+regarde au mauvais endroit accuse le code.**
+
+### Ce qui reste
+
+- Le `cluster` n'est toujours pas durable, et il faudra le refaire après le réimport.
+- `bdv-reglages.js:822` compte toujours `/ventes` sans filtre de bureau.
+- Les autres blocs qui rendent un verdict sans avoir lu la base n'ont pas été passés en revue.
+
+---
+
 ## 18/09/2026, tard dans la nuit. Le bouton lent, et un cache qu'on jetait à chaque ouverture
 
 Ted, après le correctif SQL : « en première vue, il affiche quand même personne à relancer,

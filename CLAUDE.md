@@ -1063,6 +1063,50 @@ Une graisse demandee dessus est rangee « famille systeme, hors controle » alor
 sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
 l'accueil.
 
+## UN GESTE DESTRUCTIF EXIGE UNE PREUVE, PAS UN SILENCE, 18/09/2026
+
+Ted a vide sa base pour en remettre une autre. Le navigateur a vide sa copie locale, il a vu
+un bureau vide, il a importe le nouvel export. Mesure le soir : **176 779 lignes sur le
+compte, soit 171 569 ANCIENNES toujours la plus 5 210 nouvelles.** Deux bases melangees.
+
+TROIS PIECES SE TENAIENT LA MAIN : la fonction SQL rendait `void`, `effacerTout()` avalait
+l'exception et rendait `false`, `viderBase()` ne regardait pas ce retour. Chacune est un
+petit relachement ; ensemble elles font un bouton qui efface ce que le vigneron VOIT et
+laisse ce qu'il ne voit pas.
+
+**LA REGLE : une fonction qui detruit rend ce qu'elle a detruit, et relit ce qui reste.** Si
+ce n'est pas zero, elle LEVE. L'appelant exige cette preuve avant de toucher a quoi que ce
+soit chez lui. Un `void` ne se verifie pas, et une exception avalee ressemble a un succes,
+surtout sur une fonction `security definer` qui leve sur un non-maitre.
+
+ET LA CORRECTION NE DEPEND PAS DU DIAGNOSTIC. J'avais annonce un depassement de delai sur le
+DELETE : **faux**, 1 377 ms mesures sur un Postgres 16 avec les memes 171 569 lignes et le
+meme declencheur par ligne. On ne sait toujours pas pourquoi le vidage a echoue chez Ted, et
+on ne le saura jamais : l'erreur a ete avalee. C'est precisement pour ca que la preuve vaut
+mieux qu'un diagnostic.
+
+Controle : `npm run banc:vidage`, qui fait tourner `effacerTout()` sur les quatre reponses
+possibles d'un serveur. Etalonne a 16 echecs sur la version d'avant.
+
+## UN TEXTE DE CONFIRMATION NOMME CE QU'ON PERD, 18/09/2026
+
+« Cette action est definitive » ne dit rien a personne. Ce qui parle : la liste de ce qui
+part AVEC ses chiffres, et le fait que **rien de tout ca n'est remonte dans Vitisoft**. Les
+notes de suivi, les echanges et le classement n'existent QUE dans le bureau.
+
+Demande de Ted, mot pour mot : « attention tu vas perdre TOUT ce que t'as fait dans le bureau
+du vigneron, c'est pas remonte dans Vitisoft ».
+
+## ON NE PROPOSE PAS DE REGLER CE QU'ON N'A PAS ENCORE, 18/09/2026
+
+Apres un vidage, `openApp()` ouvre le panneau parce que la base est vide, et on tombait sur
+« Le classement » : deux selecteurs qui proposent de designer une colonne parmi celles de ses
+lignes, sans lignes. `gateBaseVide()` ecarte cet onglet tant qu'il n'y a rien a classer et
+ouvre sur « Ma base », la ou se depose l'export.
+
+La marque est `data-off-vide`, DISTINCTE du `data-off` de `gateVitisoft` : deux gardes qui
+ecrivent le meme attribut finissent par se defaire l'une l'autre.
+
 ## CHARGER SES LIGNES NE DOIT PAS DETRUIRE LE CACHE, 18/09/2026
 
 `resumes_perimer_reg` partait sur TOUT `update` de `reglages`. Or `deposerPourLeBureau()`

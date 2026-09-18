@@ -719,17 +719,38 @@
      celles de tout un domaine ; elle est supprimee cote base, un appel a l'ancien nom
      rend 404. La nouvelle verifie qui appelle AVANT d'effacer quoi que ce soit : un simple
      utilisateur recoit un refus, et rien n'est touche. */
+  /* RRND LA PREUVE, PAS UN BOOLEEN, DEPUIS LE 18/09/2026.
+
+     CE QUI EST ARRIVE A TED. Il a vide sa base pour en remettre une autre. Le
+     navigateur a vide sa copie locale, il a vu un bureau vide, il a importe le nouvel
+     export. Mesure le soir meme sur son compte : 176 779 lignes, soit 171 569 ANCIENNES
+     toujours la plus 5 210 nouvelles. Deux bases melangees, et pas un message.
+
+     Cette fonction rendait `false` sur echec, et personne ne regardait. Pire : le `catch`
+     avalait l'exception, donc un refus de droits, un reseau coupe et un serveur en panne
+     se ressemblaient tous les trois, et ressemblaient a un succes pour qui ne lisait pas
+     le retour.
+
+     Elle rend maintenant l'objet que le serveur renvoie (`{vide, ventes, lignes, suivi,
+     echanges, reste}`) ou `null` si QUOI QUE CE SOIT a empeche le vidage. `null` veut dire
+     « le compte n'a pas ete vide », jamais « peut-etre ». C'est l'appelant qui decide quoi
+     en faire, mais il ne peut plus l'ignorer sans le vouloir. */
   async function effacerTout(){
-    if(!pret()) return false;
+    if(!pret()) return null;
+    let r;
     try{
-      await BdvCompte.api('/rpc/vider_la_base_du_bureau', {
+      r = await BdvCompte.api('/rpc/vider_la_base_du_bureau', {
         methode: 'POST', corps: { b: BdvCompte.monBureau() } });
-      /* Le repere part avec les lignes. S'il restait, il annoncerait « rien de neuf » sur
-         une base a zero ligne, plus rien ne redescendrait, et le vigneron qui a vide par
-         erreur n'aurait aucun moyen de recuperer depuis un autre poste. */
-      oublierRepere();
-      return true;
-    }catch(e){ return false; }
+    }catch(e){ return null; }
+    /* Le serveur leve lui-meme s'il reste une ligne (lot 28), donc arriver ici avec un
+       `vide` qui n'est pas vrai ne devrait pas se produire. On le verifie quand meme :
+       c'est exactement le genre de « ne devrait pas » qui a coute la journee. */
+    if(!r || r.vide !== true) return null;
+    /* Le repere part avec les lignes. S'il restait, il annoncerait « rien de neuf » sur
+       une base a zero ligne, plus rien ne redescendrait, et le vigneron qui a vide par
+       erreur n'aurait aucun moyen de recuperer depuis un autre poste. */
+    oublierRepere();
+    return r;
   }
 
   window.BdvSync = {

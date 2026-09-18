@@ -1801,9 +1801,49 @@ async function viderBase(){
   // Le texte dit maintenant les DEUX cotes. Vider seulement le navigateur n'aurait plus aucun
   // sens : la prochaine ouverture rapatrierait tout depuis le compte, et le vigneron croirait
   // que le bouton ne marche pas.
-  const surServeur=syncPret()?' et de ton compte':'';
-  if(!confirm('Vider toute la base ? Cette action est définitive et efface les '+fmtNum(ROWS.length)+' lignes cumulées de cet appareil'+surServeur+'.'))return;
-  if(syncPret())await BdvSync.effacerTout();
+  /* LE TEXTE NOMME CE QUI PART, ET IL DIT QUE VITISOFT NE RATTRAPERA RIEN.
+     Demande par Ted le 18/09/2026, apres avoir melange deux bases : « il faut qu'a la
+     suppression, on dit explicitement : attention tu vas perdre TOUT ce que t'as fait
+     dans le bureau du vigneron, c'est pas remonte dans Vitisoft ».
+     Un « cette action est definitive » ne dit rien a personne. Ce qui parle, c'est la
+     liste de ce qu'on perd, avec ses chiffres, et la phrase que le vigneron a besoin
+     d'entendre : son travail de suivi n'existe QUE la. */
+  const nSuivi = (typeof CRM === 'object' && CRM) ? Object.keys(CRM).length : 0;
+  const nEch   = (typeof ECHANGES === 'object' && ECHANGES)
+                 ? Object.keys(ECHANGES).reduce(function(t,k){ return t + (ECHANGES[k]||[]).length; }, 0) : 0;
+  const quoi = [
+    fmtNum(ROWS.length) + ' ligne(s) de vente',
+    nSuivi ? nSuivi + ' fiche(s) de suivi client' : null,
+    nEch   ? nEch + ' échange(s) enregistré(s)'   : null
+  ].filter(Boolean).join(', ');
+
+  if(!confirm(
+      'ATTENTION. Tu vas perdre TOUT ce que tu as fait dans Le Bureau du Vigneron :\n\n'
+    + '  ' + quoi + '\n\n'
+    + "RIEN DE TOUT ÇA N'EST REMONTÉ DANS VITISOFT. Tes notes de suivi, tes échanges et "
+    + "ton classement n'existent que dans le bureau : une fois effacés, ils ne se "
+    + "récupèrent nulle part.\n\n"
+    + (syncPret()
+        ? "L'effacement porte sur cet appareil ET sur ton compte, donc aussi pour les "
+          + "autres personnes de ton bureau.\n\n"
+        : "Ton compte n'est pas joignable : seul cet appareil serait vidé, et la prochaine "
+          + "ouverture rapatrierait tout depuis le compte. Mieux vaut réessayer plus tard.\n\n")
+    + 'Confirmer la suppression définitive ?')) return;
+
+  /* ET ON NE TOUCHE A RIEN TANT QUE LE SERVEUR N'A PAS PROUVE QU'IL A VIDE.
+     C'est le defaut qui a melange les deux bases de Ted : l'appareil se vidait, le
+     compte gardait ses lignes, et le prochain import montait par-dessus. Desormais un
+     vidage serveur rate ARRETE le geste, et le bureau reste exactement comme il etait.
+     Mieux vaut un bouton qui refuse qu'un bouton qui ment. */
+  if(syncPret()){
+    const preuve = await BdvSync.effacerTout();
+    if(!preuve){
+      status('error', "Ton compte n'a PAS été vidé, donc rien n'a été touché sur cet "
+        + "appareil non plus. Vérifie ta connexion et réessaie. Si ça recommence, ne "
+        + "réimporte pas : les deux bases se mélangeraient.");
+      return;
+    }
+  }
   await dbClear();
   /* ET LE REPERE DE SYNCHRONISATION, 17/09/2026. effacerTout() l'oublie deja quand elle
      reussit ; ici on couvre le cas ou elle a ECHOUE : le serveur garde alors ses lignes,
@@ -1829,7 +1869,15 @@ async function viderBase(){
   // base vide, et c'est exactement ce que le vigneron vient de demander de faire partir.
   capPerimer();
   ROWS=[];computeMeta();
-  status('success','Base vidée.');
+  /* LE COMPTE LOCAL PASSE A ZERO, ET LE COMPTE DISTANT AUSSI. Sans ces deux lignes,
+     `baseVide()` continuerait de lire les valeurs d'avant le vidage, et le bureau
+     hesiterait entre « vide » et « pas encore chargee » sur une base qu'on vient
+     justement de vider en connaissance de cause. « Quand on revient sur le bureau,
+     y'aura pas de doute », Ted, 18/09/2026. */
+  if(typeof LIGNES_EN_BASE !== 'undefined') LIGNES_EN_BASE = 0;
+  if(typeof LIGNES_DISTANTES !== 'undefined') LIGNES_DISTANTES = 0;
+  if(typeof _lignesChargees !== 'undefined') _lignesChargees = false;
+  status('success','Base vidée, sur cet appareil et sur ton compte. Dépose ton nouvel export quand tu veux.');
   ecranRafraichir();
 }
 
