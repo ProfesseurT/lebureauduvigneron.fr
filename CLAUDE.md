@@ -1063,6 +1063,45 @@ Une graisse demandee dessus est rangee « famille systeme, hors controle » alor
 sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
 l'accueil.
 
+## UNE ABSENCE N'EST PAS UN ZERO, 18/09/2026. LE CAS DU MIROIR VIDE.
+
+Ted : « quand on clique sur mon commerce, ca ouvre mes reglages tout seul. »
+
+`openApp()` fait `if(baseVide()){ navTo('vide'); ouvrirPanneauReglages(); return; }`, et
+`baseVide()` rendait `LIGNES_EN_BASE === 0`, c'est-a-dire le compte des lignes rangees dans
+IndexedDB **SUR CET APPAREIL**. Sur un navigateur qui n'a pas encore synchronise, ce compte
+vaut zero pendant que le compte du vigneron en porte 171 569. Le bureau concluait « base
+vide, va importer » et posait le panneau par-dessus l'ecran demande.
+
+La suite en cascade : le panneau calcule son classement, ecrit les reglages, ce qui PERIME
+les trois resumes du lot 27, qu'il faut recalculer. Les 10,9 s de `rpc/resume` du HAR sont
+la consequence du bug, pas une lenteur separee.
+
+**LA REGLE, et elle est deja ecrite dans bdv-sync.js a propos du repere : un compte qu'on
+n'a pas pu lire, ou qu'on n'a pas encore lu, NE VAUT PAS ZERO. Il ne vaut rien, et on ne
+conclut pas dessus.** Le commentaire de l'amorcage se croyait deja conforme (« distinguer
+base vide de lignes pas encore chargees ») : il distinguait le mauvais couple, local vide
+contre memoire vide, jamais local vide contre serveur plein.
+
+Desormais `baseVide()` exige que le SERVEUR dise vide aussi, et le comptage serveur n'est
+demande que quand le miroir est vide. Controle : `npm run banc:base-vide`, etalonne a trois
+echecs sur l'ancienne version.
+
+## L'ORDRE DE TRI DECIDE DU TEMPS SERVEUR, 18/09/2026
+
+`empreinte` est un hachage cyrb53. Sa correlation avec l'ordre physique de `ventes` vaut
+**0,001** : trier dessus fait chercher 1000 lignes eparpillees dans 205 Mo, a chaque page,
+173 fois. Mesure sur le HAR de Ted : mediane d'attente serveur **449 ms** par page, 104 s
+pour la synchro complete.
+
+Apres `cluster public.ventes using ventes_pkey` : **171 ms** de mediane, **35 s** de synchro.
+Facteur 3, sans une ligne de code.
+
+**MAIS LE CLUSTER NE SE MAINTIENT PAS.** Les lignes inserees apres repartent a la fin du tas.
+La correction durable est de paginer `tirerVentes()` sur `maj_le`, dont la correlation vaut
+deja 0,898 et dont l'index existe ; c'est ce que fait deja la voie rapide du lot 21.
+`banc-sync.mjs:198` exige `order=empreinte.asc` et devra changer avec.
+
 ## AVANT D'OPTIMISER UN TRANSPORT, MESURER LE TRANSPORT, 18/09/2026 AU SOIR
 
 **CETTE SECTION CORRIGE CELLE QUI SUIT, ET ELLE LA CORRIGE EN ENTIER.** La section

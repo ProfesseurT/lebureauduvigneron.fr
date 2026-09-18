@@ -172,9 +172,28 @@ function ouvrirPanneauReglages(){
    repond a « les ai-je deja derivees ? », ce qui n'est pas la meme chose. Les confondre
    envoyait le vigneron sur l'ecran « base vide » a chaque ouverture. */
 let LIGNES_EN_BASE = null;
+/* CE QUE LE SERVEUR PORTE, quand le miroir local dit zero. Rempli seulement dans ce
+   cas-la, voir l'amorcage : tant que le miroir porte des lignes, la question ne se
+   pose pas et la requete n'est pas faite. `null` veut dire « on ne sait pas ». */
+let LIGNES_DISTANTES = null;
+/* UN ZERO LOCAL N'EST PAS UN ZERO, ET C'EST LE DEFAUT DU 18/09/2026.
+   `LIGNES_EN_BASE` compte les lignes rangees dans IndexedDB, SUR CET APPAREIL. Sur un
+   navigateur qui n'a pas encore synchronise, il vaut zero pendant que le compte du
+   vigneron en porte cent soixante et onze mille.
+
+   CE QUE CA DONNAIT A L'ECRAN : ouvrir « Mon commerce » sur un appareil neuf, ou apres
+   un vidage de cache, et voir le PANNEAU DES REGLAGES s'ouvrir tout seul par-dessus,
+   parce que `openApp()` concluait « base vide, va importer ». Ted l'a signale sur un
+   HAR du 18/09 ou la synchro rapatriait justement ses 173 pages au meme moment.
+
+   C'est la meme maladie que celle du repere de synchronisation, ecrite dans
+   bdv-sync.js : une absence n'est pas un zero. On ne declare la base vide que si le
+   SERVEUR la dit vide aussi. S'il ne repond pas, on ne conclut rien, et l'ecran
+   s'ouvre normalement : `assurerLignes()` fera son travail. */
 function baseVide(){
   if(lignesPretes()) return !ROWS.length;
-  return LIGNES_EN_BASE === 0;
+  if(LIGNES_EN_BASE !== 0) return false;
+  return LIGNES_DISTANTES === 0;
 }
 function openApp(ecranDepart){
   el('app').classList.add('on');
@@ -3618,6 +3637,13 @@ async function demarrerEcransVente(depart, dire){
      quelques millisecondes, pour savoir si cet appareil porte une base. Sans elle on ne
      saurait pas distinguer « base vide » de « lignes pas encore chargees ». */
   try{ LIGNES_EN_BASE = await dbCount(); }catch(e){ LIGNES_EN_BASE = null; }
+  /* ET SEULEMENT SI CE MIROIR EST VIDE, on demande au serveur s'il l'est aussi. Un
+     comptage PostgREST ne rapatrie aucune ligne, il lit l'en-tete Content-Range : c'est
+     quelques millisecondes, et on ne les paie que dans le cas ou la question se pose.
+     Sans cette reponse, `baseVide()` ne conclut rien. */
+  if(LIGNES_EN_BASE === 0 && window.BdvSync && BdvSync.pret && BdvSync.pret()){
+    try{ LIGNES_DISTANTES = await BdvSync.compterVentes(); }catch(e){ LIGNES_DISTANTES = null; }
+  }
   /* ET LES REGLAGES, qui decident du classement et de l'exercice : quelques centaines
      d'octets, et tout le reste en depend. Sans eux « Mon cap » afficherait l'exercice
      civil a quelqu'un qui ouvre le sien en aout. */

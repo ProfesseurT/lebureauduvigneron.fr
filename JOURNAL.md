@@ -12,6 +12,90 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, la nuit. Le HAR de Ted tranche trois choses d'un coup
+
+Ted a enregistré un HAR complet, de l'ouverture du bureau jusqu'à la dernière vue, et il a
+signalé au passage : « quand on clique sur mon commerce, ça ouvre mes réglages tout seul ».
+
+Le fichier répond aux trois questions ouvertes de la journée.
+
+### 1. Le CLUSTER a marché
+
+| | avant | après |
+|---|---|---|
+| attente serveur, médiane | 449 ms | **171 ms** |
+| synchro complète, 173 pages | 104 s | **35 s** |
+
+La cause était bien celle-là : `empreinte` est un hachage, sa corrélation avec l'ordre
+physique de la table vaut **0,001**. Trier dessus faisait chercher 1000 lignes éparpillées
+dans 205 Mo, à chaque page, 173 fois. `cluster public.ventes using ventes_pkey` les a
+rangées dans l'ordre où la synchro les lit.
+
+**Ce n'est pas durable.** Les lignes insérées après le CLUSTER repartent à la fin du tas.
+À refaire après un gros import, ou à corriger dans le code en paginant sur `maj_le`, dont
+la corrélation vaut déjà 0,898. La voie rapide du lot 21 trie déjà comme ça.
+
+### 2. La compression, et mes deux erreurs successives
+
+`Content-Encoding: gzip`, confirmé. **24,4 Mo passent réellement sur le fil** pour 94 Mo
+décodés, facteur 3,86.
+
+Ce matin j'annonçais 205 Mo, c'était la taille du tas. Ce soir j'annonçais 8 à 9 Mo, en
+extrapolant un facteur 9,7 mesuré avec pglz sur un bloc de 10 000 lignes. **Les deux étaient
+faux, et pour la même raison : je n'avais pas regardé le fil.** gzip travaille page par page,
+sa fenêtre ne traverse pas les 173 requêtes, donc il compresse moins bien qu'un bloc unique.
+
+Et surtout : **4 % du temps part à recevoir les octets, 90 % à attendre le serveur.** Le
+poids n'a jamais été le sujet. Le chantier du dictionnaire aurait optimisé les 4 %.
+
+### 3. Le bug de Ted, et c'est une maladie connue du dépôt
+
+`openApp()` fait :
+
+```js
+if(baseVide()){ navTo('vide'); ouvrirPanneauReglages(); return; }
+```
+
+et `baseVide()` rendait `LIGNES_EN_BASE === 0`, c'est-à-dire **le compte des lignes rangées
+dans IndexedDB, sur cet appareil**. Sur un navigateur qui n'a pas encore synchronisé, ce
+compte vaut zéro pendant que le compte du vigneron en porte 171 569.
+
+Dans le HAR, la synchro rapatriait justement ses 173 pages au même moment. Le bureau a
+conclu « base vide, va importer » et a posé le panneau des réglages par-dessus l'écran
+demandé. Puis le panneau a calculé son classement et écrit les réglages sur le compte, ce
+qui a périmé les trois résumés, qu'il a fallu recalculer : les deux `rpc/resume` du HAR,
+**10,9 secondes à eux deux**, sont la conséquence du bug, pas une lenteur à part.
+
+C'est mot pour mot la maladie écrite dans `bdv-sync.js` à propos du repère : **une absence
+n'est pas un zéro.** Le commentaire de l'amorçage le disait même de cette ligne : « sans elle
+on ne saurait pas distinguer base vide de lignes pas encore chargées ». Il distinguait le
+mauvais couple : local vide contre mémoire vide, jamais local vide contre serveur plein.
+
+Corrigé : on ne déclare la base vide que si le **serveur** la dit vide aussi. Le comptage
+serveur n'est demandé que quand le miroir est vide, donc jamais dans le cas courant. Et si le
+serveur ne répond pas, on ne conclut rien : l'écran s'ouvre, `assurerLignes()` fait son
+travail.
+
+`npm run banc:base-vide` rejoue les quatre états de la fonction. Étalonné : trois échecs sur
+l'ancienne version, zéro sur la nouvelle.
+
+### Un défaut de plus, repéré au passage, pas corrigé
+
+`src/js/bdv-reglages.js:822` compte `/ventes?select=empreinte` **sans filtre de bureau**. Le
+compteur d'écart du panneau additionne donc les lignes de TOUS les bureaux dont la personne
+est membre. Sur un compte à un seul bureau ça ne se voit pas. Sur deux, il affiche un écart
+qui n'existe pas. `compterVentes()` dans `bdv-sync.js` colle `auBureau()`, lui.
+
+### Ce qui reste
+
+- Rendre le CLUSTER inutile : paginer `tirerVentes()` sur `maj_le` comme le fait déjà la
+  voie rapide. `banc-sync.mjs:198` exige `order=empreinte.asc` et devra changer avec.
+- Le compteur d'écart sans bureau, ci-dessus.
+- Les résumés serveur : 3,1 s pour `cap`, 7,7 s pour `cuvees` quand ils sont froids. À
+  regarder une fois que le bug ne les périmera plus pour rien.
+
+---
+
 ## 18/09/2026, tard. Les 88 Mo n'existent pas sur le fil, et le goulot n'est pas le poids
 
 Ted a tranché : on fait les 87 % de réseau. J'ai commencé par mesurer les 43 colonnes, comme
