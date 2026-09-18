@@ -156,6 +156,12 @@ function brancherPanneauReglages(){
 }
 function ouvrirPanneauReglages(){
   brancherPanneauReglages();
+  /* LES DEUX BLOCS QUI LISENT LA BASE SE PEIGNENT ICI, depuis le 18/09/2026. « Ma base »
+     et le bloc des reglages proposes parcourent les lignes pour compter les familles, les
+     dimensions et les taux de remplissage : 956 ms sur la base de Ted, payes a chaque
+     ouverture du bureau alors que ce panneau est ferme. Il s'ouvre par un geste, il se
+     peint a ce geste. */
+  if(typeof ROWS !== 'undefined' && ROWS.length) ecranPeindre('reglages');
   if(window.BdvReglages)BdvReglages.ouvrir();
   else navTo('vide');   // module absent : au moins la zone de depot n'est pas hors d'atteinte
 }
@@ -172,7 +178,12 @@ function openApp(ecranDepart){
   if(!ROWS.length){ navTo('vide'); ouvrirPanneauReglages(); return; }
   // Ecran d'accueil : « Mon annee ». Ce qu'il y a A FAIRE vit dans /mon-bureau/ depuis le
   // 06/09/2026 ; ici on analyse, on ne travaille pas sa file.
-  runBusy('Analyse de tes ventes…',()=>{renderAll();navTo(ecranDepart||'annee');});
+  /* On ne peint plus tout avant de naviguer : `navTo` peint la piece ou l'on arrive, et
+     elle seule. Le depot pour le bureau, lui, doit partir a l'ouverture : « Ma journee »
+     le lit sans pouvoir le demander. */
+  ecranInvalider();
+  navTo(ecranDepart||'annee');
+  deposerPourLeBureau();
 }
 /* ---------------- LE VOLET A DEMENAGE ----------------
    Le volet de navigation, sa preference de repli (cle bdv_volet_replie) et le raccourci
@@ -214,7 +225,14 @@ function navTo(id){
      renderAll() l'a peinte alors que le panneau etait masque, donc dans un canvas haut de
      zero pixel. Chart.js n'y dessine rien de visible et ne s'en plaint pas. Un seul clic,
      un seul recalcul : c'est moins cher que de surveiller la taille du conteneur. */
-  if(id==='chercher'&&ROWS.length)renderExplo();
+  /* LA PEINTURE A L'ARRIVEE, pour TOUS les ecrans depuis le 18/09/2026, et plus seulement
+     pour « Mon registre ». `runBusy` annonce l'attente quand il y a de quoi attendre ;
+     sans lui, le premier clic sur « Mes cuvees » figerait la page une seconde et demie
+     sans un mot, ce qui est exactement le reproche de Ted du 17/09. */
+  if(ROWS.length && PEINTRES[id] && !ECRANS_PEINTS.has(id)){
+    runBusy('Analyse de tes ventes…', function(){ ecranPeindre(id); });
+  }
+  ECRAN_COURANT = id;
   window.scrollTo(0,0);
   // L'ecran s'ecrit dans l'adresse. Trois consequences voulues : le bureau peut pointer
   // droit sur « Mes clients », le bouton Retour du navigateur circule dans l'outil, et un
@@ -296,17 +314,80 @@ function setBorne(quelle,v){
   filters.preset='perso';
   buildFilterBar();runBusy('Analyse…',renderAll);
 }
+/* ============ ON NE PEINT QUE L'ECRAN REGARDE, 18/09/2026 ============
+
+   CE QU'IL Y AVAIT ICI, ET CE QUE CA COUTAIT. `renderAll()` peignait SIX ecrans a chaque
+   ouverture, quel que soit celui ou le vigneron atterrissait. Mesure sur les 171 569 lignes
+   de Ted, moteur reel :
+
+     derivation des lignes      1 750 ms
+     computeMeta()                453 ms
+     renderCap()                  822 ms
+     renderClients()            2 042 ms
+     renderProduits()           1 470 ms
+     renderReglages()             836 ms
+     renderBase()                 120 ms
+     renderExplo()                  1 ms
+     ----------------------------------
+     amorcage complet           7 494 ms
+
+   **Quatre secondes et demie sur sept etaient depensees a peindre des ecrans que personne
+   ne regardait.** Ce n'est pas un calcul a optimiser, c'est du travail a ne pas faire.
+
+   C'est la meme faute que les trois ecrans fantomes supprimes au lot 5, en plus gros :
+   la-bas on peignait dans des conteneurs masques pour toujours, ici on peint cinq pieces
+   sur six pour le cas ou le vigneron irait les voir. Un ecran qu'on n'a pas ouvert n'a pas
+   besoin d'etre a jour, il a besoin de l'etre QUAND ON L'OUVRE.
+
+   COMMENT. Chaque ecran est marque « peint » quand on le peint, et la marque tombe des que
+   la donnee bouge (import, reglage, periode, vidage). `navTo()` peint a l'arrivee si la
+   marque manque. Deux consequences a assumer :
+
+     - le premier clic sur une piece coute son calcul, une fois. C'est le prix, et il se
+       paie au moment ou le vigneron a demande a voir cette piece, pas avant.
+     - `runBusy()` couvre ce calcul-la comme il couvrait celui de l'amorcage, donc l'attente
+       est annoncee au lieu d'etre subie.
+
+   CE QUI RESTE A L'AMORCAGE, ET POURQUOI. `deposerPourLeBureau()` depose l'analyse que
+   « Ma journee » sert sans la calculer : le bureau la lit, et il n'a aucun moyen de la
+   demander. Elle coute 0 ms ici. Elle reste.
+
+   « Mon registre » (`chercher`) se repeignait deja a l'arrivee depuis le 11/09/2026, pour
+   une autre raison : sa courbe naissait dans un canvas haut de zero pixel. C'etait le bon
+   reflexe, applique a un seul ecran. */
+const PEINTRES = {
+  annee:    function(){ renderCap(); },
+  clients:  function(){ renderClients(); },
+  produits: function(){ renderProduits(); },
+  chercher: function(){ renderExplo(); },
+  /* « Reglages » est un PANNEAU, pas une piece de la barre, et il porte deux blocs qui
+     lisent la base. Il n'est pas dans `NAV` comme les autres (`panneau:true`), et c'est
+     `ouvrirPanneauReglages()` qui le montre : on le peint donc a son ouverture, pas ici. */
+  reglages: function(){ renderReglages(); renderBase(); }
+};
+const ECRANS_PEINTS = new Set();
+let ECRAN_COURANT = null;
+
+/* La marque tombe pour TOUS les ecrans, jamais pour un seul : un import change le chiffre
+   d'affaires de chacun d'eux. Se tromper ici, c'est laisser a l'ecran un chiffre d'avant
+   l'import, et c'est exactement le defaut que la peremption des resumes de serveur
+   s'emploie a eviter par ailleurs. */
+function ecranInvalider(){ ECRANS_PEINTS.clear(); }
+
+function ecranPeindre(id){
+  if(!id || ECRANS_PEINTS.has(id)) return;
+  const f = PEINTRES[id];
+  if(!f) return;
+  ECRANS_PEINTS.add(id);
+  f();
+}
+
 function renderAll(){
-  /* Mon annee : TROIS panneaux, et c'en etait quatre. Le panneau Canaux est parti dans
-     « Mes cuvees » le 11/09/2026, lot 2 : le chemin de vente et le prix moyen repondent a
-     « ce qui part, et a quel prix », qui est la question de cette piece-la. */
-  renderCap();
-  /* LES TROIS APPELS FANTOMES SONT PARTIS LE 11/09/2026 (lot 5). Le commentaire disait
-     « calculent et memorisent » : ils ne calculaient rien. Les calculs sont dans les agents,
-     que `agentClients()` appelle lui-meme pour composer la liste de « Mon commerce ». Ces
-     trois-la ne faisaient que peindre des tableaux dans des conteneurs masques. */
-  renderClients();renderProduits();
-  renderExplo();renderReglages();renderBase();
+  ecranInvalider();
+  /* L'ecran courant est repeint TOUT DE SUITE : `renderAll()` est appelee apres un geste
+     qui a change la donnee, et le vigneron regarde le resultat de son geste. Les autres
+     attendront leur tour. */
+  ecranPeindre(ECRAN_COURANT);
   deposerPourLeBureau();   // le bureau sert cette file, le tableau de bord ne l'affiche plus
 }
 

@@ -12,6 +12,52 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026. « La suite ? » — pas l'écran suivant
+
+Ted demandait la suite en pensant à Mes cuvées. J'ai commencé par compter : **65 fonctions
+lisent `ROWS`**. Les porter une par une, c'est un chantier interminable où chaque lot fait
+gagner zéro seconde jusqu'au dernier. Mauvaise forme, donc mauvaise question.
+
+### Ce que la mesure a dit
+
+`renderAll()` peignait **six écrans à chaque ouverture**, quel que soit celui où il
+atterrit. Sur ses 171 569 lignes : 6 831 ms d'amorçage, dont **4 497 à peindre des pièces
+que personne ne regardait**. Mon commerce 2 336 ms, Mes cuvées 1 849 ms, les réglages et Ma
+base 414 ms — tout ça derrière des panneaux masqués.
+
+Ce n'est pas un calcul à optimiser, c'est du travail à ne pas faire. Même faute que les
+trois écrans fantômes du lot 5, en plus gros.
+
+**6 831 ms → 2 334 ms.** Le prix ne disparaît pas, il se déplace : le premier clic sur Mon
+commerce coûte 1 480 ms, payés au moment où il a demandé à voir la pièce, et annoncés.
+
+### Deux défauts de mon propre banc
+
+J'ai écrit le banc qui garde ce gain, et il était faux deux fois.
+
+**Il regardait à côté.** `renderCap()` écrit dans `p-diagnostic`, pas `p-annee` ; Mon
+registre dans `p-explorer`, pas `p-explo`. Ma première version déclarait Mon cap non peint
+alors qu'il l'était. Un banc qui regarde au mauvais endroit invente des défauts, ce qui
+coûte autant que d'en laisser passer.
+
+**Il n'exerçait pas le chemin le plus emprunté.** Il testait `navTo`, jamais `renderAll()`,
+qui est pourtant ce qu'appelle chaque import et chaque réglage. Une mutation remettant la
+peinture des six écrans dans `renderAll()` passait les treize contrôles. Corrigé : elle en
+fait échouer quatre.
+
+Et `npm run verif` avait laissé passer tout le changement sans broncher, parce que tous les
+autres bancs appellent les peintres directement : aucun ne regarde *quand* la peinture a
+lieu.
+
+### Ce que je retiens sur la stratégie
+
+Porter les écrans en SQL était la bonne idée pour la justesse, pas pour la vitesse. Les deux
+plus gros gains de ce chantier n'ont rien à voir avec le portage : une règle de sécurité mal
+écrite, un VACUUM manquant, et cinq écrans peints pour rien. **Le SQL a rendu les chiffres
+vérifiables ; c'est la mesure du navigateur qui a rendu l'outil rapide.**
+
+---
+
 ## 17/09/2026, très tard. Une plainte, trois causes, dont une à moi
 
 « Ça a foiré une fois et là ça charge les lignes. » La ligne qui compte n'est pas « ça

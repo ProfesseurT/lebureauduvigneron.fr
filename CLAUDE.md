@@ -1549,6 +1549,74 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## ON NE PEINT QUE L'ECRAN REGARDE, 18/09/2026
+
+### LA MESURE QUI A TOUT DIT, ET ELLE N'A RIEN A VOIR AVEC LE SQL
+
+Ted demandait « la suite », en pensant a l'ecran suivant. J'ai d'abord compte : **65
+fonctions lisent `ROWS`**. Les porter une par une, c'est un chantier interminable ou chaque
+lot ne fait gagner ZERO seconde jusqu'au dernier. Mauvaise forme.
+
+Alors j'ai mesure l'amorcage, sur les 171 569 lignes, moteur reel :
+
+| | ms |
+|---|---|
+| derivation des lignes | 1 350 |
+| `computeMeta()` | 409 |
+| `renderCap()` | 473 |
+| `renderClients()` | **2 336** |
+| `renderProduits()` | **1 849** |
+| `renderReglages()` | 280 |
+| `renderBase()` | 134 |
+| `renderExplo()` | 0 |
+| **amorcage complet** | **6 831** |
+
+`renderAll()` peignait **SIX ecrans a chaque ouverture**, quel que soit celui ou le vigneron
+atterrissait. **Quatre secondes et demie sur sept partaient a peindre des pieces que
+personne ne regardait.** Ce n'est pas un calcul a optimiser, c'est du travail a ne pas faire.
+
+    amorcage 6 831 ms -> 2 334 ms
+
+C'est la meme faute que les trois ecrans fantomes du lot 5, en plus gros : la-bas on
+peignait dans des conteneurs masques pour toujours, ici on peignait cinq pieces sur six
+pour le cas ou.
+
+### CE QUE CA DEPLACE, ET QU'IL FAUT ASSUMER
+
+Le prix ne disparait pas : le premier clic sur « Mon commerce » coute 1 480 ms, celui sur
+« Mes cuvees » 1 260 ms. **Payes au moment ou le vigneron a demande a voir la piece**, et
+annonces par `runBusy` au lieu d'etre subis. Un aller-retour entre deux pieces ne recalcule
+rien : la marque tombe quand la DONNEE bouge, pas quand on navigue.
+
+### DEUX DEFAUTS DE MON PROPRE BANC, TROUVES PAR MUTATION
+
+1. **Il regardait le mauvais endroit.** `renderCap()` ecrit dans `p-diagnostic`, qui vit a
+   l'interieur de `p-annee` ; « Mon registre » dans `p-explorer` et pas `p-explo`. Ma
+   premiere version declarait « Mon cap » non peint alors qu'il l'etait. **Un banc qui
+   regarde a cote invente des defauts, ce qui coute autant que d'en laisser passer.**
+2. **Il n'exercait pas le chemin le plus emprunte.** Il testait `navTo`, jamais
+   `renderAll()`, qui est pourtant ce que `ecranRafraichir()` appelle apres chaque import et
+   chaque reglage. Une mutation remettant la peinture des six ecrans **dans** `renderAll()`
+   passait les treize controles. Section 4 bis ajoutee : la mutation fait maintenant echouer
+   quatre controles.
+
+Et `npm run verif` avait laisse passer tout le changement sans broncher, parce que **tous
+les autres bancs appellent les peintres directement** : aucun ne regarde QUAND la peinture a
+lieu. Un gain de soixante-six pour cent que rien ne garde sera repris par le premier
+`renderAll()` qu'on remettra par commodite. D'ou `npm run banc:peinture`.
+
+### CE QUI RESTE POUR TUER L'ATTENTE POUR DE BON
+
+Il reste **2 334 ms**, et ils sont presque tous dans la derivation (1 350 ms) plus
+`computeMeta()` (409 ms), c'est-a-dire dans le simple fait de charger la base. Pour les
+supprimer il faut que PLUS RIEN ne lise `ROWS` a l'amorcage : la piece d'accueil,
+`computeMeta`, `profilBase`, `buildEmailIndex` et `deposerPourLeBureau`. C'est la vraie fin
+du chantier, et elle ne depend plus du nombre d'ecrans portes mais de cette poignee de
+fonctions-la.
+
+Les exports, la fiche client et le panneau de reglages, eux, **n'ont pas a etre portes** :
+ce sont des gestes. Charger la base quand le vigneron clique sur « Exporter » est legitime.
+
 ## TROIS CAUSES EMPILEES POUR UNE SEULE PLAINTE, 17/09/2026 AU SOIR
 
 Ted rouvre son bureau : « ca a foire une fois et la ca charge les lignes », capture a
