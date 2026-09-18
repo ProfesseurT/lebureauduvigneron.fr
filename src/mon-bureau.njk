@@ -69,7 +69,12 @@ permalink: /mon-bureau/
 
   <section class="bureau-tete">
     <div class="container--bureau bureau-tete__ligne">
-      <div>
+      <!-- LES QUATRE MORCEAUX DU SALUT SUR UNE SEULE RANGEE, 18/09/2026.
+           Ce div portait quatre paragraphes empiles, soit 129 px de bandeau a
+           lui seul. Il porte maintenant une classe parce qu'il est devenu une
+           rangee et plus une pile : la date, le salut, la plaque et le resume
+           s'alignent sur la meme ligne de base et se replient ensemble. -->
+      <div class="bureau-tete__salut">
         <p class="bureau-tete__jour" id="bureauJour"></p>
         <h1 id="bureauSalut">Te voilà chez toi.</h1>
         <!-- La plaque : le nom du domaine, comme sur une porte de bureau. Elle n'apparait

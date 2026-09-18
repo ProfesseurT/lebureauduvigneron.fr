@@ -754,6 +754,11 @@ NaN est pire que les deux.
 
 ### 434 px d'en-tete pour 844 px d'ecran, SIGNALE ET NON CORRIGE
 
+**ROUVERT ET TRAITE LE 18/09/2026, MAIS SUR ORDINATEUR SEULEMENT.** Voir la section
+« L'OCCUPATION DE L'ESPACE » plus bas : le bandeau passe de 209 a 71 px. La mesure des
+434 px ci-dessous a ete prise a 390 px de large et **n'a pas ete refaite** : elle reste
+ouverte, et les chiffres qui suivent sont ceux d'avant.
+
 Mesure sur la vraie page : l'en-tete du bureau occupe **434 px, soit 51 % du premier
 ecran**, et la barre des pieces 53 px en bas. Il reste **357 px de contenu visible sans
 faire defiler**, et sur « Mon cap » ils sont pris par la barre d'exports et les chips de
@@ -785,6 +790,54 @@ chiffre : une piece qui ne repond qu'apres 434 px de decor ne repond pas.
   decalage corrige ailleurs. Non touche VOLONTAIREMENT : ce fichier est joint au
   deploiement avec une empreinte, le modifier force un redeploiement de `courrier-matin`
   pour un defaut qui ne mord que sur l'apercu hors ligne.
+
+
+## L'OCCUPATION DE L'ESPACE SE MESURE EN HAUTEUR, PAS EN LARGEUR, 18/09/2026
+
+Ted, captures de HubSpot a l'appui : « je veux la meme occupation de l'espace pour le BVD ».
+Sa premiere hypothese etait « trop de blanc sur les cotes ». **Elle etait fausse, et seule la
+mesure pouvait le dire.** Son ecran fait 1440 x 900, releve dans son navigateur ; l'atelier est
+plafonne a 1440 plus la barre, donc le plafond ne mord pas, et le blanc lateral fait **24 px de
+chaque cote, 3 % de la largeur**.
+
+Le gisement etait en hauteur : **268 px, soit 30 % de l'ecran, avant la premiere chose utile**,
+dont 209 px de bandeau ne portant qu'une date, un salut, la lune et deux boutons. Apres :
+**130 px**, dont 71 de bandeau. La barre des pieces passe de 230 a 200 px.
+
+**LA REGLE : la densite d'un CRM ne vient pas de sa largeur, elle vient de ce que chaque pixel
+de hauteur porte quelque chose d'ACTIONNABLE.** HubSpot depense a peu pres la meme hauteur
+d'entete que ce bureau ; il la depense en recherche, onglets, filtres et en-tetes de colonnes.
+Avant de resserrer une mise en page, mesurer ce que les pixels contestes PORTENT, et pas
+combien il y en a.
+
+**LE COROLLAIRE, ET IL VAUT POUR LE PROCHAIN LOT : resserrer un ecran qui affiche peu ne le
+remplit pas, il le rend petit.** Ce qui a ete retire ici est du vide (retraits, ecarts, un `h1`
+en `--t-h1` sur un salut, une lune empilee sur trois lignes) ; **aucune taille de texte n'a
+bouge**. Le jour ou une piece paraitra encore vide apres ca, la question ne sera plus la mise en
+page, ce sera ce qu'on y met.
+
+### `scripts/banc-large.mjs` : le banc qui mesure l'occupation
+
+Meme montage que `capture-telephone.mjs`, a **1440 x 900**, et hors de `npm run verif` pour la
+meme raison, il demande `playwright`. **La largeur est celle de l'ecran de Ted, pas un rond :**
+un audit d'occupation fait a une autre largeur ne mesure pas le bureau qu'il regarde.
+
+Il calcule le blanc sur le contenu qui PORTE quelque chose, un fond, une bordure ou du texte,
+jamais sur les boites vides qui s'etendent sans rien montrer : c'est la difference entre « la
+page fait 1440 » et « la page se sert de 1440 ».
+
+Ses deux limites sont dans son en-tete et il faut les lire avant de s'en servir : la modale
+« On raccorde ton bureau » couvre le bureau hors ligne, il la ferme par « Ouvrir quand meme » ;
+et **les lignes de vente ne se chargent pas dans ce montage**, donc la mise en page des cinq
+pieces de vente n'y est PAS mesurable.
+
+### Ce que ce lot n'a pas touche, et qu'il ne faut pas croire traite
+
+- **Le panneau de liege fait 1140 x 180 px pour un seul post-it.** La plus grande surface du
+  bureau, la moins remplie. Ce n'est pas un probleme de retraits, c'est le dessin du liege.
+  **A rouvrir avec Ted, pas a trancher seul.**
+- **Le telephone n'a pas ete remesure** : il a seulement ete verifie qu'il ne deborde pas
+  (390/390 sur les sept pieces) et que le point de rupture 980 px replie le bandeau comme avant.
 
 ## Le responsive se juge sur la ZONE, pas sur la fenetre
 

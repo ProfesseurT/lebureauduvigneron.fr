@@ -5589,7 +5589,7 @@ em { font-style: italic; }
 .bureau-plan {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--e-l);
+  gap: var(--e-m);
   padding-top: var(--e-2xl);
   padding-bottom: var(--e-2xl);
   align-items: start;
@@ -5625,13 +5625,20 @@ em { font-style: italic; }
 .bureau-atelier {
   /* 1440 pour le travail, comme avant la barre, plus la largeur de la barre :
      poser la barre ne doit pas retrecir le bureau de quelqu'un qui a l'ecran
-     pour l'afficher. */
-  max-width: calc(1440px + 230px);
+     pour l'afficher.
+     LA BARRE PASSE DE 230 A 200 px LE 18/09/2026. Mesure : sur 1440 px d'ecran,
+     230 px de barre plus les retraits laissaient 1138 px de travail. Le plus long
+     libelle, « Le calendrier », tient dans 200 px avec son icone et son retrait,
+     et les huit autres sont plus courts. Ce qui est rendu va au travail.
+     Les retraits verticaux tombent de 32/48 a 16/32 et l'ecart de 24 a 16 : ce
+     sont des marges de PAGE PUBLIQUE, posees quand le bureau etait un article de
+     plus. Un plan de travail se regarde d'un coup, il ne se parcourt pas. */
+  max-width: calc(1440px + 200px);
   margin: 0 auto;
-  padding: var(--e-xl) var(--e-l) var(--e-2xl);
+  padding: var(--e-m) var(--e-l) var(--e-xl);
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
-  gap: var(--e-l);
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--e-m);
   align-items: start;
   transition: grid-template-columns var(--tr-rapide) ease;
 }
@@ -6109,11 +6116,15 @@ button.bureau-nav__item:hover {
 .zone--classeur   { grid-column: span 4; }
 .zone--courrier   { grid-column: span 4; }
 
+/* LES RETRAITS D'UNE ZONE, RESSERRES LE 18/09/2026 : 16/24/24 devient 10/16/16.
+   Sept zones empilees, c'est une cinquantaine de pixels rendus par ecran, et
+   aucun mot n'a bouge. On ne touche a AUCUNE taille de texte dans ce lot : ce
+   qui a ete retire est du vide, pas de la lisibilite. */
 .zone {
   background: var(--paper-light);
   border: var(--trait) solid var(--rule);
   border-top: var(--trait-accent) solid var(--cork);
-  padding: var(--e-m) var(--e-l) var(--e-l);
+  padding: var(--e-s) var(--e-m) var(--e-m);
 }
 /* LA ZONE EST LE CONTENEUR DE REFERENCE DU LISTING, ET PAS LA FENETRE. C'est le
    defaut de fond que l'audit du 07/09/2026 a mis au jour : le listing basculait
@@ -6133,8 +6144,8 @@ button.bureau-nav__item:hover {
   justify-content: space-between;
   gap: var(--e-s);
   border-bottom: var(--trait) solid var(--rule);
-  padding-bottom: 0.5rem;
-  margin-bottom: var(--e-m);
+  padding-bottom: 0.4rem;
+  margin-bottom: var(--e-s);
 }
 .zone__tete h2 { font-size: var(--t-h3); }
 .zone__note {
@@ -6924,29 +6935,60 @@ button.bureau-nav__item:hover {
   font-size: var(--t-base);
 }
 
-/* ---- L'EN-TETE ---- */
-.bureau-tete { background: var(--bordeaux-deep); color: var(--on-dark); padding-block: var(--e-2xl) var(--e-xl); }
+/* ---- L'EN-TETE ----
+   RESSERRE LE 18/09/2026, demande de Ted, capture HubSpot a l'appui.
+
+   LA MESURE D'AVANT, sur SON ecran (1440 x 900, releve dans son navigateur,
+   pas suppose) : l'entete du site 59 px PLUS ce bandeau 209 px, soit 268 px
+   avant la premiere chose utile, TRENTE POUR CENT de la hauteur. Et rien
+   d'actionnable dedans hors les deux boutons. Un ecran de CRM depense autant
+   de hauteur, mais en barre de recherche, onglets, filtres et en-tetes de
+   colonnes : c'est la difference, et elle n'est pas de largeur.
+   Apres : 70 px. Le banc qui le mesure est `scripts/banc-large.mjs`.
+
+   RIEN N'A ETE RETIRE. Le salut, la plaque, le resume du jour, la lune et les
+   deux actions sont le dessin decide le 08/09/2026, et il tient. Ils sont
+   simplement passes d'une PILE a une RANGEE.
+
+   CE QUI PORTAIT LA HAUTEUR ETAIT LE h1 : `--t-h1` est un clamp plafonne a
+   3,2 rem, soit 51 px des 1024 px de large. Un salut n'est pas le titre d'un
+   article. Il prend `--t-h3`, et les 48 px de padding haut deviennent --e-s.
+
+   LE POINT DE RUPTURE 980 px N'A PAS BOUGE : sous lui la lune redescend sur sa
+   propre ligne comme avant, et le telephone n'est pas le sujet de ce lot. */
+.bureau-tete { background: var(--bordeaux-deep); color: var(--on-dark); padding-block: var(--e-s); }
 .bureau-tete__jour {
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   text-transform: uppercase;
   letter-spacing: var(--ls-large);
   color: var(--on-dark-soft);
-  margin-bottom: 0.6rem;
+  margin: 0;
 }
 .bureau-tete__ligne {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--e-l);
+  gap: var(--e-m);
 }
-.bureau-tete h1 { color: var(--on-dark); }
+/* LA RANGEE DU SALUT. `align-items: baseline` et pas `center` : quatre textes
+   de tailles differentes centres verticalement flottent chacun a sa hauteur,
+   alors qu'ils se lisent comme une seule phrase. Le `gap` est nul en vertical
+   pour que le repli, sur un nom de domaine long, ne rouvre pas le bandeau. */
+.bureau-tete__salut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--e-m);
+  min-width: 0;
+}
+.bureau-tete h1 { color: var(--on-dark); font-size: var(--t-h3); margin: 0; }
 /* La plaque de porte : le nom du domaine, grave sous le bonjour.
    --cork est documente « jamais du texte » : la regle vise le papier, ou il tombe a
    2,4:1. Ici il est pose sur --bordeaux-deep, ou il monte a 5,8:1. C'est la seule
    exception du site, et elle ne vaut que sur ce fond-la. */
 .bureau-tete__plaque {
-  margin: 0.4rem 0 0;
+  margin: 0;
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   text-transform: uppercase;
@@ -6966,11 +7008,10 @@ button.bureau-nav__item:hover {
 .bureau-tete__invite:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
 .bureau-tete__reglages {
   flex: 0 0 auto;
-  margin-top: 0.4rem;
   background: transparent;
   color: var(--on-dark-soft);
   border: var(--trait) solid var(--on-dark-faint);
-  padding: 0.55rem 1.1rem;
+  padding: 0.45rem 0.9rem;
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   text-transform: uppercase;
@@ -6981,13 +7022,19 @@ button.bureau-nav__item:hover {
 /* Les deux actions de l'entete, empilees a droite. « Me deconnecter » est un lien souligne
    et non un cadre : il efface ce navigateur, il ne doit pas peser autant a l'oeil que les
    reglages. --cork sur du texte est l'exception documentee plus haut, valable sur ce fond. */
+/* Les deux actions passent en RANGEE le 18/09/2026 : empilees, elles fixaient
+   a elles seules un plancher de hauteur au bandeau. L'avis de deconnexion, lui,
+   garde sa ligne a lui (`flex-basis: 100%`) : c'est une phrase, elle ne tient
+   pas a cote d'un bouton, et elle n'apparait qu'au moment du geste. */
 .bureau-tete__actions {
   flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 var(--e-m);
 }
+.bureau-tete__sortir-avis { flex-basis: 100%; }
 .bureau-tete__sortir {
   background: none;
   border: none;
@@ -7010,7 +7057,7 @@ button.bureau-nav__item:hover {
   line-height: 1.45;
   color: var(--cork);
 }
-.bureau-tete__resume { color: var(--on-dark-soft); font-style: italic; font-size: var(--t-lead); margin: 0.5rem 0 0; }
+.bureau-tete__resume { color: var(--on-dark-soft); font-style: italic; font-size: var(--t-base); margin: 0; }
 
 /* ---- LA LUNE DE L'ENTETE ----
    Posee le 08/09/2026, troisieme zone de la ligne, entre le bonjour et les
@@ -7023,12 +7070,24 @@ button.bureau-nav__item:hover {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  margin-top: 0.4rem;
   /* Le survol porte l'explication des deux cycles. Pas de pointeur de main : rien
      ne se clique ici, et un curseur qui promet un clic qui n'existe pas ment. */
   cursor: default;
 }
-.bureau-tete__lune-dessin { flex: 0 0 auto; display: block; width: 38px; height: 38px; }
+/* LA LUNE TIENT SUR UNE RANGEE depuis le 18/09/2026. Ses trois textes empiles
+   fixaient a eux seuls le plancher du bandeau a 84 px, alors que la rangee du
+   salut n'en demandait que 44 : c'etait l'ornement qui commandait la hauteur de
+   tout l'entete. Ils se suivent maintenant, separes par les filets du dessin
+   lui-meme, et le disque descend de 38 a 28 px. Le repli reste possible
+   (`flex-wrap`), et sous 980 px la lune redescend sur sa ligne comme avant. */
+.bureau-tete__lune > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--e-s);
+  min-width: 0;
+}
+.bureau-tete__lune-dessin { flex: 0 0 auto; display: block; width: 28px; height: 28px; }
 /* Le disque entier reste visible en creux : sans lui, un croissant a 9 % flotterait
    sans qu'on sache de quel astre il est le bord. */
 /* --on-dark-rule est le voile creme des filets sur fond sombre. C'est exactement
@@ -7046,7 +7105,7 @@ button.bureau-nav__item:hover {
 }
 .bureau-tete__lune-note,
 .bureau-tete__lune-suite {
-  margin: 0.2rem 0 0;
+  margin: 0;
   font-family: var(--font-corps);
   font-size: var(--t-mini);
   color: var(--on-dark-soft);

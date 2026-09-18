@@ -12,6 +12,87 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, le soir. L'occupation de l'espace du bureau
+
+Ted, deux captures de HubSpot a l'appui, son pipeline et sa liste de contacts : « je veux la
+meme occupation de l'espace pour le BVD », puis « tu vas vraiment faire comme HubSpot, y'a pas
+des grosses marges comme ici. C'est relativement optimise au niveau de la place. Et ca reste
+joli. »
+
+### Sa premiere hypothese etait fausse, et c'est la mesure qui l'a dit
+
+Il a repondu « la largeur : trop de blanc sur les cotes ». **Il n'y en a pas.** Releve dans son
+navigateur : son ecran fait **1440 x 900**. L'atelier est plafonne a 1440 + la barre, donc sur
+cet ecran-la le plafond ne mord pas, et le blanc lateral fait **24 px de chaque cote, 3 % de la
+largeur**. Elargir n'aurait rien rendu du tout.
+
+Ce qu'il voyait comme du blanc etait ailleurs, et en hauteur :
+
+| | avant | apres |
+|---|---|---|
+| entete du site | 59 px | 59 px |
+| bandeau du bureau | **209 px** | **71 px** |
+| avant la premiere chose utile | **268 px, 30 % de l'ecran** | **130 px** |
+| barre des pieces | 230 px | 200 px |
+| colonne de travail | 1138 px | 1176 px |
+| hauteur de « Ma journee » | 1919 px | 1670 px |
+
+**La comparaison avec HubSpot ne portait pas sur la largeur.** HubSpot depense a peu pres autant
+de hauteur d'entete, mais il la depense en barre de recherche, onglets, filtres et en-tetes de
+colonnes : tout y est actionnable. Les 209 px du bandeau portaient une date, un salut, la lune,
+et deux boutons.
+
+### Ce qui a ete fait, en trois lots
+
+1. **Le bandeau.** La pile de quatre paragraphes devient une rangee (`.bureau-tete__salut`), les
+   deux actions passent en rangee, la lune tient sur une ligne et son disque descend de 38 a
+   28 px. **Rien n'a ete retire** : le salut, la plaque, le resume, la lune et les deux boutons
+   sont le dessin decide le 08/09, il tient. Ce qui portait la hauteur etait le `h1` en
+   `--t-h1`, un clamp plafonne a 3,2 rem, soit **51 px** des 1024 px de large. Un salut n'est pas
+   le titre d'un article : il prend `--t-h3`.
+2. **L'air.** Retraits de l'atelier 32/48 vers 16/32, ecart de la grille 24 vers 16, retraits
+   d'une zone 16/24/24 vers 10/16/16. **Aucune taille de texte n'a bouge** : ce qui a ete retire
+   est du vide, pas de la lisibilite.
+3. **La barre des pieces**, 230 vers 200 px. « Le calendrier », le plus long des neuf libelles,
+   tient dedans avec son icone. Les 30 px vont au travail.
+
+### Le banc qui l'a mesure, et qui manquait
+
+`scripts/banc-large.mjs`, monte sur le modele de `capture-telephone.mjs` mais a **1440 x 900**,
+l'ecran de Ted. Il ne compte ni les cibles ni les debordements : il mesure **l'occupation**, et
+il calcule le blanc sur le contenu qui PORTE quelque chose, un fond, une bordure ou du texte,
+jamais sur les boites vides qui s'etendent sans rien montrer.
+
+Deux pieges payes en l'ecrivant, tous deux ecrits dans son en-tete : la modale « On raccorde ton
+bureau » couvre le bureau hors ligne et fait rendre a toutes les pieces la meme hauteur, celle de
+la page bloquee ; et les lignes de vente ne se chargent pas dans ce montage, donc **la mise en
+page des pieces de vente n'est pas mesurable ici**. C'est une limite a dire, pas un defaut a
+corriger.
+
+### Ce qui a ete verifie
+
+`charte`, `charte:bureau`, `banc`, `banc:journee`, `banc:taches`, `banc:app`, `banc:outils`,
+`banc:jetons`, `banc:reglages` : tous verts. Et le telephone recapture a 390 px : **390/390 sur
+les sept pieces, zero debordement**, le bandeau se replie comme avant et la barre reste en bas.
+Le point de rupture 980 px n'a pas ete touche.
+
+**`npm run verif` ne peut pas s'executer a travers le pont reseau** : le `npm run build` de tete
+echoue sur `EPERM: operation not permitted, unlink '_site/manifest.webmanifest'`, la suppression
+etant interdite sur ce montage. La chaine s'arrete donc au premier pas et ne controle rien. C'est
+le comportement voulu, un controle qui ne peut pas s'executer doit crier ; les bancs ont ete
+lances un par un a la place. **A relancer par Ted sur son Mac avant de pousser.**
+
+### Signale et non corrige
+
+- **Le panneau de liege fait 1140 x 180 px pour porter un seul post-it.** C'est la plus grande
+  surface du bureau et la moins remplie. Ce n'est pas un probleme de retraits, c'est le dessin du
+  liege : a rouvrir avec Ted, pas a trancher seul.
+- **La lune dit deux fois la meme chose** : « PREMIER QUARTIER » puis « Premier quartier
+  aujourd'hui ». Mis sur une rangee, le doublon se voit.
+- La colonne de la barre laisse un grand vide sous la neuvieme languette sur les pieces courtes.
+
+---
+
 ## 18/09/2026, la nuit. Vider sa base ne peut plus mentir
 
 Ted, après avoir mélangé deux bases : « ok termine le job, l'erreur n'est plus possible. Il
