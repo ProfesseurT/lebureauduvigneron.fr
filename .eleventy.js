@@ -170,6 +170,93 @@ module.exports = function(eleventyConfig) {
     return coupe.slice(0, coupe.lastIndexOf(" ")).replace(/[,;:]$/, "") + "…";
   });
 
+
+  /* ==========================================================================
+     LA MINIFICATION DES FEUILLES DE STYLE, POSEE LE 18/09/2026.
+     ==========================================================================
+     CE QUE CA RAPPORTE, MESURE SUR CE DEPOT : style.css passe de 302 a 146 Ko
+     brut, et surtout de 63,5 a 20,1 Ko une fois compresse par le serveur. C'est
+     43 Ko de moins sur CHAQUE premiere visite d'une page publique, parce que
+     cette feuille est la seule liee par le gabarit de base, sur les 38 pages.
+     Le gain tient apres compression parce que la moitie du fichier est du
+     commentaire francais, que brotli ne reduit qu'au quart.
+
+     POURQUOI UN HOOK `eleventy.after` ET PAS UN `addTransform`. Un transform ne
+     voit que les fichiers produits par un gabarit, donc les 39 HTML. Le CSS
+     passe par addPassthroughCopy et court-circuite ce pipeline : il n'existe
+     aucun moment ou un transform pourrait l'attraper. Le hook, lui, tourne une
+     fois la copie faite.
+
+     CE QUE CA NE TOUCHE PAS, ET C'EST LE POINT IMPORTANT. On reecrit `_site`,
+     jamais `src`. scripts/charte.mjs controle `src/css/style.css` en mode site,
+     et resout les feuilles du bureau vers `src/` en mode bureau : il continue
+     donc de lire des sources intactes, avec leurs commentaires, et il ne peut
+     pas se mettre a mentir a cause de cette etape. Meme chose pour les sept
+     apercus, repointes le meme jour vers `src/css/`.
+
+     MINIFICATION CONSERVATRICE, ET DELIBEREMENT. csstree.generate() retire les
+     commentaires et les blancs, et RIEN D'AUTRE : il ne fusionne pas les regles,
+     ne raccourcit pas les couleurs, ne reordonne pas les declarations. Sur une
+     feuille dont un garde-fou lit les selecteurs un par un, c'est exactement ce
+     qu'on veut. Un minifieur malin casserait charte.mjs sans prevenir.
+
+     LE CONTROLE EST FAIT ICI, PAS AILLEURS. Avant d'ecrire, on compte les regles
+     et les declarations des deux cotes et on relit le resultat. Au moindre
+     ecart, le fichier d'origine est laisse en place et le build le dit. Une
+     optimisation qui echoue en silence est pire que pas d'optimisation.
+     ========================================================================== */
+  eleventyConfig.on("eleventy.after", async () => {
+    const fsp = require("fs");
+    const chemin = require("path");
+    let csstree;
+    try { csstree = require("css-tree"); }
+    catch (e) { console.warn("[css] css-tree absent : feuilles laissees telles quelles"); return; }
+
+    const dossier = chemin.join(__dirname, "_site", "css");
+    if (!fsp.existsSync(dossier)) return;
+
+    /* Compte ce qui doit etre conserve a l'identique : une regle perdue ou une
+       declaration avalee se verrait a l'ecran, pas dans la taille du fichier. */
+    const compter = (txt) => {
+      let regles = 0, decls = 0, important = 0;
+      const arbre = csstree.parse(txt, { positions: false });
+      csstree.walk(arbre, (n) => {
+        if (n.type === "Rule") regles++;
+        if (n.type === "Declaration") { decls++; if (n.important) important++; }
+      });
+      return { regles, decls, important };
+    };
+
+    let gagne = 0;
+    for (const nom of fsp.readdirSync(dossier).filter((f) => f.endsWith(".css"))) {
+      const f = chemin.join(dossier, nom);
+      const avant = fsp.readFileSync(f, "utf8");
+      let apres;
+      try {
+        const arbre = csstree.parse(avant, { positions: false });
+        apres = csstree.generate(arbre);
+      } catch (e) {
+        console.warn("[css] " + nom + " : illisible par css-tree (" + e.message + "), laissee telle quelle");
+        continue;
+      }
+      if (apres.length >= avant.length) continue;   /* deja minifiee, ou rien a gagner */
+
+      let a, b;
+      try { a = compter(avant); b = compter(apres); }
+      catch (e) { console.warn("[css] " + nom + " : recomptage impossible, laissee telle quelle"); continue; }
+
+      if (a.regles !== b.regles || a.decls !== b.decls || a.important !== b.important) {
+        console.warn("[css] " + nom + " : ECART apres minification ("
+          + a.regles + "/" + a.decls + "/" + a.important + " contre "
+          + b.regles + "/" + b.decls + "/" + b.important + "), feuille laissee telle quelle");
+        continue;
+      }
+      fsp.writeFileSync(f, apres);
+      gagne += avant.length - apres.length;
+    }
+    if (gagne > 0) console.log("[css] minifie : " + Math.round(gagne / 1024) + " Ko de moins a servir");
+  });
+
   return {
     dir: {
       input: "src",

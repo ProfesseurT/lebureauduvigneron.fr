@@ -28,7 +28,7 @@ import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, '_site/css/style.css');
+const FEUILLE = path.join(RACINE, 'src/css/style.css');
 const MODULE = path.join(RACINE, 'src/js/bdv-equipe.js');
 
 let JSDOM;

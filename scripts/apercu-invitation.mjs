@@ -75,7 +75,7 @@ async function rendre(cas) {
 const morceaux = [];
 for (const c of CAS) morceaux.push({ ...c, html: await rendre(c) });
 
-const css = fs.readFileSync(path.join(RACINE, '_site/css/style.css'), 'utf8');
+const css = fs.readFileSync(path.join(RACINE, 'src/css/style.css'), 'utf8');
 const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le bandeau d'invitation, les quatre états</title>

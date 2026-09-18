@@ -120,7 +120,23 @@
   /* ---- OMBRES ---- */
   --ombre-dure:6px 6px 0 rgba(30,37,54,0.18);
   --ombre-carte:2px 3px 10px rgba(30,25,15,0.25);
-  --ombre-photo:10px 10px 0 rgba(0,0,0,0.28);
+  /* --ombre-photo A ETE RETIRE D'ICI LE 18/09/2026, ET C'ETAIT UNE COLLISION.
+     Ce fichier declarait `--ombre-photo: 10px 10px 0 rgba(0,0,0,0.28)` pendant que
+     src/css/style.css declarait, sous LE MEME NOM, `0 20px 60px rgba(0,0,0,0.35)`,
+     qui est une tout autre ombre. Comme cette feuille est posee par bdv-nav.js
+     APRES style.css, la sienne gagnait, et elle gagnait pour la page entiere : le
+     jour ou une regle du site aurait appele var(--ombre-photo), son ombre aurait
+     change toute seule a la premiere ouverture d'un ecran de vente, sans qu'une
+     seule ligne du site ait bouge.
+     Personne ne l'a vu parce que le site n'appelle ce jeton nulle part. C'est un
+     piege qui attendait, pas une panne.
+     La valeur voulue ici existait deja sous son vrai nom, --ombre-dure-xl, a
+     l'identique au caractere pres : c'est lui que les trois regles appellent
+     desormais. Le controle est `npm run banc:jetons`. */
+  /* Redeclare ici a l'IDENTIQUE de style.css, comme les soixante autres jetons de
+     ce bloc : cette feuille reste lisible seule. Meme nom, meme valeur, donc pas
+     de collision ; c'est justement la regle que banc:jetons fait respecter. */
+  --ombre-dure-xl:10px 10px 0 rgba(0,0,0,0.28);
 }
 .bdv-ventes .mono{font-family:var(--font-mono)}
 .bdv-ventes .hidden{display:none!important}
@@ -133,7 +149,7 @@
 /* OVERLAY DE CHARGEMENT (verre qui se remplit, centre) */
 #busyov{position:fixed;inset:0;z-index:var(--z-busy);display:none;align-items:center;justify-content:center;background:var(--bordeaux-veil)}
 .bdv-ventes#busyov.on{display:flex}
-.bdv-ventes .busyov__card{background:var(--white);border-radius:var(--r-nul);padding:1.9rem 2.4rem;box-shadow:var(--ombre-photo);border-top:var(--trait-accent) solid var(--bordeaux);text-align:center;min-width:210px}
+.bdv-ventes .busyov__card{background:var(--white);border-radius:var(--r-nul);padding:1.9rem 2.4rem;box-shadow:var(--ombre-dure-xl);border-top:var(--trait-accent) solid var(--bordeaux);text-align:center;min-width:210px}
 .bdv-ventes .glass{display:block;margin:0 auto .9rem}
 .bdv-ventes .glass-out{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .bdv-ventes .liquid{fill:var(--bordeaux);animation:fillup 1.8s ease-in-out infinite}
@@ -146,7 +162,7 @@
 /* IMPORT */
 .bdv-ventes .import{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--bordeaux-deep);
   background-image:radial-gradient(var(--on-dark-rule) 1px,transparent 1px);background-size:22px 22px}
-.bdv-ventes .import__box{max-width:660px;width:100%;text-align:center;background:var(--white);border-radius:var(--r-nul);box-shadow:var(--ombre-photo);padding:2.6rem 2.2rem;border-top:var(--trait-accent) solid var(--bordeaux)}
+.bdv-ventes .import__box{max-width:660px;width:100%;text-align:center;background:var(--white);border-radius:var(--r-nul);box-shadow:var(--ombre-dure-xl);padding:2.6rem 2.2rem;border-top:var(--trait-accent) solid var(--bordeaux)}
 .bdv-ventes .import .eyebrow{font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-large);color:var(--bordeaux);margin-bottom:1rem}
 .bdv-ventes .import h1{font-family:var(--font-titre);font-weight:400;font-size:clamp(1.8rem,4.2vw,2.6rem);color:var(--ink);margin-bottom:.7rem}
 .bdv-ventes .import .lead{font-size:var(--t-corps);color:var(--muted);max-width:520px;margin:0 auto 1.9rem;line-height:var(--lh-normal)}
@@ -401,7 +417,7 @@
 .bdv-ventes.modale.on{display:block}
 .bdv-ventes .modale__bg{position:absolute;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px)}
 .bdv-ventes .modale__box{position:relative;max-width:1020px;margin:2.5vh auto;max-height:95vh;overflow-y:auto;
-  background:var(--white);border-radius:var(--r-nul);padding:1.8rem 2rem 2rem;box-shadow:var(--ombre-photo)}
+  background:var(--white);border-radius:var(--r-nul);padding:1.8rem 2rem 2rem;box-shadow:var(--ombre-dure-xl)}
 @media (max-width:760px){.bdv-ventes .modale__box{margin:0;max-height:100vh;border-radius:var(--r-nul);padding:1.2rem}}
 .bdv-ventes .modale__close{position:absolute;top:.7rem;right:.9rem;background:none;border:0;font-size:1.9rem;
   line-height:1;color:var(--muted);cursor:pointer;padding:.2rem .5rem;border-radius:var(--r-nul)}

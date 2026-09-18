@@ -164,6 +164,87 @@
   /* ---- MOUVEMENT ----------------------------------------------------- */
   --tr-rapide: 0.15s;  /* valeur de reference, deja majoritaire */
   --tr-lent:   0.4s;
+  --tr-choregraphie: 1.1s;  /* le pinboard, cale a la main, ne se consolide pas */
+
+  /* ---- MATIERES DU PANNEAU DE LA PAGE D'ACCUEIL ----------------------
+     AJOUTEES ICI LE 18/09/2026. Elles vivaient dans src/css/style.css et ce
+     fichier les ignorait : la « source unique de verite » avait trente et un
+     jetons de retard sur ce que le navigateur recevait vraiment. Le controle
+     est desormais `npm run banc:jetons`, qui echoue des qu'un jeton est servi
+     sans etre ecrit ici. */
+  /* Le liege du panneau. Plus clair que --cork de trois tons, et personne n'a
+     jamais tranche lequel des deux est le bon liege. */
+  --cork-clair:  #C4A07A;
+  --filet-liege: rgba(90, 60, 25, 0.25);  /* le cadre interieur d'un panneau de liege */
+
+  /* Le papier a note. Deux teintes, celles du panneau de la page d'accueil. */
+  --postit-jaune: #F4E2A0;
+  --postit-kraft: #D9C9A7;
+  --ombre-papier: 2px 3px 10px rgba(30, 25, 15, 0.25), 0 1px 3px rgba(30, 25, 15, 0.15);
+  --ombre-coin:  -1px -1px 2px rgba(30, 25, 15, 0.18);  /* le coin d'une feuille qui se releve */
+
+  /* La punaise. Le dome est un degrade : un reflet, puis le corps. */
+  --punaise-clair: #E06060;
+  --punaise-fonce: #8B1A1A;
+  --ombre-punaise: 0 2px 3px rgba(0, 0, 0, 0.35);
+  --reflet:        rgba(255, 255, 255, 0.40);  /* le point de lumiere sur une surface bombee */
+
+  /* L'ardoise. Le seul noir du site, et il est brun, pas gris. */
+  --ardoise:      #241A12;
+
+  /* Le grain. Une matiere n'est pas une couleur a plat : elle a un piquete
+     clair et un piquete sombre, toujours ces deux-la. */
+  --grain-clair: rgba(255, 255, 255, 0.07);
+  --grain-fonce: rgba(0, 0, 0, 0.07);
+
+  --paper-light-voile: rgba(245, 239, 224, 0.90);  /* papier pose sur une image */
+  --ombre-dure-xl: 10px 10px 0 rgba(0, 0, 0, 0.28);  /* --ombre-dure, a l'echelle d'une video */
+
+  /* ---- MESURES ------------------------------------------------------- */
+  /* LA HAUTEUR D'UN CONTROLE QU'ON TOUCHE. 44 px est le plancher tactile, et il
+     etait deja ecrit en dur sept fois dans le depot sans avoir jamais ete une
+     regle. Il en est une maintenant. */
+  --h-controle: 44px;
+  --encoche:    12px;   /* la pointe d'une languette d'intercalaire */
+  --h-entete:   4rem;
+
+  /* ---- LA FAMILLE DES GRANDS NOMBRES ---------------------------------- */
+  /* Ce n'est pas une cinquieme police : c'est un ALIAS du corps, pose pour que
+     les chiffres puissent changer de fonte un jour sans toucher cent regles.
+     Attention, scripts/charte.mjs ne connait pas cet alias dans sa table
+     FAMILLE : une graisse demandee sur --font-chiffre est rangee « famille
+     systeme, hors controle » alors qu'elle tire sur Inter. */
+  --font-chiffre: var(--font-corps);
+
+  /* ---- ETATS SUR FOND SOMBRE ----------------------------------------- */
+  /* --ok et --danger tombent sous 3:1 sur --ink-deep. Ces deux tirages clairs
+     existent pour le seul bloc de rythme, qui est sombre. Servis par
+     src/css/bdv-ecrans.css. */
+  --ok-clair:     #8DBE72;
+  --danger-clair: #E4938C;
+  --bordeaux-voile: rgba(90, 21, 37, 0.16);  /* remplissage pale des barres de repartition */
+
+  /* ---- SERIES DE GRAPHIQUE -------------------------------------------
+     CE NE SONT PAS LES FAMILLES DU CALENDRIER declarees plus haut, et le bloc
+     --fam-1..4 explique pourquoi les deux echelles ne se confondent pas : un
+     aplat de graphique et un filet de trois pixels sur du papier ne demandent
+     pas les memes contrastes. Celles-ci sont servies par src/css/bdv-ecrans.css.
+
+     Echelle categorielle ancree sur le bordeaux et les terres du site. Les
+     jetons d'etat n'y figurent pas : une serie verte ne doit pas se lire
+     « bon ». Luminance relative, en ordre de declaration :
+       1 .028  2 .189  3 .091  4 .330  5 .056  6 .255  7 .135  8 .415
+     L'ordre alterne haut et bas de l'echelle pour que deux series voisines
+     restent separees en niveaux de gris (rapport mini 1,65) et en vision
+     deuteranope (rapport mini 1,51). */
+  --serie-1: #5A1525;  /* bordeaux */
+  --serie-2: #4D863A;  /* vert vigne */
+  --serie-3: #8E3B2A;  /* terre cuite */
+  --serie-4: #78A1BA;  /* ardoise claire */
+  --serie-5: #2A436C;  /* bleu encre */
+  --serie-6: #B97D4A;  /* liege */
+  --serie-7: #8C5095;  /* prune */
+  --serie-8: #CBA945;  /* or */
 
   /* ---- COUCHES ------------------------------------------------------- */
   --z-sticky: 2;

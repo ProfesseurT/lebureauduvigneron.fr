@@ -960,6 +960,142 @@ Et le harnais de capture chargeait `tokens.css`, donc **les captures montraient 
 couleurs alors que le navigateur en aurait montre d'autres**. Un harnais qui ne charge pas
 exactement ce que la page charge ne verifie rien : il illustre une intention.
 
+### CE QUI A ETE AJOUTE LE 18/09/2026 : la collision annoncee ici est arrivee
+
+Cette section prevoyait le defaut depuis le 08/09 : « Une collision de noms rend une
+declaration manquante indetectable. » **Elle s'est produite, et aucun controle ne l'a vue
+pendant dix jours.**
+
+`--ombre-photo` valait `0 20px 60px rgba(0,0,0,0.35)` dans `style.css` et
+`10px 10px 0 rgba(0,0,0,0.28)` dans `bdv-ecrans.css`. Deux ombres sous un seul nom. Comme
+`bdv-nav.js` pose la seconde feuille APRES la premiere, la sienne gagnait, et elle gagnait
+pour la PAGE ENTIERE : une regle du site qui aurait appele ce jeton aurait vu son ombre
+changer toute seule a la premiere ouverture d'un ecran de vente, sans qu'une ligne du site
+ait bouge. Invisible parce que le site n'appelle ce jeton nulle part. Un piege qui attendait.
+
+Et `tokens.css` avait **trente et un jetons de retard** sur ce qui etait reellement servi :
+`--ardoise`, `--postit-jaune`, `--ombre-papier`, `--tr-choregraphie`, les huit `--serie-*`,
+et vingt autres. Les deux fichiers etaient tenus a la main, en parallele. C'est la mecanique
+exacte d'une derive, et rien ne la mesurait.
+
+**`npm run banc:jetons` est desormais ce qui manquait.** Il echoue si :
+
+1. un jeton est servi avec deux valeurs differentes, dans n'importe quelles feuilles ;
+2. un jeton servi au navigateur n'est pas ecrit dans `tokens.css` ;
+3. une valeur de `tokens.css` ne correspond plus a celle qui est servie.
+
+**LA REGLE : un jeton ajoute a une feuille servie s'ecrit dans `tokens.css` DANS LA MEME
+SESSION, avec la raison qui le fait exister, pas seulement sa valeur.** Le banc le rappelle,
+il ne le fait pas a votre place.
+
+`tokens.css` reste une DOCTRINE, pas une feuille servie. Le faire servir pour de bon, et
+vider le `:root` de `style.css`, est un arbitrage qui appartient a Ted et qui a un
+prealable strict : `scripts/charte.mjs` collecte les jetons dans le `:root` de sa cible, et
+vider ce bloc lui ferait declarer une centaine de jetons « jamais declares ». **On apprend
+d'abord au garde-fou a lire la nouvelle forme, on change la forme ensuite. Jamais l'inverse.**
+
+## LE SQL DU DEPOT SE REJOUE, ET C'EST UN BANC QUI LE DIT, 18/09/2026
+
+`supabase/schema.sql` disait en tete « Ecrit pour etre rejouable sans erreur ». **Il ne
+l'etait pas : six erreurs sur une base neuve, la premiere ligne 61**, donc avant la creation
+de la moindre table de vente. Une base neuve partie de ce fichier n'avait ni `ventes`, ni
+`taches`, ni `bureaux`.
+
+Les six nommaient un objet qui n'existait pas encore : un `grant` sur une colonne ajoutee
+200 lignes plus bas, deux `revoke` sur des fonctions qui ne vivaient que dans les lots 12 et
+13, une vue qui lit une colonne du lot 12, et deux `grant` sur cette vue.
+
+**Personne ne pouvait le voir.** Sur la production, qui avait recu les lots un par un,
+chaque ligne fautive trouvait son objet et passait. Le fichier n'etait faux QUE sur une base
+neuve, c'est-a-dire exactement le jour ou on en aurait eu besoin.
+
+**LA REGLE : `scripts/banc-rejeu.mjs` porte la liste `ORDRE`, et cette liste EST la
+procedure de reconstruction.** Un lot SQL ajoute et pas inscrit dedans n'est pas « oublie par
+le banc » : il est absent de la procedure. Le banc ne se connecte a aucune base, il relit le
+SQL et verifie que chaque objet nomme existe avant d'etre nomme.
+
+**ET LA LECON DE METHODE, qui vaut au-dela du SQL :** les deux premiers defauts annonces ce
+jour-la etaient FAUX, tous deux parce qu'ils avaient ete deduits de la lecture au lieu d'etre
+rejoues. `create index if not exists` declare deux fois ressemble a une collision ; entre les
+deux declarations, `drop column id` libere le nom, et tout se passe bien. Un Postgres vide et
+huit minutes tranchent ce qu'une heure de lecture ne tranche pas.
+
+## LE CSS EST MINIFIE AU BUILD, ET `src/` NE L'EST JAMAIS, 18/09/2026
+
+`.eleventy.js` porte un hook `eleventy.after` qui reecrit `_site/css/*.css` avec `css-tree`,
+deja dans le depot. Aucune dependance ajoutee. `style.css` passe de 63,5 a 20,1 Ko une fois
+compressee : **43,4 Ko de moins sur chaque premiere visite d'une page publique.**
+
+**LA REGLE : aucun script ne lit `_site/css/` ni `_site/js/`. On lit `src/`.** Les sept
+`scripts/apercu-*.mjs` lisaient `_site/css/style.css` et ont ete repointes le meme jour.
+`charte.mjs` lisait deja `src/` des deux cotes, y compris en mode bureau ou il resout les
+`href` du HTML construit vers `src/`. C'est ce qui permet a la minification d'exister sans
+qu'aucun garde-fou ne se mette a lire autre chose que ce qu'il croit lire.
+
+La minification est CONSERVATRICE et elle doit le rester : `csstree.generate()` retire les
+commentaires et les blancs, rien d'autre. Pas de fusion de regles, pas de couleurs
+raccourcies, pas de reordonnancement. Sur une feuille dont un garde-fou lit les selecteurs un
+par un, un minifieur malin casserait `charte.mjs` sans prevenir. Le hook recompte les regles,
+les declarations et les `!important` des deux cotes, et laisse le fichier d'origine en place
+au moindre ecart.
+
+## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026
+
+Il y a 60 a 90 Ko de polices a recuperer : `Caveat` ne sert que sur l'accueil, `JetBrains
+Mono` sur aucune des douze pages plates. **C'est inaccessible en l'etat, et il ne faut pas
+essayer.**
+
+`scripts/charte.mjs` lit le lien avec `/family=([^&]+)/g` applique au TEXTE ENTIER du
+fichier, et pour un meme nom de famille **la derniere occurrence ecrase les precedentes**.
+Avec deux liens :
+
+- lien mince ecrit AVANT le plein : le garde-fou voit l'union des deux, declare CONFORME, et
+  les pages publiques rendent en faux gras. **C'est l'incident des 376 passages en gras,
+  reproduit a l'identique, avec le controle qui le couvre au lieu de l'attraper.**
+- ordre inverse : Fraunces retombe a 400 et il crie au faux gras sur des titres qui vont bien.
+
+**L'ORDRE EST IMPOSE : on scinde `style.css` en une feuille publique et une feuille bureau,
+on apprend a `charte.mjs` a controler chaque moitie contre son propre lien, et SEULEMENT
+ENSUITE on scinde le lien.**
+
+Piege connexe a savoir : `--font-chiffre` n'est pas dans la table `FAMILLE` de `charte.mjs`.
+Une graisse demandee dessus est rangee « famille systeme, hors controle » alors qu'elle tire
+sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
+l'accueil.
+
+## LES 88 Mo QUI TRAVERSENT LE RESEAU SONT 131 NOMS DE PRODUITS, 18/09/2026
+
+Mesure du 18/09, sur le bureau de Ted, 171 569 lignes : la synchronisation tire **88 Mo**,
+540 octets par ligne. Ce n'est pas 205 Mo : ce chiffre-la etait la taille du TAS de la table,
+jamais passee au `VACUUM`.
+
+**Brancher le navigateur sur `ventes_lignes` ne ferait gagner AUCUN octet, et c'est
+contre-intuitif.** La facture est faite du CONTENU des colonnes, pas de l'emballage. Le
+tableau positionnel des 43 champs ne coute que 131 octets de ponctuation par ligne ; les
+memes colonnes en JSON nomme en couteraient 699. **Un `select=*` sur `ventes_lignes` serait
+PLUS GROS que ce qu'on telecharge aujourd'hui.** La table etroite est un progres pour le
+SERVEUR, mesure par le lot 23, et pour la justesse. Pas pour le reseau du navigateur.
+
+D'ou viennent les 88 Mo, colonne par colonne : `produit` 25 Mo pour **131 valeurs
+distinctes**, `cuvee` 25 Mo pour les memes 131, `emails` 4,3 Mo et `client_nom` 3,2 Mo pour
+**1 936 clients**. **Cinquante des quatre-vingt-huit megaoctets sont 131 noms de produits
+recopies sur chacune des 171 569 lignes.** C'est la repetition, et elle seule.
+
+La forme qui reglerait ca : une table de faits mince (jour, cle client, numero produit,
+quantite, total, tarif) plus deux petites tables de libelles servies une fois. Mesure :
+11 Mo de faits, 180 Ko pour les 1 936 clients, 55 Ko pour les 131 produits. **88 Mo vers
+11 Mo, soit 87 % de moins.**
+
+**TROIS PREALABLES avant d'y toucher, et ils ne sont pas optionnels :**
+
+1. `maj_le` n'existe pas dans `ventes_lignes`. Sans elle, la voie rapide du lot 21 meurt et
+   chaque ouverture repart sur un rapatriement complet.
+2. `banc-sync.mjs` reconnait les lectures au prefixe `/ventes?`. **Il faut le reecrire AVANT**,
+   sinon il cesse de proteger sans le dire.
+3. Le mode devine n'est pas porte cote serveur : tant qu'un vigneron n'a pas valide son
+   classement, `v_ventes` ne rend rien d'exploitable, et le navigateur doit garder
+   `classerLigne()` de toute facon.
+
 ## Ce qui se CALCULE ne se saisit jamais, 08/09/2026
 
 Regle nee du lot 2 du chantier calendrier, et elle vaut au-dela de lui.

@@ -54,6 +54,12 @@ create policy "modifier sa fiche"
 -- la politique d'update autorise toutes les colonnes : un compte peut reecrire son propre champ
 -- `email` avec l'adresse de quelqu'un d'autre, ce qui pollue la liste de diffusion sans laisser
 -- de trace. Le droit se restreint donc colonne par colonne.
+-- POSEE ICI, ET PAS 200 LIGNES PLUS BAS. Le `grant update` juste en dessous nomme
+-- cette colonne. Elle n'etait declaree qu'en section 12 : sur une base NEUVE ce
+-- fichier mourait a la ligne suivante, et rien de ce qui suit ne passait. Mesure
+-- du 18/09/2026 par rejeu reel sur un Postgres 16 vide, voir npm run banc:rejeu.
+alter table public.profils add column if not exists utilise_vitisoft text;  -- oui / non / inconnu
+
 revoke insert, delete on public.profils from anon, authenticated;
 revoke update on public.profils from anon, authenticated;
 grant update (prenom, nom, domaine, code_postal, profil, outil_origine, consent_news, vu_le,
@@ -905,6 +911,138 @@ end $$;
 -- **un revoke sur PUBLIC ne retire pas un droit nominatif.** Supabase accorde
 -- l'execution a anon, authenticated et service_role NOMMEMENT sur toute fonction
 -- creee dans le schema public. Tout revoke de fermeture nomme donc les roles.
+-- ===========================================================================
+-- LOTS 10, 12 ET 13, REINTEGRES LE 18/09/2026 : ce fichier revoquait des objets
+-- qu'il n'avait jamais crees.
+-- ===========================================================================
+-- CE QUI S'EST PASSE, ET POURQUOI PERSONNE NE L'A VU. Les deux `revoke` du lot 16
+-- ci-dessous nomment `courrier_envois_purger()` et `profils_dater_consentements()`.
+-- Aucune des deux n'etait definie ici : elles vivent dans lot13-purge-journal.sql
+-- et lot12-preferences-emails.sql, et la table `courrier_envois` dans
+-- lot10-courrier-envois.sql. Sur la base de production, qui les avait deja recues
+-- par ces trois fichiers, les revoke passaient. Sur une base NEUVE, non : ce
+-- fichier rendait SIX erreurs, la premiere des le grant de la section 3.
+--
+-- L'en-tete dit « ecrit pour etre rejouable sans erreur ». Il ne l'etait pas. Le
+-- raisonnement de chaque objet reste dans son fichier de lot, qui est ce qu'on
+-- colle au quotidien ; on ne recopie ici que ce qu'il faut pour que le rejeu
+-- tienne debout tout seul. Le controle est `npm run banc:rejeu`.
+
+create table if not exists public.courrier_envois (
+  compte     uuid        not null references public.profils (id) on delete cascade,
+  jour       date        not null,
+  reserve_le timestamptz not null default now(),
+  sujet      text,
+  resend_id  text,
+  echec      text,
+  primary key (compte, jour)
+);
+
+alter table public.courrier_envois enable row level security;
+revoke all on public.courrier_envois from anon, authenticated;
+
+alter table public.profils
+  add column if not exists consent_courrier boolean not null default false;
+
+alter table public.profils
+  add column if not exists jeton_emails uuid not null default gen_random_uuid();
+
+create unique index if not exists profils_jeton_emails_idx
+  on public.profils (jeton_emails);
+
+alter table public.profils
+  add column if not exists consent_courrier_le timestamptz;
+
+alter table public.profils
+  add column if not exists consent_news_le timestamptz;
+
+grant update (consent_courrier) on public.profils to authenticated;
+
+create or replace function public.profils_dater_consentements()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.consent_courrier is distinct from old.consent_courrier then
+    new.consent_courrier_le := now();
+  end if;
+  if new.consent_news is distinct from old.consent_news then
+    new.consent_news_le := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profils_dater_consentements on public.profils;
+create trigger profils_dater_consentements
+  before update on public.profils
+  for each row
+  execute function public.profils_dater_consentements();
+
+create or replace function public.courrier_envois_purger()
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  effacees int;
+begin
+  delete from public.courrier_envois
+   where jour < (current_date - interval '1 year');
+  get diagnostics effacees = row_count;
+  return effacees;
+end;
+$$;
+
+-- Les deux portes de la page publique de preferences. `anon` n'a que la cle
+-- publique et la securite par ligne lui interdit tout sur `profils` : ces deux
+-- fonctions sont le seul chemin, et c'est pour cela qu'elles sont `security
+-- definer` avec un `search_path` fige.
+drop function if exists public.emails_lire(uuid);
+
+create or replace function public.emails_lire(jeton uuid)
+returns table (email_masque text, rappels boolean, edition boolean,
+               rappels_le timestamptz, edition_le timestamptz)
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  select left(p.email, 2) || '…@' || split_part(p.email, '@', 2),
+         p.consent_courrier,
+         p.consent_news,
+         p.consent_courrier_le,
+         p.consent_news_le
+    from public.profils p
+   where p.jeton_emails = jeton;
+$$;
+
+create or replace function public.emails_ecrire(jeton uuid, rappels boolean, edition boolean)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  touchees int;
+begin
+  update public.profils
+     set consent_courrier = coalesce(rappels, consent_courrier),
+         consent_news     = coalesce(edition, consent_news)
+   where jeton_emails = jeton;
+  get diagnostics touchees = row_count;
+  return touchees = 1;
+end;
+$$;
+
+revoke all on function public.emails_lire(uuid)                     from public;
+revoke all on function public.emails_ecrire(uuid, boolean, boolean) from public;
+grant execute on function public.emails_lire(uuid)                     to anon, authenticated;
+grant execute on function public.emails_ecrire(uuid, boolean, boolean) to anon, authenticated;
+
+
 revoke all on function public.courrier_envois_purger()      from public, anon, authenticated;
 revoke all on function public.profils_dater_consentements() from public, anon, authenticated;
 

@@ -142,7 +142,7 @@ try {
 }
 
 const S = w.__SORTIE;
-const css = ['_site/css/style.css','_site/css/bdv-ecrans.css']
+const css = ['src/css/style.css','src/css/bdv-ecrans.css']
   .map(f => fs.readFileSync(path.join(RACINE,f),'utf8')).join('\n');
 
 function section(titre, quoi, html){

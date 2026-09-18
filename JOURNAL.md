@@ -12,6 +12,203 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, fin de journée. L'audit du design system, et trois choses que j'avais dites de travers
+
+Ted a demandé un audit de `/design:design-system` : comment améliorer le back pour que le
+front soit le plus fluide possible. Le premier rapport tenait en cinq points. **Trois se
+sont révélés faux à la vérification, et c'est l'enseignement principal de la session.**
+
+### Ce que j'avais annoncé, et ce qui était vrai
+
+| Ce que j'ai dit le matin | Ce qui est vrai |
+|---|---|
+| Deux index morts dans le lot 22 bloqueraient un rejeu | **Faux.** Le lot 23 retire les colonnes générées, ce qui emporte les index. Un rejeu dans l'ordre passe. |
+| Trois noms d'index dédoublonnés, l'ordre déciderait | **Faux.** La bascule fait `drop column id`, ce qui libère les noms. Les bons index se recréent. |
+| Brancher le navigateur sur `ventes_lignes` = 90 % du gain | **Faux, et c'est la plus grosse erreur.** Ça ne fait gagner aucun octet. |
+| `tokens.css` est une source de vérité en retard | **Vrai**, et pire que dit : 31 jetons de retard, pas 20. |
+| 302 Ko de CSS non minifié sur 38 pages | **Vrai.** C'est le vrai gisement. |
+
+**La leçon, et elle est générale : j'ai raisonné sur le SQL au lieu de le rejouer.** Deux
+des trois erreurs viennent de là. J'ai lu `create index if not exists` déclaré deux fois,
+j'en ai déduit une collision, et je n'ai pas cherché ce qui se passait entre les deux
+déclarations. Un Postgres 16 vide et huit minutes auraient suffi.
+
+### Ce que le rejeu réel a trouvé à la place, et qui est sérieux
+
+`supabase/schema.sql` dit en tête : « Écrit pour être rejouable sans erreur. » **Il ne
+l'était pas. Six erreurs sur une base neuve, et la première ligne 61** — donc avant la
+création de la moindre table de vente. Une base neuve partie de ce fichier n'avait ni
+`ventes`, ni `taches`, ni `bureaux`.
+
+Les six ont la même maladie : nommer un objet qui n'existe pas encore.
+
+1. `grant update (… utilise_vitisoft)` ligne 61, colonne déclarée ligne 272.
+2. et 3. Deux `revoke` sur `courrier_envois_purger()` et `profils_dater_consentements()`,
+   qui ne vivaient que dans les lots 12 et 13, jamais recopiés ici.
+4. La vue `v_courrier` lit `p.jeton_emails`, colonne du lot 12, absente elle aussi.
+5. et 6. Les deux `grant` sur cette vue, qui n'avait donc pas pu être créée.
+
+**Personne ne pouvait le voir.** Sur la base de production, qui avait reçu les lots un par
+un, chaque ligne fautive trouvait son objet et passait. Le fichier n'était faux QUE sur une
+base neuve, c'est-à-dire exactement le jour où on en aurait eu besoin.
+
+Corrigé en réintégrant ce qui manquait des lots 10, 12 et 13 : la table `courrier_envois`,
+les quatre colonnes de consentement, le déclencheur dateur, `courrier_envois_purger()`,
+`emails_lire()` et `emails_ecrire()`. Le raisonnement de chaque objet reste dans son
+fichier de lot, qui est ce qu'on colle au quotidien.
+
+**Preuve :** rejeu sur un Postgres 16 vide, `schema.sql` puis les lots 21 à 27.
+Zéro erreur, et le résultat est **identique à la production au caractère près** : 49 tables,
+vues et index, 32 fonctions et 40 politiques, comparés un par un.
+
+`npm run banc:rejeu` garde cet acquis. Il ne se connecte à aucune base : il relit le SQL et
+vérifie que chaque objet nommé existe avant d'être nommé. Étalonné contre le vrai Postgres :
+il trouve les mêmes défauts aux mêmes endroits.
+
+### Les jetons : une collision qui attendait son heure
+
+`--ombre-photo` valait `0 20px 60px rgba(0,0,0,0.35)` dans `style.css` et
+`10px 10px 0 rgba(0,0,0,0.28)` dans `bdv-ecrans.css`. **Deux ombres sous un seul nom.**
+Comme `bdv-nav.js` pose la seconde feuille APRÈS la première, c'est elle qui gagnait, et
+elle gagnait pour la page entière : le jour où une règle du site aurait appelé ce jeton,
+son ombre aurait changé toute seule à la première ouverture d'un écran de vente.
+
+Sans conséquence aujourd'hui parce que le site n'appelle ce jeton nulle part. C'est un
+piège qui attendait, pas une panne. La valeur voulue existait déjà sous son vrai nom,
+`--ombre-dure-xl`, à l'identique.
+
+Et `tokens.css`, qui s'annonce « source unique de vérité », **n'est chargé par rien** :
+aucun `<link>`, pas copié dans `_site`, jamais parti chez Vercel. C'était une doctrine, et
+elle avait 31 jetons de retard sur ce que le navigateur recevait.
+
+`npm run banc:jetons` en fait un contrat : aucun jeton servi avec deux valeurs, tout jeton
+servi écrit dans la doctrine, aucun jeton fantôme. Les 31 manquants y sont désormais, avec
+la raison qui les fait exister.
+
+**Ce qui reste un arbitrage pour Ted :** faut-il vraiment SERVIR `tokens.css` et vider le
+`:root` de `style.css` ? Je ne l'ai pas fait, et pas par prudence molle : `scripts/charte.mjs`
+collecte les jetons dans le `:root` de sa cible. Vider ce bloc lui ferait déclarer une
+centaine de jetons « jamais déclarés » et le contrôle échouerait en bloc. **On apprend
+d'abord au garde-fou à lire la nouvelle forme, on change la forme ensuite.** Jamais l'inverse.
+
+### La minification, qui était le vrai sujet depuis le début
+
+Aucune minification n'existait. `style.css` partait à 302 Ko bruts sur les 38 pages qui la
+lient, mentions légales comprises.
+
+Un hook `eleventy.after` dans `.eleventy.js`, vingt lignes, `css-tree` déjà dans le dépôt,
+**zéro dépendance ajoutée.**
+
+| | brut avant | brut après | brotli avant | brotli après |
+|---|---|---|---|---|
+| style.css | 302 Ko | 146 Ko | 63,5 Ko | **20,1 Ko** |
+| les quatre feuilles | 410 Ko | 206 Ko | 90,7 Ko | 30,1 Ko |
+
+**43,4 Ko de moins sur chaque première visite d'une page publique.**
+
+Minification conservatrice et délibérément : `csstree.generate()` retire les commentaires et
+les blancs, rien d'autre. Il ne fusionne pas les règles, ne raccourcit pas les couleurs, ne
+réordonne rien. Sur une feuille dont un garde-fou lit les sélecteurs un par un, c'est
+exactement ce qu'on veut. Le hook recompte les règles, les déclarations et les `!important`
+des deux côtés, et laisse le fichier d'origine en place au moindre écart.
+
+Il réécrit `_site`, jamais `src` : `charte.mjs` continue de lire des sources intactes. Les
+sept aperçus, qui lisaient `_site/css/`, ont été repointés vers `src/css/` le même jour —
+c'est plus juste de toute façon, et ça les met hors d'atteinte de toute étape de build.
+
+### Les polices : rien fait, et c'est la décision
+
+Quatre familles bloquent le rendu sur toutes les pages. `Caveat` ne sert que sur l'accueil,
+`JetBrains Mono` sur aucune des douze pages plates. Il y a 60 à 90 Ko à récupérer.
+
+**Et c'est inaccessible en l'état.** `charte.mjs` lit le lien Google Fonts avec
+`/family=([^&]+)/g` appliqué au TEXTE ENTIER du fichier, et pour un même nom de famille la
+dernière occurrence écrase les précédentes. Avec deux liens :
+
+- le lien mince écrit avant le plein : le garde-fou voit l'union, déclare CONFORME, et les
+  pages publiques rendent en faux gras. **C'est l'incident des 376 passages en gras de 2026,
+  reproduit à l'identique, avec le contrôle qui le couvre au lieu de l'attraper.**
+- l'ordre inverse : Fraunces retombe à 400 et il crie au faux gras sur des titres qui vont
+  très bien.
+
+L'ordre est donc imposé : on scinde `style.css` en une feuille publique et une feuille
+bureau, on apprend à `charte.mjs` à contrôler chaque moitié contre son propre lien, et
+**seulement ensuite** on scinde le lien. Ne jamais poser un second `<link>` avant ça.
+
+### Et le gros morceau : 88 Mo qui traversent le réseau, et d'où ils viennent
+
+J'avais dit 205 Mo. C'est faux : 205 Mo est la taille du TAS de la table, jamais passée au
+`VACUUM`. **Sur le fil, c'est 88 Mo**, 540 octets par ligne, 171 569 lignes. Mesuré, pas estimé.
+
+Et j'avais dit que brancher le navigateur sur `ventes_lignes` réglerait ça. **C'est faux, et
+c'est contre-intuitif :** la facture est faite du CONTENU des colonnes, pas de l'emballage
+JSON. Le tableau positionnel des 43 champs ne coûte que 131 octets de ponctuation ; les
+mêmes colonnes en JSON nommé en coûteraient 699. **Un `select=*` sur `ventes_lignes` serait
+plus gros que ce qu'on télécharge aujourd'hui.**
+
+D'où viennent les 88 Mo, mesure par colonne :
+
+| colonne | poids total | valeurs distinctes |
+|---|---|---|
+| `produit` | **25 Mo** | 131 |
+| `cuvee` | **25 Mo** | 131 |
+| `emails` | 4,3 Mo | 1 936 clients |
+| `client_nom` | 3,2 Mo | 1 936 clients |
+| `famille`, `ville`, `num_facture`, `conditionnement` | ~6,7 Mo | |
+
+**50 des 88 Mo sont 131 noms de produits, recopiés sur chacune des 171 569 lignes.** C'est
+la répétition, et elle seule, qui fait le poids. Rien d'autre.
+
+La forme qui règle ça n'est pas `ventes_lignes` : c'est une table de faits mince (le jour,
+la clé client, le numéro produit, la quantité, le total, le tarif) plus deux petites tables
+de libellés, clients et produits, servies une fois.
+
+| | poids sur le fil |
+|---|---|
+| aujourd'hui | **88 Mo** |
+| table de faits mince | 11 Mo |
+| libellés clients (1 936) | 180 Ko |
+| libellés produits (131) | 55 Ko |
+| **total après** | **11 Mo, soit 87 % de moins** |
+
+**Je n'ai rien touché de tout ça, et c'est volontaire.** C'est un changement de forme des
+données qui traverse cinq écrans, l'export XLSX et l'écran Réglages. Il demande l'accord de
+Ted, et avant lui trois préalables :
+
+1. `maj_le` n'existe pas dans `ventes_lignes`. Sans elle, la voie rapide du lot 21 meurt et
+   chaque ouverture repart sur un rapatriement complet.
+2. `banc-sync.mjs` reconnaît les lectures au préfixe `/ventes?`. Il faut le réécrire AVANT,
+   sinon il ne protège plus rien.
+3. Le mode deviné n'est pas porté côté serveur : tant qu'un vigneron n'a pas validé son
+   classement, `v_ventes` ne rend rien d'exploitable, et le navigateur doit garder
+   `classerLigne()` de toute façon.
+
+### Ce qui a été touché
+
+- `supabase/schema.sql` : +138 lignes, les lots 10, 12 et 13 réintégrés, la colonne
+  `utilise_vitisoft` remontée avant le `grant` qui la nomme.
+- `scripts/banc-rejeu.mjs` : nouveau, l'ordre de collage devient une déclaration vérifiée.
+- `scripts/banc-jetons.mjs` : nouveau, `tokens.css` devient un contrat.
+- `tokens.css` : 88 → 119 jetons, les 31 manquants avec leur raison.
+- `src/css/bdv-ecrans.css` : collision `--ombre-photo` levée.
+- `.eleventy.js` : la minification CSS au build.
+- les sept `scripts/apercu-*.mjs` : repointés de `_site/css/` vers `src/css/`.
+- `package.json` : les deux bancs, et dans `verif`.
+
+`npm run verif` : 33 bancs, zéro échec.
+
+### Ce que je me promets de regarder
+
+- L'arbitrage `tokens.css` servi ou doctrine, qui appartient à Ted.
+- La scission de `style.css`, préalable obligé au travail sur les polices. 90 % des règles
+  de cette feuille ne s'appliquent à rien sur un article.
+- La table de faits mince, si Ted veut les 87 %.
+- `--font-chiffre` n'est pas dans la table `FAMILLE` de `charte.mjs` : une graisse demandée
+  dessus est rangée « famille système, hors contrôle » alors qu'elle tire sur Inter. Retirer
+  Inter 700 du lien ne lèverait aucune alerte et remettrait du faux gras sur l'accueil.
+
+---
+
 ## 18/09/2026, plus tard. Le cache, ou la chose que j'aurais dû faire en premier
 
 « Mes cuvées, j'ai l'impression que ça foire aussi. »

@@ -24,8 +24,8 @@ import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, '_site/css/style.css');
-const JS = path.join(RACINE, '_site/js');
+const FEUILLE = path.join(RACINE, 'src/css/style.css');
+const JS = path.join(RACINE, 'src/js');
 
 let JSDOM;
 try { ({ JSDOM } = await import('jsdom')); }
