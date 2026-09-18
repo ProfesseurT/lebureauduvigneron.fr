@@ -140,6 +140,21 @@ faut attendre la fin de l'animation avant de compter.
 Le panneau de la page d'accueil n'est pas touche : ses papiers y font deja 146 a 148 px,
 sous la borne.
 
+### ET LE BANDEAU EST REVENU COMME AVANT. C'est Ted qui tranche, pas la mesure.
+
+« C'etait mieux avant au debut de la demande. » Le bandeau est donc **restaure a l'octet dans
+son dessin du 08/09/2026** : la pile date / salut / plaque / resume, le `h1` en `--t-h1`, les
+deux actions empilees a droite, la lune sur trois lignes, les retraits de 48 et 32 px.
+
+**Ce qui reste, et qu'il ne faut pas defaire en croyant finir le retour arriere :** les marges
+de l'atelier, la barre a 156 px et `--postit-l`. Ted les a validees dans le meme fil.
+
+**La lecon n'est pas « le resserrage etait faux », c'est que les trois versions ont ete jugees
+sur une image ou le bandeau etait VIDE.** Voir la passe ci-dessous. Une mesure de hauteur ne
+tranche pas un dessin : elle dit ce que ca coute, Ted dit ce que ca vaut.
+
+Les deux passes ci-dessous sont donc **annulees**, et gardees parce qu'elles disent pourquoi.
+
 ### Quatrieme passe : le bandeau en deux lignes, parce qu'une file de huit ne se lit pas
 
 Ted, capture de son VRAI bureau : « c'est tres moche la haut, c'est un foutoir pas possible. »

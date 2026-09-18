@@ -801,8 +801,16 @@ plafonne a 1440 plus la barre, donc le plafond ne mord pas, et le blanc lateral 
 chaque cote, 3 % de la largeur**.
 
 Le gisement etait en hauteur : **268 px, soit 30 % de l'ecran, avant la premiere chose utile**,
-dont 209 px de bandeau ne portant qu'une date, un salut, la lune et deux boutons. Apres :
-**130 px**, dont 71 de bandeau. La barre des pieces passe de 230 a 200 px.
+dont 209 px de bandeau ne portant qu'une date, un salut, la lune et deux boutons.
+
+**ET LE BANDEAU A ETE REMIS COMME AVANT LE SOIR MEME.** Il a ete resserre a 71 px, puis range
+en deux lignes ; Ted a juge les deux sur sa vraie page, avec son prenom, sa plaque, son metier
+et un resume a deux chiffres : « c'est un foutoir pas possible », puis « c'etait mieux avant ».
+**Le bandeau est donc revenu a son dessin du 08/09/2026, a l'octet, et il n'est plus un sujet
+de mise en page : le rouvrir demande Ted, pas une mesure.**
+
+Ce qui reste acquis, et qu'il ne faut pas defaire en croyant finir le retour arriere : les
+marges de l'atelier (voir plus bas), la barre des pieces a 156 px et la borne `--postit-l`.
 
 **LA REGLE : la densite d'un CRM ne vient pas de sa largeur, elle vient de ce que chaque pixel
 de hauteur porte quelque chose d'ACTIONNABLE.** HubSpot depense a peu pres la meme hauteur
@@ -810,7 +818,15 @@ d'entete que ce bureau ; il la depense en recherche, onglets, filtres et en-tete
 Avant de resserrer une mise en page, mesurer ce que les pixels contestes PORTENT, et pas
 combien il y en a.
 
-**LE COROLLAIRE, ET IL VAUT POUR LE PROCHAIN LOT : resserrer un ecran qui affiche peu ne le
+**ET LE COROLLAIRE S'EST VERIFIE CONTRE MOI DES LE SOIR MEME. Hors ligne, le profil n'arrive
+pas : le banc photographiait « Te voila chez toi. », sans prenom, sans plaque, avec un resume
+d'une ligne, c'est-a-dire l'etat le plus VIDE du bandeau. Les trois versions ont ete jugees sur
+cette image-la, et la vraie page en portait huit fragments.** Un harnais qui ne montre que
+l'etat vide valide une mise en page que personne ne verra ; `banc-large.mjs` pose desormais ces
+textes a la main avant de photographier. Quatrieme fois que le depot paie un jeu d'essai plus
+sage que la realite.
+
+**L'AUTRE COROLLAIRE, TOUJOURS VRAI : resserrer un ecran qui affiche peu ne le
 remplit pas, il le rend petit.** Ce qui a ete retire ici est du vide (retraits, ecarts, un `h1`
 en `--t-h1` sur un salut, une lune empilee sur trois lignes) ; **aucune taille de texte n'a
 bouge**. Le jour ou une piece paraitra encore vide apres ca, la question ne sera plus la mise en

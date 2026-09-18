@@ -74,24 +74,19 @@ permalink: /mon-bureau/
            lui seul. Il porte maintenant une classe parce qu'il est devenu une
            rangee et plus une pile : la date, le salut, la plaque et le resume
            s'alignent sur la meme ligne de base et se replient ensemble. -->
-      <!-- DEUX LIGNES, ET PAS HUIT ELEMENTS A LA FILE, 18/09/2026. Mises bout a
-           bout sur une seule ligne, la date, le salut, la plaque et le resume se
-           lisaient tous pareil : « c'est un foutoir pas possible », Ted, capture
-           a l'appui. Ligne 1, ce qui presse : le salut et le resume du jour.
-           Ligne 2, ce qui situe, en petites capitales : le jour et la plaque.
-           Le wrapper `__meta` existe pour ca et pour rien d'autre : il porte la
-           deuxieme ligne. Les deux identifiants ne bougent pas, le script les
-           prend par `getElementById`. -->
-      <div class="bureau-tete__salut">
+      <!-- REMIS COMME AVANT LE 18/09/2026 AU SOIR. Ce bloc a ete resserre en une
+           rangee, puis range en deux lignes, et Ted a tranche sur la vraie page :
+           « c'etait mieux avant ». La pile est donc restauree telle quelle, et le
+           resserrage du bureau s'arrete a la porte de ce bandeau. Ne pas le
+           reouvrir sans lui : ce n'est plus une question de pixels. -->
+      <div>
+        <p class="bureau-tete__jour" id="bureauJour"></p>
         <h1 id="bureauSalut">Te voilà chez toi.</h1>
+        <!-- La plaque : le nom du domaine, comme sur une porte de bureau. Elle n'apparait
+             que s'il l'a donne : un cadre vide qui annonce ce qui manque se remarque plus
+             qu'une absence. -->
+        <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
         <p class="bureau-tete__resume" id="bureauResume"></p>
-        <div class="bureau-tete__meta">
-          <p class="bureau-tete__jour" id="bureauJour"></p>
-          <!-- La plaque : le nom du domaine, comme sur une porte de bureau. Elle n'apparait
-               que s'il l'a donne : un cadre vide qui annonce ce qui manque se remarque plus
-               qu'une absence. -->
-          <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
-        </div>
       </div>
 
       <!-- LA LUNE, ENTRE LE BONJOUR ET LES ACTIONS. Elle est CALCULEE, jamais
