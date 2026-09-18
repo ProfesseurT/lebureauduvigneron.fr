@@ -12,6 +12,100 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, tard dans la nuit. Le bouton lent, et un cache qu'on jetait à chaque ouverture
+
+Ted, après le correctif SQL : « en première vue, il affiche quand même personne à relancer,
+comme si y'avait rien. mais ça se transforme rapidement avec la bonne base. Le plus lent est
+quand je clique sur le nouveau bouton charger les données manquantes. »
+
+Nouveau HAR. Les trois résumés répondent **200** maintenant : `cap` 1 176 ms, `commerce`
+3 122 ms, `cuvees` 7 951 ms. La porte s'ouvre. Mais trois choses restaient.
+
+### 1. Sept secondes pour apprendre ce qu'on savait déjà
+
+Le bouton « charger les données manquantes » coûte environ 50 secondes, et la première n'est
+pas du rapatriement :
+
+```
+t+31,6s  [206]  7 692 ms   GET /ventes?select=empreinte&bureau=eq.…
+t+39,3s → t+82,6s          les 173 pages, 41,8 s
+```
+
+Ces 7,7 secondes sont `compterVentes()`, appelé par `tirerVentes()` avant la boucle :
+
+```js
+if(typeof dejaLa === 'number' && dejaLa >= 0){
+  const distant = await compterVentes();
+  if(distant != null && distant === dejaLa){ return []; }
+}
+```
+
+C'est un `count=exact` PostgREST, donc un `count(*)` sur les 171 569 lignes. Il sert à
+constater que les deux côtés portent le même nombre de lignes et à rentrer sans rien tirer.
+**Quand le miroir est vide, il ne peut rien éviter : on va tout tirer de toute façon.**
+
+Corrigé, et le banc m'a repris au passage. Ma première version faisait `dejaLa > 0` et sautait
+le cas « les deux sont vides », que `banc-sync.mjs` protège explicitement (« compte vide et
+appareil vide : rien à faire, et rien de fait »). La bonne forme garde la garantie et change
+le prix : `auMoinsUneVente()`, `limit=1`, une centaine de millisecondes au lieu de 7 692.
+
+Et le banc a été amendé pour dire ce qu'il veut vraiment dire : ce qui doit rester à zéro,
+c'est le nombre de **pages** tirées, pas le nombre de requêtes. Une sonde à 100 ms n'est pas
+un rapatriement. Il vérifie maintenant les deux : aucune page, et la question a coûté une
+sonde et pas un comptage.
+
+### 2. Le cache était jeté à chaque ouverture qui charge la base
+
+Un seul résumé sur trois était en cache après la session : `cuvees`. Pourtant les trois
+avaient été calculés et rangés.
+
+La chronologie du HAR le dit :
+
+| | |
+|---|---|
+| t+9,7 s | `commerce` calculé, 3 122 ms, rangé |
+| t+18,2 s | `cap` calculé, 1 176 ms, rangé |
+| t+108,7 s | `POST /reglages` : le dépôt pour le bureau écrit `file_travail`, `resume_ventes`, `depose_le` |
+| | **les trois résumés sont effacés** |
+| t+177,5 s | `cuvees` calculé, 7 951 ms, rangé. Seul survivant. |
+
+Le déclencheur `resumes_perimer_reg` partait sur **tout** `update` de `reglages`. Or
+`deposerPourLeBureau()` écrit ces trois colonnes après chaque chargement des lignes, et aucun
+résumé n'en dépend.
+
+**Charger ses lignes détruisait donc le cache serveur, systématiquement.** Les deux gestes
+que le vigneron enchaîne naturellement, charger puis regarder, se sabotaient l'un l'autre.
+
+Ce qui compte vraiment : `classement`, dont `v_ventes` tire le canal et la typologie, donc
+« Mon commerce » et « Mes cuvées » ; `objectif` et `exercice_debut`, que lit `cap_resume`.
+Rien d'autre.
+
+Corrigé par une double garde, testée sur un Postgres 16 local : `update of classement,
+objectif, exercice_debut` sur le déclencheur filtre les colonnes citées, et une comparaison
+`is not distinct from` dans la fonction filtre les valeurs réellement changées. Une
+réécriture à l'identique ne périme plus rien non plus.
+
+### 3. Le verdict sur une base qu'on n'a pas lue
+
+« Personne à relancer. Aucun client ne recule, ne rompt son rythme ni ne reste sans suite.
+Profites-en. » Affiché sur zéro ligne lue.
+
+C'est pire qu'un écran vide : un vigneron qui lit ça et referme son bureau repart rassuré à
+tort. Le bloc voisin faisait déjà la différence (« Décomposition indisponible. Il faut deux
+années comparables »). Celui-ci la fait maintenant aussi : le verdict n'est rendu que si
+`lignesPretes()`, sinon il dit que la liste n'est pas encore établie.
+
+### Ce qui reste
+
+- Le CLUSTER n'est toujours pas durable. Paginer sur `maj_le` reste la vraie correction.
+- Les 173 pages à 42 s : c'est maintenant le seul gros poste du bouton. Le réglage « Max
+  rows » du projet Supabase les ramènerait à 18 requêtes.
+- `bdv-reglages.js:822` compte toujours `/ventes` sans filtre de bureau.
+- Chercher les autres blocs qui rendent un verdict sans avoir lu : celui-ci a été trouvé
+  parce que Ted l'a vu, pas parce qu'un banc l'a dit.
+
+---
+
 ## 18/09/2026, la nuit. « Étonnant » : le cache des résumés n'a jamais fonctionné
 
 Ted a renvoyé un HAR après le correctif du miroir vide, avec un mot : « étonnant ». L'écran

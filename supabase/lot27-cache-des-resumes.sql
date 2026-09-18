@@ -103,12 +103,39 @@ create trigger resumes_perimer_del after delete on public.ventes
 create or replace function public.resumes_perimer_reglages()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
+  /* NE PERIMER QUE SI UNE VALEUR QUI COMPTE A BOUGE, CORRECTION DU 18/09/2026.
+
+     CE DECLENCHEUR PARTAIT SUR TOUT `update` DE `reglages`. Or `deposerPourLeBureau()`
+     ecrit `file_travail`, `resume_ventes` et `depose_le` juste apres chaque chargement
+     des lignes : trois colonnes dont aucun resume ne depend. Le cache etait donc jete
+     a chaque ouverture qui charge la base, et les trois ecrans repayaient 1 a 8 secondes
+     de calcul pour rien.
+
+     Mesure sur un HAR de Ted : `cap` calcule en 1 176 ms a t+18 s, `commerce` en 3 122 ms
+     a t+9 s, tous deux ranges, puis effaces par le depot a t+108 s, avant meme d'avoir
+     resservi. Seul `cuvees`, calcule APRES le depot, a survecu.
+
+     CE QUI COMPTE VRAIMENT : `classement`, dont `v_ventes` tire le canal et la typologie,
+     donc « Mon commerce » et « Mes cuvees » ; `objectif` et `exercice_debut`, que lit
+     `cap_resume`. Rien d'autre.
+
+     LA DOUBLE GARDE EST VOULUE. `update of ...` sur le declencheur filtre les colonnes
+     CITEES dans le SET ; la comparaison ici filtre les valeurs REELLEMENT changees. Une
+     reecriture a l'identique ne doit rien perimer non plus. */
+  if tg_op = 'UPDATE'
+     and new.classement     is not distinct from old.classement
+     and new.objectif       is not distinct from old.objectif
+     and new.exercice_debut is not distinct from old.exercice_debut then
+    return null;
+  end if;
   delete from public.resumes r where r.bureau = new.bureau;
   return null;
 end; $$;
 
 drop trigger if exists resumes_perimer_reg on public.reglages;
-create trigger resumes_perimer_reg after insert or update on public.reglages
+drop trigger if exists resumes_perimer_reg on public.reglages;
+create trigger resumes_perimer_reg
+  after insert or update of classement, objectif, exercice_debut on public.reglages
   for each row execute function public.resumes_perimer_reglages();
 
 /* LA PORTE UNIQUE DES TROIS ECRANS. En cache, elle rend. Absent, elle calcule, range

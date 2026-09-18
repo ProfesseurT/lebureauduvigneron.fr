@@ -204,9 +204,26 @@
       if(rapide){ TIRAGE_ABOUTI = true; return rapide; }
     }
 
-    if(typeof dejaLa === 'number' && dejaLa >= 0){
+    /* `> 0` ET PAS `>= 0`, CORRECTION DU 18/09/2026. Ce comptage sert a une seule chose :
+       s'apercevoir que les deux cotes portent le meme nombre de lignes, et rentrer sans
+       rien rapatrier. Quand le miroir est VIDE, il ne peut rien eviter, on va tout tirer
+       de toute facon. Or `compterVentes()` demande un `count=exact` a PostgREST, donc un
+       `count(*)` sur les 171 569 lignes : **7 692 ms mesures dans un HAR de Ted**, payes
+       avant meme la premiere page. Sur une base vide c'etait sept secondes pour apprendre
+       ce qu'on savait deja.
+       Le cas « le serveur est vide lui aussi » est couvert ailleurs, par
+       `auMoinsUneVente()`, qui coute une centaine de millisecondes. */
+    if(typeof dejaLa === 'number' && dejaLa > 0){
       const distant = await compterVentes();
       if(distant != null && distant === dejaLa){ TIRAGE_ABOUTI = true; return []; }
+    } else if(dejaLa === 0){
+      /* APPAREIL VIDE : LA MEME QUESTION, AU CENTIEME DU PRIX. `banc:sync` exige qu'un
+         compte vide et un appareil vide ne declenchent AUCUNE lecture, et il a raison :
+         c'est ce qui evite de reveiller le reseau pour rien chez un nouveau venu. Mais
+         la question « le compte est-il vide » ne demande pas un `count(*)` : une ligne
+         suffit. 100 ms au lieu des 7 692 ms mesures dans le HAR de Ted. */
+      const y = await auMoinsUneVente();
+      if(y === false){ TIRAGE_ABOUTI = true; return []; }
     }
 
     const sorties = [];

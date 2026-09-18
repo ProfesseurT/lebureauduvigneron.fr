@@ -156,6 +156,14 @@ function monter(opts) {
     catch (e) { return null; }
   };
   etat.lectures = () => etat.appels.filter(a => a.indexOf('/ventes?') === 0);
+  /* UNE PAGE ET UNE SONDE NE SE COMPTENT PAS PAREIL, DEPUIS LE 18/09/2026.
+     `lectures()` attrape tout ce qui part vers /ventes. Or depuis ce jour-la, la synchro
+     pose une question a cent millisecondes avant de decider : « y a-t-il au moins une
+     ligne sur ce compte » (`limit=1`). Ce n'est pas un rapatriement, et l'exiger a zero
+     revenait a exiger qu'on decide sans rien demander. Ce qui doit rester a zero, c'est
+     le nombre de PAGES tirees. */
+  etat.pages = () => etat.appels.filter(a => a.indexOf('/ventes?') === 0 && a.indexOf('brut') > 0);
+  etat.sondes = () => etat.appels.filter(a => a.indexOf('/ventes?') === 0 && a.indexOf('limit=1') > 0);
   return etat;
 }
 
@@ -229,8 +237,13 @@ console.log('\n== 3. Le doute ne se transforme jamais en economie ==');
 {
   const t = monter({ total: 0 });
   const l = await t.S.tirerVentes(null, 0);
-  dit(l.length === 0 && t.lectures().length === 0,
-    'compte vide et appareil vide : rien a faire, et rien de fait');
+  dit(l.length === 0 && t.pages().length === 0,
+    'compte vide et appareil vide : aucune page tiree', t.pages().length);
+  /* ET LA SONDE NE DOIT PAS DEVENIR UN COMPTAGE. Le 18/09, `compterVentes()` etait appele
+     ici : un `count=exact` sur 171 569 lignes, 7 692 ms mesures dans un HAR, payes pour
+     apprendre qu'il n'y avait rien a faire. La sonde dit la meme chose avec `limit=1`. */
+  dit(t.sondes().length <= 1 && t.lectures().every(a => a.indexOf('brut') < 0),
+    'et la question a coute une sonde, pas un comptage', t.lectures().join(' | ') || '(rien)');
 }
 
 /* ==========================================================================

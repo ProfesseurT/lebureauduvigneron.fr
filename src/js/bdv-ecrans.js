@@ -3138,9 +3138,20 @@ function renderClients(){
   html+=bridgeHero();
 
   if(!CLIENTS.length){
+    /* UNE LISTE VIDE N'EST PAS UN VERDICT TANT QU'ON N'A PAS LU LA BASE, 18/09/2026.
+       Ted : « en premiere vue, il affiche quand meme personne a relancer, comme si y'avait
+       rien. mais ca se transforme rapidement avec la bonne base. » Entre les deux, l'ecran
+       a affirme « Aucun client ne recule, ne rompt son rythme ni ne reste sans suite.
+       Profites-en. » sur zero ligne lue. C'est faux, et c'est pire qu'un ecran vide : un
+       vigneron qui lit ca et ferme son bureau repart rassure a tort.
+       Le bloc voisin faisait deja la difference (« Decomposition indisponible »). Celui-ci
+       la fait maintenant aussi : on ne rend un verdict que si `lignesPretes()`. */
+    const verdict = lignesPretes()
+      ? signal('ok','✔','Personne à relancer.','Aucun client ne recule, ne rompt son rythme ni ne reste sans suite. Profites-en.')
+      : signal('info','i','Liste pas encore établie.','Tes lignes ne sont pas encore chargées sur cet appareil. Ce bloc dira qui rappeler dès qu\'elles seront là.');
     html+=`<div class="section-label">Qui rappeler</div>`
       +`<div class="panel__sub">Les clients à qui il se passe quelque chose, réunis en une seule liste.</div>`
-      +signal('ok','✔','Personne à relancer.','Aucun client ne recule, ne rompt son rythme ni ne reste sans suite. Profites-en.')
+      +verdict
       +piedCommerce();
     el('p-clients').innerHTML=html;return;
   }

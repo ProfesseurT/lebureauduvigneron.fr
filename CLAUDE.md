@@ -1063,6 +1063,45 @@ Une graisse demandee dessus est rangee « famille systeme, hors controle » alor
 sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
 l'accueil.
 
+## CHARGER SES LIGNES NE DOIT PAS DETRUIRE LE CACHE, 18/09/2026
+
+`resumes_perimer_reg` partait sur TOUT `update` de `reglages`. Or `deposerPourLeBureau()`
+ecrit `file_travail`, `resume_ventes` et `depose_le` apres chaque chargement des lignes, et
+aucun resume n'en depend. **Les deux gestes que le vigneron enchaine naturellement, charger
+puis regarder, se sabotaient l'un l'autre.** Mesure sur un HAR : `cap` et `commerce` calcules,
+ranges, puis effaces avant d'avoir resservi.
+
+CE QUI COMPTE : `classement` (d'ou `v_ventes` tire canal et typologie, donc « Mon commerce »
+et « Mes cuvees »), `objectif` et `exercice_debut` (que lit `cap_resume`). Rien d'autre.
+
+**LA REGLE : un declencheur de peremption nomme les colonnes dont le cache depend.** Jamais
+la table entiere. Double garde : `update of ...` filtre les colonnes CITEES, la comparaison
+`is not distinct from` dans la fonction filtre les valeurs REELLEMENT changees.
+
+## UN ECRAN SANS DONNEES NE REND PAS DE VERDICT, 18/09/2026
+
+« Personne a relancer. Aucun client ne recule, ne rompt son rythme ni ne reste sans suite.
+Profites-en. » sur zero ligne lue. Un vigneron qui lit ca et referme son bureau repart
+rassure a tort. **Une liste vide parce qu'on n'a rien lu n'est pas une liste vide.**
+
+Tout bloc qui conclut doit d'abord verifier `lignesPretes()`. Le modele est le bloc voisin,
+qui disait deja « Decomposition indisponible. Il faut deux annees comparables ».
+
+Celui-ci a ete trouve parce que Ted l'a VU a l'ecran, pas parce qu'un banc l'a dit. Les
+autres blocs qui concluent n'ont pas encore ete passes en revue.
+
+## UN COMPTAGE EXACT NE SE PAIE PAS POUR RIEN, 18/09/2026
+
+`tirerVentes()` demandait `compterVentes()` meme quand le miroir local etait VIDE. Ce
+comptage sert a rentrer sans rien tirer quand les deux cotes ont le meme nombre de lignes :
+sur un miroir vide il ne peut rien eviter. **7 692 ms mesures dans un HAR, payes avant la
+premiere page**, sur les 50 s du bouton « charger les donnees manquantes ».
+
+ET LE BANC M'A REPRIS : ma premiere version sautait le cas « les deux sont vides », que
+`banc-sync.mjs` protege. La bonne forme garde la garantie et change le prix : `limit=1` au
+lieu de `count=exact`. Le banc dit maintenant ce qu'il veut vraiment dire : ce qui doit
+rester a zero, c'est le nombre de PAGES, pas le nombre de requetes.
+
 ## ON A MESURE LA PIECE ET JAMAIS LA SERRURE, 18/09/2026 LA NUIT
 
 `public.resume(b, cle)`, la porte du cache du lot 27, rendait **400 sur ses trois cles**
