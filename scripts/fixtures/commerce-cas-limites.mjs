@@ -89,12 +89,20 @@ function vente(id, nom, jour, montant, opts = {}) {
     total: montant,
     qte: opts.qte != null ? opts.qte : Math.max(1, Math.round(montant / 12)),
     facture: opts.facture || ('F' + (++seq)),
-    produit: opts.produit || 'Cuvée Témoin',
+    /* `!= null` ET PAS `||` : une chaine vide est un produit SANS NOM, pas un produit
+       absent. Ecrit apres coup, parce que le `||` avalait silencieusement la ligne posee
+       exprès pour verifier ou se range une vente sans nom de produit : la fixture croyait
+       la tester et ne la testait pas. */
+    produit: opts.produit != null ? opts.produit : 'Cuvée Témoin',
     famille: opts.famille || 'Vin',
     horsVente: opts.famille === HORS_CA,
     typeClient: opts.type || 'Caviste',
     ville: opts.ville || 'Nantes',
-    millesime: opts.millesime || '2024'
+    millesime: opts.millesime != null ? opts.millesime : '2024',
+    /* Ajoute le 18/09 : sans lui, les trois ventes en magnum posees pour verifier que le
+       conditionnement DOMINANT filtre les prix arrivaient en 75 cl, et la fourchette de
+       prix melangeait les deux. La fixture croyait tester ce cas, elle le rendait faux. */
+    conditionnement: opts.conditionnement || '75cl'
   });
 }
 
@@ -301,6 +309,69 @@ vente('C-HORSVENTE', 'A une ligne hors vente', jourDe(2026, 6, 1), 1000);
 vente('C-HORSVENTE', 'A une ligne hors vente', jourDe(2026, 7, 1), 50000,
   { facture: 'F-TRANSPORT', famille: HORS_CA, produit: 'Transport' });
 
+/* ---------------------------------------------------------------------------
+   FAMILLE 8 : LES CUVEES, 18/09/2026
+
+   Ajoutee pour le portage de « Mes cuvees ». Les pieges y sont d'une autre
+   nature : ce ne sont plus des dates, ce sont des regroupements et des
+   quantiles.
+
+   1. LE MILLESIME EST RETIRE DU NOM. « Le Rose 2024 » et « Le Rose 2025 » sont
+      la MEME cuvee : raisonner par produit-millesime fait crier au drame a
+      chaque changement de millesime, l'un s'effondrant pendant que l'autre
+      monte. Deux millesimes d'une meme cuvee, donc, avec des ventes qui
+      basculent de l'un a l'autre.
+
+   2. LE QUANTILE DE PRIX S'ECRIT `px[floor(p * n)]`, comme les quartiles du
+      premier achat : ni `percentile_cont` ni `percentile_disc`. Les prix
+      ci-dessous sont espaces regulierement pour que la borne tombe entre deux.
+
+   3. LA MEDIANE DES REPERES N'EST PAS `median()`. `A.repRachat` et
+      `A.repClients` passent par `a[a.length>>1]`, qui rend l'element du HAUT
+      sur un nombre pair, la ou `median()` fait la moyenne des deux. Deux
+      medianes differentes dans le meme fichier : il faut les porter
+      separement, et c'est exactement le genre de detail qu'une relecture
+      rapide aligne par erreur.
+
+   4. LES PRIX NE SE COMPARENT QU'A CONDITIONNEMENT EGAL. Une cuvee vendue en
+      75 cl et en magnum a deux prix qui n'ont rien a voir ; le moteur ne
+      retient que le conditionnement DOMINANT. Une cuvee en porte deux ici.
+
+   5. UNE CUVEE QUI TIENT A UN SEUL CLIENT doit sortir en alerte, et une ligne
+      sans nom de produit doit se ranger quelque part plutot que disparaitre.
+   --------------------------------------------------------------------------- */
+const CUV = (nom, mil, cond, pu, qte, jour, client) =>
+  vente(client, 'Acheteur ' + client.slice(-1), jour, pu * qte,
+        { qte, produit: nom + ' ' + mil, millesime: mil, conditionnement: cond });
+
+/* Deux millesimes de la meme cuvee : le 2024 s'eteint, le 2025 monte. La cuvee,
+   elle, ne doit presque pas bouger. */
+for (let i = 0; i < 6; i++) {
+  CUV('Le Rosé', '2024', '75cl', 10 + i, 20, jourDe(2025, 3 + i, 10), 'V-' + (i % 3));
+  CUV('Le Rosé', '2025', '75cl', 11 + i, 22, jourDe(2026, 2 + i, 10), 'V-' + (i % 3));
+}
+/* Prix reguliers de 8 a 20 euros sur douze ventes : les bornes des quantiles
+   tombent PILE entre deux valeurs, ce qui est la seule facon de voir un cran
+   d'ecart entre deux conventions. */
+for (let i = 0; i < 12; i++)
+  CUV('Le Blanc', '2025', '75cl', 8 + i, 30, jourDe(2026, 1 + (i % 8), 5 + i), 'V-' + (i % 4));
+/* La meme cuvee en magnum, plus chere et moins vendue : le conditionnement
+   dominant reste le 75 cl, et les prix du magnum ne doivent PAS entrer dans la
+   fourchette. */
+for (let i = 0; i < 3; i++)
+  CUV('Le Blanc', '2025', 'Magnum', 45 + i, 4, jourDe(2026, 4 + i, 20), 'V-0');
+
+/* Une cuvee qui tient a un seul client : il doit peser assez pour declencher
+   l'alerte de dependance. */
+for (let i = 0; i < 5; i++)
+  CUV('Le Rouge de Garde', '2023', '75cl', 30, 40, jourDe(2026, 1 + i, 8), 'V-9');
+CUV('Le Rouge de Garde', '2023', '75cl', 30, 5, jourDe(2026, 6, 8), 'V-8');
+
+/* Une ligne SANS NOM DE PRODUIT. Elle doit se ranger quelque part plutot que
+   disparaitre du total : une cuvee qui s'evapore, c'est un chiffre d'affaires
+   qui ne boucle plus. */
+vente('V-7', 'Acheteur 7', jourDe(2026, 5, 3), 240, { qte: 12, produit: '', millesime: '' });
+
 export const LIGNES = lignes;
 export default LIGNES;
 
@@ -331,7 +402,7 @@ export function brutDe(l) {
   b[1]  = l.facture;               // numFacture
   b[2]  = l.produit;               // produit
   b[4]  = l.famille;               // famille   -> decide de horsCA
-  b[5]  = '75cl';                  // conditionnement
+  b[5]  = l.conditionnement;       // conditionnement
   b[11] = 'AOC Témoin';            // appellation
   b[12] = 'Rouge';                 // couleur
   b[13] = l.millesime;             // millesime

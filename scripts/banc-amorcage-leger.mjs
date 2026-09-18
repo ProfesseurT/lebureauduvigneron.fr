@@ -59,7 +59,10 @@ w.BdvCompte = {
   compter: (chemin) => { appels.push('COMPTE ' + chemin); return Promise.resolve(171569); },
   api: (chemin, opts) => {
     appels.push(((opts && opts.methode) || 'GET') + ' ' + chemin);
-    if (chemin.indexOf('/rpc/cap_resume') === 0)
+    /* LES TROIS RESUMES PASSENT PAR `/rpc/resume`, avec la cle en argument, depuis
+       qu'ils sont caches cote serveur. Le faux compte doit suivre, sinon il repond
+       vide et le banc accuse le code d'un silence qui vient de lui. */
+    if (chemin.indexOf('/rpc/resume') === 0 && opts && opts.corps && opts.corps.cle === 'cap')
       return Promise.resolve({ exerciceNum: 2026, precedentNum: 2025, caCoupe: 970959,
         caCoupePrecedent: 993895, variation: -2.3, coupeJour: '31/08/2026', complet: false,
         dernierMois: 8, ca: 970959, atterrissage: 1627963, bas: 1456438, haut: 1627963,
@@ -118,7 +121,7 @@ t('et rien n\'est propose sans le dire : le complement a un bouton',
 t('les lignes ne sont donc PAS pretes', S.pretes === false);
 
 console.log('\n== 2. Mais l\'ecran s\'ouvre quand meme, sur les chiffres du serveur ==');
-t('le resume de « Mon cap » a ete demande', appels.some(a => /rpc\/cap_resume/.test(a)));
+t('le resume de « Mon cap » a ete demande', appels.some(a => /rpc\/resume/.test(a)));
 t('il est pose', S.capPose === true);
 t('et le bandeau est peint', /class="hero"/.test(S.capHTML), S.capHTML.slice(0, 80));
 t('le chiffre du serveur est a l\'ecran', /970\s?959/.test(S.capHTML.replace(/&nbsp;/g, ' ')));

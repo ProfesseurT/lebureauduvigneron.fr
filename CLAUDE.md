@@ -1549,6 +1549,78 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## LE SERVEUR CALCULE QUAND CA CHANGE, PAS QUAND ON REGARDE. LOTS 26 ET 27, 18/09/2026
+
+### LE CHIFFRE QUI A DECIDE
+
+Les trois resumes, mesures sur les 171 569 lignes de Ted, **a chaque ouverture d'ecran** :
+
+| | |
+|---|---|
+| `cap_resume` | 1 100 ms |
+| `commerce_resume` | 3 800 ms |
+| `cuvees_resume` | **5 735 ms** |
+
+**Un logiciel de gestion ne recalcule pas son chiffre d'affaires chaque fois qu'on le
+regarde. Il le calcule quand il CHANGE.**
+
+    lecture du cache, par cle primaire : 0,77 ms
+
+Sept mille fois plus rapide, et c'est la seule facon d'avoir un outil qui se comporte
+normalement.
+
+### CE QUE LE CACHE EXIGE, ET QUI EST TOUT LE SUJET
+
+Un cache qui rend un chiffre perime est pire que pas de cache : il ment avec l'autorite
+d'un chiffre de serveur. Trois decisions le tiennent :
+
+1. **La peremption est un effacement, pas un drapeau.** Un resume perime qu'on garde
+   « au cas ou » finit par s'afficher. **L'absence est le seul etat qu'on ne peut pas lire
+   par erreur.**
+2. **Le declencheur est au niveau de l'INSTRUCTION**, pas de la ligne. Un import ecrit ses
+   500 lignes en une instruction : un effacement au lieu de cinq cents. Sur la base de
+   Ted, 344 au lieu de 171 569.
+3. **Une vente OU un reglage perime les TROIS resumes.** `classement` decide de
+   `est_vente`, `exercice_debut` de `ex_annee` : les trois en dependent. Les perimer
+   separement serait l'oubli programme du jour ou un quatrieme ecran arrivera.
+
+Le premier calcul se paie une fois, et **`resumes_rechauffer()` le fait partir juste apres
+l'import**, pendant que le vigneron lit son compte rendu : le seul moment de la journee ou
+quelques secondes de serveur ne se voient pas.
+
+### `public.resume(b, cle)` EST `security definer`, DONC ELLE GARDE SA PORTE
+
+Elle ECRIT dans `resumes`, ce que le role connecte n'a pas le droit de faire. Le controle
+d'acces est donc fait **dans la fonction, en premiere ligne**, et il est le meme que la
+politique de lecture : appartenir au bureau. **Un `security definer` sans ce garde-fou
+ouvre la table a tout le monde.**
+
+### LOT 26 : « MES CUVEES », ET DEUX DEFAUTS QUI N'ETAIENT PAS DANS LE SQL
+
+Porte comme les lots 24 et 25 : base d'essai, vrai moteur en temoin, comparaison champ par
+champ. Dix-sept champs, cinq cuvees, zero ecart. **Les deux defauts trouves etaient
+ailleurs :**
+
+1. **Dans le navigateur.** `agentProduits()` range une ligne sans nom de produit sous
+   « (sans nom) », puis, **onze lignes plus bas**, cherche cette meme cuvee sous la chaine
+   vide pour calculer sa concentration. La cuvee affichait 0 % de dependance alors qu'elle
+   tient a un seul client a 100 %. Deux replis differents pour la meme chose, dans la meme
+   fonction.
+2. **Dans la base d'essai, deux fois.** Elle ecrivait `produit: opts.produit || '...'`,
+   donc la ligne posee expres pour tester le produit SANS NOM en recevait un : elle croyait
+   tester ce cas et ne le testait pas. Et elle ne transmettait pas le conditionnement, donc
+   les trois ventes en magnum arrivaient en 75 cl et polluaient la fourchette de prix
+   qu'elles devaient justement en exclure.
+
+**Une base d'essai qui n'attrape pas ses propres defauts n'attrapera pas ceux du portage.**
+Troisieme fois que celle-ci se reprend.
+
+### LA REGLE QUI SORT DE CES DEUX LOTS
+
+**Porter un ecran le rend JUSTE. C'est le cache qui le rend RAPIDE. Les deux sont
+necessaires, aucun ne suffit.** Le lot 26 seul aurait remplace 1 470 ms de navigateur par
+5 735 ms de serveur : un portage qui ralentit.
+
 ## L'AMORCAGE NE CHARGE PLUS LA BASE, 18/09/2026
 
     « Je ne veux pas avoir a attendre huit ans des que je recharge ma page, pour que ca

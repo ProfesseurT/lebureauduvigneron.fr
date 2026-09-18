@@ -435,25 +435,45 @@
 
      Rend `null` en cas d'echec, comme tout ce fichier : l'appelant retombe alors sur
      son calcul local, et personne ne voit un ecran vide. */
-  async function capResume(){
+  /* ================= LES TROIS RESUMES PASSENT PAR LE CACHE, 18/09/2026 =================
+
+     Ils appelaient chacun leur fonction de calcul. Mesure sur la base de Ted :
+     `cap_resume` 1,1 s, `commerce_resume` 3,8 s, `cuvees_resume` 5,7 s. A CHAQUE
+     ouverture d'ecran. Un logiciel de gestion ne recalcule pas son chiffre d'affaires
+     a chaque fois qu'on le regarde : il le calcule quand il CHANGE.
+
+     `public.resume(b, cle)` rend le resume range en table. Absent, elle le calcule, le
+     range et le rend. Il n'est efface que lorsque les ventes ou les reglages bougent,
+     par declencheur : le vigneron paie le calcul UNE FOIS apres chaque import.
+
+                        avant        apres
+       cap_resume       1 100 ms
+       commerce_resume  3 800 ms     0,8 ms   (lecture par cle primaire)
+       cuvees_resume    5 735 ms
+
+     ET LE CALCUL SE RECHAUFFE TOUT DE SUITE APRES L'IMPORT, pendant que le vigneron
+     regarde encore son compte rendu : c'est le seul moment ou attendre est normal. */
+  async function resume(cle){
     if(!pret()) return null;
     try{
-      const r = await BdvCompte.api('/rpc/cap_resume', {
-        methode: 'POST', corps: { b: BdvCompte.monBureau() } });
+      const r = await BdvCompte.api('/rpc/resume', {
+        methode: 'POST', corps: { b: BdvCompte.monBureau(), cle: cle } });
       return (r && typeof r === 'object' && !Array.isArray(r)) ? r : null;
     }catch(e){ return null; }
   }
+  function capResume(){ return resume('cap'); }
+  function commerceResume(){ return resume('commerce'); }
+  function cuveesResume(){ return resume('cuvees'); }
 
-  /* Meme forme que `capResume`, et meme contrat : un objet ou rien. Un resume a
-     moitie lu vaut moins que pas de resume du tout, parce que l'ecran croirait
-     savoir. Le `catch` rend null, l'ecran retombe sur son calcul local. */
-  async function commerceResume(){
-    if(!pret()) return null;
+  /* Rechauffer les trois d'un coup. Appelee apres un import, sans etre attendue : si
+     elle echoue, le premier ecran ouvert refera le calcul, c'est tout. */
+  async function rechaufferResumes(){
+    if(!pret()) return false;
     try{
-      const r = await BdvCompte.api('/rpc/commerce_resume', {
+      await BdvCompte.api('/rpc/resumes_rechauffer', {
         methode: 'POST', corps: { b: BdvCompte.monBureau() } });
-      return (r && typeof r === 'object' && !Array.isArray(r)) ? r : null;
-    }catch(e){ return null; }
+      return true;
+    }catch(e){ return false; }
   }
 
   /* ============================== LES REGLAGES ============================== */
@@ -686,6 +706,8 @@
     compterVentes: compterVentes,
     capResume: capResume,
     commerceResume: commerceResume,
+    cuveesResume: cuveesResume,
+    rechaufferResumes: rechaufferResumes,
     lireReglages: lireReglages,
     ecrireReglages: ecrireReglages,
     lireSuivi: lireSuivi,

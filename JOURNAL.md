@@ -12,6 +12,49 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, plus tard. Le cache, ou la chose que j'aurais dû faire en premier
+
+« Mes cuvées, j'ai l'impression que ça foire aussi. »
+
+C'était vrai : cet écran dérivait ses 171 569 lignes pour en tirer une quarantaine de
+cuvées. Un rapport de quatre mille contre un.
+
+Je l'ai porté en SQL comme les deux précédents — base d'essai, vrai moteur en témoin,
+comparaison champ par champ, dix-sept champs, zéro écart. **Et la fonction mettait
+5 735 ms sur sa base.** Un portage qui remplace 1 470 ms de navigateur par 5 735 ms de
+serveur n'est pas un progrès.
+
+### Ce que j'avais manqué depuis le début
+
+Les trois résumés se recalculaient **à chaque ouverture d'écran** : 1,1 s, 3,8 s, 5,7 s.
+Un logiciel de gestion ne recalcule pas son chiffre d'affaires chaque fois qu'on le
+regarde. Il le calcule quand il change.
+
+Une table de résumés, effacée par déclencheur dès qu'une vente ou un réglage bouge,
+recalculée à la première lecture qui suit. **0,77 ms.**
+
+Le premier calcul se paie une fois, juste après l'import, pendant qu'il lit son compte
+rendu : le seul moment où quelques secondes de serveur ne se voient pas.
+
+### Deux défauts trouvés en comparant, aucun dans le SQL
+
+`agentProduits()` range une ligne sans nom de produit sous « (sans nom) », puis onze lignes
+plus bas la cherche sous la chaîne vide : la cuvée affichait 0 % de dépendance alors
+qu'elle tient à un seul client à 100 %.
+
+Et ma base d'essai, deux fois : elle donnait un nom à la ligne censée tester le produit
+sans nom, et elle ne transmettait pas le conditionnement, donc les magnums polluaient la
+fourchette de prix qu'ils devaient justement en être exclus. Troisième fois qu'elle se
+reprend elle-même.
+
+### La règle
+
+**Porter un écran le rend juste. C'est le cache qui le rend rapide. Les deux sont
+nécessaires, aucun ne suffit.** J'ai passé trois lots à rendre les chiffres vérifiables
+avant de me demander à quelle fréquence ils avaient besoin d'être calculés.
+
+---
+
 ## 18/09/2026, soir. Ted me remet en place, et il a raison
 
 « Je ne veux pas avoir à attendre huit ans dès que je recharge ma page, pour que ça recolle

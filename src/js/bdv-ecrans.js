@@ -447,10 +447,10 @@ function assurerLignes(dire){
 }
 /* Les ecrans qui ne savent rien faire sans les lignes. Ceux qui n'y sont pas ont une
    reponse du serveur et se peignent d'abord, quitte a se completer ensuite. */
-const ECRANS_TOUT_LOCAL = ['produits', 'chercher', 'reglages'];
+const ECRANS_TOUT_LOCAL = ['chercher', 'reglages'];
 /* Et ceux qui, servis par le serveur, ont encore des blocs locaux. Ils s'affichent sans
    les lignes et proposent un bouton pour les completer : voir `completerEcran()`. */
-const ECRANS_A_COMPLETER = ['annee', 'clients'];
+const ECRANS_A_COMPLETER = ['annee', 'clients', 'produits'];
 
 /* La marque tombe pour TOUS les ecrans, jamais pour un seul : un import change le chiffre
    d'affaires de chacun d'eux. Se tromper ici, c'est laisser a l'ecran un chiffre d'avant
@@ -1665,7 +1665,62 @@ function monthsBetween(a,b){if(!a||!b)return 0;return (b.y-a.y)*12+(b.m-a.m);}
    pendant que « Le Rosé 2025 » monte de 56 474 € : la cuvee, elle, ne bouge presque pas.
    Toutes les analyses de tendance se font donc au niveau CUVEE. Le millesime ne sert
    qu'a repondre a une autre question : reste-t-il du vieux stock a ecouler ? */
+/* ============ « MES CUVEES » VIENT DU SERVEUR, LOT 26, 18/09/2026 ============
+
+   C'etait le dernier gros chargement : ouvrir cet ecran derivait les 171 569 lignes pour
+   en tirer une quarantaine de cuvees. Un rapport de quatre mille contre un.
+
+   Le serveur rend la meme quarantaine de lignes, deja agregees. Verifie par
+   `npm run controle:cuvees` sur le bureau d'essai : dix-sept champs par cuvee, zero
+   ecart, et deux defauts trouves EN COMPARANT (voir supabase/lot26-mes-cuvees.sql). */
+let CUV = null;
+function cuvPoser(x){ CUV = (x && typeof x === 'object' && x.ok) ? x : null; }
+let CUV_DEMANDE = false;
+function cuvAuBesoin(){
+  if(CUV || CUV_DEMANDE) return;
+  if(!(window.BdvSync && BdvSync.cuveesResume)) return;
+  CUV_DEMANDE = true;
+  BdvSync.cuveesResume().catch(function(){ return null; }).then(function(x){
+    cuvPoser(x);
+    if(x && ECRAN_COURANT === 'produits'){ ECRANS_PEINTS.delete('produits'); ecranPeindre('produits'); }
+  });
+}
+function cuvRafraichir(apres){
+  cuvPoser(null); CUV_DEMANDE = false;
+  if(!(window.BdvSync && BdvSync.cuveesResume)) return Promise.resolve(null);
+  const attendre = (apres && typeof apres.then === 'function')
+    ? apres.catch(function(){ return null; }) : Promise.resolve(null);
+  return attendre.then(function(){ return BdvSync.cuveesResume(); })
+                 .then(function(x){ cuvPoser(x); return x; })
+                 .catch(function(){ return null; });
+}
+window.bdvCuveesRafraichir = cuvRafraichir;
+
 function agentProduits(){
+  if(CUV && Array.isArray(CUV.liste)){
+    /* Le serveur rend les millesimes en TABLEAU, l'ecran les lit en OBJET indexe par le
+       millesime : on remet la forme que `renderProduits` attend, plutot que de toucher a
+       l'ecran. Le portage ne doit pas se voir. */
+    const liste = CUV.liste.map(function(c){
+      const mil = {};
+      (c.millesimes || []).forEach(function(m){
+        mil[m.m] = { ca: comNb(m.ca), btl: comNb(m.btl), cur: comNb(m.cur),
+                     dernier: m.dernier == null ? null : comNb(m.dernier) };
+      });
+      return { nom: c.nom, ca: comNb(c.ca), btl: comNb(c.btl), clients: c.clients,
+               part: comNb(c.part), cur: comNb(c.cur), prev: comNb(c.prev),
+               delta: comNb(c.delta), top1: comNb(c.top1), nomTop: c.nomTop,
+               rachat: comNb(c.rachat), prixMed: comNb(c.prixMed),
+               prixBas: comNb(c.prixBas), prixHaut: comNb(c.prixHaut),
+               nPrix: c.nPrix, condDom: c.condDom, millesimes: mil,
+               parMois: (c.parMois || []).map(comNb),
+               cond: {}, achats: {}, prixPar: {} };
+    }).sort(function(a,b){ return b.ca - a.ca; });
+    return { ok: true, liste: liste, caTotal: comNb(CUV.caTotal),
+             f: { cur: CUV.exerciceCur, prev: CUV.exerciceCur - 1, cutPos: CUV.coupePos },
+             repRachat: comNb(CUV.repRachat), repClients: CUV.repClients,
+             nbMillesimes: CUV.nbMillesimes, serveur: true };
+  }
   const V=ROWS.filter(r=>r._vin);
   if(!V.length)return {ok:false};
   const f=yoyFrame();
@@ -1695,7 +1750,15 @@ function agentProduits(){
   const liste=Object.values(cuvees).map(c=>{
     // Concentration : quelle part du CA de cette cuvee tient a son plus gros acheteur ?
     const parClient={};
-    V.forEach(r=>{if(cuveeBase(r.produit||'')!==c.nom)return;const id=clientKey(r);parClient[id]=(parClient[id]||0)+r._total;});
+    /* `|| '(sans nom)'` ET PAS `|| ''`, CORRIGE LE 18/09/2026. Le regroupement du dessus
+       range une ligne sans nom de produit sous « (sans nom) » ; cette boucle-ci la
+       cherchait sous la chaine vide, donc ne la trouvait jamais. Resultat : la cuvee
+       « (sans nom) » affichait une concentration de 0 % et aucun plus gros acheteur,
+       alors qu'elle tient a un seul client a 100 %. Deux replis differents pour la meme
+       chose, dans la meme fonction, a onze lignes d'ecart.
+       Trouve par la comparaison avec le portage SQL : le serveur rendait 100 %, le
+       navigateur 0 %, et c'est le serveur qui avait raison. */
+    V.forEach(r=>{if(cuveeBase(r.produit||'(sans nom)')!==c.nom)return;const id=clientKey(r);parClient[id]=(parClient[id]||0)+r._total;});
     const parts=Object.values(parClient).sort((a,b)=>b-a);
     const top1=c.ca>0&&parts.length?parts[0]/c.ca*100:0;
     const nomTop=Object.keys(parClient).sort((a,b)=>parClient[b]-parClient[a])[0];
@@ -1716,7 +1779,7 @@ function agentProduits(){
   const med=arr=>{const a=arr.slice().sort((x,y)=>x-y);return a.length?a[a.length>>1]:0;};
   const repRachat=med(liste.map(c=>c.rachat));
   const repClients=med(liste.map(c=>c.clients));
-  return {ok:true,liste,caTotal,f,repRachat,repClients,
+  return {ok:true,liste,caTotal,f,repRachat,repClients,serveur:false,
     nbMillesimes:liste.reduce((n,c)=>n+Object.keys(c.millesimes).length,0)};
 }
 // Les alertes : chacune repose sur une comparaison a la base elle-meme, pas sur une constante.
@@ -1786,6 +1849,7 @@ function brancherPiedCuvees(CAN){
 }
 
 function renderProduits(){
+  cuvAuBesoin();
   const A=agentProduits();
   // « Mes cuvees », comme la barre du bureau. L'ecran disait « Mes produits », et c'etait
   // le seul endroit du bureau ou une piece portait deux noms.
@@ -1834,6 +1898,8 @@ function renderProduits(){
     <p class="note">« Reprise » = part des clients ayant acheté cette cuvée qui en ont repris au moins une deuxième fois. C'est la mesure la plus proche de « est-ce qu'elle plaît ».</p>
     <button class="btn btn--ghost btn--sm" onclick="exportProduits()" style="margin-top:.6rem">Exporter le portefeuille</button></div>`;
   html+=piedCuvees(CAN);   // etage 3 : replie, il ne pousse jamais la liste hors de l'ecran
+  if(!lignesPretes())
+    html+=noteComplement('Il manque ici le chemin de vente par canal et le prix moyen qui va avec.');
   el('p-produits').innerHTML=html;
   brancherPiedCuvees(CAN);
 }
@@ -3205,6 +3271,12 @@ function exportReste(){
 
    `labels` est parti au passage : la variable etait construite et jamais lue. */
 function blocsCanaux(){
+  /* LE CHEMIN DE VENTE N'EST PAS PORTE : il lit `_canal`, que le classement du vigneron
+     derive ligne a ligne. Sans les lignes il rendrait des parts a zero sous un titre qui
+     promet « d'ou part ton vin », ce qui est pire que de ne rien dire. Il se tait, et
+     « Mes cuvees » propose le bouton qui charge. */
+  if(typeof lignesPretes === 'function' && !lignesPretes())
+    return { signaux:'', tableaux:'', brancher:function(){} };
   let signaux='',tableaux='';
   const f=yoyFrame();
   // Fenetre : si YoY dispo, à date égale sur cur/prev. Sinon, toute la base.

@@ -46,7 +46,7 @@ const test = `
     var r = {
       client: o.nom, numClient: o.id, numFacture: o.facture,
       produit: o.produit, famille: 'Vin', couleur: 'Rouge', millesime: o.millesime,
-      appellation: 'AOC Témoin', conditionnement: '75cl', codeTarif: 'T1',
+      appellation: 'AOC Témoin', conditionnement: o.conditionnement, codeTarif: 'T1',
       ville: o.ville, cp: '44000', pays: 'France', origine: '', commercial: '', vendeur: '',
       _vin: !o.horsVente, _horsVin: !!o.horsVente, _offert: false,
       _canal: 'Caveau', _typeClient: o.typeClient,
@@ -64,6 +64,7 @@ const test = `
   function clientsDe(l){ return l.map(function(c){
     return { id: c.id, montant: Math.round(c.montant * 100) / 100 }; }); }
 
+  var prod = agentProduits();
   var br = computeBridge();
   var cad = agentCadence();
   var dec = agentDecrochage();
@@ -102,6 +103,30 @@ const test = `
         cv: c.cv == null ? null : Math.round(c.cv*1000000)/1000000,
         seuil: Math.round(c.seuil*1000000)/1000000 }; })
     },
+    produits: prod.ok ? {
+      ok: true, caTotal: Math.round(prod.caTotal*100)/100,
+      nbMillesimes: prod.nbMillesimes,
+      repRachat: Math.round(prod.repRachat*1000000)/1000000,
+      repClients: prod.repClients,
+      liste: prod.liste.map(function(c){ return {
+        nom: c.nom, ca: Math.round(c.ca*100)/100, btl: Math.round(c.btl*1000)/1000,
+        clients: c.clients, part: Math.round(c.part*1000000)/1000000,
+        cur: Math.round(c.cur*100)/100, prev: Math.round(c.prev*100)/100,
+        delta: c.delta == null ? null : Math.round(c.delta*100)/100,
+        top1: Math.round(c.top1*1000000)/1000000, nomTop: c.nomTop,
+        rachat: Math.round(c.rachat*1000000)/1000000,
+        prixMed: Math.round(c.prixMed*1000000)/1000000,
+        prixBas: Math.round(c.prixBas*1000000)/1000000,
+        prixHaut: Math.round(c.prixHaut*1000000)/1000000,
+        nPrix: c.nPrix, condDom: c.condDom,
+        millesimes: Object.keys(c.millesimes).sort().map(function(m){ return {
+          m: m, ca: Math.round(c.millesimes[m].ca*100)/100,
+          btl: Math.round(c.millesimes[m].btl*1000)/1000,
+          cur: Math.round(c.millesimes[m].cur*100)/100,
+          dernier: c.millesimes[m].dernier }; }),
+        parMois: c.parMois.map(function(v){ return Math.round(v*100)/100; })
+      }; }).sort(function(a,b){ return a.nom<b.nom?-1:1; })
+    } : { ok: false },
     premier: pre.ok ? {
       ok: true, ref: pre.ref, observables: pre.observables,
       global: Math.round(pre.global*1000000)/1000000,
@@ -142,6 +167,10 @@ console.log('  cadence               ' + (T.cadence ? T.cadence.clients.length +
   + T.cadence.enRetard.length + ' en retard' : 'indisponible'));
 console.log('  decrochage            ' + T.decrochage.decroche.length + ' retenus, '
   + T.decrochage.ecartes + ' ecartes, ' + T.decrochage.totPerdu + ' perdus');
+console.log('  cuvees                ' + (T.produits.ok
+  ? T.produits.liste.length + ' cuvees, CA total ' + T.produits.caTotal
+    + ', reperes rachat ' + T.produits.repRachat + ' / clients ' + T.produits.repClients
+  : 'REFUSE'));
 console.log('  premier achat         ' + (T.premier.ok
   ? T.premier.liste.length + ' clients, ' + T.premier.observables + ' observables, bornes '
     + JSON.stringify(T.premier.bornes)

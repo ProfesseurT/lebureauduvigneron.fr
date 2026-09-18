@@ -282,7 +282,7 @@ async function analyserPourLeBureau(){
    change rien au resume, mais un appel de trop coute une requete et un oubli coute un
    faux chiffre : le filtre est volontairement large. */
 const CAP_REGLAGES = ['classement', 'exercice_debut', 'objectif'];
-/* DEUX RESUMES DE SERVEUR MAINTENANT, ET UN SEUL POINT DE PEREMPTION. Depuis le lot 25
+/* TROIS RESUMES DE SERVEUR MAINTENANT, ET UN SEUL POINT DE PEREMPTION. Depuis le lot 25
    « Mon commerce » en a un aussi, et il depend des MEMES reglages : `classement` decide
    de `est_vente`, `exercice_debut` decide de `ex_annee` et `ex_pos`. Les perimer
    separement, c'est l'oubli programme du jour ou un troisieme ecran arrivera.
@@ -292,6 +292,7 @@ function capPerimer(apres){
   if(typeof window === 'undefined') return;
   if(typeof window.bdvCapRafraichir === 'function') window.bdvCapRafraichir(apres);
   if(typeof window.bdvCommerceRafraichir === 'function') window.bdvCommerceRafraichir(apres);
+  if(typeof window.bdvCuveesRafraichir === 'function') window.bdvCuveesRafraichir(apres);
 }
 function syncUneColonne(champs){
   if(!syncPret())return null;
@@ -1103,6 +1104,11 @@ async function handleFiles(list){
      patienter assez longtemps ; d'ici l'`ecranRafraichir()` du bas, CAP est a null et
      l'ecran calcule en local, ce qui est plus lent mais jamais faux. */
   capPerimer();
+  /* ET ON RECHAUFFE LE CACHE DU SERVEUR, sans l'attendre. Les declencheurs viennent
+     d'effacer les trois resumes ; le prochain ecran ouvert paierait leur calcul. Ici le
+     vigneron lit encore son compte rendu d'import : c'est le seul moment de la journee
+     ou quelques secondes de serveur ne se voient pas. */
+  if(syncPret() && BdvSync.rechaufferResumes) BdvSync.rechaufferResumes();
   await reloadFromDB();
   const total=ROWS.length;
   const per=META.min&&META.max?(' sur la période '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';

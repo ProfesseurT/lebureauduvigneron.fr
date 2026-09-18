@@ -48,6 +48,7 @@
     "banc:cap-serveur": "node scripts/banc-cap-serveur.mjs",
     "temoin:commerce": "node scripts/temoin-commerce.mjs",
     "controle:commerce": "node scripts/controle-commerce.mjs",
+    "controle:cuvees": "node scripts/controle-cuvees.mjs",
     "banc:commerce-serveur": "node scripts/banc-commerce-serveur.mjs",
     "banc:peinture": "node scripts/banc-peinture.mjs",
     "banc:amorcage-leger": "node scripts/banc-amorcage-leger.mjs"
