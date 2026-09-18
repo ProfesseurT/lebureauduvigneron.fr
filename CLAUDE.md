@@ -1063,6 +1063,41 @@ Une graisse demandee dessus est rangee « famille systeme, hors controle » alor
 sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
 l'accueil.
 
+## AVANT D'OPTIMISER UN TRANSPORT, MESURER LE TRANSPORT, 18/09/2026 AU SOIR
+
+**CETTE SECTION CORRIGE CELLE QUI SUIT, ET ELLE LA CORRIGE EN ENTIER.** La section
+« LES 88 Mo QUI TRAVERSENT LE RESEAU » ci-dessous a ete ecrite le meme jour, quelques
+heures plus tot, et son chiffre principal est FAUX. Elle est gardee telle quelle parce
+que l'erreur vaut d'etre lue.
+
+CE QUI EST FAUX : les 88 Mo ne traversent pas le reseau. C'est la taille des donnees DANS
+LA BASE, et je l'ai appelee « ce qui traverse le reseau ». Il y a un facteur dix entre les
+deux.
+
+LA MESURE. Dix mille lignes de `ventes.brut` agregees en un texte, rangees dans une table
+temporaire pour forcer la compression TOAST : 4 565 872 octets en clair, 470 365 apres
+pglz. **Facteur 9,71.** Et pglz est l'algorithme le PLUS FAIBLE de la famille : gzip fait
+mieux sur ce texte. La doc Supabase dit par ailleurs que les charges texte sont compressees
+au CDN. La synchronisation tire donc de l'ordre de 8 a 9 Mo, pas 88.
+
+POURQUOI LE CHANTIER DU DICTIONNAIRE EST MORT. **gzip EST un dictionnaire.** LZ77 remplace
+toute chaine deja vue par une reference arriere : 131 noms de produits recopies 171 569
+fois, c'est exactement ce qu'il ecrase. Construire a la main, dans le navigateur, avec un
+banc de preuve et un risque sur cinq ecrans, ce que le transport fait gratuitement et
+mieux, c'est du travail propre au service d'une idee fausse.
+
+OU EST LE VRAI GOULOT. `tirerVentes()` boucle en SEQUENTIEL sur un curseur `empreinte`,
+`PAGE = 1000` parce que PostgREST plafonne la. **171 569 lignes font 172 allers-retours,
+l'un apres l'autre.** Chaque page pese 45 Ko compresses et arrive en un souffle ; c'est
+l'attente entre les pages qui coute, et elle ne depend d'aucun octet. Les deux leviers sont
+le reglage « Max rows » du projet Supabase (Project Settings, API, 1000 par defaut) et le
+parallelisme par tranches d'`empreinte` cote navigateur. Petits tous les deux.
+
+**LA REGLE : avant d'optimiser un transport, mesurer LE TRANSPORT.** Pas la taille a la
+source, pas la taille a l'arrivee : le fil, avec ses en-tetes. Un `Content-Encoding` lu
+dans l'onglet Reseau aurait economise une journee entiere de raisonnement juste sur une
+premisse fausse.
+
 ## LES 88 Mo QUI TRAVERSENT LE RESEAU SONT 131 NOMS DE PRODUITS, 18/09/2026
 
 Mesure du 18/09, sur le bureau de Ted, 171 569 lignes : la synchronisation tire **88 Mo**,

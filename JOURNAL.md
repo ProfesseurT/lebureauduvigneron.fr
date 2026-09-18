@@ -12,6 +12,101 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, tard. Les 88 Mo n'existent pas sur le fil, et le goulot n'est pas le poids
+
+Ted a tranché : on fait les 87 % de réseau. J'ai commencé par mesurer les 43 colonnes, comme
+prévu. Puis j'ai posé la question que j'aurais dû poser en premier ce matin : **est-ce que ces
+88 Mo traversent vraiment le réseau en clair ?**
+
+Non.
+
+### La mesure
+
+Dix mille lignes de `ventes.brut`, agrégées en un seul texte, stockées dans une table
+temporaire pour forcer la compression TOAST de Postgres :
+
+| | |
+|---|---|
+| en clair | 4 565 872 octets, soit **457 octets par ligne** |
+| après pglz | 470 365 octets, soit **47 octets par ligne** |
+| facteur | **9,71** |
+
+[Certain] Et **pglz est l'algorithme le plus faible de la famille**, choisi par Postgres pour sa
+vitesse, pas pour son taux. gzip fait nettement mieux sur ce genre de texte.
+
+[Probable] La doc Supabase dit noir sur blanc : « Currently Supabase compresses text payloads at
+the CDN ». La compression non faite côté serveur est un coût d'egress pour EUX, pas pour le
+navigateur du vigneron.
+
+**Donc la synchronisation ne tire pas 88 Mo. Elle en tire de l'ordre de 8 à 9.**
+
+### Pourquoi mon chantier était condamné d'avance
+
+[Certain] gzip **est** un dictionnaire. LZ77 remplace toute chaîne déjà vue par une référence
+arrière. Les 131 noms de produits recopiés 171 569 fois, c'est le cas d'école qu'il écrase.
+
+J'allais donc passer des semaines à construire, à la main et dans le navigateur, avec un banc
+de preuve et un risque sur cinq écrans, **ce que le transport fait déjà gratuitement et mieux.**
+Les 65 Mo d'économie que j'annonçais sont des octets qui ne sont jamais partis.
+
+### Ce qui coûte vraiment, et je ne l'avais pas regardé
+
+`bdv-sync.js`, `tirerVentes()` : la boucle est **strictement séquentielle**. Curseur sur
+`empreinte`, une page, on attend, la suivante. `PAGE = 1000` parce que PostgREST plafonne à
+1000 lignes par défaut, et le commentaire le dit.
+
+**171 569 lignes ÷ 1000 = 172 allers-retours, l'un après l'autre.**
+
+[Probable] À 150 ms d'aller-retour vers l'Irlande depuis un domaine français, plus le temps
+serveur, c'est **25 à 60 secondes de pure attente sérialisée**, et pas un octet de cette
+attente ne dépend du poids des pages. Chaque page pèse 45 Ko compressés : elle arrive en un
+souffle, puis on attend la suivante.
+
+**Le goulot est la latence, pas le poids.** Je me suis trompé de dimension toute la journée.
+
+### Les deux leviers, et ils sont petits tous les deux
+
+1. **Le réglage « Max rows » du projet Supabase**, Project Settings, API. Par défaut 1000.
+   À 10 000, les 172 allers-retours tombent à 18. Un seul champ à changer, aucun code.
+   Attention : c'est un réglage de PROJET, il s'applique à toutes les requêtes.
+2. **Le parallélisme côté navigateur.** Le curseur sur `empreinte` interdit de paralléliser
+   tel quel, mais `empreinte` est un hexadécimal de 16 caractères : on peut découper l'espace
+   en 8 tranches par leur premier caractère et tirer les 8 en parallèle. 172 allers-retours
+   sérialisés deviennent 22 vagues. Entièrement dans `bdv-sync.js`, sans toucher au serveur.
+
+[Supposition] Le levier 1 est presque gratuit et probablement suffisant. Le 2 est la vraie
+correction si le 1 ne suffit pas.
+
+### La vérification qui manque, et je ne peux pas la faire
+
+Les deux réseaux dont je dispose refusent les requêtes vers `supabase.co`, et le navigateur
+intégré a lâché en route. **Je n'ai donc pas vu de mes yeux l'en-tête `Content-Encoding`.**
+
+Ted le verra en trente secondes : ouvrir `/mon-bureau/`, F12, onglet Réseau, lancer une
+synchronisation, cliquer une requête `ventes`. Comparer « Size » (ce qui passe sur le fil) et
+« Content » (ce qui est décodé). Si le rapport est de 9 ou 10, tout ce qui est écrit ci-dessus
+tient. S'il est de 1, alors la compression n'a pas lieu, et **activer la compression devient le
+chantier, pas réécrire le modèle de données.**
+
+### Ce que je n'ai pas fait, et pourquoi
+
+Rien. Pas une ligne de code sur la synchronisation. Ni la colonne `maj_le` sur
+`ventes_lignes`, ni la réécriture de `banc-sync.mjs`, ni le dictionnaire.
+
+Les deux préalables que j'avais écrits ne servaient qu'au chantier qui vient de tomber. Les
+poser aurait été du travail propre au service d'une idée fausse.
+
+### La leçon, et c'est la cinquième de la journée
+
+Ce matin j'ai annoncé cinq points, trois étaient faux. Ce soir j'en annonce un de plus, et
+c'est le mien : **j'ai mesuré la taille des données dans la base et je l'ai appelée « ce qui
+traverse le réseau ».** Ce n'est pas la même chose, et il y avait un facteur dix entre les deux.
+
+La règle qui manquait : **avant d'optimiser un transport, mesurer le transport.** Pas la
+source, pas la destination : le fil lui-même, avec ses en-têtes.
+
+---
+
 ## 18/09/2026, fin de journée. L'audit du design system, et trois choses que j'avais dites de travers
 
 Ted a demandé un audit de `/design:design-system` : comment améliorer le back pour que le
