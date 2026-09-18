@@ -194,6 +194,21 @@
   --filet-liege: rgba(90, 60, 25, 0.25);  /* le cadre interieur d'un panneau de liege */
 
   /* Le papier a note. Deux teintes, celles du panneau de la page d'accueil. */
+  /* LA LARGEUR D'UN POST-IT, 18/09/2026. Un papier a note a une taille, il ne
+     s'etire pas a la largeur de son panneau : c'est ce qui trahissait le liege
+     depuis que le bureau va d'un bord a l'autre de l'ecran. `auto-fit` effondre
+     les pistes vides, donc UNE punaise seule prenait les 1 220 px du panneau.
+     190 px EST UNE MESURE, PAS UN GOUT. C'est la plus grande valeur qui garde la
+     regle du 10/09/2026 : cinq punaises sur UNE rangee a 1280 px de fenetre, la
+     plus courante. Le panneau y offre 1 008 px de contenu, et cinq papiers de
+     190 avec leurs quatre ecarts en demandent 992. A 200 px ils en demandent
+     1 042 : la grille retombe a quatre colonnes et la cinquieme punaise part
+     seule sur une deuxieme rangee, exactement le defaut que la regle interdit.
+     Verifie a 1440, 1280 et 1180 px, cinq punaises clonees dans la vraie page.
+     ET LA MESURE SE FAIT APRES L'ANIMATION D'ARRIVEE : `bdv-punaise-pose` dure
+     0,34 s en `backwards`, donc mesurer tout de suite rend cinq hauteurs
+     differentes et fait conclure a tort a plusieurs rangees. */
+  --postit-l: 190px;
   --postit-jaune: #F4E2A0;
   --postit-kraft: #D9C9A7;
   --ombre-papier: 2px 3px 10px rgba(30, 25, 15, 0.25), 0 1px 3px rgba(30, 25, 15, 0.15);
@@ -7499,8 +7514,16 @@ button.bureau-nav__item:hover {
    un defaut : un panneau de liege a de la place libre, c'est meme sa fonction. */
 .panneau {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--e-m);
+  /* LA PISTE EST BORNEE PAR `--postit-l`, ET C'EST TOUT LE SUJET. Avec `1fr` en
+     borne haute, `auto-fit` donne au dernier papier toute la place restante :
+     une punaise seule s'etirait sur 1 220 px et ne ressemblait plus a un
+     post-it. Le minimum de 160 px ne bouge pas, il a sa raison plus haut.
+     `justify-content: start` range les papiers a gauche du liege : le liege a le
+     droit d'avoir de la place libre, c'est meme sa fonction, alors qu'un papier
+     etire n'est plus un papier. */
+  grid-template-columns: repeat(auto-fit, minmax(160px, var(--postit-l)));
+  justify-content: start;
+  gap: var(--e-s);
   background: var(--cork);
   background-image:
     radial-gradient(circle at 20% 30%, var(--grain-clair) 0 2px, transparent 3px),

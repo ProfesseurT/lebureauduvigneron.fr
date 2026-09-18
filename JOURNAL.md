@@ -111,6 +111,35 @@ est dessinee par deux triangles de bordure valant chacun la moitie de cette haut
 Verifie : `npm run verif` en entier, code 0. Telephone recapture, 390/390 sur les sept pieces.
 Sous 900 px le panneau de travail rend son retrait interieur a l'atelier, qui reprend le sien.
 
+### Troisieme passe : un post-it a une largeur, et c'est un jeton
+
+Ted : « on va juste remanier ce panneau, qui fait du coup des post-it trop large. Tu vas
+definir une largeur de post-it max coherente et l'appliquer partout. »
+
+**La cause tient en un mot de CSS.** Le panneau etait en
+`repeat(auto-fit, minmax(160px, 1fr))` : `auto-fit` effondre les pistes vides et donne au
+dernier papier toute la place restante. Tant que le bureau etait plafonne, ca ne se voyait
+pas ; depuis qu'il va d'un bord a l'autre, UNE punaise seule s'etalait sur 1 168 px.
+
+**`--postit-l: 190px`**, declare dans `tokens.css` ET dans le `:root` servi, la borne haute
+de la piste. **190 est une mesure, pas un gout : c'est la plus grande valeur qui garde la
+regle du 10/09/2026**, cinq punaises sur UNE rangee a 1280 px de fenetre. Le panneau y offre
+1 008 px, cinq papiers de 190 avec leurs ecarts en demandent 992 ; a 200 ils en demandent
+1 042, la grille retombe a quatre colonnes et la cinquieme punaise part seule, exactement le
+defaut que la regle interdit. Verifie a 1440, 1280 et 1180 : une rangee. A 1024 : deux, et
+la regle ne promet rien en dessous de 1280.
+
+`justify-content: start` range les papiers a gauche : **un liege a le droit d'avoir de la
+place libre, c'est meme sa fonction, alors qu'un papier etire n'est plus un papier.**
+
+**Un piege de mesure paye ici, et il vaut pour tout ce panneau : l'arrivee est ANIMEE.**
+`bdv-punaise-pose` dure 0,34 s en `backwards` ; mesurer les punaises tout de suite rend cinq
+hauteurs differentes et fait conclure a plusieurs rangees alors qu'il n'y en a qu'une. Il
+faut attendre la fin de l'animation avant de compter.
+
+Le panneau de la page d'accueil n'est pas touche : ses papiers y font deja 146 a 148 px,
+sous la borne.
+
 ### Signale et non corrige
 
 - **Le panneau de liege fait 1140 x 180 px pour porter un seul post-it.** C'est la plus grande
