@@ -7019,17 +7019,36 @@ button.bureau-nav__item:hover {
   justify-content: space-between;
   gap: var(--e-m);
 }
-/* LA RANGEE DU SALUT. `align-items: baseline` et pas `center` : quatre textes
-   de tailles differentes centres verticalement flottent chacun a sa hauteur,
-   alors qu'ils se lisent comme une seule phrase. Le `gap` est nul en vertical
-   pour que le repli, sur un nom de domaine long, ne rouvre pas le bandeau. */
+/* DEUX LIGNES, PAS UNE FILE. Premiere version du 18/09/2026 : les quatre textes
+   sur une seule rangee. A l'ecran, avec un prenom, un domaine et un resume qui
+   porte deux chiffres, ca faisait huit fragments de meme poids qui se suivaient
+   sans hierarchie. Maintenant : ce qui presse en haut, ce qui situe en dessous,
+   en petites capitales. Le `row-gap` reste nul, les deux lignes se touchent.
+   `align-items: baseline` sur la ligne du haut : deux textes de tailles
+   differentes centres verticalement flottent chacun a sa hauteur, alors qu'ils
+   se lisent comme une seule phrase. */
 .bureau-tete__salut {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 var(--e-m);
+  gap: 0 var(--e-s);
   min-width: 0;
 }
+.bureau-tete__meta {
+  flex: 0 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  /* --e-xs et pas --e-s : la date porte `--ls-large`, qui ajoute son interlettre
+     APRES la derniere lettre. Avec l'ecart normal, le point de separation partait
+     deux fois plus loin du mot de gauche que du mot de droite. */
+  gap: 0 var(--e-xs);
+  min-width: 0;
+}
+/* Le point qui separe le jour de la plaque : il n'est pas dans le texte, parce
+   que la plaque peut etre absente (pas de domaine donne) et qu'un point orphelin
+   derriere une date se lit comme une coquille. */
+.bureau-tete__plaque:not([hidden])::before { content: "· "; }
 .bureau-tete h1 { color: var(--on-dark); font-size: var(--t-h3); margin: 0; }
 /* La plaque de porte : le nom du domaine, grave sous le bonjour.
    --cork est documente « jamais du texte » : la regle vise le papier, ou il tombe a
@@ -7128,13 +7147,20 @@ button.bureau-nav__item:hover {
    tout l'entete. Ils se suivent maintenant, separes par les filets du dessin
    lui-meme, et le disque descend de 38 a 28 px. Le repli reste possible
    (`flex-wrap`), et sous 980 px la lune redescend sur sa ligne comme avant. */
+/* LA LUNE TIENT SUR DEUX LIGNES, comme la colonne de gauche : son nom en haut,
+   ses deux precisions en dessous. En file sur une seule ligne, ses trois
+   fragments s'ajoutaient aux quatre du salut et le bandeau devenait une phrase
+   de huit morceaux. Deux lignes de chaque cote, et le bandeau se lit en deux
+   regards au lieu de huit. */
 .bureau-tete__lune > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  display: grid;
   gap: 0 var(--e-s);
   min-width: 0;
 }
+.bureau-tete__lune-note, .bureau-tete__lune-suite { grid-row: 2; }
+.bureau-tete__lune-note { grid-column: 1; }
+.bureau-tete__lune-suite { grid-column: 2; }
+.bureau-tete__lune-nom { grid-column: 1 / -1; }
 .bureau-tete__lune-dessin { flex: 0 0 auto; display: block; width: 28px; height: 28px; }
 /* Le disque entier reste visible en creux : sans lui, un croissant a 9 % flotterait
    sans qu'on sache de quel astre il est le bord. */

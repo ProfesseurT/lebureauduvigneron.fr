@@ -140,6 +140,37 @@ faut attendre la fin de l'animation avant de compter.
 Le panneau de la page d'accueil n'est pas touche : ses papiers y font deja 146 a 148 px,
 sous la borne.
 
+### Quatrieme passe : le bandeau en deux lignes, parce qu'une file de huit ne se lit pas
+
+Ted, capture de son VRAI bureau : « c'est tres moche la haut, c'est un foutoir pas possible. »
+Il avait raison, et le defaut etait de la premiere passe du soir.
+
+**Ce que le banc ne montrait pas.** Hors ligne, le profil n'arrive jamais : le banc
+photographiait « Te voila chez toi. », sans prenom, sans plaque, avec un resume d'une ligne,
+c'est-a-dire le bandeau le plus VIDE possible. Sur la page de Ted il y a un prenom, un
+domaine, un metier et un resume a deux chiffres : **huit fragments a la file, tous de meme
+poids**. Le banc pose desormais ces textes a la main avant de photographier, et c'est une
+regle generale : **un harnais qui ne montre que l'etat vide valide une mise en page que
+personne ne verra.** Quatrieme fois que le depot paie un jeu d'essai plus sage que la realite.
+
+**Deux lignes, et une hierarchie.** Ligne 1, ce qui presse : le salut et le resume du jour.
+Ligne 2, ce qui situe, en petites capitales : le jour et la plaque. La lune passe elle aussi
+sur deux lignes, son nom au-dessus de ses deux precisions. Le bandeau se lit en deux regards
+au lieu de huit, et il fait 67 px au lieu de 71.
+
+Le wrapper `.bureau-tete__meta` porte la deuxieme ligne. Les deux identifiants n'ont pas
+bouge : `peindreIdentite()` les prend par `getElementById`.
+
+Deux details qui ne se voient qu'a l'image : le point de separation est pose par un
+`::before` sur la plaque et **pas ecrit dans le texte**, parce que la plaque est absente tant
+qu'aucun domaine n'est donne et qu'un point orphelin derriere une date se lit comme une
+coquille ; et l'ecart de cette ligne est `--e-xs` et non `--e-s`, parce que la date porte
+`--ls-large`, dont l'interlettre s'ajoute APRES la derniere lettre et poussait le point deux
+fois plus loin du mot de gauche que du mot de droite.
+
+**Signale, non corrige : le nom du bureau est ecrit DEUX FOIS a l'ecran**, dans la plaque
+(« SOLUCORP · VIGNERON ») et au-dessus de la barre des pieces (« SOLUCORP »).
+
 ### Signale et non corrige
 
 - **Le panneau de liege fait 1140 x 180 px pour porter un seul post-it.** C'est la plus grande
