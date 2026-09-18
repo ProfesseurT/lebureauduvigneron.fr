@@ -12,6 +12,105 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 19/09/2026. Audit complet de l'application, UX et systeme
+
+Ted : « tu vas auditer entierement l'application. UX et system. Tu vas deployer tous les agents
+necessaires. » Perimetre retenu avec lui : **le bureau connecte et la base Supabase**. Methode
+imposee : **captures reelles**, pas lecture de code. Livrable : rapport, et correction immediate
+de ce qui ne demande aucun arbitrage.
+
+Six audits menes en parallele : UX grand ecran (1440x900), UX telephone (390 et 360 px),
+architecture et dette, securite et schema Supabase, robustesse et etats d'erreur, charte et
+accessibilite. Environ 150 constats, dont les 16 ci-dessous corriges le jour meme.
+
+### Ce que l'audit a trouve de plus grave, et qui ne se voyait dans aucun banc
+
+**1. L'abonnement agenda ne s'ecrivait jamais, et la revocation ne revoquait rien.**
+`bdv-reglages.js` appelait `BdvCompte.api()` avec `method:` et `body:`. La fonction attend
+`methode:` et `corps:`. Les deux mots inconnus etaient ignores : l'appel partait en simple
+lecture, reussissait, et l'ecran affichait « Lien cree » sur une base ou rien n'avait ete ecrit.
+Meme chose pour « Lien revoque. L'ancienne adresse ne rend plus rien » : l'ancienne adresse
+continuait de servir le calendrier, pour toujours.
+**C'est la troisieme fois que ce projet se fait avoir par une ecriture qui reussit sans ecrire**
+(les signets restes vides, la colonne manquante du courrier, celle-ci). Les deux premieres
+venaient d'un champ oublie ; celle-ci d'un nom de champ anglais dans une fonction francaise.
+La lecon commune : **une ecriture qui ne rend pas la preuve de ce qu'elle a ecrit n'est pas une
+ecriture, c'est une esperance.**
+
+**2. Le garde-fou de la deconnexion ne comptait que trois files d'attente sur cinq.**
+`ecrituresEnAttente()` nommait `bdv_crm_attente`, `bdv_signets_attente` et `bdv_profil_attente`
+a la main. Les taches cochees hors reseau (`bdv_taches_attente`) et les reperes de calendrier
+decales (`bdv_calchoix_attente`) n'etaient pas comptes. Or la deconnexion EFFACE le navigateur :
+le vigneron lisait « rien en attente », partait, et perdait ce qu'il avait note dans la vigne.
+**Le meme garde-fou existait deja, juste, vingt fichiers plus loin** : `BdvCompte.filesEnAttente()`
+balaie toutes les cles `bdv_*_attente` et protege le changement de bureau. Deux gardes pour le
+meme danger, et le bon protegeait le geste le moins grave. La liste ecrite a la main est
+supprimee, le panneau appelle desormais la fonction qui balaie.
+
+**3. Le classement des colonnes partait sans que personne ne regarde s'il arrivait.**
+`syncUneColonne()` dans `bdv-base.js` avalait l'echec par un `.catch(function(){})` vide, et
+l'ecran affichait juste apres « Reglages enregistres. Toute la base a ete reclassee. » Sur le
+reglage qui decide de ce que le serveur compte comme une vente. Ecran vert, compte inchange, et
+sur le deuxieme appareil le classement d'avant. Le modele a suivre etait dans le meme fichier,
+vingt lignes plus haut : `syncSuivi()` le dit.
+
+**4. « Mes cuvees » affichait le chiffre en 10 px et le mot en 26 px.**
+Quatre appels a `kpiCard(libelle, valeur, note)` passaient leurs deux premiers arguments dans le
+mauvais ordre. « 61 765 EUR » etait ecrit en etiquette et « chiffre d'affaires » en gros. Vu par
+les deux audits UX, sur grand ecran comme sur telephone.
+
+**5. Trois ecrans rendaient un verdict positif sur zero.**
+« Tu gagnes plus que tu ne perds : **0 EUR contre 0 EUR** », suivi de « Ta croissance est
+reelle » ; « **-0 EUR** » affiche deux fois en rouge dans le meme tableau ; « **+0 %** » en vert
+dans l'ardoise de « Mon cap » et « Croissance saine : +0 EUR ».
+Trois formes du meme defaut : **le signe et la couleur etaient decides par la nature de la
+ligne, jamais par la valeur.** Zero est un troisieme etat, ni vert ni rouge, sans signe.
+
+**6. « Mes cuvees » disait « Aucune vente en base » alors que la base en portait 286.**
+L'ecran ne distinguait pas « rien a montrer » de « rien encore lu ». C'est le defaut du 18/09,
+corrige sur « Mon commerce » et laisse ici. `lignesPretes()` existait deja pour ca.
+
+### Les autres correctifs de la passe
+
+- `parseDateFR()` verifiait l'annee et le mois, jamais le jour : `32/01/2026` etait accepte,
+  affiche tel quel, et compte comme le 1er fevrier par les calculs d'intervalle.
+- `lot28-vider-sans-doute.sql` etait absent de la liste `ORDRE` de `banc-rejeu.mjs`. Une base
+  reconstruite depuis le depot aurait donc recu **l'ancien bouton « Vider la base »**, celui qui
+  ne rend aucune preuve, c'est-a-dire l'incident du 18/09 remis en place par la procedure censee
+  le garder.
+- Deux barreaux de l'echelle des couches etaient ecrits en dur a cote de leur jeton
+  (`z-index:400` alors que `--z-modale` existe, `z-index:100` alors que `--z-nav` existe).
+- `bdv-canaux.js` etait le seul script du bureau sans `defer`, alors que son unique lecteur,
+  `bdv-crm.js`, est lui-meme en `defer` et s'execute apres lui de toute facon.
+- Deux renvois pointaient vers des endroits disparus : « Mon exercice » (la piece s'appelle
+  « Mon cap » depuis le 11/09) et « l'onglet Colonnes » (il s'appelle « Le classement »).
+
+### Ce que l'audit a trouve de bon, et qu'il ne faut pas casser
+
+Les 15 tables Supabase ont **toutes** la protection par ligne activee, sans exception. Aucune
+fuite de donnees de vignerons vers l'exterieur. Le jeton des invitations n'est pas lisible par
+les comptes connectes. Aucune cle de service dans le depot. Sur 821 fonctions passees au crible
+du depot entier, **cinq seulement** sont mortes : ce projet ne traine pas de cadavre. Et l'ecart
+entre `tokens.css` et ce que le navigateur recoit est **a zero** sur les 120 jetons : le banc
+ajoute le 18/09 a ferme la derive pour de bon.
+
+### Ce qui reste, et qui demande un arbitrage
+
+Le detail complet est dans les six rapports d'audit. Les points qui attendent une decision :
+le bandeau qui prend **62 % de l'ecran sur telephone** (522 px sur 844, jamais mesure la : la
+decision du 18/09 au soir portait sur l'ordinateur) ; la **barre du bas passee a 43 px** par
+cellule depuis l'arrivee de la neuvieme piece, alors que le commentaire du code parle encore de
+huit cellules a 45 px ; le **panneau de reglages sans aucune regle telephone** (cases a cocher a
+15 px, champs a 14 px qui font zoomer iOS) ; **68 a 78 % du texte du bureau sous 12 px** ; et la
+scission de `style.css`, dont 75 ko ne servent qu'au site public et voyagent quand meme.
+
+Cote base : un **bureau d'essai sans membre** porte 160 ventes fictives en production et plus
+personne ne peut y entrer ; `ventes_lignes` occupe **118 Mo pour 3 Mo de donnees** apres le grand
+effacement ; et la **protection contre les mots de passe deja voles est eteinte** dans les
+reglages Supabase, ce qui est un clic.
+
+---
+
 ## 18/09/2026, le soir. L'occupation de l'espace du bureau
 
 Ted, deux captures de HubSpot a l'appui, son pipeline et sa liste de contacts : « je veux la

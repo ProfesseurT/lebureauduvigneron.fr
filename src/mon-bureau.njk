@@ -604,7 +604,7 @@ permalink: /mon-bureau/
      bureau retrouverait ses 97 ko bloquants et personne ne verrait pourquoi. -->
 <script src="/js/bdv-amorce.js" defer></script>
 <script src="/js/bdv-reglages.js" defer></script>
-<script src="/js/bdv-canaux.js"></script>
+<script src="/js/bdv-canaux.js" defer></script>
 <script src="/js/bdv-echeances.js" defer></script>
 <!-- Mes taches : APRES bdv-echeances.js, dont il lit le calcul des obligations, et
      apres bdv-compte.js, dont il lit la session. Tous en defer, donc dans l'ordre
@@ -933,7 +933,7 @@ permalink: /mon-bureau/
       boite.className = '';
       vide(boite, LECTURE_KO
         ? 'Ta file n’a pas pu être lue. Ce n’est pas qu’elle est vide : réessaie tout à l’heure.'
-        : 'Ouvre « Mon exercice » une fois : ton bureau déposera ici les clients à rappeler.');
+        : 'Ouvre « Mon cap » une fois : ton bureau déposera ici les clients à rappeler.');
       return;
     }
     var lignes = BdvCrm.file(ETAT_FILE);

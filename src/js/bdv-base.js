@@ -296,7 +296,14 @@ function capPerimer(apres){
 }
 function syncUneColonne(champs){
   if(!syncPret())return null;
-  const envoi = BdvSync.ecrireReglages(champs).catch(function(){});
+  /* L'ECHEC N'EST PLUS AVALE, 19/09/2026. Le `.catch` vide rendait muet le reglage le
+     plus lourd du bureau : le classement decide de ce que le serveur compte comme une
+     vente. L'ecran affichait « Reglages enregistres », le compte n'avait rien recu, et le
+     deuxieme appareil gardait le classement d'avant. Meme motif que syncSuivi(). */
+  const envoi = BdvSync.ecrireReglages(champs).then(function(ok){
+    if(!ok && syncPret()) status('error', "Ce réglage n'est enregistré que sur cet appareil : ton compte ne l'a pas reçu. Reviens dessus quand le réseau sera revenu.");
+    return ok;
+  }).catch(function(){ return false; });
   if(CAP_REGLAGES.some(function(c){ return c in champs; })) capPerimer(envoi);
   return envoi;
 }
@@ -708,7 +715,7 @@ function parseDateFR(v){
   const m=String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if(!m)return null;
   const d=+m[1],mo=+m[2],y=+m[3];
-  if(y<1990||y>2100||mo<1||mo>12)return null;
+  if(y<1990||y>2100||mo<1||mo>12||d<1||d>31)return null;
   return {y,m:mo,d,t:y*10000+mo*100+d};
 }
 // Empreinte de ligne (hash) sur les HASH_COLS premiers champs bruts. cyrb53, compact et robuste.

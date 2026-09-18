@@ -1144,6 +1144,10 @@ function bridgeHero(){
     kind='danger';ico='▼';
     verdict=`Tu perds plus que tu ne gagnes : ${fmtMoney(perdu)} perdus contre ${fmtMoney(gagne)} gagnés.`;
     action=`<b>Action : traiter les départs avant de chercher de nouveaux clients.</b> Reconquérir coûte moins cher que conquérir.`;
+  }else if(gagne<=0&&perdu<=0){
+    kind='info';ico='ℹ';
+    verdict=`Aucun mouvement de clientèle sur la période.`;
+    action=`Ni gain ni perte à comparer : il faut deux ${exMot()}s qui portent des ventes pour que cette décomposition dise quelque chose.`;
   }else{
     verdict=`Tu gagnes plus que tu ne perds : ${fmtMoney(gagne)} contre ${fmtMoney(perdu)}.`;
     action=`Ta croissance est réelle, pas seulement un remplacement. <b>Action : regarde quand même la ligne des clients perdus, c'est le gisement le moins cher.</b>`;
@@ -1153,7 +1157,7 @@ function bridgeHero(){
   const ligne=(lbl,val,pos,sub)=>`<tr>
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
       <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--ok)':'var(--danger)'}"></span></td>
-      <td class="num" style="color:${pos?'var(--ok)':'var(--danger-deep)'};white-space:nowrap">${pos?'+':'-'}${fmtMoney(Math.abs(val))}</td></tr>`;
+      <td class="num" style="color:${pos?'var(--ok)':'var(--danger-deep)'};white-space:nowrap">${val===0?'':(pos?'+':'-')}${fmtMoney(Math.abs(val))}</td></tr>`;
   return `<div class="section-label">D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale</div>`
     +signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
@@ -1411,7 +1415,7 @@ function diagnosticSignals(){
   if(pv){
     if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
     else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',cible:'annee',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Le sujet, c'est le nombre de bouteilles vendues. Pousse acquisition et réactivation.`});
-    else if(pv.delta>=0)S.push({sev:1,impact:pv.delta,kind:'ok',cible:'annee',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
+    else if(pv.delta>0)S.push({sev:1,impact:pv.delta,kind:'ok',cible:'annee',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
   }
   const con=agentConcentration();
   if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',cible:'clients',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
@@ -1537,7 +1541,7 @@ function renderCap(){
   if(!rows.length && ROWS.length){
     html+=signal('danger','⚠',
       `Aucune vente détectée, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
-      `Certaines familles sont peut-être classées à tort en hors-vente (transport, remises, pub, divers). Le réglage des familles arrivera dans l'onglet Colonnes. En attendant, vérifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
+      `Certaines familles sont peut-être classées à tort en hors-vente (transport, remises, pub, divers). Le réglage des familles arrivera dans l'onglet « Le classement ». En attendant, vérifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
     p.innerHTML=html;
     return;
   }
@@ -1552,7 +1556,7 @@ function renderCap(){
        Elles etaient recalculees ici alors que `yoyTotals()` les avait deja : un
        troisieme endroit qui disait l'evolution, apres les deux fusionnes le 11/09. */
     const curW=f.curW, prevW=f.prevW, d=f.d;
-    const cls=d==null?'':(d>=0?'up':'down');
+    const cls=d==null?'':(d>0?'up':(d<0?'down':''));
     html+=`<div class="hero">
       <div class="hero__label">Où en est ton ${exMot()}, ${exLabelCourt(f.cur)} vs ${exLabelCourt(f.prev)} à date</div>
       <div class="hero__val ${cls}">${d==null?'n/d':fmtPct(d)}</div>
@@ -1873,15 +1877,15 @@ function renderProduits(){
   // « Mes cuvees », comme la barre du bureau. L'ecran disait « Mes produits », et c'etait
   // le seul endroit du bureau ou une piece portait deux noms.
   let html=`<h2 class="panel__title">Mes cuvées</h2>`;
-  if(!A.ok){html+=signal('info','ℹ','Aucune vente en base.','Ajoute un export pour voir ton portefeuille.');el('p-produits').innerHTML=html;return;}
+  if(!A.ok){html+=lignesPretes()?signal('info','ℹ','Aucune vente en base.','Ajoute un export pour voir ton portefeuille.'):signal('info','i','Portefeuille pas encore établi.','Tes lignes ne sont pas encore chargées sur cet appareil. Cet écran se remplira dès qu\'elles seront là.');el('p-produits').innerHTML=html;return;}
   const top3=A.liste.slice(0,3).reduce((s,c)=>s+c.part,0);
   html+=`<div class="panel__sub">Ton portefeuille vu par <b>cuvée</b>, tous millésimes confondus. C'est le seul niveau où une tendance veut dire quelque chose : un millésime qui s'arrête pendant que le suivant démarre n'est pas une baisse, c'est une rotation.</div>`;
 
   html+=`<div class="kpi-grid">
-    ${kpiCard(fmtNum(A.liste.length),'cuvées','au catalogue vendu',true)}
-    ${kpiCard(fmtNum(A.nbMillesimes),'millésimes','en circulation dans ta base')}
-    ${kpiCard(fmtNum(top3,0)+' %','du CA','porté par tes 3 premières cuvées')}
-    ${kpiCard(fmtMoney(A.caTotal),'chiffre d\'affaires','toutes cuvées, tout l\'historique')}
+    ${kpiCard('Cuvées',fmtNum(A.liste.length),'au catalogue vendu',true)}
+    ${kpiCard('Millésimes',fmtNum(A.nbMillesimes),'en circulation dans ta base')}
+    ${kpiCard('Part du CA',fmtNum(top3,0)+' %','porté par tes 3 premières cuvées')}
+    ${kpiCard('Chiffre d\'affaires',fmtMoney(A.caTotal),'toutes cuvées, tout l\'historique')}
   </div>`;
 
   /* ETAGE 1, LE VERDICT. Les alertes du portefeuille d'abord, parce que c'est le sujet de

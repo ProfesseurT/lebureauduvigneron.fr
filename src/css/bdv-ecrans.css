@@ -413,7 +413,7 @@
 .bdv-ventes .fchip__l{color:var(--muted);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-doux)}
 .bdv-ventes .fchip__x{font-size:1.05rem;line-height:1;color:var(--bordeaux)}
 /* ---------- Fiche client (modale) ---------- */
-.modale{position:fixed;inset:0;z-index:400;display:none}
+.modale{position:fixed;inset:0;z-index:var(--z-modale);display:none}
 .bdv-ventes.modale.on{display:block}
 .bdv-ventes .modale__bg{position:absolute;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px)}
 .bdv-ventes .modale__box{position:relative;max-width:1020px;margin:2.5vh auto;max-height:95vh;overflow-y:auto;

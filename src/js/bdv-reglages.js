@@ -334,7 +334,7 @@
       /* `id` est pose ICI et jamais laisse au defaut : regle 6 de CLAUDE.md,
          la meme qui avait laisse la table des signets vide pendant deux jours. */
       await BdvCompte.api('/agenda_abonnement', {
-        method: 'POST', body: { id: moi, jeton: nouveauJeton() }
+        methode: 'POST', corps: { id: moi, jeton: nouveauJeton() }
       });
       await rafraichirAgenda();
       motAgenda('Lien créé. Colle-le dans ton agenda.');
@@ -356,7 +356,7 @@
     if(!moi) return;
     motAgenda('Révocation…');
     try{
-      await BdvCompte.api('/agenda_abonnement?id=eq.' + encodeURIComponent(moi), { method: 'DELETE' });
+      await BdvCompte.api('/agenda_abonnement?id=eq.' + encodeURIComponent(moi), { methode: 'DELETE' });
       await rafraichirAgenda();
       motAgenda('Lien révoqué. L\'ancienne adresse ne rend plus rien.');
     }catch(e){ motAgenda('La révocation a échoué. Réessaie dans un moment.'); }
@@ -1036,13 +1036,21 @@
 
   function ecrituresEnAttente(){
     let n = 0;
-    ['bdv_crm_attente', 'bdv_signets_attente', 'bdv_profil_attente'].forEach(function(k){
-      try{
-        const v = JSON.parse(localStorage.getItem(k));
-        if(Array.isArray(v)) n += v.length;
-        else if(v && typeof v === 'object') n += Object.keys(v).length;
-      }catch(e){}
-    });
+    /* ON NE NOMME PLUS LES FILES A LA MAIN, 19/09/2026. Cette liste en portait TROIS et le
+       bureau en tient CINQ : les taches cochees hors reseau et les reperes de calendrier
+       decales n'etaient pas comptes. Or se deconnecter EFFACE ce navigateur : le vigneron
+       lisait « rien en attente », partait, et perdait ce qu'il avait note dans la vigne.
+       `filesEnAttente()` balaie toutes les cles `bdv_*_attente` : c'est le meme garde-fou
+       que la bascule de bureau, qui lui etait deja juste. Il saute volontairement la file
+       du profil, qui est une ecriture de PERSONNE et pas de bureau ; ici elle compte, on
+       la rajoute a la main. */
+    const files = (window.BdvCompte && BdvCompte.filesEnAttente) ? BdvCompte.filesEnAttente() : [];
+    files.forEach(function(f){ n += f.combien; });
+    try{
+      const v = JSON.parse(localStorage.getItem('bdv_profil_attente'));
+      if(Array.isArray(v)) n += v.length;
+      else if(v && typeof v === 'object') n += Object.keys(v).length;
+    }catch(e){}
     return n;
   }
 
