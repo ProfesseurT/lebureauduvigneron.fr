@@ -12,6 +12,58 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 17/09/2026, très tard. Une plainte, trois causes, dont une à moi
+
+« Ça a foiré une fois et là ça charge les lignes. » La ligne qui compte n'est pas « ça
+charge » : un amorçage qui échoue ne pose pas son repère, donc le suivant repart de zéro.
+Les 32 000 lignes qu'il voit sont la conséquence, pas la cause.
+
+Journaux Supabase : **quatre 500 à 8 100 ms** en huit minutes, tous sur le comptage. Huit
+secondes, c'est le délai d'expiration de PostgREST.
+
+### La carte de visibilité était froide
+
+`relallvisible = 0` sur 26 240 pages. `ventes` n'avait jamais été passée au VACUUM depuis
+son remplissage, donc aucun parcours d'index seul n'était possible et chaque comptage lisait
+les 205 Mo du tas. **3 543 ms → 222 ms, `Heap Fetches: 0`.** Seize fois, sans une ligne de
+code. À refaire après chaque gros import tant que `brut` est là.
+
+### Le repère ne triait plus rien
+
+Ses 171 569 lignes portent toutes un `maj_le` entre 08:32:06 et 08:33:19 : une base importée
+d'un coup, en soixante-treize secondes. La marge de cinq minutes du repère couvre alors la
+base entière. **La voie rapide ramenait tout et se déclarait satisfaite**, si bien que le
+comptage posé après elle n'était jamais atteint.
+
+Ce n'est pas un cas tordu, c'est le cas de tout nouveau compte.
+
+**Ma première correction était fausse**, et le banc l'a dit en trois contrôles : je comparais
+la borne au compte local, ce qui confond « je télécharge beaucoup parce qu'il manque
+beaucoup » et « je télécharge tout parce que le repère ne trie rien ». Seul le total du
+serveur les distingue.
+
+### Et « Mon commerce » partait à l'amorçage
+
+`cap_resume` rend 8 nombres en 1,1 s. `commerce_resume` rend 1 935 clients, **642 ko, en
+3,8 s**. Je l'avais lancé à l'amorçage par symétrie. Quatre secondes de serveur et un
+demi-méga à chaque ouverture du bureau, y compris celles où il ne regarde jamais cet écran,
+et en concurrence avec le comptage qui expirait.
+
+**C'est la faute du lot 22, refaite le même jour : une mesure n'est valable que pour le
+décor dans lequel elle a été prise.** J'ai recopié « lancer à l'amorçage » d'un cas à huit
+nombres vers un cas à 642 ko sans le remesurer.
+
+Il part maintenant à l'ouverture de l'écran, sans faire attendre.
+
+### Ce que j'en retiens
+
+Trois causes empilées derrière une seule plainte, et aucune des trois ne se voyait dans le
+code. La première est dans les statistiques de Postgres, la deuxième dans la distribution
+réelle d'une colonne, la troisième dans un chiffre que je n'avais pas remesuré. **Les
+journaux et les plans d'exécution ont répondu à tout ; la relecture n'aurait rien donné.**
+
+---
+
 ## 17/09/2026, tard. « Mon commerce » : deux heures de filet avant une ligne de portage
 
 Ted a demandé le plus fiable, même si c'est long à mettre en place. C'était le bon

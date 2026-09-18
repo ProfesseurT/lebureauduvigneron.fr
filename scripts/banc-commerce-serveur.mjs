@@ -260,8 +260,21 @@ t('comRafraichir() sait attendre une ecriture avant de redemander',
   /function comRafraichir\(apres\)/.test(ecrans));
 t('et il met le resume a null TOUT DE SUITE',
   /function comRafraichir\(apres\)\{\s*\n?\s*comPoser\(null\);/.test(ecrans));
-t('l\'appel au serveur part en parallele du rapatriement des ventes',
-  /const comEnRoute[\s\S]{0,200}await tirerDuServeur\(\)/.test(ecrans));
+/* IL NE PART PLUS A L'AMORCAGE, et c'est le controle qui garde la correction du
+   17/09 au soir : 3,8 s et 642 ko a chaque ouverture du bureau, y compris celles ou
+   le vigneron ne regarde jamais cet ecran. Il part a l'ouverture de l'ecran, une fois,
+   et sans faire attendre : le calcul local peint d'abord. */
+t('le resume du commerce ne part PAS a l\'amorcage',
+  !/comEnRoute/.test(ecrans));
+t('il part a l\'ouverture de l\'ecran, une seule fois par session',
+  /function renderClients\(\)\{\s*\n\s*comAuBesoin\(\);/.test(ecrans)
+  && /if\(COM \|\| COM_DEMANDE\) return;/.test(ecrans));
+/* Le drapeau ne doit PAS etre leve par `comRafraichir()`, qui le remet a zero : les
+   enchainer ferait une boucle sans fin. Defaut ecrit puis corrige le meme soir. */
+t('et il appelle le serveur lui-meme, sans passer par comRafraichir()',
+  /COM_DEMANDE = true;[\s\S]{0,400}BdvSync\.commerceResume\(\)/.test(ecrans));
+t('l\'ecran se peint AVANT la reponse : le calcul local d\'abord',
+  !/await[\s\S]{0,40}commerceResume/.test(ecrans));
 /* L'ordre des ex aequo est pose des deux cotes : `Array.sort` est stable, donc sans
    second critere le navigateur rendait l'ordre d'IndexedDB, que rien ne reproduit. */
 t('les mouvements ex aequo sont departages par le nom, pas par l\'ordre d\'IndexedDB',

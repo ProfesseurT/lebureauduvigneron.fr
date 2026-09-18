@@ -64,7 +64,12 @@ function monter(opts) {
      lignes en production. Un jour d'ecart entre deux groupes, pour que la marge de cinq
      minutes ne les avale pas tous d'un coup. */
   const JOUR = 86400000, T0 = Date.parse('2026-09-01T08:00:00.000Z');
-  const dateDe = (i) => new Date(T0 + Math.floor(i / 500) * JOUR).toISOString();
+  /* `memeInstant` reproduit une base importee d'un coup : toutes les lignes a la
+     meme seconde, donc aucune borne ne peut en ecarter une seule. C'est l'etat reel
+     de la base de facturation de Ted, pas une hypothese d'ecole. */
+  const dateDe = (i) => opts.memeInstant
+    ? new Date(T0).toISOString()
+    : new Date(T0 + Math.floor(i / 500) * JOUR).toISOString();
   for (let i = 0; i < total; i++) LIGNES.push({
     empreinte: 'h' + String(i).padStart(6, '0'), brut: ['x'],
     maj_le: opts.sansDate ? undefined : dateDe(i) });
@@ -312,6 +317,45 @@ console.log('\n== 6. Le tirage rapide ==');
     t.lectures().length + ' lecture(s)');
   dit(t.compteurs === 1, 'un seul compteur, et il porte la borne de date', t.compteurs);
   dit(t.comptesChemins[0].indexOf('maj_le=gte.') > 0, 'le compteur borne bien sur la date', t.comptesChemins[0]);
+}
+
+/* ==========================================================================
+   6 bis. LE REPERE QUI NE TRIE PLUS RIEN, 17/09/2026 au soir
+   ==========================================================================
+   Ted a rouvert son bureau et a revu « Recuperation de tes ventes, 32 000
+   lignes... ». Journaux Supabase : quatre 500 a 8 100 ms sur le comptage, et
+   surtout, toutes ses 171 569 lignes portent un `maj_le` compris entre
+   08:32:06 et 08:33:19 le meme matin. Une base importee D'UN COUP.
+
+   La marge de cinq minutes du repere, qui existe pour ne pas couper un lot
+   d'import au milieu, couvre alors la base ENTIERE : la voie rapide ramenait
+   les 171 569 lignes et se declarait satisfaite, si bien que le comptage pose
+   APRES elle n'etait jamais atteint. Une voie rapide qui fait le travail de la
+   voie lente en se croyant rapide.
+
+   Ces controles gardent le renoncement, et surtout le fait qu'il ne coute
+   RIEN quand il n'y a rien de neuf : la section 6 ci-dessus verifie qu'on en
+   reste alors a une seule requete. */
+console.log('\n== 6 bis. Le repere qui ne trie plus rien ==');
+{
+  // Toutes les lignes dans la meme seconde : c'est la base de Ted en miniature.
+  const t = monter({ total: 2500, memeInstant: true });
+  t.poserRepere('2026-09-01T08:00:00.000Z');
+  const l = await t.S.tirerVentes(null, 2500);   // l'appareil les a deja toutes
+  dit(l.length === 0, 'autant de lignes des deux cotes : rien n\'est rapatrie', l.length);
+  dit(t.lectures().length === 0, 'ET AUCUNE LECTURE, alors que la borne les ramenait toutes',
+    t.lectures().length + ' lecture(s)');
+  dit(t.compteurs === 2, 'deux compteurs : la borne, puis le total qui tranche', t.compteurs);
+}
+{
+  /* LE CAS QUI M'A FAIT ME TROMPER. Ma premiere version comparait la borne au compte
+     LOCAL : ramener 1 500 lignes quand on en a 1 000 lui paraissait suspect, alors
+     que c'est exactement ce qu'il faut faire s'il en manque 1 500. « Beaucoup » et
+     « tout » ne se confondent pas. Trois controles du banc l'ont refusee. */
+  const t = monter({ total: 2500, memeInstant: true });
+  t.poserRepere('2026-09-01T08:00:00.000Z');
+  const l = await t.S.tirerVentes(null, 1000);   // il en manque vraiment
+  dit(l.length === 2500, 'il en manque : la base descend en entier', l.length);
 }
 {
   const t = monter({ total: 2500 });

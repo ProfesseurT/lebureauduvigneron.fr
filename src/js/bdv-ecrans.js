@@ -840,6 +840,7 @@ function comPoser(x){ COM = (x && typeof x === 'object') ? x : null; }
 /* Voir `capRafraichir` : la mise a null est immediate, la redemande attend l'ecriture. */
 function comRafraichir(apres){
   comPoser(null);
+  COM_DEMANDE = false;
   if(!(window.BdvSync && BdvSync.commerceResume)) return Promise.resolve(null);
   const attendre = (apres && typeof apres.then === 'function')
     ? apres.catch(function(){ return null; })
@@ -2731,7 +2732,31 @@ function piedCommerce(){
     ${dedans}</details></div>`;
 }
 
+/* UNE SEULE TENTATIVE PAR SESSION, ET SANS ATTENDRE. L'ecran se peint tout de suite
+   avec le calcul local, qui est juste ; quand le serveur repond, on repeint. Attendre
+   la reponse avant de peindre ferait patienter quatre secondes devant un ecran vide
+   pour remplacer des chiffres deja bons par les memes.
+
+   Le drapeau evite la boucle : `comRafraichir()` finit par rappeler `renderClients()`,
+   qui sans lui redemanderait, indefiniment. Et il retombe a `false` quand le resume est
+   perime, pour que le prochain affichage redemande. */
+let COM_DEMANDE = false;
+function comAuBesoin(){
+  if(COM || COM_DEMANDE) return;
+  if(!(window.BdvSync && BdvSync.commerceResume)) return;
+  COM_DEMANDE = true;
+  /* L'APPEL EST FAIT ICI, PAS PAR `comRafraichir()`, qui remet justement ce drapeau a
+     zero : l'enchainer reviendrait a lever le garde-fou au moment ou on le pose, et la
+     boucle serait sans fin. Deux fonctions, deux roles : celle-ci demande une premiere
+     fois, l'autre redemande apres un geste qui a change la base. */
+  BdvSync.commerceResume().catch(function(){ return null; }).then(function(x){
+    comPoser(x);
+    if(x && el('p-clients') && el('p-clients').innerHTML) renderClients();
+  });
+}
+
 function renderClients(){
+  comAuBesoin();
   CLIENTS=agentClients();
   let html=`<h2 class="panel__title">Mon commerce</h2>`;
 
@@ -3209,16 +3234,24 @@ async function demarrerEcransVente(depart, dire){
   const capEnRoute = (window.BdvSync && BdvSync.capResume)
     ? BdvSync.capResume().catch(function(){ return null; })
     : Promise.resolve(null);
-  /* LES DEUX PARTENT ENSEMBLE, pas l'un apres l'autre. Ils ne dependent de rien qui
-     soit dans le navigateur et de rien l'un de l'autre : les enchainer ajouterait une
-     seconde a l'ouverture pour le plaisir de les lire dans l'ordre. */
-  const comEnRoute = (window.BdvSync && BdvSync.commerceResume)
-    ? BdvSync.commerceResume().catch(function(){ return null; })
-    : Promise.resolve(null);
+  /* « MON COMMERCE » NE PART PAS ICI, ET C'EST UNE CORRECTION DU MEME SOIR.
+
+     Il y etait, en parallele, par symetrie avec « Mon cap ». La symetrie etait
+     fausse, et la mesure le dit : `cap_resume` rend HUIT nombres en 1,1 s ;
+     `commerce_resume` rend 1 935 clients, 642 ko, en 3,8 s. Le poser a l'amorcage,
+     c'est faire payer quatre secondes de serveur et un demi-mega a CHAQUE ouverture
+     du bureau, y compris les ouvertures ou le vigneron ne regardera jamais cet
+     ecran. Pendant le rapatriement des ventes, ces quatre secondes se disputent en
+     plus la meme connexion, et c'est ce qui a pousse le comptage au-dela du delai
+     de huit secondes de PostgREST.
+
+     C'EST LA FAUTE DU LOT 22, REFAITE : une mesure n'est valable que pour le decor
+     dans lequel elle a ete prise. « Lancer le resume a l'amorcage » etait bon pour
+     huit nombres ; je l'ai recopie pour six cent quarante-deux kilo-octets sans le
+     remesurer. Il part maintenant a l'OUVERTURE DE L'ECRAN, une fois. */
   await tirerDuServeur();
   await reloadFromDB(dire);
   capPoser(await capEnRoute);
-  comPoser(await comEnRoute);
   dire('Dessin de tes écrans…');
   // Le panneau est branche AU DEMARRAGE, et pas seulement quand on l'ouvre : le bouton
   // « Me deconnecter » de la barre du haut y prend son garde-fou. Sans cette ligne il

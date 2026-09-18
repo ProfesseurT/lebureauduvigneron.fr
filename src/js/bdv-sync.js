@@ -177,9 +177,15 @@
        un tableau vide par defaut : « je ne sais pas » et « il n'y a rien » ne doivent pas
        se ressembler ici, c'est toute la difference entre une ouverture rapide et une base
        tronquee en silence. */
+    /* L'ORDRE N'A PAS BOUGE, ET C'EST VOULU : la voie rapide d'abord, le comptage
+       ensuite. Ce qui a change est DANS la voie rapide, qui sait maintenant renoncer
+       quand le repere ne discrimine plus rien. Deplacer le comptage devant aurait
+       coute une requete de plus a chaque ouverture ou il n'y a rien de neuf, c'est-a-
+       dire le cas normal, pour reparer un cas particulier. Le banc du rapatriement l'a
+       refuse, a juste titre. */
     const depuis = lireRepere();
     if(depuis){
-      const rapide = await tirerDepuis(depuis, surProgres);
+      const rapide = await tirerDepuis(depuis, surProgres, dejaLa);
       if(rapide){ TIRAGE_ABOUTI = true; return rapide; }
     }
 
@@ -226,7 +232,7 @@
      garde-fou propre a la borne large : une page pleine qui n'apporte AUCUNE ligne neuve
      et ne fait pas avancer la date voudrait dire qu'un groupe de lignes de meme date est
      plus gros qu'une page. On ne devine pas ce que ca donnerait, on rend `null`. */
-  async function tirerDepuis(depuis, surProgres){
+  async function tirerDepuis(depuis, surProgres, dejaLa){
     const t = Date.parse(depuis);
     if(!(t > 0)) return null;
     const borne = new Date(t - MARGE_MS).toISOString();
@@ -234,6 +240,39 @@
     const combien = await compterDepuis(borne);
     if(combien == null) return null;      // compteur illisible : doute, donc tout
     if(combien === 0) return [];          // UNE requete pour toute l'ouverture
+
+    /* ELLE RENONCE QUAND ELLE NE DISCRIMINE PLUS RIEN, 17/09/2026 au soir.
+
+       Un repere ne sert a quelque chose que s'il ECARTE des lignes. Quand la borne en
+       ramene AUTANT QUE LE COMPTE EN CONTIENT, elle n'ecarte rien : la « voie rapide »
+       est alors un rapatriement complet qui se croit rapide. Elle rendait ses 171 569
+       lignes en se declarant satisfaite, si bien que le comptage pose apres elle
+       n'etait jamais atteint, et Ted retelechargeait sa base a chaque ouverture.
+
+       CE N'EST PAS UN CAS TORDU, c'est le cas de toute base importee d'un coup. Celle
+       de Ted a ete ecrite en SOIXANTE-TREIZE SECONDES, de 08:32:06 a 08:33:19 : la
+       marge de cinq minutes, qui existe pour ne pas couper un lot d'import au milieu,
+       couvre alors la base ENTIERE. Le repere ne ment pas, il ne trie simplement plus.
+
+       LE BON DISCRIMINANT EST LE TOTAL DU SERVEUR, ET PAS LE COMPTE LOCAL. Ma premiere
+       version comparait `combien` a ce que l'appareil porte deja, et le banc l'a
+       refusee en trois controles : ramener 1 500 lignes quand on en a 1 000 est
+       parfaitement legitime s'il en manque 1 500. « Beaucoup » et « tout » ne se
+       confondent pas, et seul le total permet de les distinguer.
+
+       CETTE REQUETE DE PLUS NE COUTE RIEN LA OU ELLE EST POSEE : elle est apres
+       `combien === 0`, donc les ouvertures ou il n'y a rien de neuf gardent leur
+       requete unique. Elle n'arrive que lorsqu'on s'apprete de toute facon a
+       travailler. Elle coute 222 ms depuis que `ventes` est passe au VACUUM. */
+    if(typeof dejaLa === 'number' && dejaLa >= 0){
+      const total = await compterVentes();
+      if(total != null && combien >= total){
+        // Le repere ne trie rien. Autant de lignes des deux cotes : il n'y a rien a faire.
+        if(total === dejaLa) return [];
+        // Sinon on ne sait plus rien : `null`, donc rapatriement complet par le curseur.
+        return null;
+      }
+    }
 
     const sorties = [];
     const vues = new Set();

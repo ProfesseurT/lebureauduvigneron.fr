@@ -1549,6 +1549,86 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## TROIS CAUSES EMPILEES POUR UNE SEULE PLAINTE, 17/09/2026 AU SOIR
+
+Ted rouvre son bureau : « ca a foire une fois et la ca charge les lignes », capture a
+l'appui, « Recuperation de tes ventes, 32 000 lignes... ». **La ligne qui compte n'est pas
+« ca charge », c'est « ca a foire ».** Un amorcage qui echoue ne pose pas son repere, donc
+le suivant repart de zero : les 32 000 lignes sont la CONSEQUENCE de l'echec.
+
+Journaux Supabase : **quatre 500 a 8 100 ms sur `/rest/v1/ventes`** en huit minutes, tous
+sur le meme appel, le comptage avec `Prefer: count=exact`. Huit secondes, c'est le delai
+d'expiration de PostgREST.
+
+### 1. La carte de visibilite etait froide
+
+    relallvisible = 0  sur  relpages = 26 240
+
+`ventes` venait d'etre remplie en masse et n'avait jamais ete passee au VACUUM : **aucune
+page marquee visible, donc aucun parcours d'index seul possible**. Chaque comptage devait
+lire le tas, et le tas fait 205 Mo a cause de `brut`.
+
+| | avant VACUUM | apres |
+|---|---|---|
+| comptage borne, sous le vrai role connecte | Seq Scan, **3 543 ms** | Index Only Scan, **222 ms** |
+| `Heap Fetches` | (tas entier) | **0** |
+
+**Seize fois plus rapide, et rien a coder.** A refaire apres chaque gros import, tant que
+`brut` est la :
+
+    vacuum (analyze) public.ventes;
+
+`ventes_lignes`, elle, etait deja a 100 % visible. C'est encore le meme sujet que les lots
+22 et 23 : ce qui coute, c'est `brut` dans la ligne.
+
+### 2. Le repere ne triait plus rien, et la voie rapide ne s'en apercevait pas
+
+Les 171 569 lignes de Ted portent un `maj_le` compris entre **08:32:06 et 08:33:19** le
+meme matin : une base importee d'un coup, en soixante-treize secondes. La marge de cinq
+minutes du repere, qui existe pour ne pas couper un lot d'import au milieu, **couvre alors
+la base entiere**.
+
+La voie rapide ramenait donc les 171 569 lignes et **se declarait satisfaite**. Le comptage
+pose APRES elle n'etait jamais atteint. Une voie rapide qui fait le travail de la voie
+lente en se croyant rapide, et qui ne se plaint pas.
+
+**Ce n'est pas un cas tordu : c'est le cas de toute base importee d'un coup**, donc de tout
+nouveau compte.
+
+La voie rapide sait maintenant renoncer : quand la borne ramene autant que le compte en
+contient, elle rend `null`, et le comptage tranche.
+
+#### Ma premiere version etait fausse, et le banc l'a dit
+
+Je comparais la borne au **compte local** : ramener 1 500 lignes quand on en a 1 000 me
+paraissait suspect. C'est pourtant exactement ce qu'il faut faire s'il en manque 1 500.
+**« Beaucoup » et « tout » ne se confondent pas, et seul le total du serveur les
+distingue.** Trois controles du banc ont refuse la premiere version.
+
+La requete de plus est posee **apres** `combien === 0` : les ouvertures ou il n'y a rien de
+neuf gardent leur requete unique, et elle n'arrive que lorsqu'on s'apprete de toute facon a
+travailler.
+
+### 3. Et « Mon commerce » partait a l'amorcage, ce qui etait ma faute
+
+| | `cap_resume` | `commerce_resume` |
+|---|---|---|
+| ce qu'il rend | 8 nombres | 1 935 clients |
+| poids | quelques octets | **642 ko** |
+| duree sur la vraie base | 1,1 s | **3,8 s** |
+
+Je l'avais lance a l'amorcage **par symetrie avec « Mon cap »**. La symetrie etait fausse :
+c'etait quatre secondes de serveur et un demi-mega a chaque ouverture du bureau, y compris
+les ouvertures ou le vigneron ne regarde jamais cet ecran. Et pendant le rapatriement, ces
+quatre secondes se disputaient la meme connexion que le comptage qui expirait a huit.
+
+**C'EST LA FAUTE DU LOT 22, REFAITE : une mesure n'est valable que pour le decor dans lequel
+elle a ete prise.** « Lancer le resume a l'amorcage » etait bon pour huit nombres ; je l'ai
+recopie pour six cent quarante-deux kilo-octets sans le remesurer.
+
+Il part maintenant a l'ouverture de l'ecran, une fois par session, **sans faire attendre** :
+le calcul local peint d'abord, le serveur repeint quand il repond.
+
 ## « MON COMMERCE » : LE FILET D'ABORD, LOT 25, 17/09/2026
 
 ### LE CONTROLE GRATUIT N'EXISTAIT PLUS
