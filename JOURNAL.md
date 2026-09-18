@@ -82,6 +82,35 @@ etant interdite sur ce montage. La chaine s'arrete donc au premier pas et ne con
 le comportement voulu, un controle qui ne peut pas s'executer doit crier ; les bancs ont ete
 lances un par un a la place. **A relancer par Ted sur son Mac avant de pousser.**
 
+### Deuxieme passe, le meme soir : les marges de HubSpot a la lettre
+
+Ted : « tu vas faire ce que je te dis. Reprends la capture de HubSpot, tu vas faire pareil en
+terme de marge. » Mesure faite sur sa capture, ou sa fenetre fait 1999 px de large :
+
+| | HubSpot | en proportion | applique a 1440 px |
+|---|---|---|---|
+| barre laterale | 183 px | 9,2 % | 132 px |
+| retrait exterieur, gauche et droite | 0 | 0 | **0** |
+| ecart barre / contenu | 0 | 0 | **0** |
+| retrait INTERIEUR du contenu | 34 px | 1,7 % | **24 px** |
+
+Le plafond de largeur de l'atelier est **supprime** : HubSpot n'en a pas, son panneau va d'un
+bord a l'autre. Resultat : colonne de travail **1284 px** contre 1138 avant la journee.
+
+**Un seul ecart, et il est mesure, pas choisi : la barre fait 156 px et non 132.** Releve
+languette par languette sur la page : « Le calendrier » demande 142 px de contenu, plus
+l'encoche de l'intercalaire, soit 154. A 132, QUATRE libelles sur neuf sont coupes au bord de
+la colonne, et descendre la police d'un cran de plus ne suffit pas (131 px, toujours coupe).
+Les libelles de HubSpot tiennent dans 132 px parce qu'ils sont ecrits en police
+proportionnelle ; ceux d'ici sont en chasse fixe, qui est le dessin du bureau. **156 px est la
+premiere largeur ou les neuf tiennent.** Le libelle passe au passage a `--t-mini` et porte
+`white-space: nowrap`, pour qu'un futur nom trop long DEBORDE au lieu de passer sur deux
+lignes : sur deux lignes, la hauteur fixe de la languette saute, et avec elle l'encoche, qui
+est dessinee par deux triangles de bordure valant chacun la moitie de cette hauteur.
+
+Verifie : `npm run verif` en entier, code 0. Telephone recapture, 390/390 sur les sept pieces.
+Sous 900 px le panneau de travail rend son retrait interieur a l'atelier, qui reprend le sien.
+
 ### Signale et non corrige
 
 - **Le panneau de liege fait 1140 x 180 px pour porter un seul post-it.** C'est la plus grande

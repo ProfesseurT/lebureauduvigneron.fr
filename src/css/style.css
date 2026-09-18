@@ -5589,7 +5589,7 @@ em { font-style: italic; }
 .bureau-plan {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--e-m);
+  gap: var(--e-s);
   padding-top: var(--e-2xl);
   padding-bottom: var(--e-2xl);
   align-items: start;
@@ -5633,18 +5633,37 @@ em { font-style: italic; }
      Les retraits verticaux tombent de 32/48 a 16/32 et l'ecart de 24 a 16 : ce
      sont des marges de PAGE PUBLIQUE, posees quand le bureau etait un article de
      plus. Un plan de travail se regarde d'un coup, il ne se parcourt pas. */
-  max-width: calc(1440px + 200px);
-  margin: 0 auto;
-  padding: var(--e-m) var(--e-l) var(--e-xl);
+  /* LES MARGES DE HUBSPOT, MESUREES SUR LA CAPTURE DE TED, 18/09/2026.
+     Sa fenetre y fait 1999 px de large : la barre laterale va de 0 a 183 px,
+     soit 9,2 %, elle TOUCHE le bord gauche, le panneau de contenu la suit sans
+     le moindre ecart et va jusqu'au bord droit. Le seul retrait est INTERIEUR au
+     contenu, 34 px, soit 1,7 %.
+     Ramene aux 1440 px de l'ecran de Ted : barre 132 px, ecart 0, retrait
+     exterieur 0, retrait interieur 24 px.
+     UN SEUL ECART, ET IL EST MESURE, PAS CHOISI : la barre fait 156 px et non
+     132. Mesure sur la page, languette par languette : « Le calendrier » demande
+     142 px de contenu, plus l'encoche de l'intercalaire, soit 154. A 132, quatre
+     libelles sur neuf sont COUPES au bord de la colonne, et descendre la police
+     encore d'un cran ne suffit pas (131 px, toujours coupe). Les libelles de
+     HubSpot tiennent dans 132 parce qu'ils sont ecrits dans une police
+     proportionnelle ; ceux d'ici sont en chasse fixe, qui est le dessin du
+     bureau. 156 px est la premiere largeur ou les neuf tiennent.
+     PLUS DE PLAFOND DE LARGEUR : HubSpot n'en a pas, le contenu va d'un bord a
+     l'autre de la fenetre. */
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: var(--e-m);
+  grid-template-columns: 156px minmax(0, 1fr);
+  gap: 0;
   align-items: start;
   transition: grid-template-columns var(--tr-rapide) ease;
 }
 
 /* Le bureau-plan garde ses douze colonnes et son gabarit ; c'est l'atelier qui
    porte desormais le rythme vertical, sinon les deux s'ajoutent. */
+/* LE RETRAIT EST INTERIEUR AU CONTENU, comme chez HubSpot : c'est le panneau de
+   travail qui le porte, pas la page. 24 px, la valeur mesuree sur la capture. */
+.bureau-atelier__travail { padding: var(--e-l); }
 .bureau-atelier__travail > .bureau-plan { padding-top: 0; padding-bottom: 0; }
 
 .bureau-nav {
@@ -5721,7 +5740,17 @@ em { font-style: italic; }
   font-family: var(--font-mono);
   font-size: var(--t-petit);
   letter-spacing: var(--ls-doux);
-  padding: 0 var(--e-m);
+  /* 132 px DE COLONNE, ET LE LIBELLE TIENT SUR UNE LIGNE. Mesure : a --t-petit
+     avec 16 px de retrait, quatre libelles sur neuf passaient sur deux lignes,
+     ce qui fait sauter la hauteur fixe des languettes, donc l'encoche, qui est
+     dessinee par deux triangles de bordure valant chacun la moitie de cette
+     hauteur. Le retrait tombe a --e-s et le libelle a --t-mini : « Le
+     calendrier », le plus long des neuf, fait alors 86 px, plus l'icone et les
+     retraits, 122 px dans 132. `nowrap` interdit que ca recommence en silence
+     le jour ou une piece prendra un nom plus long : le mot depassera, et ca se
+     verra tout de suite. */
+  padding: 0 var(--e-s);
+  white-space: nowrap;
   cursor: pointer;
   text-decoration: none;
   transition: margin-right var(--tr-rapide) ease, background var(--tr-rapide);
@@ -5769,7 +5798,7 @@ button.bureau-nav__item:hover {
   color: var(--bordeaux-deep);
 }
 .bureau-nav__item--actif .bureau-nav__ico { color: var(--bordeaux); }
-.bureau-nav__nom { min-width: 0; }
+.bureau-nav__nom { min-width: 0; font-size: var(--t-mini); }
 
 /* Replie : l'icone seule, centree. Le nom de la piece reste accessible par le
    title, pose avec ce que la piece contient. */
@@ -5798,6 +5827,10 @@ button.bureau-nav__item:hover {
     padding-top: var(--e-m);
     gap: var(--e-m);
   }
+  /* Le retrait interieur du panneau de travail repart : sous 900 px la barre est
+     horizontale, il n'y a plus de colonne a border, et c'est l'atelier qui porte
+     de nouveau les retraits, comme avant le 18/09/2026. */
+  .bureau-atelier__travail { padding: 0; }
   .bureau-nav { display: flex; overflow-x: auto; padding: 0; }
   .bureau-nav__liste { display: flex; }
   /* Les mots reviennent : une barre horizontale a la largeur pour eux, et huit
