@@ -12,6 +12,47 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, soir. Ted me remet en place, et il a raison
+
+« Je ne veux pas avoir à attendre huit ans dès que je recharge ma page, pour que ça recolle
+les bouts. Y'a une BDD derrière qui est censée gérer les données et les redistribuer
+correctement. »
+
+C'était **la** faute d'architecture. Tout ce que j'avais corrigé depuis deux jours grattait
+autour : la politique de sécurité, le repère, le VACUUM, la peinture paresseuse. Le fond
+restait que **l'outil recopiait sa base de données sur le poste à chaque ouverture** avant
+d'afficher quoi que ce soit. Aucun logiciel de gestion ne fait ça.
+
+L'amorçage ne lit plus une seule ligne de vente. Il fait un `count()` local, lit les
+réglages, demande le résumé de l'écran ouvert. Quelques centaines d'octets.
+
+### J'ai failli refaire la même erreur en la corrigeant
+
+Ma première version peignait l'écran sur les chiffres du serveur **puis chargeait les lignes
+en arrière-plan** pour compléter les blocs non portés. Le banc que je venais d'écrire l'a
+refusée. Il avait raison : charger 171 569 lignes sans que personne l'ait demandé, c'est
+toujours charger 171 569 lignes. Le voile disparaît, le navigateur rame quand même.
+
+Les blocs non portés sont maintenant derrière un bouton qui dit ce qui manque. Ce n'est pas
+une élégance, c'est un aveu.
+
+### Le garde-fou qui m'a fait le plus peur
+
+Le dépôt qui alimente « Ma journée » et le courrier du matin parcourt les lignes. Avec zéro
+ligne chargée, il aurait écrit **des zéros sur le compte** : Ted aurait vu son chiffre
+d'affaires disparaître de son bureau, sans une erreur nulle part. Même famille que le
+message vert du 07/09 qui masquait 4 442 lignes perdues. Une écriture qui réussit avec de
+mauvaises données ne se plaint jamais.
+
+### Ce que je retiens
+
+J'ai passé deux jours à optimiser les symptômes d'un choix d'architecture que je n'avais pas
+remis en cause, parce que le dépôt le documentait comme une règle (« IndexedDB reste la
+source de calcul »). Une règle écrite dans le dépôt reste une décision, pas un fait. **Il a
+fallu que l'utilisateur s'énerve pour que je remonte au niveau où était le problème.**
+
+---
+
 ## 18/09/2026. « La suite ? » — pas l'écran suivant
 
 Ted demandait la suite en pensant à Mes cuvées. J'ai commencé par compter : **65 fonctions

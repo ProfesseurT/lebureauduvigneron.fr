@@ -1549,6 +1549,80 @@ tant que le SQL du lot 21 n'est pas passe.
 `npm run banc:sync` section 6, neuf controles, dont quatre sur les refus. Verifie en
 remettant le defaut : passer le curseur en `gt.` fait echouer quatre controles.
 
+## L'AMORCAGE NE CHARGE PLUS LA BASE, 18/09/2026
+
+    « Je ne veux pas avoir a attendre huit ans des que je recharge ma page, pour que ca
+      recolle les bouts. Y'a une BDD derriere qui est censee gerer les donnees et les
+      redistribuer correctement. »
+
+Il avait raison, et c'etait **la** faute d'architecture du chantier. Tout le reste
+(politique de securite, repere, VACUUM, peinture paresseuse) grattait autour.
+
+### CE QUI SE PASSAIT A CHAQUE OUVERTURE
+
+1. rapatrier les 171 569 lignes du compte,
+2. les ecrire dans IndexedDB,
+3. les relire,
+4. en deriver 171 569 objets,
+5. **et seulement ensuite** ouvrir un ecran.
+
+**Un logiciel de gestion ne recopie pas sa base de donnees sur le poste a chaque
+ouverture. Il demande ce qu'il affiche.**
+
+### CE QUE L'AMORCAGE FAIT MAINTENANT
+
+| | |
+|---|---|
+| un `count()` local sur IndexedDB | quelques ms, pour savoir si la base est vide |
+| les reglages du compte | quelques centaines d'octets |
+| le resume de l'ecran ouvert | `cap_resume`, quelques centaines d'octets |
+
+**Aucune lecture de `/ventes`. Aucune derivation.** Garde par
+`npm run banc:amorcage-leger`, qui espionne les deux seules portes de la base et refuse
+si l'une s'ouvre.
+
+### LE COMPLEMENT EST DEMANDE, JAMAIS AUTOMATIQUE
+
+Premiere version : l'ecran se peignait sur les chiffres du serveur puis chargeait les
+lignes **en arriere-plan** pour completer. Le banc l'a refuse, et il avait raison :
+**charger 171 569 lignes sans que personne l'ait demande reste charger 171 569 lignes.**
+Le voile disparaissait, le navigateur ramait quand meme.
+
+Les blocs non portes s'affichent donc derriere un bouton, avec la phrase qui dit ce qui
+manque. **Ce n'est pas une elegance, c'est un aveu** : ces blocs-la ne sont pas encore
+portes. Le bouton disparaitra a mesure qu'ils le seront.
+
+### LE GARDE-FOU LE PLUS DANGEREUX DU LOT
+
+`deposerPourLeBureau()` parcourt `ROWS` pour fabriquer le resume qui fait vivre « Ma
+journee » et le courrier du matin. Avec `ROWS` vide a l'ouverture, **il aurait ecrit des
+zeros sur le COMPTE** : le vigneron aurait vu son chiffre d'affaires disparaitre de son
+bureau, et rien n'aurait echoue.
+
+Meme danger que le message vert du 07/09 qui masquait 4 442 lignes perdues : **une
+ecriture qui reussit avec de mauvaises donnees ne se plaint jamais.** Le depot part
+maintenant depuis `assurerLignes()`, au premier moment ou il a de quoi dire vrai. Controle
+n°4 du banc.
+
+### DEUX PIEGES TROUVES EN CHEMIN
+
+1. **`ROWS.length` ne repond plus a la question qu'on lui posait.** Il disait « la base
+   est-elle vide ? » ; il dit maintenant « les ai-je derivees ? ». Confondre les deux
+   envoyait le vigneron sur l'ecran « base vide » a chaque ouverture. D'ou `LIGNES_EN_BASE`,
+   pose par le `count()`.
+2. **Un drapeau qui peut mentir est un drapeau de trop.** Ma premiere version portait un
+   booleen `LIGNES_PRETES` que seul `assurerLignes()` levait. Six controles de `banc:cap`
+   l'ont refusee : ils remplissent `ROWS` directement, comme le fait un import, et se
+   retrouvaient devant un ecran annoncant « tes lignes arrivent » alors qu'elles etaient la.
+   `lignesPretes()` derive maintenant la reponse de `ROWS` lui-meme.
+
+### CE QUI RESTE
+
+« Mes cuvees », « Mon registre », le panneau de reglages, la fiche client et les exports
+chargent la base **a leur ouverture**, avec le voile. Ce sont des gestes : le vigneron a
+demande a voir cette piece-la, et il sait pourquoi il attend. Les porter fera disparaitre
+ces attentes-la une par une.
+
 ## ON NE PEINT QUE L'ECRAN REGARDE, 18/09/2026
 
 ### LA MESURE QUI A TOUT DIT, ET ELLE N'A RIEN A VOIR AVEC LE SQL

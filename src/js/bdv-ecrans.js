@@ -161,13 +161,25 @@ function ouvrirPanneauReglages(){
      dimensions et les taux de remplissage : 956 ms sur la base de Ted, payes a chaque
      ouverture du bureau alors que ce panneau est ferme. Il s'ouvre par un geste, il se
      peint a ce geste. */
-  if(typeof ROWS !== 'undefined' && ROWS.length) ecranPeindre('reglages');
+  ECRAN_COURANT = 'reglages';
+  ecranPeindreQuandPret('reglages');
   if(window.BdvReglages)BdvReglages.ouvrir();
   else navTo('vide');   // module absent : au moins la zone de depot n'est pas hors d'atteinte
 }
+/* Combien de lignes cet appareil porte, SANS les deriver. Pose par l'amorcage, qui le
+   lit dans IndexedDB en quelques millisecondes. Depuis que les lignes se chargent a la
+   demande, `ROWS.length` ne repond plus a la question « la base est-elle vide ? » : il
+   repond a « les ai-je deja derivees ? », ce qui n'est pas la meme chose. Les confondre
+   envoyait le vigneron sur l'ecran « base vide » a chaque ouverture. */
+let LIGNES_EN_BASE = null;
+function baseVide(){
+  if(lignesPretes()) return !ROWS.length;
+  return LIGNES_EN_BASE === 0;
+}
 function openApp(ecranDepart){
   el('app').classList.add('on');
-  el('tbFile').textContent=fmtNum(ROWS.length)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
+  const combien = lignesPretes() ? ROWS.length : (LIGNES_EN_BASE || 0);
+  el('tbFile').textContent=fmtNum(combien)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
   /* Le volet de gauche a disparu au lot 2d, avec son pied et avec le menu de secours de la
      barre haute. Ces trois-la existaient parce que cette page etait un lieu ou l'on entrait
      et dont il fallait pouvoir sortir. La barre du bureau tient ce role, elle est toujours
@@ -175,7 +187,7 @@ function openApp(ecranDepart){
   buildFilterBar();
   // Base vide : on ouvre quand meme, sur « Ma base ». renderAll() n'a rien a calculer et
   // certains ecrans se construisent mal sur zero ligne ; on ne l'appelle donc pas.
-  if(!ROWS.length){ navTo('vide'); ouvrirPanneauReglages(); return; }
+  if(baseVide()){ navTo('vide'); ouvrirPanneauReglages(); return; }
   // Ecran d'accueil : « Mon annee ». Ce qu'il y a A FAIRE vit dans /mon-bureau/ depuis le
   // 06/09/2026 ; ici on analyse, on ne travaille pas sa file.
   /* On ne peint plus tout avant de naviguer : `navTo` peint la piece ou l'on arrive, et
@@ -183,7 +195,8 @@ function openApp(ecranDepart){
      le lit sans pouvoir le demander. */
   ecranInvalider();
   navTo(ecranDepart||'annee');
-  deposerPourLeBureau();
+  /* Le depot est parti d'ici : sans les lignes il ecrirait des zeros sur le compte. Il
+     part desormais de `assurerLignes()`, au premier moment ou il a de quoi dire vrai. */
 }
 /* ---------------- LE VOLET A DEMENAGE ----------------
    Le volet de navigation, sa preference de repli (cle bdv_volet_replie) et le raccourci
@@ -229,10 +242,11 @@ function navTo(id){
      pour « Mon registre ». `runBusy` annonce l'attente quand il y a de quoi attendre ;
      sans lui, le premier clic sur « Mes cuvees » figerait la page une seconde et demie
      sans un mot, ce qui est exactement le reproche de Ted du 17/09. */
-  if(ROWS.length && PEINTRES[id] && !ECRANS_PEINTS.has(id)){
-    runBusy('Analyse de tes ventes…', function(){ ecranPeindre(id); });
-  }
   ECRAN_COURANT = id;
+  if(PEINTRES[id] && !ECRANS_PEINTS.has(id)){
+    if(lignesPretes()) runBusy('Analyse de tes ventes…', function(){ ecranPeindre(id); });
+    else ecranPeindreQuandPret(id);
+  }
   window.scrollTo(0,0);
   // L'ecran s'ecrit dans l'adresse. Trois consequences voulues : le bureau peut pointer
   // droit sur « Mes clients », le bouton Retour du navigateur circule dans l'outil, et un
@@ -368,6 +382,76 @@ const PEINTRES = {
 const ECRANS_PEINTS = new Set();
 let ECRAN_COURANT = null;
 
+/* ============ LES LIGNES SE CHARGENT A LA DEMANDE, 18/09/2026 ============
+
+   `assurerLignes()` rapatrie et derive la base, UNE SEULE FOIS, et seulement quand un
+   ecran en a vraiment besoin. Elle porte sa propre promesse : deux ecrans qui la
+   reclament en meme temps ne declenchent qu'un chargement.
+
+   QUI EN A ENCORE BESOIN, ET QUI N'EN A PLUS :
+
+     annee     « Mon cap »      le bandeau et l'atterrissage viennent du SERVEUR et
+                                s'affichent tout de suite ; les compteurs de periode, les
+                                signaux, la courbe et la decomposition prix/volume lisent
+                                encore les lignes.
+     clients   « Mon commerce » les quatre mouvements, la cadence et le decrochage
+                                viennent du SERVEUR ; le pied « qui pese quoi » et le
+                                « premier achat » lisent encore les lignes.
+     produits  « Mes cuvees »   tout est local.
+     chercher  « Mon registre » tout est local.
+     reglages                   tout est local.
+
+   LES DEUX PREMIERS S'AFFICHENT DONC SANS ATTENDRE, puis se completent. Les trois autres
+   attendent leur base, et le disent.
+
+   POURQUOI PAS UN `await` PARTOUT. Parce qu'un ecran qui a de quoi montrer quelque chose
+   doit le montrer. Attendre trois secondes pour afficher d'un coup des chiffres dont la
+   moitie etait prete depuis le debut, c'est faire patienter pour la symetrie. */
+let _lignesChargees = false;
+let _lignesEnRoute = null;
+/* LE DRAPEAU NE DECIDE PAS SEUL, ET C'EST UNE CORRECTION. Ma premiere version portait un
+   booleen que `assurerLignes()` levait, et rien d'autre. Six controles de `banc:cap` l'ont
+   refusee : ils remplissent `ROWS` directement, comme le fait un import, et se retrouvaient
+   devant un ecran qui annoncait « tes lignes arrivent » alors qu'elles etaient la.
+
+   Un drapeau qui peut mentir sur l'etat de la donnee est un drapeau de trop. La question
+   « les lignes sont-elles la ? » a une reponse observable : `ROWS`. Le booleen ne sert plus
+   qu'au cas ou le chargement a abouti sur une base VIDE, que `ROWS.length` ne distingue pas
+   d'un chargement qui n'a pas eu lieu. */
+function lignesPretes(){
+  return _lignesChargees || (typeof ROWS !== 'undefined' && ROWS.length > 0);
+}
+function assurerLignes(dire){
+  if(lignesPretes()) return Promise.resolve(true);
+  if(_lignesEnRoute) return _lignesEnRoute;
+  _lignesEnRoute = (async function(){
+    try{
+      await tirerDuServeur();
+      await reloadFromDB(dire || function(){});
+      _lignesChargees = true;
+      /* LE DEPOT POUR LE BUREAU PART ICI, une fois les lignes la. Il ne peut plus partir a
+         l'amorcage : il y ecrirait des zeros. Il part donc au premier moment ou il a de
+         quoi dire vrai, c'est-a-dire maintenant. */
+      try{ deposerPourLeBureau(); }catch(e){}
+      return true;
+    }catch(e){
+      /* On ne reessaie pas tout seul : `_lignesEnRoute` retombe a null, donc le prochain
+         geste du vigneron relancera. Une boucle de reprise automatique sur une base de
+         171 569 lignes, c'est un navigateur qui rame sans que personne l'ait demande. */
+      return false;
+    }finally{
+      _lignesEnRoute = null;
+    }
+  })();
+  return _lignesEnRoute;
+}
+/* Les ecrans qui ne savent rien faire sans les lignes. Ceux qui n'y sont pas ont une
+   reponse du serveur et se peignent d'abord, quitte a se completer ensuite. */
+const ECRANS_TOUT_LOCAL = ['produits', 'chercher', 'reglages'];
+/* Et ceux qui, servis par le serveur, ont encore des blocs locaux. Ils s'affichent sans
+   les lignes et proposent un bouton pour les completer : voir `completerEcran()`. */
+const ECRANS_A_COMPLETER = ['annee', 'clients'];
+
 /* La marque tombe pour TOUS les ecrans, jamais pour un seul : un import change le chiffre
    d'affaires de chacun d'eux. Se tromper ici, c'est laisser a l'ecran un chiffre d'avant
    l'import, et c'est exactement le defaut que la peremption des resumes de serveur
@@ -380,6 +464,62 @@ function ecranPeindre(id){
   if(!f) return;
   ECRANS_PEINTS.add(id);
   f();
+}
+
+/* ============ LE COMPLEMENT EST DEMANDE, JAMAIS AUTOMATIQUE ============
+
+   Premiere version : l'ecran se peignait sur les chiffres du serveur, puis lancait le
+   chargement des lignes en arriere-plan pour completer. Le banc de l'amorcage leger l'a
+   refuse, et il avait raison : **charger 171 569 lignes sans que personne l'ait demande
+   reste charger 171 569 lignes.** Le voile disparaissait, le navigateur ramait quand
+   meme, et Ted aurait revu « Recuperation de tes ventes » deux secondes apres l'ouverture.
+
+   Le complement part donc d'un CLIC. L'ecran dit ce qu'il lui manque et ce que ca coute ;
+   le vigneron decide. La plupart du temps il ne cliquera pas, parce que le bandeau et
+   l'atterrissage sont ce qu'il venait voir.
+
+   CE N'EST PAS UNE ELEGANCE, C'EST UN AVEU : ces blocs-la ne sont pas encore portes. Le
+   bouton disparaitra a mesure qu'ils le seront, et avec lui le dernier chargement. */
+function completerEcran(id){
+  const cible = id || ECRAN_COURANT;
+  busy(true, 'Récupération de tes ventes…');
+  assurerLignes(function(txt){ const z = el('busytxt'); if(z) z.textContent = txt; })
+    .then(function(bon){
+      try{
+        if(bon){ ECRANS_PEINTS.delete(cible); ecranPeindre(cible); }
+        else status('error', 'Tes lignes n\'ont pas pu être récupérées. Réessaie.');
+      }finally{ busy(false); }
+    });
+}
+window.bdvCompleterEcran = completerEcran;
+
+/* La phrase et le bouton, ecrits une fois : trois ecrans les montrent, et trois textes
+   differents pour la meme situation, c'est trois occasions d'en laisser un mentir. */
+function noteComplement(quoi){
+  return `<div class="card" style="margin-top:1.2rem">
+    <p class="note" style="margin:0 0 .7rem">${quoi} Ces blocs-là se calculent encore sur
+    tes lignes de vente, qui ne sont pas chargées : les chiffres ci-dessus viennent de ton
+    compte et sont à jour.</p>
+    <button class="btn" onclick="bdvCompleterEcran()">Charger mes lignes et compléter</button>
+  </div>`;
+}
+
+/* Peindre un ecran qui ne sait rien faire sans les lignes : on les charge D'ABORD, avec
+   le voile, parce qu'il n'y a rien a montrer entre-temps. */
+function ecranPeindreQuandPret(id){
+  if(!id || ECRANS_PEINTS.has(id)) return;
+  if(lignesPretes() || ECRANS_TOUT_LOCAL.indexOf(id) < 0){ ecranPeindre(id); return; }
+  /* `busy()` DIRECTEMENT, et pas `runBusy()`. Celui-ci ne pose le voile qu'au-dessus d'un
+     seuil de lignes DEJA CHARGEES : au premier clic il n'y en a aucune, donc pas de voile,
+     precisement au moment ou l'attente est la plus longue. C'est le « j'ai meme pas de
+     message pour me dire que ca mouline » du 17/09, et il revient a chaque fois qu'on
+     confie a `runBusy` une attente qui precede le chargement. */
+  busy(true, 'Récupération de tes ventes…');
+  assurerLignes(function(t){ const z = el('busytxt'); if(z) z.textContent = t; })
+    .then(function(ok){
+      try{ if(ok && ECRAN_COURANT === id) ecranPeindre(id); }
+      finally{ busy(false); }
+    });
 }
 
 function renderAll(){
@@ -1321,6 +1461,7 @@ function capPoser(x){ CAP = (x && typeof x === 'object') ? x : null; }
    immediate : entre le geste et la reponse du serveur, l'ecran calcule en local. */
 function capRafraichir(apres){
   capPoser(null);
+  CAP_DEMANDE = false;
   if(!(window.BdvSync && BdvSync.capResume)) return Promise.resolve(null);
   const attendre = (apres && typeof apres.then === 'function')
     ? apres.catch(function(){ return null; })
@@ -1361,6 +1502,7 @@ function capAtterrissage(){
 
 function renderCap(){
   const p=el('p-diagnostic');if(!p)return;
+  capAuBesoin();
   const rows=vinRows();
   const ca=sum(rows,r=>r._total);
   const factures=new Set(rows.map(r=>r.numFacture)).size;
@@ -1416,6 +1558,25 @@ function renderCap(){
      ecrans differents, et celui-ci ne se repeignait qu'au rendu de la piece : de quoi voir
      deux montants differents pour le meme reglage. Il reste une phrase qui dit ou aller. */
   html+=`<p class="note">${objectif?`Objectif fixé à ${fmtMoney(objectif)}.`:`Aucun objectif de CA fixé.`} Il se règle dans <b>Mes réglages</b>, onglet « Tes ventes ».</p>`;
+
+  /* ================= CE QUI SUIT LIT ENCORE LES LIGNES, 18/09/2026 =================
+
+     Le bandeau et l'atterrissage viennent du serveur et sont deja ecrits au-dessus. Tout
+     ce qui suit parcourt `ROWS` : les signaux, la courbe, les compteurs de la periode
+     affichee et la decomposition prix/volume.
+
+     TANT QUE LES LIGNES NE SONT PAS LA, ON NE LES DESSINE PAS. Les dessiner quand meme
+     donnerait un chiffre d'affaires a zero, zero facture et zero client, sous le bandeau
+     qui vient d'annoncer 970 959 euros. **Un ecran qui affiche zero pendant qu'il charge
+     ment ; un ecran qui dit qu'il charge attend.** C'est exactement le defaut qu'on a
+     passe deux jours a chasser ailleurs, il n'y a aucune raison de l'introduire ici.
+
+     `ecranPeindre()` repeint cette piece des que les lignes arrivent. */
+  if(!lignesPretes()){
+    html+=noteComplement('Il manque ici les signaux, la courbe des mois, les compteurs de la période affichée et la décomposition prix/volume.');
+    p.innerHTML=html;
+    return;
+  }
 
   // ------------------------- Ce qui presse -------------------------
   html+=`<div class="section-label">À regarder en priorité</div>`;
@@ -2174,9 +2335,15 @@ let DEMANDE_DATE=null;    // l'id dont on vient de noter un echange, et a qui il
 async function ouvrirFicheClient(id,opts){
   opts=opts||{};
   if(!id)return false;
-  if(!ROWS.length){
-    try{ await tirerDuServeur(); }catch(e){}
-    try{ await reloadFromDB(); }catch(e){}
+  /* LA FICHE EST UN GESTE, ELLE A LE DROIT D'ATTENDRE, MAIS ELLE DOIT LE DIRE. Depuis
+     que l'amorcage ne charge plus rien, ce chargement-la n'est plus l'exception d'un
+     appareil neuf : c'est le cas normal du premier clic sur un client. Sans voile, le
+     vigneron clique sur un nom et la page se fige quelques secondes sans un mot. */
+  if(!lignesPretes()){
+    busy(true, 'Récupération de tes ventes…');
+    try{
+      await assurerLignes(function(txt){ const z=el('busytxt'); if(z) z.textContent=txt; });
+    }finally{ busy(false); }
   }
   if(!ficheClient(id))return false;
   // Le canal du prochain enregistrement est celui du geste : un appel note depuis la file
@@ -2707,6 +2874,20 @@ function conseilsPourLeBureau(){
    « depose » de « rien a faire » sans avoir a refaire le test de session. */
 function deposerPourLeBureau(){
   if(!syncPret()||!BdvSync.deposerFile)return null;
+  /* ON NE DEPOSE RIEN SANS LES LIGNES, 18/09/2026, ET C'EST LE GARDE-FOU LE PLUS IMPORTANT
+     DE CE CHANTIER.
+
+     `resumeVentes()` et `fileSignaux()` parcourent `ROWS`. Depuis que les lignes se
+     chargent a la demande, `ROWS` est vide a l'ouverture : deposer ici ecraserait, sur le
+     COMPTE, le resume qui fait vivre « Ma journee » et le courrier du matin, en y mettant
+     des zeros. Le vigneron verrait son chiffre d'affaires disparaitre de son bureau, et
+     rien n'aurait echoue.
+
+     C'est le meme danger que le message vert du 07/09 qui masquait 4 442 lignes perdues :
+     une ecriture qui reussit avec de mauvaises donnees ne se plaint jamais. Le depot part
+     donc quand les lignes sont la (apres un import, ou apres l'ouverture d'un ecran qui
+     les a chargees), et jamais avant. */
+  if(typeof lignesPretes === 'function' && !lignesPretes()) return null;
   try{
     const r=resumeVentes();
     if(r)r.conseils=conseilsPourLeBureau();
@@ -2724,7 +2905,13 @@ function deposerPourLeBureau(){
    libelle, et le total general n'est jamais additionne. */
 let CLIENTS=[];
 function agentClients(){
-  const D=agentDecrochage(), R=agentDormants(), A=agentPremierAchat();
+  /* « PREMIER ACHAT » N'EST PAS PORTE (voir lot 25) : il lit les lignes, et lui seul. Les
+     deux autres motifs viennent du serveur et remplissent deja la liste. Sans lignes on
+     l'ecarte plutot que de le laisser parcourir un tableau vide et conclure « personne
+     n'est venu une seule fois », ce qui serait faux et silencieux. */
+  const sansLignes = (typeof lignesPretes === 'function' && !lignesPretes());
+  const D=agentDecrochage(), R=agentDormants();
+  const A=sansLignes ? {ok:false,raison:'lignes non chargées'} : agentPremierAchat();
   const vus=new Set(), out=[];
   // 1. Recul confirme : on a la preuve chiffree de la baisse, sur deux annees comparables.
   D.decroche.forEach(c=>{
@@ -2779,6 +2966,11 @@ let filtreMotif='tous';
    qui n'a aucune commande visible ici.
    ==================================================================== */
 function piedCommerce(){
+  /* IL LIT LES LIGNES DE BOUT EN BOUT : top clients, part du top 3, plus gros mouvements
+     par client. Sans elles il rendrait un tableau vide sous un titre qui promet « qui pese
+     quoi dans ton chiffre ». Il se tait, et `ecranPeindre()` repeint l'ecran quand les
+     lignes arrivent. */
+  if(typeof lignesPretes === 'function' && !lignesPretes()) return '';
   const rows=ROWS.filter(r=>r._vin);
   if(!rows.length)return '';
   const parCli={};
@@ -2821,6 +3013,20 @@ function piedCommerce(){
    Le drapeau evite la boucle : `comRafraichir()` finit par rappeler `renderClients()`,
    qui sans lui redemanderait, indefiniment. Et il retombe a `false` quand le resume est
    perime, pour que le prochain affichage redemande. */
+/* Jumeau de `comAuBesoin()` pour « Mon cap ». Le resume tient en quelques centaines
+   d'octets et repond en une seconde : il part a l'ouverture de l'ecran, pas a l'amorcage,
+   pour la meme raison que l'autre. Ouvrir « Ma journee » ne doit rien demander du tout. */
+let CAP_DEMANDE = false;
+function capAuBesoin(){
+  if(CAP || CAP_DEMANDE) return;
+  if(!(window.BdvSync && BdvSync.capResume)) return;
+  CAP_DEMANDE = true;
+  BdvSync.capResume().catch(function(){ return null; }).then(function(x){
+    capPoser(x);
+    if(x && ECRAN_COURANT === 'annee'){ ECRANS_PEINTS.delete('annee'); ecranPeindre('annee'); }
+  });
+}
+
 let COM_DEMANDE = false;
 function comAuBesoin(){
   if(COM || COM_DEMANDE) return;
@@ -2922,6 +3128,8 @@ function renderClients(){
     </div></div>`;
 
   html+=piedCommerce();   // etage 3 : replie, il ne pousse jamais la liste hors de l'ecran
+  if(!lignesPretes())
+    html+=noteComplement('Il manque ici les clients venus une seule fois, et le bloc « qui pèse quoi dans ton chiffre ».');
   el('p-clients').innerHTML=html;
   FILTRES.clientsBody={q:'',joign:false};applyFilters('clientsBody');
 }
@@ -3308,31 +3516,47 @@ async function demarrerEcransVente(depart, dire){
   // Rapatriement AVANT l'ouverture : sinon le vigneron qui arrive sur un nouvel appareil
   // lirait « aucune ligne en base » une seconde avant que ses lignes n'apparaissent.
   // Attendu, contrairement aux poussees : ici l'affichage depend du resultat.
-  dire('Récupération de tes ventes…');
-  /* L'appel au serveur part AVANT le travail local et n'est attendu qu'apres : il dure
-     une seconde, la derivation locale en dure deux, et les deux se recouvrent. Attendre
-     l'un puis l'autre ajouterait une seconde a l'ouverture pour rien. */
-  const capEnRoute = (window.BdvSync && BdvSync.capResume)
-    ? BdvSync.capResume().catch(function(){ return null; })
-    : Promise.resolve(null);
-  /* « MON COMMERCE » NE PART PAS ICI, ET C'EST UNE CORRECTION DU MEME SOIR.
+  /* ================= L'AMORCAGE NE CHARGE PLUS LES LIGNES, 18/09/2026 =================
 
-     Il y etait, en parallele, par symetrie avec « Mon cap ». La symetrie etait
-     fausse, et la mesure le dit : `cap_resume` rend HUIT nombres en 1,1 s ;
-     `commerce_resume` rend 1 935 clients, 642 ko, en 3,8 s. Le poser a l'amorcage,
-     c'est faire payer quatre secondes de serveur et un demi-mega a CHAQUE ouverture
-     du bureau, y compris les ouvertures ou le vigneron ne regardera jamais cet
-     ecran. Pendant le rapatriement des ventes, ces quatre secondes se disputent en
-     plus la meme connexion, et c'est ce qui a pousse le comptage au-dela du delai
-     de huit secondes de PostgREST.
+     Ted, capture a l'appui : « Je ne veux pas avoir a attendre huit ans des que je
+     recharge ma page, pour que ca recolle les bouts. Y'a une BDD derriere qui est censee
+     gerer les donnees et les redistribuer correctement. »
 
-     C'EST LA FAUTE DU LOT 22, REFAITE : une mesure n'est valable que pour le decor
-     dans lequel elle a ete prise. « Lancer le resume a l'amorcage » etait bon pour
-     huit nombres ; je l'ai recopie pour six cent quarante-deux kilo-octets sans le
-     remesurer. Il part maintenant a l'OUVERTURE DE L'ECRAN, une fois. */
-  await tirerDuServeur();
-  await reloadFromDB(dire);
-  capPoser(await capEnRoute);
+     Il a raison, et c'etait la vraie faute d'architecture. Ce fichier rapatriait les
+     171 569 lignes du compte, les ecrivait dans IndexedDB, les relisait, en derivait
+     171 569 objets, et TOUT CA AVANT D'OUVRIR QUOI QUE CE SOIT. Un logiciel de gestion
+     ne recopie pas sa base de donnees sur le poste a chaque ouverture ; il demande ce
+     qu'il affiche.
+
+     Ce qui part d'ici desormais :
+       - `tirerDuServeur()`, le rapatriement,
+       - `reloadFromDB()`, la relecture et la derivation.
+
+     Ce qui reste : le resume du serveur, quelques centaines d'octets, et l'ouverture de
+     l'ecran demande.
+
+     LES LIGNES NE DISPARAISSENT PAS, ELLES DEVIENNENT PARESSEUSES. `assurerLignes()`
+     les charge A LA DEMANDE, une seule fois, et seulement pour les ecrans qui en ont
+     encore besoin. Un ecran servi par le serveur s'affiche sans jamais les reclamer.
+
+     CE QUE CA CHANGE POUR LE VIGNERON : « Mon cap » s'ouvre sur les chiffres du serveur
+     tout de suite ; les blocs qui lisent encore la base arrivent ensuite, et ils le
+     disent. Ouvrir « Ma journee » ne telecharge plus rien du tout. */
+  /* LA SEULE LECTURE DE L'AMORCAGE, et elle ne derive rien : un `count()` sur IndexedDB,
+     quelques millisecondes, pour savoir si cet appareil porte une base. Sans elle on ne
+     saurait pas distinguer « base vide » de « lignes pas encore chargees ». */
+  try{ LIGNES_EN_BASE = await dbCount(); }catch(e){ LIGNES_EN_BASE = null; }
+  /* ET LES REGLAGES, qui decident du classement et de l'exercice : quelques centaines
+     d'octets, et tout le reste en depend. Sans eux « Mon cap » afficherait l'exercice
+     civil a quelqu'un qui ouvre le sien en aout. */
+  try{
+    const reg = await BdvSync.lireReglages();
+    if(reg){
+      if(reg.objectif != null){ objectif = Number(reg.objectif) || null; }
+      if(reg.exercice_debut != null && typeof adopterExercice === 'function')
+        adopterExercice(reg.exercice_debut);
+    }
+  }catch(e){ /* sans reglages lisibles on garde ceux de l'appareil */ }
   dire('Dessin de tes écrans…');
   // Le panneau est branche AU DEMARRAGE, et pas seulement quand on l'ouvre : le bouton
   // « Me deconnecter » de la barre du haut y prend son garde-fou. Sans cette ligne il
@@ -3353,7 +3577,10 @@ async function demarrerEcransVente(depart, dire){
   // Arriver sur #base, #parametres ou #reglages ouvre le panneau : c'est la que « Ma base »
   // et le classement vivent depuis la fusion, et c'est ce que le bureau met dans ses liens.
   if(ecran === 'base' || ecran === 'parametres' || ecran === 'reglages') ouvrirPanneauReglages();
-  if(versClient && ROWS.length) setTimeout(function(){ ouvrirFiche(versClient); }, 60);
+  /* La fiche passe par `ouvrirFicheClient`, qui charge les lignes si elles manquent :
+     c'est un geste, il a le droit d'attendre, et il le dit. L'ancienne garde
+     `&& ROWS.length` ne s'allumait plus jamais depuis que l'amorcage ne charge plus. */
+  if(versClient) setTimeout(function(){ ouvrirFicheClient(versClient); }, 60);
   // Lecture du profil en dernier, et sans await bloquant sur l'affichage : un reseau lent ne
   // doit pas retarder l'ouverture du tableau de bord de quelqu'un qui, lui, a bien Vitisoft.
   try{

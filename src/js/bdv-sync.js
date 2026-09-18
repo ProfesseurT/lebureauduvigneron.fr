@@ -6,10 +6,25 @@
 
    TROIS REGLES QUI TIENNENT TOUT LE FICHIER
 
-   1. IndexedDB reste la source de calcul, jamais le serveur.
-      Le tableau de bord lit et calcule sur la base locale, exactement comme avant. Le serveur
-      ne fait que garder une copie et la rendre sur un autre appareil. Ca veut dire qu'aucun
-      ecran n'a besoin d'etre reecrit, et qu'une panne reseau ne casse rien de visible.
+   1. CADUQUE DEPUIS LE 18/09/2026. Elle disait : « IndexedDB reste la source de calcul,
+      jamais le serveur. Le tableau de bord lit et calcule sur la base locale, exactement
+      comme avant. Ca veut dire qu'aucun ecran n'a besoin d'etre reecrit, et qu'une panne
+      reseau ne casse rien de visible. »
+
+      Elle a tenu tant que les bases faisaient cinq mille lignes. A 171 569, elle voulait
+      dire : recopier la base de donnees sur le poste, la relire et en deriver 171 569
+      objets AVANT d'afficher un seul chiffre. Ted, capture a l'appui : « Y'a une BDD
+      derriere qui est censee gerer les donnees et les redistribuer correctement. »
+
+      LA REGLE QUI LA REMPLACE : **le serveur calcule, l'appareil affiche.** Les lignes ne
+      descendent plus a l'ouverture ; elles descendent quand un ecran non porte les
+      reclame, et ce chargement est annonce. Le hors-ligne est abandonne, Ted l'a accepte
+      explicitement le 17/09.
+
+      CE QUE CETTE REGLE A COUTE AVANT D'ETRE VUE : deux jours passes a optimiser les
+      symptomes d'un choix d'architecture que personne ne remettait en cause, parce qu'il
+      etait ecrit ici comme une regle. **Une regle ecrite dans le depot reste une decision,
+      pas un fait.**
 
    2. Aucune fonction d'ici ne doit jamais empecher l'outil de s'ouvrir.
       Tout ce qui parle au reseau echoue en silence, renvoie un compte rendu, et laisse
