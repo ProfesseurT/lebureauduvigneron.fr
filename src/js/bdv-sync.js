@@ -417,6 +417,22 @@
   }
 
   // Combien de lignes le compte contient-il vraiment. Sert au compteur d'ecart de « Ma base ».
+  /* Y A-T-IL AU MOINS UNE LIGNE ? AJOUTEE LE 18/09/2026, ET PAS UN COMPTAGE.
+     `compterVentes()` demande a PostgREST un `count=exact`, c'est-a-dire un `count(*)`
+     sur tout le jeu filtre : sur les 171 569 lignes de Ted, 205 Mo a parcourir, et le
+     serveur a rendu `57014 canceling statement due to statement timeout`. Un comptage
+     exact n'est pas une question qu'on pose a chaque ouverture.
+     Or la seule question de l'amorcage est « ce compte porte-t-il quelque chose ». Une
+     ligne suffit a y repondre, et elle sort de l'index en quelques millisecondes.
+     Rend `null` quand on ne sait pas : un reseau muet n'est pas un compte vide. */
+  async function auMoinsUneVente(){
+    if(!pret()) return null;
+    try{
+      const l = await BdvCompte.api('/ventes?select=empreinte&limit=1' + auBureau());
+      return Array.isArray(l) ? l.length > 0 : null;
+    }catch(e){ return null; }
+  }
+
   async function compterVentes(){
     if(!pret() || !BdvCompte.compter) return null;
     return await BdvCompte.compter('/ventes?select=empreinte' + auBureau());
@@ -704,6 +720,7 @@
     tirerVentes: tirerVentes,
     pousserVentes: pousserVentes,
     compterVentes: compterVentes,
+    auMoinsUneVente: auMoinsUneVente,
     capResume: capResume,
     commerceResume: commerceResume,
     cuveesResume: cuveesResume,

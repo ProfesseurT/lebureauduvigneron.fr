@@ -122,10 +122,12 @@ begin
     raise exception 'bureau inconnu';
   end if;
 
-  select charge into r from public.resumes where bureau = b and public.resumes.cle = resume.cle;
+  select t.charge into r
+    from public.resumes t
+   where t.bureau = b and t.cle = resume.cle;
   if r is not null then return r; end if;
 
-  r := case cle
+  r := case resume.cle
          when 'cap'      then public.cap_resume(b)
          when 'commerce' then public.commerce_resume(b)
          when 'cuvees'   then public.cuvees_resume(b)
@@ -133,10 +135,33 @@ begin
   if r is null then return null; end if;
 
   /* `on conflict` et pas un `insert` sec : deux ecrans ouverts en meme temps calculent
-     tous les deux, et le second ne doit pas lever. */
+     tous les deux, et le second ne doit pas lever.
+
+     `ON CONSTRAINT resumes_pkey` ET PAS `(bureau, cle)`, ET C'EST LA CORRECTION DU
+     18/09/2026 AU SOIR. Nommer la colonne `cle` dans la cible du conflit la rend ambigue
+     avec le parametre du meme nom : Postgres leve `42702 column reference "cle" is
+     ambiguous`. La fonction mourait donc APRES avoir calcule, et PostgREST rendait 400.
+
+     CE QUE CA VOULAIT DIRE : le cache n'a JAMAIS retenu une seule ligne depuis ce lot.
+     Table `resumes` vide, et chaque ouverture de « Mon cap », « Mon commerce » ou « Mes
+     cuvees » repayait 3 a 8 secondes de calcul serveur pour finir sur une erreur. Les
+     « 0,77 ms » annonces dans le journal du 18/09 n'ont jamais eu lieu en production.
+
+     POURQUOI PERSONNE NE L'A VU : les bancs `controle-commerce` et `controle-cuvees`
+     appellent `commerce_resume()` et `cuvees_resume()` DIRECTEMENT. Ils prouvent que le
+     calcul est juste. Aucun n'appelle `resume()`, qui est la porte, et c'est la porte qui
+     etait cassee. Vu seulement dans un HAR de Ted, sur trois appels, trois 400.
+
+     Le nom d'une contrainte ne peut pas etre ambigu : il ne designe rien d'autre.
+     Qualifier le parametre (`resume.cle`) ne suffit pas ici : la cible d'un `on conflict`
+     n'accepte que des noms de colonnes nus, donc la collision est inevitable tant que le
+     nom de colonne y figure. Renommer le parametre marcherait aussi, mais casserait
+     l'appel du navigateur : PostgREST associe les cles du corps JSON aux NOMS des
+     parametres, et bdv-sync.js envoie `{"b":..., "cle":...}`. */
   insert into public.resumes (bureau, cle, charge)
-       values (b, cle, r)
-  on conflict (bureau, cle) do update set charge = excluded.charge, calcule_le = now();
+       values (b, resume.cle, r)
+  on conflict on constraint resumes_pkey
+    do update set charge = excluded.charge, calcule_le = now();
   return r;
 end; $$;
 

@@ -1063,6 +1063,36 @@ Une graisse demandee dessus est rangee « famille systeme, hors controle » alor
 sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
 l'accueil.
 
+## ON A MESURE LA PIECE ET JAMAIS LA SERRURE, 18/09/2026 LA NUIT
+
+`public.resume(b, cle)`, la porte du cache du lot 27, rendait **400 sur ses trois cles**
+depuis sa livraison. `insert ... on conflict (bureau, cle)` : le nom de colonne `cle` est
+ambigu avec le parametre du meme nom, Postgres leve 42702, et la fonction meurt APRES avoir
+calcule. **La table `resumes` etait vide. Le cache n'a jamais retenu une ligne.**
+
+POURQUOI AUCUN BANC NE L'A VU : `controle-commerce.mjs` et `controle-cuvees.mjs` appellent
+`commerce_resume()` et `cuvees_resume()` DIRECTEMENT, et prouvent champ par champ que le
+calcul est juste. Aucun n'appelle `resume()`. On a prouve la piece et jamais la serrure.
+
+**LA REGLE : un banc qui appelle la fonction de calcul ne prouve rien sur la fonction que le
+navigateur appelle vraiment.** Quand une fonction en enveloppe une autre, c'est l'ENVELOPPE
+qu'il faut appeler, avec les memes arguments et par le meme chemin que le client.
+
+LA CORRECTION : `on conflict ON CONSTRAINT resumes_pkey`. Le nom d'une contrainte ne peut
+pas etre ambigu. Qualifier le parametre ne suffit pas : la cible d'un `on conflict` n'accepte
+que des noms de colonnes nus. Et RENOMMER le parametre casserait le navigateur, parce que
+**PostgREST associe les cles du corps JSON aux NOMS des parametres** : `bdv-sync.js` envoie
+`{"b":..., "cle":...}`.
+
+## UN COMPTAGE EXACT N'EST PAS UNE QUESTION D'AMORCAGE, 18/09/2026
+
+`GET /ventes?select=empreinte` avec `count=exact` rend **500, `57014 statement timeout`** sur
+les 171 569 lignes : PostgREST fait un `count(*)` sur tout le jeu filtre, 205 Mo a parcourir.
+
+Quand la question est « y a-t-il des lignes », on ne demande pas « combien ». `limit=1` sort
+de l'index en quelques millisecondes. `BdvSync.auMoinsUneVente()` fait exactement ca, et rend
+`null` quand elle ne sait pas.
+
 ## UNE ABSENCE N'EST PAS UN ZERO, 18/09/2026. LE CAS DU MIROIR VIDE.
 
 Ted : « quand on clique sur mon commerce, ca ouvre mes reglages tout seul. »

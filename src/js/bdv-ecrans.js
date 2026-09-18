@@ -3638,11 +3638,12 @@ async function demarrerEcransVente(depart, dire){
      saurait pas distinguer « base vide » de « lignes pas encore chargees ». */
   try{ LIGNES_EN_BASE = await dbCount(); }catch(e){ LIGNES_EN_BASE = null; }
   /* ET SEULEMENT SI CE MIROIR EST VIDE, on demande au serveur s'il l'est aussi. Un
-     comptage PostgREST ne rapatrie aucune ligne, il lit l'en-tete Content-Range : c'est
-     quelques millisecondes, et on ne les paie que dans le cas ou la question se pose.
-     Sans cette reponse, `baseVide()` ne conclut rien. */
-  if(LIGNES_EN_BASE === 0 && window.BdvSync && BdvSync.pret && BdvSync.pret()){
-    try{ LIGNES_DISTANTES = await BdvSync.compterVentes(); }catch(e){ LIGNES_DISTANTES = null; }
+     sonde demande UNE ligne, pas un comptage : le comptage exact sur 171 569 lignes a
+     rendu un `statement timeout` le 18/09, et un amorcage ne doit pas dependre de ca.
+     Sans reponse, `baseVide()` ne conclut rien. */
+  if(LIGNES_EN_BASE === 0 && window.BdvSync && BdvSync.auMoinsUneVente){
+    const y = await BdvSync.auMoinsUneVente();
+    LIGNES_DISTANTES = (y === null) ? null : (y ? 1 : 0);
   }
   /* ET LES REGLAGES, qui decident du classement et de l'exercice : quelques centaines
      d'octets, et tout le reste en depend. Sans eux « Mon cap » afficherait l'exercice

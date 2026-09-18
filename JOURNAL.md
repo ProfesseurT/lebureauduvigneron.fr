@@ -12,6 +12,86 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 18/09/2026, la nuit. « Étonnant » : le cache des résumés n'a jamais fonctionné
+
+Ted a renvoyé un HAR après le correctif du miroir vide, avec un mot : « étonnant ». L'écran
+« Mon commerce » s'ouvre bien maintenant, il n'ouvre plus les réglages tout seul. Mais il
+affiche **0 lignes** et deux blocs qui disent des choses fausses avec assurance :
+« Personne à relancer. Aucun client ne recule. »
+
+Deux requêtes échouent dans ce HAR, et elles expliquent tout.
+
+### 1. `42702 column reference "cle" is ambiguous` — et c'est le pire de la journée
+
+`POST /rpc/resume` rend **400** pour les trois clés. Pas seulement `commerce` : le HAR
+précédent montre les mêmes 400 sur `cap` et `cuvees`. Je ne les avais pas regardés, j'avais
+lu leurs 3,1 s et 7,7 s comme une lenteur.
+
+La cause, dans `public.resume(b uuid, cle text)` du lot 27 :
+
+```sql
+insert into public.resumes (bureau, cle, charge) values (b, cle, r)
+on conflict (bureau, cle) do update set ...
+```
+
+`cle` dans la cible du `on conflict` est ambigu avec le paramètre du même nom. **La fonction
+meurt APRÈS avoir calculé.** Elle paie les 3 à 8 secondes, puis elle lève, puis PostgREST
+rend 400, puis rien n'est mis en cache.
+
+Vérifié dans la base : **`public.resumes` est VIDE. Zéro ligne.**
+
+**Le cache du lot 27 n'a jamais retenu une seule ligne depuis sa livraison.** Les
+« 1100/3800/5735 ms vers 0,77 ms » écrits dans le journal du même jour n'ont jamais eu lieu
+en production. Chaque ouverture d'écran repaie le calcul complet, et finit en erreur.
+
+**POURQUOI AUCUN BANC NE L'A VU, et c'est la leçon.** `controle-commerce.mjs` et
+`controle-cuvees.mjs` appellent `commerce_resume()` et `cuvees_resume()` **directement**.
+Ils prouvent, champ par champ, que le calcul est juste. Aucun n'appelle `resume()`, qui est
+la porte. **On a mesuré la pièce et jamais la serrure.** Il a fallu un HAR de Ted pour voir
+que la porte ne s'ouvrait pas.
+
+### La correction, et les trois fausses pistes avant elle
+
+Testée sur un Postgres 16 local, quatre variantes :
+
+| | |
+|---|---|
+| qualifier le paramètre `values (b, resume.cle, r)` | **échoue** : l'ambiguïté est dans le `on conflict`, pas dans le `values` |
+| donner un alias à la table à l'insert | **échoue** pareil |
+| renommer le paramètre `cle` en `k` | marche, **mais casse l'appel du navigateur** : PostgREST associe les clés du corps JSON aux NOMS des paramètres, et `bdv-sync.js` envoie `{"b":…, "cle":…}` |
+| **`on conflict on constraint resumes_pkey`** | **marche**, garde le nom du paramètre, garde l'atomicité |
+
+Le nom d'une contrainte ne peut pas être ambigu : il ne désigne rien d'autre. La cible d'un
+`on conflict` n'accepte que des noms de colonnes nus, donc tant que `cle` y figure, la
+collision est inévitable.
+
+Ma première correction était fausse et je l'ai su en la testant, pas en la relisant.
+
+### 2. `57014 canceling statement due to statement timeout` sur le comptage
+
+`GET /ventes?select=empreinte&bureau=eq.…` rend **500**. C'est le `count=exact` de PostgREST,
+donc un `count(*)` sur les 171 569 lignes, 205 Mo à parcourir. Le serveur abandonne.
+
+C'est la sonde que j'avais ajoutée quelques heures plus tôt pour corriger le miroir vide.
+Elle posait la bonne question au mauvais prix.
+
+Corrigé : la question n'est pas « combien » mais « y en a-t-il ». `select=empreinte&limit=1`
+sort de l'index en quelques millisecondes. `auMoinsUneVente()` rend `true`, `false`, ou
+`null` quand elle ne sait pas, et `baseVide()` ne conclut jamais sur un `null`.
+
+### Ce que l'écran disait, et qui était faux
+
+Sans lignes locales et sans résumé serveur, « Mon commerce » a quand même affiché
+« Personne à relancer. Aucun client ne recule, ne rompt son rythme ni ne reste sans suite.
+Profites-en. » sur une base à zéro ligne.
+
+**Un écran qui n'a pas de données ne doit pas rendre un verdict.** Ce n'est pas corrigé, et
+c'est le prochain point à regarder : chaque bloc doit distinguer « j'ai regardé, il n'y a
+rien » de « je n'ai rien à regarder ». Le bloc voisin, lui, le fait bien :
+« Décomposition indisponible. Il faut deux années comparables. »
+
+---
+
 ## 18/09/2026, la nuit. Le HAR de Ted tranche trois choses d'un coup
 
 Ted a enregistré un HAR complet, de l'ouverture du bureau jusqu'à la dernière vue, et il a

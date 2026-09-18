@@ -84,10 +84,26 @@ else
 
 /* Le garde-fou de l'amorcage : la question au serveur ne doit etre posee QUE si le
    miroir est vide. Sinon c'est une requete de plus a chaque ouverture, pour rien. */
-console.log('\n== le cout ==');
-const amorce = /LIGNES_EN_BASE === 0 && window\.BdvSync[\s\S]{0,220}?compterVentes\(\)/.test(src);
-if (amorce) ok('le comptage serveur n\'est demande que si le miroir est vide');
-else ko('le comptage serveur est demande sans condition, ou il a disparu');
+/* LE COUT DE LA QUESTION, ET C'EST LE DEFAUT DU 18/09 AU SOIR.
+   La premiere version demandait `compterVentes()`, qui fait un `count=exact` PostgREST,
+   donc un `count(*)` sur tout le jeu filtre. Sur les 171 569 lignes de Ted, le serveur a
+   rendu `57014 canceling statement due to statement timeout`, vu dans un HAR. Un amorcage
+   ne peut pas dependre d'un comptage exact.
+   La question posee n'est pas « combien » mais « y en a-t-il ». Une ligne suffit. */
+console.log('\n== le cout de la question ==');
+const conditionnel = /LIGNES_EN_BASE === 0 && window\.BdvSync[\s\S]{0,260}?auMoinsUneVente/.test(src);
+if (conditionnel) ok('la question n\'est posee au serveur que si le miroir est vide');
+else ko('la question est posee sans condition, ou la sonde a disparu');
+
+const sync = fs.readFileSync(path.join(RACINE, 'src/js/bdv-sync.js'), 'utf8');
+const sonde = sync.match(/async function auMoinsUneVente\(\)\{[\s\S]*?\n  \}/);
+if (sonde && /limit=1/.test(sonde[0]) && !/compter\(/.test(sonde[0]))
+  ok('la sonde demande UNE ligne, pas un comptage exact');
+else ko('la sonde fait un comptage exact : elle expirera sur une grosse base');
+
+if (sonde && /return null/.test(sonde[0]))
+  ok('la sonde rend null quand elle ne sait pas, jamais un faux zero');
+else ko('la sonde peut rendre un zero qu\'elle n\'a pas verifie');
 
 console.log('\n== VERDICT ==');
 if (ERR === 0) { console.log('  echecs : 0\n  TENU : une absence de lignes locales ne vaut plus une base vide.\n'); process.exit(0); }
