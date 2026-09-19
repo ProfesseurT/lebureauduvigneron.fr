@@ -6,7 +6,20 @@
 
    Ne modifie rien. Sortie 0 seulement si tout est conforme.
 
-   Le controle qui compte le plus est le dernier : il confronte chaque
+   TROIS SECTIONS AJOUTEES LE 19/09/2026, apres un audit qui a trouve a la main
+   ce que ce script ne savait pas voir :
+     A. les echelles fermees. On COMPTE les valeurs distinctes par famille
+        (tailles, rayons, ombres, filets, z-index) au lieu de tolerer des
+        declarations sous un plafond. Dix appels a 1.05rem sont UN pas
+        d'echelle a baptiser, pas dix fautes.
+     B. l'accessibilite de la page CONSTRUITE, HTML et JavaScript ensemble,
+        parce que la moitie du bureau nait d'une chaine de caracteres au clic.
+     C. ce qui voyage et ce qui ne sert a rien : les regles qui ne
+        correspondent a aucun balisage, celles des composants qu'aucune page
+        n'inclut, et la part de style.css qui part dans le bureau sans pouvoir
+        s'y appliquer.
+
+   Le controle le plus spectaculaire reste celui de la section 7 : il confronte chaque
    font-weight demande par le CSS aux graisses reellement chargees par le lien
    Google Fonts. Une regle qui demande du 700 sur une fonte chargee en 400 et
    500 ne leve aucune erreur, elle produit des contours epaissis par le
@@ -866,6 +879,619 @@ if (fs.existsSync(FEUILLE_VENTES)) {
     if (fautives.length > 12) ko('et ' + (fautives.length - 12) + ' autre(s)');
   } else ok('aucune regle ne sort du scope');
 }
+
+
+/* ===========================================================================
+   A. ECHELLES FERMEES : COMPTER LES VALEURS DISTINCTES, PAS LES DECLARATIONS
+   ---------------------------------------------------------------------------
+   La section 4 tolere les tailles de texte sous un plafond de DECLARATIONS.
+   C'est la mauvaise unite, et l'audit du 19/09/2026 l'a montre : dix appels a
+   `1.05rem` ne sont pas dix fautes, c'est UN pas d'echelle qu'on n'a pas
+   baptise. Dix valeurs vues une fois chacune, en revanche, ce sont dix
+   echelles qui cohabitent, et c'est ca qui se voit a l'ecran.
+
+   On compte donc, par famille, le nombre de valeurs DISTINCTES qui cohabitent,
+   et on le compare a une borne ecrite juste a cote. Une famille qui GAGNE une
+   valeur fait echouer le controle, meme si le nombre de declarations baisse.
+
+   CHAQUE BORNE CI-DESSOUS EST LA MESURE DU JOUR, PAS UN IDEAL. C'est un
+   PLAFOND A FAIRE BAISSER : le jour ou une valeur est reprise dans un jeton,
+   on descend le chiffre a la main. IL NE REMONTE JAMAIS. Une borne qu'on
+   remonte pour faire passer le banc est une borne qui ne garde plus rien.
+
+   Cette section attrape d'un coup quatre choses que rien ne regardait :
+   les z-index en dur (la section 4 ne connait pas z-index), les tailles en
+   dur comptees a la bonne unite, les ombres (la section 4 les compte comme des
+   couleurs, pas comme une famille) et les `border-radius: 50%`, que la section
+   4 dispense explicitement.
+   =========================================================================== */
+titre('A. Echelles fermees : combien de valeurs DISTINCTES cohabitent');
+{
+  /* `1.50rem`, `1.5rem` et `1.5REM` sont le meme pas d'echelle : on normalise
+     les nombres avant de dedoublonner, sinon on compte du formatage. */
+  const normeVal = v => resout(String(v), B.tokens)
+    .toLowerCase()
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s+/g, ' ')
+    .replace(/(?<![\w.])(\d*\.?\d+)/g, m => String(parseFloat(m)))
+    .trim();
+
+  /* BORNES : la mesure du 19/09/2026. Plafond a faire BAISSER, jamais remonter.
+     Deux chiffres par famille parce que deux cibles : le site seul (style.css)
+     et le bureau, qui charge en plus bdv-ecrans.css, bdv-panneau.css et
+     bdv-calendrier.css. Un seul chiffre dispenserait l'une des deux. */
+  const FAMILLES = [
+    /* nom                        unite                            site  bureau */
+    /* 11 pas nommes dans l'echelle (--t-*), et 26 valeurs distinctes ecrites en
+       dur a cote sur le site, 35 sur le bureau. L'ecart EST le chantier. */
+    ['tailles de texte',          'font-size ecrites en dur',        26,  35],
+    /* ZERO, et c'est tenable : tous les rayons du depot passent par un jeton.
+       Une borne a zero veut dire qu'un seul `border-radius: 12px` ou
+       `border-radius: 50%` de plus fait echouer le banc. C'est voulu. */
+    ['rayons d\'arrondi',         'border-radius ecrits en dur',      0,   0],
+    /* LA REGLE DU PLATEAU, ecrite en tete de la section MATIERES de style.css,
+       n'autorise que DEUX ombres : --ombre-carte et --ombre-dure. Il y en a 15
+       distinctes sur le site et 20 sur le bureau. La borne est la mesure du
+       jour parce qu'un controle qui echoue des le premier jour ne sera pas lu ;
+       la cible ecrite dans la charte, elle, reste 2. Ce chiffre descend. */
+    ['ombres',                    'recettes d\'ombre posees',        15,  20],
+    ['epaisseurs de filet',       'largeurs de bordure posees',       9,   9],
+    /* Les niveaux de superposition sont deja presque tous tokenises (--z-*) :
+       ce qui reste distinct, ce sont les `z-index: 1` et `2` poses a la main.
+       Une borne serree ici attrape le `z-index: 9999` du prochain correctif
+       presse, qui est exactement la facon dont un empilement se derobe. */
+    ['niveaux de superposition',  'valeurs de z-index posees',        5,   8],
+  ];
+
+  const vals = {};
+  FAMILLES.forEach(f => { vals[f[0]] = new Map(); });
+  let declTailles = 0;
+  const ajoute = (fam, val, sel, ligne) => {
+    if (!val) return;
+    const m = vals[fam];
+    if (!m.has(val)) m.set(val, { n: 0, sel, ligne });
+    m.get(val).n++;
+  };
+
+  B.regles.forEach(r => {
+    const sel = norme(r.sel);
+    r.decls.forEach(d => {
+      const p = d.prop;
+      if (p === 'font-size' && sel !== ':root' && !/var\(/.test(d.val)) {
+        declTailles++;
+        ajoute('tailles de texte', normeVal(d.val), sel, d.ligne);
+      }
+      /* Le `50%` est ici, alors que la section 4 le dispense : un rond est un
+         pas d'echelle comme un autre, et il n'y a aucune raison qu'il en
+         existe deux ecritures. */
+      if (p === 'border-radius' && sel !== ':root' && !/var\(/.test(d.val)
+          && !/^0(px|rem|em|%)?$/.test(d.val.trim()))
+        ajoute('rayons d\'arrondi', normeVal(d.val), sel, d.ligne);
+      /* Les ombres sont RESOLUES avant d'etre comptees : `var(--ombre-carte)`
+         et la recette qu'il porte sont la meme ombre. Ce qu'on compte, ce sont
+         les recettes qui arrivent reellement a l'ecran. */
+      if (p === 'box-shadow' || p === 'text-shadow') {
+        const v = normeVal(d.val);
+        if (v && v !== 'none') ajoute('ombres', v, sel, d.ligne);
+      }
+      if (/^(border|border-(top|right|bottom|left|block|inline)(-start|-end)?|outline)(-width)?$/.test(p)) {
+        const v = normeVal(d.val);
+        const w = (v.match(/(?<![\w.-])\d*\.?\d+(px|rem|em)/) || [])[0];
+        if (w) ajoute('epaisseurs de filet', w, sel, d.ligne);
+      }
+      if (p === 'z-index') {
+        const v = normeVal(d.val);
+        if (/^-?\d+$/.test(v)) ajoute('niveaux de superposition', v, sel, d.ligne);
+      }
+    });
+  });
+
+  const pasNommes = Object.keys(B.tokens).filter(t => /^--t-/.test(t)).length;
+  console.log('  echelle de texte nommee : ' + pasNommes + ' pas (--t-*) dans :root');
+
+  FAMILLES.forEach(([nom, quoi, bSite, bDash]) => {
+    const borne = DASH ? bDash : bSite;
+    const m = vals[nom];
+    const total = [...m.values()].reduce((s, v) => s + v.n, 0);
+    console.log('  ' + nom.padEnd(26) + String(m.size).padStart(3) + ' distincte(s)' +
+                ('  sur ' + total + ' ' + quoi).padEnd(38) + 'borne ' + borne);
+    if (m.size > borne) {
+      const tri = [...m.entries()].sort((a, b) => a[1].n - b[1].n).slice(0, 6);
+      ko(nom + ' : ' + m.size + ' valeurs distinctes, la borne est a ' + borne +
+         ' — la famille a gagne une valeur. Les plus rares : ' +
+         tri.map(([v, o]) => '« ' + v.slice(0, 40) + ' » (' + o.sel.slice(0, 30) + ' L' + o.ligne + ')').join(', '));
+    }
+  });
+  if (!FAMILLES.some(([nom, , bS, bD]) => vals[nom].size > (DASH ? bD : bS)))
+    ok('aucune famille n\'a gagne de valeur distincte depuis la derniere mesure');
+
+  /* Les pas d'echelle a baptiser : une valeur en dur repetee assez souvent
+     pour meriter un nom. Ce n'est pas un echec, c'est la liste de travail. */
+  const repetes = [...vals['tailles de texte'].entries()].filter(([, o]) => o.n >= 4)
+    .sort((a, b) => b[1].n - a[1].n);
+  if (repetes.length)
+    note(repetes.length + ' taille(s) en dur repetee(s) 4 fois ou plus, donc un pas d\'echelle a baptiser : ' +
+         repetes.map(([v, o]) => v + ' x' + o.n).join(', '));
+}
+
+
+
+/* ===========================================================================
+   B. ACCESSIBILITE DE LA PAGE CONSTRUITE, HTML ET JAVASCRIPT ENSEMBLE
+   ---------------------------------------------------------------------------
+   Ce script savait tout du style et rien de l'usage. Or la moitie du bureau
+   n'existe pas dans un gabarit : elle nait d'une chaine de caracteres dans
+   src/js/*.js, au clic. Un controle qui ne lit que le HTML produit ne voit
+   donc RIEN du bureau, et un controle qui ne lit que le JS ne voit rien des
+   articles. On lit les deux, dans le meme passage.
+
+   LES COMMENTAIRES NE SONT PAS DU BALISAGE. Meme lecon qu'a la section 5 le
+   19/09/2026 : trois `<select>` et un `<input type="date">` du depot vivent
+   dans des commentaires qui EXPLIQUENT le code. Les compter, c'est declarer
+   non conforme un depot sain, et un banc qui crie sur du sain finit par ne
+   plus etre lu. On retire donc les blocs et les lignes de commentaire avant
+   de chercher quoi que ce soit.
+
+   Six contrôles. Quatre sont a zero aujourd'hui et echouent a la premiere
+   occurrence. Deux ont un reste que l'audit du 19/09/2026 n'a pas repris et
+   qui n'est PAS a ce script de corriger : ceux-la ont une borne a la mesure
+   du jour, listee ligne par ligne, qui ne remonte jamais.
+   =========================================================================== */
+titre('B. Accessibilite de la page construite (HTML + JavaScript)');
+{
+  /* La cible : la page construite qui correspond a l'appel, plus TOUS les
+     modules de src/js, parce qu'ils sont la matiere commune des deux. En
+     --bureau on lit /mon-bureau/ ; sinon les pages publiques, /mon-bureau/
+     exclu, pour que les deux appels ne rapportent pas deux fois la meme chose. */
+  const listeHtml = dir => {
+    if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
+      const p = path.join(dir, e.name);
+      return e.isDirectory() ? listeHtml(p) : (e.name.endsWith('.html') ? [p] : []);
+    });
+  };
+  const bureauHtml = path.join(RACINE, '_site/mon-bureau/index.html');
+  const pages = DASH ? (fs.existsSync(bureauHtml) ? [bureauHtml] : [])
+                     : listeHtml(path.join(RACINE, '_site')).filter(f => f !== bureauHtml);
+
+  if (!pages.length && !DASH) {
+    note('aucune page construite dans _site/ : lance npm run build pour que la section B ait de la matiere');
+  }
+
+  /* Deparasitage. Sur le JS : blocs /* *\/ et lignes entieres //. On ne touche
+     pas aux // en milieu de ligne, pour ne pas amputer un https://. Sur le
+     HTML : les commentaires <!-- -->. Les sauts de ligne sont conserves, sinon
+     les numeros de ligne rapportes ne designent plus rien. */
+  const garderLignes = m => '\n'.repeat((m.match(/\n/g) || []).length);
+  const lave = (txt, estJs) => {
+    let t = txt.replace(/<!--[\s\S]*?-->/g, garderLignes);
+    if (estJs) t = t.replace(/\/\*[\s\S]*?\*\//g, garderLignes).replace(/^[ \t]*\/\/.*$/gm, '');
+    return t;
+  };
+  const SOURCES = pages.map(f => ({ rel: path.relative(RACINE, f), txt: lave(fs.readFileSync(f, 'utf8'), false), js: false }))
+    .concat(fichiersJS_.map(f => ({ rel: path.relative(RACINE, f), txt: lave(fs.readFileSync(f, 'utf8'), true), js: true })));
+  const ligneDe = (t, i) => t.slice(0, i).split('\n').length;
+  console.log('  lu : ' + pages.length + ' page(s) construite(s) + ' + fichiersJS_.length + ' module(s) src/js');
+
+  /* --- B1. onclick pose ailleurs que sur un bouton ou un lien --------------
+     Un <div onclick> n'est ni focalisable ni actionnable au clavier. Trois
+     exceptions nommees : <button> et <a>, qui le sont par nature ; <summary>,
+     qui l'est aussi et que l'audit a explicitement mis hors cause ; et tout
+     element porteur de tabindex, qui a donc ete rendu focalisable expres.
+     QUATRIEME EXCEPTION, ET C'EST UN FAUX POSITIF CONNU : le voile de modale
+     de bdv-ecrans.js porte `aria-hidden="true"` et un `onclick` qui ferme. Il
+     est VOLONTAIREMENT hors de l'arbre d'accessibilite, et la fermeture au
+     clavier passe par Escape (voir B4), pas par lui. */
+  let b1 = 0;
+  SOURCES.forEach(({ rel, txt }) => {
+    for (const m of txt.matchAll(/<([a-zA-Z][\w-]*)\b([^>]*\bonclick\s*=[^>]*)>/g)) {
+      const tag = m[1].toLowerCase(), attrs = m[2];
+      if (tag === 'button' || tag === 'a' || tag === 'summary') continue;
+      if (/\btabindex\s*=/.test(attrs)) continue;
+      if (/\baria-hidden\s*=\s*["']true/.test(attrs)) continue;
+      b1++;
+      ko('B1 ' + rel + ' L' + ligneDe(txt, m.index) + ' : onclick sur <' + tag +
+         '> sans tabindex — inatteignable au clavier');
+    }
+  });
+  if (!b1) ok('B1 aucun onclick hors <button>/<a> sans tabindex');
+
+  /* --- B2. champ de saisie sans etiquette reliee --------------------------
+     Dispenses : les types qui portent leur nom (hidden, submit, button, reset,
+     image) ; un champ `hidden` ou `style="display:none"`, qui n'est pas
+     atteignable et sert de declencheur derriere un bouton (le `#fileInputReg`
+     de bdv-base.js) ; aria-label, aria-labelledby, title ; un `label for=`
+     qui vise son id ; une etiquette ENVELOPPANTE.
+     UNE BORNE, PAS UN ECHEC SEC : il reste des champs sans etiquette reliee
+     dans le depot, listes ci-dessous ligne par ligne. Ce n'est pas a ce
+     script de les corriger. Ce qu'il interdit, c'est qu'il y en ait UN DE
+     PLUS. Le chiffre descend a chaque champ etiquete ; il ne remonte jamais. */
+  /* 3 des deux cotes : les trois champs vivent dans src/js/bdv-base.js, donc
+     dans les deux cibles. Mesure du 19/09/2026, plafond a faire baisser. */
+  /* ZERO DES DEUX COTES, 19/09/2026. La borne etait a 3 parce qu'il restait trois
+     champs sans etiquette dans bdv-base.js : le menu du premier mois d'exercice, le
+     menu de colonne rendu deux fois par selectChamp(), et l'entree de renommage du
+     classement. Les trois ont recu leur etiquette le jour meme. Une borne qui laisse
+     du mou ne garde rien : le premier champ non etiquete ajoute doit faire echouer. */
+  const BORNE_B2 = 0;
+  let b2 = 0;
+  console.log('  B2 champs sans etiquette reliee :');
+  SOURCES.forEach(({ rel, txt }) => {
+    const pourIds = new Set([...txt.matchAll(/<label\b[^>]*\bfor\s*=\s*["']([^"']+)["']/g)].map(m => m[1]));
+    for (const m of txt.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)) {
+      const tag = m[1].toLowerCase(), attrs = m[2];
+      const type = (attrs.match(/\btype\s*=\s*["']?([\w-]+)/) || [, 'text'])[1].toLowerCase();
+      if (tag === 'input' && ['hidden', 'submit', 'button', 'reset', 'image'].includes(type)) continue;
+      if (/\bhidden\b(?!-)/.test(attrs) || /display\s*:\s*none/.test(attrs)) continue;
+      if (/\baria-label\s*=|\baria-labelledby\s*=|\btitle\s*=/.test(attrs)) continue;
+      const id = (attrs.match(/\bid\s*=\s*["']([^"']+)["']/) || [])[1];
+      if (id && pourIds.has(id)) continue;
+      /* Etiquette enveloppante : le <label> ouvert le plus proche en amont
+         n'est pas encore referme. `<label class="chk"><input ...> joignables`
+         de bdv-ecrans.js est exactement ce cas. */
+      const avant = txt.slice(0, m.index);
+      const ouvre = avant.lastIndexOf('<label'), ferme = avant.lastIndexOf('</label>');
+      if (ouvre >= 0 && ouvre > ferme) continue;
+      /* Cellule de tableau annotee : ce depot pose `data-libelle` sur chaque
+         <td> pour que la table se replie en fiches sur telephone. Le libelle
+         de colonne est donc ecrit a cote du champ. Association faible, pas
+         absence d'etiquette : on la compte dans la borne et on la nomme. */
+      const cell = avant.lastIndexOf('<td'), finCell = avant.lastIndexOf('</td>');
+      const dansCellule = cell >= 0 && cell > finCell && /data-libelle/.test(avant.slice(cell, cell + 200));
+      b2++;
+      console.log('        ' + rel + ' L' + ligneDe(txt, m.index) + '  <' + tag + '> ' +
+                  (dansCellule ? '(cellule annotee data-libelle) ' : '') +
+                  m[0].replace(/\s+/g, ' ').slice(0, 90));
+    }
+  });
+  if (b2 > BORNE_B2) ko('B2 ' + b2 + ' champ(s) sans etiquette reliee, la borne est a ' + BORNE_B2 +
+                        ' — un champ non etiquete a ete ajoute');
+  else ok('B2 ' + b2 + ' champ(s) sans etiquette reliee, sous la borne de ' + BORNE_B2);
+
+  /* --- B3. outline: none sans remplacement de focus ------------------------
+     Retirer le cerclage sans rien mettre a la place, c'est rendre le clavier
+     aveugle. On exige qu'une regle :focus, :focus-visible ou :focus-within du
+     meme BLOC pose quelque chose de visible.
+     Le « meme bloc » et non « le meme selecteur » : le cas reel du depot est
+     `.bdv-ventes .saisie__txt:focus{outline:none}`, dont le remplacement est
+     sur `.bdv-ventes .saisie:focus-within`, l'encadrement du champ. Exiger le
+     selecteur a l'identique aurait crie sur une correction faite le matin
+     meme. On remonte donc du dernier maillon a son bloc BEM. */
+  const classesDe = s => [...s.matchAll(/\.(-?[A-Za-z_][\w-]*)/g)].map(m => m[1]);
+  const dernierMaillon = s => s.split(/\s+|>|\+|~/).filter(Boolean).pop() || s;
+  /* Une liste de selecteurs se coupe aux virgules DE PREMIER NIVEAU. Couper
+     bêtement sur ',' dechire `:where(a, button, summary)` en morceaux qui ne
+     sont plus des selecteurs, et l'un d'eux, `button`, s'est retrouve compte
+     comme une ancre de focus valable pour tout le depot. */
+  const coupeVirgules = s => {
+    const out = []; let prof = 0, cur = '';
+    for (const ch of s) {
+      if (ch === '(' || ch === '[') prof++;
+      else if (ch === ')' || ch === ']') prof--;
+      if (ch === ',' && prof === 0) { out.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    if (cur.trim()) out.push(cur);
+    return out;
+  };
+  const blocDe = c => c.split('__')[0];
+  const VISIBLE = /^(outline|outline-color|outline-offset|box-shadow|border|border-color|border-[a-z]+-color|border-width|background|background-color|color|text-decoration)$/;
+  const ancresFocus = new Set();
+  B.regles.forEach(r => {
+    if (!/:focus/.test(r.sel)) return;
+    if (!r.decls.some(d => VISIBLE.test(d.prop) && !/^none$|^0$/.test(d.val.trim()))) return;
+    coupeVirgules(r.sel).forEach(s => {
+      /* Selecteur par selecteur, et seulement ceux qui portent VRAIMENT le
+         focus : dans `.x:hover, .y:focus {...}`, seul `.y` est une ancre. */
+      if (!/:focus/.test(s)) return;
+      const dm = dernierMaillon(norme(s));
+      classesDe(dm).forEach(c => { ancresFocus.add(c); ancresFocus.add(blocDe(c)); });
+      const el = dm.replace(/[:.\[][\s\S]*$/, '');
+      if (el) ancresFocus.add(el);
+    });
+  });
+  let b3 = 0;
+  B.regles.forEach(r => {
+    if (!r.decls.some(d => d.prop === 'outline' && /^(none|0)$/.test(d.val.trim()))) return;
+    coupeVirgules(r.sel).forEach(s => {
+      const dm = dernierMaillon(norme(s));
+      const cl = classesDe(dm);
+      const ancres = cl.length ? cl.flatMap(c => [c, blocDe(c)]) : [dm.replace(/[:.\[][\s\S]*$/, '')];
+      if (ancres.some(a => a && ancresFocus.has(a))) return;
+      b3++;
+      ko('B3 L' + r.ligne + ' : ' + norme(s) + ' pose outline:none sans regle :focus visible sur le meme bloc');
+    });
+  });
+  if (!b3) ok('B3 tout outline:none a son remplacement de focus');
+
+  /* --- B4. role="dialog" sans echappement ---------------------------------
+     Une boite modale qu'on ne peut pas fermer au clavier est un piege. La
+     regle naive « un ecouteur Escape dans le meme fichier » est FAUSSE ici, et
+     bdv-ecrans.js le dit en toutes lettres a sa ligne 2433 : l'ecouteur est
+     unique, global, pose dans bdv-base.js, et il appelle `fermerFiche()`. En
+     poser un deuxieme serait la faute. On accepte donc l'ecouteur d'un autre
+     module A CONDITION qu'il nomme une fonction DEFINIE par le fichier qui
+     construit la boite : c'est ce lien-la qui prouve la couverture, pas la
+     simple presence du mot Escape quelque part dans le depot. */
+  const RE_ESC = /['"]Escape['"]|keyCode\s*===?\s*27|which\s*===?\s*27/;
+  const lignesEsc = [];
+  SOURCES.forEach(({ rel, txt }) => txt.split('\n').forEach((l, i) => {
+    if (RE_ESC.test(l)) lignesEsc.push({ rel, ligne: i + 1, ids: new Set(l.match(/[A-Za-z_$][\w$]*/g) || []) });
+  }));
+  let b4 = 0;
+  console.log('  B4 boites modales et leur echappement :');
+  SOURCES.forEach(({ rel, txt }) => {
+    if (!/role\s*=\s*["']dialog["']/.test(txt)) return;
+    if (RE_ESC.test(txt)) { console.log('        ' + rel + ' : dialog + Escape dans le meme fichier'); return; }
+    const definies = new Set([...txt.matchAll(/function\s+([A-Za-z_$][\w$]*)/g)].map(m => m[1]));
+    const relai = lignesEsc.find(e => e.rel !== rel && [...e.ids].some(id => definies.has(id)));
+    if (relai) {
+      console.log('        ' + rel + ' : dialog ferme par l\'ecouteur global de ' + relai.rel + ' L' + relai.ligne);
+      return;
+    }
+    const i = txt.search(/role\s*=\s*["']dialog["']/);
+    b4++;
+    ko('B4 ' + rel + ' L' + ligneDe(txt, i) + ' : role="dialog" sans ecouteur Escape, ni ici ni relaye ailleurs');
+  });
+  if (!b4) ok('B4 toute role="dialog" a son echappement clavier');
+
+  /* --- B5. image sans alt --------------------------------------------------
+     `alt=""` est une reponse valable : il dit « decorative ». C'est l'ABSENCE
+     d'attribut qui laisse un lecteur d'ecran lire l'URL du fichier. */
+  let b5 = 0;
+  SOURCES.forEach(({ rel, txt }) => {
+    for (const m of txt.matchAll(/<img\b([^>]*)>/gi)) {
+      if (/\balt\s*=/.test(m[1])) continue;
+      b5++;
+      ko('B5 ' + rel + ' L' + ligneDe(txt, m.index) + ' : <img> sans alt — ' + m[0].slice(0, 70));
+    }
+  });
+  if (!b5) ok('B5 toutes les images portent un alt');
+
+  /* --- B6. saut de niveau de titre ----------------------------------------
+     Un h1 suivi d'un h3 laisse un trou dans le plan de la page : au lecteur
+     d'ecran, un niveau a disparu. On ne compte QUE les sauts vers le bas du
+     plan (h1 -> h3), pas les remontees, qui sont normales a la fin d'une
+     section. On ne compte pas non plus les h1 multiples : la page du bureau en
+     porte DEUX, celui de la porte et celui du bureau ouvert, dont un seul est
+     affiche a la fois selon qu'on est connecte ou non. Ce n'est pas un defaut.
+     BORNE, PAS ECHEC SEC, pour la meme raison qu'en B2 : il reste un saut dans
+     le depot et sa correction n'appartient pas a ce fichier. */
+  /* 4 sur le site, 0 sur le bureau. Les quatre sont la MEME faute, vue sur
+     quatre pages : src/_includes/components/liste-articles.njk L27 ouvre ses
+     entrees en <h3>, et sur les pages de rubrique le titre qui precede est le
+     <h1> de src/rubriques.njk L37. Il manque un cran. Mesure du 19/09/2026. */
+  /* ZERO DES DEUX COTES, 19/09/2026. La borne du site etait a 4 pour un seul defaut
+     vu quatre fois : liste-articles.njk ouvrait ses entrees en <h3> alors que le
+     titre precedent est le <h1> de rubriques.njk. Corrige en <h2> le jour meme. */
+  const BORNE_B6 = 0;
+  let b6 = 0;
+  console.log('  B6 sauts de niveau de titre :');
+  SOURCES.forEach(({ rel, txt }) => {
+    let prec = null;
+    for (const m of txt.matchAll(/<h([1-6])\b/gi)) {
+      const n = Number(m[1]);
+      if (prec !== null && n > prec + 1) {
+        b6++;
+        console.log('        ' + rel + ' L' + ligneDe(txt, m.index) + '  h' + prec + ' -> h' + n);
+      }
+      prec = n;
+    }
+  });
+  if (b6 > BORNE_B6) ko('B6 ' + b6 + ' saut(s) de niveau de titre, la borne est a ' + BORNE_B6 +
+                        ' — un titre a saute un cran');
+  else ok('B6 ' + b6 + ' saut(s) de niveau de titre, sous la borne de ' + BORNE_B6);
+}
+
+
+
+/* ===========================================================================
+   C. CE QUI VOYAGE ET CE QUI NE SERT A RIEN
+   ---------------------------------------------------------------------------
+   Ce script savait dire qu'une regle etait mal ecrite, jamais qu'elle ne
+   correspondait a rien. On croise donc les feuilles avec le balisage REEL :
+   les pages construites de _site/, les modules de src/js qui fabriquent le
+   bureau au clic, les donnees de src/_data, et les gabarits de src/.
+
+   LES CLASSES ASSEMBLEES EN VOL SONT LE PIEGE DE CE CONTROLE. `signal--danger`
+   n'est ecrit nulle part : bdv-base.js ecrit `signal signal--${kind}`. Un
+   controle naif declare la regle morte, on la supprime, et un etat d'alerte
+   perd sa couleur en production. On cherche donc, quand le nom complet est
+   introuvable, le PREFIXE jusqu'au dernier `--`. Les familles connues du
+   depot : `signal--`, `pr-sig--`, `conf--`, `bdv-amorce__etape--`. Inventer un
+   defaut coute aussi cher que d'en laisser passer un.
+
+   Trois chiffres, et UN SEUL est un echec :
+     1. les octets de regles dont aucune classe n'existe nulle part. 37 regles
+        mortes ont ete supprimees le 19/09/2026 : ce chiffre doit rester bas,
+        et sa borne ne remonte jamais.
+     2 et 3. DEUX THERMOMETRES, PAS DES ECHECS. Ils mesurent l'etat d'un
+        chantier ouvert, la SCISSION DE style.css, qui pese 320 ko et part
+        entier dans le bureau. On les pose a la mesure du jour pour voir le
+        chiffre BOUGER d'une construction a l'autre ; ce n'est pas une dette a
+        reparer tout de suite, et les faire echouer aujourd'hui rendrait le
+        banc inutilisable sans rien accelerer.
+   =========================================================================== */
+titre('C. Regles mortes, composants non inclus, feuille qui voyage');
+{
+  const lireSi = f => fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+  const liste = (dir, ext) => {
+    if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
+      const p = path.join(dir, e.name);
+      return e.isDirectory() ? liste(p, ext) : (e.name.endsWith(ext) ? [p] : []);
+    });
+  };
+  const mots = txt => new Set(txt.match(/[A-Za-z_][\w-]*/g) || []);
+  const fusion = (a, b) => { b.forEach(x => a.add(x)); return a; };
+
+  /* --- 1. Quels gabarits d'includes sont reellement atteints -------------- */
+  const tousNjk = liste(path.join(RACINE, 'src'), '.njk');
+  const pagesNjk = tousNjk.filter(f => !f.includes(path.sep + '_includes' + path.sep));
+  const LAYOUTS = ['base.njk', 'article.njk'].map(f => path.join(RACINE, 'src/_includes', f)).filter(fs.existsSync);
+  const atteints = new Set();
+  const file = pagesNjk.concat(LAYOUTS);
+  while (file.length) {
+    const f = file.pop();
+    if (atteints.has(f)) continue;
+    atteints.add(f);
+    inclusPar(f).forEach(g => { if (!atteints.has(g)) file.push(g); });
+  }
+  const orphelins = tousNjk.filter(f => !atteints.has(f));
+
+  /* --- 2. Le balisage qui part reellement en production ------------------- */
+  const MARQUAGE = new Set();
+  liste(path.join(RACINE, '_site'), '.html').forEach(f => fusion(MARQUAGE, mots(fs.readFileSync(f, 'utf8'))));
+  fichiersJS_.forEach(f => fusion(MARQUAGE, mots(fs.readFileSync(f, 'utf8'))));
+  liste(path.join(RACINE, 'src/_data'), '.js').forEach(f => fusion(MARQUAGE, mots(fs.readFileSync(f, 'utf8'))));
+  [...atteints].forEach(f => fusion(MARQUAGE, mots(fs.readFileSync(f, 'utf8'))));
+  const MOTS_ORPHELINS = new Set();
+  orphelins.forEach(f => fusion(MOTS_ORPHELINS, mots(fs.readFileSync(f, 'utf8'))));
+
+  /* Le bureau : sa page construite, ses modules, son gabarit et ses includes.
+     La coque partagee (entete, pied) est dans la page construite, donc prise. */
+  const BUREAU = new Set();
+  const pageBureau = path.join(RACINE, '_site/mon-bureau/index.html');
+  fusion(BUREAU, mots(lireSi(pageBureau)));
+  const gabBureau = path.join(RACINE, 'src/mon-bureau.njk');
+  fusion(BUREAU, mots(lireSi(gabBureau)));
+  inclusPar(gabBureau).forEach(f => fusion(BUREAU, mots(fs.readFileSync(f, 'utf8'))));
+  fichiersJS_.forEach(f => fusion(BUREAU, mots(fs.readFileSync(f, 'utf8'))));
+
+  /* La classe assemblee en vol : a defaut du nom entier, le prefixe jusqu'au
+     dernier `--`. Memorise, parce qu'un gros depot repose les memes classes
+     des milliers de fois. */
+  const cache = new Map();
+  const presente = (cls, ens, cle) => {
+    const k = cle + '\u0000' + cls;
+    if (cache.has(k)) return cache.get(k);
+    let v = ens.has(cls);
+    if (!v) {
+      const i = cls.lastIndexOf('--');
+      if (i > 0) v = ens.has(cls.slice(0, i + 2));
+    }
+    cache.set(k, v);
+    return v;
+  };
+
+  /* --- 3. Les regles, avec leur poids en octets --------------------------- */
+  function reglesPesees(texte) {
+    const out = [];
+    let ast;
+    try { ast = csstree.parse(texte, { positions: true, onParseError() {} }); }
+    catch (e) { return out; }
+    csstree.walk(ast, {
+      visit: 'Rule',
+      enter(node) {
+        if (this.atrule && this.atrule.name === 'keyframes') return;
+        if (!node.loc || node.prelude.type !== 'SelectorList') return;
+        const sels = node.prelude.children.toArray().map(s => csstree.generate(s));
+        out.push({ sels, octets: node.loc.end.offset - node.loc.start.offset,
+                   ligne: node.loc.start.line });
+      }
+    });
+    return out;
+  }
+  const classesDeSel = s => [...s.matchAll(/\.(-?[A-Za-z_][\w-]*)/g)].map(m => m[1]);
+  /* UN SELECTEUR EST INERTE quand il ne peut correspondre a rien : une de ses
+     classes OBLIGATOIRES manque du balisage, ou bien un groupe d'ALTERNATIVES
+     `:where()` / `:is()` a perdu toutes les siennes. Sans ce traitement des
+     groupes, `:where(.nav,.hero,.waitlist,...)` serait declare inerte des que
+     l'une des classes disparait, alors qu'il lui suffit d'une seule. C'est
+     exactement le genre de faux positif qui fait supprimer une regle vivante. */
+  const inerte = (sel, ens, cle) => {
+    const re = /:(?:where|is|matches|any)\(([^()]*)\)/gi;
+    const groupes = [...sel.matchAll(re)].map(m => m[1]);
+    const obligatoires = classesDeSel(sel.replace(/:(?:where|is|matches|any)\(([^()]*)\)/gi, ' '));
+    if (!obligatoires.length && !groupes.length) return null;
+    const manquantes = obligatoires.filter(c => !presente(c, ens, cle));
+    if (manquantes.length) return manquantes;
+    for (const g of groupes) {
+      const cg = classesDeSel(g);
+      if (cg.length && cg.every(c => !presente(c, ens, cle))) return cg;
+    }
+    return null;
+  };
+  const TOUT = new Set(MARQUAGE);
+  MOTS_ORPHELINS.forEach(m => TOUT.add(m));
+
+  /* --- 4. Regles mortes et regles de composants non inclus ---------------- */
+  let oMortes = 0, nMortes = 0, oOrph = 0, nOrph = 0;
+  const exemplesMortes = [], exemplesOrph = [];
+  reglesPesees(B.txt).forEach(r => {
+    /* morte  : inerte meme en comptant les gabarits non inclus ; la classe
+                n'existe NULLE PART, ni en production ni dans un composant range.
+       orpheline : vivante seulement dans un composant de src/_includes/ que
+                plus aucune page n'inclut. */
+    const toutesMortes   = r.sels.every(s => inerte(s, TOUT, 't'));
+    const toutesInertes  = r.sels.every(s => inerte(s, MARQUAGE, 'm'));
+    if (toutesMortes) {
+      oMortes += r.octets; nMortes++;
+      if (exemplesMortes.length < 10) exemplesMortes.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
+    } else if (toutesInertes) {
+      oOrph += r.octets; nOrph++;
+      if (exemplesOrph.length < 10) exemplesOrph.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
+    }
+  });
+
+  const ko3 = n => (n / 1024).toFixed(1) + ' ko';
+  /* BORNE 1 : la seule des trois qui fait echouer. Mesure du 19/09/2026, juste
+     apres la suppression des 37 regles mortes. Elle ne remonte jamais. */
+  /* 5 080 octets sur le site, 5 705 sur le bureau : la mesure du 19/09/2026,
+     apres la suppression des 37 regles mortes de la matinee. Les 625 octets
+     d'ecart sont quatre regles de src/css/bdv-ecrans.css que seul l'appel
+     --bureau lit : `.bdv-ventes .btn--type` (L213 a L215) et
+     `.bdv-ventes .fiche__msg` (L457), dont plus aucun module ne pose la classe.
+     EN OCTETS ET NON EN NOMBRE DE REGLES : reformater une feuille change le
+     nombre de regles, pas le poids de ce qui ne sert a rien. Borne a faire
+     BAISSER a chaque suppression, elle ne remonte jamais. */
+  /* 5 080 DES DEUX COTES, 19/09/2026. La borne du bureau etait a 5 705 : les
+     625 octets d'ecart etaient quatre regles mortes de bdv-ecrans.css que seul
+     l'appel --bureau voyait, `.btn--type` et ses deux etats, plus `.fiche__msg`.
+     Elles sont parties, les deux cotes mesurent donc la meme chose.
+     CE CHIFFRE NE REMONTE JAMAIS : il descend dans le meme commit que chaque
+     suppression. */
+  const BORNE_MORTES = 5080;
+  console.log('  regles dont aucune classe n\'existe nulle part : ' + nMortes + ' regle(s), ' +
+              ko3(oMortes) + ' (' + oMortes + ' o)   borne ' + ko3(BORNE_MORTES) + ' (' + BORNE_MORTES + ' o)');
+  exemplesMortes.forEach(e => console.log('        ' + e));
+  if (oMortes > BORNE_MORTES)
+    ko('C1 ' + oMortes + ' octets de regles mortes, la borne est a ' + BORNE_MORTES +
+       ' — une regle a perdu son balisage, ou une classe a ete renommee d\'un seul cote');
+  else ok('C1 ' + oMortes + ' octets de regles mortes, sous la borne de ' + BORNE_MORTES);
+
+  console.log('  regles de composants de src/_includes/ qu\'aucune page n\'inclut : ' +
+              nOrph + ' regle(s), ' + ko3(oOrph));
+  console.log('        composant(s) non inclus : ' +
+              (orphelins.length ? orphelins.map(f => path.basename(f)).join(', ') : 'aucun'));
+  exemplesOrph.forEach(e => console.log('        ' + e));
+  note('THERMOMETRE 1 (n\'echoue pas) : ' + ko3(oOrph) + ' de style pour des composants hors page');
+
+  /* --- 5. Ce qui ne peut servir qu'au site public et part dans le bureau --- */
+  if (!fs.existsSync(pageBureau)) {
+    note('THERMOMETRE 2 non calcule : _site/mon-bureau/index.html est absent (npm run build)');
+  } else {
+    const texteStyle = lireSi(path.join(RACINE, 'src/css/style.css'));
+    let oPublic = 0, nPublic = 0, oTotal = 0;
+    const exemples = [];
+    reglesPesees(texteStyle).forEach(r => {
+      oTotal += r.octets;
+      /* vivante en production... et inerte partout dans le bureau. */
+      const vivante = r.sels.some(s => !inerte(s, MARQUAGE, 'm'));
+      const toutesPubliques = vivante && r.sels.every(s => inerte(s, BUREAU, 'b'));
+      if (toutesPubliques) {
+        oPublic += r.octets; nPublic++;
+        if (exemples.length < 8) exemples.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
+      }
+    });
+    console.log('  style.css : ' + ko3(oTotal) + ' de regles, dont ' + ko3(oPublic) +
+                ' (' + nPublic + ' regle(s)) qui ne peuvent servir qu\'au site public');
+    exemples.forEach(e => console.log('        ' + e));
+    note('THERMOMETRE 2 (n\'echoue pas) : ' + ko3(oPublic) +
+         ' de style.css voyagent dans le bureau sans pouvoir s\'y appliquer');
+  }
+}
+
 
 /* ---------------------------------------------------------------------------
    Verdict

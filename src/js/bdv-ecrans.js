@@ -641,7 +641,7 @@ function barListHTML(entries){
   const tot=entries.reduce((s,e)=>s+e[1],0);
   return `<div class="rep">`+entries.map(([k,v])=>{
     const w=max>0?Math.max(0,v/max*100):0, pct=tot>0?v/tot*100:0;
-    return `<div class="rep__row"><div class="rep__bar"><div class="rep__fill" style="width:${w.toFixed(1)}%"></div><div class="rep__lbl">${esc(k)}</div></div><div class="rep__val">${fmtMes(v)} <span class="rep__pct">${fmtNum(pct,0)}%</span></div></div>`;
+    return `<div class="rep__row"><div class="rep__bar"><div class="rep__fill" style="width:${w.toFixed(1)}%"></div><div class="rep__lbl">${esc(k)}</div></div><div class="rep__val">${fmtMes(v)} <span class="rep__pct">${fmtNum(pct,0)} %</span></div></div>`;
   }).join('')+`</div>`;
 }
 /* `repCard()` est morte le 11/09/2026 avec les « Repartitions detaillees » de l'apercu
@@ -1936,7 +1936,7 @@ function renderProduits(){
       <td>${esc(c.nom)}</td>
       <td class="num">${fmtMoney(c.ca)}</td>
       <td class="num">${fmtNum(c.part,1)} %</td>
-      ${A.f?`<td class="num" style="color:${c.delta>=0?'var(--ok)':'var(--danger-deep)'}">${c.delta>=0?'+':'-'}${fmtMoney(Math.abs(c.delta))}</td>`:''}
+      ${A.f?`<td class="num" style="color:${c.delta>0?'var(--ok)':(c.delta<0?'var(--danger-deep)':'inherit')}">${c.delta>0?'+':(c.delta<0?'-':'')}${fmtMoney(Math.abs(c.delta))}</td>`:''}
       <td class="num">${fmtNum(c.clients)}</td>
       <td class="num">${fmtNum(c.rachat*100,0)} %</td>
       <td class="num">${fmtNum(c.prixMed,2)} €</td>
@@ -1998,7 +1998,7 @@ function produitHTML(c,A){
       ${ficheKpi(fmtMoney(c.ca),'chiffre d\'affaires',fmtNum(c.btl)+' bouteilles')}
       ${ficheKpi(fmtNum(c.prixMed,2)+' €','prix médian',c.condDom?'en '+c.condDom+', de '+fmtNum(c.prixBas,2)+' à '+fmtNum(c.prixHaut,2)+' €':'')}
       ${ficheKpi(fmtNum(c.rachat*100,0)+' %','en reprennent','moyenne du domaine '+fmtNum(A.repRachat*100,0)+' %')}
-      ${c.delta!=null?ficheKpi((c.delta>=0?'+':'-')+fmtMoney(Math.abs(c.delta)),'à date égale',A.f?A.f.prev+' vs '+A.f.cur:''):ficheKpi('n/d','à date égale','deux années nécessaires')}
+      ${c.delta!=null?ficheKpi((c.delta>0?'+':(c.delta<0?'-':''))+fmtMoney(Math.abs(c.delta)),'à date égale',A.f?A.f.prev+' vs '+A.f.cur:''):ficheKpi('n/d','à date égale','deux années nécessaires')}
     </div>
     <div class="fiche__conseil">
       <div class="fiche__conseil-t">Ce que je ferais</div>
@@ -3472,7 +3472,7 @@ async function reopen(){
 /* ======================= EXPORTS (PDF rapport + Excel/CSV) ======================= */
 function groupCA(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigné)':String(k);m[k]=(m[k]||0)+r._total;});return m;}
 function groupQ(rows,get){const m={};rows.forEach(r=>{let k=get(r);k=(k===''||k==null)?'(non renseigné)':String(k);m[k]=(m[k]||0)+r._qte;});return m;}
-function prTable(entries,label,tot){const e=entries.filter(x=>x[1]!==0);const mx=e.length?Math.max.apply(null,e.map(x=>Math.abs(x[1]))):0;return `<table class="pr-t"><thead><tr><th>${esc(label)}</th><th class="n">CA HT</th><th class="n">Part</th><th class="pr-barh"></th></tr></thead><tbody>`+e.map(([k,v])=>{const w=mx>0?Math.max(2,Math.abs(v)/mx*100):0;return `<tr><td>${esc(k)}</td><td class="n">${fmtMoney(v)}</td><td class="n muted">${tot>0?fmtNum(v/tot*100,0)+'%':'-'}</td><td class="pr-bar"><span style="width:${w.toFixed(0)}%"></span></td></tr>`;}).join('')+`</tbody></table>`;}
+function prTable(entries,label,tot){const e=entries.filter(x=>x[1]!==0);const mx=e.length?Math.max.apply(null,e.map(x=>Math.abs(x[1]))):0;return `<table class="pr-t"><thead><tr><th>${esc(label)}</th><th class="n">CA HT</th><th class="n">Part</th><th class="pr-barh"></th></tr></thead><tbody>`+e.map(([k,v])=>{const w=mx>0?Math.max(2,Math.abs(v)/mx*100):0;return `<tr><td>${esc(k)}</td><td class="n">${fmtMoney(v)}</td><td class="n muted">${tot>0?fmtNum(v/tot*100,0)+' %':'-'}</td><td class="pr-bar"><span style="width:${w.toFixed(0)}%"></span></td></tr>`;}).join('')+`</tbody></table>`;}
 function prKpi(l,v,sub,hero){return `<div class="pr-kpi${hero?' pr-kpi--hero':''}"><div class="pr-kpi__l">${esc(l)}</div><div class="pr-kpi__v">${v}</div><div class="pr-kpi__s">${esc(sub||'')}</div></div>`;}
 function prSec(t){return `<div class="pr-seclabel">${esc(t)}</div>`;}
 function buildReport(){

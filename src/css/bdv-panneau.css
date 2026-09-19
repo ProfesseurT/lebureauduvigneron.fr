@@ -178,11 +178,16 @@
      `overflow` : rien ne depend plus de lui, mais une cellule longue reste
      rattrapee.
 
-     LES EN-TETES PARTENT AVEC LA MISE EN COLONNE, et c'est le cout de ce dessin :
-     un `<th>` ne peut pas se repeter devant chaque cellule sans que le markup
-     porte le libelle. Pour les rendre, il faudrait un `data-libelle` sur chaque
-     `<td>` dans bdv-base.js, donc une modification de fichier qui n'est pas la
-     mienne. Signale. */
+     LES EN-TETES REVIENNENT DEVANT CHAQUE CELLULE, 19/09/2026. Un `<th>` ne peut
+     pas se repeter tout seul : il faut que le markup porte le libelle. bdv-base.js
+     pose donc un `data-libelle` sur chacun des 18 `<td>` des cinq tableaux du
+     panneau, et la regle ci-dessous les rend. LES DEUX MOITIES VONT ENSEMBLE : ce
+     correctif a ete fait en deux fichiers par deux mains et le joint a manque une
+     demi-journee. Resultat a l'ecran : une ligne du renommage donnait `Export`,
+     `66`, `3`, `recurrente`, un champ. Personne ne pouvait savoir que 66 etait un
+     nombre de lignes et 3 un nombre de clients. Un tableau qui ne deborde plus mais
+     qu'on ne peut plus lire n'est pas un gain, c'est un echange.
+     Un `<td>` sans libelle ne rend rien de plus qu'avant : la regle est sure. */
   .bdvr-panneau .tablewrap { max-height: none; }
   .bdvr-panneau table.data,
   .bdvr-panneau table.data tbody,
@@ -200,6 +205,16 @@
   }
   .bdvr-panneau table.data td.num,
   .bdvr-panneau table.data th.num { text-align: left; }
+  .bdvr-panneau table.data td::before {
+    content: attr(data-libelle);
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--t-micro);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-large, .04em);
+  }
+  .bdvr-panneau table.data td:not([data-libelle])::before { content: none; }
 
   /* --- 4. Le plancher tactile, sur la CIBLE -----------------------------
      44 px, le meme chiffre que les trois autres feuilles. */
@@ -207,7 +222,51 @@
     min-height: 44px;
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
   }
+  /* ET ILS TIENNENT SUR UNE SEULE RANGEE, 19/09/2026. Portes a 44 px de cible, les
+     six onglets se repliaient sur TROIS rangees : l'en-tete du panneau mangeait
+     224 px des 844 de l'ecran et il ne restait que 488 px de corps, soit 51 %.
+     On a paye le plancher tactile avec la moitie de l'ecran utile. Meme remede que
+     la barre des pieces : la rangee defile au lieu de se replier, barre native
+     masquee, calage par onglet, et un degrade de bord droit qui dit qu'il y a une
+     suite et s'eteint tout seul arrive au bout. 132 px rendus au contenu. */
+  .bdvr-panneau .bdvr-onglets {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    background-color: var(--paper-light);
+    background-image:
+      linear-gradient(to left, var(--paper-light), transparent),
+      linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent);
+    background-repeat: no-repeat, no-repeat;
+    background-position: right center, right center;
+    background-size: 26px 100%, 18px 100%;
+    background-attachment: local, scroll;
+  }
+  .bdvr-panneau .bdvr-onglets::-webkit-scrollbar { display: none; }
+  .bdvr-panneau .bdvr-onglet { scroll-snap-align: start; }
+
+  /* --- 4 bis. LES SAISIES AUSSI ONT UN PLANCHER, 19/09/2026 -------------
+     Le plancher avait ete pose sur les boutons, les onglets, la croix et le lien
+     du pied, et pas sur les champs : dix-huit entrees et menus restaient entre 35
+     et 42 px. Une saisie est une cible comme une autre, et c'est meme celle qu'on
+     rate le plus souvent parce qu'elle est etroite. */
+  .bdvr-panneau input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .bdvr-panneau select,
+  .bdvr-panneau textarea { min-height: 44px; }
+
+  /* La case reste calee sur la PREMIERE ligne de son etiquette, 19/09/2026.
+     `min-height: 44px` avec `align-items: center` faisait flotter un carre de
+     13 px au milieu de deux lignes de texte, sur « Recevoir l'edition
+     bimensuelle du Bureau du Vigneron ». La cible de 44 px est gardee, l'aplomb
+     revient. */
+  .bdvr-panneau .bdvr-chk,
+  .bdvr-panneau .chk { align-items: flex-start; }
+  .bdvr-panneau .bdvr-chk input,
+  .bdvr-panneau .chk input { margin-top: .5rem; }
   /* La croix est l'UNIQUE sortie d'un panneau qui prend tout l'ecran sous 820 px.
      La rater, c'est rester enferme. Elle est calee dans l'angle, la ou le pouce
      est le moins precis. Elle etait a 27 x 28. */

@@ -24,7 +24,11 @@
   <li class="artligne">
     <span class="artligne__num" aria-hidden="true">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
     <div class="artligne__corps">
-      <h3 class="artligne__titre"><a href="{{ p.url }}">{{ p.data.title }}</a></h3>
+      {#- h2 ET PAS h3, 19/09/2026 : sur les quatre pages de rubrique, le titre qui
+          precede est le h1 de src/rubriques.njk. Un h3 y saute le cran du h2, et un
+          lecteur d'ecran qui navigue de titre en titre perd le fil. Une seule faute,
+          vue quatre fois. La classe ne bouge pas, donc le dessin non plus. -#}
+      <h2 class="artligne__titre"><a href="{{ p.url }}">{{ p.data.title }}</a></h2>
       {%- if p.data.description %}
       <p class="artligne__chapo">{{ p.data.description | court(130) }}</p>
       {%- endif %}

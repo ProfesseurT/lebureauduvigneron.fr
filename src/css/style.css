@@ -8013,10 +8013,17 @@ button.bureau-nav__item:hover {
    tout autour porte la cible a 24 x 24 et le dessin ne bouge pas d'un point.
    C'est le motif de `.postit__lien::after` et de `.echeance__ouvrir::after`, deja
    dans le projet. `::after` porte deja la coche dessinee, d'ou `::before`. */
+/* -4px ET PAS -2px, 19/09/2026. Le bloc contenant d'un pseudo-element absolu est
+   la boite de PADDING, pas la boite de bordure. La case fait 20 px en
+   `box-sizing: border-box` avec une bordure de 2 px, donc sa boite de padding fait
+   16 px : `-2px` de chaque cote ne faisait que rattraper la bordure, et le
+   `::before` calcule mesurait exactement 20 x 20. La cible n'avait pas bouge d'un
+   point, et la mesure le disait. Compare a `.bureau-tete__sortir::after`, qui
+   utilise -5px sur un element SANS bordure et qui, lui, fonctionne. */
 .tache__coche::before {
   content: "";
   position: absolute;
-  left: -2px; right: -2px; top: -2px; bottom: -2px;
+  left: -4px; right: -4px; top: -4px; bottom: -4px;
 }
 .tache__coche:hover { border-color: var(--bordeaux); }
 /* La coche est DESSINEE, pas ecrite : un caractere de coche change de dessin d'une
@@ -8178,10 +8185,14 @@ button.bureau-nav__item:hover {
    dessine pour un fond sombre et devient illisible sur le papier de cette boite.
    Meme piege que .btn--light, paye deux fois deja. */
 .tmod .btn { padding: 0.55rem 1.4rem; font-size: var(--t-mini); }
+/* Meme motif de lien-bouton souligne sans plancher que `.tachesf__grand` :
+   41,6 x 11 pour « Annuler » et 113 x 11 pour « Retirer cette tache », dans une
+   modale ou tout le reste a ete porte a 44 px. 19/09/2026. */
 .tmod__lien {
   padding: 0; background: none; border: none;
   font-family: var(--font-mono); font-size: var(--t-micro);
   color: var(--muted); cursor: pointer; text-decoration: underline;
+  min-height: 24px; display: inline-flex; align-items: center;
 }
 .tmod__lien:hover { color: var(--bordeaux); }
 .tmod__lien--x:hover { color: var(--danger-deep); }
@@ -8255,11 +8266,16 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 /* La seconde porte du formulaire. Un lien typographique et pas un deuxieme bouton
    plein : deux boutons pleins cote a cote se disputent le geste, et celui qui compte
    ici reste « Ajouter ». */
+/* `min-height` ajoute le 19/09/2026 : ses deux voisines de la meme rangee,
+   `.tache__source` et `.tache__x`, l'avaient recu et pas elle. C'etait un oubli,
+   pas un choix : la regle `body.bdv-poste` du meme bloc traite bien les trois
+   ensemble. Elle restait a 11 px de haut, le plus petit geste de l'ecran. */
 .tachesf__grand {
   padding: 0; background: none; border: none;
   font-family: var(--font-mono); font-size: var(--t-micro);
   color: var(--muted); cursor: pointer; text-decoration: underline;
   align-self: center;
+  min-height: 24px; display: inline-flex; align-items: center;
 }
 .tachesf__grand:hover { color: var(--bordeaux); }
 
@@ -8549,6 +8565,14 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   margin: 0 0 var(--e-s);
 }
 .equipe-aucun__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+/* 16 px SOUS 700 px, 19/09/2026. Ce champ etait a 14,1 px : sous 16 px, iOS
+   agrandit toute la page au premier appui et ne revient pas tout seul. Le
+   correctif du 19/09 etait borne a `.bdvr-panneau` et ce champ vit dans la piece
+   « L'equipe », donc il est passe au travers. La regle du 11/09 vaut pour TOUTE
+   saisie du produit, pas pour un ecran. */
+@media (max-width: 700px) {
+  .equipe-aucun__i { font-size: var(--t-corps); min-height: 44px; }
+}
 .equipe-aucun__i {
   flex: 1 1 16rem;
   min-height: var(--h-controle);

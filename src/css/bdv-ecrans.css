@@ -210,9 +210,9 @@
 .bdv-ventes .saisie__types{display:flex;gap:.3rem;align-items:center}
 .bdv-ventes .saisie__etiq{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
 .bdv-ventes .saisie__canal{border:var(--trait) solid var(--rule);background:var(--white);padding:.25rem .4rem;font-family:var(--font-mono);font-size:var(--t-mini);color:var(--ink);max-width:14rem}
-.bdv-ventes .btn--type{min-height:34px;padding:.25rem .6rem;background:none;border:var(--trait) solid transparent;color:var(--muted);font-family:var(--font-mono);font-size:var(--t-mini);cursor:pointer}
-.bdv-ventes .btn--type:hover{color:var(--ink)}
-.bdv-ventes .btn--type[aria-pressed="true"]{background:var(--bordeaux);border-color:var(--bordeaux);color:var(--on-dark)}
+/* `.btn--type` A ETE RETIRE LE 19/09/2026 : trois regles, plus aucun module ne
+   posait la classe. Recherche faite dans src/, dans _site/ et dans les chaines
+   assemblees des 22 fichiers JavaScript. */
 
 .bdv-ventes .etiq{display:block;width:100%;box-sizing:border-box;margin-bottom:1rem;padding:.5rem .7rem;border:var(--trait) dashed var(--rule-fort);background:none;font-family:var(--font-corps);font-size:var(--t-petit);color:var(--ink)}
 
@@ -320,7 +320,15 @@
 .bdv-ventes .filterbar__dates input{font-family:var(--font-mono);font-size:var(--t-petit);color:var(--ink);background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.2rem .35rem}
 .bdv-ventes .filterbar__scope{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:right}
 .bdv-ventes .filterbar__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted)}
-.bdv-ventes .chip{font-family:var(--font-mono);font-size:var(--t-micro);padding:.28rem .62rem;border:var(--trait) solid var(--rule);background:var(--white);cursor:pointer;border-radius:var(--r-nul);transition:var(--tr-rapide);color:var(--muted)}
+/* LA PASTILLE EST UN <button> DEPUIS LE 19/09/2026, ET IL FAUT LUI RENDRE SON
+   INTERLIGNE. Elle etait un <span> avec un `onclick`, donc inatteignable au
+   clavier alors qu'elle pilote tous les chiffres de l'ecran. Devenue un bouton,
+   elle a perdu 4 px de haut et s'est decalee vers le bas d'une moitie : un <span>
+   herite de `.bdv-ventes { line-height: var(--lh-normal) }`, un <button> non, la
+   feuille du navigateur lui impose `line-height: normal`. La regle qui rattrapait
+   ca existait deja mais elle etait enfermee dans la requete telephone, donc morte
+   sur l'ecran de Ted. On la remonte ici, pour toutes les largeurs. */
+.bdv-ventes .chip{display:inline-flex;align-items:center;line-height:var(--lh-normal);font-family:var(--font-mono);font-size:var(--t-micro);padding:.28rem .62rem;border:var(--trait) solid var(--rule);background:var(--white);cursor:pointer;border-radius:var(--r-nul);transition:var(--tr-rapide);color:var(--muted)}
 .bdv-ventes .chip:hover{border-color:var(--bordeaux);color:var(--ink)}
 .bdv-ventes .chip.on{background:var(--bordeaux);color:var(--on-dark);border-color:var(--bordeaux)}
 
@@ -454,8 +462,7 @@
 .bdv-ventes .fiche__conseil p{margin:0 0 .5rem;font-size:.93rem;line-height:1.55}
 .bdv-ventes .fiche__conseil p:last-of-type{margin-bottom:0}
 .bdv-ventes .fiche__actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem}
-.bdv-ventes .fiche__msg{white-space:pre-wrap;font-family:var(--font-corps);font-size:var(--t-base);background:var(--white);
-  border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.7rem .9rem;margin:.5rem 0 0;line-height:var(--lh-normal)}
+/* `.fiche__msg` A ETE RETIRE LE 19/09/2026 : plus aucun module ne pose la classe. */
 .bdv-ventes .fiche__cols{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem}
 @media (max-width:820px){.bdv-ventes .fiche__cols{grid-template-columns:1fr;gap:1rem}}
 .bdv-ventes .fiche__reco-l{display:flex;flex-direction:column;padding:.5rem 0;border-bottom:var(--trait) solid var(--rule)}
@@ -736,8 +743,14 @@
      bout, le voile la recouvre et l'indice s'efface. Aucune ligne de JavaScript.
      `background-color` est repose ici parce que `.card` declare `background` en
      raccourci : sans lui, poser `background-image` laisserait la carte grise. */
+  /* `.tablewrap` EST LE TROISIEME CADRE DEFILANT, 19/09/2026, et il avait ete
+     oublie : « Toutes tes cuvees » mesure 665 px dans 367, quatre colonnes sur
+     huit hors champ, coupees net, et c'est le tableau le plus important des deux.
+     Il porte son propre cadre au lieu de `.card`, donc `:has(> table.data)` ne le
+     voyait pas. Son fond est `--white` comme celui des cartes. */
   .bdv-ventes .card:has(> table.data),
-  .bdv-ventes .card:has(> details table.data) {
+  .bdv-ventes .card:has(> details table.data),
+  .bdv-ventes .tablewrap {
     background-color: var(--white);
     background-image:
       linear-gradient(to left, var(--white), transparent),

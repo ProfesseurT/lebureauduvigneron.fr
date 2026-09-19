@@ -203,7 +203,12 @@ await p.screenshot({ path: 'piece-fiche.png', fullPage: true });
    mise en page ne les cherche pas, alors qu'il a la page sous les yeux. */
 const suspects = await p.evaluate(() => {
   const out = [];
+  /* NI SCRIPT NI STYLE, 19/09/2026 : le code source inline d'un <script> contient
+     le mot `undefined` comme n'importe quel programme, et le scanner sortait donc
+     une fausse alerte a CHAQUE passage. Une alerte permanente cesse d'etre lue, et
+     le jour ou un vrai `undefined` s'affichera, il se perdra dans le bruit. */
   document.querySelectorAll('body *').forEach(el => {
+    if (/^(SCRIPT|STYLE|TEMPLATE|NOSCRIPT)$/.test(el.tagName)) return;
     if (el.children.length) return;
     const t = (el.textContent || '').trim();
     if (/\bNaN\b|\bInfinity\b|\bundefined\b|\[object /.test(t))

@@ -1642,8 +1642,8 @@ function renderReglages(){
   html+=`<div class="section-label">Ton exercice comptable</div>
   <div class="card">
     <p class="mini-line">Si ta société ne clôture pas au 31 décembre, dis-le ici. Tous les écrans comparent alors des exercices entre eux et non des années civiles : « où en es-tu », l'atterrissage, le décrochage client et le mix canal se recalent sur ce découpage.</p>
-    <div class="expl-ctrls"><div class="field"><label>Premier mois de l'exercice</label>
-      <select class="search" onchange="exAppliquer(this.value)">${MOIS_PLEIN.map((m,i)=>`<option value="${i+1}"${EX_START===i+1?' selected':''}>${m}</option>`).join('')}</select>
+    <div class="expl-ctrls"><div class="field"><label for="exMoisDebut">Premier mois de l'exercice</label>
+      <select class="search" id="exMoisDebut" onchange="exAppliquer(this.value)">${MOIS_PLEIN.map((m,i)=>`<option value="${i+1}"${EX_START===i+1?' selected':''}>${m}</option>`).join('')}</select>
     </div></div>
     <p class="mini-line">${EX_START===1
       ?`Exercice calé sur l'année civile, du 1<sup>er</sup> janvier au 31 décembre. C'est le réglage par défaut.`
@@ -1714,7 +1714,11 @@ function selectChamp(cle,valeur,P){
      requete de media : ce `min-width:340px` debordait l'ecran d'un telephone de 390 px et
      obligeait bdv-panneau.css a un `!important` pour le rattraper. `.search` porte deja sa
      largeur, et la feuille la ramene a 0 sous 700 px. */
-  return `<select class="search" onchange="changerChamp('${cle}',this.value)">${opts}</select>`;
+  /* L'ETIQUETTE VOYAGE AVEC LE CHAMP, 19/09/2026. Ce menu est rendu deux fois, dans
+     deux cellules de tableau, sans <label>, sans id et sans aria-label : au lecteur
+     d'ecran il ne disait rien du tout. Il n'y a pas de place pour une etiquette
+     visible dans une cellule, donc c'est aria-label qui la porte. */
+  return `<select class="search" aria-label="Colonne de ton fichier pour ${esc(cle)}" onchange="changerChamp('${cle}',this.value)">${opts}</select>`;
 }
 function changerChamp(cle,val){
   BROUILLON[cle]=val;
@@ -1734,7 +1738,7 @@ function tableRegroupement(cible,champ,P,B){
     <th>Valeur dans ton fichier</th><th class="num">Lignes</th><th class="num">Clients</th><th>Forme</th><th>Tu l'appelles</th></tr></thead><tbody>
     ${liste.map(e=>`<tr><td data-libelle="Valeur dans ton fichier">${esc(e.v)}</td><td class="num" data-libelle="Lignes">${fmtNum(e.n)}</td><td class="num" data-libelle="Clients">${fmtNum(e.clients.size)}</td>
       <td data-libelle="Forme"><span class="muted-cell">${formeValeur(e)}</span></td>
-      <td data-libelle="Tu l'appelles"><input class="search" list="dl-${cible}" value="${esc(B[cible][e.v]||'')}"
+      <td data-libelle="Tu l'appelles"><input class="search" aria-label="Le nom que tu donnes a ${esc(e.v)}" list="dl-${cible}" value="${esc(B[cible][e.v]||'')}"
         onchange="BROUILLON.${cible}[${JSON.stringify(e.v).replace(/"/g,'&quot;')}]=this.value.trim();majImpact()"></td></tr>`).join('')}
     </tbody></table></div>
     ${reste>0?`<p class="note">${plur(reste,'valeur','plus rare')}${reste>1?' ne sont pas affichées, elles seront rangées':' n\'est pas affichée, elle sera rangée'} dans « Autre / non renseigné ».</p>`:''}

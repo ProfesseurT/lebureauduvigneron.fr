@@ -510,7 +510,14 @@
     // Les reglages ne sont pas une destination : le panneau s'ouvre PAR-DESSUS ce qui
     // est affiche, et le reperage dans la barre ne bouge pas. Le moteur qu'il lui faut
     // est deja charge par la page, il n'attend pas les ecrans de vente.
-    if (id === 'reglages' || id === 'base') { ouvrirReglages(); return; }
+    /* ON MARQUE QUAND MEME LA CELLULE, 19/09/2026. Ce `return` tombait AVANT tout
+       appel a marquerActif(), donc « Mes reglages », neuvieme et derniere piece de la
+       barre, n'etait jamais marquee active NI ramenee dans le champ depuis que la
+       barre defile. Mesure a 390 px : elle occupe 384 a 432 dans une fenetre de 390,
+       soit six pixels visibles sur quarante-huit, et `scrollLeft` restait a zero.
+       Le panneau reste bien un survol et pas une destination, donc on ne change ni
+       l'affichage ni l'adresse : on se contente de dire a la barre ou on est. */
+    if (id === 'reglages' || id === 'base') { marquerActif('reglages'); ouvrirReglages(); return; }
 
     var piece = PIECES.filter(function (p) { return p.id === id; })[0];
     if (!piece) id = 'journee';
