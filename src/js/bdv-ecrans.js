@@ -912,7 +912,7 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet,pas,dimLabe
     const sl=_slope(totByPeriod),seuil=Math.max(1,Math.abs(avg)*0.02);
     const trend=sl>seuil?'orientée à la hausse':(sl<-seuil?'orientée à la baisse':'globalement stable');
     const k=d==null?'info':(d>=0?'ok':'warn'),ic=d==null?'≈':(d>=0?'↗':'↘');
-    out.push(signal(k,ic,`Tendance de fond ${trend} : ${fmtMes(first)} en ${lbl(0)} vers ${fmtMes(last)} en ${lbl(n-1)}${d==null?'':' ('+fmtPct(d)+')'}.`,`Pente moyenne ${sl>=0?'+':'-'}${fmtMes(Math.abs(sl))} par ${pw} sur ${n} ${pwpl}. Moyenne par ${pw} : ${fmtMes(avg)}.`));
+    out.push(signal(k,ic,`Tendance de fond ${trend} : ${fmtMes(first)} en ${lbl(0)} vers ${fmtMes(last)} en ${lbl(n-1)}${d==null?'':' ('+fmtPct(d)+')'}.`,`Pente moyenne ${signeDe(sl)}${fmtMes(Math.abs(sl))} par ${pw} sur ${n} ${pwpl}. Moyenne par ${pw} : ${fmtMes(avg)}.`));
   }else{
     out.push(signal('info','≈',`Une seule ${pw} dans la sélection (${lbl(0)}) : ${fmtMes(grand)}.`,`Ajoute de l'historique pour dégager une tendance.`));
   }
@@ -1173,7 +1173,7 @@ function bridgeHero(){
   const ligne=(lbl,val,pos,sub)=>`<tr>
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
       <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--ok)':'var(--danger)'}"></span></td>
-      <td class="num" style="color:${pos?'var(--ok)':'var(--danger-deep)'};white-space:nowrap">${val===0?'':(pos?'+':'-')}${fmtMoney(Math.abs(val))}</td></tr>`;
+      <td class="num" style="color:${pos?'var(--ok)':'var(--danger-deep)'};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
   return `<div class="section-label">D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale</div>`
     +signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
@@ -1182,7 +1182,7 @@ function bridgeHero(){
       ${ligne('Clients en hausse',br.up,true,'ils achètent plus qu\'avant')}
       ${ligne('Clients en baisse',br.down,false,'ils achètent encore, mais moins')}
       ${ligne('Clients perdus',br.lost,false,'ils achetaient l\'an dernier, plus rien cette année')}
-      <tr><td><b>Variation totale</b></td><td></td><td class="num"><b>${br.delta>=0?'+':'-'}${fmtMoney(Math.abs(br.delta))}</b></td></tr>
+      <tr><td><b>Variation totale</b></td><td></td><td class="num"><b>${fmtDelta(br.delta)}</b></td></tr>
       </tbody></table>
       <p class="note">Les quatre lignes bouclent sur le total : chaque euro gagné ou perdu est dans une seule d\'entre elles. Un client ne peut pas être à la fois perdu et en baisse.</p></div>`;
 }
@@ -1587,7 +1587,7 @@ function renderCap(){
     html+=kpiCard('Réalisé '+exLabelCourt(at.cur),fmtMoney(at.done),at.months+' mois connus',true);
     html+=kpiCard('Atterrissage estimé',fmtMoney(at.central),'fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high));
   }else if(at&&at.complete){html+=kpiCard(exLabel(at.cur)+', '+exComplet(),fmtMoney(at.total),exMot()+' clôturé'+(EX_START===1?'e':''),true);}
-  if(objectif&&at&&!at.complete){const gap=at.central-objectif;html+=kpiCard('Écart vs objectif',(gap>=0?'+':'-')+fmtMoney(Math.abs(gap)),gap>=0?'objectif jouable':'objectif menacé');}
+  if(objectif&&at&&!at.complete){const gap=at.central-objectif;html+=kpiCard('Écart vs objectif',fmtDelta(gap),gap>0?'objectif dépassé':(gap<0?'objectif menacé':'objectif pile atteint'));}
   html+=`</div>`;
   if(at&&!at.complete)html+=`<p class="note">Atterrissage ${at.method==='saison'?('calé sur la saisonnalité de '+exLabel(at.cur-1)):('linéaire (faute d\'un '+exMot()+' précédent en base)')}.</p>`;
 
@@ -1652,9 +1652,9 @@ function renderCap(){
   if(pv){
     fond+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${exLabelCourt(pv.cur)} vs ${exLabelCourt(pv.prev)} à date égale</span></div>
       <table class="data"><tbody>
-      <tr><td>Effet volume (quantités vendues)</td><td class="num" style="color:${pv.volEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.volEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.volEff))}</td></tr>
-      <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${pv.priceEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.priceEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.priceEff))}</td></tr>
-      <tr><td><b>Variation totale</b></td><td class="num"><b>${pv.delta>=0?'+':'-'}${fmtMoney(Math.abs(pv.delta))}</b></td></tr>
+      <tr><td>Effet volume (quantités vendues)</td><td class="num" style="color:${couleurDelta(pv.volEff)}">${fmtDelta(pv.volEff)}</td></tr>
+      <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${couleurDelta(pv.priceEff)}">${fmtDelta(pv.priceEff)}</td></tr>
+      <tr><td><b>Variation totale</b></td><td class="num"><b>${fmtDelta(pv.delta)}</b></td></tr>
       </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
   }else fond+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
   html+=`<div class="card"><details class="msg--replie" id="pied-cap">
@@ -1936,7 +1936,7 @@ function renderProduits(){
       <td>${esc(c.nom)}</td>
       <td class="num">${fmtMoney(c.ca)}</td>
       <td class="num">${fmtNum(c.part,1)} %</td>
-      ${A.f?`<td class="num" style="color:${c.delta>0?'var(--ok)':(c.delta<0?'var(--danger-deep)':'inherit')}">${c.delta>0?'+':(c.delta<0?'-':'')}${fmtMoney(Math.abs(c.delta))}</td>`:''}
+      ${A.f?`<td class="num" style="color:${couleurDelta(c.delta)}">${fmtDelta(c.delta)}</td>`:''}
       <td class="num">${fmtNum(c.clients)}</td>
       <td class="num">${fmtNum(c.rachat*100,0)} %</td>
       <td class="num">${fmtNum(c.prixMed,2)} €</td>
@@ -1998,7 +1998,7 @@ function produitHTML(c,A){
       ${ficheKpi(fmtMoney(c.ca),'chiffre d\'affaires',fmtNum(c.btl)+' bouteilles')}
       ${ficheKpi(fmtNum(c.prixMed,2)+' €','prix médian',c.condDom?'en '+c.condDom+', de '+fmtNum(c.prixBas,2)+' à '+fmtNum(c.prixHaut,2)+' €':'')}
       ${ficheKpi(fmtNum(c.rachat*100,0)+' %','en reprennent','moyenne du domaine '+fmtNum(A.repRachat*100,0)+' %')}
-      ${c.delta!=null?ficheKpi((c.delta>0?'+':(c.delta<0?'-':''))+fmtMoney(Math.abs(c.delta)),'à date égale',A.f?A.f.prev+' vs '+A.f.cur:''):ficheKpi('n/d','à date égale','deux années nécessaires')}
+      ${c.delta!=null?ficheKpi(fmtDelta(c.delta),'à date égale',A.f?A.f.prev+' vs '+A.f.cur:''):ficheKpi('n/d','à date égale','deux années nécessaires')}
     </div>
     <div class="fiche__conseil">
       <div class="fiche__conseil-t">Ce que je ferais</div>
@@ -3152,7 +3152,7 @@ function piedCommerce(){
   if(br&&br.movers.length){
     dedans+=`<div class="card"><div class="card__title"><span>Plus gros mouvements par client, ${br.cur} vs ${br.prev} à date égale</span></div>
       <table class="data"><thead><tr><th>Client</th><th class="num">Effet</th></tr></thead><tbody>
-      ${br.movers.slice(0,10).map(c=>`<tr><td>${esc(c[0])}</td><td class="num" style="color:${c[1]>=0?'var(--ok)':'var(--danger-deep)'}">${c[1]>=0?'+':'-'}${fmtMoney(Math.abs(c[1]))}</td></tr>`).join('')}
+      ${br.movers.slice(0,10).map(c=>`<tr><td>${esc(c[0])}</td><td class="num" style="color:${couleurDelta(c[1])}">${fmtDelta(c[1])}</td></tr>`).join('')}
       </tbody></table><p class="note">Calculé à mois comparables entre les deux années.</p></div>`;
   }
 
@@ -3497,7 +3497,7 @@ function buildReport(){
     ${prKpi('Bouteilles / cols',fmtNum(btl),'quantité vendue')}
     ${prKpi('Panier moyen',fmtMoney(panier),'par facture')}
     ${prKpi('Factures',fmtNum(factures),'distinctes')}
-    ${objectif?prKpi('Objectif',fmtMoney(objectif),(at&&!at.complete)?(((at.central-objectif)>=0?'+':'-')+fmtMoney(Math.abs(at.central-objectif))+' projeté'):'fixé'):prKpi('Clients actifs',fmtNum(clients),'sur la période')}
+    ${objectif?prKpi('Objectif',fmtMoney(objectif),(at&&!at.complete)?(fmtDelta(at.central-objectif)+' projeté'):'fixé'):prKpi('Clients actifs',fmtNum(clients),'sur la période')}
   </div>`;
 
   const sigs=diagnosticSignals();
@@ -3505,9 +3505,9 @@ function buildReport(){
 
   const pv=computePriceVolume();
   if(pv)h+=prSec("D'où vient l'évolution · "+exLabelCourt(pv.cur)+' vs '+exLabelCourt(pv.prev))+`<div class="pr-pv">
-    <div class="pr-pv__item"><span>Effet volume</span><b class="${pv.volEff>=0?'up':'down'}">${(pv.volEff>=0?'+':'-')+fmtMoney(Math.abs(pv.volEff))}</b></div>
-    <div class="pr-pv__item"><span>Effet prix</span><b class="${pv.priceEff>=0?'up':'down'}">${(pv.priceEff>=0?'+':'-')+fmtMoney(Math.abs(pv.priceEff))}</b></div>
-    <div class="pr-pv__item pr-pv__tot"><span>Variation totale</span><b>${(pv.delta>=0?'+':'-')+fmtMoney(Math.abs(pv.delta))}</b></div>
+    <div class="pr-pv__item"><span>Effet volume</span><b class="${pv.volEff>0?'up':(pv.volEff<0?'down':'')}">${fmtDelta(pv.volEff)}</b></div>
+    <div class="pr-pv__item"><span>Effet prix</span><b class="${pv.priceEff>0?'up':(pv.priceEff<0?'down':'')}">${fmtDelta(pv.priceEff)}</b></div>
+    <div class="pr-pv__item pr-pv__tot"><span>Variation totale</span><b>${fmtDelta(pv.delta)}</b></div>
   </div>`;
 
   const cliMap={};rows.forEach(r=>{const id=clientKey(r);cliMap[id]=(cliMap[id]||0)+r._total;});

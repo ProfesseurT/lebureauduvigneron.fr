@@ -742,7 +742,14 @@
        bdv-reglages.js, chargee en defer, donc pas forcement la au moment ou on
        monte la barre. On la cherche au clic, jamais avant. */
     var b = conteneur.querySelector('[data-bdv-nav-panneau]');
-    if (b) b.addEventListener('click', function () { ouvrirReglages(); });
+    /* ET ON MARQUE LA CELLULE, 19/09/2026. `afficher()` avait ete corrige, pas
+       celui-ci, et c'est celui-ci que le vigneron touche : le bouton du panneau
+       dans la barre du bas. Sans `marquerActif`, qui porte le `scrollIntoView`,
+       « Mes reglages », neuvieme et derniere cellule, restait hors champ depuis
+       que la barre defile : six pixels visibles sur quarante-huit a 390 px, zero
+       a 360. Deux chemins pour le meme geste, un seul corrige : c'est la faute
+       qu'on a faite trois fois aujourd'hui. */
+    if (b) b.addEventListener('click', function () { marquerActif('reglages'); ouvrirReglages(); });
 
     /* Le clic sur une piece de vente ne quitte plus la page. On laisse passer les clics
        qui ont un sens ailleurs : molette, milieu, ctrl ou cmd enfonce, c'est une demande

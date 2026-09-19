@@ -660,11 +660,25 @@
     const change = (ONGLET !== id);
     ONGLET = id;
     blocs().forEach(function(b){ b.classList.toggle('bdvr-bloc--on', b.id === id); });
+    /* ET L'ONGLET CHOISI SE RAMENE DANS LE CHAMP, 19/09/2026. Les six onglets
+       tiennent desormais sur UNE rangee qui defile, au lieu de se replier sur
+       trois et de manger 224 px des 844 de l'ecran. Mais un ruban qui defile sans
+       que la selection le suive cache la moitie du panneau derriere un geste que
+       rien n'annonce : mesure du jour, apres selection, « Le classement » n'etait
+       visible qu'a 107 px sur 144, « Le courrier » et « L'agenda » a ZERO. On
+       choisissait un onglet et l'onglet choisi n'etait pas a l'ecran.
+       C'est exactement la faute deja faite sur la barre des pieces, au meme
+       endroit du raisonnement. */
+    let choisi = null;
     Array.prototype.forEach.call(document.querySelectorAll('.bdvr-onglet'), function(o){
       const on = (o.dataset.cible === id);
       o.classList.toggle('on', on);
       o.setAttribute('aria-selected', on ? 'true' : 'false');
+      if(on) choisi = o;
     });
+    if(choisi && choisi.scrollIntoView){
+      try{ choisi.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'auto' }); }catch(e){}
+    }
     // On ne remonte le corps QUE sur un vrai changement d'onglet : gateVitisoft appelle ce
     // chemin apres chaque enregistrement, et le defilement sauterait pour rien.
     if(change){ const c = el('bdvrCorps'); if(c) c.scrollTop = 0; }

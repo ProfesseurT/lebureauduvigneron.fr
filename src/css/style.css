@@ -8565,14 +8565,6 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   margin: 0 0 var(--e-s);
 }
 .equipe-aucun__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
-/* 16 px SOUS 700 px, 19/09/2026. Ce champ etait a 14,1 px : sous 16 px, iOS
-   agrandit toute la page au premier appui et ne revient pas tout seul. Le
-   correctif du 19/09 etait borne a `.bdvr-panneau` et ce champ vit dans la piece
-   « L'equipe », donc il est passe au travers. La regle du 11/09 vaut pour TOUTE
-   saisie du produit, pas pour un ecran. */
-@media (max-width: 700px) {
-  .equipe-aucun__i { font-size: var(--t-corps); min-height: 44px; }
-}
 .equipe-aucun__i {
   flex: 1 1 16rem;
   min-height: var(--h-controle);
@@ -8582,6 +8574,18 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   color: var(--ink);
   font-family: var(--font-corps);
   font-size: var(--t-base);
+}
+/* 16 px SOUS 700 px, 19/09/2026, ET APRES LA REGLE DE BASE et non avant : a
+   specificite egale, c'est la derniere ecrite qui gagne, et la premiere version de
+   ce correctif etait posee au-dessus, donc morte. Elle a passe une capture entiere
+   a ne rien faire. Le champ etait a 14,1 px : sous 16 px, iOS agrandit toute la
+   page au premier appui et ne revient pas tout seul. Le correctif d'origine etait
+   borne a `.bdvr-panneau` et ce champ vit dans la piece « L'equipe », donc il
+   etait passe au travers. La regle du 11/09 vaut pour TOUTE saisie du produit,
+   pas pour un ecran. */
+@media (max-width: 700px) {
+  .equipe-aucun__i { font-size: var(--t-corps); min-height: 44px; }
+  #equipeNomChamp { font-size: var(--t-corps); min-height: 44px; }
 }
 
 /* Les deux chemins de l'invitation, cote a cote : « je cree mon compte » et

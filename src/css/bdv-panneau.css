@@ -248,6 +248,12 @@
   }
   .bdvr-panneau .bdvr-onglets::-webkit-scrollbar { display: none; }
   .bdvr-panneau .bdvr-onglet { scroll-snap-align: start; }
+  /* Et l'onglet CHOISI doit se voir. Mesure du 19/09 : apres selection,
+     « Le classement » n'etait visible qu'a 107 px sur 144, « Le courrier » et
+     « L'agenda » a ZERO. On choisit un onglet et l'onglet choisi n'est pas a
+     l'ecran. Le defilement est mis par bdv-reglages.js au clic ; ici on garde
+     seulement de quoi le viser. */
+  .bdvr-panneau .bdvr-onglet[aria-selected="true"] { scroll-snap-align: center; }
 
   /* --- 4 bis. LES SAISIES AUSSI ONT UN PLANCHER, 19/09/2026 -------------
      Le plancher avait ete pose sur les boutons, les onglets, la croix et le lien
@@ -263,10 +269,8 @@
      13 px au milieu de deux lignes de texte, sur « Recevoir l'edition
      bimensuelle du Bureau du Vigneron ». La cible de 44 px est gardee, l'aplomb
      revient. */
-  .bdvr-panneau .bdvr-chk,
-  .bdvr-panneau .chk { align-items: flex-start; }
   .bdvr-panneau .bdvr-chk input,
-  .bdvr-panneau .chk input { margin-top: .5rem; }
+  .bdvr-panneau .chk input { margin-top: .4rem; }
   /* La croix est l'UNIQUE sortie d'un panneau qui prend tout l'ecran sous 820 px.
      La rater, c'est rester enferme. Elle est calee dans l'angle, la ou le pouce
      est le moins precis. Elle etait a 27 x 28. */
@@ -298,11 +302,21 @@
      gratuite ou perte » : elles changent le chiffre d'affaires affiche) et
      13 x 13 pour les deux cases du courrier. Les deux etiquettes enveloppent leur
      case et la basculent : c'est la vraie cible. */
+  /* UNE SEULE REGLE POUR LA CASE, 19/09/2026, ET C'EST LA LECON DU JOUR.
+     Il y en avait DEUX : celle-ci posait `align-items: center` pour la cible de
+     44 px, et une autre, 442 octets plus haut, posait `flex-start` pour l'aplomb.
+     Meme specificite, la derniere ecrite gagne : l'aplomb etait ecrit, et mort.
+     Sur « Recevoir l'edition bimensuelle du Bureau du Vigneron », qui se replie en
+     deux lignes, la case de 13 px flottait 16,6 px sous le centre de sa premiere
+     ligne, donc a hauteur du DEUXIEME mot de la deuxieme ligne : l'oeil la
+     rattachait a la mauvaise phrase. Les deux intentions tiennent ensemble, il
+     suffit de ne pas les ecrire a deux endroits : `min-height` porte la cible,
+     `flex-start` garde l'aplomb. */
   .bdvr-panneau .chk,
   .bdvr-panneau .bdvr-chk {
     min-height: 44px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
   }
   /* Les liens d'un tableau : meme motif que `.bdv-ventes table.data a` le 11/09,
      `inline-flex` et pas une interligne forcee, sinon une adresse sur deux lignes

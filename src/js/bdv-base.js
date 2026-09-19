@@ -697,7 +697,19 @@ function fmtNum(n,d){return new Intl.NumberFormat('fr-FR',{maximumFractionDigits
    `textContent`, des exports CSV et des messages de `status()`, ou une entite s'afficherait
    telle quelle. */
 function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
-function fmtPct(n,d){return (n>=0?'+':'')+fmtNum(n,d==null?1:d)+' %';}
+/* ZERO EST UN TROISIEME ETAT, ET IL L'EST PARTOUT, 19/09/2026.
+   Le signe et la couleur etaient decides par `>= 0` a huit endroits differents,
+   ecrits a huit moments differents. Resultat : « +0 % » en vert dans l'ardoise,
+   « +0 EUR » en vert dans « Mes cuvees », « -0 EUR » en rouge dans le tableau des
+   mouvements, « Croissance saine : +0 EUR » en conseil. Corriger un endroit ne
+   corrigeait pas les sept autres, et on l'a verifie deux fois dans la journee.
+   Les deux fonctions ci-dessous sont maintenant le SEUL endroit ou l'on decide.
+   Un zero n'a ni signe ni couleur de verdict : il n'annonce ni une bonne ni une
+   mauvaise nouvelle, il dit qu'il ne s'est rien passe. */
+function signeDe(n){return n>0?'+':(n<0?'-':'');}
+function couleurDelta(n){return n>0?'var(--ok)':(n<0?'var(--danger-deep)':'inherit');}
+function fmtDelta(n){return signeDe(n)+fmtMoney(Math.abs(n));}
+function fmtPct(n,d){return signeDe(n)+fmtNum(n,d==null?1:d)+' %';}
 /* PASSE PAR fmtNum, 19/09/2026. `plur()` ecrivait « 8000 lignes » la ou tout le reste du
    bureau ecrit « 8 000 » : le meme nombre changeait de forme selon la phrase qui le
    portait. L'effet de bord est voulu et large, toutes les occurrences du projet gagnent le
