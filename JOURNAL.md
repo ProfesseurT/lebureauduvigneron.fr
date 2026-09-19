@@ -12,6 +12,130 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 19/09/2026, la suite. Passer l'audit au vert
+
+Ted, apres le rapport du matin : « tu vas travailler pour reduire les resultats de ton audit
+aux feux verts partout. Tu reviens vers moi quand c'est termine. »
+
+**La ligne que je me suis fixee, faute de pouvoir le lui demander** : je corrige tout ce qui est
+un DEFAUT ou une REGLE DU PROJET NON TENUE (plancher tactile de 44 px, contraste de 4,5, une
+ecriture qui doit rendre sa preuve, une zone qui doit savoir se cacher). Je ne touche pas a ce
+qu'il a DECIDE (l'ordre des zones, le dessin du bandeau sur ordinateur, son echelle
+typographique). Ce que lui seul peut faire, je le prepare.
+
+Quatre commits, et `npm run verif` passe ses **37 etapes a zero echec** a la fin de chacun.
+
+### La lecon de la journee, en une phrase
+
+**Un correctif fait en deux moities par deux mains n'est pas un correctif.** Elle s'est
+verifiee quatre fois, dans quatre formes differentes, et chaque fois le travail etait ecrit,
+juste, et mort :
+
+1. **Le joint jamais ecrit.** `bdv-base.js` posait 18 `data-libelle` sur les cellules des
+   tableaux du panneau, `bdv-panneau.css` mettait le tableau en une colonne par ligne, et la
+   regle `td::before{content:attr(data-libelle)}` qui relie les deux n'existait nulle part. Les
+   deux fichiers se renvoyaient l'un a l'autre en commentaire. A l'ecran, une ligne du
+   renommage donnait `Export` / `66` / `3` / `recurrente` / un champ, et personne ne pouvait
+   savoir que 66 etait un nombre de lignes. **Un tableau qui ne deborde plus mais qu'on ne peut
+   plus lire n'est pas un gain, c'est un echange.**
+2. **Deux regles qui se battaient a 442 octets.** `align-items: flex-start` pour l'aplomb de la
+   case a cocher, `align-items: center` pour sa cible de 44 px, meme specificite, la derniere
+   ecrite gagnait. L'aplomb etait ecrit, et mort.
+3. **Une regle posee au mauvais endroit de la cascade.** La requete telephone du champ
+   « le nom de ton domaine » etait ecrite AVANT la regle de base, donc perdue a specificite
+   egale. Elle a passe une capture entiere a ne rien faire.
+4. **Un geste qui a deux chemins, un seul corrige.** `afficher()` avait recu son
+   `marquerActif('reglages')`, pas l'ecouteur du bouton de la barre du bas. Et c'est le bouton
+   que le vigneron touche.
+
+Et la cinquieme, d'une autre nature : **le calage magnetique `scroll-snap` defaisait
+`scrollIntoView`.** Le ruban visait juste, puis se reposait sur le point d'ancrage voisin. Les
+deux correctifs de `marquerActif` etaient annules par une ligne de feuille de style. Entre un
+glissement qui s'arrete joliment et une selection qui se voit, c'est la selection qui gagne.
+
+**Rien de tout cela n'a ete trouve par un banc.** Les 37 etapes de `verif` etaient vertes a
+chaque fois. Ce sont quatre campagnes de captures, regardees a l'oeil, qui les ont sorties.
+
+### Ce qui est repare
+
+**Robustesse.** Le garde-fou de la deconnexion appelle `filesEnAttente()` au lieu d'une liste de
+trois noms ecrite a la main : les taches et les reperes de calendrier notes hors reseau etaient
+perdus sans un mot. Un refus definitif (403, 401, « pas l'auteur ») ne retourne plus en file et
+se dit : une tache cochee sur la ligne d'un collegue bloquait le changement de bureau **pour
+toujours**, et rien dans l'interface n'en sortait. La file des signets a enfin un proprietaire.
+Le jeton de session se renouvelle toutes les demi-heures. Une session morte ferme au lieu de
+laisser un bureau qui a l'air connecte. La deconnexion vide aussi la memoire d'onglet : un
+brouillon de fiche client passait d'une personne a l'autre sur un poste partage. Le sous-main
+dit quand il montre l'etat de la derniere visite. « Vider la base » refuse de s'ouvrir plutot
+que d'annoncer « 0 ligne » sur un compte qui en porte des milliers. Le panneau sort de son
+attente au bout de 15 s avec un bouton « Reessayer ». Sans reglages lus, les ecrans disent que
+les chiffres sont devines.
+
+**Accessibilite, jamais regardee jusqu'ici.** Filtres de periode et lignes de tableau client
+atteignables au clavier. Quatorze champs recoivent une etiquette. La fiche client piege le
+focus. Le champ de trace d'appel retrouve un cerclage. Le seul saut de niveau de titre est
+corrige.
+
+**Telephone.** `bdv-panneau.css` recoit son premier bloc telephone : 44 px de cible partout,
+16 px de saisie pour qu'iOS cesse de zoomer, et le tableau du classement tient dans 390 px avec
+ses libelles. Les six onglets tiennent sur une rangee qui defile au lieu de trois : **132 px
+rendus au contenu**, l'en-tete du panneau passe de 224 a 136 px. La barre du bas defile a 48 px
+par cellule au lieu de 43, et la pièce active s'y ramene.
+
+**Poids.** 415 ko de commentaires ne partent plus dans le navigateur, 60 ko ne sont plus publies
+pour personne. Le bloquant tombe de **143 a 107 ko**, et `banc-poids` le tient sous 120.
+
+**ZERO EST UN TROISIEME ETAT, ET MAINTENANT IL L'EST PARTOUT.** Le signe et la couleur d'une
+variation etaient decides par `>= 0` a **quatorze endroits** ecrits a quatorze moments. D'ou
+« +0 % » en vert, « -0 EUR » en rouge, « Croissance saine : +0 EUR », et « Tu gagnes plus que tu
+ne perds : 0 EUR contre 0 EUR ». Corriger un endroit n'en corrigeait pas treize, et on l'a
+verifie deux fois dans la journee avant de comprendre. `signeDe()`, `couleurDelta()` et
+`fmtDelta()` sont desormais le seul endroit ou l'on decide.
+
+**L'agenda.** `choixDuCompte()` demandait `calendrier_choix?id=...`, colonne disparue au lot 17 :
+tous les reperes eteints ou decales par le vigneron etaient ignores **en silence** dans son
+flux. Elle passe par le bureau courant, et une lecture ratee rend 503 au lieu de servir le
+calendrier complet.
+
+### Les garde-fous savent maintenant attraper tout ca
+
+Le decor des deux harnais de capture vit dans `scripts/bureau-garni.mjs` : les deux ecrivaient
+`bdv_file_v1` et `bdv_taches_v1` dans une forme que le code ne sait pas relire, et
+photographiaient donc **un bureau vide** sans le savoir. Tout l'audit d'occupation du 18/09 a
+ete fait la-dessus. `verifierLeBureauGarni()` leve desormais si le bureau photographie est
+vide.
+
+`scripts/charte.mjs` gagne trois sections, chacune prouvee en remettant le defaut :
+**echelles fermees** (valeurs distinctes par famille, ce qui attrape enfin les `z-index` en dur,
+les tailles, les ombres et les `50%`), **accessibilite de la page construite** (six controles qui
+lisent le HTML et le JavaScript ensemble), **ce qui voyage et ce qui ne sert a rien** (octets de
+regles mortes, de composants non inclus, et de style public qui voyage dans le bureau). Les
+bornes B2, B6 et C1 sont a **zero ou a la mesure du jour**, et elles ne remontent jamais.
+`scripts/banc-poids.mjs` est nouveau. Trois controles qui ne pouvaient pas echouer sont repares.
+Et la charte ne compte plus un jeton cite dans un **commentaire** comme un appel : elle
+declarait le site NON CONFORME pour `--ombre-photo`, retire la veille, sur la foi d'une phrase.
+
+### Ce que je n'ai PAS touche, et pourquoi
+
+**Deux reparations ont ete essayees puis annulees**, parce que les deux touchaient une decision
+de Ted, gardee par un banc :
+- une dixieme zone d'accueil en tete casse l'ordre des zones dicte le 07/09, garde par
+  `banc-bureau` ;
+- montrer le sous-main sans depot casse « sans aucun depot, le sous-main n'est pas la », garde
+  deux fois par `banc-journee`.
+Le defaut reste donc ouvert, et il est reel : **sur un compte neuf, plus rien n'invite a deposer
+un export.** Les quatre zones qui en dependent se cachent toutes ensemble, et la seule phrase
+qui invitait au geste vit DANS l'une d'elles, donc elle ne peut jamais se lire. C'est a Ted de
+trancher, et la raison est ecrite dans `sousMainUtile()`.
+
+Non touche aussi : le bandeau qui prend **62 % de l'ecran sur telephone** (522 px sur 844 ; la
+decision du 18/09 au soir portait sur l'ordinateur, la question du telephone n'a jamais ete
+posee), l'echelle typographique (**68 a 78 % du texte du bureau sous 12 px**), la gouttiere a
+0 px des ecrans de vente contre 10 px des pieces de bureau (arbitrage ecrit du 15/09), et la
+scission de `style.css`, dont 57 ko ne servent qu'au site public et voyagent quand meme.
+
+---
+
 ## 19/09/2026. Audit complet de l'application, UX et systeme
 
 Ted : « tu vas auditer entierement l'application. UX et system. Tu vas deployer tous les agents
