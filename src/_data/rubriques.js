@@ -15,8 +15,25 @@
    rubriques a un ou deux articles auraient fait deux pages maigres, et une page
    maigre ne se classe pas.
 
-   `pilier` n'est plus lu par aucun gabarit. Il reste dans les entetes des vingt
-   fichiers, sans effet, en attendant que Ted decide de l'effacer.
+   OU EN EST `pilier`, CORRIGE LE 19/09/2026. Ce paragraphe affirmait depuis le
+   10/09 que « pilier n'est plus lu par aucun gabarit ». C'ETAIT FAUX, et pendant
+   neuf jours : articles-une.njk et articles-recent.njk le lisaient tous les deux,
+   et la page d'accueil CONSTRUITE portait bel et bien « Marketing 📈 » et
+   « Process 🔧 ». Pire, la phrase a ete crue : mon-bureau.njk la cite deux fois
+   pour justifier son propre changement. Un commentaire faux ne se contente pas de
+   tromper, il se recopie -- c'est ce qui le rend pire qu'un commentaire absent.
+
+   Les deux composants lisent `categorie` depuis le 19/09/2026, et la phrase est
+   vraie maintenant : `pilier` n'est plus lu par aucun gabarit. Elle se verifie
+   d'une recherche de `data.pilier` dans src/, pas d'une relecture de ce fichier.
+   Il reste dans les entetes des vingt fichiers, sans effet, en attendant que Ted
+   decide de l'effacer.
+
+   CE QUI RESTE, ET QUI N'EST PAS DANS CE FICHIER : les deux regles de style qui
+   habillent l'etiquette portent toujours son ancien nom, `.article-card__pilier`
+   (src/css/style.css:1513) et `.articles-une__pilier` (src/css/style.css:3477).
+   Elles habillent une `categorie` desormais. Le jour ou on les renomme, on renomme
+   les gabarits dans le meme geste : l'un sans l'autre laisse l'etiquette nue.
 
    COMMENT AJOUTER UN ARTICLE A UNE RUBRIQUE : on ne touche pas a ce fichier, on
    ecrit la bonne `categorie` dans l'entete de l'article. Ce fichier ne change

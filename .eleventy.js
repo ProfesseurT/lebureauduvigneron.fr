@@ -257,6 +257,169 @@ module.exports = function(eleventyConfig) {
     if (gagne > 0) console.log("[css] minifie : " + Math.round(gagne / 1024) + " Ko de moins a servir");
   });
 
+  /* ==========================================================================
+     LE JAVASCRIPT SERVI, POSE LE 19/09/2026.
+     ==========================================================================
+     MEME PRINCIPE QUE LE CROCHET DU CSS JUSTE AU-DESSUS, ET POUR LES MEMES
+     RAISONS : `addPassthroughCopy("src/js")` court-circuite le pipeline des
+     transforms, donc rien ne peut attraper ces fichiers avant qu'ils soient
+     copies. On reecrit `_site`, JAMAIS `src`. charte.mjs, les sept apercus et
+     les deux scripts de jointure (joindre-courrier.mjs, joindre-agenda.mjs)
+     lisent tous des sources intactes, avec leurs commentaires : verifie le
+     19/09, aucun d'eux ne regarde `_site/js/`.
+
+     DEUX CHOSES, DANS CET ORDRE.
+
+     1. DEUX FICHIERS QU'AUCUNE PAGE NE CHARGE, 58 ko publies pour rien.
+        `bdv-courrier.js` (51,7 ko) et `bdv-ics.js` (6,4 ko) ne servent qu'aux
+        fonctions Supabase, qui travaillent sur LEURS PROPRES COPIES, dans
+        `_deploiement/`, recollees par `npm run courrier:joindre` et
+        `npm run agenda:joindre`. Verifie le 19/09 : aucun `<script src>` de
+        gabarit, aucun chargement dynamique dans src/js/, et l'import par URL
+        publique a ete examine puis REFUSE le 09/09 (voir l'entete de
+        supabase/functions/courrier-matin/index.ts). Ils sont donc retires du
+        SERVI, et seulement du servi.
+
+     2. LES COMMENTAIRES NE VOYAGENT PLUS. 375 ko de commentaires francais
+        partaient dans le navigateur, dont une bonne part sur le chemin qui
+        bloque l'affichage. Ce depot commente beaucoup, et c'est une qualite :
+        ce n'est pas une raison pour la faire payer a la connexion de Ted.
+
+     ET LA PRUDENCE, QUI EST TOUT LE SUJET. Retirer des commentaires d'un
+     JavaScript a la main est la pire idee possible : un `//` dans une chaine,
+     un `/` d'expression reguliere, un gabarit qui contient `/*`, et le fichier
+     servi devient faux SANS QUE RIEN NE LEVE A LA CONSTRUCTION. On ne devine
+     donc rien : c'est ACORN qui dit ou sont les commentaires, le meme analyseur
+     que celui d'Eleventy, deja present par lui. Absent, on ne fait rien.
+
+     TROIS GARDE-FOUS, ET AUCUN N'EST DECORATIF :
+       a. chaque commentaire est remplace par une espace SUIVIE D'AUTANT DE
+          RETOURS A LA LIGNE qu'il en contenait. L'espace empeche de souder deux
+          jetons : coller un commentaire entre deux noms les souderait en un
+          seul, et rien ne le dirait. Les retours gardent les insertions
+          de point-virgule automatiques a leur place, et les numeros de ligne
+          avec elles.
+       b. on recompte l'ARBRE des deux cotes, par type de noeud. Un seul ecart,
+          et le fichier d'origine reste en place. C'est le meme controle que
+          celui du CSS, qui recompte regles et declarations.
+       c. `node --check` sur CHAQUE fichier produit. S'il refuse, on remet
+          l'original ET on fait echouer la construction : un JavaScript casse
+          dans `_site` est une page blanche, pas une page moins jolie.
+
+     LES COMMENTAIRES DE LICENCE SONT EPARGNES (`/*!`, `@license`, `@preserve`,
+     `Copyright`) : ce depot n'en porte pas aujourd'hui, mais une bibliotheque
+     deposee ici demain en porterait, et les retirer serait une faute.
+     ========================================================================== */
+  eleventyConfig.on("eleventy.after", async () => {
+    const fsp = require("fs");
+    const chemin = require("path");
+    const { execFileSync } = require("child_process");
+
+    const dossier = chemin.join(__dirname, "_site", "js");
+    if (!fsp.existsSync(dossier)) return;
+
+    /* ---- 1. CE QU'ON NE PUBLIE PAS ---- */
+    let retire = 0;
+    for (const nom of ["bdv-courrier.js", "bdv-ics.js"]) {
+      const f = chemin.join(dossier, nom);
+      if (!fsp.existsSync(f)) continue;
+      retire += fsp.statSync(f).size;
+      fsp.unlinkSync(f);
+    }
+    if (retire > 0) console.log("[js] non publie : " + Math.round(retire / 1024)
+      + " Ko que personne ne charge (bdv-courrier.js, bdv-ics.js)");
+
+    /* ---- 2. LES COMMENTAIRES ---- */
+    let acorn;
+    try { acorn = require("acorn"); }
+    catch (e) { console.warn("[js] acorn absent : commentaires laisses en place"); return; }
+
+    /* Le compte des noeuds par type, des deux cotes. Une instruction perdue se
+       verrait a l'ecran, jamais dans la taille du fichier. */
+    const histogramme = (arbre) => {
+      const compte = Object.create(null);
+      const voir = (n) => {
+        if (!n || typeof n !== "object") return;
+        if (Array.isArray(n)) { for (const x of n) voir(x); return; }
+        if (typeof n.type === "string") compte[n.type] = (compte[n.type] || 0) + 1;
+        for (const k of Object.keys(n)) {
+          if (k === "type" || k === "start" || k === "end" || k === "loc" || k === "range") continue;
+          voir(n[k]);
+        }
+      };
+      voir(arbre);
+      return Object.keys(compte).sort().map((k) => k + ":" + compte[k]).join(",");
+    };
+
+    /* Deux essais : ces fichiers sont des scripts classiques, mais un module
+       depose ici demain ne doit pas etre laisse de cote en silence. */
+    const analyser = (txt, commentaires) => {
+      const opts = { ecmaVersion: "latest", locations: false };
+      if (commentaires) opts.onComment = commentaires;
+      try { return acorn.parse(txt, Object.assign({ sourceType: "script" }, opts)); }
+      catch (e) {
+        if (commentaires) commentaires.length = 0;
+        try { return acorn.parse(txt, Object.assign({ sourceType: "module" }, opts)); }
+        catch (e2) { return null; }
+      }
+    };
+
+    const LICENCE = /^[!*]|@license|@preserve|@cc_on|copyright/i;
+    let gagne = 0, traites = 0;
+
+    for (const nom of fsp.readdirSync(dossier).filter((f) => f.endsWith(".js"))) {
+      const f = chemin.join(dossier, nom);
+      const avant = fsp.readFileSync(f, "utf8");
+
+      const trouves = [];
+      const arbreAvant = analyser(avant, trouves);
+      if (!arbreAvant) {
+        console.warn("[js] " + nom + " : illisible par acorn, laisse tel quel");
+        continue;
+      }
+      const aRetirer = trouves.filter((c) => !LICENCE.test(String(c.text || "").trim()));
+      if (!aRetirer.length) continue;
+
+      /* Une espace pour ne pas souder deux jetons, puis autant de retours a la
+         ligne que le commentaire en contenait. */
+      let apres = "", curseur = 0;
+      for (const c of aRetirer.slice().sort((a, b) => a.start - b.start)) {
+        if (c.start < curseur) continue;              /* jamais imbriques, mais on se garde */
+        const texte = avant.slice(c.start, c.end);
+        apres += avant.slice(curseur, c.start) + " " + "\n".repeat((texte.match(/\n/g) || []).length);
+        curseur = c.end;
+      }
+      apres += avant.slice(curseur);
+      if (apres.length >= avant.length) continue;
+
+      const arbreApres = analyser(apres, null);
+      if (!arbreApres) {
+        console.warn("[js] " + nom + " : relecture impossible apres coup, laisse tel quel");
+        continue;
+      }
+      if (histogramme(arbreAvant) !== histogramme(arbreApres)) {
+        console.warn("[js] " + nom + " : ECART d'arbre apres retrait, fichier laisse tel quel");
+        continue;
+      }
+
+      fsp.writeFileSync(f, apres);
+      /* LE DERNIER MOT REVIENT A NODE, PAS A NOUS. */
+      try {
+        execFileSync(process.execPath, ["--check", f], { stdio: "pipe" });
+      } catch (e) {
+        fsp.writeFileSync(f, avant);
+        throw new Error("[js] " + nom + " : `node --check` REFUSE le fichier produit. "
+          + "L'original a ete remis dans _site, et la construction s'arrete ici : un "
+          + "JavaScript casse qui part en ligne est une page blanche.\n"
+          + String((e.stderr || "").toString() || e.message).split("\n").slice(0, 6).join("\n"));
+      }
+      gagne += avant.length - apres.length;
+      traites++;
+    }
+    if (gagne > 0) console.log("[js] commentaires retires de " + traites + " fichier(s) : "
+      + Math.round(gagne / 1024) + " Ko de moins a servir");
+  });
+
   return {
     dir: {
       input: "src",

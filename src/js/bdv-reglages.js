@@ -743,11 +743,86 @@
     else n.value = (valeur == null) ? '' : String(valeur);
   }
 
+  /* ============ « CHARGEMENT DE TES REGLAGES… » A MAINTENANT UNE FIN, 19/09/2026 ============
+     Le message vit dans le pied du formulaire et son `hidden` n'etait rabaisse QUE par
+     l'arrivee du profil. Quand le compte ne repondait pas, il restait a l'ecran pour
+     toujours : le panneau annoncait un chargement qui ne se terminerait jamais, les six
+     onglets restaient cliquables sur du vide, et rien ne disait ce qui manquait.
+
+     LE MEME PLAFOND QUE LE VOILE D'AMORCAGE, et on va le CHERCHER chez lui plutot que de
+     le recopier : `BdvAmorce.PLAFOND_MS`, quinze secondes, arbitrage de Ted du 17/09/2026.
+     Deux attentes du meme bureau qui rendent la main a deux moments differents, ca
+     s'apprend comme un defaut d'affichage. Le repli a quinze secondes ne sert que si
+     bdv-amorce.js n'est pas charge dans la page.
+
+     ET LE MEME MOTIF : une etape ratee se dit PAR SON NOM, et on propose le geste qui
+     repare. « Erreur de chargement » ne se raconte pas au telephone. */
+  function plafondMs(){
+    try{
+      const p = window.BdvAmorce && BdvAmorce.PLAFOND_MS;
+      return (p > 0) ? p : 15000;
+    }catch(e){ return 15000; }
+  }
+  const ATTENTE_REPOS = 'Chargement de tes réglages…';
+  let ATTENTE_MINUTEUR = null;
+  function desarmerAttente(){
+    if(!ATTENTE_MINUTEUR) return;
+    try{ clearTimeout(ATTENTE_MINUTEUR); }catch(e){}
+    ATTENTE_MINUTEUR = null;
+  }
+  function armerAttente(){
+    desarmerAttente();                 // jamais deux minuteries pour un seul message
+    if(PROFIL_LU && REGL_LU) return;   // rien a attendre
+    const a = el('bdvrAttente');
+    if(a){ a.textContent = ATTENTE_REPOS; a.hidden = false; }
+    ATTENTE_MINUTEUR = setTimeout(direAttenteRatee, plafondMs());
+  }
+  function direAttenteRatee(){
+    ATTENTE_MINUTEUR = null;
+    const a = el('bdvrAttente');
+    if(!a || (PROFIL_LU && REGL_LU)) return;
+    /* On NOMME ce qui n'est pas arrive. Le profil porte le prenom, le domaine et les deux
+       consentements ; les reglages portent l'objectif et l'exercice. Les deux peuvent
+       manquer separement, et le bouton « Enregistrer » ne se deverrouille qu'avec le
+       profil : le dire evite de chercher pourquoi il reste gris. */
+    const manque = [];
+    if(!PROFIL_LU) manque.push('ta fiche');
+    if(!REGL_LU)   manque.push('ton objectif et ton exercice');
+    a.hidden = false;
+    a.textContent = '';
+    const p = document.createElement('span');
+    p.textContent = 'Ton compte n’a pas répondu : ' + manque.join(' et ')
+      + (manque.length > 1 ? ' n’ont pas pu être lus' : ' n’a pas pu être lu')
+      + '. Rien ne peut être enregistré tant que c’est le cas. ';
+    a.appendChild(p);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'bdvr-btn';
+    b.textContent = 'Réessayer';
+    b.addEventListener('click', relancerLectures);
+    a.appendChild(b);
+  }
+  function relancerLectures(){
+    const encore = function(){ const v = el('bdvrVoile'); return v && !v.hidden; };
+    armerAttente();
+    if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()) remplir(); });
+    if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()) remplir(); });
+  }
+
   function verrous(){
     const b = el('bdvrEnregistrer');
     if(b) b.disabled = !PROFIL_LU;
     const a = el('bdvrAttente');
-    if(a) a.hidden = PROFIL_LU;
+    if(a){
+      const toutLu = PROFIL_LU && REGL_LU;
+      /* Tout est lu : le message redevient ce qu'il etait et disparait. Sans cette remise
+         au repos, la phrase d'echec et son bouton resteraient dans le pied du formulaire
+         apres un « Réessayer » qui a marche. */
+      if(toutLu){ desarmerAttente(); a.textContent = ATTENTE_REPOS; a.hidden = true; }
+      /* Encore dans le délai : on attend, et on le dit. Delai échu et lecture incomplète :
+         c'est direAttenteRatee() qui tient l'affichage, verrous() n'y touche pas. */
+      else if(ATTENTE_MINUTEUR) a.hidden = false;
+    }
     ['bdvrObjectif','bdvrExercice'].forEach(function(id){
       const n = el(id); if(n) n.disabled = !REGL_LU;
     });
@@ -863,12 +938,43 @@
     });
   }
 
-  function compterLignesCompte(){
-    if(!pret() || !BdvCompte.compter) return Promise.resolve(null);
-    return BdvCompte.compter('/ventes?select=empreinte').catch(function(){ return null; });
+  /* ============ LE COMPTAGE EXACT A ETE RETIRE, 19/09/2026 ============
+     `compterLignesCompte()` demandait `BdvCompte.compter('/ventes?select=empreinte')`,
+     c'est-a-dire un `count=exact` de PostgREST, c'est-a-dire un count(*) sur tout le jeu
+     filtre. Sur les 171 569 lignes de Ted : 205 Mo a parcourir, et le serveur a rendu
+     `57014 canceling statement due to statement timeout` le 18/09/2026.
+
+     CE QUE CA DONNAIT A L'ECRAN, et c'est pire que la lenteur. La requete echouait donc
+     TOUJOURS, le compteur d'ecart affichait en permanence « Sauvegarde non verifiable pour
+     l'instant », et le garde-fou de deconnexion sortait a CHAQUE clic son avertissement
+     « Impossible de verifier ce que contient ton compte ». Un avertissement qui parait
+     toujours cesse d'etre lu, et c'est celui-la qui protege les donnees.
+
+     ON POSE DONC LA QUESTION QUE LE SERVEUR SAIT ENCORE ENTENDRE : « y a-t-il au moins une
+     ligne ». `BdvSync.auMoinsUneVente()` demande UNE ligne bornee par l'index, quelques
+     millisecondes, et elle est deja ecrite pour la synchronisation et pour l'amorcage. Elle
+     rend `true`, `false`, ou `null` quand on ne sait pas : un reseau muet n'est pas un
+     compte vide, et cette nuance-la est tout ce qui reste du garde-fou.
+
+     CE QU'ON PERD, ET IL FAUT LE DIRE : l'ECART chiffre entre l'appareil et le compte.
+     « 4 442 lignes n'existent que sur cet ordinateur » n'est plus calculable. Ce qui reste
+     detectable est le cas grave, celui du 07/09/2026 : un appareil qui porte des lignes en
+     face d'un compte qui n'en porte AUCUNE. Un avertissement moins precis mais qui dit vrai
+     vaut mieux qu'un avertissement precis qui ne parait jamais. */
+  function compteAUneLigne(){
+    if(!pret() || !window.BdvSync || !BdvSync.auMoinsUneVente) return Promise.resolve(null);
+    try{ return Promise.resolve(BdvSync.auMoinsUneVente()).catch(function(){ return null; }); }
+    catch(e){ return Promise.resolve(null); }
   }
 
   function nb(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  /* Le pluriel du panneau, 19/09/2026. Le moteur en a un, dans bdv-base.js, mais il n'est
+     pas toujours charge quand le panneau parle : au bureau il n'arrive qu'au premier clic
+     sur un ecran de vente. Meme forme, et `suite` porte l'accord que le nom seul ne donne
+     pas (« ligne recuperee », « doublon ignore »). */
+  function plur(n, mot, suite){
+    return nb(n) + ' ' + mot + (n > 1 ? 's' : '') + (suite ? ' ' + suite + (n > 1 ? 's' : '') : '');
+  }
 
   /* Le bandeau d'etat de la sauvegarde. Il ne repete PAS le nombre de lignes, qui est deja
      dans les cartes juste en dessous : il porte le verdict, appareil contre compte. C'est le
@@ -879,22 +985,32 @@
     const cadre = el('bdvrEtat'), verdictEl = el('bdvrBaseIci'), detailEl = el('bdvrBaseEcart');
     if(!verdictEl) return;
     const local = await compterLignesLocales();
-    const distant = await compterLignesCompte();
+    // `true`, `false`, ou `null` quand on ne sait pas. Voir compteAUneLigne().
+    const distant = await compteAUneLigne();
     let alerte = false, verdict, detail;
-    if(!local && !distant){
+    if(!local && distant === false){
       verdict = 'Aucune ligne pour le moment.';
       detail  = 'Dépose ton export Vitisoft ci-dessous : le tableau de bord n\'a rien à lire tant que ta base est vide.';
-    }else if(distant == null){
-      verdict = 'Sauvegarde non vérifiable pour l\'instant.';
-      detail  = nb(local) + ' ligne(s) sur cet appareil. Elles sont intactes : c\'est ton compte qui ne répond pas.';
-    }else if(local > distant){
+    }else if(!local && distant === null){
+      verdict = 'Rien sur cet appareil, et ton compte n\'a pas répondu.';
+      detail  = 'Si tu as déjà déposé un export, ne le redépose pas tout de suite : recharge plutôt la page '
+              + 'quand ta connexion sera revenue, ta base redescendra toute seule.';
+    }else if(!local && distant === true){
+      verdict = 'Ta base est sur ton compte, pas encore sur cet appareil.';
+      detail  = 'Elle redescend toute seule à l\'ouverture. Si rien n\'arrive, recharge la page.';
+    }else if(local && distant === false){
       alerte = true;
-      verdict = 'Sauvegarde incomplète : ' + nb(local - distant) + ' ligne(s) n\'existent que sur cet appareil.';
-      detail  = nb(local) + ' ligne(s) ici, ' + nb(distant) + ' sur ton compte. Redépose ton export pour compléter : '
-              + 'en l\'état, un autre appareil n\'en verrait que ' + nb(distant) + '.';
+      verdict = 'Sauvegarde absente : ton compte ne porte aucune ligne.';
+      detail  = plur(local, 'ligne') + ' n\'existent que sur cet appareil. Redépose ton export : '
+              + 'en l\'état, un autre appareil ne verrait rien du tout.';
+    }else if(distant === null){
+      verdict = 'Sauvegarde non vérifiable pour l\'instant.';
+      detail  = plur(local, 'ligne') + ' sur cet appareil. Elles sont intactes : c\'est ton compte qui ne répond pas.';
     }else{
-      verdict = 'Sauvegarde à jour.';
-      detail  = nb(local) + ' ligne(s) ici, ' + nb(distant) + ' sur ton compte. Tu retrouveras ta base sur un autre appareil.';
+      verdict = 'Sauvegarde en place.';
+      detail  = plur(local, 'ligne') + ' sur cet appareil, et ton compte en porte aussi. Tu retrouveras ta base '
+              + 'sur un autre appareil. L\'écart exact n\'est plus compté : la question faisait expirer le '
+              + 'serveur sur une grosse base.';
     }
     verdictEl.textContent = verdict;
     if(detailEl) detailEl.textContent = detail;
@@ -1014,11 +1130,15 @@
     // On rouvre sur ce qu'on a, puis on se corrige avec ce que le serveur dit. Tant que ces
     // lectures n'ont pas abouti, rien ne part : c'est le role des deux verrous.
     const encore = function(){ const v = el('bdvrVoile'); return v && !v.hidden; };
+    // Le plafond part avec les lectures : au bout de quinze secondes, le message d'attente
+    // cede la place a une phrase qui nomme l'echec et a un bouton. Voir armerAttente().
+    armerAttente();
     if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()) remplir(); });
     if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()) remplir(); });
   }
 
   function fermer(){
+    desarmerAttente();
     const v = el('bdvrVoile');
     if(v) v.hidden = true;
     document.body.style.overflow = '';
@@ -1085,21 +1205,26 @@
       bouton.disabled = true;
       bouton.textContent = 'Vérification…';
       const local = await compterLignesLocales();
-      const distant = await compterLignesCompte();
+      const distant = await compteAUneLigne();
       const attente = ecrituresEnAttente();
       bouton.disabled = false;
 
+      /* L'ORDRE DES TROIS CAS EST CELUI DE LA GRAVITE, et le plus grave est le seul que la
+         sonde bornee sache encore voir : un appareil qui porte des lignes en face d'un
+         compte qui n'en porte aucune. Il passe donc devant le doute. 19/09/2026. */
       let alerte = '';
-      if(local && distant == null){
+      if(local && distant === false){
+        alerte = 'Ton compte ne porte AUCUNE ligne, alors que cet appareil en porte '
+               + plur(local, 'ligne') + '. Se déconnecter vide ce navigateur : tout serait perdu. '
+               + 'Redépose ton export avant de partir.';
+      }else if(local && distant === null){
         alerte = 'Impossible de vérifier ce que contient ton compte. Si la sauvegarde est '
                + 'incomplète et que tu vides ce navigateur maintenant, ce qui manque est perdu.';
-      }else if(distant != null && local > distant){
-        alerte = 'Ton compte ne contient que ' + nb(distant) + ' des ' + nb(local) + ' lignes de '
-               + 'cet appareil : ' + nb(local - distant) + ' lignes n\'existent QUE ici. Redépose '
-               + 'ton export avant de partir.';
       }else if(attente){
-        alerte = attente + ' enregistrement(s) ne sont pas encore partis vers ton compte. '
-               + 'Attends d\'être en ligne, ils partiront tout seuls.';
+        alerte = plur(attente, 'enregistrement')
+               + (attente > 1 ? ' ne sont pas encore partis' : ' n\'est pas encore parti')
+               + ' vers ton compte. Attends d\'être en ligne, ' + (attente > 1 ? 'ils partiront' : 'il partira')
+               + ' tout seul' + (attente > 1 ? 's' : '') + '.';
       }
 
       if(alerte){
@@ -1146,7 +1271,10 @@
     dire: dire,
     moteurPresent: moteurPresent,
     compterLignesLocales: compterLignesLocales,
-    compterLignesCompte: compterLignesCompte,
+    /* `compterLignesCompte` a disparu le 19/09/2026 avec le comptage exact : aucun
+       appelant dans le depot, et la question qu'elle posait faisait expirer le serveur.
+       `compteAUneLigne` la remplace et rend true / false / null. */
+    compteAUneLigne: compteAUneLigne,
     profil: function(){ return PROFIL; },
     profilLu: function(){ return PROFIL_LU; },
     chargerProfil: chargerProfil

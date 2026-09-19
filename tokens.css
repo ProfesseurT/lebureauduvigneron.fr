@@ -124,7 +124,6 @@
   --t-h2:     clamp(1.4rem, 3vw, 2.2rem);
   --t-h1:     clamp(2rem, 5vw, 3.2rem);
   --t-hero:   clamp(2.2rem, 5.5vw, 3.6rem);
-  --t-chiffre:clamp(2.5rem, 6vw, 5rem);   /* les grands nombres */
 
   /* ---- TYPOGRAPHIE : rythme ------------------------------------------ */
   --lh-serre:  1.2;    /* titres */
@@ -150,7 +149,6 @@
   /* Le site en utilise tres peu, et c'est ce qui fait sa texture. */
   --ombre-dure:  6px 6px 0 rgba(30, 37, 54, 0.18);   /* signature : ombre sans flou */
   --ombre-carte: 2px 3px 10px rgba(30, 25, 15, 0.25);
-  --ombre-photo: 0 20px 60px rgba(0, 0, 0, 0.35);
 
   /* ---- ESPACEMENT ---------------------------------------------------- */
   --e-xs:   0.35rem;

@@ -573,11 +573,25 @@ function histogramme(r){
        + 'padding-top:6px;">'+esc(legende)+'</div>';
 }
 
+/* LA SEULE ACTION DU COURRIER DOIT SE TOUCHER, 19/09/2026.
+   MESURE dans `_apercu/normal.html` a 390 px de large : le bouton faisait
+   190 x 37. Trente-sept, c'est SOUS le plancher tactile de 44 px, et c'est
+   l'unique geste que ce mail propose -- rate au doigt, il n'y a pas de
+   deuxieme chance, on est dans une boite mail, pas dans une page qu'on
+   recharge. Le remplissage vertical passe donc de 11 a 14 px.
+
+   ET LA HAUTEUR DE LIGNE EST ECRITE, pas laissee au client de messagerie.
+   Sans elle, 14 + 14 + « ce que le client decide » : Gmail rendait 15 px de
+   ligne sur ce corps de 13 px, ce qui donnait 43 -- un pixel sous la cible,
+   pour un defaut deja paye une fois. 18 px de ligne posent la hauteur a 46,
+   la meme dans les trois mondes. La largeur ne bouge pas : le remplissage
+   lateral reste a 20 px, et 190 px etaient deja bien au-dessus du plancher. */
 function bouton(url, libelle){
   return ''
   + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">'
   + '<tr><td bgcolor="'+C.bordeaux+'" style="background-color:'+C.bordeaux+';">'
-  +   '<a href="'+esc(url)+'" style="display:inline-block;padding:11px 20px;font-family:'+F_MONO+';'
+  +   '<a href="'+esc(url)+'" style="display:inline-block;padding:14px 20px;line-height:18px;'
+  +     'font-family:'+F_MONO+';'
   +     'font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:'+C.onDark+';'
   +     'text-decoration:none;">'+esc(libelle)+'</a>'
   + '</td></tr></table>';
@@ -828,16 +842,37 @@ function batir(d){
      LE LIEN EST AU MEME RANG QUE LA PHRASE, pas en petit en dessous : se
      retirer doit etre aussi simple que consentir (RGPD 7-3), et il marche sans
      mot de passe, parce que quelqu'un qui a perdu son acces doit pouvoir
-     s'arreter quand meme. */
+     s'arreter quand meme.
+
+     ET IL SE TOUCHE, DEPUIS LE 19/09/2026. MESURE dans `_apercu/normal.html` :
+     264 x 11 a 390 px de large, 318 x 27 a 360 px ou il passait sur deux lignes.
+     Onze pixels de haut, noyes dans un paragraphe, entoures de texte non
+     cliquable : le geste que le RGPD veut « aussi simple que consentir » etait
+     le plus difficile du mail. C'est le meme defaut que le bouton plus haut, en
+     pire, parce qu'ici rater la cible n'est pas juste agacant.
+
+     CE QUI CHANGE, ET CE QUI NE CHANGE PAS. Le lien sort du paragraphe et prend
+     SA LIGNE, avec de l'air au-dessus et au-dessous : 14 px de remplissage sur
+     18 px de ligne posent la cible a 46 px, et le bloc qui le porte en ajoute
+     six de chaque cote pour qu'il ne colle ni a la phrase ni a la signature.
+     SON RANG NE BOUGE PAS : meme corps de 10 px que la phrase, meme couleur,
+     meme soulignement. Il n'est pas « en petit en dessous », il est aussi gros
+     qu'avant et enfin atteignable -- la regle ecrite ci-dessus tient toujours.
+     « Sans mot de passe. » a suivi le lien sur la ligne d'apres, en phrase
+     pleine : reste accroche a un lien devenu bloc, le tiret pendait dans le
+     vide. Les mots sont les memes. */
   + '<div style="border-top:1px solid '+C.filet+';margin:16px 18px 0 18px;padding:12px 0 18px 0;'
   +   'font-family:'+F_MONO+';font-size:10px;line-height:1.6;color:'+C.muted+';">'
   +   'Tu reçois ce courrier parce que tu as demandé les rappels du matin.'
   +   (urlPrefs
-      ? ' <a href="'+esc(urlPrefs)+'" style="color:'+C.muted+';text-decoration:underline;">'
+      ? '<div style="padding:6px 0;">'
+        + '<a href="'+esc(urlPrefs)+'" style="display:inline-block;padding:14px 0;line-height:18px;'
+        +   'color:'+C.muted+';text-decoration:underline;">'
         + 'Choisir mes e-mails ou ne plus rien recevoir</a>'
-        + ' &mdash; sans mot de passe.'
-      : '')
-  +   '<br>Le Bureau du Vigneron, un service Solumatic SAS, Nantes.'
+        + '</div>'
+        + 'Sans mot de passe.<br>'
+      : '<br>')
+  +   'Le Bureau du Vigneron, un service Solumatic SAS, Nantes.'
   + '</div>'
 
   + '</td></tr></table>'

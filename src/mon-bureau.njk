@@ -914,9 +914,22 @@ permalink: /mon-bureau/
   function sousMainUtile(){
     if(SANS_VITI) return false;
     if(LECTURE_KO) return true;
+    /* SUR UN BUREAU SANS AUCUN EXPORT, PLUS RIEN N'INVITE AU DEPOT, ET C'EST A TED DE
+       TRANCHER. Constat de l'audit du 19/09/2026 : la seule phrase qui invitait a
+       deposer un export (« Ouvre Mon cap une fois... », plus bas dans peindreFile)
+       vit DANS cette zone, et cette zone se cache justement tant que rien n'a jamais
+       ete depose. Elle ne peut donc jamais se lire. Sur un compte neuf, le panneau,
+       le sous-main, l'ardoise et le mot du jour se cachent tous ensemble : « Ma
+       journee » n'offre que la salutation, le calendrier et « Rien ne presse
+       aujourd'hui », et rien ne mene au geste qui debloque les trois quarts de l'outil.
+       DEUX REPARATIONS ONT ETE ESSAYEES, LES DEUX TOUCHENT UNE DECISION DE TED :
+         - une dixieme zone d'accueil en tete casse l'ordre des zones dicte le
+           07/09/2026, garde par banc-bureau ;
+         - montrer le sous-main sans depot casse « sans aucun depot, le sous-main
+           n'est pas la », garde deux fois par banc-journee.
+       Donc on ne touche a rien et on le laisse choisir. */
     return !!(ETAT_FILE && ETAT_FILE.deposeLe);
   }
-
   function peindreFile(){
     var boite = el('bureauFile');
     var zone = el('zoneSousMain');
@@ -945,7 +958,11 @@ permalink: /mon-bureau/
       return;
     }
     var retards = lignes.filter(function(l){ return l.source === 'rappel' && l.retard > 0; }).length;
-    txt(el('fileNote'), retards ? retards + ' en retard' : lignes.length + ' en attente');
+    /* ETAT_FILE.perime est posé par BdvCrm.charger() quand les DEUX lectures sont
+       tombées : ce qui s'affiche est l'état de la dernière visite, pas celui du jour. */
+    var note = retards ? retards + ' en retard' : lignes.length + ' en attente';
+    if(ETAT_FILE.perime) note += ' · données de ta dernière visite, ton compte n\'a pas répondu';
+    txt(el('fileNote'), note);
 
     boite.innerHTML = '';
     boite.className = 'listbb';
@@ -2255,6 +2272,10 @@ permalink: /mon-bureau/
       { cle: 'bureau', texte: 'Ton bureau', faire: function(){
           if(!(window.BdvCompte && BdvCompte.chargerBureau)) return false;
           return BdvCompte.chargerBureau().then(function(b){ return b ? true : false; });
+        } },
+      { cle: 'taches', texte: 'Tes tâches', faire: function(){
+          if(!window.BdvTaches || !BdvTaches.amorcer) return false;
+          return BdvTaches.amorcer();
         } },
       { cle: 'suivi', texte: 'Tes clients et tes rappels', faire: function(){
           if(!window.BdvCrm) return false;

@@ -146,7 +146,12 @@ else {
   const t = conf[0];
   const doit = [
     [/VITISOFT/i,                      'il nomme Vitisoft'],
-    [/ligne\(s\) de vente/,            'il chiffre les lignes de vente qui partent'],
+    /* LE BANC SUIVAIT LA FORME, PAS LE SENS, 19/09/2026. Il exigeait le littéral
+       « ligne(s) de vente ». Le texte passe maintenant par plur(), qui écrit « 286
+       lignes de vente » ou « 1 ligne de vente » : mieux dit, et le banc criait dessus.
+       On demande donc ce qui compte vraiment : un NOMBRE, collé au mot, quelle que
+       soit la forme du pluriel. Un banc qui fige une tournure interdit de l'améliorer. */
+    [/\d[\s\u00a0\d]*ligne(s|\(s\))? de vente/, 'il chiffre les lignes de vente qui partent'],
     [/suivi client/i,                  'il nomme les fiches de suivi'],
     [/échange|echange/i,               'il nomme les echanges'],
     [/ne se\s+.{0,20}récupèrent nulle part|récupèrent nulle part/i, 'il dit que ca ne se recupere nulle part'],

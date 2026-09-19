@@ -102,8 +102,13 @@ const HASH_COLS=40;
 // (liste editable depuis l'ecran Colonnes, a venir.)
 const FAMILLES_HORS_CA=['TRANSPORT','FRAIS DE PORT','REMISE','AVOIR','ARTICLES PUBLICITAIRES','PUBLICITAIRE','PLV','DIVERS'];
 
-// Valeurs de "Type Offert" = sorties gratuites ou pertes, jamais du CA.
-const TYPES_OFFERT=['Offert','Echantillon','Degustation','Consommation Personnelle','Casse'];
+/* TYPES_OFFERT a ete retire le 19/09/2026. C'etait une liste en dur, « Offert,
+   Echantillon, Degustation, Consommation Personnelle, Casse », que plus rien ne
+   consultait depuis que le classement du vigneron decide seul, par `R.gratuit` dans
+   classerLigne(). Elle n'a pas ete rebranchee mais supprimee : la regle 5 du projet
+   (« Aucun seuil grave ») interdit precisement une liste de valeurs en dur, qui ne peut
+   pas etre juste ailleurs que chez celui qui l'a ecrite. Le mode devine, lui, ne s'en
+   servait deja pas : il prend toute valeur non vide pour une sortie gratuite. */
 
 // Normalisation des canaux (Lieu de vente saisi a la main). Regroupement souple.
 // Chaque regle : liste de fragments a chercher (insensible casse/accents/espaces).
@@ -146,7 +151,9 @@ let filters={ex:null,from:null,to:null,preset:'tous'};
 let charts={};
 let BUSY_MIN=1500;   // en dessous, calcul synchrone (instantane) ; au dela, indicateur de chargement
 let uiMesure='ca';           // 'ca' (CA HT) ou 'btl' (bouteilles/cols)
-let explAxe1='famille', explAxe2='';   // explorateur libre de l'Apercu
+// explAxe1 et explAxe2 ont disparu le 19/09/2026 : reste de l'explorateur de l'Apercu,
+// ecran supprime. Ne pas confondre avec exploAxis1 et exploAxis2, deux lignes plus bas,
+// qui sont vivants et pilotent « Mon registre » (voir axisDef() dans bdv-ecrans.js).
 // evoDim et evoStep ont disparu le 11/09/2026 avec l'ecran « Evolution dans le temps » :
 // « Mon registre » porte la meme chose dans exploAxis1 (le pas de temps) et exploAxis2 (la
 // dimension), avec ses filtres en plus.
@@ -441,9 +448,14 @@ async function tirerDuServeurUneFois(){
     if(lignes.length){
       const r=await dbAddMany(lignes);
       TIRAGE_AJOUTS=r.added||0;
-      if(r.added)status('success',fmtNum(r.added)+' ligne(s) récupérée(s) depuis ton compte.');
+      if(r.added)status('success',plur(r.added,'ligne','récupérée')+' depuis ton compte.');
     }
-    const reg=await BdvSync.lireReglages();
+    /* Le drapeau se pose ICI et nulle part ailleurs dans ce fichier : c'est la seule
+       lecture des reglages du COMPTE. `regLire()` ne lit que le miroir local, et un
+       miroir vide sur un navigateur neuf ne prouve rien. 19/09/2026. */
+    let reg=null;
+    try{ reg=await BdvSync.lireReglages(); marquerReglagesNonLus(false); }
+    catch(e){ marquerReglagesNonLus(true); }
     if(reg){
       if(reg.objectif!=null){objectif=Number(reg.objectif)||null;try{if(objectif)localStorage.setItem(OBJ_KEY,String(objectif));}catch(e){}}
       if(reg.exercice_debut>=1&&reg.exercice_debut<=12){EX_START=reg.exercice_debut;try{localStorage.setItem(EX_KEY,String(EX_START));}catch(e){}}
@@ -677,9 +689,23 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function stripAccents(s){return (s==null?'':String(s)).normalize('NFD').replace(/[̀-ͯ]/g,'');}
 function norm(s){return stripAccents(s).toLowerCase().replace(/\s+/g,' ').trim();}
 function fmtNum(n,d){return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:d==null?0:d}).format(n);}
-function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
+/* L'ESPACE AVANT L'EURO EST INSECABLE, 19/09/2026. C'est le formateur de TOUS les
+   montants du bureau : avec une espace ordinaire, le symbole partait seul a la ligne des
+   qu'une colonne se resserrait, et on lisait « 171 569 » sur une ligne et « € » sur la
+   suivante. Quatorze endroits de bdv-ecrans.js avaient du etre repris a la main faute de
+   ce correctif-ci. U+00A0, et pas une entite HTML : ce qui sort d'ici part aussi dans des
+   `textContent`, des exports CSV et des messages de `status()`, ou une entite s'afficherait
+   telle quelle. */
+function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
 function fmtPct(n,d){return (n>=0?'+':'')+fmtNum(n,d==null?1:d)+' %';}
-function plur(n,mot){return n+' '+mot+(n>1?'s':'');}
+/* PASSE PAR fmtNum, 19/09/2026. `plur()` ecrivait « 8000 lignes » la ou tout le reste du
+   bureau ecrit « 8 000 » : le meme nombre changeait de forme selon la phrase qui le
+   portait. L'effet de bord est voulu et large, toutes les occurrences du projet gagnent le
+   separateur d'un coup.
+   `suite` porte l'accord que le nom seul ne donne pas : on lui passe l'adjectif au
+   singulier et deja au bon genre (« recuperee », « ignore »), il prend le meme « s » que le
+   nom. C'est ce qui remplace les « ligne(s) recuperee(s) » du fichier. */
+function plur(n,mot,suite){return fmtNum(n)+' '+mot+(n>1?'s':'')+(suite?' '+suite+(n>1?'s':''):'');}
 function status(type,msg){const b=el('status');
   // Le tableau de bord porte cette barre dans son HTML ; le bureau ne l'a pas. Depuis que ce
   // moteur tourne aussi la-bas, status() doit savoir parler ailleurs plutot que de lever sur
@@ -698,7 +724,8 @@ function statusFin(){const b=el('status');if(b&&b.className.indexOf('loading')>=
 // Indicateur "le moteur travaille" : affiche la barre, laisse le navigateur la peindre, PUIS lance le calcul lourd.
 function busy(on,msg){const b=el('busyov');if(!b)return;if(on){const t=el('busytxt');if(t)t.textContent=msg||'Analyse…';b.classList.add('on');}else b.classList.remove('on');}
 function runBusy(msg,fn){if(!ROWS||ROWS.length<BUSY_MIN){fn();return;}busy(true,msg);const raf=window.requestAnimationFrame||(g=>setTimeout(g,16));raf(()=>raf(()=>{try{fn();}finally{busy(false);}}));}
-function uiExplorer(){runBusy('Analyse…',renderExplo);}
+// uiExplorer() a disparu le 19/09/2026 : plus un seul appelant dans le depot, gabarits
+// et chaines de caracteres compris. « Mon registre » passe par setExploAxis().
 
 // Nombre francais "14,58" -> 14.58 ; gere le negatif et l'espace milliers.
 function parseNum(v){
@@ -844,6 +871,31 @@ function formatTel(appel,brut){
       canaux:{valeur:'libelle'}, types:{valeur:'libelle'}, valide:bool}
 */
 let REG=null;
+/* ================= LE DRAPEAU DU CLASSEMENT NON LU, 19/09/2026 =================
+   SANS LES REGLAGES, LES CHIFFRES SONT CALCULES AU JUGE ET RIEN NE LE DISAIT. Quand la
+   lecture des reglages du compte echoue au demarrage, deux choses retombent en silence :
+     - `classerLigne()` passe en « mode devine » (plus bas dans ce fichier), donc les
+       canaux de vente sortent d'une liste generique et toutes les typologies clients
+       deviennent « Non type » ;
+     - `EX_START` reste a 1, donc « Mon cap » compare des ANNEES CIVILES a quelqu'un dont
+       l'exercice ouvre en aout.
+   Les chiffres restent plausibles, et ils sont FAUX. Le cas n'est pas rare : la
+   deconnexion efface la copie locale des reglages, donc il se produit a chaque
+   reconnexion sur un navigateur qui vient d'etre vide.
+
+   TROIS ETATS, ET PAS DEUX. `false` veut dire « le compte a repondu » : s'il n'a pas de
+   classement enregistre, c'est une base neuve, et le mode devine est alors une reponse
+   honnete qu'on annonce deja dans l'ecran du classement. `true` veut dire « le compte n'a
+   PAS repondu » : il y a peut-etre un classement, on ne le sait pas, et c'est ce cas-la
+   qu'il faut dire.
+
+   COMMENT LE LIRE DEPUIS UN ECRAN. `classementIncertain()` rend vrai quand le classement
+   affiche n'est pas celui du vigneron ET qu'on ne peut pas jurer qu'il n'en a pas. Les
+   deux fonctions sont globales, comme tout ce fichier : bdv-ecrans.js les appelle
+   directement, sans passer par un objet. */
+let REGLAGES_NON_LUS=false;
+function marquerReglagesNonLus(v){REGLAGES_NON_LUS=(v!==false);}
+function classementIncertain(){return REGLAGES_NON_LUS===true&&!(REG&&REG.valide);}
 const CHAMPS_CANDIDATS=[
   {k:'lieuVente',  l:'Lieu de vente'},
   {k:'origine',    l:'Origine'},
@@ -1120,11 +1172,14 @@ async function handleFiles(list){
   const total=ROWS.length;
   const per=META.min&&META.max?(' sur la période '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
   // Un export deja importe qui revient enrichi (adresses e-mail) ne doit pas passer pour un echec.
-  const enrichTxt=totEnrich?', '+fmtNum(totEnrich)+' ligne(s) complétée(s) avec les adresses e-mail':'';
-  const couvTxt=COUV.total?' '+fmtNum(COUV.joignables)+' client(s) sur '+fmtNum(COUV.total)+' sont joignables ('
+  const enrichTxt=totEnrich?', '+plur(totEnrich,'ligne','complétée')+' avec les adresses e-mail':'';
+  // L'accord du verbe suit le nombre, comme l'accord du nom : « 1 client sur 3 sont
+  // joignables » se lisait deja de travers du temps des « (s) ». 19/09/2026.
+  const couvTxt=COUV.total?' '+plur(COUV.joignables,'client')+' sur '+fmtNum(COUV.total)
+    +(COUV.joignables>1?' sont joignables (':' est joignable (')
     +fmtNum(COUV.mail)+' par e-mail, '+fmtNum(COUV.tel)+' par téléphone).':'';
-  const resume=totAdded+' ligne(s) ajoutée(s), '+totDup+' doublon(s) ignoré(s)'+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt;
-  if(echecsSync)status('error','Attention, '+fmtNum(echecsSync)+' ligne(s) n\'ont pas pu être enregistrées sur ton compte. Elles sont bien sur cet appareil. '+resume);
+  const resume=plur(totAdded,'ligne','ajoutée')+', '+plur(totDup,'doublon','ignoré')+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt;
+  if(echecsSync)status('error','Attention, '+plur(echecsSync,'ligne')+(echecsSync>1?' n\'ont pas pu être enregistrées':' n\'a pas pu être enregistrée')+' sur ton compte. Elle'+(echecsSync>1?'s sont bien':' est bien')+' sur cet appareil. '+resume);
   else status('success',resume);
   if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});
   // Le panneau, s'il est ouvert, doit montrer la base D'APRES l'import. Au bureau c'est le
@@ -1296,7 +1351,8 @@ function exMot(){return EX_START===1?'année':'exercice';}
    a accorder autour. */
 function exPrecedent(){return EX_START===1?'l\u2019année précédente':'l\u2019exercice précédent';}
 function exCe(){return EX_START===1?'cette année':'cet exercice';}
-function exMoisNom(i){return MOIS_PLEIN[i-1];}   // 1..12, mois civil
+// exMoisNom() a disparu le 19/09/2026, sans appelant. Le nom d'un mois civil se prend
+// directement dans MOIS_PLEIN, et l'ordre de l'exercice dans exMoisLabels() juste dessous.
 // Les douze mois dans l'ordre de l'exercice, pour l'axe des graphiques mensuels.
 function exMoisLabels(){const a=[];for(let i=0;i<12;i++)a.push(MOIS_FR[(EX_START-1+i)%12]);return a;}
 // Bornes d'un exercice en jour absolu (_dayNum), pour les raccourcis de periode.
@@ -1455,8 +1511,9 @@ function contactCell(id){
 function autresContacts(id){
   return emailsOf(id).slice(1).concat(telsOf(id).slice(1).map(t=>t.affiche)).join(' | ');
 }
-// Compatibilite : l'ancien nom reste utilise ailleurs dans le fichier.
-function emailCell(id){return contactCell(id);}
+// emailCell() a disparu le 19/09/2026. Son commentaire disait « l'ancien nom reste
+// utilise ailleurs dans le fichier » : c'etait faux, aucun appelant nulle part. Le nom
+// vivant est contactCell().
 function median(arr){if(!arr.length)return 0;const a=[...arr].sort((x,y)=>x-y),m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;}
 function stdev(arr){if(arr.length<2)return 0;const m=arr.reduce((s,v)=>s+v,0)/arr.length;return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/arr.length);}
 // Regroupe les dates de facture distinctes (jours absolus) par client, sur les lignes de vente.
@@ -1540,6 +1597,14 @@ function coutOffertLigne(r,prix){
   const pu = prix.parProduit[r.numProduit] || prix.parFamille[norm(r.famille)] || 0;
   return pu * r._qte;
 }
+/* ======================= SUR LES `data-libelle` DES TABLEAUX DU PANNEAU =======================
+   Poses le 19/09/2026 sur les cinq tableaux que ce fichier dessine dans le panneau. Sous
+   700 px la feuille passe chaque ligne en une colonne, ce qui cache forcement le `<thead>` :
+   on lisait cinq valeurs empilees sans savoir ce que chacune dit. Chaque `<td>` porte donc
+   le texte du `<th>` de sa colonne, et `td::before{content:attr(data-libelle)}` le rend
+   visible (regle a poser dans bdv-panneau.css). Un tableau ajoute ici sans ses libelles
+   redevient illisible sur telephone, et rien ne le signale a l'ecran large. */
+
 /* ======================= ECRAN REGLAGES =======================
    Quatre questions, dans l'ordre de leur impact sur les chiffres affiches.
    L'ecran travaille sur une copie de travail (BROUILLON) : rien n'est applique
@@ -1554,8 +1619,16 @@ function renderReglages(){
 
   let html=`<div class="panel__sub">Dans ton logiciel, tu remplis Origine, Lieu de vente et les champs Perso comme tu veux. L'outil ne peut donc pas deviner ce que veulent dire tes valeurs. Il te propose une lecture, tu la corriges une fois, il s'en souvient.</div>`;
 
+  /* TROIS PHRASES ET PAS DEUX, 19/09/2026. « Au juge » dit que le vigneron n'a pas encore
+     regle ; il ne dit pas que son reglage existe et qu'on n'a pas pu le lire. Les chiffres
+     sont faux dans les deux cas, mais le geste a faire n'est pas le meme : dans un cas on
+     regle, dans l'autre on recharge. Meme forme que « Decomposition indisponible » dans
+     bdv-ecrans.js : on NOMME ce qui manque, on ne compte pas. */
   html+=regle
     ? signal('ok','✔','Tes réglages sont enregistrés.','Les chiffres de tous les écrans les utilisent. Tu peux les modifier ici à tout moment.')
+    : classementIncertain()
+    ? signal('danger','⚠','Ton classement n\'a pas pu être lu.',
+        'Ton compte n\'a pas répondu : l\'outil ne sait pas si tu as déjà rangé tes canaux et tes types de clients. En attendant il <b>devine</b>, et l\'exercice comptable est retombé sur l\'année civile. <b>Les chiffres de canaux, de typologie et de comparaison d\'exercice sont à prendre pour faux tant que cette phrase est là.</b> Recharge la page quand ta connexion sera revenue, plutôt que de tout re-régler ici : ce que tu enregistrerais maintenant écraserait ce qui est sur ton compte.')
     : signal('info','ℹ','L\'outil fonctionne actuellement au jugé.',
         'Les regroupements ci-dessous sont des <b>propositions</b> déduites de ton fichier, pas des certitudes. Tant que tu ne les as pas validés, prends les chiffres de canaux et de typologie avec prudence.');
 
@@ -1584,8 +1657,8 @@ function renderReglages(){
   <div class="card"><p class="mini-line">Décoche une famille pour la sortir du CA (frais de port, remises, avoirs, articles publicitaires). Les montants ci-dessous sont ceux de ta base.</p>
   <div class="tablewrap"><table class="data"><thead><tr><th>Famille de produit</th><th class="num">Lignes</th><th class="num">Montant HT</th><th>Compte dans le CA</th></tr></thead><tbody>
   ${fams.map(f=>{const s=statFamille(f);
-    return `<tr><td>${esc(f)}</td><td class="num">${fmtNum(s.n)}</td><td class="num">${fmtMoney(s.ca)}</td>
-      <td><label class="chk"><input type="checkbox" ${B.horsCA[f]?'':'checked'} onchange="BROUILLON.horsCA[${JSON.stringify(f).replace(/"/g,'&quot;')}]=!this.checked;majImpact()"> oui</label></td></tr>`;}).join('')}
+    return `<tr><td data-libelle="Famille de produit">${esc(f)}</td><td class="num" data-libelle="Lignes">${fmtNum(s.n)}</td><td class="num" data-libelle="Montant HT">${fmtMoney(s.ca)}</td>
+      <td data-libelle="Compte dans le CA"><label class="chk"><input type="checkbox" ${B.horsCA[f]?'':'checked'} onchange="BROUILLON.horsCA[${JSON.stringify(f).replace(/"/g,'&quot;')}]=!this.checked;majImpact()"> oui</label></td></tr>`;}).join('')}
   </tbody></table></div></div>`;
 
   /* 2. Les sorties gratuites */
@@ -1595,8 +1668,8 @@ function renderReglages(){
     <div class="card"><p class="mini-line">Ces valeurs viennent de ta colonne « Type Offert ». Coche celles qui sont réellement des sorties sans recette : elles ne compteront jamais dans le CA.</p>
     <div class="tablewrap"><table class="data"><thead><tr><th>Valeur</th><th class="num">Lignes</th><th>Sortie gratuite ou perte</th></tr></thead><tbody>
     ${tos.map(t=>{const n=ROWS.filter(r=>String(r.typeOffert||'').trim()===t).length;
-      return `<tr><td>${esc(t)}</td><td class="num">${fmtNum(n)}</td>
-        <td><label class="chk"><input type="checkbox" ${B.gratuit[t]?'checked':''} onchange="BROUILLON.gratuit[${JSON.stringify(t).replace(/"/g,'&quot;')}]=this.checked;majImpact()"> oui</label></td></tr>`;}).join('')}
+      return `<tr><td data-libelle="Valeur">${esc(t)}</td><td class="num" data-libelle="Lignes">${fmtNum(n)}</td>
+        <td data-libelle="Sortie gratuite ou perte"><label class="chk"><input type="checkbox" ${B.gratuit[t]?'checked':''} onchange="BROUILLON.gratuit[${JSON.stringify(t).replace(/"/g,'&quot;')}]=this.checked;majImpact()"> oui</label></td></tr>`;}).join('')}
     </tbody></table></div></div>`;
   }
 
@@ -1635,9 +1708,13 @@ function selectChamp(cle,valeur,P){
   const opts=CHAMPS_CANDIDATS.map(c=>{
     const p=P[c.k]||{taux:0,distinct:0};
     if(!p.distinct)return '';
-    return `<option value="${c.k}" ${c.k===valeur?'selected':''}>${c.l} — rempli à ${Math.round(p.taux*100)} %, ${p.distinct} valeur(s)</option>`;
+    return `<option value="${c.k}" ${c.k===valeur?'selected':''}>${c.l} — rempli à ${Math.round(p.taux*100)} %, ${plur(p.distinct,'valeur')}</option>`;
   }).join('');
-  return `<select class="search" style="min-width:340px" onchange="changerChamp('${cle}',this.value)">${opts}</select>`;
+  /* PAS DE `style=` ICI, 19/09/2026. Un style en ligne bat toute feuille, y compris la
+     requete de media : ce `min-width:340px` debordait l'ecran d'un telephone de 390 px et
+     obligeait bdv-panneau.css a un `!important` pour le rattraper. `.search` porte deja sa
+     largeur, et la feuille la ramene a 0 sous 700 px. */
+  return `<select class="search" onchange="changerChamp('${cle}',this.value)">${opts}</select>`;
 }
 function changerChamp(cle,val){
   BROUILLON[cle]=val;
@@ -1655,12 +1732,12 @@ function tableRegroupement(cible,champ,P,B){
   const dl=`<datalist id="dl-${cible}">${libelles.map(l=>`<option value="${esc(l)}">`).join('')}</datalist>`;
   return dl+`<div class="tablewrap" style="margin-top:.8rem"><table class="data"><thead><tr>
     <th>Valeur dans ton fichier</th><th class="num">Lignes</th><th class="num">Clients</th><th>Forme</th><th>Tu l'appelles</th></tr></thead><tbody>
-    ${liste.map(e=>`<tr><td>${esc(e.v)}</td><td class="num">${fmtNum(e.n)}</td><td class="num">${fmtNum(e.clients.size)}</td>
-      <td><span class="muted-cell">${formeValeur(e)}</span></td>
-      <td><input class="search" style="min-width:170px" list="dl-${cible}" value="${esc(B[cible][e.v]||'')}"
+    ${liste.map(e=>`<tr><td data-libelle="Valeur dans ton fichier">${esc(e.v)}</td><td class="num" data-libelle="Lignes">${fmtNum(e.n)}</td><td class="num" data-libelle="Clients">${fmtNum(e.clients.size)}</td>
+      <td data-libelle="Forme"><span class="muted-cell">${formeValeur(e)}</span></td>
+      <td data-libelle="Tu l'appelles"><input class="search" list="dl-${cible}" value="${esc(B[cible][e.v]||'')}"
         onchange="BROUILLON.${cible}[${JSON.stringify(e.v).replace(/"/g,'&quot;')}]=this.value.trim();majImpact()"></td></tr>`).join('')}
     </tbody></table></div>
-    ${reste>0?`<p class="note">${reste} valeur(s) plus rares ne sont pas affichées, elles seront rangées dans « Autre / non renseigné ».</p>`:''}
+    ${reste>0?`<p class="note">${plur(reste,'valeur','plus rare')}${reste>1?' ne sont pas affichées, elles seront rangées':' n\'est pas affichée, elle sera rangée'} dans « Autre / non renseigné ».</p>`:''}
     <p class="note">La colonne « Forme » est lue sur les dates : une valeur présente un seul jour se comporte comme un événement, une valeur présente toute l'année comme un point de vente permanent. C'est une indication, pas une conclusion : l'outil ne sait pas ce que tes mots veulent dire.</p>`;
 }
 // Simulation en direct : ce que les choix courants changeraient, sans rien enregistrer.
@@ -1725,6 +1802,14 @@ function renderBase(){
   // et deux titres identiques a la suite se lisent comme un bug d'affichage.
   let html=`<div class="panel__sub">Ton export, l'état de ta base, et de quoi tout effacer. La sélection de période ne s'applique pas ici.</div>`;
 
+  /* « Ma base » est le premier onglet du panneau, donc le premier endroit ou quelqu'un
+     regarde. Si le classement n'a pas pu etre lu, il le lit ici avant les chiffres, et
+     pas seulement dans l'onglet du classement ou il n'ira peut-etre jamais. 19/09/2026. */
+  if(classementIncertain()){
+    html+=signal('danger','⚠','Tes réglages n\'ont pas pu être lus.',
+      'Ton compte n\'a pas répondu au démarrage. Les canaux de vente et les types de clients sont <b>devinés</b>, et l\'exercice comptable est retombé sur l\'année civile : les chiffres de tous les écrans sont plausibles et faux. Recharge la page quand ta connexion sera revenue.');
+  }
+
   if(PAS_VITISOFT){
     html+=`<div class="pas-viti">
       <p class="pas-viti__titre">Cet outil ne lira pas tes fichiers.</p>
@@ -1751,7 +1836,7 @@ function renderBase(){
     ${kpiCard('Offerts / pertes',fmtMoney(coutOffert),plur(offerts.length,'ligne')+', prix de vente moyen')}
   </div>`;
   if(SANS_NUM){
-    html+=`<p class="note">${fmtNum(SANS_NUM)} ligne(s) sans numéro client. Elles sont suivies sous le nom du client, ce qui fonctionne, mais leur fiche de suivi se perdra si l'orthographe du nom change dans Vitisoft.</p>`;
+    html+=`<p class="note">${plur(SANS_NUM,'ligne')} sans numéro client. Elles sont suivies sous le nom du client, ce qui fonctionne, mais leur fiche de suivi se perdra si l'orthographe du nom change dans Vitisoft.</p>`;
   }
   // Plus de compteur d'ecart ici : depuis la fusion du 07/09/2026, le panneau l'affiche
   // lui-meme juste au-dessus de ce bloc (peindreBase() dans bdv-reglages.js), et il est
@@ -1766,7 +1851,7 @@ function renderBase(){
   if(typesRows.length){
     html+=`<div class="card"><div class="card__title"><span>Bouteilles offertes, échantillons et casse</span></div>
       <table class="data"><thead><tr><th>Type</th><th class="num">Lignes</th><th class="num">Coût estimé (prix de vente moyen)</th></tr></thead><tbody>
-      ${typesRows.map(([t,c])=>`<tr><td>${esc(t)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.cout)}</td></tr>`).join('')}
+      ${typesRows.map(([t,c])=>`<tr><td data-libelle="Type">${esc(t)}</td><td class="num" data-libelle="Lignes">${fmtNum(c.n)}</td><td class="num" data-libelle="Coût estimé">${fmtMoney(c.cout)}</td></tr>`).join('')}
       </tbody></table><p class="note">Ces sorties ne comptent jamais dans le CA. Estimation du manque à gagner, valorisée au prix de vente moyen réel de chaque produit.</p></div>`;
   }
   // Hors-vente par famille.
@@ -1776,7 +1861,7 @@ function renderBase(){
   if(hvRows.length){
     html+=`<div class="card"><div class="card__title"><span>Hors-vente par famille</span></div>
       <table class="data"><thead><tr><th>Famille</th><th class="num">Lignes</th><th class="num">Montant HT</th></tr></thead><tbody>
-      ${hvRows.map(([f,c])=>`<tr><td>${esc(f)}</td><td class="num">${fmtNum(c.n)}</td><td class="num">${fmtMoney(c.ca)}</td></tr>`).join('')}
+      ${hvRows.map(([f,c])=>`<tr><td data-libelle="Famille">${esc(f)}</td><td class="num" data-libelle="Lignes">${fmtNum(c.n)}</td><td class="num" data-libelle="Montant HT">${fmtMoney(c.ca)}</td></tr>`).join('')}
       </tbody></table><p class="note">Frais et lignes hors CA, isolées pour ne pas fausser le chiffre d'affaires.</p></div>`;
   }
 
@@ -1804,7 +1889,51 @@ function renderBase(){
   // renderAll(), donc a chaque changement de periode. Le panneau compte quand il S'OUVRE,
   // seul moment ou quelqu'un le regarde, cf. ouvrir() dans bdv-reglages.js.
 }
+/* ============ ON N'OUVRE PAS CE GESTE SUR UN CHIFFRE QU'ON N'A PAS, 19/09/2026 ============
+   L'avertissement plus bas compte `ROWS`, c'est-a-dire les lignes CHARGEES EN MEMOIRE. Si
+   le chargement du panneau a echoue, `ROWS` est vide et le texte annoncait « 0 ligne de
+   vente » juste avant d'effacer les 171 569 du compte. Ted confirmait alors un geste
+   irreversible dont on venait de lui sous-estimer le cout a zero.
+
+   ON REFUSE D'OUVRIR PLUTOT QUE D'AFFICHER ZERO. C'est le seul arbitrage prudent : un
+   vidage refuse a tort se reessaie dans dix secondes apres un rechargement, un vidage
+   confirme a tort ne se rattrape nulle part. Le compte rendu du 18/09/2026 le dit deja
+   pour le texte : « ni tes notes, ni tes echanges, ni ton classement ne sont remontes
+   dans Vitisoft ».
+
+   TROIS QUESTIONS, ET IL FAUT LES TROIS. On ne se contente pas de `ROWS.length` :
+     1. Combien cet appareil en porte VRAIMENT (`dbCount()`, quelques millisecondes). S'il
+        en porte et que `ROWS` est vide, le panneau parle d'une base qu'il n'a pas relue.
+     2. Si les deux sont a zero, le compte en porte-t-il ? On demande UNE ligne
+        (`auMoinsUneVente()`), jamais un comptage : le comptage exact sur 171 569 lignes a
+        rendu un `57014 statement timeout` le 18/09/2026.
+     3. Un « je ne sais pas » (null) n'est jamais un « c'est vide ». Il fait refuser.
+   On ne laisse passer que le cas ou les trois disent zero, et la il n'y a rien a perdre. */
 async function viderBase(){
+  if(!ROWS.length){
+    let ici=null;
+    try{ ici=await dbCount(); }catch(e){ ici=null; }
+    let laBas=null;
+    if(syncPret() && BdvSync.auMoinsUneVente){
+      try{ laBas=await BdvSync.auMoinsUneVente(); }catch(e){ laBas=null; }
+    }
+    if(ici!==0 || laBas!==false){
+      const pourquoi = (ici===null)
+        ? "La base de cet appareil n'a pas répondu."
+        : (ici>0)
+          ? "Cet appareil porte " + plur(ici,'ligne') + " que cet écran n'a pas encore relues."
+          : (laBas===null)
+            ? (syncPret()
+                ? "Ton compte n'a pas répondu, donc on ne sait pas ce qu'il porte."
+                : "Tu n'es pas connecté : on ne peut pas savoir ce que ton compte porte.")
+            : "Ton compte porte des lignes que cet appareil n'a pas encore récupérées.";
+      alert("On ne peut pas vider maintenant.\n\n" + pourquoi + "\n\n"
+        + "Cet écran afficherait « 0 ligne de vente » et tu confirmerais un effacement "
+        + "définitif dont on vient de te sous-estimer le coût. Recharge la page, attends "
+        + "que ta base soit affichée, et recommence.");
+      return;
+    }
+  }
   // Le texte dit maintenant les DEUX cotes. Vider seulement le navigateur n'aurait plus aucun
   // sens : la prochaine ouverture rapatrierait tout depuis le compte, et le vigneron croirait
   // que le bouton ne marche pas.
@@ -1819,9 +1948,9 @@ async function viderBase(){
   const nEch   = (typeof ECHANGES === 'object' && ECHANGES)
                  ? Object.keys(ECHANGES).reduce(function(t,k){ return t + (ECHANGES[k]||[]).length; }, 0) : 0;
   const quoi = [
-    fmtNum(ROWS.length) + ' ligne(s) de vente',
-    nSuivi ? nSuivi + ' fiche(s) de suivi client' : null,
-    nEch   ? nEch + ' échange(s) enregistré(s)'   : null
+    plur(ROWS.length, 'ligne') + ' de vente',
+    nSuivi ? plur(nSuivi, 'fiche') + ' de suivi client' : null,
+    nEch   ? plur(nEch, 'échange', 'enregistré')   : null
   ].filter(Boolean).join(', ');
 
   if(!confirm(

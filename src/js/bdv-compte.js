@@ -149,6 +149,11 @@
     // les reecrirait sur le compte du nouvel arrivant. Une page neuve est la seule facon
     // honnete de repartir.
     if(change){ try{ location.reload(); }catch(e){} }
+    /* Une session neuve : la minuterie repart (elle ne s'empile pas, cf.
+       lancerRenouvellement) et le verrou de la porte de peremption se rearme, sinon un
+       deuxieme jeton revoque dans la meme page passerait sans un mot. 19/09/2026. */
+    PERIMEE_DITE = false;
+    lancerRenouvellement();
     /* LE BUREAU SE RELIT A CHAQUE SESSION NEUVE, 13/09/2026.
        Un changement de compte est deja traite au-dessus : `oublierCetAppareil()` efface
        toute cle `bdv_`, donc le bureau part avec le reste. Ce qui reste a couvrir est le
@@ -158,6 +163,12 @@
     chargerBureau().catch(function(){});
     return s;
   }
+  /* RETIRE LA SESSION, ET RIEN D'AUTRE. Annoncee morte, elle reprend du service le
+     19/09/2026 avec `sessionPerimee()` : quand c'est le SERVEUR qui ferme la session,
+     personne n'a demande a vider le poste, et la base locale n'a aucune raison de
+     partir avec le jeton. `bdv_proprietaire` survit exprès : c'est lui qui detecte le
+     changement de compte au prochain `ecrireSession()`, donc le poste partage reste
+     couvert. Ne pas confondre avec `deconnexion()`, qui est un geste et emporte tout. */
   function viderSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
 
   /* ---------------- OUBLIER CE NAVIGATEUR ----------------
@@ -173,6 +184,20 @@
      On efface par PREFIXE et non par liste nommee. Une liste se perime : la prochaine cle
      `bdv_` ajoutee ailleurs dans le site serait oubliee ici, et survivrait a la deconnexion
      sur un poste partage. Le prefixe, lui, couvre ce qui n'est pas encore ecrit.
+
+     ET LE PREFIXE NE SUFFISAIT PAS, PARCE QU'IL NE REGARDAIT QU'UN SEUL STOCKAGE.
+     Corrige le 19/09/2026. Ces lignes promettaient qu'aucune cle `bdv_` ne survit a la
+     deconnexion sur un poste partage ; elles ne balayaient que `localStorage`. Or le
+     brouillon d'une fiche client vit dans la memoire d'ONGLET (`bdv_brouillon_<id>`,
+     voir sauverBrouillon() dans bdv-ecrans.js), et la deconnexion renvoie sur
+     `/mon-bureau/` DANS LE MEME ONGLET : la memoire d'onglet ne se vide donc pas toute
+     seule. La personne suivante ouvrait la meme fiche et lisait « On a garde ce que tu
+     avais commence a ecrire », suivi de la note de la precedente.
+
+     Le balayage porte maintenant sur les DEUX stockages, avec le meme prefixe et la
+     meme liste `garder`. Contrepartie connue et assumee : un jeton d'invitation en
+     cours (`bdv_invitation_en_cours`, bdv-equipe.js) part avec le reste. C'est un lien
+     qu'on reclique, pas une donnee qu'on perd.
 
      Une seule chose n'est pas en base et disparait donc pour de bon : `bdv_annuaire_v1`, la
      memoire des noms des clients suivis. Elle se reconstruit a la premiere ouverture du
@@ -190,6 +215,15 @@
         if(k && k.indexOf('bdv_') === 0 && garder.indexOf(k) < 0) aJeter.push(k);
       }
       aJeter.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+    }catch(e){}
+    // La memoire d'ONGLET, meme prefixe et meme liste `garder`. Voir l'entete.
+    try{
+      const aJeterSession = [];
+      for(let i = 0; i < sessionStorage.length; i++){
+        const k = sessionStorage.key(i);
+        if(k && k.indexOf('bdv_') === 0 && garder.indexOf(k) < 0) aJeterSession.push(k);
+      }
+      aJeterSession.forEach(function(k){ try{ sessionStorage.removeItem(k); }catch(e){} });
     }catch(e){}
     try{ if(window.indexedDB) indexedDB.deleteDatabase('bdv_ventes_v4'); }catch(e){}
   }
@@ -324,19 +358,73 @@
     return appelGoTrue('/user', { password: nouveau }, 'PUT', s.access_token);
   }
 
+  /* ================================================================
+     UN REFUS FRANC N'EST PAS UNE PANNE DE RESEAU, 19/09/2026
+     ================================================================
+     Cette fonction sortait en silence sur TOUT echec et laissait la session perimee en
+     place. Le bureau continuait d'afficher le prenom, la barre et les zones, pendant que
+     chaque appel partait se faire refuser : un bureau qui a l'air connecte et qui n'ecrit
+     plus rien, c'est-a-dire exactement la panne silencieuse que ce fichier passe son
+     temps a refuser ailleurs.
+
+     LA DISTINCTION EST LE COEUR DU CORRECTIF, et elle ne se lit pas dans le texte du
+     message : elle se lit sur le CODE HTTP.
+       - `catch` : rien n'est arrive jusqu'au serveur. Reseau coupe, tunnel, avion. La
+         session est peut-etre parfaitement valable, on ne touche a rien.
+       - 5xx, 429, et tout le reste : le serveur d'authentification a un souci a LUI. Il
+         ne dit rien sur cette session-ci. On ne touche a rien non plus.
+       - 400, 401, 403 : GoTrue a TRANCHE. Le jeton de renouvellement est inconnu,
+         revoque ou perime. Il ne redeviendra jamais valable, et reessayer dans une
+         demi-heure ne changera rien. C'est le SEUL cas ou on ferme.
+
+     En cas de doute on GARDE. Fermer par erreur coute un mot de passe a retaper devant
+     quelqu'un qui n'avait rien demande ; attendre le battement suivant ne coute rien. */
   async function rafraichir(){
     const s = lireSession();
     if(!s || !s.refresh_token) return;
+    let r;
     try{
-      const r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
         body: JSON.stringify({ refresh_token: s.refresh_token })
       });
-      if(!r.ok) return;
+    }catch(e){ return; /* le reseau n'a pas repondu : voir regle d'or, on ne conclut rien */ }
+    if(!r.ok){
+      if(r.status === 400 || r.status === 401 || r.status === 403) sessionPerimee(s);
+      return;
+    }
+    try{
       const data = await r.json();
       ecrireSession(data);
-    }catch(e){ /* echec silencieux, voir regle d'or */ }
+    }catch(e){ /* reponse illisible : on retentera au battement suivant */ }
+  }
+
+  /* ON FERME LA SESSION, ET ON NE VIDE PAS LE POSTE. `deconnexion()` efface tout parce
+     que c'est un GESTE, demande et confirme. Ici personne n'a rien demande : on retire
+     le jeton et on laisse la base locale ou elle est. Se reconnecter repeint alors les
+     ecrans tout de suite, au lieu de retelecharger 171 569 lignes pour une heure
+     d'inattention. Le poste partage reste couvert : `bdv_proprietaire` survit exprès a
+     ce menage-la, et c'est lui qui declenche le vrai vidage au prochain changement de
+     compte, dans `ecrireSession()`.
+
+     ET ON LE DIT. Une session fermee sans un mot, c'est le defaut d'avant avec des zones
+     vides en plus : le vigneron verrait son bureau se depeupler sans savoir pourquoi. La
+     porte nomme la cause et porte le seul geste qui repare. Elle est FERMABLE : ce qui
+     est deja sur cet appareil reste lisible, on ne prend pas quelqu'un en otage pour un
+     jeton. Une seule fois par page, sinon deux appels refuses ouvriraient deux portes. */
+  var PERIMEE_DITE = false;
+  function sessionPerimee(s){
+    if(PERIMEE_DITE) return;
+    PERIMEE_DITE = true;
+    arreterRenouvellement();
+    viderSession();
+    signalerSession();
+    try{
+      porte({ mode: 'connexion', fermable: true,
+              titre: 'Ta session a expiré.',
+              email: (s && s.user && s.user.email) || '' });
+    }catch(e){}
   }
 
   // Se deconnecter EFFACE ce navigateur. L'appelant DOIT avoir prevenu et fait confirmer :
@@ -350,7 +438,53 @@
     try{ document.dispatchEvent(new CustomEvent('bdv:session')); }catch(e){}
   }
 
-  function deconnexion(){ oublierCetAppareil(); signalerSession(); }
+  function deconnexion(){ arreterRenouvellement(); oublierCetAppareil(); signalerSession(); }
+
+  /* ================================================================
+     UN BUREAU LAISSE OUVERT TOUTE LA MATINEE, 19/09/2026
+     ================================================================
+     Le jeton vaut une heure (voir `expires_at` dans ecrireSession) et il n'etait
+     renouvele qu'a DEUX moments : au chargement de la page, et au RETOUR depuis une
+     autre application ou un autre onglet (`visibilitychange` et `pageshow`, tout en bas
+     de ce fichier). Les deux supposent qu'on part et qu'on revient.
+
+     Sur un ordinateur ou le bureau est la seule fenetre ouverte de la matinee, on ne
+     revient jamais, parce qu'on n'est pas parti. A la soixante et unieme minute le jeton
+     meurt : PostgREST repond 401 a tout, les ecritures sont refusees, les taches partent
+     en file sans un mot, et le sous-main annonce « Pas de reseau » alors que le reseau va
+     tres bien. Le correctif du 11/09/2026 fermait le cas du telephone ; celui-ci ferme le
+     cas de l'ordinateur, et les deux sont le meme defaut vu de deux postes.
+
+     UNE DEMI-HEURE, ET PAS DIX MINUTES. Le jeton vit une heure : deux battements par vie
+     de jeton suffisent a n'en jamais rater un, meme quand le navigateur etire la
+     minuterie d'un onglet en arriere-plan. Battre plus souvent serait un aller-retour
+     reseau de plus par heure et par onglet, pour rien.
+
+     ON PASSE PAR `rafraichirSiPerime()` ET PAS PAR `rafraichir()` : c'est lui qui porte
+     le garde-fou horaire, donc un retour d'onglet suivi d'un battement ne fait qu'UN
+     aller-retour, pas deux.
+
+     UNE SEULE MINUTERIE, ET ELLE S'ARRETE. `lancerRenouvellement()` est appelee a
+     l'ouverture du module ET a chaque session ecrite : sans le garde-fou de la premiere
+     ligne, deux connexions dans le meme onglet empileraient deux minuteries que plus
+     rien n'arreterait. Elle s'arrete a la deconnexion, a la peremption, et d'elle-meme
+     au premier battement qui ne trouve plus de session. */
+  var RENOUVELLEMENT_MS = 30 * 60 * 1000;
+  var MINUTEUR_JETON = null;
+  function lancerRenouvellement(){
+    if(MINUTEUR_JETON) return;
+    try{
+      MINUTEUR_JETON = setInterval(function(){
+        if(!lireSession()){ arreterRenouvellement(); return; }
+        rafraichirSiPerime();
+      }, RENOUVELLEMENT_MS);
+    }catch(e){ MINUTEUR_JETON = null; }
+  }
+  function arreterRenouvellement(){
+    if(!MINUTEUR_JETON) return;
+    try{ clearInterval(MINUTEUR_JETON); }catch(e){}
+    MINUTEUR_JETON = null;
+  }
 
   async function profil(){
     const s = lireSession();
@@ -1516,6 +1650,9 @@
 
   if(lireSession()){
     rafraichir();
+    // Et la minuterie du jeton part avec la page, pour le bureau qu'on laisse ouvert
+    // toute la matinee sans jamais en sortir. 19/09/2026, voir lancerRenouvellement().
+    lancerRenouvellement();
     // Avant majTrace : c'est le bureau qui conditionne toute ecriture, la trace non.
     chargerBureau().catch(function(){});
     majTrace(lireSession(), {}).catch(function(){});

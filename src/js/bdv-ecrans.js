@@ -297,7 +297,13 @@ window.addEventListener('hashchange', function(){
    puis les dates a la main. Le perimetre effectif est reecrit en clair a droite, parce
    qu'un filtre qu'on ne voit plus est un chiffre qu'on lit de travers. */
 function buildFilterBar(){
-  const chip=(actif,action,txt)=>`<span class="chip ${actif?'on':''}" onclick="${action}">${txt}</span>`;
+  /* 19/09/2026. Un `span` avec `onclick` n'existe pas pour qui navigue au clavier, et ces
+     pastilles commandent TOUS les chiffres de l'ecran : le perimetre se choisissait donc
+     a la souris ou pas du tout. Un `button` est atteignable au Tab et s'actionne a Entree
+     comme a l'Espace sans une ligne de script. Le dessin ne bouge pas : `.chip` pose deja
+     la police, la bordure, le fond, la couleur et le curseur, c'est-a-dire tout ce qu'un
+     navigateur peint d'office sur un bouton. */
+  const chip=(actif,action,txt)=>`<button type="button" class="chip ${actif?'on':''}" onclick="${action}">${txt}</button>`;
   const perso=filters.preset==='perso';
   let h=`<span class="filterbar__label">Période</span>`;
   h+=chip(filters.preset==='tous',"setExercice(null)","Tout l'historique");
@@ -589,7 +595,17 @@ function usableAxes(){
   const perso=PERSO_KEYS.filter(k=>fieldUsable(r=>r[k])).map(k=>({key:k,label:persoLabel(k),get:r=>r[k],perso:true}));
   return {std,perso,all:[...std,...perso]};
 }
-function axisDef(key){const {all}=usableAxes();return all.find(a=>a.key===key)||all[0]||AXES[0];}
+/* 19/09/2026. axisDef() retombait sur le premier axe disponible pour TOUTE cle inconnue,
+   et rendait par la meme muet le seul garde-fou de « Mon registre » : `if(!axisDef(...))`
+   n'etait jamais vrai. L'ecran s'ouvrait donc sur un reglage que personne n'avait choisi
+   et que la liste deroulante ne proposait meme pas — selecteur sur « Couleur », tableau
+   intitule « CLIENT ». Une fonction qui ne sait pas repondre doit le DIRE : c'est la seule
+   facon qu'un appelant ait de rattraper quoi que ce soit.
+   Les appelants qui veulent vraiment un repli passent par axisOuDefaut(), qui le prend
+   dans usableAxes() — le premier axe REELLEMENT exploitable de la base lue — au lieu de
+   l'ecrire en dur. axisGetByKey(), lui, testait deja le retour : il marche enfin. */
+function axisDef(key){const {all}=usableAxes();return all.find(a=>a.key===key);}
+function axisOuDefaut(key){const {all}=usableAxes();return all.find(a=>a.key===key)||all[0]||AXES[0];}
 // Hiérarchie des critères par nature (ordre d'affichage dans les listes déroulantes).
 const AXIS_CATS=[
   {label:'Produit et vin',keys:['famille','couleur','appellation','millesime','conditionnement']},
@@ -704,9 +720,9 @@ function optsExplo(sel,withNone){const {std,perso}=usableAxes();return catOption
 function renderExplo(){
   const p=el('p-explorer');if(!p)return;
   const {std,perso}=usableAxes();
-  if(!axisDef(exploAxis1))exploAxis1='famille';
+  if(!axisDef(exploAxis1))exploAxis1=axisOuDefaut(exploAxis1).key;
   const rows=exploRows(),base=ROWS.filter(r=>r._vin);
-  const a1=axisDef(exploAxis1);
+  const a1=axisOuDefaut(exploAxis1);
 
   let html=`<h2 class="panel__title">Mon registre</h2><div class="panel__sub">Choisis ce que tu veux voir, affine si besoin, le résultat se met à jour en dessous. Répartis par mois ou par ${EX_START===1?'année':'exercice'} et la courbe apparaît. Mesure : ${mesureLabel()}.</div>`;
 
@@ -717,13 +733,13 @@ function renderExplo(){
      qu'il regarde et croit voir toute sa base alors qu'il en voit un quart. */
   html+=`<div class="pilote">
     <div class="pilote__row">
-      <div class="field"><label>Répartir par</label><select onchange="setExploAxis(1,this.value)">${optsExplo(exploAxis1,false)}</select></div>
-      <div class="field"><label>Croiser avec</label><select onchange="setExploAxis(2,this.value)">${optsExplo(exploAxis2,true)}</select></div>
-      <div class="field"><label>${EX_START===1?'Année':'Exercice'}</label><select onchange="setExploEx(this.value)"><option value=""${exploEx==null?' selected':''}>Tous</option>${META.exercices.map(y=>`<option value="${y}"${exploEx===y?' selected':''}>${exLabel(y)}</option>`).join('')}</select></div>
+      <div class="field"><label>Répartir par</label><select aria-label="Répartir par" onchange="setExploAxis(1,this.value)">${optsExplo(exploAxis1,false)}</select></div>
+      <div class="field"><label>Croiser avec</label><select aria-label="Croiser avec" onchange="setExploAxis(2,this.value)">${optsExplo(exploAxis2,true)}</select></div>
+      <div class="field"><label>${EX_START===1?'Année':'Exercice'}</label><select aria-label="${EX_START===1?'Année':'Exercice'}" onchange="setExploEx(this.value)"><option value=""${exploEx==null?' selected':''}>Tous</option>${META.exercices.map(y=>`<option value="${y}"${exploEx===y?' selected':''}>${exLabel(y)}</option>`).join('')}</select></div>
       <div class="field field--dates"><label>Du au</label><div class="field--dates__pair">
-        <input type="date" value="${exploFrom!=null?isoDepuisJour(exploFrom):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('from',this.value)">
+        <input type="date" value="${exploFrom!=null?isoDepuisJour(exploFrom):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" aria-label="Début de la période" onchange="setExploBorne('from',this.value)">
         <span>→</span>
-        <input type="date" value="${exploTo!=null?isoDepuisJour(exploTo):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" onchange="setExploBorne('to',this.value)">
+        <input type="date" value="${exploTo!=null?isoDepuisJour(exploTo):''}" min="${META.min?isoDepuisDate(META.min):''}" max="${META.max?isoDepuisDate(META.max):''}" aria-label="Fin de la période" onchange="setExploBorne('to',this.value)">
       </div></div>
       <div class="field"><label>Mesure</label><span class="toggle"><button class="${uiMesure==='ca'?'on':''}" onclick="setMesure('ca')">CA</button><button class="${uiMesure==='btl'?'on':''}" onclick="setMesure('btl')">Bouteilles</button></span></div>
     </div>`;
@@ -741,11 +757,11 @@ function renderExplo(){
       ${actifs.map(f=>`<button class="fchip" onclick="retirerFiltre('${f.k}')" title="Retirer ce filtre">
         <span class="fchip__l">${esc(f.lbl)}</span>${esc(f.val)}<span class="fchip__x">&times;</span></button>`).join('')}
       ${actifs.length>1?`<button class="btn btn--ghost btn--sm" onclick="resetExplo()">Tout effacer</button>`:''}
-      <span class="pilote__count">${fmtNum(rows.length)} ligne(s) sur ${fmtNum(base.length)} · ${fmtMoney(sum(rows,r=>r._total))}</span>
+      <span class="pilote__count">${plur(rows.length,'ligne')} sur ${fmtNum(base.length)} · ${fmtMoney(sum(rows,r=>r._total))}</span>
     </div>`;
 
   // Les facettes : repliees par defaut, elles ne poussent plus le resultat hors de l'ecran.
-  const fSel=a=>{const vals=distinctVals(a.get),cur=exploFilters[a.key]||'';return `<div class="field"><label>${esc(a.label)}</label><select onchange="setExploFilter('${a.key}',this.value)"><option value=""${cur===''?' selected':''}>(tous)</option>${vals.map(v=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(v)}</option>`).join('')}</select></div>`;};
+  const fSel=a=>{const vals=distinctVals(a.get),cur=exploFilters[a.key]||'';return `<div class="field"><label>${esc(a.label)}</label><select aria-label="${esc(a.label)}" onchange="setExploFilter('${a.key}',this.value)"><option value=""${cur===''?' selected':''}>(tous)</option>${vals.map(v=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(v)}</option>`).join('')}</select></div>`;};
   const stdF=std.filter(a=>!isTimeAxis(a.key)),usedF=new Set();let facetHtml='';
   AXIS_CATS.forEach(cat=>{if(cat.label==='Temps')return;const items=cat.keys.map(k=>stdF.find(a=>a.key===k)).filter(Boolean);items.forEach(a=>usedF.add(a.key));if(items.length)facetHtml+=`<div class="facet-cat"><div class="facet-cat__lbl">${cat.label}</div><div class="expl-ctrls">`+items.map(fSel).join('')+`</div></div>`;});
   const restF=stdF.filter(a=>!usedF.has(a.key));
@@ -781,7 +797,7 @@ function renderExplo(){
      demande, sans exception a retenir. */
   let lecture=[],dessin=null;
   if(isTimeAxis(exploAxis1)){
-    const a2=exploAxis2?axisDef(exploAxis2):null;
+    const a2=exploAxis2?axisOuDefaut(exploAxis2):null;
     const cle=r=>{const v=a1.get(r);return (v===''||v==null)?'':String(v);};
     const setP=new Set();rows.forEach(r=>{const k=cle(r);if(k)setP.add(k);});
     const periods=[...setP].sort();
@@ -807,13 +823,13 @@ function renderExplo(){
   }
 
   /* ---------- LE RESULTAT ---------- */
-  html+=`<div class="card"><div class="card__title"><span>${esc(a1.label)}${exploAxis2?' croisé avec '+esc(axisDef(exploAxis2).label):''}</span><span><button class="btn btn--ghost btn--sm" onclick="exportExplo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportExplo('csv')">CSV</button></span></div>`;
+  html+=`<div class="card"><div class="card__title"><span>${esc(a1.label)}${exploAxis2?' croisé avec '+esc(axisOuDefaut(exploAxis2).label):''}</span><span><button class="btn btn--ghost btn--sm" onclick="exportExplo('xlsx')">Exporter Excel</button> <button class="btn btn--ghost btn--sm" onclick="exportExplo('csv')">CSV</button></span></div>`;
   if(!exploAxis2){
     let entries=isTimeAxis(exploAxis1)?chronoEntries(groupSum(rows,a1.get)):allEntries(groupSum(rows,a1.get));
     entries=entries.map(e=>[libAxe(exploAxis1,e[0]),e[1]]);
     html+=entries.length?barListHTML(entries):`<p class="note">Aucune donnée sur cette sélection.</p>`;
   }else{
-    const a2=axisDef(exploAxis2);
+    const a2=axisOuDefaut(exploAxis2);
     const rowKeys=axisKeys(exploAxis1,groupSum(rows,a1.get),8),colKeys=axisKeys(exploAxis2,groupSum(rows,a2.get),8);
     const rowSet=new Set(rowKeys),colSet=new Set(colKeys);
     const cell={},rowTot={},colTot={};let grand=0;
@@ -924,7 +940,7 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet,pas,dimLabe
       let cum=0,pareto=0;for(const v of shares){cum+=v;pareto++;if(cum/tot>=0.8)break;}
       const hhi=shares.reduce((s,v)=>s+Math.pow(v/tot*100,2),0);
       const niveau=hhi>2500?'très concentré':(hhi>1500?'modérément concentré':'plutôt réparti');
-      out.push(signal(hhi>2500?'warn':'info','▤',`Concentration : répartition ${niveau}. Le 1er ${dimLbl} pèse ${fmtNum(top1,0)}% du total, le top 3 ${fmtNum(top3,0)}%.`,`${pareto} ${dimLbl}${pareto>1?'s':''} sur ${shares.length} font 80% du total. ${hhi>2500?'Dépendance à surveiller : un décrochage ferait mal.':'Base assez équilibrée.'}`));
+      out.push(signal(hhi>2500?'warn':'info','▤',`Concentration : répartition ${niveau}. Le 1er ${dimLbl} pèse ${fmtNum(top1,0)} % du total, le top 3 ${fmtNum(top3,0)} %.`,`${pareto} ${dimLbl}${pareto>1?'s':''} sur ${shares.length} font 80 % du total. ${hhi>2500?'Dépendance à surveiller : un décrochage ferait mal.':'Base assez équilibrée.'}`));
     }
   }
 
@@ -951,7 +967,7 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet,pas,dimLabe
     const avgM={};for(const mm in byM)avgM[mm]=byM[mm]/cM[mm];
     const arr=Object.keys(avgM).map(Number);let pk=arr[0],tr=arr[0];arr.forEach(mm=>{if(avgM[mm]>avgM[pk])pk=mm;if(avgM[mm]<avgM[tr])tr=mm;});
     const cv=avg?_stdev(totByPeriod)/Math.abs(avg)*100:0;
-    out.push(signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Variabilité ${cv>40?'forte':(cv>20?'modérée':'faible')} (CV ${fmtNum(cv,0)}%).`,`${cv>40?'Anticipe la trésorerie autour des creux et charge les actions commerciales avant les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`));
+    out.push(signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Variabilité ${cv>40?'forte':(cv>20?'modérée':'faible')} (CV ${fmtNum(cv,0)} %).`,`${cv>40?'Anticipe la trésorerie autour des creux et charge les actions commerciales avant les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`));
   }
 
   // 7. Qualite : poids du non renseigne
@@ -1413,7 +1429,7 @@ function diagnosticSignals(){
     S.push({sev:2,impact:dor.ca,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
   const pv=computePriceVolume();
   if(pv){
-    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
+    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
     else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',cible:'annee',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Le sujet, c'est le nombre de bouteilles vendues. Pousse acquisition et réactivation.`});
     else if(pv.delta>0)S.push({sev:1,impact:pv.delta,kind:'ok',cible:'annee',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
   }
@@ -1637,7 +1653,7 @@ function renderCap(){
     fond+=`<div class="card"><div class="card__title"><span>Effet prix contre effet volume, ${exLabelCourt(pv.cur)} vs ${exLabelCourt(pv.prev)} à date égale</span></div>
       <table class="data"><tbody>
       <tr><td>Effet volume (quantités vendues)</td><td class="num" style="color:${pv.volEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.volEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.volEff))}</td></tr>
-      <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${pv.priceEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.priceEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.priceEff))}</td></tr>
+      <tr><td>Effet prix (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} € par bouteille)</td><td class="num" style="color:${pv.priceEff>=0?'var(--ok)':'var(--danger-deep)'}">${pv.priceEff>=0?'+':'-'}${fmtMoney(Math.abs(pv.priceEff))}</td></tr>
       <tr><td><b>Variation totale</b></td><td class="num"><b>${pv.delta>=0?'+':'-'}${fmtMoney(Math.abs(pv.delta))}</b></td></tr>
       </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
   }else fond+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
@@ -1820,7 +1836,7 @@ function alertesProduits(A){
     if(c.prixBas>0&&c.nPrix>=25&&c.prixHaut/c.prixBas>=1.8)
       out.push({t:'warn',rang:1,enjeu:c.ca,famille:'prix',ico:'€',cuvee:c.nom,
         titre:`${c.nom} se vend à des prix très différents`,
-        txt:`De ${fmtNum(c.prixBas,2)} € à ${fmtNum(c.prixHaut,2)} € en ${esc(c.condDom)}, pour une médiane de ${fmtNum(c.prixMed,2)} €. <b>Action : vérifier si ces écarts sont des tarifs assumés ou des remises accordées au cas par cas.</b>`});
+        txt:`De ${fmtNum(c.prixBas,2)} € à ${fmtNum(c.prixHaut,2)} € en ${esc(c.condDom)}, pour une médiane de ${fmtNum(c.prixMed,2)} €. <b>Action : vérifier si ces écarts sont des tarifs assumés ou des remises accordées au cas par cas.</b>`});
     // Vieux millesime encore en vente alors qu'un plus recent existe.
     const mils=Object.entries(c.millesimes).filter(([m])=>/^\d{4}$/.test(m)).sort((a,b)=>a[0].localeCompare(b[0]));
     if(mils.length>=2&&ref!=null){
@@ -1877,7 +1893,16 @@ function renderProduits(){
   // « Mes cuvees », comme la barre du bureau. L'ecran disait « Mes produits », et c'etait
   // le seul endroit du bureau ou une piece portait deux noms.
   let html=`<h2 class="panel__title">Mes cuvées</h2>`;
-  if(!A.ok){html+=lignesPretes()?signal('info','ℹ','Aucune vente en base.','Ajoute un export pour voir ton portefeuille.'):signal('info','i','Portefeuille pas encore établi.','Tes lignes ne sont pas encore chargées sur cet appareil. Cet écran se remplira dès qu\'elles seront là.');el('p-produits').innerHTML=html;return;}
+  if(!A.ok){
+    /* 19/09/2026. L'ecran disait ce qui manque et sortait AVANT la ligne qui pose le bouton
+       pour aller le chercher : `noteComplement()` est plus bas, apres ce `return`, donc seul
+       « Mon cap » l'a jamais montre. Annoncer « tes lignes ne sont pas chargees » sans le
+       bouton qui les charge, c'est une impasse ecrite en toutes lettres. Le bouton se pose
+       donc avant de sortir, et seulement quand c'est bien la le probleme : une base vide,
+       elle, se remplit par un import et pas par un chargement. */
+    html+=lignesPretes()?signal('info','ℹ','Aucune vente en base.','Ajoute un export pour voir ton portefeuille.'):signal('info','i','Portefeuille pas encore établi.','Tes lignes ne sont pas encore chargées sur cet appareil. Cet écran se remplira dès qu\'elles seront là.');
+    if(!lignesPretes())html+=noteComplement('Il manque ici tout ton portefeuille de cuvées.');
+    el('p-produits').innerHTML=html;return;}
   const top3=A.liste.slice(0,3).reduce((s,c)=>s+c.part,0);
   html+=`<div class="panel__sub">Ton portefeuille vu par <b>cuvée</b>, tous millésimes confondus. C'est le seul niveau où une tendance veut dire quelque chose : un millésime qui s'arrête pendant que le suivant démarre n'est pas une baisse, c'est une rotation.</div>`;
 
@@ -1914,7 +1939,7 @@ function renderProduits(){
       ${A.f?`<td class="num" style="color:${c.delta>=0?'var(--ok)':'var(--danger-deep)'}">${c.delta>=0?'+':'-'}${fmtMoney(Math.abs(c.delta))}</td>`:''}
       <td class="num">${fmtNum(c.clients)}</td>
       <td class="num">${fmtNum(c.rachat*100,0)} %</td>
-      <td class="num">${fmtNum(c.prixMed,2)} €</td>
+      <td class="num">${fmtNum(c.prixMed,2)} €</td>
       <td class="num">${fmtNum(Object.keys(c.millesimes).length)}</td>
     </tr>`).join('')}
     </tbody></table></div>
@@ -1959,10 +1984,10 @@ function produitHTML(c,A){
   const conseils=[];
   if(c.top1>=60)conseils.push(`<b>Cette cuvée dépend d'un seul client</b> : ${fmtNum(c.top1,0)} % de ses ventes viennent de ${esc(c.nomTop)}. Élargis-la avant qu'il ne change d'avis.`);
   if(c.rachat>A.repRachat&&c.clients<A.repClients)conseils.push(`<b>Elle plaît plus qu'elle ne circule</b> : ${fmtNum(c.rachat*100,0)} % de reprise contre ${fmtNum(A.repRachat*100,0)} % en moyenne, pour seulement ${fmtNum(c.clients)} clients touchés.`);
-  if(c.prixBas>0&&c.nPrix>=25&&c.prixHaut/c.prixBas>=1.8)conseils.push(`<b>Tes prix varient du simple au double</b> : de ${fmtNum(c.prixBas,2)} € à ${fmtNum(c.prixHaut,2)} € en ${esc(c.condDom)}. Vérifie que ce sont des tarifs voulus.`);
+  if(c.prixBas>0&&c.nPrix>=25&&c.prixHaut/c.prixBas>=1.8)conseils.push(`<b>Tes prix varient du simple au double</b> : de ${fmtNum(c.prixBas,2)} € à ${fmtNum(c.prixHaut,2)} € en ${esc(c.condDom)}. Vérifie que ce sont des tarifs voulus.`);
   if(c.delta!=null&&c.delta<0&&Math.abs(c.delta)>c.ca*0.15)conseils.push(`Elle recule de ${fmtMoney(Math.abs(c.delta))} à date égale, <b>tous millésimes confondus</b> : ce n'est donc pas un simple changement de millésime.`);
   if(!conseils.length)conseils.push(`Rien d'anormal sur cette cuvée : diffusion large, prix cohérents, pas de dépendance à un client unique.`);
-  return `<div class="modale__bg" onclick="fermerFiche()"></div>
+  return `<div class="modale__bg" aria-hidden="true" onclick="fermerFiche()"></div>
   <div class="modale__box" role="dialog" aria-modal="true" aria-label="Cuvée ${esc(c.nom)}">
     <button class="modale__close" onclick="fermerFiche()" aria-label="Fermer">&times;</button>
     <div class="fiche__head"><div>
@@ -1971,7 +1996,7 @@ function produitHTML(c,A){
     </div></div>
     <div class="fiche__kpis">
       ${ficheKpi(fmtMoney(c.ca),'chiffre d\'affaires',fmtNum(c.btl)+' bouteilles')}
-      ${ficheKpi(fmtNum(c.prixMed,2)+' €','prix médian',c.condDom?'en '+c.condDom+', de '+fmtNum(c.prixBas,2)+' à '+fmtNum(c.prixHaut,2)+' €':'')}
+      ${ficheKpi(fmtNum(c.prixMed,2)+' €','prix médian',c.condDom?'en '+c.condDom+', de '+fmtNum(c.prixBas,2)+' à '+fmtNum(c.prixHaut,2)+' €':'')}
       ${ficheKpi(fmtNum(c.rachat*100,0)+' %','en reprennent','moyenne du domaine '+fmtNum(A.repRachat*100,0)+' %')}
       ${c.delta!=null?ficheKpi((c.delta>=0?'+':'-')+fmtMoney(Math.abs(c.delta)),'à date égale',A.f?A.f.prev+' vs '+A.f.cur:''):ficheKpi('n/d','à date égale','deux années nécessaires')}
     </div>
@@ -1994,7 +2019,9 @@ function produitHTML(c,A){
         <div class="section-label">Qui l'achète</div>
         <div class="tablewrap" style="max-height:220px;overflow-y:auto">
           <table class="data"><tbody>
-          ${acheteurs.map(x=>`<tr class="clic" onclick="ouvrirFiche(${JSON.stringify(x.id).replace(/"/g,'&quot;')})"><td>${esc(x.nom)}</td><td class="num">${fmtMoney(x.ca)}</td><td class="num">${fmtNum(x.ca/c.ca*100,0)} %</td></tr>`).join('')}
+          ${acheteurs.map(x=>`<tr class="clic" tabindex="0" role="button" aria-label="Ouvrir la fiche de ${esc(x.nom)}"
+            onclick="ouvrirFiche(${JSON.stringify(x.id).replace(/"/g,'&quot;')})"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ouvrirFiche(${JSON.stringify(x.id).replace(/"/g,'&quot;')});}"><td>${esc(x.nom)}</td><td class="num">${fmtMoney(x.ca)}</td><td class="num">${fmtNum(x.ca/c.ca*100,0)} %</td></tr>`).join('')}
           </tbody></table>
         </div>
         <p class="note">Clique sur un nom pour ouvrir sa fiche.</p>
@@ -2275,9 +2302,9 @@ function messageHTML(f,motif){
       ${blocs.map(b=>`<label class="chk"><input type="checkbox" value="${b.k}" ${coches.indexOf(b.k)>=0?'checked':''} onchange="majMessage()"> ${esc(b.lbl)}</label>`).join('')}
     </div>
     <label class="msg__lbl">Objet</label>
-    <input class="msg__sujet" id="msgSujet" type="text" value="${esc(sujet)}" oninput="majLienMail()">
+    <input class="msg__sujet" id="msgSujet" type="text" aria-label="Objet du message" value="${esc(sujet)}" oninput="majLienMail()">
     <label class="msg__lbl">Texte, modifiable avant envoi</label>
-    <textarea class="msg__texte" id="msgTexte" rows="11" oninput="majLienMail()">${esc(texte)}</textarea>
+    <textarea class="msg__texte" id="msgTexte" rows="11" aria-label="Texte du message, modifiable avant envoi" oninput="majLienMail()">${esc(texte)}</textarea>
     <div class="fiche__actions">
       ${mail?`<a class="btn btn--primary btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
       <button class="btn btn--ghost btn--sm" onclick="copierMessage(this)">Copier le texte</button>
@@ -2401,6 +2428,35 @@ function fermerFiche(){
   GESTE_ATTENDU=null;DEMANDE_DATE=null;
 }
 
+/* ======================= LE PIEGE A FOCUS DE LA FICHE, 19/09/2026 =======================
+   Echap etait deja la, mais ailleurs : `bdv-base.js` ecoute la touche et appelle
+   `fermerFiche()` des que `#modale` porte la classe `on`. Ne pas en poser un deuxieme ici,
+   deux ecouteurs fermeraient deux fois la meme chose.
+
+   Ce qui manquait est l'autre moitie du contrat d'une `aria-modal` : la boite DIT qu'il n'y
+   a rien d'autre a l'ecran, et Tab prouvait le contraire. Au dixieme Tab on se retrouvait
+   dans la barre du bureau, sous le voile, a piloter a l'aveugle un ecran qu'on ne voit pas.
+   La fiche est longue — contacts, message, journal, tableaux — donc personne ne s'en rend
+   compte avant d'y etre.
+
+   Le garde est le meme que celui de `bdv-taches.js` : l'ecouteur est pose UNE fois sur le
+   document, et il ne fait rien tant que la fiche est fermee. La liste des cibles se relit a
+   chaque Tab et pas a l'ouverture : la fiche se redessine apres chaque geste, et une liste
+   figee designerait des elements qui n'existent plus. */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Tab')return;
+  const m=el('modale');if(!m||!m.classList.contains('on'))return;
+  /* `offsetParent` est nul pour ce qui est masque : c'est ce qui ecarte le contenu des
+     blocs replies (`details` fermes), qui existe dans le DOM sans etre atteignable. */
+  const cibles=[].slice.call(m.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'))
+    .filter(function(n){return n.offsetParent!==null;});
+  if(!cibles.length)return;
+  const prem=cibles[0],dern=cibles[cibles.length-1],ici=document.activeElement;
+  if(!m.contains(ici)){e.preventDefault();(e.shiftKey?dern:prem).focus();return;}
+  if(e.shiftKey&&ici===prem){e.preventDefault();dern.focus();}
+  else if(!e.shiftKey&&ici===dern){e.preventDefault();prem.focus();}
+});
+
 /* ======================= LA FICHE, OUVERTE DEPUIS LE BUREAU =======================
    11/09/2026. « Ma journee » n'a plus sa petite fiche a elle : le nom d'un client et les
    boutons de son sous-main ouvrent CELLE-CI. Trois choses a savoir avant d'y toucher.
@@ -2482,7 +2538,17 @@ function ficheHTML(f,motif){
   const reco=recoPour(f.id,3);
   const prixBase=prixMoyenBouteilleDomaine();   // un NOMBRE. prixVenteMoyen() rend un objet, et fmtNum(objet) vaut NaN
   const moisMax=Math.max(...f.parMois);
-  return `<div class="modale__bg" onclick="fermerFiche()"></div>
+  /* 19/09/2026. La carte disait « dernier achat 12/08/2026 · il y a 0 j » un 18 septembre.
+     Le delai n'etait pas faux, il etait compte depuis la DERNIERE VENTE DE LA BASE et non
+     depuis aujourd'hui, et rien ne le disait. On ne le recale pas sur la date du jour :
+     `f.silence` est la reference de TOUT l'ecran — le conseil juste en dessous, la cadence,
+     le decrochage — et de la barre de periode, qui ecrit deja « depuis la fin de ta base ».
+     Deplacer ce seul chiffre aurait donne deux delais differents pour le meme client sur le
+     meme ecran. On dit donc par rapport a quoi il se compte, et le cas a zero — le client
+     qui porte la derniere vente lue — se dit en toutes lettres plutot que « il y a 0 j ». */
+  const dernierDelai = f.silence==null ? ''
+    : (f.silence>0 ? fmtDelai(f.silence)+' avant la fin de ta base' : 'dernière vente de ta base');
+  return `<div class="modale__bg" aria-hidden="true" onclick="fermerFiche()"></div>
   <div class="modale__box" role="dialog" aria-modal="true" aria-label="Fiche de ${esc(f.nom)}">
     <button class="modale__close" onclick="fermerFiche()" aria-label="Fermer">&times;</button>
 
@@ -2508,8 +2574,8 @@ function ficheHTML(f,motif){
       ${ficheKpi(fmtNum(f.nbCommandes),f.nbCommandes>1?'commandes':'commande',
         (f.nbCommandes>1?'panier moyen '+fmtMoney(f.panier):'jamais revenu')
         +(f.nbFactures>f.nbCommandes?', '+fmtNum(f.nbFactures)+' factures':''))}
-      ${ficheKpi(fmtNum(f.btl),'bouteilles',fmtNum(f.prixMoyen,2)+' € en moyenne'+(prixBase?', domaine '+fmtNum(prixBase,2)+' €':''))}
-      ${ficheKpi(f.dernier?fmtDate(f.dernier):'n/d','dernier achat',f.silence!=null?'il y a '+fmtDelai(f.silence):'')}
+      ${ficheKpi(fmtNum(f.btl),'bouteilles',fmtNum(f.prixMoyen,2)+' € en moyenne'+(prixBase?', domaine '+fmtNum(prixBase,2)+' €':''))}
+      ${ficheKpi(f.dernier?fmtDate(f.dernier):'n/d','dernier achat',dernierDelai)}
     </div>
 
     <div class="fiche__conseil">
@@ -2681,6 +2747,7 @@ function suiviCorps(f,s){
     h+=`<div class="saisie">
       ${att?`<p class="note saisie__att">Note ce qui s'est dit : en enregistrant, ce client repartira dans ${att.jours} jours. Tant que tu n'as rien écrit, rien n'est parti.</p>`:''}
       <textarea class="saisie__txt" id="saisieTxt" rows="2"
+        aria-label="Note de suivi : ce qui s'est passé avec ce client"
         placeholder="Qu'est-ce qui s'est passé avec ce client ?"></textarea>
       <div class="saisie__pied">
         <div class="saisie__types">
@@ -2694,6 +2761,7 @@ function suiviCorps(f,s){
 
   // ---- Les etiquettes, discretes. ----
   h+=`<input class="etiq" type="text" value="${esc((s.tags||[]).join(', '))}"
+        aria-label="Étiquettes de ce client, séparées par des virgules"
         placeholder="Étiquettes : VIP, difficile à joindre…" onchange="crmSetTags(${arg},this.value)">`;
 
   /* ---- QUI A ECRIT QUOI, 14/09/2026. ----
@@ -3069,13 +3137,13 @@ function piedCommerce(){
   if(!liste.length||ca<=0)return '';
 
   let dedans=`<table class="data"><thead><tr><th>Client</th><th class="num">CA HT</th><th class="num">Part</th></tr></thead><tbody>`
-    +liste.slice(0,8).map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.ca)}</td><td class="num">${fmtNum(c.ca/ca*100,0)}%</td></tr>`).join('')
+    +liste.slice(0,8).map(c=>`<tr><td>${esc(c.nom)}</td><td class="num">${fmtMoney(c.ca)}</td><td class="num">${fmtNum(c.ca/ca*100,0)} %</td></tr>`).join('')
     +`</tbody></table>`;
 
   if(liste.length>=3){
     const part3=liste.slice(0,3).reduce((s,c)=>s+c.ca,0)/ca*100, dep=part3>SEUILS.dependanceTop3;
     dedans+=signal(dep?'warn':'ok',dep?'⚠':'✔',
-      `Le top 3 clients pèse ${fmtNum(part3,0)}% de ton CA, sur tout l'historique.`,
+      `Le top 3 clients pèse ${fmtNum(part3,0)} % de ton CA, sur tout l'historique.`,
       dep?`<b>Dépendance forte à surveiller.</b> Un départ ferait mal. Élargis ta base de gros clients.`
          :`Répartition saine, pas de dépendance excessive sur les 3 premiers clients.`);
   }
@@ -3153,9 +3221,13 @@ function renderClients(){
     const verdict = lignesPretes()
       ? signal('ok','✔','Personne à relancer.','Aucun client ne recule, ne rompt son rythme ni ne reste sans suite. Profites-en.')
       : signal('info','i','Liste pas encore établie.','Tes lignes ne sont pas encore chargées sur cet appareil. Ce bloc dira qui rappeler dès qu\'elles seront là.');
+    /* 19/09/2026, meme defaut qu'a « Mes cuvees » : cette sortie precede le
+       `noteComplement()` de la fin de fonction, donc l'ecran annoncait des lignes non
+       chargees sans jamais offrir de les charger. */
     html+=`<div class="section-label">Qui rappeler</div>`
       +`<div class="panel__sub">Les clients à qui il se passe quelque chose, réunis en une seule liste.</div>`
       +verdict
+      +(lignesPretes()?'':noteComplement('Il manque ici la liste de qui rappeler : les reculs, les rythmes rompus et les clients venus une seule fois.'))
       +piedCommerce();
     el('p-clients').innerHTML=html;return;
   }
@@ -3502,7 +3574,7 @@ function filterJoignables(tbodyId,on){const f=FILTRES[tbodyId]||(FILTRES[tbodyId
 // Barre d'outils commune aux listes de clients : recherche, case joignables, compteur.
 function listTools(tbodyId,exportFn){
   return `<span style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-    <input class="search" type="text" placeholder="Filtrer par nom ou adresse e-mail" oninput="filterList('${tbodyId}',this.value)">
+    <input class="search" type="text" aria-label="Filtrer par nom ou adresse e-mail" placeholder="Filtrer par nom ou adresse e-mail" oninput="filterList('${tbodyId}',this.value)">
     <label class="chk"><input type="checkbox" onchange="filterJoignables('${tbodyId}',this.checked)"> joignables (e-mail ou téléphone)</label>
     <span class="muted-cell" id="${tbodyId}Count"></span>
     <button class="btn btn--ghost btn--sm" onclick="${exportFn}()">Exporter la liste</button></span>`;
@@ -3533,13 +3605,13 @@ function toXlsxOrCsv(sheets,base){
 }
 // Exploration : pivot affiché + lignes filtrées
 function exploExportSheets(){
-  const rows=exploRows(),a1=axisDef(exploAxis1),sheets=[];
+  const rows=exploRows(),a1=axisOuDefaut(exploAxis1),sheets=[];
   if(!exploAxis2){
     const entries=isTimeAxis(exploAxis1)?chronoEntries(groupSum(rows,a1.get)):allEntries(groupSum(rows,a1.get));
     const tot=entries.reduce((sm,e)=>sm+e[1],0);
     sheets.push({name:a1.label,aoa:[[a1.label,mesureLabel(),'Part %']].concat(entries.map(([k,v])=>[k,Math.round(v),tot?+(v/tot*100).toFixed(1):0]))});
   }else{
-    const a2=axisDef(exploAxis2);
+    const a2=axisOuDefaut(exploAxis2);
     const rowKeys=axisKeys(exploAxis1,groupSum(rows,a1.get),8),colKeys=axisKeys(exploAxis2,groupSum(rows,a2.get),8);
     const rset=new Set(rowKeys),cset=new Set(colKeys),cell={},rt={},ct={};
     rows.forEach(r=>{let rk=a1.get(r);rk=(rk===''||rk==null)?'(non renseigné)':String(rk);if(!rset.has(rk))rk='Autres';let ck=a2.get(r);ck=(ck===''||ck==null)?'(non renseigné)':String(ck);if(!cset.has(ck))ck='Autres';const v=mesureVal(r);cell[rk]=cell[rk]||{};cell[rk][ck]=(cell[rk][ck]||0)+v;rt[rk]=(rt[rk]||0)+v;ct[ck]=(ct[ck]||0)+v;});

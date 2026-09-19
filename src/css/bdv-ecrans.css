@@ -159,13 +159,10 @@
 .bdv-ventes .spinner{width:.9rem;height:.9rem;border:var(--trait-fort) solid currentColor;border-top-color:transparent;border-radius:var(--r-rond);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* IMPORT */
-.bdv-ventes .import{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--bordeaux-deep);
-  background-image:radial-gradient(var(--on-dark-rule) 1px,transparent 1px);background-size:22px 22px}
-.bdv-ventes .import__box{max-width:660px;width:100%;text-align:center;background:var(--white);border-radius:var(--r-nul);box-shadow:var(--ombre-dure-xl);padding:2.6rem 2.2rem;border-top:var(--trait-accent) solid var(--bordeaux)}
-.bdv-ventes .import .eyebrow{font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-large);color:var(--bordeaux);margin-bottom:1rem}
-.bdv-ventes .import h1{font-family:var(--font-titre);font-weight:400;font-size:clamp(1.8rem,4.2vw,2.6rem);color:var(--ink);margin-bottom:.7rem}
-.bdv-ventes .import .lead{font-size:var(--t-corps);color:var(--muted);max-width:520px;margin:0 auto 1.9rem;line-height:var(--lh-normal)}
+/* L'ECRAN D'IMPORT PLEIN ECRAN est parti le 19/09/2026 : `.import`, `.import__box`
+   et les trois regles qui l'habillaient. Le depot d'un export passe par la carte
+   « Ajouter un export » du panneau de reglages depuis la fusion du 07/09, et plus
+   par un ecran a lui. `.dropzone` et `.dropzone--compact`, elles, vivent. */
 .bdv-ventes .dropzone{border:var(--trait-fort) dashed var(--bordeaux);border-radius:var(--r-nul);padding:2.6rem 2rem;cursor:pointer;transition:var(--tr-rapide);background:var(--paper-light)}
 .bdv-ventes .dropzone:hover,.bdv-ventes .dropzone.over{border-color:var(--bordeaux-vif);background:var(--paper-deep)}
 .bdv-ventes .dropzone.over{border-style:solid}
@@ -178,7 +175,6 @@
 .bdv-ventes .dz-icon{font-size:2.1rem;margin-bottom:.5rem;color:var(--bordeaux)}
 .bdv-ventes .dropzone h3{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;margin-bottom:.25rem}
 .bdv-ventes .dropzone p{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
-.bdv-ventes .btn-row{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1.3rem}
 .bdv-ventes [hidden]{display:none !important}
 .bdv-ventes .hint{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.8rem}
 /* ---- LA FICHE DE SUIVI ----
@@ -199,7 +195,17 @@
 
 .bdv-ventes .saisie{border:var(--trait) solid var(--rule-fort);background:var(--white);margin-bottom:.9rem}
 .bdv-ventes .saisie__txt{display:block;width:100%;box-sizing:border-box;border:none;background:none;padding:.7rem .8rem;font-family:var(--font-corps);font-size:var(--t-corps);color:var(--ink);resize:vertical}
+/* LE CERCLAGE DE FOCUS ETAIT RETIRE SANS REMPLACEMENT, corrige le 19/09/2026.
+   C'est le champ ou l'on pose la trace d'un appel client, le geste central de
+   « Mon commerce » depuis le 11/09, et au clavier rien ne disait qu'on y etait.
+   Les trois autres `outline:none` du depot ont tous un remplacement par la
+   BORDURE : voir `.podcast-teaser__input:focus` dans style.css. On fait pareil,
+   a ceci pres que la bordure visible n'est pas sur le champ, qui est declare
+   `border:none`, mais sur `.saisie` qui l'encadre. D'ou `:focus-within` : le
+   cadre s'allume quand le focus entre dedans, y compris sur les boutons du pied,
+   ce qui est exactement ce qu'on veut voir. */
 .bdv-ventes .saisie__txt:focus{outline:none}
+.bdv-ventes .saisie:focus-within{border-color:var(--bordeaux)}
 .bdv-ventes .saisie__pied{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding:.4rem .5rem;border-top:var(--trait) solid var(--rule)}
 .bdv-ventes .saisie__types{display:flex;gap:.3rem;align-items:center}
 .bdv-ventes .saisie__etiq{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
@@ -224,7 +230,16 @@
 .bdv-ventes .btn--lien{background:none;border:none;padding:0 0 0 .4rem;color:var(--bordeaux);font-family:var(--font-corps);font-size:var(--t-mini);text-decoration:underline;cursor:pointer}
 
 /* Le redacteur de message est un assistant, pas du suivi : il attend qu'on le demande. */
-.bdv-ventes .msg--replie>summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux)}
+/* CES TITRES DE REPLI FAISAIENT 17 PX DE HAUT SUR 1 144 DE LARGE, 19/09/2026.
+   « Ce qui explique ta variation », « Qui pese quoi dans ton chiffre », « Par quel
+   chemin tu vends », « Suivi » : un `<summary>` nu ne ressemble a rien qu'on
+   clique, et a la souris la norme est de 24 px. Du remplissage vertical et un
+   fond leger, et il se lit comme la commande qu'il est.
+   ON NE TOUCHE PAS A `display`. Un summary est `list-item` : le passer en `flex`
+   ou en `block` emporte son ::marker, et c'est la fleche de repli qui disparait.
+   Le bloc telephone plus bas le passe deja en `flex` ET redessine la fleche en
+   ::before ; ici, le remplissage suffit a monter la cible a 31 px. */
+.bdv-ventes .msg--replie>summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux);padding:.45rem .7rem;background:var(--paper-light)}
 .bdv-ventes .msg--replie>summary::marker{color:var(--cork-encre)}
 .bdv-ventes .msg--replie[open]>summary{margin-bottom:.8rem}
 
@@ -335,7 +350,6 @@
 .bdv-ventes .card{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.2rem;margin-bottom:1.2rem}
 .bdv-ventes .card__title{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:500}
 .bdv-ventes .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
-.bdv-ventes .grid-rep{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
 .bdv-ventes .chart-wrap{position:relative;height:300px}
 
 /* BASCULE MESURE */
@@ -362,7 +376,6 @@
 .bdv-ventes .field--dates__pair{display:flex;gap:.4rem;align-items:center}
 .bdv-ventes .field--dates__pair input{min-width:0;width:130px}
 .bdv-ventes .field--dates__pair span{color:var(--muted)}
-.bdv-ventes .rename-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin:.2rem 0 1rem}
 .bdv-ventes .heat{width:100%;border-collapse:collapse;font-size:var(--t-petit)}
 .bdv-ventes .heat th,.bdv-ventes .heat td{padding:.4rem .5rem;border:var(--trait) solid var(--rule);text-align:right;font-family:var(--font-mono)}
 .bdv-ventes .heat th{font-size:var(--t-micro);text-transform:uppercase;color:var(--muted);background:var(--paper-light)}
@@ -503,22 +516,15 @@
 .bdv-ventes .signal__action{color:var(--muted);font-size:var(--t-base)}
 .bdv-ventes .signal__action b{color:var(--ink)}
 
-/* CTA */
-.bdv-ventes .cta{background:var(--ink-deep);color:var(--on-dark);padding:1.2rem 1.4rem;margin-bottom:1.2rem;border-radius:var(--r-nul);display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;border-left:var(--trait-accent) solid var(--gold)}
-.bdv-ventes .cta__txt{max-width:65%}
-.bdv-ventes .cta h3{color:var(--on-dark);font-size:1.05rem;font-weight:400;margin-bottom:.2rem}
-.bdv-ventes .cta p{font-size:var(--t-base);opacity:.8}
-
-.bdv-ventes .foot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.4rem;padding-top:1rem;border-top:var(--trait) solid var(--rule)}
+/* LE BANDEAU `.cta` (quatre regles) ET `.foot` sont partis le 19/09/2026 : aucune
+   des deux classes n'etait posee dans les ecrans de vente. `.appfoot`, juste en
+   dessous, est celle qui sert vraiment. */
 .bdv-ventes .appfoot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.6rem;padding-top:1.1rem;border-top:var(--trait) solid var(--rule)}
 .bdv-ventes .note{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.6rem}
 .bdv-ventes .pourquoi{margin-top:.6rem;font-size:var(--t-petit)}
 .bdv-ventes .pourquoi summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--bordeaux);user-select:none}
 .bdv-ventes .pourquoi__in{margin-top:.5rem;padding:.6rem .8rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--muted);line-height:var(--lh-normal)}
 .bdv-ventes .conf{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);padding:.1rem .4rem;border-radius:var(--r-nul);border:var(--trait) solid var(--rule);white-space:nowrap}
-.bdv-ventes .conf--bonne{color:var(--ok);border-color:var(--ok)}
-.bdv-ventes .conf--moyenne{color:var(--warn);border-color:var(--warn)}
-.bdv-ventes .conf--faible{color:var(--muted)}
 .bdv-ventes .mini-line{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.7rem}
 
 /* RAPPORT IMPRIMABLE (motif design "Rapport Vitisoft") */
@@ -574,7 +580,7 @@
   .pr-seclabel{page-break-after:avoid}
   .pr-sig,.pr-pv__item,.pr-kpi{page-break-inside:avoid}
 }
-@media(max-width:900px){.bdv-ventes .kpi-grid{grid-template-columns:repeat(2,1fr)}.bdv-ventes .grid-2,.bdv-ventes .grid-rep{grid-template-columns:1fr}.bdv-ventes .cta__txt{max-width:100%}}
+@media(max-width:900px){.bdv-ventes .kpi-grid{grid-template-columns:repeat(2,1fr)}.bdv-ventes .grid-2{grid-template-columns:1fr}}
 
 /* ==========================================================================
    LE TELEPHONE, 11/09/2026
@@ -719,6 +725,28 @@
   /* --- 3. Ce qui deborde defile DANS son cadre -------------------------- */
   .bdv-ventes .card:has(> table.data) { overflow-x: auto; overscroll-behavior-x: contain; }
   .bdv-ventes .card:has(> details table.data) { overflow-x: auto; overscroll-behavior-x: contain; }
+  /* ET ON DIT QU'ILS DEFILENT, 19/09/2026. Deux tableaux de « Mes cuvees »
+     mesurent 665 et 612 px dans un cadre de 369 : ils defilaient correctement
+     depuis le 11/09, mais rien ne l'annoncait, et un tableau coupe net au bord se
+     lit comme un tableau tronque, pas comme un tableau qui continue. C'est le
+     defaut d'origine de la barre des pieces, refait sur un autre objet.
+     Deux couches : un voile couleur de la carte en `local`, donc cale sur le
+     CONTENU, et une ombre en `scroll`, donc calee sur le CADRE. Tant qu'il reste
+     des colonnes a droite, le voile est hors champ et l'ombre se voit ; arrive au
+     bout, le voile la recouvre et l'indice s'efface. Aucune ligne de JavaScript.
+     `background-color` est repose ici parce que `.card` declare `background` en
+     raccourci : sans lui, poser `background-image` laisserait la carte grise. */
+  .bdv-ventes .card:has(> table.data),
+  .bdv-ventes .card:has(> details table.data) {
+    background-color: var(--white);
+    background-image:
+      linear-gradient(to left, var(--white), transparent),
+      linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent);
+    background-repeat: no-repeat, no-repeat;
+    background-position: right center, right center;
+    background-size: 26px 100%, 18px 100%;
+    background-attachment: local, scroll;
+  }
   /* LE CADRE NE SUFFIT PAS : un tableau se comprime AVANT de deborder. Mesure a
      390 px, les six colonnes de « Mix canal et prix moyen » tenaient dans 368 px,
      donc elles ne defilaient pas, elles etaient ILLISIBLES, ce qui est le meme

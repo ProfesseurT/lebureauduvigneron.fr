@@ -56,6 +56,41 @@
     n.classList.toggle('equipe-avis--souci', !!mauvais);
   }
 
+  /* ---------------- UN ECHEC AVEC UNE PORTE DE SORTIE, 19/09/2026 ----------------
+     LE DEFAUT QUE CA FERME. Hors ligne, la piece disait « La liste n'a pas pu etre lue.
+     Verifie ta connexion. » ET RIEN D'AUTRE : pas un bouton, pas un geste. La seule
+     issue etait de recharger la page, ce qu'un vigneron dans son app posee sur l'ecran
+     d'accueil ne sait pas forcement faire - il n'y a ni barre d'adresse ni fleche.
+     Revenir a la piece par la barre ne suffisait pas non plus : `ouvrir()` est le seul
+     chemin, et rien ne le rappelait tant qu'on ne changeait pas de piece.
+
+     LE MOTIF EST CELUI DU VOILE D'AMORCAGE (pied() dans bdv-amorce.js) : la phrase qui
+     dit ce qui a rate, puis un bouton « Reessayer » en `.btn--geste` qui REJOUE ce qui
+     a rate, et rien d'autre. Ici ce qui a rate est la sequence entiere de `ouvrir()`,
+     donc on la rejoue entiere : elle est idempotente, `monter()` se garde par MONTE et
+     `dire('')` efface ce message - et avec lui ce bouton, puisque dire() ecrit par
+     textContent et emporte donc les enfants. Rien a nettoyer a la main.
+
+     LE BOUTON SE DESARME LE TEMPS DE L'ALLER-RETOUR, comme « Y aller » plus bas : sur
+     un reseau de cave, un clic d'impatience relancerait quatre lectures par-dessus
+     quatre autres. */
+  function direEchec(texte) {
+    var n = el('equipeAvis');
+    if (!n) return;
+    dire(texte, true);
+    n.appendChild(document.createTextNode(' '));
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn--geste';
+    b.textContent = 'Réessayer';
+    b.addEventListener('click', function () {
+      b.disabled = true;
+      b.textContent = 'Un instant\u2026';
+      ouvrir();
+    });
+    n.appendChild(b);
+  }
+
   /* ---------------- L'ETAT ----------------
      MAITRE n'est PAS un droit, c'est un affichage. La base decide. */
   var MAITRE = false;
@@ -449,7 +484,7 @@
       await rendreEquipe();      // c'est elle qui pose MAITRE
       await rendreNom();
       await rendreInvitations();
-    } catch (e) { dire('La liste n’a pas pu être lue. Vérifie ta connexion.', true); }
+    } catch (e) { direEchec('La liste n’a pas pu être lue. Vérifie ta connexion.'); }
   }
 
   /* ================================================================

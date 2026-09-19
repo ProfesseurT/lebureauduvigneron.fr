@@ -46,6 +46,61 @@
       && BdvCompte.monBureau && BdvCompte.monBureau());
   }
 
+  /* UN AVIS, PAR LE CANAL QUI EXISTE DEJA, 19/09/2026. Meme fonction, mot pour mot, que
+     dans bdv-taches.js : `status()` est la barre du tableau de bord (bdv-base.js), et elle
+     sait deja parler par `BdvReglages.dire()` quand la barre n'est pas dans la page, ce
+     qui est le cas du bureau. On n'invente pas un troisieme canal. */
+  function avertir(message) {
+    if (!message) return;
+    try {
+      // Le test porte sur le TYPE : hors de bdv-base.js, `status` est la vieille propriete
+      // texte du navigateur, qui existe toujours et n'est pas une fonction.
+      if (typeof status === 'function') { status('error', message); return; }
+    } catch (e) {}
+    try {
+      if (window.BdvReglages && BdvReglages.dire) BdvReglages.dire(message, false);
+    } catch (e) {}
+  }
+  /* Plusieurs refus definitifs dans une meme file ont presque toujours la meme cause :
+     on dit le premier en entier, et on COMPTE les autres. */
+  function resumeRefus(messages) {
+    if (messages.length === 1) return messages[0];
+    return messages[0] + ' ' + (messages.length - 1)
+      + (messages.length === 2 ? ' autre geste a \u00e9t\u00e9 refus\u00e9 pour la m\u00eame raison.'
+                               : ' autres gestes ont \u00e9t\u00e9 refus\u00e9s pour la m\u00eame raison.');
+  }
+
+  /* CE QUI EST DEFINITIF, ET CE QUI NE L'EST PAS, 19/09/2026. Meme regle que
+     bdv-taches.js, et meme defaut ferme : la phrase francaise fabriquee dans pousser()
+     etait jetee par son seul appelant, qui remettait la ligne en file. Elle y repartait a
+     chaque ouverture, refusee a l'identique, et la file jamais vide interdisait ensuite
+     tout changement de bureau.
+
+     DEFINITIFS : le refus de proprietaire (marqueur `definitif`), 403 (la securite par
+     ligne a refuse, le droit ne changera pas en retentant) et 401 (le jeton a ete refuse
+     apres `rafraichir()`). TOUT LE RESTE RETOURNE EN FILE, y compris 400, 409, 422 et
+     5xx : un 400 vient souvent d'une colonne pas encore creee en base, et la prochaine
+     migration le repare. */
+  function refusDefinitif(e) {
+    if (!e) return false;
+    if (e.definitif) return true;
+    if (window.BdvCompte && BdvCompte.refusDeProprietaire
+      && BdvCompte.refusDeProprietaire(e)) return true;
+    return e.status === 401 || e.status === 403;
+  }
+
+  /* LE REFUS DIT EN FRANCAIS, ET MARQUE. La traduction remplacait l'erreur d'origine,
+     `status` compris : l'appelant recevait une phrase et plus aucun moyen de savoir que
+     ce refus etait sans appel. Le marqueur voyage donc AVEC la phrase. */
+  function traduireRefus(e, par) {
+    if (!(BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e))) return e;
+    var refus = new Error(BdvCompte.refusEnFrancais('Ce rep\u00e8re a \u00e9t\u00e9 r\u00e9gl\u00e9',
+      par, 'Seul son auteur peut le changer.'));
+    refus.definitif = true;
+    refus.status = e.status;
+    return refus;
+  }
+
   function lireAttente() {
     try { return JSON.parse(localStorage.getItem(ATTENTE_KEY)) || {}; } catch (e) { return {}; }
   }
@@ -96,21 +151,38 @@
     return !!proprio && proprio !== moi;
   }
   async function viderAttente() {
-    if (fileEtrangere()) { jeterAttente(); return; }
+    /* UNE FILE ETRANGERE SE JETTE, MAIS PLUS EN SILENCE, 19/09/2026. Jeter est le bon
+       geste pour la securite : ces reglages ne sont pas a ce bureau. Les jeter sans un mot
+       ne l'est pas, parce que du travail disparait et que personne ne peut le savoir ni le
+       refaire. */
+    if (fileEtrangere()) {
+      jeterAttente();
+      avertir('Des r\u00e9glages de calendrier faits hors ligne depuis un autre bureau '
+        + 'n\u2019ont pas pu \u00eatre enregistr\u00e9s : ils n\u2019appartenaient pas \u00e0 celui-ci.');
+      return;
+    }
     var f = lireAttente(), cles = Object.keys(f);
     if (!cles.length || !pret()) return;
-    var restant = {};
+    var restant = {}, refuses = [];
     for (var i = 0; i < cles.length; i++) {
       var l = f[cles[i]];
       try {
         if (l === null) await retirer(cles[i]);
         else await pousser(l);
-      } catch (e) { restant[cles[i]] = l; }
+      } catch (e) {
+        // Le refus sans appel QUITTE la file : c'est le seul moyen qu'elle finisse par se
+        // vider, et donc que le changement de bureau redevienne possible.
+        if (refusDefinitif(e)) { refuses.push(e.message); continue; }
+        restant[cles[i]] = l;
+      }
     }
     try {
       if (Object.keys(restant).length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(restant));
       else jeterAttente();
     } catch (e) {}
+    /* On le dit, PUIS on relit la base : le miroir porte encore le reglage que la base a
+       refuse, et la base fait foi. */
+    if (refuses.length) { avertir(resumeRefus(refuses)); charger(); }
   }
 
   /* ---------------- LE SERVEUR ---------------- */
@@ -122,12 +194,8 @@
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       corps: [Object.assign({}, ligne, { bureau: bureau })]
     }).catch(function (e) {
-      if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
-        var vieux = lireCache()[ligne.cle] || {};
-        throw new Error(BdvCompte.refusEnFrancais('Ce rep\u00e8re a \u00e9t\u00e9 r\u00e9gl\u00e9',
-          vieux.cree_par, 'Seul son auteur peut le changer.'));
-      }
-      throw e;
+      var vieux = lireCache()[ligne.cle] || {};
+      throw traduireRefus(e, ligne.cree_par || vieux.cree_par);
     });
   }
   function retirer(cle) {
@@ -135,8 +203,15 @@
     if (!bureau) return Promise.reject(new Error('pas de bureau'));
     // Le filtre nomme les DEUX colonnes de la cle. Sans `bureau`, cette suppression
     // viserait le meme repere dans TOUS les bureaux de la personne.
+    /* LA SUPPRESSION AUSSI SE TRADUIT, 19/09/2026 : rallumer le repere d'un collegue est
+       refuse par la meme politique que le regler, et l'erreur brute remontait telle quelle
+       jusqu'a l'ecran (« Supabase a refuse /calendrier_choix (403) »). */
     return BdvCompte.api('/calendrier_choix?bureau=eq.' + encodeURIComponent(bureau)
-      + '&cle=eq.' + encodeURIComponent(cle), { methode: 'DELETE' });
+      + '&cle=eq.' + encodeURIComponent(cle), { methode: 'DELETE' })
+      .catch(function (e) {
+        var vieux = lireCache()[cle] || {};
+        throw traduireRefus(e, vieux.cree_par);
+      });
   }
   async function charger() {
     if (!pret()) return;
@@ -183,7 +258,16 @@
     ecrireCache(map);
     prevenir();
     if (!pret()) { enfiler(cle, ligne); return; }
-    (ligne === null ? retirer(cle) : pousser(ligne)).catch(function () { enfiler(cle, ligne); });
+    (ligne === null ? retirer(cle) : pousser(ligne)).catch(function (e) {
+      /* LE SEUL APPELANT JETAIT LE MESSAGE ET REMETTAIT LA LIGNE EN FILE, 19/09/2026.
+         La phrase francaise fabriquee dans pousser() n'etait lue par personne : le
+         vigneron ne voyait rien, le repere restait eteint a l'ecran, la ligne repartait a
+         chaque ouverture, et la file jamais vide interdisait tout changement de bureau.
+         Un refus sans appel se DIT, et la base est relue pour que l'ecran cesse de montrer
+         une ecriture qui n'a pas eu lieu. */
+      if (refusDefinitif(e)) { avertir(e.message); charger(); return; }
+      enfiler(cle, ligne);
+    });
   }
 
   /* On range TOUJOURS par ici, jamais par ecrire() directement : c'est le seul

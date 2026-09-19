@@ -869,3 +869,61 @@
     top: -11px; bottom: -11px;
   }
 }
+
+/* ============================================================================
+   LE PLANCHER DE LA SOURIS, 24 PX, 19/09/2026
+   ----------------------------------------------------------------------------
+   Tout le travail de planchers tactiles de cette feuille est ENFERME dans
+   `@media (max-width: 700px)`. Sur ordinateur, la norme applicable au pointeur
+   est de 24 px, et la piece ne la tenait a peu pres nulle part : 117 cibles
+   mesurees en dessous le 19/09, dont « C'est fait » a 79 x 19 et le « + » qui
+   cree une occurrence a 18 x 11.
+
+   `@media (min-width: 701px)` ET PAS UNE REGLE NUE. Une regle sans requete,
+   ecrite ici, en bas du fichier, battrait les 44 px du bloc telephone qui la
+   precedent : meme specificite, derniere posee gagne, y compris quand elle est
+   hors requete et l'autre dedans. Le complement exact de `max-width: 700px` est
+   la seule ecriture qui ne peut pas defaire ce qui a ete paye le 11/09.
+
+   CE QUI N'EST PAS ICI, ET POURQUOI. `.calo__b`, la barre d'une occurrence dans
+   une case du mois, fait 18,4 px de haut (`height: 1.15rem`). C'est le gros du
+   compte des 117. La monter a 24 px ajouterait 6 px PAR occurrence dans des cases
+   qui en empilent jusqu'a quatre, dans une grille dont la case a une hauteur
+   fixe de 5,5 rem : ce n'est plus une cible qu'on corrige, c'est la grille du
+   mois qu'on redessine. C'est un arbitrage de Ted, il reste ouvert.
+   ============================================================================ */
+@media (min-width: 701px) {
+
+  /* « C'est fait » mesurait 79 x 19. C'est le bouton qui ECRIT : il coche une
+     obligation reglementaire. Meme liste que le bloc telephone, meme motif,
+     24 px au lieu de 44. */
+  .bdv-cal .cal__coche,
+  .bdv-cal .cal__coche--choix,
+  .bdv-cal .cal__rallume,
+  .bdv-cal .cal__sansdate a,
+  .bdv-cal .echeance__liens a,
+  .bdv-cal .cal__vue,
+  .bdv-cal .cal__auj {
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .bdv-cal .cal__nav button { min-height: 24px; min-width: 24px; }
+
+  /* LE « + » D'UNE CASE, 18 x 11, et c'est lui qui cree une occurrence. Il vit
+     dans l'entete de la case, a cote du numero du jour, dans une case a hauteur
+     FIXE : lui donner 24 px de haut sans compensation prendrait 7 px sur la place
+     laissee aux occurrences en dessous. Le remplissage grandit la cible, la marge
+     negative le rend a la mise en page : la case ne bouge pas d'un pixel. Motif
+     de `.tache__coche` dans style.css.
+     Il est `display: none` sous 700 px (pas de survol sur un telephone), donc
+     cette regle n'a rien a defaire la-bas. */
+  .bdv-cal .calm__plus {
+    min-width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-block: 7px;
+    margin-block: -7px;
+  }
+}

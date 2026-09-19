@@ -27,8 +27,19 @@
               {% endif %}
             </div>
             <div class="articles-une__card-body">
-              {% if post.data.pilier %}
-              <p class="articles-une__pilier">{{ post.data.pilier }}</p>
+              {# LA CATEGORIE, ET PLUS LE PILIER, 19/09/2026.
+                 `pilier` est l'ancienne classification (« Process 🔧 », « Marketing 📈 »),
+                 ecartee par l'arbitrage de Ted du 10/09/2026 au profit de `categorie`.
+                 src/_data/rubriques.js affirmait depuis ce jour-la qu'elle n'etait plus lue
+                 par aucun gabarit : c'etait faux, ce composant la lisait, et la page
+                 d'accueil construite affichait donc encore les emojis de l'ancien
+                 classement. Les dix-neuf articles de la collection portent tous une
+                 `categorie` -- le seul fichier qui n'en a pas est exclu des collections.
+                 LA CLASSE NE CHANGE PAS : `.articles-une__pilier` vit dans
+                 src/css/style.css:3477, et renommer ici sans renommer la-bas deshabillerait
+                 l'etiquette. Les deux se renomment ensemble ou pas du tout. #}
+              {% if post.data.categorie %}
+              <p class="articles-une__pilier">{{ post.data.categorie }}</p>
               {% endif %}
               <h3 class="articles-une__title">{{ post.data.title }}</h3>
               {% if post.data.description %}

@@ -55,6 +55,76 @@
       && BdvCompte.monBureau && BdvCompte.monBureau());
   }
 
+  /* UN AVIS, PAR LE CANAL QUI EXISTE DEJA, 19/09/2026.
+     `status()` est la barre du tableau de bord, declaree dans bdv-base.js, et elle sait
+     deja parler ailleurs par `BdvReglages.dire()` quand la barre n'est pas dans la page.
+     C'est exactement le cas du bureau, ou bdv-base.js n'est meme pas charge. On passe
+     donc par elle quand elle est la, par `dire()` sinon, et on n'invente pas un
+     troisieme endroit ou le site parle. */
+  function avertir(message) {
+    if (!message) return;
+    try {
+      // Le test porte sur le TYPE : hors de bdv-base.js, `status` est la vieille propriete
+      // texte du navigateur, qui existe toujours et n'est pas une fonction.
+      if (typeof status === 'function') { status('error', message); return; }
+    } catch (e) {}
+    try {
+      if (window.BdvReglages && BdvReglages.dire) BdvReglages.dire(message, false);
+    } catch (e) {}
+  }
+  /* Une file qui se vide peut collectionner plusieurs refus definitifs, et ils ont
+     presque toujours la meme cause. On dit le premier en entier, et on COMPTE les
+     autres : cinq phrases empilees ne se lisent pas, et ne disent rien de plus. */
+  function resumeRefus(messages) {
+    if (messages.length === 1) return messages[0];
+    return messages[0] + ' ' + (messages.length - 1)
+      + (messages.length === 2 ? ' autre geste a \u00e9t\u00e9 refus\u00e9 pour la m\u00eame raison.'
+                               : ' autres gestes ont \u00e9t\u00e9 refus\u00e9s pour la m\u00eame raison.');
+  }
+
+  /* CE QUI EST DEFINITIF, ET CE QUI NE L'EST PAS, 19/09/2026.
+     UN REFUS DEFINITIF NE RETOURNE PAS EN FILE. Jusqu'a ce jour, TOUT echec d'ecriture
+     retournait en file, y compris celui que la base ne changera jamais d'avis : une
+     tache ecrite par un collegue repartait a chaque ouverture, etait refusee a
+     l'identique, et le vigneron ne voyait rien pendant que la coche restait affichee.
+     Pire : la file ne se vidant jamais, `changerDeBureau()` refusait pour toujours de
+     basculer avec « Un geste n'a pas encore ete enregistre », et rien dans l'interface
+     ne permettait d'en sortir.
+
+     LES TROIS CAS RETENUS COMME DEFINITIFS, et le pourquoi de chacun :
+       - `definitif`, pose par traduireRefus() : c'est le refus de proprietaire, celui
+         que Ted a arbitre le 13/09/2026. Personne d'autre que l'auteur n'ecrira jamais
+         cette ligne, il n'y a rien a retenter.
+       - 403 : la politique de securite par ligne a refuse. Le jeton est bon, le droit
+         non ; le reessayer mille fois donnera mille fois 403.
+       - 401 : le jeton a ete refuse. Le rejeu se fait a l'ouverture de la page, donc
+         APRES `rafraichir()` ; un 401 qui survit a ca ne se repare pas tout seul.
+
+     CE QUI RESTE DU RESEAU, ET QUI RETOURNE EN FILE : tout le reste, y compris 400,
+     409, 422 et 5xx. Un 400 vient souvent d'une colonne pas encore creee en base ; la
+     prochaine migration le repare, et jeter le travail du vigneron parce que la base
+     etait en retard d'un deploiement serait la pire des deux erreurs. */
+  function refusDefinitif(e) {
+    if (!e) return false;
+    if (e.definitif) return true;
+    if (window.BdvCompte && BdvCompte.refusDeProprietaire
+      && BdvCompte.refusDeProprietaire(e)) return true;
+    return e.status === 401 || e.status === 403;
+  }
+
+  /* LE REFUS DIT EN FRANCAIS, ET MARQUE. La traduction remplacait l'erreur d'origine,
+     `status` compris : l'appelant recevait une belle phrase et plus aucun moyen de
+     savoir que ce refus etait sans appel. Le marqueur voyage donc AVEC la phrase.
+     Meme nom et meme role que `traduireRefus()` dans bdv-crm.js. */
+  function traduireRefus(e, par) {
+    if (!(BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e))) return e;
+    var refus = new Error(BdvCompte.refusEnFrancais('Cette t\u00e2che a \u00e9t\u00e9 \u00e9crite',
+      par, 'Seul son auteur peut la modifier.'));
+    refus.definitif = true;
+    refus.status = e.status;
+    return refus;
+  }
+
   function lireAttente() {
     try { return JSON.parse(localStorage.getItem(ATTENTE_KEY)) || {}; } catch (e) { return {}; }
   }
@@ -94,10 +164,20 @@
     return !!proprio && proprio !== moi;
   }
   async function viderAttente() {
-    if (fileEtrangere()) { jeterAttente(); return; }
+    /* UNE FILE ETRANGERE SE JETTE, MAIS PLUS EN SILENCE, 19/09/2026. Jeter est le bon
+       geste pour la securite : ces lignes ne sont pas a ce bureau. Les jeter sans un mot
+       ne l'est pas, parce que du travail disparait et que personne ne peut le savoir ni
+       le refaire. Une ecriture qui ne rend pas la preuve de ce qu'elle a fait n'est pas
+       une ecriture ; une suppression non plus. */
+    if (fileEtrangere()) {
+      jeterAttente();
+      avertir('Des t\u00e2ches not\u00e9es hors ligne depuis un autre bureau n\u2019ont pas pu '
+        + '\u00eatre enregistr\u00e9es : elles n\u2019appartenaient pas \u00e0 celui-ci.');
+      return;
+    }
     var f = lireAttente(), tids = Object.keys(f);
     if (!tids.length || !pret()) return;
-    var restant = {};
+    var restant = {}, refuses = [];
     for (var i = 0; i < tids.length; i++) {
       var l = f[tids[i]];
       try {
@@ -106,12 +186,21 @@
         // defaut que les signets, ou une suppression repartait en `etat: null`.
         if (l === null) await retirer(tids[i]);
         else await pousser(l);
-      } catch (e) { restant[tids[i]] = l; }
+      } catch (e) {
+        // Le refus sans appel QUITTE la file : c'est le seul moyen qu'elle finisse par
+        // se vider, et donc que le changement de bureau redevienne possible.
+        if (refusDefinitif(e)) { refuses.push(e.message); continue; }
+        restant[tids[i]] = l;
+      }
     }
     try {
       if (Object.keys(restant).length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(restant));
       else jeterAttente();
     } catch (e) {}
+    /* On le dit, PUIS on relit la base. Le miroir porte encore la coche que la base a
+       refusee : la base fait foi, le navigateur n'est qu'une vitre, et c'est la relecture
+       qui remet la vitre d'aplomb. */
+    if (refuses.length) { avertir(resumeRefus(refuses)); charger(); }
   }
 
   /* ---------------- LE SERVEUR ---------------- */
@@ -127,12 +216,8 @@
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       corps: [Object.assign({}, ligne, { bureau: bureau })]
     }).catch(function (e) {
-      if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
-        var vieux = lireCache()[ligne.tache_id] || {};
-        throw new Error(BdvCompte.refusEnFrancais('Cette t\u00e2che a \u00e9t\u00e9 \u00e9crite',
-          ligne.cree_par || vieux.cree_par, 'Seul son auteur peut la modifier.'));
-      }
-      throw e;
+      var vieux = lireCache()[ligne.tache_id] || {};
+      throw traduireRefus(e, ligne.cree_par || vieux.cree_par);
     });
   }
   function retirer(tid) {
@@ -142,15 +227,25 @@
     // requete qui dit exactement ce qu'elle supprime ne depend pas d'une politique. Et
     // depuis le lot 17 elle ne le peut plus : sans `bureau`, cette suppression viserait
     // la meme cle de tache dans TOUS les bureaux de la personne.
+    /* LA SUPPRESSION AUSSI SE TRADUIT, 19/09/2026. Retirer la tache d'un collegue est
+       refuse par la meme politique que la modifier, et l'erreur brute remontait telle
+       quelle : le vigneron lisait « Supabase a refuse /taches (403) ». */
     return BdvCompte.api('/taches?bureau=eq.' + encodeURIComponent(bureau)
-      + '&tache_id=eq.' + encodeURIComponent(tid), { methode: 'DELETE' });
+      + '&tache_id=eq.' + encodeURIComponent(tid), { methode: 'DELETE' })
+      .catch(function (e) {
+        var vieux = lireCache()[tid] || {};
+        throw traduireRefus(e, vieux.cree_par);
+      });
   }
+  /* CETTE FONCTION REND DESORMAIS UN BOOLEEN, 19/09/2026 : la sequence d'ouverture de
+     `mon-bureau.njk` marque une etape ratee quand elle rend exactement `false`, et c'est
+     a chaque module de traduire son propre « je ne sais pas ». */
   async function charger() {
-    if (!pret()) return;
+    if (!pret()) return false;
     try {
       var lignes = await BdvCompte.api('/taches?select=tache_id,titre,source,ref,echue_le,fin_le,fait_le,maj_le,cree_par'
         + '&bureau=eq.' + encodeURIComponent(BdvCompte.monBureau()));
-      if (!lignes) return;       // null = session tombee ou corps vide, on garde le miroir
+      if (!lignes) return false;  // null = session tombee ou corps vide, on garde le miroir
       var map = {};
       lignes.forEach(function (l) { map[l.tache_id] = l; });
       ecrireCache(map);
@@ -161,7 +256,8 @@
          cette liste pour montrer une tache en retard serait cassee par un reseau lent,
          pour une information qui n'est qu'une precision. */
       if (BdvCompte.trombinoscope) BdvCompte.trombinoscope().catch(function () {});
-    } catch (e) { /* le miroir precedent reste affiche, c'est mieux que rien */ }
+      return true;
+    } catch (e) { return false; /* le miroir precedent reste affiche, c'est mieux que rien */ }
   }
   document.addEventListener('bdv:trombinoscope', function () {
     try { rendre(); } catch (e) {}
@@ -371,7 +467,16 @@
     ecrireCache(map);
     rendre();
     if (!pret()) { enfiler(tid, ligne); return; }
-    (ligne === null ? retirer(tid) : pousser(ligne)).catch(function () { enfiler(tid, ligne); });
+    (ligne === null ? retirer(tid) : pousser(ligne)).catch(function (e) {
+      /* LE SEUL APPELANT JETAIT LE MESSAGE ET REMETTAIT LA LIGNE EN FILE, 19/09/2026.
+         La phrase francaise etait fabriquee juste au-dessus, dans pousser(), et personne
+         ne la lisait jamais : le vigneron ne voyait rien, la coche restait affichee, la
+         ligne repartait a chaque ouverture, et la file jamais vide interdisait ensuite
+         tout changement de bureau. Un refus sans appel se DIT, et la base est relue pour
+         que l'ecran cesse de montrer une ecriture qui n'a pas eu lieu. */
+      if (refusDefinitif(e)) { avertir(e.message); charger(); return; }
+      enfiler(tid, ligne);
+    });
   }
 
   /* UNE TACHE PEUT DURER PLUSIEURS JOURS depuis le 08/09/2026. Ted : « imagine
@@ -1211,16 +1316,56 @@
      lit le serveur, les suivants repeignent. Elle ne bloque jamais l'affichage sur le
      reseau, contrairement au moteur des ventes : il n'y a rien a calculer ici. */
   var LU = false;
+  /* LA PROMESSE DE LA PREMIERE LECTURE EST PARTAGEE, 19/09/2026. Trois chemins peuvent
+     la demander (le chargement du fichier, la sequence d'ouverture, l'evenement du
+     bureau) et il ne doit en partir qu'UNE : deux `viderAttente()` en vol en meme temps
+     enverraient deux fois les memes lignes. Celui qui arrive second recoit la promesse
+     du premier et l'attend, ce qui est exactement ce qu'il voulait. */
+  var PREMIERE = null;
+
+  /* ---------------- LE POINT D'ENTREE DE LA SEQUENCE D'OUVERTURE, 19/09/2026 ----------------
+     LE DEFAUT QUE CA FERME. La premiere lecture des taches se lancait toute seule en bas
+     de ce fichier, hors de la sequence ordonnee de `amorcer()` dans mon-bureau.njk. A la
+     toute premiere ouverture qui suit une connexion, `bdv_bureau_v1` n'est pas encore
+     posee : `pret()` est faux, la lecture ne part pas, ET RIEN NE LA RELANCE. Le panneau
+     de liege s'ouvrait sans une seule punaise de tache, et une obligation qui tombe demain
+     n'apparaissait nulle part.
+
+     LA VRAIE REPARATION EST UNE ETAPE DANS `amorcer()`, apres l'etape « Ton bureau » :
+     c'est la doctrine posee le 17/09/2026 dans bdv-amorce.js, l'ordre de la liste EST la
+     dependance. Cette fonction est ce que cette etape appellera, et elle en respecte le
+     contrat : elle rend une promesse, et `false` quand elle ne sait pas lire.
+
+     L'ECOUTEUR DE `bdv:bureau` PLUS BAS EST UN FILET, PAS LA REPARATION. Il est pose ici
+     parce que mon-bureau.njk n'appartient pas a ce chantier, et il ne coute rien : cette
+     fonction est idempotente, donc le jour ou l'etape sera ajoutee, l'evenement trouvera
+     la lecture deja partie et l'etape recevra la meme promesse. */
+  function amorcer() {
+    if (!pret()) return Promise.resolve(false);
+    if (!PREMIERE) {
+      LU = true;
+      PREMIERE = viderAttente().then(charger);
+    }
+    return PREMIERE;
+  }
+
   function ouvrir() {
     brancherForm();
     rendre();
-    if (!LU && pret()) { LU = true; viderAttente().then(charger); }
+    if (!LU) amorcer();
   }
 
   document.addEventListener('bdv:session', function () {
-    LU = false;
-    if (pret()) { LU = true; viderAttente().then(charger); }
+    LU = false; PREMIERE = null;
+    if (pret()) amorcer();
     else { ecrireCache({}); rendre(); }   // les taches du precedent ne sont pas les siennes
+  });
+
+  /* LE FILET : le bureau vient d'etre connu, et personne n'avait encore pu lire.
+     `amorcer()` ne fait rien si la lecture est deja partie, donc cet ecouteur ne peut
+     pas doubler le travail de la sequence d'ouverture. */
+  document.addEventListener('bdv:bureau', function () {
+    if (!LU && pret()) amorcer();
   });
 
   /* PREMIERE LECTURE AU CHARGEMENT DE LA PAGE, et pas a l'ouverture de la piece. Le
@@ -1237,7 +1382,7 @@
     BdvCompte.avantDeQuitterLeBureau(viderAttente);
   }
 
-  if (pret()) { LU = true; viderAttente().then(charger); } else { rendre(); }
+  if (pret()) amorcer(); else rendre();
 
   /* ---------------- CE QUE LE CALENDRIER LIT ----------------
      Ajoute le 08/09/2026 sur demande de Ted : « afficher les taches datees dans
@@ -1260,7 +1405,8 @@
   }
 
   window.BdvTaches = {
-    ouvrir: ouvrir, rendre: rendre, charger: charger, punaises: punaises,
+    // `amorcer` est le point d'entree de la sequence d'ouverture de mon-bureau.njk.
+    ouvrir: ouvrir, amorcer: amorcer, rendre: rendre, charger: charger, punaises: punaises,
     ajouter: ajouter, basculer: basculer, supprimer: supprimer, toutes: toutes,
     repousser: repousser, reporterAu: reporterAu, modifier: modifier,
     faitsAujourdhui: faitsAujourdhui,

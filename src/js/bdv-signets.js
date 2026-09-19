@@ -24,6 +24,8 @@
 
   var CACHE_KEY   = 'bdv_signets_v1';
   var ATTENTE_KEY = 'bdv_signets_attente';
+  // Le proprietaire de la file, pose le 19/09/2026 sur le modele de bdv-calchoix.js.
+  var ATTENTE_QUI = 'bdv_signets_attente_qui';
 
   var ETATS = {
     absent: { texte: 'Mettre de côté',  aide: 'Mettre cet article de côté' },
@@ -48,6 +50,24 @@
     return (window.BdvCompte && BdvCompte.session()) || null;
   }
 
+  /* UN AVIS, PAR LE CANAL QUI EXISTE DEJA, 19/09/2026.
+     `status()` est la barre du tableau de bord, declaree dans bdv-base.js, et elle sait
+     deja parler ailleurs par `BdvReglages.dire()` quand la barre n'est pas dans la page.
+     On passe donc par elle quand elle est chargee, par `dire()` sinon. Hors du bureau et
+     du tableau de bord, aucun des deux n'est la et on se tait : un module ne fabrique pas
+     un canal a lui, ce serait un troisieme endroit ou le site parle. */
+  function avertir(message) {
+    if (!message) return;
+    try {
+      // Le test porte sur le TYPE : hors de bdv-base.js, `status` est la vieille propriete
+      // texte du navigateur, qui existe toujours et n'est pas une fonction.
+      if (typeof status === 'function') { status('error', message); return; }
+    } catch (e) {}
+    try {
+      if (window.BdvReglages && BdvReglages.dire) BdvReglages.dire(message, false);
+    } catch (e) {}
+  }
+
   // ---------------- LA FILE D'ATTENTE ----------------
   // Une ecriture refusee par le reseau est mise de cote telle quelle et rejouee au prochain
   // chargement. Une meme reference ne s'empile pas : seul son dernier etat compte.
@@ -55,12 +75,60 @@
     try { return JSON.parse(localStorage.getItem(ATTENTE_KEY)) || {}; }
     catch (e) { return {}; }
   }
+  /* LA FILE APPARTIENT A QUELQU'UN, 19/09/2026. Troisieme exemplaire du meme moteur,
+     apres bdv-calchoix.js et bdv-taches.js (13/09/2026) : memes noms, meme ordre.
+
+     LE DEFAUT QUE CA FERME, signale le 08/09/2026 et reste ouvert ici pendant que les
+     deux autres modules etaient repares : Ted met un article de cote hors ligne, se
+     deconnecte, un collegue se connecte sur le meme navigateur, et le rejeu ecrit le
+     signet de Ted SUR LE COMPTE DU COLLEGUE. L'identifiant pose a l'envoi, qui protege
+     de la panne du 07/09/2026, cause exactement cette seconde fuite. Une file d'un autre
+     proprietaire se jette, elle ne se rejoue pas.
+
+     LA SEULE DIFFERENCE AVEC LES DEUX AUTRES EXEMPLAIRES EST ICI, ET ELLE EST VOULUE :
+     `qui()` rend le COMPTE et pas le bureau. Une ligne de `signets` est classee par
+     `(id, ref)`, elle ne porte aucune colonne `bureau` ; prendre le bureau pour
+     proprietaire jetterait le travail de quelqu'un qui change simplement de domaine, et
+     ne dirait rien du tout sur les pages du site ou aucun bureau n'est charge. Le
+     proprietaire d'une file, c'est celui de la ligne qu'elle porte.
+
+     Hors ligne et sans compte, `qui()` est nul : la file n'appartient a personne encore,
+     et le premier compte qui se connecte la reprendra. C'est voulu, c'est le cas du
+     vigneron qui met un article de cote dans le train avant d'ouvrir sa session. */
+  function qui() { return (window.BdvCompte && BdvCompte.monId && BdvCompte.monId()) || null; }
+
   function enfiler(ref, ligne) {
     var f = lireAttente();
     f[ref] = ligne;
-    try { localStorage.setItem(ATTENTE_KEY, JSON.stringify(f)); } catch (e) {}
+    try {
+      localStorage.setItem(ATTENTE_KEY, JSON.stringify(f));
+      localStorage.setItem(ATTENTE_QUI, qui() || '');
+    } catch (e) {}
+  }
+  function jeterAttente() {
+    try {
+      localStorage.removeItem(ATTENTE_KEY);
+      localStorage.removeItem(ATTENTE_QUI);
+    } catch (e) {}
+  }
+  function fileEtrangere() {
+    var moi = qui();
+    if (!moi) return false;
+    var proprio;
+    try { proprio = localStorage.getItem(ATTENTE_QUI); } catch (e) { return false; }
+    return !!proprio && proprio !== moi;
   }
   async function viderAttente() {
+    /* UNE FILE ETRANGERE SE JETTE, MAIS PLUS EN SILENCE, 19/09/2026. Jeter est le bon
+       geste : ces lignes ne sont pas a celui qui est devant l'ecran. Les jeter sans un
+       mot ne l'est pas, parce que du travail disparait et que personne ne peut le
+       savoir ni le refaire. */
+    if (fileEtrangere()) {
+      jeterAttente();
+      avertir('Des articles mis de côté hors ligne depuis un autre compte n’ont pas pu '
+        + 'être enregistrés : ils n’appartenaient pas à celui-ci.');
+      return;
+    }
     var f = lireAttente();
     var refs = Object.keys(f);
     if (!refs.length || !session()) return;
@@ -79,7 +147,7 @@
     }
     try {
       if (Object.keys(restant).length) localStorage.setItem(ATTENTE_KEY, JSON.stringify(restant));
-      else localStorage.removeItem(ATTENTE_KEY);
+      else jeterAttente();
     } catch (e) {}
   }
 
@@ -225,6 +293,13 @@
   // montraient encore les signets de la personne precedente sur ce navigateur.
   document.addEventListener('bdv:session', function () {
     peindre();
+    /* Meme geste qu'au chargement, et au meme endroit que dans bdv-calchoix.js : un
+       compte qui s'ouvre sur une file laissee par un autre ne la rejoue pas. */
+    if (fileEtrangere()) {
+      jeterAttente();
+      avertir('Des articles mis de côté hors ligne depuis un autre compte n’ont pas pu '
+        + 'être enregistrés : ils n’appartenaient pas à celui-ci.');
+    }
     if (session()) viderAttente().then(charger);
   });
 

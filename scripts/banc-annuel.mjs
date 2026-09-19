@@ -96,7 +96,32 @@ for (const e of uniques) {
   const fin = new Date(debut.getFullYear(), debut.getMonth(), debut.getDate() + (r.duree > 0 ? r.duree : 1) - 1);
   const jours = Math.round((fin - AUJOURDHUI) / JOUR);
   if ((e.famille || 'obligations') === 'obligations') {
-    vrai('`' + e.cle + '` est une obligation : sa date passee est legitime', true);
+    /* L'EXEMPTION SE VERIFIE, ELLE NE SE DECLARE PAS. 19/09/2026 : il y avait ici
+       `vrai('... sa date passee est legitime', true)`, une condition ecrite en dur.
+       Elle ne controlait rien et gonflait le decompte final d'un « ok » par
+       obligation : un banc qui annonce vingt controles passes dont deux sont des
+       constantes ment sur ce qu'il garde.
+
+       CE QUE L'EXEMPTION DIT VRAIMENT, et donc ce qu'il faut verifier. Une
+       `unique` de la famille `obligations` echappe au controle de peremption
+       parce que c'est une DATE D'ENTREE EN VIGUEUR : « Facturation electronique,
+       obligation de recevoir » au 01/09/2026 reste utile a afficher pour
+       toujours. Une entree en vigueur tombe UN JOUR, et elle cite le texte qui
+       la fonde. Un evenement qui DURE n'en est pas une : range sous
+       `obligations`, un salon de trois jours passe echappait au controle 2 sans
+       que personne ne puisse le voir. C'est exactement le trou que l'ancienne
+       ligne cachait. */
+    const duree = e.recurrence.duree;
+    vrai('`' + e.cle + '` est une entree en vigueur : elle tombe un seul jour',
+      duree == null || duree === 1,
+      'Cette ligne dure ' + duree + ' jours et se dit `obligations` : elle echappe donc au '
+      + 'controle de peremption, qu\'elle soit encore vraie ou non. Une obligation qui '
+      + 'DURE est un rendez-vous ou un temps fort, pas une entree en vigueur. Changer sa '
+      + '`famille`, ou retirer sa `duree`.');
+    vrai('`' + e.cle + '` cite le texte qui la fonde', !!(e.source && String(e.source).trim()),
+      'Une date qu\'on garde a l\'ecran pour toujours doit dire d\'ou elle vient : '
+      + 'c\'est la seule facon de la re-verifier le jour ou le texte change. '
+      + 'Ajouter "source".');
     continue;
   }
   vrai('`' + e.cle + '` n\'est pas pourri (' + iso(fin) + ')', jours >= -30,

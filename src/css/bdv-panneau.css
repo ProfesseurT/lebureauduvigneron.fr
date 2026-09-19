@@ -108,6 +108,159 @@
 .bdvr-panneau .grid-rep{grid-template-columns:1fr}
 }
 
+/* ============================================================================
+   LE TELEPHONE, 19/09/2026
+   ----------------------------------------------------------------------------
+   Cette feuille n'avait AUCUNE regle sous 700 px. Sa seule requete etait a
+   900 px, pour passer les grilles a une colonne. style.css, bdv-ecrans.css et
+   bdv-calendrier.css ont toutes leur bloc telephone depuis le 11/09 ; celle-ci
+   ne l'a jamais eu, et c'est l'ecran ou un nouveau vigneron depose son export et
+   valide son classement.
+
+   MESURES A 390 PX AVANT CETTE PASSE :
+     six onglets            33 px de haut   (plancher du projet : 44)
+     la croix de fermeture  27 x 28
+     les cases a cocher     15 x 15 et 13 x 13
+     « Vider la base »      135 x 34
+     « Enregistrer »        152 x 36
+     le lien du pied        355 x 19
+     trois saisies a 12,5 et 14,1 px
+     le tableau du classement 487 px de large dans un panneau de 390
+
+   MEME CONVENTION QUE bdv-ecrans.css ET bdv-calendrier.css : une requete
+   `max-width: 700px` nue, et le scope par le prefixe de la feuille. Pas
+   `body.bdv-poste` : le panneau s'ouvre AUSSI depuis le tableau de bord, qui ne
+   porte pas cette classe, et la moitie des corrections serait morte la-bas.
+
+   ON ELARGIT LA CIBLE, PAS LE DESSIN. Les deux cases a cocher gardent leurs
+   15 et 13 px de carre ; c'est leur etiquette, qui les enveloppe et les bascule,
+   qui descend au plancher. Meme motif que `.bdv-ventes .chk` le 11/09.
+
+   LES JETONS D'ESPACEMENT N'EXISTENT PAS ICI. --e-s, --e-m, --e-xs ne sont
+   declares que du cote site : le reste de cette feuille ecrit ses espacements en
+   rem, et ce bloc fait pareil. C'est la regle d'entete du fichier.
+   ============================================================================ */
+@media (max-width: 700px) {
+
+  /* --- 1. Les saisies, a 16 px, sinon iOS zoome -------------------------
+     Sous 16 px, Safari iOS agrandit la page entiere a la mise au point et n'en
+     ressort pas seul. Regle du projet du 11/09 : « ce defaut se corrige dans le
+     CSS, en portant les saisies a 16 px, et nulle part ailleurs. » */
+  .bdvr-panneau .field select,
+  .bdvr-panneau .field input,
+  .bdvr-panneau .search,
+  .bdvr-panneau input,
+  .bdvr-panneau select,
+  .bdvr-panneau textarea { font-size: var(--t-corps); }
+
+  /* --- 2. Ce qui forcait le tableau du classement hors du panneau -------
+     220 px pour la recherche et 180 px pour les champs de l'explorateur : a deux
+     cotes d'une meme rangee, ils sortaient le formulaire de renommage a x=517
+     dans un panneau de 390, et la colonne de gauche, celle qui porte la valeur
+     qu'on renomme, etait coupee.
+
+     LE `!important` VISE UN STYLE EN LIGNE, PAS UNE AUTRE REGLE. bdv-base.js
+     ecrit `style="min-width:170px"` sur le champ de renommage et
+     `style="min-width:340px"` sur le selecteur de colonne : un style en ligne bat
+     toute feuille, et il n'y a pas d'autre levier depuis le CSS. La vraie
+     correction est de retirer ces deux attributs dans bdv-base.js ; tant qu'ils
+     sont la, ce `!important` est le seul moyen de rendre le panneau utilisable
+     sur un telephone. Il est borne a cette requete et a ce prefixe. */
+  .bdvr-panneau .field select,
+  .bdvr-panneau .field input { min-width: 0 !important; width: 100%; }
+  .bdvr-panneau .field { width: 100%; }
+  .bdvr-panneau .search { min-width: 0 !important; width: 100%; max-width: 100%; }
+  .bdvr-panneau .expl-ctrls { gap: .6rem; }
+
+  /* --- 3. Le tableau passe en une colonne par ligne ---------------------
+     487 px dans 390 : il defilait, mais la colonne utile etait celle qui sortait.
+     Chaque rangee devient un bloc, chaque cellule une ligne. Le cadre garde son
+     `overflow` : rien ne depend plus de lui, mais une cellule longue reste
+     rattrapee.
+
+     LES EN-TETES PARTENT AVEC LA MISE EN COLONNE, et c'est le cout de ce dessin :
+     un `<th>` ne peut pas se repeter devant chaque cellule sans que le markup
+     porte le libelle. Pour les rendre, il faudrait un `data-libelle` sur chaque
+     `<td>` dans bdv-base.js, donc une modification de fichier qui n'est pas la
+     mienne. Signale. */
+  .bdvr-panneau .tablewrap { max-height: none; }
+  .bdvr-panneau table.data,
+  .bdvr-panneau table.data tbody,
+  .bdvr-panneau table.data tr { display: block; width: 100%; }
+  .bdvr-panneau table.data thead { display: none; }
+  .bdvr-panneau table.data tr {
+    border-bottom: var(--trait-fort) solid var(--rule);
+    padding: .35rem 0;
+  }
+  .bdvr-panneau table.data td {
+    display: block;
+    width: auto;
+    border-bottom: none;
+    padding: .3rem .55rem;
+  }
+  .bdvr-panneau table.data td.num,
+  .bdvr-panneau table.data th.num { text-align: left; }
+
+  /* --- 4. Le plancher tactile, sur la CIBLE -----------------------------
+     44 px, le meme chiffre que les trois autres feuilles. */
+  .bdvr-panneau .bdvr-onglet {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  /* La croix est l'UNIQUE sortie d'un panneau qui prend tout l'ecran sous 820 px.
+     La rater, c'est rester enferme. Elle est calee dans l'angle, la ou le pouce
+     est le moins precis. Elle etait a 27 x 28. */
+  .bdvr-panneau .bdvr-x {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    top: .35rem;
+    right: .35rem;
+  }
+  /* « Enregistrer » a 36 px, « Vider la base » a 34. Le premier ecrit les
+     reglages, le second efface la base : ce sont les deux boutons du panneau dont
+     un ratage coute quelque chose. */
+  .bdvr-panneau .bdvr-btn,
+  .bdvr-panneau .btn,
+  .bdvr-panneau .btn--sm { min-height: 44px; }
+  /* Le lien du pied faisait 355 x 19 : large comme la page, haut comme rien. Il
+     mene au mot de passe, a l'export et a la suppression du compte. */
+  .bdvr-panneau .bdvr-lien {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  /* LE DESSIN DE LA CASE NE BOUGE PAS, c'est son etiquette qui prend la place.
+     15 x 15 pour les cases du classement (« Compte dans le CA », « Sortie
+     gratuite ou perte » : elles changent le chiffre d'affaires affiche) et
+     13 x 13 pour les deux cases du courrier. Les deux etiquettes enveloppent leur
+     case et la basculent : c'est la vraie cible. */
+  .bdvr-panneau .chk,
+  .bdvr-panneau .bdvr-chk {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  /* Les liens d'un tableau : meme motif que `.bdv-ventes table.data a` le 11/09,
+     `inline-flex` et pas une interligne forcee, sinon une adresse sur deux lignes
+     fabrique une cible de 88 px. */
+  .bdvr-panneau .data a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* --- 5. Ce qui reste large ------------------------------------------- */
+  .bdvr-panneau .kpi-grid,
+  .bdvr-panneau .kpi-grid--base { grid-template-columns: 1fr; }
+  .bdvr-panneau .grid-2 { grid-template-columns: 1fr; }
+  .bdvr-panneau .dropzone { padding: 1.6rem 1rem; }
+}
+
 /* Meme chiffre que dans les ecrans de vente, meme traitement. Voir le bloc
    « LES CHIFFRES DU SITE » de style.css pour le motif. */
 .bdvr-panneau .kpi__val{font-family:var(--font-chiffre);font-weight:700;letter-spacing:var(--ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}

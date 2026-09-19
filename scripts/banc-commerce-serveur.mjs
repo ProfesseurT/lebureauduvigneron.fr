@@ -108,6 +108,11 @@ const test = `
   comPoser(null);
 
   window.__S = {
+    /* LE PLANCHER SE MESURE DANS LA PAGE, PAS DANS LE HARNAIS, 19/09/2026 : le
+       nombre de lignes que le MOTEUR a retenues, pas celui qu'on croit avoir
+       pousse. Une ligne ecartee par computeMeta() ne se verrait pas autrement.
+       PAS D'ACCENT GRAVE DANS CE BLOC : il vit dans un gabarit de chaine. */
+    lignes: ROWS.length,
     htmlLocal: htmlLocal, htmlServeur: htmlServeur,
     brLocal: brLocal, brServeur: brServeur,
     cadLocal: cadLocal, cadServeur: cadServeur,
@@ -127,6 +132,40 @@ try {
   process.exit(1);
 }
 const S = w.__S;
+
+/* ==========================================================================
+   0. LE PLANCHER : ON NE COMPARE PAS DEUX LISTES VIDES
+   ==========================================================================
+   Pose le 19/09/2026. Tout ce qui suit compare le calcul local au calcul
+   serveur, et TOUT PASSE SUR RIEN. « meme nombre de clients : 0 / 0 » est vrai.
+   « les quinze champs de chaque client sont identiques » est vrai sur zero
+   client : la boucle `for (const id in A)` ne tourne pas une fois, `mauvais`
+   reste vide, et le controle le plus cher du banc se declare passe sans avoir
+   compare un seul nombre. Meme chose pour l'ordre des mouvements et pour la
+   liste des decroches, qui s'appuient sur `every()` : vrai sur un tableau vide.
+
+   Trois facons ordinaires d'arriver la, et aucune ne casse quoi que ce soit : un
+   `computeMeta()` qui ecarte les lignes du decor, un seuil de cadence rendu plus
+   severe, un champ de la fixture renomme. Le banc annonce alors trente-six
+   controles passes sur un ecran qu'il n'a pas regarde.
+
+   Les autres bancs du depot posent deja ce plancher : `banc-app` exige au moins
+   deux icones, `banc-outils` au moins deux cartes, `banc-annuel` au moins une
+   ligne `unique`. Celui-ci ne l'avait pas. Les nombres attendus ci-dessous sont
+   ceux du decor du haut de ce fichier : s'il change, ils changent avec lui, et
+   c'est justement le moment ou quelqu'un doit les relire.
+   ========================================================================== */
+console.log('\n== 0. Le plancher : il y a bien quelque chose a comparer ==');
+t('la base du decor a ete relue par le moteur', S.lignes > 0, S.lignes + ' ligne(s) dans ROWS');
+t('le panneau « Mon commerce » a vraiment ete peint, des deux cotes',
+  S.htmlLocal.length > 200 && S.htmlServeur.length > 200,
+  S.htmlLocal.length + ' / ' + S.htmlServeur.length + ' signes');
+t('la cadence retient au moins deux clients a comparer',
+  S.cadLocal.clients.length >= 2, S.cadLocal.clients.length + ' client(s)');
+t('le bandeau retient au moins un mouvement a comparer',
+  S.brLocal.movers.length >= 1, S.brLocal.movers.length + ' mouvement(s)');
+t('le decrochage retient au moins un client a comparer',
+  S.decLocal.decroche.length >= 1, S.decLocal.decroche.length + ' client(s)');
 
 console.log('\n== 1. Le meme ecran, quelle que soit la source ==');
 if (S.htmlLocal === S.htmlServeur) {

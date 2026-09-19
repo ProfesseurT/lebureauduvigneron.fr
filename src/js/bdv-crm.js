@@ -61,10 +61,64 @@
   // 13/09/2026 : chacun n'ecrit que ses propres lignes, maitre compris.
   function traduireRefus(e, quoi, par) {
     if (BdvCompte.refusDeProprietaire && BdvCompte.refusDeProprietaire(e)) {
-      return new Error(BdvCompte.refusEnFrancais(quoi + ' a \u00e9t\u00e9 cr\u00e9\u00e9',
+      var refus = new Error(BdvCompte.refusEnFrancais(quoi + ' a \u00e9t\u00e9 cr\u00e9\u00e9',
         par, 'Seul son auteur peut le modifier.'));
+      /* LE MOTIF SURVIT A LA TRADUCTION, 19/09/2026. La phrase francaise remplacait
+         l'erreur d'origine, `status` compris : la file ne pouvait plus voir que ce refus
+         etait SANS APPEL, et elle gardait la ligne indefiniment. */
+      refus.definitif = true;
+      refus.status = e && e.status;
+      return refus;
     }
     return e;
+  }
+
+  /* UN AVIS, PAR LE CANAL QUI EXISTE DEJA, 19/09/2026. Meme fonction, mot pour mot, que
+     dans bdv-taches.js et bdv-calchoix.js : `status()` est la barre du tableau de bord
+     (bdv-base.js), et elle sait deja parler par `BdvReglages.dire()` quand la barre n'est
+     pas dans la page, ce qui est le cas du bureau. */
+  function avertir(message) {
+    if (!message) return;
+    try {
+      // Le test porte sur le TYPE : hors de bdv-base.js, `status` est la vieille propriete
+      // texte du navigateur, qui existe toujours et n'est pas une fonction.
+      if (typeof status === 'function') { status('error', message); return; }
+    } catch (e) {}
+    try {
+      if (window.BdvReglages && BdvReglages.dire) BdvReglages.dire(message, false);
+    } catch (e) {}
+  }
+  function resumeRefus(messages) {
+    if (messages.length === 1) return messages[0];
+    return messages[0] + ' ' + (messages.length - 1)
+      + (messages.length === 2 ? ' autre geste a \u00e9t\u00e9 refus\u00e9 pour la m\u00eame raison.'
+                               : ' autres gestes ont \u00e9t\u00e9 refus\u00e9s pour la m\u00eame raison.');
+  }
+
+  /* CE QUI EST DEFINITIF, ET CE QUI NE L'EST PAS, 19/09/2026. Meme regle que
+     bdv-taches.js et bdv-calchoix.js, et meme defaut ferme : un geste refuse pour une
+     raison qui ne changera jamais retournait en file, y repartait a chaque ouverture, et
+     la file jamais vide interdisait ensuite tout changement de bureau.
+
+     DEFINITIFS : le refus de proprietaire (marqueur `definitif` pose par traduireRefus()),
+     403 (la securite par ligne a refuse) et 401 (le jeton a ete refuse, et le rejeu se
+     fait apres `rafraichir()`). TOUT LE RESTE RETOURNE EN FILE, y compris 400, 409, 422 et
+     5xx : un 400 vient souvent d'une colonne pas encore creee en base, et la prochaine
+     migration le repare. */
+  function refusDefinitif(e) {
+    if (!e) return false;
+    if (e.definitif) return true;
+    if (window.BdvCompte && BdvCompte.refusDeProprietaire
+      && BdvCompte.refusDeProprietaire(e)) return true;
+    return e.status === 401 || e.status === 403;
+  }
+  /* Un refus qui se dit au vigneron doit etre une phrase. Ceux qui passent par
+     traduireRefus() en portent deja une ; les autres n'ont que le message technique de
+     `api()` (« Supabase a refuse /echanges (403) »), qu'on ne montre a personne. */
+  function phraseRefus(e) {
+    if (e && e.definitif && e.message) return e.message;
+    return 'Un geste pos\u00e9 hors ligne n\u2019a pas pu \u00eatre enregistr\u00e9 : ton compte '
+      + 'n\u2019a pas le droit d\u2019\u00e9crire dans ce bureau.';
   }
 
   function lireMiroir() {
@@ -135,7 +189,24 @@
        piece. */
     var reglages = (r[0].status === 'fulfilled' && Array.isArray(r[0].value)) ? r[0].value : [];
     var suivi    = (r[1].status === 'fulfilled' && Array.isArray(r[1].value)) ? r[1].value : [];
-    if (r[0].status !== 'fulfilled' && r[1].status !== 'fulfilled') return lireMiroir();
+    /* LE MIROIR RENDU APRES UN ECHEC TOTAL DIT QU'IL EST PERIME, 19/09/2026.
+       Les deux lectures sont tombees : ce qu'on rend ici est l'etat de la DERNIERE VISITE,
+       pas celui du jour. Rendu nu, il etait indistinguable d'une lecture reussie pour tout
+       le reste du bureau : le drapeau « lecture en echec » ne se levait pas, et la file de
+       rappels de la semaine derniere s'affichait comme si elle etait du jour.
+
+       LA MARQUE VOYAGE AVEC LA REPONSE ET N'EST PAS ECRITE DANS LE MIROIR. Elle dit l'age
+       de CET appel, pas une propriete de ce qui est range sur le disque : une lecture qui
+       reussit reconstruit l'etat de zero, donc la marque disparait toute seule et ne peut
+       pas rester collee a un bureau qui va bien.
+
+       QUI LA LIT : `peindreFile()` dans src/mon-bureau.njk, par `ETAT_FILE.perime`. Le
+       gabarit n'appartient pas a ce chantier, la ligne exacte a ajouter est dans le
+       rapport du 19/09/2026. */
+    if (r[0].status !== 'fulfilled' && r[1].status !== 'fulfilled') {
+      var vieil = lireMiroir();
+      return vieil ? Object.assign({}, vieil, { perime: true }) : null;
+    }
     // Une source tombee ne doit pas effacer ce que l'autre avait rapporte la veille. Le
     // miroir sert de fond : on n'ecrase que ce qu'on a vraiment relu. Sans ca, un refus
     // sur /reglages (colonnes pas encore creees, par exemple) vidait l'ardoise, le mot du
@@ -430,17 +501,23 @@
     var f = [];
     try { f = JSON.parse(localStorage.getItem(ATTENTE_KEY)) || []; } catch (e) { return; }
     if (!f.length || !session()) return;
-    var restant = [];
+    var restant = [], refuses = [];
     for (var i = 0; i < f.length; i++) {
       var o = f[i];
       try { await appliquer(o.cle, o.id, o.eid, o.suiviFait); }
       catch (e) {
         // Le suivi etait deja passe : on ne le rejouera pas, seul le journal reste du.
         if (e && e.suiviFait) o.suiviFait = true;
+        /* UN REFUS DEFINITIF QUITTE LA FILE, ET SE DIT, 19/09/2026. Meme regle que
+           bdv-taches.js : ce que la base ne voudra jamais ne doit pas revenir a chaque
+           ouverture, sinon la file ne se vide plus et le changement de bureau devient
+           impossible pour toujours, sans un mot a l'ecran. */
+        if (refusDefinitif(e)) { refuses.push(phraseRefus(e)); continue; }
         restant.push(o);
       }
     }
     reste(restant);
+    if (refuses.length) avertir(resumeRefus(refuses));
   }
 
   // Deux ecritures, et elles ne valent pas la meme chose. Le SUIVI est ce que le vigneron
@@ -461,8 +538,14 @@
     try {
       await ecrireEchange(clientId, g, eid);
     } catch (e) {
-      var err = new Error('journal seul');
+      /* LE MOTIF DU REFUS SURVIT, 19/09/2026. Cette erreur de remplacement jetait tout ce
+         que la precedente disait : la file ne pouvait plus voir qu'un refus de journal
+         etait DEFINITIF, et elle rejouait la meme entree a chaque ouverture, refusee a
+         l'identique. On garde donc le marqueur, le code et la phrase. */
+      var err = new Error(refusDefinitif(e) ? phraseRefus(e) : 'journal seul');
       err.suiviFait = true;
+      err.definitif = refusDefinitif(e);
+      err.status = e && e.status;
       throw err;
     }
   }
@@ -485,6 +568,16 @@
     return appliquer(cle, clientId, eid, false)
       .then(function () { return true; })
       .catch(function (err) {
+        /* UN REFUS DEFINITIF NE RETOURNE PAS EN FILE, 19/09/2026. L'enfiler condamnait le
+           vigneron a le voir echouer en silence a chaque ouverture, pour toujours. On le
+           dit tout de suite, et la ligne revient a l'ecran si rien n'est parti. */
+        if (refusDefinitif(err)) {
+          avertir(phraseRefus(err));
+          if (err && err.suiviFait) return true;   // le rappel EST repousse, seul le journal manque
+          var e0 = lireMiroir();
+          if (e0) { e0.signaux = signauxAvant; e0.suivi = suiviAvant; ecrireMiroir(e0); }
+          return false;
+        }
         enfiler({ cle: cle, id: clientId, eid: eid, suiviFait: !!(err && err.suiviFait) });
         // Le suivi est passe : le rappel EST repousse en base, la ligne doit rester
         // partie. Seule la trace au journal manque, et elle se rejouera toute seule.

@@ -287,6 +287,26 @@ console.log('\n== 4. Vider la base efface le miroir de la file, et repeint Ma jo
   t.w.BdvSync.effacerTout = () => Promise.resolve(true);
   t.P('dbClear = async function(){ LOCAL = []; return true; };');
 
+  /* LE GESTE COMMENCE PAR REFUSER, DEPUIS LE 19/09/2026, ET C'EST LE BON SENS.
+     viderBase() ne s'ouvre plus quand l'ecran affiche zero ligne sans pouvoir jurer
+     que le compte en porte zero : sinon le texte annonce « 0 ligne de vente » et le
+     vigneron confirme un effacement definitif dont on vient de lui sous-estimer le
+     cout. Le banc verifie donc les DEUX moities du geste, et pas seulement la
+     seconde : d'abord que le refus tombe, ensuite que le vidage aboutit.
+     Sans la premiere, on ne saurait pas si le refus marche ; sans la seconde, un
+     refus permanent passerait pour un succes. */
+  let refus = 0;
+  t.w.alert = () => { refus++; };
+  t.P('dbCount = async function(){ return null; };');
+  t.w.BdvSync.auMoinsUneVente = () => Promise.resolve(null);
+  await t.P('viderBase()');
+  dit(refus === 1, 'viderBase() REFUSE de s\'ouvrir quand le compte n\'a pas repondu (' + refus + ')');
+  dit(oublis === 0, 'et il n\'a rien efface du tout dans ce cas');
+
+  /* Maintenant on repond aux deux sondes : l'appareil est vide, le compte aussi.
+     Le geste doit aller jusqu'au bout. */
+  t.P('dbCount = async function(){ return 0; };');
+  t.w.BdvSync.auMoinsUneVente = () => Promise.resolve(false);
   await t.P('viderBase()');
   dit(oublis === 1, 'viderBase() demande a bdv-crm.js d\'oublier son miroir (' + oublis + ')');
   dit(repeintures >= 1, '« Ma journee » est repeinte sans rechargement (' + repeintures + ')');

@@ -8,8 +8,12 @@
     <div class="articles-grid">
       {% for post in collections.posts | slice(0, 3) %}
       <div class="article-card">
-        {% if post.data.pilier %}
-        <p class="article-card__pilier">{{ post.data.pilier }}</p>
+        {# LA CATEGORIE, ET PLUS LE PILIER, 19/09/2026. Meme correctif que dans
+           articles-une.njk, et pour la meme raison : `pilier` est l'ancienne
+           classification ecartee le 10/09/2026, et ce composant la lisait encore.
+           `.article-card__pilier` garde son nom, il vit dans src/css/style.css:1513. #}
+        {% if post.data.categorie %}
+        <p class="article-card__pilier">{{ post.data.categorie }}</p>
         {% endif %}
         <a href="{{ post.url }}" class="article-card__title">{{ post.data.title }}</a>
         {% if post.data.description %}

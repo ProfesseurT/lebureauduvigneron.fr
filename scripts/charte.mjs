@@ -310,7 +310,17 @@ else ok('les ' + dur.rayons.length + ' rayons restants sont tous dans les maquet
 titre('5. Tokens declares, tokens appeles');
 const declares = new Set(Object.keys(B.tokens));
 const appeles = new Set();
-for (const m of B.txt.matchAll(/var\(\s*(--[\w-]+)/g)) appeles.add(m[1]);
+/* LES COMMENTAIRES NE SONT PAS DES APPELS, 19/09/2026. Le 18/09 on a retire le jeton
+   --ombre-photo et laisse, a sa place, un commentaire qui RACONTE la collision et cite
+   `var(--ombre-photo)` dans sa phrase. Ce controle a alors declare le site NON CONFORME
+   pour un jeton que plus aucune regle n'appelle : il lisait la prose comme du style.
+   Un controle qui crie sur du sain finit par ne plus etre lu, donc on retire les blocs
+   de commentaire AVANT de chercher les appels. Les declarations, elles, sont relevees
+   ailleurs sur le texte entier : un jeton declare dans un commentaire n'existe pas pour
+   le navigateur non plus, mais ce cas-la ne s'est jamais presente et le signaler ne
+   coute rien. */
+const sansCommentaires = B.txt.replace(/\/\*[\s\S]*?\*\//g, ' ');
+for (const m of sansCommentaires.matchAll(/var\(\s*(--[\w-]+)/g)) appeles.add(m[1]);
 
 /* Le tableau de bord lit ses couleurs de serie depuis le JS, pas depuis une
    regle CSS : sans ca, les huit --serie-* passeraient pour inutilisees. */

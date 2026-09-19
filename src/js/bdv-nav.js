@@ -397,6 +397,7 @@
   function marquerActif(id) {
     var nav = document.getElementById('bureauNav');
     if (!nav) return;
+    var ligneActive = null;
     PIECES.forEach(function (p) {
       var l = nav.querySelector('.bureau-nav__ligne[data-piece="' + p.id + '"]');
       if (!l) return;
@@ -404,9 +405,29 @@
       if (!it) return;
       var actif = p.id === id;
       it.classList.toggle('bureau-nav__item--actif', actif);
-      if (actif) it.setAttribute('aria-current', 'page');
+      if (actif) { it.setAttribute('aria-current', 'page'); ligneActive = l; }
       else it.removeAttribute('aria-current');
     });
+    /* ------- LA PIECE ACTIVE SE RAMENE DANS LE CHAMP, 19/09/2026 -------
+       Sous 700 px la barre du bas DEFILE horizontalement : neuf cellules de 48 px font
+       432 px, et un telephone courant en tient 390. Ces 48 px ne sont pas negociables,
+       c'est le plancher tactile de 44 px qui les impose - a neuf cellules partagees, la
+       cellule tombait a 43 px. Le defilement est donc la bonne reponse, mais il en
+       ouvre une autre : LA PIECE OU L'ON SE TROUVE PEUT ETRE HORS CHAMP A L'OUVERTURE.
+       Les deux dernieres, « L'equipe » et « Mes reglages », le sont toujours. Arriver
+       sur /mon-bureau/#equipe montrait la piece sans que la barre le dise, et rien
+       n'allait chercher le repere : le seul indice etait le degrade du bord droit.
+
+       `inline: 'nearest'` ne fait glisser la barre que si la cellule depasse vraiment :
+       une piece deja visible ne bouge pas, donc pas de sursaut a chaque changement.
+       `block: 'nearest'` interdit tout defilement VERTICAL de la page au passage, ce
+       qui est la seule chose que cet appel pourrait casser ailleurs.
+       Borne au telephone : au-dessus de 700 px la barre tient entiere, il n'y a rien
+       a ramener et l'appel n'aurait aucun sens. */
+    if (ligneActive && ligneActive.scrollIntoView
+        && window.matchMedia && window.matchMedia('(max-width:700px)').matches) {
+      ligneActive.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'auto' });
+    }
   }
 
   /* Repose le texte de chaque piece sans reconstruire la barre : reconstruire perdrait

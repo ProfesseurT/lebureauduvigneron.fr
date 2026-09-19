@@ -144,10 +144,30 @@ async function compteDuJeton(jeton: string): Promise<string | null> {
   return Array.isArray(lignes) && lignes.length ? String(lignes[0].id) : null;
 }
 
-async function choixDuCompte(id: string): Promise<Record<string, any>> {
-  const url = `${SUPABASE_URL}/rest/v1/calendrier_choix?id=eq.${encodeURIComponent(id)}&select=cle,actif,decale_de`;
+/* LA COLONNE `id` N'EXISTE PAS DANS `calendrier_choix`, ET N'A JAMAIS EXISTE DEPUIS
+   LE LOT 17 : la table est cloisonnee par `bureau`, pas par personne. La requete
+   partait donc en erreur, `r.ok` etait faux, et la fonction repartait avec une liste
+   VIDE sans rien dire. Consequence pour le vigneron : il eteint « Travaux » ou decale
+   un repere de trois semaines dans son bureau, et son agenda continue de lui servir
+   l'original, sans qu'aucun message ne le previenne. C'est la meme famille que la
+   colonne lue et jamais demandee du 13/09/2026.
+   On passe donc par le bureau courant du compte, en deux requetes. Et on ne fait plus
+   silence sur un echec : un `null` rendu ici dit « je n'ai pas pu lire », ce qui n'est
+   pas la meme chose qu'un vigneron qui n'a rien regle. 19/09/2026. */
+async function choixDuCompte(id: string): Promise<Record<string, any> | null> {
+  const p = await fetch(
+    `${SUPABASE_URL}/rest/v1/profils?id=eq.${encodeURIComponent(id)}&select=bureau_courant`,
+    { headers: enTetes() },
+  );
+  if (!p.ok) return null;
+  const fiches = await p.json();
+  const bureau = Array.isArray(fiches) && fiches.length ? fiches[0].bureau_courant : null;
+  // Pas de bureau courant : le compte n'a rien pu regler, la liste vide est la verite.
+  if (!bureau) return {};
+
+  const url = `${SUPABASE_URL}/rest/v1/calendrier_choix?bureau=eq.${encodeURIComponent(bureau)}&select=cle,actif,decale_de`;
   const r = await fetch(url, { headers: enTetes() });
-  if (!r.ok) return {};
+  if (!r.ok) return null;
   const lignes = await r.json();
   const map: Record<string, any> = {};
   if (Array.isArray(lignes)) for (const l of lignes) map[l.cle] = l;
@@ -196,7 +216,15 @@ Deno.serve(async (req: Request) => {
   const compte = await compteDuJeton(jeton);
   if (!compte) return INTROUVABLE();
 
+  /* UNE LECTURE RATEE N'EST PAS UN VIGNERON QUI N'A RIEN REGLE. Servir le calendrier
+     complet quand on n'a pas pu lire ses choix, c'est lui renvoyer sans un mot les
+     reperes qu'il a eteints. On refuse le flux : l'agenda gardera la version d'avant
+     et reessaiera tout seul, ce qui est exactement le bon comportement. */
   const choix = await choixDuCompte(compte);
+  if (choix === null) {
+    return new Response('Service indisponible, reessaie plus tard.',
+      { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
   const choixDe = (cle: string) => {
     const l = choix[cle];
     return { actif: !l || l.actif !== false, decale: (l && parseInt(l.decale_de, 10)) || 0 };

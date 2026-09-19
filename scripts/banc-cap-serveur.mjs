@@ -112,6 +112,11 @@ const test = `
   capPoser(null);
 
   window.__S = {
+    /* LE PLANCHER SE MESURE DANS LA PAGE, PAS DANS LE HARNAIS, 19/09/2026 : c'est
+       le nombre de lignes que le MOTEUR a retenues, pas celui qu'on croit avoir
+       pousse. Une ligne ecartee par computeMeta() ne se verrait pas autrement.
+       PAS D'ACCENT GRAVE DANS CE BLOC : il vit dans un gabarit de chaine. */
+    lignes: ROWS.length,
     htmlLocal: htmlLocal, htmlServeur: htmlServeur,
     cadreLocal: cadreLocal, cadreServeur: cadreServeur,
     attLocal: attLocal, attServeur: attServeur,
@@ -131,6 +136,33 @@ try {
   process.exit(1);
 }
 const S = w.__S;
+
+/* ==========================================================================
+   0. LE PLANCHER : ON NE COMPARE PAS DEUX RIENS
+   ==========================================================================
+   Pose le 19/09/2026. Tout ce qui suit compare le calcul local au calcul
+   serveur, et TOUT PASSE SUR RIEN : deux panneaux vides sont identiques
+   caractere pour caractere, un atterrissage absent des deux cotes a bien les
+   memes quatre champs, et le banc annonce trente controles passes sur un ecran
+   qui n'a jamais ete peint. Un jsdom qui n'a pas charge bdv-ecrans.js, un
+   `computeMeta()` qui ecarte les lignes du decor, un selecteur renomme : trois
+   facons ordinaires d'arriver la, aucune ne casse quoi que ce soit.
+
+   Les autres bancs du depot posent deja ce plancher : `banc-app` exige au moins
+   deux icones, `banc-outils` au moins deux cartes, `banc-annuel` au moins une
+   ligne `unique`. Celui-ci ne l'avait pas.
+   ========================================================================== */
+console.log('\n== 0. Le plancher : il y a bien quelque chose a comparer ==');
+t('la base du decor a ete relue par le moteur (38 lignes attendues)',
+  S.lignes === 38, S.lignes + ' ligne(s) dans ROWS');
+t('le panneau « Mon cap » a vraiment ete peint, des deux cotes',
+  S.htmlLocal.length > 200 && S.htmlServeur.length > 200,
+  S.htmlLocal.length + ' / ' + S.htmlServeur.length + ' signes');
+t('l\'exercice porte au moins un mois connu : l\'atterrissage a de quoi exister',
+  !!S.attLocal && S.attLocal.months > 0, S.attLocal && S.attLocal.months);
+t('le cadre de comparaison porte deux exercices, pas deux vides',
+  !!S.cadreLocal && S.cadreLocal.cur != null && S.cadreLocal.prev != null,
+  S.cadreLocal && (S.cadreLocal.cur + ' / ' + S.cadreLocal.prev));
 
 console.log('\n== 1. Le meme ecran, quelle que soit la source ==');
 /* LE CONTROLE CENTRAL. Pas « les nombres se ressemblent » : le PANNEAU ENTIER, au

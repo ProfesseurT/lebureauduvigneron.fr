@@ -122,7 +122,6 @@
   --t-h2:     clamp(1.4rem, 3vw, 2.2rem);
   --t-h1:     clamp(2rem, 5vw, 3.2rem);
   --t-hero:   clamp(2.2rem, 5.5vw, 3.6rem);
-  --t-chiffre:clamp(2.5rem, 6vw, 5rem);   /* les grands nombres */
 
   /* ---- TYPOGRAPHIE : rythme ------------------------------------------ */
   --lh-serre:  1.2;    /* titres */
@@ -166,7 +165,6 @@
   --ombre-dure:  6px 6px 0 rgba(30, 37, 54, 0.18);   /* signature : ombre sans flou */
   --ombre-dure-xl: 10px 10px 0 rgba(0, 0, 0, 0.28);  /* la meme, a l'echelle d'une video */
   --ombre-carte: 2px 3px 10px rgba(30, 25, 15, 0.25);
-  --ombre-photo: 0 20px 60px rgba(0, 0, 0, 0.35);
 
   /* ---- MATIERES ------------------------------------------------------ */
   /* LA REGLE DU PLATEAU. Le bureau pose plusieurs matieres sur un meme
@@ -650,7 +648,7 @@ em { font-style: italic; }
 .signature__avatar {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   object-fit: cover;
   flex-shrink: 0;
   border: 2px solid var(--rule);
@@ -658,7 +656,7 @@ em { font-style: italic; }
 .signature__avatar-placeholder {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   background: var(--paper-deep);
   border: 2px solid var(--rule);
   flex-shrink: 0;
@@ -1611,7 +1609,6 @@ em { font-style: italic; }
   max-width: 520px;
   margin: 0 auto;
 }
-.tally-wrapper { width: 100%; }
 .waitlist__reassurance {
   margin-top: 2rem;
   font-family: var(--font-corps);
@@ -2370,14 +2367,6 @@ em { font-style: italic; }
 }
 .about-hero h1 { color: var(--paper); margin-bottom: 0.75rem; }
 .about-hero p { opacity: 0.8; font-style: italic; margin: 0; font-size: 1.1rem; }
-.about-photo {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid color-mix(in srgb, var(--paper) 30%, transparent);
-  margin-bottom: 2rem;
-}
 .chiffre-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -2407,12 +2396,6 @@ em { font-style: italic; }
 }
 
 /* ---- PAGE ARTICLES LIST ---- */
-.articles-page-header {
-  background: var(--bordeaux-deep);
-  color: var(--paper);
-  padding-block: 4rem 3rem;
-}
-.articles-page-header h1 { color: var(--paper); }
 .articles-page-grid {
   display: flex;
   flex-direction: column;
@@ -2484,7 +2467,7 @@ em { font-style: italic; }
 .dashboard-mock__brand-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   background: var(--bordeaux);
 }
 
@@ -2512,7 +2495,7 @@ em { font-style: italic; }
 .dashboard-mock__user-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   background: var(--bordeaux);
   color: var(--paper);
   font-family: var(--font-titre);
@@ -2899,62 +2882,10 @@ em { font-style: italic; }
   margin-bottom: 0.3rem;
 }
 
-/* -- Panel 04: Formations -- */
-.dform-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.65rem;
-  margin-bottom: 1rem;
-}
-
-.dform-card {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.dform-card__tag {
-  font-family: var(--font-mono);
-  font-size: 0.56rem;
-  text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  color: var(--cork-encre);
-}
-
-.dform-card__title {
-  font-family: var(--font-titre);
-  font-size: 0.95rem;
-  color: var(--ink);
-  line-height: 1.3;
-}
-
-.dform-card__meta {
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  color: var(--muted);
-  margin: 0;
-}
-
-.dform-card__price {
-  font-family: var(--font-titre);
-  font-size: 1.1rem;
-  color: var(--bordeaux);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-
-.dform-card__pitch {
-  font-size: var(--t-petit);
-  color: var(--muted);
-  line-height: 1.45;
-  flex: 1;
-  margin: 0;
-}
-
+/* -- Panel 04: Formations --
+   `.dform-grid` et les six `.dform-card*` sont partis le 19/09/2026 : aucune des
+   sept classes n'existait dans le markup. Seuls `.dform-bandeau` et `.dform-esa*`
+   sont poses par dashboard-preview.njk, et ils restent. */
 .dform-bandeau {
   background: var(--ink);
   color: var(--paper);
@@ -3422,7 +3353,6 @@ em { font-style: italic; }
   .dmod-grid-3,
   .dtools-grid,
   .dlib-grid,
-  .dform-grid,
   .dtournee-grid,
   .dcompte-mini-grid { grid-template-columns: 1fr; }
   .dcomptoir-grid { grid-template-columns: 1fr; }
@@ -3748,7 +3678,7 @@ em { font-style: italic; }
 .voix-filiere__avatar {
   width: 56px;
   height: 56px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3764,7 +3694,7 @@ em { font-style: italic; }
 .voix-filiere__photo {
   width: 56px;
   height: 56px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   object-fit: cover;
   object-position: center top;
   border: 2px solid var(--rule);
@@ -4573,7 +4503,7 @@ em { font-style: italic; }
   width: 32px;
   height: 32px;
   border: 1.5px solid var(--ink);
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4765,7 +4695,7 @@ em { font-style: italic; }
   display: block;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   background: radial-gradient(circle at 35% 35%, var(--punaise-clair), var(--punaise-fonce));
   box-shadow: var(--ombre-punaise);
   margin: 0 auto 8px;
@@ -4779,7 +4709,7 @@ em { font-style: italic; }
   transform: translate(-50%,-50%);
   width: 4px;
   height: 4px;
-  border-radius: 50%;
+  border-radius: var(--r-rond);
   background: var(--reflet);
 }
 
@@ -4795,7 +4725,10 @@ em { font-style: italic; }
 .card__amount {
   font-family: var(--font-titre);
   font-size: 1.1rem;
-  color: var(--danger);
+  /* --danger #C5443D sur --paper #EFE7D6 donne 4,00:1, et il en faut 4,5 pour du
+     texte courant. --danger-deep #A03530 donne 5,60:1. Mesure du 19/09/2026. En
+     BORDURE --danger reste juste, le seuil y est de 3. */
+  color: var(--danger-deep);
   line-height: 1.2;
   margin-bottom: 4px;
 }
@@ -4815,7 +4748,8 @@ em { font-style: italic; }
 }
 .card__urgent {
   font-size: var(--t-mini);
-  color: var(--danger);
+  /* 4,00:1 en --danger, sous le seuil de 4,5. Voir .card__amount. */
+  color: var(--danger-deep);
   font-weight: 600;
   margin-top: 5px;
 }
@@ -4824,8 +4758,10 @@ em { font-style: italic; }
 .card__table td:last-child { font-family: var(--font-mono); font-size: var(--t-micro); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .card__stamp {
   display: inline-block;
+  /* Le CADRE reste en --danger : 4,00:1 pour un seuil de 3, il passe. Ce sont les
+     LETTRES qui ne passaient pas. */
   border: 1.5px solid var(--danger);
-  color: var(--danger);
+  color: var(--danger-deep);
   font-family: var(--font-mono);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-doux);
@@ -5089,46 +5025,11 @@ em { font-style: italic; }
    les angles vifs du reste du site, organises en quatre zones nommees comme un
    vrai bureau. Le sous-main, le classeur, le courrier, les outils.
    ============================================================================ */
-.bureau-zone__titre {
-  font-size: var(--t-h3);
-  margin-bottom: 0.25rem;
-}
-.bureau-zone__sous {
-  color: var(--muted);
-  font-style: italic;
-  margin: 0 0 var(--e-l);
-  font-size: var(--t-base);
-}
-.bureau-liste {
-  display: grid;
-  gap: var(--e-m);
-}
-.bureau-carte {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  background: var(--paper-light);
-  border: var(--trait) solid var(--rule);
-  border-left: var(--trait-accent) solid var(--cork);
-  padding: var(--e-m) var(--e-l);
-  transition: border-color var(--tr-rapide) ease;
-}
-.bureau-carte:hover { border-color: var(--ink); }
-.bureau-carte__titre {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  color: var(--ink);
-  text-decoration: none;
-  line-height: var(--lh-serre);
-}
-.bureau-carte__titre:hover { color: var(--bordeaux); }
-.bureau-carte__meta {
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  color: var(--muted);
-  margin: 0;
-}
+/* `.bureau-zone__titre`, `.bureau-zone__sous`, `.bureau-liste`, `.bureau-carte`,
+   `.bureau-carte__titre` et `.bureau-carte__meta` sont partis le 19/09/2026 :
+   aucune de ces six classes n'etait posee nulle part, ni dans les gabarits, ni
+   dans le HTML construit, ni dans une chaine de JavaScript. `.bureau-vide` et
+   `.signet--carte`, eux, vivent, et restent. */
 /* Le bouton de retrait vit dans la carte, discret, pas en concurrence avec le titre. */
 .signet--carte {
   align-self: flex-start;
@@ -5142,14 +5043,6 @@ em { font-style: italic; }
   text-align: center;
   max-width: 560px;
   margin: 0 auto;
-}
-.bureau-vide__ligne {
-  color: var(--muted);
-  font-style: italic;
-  margin: 0;
-  padding: var(--e-l);
-  border: var(--trait) dashed var(--rule-fort);
-  font-size: var(--t-base);
 }
 
 /* ============================================================================
@@ -5892,12 +5785,26 @@ button.bureau-nav__item:hover {
    DEMIE, et rien ne disait qu'elle defilait. La navigation principale du bureau
    etait, sur telephone, a moitie invisible.
 
-   HUIT ICONES ET PAS CINQ PLUS UN BOUTON « PLUS », et c'est un ecart assume par
-   rapport a ce qui avait ete envisage. La mesure a tranche : sur le plus etroit
-   des telephones courants, 360 px, huit cellules font 45 px chacune, donc
-   au-dessus du plancher tactile de 44. Un tiroir « Plus » cacherait trois pieces
-   derriere un geste supplementaire pour resoudre un probleme de place qui
-   n'existe pas.
+   NEUF PIECES, ET LA BARRE DEFILE. Ce paragraphe a dit pendant six jours « huit
+   cellules font 45 px chacune, donc au-dessus du plancher tactile de 44 ». Il
+   comptait huit pieces ; `PIECES` dans bdv-nav.js en aligne NEUF depuis le
+   13/09/2026. Mesure du 19/09 : 43 px par cellule a 390 px, 40 px a 360. La
+   navigation principale du bureau etait passee SOUS son propre plancher, et le
+   commentaire qui servait a le verifier disait le contraire.
+
+   ON NE RETIRE PAS UNE PIECE : c'est un arbitrage de Ted, pas une correction. On
+   ne replie pas non plus trois pieces derriere un tiroir « Plus », refuse le
+   11/09 pour une raison qui tient toujours. La barre garde ses neuf pieces,
+   chaque cellule reprend 48 px de large, et l'ensemble DEFILE a l'horizontale.
+   C'est le meme arbitrage que celui des tableaux du 11/09 : ce qui deborde defile
+   dans son cadre plutot que de se comprimer jusqu'a l'illisible.
+
+   ET ON DIT QU'ELLE DEFILE. Une barre qui deborde sans le dire est le defaut
+   d'origine de cette barre, celui du 11/09 : 1164 px dans 342, dont on voyait
+   deux et demie. La barre de defilement native est masquee, parce qu'une barre
+   grise en travers d'une barre d'application se lit comme un bug ; a la place,
+   un degrade de bord droit qui s'efface quand on arrive au bout, et un calage par
+   cellule pour que le glissement s'arrete toujours sur une icone entiere.
 
    PAS DE MOTS SOUS LES ICONES. « Le calendrier » ne tient pas dans 45 px, et une
    etiquette coupee est pire qu'une etiquette absente. Sept pieces sur huit
@@ -5937,10 +5844,43 @@ button.bureau-nav__item:hover {
   body.bdv-poste .bureau-nav__liste {
     display: flex;
     width: 100%;
+    /* NEUF PIECES A 48 PX FONT 432 PX : ca ne tient pas dans 390, et c'est voulu.
+       Le calage par cellule fait qu'un glissement s'arrete sur une icone entiere,
+       jamais a cheval sur deux. */
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    /* La barre de defilement native, en travers d'une barre d'application collee
+       au bas de l'ecran, se lit comme un defaut d'affichage. L'indice de suite est
+       le degrade de droite, pas un rail gris. */
+    scrollbar-width: none;
+  }
+  body.bdv-poste .bureau-nav__liste::-webkit-scrollbar { display: none; }
+  /* L'INDICE QU'IL Y A UNE SUITE, et il s'efface tout seul quand il n'y en a plus.
+     Deux couches : un voile couleur du papier en `local`, donc cale sur le CONTENU,
+     et une ombre en `scroll`, donc calee sur le CADRE. Tant qu'il reste des pieces a
+     droite, le voile est hors champ et l'ombre se voit ; arrive au bout, le voile
+     vient se poser dessus et l'ombre disparait. Aucune ligne de JavaScript, et rien
+     a synchroniser avec la position de defilement.
+     Pas de nouveau jeton : `color-mix` sur --ink, comme les demi-tons de cartes
+     plus haut dans ce fichier. */
+  body.bdv-poste .bureau-nav__liste {
+    background-color: var(--paper-light);
+    background-image:
+      linear-gradient(to left, var(--paper-light), transparent),
+      linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent);
+    background-repeat: no-repeat, no-repeat;
+    background-position: right center, right center;
+    background-size: 26px 100%, 18px 100%;
+    background-attachment: local, scroll;
   }
   body.bdv-poste .bureau-nav__ligne {
-    flex: 1 1 0;
-    min-width: 0;
+    /* `flex: 0 0 48px` et plus `1 1 0` : les neuf cellules gardent chacune leur
+       plancher au lieu de se partager une largeur qui n'y suffit plus. */
+    flex: 0 0 48px;
+    min-width: 48px;
+    scroll-snap-align: start;
   }
   body.bdv-poste .bureau-nav__item {
     width: 100%;
@@ -6076,6 +6016,12 @@ button.bureau-nav__item:hover {
      selecteur `.cal__ajoutf` qui n'existe nulle part aurait fait une regle morte de
      plus, exactement ce que la charte du projet traque. */
   body.bdv-poste .tachesf button { min-height: 44px; }
+  /* LA LIGNE QUI DIT QUAND, 19/09/2026. « Dans 22 jours · 10 octobre · obligation »
+     est en --t-micro, soit 9,9 px : la plus petite de l'ecran, et c'est
+     l'information qu'on vient chercher en ouvrant « Mes taches ». Elle passe a
+     --t-mini, le cran au-dessus de l'echelle, SOUS 700 PX SEULEMENT : au-dessus,
+     c'est l'echelle de Ted et elle ne bouge pas. */
+  body.bdv-poste .tache__quand { font-size: var(--t-mini); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -7065,6 +7011,17 @@ button.bureau-nav__item:hover {
   align-items: flex-end;
   gap: 0.55rem;
 }
+/* 129 X 14 PX A COTE DE « Mes reglages » QUI FAIT 145 X 33, 19/09/2026. Le
+   `padding: 0` est ce qui tient le filet pointille colle sous le texte : lui
+   ajouter du remplissage decollerait le soulignement, ce qui EST une decision de
+   dessin. Un rectangle invisible de 5 px au-dessus et en dessous porte la cible a
+   24 px sans deplacer un seul trait, ni allonger l'entete. */
+.bureau-tete__sortir { position: relative; }
+.bureau-tete__sortir::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: -5px; bottom: -5px;
+}
 .bureau-tete__sortir {
   background: none;
   border: none;
@@ -7250,6 +7207,22 @@ button.bureau-nav__item:hover {
   /* Ces deux-la posaient leur propre gouttiere DANS la zone, donc en double. */
   body.bdv-poste .calbloc__ligne { padding-left: 0; padding-right: 0; }
   body.bdv-poste .echeance { padding-left: var(--e-s); padding-right: var(--e-s); }
+  /* « LE PANNEAU » SE CASSE EN DEUX LIGNES, 19/09/2026. Sa note de zone porte
+     quatre compteurs et se replie (`white-space: normal`, pose le 10/09) : sur
+     370 px elle en prend 287 a droite du titre, qui n'a plus que 72 px pour
+     « Le panneau ». Les huit autres zones tiennent sur une ligne parce que leur
+     note tient en trois mots.
+     La note passe SOUS le titre au lieu d'etre a sa droite. Elle reste alignee a
+     gauche une fois seule sur sa ligne : le `text-align: right` du dessin
+     d'ordinateur servait a ne pas la lire comme la suite du titre, et elle n'est
+     plus a cote de lui. Borne a `.zone--panneau` : les huit autres zones gardent
+     leur entete sur une ligne. */
+  body.bdv-poste .zone--panneau .zone__tete {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+  body.bdv-poste .zone--panneau .zone__note { text-align: left; }
 }
 
 
@@ -8033,6 +8006,18 @@ button.bureau-nav__item:hover {
   position: relative;
   transition: border-color var(--tr-rapide);
 }
+/* 20 X 20 PX DE CIBLE SUR ORDINATEUR, 19/09/2026. Le plancher de 44 px pose le
+   11/09 est enferme dans `body.bdv-poste` et dans la requete telephone ; a la
+   souris la norme applicable est 24 px, et c'est le geste central de « Mes
+   taches ». On agrandit la ZONE, pas le carre : un rectangle invisible de 2 px
+   tout autour porte la cible a 24 x 24 et le dessin ne bouge pas d'un point.
+   C'est le motif de `.postit__lien::after` et de `.echeance__ouvrir::after`, deja
+   dans le projet. `::after` porte deja la coche dessinee, d'ou `::before`. */
+.tache__coche::before {
+  content: "";
+  position: absolute;
+  left: -2px; right: -2px; top: -2px; bottom: -2px;
+}
 .tache__coche:hover { border-color: var(--bordeaux); }
 /* La coche est DESSINEE, pas ecrite : un caractere de coche change de dessin d'une
    police a l'autre et d'un systeme a l'autre. Deux traits en angle ne changent pas. */
@@ -8072,8 +8057,17 @@ button.bureau-nav__item:hover {
 .tache[data-ton="aujourdhui"] .tache__quand { color: var(--danger-deep); }
 /* Faite, la ligne s'efface sans disparaitre : elle est la preuve du travail fait. */
 .tache[data-fait="oui"] .tache__titre { color: var(--muted); text-decoration: line-through; }
+/* 11 PX DE HAUT A LA SOURIS, 19/09/2026. « Retirer », « Ouvrir sa fiche »,
+   « Ajouter en detail… » : `padding: 0` sur un texte en --t-micro donne une cible
+   de 11 px, sous la norme de 24 px de la souris. Le 44 px existe, mais il est
+   enferme dans `body.bdv-poste` et sous 700 px.
+   `align-self: center` etait deja la : la rangee est plus haute que 24 px (coche
+   de 20 px plus deux lignes de texte), donc ce plancher ne gonfle aucune ligne. */
 .tache__source, .tache__x {
   align-self: center;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
   padding: 0;
   background: none;
   border: none;
@@ -8228,7 +8222,11 @@ button.bureau-nav__item:hover {
      ecran de 390 px : « Annuler » faisait 42x11, « Retirer cette tache » 113x11 et
      « Ce que ca exige » 89x17. Un lien typographique se lit tres bien et se vise
      tres mal ; le dessin ne change pas, c'est la zone de clic qui descend a 44. */
-  .tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d { min-height: 44px; }
+  /* `.tmod .btn` MANQUAIT A CETTE LISTE. « ENREGISTRER » (134 x 35) et « C'EST
+     FAIT » (114 x 35) sont les deux boutons qui ECRIVENT dans cette modale, et ce
+     sont les seuls que la passe du 12/09 n'a pas descendus au plancher : elle a
+     couvert la croix, les gestes, les liens et les champs. Mesure du 19/09. */
+  .tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d, .tmod .btn { min-height: 44px; }
   .tmod__lien { display: inline-flex; align-items: center; }
   .tmod__x { display: flex; align-items: center; min-width: 44px; justify-content: center; }
   .tmod__gestes .tmod__d, .tmod__ouj { flex: 1 1 100%; }
