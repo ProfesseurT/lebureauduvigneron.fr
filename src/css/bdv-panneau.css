@@ -229,13 +229,12 @@
      224 px des 844 de l'ecran et il ne restait que 488 px de corps, soit 51 %.
      On a paye le plancher tactile avec la moitie de l'ecran utile. Meme remede que
      la barre des pieces : la rangee defile au lieu de se replier, barre native
-     masquee, calage par onglet, et un degrade de bord droit qui dit qu'il y a une
-     suite et s'eteint tout seul arrive au bout. 132 px rendus au contenu. */
+     masquee, et un degrade de bord droit qui dit qu'il y a une suite et s'eteint
+     tout seul arrive au bout. 132 px rendus au contenu. */
   .bdvr-panneau .bdvr-onglets {
     flex-wrap: nowrap;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
     scrollbar-width: none;
     background-color: var(--paper-light);
     background-image:
@@ -247,13 +246,18 @@
     background-attachment: local, scroll;
   }
   .bdvr-panneau .bdvr-onglets::-webkit-scrollbar { display: none; }
-  .bdvr-panneau .bdvr-onglet { scroll-snap-align: start; }
-  /* Et l'onglet CHOISI doit se voir. Mesure du 19/09 : apres selection,
-     « Le classement » n'etait visible qu'a 107 px sur 144, « Le courrier » et
-     « L'agenda » a ZERO. On choisit un onglet et l'onglet choisi n'est pas a
-     l'ecran. Le defilement est mis par bdv-reglages.js au clic ; ici on garde
-     seulement de quoi le viser. */
-  .bdvr-panneau .bdvr-onglet[aria-selected="true"] { scroll-snap-align: center; }
+  /* L'ONGLET CHOISI DOIT SE VOIR, et c'est bdv-reglages.js qui l'y amene au clic.
+     Mesure du 19/09 : apres selection, « Le classement » n'etait visible qu'a
+     107 px sur 144, « Le courrier » et « L'agenda » a ZERO. On choisissait un
+     onglet et l'onglet choisi n'etait pas a l'ecran.
+     LE CALAGE MAGNETIQUE EST RETIRE, 19/09/2026, ET C'EST UN ARBITRAGE.
+     Il etait la pour qu'un glissement au doigt s'arrete toujours sur un element
+     entier. C'est agreable. Mais il DEFAIT `scrollIntoView` : la mesure du jour
+     montre que le ruban vise juste, puis se repose sur le point d'ancrage voisin.
+     « Le courrier » restait a 88 px visibles sur 124, « L'equipe » a 24 sur 48,
+     et on choisissait un onglet qui n'etait pas a l'ecran. Entre un glissement
+     qui s'arrete joliment et une selection qui se voit, c'est la selection qui
+     gagne : un confort ne vaut pas un element cache. */
 
   /* --- 4 bis. LES SAISIES AUSSI ONT UN PLANCHER, 19/09/2026 -------------
      Le plancher avait ete pose sur les boutons, les onglets, la croix et le lien

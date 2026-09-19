@@ -5845,11 +5845,10 @@ button.bureau-nav__item:hover {
     display: flex;
     width: 100%;
     /* NEUF PIECES A 48 PX FONT 432 PX : ca ne tient pas dans 390, et c'est voulu.
-       Le calage par cellule fait qu'un glissement s'arrete sur une icone entiere,
-       jamais a cheval sur deux. */
+       Le calage magnetique qui accompagnait ce defilement a ete retire le
+       19/09/2026 : voir le commentaire sur la cellule, plus bas. */
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
     /* La barre de defilement native, en travers d'une barre d'application collee
        au bas de l'ecran, se lit comme un defaut d'affichage. L'indice de suite est
@@ -5880,7 +5879,14 @@ button.bureau-nav__item:hover {
        plancher au lieu de se partager une largeur qui n'y suffit plus. */
     flex: 0 0 48px;
     min-width: 48px;
-    scroll-snap-align: start;
+    /* LE CALAGE MAGNETIQUE EST RETIRE, 19/09/2026, ET C'EST UN ARBITRAGE.
+       Il etait la pour qu'un glissement au doigt s'arrete toujours sur un element
+       entier. C'est agreable. Mais il DEFAIT `scrollIntoView` : la mesure du jour
+       montre que le ruban vise juste, puis se repose sur le point d'ancrage voisin.
+       « Le courrier » restait a 88 px visibles sur 124, « L'equipe » a 24 sur 48,
+       et on choisissait un onglet qui n'etait pas a l'ecran. Entre un glissement
+       qui s'arrete joliment et une selection qui se voit, c'est la selection qui
+       gagne : un confort ne vaut pas un element cache. */
   }
   body.bdv-poste .bureau-nav__item {
     width: 100%;

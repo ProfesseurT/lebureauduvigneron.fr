@@ -1173,7 +1173,7 @@ function bridgeHero(){
   const ligne=(lbl,val,pos,sub)=>`<tr>
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
       <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--ok)':'var(--danger)'}"></span></td>
-      <td class="num" style="color:${pos?'var(--ok)':'var(--danger-deep)'};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
+      <td class="num" style="color:${val===0?'inherit':(pos?'var(--ok)':'var(--danger-deep)')};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
   return `<div class="section-label">D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale</div>`
     +signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
@@ -3428,7 +3428,7 @@ function blocsCanaux(){
 
     tableaux+=`<div class="card"><div class="card__title"><span>Mix canal et prix moyen</span></div>
       <table class="data"><thead><tr><th>Canal</th><th class="num">Part ${exLabelCourt(f.prev)}</th><th class="num">Part ${exLabelCourt(f.cur)}</th><th class="num">Évol. (pts)</th><th class="num">Prix moyen ${exLabelCourt(f.prev)}</th><th class="num">Prix moyen ${exLabelCourt(f.cur)}</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtNum(r.partPrev,1)} %</td><td class="num">${fmtNum(r.partCur,1)} %</td><td class="num ${r.dPts>=0?'pos':'neg'}">${fmtNum(r.dPts,1)}</td><td class="num">${r.prixPrev?fmtMoney(r.prixPrev):'n/d'}</td><td class="num">${r.prixCur?fmtMoney(r.prixCur):'n/d'}</td></tr>`).join('')}
+      ${rows.map(r=>`<tr><td>${esc(r.k)}</td><td class="num">${fmtNum(r.partPrev,1)} %</td><td class="num">${fmtNum(r.partCur,1)} %</td><td class="num ${r.dPts>0?'pos':(r.dPts<0?'neg':'')}">${fmtNum(r.dPts,1)}</td><td class="num">${r.prixPrev?fmtMoney(r.prixPrev):'n/d'}</td><td class="num">${r.prixCur?fmtMoney(r.prixCur):'n/d'}</td></tr>`).join('')}
       </tbody></table></div>`;
     tableaux+=`<div class="card"><div class="card__title"><span>Part de CA par canal, ${exLabelCourt(f.cur)}</span></div><div class="chart-wrap"><canvas id="chCanal"></canvas></div></div>`;
     return {signaux:signaux,tableaux:tableaux,A:A};
@@ -3484,7 +3484,7 @@ function buildReport(){
   let h=`<div class="pr">`;
   h+=`<div class="pr-cover"><div class="pr-cover__brand">Le Bureau du Vigneron</div><div class="pr-cover__title">Rapport de ventes</div><div class="pr-cover__sub">${per} · édité le ${new Date().toLocaleDateString('fr-FR')} · ${fmtNum(rows.length)} lignes analysées</div><div class="pr-cover__tag">Propulsé par Solumatic · lecture d'export Vitisoft · CA HT</div></div>`;
 
-  const evV=(yt&&yt.d!=null)?fmtPct(yt.d):'n/d',evCls=(yt&&yt.d!=null)?(yt.d>=0?'up':'down'):'';
+  const evV=(yt&&yt.d!=null)?fmtPct(yt.d):'n/d',evCls=(yt&&yt.d!=null&&yt.d!==0)?(yt.d>0?'up':'down'):'';
   const atV=at?(at.complete?fmtMoney(at.total):fmtMoney(at.central)):'n/d';
   const atS=at?(at.complete?exComplet():('fourchette '+fmtMoney(at.low)+' à '+fmtMoney(at.high))):('2 '+exMot()+'s requis');
   h+=`<div class="pr-hero">
