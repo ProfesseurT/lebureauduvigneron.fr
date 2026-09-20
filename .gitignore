@@ -10,3 +10,6 @@ _apercu/
 # Il est REFAIT a chaque `npm run courrier:joindre` : le versionner
 # ferait exactement la deuxieme copie que ce recollage existe pour eviter.
 _deploiement/
+
+# Reste de travail de la CLI Supabase, jamais versionne.
+supabase/.temp/
