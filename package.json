@@ -56,6 +56,7 @@
     "banc:commerce-serveur": "node scripts/banc-commerce-serveur.mjs",
     "banc:peinture": "node scripts/banc-peinture.mjs",
     "banc:amorcage-leger": "node scripts/banc-amorcage-leger.mjs",
+    "deployer": "node scripts/deployer-fonctions.mjs",
     "banc:poids": "node scripts/banc-poids.mjs",
     "apercu:ardoise": "node scripts/apercu-ardoise.mjs",
     "banc:hero": "node scripts/banc-hero.mjs",
