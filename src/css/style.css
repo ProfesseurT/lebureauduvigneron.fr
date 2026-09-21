@@ -5469,8 +5469,6 @@ em { font-style: italic; }
 }
 
 
-
-
 /* ============================================================================
    MON BUREAU
    ============================================================================
@@ -5483,11 +5481,7 @@ em { font-style: italic; }
    Les zones ne changent jamais d'ordre : sur telephone on retrouve le sous-main
    en premier, exactement comme sur grand ecran.
    ============================================================================ */
-.container--bureau {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 var(--e-l);
-}
+
 
 /* Douze colonnes, et chaque rangee tombe juste. Une grille en « 2fr 1fr » laissait des
    trous des la troisieme zone, parce que le placement automatique ne sait pas ou couper.
@@ -5949,85 +5943,14 @@ button.bureau-nav__item:hover {
    l'ordinateur aussi. Ted : « la partie ordinateur c'est plutot bien foutue ».
    --------------------------------------------------------------------------- */
 @media (max-width: 700px) {
-  /* Les filtres de famille, communs a « Mes taches » et au calendrier. Ils sont
-     nombreux et se touchent souvent : c'est la cible la plus rentable de la liste. */
-  body.bdv-poste .filtfam {
-    min-height: 44px;
-    padding-top: 0.35rem;
-    padding-bottom: 0.35rem;
-    display: inline-flex;
-    align-items: center;
-  }
-  /* La coche d'une tache : 20 px de dessin, 44 px de cible. Le carre reste petit,
-     c'est le bouton qui s'elargit autour de lui. */
-  body.bdv-poste .tache__coche {
-    min-width: 44px;
-    min-height: 44px;
-    background-clip: content-box;
-    padding: 12px;
-    margin: -12px 0 -12px -12px;
-  }
-  /* Les deux actions de fin de ligne, « Ce que ca exige » et « Retirer », et les
-     liens de pied de zone du meme genre. */
-  body.bdv-poste .tache__source,
-  body.bdv-poste .tache__x,
-  body.bdv-poste .btn--lienb,
-  body.bdv-poste .zone__pied a,
-  body.bdv-poste .zone__pied button {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding-inline: 0.2rem;
-  }
-  /* La sortie de session et l'entree des reglages, dans la tete du poste. */
-  body.bdv-poste .bureau-tete__sortir {
-    min-height: 44px;
-    padding-block: 0.5rem;
-  }
+
+
   /* Les trois gestes du sous-main etaient a 36 px : ils sont le geste le plus
      frequent du bureau, ils passent au plancher comme les autres. */
   body.bdv-poste .btn--geste,
   body.bdv-poste .postit__g { min-height: 44px; }
-  /* Le nom du client, dans le sous-main : c'est LUI qui ouvre la fiche, et il faisait
-     16 px de haut sur deux lignes de texte de 8. La cible s'etale sur toute la
-     cellule ; le nom, lui, ne bouge pas d'un point. */
-  body.bdv-poste .listb__nom {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    width: 100%;
-    text-align: left;
-  }
-  /* L'entree des reglages, a cote de la sortie de session : les deux boutons de la
-     tete du poste sont au meme plancher. */
-  body.bdv-poste .bureau-tete__reglages { min-height: 44px; }
-  /* Les champs de saisie. 35 px n'est pas loin du seuil, mais un champ de date rate
-     se rattrape en rouvrant un calendrier natif, ce qui est le pire des deux. */
-  /* LES DEUX CHAMPS D'AJOUT D'UNE TACHE PASSENT A 16 px, 11/09/2026 (nuit).
-     Ils avaient recu leurs 44 px de HAUTEUR le matin, pas leur taille de TEXTE :
-     le titre etait a 14 px et la date a 11 px. Sous 16 px, Safari iOS zoome la
-     page a la mise au point et n'en ressort pas seul. C'est le geste le plus
-     frequent du bureau au telephone, noter une tache debout dans un rang, et il
-     coutait un pincement pour dezoomer a chaque fois.
-     Trouve par la mesure sur la VRAIE page, pas a la relecture : le bloc de
-     bdv-ecrans.css corrigeait les saisies des ecrans de vente et laissait
-     celles-ci, qui vivent ici. Deux feuilles, un seul defaut, et c'est pour ca
-     qu'un controle qui ouvre la vraie page voit ce qu'une relecture ne voit pas. */
-  body.bdv-poste .tachesf__i,
-  body.bdv-poste .tachesf__d { font-size: var(--t-corps); }
-  body.bdv-poste .tachesf__i,
-  body.bdv-poste .tachesf__d,
-  /* Le formulaire du calendrier emprunte les MEMES classes que celui des taches,
-     `tachesf__*` : une seule regle couvre les deux, et c'est ce qu'on veut. Ecrire un
-     selecteur `.cal__ajoutf` qui n'existe nulle part aurait fait une regle morte de
-     plus, exactement ce que la charte du projet traque. */
-  body.bdv-poste .tachesf button { min-height: 44px; }
-  /* LA LIGNE QUI DIT QUAND, 19/09/2026. « Dans 22 jours · 10 octobre · obligation »
-     est en --t-micro, soit 9,9 px : la plus petite de l'ecran, et c'est
-     l'information qu'on vient chercher en ouvrant « Mes taches ». Elle passe a
-     --t-mini, le cran au-dessus de l'echelle, SOUS 700 PX SEULEMENT : au-dessus,
-     c'est l'echelle de Ted et elle ne bouge pas. */
-  body.bdv-poste .tache__quand { font-size: var(--t-mini); }
+
+
 }
 
 /* ---------------------------------------------------------------------------
@@ -6049,7 +5972,7 @@ button.bureau-nav__item:hover {
    leur `display:flex` de bdv-ecrans.css, qui est plus specifique. Un bloc qui sait
    se montrer doit savoir se cacher, y compris avant que sa feuille arrive. */
 #busyov:not(.on) { display: none; }
-#status:not(.loading):not(.success) { display: none; }
+
 
 /* ============================================================================
    LES ECRANS DE VENTE DANS LE BUREAU
@@ -6069,55 +5992,7 @@ button.bureau-nav__item:hover {
    le bureau donne aux ecrans, pas de l'allure des ecrans. Et `npm run charte`
    refuserait desormais une regle de cette feuille-la sans son scope.
    ============================================================================ */
-#bureauVentes .bdv-ventes .app {
-  grid-template-columns: minmax(0, 1fr);
-  min-height: 0;
-}
-#bureauVentes .bdv-ventes .topbar { grid-column: 1 / 2; }
-/* Les six reperes en trop ne sont plus masques : ils ont ete retires de la coque au lot
-   2d. Il reste a la barre haute ce qui appartient vraiment aux ventes, le compte de
-   lignes et les trois sorties. */
-/* CES DEUX REGLES ONT ETE SUPPRIMEES LE 21/09/2026, AU LOT DES ECRANS DE VENTE,
-   ET ELLES ONT ETE TROUVEES A LA CAPTURE, PAS A LA LECTURE. La premiere posait,
-   sur `#bureauVentes .bdv-ventes .topbar`, une bordure basse de `--trait` en
-   `--rule` et un fond `--paper-deep` ; la seconde, sur `.topbar__file` au meme
-   endroit, une encre `--muted` et une opacite pleine. Elles ne sont pas reecrites
-   ici sous leur forme de regle : la section 3 bis de `npm run charte` refuse un
-   commentaire qui contient une regle CSS, parce qu'un commentaire mal ferme
-   l'avalerait sans que personne ne le voie.
 
-   LE DEFAUT : le lot 4 a repeint `.topbar` dans src/css/bdv-ecrans.css, et la barre
-   « 286 lignes » est restee CREME sur un bureau noir. Ces deux regles-la pesent
-   (1,2,0) contre (0,2,0), un IDENTIFIANT de plus. C'est mot pour mot la barre
-   d'onglets du telephone au lot 2 et la punaise au lot 3 : une regle d'en face
-   qu'on n'a pas lue en entier, et qu'aucun banc ne mesure.
-
-   POURQUOI SUPPRIMEES ET PAS CORRIGEES SUR PLACE. Elles etaient une RUSTINE : le
-   tableau de bord d'origine peignait sa barre haute en bordeaux, et elles la
-   ramenaient au papier du bureau. Depuis le lot 4, bdv-ecrans.css la peint
-   elle-meme a la surface du theme, dans les deux familles : il n'y a plus rien a
-   rattraper. Et les corriger ici aurait fait appeler un jeton `--bdv-*` depuis
-   src/css/style.css, que `npm run charte` lit en mode SITE, ou bdv-theme.css
-   n'est pas chargee : trois « var() sans declaration », sur du sain.
-   « Une rustine qui masque un defaut le garde en vie », c'est la lecon ecrite
-   juste en dessous pour .btn--light, et c'est la meme ici.
-
-   CE QUI RESTE, et qui n'est pas du dessin : `grid-column`, juste au-dessus. Il
-   parle de la place que le bureau donne aux ecrans, pas de leur allure. */
-/* LE RHABILLAGE DE .btn--light EST PARTI D'ICI, et c'est un progres. Il corrigeait
-   depuis le bureau un bouton dessine pour un fond bordeaux qui n'existe plus, en le
-   recouvrant d'une regle plus specifique. Le controle 6 bis de la charte, ajoute le
-   07/09/2026, a montre que la regle recouverte posait du creme sur du creme, 1:1, et
-   qu'elle n'attendait qu'une occasion de se voir. Elle est donc corrigee a sa source,
-   dans src/css/bdv-ecrans.css, et cette rustine n'a plus de raison d'etre.
-   La lecon vaut plus que la regle : une rustine qui masque un defaut le garde en vie. */
-#bureauVentes .bdv-ventes .appfoot { display: none; }
-
-/* La piece qu'on vient de demander, pendant que ses 2 500 lignes arrivent. Discret
-   par choix : un clic qui ne renvoie AUCUN signe passe pour un clic rate, mais une
-   attente trop mise en scene fait paraitre lent ce qui prend une seconde. */
-.bureau-nav__item--attente { cursor: progress; }
-.bureau-nav__item--attente .bureau-nav__ico { opacity: 0.45; }
 
 /*   rangee 1 : le panneau (12), ce que tu notes
      rangee 2 : le sous-main (9) + le calendrier (3)
@@ -6133,10 +6008,10 @@ button.bureau-nav__item:hover {
      rangee 4 : le mot du jour (12), quand il y en a un
      rangee 5 : a lire (4) + le classeur (4) + le courrier (4) */
 .zone--panneau    { grid-column: span 12; }
-.zone--sousmain   { grid-column: span 9; }
-.zone--calendrier { grid-column: span 3; }
+
+
 .zone--ardoise    { grid-column: span 12; }
-.zone--mot        { grid-column: span 12; }
+
 .zone--lecture    { grid-column: span 4; }
 .zone--classeur   { grid-column: span 4; }
 .zone--courrier   { grid-column: span 4; }
@@ -6151,18 +6026,7 @@ button.bureau-nav__item:hover {
   border-top: var(--trait-accent) solid var(--cork);
   padding: var(--e-s) var(--e-m) var(--e-m);
 }
-/* LA ZONE EST LE CONTENEUR DE REFERENCE DU LISTING, ET PAS LA FENETRE. C'est le
-   defaut de fond que l'audit du 07/09/2026 a mis au jour : le listing basculait
-   en fiches sous 700 px de FENETRE, alors que ce qui compte est la largeur de la
-   ZONE. Sur une fenetre de 1280 px la zone ne fait que 728 px, et sur une de
-   1024 px elle en fait 722, presque autant : la fenetre ne dit rien de la place
-   disponible, parce que la barre des pieces et le plafond de l'atelier
-   s'interposent. Une requete de conteneur, si. */
-.zone--sousmain {
-  border-top-color: var(--bordeaux);
-  container-type: inline-size;
-  container-name: sousmain;
-}
+
 .zone__tete {
   display: flex;
   align-items: baseline;
@@ -6179,249 +6043,11 @@ button.bureau-nav__item:hover {
   color: var(--muted);
   white-space: nowrap;
 }
-.zone__vide {
-  color: var(--muted);
-  font-style: italic;
-  font-size: var(--t-base);
-  margin: 0;
-  padding: var(--e-s) 0;
-}
-.zone__pied {
-  margin: var(--e-m) 0 0;
-  font-size: var(--t-mini);
-  color: var(--muted);
-}
+
 
 /* ---- UNE TACHE ----
    La ligne entiere est un lien vers la fiche du client dans le tableau de bord.
    Les trois gestes vivent dedans, et leur clic ne suit pas le lien. */
-/* ============================================================================
-   LE SOUS-MAIN : UN LISTING INFORMATIQUE
-   ----------------------------------------------------------------------------
-   Demande de Ted le 07/09/2026 : « le sous-main avec les taches a faire
-   aujourd'hui ou en retard : c'est un design beaucoup plus informatique parce
-   que ca va parler de fichiers clients ». Il a raison sur le fond : cette zone
-   ne raconte rien, elle liste des dossiers a traiter. Elle etait dessinee comme
-   un sommaire de revue, avec le nom du client en Fraunces corps 18.
-
-   C'est donc du papier continu a picots : bandes perforees a gauche et a droite,
-   bandes alternees, en-tete de colonnes, mono pour les references et les
-   retards. Les picots sont un fond du CONTENEUR et pas deux pseudo-elements par
-   ligne : leur pas est fixe, 26 px, independant de la hauteur des lignes, comme
-   sur du vrai papier continu.
-
-   TROIS DEFAUTS REELS CORRIGES AU PASSAGE, et aucun n'etait cosmetique :
-
-   1. HTML INVALIDE. La ligne etait un <button> qui contenait trois <button>.
-      Un bouton dans un bouton n'est pas permis, et le navigateur reparait le
-      balisage comme il pouvait. Ici la ligne est un <div>, et le nom du client
-      est le bouton : un seul element focalisable par colonne, dans l'ordre.
-      Ce que ca coute : cliquer dans le vide de la ligne n'ouvre plus la fiche.
-      C'est le prix d'un balisage juste, et le survol montre ou cliquer.
-   2. LE GESTE POSABLE DEUX FOIS. Une ligne traitee recevait
-      `pointer-events: none`, qui n'arrete que la souris : au clavier, Entree
-      deux fois posait deux gestes. Les boutons sont maintenant desactives.
-   3. LA HAUTEUR TACTILE. 44 px etait ecrit en dur ; c'est --h-controle.
-
-   Les bandes alternees ont 1,23:1 de contraste entre elles. C'est faible
-   volontairement : une bande de listing guide l'oeil sur la ligne, elle ne doit
-   pas se lire comme une couleur d'etat. Le seul etat de couleur ici est le
-   retard, en --danger-deep.
-   ============================================================================ */
-/* LE PAPIER CONTINU. Les picots sont un fond du CONTENEUR et pas deux
-   pseudo-elements par ligne : leur pas est fixe, 26 px, independant de la
-   hauteur des lignes, comme sur du vrai papier a picots. */
-/* LE PAPIER EST UNE FENETRE FERMEE. Sans ca, une valeur plus longue que prevu
-   sort du listing, sort de la zone, et fait defiler la PAGE a l'horizontale.
-   C'est ce qui est arrive : les trois boutons de geste a libelle complet
-   depassaient de 87 px de la zone et de 112 px du papier, a TOUTES les largeurs
-   de 320 a 1920 px. Un contenu trop large doit defiler DANS son cadre, jamais
-   pousser la page. Les largeurs de colonnes sont calculees pour que ca n'arrive
-   pas ; ceci est la ceinture en plus des bretelles. */
-.listbb {
-  border: var(--trait) solid var(--rule);
-  box-shadow: var(--ombre-carte);
-  overflow-x: auto;
-  padding: 0 18px;
-  background-color: var(--paper-light);
-  background-image:
-    radial-gradient(circle at 9px 13px, var(--paper-deep) 0 2.5px, transparent 3px),
-    radial-gradient(circle at calc(100% - 9px) 13px, var(--paper-deep) 0 2.5px, transparent 3px),
-    linear-gradient(to right, transparent 17px, var(--rule) 17px 18px, transparent 18px),
-    linear-gradient(to left, transparent 17px, var(--rule) 17px 18px, transparent 18px);
-  background-size: 100% 26px, 100% 26px, 100% 100%, 100% 100%;
-  background-repeat: repeat-y, repeat-y, no-repeat, no-repeat;
-}
-
-/* C'EST UN TABLEAU, ET C'EST UNE CORRECTION. Premiere version : l'en-tete etait
-   une grille et chaque ligne une autre grille, avec les memes colonnes ecrites
-   dans une variable. Deux grilles separees ne partagent pas leurs colonnes :
-   « RETARD » et « GESTE » flottaient a trois cents pixels de la colonne qu'ils
-   nommaient. Vu sur une capture, pas devine.
-   Un listing de colonnes EST un tableau : les colonnes s'alignent par
-   construction, et le lecteur d'ecran annonce enfin l'en-tete de la cellule. */
-/* LARGEURS FIXES ET MESUREES. Fixes parce qu'en repartition automatique le
-   navigateur donne la place aux boutons et le nom du client passe sur trois
-   lignes : un listing dont les lignes n'ont pas la meme hauteur ne se balaie
-   plus verticalement, ce qui est tout son objet.
-
-   MESUREES parce qu'estimees elles etaient fausses. Prises dans un vrai
-   navigateur avec les vraies valeurs, le 07/09/2026 :
-     une reference « 1428 » ................. 27 px, « C-01428 » 47
-     un retard « J+120 » .................... 49 px
-     les trois gestes a mot court ........... 205 px, jeux compris
-     le plus long motif reel ................ 214 px
-     le plus long nom de client reel ........ 238 px
-   Et la largeur du tableau, elle, ne depasse JAMAIS 934 px : elle tombe a 640 px
-   sur un portable de 1280, parce que la zone fait neuf colonnes sur douze dans
-   un atelier plafonne. C'est ce budget-la qu'il faut tenir.
-
-   EN REM ET PAS EN EM : l'en-tete est en --t-micro, dix pixels, donc une largeur
-   en em s'y calculait sur dix pixels et valait la moitie de ce qu'elle
-   annoncait. Le rem se calcule sur la racine. */
-.listb {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  /* En dessous de quoi le papier defile plutot que le tableau ne se casse. */
-  min-width: 33rem;
-}
-/* LE BUDGET, COLONNE PAR COLONNE, sur le tableau le plus etroit de la bande
-   « listing », 640 px, qui est la largeur reelle sur un portable de 1280 :
-     fichier client .... 28 %, soit 179 px, 158 utiles ; le plus long nom reel
-                         hors exception en fait 152
-     motif ............. ce qui reste, 141 px, 120 utiles ; « Rappel non fait »
-                         en fait 120
-     montant ........... 4,5 rem ; « 95 510 € » en fait 62
-     retard ............ 3,25 rem ; « J+120 » en fait 49
-     geste ............. 12,25 rem ; les trois mots courts en font 181, plus
-                         deux jeux d'un pixel et un retrait de 10 px a droite
-   Total : 640. Au-dessus, tout respire ; en dessous de 40 rem on passe en
-   fiches, parce qu'a ce moment-la aucun decoupage ne tient plus.
-
-   LA CELLULE DES GESTES N'A PAS DE RETRAIT A GAUCHE, et c'est une mesure qui l'a
-   impose : avec le retrait standard des cellules, 10 px de chaque cote, les
-   trois boutons avaient 163 px utiles pour 183, et depassaient de neuf pixels
-   par-dessus la bande perforee du papier. Vu sur capture. */
-.listb th:nth-child(1) { width: 28%; }
-.listb th:nth-child(3) { width: 4.5rem; }
-.listb th:nth-child(4) { width: 3.25rem; }
-.listb th:nth-child(5) { width: 12.25rem; }
-.listb th:nth-child(3),
-.listb th:nth-child(4),
-.listb th:nth-child(5) { text-align: right; }
-.listb th {
-  background: var(--ardoise);
-  color: var(--on-dark);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  text-align: left;
-  padding: 0.34rem var(--e-s);
-  white-space: nowrap;
-}
-.listb th:nth-child(4) { text-align: right; }
-.listb td {
-  height: var(--h-controle);
-  padding: 0.2rem var(--e-s);
-  border-bottom: var(--trait) solid var(--rule);
-  background: var(--paper-light);
-  vertical-align: middle;
-  font-size: var(--t-base);
-}
-/* Les bandes alternees du listing : 1,23:1 entre elles. Volontairement faible,
-   une bande guide l'oeil sur la ligne, elle ne doit pas se lire comme une
-   couleur d'etat. Le seul etat de couleur ici est le retard. */
-.listb tbody tr:nth-child(even) td { background: var(--white); }
-.listb tbody tr:last-child td { border-bottom: none; }
-/* Le survol ne change pas la teinte de la bande, il pose un onglet bordeaux sur
-   le bord : les bandes disent la ligne, la couleur dit l'etat, et les deux ne
-   parlent pas en meme temps. */
-.listb tbody tr:hover td:first-child { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
-.listb tr.listb__l--partie td { opacity: 0.4; }
-/* LE FICHIER CLIENT : le nom, et sous lui sa reference. Deux lignes dans le
-   plancher tactile de 44 px que la ligne a de toute facon, donc une colonne
-   rendue pour zero pixel de largeur. */
-.listb__fichier { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.listb__ref {
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  color: var(--muted);
-  white-space: nowrap;
-}
-/* Le nom du client est un fichier, pas un titre : Inter et pas Fraunces. C'est
-   exactement ce que Ted appelle « plus informatique ». */
-.listb__nom {
-  max-width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  font-weight: 500;
-  color: var(--bordeaux);
-  text-align: left;
-  cursor: pointer;
-  overflow-wrap: anywhere;
-}
-.listb__nom:hover { text-decoration: underline; color: var(--bordeaux-vif); }
-/* Un nom trop long est coupe et pas replie : la ligne garde sa hauteur, et le
-   nom entier reste lisible dans l'infobulle et dans la fiche. */
-/* PAS D'OVERFLOW SUR UNE CELLULE DE TABLEAU. Vu sur capture : avec
-   `overflow: hidden`, la cellule du motif cessait de s'etirer a la hauteur de sa
-   rangee et son fond se decalait de huit pixels vers le haut, une bande claire
-   en travers du listing. La coupe se fait sur l'element INTERIEUR, qui est un
-   bloc ordinaire. */
-.listb td.listb__nom-c .listb__nom {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow-wrap: normal;
-}
-/* LE MOTIF EST LA CELLULE, PAS UN ELEMENT DEDANS, et c'est ce qui m'avait
-   echappe : cette regle portait `display: block`, elle transformait donc le
-   <td> lui-meme en bloc. Une cellule en display:block sort de la mise en page du
-   tableau : son fond se decalait de huit pixels et tracait une bande claire en
-   travers du listing, visible sur trois captures avant que je comprenne.
-   La coupe par points de suspension, elle, marche bien sur une cellule quand le
-   tableau est en table-layout: fixed. */
-.listb td.listb__motif {
-  font-size: var(--t-mini);
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.listb td.listb__retard {
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
-  text-align: right;
-  white-space: nowrap;
-}
-/* LE MONTANT A DROITE, EN MONO : c'est l'idiome du listing, des nombres alignes
-   sur leur derniere unite se comparent d'un coup d'oeil. Les chiffres tabulaires
-   ne sont pas necessaires en JetBrains Mono, qui les a deja de largeur egale. */
-.listb td.listb__montant {
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  text-align: right;
-  white-space: nowrap;
-}
-.listb tr[data-retard="oui"] td.listb__retard { color: var(--danger-deep); font-weight: 500; }
-.listb td.listb__gestes { white-space: nowrap; text-align: right; padding-left: 0; }
-/* L'ANNEAU DE FOCUS PASSE A L'INTERIEUR DANS LE LISTING. Meme raison que dans la
-   barre du bureau : un bouton de 44 px dans une rangee de 50 laisse trois pixels
-   au-dessus et au-dessous, or l'anneau standard du site se pose a trois pixels
-   dehors. Ses segments haut et bas tombaient donc exactement sur les filets de
-   la rangee et disparaissaient dedans : il ne restait qu'un trait vertical a
-   gauche du groupe, ce qu'on prend pour une decoration et pas pour un focus. */
-.listbb :where(button, a):focus-visible { outline-offset: -2px; }
-.listb__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
-
 /* ============================================================================
    LE LISTING QUAND SA ZONE EST ETROITE : UNE FICHE PAR LIGNE
    ----------------------------------------------------------------------------
@@ -6432,194 +6058,7 @@ button.bureau-nav__item:hover {
    peuvent se replier. Le papier garde ses picots : c'est ce qui le fait
    reconnaitre comme le meme objet.
    ============================================================================ */
-/* 40 REM, ET C'EST LA BOITE DE CONTENU DE LA ZONE, PAS LA ZONE. Piege verifie a
-   la mesure : une requete de conteneur compare la boite de CONTENU, donc la zone
-   moins ses 48 px de retrait. Sur une fenetre de 1280 px la zone fait 728 px
-   mais son contenu 680, soit 42,5 rem : un seuil pose a 44 rem basculait en
-   fiches le portable le plus repandu, et je ne l'ai vu qu'en mesurant les
-   cellules. Le seuil est donc a 40 rem, ce qui garde le listing jusqu'a 640 px
-   de contenu, soit un tableau de 604 px. */
-@container sousmain (max-width: 40rem) {
-  .listbb { padding: 0 12px; }
-  .listb { min-width: 0; }
-  .listb thead { display: none; }
-  .listb, .listb tbody, .listb tr, .listb td { display: block; }
-  .listb tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto 3.25rem;
-    grid-template-areas: "nom montant retard" "motif motif motif" "gestes gestes gestes";
-    align-items: baseline;
-    row-gap: 0.3rem;
-    padding: var(--e-s) 0;
-    border-bottom: var(--trait) solid var(--rule);
-  }
-  .listb tbody tr:last-child { border-bottom: none; }
-  .listb td { height: auto; border-bottom: none; padding: 0 var(--e-s); background: none; }
-  .listb tbody tr:nth-child(even) { background: var(--white); }
-  .listb tbody tr:nth-child(even) td { background: none; }
-  .listb tbody tr:hover td:first-child { box-shadow: none; }
-  .listb tbody tr:hover { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
-  .listb td.listb__nom-c { grid-area: nom; }
-  /* Etroit, le nom se replie au lieu d'etre coupe : il y a la hauteur pour ca,
-     et un nom de client coupe est un nom qu'on ne reconnait pas. */
-  .listb td.listb__nom-c .listb__nom { white-space: normal; overflow: visible; }
-  .listb td.listb__nom-c { min-width: 0; }
-  .listb td.listb__montant { grid-area: montant; }
-  .listb td.listb__retard { grid-area: retard; }
-  .listb td.listb__motif { grid-area: motif; white-space: normal; overflow: visible; }
-  /* Les gestes se replient s'il le faut : sur 320 px, trois boutons cote a cote
-     poussaient la page a 369 px de large. */
-  .listb td.listb__gestes {
-    grid-area: gestes;
-    width: auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--trait);
-    white-space: normal;
-    padding-left: var(--e-s);
-  }
-  .listb__gestes .btn--geste + .btn--geste { margin-left: 0; }
-  .listb .btn--geste { flex: 1 1 auto; }
-}
 
-/* Le plancher tactile est une HAUTEUR, pas une largeur : on peut serrer
-   horizontalement sans rien perdre, et trois gestes tiennent alors dans
-   11,5 rem de colonne. */
-.btn--geste {
-  min-height: var(--h-controle);
-  padding: 0.35rem 0.5rem;
-  background: var(--paper);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.btn--geste:hover { background: var(--bordeaux); border-color: var(--bordeaux); color: var(--on-dark); }
-.btn--geste:disabled { cursor: default; color: var(--muted); border-color: var(--rule); }
-.btn--geste:disabled:hover { background: var(--paper); border-color: var(--rule); color: var(--muted); }
-
-/* ---- LE BLOC CALENDRIER ----
-   Un bloc a effeuiller, pose sur le plateau : bandeau du mois, ligne de
-   perforation, le jour en grand, puis ce qui tombe ce jour-la. Les echeances
-   suivantes sont une simple liste dessous, et c'est voulu : deux blocs
-   calendrier dans la meme zone et plus rien ne ressort.
-
-   Il remplace le pense-bete, qui disait la meme chose que le compte a rebours a
-   deux endroits de la meme page. Le bloc entier mene au calendrier, pas a
-   l'article de l'echeance : c'est ce que Ted a demande le 07/09/2026, et c'est
-   plus juste, on clique sur un calendrier pour voir le calendrier.
-
-   Materiaux : --paper-light pour le papier, --ombre-carte pour l'objet pose,
-   --ombre-dure au survol. Deux ombres, jamais une troisieme. */
-/* Le titre de cette zone ne se replie pas : trois colonnes sur douze, c'est
-   etroit, et « Le calendrier » sur deux lignes fait desordre a cote d'un bloc
-   bien carre. */
-.zone--calendrier .zone__tete h2 { white-space: nowrap; }
-/* La zone est son propre conteneur de reference, comme le sous-main : a 1280 px
-   de fenetre elle ne fait que 227 px, a 1100 px elle en fait 387. La fenetre ne
-   dit rien de la place ici non plus. */
-.zone--calendrier {
-  container-type: inline-size;
-  container-name: calendrier;
-}
-.calbloc { display: grid; gap: var(--e-s); }
-.calbloc__une {
-  display: block;
-  background: var(--paper-light);
-  border: var(--trait) solid var(--rule);
-  box-shadow: var(--ombre-carte);
-  color: var(--ink);
-  text-decoration: none;
-  transition: box-shadow var(--tr-rapide) ease;
-}
-.calbloc__une:hover { text-decoration: none; box-shadow: var(--ombre-dure); }
-.calbloc__mois {
-  display: block;
-  background: var(--bordeaux);
-  color: var(--on-dark);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  text-align: center;
-  padding: 0.35rem 0;
-}
-/* La perforation. Le meme piquete que le liege du panneau : une matiere n'est
-   pas une couleur a plat. */
-.calbloc__trous {
-  display: block;
-  height: 8px;
-  background-color: var(--paper-light);
-  background-image: radial-gradient(circle at 8px 50%, var(--paper-deep) 0 2px, transparent 2.5px);
-  background-size: 16px 8px;
-  border-bottom: var(--trait) solid var(--rule);
-}
-.calbloc__jour {
-  display: block;
-  font-family: var(--font-titre);
-  font-size: var(--t-h1);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: var(--ls-serre);
-  text-align: center;
-  padding: 0.5rem 0 0.1rem;
-}
-.calbloc__quand {
-  display: block;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
-  padding-bottom: 0.5rem;
-}
-.calbloc__titre {
-  display: block;
-  font-size: var(--t-base);
-  line-height: var(--lh-normal);
-  padding: var(--e-s) var(--e-m) var(--e-m);
-  border-top: var(--trait) solid var(--rule);
-}
-/* Urgent : le bandeau du mois passe au rouge d'etat, et le jour avec. La
-   couleur remplace, elle ne s'ajoute pas : un seul signal a la fois.
-
-   --danger-deep ET PAS --danger, et c'est un calcul qui l'a decide : le creme
-   sur --danger donne 4,00:1, or ce bandeau porte « SEPTEMBRE » en --t-micro,
-   dix pixels, qui demande 4,50. Sur --danger-deep il donne 5,60. La paire est
-   entree dans la table de contraste de la charte, qui ne la connaissait pas et
-   ne pouvait donc pas la refuser. */
-.calbloc__une[data-niveau="urgent"] .calbloc__mois,
-.calbloc__une[data-niveau="aujourdhui"] .calbloc__mois { background: var(--danger-deep); }
-.calbloc__une[data-niveau="urgent"] .calbloc__jour,
-.calbloc__une[data-niveau="aujourdhui"] .calbloc__jour { color: var(--danger-deep); }
-
-.calbloc__suite { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--trait); }
-/* LA DATE AU-DESSUS DU LIBELLE PAR DEFAUT. Mesure : dans une zone de 227 px, la
-   colonne de date prenait 58 px et « DAI, déclaration annuelle d'inventaire »
-   tombait sur QUATRE lignes de 87 px de large. Empile, le libelle a toute la
-   largeur et tient sur deux lignes. La date passe a cote des qu'il y a la place,
-   et c'est la zone qui le dit, pas la fenetre. */
-.calbloc__ligne {
-  display: grid;
-  gap: 1px;
-  background: var(--paper);
-  padding: 0.4rem var(--e-s);
-}
-.calbloc__d {
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
-  min-width: 0;
-}
-.calbloc__q { font-size: var(--t-base); min-width: 0; }
-@container calendrier (min-width: 18rem) {
-  .calbloc__ligne {
-    grid-template-columns: 5.2em minmax(0, 1fr);
-    align-items: baseline;
-    gap: var(--e-s);
-  }
-}
 
 /* ---- L'ARDOISE ---- */
 /* ---- L'ARDOISE, ET C'EN EST UNE MAINTENANT ----
@@ -6930,18 +6369,7 @@ button.bureau-nav__item:hover {
   color: var(--muted);
   margin-top: 0.15rem;
 }
-/* La pastille dit « arrive depuis ton dernier passage », et elle ne s'affiche
-   que quand ce dernier passage est connu. Sans repere, les trois dernieres
-   publications ne sont pas des nouveautes : les marquer toutes serait mentir. */
-.lettre__p {
-  position: absolute;
-  top: 0.8rem;
-  right: 0;
-  width: 9px;
-  height: 9px;
-  border-radius: var(--r-rond);
-  background: var(--bordeaux);
-}
+
 /* Sous 400 px la colonne de date passerait le titre a moins de 200 px : la date
    remonte alors au-dessus du titre, sur sa propre ligne. */
 @media (max-width: 400px) {
@@ -6951,192 +6379,6 @@ button.bureau-nav__item:hover {
 
 /* ---- LE TIROIR ---- */
 
-/* ---- L'AVIS ---- */
-.bureau-avis {
-  margin: 0 0 var(--e-s);
-  padding: var(--e-s) var(--e-m);
-  background: var(--warn-bg);
-  border-left: var(--trait-accent) solid var(--warn);
-  font-size: var(--t-base);
-}
-
-/* ---- L'EN-TETE ----
-   RESSERRE PUIS REMIS EN PLACE LE 18/09/2026, ET C'EST LA DECISION QUI COMPTE.
-   Le chantier d'occupation de l'espace a fait passer ce bandeau de 209 a 71 px,
-   puis l'a range en deux lignes. Ted a juge les deux sur sa vraie page, avec son
-   prenom, sa plaque, son metier et un resume a deux chiffres : « c'est un foutoir
-   pas possible », puis « c'etait mieux avant ». Le bandeau est donc revenu a son
-   dessin du 08/09/2026, a l'octet.
-
-   CE QUI RESTE ACQUIS DE CETTE JOURNEE, et qu'il ne faut pas defaire en croyant
-   finir le retour arriere : les marges de l'atelier, la largeur de la barre des
-   pieces et la borne `--postit-l`. Ted les a validees. **Le resserrage s'arrete a
-   la porte de ce bandeau.**
-
-   ET LA LECON DE METHODE, qui vaut plus que le CSS : hors ligne, le profil
-   n'arrive pas, donc le banc photographiait « Te voila chez toi. » sans prenom et
-   sans plaque, c'est-a-dire l'etat le plus VIDE du bandeau. Les trois versions ont
-   ete jugees sur cette image-la. **Un harnais qui ne montre que l'etat vide valide
-   une mise en page que personne ne verra.** `banc-large.mjs` pose desormais ces
-   textes a la main avant de photographier. */
-.bureau-tete { background: var(--bordeaux-deep); color: var(--on-dark); padding-block: var(--e-2xl) var(--e-xl); }
-.bureau-tete__jour {
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark-soft);
-  margin-bottom: 0.6rem;
-}
-.bureau-tete__ligne {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--e-l);
-}
-.bureau-tete h1 { color: var(--on-dark); }
-/* La plaque de porte : le nom du domaine, grave sous le bonjour.
-   --cork est documente « jamais du texte » : la regle vise le papier, ou il tombe a
-   2,4:1. Ici il est pose sur --bordeaux-deep, ou il monte a 5,8:1. C'est la seule
-   exception du site, et elle ne vaut que sur ce fond-la. */
-.bureau-tete__plaque {
-  margin: 0.4rem 0 0;
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--cork);
-}
-.bureau-tete__invite {
-  background: none;
-  border: none;
-  border-bottom: var(--trait) dashed var(--cork);
-  padding: 0;
-  font: inherit;
-  letter-spacing: inherit;
-  color: var(--cork);
-  cursor: pointer;
-}
-.bureau-tete__invite:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
-.bureau-tete__reglages {
-  flex: 0 0 auto;
-  margin-top: 0.4rem;
-  background: transparent;
-  color: var(--on-dark-soft);
-  border: var(--trait) solid var(--on-dark-faint);
-  padding: 0.55rem 1.1rem;
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  cursor: pointer;
-}
-.bureau-tete__reglages:hover { background: var(--paper); color: var(--bordeaux); border-color: var(--paper); }
-/* Les deux actions de l'entete, empilees a droite. « Me deconnecter » est un lien souligne
-   et non un cadre : il efface ce navigateur, il ne doit pas peser autant a l'oeil que les
-   reglages. --cork sur du texte est l'exception documentee plus haut, valable sur ce fond. */
-.bureau-tete__actions {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
-}
-/* 129 X 14 PX A COTE DE « Mes reglages » QUI FAIT 145 X 33, 19/09/2026. Le
-   `padding: 0` est ce qui tient le filet pointille colle sous le texte : lui
-   ajouter du remplissage decollerait le soulignement, ce qui EST une decision de
-   dessin. Un rectangle invisible de 5 px au-dessus et en dessous porte la cible a
-   24 px sans deplacer un seul trait, ni allonger l'entete. */
-.bureau-tete__sortir { position: relative; }
-.bureau-tete__sortir::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; top: -5px; bottom: -5px;
-}
-.bureau-tete__sortir {
-  background: none;
-  border: none;
-  padding: 0;
-  border-bottom: var(--trait) dashed var(--on-dark-faint);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark-soft);
-  cursor: pointer;
-}
-.bureau-tete__sortir:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
-.bureau-tete__sortir-avis {
-  max-width: 24rem;
-  margin: 0;
-  text-align: right;
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  line-height: 1.45;
-  color: var(--cork);
-}
-.bureau-tete__resume { color: var(--on-dark-soft); font-style: italic; font-size: var(--t-lead); margin: 0.5rem 0 0; }
-
-/* ---- LA LUNE DE L'ENTETE ----
-   Posee le 08/09/2026, troisieme zone de la ligne, entre le bonjour et les
-   actions. --cork tient son role documente d'ornement : la lune EST un ornement,
-   et le cork sur --bordeaux-deep monte a 5,8:1, l'exception deja ecrite plus haut
-   pour la plaque de porte. La lune en --on-dark aurait pese autant que
-   « Bonjour Ted. », qui doit rester le seul point clair de la ligne. */
-.bureau-tete__lune {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  margin-top: 0.4rem;
-  /* Le survol porte l'explication des deux cycles. Pas de pointeur de main : rien
-     ne se clique ici, et un curseur qui promet un clic qui n'existe pas ment. */
-  cursor: default;
-}
-/* LA LUNE TIENT SUR UNE RANGEE depuis le 18/09/2026. Ses trois textes empiles
-   fixaient a eux seuls le plancher du bandeau a 84 px, alors que la rangee du
-   salut n'en demandait que 44 : c'etait l'ornement qui commandait la hauteur de
-   tout l'entete. Ils se suivent maintenant, separes par les filets du dessin
-   lui-meme, et le disque descend de 38 a 28 px. Le repli reste possible
-   (`flex-wrap`), et sous 980 px la lune redescend sur sa ligne comme avant. */
-.bureau-tete__lune-dessin { flex: 0 0 auto; display: block; width: 38px; height: 38px; }
-/* Le disque entier reste visible en creux : sans lui, un croissant a 9 % flotterait
-   sans qu'on sache de quel astre il est le bord. */
-/* --on-dark-rule est le voile creme des filets sur fond sombre. C'est exactement
-   ce qu'on veut ici : une presence, pas une couleur. */
-.bureau-tete__lune-ombre { fill: var(--on-dark-rule); }
-.bureau-tete__lune-clair { fill: var(--cork); }
-.bureau-tete__lune-bord  { fill: none; stroke: var(--on-dark-faint); stroke-width: 2; }
-.bureau-tete__lune-nom {
-  margin: 0;
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark);
-}
-.bureau-tete__lune-note,
-.bureau-tete__lune-suite {
-  margin: 0.2rem 0 0;
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  color: var(--on-dark-soft);
-}
-.bureau-tete__lune-suite { color: var(--cork); }
-
-/* Sur telephone, la ligne de l'entete passait de trois zones a trois colonnes
-   ecrasees. La lune descend sur sa propre ligne, sous un filet : elle est le
-   moins urgent des trois blocs, c'est donc elle qui cede la place. */
-@media (max-width: 980px) {
-  .bureau-tete__ligne { flex-wrap: wrap; }
-  .bureau-tete__lune {
-    order: 3;
-    width: 100%;
-    margin-top: 1.1rem;
-    padding-top: 0.9rem;
-    border-top: var(--trait) solid var(--on-dark-rule);
-  }
-}
 
 /* ---- RESPONSIVE ----
    Deux colonnes en moyen, une seule sur telephone. L'ordre des zones ne change
@@ -7148,14 +6390,11 @@ button.bureau-nav__item:hover {
   .zone--calendrier, .zone--lecture, .zone--classeur, .zone--courrier { grid-column: span 6; }
 }
 @media (max-width: 700px) {
-  .container--bureau { padding: 0 var(--e-m); }
+  
   .bureau-plan { gap: var(--e-m); }
   .bureau-plan > .zone { grid-column: span 12; }
   .zone { padding: var(--e-m); }
-  /* Sur telephone, le listing perd ses colonnes : la reference et l'en-tete
-     s'effacent, le motif passe sous le nom, les gestes prennent la largeur. Le
-     papier continu garde ses picots, c'est ce qui le rend reconnaissable. */
-  .btn--geste { flex: 1 1 auto; justify-content: center; text-align: center; }
+  
 }
 
 /* ============================================================================
@@ -7235,8 +6474,7 @@ button.bureau-nav__item:hover {
      marge ou deborder. Troisieme fois que ce projet paie la meme lecon : on ne
      change pas la largeur d'un conteneur sans regarder ce qui depasse de lui. */
   body.bdv-poste .zone--lecture::after { right: 0; }
-  /* Ces deux-la posaient leur propre gouttiere DANS la zone, donc en double. */
-  body.bdv-poste .calbloc__ligne { padding-left: 0; padding-right: 0; }
+  
   body.bdv-poste .echeance { padding-left: var(--e-s); padding-right: var(--e-s); }
   /* « LE PANNEAU » SE CASSE EN DEUX LIGNES, 19/09/2026. Sa note de zone porte
      quatre compteurs et se replie (`white-space: normal`, pose le 10/09) : sur
@@ -7269,29 +6507,7 @@ button.bureau-nav__item:hover {
    Seul survit le bouton-lien ci-dessous, qui sert au pied du listing et au
    panneau.
    ============================================================================ */
-/* `button.tache` est parti le 07/09/2026 avec la refonte du sous-main : la ligne
-   n'est plus un bouton, c'est une rangee de listing, et un bouton dans un bouton
-   n'etait de toute facon pas du HTML valide. Cette regle deshabillait un bouton
-   pour qu'il ressemble a une ligne ; il n'y a plus de bouton a deshabiller. */
-.btn--lienb {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--bordeaux);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-decoration: underline;
-  cursor: pointer;
-}
 
-
-/* L'ATTENTE D'UNE FICHE QUI S'OUVRE. Elle se voit SUR LA LIGNE cliquee, jamais
-   sur toute la page : un voile plein ecran pour une fiche qui s'ouvre se lit
-   comme un rechargement. Le premier clic de la session charge le moteur des
-   ventes, mesure a 2,8 s sur 40 000 lignes ; les suivants sont instantanes. */
-.listb__l[data-attente="oui"] { opacity: 0.55; }
-.listb__l[data-attente="oui"] .listb__nom,
-.listb__l[data-attente="oui"] .btn--geste { cursor: progress; }
 
 /* ---- LE MOT DU JOUR ----
    Un conseil, un seul, et il porte sa couleur de gravite. Le verdict constate, l'action
@@ -7314,43 +6530,13 @@ button.bureau-nav__item:hover {
   background: var(--paper);
   border-left: var(--trait-accent) solid var(--cork);
 }
-/* Le signe de gravite. PAS DE COULEUR : `--warn` et `--danger` ne tiennent pas AA sur ces
-   papiers (voir la note des jetons d'etat dans CLAUDE.md), et un glyphe qui se distingue
-   par sa FORME n'a pas besoin d'une teinte pour faire son travail. */
-.mot__ico {
-  font-size: var(--t-lead);
-  line-height: var(--lh-serre);
-  flex-shrink: 0;
-}
-.mot__corps { min-width: 0; }
-.mot__aller {
-  color: inherit;
-  text-decoration: none;
-}
-.mot__aller:hover { text-decoration: underline; }
-/* La fleche est le SEUL signe visible que la carte mene quelque part : le verdict garde
-   son encre et son absence de soulignement, parce qu'un titre de deux lignes souligne se
-   lit comme une rature. Le survol souligne, et il porte sur toute la carte grace au
-   calque ci-dessous. */
-.mot__fleche { color: var(--bordeaux); white-space: nowrap; }
-.mot__aller::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
+
+
 .mot[data-kind="danger"] { background: var(--danger-bg); border-left-color: var(--danger); }
 .mot[data-kind="warn"]   { background: var(--warn-bg);   border-left-color: var(--warn); }
 .mot[data-kind="ok"]     { background: var(--ok-bg);     border-left-color: var(--ok); }
 .mot[data-kind="info"]   { background: var(--info-bg);   border-left-color: var(--info); }
-.mot__v {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  line-height: var(--lh-serre);
-  color: var(--ink);
-  margin: 0 0 0.5rem;
-}
-.mot__a { font-size: var(--t-base); color: var(--muted); line-height: var(--lh-normal); margin: 0; }
+
 
 /* ============================================================================
    LES CHIFFRES DU SITE, 12/09/2026
@@ -7449,30 +6635,7 @@ button.bureau-nav__item:hover {
      lui laissait, et le haut de l'ecran restait vide. */
   body.bdv-poste { padding-top: 0; }
 }
-/* La porte de sortie n'existe QUE la ou le decor a ete retire. Sur ordinateur le
-   bandeau est toujours en haut, et un deuxieme chemin vers l'accueil ne serait qu'un
-   doublon de plus a entretenir. */
-.bureau-sortie { display: none; }
-@media (max-width: 700px) {
-  body.bdv-poste .bureau-sortie {
-    display: block;
-    margin: var(--e-l) 0 0;
-    padding: var(--e-m) 0 var(--e-l);
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: var(--t-mini);
-  }
-  body.bdv-poste .bureau-sortie a {
-    color: var(--muted);
-    /* Un plancher tactile, meme pour une porte qu'on prend rarement : une cible de
-       14 px etait exactement le defaut releve sur « Me deconnecter ». */
-    display: inline-block;
-    min-height: 44px;
-    line-height: 44px;
-    padding: 0 var(--e-m);
-  }
-  body.bdv-poste .bureau-sortie a:hover { color: var(--bordeaux); }
-}
+
 
 /* ============================================================================
    LE PANNEAU DE LIEGE
@@ -7620,12 +6783,7 @@ button.bureau-nav__item:hover {
    du chapo. La regle suit la LONGUEUR et pas la nature : un chiffre est court, un titre
    ne l'est pas, et c'est la seule chose que le dessin ait besoin de savoir. */
 .postit__v[data-mot="long"] { font-size: var(--t-lead); line-height: var(--lh-serre); }
-.postit__l {
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  line-height: var(--lh-serre);
-  color: var(--ink);
-}
+
 .postit__s {
   font-family: var(--font-manuscrit);
   font-size: 1.15rem;
@@ -7649,17 +6807,6 @@ button.bureau-nav__item:hover {
    soulevement au survol se joue donc au deplacement seul, pas a l'ombre portee :
    le papier monte de trois pixels, son ombre reste --ombre-carte. */
 
-/* LE LIEN S'ETEND SUR TOUT LE POST-IT. Le papier n'est plus un <a> : il contenait
-   des boutons, ce que le HTML interdit et ce que le clavier traverse de travers.
-   C'est donc le libelle qui porte le lien, et son ::after qui couvre le papier. Une
-   seule cible pour la souris, deux arrets nets pour le clavier. */
-.postit__lien { color: var(--ink); text-decoration: none; }
-.postit__lien::after { content: ""; position: absolute; inset: 0; }
-.postit:hover .postit__lien { text-decoration: underline; }
-/* L'anneau se pose sur le PAPIER et jamais sur le liege : --bordeaux sur --paper-light
-   se lit, --bordeaux sur --cork se devine. C'est la lecon du 07/09/2026, l'anneau a la
-   couleur de la surface qui le porte. */
-.postit__lien:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
 
 /* ---- LE TAMPON, 10/09/2026 ----
    Ted, devant sa vraie page : « les gros mots AUJOURD'HUI et DEMAIN en gros, ca perd le
@@ -7746,12 +6893,7 @@ button.bureau-nav__item:hover {
   30%  { transform: rotate(5deg) translateY(3px); }
   100% { opacity: 0; transform: rotate(14deg) translateY(28px); }
 }
-.panneau .postit--decroche {
-  animation: bdv-punaise-tombe 0.3s ease-in forwards;
-  pointer-events: none;
-}
-.postit--decroche .postit__l { text-decoration: line-through; }
-.postit--decroche::before { opacity: 0; }
+
 
 /* CE QUI BOUGE EST UN CHOIX DE L'UTILISATEUR. Le systeme le dit, on l'ecoute : plus
    de cascade, plus de chute, plus de soulevement. Le panneau reste entierement
@@ -7831,19 +6973,8 @@ button.bureau-nav__item:hover {
   font-weight: 500;
   color: var(--ink);
 }
-.reg__i {
-  width: 100%;
-  background: var(--paper);
-  border: var(--trait) solid var(--rule-fort);
-  padding: 0.6rem 0.75rem;
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  color: var(--ink);
-}
-.reg__i:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
-/* Un champ verrouille doit se voir verrouille : le paragraphe d'explication ne suffit pas,
-   personne ne lit une explication avant d'avoir essaye de taper. */
-.reg__i:disabled { background: var(--paper-deep); color: var(--muted); cursor: not-allowed; }
+
+
 .reg__i--court { max-width: 9rem; }
 .reg__aide { margin: 0.35rem 0 0; font-size: var(--t-mini); color: var(--muted); }
 .reg__chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: var(--t-base); }
@@ -7854,48 +6985,7 @@ button.bureau-nav__item:hover {
   gap: var(--e-m);
   flex-wrap: wrap;
 }
-.bureau-avis[data-ok="oui"] { background: var(--ok-bg); border-left-color: var(--ok); }
 
-/* ============================================================================
-   MES TACHES
-   ----------------------------------------------------------------------------
-   Ajoute le 07/09/2026. Une piece, pas une zone : on y ecrit et on y coche.
-   Deux natures dans la meme liste, les taches ecrites et les obligations du
-   calendrier, et c'est VOLONTAIRE qu'elles se ressemblent : ce qui compte pour
-   celui qui ouvre la piece, c'est ce qui tombe le plus tot, pas de savoir qui a
-   produit la ligne. Un mot en petites capitales suffit a dire la nature.
-
-   Aucune couleur en dur : le retard prend --danger-deep, la coche --bordeaux,
-   le fait passe en --muted. Les memes signaux que partout ailleurs.
-   ============================================================================ */
-.zone--taches {
-  grid-column: span 12;
-  /* Conteneur nomme, comme le sous-main et le calendrier : la liste se reorganise
-     sur la largeur de SA zone et pas sur celle de la fenetre. Sans ces deux lignes
-     la requete de conteneur du bas de section ne s'appliquerait jamais, en silence. */
-  container-type: inline-size;
-  container-name: taches;
-}
-
-/* LA ZONE DE LA PIECE « LE CALENDRIER », 08/09/2026.
-   Elle est designee par le scope de la piece, `.bdv-cal > .zone`, et pas par un
-   modificateur a elle : `zone--calendrier` existe deja, c'est le petit bloc du
-   calendrier dans « Ma journee », et deux classes qui se ressemblent a une lettre
-   pres dans la meme feuille sont un piege pose pour plus tard.
-
-   ELLE EST ICI ET PAS DANS src/css/bdv-calendrier.css, et ce n'est pas un detail
-   de rangement : seule() montre le conteneur AVANT que la feuille de la piece soit
-   posee. Sans sa colonne de grille dans la feuille du site, la zone s'ecrase sur
-   une quarantaine de pixels pendant tout le chargement. Vu a la capture. */
-.bdv-cal > .zone {
-  grid-column: span 12;
-  /* Conteneur nomme, comme le sous-main et les taches : la grille du mois se juge
-     sur la largeur de SA zone, jamais sur celle de la fenetre. Sans ces deux
-     lignes, la requete de conteneur de bdv-calendrier.css ne s'appliquerait
-     jamais, en silence. */
-  container-type: inline-size;
-  container-name: calendrier;
-}
 
 /* ============================================================================
    LES ETIQUETTES DE FAMILLE, partagees par le calendrier et par « Mes taches »
@@ -7912,108 +7002,7 @@ button.bureau-nav__item:hover {
    remesurer. La cinquieme famille n'a PAS de couleur, il n'y a pas la place sur
    ce papier : elle est ecrite a la main.
 ============================================================================ */
-.filtfam {
-  padding: 2px var(--e-s);
-  border: var(--trait) solid var(--rule-fort);
-  border-left: var(--trait-accent) solid var(--fam-1);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  letter-spacing: var(--ls-doux);
-  cursor: pointer;
-  transition: background var(--tr-rapide), color var(--tr-rapide);
-}
-.filtfam[data-fam="travaux"]    { border-left-color: var(--fam-2); }
-.filtfam[data-fam="rendezvous"] { border-left-color: var(--fam-3); }
-.filtfam[data-fam="tempsforts"] { border-left-color: var(--fam-4); }
-.filtfam[data-fam="taches"],
-.filtfam[data-fam="notes"] {
-  border-left-color: var(--rule-fort);
-  border-left-style: dotted;
-  font-family: var(--font-manuscrit);
-  font-size: var(--t-petit);
-}
-.filtfam:hover { background: var(--paper-deep); }
-/* ETEINTE : le libelle barre et l'encre en retrait. Pas un bouton grise, qui se
-   lirait « indisponible » alors qu'il est le seul moyen de rallumer. */
-.filtfam--off {
-  background: var(--paper-deep);
-  color: var(--muted);
-  border-left-color: var(--rule-fort);
-  text-decoration: line-through;
-}
-.filtfam:focus-visible {
-  outline: var(--trait-fort) solid var(--bordeaux);
-  outline-offset: var(--trait);
-}
 
-.taches__filtres {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-xs);
-  margin-bottom: var(--e-m);
-}
-
-/* LE « AU » ENTRE LES DEUX DATES, 08/09/2026. Deux champs de date cote a cote sans
-   rien entre eux se lisent comme deux dates independantes ; le mot dit que c'est une
-   periode. Il est masque aux lecteurs d'ecran, qui ont les deux `aria-label`. */
-.tachesf__au {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  align-self: center;
-}
-
-/* Le formulaire. En haut de la piece, et le champ garde le focus apres l'ajout. */
-.tachesf { margin: 0 0 var(--e-l); }
-.tachesf__l {
-  display: block;
-  margin: 0 0 0.4rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
-}
-.tachesf__ligne { display: flex; gap: var(--e-s); flex-wrap: wrap; align-items: stretch; }
-.tachesf__i {
-  flex: 1 1 18rem;
-  min-width: 0;
-  padding: 0.55rem 0.7rem;
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  color: var(--ink);
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  border-radius: var(--r-nul);
-}
-.tachesf__d {
-  padding: 0.55rem 0.7rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--ink);
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  border-radius: var(--r-nul);
-}
-.tachesf__i:focus, .tachesf__d:focus { border-color: var(--bordeaux); }
-/* Le bouton du site fait 0.9rem sur 2rem : dans une ligne de saisie il depasse les deux
-   champs d'un demi-centimetre. On le rentre, sans toucher au bouton du site. */
-.tachesf .btn { padding: 0.55rem 1.4rem; font-size: var(--t-mini); }
-.tachesf__aide { margin: 0.4rem 0 0; font-size: var(--t-mini); color: var(--muted); }
-
-/* Les deux blocs, « A faire » et « Fait ». Le titre porte le compte : un titre qui
-   ne dit pas combien oblige a compter des yeux. */
-.taches__titre {
-  margin: var(--e-l) 0 var(--e-s);
-  padding-bottom: 0.3rem;
-  border-bottom: var(--trait) solid var(--rule);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  font-weight: 500;
-  color: var(--muted);
-}
-.taches__vide { margin: 0; font-size: var(--t-base); color: var(--muted); font-style: italic; }
-.taches__liste { list-style: none; margin: 0; padding: 0; }
 
 /* UNE LIGNE, TROIS PARTS : la coche, ce qu'il y a a faire, et la sortie. La coche est a
    gauche parce que c'est le geste, et le geste se prend avant de lire la suite. */
@@ -8025,302 +7014,15 @@ button.bureau-nav__item:hover {
   padding: 0.55rem 0;
   border-bottom: var(--trait) solid var(--rule);
 }
-.tache__coche {
-  width: 20px;
-  height: 20px;
-  margin-top: 0.15rem;
-  padding: 0;
-  background: var(--white);
-  border: var(--trait-fort) solid var(--cork-encre);
-  border-radius: var(--r-nul);
-  cursor: pointer;
-  position: relative;
-  transition: border-color var(--tr-rapide);
-}
-/* 20 X 20 PX DE CIBLE SUR ORDINATEUR, 19/09/2026. Le plancher de 44 px pose le
-   11/09 est enferme dans `body.bdv-poste` et dans la requete telephone ; a la
-   souris la norme applicable est 24 px, et c'est le geste central de « Mes
-   taches ». On agrandit la ZONE, pas le carre : un rectangle invisible de 2 px
-   tout autour porte la cible a 24 x 24 et le dessin ne bouge pas d'un point.
-   C'est le motif de `.postit__lien::after` et de `.echeance__ouvrir::after`, deja
-   dans le projet. `::after` porte deja la coche dessinee, d'ou `::before`. */
-/* -4px ET PAS -2px, 19/09/2026. Le bloc contenant d'un pseudo-element absolu est
-   la boite de PADDING, pas la boite de bordure. La case fait 20 px en
-   `box-sizing: border-box` avec une bordure de 2 px, donc sa boite de padding fait
-   16 px : `-2px` de chaque cote ne faisait que rattraper la bordure, et le
-   `::before` calcule mesurait exactement 20 x 20. La cible n'avait pas bouge d'un
-   point, et la mesure le disait. Compare a `.bureau-tete__sortir::after`, qui
-   utilise -5px sur un element SANS bordure et qui, lui, fonctionne. */
-.tache__coche::before {
-  content: "";
-  position: absolute;
-  left: -4px; right: -4px; top: -4px; bottom: -4px;
-}
-.tache__coche:hover { border-color: var(--bordeaux); }
-/* La coche est DESSINEE, pas ecrite : un caractere de coche change de dessin d'une
-   police a l'autre et d'un systeme a l'autre. Deux traits en angle ne changent pas. */
-.tache__coche::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 1px;
-  width: 10px;
-  height: 6px;
-  border-left: var(--trait-accent) solid var(--bordeaux);
-  border-bottom: var(--trait-accent) solid var(--bordeaux);
-  transform: rotate(-45deg);
-  opacity: 0;
-  transition: opacity var(--tr-rapide);
-}
-.tache__coche[aria-pressed="true"]::after { opacity: 1; }
-/* LA PASTILLE D'UN RAPPEL CLIENT. Elle tient la place de la case a cocher, qu'un
-   client n'a pas : « fait » pour un client, c'est ce qu'il a dit, et ca s'ecrit dans
-   sa fiche. Elle porte la matiere de cette famille, le combine, le meme que dans le
-   calendrier : c'est ce qui la distingue sans lui donner une sixieme couleur, qui ne
-   tiendrait de toute facon pas l'ecart de contraste sur ce papier. */
-.tache__puce {
-  width: 20px;
-  height: 20px;
-  margin-top: 0.15rem;
-  font-size: var(--t-micro);
-  line-height: 20px;
-  text-align: center;
-  color: var(--muted);
-}
-.tache__puce::before { content: "\260E"; }
-.tache__corps { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-.tache__titre { font-size: var(--t-base); color: var(--ink); overflow-wrap: anywhere; }
-.tache__quand { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
-.tache[data-ton="retard"] .tache__quand,
-.tache[data-ton="aujourdhui"] .tache__quand { color: var(--danger-deep); }
-/* Faite, la ligne s'efface sans disparaitre : elle est la preuve du travail fait. */
-.tache[data-fait="oui"] .tache__titre { color: var(--muted); text-decoration: line-through; }
-/* 11 PX DE HAUT A LA SOURIS, 19/09/2026. « Retirer », « Ouvrir sa fiche »,
-   « Ajouter en detail… » : `padding: 0` sur un texte en --t-micro donne une cible
-   de 11 px, sous la norme de 24 px de la souris. Le 44 px existe, mais il est
-   enferme dans `body.bdv-poste` et sous 700 px.
-   `align-self: center` etait deja la : la rangee est plus haute que 24 px (coche
-   de 20 px plus deux lignes de texte), donc ce plancher ne gonfle aucune ligne. */
-.tache__source, .tache__x {
-  align-self: center;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-  background: none;
-  border: none;
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  color: var(--muted);
-  cursor: pointer;
-  text-decoration: underline;
-}
-.tache__source:hover, .tache__x:hover { color: var(--bordeaux); }
+
 
 /* Etroit : la sortie passe sous le corps plutot que de comprimer le titre a trois
    mots par ligne. Requete de CONTENEUR, comme le listing du sous-main : c'est la
    largeur de la zone qui compte, pas celle de la fenetre. */
 @container taches (max-width: 30rem) {
   .tache { grid-template-columns: auto minmax(0, 1fr); }
-  .tache__source, .tache__x { grid-column: 2; justify-self: start; }
+  
 }
-/* ===========================================================================
-   LA MODALE D'UNE TACHE, demandee par Ted le 12/09/2026
-   ===========================================================================
-   Elle s'ouvre depuis TROIS endroits : la ligne de la piece « Mes taches », la
-   punaise du panneau, et le titre d'une tache dans la vue liste du calendrier.
-   Un seul dessin pour les trois, sinon il faudrait l'apprendre trois fois.
-
-   ELLE PASSE AU-DESSUS DE LA FICHE CLIENT, et c'est le motif de --z-voile plutot
-   que --z-modale. La fiche client (--z-modale, 400) est ouverte depuis les ecrans
-   de vente ; celle-ci s'ouvre depuis n'importe ou, y compris depuis le panneau qui
-   reste visible derriere une fiche. A egalite, l'ordre du document trancherait, et
-   il trancherait au hasard.
-
-   PAS DE TROISIEME OMBRE : --ombre-dure, la signature du site, comme le panneau de
-   reglages. Et le fond est du papier, pas du blanc : on ouvre une fiche cartonnee
-   posee sur le bureau, pas une boite de dialogue de systeme.
-   =========================================================================== */
-.tmod { position: fixed; inset: 0; z-index: var(--z-voile);
-  display: flex; align-items: center; justify-content: center; padding: var(--e-l); }
-.tmod[hidden] { display: none; }
-.tmod__voile { position: absolute; inset: 0; background: var(--bordeaux-veil); backdrop-filter: blur(2px); }
-.tmod__boite {
-  position: relative;
-  width: 100%;
-  max-width: 34rem;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 1.7rem 1.9rem 1.5rem;
-  background: var(--paper);
-  border: var(--trait) solid var(--rule);
-  border-radius: var(--r-nul);
-  box-shadow: var(--ombre-dure);
-}
-.tmod__x {
-  position: absolute; top: 0.6rem; right: 0.8rem;
-  padding: 0.2rem 0.45rem;
-  background: none; border: none;
-  font-size: var(--t-h3); line-height: 1;
-  color: var(--muted); cursor: pointer;
-}
-.tmod__x:hover { color: var(--bordeaux); }
-
-/* LE TAMPON, la meme etiquette en capitales que sur la punaise du panneau : le
-   vigneron lit « EN RETARD » au meme endroit du sens, qu'il regarde son liege ou
-   qu'il ouvre la tache. Un mot se lit, une teinte se devine. */
-.tmod__tampon {
-  display: inline-block; margin: 0 0 0.4rem;
-  padding: 0.1rem 0.5rem;
-  border: var(--trait) solid var(--rule);
-  font-family: var(--font-mono); font-size: var(--t-micro);
-  text-transform: uppercase; letter-spacing: var(--ls-large);
-  color: var(--muted);
-}
-.tmod__tampon[data-ton="retard"],
-.tmod__tampon[data-ton="aujourdhui"] { color: var(--danger-deep); border-color: var(--danger-deep); }
-.tmod__tampon[data-ton="fait"] { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
-.tmod__titre { font-family: var(--font-titre); font-size: var(--t-h3); color: var(--ink-deep); margin: 0; }
-.tmod__sous {
-  margin: 0.4rem 0 0; font-family: var(--font-corps); font-size: var(--t-petit);
-  color: var(--muted); line-height: var(--lh-normal);
-}
-
-.tmod__form { margin-top: var(--e-m); }
-.tmod__champ { display: flex; flex-direction: column; min-width: 0; }
-.tmod__duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-s) var(--e-m); margin-top: var(--e-s); }
-.tmod__l {
-  margin: 0 0 0.3rem;
-  font-family: var(--font-corps); font-size: var(--t-petit); color: var(--ink);
-}
-.tmod__i, .tmod__d {
-  width: 100%;
-  padding: 0.55rem 0.7rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule);
-  border-radius: var(--r-nul);
-  font-family: var(--font-corps); font-size: var(--t-corps); color: var(--ink-deep);
-}
-.tmod__i:focus, .tmod__d:focus { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
-.tmod__aide {
-  margin: 0.45rem 0 0; font-family: var(--font-mono); font-size: var(--t-mini);
-  color: var(--muted); line-height: var(--lh-normal);
-}
-.tmod__erreur {
-  margin: 0.6rem 0 0; padding: 0.5rem 0.7rem;
-  background: var(--danger-bg); color: var(--danger-deep);
-  font-family: var(--font-mono); font-size: var(--t-mini);
-}
-.tmod__pied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); margin-top: var(--e-m); }
-/* btn--bordeaux et pas btn--ghost : le ghost porte `color: var(--paper)`, il est
-   dessine pour un fond sombre et devient illisible sur le papier de cette boite.
-   Meme piege que .btn--light, paye deux fois deja. */
-.tmod .btn { padding: 0.55rem 1.4rem; font-size: var(--t-mini); }
-/* Meme motif de lien-bouton souligne sans plancher que `.tachesf__grand` :
-   41,6 x 11 pour « Annuler » et 113 x 11 pour « Retirer cette tache », dans une
-   modale ou tout le reste a ete porte a 44 px. 19/09/2026. */
-.tmod__lien {
-  padding: 0; background: none; border: none;
-  font-family: var(--font-mono); font-size: var(--t-micro);
-  color: var(--muted); cursor: pointer; text-decoration: underline;
-  min-height: 24px; display: inline-flex; align-items: center;
-}
-.tmod__lien:hover { color: var(--bordeaux); }
-.tmod__lien--x:hover { color: var(--danger-deep); }
-.tmod__lien[hidden] { display: none; }
-
-/* Les blocs du bas sont separes par un filet, pas par un cadre : la boite est deja
-   un cadre, et un cadre dans un cadre fait boite dans boite. */
-.tmod__bloc { margin-top: var(--e-l); padding-top: var(--e-m); border-top: var(--trait) solid var(--rule); }
-.tmod__bloc[hidden] { display: none; }
-.tmod__gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s); }
-/* Le « ou », le champ et son bouton sont un seul morceau : ils passent a la ligne
-   ensemble ou pas du tout. Sans ce groupe, « Repousser » tombait seul sous un champ
-   reste en haut — vu a la capture du 12/09/2026, invisible pour tout controle ecrit. */
-.tmod__ouj { display: inline-flex; align-items: center; gap: var(--e-s); }
-.tmod__gestes .tmod__d { width: auto; flex: 0 1 10rem; }
-.tmod__g {
-  padding: 0.45rem 0.9rem;
-  background: transparent;
-  border: var(--trait) solid var(--rule);
-  border-radius: var(--r-nul);
-  font-family: var(--font-mono); font-size: var(--t-mini);
-  color: var(--ink); cursor: pointer;
-  transition: var(--tr-rapide);
-}
-.tmod__g:hover { border-color: var(--bordeaux); color: var(--bordeaux); background: var(--paper-light); }
-.tmod__ou { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
-.tmod__bloc--gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); }
-.tmod__bloc--gestes .tmod__lien--x { margin-left: auto; }
-
-/* Sur telephone la boite prend l'ecran : une fiche a mi-hauteur sur 380 px de large
-   laisse deux bandes de voile qui ne servent qu'a retrecir le texte. */
-@media (max-width: 620px) {
-  .tmod { padding: 0; }
-  .tmod__boite { max-width: none; max-height: 100%; height: 100%; border: none; padding: 1.4rem 1.1rem 1.2rem; }
-  .tmod__duo { grid-template-columns: 1fr; }
-  .tmod__bloc--gestes .tmod__lien--x { margin-left: 0; }
-  /* LE PLANCHER TACTILE VAUT AUSSI POUR LES LIENS. Mesure du 12/09/2026 sur un
-     ecran de 390 px : « Annuler » faisait 42x11, « Retirer cette tache » 113x11 et
-     « Ce que ca exige » 89x17. Un lien typographique se lit tres bien et se vise
-     tres mal ; le dessin ne change pas, c'est la zone de clic qui descend a 44. */
-  /* `.tmod .btn` MANQUAIT A CETTE LISTE. « ENREGISTRER » (134 x 35) et « C'EST
-     FAIT » (114 x 35) sont les deux boutons qui ECRIVENT dans cette modale, et ce
-     sont les seuls que la passe du 12/09 n'a pas descendus au plancher : elle a
-     couvert la croix, les gestes, les liens et les champs. Mesure du 19/09. */
-  .tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d, .tmod .btn { min-height: 44px; }
-  .tmod__lien { display: inline-flex; align-items: center; }
-  .tmod__x { display: flex; align-items: center; min-width: 44px; justify-content: center; }
-  .tmod__gestes .tmod__d, .tmod__ouj { flex: 1 1 100%; }
-}
-
-/* LA PORTE VERS LA MODALE, aux trois endroits d'ou elle s'ouvre.
-   `.tache__corps` est devenu un <button> le 12/09/2026 : une ligne qui s'ouvre a la
-   souris doit s'ouvrir au clavier. Il faut donc lui retirer tout ce qu'un bouton
-   apporte par defaut — son fond, son cadre, sa police, son centrage — sans rien
-   changer a ce qui se voit. */
-.tache__corps {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
-  min-width: 0; padding: 0; background: none; border: none;
-  font: inherit; color: inherit; text-align: left;
-}
-button.tache__corps { cursor: pointer; }
-/* UN PIXEL, ET IL COMPTE QUAND MEME. Le banc du 15/09/2026 mesure cette ligne a
-   43 px sur sept taches : elle est a un cheveu du plancher de 44 pose le
-   11/09, et c'est le hasard du contenu qui decide de quel cote elle tombe. Un
-   plancher explicite vaut mieux qu'une hauteur qui se trouve juste. Le dessin ne
-   bouge pas : le texte est deja cale en haut par `align-items: flex-start`. */
-body.bdv-poste button.tache__corps { min-height: 44px; }
-button.tache__corps:hover .tache__titre { color: var(--bordeaux); }
-button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
-
-/* La seconde porte du formulaire. Un lien typographique et pas un deuxieme bouton
-   plein : deux boutons pleins cote a cote se disputent le geste, et celui qui compte
-   ici reste « Ajouter ». */
-/* `min-height` ajoute le 19/09/2026 : ses deux voisines de la meme rangee,
-   `.tache__source` et `.tache__x`, l'avaient recu et pas elle. C'etait un oubli,
-   pas un choix : la regle `body.bdv-poste` du meme bloc traite bien les trois
-   ensemble. Elle restait a 11 px de haut, le plus petit geste de l'ecran. */
-.tachesf__grand {
-  padding: 0; background: none; border: none;
-  font-family: var(--font-mono); font-size: var(--t-micro);
-  color: var(--muted); cursor: pointer; text-decoration: underline;
-  align-self: center;
-  min-height: 24px; display: inline-flex; align-items: center;
-}
-.tachesf__grand:hover { color: var(--bordeaux); }
-
-/* Le titre d'une occurrence du calendrier, en vue liste. Il garde exactement la
-   typographie du <h3> qui le porte : une porte qui se voit comme une porte ferait
-   de cette liste une liste de boutons. */
-.echeance__ouvrir {
-  padding: 0; background: none; border: none;
-  font: inherit; color: inherit; text-align: left; cursor: pointer;
-}
-.echeance__ouvrir:hover { color: var(--bordeaux); }
-.echeance__ouvrir:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
-
-
 /* ==========================================================================
    L'EQUIPE, ET LE BANDEAU D'INVITATION, 13/09/2026
    --------------------------------------------------------------------------
@@ -8334,151 +7036,7 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
    papier il est parfaitement invisible. Defaut paye le 11/09/2026 sur la page
    de desinscription, ou le bouton le plus important ne se voyait pas.
    ========================================================================== */
-/* LA ZONE OCCUPE LES DOUZE COLONNES, et son absence est le defaut que Ted a vu le
-   14/09/2026 : `.bureau-plan` est une grille de douze colonnes, une `.zone` qui ne
-   dit pas sa largeur tombe donc dans UNE colonne, environ soixante pixels, et tout
-   le texte s'ecrit une lettre par ligne. `.zone--taches` et le calendrier le
-   disaient depuis toujours, je ne l'ai pas recopie.
 
-   ET LE CONTENEUR EST NOMME, comme le sous-main et « Mes taches » : la ligne se
-   reorganise sur la largeur de SA zone et pas sur celle de la fenetre. Regle du
-   07/09/2026, mesuree : la zone fait 722 px dans une fenetre de 1024 et 728 px dans
-   une fenetre de 1280, un point de rupture pose sur la fenetre se trompe de cible. */
-.zone--equipe {
-  grid-column: span 12;
-  container-type: inline-size;
-  container-name: equipe;
-}
-
-.equipe-liste {
-  list-style: none;
-  margin: var(--e-m) 0 0;
-  padding: 0;
-  border-top: var(--trait) solid var(--rule);
-}
-/* TROIS COLONNES, ET LA TROISIEME A UNE LARGEUR MINIMALE : sans elle, la ligne
-   d'une personne sans gestes (soi-meme) laisse son etiquette de role glisser vers la
-   droite, et les etiquettes ne s'alignent plus d'une ligne a l'autre. 15,5 rem est la
-   largeur mesuree de la paire « Repasser en simple » + « Retirer ». */
-.equipe-ligne {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 8rem minmax(15.5rem, auto);
-  align-items: center;
-  gap: var(--e-s);
-  padding: var(--e-s) 0;
-  border-bottom: var(--trait) solid var(--rule);
-}
-.equipe-ligne__qui { min-width: 0; }
-.equipe-ligne__nom { display: block; font-weight: 500; }
-.equipe-ligne__moi { color: var(--muted); font-weight: 400; }
-.equipe-ligne__adresse {
-  display: block;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  overflow-wrap: anywhere;
-}
-.equipe-ligne__gestes { justify-self: end; text-align: right; white-space: nowrap; }
-.equipe-ligne__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
-
-/* L'etiquette de role dit un ETAT, pas un geste : elle ne se clique pas et ne
-   prend donc ni le dessin ni la hauteur d'un bouton. */
-/* `justify-self` N'EST PAS DECORATIF : sans lui l'etiquette prend toute sa cellule de
-   grille, et sur telephone « MAITRE » devenait un bandeau de bord a bord qu'on prend
-   pour un bouton. Une etiquette dit un etat, elle epouse son mot. */
-.equipe-role {
-  justify-self: start;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  padding: 0.2rem 0.6rem;
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  white-space: nowrap;
-}
-.equipe-role--maitre {
-  background: var(--bordeaux);
-  border-color: var(--bordeaux);
-  color: var(--on-dark);
-}
-
-.equipe-note,
-.equipe-inviter__aide,
-.equipe-lien__aide {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin-top: var(--e-s);
-}
-
-.equipe-avis {
-  margin: var(--e-s) 0 0;
-  padding: var(--e-s);
-  background: var(--paper-deep);
-  border-left: var(--trait-accent) solid var(--bordeaux);
-}
-.equipe-avis--souci {
-  background: var(--danger-bg);
-  border-left-color: var(--danger-deep);
-  color: var(--danger-deep);
-}
-
-.equipe-inviter { margin-top: var(--e-l); }
-.equipe-inviter__l {
-  display: block;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--e-xs);
-}
-.equipe-inviter__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
-.equipe-inviter__i { flex: 1 1 16rem; }
-.equipe-inviter__i,
-.equipe-inviter__r,
-.equipe-lien__i {
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  /* 16 px, et pas moins : sous cette taille, iOS zoome tout seul a la saisie et
-     ne redezoome jamais. C'est la regle du bureau sur telephone. */
-  font-size: var(--t-base);
-}
-
-.equipe-lien {
-  margin-top: var(--e-m);
-  padding: var(--e-m);
-  background: var(--paper-deep);
-  box-shadow: var(--ombre-carte);
-}
-.equipe-lien__titre { margin: 0; }
-.equipe-lien__ligne {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-s);
-  margin-top: var(--e-s);
-}
-.equipe-lien__i {
-  flex: 1 1 20rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-}
-
-.equipe-attentes { margin-top: var(--e-l); }
-.equipe-attentes__t {
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0;
-}
-.equipe-partir-ligne { margin-top: var(--e-xl); }
 
 /* LE BANDEAU D'INVITATION est la premiere chose que voit quelqu'un qui arrive
    par un lien, et souvent la seule qu'il lira : il porte le filet d'accent du
@@ -8497,115 +7055,8 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   border-left: var(--trait-accent) solid var(--bordeaux);
   box-shadow: var(--ombre-carte);
 }
-.invitation__titre {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  margin: 0 0 var(--e-xs);
-}
-.invitation__note {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin: 0 0 var(--e-s);
-}
-.invitation__souci { color: var(--danger-deep); margin: 0; }
 
-/* LA LIGNE S'EMPILE QUAND SA ZONE SE SERRE. Quatre colonnes dans une zone etroite
-   donneraient une adresse e-mail coupee en quatre lignes et deux boutons de six
-   pixels. Le seuil porte sur le CONTENEUR et pas sur la fenetre, et il est mesure
-   sur le contenu : nom 9 rem, adresse, etiquette de role et deux boutons de gestes
-   demandent environ 46 rem ensemble. */
-@container equipe (max-width: 46rem) {
-  .equipe-ligne {
-    grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: var(--e-xs);
-  }
-  /* L'etiquette remonte a droite du nom, et les gestes passent sous les deux : la
-     lecture reste « qui, et quel role », puis « ce que je peux en faire ». */
-  .equipe-role { justify-self: end; }
-  .equipe-ligne__gestes { grid-column: 1 / -1; justify-self: start; text-align: left; }
-}
 
-/* Le nom du bureau courant, en tete de la barre. Il est sur le papier de la page
-   et pas sur une languette : --muted sur --paper est la paire deja mesuree de
-   toutes les notes du site. Il ne s'affiche qu'a partir de deux bureaux. */
-.bureau-nav__bureau {
-  display: block;
-  padding: 0 var(--e-m) var(--e-xs);
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-.bureau-nav__bureau:hover { color: var(--bordeaux); text-decoration: underline; }
-
-.equipe-bureau {
-  margin-bottom: var(--e-l);
-  padding-bottom: var(--e-m);
-  border-bottom: var(--trait) solid var(--rule);
-}
-.equipe-bureau__l {
-  display: block;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--e-xs);
-}
-.equipe-bureau__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
-.equipe-bureau__s {
-  flex: 1 1 16rem;
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-}
-.equipe-bureau__aide {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin-top: var(--e-s);
-}
-
-/* Aucun bureau : un etat nomme, pas une panne. Meme matiere que le bandeau
-   d'invitation, filet d'accent compris : ce sont les deux seuls blocs du bureau
-   qui s'adressent a quelqu'un qui n'a encore rien. */
-.equipe-aucun {
-  grid-column: 1 / -1;
-  margin-bottom: var(--e-l);
-  padding: var(--e-m);
-  background: var(--paper-deep);
-  border-left: var(--trait-accent) solid var(--bordeaux);
-}
-.equipe-aucun__t {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  margin: 0 0 var(--e-xs);
-}
-.equipe-aucun__n {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin: 0 0 var(--e-s);
-}
-.equipe-aucun__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
-.equipe-aucun__i {
-  flex: 1 1 16rem;
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-}
 /* 16 px SOUS 700 px, 19/09/2026, ET APRES LA REGLE DE BASE et non avant : a
    specificite egale, c'est la derniere ecrite qui gagne, et la premiere version de
    ce correctif etait posee au-dessus, donc morte. Elle a passe une capture entiere
@@ -8615,53 +7066,10 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
    etait passe au travers. La regle du 11/09 vaut pour TOUTE saisie du produit,
    pas pour un ecran. */
 @media (max-width: 700px) {
-  .equipe-aucun__i { font-size: var(--t-corps); min-height: 44px; }
+  
   #equipeNomChamp { font-size: var(--t-corps); min-height: 44px; }
 }
 
-/* Les deux chemins de l'invitation, cote a cote : « je cree mon compte » et
-   « j'ai deja un compte ». Ils se replient l'un sous l'autre quand la place
-   manque, et le premier reste le premier. */
-.invitation__gestes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-s);
-  margin: 0;
-}
-
-/* Le nom du bureau : meme dessin que le selecteur juste au-dessus, dont il est la
-   suite logique. Le bloc ne s'affiche qu'aux maitres, comme la politique. */
-.equipe-nom {
-  margin-bottom: var(--e-l);
-  padding-bottom: var(--e-m);
-  border-bottom: var(--trait) solid var(--rule);
-}
-.equipe-nom__l {
-  display: block;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--e-xs);
-}
-.equipe-nom__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
-.equipe-nom__i {
-  flex: 1 1 16rem;
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-}
-.equipe-nom__aide {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin-top: var(--e-s);
-}
 
 /* ===========================================================================
    LA FEUILLE DE L'ANNEE, /outils/calendrier-AAAA/  (Lot C, 14/09/2026)
@@ -8947,88 +7355,7 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   body.bdv-poste .panneau .postit__v { order: 3; flex: 1 0 100%; font-size: var(--t-lead); }
   body.bdv-poste .panneau .postit__v:not([data-mot]) { flex: 0 0 auto; font-size: 1.6rem; }
   body.bdv-poste .panneau .postit__v[data-mot="long"] { font-size: var(--t-base); }
-  body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
+  
   body.bdv-poste .panneau .postit__s { order: 5; flex: 1 0 100%; font-size: 1.05rem; }
 }
 
-/* ============================================================================
-   L'AMORCAGE DU BUREAU, 17/09/2026
-
-   Le voile qui dit « on raccorde ton bureau » pendant que `bdv-amorce.js` enchaine
-   ses etapes. Il vit dans CETTE feuille, chargee par le layout sur toutes les pages,
-   et pas dans une feuille posee en JavaScript : le voile est monte par un module
-   `defer`, donc il peut apparaitre avant qu'une feuille chargee a la demande soit
-   arrivee. C'est exactement le defaut paye le 08/09/2026 par le bandeau de statut,
-   tombe nu dans le flux au bout du body.
-
-   AUCUNE COULEUR NE PORTE SEULE UN ETAT. Chaque etape dit le sien par un GLYPHE, pose
-   en `content` sur la puce, et par un mot cache que la synthese vocale lit. La couleur
-   ne fait que doubler. Meme regle que la gravite du mot du jour, et meme raison : ca
-   doit se lire en niveaux de gris, en vision deuteranope, et a l'oreille.
-
-   Contrastes mesures sur `--paper` le 17/09/2026 : `--ink` 12,43:1, `--muted` 6,09:1,
-   `--warn-deep` 6,20:1. Les trois paires sont declarees dans `scripts/charte.mjs`.
-   ============================================================================ */
-.bdv-amorce {
-  position: fixed; inset: 0; z-index: var(--z-amorce);
-  display: flex; align-items: center; justify-content: center;
-  padding: var(--e-m);
-  background: var(--bordeaux-veil);
-}
-.bdv-amorce__carte {
-  width: 100%; max-width: 26rem;
-  padding: var(--e-l);
-  background: var(--paper);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  box-shadow: var(--ombre-dure);
-  /* `100dvh` ET PAS `100vh`, meme lecon que la fiche client le 11/09/2026 : sur iOS
-     `100vh` vaut la hauteur SANS les barres du navigateur, donc la carte depasse et
-     ses deux boutons passent dessous. Ici ce sont precisement les boutons qui rendent
-     la main, et une carte qui les cache est un voile dont on ne sort plus.
-
-     ET ELLE DEFILE. Trouve par `npm run apercu:amorce` le 17/09/2026, pas par les 27
-     controles du banc : cinq etapes, la phrase d'echec et deux boutons ne tiennent pas
-     dans un telephone en paysage. Un contenu trop grand doit defiler DANS son cadre. */
-  max-height: calc(100dvh - 2 * var(--e-m));
-  overflow-y: auto;
-}
-.bdv-amorce__titre {
-  margin: 0;
-  font-family: var(--font-titre);
-  /* --t-h3 et pas --t-lead : a 18 px dans une carte de 26 rem, le titre se lisait comme
-     une phrase de plus et la carte n'avait plus de tete. Vu sur l'apercu. */
-  font-size: var(--t-h3);
-  line-height: 1.2;
-  color: var(--ink);
-}
-.bdv-amorce__sous { margin: 0.35rem 0 var(--e-m); color: var(--muted); }
-.bdv-amorce__liste { margin: 0; padding: 0; list-style: none; }
-.bdv-amorce__etape {
-  display: flex; align-items: baseline; gap: var(--e-s);
-  padding: 0.3rem 0;
-  color: var(--muted);
-}
-/* LA PUCE EST UN GLYPHE, PAS UNE PASTILLE. Une pastille ne dit son etat que par sa
-   couleur ; un signe le dit par sa forme, et il reste lisible partout. */
-.bdv-amorce__puce::before { content: '\00B7'; font-weight: 700; }
-.bdv-amorce__etape--encours .bdv-amorce__puce::before { content: '\2026'; }
-.bdv-amorce__etape--fait { color: var(--ink); }
-.bdv-amorce__etape--fait .bdv-amorce__puce::before { content: '\2713'; }
-.bdv-amorce__etape--rate { color: var(--warn-deep); }
-.bdv-amorce__etape--rate .bdv-amorce__puce::before { content: '\0021'; }
-.bdv-amorce__pied:empty { display: none; }
-.bdv-amorce__pied { margin-top: var(--e-m); border-top: 1px solid var(--rule); padding-top: var(--e-m); }
-.bdv-amorce__manque { margin: 0 0 var(--e-s); color: var(--warn-deep); }
-.bdv-amorce__pied .btn + .btn { margin-left: var(--e-s); }
-
-/* Sur telephone la carte prend la largeur, retraits compris : une carte bornee a 26 rem
-   dans une fenetre de 390 px laisserait deux marges pour rien la ou le texte en a besoin. */
-@media (max-width: 700px) {
-  .bdv-amorce { padding: var(--e-s); align-items: flex-start; padding-top: 15vh; }
-  .bdv-amorce__carte { max-width: none; }
-  /* Les deux boutons du pied passent l'un sous l'autre : cote a cote ils tombent sous
-     les 44 px de plancher tactile des que le libelle s'allonge. */
-  .bdv-amorce__pied .btn { display: block; width: 100%; }
-  .bdv-amorce__pied .btn + .btn { margin-left: 0; margin-top: var(--e-s); }
-}

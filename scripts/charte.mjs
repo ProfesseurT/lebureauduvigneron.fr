@@ -49,19 +49,52 @@ const DASH = process.argv.includes('--bureau') || process.argv.includes('--dash'
    Il faut donc `npm run build` avant. Sans le fichier, ce script s'arrete en le disant
    plutot que de controler autre chose : deux fois dans la journee du 07/09/2026, ce
    controle a annonce CONFORME sur du vide, et deux fois pour une raison differente. */
-const CIBLE = DASH ? path.join(RACINE, '_site/mon-bureau/index.html')
-                   : path.join(RACINE, 'src/css/style.css');
-if (DASH && !fs.existsSync(CIBLE)) {
-  console.error('\n  ' + path.relative(RACINE, CIBLE) + ' est absent : lance npm run build d\'abord.');
+/* LES DEUX MOITIES DE LA FEUILLE DU SITE, 21/09/2026.
+   ---------------------------------------------------------------------------
+   style.css servait LES DEUX MONDES : les douze pages publiques et le bureau
+   connecte. Le thermometre 2 de la section C mesurait depuis le 19/09/2026 que
+   56,9 ko partaient dans le bureau sans pouvoir s'y appliquer, et le chantier
+   des deux themes a rendu la chose plus chere : 22 115 octets de dessin papier
+   ont du y etre RECOUVERTS au lieu d'etre remplaces.
+
+   CE SCRIPT A APPRIS A LIRE LA NOUVELLE FORME AVANT QU'ELLE EXISTE, et c'est la
+   regle que CLAUDE.md pose depuis le 08/09/2026 : « on apprend d'abord au
+   garde-fou a lire la nouvelle forme, on change la forme ensuite, jamais
+   l'inverse. » La cible du mode site est donc une LISTE, pas un fichier.
+
+   CHAQUE MOITIE EST CONTROLEE CONTRE SON PROPRE LIEN GOOGLE FONTS, et c'est
+   tout l'interet :
+     - `npm run charte` lit les feuilles PUBLIQUES contre le lien de
+       src/_includes/base.njk, celui des douze pages plates ;
+     - `npm run charte:bureau` lit la page construite du bureau, donc ses
+       feuilles a lui, bdv-poste.css comprise, contre le lien que cette page
+       porte vraiment.
+   C'est le prealable que CLAUDE.md exige avant de scinder le lien lui-meme
+   (section « JAMAIS UN SECOND LIEN GOOGLE FONTS »).
+
+   LA FEUILLE DU POSTE N'A RIEN A FAIRE DANS LE MODE SITE : elle n'est liee que
+   par /mon-bureau/. La controler ici reviendrait a mesurer le bureau contre le
+   lien du site, ce qui est exactement le faux CONFORME qu'on cherche a eviter.
+   La section C verifie d'ailleurs qu'aucune page publique ne la lie. */
+const FEUILLES_SITE  = ['src/css/style.css'];
+const FEUILLES_POSTE = ['src/css/bdv-poste.css'];
+
+const CIBLES = DASH ? [path.join(RACINE, '_site/mon-bureau/index.html')]
+                    : FEUILLES_SITE.map(f => path.join(RACINE, f));
+for (const c of CIBLES) {
+  if (fs.existsSync(c)) continue;
+  console.error('\n  ' + path.relative(RACINE, c) + ' est absent'
+    + (DASH ? ' : lance npm run build d\'abord.' : ' : une feuille declaree du site a disparu.'));
   console.error('  Rien n\'a ete controle.\n');
   process.exit(2);
 }
-const APRES = CIBLE;
+const CIBLE = CIBLES[0];
+const APRES = CIBLES;
 /* La page produite porte deja son lien Google Fonts, recopie du layout : on le lit la,
    et pas dans le gabarit, pour la meme raison que ci-dessus. */
 const LIEN_FONTS = DASH ? CIBLE : path.join(RACINE, 'src/_includes/base.njk');
 
-console.log('cible : ' + path.relative(RACINE, CIBLE));
+console.log('cible : ' + CIBLES.map(c => path.relative(RACINE, c)).join(' + '));
 
 /* La liste des fichiers de src/js, declaree ICI parce que trois sections en ont besoin
    et que la premiere est la section 5. La section 8 garde sa propre variable, qui lui
@@ -96,10 +129,15 @@ const titre = t => console.log('\n== ' + t + ' ==');
 /* ---------------------------------------------------------------------------
    Parsing
 --------------------------------------------------------------------------- */
-function parse(fichier) {
+/* `fichiers` est une LISTE depuis le 21/09/2026 : le mode site lit desormais
+   toutes les feuilles declarees dans FEUILLES_SITE, et non plus un fichier
+   unique. Une seule entree se comporte exactement comme avant. */
+function parse(fichiers) {
+  const liste0 = Array.isArray(fichiers) ? fichiers : [fichiers];
   const erreursHtml = [];
-  let txt = fs.readFileSync(fichier, 'utf8');
-  if (fichier.endsWith('.html')) {
+  let txt = liste0.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+  const fichier = liste0[0];
+  if (liste0.length === 1 && fichier.endsWith('.html')) {
     /* TOUS les blocs <style>, pas seulement le premier. Le tableau de bord en porte deux
        depuis que le verrou du compte est pose dans l'en-tete (04/09/2026), et la version qui
        ne lisait que le premier controlait UNE ligne en croyant controler le fichier entier :
@@ -150,9 +188,15 @@ function parse(fichier) {
          ici pour que son absence du disque CRIE et pour qu'elle reste dans le
          perimetre le jour ou le <link> demenage. Le dedoublonnage ci-dessous
          empeche de la compter deux fois. */
+      /* ET LA FEUILLE DU POSTE, 21/09/2026 : src/css/bdv-poste.css porte la
+         moitie bureau de l'ancienne style.css. Elle est LIEE dans le HTML du
+         bureau, comme bdv-theme.css et bdv-bureau.css, donc la boucle des
+         <link> la trouve deja ; elle est quand meme nommee ici pour que son
+         absence du disque CRIE et pour qu'elle reste dans le perimetre le jour
+         ou le <link> demenage. */
       for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css',
                        'src/css/bdv-calendrier.css', 'src/css/bdv-theme.css',
-                       'src/css/bdv-bureau.css']) {
+                       'src/css/bdv-bureau.css'].concat(FEUILLES_POSTE)) {
         const abs = path.join(RACINE, f);
         if (!fs.existsSync(abs)) { erreursHtml.push('feuille du bureau introuvable : ' + f); continue; }
         if (!liees.includes(abs)) liees.push(abs);
@@ -267,7 +311,7 @@ if (B.erreurs.length) ko('le CSS ne parse pas : ' + B.erreurs[0]);
 --------------------------------------------------------------------------- */
 titre('3 bis. Commentaires qui avalent des regles');
 {
-  const brut = fs.readFileSync(APRES, 'utf8');
+  const brut = APRES.map(f => fs.readFileSync(f, 'utf8')).join('\n');
   const avales = [];
   const RE_COM = /\/\*[\s\S]*?\*\//g;
   const RE_REGLE = /[.#][A-Za-z][\w-]*[^{}]{0,200}\{[^{}]*[a-z-]+\s*:[^{}]*;/;
@@ -1639,7 +1683,11 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
   if (!fs.existsSync(pageBureau)) {
     note('THERMOMETRE 2 non calcule : _site/mon-bureau/index.html est absent (npm run build)');
   } else {
-    const texteStyle = lireSi(path.join(RACINE, 'src/css/style.css'));
+    /* LES FEUILLES DECLAREES DU SITE, ET PLUS style.css EN DUR, 21/09/2026 :
+       ce thermometre mesure ce qui ne peut servir QU'au site public et part
+       quand meme dans le bureau. Le jour ou la moitie publique se scinde a son
+       tour, il suffit de l'ajouter a FEUILLES_SITE pour qu'elle soit pesee. */
+    const texteStyle = FEUILLES_SITE.map(f => lireSi(path.join(RACINE, f))).join('\n');
     let oPublic = 0, nPublic = 0, oTotal = 0;
     const exemples = [];
     reglesPesees(texteStyle).forEach(r => {
@@ -1652,11 +1700,107 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
         if (exemples.length < 8) exemples.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
       }
     });
-    console.log('  style.css : ' + ko3(oTotal) + ' de regles, dont ' + ko3(oPublic) +
+    console.log('  ' + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') + ' : ' + ko3(oTotal)
+                + ' de regles, dont ' + ko3(oPublic) +
                 ' (' + nPublic + ' regle(s)) qui ne peuvent servir qu\'au site public');
     exemples.forEach(e => console.log('        ' + e));
     note('THERMOMETRE 2 (n\'echoue pas) : ' + ko3(oPublic) +
-         ' de style.css voyagent dans le bureau sans pouvoir s\'y appliquer');
+         ' de ' + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') +
+         ' voyagent dans le bureau sans pouvoir s\'y appliquer');
+  }
+
+  /* --- 5 bis. ET LE MEME COMPTE DANS L'AUTRE SENS, 21/09/2026 -------------
+     THERMOMETRE 3, ET C'EST LE SEUL DES TROIS QUE LA SCISSION FAIT BOUGER.
+     Le thermometre 2 compte ce qui ne sert QU'au site et part quand meme dans
+     le bureau : la scission ne le change pas d'un octet, parce que le bureau
+     charge toujours style.css pour la coque, les boutons et les composants que
+     la demonstration de l'accueil partage avec lui. CE QUI A CHANGE, c'est
+     l'inverse : ce qui ne sert QU'au bureau et partait sur les douze pages
+     plates. 74 105 octets de source, 31 107 octets servis apres minification,
+     sont sortis de style.css le 21/09/2026.
+
+     C'EST UN ECHEC ET PAS UNE NOTE, et la raison est qu'il n'y a rien a voir :
+     une regle de bureau reecrite dans style.css la semaine prochaine ne casse
+     aucun pixel, ne leve aucune erreur, et remet tranquillement le poids sur
+     les pages publiques. Seul un chiffre qui refuse garde ca. LA BORNE DESCEND
+     DANS LE MEME COMMIT QUE CHAQUE GAIN, elle ne remonte jamais. */
+  {
+    const pagesPubliques = liste(path.join(RACINE, '_site'), '.html').filter(f => f !== pageBureau);
+    /* Les modules que les pages publiques chargent VRAIMENT : releve dans le
+       HTML construit, jamais une liste de memoire. */
+    const jsPublics = new Set();
+    pagesPubliques.forEach(f => {
+      for (const m of fs.readFileSync(f, 'utf8').matchAll(/<script\b[^>]*\ssrc=["']\/js\/([^"']+)["']/gi)) {
+        const abs = path.join(RACINE, 'src/js', m[1]);
+        if (fs.existsSync(abs)) jsPublics.add(abs);
+      }
+    });
+    /* Les gabarits atteints SANS passer par src/mon-bureau.njk : ce qui n'est
+       inclus que par elle (ecrans-vente.njk) sort du perimetre public tout
+       seul, sans qu'on ait a le nommer. */
+    const atteintsPublics = new Set();
+    const file2 = pagesNjk.filter(f => f !== gabBureau).concat(LAYOUTS);
+    while (file2.length) {
+      const f = file2.pop();
+      if (atteintsPublics.has(f)) continue;
+      atteintsPublics.add(f);
+      inclusPar(f).forEach(g => { if (!atteintsPublics.has(g)) file2.push(g); });
+    }
+    const PUBLIC = new Set();
+    pagesPubliques.forEach(f => fusion(PUBLIC, mots(fs.readFileSync(f, 'utf8'))));
+    jsPublics.forEach(f => fusion(PUBLIC, mots(fs.readFileSync(f, 'utf8'))));
+    liste(path.join(RACINE, 'src/_data'), '.js').forEach(f => fusion(PUBLIC, mots(fs.readFileSync(f, 'utf8'))));
+    [...atteintsPublics].forEach(f => fusion(PUBLIC, mots(fs.readFileSync(f, 'utf8'))));
+    /* Les composants qu'aucune page n'inclut sont du SITE mis de cote, pas du
+       bureau : les compter ici ferait remonter la borne pour rien. */
+    orphelins.forEach(f => fusion(PUBLIC, mots(fs.readFileSync(f, 'utf8'))));
+
+    const texteSite = FEUILLES_SITE.map(f => lireSi(path.join(RACINE, f))).join('\n');
+    let oBureau = 0, nBureau = 0;
+    const ex3 = [];
+    reglesPesees(texteSite).forEach(r => {
+      const viteBureau = r.sels.some(s => !inerte(s, BUREAU, 'b'));
+      if (!viteBureau) return;                                   /* morte, c'est C1 qui la compte */
+      if (!r.sels.every(s => inerte(s, PUBLIC, 'pub'))) return;  /* une page plate peut l'atteindre : elle est chez elle */
+      oBureau += r.octets; nBureau++;
+      if (ex3.length < 8) ex3.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
+    });
+    /* 150 octets, POSEE JUSTE AU-DESSUS DE LA MESURE DU 21/09/2026, qui est de
+       115 : la seule regle sur laquelle j'ai doute et que j'ai laissee du cote
+       public, `.mono`, une utilitaire de chasse fixe que n'importe quel gabarit
+       peut poser demain sur n'importe quelle page. Voir le bloc de tete de
+       src/css/bdv-poste.css. CE CHIFFRE NE REMONTE JAMAIS. */
+    const BORNE_POSTE = 150;
+    console.log('  ' + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') + ' : ' + ko3(oBureau)
+                + ' (' + nBureau + ' regle(s)) qui ne peuvent servir QU\'au bureau'
+                + '   borne ' + ko3(BORNE_POSTE) + ' (' + BORNE_POSTE + ' o)');
+    ex3.forEach(e => console.log('        ' + e));
+    if (oBureau > BORNE_POSTE)
+      ko('C3 ' + oBureau + ' octets de regles qui ne servent qu\'au bureau sont restes dans '
+         + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') + ', la borne est a ' + BORNE_POSTE
+         + '. Leur place est dans ' + FEUILLES_POSTE.map(f => path.basename(f)).join(', ')
+         + ', sinon les douze pages publiques les portent pour rien');
+    else ok('C3 ' + oBureau + ' octets de regles de bureau dans la feuille publique, sous la borne de ' + BORNE_POSTE);
+  }
+
+  /* --- 6. LA FEUILLE DU POSTE NE DOIT ATTEINDRE AUCUNE PAGE PUBLIQUE -------
+     Le gain entier du lot tient a ca. Un <link> vers bdv-poste.css pose dans
+     src/_includes/base.njk hors du drapeau `theme_bureau`, ou recopie dans un
+     gabarit de page, renverrait les 74 ko sur les douze pages plates sans
+     casser un seul pixel : personne ne le verrait. C'est un ECHEC, pas une
+     note. */
+  {
+    const fautives = [];
+    for (const f of liste(path.join(RACINE, '_site'), '.html')) {
+      if (f === pageBureau) continue;
+      const html = fs.readFileSync(f, 'utf8');
+      for (const nom of FEUILLES_POSTE.map(x => path.basename(x)))
+        if (html.includes(nom)) fautives.push(path.relative(RACINE, f) + ' -> ' + nom);
+    }
+    if (fautives.length)
+      ko('C2 la feuille du poste est liee par ' + fautives.length + ' page(s) publique(s) : '
+         + fautives.slice(0, 4).join(', ') + '. Elle ne doit etre liee que par /mon-bureau/');
+    else ok('C2 aucune page publique ne charge ' + FEUILLES_POSTE.map(x => path.basename(x)).join(', '));
   }
 }
 

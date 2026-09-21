@@ -157,12 +157,24 @@ Plus rien n'est autonome, et chercher une fonction dans une page avant de cherch
 - `bdv-compte.js` la porte de compte, `bdv-reglages.js` le panneau de reglages partage, plus
   `bdv-sync.js`, `bdv-crm.js`, `bdv-signets.js`, `bdv-echeances.js`, `bdv-canaux.js`.
 
-Quatre feuilles de style, dont trois ne sont dans AUCUN HTML : `style.css` (le site, liee par
-le layout), `bdv-ecrans.css` (posee par `bdv-nav.js`, et portee par `.bdv-ventes` : voir plus
-bas), `bdv-panneau.css` (posee par `bdv-reglages.js`, portee par `.bdvr-panneau`), `bdv-calendrier.css`
-(posee par `bdv-nav.js` au premier clic sur le calendrier, portee par `.bdv-cal`). Les trois
-feuilles chargees en JavaScript sont nommees A LA MAIN dans `scripts/charte.mjs` : une feuille
-oubliee la echappe entierement au controle, et rien ne le signale.
+SEPT feuilles de style depuis le 21/09/2026, dont trois ne sont dans AUCUN HTML.
+
+**Liees par le layout, pour tout le monde :** `style.css`, la feuille PUBLIQUE, et elle seule
+depuis la scission du 21/09/2026.
+
+**Liees par le layout, pour /mon-bureau/ SEULEMENT**, sous le drapeau de front matter
+`theme_bureau`, et dans cet ordre, qui est une condition et pas une preference :
+`bdv-theme.css` (les jetons des deux themes, AVANT `style.css` pour ne pas clignoter), puis
+`style.css`, puis **`bdv-poste.css`** (la moitie bureau de l'ancienne `style.css`), puis
+`bdv-bureau.css` (le dessin de la coque, qui recouvre le papier restant).
+
+**Posees par du JavaScript, donc dans aucun HTML :** `bdv-ecrans.css` (par `bdv-nav.js`, portee
+par `.bdv-ventes`), `bdv-panneau.css` (par `bdv-reglages.js`, portee par `.bdvr-panneau`),
+`bdv-calendrier.css` (par `bdv-nav.js` au premier clic sur le calendrier, portee par `.bdv-cal`).
+
+Les feuilles du bureau sont nommees A LA MAIN dans `scripts/charte.mjs`, y compris celles qui
+portent deja un `<link>` : une feuille oubliee la echappe entierement au controle, rien ne le
+signale, et le jour ou son `<link>` demenage elle sort du perimetre en silence.
 
 ## LE PANNEAU EST UNE PILE DE TRAVAIL, PAS UN TABLEAU DE BORD, 10/09/2026
 
@@ -1256,6 +1268,12 @@ section 4 du meme banc.
 
 ### NOTE D'ENVIRONNEMENT : `npm run build` NE PEUT PAS ABOUTIR DEPUIS LA SESSION
 
+**CE N'EST PLUS VRAI AU 21/09/2026.** La construction aboutit depuis la session, `unlink`
+compris : `[js] non publie : 60 Ko que personne ne charge` s'affiche, et `npm run verif` passe
+en entier, par paquets. Ce qui suit est garde parce que la panne peut revenir avec le pont, et
+parce que le symptome qu'elle produit (un `banc:poids` qui deborde sans que le bureau ait
+grossi) se diagnostique en trente secondes quand on l'a deja lu.
+
 Le crochet `eleventy.after` de `.eleventy.js` fait un `unlink` sur `_site/js/bdv-courrier.js` et
 `_site/js/bdv-ics.js`, les deux fichiers qu'on ne publie pas. **Le pont reseau qui monte le
 depot interdit la suppression de fichiers** (meme contrainte que celle deja documentee pour
@@ -1571,8 +1589,15 @@ Les deux compteurs de la section C de `npm run charte` ne bougent pas et c'est n
 compte les regles dont AUCUNE classe n'existe nulle part (5 080 octets, a la borne), et le
 thermometre 2 compte ce qui ne peut servir QU'au site public (56,9 ko). Une regle recouverte
 n'est ni l'une ni l'autre : sa classe existe, et elle s'applique encore, elle est simplement
-battue. **La scission de `style.css` reste le chantier qui reglera ca, et ce lot l'a rendue
-plus urgente, pas moins.**
+battue. ~~**La scission de `style.css` reste le chantier qui reglera ca, et ce lot l'a rendue
+plus urgente, pas moins.**~~
+**FAITE LE 21/09/2026, ET ELLE NE REGLE PAS CA.** Voir « LA FEUILLE DU SITE EST SCINDEE EN
+DEUX » : les 22 115 octets recouverts sont des regles que la demonstration de l'accueil utilise,
+donc elles sont restees du cote PUBLIC, et le bureau continue de les recouvrir. Ce que la
+scission a sorti, ce sont les 74 105 octets que le bureau seul pouvait servir et que les douze
+pages plates portaient. Les deux poids morts sont distincts, et il ne faut pas les confondre :
+celui-ci se reglera le jour ou la demonstration cessera d'utiliser les vrais composants, ou le
+jour ou elle les utilisera sous son propre scope.
 
 ### CE QUI RESTE OUVERT
 
@@ -2047,29 +2072,169 @@ par un, un minifieur malin casserait `charte.mjs` sans prevenir. Le hook recompt
 les declarations et les `!important` des deux cotes, et laisse le fichier d'origine en place
 au moindre ecart.
 
-## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026
+## LA FEUILLE DU SITE EST SCINDEE EN DEUX, 21/09/2026
 
-Il y a 60 a 90 Ko de polices a recuperer : `Caveat` ne sert que sur l'accueil, `JetBrains
-Mono` sur aucune des douze pages plates. **C'est inaccessible en l'etat, et il ne faut pas
-essayer.**
+`src/css/style.css` servait LES DEUX MONDES : les douze pages publiques et le bureau connecte.
+Elle est coupee. La moitie bureau vit dans **`src/css/bdv-poste.css`**, liee par le seul drapeau
+de front matter `theme_bureau`, **entre `style.css` et `bdv-bureau.css`**.
 
-`scripts/charte.mjs` lit le lien avec `/family=([^&]+)/g` applique au TEXTE ENTIER du
-fichier, et pour un meme nom de famille **la derniere occurrence ecrase les precedentes**.
-Avec deux liens :
+**310 regles, 1 060 declarations, 74 105 octets de source.** Mesure sur le SERVI, apres
+minification : la feuille que chaque page plate telecharge a sa premiere visite passe de 148 661
+a 117 955 octets, soit **30 706 octets de CSS bloquant en moins par page publique**. Le bureau
+charge 149 062 octets au lieu de 148 661, soit **401 octets de plus** : ce sont les preludes de
+`@media` et de `@container` reecrits autour des regles sorties d'un bloc mixte. C'est le prix
+exact d'un deplacement qui ne reordonne rien, et il ne faut pas le cacher.
 
-- lien mince ecrit AVANT le plein : le garde-fou voit l'union des deux, declare CONFORME, et
-  les pages publiques rendent en faux gras. **C'est l'incident des 376 passages en gras,
-  reproduit a l'identique, avec le controle qui le couvre au lieu de l'attraper.**
+### L'ORDRE DU LIEN N'EST PAS NEGOCIABLE
+
+`bdv-poste.css` est posee APRES `style.css` et AVANT `bdv-bureau.css`. Ses regles etaient DANS
+`style.css`, donc avant le dessin de la coque qui les recouvre depuis le chantier des deux
+themes. La poser apres `bdv-bureau.css` retournerait ce rapport de force a specificite egale,
+**sans qu'une seule declaration ait change**.
+
+### LE CRITERE DE TRI N'EST PAS « CETTE CLASSE PARLE DU BUREAU »
+
+C'est **« quelle page charge cette regle »**. `src/_includes/components/demo-pinboard.njk` montre
+sur l'accueil les VRAIS composants du bureau, decision du 12/09/2026 : **119 regles, 20 158
+octets, restent donc dans `style.css` bien qu'elles portent des noms de bureau.** `.bureau-nav`
+et ses enfants, `.bureau-atelier`, `.bureau-plan`, `.zone` et ses variantes `--panneau`,
+`--ardoise`, `--lecture`, `--classeur`, `--courrier`, `.zone__tete`, `.zone__note`, `.postit__v`,
+`__s`, `__tampon`, `__gestes`, `__g`, `.chiffre` et ses enfants, `.fiche-l` et ses enfants,
+`.lettre__d`, `__t`, `__m`, `.card__title`.
+
+**Cette liste n'a pas ete ecrite de memoire, et elle ne doit jamais l'etre.** Elle sort de
+`"Claude outputs/lot6-pinboard.mjs"`, qui refait le tri deux fois, avec et sans la page
+d'accueil, et rend la difference. Le jour ou la demonstration change de composants, c'est ce
+script qu'on relance, pas la liste qu'on relit.
+
+**La question de la demonstration de l'accueil, remise a plus tard par Ted, est donc reglee par
+construction : ce qu'elle utilise est reste du cote public.**
+
+### LE THERMOMETRE 3 EST CE QUI EMPECHE LA SCISSION DE SE DEFAIRE
+
+Section C de `npm run charte`, et c'est un **ECHEC**, pas une note : il compte les octets de
+`style.css` qui ne peuvent servir QU'au bureau. **Borne a 150 octets, mesure du jour 115**, soit
+la seule regle sur laquelle j'ai doute, `.mono`, laissee cote public parce que c'est une
+utilitaire de chasse fixe dont le nom peut atterrir demain sur n'importe quel gabarit. Une regle
+de bureau reecrite dans `style.css` la semaine prochaine ne casse aucun pixel et ne leve aucune
+erreur : elle remet simplement le poids sur les douze pages publiques. Seul un chiffre qui refuse
+garde ca. **CETTE BORNE NE REMONTE JAMAIS.**
+
+Le thermometre C2 echoue si une page publique se met a lier `bdv-poste.css`.
+
+### CE QUE LE THERMOMETRE 2 NE FAIT PAS, ET IL FAUT LE SAVOIR
+
+**La note des 56,9 ko n'a pas bouge, et c'est normal.** Elle compte ce qui ne peut servir QU'au
+site public et part quand meme dans le bureau. Le bureau charge toujours `style.css` : il lui
+faut la coque, les boutons, et les composants que la demonstration de l'accueil partage avec lui.
+La scission a traite l'autre sens, celui que rien ne mesurait. **Ne pas annoncer les 56,9 ko
+comme reglees.** Les faire tomber demanderait de sortir du bureau la coque partagee, qui est un
+autre chantier, avec un autre arbitrage.
+
+### LE DEPLACEMENT A ETE PROUVE PAR LA SORTIE, PAS PAR UNE EMPREINTE
+
+CLAUDE.md porte la lecon du 15/09/2026 : une empreinte compare le depot au depot, comparer une
+SORTIE a une sortie traverse tout le chemin. Ici le chemin est long : eleventy recopie, le
+crochet `eleventy.after` minifie, et le navigateur assemble dans un ORDRE qui vient de changer.
+
+`"Claude outputs/lot6-empreinte.mjs"` releve le style CALCULE de chaque element et de ses
+`::before` / `::after` sur la page CONSTRUITE et servie : quatre pages publiques plus deux
+autres, aux deux largeurs, et le bureau dans ses neuf pieces, dans les deux themes, panneau de
+reglages et modale de tache compris. **45 etats, 141 187 elements et pseudo-elements, 139
+proprietes chacun, 19 624 993 valeurs. ZERO ecart.**
+
+Deux choses ont fait mentir ce banc avant qu'il ne serve, et elles sont dans son bloc de tete :
+
+1. **Chromium rend `0px` pour un `margin: auto` dont la mise en page n'est pas resolue.** Deux
+   passages sur la MEME construction sortaient deux valeurs differentes sur le cadre de la
+   demonstration de l'accueil, une fois sur quatre. On force deux mises en page et deux trames
+   d'attente avant de lire.
+2. **Playwright essaie les routes de la DERNIERE posee a la premiere.** La route qui coupe le
+   reseau, posee apres les trois doublures de CDN, les avalait : `chargerEcrans()` echouait, les
+   quatre pieces de vente ne se peignaient plus, et le releve perdait 14 511 lignes en se
+   declarant parfaitement stable. **Un banc qui compare moins se declare vert.** Il faut donc
+   faire tourner le banc DEUX FOIS sur la meme construction avant de s'en servir, et exiger zero
+   ecart : c'est ce temoin qui a trouve les deux.
+
+Et il a ete verifie DANS L'AUTRE SENS, par mutation : un `word-spacing: 9px` pose sur les 332
+regles de `bdv-poste.css` fait sortir **85 740 ecarts**. Un banc de non-regression qui n'a jamais
+vu un ecart n'a pas encore prouve qu'il sait en voir un.
+
+CE QU'IL NE COUVRE PAS, ET IL FAUT LE SAVOIR AVANT DE S'Y FIER : le decor de
+`scripts/bureau-garni.mjs` ne garnit pas tout. « L'equipe » rend son etat SANS EQUIPIER, donc
+`.equipe-ligne__*`, `.equipe-role`, `.invitation__*` ne sont vus par aucun releve. Une mutation
+posee sur `.equipe-ligne__nom` est passee inapercue, et c'est comme ca que ce trou a ete trouve.
+Le deplacement de ces regles reste sur la parole du tri, pas sur une mesure.
+
+### L'OUTIL DE DECOUPE, ET POURQUOI IL NE REGENERE PAS LA FEUILLE
+
+`"Claude outputs/lot6-tri.mjs"`. `css-tree` **ne garde pas les commentaires** : regenerer la
+feuille aurait efface les POURQUOI, qui sont la moitie de la valeur de ce depot. On se sert donc
+des offsets de l'arbre pour DECOUPER le texte source, et ce qui arrive dans `bdv-poste.css` est
+octet pour octet ce qui part de `style.css`. Le script refuse de tourner une seconde fois : sur
+une scission deja faite, il reecrirait le fichier de sortie avec son seul entete et ferait
+disparaitre les 310 regles sans un mot.
+
+## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026, REVU LE 21/09/2026
+
+**LE PREALABLE EST LEVE A MOITIE. LE LIEN N'EST TOUJOURS PAS SCINDE, ET ON NE LE SCINDE PAS
+AUJOURD'HUI.**
+
+Ce qui est FAIT depuis le 21/09/2026 : `style.css` est scindee en une feuille publique et une
+feuille bureau, et `scripts/charte.mjs` controle chaque moitie contre son propre lien.
+`npm run charte` lit les feuilles declarees dans `FEUILLES_SITE` contre le lien de
+`src/_includes/base.njk` ; `npm run charte:bureau` lit la page construite du bureau, donc ses
+feuilles a elle, `bdv-poste.css` comprise, contre le lien que cette page porte vraiment.
+
+Ce qui N'EST PAS FAIT : le lien lui-meme. Tant qu'il n'y en a qu'un, **le danger d'origine est
+intact** : `charte.mjs` lit le lien avec `/family=([^&]+)/g` applique au TEXTE ENTIER du fichier,
+et pour un meme nom de famille **la derniere occurrence ecrase les precedentes**. Avec deux
+liens :
+
+- lien mince ecrit AVANT le plein : le garde-fou voit l'union des deux, declare CONFORME, et les
+  pages publiques rendent en faux gras. **C'est l'incident des 376 passages en gras, reproduit a
+  l'identique, avec le controle qui le couvre au lieu de l'attraper.**
 - ordre inverse : Fraunces retombe a 400 et il crie au faux gras sur des titres qui vont bien.
 
-**L'ORDRE EST IMPOSE : on scinde `style.css` en une feuille publique et une feuille bureau,
-on apprend a `charte.mjs` a controler chaque moitie contre son propre lien, et SEULEMENT
-ENSUITE on scinde le lien.**
+**CE QUI RESTE A FAIRE AVANT DE SCINDER LE LIEN : apprendre a `charte.mjs` a lire le lien de SA
+cible et de sa cible seule.** Aujourd'hui il lit un fichier entier ; il lui faudra lire le lien
+de la page construite en mode site comme il le fait deja en mode bureau, ou refuser si le fichier
+en porte deux.
 
-Piege connexe a savoir : `--font-chiffre` n'est pas dans la table `FAMILLE` de `charte.mjs`.
-Une graisse demandee dessus est rangee « famille systeme, hors controle » alors qu'elle tire
-sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux gras sur
-l'accueil.
+### ET LA MESURE A RETOURNE LA PHRASE D'ORIGINE, 21/09/2026
+
+La version du 18/09 disait : « `Caveat` ne sert que sur l'accueil, `JetBrains Mono` sur aucune
+des douze pages plates ». **La premiere moitie est vraie, la seconde est fausse, et le gain est
+du cote qu'on n'attendait pas.** Releve au navigateur, famille resolue element par element sur
+seize pages publiques et sur les neuf pieces du bureau :
+
+| famille | pages publiques | bureau |
+|---|---|---|
+| Inter | 1 392 | 4 784 |
+| Fraunces | 208 | 60 |
+| JetBrains Mono | 116 (accueil, articles, un article, une rubrique) | **0** |
+| Caveat | 6 (accueil seul) | **0** |
+
+**C'est le lien du BUREAU qui peut maigrir, pas celui du site.** Le bureau n'utilise plus une
+seule fois la chasse fixe depuis que `bdv-bureau.css` a repeint la coque en Inter, et il n'a
+jamais eu de manuscrit. Le site, lui, a besoin des quatre : `Caveat` pour le cahier de chai de la
+demonstration, `JetBrains Mono` pour les etiquettes de rubrique et les metadonnees d'articles.
+
+**LES OCTETS N'ONT PAS PU ETRE MESURES DEPUIS LA SESSION** : le pont de cette session refuse
+`fonts.googleapis.com`. Ne pas recopier les « 60 a 90 Ko » de la version du 18/09, qui etaient
+une estimation et qui portaient sur le mauvais cote. La mesure tient en une commande sur le Mac,
+et elle doit etre faite AVANT d'ecrire un chiffre :
+
+```
+curl -sA "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+  "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap" \
+  | grep -o 'https://[^)]*woff2' | sort -u | xargs -n1 curl -sw '%{size_download} %{url_effective}\n' -o /dev/null
+```
+
+Piege connexe a savoir, et il n'a pas bouge : `--font-chiffre` n'est pas dans la table `FAMILLE`
+de `charte.mjs`. Une graisse demandee dessus est rangee « famille systeme, hors controle » alors
+qu'elle tire sur Inter. Retirer Inter 700 du lien ne leverait aucune alerte et remettrait du faux
+gras sur l'accueil.
 
 ## UN GESTE DESTRUCTIF EXIGE UNE PREUVE, PAS UN SILENCE, 18/09/2026
 

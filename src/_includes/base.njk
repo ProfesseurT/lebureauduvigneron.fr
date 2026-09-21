@@ -136,6 +136,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 {% if theme_bureau %}
+  <!-- LA MOITIE BUREAU DE L'ANCIENNE style.css, 21/09/2026.
+       ENTRE style.css ET bdv-bureau.css, ET CE N'EST PAS UN DETAIL D'ORDRE.
+       Ses regles etaient DANS style.css, donc avant bdv-theme.css... non :
+       avant bdv-bureau.css, qui les recouvre depuis le chantier des deux
+       themes. Les poser ici, et pas apres bdv-bureau.css, garde exactement la
+       meme cascade qu'avant la scission : le dessin de la coque continue de
+       gagner, a specificite egale comme a specificite superieure. Les mettre
+       apres retournerait ce rapport sans qu'aucune declaration ait change.
+
+       AUCUNE PAGE PUBLIQUE NE LA CHARGE, et c'est tout le gain du lot : elle
+       part avec le meme drapeau `theme_bureau` que bdv-theme.css et
+       bdv-bureau.css. La section C de `npm run charte` echoue si une page
+       plate se met a la lier. -->
+  <link rel="stylesheet" href="/css/bdv-poste.css">
   <!-- LE DESSIN DE LA COQUE DU BUREAU, 21/09/2026. APRES style.css, et c'est la
        seule chose qui compte dans cet ordre : toutes ses regles descendent de
        `.bdv-coque`, donc elles gagnent deja par specificite, mais a specificite
