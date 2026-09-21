@@ -389,6 +389,23 @@
   --bdv-grille:    #EAE9E4;             /* sombre #23272C  lignes d'axe */
   --bdv-squelette: #EAE9E4;             /* sombre #1D2126  blocs de chargement, entre 100 ms et 1 s */
 
+  /* LES QUATRE FAMILLES DU CALENDRIER DU BUREAU, 21/09/2026, lot du contenu.
+     ELLES DOUBLENT `--fam-1..4` CI-DESSUS ET NE LES REMPLACENT PAS. Le
+     calendrier public de /outils/echeances/ n'a qu'un theme et garde les
+     siennes ; celui du bureau en a deux. `--fam-1` vaut #4A1220, L* 15,4 : il
+     tient 13,09:1 sur le papier du site et 1,26:1 sur --bdv-surface en sombre,
+     c'est-a-dire qu'il disparait. Meme role, deux jeux, exactement comme
+     `--serie-*` et `--fam-*` le sont deja l'un pour l'autre : deux metiers,
+     deux echelles.
+     SEPAREES EN LUMINANCE et pas en teinte : L* 15,4 / 32,4 / 44,3 / 56,1 en
+     clair, 84,9 / 72,1 / 59,5 / 49,9 en sombre. Ce sont des OBJETS graphiques,
+     un filet de 3 px et une pastille de 6 px, jamais du texte : le seuil est
+     3:1, et le pire cas tient 3,15:1 en clair et 3,42:1 en sombre. */
+  --bdv-fam-1: #4A1220;                 /* sombre #F5C9D3  obligations, bordeaux profond */
+  --bdv-fam-2: #3D5233;                 /* sombre #94BC7E  travaux, vert-olive de vigne */
+  --bdv-fam-3: #3A6E8F;                 /* sombre #6295B8  rendez-vous, bleu ardoise */
+  --bdv-fam-4: #B07D22;                 /* sombre #9A6F1E  temps forts, ocre */
+
   /* LES ECHELLES DU BUREAU N'ONT QU'UNE VALEUR, ET C'EST UNE DECISION.
      Un theme change des COULEURS. Il ne change ni le rythme, ni les rayons, ni
      la taille du texte : quelqu'un qui bascule en sombre pour se reposer les

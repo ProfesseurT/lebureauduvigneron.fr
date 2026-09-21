@@ -12,6 +12,154 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 21/09/2026, le soir. Le contenu des trois pièces, et le papier s'en va
+
+Le lot de la coque avait repeint le fond, l'en-tête, le rail et les primitives, et laissé le
+CONTENU des pièces en papier. En sombre, ça posait de l'encre foncée sur des cartes sombres :
+les montants du sous-main, les titres de tâches et les échéances du calendrier ne se lisaient
+pas. C'était l'incohérence assumée du lot précédent. Celui-ci la ferme, sur les trois pièces
+qui ne demandent pas Vitisoft : « Ma journée » et ses huit zones, « Mes tâches », « Le
+calendrier ».
+
+### La métaphore matérielle est abandonnée, et c'est tout le lot
+
+Le liège et ses punaises, le papier continu à picots, le bloc à effeuiller, l'ardoise encadrée
+de bois, le carton kraft, la pile, les dos de classeur et l'enveloppe : plus rien de tout ça
+sous `.bdv-coque`. À la place, ce que la maquette validée pose partout ailleurs : une carte, un
+trait de 1 px, une surface qui monte d'un cran, et la hiérarchie portée par la typographie.
+
+**Le motif n'est pas le goût.** Une matière se dessine avec des couleurs qu'elle ne peut pas
+retourner : le liège est un brun clair, son encre un brun foncé, et l'un sur l'autre ne tient
+que sur du papier. Un bureau qui s'ouvre à 6 h dans un chai et à 23 h dans un bureau ne peut
+pas porter six matières qui ont chacune leur propre lumière.
+
+**Rien n'est supprimé de `src/css/style.css`, pas une ligne.** Tout est recouvert sous le scope,
+comme au lot précédent, parce que `.zone`, `.postit` et `.lettre` sont aussi les classes de la
+démonstration de la page d'accueil. La section « LA RÈGLE DU PLATEAU » de `CLAUDE.md` a été
+réécrite plutôt que laissée telle quelle : elle décrivait un mobilier qui n'existe plus dans le
+bureau, tout en restant vraie pour l'accueil. Elle dit maintenant les deux, dans cet ordre.
+
+### Ce que chaque zone devient
+
+Le panneau devient une pile de choses à faire. La règle des deux natures n'est pas seulement
+gardée, elle devient visible : `data-mot`, posé par `mon-bureau.njk` depuis le 10/09, dit si la
+ligne de tête est un chiffre ou un titre, et la grille les range dans deux colonnes différentes.
+« 3 / rappels en retard » d'un côté, « EN RETARD / Domaine des Hauts Coteaux » de l'autre.
+
+Le sous-main devient un tableau propre : rangée de 44 px, séparateur de 1 px, survol à 5 %,
+actions révélées à droite. **Le défaut « MONTANTRETARD » vu à la capture était une conséquence
+du lot précédent**, et pas un défaut d'espacement : les largeurs de colonnes de `style.css` sont
+mesurées pour un en-tête de dix pixels sans écartement, la coque les a reposés à 12 px avec
+`--bdv-ls-etiq`. « MONTANT » passe de 52 à 67 px dans une colonne de 72, il déborde, et
+`nowrap` l'envoie par-dessus son voisin. Les cinq largeurs sont reprises en pourcentage.
+
+L'ardoise devient quatre nombres nus avec leur libellé et leur provenance. Le mot du jour perd
+son fond teinté et garde son signe de gravité, qui est ce qui porte l'état. Le bloc calendrier
+perd sa perforation. Les trois zones de lecture se resserrent : 206 → 185, 225 → 202, 349 → 317
+px, mesuré avant contre après sur le même décor. **La fusion en une seule bande « Ta lecture »,
+que montre la maquette, n'a pas été faite** : elle ferait passer les huit zones de
+`#bureauJournee` à six, et cette liste est l'ordre que Ted a dicté le 07/09. C'est une décision
+de contenu, elle se prend avec lui. L'ordre, lui, n'a pas bougé d'une ligne : il est déjà celui
+de la maquette.
+
+### Quatre jetons de plus, et ils doublent des jetons existants
+
+`--bdv-fam-1` à `--bdv-fam-4`, les familles du calendrier. Ils doublent `--fam-1..4` au lieu de
+les réutiliser, et ce n'est pas du rangement : `--fam-1` vaut #4A1220, il tient 13,09:1 sur le
+papier du site et **1,26:1 sur une carte sombre**, c'est-à-dire qu'il disparaît. Le calendrier
+public n'a qu'un thème, celui du bureau en a deux. Séparés en luminance et pas en teinte, comme
+le veut la charte : douze points de L* entre deux familles voisines, dans les deux thèmes.
+
+### Le plafond des échelles a changé le dessin avant d'échouer
+
+Les cinq familles de la section A de `npm run charte` étaient exactement à leur borne : 35
+tailles, 0 rayon, 20 ombres, 9 épaisseurs de filet, 8 z-index. Les trois `box-shadow: inset` que
+ce lot allait poser auraient été les 21e, 22e et 23e recettes d'ombre du bureau. Elles sont donc
+écrites en bordure, qui dessine le même trait de 2 px sans rien ajouter à aucune échelle. **Un
+plafond qui mord change le code avant d'échouer, et c'est tout ce qu'on lui demande.**
+
+### L'audit de contraste à l'écran, et pourquoi la feuille ne pouvait pas le faire
+
+Septième fois que la même leçon se paie. `npm run charte` section 6 bis était VERTE sur
+vingt-trois paires illisibles, et elle avait raison de l'être : elle ne regarde qu'une règle qui
+pose à la fois une encre ET un fond. Aucune des vingt-trois ne le fait. Ce sont des encres de
+`style.css` posées sur des fonds de `bdv-bureau.css`, et composer ça demande de rejouer la
+cascade, c'est-à-dire d'être un navigateur.
+
+L'outil écrit pour ce lot parcourt le rendu, remonte au premier fond opaque en composant les
+voiles au passage, et rend toute paire sous son seuil. Douze passages, trois pièces par thème et
+par largeur : **27 paires au premier, zéro au dernier.**
+
+Ce qu'il a sorti, et rien ne se voyait à la lecture : le `a { color: var(--bordeaux) }` du site
+sur les trois liens du bureau qui n'ont pas de classe, à 1,37:1 ; la punaise de téléphone, dont
+la règle d'en face pèse un nom d'élément de plus que la mienne et gardait donc son papier, à
+1,03:1 sur un nom de client ; la bande alternée du listing, écrite DEUX fois, sur la cellule
+puis sur la rangée dans la requête de conteneur, donc à moitié corrigée ; les cinquième et
+sixième familles du calendrier, dessinées en `--ink`, qui disparaissaient de la grille ; les
+anneaux de focus du calendrier, en bordeaux, c'est-à-dire un focus clavier qui n'existe plus.
+
+**Et le correctif du quatrième en a fabriqué un autre**, trouvé par le même audit au passage
+suivant : en donnant une taille aux occurrences écrites à la main, il battait le `font-size: 0`
+de la pastille du téléphone, qui reprenait son texte à 12 px dans un point de 6 px. Un audit
+qu'on ne rejoue pas après correction ne mesure que l'état d'avant.
+
+### Ce que l'œil a trouvé et que l'audit ne pouvait pas trouver
+
+L'audit ne juge que du texte. Trois défauts de ce lot n'en étaient pas.
+
+La quatrième case vide de l'ardoise, un rectangle de 180 px qui montrait le fond de la grille :
+il n'y a quatre chiffres que si l'objectif est arrivé dans le miroir. L'ancien dessin avait le
+même trou, invisible parce que la case vide était de la couleur de l'ardoise.
+
+Le soulignement de la vue année, en `--bdv-trait-fort`, 1,64:1. Dans cette vue il n'y a aucun
+intitulé : ce trait est la seule chose qui dise qu'une période passe par ce jour-là. C'est donc
+un objet graphique porteur d'information, son seuil est 3:1, et il prend `--bdv-encre-4`.
+
+Les actions cachées au repos sur téléphone. `@media (hover:hover) and (pointer:fine)` ne suffit
+pas : une fenêtre d'ordinateur réduite à 390 px a une souris ET prend la mise en page du
+téléphone, où `style.css` remonte les gestes sur la première ligne. Le périmètre était la
+largeur, pas le pointeur.
+
+### Le décor du harnais garnissait trois zones de moins qu'il ne croyait
+
+`scripts/bureau-garni.mjs` n'écrit ni `resume.conseils`, ni `bdv_signets_v1` : le mot du jour,
+« À lire » et « Le classeur » étaient vides à la capture. C'est exactement l'avertissement de
+`CLAUDE.md`, à trois zones près, et on allait juger le dessin de trois zones qu'on ne voyait
+pas. Le complément est dans `Claude outputs/lot3-decor-sup.mjs`, partagé par les trois passes du
+harnais pour qu'un décor recopié ne porte pas son défaut deux fois. **À remonter dans
+`scripts/bureau-garni.mjs` au prochain lot qui y touchera.** Les quatre autres fichiers du
+harnais sont à côté : `lot3-audit-contraste.mjs`, qui est le vrai livrable de la soirée,
+`lot3-capture-contenu.mjs`, `lot3-capture-vues.mjs` et `lot3-mesure-zones.mjs`, qui sert le
+« avant » depuis `git show HEAD:` pour que les mesures de resserrement soient comparables.
+
+### Le poids mort, et il faut l'assumer
+
+22 115 octets de règles de dessin papier restent dans `style.css` et `bdv-calendrier.css`,
+entièrement recouvertes sous le scope. Servi au navigateur, après minification :
+`bdv-bureau.css` passe de 13 111 à 46 189 octets, `bdv-theme.css` de 2 774 à 3 014, `style.css`
+ne bouge pas. **+33 318 octets pour `/mon-bureau/`.**
+
+Les deux compteurs d'octets de la section C de `npm run charte` ne bougent pas, et c'est
+normal : ils comptent les règles dont aucune classe n'existe nulle part, et celles qui ne
+peuvent servir qu'au site public. Une règle recouverte n'est ni l'une ni l'autre : sa classe
+existe, elle s'applique encore, elle est simplement battue. **La scission de `style.css` reste
+le chantier qui règlera ça, et ce lot l'a rendue plus urgente.**
+
+### Ce qui reste ouvert
+
+Les cinq écrans de vente, le panneau de réglages, la fiche client et la modale de tâche sont
+toujours en papier, donc toujours mal lisibles en sombre. C'est le lot suivant.
+
+Le vide sous le sous-main : `.bureau-plan` porte `align-items: start`, donc la carte s'arrête à
+sa hauteur pendant que le bloc calendrier, à sa droite, descend plus bas. C'est le comportement
+d'avant, il se voit plus maintenant que les cartes ont un fond uni. À trancher avec Ted.
+
+La coche de « Mes tâches » sur téléphone fait 44 px de bordure au lieu de 20 : le plancher
+tactile est posé en retrait intérieur, mais la bordure reste dessinée sur la boîte entière.
+Antérieur à ce lot, signalé et non corrigé.
+
+---
+
 ## 21/09/2026, la suite. Le dessin de la coque, et il est scope
 
 Le lot du matin a pose cinquante jetons que personne ne lisait. Celui-ci est le premier a

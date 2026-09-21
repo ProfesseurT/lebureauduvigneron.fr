@@ -144,6 +144,29 @@
   --bdv-grille:#EAE9E4;            /* lignes d'axe                            */
   --bdv-squelette:#EAE9E4;         /* blocs de chargement, entre 100 ms et 1 s */
 
+  /* -- LES QUATRE FAMILLES DU CALENDRIER, ajoutees au lot du contenu, 21/09/2026.
+        CE SONT DES MATIERES, donc elles se retournent dans les DEUX blocs sombres.
+        Elles doublent `--fam-1..4` de tokens.css au lieu de les reutiliser, et ce
+        n'est pas du rangement : `--fam-1` vaut #4A1220, L* 15,4. Il tient 13,09:1
+        sur le papier du site et 1,26:1 sur `--bdv-surface` en sombre, c'est-a-dire
+        qu'il DISPARAIT. Les familles du calendrier public n'ont qu'un theme, celles
+        du bureau en ont deux : meme role, deux jeux, exactement comme `--serie-*`
+        et `--fam-*` le sont deja l'un pour l'autre.
+        VALEURS CLAIRES IDENTIQUES A `--fam-*` : le calendrier clair ne bouge pas
+        d'un pixel, et une famille garde la meme teinte des deux cotes du bureau.
+        ELLES SONT SEPAREES EN LUMINANCE et pas seulement en teinte, la regle de la
+        charte : L* 15,4 / 32,4 / 44,3 / 56,1 en clair, 84,9 / 72,1 / 59,5 / 49,9 en
+        sombre. L'echelle s'inverse avec le fond, l'ecart reste d'une douzaine de
+        points, donc elles restent distinctes en niveaux de gris et en vision
+        deuteranope. Le pire contraste est 3,15:1 (clair, fam-4 sur le papier) et
+        3,42:1 (sombre, fam-4 sur --bdv-surface-3) : ce sont des OBJETS graphiques,
+        un filet de 3 px et une pastille de 6 px, jamais du texte, donc le seuil
+        applicable est 3:1. ------------------------------------------------------ */
+  --bdv-fam-1:#4A1220;             /* obligations : bordeaux profond              */
+  --bdv-fam-2:#3D5233;             /* travaux : vert-olive de vigne               */
+  --bdv-fam-3:#3A6E8F;             /* rendez-vous : bleu ardoise                  */
+  --bdv-fam-4:#B07D22;             /* temps forts : ocre                          */
+
   /* -- ECHELLES. Memes valeurs dans les deux themes : un theme change des
         couleurs, il ne change ni le rythme ni la taille du texte. ----------- */
   --bdv-r:6px;                     /* rayon de base, rien au-dessus de 12 px  */
@@ -219,6 +242,11 @@
     --bdv-serie-b:#7B828A;
     --bdv-grille:#23272C;
     --bdv-squelette:#1D2126;
+
+    --bdv-fam-1:#F5C9D3;
+    --bdv-fam-2:#94BC7E;
+    --bdv-fam-3:#6295B8;
+    --bdv-fam-4:#9A6F1E;
   }
 }
 
@@ -269,6 +297,11 @@
   --bdv-serie-b:#7B828A;
   --bdv-grille:#23272C;
   --bdv-squelette:#1D2126;
+
+  --bdv-fam-1:#F5C9D3;
+  --bdv-fam-2:#94BC7E;
+  --bdv-fam-3:#6295B8;
+  --bdv-fam-4:#9A6F1E;
 }
 
 

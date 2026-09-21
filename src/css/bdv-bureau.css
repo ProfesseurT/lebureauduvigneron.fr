@@ -588,6 +588,32 @@ body.bdv-coque{
   body.bdv-poste.bdv-coque .bureau-nav__liste{
     flex-direction:row;
     gap:0;
+
+    /* LA BARRE BASSE GARDAIT SON PAPIER, ET AUCUN BANC NE POUVAIT LE DIRE.
+       `style.css` pose sur `.bureau-nav__liste` un fond `--paper-light` plus
+       deux degrades qui annoncent qu'il reste des pieces a droite. Le bloc de
+       la coque ne reecrivait que `flex-direction` et `gap` : le fond passait
+       donc dessous intact, et en theme sombre la barre d'onglets restait creme
+       au bas d'un bureau noir. Vu a la capture du 21/09/2026, sur le telephone
+       en sombre. Aucun controle ne le voyait, et c'est logique : ils regardent
+       les regles qu'on ECRIT, jamais celles qu'on laisse passer.
+
+       LA LECON, et elle vaut pour tout le reste du chantier : recouvrir une
+       feuille ne recouvre que les proprietes qu'on nomme. Une propriete qu'on
+       ne nomme pas garde sa valeur d'avant, et en theme sombre cette valeur
+       d'avant est toujours du papier.
+
+       Les deux degrades sont repris parce qu'ils sont utiles, l'un cale sur le
+       contenu et l'autre sur le cadre, de sorte que l'ombre disparait quand on
+       arrive au bout. Ils passent simplement sur les jetons du bureau. */
+    background-color:var(--bdv-surface);
+    background-image:
+      linear-gradient(to left, var(--bdv-surface), transparent),
+      linear-gradient(to left, var(--bdv-trait-fort), transparent);
+    background-repeat:no-repeat, no-repeat;
+    background-position:right center, right center;
+    background-size:26px 100%, 18px 100%;
+    background-attachment:local, scroll;
   }
   body.bdv-poste.bdv-coque .bureau-nav__ligne{
     /* CINQ ENTREES DANS LA LARGEUR, la mesure de la maquette. `flex-basis` a
@@ -621,7 +647,18 @@ body.bdv-coque{
     height:2px;
     border-radius:0 0 var(--bdv-r-pastille) var(--bdv-r-pastille);
   }
-  body.bdv-poste.bdv-coque .bureau-nav__ico{ font-size:var(--bdv-f-5); }
+  /* LA COULEUR DE L'ICONE EST REPOSEE ICI, ET C'EST UN CALCUL DE SPECIFICITE,
+     pas une precaution. En haut de cette feuille, `.bdv-coque .bureau-nav__ico`
+     pese (0,2,0). En face, `style.css` ecrit `body.bdv-poste .bureau-nav__ico`,
+     qui pese (0,2,1) : un element de plus, donc elle gagne, et l'icone gardait
+     l'encre de liege sur le telephone, en clair comme en sombre. Le selecteur
+     de ce bloc pese (0,3,1) et reprend la main.
+     Meme famille que la barre basse juste au-dessus : recouvrir une feuille ne
+     recouvre que ce qu'on nomme, et il faut nommer AU MOINS aussi lourd. */
+  body.bdv-poste.bdv-coque .bureau-nav__ico{
+    font-size:var(--bdv-f-5);
+    color:inherit;
+  }
   body.bdv-poste.bdv-coque a.bureau-nav__item:hover,
   body.bdv-poste.bdv-coque button.bureau-nav__item:hover{
     background:var(--bdv-survol);
@@ -864,3 +901,1812 @@ body.bdv-coque{
 }
 .bdv-coque tbody tr:hover .gestes,
 .bdv-coque tbody tr:focus-within .gestes{ opacity:1; }
+
+
+/* ============================================================================
+   ============================================================================
+   LOT 3, 21/09/2026 : LE CONTENU DES TROIS PIECES SANS VITISOFT
+
+   CE QUE CE LOT FERME. Le lot de la coque avait repeint le fond, l'en-tete, le
+   rail et les primitives, et laisse le CONTENU des pieces en papier. En sombre,
+   ce contenu posait de l'encre foncee sur des cartes sombres : les montants du
+   sous-main, les titres de taches et les echeances du calendrier ne se lisaient
+   pas. C'etait l'incoherence assumee du lot precedent ; c'est le defaut que
+   celui-ci ferme, et c'est le seul test qui compte pour le juger.
+
+   TROIS PIECES, CELLES QUI NE DEMANDENT PAS VITISOFT : « Ma journee » et ses
+   huit zones, « Mes taches », « Le calendrier ». Les cinq ecrans de vente, le
+   panneau de reglages, la fiche client et la modale de tache gardent leur
+   dessin papier et viennent au lot suivant.
+
+   --------------------------------------------------------------------------
+   LA METAPHORE MATERIELLE EST ABANDONNEE, ET C'EST TOUT LE LOT
+   --------------------------------------------------------------------------
+   Le liege et ses punaises, le papier continu a picots, le bloc a effeuiller,
+   l'ardoise encadree de bois, le carton kraft, la pile, les dos de classeur et
+   l'enveloppe : plus rien de tout ca sous `.bdv-coque`. A la place, ce que la
+   maquette validee le 21/09/2026 pose partout ailleurs dans le bureau : une
+   carte, un trait de 1 px, une surface qui monte d'un cran, et la hierarchie
+   portee par la TYPOGRAPHIE, un chiffre de 28 px contre un libelle de 12 px en
+   capitales espacees.
+
+   POURQUOI CE N'EST PAS QU'UNE QUESTION DE GOUT. Une matiere se dessine avec
+   des couleurs qu'elle ne peut pas retourner : le liege est un brun clair, son
+   encre un brun fonce, et l'un sur l'autre ne tient que sur du papier. Un
+   bureau a deux themes ne peut pas porter six matieres qui ont chacune leur
+   propre lumiere. La profondeur devient donc un TRAIT, qui n'a qu'une valeur
+   par theme et se retourne d'un jeton.
+
+   RIEN N'EST SUPPRIME DE src/css/style.css, PAS UNE LIGNE. Tout est RECOUVERT
+   sous `.bdv-coque`, comme au lot precedent, et pour la meme raison : `.zone`,
+   `.postit` et `.lettre` sont aussi les classes de la demonstration de la page
+   d'accueil. Consequence assumee et mesuree : le poids mort augmente, la
+   section C de `npm run charte` le compte a l'octet, et le chiffre est dans
+   JOURNAL.md. La scission de style.css reste le chantier ouvert.
+
+   --------------------------------------------------------------------------
+   CE QUI NE CHANGE PAS, ET QU'IL NE FAUT PAS « CORRIGER » EN RELISANT
+   --------------------------------------------------------------------------
+   . L'ORDRE DES HUIT ZONES. Panneau, sous-main + calendrier a sa droite,
+     ardoise, mot du jour, a lire + le classeur + le courrier. Ted l'a dicte le
+     07/09/2026, `npm run banc` le controle par `#bureauJournee > .zone`, et la
+     maquette le confirme ligne pour ligne : ce qui presse en haut, les chiffres
+     plus bas. Ce lot ne touche donc ni a l'ordre ni au banc qui le garde.
+   . LES DEUX NATURES DE PUNAISE. A un seul on nomme, a plusieurs on compte.
+     La regle est mesuree (CLAUDE.md, 10/09/2026) et le dessin ci-dessous la
+     REND VISIBLE au lieu de la contredire : le compte prend la colonne du
+     chiffre, le titre prend la colonne du texte.
+   . UN CHIFFRE AFFICHE DIT TOUJOURS D'OU IL VIENT. `.chiffre__s` reste sous
+     chaque nombre de l'ardoise, et il reste a 13 px.
+   . CHAQUE ETAT EST DOUBLE D'UN GLYPHE ET D'UN MOT. WCAG 1.4.1, deja une regle
+     du depot. Aucune regle de ce lot ne fait porter un etat par la seule
+     couleur : le retard a son mot (« en retard », « J+12 »), le calendrier a
+     ses fleches, le mot du jour a son signe de gravite.
+
+   AUCUNE VALEUR EN DUR : ni couleur, ni taille de texte, ni rayon, ni duree, ni
+   ecartement de lettres. Quatre jetons ont manque, `--bdv-fam-1` a
+   `--bdv-fam-4` : ils sont des MATIERES, donc poses dans les TROIS blocs de
+   bdv-theme.css et dans tokens.css le meme jour. Les epaisseurs de filet se
+   limitent a 1, 2 et 3 px et les z-index a 1, parce que ces deux familles sont
+   exactement a leur borne dans la section A de `npm run charte` : une valeur de
+   plus la ferait echouer, et c'est voulu.
+   ============================================================================
+   ============================================================================ */
+
+
+/* ==========================================================================
+   9. LE PANNEAU : UNE PILE DE CHOSES A FAIRE, PLUS UN TABLEAU DE LIEGE
+
+   CE QUI PART : le liege et son grain, le papier en degrade, la punaise en
+   dome, le coin qui se releve, la rotation sous le degre, la cascade d'arrivee
+   et l'ombre portee. CE QUI RESTE : la regle, qui n'a jamais ete le dessin.
+
+   LA REGLE DES DEUX NATURES DEVIENT LA GRILLE. `.postit__v` porte la ligne de
+   tete, et src/mon-bureau.njk lui pose `data-mot` selon sa LONGUEUR : rien
+   au-dela de quatre signes, c'est-a-dire un CHIFFRE ; `data-mot="oui"` ou
+   `"long"`, c'est-a-dire un TITRE. Ce marqueur existe depuis le 10/09/2026 et
+   il dit exactement ce que la mise en page a besoin de savoir, sans un attribut
+   de plus :
+     . un chiffre part dans la colonne de gauche, a 28 px, et le libelle qui le
+       nomme prend la colonne du texte : « 3 / rappels en retard » ;
+     . un titre reste dans la colonne du texte, a 17 px, avec son tampon
+       d'echeance au-dessus : « EN RETARD / Domaine des Hauts Coteaux ».
+   Les gestes sont a droite, sur toute la hauteur de la rangee.
+
+   LES CINQ PUNAISES AU PLUS NE BOUGENT PAS, et ce n'est plus une contrainte de
+   place : c'etait « a six, la sixieme part seule sur une deuxieme rangee » sur
+   un panneau en grille ; empilees, six tiendraient. La borne reste parce que
+   c'est une regle de TRAVAIL et pas de mise en page, ecrite dans le module.
+   ========================================================================== */
+.bdv-coque .zone--panneau{
+  /* Le liseré de liege en tete de zone part avec le liege. La zone du panneau
+     redevient une carte comme les sept autres. */
+  border-top-color:var(--bdv-trait);
+}
+.bdv-coque .panneau{
+  display:block;
+  background:none;
+  background-image:none;
+  border:0;
+  padding:0;
+}
+.bdv-coque .panneau .postit{
+  /* TROIS COLONNES : le chiffre, le texte, les gestes. Les rangees sont
+     implicites et les elements s'y placent dans l'ordre du document, parce que
+     le balisage est PLAT (tampon, tete, libelle, sous-titre, gestes) et qu'on
+     ne l'a pas touche : changer le HTML aurait demande de changer aussi les
+     sections 5 et 5 bis de `npm run banc:journee`, qui lisent ces classes. */
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  column-gap:var(--bdv-e-4);
+  row-gap:0;
+  align-items:center;
+  min-height:var(--bdv-cible);
+  padding:var(--bdv-e-3) var(--bdv-e-2);
+  background:none;
+  border:0;
+  border-bottom:1px solid var(--bdv-trait);
+  border-radius:0;
+  box-shadow:none;
+  color:var(--bdv-encre-2);
+  /* La rotation du papier epingle n'a plus d'objet, et elle est ECRITE ici
+     plutot que laissee a la cascade : `--tour` est repose punaise par punaise
+     en JavaScript par src/mon-bureau.njk, donc la declaration d'en face est
+     toujours vivante. Meme lecon que `flex-direction:row` dans l'en-tete au lot
+     precedent : une propriete qu'on ne reecrit pas reste celle de la cascade. */
+  transform:none;
+  animation:none;
+}
+.bdv-coque .panneau .postit:last-child{ border-bottom:0; }
+.bdv-coque .panneau .postit:hover{
+  background:var(--bdv-survol);
+  transform:none;
+}
+/* La punaise en dome et le coin releve : deux pseudo-elements de matiere. */
+.bdv-coque .panneau .postit::before,
+.bdv-coque .panneau .postit::after{ display:none; }
+
+/* LES DEUX TONS GARDENT LEUR FOND, ET C'EST LA REGLE 1.4.1. Un retard ne se
+   dit pas par la seule couleur : le tampon porte le mot (« en retard »), le
+   fond et le filet de 2 px ne font que le rendre reperable d'un coup d'oeil.
+   PAS DE TROISIEME TON : la regle du 10/09/2026 tient, une teinte de plus
+   ferait un quatrieme signal a apprendre. */
+.bdv-coque .panneau .postit[data-ton="vieux"]{
+  background:var(--bdv-retard-lavis);
+  box-shadow:none;
+}
+.bdv-coque .panneau .postit[data-ton="fait"]{
+  background:var(--bdv-bon-lavis);
+  box-shadow:none;
+}
+.bdv-coque .panneau .postit[data-ton="vieux"]:hover,
+.bdv-coque .panneau .postit[data-ton="fait"]:hover{ background:var(--bdv-survol); }
+
+/* LA LIGNE DE TETE, DEUX PLACES SELON SA NATURE.
+   Sans `data-mot` : quatre signes au plus, c'est un compte. Il prend la colonne
+   du chiffre, a 28 px, en chiffres tabulaires pour qu'il ne danse pas quand le
+   compteur anime le fait monter. */
+.bdv-coque .panneau .postit__v:not([data-mot]){
+  grid-column:1;
+  grid-row:1 / span 3;
+  align-self:center;
+  min-width:var(--bdv-e-8);
+  font-family:inherit;
+  font-size:var(--bdv-f-6);
+  font-weight:600;
+  line-height:1.05;
+  letter-spacing:var(--bdv-ls-serre);
+  text-align:right;
+  color:var(--bdv-encre-1);
+  font-variant-numeric:tabular-nums;
+}
+.bdv-coque .panneau .postit[data-ton="vieux"] .postit__v:not([data-mot]){ color:var(--bdv-retard); }
+/* Avec `data-mot` : c'est un titre, il reste dans la colonne du texte et prend
+   le corps d'un titre de rangee. Les deux paliers de longueur de style.css
+   (1,4 rem puis --t-lead) n'ont plus de raison d'etre : dans une rangee large
+   un titre ne fait plus trois lignes, il en fait une. */
+.bdv-coque .panneau .postit__v[data-mot]{
+  grid-column:2;
+  font-family:inherit;
+  font-size:var(--bdv-f-4);
+  font-weight:500;
+  line-height:1.25;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .panneau .postit__l{
+  grid-column:2;
+  font-size:var(--bdv-f-3);
+  line-height:1.3;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .panneau .postit__s{
+  grid-column:2;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  line-height:1.35;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .panneau .postit[data-ton="vieux"] .postit__s{ color:var(--bdv-encre-2); }
+
+/* LE TAMPON. Il garde son role, une mention posee au-dessus du titre, et il
+   prend l'habit des etiquettes du bureau : capitales espacees a 12 px.
+   LE GLYPHE EST AJOUTE ICI, EN CSS, ET LE MOT RESTE DANS LE TEXTE. C'est la
+   regle 1.4.1 : « en retard » se lit sans couleur, le point d'exclamation se
+   voit sans lire. Il est pose en `::before` parce que la section 5 de
+   `npm run banc:journee` compare le textContent du tampon a « en retard » :
+   un caractere ecrit dans le HTML l'aurait fait echouer, et il aurait surtout
+   ete annonce par la synthese vocale, qui a deja le mot. */
+.bdv-coque .panneau .postit__tampon{
+  grid-column:2;
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-1);
+  margin:0;
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .panneau .postit__tampon::before{
+  content:"\2022";
+  display:grid;
+  place-items:center;
+  width:var(--bdv-e-4);
+  height:var(--bdv-e-4);
+  flex:0 0 var(--bdv-e-4);
+  border:1px solid currentColor;
+  border-radius:var(--bdv-r-pastille);
+  font-size:var(--bdv-f-1);
+  line-height:1;
+}
+.bdv-coque .panneau .postit[data-ton="vieux"] .postit__tampon{ color:var(--bdv-retard); }
+.bdv-coque .panneau .postit[data-ton="vieux"] .postit__tampon::before{ content:"\0021"; }
+
+/* LE LIEN ETENDU RESTE ETENDU. Le `::after` du libelle couvre la rangee, les
+   boutons repassent au-dessus par leur z-index : une seule cible pour la
+   souris, deux arrets nets pour le clavier. On ne change que son encre. */
+.bdv-coque .panneau .postit__lien{ color:inherit; }
+.bdv-coque .panneau .postit:hover .postit__lien{ color:var(--bdv-accent); }
+
+/* LES GESTES. A droite, sur toute la hauteur, et REVELES AU SURVOL comme dans
+   la maquette. Le devoilement est borne au pointeur fin : sur un ecran tactile
+   il n'y a pas de survol, et un bouton qui n'apparait jamais est un bouton
+   perdu. `:focus-within` est l'autre moitie, celle du clavier. */
+.bdv-coque .panneau .postit__gestes{
+  grid-column:3;
+  grid-row:1 / span 3;
+  align-self:center;
+  margin:0;
+  gap:var(--bdv-e-1);
+  flex-wrap:nowrap;
+}
+.bdv-coque .panneau .postit__g{
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  line-height:1.2;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .panneau .postit__g:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .panneau .postit__g:disabled{
+  color:var(--bdv-encre-4);
+  border-color:var(--bdv-trait);
+  background:var(--bdv-surface-2);
+}
+/* LE DEVOILEMENT EST BORNE AU GRAND ECRAN, ET PAS SEULEMENT AU POINTEUR FIN.
+   Sous 700 px, src/css/style.css remonte les deux gestes SUR la premiere ligne
+   de la punaise, a 44 px de cible : c'est le dessin du 11/09/2026 et il est
+   juste. Les cacher au repos y serait un contresens, et `(hover:hover)` ne
+   suffit pas a l'eviter : une fenetre d'ordinateur reduite a 390 px a une
+   souris et prend donc la mise en page du telephone. Le perimetre est la
+   LARGEUR, pas le pointeur seul. */
+@media (hover:hover) and (pointer:fine) and (min-width:701px){
+  .bdv-coque .panneau .postit__gestes{
+    opacity:0;
+    transition:opacity var(--bdv-d-court) var(--bdv-courbe);
+  }
+  .bdv-coque .panneau .postit:hover .postit__gestes,
+  .bdv-coque .panneau .postit:focus-within .postit__gestes{ opacity:1; }
+}
+
+/* LA CHUTE. « La punaise reste au mur, le papier tombe » n'a plus de sens sans
+   punaise ; la rangee s'efface en glissant, comme `.punaise.part` de la
+   maquette. On garde une animation plutot que rien : le module retient la
+   repeinture le temps de la chute, et sans mouvement la ligne disparaitrait
+   d'un coup, ce qui se lit comme une perte et non comme un geste accompli.
+   Le zero de `prefers-reduced-motion` est deja pose par src/css/style.css. */
+@keyframes bdv-coque-part{
+  from{ opacity:1; transform:translateX(0); }
+  to  { opacity:0; transform:translateX(var(--bdv-e-2)); }
+}
+.bdv-coque .panneau .postit--decroche{
+  animation:bdv-coque-part var(--bdv-d-long) var(--bdv-courbe) forwards;
+}
+.bdv-coque .panneau .postit--decroche::before{ display:none; }
+
+
+/* ==========================================================================
+   10. LE SOUS-MAIN : UN TABLEAU PROPRE, PLUS DU PAPIER A PICOTS
+
+   CE QUI PART : les deux bandes perforees en fond de conteneur, les bandes
+   alternees, l'ombre de carte, l'en-tete en ardoise et le bordeaux du nom de
+   client. CE QUI RESTE : que c'est un LISTING, ce que Ted avait demande le
+   07/09/2026 (« un design beaucoup plus informatique parce que ca va parler de
+   fichiers clients »). Un listing n'a jamais eu besoin de picots pour se lire :
+   il a besoin de colonnes qui s'alignent, d'une rangee qui se balaie, et de
+   nombres cales a droite.
+
+   LA MESURE DE LA MAQUETTE : rangee de 44 px, separateur de 1 px, survol a 5 %,
+   actions revelees a droite, corps a 15 px et metadonnees a 13 px.
+
+   LES BANDES ALTERNEES PARTENT, ET CE N'EST PAS UNE PERTE. Elles valaient
+   1,23:1, « assez pour guider l'oeil sans se lire comme un etat ». Avec une
+   rangee de 44 px et un separateur de 1 px, le guide existe deja ; et en
+   sombre, une bande a 1,23:1 se lit comme une salissure de l'ecran.
+
+   --------------------------------------------------------------------------
+   « MONTANTRETARD » : LE DEFAUT VU A LA CAPTURE, ET SA CAUSE
+   --------------------------------------------------------------------------
+   Les deux en-tetes se touchaient et s'affichaient colles. Ce n'etait pas un
+   defaut d'espacement : les largeurs de colonnes de style.css sont mesurees
+   pour un en-tete en --t-micro, DIX pixels, sans ecartement. La coque a repose
+   ces memes en-tetes a 12 px avec `--bdv-ls-etiq`, .09em. « MONTANT » passe
+   alors de 52 a 67 px dans une colonne de 4,5 rem, soit 72 px de boite pour
+   67 px de mot plus 24 px de retrait : il deborde, et `white-space: nowrap`
+   l'envoie par-dessus son voisin au lieu de le replier.
+   LES LARGEURS SONT DONC REPRISES ICI, en pourcentage et non en rem, sur les
+   mesures de la maquette (24 / 21 / 13 / 11 / 31). Un pourcentage suit la
+   largeur reelle de la zone, qui change avec la piece ; un rem suit la taille
+   du texte, qui vient justement de changer.
+   ========================================================================== */
+.bdv-coque .zone--sousmain{ border-top-color:var(--bdv-trait); }
+.bdv-coque .listbb{
+  padding:0;
+  border:0;
+  border-radius:var(--bdv-r);
+  box-shadow:none;
+  background-color:transparent;
+  /* Les picots, les deux filets verticaux et le pas de 26 px : une recette de
+     quatre degrades. Elle ne se retourne pas, elle s'enleve. */
+  background-image:none;
+  /* On garde la fenetre fermee : un contenu trop large defile DANS son cadre et
+     ne pousse jamais la page. Defaut paye le 07/09/2026, mesure a 112 px. */
+  overflow-x:auto;
+}
+.bdv-coque .listb{
+  width:100%;
+  table-layout:fixed;
+  font-size:var(--bdv-f-3);
+}
+/* LES CINQ LARGEURS, MESURES DE LA MAQUETTE. La colonne d'action garde sa place
+   meme quand les gestes sont invisibles : ils s'effacent par l'opacite et non
+   par `display`, donc la rangee ne bouge pas d'un pixel au survol. */
+.bdv-coque .listb th:nth-child(1){ width:24%; }
+.bdv-coque .listb th:nth-child(2){ width:21%; }
+.bdv-coque .listb th:nth-child(3){ width:13%; }
+.bdv-coque .listb th:nth-child(4){ width:11%; }
+.bdv-coque .listb th:nth-child(5){ width:31%; }
+.bdv-coque .listb th{
+  height:var(--bdv-e-8);
+  padding:0 var(--bdv-e-3);
+  background:var(--bdv-surface-2);
+  border:0;
+  border-bottom:1px solid var(--bdv-trait);
+  color:var(--bdv-encre-4);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+}
+.bdv-coque .listb td{
+  height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  background:none;
+  border-bottom:1px solid var(--bdv-trait);
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-2);
+  vertical-align:middle;
+}
+/* Les bandes alternees et l'onglet bordeaux du survol partent ensemble : la
+   rangee entiere prend le voile de 5 %, comme partout ailleurs dans le bureau. */
+.bdv-coque .listb tbody tr:nth-child(even) td{ background:none; }
+.bdv-coque .listb tbody tr:hover{ background:var(--bdv-survol); }
+.bdv-coque .listb tbody tr:hover td:first-child{ box-shadow:none; }
+.bdv-coque .listb tbody tr:last-child td{ border-bottom:0; }
+
+/* LE FICHIER CLIENT. Le nom est un bouton qui ouvre la fiche : il garde son
+   encre de titre et ne prend l'accent qu'au survol. En bordeaux permanent il se
+   lisait comme un lien de site au milieu d'un listing. */
+.bdv-coque .listb__nom{
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:500;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .listb__nom:hover{ color:var(--bdv-accent); }
+.bdv-coque .listb__ref{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .listb td.listb__motif{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+}
+/* LES NOMBRES A DROITE, EN CHIFFRES TABULAIRES. Le mono de JetBrains partait
+   avec le papier ; `tabular-nums` fait le meme travail dans la police du bureau,
+   et il ne decolle pas le symbole euro de deux espaces. */
+.bdv-coque .listb td.listb__montant{
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:500;
+  color:var(--bdv-encre-1);
+  font-variant-numeric:tabular-nums;
+}
+.bdv-coque .listb td.listb__retard{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+  font-variant-numeric:tabular-nums;
+}
+/* Le retard n'est pas porte par la couleur : « J+12 » dit le nombre de jours en
+   toutes lettres, la teinte ne fait que le rendre reperable en balayant. */
+.bdv-coque .listb tr[data-retard="oui"] td.listb__retard{
+  color:var(--bdv-retard);
+  font-weight:500;
+}
+
+/* LES TROIS ACTIONS. Nues, a droite, revelees au survol et au focus. Elles
+   gardent leur plancher tactile : `.btn--geste` est le geste le plus frequent
+   du bureau. */
+.bdv-coque .btn--geste{
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-2);
+  background:transparent;
+  border:1px solid transparent;
+  border-radius:var(--bdv-r);
+  color:var(--bdv-encre-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .btn--geste:hover{
+  background:var(--bdv-survol);
+  border-color:transparent;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .btn--geste:disabled,
+.bdv-coque .btn--geste:disabled:hover{
+  background:transparent;
+  border-color:transparent;
+  color:var(--bdv-encre-4);
+}
+/* Meme borne que pour la punaise, et la meme raison : sous 40 rem de zone le
+   listing devient des fiches, et les trois actions y prennent leur propre
+   ligne. Une fiche dont les actions sont invisibles au repos n'a plus d'action
+   du tout sur un ecran tactile. */
+@media (hover:hover) and (pointer:fine) and (min-width:701px){
+  .bdv-coque .listb td.listb__gestes{
+    opacity:0;
+    transition:opacity var(--bdv-d-court) var(--bdv-courbe);
+  }
+  .bdv-coque .listb tbody tr:hover td.listb__gestes,
+  .bdv-coque .listb tbody tr:focus-within td.listb__gestes{ opacity:1; }
+}
+/* L'attente d'une fiche qui s'ouvre : elle se voit sur la rangee cliquee, et
+   son voile de 45 % se lit dans les deux themes puisqu'il ne fait que diluer
+   l'encre vers la surface qui est dessous. */
+.bdv-coque .listb__l[data-attente="oui"]{ opacity:.55; }
+
+/* L'AVIS DU SOUS-MAIN (« ton export date de N jours »). Un bandeau d'alerte, un
+   filet de 2 px, et son mot : la couleur ne dit rien toute seule. */
+.bdv-coque .bureau-avis{
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  background:var(--bdv-alerte-lavis);
+  border-left:2px solid var(--bdv-alerte);
+  border-radius:var(--bdv-r-pastille);
+  color:var(--bdv-encre-1);
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .bureau-avis[data-ok="oui"]{
+  background:var(--bdv-bon-lavis);
+  border-left-color:var(--bdv-bon);
+}
+
+/* LE LISTING QUAND SA ZONE EST ETROITE : UNE FICHE PAR LIGNE. Le basculement
+   est dans src/css/style.css, a 40 rem de CONTENEUR et pas de fenetre, et il
+   n'est pas touche. Ce qu'il faut reecrire ici, ce sont les trois declarations
+   de ce lot qui le contrediraient : une cellule en `display:block` n'a pas de
+   hauteur de rangee, et un filet sous chaque cellule ferait cinq traits par
+   fiche. Elles pesent (0,2,1) contre (0,2,0) pour celles de style.css, donc
+   elles gagneraient a l'interieur de la requete sans cette reprise. */
+@container sousmain (max-width: 40rem){
+  .bdv-coque .listb td{
+    height:auto;
+    padding:0 var(--bdv-e-2);
+    border-bottom:0;
+  }
+  .bdv-coque .listb tbody tr{
+    padding:var(--bdv-e-2) 0;
+    border-bottom:1px solid var(--bdv-trait);
+  }
+  .bdv-coque .listb tbody tr:last-child{ border-bottom:0; }
+  .bdv-coque .listb td.listb__gestes{ opacity:1; }
+  .bdv-coque .listb tbody tr:hover{ box-shadow:none; }
+}
+
+
+/* ==========================================================================
+   11. LE BLOC CALENDRIER DE « MA JOURNEE » : CE QUI ARRIVE
+
+   CE QUI PART : le bloc a effeuiller. Bandeau de mois en bordeaux, ligne de
+   perforation en degrade radial, jour en serif de 3 rem centre, ombre de carte
+   qui durcit au survol.
+   CE QUI RESTE : la hierarchie que ce bloc portait, et qui etait juste. Ce qui
+   tombe le plus tot est en grand, ce qui suit est une liste dessous. C'est la
+   `.tech` de la maquette : un nom, un delai, une phrase, puis trois lignes.
+
+   LE BLOC ENTIER MENE AU CALENDRIER et pas a l'article de l'echeance, decision
+   de Ted du 07/09/2026 : on clique sur un calendrier pour voir le calendrier.
+   Rien ne change de ce cote, c'est le meme `<a>`.
+   ========================================================================== */
+.bdv-coque .zone--calendrier{ border-top-color:var(--bdv-trait); }
+.bdv-coque .calbloc{ gap:var(--bdv-e-3); }
+.bdv-coque .calbloc__une{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  column-gap:var(--bdv-e-3);
+  align-items:baseline;
+  padding:0;
+  background:none;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+  color:var(--bdv-encre-2);
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .calbloc__une:hover{ box-shadow:none; }
+.bdv-coque .calbloc__une:hover .calbloc__titre{ color:var(--bdv-accent); }
+/* Le mois devient l'etiquette de l'objet, a sa place d'etiquette : 12 px en
+   capitales espacees, comme le titre de n'importe quelle zone du bureau. */
+.bdv-coque .calbloc__mois{
+  grid-column:1 / -1;
+  padding:0;
+  margin-bottom:var(--bdv-e-1);
+  background:none;
+  color:var(--bdv-encre-4);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-align:left;
+}
+/* La perforation etait une matiere, pas une information : elle s'en va. */
+.bdv-coque .calbloc__trous{ display:none; }
+.bdv-coque .calbloc__jour{
+  grid-column:1;
+  padding:0;
+  font-family:inherit;
+  font-size:var(--bdv-f-6);
+  font-weight:600;
+  line-height:1.05;
+  letter-spacing:var(--bdv-ls-serre);
+  text-align:left;
+  color:var(--bdv-encre-1);
+  font-variant-numeric:tabular-nums;
+}
+.bdv-coque .calbloc__quand{
+  grid-column:2;
+  padding:0;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  text-align:left;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .calbloc__titre{
+  grid-column:1 / -1;
+  padding:var(--bdv-e-1) 0 0;
+  border-top:0;
+  font-size:var(--bdv-f-3);
+  line-height:1.35;
+  color:var(--bdv-encre-1);
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+/* CE QUI PRESSE PREND L'ENCRE DU RETARD, et le mot est deja la : `.calbloc__quand`
+   dit « aujourd'hui » ou « dans 3 jours » en toutes lettres. La couleur ne
+   porte donc rien toute seule. */
+.bdv-coque .calbloc__une[data-niveau="urgent"] .calbloc__mois,
+.bdv-coque .calbloc__une[data-niveau="aujourdhui"] .calbloc__mois{
+  background:none;
+  color:var(--bdv-retard);
+}
+.bdv-coque .calbloc__une[data-niveau="urgent"] .calbloc__jour,
+.bdv-coque .calbloc__une[data-niveau="aujourdhui"] .calbloc__jour{ color:var(--bdv-retard); }
+.bdv-coque .calbloc__une[data-niveau="urgent"] .calbloc__quand,
+.bdv-coque .calbloc__une[data-niveau="aujourdhui"] .calbloc__quand{
+  color:var(--bdv-retard);
+  font-weight:500;
+}
+/* LA SUITE : trois lignes separees par un filet de 1 px, comme toutes les
+   listes du bureau. La date garde sa colonne des que la zone a la place, c'est
+   la requete de conteneur de style.css et elle n'est pas touchee. */
+.bdv-coque .calbloc__suite{
+  gap:0;
+  margin-top:var(--bdv-e-2);
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .calbloc__ligne{
+  padding:var(--bdv-e-2) 0;
+  background:none;
+  border-bottom:1px solid var(--bdv-trait);
+}
+.bdv-coque .calbloc__suite .calbloc__ligne:last-child{ border-bottom:0; }
+.bdv-coque .calbloc__d{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .calbloc__q{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+}
+
+
+/* ==========================================================================
+   12. L'ARDOISE : QUATRE NOMBRES NUS
+
+   CE QUI PART : le cadre de bois de 8 px, la surface d'ardoise, la poussiere de
+   craie en degrades radiaux, l'ombre dure, le filet d'or sous le premier
+   chiffre, et le mono des etiquettes. CE QUI RESTE : ce que la maquette appelle
+   les chiffres, quatre nombres avec leur libelle et leur provenance, separes
+   par un filet de 1 px.
+
+   LE PARTAGE DE GRILLE PAR `subgrid` NE BOUGE PAS. Il a ete pose le 12/09/2026
+   pour une mesure precise : la base du chiffre d'affaires tombait a 71 px du
+   haut de sa case et celle des trois autres a 58, treize pixels d'ecart, parce
+   que le premier etait a un cran d'echelle au-dessus. Ce lot met les QUATRE au
+   meme corps, 28 px, ce qui reglerait le cas du jour ; le partage reste parce
+   qu'il tient aussi quand une source passe sur deux lignes et l'autre sur une.
+
+   LE FILET DE CRAIE ETAIT DEJA UN INTERSTICE DE GRILLE, et c'est ce qui rend ce
+   lot facile : on change la couleur qui affleure, pas la mecanique. Il devient
+   `--bdv-trait`, et la colonne de 1,5fr redevient une colonne comme les autres,
+   puisque son chiffre ne fait plus une taille de plus.
+
+   LA REGLE QUI NE BOUGE PAS : un chiffre affiche dit toujours d'ou il vient.
+   `.chiffre__s` reste sous chaque nombre, a 13 px, et les fleches de sens
+   restent des GLYPHES : la couleur ne dit jamais la hausse toute seule.
+   ========================================================================== */
+.bdv-coque .zone--ardoise{ border-top-color:var(--bdv-trait); }
+/* QUATRE COLONNES QUAND IL Y A QUATRE CHIFFRES, ET TROIS QUAND IL Y EN A TROIS.
+   Defaut vu a la capture, clair et sombre : `repeat(4, 1fr)` laissait une
+   QUATRIEME case vide au bout de l'ardoise, un rectangle de 180 px de large
+   qui montrait le fond de la grille. Il n'y a quatre chiffres que si
+   `objectifPct` ou `atterrissage` est arrive dans le miroir ; sans objectif
+   pose, `peindreArdoise()` n'en depose que trois. L'ancien dessin avait le meme
+   trou, il ne se voyait pas parce que la case vide etait de la couleur de
+   l'ardoise, exactement comme les autres.
+   `auto-fit` REPLIE LES PISTES VIDES, et c'est la seule chose qu'on lui demande.
+   La mise en garde du 12/09/2026 (« auto-fit ecrasait le partage de rangees »)
+   visait une regle qui rouvrait AUSSI `grid-template-rows` : ici les trois
+   rangees restent declarees, donc le `subgrid` de chaque case tient, et les
+   chiffres restent sur une seule ligne d'ecriture. Verifie a la mesure. */
+.bdv-coque .ardoise{
+  grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));
+  column-gap:0;
+  row-gap:0;
+  background:var(--bdv-surface);
+  border:0;
+  border-radius:var(--bdv-r);
+  box-shadow:none;
+  overflow:hidden;
+}
+/* LE FILET EST PORTE PAR LA CASE ET PLUS PAR L'INTERSTICE DE LA GRILLE. Un
+   interstice se voit meme la ou il n'y a pas de case ; une bordure ne se voit
+   que sur une case qui existe. C'est aussi le dessin de `.quatre__b` dans la
+   maquette. */
+.bdv-coque .chiffre{
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  background-color:var(--bdv-surface);
+  background-image:none;
+  border:0;
+  border-right:1px solid var(--bdv-trait);
+  transition:background-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .chiffre:last-child{ border-right:0; }
+.bdv-coque .chiffre:hover{ background-color:var(--bdv-surface-2); }
+.bdv-coque .chiffre__l{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+}
+/* LE CHIFFRE EST CALE A GAUCHE, avec son libelle et sa source. Il etait centre
+   dans sa case pour porter son filet d'or a la largeur du texte ; sans le
+   filet, un nombre centre au-dessus d'un libelle aligne a gauche ne s'aligne
+   sur rien. */
+.bdv-coque .chiffre__v{
+  justify-self:start;
+  margin-top:var(--bdv-e-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-6);
+  font-weight:600;
+  line-height:1.1;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+  font-variant-numeric:tabular-nums;
+}
+/* Le filet d'or soulignait le premier chiffre pour dire « c'est celui-la ». La
+   place en tete le dit deja, et un soulignement or n'a pas de valeur sombre. */
+.bdv-coque .chiffre--hi .chiffre__v{
+  font-size:var(--bdv-f-6);
+  padding-bottom:0;
+  box-shadow:none;
+}
+.bdv-coque .chiffre__s{
+  margin-top:var(--bdv-e-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+
+
+/* ==========================================================================
+   13. LE MOT DU JOUR
+
+   CE QUI PART : le fond teinte par gravite et le liseré de 3 px. Quatre fonds
+   d'etat pour une carte posee dans une carte, c'est une couleur de trop, et en
+   sombre les quatre lavis se ressemblent.
+   CE QUI RESTE, ET C'EST LE PLUS IMPORTANT : le signe de gravite. Il porte la
+   forme, le hors-ecran porte le mot, et la couleur ne fait que troisieme. C'est
+   exactement ce que demande WCAG 1.4.1, et c'etait deja le dessin.
+
+   LE SIGNE PREND UN CADRE de 22 px, comme `.mot__ico` de la maquette : un
+   caractere pose nu au milieu d'une carte se lit comme une coquille.
+   ========================================================================== */
+.bdv-coque .zone--mot{ border-top-color:var(--bdv-trait); }
+.bdv-coque .mot{
+  gap:var(--bdv-e-3);
+  padding:0;
+  background:none;
+  border-left:0;
+}
+.bdv-coque .mot[data-kind="danger"],
+.bdv-coque .mot[data-kind="warn"],
+.bdv-coque .mot[data-kind="ok"],
+.bdv-coque .mot[data-kind="info"]{
+  background:none;
+  border-left-color:transparent;
+}
+.bdv-coque .mot__ico{
+  display:grid;
+  place-items:center;
+  width:var(--bdv-e-6);
+  height:var(--bdv-e-6);
+  flex:0 0 var(--bdv-e-6);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r-pastille);
+  font-size:var(--bdv-f-2);
+  line-height:1;
+  color:var(--bdv-encre-3);
+}
+/* La teinte du cadre suit la gravite. Elle est le TROISIEME signal : le glyphe
+   change de forme, le hors-ecran dit le mot (« a traiter vite »), et seulement
+   ensuite la couleur confirme. */
+.bdv-coque .mot[data-kind="danger"] .mot__ico{ color:var(--bdv-retard); border-color:var(--bdv-retard); }
+.bdv-coque .mot[data-kind="warn"] .mot__ico{ color:var(--bdv-alerte); border-color:var(--bdv-alerte); }
+.bdv-coque .mot[data-kind="ok"] .mot__ico{ color:var(--bdv-bon); border-color:var(--bdv-bon); }
+.bdv-coque .mot__v{
+  margin:0;
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:500;
+  line-height:1.4;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .mot__a{
+  margin-top:var(--bdv-e-1);
+  font-size:var(--bdv-f-2);
+  line-height:1.45;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .mot__aller{ color:inherit; }
+.bdv-coque .mot__aller:hover{ color:var(--bdv-accent); }
+.bdv-coque .mot__fleche{ color:var(--bdv-accent); }
+/* « Le suivant » : un bouton de lien, pose sous la carte, HORS d'elle. Un
+   element interactif dans un element interactif est interdit, et ce depot l'a
+   deja paye deux fois. */
+.bdv-coque .btn--lienb{
+  min-height:var(--bdv-cible);
+  padding:0;
+  color:var(--bdv-encre-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  text-decoration:none;
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .btn--lienb:hover{
+  color:var(--bdv-accent);
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+/* Le pied est borne a la zone du mot : les deux autres `.zone__pied` du bureau
+   (le compte du sous-main, la mention legale du calendrier) sont des phrases et
+   pas une barre d'action. */
+.bdv-coque .zone--mot .zone__pied{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin-top:var(--bdv-e-3);
+  padding-top:var(--bdv-e-3);
+  border-top:1px solid var(--bdv-trait);
+}
+
+
+/* ==========================================================================
+   14. « A LIRE », « LE CLASSEUR », « LE COURRIER » : LA BANDE DE LECTURE
+
+   LE CONSTAT, ET IL EST DE TED : ces trois zones sont presque vides et
+   prennent beaucoup de place. Elles portent deux a cinq lignes chacune et
+   occupent une rangee entiere de douze colonnes, en bas de « Ma journee », avec
+   les retraits, les titres et les matieres d'une zone de plein droit.
+
+   CE QUE LA MAQUETTE FAIT : elle les fusionne en UNE carte a trois colonnes,
+   « Ta lecture », sous la ligne de flottaison.
+   CE QUE CE LOT FAIT, ET POURQUOI CE N'EST PAS LA MEME CHOSE : la fusion est un
+   changement de BALISAGE. Elle ferait passer les huit `.zone` de
+   `#bureauJournee` a six, et `npm run banc` controle cette liste de huit noms
+   dans l'ordre que Ted a dicte le 07/09/2026. Trois zones qui deviennent une,
+   c'est une decision de contenu, pas de dessin, et elle se prend avec lui.
+
+   ON OBTIENT DONC LE MEME ECRAN SANS TOUCHER AU BALISAGE. Les trois zones sont
+   deja cote a cote, quatre colonnes sur douze chacune, sur une seule rangee :
+   ce qui les faisait paraitre vides, ce n'etait pas leur nombre, c'etait leur
+   remplissage. Quatre mesures, prises sur la capture de 1440 :
+     1. le retrait de zone passe de 16 a 12 px sur les trois ;
+     2. une ligne de lecture passe de 0,6 rem de retrait vertical a 8 px, et son
+        titre du serif de 17 px au corps de 13 px de la maquette, celui de
+        `.lecture__i` ;
+     3. les trois matieres partent : la pile et ses deux feuilles qui depassent
+        sous le bord, les dos de carton de 7 px du classeur, et le bord dechire
+        de l'enveloppe. Elles coutaient 7 px sous la zone, 23 px a gauche de
+        chaque ligne et 10 px au-dessus du titre, pour ne rien dire de plus que
+        le titre de la zone ;
+     4. le filet en pointille de la lettre redevient un filet de 1 px, le meme
+        que partout ailleurs : le bureau n'a plus qu'une facon de separer deux
+        lignes.
+   MESURE, avant contre apres, meme decor et meme fenetre de 1440 x 900, la
+   feuille d'avant servie par `git show HEAD:` : « A lire » passe de 206 a
+   185 px, « Le classeur » de 225 a 202, « Le courrier » de 349 a 317. La rangee
+   qu'ils forment, qui vaut la plus haute des trois, passe donc de 349 a 317 px.
+   32 px rendus au bas de la journee, et aucun mot n'a disparu.
+   ========================================================================== */
+.bdv-coque .zone--lecture,
+.bdv-coque .zone--classeur,
+.bdv-coque .zone--courrier{
+  padding:var(--bdv-e-3);
+  border-top-color:var(--bdv-trait);
+}
+/* LA PILE, LES DOS DE CLASSEUR, L'ENVELOPPE DECHIREE. Trois matieres, trois
+   pseudo-elements, et aucune ne se retourne : le papier qui depasse sous la
+   pile est du papier clair, le dos de carton est un brun de liege. */
+.bdv-coque .zone--lecture::after,
+.bdv-coque .zone--courrier::before{ display:none; }
+.bdv-coque .zone--classeur .fiche-l{
+  padding-left:0;
+  border-left:0;
+}
+
+/* UNE LIGNE DE LECTURE. Le titre au corps de la maquette, 13 px, la
+   metadonnee a 12 px, un filet de 1 px, et rien d'autre. */
+.bdv-coque .fiche-l{
+  gap:0;
+  padding:var(--bdv-e-2) var(--bdv-e-4) var(--bdv-e-2) 0;
+  border-bottom:1px solid var(--bdv-trait);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .fiche-l:last-child{ border-bottom:0; }
+.bdv-coque .fiche-l__t{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  line-height:1.35;
+  color:var(--bdv-encre-1);
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .fiche-l:hover .fiche-l__t{ color:var(--bdv-accent); }
+.bdv-coque .fiche-l__m{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-4);
+}
+/* La pastille « arrive depuis ton dernier passage ». Elle reste ronde : un
+   point est rond par nature, c'est la seule dispense de la regle du rayon. */
+.bdv-coque .fiche-l__p,
+.bdv-coque .lettre__p{ background:var(--bdv-accent); }
+
+/* LA LETTRE, l'objet propre du courrier. Elle garde sa colonne de date, qui est
+   ce qui en fait une lettre : sur une lettre on lit d'abord la date. Elle perd
+   la perforation en pointille et le mono. */
+.bdv-coque .lettre{
+  column-gap:var(--bdv-e-3);
+  padding:var(--bdv-e-2) var(--bdv-e-4) var(--bdv-e-2) 0;
+  border-bottom:1px solid var(--bdv-trait);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .lettre:last-child{ border-bottom:0; }
+.bdv-coque .lettre__d{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  line-height:1.35;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .lettre__t{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  line-height:1.35;
+  color:var(--bdv-encre-1);
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .lettre:hover .lettre__t{ color:var(--bdv-accent); }
+.bdv-coque .lettre__m{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-4);
+}
+
+
+/* ==========================================================================
+   15. « MES TACHES » : LE FORMULAIRE, LES SIX FILTRES, LES DEUX LISTES
+
+   CE QUI PART : les champs a angle vif sur fond blanc, le mono des dates et des
+   comptes, la coche a bordure de liege, les etiquettes de famille en papier.
+   CE QUI RESTE : la forme de la piece, qui est juste et qu'on ne touche pas. La
+   saisie EN HAUT, le champ qui garde le focus apres l'ajout, deux blocs (« A
+   faire » et « Fait ») dont le titre porte le compte, et la coche a gauche
+   parce que c'est le geste et que le geste se prend avant de lire la suite.
+
+   LES CHAMPS SONT DEJA PEINTS par la section 8 de cette feuille : 16 px de
+   plancher de saisie, 44 px de cible, un filet de 1 px et le rayon du bureau.
+   Il ne reste ici que ce que style.css leur ajoute et qui les contredit, le
+   retrait en rem et le mono des dates.
+
+   LES SIX FILTRES DE FAMILLE DEVIENNENT DES CHIPS, et c'est la seule facon de
+   les rendre lisibles en sombre. Leur couleur de famille etait un liseré de
+   3 px en `--fam-1..4`, une echelle dessinee pour du papier : `--fam-1` vaut
+   #4A1220 et tombe a 1,26:1 sur `--bdv-surface`. Le liseré reste, le jeton
+   change, et c'est pour ca que `--bdv-fam-1..4` existent (voir le bloc clair de
+   bdv-theme.css pour les quatre luminances).
+   ========================================================================== */
+.bdv-coque .zone--taches{ border-top-color:var(--bdv-trait); }
+
+/* -- LE FORMULAIRE ------------------------------------------------------- */
+.bdv-coque .tachesf__l{
+  margin-bottom:var(--bdv-e-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .tachesf__ligne{ gap:var(--bdv-e-2); }
+.bdv-coque .tachesf__i,
+.bdv-coque .tachesf__d{
+  padding:0 var(--bdv-e-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-saisie);
+  color:var(--bdv-encre-1);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .tachesf__i:focus,
+.bdv-coque .tachesf__d:focus{ border-color:var(--bdv-accent); }
+.bdv-coque .tachesf__au{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+/* Le bouton du site faisait 0,9 rem sur 2 rem dans une ligne de saisie. Sous le
+   scope il est deja un `.btn` du bureau ; il ne lui manque que la hauteur des
+   champs, pour que la ligne soit une ligne et pas un escalier. */
+.bdv-coque .tachesf .btn{
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-4);
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .tachesf__grand{
+  display:inline-flex;
+  align-items:center;
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-2);
+  color:var(--bdv-encre-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .tachesf__grand:hover{ color:var(--bdv-accent); }
+.bdv-coque .tachesf__aide{
+  margin-top:var(--bdv-e-2);
+  font-size:var(--bdv-f-2);
+  line-height:1.45;
+  color:var(--bdv-encre-4);
+}
+
+/* -- LES ETIQUETTES DE FAMILLE, PARTAGEES AVEC LE CALENDRIER --------------- */
+.bdv-coque .taches__filtres,
+.bdv-coque .cal__filtres{ gap:var(--bdv-e-2); }
+.bdv-coque .filtfam{
+  display:inline-flex;
+  align-items:center;
+  min-height:var(--bdv-e-8);
+  padding:0 var(--bdv-e-3);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-left:3px solid var(--bdv-fam-1);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  letter-spacing:0;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .filtfam[data-fam="travaux"]    { border-left-color:var(--bdv-fam-2); }
+.bdv-coque .filtfam[data-fam="rendezvous"] { border-left-color:var(--bdv-fam-3); }
+.bdv-coque .filtfam[data-fam="tempsforts"] { border-left-color:var(--bdv-fam-4); }
+/* LA CINQUIEME FAMILLE N'A PAS DE COULEUR, et c'est une mesure du 08/09/2026 :
+   il n'y a pas la place pour une cinquieme teinte dans la bande utilisable.
+   Elle prend une MATIERE, le pointille, et elle la garde ici. */
+.bdv-coque .filtfam[data-fam="taches"],
+.bdv-coque .filtfam[data-fam="notes"]{
+  border-left-color:var(--bdv-trait-fort);
+  border-left-style:dotted;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .filtfam:hover{
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-1);
+}
+/* ETEINTE : le libelle barre et l'encre en retrait, jamais un bouton grise, qui
+   se lirait « indisponible » alors qu'il est le seul moyen de rallumer. Le
+   barre est le GLYPHE, l'encre plus claire n'est que la confirmation. */
+.bdv-coque .filtfam--off{
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-4);
+  border-left-color:var(--bdv-trait-fort);
+  text-decoration:line-through;
+}
+
+/* -- LES DEUX LISTES ------------------------------------------------------ */
+.bdv-coque .taches__titre{
+  margin:var(--bdv-e-6) 0 var(--bdv-e-2);
+  padding-bottom:var(--bdv-e-2);
+  border-bottom:1px solid var(--bdv-trait);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .taches__vide{
+  font-size:var(--bdv-f-2);
+  font-style:normal;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .tache{
+  gap:var(--bdv-e-3);
+  padding:var(--bdv-e-2) 0;
+  border-bottom:1px solid var(--bdv-trait);
+  transition:background var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .tache:last-child{ border-bottom:0; }
+.bdv-coque .tache__titre{
+  font-size:var(--bdv-f-3);
+  line-height:1.35;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .tache__quand{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+/* Le retard porte son MOT : `.tache__quand` ecrit « en retard de 5 jours » ou
+   « aujourd'hui », la couleur ne fait que le rendre reperable en balayant. */
+.bdv-coque .tache[data-ton="retard"] .tache__quand,
+.bdv-coque .tache[data-ton="aujourdhui"] .tache__quand{ color:var(--bdv-retard); }
+.bdv-coque .tache[data-fait="oui"] .tache__titre{ color:var(--bdv-encre-4); }
+/* LA COCHE. 20 px de dessin, 24 px de cible par le `::before` deja pose par
+   style.css, et la coche elle-meme reste DESSINEE en deux traits : un caractere
+   de coche change de dessin d'une police a l'autre. */
+.bdv-coque .tache__coche{
+  background:var(--bdv-surface);
+  border:2px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r-pastille);
+  transition:border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .tache__coche:hover{ border-color:var(--bdv-encre-4); }
+.bdv-coque .tache__coche::after{
+  border-left:3px solid var(--bdv-accent);
+  border-bottom:3px solid var(--bdv-accent);
+}
+.bdv-coque .tache__coche[aria-pressed="true"]{ border-color:var(--bdv-accent); }
+.bdv-coque .tache__puce{ color:var(--bdv-encre-4); }
+.bdv-coque .tache__source,
+.bdv-coque .tache__x{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+  text-decoration:none;
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .tache__source:hover,
+.bdv-coque .tache__x:hover{
+  color:var(--bdv-accent);
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+
+
+/* ==========================================================================
+   16. « LE CALENDRIER » : LA BARRE, LES FILTRES, LES TROIS VUES
+
+   CE QUI PART : le papier du site sous les cases, l'ombre dure de la grille du
+   mois, le bordeaux des onglets de vue, le mono des numeros de jour, et les
+   quatre familles en `--fam-*`. CE QUI RESTE : la mecanique entiere, parce
+   qu'elle est juste et qu'elle est mesuree. Trois vues et pas quatre, la
+   pastille qui ne se clique pas, les segments de meme hauteur qui font le
+   bandeau d'une periode, le fond de carte discret, le « + » qui n'apparait
+   qu'au survol et au focus.
+
+   LA VUE MOIS EST UN TABLEAU, DONC ELLE EST DEJA PEINTE en partie par la
+   section 8 (`thead th`, `tbody tr`, `tbody td`). Ces trois regles conviennent
+   a un listing et pas a une grille de mois : une case de mois fait 5,5 rem et
+   pas 44 px, et une rangee de semaine ne se survole pas. C'est la premiere
+   chose que ce bloc reprend, et elle se serait vue tout de suite a la capture.
+
+   LES SEGMENTS D'OCCURRENCE GARDENT LEUR HAUTEUR FIGEE, 1,15 rem pour les deux
+   etats : premiere version du 08/09/2026, l'intitule faisait 19 px et sa
+   continuation 4, et une periode de soixante jours se lisait comme cinq rangees
+   de rayures. On ne touche pas a cette mesure, on repeint sa couleur.
+   ========================================================================== */
+
+/* -- LA BARRE ------------------------------------------------------------- */
+.bdv-coque .bdv-cal .cal__barre{
+  gap:var(--bdv-e-3);
+  margin-bottom:var(--bdv-e-3);
+  padding-bottom:var(--bdv-e-3);
+  border-bottom:1px solid var(--bdv-trait);
+}
+.bdv-coque .bdv-cal .cal__nav{ gap:var(--bdv-e-2); }
+.bdv-coque .bdv-cal .cal__periode{
+  font-family:inherit;
+  font-size:var(--bdv-f-5);
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bdv-cal .cal__fleche{
+  width:var(--bdv-e-8);
+  height:var(--bdv-e-8);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-encre-2);
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal .cal__fleche:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bdv-cal .cal__auj{
+  margin-left:var(--bdv-e-2);
+  padding:0 var(--bdv-e-3);
+  font-size:var(--bdv-f-2);
+}
+/* LES TROIS VUES : un selecteur segmente, comme `.bascule-unite` de la
+   maquette. Le cadre porte le filet, les trois boutons n'en ont aucun, et
+   l'actif remonte d'un cran de surface au lieu de virer au bordeaux plein. Un
+   aplat sombre au milieu d'une barre claire se lisait comme une alerte. */
+.bdv-coque .bdv-cal .cal__vues{
+  padding:2px;
+  background:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .bdv-cal .cal__vue{
+  min-height:var(--bdv-e-8);
+  padding:0 var(--bdv-e-3);
+  background:none;
+  border:1px solid transparent;
+  border-radius:var(--bdv-r-pastille);
+  color:var(--bdv-encre-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  letter-spacing:0;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal .cal__vue:hover{
+  background:var(--bdv-survol);
+  color:var(--bdv-encre-1);
+}
+/* L'ACTIF PORTE `aria-pressed`, ET CE N'EST PAS QUE LA COULEUR qui le dit : la
+   graisse monte a 600 et la surface remonte d'un cran. Trois signaux pour un
+   etat, dont deux qui survivent en niveaux de gris. */
+.bdv-coque .bdv-cal .cal__vue--actif{
+  background:var(--bdv-surface);
+  border-color:var(--bdv-trait);
+  color:var(--bdv-encre-1);
+  font-weight:600;
+}
+
+/* -- LA VUE MOIS ---------------------------------------------------------- */
+/* LES TROIS REGLES DE LISTING DE LA SECTION 8 SONT REPRISES ICI. Sans elles,
+   une case de mois prendrait la hauteur d'une rangee de tableau (44 px au lieu
+   de 5,5 rem), le survol poserait un voile sur la SEMAINE entiere, et chaque
+   case perdrait ses quatre bordures pour un seul filet du bas. */
+.bdv-coque .bdv-cal .calm{ box-shadow:none; }
+.bdv-coque .bdv-cal .calm th{
+  height:auto;
+  padding:var(--bdv-e-1) var(--bdv-e-2);
+  background:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait);
+  color:var(--bdv-encre-4);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+}
+.bdv-coque .bdv-cal .calm tbody tr{ border-bottom:0; }
+.bdv-coque .bdv-cal .calm tbody tr:hover{ background:none; }
+.bdv-coque .bdv-cal td.calm__c{
+  padding:var(--bdv-e-1) 0;
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  color:var(--bdv-encre-2);
+  vertical-align:top;
+}
+/* Le samedi et le dimanche respirent autrement : une surface au lieu d'une
+   autre, la difference se sent sans se lire. */
+.bdv-coque .bdv-cal td.calm__c[data-repos="oui"]{ background:var(--bdv-surface-2); }
+.bdv-coque .bdv-cal td.calm__c[data-hors="oui"]{
+  background:var(--bdv-fond);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .bdv-cal td.calm__c[data-ferie="oui"]{ border-top:3px solid var(--bdv-trait-fort); }
+.bdv-coque .bdv-cal .calm__n{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  border-radius:var(--bdv-r-pastille);
+  color:var(--bdv-encre-2);
+}
+/* AUJOURD'HUI : un cachet, pas une case entierement coloree, qui avalerait les
+   intitules qu'elle porte. */
+.bdv-coque .bdv-cal td.calm__c[data-auj="oui"] .calm__n{
+  background:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  font-weight:600;
+}
+.bdv-coque .bdv-cal .calf{
+  color:var(--bdv-encre-4);
+  font-size:var(--bdv-f-1);
+}
+.bdv-coque .bdv-cal .calo__b{
+  padding:0 var(--bdv-e-1);
+  background:none;
+  border:0;
+  border-left:3px solid var(--bdv-fam-1);
+  border-radius:0;
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  transition:background var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal button.calo__b:hover{ background:var(--bdv-survol); }
+.bdv-coque .bdv-cal .calo[data-famille="travaux"]    .calo__b{ border-left-color:var(--bdv-fam-2); }
+.bdv-coque .bdv-cal .calo[data-famille="rendezvous"] .calo__b{ border-left-color:var(--bdv-fam-3); }
+.bdv-coque .bdv-cal .calo[data-famille="tempsforts"] .calo__b{ border-left-color:var(--bdv-fam-4); }
+.bdv-coque .bdv-cal .calo[data-long="oui"] .calo__b{ border-bottom-color:var(--bdv-fam-1); }
+.bdv-coque .bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b{ border-bottom-color:var(--bdv-fam-2); }
+.bdv-coque .bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b{ border-bottom-color:var(--bdv-fam-3); }
+.bdv-coque .bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b{ border-bottom-color:var(--bdv-fam-4); }
+/* CE QUI PRESSE ET CE QUI EST PASSE. Le mot est dans l'intitule et dans la
+   liste du dessous ; ici la couleur ne fait que reperer. */
+.bdv-coque .bdv-cal .calo[data-niveau="urgent"] .calo__b,
+.bdv-coque .bdv-cal .calo[data-niveau="aujourdhui"] .calo__b{ border-left-color:var(--bdv-retard); }
+.bdv-coque .bdv-cal .calo[data-niveau="passe"] .calo__b{ border-left-color:var(--bdv-trait-fort); }
+.bdv-coque .bdv-cal .calo[data-fait="oui"] .calo__b{ color:var(--bdv-encre-4); }
+.bdv-coque .bdv-cal .calm__plus{
+  color:var(--bdv-encre-4);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  transition:opacity var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal .calm__plus:hover{ color:var(--bdv-accent); }
+
+/* -- LA VUE ANNEE --------------------------------------------------------- */
+.bdv-coque .bdv-cal .cala{ gap:var(--bdv-e-3); }
+.bdv-coque .bdv-cal .cala__m{
+  padding:var(--bdv-e-3);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .bdv-cal .cala__t{
+  padding-bottom:var(--bdv-e-2);
+  margin-bottom:var(--bdv-e-2);
+  border-bottom:1px solid var(--bdv-trait);
+  color:var(--bdv-encre-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal .cala__t:hover{ color:var(--bdv-accent); }
+.bdv-coque .bdv-cal .cala__g th{
+  height:auto;
+  padding:0;
+  background:none;
+  border:0;
+  color:var(--bdv-encre-4);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:400;
+  letter-spacing:0;
+  text-transform:none;
+  text-align:center;
+}
+.bdv-coque .bdv-cal .cala__g tbody tr{ border-bottom:0; }
+.bdv-coque .bdv-cal .cala__g tbody tr:hover{ background:none; }
+.bdv-coque .bdv-cal td.cala__c{
+  height:auto;
+  padding:1px 0;
+  background:none;
+  border:0;
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+/* UN JOUR PLEIN SE VOIT DE LOIN : c'est tout l'objet de cette vue. Le
+   remplissage prend l'accent pour TOUTES les familles, volontairement, comme
+   avant : quatre fonds derriere un chiffre de douze pixels donneraient quatre
+   paires de contraste a tenir, et la plus claire ne les tiendrait pas. */
+.bdv-coque .bdv-cal td.cala__c[data-plein="oui"]{
+  background:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  font-weight:600;
+  border-radius:var(--bdv-r-pastille);
+}
+/* Une periode qui traverse ne remplit pas la case, elle la souligne.
+   UN FILET ET PLUS UNE OMBRE INTERIEURE, ET CE N'EST PAS UN GOUT : la famille
+   des ombres est exactement a sa borne dans la section A de `npm run charte`,
+   20 recettes distinctes pour une charte qui en autorise deux. Une ombre
+   `inset` repeinte dans un jeton du bureau aurait ete une VINGT ET UNIEME
+   recette, donc un echec, pour dessiner le meme trait de 2 px qu'une bordure
+   dessine sans rien ajouter a aucune echelle. */
+/* `--bdv-encre-4` ET PAS `--bdv-trait-fort`, VU A LA CAPTURE DE LA VUE ANNEE.
+   Dans cette vue il n'y a AUCUN intitule : le soulignement est la seule chose
+   qui dise « une periode passe par ce jour-la ». C'est donc un objet graphique
+   PORTEUR D'INFORMATION, et le seuil applicable est 3:1. `--bdv-trait-fort`
+   (#383D44) tient 1,64:1 sur `--bdv-surface` en sombre, c'est-a-dire qu'il se
+   devine ; `--bdv-encre-4` tient 5,53:1 en sombre et 5,88:1 en clair.
+   Le filet de jour ferie de la vue mois, lui, garde `--bdv-trait-fort` : la
+   meme information y est deja portee par le glyphe de `.calf` et par son
+   infobulle, il n'est donc que le rappel d'un fait, pas le fait. */
+.bdv-coque .bdv-cal td.cala__c[data-bande="oui"]{
+  box-shadow:none;
+  border-bottom:2px solid var(--bdv-encre-4);
+}
+.bdv-coque .bdv-cal td.cala__c[data-auj="oui"]{
+  box-shadow:none;
+  border-bottom:2px solid var(--bdv-accent);
+}
+
+/* -- LA VUE LISTE, ET LES FICHES D'ECHEANCE ------------------------------- */
+.bdv-coque .echeances{ gap:var(--bdv-e-3); }
+.bdv-coque .echeance{
+  gap:var(--bdv-e-4);
+  padding:var(--bdv-e-4);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  border-left:3px solid var(--bdv-fam-1);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .echeance__compte{
+  padding-right:var(--bdv-e-3);
+  border-right:1px solid var(--bdv-trait);
+}
+.bdv-coque .echeance__quand{
+  font-family:inherit;
+  font-size:var(--bdv-f-5);
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .echeance__date{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .echeance__titre{
+  font-family:inherit;
+  font-size:var(--bdv-f-4);
+  font-weight:600;
+  line-height:1.25;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .echeance__qui{
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .echeance__detail{
+  font-size:var(--bdv-f-2);
+  line-height:1.5;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .echeance__liens{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .echeance__ouvrir{ color:var(--bdv-encre-3); }
+.bdv-coque .echeance__ouvrir:hover{ color:var(--bdv-accent); }
+/* LES QUATRE TONS. Le rouge ne sert qu'a ce qui tombe dans la semaine : partout
+   il ne voudrait plus rien dire. Le compte a rebours ECRIT le delai en toutes
+   lettres (« dans 5 jours », « aujourd'hui », « passe »), donc aucun de ces
+   quatre tons ne porte seul son information. */
+.bdv-coque .echeance[data-niveau="urgent"],
+.bdv-coque .echeance[data-niveau="aujourdhui"]{
+  background:var(--bdv-retard-lavis);
+  border-left-color:var(--bdv-retard);
+}
+.bdv-coque .echeance[data-niveau="urgent"] .echeance__quand,
+.bdv-coque .echeance[data-niveau="aujourdhui"] .echeance__quand{ color:var(--bdv-retard); }
+.bdv-coque .echeance[data-niveau="proche"]{ border-left-color:var(--bdv-alerte); }
+.bdv-coque .echeance[data-niveau="proche"] .echeance__quand{ color:var(--bdv-alerte); }
+.bdv-coque .echeance[data-niveau="loin"]{ border-left-color:var(--bdv-trait-fort); }
+.bdv-coque .echeance[data-niveau="passe"]{
+  background:var(--bdv-surface-2);
+  border-left-color:var(--bdv-trait-fort);
+}
+.bdv-coque .echeance[data-niveau="passe"] .echeance__quand{
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .bdv-cal .echeance[data-famille="travaux"]   { border-left-color:var(--bdv-fam-2); }
+.bdv-coque .bdv-cal .echeance[data-famille="rendezvous"]{ border-left-color:var(--bdv-fam-3); }
+.bdv-coque .bdv-cal .echeance[data-famille="tempsforts"]{ border-left-color:var(--bdv-fam-4); }
+.bdv-coque .bdv-cal .echeance[data-fait="oui"] .echeance__quand{ color:var(--bdv-bon); }
+.bdv-coque .bdv-cal .echeance__repere{
+  color:var(--bdv-encre-4);
+  font-style:normal;
+}
+
+/* -- LES BOUTONS DE LA FICHE : cocher, decaler, ne plus suivre ------------- */
+.bdv-coque .bdv-cal .cal__coche{
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  letter-spacing:0;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal .cal__coche:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+/* COCHEE : `aria-pressed` porte l'etat pour la synthese vocale, le libelle
+   change de mot, et la teinte n'arrive qu'en troisieme. */
+.bdv-coque .bdv-cal .cal__coche[aria-pressed="true"]{
+  background:var(--bdv-bon-lavis);
+  border-color:var(--bdv-bon);
+  color:var(--bdv-bon);
+}
+.bdv-coque .bdv-cal .cal__coche[aria-pressed="true"]:hover{
+  background:var(--bdv-bon);
+  border-color:var(--bdv-bon);
+  color:var(--bdv-encre-sur-accent);
+}
+.bdv-coque .bdv-cal .cal__coche--x{
+  border-color:var(--bdv-trait-fort);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .bdv-cal .cal__coche--x:hover{
+  background:var(--bdv-retard-lavis);
+  border-color:var(--bdv-retard);
+  color:var(--bdv-retard);
+}
+.bdv-coque .bdv-cal .cal__coche--choix{
+  border-color:var(--bdv-trait-fort);
+  color:var(--bdv-encre-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .bdv-cal .cal__coche--choix:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+
+/* -- LES PHRASES DE LA PIECE ---------------------------------------------- */
+.bdv-coque .bdv-cal .cal__detailt{
+  padding-bottom:var(--bdv-e-2);
+  border-bottom:1px solid var(--bdv-trait);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .bdv-cal .cal__vide,
+.bdv-coque .bdv-cal .cal__sansdate,
+.bdv-coque .bdv-cal .cal__eteints{
+  font-size:var(--bdv-f-2);
+  font-style:normal;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .bdv-cal .cal__rallume{
+  border-bottom:1px dotted var(--bdv-accent);
+  color:var(--bdv-accent);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-style:normal;
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-cal .cal__rallume:hover{ color:var(--bdv-accent-fort); }
+
+/* -- LA GRILLE DU MOIS SUR TELEPHONE : LES PASTILLES ----------------------
+   Sous 700 px, la liste d'intitules d'une case devient une rangee de points de
+   6 px, et c'est src/css/bdv-calendrier.css qui le fait. Ce qu'il faut reprendre
+   ici, ce sont les SEPT couleurs de ces points : elles viennent de `--fam-*`,
+   `--danger-deep`, `--cork` et `--ok`, c'est-a-dire de l'echelle du papier.
+   `--fam-1` vaut #4A1220 et tient 1,26:1 sur `--bdv-surface` en sombre : la
+   carte du mois deviendrait une grille de cases vides, sans une erreur nulle
+   part, et seulement chez qui a son telephone en mode sombre.
+   C'est le meme defaut que la section 4 de `npm run banc:jetons` attrape sur les
+   jetons ; ici ce sont des APPELS, et aucun banc ne les regarde. */
+@media (max-width:700px){
+  .bdv-coque .bdv-cal .calm__l .calo__b{ background:var(--bdv-encre-4); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-famille="obligations"] .calo__b{ background:var(--bdv-fam-1); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-famille="travaux"]    .calo__b{ background:var(--bdv-fam-2); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-famille="rendezvous"] .calo__b{ background:var(--bdv-fam-3); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-famille="tempsforts"] .calo__b{ background:var(--bdv-fam-4); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="urgent"] .calo__b,
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="aujourdhui"] .calo__b{ background:var(--bdv-retard); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="passe"] .calo__b{ background:var(--bdv-trait-fort); }
+  /* Ce qui est fait se creuse au lieu de se remplir : un anneau, pas un point.
+     C'est la FORME qui porte l'etat, la couleur ne fait que confirmer. */
+  .bdv-coque .bdv-cal .calm__l .calo[data-fait="oui"] .calo__b{
+    background:transparent;
+    box-shadow:none;
+    border:2px solid var(--bdv-bon);
+  }
+  /* La case du mois redevient une case et pas une rangee de listing : la
+     section 8 lui donnerait 44 px de haut et un seul filet en bas. */
+  .bdv-coque .bdv-cal td.calm__c{ height:var(--bdv-cible); }
+  .bdv-coque .bdv-cal .calm__n{ font-size:var(--bdv-f-1); }
+}
+
+/* 640 px ET PAS 700 : c'est la borne de src/css/style.css, ou `.echeance` passe
+   d'une grille a deux colonnes a une seule et ou son compte a rebours echange
+   son filet de droite contre un filet du bas. La reprendre a 700 aurait retire
+   le filet de droite dans les soixante pixels ou la colonne existe encore.
+   Meme lecon que la largeur du rail au lot precedent : la regle etait juste,
+   son perimetre non. */
+@media (max-width:640px){
+  .bdv-coque .echeance__compte{
+    padding-right:0;
+    padding-bottom:var(--bdv-e-2);
+    border-right:0;
+    border-bottom:1px solid var(--bdv-trait);
+  }
+}
+
+
+/* ==========================================================================
+   17. CE QUE L'AUDIT DE CONTRASTE A TROUVE A L'ECRAN, ET QUE LA FEUILLE NE
+       POUVAIT PAS DIRE
+
+   SEPTIEME FOIS QUE LA MEME LECON SE PAIE : la mesure trouve ce qu'on ne voit
+   pas, la capture voit ce qu'on ne mesure pas. `npm run charte` section 6 bis
+   etait VERTE sur tout ce bloc, et elle avait raison de l'etre : elle ne
+   regarde qu'une regle qui pose a la fois une encre ET un fond. Aucune de
+   celles-ci ne le fait. Ce sont des encres de src/css/style.css posees sur des
+   fonds de CETTE feuille, ce qu'aucun controle de feuille ne peut composer :
+   il faudrait rejouer la cascade, c'est-a-dire etre un navigateur.
+
+   L'OUTIL QUI LES A TROUVEES est un audit du rendu : il parcourt
+   `.bureau-atelier`, remonte au premier fond OPAQUE en composant les voiles au
+   passage, et rend toute paire sous son seuil. Douze passages, trois pieces par
+   theme et par largeur : 27 paires sous le seuil au premier, zero au dernier.
+   Vingt-trois d'entre elles etaient en SOMBRE, ce qui est exactement la forme
+   attendue du defaut : le clair n'a pas bouge, le sombre posait du papier sur
+   de la nuit. Les quatre autres etaient des pastilles de 6 px a `font-size: 0`,
+   dont le libelle reste dans l'arbre d'accessibilite : un faux positif de
+   l'audit, ferme par un plancher de 4 px.
+   ========================================================================== */
+
+/* -- 1. LES LIENS SANS CLASSE. `a { color: var(--bordeaux) }` est pose sur tout
+      le site, ligne 290 de style.css, et c'est juste : le site est une brochure
+      sur papier creme. Sur une carte a #131519, #5A1525 donne 1,37:1. Trois
+      liens du bureau n'ont pas de classe a eux et tombaient tous les trois :
+      « Les 49 echeances suivies » sous le bloc calendrier, « Mes taches » dans
+      la phrase des taches sans date, et « Lire l'article » dans le pied d'une
+      fiche d'echeance.
+      `:not([class])` EST LE PERIMETRE EXACT : tout lien du bureau qui porte une
+      classe a deja sa regle dans cette feuille (`.postit__lien`, `.lettre`,
+      `.fiche-l`, `.calbloc__une`, `.chiffre`, `.mot__aller`), et une regle large
+      les aurait tous repeints en accent, y compris les titres d'article. */
+.bdv-coque .bureau-atelier a:not([class]){ color:var(--bdv-accent); }
+.bdv-coque .bureau-atelier a:not([class]):hover{ color:var(--bdv-accent-fort); }
+
+/* -- 2. LA PORTE DE SORTIE DU TELEPHONE. `--muted` (#6B6558) sur le fond de
+      page sombre donne 2,61:1. C'est la seule porte vers le site quand le
+      bureau est une application, et elle etait a peine visible. */
+@media (max-width:700px){
+  body.bdv-poste.bdv-coque .bureau-sortie a{
+    font-family:inherit;
+    font-size:var(--bdv-f-2);
+    color:var(--bdv-encre-3);
+  }
+  body.bdv-poste.bdv-coque .bureau-sortie a:hover{ color:var(--bdv-accent); }
+  body.bdv-poste.bdv-coque .bureau-sortie{ font-family:inherit; }
+}
+
+/* -- 3. LA PUNAISE SUR TELEPHONE. `body.bdv-poste .panneau .postit[data-ton]`
+      pese (0,4,1) : un nom d'ELEMENT de plus que mes (0,4,0), donc il gagnait,
+      et les deux etats gardaient leur papier. Mesure : `--bdv-encre-1` sur
+      `--warn-bg` donne 1,03:1, c'est-a-dire un titre de client INVISIBLE, et
+      `--bdv-encre-2` dessus 1,39:1.
+      MEME PIEGE QU'AU LOT PRECEDENT AVEC `flex-direction`, et exactement la
+      meme famille : une regle d'en face qu'on n'a pas lue en entier. On reprend
+      donc le scope complet, `body.bdv-poste.bdv-coque`, qui pese (0,5,1).
+      LA MISE EN PAGE DE style.css N'EST PAS TOUCHEE : sa ligne en flex, son
+      ordre de cellules et ses cibles de 44 px sont mesures depuis le
+      11/09/2026 et font deja exactement ce que la maquette demande. On repeint,
+      on ne redessine pas. */
+@media (max-width:700px){
+  body.bdv-poste.bdv-coque .panneau .postit{
+    border-bottom:1px solid var(--bdv-trait);
+    border-left:3px solid transparent;
+  }
+  body.bdv-poste.bdv-coque .panneau .postit:last-child{ border-bottom:0; }
+  body.bdv-poste.bdv-coque .panneau .postit[data-ton="vieux"]{
+    background:var(--bdv-retard-lavis);
+    border-left-color:var(--bdv-retard);
+  }
+  body.bdv-poste.bdv-coque .panneau .postit[data-ton="fait"]{
+    background:var(--bdv-bon-lavis);
+    border-left-color:var(--bdv-bon);
+  }
+  body.bdv-poste.bdv-coque .panneau .postit__v:not([data-mot]){
+    font-size:var(--bdv-f-6);
+    color:var(--bdv-encre-1);
+  }
+  body.bdv-poste.bdv-coque .panneau .postit__s{
+    font-size:var(--bdv-f-2);
+    color:var(--bdv-encre-4);
+  }
+  body.bdv-poste.bdv-coque .panneau .postit[data-ton="vieux"] .postit__s{ color:var(--bdv-encre-2); }
+}
+
+/* -- 4. LA RANGEE PAIRE DU LISTING EN FICHES. La bande alternee est reprise une
+      SECONDE fois dans `@container sousmain (max-width: 40rem)`, portee cette
+      fois par la RANGEE et plus par la cellule : `background: var(--white)`. Le
+      nom du client passait donc a 1,10:1 et le montant a 1,10:1, sur une fiche
+      sur deux, et seulement sur telephone. */
+@container sousmain (max-width: 40rem){
+  .bdv-coque .listb tbody tr:nth-child(even){ background:none; }
+  .bdv-coque .listb tbody tr:nth-child(even):hover{ background:var(--bdv-survol); }
+}
+
+/* -- 5. LES CINQUIEME ET SIXIEME FAMILLES DU CALENDRIER. Les taches du vigneron
+      et ses rappels clients n'ont pas de couleur : il n'y a pas la place pour
+      une cinquieme teinte sur la bande utilisable, c'est mesure depuis le
+      08/09/2026 et ca ne change pas. Elles se distinguent donc par une MATIERE,
+      un filet POINTILLE, plus le combine pose en `::before` pour les clients.
+      CE QUI CHANGE ICI, ET RIEN D'AUTRE : cette matiere etait dessinee en
+      `--ink` (#1E2536) et ecrite en Caveat. L'encre donne 1,20:1 sur une carte
+      sombre, donc l'intitule disparaissait purement et simplement de la grille.
+      LA MAIN COURANTE PART AVEC LE RESTE DU MOBILIER. « Ecrit a la main sur un
+      calendrier imprime » etait la derniere metaphore materielle des trois
+      pieces, et elle coutait cher a la lecture : Caveat a 13 px dans une case de
+      cent pixels se devine plus qu'il ne se lit. Le filet pointille et le
+      combine restent, et ils suffisent : ils se lisent en niveaux de gris, en
+      vision deuteranope, et ils ne demandent aucune teinte. */
+.bdv-coque .bdv-cal .calo[data-tache="oui"] .calo__b,
+.bdv-coque .bdv-cal .calo[data-client="oui"] .calo__b{
+  border-bottom:1px dotted var(--bdv-encre-4);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .bdv-cal .echeance[data-tache="oui"],
+.bdv-coque .bdv-cal .echeance[data-client="oui"]{
+  border-left:3px dotted var(--bdv-encre-4);
+}
+.bdv-coque .bdv-cal .echeance[data-tache="oui"] .echeance__titre,
+.bdv-coque .bdv-cal .echeance[data-client="oui"] .echeance__titre{ font-family:inherit; }
+
+/* -- 6. CE QUI EST FAIT DANS LA GRILLE. Le segment prenait `--ok-bg`, un vert
+      papier a #EDF4EE : l'intitule en encre sombre dessus etait illisible en
+      theme sombre, et la case entiere devenait une tache claire. Le barre reste
+      : c'est la FORME qui dit « fait », la couleur ne fait que confirmer. */
+.bdv-coque .bdv-cal .calo[data-fait="oui"] .calo__b{
+  background:var(--bdv-bon-lavis);
+  border-left-color:var(--bdv-bon);
+  color:var(--bdv-encre-4);
+}
+
+/* -- 7. LES ANNEAUX DE FOCUS DU CALENDRIER. Ils sont poses a l'interieur des
+      cases, c'est la bonne regle (une case de mois fait cent pixels, un anneau
+      a trois pixels dehors tombe sur le filet de la voisine). Leur couleur, en
+      revanche, etait le bordeaux du site : 1,37:1 sur une case sombre, donc un
+      focus clavier qui n'existe plus. `--bdv-anneau` tient 7,44:1 en clair et
+      9,15:1 en sombre. L'epaisseur ne bouge pas : 2 px des deux cotes. */
+.bdv-coque .bdv-cal .cal__fleche:focus-visible,
+.bdv-coque .bdv-cal .cal__vue:focus-visible,
+.bdv-coque .bdv-cal .cal__coche:focus-visible,
+.bdv-coque .bdv-cal .cala__t:focus-visible,
+.bdv-coque .bdv-cal button.calo__b:focus-visible,
+.bdv-coque .bdv-cal .calm__plus:focus-visible,
+.bdv-coque .bdv-cal .cal__rallume:focus-visible{ outline-color:var(--bdv-anneau); }
+
+/* -- 8. ET LA PASTILLE DU TELEPHONE REDEVIENT UNE PASTILLE. Defaut introduit
+      par le point 5 de ce bloc meme, et trouve par le meme audit au passage
+      suivant : `.bdv-coque .bdv-cal .calo[data-tache="oui"] .calo__b` pese
+      (0,4,0) contre (0,3,0) pour `.bdv-cal .calm__l .calo__b{font-size:0}`. Les
+      occurrences ecrites a la main reprenaient donc leur texte a 12 px DANS un
+      point de 6 px, sur un fond de famille, a 2,09:1. Le correctif d'un defaut
+      de contraste en avait fabrique un autre, deux pixels plus loin. */
+@media (max-width:700px){
+  .bdv-coque .bdv-cal .calm__l .calo[data-tache="oui"] .calo__b,
+  .bdv-coque .bdv-cal .calm__l .calo[data-client="oui"] .calo__b{
+    font-size:0;
+    border-bottom:0;
+  }
+}
+
+/* -- 9. L'ARDOISE SOUS 640 px : UNE COLONNE, ET LE FILET PASSE DESSOUS.
+      src/css/style.css la ramene deja a une colonne a cette borne et rend le
+      partage de rangees, qui n'a plus d'objet quand il n'y a plus qu'un chiffre
+      par rangee. Ma piste `auto-fit` pese (0,2,0) contre (0,1,0) et gagnait
+      donc : a 390 px, deux colonnes de 9 rem coupaient « 1 064 403 € » en deux
+      lignes, le symbole euro tout seul sous le nombre. Vu a la capture.
+      Le filet vertical devient horizontal par la meme occasion : une bordure a
+      droite ne separe rien quand il n'y a rien a droite. */
+@media (max-width:640px){
+  .bdv-coque .ardoise{ grid-template-columns:minmax(0,1fr); }
+  .bdv-coque .chiffre{
+    border-right:0;
+    border-bottom:1px solid var(--bdv-trait);
+  }
+  .bdv-coque .chiffre:last-child{ border-bottom:0; }
+}

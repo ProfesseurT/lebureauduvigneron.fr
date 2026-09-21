@@ -244,13 +244,23 @@ Et le vocabulaire des echeances vient de `phrase()` dans `bdv-echeances.js`, jam
 deuxieme jeu de mots ecrit dans l'ecran qui l'affiche. Sinon la meme obligation se dit de
 deux facons a deux endroits de la meme page.
 
-## LA REGLE DU PLATEAU
+## LA REGLE DU PLATEAU, ET CE QU'ELLE GARDE ENCORE, 21/09/2026
 
-Depuis la refonte du 07/09/2026, `Ma journee` pose plusieurs matieres sur un meme plateau :
-du liege pour le panneau, du papier continu a picots pour le sous-main, un bloc a effeuiller
-pour le calendrier, de l'ardoise encadree de bois pour les chiffres, du carton kraft pour les
-intercalaires de la barre, une pile, des dos de classeur et une enveloppe pour les trois
-zones du bas.
+**CETTE SECTION A CHANGE DE PERIMETRE LE 21/09/2026, ET IL FAUT LIRE LES DEUX MOITIES.**
+Le mobilier qu'elle decrit n'existe plus dans le bureau connecte. Il existe toujours, a
+l'identique, sur la page d'accueil du site public. La regle n'est donc ni morte ni
+generale : elle vaut pour un endroit et pas pour l'autre, et c'est cet endroit-la qu'il
+faut savoir avant de la citer.
+
+### CE QUI RESTE VRAI : LA DEMONSTRATION DE LA PAGE D'ACCUEIL
+
+Depuis la refonte du 07/09/2026, `src/_includes/components/demo-pinboard.njk` pose
+plusieurs matieres sur un meme plateau : du liege pour le panneau, du papier continu a
+picots pour le sous-main, un bloc a effeuiller pour le calendrier, de l'ardoise encadree de
+bois pour les chiffres, du carton kraft pour les intercalaires de la barre, une pile, des
+dos de classeur et une enveloppe pour les trois zones du bas. Elle montre les VRAIS
+composants du bureau, avec leurs vraies classes, et ce sont les regles de
+`src/css/style.css` qui les peignent.
 
 **Ce qui empeche ce mobilier de faire collage de brocante n'est pas le gout, c'est une regle
 en trois lignes, ecrite en tete de la section MATIERES de `src/css/style.css` :**
@@ -261,9 +271,34 @@ en trois lignes, ecrite en tete de la section MATIERES de `src/css/style.css` :*
 3. Toute matiere ajoutee prend ses couleurs dans les jetons de matiere existants, et si elle
    en demande un nouveau, ce jeton nomme la MATIERE et pas l'endroit ou il sert.
 
-L'ordre des zones est une demande de Ted et non une preference de mise en page : le panneau,
-le sous-main avec le calendrier a sa droite, l'ardoise, le mot du jour, puis a lire / le
-classeur / le courrier. `npm run banc` le controle.
+**Ces trois lignes tiennent toujours pour le site public, et on ne touche pas a
+`style.css`.** Le site est une brochure sur papier creme, il n'a qu'un theme et n'en veut
+pas d'autre.
+
+### CE QUI N'EST PLUS VRAI : LE BUREAU CONNECTE
+
+Sous `.bdv-coque`, c'est-a-dire sur `/mon-bureau/` et nulle part ailleurs, **la metaphore
+materielle est abandonnee depuis le 21/09/2026.** Le liege, les post-it epingles, le papier
+a picots, le bloc a effeuiller, l'ardoise encadree, le carton kraft, la pile, les dos de
+classeur et l'enveloppe sont RECOUVERTS par `src/css/bdv-bureau.css`. Aucune de leurs regles
+n'a ete supprimee de `style.css` : elles servent encore l'accueil.
+
+**La regle qui les remplace, dans le bureau, tient en une ligne : une carte, un trait de
+1 px, une surface qui monte d'un cran, et la hierarchie portee par la typographie.**
+
+**LE MOTIF N'EST PAS LE GOUT, C'EST LE THEME SOMBRE.** Une matiere se dessine avec des
+couleurs qu'elle ne peut pas retourner : le liege est un brun clair, son encre un brun
+fonce, et l'un sur l'autre ne tient que sur du papier. Un bureau qui s'ouvre a 6 h dans un
+chai et a 23 h dans un bureau ne peut pas porter six matieres qui ont chacune leur propre
+lumiere. La profondeur devient donc un TRAIT, qui n'a qu'une valeur par theme et se retourne
+d'un jeton. La deuxieme regle du plateau, « deux ombres seulement », est d'ailleurs tenue
+plus strictement qu'avant sous le scope : `bdv-bureau.css` ne pose AUCUNE `box-shadow`.
+
+L'ordre des zones, lui, ne change pas d'une ligne : le panneau, le sous-main avec le
+calendrier a sa droite, l'ardoise, le mot du jour, puis a lire / le classeur / le courrier.
+C'est une demande de Ted du 07/09/2026 et non une preference de mise en page, `npm run banc`
+le controle par `#bureauJournee > .zone`, et la maquette validee le 21/09 le confirme ligne
+pour ligne : ce qui presse en haut, les chiffres plus bas.
 
 ### UNE ZONE QUI SAIT SE MONTRER DOIT SAVOIR SE CACHER, 08/09/2026
 
@@ -1383,10 +1418,12 @@ un voile se mesure a la main contre la surface reelle. Les deux du depot l'ont e
 
 ### CE QUI RESTE OUVERT, ET QUI N'EST PAS FAIT
 
-- **Le contenu des pieces.** Panneau de liege, post-it, sous-main, ardoise, calendrier, les cinq
-  ecrans de vente, le panneau de reglages et la modale gardent leur dessin papier. En SOMBRE, ils
-  posent de l'encre foncee sur des cartes sombres et se lisent mal : c'est l'incoherence assumee
-  de ce lot, et la raison pour laquelle les deux lots ne se poussent qu'ensemble.
+- **Le contenu des pieces.** ~~Panneau de liege, post-it, sous-main, ardoise, calendrier, les
+  cinq ecrans de vente, le panneau de reglages et la modale gardent leur dessin papier.~~
+  **FERME EN PARTIE LE MEME JOUR, AU LOT 3** (section suivante) : « Ma journee », « Mes taches »
+  et « Le calendrier » sont repeints. Restent en papier les cinq ecrans de vente
+  (`bdv-ecrans.css`), le panneau de reglages (`bdv-panneau.css`), la fiche client et la modale de
+  tache. En SOMBRE, ceux-la posent encore de l'encre foncee sur des cartes sombres.
 - **Les pastilles de compte du rail.** La maquette en montre ; `PIECES` dans `bdv-nav.js` ne
   porte aucun compte, et en inventer un est du contenu. Aucune regle n'a ete ecrite pour elles :
   une regle dont aucune page ne porte la classe est du poids mort, et la section C de
@@ -1398,6 +1435,162 @@ un voile se mesure a la main contre la surface reelle. Les deux du depot l'ont e
 - **Le squelette de chargement.** Pas de regle ecrite, meme raison que les pastilles : il n'y a
   aucun etat de chargement dans le balisage de la coque a quoi l'accrocher.
 - **L'etat de synchronisation dans l'en-tete** (voir plus haut).
+
+## LE CONTENU DES TROIS PIECES SANS VITISOFT, 21/09/2026
+
+Lot 3 des deux themes, et celui qui ferme le defaut annonce par le lot 2 : **en sombre, le
+contenu des pieces posait de l'encre foncee sur des cartes sombres et ne se lisait pas.**
+Perimetre : « Ma journee » et ses huit zones, « Mes taches », « Le calendrier ». Les cinq
+ecrans de vente, le panneau de reglages, la fiche client et la modale de tache gardent leur
+dessin papier et viennent au lot suivant.
+
+**TOUT EST DANS `src/css/bdv-bureau.css`, SOUS LE MEME SCOPE `.bdv-coque`, ET
+`src/css/style.css` N'A PAS BOUGE D'UNE LIGNE.** Meme arbitrage que le lot 2 : `.zone`,
+`.postit` et `.lettre` sont aussi les classes de la demonstration de la page d'accueil.
+
+### CE QUE CHAQUE ZONE DEVIENT
+
+- **Le panneau** : une pile de rangees separees par un filet, plus un tableau de liege.
+  `data-mot`, pose par `src/mon-bureau.njk` depuis le 10/09/2026, decide de la mise en page :
+  **sans lui la ligne de tete est un CHIFFRE**, elle part dans la colonne de gauche a 28 px et
+  le libelle prend la colonne du texte ; **avec lui c'est un TITRE**, il reste dans la colonne
+  du texte a 17 px avec son tampon au-dessus. La regle des deux natures (« a un seul on nomme,
+  a plusieurs on compte ») n'est pas seulement gardee, elle devient visible.
+- **Le sous-main** : un tableau propre. Rangee de 44 px, separateur de 1 px, survol a 5 %,
+  actions revelees a droite, nombres en chiffres tabulaires. Les picots, les bandes alternees
+  et l'ombre de carte partent.
+- **Le bloc calendrier** : l'objet a effeuiller devient un delai en grand, un titre, et trois
+  lignes dessous.
+- **L'ardoise** : quatre nombres nus, chacun avec son libelle en capitales et sa provenance. La
+  regle « un chiffre affiche dit toujours d'ou il vient » ne bouge pas.
+- **Le mot du jour** : une carte neutre. Le fond teinte par gravite part ; le signe garde sa
+  forme et prend un cadre, et c'est lui plus le hors-ecran qui portent l'etat.
+- **A lire / Le classeur / Le courrier** : la pile, les dos de carton et l'enveloppe dechiree
+  partent, les lignes passent au corps de 13 px. Mesure avant/apres, meme decor, 1440 x 900 :
+  206 -> 185, 225 -> 202, 349 -> 317 px. **La fusion en une seule zone, que montre la maquette,
+  n'a PAS ete faite** : elle ferait passer les huit `.zone` de `#bureauJournee` a six, et cette
+  liste de huit noms est l'ordre que Ted a dicte, controle par `npm run banc`. C'est une
+  decision de contenu.
+- **Mes taches** : les six filtres deviennent des chips, les deux listes des rangees a filet.
+- **Le calendrier** : barre, selecteur segmente a trois vues, grille du mois, douze mini-mois,
+  fiches de la liste.
+
+**L'ORDRE DES HUIT ZONES N'A PAS CHANGE ET LE BANC NON PLUS.** Il est deja celui de la
+maquette : ce qui presse en haut, les chiffres plus bas.
+
+### LES QUATRE JETONS AJOUTES SONT DES MATIERES, DONC DANS LES TROIS BLOCS
+
+`--bdv-fam-1` a `--bdv-fam-4`, les familles du calendrier. **Ils DOUBLENT `--fam-1..4` de
+`tokens.css` au lieu de les reutiliser, et ce n'est pas du rangement** : `--fam-1` vaut
+#4A1220, L* 15,4 ; il tient 13,09:1 sur le papier du site et **1,26:1 sur `--bdv-surface` en
+sombre**, c'est-a-dire qu'il disparait. Le calendrier public de `/outils/echeances/` n'a qu'un
+theme et garde les siens ; celui du bureau en a deux. Meme rapport que `--serie-*` et
+`--fam-*` entre eux : deux metiers, deux echelles.
+
+Ils sont **separes en LUMINANCE** et pas en teinte, la regle de la charte : L* 15,4 / 32,4 /
+44,3 / 56,1 en clair, 84,9 / 72,1 / 59,5 / 49,9 en sombre. L'echelle s'inverse avec le fond,
+l'ecart reste d'une douzaine de points. Ce sont des OBJETS graphiques, un filet de 3 px et une
+pastille de 6 px, jamais du texte : le seuil est 3:1, le pire cas tient 3,15:1 en clair et
+3,42:1 en sombre.
+
+### CE QUE LA SECTION A DE `npm run charte` A REFUSE, ET CE QU'ELLE A FAIT ECRIRE
+
+Les cinq familles d'echelles fermees etaient **exactement a leur borne** avant ce lot : 35
+tailles, 0 rayon, 20 ombres, 9 epaisseurs de filet, 8 z-index. Une valeur de plus dans l'une
+d'elles fait echouer le banc, et c'est voulu.
+
+Consequence concrete, et elle a change le dessin : **les trois `box-shadow: inset` que ce lot
+allait poser (l'anneau d'une pastille faite, les deux soulignements de la vue annee) auraient
+ete la 21e, 22e et 23e recette d'ombre du bureau.** Elles sont donc ecrites en BORDURE, qui
+dessine exactement le meme trait de 2 px sans rien ajouter a aucune echelle. **Un plafond qui
+mord change le code avant d'echouer** : c'est tout ce qu'on lui demande.
+
+### L'AUDIT DE CONTRASTE A L'ECRAN, ET POURQUOI LA FEUILLE NE POUVAIT PAS LE FAIRE
+
+**SEPTIEME FOIS QUE LA MEME LECON SE PAIE.** `npm run charte` section 6 bis etait VERTE sur
+vingt-trois paires illisibles, et elle avait raison de l'etre : elle ne regarde qu'une regle
+qui pose a la fois une encre ET un fond. Aucune de ces vingt-trois ne le fait. Ce sont des
+encres de `style.css` posees sur des fonds de `bdv-bureau.css`, ce qu'aucun controle de
+feuille ne peut composer : il faudrait rejouer la cascade, c'est-a-dire etre un navigateur.
+
+L'outil qui les a trouvees parcourt le RENDU de `.bureau-atelier`, remonte au premier fond
+OPAQUE en composant les voiles au passage, et rend toute paire sous son seuil. Douze passages,
+trois pieces par theme et par largeur : **27 paires au premier, zero au dernier.** Les quatre
+qui manquent a l'appel etaient des pastilles de 6 px a `font-size: 0`, un faux positif ferme
+par un plancher de 4 px.
+
+Les cinq familles de defaut qu'il a sorties, et aucune ne se voyait a la lecture :
+
+1. **`a { color: var(--bordeaux) }`, ligne 290 de `style.css`**, sur les trois liens du bureau
+   qui n'ont pas de classe : 1,37:1. Le perimetre du correctif est
+   `.bureau-atelier a:not([class])`, parce que tout lien qui porte une classe a deja sa regle.
+2. **`body.bdv-poste .panneau .postit[data-ton]` pese (0,4,1) contre mes (0,4,0)** : un nom
+   d'ELEMENT de plus, donc la punaise gardait son papier sur telephone, et un nom de client y
+   passait a 1,03:1. **Meme famille que `flex-direction` au lot 2 : une regle d'en face qu'on
+   n'a pas lue en entier.**
+3. **La bande alternee du listing est ecrite DEUX fois**, sur la cellule pour le tableau et sur
+   la RANGEE dans `@container sousmain (max-width: 40rem)`. Corriger la premiere laissait la
+   seconde, donc une fiche sur deux illisible, et seulement sur telephone.
+4. **Les cinquieme et sixieme familles du calendrier** etaient dessinees en `--ink` : leur
+   intitule disparaissait de la grille. Elles gardent leur filet pointille et leur combine, qui
+   sont ce qui les distingue sans couleur ; **elles perdent la main courante**, derniere
+   metaphore materielle des trois pieces, et qui se devinait plus qu'elle ne se lisait.
+5. **Les anneaux de focus du calendrier** etaient en bordeaux : 1,37:1 sur une case sombre,
+   c'est-a-dire un focus clavier qui n'existe plus.
+
+**ET LE CORRECTIF DU POINT 4 EN A FABRIQUE UN AUTRE**, trouve par le meme audit au passage
+suivant : en donnant une taille aux occurrences ecrites a la main, il battait le `font-size: 0`
+de la pastille du telephone, qui reprenait donc son texte a 12 px dans un point de 6 px.
+**Un audit qu'on ne rejoue pas apres correction ne mesure que l'etat d'avant.**
+
+### CE QUE L'OEIL A TROUVE ET QUE L'AUDIT NE POUVAIT PAS TROUVER
+
+L'audit ne juge que du TEXTE. Trois defauts de ce lot n'en etaient pas :
+
+1. **La quatrieme case vide de l'ardoise.** `repeat(4, 1fr)` laissait un rectangle de 180 px
+   qui montrait le fond de la grille : il n'y a quatre chiffres que si `objectifPct` ou
+   `atterrissage` est arrive dans le miroir. L'ancien dessin avait le meme trou, invisible
+   parce que la case vide etait de la couleur de l'ardoise. `auto-fit` replie les pistes vides.
+2. **Le soulignement de la vue annee**, en `--bdv-trait-fort`, 1,64:1. Dans cette vue il n'y a
+   aucun intitule : ce trait est la SEULE chose qui dise qu'une periode passe par ce jour-la,
+   donc c'est un objet graphique porteur d'information et son seuil est 3:1.
+3. **Les actions cachees au repos sur telephone.** `@media (hover:hover) and (pointer:fine)` ne
+   suffit pas : une fenetre d'ordinateur reduite a 390 px a une souris ET prend la mise en page
+   du telephone, ou `style.css` remonte les gestes sur la premiere ligne. **Le perimetre etait
+   la largeur, pas le pointeur.**
+
+### LE POIDS MORT, ET IL FAUT L'ASSUMER
+
+Rien n'a ete supprime de `style.css`. **22 115 octets de regles de dessin papier y restent, et
+dans `bdv-calendrier.css`, entierement recouvertes sous `.bdv-coque`** (21 268 + 847, mesure
+sur les 31 classes de composant que ce lot repeint). Servi au navigateur, apres minification :
+`bdv-bureau.css` passe de 13 111 a 46 189 octets, `bdv-theme.css` de 2 774 a 3 014, et
+`style.css` ne bouge pas, soit **+33 318 octets** pour `/mon-bureau/`.
+
+Les deux compteurs de la section C de `npm run charte` ne bougent pas et c'est normal : C1
+compte les regles dont AUCUNE classe n'existe nulle part (5 080 octets, a la borne), et le
+thermometre 2 compte ce qui ne peut servir QU'au site public (56,9 ko). Une regle recouverte
+n'est ni l'une ni l'autre : sa classe existe, et elle s'applique encore, elle est simplement
+battue. **La scission de `style.css` reste le chantier qui reglera ca, et ce lot l'a rendue
+plus urgente, pas moins.**
+
+### CE QUI RESTE OUVERT
+
+- **Les cinq ecrans de vente, le panneau de reglages, la fiche client et la modale de tache.**
+  Toujours en papier, donc toujours mal lisibles en sombre. C'est le lot suivant.
+- **La fusion des trois zones de lecture** en une bande « Ta lecture », que montre la maquette.
+  Decision de contenu : elle change la liste des huit zones que `npm run banc` garde.
+- **Le vide sous le sous-main.** `.bureau-plan` porte `align-items: start`, donc la carte du
+  sous-main s'arrete a sa hauteur pendant que le bloc calendrier, a sa droite, descend plus
+  bas. C'est le comportement d'avant, il se voit plus maintenant que les cartes ont un fond
+  uni. A trancher avec Ted : etirer les deux, ou laisser.
+- **La coche de « Mes taches » sur telephone.** `style.css` porte sa cible a 44 px par un
+  retrait de 12 px et `background-clip: content-box` ; la BORDURE, elle, reste dessinee sur la
+  boite entiere, donc le carre fait 44 px a l'ecran au lieu de 20. Defaut anterieur a ce lot,
+  signale et non corrige : le reparer demande de deplacer la cible sur un pseudo-element, ce
+  qui est une reecriture de la coche.
+- **Le bouton « Lune et feries »** porte `.filtfam` sans `data-fam`, donc le liseré de la
+  premiere famille. Il n'est pas une famille. Anterieur a ce lot.
 
 ## LE SQL DU DEPOT SE REJOUE, ET C'EST UN BANC QUI LE DIT, 18/09/2026
 
