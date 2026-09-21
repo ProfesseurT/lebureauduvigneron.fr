@@ -1063,6 +1063,177 @@ prealable strict : `scripts/charte.mjs` collecte les jetons dans le `:root` de s
 vider ce bloc lui ferait declarer une centaine de jetons « jamais declares ». **On apprend
 d'abord au garde-fou a lire la nouvelle forme, on change la forme ensuite. Jamais l'inverse.**
 
+## LE BUREAU A DEUX THEMES, LE SITE N'EN A QU'UN, 21/09/2026
+
+Depuis ce jour, `/mon-bureau/` se peint en clair ou en sombre. **Le site public ne change
+pas** : papier, encre, bordeaux, angle vif, un seul theme. Ce n'est pas une inegalite de
+traitement, c'est la meme regle que partout ailleurs dans ce depot : le site est une brochure
+qu'on lit, le bureau est un poste de travail qu'on ouvre a 6 h dans un chai et a 23 h dans un
+bureau.
+
+Les jetons vivent dans `src/css/bdv-theme.css`, liee par `/mon-bureau/` et par rien d'autre, via
+le drapeau de front matter `theme_bureau` que seul `src/mon-bureau.njk` porte. **Cette feuille
+ne porte AUCUNE regle de dessin, et elle ne doit jamais en porter** : un jeu de jetons qui se
+met a peindre devient une cinquieme feuille du bureau, avec ses collisions de scope.
+
+### LA REGLE DU PREFIXE `--bdv-`, ET LES TROIS COLLISIONS QUI L'ONT DECIDEE
+
+**Tout jeton de theme porte le prefixe `--bdv-`.** Motif mesure, pas esthetique. Trois noms de
+la maquette entraient en collision avec des jetons deja servis, et de la pire facon : MEME NOM,
+AUTRE NATURE.
+
+    --trait        vaut 1px dans style.css ET bdv-ecrans.css, la maquette en faisait une COULEUR
+    --trait-fort   vaut 2px dans style.css,                   la maquette en faisait une COULEUR
+    --r-rond       vaut 50% dans style.css,                   la maquette en faisait 9999px
+
+La feuille de theme est chargee APRES style.css : sans prefixe, `border: var(--trait) solid`
+serait devenu `border: #E4E3DE solid` **sur le site entier**, une bordure sans epaisseur, sans
+une erreur nulle part. C'est exactement le defaut `--ombre-photo` documente plus haut, celui
+pour lequel `npm run banc:jetons` existe, et qui a dormi dix jours. Le prefixe ferme la classe
+entiere au lieu de fermer les trois cas connus.
+
+### LES TROIS BLOCS, ET POURQUOI DEUX D'ENTRE EUX N'ONT PAS QUE `:root`
+
+    :root, [data-theme="light"]                      le clair, COMPLET. LA SEULE SOURCE.
+    @media (prefers-color-scheme: dark)
+      :root:not([data-theme="light"])                le telephone. Ne cree rien, retourne.
+    :root[data-theme="dark"], [data-theme="dark"]    le bouton. Identique au precedent.
+
+**Tout jeton nait dans le bloc clair.** Un bloc sombre ne fait que retourner une valeur deja
+nee : un jeton qui naitrait la ne vaudrait RIEN pour qui est en clair.
+
+**La forme sans `:root` des blocs 1 et 3 n'est pas decorative, et c'est ce qu'on supprimerait
+en premier en relisant.** Les proprietes personnalisees heritent, donc un CONTENEUR qui les
+redeclare retourne tout son sous-arbre. Sans elle : pas d'apercu des deux themes dans une meme
+capture, pas d'apercu d'impression clair sous une racine sombre, et surtout un sous-arbre force
+en clair **heriterait des valeurs sombres** pour tout ce que `:root[...]` seul n'atteint pas. Il
+s'afficherait a moitie retourne, sans erreur.
+
+`color-scheme: var(--bdv-schema)` est pose sur `html` ET sur `[data-theme]`. Sans lui, la barre
+de defilement, les `<input type="date">`, les `<select>`, les cases a cocher, le curseur de
+texte et la selection restent dans l'autre famille : des morceaux de systeme clairs poses sur un
+bureau sombre, qu'aucune regle de CSS ne rattrape.
+
+### LA FEUILLE EST LIEE, PAS CHARGEE A LA DEMANDE
+
+Les trois autres feuilles du bureau sont posees par `bdv-nav.js` au premier clic sur leur piece,
+et c'est le bon reglage pour elles. **Un theme, lui, arrive toujours trop tard s'il arrive apres
+le premier rendu** : la page se peint en clair puis bascule en sombre sous les yeux du vigneron,
+et ce clignotement n'a aucun correctif apres coup. La feuille est donc liee, tot, et un script
+en ligne de mille octets, **avant toute feuille**, pose `data-theme` sur la racine avant le
+premier rendu. Il ne dessine rien et ne lit rien d'autre que le choix memorise.
+
+Trois etats et pas deux : `"light"`, `"dark"`, et la cle ABSENTE, qui veut dire « comme mon
+telephone » et qui est le defaut. **Ne pas introduire un `data-theme="auto"`** : ce serait un
+troisieme cas a traiter dans chaque selecteur de la feuille, alors que l'absence se traite toute
+seule par le bloc `@media`.
+
+### LA CLE DE THEME NE COMMENCE PAS PAR `bdv_`, ET C'EST MESURE
+
+`bureau_theme_v1`, sur le modele de `bureau_prenom` qui vit deja hors du prefixe.
+
+Le reflexe etait `bdv_theme_v1`, parce que ce fichier dit que ce prefixe est ce qui fait partir
+une cle a la deconnexion et au changement de compte. **C'est vrai, et c'est precisement pour ca
+qu'il ne faut pas le prendre ici.** `viderLePoste()` balaie par prefixe toute cle `bdv_` de
+`localStorage` ET de `sessionStorage`, et `oublierCetAppareil()` l'appelle sans liste `garder`.
+
+Un choix de theme efface a chaque deconnexion est un DEFAUT, pas une protection : le vigneron
+qui a choisi le sombre le reperd a chaque fois, et sur un telephone regle en clair il retrouve
+un bureau blanc sans comprendre pourquoi. Un theme est un confort d'AFFICHAGE : il n'a rien a
+reveler a la personne suivante qui ouvre ce navigateur. **Ne pas la renommer « par coherence »
+avec le reste** : ce serait la faire effacer a chaque deconnexion, sans erreur et sans que
+personne ne sache pourquoi son reglage ne tient pas.
+
+Le lot du socle n'ecrit AUCUN bouton de bascule. Il expose `BdvTheme.poser(choix)`, avec
+`poser('light')`, `poser('dark')` et `poser(null)` pour revenir au reglage du telephone : la
+fonction ecrit la cle et repose l'attribut, dans cet ordre, pour qu'un seul appel suffise.
+
+### CE QUE LE CONTROLE DE PARITE ATTRAPE, SECTION 4 DE `npm run banc:jetons`
+
+**Un jeton defini en clair et oublie en sombre, c'est du TEXTE INVISIBLE.** Aucune erreur, le
+CSS reste valide, la page se peint : une encre reste `#16181C` sur un fond passe a `#0B0C0E`. Et
+ca n'arrive QUE chez celui qui a le mauvais reglage, donc jamais chez celui qui developpe si son
+systeme est en clair.
+
+Le banc echoue si :
+
+a. une MATIERE du bloc clair n'est pas retournee dans les DEUX blocs sombres, ou si une ECHELLE
+   l'est dans l'un d'eux ;
+b. un jeton nait dans un bloc sombre sans exister en clair ;
+c. les deux blocs sombres divergent, sur un nom ou sur une valeur.
+
+**LE POINT (c) EST LE PLUS IMPORTANT, et c'est le defaut classique de tout produit a deux
+themes** : on corrige une couleur dans le bloc `@media` et on oublie le bloc `[data-theme]`. La
+couleur est alors juste pour qui suit son telephone et fausse pour qui a clique sur le bouton.
+Personne ne le voit, parce que les deux chemins menent au meme mot « sombre » et qu'on n'en
+essaie qu'un.
+
+**LE POINT (a) NE DIT PAS « TOUT JETON DU CLAIR SE RETROUVE EN SOMBRE », ET C'EST VOULU.** Ce
+serait faux : cinquante jetons en clair, trente en sombre, les vingt autres etant les ECHELLES.
+Elles sont identiques dans les deux themes par decision, **un theme change des couleurs, il ne
+change ni le rythme ni la taille du texte**, et un controle faux des son premier jour se
+contourne au lieu de se lire. La regle est donc dans la VALEUR et jamais dans une liste de noms
+tenue a la main, qui se perimerait au premier jeton ajoute : une longueur, une duree ou une
+courbe est une echelle et ne se retourne nulle part ; tout le reste est une matiere et se
+retourne dans les deux blocs. Le controle attrape donc aussi le cas inverse, un theme qui se
+mettrait a changer le rythme.
+
+Verifie en remettant le defaut, comme le veut la regle du depot. Une matiere retiree d'un seul
+bloc sombre fait **2 echecs** (a et c), des deux blocs **1**, une echelle retournee **1**, un
+jeton ne naissant qu'en sombre **2** (un par bloc), une valeur divergente **1**, et la
+suppression entiere d'un bloc **1**.
+
+### ET LE GARDE-FOU A DU APPRENDRE A LIRE LA NOUVELLE FORME, AVANT ELLE
+
+`scripts/charte.mjs` ne connaissait qu'une ecriture de la racine, `:root` tout seul. Aucun des
+trois blocs n'a cette forme, et il faisait **deux fautes silencieuses a la fois** :
+
+1. **il criait sur du sain** : la section 4 dispense `:root` de la regle « aucune couleur en
+   dur », donc les trente couleurs des deux blocs sombres auraient fait trente ECHEC sur une
+   feuille conforme. Un controle qui crie sur du sain finit par ne plus etre lu ;
+2. **il sortait le jeu entier du perimetre** : un selecteur qui n'est pas `:root` voit ses
+   variables rangees en « declarees sur un composant, donc hors charte ».
+
+Deux reconnaisseurs les separent, et la distinction n'est pas cosmetique. `estRacineBase`
+reconnait la SOURCE a son `:root` **nu** dans la liste de selecteurs ; `estRacineTheme` reconnait
+un RETOURNEMENT a sa condition. **Seule la source sert de reference aux contrastes de la
+section 6** : ranger les trois blocs ensemble ferait mesurer le theme SOMBRE, puisqu'il est ecrit
+en dernier, c'est-a-dire mesurer le theme que personne n'a demande.
+
+`banc-jetons.mjs` a recu la meme lecon a l'envers : sa recherche accepte maintenant une LISTE de
+selecteurs apres `:root`, **mais toujours pas** `:root[...]` ni `:root:not(...)`. Sinon chaque
+couleur du theme serait « servie avec deux valeurs differentes » et sa section 1 crierait trente
+fois. Ce qui est servi par defaut, c'est le clair.
+
+**Et `bdv-theme.css` est nommee A LA MAIN dans `charte.mjs`**, comme les trois feuilles chargees
+en JavaScript, bien qu'elle soit LIEE dans le HTML : le jour ou le `<link>` demenage, elle
+resterait dans le perimetre au lieu d'en sortir en silence. Le dedoublonnage pose avec elle n'est
+pas du zele : lue deux fois, une feuille verrait toutes ses declarations comptees en double, donc
+le plafond de la section 4 et les echelles fermees de la section A mesureraient du vide.
+
+### `tokens.css` PORTE LES DEUX VALEURS, ET LA FORME EST IMPOSEE PAR LE BANC
+
+La DECLARATION porte la valeur CLAIRE, le commentaire a cote porte la SOMBRE. Ce n'est pas de la
+mise en page : `banc:jetons` compare la declaration de la doctrine a ce qui est SERVI, et ce qui
+est servi par defaut c'est le clair. Mettre la valeur sombre en declaration ferait mentir la
+doctrine sur ce que le navigateur recoit. La parite des deux valeurs est gardee ailleurs, par la
+section 4 du meme banc.
+
+### NOTE D'ENVIRONNEMENT : `npm run build` NE PEUT PAS ABOUTIR DEPUIS LA SESSION
+
+Le crochet `eleventy.after` de `.eleventy.js` fait un `unlink` sur `_site/js/bdv-courrier.js` et
+`_site/js/bdv-ics.js`, les deux fichiers qu'on ne publie pas. **Le pont reseau qui monte le
+depot interdit la suppression de fichiers** (meme contrainte que celle deja documentee pour
+`.git/index.lock`). La construction echoue donc en EPERM, apres avoir ecrit toutes les pages et
+recopie `src/css` et `src/js`.
+
+Consequence pratique, et il faut la connaitre avant de conclure a une regression : depuis la
+session, `npm run verif` s'arrete a sa premiere etape, et les trente-six autres se lancent UNE
+PAR UNE, sans tuyau. Deux d'entre elles lisent `_site/js/` et voient donc des fichiers non
+degraisses : `npm run banc:poids` compte alors environ 33 ko de commentaires en trop dans
+`bdv-nav.js` et depasse son plafond. **Ce n'est pas le poids du bureau, c'est le crochet qui n'a
+pas pu tourner.** Sur le Mac de Ted, ou l'unlink est permis, la chaine entiere passe.
+
 ## LE SQL DU DEPOT SE REJOUE, ET C'EST UN BANC QUI LE DIT, 18/09/2026
 
 `supabase/schema.sql` disait en tete « Ecrit pour etre rejouable sans erreur ». **Il ne

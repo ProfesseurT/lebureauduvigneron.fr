@@ -21,6 +21,103 @@
       structurees. Elle etait ecrite ici en dur, sans canonical ni og:url,
       et avec og:type=website sur les articles. -#}
 {% include "components/tete-seo.njk" %}
+{% if theme_bureau %}
+  <!-- ================================================================
+       LES DEUX THEMES DU BUREAU CONNECTE, 21/09/2026
+       ================================================================
+       CE BLOC N'EXISTE QUE POUR /mon-bureau/. Il est garde par le drapeau de
+       front matter `theme_bureau`, pose dans src/mon-bureau.njk et nulle part
+       ailleurs. Le site public garde son identite papier : il n'a pas de
+       theme sombre, et lui en donner un serait changer la marque, pas le
+       confort de lecture.
+
+       POURQUOI LA FEUILLE EST LIEE ICI ET PAS CHARGEE A LA DEMANDE. Les trois
+       autres feuilles du bureau (bdv-ecrans, bdv-panneau, bdv-calendrier) sont
+       posees par bdv-nav.js au premier clic sur la piece qui en a besoin, et
+       c'est le bon reglage pour elles : elles habillent une piece qu'on n'a
+       pas encore ouverte. Un THEME, lui, arrive toujours trop tard s'il arrive
+       apres le premier rendu : la page se peint en clair, puis bascule en
+       sombre sous les yeux du vigneron. Ce clignotement est le defaut le plus
+       visible d'un produit a deux themes, et il n'a pas de correctif apres
+       coup. La feuille est donc LIEE, tot, et elle bloque le rendu comme
+       toute feuille liee, ce qui est exactement ce qu'on veut ici.
+
+       ELLE EST POSEE AVANT style.css, ET C'EST SANS DANGER : tous ses jetons
+       portent le prefixe `--bdv-`, donc aucun nom du site ne peut etre
+       retourne par elle, dans un sens comme dans l'autre. Voir le bloc de tete
+       de src/css/bdv-theme.css : sans ce prefixe, `--trait`, `--trait-fort` et
+       `--r-rond` du site deviendraient des COULEURS, et `border: var(--trait)
+       solid` perdrait son epaisseur sur toutes les pages que le bureau charge,
+       sans une erreur.
+
+       LE SCRIPT EN LIGNE, ET POURQUOI IL EST AVANT TOUTE FEUILLE. Il pose
+       `data-theme` sur la racine AVANT le premier rendu. Le mettre plus bas,
+       ou dans un fichier differe, rejouerait le clignotement que la liaison de
+       la feuille existe pour eviter. Il ne DESSINE rien et ne lit rien d'autre
+       que le choix memorise : c'est la seule chose qui ait le droit de bloquer
+       l'analyse du document ici.
+
+       TROIS ETATS ET PAS DEUX. `"light"` force le clair, `"dark"` force le
+       sombre, et la cle ABSENTE veut dire « comme mon telephone », qui est le
+       defaut. C'est pour ca que la racine n'a pas d'attribut par defaut : un
+       `data-theme="auto"` ecrit en dur ferait un troisieme cas a traiter dans
+       chaque selecteur de la feuille, alors que l'absence se traite toute
+       seule par le bloc @media.
+
+       LA CLE NE COMMENCE PAS PAR `bdv_`, ET C'EST MESURE, PAS UNE DISTRACTION.
+       `viderLePoste()` dans src/js/bdv-compte.js balaie par PREFIXE toute cle
+       `bdv_` de localStorage ET de sessionStorage, et `oublierCetAppareil()`
+       l'appelle sans liste `garder` a la deconnexion comme au changement de
+       compte. Une cle `bdv_theme` partirait donc a chaque deconnexion : le
+       vigneron qui a choisi le sombre le reperdrait a chaque fois, et sur un
+       telephone regle en clair il retrouverait un bureau blanc sans comprendre
+       pourquoi. Un choix de theme est un confort d'AFFICHAGE, pas une donnee
+       de compte : il n'a aucune raison de partir avec la session, et rien a
+       reveler a la personne suivante qui ouvre ce navigateur. La cle s'appelle
+       donc `bureau_theme_v1`, sur le modele de `bureau_prenom` qui existe deja
+       hors du prefixe. NE PAS LA RENOMMER en `bdv_theme_v1` « par coherence » :
+       ce serait la faire effacer a chaque deconnexion, sans erreur et sans que
+       personne ne sache pourquoi son reglage ne tient pas.
+
+       CE LOT NE POSE AUCUN BOUTON DE BASCULE. Il viendra avec l'en-tete du
+       bureau, au lot suivant, et il se branche sur `BdvTheme.poser(choix)`,
+       expose ci-dessous : `poser('light')`, `poser('dark')`, `poser(null)`
+       pour revenir au reglage du telephone. La fonction ecrit la cle ET repose
+       l'attribut, dans cet ordre, pour qu'un seul appel suffise.
+  -->
+  <script>
+  (function(){
+    'use strict';
+    var CLE = 'bureau_theme_v1';
+    // Le stockage peut lever (navigation privee, cookies bloques, quota) et
+    // peut revenir vide. Chaque acces est donc enveloppe, et la page est
+    // correcte sans lui : pas de cle lisible veut dire « comme mon telephone ».
+    function lire(){
+      try{
+        var v = localStorage.getItem(CLE);
+        return (v === 'light' || v === 'dark') ? v : null;
+      }catch(e){ return null; }
+    }
+    function appliquer(choix){
+      var r = document.documentElement;
+      if(choix === 'light' || choix === 'dark') r.setAttribute('data-theme', choix);
+      else r.removeAttribute('data-theme');
+    }
+    function poser(choix){
+      if(choix !== 'light' && choix !== 'dark') choix = null;
+      try{
+        if(choix) localStorage.setItem(CLE, choix);
+        else localStorage.removeItem(CLE);
+      }catch(e){}
+      appliquer(choix);
+      return choix;
+    }
+    appliquer(lire());
+    window.BdvTheme = { CLE: CLE, lire: lire, poser: poser, appliquer: appliquer };
+  })();
+  </script>
+  <link rel="stylesheet" href="/css/bdv-theme.css">
+{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap" rel="stylesheet">

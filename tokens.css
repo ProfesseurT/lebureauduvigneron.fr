@@ -10,6 +10,18 @@
 
    Contrastes verifies : bordeaux sur papier = 11,0:1 (AAA), muted 6,1:1 (AA),
    cork-encre 6,2:1 (AA). --cork brut ne passe pas AA : ornement uniquement.
+
+   DEUX FAMILLES VIVENT DANS CE FICHIER DEPUIS LE 21/09/2026, ET IL FAUT LE
+   SAVOIR AVANT D'Y AJOUTER QUOI QUE CE SOIT.
+   1. LE SITE, tout ce qui suit jusqu'aux couches : un theme, celui du papier.
+   2. LE BUREAU CONNECTE, la derniere section, tous les noms en `--bdv-` : deux
+      themes, un clair et un sombre, deux valeurs par jeton. Servis par
+      src/css/bdv-theme.css, qui n'est liee QUE par /mon-bureau/.
+   Les deux ne se melangent pas et ne doivent pas se melanger : le site public
+   garde son identite papier, et le bureau est un poste de travail qu'on ouvre
+   a 6 h dans un chai comme a 23 h dans un bureau. Le prefixe `--bdv-` n'est pas
+   du rangement, c'est ce qui empeche trois collisions mesurees : voir la tete
+   de cette derniere section.
    ============================================================================ */
 
 :root {
@@ -274,6 +286,151 @@
   --z-busy:   1050;
   --z-statut: 1100;
   --z-amorce: 1200;   /* le voile d'amorcage, au-dessus du statut le temps du raccordement */
+
+  /* ---- LES DEUX THEMES DU BUREAU CONNECTE, 21/09/2026 -----------------
+     AJOUTES ICI LE JOUR MEME OU ILS SONT NES, comme la regle du 18/09/2026
+     l'exige : un jeton ajoute a une feuille servie s'ecrit ici DANS LA MEME
+     SESSION, avec la raison qui le fait exister, pas seulement sa valeur.
+
+     CE QUE CE JEU EST, ET CE QU'IL N'EST PAS. Ce n'est pas une deuxieme
+     charte : c'est la charte de /mon-bureau/, qui n'est pas une page du site
+     mais un poste de travail, et qui a besoin de deux themes parce qu'on
+     l'ouvre a 6 h dans un chai et a 23 h dans un bureau. LE SITE PUBLIC NE
+     CHANGE PAS : papier, encre, bordeaux, angle vif, un seul theme. Les jetons
+     ci-dessous ne s'appellent nulle part ailleurs que dans le bureau, et la
+     feuille qui les porte, src/css/bdv-theme.css, n'est liee que par lui.
+
+     POURQUOI TOUS LES NOMS PORTENT `--bdv-`, ET C'EST UNE MESURE. Trois noms
+     de la maquette entraient en collision avec des jetons declares plus haut
+     dans ce fichier, et de la pire facon : MEME NOM, AUTRE NATURE.
+         --trait       vaut 1px ici, la maquette en faisait une COULEUR
+         --trait-fort  vaut 2px ici, la maquette en faisait une COULEUR
+         --r-rond      vaut 50% ici, la maquette en faisait 9999px
+     La feuille du theme etant chargee APRES style.css, `border: var(--trait)
+     solid` du site entier serait devenu `border: #E4E3DE solid` : une bordure
+     sans epaisseur, sur toutes les pages que le bureau charge, sans une seule
+     erreur. C'est exactement le defaut --ombre-photo que `npm run banc:jetons`
+     existe pour attraper, et qui a dormi dix jours. Le prefixe ferme la classe
+     entiere au lieu de fermer les trois cas connus.
+
+     DEUX VALEURS PAR JETON, ET LA FORME QUI EST ECRITE ICI. La DECLARATION
+     porte la valeur CLAIRE, le commentaire a cote porte la valeur SOMBRE. Ce
+     n'est pas de la mise en page : `banc:jetons` compare la declaration de ce
+     fichier a ce qui est SERVI, et ce qui est servi par defaut, c'est le clair
+     (les blocs sombres sont des retournements, voir le bloc de tete de
+     src/css/bdv-theme.css). Mettre la valeur sombre en declaration ferait
+     mentir la doctrine sur ce que le navigateur recoit. La parite des deux
+     valeurs, elle, est gardee par la section 4 du meme banc, qui echoue si un
+     jeton oublie son sombre ou si les deux blocs sombres divergent.
+
+     LES CONTRASTES SONT CALCULES, PAS ESTIMES. Le plus faible texte du produit
+     tient 4,66:1 (--bdv-encre-4 sur --bdv-surface-3, en sombre), le plus faible
+     objet graphique porteur d'information 3,55:1 (--bdv-serie-b sur
+     --bdv-surface, en clair). La table complete est en tete de la feuille. */
+
+  /* Ce qui dit au navigateur quelle famille il peint LUI-MEME : barres de
+     defilement, champs natifs, case a cocher, curseur de texte, selection.
+     Ce n'est pas une couleur, et aucune regle de CSS ne remplace ce que le
+     systeme dessine tout seul. */
+  --bdv-schema: light;                  /* sombre : dark */
+
+  /* SURFACES. Quatre plans et deux voiles, pas davantage : une pile de plus
+     donnerait deux gris qu'on ne distingue plus et qu'on choisirait au hasard. */
+  --bdv-fond:      #F7F7F5;             /* sombre #0B0C0E  la page */
+  --bdv-surface:   #FFFFFF;             /* sombre #131519  les cartes */
+  --bdv-surface-2: #F1F1EE;             /* sombre #1A1D22  rail, en-tete de tableau, champ au repos */
+  --bdv-surface-3: #FFFFFF;             /* sombre #21252B  popover, feuille montante */
+  --bdv-survol:    rgba(22,24,28,.05);  /* sombre rgba(255,255,255,.055)  voile de survol d'une rangee */
+  --bdv-voile:     rgba(22,24,28,.40);  /* sombre rgba(4,5,6,.66)  ecran derriere la feuille montante */
+
+  /* ENCRES. Quatre niveaux, et le quatrieme ne descend jamais sous 12 px :
+     c'est lui qui tient le plancher mesure de 4,66:1 dans les deux themes. */
+  --bdv-encre-1: #16181C;               /* sombre #F3F4F6  titres, chiffres, noms de client */
+  --bdv-encre-2: #33383F;               /* sombre #C9CED5  corps courant */
+  --bdv-encre-3: #4C525A;               /* sombre #9CA3AC  second niveau */
+  --bdv-encre-4: #5F656E;               /* sombre #878E98  metadonnees, jamais sous 12 px */
+  --bdv-encre-sur-accent: #FFFFFF;      /* sombre #23070E  le SEUL texte pose sur l'accent */
+
+  /* TRAIT. Le filet est la profondeur de ce produit comme il l'est du site,
+     mais ici il a une couleur et pas une epaisseur : voir la regle du prefixe
+     ci-dessus, c'est la premiere des trois collisions mesurees. */
+  --bdv-trait:      #E4E3DE;            /* sombre #272B31  separateur de 1 px */
+  --bdv-trait-fort: #CFCEC7;            /* sombre #383D44  bordure de bouton, de chip, de champ */
+  --bdv-anneau:     #8F2440;            /* sombre #FFB3C3  anneau de focus clavier, 7,44:1 clair / 9,15:1 sombre */
+  --bdv-cadre:      #D5D4CE;            /* sombre #1E2127  chassis du telephone de la maquette */
+
+  /* ACCENT. Un seul, trois usages : selection, focus, action primaire. Derive
+     du bordeaux #5A1525 du site public, eclairci pour tenir sur un fond clair,
+     et rose-poudre en sombre ou le bordeaux disparait. Il marque aussi le
+     retard, qui est le sujet du bureau. */
+  --bdv-accent:       #9E2B47;          /* sombre #F294A9 */
+  --bdv-accent-fort:  #7E2139;          /* sombre #FFB9C7  survol et appui de l'action primaire */
+  --bdv-accent-lavis: #FAF0F2;          /* sombre #251A1E  fond de rangee selectionnee, fond de zone */
+  --bdv-accent-trait: #E0BAC4;          /* sombre #56333C  bordure d'une carte qui porte l'accent */
+
+  /* ETATS. Meme regle que les etats du site : chaque etat est double d'un
+     GLYPHE et d'un MOT, jamais porte par la seule couleur. C'est WCAG 1.4.1,
+     et c'est la lecon deja payee sur la gravite du mot du jour. */
+  --bdv-retard:       #A8271B;          /* sombre #F2877C */
+  --bdv-retard-lavis: #FCEFED;          /* sombre #2A1714 */
+  --bdv-alerte:       #855812;          /* sombre #E6A45C */
+  --bdv-alerte-lavis: #FBF3E7;          /* sombre #2A2015 */
+  --bdv-bon:          #0E6A49;          /* sombre #5FD6A5 */
+  --bdv-bon-lavis:    #EBF6F1;          /* sombre #12251E */
+
+  /* SERIES DE GRAPHIQUE DU BUREAU. DEUX, et ce ne sont ni les huit --serie-*
+     des ecrans de vente ni les quatre --fam-* du calendrier : ici on ne compare
+     que DEUX choses, l'exercice en cours et le precedent. Une echelle
+     categorielle de huit teintes posee sur une comparaison a deux termes
+     invente un classement qui n'existe pas. Elles sont separees en LUMINANCE et
+     pas en teinte, donc lisibles en niveaux de gris et en vision deuteranope. */
+  --bdv-serie-a:   #6E737C;             /* sombre #8E959F  l'exercice en cours, les barres */
+  --bdv-serie-b:   #8A8880;             /* sombre #7B828A  l'exercice precedent, le trait de comparaison */
+  --bdv-grille:    #EAE9E4;             /* sombre #23272C  lignes d'axe */
+  --bdv-squelette: #EAE9E4;             /* sombre #1D2126  blocs de chargement, entre 100 ms et 1 s */
+
+  /* LES ECHELLES DU BUREAU N'ONT QU'UNE VALEUR, ET C'EST UNE DECISION.
+     Un theme change des COULEURS. Il ne change ni le rythme, ni les rayons, ni
+     la taille du texte : quelqu'un qui bascule en sombre pour se reposer les
+     yeux ne demande pas qu'on lui redessine sa mise en page. La section 4 de
+     `npm run banc:jetons` echoue si un bloc sombre retourne l'une d'elles. */
+
+  /* Rayons. Le site n'a pas de rayon, le bureau en a un, et c'est assume : ce
+     n'est pas la meme surface. Rien au-dessus de 12 px. */
+  --bdv-r:          6px;                /* meme valeur en sombre */
+  --bdv-r-pastille: 4px;                /* meme valeur en sombre */
+  --bdv-r-rond:     9999px;             /* meme valeur en sombre. PAS 50% : voir la 3e collision du prefixe */
+
+  /* Ecarts. Sept pas, en pixels parce que ce sont des distances d'interface et
+     pas du texte : un ecart qui suivrait le zoom du texte ferait respirer la
+     page au lieu de la densifier. */
+  --bdv-e-1:  4px;                      /* meme valeur en sombre */
+  --bdv-e-2:  8px;                      /* meme valeur en sombre */
+  --bdv-e-3:  12px;                     /* meme valeur en sombre */
+  --bdv-e-4:  16px;                     /* meme valeur en sombre */
+  --bdv-e-6:  24px;                     /* meme valeur en sombre */
+  --bdv-e-8:  32px;                     /* meme valeur en sombre */
+  --bdv-e-12: 48px;                     /* meme valeur en sombre */
+
+  /* Tailles. Six pas plus un plancher de saisie. Le contraste d'echelle entre
+     un chiffre de 28 px et son libelle de 12 px en capitales est ce qui rend un
+     tableau dense lisible sans le rendre bruyant. */
+  --bdv-f-1: 12px;                      /* meme valeur en sombre */
+  --bdv-f-2: 13px;                      /* meme valeur en sombre */
+  --bdv-f-3: 15px;                      /* meme valeur en sombre */
+  --bdv-f-4: 17px;                      /* meme valeur en sombre */
+  --bdv-f-5: 20px;                      /* meme valeur en sombre */
+  --bdv-f-6: 28px;                      /* meme valeur en sombre */
+  /* 16 px EST UNE MESURE, PAS UN GOUT : sous 16 px, Safari iOS zoome tout seul
+     sur un champ qui prend le focus, et la page ne revient jamais a sa largeur.
+     Meme raison que la regle deja ecrite pour les saisies du bureau. */
+  --bdv-f-saisie: 16px;                 /* meme valeur en sombre */
+
+  /* Mouvement. Deux durees, une courbe, et le meme decoupage que --tr-rapide et
+     --tr-lent du site : ce qui repond au doigt, et ce qui se deplace. */
+  --bdv-d-court: 150ms;                 /* meme valeur en sombre. survol, selection, focus */
+  --bdv-d-long:  300ms;                 /* meme valeur en sombre. modale, feuille, tiroir */
+  --bdv-courbe:  cubic-bezier(.22,.61,.36,1);  /* meme valeur en sombre */
 }
 
 /* ============================================================================

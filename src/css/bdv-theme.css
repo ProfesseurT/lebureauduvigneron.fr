@@ -1,0 +1,308 @@
+/* ============================================================================
+   src/css/bdv-theme.css : LES JETONS DES DEUX THEMES DU BUREAU CONNECTE
+
+   CE QUE CE FICHIER EST. Le jeu complet des jetons de /mon-bureau/ en deux
+   valeurs, une claire et une sombre. Il NE PORTE AUCUNE REGLE DE DESSIN : pas
+   une couleur de fond posee sur une classe, pas une marge, pas une bordure.
+   Les seules declarations non-jeton sont les deux `color-scheme`, et elles
+   sont expliquees plus bas : ce ne sont pas des couleurs, c'est ce qui dit au
+   navigateur quelle famille il peint lui-meme.
+
+   POURQUOI IL EST SEUL DE SON ESPECE. C'est l'ordre impose par CLAUDE.md,
+   « on apprend d'abord au garde-fou a lire la nouvelle forme, on change la
+   forme ensuite, jamais l'inverse ». Ce lot pose les jetons et les controles ;
+   les regles de dessin viennent apres, et elles ne pourront pas deriver parce
+   que `npm run banc:jetons` sait desormais lire cette forme et refuse une
+   parite cassee.
+
+   POUR QUELLES PAGES IL VAUT. Le bureau connecte, /mon-bureau/, et lui seul.
+   Le site public garde son identite papier, `--paper`, `--ink`, `--bordeaux`,
+   l'angle vif et le filet : il n'a pas de theme sombre et n'en veut pas. Cette
+   feuille est donc liee par le gabarit du bureau uniquement (voir le bloc de
+   tete de src/_includes/base.njk), pas par le layout de toutes les pages.
+
+   --------------------------------------------------------------------------
+   LA REGLE DU PREFIXE : TOUT JETON D'ICI COMMENCE PAR `--bdv-`
+   --------------------------------------------------------------------------
+   Ce n'est pas du rangement, c'est une mesure. Trois noms de la maquette
+   entrent en collision avec des jetons deja servis par le site, et de la pire
+   facon possible : MEME NOM, AUTRE NATURE.
+
+       --trait        vaut 1px dans style.css ET dans bdv-ecrans.css,
+                      la maquette en faisait une COULEUR de filet
+       --trait-fort   vaut 2px dans style.css,
+                      la maquette en faisait une COULEUR de bordure
+       --r-rond       vaut 50% dans style.css,
+                      la maquette en faisait 9999px
+
+   Sans prefixe, et cette feuille etant chargee APRES style.css, la regle
+   `border: var(--trait) solid` du site entier serait devenue
+   `border: #E4E3DE solid`. Une bordure sans epaisseur, sur toutes les pages
+   que le bureau charge, et pas une erreur nulle part.
+
+   C'est EXACTEMENT le defaut `--ombre-photo` du 18/09/2026, celui pour lequel
+   `npm run banc:jetons` a ete ecrit, et qui a dormi dix jours : deux ombres
+   sous un seul nom, la derniere feuille posee gagnant pour la page entiere.
+   Le prefixe ferme la classe entiere au lieu de fermer les trois cas connus.
+
+   --------------------------------------------------------------------------
+   LES TROIS BLOCS, ET POURQUOI DEUX D'ENTRE EUX N'ONT PAS QUE `:root`
+   --------------------------------------------------------------------------
+   1. `:root, [data-theme="light"]`                  le clair, COMPLET.
+      Tout jeton du produit nait ici et nulle part ailleurs.
+   2. `@media (prefers-color-scheme: dark) :root:not([data-theme="light"])`
+      le reglage du telephone. Il ne CREE rien, il retourne des valeurs.
+      Le garde `:not(...)` est ce qui laisse le bouton reprendre la main.
+   3. `:root[data-theme="dark"], [data-theme="dark"]`
+      le bouton. Valeurs identiques au bloc 2, au caractere pres.
+
+   LA FORME SANS `:root` DES BLOCS 1 ET 3 N'EST PAS DECORATIVE. Les proprietes
+   personnalisees heritent : un CONTENEUR qui les redeclare retourne tout son
+   sous-arbre. Sans cette forme, trois choses deviennent impossibles :
+
+     . montrer le clair et le sombre COTE A COTE dans une meme capture, ce qui
+       est le seul moyen de juger les deux themes sur le meme ecran ;
+     . poser un apercu d'impression clair au milieu d'une page sombre ;
+     . et surtout, un sous-arbre force en clair sous une racine sombre
+       heriterait des valeurs SOMBRES pour tous les jetons que la forme
+       `:root[...]` seule ne sait pas atteindre. Il s'afficherait a moitie
+       retourne, sans erreur.
+
+   --------------------------------------------------------------------------
+   CONTRASTES MESURES (WCAG 2.1, calcules, pas estimes)
+   --------------------------------------------------------------------------
+                          CLAIR                        SOMBRE
+   --bdv-encre-1        15,71:1 sur --bdv-surface-2  13,99:1 sur --bdv-surface-3
+   --bdv-encre-2        10,44:1 sur --bdv-surface-2   9,73:1 sur --bdv-surface-3
+   --bdv-encre-3         6,97:1 sur --bdv-surface-2   6,05:1 sur --bdv-surface-3
+   --bdv-encre-4         5,19:1 sur --bdv-surface-2   4,66:1 sur --bdv-surface-3
+   --bdv-accent          6,42:1 sur --bdv-surface-2   7,03:1 sur --bdv-surface-3
+   --bdv-encre-sur-accent 7,27:1 sur --bdv-accent     8,65:1 sur --bdv-accent
+   --bdv-retard          6,25:1 sur --bdv-surface-2   6,25:1 sur --bdv-surface-3
+   --bdv-alerte          5,45:1 sur --bdv-surface-2   7,21:1 sur --bdv-surface-3
+   --bdv-bon             5,84:1 sur --bdv-surface-2   8,54:1 sur --bdv-surface-3
+   --bdv-anneau          7,44:1 sur --bdv-surface-2   9,15:1 sur --bdv-surface-3
+   --bdv-serie-a (objet) 4,77:1 sur --bdv-surface     6,05:1 sur --bdv-surface
+   --bdv-serie-b (objet) 3,55:1 sur --bdv-surface     4,70:1 sur --bdv-surface
+   Le plus faible texte du produit tient 4,66:1. Le plus faible objet
+   graphique porteur d'information tient 3,55:1.
+   ============================================================================ */
+
+
+/* ==========================================================================
+   BLOC 1 SUR 3 : LE THEME CLAIR, COMPLET.
+   Tout jeton du produit nait ici et nulle part ailleurs.
+   ========================================================================== */
+:root,
+[data-theme="light"]{
+
+  /* -- ce qui dit au navigateur quelle famille il peint (barres de defilement,
+        champs natifs, selection de texte). Ce n'est pas une couleur. -------- */
+  --bdv-schema:light;
+
+  /* -- SURFACES ---------------------------------------------------------- */
+  --bdv-fond:#F7F7F5;              /* la page                                */
+  --bdv-surface:#FFFFFF;           /* les cartes                             */
+  --bdv-surface-2:#F1F1EE;         /* rail, en-tete de tableau, champ au repos */
+  --bdv-surface-3:#FFFFFF;         /* popover, feuille montante              */
+  --bdv-survol:rgba(22,24,28,.05); /* voile de survol de rangee, 5 %         */
+  --bdv-voile:rgba(22,24,28,.40);  /* ecran derriere la feuille montante     */
+
+  /* -- ENCRES ------------------------------------------------------------- */
+  --bdv-encre-1:#16181C;           /* titres, chiffres, noms de client       */
+  --bdv-encre-2:#33383F;           /* corps courant                          */
+  --bdv-encre-3:#4C525A;           /* second niveau                          */
+  --bdv-encre-4:#5F656E;           /* metadonnees, jamais sous 12 px         */
+  --bdv-encre-sur-accent:#FFFFFF;  /* le seul texte pose SUR l'accent        */
+
+  /* -- TRAIT -------------------------------------------------------------- */
+  --bdv-trait:#E4E3DE;             /* separateur de 1 px, la profondeur du produit */
+  --bdv-trait-fort:#CFCEC7;        /* bordure de bouton, de chip, de champ    */
+  --bdv-anneau:#8F2440;            /* anneau de focus clavier                 */
+  --bdv-cadre:#D5D4CE;             /* chassis du telephone de la maquette     */
+
+  /* -- ACCENT, un seul, trois usages : selection, focus, action primaire.
+        Derive du bordeaux #5A1525 du site public, eclairci pour tenir sur un
+        fond clair. Il marque aussi le retard, qui est le sujet du bureau. --- */
+  --bdv-accent:#9E2B47;
+  --bdv-accent-fort:#7E2139;       /* survol et appui de l'action primaire    */
+  --bdv-accent-lavis:#FAF0F2;      /* fond de rangee selectionnee, fond de zone */
+  --bdv-accent-trait:#E0BAC4;      /* bordure d'une carte qui porte l'accent   */
+
+  /* -- ETATS. Chaque etat est double d'un GLYPHE et d'un MOT, jamais porte
+        par la seule couleur. ------------------------------------------------ */
+  --bdv-retard:#A8271B;
+  --bdv-retard-lavis:#FCEFED;
+  --bdv-alerte:#855812;
+  --bdv-alerte-lavis:#FBF3E7;
+  --bdv-bon:#0E6A49;
+  --bdv-bon-lavis:#EBF6F1;
+
+  /* -- SERIES DE GRAPHIQUE ------------------------------------------------- */
+  --bdv-serie-a:#6E737C;           /* 2026, les barres                        */
+  --bdv-serie-b:#8A8880;           /* 2025, le trait de comparaison           */
+  --bdv-grille:#EAE9E4;            /* lignes d'axe                            */
+  --bdv-squelette:#EAE9E4;         /* blocs de chargement, entre 100 ms et 1 s */
+
+  /* -- ECHELLES. Memes valeurs dans les deux themes : un theme change des
+        couleurs, il ne change ni le rythme ni la taille du texte. ----------- */
+  --bdv-r:6px;                     /* rayon de base, rien au-dessus de 12 px  */
+  --bdv-r-pastille:4px;
+  --bdv-r-rond:9999px;             /* chips et bouton d'appel rond            */
+
+  --bdv-e-1:4px; --bdv-e-2:8px; --bdv-e-3:12px; --bdv-e-4:16px;
+  --bdv-e-6:24px; --bdv-e-8:32px; --bdv-e-12:48px;
+
+  --bdv-f-1:12px; --bdv-f-2:13px; --bdv-f-3:15px;
+  --bdv-f-4:17px; --bdv-f-5:20px; --bdv-f-6:28px;
+  --bdv-f-saisie:16px;             /* plancher de saisie, sinon Safari zoome  */
+
+  --bdv-d-court:150ms;             /* survol, selection, focus                */
+  --bdv-d-long:300ms;              /* modale, feuille, tiroir                 */
+  --bdv-courbe:cubic-bezier(.22,.61,.36,1);
+}
+
+
+/* ==========================================================================
+   BLOC 2 SUR 3 : LE REGLAGE DU TELEPHONE.
+   Le garde :not([data-theme="light"]) laisse le bouton reprendre la main.
+   Ce bloc ne cree aucun jeton, il ne fait que retourner des valeurs.
+   ========================================================================== */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bdv-schema:dark;
+
+    --bdv-fond:#0B0C0E;
+    --bdv-surface:#131519;
+    --bdv-surface-2:#1A1D22;
+    --bdv-surface-3:#21252B;
+    --bdv-survol:rgba(255,255,255,.055);
+    --bdv-voile:rgba(4,5,6,.66);
+
+    --bdv-encre-1:#F3F4F6;
+    --bdv-encre-2:#C9CED5;
+    --bdv-encre-3:#9CA3AC;
+    --bdv-encre-4:#878E98;
+    --bdv-encre-sur-accent:#23070E;
+
+    --bdv-trait:#272B31;
+    --bdv-trait-fort:#383D44;
+    --bdv-anneau:#FFB3C3;
+    --bdv-cadre:#1E2127;
+
+    --bdv-accent:#F294A9;
+    --bdv-accent-fort:#FFB9C7;
+    --bdv-accent-lavis:#251A1E;
+    --bdv-accent-trait:#56333C;
+
+    --bdv-retard:#F2877C;
+    --bdv-retard-lavis:#2A1714;
+    --bdv-alerte:#E6A45C;
+    --bdv-alerte-lavis:#2A2015;
+    --bdv-bon:#5FD6A5;
+    --bdv-bon-lavis:#12251E;
+
+    --bdv-serie-a:#8E959F;
+    --bdv-serie-b:#7B828A;
+    --bdv-grille:#23272C;
+    --bdv-squelette:#1D2126;
+  }
+}
+
+
+/* ==========================================================================
+   BLOC 3 SUR 3 : LE BOUTON, ET LE SOUS-ARBRE.
+   Valeurs identiques au bloc 2, au caractere pres. La forme sans :root est
+   ce qui permet a un CONTENEUR de forcer le sombre au milieu d'une page
+   claire, et inversement : sans elle, pas d'apercu des deux themes en une
+   capture, pas d'apercu d'impression, et un sous-arbre clair pose sous une
+   racine sombre heriterait des mauvaises valeurs, sans erreur.
+   ========================================================================== */
+:root[data-theme="dark"],
+[data-theme="dark"]{
+  --bdv-schema:dark;
+
+  --bdv-fond:#0B0C0E;
+  --bdv-surface:#131519;
+  --bdv-surface-2:#1A1D22;
+  --bdv-surface-3:#21252B;
+  --bdv-survol:rgba(255,255,255,.055);
+  --bdv-voile:rgba(4,5,6,.66);
+
+  --bdv-encre-1:#F3F4F6;
+  --bdv-encre-2:#C9CED5;
+  --bdv-encre-3:#9CA3AC;
+  --bdv-encre-4:#878E98;
+  --bdv-encre-sur-accent:#23070E;
+
+  --bdv-trait:#272B31;
+  --bdv-trait-fort:#383D44;
+  --bdv-anneau:#FFB3C3;
+  --bdv-cadre:#1E2127;
+
+  --bdv-accent:#F294A9;
+  --bdv-accent-fort:#FFB9C7;
+  --bdv-accent-lavis:#251A1E;
+  --bdv-accent-trait:#56333C;
+
+  --bdv-retard:#F2877C;
+  --bdv-retard-lavis:#2A1714;
+  --bdv-alerte:#E6A45C;
+  --bdv-alerte-lavis:#2A2015;
+  --bdv-bon:#5FD6A5;
+  --bdv-bon-lavis:#12251E;
+
+  --bdv-serie-a:#8E959F;
+  --bdv-serie-b:#7B828A;
+  --bdv-grille:#23272C;
+  --bdv-squelette:#1D2126;
+}
+
+
+/* ==========================================================================
+   LA FAMILLE QUE LE NAVIGATEUR PEINT LUI-MEME
+
+   `color-scheme` n'est pas une couleur et ne se remplace par aucun jeton de
+   couleur : c'est la seule chose qui dise au navigateur de peindre SES
+   propres surfaces dans la bonne famille. Sans elle, en sombre, la barre de
+   defilement reste blanche, un `<input type="date">`, un `<select>`, une case
+   a cocher et le curseur de texte restent clairs, et la selection de texte
+   garde son bleu de theme clair. Le bureau paraitrait sombre avec des morceaux
+   de systeme clairs poses dessus, et aucune regle de CSS ne peut les corriger.
+
+   ELLE EST POSEE DEUX FOIS, ET LES DEUX COMPTENT :
+     . sur `html`, pour la page entiere et pour les barres de defilement, qui
+       se peignent au niveau du document ;
+     . sur `[data-theme]`, pour qu'un CONTENEUR qui force un theme emporte
+       aussi les champs natifs de son sous-arbre. Sans cette seconde ligne,
+       l'apercu des deux themes cote a cote montrerait deux moities de couleurs
+       justes avec des champs de saisie tous de la meme famille, ce qui est
+       exactement le defaut qu'on cherche a voir sur cette capture.
+   ========================================================================== */
+/* CETTE LIGNE ATTEND LE LOT DU DESSIN, ET CE N'EST PAS UNE PRUDENCE DE STYLE.
+
+   html{ color-scheme: var(--bdv-schema); }
+
+   Elle est ecrite ici, en commentaire, et elle s'allumera avec la premiere
+   regle qui lit ces jetons. La poser AUJOURD'HUI serait le seul endroit de ce
+   lot ou l'ecran bougerait, alors que ce lot promet de ne rien changer.
+
+   MESURE DU 21/09/2026 : le bureau est encore peint en papier creme par
+   style.css, et aucune regle ne lit encore un seul `--bdv-*`. Mais
+   `--bdv-schema` vaut deja `dark` des que le telephone est en mode sombre, par
+   le bloc 2. Un vigneron qui a son iPhone en sombre aurait donc ouvert un
+   bureau creme avec des morceaux de systeme sombres poses dessus : la barre de
+   defilement, le curseur de texte, la selection, et surtout les champs natifs,
+   les deux dates de « Mes taches », les quatre selecteurs de « Mon registre »,
+   celui de « L'equipe ». Du texte clair dans une case sombre sur du papier.
+
+   C'est la meme famille de defaut que celles deja payees ici, une declaration
+   juste, active AVANT le decor qu'elle suppose. `color-scheme` n'est pas une
+   couleur : aucune regle de CSS ne rattrape ce qu'il peint, et il n'obeit pas
+   au dessin, il obeit au jeton.
+
+   Le selecteur de conteneur, lui, reste actif : il est inerte tant que rien ne
+   pose `data-theme`, et rien ne le pose avant le bouton de bascule du lot
+   suivant. Il est la pour que le jour ou un sous-arbre force un theme, ses
+   champs natifs suivent, sans avoir a y repenser. */
+[data-theme]{ color-scheme: var(--bdv-schema); }

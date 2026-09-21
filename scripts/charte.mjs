@@ -131,12 +131,24 @@ function parse(fichier) {
            entierement au controle, et personne ne le verrait.
        Nommees a la main : une feuille chargee par du code ne se devine pas, et une liste
        qui se devinerait toute seule finirait par ne plus rien surveiller. */
+    /* ET LA FEUILLE DES DEUX THEMES, 21/09/2026, QUI N'EST PAS CHARGEE EN JAVASCRIPT.
+       src/css/bdv-theme.css est LIEE dans le HTML du bureau, donc la boucle ci-dessus
+       la trouve deja par son <link>. Elle est quand meme nommee ici, pour deux raisons
+       qui ne sont pas du zele : le jour ou le <link> demenage (dans un include, dans
+       une balise construite par un script, dans un gabarit d'apercu), elle resterait
+       dans le perimetre au lieu d'en sortir en silence ; et son absence du disque doit
+       CRIER, comme pour les trois autres. C'est la meme regle que CLAUDE.md pose pour
+       les feuilles chargees en JavaScript : une feuille oubliee ici echappe entierement
+       au controle, et rien ne le signale.
+       LE DEDOUBLONNAGE N'EST PAS DECORATIF : lue deux fois, une feuille verrait toutes
+       ses declarations comptees en double, donc les plafonds de la section 4 et les
+       echelles fermees de la section A mesureraient du vide. */
     if (DASH) {
       for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css',
-                       'src/css/bdv-calendrier.css']) {
+                       'src/css/bdv-calendrier.css', 'src/css/bdv-theme.css']) {
         const abs = path.join(RACINE, f);
-        if (fs.existsSync(abs)) liees.push(abs);
-        else erreursHtml.push('feuille chargee en JavaScript introuvable : ' + f);
+        if (!fs.existsSync(abs)) { erreursHtml.push('feuille du bureau introuvable : ' + f); continue; }
+        if (!liees.includes(abs)) liees.push(abs);
       }
     }
     if (!blocs.length && !liees.length) erreursHtml.push('aucun CSS trouve dans ' + fichier + ' : ni bloc <style>, ni feuille liee');
@@ -153,6 +165,17 @@ function parse(fichier) {
      repose punaise par punaise en JavaScript. Les compter a part evite de rendre un ECHEC sur
      une variable parfaitement declaree, la ou l'ECHEC doit rester reserve a la faute de frappe. */
   const locaux = {};
+  /* ET LE TROISIEME SEAU, 21/09/2026 : LES RETOURNEMENTS DE THEME.
+     src/css/bdv-theme.css declare le meme jeu de jetons trois fois, une en clair et
+     deux en sombre (voir son bloc de tete). Les ranger avec les jetons de charte les
+     ferait s'ecraser entre eux, et comme les blocs sombres sont ecrits EN DERNIER,
+     c'est la valeur SOMBRE qui aurait servi a toutes les mesures de contraste de la
+     section 6 : un controle qui mesure le theme que personne n'a demande. Les ranger
+     avec les `locaux` les sortirait purement et simplement de la charte, ce qui est
+     l'inverse de ce qu'on veut d'un jeu de jetons. Ils ont donc leur seau : ils sont
+     DECLARES (section 5 les connait) sans etre la valeur de reference (section 6
+     mesure le clair, qui est la seule source ou tout jeton nait). */
+  const themes = {};
   const marche = (noeud, ctx) => {
     if (!noeud.children) return;
     noeud.children.forEach(ch => {
@@ -166,7 +189,8 @@ function parse(fichier) {
           if (d.type !== 'Declaration') return;
           decls.push({ prop: d.property, val: csstree.generate(d.value), ligne: d.loc ? d.loc.start.line : 0 });
           if (!d.property.startsWith('--')) return;
-          if (sel === ':root') tokens[d.property] = csstree.generate(d.value);
+          if (estRacineBase(sel)) tokens[d.property] = csstree.generate(d.value);
+          else if (estRacineTheme(sel)) themes[d.property] = csstree.generate(d.value);
           else locaux[d.property] = csstree.generate(d.value);
         });
         regles.push({ ctx: ctx.join(' >> '), sel, decls, ligne: ch.loc ? ch.loc.start.line : 0 });
@@ -174,10 +198,47 @@ function parse(fichier) {
     });
   };
   marche(ast, []);
-  return { txt, erreurs, regles, tokens, locaux };
+  return { txt, erreurs, regles, tokens, locaux, themes };
 }
 
 const norme = s => s.replace(/\s*([,>+~])\s*/g, '$1').replace(/\s+/g, ' ').trim();
+
+/* ---------------------------------------------------------------------------
+   CE QUI COMPTE COMME « LA RACINE », 21/09/2026
+   ---------------------------------------------------------------------------
+   Jusqu'ici ce script ne connaissait qu'une seule ecriture, `:root` tout seul, et
+   c'etait vrai tant qu'il n'y avait qu'un theme. src/css/bdv-theme.css en porte
+   trois formes, et aucune n'est `:root` tout seul :
+
+       :root, [data-theme="light"]                      le clair, la SOURCE
+       :root:not([data-theme="light"])   (dans @media)  le reglage du telephone
+       :root[data-theme="dark"], [data-theme="dark"]    le bouton
+
+   Sans ces deux fonctions, le script faisait DEUX fautes a la fois, et les deux
+   sont du genre qui ne casse rien :
+
+   1. IL CRIAIT SUR DU SAIN. La section 4 dispense `:root` de la regle « aucune
+      couleur en dur » parce qu'un jeton est, par definition, une couleur ecrite
+      une fois. Les deux blocs sombres n'etant pas `:root`, leurs trente couleurs
+      auraient fait trente ECHEC sur une feuille parfaitement conforme. Un controle
+      qui crie sur du sain finit par ne plus etre lu, c'est deja la lecon du
+      19/09/2026 sur --ombre-photo.
+   2. IL CLASSAIT LE JEU ENTIER HORS CONTROLE. Un selecteur qui n'est pas `:root`
+      voit ses variables rangees en `locaux`, « declarees sur un composant, donc
+      hors charte ». Les cinquante jetons du bureau seraient sortis du perimetre en
+      silence, le jour meme ou on les pose.
+
+   La distinction entre les deux fonctions n'est pas cosmetique : la BASE est la
+   seule source, celle ou tout jeton nait, et c'est elle qui sert de reference aux
+   contrastes. Un bloc de THEME ne fait que retourner des valeurs deja nees.
+   Reconnaitre la base a son `:root` NU dans la liste : `:root[...]` et `:root:not(...)`
+   sont des retournements, ils portent une condition.
+--------------------------------------------------------------------------- */
+const coupeVirgules_ = sel => norme(sel).split(',').map(x => x.trim()).filter(Boolean);
+const estRacineBase  = sel => coupeVirgules_(sel).some(x => x === ':root');
+const estRacineTheme = sel => !estRacineBase(sel)
+  && coupeVirgules_(sel).some(x => /^:root[:[]/.test(x) || /^\[data-theme[~^|$*]?=?/.test(x));
+const estRacine      = sel => estRacineBase(sel) || estRacineTheme(sel);
 
 const B = parse(APRES);
 if (B.erreurs.length) ko('le CSS ne parse pas : ' + B.erreurs[0]);
@@ -244,7 +305,7 @@ const EST_TEXTURE = val => {
 
 B.regles.forEach(r => {
   const sel = norme(r.sel);
-  if (sel === ':root') return;
+  if (estRacine(sel)) return;
   r.decls.forEach(d => {
     if (RE_COULEUR.test(d.val)) {
       /* Une texture de matiere est un empilement de degrades : le grain du liege,
@@ -321,7 +382,11 @@ else ok('les ' + dur.rayons.length + ' rayons restants sont tous dans les maquet
    5. Tokens
 --------------------------------------------------------------------------- */
 titre('5. Tokens declares, tokens appeles');
-const declares = new Set(Object.keys(B.tokens));
+/* Les jetons retournes par un bloc de theme sont DECLARES, meme s'ils ne naissent
+   pas dans le bloc de base : un var() qui les appelle a bien une declaration. Que
+   le bloc de base les porte tous est le travail de `npm run banc:jetons`, section 4,
+   qui echoue si un jeton sombre n'existe pas en clair. */
+const declares = new Set([...Object.keys(B.tokens), ...Object.keys(B.themes)]);
 const appeles = new Set();
 /* LES COMMENTAIRES NE SONT PAS DES APPELS, 19/09/2026. Le 18/09 on a retire le jeton
    --ombre-photo et laisse, a sa place, un commentaire qui RACONTE la collision et cite
@@ -525,7 +590,7 @@ titre('6 bis. Paires trouvees dans la feuille, hors table');
   const declarees = new Set(PAIRES.map(p => p[0] + '|' + p[1]));
   B.regles.forEach(r => {
     const sel = norme(r.sel);
-    if (sel === ':root') return;
+    if (estRacine(sel)) return;
     let fg = null, bg = null;
     r.decls.forEach(d => {
       if (d.prop === 'color') fg = d.val.trim();
@@ -957,14 +1022,14 @@ titre('A. Echelles fermees : combien de valeurs DISTINCTES cohabitent');
     const sel = norme(r.sel);
     r.decls.forEach(d => {
       const p = d.prop;
-      if (p === 'font-size' && sel !== ':root' && !/var\(/.test(d.val)) {
+      if (p === 'font-size' && !estRacine(sel) && !/var\(/.test(d.val)) {
         declTailles++;
         ajoute('tailles de texte', normeVal(d.val), sel, d.ligne);
       }
       /* Le `50%` est ici, alors que la section 4 le dispense : un rond est un
          pas d'echelle comme un autre, et il n'y a aucune raison qu'il en
          existe deux ecritures. */
-      if (p === 'border-radius' && sel !== ':root' && !/var\(/.test(d.val)
+      if (p === 'border-radius' && !estRacine(sel) && !/var\(/.test(d.val)
           && !/^0(px|rem|em|%)?$/.test(d.val.trim()))
         ajoute('rayons d\'arrondi', normeVal(d.val), sel, d.ligne);
       /* Les ombres sont RESOLUES avant d'etre comptees : `var(--ombre-carte)`

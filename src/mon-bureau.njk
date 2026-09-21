@@ -3,6 +3,11 @@ layout: base.njk
 title: Mon bureau
 description: Ce qui presse, ce que tu as mis de côté, tes outils et tes chiffres.
 permalink: /mon-bureau/
+# LES DEUX THEMES : ce drapeau, et lui seul, fait poser par le layout le script
+# de theme et la feuille src/css/bdv-theme.css. Il est ICI parce que le bureau est
+# la seule page a deux themes : le site public garde son identite papier. Le
+# raisonnement complet est dans le bloc de tete de src/_includes/base.njk.
+theme_bureau: true
 ---
 
 {# Les contenus du site et les echeances, poses une fois, lus par le script plus bas. #}
