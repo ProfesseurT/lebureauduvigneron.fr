@@ -24,7 +24,15 @@ import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, 'src/css/style.css');
+/* LES TROIS FEUILLES, ET PAS UNE SEULE, 21/09/2026. Cet apercu ne chargeait que
+   style.css. Depuis le lot 5 la modale est repeinte sous `.bdv-coque` dans
+   bdv-bureau.css, qui lit les jetons de bdv-theme.css : une page qui n'aurait
+   que style.css montrerait le dessin PAPIER, c'est-a-dire celui qu'on vient de
+   remplacer, et on jugerait un ecran qui n'existe plus. C'est exactement le
+   defaut de l'apercu de la fiche client, ou toutes les `var()` tombaient dans le
+   vide. L'ORDRE EST CELUI DU GABARIT : bdv-theme, style, bdv-bureau. */
+const FEUILLES = ['src/css/bdv-theme.css', 'src/css/style.css', 'src/css/bdv-bureau.css']
+  .map(f => path.join(RACINE, f));
 const JS = path.join(RACINE, 'src/js');
 
 let JSDOM;
@@ -117,24 +125,34 @@ const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
   + '<link rel="preconnect" href="https://fonts.googleapis.com">'
   + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
   + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
-  + '<style>' + fs.readFileSync(FEUILLE, 'utf8') + '</style>'
-  + '<style>body{background:var(--paper-deep);padding:2rem;margin:0}'
+  + FEUILLES.map(f => '<style>' + fs.readFileSync(f, 'utf8') + '</style>').join('')
+  + '<style>body{padding:0;margin:0}'
+  /* LES DEUX THEMES DANS UNE MEME PAGE. C'est la forme sans `:root` des blocs 1
+     et 3 de bdv-theme.css qui le permet : un CONTENEUR qui redeclare les jetons
+     retourne tout son sous-arbre. Juger un theme sombre sur une capture prise a
+     part revient a ne jamais comparer les deux. */
+  + '.th{padding:2rem;background:var(--bdv-fond)}'
+  + '.th__t{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;'
+  + 'letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:0 0 1rem}'
   /* PAS DE minmax(30rem) : sur un ecran de 390 px cette grille imposait 480 px a la
      colonne, le document debordait de 122 px, et la mesure accusait la modale d'un
      defaut qui venait de la page d'apercu. Une page de controle qui ment sur la
      largeur ment sur tout ce qui en depend. */
   + '.ap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:2rem}'
   + '@media (min-width:70rem){.ap{grid-template-columns:1fr 1fr}}'
-  + '.ap__c h3{font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;'
-  + 'letter-spacing:var(--ls-large);color:var(--muted);margin:0 0 .2rem}'
-  + '.ap__c p.ap__n{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin:0 0 .8rem}'
-  + '.ap__c .tmod__boite{max-height:none;box-shadow:var(--ombre-dure)}'
+  + '.ap__c h3{font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;'
+  + 'letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:0 0 .2rem}'
+  + '.ap__c p.ap__n{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);margin:0 0 .8rem}'
+  + '.ap__c .tmod__boite{max-height:none}'
   + '.ap__c--large{grid-column:1/-1}'
-  + '.ap__c--large .zone{background:var(--paper);padding:1.5rem;border:var(--trait) solid var(--rule)}</style>'
-  + '</head><body><div class="ap">'
-  + vues.map(v => '<div class="ap__c' + (v.large ? ' ap__c--large' : '') + '"><h3>' + v.titre
-      + '</h3><p class="ap__n">' + v.note + '</p>' + v.html + '</div>').join('')
-  + '</div></body></html>';
+  + '.ap__c--large .zone{padding:1.5rem}</style>'
+  + '</head><body class="bdv-coque">'
+  + [['light', 'Theme clair'], ['dark', 'Theme sombre']].map(([t, nom]) =>
+      '<section class="th" data-theme="' + t + '"><p class="th__t">' + nom + '</p><div class="ap">'
+      + vues.map(v => '<div class="ap__c' + (v.large ? ' ap__c--large' : '') + '"><h3>' + v.titre
+          + '</h3><p class="ap__n">' + v.note + '</p>' + v.html + '</div>').join('')
+      + '</div></section>').join('')
+  + '</body></html>';
 
 fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
 fs.writeFileSync(path.join(RACINE, '_apercu/modale.html'), page);

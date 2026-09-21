@@ -1576,8 +1576,11 @@ plus urgente, pas moins.**
 
 ### CE QUI RESTE OUVERT
 
-- **Les cinq ecrans de vente, le panneau de reglages, la fiche client et la modale de tache.**
-  Toujours en papier, donc toujours mal lisibles en sombre. C'est le lot suivant.
+- ~~**Les cinq ecrans de vente, le panneau de reglages, la fiche client et la modale de tache.**
+  Toujours en papier, donc toujours mal lisibles en sombre. C'est le lot suivant.~~
+  **FERME EN PARTIE LE MEME JOUR, AU LOT 4** (section suivante) : les cinq ecrans de vente et la
+  fiche client sont repeints. Restent en papier le panneau de reglages (`bdv-panneau.css`) et la
+  modale de tache.
 - **La fusion des trois zones de lecture** en une bande « Ta lecture », que montre la maquette.
   Decision de contenu : elle change la liste des huit zones que `npm run banc` garde.
 - **Le vide sous le sous-main.** `.bureau-plan` porte `align-items: start`, donc la carte du
@@ -1591,6 +1594,413 @@ plus urgente, pas moins.**
   qui est une reecriture de la coche.
 - **Le bouton « Lune et feries »** porte `.filtfam` sans `data-fam`, donc le liseré de la
   premiere famille. Il n'est pas une famille. Anterieur a ce lot.
+
+## LES CINQ ECRANS DE VENTE ET LA FICHE CLIENT, 21/09/2026
+
+Lot 4 des deux themes. Il ferme le defaut annonce par le lot 3 : **le bouton de bascule est
+livre, donc un vigneron qui passe en sombre trouvait « Mon commerce », « Mon cap », « Mes
+cuvees » et « Mon registre » illisibles.** Perimetre : `src/css/bdv-ecrans.css` et ce qu'elle
+habille, les cinq ecrans de vente, la fiche client, les graphiques, les tableaux, le bandeau
+`#status` et le voile `#busyov`.
+
+### ON MODIFIE LA FEUILLE EN PLACE, ET C'EST LA DIFFERENCE AVEC LES LOTS 2 ET 3
+
+Aux deux lots precedents il fallait RECOUVRIR `style.css` dans une feuille a part, parce que
+`.zone`, `.postit` et `.lettre` sont aussi les classes de la demonstration de la page d'accueil.
+**Ici, non.** `.bdv-ventes` n'existe que dans `src/mon-bureau.njk` et
+`src/_includes/components/ecrans-vente.njk`, et `bdv-ecrans.css` n'est chargee que par le bureau,
+par `bdv-nav.js`. On modifie donc la feuille DIRECTEMENT : on evite le poids mort accumule par
+les deux lots precedents, et **on supprime les valeurs papier au lieu de les cacher**.
+
+Mesure : **296 appels a un jeton papier avant, 49 apres**, et les 49 sont tous dans le rapport
+imprimable, qui garde le papier expres. La section 10 de `npm run charte --bureau`, qui garde le
+scope `.bdv-ventes` depuis le 07/09/2026, reste verte.
+
+### LE `:root` DE `bdv-ecrans.css` A DISPARU, ET C'EST UNE MESURE QUI L'A DECIDE
+
+Il portait 71 jetons. **Soixante etaient la copie mot pour mot du `:root` de `style.css`**, qui
+est chargee par le gabarit de base sur toutes les pages, donc aussi sous cette feuille. Ils ne
+servaient a rien d'autre qu'a se perimer en silence, ce qui est la mecanique exacte de la derive
+que `npm run banc:jetons` attrape depuis le 18/09/2026, et qui avait coute `--ombre-photo`.
+
+Les onze autres n'existaient que la :
+
+    --serie-1 a --serie-8   -> --bdv-serie-1 a --bdv-serie-8 dans bdv-theme.css, DEUX valeurs
+    --bordeaux-voile        -> --bdv-aire-accent, idem
+    --ok-clair              -> partis. Ils n'existaient que pour le bloc de rythme de
+    --danger-clair             « Mon cap », qui etait une carte SOMBRE sur du papier clair.
+
+**Consequence a connaitre avant de relire** : `banc:jetons` ne rend plus aucune note. Il en
+rendait une, « 60 jeton(s) redeclare(s) a l'identique dans plusieurs feuilles ». Ne pas remettre
+un `:root` ici « pour que la feuille reste lisible seule » : elle n'est lisible que dans le
+bureau, et le bureau charge `style.css` et `bdv-theme.css` avant elle.
+
+### LES HUIT SERIES SONT LUES EN JAVASCRIPT, ET LE NOM EST UN CONTRAT
+
+`palSeries()` dans `src/js/bdv-base.js` construit les noms a la main, `'--bdv-serie-'+i`, et
+`aireBordeaux()` lit `--bdv-aire-accent`. **C'est le seul endroit du depot ou un jeton de CSS
+soit appele par un nom ecrit en JavaScript** : renommer l'un sans l'autre rend une palette vide,
+et Chart.js peint alors en noir par defaut, sans une erreur.
+
+`getComputedStyle` est relu a CHAQUE appel, et c'est voulu : c'est ce qui fait qu'un graphique
+redessine apres une bascule prend les nouvelles couleurs. **Ne pas mettre ces valeurs en cache
+dans une constante de module.**
+
+### LES SERIES SONT SEPAREES EN LUMINANCE, ET L'ORDRE ALTERNE
+
+Elles sont categorielles. Les anciennes etaient dessinees pour du papier et trois tombaient sous
+3:1 sur du blanc (`--serie-8` a 1,94:1) ; sur un fond sombre les huit vibraient.
+
+Luminances relatives, dans l'ordre de declaration :
+
+    clair    .022  .160  .045  .208  .075  .250  .115  .290
+    sombre   .140  .425  .195  .515  .265  .615  .340  .720
+
+**L'ordre alterne le bas et le haut de l'echelle**, parce que ce qui compte est l'ecart entre
+deux series VOISINES dans un graphique. Ecart minimal entre voisines : 1,81 en clair, 1,71 en
+sombre ; en vision deuteranope, 1,80 et 1,77. Pire contraste sur la surface qui les porte :
+3,09:1 en clair, 3,31:1 en sombre. Ce sont des OBJETS graphiques, jamais du texte, donc 3:1.
+
+**CE QUE CA NE REGLE PAS** : a huit niveaux dans une fenetre de 3:1, deux series NON voisines
+peuvent se ressembler, la pire paire quelconque tient 1,13. C'est structurel. Chart.js garde donc
+sa legende et ses infobulles : la couleur ne porte jamais seule le nom d'une serie. Et si une
+neuvieme teinte devait entrer, **il faudrait rouvrir la fenetre de luminance, pas y glisser une
+valeur de plus**.
+
+### UN JETON DE CSS NE TRAVERSE PAS TOUT SEUL JUSQU'A UN GRAPHIQUE
+
+Chart.js recoit des CHAINES de couleur a la construction et les garde. Avant ce lot, un vigneron
+qui ouvrait « Mon cap » en clair puis appuyait sur le bouton gardait un graphique aux couleurs
+claires au milieu d'un bureau sombre, **sans une erreur, jusqu'au prochain rechargement**.
+
+`BdvTheme.appliquer()` (bloc de tete de `src/_includes/base.njk`) emet desormais `bdv:theme` sur
+`document`, et `src/js/bdv-ecrans.js` l'ecoute pour `ecranInvalider()` puis repeindre l'ecran
+courant. **DEUX SOURCES ET PAS UNE, et oublier la seconde est le defaut classique :**
+
+1. le BOUTON, par `bdv:theme` ;
+2. le REGLAGE DU TELEPHONE, par `matchMedia('(prefers-color-scheme: dark)')`, qui bascule seul au
+   coucher du soleil. Sans cette ecoute, le bureau laisse a 21 h les graphiques peints a 18 h.
+   On ne l'ecoute QUE si aucun choix n'est memorise dans `bureau_theme_v1`.
+
+Le repeint passe par `requestAnimationFrame` : lire `getComputedStyle` dans le meme tour que la
+pose de `data-theme` rend encore les valeurs d'AVANT.
+
+Verifie dans un vrai navigateur en lisant la couleur que Chart.js RECOIT : `#9E2B47` avant,
+`#F294A9` apres le bouton, `#F294A9` apres une bascule du systeme sans choix memorise.
+
+### LE RAPPORT IMPRIMABLE GARDE LE PAPIER, ET CE N'EST PAS UN OUBLI
+
+`#printReport` n'est jamais affiche a l'ecran et ne sort que par l'imprimante, et son
+`@media print` force les fonds par `print-color-adjust: exact`. Le repeindre en jetons de theme
+ferait sortir des pages NOIRES de l'imprimante de tout vigneron qui a choisi le sombre, encre
+blanche comprise. **Le papier est le bon medium pour le papier.** Ses 49 appels a un jeton papier
+viennent tous du `:root` de `style.css`, toujours chargee.
+
+### `status()` N'A TOUJOURS QUE TROIS TYPES, ET ILS SONT MESURES
+
+error, loading, success. Un quatrieme nom sort un bandeau sans fond ni couleur, et la regle du
+19/09/2026 tient : ou le type existe dans la feuille, ou on prend celui qui existe. Paires
+mesurees, clair puis sombre : **6,30 et 6,93:1** pour `error`, **13,99 et 9,73:1** pour
+`loading`, **5,98 et 8,90:1** pour `success`. Le bandeau porte en plus un filet de 1 px de la
+couleur de son etat.
+
+### CE QUE LA CAPTURE A TROUVE, ET QUE TRENTE-SEPT BANCS VERTS N'AVAIENT PAS VU
+
+**HUITIEME FOIS QUE LA MEME LECON SE PAIE.**
+
+1. **La barre « 286 lignes » est restee creme sur un bureau noir.**
+   `#bureauVentes .bdv-ventes .topbar` dans `style.css` pese **(1,2,0)** contre **(0,2,0)** pour
+   la regle de ce lot : un IDENTIFIANT de plus. C'est mot pour mot la barre d'onglets du lot 2 et
+   la punaise du lot 3, **une regle d'en face qu'on n'a pas lue en entier**.
+   **SUPPRIMEES, ET PAS CORRIGEES SUR PLACE**, parce que c'etaient des RUSTINES : elles
+   ramenaient au papier du bureau la barre bordeaux du tableau de bord d'origine, et
+   `bdv-ecrans.css` la peint elle-meme depuis ce lot. Les corriger aurait de plus fait appeler
+   un jeton `--bdv-*` depuis `style.css`, que `npm run charte` lit en mode SITE ou
+   `bdv-theme.css` n'est pas chargee : **trois « var() sans declaration » sur du sain**, ce qui
+   est exactement le genre de controle qu'on finit par ne plus lire. Et le commentaire qui les
+   remplace ne les recopie PAS sous leur forme de regle : la section 3 bis de `npm run charte`
+   refuse un commentaire qui contient une regle CSS.
+2. **Deux couleurs en attribut `style` dans `bdv-ecrans.js`**, les barres de gain et de perte de
+   « D'ou vient ta variation ». Elles valaient `--ok` et `--danger` : sur un fond sombre le vert
+   tombait a 2,1:1. Elles ne se voient dans AUCUNE feuille, et la section 8 de `npm run charte`
+   est le seul controle qui les regarde.
+3. **`.kpi--hi` devenait une dalle rose.** `--bdv-accent` est un bordeaux profond en clair et un
+   rose pale en sombre : l'aplat qui se lisait comme une action primaire devenait deux grands
+   rectangles roses au milieu de « Mon cap ». Elle prend le lavis et garde son filet d'accent.
+   C'est aussi la regle du seul accent a trois usages : **un chiffre mis en avant n'en est pas
+   une.**
+
+### ET LE HARNAIS S'EST MENTI A LUI-MEME DEUX FOIS
+
+**UNE FOIS SUR LE DECOR, et c'est la cinquieme fois que ce fichier le raconte.**
+`scripts/bureau-garni.mjs` pose 286 lignes dans IndexedDB, mais les ecrans de vente ne les
+CHARGENT pas depuis l'amorcage leger du 18/09 : ils affichent « tes lignes ne sont pas encore
+chargees » et attendent un clic. Les premieres captures montraient cinq ecrans vides, joliment
+mis en page. **Le harnais clique desormais sur « Charger mes lignes et completer », et il LEVE si
+aucune rangee n'est peinte.**
+
+**UNE FOIS SUR L'ECRAN DE BASE VIDE.** Photographie dans un contexte a base vide, `#p-vide`
+sortait SANS SA FEUILLE : sans reseau, l'amorcage ne conclut jamais, `chargerEcrans()` ne pose
+donc jamais `bdv-ecrans.css`, et le titre retombait sur le `h1,h2,h3` de `style.css`, en `--ink`.
+Ce faux defaut a servi : **le vrai `#p-vide` se regarde dans un bureau GARNI**, en forcant le
+panneau affiche et rien d'autre.
+
+### `npm run apercu:fiche` MONTRAIT UNE FICHE SANS COULEURS
+
+Il recopiait `style.css` et `bdv-ecrans.css`, **pas `bdv-theme.css`**. Depuis ce lot la fiche ne
+lit plus que des `--bdv-*` : l'apercu aurait montre une fiche dont toutes les `var()` tombent
+dans le vide, et il aurait fallu ouvrir la vraie page pour s'en apercevoir. La feuille est
+ajoutee, EN PREMIER comme dans le gabarit, et chaque etat est rendu DEUX FOIS cote a cote sous
+deux conteneurs qui forcent l'un le clair et l'autre le sombre. C'est exactement ce que la forme
+sans `:root` des blocs 1 et 3 de `bdv-theme.css` existe pour permettre.
+
+### L'AUDIT DE CONTRASTE A DEUX RELAIS MAINTENANT
+
+Celui du lot 3 parcourait le rendu et jugeait le TEXTE. Celui-ci ajoute un second relais qui
+cherche les valeurs PAPIER encore posees, texte ou non, en comparant la couleur RENDUE a la
+table des jetons papier. **C'est ce second relais qui a nomme la barre creme** : aucun calcul de
+contraste de texte ne signale un fond qui n'en porte pas. Resultat final, 24 passages, six
+ecrans par theme et par largeur : **zero paire sous le seuil, zero valeur papier.**
+
+### LA BORNE DES TAILLES DE TEXTE EST DESCENDUE DE 35 A 32
+
+Section A de `npm run charte --bureau`. Ce lot a repris treize `font-size` en dur dans les pas
+`--bdv-f-*`. La regle du depot est qu'une borne DESCEND et ne remonte jamais.
+
+### CE QUI RESTE OUVERT
+
+- ~~**Le panneau de reglages** (`bdv-panneau.css`) et **la modale de tache** sont les DERNIERS
+  morceaux de papier du bureau. Et ca se voit : sur une base vide, `openApp()` ouvre le panneau
+  par-dessus l'ecran, donc une dalle creme sur un bureau noir.~~
+  **FERME LE MEME JOUR, AU LOT 5** (section suivante), avec le voile d'amorcage et la porte de
+  compte. Le chantier des deux themes est clos.
+- **Les largeurs de colonne en dur** : `7rem` pour la valeur d'une barre de repartition, `9rem`
+  pour la premiere colonne d'un tableau sur telephone. Ce sont des mesures de CONTENU, pas des
+  pas d'echelle ; leur donner un jeton serait du rangement sans mesure derriere.
+- **Le pire contraste d'un graphique tient exactement 3,09:1 en clair**, ce qui est au-dessus du
+  seuil et mince.
+- **Rien n'annonce toujours qu'un tableau defile** sur telephone, et les libelles restent dans
+  des `title`. Anterieur a ce lot, signale le 11/09/2026, non traite.
+
+## LE PANNEAU, LA MODALE, LE VOILE ET LA PORTE, 21/09/2026. LE CHANTIER EST CLOS.
+
+Lot 5 des deux themes, et le dernier. Il ferme le defaut annonce par le lot 4 : **les trois
+choses que le bureau pose PAR-DESSUS lui-meme etaient encore en papier, c'est-a-dire les trois
+plus visibles.** Le panneau de reglages n'attendait meme pas qu'on le demande : sur une base
+vide, `openApp()` l'ouvre tout seul par-dessus l'ecran, donc une dalle creme au milieu d'un
+bureau noir, des la premiere ouverture.
+
+Perimetre : le panneau de reglages et ses six onglets, la modale d'une tache, le voile
+d'amorcage, la porte de compte. Le voile de calcul `#busyov` etait deja repeint au lot 4, avec
+le reste de `bdv-ecrans.css` : verifie, rien a faire.
+
+### LE PANNEAU A DEUX MOITIES, ET IL FAUT LES PRENDRE ENSEMBLE
+
+C'est le piege d'entree de ce lot. Le style du panneau n'est pas dans un fichier, il est dans
+**deux** :
+
+1. `src/css/bdv-panneau.css`, 21 ko, les BLOCS du moteur (`.card`, `.kpi`, `.data`, `.btn`,
+   `.dropzone`, `.signal`), portes sous `.bdvr-panneau` ;
+2. la constante `STYLE` de `src/js/bdv-reglages.js`, le SQUELETTE : le voile, la boite, les six
+   onglets, les champs, le pied. Injectee dans `<head>` a l'ouverture.
+
+Repeindre la premiere seule aurait laisse la dalle creme exactement ou elle etait, puisque c'est
+la seconde qui porte `background: var(--paper)`. **Les deux vont ensemble, et le commentaire de
+tete de chacune renvoie a l'autre.**
+
+### ON MODIFIE EN PLACE, COMME AU LOT 4, ET POUR LA MEME RAISON
+
+`.bdvr-*` et les classes de ses blocs ne vivent que dans le bureau. Le « tableau de bord » n'est
+plus une page depuis le lot 2d du 07/09/2026, donc le panneau ne s'ouvre plus que dans
+`/mon-bureau/`, la seule page qui porte `theme_bureau`, donc la seule qui charge
+`bdv-theme.css`. **Les valeurs papier sont SUPPRIMEES, pas cachees, et le poids mort n'augmente
+pas d'un octet.**
+
+Mesure : **75 regles reecrites, 0 appel a un jeton papier restant** dans `bdv-panneau.css` comme
+dans le `STYLE` de `bdv-reglages.js`.
+
+L'ancienne regle d'entete des deux fichiers, « n'utiliser QUE les 52 jetons declares dans les
+deux `:root` du projet », est **perimee et remplacee** : on n'y ecrit plus que des `--bdv-*`,
+plus les cinq `--z-*` de l'echelle des couches. Un jeton papier vu la est desormais une
+regression muette, parce qu'il ne se retourne pas.
+
+`bdv-panneau.css` **ne declarait aucun `:root`**, contrairement a `bdv-ecrans.css` : verifie
+avant de toucher a quoi que ce soit, rien a supprimer.
+
+### LA MODALE DE TACHE EST DANS `style.css`, DONC ON LA RECOUVRE
+
+Elle est habillee par `src/css/style.css`, lignes 8144 a 8280, sous `.tmod*`. `style.css` sert
+la page d'accueil : **on ne la modifie pas**, on la recouvre sous `.bdv-coque` dans la section 18
+de `bdv-bureau.css`, exactement comme le lot 3 l'a fait pour le liege et les punaises. Meme
+traitement pour le voile d'amorcage (`.bdv-amorce*`, section 19), qui vit la aussi.
+
+**La porte de compte, elle, n'est dans aucune feuille** : `bdv-compte.js` injecte son CSS au
+premier appel de `porte()`, et elle s'ouvre AUSSI depuis le site public. Elle garde donc son
+papier la-bas et elle est recouverte ici, section 20.
+
+### ET CELLE-LA DEMANDE (0,2,1), PAS (0,2,0)
+
+**C'est la seule difference des trois, et elle aurait tue le bloc entier sans une erreur.** Le
+style de la porte est injecte dans `<head>` a l'ouverture, donc APRES `bdv-bureau.css`. A
+specificite egale, c'est lui qui gagne. `body.bdv-coque .bdv-porte__x` pese un nom d'element de
+plus et passe devant. **Regle generale : un style injecte en JavaScript est toujours plus tard
+qu'une feuille du gabarit, et l'egalite ne suffit pas.**
+
+### LE BALAYAGE DE SPECIFICITE A ETE FAIT AVANT LA CAPTURE, ET IL A TROUVE
+
+**Trois lots de suite avaient paye le meme defaut a l'image** : la barre d'onglets du telephone
+restee creme, la punaise du panneau restee papier, la barre « 286 lignes » restee creme. Chaque
+fois une regle d'en face plus lourde, ou une propriete que la nouvelle regle ne nommait pas.
+Aucun banc ne l'a jamais vu.
+
+`Claude outputs/lot5-specificite.mjs` confronte donc les regles de `style.css` qui visent une
+classe du panneau ou de la modale a la specificite des nouvelles. **80 regles visent la modale,
+16 le panneau.** Ce qu'il a trouve, avant la premiere capture :
+
+1. **`h1,h2,h3,h4{color:var(--ink)}` pese (0,0,1) et gagnait quand meme**, parce que les regles
+   de titre de la modale, du voile et de la zone de depot ne nommaient que `font-family` et
+   `font-size`. Le titre d'une tache serait reste a #1E2536 sur #21252B, soit **1,05:1**.
+   **Aucune mesure de feuille ne pouvait le dire : les deux moities de la paire sont dans deux
+   fichiers.** Ferme en NOMMANT `color` partout.
+2. **`.btn:hover` de `style.css` pose `transform` et `box-shadow`**, que personne ne nommait :
+   les six boutons du panneau avancaient de deux pixels et posaient une ombre dure en encre du
+   SITE au survol, y compris sur un bureau sombre, ou #0F1622 sur #131519 est une tache noire
+   sans bord. La profondeur du bureau est un trait de 1 px : l'ombre est ANNULEE.
+3. **`.bdv-coque .btn{min-height:36px}` de la section 8 battait `.tmod .btn{min-height:44px}`**
+   de `style.css` : meme poids, posee plus tard. « ENREGISTRER » et « C'EST FAIT », les deux
+   boutons qui ECRIVENT dans la modale, etaient retombes sous le plancher tactile sur telephone
+   depuis le lot de la coque. Rendu.
+4. **`.bdv-coque tbody td{height:44px}` ne nommait pas `height` cote panneau** : sur telephone,
+   ou chaque cellule devient un bloc, une fiche de six cellules faisait 264 px pour six lignes
+   de texte.
+
+**Ces quatre-la sont le rendement de dix minutes de balayage.** Le faire avant la capture, et pas
+apres, est la seule chose qui change entre ce lot et les trois precedents.
+
+### DEUX DEFAUTS ANCIENS TROUVES EN PASSANT, ET CORRIGES
+
+- **`.kpi--hi` n'avait pas de fond dans le panneau**, et ses deux enfants etaient ecrits en
+  `--on-dark-soft`, c'est-a-dire du creme : le libelle et le sous-titre du chiffre mis en avant
+  donnaient **1,08:1** sur la carte blanche, sur le papier comme sur le bureau. Le fond venait
+  de l'ancien tableau de bord, ou la carte etait bordeaux, et il n'a jamais suivi. Il prend le
+  meme dessin que dans les ecrans de vente.
+- **Les quatre tons de `.signal` manquaient a `bdv-panneau.css`.** `bdv-base.js` ecrit
+  `signal signal--` plus le ton, avec quatre valeurs ; seule la feuille des ecrans de vente les
+  declarait. Dans le panneau, le filet de gauche de 4 px restait de la couleur du cadre et les
+  quatre gravites se ressemblaient.
+
+### LA ZONE DE DEPOT NE DIT PLUS « TU ES DESSUS » PAR UNE COULEUR
+
+C'est la cible d'un glisser-deposer. Au moment ou le vigneron en a le plus besoin, il a le
+curseur, la vignette de fichier et sa main entre l'oeil et la zone, et en sombre les ecarts de
+teinte sont plus courts qu'en clair. L'etat de survol est donc double **deux fois** : le trait
+passe de tirete a plein, ce qui est une FORME, et **le mot « lache ici » s'affiche sous
+l'invite**. Regle du depot : chaque etat est double d'un glyphe ET d'un mot.
+
+Meme traitement pour l'avis du pied du panneau et pour l'erreur de la modale, qui portaient leur
+verdict par la seule couleur : un glyphe en `::before`, coche ou point d'exclamation.
+
+### LE TEXTE DE CONFIRMATION DU VIDAGE EST UNE DEMANDE MOT POUR MOT DE TED
+
+« attention tu vas perdre TOUT ce que t'as fait dans le bureau du vigneron, c'est pas remonte
+dans Vitisoft ». Il est dans `viderBase()` de `src/js/bdv-base.js`, il n'a pas bouge d'un
+caractere, et `npm run banc:vidage` le garde. **On repeint le bouton, on ne reecrit pas la
+phrase.**
+
+### `gateVitisoft()` ET `gateBaseVide()` GARDENT LEURS DEUX MARQUES
+
+`data-off` et `data-off-vide` sont DISTINCTES et le restent : la premiere dit « tu n'as pas
+Vitisoft », la seconde « ta base est vide ». Seule `.bdvr-bloc[data-off="oui"]` cache, et
+`gateBaseVide()` pose les deux pour pouvoir retirer la sienne sans defaire l'autre. Ce lot n'a
+touche a aucune des deux, et `npm run banc:vidage` le controle explicitement.
+
+### L'ECHELLE DES COUCHES NE S'ECRIT PAS EN DUR, MEME QUAND ON TOMBE JUSTE
+
+`.bdv-porte` portait `z-index: 1200`, c'est-a-dire la valeur de `--z-amorce` recopiee a la main.
+Elle est devenue `var(--z-amorce, 1200)`. Le repli garde 1200 parce que cette feuille est aussi
+servie a des pages du site. L'echelle complete et ordonnee reste : `--z-modale` 400 <
+`--z-voile` 1000 < `--z-busy` 1050 < `--z-statut` 1100 < `--z-amorce` 1200.
+
+### LES DEUX APERCUS NE CHARGEAIENT PAS `bdv-theme.css`
+
+Meme defaut que `npm run apercu:fiche` au lot 4, et il aurait coute la meme chose : une page dont
+toutes les `var()` tombent dans le vide, montree comme si c'etait le produit.
+`npm run apercu:modale` et `npm run apercu:amorce` chargent desormais les TROIS feuilles dans
+l'ordre du gabarit, `bdv-theme.css`, `style.css`, `bdv-bureau.css`, posent `bdv-coque` sur le
+corps de page, et rendent chaque etat DEUX FOIS, sous un conteneur clair et un conteneur sombre.
+
+**UN ACCENT GRAVE DANS LA CONSTANTE `STYLE` DE `bdv-reglages.js` FERME LE GABARIT.** Trois
+commentaires ajoutes citaient un nom de jeton entre accents graves : le fichier est devenu
+illisible par acorn, et le build l'a dit en UNE ligne, « illisible par acorn, laisse tel quel »,
+sans echouer. Le minifieur laissait simplement le fichier entier non traite. **Les commentaires
+de cette constante citent les noms entre guillemets francais, jamais entre accents graves.**
+
+### CE QUE LA CAPTURE A TROUVE, ET QUE CINQUANTE BANCS VERTS N'AVAIENT PAS VU
+
+**NEUVIEME FOIS.** Les deux boutons du pied du voile d'amorcage, « Reessayer » et « Ouvrir quand
+meme », sont ecrits en `btn btn--geste` par `bdv-amorce.js`. `.bdv-coque .btn--geste` leur donne
+le dessin d'une action de RANGEE : fond transparent, bordure transparente, revelee au survol.
+C'est juste dans un listing ; c'est faux ici, ou ces deux boutons sont **la seule sortie d'un
+voile qui couvre tout l'ecran**. Ils apparaissaient comme deux bouts de texte gris, dans les deux
+themes.
+
+**Aucun calcul ne pouvait le dire : le contraste du libelle est bon.** C'est l'AFFORDANCE qui
+manquait, et seule l'image la montre. La regle qui les rend a (0,3,0) est bornee au pied du
+voile : partout ailleurs le geste reste nu.
+
+### L'AUDIT DE RENDU, QUATRE PASSAGES, NEUF ECRANS PAR PASSAGE
+
+`Claude outputs/lot5-audit-contraste.mjs`, repris du lot 4 avec ses deux relais. Perimetre : la
+modale, les six onglets du panneau, la porte et le voile, dans les deux themes et aux deux
+largeurs. **Zero valeur papier, zero paire sous le seuil, aux quatre passages.**
+
+Une correction du relais « papier » : `rgb(255,255,255)` est retire de sa table. En theme CLAIR,
+`--bdv-surface`, `--bdv-surface-3` et `--bdv-encre-sur-accent` valent tous #FFFFFF, donc le blanc
+n'y est pas une trace de papier, c'est la surface du produit. En sombre aucun jeton du bureau ne
+vaut blanc, et le relais garde tout son mordant la ou il sert.
+
+### LE COMPTE DE PAPIER RESTANT DANS LE BUREAU, TOUTES FEUILLES CONFONDUES
+
+`Claude outputs/lot5-compter-papier.mjs` compte les appels a un jeton du site dans ce que le
+bureau CHARGE, commentaires retires :
+
+    bdv-theme.css ........  0
+    bdv-bureau.css .......  0
+    bdv-panneau.css ......  0
+    bdv-reglages.js STYLE   0
+    bdv-compte.js porte ..  0
+    bdv-ecrans.css .......  91, TOUS dans le rapport imprimable, et c'est voulu
+    bdv-calendrier.css ... 237, tous RECOUVERTS par la section 16 de bdv-bureau.css
+
+**Les 91 sont la regle du lot 4** : `#printReport` ne sort que par l'imprimante, et le repeindre
+ferait sortir des pages noires chez tout vigneron qui a choisi le sombre. Le papier est le bon
+medium pour le papier.
+
+**Les 237 sont le poids mort du lot 3**, et c'est le dernier chantier ouvert du dessin :
+`bdv-calendrier.css` n'a pas ete modifiee, elle a ete recouverte, parce que sa vue liste
+reutilise volontairement `.echeance` de `/outils/echeances/`. Les regles sont battues, pas
+supprimees, et elles voyagent a chaque ouverture du calendrier.
+
+### CE QUI RESTE OUVERT, APRES CINQ LOTS
+
+- **La scission de `style.css`.** C'est le chantier que les cinq lots ont rendu plus urgent, pas
+  moins. Deux recouvrements pesent dessus : la section 16 de `bdv-bureau.css` par-dessus
+  `bdv-calendrier.css` (237 appels papier battus), et les sections 9 a 17 par-dessus `.zone`,
+  `.postit`, `.lettre`. Tant que la demonstration de l'accueil partage ces classes avec le
+  bureau, on ne peut pas supprimer.
+- **`bdv-calendrier.css` repeinte en place**, le jour ou la vue liste ne partagera plus
+  `.echeance` avec la page publique. C'est le meme geste que ce lot vient de faire sur
+  `bdv-panneau.css`, et il rendrait ces 237 appels.
+- **La porte de compte garde deux dessins**, le papier pour le site et les jetons pour le
+  bureau. C'est juste, mais ca veut dire que toute regle ajoutee a `bdv-compte.js` doit etre
+  doublee dans la section 20 de `bdv-bureau.css`. Il n'y a aucun garde-fou qui le rappelle.
+- **Le panneau ne se photographie pas sur une base VIDE sans reseau.** Le voile d'amorcage ne
+  conclut jamais dans un conteneur hors ligne et se remonte a chaque navigation, donc le harnais
+  ne voit jamais `openApp()` ouvrir le panneau tout seul. Le defaut de dessin est ferme, mais ce
+  chemin-la reste non photographie.
+- **Les points ouverts des lots 3 et 4 n'ont pas bouge** : la fusion des trois zones de lecture,
+  le vide sous le sous-main, la coche de « Mes taches » sur telephone, le bouton « Lune et
+  feries », et le fait que rien n'annonce qu'un tableau defile.
 
 ## LE SQL DU DEPOT SE REJOUE, ET C'EST UN BANC QUI LE DIT, 18/09/2026
 

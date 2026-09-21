@@ -2710,3 +2710,434 @@ body.bdv-coque{
   }
   .bdv-coque .chiffre:last-child{ border-bottom:0; }
 }
+
+
+/* ============================================================================
+   ============================================================================
+   LOT 5, 21/09/2026 : LES TROIS DERNIERES FEUILLES DE PAPIER DU BUREAU
+
+   CE QUE CE LOT FERME, ET C'EST LE DERNIER DU CHANTIER DES DEUX THEMES. Il
+   restait trois choses posees PAR-DESSUS le bureau, c'est-a-dire les trois plus
+   visibles : la modale d'une tache, le voile d'amorcage et la porte de compte.
+   Une dalle creme au milieu d'un bureau noir se voit d'autant mieux qu'elle est
+   au premier plan.
+
+   LE PANNEAU DE REGLAGES, LUI, N'EST PAS ICI. Ses classes `.bdvr-*` et celles
+   de ses blocs n'existent que dans le bureau : elles ont ete repeintes EN PLACE
+   dans src/css/bdv-panneau.css et dans la constante STYLE de
+   src/js/bdv-reglages.js, valeurs papier supprimees et non recouvertes. Ces
+   trois-ci sont dans src/css/style.css et dans src/js/bdv-compte.js, qui
+   servent aussi le site public : on RECOUVRE, comme au lot 3, et pas une ligne
+   de style.css ne bouge.
+
+   --------------------------------------------------------------------------
+   LA SPECIFICITE A ETE MESUREE AVANT LA CAPTURE, ET PAS APRES
+   --------------------------------------------------------------------------
+   Trois lots de suite ont paye le meme defaut a l'image : la barre d'onglets du
+   telephone restee creme, la punaise du panneau restee papier, la barre
+   « 286 lignes » restee creme. Chaque fois, une regle d'en face pesait plus
+   lourd, ou la nouvelle ne nommait pas la propriete qu'il fallait. Aucun banc
+   ne l'a jamais vu.
+
+   Le balayage de ce lot (« Claude outputs/lot5-specificite.mjs ») a confronte
+   les 80 regles de style.css qui visent une classe de la modale et les 16 qui
+   visent une classe du panneau a la specificite des miennes. Ce qu'il a trouve :
+
+     . TRENTE-DEUX regles de style.css pesent (0,2,0) ou plus sur la modale.
+       Elles sont toutes dans src/css/style.css, chargee AVANT cette feuille :
+       a egalite, c'est la derniere posee qui gagne, donc moi. Les cinq qui
+       montent a (0,2,1) ou plus visent `.tache__*`, la LISTE, pas la modale.
+       Les etats de la modale sont malgre tout repris a (0,3,0) ci-dessous, en
+       collant le scope au selecteur d'origine : une egalite qui ne tient qu'a
+       l'ordre des `<link>` est une egalite qu'un jour on deplace.
+     . `h1,h2,h3,h4{color:var(--ink)}` pese (0,0,1) et n'a PAS d'equivalent dans
+       les regles de titre de la modale et du panneau, qui ne nommaient que
+       `font-family` et `font-size`. C'est la fuite du lot, et c'est exactement
+       la famille de defaut cherchee : elle est fermee en NOMMANT `color`.
+     . `.btn:hover` de style.css pose `transform` et `box-shadow` que personne ne
+       nommait : voir le commentaire de src/css/bdv-panneau.css.
+     . `.bdv-coque .btn{min-height:36px}` de la section 8 de CETTE feuille pese
+       (0,2,0) comme `.tmod .btn{min-height:44px}` de style.css, et elle est
+       posee APRES : les deux boutons qui ECRIVENT dans la modale etaient donc
+       retombes a 36 px sur telephone depuis le lot de la coque, sous le plancher
+       tactile du projet. Rendu ci-dessous.
+
+   AUCUNE VALEUR EN DUR : ni couleur, ni taille, ni rayon, ni duree. Les couches
+   ne sont pas touchees : l'echelle `--z-modale` < `--z-voile` < `--z-busy` <
+   `--z-statut` < `--z-amorce` reste ecrite une seule fois, dans style.css et
+   dans tokens.css.
+   ============================================================================
+   ============================================================================ */
+
+
+/* ==========================================================================
+   18. LA MODALE D'UNE TACHE
+
+   Celle du 12/09/2026, avec ses trois natures (une tache ecrite, une tache qui
+   dure, une obligation) et ses trois jeux de droits. Elle s'ouvre depuis TROIS
+   endroits : la ligne de « Mes taches », la punaise du panneau et le titre
+   d'une tache dans la vue liste du calendrier. Un seul dessin pour les trois.
+
+   CE QUI PART : le papier creme de la boite, l'ombre dure du site, l'encre du
+   titre, le bordeaux de l'anneau de focus et des survols. Ce qui reste : la
+   mise en page, les tailles de grille et les planchers tactiles, tous mesures
+   entre le 12 et le 19/09/2026 et tous justes.
+   ========================================================================== */
+
+/* Le voile : le meme que celui du panneau et du moteur, `--bdv-voile`, qui est
+   pose en rgba dans les deux themes. Le flou de 2 px reste : c'est une matiere,
+   pas une couleur, et il se retourne tout seul. */
+.bdv-coque .tmod__voile{ background:var(--bdv-voile); }
+
+/* LA BOITE. Fond `--bdv-surface-3`, celui des feuilles montantes, et un trait
+   de 1 px a la place de `--ombre-dure` : 6px 6px 0 en encre du site donne un
+   bloc noir sans bord sur un bureau sombre, et cette feuille ne pose aucune
+   ombre. */
+.bdv-coque .tmod__boite{
+  background:var(--bdv-surface-3);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  box-shadow:none;
+  padding:var(--bdv-e-6);
+}
+.bdv-coque .tmod__x{
+  font-size:var(--bdv-f-5);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .tmod__x:hover{ color:var(--bdv-accent); }
+
+/* LE TAMPON. La meme etiquette en capitales que sur la punaise du panneau : un
+   mot se lit, une teinte se devine. Les trois tons sont repris a (0,3,0) parce
+   que leurs regles d'origine pesent (0,2,0) : a egalite on dependrait de
+   l'ordre des feuilles. */
+.bdv-coque .tmod__tampon{
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .tmod__tampon[data-ton="retard"],
+.bdv-coque .tmod__tampon[data-ton="aujourdhui"]{
+  color:var(--bdv-retard);
+  border-color:var(--bdv-retard);
+}
+.bdv-coque .tmod__tampon[data-ton="fait"]{
+  color:var(--bdv-bon);
+  border-color:var(--bdv-bon);
+  background:var(--bdv-bon-lavis);
+}
+
+/* `color` EST NOMME, ET C'EST LA FUITE CHERCHEE AVANT LA CAPTURE. La regle
+   d'origine ne posait que `font-family` et `font-size`, donc le titre prenait
+   `h1,h2,h3,h4{color:var(--ink)}` de style.css : #1E2536 sur #21252B, soit
+   1,05:1. Un titre de tache invisible, et aucune mesure de feuille ne pouvait
+   le dire, puisque les deux moities de la paire sont dans deux fichiers. */
+.bdv-coque .tmod__titre{
+  font-family:inherit;
+  font-weight:600;
+  font-size:var(--bdv-f-5);
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .tmod__sous{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+  line-height:1.5;
+}
+.bdv-coque .tmod__l{
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-2);
+}
+/* Les deux saisies. `.bdv-coque input` de la section 8 les couvre deja pour la
+   couleur et le fond, mais elle pese (0,1,1) contre (0,1,0) pour `.tmod__i` :
+   le jour ou l'une des deux bouge, l'autre suivrait en silence. Les valeurs
+   sont donc posees ici aussi, a la specificite qui gagne dans les deux cas. */
+.bdv-coque .tmod__i,
+.bdv-coque .tmod__d{
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  font-family:inherit;
+  font-size:var(--bdv-f-saisie);
+  color:var(--bdv-encre-1);
+}
+/* UN SEUL ANNEAU DE FOCUS DANS TOUT LE PRODUIT. Celui d'origine etait un trait
+   de 3 px en bordeaux du site : 1,37:1 sur la boite sombre, donc plus de focus
+   clavier du tout. `--bdv-anneau` tient 7,44:1 en clair et 9,15:1 en sombre. */
+.bdv-coque .tmod__i:focus,
+.bdv-coque .tmod__d:focus{
+  outline:2px solid var(--bdv-anneau);
+  outline-offset:2px;
+}
+.bdv-coque .tmod__aide{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+  line-height:1.5;
+}
+/* L'ERREUR SE DIT PAR UN MOT, UN GLYPHE ET UNE COULEUR. Le mot est deja la,
+   c'est la phrase que la modale ecrit ; le signe la double ; la teinte confirme.
+   Regle du depot : aucun etat n'est porte par la seule couleur. */
+.bdv-coque .tmod__erreur{
+  background:var(--bdv-retard-lavis);
+  color:var(--bdv-retard);
+  border-radius:var(--bdv-r);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .tmod__erreur::before{
+  content:'\0021';
+  margin-right:var(--bdv-e-2);
+  font-weight:600;
+}
+.bdv-coque .tmod__lien{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .tmod__lien:hover{ color:var(--bdv-accent); }
+.bdv-coque .tmod__lien--x:hover{ color:var(--bdv-retard); }
+.bdv-coque .tmod__bloc{ border-top:1px solid var(--bdv-trait); }
+/* Les quatre reports (« demain », « dans 7 jours »...). Un bouton de geste, pas
+   une action primaire : l'accent ne sert qu'a la selection, au focus et a
+   l'action primaire, et « Enregistrer » est deja l'action primaire de la boite. */
+.bdv-coque .tmod__g{
+  background:transparent;
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .tmod__g:hover{
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+  background:var(--bdv-surface-2);
+}
+.bdv-coque .tmod__ou{
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+
+/* LE PLANCHER TACTILE DES DEUX BOUTONS QUI ECRIVENT, RENDU. `.tmod .btn` de
+   style.css le posait a 44 px depuis le 19/09/2026 ; `.bdv-coque .btn` de la
+   section 8 pese pareil, arrive apres, et le ramenait a 36. « ENREGISTRER » et
+   « C'EST FAIT » sont exactement les deux boutons dont un ratage coute quelque
+   chose. Trouve par le balayage de specificite, pas par un banc. */
+@media (max-width:620px){
+  .bdv-coque .tmod .btn{ min-height:var(--bdv-cible); }
+}
+
+
+/* ==========================================================================
+   19. LE VOILE D'AMORCAGE, « ON RACCORDE TON BUREAU »
+
+   Cinq etapes, un pied qui apparait quand une lecture n'a pas repondu, et deux
+   boutons qui rendent la main. Il vit dans style.css parce qu'il est monte par
+   un module `defer` et qu'il peut apparaitre avant qu'une feuille chargee a la
+   demande soit arrivee : ce motif ne change pas, on le RECOUVRE.
+
+   LES CINQ GLYPHES NE SONT PAS TOUCHES. Chaque etape dit son etat par un signe
+   pose en `content` (point, points de suspension, coche, point d'exclamation) et
+   par un mot que la synthese vocale lit. La couleur ne fait que doubler, et
+   c'est elle seule qui est repeinte ici.
+   ========================================================================== */
+.bdv-coque .bdv-amorce{ background:var(--bdv-voile); }
+.bdv-coque .bdv-amorce__carte{
+  background:var(--bdv-surface-3);
+  color:var(--bdv-encre-2);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  box-shadow:none;
+}
+/* `color` est nomme ici pour la meme raison qu'a la modale : la regle d'origine
+   ne posait que `font-family` et `font-size`, et `h1,h2,h3,h4` de style.css
+   aurait garde l'encre du site sur la carte sombre. Ce titre-la est un `<p>`,
+   donc il tombait sur `body{color:var(--ink)}` : meme mesure, meme resultat. */
+.bdv-coque .bdv-amorce__titre{
+  font-family:inherit;
+  font-weight:600;
+  font-size:var(--bdv-f-5);
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bdv-amorce__sous{ color:var(--bdv-encre-4); }
+/* Les trois etats d'une etape. En attente, l'etape est une metadonnee ; faite,
+   elle passe a l'encre courante ; ratee, elle prend l'alerte. Le glyphe dit
+   deja laquelle est laquelle. */
+.bdv-coque .bdv-amorce__etape{ color:var(--bdv-encre-4); }
+.bdv-coque .bdv-amorce__etape--fait{ color:var(--bdv-encre-1); }
+.bdv-coque .bdv-amorce__etape--rate{ color:var(--bdv-alerte); }
+.bdv-coque .bdv-amorce__pied{ border-top:1px solid var(--bdv-trait); }
+.bdv-coque .bdv-amorce__manque{ color:var(--bdv-alerte); }
+/* LES DEUX BOUTONS DU PIED REDEVIENNENT DES BOUTONS, ET C'EST L'IMAGE QUI L'A
+   DIT. `bdv-amorce.js` les ecrit en `btn btn--geste`, et `.bdv-coque
+   .btn--geste` de la section 14 leur donne le dessin d'une action de RANGEE :
+   fond transparent, bordure transparente, revelee au survol. C'est juste dans
+   un listing, ou les trois actions ne doivent pas encombrer ; c'est faux ici,
+   ou « Reessayer » et « Ouvrir quand meme » sont la SEULE sortie d'un voile qui
+   couvre tout l'ecran. Ils apparaissaient comme deux bouts de texte gris, dans
+   les deux themes. Aucune mesure ne pouvait le dire : le contraste du libelle
+   est bon, c'est l'AFFORDANCE qui manquait, et seule la capture la montre.
+   (0,3,0) contre (0,2,0) : le pied gagne sur le geste, partout ailleurs le
+   geste reste nu. */
+.bdv-coque .bdv-amorce__pied .btn{
+  border:1px solid var(--bdv-trait-fort);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .bdv-amorce__pied .btn:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+
+
+/* ==========================================================================
+   20. LA PORTE DE COMPTE
+
+   `bdv-compte.js` injecte son style au premier appel de `porte()`, et il sert
+   AUSSI le site public : c'est le meme ecran qui s'ouvre depuis « Ouvrir mon
+   bureau » sur une page de brochure. Il garde donc son papier la-bas, et il est
+   RECOUVERT ici, sous le scope du bureau, exactement comme la modale.
+
+   IL FAUT (0,2,1) ET PAS (0,2,0), ET C'EST LA DIFFERENCE AVEC LES DEUX
+   SECTIONS PRECEDENTES. Ce style-la n'est pas dans une feuille liee par le
+   gabarit : il est injecte dans `<head>` a l'ouverture de la porte, donc APRES
+   cette feuille. A specificite egale c'est lui qui gagnerait, et tout ce bloc
+   serait mort sans une erreur. `body.bdv-coque` pese un nom d'element de plus,
+   et passe devant. Meme piege que la punaise du telephone au lot 3, pris a
+   l'endroit ou il se produit.
+
+   LA CROIX, LES REGLES DE MOT DE PASSE ET LES CINQ QUESTIONS gardent leur mise
+   en page : elle est mesuree depuis le 19/09/2026, plancher tactile compris.
+   On repeint, on ne redessine pas.
+   ========================================================================== */
+body.bdv-coque .bdv-porte{ background:var(--bdv-voile); }
+body.bdv-coque .bdv-porte__carte{
+  background:var(--bdv-surface-3);
+  border-top:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  box-shadow:none;
+}
+body.bdv-coque .bdv-porte__eyebrow{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-accent);
+}
+body.bdv-coque .bdv-porte__titre{
+  font-family:inherit;
+  font-weight:600;
+  font-size:var(--bdv-f-5);
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+body.bdv-coque .bdv-porte__note,
+body.bdv-coque .bdv-porte__chk,
+body.bdv-coque .bdv-porte__aide{
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-3);
+}
+body.bdv-coque .bdv-porte__label{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-encre-4);
+}
+body.bdv-coque .bdv-porte__input{
+  border:1px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface);
+  font-family:inherit;
+  font-size:var(--bdv-f-saisie);
+  color:var(--bdv-encre-1);
+  border-radius:var(--bdv-r);
+}
+body.bdv-coque .bdv-porte__input:focus{
+  outline:2px solid var(--bdv-anneau);
+  outline-offset:2px;
+}
+body.bdv-coque .bdv-porte__input--code{ font-family:inherit; }
+/* LA REGLE DE MOT DE PASSE SATISFAITE EST DEJA DOUBLEE D'UN GLYPHE : la puce
+   passe de « · » a « ✓ », pose par `bdv-compte.js`. La couleur ne fait que
+   confirmer, et c'est pour ca qu'on peut la changer sans rien perdre. */
+body.bdv-coque .bdv-porte__regles-titre,
+body.bdv-coque .bdv-porte__regle{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+body.bdv-coque .bdv-porte__regle--ok{ color:var(--bdv-bon); }
+body.bdv-coque .bdv-porte__puce{ font-family:inherit; }
+body.bdv-coque .bdv-porte__btn{
+  background:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  letter-spacing:var(--bdv-ls-etiq);
+  border-radius:var(--bdv-r);
+}
+body.bdv-coque .bdv-porte__btn:hover{ background:var(--bdv-accent-fort); }
+body.bdv-coque .bdv-porte__btn--secondaire{
+  background:transparent;
+  color:var(--bdv-accent);
+  border:1px solid var(--bdv-trait-fort);
+}
+body.bdv-coque .bdv-porte__btn--secondaire:hover{ background:var(--bdv-surface-2); }
+body.bdv-coque .bdv-porte__choix-btn{
+  background:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait-fort);
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  border-radius:var(--bdv-r);
+}
+body.bdv-coque .bdv-porte__choix-btn:hover{ border-color:var(--bdv-accent); }
+/* Le choix retenu se dit par le fond ET par `aria-pressed`, que la synthese
+   vocale annonce : la couleur n'est pas seule. */
+body.bdv-coque .bdv-porte__choix-btn[aria-pressed="true"]{
+  background:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  border-color:var(--bdv-accent);
+}
+body.bdv-coque .bdv-porte__lien{
+  color:var(--bdv-accent);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+}
+body.bdv-coque .bdv-porte__erreur{
+  color:var(--bdv-retard);
+  font-size:var(--bdv-f-2);
+}
+body.bdv-coque .bdv-porte__erreur::before{
+  content:'\0021';
+  margin-right:var(--bdv-e-2);
+  font-weight:600;
+}
+body.bdv-coque .bdv-porte__bascule{
+  border-top:1px solid var(--bdv-trait);
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-4);
+}
+body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{ font-size:var(--bdv-f-3); }
+body.bdv-coque .bdv-porte__legal{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+  font-family:inherit;
+}
+body.bdv-coque .bdv-porte__legal a,
+body.bdv-coque .bdv-porte__aide a{ color:var(--bdv-accent); }
+body.bdv-coque .bdv-porte__etapes{
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-2);
+}
+body.bdv-coque .bdv-porte__aide{ border-top:1px solid var(--bdv-trait); }
+body.bdv-coque .bdv-porte__croix{ color:var(--bdv-encre-4); }
+body.bdv-coque .bdv-porte__croix:hover{ color:var(--bdv-accent); }

@@ -241,35 +241,25 @@
      systeme, hors controle » alors qu'elle tire sur Inter. */
   --font-chiffre: var(--font-corps);
 
-  /* ---- ETATS SUR FOND SOMBRE ----------------------------------------- */
-  /* --ok et --danger tombent sous 3:1 sur --ink-deep. Ces deux tirages clairs
-     existent pour le seul bloc de rythme, qui est sombre. Servis par
-     src/css/bdv-ecrans.css. */
-  --ok-clair:     #8DBE72;
-  --danger-clair: #E4938C;
-  --bordeaux-voile: rgba(90, 21, 37, 0.16);  /* remplissage pale des barres de repartition */
+  /* ---- ETATS SUR FOND SOMBRE ET SERIES DE GRAPHIQUE : PARTIS LE 21/09/2026 --
+     `--ok-clair`, `--danger-clair`, `--bordeaux-voile` et les huit `--serie-1` a
+     `--serie-8` etaient declares dans le `:root` de src/css/bdv-ecrans.css, et
+     dans aucune autre feuille servie. Ce `:root` a ete supprime au lot des
+     ecrans de vente : ces onze jetons n'arrivent donc plus au navigateur, et
+     `npm run banc:jetons` les compterait en fantomes s'ils restaient ecrits ici.
 
-  /* ---- SERIES DE GRAPHIQUE -------------------------------------------
-     CE NE SONT PAS LES FAMILLES DU CALENDRIER declarees plus haut, et le bloc
-     --fam-1..4 explique pourquoi les deux echelles ne se confondent pas : un
-     aplat de graphique et un filet de trois pixels sur du papier ne demandent
-     pas les memes contrastes. Celles-ci sont servies par src/css/bdv-ecrans.css.
-
-     Echelle categorielle ancree sur le bordeaux et les terres du site. Les
-     jetons d'etat n'y figurent pas : une serie verte ne doit pas se lire
-     « bon ». Luminance relative, en ordre de declaration :
-       1 .028  2 .189  3 .091  4 .330  5 .056  6 .255  7 .135  8 .415
-     L'ordre alterne haut et bas de l'echelle pour que deux series voisines
-     restent separees en niveaux de gris (rapport mini 1,65) et en vision
-     deuteranope (rapport mini 1,51). */
-  --serie-1: #5A1525;  /* bordeaux */
-  --serie-2: #4D863A;  /* vert vigne */
-  --serie-3: #8E3B2A;  /* terre cuite */
-  --serie-4: #78A1BA;  /* ardoise claire */
-  --serie-5: #2A436C;  /* bleu encre */
-  --serie-6: #B97D4A;  /* liege */
-  --serie-7: #8C5095;  /* prune */
-  --serie-8: #CBA945;  /* or */
+     OU ILS SONT PASSES :
+       --serie-1..8      -> --bdv-serie-1..8, plus bas, en DEUX valeurs. Les
+                            anciennes n'en avaient qu'une, dessinee pour du
+                            papier : --serie-8 tombait a 1,94:1 sur le papier et
+                            les huit vibraient sur un fond sombre.
+       --bordeaux-voile  -> --bdv-aire-accent, plus bas, en deux valeurs.
+       --ok-clair        -> partis. Ils n'existaient que pour le bloc de rythme
+       --danger-clair       de « Mon cap », qui etait une carte SOMBRE posee sur
+                            du papier clair. Ce bloc prend maintenant la surface
+                            des autres cartes : --bdv-bon et --bdv-retard, qui
+                            existent dans les deux themes, suffisent.
+     ------------------------------------------------------------------------ */
 
   /* ---- COUCHES ------------------------------------------------------- */
   --z-sticky: 2;
@@ -388,6 +378,32 @@
   --bdv-serie-b:   #8A8880;             /* sombre #7B828A  l'exercice precedent, le trait de comparaison */
   --bdv-grille:    #EAE9E4;             /* sombre #23272C  lignes d'axe */
   --bdv-squelette: #EAE9E4;             /* sombre #1D2126  blocs de chargement, entre 100 ms et 1 s */
+
+  /* LES HUIT SERIES CATEGORIELLES DES GRAPHIQUES DES ECRANS DE VENTE,
+     21/09/2026. Elles reprennent le role des `--serie-1..8` supprimes plus haut,
+     avec DEUX valeurs au lieu d'une. Elles sont LUES EN JAVASCRIPT par
+     `palSeries()` dans src/js/bdv-base.js : ce nom est un contrat.
+     Separees en LUMINANCE, et l'ordre de declaration alterne le bas et le haut
+     de l'echelle parce que ce qui compte est l'ecart entre deux series VOISINES
+     dans un graphique. Luminances relatives, dans l'ordre :
+       clair   .022 .160 .045 .208 .075 .250 .115 .290
+       sombre  .140 .425 .195 .515 .265 .615 .340 .720
+     Ecart minimal entre voisines 1,81 (clair) et 1,71 (sombre) en niveaux de
+     gris, 1,80 et 1,77 en vision deuteranope. Pire contraste sur la surface qui
+     les porte : 3,09:1 en clair, 3,31:1 en sombre. Objets graphiques, jamais du
+     texte, donc seuil 3:1. */
+  --bdv-serie-1:   #4F1221;             /* sombre #B83A5A  bordeaux */
+  --bdv-serie-2:   #4E7B35;             /* sombre #93B97D  vert vigne */
+  --bdv-serie-3:   #622D1C;             /* sombre #B96247  terre cuite */
+  --bdv-serie-4:   #5183A7;             /* sombre #A9C1D3  ardoise */
+  --bdv-serie-5:   #2F4B8C;             /* sombre #738CC6  bleu encre */
+  --bdv-serie-6:   #BB7A42;             /* sombre #E1CAB5  liege */
+  --bdv-serie-7:   #82498E;             /* sombre #BA8FC3  prune */
+  --bdv-serie-8:   #B28E2C;             /* sombre #E8DCBB  or */
+  /* L'aplat sous une courbe et le remplissage des barres de repartition. Un
+     VOILE et pas une couleur pleine, donc il ne porte jamais de texte. Lu en
+     JavaScript par `aireBordeaux()`. Remplace `--bordeaux-voile`. */
+  --bdv-aire-accent: rgba(158,43,71,.16); /* sombre rgba(242,148,169,.18) */
 
   /* LES QUATRE FAMILLES DU CALENDRIER DU BUREAU, 21/09/2026, lot du contenu.
      ELLES DOUBLENT `--fam-1..4` CI-DESSUS ET NE LES REMPLACENT PAS. Le

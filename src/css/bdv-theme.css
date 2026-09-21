@@ -144,6 +144,40 @@
   --bdv-grille:#EAE9E4;            /* lignes d'axe                            */
   --bdv-squelette:#EAE9E4;         /* blocs de chargement, entre 100 ms et 1 s */
 
+  /* -- LES HUIT SERIES CATEGORIELLES DES GRAPHIQUES, ajoutees au lot des ecrans
+        de vente, 21/09/2026. Elles remplacent `--serie-1` a `--serie-8`, qui
+        vivaient dans le `:root` de bdv-ecrans.css et n'avaient donc qu'UN theme :
+        `--serie-8` valait #CBA945 et tombait a 1,94:1 sur le papier, et sur un
+        fond sombre les huit vibraient. ELLES SONT LUES EN JAVASCRIPT, par
+        `palSeries()` dans src/js/bdv-base.js : le nom est un contrat, on ne le
+        change pas sans changer ce fichier-la.
+
+        SEPAREES EN LUMINANCE ET PAS EN TEINTE, la regle de la charte, pour
+        qu'elles restent distinctes en niveaux de gris et en vision deuteranope.
+        L'ordre de declaration ALTERNE le bas et le haut de l'echelle, parce que
+        ce qui compte est l'ecart entre deux series VOISINES dans un graphique,
+        pas entre la premiere et la derniere.
+
+        Luminances relatives, dans l'ordre de declaration :
+          clair   .022 .160 .045 .208 .075 .250 .115 .290
+          sombre  .140 .425 .195 .515 .265 .615 .340 .720
+        Ecart de luminance entre deux voisines : 1,81 au pire en clair, 1,71 en
+        sombre ; en vision deuteranope, 1,80 et 1,77. Contraste sur la surface
+        qui les porte : 3,09:1 au pire en clair, 3,31:1 en sombre. Ce sont des
+        OBJETS graphiques, jamais du texte, donc le seuil est 3:1. ------------- */
+  --bdv-serie-1:#4F1221;           /* bordeaux                                */
+  --bdv-serie-2:#4E7B35;           /* vert vigne                              */
+  --bdv-serie-3:#622D1C;           /* terre cuite                             */
+  --bdv-serie-4:#5183A7;           /* ardoise                                 */
+  --bdv-serie-5:#2F4B8C;           /* bleu encre                              */
+  --bdv-serie-6:#BB7A42;           /* liege                                   */
+  --bdv-serie-7:#82498E;           /* prune                                   */
+  --bdv-serie-8:#B28E2C;           /* or                                      */
+  /* L'aplat sous une courbe et le remplissage des barres de repartition. Un
+     VOILE, jamais une couleur pleine : il se pose sur la surface d'une carte et
+     ne porte aucun texte. Lu en JavaScript aussi, par `aireBordeaux()`. */
+  --bdv-aire-accent:rgba(158,43,71,.16);
+
   /* -- LES QUATRE FAMILLES DU CALENDRIER, ajoutees au lot du contenu, 21/09/2026.
         CE SONT DES MATIERES, donc elles se retournent dans les DEUX blocs sombres.
         Elles doublent `--fam-1..4` de tokens.css au lieu de les reutiliser, et ce
@@ -243,6 +277,16 @@
     --bdv-grille:#23272C;
     --bdv-squelette:#1D2126;
 
+    --bdv-serie-1:#B83A5A;
+    --bdv-serie-2:#93B97D;
+    --bdv-serie-3:#B96247;
+    --bdv-serie-4:#A9C1D3;
+    --bdv-serie-5:#738CC6;
+    --bdv-serie-6:#E1CAB5;
+    --bdv-serie-7:#BA8FC3;
+    --bdv-serie-8:#E8DCBB;
+    --bdv-aire-accent:rgba(242,148,169,.18);
+
     --bdv-fam-1:#F5C9D3;
     --bdv-fam-2:#94BC7E;
     --bdv-fam-3:#6295B8;
@@ -297,6 +341,16 @@
   --bdv-serie-b:#7B828A;
   --bdv-grille:#23272C;
   --bdv-squelette:#1D2126;
+
+  --bdv-serie-1:#B83A5A;
+  --bdv-serie-2:#93B97D;
+  --bdv-serie-3:#B96247;
+  --bdv-serie-4:#A9C1D3;
+  --bdv-serie-5:#738CC6;
+  --bdv-serie-6:#E1CAB5;
+  --bdv-serie-7:#BA8FC3;
+  --bdv-serie-8:#E8DCBB;
+  --bdv-aire-accent:rgba(242,148,169,.18);
 
   --bdv-fam-1:#F5C9D3;
   --bdv-fam-2:#94BC7E;

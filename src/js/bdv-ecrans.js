@@ -227,6 +227,50 @@ function openApp(ecranDepart){
    reste. On observe donc la zone de contenu et on redimensionne apres coup :
    ca couvre le repli, le depli, le redimensionnement de la fenetre, et le
    temps que met la grille a se poser au premier rendu. */
+/* ============ LE THEME CHANGE, LES GRAPHIQUES AUSSI, 21/09/2026 ============
+
+   Chart.js ne lit pas de CSS : il recoit des CHAINES de couleur au moment ou on
+   construit le graphique, et il les garde. Un vigneron qui ouvre « Mon cap » en
+   clair puis appuie sur le bouton de bascule gardait donc un graphique aux
+   couleurs claires au milieu d'un bureau sombre, sans une erreur, jusqu'au
+   prochain rechargement. Toute la page se retournait SAUF les six canvas, qui
+   sont precisement ce qu'il etait venu regarder.
+
+   ON REPEINT L'ECRAN COURANT ET LUI SEUL. `ecranInvalider()` fait tomber la
+   marque des huit ecrans, et `ecranPeindre()` refait celui qu'on regarde : les
+   autres se referont a leur tour quand on y viendra, avec les couleurs du
+   moment. C'est exactement ce que fait deja `renderAll()` apres un import, sans
+   le depot pour le bureau, qui n'a rien a voir ici.
+
+   DEUX SOURCES ET PAS UNE, et oublier la seconde est le defaut classique :
+     . le BOUTON de bascule, par l'evenement `bdv:theme` que pose
+       `BdvTheme.appliquer()` dans le bloc de tete de src/_includes/base.njk ;
+     . le REGLAGE DU TELEPHONE, par `prefers-color-scheme`, qui bascule tout
+       seul au coucher du soleil sur un iPhone en mode automatique. Sans cette
+       seconde ecoute, le bureau laisse en place a 21 h les graphiques peints a
+       18 h. On ne l'ecoute QUE si le vigneron n'a rien force : avec un choix
+       memorise, le media ne commande plus rien.
+
+   `requestAnimationFrame` PARCE QUE LES JETONS CHANGENT AU CADRE SUIVANT :
+   lire `getComputedStyle` dans le meme tour que la pose de `data-theme` rend
+   encore les valeurs d'AVANT, et le graphique se repeindrait a l'identique. */
+function repeindreSurTheme(){
+  if(typeof requestAnimationFrame !== 'function'){ ecranInvalider(); ecranPeindre(ECRAN_COURANT); return; }
+  requestAnimationFrame(function(){ ecranInvalider(); ecranPeindre(ECRAN_COURANT); });
+}
+document.addEventListener('bdv:theme', repeindreSurTheme);
+if(window.matchMedia){
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const suitLeTelephone = function(){
+    /* Un choix memorise gagne sur le media : le bureau ne doit pas se repeindre
+       quand le telephone bascule alors que le vigneron a force une famille. */
+    try{ if(localStorage.getItem('bureau_theme_v1')) return; }catch(e){}
+    repeindreSurTheme();
+  };
+  if(mq.addEventListener) mq.addEventListener('change', suitLeTelephone);
+  else if(mq.addListener) mq.addListener(suitLeTelephone);
+}
+
 let _tRedim=null;
 function redimGraphiques(){
   clearTimeout(_tRedim);
@@ -666,8 +710,8 @@ function apMonthly(ex){const a=new Array(12).fill(0);for(const r of ROWS){if(!r.
 function drawApMonth(){
   destroyChart('chApMonth');const ctx=el('chApMonth');if(!ctx)return;const xs=META.exercices;if(!xs.length)return;
   const cur=filters.ex!=null?filters.ex:xs[xs.length-1],prev=xs.includes(cur-1)?cur-1:null;
-  const ds=[{label:exLabelCourt(cur),data:apMonthly(cur),borderColor:cssToken('--bordeaux'),backgroundColor:aireBordeaux(),fill:true,tension:.3,borderWidth:2,pointRadius:2}];
-  if(prev)ds.push({label:exLabelCourt(prev),data:apMonthly(prev),borderColor:cssToken('--muted'),backgroundColor:'transparent',borderDash:[5,4],fill:false,tension:.3,borderWidth:1.5,pointRadius:0});
+  const ds=[{label:exLabelCourt(cur),data:apMonthly(cur),borderColor:cssToken('--bdv-accent'),backgroundColor:aireBordeaux(),fill:true,tension:.3,borderWidth:2,pointRadius:2}];
+  if(prev)ds.push({label:exLabelCourt(prev),data:apMonthly(prev),borderColor:cssToken('--bdv-encre-4'),backgroundColor:'transparent',borderDash:[5,4],fill:false,tension:.3,borderWidth:1.5,pointRadius:0});
   charts.chApMonth=new Chart(ctx,{type:'line',data:{labels:exMoisLabels(),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:!!prev,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
 /* LA REPARTITION PAR COULEUR A CHANGE DE PIECE le 11/09/2026 : de l'apercu de « Mon annee »
@@ -683,7 +727,7 @@ function drawCouleur(){
   ROWS.forEach(r=>{if(!r._vin)return;const k=(r.couleur===''||r.couleur==null)?'(non renseigné)':String(r.couleur);m[k]=(m[k]||0)+r._total;});
   const entries=allEntries(m).filter(e=>e[1]>0);
   const pal=palSeries(8);
-  charts.chApDonut=new Chart(ctx,{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:pal,borderWidth:1,borderColor:cssToken('--white')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label+' : '+fmtMoney(c.parsed)}}}}});
+  charts.chApDonut=new Chart(ctx,{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:pal,borderWidth:1,borderColor:cssToken('--bdv-surface')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label+' : '+fmtMoney(c.parsed)}}}}});
 }
 function setMesure(m){uiMesure=m;runBusy('Analyse…',renderAll);}
 function axisGetByKey(k){const a=axisDef(k);return a?a.get:(r=>r[k]);}
@@ -1001,7 +1045,7 @@ function drawEvo(periods,segs,bySeg,multi){
   const ctx=el('chEvo');if(!ctx)return;
   const pal=palSeries(7);
   const labels=periods.map(p=>periodLabel(p));
-  const datasets=segs.map((seg,i)=>({label:seg,data:periods.map(p=>(bySeg[seg]&&bySeg[seg][p])||0),borderColor:multi?pal[i%pal.length]:cssToken('--bordeaux'),backgroundColor:multi?pal[i%pal.length]:aireBordeaux(),borderWidth:2,tension:.25,fill:!multi,pointRadius:2,pointHoverRadius:4}));
+  const datasets=segs.map((seg,i)=>({label:seg,data:periods.map(p=>(bySeg[seg]&&bySeg[seg][p])||0),borderColor:multi?pal[i%pal.length]:cssToken('--bdv-accent'),backgroundColor:multi?pal[i%pal.length]:aireBordeaux(),borderWidth:2,tension:.25,fill:!multi,pointRadius:2,pointHoverRadius:4}));
   charts.chEvo=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:multi,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fmtMes(c.parsed.y)}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
 
@@ -1170,10 +1214,18 @@ function bridgeHero(){
   }
   const barre=(v,tot)=>tot>0?Math.max(2,Math.round(Math.abs(v)/tot*100)):0;
   const ech=Math.max(br.nw,Math.abs(br.lost),Math.abs(br.down),br.up,1);
+  /* LES DEUX SEULES COULEURS ECRITES DANS CE FICHIER, ET ELLES SONT PASSEES AUX
+     JETONS DE THEME LE 21/09/2026. Elles valaient `--ok` et `--danger`, qui n'ont
+     qu'UNE valeur, dessinee pour du papier : sur un bureau sombre le vert
+     tombait a 2,1:1 et la barre de gain disparaissait. Elles ne se voyaient dans
+     aucune feuille, puisqu'elles sont posees en attribut `style`, et la section 8
+     de `npm run charte` est le seul controle qui les regarde.
+     La barre est un OBJET graphique, seuil 3:1 ; le nombre est du TEXTE, et il
+     porte son signe + ou - en plus de sa couleur. */
   const ligne=(lbl,val,pos,sub)=>`<tr>
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
-      <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--ok)':'var(--danger)'}"></span></td>
-      <td class="num" style="color:${val===0?'inherit':(pos?'var(--ok)':'var(--danger-deep)')};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
+      <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--bdv-bon)':'var(--bdv-retard)'}"></span></td>
+      <td class="num" style="color:${val===0?'inherit':(pos?'var(--bdv-bon)':'var(--bdv-retard)')};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
   return `<div class="section-label">D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale</div>`
     +signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
@@ -1189,7 +1241,7 @@ function bridgeHero(){
 
 function drawTrend(labels,data){
   destroyChart('chTrend');const ctx=el('chTrend');if(!ctx)return;
-  charts.chTrend=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Tendance corrigée',data,borderColor:cssToken('--bordeaux'),backgroundColor:aireBordeaux(),fill:true,tension:.3,pointRadius:2,borderWidth:2}]},
+  charts.chTrend=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Tendance corrigée',data,borderColor:cssToken('--bdv-accent'),backgroundColor:aireBordeaux(),fill:true,tension:.3,pointRadius:2,borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMoney(c.parsed.y)+' (corrigé)'}}},scales:{y:{ticks:{callback:v=>fmtNum(v)}}}}});
 }
 

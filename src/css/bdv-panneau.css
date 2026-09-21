@@ -13,95 +13,171 @@
    le panneau : elles ne peuvent plus toucher la page qui l'accueille, et la page ne peut plus
    les prendre de vitesse.
 
-   Les 32 variables utilisees ici sont toutes declaree dans les DEUX :root du projet (site et
-   tableau de bord). C'est verifie, et c'est la condition pour que le panneau ait la meme tete
-   des deux cotes. Ne pas y introduire --cork, --e-m, --serie-1 ni les autres jetons
-   d'un seul cote.
+   ---------------------------------------------------------------------------
+   REPEINTE AUX JETONS DU BUREAU LE 21/09/2026, AU LOT 5 DES DEUX THEMES, EN PLACE
+
+   La regle d'entete a change, et c'est le lot qui la change. Cette feuille
+   n'ecrivait que des jetons PAPIER, --paper, --ink, --rule, --bordeaux : les 32
+   qui existaient des deux cotes du projet. Elle n'ecrit plus que des --bdv-*.
+
+   POURQUOI CE N'EST PAS UNE REGRESSION DE PORTEE. Le « tableau de bord » n'est
+   plus une page depuis le lot 2d du 07/09/2026 : ses ecrans sont des pieces de
+   /mon-bureau/, et `.bdvr-panneau` n'existe donc plus que la. Le drapeau
+   `theme_bureau` qui lie src/css/bdv-theme.css lie la seule page qui puisse
+   ouvrir ce panneau : les jetons sont forcement declares quand cette feuille
+   arrive. « Ca doit etre les memes » tient toujours, et mieux qu'avant, parce
+   qu'il n'y a plus qu'un seul endroit.
+
+   ELLE EST MODIFIEE EN PLACE ET PAS RECOUVERTE, contrairement au lot 3 : aucune
+   de ces classes n'est partagee avec la demonstration de la page d'accueil,
+   elles ne vivent que sous `.bdvr-panneau`. Les valeurs papier sont donc
+   SUPPRIMEES au lieu d'etre cachees, et le poids mort n'augmente pas d'un octet.
+
+   LE DESSIN EST CELUI DE src/css/bdv-ecrans.css, REGLE POUR REGLE. Les memes
+   classes y sont deja repeintes depuis le lot 4 : `.card`, `.kpi`, `.data`,
+   `.btn`, `.signal`, `.dropzone`. Deux dessins pour un meme nom selon l'endroit
+   ou le bloc s'affiche serait exactement ce que la fusion du 07/09/2026 a ferme.
+
+   CE FICHIER NE DECLARE AUCUN `:root`, ET C'EST VERIFIE. Celui de bdv-ecrans.css
+   en portait 71, dont 60 recopies a l'identique de style.css ; il est parti au
+   lot 4. Ici il n'y en a jamais eu.
 
    Ce fichier est injecte par bdv-reglages.js, pas declare dans les pages : le panneau
-   emmene son style avec lui. */
+   emmene son style avec lui. Le SQUELETTE du panneau (le voile, la boite, les six
+   onglets, le pied) est, lui, dans la constante STYLE de bdv-reglages.js, et il a
+   ete repeint le meme jour : les deux moities vont ensemble. */
 
-.bdvr-panneau .dropzone{border:var(--trait-fort) dashed var(--bordeaux);border-radius:var(--r-nul);padding:2.6rem 2rem;cursor:pointer;transition:var(--tr-rapide);background:var(--paper-light)}
+.bdvr-panneau .dropzone{border:2px dashed var(--bdv-accent);border-radius:var(--bdv-r);padding:var(--bdv-e-12) var(--bdv-e-8);cursor:pointer;transition:background var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe);background:var(--bdv-surface-2)}
 .bdvr-panneau .dropzone:hover,
-.bdvr-panneau .dropzone.over{border-color:var(--bordeaux-vif);background:var(--paper-deep)}
+.bdvr-panneau .dropzone.over{border-color:var(--bdv-accent-fort);background:var(--bdv-accent-lavis)}
 .bdvr-panneau .dropzone.over{border-style:solid}
-.bdvr-panneau .dropzone--compact{padding:1.3rem 1rem;text-align:center;margin-bottom:.7rem}
-.bdvr-panneau .dropzone--compact .dz-icon{font-size:1.5rem;margin-bottom:.3rem}
-.bdvr-panneau .dropzone--compact h3{font-size:.95rem}
-.bdvr-panneau .dz-icon{font-size:2.1rem;margin-bottom:.5rem;color:var(--bordeaux)}
-.bdvr-panneau .dropzone h3{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;margin-bottom:.25rem}
-.bdvr-panneau .dropzone p{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
-.bdvr-panneau .pas-viti{margin-top:1.4rem;padding:1rem 1.2rem;background:var(--info-bg);border:var(--trait) solid var(--info);border-left:var(--trait-accent) solid var(--info);text-align:left;font-size:var(--t-base);line-height:var(--lh-normal)}
-.bdvr-panneau .pas-viti p{margin:0 0 .5rem}
+/* ET IL SE DOUBLE D'UN MOT, 21/09/2026. La cible d'un glisser-deposer dit
+   aujourd'hui « tu es dessus » par un changement de teinte du cadre et du fond.
+   En sombre les deux ecarts sont plus courts qu'en clair, et un vigneron qui
+   traine un fichier a le curseur, sa vignette de fichier et sa main entre l'oeil
+   et la zone : la teinte est ce qu'il voit le moins bien au moment ou il en a le
+   plus besoin. Le trait passe donc de tirete a plein, ce qui est une FORME, et
+   un mot s'affiche sous l'invite, ce qui se lit en niveaux de gris, en vision
+   deuteranope et a n'importe quel contraste. Regle du depot : chaque etat est
+   double d'un glyphe ET d'un mot. */
+.bdvr-panneau .dropzone.over::after{
+  content:"lâche ici";
+  display:block;
+  margin-top:var(--bdv-e-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  text-transform:uppercase;
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-accent-fort);
+}
+.bdvr-panneau .dropzone--compact{padding:var(--bdv-e-6) var(--bdv-e-4);text-align:center;margin-bottom:var(--bdv-e-3)}
+.bdvr-panneau .dropzone--compact .dz-icon{font-size:var(--bdv-f-5);margin-bottom:var(--bdv-e-2)}
+.bdvr-panneau .dropzone--compact h3{font-size:var(--bdv-f-3)}
+.bdvr-panneau .dz-icon{font-size:var(--bdv-f-6);margin-bottom:var(--bdv-e-2);color:var(--bdv-accent)}
+.bdvr-panneau .dropzone h3{font-family:inherit;font-weight:600;font-size:var(--bdv-f-4);color:var(--bdv-encre-1);margin-bottom:var(--bdv-e-2)}
+.bdvr-panneau .dropzone p{font-size:var(--bdv-f-2);color:var(--bdv-encre-4);font-family:inherit}
+.bdvr-panneau .pas-viti{margin-top:var(--bdv-e-6);padding:var(--bdv-e-4) var(--bdv-e-4);background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-left:3px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);text-align:left;font-size:var(--bdv-f-3);color:var(--bdv-encre-2);line-height:1.5}
+.bdvr-panneau .pas-viti p{margin:0 0 var(--bdv-e-2)}
 .bdvr-panneau .pas-viti p:last-child{margin-bottom:0}
-.bdvr-panneau .pas-viti__titre{font-family:var(--font-titre);font-size:var(--t-h3);color:var(--ink)}
-.bdvr-panneau .pas-viti__liens{font-family:var(--font-corps);font-size:var(--t-mini)}
-.bdvr-panneau .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-doux);cursor:pointer;border:none;text-decoration:none;transition:var(--tr-rapide);white-space:nowrap;border-radius:var(--r-nul);font-weight:500}
-.bdvr-panneau .btn--primary{background:var(--bordeaux);color:var(--on-dark)}
-.bdvr-panneau .btn--primary:hover{background:var(--bordeaux-vif)}
-.bdvr-panneau .btn--ghost{background:transparent;color:var(--bordeaux);border:var(--trait) solid var(--bordeaux)}
-.bdvr-panneau .btn--ghost:hover{background:var(--bordeaux);color:var(--on-dark)}
-.bdvr-panneau .btn--sm{padding:.42rem .8rem;font-size:var(--t-micro)}
+.bdvr-panneau .pas-viti__titre{font-family:inherit;font-weight:600;font-size:var(--bdv-f-4);color:var(--bdv-encre-1)}
+.bdvr-panneau .pas-viti__liens{font-family:inherit;font-size:var(--bdv-f-2)}
+.bdvr-panneau .btn{display:inline-flex;align-items:center;gap:var(--bdv-e-2);padding:var(--bdv-e-3) var(--bdv-e-6);font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);cursor:pointer;border:none;text-decoration:none;transition:background var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);white-space:nowrap;border-radius:var(--bdv-r);font-weight:600}
+.bdvr-panneau .btn--primary{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
+.bdvr-panneau .btn--primary:hover{background:var(--bdv-accent-fort)}
+.bdvr-panneau .btn--ghost{background:transparent;color:var(--bdv-accent);border:1px solid var(--bdv-accent)}
+.bdvr-panneau .btn--ghost:hover{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
+.bdvr-panneau .btn--sm{padding:var(--bdv-e-2) var(--bdv-e-3);font-size:var(--bdv-f-1)}
 /* Meme correction que dans bdv-ecrans.css, meme jour, meme raison : ce bouton
    posait du creme sur du creme a 15 %, 1:1, dans un panneau dont tous les fonds
    sont clairs. Il venait de la barre haute bordeaux de l'ancien tableau de bord.
    Trouve par le controle 6 bis de la charte. */
-.bdvr-panneau .btn--light{background:var(--paper-light);color:var(--ink);border:var(--trait) solid var(--rule-fort)}
-.bdvr-panneau .btn--light:hover{background:var(--bordeaux);color:var(--on-dark);border-color:var(--bordeaux)}
-.bdvr-panneau .btn--danger{background:transparent;color:var(--danger-deep);border:var(--trait) solid var(--danger-deep)}
-.bdvr-panneau .btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
-.bdvr-panneau .panel__title{font-size:1.4rem;font-weight:400;color:var(--ink);margin-bottom:.15rem}
-.bdvr-panneau .panel__sub{font-size:var(--t-base);color:var(--muted);margin-bottom:1.2rem}
-.bdvr-panneau .section-label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux);margin:1.6rem 0 .7rem;font-weight:500}
-.bdvr-panneau .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.9rem;margin-bottom:1.4rem}
+.bdvr-panneau .btn--light{background:var(--bdv-surface-2);color:var(--bdv-encre-2);border:1px solid var(--bdv-trait-fort)}
+.bdvr-panneau .btn--light:hover{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent);border-color:var(--bdv-accent)}
+.bdvr-panneau .btn--danger{background:transparent;color:var(--bdv-retard);border:1px solid var(--bdv-retard)}
+.bdvr-panneau .btn--danger:hover{background:var(--bdv-retard-lavis);color:var(--bdv-retard);border-color:var(--bdv-retard)}
+/* LE PIEGE CHERCHE AVANT LA CAPTURE, ET IL ETAIT LA. `.btn:hover` de style.css
+   (ligne 563) pese (0,2,0), exactement comme `.bdvr-panneau .btn--primary:hover`,
+   et il pose `transform: translate(-2px,-2px)` plus `box-shadow: 4px 4px 0
+   var(--ink-deep)`. Aucune regle de cette feuille ne NOMMAIT ces deux
+   proprietes-la : les six boutons du panneau avançaient donc de deux pixels et
+   posaient une ombre dure en encre du SITE au survol, y compris sur un bureau
+   sombre, ou une ombre #0F1622 sur un fond #131519 est une tache noire sans
+   bord. Meme famille de defaut que la barre d'onglets restee creme, la punaise
+   restee papier et la barre « 286 lignes » restee creme : une regle d'en face
+   qui pose une propriete que la nouvelle ne nomme pas.
+   LA PROFONDEUR DU BUREAU EST UN TRAIT DE 1 px, pas une ombre : cette feuille ne
+   pose aucune `box-shadow`, et celle-ci est ANNULEE plutot que remplacee. */
+.bdvr-panneau .btn:hover,
+.bdvr-panneau .btn:active{ transform:none; box-shadow:none; }
+.bdvr-panneau .panel__title{font-size:var(--bdv-f-5);font-weight:600;color:var(--bdv-encre-1);margin-bottom:var(--bdv-e-1)}
+.bdvr-panneau .panel__sub{font-size:var(--bdv-f-3);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-6)}
+.bdvr-panneau .section-label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:var(--bdv-e-6) 0 var(--bdv-e-3);font-weight:600}
+.bdvr-panneau .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--bdv-e-4);margin-bottom:var(--bdv-e-6)}
 .bdvr-panneau .kpi-grid--base{grid-template-columns:repeat(3,1fr)}
 .bdvr-panneau .kpi-grid--base .kpi{display:flex;flex-direction:column}
-.bdvr-panneau .yearpills{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem}
-.bdvr-panneau .yearpill{font-family:var(--font-mono);font-size:var(--t-mini);font-weight:500;padding:.12rem .45rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--ink)}
-.bdvr-panneau .kpi{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.1rem;border-top:var(--trait-accent) solid var(--bordeaux)}
+.bdvr-panneau .yearpills{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin-top:var(--bdv-e-1)}
+.bdvr-panneau .yearpill{font-family:inherit;font-size:var(--bdv-f-2);font-weight:500;padding:var(--bdv-e-1) var(--bdv-e-2);background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);color:var(--bdv-encre-2)}
+.bdvr-panneau .kpi{background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-4);border-top:3px solid var(--bdv-accent)}
+/* `.kpi--hi` N'AVAIT PAS DE FOND ICI, et ses deux enfants etaient ecrits en
+   `--on-dark-soft`, c'est-a-dire du creme : le libelle et le sous-titre du
+   chiffre mis en avant donnaient 1,08:1 sur la carte blanche du panneau, sur le
+   papier comme sur le bureau. Le fond venait de l'ancien tableau de bord, ou la
+   carte etait bordeaux ; il n'a jamais suivi dans cette feuille. Meme dessin que
+   dans les ecrans de vente : lavis d'accent, filet d'accent, encre courante. */
+.bdvr-panneau .kpi--hi{background:var(--bdv-accent-lavis);border-color:var(--bdv-accent-trait);border-top-color:var(--bdv-accent)}
 .bdvr-panneau .kpi--hi .kpi__label,
-.bdvr-panneau .kpi--hi .kpi__sub{color:var(--on-dark-soft)}
-.bdvr-panneau .kpi--hi .kpi__val{color:var(--on-dark)}
-.bdvr-panneau .kpi__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.4rem}
-.bdvr-panneau .kpi__val{font-size:1.6rem;line-height:1;color:var(--ink)}
-.bdvr-panneau .kpi__val span{font-size:var(--t-petit);font-weight:400;color:var(--muted)}
-.bdvr-panneau .kpi__sub{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin-top:.4rem}
-.bdvr-panneau .card{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.2rem;margin-bottom:1.2rem}
-.bdvr-panneau .card__title{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:500}
-.bdvr-panneau .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
-.bdvr-panneau .expl-ctrls{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
-.bdvr-panneau .field{display:flex;flex-direction:column;gap:.25rem}
-.bdvr-panneau .field label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
+.bdvr-panneau .kpi--hi .kpi__sub{color:var(--bdv-encre-3)}
+.bdvr-panneau .kpi--hi .kpi__val{color:var(--bdv-encre-1)}
+.bdvr-panneau .kpi__label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-2)}
+.bdvr-panneau .kpi__val{font-size:var(--bdv-f-6);line-height:1;color:var(--bdv-encre-1)}
+.bdvr-panneau .kpi__val span{font-size:var(--bdv-f-2);font-weight:400;color:var(--bdv-encre-4)}
+.bdvr-panneau .kpi__sub{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);margin-top:var(--bdv-e-2)}
+.bdvr-panneau .card{background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-6);margin-bottom:var(--bdv-e-6)}
+.bdvr-panneau .card__title{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-4);display:flex;justify-content:space-between;align-items:center;gap:var(--bdv-e-2);flex-wrap:wrap;font-weight:500}
+.bdvr-panneau .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--bdv-e-6)}
+.bdvr-panneau .expl-ctrls{display:flex;gap:var(--bdv-e-4);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--bdv-e-4)}
+.bdvr-panneau .field{display:flex;flex-direction:column;gap:var(--bdv-e-2)}
+.bdvr-panneau .field label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4)}
 .bdvr-panneau .field select,
-.bdvr-panneau .field input{font-family:var(--font-mono);font-size:var(--t-petit);padding:.45rem .5rem;border:var(--trait) solid var(--muted);background:var(--white);color:var(--ink);min-width:180px;border-radius:var(--r-nul)}
-.bdvr-panneau table.data{width:100%;border-collapse:collapse;font-size:var(--t-petit)}
-.bdvr-panneau .tablewrap{max-height:70vh;overflow:auto;border:var(--trait) solid var(--rule);border-radius:var(--r-nul)}
+.bdvr-panneau .field input{font-family:inherit;font-size:var(--bdv-f-2);padding:var(--bdv-e-2) var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);color:var(--bdv-encre-2);min-width:180px;border-radius:var(--bdv-r)}
+.bdvr-panneau table.data{width:100%;border-collapse:collapse;font-size:var(--bdv-f-3)}
+.bdvr-panneau .tablewrap{max-height:70vh;overflow:auto;border:1px solid var(--bdv-trait);border-radius:var(--bdv-r)}
 .bdvr-panneau .tablewrap table.data{border:none}
-.bdvr-panneau .search{font-family:var(--font-corps);font-size:var(--t-base);padding:.45rem .6rem;border:var(--trait) solid var(--muted);border-radius:var(--r-nul);min-width:220px;background:var(--white);color:var(--ink)}
+.bdvr-panneau .search{font-family:inherit;font-size:var(--bdv-f-3);padding:var(--bdv-e-2) var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);min-width:220px;background:var(--bdv-surface);color:var(--bdv-encre-2)}
 .bdvr-panneau .pilote__row .field{flex:1 1 170px}
 .bdvr-panneau .pilote__row .field select{width:100%}
-.bdvr-panneau .fiche__reco-l .muted-cell{font-size:var(--t-petit)}
-.bdvr-panneau .panel#p-annee > div + div .panel__title{font-size:var(--t-h3);opacity:.9}
-.bdvr-panneau .chk{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--t-petit);color:var(--muted);cursor:pointer;white-space:nowrap}
-.bdvr-panneau .chk input{accent-color:var(--bordeaux);width:15px;height:15px;cursor:pointer;margin:0}
-.bdvr-panneau .muted-cell{color:var(--muted);font-size:var(--t-petit)}
-.bdvr-panneau .data a{color:var(--bordeaux);text-decoration:none;word-break:break-all}
+.bdvr-panneau .fiche__reco-l .muted-cell{font-size:var(--bdv-f-2)}
+.bdvr-panneau .panel#p-annee > div + div .panel__title{font-size:var(--bdv-f-4);opacity:.9}
+.bdvr-panneau .chk{display:inline-flex;align-items:center;gap:var(--bdv-e-2);font-size:var(--bdv-f-2);color:var(--bdv-encre-4);cursor:pointer;white-space:nowrap}
+.bdvr-panneau .chk input{accent-color:var(--bdv-accent);width:15px;height:15px;cursor:pointer;margin:0}
+.bdvr-panneau .muted-cell{color:var(--bdv-encre-4);font-size:var(--bdv-f-2)}
+.bdvr-panneau .data a{color:var(--bdv-accent);text-decoration:none;word-break:break-all}
 .bdvr-panneau .data a.tel{font-variant-numeric:tabular-nums;white-space:nowrap;word-break:normal}
 .bdvr-panneau .data a:hover{text-decoration:underline}
 .bdvr-panneau table.data th,
-.bdvr-panneau table.data td{padding:.45rem .55rem;text-align:left;border-bottom:var(--trait) solid var(--rule)}
-.bdvr-panneau table.data th{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
+.bdvr-panneau table.data td{padding:var(--bdv-e-2) var(--bdv-e-3);text-align:left;border-bottom:1px solid var(--bdv-trait);color:var(--bdv-encre-2)}
+.bdvr-panneau table.data th{font-family:inherit;font-size:var(--bdv-f-1);font-weight:600;text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4)}
 .bdvr-panneau table.data td.num,
-.bdvr-panneau table.data th.num{text-align:right;font-family:var(--font-mono)}
-.bdvr-panneau table.data tbody tr:hover{background:var(--paper-light)}
-.bdvr-panneau .signal{display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border:var(--trait) solid var(--rule);border-radius:var(--r-nul);background:var(--white);margin-bottom:.7rem;border-left-width:4px}
-.bdvr-panneau .signal__ico{font-size:var(--t-lead);flex-shrink:0;line-height:1.3}
-.bdvr-panneau .signal__body{font-size:var(--t-base)}
-.bdvr-panneau .signal__verdict{font-weight:700;margin-bottom:.15rem}
-.bdvr-panneau .signal__action{color:var(--muted);font-size:var(--t-base)}
-.bdvr-panneau .signal__action b{color:var(--ink)}
-.bdvr-panneau .note{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.6rem}
-.bdvr-panneau .mini-line{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.7rem}
+.bdvr-panneau table.data th.num{text-align:right;font-family:inherit;font-variant-numeric:tabular-nums}
+.bdvr-panneau table.data tbody tr:hover{background:var(--bdv-survol)}
+.bdvr-panneau .signal{display:flex;gap:var(--bdv-e-3);align-items:flex-start;padding:var(--bdv-e-4) var(--bdv-e-4);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);background:var(--bdv-surface);margin-bottom:var(--bdv-e-3);border-left-width:4px}
+/* LES QUATRE TONS MANQUAIENT A CETTE FEUILLE. `bdv-base.js` ecrit
+   `class="signal signal--' + kind + '"` avec quatre valeurs (danger, warn, ok,
+   info) ; seule la feuille des ecrans de vente les declarait. Dans le panneau,
+   le filet de gauche de 4 px restait donc de la couleur du cadre, et les quatre
+   gravites se ressemblaient. Le glyphe et le verdict, eux, ont toujours ete la :
+   la couleur ne fait que doubler, elle ne porte pas l'etat toute seule. */
+.bdvr-panneau .signal--danger{border-left-color:var(--bdv-retard)}
+.bdvr-panneau .signal--warn{border-left-color:var(--bdv-alerte)}
+.bdvr-panneau .signal--ok{border-left-color:var(--bdv-bon)}
+.bdvr-panneau .signal--info{border-left-color:var(--bdv-encre-3)}
+.bdvr-panneau .signal__ico{font-size:var(--bdv-f-4);flex-shrink:0;line-height:1.3}
+.bdvr-panneau .signal__body{font-size:var(--bdv-f-3)}
+.bdvr-panneau .signal__verdict{font-weight:700;margin-bottom:var(--bdv-e-1)}
+.bdvr-panneau .signal__action{color:var(--bdv-encre-4);font-size:var(--bdv-f-3)}
+.bdvr-panneau .signal__action b{color:var(--bdv-encre-2)}
+.bdvr-panneau .note{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-3)}
+.bdvr-panneau .mini-line{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-3)}
 @media(max-width:900px){
   .bdvr-panneau .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .bdvr-panneau .grid-2,
@@ -151,7 +227,7 @@
   .bdvr-panneau .search,
   .bdvr-panneau input,
   .bdvr-panneau select,
-  .bdvr-panneau textarea { font-size: var(--t-corps); }
+  .bdvr-panneau textarea{ font-size: var(--bdv-f-saisie); }
 
   /* --- 2. Ce qui forcait le tableau du classement hors du panneau -------
      220 px pour la recherche et 180 px pour les champs de l'explorateur : a deux
@@ -170,7 +246,7 @@
   .bdvr-panneau .field input { min-width: 0 !important; width: 100%; }
   .bdvr-panneau .field { width: 100%; }
   .bdvr-panneau .search { min-width: 0 !important; width: 100%; max-width: 100%; }
-  .bdvr-panneau .expl-ctrls { gap: .6rem; }
+  .bdvr-panneau .expl-ctrls { gap: var(--bdv-e-2); }
 
   /* --- 3. Le tableau passe en une colonne par ligne ---------------------
      487 px dans 390 : il defilait, mais la colonne utile etait celle qui sortait.
@@ -194,32 +270,33 @@
   .bdvr-panneau table.data tr { display: block; width: 100%; }
   .bdvr-panneau table.data thead { display: none; }
   .bdvr-panneau table.data tr {
-    border-bottom: var(--trait-fort) solid var(--rule);
-    padding: .35rem 0;
+    border-bottom: 2px solid var(--bdv-trait);
+    padding: var(--bdv-e-1) 0;
   }
   .bdvr-panneau table.data td {
     display: block;
     width: auto;
+    height: auto;
     border-bottom: none;
-    padding: .3rem .55rem;
+    padding: var(--bdv-e-1) var(--bdv-e-3);
   }
   .bdvr-panneau table.data td.num,
   .bdvr-panneau table.data th.num { text-align: left; }
-  .bdvr-panneau table.data td::before {
+  .bdvr-panneau table.data td::before{
     content: attr(data-libelle);
     display: block;
-    font-family: var(--font-mono);
-    font-size: var(--t-micro);
-    color: var(--muted);
+    font-family: inherit;
+    font-size: var(--bdv-f-1);
+    color: var(--bdv-encre-4);
     text-transform: uppercase;
-    letter-spacing: var(--ls-large, .04em);
+    letter-spacing: var(--bdv-ls-etiq);
   }
   .bdvr-panneau table.data td:not([data-libelle])::before { content: none; }
 
   /* --- 4. Le plancher tactile, sur la CIBLE -----------------------------
      44 px, le meme chiffre que les trois autres feuilles. */
-  .bdvr-panneau .bdvr-onglet {
-    min-height: 44px;
+  .bdvr-panneau .bdvr-onglet{
+    min-height: var(--bdv-cible);
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
@@ -236,10 +313,10 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
-    background-color: var(--paper-light);
+    background-color: var(--bdv-surface-2);
     background-image:
-      linear-gradient(to left, var(--paper-light), transparent),
-      linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent);
+      linear-gradient(to left, var(--bdv-surface-2), transparent),
+      linear-gradient(to left, color-mix(in srgb, var(--bdv-encre-1) 22%, transparent), transparent);
     background-repeat: no-repeat, no-repeat;
     background-position: right center, right center;
     background-size: 26px 100%, 18px 100%;
@@ -266,7 +343,7 @@
      rate le plus souvent parce qu'elle est etroite. */
   .bdvr-panneau input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   .bdvr-panneau select,
-  .bdvr-panneau textarea { min-height: 44px; }
+  .bdvr-panneau textarea{ min-height: var(--bdv-cible); }
 
   /* La case reste calee sur la PREMIERE ligne de son etiquette, 19/09/2026.
      `min-height: 44px` avec `align-items: center` faisait flotter un carre de
@@ -274,30 +351,30 @@
      bimensuelle du Bureau du Vigneron ». La cible de 44 px est gardee, l'aplomb
      revient. */
   .bdvr-panneau .bdvr-chk input,
-  .bdvr-panneau .chk input { margin-top: .4rem; }
+  .bdvr-panneau .chk input{ margin-top: var(--bdv-e-1); }
   /* La croix est l'UNIQUE sortie d'un panneau qui prend tout l'ecran sous 820 px.
      La rater, c'est rester enferme. Elle est calee dans l'angle, la ou le pouce
      est le moins precis. Elle etait a 27 x 28. */
   .bdvr-panneau .bdvr-x {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--bdv-cible);
+    min-height: var(--bdv-cible);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
-    top: .35rem;
-    right: .35rem;
+    top: var(--bdv-e-1);
+    right: var(--bdv-e-1);
   }
   /* « Enregistrer » a 36 px, « Vider la base » a 34. Le premier ecrit les
      reglages, le second efface la base : ce sont les deux boutons du panneau dont
      un ratage coute quelque chose. */
   .bdvr-panneau .bdvr-btn,
   .bdvr-panneau .btn,
-  .bdvr-panneau .btn--sm { min-height: 44px; }
+  .bdvr-panneau .btn--sm{ min-height: var(--bdv-cible); }
   /* Le lien du pied faisait 355 x 19 : large comme la page, haut comme rien. Il
      mene au mot de passe, a l'export et a la suppression du compte. */
   .bdvr-panneau .bdvr-lien {
-    min-height: 44px;
+    min-height: var(--bdv-cible);
     display: inline-flex;
     align-items: center;
   }
@@ -317,27 +394,27 @@
      suffit de ne pas les ecrire a deux endroits : `min-height` porte la cible,
      `flex-start` garde l'aplomb. */
   .bdvr-panneau .chk,
-  .bdvr-panneau .bdvr-chk {
-    min-height: 44px;
+  .bdvr-panneau .bdvr-chk{
+    min-height: var(--bdv-cible);
     display: flex;
     align-items: flex-start;
   }
   /* Les liens d'un tableau : meme motif que `.bdv-ventes table.data a` le 11/09,
      `inline-flex` et pas une interligne forcee, sinon une adresse sur deux lignes
      fabrique une cible de 88 px. */
-  .bdvr-panneau .data a {
+  .bdvr-panneau .data a{
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
+    min-height: var(--bdv-cible);
   }
 
   /* --- 5. Ce qui reste large ------------------------------------------- */
   .bdvr-panneau .kpi-grid,
   .bdvr-panneau .kpi-grid--base { grid-template-columns: 1fr; }
   .bdvr-panneau .grid-2 { grid-template-columns: 1fr; }
-  .bdvr-panneau .dropzone { padding: 1.6rem 1rem; }
+  .bdvr-panneau .dropzone{ padding: var(--bdv-e-6) var(--bdv-e-4); }
 }
 
 /* Meme chiffre que dans les ecrans de vente, meme traitement. Voir le bloc
    « LES CHIFFRES DU SITE » de style.css pour le motif. */
-.bdvr-panneau .kpi__val{font-family:var(--font-chiffre);font-weight:700;letter-spacing:var(--ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.bdvr-panneau .kpi__val{font-family:inherit;font-weight:700;letter-spacing:var(--bdv-ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}

@@ -49,152 +49,105 @@
    bureau, et la page autonome les prend de bdv-ecrans-page.css. Les poser ici aurait peint
    un fond papier sur la modale et sur le voile d'attente, qui portent la meme classe. */
 .bdv-ventes,.bdv-ventes *,.bdv-ventes *::before,.bdv-ventes *::after{box-sizing:border-box;margin:0;padding:0}
-.bdv-ventes{color:var(--ink);line-height:var(--lh-normal)}
-.bdv-ventes h1,.bdv-ventes h2,.bdv-ventes h3{font-family:var(--font-titre);font-weight:400;line-height:var(--lh-serre);letter-spacing:var(--ls-serre)}
-.bdv-ventes a{color:var(--bordeaux)}
+.bdv-ventes{color:var(--bdv-encre-2);line-height:1.5}
+.bdv-ventes h1,.bdv-ventes h2,.bdv-ventes h3{font-family:inherit;font-weight:600;line-height:1.2;letter-spacing:var(--bdv-ls-serre);color:var(--bdv-encre-1)}
+.bdv-ventes a{color:var(--bdv-accent)}
 
 /* ============================================================================
-   Charte "Le Bureau du Vigneron". Source de verite : tokens.css.
-   Aucune couleur, aucun rayon, aucune famille de police en dur hors de ce bloc.
+   LE `:root` DE CETTE FEUILLE A ETE SUPPRIME LE 21/09/2026, AU LOT 4 DES DEUX
+   THEMES, ET VOICI LA MESURE QUI L'A DECIDE.
+
+   Il portait 71 jetons. SOIXANTE d'entre eux etaient la copie mot pour mot du
+   `:root` de src/css/style.css, qui est chargee par le gabarit de base sur
+   toutes les pages, donc AUSSI sous cette feuille : ils ne servaient a rien
+   d'autre qu'a se perimer en silence. C'est exactement la mecanique de derive
+   que `npm run banc:jetons` a ete ecrit pour attraper le 18/09/2026, et qui
+   avait deja coute `--ombre-photo`, deux ombres sous un seul nom.
+
+   LES ONZE AUTRES N'EXISTAIENT QUE LA, et chacun a trouve sa place :
+
+     --serie-1 a --serie-8   deviennent --bdv-serie-1 a --bdv-serie-8 dans
+                             src/css/bdv-theme.css, avec leur valeur SOMBRE.
+                             Elles sont lues en JavaScript, voir plus bas.
+     --bordeaux-voile        devient --bdv-aire-accent, meme raison.
+     --ok-clair              part : il n'existait que pour le bloc de rythme,
+     --danger-clair          qui etait une carte SOMBRE sur du papier clair.
+                             Ce bloc a pris la surface des autres cartes, donc
+                             --bdv-bon et --bdv-retard suffisent.
+
+   CE QUI RESTE APPELE ICI SANS ETRE DECLARE ICI : les cinq `--z-*` et, dans le
+   rapport imprimable seulement, les jetons papier. Tous viennent de style.css,
+   a l'identique, et ils y sont declares une seule fois.
+
+   LE RAPPORT IMPRIMABLE GARDE LE PAPIER, ET CE N'EST PAS UN OUBLI. Il n'est
+   jamais affiche a l'ecran (`#printReport{display:none}`), il ne sort que par
+   l'imprimante, et `print-color-adjust:exact` force ses fonds. Le repeindre en
+   jetons de theme ferait sortir des pages NOIRES de l'imprimante de tout
+   vigneron qui a choisi le sombre, encre blanche comprise. Le papier est le bon
+   medium pour le papier.
    ============================================================================ */
-:root{
-  /* ---- SURFACES ---- */
-  --paper:#EFE7D6;--paper-light:#F5EFE0;--paper-deep:#DACDAF;--white:#FFFFFF;
-  /* ---- ENCRES ---- */
-  --ink:#1E2536;--ink-deep:#0F1622;--muted:#63523D;--rule:rgba(30,37,54,0.18);--rule-fort:rgba(30,37,54,0.42);
-  /* ---- MARQUE ---- */
-  --bordeaux:#5A1525;--bordeaux-deep:#45101D;--bordeaux-vif:#7A1525;
-  --bordeaux-veil:rgba(40,10,18,0.70);
-  --bordeaux-voile:rgba(90,21,37,0.16); /* remplissage pale des barres de repartition */
-  --gold:#C4A24E;
-  /* Le liege manquait a ce bloc alors que .action, .fil__ico et le marqueur des messages
-     replies l'appellent : les trois tombaient donc sur une couleur invalide, sans repli.
-     Trouve le 07/09/2026, quand le controle de la charte a recommence a lire ce fichier
-     en entier. --cork est un ornement, il ne porte JAMAIS de texte : c'est --cork-encre
-     qui passe AA. */
-  --cork:#B89066;--cork-encre:#704C22;
-  /* ---- SUR FOND SOMBRE ---- */
-  --on-dark:#EFE7D6;--on-dark-soft:rgba(239,231,214,0.75);
-  --on-dark-faint:rgba(239,231,214,0.35);--on-dark-rule:rgba(239,231,214,0.15);
-  /* ---- ETATS SEMANTIQUES ---- */
-  --ok:#2D6A2D;--ok-bg:#E8F0E4;
-  --danger:#C5443D;--danger-deep:#A03530;--danger-bg:#FBE9E7;
-  --warn:#8B6300;--warn-bg:#F8EFE3;
-  --info:#2F6DB5;--info-bg:#E8EFF7;
-  /* ---- ETATS SUR FOND SOMBRE ---- */
-  /* --ok et --danger tombent sous 3:1 sur --ink-deep. Ces deux tirages clairs
-     existent pour le seul bloc de rythme, qui est sombre. */
-  --ok-clair:#8DBE72;--danger-clair:#E4938C;
-  /* ---- SERIES DE GRAPHIQUE ---- */
-  /* Echelle categorielle ancree sur le bordeaux et les terres du site. Les
-     tokens d'etat n'y figurent pas : une serie verte ne doit pas se lire
-     "bon". Luminance relative de chaque teinte, en ordre de declaration :
-     1 .028  2 .189  3 .091  4 .330  5 .056  6 .255  7 .135  8 .415
-     L'ordre alterne haut et bas de l'echelle pour que deux series voisines
-     restent separees en niveaux de gris (rapport mini 1,65) et en vision
-     deuteranope (rapport mini 1,51). */
-  --serie-1:#5A1525;  /* bordeaux */
-  --serie-2:#4D863A;  /* vert vigne */
-  --serie-3:#8E3B2A;  /* terre cuite */
-  --serie-4:#78A1BA;  /* ardoise claire */
-  --serie-5:#2A436C;  /* bleu encre */
-  --serie-6:#B97D4A;  /* liege */
-  --serie-7:#8C5095;  /* prune */
-  --serie-8:#CBA945;  /* or */
-  /* ---- TYPOGRAPHIE ---- */
-  --font-titre:'Fraunces',Georgia,'Times New Roman',serif;
-  --font-corps:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
-  --font-mono:'JetBrains Mono','Courier New',monospace;
-  --font-chiffre:var(--font-corps);
-  --t-micro:0.62rem;--t-mini:0.70rem;--t-petit:0.78rem;--t-base:0.88rem;
-  --t-corps:1.00rem;--t-lead:1.15rem;--t-h3:1.35rem;
-  /* ---- RYTHME ---- */
-  --lh-serre:1.2;--lh-normal:1.5;
-  --ls-large:0.15em;--ls-etiq:0.10em;--ls-doux:0.05em;--ls-max:0.25em;--ls-serre:-0.01em;
-  /* ---- FORMES ---- */
-  /* Le site n'a pas de rayon : la texture d'imprime vient de l'angle vif. */
-  --tr-rapide:0.15s;
-  --z-nav:100;--z-voile:1000;--z-busy:1050;--z-statut:1100;
-  --r-nul:0;--r-rond:50%;
-  --trait:1px;--trait-fort:2px;--trait-accent:3px;
-  /* ---- OMBRES ---- */
-  --ombre-dure:6px 6px 0 rgba(30,37,54,0.18);
-  --ombre-carte:2px 3px 10px rgba(30,25,15,0.25);
-  /* --ombre-photo A ETE RETIRE D'ICI LE 18/09/2026, ET C'ETAIT UNE COLLISION.
-     Ce fichier declarait `--ombre-photo: 10px 10px 0 rgba(0,0,0,0.28)` pendant que
-     src/css/style.css declarait, sous LE MEME NOM, `0 20px 60px rgba(0,0,0,0.35)`,
-     qui est une tout autre ombre. Comme cette feuille est posee par bdv-nav.js
-     APRES style.css, la sienne gagnait, et elle gagnait pour la page entiere : le
-     jour ou une regle du site aurait appele var(--ombre-photo), son ombre aurait
-     change toute seule a la premiere ouverture d'un ecran de vente, sans qu'une
-     seule ligne du site ait bouge.
-     Personne ne l'a vu parce que le site n'appelle ce jeton nulle part. C'est un
-     piege qui attendait, pas une panne.
-     La valeur voulue ici existait deja sous son vrai nom, --ombre-dure-xl, a
-     l'identique au caractere pres : c'est lui que les trois regles appellent
-     desormais. Le controle est `npm run banc:jetons`. */
-  /* Redeclare ici a l'IDENTIQUE de style.css, comme les soixante autres jetons de
-     ce bloc : cette feuille reste lisible seule. Meme nom, meme valeur, donc pas
-     de collision ; c'est justement la regle que banc:jetons fait respecter. */
-  --ombre-dure-xl:10px 10px 0 rgba(0,0,0,0.28);
-}
-.bdv-ventes .mono{font-family:var(--font-mono)}
+.bdv-ventes .mono{font-family:inherit}
 .bdv-ventes .hidden{display:none!important}
 
 /* STATUS */
-.status{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:var(--z-statut);padding:.6rem 1rem;font-family:var(--font-mono);font-size:var(--t-petit);display:none;align-items:center;gap:.5rem;border-radius:var(--r-nul);box-shadow:var(--ombre-carte);max-width:90vw}
-.bdv-ventes.status.error{background:var(--danger-bg);color:var(--danger-deep);display:flex}
-.bdv-ventes.status.loading{background:var(--ink-deep);color:var(--on-dark);display:flex}
-.bdv-ventes.status.success{background:var(--ok-bg);color:var(--ok);display:flex}
+.status{position:fixed;bottom:var(--bdv-e-4);left:50%;transform:translateX(-50%);z-index:var(--z-statut);padding:var(--bdv-e-3) var(--bdv-e-4);font-family:inherit;font-size:var(--bdv-f-2);display:none;align-items:center;gap:var(--bdv-e-2);border-radius:var(--bdv-r);box-shadow:none;max-width:90vw}
+/* LES TROIS SEULS TYPES, ET IL N'EN EXISTE PAS DE QUATRIEME. `status()` pose
+   class="status <type>" : un nom qui n'est pas ici sort un bandeau SANS fond ni
+   couleur. Mesure des trois paires, clair puis sombre : 6,30 et 6,93:1 pour le
+   retard, 13,99 et 9,73:1 pour l'attente, 5,98 et 8,90:1 pour le bon. */
+.bdv-ventes.status{border:1px solid var(--bdv-trait-fort)}
+.bdv-ventes.status.error{background:var(--bdv-retard-lavis);color:var(--bdv-retard);border-color:var(--bdv-retard);display:flex}
+.bdv-ventes.status.loading{background:var(--bdv-surface-3);color:var(--bdv-encre-1);display:flex}
+.bdv-ventes.status.success{background:var(--bdv-bon-lavis);color:var(--bdv-bon);border-color:var(--bdv-bon);display:flex}
 /* OVERLAY DE CHARGEMENT (verre qui se remplit, centre) */
-#busyov{position:fixed;inset:0;z-index:var(--z-busy);display:none;align-items:center;justify-content:center;background:var(--bordeaux-veil)}
+#busyov{position:fixed;inset:0;z-index:var(--z-busy);display:none;align-items:center;justify-content:center;background:var(--bdv-voile)}
 .bdv-ventes#busyov.on{display:flex}
-.bdv-ventes .busyov__card{background:var(--white);border-radius:var(--r-nul);padding:1.9rem 2.4rem;box-shadow:var(--ombre-dure-xl);border-top:var(--trait-accent) solid var(--bordeaux);text-align:center;min-width:210px}
-.bdv-ventes .glass{display:block;margin:0 auto .9rem}
-.bdv-ventes .glass-out{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.bdv-ventes .liquid{fill:var(--bordeaux);animation:fillup 1.8s ease-in-out infinite}
+.bdv-ventes .busyov__card{background:var(--bdv-surface-3);border-radius:var(--bdv-r);padding:var(--bdv-e-8) var(--bdv-e-12);box-shadow:none;border-top:3px solid var(--bdv-accent);text-align:center;min-width:210px}
+.bdv-ventes .glass{display:block;margin:0 auto var(--bdv-e-4)}
+.bdv-ventes .glass-out{fill:none;stroke:var(--bdv-encre-2);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.bdv-ventes .liquid{fill:var(--bdv-accent);animation:fillup 1.8s ease-in-out infinite}
 @keyframes fillup{0%{transform:translateY(42px)}12%{transform:translateY(42px)}75%{transform:translateY(0)}100%{transform:translateY(0)}}
-.bdv-ventes .busyov__txt{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;color:var(--ink);letter-spacing:var(--ls-doux)}
-.bdv-ventes .busyov__sub{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin-top:.25rem}
-.bdv-ventes .spinner{width:.9rem;height:.9rem;border:var(--trait-fort) solid currentColor;border-top-color:transparent;border-radius:var(--r-rond);animation:spin .8s linear infinite}
+.bdv-ventes .busyov__txt{font-family:inherit;font-weight:600;font-size:var(--bdv-f-4);color:var(--bdv-encre-1);letter-spacing:var(--bdv-ls-etiq)}
+.bdv-ventes .busyov__sub{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);margin-top:var(--bdv-e-2)}
+.bdv-ventes .spinner{width:var(--bdv-e-3);height:var(--bdv-e-3);border:2px solid currentColor;border-top-color:transparent;border-radius:var(--bdv-r-rond);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* L'ECRAN D'IMPORT PLEIN ECRAN est parti le 19/09/2026 : `.import`, `.import__box`
    et les trois regles qui l'habillaient. Le depot d'un export passe par la carte
    « Ajouter un export » du panneau de reglages depuis la fusion du 07/09, et plus
    par un ecran a lui. `.dropzone` et `.dropzone--compact`, elles, vivent. */
-.bdv-ventes .dropzone{border:var(--trait-fort) dashed var(--bordeaux);border-radius:var(--r-nul);padding:2.6rem 2rem;cursor:pointer;transition:var(--tr-rapide);background:var(--paper-light)}
-.bdv-ventes .dropzone:hover,.bdv-ventes .dropzone.over{border-color:var(--bordeaux-vif);background:var(--paper-deep)}
+.bdv-ventes .dropzone{border:2px dashed var(--bdv-accent);border-radius:var(--bdv-r);padding:var(--bdv-e-12) var(--bdv-e-8);cursor:pointer;transition:background var(--bdv-d-court) var(--bdv-courbe);background:var(--bdv-surface-2)}
+.bdv-ventes .dropzone:hover,.bdv-ventes .dropzone.over{border-color:var(--bdv-accent-fort);background:var(--bdv-accent-lavis)}
 .bdv-ventes .dropzone.over{border-style:solid}
 /* Variante posee dans la carte « Ajouter un export » de l'ecran Ma base : meme zone, meme
    comportement, mais rangee dans une carte a cote d'une autre. Aucune couleur ni rayon ici,
    uniquement des espacements : tout le reste est herite de .dropzone. */
-.bdv-ventes .dropzone--compact{padding:1.3rem 1rem;text-align:center;margin-bottom:.7rem}
-.bdv-ventes .dropzone--compact .dz-icon{font-size:1.5rem;margin-bottom:.3rem}
-.bdv-ventes .dropzone--compact h3{font-size:.95rem}
-.bdv-ventes .dz-icon{font-size:2.1rem;margin-bottom:.5rem;color:var(--bordeaux)}
-.bdv-ventes .dropzone h3{font-family:var(--font-titre);font-weight:400;font-size:1.05rem;margin-bottom:.25rem}
-.bdv-ventes .dropzone p{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
+.bdv-ventes .dropzone--compact{padding:var(--bdv-e-6) var(--bdv-e-4);text-align:center;margin-bottom:var(--bdv-e-3)}
+.bdv-ventes .dropzone--compact .dz-icon{font-size:var(--bdv-f-5);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .dropzone--compact h3{font-size:var(--bdv-f-3)}
+.bdv-ventes .dz-icon{font-size:var(--bdv-f-6);margin-bottom:var(--bdv-e-2);color:var(--bdv-accent)}
+.bdv-ventes .dropzone h3{font-family:inherit;font-weight:600;font-size:var(--bdv-f-4);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .dropzone p{font-size:var(--bdv-f-2);color:var(--bdv-encre-4);font-family:inherit}
 .bdv-ventes [hidden]{display:none !important}
-.bdv-ventes .hint{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.8rem}
+.bdv-ventes .hint{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-3)}
 /* ---- LA FICHE DE SUIVI ----
    La prochaine action en tete, une seule zone de saisie, un seul fil. */
-.bdv-ventes .action{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;padding:.7rem .9rem;margin-bottom:.9rem;background:var(--paper);border-left:var(--trait-accent) solid var(--cork)}
-.bdv-ventes .action__oui{font-family:var(--font-titre);font-size:var(--t-lead);color:var(--ink)}
-.bdv-ventes .action__oui--retard{color:var(--danger-deep)}
-.bdv-ventes .action__non{font-family:var(--font-titre);font-size:var(--t-lead);color:var(--muted);flex:1 1 100%}
-.bdv-ventes .action__date{font-family:var(--font-mono);font-size:var(--t-petit);padding:.3rem .4rem;border:var(--trait) solid var(--rule-fort);background:var(--white);color:var(--ink)}
+.bdv-ventes .action{display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-2);padding:var(--bdv-e-3) var(--bdv-e-4);margin-bottom:var(--bdv-e-4);background:var(--bdv-surface-2);border-left:3px solid var(--bdv-accent)}
+.bdv-ventes .action__oui{font-family:inherit;font-size:var(--bdv-f-4);color:var(--bdv-encre-2)}
+.bdv-ventes .action__oui--retard{color:var(--bdv-retard)}
+.bdv-ventes .action__non{font-family:inherit;font-size:var(--bdv-f-4);color:var(--bdv-encre-4);flex:1 1 100%}
+.bdv-ventes .action__date{font-family:inherit;font-size:var(--bdv-f-2);padding:var(--bdv-e-2) var(--bdv-e-2);border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);color:var(--bdv-encre-2)}
 /* LE MOTIF DU RAPPEL, 11/09/2026. Il prend la ligne entiere et passe AVANT les boutons :
    les quatre facons de poser la date le lisent, et un champ pose apres elles n'aurait ete
    lu par aucune. Meme cadre que le champ de date, c'est la meme phrase en deux morceaux. */
-.bdv-ventes .action__lbl{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
-.bdv-ventes .action__titre{flex:1 1 100%;box-sizing:border-box;font-family:var(--font-corps);font-size:var(--t-petit);padding:.35rem .5rem;border:var(--trait) solid var(--rule-fort);background:var(--white);color:var(--ink)}
+.bdv-ventes .action__lbl{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4)}
+.bdv-ventes .action__titre{flex:1 1 100%;box-sizing:border-box;font-family:inherit;font-size:var(--bdv-f-2);padding:var(--bdv-e-2) var(--bdv-e-2);border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);color:var(--bdv-encre-2)}
 /* Ce que l'enregistrement fera EN PLUS, dit avant de le faire. Sur le papier de la zone
    de saisie, separe du champ par le meme filet que le pied. */
-.bdv-ventes .saisie__att{margin:0;padding:.5rem .8rem;border-bottom:var(--trait) solid var(--rule)}
+.bdv-ventes .saisie__att{margin:0;padding:var(--bdv-e-2) var(--bdv-e-3);border-bottom:1px solid var(--bdv-trait)}
 
-.bdv-ventes .saisie{border:var(--trait) solid var(--rule-fort);background:var(--white);margin-bottom:.9rem}
-.bdv-ventes .saisie__txt{display:block;width:100%;box-sizing:border-box;border:none;background:none;padding:.7rem .8rem;font-family:var(--font-corps);font-size:var(--t-corps);color:var(--ink);resize:vertical}
+.bdv-ventes .saisie{border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);margin-bottom:var(--bdv-e-4)}
+.bdv-ventes .saisie__txt{display:block;width:100%;box-sizing:border-box;border:none;background:none;padding:var(--bdv-e-3) var(--bdv-e-3);font-family:inherit;font-size:var(--bdv-f-saisie);color:var(--bdv-encre-2);resize:vertical}
 /* LE CERCLAGE DE FOCUS ETAIT RETIRE SANS REMPLACEMENT, corrige le 19/09/2026.
    C'est le champ ou l'on pose la trace d'un appel client, le geste central de
    « Mon commerce » depuis le 11/09, et au clavier rien ne disait qu'on y etait.
@@ -205,29 +158,29 @@
    cadre s'allume quand le focus entre dedans, y compris sur les boutons du pied,
    ce qui est exactement ce qu'on veut voir. */
 .bdv-ventes .saisie__txt:focus{outline:none}
-.bdv-ventes .saisie:focus-within{border-color:var(--bordeaux)}
-.bdv-ventes .saisie__pied{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding:.4rem .5rem;border-top:var(--trait) solid var(--rule)}
-.bdv-ventes .saisie__types{display:flex;gap:.3rem;align-items:center}
-.bdv-ventes .saisie__etiq{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
-.bdv-ventes .saisie__canal{border:var(--trait) solid var(--rule);background:var(--white);padding:.25rem .4rem;font-family:var(--font-mono);font-size:var(--t-mini);color:var(--ink);max-width:14rem}
+.bdv-ventes .saisie:focus-within{border-color:var(--bdv-anneau)}
+.bdv-ventes .saisie__pied{display:flex;align-items:center;justify-content:space-between;gap:var(--bdv-e-2);flex-wrap:wrap;padding:var(--bdv-e-2) var(--bdv-e-2);border-top:1px solid var(--bdv-trait)}
+.bdv-ventes .saisie__types{display:flex;gap:var(--bdv-e-2);align-items:center}
+.bdv-ventes .saisie__etiq{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4)}
+.bdv-ventes .saisie__canal{border:1px solid var(--bdv-trait);background:var(--bdv-surface);padding:var(--bdv-e-2) var(--bdv-e-2);font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-2);max-width:14rem}
 /* `.btn--type` A ETE RETIRE LE 19/09/2026 : trois regles, plus aucun module ne
    posait la classe. Recherche faite dans src/, dans _site/ et dans les chaines
    assemblees des 22 fichiers JavaScript. */
 
-.bdv-ventes .etiq{display:block;width:100%;box-sizing:border-box;margin-bottom:1rem;padding:.5rem .7rem;border:var(--trait) dashed var(--rule-fort);background:none;font-family:var(--font-corps);font-size:var(--t-petit);color:var(--ink)}
+.bdv-ventes .etiq{display:block;width:100%;box-sizing:border-box;margin-bottom:var(--bdv-e-4);padding:var(--bdv-e-2) var(--bdv-e-3);border:1px dashed var(--bdv-trait-fort);background:none;font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
 
-.bdv-ventes .fil{display:flex;flex-direction:column;border-top:var(--trait) solid var(--rule)}
-.bdv-ventes .fil__l{display:grid;grid-template-columns:20px 96px 1fr;gap:.5rem;align-items:baseline;padding:.55rem 0;border-bottom:var(--trait) solid var(--rule);font-size:var(--t-base)}
-.bdv-ventes .fil__l--note{background:var(--warn-bg)}
-.bdv-ventes .fil__ico{color:var(--cork-encre)}
-.bdv-ventes .fil__quand{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted)}
-.bdv-ventes .fil__quoi{line-height:var(--lh-normal)}
+.bdv-ventes .fil{display:flex;flex-direction:column;border-top:1px solid var(--bdv-trait)}
+.bdv-ventes .fil__l{display:grid;grid-template-columns:20px 96px 1fr;gap:var(--bdv-e-2);align-items:baseline;padding:var(--bdv-e-2) 0;border-bottom:1px solid var(--bdv-trait);font-size:var(--bdv-f-3)}
+.bdv-ventes .fil__l--note{background:var(--bdv-alerte-lavis)}
+.bdv-ventes .fil__ico{color:var(--bdv-encre-4)}
+.bdv-ventes .fil__quand{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4)}
+.bdv-ventes .fil__quoi{line-height:1.5}
 /* L'AUTEUR D'UNE ENTREE, 14/09/2026. Discret et jamais sur sa propre ligne : il ne
    s'affiche que dans un bureau a plusieurs et que sur ce qu'un autre a ecrit. Meme
    ton que l'heure, en petites capitales : c'est une precision, pas du contenu. */
-.bdv-ventes .fil__par{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);white-space:nowrap}
-.bdv-ventes .fil__vide{color:var(--muted);font-style:italic;font-size:var(--t-base);padding:.8rem 0;margin:0}
-.bdv-ventes .btn--lien{background:none;border:none;padding:0 0 0 .4rem;color:var(--bordeaux);font-family:var(--font-corps);font-size:var(--t-mini);text-decoration:underline;cursor:pointer}
+.bdv-ventes .fil__par{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);white-space:nowrap}
+.bdv-ventes .fil__vide{color:var(--bdv-encre-4);font-style:italic;font-size:var(--bdv-f-3);padding:var(--bdv-e-3) 0;margin:0}
+.bdv-ventes .btn--lien{background:none;border:none;padding:0 0 0 var(--bdv-e-2);color:var(--bdv-accent);font-family:inherit;font-size:var(--bdv-f-2);text-decoration:underline;cursor:pointer}
 
 /* Le redacteur de message est un assistant, pas du suivi : il attend qu'on le demande. */
 /* CES TITRES DE REPLI FAISAIENT 17 PX DE HAUT SUR 1 144 DE LARGE, 19/09/2026.
@@ -239,9 +192,9 @@
    ou en `block` emporte son ::marker, et c'est la fleche de repli qui disparait.
    Le bloc telephone plus bas le passe deja en `flex` ET redessine la fleche en
    ::before ; ici, le remplissage suffit a monter la cible a 31 px. */
-.bdv-ventes .msg--replie>summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux);padding:.45rem .7rem;background:var(--paper-light)}
-.bdv-ventes .msg--replie>summary::marker{color:var(--cork-encre)}
-.bdv-ventes .msg--replie[open]>summary{margin-bottom:.8rem}
+.bdv-ventes .msg--replie>summary{cursor:pointer;font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-accent);padding:var(--bdv-e-2) var(--bdv-e-3);background:var(--bdv-surface-2)}
+.bdv-ventes .msg--replie>summary::marker{color:var(--bdv-encre-4)}
+.bdv-ventes .msg--replie[open]>summary{margin-bottom:var(--bdv-e-3)}
 
 /* SUR TELEPHONE, LE TEXTE DOIT SUIVRE L'HEURE DANS LA MEME COLONNE, corrige le
    14/09/2026. La grille passe a deux colonnes et l'heure etait seule renvoyee en
@@ -249,21 +202,21 @@
    s'ecrivait UN MOT PAR LIGNE. Defaut present depuis que ce media existe, jamais vu
    parce que personne n'avait regarde le fil d'un client a 400 px. */
 @media(max-width:640px){.bdv-ventes .fil__l{grid-template-columns:20px 1fr}.bdv-ventes .fil__quand,.bdv-ventes .fil__quoi{grid-column:2}}
-.bdv-ventes .pas-viti{margin-top:1.4rem;padding:1rem 1.2rem;background:var(--info-bg);border:var(--trait) solid var(--info);border-left:var(--trait-accent) solid var(--info);text-align:left;font-size:var(--t-base);line-height:var(--lh-normal)}
-.bdv-ventes .pas-viti p{margin:0 0 .5rem}
+.bdv-ventes .pas-viti{margin-top:var(--bdv-e-6);padding:var(--bdv-e-4) var(--bdv-e-6);background:var(--bdv-surface-2);border:1px solid var(--bdv-encre-3);border-left:3px solid var(--bdv-encre-3);text-align:left;font-size:var(--bdv-f-3);line-height:1.5}
+.bdv-ventes .pas-viti p{margin:0 0 var(--bdv-e-2)}
 .bdv-ventes .pas-viti p:last-child{margin-bottom:0}
-.bdv-ventes .pas-viti__titre{font-family:var(--font-titre);font-size:var(--t-h3);color:var(--ink)}
-.bdv-ventes .pas-viti__liens{font-family:var(--font-corps);font-size:var(--t-mini)}
-.bdv-ventes .resume{margin-top:1.8rem;padding:1rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);font-size:var(--t-base);text-align:left}
+.bdv-ventes .pas-viti__titre{font-family:inherit;font-weight:600;font-size:var(--bdv-f-5);color:var(--bdv-encre-1)}
+.bdv-ventes .pas-viti__liens{font-family:inherit;font-size:var(--bdv-f-2)}
+.bdv-ventes .resume{margin-top:var(--bdv-e-8);padding:var(--bdv-e-4);background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);font-size:var(--bdv-f-3);text-align:left}
 .bdv-ventes .resume b{font-weight:700}
 
 /* BOUTONS */
-.bdv-ventes .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-doux);cursor:pointer;border:none;text-decoration:none;transition:var(--tr-rapide);white-space:nowrap;border-radius:var(--r-nul);font-weight:500}
-.bdv-ventes .btn--primary{background:var(--bordeaux);color:var(--on-dark)}
-.bdv-ventes .btn--primary:hover{background:var(--bordeaux-vif)}
-.bdv-ventes .btn--ghost{background:transparent;color:var(--bordeaux);border:var(--trait) solid var(--bordeaux)}
-.bdv-ventes .btn--ghost:hover{background:var(--bordeaux);color:var(--on-dark)}
-.bdv-ventes .btn--sm{padding:.42rem .8rem;font-size:var(--t-micro)}
+.bdv-ventes .btn{display:inline-flex;align-items:center;gap:var(--bdv-e-2);padding:var(--bdv-e-3) var(--bdv-e-6);font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);cursor:pointer;border:none;text-decoration:none;transition:background var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);white-space:nowrap;border-radius:var(--bdv-r);font-weight:600}
+.bdv-ventes .btn--primary{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
+.bdv-ventes .btn--primary:hover{background:var(--bdv-accent-fort)}
+.bdv-ventes .btn--ghost{background:transparent;color:var(--bdv-accent);border:1px solid var(--bdv-accent)}
+.bdv-ventes .btn--ghost:hover{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
+.bdv-ventes .btn--sm{padding:var(--bdv-e-2) var(--bdv-e-3);font-size:var(--bdv-f-1)}
 /* .btn--light A ETE REPRIS A LA SOURCE le 07/09/2026. Il posait du creme sur du
    creme a 15 %, soit un contraste de 1:1 sur le papier : il avait ete dessine
    pour la barre haute bordeaux de l'ancien tableau de bord, qui n'existe plus.
@@ -273,10 +226,12 @@
    partie. Encre sur papier clair donne 13,33:1.
    Trouve par le controle 6 bis de la charte, celui qui parcourt la feuille au
    lieu d'attendre qu'on lui declare les paires. */
-.bdv-ventes .btn--light{background:var(--paper-light);color:var(--ink);border:var(--trait) solid var(--rule-fort)}
-.bdv-ventes .btn--light:hover{background:var(--bordeaux);color:var(--on-dark);border-color:var(--bordeaux)}
-.bdv-ventes .btn--danger{background:transparent;color:var(--danger-deep);border:var(--trait) solid var(--danger-deep)}
-.bdv-ventes .btn--danger:hover{background:var(--danger-deep);color:var(--on-dark)}
+.bdv-ventes .btn--light{background:var(--bdv-surface-2);color:var(--bdv-encre-2);border:1px solid var(--bdv-trait-fort)}
+.bdv-ventes .btn--light:hover{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent);border-color:var(--bdv-accent)}
+.bdv-ventes .btn--danger{background:transparent;color:var(--bdv-retard);border:1px solid var(--bdv-retard)}
+/* LE SURVOL NE REMPLIT PAS : `--bdv-encre-sur-accent` est calibre pour l'accent et
+   pas pour le retard, et le lavis donne 6,30:1 en clair, 6,93:1 en sombre. */
+.bdv-ventes .btn--danger:hover{background:var(--bdv-retard-lavis);color:var(--bdv-retard);border-color:var(--bdv-retard)}
 
 /* APP SHELL */
 /* UNE SEULE COLONNE depuis le lot 2d : le volet de gauche est parti, la barre du bureau
@@ -285,9 +240,9 @@
 .bdv-ventes .app{display:none;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
 /* Volet replie : le tableau recupere les 230 px, c'est tout l'objet. */
 .bdv-ventes .app.on{display:grid}
-.bdv-ventes .topbar{grid-column:1/3;background:var(--bordeaux-deep);color:var(--on-dark);display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;gap:1rem;flex-wrap:wrap;border-bottom:var(--trait-fort) solid var(--gold)}
-.bdv-ventes .topbar__file{font-family:var(--font-mono);font-size:var(--t-micro);opacity:.6;text-transform:uppercase;letter-spacing:var(--ls-doux)}
-.bdv-ventes .topbar__actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.bdv-ventes .topbar{grid-column:1/3;background:var(--bdv-surface);color:var(--bdv-encre-1);display:flex;align-items:center;justify-content:space-between;padding:var(--bdv-e-3) var(--bdv-e-6);gap:var(--bdv-e-4);flex-wrap:wrap;border-bottom:1px solid var(--bdv-trait)}
+.bdv-ventes .topbar__file{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq)}
+.bdv-ventes .topbar__actions{display:flex;gap:var(--bdv-e-2);flex-wrap:wrap}
 /* LE VOLET MAGNETIQUE, demande de Ted du 07/09/2026. Il reste colle en haut quand on
    descend dans un ecran long : changer d'ecran ne demande plus de remonter.
    Trois choses a ne pas defaire :
@@ -303,7 +258,7 @@
    ait besoin en cours de lecture, et la coller mangeait de la hauteur utile en permanence. */
 
 /* ---- VOLET : bouton et repere de position ---- */
-.bdv-ventes .topbar__gauche{display:flex;align-items:center;gap:.55rem;min-width:0}
+.bdv-ventes .topbar__gauche{display:flex;align-items:center;gap:var(--bdv-e-2);min-width:0}
 /* Volet replie, le menu disparait : la barre haute doit reprendre A LA FOIS
    le repere de position ET la navigation, sinon replier enferme le vigneron
    dans l'ecran ou il se trouve. */
@@ -311,228 +266,254 @@
 
 /* Le pied du volet : les autres pieces du bureau. Le tableau de bord n'est pas une
    application dont on sort, c'est une piece dans laquelle on passe. */
-.bdv-ventes .content{background:var(--paper);padding:1.4rem 1.6rem 4rem;overflow-x:hidden;min-width:0}
+.bdv-ventes .content{background:var(--bdv-fond);padding:var(--bdv-e-6) var(--bdv-e-6) var(--bdv-e-12);overflow-x:hidden;min-width:0}
 
 /* FILTRES */
-.bdv-ventes .filterbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center;background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.55rem .8rem;margin-bottom:1.2rem;font-size:var(--t-petit)}
-.bdv-ventes .filterbar__sep{width:var(--trait);align-self:stretch;background:var(--rule);margin:0 .3rem}
-.bdv-ventes .filterbar__dates{display:flex;gap:.6rem;align-items:center;font-size:var(--t-petit);color:var(--muted)}
-.bdv-ventes .filterbar__dates input{font-family:var(--font-mono);font-size:var(--t-petit);color:var(--ink);background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.2rem .35rem}
-.bdv-ventes .filterbar__scope{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:right}
-.bdv-ventes .filterbar__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted)}
+.bdv-ventes .filterbar{display:flex;gap:var(--bdv-e-2);flex-wrap:wrap;align-items:center;background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-2) var(--bdv-e-3);margin-bottom:var(--bdv-e-6);font-size:var(--bdv-f-2)}
+.bdv-ventes .filterbar__sep{width:1px;align-self:stretch;background:var(--bdv-trait);margin:0 var(--bdv-e-2)}
+.bdv-ventes .filterbar__dates{display:flex;gap:var(--bdv-e-3);align-items:center;font-size:var(--bdv-f-2);color:var(--bdv-encre-4)}
+.bdv-ventes .filterbar__dates input{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-2);background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-1) var(--bdv-e-2)}
+.bdv-ventes .filterbar__scope{margin-left:auto;font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);text-align:right}
+.bdv-ventes .filterbar__label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4)}
 /* LA PASTILLE EST UN <button> DEPUIS LE 19/09/2026, ET IL FAUT LUI RENDRE SON
    INTERLIGNE. Elle etait un <span> avec un `onclick`, donc inatteignable au
    clavier alors qu'elle pilote tous les chiffres de l'ecran. Devenue un bouton,
    elle a perdu 4 px de haut et s'est decalee vers le bas d'une moitie : un <span>
-   herite de `.bdv-ventes { line-height: var(--lh-normal) }`, un <button> non, la
+   herite de `.bdv-ventes { line-height: 1.5 }`, un <button> non, la
    feuille du navigateur lui impose `line-height: normal`. La regle qui rattrapait
    ca existait deja mais elle etait enfermee dans la requete telephone, donc morte
    sur l'ecran de Ted. On la remonte ici, pour toutes les largeurs. */
-.bdv-ventes .chip{display:inline-flex;align-items:center;line-height:var(--lh-normal);font-family:var(--font-mono);font-size:var(--t-micro);padding:.28rem .62rem;border:var(--trait) solid var(--rule);background:var(--white);cursor:pointer;border-radius:var(--r-nul);transition:var(--tr-rapide);color:var(--muted)}
-.bdv-ventes .chip:hover{border-color:var(--bordeaux);color:var(--ink)}
-.bdv-ventes .chip.on{background:var(--bordeaux);color:var(--on-dark);border-color:var(--bordeaux)}
+.bdv-ventes .chip{display:inline-flex;align-items:center;line-height:1.5;font-family:inherit;font-size:var(--bdv-f-1);padding:var(--bdv-e-2) var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);cursor:pointer;border-radius:var(--bdv-r-rond);transition:background var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);color:var(--bdv-encre-3)}
+.bdv-ventes .chip:hover{border-color:var(--bdv-accent);color:var(--bdv-encre-1)}
+.bdv-ventes .chip.on{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent);border-color:var(--bdv-accent)}
 
 /* PANNEAUX */
 .bdv-ventes .panel{display:none}
 .bdv-ventes .panel.on{display:block}
-.bdv-ventes .panel__title{font-size:1.4rem;font-weight:400;color:var(--ink);margin-bottom:.15rem}
-.bdv-ventes .panel__sub{font-size:var(--t-base);color:var(--muted);margin-bottom:1.2rem}
-.bdv-ventes .section-label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux);margin:1.6rem 0 .7rem;font-weight:500}
+.bdv-ventes .panel__title{font-size:var(--bdv-f-5);font-weight:600;color:var(--bdv-encre-1);margin-bottom:var(--bdv-e-1)}
+.bdv-ventes .panel__sub{font-size:var(--bdv-f-3);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-6)}
+.bdv-ventes .section-label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:var(--bdv-e-6) 0 var(--bdv-e-3);font-weight:600}
 
 /* KPI */
-.bdv-ventes .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.9rem;margin-bottom:1.4rem}
+.bdv-ventes .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--bdv-e-4);margin-bottom:var(--bdv-e-6)}
 .bdv-ventes .kpi-grid--base{grid-template-columns:repeat(3,1fr)}
 .bdv-ventes .kpi-grid--base .kpi{display:flex;flex-direction:column}
-.bdv-ventes .yearpills{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem}
-.bdv-ventes .yearpill{font-family:var(--font-mono);font-size:var(--t-mini);font-weight:500;padding:.12rem .45rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--ink)}
-.bdv-ventes .kpi{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.1rem;border-top:var(--trait-accent) solid var(--bordeaux)}
-.bdv-ventes .kpi--hi{background:var(--bordeaux);border-color:var(--bordeaux);border-top-color:var(--bordeaux-deep)}
-.bdv-ventes .kpi--hi .kpi__label,.bdv-ventes .kpi--hi .kpi__sub{color:var(--on-dark-soft)}
-.bdv-ventes .kpi--hi .kpi__val{color:var(--on-dark)}
-.bdv-ventes .kpi__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.4rem}
-.bdv-ventes .kpi__val{font-size:1.6rem;line-height:1;color:var(--ink)}
-.bdv-ventes .kpi__val span{font-size:var(--t-petit);font-weight:400;color:var(--muted)}
-.bdv-ventes .kpi__sub{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin-top:.4rem}
+.bdv-ventes .yearpills{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin-top:var(--bdv-e-1)}
+.bdv-ventes .yearpill{font-family:inherit;font-size:var(--bdv-f-2);font-weight:500;padding:var(--bdv-e-1) var(--bdv-e-2);background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);color:var(--bdv-encre-2)}
+.bdv-ventes .kpi{background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-4);border-top:3px solid var(--bdv-accent)}
+/* LA VIGNETTE MISE EN AVANT N'EST PLUS UN APLAT D'ACCENT, ET C'EST LA CAPTURE
+   EN SOMBRE QUI L'A DIT. En clair `--bdv-accent` est un bordeaux profond et la
+   carte pleine se lisait comme une action primaire ; en sombre le meme jeton est
+   un rose pale, et deux cartes pleines devenaient deux dalles roses au milieu de
+   « Mon cap ». C'est aussi la regle du seul accent a trois usages, selection,
+   focus et action primaire : un chiffre mis en avant n'en est pas une.
+   Elle prend donc le lavis et garde son filet d'accent en tete. Encre-1 sur le
+   lavis : 15,92:1 en clair, 15,32:1 en sombre. */
+.bdv-ventes .kpi--hi{background:var(--bdv-accent-lavis);border-color:var(--bdv-accent-trait);border-top-color:var(--bdv-accent)}
+.bdv-ventes .kpi--hi .kpi__label,.bdv-ventes .kpi--hi .kpi__sub{color:var(--bdv-encre-3)}
+.bdv-ventes .kpi--hi .kpi__val{color:var(--bdv-encre-1)}
+.bdv-ventes .kpi__label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .kpi__val{font-size:var(--bdv-f-6);line-height:1;color:var(--bdv-encre-1)}
+.bdv-ventes .kpi__val span{font-size:var(--bdv-f-2);font-weight:400;color:var(--bdv-encre-4)}
+.bdv-ventes .kpi__sub{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);margin-top:var(--bdv-e-2)}
 
 /* CARTES */
-.bdv-ventes .card{background:var(--white);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1.2rem;margin-bottom:1.2rem}
-.bdv-ventes .card__title{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--muted);margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:500}
-.bdv-ventes .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.bdv-ventes .card{background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-6);margin-bottom:var(--bdv-e-6)}
+.bdv-ventes .card__title{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-4);display:flex;justify-content:space-between;align-items:center;gap:var(--bdv-e-2);flex-wrap:wrap;font-weight:500}
+.bdv-ventes .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--bdv-e-6)}
 .bdv-ventes .chart-wrap{position:relative;height:300px}
 
 /* BASCULE MESURE */
-.bdv-ventes .toggle{display:inline-flex;border:var(--trait) solid var(--rule);border-radius:var(--r-nul);overflow:hidden;background:var(--white)}
-.bdv-ventes .toggle button{font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-doux);padding:.4rem .8rem;border:none;background:none;cursor:pointer;color:var(--muted)}
-.bdv-ventes .toggle button.on{background:var(--bordeaux);color:var(--on-dark)}
+.bdv-ventes .toggle{display:inline-flex;border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);overflow:hidden;background:var(--bdv-surface)}
+.bdv-ventes .toggle button{font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);padding:var(--bdv-e-2) var(--bdv-e-3);border:none;background:none;cursor:pointer;color:var(--bdv-encre-4)}
+.bdv-ventes .toggle button.on{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
 
 /* REPARTITIONS (barres horizontales) */
-.bdv-ventes .rep{display:flex;flex-direction:column;gap:.4rem}
-.bdv-ventes .rep__row{display:grid;grid-template-columns:1fr 5.2rem;gap:.6rem;align-items:center}
-.bdv-ventes .rep__bar{position:relative;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);height:1.5rem;overflow:hidden}
-.bdv-ventes .rep__fill{position:absolute;left:0;top:0;bottom:0;background:var(--bordeaux-voile)}
-.bdv-ventes .rep__lbl{position:relative;padding:0 .45rem;line-height:1.5rem;font-size:var(--t-petit);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bdv-ventes .rep__val{font-family:var(--font-mono);font-size:var(--t-petit);text-align:right;color:var(--ink)}
-.bdv-ventes .rep__pct{color:var(--muted);font-size:var(--t-micro)}
+.bdv-ventes .rep{display:flex;flex-direction:column;gap:var(--bdv-e-2)}
+/* 7 rem ET PAS 5,2 : vu a la capture de « Mon registre » en sombre, « 15 433 € 25 % »
+   se repliait sur deux lignes dans la colonne de droite. Le chiffre est passe de 12,5 a
+   13 px et a pris des chiffres tabulaires, qui sont plus larges que les proportionnels.
+   C'est une largeur de COLONNE, pas un pas d'echelle : elle se mesure sur le plus long
+   contenu, et elle n'a donc pas de jeton. */
+.bdv-ventes .rep__row{display:grid;grid-template-columns:1fr 7rem;gap:var(--bdv-e-3);align-items:center}
+.bdv-ventes .rep__bar{position:relative;background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r-pastille);height:var(--bdv-e-6);overflow:hidden}
+.bdv-ventes .rep__fill{position:absolute;left:0;top:0;bottom:0;background:var(--bdv-aire-accent)}
+.bdv-ventes .rep__lbl{position:relative;padding:0 var(--bdv-e-2);line-height:var(--bdv-e-6);font-size:var(--bdv-f-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bdv-ventes .rep__val{font-family:inherit;font-size:var(--bdv-f-2);text-align:right;color:var(--bdv-encre-1);font-variant-numeric:tabular-nums}
+.bdv-ventes .rep__pct{color:var(--bdv-encre-4);font-size:var(--bdv-f-1)}
 
 /* EXPLORATEUR */
-.bdv-ventes .expl-ctrls{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
-.bdv-ventes .facet-cat{margin-bottom:.3rem}
-.bdv-ventes .facet-cat__lbl{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--bordeaux);margin:.55rem 0 .2rem;font-weight:500}
-.bdv-ventes .field{display:flex;flex-direction:column;gap:.25rem}
-.bdv-ventes .field label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
-.bdv-ventes .field select,.bdv-ventes .field input{font-family:var(--font-mono);font-size:var(--t-petit);padding:.45rem .5rem;border:var(--trait) solid var(--muted);background:var(--white);color:var(--ink);min-width:180px;border-radius:var(--r-nul)}
-.bdv-ventes .field--dates__pair{display:flex;gap:.4rem;align-items:center}
+.bdv-ventes .expl-ctrls{display:flex;gap:var(--bdv-e-4);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--bdv-e-4)}
+.bdv-ventes .facet-cat{margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .facet-cat__lbl{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:var(--bdv-e-2) 0 var(--bdv-e-1);font-weight:600}
+.bdv-ventes .field{display:flex;flex-direction:column;gap:var(--bdv-e-2)}
+.bdv-ventes .field label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4)}
+.bdv-ventes .field select,.bdv-ventes .field input{font-family:inherit;font-size:var(--bdv-f-2);padding:var(--bdv-e-2) var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);color:var(--bdv-encre-2);min-width:180px;border-radius:var(--bdv-r)}
+.bdv-ventes .field--dates__pair{display:flex;gap:var(--bdv-e-2);align-items:center}
 .bdv-ventes .field--dates__pair input{min-width:0;width:130px}
-.bdv-ventes .field--dates__pair span{color:var(--muted)}
-.bdv-ventes .heat{width:100%;border-collapse:collapse;font-size:var(--t-petit)}
-.bdv-ventes .heat th,.bdv-ventes .heat td{padding:.4rem .5rem;border:var(--trait) solid var(--rule);text-align:right;font-family:var(--font-mono)}
-.bdv-ventes .heat th{font-size:var(--t-micro);text-transform:uppercase;color:var(--muted);background:var(--paper-light)}
-.bdv-ventes .heat td.rowh,.bdv-ventes .heat th.rowh{text-align:left;font-family:var(--font-corps);background:var(--paper-light)}
+.bdv-ventes .field--dates__pair span{color:var(--bdv-encre-4)}
+.bdv-ventes .heat{width:100%;border-collapse:collapse;font-size:var(--bdv-f-2)}
+.bdv-ventes .heat th,.bdv-ventes .heat td{padding:var(--bdv-e-2) var(--bdv-e-2);border:1px solid var(--bdv-trait);text-align:right;font-family:inherit}
+.bdv-ventes .heat th{font-size:var(--bdv-f-1);text-transform:uppercase;color:var(--bdv-encre-4);background:var(--bdv-surface-2)}
+.bdv-ventes .heat td.rowh,.bdv-ventes .heat th.rowh{text-align:left;font-family:inherit;background:var(--bdv-surface-2)}
 
 /* HERO rythme */
-.bdv-ventes .hero{background:var(--ink-deep);color:var(--on-dark);border-radius:var(--r-nul);padding:1.6rem 1.8rem;margin-bottom:1.4rem;border-left:var(--trait-accent) solid var(--gold)}
-.bdv-ventes .hero__label{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-etiq);color:var(--on-dark-soft);margin-bottom:.5rem}
-.bdv-ventes .hero__val{font-size:2.6rem;line-height:1}
-.bdv-ventes .hero__val.up{color:var(--ok-clair)}
-.bdv-ventes .hero__val.down{color:var(--danger-clair)}
-.bdv-ventes .hero__sub{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--on-dark-soft);margin-top:.6rem}
+/* LE BLOC DE RYTHME N'EST PLUS UNE CARTE SOMBRE. Il l'etait pour ressortir sur le
+   papier creme ; sur un bureau qui a DEJA un theme sombre, une carte noire dans le
+   noir ne ressort plus de rien, et en clair elle redevient l'ilot etranger. Il prend
+   la surface des autres cartes et garde son filet d'accent a gauche, qui est ce qui
+   le distinguait vraiment. --bdv-encre-1 dessus : 17,77:1 en clair, 16,61:1 en sombre. */
+.bdv-ventes .hero{background:var(--bdv-surface);color:var(--bdv-encre-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-6) var(--bdv-e-8);margin-bottom:var(--bdv-e-6);border-left:3px solid var(--bdv-accent)}
+.bdv-ventes .hero__label{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .hero__val{font-size:var(--bdv-f-6);line-height:1;color:var(--bdv-encre-1)}
+.bdv-ventes .hero__val.up{color:var(--bdv-bon)}
+.bdv-ventes .hero__val.down{color:var(--bdv-retard)}
+.bdv-ventes .hero__sub{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-3)}
 
 /* TABLEAUX */
-.bdv-ventes table.data{width:100%;border-collapse:collapse;font-size:var(--t-petit)}
-.bdv-ventes .tablewrap{max-height:70vh;overflow:auto;border:var(--trait) solid var(--rule);border-radius:var(--r-nul)}
+/* CORPS DE TABLEAU A 15 px, la regle de la charte : c'est le texte qu'on lit une
+   ligne apres l'autre, pas une metadonnee. */
+.bdv-ventes table.data{width:100%;border-collapse:collapse;font-size:var(--bdv-f-3)}
+.bdv-ventes .tablewrap{max-height:70vh;overflow:auto;border:1px solid var(--bdv-trait);border-radius:var(--bdv-r)}
 .bdv-ventes .tablewrap table.data{border:none}
-.bdv-ventes table.data--sticky thead th{position:sticky;top:0;background:var(--white);z-index:2;box-shadow:inset 0 -1px 0 var(--rule)}
-.bdv-ventes .toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:.7rem}
-.bdv-ventes .search{font-family:var(--font-corps);font-size:var(--t-base);padding:.45rem .6rem;border:var(--trait) solid var(--muted);border-radius:var(--r-nul);min-width:220px;background:var(--white);color:var(--ink)}
+/* L'EN-TETE COLLANT GARDE SON FILET EN OMBRE INTERIEURE, et c'est la seule du
+   fichier : `border-collapse:collapse` ne dessine pas la bordure d'une cellule
+   collee, le filet disparaitrait des le premier defilement. C'est un trait de
+   1 px, pas une profondeur. */
+.bdv-ventes table.data--sticky thead th{position:sticky;top:0;background:var(--bdv-surface-2);z-index:2;box-shadow:inset 0 -1px 0 var(--bdv-trait)}
+.bdv-ventes .toolbar{display:flex;gap:var(--bdv-e-3);flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:var(--bdv-e-3)}
+.bdv-ventes .search{font-family:inherit;font-size:var(--bdv-f-3);padding:var(--bdv-e-2) var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);min-width:220px;background:var(--bdv-surface);color:var(--bdv-encre-2)}
 /* Case a cocher des listes de clients (« joignables par e-mail ») et cellules secondaires. */
 /* ---------- Compositeur de message de la fiche client ---------- */
-.bdv-ventes .msg{border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:1rem 1.2rem;margin-bottom:1.4rem;background:var(--white)}
-.bdv-ventes .msg__blocs{display:flex;flex-wrap:wrap;gap:.5rem 1.1rem;margin-bottom:.9rem}
-.bdv-ventes .msg__lbl{display:block;font-family:var(--font-mono);font-size:var(--t-mini);letter-spacing:var(--ls-etiq);text-transform:uppercase;
-  color:var(--muted);margin:.6rem 0 .25rem}
-.bdv-ventes .msg__sujet,.bdv-ventes .msg__texte{width:100%;font-family:var(--font-corps);font-size:var(--t-base);color:var(--ink);
-  background:var(--paper);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.6rem .8rem;line-height:1.55}
+.bdv-ventes .msg{border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-4) var(--bdv-e-6);margin-bottom:var(--bdv-e-6);background:var(--bdv-surface)}
+.bdv-ventes .msg__blocs{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2) var(--bdv-e-4);margin-bottom:var(--bdv-e-4)}
+.bdv-ventes .msg__lbl{display:block;font-family:inherit;font-size:var(--bdv-f-2);letter-spacing:var(--bdv-ls-etiq);text-transform:uppercase;
+  color:var(--bdv-encre-4);margin:var(--bdv-e-3) 0 var(--bdv-e-2)}
+.bdv-ventes .msg__sujet,.bdv-ventes .msg__texte{width:100%;font-family:inherit;font-size:var(--bdv-f-3);color:var(--bdv-encre-2);
+  background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-3) var(--bdv-e-3);line-height:1.55}
 .bdv-ventes .msg__texte{resize:vertical;min-height:150px}
-.bdv-ventes .msg__sujet:focus,.bdv-ventes .msg__texte:focus{outline:var(--trait-fort) solid var(--bordeaux);outline-offset:1px;background:var(--white)}
+.bdv-ventes .msg__sujet:focus,.bdv-ventes .msg__texte:focus{outline:2px solid var(--bdv-anneau);outline-offset:1px;background:var(--bdv-surface)}
 /* ---------- Barre de pilotage de l'ecran Chercher ---------- */
-.bdv-ventes .pilote{background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);
-  padding:.9rem 1.1rem;margin-bottom:1.1rem}
-.bdv-ventes .pilote__row{display:flex;flex-wrap:wrap;gap:.9rem;align-items:flex-end}
+.bdv-ventes .pilote{background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);
+  padding:var(--bdv-e-4) var(--bdv-e-4);margin-bottom:var(--bdv-e-4)}
+.bdv-ventes .pilote__row{display:flex;flex-wrap:wrap;gap:var(--bdv-e-4);align-items:flex-end}
 .bdv-ventes .pilote__row .field{flex:1 1 170px}
 .bdv-ventes .pilote__row .field select{width:100%}
 .bdv-ventes .pilote__row .field--dates{flex:0 1 auto}
-.bdv-ventes .pilote__row--sec{margin-top:.75rem;padding-top:.75rem;border-top:var(--trait) solid var(--rule);
-  align-items:center;gap:.5rem}
-.bdv-ventes .pilote__count{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-petit);color:var(--muted);white-space:nowrap}
-.bdv-ventes .pilote__facets{margin-top:.9rem;padding-top:.9rem;border-top:var(--trait) solid var(--rule)}
+.bdv-ventes .pilote__row--sec{margin-top:var(--bdv-e-3);padding-top:var(--bdv-e-3);border-top:1px solid var(--bdv-trait);
+  align-items:center;gap:var(--bdv-e-2)}
+.bdv-ventes .pilote__count{margin-left:auto;font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);white-space:nowrap}
+.bdv-ventes .pilote__facets{margin-top:var(--bdv-e-4);padding-top:var(--bdv-e-4);border-top:1px solid var(--bdv-trait)}
 .bdv-ventes .pilote__facets.hidden{display:none}
 /* Pastille de filtre actif : elle montre ce qui est filtre ET sert de bouton pour l'enlever. */
-.bdv-ventes .fchip{display:inline-flex;align-items:center;gap:.35rem;font-family:inherit;font-size:var(--t-petit);
-  background:var(--white);border:var(--trait) solid var(--bordeaux);color:var(--ink);
-  border-radius:var(--r-nul);padding:.28rem .5rem .28rem .7rem;cursor:pointer}
-.bdv-ventes .fchip:hover{background:var(--paper-deep)}
-.bdv-ventes .fchip__l{color:var(--muted);font-size:var(--t-mini);text-transform:uppercase;letter-spacing:var(--ls-doux)}
-.bdv-ventes .fchip__x{font-size:1.05rem;line-height:1;color:var(--bordeaux)}
+.bdv-ventes .fchip{display:inline-flex;align-items:center;gap:var(--bdv-e-2);font-family:inherit;font-size:var(--bdv-f-2);
+  background:var(--bdv-surface);border:1px solid var(--bdv-accent);color:var(--bdv-encre-2);
+  border-radius:var(--bdv-r);padding:var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-3);cursor:pointer}
+.bdv-ventes .fchip:hover{background:var(--bdv-surface-2)}
+.bdv-ventes .fchip__l{color:var(--bdv-encre-4);font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq)}
+.bdv-ventes .fchip__x{font-size:var(--bdv-f-4);line-height:1;color:var(--bdv-accent)}
 /* ---------- Fiche client (modale) ---------- */
 .modale{position:fixed;inset:0;z-index:var(--z-modale);display:none}
 .bdv-ventes.modale.on{display:block}
-.bdv-ventes .modale__bg{position:absolute;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px)}
+.bdv-ventes .modale__bg{position:absolute;inset:0;background:var(--bdv-voile);backdrop-filter:blur(2px)}
 .bdv-ventes .modale__box{position:relative;max-width:1020px;margin:2.5vh auto;max-height:95vh;overflow-y:auto;
-  background:var(--white);border-radius:var(--r-nul);padding:1.8rem 2rem 2rem;box-shadow:var(--ombre-dure-xl)}
-@media (max-width:760px){.bdv-ventes .modale__box{margin:0;max-height:100vh;border-radius:var(--r-nul);padding:1.2rem}}
-.bdv-ventes .modale__close{position:absolute;top:.7rem;right:.9rem;background:none;border:0;font-size:1.9rem;
-  line-height:1;color:var(--muted);cursor:pointer;padding:.2rem .5rem;border-radius:var(--r-nul)}
-.bdv-ventes .modale__close:hover{color:var(--ink);background:var(--paper)}
-.bdv-ventes .fiche__head{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;padding-right:2.4rem}
-.bdv-ventes .fiche__nom{font-size:1.5rem;font-weight:800;margin:0 0 .2rem;line-height:1.15}
-.bdv-ventes .fiche__meta{font-size:var(--t-petit);color:var(--muted);font-family:var(--font-mono)}
-.bdv-ventes .fiche__contacts{display:flex;flex-wrap:wrap;gap:.5rem;margin:.9rem 0 1.1rem}
-.bdv-ventes .chipc{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--t-base);text-decoration:none;
-  background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);padding:.35rem .8rem;color:var(--bordeaux)}
-.bdv-ventes .chipc:hover{border-color:var(--bordeaux)}
-.bdv-ventes .fiche__kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin-bottom:1.2rem}
-.bdv-ventes .fiche__kpi{background:var(--paper);border-radius:var(--r-nul);padding:.75rem .9rem}
-.bdv-ventes .fiche__kpi-v{font-size:var(--t-h3);line-height:1.1}
-.bdv-ventes .fiche__kpi-l{font-size:var(--t-petit);font-weight:600;color:var(--ink);margin-top:.15rem}
-.bdv-ventes .fiche__kpi-s{font-size:var(--t-mini);color:var(--muted);margin-top:.1rem}
-.bdv-ventes .fiche__conseil{background:var(--paper-light);border:var(--trait) solid var(--rule);border-left:var(--trait-accent) solid var(--bordeaux);
-  border-radius:var(--r-nul);padding:1rem 1.2rem;margin-bottom:1.4rem}
-.bdv-ventes .fiche__conseil-t{font-family:var(--font-mono);font-size:var(--t-mini);letter-spacing:var(--ls-etiq);text-transform:uppercase;
-  color:var(--bordeaux-deep);margin-bottom:.5rem}
-.bdv-ventes .fiche__conseil p{margin:0 0 .5rem;font-size:.93rem;line-height:1.55}
+  background:var(--bdv-surface-3);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-8) var(--bdv-e-8) var(--bdv-e-8)}
+@media (max-width:760px){.bdv-ventes .modale__box{margin:0;max-height:100vh;border-radius:var(--bdv-r);padding:var(--bdv-e-6)}}
+.bdv-ventes .modale__close{position:absolute;top:var(--bdv-e-3);right:var(--bdv-e-4);background:none;border:0;font-size:var(--bdv-f-6);
+  line-height:1;color:var(--bdv-encre-3);cursor:pointer;padding:var(--bdv-e-1) var(--bdv-e-2);border-radius:var(--bdv-r)}
+.bdv-ventes .modale__close:hover{color:var(--bdv-encre-1);background:var(--bdv-survol)}
+.bdv-ventes .fiche__head{display:flex;gap:var(--bdv-e-4);align-items:flex-start;flex-wrap:wrap;padding-right:var(--bdv-e-12)}
+.bdv-ventes .fiche__nom{font-size:var(--bdv-f-5);font-weight:600;margin:0 0 var(--bdv-e-1);line-height:1.15;color:var(--bdv-encre-1)}
+.bdv-ventes .fiche__meta{font-size:var(--bdv-f-2);color:var(--bdv-encre-4);font-family:inherit}
+.bdv-ventes .fiche__contacts{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin:var(--bdv-e-4) 0 var(--bdv-e-4)}
+.bdv-ventes .chipc{display:inline-flex;align-items:center;gap:var(--bdv-e-2);font-size:var(--bdv-f-3);text-decoration:none;
+  background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-2) var(--bdv-e-3);color:var(--bdv-accent)}
+.bdv-ventes .chipc:hover{border-color:var(--bdv-accent)}
+.bdv-ventes .fiche__kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--bdv-e-3);margin-bottom:var(--bdv-e-6)}
+.bdv-ventes .fiche__kpi{background:var(--bdv-surface-2);border-radius:var(--bdv-r);padding:var(--bdv-e-3) var(--bdv-e-4)}
+.bdv-ventes .fiche__kpi-v{font-size:var(--bdv-f-5);line-height:1.1;color:var(--bdv-encre-1);font-variant-numeric:tabular-nums}
+.bdv-ventes .fiche__kpi-l{font-size:var(--bdv-f-2);font-weight:600;color:var(--bdv-encre-3);margin-top:var(--bdv-e-1)}
+.bdv-ventes .fiche__kpi-s{font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-1)}
+.bdv-ventes .fiche__conseil{background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-left:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);padding:var(--bdv-e-4) var(--bdv-e-6);margin-bottom:var(--bdv-e-6)}
+.bdv-ventes .fiche__conseil-t{font-family:inherit;font-size:var(--bdv-f-2);letter-spacing:var(--bdv-ls-etiq);text-transform:uppercase;
+  color:var(--bdv-accent-fort);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .fiche__conseil p{margin:0 0 var(--bdv-e-2);font-size:var(--bdv-f-3);line-height:1.55}
 .bdv-ventes .fiche__conseil p:last-of-type{margin-bottom:0}
-.bdv-ventes .fiche__actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem}
+.bdv-ventes .fiche__actions{display:flex;gap:var(--bdv-e-2);flex-wrap:wrap;margin-top:var(--bdv-e-4)}
 /* `.fiche__msg` A ETE RETIRE LE 19/09/2026 : plus aucun module ne pose la classe. */
-.bdv-ventes .fiche__cols{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem}
-@media (max-width:820px){.bdv-ventes .fiche__cols{grid-template-columns:1fr;gap:1rem}}
-.bdv-ventes .fiche__reco-l{display:flex;flex-direction:column;padding:.5rem 0;border-bottom:var(--trait) solid var(--rule)}
+.bdv-ventes .fiche__cols{display:grid;grid-template-columns:1fr 1fr;gap:var(--bdv-e-6)}
+@media (max-width:820px){.bdv-ventes .fiche__cols{grid-template-columns:1fr;gap:var(--bdv-e-4)}}
+.bdv-ventes .fiche__reco-l{display:flex;flex-direction:column;padding:var(--bdv-e-2) 0;border-bottom:1px solid var(--bdv-trait)}
 .bdv-ventes .fiche__reco-l:last-child{border-bottom:0}
-.bdv-ventes .fiche__reco-l .muted-cell{font-size:var(--t-petit)}
-.bdv-ventes .fiche__mois{display:flex;align-items:flex-end;gap:3px;height:74px;margin-top:.4rem}
+.bdv-ventes .fiche__reco-l .muted-cell{font-size:var(--bdv-f-2)}
+.bdv-ventes .fiche__mois{display:flex;align-items:flex-end;gap:3px;height:74px;margin-top:var(--bdv-e-2)}
 .bdv-ventes .fiche__mois-c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
-.bdv-ventes .fiche__mois-b{background:var(--bordeaux);border-radius:var(--r-nul);min-height:2px}
-.bdv-ventes .fiche__mois-l{font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2px}
+.bdv-ventes .fiche__mois-b{background:var(--bdv-serie-1);border-radius:var(--bdv-r-pastille);min-height:2px}
+.bdv-ventes .fiche__mois-l{font-size:var(--bdv-f-1);color:var(--bdv-encre-4);text-align:center;margin-top:2px}
 .bdv-ventes tr.clic{cursor:pointer}
-.bdv-ventes tr.clic:hover{background:var(--paper-light)}
-.bdv-ventes tr.clic:focus-visible{outline:var(--trait-fort) solid var(--bordeaux);outline-offset:-2px}
+.bdv-ventes tr.clic:hover{background:var(--bdv-survol)}
+.bdv-ventes tr.clic:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:-2px}
 /* Cartes de motif de l'ecran Mes clients : elles servent de filtre ET de resume chiffre. */
-.bdv-ventes .panel#p-annee > div + div{margin-top:2.6rem;padding-top:2rem;border-top:var(--trait) solid var(--rule-fort)}
-.bdv-ventes .panel#p-annee > div + div .panel__title{font-size:var(--t-h3);opacity:.9}
-.bdv-ventes .motif-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.7rem;margin:1rem 0 1.2rem}
-.bdv-ventes .motif-card{display:flex;flex-direction:column;gap:.15rem;text-align:left;font-family:inherit;cursor:pointer;
-  background:var(--white);border:var(--trait) solid var(--rule);border-top:var(--trait-accent) solid var(--rule);border-radius:var(--r-nul);
-  padding:.85rem 1rem;transition:border-color var(--tr-rapide),transform var(--tr-rapide),box-shadow var(--tr-rapide);color:inherit}
-.bdv-ventes .motif-card:hover{border-color:var(--bordeaux);transform:translate(-3px,-3px);box-shadow:var(--ombre-dure)}
-.bdv-ventes .motif-card.on{border-color:var(--bordeaux);border-top-color:var(--bordeaux);background:var(--paper-light)}
-.bdv-ventes .motif-card__n{font-size:1.7rem;line-height:1}
-.bdv-ventes .motif-card__l{font-weight:700;font-size:var(--t-base)}
-.bdv-ventes .motif-card__s{font-size:var(--t-petit);color:var(--muted)}
-.bdv-ventes .motif{font-family:var(--font-mono);font-size:var(--t-mini);letter-spacing:var(--ls-doux);text-transform:uppercase;
-  padding:.18rem .45rem;border-radius:var(--r-nul);white-space:nowrap;display:inline-block}
-.bdv-ventes .m-recul{background:var(--danger-bg);color:var(--danger-deep)}
-.bdv-ventes .m-cadence{background:var(--warn-bg);color:var(--warn)}
-.bdv-ventes .m-premier{background:var(--ok-bg);color:var(--ok)}
-.bdv-ventes .m-statut-afaire{background:var(--warn-bg);color:var(--warn)}
-.bdv-ventes .m-statut-relance{background:var(--info-bg);color:var(--info)}
-.bdv-ventes .m-statut-traite{background:var(--ok-bg);color:var(--ok)}
-.bdv-ventes .why{display:block;font-size:var(--t-petit);color:var(--muted);margin-top:.1rem;font-weight:400}
-.bdv-ventes .chk{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--t-petit);color:var(--muted);cursor:pointer;white-space:nowrap}
-.bdv-ventes .chk input{accent-color:var(--bordeaux);width:15px;height:15px;cursor:pointer;margin:0}
-.bdv-ventes .muted-cell{color:var(--muted);font-size:var(--t-petit)}
+.bdv-ventes .panel#p-annee > div + div{margin-top:var(--bdv-e-12);padding-top:var(--bdv-e-8);border-top:1px solid var(--bdv-trait-fort)}
+.bdv-ventes .panel#p-annee > div + div .panel__title{font-size:var(--bdv-f-5);opacity:.9}
+.bdv-ventes .motif-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:var(--bdv-e-3);margin:var(--bdv-e-4) 0 var(--bdv-e-6)}
+.bdv-ventes .motif-card{display:flex;flex-direction:column;gap:var(--bdv-e-1);text-align:left;font-family:inherit;cursor:pointer;
+  background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-top:3px solid var(--bdv-trait);border-radius:var(--bdv-r);
+  padding:var(--bdv-e-3) var(--bdv-e-4);transition:border-color var(--bdv-d-court) var(--bdv-courbe);color:inherit}
+/* PLUS D'OMBRE PORTEE NI DE DECALAGE AU SURVOL : la profondeur du bureau est un
+   trait de 1 px. Le survol change le filet, rien d'autre ne bouge. */
+.bdv-ventes .motif-card:hover{border-color:var(--bdv-accent);border-top-color:var(--bdv-accent)}
+.bdv-ventes .motif-card.on{border-color:var(--bdv-accent);border-top-color:var(--bdv-accent);background:var(--bdv-accent-lavis)}
+.bdv-ventes .motif-card__n{font-size:var(--bdv-f-6);line-height:1;color:var(--bdv-encre-1)}
+.bdv-ventes .motif-card__l{font-weight:600;font-size:var(--bdv-f-3);color:var(--bdv-encre-1)}
+.bdv-ventes .motif-card__s{font-size:var(--bdv-f-2);color:var(--bdv-encre-4)}
+.bdv-ventes .motif{font-family:inherit;font-size:var(--bdv-f-2);letter-spacing:var(--bdv-ls-etiq);text-transform:uppercase;
+  padding:var(--bdv-e-1) var(--bdv-e-2);border-radius:var(--bdv-r);white-space:nowrap;display:inline-block}
+.bdv-ventes .m-recul{background:var(--bdv-retard-lavis);color:var(--bdv-retard)}
+.bdv-ventes .m-cadence{background:var(--bdv-alerte-lavis);color:var(--bdv-alerte)}
+.bdv-ventes .m-premier{background:var(--bdv-bon-lavis);color:var(--bdv-bon)}
+.bdv-ventes .m-statut-afaire{background:var(--bdv-alerte-lavis);color:var(--bdv-alerte)}
+.bdv-ventes .m-statut-relance{background:var(--bdv-surface-2);color:var(--bdv-encre-3)}
+.bdv-ventes .m-statut-traite{background:var(--bdv-bon-lavis);color:var(--bdv-bon)}
+.bdv-ventes .why{display:block;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-1);font-weight:400}
+.bdv-ventes .chk{display:inline-flex;align-items:center;gap:var(--bdv-e-2);font-size:var(--bdv-f-2);color:var(--bdv-encre-4);cursor:pointer;white-space:nowrap}
+.bdv-ventes .chk input{accent-color:var(--bdv-accent);width:15px;height:15px;cursor:pointer;margin:0}
+.bdv-ventes .muted-cell{color:var(--bdv-encre-4);font-size:var(--bdv-f-2)}
 /* --bordeaux et pas --bordeaux-vif : le premier donne 10,9:1 sur le papier,
    le second 8,7:1. Les deux passent AA, on prend le plus lisible. */
-.bdv-ventes .data a{color:var(--bordeaux);text-decoration:none;word-break:break-all}
+.bdv-ventes .data a{color:var(--bdv-accent);text-decoration:none;word-break:break-all}
 .bdv-ventes .data a.tel{font-variant-numeric:tabular-nums;white-space:nowrap;word-break:normal}
 .bdv-ventes .data a:hover{text-decoration:underline}
-.bdv-ventes table.data th,.bdv-ventes table.data td{padding:.45rem .55rem;text-align:left;border-bottom:var(--trait) solid var(--rule)}
-.bdv-ventes table.data th{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--muted)}
-.bdv-ventes table.data td.num,.bdv-ventes table.data th.num{text-align:right;font-family:var(--font-mono)}
-.bdv-ventes table.data tbody tr:hover{background:var(--paper-light)}
-.bdv-ventes .pos{color:var(--ok)}
-.bdv-ventes .neg{color:var(--danger-deep)}
+.bdv-ventes table.data th,.bdv-ventes table.data td{padding:var(--bdv-e-2) var(--bdv-e-3);text-align:left;border-bottom:1px solid var(--bdv-trait);color:var(--bdv-encre-2)}
+.bdv-ventes table.data th{font-family:inherit;font-size:var(--bdv-f-1);font-weight:600;text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4)}
+.bdv-ventes table.data td.num,.bdv-ventes table.data th.num{text-align:right;font-family:inherit;font-variant-numeric:tabular-nums}
+.bdv-ventes table.data tbody tr:hover{background:var(--bdv-survol)}
+.bdv-ventes .pos{color:var(--bdv-bon)}
+.bdv-ventes .neg{color:var(--bdv-retard)}
 
 /* SIGNAUX (verdict + action) */
-.bdv-ventes .signal{display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border:var(--trait) solid var(--rule);border-radius:var(--r-nul);background:var(--white);margin-bottom:.7rem;border-left-width:4px}
-.bdv-ventes .signal--danger{border-left-color:var(--danger)}
-.bdv-ventes .signal--warn{border-left-color:var(--warn)}
-.bdv-ventes .signal--ok{border-left-color:var(--ok)}
-.bdv-ventes .signal--info{border-left-color:var(--info)}
-.bdv-ventes .signal__ico{font-size:var(--t-lead);flex-shrink:0;line-height:1.3}
-.bdv-ventes .signal__body{font-size:var(--t-base)}
-.bdv-ventes .signal__verdict{font-weight:700;margin-bottom:.15rem}
-.bdv-ventes .signal__action{color:var(--muted);font-size:var(--t-base)}
-.bdv-ventes .signal__action b{color:var(--ink)}
+.bdv-ventes .signal{display:flex;gap:var(--bdv-e-3);align-items:flex-start;padding:var(--bdv-e-4) var(--bdv-e-4);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);background:var(--bdv-surface);margin-bottom:var(--bdv-e-3);border-left-width:4px}
+.bdv-ventes .signal--danger{border-left-color:var(--bdv-retard)}
+.bdv-ventes .signal--warn{border-left-color:var(--bdv-alerte)}
+.bdv-ventes .signal--ok{border-left-color:var(--bdv-bon)}
+.bdv-ventes .signal--info{border-left-color:var(--bdv-encre-3)}
+.bdv-ventes .signal__ico{font-size:var(--bdv-f-4);flex-shrink:0;line-height:1.3}
+.bdv-ventes .signal__body{font-size:var(--bdv-f-3)}
+.bdv-ventes .signal__verdict{font-weight:700;margin-bottom:var(--bdv-e-1)}
+.bdv-ventes .signal__action{color:var(--bdv-encre-4);font-size:var(--bdv-f-3)}
+.bdv-ventes .signal__action b{color:var(--bdv-encre-2)}
 
 /* LE BANDEAU `.cta` (quatre regles) ET `.foot` sont partis le 19/09/2026 : aucune
    des deux classes n'etait posee dans les ecrans de vente. `.appfoot`, juste en
    dessous, est celle qui sert vraiment. */
-.bdv-ventes .appfoot{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);text-align:center;margin-top:2.6rem;padding-top:1.1rem;border-top:var(--trait) solid var(--rule)}
-.bdv-ventes .note{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.6rem}
-.bdv-ventes .pourquoi{margin-top:.6rem;font-size:var(--t-petit)}
-.bdv-ventes .pourquoi summary{cursor:pointer;font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);color:var(--bordeaux);user-select:none}
-.bdv-ventes .pourquoi__in{margin-top:.5rem;padding:.6rem .8rem;background:var(--paper-light);border:var(--trait) solid var(--rule);border-radius:var(--r-nul);color:var(--muted);line-height:var(--lh-normal)}
-.bdv-ventes .conf{font-family:var(--font-mono);font-size:var(--t-micro);text-transform:uppercase;letter-spacing:var(--ls-doux);padding:.1rem .4rem;border-radius:var(--r-nul);border:var(--trait) solid var(--rule);white-space:nowrap}
-.bdv-ventes .mini-line{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);margin-top:.7rem}
+.bdv-ventes .appfoot{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);text-align:center;margin-top:var(--bdv-e-12);padding-top:var(--bdv-e-4);border-top:1px solid var(--bdv-trait)}
+.bdv-ventes .note{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-3)}
+.bdv-ventes .pourquoi{margin-top:var(--bdv-e-3);font-size:var(--bdv-f-2)}
+.bdv-ventes .pourquoi summary{cursor:pointer;font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-accent);user-select:none}
+.bdv-ventes .pourquoi__in{margin-top:var(--bdv-e-2);padding:var(--bdv-e-3) var(--bdv-e-3);background:var(--bdv-surface-2);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);color:var(--bdv-encre-4);line-height:1.5}
+.bdv-ventes .conf{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);padding:var(--bdv-e-1) var(--bdv-e-2);border-radius:var(--bdv-r);border:1px solid var(--bdv-trait);white-space:nowrap}
+.bdv-ventes .mini-line{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);margin-top:var(--bdv-e-3)}
 
 /* RAPPORT IMPRIMABLE (motif design "Rapport Vitisoft") */
 #printReport{display:none}
@@ -648,7 +629,7 @@
   .bdv-ventes .action__date,
   .bdv-ventes .action__titre,
   .bdv-ventes .etiq,
-  .bdv-ventes .saisie__canal { font-size: var(--t-corps); }
+  .bdv-ventes .saisie__canal { font-size: var(--bdv-f-saisie); }
 
   /* Les champs de l'explorateur ne tiennent plus a 180 px de large une fois
      leur texte a 16 px : ils prennent la ligne. */
@@ -679,7 +660,7 @@
      rater se lit comme un chiffre qui a bouge tout seul, pas comme un clic rate.
      Elle etait a 25 px. */
   .bdv-ventes .toggle button,
-  .bdv-ventes .saisie__canal { min-height: 44px; }
+  .bdv-ventes .saisie__canal { min-height: var(--bdv-cible); }
 
   /* LE TITRE D'UN BLOC QUI SE REPLIE EST UNE CIBLE, et il faisait 17 px.
      « Suivi », « Ecrire un message a ce client », « Qui pese quoi dans ton
@@ -688,27 +669,27 @@
      a la relecture du code, et c'est pour ca qu'il avait ete oublie dans les deux
      passes. `display: flex` parce qu'un summary sans lui ne prend pas sa hauteur
      minimale, meme piege que `.chip`. */
-  .bdv-ventes details > summary { min-height: 44px; display: flex; align-items: center; }
+  .bdv-ventes details > summary { min-height: var(--bdv-cible); display: flex; align-items: center; }
   /* La fleche de repli reste : `display:flex` sur un summary emporte son ::marker
      dans certains navigateurs, et un bloc qui se deplie sans rien pour le dire est
      un bloc que personne n'ouvre. */
-  .bdv-ventes details > summary::before { content: "▸ "; margin-right: var(--e-xs); }
+  .bdv-ventes details > summary::before { content: "▸ "; margin-right: var(--bdv-e-1); }
   .bdv-ventes details[open] > summary::before { content: "▾ "; }
 
   /* Le dessin de la case ne bouge pas, c'est son etiquette qui prend la place.
      Ces cases-la changent le chiffre d'affaires affiche (« Compte dans le CA »,
      « Sortie gratuite ou perte ») : les rater n'est pas anodin. */
-  .bdv-ventes .chk { min-height: 44px; }
+  .bdv-ventes .chk { min-height: var(--bdv-cible); }
 
   /* La croix est l'UNIQUE sortie d'un panneau plein ecran, et elle est posee dans
      l'angle ou le pouce est le moins precis. La rater, c'est rester enferme. */
-  .bdv-ventes .modale__close { min-width: 44px; min-height: 44px; display: flex;
+  .bdv-ventes .modale__close { min-width: var(--bdv-cible); min-height: var(--bdv-cible); display: flex;
     align-items: center; justify-content: center; padding: 0; }
 
   /* Les rangees qui ouvrent une fiche : l'ecran dit « clique sur un nom », et
      c'est la navigation principale de « Mon commerce ». A 29 px et jointives,
      viser le bon client dans une liste de trente relevait de la chance. */
-  .bdv-ventes tr.clic > td { padding-top: .8rem; padding-bottom: .8rem; }
+  .bdv-ventes tr.clic > td { padding-top: var(--bdv-e-3); padding-bottom: var(--bdv-e-3); }
 
   /* LA RANGEE SE REMESURE APRES AVOIR GROSSI UN DE SES ELEMENTS, et ce banc-ci
      l'a attrape sur MOI : porter les deux champs de dates a 16 px et 44 px a fait
@@ -718,7 +699,7 @@
      pendant qu'un debordement se mesure rangee par rangee. La `.filterbar` se
      repliait deja ; c'est ce groupe, a l'interieur, qui ne se repliait pas. */
   .bdv-ventes .filterbar__dates { flex-wrap: wrap; }
-  .bdv-ventes .filterbar__dates input { min-height: 44px; }
+  .bdv-ventes .filterbar__dates input { min-height: var(--bdv-cible); }
 
   /* Les contacts d'une ligne de tableau : c'est LE geste du telephone, et c'etait
      la plus petite cible de tout le bureau, 15 px de haut. On agrandit la cible du
@@ -727,7 +708,7 @@
   /* `inline-flex` et pas `inline-block` avec une interligne de 44 px : une adresse
      longue se replie en deux lignes, et une interligne forcee en aurait fait une
      cible de 88 px de haut au milieu d'un tableau. */
-  .bdv-ventes table.data a { display: inline-flex; align-items: center; min-height: 44px; }
+  .bdv-ventes table.data a { display: inline-flex; align-items: center; min-height: var(--bdv-cible); }
 
   /* --- 3. Ce qui deborde defile DANS son cadre -------------------------- */
   .bdv-ventes .card:has(> table.data) { overflow-x: auto; overscroll-behavior-x: contain; }
@@ -751,10 +732,10 @@
   .bdv-ventes .card:has(> table.data),
   .bdv-ventes .card:has(> details table.data),
   .bdv-ventes .tablewrap {
-    background-color: var(--white);
+    background-color: var(--bdv-surface);
     background-image:
-      linear-gradient(to left, var(--white), transparent),
-      linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent);
+      linear-gradient(to left, var(--bdv-surface), transparent),
+      linear-gradient(to left, color-mix(in srgb, var(--bdv-encre-2) 22%, transparent), transparent);
     background-repeat: no-repeat, no-repeat;
     background-position: right center, right center;
     background-size: 26px 100%, 18px 100%;
@@ -792,7 +773,7 @@
      s'y replie en deux lignes. Une colonne se lit, deux colonnes se devinent. */
   .bdv-ventes .kpi-grid,
   .bdv-ventes .kpi-grid--base { grid-template-columns: 1fr; }
-  .bdv-ventes .kpi { padding: .9rem 1rem; }
+  .bdv-ventes .kpi { padding: var(--bdv-e-4) var(--bdv-e-4); }
 
   /* Le menu de correspondance des colonnes etait fige a 340 px dans un panneau
      qui n'en offre que 325 : un formulaire qui defile a l'horizontale. */
@@ -810,7 +791,7 @@
 .bdv-ventes .hero__val,
 .bdv-ventes .fiche__kpi-v,
 .bdv-ventes .motif-card__n,
-.bdv-ventes .pr-kpi__v{font-family:var(--font-chiffre);font-weight:700;letter-spacing:var(--ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.bdv-ventes .pr-kpi__v{font-family:inherit;font-weight:700;letter-spacing:var(--bdv-ls-serre);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 
 /* ============================================================================
    LE CADRE DES ECRANS DE VENTE SUR TELEPHONE, 15/09/2026
@@ -845,8 +826,8 @@
   .bdv-ventes .card {
     border-left: none;
     border-right: none;
-    padding-left: var(--e-s);
-    padding-right: var(--e-s);
+    padding-left: var(--bdv-e-3);
+    padding-right: var(--bdv-e-3);
   }
   /* LA CARTE DANS LA CARTE NE POSE PLUS RIEN. Elle reste separee de sa voisine
      par sa bordure haute et basse et par sa marge, donc elle se lit toujours

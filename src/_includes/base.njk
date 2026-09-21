@@ -98,10 +98,23 @@
         return (v === 'light' || v === 'dark') ? v : null;
       }catch(e){ return null; }
     }
+    /* L'EVENEMENT AJOUTE LE 21/09/2026, AU LOT DES ECRANS DE VENTE, et sans lui
+       le bouton ne retourne que ce que le CSS sait retourner. Chart.js, lui, ne
+       lit pas de CSS : il recoit des chaines de couleur a la construction et les
+       garde. Les six graphiques du bureau restaient donc peints en clair au
+       milieu d'un bureau sombre, sans une erreur, jusqu'au prochain
+       rechargement. src/js/bdv-ecrans.js ecoute `bdv:theme` et repeint l'ecran
+       courant.
+       IL EST POSE SUR `document` ET PAS SUR `window` : ce script s'execute avant
+       toute feuille et avant le corps de page, mais `document` existe deja, et
+       c'est la cible qu'ecoutent les autres modules du bureau.
+       LE PREMIER APPEL, celui de l'amorcage, ne trouve aucun ecouteur : c'est
+       sans consequence, rien n'est encore peint. */
     function appliquer(choix){
       var r = document.documentElement;
       if(choix === 'light' || choix === 'dark') r.setAttribute('data-theme', choix);
       else r.removeAttribute('data-theme');
+      try{ document.dispatchEvent(new CustomEvent('bdv:theme', { detail: { choix: choix || null } })); }catch(e){}
     }
     function poser(choix){
       if(choix !== 'light' && choix !== 'dark') choix = null;

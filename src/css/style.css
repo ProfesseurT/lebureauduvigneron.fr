@@ -6077,8 +6077,33 @@ button.bureau-nav__item:hover {
 /* Les six reperes en trop ne sont plus masques : ils ont ete retires de la coque au lot
    2d. Il reste a la barre haute ce qui appartient vraiment aux ventes, le compte de
    lignes et les trois sorties. */
-#bureauVentes .bdv-ventes .topbar { border-bottom: var(--trait) solid var(--rule); background: var(--paper-deep); }
-#bureauVentes .bdv-ventes .topbar__file { color: var(--muted); opacity: 1; }
+/* CES DEUX REGLES ONT ETE SUPPRIMEES LE 21/09/2026, AU LOT DES ECRANS DE VENTE,
+   ET ELLES ONT ETE TROUVEES A LA CAPTURE, PAS A LA LECTURE. La premiere posait,
+   sur `#bureauVentes .bdv-ventes .topbar`, une bordure basse de `--trait` en
+   `--rule` et un fond `--paper-deep` ; la seconde, sur `.topbar__file` au meme
+   endroit, une encre `--muted` et une opacite pleine. Elles ne sont pas reecrites
+   ici sous leur forme de regle : la section 3 bis de `npm run charte` refuse un
+   commentaire qui contient une regle CSS, parce qu'un commentaire mal ferme
+   l'avalerait sans que personne ne le voie.
+
+   LE DEFAUT : le lot 4 a repeint `.topbar` dans src/css/bdv-ecrans.css, et la barre
+   « 286 lignes » est restee CREME sur un bureau noir. Ces deux regles-la pesent
+   (1,2,0) contre (0,2,0), un IDENTIFIANT de plus. C'est mot pour mot la barre
+   d'onglets du telephone au lot 2 et la punaise au lot 3 : une regle d'en face
+   qu'on n'a pas lue en entier, et qu'aucun banc ne mesure.
+
+   POURQUOI SUPPRIMEES ET PAS CORRIGEES SUR PLACE. Elles etaient une RUSTINE : le
+   tableau de bord d'origine peignait sa barre haute en bordeaux, et elles la
+   ramenaient au papier du bureau. Depuis le lot 4, bdv-ecrans.css la peint
+   elle-meme a la surface du theme, dans les deux familles : il n'y a plus rien a
+   rattraper. Et les corriger ici aurait fait appeler un jeton `--bdv-*` depuis
+   src/css/style.css, que `npm run charte` lit en mode SITE, ou bdv-theme.css
+   n'est pas chargee : trois « var() sans declaration », sur du sain.
+   « Une rustine qui masque un defaut le garde en vie », c'est la lecon ecrite
+   juste en dessous pour .btn--light, et c'est la meme ici.
+
+   CE QUI RESTE, et qui n'est pas du dessin : `grid-column`, juste au-dessus. Il
+   parle de la place que le bureau donne aux ecrans, pas de leur allure. */
 /* LE RHABILLAGE DE .btn--light EST PARTI D'ICI, et c'est un progres. Il corrigeait
    depuis le bureau un bouton dessine pour un fond bordeaux qui n'existe plus, en le
    recouvrant d'une regle plus specifique. Le controle 6 bis de la charte, ajoute le

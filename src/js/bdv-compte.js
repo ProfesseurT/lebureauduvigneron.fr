@@ -567,7 +567,7 @@
     // tient pas. Avec align-items:center et aucun defilement, l'etape des cinq questions
     // depassait en haut ET en bas sur un portable de 700px : le bouton « Enregistrer et
     // entrer » etait alors hors d'atteinte, sans le moindre indice a l'ecran.
-    const css = '.bdv-porte{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto;background:var(--bordeaux-veil, rgba(40,10,18,.7))}'
+    const css = '.bdv-porte{position:fixed;inset:0;z-index:var(--z-amorce,1200);display:flex;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto;background:var(--bordeaux-veil, rgba(40,10,18,.7))}'
       + '.bdv-porte__carte{margin:auto;max-width:440px;width:100%;background:var(--white,#FFFFFF);border-top:3px solid var(--bordeaux,#5A1525);position:relative;box-shadow:var(--ombre-dure, 6px 6px 0 rgba(30,37,54,0.18));padding:2.2rem 2rem;text-align:left}'
       + '.bdv-porte__eyebrow{font-family:var(--font-corps,\'Inter\',-apple-system,BlinkMacSystemFont,system-ui,sans-serif);font-size:var(--t-mini,.7rem);text-transform:uppercase;letter-spacing:var(--ls-large,.15em);color:var(--bordeaux,#5A1525);margin-bottom:.6rem}'
       + '.bdv-porte__titre{font-family:var(--font-titre,\'Fraunces\',Georgia,\'Times New Roman\',serif);font-weight:400;font-size:1.5rem;color:var(--ink,#1E2536);margin-bottom:.6rem}'

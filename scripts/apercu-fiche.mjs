@@ -142,12 +142,33 @@ try {
 }
 
 const S = w.__SORTIE;
-const css = ['src/css/style.css','src/css/bdv-ecrans.css']
+/* LES TROIS FEUILLES QUE LA PAGE CHARGE, ET PAS DEUX. `bdv-theme.css` a ete
+   AJOUTEE LE 21/09/2026, au lot des ecrans de vente : depuis ce lot la fiche
+   client ne lit plus que des jetons `--bdv-*`, et cette feuille est la seule qui
+   les declare. Sans elle, cet apercu aurait montre une fiche sans AUCUNE couleur,
+   toutes les `var()` tombant dans le vide, et il aurait fallu ouvrir la vraie page
+   pour s'en apercevoir. Un harnais qui ne charge pas exactement ce que la page
+   charge ne verifie rien, il illustre une intention. Elle est posee EN PREMIER,
+   comme dans le gabarit du bureau. */
+const css = ['src/css/bdv-theme.css','src/css/style.css','src/css/bdv-ecrans.css']
   .map(f => fs.readFileSync(path.join(RACINE,f),'utf8')).join('\n');
 
+/* LES DEUX THEMES COTE A COTE, ET C'EST LE VRAI APPORT DU 21/09/2026. Chaque
+   etat est rendu DEUX FOIS, le meme balisage sous deux conteneurs qui forcent
+   l'un le clair et l'autre le sombre. C'est precisement ce que la forme sans
+   `:root` des blocs 1 et 3 de bdv-theme.css existe pour permettre (voir son bloc
+   de tete) : sans elle, le sous-arbre clair heriterait des valeurs sombres de la
+   racine et s'afficherait a moitie retourne, sans erreur.
+   On regarde donc les deux d'un seul coup d'oeil, ce qui est le seul moyen de
+   voir qu'une encre est restee sur le carreau. */
 function section(titre, quoi, html){
   return `<h2 class="ap__t">${titre}</h2><p class="ap__q">${quoi}</p>
-  <div class="bdv-ventes ap__boite">${html}</div>`;
+  <div class="ap__deux">
+    <div class="ap__col" data-theme="light"><p class="ap__th">Clair</p>
+      <div class="bdv-ventes ap__boite">${html}</div></div>
+    <div class="ap__col" data-theme="dark"><p class="ap__th">Sombre</p>
+      <div class="bdv-ventes ap__boite">${html}</div></div>
+  </div>`;
 }
 const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -160,8 +181,13 @@ const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
   body{background:#F3F0E9;margin:0;padding:2rem 1rem;font-family:system-ui,sans-serif}
   .ap__t{font-family:Georgia,serif;margin:2.5rem 0 .2rem}
   .ap__q{margin:0 0 .8rem;color:#5A5346;max-width:60ch}
-  .ap__boite{max-width:1020px;margin:0 auto 1rem}
-  .ap__boite .modale__box{position:relative;margin:0;max-height:none}
+  .ap__deux{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start}
+  @media (max-width:1100px){ .ap__deux{grid-template-columns:1fr} }
+  .ap__col{padding:.6rem;border:1px solid #CFCBC0;background:var(--bdv-fond)}
+  .ap__th{margin:0 0 .5rem;font:600 12px/1 system-ui,sans-serif;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--bdv-encre-4)}
+  .ap__boite{margin:0}
+  .ap__boite .modale__box{position:relative;margin:0;max-height:none;max-width:none}
 </style></head><body>
 <h1 class="ap__t">La fiche client, 11/09/2026</h1>
 <p class="ap__q">Quatre états, dans l'ordre où on les rencontre. Rien n'est redessiné à la

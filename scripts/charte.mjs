@@ -1088,7 +1088,11 @@ titre('A. Echelles fermees : combien de valeurs DISTINCTES cohabitent');
     /* nom                        unite                            site  bureau */
     /* 11 pas nommes dans l'echelle (--t-*), et 26 valeurs distinctes ecrites en
        dur a cote sur le site, 35 sur le bureau. L'ecart EST le chantier. */
-    ['tailles de texte',          'font-size ecrites en dur',        26,  35],
+    /* LA BORNE DU BUREAU EST PASSEE DE 35 A 32 LE 21/09/2026, au lot des ecrans
+       de vente : ce lot a repris treize font-size en dur de bdv-ecrans.css dans
+       les pas `--bdv-f-*`. La regle du depot est qu'une borne DESCEND et ne
+       remonte jamais, sinon elle ne garde plus rien. */
+    ['tailles de texte',          'font-size ecrites en dur',        26,  32],
     /* ZERO, et c'est tenable : tous les rayons du depot passent par un jeton.
        Une borne a zero veut dire qu'un seul `border-radius: 12px` ou
        `border-radius: 50%` de plus fait echouer le banc. C'est voulu. */

@@ -8,11 +8,15 @@
    TROIS REGLES QUI TIENNENT CE FICHIER
 
    1. Le module porte son markup ET son style.
-      Le site et le tableau de bord ont chacun leur feuille et leur :root. Un panneau qui
-      s'appuierait sur les classes du site (.voile, .ficheb, .reg__i) s'afficherait nu dans
-      le tableau de bord. Tout est donc prefixe `bdvr-`, et le style est injecte d'ici. Il
-      n'utilise QUE les 52 jetons declares dans les deux :root : les jetons d'espacement
-      (--e-m) et --cork n'existent que cote site, les voir ici serait une regression muette.
+      Un panneau qui s'appuierait sur les classes du site (.voile, .ficheb, .reg__i)
+      s'afficherait nu. Tout est donc prefixe `bdvr-`, et le style est injecte d'ici.
+      DEPUIS LE 21/09/2026 IL N'ECRIT QUE DES JETONS `--bdv-*`, ceux des deux themes
+      (src/css/bdv-theme.css), plus les cinq `--z-*` de l'echelle des couches. L'ancienne
+      regle, « uniquement les 52 jetons declares dans les deux :root », valait quand le
+      tableau de bord etait une page a lui ; il ne l'est plus depuis le lot 2d du
+      07/09/2026, et ce panneau ne s'ouvre plus que dans /mon-bureau/, la seule page qui
+      porte le drapeau `theme_bureau`. Un jeton papier vu ici est desormais une
+      regression muette : il ne se retourne pas en theme sombre.
 
    2. Un champ touche n'est plus jamais rerempli, et rien ne part avant d'avoir tout relu.
       Ces deux gardes viennent du panneau du bureau, ou ils ont ete payes cher : une reponse
@@ -48,9 +52,18 @@
   }
 
   /* ============================== LE STYLE ==============================
-     Une seule regle a retenir avant d'y toucher : n'utiliser QUE les 52 jetons declares
-     dans les deux :root du projet. --cork, --e-m, --serie-1 n'existent que d'un cote, et le
-     panneau doit avoir la meme tete au bureau et dans le tableau de bord.
+     Une seule regle a retenir avant d'y toucher : n'utiliser QUE des jetons `--bdv-*`.
+     Ni couleur, ni taille, ni rayon, ni duree en dur. Les cinq `--z-*` sont la seule
+     exception, et ils sont une ECHELLE ORDONNEE (--z-modale 400 < --z-voile 1000 <
+     --z-busy 1050 < --z-statut 1100 < --z-amorce 1200) : elle a deja ete payee une fois
+     par un bandeau de statut qui passait derriere ce panneau, le 08/09/2026. On ne
+     l'ecrit jamais en dur, ici ni ailleurs.
+
+     REPEINT LE 21/09/2026, AU LOT 5 DES DEUX THEMES. Le panneau posait une dalle creme
+     au milieu d'un bureau noir, et il n'attendait meme pas qu'on la demande : sur une
+     base vide, `openApp()` l'ouvre tout seul par-dessus l'ecran. Le fond passe a
+     `--bdv-surface-3`, l'ombre dure du site part au profit d'un trait de 1 px, l'anneau
+     de focus prend `--bdv-anneau`, et les six onglets prennent l'accent du bureau.
 
      La modale a ete refaite le 07/09/2026 : Ted l'a trouvee « en version verticale ».
      Elle l'etait pour deux raisons cumulees, et l'une cachait l'autre :
@@ -62,36 +75,42 @@
           reste colle en bas pour que « Enregistrer » soit toujours a portee de clic. */
 
   const STYLE = `
-.bdvr-voile{position:fixed;inset:0;background:var(--bordeaux-veil);backdrop-filter:blur(2px);
+.bdvr-voile{position:fixed;inset:0;background:var(--bdv-voile);backdrop-filter:blur(2px);
   /* Le jeton et pas 1000 en dur : le bandeau de statut du moteur et son voile d'attente se
      placent PAR RAPPORT a cette valeur (--z-busy, --z-statut), et une echelle dont un
      barreau est ecrit en dur ailleurs est une echelle qu'on casse sans le voir. */
-  z-index:var(--z-voile);display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  z-index:var(--z-voile);display:flex;align-items:center;justify-content:center;padding:var(--bdv-e-6)}
 /* Colonne : entete fixe, corps qui defile, pied colle. C'est ce qui garde « Enregistrer »
    visible quel que soit le contenu de l'onglet, y compris « Ma base » et ses tableaux. */
+/* LA PROFONDEUR EST UN TRAIT DE 1 px, PAS UNE OMBRE, 21/09/2026. « --ombre-dure » est
+   la signature du site, 6px 6px 0 en encre : posee sur un bureau sombre elle donne un
+   bloc noir sans bord sous la boite. La regle du plateau n'autorise que deux ombres dans
+   tout le produit, et le bureau n'en pose aucune depuis le lot de la coque. */
 .bdvr-panneau{position:relative;display:flex;flex-direction:column;
-  width:100%;max-width:62rem;max-height:90vh;background:var(--paper);
-  border:var(--trait) solid var(--rule);border-radius:var(--r-nul);box-shadow:var(--ombre-dure)}
-.bdvr-tete{flex:0 0 auto;padding:1.7rem 1.9rem 0;border-bottom:var(--trait) solid var(--rule)}
-.bdvr-x{position:absolute;top:.7rem;right:.9rem;background:none;border:none;
-  font-size:var(--t-h3);line-height:1;color:var(--muted);cursor:pointer;padding:.2rem .45rem}
-.bdvr-x:hover{color:var(--bordeaux)}
-.bdvr-titre{font-family:var(--font-titre);font-size:var(--t-h3);color:var(--ink-deep);margin:0}
-.bdvr-sous{font-family:var(--font-corps);font-size:var(--t-petit);color:var(--muted);margin:.3rem 0 1.2rem}
+  width:100%;max-width:62rem;max-height:90vh;background:var(--bdv-surface-3);
+  border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);box-shadow:none}
+.bdvr-tete{flex:0 0 auto;padding:var(--bdv-e-6) var(--bdv-e-6) 0;border-bottom:1px solid var(--bdv-trait)}
+.bdvr-x{position:absolute;top:var(--bdv-e-2);right:var(--bdv-e-3);background:none;border:none;
+  font-size:var(--bdv-f-5);line-height:1;color:var(--bdv-encre-4);cursor:pointer;padding:var(--bdv-e-1) var(--bdv-e-2)}
+.bdvr-x:hover{color:var(--bdv-accent)}
+.bdvr-titre{font-family:inherit;font-weight:600;font-size:var(--bdv-f-5);letter-spacing:var(--bdv-ls-serre);color:var(--bdv-encre-1);margin:0}
+.bdvr-sous{font-family:inherit;font-size:var(--bdv-f-3);color:var(--bdv-encre-4);margin:var(--bdv-e-1) 0 var(--bdv-e-4)}
 
 /* LES ONGLETS. Etiquettes typographiques, pas des boutons a cadre : le panneau est un
    document de reglages, pas une barre d'outils. L'actif porte le filet dore du site. */
 .bdvr-onglets{display:flex;flex-wrap:wrap;gap:0;margin-bottom:-1px}
-.bdvr-onglet{background:none;border:none;border-bottom:var(--trait-fort) solid transparent;
-  padding:.55rem .95rem;font-family:var(--font-corps);font-size:var(--t-mini);
-  text-transform:uppercase;letter-spacing:var(--ls-large);color:var(--muted);cursor:pointer;
-  transition:var(--tr-rapide)}
-.bdvr-onglet:hover{color:var(--ink-deep)}
-.bdvr-onglet.on{color:var(--bordeaux);border-bottom-color:var(--bordeaux)}
+.bdvr-onglet{background:none;border:none;border-bottom:2px solid transparent;
+  padding:var(--bdv-e-2) var(--bdv-e-3);font-family:inherit;font-size:var(--bdv-f-2);
+  text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);cursor:pointer;
+  transition:color var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe)}
+.bdvr-onglet:hover{color:var(--bdv-encre-1)}
+/* L'ONGLET CHOISI SE DIT DEUX FOIS : par l'accent, et par un filet de 2 px sous le mot.
+   Le filet est une FORME, il se lit en niveaux de gris et en vision deuteranope. */
+.bdvr-onglet.on{color:var(--bdv-accent);border-bottom-color:var(--bdv-accent)}
 .bdvr-onglet:first-child{padding-left:0}
 
 .bdvr-form{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
-.bdvr-corps{flex:1 1 auto;overflow-y:auto;padding:1.5rem 1.9rem}
+.bdvr-corps{flex:1 1 auto;overflow-y:auto;padding:var(--bdv-e-6) var(--bdv-e-6)}
 
 /* Un onglet = un bloc. Le defaut est cache, et "data-off" (pose par gateVitisoft) l'emporte
    sur tout : un bloc retire parce que le vigneron n'a pas Vitisoft ne doit pas pouvoir
@@ -103,63 +122,73 @@
 
 /* Deux colonnes pour les champs courts. Les champs longs et les blocs du moteur prennent
    toute la largeur : un tableau de ventes dans une demi-colonne est illisible. */
-.bdvr-grille{display:grid;grid-template-columns:1fr 1fr;gap:1.3rem 1.6rem}
+.bdvr-grille{display:grid;grid-template-columns:1fr 1fr;gap:var(--bdv-e-4) var(--bdv-e-6)}
 .bdvr-champ{min-width:0;display:flex;flex-direction:column}
 .bdvr-champ--plein{grid-column:1/-1}
-.bdvr-l{display:block;font-family:var(--font-corps);font-size:var(--t-petit);
-  color:var(--ink);margin:0 0 .35rem}
-.bdvr-i{width:100%;background:var(--white);border:var(--trait) solid var(--rule);
-  border-radius:var(--r-nul);padding:.6rem .75rem;font-family:var(--font-corps);
-  font-size:var(--t-corps);color:var(--ink-deep)}
-.bdvr-i:focus{outline:var(--trait-accent) solid var(--bordeaux);outline-offset:1px}
-.bdvr-i:disabled{background:var(--paper-deep);color:var(--muted)}
-.bdvr-aide{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);
-  line-height:var(--lh-normal);margin:.35rem 0 0}
-.bdvr-aide--alerte{color:var(--danger-deep);font-weight:600}
-.bdvr-chk{display:flex;align-items:flex-start;gap:.55rem;font-family:var(--font-corps);
-  font-size:var(--t-petit);color:var(--ink);line-height:var(--lh-normal)}
+.bdvr-l{display:block;font-family:inherit;font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-2);margin:0 0 var(--bdv-e-1)}
+.bdvr-i{width:100%;background:var(--bdv-surface);border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);padding:var(--bdv-e-3) var(--bdv-e-3);font-family:inherit;
+  font-size:var(--bdv-f-saisie);color:var(--bdv-encre-1)}
+/* UN SEUL ANNEAU DE FOCUS DANS TOUT LE PRODUIT, et il a la couleur de la SURFACE.
+   L'anneau bordeaux du site donne 1,37:1 sur une carte sombre, c'est-a-dire aucun
+   focus clavier ; « --bdv-anneau » tient 7,44:1 en clair et 9,15:1 en sombre. */
+.bdvr-i:focus{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+.bdvr-i:disabled{background:var(--bdv-surface-2);color:var(--bdv-encre-4)}
+.bdvr-aide{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);
+  line-height:1.5;margin:var(--bdv-e-1) 0 0}
+.bdvr-aide--alerte{color:var(--bdv-retard);font-weight:600}
+.bdvr-chk{display:flex;align-items:flex-start;gap:var(--bdv-e-2);font-family:inherit;
+  font-size:var(--bdv-f-3);color:var(--bdv-encre-2);line-height:1.5}
+.bdvr-chk input{accent-color:var(--bdv-accent)}
 
 /* LE BANDEAU DE SAUVEGARDE. Il ne repete pas le compteur de lignes, qui est deja dans les
    cartes juste en dessous : il porte le VERDICT, appareil contre compte. C'est le seul
    endroit de l'outil qui pouvait dire, le 07/09/2026, que 4 442 lignes n'existaient que
    sur un ordinateur. Il merite d'etre lu avant le reste, donc il est en haut. */
-.bdvr-etat{border:var(--trait) solid var(--rule);border-left:var(--trait-fort) solid var(--bordeaux);
-  background:var(--white);padding:.85rem 1rem;margin:0 0 1.3rem}
-.bdvr-etat--alerte{border-left-color:var(--danger-deep)}
-.bdvr-etat__verdict{font-family:var(--font-corps);font-size:var(--t-base);
-  color:var(--ink-deep);margin:0}
-.bdvr-etat--alerte .bdvr-etat__verdict{color:var(--danger-deep)}
-.bdvr-etat__detail{font-family:var(--font-mono);font-size:var(--t-mini);color:var(--muted);
-  margin:.3rem 0 0;line-height:var(--lh-normal)}
-.bdvr-duo{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem}
+.bdvr-etat{border:1px solid var(--bdv-trait);border-left:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);background:var(--bdv-surface);padding:var(--bdv-e-3) var(--bdv-e-4);margin:0 0 var(--bdv-e-4)}
+.bdvr-etat--alerte{border-left-color:var(--bdv-retard)}
+.bdvr-etat__verdict{font-family:inherit;font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-1);margin:0}
+.bdvr-etat--alerte .bdvr-etat__verdict{color:var(--bdv-retard)}
+.bdvr-etat__detail{font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-4);
+  margin:var(--bdv-e-1) 0 0;line-height:1.5}
+.bdvr-duo{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin-top:var(--bdv-e-4)}
 .bdvr-hote{min-width:0}
 
-.bdvr-pied{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:.9rem 1.2rem;
-  border-top:var(--trait) solid var(--rule);background:var(--paper-light);
-  padding:1rem 1.9rem}
-.bdvr-avis{flex:1 1 100%;order:-1;font-family:var(--font-mono);font-size:var(--t-mini);
-  margin:0;padding:.5rem .7rem;border-radius:var(--r-nul)}
-.bdvr-avis[data-ok="oui"]{background:var(--ok-bg);color:var(--ok)}
-.bdvr-avis[data-ok="non"]{background:var(--danger-bg);color:var(--danger-deep)}
-.bdvr-btn{background:var(--bordeaux);color:var(--on-dark);border:var(--trait) solid var(--bordeaux);
-  border-radius:var(--r-nul);padding:.6rem 1.3rem;font-family:var(--font-corps);
-  font-size:var(--t-petit);text-transform:uppercase;letter-spacing:var(--ls-large);
-  cursor:pointer;transition:var(--tr-rapide)}
-.bdvr-btn:hover{background:var(--bordeaux-deep);border-color:var(--bordeaux-deep)}
+.bdvr-pied{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-3) var(--bdv-e-4);
+  border-top:1px solid var(--bdv-trait);background:var(--bdv-surface-2);
+  padding:var(--bdv-e-4) var(--bdv-e-6)}
+.bdvr-avis{flex:1 1 100%;order:-1;font-family:inherit;font-size:var(--bdv-f-2);
+  margin:0;padding:var(--bdv-e-2) var(--bdv-e-3);border-radius:var(--bdv-r)}
+/* LE VERDICT SE DIT PAR UN MOT, UN GLYPHE ET UNE COULEUR, jamais par la couleur
+   seule : « avis() » ecrit la phrase, le signe la double, la teinte la confirme.
+   Meme regle que les cinq etapes du voile d'amorcage. */
+.bdvr-avis::before{margin-right:var(--bdv-e-2);font-weight:600}
+.bdvr-avis[data-ok="oui"]{background:var(--bdv-bon-lavis);color:var(--bdv-bon)}
+.bdvr-avis[data-ok="oui"]::before{content:'\\2713'}
+.bdvr-avis[data-ok="non"]{background:var(--bdv-retard-lavis);color:var(--bdv-retard)}
+.bdvr-avis[data-ok="non"]::before{content:'\\0021'}
+.bdvr-btn{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent);border:1px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);padding:var(--bdv-e-3) var(--bdv-e-4);font-family:inherit;
+  font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);
+  cursor:pointer;transition:background var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe)}
+.bdvr-btn:hover{background:var(--bdv-accent-fort);border-color:var(--bdv-accent-fort)}
 .bdvr-btn:disabled{opacity:.55;cursor:default}
-.bdvr-btn--creux{background:transparent;color:var(--bordeaux)}
-.bdvr-btn--creux:hover{background:var(--bordeaux);color:var(--on-dark)}
-.bdvr-lien{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-mini);
-  color:var(--muted);text-decoration:underline}
-.bdvr-lien:hover{color:var(--bordeaux)}
+.bdvr-btn--creux{background:transparent;color:var(--bdv-accent)}
+.bdvr-btn--creux:hover{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
+.bdvr-lien{margin-left:auto;font-family:inherit;font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);text-decoration:underline}
+.bdvr-lien:hover{color:var(--bdv-accent)}
 
 @media (max-width:820px){
   .bdvr-voile{padding:0}
   .bdvr-panneau{max-width:none;max-height:100%;height:100%;border:none}
   .bdvr-grille{grid-template-columns:1fr}
-  .bdvr-tete{padding:1.3rem 1.1rem 0}
-  .bdvr-corps{padding:1.2rem 1.1rem}
-  .bdvr-pied{padding:.9rem 1.1rem}
+  .bdvr-tete{padding:var(--bdv-e-4) var(--bdv-e-4) 0}
+  .bdvr-corps{padding:var(--bdv-e-4) var(--bdv-e-4)}
+  .bdvr-pied{padding:var(--bdv-e-3) var(--bdv-e-4)}
   .bdvr-lien{margin-left:0;flex:1 1 100%}
 }`;
 

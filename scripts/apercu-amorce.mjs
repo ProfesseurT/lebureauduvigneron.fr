@@ -13,9 +13,17 @@
    page d'apercu qui recopierait le HTML a la main validerait un dessin que le
    produit n'affiche pas, ce qui est exactement le defaut du 11/09/2026.
 
-   ET ELLE CHARGE LA VRAIE FEUILLE, `src/css/style.css`, pas `tokens.css` : ce
-   dernier n'est servi a aucun navigateur, et un harnais qui le chargerait
-   montrerait des couleurs que la page n'a pas. Piege paye le 08/09/2026.
+   ET ELLE CHARGE LES VRAIES FEUILLES, pas `tokens.css` : ce dernier n'est servi
+   a aucun navigateur, et un harnais qui le chargerait montrerait des couleurs
+   que la page n'a pas. Piege paye le 08/09/2026.
+
+   ELLES SONT TROIS DEPUIS LE 21/09/2026, et dans l'ordre du gabarit :
+   bdv-theme.css, style.css, bdv-bureau.css. Le voile est repeint sous
+   `.bdv-coque` au lot 5 ; avec la seule style.css cette page montrerait le
+   dessin PAPIER, c'est-a-dire celui qu'on vient de remplacer. Le corps de page
+   porte donc `bdv-coque`, et les trois etats sont rendus DEUX FOIS, en clair et
+   en sombre : un theme sombre juge sur une capture prise a part n'est jamais
+   compare a rien.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
@@ -78,21 +86,31 @@ const page = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Apercu : le voile d'amorcage</title>
+<link rel="stylesheet" href="../src/css/bdv-theme.css">
 <link rel="stylesheet" href="../src/css/style.css">
+<link rel="stylesheet" href="../src/css/bdv-bureau.css">
 <style>
-  body{ padding:2rem; background:var(--paper-deep,#E4DBC6); font-family:var(--font-corps); }
-  h1{ font-family:var(--font-titre); }
+  body{ padding:0; margin:0; }
+  .th{ padding:2rem; background:var(--bdv-fond); }
+  h1{ font-family:inherit; font-weight:600; font-size:var(--bdv-f-6);
+      letter-spacing:var(--bdv-ls-serre); color:var(--bdv-encre-1); }
+  .th p{ color:var(--bdv-encre-3); }
   .cadre{ position:relative; height:34rem; margin:0 0 2rem; overflow:hidden;
-          border:1px solid var(--rule); background:var(--paper); }
+          border:1px solid var(--bdv-trait); border-radius:var(--bdv-r);
+          background:var(--bdv-surface); }
   .cadre .bdv-amorce{ position:absolute; }
-  .lg{ font:600 0.8rem var(--font-corps); letter-spacing:.06em; text-transform:uppercase;
-       color:var(--muted); margin:0 0 .5rem; }
-</style></head><body>
-<h1>Le voile d'amorcage</h1>
+  .lg{ font-family:inherit; font-weight:600; font-size:var(--bdv-f-1);
+       letter-spacing:var(--bdv-ls-etiq); text-transform:uppercase;
+       color:var(--bdv-encre-4); margin:0 0 .5rem; }
+</style></head><body class="bdv-coque">
+${['light','dark'].map(function(t){ return `
+<section class="th" data-theme="${t}">
+<h1>Le voile d'amorcage, theme ${t === 'light' ? 'clair' : 'sombre'}</h1>
 <p>Genere par <code>npm run apercu:amorce</code> depuis le vrai module. Il ne verifie rien : il se regarde.</p>
 <p class="lg">1. Pendant le raccordement</p><div class="cadre">${enCours}</div>
 <p class="lg">2. Deux lectures n'ont pas repondu</p><div class="cadre">${rate}</div>
 <p class="lg">3. Le serveur est muet, le plafond a rendu la main</p><div class="cadre">${muet}</div>
+</section>`; }).join('')}
 </body></html>`;
 
 fs.mkdirSync(path.dirname(SORTIE), { recursive: true });

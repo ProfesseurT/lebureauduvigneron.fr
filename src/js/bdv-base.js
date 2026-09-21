@@ -55,12 +55,26 @@ function savePersoLabels(){savePersoLabelsLocal();syncLabels();}
 /* ---- Couleurs : le CSS est la seule source de verite ----------------------
    Les graphiques lisent les tokens declares dans :root plutot que de porter
    leur propre palette. Une seule charte, un seul endroit ou la changer.
-   L'echelle --serie-1..8 est categorielle : elle ne contient aucun token
-   d'etat, pour qu'une serie verte ne se lise pas comme un jugement. */
+   L'echelle --bdv-serie-1..8 est categorielle : elle ne contient aucun token
+   d'etat, pour qu'une serie verte ne se lise pas comme un jugement.
+
+   LES NOMS ONT CHANGE LE 21/09/2026, AU LOT DES DEUX THEMES DES ECRANS DE
+   VENTE, et c'est le seul endroit du depot ou un jeton de CSS soit lu par un
+   nom ecrit en JavaScript. Les anciens `--serie-1..8` et `--bordeaux-voile`
+   vivaient dans le `:root` de src/css/bdv-ecrans.css et n'avaient donc qu'UNE
+   valeur, dessinee pour du papier. Les `--bdv-*` en ont deux, et c'est ce qui
+   permet a un graphique de suivre le theme.
+
+   `getComputedStyle` EST RELU A CHAQUE APPEL, ET C'EST VOULU : c'est ce qui
+   fait qu'un graphique redessine APRES une bascule de theme prend les nouvelles
+   couleurs. Ne pas mettre ces valeurs en cache dans une constante de module :
+   le bureau garderait ses couleurs claires sur un fond sombre jusqu'au prochain
+   rechargement. Ce qui declenche le redessin est ecrit dans src/js/bdv-ecrans.js,
+   section « LE THEME CHANGE, LES GRAPHIQUES AUSSI ». */
 const cssToken=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-function palSeries(n){const p=[];for(let i=1;i<=(n||8);i++){const c=cssToken('--serie-'+i);if(c)p.push(c);}return p;}
-// Aplat sous une courbe : le meme voile de bordeaux que les barres de repartition.
-const aireBordeaux=()=>cssToken('--bordeaux-voile');
+function palSeries(n){const p=[];for(let i=1;i<=(n||8);i++){const c=cssToken('--bdv-serie-'+i);if(c)p.push(c);}return p;}
+// Aplat sous une courbe : le meme voile d'accent que les barres de repartition.
+const aireBordeaux=()=>cssToken('--bdv-aire-accent');
 
 // Les colonnes de l'export, dans l'ordre exact. On cable en dur (pas d'auto-détection).
 // ATTENTION : les 40 premieres sont le socle historique. L'empreinte de dedup (voir HASH_COLS)
