@@ -1142,11 +1142,16 @@ titre('A. Echelles fermees : combien de valeurs DISTINCTES cohabitent');
        `border-radius: 50%` de plus fait echouer le banc. C'est voulu. */
     ['rayons d\'arrondi',         'border-radius ecrits en dur',      0,   0],
     /* LA REGLE DU PLATEAU, ecrite en tete de la section MATIERES de style.css,
-       n'autorise que DEUX ombres : --ombre-carte et --ombre-dure. Il y en a 15
-       distinctes sur le site et 20 sur le bureau. La borne est la mesure du
-       jour parce qu'un controle qui echoue des le premier jour ne sera pas lu ;
-       la cible ecrite dans la charte, elle, reste 2. Ce chiffre descend. */
-    ['ombres',                    'recettes d\'ombre posees',        15,  20],
+       n'autorise que DEUX ombres : --ombre-carte et --ombre-dure. La borne est
+       la mesure du jour parce qu'un controle qui echoue des le premier jour ne
+       sera pas lu ; la cible ecrite dans la charte, elle, reste 2.
+       DESCENDUES DE 15 A 14 ET DE 20 A 16 LE 21/09/2026, au lot de la levee du
+       recouvrement : les ombres papier que bdv-poste.css et bdv-calendrier.css
+       servaient sans jamais les peindre ont ete repeintes ou retirees, et le
+       recouvrement de bdv-bureau.css qui les battait est parti avec. Mesure du
+       jour : 14 recettes distinctes sur 28 posees cote site, 16 sur 31 cote
+       bureau. Une borne DESCEND et ne remonte jamais. */
+    ['ombres',                    'recettes d\'ombre posees',        14,  16],
     ['epaisseurs de filet',       'largeurs de bordure posees',       9,   9],
     /* Les niveaux de superposition sont deja presque tous tokenises (--z-*) :
        ce qui reste distinct, ce sont les `z-index: 1` et `2` poses a la main.

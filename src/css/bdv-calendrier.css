@@ -12,31 +12,59 @@
    liste : sans le scope, la moindre retouche ici changerait aussi l'allure de
    /outils/echeances/, et personne ne ferait le lien.
 
-   LA MATIERE. Un bloc a effeuiller, du papier a en-tete pour la grille, du
-   carton en retrait pour les jours qui ne sont pas du mois. Aucun rayon, une
-   seule ombre, celle du site. Cf. LA REGLE DU PLATEAU dans CLAUDE.md.
+   ET C'EST UN PARTAGE DE NOMS, PAS UN PARTAGE DE PAGES, MESURE LE 21/09/2026.
+   Le lot 5 avait note que cette feuille « partage .echeance avec
+   /outils/echeances/ » et en avait conclu qu'on ne pouvait pas la repeindre.
+   La mesure dit autre chose : `.bdv-cal` n'existe que dans src/mon-bureau.njk,
+   AUCUNE des 38 pages construites autres que /mon-bureau/ ne lie cette feuille,
+   et /outils/echeances/ ne charge que style.css. Les 128 regles d'ici sont donc
+   TOUTES sous `.bdv-cal`, et la page publique ne peut pas les voir.
 
-   LES PAIRES DE CONTRASTE, mesurees avant d'etre ecrites :
-     --muted sur --paper-deep .............. 4,8:1  AA
-     --ink sur --paper-light ............... > 12:1 AAA
-     --on-dark sur --bordeaux-deep ......... > 11:1 AAA
-     --bordeaux sur --paper-light .......... > 11:1 AAA
-     --cork-encre sur --paper-light ........ 6,7:1  AA
-   --cork n'apparait qu'en filet, jamais en encre, et --on-dark-faint nulle
-   part : il tombe a 3,0:1 et c'est du texte a lire.
+   --------------------------------------------------------------------------
+   REPEINTE EN PLACE LE 21/09/2026, MAIS SON RECOUVREMENT RESTE
+   --------------------------------------------------------------------------
+   Les 237 valeurs papier que la section 16 de bdv-bureau.css recouvrait sont
+   passees a 51 : 176 declarations ont recu le jeton `--bdv-*` que le
+   recouvrement leur imposait deja. Cote ecran, rien ne bouge : ces valeurs-la
+   ne peignaient rien, elles voyageaient.
 
-   LES QUATRE FAMILLES, mesurees le 08/09/2026 avant d'etre choisies. Elles sont
-   separees en LUMINANCE et pas seulement en teinte, ecart minimum 11,8 en
-   vision normale et 11,2 en vision deuteranope, donc elles restent
-   distinguables en niveaux de gris et pour un daltonien :
-     --serie-1 obligations  L* 15,4   13,09:1 sur --paper-light
-     --serie-2 travaux      L* 32,4    7,46:1
-     --serie-3 rendez-vous  L* 44,3    4,81:1
-     --serie-4 temps forts  L* 56,1    3,15:1  (objet graphique, seuil 3:1)
-   La quatrieme est la plus claire des quatre et elle passe TOUT JUSTE le seuil
-   des objets graphiques sur --paper-light. C'est pour ca que les pastilles de
-   famille sont posees sur --paper-light et sur rien d'autre : sur --paper-deep
-   elle tomberait a 2,3:1. Ne pas changer le fond d'une pastille sans remesurer.
+   LE RECOUVREMENT, LUI, N'A PAS PU ETRE LEVE, ET C'EST LE MOMENT DU CHARGEMENT
+   QUI L'INTERDIT. bdv-poste.css est LIEE par le gabarit, donc elle est la avant
+   le premier rendu, comme bdv-bureau.css : y descendre une valeur ne change pas
+   le moment ou elle arrive. Cette feuille-ci est POSEE PAR bdv-nav.js au premier
+   clic sur la piece, et le balisage du calendrier, lui, est dans la page depuis
+   le debut. Le commentaire du bas de ce bloc le dit deja, « la piece est
+   montree avant d'etre habillee ». Retirer le recouvrement et ne garder la
+   valeur qu'ici laisserait donc le calendrier NU entre le clic et l'arrivee de
+   la feuille. Le banc de style calcule l'a chiffre : 329 ecarts par etat sur
+   « Ma journee » et « Mes taches », c'est-a-dire exactement les etats ou la
+   feuille n'est pas encore posee. Les deux ecritures disent desormais la MEME
+   chose, ce qui n'est plus une course de specificite : quelle que soit celle
+   qui gagne, la couleur est la bonne.
+
+   LA MATIERE, DEPUIS LE 21/09/2026 : la meme que le reste du bureau. Une carte,
+   un trait de 1 px, une surface qui monte d'un cran, la hierarchie portee par la
+   typographie. Le bloc a effeuiller, le papier a en-tete et le carton en retrait
+   sont partis avec le chantier des deux themes.
+
+   LES PAIRES DE CONTRASTE sont celles de src/css/bdv-theme.css, mesurees en tete
+   de cette feuille-la, dans les DEUX themes. Les 51 appels papier qui restent ici
+   sont des ecarts, des tailles et des familles que le recouvrement ne nomme pas :
+   ils peignent encore, et les changer changerait l'ecran.
+
+   LES QUATRE FAMILLES SONT DESORMAIS `--bdv-fam-1` A `--bdv-fam-4`, qui ont
+   DEUX valeurs, une par theme. Les valeurs claires sont celles de `--fam-*`,
+   choisies le 08/09/2026, au caractere pres : le calendrier clair n'a pas bouge
+   d'un pixel. Elles restent separees en LUMINANCE et pas seulement en teinte,
+   donc distinguables en niveaux de gris et en vision deuteranope :
+     L* 15,4 / 32,4 / 44,3 / 56,1 en clair, 84,9 / 72,1 / 59,5 / 49,9 en sombre.
+   Pire contraste : 3,15:1 (clair, fam-4 sur le papier) et 3,42:1 (sombre,
+   fam-4 sur --bdv-surface-3). Ce sont des OBJETS graphiques, un filet de 3 px
+   et une pastille de 6 px, jamais du texte, donc le seuil est 3:1.
+   POURQUOI PAS `--fam-*` DIRECTEMENT : `--fam-1` vaut #4A1220, il tient 13,09:1
+   sur le papier du site et 1,26:1 sur `--bdv-surface` en sombre, c'est-a-dire
+   qu'il DISPARAIT. Le detail est en tete de src/css/bdv-theme.css.
+   Ne pas changer le fond d'une pastille sans remesurer les deux themes.
    =========================================================================== */
 
 /* LA ZONE ELLE-MEME EST DANS src/css/style.css, `.bdv-cal > .zone` : sa colonne
@@ -51,25 +79,25 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--e-s);
-  margin-bottom: var(--e-s);
-  padding-bottom: var(--e-s);
-  border-bottom: var(--trait) solid var(--rule);
+  gap: var(--bdv-e-3);
+  margin-bottom: var(--bdv-e-3);
+  padding-bottom: var(--bdv-e-3);
+  border-bottom: 1px solid var(--bdv-trait);
 }
 
 .bdv-cal .cal__nav {
   display: flex;
   align-items: center;
-  gap: var(--e-xs);
+  gap: var(--bdv-e-2);
 }
 
 .bdv-cal .cal__periode {
   margin: 0;
   min-width: 9rem;
-  font-family: var(--font-titre);
-  font-size: var(--t-h3);
-  line-height: var(--lh-serre);
-  letter-spacing: var(--ls-serre);
+  font-family: inherit;
+  font-size: var(--bdv-f-5);
+  line-height: 1.2;
+  letter-spacing: var(--bdv-ls-serre);
   text-transform: capitalize;
 }
 
@@ -77,45 +105,45 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: var(--bdv-e-8);
+  height: var(--bdv-e-8);
   padding: 0;
-  border: var(--trait) solid var(--rule-fort);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--bordeaux);
+  border: 1px solid var(--bdv-trait-fort);
+  border-radius: var(--bdv-r);
+  background: var(--bdv-surface);
+  color: var(--bdv-encre-2);
   cursor: pointer;
-  transition: background var(--tr-rapide);
+  transition: background var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);
 }
-.bdv-cal .cal__fleche:hover { background: var(--paper-deep); }
+.bdv-cal .cal__fleche:hover { background: var(--bdv-surface-2); }
 
 .bdv-cal .cal__auj {
-  margin-left: var(--e-xs);
-  padding: var(--e-xs) var(--e-s);
-  font-size: var(--t-petit);
+  margin-left: var(--bdv-e-2);
+  padding: 0 var(--bdv-e-3);
+  font-size: var(--bdv-f-2);
 }
 
 .bdv-cal .cal__vues { display: flex; }
 
 .bdv-cal .cal__vue {
-  padding: var(--e-xs) var(--e-s);
-  border: var(--trait) solid var(--rule-fort);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--muted);
-  font-family: var(--font-corps);
-  font-size: var(--t-petit);
-  letter-spacing: var(--ls-doux);
+  padding: 0 var(--bdv-e-3);
+  border: 1px solid transparent;
+  border-radius: var(--bdv-r-pastille);
+  background: none;
+  color: var(--bdv-encre-3);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  letter-spacing: 0;
   cursor: pointer;
-  transition: background var(--tr-rapide), color var(--tr-rapide);
+  transition: background var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);
 }
 /* Les trois se touchent, comme les onglets d'un classeur : un seul filet
    entre deux, et pas deux filets colles qui feraient une barre grasse. */
 .bdv-cal .cal__vue + .cal__vue { border-left: 0; }
-.bdv-cal .cal__vue:hover { background: var(--paper-deep); color: var(--ink); }
+.bdv-cal .cal__vue:hover { background: var(--bdv-survol); color: var(--bdv-encre-1); }
 .bdv-cal .cal__vue--actif {
-  background: var(--bordeaux-deep);
-  color: var(--on-dark);
+  background: var(--bdv-surface);
+  color: var(--bdv-encre-1);
 }
 
 /* ---------------------------------------------------------------------------
@@ -176,43 +204,43 @@
   min-width: 38rem;
   border-collapse: collapse;
   table-layout: fixed;
-  box-shadow: var(--ombre-dure);
+  box-shadow: none;
 }
 
 .bdv-cal .calm th {
-  padding: var(--e-xs) var(--e-s);
-  border: var(--trait) solid var(--rule);
-  background: var(--paper-deep);
-  color: var(--muted);
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  font-weight: 500;
+  padding: var(--bdv-e-1) var(--bdv-e-2);
+  border: 1px solid var(--bdv-trait);
+  background: var(--bdv-surface-2);
+  color: var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  font-weight: 600;
   text-align: left;
   text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
+  letter-spacing: var(--bdv-ls-etiq);
 }
 .bdv-cal .calm th abbr { text-decoration: none; }
 
 .bdv-cal td.calm__c {
   height: 5.5rem;
-  padding: var(--e-xs) 0 var(--e-xs) 0;
-  border: var(--trait) solid var(--rule);
-  background: var(--paper-light);
-  color: var(--ink);
+  padding: var(--bdv-e-1)0;
+  border: 1px solid var(--bdv-trait);
+  background: var(--bdv-surface);
+  color: var(--bdv-encre-2);
   vertical-align: top;
 }
 /* Le samedi et le dimanche respirent autrement : c'est le papier du plateau et
    pas celui de la page, la difference se sent sans se lire. */
-.bdv-cal td.calm__c[data-repos="oui"] { background: var(--paper); }
+.bdv-cal td.calm__c[data-repos="oui"] { background: var(--bdv-surface-2); }
 /* Les jours du mois d'avant et d'apres sont la pour que la semaine soit
    entiere, pas pour etre lus. */
 .bdv-cal td.calm__c[data-hors="oui"] {
-  background: var(--paper-deep);
-  color: var(--muted);
+  background: var(--bdv-fond);
+  color: var(--bdv-encre-4);
 }
 /* UN JOUR FERIE est un fait, pas une alerte : un filet de liege en haut de la
    case, et rien de plus. Le nom du jour est dans l'infobulle du marqueur. */
-.bdv-cal td.calm__c[data-ferie="oui"] { border-top: var(--trait-accent) solid var(--cork); }
+.bdv-cal td.calm__c[data-ferie="oui"] { border-top: 3px solid var(--bdv-trait-fort); }
 
 .bdv-cal .calm__tete {
   display: flex;
@@ -226,17 +254,17 @@
   display: inline-block;
   min-width: 1.5rem;
   padding: 0 var(--e-xs);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
   line-height: 1.5;
   text-align: center;
 }
 /* AUJOURD'HUI : un cachet, pas une couleur de fond sur toute la case. Une case
    entierement bordeaux avalerait les intitules qu'elle porte. */
 .bdv-cal td.calm__c[data-auj="oui"] .calm__n {
-  background: var(--bordeaux-deep);
-  color: var(--on-dark);
-  font-weight: 500;
+  background: var(--bdv-accent);
+  color: var(--bdv-encre-sur-accent);
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------------------
@@ -250,8 +278,8 @@
   display: inline-flex;
   gap: 2px;
   align-items: baseline;
-  color: var(--cork-encre);
-  font-size: var(--t-micro);
+  color: var(--bdv-encre-4);
+  font-size: var(--bdv-f-1);
   line-height: 1;
   cursor: help;
 }
@@ -280,14 +308,14 @@
   display: block;
   width: 100%;
   height: 1.15rem;
-  padding: 0 var(--e-xs);
+  padding: 0 var(--bdv-e-1);
   border: 0;
-  border-left: var(--trait-accent) solid var(--fam-1);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
+  border-left: 3px solid var(--bdv-fam-1);
+  border-radius: 0;
+  background: none;
+  color: var(--bdv-encre-2);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
   line-height: 1.15rem;
   text-align: left;
   /* Un intitule tient sur une ligne dans une case de cent pixels, ou il ne
@@ -297,7 +325,7 @@
   text-overflow: ellipsis;
 }
 .bdv-cal button.calo__b { cursor: pointer; }
-.bdv-cal button.calo__b:hover { background: var(--paper-deep); }
+.bdv-cal button.calo__b:hover { background: var(--bdv-survol); }
 
 /* LA COULEUR DIT LA FAMILLE, un liseré et rien d'autre. Un fond colore par
    famille aurait donne quatre fonds a mesurer contre quatre encres, et le
@@ -305,9 +333,9 @@
    LE FOND RESTE --paper-light PARTOUT, y compris sous un bandeau : c'est la
    seule surface sur laquelle les quatre series sont mesurees. Sur --paper-deep
    la quatrieme tombe a 2,3:1. */
-.bdv-cal .calo[data-famille="travaux"]    .calo__b { border-left-color: var(--fam-2); }
-.bdv-cal .calo[data-famille="rendezvous"] .calo__b { border-left-color: var(--fam-3); }
-.bdv-cal .calo[data-famille="tempsforts"] .calo__b { border-left-color: var(--fam-4); }
+.bdv-cal .calo[data-famille="travaux"]    .calo__b { border-left-color: var(--bdv-fam-2); }
+.bdv-cal .calo[data-famille="rendezvous"] .calo__b { border-left-color: var(--bdv-fam-3); }
+.bdv-cal .calo[data-famille="tempsforts"] .calo__b { border-left-color: var(--bdv-fam-4); }
 
 /* CE QUI DURE PLUSIEURS JOURS TRAVERSE LA SEMAINE. Un jour porte un liseré a
    gauche ; une periode porte un SOULIGNEMENT qui court d'une case a l'autre.
@@ -320,22 +348,22 @@
   border-left: 0;
   border-bottom: var(--trait-fort) solid var(--fam-1);
 }
-.bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b { border-bottom-color: var(--fam-2); }
-.bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b { border-bottom-color: var(--fam-3); }
-.bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b { border-bottom-color: var(--fam-4); }
+.bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b { border-bottom-color: var(--bdv-fam-2); }
+.bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b { border-bottom-color: var(--bdv-fam-3); }
+.bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b { border-bottom-color: var(--bdv-fam-4); }
 /* Le dernier jour d'une periode s'arrete avant le bord de la case : sans ca,
    deux periodes qui se suivent se lisent comme une seule. */
 .bdv-cal .calo[data-bord="fin"] .calo__b,
 .bdv-cal .calo[data-bord="seul"] .calo__b { margin-right: var(--e-xs); }
 
 .bdv-cal .calo[data-niveau="urgent"] .calo__b,
-.bdv-cal .calo[data-niveau="aujourdhui"] .calo__b { border-left-color: var(--danger-deep); }
-.bdv-cal .calo[data-niveau="passe"] .calo__b { border-left-color: var(--cork); }
+.bdv-cal .calo[data-niveau="aujourdhui"] .calo__b { border-left-color: var(--bdv-retard); }
+.bdv-cal .calo[data-niveau="passe"] .calo__b { border-left-color: var(--bdv-trait-fort); }
 
 .bdv-cal .calo[data-fait="oui"] .calo__b {
-  background: var(--ok-bg);
-  color: var(--muted);
-  border-left-color: var(--ok);
+  background: var(--bdv-bon-lavis);
+  color: var(--bdv-encre-4);
+  border-left-color: var(--bdv-bon);
   text-decoration: line-through;
 }
 
@@ -357,16 +385,16 @@
 --------------------------------------------------------------------------- */
 .bdv-cal .calo[data-tache="oui"] .calo__b {
   border-left: 0;
-  border-bottom: var(--trait) dotted var(--ink);
-  font-family: var(--font-manuscrit);
-  font-size: var(--t-petit);
-  color: var(--ink);
+  border-bottom: 1px dotted var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  color: var(--bdv-encre-2);
 }
 .bdv-cal .echeance[data-tache="oui"] {
-  border-left: var(--trait-accent) dotted var(--ink);
+  border-left: 3px dotted var(--bdv-encre-4);
 }
 .bdv-cal .echeance[data-tache="oui"] .echeance__titre {
-  font-family: var(--font-manuscrit);
+  font-family: inherit;
 }
 
 /* ---------------------------------------------------------------------------
@@ -389,20 +417,20 @@
 --------------------------------------------------------------------------- */
 .bdv-cal .calo[data-client="oui"] .calo__b {
   border-left: 0;
-  border-bottom: var(--trait) dotted var(--ink);
-  font-family: var(--font-manuscrit);
-  font-size: var(--t-petit);
-  color: var(--ink);
+  border-bottom: 1px dotted var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  color: var(--bdv-encre-2);
 }
 .bdv-cal .calo[data-client="oui"] .calo__b::before,
 .bdv-cal .echeance[data-client="oui"] .echeance__titre::before {
   content: "\260E\00A0";
 }
 .bdv-cal .echeance[data-client="oui"] {
-  border-left: var(--trait-accent) dotted var(--ink);
+  border-left: 3px dotted var(--bdv-encre-4);
 }
 .bdv-cal .echeance[data-client="oui"] .echeance__titre {
-  font-family: var(--font-manuscrit);
+  font-family: inherit;
 }
 
 /* LE « + » DE CHAQUE CASE. Invisible au repos, sinon quarante-deux croix
@@ -413,13 +441,13 @@
   border: 0;
   border-radius: var(--r-nul);
   background: none;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
+  color: var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  transition: opacity var(--tr-rapide);
+  transition: opacity var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);
 }
 .bdv-cal td.calm__c:hover .calm__plus,
 .bdv-cal .calm__plus:focus-visible { opacity: 1; }
@@ -427,7 +455,7 @@
   outline: var(--trait-fort) solid var(--bordeaux);
   outline-offset: calc(var(--trait-fort) * -1);
 }
-.bdv-cal .calm__plus:hover { color: var(--bordeaux); }
+.bdv-cal .calm__plus:hover { color: var(--bdv-accent); }
 
 /* Le formulaire emprunte `.tachesf` a « Mes taches » : le meme geste doit avoir
    la meme allure aux deux endroits, sinon il faut l'apprendre deux fois. */
@@ -435,19 +463,19 @@
 
 .bdv-cal .cal__sansdate {
   margin: 0 0 var(--e-s);
-  color: var(--muted);
-  font-size: var(--t-base);
-  font-style: italic;
+  color: var(--bdv-encre-4);
+  font-size: var(--bdv-f-2);
+  font-style: normal;
 }
 
 .bdv-cal .cal__coche--x {
-  border-color: var(--rule-fort);
-  color: var(--muted);
+  border-color: var(--bdv-trait-fort);
+  color: var(--bdv-encre-3);
 }
 .bdv-cal .cal__coche--x:hover {
-  background: var(--danger-deep);
-  border-color: var(--danger-deep);
-  color: var(--on-dark);
+  background: var(--bdv-retard-lavis);
+  border-color: var(--bdv-retard);
+  color: var(--bdv-retard);
 }
 
 /* ---------------------------------------------------------------------------
@@ -457,21 +485,21 @@
 
 .bdv-cal .cal__detailt {
   margin: 0 0 var(--e-s);
-  padding-bottom: var(--e-xs);
-  border-bottom: var(--trait-fort) solid var(--rule-fort);
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  font-weight: 500;
+  padding-bottom: var(--bdv-e-2);
+  border-bottom: 1px solid var(--bdv-trait);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  color: var(--muted);
+  letter-spacing: var(--bdv-ls-etiq);
+  color: var(--bdv-encre-4);
 }
 
 .bdv-cal .cal__vide {
   margin: var(--e-s) 0 0;
-  color: var(--muted);
-  font-size: var(--t-base);
-  font-style: italic;
+  color: var(--bdv-encre-4);
+  font-size: var(--bdv-f-2);
+  font-style: normal;
 }
 
 /* ---------------------------------------------------------------------------
@@ -481,32 +509,32 @@
 .bdv-cal .cala {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-  gap: var(--e-m);
+  gap: var(--bdv-e-3);
 }
 
 .bdv-cal .cala__m {
-  padding: var(--e-s);
-  border: var(--trait) solid var(--rule);
-  background: var(--paper-light);
+  padding: var(--bdv-e-3);
+  border: 1px solid var(--bdv-trait);
+  background: var(--bdv-surface);
 }
 
 .bdv-cal .cala__t {
   display: block;
   width: 100%;
-  margin-bottom: var(--e-xs);
+  margin-bottom: var(--bdv-e-2);
   padding: 0 0 var(--e-xs);
   border: 0;
-  border-bottom: var(--trait) solid var(--rule);
+  border-bottom: 1px solid var(--bdv-trait);
   border-radius: var(--r-nul);
   background: none;
-  color: var(--bordeaux);
-  font-family: var(--font-titre);
-  font-size: var(--t-base);
+  color: var(--bdv-encre-1);
+  font-family: inherit;
+  font-size: var(--bdv-f-3);
   text-align: left;
   text-transform: capitalize;
   cursor: pointer;
 }
-.bdv-cal .cala__t:hover { color: var(--bordeaux-vif); }
+.bdv-cal .cala__t:hover { color: var(--bdv-accent); }
 
 .bdv-cal .cala__g {
   width: 100%;
@@ -515,9 +543,9 @@
 }
 .bdv-cal .cala__g th {
   padding: 0;
-  color: var(--muted);
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
+  color: var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
   font-weight: 400;
   text-align: center;
 }
@@ -525,9 +553,9 @@
 
 .bdv-cal td.cala__c {
   padding: 1px 0;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
+  color: var(--bdv-encre-2);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
   line-height: 1.6;
   text-align: center;
 }
@@ -540,17 +568,17 @@
    un chiffre de dix pixels donneraient quatre paires de contraste a tenir, et
    la plus claire ne les tiendrait pas. Les familles se lisent dans la vue mois. */
 .bdv-cal td.cala__c[data-plein="oui"] {
-  background: var(--bordeaux-deep);
-  color: var(--on-dark);
-  font-weight: 500;
+  background: var(--bdv-accent);
+  color: var(--bdv-encre-sur-accent);
+  font-weight: 600;
 }
 /* UNE PERIODE QUI TRAVERSE NE REMPLIT PAS LA CASE, elle la souligne. La taille,
    les travaux en vert, les vendanges et la vinification couvrent dix mois sur
    douze : remplies, elles noircissaient l'annee entiere et cette vue ne servait
    plus a rien. Un soulignement dit « ca dure » sans manger la place de « ca
    tombe ». */
-.bdv-cal td.cala__c[data-bande="oui"] { box-shadow: inset 0 -2px 0 0 var(--cork-encre); }
-.bdv-cal td.cala__c[data-auj="oui"] { box-shadow: inset 0 -2px 0 0 var(--cork); }
+.bdv-cal td.cala__c[data-bande="oui"] { box-shadow: none; }
+.bdv-cal td.cala__c[data-auj="oui"] { box-shadow: none; }
 
 /* ---------------------------------------------------------------------------
    LA VUE LISTE : elle emprunte `.echeances` et `.echeance` a la page publique.
@@ -560,32 +588,32 @@
 .bdv-cal .cal__coche {
   /* Pas de marge a droite : le « · » qui suit fait l'espacement, et les deux
      ensemble creusaient un trou entre le bouton et le premier lien. */
-  padding: 2px var(--e-s);
-  border: var(--trait) solid var(--bordeaux);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--bordeaux);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  letter-spacing: var(--ls-doux);
+  padding: 0 var(--bdv-e-3);
+  border: 1px solid var(--bdv-trait-fort);
+  border-radius: var(--bdv-r);
+  background: var(--bdv-surface);
+  color: var(--bdv-encre-2);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  letter-spacing: 0;
   cursor: pointer;
-  transition: background var(--tr-rapide), color var(--tr-rapide);
+  transition: background var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);
 }
 .bdv-cal .cal__coche:hover {
-  background: var(--bordeaux);
-  color: var(--on-dark);
+  background: var(--bdv-surface-2);
+  color: var(--bdv-encre-1);
 }
 .bdv-cal .cal__coche[aria-pressed="true"] {
-  border-color: var(--ok);
-  color: var(--ok);
+  border-color: var(--bdv-bon);
+  color: var(--bdv-bon);
 }
 .bdv-cal .cal__coche[aria-pressed="true"]:hover {
-  background: var(--ok);
-  color: var(--on-dark);
+  background: var(--bdv-bon);
+  color: var(--bdv-encre-sur-accent);
 }
 
 .bdv-cal .echeance[data-fait="oui"] .echeance__titre { text-decoration: line-through; }
-.bdv-cal .echeance[data-fait="oui"] .echeance__quand { color: var(--ok); }
+.bdv-cal .echeance[data-fait="oui"] .echeance__quand { color: var(--bdv-bon); }
 
 /* La famille se lit sur le bord de la fiche, comme sur la pastille de la grille.
    Le meme code couleur aux deux endroits, sinon il faut l'apprendre deux fois. */
@@ -596,8 +624,8 @@
 /* SANS SOURCE OFFICIELLE, ON LE DIT. Un repere de saison affiche avec l'allure
    d'une obligation, c'est le genre de chose qui se retourne contre la maison. */
 .bdv-cal .echeance__repere {
-  color: var(--muted);
-  font-style: italic;
+  color: var(--bdv-encre-4);
+  font-style: normal;
 }
 
 /* ---------------------------------------------------------------------------
@@ -607,15 +635,15 @@
    quotidien : ils s'effacent derriere le contenu au lieu de le concurrencer.
 --------------------------------------------------------------------------- */
 .bdv-cal .cal__coche--choix {
-  border-color: var(--rule-fort);
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
+  border-color: var(--bdv-trait-fort);
+  color: var(--bdv-encre-3);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
 }
 .bdv-cal .cal__coche--choix:hover {
-  background: var(--paper-deep);
-  border-color: var(--bordeaux);
-  color: var(--bordeaux);
+  background: var(--bdv-surface-2);
+  border-color: var(--bdv-encre-4);
+  color: var(--bdv-encre-1);
 }
 
 /* CE QUI EST ETEINT SE RALLUME D'UN CLIC, et son titre EST le bouton : une
@@ -623,26 +651,26 @@
    et un reglage qui se cache une fois pose n'est pas un reglage. */
 .bdv-cal .cal__eteints {
   margin: 0 0 var(--e-s);
-  color: var(--muted);
-  font-size: var(--t-base);
-  font-style: italic;
+  color: var(--bdv-encre-4);
+  font-size: var(--bdv-f-2);
+  font-style: normal;
 }
 .bdv-cal .cal__rallume {
   padding: 0;
   border: 0;
-  border-bottom: var(--trait) dotted var(--bordeaux);
+  border-bottom: 1px dotted var(--bdv-accent);
   border-radius: var(--r-nul);
   background: none;
-  color: var(--bordeaux);
-  font-family: var(--font-corps);
+  color: var(--bdv-accent);
+  font-family: inherit;
   /* Le pas de l'echelle, pas `inherit` : la charte compte toute taille qui ne
      vient pas d'un jeton, et elle a raison, `inherit` cache d'ou vient la
      valeur. Ce bouton vit dans .cal__eteints, qui est en --t-base. */
-  font-size: var(--t-base);
-  font-style: italic;
+  font-size: var(--bdv-f-2);
+  font-style: normal;
   cursor: pointer;
 }
-.bdv-cal .cal__rallume:hover { color: var(--bordeaux-vif); }
+.bdv-cal .cal__rallume:hover { color: var(--bdv-accent-fort); }
 .bdv-cal .cal__rallume:focus-visible {
   outline: var(--trait-fort) solid var(--bordeaux);
   outline-offset: var(--trait);
@@ -699,14 +727,14 @@
   }
   .bdv-cal td.calm__c {
     /* 44 px de haut, le plancher tactile, et la case ENTIERE est la cible. */
-    height: 44px;
+    height: var(--bdv-cible);
     min-width: 0;
     padding: 2px 0;
     text-align: center;
     cursor: pointer;
   }
   .bdv-cal .calm__tete { justify-content: center; padding: 0; }
-  .bdv-cal .calm__n { min-width: 0; padding: 0; font-size: var(--t-micro); }
+  .bdv-cal .calm__n { min-width: 0; padding: 0; font-size: var(--bdv-f-1); }
   /* Le « + » par case n'a pas sa place ici : il n'apparait qu'au survol, et il n'y a
      pas de survol sur un telephone. Le formulaire de la piece reste en bas, entier. */
   .bdv-cal .calm__plus { display: none; }
@@ -746,7 +774,7 @@
     overflow: hidden;
     border: none;
     border-radius: var(--r-rond);
-    background: var(--cork-encre);
+    background: var(--bdv-encre-4);
     /* LA PASTILLE NE SE CLIQUE PAS, LA CASE SE CLIQUE. Defaut introduit par cette
        passe meme, et attrape a la relecture : la pastille reste un <button> qui COCHE
        l'obligation. A 6 px dans une case de 44, un pouce qui vise la case tombe une
@@ -757,17 +785,17 @@
   /* La couleur de famille passe du filet gauche au fond du point. Sans ces quatre
      lignes, toutes les pastilles seraient du meme brun et la carte ne dirait plus
      rien de ce qu'elle porte. */
-  .bdv-cal .calm__l .calo[data-famille="obligations"] .calo__b { background: var(--fam-1); }
-  .bdv-cal .calm__l .calo[data-famille="travaux"]    .calo__b { background: var(--fam-2); }
-  .bdv-cal .calm__l .calo[data-famille="rendezvous"] .calo__b { background: var(--fam-3); }
-  .bdv-cal .calm__l .calo[data-famille="tempsforts"] .calo__b { background: var(--fam-4); }
+  .bdv-cal .calm__l .calo[data-famille="obligations"] .calo__b { background: var(--bdv-fam-1); }
+  .bdv-cal .calm__l .calo[data-famille="travaux"]    .calo__b { background: var(--bdv-fam-2); }
+  .bdv-cal .calm__l .calo[data-famille="rendezvous"] .calo__b { background: var(--bdv-fam-3); }
+  .bdv-cal .calm__l .calo[data-famille="tempsforts"] .calo__b { background: var(--bdv-fam-4); }
   .bdv-cal .calm__l .calo[data-niveau="urgent"] .calo__b,
-  .bdv-cal .calm__l .calo[data-niveau="aujourdhui"] .calo__b { background: var(--danger-deep); }
-  .bdv-cal .calm__l .calo[data-niveau="passe"] .calo__b { background: var(--cork); }
+  .bdv-cal .calm__l .calo[data-niveau="aujourdhui"] .calo__b { background: var(--bdv-retard); }
+  .bdv-cal .calm__l .calo[data-niveau="passe"] .calo__b { background: var(--bdv-trait-fort); }
   /* Ce qui est fait se creuse au lieu de se remplir : un anneau, pas un point. */
   .bdv-cal .calm__l .calo[data-fait="oui"] .calo__b {
     background: transparent;
-    box-shadow: inset 0 0 0 2px var(--ok);
+    box-shadow: none;
   }
   /* Une occurrence qui DURE se lit comme un trait continu, pas comme un point de
      plus : c'est ce que disait la barre pleine sur ordinateur. */

@@ -168,6 +168,12 @@ depuis la scission du 21/09/2026.
 `style.css`, puis **`bdv-poste.css`** (la moitie bureau de l'ancienne `style.css`), puis
 `bdv-bureau.css` (le dessin de la coque, qui recouvre le papier restant).
 
+**DEPUIS LE 21/09/2026, `bdv-poste.css` PORTE SES PROPRES VALEURS DE THEME** et n'attend plus
+qu'on la recouvre : elle n'est chargee que par le bureau, donc on y ecrit les jetons `--bdv-*` a
+la source. `bdv-bureau.css` ne recouvre plus que ce qui reste dans `style.css`, plus la section
+16 par-dessus `bdv-calendrier.css` pour une raison de chargement. La regle qui decide est
+« UNE FEUILLE QUE SEUL LE BUREAU CHARGE SE REPEINT EN PLACE », plus bas dans ce fichier.
+
 **Posees par du JavaScript, donc dans aucun HTML :** `bdv-ecrans.css` (par `bdv-nav.js`, portee
 par `.bdv-ventes`), `bdv-panneau.css` (par `bdv-reglages.js`, portee par `.bdvr-panneau`),
 `bdv-calendrier.css` (par `bdv-nav.js` au premier clic sur le calendrier, portee par `.bdv-cal`).
@@ -2001,21 +2007,31 @@ bureau CHARGE, commentaires retires :
 ferait sortir des pages noires chez tout vigneron qui a choisi le sombre. Le papier est le bon
 medium pour le papier.
 
-**Les 237 sont le poids mort du lot 3**, et c'est le dernier chantier ouvert du dessin :
+~~**Les 237 sont le poids mort du lot 3**, et c'est le dernier chantier ouvert du dessin :
 `bdv-calendrier.css` n'a pas ete modifiee, elle a ete recouverte, parce que sa vue liste
-reutilise volontairement `.echeance` de `/outils/echeances/`. Les regles sont battues, pas
-supprimees, et elles voyagent a chaque ouverture du calendrier.
+reutilise volontairement `.echeance` de `/outils/echeances/`.~~
+
+**LES 237 SONT PASSES A 51 LE 21/09/2026, ET LE MOTIF DONNE ICI ETAIT FAUX.** Le partage de
+`.echeance` avec `/outils/echeances/` est un partage de NOMS, pas de pages : les 128 regles de
+`bdv-calendrier.css` sont toutes sous `.bdv-cal`, cette classe n'existe que dans
+`src/mon-bureau.njk`, et la page publique ne charge que `style.css`. La feuille a donc ete
+repeinte en place. Son recouvrement, lui, est reste, pour une raison de CHARGEMENT et pas de
+partage : `bdv-nav.js` la pose au premier clic sur la piece, dont le balisage est deja dans la
+page. Voir « UNE FEUILLE QUE SEUL LE BUREAU CHARGE SE REPEINT EN PLACE », plus bas.
 
 ### CE QUI RESTE OUVERT, APRES CINQ LOTS
 
-- **La scission de `style.css`.** C'est le chantier que les cinq lots ont rendu plus urgent, pas
-  moins. Deux recouvrements pesent dessus : la section 16 de `bdv-bureau.css` par-dessus
-  `bdv-calendrier.css` (237 appels papier battus), et les sections 9 a 17 par-dessus `.zone`,
-  `.postit`, `.lettre`. Tant que la demonstration de l'accueil partage ces classes avec le
-  bureau, on ne peut pas supprimer.
-- **`bdv-calendrier.css` repeinte en place**, le jour ou la vue liste ne partagera plus
-  `.echeance` avec la page publique. C'est le meme geste que ce lot vient de faire sur
-  `bdv-panneau.css`, et il rendrait ces 237 appels.
+- ~~**La scission de `style.css`.**~~ **FAITE LE 21/09/2026** (voir « LA FEUILLE DU SITE EST
+  SCINDEE EN DEUX »), et c'est elle qui a permis de lever le recouvrement des sections 9 a 17
+  le meme jour : 60 regles de `bdv-bureau.css` disparues, 345 valeurs papier de `bdv-poste.css`
+  remplacees par leur jeton. Ce qui reste vrai de cette note : les 119 regles que la
+  demonstration de l'accueil retient cote public ne peuvent toujours pas etre supprimees, et
+  leur recouvrement reste.
+- ~~**`bdv-calendrier.css` repeinte en place**, le jour ou la vue liste ne partagera plus
+  `.echeance` avec la page publique.~~ **FAIT LE 21/09/2026, ET LA CONDITION POSEE ICI N'ETAIT
+  PAS LA BONNE** : la page publique ne charge pas cette feuille, le partage ne porte que sur les
+  noms de classe. 237 appels papier passes a 51. Ce qui l'a empeche de rendre son recouvrement
+  est le MOMENT de son chargement, mesure a 329 ecarts par etat au banc de sortie.
 - **La porte de compte garde deux dessins**, le papier pour le site et les jetons pour le
   bureau. C'est juste, mais ca veut dire que toute regle ajoutee a `bdv-compte.js` doit etre
   doublee dans la section 20 de `bdv-bureau.css`. Il n'y a aucun garde-fou qui le rappelle.
@@ -2174,6 +2190,213 @@ des offsets de l'arbre pour DECOUPER le texte source, et ce qui arrive dans `bdv
 octet pour octet ce qui part de `style.css`. Le script refuse de tourner une seconde fois : sur
 une scission deja faite, il reecrirait le fichier de sortie avec son seul entete et ferait
 disparaitre les 310 regles sans un mot.
+
+## UNE FEUILLE QUE SEUL LE BUREAU CHARGE SE REPEINT EN PLACE, 21/09/2026
+
+**LA REGLE, ET ELLE AURAIT EVITE LES QUATRE DEFAUTS DES CINQ LOTS DU THEME :**
+
+> **Une feuille que SEUL le bureau charge se repeint EN PLACE. Une feuille PARTAGEE avec le
+> site se recouvre, et alors on balaye les specificites d'en face AVANT de capturer.**
+
+Le critere n'est pas « cette classe parle du bureau », c'est le meme que celui de la scission :
+**quelle page charge cette feuille.** Au 21/09/2026 le partage est celui-ci.
+
+| feuille | qui la charge | ce qu'on y fait |
+|---|---|---|
+| `bdv-theme.css` | /mon-bureau/ seul, liee | en place |
+| `bdv-poste.css` | /mon-bureau/ seul, liee | en place |
+| `bdv-bureau.css` | /mon-bureau/ seul, liee | en place |
+| `bdv-ecrans.css` | /mon-bureau/ seul, par JS | en place, lot 4 |
+| `bdv-panneau.css` | /mon-bureau/ seul, par JS | en place, lot 5 |
+| `bdv-calendrier.css` | /mon-bureau/ seul, par JS | en place, MAIS son recouvrement reste, voir plus bas |
+| `style.css` | les douze pages publiques ET le bureau | **on recouvre, on ne touche pas** |
+| le CSS de `bdv-compte.js` | le bureau ET le site public | **on recouvre** |
+
+### POURQUOI RECOUVRIR COUTE DEUX FOIS, ET LE SECOND PRIX EST LE VRAI
+
+1. **Du poids mort.** La valeur papier part quand meme au navigateur a chaque ouverture, et
+   elle ne peint jamais rien. Mesure avant ce lot : 555 appels a un jeton papier dans
+   `bdv-poste.css`, 237 dans `bdv-calendrier.css`.
+2. **Une course de specificite, et c'est elle qui a mordu quatre fois.** Recouvrir, c'est
+   parier que sa regle pese plus lourd que celle d'en face ET qu'on a nomme toutes ses
+   proprietes. **Les quatre defauts ont ete trouves A LA CAPTURE, jamais par un banc**, et
+   c'est structurel : un banc de feuille lit les regles qu'on ECRIT, pas celles qu'on laisse
+   passer, et il faudrait rejouer la cascade, c'est-a-dire etre un navigateur.
+
+**LES QUATRE, AVEC LEURS POIDS. A relire avant d'ecrire un recouvrement.**
+
+- **La barre d'onglets du telephone restee creme** (lot 2). Le recouvrement ne nommait que
+  `flex-direction` et `gap` ; le fond `--paper-light` et ses deux degrades passaient dessous
+  intacts. **Une propriete qu'on ne reecrit pas garde celle de la cascade**, et en sombre cette
+  valeur-la est toujours du papier. Aucune question de poids : une omission.
+- **Le bouton de bascule montrant ses trois glyphes** (lot 2).
+  `.bdv-coque .bdv-bascule svg{display:block}` pese **(0,2,1)** contre **(0,2,0)** pour
+  `.bdv-coque .bdv-bascule__g{display:none}` : le selecteur le plus GENERAL gagne parce qu'il
+  porte un nom d'element en plus.
+- **La punaise du panneau restee papier** (lot 3). `body.bdv-poste .panneau .postit[data-ton]`
+  de `style.css` pese **(0,4,1)** contre **(0,4,0)** : encore un nom d'element. `--bdv-encre-1`
+  sur `--warn-bg` donne **1,03:1**, c'est-a-dire un nom de client invisible.
+- **La barre « 286 lignes » restee creme** (lot 4). `#bureauVentes .bdv-ventes .topbar` pese
+  **(1,2,0)** contre **(0,2,0)** : un IDENTIFIANT de plus.
+- **Le titre de modale a 1,05:1** (lot 5), et c'est le plus instructif.
+  `h1,h2,h3,h4{color:var(--ink)}` pese **(0,0,1)** et gagnait quand meme, parce que la regle
+  d'en face ne nommait que `font-family` et `font-size`. **Aucune mesure de feuille ne pouvait
+  le dire : les deux moities de la paire sont dans deux fichiers.**
+
+### LE BALAYAGE SE FAIT AVANT LA CAPTURE, ET IL A DEUX SENS
+
+`"Claude outputs/lot5-specificite.mjs"` l'a fait dans un sens : **qui BAT le recouvrement que
+je viens d'ecrire.** Quatre defauts trouves en dix minutes, avant la premiere image.
+
+`"Claude outputs/lot7-repeindre.mjs"` le fait dans l'autre : **qui prendrait la main si je
+RETIRAIS un recouvrement.** Trois choses a savoir avant de s'en servir, et chacune a coute un
+passage du banc de sortie :
+
+1. **Les FAMILLES de proprietes, pas les noms.** `border` commande `border-left-color`, `gap`
+   commande `row-gap`, `padding` commande `padding-left`. Une abreviation posee plus tard ecrase
+   une propriete longue posee plus tot, a specificite egale. Le premier jet comparait les noms
+   tels quels : il a laisse partir `.bdv-coque .bdv-cal .calo__b{border-left}` et les quatre
+   couleurs de famille du calendrier sont retombees sur l'encre du texte. **1 260 ecarts.**
+2. **La classe de BASE d'une variante.** `<button class="btn btn--geste">` porte les deux
+   classes : `.bdv-coque .btn{border}` et `.btn--geste{border-color}` se disputent le meme pixel
+   alors que leurs selecteurs n'ont pas une classe en commun. Meme chose pour `.cal__coche` et
+   `.cal__coche--choix`. **8 667 ecarts** pour cette seule lacune.
+3. **Le point fixe.** Un recouvrement qu'on GARDE redevient un concurrent pour les autres :
+   on recalcule jusqu'a ce que plus rien ne bouge. Sans la boucle, le balayage ne voit que le
+   premier tour.
+
+**ET CE BALAYAGE NE SUFFIT PAS, IL NARROWS.** Sur les 45 paires que le banc de sortie a
+refusees, il en trouvait 16 tout seul. Les 29 autres demandaient de savoir quel element porte
+quelles classes, ce qu'aucune lecture de feuille ne sait : c'est le navigateur qui repond.
+**Le balayage reduit la surface, le banc tranche. Dans cet ordre, et pas l'un sans l'autre.**
+
+### LE MOMENT DU CHARGEMENT EST UNE CONDITION AUTANT QUE LE SCOPE
+
+`bdv-calendrier.css` est chargee par le bureau SEUL. Elle remplit donc le critere, et elle a
+bien ete repeinte en place. **Son recouvrement n'a pourtant pas pu etre leve.**
+
+`bdv-nav.js` la pose au PREMIER CLIC sur la piece, alors que le balisage du calendrier est dans
+la page depuis le chargement : son propre commentaire de tete le dit, « la piece est montree
+avant d'etre habillee ». Descendre la valeur et retirer le recouvrement laisse donc le
+calendrier NU entre le clic et l'arrivee de la feuille. Le banc de style calcule l'a chiffre :
+**329 ecarts par etat sur « Ma journee » et « Mes taches »**, c'est-a-dire exactement les etats
+ou la feuille n'est pas encore posee.
+
+**LA REGLE COMPLETE EST DONC :** une feuille que seul le bureau charge se repeint en place ; son
+recouvrement ne se leve que si elle arrive AUSSI TOT que celui qui la recouvre. Une feuille
+LIEE par le gabarit (`bdv-poste.css`) remplit les deux conditions. Une feuille posee par du
+code ne remplit que la premiere, et on la repeint quand meme : les deux ecritures disent alors
+la MEME chose, ce qui n'est plus une course de specificite, quelle que soit celle qui gagne.
+
+**ET LA NOTE DU LOT 5 SUR LE CALENDRIER ETAIT FAUSSE, IL FAUT LE SAVOIR.** Elle disait qu'on ne
+pouvait pas repeindre `bdv-calendrier.css` parce que « sa vue liste reutilise volontairement
+`.echeance` de `/outils/echeances/` ». C'est un partage de NOMS, pas un partage de pages : les
+128 regles de cette feuille sont toutes sous `.bdv-cal`, `.bdv-cal` n'existe que dans
+`src/mon-bureau.njk`, et `/outils/echeances/` ne charge que `style.css`. **Un partage de classes
+n'est un obstacle que si une page publique charge la feuille. On le mesure, on ne le deduit
+pas d'un nom.**
+
+### CE QUE LE LOT A DEPLACE, EN CHIFFRES
+
+**`src/css/bdv-poste.css`, repeinte en place et son recouvrement leve.** 345 valeurs papier
+remplacees par leur jeton `--bdv-*`. **555 appels papier avant, 233 apres.** Les 233 qui restent
+sont ceux qui PEIGNENT encore : « L'equipe » et l'invitation, que les cinq lots du theme n'ont
+jamais eu dans leur perimetre, plus des tailles, des familles et des ecarts que le dessin de la
+coque ne nomme pas. Les repeindre changerait l'ecran : ce n'est pas ce lot-ci.
+
+**`src/css/bdv-calendrier.css`, repeinte en place, recouvrement garde.** 176 valeurs descendues,
+**237 appels papier avant, 51 apres.**
+
+**`src/css/bdv-bureau.css`, allegee.** **434 regles avant, 374 apres** : 60 regles disparaissent
+en entier, 49 autres perdent 172 declarations. 53 401 octets servis avant, 44 215 apres.
+
+**Le compte de ce qui RESTE dans `bdv-bureau.css`, et les trois raisons de rester :**
+
+1. **la regle d'en face est dans `style.css`** : les 119 regles que la demonstration de l'accueil
+   oblige a garder cote public ne peuvent pas etre modifiees, elles servent une page qui n'a
+   qu'un theme ;
+2. **c'est du dessin neuf** : la coque, le rail, la barre basse, la bascule, les primitives n'ont
+   jamais eu de vis-a-vis a recouvrir ;
+3. **retirer le recouvrement aurait change l'ecran**, et c'est mesure : 68 paires refusees par le
+   balayage de specificite, plus la section 16 entiere pour la raison de chargement ci-dessus.
+
+**Les octets servis, feuille par feuille.** Les trois feuilles non touchees sont donnees pour
+qu'on voie que le site n'a rien paye :
+
+| feuille servie | avant | apres |
+|---|---|---|
+| `style.css` | 117 955 | 117 955 |
+| `bdv-poste.css` | 31 107 | 30 712 |
+| `bdv-bureau.css` | 53 401 | **44 215** |
+| `bdv-calendrier.css` | 13 642 | 13 906 |
+| `bdv-ecrans.css` | 39 602 | 39 602 |
+| `bdv-panneau.css` | 12 614 | 12 614 |
+| `bdv-theme.css` | 3 660 | 3 660 |
+| **total du bureau** | **271 981** | **262 664** |
+
+**Les 264 octets de PLUS sur `bdv-calendrier.css` ne se cachent pas** : `--bdv-surface-2` est
+plus long a ecrire que `--paper-deep`. C'est le prix d'une feuille qui dit desormais la verite au
+lieu de dire du papier qu'on recouvre, et il est paye une fois par ouverture du calendrier.
+
+**La borne des ombres de la section A de `npm run charte` est descendue de 15 a 14 cote site et
+de 20 a 16 cote bureau** : les ombres papier que les deux feuilles servaient sans jamais les
+peindre sont parties. Une borne DESCEND et ne remonte jamais.
+
+### LE BANC DE SORTIE, ET IL A REFUSE TROIS FOIS AVANT D'ACCEPTER
+
+`"Claude outputs/lot6-empreinte.mjs"` et `lot6-comparer.mjs`, repris du lot de la scission sans
+une ligne de changement : **45 etats, 141 187 elements et pseudo-elements, 139 proprietes
+chacun, 19 624 993 valeurs comparees. ZERO ecart** contre les DEUX releves d'avant.
+
+Il a dit non trois fois, et chaque refus a appris quelque chose au balayage statique :
+**8 606 ecarts** au premier passage (les familles de proprietes), **8 667** au deuxieme (la
+classe de base d'une variante), **1 986** au troisieme (le moment du chargement de
+`bdv-calendrier.css`). Un banc qui refuse est une information, pas un obstacle.
+
+**ET IL A ETE VERIFIE PAR MUTATION AVANT D'ETRE CRU**, comme le veut la regle du depot : un
+`word-spacing: 3px` glisse dans les 812 regles des trois feuilles touchees fait sortir
+**129 012 ecarts**. Un banc de non-regression qui n'a jamais vu un ecart n'a pas encore prouve
+qu'il sait en voir un.
+
+**LES DEUX PIEGES DE SON EN-TETE SONT REELS, ET LE PREMIER S'EST REPRODUIT.** Le `margin: auto`
+que Chromium rend a `0px` tant que la mise en page n'est pas resolue est sorti une fois sur le
+cadre de la demonstration de l'accueil, **2 ecarts sur un passage**, sur un lot qui ne touche
+aucune feuille que l'accueil charge. Le releve d'avant a donc ete fait DEUX FOIS et les deux ont
+servi de reference. La route de coupure reseau posee AVANT les doublures de CDN, elle, n'a pas
+bouge : c'est elle qui fait que les quatre pieces de vente se peignent.
+
+### CE QUE LES CAPTURES ONT MONTRE
+
+Les trois audits de rendu des lots 3, 4 et 5, rejoues : **zero valeur papier, zero paire sous
+son seuil**, sur les neuf pieces, les six onglets du panneau, la modale, la porte et le voile,
+dans les deux themes et aux deux largeurs.
+
+Et une comparaison PIXEL avec les captures du lot 3 gardees dans « Claude outputs » :
+`taches`, `calendrier` et `cal-annee` sont **identiques au pixel** en clair comme en sombre.
+« Ma journee » differe de 9 665 pixels, tous dans une seule phrase : « 75 % eclairee » est
+devenue « 77 % eclairee ». C'est la lune, qui est CALCULEE. Sur telephone, la barre basse des
+captures du lot 3 est creme et la mienne est sombre : c'est le premier des quatre defauts
+ci-dessus, corrige depuis, et ces images-la sont anterieures a sa correction.
+
+### CE QUI RESTE OUVERT
+
+- **Les 233 appels papier de `bdv-poste.css` et les 51 de `bdv-calendrier.css` PEIGNENT
+  encore.** Le plus visible est « L'equipe » : `.equipe-*` et `.invitation__*` n'ont jamais ete
+  dans le perimetre d'aucun des cinq lots du theme, et le decor de
+  `scripts/bureau-garni.mjs` rend cette piece SANS EQUIPIER, donc **aucun releve ne les voit**.
+  Le trou est deja documente en tete de `lot6-empreinte.mjs`. C'est le prochain lot, et il
+  CHANGERA l'ecran : il ne peut pas se faire sous la promesse de ce lot-ci.
+- **Les 91 appels papier de `bdv-ecrans.css`** restent voulus : ils sont tous dans
+  `#printReport`, qui ne sort que par l'imprimante.
+- **Le recouvrement de la section 16 de `bdv-bureau.css`** ne partira que le jour ou
+  `bdv-calendrier.css` sera LIEE par le gabarit au lieu d'etre posee au premier clic. C'est un
+  arbitrage de chargement, pas de dessin : la feuille pese 13,9 ko servis pour une piece que
+  tout le monde n'ouvre pas.
+- **Le balayage de specificite ne sait pas quel element porte quelles classes.** Il a trouve 16
+  des 45 paires que le banc a refusees. Lui apprendre a lire le DOM des neuf pieces le rendrait
+  suffisant tout seul ; aujourd'hui il faut les deux.
+- **Le thermometre 2 n'a pas bouge** : 56,9 ko de `style.css` voyagent toujours dans le bureau
+  sans pouvoir s'y appliquer. Ce lot a traite l'autre sens. Ne pas l'annoncer comme regle.
 
 ## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026, REVU LE 21/09/2026
 

@@ -12,6 +12,131 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 21/09/2026, au soir. Le recouvrement est levé : on ne cache plus le papier, on le remplace
+
+La scission de `style.css` du matin n'était pas une fin, c'était une condition. Pendant les cinq
+lots des deux thèmes, le bureau a dû **recouvrir** les règles papier au lieu de les remplacer,
+parce qu'elles vivaient dans `style.css` et que la démonstration de l'accueil s'en sert. Ce lot
+supprime la cause, pas les symptômes.
+
+**Ce que le recouvrement coûtait, et le second prix est le vrai.** Du poids mort, d'abord :
+555 appels à un jeton papier dans `bdv-poste.css`, 237 dans `bdv-calendrier.css`, tous servis à
+chaque ouverture et aucun ne peignant quoi que ce soit. Et surtout une course de specificité, qui
+a mordu **quatre fois** : la barre d'onglets du téléphone restée crème, la punaise du panneau
+restée papier, la barre « 286 lignes » restée crème, le titre de modale à 1,05:1. Les quatre ont
+été trouvés **à la capture, jamais par un banc**, et c'est structurel : un banc de feuille lit
+les règles qu'on écrit, pas celles qu'on laisse passer.
+
+### Ce qui a bougé
+
+`src/css/bdv-poste.css` est **repeinte en place** et son recouvrement est **retiré** : 345
+valeurs papier remplacées par leur jeton `--bdv-*`, **555 appels papier avant, 233 après**.
+
+`src/css/bdv-bureau.css` passe de **434 règles à 374** : 60 disparaissent en entier, 49 autres
+perdent 172 déclarations. **53 401 octets servis avant, 44 215 après.** Le total du CSS que le
+bureau télécharge passe de 271 981 à 262 664 octets. `style.css` ne bouge pas d'un octet : le
+site public ne paie rien et ne gagne rien, ce lot ne le concerne pas.
+
+`src/css/bdv-calendrier.css` est **repeinte en place aussi** : 237 appels papier passés à 51.
+
+### La note du lot 5 sur le calendrier était fausse, et je l'ai mesurée au lieu de la croire
+
+Elle disait qu'on ne pouvait pas repeindre `bdv-calendrier.css` parce que sa vue liste « partage
+`.echeance` avec `/outils/echeances/` ». C'est un partage de **noms**, pas de pages : les 128
+règles de cette feuille sont toutes sous `.bdv-cal`, cette classe n'existe que dans
+`src/mon-bureau.njk`, et la page publique des échéances ne charge que `style.css`. Rien
+n'empêchait de la repeindre.
+
+**Ce qui l'empêche de rendre son recouvrement est autre chose, et c'est le moment du
+chargement.** `bdv-nav.js` pose cette feuille au **premier clic** sur la pièce, alors que le
+balisage du calendrier est dans la page depuis le début, et son propre commentaire de tête le dit
+déjà : « la pièce est montrée avant d'être habillée ». Descendre la valeur et retirer le
+recouvrement laisserait donc le calendrier nu entre le clic et l'arrivée de la feuille. Le banc
+l'a chiffré : **329 écarts par état** sur « Ma journée » et « Mes tâches », c'est-à-dire
+exactement les états où la feuille n'est pas encore posée.
+
+La section 16 de `bdv-bureau.css` garde donc son recouvrement, et les deux feuilles disent
+maintenant **la même chose**. Ce n'est plus une course de specificité : quelle que soit celle qui
+gagne, la couleur est la bonne. C'est la moitié du gain, prise sans le risque.
+
+### La règle que ce lot écrit dans CLAUDE.md
+
+> Une feuille que **seul** le bureau charge se repeint **en place**. Une feuille **partagée** avec
+> le site se recouvre, et alors on balaye les specificités d'en face **avant** de capturer.
+
+Avec une condition de plus, que ce lot a découverte : le recouvrement ne se lève que si la
+feuille d'en dessous arrive **aussi tôt** que celle qui la recouvre. Une feuille liée par le
+gabarit remplit les deux conditions ; une feuille posée par du code ne remplit que la première.
+
+Les quatre défauts sont écrits avec leurs poids, parce que c'est ça qui se relit : `(0,2,1)`
+contre `(0,2,0)` pour un nom d'élément de plus, `(0,4,1)` contre `(0,4,0)` pour la punaise,
+`(1,2,0)` contre `(0,2,0)` pour un identifiant, et `h1,h2,h3,h4{color}` à `(0,0,1)` qui gagne
+quand la règle d'en face ne nomme que `font-family` et `font-size`.
+
+### Le banc a dit non trois fois, et chaque refus a appris quelque chose
+
+Le garde-fou est celui de la scission, repris sans une ligne de changement : le style **calculé**
+de chaque élément et de ses `::before` / `::after`, sur la page construite et servie.
+**45 états, 141 187 éléments, 139 propriétés chacun, 19 624 993 valeurs.**
+
+Verdict final : **zéro écart**, contre les deux relevés d'avant. Mais il a refusé trois fois.
+
+1. **8 606 écarts.** Mon balayage comparait les **noms** de propriétés. Or `border` commande
+   `border-left-color` et `gap` commande `row-gap` : une abréviation posée plus tard écrase une
+   propriété longue posée plus tôt. Les quatre couleurs de famille du calendrier étaient
+   retombées sur l'encre du texte.
+2. **8 667 écarts.** Un `<button class="btn btn--geste">` porte les **deux** classes :
+   `.bdv-coque .btn{border}` et `.btn--geste{border-color}` se disputent le même pixel alors que
+   leurs sélecteurs n'ont pas une classe en commun. Même chose pour `.cal__coche--choix`.
+3. **1 986 écarts.** Le moment du chargement de `bdv-calendrier.css`, raconté plus haut.
+
+**Et le banc a été vérifié par mutation avant d'être cru** : un `word-spacing: 3px` glissé dans
+les 812 règles des trois feuilles touchées fait sortir **129 012 écarts**. Un banc de
+non-régression qui n'a jamais vu un écart n'a pas encore prouvé qu'il sait en voir un.
+
+Un mot sur ses deux pièges, tous les deux réels. Le `margin: auto` que Chromium rend à `0px` tant
+que la mise en page n'est pas résolue est ressorti **une fois**, deux écarts sur le cadre de la
+démonstration de l'accueil, sur un lot qui ne touche aucune feuille que l'accueil charge. J'ai
+donc relevé l'état d'avant **deux fois** et comparé aux deux. La route de coupure réseau posée
+avant les doublures de CDN, elle, n'a pas bougé.
+
+### Ce que les yeux ont vu
+
+Les trois audits de rendu des lots 3, 4 et 5 rejoués : **zéro valeur papier, zéro paire sous son
+seuil**, sur les neuf pièces, les six onglets du panneau, la modale, la porte et le voile, dans
+les deux thèmes et aux deux largeurs.
+
+Et une comparaison pixel avec les captures du lot 3 gardées dans « Claude outputs » : « Mes
+tâches », le calendrier et la vue année sont **identiques au pixel**, clair et sombre. « Ma
+journée » diffère de 9 665 pixels, tous dans une seule phrase : « 75 % éclairée » est devenue
+« 77 % éclairée ». C'est la lune, qui est calculée. Sur téléphone, la barre basse des captures du
+lot 3 est crème et la mienne est sombre : c'est le premier des quatre défauts, corrigé depuis, et
+ces images-là sont antérieures à sa correction.
+
+`npm run verif` passe en entier, ses trente-sept étapes une par une. `npm run charte` et
+`npm run charte:bureau` sont CONFORME. La borne des ombres de la section A descend de 15 à 14
+côté site et de 20 à 16 côté bureau : les ombres papier que les deux feuilles servaient sans
+jamais les peindre sont parties. Une borne descend et ne remonte jamais.
+
+### Ce que je te laisse, et il faut le savoir avant de croire le lot fini
+
+**Les 233 appels papier qui restent dans `bdv-poste.css` peignent encore.** Le plus visible est
+**« L'équipe »** : `.equipe-*` et `.invitation__*` n'ont jamais été dans le périmètre d'aucun des
+cinq lots du thème. Ils sont donc toujours en papier, et en sombre ils posent de l'encre foncée
+sur des cartes sombres. Pire : le décor de `scripts/bureau-garni.mjs` rend cette pièce **sans
+équipier**, donc **aucun relevé ne les voit** et aucun audit ne les signale. Le trou est déjà
+documenté en tête du banc depuis ce matin. Les repeindre **changera** l'écran : c'est un lot à
+part, il ne pouvait pas se faire sous la promesse de celui-ci.
+
+Le reste est petit : les 91 appels papier de `bdv-ecrans.css` restent voulus, ils sont tous dans
+le rapport imprimable ; le recouvrement de la section 16 partira le jour où on décidera de lier
+`bdv-calendrier.css` au gabarit, ce qui est un arbitrage de chargement, pas de dessin ; et mon
+balayage de specificité ne sait pas quel élément porte quelles classes, donc il trouve 16 des
+45 paires que le banc a refusées. Lui apprendre à lire le DOM des neuf pièces le rendrait
+suffisant tout seul. Aujourd'hui il faut les deux, et dans cet ordre.
+
+---
+
 ## 21/09/2026, au petit matin. `style.css` est coupée en deux
 
 Le chantier que les cinq lots des deux thèmes ont rendu urgent. `src/css/style.css` faisait

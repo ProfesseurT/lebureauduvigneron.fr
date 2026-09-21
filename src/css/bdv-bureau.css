@@ -64,6 +64,49 @@
    et la section 4 de `npm run banc:jetons` echoue si une echelle se retourne
    dans un bloc sombre. Un theme change des couleurs, il ne change ni le rythme
    ni la taille du texte.
+
+   --------------------------------------------------------------------------
+   CETTE FEUILLE A MAIGRI LE 21/09/2026, ET LA SCISSION EST CE QUI L'A PERMIS
+   --------------------------------------------------------------------------
+   Quand ces sections ont ete ecrites, TOUT le dessin du bureau devait RECOUVRIR
+   src/css/style.css, parce que la demonstration de l'accueil partage `.zone`,
+   `.postit` et `.lettre` avec le bureau. Depuis la scission, la moitie bureau de
+   style.css vit dans src/css/bdv-poste.css, que SEUL /mon-bureau/ charge : la
+   valeur du bureau peut donc s'ecrire A LA SOURCE au lieu de se poser par-dessus.
+
+   CE QUI EST PARTI : 60 regles entierement, 172 declarations dans 49 regles qui
+   restent. 434 regles avant, 374 apres ; 53 401 octets servis avant, 44 215
+   apres. Les valeurs correspondantes se lisent maintenant dans bdv-poste.css,
+   et les commentaires qui les expliquaient sont descendus avec elles.
+
+   CE QUI RESTE, ET IL Y A EXACTEMENT TROIS RAISONS DE RESTER :
+
+     1. LA REGLE D'EN FACE EST DANS style.css. Les 119 regles que la
+        demonstration de l'accueil oblige a garder cote public ne peuvent pas
+        etre modifiees : elles servent une page qui n'a qu'un theme. Le
+        recouvrement est la seule facon de les tenir, et il reste.
+     2. C'EST DU DESSIN NEUF. La coque, le rail, la barre basse, la bascule, les
+        primitives : rien a recouvrir, ces regles n'ont jamais eu de vis-a-vis.
+     3. RETIRER LE RECOUVREMENT AURAIT CHANGE L'ECRAN, et c'est mesure, jamais
+        suppose. Deux cas :
+        . une regle d'en face se glissait ENTRE la cible et le recouvrement, donc
+          elle aurait pris la main. C'est le balayage de specificite de
+          "Claude outputs/lot7-repeindre.mjs", fait AVANT la capture et non
+          apres, et il tourne jusqu'au point fixe parce qu'un recouvrement garde
+          redevient un concurrent pour les autres ;
+        . la cible vit dans bdv-calendrier.css, que bdv-nav.js pose au PREMIER
+          CLIC sur la piece alors que son balisage est dans la page depuis le
+          debut. Y descendre la valeur laisserait le calendrier nu entre le clic
+          et l'arrivee de la feuille : 329 ecarts par etat au banc de sortie sur
+          « Ma journee » et « Mes taches ». La section 16 garde donc son
+          recouvrement, et bdv-calendrier.css a quand meme ete repeinte a la
+          source : les deux ecritures disent la meme chose, ce qui n'est plus une
+          course de specificite.
+
+   LA REGLE GENERALE QUI SORT DE CE LOT est ecrite dans CLAUDE.md, « UNE FEUILLE
+   QUE SEUL LE BUREAU CHARGE SE REPEINT EN PLACE » : une feuille partagee avec le
+   site se recouvre, et alors on balaye les specificites d'en face AVANT de
+   capturer. Les quatre defauts qui l'ont payee y sont nommes avec leurs poids.
    ============================================================================ */
 
 
@@ -120,15 +163,9 @@ body.bdv-coque{
    cible de 44 px et son air : 44 + 2 x 6.
    ========================================================================== */
 .bdv-coque .bureau-tete{
-  background:var(--bdv-fond);
-  color:var(--bdv-encre-2);
   border-bottom:1px solid var(--bdv-trait);
-  padding-block:0;
 }
 .bdv-coque .bureau-tete__ligne{
-  display:flex;
-  align-items:center;
-  gap:var(--bdv-e-3);
   min-height:var(--bdv-h-tete);
   flex-wrap:nowrap;
 }
@@ -146,12 +183,8 @@ body.bdv-coque{
   margin:0;
 }
 .bdv-coque .bureau-tete__jour{
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
   white-space:nowrap;
   margin:0;
-  text-transform:none;
-  letter-spacing:0;
 }
 /* Le point de separation de la maquette. Un `::before` et pas un caractere :
    un point median dans le texte part dans la synthese vocale et dans la
@@ -171,10 +204,6 @@ body.bdv-coque{
    cette version : le depot n'a pas encore de source qui dise « a jour depuis
    N minutes », et un point vert qui ne lit rien est un temoin qui ment. */
 .bdv-coque .bureau-tete__resume{
-  margin:0 0 0 auto;
-  font-style:normal;
-  font-size:var(--bdv-f-1);
-  color:var(--bdv-encre-4);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -182,16 +211,11 @@ body.bdv-coque{
   text-align:right;
 }
 .bdv-coque .bureau-tete__actions{
-  display:flex;
   /* `flex-direction:row` N'EST PAS REDONDANT. style.css empile ces boutons en
      COLONNE depuis le 08/09/2026, et une propriete qu'on ne reecrit pas reste
      celle de la cascade : sans cette ligne, l'en-tete mesurait 139 px au lieu de
      56, avec un `min-height` de 56 parfaitement respecte. Mesure du 21/09/2026,
      a la capture. */
-  flex-direction:row;
-  align-items:center;
-  gap:var(--bdv-e-2);
-  flex:0 0 auto;
   margin-left:0;
 }
 .bdv-coque .bureau-tete__reglages,
@@ -200,16 +224,11 @@ body.bdv-coque{
   align-items:center;
   justify-content:center;
   min-height:36px;
-  padding:0 var(--bdv-e-3);
   border-radius:var(--bdv-r);
   border:1px solid var(--bdv-trait-fort);
   background:var(--bdv-surface);
-  color:var(--bdv-encre-2);
-  font-size:var(--bdv-f-2);
   font-weight:500;
   white-space:nowrap;
-  letter-spacing:0;
-  text-transform:none;
   transition:background var(--bdv-d-court) var(--bdv-courbe),
              border-color var(--bdv-d-court) var(--bdv-courbe),
              color var(--bdv-d-court) var(--bdv-courbe);
@@ -218,7 +237,6 @@ body.bdv-coque{
 .bdv-coque .bureau-tete__sortir:hover{
   background:var(--bdv-surface-2);
   border-color:var(--bdv-encre-4);
-  color:var(--bdv-encre-1);
 }
 /* « Me deconnecter » efface ce navigateur : elle reste volontairement en
    second, sans cadre, pour ne pas se cliquer par reflexe. Decision du
@@ -226,13 +244,8 @@ body.bdv-coque{
 .bdv-coque .bureau-tete__sortir{
   border-color:transparent;
   background:transparent;
-  color:var(--bdv-encre-3);
 }
 .bdv-coque .bureau-tete__sortir::after{ display:none; }
-.bdv-coque .bureau-tete__sortir-avis{
-  font-size:var(--bdv-f-1);
-  color:var(--bdv-encre-4);
-}
 .bdv-coque .bureau-tete__invite{
   color:var(--bdv-accent);
   border-bottom-color:var(--bdv-accent-trait);
@@ -321,39 +334,19 @@ body.bdv-coque{
   color:var(--bdv-encre-1);
 }
 .bdv-coque .bureau-tete__plaque{
-  margin:0;
-  font-size:var(--bdv-f-2);
   font-weight:500;
-  color:var(--bdv-encre-3);
-  letter-spacing:0;
-  text-transform:none;
 }
 /* LA LUNE RESTE UN OBJET CALCULE, et elle garde son dessin en deux arcs : on
    ne repeint ici que ses couleurs et sa place. Elle passe a droite du salut,
    sur la meme ligne, au lieu de tenir le milieu du bandeau. */
 .bdv-coque .bureau-tete__lune{
-  display:flex;
-  align-items:center;
-  gap:var(--bdv-e-2);
   margin-left:auto;
   padding:0;
   border:0;
   background:none;
 }
-.bdv-coque .bureau-tete__lune-ombre{ fill:var(--bdv-surface-2); }
-.bdv-coque .bureau-tete__lune-clair{ fill:var(--bdv-encre-3); }
-.bdv-coque .bureau-tete__lune-bord{ stroke:var(--bdv-trait-fort); }
 .bdv-coque .bureau-tete__lune-nom{
-  font-size:var(--bdv-f-2);
   font-weight:500;
-  color:var(--bdv-encre-2);
-  letter-spacing:0;
-  text-transform:none;
-}
-.bdv-coque .bureau-tete__lune-note,
-.bdv-coque .bureau-tete__lune-suite{
-  font-size:var(--bdv-f-1);
-  color:var(--bdv-encre-4);
 }
 
 
@@ -428,15 +421,8 @@ body.bdv-coque{
   }
 }
 .bdv-coque .bureau-nav__bureau{
-  display:block;
-  padding:0 var(--bdv-e-2) var(--bdv-e-3);
-  font-size:var(--bdv-f-1);
   font-weight:600;
-  color:var(--bdv-encre-4);
-  letter-spacing:var(--bdv-ls-etiq);
-  text-transform:uppercase;
 }
-.bdv-coque .bureau-nav__bureau:hover{ color:var(--bdv-accent); }
 .bdv-coque .bureau-nav__item{
   position:relative;
   display:flex;
@@ -721,8 +707,6 @@ body.bdv-coque{
 }
 .bdv-coque .zone__vide,
 .bdv-coque .zone__pied{
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
   font-style:normal;
 }
 
@@ -1255,28 +1239,15 @@ body.bdv-coque{
    du texte, qui vient justement de changer.
    ========================================================================== */
 .bdv-coque .zone--sousmain{ border-top-color:var(--bdv-trait); }
+/* LE PAPIER A PICOTS S'EN VA, ET LA FENETRE RESTE FERMEE : les deux valeurs
+   sont ecrites a la source, dans src/css/bdv-poste.css, avec leur POURQUOI. */
 .bdv-coque .listbb{
   padding:0;
-  border:0;
   border-radius:var(--bdv-r);
-  box-shadow:none;
-  background-color:transparent;
-  /* Les picots, les deux filets verticaux et le pas de 26 px : une recette de
-     quatre degrades. Elle ne se retourne pas, elle s'enleve. */
-  background-image:none;
-  /* On garde la fenetre fermee : un contenu trop large defile DANS son cadre et
-     ne pousse jamais la page. Defaut paye le 07/09/2026, mesure a 112 px. */
-  overflow-x:auto;
 }
 .bdv-coque .listb{
-  width:100%;
-  table-layout:fixed;
   font-size:var(--bdv-f-3);
 }
-/* LES CINQ LARGEURS, MESURES DE LA MAQUETTE. La colonne d'action garde sa place
-   meme quand les gestes sont invisibles : ils s'effacent par l'opacite et non
-   par `display`, donc la rangee ne bouge pas d'un pixel au survol. */
-.bdv-coque .listb th:nth-child(1){ width:24%; }
 .bdv-coque .listb th:nth-child(2){ width:21%; }
 .bdv-coque .listb th:nth-child(3){ width:13%; }
 .bdv-coque .listb th:nth-child(4){ width:11%; }
@@ -1298,7 +1269,6 @@ body.bdv-coque{
   height:var(--bdv-cible);
   padding:0 var(--bdv-e-3);
   background:none;
-  border-bottom:1px solid var(--bdv-trait);
   font-size:var(--bdv-f-3);
   color:var(--bdv-encre-2);
   vertical-align:middle;
@@ -1310,21 +1280,6 @@ body.bdv-coque{
 .bdv-coque .listb tbody tr:hover td:first-child{ box-shadow:none; }
 .bdv-coque .listb tbody tr:last-child td{ border-bottom:0; }
 
-/* LE FICHIER CLIENT. Le nom est un bouton qui ouvre la fiche : il garde son
-   encre de titre et ne prend l'accent qu'au survol. En bordeaux permanent il se
-   lisait comme un lien de site au milieu d'un listing. */
-.bdv-coque .listb__nom{
-  font-family:inherit;
-  font-size:var(--bdv-f-3);
-  font-weight:500;
-  color:var(--bdv-encre-1);
-}
-.bdv-coque .listb__nom:hover{ color:var(--bdv-accent); }
-.bdv-coque .listb__ref{
-  font-family:inherit;
-  font-size:var(--bdv-f-1);
-  color:var(--bdv-encre-4);
-}
 .bdv-coque .listb td.listb__motif{
   font-size:var(--bdv-f-2);
   color:var(--bdv-encre-3);
@@ -1391,24 +1346,15 @@ body.bdv-coque{
   .bdv-coque .listb tbody tr:hover td.listb__gestes,
   .bdv-coque .listb tbody tr:focus-within td.listb__gestes{ opacity:1; }
 }
-/* L'attente d'une fiche qui s'ouvre : elle se voit sur la rangee cliquee, et
-   son voile de 45 % se lit dans les deux themes puisqu'il ne fait que diluer
-   l'encre vers la surface qui est dessous. */
-.bdv-coque .listb__l[data-attente="oui"]{ opacity:.55; }
 
 /* L'AVIS DU SOUS-MAIN (« ton export date de N jours »). Un bandeau d'alerte, un
    filet de 2 px, et son mot : la couleur ne dit rien toute seule. */
 .bdv-coque .bureau-avis{
-  padding:var(--bdv-e-2) var(--bdv-e-3);
-  background:var(--bdv-alerte-lavis);
-  border-left:2px solid var(--bdv-alerte);
   border-radius:var(--bdv-r-pastille);
   color:var(--bdv-encre-1);
-  font-size:var(--bdv-f-2);
 }
 .bdv-coque .bureau-avis[data-ok="oui"]{
   background:var(--bdv-bon-lavis);
-  border-left-color:var(--bdv-bon);
 }
 
 /* LE LISTING QUAND SA ZONE EST ETROITE : UNE FICHE PAR LIGNE. Le basculement
@@ -1422,7 +1368,6 @@ body.bdv-coque{
   .bdv-coque .listb td{
     height:auto;
     padding:0 var(--bdv-e-2);
-    border-bottom:0;
   }
   .bdv-coque .listb tbody tr{
     padding:var(--bdv-e-2) 0;
@@ -1430,7 +1375,6 @@ body.bdv-coque{
   }
   .bdv-coque .listb tbody tr:last-child{ border-bottom:0; }
   .bdv-coque .listb td.listb__gestes{ opacity:1; }
-  .bdv-coque .listb tbody tr:hover{ box-shadow:none; }
 }
 
 
@@ -1449,64 +1393,32 @@ body.bdv-coque{
    Rien ne change de ce cote, c'est le meme `<a>`.
    ========================================================================== */
 .bdv-coque .zone--calendrier{ border-top-color:var(--bdv-trait); }
-.bdv-coque .calbloc{ gap:var(--bdv-e-3); }
 .bdv-coque .calbloc__une{
-  display:grid;
   grid-template-columns:auto minmax(0,1fr);
   column-gap:var(--bdv-e-3);
   align-items:baseline;
   padding:0;
-  background:none;
-  border:0;
   border-radius:0;
-  box-shadow:none;
-  color:var(--bdv-encre-2);
-  transition:color var(--bdv-d-court) var(--bdv-courbe);
 }
-.bdv-coque .calbloc__une:hover{ box-shadow:none; }
 .bdv-coque .calbloc__une:hover .calbloc__titre{ color:var(--bdv-accent); }
 /* Le mois devient l'etiquette de l'objet, a sa place d'etiquette : 12 px en
    capitales espacees, comme le titre de n'importe quelle zone du bureau. */
 .bdv-coque .calbloc__mois{
   grid-column:1 / -1;
-  padding:0;
   margin-bottom:var(--bdv-e-1);
-  background:none;
-  color:var(--bdv-encre-4);
-  font-family:inherit;
-  font-size:var(--bdv-f-1);
   font-weight:600;
-  letter-spacing:var(--bdv-ls-etiq);
-  text-align:left;
 }
-/* La perforation etait une matiere, pas une information : elle s'en va. */
-.bdv-coque .calbloc__trous{ display:none; }
 .bdv-coque .calbloc__jour{
   grid-column:1;
-  padding:0;
-  font-family:inherit;
-  font-size:var(--bdv-f-6);
-  font-weight:600;
-  line-height:1.05;
-  letter-spacing:var(--bdv-ls-serre);
-  text-align:left;
   color:var(--bdv-encre-1);
   font-variant-numeric:tabular-nums;
 }
 .bdv-coque .calbloc__quand{
   grid-column:2;
   padding:0;
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  text-align:left;
-  color:var(--bdv-encre-4);
 }
 .bdv-coque .calbloc__titre{
   grid-column:1 / -1;
-  padding:var(--bdv-e-1) 0 0;
-  border-top:0;
-  font-size:var(--bdv-f-3);
-  line-height:1.35;
   color:var(--bdv-encre-1);
   transition:color var(--bdv-d-court) var(--bdv-courbe);
 }
@@ -1515,11 +1427,8 @@ body.bdv-coque{
    porte donc rien toute seule. */
 .bdv-coque .calbloc__une[data-niveau="urgent"] .calbloc__mois,
 .bdv-coque .calbloc__une[data-niveau="aujourdhui"] .calbloc__mois{
-  background:none;
   color:var(--bdv-retard);
 }
-.bdv-coque .calbloc__une[data-niveau="urgent"] .calbloc__jour,
-.bdv-coque .calbloc__une[data-niveau="aujourdhui"] .calbloc__jour{ color:var(--bdv-retard); }
 .bdv-coque .calbloc__une[data-niveau="urgent"] .calbloc__quand,
 .bdv-coque .calbloc__une[data-niveau="aujourdhui"] .calbloc__quand{
   color:var(--bdv-retard);
@@ -1529,23 +1438,14 @@ body.bdv-coque{
    listes du bureau. La date garde sa colonne des que la zone a la place, c'est
    la requete de conteneur de style.css et elle n'est pas touchee. */
 .bdv-coque .calbloc__suite{
-  gap:0;
   margin-top:var(--bdv-e-2);
   border-top:1px solid var(--bdv-trait);
 }
 .bdv-coque .calbloc__ligne{
-  padding:var(--bdv-e-2) 0;
-  background:none;
   border-bottom:1px solid var(--bdv-trait);
 }
 .bdv-coque .calbloc__suite .calbloc__ligne:last-child{ border-bottom:0; }
-.bdv-coque .calbloc__d{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
-}
 .bdv-coque .calbloc__q{
-  font-size:var(--bdv-f-2);
   color:var(--bdv-encre-2);
 }
 
@@ -1686,8 +1586,6 @@ body.bdv-coque{
   flex:0 0 var(--bdv-e-6);
   border:1px solid var(--bdv-trait-fort);
   border-radius:var(--bdv-r-pastille);
-  font-size:var(--bdv-f-2);
-  line-height:1;
   color:var(--bdv-encre-3);
 }
 /* La teinte du cadre suit la gravite. Elle est le TROISIEME signal : le glyphe
@@ -1697,22 +1595,12 @@ body.bdv-coque{
 .bdv-coque .mot[data-kind="warn"] .mot__ico{ color:var(--bdv-alerte); border-color:var(--bdv-alerte); }
 .bdv-coque .mot[data-kind="ok"] .mot__ico{ color:var(--bdv-bon); border-color:var(--bdv-bon); }
 .bdv-coque .mot__v{
-  margin:0;
-  font-family:inherit;
-  font-size:var(--bdv-f-3);
   font-weight:500;
-  line-height:1.4;
-  color:var(--bdv-encre-1);
 }
 .bdv-coque .mot__a{
   margin-top:var(--bdv-e-1);
-  font-size:var(--bdv-f-2);
-  line-height:1.45;
-  color:var(--bdv-encre-3);
 }
-.bdv-coque .mot__aller{ color:inherit; }
 .bdv-coque .mot__aller:hover{ color:var(--bdv-accent); }
-.bdv-coque .mot__fleche{ color:var(--bdv-accent); }
 /* « Le suivant » : un bouton de lien, pose sous la carte, HORS d'elle. Un
    element interactif dans un element interactif est interdit, et ce depot l'a
    deja paye deux fois. */
@@ -1885,29 +1773,9 @@ body.bdv-coque{
 /* -- LE FORMULAIRE ------------------------------------------------------- */
 .bdv-coque .tachesf__l{
   margin-bottom:var(--bdv-e-2);
-  font-family:inherit;
-  font-size:var(--bdv-f-1);
   font-weight:600;
   letter-spacing:var(--bdv-ls-etiq);
   text-transform:uppercase;
-  color:var(--bdv-encre-4);
-}
-.bdv-coque .tachesf__ligne{ gap:var(--bdv-e-2); }
-.bdv-coque .tachesf__i,
-.bdv-coque .tachesf__d{
-  padding:0 var(--bdv-e-3);
-  font-family:inherit;
-  font-size:var(--bdv-f-saisie);
-  color:var(--bdv-encre-1);
-  background:var(--bdv-surface);
-  border:1px solid var(--bdv-trait-fort);
-  border-radius:var(--bdv-r);
-}
-.bdv-coque .tachesf__i:focus,
-.bdv-coque .tachesf__d:focus{ border-color:var(--bdv-accent); }
-.bdv-coque .tachesf__au{
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
 }
 /* Le bouton du site faisait 0,9 rem sur 2 rem dans une ligne de saisie. Sous le
    scope il est deja un `.btn` du bureau ; il ne lui manque que la hauteur des
@@ -1918,22 +1786,12 @@ body.bdv-coque{
   font-size:var(--bdv-f-2);
 }
 .bdv-coque .tachesf__grand{
-  display:inline-flex;
-  align-items:center;
-  min-height:var(--bdv-cible);
-  padding:0 var(--bdv-e-2);
-  color:var(--bdv-encre-3);
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
   font-weight:500;
   transition:color var(--bdv-d-court) var(--bdv-courbe);
 }
-.bdv-coque .tachesf__grand:hover{ color:var(--bdv-accent); }
 .bdv-coque .tachesf__aide{
   margin-top:var(--bdv-e-2);
-  font-size:var(--bdv-f-2);
   line-height:1.45;
-  color:var(--bdv-encre-4);
 }
 
 /* -- LES ETIQUETTES DE FAMILLE, PARTAGEES AVEC LE CALENDRIER --------------- */
@@ -1943,63 +1801,16 @@ body.bdv-coque{
   display:inline-flex;
   align-items:center;
   min-height:var(--bdv-e-8);
-  padding:0 var(--bdv-e-3);
-  background:var(--bdv-surface);
-  border:1px solid var(--bdv-trait-fort);
-  border-left:3px solid var(--bdv-fam-1);
-  border-radius:var(--bdv-r);
-  color:var(--bdv-encre-2);
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
   font-weight:500;
-  letter-spacing:0;
-  transition:background var(--bdv-d-court) var(--bdv-courbe),
-             color var(--bdv-d-court) var(--bdv-courbe),
-             border-color var(--bdv-d-court) var(--bdv-courbe);
-}
-.bdv-coque .filtfam[data-fam="travaux"]    { border-left-color:var(--bdv-fam-2); }
-.bdv-coque .filtfam[data-fam="rendezvous"] { border-left-color:var(--bdv-fam-3); }
-.bdv-coque .filtfam[data-fam="tempsforts"] { border-left-color:var(--bdv-fam-4); }
-/* LA CINQUIEME FAMILLE N'A PAS DE COULEUR, et c'est une mesure du 08/09/2026 :
-   il n'y a pas la place pour une cinquieme teinte dans la bande utilisable.
-   Elle prend une MATIERE, le pointille, et elle la garde ici. */
-.bdv-coque .filtfam[data-fam="taches"],
-.bdv-coque .filtfam[data-fam="notes"]{
-  border-left-color:var(--bdv-trait-fort);
-  border-left-style:dotted;
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
 }
 .bdv-coque .filtfam:hover{
-  background:var(--bdv-surface-2);
   color:var(--bdv-encre-1);
-}
-/* ETEINTE : le libelle barre et l'encre en retrait, jamais un bouton grise, qui
-   se lirait « indisponible » alors qu'il est le seul moyen de rallumer. Le
-   barre est le GLYPHE, l'encre plus claire n'est que la confirmation. */
-.bdv-coque .filtfam--off{
-  background:var(--bdv-surface-2);
-  color:var(--bdv-encre-4);
-  border-left-color:var(--bdv-trait-fort);
-  text-decoration:line-through;
 }
 
 /* -- LES DEUX LISTES ------------------------------------------------------ */
 .bdv-coque .taches__titre{
-  margin:var(--bdv-e-6) 0 var(--bdv-e-2);
-  padding-bottom:var(--bdv-e-2);
-  border-bottom:1px solid var(--bdv-trait);
-  font-family:inherit;
-  font-size:var(--bdv-f-1);
-  font-weight:600;
   letter-spacing:var(--bdv-ls-etiq);
   text-transform:uppercase;
-  color:var(--bdv-encre-4);
-}
-.bdv-coque .taches__vide{
-  font-size:var(--bdv-f-2);
-  font-style:normal;
-  color:var(--bdv-encre-4);
 }
 .bdv-coque .tache{
   gap:var(--bdv-e-3);
@@ -2009,47 +1820,22 @@ body.bdv-coque{
 }
 .bdv-coque .tache:last-child{ border-bottom:0; }
 .bdv-coque .tache__titre{
-  font-size:var(--bdv-f-3);
   line-height:1.35;
-  color:var(--bdv-encre-1);
 }
-.bdv-coque .tache__quand{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
-}
-/* Le retard porte son MOT : `.tache__quand` ecrit « en retard de 5 jours » ou
-   « aujourd'hui », la couleur ne fait que le rendre reperable en balayant. */
-.bdv-coque .tache[data-ton="retard"] .tache__quand,
-.bdv-coque .tache[data-ton="aujourdhui"] .tache__quand{ color:var(--bdv-retard); }
 .bdv-coque .tache[data-fait="oui"] .tache__titre{ color:var(--bdv-encre-4); }
 /* LA COCHE. 20 px de dessin, 24 px de cible par le `::before` deja pose par
    style.css, et la coche elle-meme reste DESSINEE en deux traits : un caractere
    de coche change de dessin d'une police a l'autre. */
 .bdv-coque .tache__coche{
-  background:var(--bdv-surface);
-  border:2px solid var(--bdv-trait-fort);
-  border-radius:var(--bdv-r-pastille);
   transition:border-color var(--bdv-d-court) var(--bdv-courbe);
 }
-.bdv-coque .tache__coche:hover{ border-color:var(--bdv-encre-4); }
-.bdv-coque .tache__coche::after{
-  border-left:3px solid var(--bdv-accent);
-  border-bottom:3px solid var(--bdv-accent);
-}
 .bdv-coque .tache__coche[aria-pressed="true"]{ border-color:var(--bdv-accent); }
-.bdv-coque .tache__puce{ color:var(--bdv-encre-4); }
 .bdv-coque .tache__source,
 .bdv-coque .tache__x{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-3);
-  text-decoration:none;
   transition:color var(--bdv-d-court) var(--bdv-courbe);
 }
 .bdv-coque .tache__source:hover,
 .bdv-coque .tache__x:hover{
-  color:var(--bdv-accent);
   text-decoration:underline;
   text-underline-offset:2px;
 }
@@ -2076,6 +1862,20 @@ body.bdv-coque{
    etats : premiere version du 08/09/2026, l'intitule faisait 19 px et sa
    continuation 4, et une periode de soixante jours se lisait comme cinq rangees
    de rayures. On ne touche pas a cette mesure, on repeint sa couleur.
+
+   ET CETTE SECTION EST LA SEULE QUI GARDE SON RECOUVREMENT EN ENTIER, 21/09/2026.
+   src/css/bdv-calendrier.css a bien ete repeinte a la source le meme jour, 176
+   valeurs papier passees aux jetons `--bdv-*`, mais son recouvrement d'ici n'a
+   PAS pu etre leve, et ce n'est pas un oubli : bdv-nav.js pose cette feuille au
+   PREMIER CLIC sur la piece, alors que le balisage du calendrier est dans la
+   page depuis le chargement. Descendre la valeur et retirer ce bloc laisserait
+   donc la piece nue entre le clic et l'arrivee de la feuille. Son propre
+   commentaire de tete le dit, « la piece est montree avant d'etre habillee ».
+   Le banc de style calcule l'a chiffre : 329 ecarts par etat sur « Ma journee »
+   et « Mes taches », c'est-a-dire exactement les etats ou la feuille n'est pas
+   encore posee. Les deux ecritures disent desormais la MEME chose : ce n'est
+   plus une course de specificite, quelle que soit celle qui gagne la couleur est
+   la bonne. Le jour ou cette feuille sera liee au gabarit, ce bloc pourra partir.
    ========================================================================== */
 
 /* -- LA BARRE ------------------------------------------------------------- */
@@ -2295,11 +2095,15 @@ body.bdv-coque{
 }
 /* Une periode qui traverse ne remplit pas la case, elle la souligne.
    UN FILET ET PLUS UNE OMBRE INTERIEURE, ET CE N'EST PAS UN GOUT : la famille
-   des ombres est exactement a sa borne dans la section A de `npm run charte`,
-   20 recettes distinctes pour une charte qui en autorise deux. Une ombre
-   `inset` repeinte dans un jeton du bureau aurait ete une VINGT ET UNIEME
-   recette, donc un echec, pour dessiner le meme trait de 2 px qu'une bordure
-   dessine sans rien ajouter a aucune echelle. */
+   des ombres etait exactement a sa borne dans la section A de `npm run charte`
+   quand cette regle a ete ecrite, 20 recettes distinctes pour une charte qui en
+   autorise deux. Une ombre `inset` repeinte dans un jeton du bureau aurait ete
+   une VINGT ET UNIEME recette, donc un echec, pour dessiner le meme trait de
+   2 px qu'une bordure dessine sans rien ajouter a aucune echelle.
+   LA BORNE EST DESCENDUE A 16 LE 21/09/2026, quand la levee du recouvrement a
+   emporte les ombres papier que les deux feuilles d'en dessous servaient sans
+   jamais les peindre. Le raisonnement ne change pas : une ombre de plus reste
+   une recette de plus, et la cible de la charte reste deux. */
 /* `--bdv-encre-4` ET PAS `--bdv-trait-fort`, VU A LA CAPTURE DE LA VUE ANNEE.
    Dans cette vue il n'y a AUCUN intitule : le soulignement est la seule chose
    qui dise « une periode passe par ce jour-la ». C'est donc un objet graphique
@@ -2368,8 +2172,6 @@ body.bdv-coque{
   font-size:var(--bdv-f-2);
   color:var(--bdv-encre-4);
 }
-.bdv-coque .echeance__ouvrir{ color:var(--bdv-encre-3); }
-.bdv-coque .echeance__ouvrir:hover{ color:var(--bdv-accent); }
 /* LES QUATRE TONS. Le rouge ne sert qu'a ce qui tombe dans la semaine : partout
    il ne voudrait plus rien dire. Le compte a rebours ECRIT le delai en toutes
    lettres (« dans 5 jours », « aujourd'hui », « passe »), donc aucun de ces
@@ -2577,7 +2379,6 @@ body.bdv-coque{
     color:var(--bdv-encre-3);
   }
   body.bdv-poste.bdv-coque .bureau-sortie a:hover{ color:var(--bdv-accent); }
-  body.bdv-poste.bdv-coque .bureau-sortie{ font-family:inherit; }
 }
 
 /* -- 3. LA PUNAISE SUR TELEPHONE. `body.bdv-poste .panneau .postit[data-ton]`
@@ -2784,48 +2585,24 @@ body.bdv-coque{
    entre le 12 et le 19/09/2026 et tous justes.
    ========================================================================== */
 
-/* Le voile : le meme que celui du panneau et du moteur, `--bdv-voile`, qui est
-   pose en rgba dans les deux themes. Le flou de 2 px reste : c'est une matiere,
-   pas une couleur, et il se retourne tout seul. */
-.bdv-coque .tmod__voile{ background:var(--bdv-voile); }
 
 /* LA BOITE. Fond `--bdv-surface-3`, celui des feuilles montantes, et un trait
    de 1 px a la place de `--ombre-dure` : 6px 6px 0 en encre du site donne un
    bloc noir sans bord sur un bureau sombre, et cette feuille ne pose aucune
    ombre. */
 .bdv-coque .tmod__boite{
-  background:var(--bdv-surface-3);
   border:1px solid var(--bdv-trait);
-  border-radius:var(--bdv-r);
-  box-shadow:none;
   padding:var(--bdv-e-6);
 }
-.bdv-coque .tmod__x{
-  font-size:var(--bdv-f-5);
-  color:var(--bdv-encre-4);
-}
-.bdv-coque .tmod__x:hover{ color:var(--bdv-accent); }
 
 /* LE TAMPON. La meme etiquette en capitales que sur la punaise du panneau : un
    mot se lit, une teinte se devine. Les trois tons sont repris a (0,3,0) parce
    que leurs regles d'origine pesent (0,2,0) : a egalite on dependrait de
    l'ordre des feuilles. */
 .bdv-coque .tmod__tampon{
-  border:1px solid var(--bdv-trait);
   border-radius:var(--bdv-r);
-  font-family:inherit;
-  font-size:var(--bdv-f-1);
-  letter-spacing:var(--bdv-ls-etiq);
-  color:var(--bdv-encre-4);
-}
-.bdv-coque .tmod__tampon[data-ton="retard"],
-.bdv-coque .tmod__tampon[data-ton="aujourdhui"]{
-  color:var(--bdv-retard);
-  border-color:var(--bdv-retard);
 }
 .bdv-coque .tmod__tampon[data-ton="fait"]{
-  color:var(--bdv-bon);
-  border-color:var(--bdv-bon);
   background:var(--bdv-bon-lavis);
 }
 
@@ -2835,22 +2612,8 @@ body.bdv-coque{
    1,05:1. Un titre de tache invisible, et aucune mesure de feuille ne pouvait
    le dire, puisque les deux moities de la paire sont dans deux fichiers. */
 .bdv-coque .tmod__titre{
-  font-family:inherit;
   font-weight:600;
-  font-size:var(--bdv-f-5);
   letter-spacing:var(--bdv-ls-serre);
-  color:var(--bdv-encre-1);
-}
-.bdv-coque .tmod__sous{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
-  line-height:1.5;
-}
-.bdv-coque .tmod__l{
-  font-family:inherit;
-  font-size:var(--bdv-f-3);
-  color:var(--bdv-encre-2);
 }
 /* Les deux saisies. `.bdv-coque input` de la section 8 les couvre deja pour la
    couleur et le fond, mais elle pese (0,1,1) contre (0,1,0) pour `.tmod__i` :
@@ -2858,73 +2621,18 @@ body.bdv-coque{
    sont donc posees ici aussi, a la specificite qui gagne dans les deux cas. */
 .bdv-coque .tmod__i,
 .bdv-coque .tmod__d{
-  background:var(--bdv-surface);
-  border:1px solid var(--bdv-trait-fort);
   border-radius:var(--bdv-r);
-  font-family:inherit;
-  font-size:var(--bdv-f-saisie);
-  color:var(--bdv-encre-1);
-}
-/* UN SEUL ANNEAU DE FOCUS DANS TOUT LE PRODUIT. Celui d'origine etait un trait
-   de 3 px en bordeaux du site : 1,37:1 sur la boite sombre, donc plus de focus
-   clavier du tout. `--bdv-anneau` tient 7,44:1 en clair et 9,15:1 en sombre. */
-.bdv-coque .tmod__i:focus,
-.bdv-coque .tmod__d:focus{
-  outline:2px solid var(--bdv-anneau);
-  outline-offset:2px;
-}
-.bdv-coque .tmod__aide{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
-  line-height:1.5;
 }
 /* L'ERREUR SE DIT PAR UN MOT, UN GLYPHE ET UNE COULEUR. Le mot est deja la,
    c'est la phrase que la modale ecrit ; le signe la double ; la teinte confirme.
    Regle du depot : aucun etat n'est porte par la seule couleur. */
 .bdv-coque .tmod__erreur{
-  background:var(--bdv-retard-lavis);
-  color:var(--bdv-retard);
   border-radius:var(--bdv-r);
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
 }
 .bdv-coque .tmod__erreur::before{
   content:'\0021';
   margin-right:var(--bdv-e-2);
   font-weight:600;
-}
-.bdv-coque .tmod__lien{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
-}
-.bdv-coque .tmod__lien:hover{ color:var(--bdv-accent); }
-.bdv-coque .tmod__lien--x:hover{ color:var(--bdv-retard); }
-.bdv-coque .tmod__bloc{ border-top:1px solid var(--bdv-trait); }
-/* Les quatre reports (« demain », « dans 7 jours »...). Un bouton de geste, pas
-   une action primaire : l'accent ne sert qu'a la selection, au focus et a
-   l'action primaire, et « Enregistrer » est deja l'action primaire de la boite. */
-.bdv-coque .tmod__g{
-  background:transparent;
-  border:1px solid var(--bdv-trait-fort);
-  border-radius:var(--bdv-r);
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-2);
-  transition:background var(--bdv-d-court) var(--bdv-courbe),
-             border-color var(--bdv-d-court) var(--bdv-courbe),
-             color var(--bdv-d-court) var(--bdv-courbe);
-}
-.bdv-coque .tmod__g:hover{
-  border-color:var(--bdv-encre-4);
-  color:var(--bdv-encre-1);
-  background:var(--bdv-surface-2);
-}
-.bdv-coque .tmod__ou{
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-4);
 }
 
 /* LE PLANCHER TACTILE DES DEUX BOUTONS QUI ECRIVENT, RENDU. `.tmod .btn` de
@@ -2950,34 +2658,17 @@ body.bdv-coque{
    par un mot que la synthese vocale lit. La couleur ne fait que doubler, et
    c'est elle seule qui est repeinte ici.
    ========================================================================== */
-.bdv-coque .bdv-amorce{ background:var(--bdv-voile); }
 .bdv-coque .bdv-amorce__carte{
-  background:var(--bdv-surface-3);
-  color:var(--bdv-encre-2);
-  border:1px solid var(--bdv-trait);
   border-radius:var(--bdv-r);
-  box-shadow:none;
 }
 /* `color` est nomme ici pour la meme raison qu'a la modale : la regle d'origine
    ne posait que `font-family` et `font-size`, et `h1,h2,h3,h4` de style.css
    aurait garde l'encre du site sur la carte sombre. Ce titre-la est un `<p>`,
    donc il tombait sur `body{color:var(--ink)}` : meme mesure, meme resultat. */
 .bdv-coque .bdv-amorce__titre{
-  font-family:inherit;
   font-weight:600;
-  font-size:var(--bdv-f-5);
   letter-spacing:var(--bdv-ls-serre);
-  color:var(--bdv-encre-1);
 }
-.bdv-coque .bdv-amorce__sous{ color:var(--bdv-encre-4); }
-/* Les trois etats d'une etape. En attente, l'etape est une metadonnee ; faite,
-   elle passe a l'encre courante ; ratee, elle prend l'alerte. Le glyphe dit
-   deja laquelle est laquelle. */
-.bdv-coque .bdv-amorce__etape{ color:var(--bdv-encre-4); }
-.bdv-coque .bdv-amorce__etape--fait{ color:var(--bdv-encre-1); }
-.bdv-coque .bdv-amorce__etape--rate{ color:var(--bdv-alerte); }
-.bdv-coque .bdv-amorce__pied{ border-top:1px solid var(--bdv-trait); }
-.bdv-coque .bdv-amorce__manque{ color:var(--bdv-alerte); }
 /* LES DEUX BOUTONS DU PIED REDEVIENNENT DES BOUTONS, ET C'EST L'IMAGE QUI L'A
    DIT. `bdv-amorce.js` les ecrit en `btn btn--geste`, et `.bdv-coque
    .btn--geste` de la section 14 leur donne le dessin d'une action de RANGEE :

@@ -21,14 +21,39 @@
    regles sorties d'un bloc mixte. Il ne faut pas les cacher, et ils sont le prix
    exact d'un deplacement qui ne reordonne rien.
 
-   CE QUI EST ICI EST UN DEPLACEMENT PUR. Aucune declaration reecrite, aucun
-   selecteur renomme, aucune valeur repeinte : le texte est celui de style.css,
-   octet pour octet, decoupe par "Claude outputs/lot6-tri.mjs" a partir des
-   offsets de l'arbre css-tree, et non regenere (css-tree ne garde pas les
-   commentaires, et les commentaires sont la moitie de la valeur de ce depot).
-   Le controle est un releve de STYLE CALCULE sur la page construite et servie,
-   avant et apres : 45 etats, 141 187 elements et pseudo-elements, 139
+   CE QUI EST ARRIVE ICI LE 21/09/2026 ETAIT UN DEPLACEMENT PUR : aucune
+   declaration reecrite, aucun selecteur renomme, aucune valeur repeinte, le
+   texte de style.css octet pour octet, decoupe par "Claude outputs/lot6-tri.mjs"
+   a partir des offsets de l'arbre css-tree et non regenere (css-tree ne garde
+   pas les commentaires, et les commentaires sont la moitie de la valeur de ce
+   depot). Le controle est un releve de STYLE CALCULE sur la page construite et
+   servie, avant et apres : 45 etats, 141 187 elements et pseudo-elements, 139
    proprietes chacun, 19 624 993 valeurs comparees, ZERO ecart.
+
+   --------------------------------------------------------------------------
+   ET LA FEUILLE A ETE REPEINTE EN PLACE LE MEME JOUR, AU LOT SUIVANT
+   --------------------------------------------------------------------------
+   C'est la scission qui l'a rendu possible, et c'est tout son interet. Tant que
+   ces regles vivaient dans style.css, le bureau ne pouvait que les RECOUVRIR
+   depuis bdv-bureau.css, parce que la demonstration de l'accueil partage
+   `.zone`, `.postit` et `.lettre` avec lui. Le recouvrement a coute deux
+   choses : du poids mort, et QUATRE DEFAUTS DE SPECIFICITE trouves a la
+   capture et jamais par un banc (la barre d'onglets du telephone restee creme,
+   la punaise du panneau restee papier, la barre « 286 lignes » restee creme, le
+   titre de modale a 1,05:1).
+
+   Ici, plus personne d'autre ne charge la feuille : la valeur du bureau est
+   ecrite A LA SOURCE, et le recouvrement d'en face a ete RETIRE. 345 valeurs
+   papier remplacees par leur jeton `--bdv-*`, 233 appels papier restants contre
+   555 avant. Ce qui reste est ce qui PEINT encore : « L'equipe » et
+   l'invitation, que les cinq lots du theme n'ont jamais eu dans leur perimetre,
+   plus les tailles, les familles et les ecarts que le dessin de la coque n'a
+   jamais nommes. Les repeindre changerait l'ecran, donc ce n'est pas ce lot-ci.
+
+   LE GARDE-FOU EST LE MEME RELEVE, REJOUE : 45 etats, 141 187 elements,
+   19 624 993 valeurs, ZERO ecart, et le banc a ete verifie par mutation avant
+   d'etre cru (un `word-spacing` glisse dans les 812 regles des trois feuilles
+   touchees : 129 012 ecarts).
 
    CE QUI N'EST PAS ICI, ET C'EST LE SEUL PIEGE DU LOT.
    src/_includes/components/demo-pinboard.njk montre sur l'accueil les VRAIS
@@ -229,7 +254,7 @@ body.bdv-poste .tachesf__i,
 .bureau-nav__item--attente { cursor: progress; }
 
 /* de style.css L6120 */
-.bureau-nav__item--attente .bureau-nav__ico { opacity: 0.45; }
+.bureau-nav__item--attente .bureau-nav__ico { opacity: .45; }
 
 /* de style.css L6136 */
 .zone--sousmain   { grid-column: span 9; }
@@ -249,16 +274,16 @@ body.bdv-poste .tachesf__i,
    disponible, parce que la barre des pieces et le plafond de l'atelier
    s'interposent. Une requete de conteneur, si. */
 .zone--sousmain {
-  border-top-color: var(--bordeaux);
+  border-top-color: var(--bdv-trait);
   container-type: inline-size;
   container-name: sousmain;
 }
 
 /* de style.css L6182 */
 .zone__vide {
-  color: var(--muted);
+  color: var(--bdv-encre-4);
   font-style: italic;
-  font-size: var(--t-base);
+  font-size: var(--bdv-f-2);
   margin: 0;
   padding: var(--e-s) 0;
 }
@@ -266,8 +291,8 @@ body.bdv-poste .tachesf__i,
 /* de style.css L6189 */
 .zone__pied {
   margin: var(--e-m) 0 0;
-  font-size: var(--t-mini);
-  color: var(--muted);
+  font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4);
 }
 
 /* de style.css L6198 */
@@ -314,17 +339,19 @@ body.bdv-poste .tachesf__i,
    de 320 a 1920 px. Un contenu trop large doit defiler DANS son cadre, jamais
    pousser la page. Les largeurs de colonnes sont calculees pour que ca n'arrive
    pas ; ceci est la ceinture en plus des bretelles. */
+/* Les picots, les deux filets verticaux et le pas de 26 px etaient une recette
+   de quatre degrades. Elle ne se retourne pas, elle s'enleve : le bureau a une
+   surface et un trait, pas une matiere. Descendu de bdv-bureau.css le
+   21/09/2026, a la levee du recouvrement.
+   ET LA FENETRE RESTE FERMEE : un contenu trop large defile DANS son cadre et
+   ne pousse jamais la page. Defaut paye le 07/09/2026, mesure a 112 px. */
 .listbb {
-  border: var(--trait) solid var(--rule);
-  box-shadow: var(--ombre-carte);
+  border: 0;
+  box-shadow: none;
   overflow-x: auto;
-  padding: 0 18px;
-  background-color: var(--paper-light);
-  background-image:
-    radial-gradient(circle at 9px 13px, var(--paper-deep) 0 2.5px, transparent 3px),
-    radial-gradient(circle at calc(100% - 9px) 13px, var(--paper-deep) 0 2.5px, transparent 3px),
-    linear-gradient(to right, transparent 17px, var(--rule) 17px 18px, transparent 18px),
-    linear-gradient(to left, transparent 17px, var(--rule) 17px 18px, transparent 18px);
+  padding: 0;
+  background-color: transparent;
+  background-image: none;
   background-size: 100% 26px, 100% 26px, 100% 100%, 100% 100%;
   background-repeat: repeat-y, repeat-y, no-repeat, no-repeat;
 }
@@ -379,70 +406,76 @@ body.bdv-poste .tachesf__i,
    impose : avec le retrait standard des cellules, 10 px de chaque cote, les
    trois boutons avaient 163 px utiles pour 183, et depassaient de neuf pixels
    par-dessus la bande perforee du papier. Vu sur capture. */
-.listb th:nth-child(1) { width: 28%; }
-.listb th:nth-child(3) { width: 4.5rem; }
-.listb th:nth-child(4) { width: 3.25rem; }
-.listb th:nth-child(5) { width: 12.25rem; }
+/* LES CINQ LARGEURS, MESURES DE LA MAQUETTE. La colonne d'action garde sa place
+   meme quand les gestes sont invisibles : ils s'effacent par l'opacite et non
+   par `display`, donc la rangee ne bouge pas d'un pixel au survol. */
+.listb th:nth-child(1) { width: 24%; }
+.listb th:nth-child(3) { width: 13%; }
+.listb th:nth-child(4) { width: 11%; }
+.listb th:nth-child(5) { width: 31%; }
 .listb th:nth-child(3),
 .listb th:nth-child(4),
 .listb th:nth-child(5) { text-align: right; }
 .listb th {
-  background: var(--ardoise);
-  color: var(--on-dark);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  font-weight: 400;
+  background: var(--bdv-surface-2);
+  color: var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
+  letter-spacing: var(--bdv-ls-etiq);
   text-align: left;
-  padding: 0.34rem var(--e-s);
+  padding: 0 var(--bdv-e-3);
   white-space: nowrap;
 }
 .listb th:nth-child(4) { text-align: right; }
 .listb td {
-  height: var(--h-controle);
-  padding: 0.2rem var(--e-s);
-  border-bottom: var(--trait) solid var(--rule);
-  background: var(--paper-light);
+  height: var(--bdv-cible);
+  padding: 0 var(--bdv-e-3);
+  border-bottom: 1px solid var(--bdv-trait);
+  background: none;
   vertical-align: middle;
-  font-size: var(--t-base);
+  font-size: var(--bdv-f-3);
 }
 /* Les bandes alternees du listing : 1,23:1 entre elles. Volontairement faible,
    une bande guide l'oeil sur la ligne, elle ne doit pas se lire comme une
    couleur d'etat. Le seul etat de couleur ici est le retard. */
-.listb tbody tr:nth-child(even) td { background: var(--white); }
-.listb tbody tr:last-child td { border-bottom: none; }
+.listb tbody tr:nth-child(even) td { background: none; }
+.listb tbody tr:last-child td { border-bottom: 0; }
 /* Le survol ne change pas la teinte de la bande, il pose un onglet bordeaux sur
    le bord : les bandes disent la ligne, la couleur dit l'etat, et les deux ne
    parlent pas en meme temps. */
-.listb tbody tr:hover td:first-child { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
+.listb tbody tr:hover td:first-child { box-shadow: none; }
 .listb tr.listb__l--partie td { opacity: 0.4; }
 /* LE FICHIER CLIENT : le nom, et sous lui sa reference. Deux lignes dans le
    plancher tactile de 44 px que la ligne a de toute facon, donc une colonne
    rendue pour zero pixel de largeur. */
 .listb__fichier { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .listb__ref {
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  color: var(--bdv-encre-4);
   white-space: nowrap;
 }
 /* Le nom du client est un fichier, pas un titre : Inter et pas Fraunces. C'est
    exactement ce que Ted appelle « plus informatique ». */
+/* LE FICHIER CLIENT. Le nom est un bouton qui ouvre la fiche : il garde son
+   encre de titre et ne prend l'accent qu'au survol. En bordeaux permanent il se
+   lisait comme un lien de site au milieu d'un listing. */
 .listb__nom {
   max-width: 100%;
   background: none;
   border: none;
   padding: 0;
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
+  font-family: inherit;
+  font-size: var(--bdv-f-3);
   font-weight: 500;
-  color: var(--bordeaux);
+  color: var(--bdv-encre-1);
   text-align: left;
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.listb__nom:hover { text-decoration: underline; color: var(--bordeaux-vif); }
+.listb__nom:hover { text-decoration: underline; color: var(--bdv-accent); }
 /* Un nom trop long est coupe et pas replie : la ligne garde sa hauteur, et le
    nom entier reste lisible dans l'infobulle et dans la fiche. */
 /* PAS D'OVERFLOW SUR UNE CELLULE DE TABLEAU. Vu sur capture : avec
@@ -465,16 +498,16 @@ body.bdv-poste .tachesf__i,
    La coupe par points de suspension, elle, marche bien sur une cellule quand le
    tableau est en table-layout: fixed. */
 .listb td.listb__motif {
-  font-size: var(--t-mini);
-  color: var(--muted);
+  font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .listb td.listb__retard {
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4);
   text-align: right;
   white-space: nowrap;
 }
@@ -482,12 +515,12 @@ body.bdv-poste .tachesf__i,
    sur leur derniere unite se comparent d'un coup d'oeil. Les chiffres tabulaires
    ne sont pas necessaires en JetBrains Mono, qui les a deja de largeur egale. */
 .listb td.listb__montant {
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
+  font-family: inherit;
+  font-size: var(--bdv-f-3);
   text-align: right;
   white-space: nowrap;
 }
-.listb tr[data-retard="oui"] td.listb__retard { color: var(--danger-deep); font-weight: 500; }
+.listb tr[data-retard="oui"] td.listb__retard { color: var(--bdv-retard); font-weight: 500; }
 .listb td.listb__gestes { white-space: nowrap; text-align: right; padding-left: 0; }
 /* L'ANNEAU DE FOCUS PASSE A L'INTERIEUR DANS LE LISTING. Meme raison que dans la
    barre du bureau : un bouton de 44 px dans une rangee de 50 laisse trois pixels
@@ -520,12 +553,12 @@ body.bdv-poste .tachesf__i,
     padding: var(--e-s) 0;
     border-bottom: var(--trait) solid var(--rule);
   }
-  .listb tbody tr:last-child { border-bottom: none; }
-  .listb td { height: auto; border-bottom: none; padding: 0 var(--e-s); background: none; }
-  .listb tbody tr:nth-child(even) { background: var(--white); }
+  .listb tbody tr:last-child { border-bottom: 0; }
+  .listb td { height: auto; border-bottom: 0; padding: 0 var(--bdv-e-2); background: none; }
+  .listb tbody tr:nth-child(even) { background: none; }
   .listb tbody tr:nth-child(even) td { background: none; }
   .listb tbody tr:hover td:first-child { box-shadow: none; }
-  .listb tbody tr:hover { box-shadow: inset var(--trait-accent) 0 0 var(--bordeaux); }
+  .listb tbody tr:hover { box-shadow: none; }
   .listb td.listb__nom-c { grid-area: nom; }
   /* Etroit, le nom se replie au lieu d'etre coupe : il y a la hauteur pour ca,
      et un nom de client coupe est un nom qu'on ne reconnait pas. */
@@ -554,25 +587,25 @@ body.bdv-poste .tachesf__i,
    horizontalement sans rien perdre, et trois gestes tiennent alors dans
    11,5 rem de colonne. */
 .btn--geste {
-  min-height: var(--h-controle);
-  padding: 0.35rem 0.5rem;
-  background: var(--paper);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
+  min-height: var(--bdv-cible);
+  padding: 0 var(--bdv-e-2);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--bdv-encre-3);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
   cursor: pointer;
   white-space: nowrap;
 }
 
 /* de style.css L6499 */
-.btn--geste:hover { background: var(--bordeaux); border-color: var(--bordeaux); color: var(--on-dark); }
+.btn--geste:hover { background: var(--bdv-survol); border-color: transparent; color: var(--bdv-encre-1); }
 
 /* de style.css L6500 */
-.btn--geste:disabled { cursor: default; color: var(--muted); border-color: var(--rule); }
+.btn--geste:disabled { cursor: default; color: var(--bdv-encre-4); border-color: transparent; }
 
 /* de style.css L6501 */
-.btn--geste:disabled:hover { background: var(--paper); border-color: var(--rule); color: var(--muted); }
+.btn--geste:disabled:hover { background: var(--paper); border-color: transparent; color: var(--bdv-encre-4); }
 
 /* de style.css L6519 */
 /* ---- LE BLOC CALENDRIER ----
@@ -603,40 +636,41 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L6527 */
-.calbloc { display: grid; gap: var(--e-s); }
+.calbloc { display: grid; gap: var(--bdv-e-3); }
 
 /* de style.css L6528 */
 .calbloc__une {
-  display: block;
-  background: var(--paper-light);
-  border: var(--trait) solid var(--rule);
-  box-shadow: var(--ombre-carte);
-  color: var(--ink);
+  display: grid;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--bdv-encre-2);
   text-decoration: none;
-  transition: box-shadow var(--tr-rapide) ease;
+  transition: color var(--bdv-d-court) var(--bdv-courbe);
 }
 
 /* de style.css L6537 */
-.calbloc__une:hover { text-decoration: none; box-shadow: var(--ombre-dure); }
+.calbloc__une:hover { text-decoration: none; box-shadow: none; }
 
 /* de style.css L6538 */
 .calbloc__mois {
   display: block;
-  background: var(--bordeaux);
-  color: var(--on-dark);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
+  background: none;
+  color: var(--bdv-encre-4);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
   text-transform: uppercase;
-  letter-spacing: var(--ls-etiq);
-  text-align: center;
-  padding: 0.35rem 0;
+  letter-spacing: var(--bdv-ls-etiq);
+  text-align: left;
+  padding: 0;
 }
 
 /* de style.css L6551 */
 /* La perforation. Le meme piquete que le liege du panneau : une matiere n'est
    pas une couleur a plat. */
+/* La perforation etait une matiere, pas une information : elle s'en va. */
 .calbloc__trous {
-  display: block;
+  display: none;
   height: 8px;
   background-color: var(--paper-light);
   background-image: radial-gradient(circle at 8px 50%, var(--paper-deep) 0 2px, transparent 2.5px);
@@ -647,32 +681,32 @@ body.bdv-poste .tachesf__i,
 /* de style.css L6559 */
 .calbloc__jour {
   display: block;
-  font-family: var(--font-titre);
-  font-size: var(--t-h1);
+  font-family: inherit;
+  font-size: var(--bdv-f-6);
   font-weight: 600;
-  line-height: 1;
-  letter-spacing: var(--ls-serre);
-  text-align: center;
-  padding: 0.5rem 0 0.1rem;
+  line-height: 1.05;
+  letter-spacing: var(--bdv-ls-serre);
+  text-align: left;
+  padding: 0;
 }
 
 /* de style.css L6569 */
 .calbloc__quand {
   display: block;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4);
   padding-bottom: 0.5rem;
 }
 
 /* de style.css L6577 */
 .calbloc__titre {
   display: block;
-  font-size: var(--t-base);
-  line-height: var(--lh-normal);
-  padding: var(--e-s) var(--e-m) var(--e-m);
-  border-top: var(--trait) solid var(--rule);
+  font-size: var(--bdv-f-3);
+  line-height: 1.35;
+  padding: var(--bdv-e-1)0 0;
+  border-top: 0;
 }
 
 /* de style.css L6592 */
@@ -685,14 +719,14 @@ body.bdv-poste .tachesf__i,
    entree dans la table de contraste de la charte, qui ne la connaissait pas et
    ne pouvait donc pas la refuser. */
 .calbloc__une[data-niveau="urgent"] .calbloc__mois,
-.calbloc__une[data-niveau="aujourdhui"] .calbloc__mois { background: var(--danger-deep); }
+.calbloc__une[data-niveau="aujourdhui"] .calbloc__mois { background: none; }
 
 /* de style.css L6594 */
 .calbloc__une[data-niveau="urgent"] .calbloc__jour,
-.calbloc__une[data-niveau="aujourdhui"] .calbloc__jour { color: var(--danger-deep); }
+.calbloc__une[data-niveau="aujourdhui"] .calbloc__jour { color: var(--bdv-retard); }
 
 /* de style.css L6597 */
-.calbloc__suite { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--trait); }
+.calbloc__suite { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 
 /* de style.css L6603 */
 /* LA DATE AU-DESSUS DU LIBELLE PAR DEFAUT. Mesure : dans une zone de 227 px, la
@@ -703,20 +737,20 @@ body.bdv-poste .tachesf__i,
 .calbloc__ligne {
   display: grid;
   gap: 1px;
-  background: var(--paper);
-  padding: 0.4rem var(--e-s);
+  background: none;
+  padding: var(--bdv-e-2)0;
 }
 
 /* de style.css L6609 */
 .calbloc__d {
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4);
   min-width: 0;
 }
 
 /* de style.css L6615 */
-.calbloc__q { font-size: var(--t-base); min-width: 0; }
+.calbloc__q { font-size: var(--bdv-f-2); min-width: 0; }
 
 /* de style.css L6616 */
 @container calendrier (min-width: 18rem) {
@@ -745,10 +779,10 @@ body.bdv-poste .tachesf__i,
 /* ---- L'AVIS ---- */
 .bureau-avis {
   margin: 0 0 var(--e-s);
-  padding: var(--e-s) var(--e-m);
-  background: var(--warn-bg);
-  border-left: var(--trait-accent) solid var(--warn);
-  font-size: var(--t-base);
+  padding: var(--bdv-e-2) var(--bdv-e-3);
+  background: var(--bdv-alerte-lavis);
+  border-left: 2px solid var(--bdv-alerte);
+  font-size: var(--bdv-f-2);
 }
 
 /* de style.css L6982 */
@@ -771,24 +805,24 @@ body.bdv-poste .tachesf__i,
    ete jugees sur cette image-la. **Un harnais qui ne montre que l'etat vide valide
    une mise en page que personne ne verra.** `banc-large.mjs` pose desormais ces
    textes a la main avant de photographier. */
-.bureau-tete { background: var(--bordeaux-deep); color: var(--on-dark); padding-block: var(--e-2xl) var(--e-xl); }
+.bureau-tete { background: var(--bdv-fond); color: var(--bdv-encre-2); padding-block: 0; }
 
 /* de style.css L6983 */
 .bureau-tete__jour {
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark-soft);
+  font-size: var(--bdv-f-2);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bdv-encre-4);
   margin-bottom: 0.6rem;
 }
 
 /* de style.css L6991 */
 .bureau-tete__ligne {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--e-l);
+  gap: var(--bdv-e-3);
 }
 
 /* de style.css L6997 */
@@ -800,12 +834,12 @@ body.bdv-poste .tachesf__i,
    2,4:1. Ici il est pose sur --bordeaux-deep, ou il monte a 5,8:1. C'est la seule
    exception du site, et elle ne vaut que sur ce fond-la. */
 .bureau-tete__plaque {
-  margin: 0.4rem 0 0;
+  margin: 0;
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--cork);
+  font-size: var(--bdv-f-2);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bdv-encre-3);
 }
 
 /* de style.css L7010 */
@@ -816,7 +850,7 @@ body.bdv-poste .tachesf__i,
   padding: 0;
   font: inherit;
   letter-spacing: inherit;
-  color: var(--cork);
+  color: var(--bdv-accent);
   cursor: pointer;
 }
 
@@ -827,19 +861,19 @@ body.bdv-poste .tachesf__i,
 .bureau-tete__reglages {
   flex: 0 0 auto;
   margin-top: 0.4rem;
-  background: transparent;
-  color: var(--on-dark-soft);
-  border: var(--trait) solid var(--on-dark-faint);
-  padding: 0.55rem 1.1rem;
+  background: var(--bdv-surface);
+  color: var(--bdv-encre-2);
+  border: 1px solid var(--bdv-trait-fort);
+  padding: 0 var(--bdv-e-3);
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
+  font-size: var(--bdv-f-2);
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
 }
 
 /* de style.css L7034 */
-.bureau-tete__reglages:hover { background: var(--paper); color: var(--bordeaux); border-color: var(--paper); }
+.bureau-tete__reglages:hover { background: var(--paper); color: var(--bdv-encre-1); border-color: var(--paper); }
 
 /* de style.css L7038 */
 /* Les deux actions de l'entete, empilees a droite. « Me deconnecter » est un lien souligne
@@ -848,9 +882,9 @@ body.bdv-poste .tachesf__i,
 .bureau-tete__actions {
   flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--bdv-e-2);
 }
 
 /* de style.css L7050 */
@@ -870,20 +904,20 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L7056 */
 .bureau-tete__sortir {
-  background: none;
-  border: none;
-  padding: 0;
+  background: transparent;
+  border: 1px solid var(--bdv-trait-fort);
+  padding: 0 var(--bdv-e-3);
   border-bottom: var(--trait) dashed var(--on-dark-faint);
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark-soft);
+  font-size: var(--bdv-f-2);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bdv-encre-3);
   cursor: pointer;
 }
 
 /* de style.css L7068 */
-.bureau-tete__sortir:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
+.bureau-tete__sortir:hover { color: var(--bdv-encre-1); border-bottom-color: var(--on-dark); }
 
 /* de style.css L7069 */
 .bureau-tete__sortir-avis {
@@ -891,13 +925,13 @@ body.bdv-poste .tachesf__i,
   margin: 0;
   text-align: right;
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
+  font-size: var(--bdv-f-1);
   line-height: 1.45;
-  color: var(--cork);
+  color: var(--bdv-encre-4);
 }
 
 /* de style.css L7078 */
-.bureau-tete__resume { color: var(--on-dark-soft); font-style: italic; font-size: var(--t-lead); margin: 0.5rem 0 0; }
+.bureau-tete__resume { color: var(--bdv-encre-4); font-style: normal; font-size: var(--bdv-f-1); margin: 0 0 0 auto; }
 
 /* de style.css L7086 */
 /* ---- LA LUNE DE L'ENTETE ----
@@ -910,7 +944,7 @@ body.bdv-poste .tachesf__i,
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: var(--bdv-e-2);
   margin-top: 0.4rem;
   /* Le survol porte l'explication des deux cycles. Pas de pointeur de main : rien
      ne se clique ici, et un curseur qui promet un clic qui n'existe pas ment. */
@@ -931,22 +965,22 @@ body.bdv-poste .tachesf__i,
    sans qu'on sache de quel astre il est le bord. */
 /* --on-dark-rule est le voile creme des filets sur fond sombre. C'est exactement
    ce qu'on veut ici : une presence, pas une couleur. */
-.bureau-tete__lune-ombre { fill: var(--on-dark-rule); }
+.bureau-tete__lune-ombre { fill: var(--bdv-surface-2); }
 
 /* de style.css L7108 */
-.bureau-tete__lune-clair { fill: var(--cork); }
+.bureau-tete__lune-clair { fill: var(--bdv-encre-3); }
 
 /* de style.css L7109 */
-.bureau-tete__lune-bord  { fill: none; stroke: var(--on-dark-faint); stroke-width: 2; }
+.bureau-tete__lune-bord  { fill: none; stroke: var(--bdv-trait-fort); stroke-width: 2; }
 
 /* de style.css L7110 */
 .bureau-tete__lune-nom {
   margin: 0;
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-large);
-  color: var(--on-dark);
+  font-size: var(--bdv-f-2);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bdv-encre-2);
 }
 
 /* de style.css L7118 */
@@ -954,12 +988,12 @@ body.bdv-poste .tachesf__i,
 .bureau-tete__lune-suite {
   margin: 0.2rem 0 0;
   font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  color: var(--on-dark-soft);
+  font-size: var(--bdv-f-1);
+  color: var(--bdv-encre-4);
 }
 
 /* de style.css L7125 */
-.bureau-tete__lune-suite { color: var(--cork); }
+.bureau-tete__lune-suite { color: var(--bdv-encre-4); }
 
 /* de style.css L7130 */
 /* Sur telephone, la ligne de l'entete passait de trois zones a trois colonnes
@@ -1004,10 +1038,10 @@ body.bdv-poste .tachesf__i,
   background: none;
   border: none;
   padding: 0;
-  color: var(--bordeaux);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  text-decoration: underline;
+  color: var(--bdv-encre-3);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -1016,7 +1050,10 @@ body.bdv-poste .tachesf__i,
    sur toute la page : un voile plein ecran pour une fiche qui s'ouvre se lit
    comme un rechargement. Le premier clic de la session charge le moteur des
    ventes, mesure a 2,8 s sur 40 000 lignes ; les suivants sont instantanes. */
-.listb__l[data-attente="oui"] { opacity: 0.55; }
+/* L'attente d'une fiche qui s'ouvre : elle se voit sur la rangee cliquee, et
+   son voile de 45 % se lit dans les deux themes puisqu'il ne fait que diluer
+   l'encre vers la surface qui est dessous. */
+.listb__l[data-attente="oui"] { opacity: .55; }
 
 /* de style.css L7293 */
 .listb__l[data-attente="oui"] .listb__nom,
@@ -1027,8 +1064,8 @@ body.bdv-poste .tachesf__i,
    papiers (voir la note des jetons d'etat dans CLAUDE.md), et un glyphe qui se distingue
    par sa FORME n'a pas besoin d'une teinte pour faire son travail. */
 .mot__ico {
-  font-size: var(--t-lead);
-  line-height: var(--lh-serre);
+  font-size: var(--bdv-f-2);
+  line-height: 1;
   flex-shrink: 0;
 }
 
@@ -1049,7 +1086,7 @@ body.bdv-poste .tachesf__i,
    son encre et son absence de soulignement, parce qu'un titre de deux lignes souligne se
    lit comme une rature. Le survol souligne, et il porte sur toute la carte grace au
    calque ci-dessous. */
-.mot__fleche { color: var(--bordeaux); white-space: nowrap; }
+.mot__fleche { color: var(--bdv-accent); white-space: nowrap; }
 
 /* de style.css L7336 */
 .mot__aller::after {
@@ -1061,15 +1098,15 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L7346 */
 .mot__v {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  line-height: var(--lh-serre);
-  color: var(--ink);
-  margin: 0 0 0.5rem;
+  font-family: inherit;
+  font-size: var(--bdv-f-3);
+  line-height: 1.4;
+  color: var(--bdv-encre-1);
+  margin: 0;
 }
 
 /* de style.css L7353 */
-.mot__a { font-size: var(--t-base); color: var(--muted); line-height: var(--lh-normal); margin: 0; }
+.mot__a { font-size: var(--bdv-f-2); color: var(--bdv-encre-3); line-height: 1.45; margin: 0; }
 
 /* de style.css L7455 */
 /* La porte de sortie n'existe QUE la ou le decor a ete retire. Sur ordinateur le
@@ -1084,11 +1121,11 @@ body.bdv-poste .tachesf__i,
     margin: var(--e-l) 0 0;
     padding: var(--e-m) 0 var(--e-l);
     text-align: center;
-    font-family: var(--font-mono);
+    font-family: inherit;
     font-size: var(--t-mini);
   }
   body.bdv-poste .bureau-sortie a {
-    color: var(--muted);
+    color: var(--bdv-encre-3);
     /* Un plancher tactile, meme pour une porte qu'on prend rarement : une cible de
        14 px etait exactement le defaut releve sur « Me deconnecter ». */
     display: inline-block;
@@ -1096,7 +1133,7 @@ body.bdv-poste .tachesf__i,
     line-height: 44px;
     padding: 0 var(--e-m);
   }
-  body.bdv-poste .bureau-sortie a:hover { color: var(--bordeaux); }
+  body.bdv-poste .bureau-sortie a:hover { color: var(--bdv-accent); }
 }
 
 /* de style.css L7623 */
@@ -1128,7 +1165,7 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L7749 */
 .panneau .postit--decroche {
-  animation: bdv-punaise-tombe 0.3s ease-in forwards;
+  animation: bdv-coque-part var(--bdv-d-long) var(--bdv-courbe) forwards;
   pointer-events: none;
 }
 
@@ -1158,7 +1195,7 @@ body.bdv-poste .tachesf__i,
 .reg__i:disabled { background: var(--paper-deep); color: var(--muted); cursor: not-allowed; }
 
 /* de style.css L7857 */
-.bureau-avis[data-ok="oui"] { background: var(--ok-bg); border-left-color: var(--ok); }
+.bureau-avis[data-ok="oui"] { background: var(--bdv-bon-lavis); border-left-color: var(--bdv-bon); }
 
 /* de style.css L7859 */
 /* ============================================================================
@@ -1204,47 +1241,53 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L7915 */
 .filtfam {
-  padding: 2px var(--e-s);
-  border: var(--trait) solid var(--rule-fort);
-  border-left: var(--trait-accent) solid var(--fam-1);
-  border-radius: var(--r-nul);
-  background: var(--paper-light);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-mini);
-  letter-spacing: var(--ls-doux);
+  padding: 0 var(--bdv-e-3);
+  border: 1px solid var(--bdv-trait-fort);
+  border-left: 3px solid var(--bdv-fam-1);
+  border-radius: var(--bdv-r);
+  background: var(--bdv-surface);
+  color: var(--bdv-encre-2);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  letter-spacing: 0;
   cursor: pointer;
-  transition: background var(--tr-rapide), color var(--tr-rapide);
+  transition: background var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe);
 }
 
 /* de style.css L7928 */
-.filtfam[data-fam="travaux"]    { border-left-color: var(--fam-2); }
+.filtfam[data-fam="travaux"]    { border-left-color: var(--bdv-fam-2); }
 
 /* de style.css L7929 */
-.filtfam[data-fam="rendezvous"] { border-left-color: var(--fam-3); }
+.filtfam[data-fam="rendezvous"] { border-left-color: var(--bdv-fam-3); }
 
 /* de style.css L7930 */
-.filtfam[data-fam="tempsforts"] { border-left-color: var(--fam-4); }
+.filtfam[data-fam="tempsforts"] { border-left-color: var(--bdv-fam-4); }
 
 /* de style.css L7931 */
+/* LA CINQUIEME FAMILLE N'A PAS DE COULEUR, et c'est une mesure du 08/09/2026 :
+   il n'y a pas la place pour une cinquieme teinte dans la bande utilisable.
+   Elle prend une MATIERE, le pointille, et elle la garde ici. */
 .filtfam[data-fam="taches"],
 .filtfam[data-fam="notes"] {
-  border-left-color: var(--rule-fort);
+  border-left-color: var(--bdv-trait-fort);
   border-left-style: dotted;
-  font-family: var(--font-manuscrit);
-  font-size: var(--t-petit);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
 }
 
 /* de style.css L7938 */
-.filtfam:hover { background: var(--paper-deep); }
+.filtfam:hover { background: var(--bdv-surface-2); }
 
 /* de style.css L7941 */
 /* ETEINTE : le libelle barre et l'encre en retrait. Pas un bouton grise, qui se
    lirait « indisponible » alors qu'il est le seul moyen de rallumer. */
+/* ETEINTE : le libelle barre et l'encre en retrait, jamais un bouton grise, qui
+   se lirait « indisponible » alors qu'il est le seul moyen de rallumer. Le
+   barre est le GLYPHE, l'encre plus claire n'est que la confirmation. */
 .filtfam--off {
-  background: var(--paper-deep);
-  color: var(--muted);
-  border-left-color: var(--rule-fort);
+  background: var(--bdv-surface-2);
+  color: var(--bdv-encre-4);
+  border-left-color: var(--bdv-trait-fort);
   text-decoration: line-through;
 }
 
@@ -1267,8 +1310,8 @@ body.bdv-poste .tachesf__i,
    rien entre eux se lisent comme deux dates independantes ; le mot dit que c'est une
    periode. Il est masque aux lecteurs d'ecran, qui ont les deux `aria-label`. */
 .tachesf__au {
-  color: var(--muted);
-  font-size: var(--t-petit);
+  color: var(--bdv-encre-4);
+  font-size: var(--bdv-f-2);
   align-self: center;
 }
 
@@ -1280,64 +1323,64 @@ body.bdv-poste .tachesf__i,
 .tachesf__l {
   display: block;
   margin: 0 0 0.4rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  color: var(--bdv-encre-4);
 }
 
 /* de style.css L7977 */
-.tachesf__ligne { display: flex; gap: var(--e-s); flex-wrap: wrap; align-items: stretch; }
+.tachesf__ligne { display: flex; gap: var(--bdv-e-2); flex-wrap: wrap; align-items: stretch; }
 
 /* de style.css L7978 */
 .tachesf__i {
   flex: 1 1 18rem;
   min-width: 0;
-  padding: 0.55rem 0.7rem;
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  color: var(--ink);
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  border-radius: var(--r-nul);
+  padding: 0 var(--bdv-e-3);
+  font-family: inherit;
+  font-size: var(--bdv-f-saisie);
+  color: var(--bdv-encre-1);
+  background: var(--bdv-surface);
+  border: 1px solid var(--bdv-trait-fort);
+  border-radius: var(--bdv-r);
 }
 
 /* de style.css L7989 */
 .tachesf__d {
-  padding: 0.55rem 0.7rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  color: var(--ink);
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  border-radius: var(--r-nul);
+  padding: 0 var(--bdv-e-3);
+  font-family: inherit;
+  font-size: var(--bdv-f-saisie);
+  color: var(--bdv-encre-1);
+  background: var(--bdv-surface);
+  border: 1px solid var(--bdv-trait-fort);
+  border-radius: var(--bdv-r);
 }
 
 /* de style.css L7998 */
-.tachesf__i:focus, .tachesf__d:focus { border-color: var(--bordeaux); }
+.tachesf__i:focus, .tachesf__d:focus { border-color: var(--bdv-accent); }
 
 /* de style.css L8001 */
 /* Le bouton du site fait 0.9rem sur 2rem : dans une ligne de saisie il depasse les deux
    champs d'un demi-centimetre. On le rentre, sans toucher au bouton du site. */
-.tachesf .btn { padding: 0.55rem 1.4rem; font-size: var(--t-mini); }
+.tachesf .btn { padding: 0 var(--bdv-e-4); font-size: var(--bdv-f-2); }
 
 /* de style.css L8002 */
-.tachesf__aide { margin: 0.4rem 0 0; font-size: var(--t-mini); color: var(--muted); }
+.tachesf__aide { margin: 0.4rem 0 0; font-size: var(--bdv-f-2); color: var(--bdv-encre-4); }
 
 /* de style.css L8006 */
 /* Les deux blocs, « A faire » et « Fait ». Le titre porte le compte : un titre qui
    ne dit pas combien oblige a compter des yeux. */
 .taches__titre {
-  margin: var(--e-l) 0 var(--e-s);
-  padding-bottom: 0.3rem;
-  border-bottom: var(--trait) solid var(--rule);
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-  font-weight: 500;
-  color: var(--muted);
+  margin: var(--bdv-e-6)0 var(--bdv-e-2);
+  padding-bottom: var(--bdv-e-2);
+  border-bottom: 1px solid var(--bdv-trait);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  font-weight: 600;
+  color: var(--bdv-encre-4);
 }
 
 /* de style.css L8015 */
-.taches__vide { margin: 0; font-size: var(--t-base); color: var(--muted); font-style: italic; }
+.taches__vide { margin: 0; font-size: var(--bdv-f-2); color: var(--bdv-encre-4); font-style: normal; }
 
 /* de style.css L8016 */
 .taches__liste { list-style: none; margin: 0; padding: 0; }
@@ -1348,12 +1391,12 @@ body.bdv-poste .tachesf__i,
   height: 20px;
   margin-top: 0.15rem;
   padding: 0;
-  background: var(--white);
-  border: var(--trait-fort) solid var(--cork-encre);
-  border-radius: var(--r-nul);
+  background: var(--bdv-surface);
+  border: 2px solid var(--bdv-trait-fort);
+  border-radius: var(--bdv-r-pastille);
   cursor: pointer;
   position: relative;
-  transition: border-color var(--tr-rapide);
+  transition: border-color var(--bdv-d-court) var(--bdv-courbe);
 }
 
 /* de style.css L8054 */
@@ -1378,7 +1421,7 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L8059 */
-.tache__coche:hover { border-color: var(--bordeaux); }
+.tache__coche:hover { border-color: var(--bdv-encre-4); }
 
 /* de style.css L8062 */
 /* La coche est DESSINEE, pas ecrite : un caractere de coche change de dessin d'une
@@ -1390,8 +1433,8 @@ body.bdv-poste .tachesf__i,
   top: 1px;
   width: 10px;
   height: 6px;
-  border-left: var(--trait-accent) solid var(--bordeaux);
-  border-bottom: var(--trait-accent) solid var(--bordeaux);
+  border-left: 3px solid var(--bdv-accent);
+  border-bottom: 3px solid var(--bdv-accent);
   transform: rotate(-45deg);
   opacity: 0;
   transition: opacity var(--tr-rapide);
@@ -1413,7 +1456,7 @@ body.bdv-poste .tachesf__i,
   font-size: var(--t-micro);
   line-height: 20px;
   text-align: center;
-  color: var(--muted);
+  color: var(--bdv-encre-4);
 }
 
 /* de style.css L8090 */
@@ -1423,18 +1466,20 @@ body.bdv-poste .tachesf__i,
 .tache__corps { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 
 /* de style.css L8092 */
-.tache__titre { font-size: var(--t-base); color: var(--ink); overflow-wrap: anywhere; }
+.tache__titre { font-size: var(--bdv-f-3); color: var(--bdv-encre-1); overflow-wrap: anywhere; }
 
 /* de style.css L8093 */
-.tache__quand { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
+.tache__quand { font-family: inherit; font-size: var(--bdv-f-2); color: var(--bdv-encre-4); }
 
 /* de style.css L8094 */
+/* Le retard porte son MOT : `.tache__quand` ecrit « en retard de 5 jours » ou
+   « aujourd'hui », la couleur ne fait que le rendre reperable en balayant. */
 .tache[data-ton="retard"] .tache__quand,
-.tache[data-ton="aujourdhui"] .tache__quand { color: var(--danger-deep); }
+.tache[data-ton="aujourdhui"] .tache__quand { color: var(--bdv-retard); }
 
 /* de style.css L8097 */
 /* Faite, la ligne s'efface sans disparaitre : elle est la preuve du travail fait. */
-.tache[data-fait="oui"] .tache__titre { color: var(--muted); text-decoration: line-through; }
+.tache[data-fait="oui"] .tache__titre { color: var(--bdv-encre-4); text-decoration: line-through; }
 
 /* de style.css L8104 */
 /* 11 PX DE HAUT A LA SOURIS, 19/09/2026. « Retirer », « Ouvrir sa fiche »,
@@ -1451,15 +1496,15 @@ body.bdv-poste .tachesf__i,
   padding: 0;
   background: none;
   border: none;
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-3);
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* de style.css L8118 */
-.tache__source:hover, .tache__x:hover { color: var(--bordeaux); }
+.tache__source:hover, .tache__x:hover { color: var(--bdv-accent); }
 
 /* de style.css L8125, dans @container taches (max-width:30rem) */
 @container taches (max-width:30rem) {
@@ -1487,27 +1532,30 @@ body.bdv-poste .tachesf__i,
 .tmod { position: fixed; inset: 0; z-index: var(--z-voile);
   display: flex; align-items: center; justify-content: center; padding: var(--e-l); }
 .tmod[hidden] { display: none; }
-.tmod__voile { position: absolute; inset: 0; background: var(--bordeaux-veil); backdrop-filter: blur(2px); }
+/* Le voile : le meme que celui du panneau et du moteur, `--bdv-voile`, qui est
+   pose en rgba dans les deux themes. Le flou de 2 px reste : c'est une matiere,
+   pas une couleur, et il se retourne tout seul. */
+.tmod__voile { position: absolute; inset: 0; background: var(--bdv-voile); backdrop-filter: blur(2px); }
 .tmod__boite {
   position: relative;
   width: 100%;
   max-width: 34rem;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 1.7rem 1.9rem 1.5rem;
-  background: var(--paper);
-  border: var(--trait) solid var(--rule);
-  border-radius: var(--r-nul);
-  box-shadow: var(--ombre-dure);
+  padding: var(--bdv-e-6);
+  background: var(--bdv-surface-3);
+  border: 1px solid var(--bdv-trait);
+  border-radius: var(--bdv-r);
+  box-shadow: none;
 }
 .tmod__x {
   position: absolute; top: 0.6rem; right: 0.8rem;
   padding: 0.2rem 0.45rem;
   background: none; border: none;
-  font-size: var(--t-h3); line-height: 1;
-  color: var(--muted); cursor: pointer;
+  font-size: var(--bdv-f-5); line-height: 1;
+  color: var(--bdv-encre-4); cursor: pointer;
 }
-.tmod__x:hover { color: var(--bordeaux); }
+.tmod__x:hover { color: var(--bdv-accent); }
 
 /* LE TAMPON, la meme etiquette en capitales que sur la punaise du panneau : le
    vigneron lit « EN RETARD » au meme endroit du sens, qu'il regarde son liege ou
@@ -1515,18 +1563,18 @@ body.bdv-poste .tachesf__i,
 .tmod__tampon {
   display: inline-block; margin: 0 0 0.4rem;
   padding: 0.1rem 0.5rem;
-  border: var(--trait) solid var(--rule);
-  font-family: var(--font-mono); font-size: var(--t-micro);
-  text-transform: uppercase; letter-spacing: var(--ls-large);
-  color: var(--muted);
+  border: 1px solid var(--bdv-trait);
+  font-family: inherit; font-size: var(--bdv-f-1);
+  text-transform: uppercase; letter-spacing: var(--bdv-ls-etiq);
+  color: var(--bdv-encre-4);
 }
 .tmod__tampon[data-ton="retard"],
-.tmod__tampon[data-ton="aujourdhui"] { color: var(--danger-deep); border-color: var(--danger-deep); }
-.tmod__tampon[data-ton="fait"] { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
-.tmod__titre { font-family: var(--font-titre); font-size: var(--t-h3); color: var(--ink-deep); margin: 0; }
+.tmod__tampon[data-ton="aujourdhui"] { color: var(--bdv-retard); border-color: var(--bdv-retard); }
+.tmod__tampon[data-ton="fait"] { color: var(--bdv-bon); border-color: var(--bdv-bon); background: var(--bdv-bon-lavis); }
+.tmod__titre { font-family: inherit; font-size: var(--bdv-f-5); color: var(--bdv-encre-1); margin: 0; }
 .tmod__sous {
-  margin: 0.4rem 0 0; font-family: var(--font-corps); font-size: var(--t-petit);
-  color: var(--muted); line-height: var(--lh-normal);
+  margin: 0.4rem 0 0; font-family: inherit; font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4); line-height: 1.5;
 }
 
 .tmod__form { margin-top: var(--e-m); }
@@ -1534,25 +1582,28 @@ body.bdv-poste .tachesf__i,
 .tmod__duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-s) var(--e-m); margin-top: var(--e-s); }
 .tmod__l {
   margin: 0 0 0.3rem;
-  font-family: var(--font-corps); font-size: var(--t-petit); color: var(--ink);
+  font-family: inherit; font-size: var(--bdv-f-3); color: var(--bdv-encre-2);
 }
 .tmod__i, .tmod__d {
   width: 100%;
   padding: 0.55rem 0.7rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule);
+  background: var(--bdv-surface);
+  border: 1px solid var(--bdv-trait-fort);
   border-radius: var(--r-nul);
-  font-family: var(--font-corps); font-size: var(--t-corps); color: var(--ink-deep);
+  font-family: inherit; font-size: var(--bdv-f-saisie); color: var(--bdv-encre-1);
 }
-.tmod__i:focus, .tmod__d:focus { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
+/* UN SEUL ANNEAU DE FOCUS DANS TOUT LE PRODUIT. Celui d'origine etait un trait
+   de 3 px en bordeaux du site : 1,37:1 sur la boite sombre, donc plus de focus
+   clavier du tout. `--bdv-anneau` tient 7,44:1 en clair et 9,15:1 en sombre. */
+.tmod__i:focus, .tmod__d:focus { outline: 2px solid var(--bdv-anneau); outline-offset: 2px; }
 .tmod__aide {
-  margin: 0.45rem 0 0; font-family: var(--font-mono); font-size: var(--t-mini);
-  color: var(--muted); line-height: var(--lh-normal);
+  margin: 0.45rem 0 0; font-family: inherit; font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4); line-height: 1.5;
 }
 .tmod__erreur {
   margin: 0.6rem 0 0; padding: 0.5rem 0.7rem;
-  background: var(--danger-bg); color: var(--danger-deep);
-  font-family: var(--font-mono); font-size: var(--t-mini);
+  background: var(--bdv-retard-lavis); color: var(--bdv-retard);
+  font-family: inherit; font-size: var(--bdv-f-2);
 }
 .tmod__pied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); margin-top: var(--e-m); }
 /* btn--bordeaux et pas btn--ghost : le ghost porte `color: var(--paper)`, il est
@@ -1564,17 +1615,17 @@ body.bdv-poste .tachesf__i,
    modale ou tout le reste a ete porte a 44 px. 19/09/2026. */
 .tmod__lien {
   padding: 0; background: none; border: none;
-  font-family: var(--font-mono); font-size: var(--t-micro);
-  color: var(--muted); cursor: pointer; text-decoration: underline;
+  font-family: inherit; font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-4); cursor: pointer; text-decoration: underline;
   min-height: 24px; display: inline-flex; align-items: center;
 }
-.tmod__lien:hover { color: var(--bordeaux); }
-.tmod__lien--x:hover { color: var(--danger-deep); }
+.tmod__lien:hover { color: var(--bdv-accent); }
+.tmod__lien--x:hover { color: var(--bdv-retard); }
 .tmod__lien[hidden] { display: none; }
 
 /* Les blocs du bas sont separes par un filet, pas par un cadre : la boite est deja
    un cadre, et un cadre dans un cadre fait boite dans boite. */
-.tmod__bloc { margin-top: var(--e-l); padding-top: var(--e-m); border-top: var(--trait) solid var(--rule); }
+.tmod__bloc { margin-top: var(--e-l); padding-top: var(--e-m); border-top: 1px solid var(--bdv-trait); }
 .tmod__bloc[hidden] { display: none; }
 .tmod__gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s); }
 /* Le « ou », le champ et son bouton sont un seul morceau : ils passent a la ligne
@@ -1582,17 +1633,20 @@ body.bdv-poste .tachesf__i,
    reste en haut — vu a la capture du 12/09/2026, invisible pour tout controle ecrit. */
 .tmod__ouj { display: inline-flex; align-items: center; gap: var(--e-s); }
 .tmod__gestes .tmod__d { width: auto; flex: 0 1 10rem; }
+/* Les quatre reports (« demain », « dans 7 jours »...). Un bouton de geste, pas
+   une action primaire : l'accent ne sert qu'a la selection, au focus et a
+   l'action primaire, et « Enregistrer » est deja l'action primaire de la boite. */
 .tmod__g {
   padding: 0.45rem 0.9rem;
   background: transparent;
-  border: var(--trait) solid var(--rule);
-  border-radius: var(--r-nul);
-  font-family: var(--font-mono); font-size: var(--t-mini);
-  color: var(--ink); cursor: pointer;
-  transition: var(--tr-rapide);
+  border: 1px solid var(--bdv-trait-fort);
+  border-radius: var(--bdv-r);
+  font-family: inherit; font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-2); cursor: pointer;
+  transition: background var(--bdv-d-court) var(--bdv-courbe),border-color var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);
 }
-.tmod__g:hover { border-color: var(--bordeaux); color: var(--bordeaux); background: var(--paper-light); }
-.tmod__ou { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--muted); }
+.tmod__g:hover { border-color: var(--bdv-encre-4); color: var(--bdv-encre-1); background: var(--bdv-surface-2); }
+.tmod__ou { font-family: inherit; font-size: var(--bdv-f-2); color: var(--bdv-encre-4); }
 .tmod__bloc--gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); }
 .tmod__bloc--gestes .tmod__lien--x { margin-left: auto; }
 
@@ -1611,7 +1665,7 @@ body.bdv-poste .tachesf__i,
      FAIT » (114 x 35) sont les deux boutons qui ECRIVENT dans cette modale, et ce
      sont les seuls que la passe du 12/09 n'a pas descendus au plancher : elle a
      couvert la croix, les gestes, les liens et les champs. Mesure du 19/09. */
-  .tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d, .tmod .btn { min-height: 44px; }
+  .tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d, .tmod .btn { min-height: var(--bdv-cible); }
   .tmod__lien { display: inline-flex; align-items: center; }
   .tmod__x { display: flex; align-items: center; min-width: 44px; justify-content: center; }
   .tmod__gestes .tmod__d, .tmod__ouj { flex: 1 1 100%; }
@@ -1645,22 +1699,22 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
    pas un choix : la regle `body.bdv-poste` du meme bloc traite bien les trois
    ensemble. Elle restait a 11 px de haut, le plus petit geste de l'ecran. */
 .tachesf__grand {
-  padding: 0; background: none; border: none;
-  font-family: var(--font-mono); font-size: var(--t-micro);
-  color: var(--muted); cursor: pointer; text-decoration: underline;
+  padding: 0 var(--bdv-e-2); background: none; border: none;
+  font-family: inherit; font-size: var(--bdv-f-2);
+  color: var(--bdv-encre-3); cursor: pointer; text-decoration: underline;
   align-self: center;
-  min-height: 24px; display: inline-flex; align-items: center;
+  min-height: var(--bdv-cible); display: inline-flex; align-items: center;
 }
-.tachesf__grand:hover { color: var(--bordeaux); }
+.tachesf__grand:hover { color: var(--bdv-accent); }
 
 /* Le titre d'une occurrence du calendrier, en vue liste. Il garde exactement la
    typographie du <h3> qui le porte : une porte qui se voit comme une porte ferait
    de cette liste une liste de boutons. */
 .echeance__ouvrir {
   padding: 0; background: none; border: none;
-  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  font: inherit; color: var(--bdv-encre-3); text-align: left; cursor: pointer;
 }
-.echeance__ouvrir:hover { color: var(--bordeaux); }
+.echeance__ouvrir:hover { color: var(--bdv-accent); }
 .echeance__ouvrir:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
 
 /* de style.css L8347 */
@@ -1894,18 +1948,18 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
    toutes les notes du site. Il ne s'affiche qu'a partir de deux bureaux. */
 .bureau-nav__bureau {
   display: block;
-  padding: 0 var(--e-m) var(--e-xs);
-  color: var(--muted);
+  padding: 0 var(--bdv-e-2) var(--bdv-e-3);
+  color: var(--bdv-encre-4);
   font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
+  font-size: var(--bdv-f-1);
+  letter-spacing: var(--bdv-ls-etiq);
   text-transform: uppercase;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
 
 /* de style.css L8543 */
-.bureau-nav__bureau:hover { color: var(--bordeaux); text-decoration: underline; }
+.bureau-nav__bureau:hover { color: var(--bdv-accent); text-decoration: underline; }
 
 /* de style.css L8545 */
 .equipe-bureau {
@@ -2077,15 +2131,15 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
   position: fixed; inset: 0; z-index: var(--z-amorce);
   display: flex; align-items: center; justify-content: center;
   padding: var(--e-m);
-  background: var(--bordeaux-veil);
+  background: var(--bdv-voile);
 }
 .bdv-amorce__carte {
   width: 100%; max-width: 26rem;
   padding: var(--e-l);
-  background: var(--paper);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  box-shadow: var(--ombre-dure);
+  background: var(--bdv-surface-3);
+  color: var(--bdv-encre-2);
+  border: 1px solid var(--bdv-trait);
+  box-shadow: none;
   /* `100dvh` ET PAS `100vh`, meme lecon que la fiche client le 11/09/2026 : sur iOS
      `100vh` vaut la hauteur SANS les barres du navigateur, donc la carte depasse et
      ses deux boutons passent dessous. Ici ce sont precisement les boutons qui rendent
@@ -2099,31 +2153,34 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
 }
 .bdv-amorce__titre {
   margin: 0;
-  font-family: var(--font-titre);
+  font-family: inherit;
   /* --t-h3 et pas --t-lead : a 18 px dans une carte de 26 rem, le titre se lisait comme
      une phrase de plus et la carte n'avait plus de tete. Vu sur l'apercu. */
-  font-size: var(--t-h3);
+  font-size: var(--bdv-f-5);
   line-height: 1.2;
-  color: var(--ink);
+  color: var(--bdv-encre-1);
 }
-.bdv-amorce__sous { margin: 0.35rem 0 var(--e-m); color: var(--muted); }
+.bdv-amorce__sous { margin: 0.35rem 0 var(--e-m); color: var(--bdv-encre-4); }
 .bdv-amorce__liste { margin: 0; padding: 0; list-style: none; }
+/* Les trois etats d'une etape. En attente, l'etape est une metadonnee ; faite,
+   elle passe a l'encre courante ; ratee, elle prend l'alerte. Le glyphe dit
+   deja laquelle est laquelle. */
 .bdv-amorce__etape {
   display: flex; align-items: baseline; gap: var(--e-s);
   padding: 0.3rem 0;
-  color: var(--muted);
+  color: var(--bdv-encre-4);
 }
 /* LA PUCE EST UN GLYPHE, PAS UNE PASTILLE. Une pastille ne dit son etat que par sa
    couleur ; un signe le dit par sa forme, et il reste lisible partout. */
 .bdv-amorce__puce::before { content: '\00B7'; font-weight: 700; }
 .bdv-amorce__etape--encours .bdv-amorce__puce::before { content: '\2026'; }
-.bdv-amorce__etape--fait { color: var(--ink); }
+.bdv-amorce__etape--fait { color: var(--bdv-encre-1); }
 .bdv-amorce__etape--fait .bdv-amorce__puce::before { content: '\2713'; }
-.bdv-amorce__etape--rate { color: var(--warn-deep); }
+.bdv-amorce__etape--rate { color: var(--bdv-alerte); }
 .bdv-amorce__etape--rate .bdv-amorce__puce::before { content: '\0021'; }
 .bdv-amorce__pied:empty { display: none; }
-.bdv-amorce__pied { margin-top: var(--e-m); border-top: 1px solid var(--rule); padding-top: var(--e-m); }
-.bdv-amorce__manque { margin: 0 0 var(--e-s); color: var(--warn-deep); }
+.bdv-amorce__pied { margin-top: var(--e-m); border-top: 1px solid var(--bdv-trait); padding-top: var(--e-m); }
+.bdv-amorce__manque { margin: 0 0 var(--e-s); color: var(--bdv-alerte); }
 .bdv-amorce__pied .btn + .btn { margin-left: var(--e-s); }
 
 /* Sur telephone la carte prend la largeur, retraits compris : une carte bornee a 26 rem
