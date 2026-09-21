@@ -72,54 +72,61 @@ theme_bureau: true
 <!-- CONNECTE -->
 <div id="bureauContenu" hidden>
 
+  <!-- L'EN-TETE DU BUREAU, DE 209 A 56 px, 21/09/2026.
+
+       CE QUI EST PARTI D'ICI, ET OU C'EST PARTI. Le salut, la plaque et la lune
+       sont descendus dans « Ma journee », dans `.bureau-accueil` : ils ne
+       disparaissent pas du produit, ils rejoignent la piece a laquelle ils
+       appartiennent. Un « Bonjour Teddy » et une phase de lune au-dessus de
+       « Mon registre » sont du decor ; au-dessus de la journee, c'est le sujet.
+       Le RESUME reste ici : c'est l'etat du bureau (« 3 clients a rappeler, une
+       echeance dans 5 jours »), et un etat se lit dans toutes les pieces.
+
+       LA MESURE QUI A DECIDE, 18/09/2026 : 209 px de bandeau, soit 30 % du
+       premier ecran d'un 1440 x 900 avant la premiere chose utile. Le
+       resserrement de ce soir-la avait ete refuse par Ted (« c'est un foutoir
+       pas possible »), et il avait raison : on avait TOUT garde en le tassant.
+       La maquette validee le 21/09 ne tasse rien, elle deplace.
+
+       LE `h1` EST LE NOM DE LA PIECE, et c'est le bon titre de page : elle
+       repond « ou suis-je », pas « qui es-tu ». Il est ecrit par
+       `marquerActif()` dans src/js/bdv-nav.js, la fonction qui marque deja la
+       barre : deux endroits qui repondent « ou suis-je » divergeraient au
+       premier renommage de piece. Le texte pose ici est celui de la piece
+       d'accueil, pour que la page ne s'ouvre jamais sur un titre vide. -->
   <section class="bureau-tete">
     <div class="container--bureau bureau-tete__ligne">
-      <!-- LES QUATRE MORCEAUX DU SALUT SUR UNE SEULE RANGEE, 18/09/2026.
-           Ce div portait quatre paragraphes empiles, soit 129 px de bandeau a
-           lui seul. Il porte maintenant une classe parce qu'il est devenu une
-           rangee et plus une pile : la date, le salut, la plaque et le resume
-           s'alignent sur la meme ligne de base et se replient ensemble. -->
-      <!-- REMIS COMME AVANT LE 18/09/2026 AU SOIR. Ce bloc a ete resserre en une
-           rangee, puis range en deux lignes, et Ted a tranche sur la vraie page :
-           « c'etait mieux avant ». La pile est donc restauree telle quelle, et le
-           resserrage du bureau s'arrete a la porte de ce bandeau. Ne pas le
-           reouvrir sans lui : ce n'est plus une question de pixels. -->
-      <div>
-        <p class="bureau-tete__jour" id="bureauJour"></p>
-        <h1 id="bureauSalut">Te voilà chez toi.</h1>
-        <!-- La plaque : le nom du domaine, comme sur une porte de bureau. Elle n'apparait
-             que s'il l'a donne : un cadre vide qui annonce ce qui manque se remarque plus
-             qu'une absence. -->
-        <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
-        <p class="bureau-tete__resume" id="bureauResume"></p>
-      </div>
-
-      <!-- LA LUNE, ENTRE LE BONJOUR ET LES ACTIONS. Elle est CALCULEE, jamais
-           tapee : bdv-almanach.js rend la position reelle du Soleil et de la
-           Lune, la fraction eclairee au millieme, et la declinaison. Le dessin
-           n'est pas un caractere de police mais deux arcs SVG, parce qu'aucune
-           police ne sait faire un croissant a 9 % ni le retourner.
-           ELLE NE DEPEND PAS DE L'INTERRUPTEUR « Lune et feries » du
-           calendrier, et c'est un choix : cet interrupteur nettoie les cases
-           d'un mois, celle-ci est le decor du bureau. Deux endroits, deux
-           natures, deux commandes.
-           Cachee au depart : on ne montre pas un cadre vide en attendant que
-           l'almanach arrive en defer. -->
-      <div class="bureau-tete__lune" id="bureauLune" hidden>
-        <svg class="bureau-tete__lune-dessin" viewBox="-52 -52 104 104"
-             aria-hidden="true" focusable="false">
-          <circle class="bureau-tete__lune-ombre" cx="0" cy="0" r="50"/>
-          <path class="bureau-tete__lune-clair" id="bureauLuneClair" d=""/>
-          <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
-        </svg>
-        <div>
-          <p class="bureau-tete__lune-nom" id="bureauLuneNom"></p>
-          <p class="bureau-tete__lune-note" id="bureauLuneNote"></p>
-          <p class="bureau-tete__lune-suite" id="bureauLuneSuite" hidden></p>
-        </div>
-      </div>
+      <h1 class="bureau-tete__piece" id="bureauPiece">Ma journée</h1>
+      <p class="bureau-tete__jour" id="bureauJour"></p>
+      <p class="bureau-tete__resume" id="bureauResume"></p>
 
       <div class="bureau-tete__actions">
+        <!-- LA BASCULE CLAIR / SOMBRE, 44 x 44, ET TROIS ETATS ET PAS DEUX.
+             « comme mon telephone » est le DEFAUT et ne pose aucun attribut ;
+             le bouton doit pouvoir y revenir, sinon le premier clic enferme
+             pour toujours celui qui l'a fait et le reglage du systeme cesse
+             d'etre suivi sans que personne ne comprenne pourquoi.
+             L'etat est dit en toutes lettres dans `aria-label`, repose a
+             chaque appui : un dessin de lune ne s'entend pas. Le glyphe, lui,
+             est choisi par `data-etat` en CSS, donc un seul attribut pilote
+             les deux. Branche sur `window.BdvTheme`, pose par le socle du
+             matin dans src/_includes/base.njk. -->
+        <button class="bdv-bascule" id="bureauTheme" type="button" data-etat="auto"
+                aria-label="Thème : comme ton téléphone. Appuie pour forcer le clair.">
+          <svg class="bdv-bascule__g bdv-bascule__g--auto" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="7.2" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 4.8a7.2 7.2 0 0 1 0 14.4Z" fill="currentColor"/>
+          </svg>
+          <svg class="bdv-bascule__g bdv-bascule__g--soleil" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.9 1.9M16.7 16.7l1.9 1.9M18.6 5.4l-1.9 1.9M7.3 16.7l-1.9 1.9"
+                  stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <svg class="bdv-bascule__g bdv-bascule__g--lune" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path d="M19.4 14.9A8.4 8.4 0 0 1 9.1 4.6a8.4 8.4 0 1 0 10.3 10.3Z"
+                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button">Mes réglages</button>
         <!-- Se déconnecter EFFACE ce navigateur. Le bouton est donc volontairement discret et
              en second : une action définitive n'a pas à attirer l'oeil autant que les
@@ -143,6 +150,55 @@ theme_bureau: true
     <div class="bureau-atelier__travail">
 
     <div class="bureau-plan" id="bureauJournee">
+
+    <!-- LE BANDEAU D'ACCUEIL, 21/09/2026. Il porte ce qui a quitte l'en-tete :
+         le salut, la plaque du domaine et la lune. Il est DANS « Ma journee »
+         et nulle part ailleurs, donc il disparait avec elle quand on ouvre une
+         autre piece : c'est `seule()` qui s'en charge, sans une ligne de plus.
+
+         CE N'EST PAS UNE `.zone`, ET IL NE DOIT PAS LE DEVENIR. `npm run banc`
+         controle l'ORDRE des huit zones par `#bureauJournee > .zone`, un ordre
+         que Ted a dicte le 07/09/2026 : lui donner la classe ferait entrer un
+         neuvieme nom dans cette liste.
+
+         `grid-column: 1 / -1` est pose dans src/css/bdv-bureau.css, et c'est la
+         regle du 14/09/2026 pour tout bloc pose au-dessus des pieces : sans
+         elle il tomberait dans UNE colonne sur douze et s'ecrirait une lettre
+         par ligne, ce qui est exactement comme « L'equipe » est partie en
+         production. -->
+    <section class="bureau-accueil" id="bureauAccueil">
+      <p class="bureau-accueil__salut" id="bureauSalut">Te voilà chez toi.</p>
+      <!-- La plaque : le nom du domaine, comme sur une porte de bureau. Elle n'apparait
+           que s'il l'a donne : un cadre vide qui annonce ce qui manque se remarque plus
+           qu'une absence. Elle garde son nom de classe `bureau-tete__plaque` en changeant
+           de parent : le renommer ferait mourir sa regle dans style.css, que ce lot ne
+           touche pas, et `peindreIdentite()` la retrouve par son identifiant. -->
+      <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
+
+      <!-- LA LUNE. Elle est CALCULEE, jamais tapee : bdv-almanach.js rend la
+           position reelle du Soleil et de la Lune, la fraction eclairee au
+           millieme, et la declinaison. Le dessin n'est pas un caractere de
+           police mais deux arcs SVG, parce qu'aucune police ne sait faire un
+           croissant a 9 % ni le retourner.
+           ELLE NE DEPEND PAS DE L'INTERRUPTEUR « Lune et feries » du
+           calendrier, et c'est un choix : cet interrupteur nettoie les cases
+           d'un mois, celle-ci est le decor du bureau.
+           Cachee au depart : on ne montre pas un cadre vide en attendant que
+           l'almanach arrive en defer. -->
+      <div class="bureau-tete__lune" id="bureauLune" hidden>
+        <svg class="bureau-tete__lune-dessin" viewBox="-52 -52 104 104"
+             aria-hidden="true" focusable="false">
+          <circle class="bureau-tete__lune-ombre" cx="0" cy="0" r="50"/>
+          <path class="bureau-tete__lune-clair" id="bureauLuneClair" d=""/>
+          <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
+        </svg>
+        <div>
+          <p class="bureau-tete__lune-nom" id="bureauLuneNom"></p>
+          <p class="bureau-tete__lune-note" id="bureauLuneNote"></p>
+          <p class="bureau-tete__lune-suite" id="bureauLuneSuite" hidden></p>
+        </div>
+      </div>
+    </section>
 
     <!-- L'ORDRE DES ZONES EST CELUI QUE TED A DICTE le 07/09/2026 : le panneau de
          post-it, puis le sous-main avec le calendrier a sa droite, puis l'ardoise,
@@ -2063,6 +2119,65 @@ theme_bureau: true
     else location.href = '/compte/';   // module absent : on ne laisse pas un clic sans effet
   }
 
+  /* LA BASCULE CLAIR / SOMBRE, 21/09/2026. TROIS ETATS ET PAS DEUX : 'light',
+     'dark', et la cle ABSENTE qui veut dire « comme mon telephone ». Un bouton a
+     deux positions enfermerait pour toujours celui qui a clique une fois, et rien
+     a l'ecran ne dirait que le reglage du systeme n'est plus suivi. Le cycle
+     revient donc au defaut. Le libelle annonce CE QUE FERA LE PROCHAIN APPUI en
+     plus de l'etat courant, sinon il faut appuyer pour savoir ou l'on va ; un
+     dessin de lune ne s'entend pas. `data-etat` pilote le glyphe en CSS.
+     On ne lit PAS `prefers-color-scheme` ici : le bouton dit ce qu'il COMMANDE.
+     Le raisonnement complet est dans CLAUDE.md. */
+  var THEME_SUITE = { auto:'light', light:'dark', dark:null };
+  var THEME_DIT = {
+    auto:  'Thème : comme ton téléphone. Appuie pour forcer le clair.',
+    light: 'Thème : clair forcé. Appuie pour forcer le sombre.',
+    dark:  'Thème : sombre forcé. Appuie pour revenir au réglage de ton téléphone.'
+  };
+  function peindreBascule(b, etat){
+    b.setAttribute('data-etat', etat);
+    b.setAttribute('aria-label', THEME_DIT[etat]);
+    b.setAttribute('title', THEME_DIT[etat]);
+  }
+  function brancherTheme(){
+    var b = el('bureauTheme');
+    // Pas de BdvTheme, pas de bouton : un bouton qui ne commande rien est pire
+    // qu'un bouton absent. Le cas existe, sur un apercu monte sans le gabarit.
+    if(!b) return;
+    if(!window.BdvTheme){ b.hidden = true; return; }
+    peindreBascule(b, BdvTheme.lire() || 'auto');
+    b.addEventListener('click', function(){
+      var suite = THEME_SUITE[b.getAttribute('data-etat') || 'auto'];
+      BdvTheme.poser(suite);            // ecrit la cle ET repose l'attribut
+      peindreBascule(b, suite || 'auto');
+    });
+  }
+
+  /* L'EN-TETE SE RETRACTE AU DEFILEMENT, SOUS 700 px SEULEMENT, ou il est colle
+     en haut (il n'y a plus de bandeau de site a cette largeur depuis le
+     11/09/2026). 56 px pris en permanence sur 844, c'est 7 % de l'ecran pour une
+     date deja lue. On ne cache QUE la date et l'etat : le nom de la piece et les
+     actions sont ce qu'on vient chercher en remontant. HYSTERESIS de 8 px, sans
+     quoi un doigt pose pile sur le seuil fait clignoter l'en-tete. */
+  function brancherRetraction(){
+    var t = document.querySelector('.bureau-tete');
+    if(!t || !window.matchMedia) return;
+    var etroit = window.matchMedia('(max-width:700px)');
+    var pose = false;
+    function juger(){
+      if(!etroit.matches){
+        if(pose){ t.classList.remove('bureau-tete--retracte'); pose = false; }
+        return;
+      }
+      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      if(!pose && y > 64){ t.classList.add('bureau-tete--retracte'); pose = true; }
+      else if(pose && y < 48){ t.classList.remove('bureau-tete--retracte'); pose = false; }
+    }
+    window.addEventListener('scroll', juger, { passive: true });
+    window.addEventListener('resize', juger, { passive: true });
+    juger();
+  }
+
   // Appele depuis DOMContentLoaded, jamais a l'analyse du document : bdv-reglages.js est
   // charge en defer, window.BdvReglages n'existe pas encore quand ce script est lu.
   function brancherReglages(){
@@ -2323,6 +2438,8 @@ theme_bureau: true
     // La barre en premier : elle est le cadre, tout le reste se peint dedans.
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
     brancherReglages();
+    brancherTheme();
+    brancherRetraction();
     peindreEcheance(); peindreResume();
     if(window.BdvCrm){
       // Le miroir AVANT le reseau. Ce script s'execute pendant l'analyse du document,

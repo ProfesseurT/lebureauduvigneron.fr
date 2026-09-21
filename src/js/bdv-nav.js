@@ -397,7 +397,7 @@
   function marquerActif(id) {
     var nav = document.getElementById('bureauNav');
     if (!nav) return;
-    var ligneActive = null;
+    var ligneActive = null, nomActif = '';
     PIECES.forEach(function (p) {
       var l = nav.querySelector('.bureau-nav__ligne[data-piece="' + p.id + '"]');
       if (!l) return;
@@ -405,9 +405,22 @@
       if (!it) return;
       var actif = p.id === id;
       it.classList.toggle('bureau-nav__item--actif', actif);
-      if (actif) { it.setAttribute('aria-current', 'page'); ligneActive = l; }
+      if (actif) { it.setAttribute('aria-current', 'page'); ligneActive = l; nomActif = libelle(p); }
       else it.removeAttribute('aria-current');
     });
+
+    /* ------- LE NOM DE LA PIECE DANS L'EN-TETE, 21/09/2026 -------
+       L'en-tete du bureau est passe de 209 a 56 px avec le lot du dessin : il ne
+       porte plus le salut, il porte le nom de la piece ou l'on se trouve. Ce nom
+       s'ecrit ICI, dans la fonction qui marque deja la barre, et nulle part
+       ailleurs : deux endroits qui repondent « ou suis-je » divergeraient au
+       premier renommage de piece, exactement comme les libelles de gestes tires
+       de GESTES le 11/09/2026. Et il passe par `libelle(p)`, la meme fonction que
+       la barre, donc « Mon cap » se dit d'une seule facon sur la page.
+       Garde sur l'element : ce module tourne aussi dans des bancs et des apercus
+       qui montent la barre sans l'en-tete. */
+    var tete = document.getElementById('bureauPiece');
+    if (tete && nomActif) tete.textContent = nomActif;
     /* ------- LA PIECE ACTIVE SE RAMENE DANS LE CHAMP, 19/09/2026 -------
        Sous 700 px la barre du bas DEFILE horizontalement : neuf cellules de 48 px font
        432 px, et un telephone courant en tient 390. Ces 48 px ne sont pas negociables,

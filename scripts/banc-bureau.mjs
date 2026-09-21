@@ -711,8 +711,28 @@ t('le bloc de la lune est dans le HTML produit',
    qu'une absence, et c'est la regle deja ecrite pour la plaque de porte. */
 t('il est cache tant que rien ne l\'a peint',
   L.doc.getElementById('bureauLune').hasAttribute('hidden'));
-t('il est la troisieme zone de la ligne, entre le bonjour et les actions',
-  L.doc.querySelector('.bureau-tete__ligne > .bureau-tete__lune + .bureau-tete__actions') !== null);
+/* ELLE A CHANGE DE PARENT LE 21/09/2026, ET LE CONTROLE AVEC.
+   L'en-tete du bureau est passe de 209 a 56 px : il ne porte plus que ce qui vaut
+   pour les neuf pieces (le nom de la piece, la date, l'etat, les actions). Le
+   salut, la plaque et la lune sont descendus dans « Ma journee », dans
+   `.bureau-accueil`, parce qu'une phase de lune au-dessus de « Mon registre » est
+   du decor et qu'au-dessus de la journee c'est le sujet.
+   CE QU'ON CONTROLE MAINTENANT, et c'est la meme chose sous un autre toit : la
+   lune est DANS le bandeau d'accueil, a cote du salut, et le bandeau est dans
+   « Ma journee » et nulle part ailleurs. La deuxieme moitie est ce qui compte :
+   posee hors de `#bureauJournee`, elle resterait affichee sur les huit autres
+   pieces, puisque `seule()` ne masque que les quatre conteneurs. */
+t('la lune est dans le bandeau d\'accueil, a cote du salut',
+  L.doc.querySelector('.bureau-accueil > .bureau-tete__lune') !== null
+  && L.doc.querySelector('.bureau-accueil #bureauSalut') !== null);
+t('et le bandeau d\'accueil vit dans « Ma journee », pas dans l\'en-tete',
+  L.doc.querySelector('#bureauJournee > .bureau-accueil') !== null
+  && L.doc.querySelector('.bureau-tete .bureau-tete__lune') === null);
+/* ET IL N'EST PAS UNE `.zone` : l'ordre des huit zones est controle plus haut par
+   `#bureauJournee > .zone`, et cet ordre est celui que Ted a dicte le 07/09/2026.
+   Donner la classe au bandeau ferait entrer un neuvieme nom dans cette liste. */
+t('le bandeau d\'accueil n\'est pas une zone du plateau',
+  !L.doc.querySelector('.bureau-accueil').classList.contains('zone'));
 /* L'ALMANACH DANS LE GABARIT, ET EN DEFER. Sans defer il entrerait dans le budget
    documente de 32 ko bloquants du bureau, que ce chantier n'a pas le droit
    d'augmenter. */

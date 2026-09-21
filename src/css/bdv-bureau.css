@@ -1,0 +1,866 @@
+/* ============================================================================
+   src/css/bdv-bureau.css : LE DESSIN DE LA COQUE DU BUREAU CONNECTE
+
+   CE QUE CE FICHIER EST. La premiere feuille qui LIT les jetons `--bdv-*` poses
+   par src/css/bdv-theme.css le 21/09/2026. Elle dessine la COQUE, et rien
+   d'autre : le fond de page, l'en-tete, la barre des pieces, la grille de
+   l'atelier, et les primitives partagees (carte, zone, bouton, chip, champ,
+   rangee, anneau de focus). Le CONTENU des pieces garde son dessin actuel et
+   viendra au lot suivant : c'est assume, les deux lots partent ensemble.
+
+   --------------------------------------------------------------------------
+   POURQUOI TOUT EST SCOPE PAR `.bdv-coque`, ET CE N'EST PAS DU RANGEMENT
+   --------------------------------------------------------------------------
+   `.zone`, `.postit` et `.lettre` ne sont pas des classes du bureau : ce sont
+   AUSSI celles de src/_includes/components/demo-pinboard.njk, la demonstration
+   de la page d'accueil. C'est une regle ecrite du depot (CLAUDE.md, 12/09/2026,
+   « quand une page du site montre le produit, elle montre les VRAIS composants
+   du bureau, avec leurs vraies classes ») : reproduire un ecran a la main coute
+   une maquette qui derive des la premiere semaine.
+
+   Repeindre ces classes sans scope repeindrait donc LA PAGE D'ACCUEIL DU SITE
+   PUBLIC, qui n'a pas de theme sombre et n'en veut pas. Arbitrage de Ted le
+   21/09/2026 : on scope maintenant, on rouvrira la question quand les neuf
+   pieces seront finies.
+
+   LE SCOPE EST `.bdv-coque`, POSE SUR LE CORPS DE PAGE PAR LE MEME DRAPEAU NJK
+   QUE CELUI QUI LIE CETTE FEUILLE, `theme_bureau` (voir src/_includes/base.njk,
+   et src/mon-bureau.njk qui est la seule page a le porter). Trois raisons de
+   l'avoir choisi plutot qu'un autre :
+
+     . `.bdv-poste` NE CONVIENT PAS : il depend de l'etat de session, pose et
+       retire par le script de src/mon-bureau.njk. Le bureau DECONNECTE le perd,
+       et sa porte (« Ton bureau t'attend ») doit suivre le meme dessin que le
+       reste, sinon le vigneron change de produit en se connectant ;
+     . un drapeau de front matter est le MEME interrupteur que celui qui lie la
+       feuille : la classe ne peut pas se retrouver sans sa feuille, ni la
+       feuille sans sa classe ;
+     . le nom est unique dans tout le depot, donc le jour ou l'on debranche ce
+       dessin, une passe de `sed` sur `.bdv-coque ` suffit a le retirer, et le
+       `<link>` part avec le meme `{% if %}`.
+
+   LE CONTROLE EST DANS `npm run charte --bureau`, section 10 bis, ecrite sur le
+   modele exact de la section 10 qui garde `.bdv-ventes` : une seule regle qui
+   sort de son scope repeint la page d'accueil, et rien d'autre ne le dirait.
+
+   --------------------------------------------------------------------------
+   LES REGLES DE DESSIN, TOUTES MESUREES AILLEURS, TENUES ICI
+   --------------------------------------------------------------------------
+   Rayon 6 px de base (4 px pastille, 9999 px chip), rien au-dessus de 12 px.
+   La profondeur est un TRAIT de 1 px, pas une ombre : cette feuille ne pose
+   AUCUNE `box-shadow`, et ce n'est pas un oubli (la regle du plateau n'autorise
+   que deux ombres dans tout le produit, et il y en a deja vingt distinctes sur
+   le bureau : voir la section A de `npm run charte`).
+   Un seul accent, trois usages : selection, focus, action primaire.
+   Echelle a six crans, 12 / 13 / 15 / 17 / 20 / 28 px. Graisses 400 / 500 / 600,
+   jamais 700. Espacement sur base 4. Durees 150 ms et 300 ms ; le zero de
+   `prefers-reduced-motion` est deja pose globalement par src/css/style.css.
+
+   AUCUNE VALEUR EN DUR : ni couleur, ni taille, ni rayon, ni duree, ni
+   ecartement de lettres. Les cinq jetons qui manquaient (`--bdv-ls-etiq`,
+   `--bdv-ls-serre`, `--bdv-cible`, `--bdv-h-tete`, `--bdv-rail`) ont ete
+   ajoutes au bloc CLAIR de bdv-theme.css et a tokens.css le meme jour. Ils sont
+   dans le bloc clair SEULEMENT, et c'est une condition : ce sont des ECHELLES,
+   et la section 4 de `npm run banc:jetons` echoue si une echelle se retourne
+   dans un bloc sombre. Un theme change des couleurs, il ne change ni le rythme
+   ni la taille du texte.
+   ============================================================================ */
+
+
+/* ==========================================================================
+   1. LA PAGE
+
+   Le fond et l'encre courante du bureau. C'est ce qui rend `color-scheme`
+   tenable : la ligne `html{ color-scheme: var(--bdv-schema) }` a attendu ce
+   lot en commentaire dans bdv-theme.css, parce que l'allumer avant le decor
+   aurait donne un bureau creme avec des morceaux de systeme sombres poses
+   dessus. Elle est allumee maintenant, et c'est ici que le decor arrive.
+
+   L'entete et le pied du SITE ne sont pas touches : ils sont en bordeaux
+   profond dans les deux themes, ils tiennent sur les deux fonds, et ce sont
+   les objets du site, pas du bureau. Sous 700 px ils sortent deja du bureau
+   (regle du 11/09/2026).
+   ========================================================================== */
+body.bdv-coque{
+  background:var(--bdv-fond);
+  color:var(--bdv-encre-2);
+}
+
+/* Un seul anneau de focus dans tout le produit, et il a la couleur de la
+   SURFACE et non du composant : `--bdv-anneau` tient 7,44:1 en clair et 9,15:1
+   en sombre, tres au-dessus des 3:1 exiges d'un indicateur de focus. La regle
+   du depot (« quand une surface change de couleur, relire l'anneau de ce
+   qu'elle porte ») est ce qui a fait tomber l'ancien anneau creme a 2,36:1. */
+.bdv-coque :focus-visible{
+  outline:2px solid var(--bdv-anneau);
+  outline-offset:2px;
+  border-radius:var(--bdv-r-pastille);
+}
+/* DANS LA BARRE DES PIECES, L'ANNEAU RENTRE. `.bureau-nav` porte
+   `overflow:hidden` pour couper ce qui depasse de sa colonne : un anneau pose
+   a l'exterieur y est rogne. Deja paye le 07/09/2026, sur cette meme barre. */
+.bdv-coque .bureau-nav :focus-visible{ outline-offset:-2px; }
+
+
+/* ==========================================================================
+   2. L'EN-TETE DU BUREAU, DE 209 A 56 px
+
+   MESURE DU 18/09/2026, reprise le 21/09 : le bandeau faisait 209 px pour une
+   date, un salut, une plaque, un resume, la lune et deux boutons, soit 30 % du
+   premier ecran d'un 1440 x 900 avant la premiere chose utile. Ted avait refuse
+   le resserrement de ce soir-la (« c'est un foutoir pas possible »), et il avait
+   raison : on avait tout garde en le tassant. La maquette validee le 21/09 ne
+   tasse rien, elle DEPLACE : l'en-tete ne porte plus que ce qui vaut pour les
+   neuf pieces (le nom de la piece, la date, l'etat, les actions), et le salut,
+   la plaque et la lune descendent dans « Ma journee », a qui ils appartiennent.
+   Un « Bonjour Teddy » au-dessus de « Mon registre » est du decor ; au-dessus
+   de la journee, c'est le sujet.
+
+   56 px, c'est la hauteur de la maquette, et c'est aussi ce que demandent une
+   cible de 44 px et son air : 44 + 2 x 6.
+   ========================================================================== */
+.bdv-coque .bureau-tete{
+  background:var(--bdv-fond);
+  color:var(--bdv-encre-2);
+  border-bottom:1px solid var(--bdv-trait);
+  padding-block:0;
+}
+.bdv-coque .bureau-tete__ligne{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-3);
+  min-height:var(--bdv-h-tete);
+  flex-wrap:nowrap;
+}
+/* LE NOM DE LA PIECE EST LE `h1` DE LA PAGE, et c'est le bon titre : la page
+   repond « ou suis-je », pas « qui es-tu ». Il est ecrit par `marquerActif()`
+   dans src/js/bdv-nav.js, la fonction qui marque deja la barre : deux endroits
+   qui repondent « ou suis-je » divergeraient au premier renommage de piece. */
+.bdv-coque .bureau-tete__piece{
+  font-size:var(--bdv-f-4);
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+  white-space:nowrap;
+  margin:0;
+}
+.bdv-coque .bureau-tete__jour{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+  white-space:nowrap;
+  margin:0;
+  text-transform:none;
+  letter-spacing:0;
+}
+/* Le point de separation de la maquette. Un `::before` et pas un caractere :
+   un point median dans le texte part dans la synthese vocale et dans la
+   recherche du navigateur, ou il ne veut rien dire. */
+.bdv-coque .bureau-tete__jour::before{
+  content:"";
+  display:inline-block;
+  width:3px;height:3px;
+  margin-right:var(--bdv-e-3);
+  vertical-align:middle;
+  border-radius:var(--bdv-r-rond);
+  background:var(--bdv-trait-fort);
+}
+/* L'ETAT DU BUREAU. `#bureauResume` dit deja ce qui attend (« 3 clients a
+   rappeler, une echeance dans 5 jours ») : c'est l'etat, et il a sa place ici,
+   coupe plutot qu'etale. Il n'y a PAS d'indicateur de synchronisation dans
+   cette version : le depot n'a pas encore de source qui dise « a jour depuis
+   N minutes », et un point vert qui ne lit rien est un temoin qui ment. */
+.bdv-coque .bureau-tete__resume{
+  margin:0 0 0 auto;
+  font-style:normal;
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-4);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:42ch;
+  text-align:right;
+}
+.bdv-coque .bureau-tete__actions{
+  display:flex;
+  /* `flex-direction:row` N'EST PAS REDONDANT. style.css empile ces boutons en
+     COLONNE depuis le 08/09/2026, et une propriete qu'on ne reecrit pas reste
+     celle de la cascade : sans cette ligne, l'en-tete mesurait 139 px au lieu de
+     56, avec un `min-height` de 56 parfaitement respecte. Mesure du 21/09/2026,
+     a la capture. */
+  flex-direction:row;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  flex:0 0 auto;
+  margin-left:0;
+}
+.bdv-coque .bureau-tete__reglages,
+.bdv-coque .bureau-tete__sortir{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  padding:0 var(--bdv-e-3);
+  border-radius:var(--bdv-r);
+  border:1px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-2);
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  white-space:nowrap;
+  letter-spacing:0;
+  text-transform:none;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete__reglages:hover,
+.bdv-coque .bureau-tete__sortir:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+/* « Me deconnecter » efface ce navigateur : elle reste volontairement en
+   second, sans cadre, pour ne pas se cliquer par reflexe. Decision du
+   08/09/2026, gardee telle quelle. */
+.bdv-coque .bureau-tete__sortir{
+  border-color:transparent;
+  background:transparent;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .bureau-tete__sortir::after{ display:none; }
+.bdv-coque .bureau-tete__sortir-avis{
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .bureau-tete__invite{
+  color:var(--bdv-accent);
+  border-bottom-color:var(--bdv-accent-trait);
+  font-size:var(--bdv-f-2);
+}
+
+
+/* ==========================================================================
+   3. LA BASCULE CLAIR / SOMBRE, 44 x 44, DANS L'EN-TETE
+
+   TROIS ETATS ET PAS DEUX, comme le socle : « clair », « sombre », et
+   « comme mon telephone », qui est le DEFAUT et ne pose aucun attribut. C'est
+   pour ca que le bouton doit pouvoir revenir au troisieme : un bouton a deux
+   positions enferme pour toujours celui qui a clique une fois, et le reglage
+   du systeme cesse d'etre suivi sans que personne ne comprenne pourquoi.
+
+   Le glyphe visible est choisi par `data-etat`, pose par le script de
+   src/mon-bureau.njk, et l'`aria-label` DIT l'etat en toutes lettres : un
+   dessin de lune ne s'entend pas.
+   ========================================================================== */
+.bdv-coque .bdv-bascule{
+  width:var(--bdv-cible);
+  height:var(--bdv-cible);
+  flex:0 0 var(--bdv-cible);
+  display:grid;
+  place-items:center;
+  border-radius:var(--bdv-r);
+  border:1px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-2);
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bdv-bascule:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+/* LES TROIS GLYPHES S'AFFICHAIENT ENSEMBLE, et la faute n'etait pas la ou on la
+   cherche : `.bdv-coque .bdv-bascule svg{display:block}` pese (0,2,1) contre
+   (0,2,0) pour `.bdv-coque .bdv-bascule__g{display:none}`. Le selecteur le plus
+   general gagnait parce qu'il portait un nom d'ELEMENT en plus. La regle de
+   confort a donc ete supprimee, et `display` n'est ecrit qu'a un seul endroit
+   par etat. Trouve a la capture le 21/09/2026, pas a la lecture : aucun banc ne
+   regarde quel glyphe est visible. */
+.bdv-coque .bdv-bascule__g{ display:none; }
+.bdv-coque .bdv-bascule[data-etat="auto"] .bdv-bascule__g--auto{ display:block; }
+.bdv-coque .bdv-bascule[data-etat="light"] .bdv-bascule__g--soleil{ display:block; }
+.bdv-coque .bdv-bascule[data-etat="dark"] .bdv-bascule__g--lune{ display:block; }
+/* Un choix FORCE se voit : c'est le seul moyen de savoir, sans lire l'aria,
+   qu'on ne suit plus le reglage du telephone. */
+.bdv-coque .bdv-bascule[data-etat="light"],
+.bdv-coque .bdv-bascule[data-etat="dark"]{
+  border-color:var(--bdv-accent-trait);
+  color:var(--bdv-accent);
+  background:var(--bdv-accent-lavis);
+}
+
+
+/* ==========================================================================
+   4. OU SONT PASSES LE SALUT, LA PLAQUE ET LA LUNE
+
+   Ils sont descendus dans « Ma journee », en tete du plan, dans
+   `.bureau-accueil`. Ce bloc n'est PAS une `.zone` et ne doit pas le devenir :
+   `npm run banc` controle l'ordre des huit zones par `#bureauJournee > .zone`,
+   et lui donner la classe ferait entrer un neuvieme nom dans une liste que Ted
+   a dictee. Il porte `grid-column: 1 / -1`, la regle du 14/09/2026 pour tout
+   bloc pose au-dessus des pieces : sans elle il tomberait dans une colonne sur
+   douze et s'ecrirait une lettre par ligne.
+   ========================================================================== */
+.bdv-coque .bureau-accueil{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-4);
+  flex-wrap:wrap;
+  padding-bottom:var(--bdv-e-2);
+}
+.bdv-coque .bureau-accueil__salut{
+  margin:0;
+  font-size:var(--bdv-f-5);
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bureau-tete__plaque{
+  margin:0;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  color:var(--bdv-encre-3);
+  letter-spacing:0;
+  text-transform:none;
+}
+/* LA LUNE RESTE UN OBJET CALCULE, et elle garde son dessin en deux arcs : on
+   ne repeint ici que ses couleurs et sa place. Elle passe a droite du salut,
+   sur la meme ligne, au lieu de tenir le milieu du bandeau. */
+.bdv-coque .bureau-tete__lune{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin-left:auto;
+  padding:0;
+  border:0;
+  background:none;
+}
+.bdv-coque .bureau-tete__lune-ombre{ fill:var(--bdv-surface-2); }
+.bdv-coque .bureau-tete__lune-clair{ fill:var(--bdv-encre-3); }
+.bdv-coque .bureau-tete__lune-bord{ stroke:var(--bdv-trait-fort); }
+.bdv-coque .bureau-tete__lune-nom{
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  color:var(--bdv-encre-2);
+  letter-spacing:0;
+  text-transform:none;
+}
+.bdv-coque .bureau-tete__lune-note,
+.bdv-coque .bureau-tete__lune-suite{
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-4);
+}
+
+
+/* ==========================================================================
+   5. L'ATELIER, SON FOND ET SA GRILLE
+
+   La grille de douze colonnes ne bouge pas : c'est elle qui porte les
+   `grid-column: span N` de chaque zone, dictes par Ted. Ce qui change, c'est
+   l'ecart et le fond. L'ecart passe a 16 px (`--bdv-e-4`) : la profondeur du
+   produit est un trait de 1 px, donc les cartes ont besoin d'air entre elles
+   et non d'ombres.
+   ========================================================================== */
+.bdv-coque .bureau-atelier{
+  background:var(--bdv-fond);
+}
+/* LA COLONNE DU RAIL N'EXISTE QU'AU-DESSUS DE 900 px, et cette borne n'est pas
+   un choix : c'est celle de src/css/style.css, ou la barre cesse d'etre une
+   colonne pour devenir un bandeau puis une barre basse. Sans ce cadre, la
+   largeur du rail s'appliquait aussi sur telephone, ou il n'y a pas de colonne :
+   le travail tombait a 182 px dans une fenetre de 390 et les douze colonnes du
+   plan mesuraient ZERO. Mesure du 21/09/2026, a la capture, et invisible a la
+   lecture : la regle etait juste, son perimetre non. */
+@media (min-width:901px){
+  .bdv-coque .bureau-atelier{
+    grid-template-columns:var(--bdv-rail) minmax(0,1fr);
+  }
+  .bdv-coque .bureau-atelier__travail{
+    padding:var(--bdv-e-4) var(--bdv-e-6) var(--bdv-e-8);
+  }
+}
+.bdv-coque .bureau-plan{
+  gap:var(--bdv-e-4);
+  padding-top:var(--bdv-e-4);
+  padding-bottom:var(--bdv-e-8);
+}
+.bdv-coque .bureau-atelier__travail > .bureau-plan{
+  padding-top:0;
+  padding-bottom:0;
+}
+
+
+/* ==========================================================================
+   6. LA BARRE DES PIECES SUR GRAND ECRAN : UN RAIL
+
+   ON NE CHANGE PAS SA STRUCTURE, on la repeint. Elle est deja un rail vertical
+   au-dessus de 700 px et une barre basse en dessous, elle est deja peinte par
+   src/js/bdv-nav.js, et la liste des pieces reste la sienne. Ce qui change :
+   la languette de carton devient une ligne de rail, et la piece active porte
+   une barre d'accent de 2 px a sa gauche au lieu d'une encoche.
+
+   LE RAIL PASSE DE 156 A 184 px. Les 156 px etaient mesures le 18/09/2026 sur
+   des libelles en CHASSE FIXE (`--font-mono`) : « Le calendrier » demandait
+   142 px de contenu plus l'encoche. Ici les libelles reviennent en
+   proportionnelle a 13 px, ce qui les raccourcit, mais la ligne gagne un
+   retrait interieur et la place d'une pastille de compte a droite. 184 px est
+   la premiere largeur ou les neuf libelles tiennent avec cette place reservee.
+   ========================================================================== */
+/* Meme cadre, meme raison : le fond de colonne, le filet de droite et la pile
+   verticale ne veulent rien dire sur un bandeau horizontal ni sur une barre
+   basse. Au-dessous de 901 px, style.css garde la main sur la FORME, et ce lot
+   ne repeint que les cellules. */
+@media (min-width:901px){
+  .bdv-coque .bureau-nav{
+    background:var(--bdv-surface-2);
+    border-right:1px solid var(--bdv-trait);
+    padding:var(--bdv-e-4) var(--bdv-e-3);
+  }
+  .bdv-coque .bureau-nav__liste{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+}
+.bdv-coque .bureau-nav__bureau{
+  display:block;
+  padding:0 var(--bdv-e-2) var(--bdv-e-3);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  color:var(--bdv-encre-4);
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+}
+.bdv-coque .bureau-nav__bureau:hover{ color:var(--bdv-accent); }
+.bdv-coque .bureau-nav__item{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  width:100%;
+  min-height:36px;
+  padding:0 var(--bdv-e-2);
+  margin:0;
+  border:0;
+  border-radius:var(--bdv-r-pastille);
+  background:none;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--bdv-encre-3);
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+/* L'encoche de carton du classeur n'a plus lieu d'etre : la profondeur du
+   produit est un trait, pas un relief. On la neutralise plutot que de la
+   supprimer de style.css, qui n'est pas touchee par ce lot. */
+.bdv-coque .bureau-nav__item::after{ display:none; }
+/* ET SES OMBRES INTERNES AVEC. style.css pose `inset 0 1px 0 --cork-clair,
+   inset 0 -1px 0 --cork-encre` sur chaque languette : le relief de carton d'une
+   pile d'intercalaires. Sur un rail, ces deux traits se lisent comme des
+   separateurs de menu, et la profondeur du produit est UN trait, pas deux.
+   `none` n'ajoute aucune recette a la famille des ombres. */
+.bdv-coque .bureau-nav__item{ box-shadow:none; }
+.bdv-coque a.bureau-nav__item:hover,
+.bdv-coque button.bureau-nav__item:hover{
+  background:var(--bdv-survol);
+  color:var(--bdv-encre-1);
+  margin:0;
+}
+.bdv-coque .bureau-nav__item--actif{
+  background:var(--bdv-accent-lavis);
+  color:var(--bdv-accent);
+  font-weight:600;
+}
+/* LA BARRE D'ACCENT DE 2 px. Elle est dans la gouttiere du rail, a gauche du
+   fond de la ligne : c'est le seul endroit ou elle se lit comme un reperage et
+   non comme une bordure de la ligne. */
+.bdv-coque .bureau-nav__item--actif::before{
+  content:"";
+  position:absolute;
+  left:calc(-1 * var(--bdv-e-3));
+  top:var(--bdv-e-1);
+  bottom:var(--bdv-e-1);
+  width:2px;
+  border-radius:0 var(--bdv-r-pastille) var(--bdv-r-pastille) 0;
+  background:var(--bdv-accent);
+}
+.bdv-coque .bureau-nav__ico{
+  flex:0 0 auto;
+  font-size:var(--bdv-f-3);
+  color:inherit;
+  opacity:1;
+}
+.bdv-coque .bureau-nav__item--actif .bureau-nav__ico{ color:var(--bdv-accent); }
+.bdv-coque .bureau-nav__nom{
+  font-size:var(--bdv-f-2);
+  letter-spacing:0;
+  text-transform:none;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.bdv-coque .bureau-nav__item--attente .bureau-nav__ico{ opacity:.45; }
+
+
+/* ==========================================================================
+   7. LA BARRE BASSE DU TELEPHONE
+
+   Sous 700 px et session ouverte, la barre est deja fixee en bas de l'ecran
+   par src/css/style.css, avec son retrait de zone sure et son defilement
+   horizontal : on ne touche a rien de tout ca. On repeint, et on pose la
+   MESURE de la maquette : CINQ entrees dans la largeur, chacune a 44 px de
+   cible au minimum.
+
+   Neuf pieces pour cinq places, donc la barre defile, et c'est deja le cas
+   depuis le 19/09/2026 : `marquerActif()` ramene la piece courante dans le
+   champ. A 390 px, cinq cellules font 78 px chacune, tres au-dessus des 44 px
+   du plancher tactile.
+
+   LES LIBELLES RESTENT CACHES ICI, et c'est la regle du 11/09/2026 qui le
+   veut : « Le calendrier » ne tient pas sous une icone, et une etiquette
+   coupee est pire qu'une etiquette absente. La maquette montre des libelles
+   parce qu'elle ecrit « Journee » et « Dates » ; le depot ecrit « Ma journee »
+   et « Le calendrier ». Donner des noms courts aux pieces est un changement de
+   `PIECES` dans bdv-nav.js, donc du contenu : c'est le lot suivant.
+   ========================================================================== */
+@media (max-width:700px){
+  .bdv-coque .bureau-tete{
+    position:sticky;
+    top:0;
+    z-index:1;
+    background:var(--bdv-surface);
+  }
+  /* DEUX LIGNES A GAUCHE, LES ACTIONS A DROITE, et c'est la forme de la
+     maquette (`.tel__ent` : le titre et la date empiles, l'outil a droite).
+     A 390 px, la rangee unique de l'ordinateur ne tient pas : nom de la piece
+     82 px, date 145, bascule 44, « Mes reglages » 110 et « Me deconnecter »
+     118 font 500 px pour 358 disponibles, et les deux derniers boutons
+     sortaient du cadre sans faire defiler la page, donc sans se voir. Mesure du
+     21/09/2026, a la capture.
+     Une grille et pas un `flex-wrap` : le retour a la ligne aurait mis les
+     actions SOUS le titre, et c'est justement la pile de 209 px qu'on vient de
+     retirer. */
+  .bdv-coque .bureau-tete__ligne{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    column-gap:var(--bdv-e-2);
+    align-items:center;
+  }
+  .bdv-coque .bureau-tete__piece{ grid-column:1; grid-row:1; overflow:hidden; text-overflow:ellipsis; }
+  /* Le point de separation part avec la rangee unique : empile, il pend en tete
+     de la deuxieme ligne et ne separe plus rien. */
+  .bdv-coque .bureau-tete__jour::before{ display:none; }
+  .bdv-coque .bureau-tete__jour{ grid-column:1; grid-row:2; }
+  .bdv-coque .bureau-tete__actions{ grid-column:2; grid-row:1 / span 2; }
+  /* « Mes reglages » EST DEJA LA NEUVIEME CELLULE DE LA BARRE DU BAS, et c'est
+     par elle que passe le geste sur telephone depuis le 19/09/2026. Deux portes
+     pour le meme panneau a 390 px, c'est une porte de trop : celle qui part est
+     celle qui coute de la largeur a l'en-tete. « Me deconnecter » reste, parce
+     que c'est la SEULE facon de fermer sa session, et un geste unique ne se
+     cache pas. */
+  .bdv-coque .bureau-tete__reglages{ display:none; }
+  /* L'EN-TETE SE RETRACTE AU DEFILEMENT. La classe est posee par le script de
+     src/mon-bureau.njk des que la page a defile de plus d'une hauteur
+     d'en-tete. On ne cache que la DATE : le nom de la piece et les actions
+     sont ce qu'on vient chercher quand on remonte. */
+  .bdv-coque .bureau-tete--retracte .bureau-tete__jour,
+  .bdv-coque .bureau-tete--retracte .bureau-tete__resume{ display:none; }
+  .bdv-coque .bureau-tete__resume{ display:none; }
+  .bdv-coque .bureau-atelier__travail{
+    padding:var(--bdv-e-3) var(--bdv-e-3) var(--bdv-e-8);
+  }
+  .bdv-coque .bureau-accueil{ gap:var(--bdv-e-2); }
+
+  body.bdv-poste.bdv-coque .bureau-nav{
+    background:var(--bdv-surface);
+    border-top:1px solid var(--bdv-trait);
+    border-right:0;
+    padding:0;
+  }
+  body.bdv-poste.bdv-coque .bureau-nav__liste{
+    flex-direction:row;
+    gap:0;
+  }
+  body.bdv-poste.bdv-coque .bureau-nav__ligne{
+    /* CINQ ENTREES DANS LA LARGEUR, la mesure de la maquette. `flex-basis` a
+       20 % et pas une largeur fixe : la barre garde sa cinquieme entree sur un
+       ecran de 320 comme sur un de 430, et les quatre pieces qui restent se
+       rejoignent en faisant glisser. */
+    flex:0 0 20%;
+    min-width:var(--bdv-cible);
+  }
+  body.bdv-poste.bdv-coque .bureau-nav__item{
+    flex-direction:column;
+    justify-content:center;
+    gap:3px;
+    min-height:var(--bdv-cible);
+    padding:var(--bdv-e-2) var(--bdv-e-1);
+    border-radius:0;
+    color:var(--bdv-encre-4);
+  }
+  body.bdv-poste.bdv-coque .bureau-nav__item--actif{
+    background:none;
+    color:var(--bdv-accent);
+  }
+  /* En bas d'ecran, la barre d'accent se pose EN HAUT de la cellule : a gauche
+     elle designerait la cellule voisine. */
+  body.bdv-poste.bdv-coque .bureau-nav__item--actif::before{
+    left:var(--bdv-e-3);
+    right:var(--bdv-e-3);
+    top:0;
+    bottom:auto;
+    width:auto;
+    height:2px;
+    border-radius:0 0 var(--bdv-r-pastille) var(--bdv-r-pastille);
+  }
+  body.bdv-poste.bdv-coque .bureau-nav__ico{ font-size:var(--bdv-f-5); }
+  body.bdv-poste.bdv-coque a.bureau-nav__item:hover,
+  body.bdv-poste.bdv-coque button.bureau-nav__item:hover{
+    background:var(--bdv-survol);
+  }
+}
+
+
+/* ==========================================================================
+   8. LES PRIMITIVES PARTAGEES
+
+   Ce sont celles que les neuf pieces reutiliseront au lot suivant. Elles sont
+   posees sur le BALISAGE QUI EXISTE, jamais sur des classes inventees pour
+   l'occasion : une regle dont aucune page ne porte la classe est du poids mort,
+   et la section C de `npm run charte` la compte a l'octet pres.
+   ========================================================================== */
+
+/* -- LA CARTE ET LA ZONE. La zone EST la carte du bureau. Le liege, l'ardoise,
+      le papier a picots et le carton kraft s'arretent ici : la profondeur est
+      un trait de 1 px, et la couleur du filet suffit a dire qu'un objet est
+      pose. Les matieres de style.css ne sont pas supprimees, elles sont
+      recouvertes : ce lot ne touche pas une ligne de style.css, et c'est ce
+      qui le rend sans risque pour la page d'accueil. ---------------------- */
+.bdv-coque .zone{
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  padding:var(--bdv-e-4);
+}
+.bdv-coque .zone::before,
+.bdv-coque .zone::after{ display:none; }
+.bdv-coque .zone__tete{
+  display:flex;
+  align-items:baseline;
+  gap:var(--bdv-e-3);
+  border-bottom:0;
+  padding-bottom:0;
+  margin-bottom:var(--bdv-e-3);
+}
+/* L'ETIQUETTE DE ZONE : capitales espacees a 12 px, l'echelon le plus bas.
+   C'est le contraste d'echelle de la maquette, un chiffre de 28 px contre un
+   libelle de 12 px, et c'est ce qui donne sa densite a l'ecran sans rien
+   retirer. */
+.bdv-coque .zone__tete h2{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+  margin:0;
+}
+.bdv-coque .zone__note{
+  margin-left:auto;
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:400;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--bdv-encre-4);
+}
+.bdv-coque .zone__vide,
+.bdv-coque .zone__pied{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+  font-style:normal;
+}
+
+/* -- LE BOUTON : primaire, secondaire, geste. UN SEUL ACCENT, et le bouton
+      primaire est l'un de ses trois usages. `--bdv-encre-sur-accent` est le
+      seul texte pose sur l'accent : 7,27:1 en clair, 8,65:1 en sombre. ----- */
+.bdv-coque .btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:36px;
+  padding:0 var(--bdv-e-3);
+  border-radius:var(--bdv-r);
+  border:1px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+  white-space:nowrap;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .btn::after{ display:none; }
+.bdv-coque .btn:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .btn--bordeaux{
+  background:var(--bdv-accent);
+  border-color:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  font-weight:600;
+}
+.bdv-coque .btn--bordeaux:hover{
+  background:var(--bdv-accent-fort);
+  border-color:var(--bdv-accent-fort);
+  color:var(--bdv-encre-sur-accent);
+}
+/* `.btn--ghost` EST INTERDIT SUR LE PAPIER (defaut paye le 11/09/2026 : il pose
+   la couleur du papier et devient invisible sur fond clair). Sous le scope du
+   bureau on lui rend une encre lisible plutot que de le laisser disparaitre,
+   parce qu'il reste pose sur des pages que le bureau charge. */
+.bdv-coque .btn--ghost,
+.bdv-coque .btn--geste{
+  background:transparent;
+  border-color:var(--bdv-trait-fort);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .btn--ghost:hover,
+.bdv-coque .btn--geste:hover{
+  background:var(--bdv-survol);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .btn:disabled,
+.bdv-coque .btn[aria-disabled="true"]{
+  color:var(--bdv-encre-4);
+  border-color:var(--bdv-trait);
+  background:var(--bdv-surface-2);
+}
+
+/* -- LA CHIP. Le seul rayon de 9999 px du produit, avec le bouton d'appel
+      rond : une chip se lit comme un jeton qu'on retire, un bouton comme une
+      touche qu'on presse. ------------------------------------------------- */
+.bdv-coque .chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:0 var(--bdv-e-3);
+  border-radius:var(--bdv-r-rond);
+  border:1px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-3);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+  white-space:nowrap;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .chip:hover{
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .chip[aria-pressed="true"],
+.bdv-coque .chip.is-on{
+  background:var(--bdv-accent);
+  border-color:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+}
+
+/* -- LE CHAMP DE SAISIE. 16 px de PLANCHER, et c'est la seule facon de fermer
+      le zoom involontaire de Safari sans supprimer le zoom volontaire de
+      quelqu'un qui voit mal (regle du 11/09/2026, `banc:app` refuse
+      `maximum-scale` et `user-scalable`). 44 px de cible avec. ------------- */
+.bdv-coque input,
+.bdv-coque select,
+.bdv-coque textarea{
+  font-family:inherit;
+  font-size:var(--bdv-f-saisie);
+  color:var(--bdv-encre-1);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  padding:0 var(--bdv-e-3);
+  min-height:var(--bdv-cible);
+  transition:border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque textarea{
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  line-height:1.45;
+}
+.bdv-coque input::placeholder,
+.bdv-coque textarea::placeholder{ color:var(--bdv-encre-4); }
+.bdv-coque input:focus,
+.bdv-coque select:focus,
+.bdv-coque textarea:focus{ border-color:var(--bdv-accent); }
+.bdv-coque input[type="checkbox"],
+.bdv-coque input[type="radio"]{
+  min-height:0;
+  padding:0;
+  accent-color:var(--bdv-accent);
+}
+
+/* -- LA RANGEE DE TABLEAU. 44 px de haut, un separateur de 1 px, un survol a
+      5 %, et les actions revelees a droite. Les 5 % sont `--bdv-survol`, pose
+      en rgba dans les deux themes pour qu'un voile blanc serve en sombre et un
+      voile d'encre en clair : une couleur opaque aurait fallu etre redessinee
+      pour chaque fond de carte. ------------------------------------------- */
+.bdv-coque table{
+  border-collapse:collapse;
+  width:100%;
+  font-size:var(--bdv-f-3);
+}
+.bdv-coque thead th{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+  background:var(--bdv-surface-2);
+  border-bottom:1px solid var(--bdv-trait);
+  text-align:left;
+  height:32px;
+  padding:0 var(--bdv-e-3);
+}
+.bdv-coque tbody tr{
+  border-bottom:1px solid var(--bdv-trait);
+  transition:background var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque tbody tr:last-child{ border-bottom:0; }
+.bdv-coque tbody tr:hover{ background:var(--bdv-survol); }
+.bdv-coque tbody td{
+  height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  vertical-align:middle;
+  color:var(--bdv-encre-2);
+}
+/* LES ACTIONS SE REVELENT, ELLES NE DISPARAISSENT PAS DU CLAVIER.
+   `:focus-within` est la moitie qui compte : une rangee dont les gestes
+   n'apparaissent qu'au survol est une rangee inutilisable au clavier, et le
+   depot a deja paye ce genre d'oubli. */
+.bdv-coque tbody tr .gestes{
+  opacity:0;
+  transition:opacity var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque tbody tr:hover .gestes,
+.bdv-coque tbody tr:focus-within .gestes{ opacity:1; }

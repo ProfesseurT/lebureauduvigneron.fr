@@ -1234,6 +1234,171 @@ degraisses : `npm run banc:poids` compte alors environ 33 ko de commentaires en 
 `bdv-nav.js` et depasse son plafond. **Ce n'est pas le poids du bureau, c'est le crochet qui n'a
 pas pu tourner.** Sur le Mac de Ted, ou l'unlink est permis, la chaine entiere passe.
 
+## LE DESSIN DE LA COQUE DU BUREAU, ET IL EST SCOPE, 21/09/2026
+
+Lot 2 des deux themes. Le lot du matin avait pose cinquante jetons `--bdv-*` sans qu'aucune
+regle ne les lise ; celui-ci est le premier a DESSINER. Il ne traite que la COQUE : le fond de
+page, l'en-tete, la barre des pieces, la grille de l'atelier, les primitives partagees et le
+bouton de bascule. **Le contenu des pieces garde son dessin actuel et sera donc incoherent avec
+la coque tant que le lot suivant n'est pas ecrit. C'est assume, et les deux lots ne se poussent
+qu'ensemble.**
+
+### LA DECISION QUI COMMANDE TOUT : LE NOUVEAU DESSIN EST SCOPE
+
+`.zone`, `.postit` et `.lettre` **ne sont pas des classes du bureau**. Ce sont aussi celles de
+`src/_includes/components/demo-pinboard.njk`, la demonstration de la page d'accueil, et c'est
+une regle ecrite ici depuis le 12/09/2026 : « quand une page du site montre le produit, elle
+montre les VRAIS composants du bureau, avec leurs vraies classes », parce qu'une maquette
+recopiee derive du produit des la premiere semaine.
+
+Repeindre ces classes sans scope aurait donc repeint **la page d'accueil du site public**, qui
+n'a pas de theme sombre et n'en veut pas. Arbitrage de Ted : **on scope maintenant, on rouvrira
+la question quand les neuf pieces seront finies.**
+
+Concretement :
+
+- tout le nouveau dessin vit dans une feuille NOUVELLE, `src/css/bdv-bureau.css` ;
+- **`src/css/style.css` n'est pas touchee, pas une ligne.** C'est ce qui rend ce lot sans risque
+  pour le site public et pour la demonstration. Les matieres du plateau (liege, ardoise, papier
+  a picots, carton kraft) ne sont pas supprimees, elles sont RECOUVERTES sous le scope ;
+- le scope est **`.bdv-coque`, pose sur le corps de page** par le meme drapeau de front matter
+  `theme_bureau` qui lie deja `bdv-theme.css`. La classe ne peut donc pas arriver sans sa
+  feuille, ni la feuille sans sa classe, et une passe de `sed` sur `.bdv-coque` suffit a
+  debrancher le dessin le jour ou on le decidera.
+
+**PAS `.bdv-poste`, ET C'EST LA SEULE ERREUR EVIDENTE A NE PAS FAIRE.** Cette classe depend de
+l'etat de SESSION : le bureau deconnecte la perd, et sa porte (« Ton bureau t'attend ») doit
+suivre le meme dessin que le reste, sinon le vigneron change de produit en se connectant.
+
+**LE CONTROLE EXISTE, section 10 bis de `npm run charte --bureau`**, ecrite sur le modele exact
+de la section 10 qui garde `.bdv-ventes` depuis le 07/09/2026. Une seule regle qui sort de son
+scope repeint l'accueil, ne leve rien, et ne se voit qu'en allant regarder l'accueil. Elle
+n'exige pas que le selecteur COMMENCE par `.bdv-coque` mais que son PREMIER COMPOSE la porte :
+`body.bdv-coque` et `body.bdv-poste.bdv-coque` sont justes et utiles, la seconde parce que la
+barre basse a besoin de l'etat de session en plus du scope.
+
+### L'EN-TETE PASSE DE 209 A 56 px, ET IL DEPLACE AU LIEU DE TASSER
+
+La mesure du 18/09/2026 tenait toujours : **209 px de bandeau, 30 % du premier ecran d'un
+1440 x 900 avant la premiere chose utile.** Ce soir-la le resserrement avait ete refuse par Ted
+(« c'est un foutoir pas possible », puis « c'etait mieux avant »), et il avait raison : on avait
+TOUT garde en le tassant sur deux lignes.
+
+La maquette validee le 21/09 ne tasse rien, **elle deplace**. L'en-tete ne porte plus que ce qui
+vaut pour les neuf pieces : le nom de la piece, la date, l'etat, les actions. Mesure apres :
+**56 px**, plus le filet, sur les deux themes et aux deux largeurs.
+
+**OU SONT PASSES LE SALUT, LA PLAQUE ET LA LUNE.** Ils sont descendus dans « Ma journee », dans
+`.bureau-accueil`, en tete du plan. Un « Bonjour Teddy » et une phase de lune au-dessus de
+« Mon registre » sont du decor ; au-dessus de la journee, c'est le sujet. Ils disparaissent donc
+avec la piece quand on en ouvre une autre, et c'est `seule()` qui s'en charge, sans une ligne de
+plus. **LE RESUME, LUI, RESTE DANS L'EN-TETE** : « 3 clients a rappeler, une echeance dans
+5 jours » est un ETAT, et un etat se lit dans toutes les pieces.
+
+**`.bureau-accueil` N'EST PAS UNE `.zone` ET NE DOIT PAS LE DEVENIR.** `npm run banc` controle
+l'ordre des huit zones par `#bureauJournee > .zone`, et cet ordre est celui que Ted a dicte le
+07/09/2026 : lui donner la classe ferait entrer un neuvieme nom dans cette liste. Il porte
+`grid-column: 1 / -1`, la regle du 14/09/2026 pour tout bloc pose au-dessus des pieces.
+
+**LE NOM DE LA PIECE EST LE `h1` DE LA PAGE**, et il s'ecrit a UN seul endroit,
+`marquerActif()` dans `src/js/bdv-nav.js`, la fonction qui marque deja la barre. Deux endroits
+qui repondent « ou suis-je » divergeraient au premier renommage de piece.
+
+**CE QUI N'EST PAS DANS L'EN-TETE : l'ETAT DE SYNCHRONISATION.** La maquette le montre (« A
+jour, il y a 4 min ») ; le depot n'a aucune source qui reponde a cette question, et un point vert
+qui ne lit rien est un temoin qui ment. A rouvrir avec le lot qui portera la source.
+
+### LE BOUTON DE BASCULE : TROIS ETATS ET PAS DEUX
+
+44 x 44, dans l'en-tete, branche sur `window.BdvTheme` pose par le socle du matin. Le cycle est
+**auto, clair, sombre, auto** : « comme mon telephone » est le DEFAUT, il ne pose aucun attribut,
+et **le bouton doit pouvoir y revenir**. Un bouton a deux positions enferme pour toujours celui
+qui a clique une fois : son bureau resterait clair la nuit parce qu'il a essaye le clair un
+matin, et rien a l'ecran ne dirait que le reglage du systeme n'est plus suivi.
+
+- **L'`aria-label` dit l'etat ET ce que fera le prochain appui.** Un dessin de lune ne s'entend
+  pas, et un bouton qui ne dit que son etat oblige a appuyer pour savoir ou l'on va.
+- **`data-etat` porte le glyphe visible**, en CSS. Un seul attribut pilote les deux.
+- **On ne lit PAS `prefers-color-scheme` dans le bouton** : il dit ce qu'il COMMANDE. En mode
+  « comme mon telephone », ce qui s'affiche depend du systeme, et l'annoncer obligerait a ecouter
+  le media pour reecrire une etiquette qui apprendrait au vigneron ce qu'il sait deja.
+
+### `color-scheme` EST ALLUME, ET IL ATTENDAIT EXACTEMENT CA
+
+`html{ color-scheme: var(--bdv-schema) }` dormait en commentaire dans `bdv-theme.css` depuis le
+matin, avec sa raison : l'allumer avant le decor aurait donne un bureau creme avec des morceaux
+de systeme sombres poses dessus. Le decor existe, la ligne est posee. Elle n'a pas besoin de
+scope : la feuille qui la porte n'est liee que par `theme_bureau`, donc le site public ne la
+charge jamais. **La poser sur le corps de page ne marcherait pas** : la barre de defilement se
+peint au niveau du DOCUMENT, c'est-a-dire exactement le morceau que le CSS ne rattrape pas.
+
+**VERIFIE A LA CAPTURE, champ natif par champ natif, dans les deux themes** : les deux
+`<input type="date">` de « Mes taches » (fond `#131519`, texte `#F3F4F6`, selecteur de date
+sombre en sombre ; blanc et encre en clair), le champ de saisie de tache, la barre de defilement
+du document, celle de la barre des pieces, le curseur de texte et la selection. Tous suivent, et
+tous restent a 16 px et 44 px.
+
+### LES CINQ JETONS AJOUTES SONT DES ECHELLES, DONC DANS LE BLOC CLAIR SEULEMENT
+
+`--bdv-ls-etiq`, `--bdv-ls-serre`, `--bdv-cible`, `--bdv-h-tete`, `--bdv-rail`. Chacun existe
+parce qu'une regle les ecrivait en dur. **Ils ne se retournent dans AUCUN bloc sombre**, et ce
+n'est pas un oubli : la section 4 de `npm run banc:jetons` echoue si une longueur apparait dans
+un bloc sombre. Un theme change des couleurs, il ne change ni le rythme ni la taille du texte.
+
+### CE QUE LA CAPTURE A TROUVE ET QUE LES BANCS AVAIENT VALIDE
+
+Sixieme fois que la meme lecon se paie : **la mesure trouve ce qu'on ne voit pas, la capture voit
+ce qu'on ne mesure pas.** `charte`, `charte:bureau`, `banc`, `banc:jetons` et `banc:poids`
+etaient VERTS sur les quatre defauts suivants.
+
+1. **L'en-tete faisait 139 px avec un `min-height: 56px` parfaitement respecte.** `style.css`
+   empile les deux boutons d'action EN COLONNE depuis le 08/09/2026, et je n'avais reecrit que
+   `display` et `align-items`. **Une propriete qu'on ne reecrit pas reste celle de la cascade**,
+   et c'est la faute la plus banale d'une feuille qui en recouvre une autre : on remplace ce
+   qu'on voit dans sa propre regle, pas ce que porte celle d'en face.
+2. **Le bouton de bascule montrait ses TROIS glyphes a la fois.**
+   `.bdv-coque .bdv-bascule svg{display:block}` pese (0,2,1) contre (0,2,0) pour
+   `.bdv-coque .bdv-bascule__g{display:none}` : le selecteur le plus GENERAL gagnait parce qu'il
+   portait un nom d'element en plus. La regle de confort a ete supprimee.
+3. **La largeur du rail s'appliquait aussi sur telephone.** `.bdv-coque .bureau-atelier` n'etait
+   pas dans une requete de media, donc elle battait la regle de `style.css` qui passe l'atelier a
+   une seule colonne sous 900 px : le travail tombait a 182 px dans une fenetre de 390, et les
+   douze colonnes du plan mesuraient ZERO. **La regle etait juste, son perimetre non**, et aucun
+   banc ne mesure une largeur.
+4. **Les deux boutons de l'en-tete sortaient du cadre a 390 px, sans faire defiler la page**,
+   donc sans se voir. L'en-tete du telephone est desormais une grille : le nom de la piece et la
+   date empiles a gauche, les actions a droite, comme `.tel__ent` dans la maquette. « Mes
+   reglages » y est masque, parce que c'est **deja la neuvieme cellule de la barre du bas** ;
+   « Me deconnecter » reste, parce que c'est la seule facon de fermer sa session.
+
+### ET UN VOILE N'EST PAS UN FOND : LA SECTION 6 BIS A ETE CORRIGEE
+
+Elle mesurait `--bdv-encre-1` sur `--bdv-survol`, qui vaut `rgba(22,24,28,.05)`, et rendait
+**1,00:1 sur une rangee qui tient 14,08:1 a l'ecran** : `ratio()` compose bien l'encre sur le
+fond, mais il prend le fond pour opaque. Un fond translucide ne se mesure pas seul, ce qui porte
+les lettres est la surface qui est DESSOUS, et seule la cascade sait laquelle. Ces paires sont
+donc rangees dans les insolubles **et NOMMEES une par une**, avec la regle : une paire posee sur
+un voile se mesure a la main contre la surface reelle. Les deux du depot l'ont ete, 14,08:1 et
+11,0:1 au pire cas.
+
+### CE QUI RESTE OUVERT, ET QUI N'EST PAS FAIT
+
+- **Le contenu des pieces.** Panneau de liege, post-it, sous-main, ardoise, calendrier, les cinq
+  ecrans de vente, le panneau de reglages et la modale gardent leur dessin papier. En SOMBRE, ils
+  posent de l'encre foncee sur des cartes sombres et se lisent mal : c'est l'incoherence assumee
+  de ce lot, et la raison pour laquelle les deux lots ne se poussent qu'ensemble.
+- **Les pastilles de compte du rail.** La maquette en montre ; `PIECES` dans `bdv-nav.js` ne
+  porte aucun compte, et en inventer un est du contenu. Aucune regle n'a ete ecrite pour elles :
+  une regle dont aucune page ne porte la classe est du poids mort, et la section C de
+  `npm run charte` la compte a l'octet.
+- **Les libelles sous les icones de la barre basse.** La maquette en montre parce qu'elle ecrit
+  « Journee » et « Dates » ; le depot ecrit « Ma journee » et « Le calendrier », et la regle du
+  11/09/2026 tient toujours : une etiquette coupee est pire qu'une etiquette absente. Donner des
+  noms courts aux pieces est un changement de `PIECES`, donc du contenu.
+- **Le squelette de chargement.** Pas de regle ecrite, meme raison que les pastilles : il n'y a
+  aucun etat de chargement dans le balisage de la coque a quoi l'accrocher.
+- **L'etat de synchronisation dans l'en-tete** (voir plus haut).
+
 ## LE SQL DU DEPOT SE REJOUE, ET C'EST UN BANC QUI LE DIT, 18/09/2026
 
 `supabase/schema.sql` disait en tete « Ecrit pour etre rejouable sans erreur ». **Il ne

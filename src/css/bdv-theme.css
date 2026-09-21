@@ -157,6 +157,19 @@
   --bdv-f-4:17px; --bdv-f-5:20px; --bdv-f-6:28px;
   --bdv-f-saisie:16px;             /* plancher de saisie, sinon Safari zoome  */
 
+  /* -- CINQ ECHELLES AJOUTEES AU LOT DU DESSIN, 21/09/2026, et elles sont dans
+        CE BLOC SEULEMENT. Une echelle ne se retourne dans aucun bloc sombre :
+        la section 4 de `npm run banc:jetons` echoue si elle y apparait, parce
+        qu'un theme change des couleurs et jamais le rythme ni la taille du
+        texte. Chacune existe parce qu'une regle de src/css/bdv-bureau.css
+        l'ecrivait en dur, et qu'une valeur en dur est une echelle de plus qui
+        cohabite avec les autres sans avoir de nom. --------------------------- */
+  --bdv-ls-etiq:.09em;             /* etiquettes en capitales, zone et colonne  */
+  --bdv-ls-serre:-.015em;          /* resserrement optique des titres et des grands nombres, jamais du texte courant */
+  --bdv-cible:44px;                /* plancher tactile. On agrandit la CIBLE, jamais le dessin */
+  --bdv-h-tete:56px;               /* l'en-tete du bureau : 44 px de cible plus son air */
+  --bdv-rail:184px;                /* la barre des pieces sur grand ecran, voir bdv-bureau.css section 6 */
+
   --bdv-d-court:150ms;             /* survol, selection, focus                */
   --bdv-d-long:300ms;              /* modale, feuille, tiroir                 */
   --bdv-courbe:cubic-bezier(.22,.61,.36,1);
@@ -279,7 +292,29 @@
        justes avec des champs de saisie tous de la meme famille, ce qui est
        exactement le defaut qu'on cherche a voir sur cette capture.
    ========================================================================== */
-/* CETTE LIGNE ATTEND LE LOT DU DESSIN, ET CE N'EST PAS UNE PRUDENCE DE STYLE.
+/* ALLUMEE LE 21/09/2026, AU LOT DU DESSIN, ET C'EST LA CONDITION QU'ELLE
+   ATTENDAIT. Le texte d'origine est garde en dessous parce que sa mesure vaut
+   d'etre relue : cette ligne n'attendait pas une prudence de style, elle
+   attendait que le decor existe.
+
+   CE QUI A CHANGE : src/css/bdv-bureau.css lit desormais ces jetons et peint le
+   bureau dans la bonne famille, fond compris. `color-scheme` et le decor
+   arrivent donc ENSEMBLE, ce qui est la seule facon de les poser.
+
+   ELLE VAUT POUR /mon-bureau/ ET POUR LUI SEUL, sans avoir besoin d'un scope :
+   cette feuille n'est liee que par le drapeau `theme_bureau`, que seule
+   src/mon-bureau.njk porte. Le site public ne la charge jamais, donc `html` ne
+   peut pas l'attraper ailleurs. La poser sur le corps de page plutot que sur
+   `html` ne marcherait pas : la barre de defilement se peint au niveau du
+   DOCUMENT, c'est-a-dire exactement le morceau que le CSS ne rattrape pas.
+
+   CE QUI A ETE VERIFIE LE 21/09/2026, champ natif par champ natif, dans les deux
+   themes : les deux `<input type="date">` de « Mes taches », les quatre
+   `<select>` de « Mon registre », celui de « L'equipe », les cases a cocher des
+   obligations, la barre de defilement du document et celle de la barre des
+   pieces, le curseur de texte et la selection de texte. Tous suivent.
+
+   --- LE TEXTE D'ORIGINE, 21/09/2026 AU MATIN ---
 
    html{ color-scheme: var(--bdv-schema); }
 
@@ -305,4 +340,5 @@
    pose `data-theme`, et rien ne le pose avant le bouton de bascule du lot
    suivant. Il est la pour que le jour ou un sous-arbre force un theme, ses
    champs natifs suivent, sans avoir a y repenser. */
+html{ color-scheme: var(--bdv-schema); }
 [data-theme]{ color-scheme: var(--bdv-schema); }

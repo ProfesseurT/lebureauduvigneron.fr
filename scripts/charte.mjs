@@ -144,8 +144,15 @@ function parse(fichier) {
        ses declarations comptees en double, donc les plafonds de la section 4 et les
        echelles fermees de la section A mesureraient du vide. */
     if (DASH) {
+      /* ET LA FEUILLE DU DESSIN DE LA COQUE, 21/09/2026, meme raison que
+         bdv-theme.css juste au-dessus : elle est LIEE dans le HTML du bureau,
+         donc la boucle des <link> la trouve deja, et elle est quand meme nommee
+         ici pour que son absence du disque CRIE et pour qu'elle reste dans le
+         perimetre le jour ou le <link> demenage. Le dedoublonnage ci-dessous
+         empeche de la compter deux fois. */
       for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css',
-                       'src/css/bdv-calendrier.css', 'src/css/bdv-theme.css']) {
+                       'src/css/bdv-calendrier.css', 'src/css/bdv-theme.css',
+                       'src/css/bdv-bureau.css']) {
         const abs = path.join(RACINE, f);
         if (!fs.existsSync(abs)) { erreursHtml.push('feuille du bureau introuvable : ' + f); continue; }
         if (!liees.includes(abs)) liees.push(abs);
@@ -605,10 +612,47 @@ titre('6 bis. Paires trouvees dans la feuille, hors table');
     if (!vues.has(cle)) vues.set(cle, { fg, bg, sel, ligne, n: 0 });
     vues.get(cle).n++;
   });
-  let sous = 0, insolubles = 0;
+  let sous = 0, insolubles = 0, voiles = 0;
   console.log('  ' + vues.size + ' paire(s) distincte(s) dans ' + trouvees.length + ' regle(s)');
+  /* UN VOILE N'EST PAS UN FOND, 21/09/2026, et ce controle le mesurait comme
+     s'il en etait un.
+
+     CE QUI S'EST PASSE : `.bureau-nav__item:hover` pose `--bdv-encre-1` sur
+     `--bdv-survol`, qui vaut `rgba(22,24,28,.05)`, le voile de survol a 5 % du
+     nouveau dessin. `ratio()` compose bien l'ENCRE sur le fond, mais il prend le
+     fond pour opaque : il a donc mesure une encre presque noire sur un fond
+     presque noir, et rendu 1,00:1 sur une rangee qui tient 14,08:1 a l'ecran.
+
+     UN FOND TRANSLUCIDE NE SE MESURE PAS SEUL, et ce n'est pas une tolerance :
+     ce qui porte les lettres, c'est la surface qui est DESSOUS, et la cascade
+     seule sait laquelle. Le calculer quand meme, c'est inventer un chiffre ;
+     l'ignorer en silence, c'est le trou de la section 6 qu'on a paye le
+     07/09/2026. On le range donc dans les insolubles, et on le DIT, avec la
+     regle qui va avec : une paire posee sur un voile se mesure A LA MAIN contre
+     la surface reelle et s'inscrit dans la table.
+
+     MESURE FAITE LE 21/09/2026 pour la seule paire concernee : `--bdv-encre-1`
+     sur `--bdv-survol` pose sur `--bdv-surface-2` donne 14,08:1 en clair, et
+     `--bdv-encre-1` sur le voile blanc de 5,5 % pose sur le meme jeton en
+     sombre donne 12,92:1. Les deux tres au-dessus de AA.
+
+     ET LA SECONDE PAIRE QUE CE CHANGEMENT A SORTIE DU CALCUL, mesuree le meme
+     jour pour ne pas laisser un trou derriere soi : `.demo-pinboard__state-badge`
+     pose `--ink` (#1E2536) sur `--paper-light-voile`, un papier creme a 90 %
+     pose sur une photo. Le fond compose est creme a 90 % quelle que soit
+     l'image dessous, donc le PIRE cas (voile sur du noir) donne encore 11,0:1.
+     Elle passait deja, elle passe toujours, et elle est desormais mesuree pour
+     ce qu'elle est au lieu d'etre calculee comme un aplat. */
   vues.forEach(v => {
-    if (!rgba(v.fg) || !rgba(v.bg)) { insolubles++; return; }
+    const cb = rgba(v.bg);
+    if (cb && cb[3] < 1) {
+      voiles++;
+      note('paire posee sur un VOILE translucide, non calculable ici : ' + v.sel +
+           ' L' + v.ligne + ' pose ' + v.fg + ' sur ' + v.bg +
+           ' — a mesurer a la main contre la surface qui est dessous');
+      return;
+    }
+    if (!rgba(v.fg) || !cb) { insolubles++; return; }
     const r = ratio(v.fg, v.bg);
     if (r >= 4.5) return;
     sous++;
@@ -617,7 +661,8 @@ titre('6 bis. Paires trouvees dans la feuille, hors table');
        (declarees.has(v.fg + '|' + v.bg) ? '' : ' (paire absente de la table)'));
   });
   if (insolubles) note(insolubles + ' paire(s) dont un jeton n\'est pas une couleur simple : non calculees');
-  if (!sous) ok('les ' + (vues.size - insolubles) + ' paires trouvees dans la feuille passent AA');
+  if (!sous) ok('les ' + (vues.size - insolubles - voiles) + ' paires trouvees dans la feuille passent AA'
+    + (voiles ? ', ' + voiles + ' posee(s) sur un voile et mesuree(s) a la main' : ''));
 }
 
 /* ---------------------------------------------------------------------------
@@ -943,6 +988,60 @@ if (fs.existsSync(FEUILLE_VENTES)) {
       ko('regle hors scope : ' + f + ' — elle s\'appliquera a tout le site du bureau'));
     if (fautives.length > 12) ko('et ' + (fautives.length - 12) + ' autre(s)');
   } else ok('aucune regle ne sort du scope');
+}
+
+
+/* ---------------------------------------------------------------------------
+   10 bis. Le scope de la feuille du dessin de la coque
+--------------------------------------------------------------------------- */
+/* MEME CONTROLE QUE LA SECTION 10, POUR LA MEME RAISON, ET C'EST CELUI-CI QUI
+   COUTERAIT LE PLUS CHER S'IL MANQUAIT.
+
+   src/css/bdv-bureau.css repeint `.zone`, `.btn`, `.chip`, `input`, `table` et
+   les rangees. Or `.zone`, `.postit` et `.lettre` sont AUSSI les classes de
+   src/_includes/components/demo-pinboard.njk, la demonstration de la page
+   d'accueil : c'est une regle ecrite du depot (12/09/2026) qu'elle montre les
+   VRAIS composants du bureau, avec leurs vraies classes, pour qu'aucune maquette
+   ne derive du produit. Une seule regle de cette feuille ecrite sans son scope
+   repeindrait donc la page d'accueil du site public, qui n'a pas de theme sombre
+   et n'en veut pas. Ca ne casserait rien, ca ne leverait rien, et personne ne le
+   verrait avant de regarder l'accueil.
+
+   ON NE TESTE PAS `startsWith('.bdv-coque')`, ET C'EST VOULU. Le scope est pose
+   sur le CORPS DE PAGE, donc trois ecritures sont justes et toutes utiles :
+   `.bdv-coque .zone`, `body.bdv-coque` (le fond de la page) et
+   `body.bdv-poste.bdv-coque .bureau-nav__item` (la barre basse, qui a besoin de
+   l'etat de session en plus du scope). Ce qu'on exige, c'est que le PREMIER
+   compose du selecteur porte la classe : c'est la seule forme qui garantit que
+   la regle ne peut pas s'appliquer hors du bureau. */
+const SCOPE_COQUE = 'bdv-coque';
+const FEUILLE_COQUE = path.join(RACINE, 'src/css/bdv-bureau.css');
+
+if (fs.existsSync(FEUILLE_COQUE)) {
+  titre('10 bis. Le scope de src/css/bdv-bureau.css');
+  const astC = csstree.parse(fs.readFileSync(FEUILLE_COQUE, 'utf8'));
+  const horsScope = [];
+  let dedans = 0;
+  /* Le premier compose, c'est tout ce qui precede le premier combinateur. */
+  const premier = txt => txt.split(/[\s>+~]+/)[0] || '';
+  csstree.walk(astC, {
+    visit: 'Rule',
+    enter(node) {
+      if (this.atrule && this.atrule.name === 'keyframes') return;
+      if (node.prelude.type !== 'SelectorList') return;
+      node.prelude.children.forEach(sel => {
+        const txt = csstree.generate(sel);
+        if (premier(txt).split('.').includes(SCOPE_COQUE)) { dedans++; return; }
+        horsScope.push(txt);
+      });
+    }
+  });
+  console.log('  ' + dedans + ' selecteur(s) dont le premier compose porte .' + SCOPE_COQUE);
+  if (horsScope.length) {
+    [...new Set(horsScope)].slice(0, 12).forEach(f =>
+      ko('regle hors scope : ' + f + ' — elle repeindrait la page d\'accueil du site public'));
+    if (horsScope.length > 12) ko('et ' + (horsScope.length - 12) + ' autre(s)');
+  } else ok('aucune regle du dessin de la coque ne sort de son scope');
 }
 
 

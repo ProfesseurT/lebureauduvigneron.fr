@@ -12,6 +12,98 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 21/09/2026, la suite. Le dessin de la coque, et il est scope
+
+Le lot du matin a pose cinquante jetons que personne ne lisait. Celui-ci est le premier a
+dessiner. Il ne traite que la COQUE : le fond de page, l'en-tete, la barre des pieces, la grille
+de l'atelier, les primitives partagees et le bouton de bascule clair / sombre. Le contenu des
+pieces vient au lot suivant, et les deux ne se poussent qu'ensemble.
+
+### L'arbitrage de Ted, et il commande tout le lot
+
+`.zone`, `.postit` et `.lettre` ne sont pas des classes du bureau : ce sont aussi celles de la
+demonstration de la page d'accueil, qui montre volontairement les VRAIS composants du bureau
+(regle du 12/09). Les repeindre sans scope aurait donc change la page d'accueil du site public.
+
+**Ted a tranche : on scope maintenant, on rouvrira la question quand les neuf pieces seront
+finies.** Le nouveau dessin vit dans une feuille nouvelle, `src/css/bdv-bureau.css`, et
+`src/css/style.css` n'est pas touchee, pas une ligne. Les matieres du plateau ne sont pas
+supprimees, elles sont recouvertes sous le scope : c'est ce qui rend le lot reversible.
+
+Le scope s'appelle `.bdv-coque` et il est pose sur le corps de page par le MEME drapeau njk que
+celui qui lie la feuille des themes, `theme_bureau`. La classe ne peut pas arriver sans sa
+feuille, ni la feuille sans sa classe. On a ecarte `.bdv-poste`, qui depend de l'etat de session :
+le bureau deconnecte le perd, et sa porte doit suivre le meme dessin que le reste.
+
+Le controle qui va avec est la section 10 bis de `npm run charte --bureau`, ecrite sur le modele
+exact de celle qui garde `.bdv-ventes` depuis le 07/09. Sans elle, une seule regle qui fuit
+repeint l'accueil et rien ne le dit.
+
+### L'en-tete : 209 px, puis 56, et il deplace au lieu de tasser
+
+Le 18/09 au soir, le bandeau avait ete resserre a 71 px puis range en deux lignes, et Ted avait
+refuse les deux : « c'est un foutoir pas possible », puis « c'etait mieux avant ». Il avait
+raison, et on comprend pourquoi maintenant : on avait TOUT garde en le tassant.
+
+La maquette validee deplace. L'en-tete ne porte plus que ce qui vaut pour les neuf pieces, le nom
+de la piece, la date, l'etat et les actions. Le salut, la plaque et la lune descendent dans « Ma
+journee », ou ils sont a leur place : un « Bonjour Teddy » au-dessus de « Mon registre » est du
+decor. Le resume reste en haut, parce que c'est un ETAT et qu'un etat se lit partout.
+
+Mesure : **57 px de bandeau au lieu de 209**, aux deux largeurs et dans les deux themes. Sur
+1440 x 900, la premiere zone de travail commence a 232 px au lieu de 314 : le panneau entier plus
+la moitie du sous-main tiennent maintenant dans le premier ecran.
+
+### Le bouton de bascule a trois etats, et c'est le seul point non negociable
+
+Auto, clair, sombre, puis retour a auto. « Comme mon telephone » est le defaut, il ne pose aucun
+attribut, et il faut pouvoir y revenir : un bouton a deux positions enferme pour toujours celui
+qui a clique une fois, et son bureau resterait clair la nuit parce qu'il a essaye le clair un
+matin. L'etiquette vocale dit l'etat ET ce que fera le prochain appui.
+
+`color-scheme`, laisse en commentaire le matin avec sa raison, est allume. Verifie a la capture,
+champ par champ : les deux dates de « Mes taches », le champ de saisie, la barre de defilement,
+le curseur et la selection suivent le theme, et restent a 16 px et 44 px.
+
+### Ce que la capture a trouve et que les cinq bancs avaient valide
+
+Sixieme fois que la lecon se paie. Quatre defauts, tous verts au banc :
+
+1. l'en-tete faisait 139 px avec un `min-height: 56px` parfaitement respecte, parce que
+   `style.css` empile les boutons d'action en colonne et que je n'avais pas reecrit
+   `flex-direction`. Une propriete qu'on ne reecrit pas reste celle de la cascade ;
+2. le bouton de bascule montrait ses trois glyphes a la fois : `.bdv-bascule svg` pese un point
+   de plus que `.bdv-bascule__g`, donc le `display:block` de confort battait le `display:none` ;
+3. la largeur du rail s'appliquait aussi sur telephone, faute d'etre bornee a 901 px : le travail
+   tombait a 182 px dans une fenetre de 390 et les douze colonnes du plan mesuraient zero ;
+4. les deux boutons de l'en-tete sortaient du cadre a 390 px sans faire defiler la page, donc
+   sans se voir.
+
+### Et un voile n'est pas un fond
+
+La section 6 bis de la charte a rendu 1,00:1 sur une rangee qui en tient 14,08. Elle mesurait une
+encre sur `rgba(22,24,28,.05)`, le voile de survol a 5 %, en prenant le voile pour un aplat. Ces
+paires sont desormais rangees dans les insolubles et NOMMEES une par une, avec la regle : une
+paire posee sur un voile se mesure a la main contre la surface qui est dessous. Les deux du depot
+l'ont ete.
+
+### Les verdicts
+
+`npm run verif` passe en entier, trente-sept etapes. `banc:poids` : **111,4 ko bloquants sur un
+plafond de 120**, contre 108,2 avant le lot ; les 3,2 ko sont le branchement du bouton et la
+retraction de l'en-tete, ecrits dans la page. La feuille de style ne compte pas dans ce budget,
+qui ne pese que les scripts.
+
+### Ce qui reste ouvert
+
+Le contenu des pieces, qui est le lot suivant et qui, en sombre, pose encore de l'encre foncee
+sur des cartes sombres. Les pastilles de compte du rail et les libelles sous les icones de la
+barre basse, qui demandent tous deux de toucher a `PIECES` dans `bdv-nav.js`, donc au contenu.
+Le squelette de chargement, faute d'un etat de chargement dans le balisage de la coque. Et
+l'etat de synchronisation de l'en-tete, faute d'une source qui sache y repondre.
+
+---
+
 ## 21/09/2026. Le bureau passe a deux themes : le socle, et rien que le socle
 
 Les maquettes du bureau redessine sont validees, en deux themes, un clair et un sombre. **Ce

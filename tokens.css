@@ -428,6 +428,15 @@
 
   /* Mouvement. Deux durees, une courbe, et le meme decoupage que --tr-rapide et
      --tr-lent du site : ce qui repond au doigt, et ce qui se deplace. */
+  /* Cinq echelles ajoutees le 21/09/2026 avec le lot du dessin. Elles ne sont
+     PAS retournees en sombre, et c'est un controle : `npm run banc:jetons`
+     section 4 echoue si une longueur apparait dans un bloc sombre. */
+  --bdv-ls-etiq:   .09em;               /* meme valeur en sombre. etiquettes en capitales */
+  --bdv-ls-serre:  -.015em;             /* meme valeur en sombre. resserrement optique des titres et des grands nombres */
+  --bdv-cible:     44px;                /* meme valeur en sombre. plancher tactile, on agrandit la cible et jamais le dessin */
+  --bdv-h-tete:    56px;                /* meme valeur en sombre. l'en-tete du bureau, 209 px avant le 21/09/2026 */
+  --bdv-rail:      184px;               /* meme valeur en sombre. la barre des pieces sur grand ecran */
+
   --bdv-d-court: 150ms;                 /* meme valeur en sombre. survol, selection, focus */
   --bdv-d-long:  300ms;                 /* meme valeur en sombre. modale, feuille, tiroir */
   --bdv-courbe:  cubic-bezier(.22,.61,.36,1);  /* meme valeur en sombre */
