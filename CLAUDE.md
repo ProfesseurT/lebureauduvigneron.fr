@@ -1007,7 +1007,9 @@ Elle enchaine `build`, `charte`, `charte:bureau`, puis les quatorze bancs (`banc
 courrier, et s'arrete au premier echec.
 
 Les apercus ne sont PAS dans cette chaine, parce qu'ils ne verifient rien : ils MONTRENT, et
-c'est a regarder avec des yeux. `npm run apercu:panneau` pour le panneau de liege,
+c'est a regarder avec des yeux. **Ce qui EST dans la chaine depuis le 22/09/2026, c'est
+`npm run banc:apercus`, qui tient les apercus eux-memes** : il echoue si l'un d'eux pose d'autres
+feuilles que la page qu'il montre. Voir « UN APERCU CHARGE CE QUE CHARGE LA PAGE QU'IL MONTRE ». `npm run apercu:panneau` pour le panneau de liege,
 `npm run apercu:fiche` pour la fiche client dans ses quatre etats, `npm run apercu:modale`,
 `npm run apercu:equipe`, et `npm run apercu:mot` pour le mot du jour dans ses quatre gravites.
 Les ouvrir avant de livrer un changement de dessin : `npm run courrier` avait deja laisse passer
@@ -2744,11 +2746,10 @@ d'un cote ne corrige rien de l'autre.
 
 ### CE QUI RESTE OUVERT APRES CE LOT
 
-- **`apercu:panneau`, `apercu:modale`, `apercu:ardoise` et `apercu:mot` posent encore moins de
-  feuilles que la page qu'ils montrent.** `apercu:modale` en pose trois sur quatre (il manque
-  `bdv-poste.css`), les trois autres ne posent que `style.css`. Aucun n'est dans `npm run verif`,
-  donc rien ne le dira : c'est la meme famille que les trois deja corrigees, et la liste est
-  courte.
+- ~~**`apercu:panneau`, `apercu:modale`, `apercu:ardoise` et `apercu:mot` posent encore moins de
+  feuilles que la page qu'ils montrent.**~~ **FAIT LE 22/09/2026**, avec `apercu:fiche` qui en
+  posait trois sur cinq, voir « UN APERCU CHARGE CE QUE CHARGE LA PAGE QU'IL MONTRE » plus bas.
+  Ce n'est plus une convention : `npm run banc:apercus` le tient, et il est dans `npm run verif`.
 - **Le voile d'amorcage n'est toujours pas photographie sur une base VIDE sans reseau** : point
   ouvert du lot 5, inchange.
 - **Les 116 valeurs papier du chrome du site sur l'ecran deconnecte** restent, avec l'arbitrage
@@ -2756,6 +2757,113 @@ d'un cote ne corrige rien de l'autre.
 - **Les 91 appels papier de `bdv-ecrans.css`** et **les 51 de `bdv-calendrier.css`** restent, avec
   leurs motifs des lots 4 et 7.
 - **Le thermometre 2 n'a pas bouge** : 56,9 ko de `style.css` voyagent toujours dans le bureau.
+
+## UN APERCU CHARGE CE QUE CHARGE LA PAGE QU'IL MONTRE, 22/09/2026
+
+**LA REGLE, ET C'EST UN BANC QUI LA TIENT DESORMAIS, PAS UNE CONVENTION :**
+
+> **Un apercu charge exactement ce que charge la page qu'il montre : les feuilles LIEES par le
+> gabarit, dans leur ordre, plus celles que du code pose pour l'ecran qu'il montre, apres elles.
+> Et il porte le scope de cette page sur son corps.**
+
+**CE DEFAUT S'EST PAYE HUIT FOIS**, et c'est ce qui a fait ecrire le banc :
+
+    apercu:equipe ....... une journee entiere de piece NUE               21/09
+    apercu:invitation ... bandeau NU, le seul ecran que voit un invite   21/09
+    apercu:amorce ....... trois feuilles sur quatre                      21/09
+    apercu:fiche ........ trois sur cinq                                 22/09
+    apercu:modale ....... trois sur quatre, il manquait bdv-poste.css    22/09
+    apercu:ardoise ...... style.css SEULE, donc un ecran nu              22/09
+    apercu:mot .......... style.css SEULE                                22/09
+    apercu:panneau ...... style.css SEULE                                22/09
+
+Les cinq derniers datent de la scission du 21/09/2026 : depuis ce jour-la, `style.css` ne porte
+plus les regles du bureau, elles vivent dans `bdv-poste.css` et `bdv-bureau.css`. **Un apercu qui
+ne pose que `style.css` rend donc un ecran NU, et il ne le dit pas.** Les apercus ne verifient
+rien, ils MONTRENT : c'est ce qui les rend precieux (`apercu:mot` a trouve un lien invisible que
+les 78 controles du banc declaraient pose, `apercu:modale` une regle du projet enfreinte sur un
+ecran que 115 controles validaient, `apercu:fiche` MONTRAIT « domaine NaN € » pendant des jours),
+et c'est aussi ce qui les rend silencieux quand ils mentent.
+
+### LA VERITE VIENT DE LA PAGE CONSTRUITE, JAMAIS D'UNE DEUXIEME LISTE
+
+`scripts/apercu-socle.mjs` lit les feuilles LIEES sur `_site/mon-bureau/index.html`, `<link>` par
+`<link>`, en ne gardant que les href locaux, et dans l'ORDRE du gabarit. Aucun apercu ne tient
+plus de liste a lui : une liste tenue a la main ment le jour ou on l'oublie, et celle-ci avait
+deja menti huit fois. Les trois feuilles posees par du JavaScript, elles, ne sont dans aucun HTML
+et restent NOMMEES A LA MAIN, une seule fois, dans `scripts/feuilles-bureau.mjs`, d'ou
+`scripts/charte.mjs` les lit aussi depuis ce jour : elles y etaient ecrites une deuxieme fois.
+
+### CE QUE `npm run banc:apercus` REFUSE, ET IL EST DANS `npm run verif`
+
+1. un apercu qui ne prend pas ses feuilles du socle, donc qui s'en refabrique une liste ;
+2. une liste a lui ou il manque une feuille liee, ou qui les met dans le desordre ;
+3. une feuille en plus qui ne soit pas l'une des trois posees par du code ;
+4. un apercu qui ne pose pas le scope `bdv-coque`, ou qui ne rend pas les deux themes ;
+5. un socle qui se remettrait a ecrire une liste en dur.
+
+**L'EXCEPTION EST NOMMEE AVEC SA RAISON, ET ELLE EST CONTROLEE ELLE AUSSI.**
+`apercu-courrier` ne pose AUCUNE feuille du bureau : un mail est autonome, aucune messagerie ne
+charge de feuille externe, tout son dessin est en style de ligne dans `bdv-courrier.js`. Le banc
+echoue le jour ou ce fichier se mettrait a en poser une. Une exception qu'on ne voit plus
+redevient un oubli.
+
+**VERIFIE PAR MUTATION, TROIS FOIS.** Une liste ecrite a la main dans `apercu-mot` sans
+`bdv-poste.css` : 4 echecs, dont « Il manque : src/css/bdv-poste.css ». La meme liste complete
+mais dans le desordre : 4 echecs, dont l'ordre. Une liste en dur remise dans le socle : 2 echecs.
+Un controle qui n'a jamais echoue ne garde rien.
+
+### ET LE HARNAIS PORTE L'ETAT DE LA VRAIE PAGE, PAS SEULEMENT SES FEUILLES
+
+Deux mesures du 22/09/2026, et les deux disent la meme chose sous deux formes :
+
+1. **`bdv-poste` manquait sur le corps de page.** Toutes les regles telephone s'ecrivent
+   `body.bdv-poste ...` sous 700 px (regle du 11/09/2026, « le site public sort du bureau »).
+   Sans cette classe, la sonde de rendu comptait a 390 px **quinze cibles sous 44 px sur la
+   modale et quatre sur le panneau**, qui n'existent pas dans le produit. La planche du socle
+   pose donc `bdv-coque bdv-poste`, et `poste: false` existe pour un ecran vu sans session.
+2. **`apercu:modale` ne prenait que `.tmod__boite`, sans son `.tmod`.** Or tout le plancher
+   tactile du telephone s'ecrit `.tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d, .tmod .btn`,
+   plus `.bdv-coque .tmod .btn` de la section 18 : sans cet ancetre, aucune ne s'applique. Les
+   quinze cibles sont passees a **zero** en remontant d'un element.
+
+**LA LECON : un harnais qui ne monte pas l'ETAT et l'ANCETRE de la vraie page invente des
+defauts, ce qui coute autant que d'en laisser passer.** C'est le pendant exact de « une piece
+qu'un harnais rend vide n'est pas une piece verifiee ».
+
+### CE QUE LES DIX IMAGES ONT MONTRE
+
+Cinq apercus, deux themes, sonde de rendu de `Claude outputs/lot9-sonde-rendu.mjs` (celle-la et
+pas une autre : ses trois copies anterieures portent un defaut de comptage), a 1440 et a 390 px.
+
+**ZERO paire sous son seuil, sur les dix images, aux deux largeurs.** C'est une bonne nouvelle et
+elle se mesure aussi. Zero valeur papier sur le mot du jour, le panneau, la modale et la fiche ;
+zero cible sous 44 px et zero saisie sous 16 px a 390 px, sauf ce qui suit.
+
+**DEUX VALEURS PAPIER SUR L'ARDOISE, ET ELLES NE PEIGNENT RIEN.** `a.chiffre` prend
+`color: var(--bordeaux)` de la regle `a{}` de `style.css` : `--bordeaux` sur `--bdv-surface` en
+sombre vaut 1,37:1. Mesure element par element : les trois enfants qui portent du texte
+(`.chiffre__l`, `.chiffre__v`, `.chiffre__s`) nomment tous leur encre, et les `::before` des
+fleches en heritent, donc **aucune lettre n'est peinte en bordeaux aujourd'hui**. C'est la meme
+situation que `.calbloc__trous` au lot 8, et le meme arbitrage : **non corrige**, parce que le
+banc d'empreinte rend les valeurs calculees d'un element meme quand elles ne peignent pas, et que
+la corriger sortirait des ecarts pour zero pixel change. **C'est un piege pose pour plus tard** :
+le premier enfant ajoute dans `.chiffre` sans encre a lui sortira a 1,37:1 en sombre. Le
+correctif, le jour ou on le prendra, est une declaration `color` dans
+`.bdv-coque .chiffre` de `bdv-bureau.css`, et il se paie d'un passage du banc d'empreinte.
+
+**CINQ CIBLES SOUS 44 px SUR LE PANNEAU A 390 px, ET C'EST LA SONDE QUI SE TROMPE.**
+`a.postit__lien` mesure 268x21, mais son `::after` est en `inset: 0` sur un `.postit` de
+281x109 : la cible reelle, c'est le papier entier. La sonde mesure le rectangle de l'element, pas
+celui de son calque. A savoir avant de « corriger » une punaise.
+
+### CE QUE CETTE PLANCHE NE PEUT PAS MONTRER
+
+Les deux themes sont COTE A COTE, donc chaque colonne fait la moitie d'un ecran : le plan y tient
+environ 660 px au lieu des 1 140 px d'un 1440. Les zones en quatre colonnes sur douze s'y
+replient plus tot qu'en vrai, et l'en-tete du courrier deborde de sa zone. **On juge ici les
+couleurs, les filets, la hierarchie et les etats ; une LARGEUR se juge a `npm run banc:large`**,
+qui mesure a la largeur de l'ecran de Ted.
 
 ## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026, REVU LE 21/09/2026
 

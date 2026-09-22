@@ -28,18 +28,25 @@
    porte donc `bdv-coque`, et les trois etats sont rendus DEUX FOIS, en clair et
    en sombre : un theme sombre juge sur une capture prise a part n'est jamais
    compare a rien.
+
+   ET DEPUIS LE 22/09/2026 IL NE TIENT PLUS CETTE LISTE LUI-MEME : les quatre
+   feuilles viennent de `scripts/apercu-socle.mjs`, qui les lit sur la page
+   CONSTRUITE. Une liste tenue a la main ment le jour ou on l'oublie, et c'est
+   ce qui a coute huit apercus menteurs. Elles sont aussi RECOPIEES dans la page
+   au lieu d'etre liees en relatif : le fichier produit s'ouvre d'un
+   double-clic, ou qu'on le deplace.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { cssBureau, TETE_POLICES, chargerJsdom } from './apercu-socle.mjs';
+
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FICHIER = path.join(RACINE, 'src/js/bdv-amorce.js');
 const SORTIE = path.join(RACINE, '_apercu/amorce.html');
 
-let JSDOM;
-try { ({ JSDOM } = await import('jsdom')); }
-catch (e) { console.error('\n  jsdom est absent : npm install --save-dev jsdom\n'); process.exit(2); }
+const JSDOM = await chargerJsdom();
 
 const attendre = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -90,10 +97,8 @@ const page = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Apercu : le voile d'amorcage</title>
-<link rel="stylesheet" href="../src/css/bdv-theme.css">
-<link rel="stylesheet" href="../src/css/style.css">
-<link rel="stylesheet" href="../src/css/bdv-poste.css">
-<link rel="stylesheet" href="../src/css/bdv-bureau.css">
+${TETE_POLICES}
+<style>${cssBureau()}</style>
 <style>
   body{ padding:0; margin:0; }
   .th{ padding:2rem; background:var(--bdv-fond); }

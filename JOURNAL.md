@@ -12,6 +12,76 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 22/09/2026, l'après-midi. Les aperçus montraient des écrans nus, et rien ne le disait
+
+Relevé du matin, feuilles posées par chaque aperçu : `apercu-ardoise`, `apercu-mot` et
+`apercu-panneau` ne posaient que `style.css`, `apercu-modale` trois feuilles sur quatre,
+`apercu-fiche` trois sur cinq. Depuis la scission du 21/09 au matin, `style.css` ne porte plus
+les règles du bureau : elles vivent dans `bdv-poste.css` et `bdv-bureau.css`. **Les trois
+premiers rendaient donc des écrans NUS, et ne le disaient pas.** C'est exactement ce qui était
+arrivé à `apercu:equipe`, qui a menti une journée entière, et à `apercu:invitation` et
+`apercu:amorce`, rattrapés la veille. Huit fois le même défaut.
+
+### Le contrôle d'abord, parce que c'est lui qui empêche la récidive
+
+`scripts/banc-apercus.mjs`, branché dans `npm run verif`. Il ne compare pas des noms de fichiers
+écrits à la main : **il dérive la vérité de la page CONSTRUITE**, `<link>` par `<link>`, dans
+l'ordre du gabarit. Les trois feuilles que du JavaScript pose ne sont dans aucun HTML : elles
+restent nommées à la main, mais **une seule fois**, dans `scripts/feuilles-bureau.mjs`, d'où
+`scripts/charte.mjs` les lit maintenant au lieu d'en porter sa propre copie.
+
+`apercu-courrier` est l'exception, et le banc la NOMME avec sa raison au lieu de l'oublier : un
+mail est autonome, aucune messagerie ne charge de feuille externe. Le banc échoue le jour où ce
+fichier se mettrait à poser une feuille du bureau.
+
+**Vérifié par mutation, trois fois** : une liste à la main sans `bdv-poste.css` (4 échecs, dont
+« Il manque : src/css/bdv-poste.css »), la même dans le désordre (4 échecs), une liste en dur
+remise dans le socle (2 échecs).
+
+### Un module partagé, parce que le montage était écrit huit fois
+
+`scripts/apercu-socle.mjs` : les feuilles, le lien des polices, la planche à deux thèmes, le
+scope sur le corps de page, et le contrôle des mots vides, qui était recopié dans quatre
+fichiers. Les huit aperçus passent par lui.
+
+### Ce que le harnais s'est appris à lui-même, et c'est la vraie leçon du jour
+
+Deux fois, la sonde de rendu a accusé le produit d'un défaut qui venait de la planche :
+
+- **il manquait `bdv-poste` sur le corps de page.** Toutes les règles téléphone s'écrivent
+  `body.bdv-poste ...` sous 700 px. Sans cette classe, quinze cibles sous 44 px sur la modale et
+  quatre sur le panneau, à 390 px, qui n'existent pas dans le produit ;
+- **`apercu:modale` ne prenait que `.tmod__boite`, sans son `.tmod`**, alors que tout le plancher
+  tactile du téléphone s'écrit `.tmod .btn`, `.tmod__lien`, `.tmod__g`… En remontant d'un
+  élément, les quinze cibles passent à zéro.
+
+**Un harnais qui ne monte pas l'ÉTAT et l'ANCÊTRE de la vraie page invente des défauts, ce qui
+coûte autant que d'en laisser passer.**
+
+### Les dix images, regardées
+
+Cinq aperçus, deux thèmes, sonde de rendu du lot 9, à 1440 et à 390 px : **zéro paire sous son
+seuil, partout**. C'est une bonne nouvelle, et elle se mesure aussi.
+
+Deux valeurs papier sur l'ardoise, `a.chiffre` qui prend `--bordeaux` de la règle `a{}` de
+`style.css`, soit 1,37:1 sur la surface sombre. Mesure élément par élément : les trois enfants
+qui portent du texte nomment tous leur encre, donc **aucune lettre n'est peinte en bordeaux**.
+Même situation que `.calbloc__trous` au lot 8, et **même arbitrage : non corrigé**, parce que le
+banc d'empreinte rend les valeurs calculées d'un élément même quand elles ne peignent pas. C'est
+un piège posé pour plus tard, et il est écrit dans `CLAUDE.md` avec son correctif d'une ligne.
+
+Cinq cibles sous 44 px sur le panneau à 390 px : c'est la sonde qui se trompe, `.postit__lien`
+fait 268x21 mais son `::after` couvre un post-it de 281x109. Elle mesure le rectangle de
+l'élément, pas celui de son calque.
+
+### Ce qui n'a pas bougé
+
+**Aucun CSS n'a été touché.** Le banc d'empreinte par seaux n'a donc rien à dire sur ce lot, et
+il n'a pas été rejoué. `npm run verif` passe en entier, par paquets, et `charte` comme
+`charte:bureau` disent CONFORME.
+
+---
+
 ## 22/09/2026. Le premier écran du produit, photographié enfin, et il n'était pas là
 
 Hier soir on a rattrapé « L'équipe », que le harnais rendait vide. En écrivant le point ouvert

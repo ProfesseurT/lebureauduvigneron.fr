@@ -19,25 +19,26 @@
    CE QU'IL NE FAIT PAS. Aucun reseau, aucun chiffre vrai, et il ne VERIFIE rien :
    les controles du panneau sont dans scripts/banc-journee.mjs, section 5. Celui-ci
    ne sert qu'a regarder.
+
+   ET IL A MENTI DU 21/09/2026 AU 22/09/2026. Il ne posait que `style.css`.
+   Depuis la scission du 21/09 au matin, cette feuille ne porte plus les regles
+   du bureau : le panneau est devenu une pile de rangees a filet, repeinte sous
+   `.bdv-coque` par la section 9 de `bdv-bureau.css`, et le liege de `style.css`
+   ne sert plus qu'a la demonstration de la page d'accueil. L'apercu montrait
+   donc encore le LIEGE, c'est-a-dire le dessin qu'on venait de remplacer, et il
+   le montrait sans jetons. Il passe maintenant par `scripts/apercu-socle.mjs`,
+   qui lit les feuilles sur la page CONSTRUITE, pose `bdv-coque` sur le corps de
+   page et rend les DEUX themes. `npm run banc:apercus` le tient desormais.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, 'src/css/style.css');
+import { planche, ecrire, motsVides, chargerJsdom, exigerLaPageConstruite } from './apercu-socle.mjs';
 
-let JSDOM;
-try { ({ JSDOM } = await import('jsdom')); }
-catch (e) {
-  console.error('\n  jsdom est absent : npm install --save-dev jsdom\n');
-  process.exit(2);
-}
-if (!fs.existsSync(PAGE)) {
-  console.error('\n  _site/mon-bureau/index.html est absent : lance npm run build d\'abord.\n');
-  process.exit(2);
-}
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const BRUT = exigerLaPageConstruite();
+const JSDOM = await chargerJsdom();
 
 const jour = (n) => {
   const d = new Date();
@@ -103,7 +104,7 @@ function fauxTaches() {
   };
 }
 
-const dom = new JSDOM(fs.readFileSync(PAGE, 'utf8'), {
+const dom = new JSDOM(BRUT, {
   url: 'https://lebureauduvigneron.fr/mon-bureau/',
   runScripts: 'dangerously',
   pretendToBeVisual: true,
@@ -136,16 +137,26 @@ const dom = new JSDOM(fs.readFileSync(PAGE, 'utf8'), {
 await new Promise(r => setTimeout(r, 900));
 const d = dom.window.document;
 const zone = d.getElementById('zonePanneau');
-const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
-  + '<title>Aperçu du panneau</title>'
-  + '<style>' + fs.readFileSync(FEUILLE, 'utf8') + '</style>'
-  + '<style>body{background:var(--paper);padding:2rem;margin:0}'
-  + '.bureau-plan{max-width:1120px;margin:0 auto}</style>'
-  + '</head><body><div class="bureau-plan">' + zone.outerHTML + '</div></body></html>';
 
-fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
-fs.writeFileSync(path.join(RACINE, '_apercu/panneau.html'), page);
-console.log('  ecrit : _apercu/panneau.html');
+/* LA ZONE EST REMISE DANS SA GRILLE DE DOUZE COLONNES par l'enveloppe du socle.
+   Une page d'apercu qui la poserait sur une largeur libre ne pourrait pas
+   montrer le defaut du 14/09/2026, ou une `.zone` sans `grid-column` est tombee
+   dans UNE colonne et s'est ecrite une lettre par ligne. Et c'est aussi ce qui
+   decide de la largeur des post-it : la borne `--postit-l` se mesure ici. */
+const page = planche({
+  titre: 'Le panneau de « Ma journee », 10/09/2026, revu le 22/09/2026',
+  intro: 'Une punaise porte UNE chose a faire, dans l\u2019ordre ou elle presse, avec les gestes '
+       + 'qui la font disparaitre. Cinq au plus : a six, la sixieme part seule sur une deuxieme '
+       + 'rangee. Rien n\u2019est redessine a la main, et les quatre feuilles du bureau sont '
+       + 'posees dans l\u2019ordre ou le gabarit les lie.',
+  vues: [{ titre: 'Une journee chargee',
+           note: 'Un rappel en retard, un du jour, une obligation qui tombe, une tache en retard, '
+               + 'une qui presse, et le compte de ce qui ne tient pas ici.',
+           html: zone.outerHTML }]
+});
+
+ecrire('panneau.html', page);
 console.log('  ' + zone.querySelectorAll('.postit').length + ' punaise(s)');
 console.log('  etiquette : ' + d.getElementById('panneauNote').textContent);
+if (motsVides([zone.outerHTML]).length) process.exit(1);
 process.exit(0);

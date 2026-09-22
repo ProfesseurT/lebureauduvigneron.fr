@@ -16,22 +16,27 @@
    CE QU'IL NE FAIT PAS. Il ne VERIFIE rien, il ne charge pas les polices
    Google (le fichier produit les demande au reseau comme la vraie page). Il ne
    sert qu'a regarder.
+
+   ET IL A MENTI DU 21/09/2026 AU 22/09/2026. Il ne posait que `style.css`.
+   Depuis la scission du 21/09 au matin, cette feuille ne porte plus les regles
+   du bureau : l'ardoise, le mot du jour et les trois zones de lecture sont
+   repeints sous `.bdv-coque` par `bdv-bureau.css`, qui lit les jetons de
+   `bdv-theme.css`, et le reste vit dans `bdv-poste.css`. L'apercu rendait donc
+   quatre zones NUES, avec toutes leurs `var()` dans le vide, et il ne le disait
+   pas. Il passe maintenant par `scripts/apercu-socle.mjs`, qui lit les feuilles
+   sur la page CONSTRUITE, pose `bdv-coque` sur le corps de page et rend les
+   DEUX themes. `npm run banc:apercus` le tient desormais.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { planche, ecrire, motsVides, chargerJsdom, exigerLaPageConstruite } from './apercu-socle.mjs';
+
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, 'src/css/style.css');
-
-let JSDOM;
-try { ({ JSDOM } = await import('jsdom')); }
-catch (e) { console.error('\n  jsdom est absent : npm install --save-dev jsdom\n'); process.exit(2); }
-if (!fs.existsSync(PAGE)) {
-  console.error('\n  _site/mon-bureau/index.html est absent : lance npm run build d\'abord.\n');
-  process.exit(2);
-}
+const BRUT = exigerLaPageConstruite();
+const JSDOM = await chargerJsdom();
 
 /* LE JEU D'ESSAI. Des montants a six chiffres, un pourcentage, un entier court et
    un montant a trois chiffres : c'est exactement la ou une police de chiffres se
@@ -48,7 +53,6 @@ const ETAT = {
 
 /* Les URL viennent du VRAI fichier de contenus de la page : un signet vers une
    adresse inventee se peindrait sans titre ni pilier. */
-const BRUT = fs.readFileSync(PAGE, 'utf8');
 const JSONC = (BRUT.match(/id="bdvContenus"[^>]*>([\s\S]*?)<\/script>/) || [])[1] || '[]';
 let LISTE = [];
 try { LISTE = JSON.parse(JSONC) || []; } catch (e) {}
@@ -57,7 +61,7 @@ const CONTENUS_ESSAI = {
   lus:   LISTE.slice(6, 9).map(c => c.url)
 };
 
-const dom = new JSDOM(fs.readFileSync(PAGE, 'utf8'), {
+const dom = new JSDOM(BRUT, {
   url: 'https://lebureauduvigneron.fr/mon-bureau/',
   runScripts: 'dangerously',
   pretendToBeVisual: true,
@@ -97,20 +101,46 @@ const morceaux = [d.getElementById('zoneArdoise')]
 if (!morceaux.length) { console.error('  aucune zone trouvee.'); process.exit(1); }
 morceaux.forEach(z => { z.hidden = false; z.removeAttribute('hidden'); });
 
-const POLICES = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap';
+/* CHAQUE ZONE EST JUGEE A PART, ET DANS LES DEUX THEMES. L'ardoise et les trois
+   zones de lecture partagent une rangee dans le vrai plan : elles sont donc
+   donnees dans l'ordre du plan, chacune dans son ancetre reelle. */
+const NOMS = {
+  zoneArdoise: ['L\u2019ardoise', 'Quatre nombres nus, chacun avec son libelle et sa provenance. La regle « un chiffre affiche dit toujours d\u2019ou il vient » ne bouge pas.'],
+  'zone--lecture': ['A lire', 'Ce que le vigneron a mis de cote.'],
+  'zone--classeur': ['Le classeur', 'Ce qu\u2019il a deja lu.'],
+  'zone--courrier': ['Le courrier', 'L\u2019enveloppe dechiree est partie au lot 3 : c\u2019est une carte, et les lignes sont au corps de 13 px.']
+};
+/* LES QUATRE ZONES DANS UN SEUL PLAN, ET C'EST LEUR VRAIE MISE EN PAGE. Le
+   plan fait douze colonnes : l'ardoise, « A lire » et « Le classeur » tiennent
+   quatre colonnes chacun et font une rangee, « Le courrier » en tient six et
+   passe a la suivante. Les separer en quatre vues, essaye le 22/09/2026, a
+   donne un resultat FAUX : trois zones de 4+4+6 colonnes dans un meme plan
+   debordaient dans des colonnes implicites, et le courrier sortait coupe a
+   droite. C'est aussi la raison d'etre de ce fichier depuis le 12/09/2026 :
+   « le courrier ne se juge pas seul, il partage sa rangee avec A lire et Le
+   classeur, et c'est cote a cote qu'on voit s'ils portent ou non le meme
+   objet ».
+   CE QUE CETTE PLANCHE NE PEUT PAS MONTRER, ET IL FAUT LE SAVOIR : les deux
+   themes sont cote a cote, donc chaque colonne fait la moitie d'un ecran. Le
+   plan y tient environ 660 px au lieu des 1140 px d'un 1440, et les titres s'y
+   replient plus tot qu'en vrai. On juge ici les couleurs, les filets et la
+   hierarchie ; une largeur se juge a `npm run banc:large`. */
+const vues = [{ titre: 'L\u2019ardoise et la rangee de lecture',
+                note: NOMS.zoneArdoise[1] + ' Les trois zones de lecture suivent, dans leur vraie '
+                    + 'mise en page : quatre colonnes sur douze pour « A lire » et « Le classeur », '
+                    + 'six pour « Le courrier », qui passe donc a la rangee suivante.',
+                html: morceaux.map(z => z.outerHTML).join('') }];
 
-const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
-  + '<title>Aperçu de l\'ardoise et du courrier</title>'
-  + '<link href="' + POLICES + '" rel="stylesheet">'
-  + '<style>' + fs.readFileSync(FEUILLE, 'utf8') + '</style>'
-  + '<style>body{background:var(--paper);padding:2rem;margin:0}</style>'
-  + '</head><body><main class="bureau"><div class="bureau-plan">'
-  + morceaux.map(z => z.outerHTML).join('')
-  + '</div></main></body></html>';
+const page = planche({
+  titre: 'L\u2019ardoise et les trois zones de lecture, 12/09/2026, revu le 22/09/2026',
+  intro: 'Rien n\u2019est redessine a la main : ce sont les vraies zones, peintes par le script '
+       + 'de la page construite, avec les quatre feuilles du bureau dans l\u2019ordre ou le '
+       + 'gabarit les lie, et dans les deux themes.',
+  vues: vues
+});
 
-fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
-fs.writeFileSync(path.join(RACINE, '_apercu/ardoise.html'), page);
-console.log('  ecrit : _apercu/ardoise.html');
+ecrire('ardoise.html', page);
 console.log('  ' + d.querySelectorAll('.chiffre').length + ' case(s) sur l\'ardoise');
 console.log('  ' + d.querySelectorAll('.zone--courrier .lettre').length + ' lettre(s) dans le courrier');
+if (motsVides(vues.map(v => v.html)).length) process.exit(1);
 process.exit(0);

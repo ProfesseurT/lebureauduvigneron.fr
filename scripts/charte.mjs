@@ -31,6 +31,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as csstree from 'css-tree';
+/* LES FEUILLES QUE DU CODE POSE SONT NOMMEES AILLEURS, 22/09/2026. Elles
+   l'etaient ici, et les scripts d'apercu en tenaient chacun une copie
+   PARTIELLE : cinq d'entre eux posaient moins de feuilles que la page qu'ils
+   montrent. La liste vit maintenant dans scripts/feuilles-bureau.mjs, que ce
+   fichier et `npm run banc:apercus` lisent tous les deux. Une liste a deux
+   endroits diverge au premier ajout. */
+import { FEUILLES_JS } from './feuilles-bureau.mjs';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /* `--dash` a ete renomme `--bureau` le 07/09/2026 au lot 2d : le tableau de bord n'existe
@@ -194,9 +201,9 @@ function parse(fichiers) {
          <link> la trouve deja ; elle est quand meme nommee ici pour que son
          absence du disque CRIE et pour qu'elle reste dans le perimetre le jour
          ou le <link> demenage. */
-      for (const f of ['src/css/bdv-ecrans.css', 'src/css/bdv-panneau.css',
-                       'src/css/bdv-calendrier.css', 'src/css/bdv-theme.css',
-                       'src/css/bdv-bureau.css'].concat(FEUILLES_POSTE)) {
+      for (const f of FEUILLES_JS.map(x => x.fichier)
+                        .concat(['src/css/bdv-theme.css', 'src/css/bdv-bureau.css'])
+                        .concat(FEUILLES_POSTE)) {
         const abs = path.join(RACINE, f);
         if (!fs.existsSync(abs)) { erreursHtml.push('feuille du bureau introuvable : ' + f); continue; }
         if (!liees.includes(abs)) liees.push(abs);

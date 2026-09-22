@@ -27,6 +27,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { cssBureau, TETE_POLICES, motsVides } from './apercu-socle.mjs';
+
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { JSDOM } = await import(path.join(RACINE, 'node_modules/jsdom/lib/api.js'));
 const JS = path.join(RACINE, 'src/js');
@@ -85,19 +87,18 @@ async function rendre(cas) {
 const morceaux = [];
 for (const c of CAS) morceaux.push({ ...c, html: await rendre(c) });
 
-/* LES QUATRE FEUILLES DU BUREAU, DANS L'ORDRE OU LE GABARIT LES LIE.
-   bdv-poste.css est liee ENTRE style.css et bdv-bureau.css, et c'est ce qui
-   donne a la coque le dernier mot a specificite egale : inverser les deux
-   retournerait la moitie des arbitrages du chantier des deux themes. */
-const FEUILLES = ['src/css/style.css', 'src/css/bdv-theme.css',
-                  'src/css/bdv-poste.css', 'src/css/bdv-bureau.css']
-  .map(f => fs.readFileSync(path.join(RACINE, f), 'utf8')).join('\n');
+/* LES QUATRE FEUILLES DU BUREAU, DANS L'ORDRE OU LE GABARIT LES LIE, ET CET
+   ORDRE N'EST PLUS ECRIT ICI DEPUIS LE 22/09/2026 : `apercu-socle.mjs` le lit
+   sur la page CONSTRUITE. bdv-poste.css est liee ENTRE style.css et
+   bdv-bureau.css, et c'est ce qui donne a la coque le dernier mot a specificite
+   egale ; inverser les deux retournerait la moitie des arbitrages du chantier
+   des deux themes. Une liste recopiee dans huit fichiers se perime dans huit
+   fichiers, et c'est ce que `npm run banc:apercus` refuse desormais. */
+const FEUILLES = cssBureau();
 const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le bandeau d'invitation, les quatre états</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+${TETE_POLICES}
 <style>${FEUILLES}</style>
 <style>
   /* LE HARNAIS, ET RIEN QUE LUI. */
@@ -131,4 +132,5 @@ ${morceaux.map(m => `<h2 class="ap__t">${m.titre}</h2><p class="ap__q">${m.quoi}
 fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
 fs.writeFileSync(path.join(RACINE, '_apercu/invitation.html'), page);
 console.log('  ecrit : _apercu/invitation.html  (' + Math.round(page.length / 1024) + ' ko)');
+if (motsVides(morceaux.map(m => m.html)).length) process.exit(1);
 process.exit(0);

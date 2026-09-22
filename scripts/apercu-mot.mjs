@@ -15,23 +15,27 @@
 
    CE QU'IL NE FAIT PAS. Il ne verifie rien, il MONTRE. Il n'est donc pas dans
    `npm run verif` : il s'ouvre et se regarde.
+
+   ET IL A MENTI DU 21/09/2026 AU 22/09/2026. Il ne posait que `style.css`.
+   Depuis la scission du 21/09 au matin, cette feuille ne porte plus les regles
+   du bureau : elles vivent dans `bdv-poste.css` et `bdv-bureau.css`, et la zone
+   du mot du jour est repeinte sous `.bdv-coque` par la section 13 de cette
+   derniere. L'apercu rendait donc un ecran NU, et il ne le disait pas : c'est
+   le defaut d'`apercu:equipe`, qui a menti une journee entiere, rejoue ici.
+   Il passe maintenant par `scripts/apercu-socle.mjs`, qui lit les feuilles sur
+   la page CONSTRUITE, pose `bdv-coque` sur le corps de page et rend les DEUX
+   themes. `npm run banc:apercus` le tient desormais, ce n'est plus une
+   convention.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, 'src/css/style.css');
+import { planche, ecrire, motsVides, chargerJsdom, exigerLaPageConstruite } from './apercu-socle.mjs';
 
-let JSDOM;
-try { ({ JSDOM } = await import('jsdom')); }
-catch (e) { console.error('\n  jsdom est absent : npm install --save-dev jsdom\n'); process.exit(2); }
-if (!fs.existsSync(PAGE)) {
-  console.error('\n  _site/mon-bureau/index.html est absent : lance npm run build d\'abord.\n');
-  process.exit(2);
-}
-const BRUT = fs.readFileSync(PAGE, 'utf8');
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const BRUT = exigerLaPageConstruite();
+const JSDOM = await chargerJsdom();
 
 /* LES QUATRE CAS, ET LE PLUS LONG EST VOLONTAIRE. Le conseil des dormants nomme
    trois clients avec leurs montants : c'est la phrase la plus longue que le
@@ -92,29 +96,26 @@ async function peindre(conseils) {
 }
 
 const blocs = [];
-for (const c of CAS) {
-  const html = await peindre([c]);
-  blocs.push('<p class="apercu-mot__t">' + c.titre + '</p>' + html);
-}
+for (const c of CAS) blocs.push({ titre: c.titre, html: await peindre([c]) });
 // Et le cas reel : quatre conseils d'un coup, donc le bouton et le compteur.
-blocs.push('<p class="apercu-mot__t">Quatre conseils deposes : le compteur et le bouton</p>'
-         + await peindre(CAS));
+blocs.push({ titre: 'Quatre conseils deposes : le compteur et le bouton',
+             note: 'Le point de depart change, la rotation automatique non : un clic est un geste.',
+             html: await peindre(CAS) });
 
-const POLICES = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap';
+/* LA ZONE EST REMISE DANS SON ANCETRE REELLE par l'enveloppe du socle,
+   `.bureau-atelier > .bureau-atelier__travail > .bureau-plan` : c'est a cette
+   profondeur-la, et pas ailleurs, que `.bdv-coque .bureau-atelier a:not([class])`
+   peint les liens sans classe. Le lien du verdict, trouve invisible par cet
+   apercu meme le 14/09/2026, vit precisement la. */
+const page = planche({
+  titre: 'Le mot du jour, ses quatre gravites, 14/09/2026, revu le 22/09/2026',
+  intro: 'Rien n\u2019est redessine a la main : c\u2019est la vraie zone, peinte par le script '
+       + 'de la page construite, avec les quatre feuilles du bureau dans l\u2019ordre ou le '
+       + 'gabarit les lie, et dans les deux themes.',
+  vues: blocs
+});
 
-const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
-  + '<meta name="viewport" content="width=device-width, initial-scale=1">'
-  + '<title>Aperçu du mot du jour</title>'
-  + '<link href="' + POLICES + '" rel="stylesheet">'
-  + '<style>' + fs.readFileSync(FEUILLE, 'utf8') + '</style>'
-  + '<style>body{background:var(--paper);padding:2rem;margin:0}'
-  + '.apercu-mot__t{font-family:var(--font-mono);font-size:var(--t-mini);'
-  + 'color:var(--muted);margin:1.6rem 0 .4rem;grid-column:1/-1}</style>'
-  + '</head><body><main class="bureau"><div class="bureau-plan">'
-  + blocs.join('')
-  + '</div></main></body></html>';
-
-fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
-fs.writeFileSync(path.join(RACINE, '_apercu/mot.html'), page);
-console.log('  ecrit : _apercu/mot.html  (' + blocs.length + ' cas)');
+ecrire('mot.html', page);
+console.log('  ' + blocs.length + ' cas x 2 themes');
+if (motsVides(blocs.map(b => b.html)).length) process.exit(1);
 process.exit(0);

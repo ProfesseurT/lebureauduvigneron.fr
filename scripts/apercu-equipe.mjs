@@ -37,19 +37,18 @@ const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
    vigneron voit valide ce qu'il ne voit pas.
    L'ORDRE COMPTE AUTANT QUE LA LISTE : bdv-poste.css est liee ENTRE style.css et
    bdv-bureau.css, et c'est ce qui donne a la coque le dernier mot a specificite
-   egale. Inverser les deux retournerait la moitie des arbitrages de ce lot. */
-const FEUILLES = ['src/css/style.css', 'src/css/bdv-theme.css',
-                  'src/css/bdv-poste.css', 'src/css/bdv-bureau.css']
-  .map(f => path.join(RACINE, f));
+   egale. Inverser les deux retournerait la moitie des arbitrages de ce lot.
+   DEPUIS LE 22/09/2026, LA LISTE N'EST PLUS ECRITE ICI : `apercu-socle.mjs` la
+   lit sur la page CONSTRUITE, et `npm run banc:apercus` echoue si un apercu
+   s'en refabrique une a lui. Une liste tenue a la main ment le jour ou on
+   l'oublie, et celle-ci avait deja menti une journee entiere. */
 const MODULE = path.join(RACINE, 'src/js/bdv-equipe.js');
 
-let JSDOM;
-try { ({ JSDOM } = await import('jsdom')); }
-catch (e) { console.error('  il manque jsdom :  npm install --save-dev jsdom'); process.exit(1); }
-if (!fs.existsSync(PAGE)) {
-  console.error('  la page construite manque :  npm run build  d\'abord');
-  process.exit(1);
-}
+import { cssBureau, TETE_POLICES, chargerJsdom, exigerLaPageConstruite,
+         motsVides } from './apercu-socle.mjs';
+
+const JSDOM = await chargerJsdom();
+exigerLaPageConstruite();
 
 /* UN SEUL DECOR POUR LES DEUX HARNAIS, 21/09/2026. Les equipiers, les
    invitations en attente et les deux identifiants de bureau viennent de
@@ -180,8 +179,8 @@ const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
   + '<title>Aperçu de la pièce L’équipe</title>'
   + '<link rel="preconnect" href="https://fonts.googleapis.com">'
   + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-  + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
-  + '<style>' + FEUILLES.map(f => fs.readFileSync(f, 'utf8')).join('\n') + '</style>'
+  + TETE_POLICES
+  + '<style>' + cssBureau() + '</style>'
   /* LA ZONE EST REMISE DANS SA GRILLE DE DOUZE COLONNES, et c'est le coeur de
      l'affaire : c'est de la que venait le defaut du 14/09/2026. Une page
      d'apercu qui poserait la zone sur une largeur libre ne pourrait PAS le
@@ -235,9 +234,6 @@ console.log('  ecrit : _apercu/equipe.html  (' + vues.length + ' etats x 2 theme
 
 /* CE QUE LA MESURE PEUT DIRE SANS L'IMAGE : les mots vides. Un NaN, un undefined
    ou un « null » dans du texte rendu est un defaut qu'on ne voit pas en regardant
-   vite. Meme controle que l'apercu de la fiche client. */
-const texte = vues.map(v => v.html).join(' ').replace(/<[^>]+>/g, ' ');
-const sales = ['NaN', 'undefined', 'null', '[object'].filter(m => texte.indexOf(m) >= 0);
-console.log(sales.length ? '  ALERTE : ' + sales.join(', ') + ' dans le texte rendu'
-                         : '  aucun mot vide dans le texte rendu');
-if (sales.length) process.exit(1);
+   vite. Le controle vit dans le socle depuis le 22/09/2026 : il etait recopie
+   dans quatre fichiers. */
+if (motsVides(vues.map(v => v.html)).length) process.exit(1);

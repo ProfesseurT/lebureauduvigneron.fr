@@ -22,10 +22,24 @@
    CE QU'IL NE VERIFIE PAS. Rien du tout : il ne fait que montrer. Les controles
    de structure sont dans les bancs. Et il ne remplace pas un vrai navigateur
    pour la typographie : jsdom ne dessine pas.
+
+   ET IL LUI MANQUAIT DEUX FEUILLES SUR CINQ JUSQU'AU 22/09/2026. Il posait
+   bdv-theme.css, style.css et bdv-ecrans.css, et PAS `bdv-poste.css` ni
+   `bdv-bureau.css`. La fiche s'ouvre dans /mon-bureau/, sous `body.bdv-coque`,
+   et ces deux feuilles-la portent la coque, les boutons, les champs et les
+   rangees qui l'entourent. Il ne posait pas non plus la classe `bdv-coque` : la
+   moitie du dessin ne pouvait donc pas s'appliquer, et l'image ressemblait
+   quand meme au produit, ce qui est la forme la plus dangereuse du defaut.
+   Il passe maintenant par `scripts/apercu-socle.mjs`, qui lit les feuilles
+   liees sur la page CONSTRUITE et n'accepte en plus que les feuilles posees par
+   du code, ici `bdv-ecrans.css`, APRES elles, comme `bdv-nav.js` le fait dans
+   le produit. `npm run banc:apercus` le tient.
    ============================================================================ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { planche, ecrire, motsVides } from './apercu-socle.mjs';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { JSDOM } = await import(path.join(RACINE, 'node_modules/jsdom/lib/api.js'));
@@ -142,66 +156,48 @@ try {
 }
 
 const S = w.__SORTIE;
-/* LES TROIS FEUILLES QUE LA PAGE CHARGE, ET PAS DEUX. `bdv-theme.css` a ete
-   AJOUTEE LE 21/09/2026, au lot des ecrans de vente : depuis ce lot la fiche
-   client ne lit plus que des jetons `--bdv-*`, et cette feuille est la seule qui
-   les declare. Sans elle, cet apercu aurait montre une fiche sans AUCUNE couleur,
-   toutes les `var()` tombant dans le vide, et il aurait fallu ouvrir la vraie page
-   pour s'en apercevoir. Un harnais qui ne charge pas exactement ce que la page
-   charge ne verifie rien, il illustre une intention. Elle est posee EN PREMIER,
-   comme dans le gabarit du bureau. */
-const css = ['src/css/bdv-theme.css','src/css/style.css','src/css/bdv-ecrans.css']
-  .map(f => fs.readFileSync(path.join(RACINE,f),'utf8')).join('\n');
 
-/* LES DEUX THEMES COTE A COTE, ET C'EST LE VRAI APPORT DU 21/09/2026. Chaque
-   etat est rendu DEUX FOIS, le meme balisage sous deux conteneurs qui forcent
-   l'un le clair et l'autre le sombre. C'est precisement ce que la forme sans
-   `:root` des blocs 1 et 3 de bdv-theme.css existe pour permettre (voir son bloc
-   de tete) : sans elle, le sous-arbre clair heriterait des valeurs sombres de la
-   racine et s'afficherait a moitie retourne, sans erreur.
-   On regarde donc les deux d'un seul coup d'oeil, ce qui est le seul moyen de
-   voir qu'une encre est restee sur le carreau. */
-function section(titre, quoi, html){
-  return `<h2 class="ap__t">${titre}</h2><p class="ap__q">${quoi}</p>
-  <div class="ap__deux">
-    <div class="ap__col" data-theme="light"><p class="ap__th">Clair</p>
-      <div class="bdv-ventes ap__boite">${html}</div></div>
-    <div class="ap__col" data-theme="dark"><p class="ap__th">Sombre</p>
-      <div class="bdv-ventes ap__boite">${html}</div></div>
-  </div>`;
-}
-const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La fiche client, les quatre états</title>
-<style>${css}</style>
-<style>
-  /* LE HARNAIS, ET RIEN QUE LUI. La modale est en position fixe dans la vraie page :
-     ici on regarde quatre etats a la suite, donc on la repose dans le flux. Ces
-     quelques lignes ne decrivent que la planche, jamais la fiche. */
-  body{background:#F3F0E9;margin:0;padding:2rem 1rem;font-family:system-ui,sans-serif}
-  .ap__t{font-family:Georgia,serif;margin:2.5rem 0 .2rem}
-  .ap__q{margin:0 0 .8rem;color:#5A5346;max-width:60ch}
-  .ap__deux{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start}
-  @media (max-width:1100px){ .ap__deux{grid-template-columns:1fr} }
-  .ap__col{padding:.6rem;border:1px solid #CFCBC0;background:var(--bdv-fond)}
-  .ap__th{margin:0 0 .5rem;font:600 12px/1 system-ui,sans-serif;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--bdv-encre-4)}
-  .ap__boite{margin:0}
-  .ap__boite .modale__box{position:relative;margin:0;max-height:none;max-width:none}
-</style></head><body>
-<h1 class="ap__t">La fiche client, 11/09/2026</h1>
-<p class="ap__q">Quatre états, dans l'ordre où on les rencontre. Rien n'est redessiné à la
-main : c'est la vraie fiche, montée par le vrai moteur, avec les vraies feuilles de style.</p>
-${section('1. Aucune action prévue','Le bloc neuf : le motif se tape avant la date, et les quatre façons de poser la date le lisent.',S.sansAction)}
-${section('2. Un rappel posé, avec son motif','« À rappeler le… », la date modifiable, et en dessous ce qu’on s’était promis.',S.avecRappel)}
-${section('3. Ouverte par « Appelé » depuis le sous-main','La phrase d’attente : rien n’est parti tant que rien n’est écrit.',S.appel)}
-${section('4. Le rédacteur de message, déplié','Avec « Considéré comme envoyé », à côté d’« Ouvrir dans ma messagerie ».',S.message)}
-${section('5. Le même client, dans un bureau à plusieurs','Qui a écrit quoi. « de Romane », « de Marie L. » — et ma propre ligne, la troisième, ne porte aucun nom : sans nom veut dire de moi. La dernière est d’une personne qui a quitté le bureau.',S.equipe)}
-</body></html>`;
+/* LA FICHE EST UN ECRAN DE VENTE : elle porte `.bdv-ventes`, la portee de
+   bdv-ecrans.css, et elle vit dans le bureau, donc sous `bdv-coque`, que le
+   socle pose sur le corps de page. La modale est en position fixe dans la vraie
+   page ; ici on regarde cinq etats a la suite, donc on la repose dans le flux.
+   Ces quelques lignes ne decrivent que la planche, jamais la fiche. */
+const vues = [
+  { titre: '1. Aucune action prevue',
+    note: 'Le bloc neuf : le motif se tape avant la date, et les quatre facons de poser la date le lisent.',
+    html: S.sansAction },
+  { titre: '2. Un rappel pose, avec son motif',
+    note: '« A rappeler le\u2026 », la date modifiable, et en dessous ce qu\u2019on s\u2019etait promis.',
+    html: S.avecRappel },
+  { titre: '3. Ouverte par « Appele » depuis le sous-main',
+    note: 'La phrase d\u2019attente : rien n\u2019est parti tant que rien n\u2019est ecrit.',
+    html: S.appel },
+  { titre: '4. Le redacteur de message, deplie',
+    note: 'Avec « Considere comme envoye », a cote d\u2019« Ouvrir dans ma messagerie ».',
+    html: S.message },
+  { titre: '5. Le meme client, dans un bureau a plusieurs',
+    note: 'Qui a ecrit quoi. « de Romane », « de Marie L. », et ma propre ligne, la troisieme, ne '
+        + 'porte aucun nom : sans nom veut dire de moi. La derniere est d\u2019une personne qui a '
+        + 'quitte le bureau.',
+    html: S.equipe }
+];
 
-fs.mkdirSync(path.join(RACINE,'_apercu'),{recursive:true});
-fs.writeFileSync(path.join(RACINE,'_apercu/fiche.html'), page);
-console.log('  ecrit : _apercu/fiche.html  (' + Math.round(page.length/1024) + ' ko)');
+const page = planche({
+  titre: 'La fiche client, 11/09/2026, revue le 22/09/2026',
+  intro: 'Cinq etats, dans l\u2019ordre ou on les rencontre. Rien n\u2019est redessine a la main : '
+       + 'c\u2019est la vraie fiche, montee par le vrai moteur, avec les quatre feuilles liees du '
+       + 'bureau et bdv-ecrans.css, posee apres elles comme bdv-nav.js le fait.',
+  enPlus: ['src/css/bdv-ecrans.css'],
+  enveloppe: (html) => '<div class="bdv-ventes">' + html + '</div>',
+  css: '.ap__b .modale__box{position:relative;margin:0;max-height:none;max-width:none}',
+  vues: vues
+});
+
+ecrire('fiche.html', page);
+/* LE MOT VIDE QUI A COUTE LE PLUS CHER : « domaine NaN \u20ac » s'est affiche sur
+   toutes les fiches pendant des jours, et cet apercu le MONTRAIT deja. On ne
+   cherche pas « null » : le balisage en porte legitimement dans ses attributs. */
+if (motsVides(vues.map(v => v.html), ['NaN', 'undefined', 'Invalid Date', '[object']).length) process.exit(1);
 /* SORTIE EXPLICITE, meme regle que les bancs. Le DOMContentLoaded de jsdom finit par
    lancer demarrerEcransVente(), qui cherche un IndexedDB que node n'a pas : l'erreur
    arrive APRES l'ecriture du fichier, mais elle laisserait un code de sortie non nul,

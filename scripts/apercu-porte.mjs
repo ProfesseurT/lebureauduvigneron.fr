@@ -28,17 +28,20 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { cssBureau, TETE_POLICES, motsVides } from './apercu-socle.mjs';
+
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { JSDOM } = await import(path.join(RACINE, 'node_modules/jsdom/lib/api.js'));
 const JS = path.join(RACINE, 'src/js/bdv-compte.js');
 const INVITE = 'alice@domaine-essai.fr';
 
-/* LES QUATRE FEUILLES DU BUREAU, DANS L'ORDRE OU LE GABARIT LES LIE. La
-   premiere colonne, celle du site, n'en pose que deux : style.css et rien
-   d'autre, c'est exactement ce que charge /compte/. */
-const CSS_BUREAU = ['src/css/style.css', 'src/css/bdv-theme.css',
-                    'src/css/bdv-poste.css', 'src/css/bdv-bureau.css']
-  .map(f => fs.readFileSync(path.join(RACINE, f), 'utf8')).join('\n');
+/* LES QUATRE FEUILLES DU BUREAU, DANS L'ORDRE OU LE GABARIT LES LIE, LUES SUR
+   LA PAGE CONSTRUITE par `apercu-socle.mjs` depuis le 22/09/2026 : ce fichier
+   en tenait sa propre copie, et une liste tenue a la main ment le jour ou on
+   l'oublie. La premiere colonne, celle du site, ne montre que le style PAPIER
+   injecte par bdv-compte.js, puisqu'elle ne porte pas `bdv-coque` : c'est
+   exactement ce que voit /compte/. */
+const CSS_BUREAU = cssBureau();
 
 /* LE SERVEUR DOUBLE, champ pour champ celui de scripts/bureau-garni.mjs :
      /auth/v1/recover  -> 200 {} .......... mene a l'etape du code
@@ -140,10 +143,7 @@ const colonne = (etat, quoi, theme) =>
 const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
   + '<title>Apercu : la porte de compte</title>'
-  + '<link rel="preconnect" href="https://fonts.googleapis.com">'
-  + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-  + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600'
-  + '&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
+  + TETE_POLICES
   + '<style>' + CSS_BUREAU + '</style>'
   /* LE STYLE INJECTE PAR bdv-compte.js VIENT APRES LES FEUILLES, COMME DANS LE
      PRODUIT, et c'est toute la raison pour laquelle la section 20 de
@@ -196,12 +196,8 @@ fs.writeFileSync(path.join(RACINE, '_apercu/porte.html'), page);
 console.log('  ecrit : _apercu/porte.html  (' + ETATS.length + ' ecrans x 3 colonnes, '
   + Math.round(page.length / 1024) + ' ko)');
 
-/* CE QUE LA MESURE PEUT DIRE SANS L'IMAGE : les mots vides. Meme controle que
-   l'apercu de la fiche client et celui de « L'equipe ». */
-const texte = ETATS.map(e => e.html).join(' ').replace(/<[^>]+>/g, ' ');
-const sales = ['NaN', 'undefined', 'null', '[object'].filter(m => texte.indexOf(m) >= 0);
-console.log(sales.length ? '  ALERTE : ' + sales.join(', ') + ' dans le texte rendu'
-                         : '  aucun mot vide dans le texte rendu');
-if (sales.length) process.exit(1);
+/* CE QUE LA MESURE PEUT DIRE SANS L'IMAGE : les mots vides. Le controle vit
+   dans le socle depuis le 22/09/2026 : il etait recopie dans quatre fichiers. */
+if (motsVides(ETATS.map(e => e.html)).length) process.exit(1);
 
 process.exit(0);

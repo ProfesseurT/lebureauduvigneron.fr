@@ -17,31 +17,31 @@
 
    CE QU'IL NE VERIFIE PAS : rien. Les controles sont dans scripts/banc-taches.mjs,
    section 10. Celui-ci ne sert qu'a regarder.
+
+   ET IL LUI MANQUAIT UNE FEUILLE SUR QUATRE JUSQU'AU 22/09/2026. Il posait
+   bdv-theme.css, style.css et bdv-bureau.css, et PAS `bdv-poste.css`, la moitie
+   bureau de l'ancienne style.css, scindee le 21/09 au matin. Les 310 regles
+   qu'elle porte ne peignaient donc rien ici : boutons, champs, rangees. Le
+   defaut est plus discret que celui des trois apercus qui ne posaient qu'une
+   feuille, et c'est ce qui le rend dangereux : l'image ressemblait au produit.
+   Il passe maintenant par `scripts/apercu-socle.mjs`, qui lit les feuilles sur
+   la page CONSTRUITE au lieu d'en tenir une liste, et `npm run banc:apercus`
+   le tient.
    ============================================================================ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-/* LES TROIS FEUILLES, ET PAS UNE SEULE, 21/09/2026. Cet apercu ne chargeait que
-   style.css. Depuis le lot 5 la modale est repeinte sous `.bdv-coque` dans
-   bdv-bureau.css, qui lit les jetons de bdv-theme.css : une page qui n'aurait
-   que style.css montrerait le dessin PAPIER, c'est-a-dire celui qu'on vient de
-   remplacer, et on jugerait un ecran qui n'existe plus. C'est exactement le
-   defaut de l'apercu de la fiche client, ou toutes les `var()` tombaient dans le
-   vide. L'ORDRE EST CELUI DU GABARIT : bdv-theme, style, bdv-bureau. */
-const FEUILLES = ['src/css/bdv-theme.css', 'src/css/style.css', 'src/css/bdv-bureau.css']
-  .map(f => path.join(RACINE, f));
-const JS = path.join(RACINE, 'src/js');
+import { planche, ecrire, motsVides, chargerJsdom, exigerLaPageConstruite,
+         SANS_ENVELOPPE, ENVELOPPE_PLAN } from './apercu-socle.mjs';
 
-let JSDOM;
-try { ({ JSDOM } = await import('jsdom')); }
-catch (e) { console.error('\n  jsdom est absent : npm install --save-dev jsdom\n'); process.exit(2); }
-if (!fs.existsSync(PAGE)) {
-  console.error('\n  _site/mon-bureau/index.html est absent : lance npm run build d\'abord.\n');
-  process.exit(2);
-}
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/* LES FEUILLES VIENNENT DU SOCLE, QUI LES LIT SUR LA PAGE CONSTRUITE, 22/09/2026.
+   Ce fichier en tenait sa propre liste de trois : bdv-theme, style, bdv-bureau.
+   Il en manquait une, `bdv-poste.css`, et rien ne pouvait le dire. */
+const JS = path.join(RACINE, 'src/js');
+const BRUT = exigerLaPageConstruite();
+const JSDOM = await chargerJsdom();
 
 const jour = (n) => {
   const d = new Date(); d.setDate(d.getDate() + n);
@@ -49,7 +49,7 @@ const jour = (n) => {
     + '-' + String(d.getDate()).padStart(2, '0');
 };
 
-const dom = new JSDOM(fs.readFileSync(PAGE, 'utf8'), {
+const dom = new JSDOM(BRUT, {
   url: 'https://lebureauduvigneron.fr/mon-bureau/',
   runScripts: 'dangerously',
   pretendToBeVisual: true,
@@ -94,11 +94,26 @@ const vues = [];
    modales vides, avec « ex. commander des bouchons » en gris a la place du titre. On
    aurait juge un ecran qui n'existe pas. Les attributs sont donc reportes avant le clone.
    C'est un defaut d'apercu, pas de modale : ne pas « corriger » bdv-taches.js pour lui. */
+/* ON GARDE LE `.tmod`, ET C'EST UNE CORRECTION DU 22/09/2026. Ce fichier ne
+   prenait que `.tmod__boite`. Or TOUT le plancher tactile du telephone s'ecrit
+   `.tmod__x, .tmod__g, .tmod__lien, .tmod__i, .tmod__d, .tmod .btn` sous
+   620 px, plus `.bdv-coque .tmod .btn` de la section 18 de bdv-bureau.css :
+   sans cet ancetre-la, aucune de ces regles ne s'appliquait dans l'apercu. La
+   sonde de rendu y comptait quinze cibles sous 44 px a 390 px, dont
+   « Enregistrer » et « C'est fait », les deux boutons qui ECRIVENT, alors que
+   le produit les tient a 44 depuis le 19/09/2026. Un harnais qui ne monte pas
+   l'ancetre invente des defauts, ce qui coute autant que d'en laisser passer.
+   LE VOILE PART, LUI, et seulement lui : `.tmod__voile` est en `inset: 0` sur
+   un parent qu'on vient de remettre dans le flux, il couvrirait la boite. */
 function prendre(titre, note) {
   const m = d.getElementById('tacheModale');
   m.querySelectorAll('input').forEach(i => i.setAttribute('value', i.value));
-  const boite = m.querySelector('.tmod__boite').cloneNode(true);
-  vues.push({ titre, note, html: boite.outerHTML });
+  const modale = m.cloneNode(true);
+  modale.removeAttribute('hidden');
+  modale.removeAttribute('id');
+  const voile = modale.querySelector('.tmod__voile');
+  if (voile) voile.remove();
+  vues.push({ titre, note, html: modale.outerHTML });
 }
 
 T.modaleNeuve(null);            prendre('Créer', 'Ce qu’on voit en cliquant sur « Ajouter en détail… »');
@@ -113,55 +128,40 @@ T.modale(obligation.tache_id);  prendre('Une obligation', 'Ni modifiable ni repo
 T.rendre();
 const piece = d.getElementById('bureauTaches');
 piece.hidden = false;
+/* LA LISTE EST UNE VRAIE `.zone` : elle reprend son ancetre de plan, sans quoi
+   elle ne recevrait ni sa grille de douze colonnes ni le fond de l'atelier. */
 vues.push({ titre: 'La liste, d\u2019ou la modale s\u2019ouvre',
             note: 'Chaque ligne est devenue une porte : le titre ouvre, la case coche toujours',
-            html: piece.querySelector('.zone').outerHTML, large: true });
+            html: ENVELOPPE_PLAN(piece.querySelector('.zone').outerHTML) });
 
-/* Le voile n'est pas repris : pose sur cette page il masquerait les quatre etats les
-   uns derriere les autres. Ce qu'on regarde ici, c'est la BOITE. */
-const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
-  + '<meta name="viewport" content="width=device-width, initial-scale=1">'
-  + '<title>Aperçu de la modale d’une tâche</title>'
-  + '<link rel="preconnect" href="https://fonts.googleapis.com">'
-  + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-  + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
-  + FEUILLES.map(f => '<style>' + fs.readFileSync(f, 'utf8') + '</style>').join('')
-  + '<style>body{padding:0;margin:0}'
-  /* LES DEUX THEMES DANS UNE MEME PAGE. C'est la forme sans `:root` des blocs 1
-     et 3 de bdv-theme.css qui le permet : un CONTENEUR qui redeclare les jetons
-     retourne tout son sous-arbre. Juger un theme sombre sur une capture prise a
-     part revient a ne jamais comparer les deux. */
-  + '.th{padding:2rem;background:var(--bdv-fond)}'
-  + '.th__t{font-family:inherit;font-size:var(--bdv-f-1);text-transform:uppercase;'
-  + 'letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:0 0 1rem}'
-  /* PAS DE minmax(30rem) : sur un ecran de 390 px cette grille imposait 480 px a la
-     colonne, le document debordait de 122 px, et la mesure accusait la modale d'un
-     defaut qui venait de la page d'apercu. Une page de controle qui ment sur la
-     largeur ment sur tout ce qui en depend. */
-  + '.ap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:2rem}'
-  + '@media (min-width:70rem){.ap{grid-template-columns:1fr 1fr}}'
-  + '.ap__c h3{font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;'
-  + 'letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-4);margin:0 0 .2rem}'
-  + '.ap__c p.ap__n{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);margin:0 0 .8rem}'
-  + '.ap__c .tmod__boite{max-height:none}'
-  + '.ap__c--large{grid-column:1/-1}'
-  + '.ap__c--large .zone{padding:1.5rem}</style>'
-  + '</head><body class="bdv-coque">'
-  + [['light', 'Theme clair'], ['dark', 'Theme sombre']].map(([t, nom]) =>
-      '<section class="th" data-theme="' + t + '"><p class="th__t">' + nom + '</p><div class="ap">'
-      + vues.map(v => '<div class="ap__c' + (v.large ? ' ap__c--large' : '') + '"><h3>' + v.titre
-          + '</h3><p class="ap__n">' + v.note + '</p>' + v.html + '</div>').join('')
-      + '</div></section>').join('')
-  + '</body></html>';
+/* Le voile n'est pas repris : pose sur cette page il masquerait les etats les
+   uns derriere les autres. Ce qu'on regarde ici, c'est la BOITE.
+   ET LA BOITE N'EST PAS UNE ZONE : elle ne passe donc pas par l'enveloppe de
+   plan du socle. La derniere vue, elle, en porte une a elle. */
+const page = planche({
+  titre: 'La modale d\u2019une tache, 12/09/2026, revue le 22/09/2026',
+  intro: 'Trois natures de lignes, et elles n\u2019ont pas les memes droits : une tache ecrite se '
+       + 'modifie, se coche, se repousse et se retire ; une obligation se coche et rien d\u2019autre ; '
+       + 'un rappel client n\u2019ouvre pas la modale du tout. Rien n\u2019est redessine a la main, et '
+       + 'les quatre feuilles du bureau sont posees dans l\u2019ordre ou le gabarit les lie.',
+  enveloppe: SANS_ENVELOPPE,
+  /* PAS DE minmax(30rem) : sur un ecran de 390 px cette grille imposait 480 px a
+     la colonne, le document debordait de 122 px, et la mesure accusait la modale
+     d'un defaut qui venait de la page d'apercu. Une page de controle qui ment sur
+     la largeur ment sur tout ce qui en depend. */
+  /* LE `.tmod` EST REMIS DANS LE FLUX, ET RIEN D'AUTRE NE BOUGE : il est en
+     `position:fixed` dans le produit, et cinq modales fixes sur une planche se
+     superposeraient. Ses retraits, ses plafonds de hauteur et tout ce qui
+     touche au DESSIN restent ceux du produit. */
+  css: '.ap__b .tmod{position:static;inset:auto;display:block;z-index:auto}'
+     + '.ap__b .tmod__boite{max-height:none;height:auto;margin:0}'
+     + '.ap__b .zone{margin:0}',
+  vues: vues
+});
 
-fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
-fs.writeFileSync(path.join(RACINE, '_apercu/modale.html'), page);
-console.log('  ecrit : _apercu/modale.html  (' + vues.length + ' etats)');
-
-/* CE QUE LA MESURE PEUT DIRE SANS L'IMAGE : les mots vides. Un NaN, un undefined ou
-   un « null » dans du texte rendu est un defaut qu'on ne voit pas en regardant vite. */
-const texte = vues.map(v => v.html).join(' ').replace(/<[^>]+>/g, ' ');
-const sales = ['NaN', 'undefined', 'Invalid Date', '[object'].filter(m => texte.indexOf(m) >= 0);
-console.log(sales.length ? '  ALERTE : ' + sales.join(', ') + ' dans le texte rendu'
-                         : '  aucun NaN / undefined / Invalid Date dans le texte rendu');
+ecrire('modale.html', page);
+console.log('  ' + vues.length + ' etats x 2 themes');
+/* On ne cherche pas « null » ici : le balisage de la modale porte des attributs
+   qui le contiennent legitimement. */
+if (motsVides(vues.map(v => v.html), ['NaN', 'undefined', 'Invalid Date', '[object']).length) process.exit(1);
 process.exit(0);
