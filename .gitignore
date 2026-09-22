@@ -13,3 +13,8 @@ _deploiement/
 
 # Reste de travail de la CLI Supabase, jamais versionne.
 supabase/.temp/
+
+# Le message de commit du lot en cours, ecrit pour `git commit -F`.
+# C'est un brouillon de travail : il n'a rien a faire dans l'historique,
+# et il est reecrit a chaque lot.
+MESSAGE-COMMIT.txt

@@ -2832,3 +2832,98 @@ body.bdv-coque .bdv-porte__etapes{
 body.bdv-coque .bdv-porte__aide{ border-top:1px solid var(--bdv-trait); }
 body.bdv-coque .bdv-porte__croix{ color:var(--bdv-encre-4); }
 body.bdv-coque .bdv-porte__croix:hover{ color:var(--bdv-accent); }
+
+
+/* LES TROIS PLANCHERS TACTILES DE LA PORTE, 22/09/2026, ET ILS SONT NEUFS.
+   MESURE SUR LE RENDU, bureau deconnecte, avant ce lot :
+     .bdv-porte__btn ....... 376x37 px  (« Me connecter », « Valider », …)
+     .bdv-porte__lien ...... 141x15 px  (« Mot de passe oublie ? »)
+     .bdv-porte__lien ...... 113x15 px  (« Renvoyer le code »)
+   Ce sont les gestes d'un ecran qu'on ouvre sur un telephone, et « Mot de passe
+   oublie ? » est le seul chemin de quelqu'un qui ne peut plus entrer. 15 px de
+   haut n'est pas une cible.
+
+   ELLES SONT SOUS `body.bdv-coque` COMME TOUTE LA SECTION, ET CE N'EST PAS
+   DECORATIF : la meme porte s'ouvre depuis les douze pages du site, ou elle
+   garde son papier et sa mise en page. Le banc de sortie du lot 9 releve la
+   porte ouverte depuis /compte/ et exige ZERO ecart dessus.
+
+   LA BASCULE DU PIED EST REDITE, ET SANS CA ELLE CASSAIT. `.bdv-porte__lien`
+   est `display:block` dans le style injecte, SAUF dans la ligne de bascule ou
+   `.bdv-porte__bascule .bdv-porte__lien{display:inline}` (0,2,0) le remet en
+   ligne au milieu d'une phrase. Mon `body.bdv-coque .bdv-porte__lien` pese
+   (0,2,1) : il aurait gagne contre elle et sorti « En creer un » de sa phrase.
+   Meme piege que la classe de BASE d'une variante au lot 7, et il se paie en
+   mise en page, pas en couleur. On redit donc `inline` a (0,3,1), et on annule
+   le plancher : un lien DANS une phrase est exempte du plancher tactile
+   (WCAG 2.2, 2.5.8, exception « en ligne »), et l'agrandir couperait le texte
+   qui l'entoure.
+
+   CE QUI N'EST PAS AGRANDI, ET POURQUOI. La case « Recevoir l'edition
+   bimensuelle » fait 13x13 : c'est une case NATIVE, dont la taille est celle de
+   l'agent utilisateur, et elle est enveloppee par son `<label>`, qui est la
+   vraie surface cliquable. Le lien « politique de confidentialite » est en
+   ligne dans sa phrase. Les deux sont les exceptions nommees du critere. */
+body.bdv-coque .bdv-porte__btn{
+  min-height:var(--bdv-cible);
+}
+body.bdv-coque .bdv-porte__lien{
+  min-height:var(--bdv-cible);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
+  display:inline;
+  min-height:0;
+}
+
+/* ==========================================================================
+   21. LE BUREAU DECONNECTE, 22/09/2026
+
+   C'EST LE PREMIER ECRAN, ET IL N'AVAIT JAMAIS ETE PHOTOGRAPHIE EN SOMBRE.
+   Les 45 etats du banc d'empreinte des lots 6 a 8 ont TOUS une session : le
+   decor pose `bdv_session` avant tout le reste. Personne n'avait donc jamais
+   regarde ce que voit :
+     - quelqu'un qui n'a pas encore de compte ;
+     - un invite qui arrive par un lien d'invitation, et qui ne verra que ca ;
+     - un vigneron a la PREMIERE ouverture de l'application posee sur son ecran
+       d'accueil, parce qu'une app iOS a son propre stockage et que la session
+       ouverte dans Safari n'y est pas.
+
+   CE QUI RESTE EN PAPIER ICI, ET C'EST VOULU. Cette page-la ne porte PAS
+   `body.bdv-poste` : sans session, le bandeau marchand et le pied de page du
+   site sont a l'ecran, en bordeaux, comme sur les douze pages publiques. Le
+   hero `#bureauInviteHero` est le meme composant `.about-hero` que /a-propos/
+   et /la-redaction/, et il porte son propre fond opaque : 12,69:1 mesure le
+   22/09/2026, dans les deux themes. Le repeindre ferait une bande themee entre
+   deux bandes bordeaux, c'est-a-dire un ecran moins coherent qu'avant. On ne
+   repeint donc que le BLOC DE CONTENU, qui est le seul a vivre sur le fond du
+   bureau.
+   ========================================================================== */
+
+/* LE TITRE, ET C'EST LA MEME FUITE QU'AU LOT 5 SUR LA MODALE, LA TROISIEME
+   FOIS. `h1,h2,h3,h4{color:var(--ink)}` de style.css pese (0,0,1) et gagne
+   contre toute regle du bureau qui ne nomme pas `color` : #1E2536 sur le fond
+   sombre du bureau donne **1,28:1**, mesure le 22/09/2026. Ce selecteur pese
+   (0,2,1) et nomme `color`.
+   LE BALAYAGE DE TOUS LES TITRES DU BUREAU (« Claude outputs/lot9-titres.mjs »,
+   les neuf pieces, le panneau, la modale, les cinq etats de la porte, les deux
+   themes) dit que celui-ci etait le DERNIER : zero ailleurs. La famille ouverte
+   au lot 5 est fermee. */
+.bdv-coque .bureau-vide h2{
+  color:var(--bdv-encre-1);
+}
+
+/* LA SEULE ACTION DE L'ECRAN, ET ELLE FAISAIT 36 px DE HAUT. Mesure sur le
+   rendu le 22/09/2026 : 289x36. `--bdv-cible` vaut 44 px parce que CLAUDE.md le
+   dit depuis le 11/09/2026, et c'est le bouton que touche un vigneron sur un
+   telephone a la premiere ouverture. On agrandit la CIBLE, jamais le dessin :
+   le remplissage et la couleur ne bougent pas.
+   MEME MOTIF QU'AUX TROIS BOUTONS DE « L'EQUIPE » (bdv-poste.css, lot 8), ET
+   MEME PIEGE DE POIDS : `.bdv-coque .btn{min-height:36px}` de la section 8
+   pese (0,2,0) et vit dans CETTE feuille. (0,3,0) passe devant sans dependre de
+   l'ordre des regles. */
+.bdv-coque .bureau-vide .btn{
+  min-height:var(--bdv-cible);
+}

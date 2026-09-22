@@ -68,7 +68,7 @@ s'entend pas du tout pour qui ecoute.
 
 **UNE CARTE N'EST JAMAIS UNE BALISE `a`.** Le nom est un `h2` qui porte le lien, et un calque
 `::after` en `z-index: 1` rend la carte cliquable en entier. Mesure du 12/09/2026 : avec la
-carte entiere en lien, son nom accessible faisait 325 a 385 signes — un lecteur d'ecran
+carte entiere en lien, son nom accessible faisait 325 a 385 signes : un lecteur d'ecran
 annoncait l'etiquette de prix, le descriptif, les puces et les trois echeances comme un seul
 libelle. Le `z-index` n'est pas decoratif : sans lui, les enfants qui SUIVENT le titre dans
 le HTML se peignent par-dessus le calque et cessent d'etre cliquables.
@@ -2242,6 +2242,12 @@ Le critere n'est pas « cette classe parle du bureau », c'est le meme que celui
   `h1,h2,h3,h4{color:var(--ink)}` pese **(0,0,1)** et gagnait quand meme, parce que la regle
   d'en face ne nommait que `font-family` et `font-size`. **Aucune mesure de feuille ne pouvait
   le dire : les deux moities de la paire sont dans deux fichiers.**
+- **« Ton bureau t'attend. » a 1,28:1** (lot 9), et c'est la MEME regle, deux lots plus tard,
+  dans le seul etat que le harnais ne savait pas produire. La lecon n'est donc pas « nommer
+  `color` sur la modale », c'est **nommer `color` partout ou le bureau pose un titre**, et le
+  VERIFIER dans un navigateur : `"Claude outputs/lot9-titres.mjs"` releve tout `h1` a `h4` de
+  tous les etats du bureau dans les deux themes et dit lequel porte encore une encre du site.
+  Apres le lot 9 : **un seul, le `h1` du hero, a 12,69:1, et il est voulu.**
 
 ### LE BALAYAGE SE FAIT AVANT LA CAPTURE, ET IL A DEUX SENS
 
@@ -2533,16 +2539,223 @@ qu'elle porte.
   est RECOUVERTE depuis `bdv-poste.css`, proprietes nommees une par une, parce que la doctrine
   interdit de toucher une feuille partagee. La section C3 de `npm run charte` ne la compte pas :
   elle ne repere que `.mono`. Lui apprendre a voir `.invitation` ferait descendre une borne.
-- **Le bureau DECONNECTE n'a jamais ete photographie en sombre.** Sonde le 21/09/2026 :
-  `h2` « Ton bureau t'attend. » de `.bureau-vide` a **1,28:1**. La cause est la meme que celle du
-  titre de modale du lot 5 : `h1,h2,h3,h4{color:var(--ink)}` de `style.css` peint tout titre du
-  bureau que `bdv-bureau.css` ne nomme pas. Les 45 etats de l'empreinte ont TOUS une session :
-  c'est le prochain trou de harnais, et il est deja mesure.
+- ~~**Le bureau DECONNECTE n'a jamais ete photographie en sombre.**~~ **FAIT LE 22/09/2026 au
+  lot suivant**, voir « LE BUREAU DECONNECTE EST LE PREMIER ECRAN » plus bas. Le `h2` etait bien
+  a **1,28:1**, et c'etait la DERNIERE fuite de `h1,h2,h3,h4{color:var(--ink)}` dans tout le
+  bureau : le balayage des neuf pieces, du panneau, de la modale et des cinq etats de la porte,
+  dans les deux themes, n'en trouve aucune autre.
 - **Les appels papier qui restent dans `bdv-poste.css` sont 16 `--e-s`, 1 `--e-xs`, 3 `--t-mini`,
   1 `--t-micro`, 1 `--t-corps`, 2 `--font-mono`, 2 `--z-*`, plus les valeurs de `.calbloc__trous`
   et de `.listb tr`.** Aucun n'a d'equivalent exact dans l'echelle `--bdv-*` : `--e-s` vaut
   10,4 px entre 8 et 12, `--t-mini` 11,2 px, et `bdv-theme.css` ne declare AUCUNE famille de
   police. Les repeindre changerait l'ecran hors de « L'equipe ».
+
+## LE BUREAU DECONNECTE EST LE PREMIER ECRAN, 22/09/2026
+
+**LA REGLE, ET C'EST LA SIXIEME FOIS :**
+
+> **Un harnais qui pose une session a chaque etat ne peut pas voir l'ecran de quelqu'un qui n'en
+> a pas. Avant de croire un releve, on compte les ETATS qu'il sait produire, pas seulement le
+> contenu de chacun.**
+
+### LE TROU, ET IL ETAIT DEJA MESURE AVANT D'ETRE OUVERT
+
+Les 45 etats de `lot6-empreinte.mjs` ont TOUS une session : `garnirLeBureau()` ecrit
+`bdv_session` en tout premier, et tout le decor en depend. Le bureau DECONNECTE n'avait donc
+jamais ete releve, jamais photographie en sombre, jamais passe a l'audit de contraste. C'est
+pourtant :
+
+- **le premier ecran de quelqu'un qui n'a pas encore de compte** ;
+- **le seul ecran d'un invite** qui arrive par un lien d'invitation ;
+- **l'ecran de la PREMIERE ouverture sur un iPhone**, parce qu'une app iOS a son propre
+  stockage et que la session ouverte dans Safari n'y est pas. C'est la meme mesure qui a fait
+  ajouter `data-bdv-mode="connexion"` au bouton le 11/09/2026.
+
+### CE QUE L'ANGLE MORT A COUTE, MESURE LE 22/09/2026 AVANT CORRECTION
+
+Perimetre : `#bureauInvite`, le bandeau d'invitation et la porte dans ses cinq etats, aux deux
+largeurs et dans les deux themes, soit quatre configurations.
+
+| | avant | apres |
+|---|---|---|
+| paires sous leur seuil | **1**, sur les 2 configurations sombres | 0 |
+| valeurs papier | **4** | 0 |
+| cibles tactiles sous 44 px | **32** | 0 |
+| saisies sous 16 px | 0 | 0 |
+
+**La paire, c'est `h2` « Ton bureau t'attend. » a 1,28:1**, et il faut le dire simplement : sur
+une capture sombre, le titre du premier ecran du produit n'est PAS LA. Le detail est dans
+`"Claude outputs/lot9-audit-avant.txt"` et `lot9-audit-apres.txt`, les images dans
+`lot9-avant-*` et `lot9-apres-*`.
+
+**Les 32 cibles se repartissent en trois gestes**, mesures sur le rendu : le bouton unique de
+l'ecran d'invitation (289x36), les boutons pleins de la porte (376x37) et ses deux liens de
+secours, « Mot de passe oublie ? » (141x15) et « Renvoyer le code » (113x15). Le second est le
+SEUL chemin de quelqu'un qui ne peut plus entrer, et il faisait quinze pixels de haut.
+
+### LES DEUX EXCEPTIONS DU PLANCHER TACTILE SONT NOMMEES, PAS OUBLIEES
+
+La sonde de rendu a appris les deux exceptions du critere 2.5.8 de WCAG 2.2, et elle les COMPTE
+a part au lieu de les taire : **un lien en ligne dans une phrase** (« politique de
+confidentialite », « En creer un ») et **une case a cocher NATIVE enveloppee par son `<label>`**,
+dont la taille est celle de l'agent utilisateur. Quarante cibles exemptees sur les quatre
+configurations, toutes listees dans le rapport.
+
+**ET IL A FALLU MESURER COMMENT CHROMIUM REND `display`** : un `<button>` a qui la feuille dit
+`display:inline` ressort **`inline-block`** de `getComputedStyle`. Le premier jet de l'exception
+ne testait que `inline` et ratait la ligne de bascule de la porte. On accepte donc toute la
+famille `inline*`, MAIS on exige en plus du texte a cote, dans le meme parent : sans cette
+seconde moitie, `inline-block` aurait exempte tous les boutons pleins du produit, c'est-a-dire
+exactement ceux qu'on cherche.
+
+### CE QUI FERME LE TROU DANS LE HARNAIS
+
+**`scripts/bureau-garni.mjs` sait fermer le bureau.** `garnirLeBureauDeconnecte()` efface la
+session au lieu de compter sur son absence (un contexte reutilise rendrait le harnais
+silencieusement connecte), et double le SERVEUR, pas le client, comme pour « L'equipe » :
+
+    /auth/v1/recover  -> 200 {} ............ « Mot de passe oublie ? » mene au code a 6 chiffres
+    /auth/v1/verify   -> 200 + une session .. le code valide mene au nouveau mot de passe
+    /auth/v1/signup   -> 200 sans jeton ..... `inscription()` rend { confirmer:true }
+    /auth/v1/user     -> 200 {} ............. le PUT du nouveau mot de passe
+    /rest/v1/rpc/invitation_apercu .......... le bandeau, ouvert a `anon`
+
+Toute autre adresse Supabase est refusee par le MEME `TypeError` qu'un reseau coupe : le reste du
+decor ne bouge pas d'un pixel.
+
+**`ouvrirLaPorte()` PASSE PAR LE VRAI GESTE, ET LES TROIS CHEMINS NE DONNENT PAS LE MEME ECRAN.**
+Le bouton de `.bureau-vide` ouvre en mode CONNEXION (decision du 11/09/2026) ; le bouton
+« Je cree mon compte » du bandeau est le SEUL chemin qui passe `email`, donc le seul qui montre
+le champ d'adresse impose et en lecture seule ; la bascule du pied montre l'autre moitie de
+l'ecran d'acces. On ne leve jamais un `hidden` a la main, et `poserMode()` reecrit six choses a
+chaque bascule : **chaque etat a son propre contexte**, une porte promenee dans trois etats n'est
+plus celle qu'on croit photographier.
+
+**ET DEUX GARDE-FOUS QUI LEVENT.** `verifierLeBureauDeconnecte()` refuse le releve si une session
+traine, si `#bureauContenu` est visible, si le `h2` est vide, si le corps ne porte pas
+`bdv-coque` ou s'il porte `bdv-poste` sans session. `verifierLaPorte()` refuse l'image si
+l'etape affichee n'est pas celle demandee, si l'adresse imposee n'est pas en lecture seule, ou
+si aucune regle de mot de passe satisfaite n'est peinte.
+
+### ET DEUX APERCUS MENTAIENT ENCORE, DEPUIS LA SCISSION DU 21/09
+
+Meme famille que `apercu:equipe`, meme jour d'origine, deux fichiers de plus :
+
+- **`npm run apercu:invitation`** ne posait que `style.css`, ou il ne reste plus **une seule**
+  regle `.invitation-*` : il rendait le bandeau entierement NU. C'est le seul ecran que voit un
+  invite.
+- **`npm run apercu:amorce`** posait trois feuilles sur quatre et oubliait `bdv-poste.css`, ou
+  vivent les **21** regles `.bdv-amorce__*` du dessin. Il en reste **zero** dans `style.css`.
+
+Les deux posent maintenant les quatre feuilles **dans l'ordre ou le gabarit les lie**,
+`bdv-coque` sur le corps de page, et les deux themes cote a cote.
+
+**ET UN APERCU NEUF, `npm run apercu:porte`**, parce que la porte n'en avait aucun alors qu'elle
+est le premier ecran du produit. Cinq ecrans, TROIS colonnes : le site en papier a gauche, le
+bureau dans ses deux themes a droite. C'est le seul harnais du depot qui montre les deux mondes
+COTE A COTE, et c'est la seule facon de voir d'un coup d'oeil qu'un recouvrement n'a pas deborde.
+Le style injecte par `bdv-compte.js` y est pose APRES les feuilles, comme dans le produit : le
+poser avant ferait mentir l'apercu dans le sens le plus dangereux, celui qui declare vert un
+recouvrement mort.
+
+**UN ACCENT GRAVE DANS UN LITTERAL DE GABARIT FERME LA CHAINE.** Le commentaire de
+`apercu-invitation.mjs` citait un nom de jeton entre accents graves, dans un litteral de gabarit :
+`SyntaxError` immediate. Meme piege que la constante `STYLE` de `bdv-reglages.js`, autre
+mecanisme, meme cause. **Les commentaires ecrits DANS un litteral de gabarit citent les noms
+entre guillemets francais, jamais entre accents graves.**
+
+### LA CORRECTION, ET OU ELLE VIT
+
+`bdv-bureau.css`, **section 21 neuve** pour l'ecran d'invitation et **trois regles ajoutees a la
+section 20** pour la porte. Rien dans `style.css` ni dans `bdv-compte.js` : les deux sont
+partages avec le site, donc on RECOUVRE.
+
+- `.bdv-coque .bureau-vide h2{color:var(--bdv-encre-1)}` : (0,2,1) contre (0,0,1).
+- `.bdv-coque .bureau-vide .btn{min-height:var(--bdv-cible)}` : (0,3,0), parce que
+  `.bdv-coque .btn{min-height:36px}` de la section 8 pese (0,2,0) et vit dans la MEME feuille.
+- `body.bdv-coque .bdv-porte__btn` et `.bdv-porte__lien` : `body.bdv-coque` et pas `.bdv-coque`,
+  parce que le style de la porte est injecte APRES les feuilles : il faut (0,2,1) pour passer
+  devant, et c'est le motif de toute la section 20 depuis le lot 5.
+- `body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{display:inline;min-height:0}` : **et sans
+  cette regle la precedente cassait la mise en page.** `.bdv-porte__lien` est `display:block`
+  dans le style injecte SAUF dans la ligne de bascule, ou `.bdv-porte__bascule .bdv-porte__lien`
+  (0,2,0) le remet en ligne au milieu d'une phrase. Mon selecteur a (0,2,1) aurait gagne contre
+  elle et sorti « En creer un » de son texte. **Meme piege que la classe de BASE d'une variante
+  au lot 7, et il se paie en mise en page, pas en couleur.**
+
+### CE QUI RESTE EN PAPIER SUR CET ECRAN, ET C'EST ARBITRE
+
+La page deconnectee ne porte **pas** `body.bdv-poste` : le bandeau marchand et le pied de page du
+site sont a l'ecran, en bordeaux, et le hero `#bureauInviteHero` est le composant `.about-hero`
+de /a-propos/ et de /la-redaction/. **116 valeurs papier**, et elles restent. Deux raisons, et la
+seconde est la vraie :
+
+1. **le contraste passe** : chacun de ces trois blocs porte son propre fond opaque, et le `h1`
+   du hero est a **12,69:1** dans les deux themes ;
+2. **repeindre le seul hero rendrait l'ecran MOINS coherent**, pas plus : une bande themee entre
+   une barre bordeaux et un pied bordeaux. Le jour ou on voudra un bureau deconnecte entierement
+   theme, c'est la coque partagee qu'il faudra sortir, et c'est un autre chantier avec un autre
+   arbitrage.
+
+**L'audit les compte donc dans un seau A PART**, jamais melange a celui du bureau : melanger les
+deux ferait disparaitre un vrai defaut du bureau dans le bruit du site.
+
+### LE BANC DE SORTIE, DEUX SEAUX, ET LE PREMIER PASSAGE A REFUSE
+
+`"Claude outputs/lot9-empreinte.mjs"`, repris de `lot6-empreinte.mjs` sans une ligne de
+changement sur ses 45 etats, plus **32 etats neufs** : les sept etats du bureau deconnecte dans
+les deux themes et aux deux largeurs, la page `/outils/echeances/` (la SEULE page publique qui
+partage `.bureau-vide` avec le bureau), et **la porte ouverte depuis `/compte/`**, aux deux
+largeurs. **77 etats, 61 760 elements, 182 822 releves de 139 proprietes, 25 412 258 valeurs.**
+
+    SEAU 1, le bureau deconnecte ............ 2 633 ecarts, et c'est le lot
+    SEAU 2, les 45 etats a session, les sept pages publiques
+            et la porte ouverte depuis /compte/ ... ZERO
+
+Contre DEUX releves de reference, et verifie par mutation : un `word-spacing:3px` glisse dans les
+**726 blocs** des deux feuilles SERVIES fait passer le seau 2 de 0 a **140 590**.
+
+**LE PREMIER PASSAGE A SORTI 825 ECARTS HORS PERIMETRE, soit 25 par etat connecte, et c'est une
+lecon.** `#bureauInvite` et `#bureauInviteHero` existent dans le DOM de TOUTES les pages du
+bureau, connectees comprises : ils y portent `hidden`, donc ils ne peignent pas un pixel, mais
+`getComputedStyle` REND les valeurs d'un element cache. C'est la lecon du lot 8 sur
+`.calbloc__trous`, prise dans l'autre sens. **Le tri par cle d'etat ne suffisait pas : il faut
+aussi les deux chemins d'element**, releves par `lot9-chemins.mjs` sur la page construite et a
+reprendre le jour ou l'ordre des blocs de `src/mon-bureau.njk` change. La porte, elle, n'a pas de
+chemin en dur : elle est ajoutee a la fin du `<body>` et sa place bouge, donc elle n'existe que
+dans les etats du seau 1 et dans `porte-publique@…`.
+
+### LA PREUVE QUI COMPTE LE PLUS : LA PORTE VUE DU SITE N'A PAS BOUGE
+
+`porte-publique@1440` et `porte-publique@390` sont dans le SEAU 2, donc a zero ecart. Ce sont les
+deux seuls etats du depot ou la porte s'ouvre sur une page qui ne porte pas `bdv-coque`, et
+l'etat refuse de se relever si `/compte/` se met a porter cette classe. Aucun des 45 etats du lot
+6 n'ouvrait la porte : jusqu'a ce lot, **rien ne mesurait le monde papier de cet ecran**.
+
+### UNE SONDE DE RENDU, PLUS QUATRE COPIES
+
+La sonde de contraste etait ecrite EN ENTIER dans `lot3-`, `lot4-`, `lot5-` puis
+`lot8-audit-contraste.mjs`, soit quatre fois. Elle vit maintenant seule dans
+`"Claude outputs/lot9-sonde-rendu.mjs"`. Ce n'est pas du rangement : le premier jet de la version
+du lot 8 comptait **53** valeurs papier la ou il y en avait **11**, faute de garder
+`border-*-color` quand la bordure a zero pixel, **et les trois copies precedentes portent encore
+ce defaut**. Un decor, une sonde ou un banc copie porte ses defauts a l'identique, et les corriger
+d'un cote ne corrige rien de l'autre.
+
+### CE QUI RESTE OUVERT APRES CE LOT
+
+- **`apercu:panneau`, `apercu:modale`, `apercu:ardoise` et `apercu:mot` posent encore moins de
+  feuilles que la page qu'ils montrent.** `apercu:modale` en pose trois sur quatre (il manque
+  `bdv-poste.css`), les trois autres ne posent que `style.css`. Aucun n'est dans `npm run verif`,
+  donc rien ne le dira : c'est la meme famille que les trois deja corrigees, et la liste est
+  courte.
+- **Le voile d'amorcage n'est toujours pas photographie sur une base VIDE sans reseau** : point
+  ouvert du lot 5, inchange.
+- **Les 116 valeurs papier du chrome du site sur l'ecran deconnecte** restent, avec l'arbitrage
+  ci-dessus.
+- **Les 91 appels papier de `bdv-ecrans.css`** et **les 51 de `bdv-calendrier.css`** restent, avec
+  leurs motifs des lots 4 et 7.
+- **Le thermometre 2 n'a pas bouge** : 56,9 ko de `style.css` voyagent toujours dans le bureau.
 
 ## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026, REVU LE 21/09/2026
 
@@ -3148,7 +3361,7 @@ que dans la vue liste : ailleurs, ouvrir une modale demanderait deux clics pour 
 s'en coche un.
 
 Le banc : `npm run banc:taches`, section 10. L'image : `npm run apercu:modale`, cinq etats
-sur la vraie feuille de style. **Regarder l'image apres toute retouche de cette modale** —
+sur la vraie feuille de style. **Regarder l'image apres toute retouche de cette modale** -
 le banc a valide 115 controles sur un ecran qui enfreignait une regle du projet.
 
 ## LE FLAMBEAU : le site doit survivre au depart de Ted, 10/09/2026
@@ -4230,7 +4443,7 @@ la ou on la cherche, visible seulement ailleurs.
 `analyserPourLeBureau()` (bdv-base.js), appelee a la fin de `handleFiles()` et **de la
 seulement**. Quatre pas, dans cet ordre, et aucun n'est decoratif :
 
-1. charger `bdv-ecrans.js` s'il manque (`BdvNav.chargerEcrans()`) — c'est lui qui sait
+1. charger `bdv-ecrans.js` s'il manque (`BdvNav.chargerEcrans()`) : c'est lui qui sait
    calculer la file et le resume, et le bureau ne le charge qu'au premier clic sur une piece
    de vente. Un import n'est pas un clic.
 2. deposer (`deposerPourLeBureau()`), **attendu** : la fonction rend sa promesse pour ca.
@@ -4245,7 +4458,7 @@ tourne a chaque reglage modifie.
 
 Corollaire pour toute page qui rend la main sur `if(!connecte) return;` : elle DOIT ecouter
 `bdv:session`. Une session ouverte dans la page ne recharge rien quand la destination est la
-page elle-meme — `location.href` sur la meme adresse, ancre comprise, n'est qu'un changement
+page elle-meme : `location.href` sur la meme adresse, ancre comprise, n'est qu'un changement
 d'ancre pour le navigateur. `/mon-bureau/` le fait maintenant, en reprenant la destination
 demandee (`BdvCompte.destinationDemandee()`), en la posant par `history.replaceState()` puis
 en rechargeant.

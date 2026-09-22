@@ -43,6 +43,7 @@
     "apercu:mot": "node scripts/apercu-mot.mjs",
     "apercu:equipe": "node scripts/apercu-equipe.mjs",
     "apercu:invitation": "node scripts/apercu-invitation.mjs",
+    "apercu:porte": "node scripts/apercu-porte.mjs",
     "banc:bascule": "node scripts/banc-bascule.mjs",
     "banc:auteur": "node scripts/banc-auteur.mjs",
     "banc:invitation": "node scripts/banc-invitation.mjs",

@@ -12,6 +12,120 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 22/09/2026. Le premier écran du produit, photographié enfin, et il n'était pas là
+
+Hier soir on a rattrapé « L'équipe », que le harnais rendait vide. En écrivant le point ouvert
+de ce lot-là, une phrase est sortie : **les 45 états du banc d'empreinte ont tous une session.**
+Le bureau **déconnecté** n'avait donc jamais été photographié en sombre, ni audité, ni relevé.
+
+C'est pourtant le premier écran de quelqu'un qui n'a pas de compte, le seul écran d'un invité
+qui arrive par un lien, et, mesure que `CLAUDE.md` porte depuis le 11/09, l'écran de la
+**première ouverture sur un iPhone**, puisqu'une app iOS a son propre stockage et que la session
+ouverte dans Safari n'y est pas.
+
+### Le harnais d'abord, encore, et c'est la sixième fois
+
+`scripts/bureau-garni.mjs` sait maintenant **fermer** le bureau. `garnirLeBureauDeconnecte()`
+efface la session au lieu de compter sur son absence, et double le **serveur** GoTrue, pas le
+client : `/recover`, `/verify`, `/signup`, `/user`, plus l'aperçu d'invitation ouvert à `anon`.
+`src/js/bdv-compte.js` tourne donc en entier, sans une ligne de complaisance, et toute autre
+adresse Supabase est refusée par le même `TypeError` qu'un réseau coupé.
+
+`ouvrirLaPorte()` passe par les **vrais** boutons, et les trois chemins ne donnent pas le même
+écran : celui du bureau ouvre en mode connexion, celui du bandeau est le seul qui impose
+l'adresse invitée en lecture seule, la bascule du pied montre l'inscription. « Mot de passe
+oublié ? » puis le code mènent aux deux étapes profondes que **rien n'avait jamais dessinées sur
+une image**. Deux garde-fous lèvent avant la première capture : l'un refuse si une session
+traîne ou si `#bureauContenu` est visible, l'autre si l'étape affichée n'est pas celle demandée.
+
+### Ce que l'angle mort a coûté, en chiffres, avant correction
+
+Périmètre du bureau déconnecté, quatre configurations : **1 paire sous son seuil**, et c'est le
+`h2` « Ton bureau t'attend. » à **1,28:1** en sombre, autrement dit, sur un téléphone en mode
+sombre, **le titre du premier écran du produit n'est pas là**. Plus **4 valeurs papier** et
+**32 cibles tactiles sous 44 px**. Après : zéro partout.
+
+Les 32 cibles sont trois gestes, mesurés sur le rendu : le bouton unique de l'écran d'invitation
+(289x36), les boutons pleins de la porte (376x37), et ses deux liens de secours, « Mot de passe
+oublié ? » (141x15) et « Renvoyer le code » (113x15). Le second est le seul chemin de quelqu'un
+qui ne peut plus entrer, et il faisait quinze pixels de haut.
+
+### La cause, traitée, et elle est fermée
+
+`h1,h2,h3,h4{color:var(--ink)}` de `style.css` pèse (0,0,1) et gagne contre toute règle du bureau
+qui ne nomme pas `color`. Elle avait déjà fait tomber le titre de la modale au lot 5, à 1,05:1.
+Deux titres, deux lots, même règle : j'ai donc écrit un balayage qui relève **tout `h1` à `h4` de
+tous les états du bureau, dans les deux thèmes**, et dit lequel porte encore une encre du site.
+Verdict : les neuf pièces, le panneau et la modale sont propres ; il ne restait que celui-là.
+Après correction, un seul titre porte encore une encre du site, le `h1` du hero, à 12,69:1, et
+c'est voulu.
+
+### Ce qui reste en papier sur cet écran, et pourquoi je n'y touche pas
+
+La page déconnectée ne porte pas `body.bdv-poste` : le bandeau marchand et le pied de page du
+site sont à l'écran, en bordeaux, et le hero est le composant partagé de /a-propos/. 116 valeurs
+papier. Elles restent, pour deux raisons : le contraste passe (chacun de ces blocs porte son
+propre fond opaque, le `h1` du hero est à 12,69:1 dans les deux thèmes), et **repeindre le seul
+hero rendrait l'écran moins cohérent**, une bande thémée entre une barre bordeaux et un pied
+bordeaux. L'audit les compte à part, jamais mélangées : sinon un vrai défaut du bureau
+disparaîtrait dans le bruit du site.
+
+### Deux aperçus mentaient encore, et un troisième n'existait pas
+
+Même famille qu'hier, même jour d'origine. `npm run apercu:invitation` ne posait que `style.css`,
+où il ne reste plus une seule règle `.invitation-*` : il rendait le bandeau entièrement nu.
+`npm run apercu:amorce` oubliait `bdv-poste.css`, où vivent les 21 règles du voile. Les deux
+posent maintenant les quatre feuilles dans l'ordre du gabarit, avec les deux thèmes côte à côte.
+
+Et j'ai ajouté `npm run apercu:porte`, qui n'existait pas : cinq écrans, **trois colonnes**, le
+site en papier à gauche et le bureau dans ses deux thèmes à droite. C'est le seul harnais du
+dépôt qui montre les deux mondes côte à côte, et c'est ce qui permet de voir d'un coup d'œil
+qu'un recouvrement n'a pas débordé.
+
+Un piège en chemin, et il est déjà dans `CLAUDE.md` sous un autre mécanisme : un accent grave
+dans un commentaire écrit **à l'intérieur d'un littéral de gabarit** ferme la chaîne. Erreur de
+syntaxe immédiate, exactement comme la constante `STYLE` de `bdv-reglages.js` le 21/09.
+
+### Le banc de sortie, par seaux, et il a refusé au premier passage
+
+77 états : les 45 de la veille, plus les sept états déconnectés dans les deux thèmes aux deux
+largeurs, plus `/outils/echeances/` (la seule page publique qui partage `.bureau-vide` avec le
+bureau), plus **la porte ouverte depuis `/compte/`**. 25 412 258 valeurs comparées.
+
+Deux seaux : **2 633 écarts** sur le bureau déconnecté, qui sont le lot, et **zéro** sur tout ce
+qui a une session, sur les sept pages publiques et sur la porte vue du site. Contre deux relevés
+de référence. Vérifié par mutation : un `word-spacing` glissé dans les 726 blocs des deux
+feuilles servies fait passer le second seau de 0 à **140 590**.
+
+Le premier passage a sorti **825 écarts hors périmètre**, 25 par état connecté, et c'est la leçon
+du jour : `#bureauInvite` existe dans le DOM de toutes les pages du bureau, il y porte `hidden`,
+donc il ne peint pas un pixel, mais `getComputedStyle` rend les valeurs d'un élément caché.
+C'est la leçon du lot 8 sur `.calbloc__trous`, prise dans l'autre sens. Le tri par état ne
+suffisait pas, il fallait aussi les deux chemins d'élément.
+
+### Et la sonde de contraste vit enfin dans un seul fichier
+
+Elle était recopiée en entier dans quatre scripts d'audit. Ce n'est pas du rangement : le premier
+jet de la version du lot 8 comptait 53 valeurs papier là où il y en avait 11, faute de garder
+`border-*-color` quand la bordure a zéro pixel, **et les trois copies précédentes portent encore
+ce défaut**. Un banc copié porte ses défauts à l'identique.
+
+Elle a aussi appris les deux exceptions du critère 2.5.8 de WCAG 2.2, et elle les **compte à
+part** au lieu de les taire : un lien en ligne dans une phrase, une case native dans son
+`<label>`. En l'écrivant, une mesure de plus : Chromium rend `inline-block` pour un `<button>` à
+qui la feuille dit `display:inline`. Le premier jet ne testait que `inline` et ratait la ligne de
+bascule de la porte ; accepter toute la famille `inline*` sans exiger du texte à côté aurait
+exempté tous les boutons pleins du produit, c'est-à-dire exactement ceux qu'on cherche.
+
+### Ce qui reste ouvert
+
+Quatre aperçus posent encore moins de feuilles que la page qu'ils montrent : `apercu:panneau`,
+`apercu:modale`, `apercu:ardoise`, `apercu:mot`. Aucun n'est dans `npm run verif`, donc rien ne
+le dira. Le voile d'amorçage n'est toujours pas photographié sur une base vide sans réseau. Et le
+thermomètre 2 n'a pas bougé : 56,9 ko de `style.css` voyagent toujours dans le bureau.
+
+---
+
 ## 21/09/2026, dans la nuit. Une pièce que le harnais rendait vide, et ce qu'elle cachait
 
 Le bureau est passé en deux thèmes en cinq lots, puis nettoyé en deux lots de plus. Tout a été

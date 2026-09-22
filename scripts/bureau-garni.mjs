@@ -527,3 +527,238 @@ export async function verifierLEquipeGarnie(page, nomEtat) {
   }
   return c;
 }
+
+/* ==========================================================================
+   LE BUREAU DECONNECTE, 22/09/2026. SIXIEME HARNAIS PLUS SAGE QUE LA REALITE.
+   ==========================================================================
+   LE TROU, ET IL ETAIT DEJA ECRIT DANS CLAUDE.md AVANT D'ETRE OUVERT. Les 45
+   etats du banc d'empreinte ont TOUS une session : `garnirLeBureau()` pose
+   `bdv_session` en tout premier, et tout ce qui suit en depend. Le bureau
+   DECONNECTE n'a donc jamais ete releve, jamais photographie en sombre, et
+   jamais passe a l'audit de contraste. C'est pourtant :
+     - le premier ecran de quelqu'un qui n'a pas encore de compte ;
+     - le SEUL ecran d'un invite qui arrive par un lien d'invitation ;
+     - l'ecran de la PREMIERE ouverture sur un iPhone, parce qu'une app iOS a
+       son propre stockage et que la session ouverte dans Safari n'y est pas.
+
+   CE QU'IL FAUT GARNIR, ET CE N'EST PAS LA MEME CHOSE QUE PLUS HAUT. Un bureau
+   deconnecte ne lit RIEN du stockage local : `src/mon-bureau.njk` sort sur
+   `if(!connecte)` avant la premiere zone. Ce qui reste a l'ecran vient de deux
+   endroits seulement, et les deux parlent au SERVEUR :
+     - le bandeau d'invitation, peint par `/rpc/invitation_apercu`, ouvert a
+       `anon` ;
+     - la porte de compte, injectee par `src/js/bdv-compte.js`, qui parle a
+       GoTrue (`/auth/v1/*`).
+   On double donc le serveur, comme pour « L'equipe », et on laisse les deux
+   modules tourner en entier. Stubber `BdvCompte.porte` reconstruirait un
+   harnais plus sage que la realite, c'est-a-dire le defaut qu'on repare.
+
+   LES QUATRE REPONSES DE GOTRUE SONT CELLES DU VRAI SERVEUR, champ pour champ,
+   et elles sont ce qui permet d'ATTEINDRE les etapes 2 et 3 par le vrai geste :
+     /auth/v1/recover  -> 200 {} ................ « Mot de passe oublie ? » mene
+                                                  a l'etape du code a 6 chiffres
+     /auth/v1/verify   -> 200 + une session ..... le code valide mene a l'ecran
+                                                  « choisis un nouveau mot de passe »
+     /auth/v1/signup   -> 200 {} sans jeton ..... `inscription()` rend
+                                                  { confirmer:true }, donc le code
+     /auth/v1/user     -> 200 {} ................ PUT du nouveau mot de passe
+   Toute autre adresse Supabase est refusee par le MEME `TypeError` qu'un reseau
+   coupe, exactement comme `garnirLEquipe()` : le reste ne bouge pas d'un pixel.
+   ========================================================================== */
+
+/* L'adresse invitee est celle de `garnirLEquipe()`, au caractere pres : les deux
+   harnais doivent montrer la meme invitation. Elle est longue et sale expres,
+   c'est elle qui fait deborder la colonne d'un champ en lecture seule. */
+export const INVITE_EMAIL = 'alice@domaine-essai.fr';
+
+export async function garnirLeBureauDeconnecte(ctx, opts) {
+  const o = opts || {};
+  await ctx.addInitScript(({ email }) => {
+    /* AUCUNE SESSION, ET ON L'EFFACE AU LIEU DE COMPTER SUR SON ABSENCE : un
+       contexte reutilise, ou un `garnirLeBureau()` appele avant par distraction,
+       rendrait ce harnais silencieusement connecte. C'est exactement la famille
+       de mensonge qu'on repare. */
+    try {
+      localStorage.removeItem('bdv_session');
+      localStorage.removeItem('bdv_proprietaire');
+      localStorage.removeItem('bdv_bureau_v1');
+      localStorage.setItem('bdv_harnais_deconnecte', '1');
+    } catch (e) {}
+
+    const JSN = (o2) => new Response(JSON.stringify(o2),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+    /* UNE SESSION DE REPRISE, dans la forme que lit `ecrireSession()` : un jeton
+       d'acces, un jeton de renouvellement, une duree et un utilisateur. Elle
+       n'ouvre AUCUNE piece : `mon-bureau.njk` a deja decide qu'il etait
+       deconnecte au chargement, et seul `bdv:session` le reveille, ce que la
+       porte n'emet qu'a `entrer()`, apres le nouveau mot de passe. */
+    const SESSION = { access_token: 'reprise', refresh_token: 'reprise',
+                      expires_in: 3600, token_type: 'bearer',
+                      user: { id: 'invite', email: email } };
+
+    function repondre(chemin) {
+      if (chemin.indexOf('/auth/v1/recover') === 0) return {};
+      if (chemin.indexOf('/auth/v1/verify') === 0) return SESSION;
+      /* SANS `access_token` ET AVEC UNE IDENTITE : `inscription()` rend alors
+         { confirmer:true }, donc l'ecran du code. Un `identities:[]` ferait
+         sortir « Un compte existe deja avec cette adresse », qui est un autre
+         etat, et pas celui qu'on veut photographier ici. */
+      if (chemin.indexOf('/auth/v1/signup') === 0)
+        return { id: 'invite', email: email, identities: [{ id: 'i1' }] };
+      if (chemin.indexOf('/auth/v1/user') === 0) return { id: 'invite', email: email };
+      if (chemin.indexOf('/rest/v1/rpc/invitation_apercu') === 0) {
+        return [{ bureau_nom: 'Domaine des Hauts Coteaux', invite_par_prenom: 'Teddy',
+                  email: email, etat: 'valide' }];
+      }
+      return undefined;
+    }
+
+    const vraiFetch = window.fetch.bind(window);
+    window.fetch = function (entree, init) {
+      const url = String((entree && entree.url) || entree || '');
+      if (url.indexOf('supabase.co') < 0) return vraiFetch(entree, init);
+      let chemin;
+      try { const u = new URL(url); chemin = u.pathname + u.search; } catch (e) { chemin = url; }
+      const r = repondre(chemin, init);
+      if (r === undefined) return Promise.reject(new TypeError('Failed to fetch'));
+      return Promise.resolve(JSN(r));
+    };
+  }, { email: o.email || INVITE_EMAIL });
+}
+
+/* ==========================================================================
+   LE GARDE-FOU DU BUREAU DECONNECTE, ET IL LEVE
+   ==========================================================================
+   Un harnais qui croit photographier l'ecran d'invitation et photographie un
+   bureau garni ne se plaint jamais : les deux images sont nettes. On compte
+   donc ce qui est PEINT, comme `verifierLeBureauGarni()` plus haut, mais a
+   l'envers : c'est la presence du bureau qui est le defaut.
+   ========================================================================== */
+export async function verifierLeBureauDeconnecte(page) {
+  const c = await page.evaluate(() => {
+    const vu = (id) => { const n = document.getElementById(id); return !!(n && !n.hidden); };
+    const h2 = document.querySelector('#bureauInvite .bureau-vide h2');
+    return {
+      hero: vu('bureauInviteHero'), invite: vu('bureauInvite'),
+      contenu: vu('bureauContenu'),
+      titre: h2 ? (h2.textContent || '').trim() : '',
+      coque: document.body.classList.contains('bdv-coque'),
+      poste: document.body.classList.contains('bdv-poste'),
+      theme: document.documentElement.getAttribute('data-theme') || '(auto)',
+      session: (function () { try { return !!localStorage.getItem('bdv_session'); }
+                              catch (e) { return false; } })()
+    };
+  });
+
+  const griefs = [];
+  if (c.session) griefs.push('une session est POSEE : garnirLeBureauDeconnecte() a-t-il ete appele APRES garnirLeBureau() ?');
+  if (c.contenu) griefs.push('#bureauContenu est VISIBLE : la page se croit connectee, on allait photographier le mauvais ecran');
+  if (!c.hero) griefs.push('#bureauInviteHero est masque');
+  if (!c.invite) griefs.push('#bureauInvite est masque : il n\'y a rien a photographier');
+  if (!c.titre) griefs.push('le h2 « Ton bureau t\'attend. » est vide');
+  if (!c.coque) griefs.push('le corps de page ne porte pas `bdv-coque` : les 700 regles du dessin du bureau ne s\'appliquent pas');
+  if (c.poste) griefs.push('le corps de page porte `bdv-poste` sans session : le bandeau et le pied du site sont caches a tort');
+
+  console.log('\n--- LE BUREAU EST-IL BIEN FERME ? ---');
+  console.log('  theme                 : ' + c.theme);
+  console.log('  hero / invitation     : ' + (c.hero ? 'visible' : 'MASQUE') + ' / ' + (c.invite ? 'visible' : 'MASQUE'));
+  console.log('  contenu du bureau     : ' + (c.contenu ? 'VISIBLE' : 'masque'));
+  console.log('  titre                 : « ' + c.titre + ' »');
+
+  if (griefs.length) {
+    throw new Error('LE BUREAU N\'EST PAS DANS L\'ETAT DECONNECTE.\n  - ' + griefs.join('\n  - '));
+  }
+  return c;
+}
+
+/* ==========================================================================
+   LA PORTE DE COMPTE : ON L'OUVRE PAR LE VRAI GESTE, ET ON COMPTE CE QU'ELLE
+   MONTRE
+   ==========================================================================
+   TROIS CHEMINS D'OUVERTURE, ET ILS NE DONNENT PAS LE MEME ECRAN :
+     'bureau'      : le bouton « Créer mon compte ou me connecter » de
+                     `.bureau-vide`. Il porte `data-bdv-mode="connexion"` depuis
+                     le 11/09/2026, et c'est le chemin de la PREMIERE ouverture
+                     sur iPhone.
+     'invitation'  : le bouton « Je crée mon compte » du bandeau. C'est le seul
+                     chemin qui passe `email`, donc le seul qui montre le champ
+                     d'adresse IMPOSE et en lecture seule.
+     'inscription' : la bascule « Créer un compte » au pied de l'ecran, pour
+                     photographier l'autre moitie de l'ecran d'acces.
+   ON NE LEVE JAMAIS UN `hidden` A LA MAIN : c'est la regle du lot 8 pour le
+   lien de secours de « L'equipe », et elle vaut ici davantage encore, puisque
+   `poserMode()` reecrit six choses a chaque bascule.
+   ========================================================================== */
+export async function ouvrirLaPorte(page, chemin, etape) {
+  if (chemin === 'invitation') {
+    await page.click('#invitationInscription');
+  } else {
+    await page.click('#bureauInvite a[data-bdv-compte]');
+  }
+  await page.waitForSelector('.bdv-porte', { timeout: 5000 });
+  await page.waitForTimeout(400);
+
+  if (chemin === 'inscription') {
+    await page.click('#bdvBtnBascule');
+    await page.waitForTimeout(300);
+  }
+
+  /* LES DEUX ETAPES QU'AUCUNE CAPTURE N'AVAIT JAMAIS VUES, atteintes par les
+     VRAIS boutons : « Mot de passe oublie ? » mene au code a 6 chiffres, et le
+     code valide mene a l'ecran du nouveau mot de passe. Les deux appels
+     GoTrue sont doubles par garnirLeBureauDeconnecte(). */
+  if (etape === 'code' || etape === 'nouveau') {
+    await page.fill('#bdvEmail', 'alice@domaine-essai.fr').catch(() => {});
+    await page.click('#bdvOublie');
+    await page.waitForTimeout(700);
+  }
+  if (etape === 'nouveau') {
+    await page.fill('#bdvCode', '123456');
+    await page.click('#bdvBtnCode');
+    await page.waitForTimeout(700);
+    /* Le mot de passe est tape pour que les quatre regles soient PEINTES : une
+       liste de regles toutes grises ne montre pas l'etat « satisfaite », qui
+       est le seul a porter une couleur a lui. */
+    await page.fill('#bdvNouveauMdp', 'Vendange2026!');
+    await page.waitForTimeout(250);
+  }
+  await page.waitForTimeout(300);
+}
+
+export async function verifierLaPorte(page, attendu) {
+  const c = await page.evaluate(() => {
+    const o = document.querySelector('.bdv-porte');
+    if (!o) return null;
+    const vu = (sel) => { const n = o.querySelector(sel); return !!(n && !n.hidden && n.offsetParent !== null); };
+    const etape = ['acces', 'code', 'nouveau', 'profil', 'import']
+      .filter(k => { const n = o.querySelector('[data-etape="' + k + '"]'); return n && !n.hidden; })[0] || null;
+    const email = o.querySelector('#bdvEmail');
+    return {
+      etape: etape,
+      titre: (o.querySelector('#bdvPorteTitre') || {}).textContent || '',
+      inscription: vu('#bdvBtnInscription'), connexion: vu('#bdvBtnConnexion'),
+      regles: vu('#bdvReglesAcces'),
+      emailImpose: !!(email && email.readOnly),
+      note: !!o.querySelector('#bdvEmailImpose'),
+      reglesNouveau: o.querySelectorAll('#bdvReglesNouveau .bdv-porte__regle--ok').length
+    };
+  });
+  if (!c) throw new Error('LA PORTE N\'EST PAS OUVERTE : `.bdv-porte` est absente du document.');
+
+  const a = attendu || {};
+  const griefs = [];
+  if (a.etape && c.etape !== a.etape) griefs.push('etape « ' + c.etape +' » au lieu de « ' + a.etape + ' »');
+  if (a.emailImpose && !c.emailImpose) griefs.push('le champ d\'adresse n\'est PAS en lecture seule : porte() n\'a pas recu `email`');
+  if (a.emailImpose && !c.note) griefs.push('la phrase qui dit POURQUOI l\'adresse est imposee est absente');
+  if (a.mode === 'connexion' && !c.connexion) griefs.push('le bouton « Me connecter » est masque');
+  if (a.mode === 'inscription' && !c.inscription) griefs.push('le bouton « Créer mon compte » est masque');
+  if (a.mode === 'inscription' && !c.regles) griefs.push('les regles de mot de passe sont masquees en mode inscription');
+  if (a.etape === 'nouveau' && !c.reglesNouveau) griefs.push('aucune regle satisfaite n\'est peinte : l\'etat « --ok » n\'est sur aucune image');
+
+  console.log('  porte : etape ' + c.etape + ', « ' + c.titre.trim() + ' »'
+    + (c.emailImpose ? ', adresse imposee' : '')
+    + (a.etape === 'nouveau' ? ', ' + c.reglesNouveau + ' regle(s) satisfaite(s)' : ''));
+  if (griefs.length) throw new Error('LA PORTE N\'EST PAS DANS L\'ETAT DEMANDE.\n  - ' + griefs.join('\n  - '));
+  return c;
+}
