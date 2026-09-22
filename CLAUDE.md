@@ -2380,12 +2380,11 @@ ci-dessus, corrige depuis, et ces images-la sont anterieures a sa correction.
 
 ### CE QUI RESTE OUVERT
 
-- **Les 233 appels papier de `bdv-poste.css` et les 51 de `bdv-calendrier.css` PEIGNENT
-  encore.** Le plus visible est « L'equipe » : `.equipe-*` et `.invitation__*` n'ont jamais ete
-  dans le perimetre d'aucun des cinq lots du theme, et le decor de
-  `scripts/bureau-garni.mjs` rend cette piece SANS EQUIPIER, donc **aucun releve ne les voit**.
-  Le trou est deja documente en tete de `lot6-empreinte.mjs`. C'est le prochain lot, et il
-  CHANGERA l'ecran : il ne peut pas se faire sous la promesse de ce lot-ci.
+- ~~**Les 233 appels papier de `bdv-poste.css` PEIGNENT encore**, « L'equipe » en tete, et le
+  decor de `scripts/bureau-garni.mjs` rend cette piece SANS EQUIPIER.~~ **FAIT LE 21/09/2026 au
+  lot suivant**, voir « UNE PIECE QU'UN HARNAIS REND VIDE N'EST PAS UNE PIECE VERIFIEE » plus
+  bas. Il restait 58 paires sous leur seuil sur cette piece, toutes en sombre. Les 51 appels de
+  `bdv-calendrier.css`, eux, peignent toujours.
 - **Les 91 appels papier de `bdv-ecrans.css`** restent voulus : ils sont tous dans
   `#printReport`, qui ne sort que par l'imprimante.
 - **Le recouvrement de la section 16 de `bdv-bureau.css`** ne partira que le jour ou
@@ -2397,6 +2396,153 @@ ci-dessus, corrige depuis, et ces images-la sont anterieures a sa correction.
   suffisant tout seul ; aujourd'hui il faut les deux.
 - **Le thermometre 2 n'a pas bouge** : 56,9 ko de `style.css` voyagent toujours dans le bureau
   sans pouvoir s'y appliquer. Ce lot a traite l'autre sens. Ne pas l'annoncer comme regle.
+
+## UNE PIECE QU'UN HARNAIS REND VIDE N'EST PAS UNE PIECE VERIFIEE, 21/09/2026
+
+**LA REGLE, ET C'EST LA CINQUIEME FOIS QUE CE DEPOT LA PAIE :**
+
+> **Un decor de harnais n'a pas d'utilisateur pour signaler qu'il ment. Avant de croire un
+> releve, on compte CE QUI EST PEINT, pas ce qu'on a ecrit dans le decor. Et un decor que le
+> harnais oublie de poser doit LEVER, pas se taire.**
+
+### LE TROU, ET CE QU'IL A COUTE
+
+`scripts/bureau-garni.mjs` garnissait huit pieces sur neuf. « L'equipe » sortait **sans un seul
+equipier** de toutes les captures des lots 3 a 7 : liste vide, formulaire d'invitation masque,
+invitations en attente masquees, lien de secours masque, pas une etiquette de role. Les trois
+audits de contraste des lots 3, 4 et 5 ont donc mesure **zero paire** dessus, et les deux bancs
+d'empreinte ont compare **du vide a du vide, et declare zero ecart**.
+
+**POURQUOI ELLE SORTAIT VIDE, ET C'EST STRUCTUREL.** C'est la SEULE piece du bureau qui ne lit
+rien du stockage local : son contenu vient de six appels a `BdvCompte.api()`, c'est-a-dire du
+serveur. Le conteneur n'a pas de reseau, `lot6-empreinte.mjs` coupe en plus tout ce qui n'est
+pas 127.0.0.1, les six appels tombaient, et `ouvrir()` affichait son ecran d'echec. Le decor
+etait construit pour un bureau qui travaille SEUL, et cette piece-la ne parle que de travailler
+a plusieurs.
+
+**CE QUE L'ANGLE MORT A COUTE, MESURE LE 21/09/2026 AVANT CORRECTION**, harnais garni et theme
+sombre : **58 paires sous leur seuil**, dont
+« UTILISATEUR » a **1,20:1** (l'etat le plus frequent de la piece, litteralement absent de
+l'ecran alors que « MAITRE » restait lisible),
+la phrase « il ne s'affichera qu'une fois » du lien d'invitation a **1,00:1** (la seule phrase
+qui dise qu'un secret non reproductible ne reviendra pas),
+« Tu n'appartiens a aucun bureau » a **1,00:1**,
+« Untel t'invite a travailler dans Tel domaine » a **1,00:1**,
+toutes les adresses e-mail et toutes les aides a **2,44:1**.
+Plus **152 valeurs papier** et **6 cibles tactiles sous 44 px**. Zero de tout cela en clair :
+c'est un defaut qui n'existe QUE dans le theme que personne n'avait photographie ici.
+
+### CE QUI FERME LE TROU
+
+**`garnirLeBureau()` garnit « L'equipe » PAR DEFAUT.** Un decor qu'il faut penser a demander est
+un decor qu'on oublie ; `{ equipe: false }` existe, et il faut savoir pourquoi on l'ecrit.
+
+**ON DOUBLE LE SERVEUR, PAS LE CLIENT.** `garnirLEquipe()` remplace `window.fetch` pour les
+seules adresses Supabase qu'il connait, et `bdv-compte.js` comme `bdv-equipe.js` tournent en
+entier. Toute autre adresse est refusee par le meme `TypeError` qu'un reseau coupe, donc le
+reste du decor ne bouge pas d'un pixel. Stubber `BdvCompte` aurait reconstruit un harnais plus
+sage que la realite, c'est-a-dire le defaut qu'on repare.
+
+**TROIS ETATS, PARCE QU'ILS N'AFFICHENT PAS LES MEMES BLOCS** : `maitre` (deux bureaux, trois
+membres, deux invitations en attente dont une expiree), `simple` (ni selecteur, ni formulaire,
+ni gestes, la note a la place) et `sans-bureau` (son propre ecran). Plus le lien de secours,
+atteint par le VRAI geste : la fonction d'envoi rend `envoye:false`, comme quand Resend tousse.
+
+**ET DEUX GARDE-FOUS QUI LEVENT.** `verifierLeBureauGarni()` demande a la page, par le vrai
+chemin, combien d'equipiers `/rpc/equipe` rend, et refuse de rendre son rapport a zero.
+`verifierLEquipeGarnie()` se passe la piece OUVERTE et compte les lignes, les etiquettes de
+role, les invitations et la visibilite de chaque bloc selon l'etat demande. Le harnais s'arrete
+AVANT la premiere image.
+
+**UN SEUL DECOR POUR LES DEUX HARNAIS.** `scripts/apercu-equipe.mjs` importe desormais les
+equipiers et les invitations de `bureau-garni.mjs`. Ils etaient ecrits deux fois, et c'est
+exactement le dedoublement que le bloc de tete de `bureau-garni.mjs` raconte deja pour le decor
+des ventes.
+
+### ET L'APERCU MENTAIT AUSSI, DEPUIS LE MATIN MEME
+
+`npm run apercu:equipe` ne posait que `style.css`. Depuis la scission du 21/09/2026 au matin,
+`style.css` ne contient plus **une seule** regle `.equipe-*` : l'apercu rendait la piece
+entierement NUE et l'a fait toute la journee sans que rien ne le dise. Il pose maintenant les
+quatre feuilles du bureau **dans l'ordre ou le gabarit les lie**, le `bdv-coque` sur le corps de
+page, et les deux themes COTE A COTE.
+
+**ET IL A TROUVE UN DEFAUT DE PLUS AU PREMIER PASSAGE, COMME LA PREMIERE FOIS.** Un conteneur
+`[data-theme="dark"]` retourne les JETONS de son sous-arbre, mais pas les proprietes deja
+CALCULEES au-dessus : `body.bdv-coque{color:var(--bdv-encre-2)}` est resolu sur le `<body>`,
+donc avec les valeurs CLAIRES, et cette encre descend telle quelle dans le conteneur sombre.
+Les NOMS des equipiers, qui vivaient d'heritage, sortaient en #33383F sur fond sombre.
+**Un conteneur qui force un theme redit donc TOUT ce que la coque pose sur le corps de page, le
+fond ET l'encre.** Le nom d'equipier, lui, dit maintenant son encre au lieu de l'heriter.
+
+### LE BANC DE SORTIE A UN PERIMETRE, ET C'EST NOUVEAU
+
+Les deux lots precedents ne changeaient aucun pixel, donc `lot6-comparer.mjs` exigeait zero
+ecart partout. Ce lot-ci CHANGE l'ecran, sur une piece et une seule.
+`"Claude outputs/lot8-perimetre.mjs"` range donc chaque ecart dans trois seaux : DANS la zone et
+son bandeau, sur leurs ANCETRES (la hauteur de la zone qui remonte), AILLEURS. **Le troisieme
+doit etre vide, sans discussion.**
+
+Resultat, contre DEUX releves de reference pris avec le harnais deja garni : **22 560 ecarts
+dans la piece, 66 sur ses six ancetres dans les six etats ou elle est a l'ecran, ZERO
+ailleurs** sur les huit autres pieces, le panneau, la modale et les six pages publiques.
+Verifie par mutation : `word-spacing:3px` dans les 311 regles de la feuille SERVIE fait passer
+le troisieme seau de 0 a **75 858**.
+
+**LES DEUX CHEMINS DU PERIMETRE SONT EN DUR, et il faut le savoir** : le releve ne garde que le
+chemin d'index depuis la racine, pas les noms de classe. `lot8-chemins.mjs` les relit sur la
+page construite, et ils changent si l'ordre des blocs de `src/mon-bureau.njk` change.
+
+### UN BANC DE STYLE CALCULE LIT AUSSI CE QUI N'EST PAS PEINT
+
+Deux corrections ont ete ANNULEES par le banc, et les deux apprennent quelque chose :
+
+- **`.calbloc__trous` est en `display:none`.** Ses quatre valeurs papier ne peignent pas un
+  pixel, mais `getComputedStyle` REND les valeurs d'un element cache : les retirer a sorti
+  **165 ecarts**. Un banc de style calcule ne sait pas distinguer « ce n'est pas peint » de
+  « ce n'est plus la », et c'est tres bien ainsi, c'est ce qui lui permet d'attraper un defaut
+  dans un etat qu'aucune capture ne montre.
+- **`.listb tr` sous 700 px PEINT encore.** `.bdv-coque .listb tbody tr` ne couvre que le CORPS
+  du tableau ; la rangee d'EN-TETE prend toujours le filet papier. Six ecarts, gardes.
+
+### ET IL Y A DEUX ETATS QUE CE BANC NE SAIT PAS LIRE
+
+`lot6-empreinte.mjs` releve le style calcule **au repos** : aucun de ses 45 etats n'est un
+survol ni un focus clavier. Une declaration qui ne peint que dans ces etats-la lui est
+invisible **dans les deux sens** : il ne peut ni la proteger, ni la condamner.
+
+`"Claude outputs/lot8-etats-forces.mjs"` force les deux pseudo-etats par le protocole de
+Chromium (`CSS.forcePseudoState`) et lit la couleur RENDUE. Il a trouve les deux SEULES valeurs
+papier de `bdv-poste.css` qui peignaient encore hors de « L'equipe », et elles etaient graves :
+
+| etat force | avant | apres |
+|---|---|---|
+| titre d'une tache au SURVOL, en sombre | **1,37:1** (seuil 4,5) | 8,34:1 |
+| anneau de focus clavier d'une tache, en sombre | **1,37:1** (seuil 3) | 10,87:1 |
+
+Un titre qui disparait quand la souris passe dessus, et un anneau de focus invisible sur la
+piece la plus ouverte du bureau. Le poids : `button.tache__corps:hover .tache__titre` pese
+(0,3,1) contre (0,2,0), et `button.tache__corps:focus-visible` (0,2,1) contre (0,2,0) pour
+l'anneau unique. **Un nom d'element de plus, exactement comme les trois defauts de specificite
+du lot 2.** C'est la regle du depot : quand une surface change de couleur, relire l'anneau de ce
+qu'elle porte.
+
+### CE QUI RESTE OUVERT APRES CE LOT
+
+- **`.invitation` est restee dans `style.css`** alors qu'aucune page publique ne s'en sert. Elle
+  est RECOUVERTE depuis `bdv-poste.css`, proprietes nommees une par une, parce que la doctrine
+  interdit de toucher une feuille partagee. La section C3 de `npm run charte` ne la compte pas :
+  elle ne repere que `.mono`. Lui apprendre a voir `.invitation` ferait descendre une borne.
+- **Le bureau DECONNECTE n'a jamais ete photographie en sombre.** Sonde le 21/09/2026 :
+  `h2` « Ton bureau t'attend. » de `.bureau-vide` a **1,28:1**. La cause est la meme que celle du
+  titre de modale du lot 5 : `h1,h2,h3,h4{color:var(--ink)}` de `style.css` peint tout titre du
+  bureau que `bdv-bureau.css` ne nomme pas. Les 45 etats de l'empreinte ont TOUS une session :
+  c'est le prochain trou de harnais, et il est deja mesure.
+- **Les appels papier qui restent dans `bdv-poste.css` sont 16 `--e-s`, 1 `--e-xs`, 3 `--t-mini`,
+  1 `--t-micro`, 1 `--t-corps`, 2 `--font-mono`, 2 `--z-*`, plus les valeurs de `.calbloc__trous`
+  et de `.listb tr`.** Aucun n'a d'equivalent exact dans l'echelle `--bdv-*` : `--e-s` vaut
+  10,4 px entre 8 et 12, `--t-mini` 11,2 px, et `bdv-theme.css` ne declare AUCUNE famille de
+  police. Les repeindre changerait l'ecran hors de « L'equipe ».
 
 ## JAMAIS UN SECOND LIEN GOOGLE FONTS, 18/09/2026, REVU LE 21/09/2026
 
@@ -4609,13 +4755,35 @@ cette adresse.
 ### `npm run apercu:equipe`
 
 Ecrit apres ce defaut, et pour qu'il ne se reproduise pas : il monte la piece dans la PAGE
-CONSTRUITE, avec la vraie feuille, dans sa vraie grille de douze colonnes, et rend
-`_apercu/equipe.html` en trois etats (un maitre avec deux bureaux, un simple utilisateur,
-le bandeau d'invitation). **Il ne verifie rien, il MONTRE** : il n'est pas dans
-`npm run verif`, il s'ouvre et se regarde. Une page d'apercu qui poserait la zone sur une
-largeur libre ne pourrait pas montrer ce defaut, et validerait exactement ce qui etait casse.
+CONSTRUITE, avec les vraies feuilles, dans sa vraie grille de douze colonnes, et rend
+`_apercu/equipe.html` en cinq etats fois DEUX THEMES. **Il ne verifie rien, il MONTRE** : il
+n'est pas dans `npm run verif`, il s'ouvre et se regarde. Une page d'apercu qui poserait la
+zone sur une largeur libre ne pourrait pas montrer ce defaut, et validerait exactement ce qui
+etait casse.
 
-Il a lui-meme trouve le piege du bandeau ci-dessus, au premier passage.
+Il a lui-meme trouve le piege du bandeau ci-dessus, au premier passage. **Et il a trouve un
+defaut de plus a chacune de ses deux reprises** : voir « UNE PIECE QU'UN HARNAIS REND VIDE
+N'EST PAS UNE PIECE VERIFIEE », 21/09/2026. Il a aussi passe une journee entiere a rendre la
+piece NUE, parce qu'il ne posait que `style.css` et que la scission du matin en avait sorti
+toutes les regles `.equipe-*`. **Une page d'apercu se relit le jour ou une feuille bouge.**
+
+### CE QUE LA PIECE EST DEVENUE LE 21/09/2026
+
+Repeinte aux jetons `--bdv-*`, en place, dans `src/css/bdv-poste.css`. Les deux etiquettes de
+role restent doubles de leur MOT, et les deux se lisent maintenant : « UTILISATEUR » prend la
+surface et l'encre courante, « MAITRE » prend l'accent et sa seule encre (7,27:1 en clair,
+8,65:1 en sombre). En papier, « UTILISATEUR » tenait 1,20:1 sur le bureau sombre, c'est-a-dire
+qu'il n'etait pas la, alors que « MAITRE », pose sur `--bordeaux`, restait lisible : **une
+piece ou l'un des deux etats disparait dit que tout le monde est maitre.**
+
+Trois cibles remontent a 44 px, et ce sont les trois actions decisives : « Envoyer
+l'invitation », « Ouvrir mon bureau » (la SEULE sortie de qui n'a aucun bureau) et
+« Rejoindre ». `.bdv-coque .btn` pose 36 px, ce qui est juste dans une barre dense et faux a
+cote d'un champ de 44.
+
+**Et `.btn--ghost` n'est pas revenu** : la piece n'utilise que `.btn` et `.btn--geste`. Son
+equivalent sombre ne rejoue pas le defaut du 11/09/2026 non plus, `.bdv-coque .btn--ghost` de
+`bdv-bureau.css` lui rendant `--bdv-encre-3` au lieu de la couleur du papier.
 
 ### LE SEUIL : le premier destinataire qui n'est pas Ted
 

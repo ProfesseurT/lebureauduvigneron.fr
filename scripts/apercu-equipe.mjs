@@ -28,7 +28,19 @@ import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
-const FEUILLE = path.join(RACINE, 'src/css/style.css');
+/* LES QUATRE FEUILLES DU BUREAU, DANS L'ORDRE OU LE GABARIT LES LIE, ET C'EST
+   UNE CORRECTION DU 21/09/2026. Ce fichier ne posait que `style.css`. Depuis la
+   scission du matin, `style.css` ne contient plus UNE SEULE regle `.equipe-*` :
+   l'apercu rendait donc la piece entierement NUE, et il l'a fait toute la
+   journee sans que rien ne le dise. C'est le meme defaut que celui du harnais de
+   capture, dans un autre fichier : un apercu qui ne montre pas ce que le
+   vigneron voit valide ce qu'il ne voit pas.
+   L'ORDRE COMPTE AUTANT QUE LA LISTE : bdv-poste.css est liee ENTRE style.css et
+   bdv-bureau.css, et c'est ce qui donne a la coque le dernier mot a specificite
+   egale. Inverser les deux retournerait la moitie des arbitrages de ce lot. */
+const FEUILLES = ['src/css/style.css', 'src/css/bdv-theme.css',
+                  'src/css/bdv-poste.css', 'src/css/bdv-bureau.css']
+  .map(f => path.join(RACINE, f));
 const MODULE = path.join(RACINE, 'src/js/bdv-equipe.js');
 
 let JSDOM;
@@ -39,9 +51,14 @@ if (!fs.existsSync(PAGE)) {
   process.exit(1);
 }
 
-const BUREAU_A = 'b0000000-0000-0000-0000-000000000001';
-const BUREAU_B = 'b0000000-0000-0000-0000-000000000002';
-const MOI = '11111111-1111-1111-1111-111111111111';
+/* UN SEUL DECOR POUR LES DEUX HARNAIS, 21/09/2026. Les equipiers, les
+   invitations en attente et les deux identifiants de bureau viennent de
+   scripts/bureau-garni.mjs, c'est-a-dire du meme endroit que ceux de la capture
+   Chromium. Ils etaient ecrits DEUX FOIS, et ce depot a deja paye ce
+   dedoublement : c'est la premiere phrase du bloc de tete de bureau-garni.mjs,
+   « copie a l'identique, il portait le meme defaut a l'identique, et le
+   corriger d'un cote n'aurait rien corrige de l'autre ». */
+import { EQUIPIERS, ATTENTES, BUREAU_A, BUREAU_B, MOI } from './bureau-garni.mjs';
 
 /* Le decor : un faux compte et un faux serveur. Les reponses sont celles que
    rendent vraiment les fonctions du lot 18, champ pour champ. */
@@ -87,18 +104,7 @@ function compte(opts) {
   };
 }
 
-const EQUIPE = [
-  { personne: MOI, role: 'maitre', depuis: '2026-09-01T08:00:00Z',
-    prenom: 'Ted', nom: 'Pereira', email: 'teddypereira88@gmail.com' },
-  { personne: '2', role: 'simple', depuis: '2026-09-10T08:00:00Z',
-    prenom: 'Romane', nom: 'Bouijoux', email: 'romane@solumatic.fr' },
-  { personne: '3', role: 'maitre', depuis: '2026-09-12T08:00:00Z',
-    prenom: 'Camila', nom: 'Vendramini', email: 'camila.vendramini@solumatic.fr' }
-];
-const ATTENTES = [
-  { email: 'alice@domaine-essai.fr', role: 'simple', cree_le: '2026-09-14T08:00:00Z',
-    expire_le: '2026-09-21T08:00:00Z', utilise_le: null }
-];
+const EQUIPE = EQUIPIERS;
 
 const vues = [];
 const dormir = (ms) => new Promise(r => setTimeout(r, ms));
@@ -175,26 +181,57 @@ const page = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
   + '<link rel="preconnect" href="https://fonts.googleapis.com">'
   + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
   + '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
-  + '<style>' + fs.readFileSync(FEUILLE, 'utf8') + '</style>'
+  + '<style>' + FEUILLES.map(f => fs.readFileSync(f, 'utf8')).join('\n') + '</style>'
   /* LA ZONE EST REMISE DANS SA GRILLE DE DOUZE COLONNES, et c'est le coeur de
      l'affaire : c'est de la que venait le defaut du 14/09/2026. Une page
      d'apercu qui poserait la zone sur une largeur libre ne pourrait PAS le
      montrer, et validerait exactement ce qui etait casse. */
-  + '<style>body{background:var(--paper-deep);padding:2rem;margin:0}'
+  + '<style>body{background:var(--bdv-fond);padding:2rem;margin:0}'
   + '.ap{max-width:1180px;margin:0 auto}'
   + '.ap__c{margin-bottom:2.5rem}'
-  + '.ap__c h3{font-family:var(--font-mono);font-size:var(--t-mini);text-transform:uppercase;'
-  + 'letter-spacing:var(--ls-large);color:var(--muted);margin:0 0 .2rem}'
-  + '.ap__c p.ap__n{font-family:var(--font-mono);font-size:var(--t-micro);color:var(--muted);margin:0 0 .8rem}'
-  + '.ap__plan{background:var(--paper)}</style>'
-  + '</head><body><div class="ap">'
+  + '.ap__c h3{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;'
+  + 'letter-spacing:.09em;color:var(--bdv-encre-4);margin:0 0 .2rem}'
+  + '.ap__c p.ap__n{font-family:var(--font-mono);font-size:11px;color:var(--bdv-encre-4);margin:0 0 .8rem}'
+  /* LES DEUX THEMES COTE A COTE, ET C'EST LE SEUL MOYEN DE LES JUGER SUR LE
+     MEME ECRAN. `[data-theme]` sans `:root` existe dans bdv-theme.css POUR CA :
+     un conteneur redeclare les jetons et retourne tout son sous-arbre, champs
+     natifs compris (`color-scheme` est pose sur `[data-theme]` aussi). */
+  + '.ap__duo{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start}'
+  + '@media (max-width:900px){.ap__duo{grid-template-columns:1fr}}'
+  /* IL FAUT REDIRE `color`, ET CET APERCU L'A PROUVE AU PREMIER PASSAGE.
+     `[data-theme="dark"]` retourne les JETONS de son sous-arbre, mais pas les
+     proprietes deja CALCULEES au-dessus : `body.bdv-coque{color:var(--bdv-encre-2)}`
+     est resolu sur le <body>, donc avec les valeurs CLAIRES, et cette encre-la
+     descend telle quelle dans le conteneur sombre. Resultat au premier passage :
+     les NOMS des equipiers, qui n'ont pas de couleur a eux et vivent
+     d'heritage, sortaient en #33383F sur un fond sombre. C'est un defaut de
+     l'APERCU et pas du produit (la vraie page pose `data-theme` sur `html`, et
+     le releve Chromium du 21/09/2026 donne zero paire sous seuil), mais c'est
+     exactement le genre de mensonge qui fait valider un ecran casse. Un
+     conteneur qui force un theme redit donc TOUT ce que la coque pose sur le
+     corps de page : le fond ET l'encre. */
+  + '.ap__t{padding:1rem;border-radius:8px;background:var(--bdv-fond);'
+  + 'color:var(--bdv-encre-2);outline:1px solid var(--bdv-trait)}'
+  + '.ap__t > .ap__l{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;'
+  + 'letter-spacing:.09em;color:var(--bdv-encre-4);margin:0 0 .5rem}'
+  + '</style>'
+  /* LE CORPS PORTE `bdv-coque`, ET SANS LUI L'APERCU EST UN MENSONGE : les 700
+     regles du dessin du bureau sont toutes scopees par cette classe, que
+     src/_includes/base.njk pose sur le <body> du seul /mon-bureau/. Sans elle,
+     ni bouton, ni champ, ni zone, ni rangee : exactement la moitie de ce qu'on
+     vient de repeindre. */
+  + '</head><body class="bdv-coque"><div class="ap">'
   + vues.map(v => '<div class="ap__c"><h3>' + v.titre + '</h3><p class="ap__n">' + v.note
-      + '</p><div class="bureau-plan ap__plan">' + v.html + '</div></div>').join('')
+      + '</p><div class="ap__duo">'
+      + ['light', 'dark'].map(t => '<div class="ap__t" data-theme="' + t + '">'
+          + '<p class="ap__l">' + (t === 'light' ? 'clair' : 'sombre') + '</p>'
+          + '<div class="bureau-plan">' + v.html + '</div></div>').join('')
+      + '</div></div>').join('')
   + '</div></body></html>';
 
 fs.mkdirSync(path.join(RACINE, '_apercu'), { recursive: true });
 fs.writeFileSync(path.join(RACINE, '_apercu/equipe.html'), page);
-console.log('  ecrit : _apercu/equipe.html  (' + vues.length + ' etats)');
+console.log('  ecrit : _apercu/equipe.html  (' + vues.length + ' etats x 2 themes)');
 
 /* CE QUE LA MESURE PEUT DIRE SANS L'IMAGE : les mots vides. Un NaN, un undefined
    ou un « null » dans du texte rendu est un defaut qu'on ne voit pas en regardant

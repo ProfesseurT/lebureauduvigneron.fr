@@ -12,6 +12,131 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 21/09/2026, dans la nuit. Une pièce que le harnais rendait vide, et ce qu'elle cachait
+
+Le bureau est passé en deux thèmes en cinq lots, puis nettoyé en deux lots de plus. Tout a été
+capturé, mesuré, audité. **Sauf « L'équipe ».**
+
+`scripts/bureau-garni.mjs`, le décor commun des harnais de capture, garnissait huit pièces sur
+neuf. Celle-là sortait **sans un seul équipier** de toutes les images des lots 3 à 7 : liste
+vide, formulaire d'invitation masqué, invitations en attente masquées, lien de secours masqué,
+pas une étiquette de rôle. Les trois audits de contraste ont donc mesuré **zéro paire** dessus,
+et les deux bancs d'empreinte ont comparé **du vide à du vide**, en déclarant zéro écart.
+
+**C'est la cinquième fois que ce dépôt paie un harnais plus sage que la réalité**, et `CLAUDE.md`
+le racontait déjà quatre fois. Ce lot a donc commencé par le harnais, pas par le CSS.
+
+### Pourquoi celle-là et pas une autre
+
+C'est la seule pièce du bureau qui ne lit **rien** du stockage local : son contenu vient de six
+appels au serveur. Le conteneur n'a pas de réseau, le banc d'empreinte coupe en plus tout ce qui
+n'est pas 127.0.0.1, les six appels tombaient, et la pièce affichait son écran d'échec. Le décor
+avait été écrit pour un bureau qui travaille **seul**, et cette pièce-là ne parle que de
+travailler à plusieurs. Personne n'avait eu à y penser, et rien ne le disait.
+
+### Ce que l'angle mort a coûté, en chiffres, avant correction
+
+Harnais garni, pièce ouverte, thème sombre, aux deux largeurs : **58 paires sous leur seuil**,
+**152 valeurs papier**, **6 cibles tactiles sous 44 px**. Zéro de tout cela en clair : c'est un
+défaut qui n'existe **que** dans le thème que personne n'avait photographié ici.
+
+Les quatre qui font mal :
+
+- **« UTILISATEUR » à 1,20:1.** L'étiquette du rôle le plus fréquent était littéralement absente
+  de l'écran, alors que « MAÎTRE », posée sur `--bordeaux`, restait lisible. Une pièce où l'un
+  des deux états disparaît dit que tout le monde est maître.
+- **« Il ne s'affichera qu'une fois » à 1,00:1.** C'est la seule phrase qui prévienne qu'un
+  secret non reproductible ne reviendra pas — la base n'en garde que l'empreinte. Un écran qui
+  affiche ce secret sans pouvoir le dire est un piège.
+- **« Tu n'appartiens à aucun bureau » à 1,00:1**, sur l'écran qui existe justement pour qu'on ne
+  reste pas enfermé dehors sans explication.
+- **« Untel t'invite à travailler dans Tel domaine » à 1,00:1**, la première phrase que lit
+  quelqu'un qui arrive par un lien, et souvent la seule.
+
+### Ce qui ferme le trou, et ça vaut plus que le lot
+
+Le décor de l'équipe est posé **par défaut** : un décor qu'il faut penser à demander est un décor
+qu'on oublie. Et c'est le **serveur** qui est doublé, pas le client : `window.fetch` répond aux
+seules adresses Supabase connues, et les deux modules du produit tournent en entier. Doubler
+`BdvCompte` aurait reconstruit un harnais plus sage que la réalité, c'est-à-dire le défaut qu'on
+répare.
+
+Trois états, parce qu'ils n'affichent pas les mêmes blocs : un maître avec deux bureaux et trois
+membres, un simple utilisateur, et « aucun bureau ». Plus le lien de secours, atteint par le
+**vrai geste** : la fonction d'envoi rend `envoyé:false`, comme quand Resend tousse.
+
+Et deux garde-fous qui **lèvent** au lieu de se taire : l'un demande à la page, par le vrai
+chemin, combien d'équipiers le serveur rend ; l'autre se passe la pièce ouverte et compte les
+lignes, les étiquettes, les invitations et la visibilité de chaque bloc selon l'état demandé. Le
+harnais s'arrête avant la première image.
+
+### L'aperçu mentait aussi, depuis le matin même
+
+`npm run apercu:equipe` ne posait que `style.css`. Depuis la scission du matin, `style.css` ne
+contient plus **une seule** règle `.equipe-*` : l'aperçu rendait la pièce entièrement nue, et il
+l'a fait toute la journée sans que rien ne le dise. Il pose maintenant les quatre feuilles du
+bureau dans l'ordre où le gabarit les lie, le scope de la coque, et **les deux thèmes côte à
+côte**.
+
+**Et il a encore trouvé un défaut au premier passage, comme la première fois.** Un conteneur qui
+force un thème retourne les jetons de son sous-arbre, mais pas les propriétés déjà **calculées**
+au-dessus : l'encre du corps de page descendait en clair dans la colonne sombre, et les noms des
+équipiers sortaient gris foncé sur fond noir. C'était un défaut de l'aperçu et pas du produit —
+mais c'est exactement le genre de mensonge qui fait valider un écran cassé. Un conteneur qui
+force un thème redit désormais tout ce que la coque pose sur le corps : le fond **et** l'encre.
+
+### Le banc de sortie a un périmètre, et c'est nouveau
+
+Les deux lots précédents ne changeaient aucun pixel. Celui-ci change l'écran, sur une pièce et
+une seule. Le banc range donc chaque écart dans trois seaux : dans la zone et son bandeau, sur
+leurs ancêtres (la hauteur de la zone qui remonte), ailleurs. **Le troisième doit être vide.**
+
+**22 560 écarts dans la pièce, 66 sur ses six ancêtres dans les six états où elle est à l'écran,
+zéro ailleurs** — les huit autres pièces, le panneau, la modale, les six pages publiques —
+contre **deux** relevés de référence. Vérifié par mutation : 311 règles de la feuille servie
+salies d'un `word-spacing`, et le troisième seau passe de 0 à **75 858**.
+
+Deux corrections ont été **annulées par le banc**, et les deux apprennent quelque chose. La
+perforation du bloc calendrier est en `display:none` : ses valeurs papier ne peignent pas un
+pixel, mais `getComputedStyle` rend les valeurs d'un élément caché, et les retirer sortait 165
+écarts. Et le filet des fiches du sous-main sur téléphone **peint encore** : la règle du bureau
+ne couvre que le corps du tableau, pas la rangée d'en-tête.
+
+### Deux états que ce banc ne saura jamais lire
+
+Le relevé se fait **au repos** : aucun de ses 45 états n'est un survol ni un focus clavier. Un
+troisième harnais force les deux pseudo-états par le protocole de Chromium, et il a trouvé les
+deux seules valeurs papier qui peignaient encore hors de « L'équipe » :
+
+| état forcé, en sombre | avant | après |
+|---|---|---|
+| le titre d'une tâche, au survol | **1,37:1** | 8,34:1 |
+| l'anneau de focus clavier d'une tâche | **1,37:1** | 10,87:1 |
+
+Un titre qui disparaît quand la souris passe dessus, et un anneau de focus invisible sur la pièce
+la plus ouverte du bureau. Un nom d'élément de plus dans le sélecteur suffisait à leur faire
+gagner la cascade, exactement comme les trois défauts de spécificité du lot 2.
+
+### Ce qui reste ouvert, et c'est le prochain trou de harnais
+
+**Le bureau déconnecté n'a jamais été photographié en sombre.** Sondé cette nuit : le titre
+« Ton bureau t'attend. » tient **1,28:1**. La cause est la même que celle du titre de modale du
+lot 5 — `h1,h2,h3,h4{color:var(--ink)}` de `style.css` peint tout titre du bureau que la feuille
+de la coque ne nomme pas. Les 45 états de l'empreinte ont **tous** une session. Le défaut est
+mesuré, il n'est pas corrigé : il est hors du périmètre que ce lot peut prouver.
+
+Et `.invitation` est restée dans `style.css` alors qu'aucune page publique ne s'en sert. Elle est
+**recouverte** depuis la feuille du bureau, propriétés nommées une par une, parce que la doctrine
+interdit de toucher une feuille partagée. Le contrôle C3 de `npm run charte` ne sait pas la voir.
+
+### La leçon, en une ligne
+
+**Une pièce qu'un harnais rend vide n'est pas une pièce vérifiée.** Un décor de harnais n'a pas
+d'utilisateur pour signaler qu'il ment : avant de croire un relevé, on compte ce qui est
+**peint**, et un décor que le harnais oublie de poser doit lever, pas se taire.
+
+---
+
 ## 21/09/2026, au soir. Le recouvrement est levé : on ne cache plus le papier, on le remplace
 
 La scission de `style.css` du matin n'était pas une fin, c'était une condition. Pendant les cinq

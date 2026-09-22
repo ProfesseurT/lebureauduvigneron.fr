@@ -81,7 +81,7 @@
 .container--bureau {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 var(--e-l);
+  padding: 0 var(--bdv-e-6);
 }
 
 /* de style.css L5954, dans @media (max-width:700px) */
@@ -290,7 +290,7 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L6189 */
 .zone__pied {
-  margin: var(--e-m) 0 0;
+  margin: var(--bdv-e-4) 0 0;
   font-size: var(--bdv-f-2);
   color: var(--bdv-encre-4);
 }
@@ -529,7 +529,10 @@ body.bdv-poste .tachesf__i,
    la rangee et disparaissaient dedans : il ne restait qu'un trait vertical a
    gauche du groupe, ce qu'on prend pour une decoration et pas pour un focus. */
 .listbb :where(button, a):focus-visible { outline-offset: -2px; }
-.listb__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
+/* 1 px en clair : c'est un cheveu entre deux boutons nus, pas un pas de
+   l'echelle d'espacement. `var(--trait)` etait un jeton d'EPAISSEUR de filet
+   detourne en marge. */
+.listb__gestes .btn--geste + .btn--geste { margin-left: 1px; }
 
 /* de style.css L6442 */
 /* 40 REM, ET C'EST LA BOITE DE CONTENU DE LA ZONE, PAS LA ZONE. Piege verifie a
@@ -550,6 +553,11 @@ body.bdv-poste .tachesf__i,
     grid-template-areas: "nom montant retard" "motif motif motif" "gestes gestes gestes";
     align-items: baseline;
     row-gap: 0.3rem;
+    /* CES DEUX-LA PEIGNENT, ET ON LES GARDE. `.bdv-coque .listb tbody tr` de
+       bdv-bureau.css ne couvre que le CORPS du tableau : la rangee d'en-tete,
+       elle, prend encore ces deux valeurs-ci. Le banc de sortie l'a chiffre,
+       six ecarts sur les deux etats a 390 px. Les repeindre changerait l'ecran
+       de « Ma journee », c'est-a-dire hors du perimetre de ce lot. */
     padding: var(--e-s) 0;
     border-bottom: var(--trait) solid var(--rule);
   }
@@ -574,7 +582,7 @@ body.bdv-poste .tachesf__i,
     width: auto;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--trait);
+    gap: 1px;
     white-space: normal;
     padding-left: var(--e-s);
   }
@@ -605,7 +613,10 @@ body.bdv-poste .tachesf__i,
 .btn--geste:disabled { cursor: default; color: var(--bdv-encre-4); border-color: transparent; }
 
 /* de style.css L6501 */
-.btn--geste:disabled:hover { background: var(--paper); border-color: transparent; color: var(--bdv-encre-4); }
+/* `.bdv-coque .btn--geste:disabled:hover` de bdv-bureau.css pese (0,4,0) contre
+   (0,2,0) ici : ce fond creme ne s'est jamais pose. On le dit en jetons du
+   bureau plutot que de le laisser mentir. */
+.btn--geste:disabled:hover { background: transparent; border-color: transparent; color: var(--bdv-encre-4); }
 
 /* de style.css L6519 */
 /* ---- LE BLOC CALENDRIER ----
@@ -672,6 +683,15 @@ body.bdv-poste .tachesf__i,
 .calbloc__trous {
   display: none;
   height: 8px;
+  /* CES QUATRE VALEURS PAPIER SONT GARDEES, ET C'EST LE BANC QUI L'A DECIDE.
+     Le bloc est en `display:none` depuis le lot du dessin : elles ne peignent
+     pas un pixel. Mais `getComputedStyle` REND les valeurs d'un element cache,
+     donc les retirer fait sortir 165 ecarts au banc de sortie, sur les 33 etats
+     ou ce bloc existe. Un banc de style calcule ne sait pas distinguer « ce
+     n'est pas peint » de « ce n'est plus la », et c'est tres bien ainsi : c'est
+     ce qui lui permet d'attraper un defaut dans un etat qu'aucune capture ne
+     montre. Elles partiront le jour ou la regle `display:none` partira, dans le
+     meme geste. */
   background-color: var(--paper-light);
   background-image: radial-gradient(circle at 8px 50%, var(--paper-deep) 0 2px, transparent 2.5px);
   background-size: 16px 8px;
@@ -771,8 +791,10 @@ body.bdv-poste .tachesf__i,
   right: 0;
   width: 9px;
   height: 9px;
-  border-radius: var(--r-rond);
-  background: var(--bordeaux);
+  border-radius: var(--bdv-r-rond);
+  /* `.bdv-coque .lettre__p` pose deja `--bdv-accent` et pese (0,2,0) contre
+     (0,1,0) : ce bordeaux papier ne peignait plus. */
+  background: var(--bdv-accent);
 }
 
 /* de style.css L6955 */
@@ -809,7 +831,7 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L6983 */
 .bureau-tete__jour {
-  font-family: var(--font-corps);
+  font-family: inherit;
   font-size: var(--bdv-f-2);
   text-transform: none;
   letter-spacing: 0;
@@ -826,7 +848,10 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L6997 */
-.bureau-tete h1 { color: var(--on-dark); }
+/* `.bdv-coque .bureau-tete__piece` pese (0,2,0) contre (0,1,1) ici, et ce h1 est
+   justement cet element-la : ce creme sur le fond clair du bureau aurait donne
+   1,05:1, et il ne s'est jamais pose. */
+.bureau-tete h1 { color: var(--bdv-encre-1); }
 
 /* de style.css L7002 */
 /* La plaque de porte : le nom du domaine, grave sous le bonjour.
@@ -835,7 +860,7 @@ body.bdv-poste .tachesf__i,
    exception du site, et elle ne vaut que sur ce fond-la. */
 .bureau-tete__plaque {
   margin: 0;
-  font-family: var(--font-corps);
+  font-family: inherit;
   font-size: var(--bdv-f-2);
   text-transform: none;
   letter-spacing: 0;
@@ -846,7 +871,11 @@ body.bdv-poste .tachesf__i,
 .bureau-tete__invite {
   background: none;
   border: none;
-  border-bottom: var(--trait) dashed var(--cork);
+  /* L'EPAISSEUR ET LE POINTILLE RESTENT ICI, LA COULEUR VIENT D'EN FACE :
+     `.bdv-coque .bureau-tete__invite` ne pose que `border-bottom-color`
+     (--bdv-accent-trait). `var(--trait)` valait 1px, c'est une epaisseur et pas
+     une couleur, on l'ecrit en clair. `--cork` ne peignait pas. */
+  border-bottom: 1px dashed var(--bdv-accent-trait);
   padding: 0;
   font: inherit;
   letter-spacing: inherit;
@@ -855,7 +884,9 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L7020 */
-.bureau-tete__invite:hover { color: var(--on-dark); border-bottom-color: var(--on-dark); }
+/* A specificite EGALE (0,2,0) avec `.bdv-coque .bureau-tete__invite`, et la
+   feuille d'en face arrivant apres, ce survol creme n'a jamais eu lieu. */
+.bureau-tete__invite:hover { color: var(--bdv-accent-fort); border-bottom-color: var(--bdv-accent); }
 
 /* de style.css L7021 */
 .bureau-tete__reglages {
@@ -865,7 +896,7 @@ body.bdv-poste .tachesf__i,
   color: var(--bdv-encre-2);
   border: 1px solid var(--bdv-trait-fort);
   padding: 0 var(--bdv-e-3);
-  font-family: var(--font-corps);
+  font-family: inherit;
   font-size: var(--bdv-f-2);
   text-transform: none;
   letter-spacing: 0;
@@ -873,7 +904,9 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L7034 */
-.bureau-tete__reglages:hover { background: var(--paper); color: var(--bdv-encre-1); border-color: var(--paper); }
+/* `.bdv-coque .bureau-tete__reglages:hover` pese (0,3,0) contre (0,2,0) : ces
+   deux cremes ne se sont jamais poses. */
+.bureau-tete__reglages:hover { background: var(--bdv-surface-2); color: var(--bdv-encre-1); border-color: var(--bdv-encre-4); }
 
 /* de style.css L7038 */
 /* Les deux actions de l'entete, empilees a droite. « Me deconnecter » est un lien souligne
@@ -907,8 +940,10 @@ body.bdv-poste .tachesf__i,
   background: transparent;
   border: 1px solid var(--bdv-trait-fort);
   padding: 0 var(--bdv-e-3);
-  border-bottom: var(--trait) dashed var(--on-dark-faint);
-  font-family: var(--font-corps);
+  /* `.bdv-coque .bureau-tete__sortir` pose `border:1px solid` en abrege et pese
+     (0,2,0) : ce pointille creme ne s'est jamais pose. */
+  border-bottom: 1px dashed var(--bdv-trait-fort);
+  font-family: inherit;
   font-size: var(--bdv-f-2);
   text-transform: none;
   letter-spacing: 0;
@@ -917,14 +952,14 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L7068 */
-.bureau-tete__sortir:hover { color: var(--bdv-encre-1); border-bottom-color: var(--on-dark); }
+.bureau-tete__sortir:hover { color: var(--bdv-encre-1); border-bottom-color: var(--bdv-encre-4); }
 
 /* de style.css L7069 */
 .bureau-tete__sortir-avis {
   max-width: 24rem;
   margin: 0;
   text-align: right;
-  font-family: var(--font-corps);
+  font-family: inherit;
   font-size: var(--bdv-f-1);
   line-height: 1.45;
   color: var(--bdv-encre-4);
@@ -976,7 +1011,7 @@ body.bdv-poste .tachesf__i,
 /* de style.css L7110 */
 .bureau-tete__lune-nom {
   margin: 0;
-  font-family: var(--font-corps);
+  font-family: inherit;
   font-size: var(--bdv-f-2);
   text-transform: none;
   letter-spacing: 0;
@@ -987,7 +1022,7 @@ body.bdv-poste .tachesf__i,
 .bureau-tete__lune-note,
 .bureau-tete__lune-suite {
   margin: 0.2rem 0 0;
-  font-family: var(--font-corps);
+  font-family: inherit;
   font-size: var(--bdv-f-1);
   color: var(--bdv-encre-4);
 }
@@ -1006,13 +1041,15 @@ body.bdv-poste .tachesf__i,
     width: 100%;
     margin-top: 1.1rem;
     padding-top: 0.9rem;
-    border-top: var(--trait) solid var(--on-dark-rule);
+    /* `.bdv-coque .bureau-tete__lune{border:0}` pese (0,2,0) hors requete et
+       gagne donc ici aussi : ce filet creme ne s'est jamais pose. */
+    border-top: 1px solid var(--bdv-trait);
   }
 }
 
 /* de style.css L7151, dans @media (max-width:700px) */
 @media (max-width:700px) {
-.container--bureau { padding: 0 var(--e-m); }
+.container--bureau { padding: 0 var(--bdv-e-4); }
 }
 
 /* de style.css L7158, dans @media (max-width:700px) */
@@ -1118,8 +1155,8 @@ body.bdv-poste .tachesf__i,
 @media (max-width: 700px) {
   body.bdv-poste .bureau-sortie {
     display: block;
-    margin: var(--e-l) 0 0;
-    padding: var(--e-m) 0 var(--e-l);
+    margin: var(--bdv-e-6) 0 0;
+    padding: var(--bdv-e-4) 0 var(--bdv-e-6);
     text-align: center;
     font-family: inherit;
     font-size: var(--t-mini);
@@ -1131,17 +1168,20 @@ body.bdv-poste .tachesf__i,
     display: inline-block;
     min-height: 44px;
     line-height: 44px;
-    padding: 0 var(--e-m);
+    padding: 0 var(--bdv-e-4);
   }
   body.bdv-poste .bureau-sortie a:hover { color: var(--bdv-accent); }
 }
 
 /* de style.css L7623 */
 .postit__l {
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  line-height: var(--lh-serre);
-  color: var(--ink);
+  /* `.bdv-coque .panneau .postit__l` pese (0,3,0) contre (0,1,0), et toutes les
+     punaises du bureau vivent dans `.panneau` : ces quatre declarations ne
+     peignent rien. */
+  font-family: inherit;
+  font-size: var(--bdv-f-3);
+  line-height: 1.2;
+  color: var(--bdv-encre-1);
 }
 
 /* de style.css L7656 */
@@ -1149,7 +1189,7 @@ body.bdv-poste .tachesf__i,
    des boutons, ce que le HTML interdit et ce que le clavier traverse de travers.
    C'est donc le libelle qui porte le lien, et son ::after qui couvre le papier. Une
    seule cible pour la souris, deux arrets nets pour le clavier. */
-.postit__lien { color: var(--ink); text-decoration: none; }
+.postit__lien { color: inherit; text-decoration: none; }
 
 /* de style.css L7657 */
 .postit__lien::after { content: ""; position: absolute; inset: 0; }
@@ -1161,7 +1201,11 @@ body.bdv-poste .tachesf__i,
 /* L'anneau se pose sur le PAPIER et jamais sur le liege : --bordeaux sur --paper-light
    se lit, --bordeaux sur --cork se devine. C'est la lecon du 07/09/2026, l'anneau a la
    couleur de la surface qui le porte. */
-.postit__lien:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+/* LES QUATRE ANNEAUX PAPIER DE CETTE FEUILLE NE SE POSENT PLUS : le bureau n'a
+   qu'un anneau, `.bdv-coque :focus-visible` (2 px, `--bdv-anneau`, 7,44:1 en
+   clair et 9,15:1 en sombre), et il pese (0,2,0) comme eux dans une feuille qui
+   arrive APRES. On aligne l'ecriture sur ce qui se voit, decalage compris. */
+.postit__lien:focus-visible { outline: 2px solid var(--bdv-anneau); outline-offset: 2px; }
 
 /* de style.css L7749 */
 .panneau .postit--decroche {
@@ -1176,23 +1220,30 @@ body.bdv-poste .tachesf__i,
 .postit--decroche::before { opacity: 0; }
 
 /* de style.css L7834 */
+/* PLUS AUCUN ELEMENT NE PORTE `.reg__i` : le panneau de reglages du 07/09/2026
+   pose son propre balisage et son propre style (bdv-panneau.css), et son
+   commentaire de tete dit explicitement qu'il ne s'appuie sur aucune classe du
+   site. Ces trois regles sont servies a chaque ouverture du bureau et ne
+   peignent rien. On les repeint quand meme au lieu de les retirer : retirer une
+   classe est une decision de MENAGE, elle se prend avec la liste des classes
+   mortes sous les yeux, pas au detour d'un lot de peinture. */
 .reg__i {
   width: 100%;
-  background: var(--paper);
-  border: var(--trait) solid var(--rule-fort);
+  background: var(--bdv-surface);
+  border: 1px solid var(--bdv-trait-fort);
   padding: 0.6rem 0.75rem;
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--bdv-f-saisie);
+  color: var(--bdv-encre-1);
 }
 
 /* de style.css L7843 */
-.reg__i:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 1px; }
+.reg__i:focus-visible { outline: 2px solid var(--bdv-anneau); outline-offset: 1px; }
 
 /* de style.css L7846 */
 /* Un champ verrouille doit se voir verrouille : le paragraphe d'explication ne suffit pas,
    personne ne lit une explication avant d'avoir essaye de taper. */
-.reg__i:disabled { background: var(--paper-deep); color: var(--muted); cursor: not-allowed; }
+.reg__i:disabled { background: var(--bdv-surface-2); color: var(--bdv-encre-4); cursor: not-allowed; }
 
 /* de style.css L7857 */
 .bureau-avis[data-ok="oui"] { background: var(--bdv-bon-lavis); border-left-color: var(--bdv-bon); }
@@ -1293,8 +1344,8 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L7947 */
 .filtfam:focus-visible {
-  outline: var(--trait-fort) solid var(--bordeaux);
-  outline-offset: var(--trait);
+  outline: 2px solid var(--bdv-anneau);
+  outline-offset: 1px;
 }
 
 /* de style.css L7952 */
@@ -1302,7 +1353,7 @@ body.bdv-poste .tachesf__i,
   display: flex;
   flex-wrap: wrap;
   gap: var(--e-xs);
-  margin-bottom: var(--e-m);
+  margin-bottom: var(--bdv-e-4);
 }
 
 /* de style.css L7962 */
@@ -1317,7 +1368,7 @@ body.bdv-poste .tachesf__i,
 
 /* de style.css L7969 */
 /* Le formulaire. En haut de la piece, et le champ garde le focus apres l'ajout. */
-.tachesf { margin: 0 0 var(--e-l); }
+.tachesf { margin: 0 0 var(--bdv-e-6); }
 
 /* de style.css L7970 */
 .tachesf__l {
@@ -1437,7 +1488,7 @@ body.bdv-poste .tachesf__i,
   border-bottom: 3px solid var(--bdv-accent);
   transform: rotate(-45deg);
   opacity: 0;
-  transition: opacity var(--tr-rapide);
+  transition: opacity var(--bdv-d-court);
 }
 
 /* de style.css L8075 */
@@ -1530,7 +1581,7 @@ body.bdv-poste .tachesf__i,
    posee sur le bureau, pas une boite de dialogue de systeme.
    =========================================================================== */
 .tmod { position: fixed; inset: 0; z-index: var(--z-voile);
-  display: flex; align-items: center; justify-content: center; padding: var(--e-l); }
+  display: flex; align-items: center; justify-content: center; padding: var(--bdv-e-6); }
 .tmod[hidden] { display: none; }
 /* Le voile : le meme que celui du panneau et du moteur, `--bdv-voile`, qui est
    pose en rgba dans les deux themes. Le flou de 2 px reste : c'est une matiere,
@@ -1577,9 +1628,9 @@ body.bdv-poste .tachesf__i,
   color: var(--bdv-encre-4); line-height: 1.5;
 }
 
-.tmod__form { margin-top: var(--e-m); }
+.tmod__form { margin-top: var(--bdv-e-4); }
 .tmod__champ { display: flex; flex-direction: column; min-width: 0; }
-.tmod__duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-s) var(--e-m); margin-top: var(--e-s); }
+.tmod__duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-s) var(--bdv-e-4); margin-top: var(--e-s); }
 .tmod__l {
   margin: 0 0 0.3rem;
   font-family: inherit; font-size: var(--bdv-f-3); color: var(--bdv-encre-2);
@@ -1589,7 +1640,7 @@ body.bdv-poste .tachesf__i,
   padding: 0.55rem 0.7rem;
   background: var(--bdv-surface);
   border: 1px solid var(--bdv-trait-fort);
-  border-radius: var(--r-nul);
+  border-radius: 0;
   font-family: inherit; font-size: var(--bdv-f-saisie); color: var(--bdv-encre-1);
 }
 /* UN SEUL ANNEAU DE FOCUS DANS TOUT LE PRODUIT. Celui d'origine etait un trait
@@ -1605,7 +1656,7 @@ body.bdv-poste .tachesf__i,
   background: var(--bdv-retard-lavis); color: var(--bdv-retard);
   font-family: inherit; font-size: var(--bdv-f-2);
 }
-.tmod__pied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); margin-top: var(--e-m); }
+.tmod__pied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--bdv-e-4); margin-top: var(--bdv-e-4); }
 /* btn--bordeaux et pas btn--ghost : le ghost porte `color: var(--paper)`, il est
    dessine pour un fond sombre et devient illisible sur le papier de cette boite.
    Meme piege que .btn--light, paye deux fois deja. */
@@ -1625,7 +1676,7 @@ body.bdv-poste .tachesf__i,
 
 /* Les blocs du bas sont separes par un filet, pas par un cadre : la boite est deja
    un cadre, et un cadre dans un cadre fait boite dans boite. */
-.tmod__bloc { margin-top: var(--e-l); padding-top: var(--e-m); border-top: 1px solid var(--bdv-trait); }
+.tmod__bloc { margin-top: var(--bdv-e-6); padding-top: var(--bdv-e-4); border-top: 1px solid var(--bdv-trait); }
 .tmod__bloc[hidden] { display: none; }
 .tmod__gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s); }
 /* Le « ou », le champ et son bouton sont un seul morceau : ils passent a la ligne
@@ -1647,7 +1698,7 @@ body.bdv-poste .tachesf__i,
 }
 .tmod__g:hover { border-color: var(--bdv-encre-4); color: var(--bdv-encre-1); background: var(--bdv-surface-2); }
 .tmod__ou { font-family: inherit; font-size: var(--bdv-f-2); color: var(--bdv-encre-4); }
-.tmod__bloc--gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--e-m); }
+.tmod__bloc--gestes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-s) var(--bdv-e-4); }
 .tmod__bloc--gestes .tmod__lien--x { margin-left: auto; }
 
 /* Sur telephone la boite prend l'ecran : une fiche a mi-hauteur sur 380 px de large
@@ -1688,8 +1739,36 @@ button.tache__corps { cursor: pointer; }
    plancher explicite vaut mieux qu'une hauteur qui se trouve juste. Le dessin ne
    bouge pas : le texte est deja cale en haut par `align-items: flex-start`. */
 body.bdv-poste button.tache__corps { min-height: 44px; }
-button.tache__corps:hover .tache__titre { color: var(--bordeaux); }
-button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+/* LES DEUX SEULES VALEURS PAPIER DE CETTE FEUILLE QUI PEIGNAIENT ENCORE HORS
+   DE « L'EQUIPE », ET LE BANC DE SORTIE NE POUVAIT PAS LES VOIR.
+   ============================================================================
+   `lot6-empreinte.mjs` releve le style calcule AU REPOS : aucun de ses 45 etats
+   n'est un survol ni un focus clavier. Ces deux declarations-ci ne peignent que
+   dans ces deux etats-la, et elles GAGNENT : `button.tache__corps:hover
+   .tache__titre` pese (0,3,1) contre (0,2,0) pour `.bdv-coque .tache__titre`, et
+   `button.tache__corps:focus-visible` pese (0,2,1) contre (0,2,0) pour l'anneau
+   unique `.bdv-coque :focus-visible`. Le nom d'element de plus suffit, comme
+   pour les trois defauts de specificite du lot 2.
+
+   MESURE PAR `"Claude outputs/lot8-etats-forces.mjs"`, QUI FORCE LES DEUX
+   PSEUDO-ETATS PAR LE PROTOCOLE DE CHROMIUM, le 21/09/2026 :
+     survol du titre, `--bordeaux` sur `--bdv-surface`  13,39:1 en clair
+                                                         1,37:1 EN SOMBRE (seuil 4,5)
+     anneau de focus, idem                              13,39:1 en clair
+                                                         1,37:1 EN SOMBRE (seuil 3)
+   Un titre de tache qui DISPARAIT quand on passe la souris dessus, et un anneau
+   de focus clavier invisible sur la piece la plus ouverte du bureau. C'est
+   exactement la regle du depot : « quand une surface change de couleur, relire
+   l'anneau de ce qu'elle porte », celle qui a fait tomber l'ancien anneau creme
+   a 2,36:1.
+
+   L'ANNEAU REDEVIENT CELUI DU PRODUIT, ET IL N'Y EN A QU'UN : 2 px de
+   `--bdv-anneau`, 7,44:1 en clair et 9,15:1 en sombre. La regle garde son
+   selecteur au lieu d'etre retiree : a (0,2,1) elle continuerait de gagner, et
+   une ligne qui dit la MEME chose que celle d'en face n'est plus une course de
+   specificite, quelle que soit celle qui l'emporte. */
+button.tache__corps:hover .tache__titre { color: var(--bdv-accent); }
+button.tache__corps:focus-visible { outline: 2px solid var(--bdv-anneau); outline-offset: 2px; }
 
 /* La seconde porte du formulaire. Un lien typographique et pas un deuxieme bouton
    plein : deux boutons pleins cote a cote se disputent le geste, et celui qui compte
@@ -1715,7 +1794,7 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   font: inherit; color: var(--bdv-encre-3); text-align: left; cursor: pointer;
 }
 .echeance__ouvrir:hover { color: var(--bdv-accent); }
-.echeance__ouvrir:focus-visible { outline: var(--trait-accent) solid var(--bordeaux); outline-offset: 2px; }
+.echeance__ouvrir:focus-visible { outline: 2px solid var(--bdv-anneau); outline-offset: 2px; }
 
 /* de style.css L8347 */
 /* LA ZONE OCCUPE LES DOUZE COLONNES, et son absence est le defaut que Ted a vu le
@@ -1734,12 +1813,16 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   container-name: equipe;
 }
 
-/* de style.css L8353 */
+/* de style.css L8353, repeinte aux jetons du bureau le 21/09/2026 */
+/* LE FILET DE LA LISTE EST `--bdv-trait`, comme toutes les rangees du bureau
+   (`.bdv-coque .listb`, section 13 de bdv-bureau.css). En papier il valait
+   `--rule`, #E0DED6, qui sur `--bdv-surface` sombre (#131519) est un trait creme
+   au milieu d'un bureau noir. */
 .equipe-liste {
   list-style: none;
-  margin: var(--e-m) 0 0;
+  margin: var(--bdv-e-4) 0 0;
   padding: 0;
-  border-top: var(--trait) solid var(--rule);
+  border-top: 1px solid var(--bdv-trait);
 }
 
 /* de style.css L8363 */
@@ -1751,26 +1834,41 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
   display: grid;
   grid-template-columns: minmax(0, 1fr) 8rem minmax(15.5rem, auto);
   align-items: center;
-  gap: var(--e-s);
-  padding: var(--e-s) 0;
-  border-bottom: var(--trait) solid var(--rule);
+  gap: var(--bdv-e-3);
+  padding: var(--bdv-e-2) 0;
+  border-bottom: 1px solid var(--bdv-trait);
+  /* 44 px, la meme cible que la rangee de tableau du bureau : une ligne de
+     personne se survole, se clique de travers et porte deux boutons. */
+  min-height: var(--bdv-cible);
 }
 
 /* de style.css L8371 */
 .equipe-ligne__qui { min-width: 0; }
 
 /* de style.css L8372 */
-.equipe-ligne__nom { display: block; font-weight: 500; }
+/* LE NOM DIT SON ENCRE AU LIEU DE L'HERITER, ET C'EST L'APERCU QUI L'A DEMANDE.
+   `--bdv-encre-1` est documente « titres, chiffres, NOMS DE CLIENT » dans
+   bdv-theme.css : le nom d'un equipier est le meme objet, et c'est le texte le
+   plus important de la ligne. Il vivait d'heritage depuis `body.bdv-coque`, ce
+   qui est juste sur la vraie page mais fragile partout ailleurs : dans un
+   conteneur qui force un theme, une encre heritee reste celle du dessus.
+   15,71:1 en clair, 13,99:1 en sombre. */
+.equipe-ligne__nom { display: block; font-weight: 500; color: var(--bdv-encre-1); }
 
 /* de style.css L8373 */
-.equipe-ligne__moi { color: var(--muted); font-weight: 400; }
+.equipe-ligne__moi { color: var(--bdv-encre-4); font-weight: 400; }
 
 /* de style.css L8374 */
+/* L'ADRESSE REMONTE DE 11,2 A 12 px EN MEME TEMPS QU'ELLE CHANGE D'ENCRE :
+   `--bdv-encre-4` est documente « metadonnees, jamais sous 12 px » dans
+   bdv-theme.css, et c'est la borne qui rend ses 5,19:1 / 4,66:1 utilisables.
+   En papier elle etait `--muted` #63523D, soit 2,44:1 sur le bureau sombre,
+   mesure a la capture du 21/09/2026 : une adresse illisible. */
 .equipe-ligne__adresse {
   display: block;
-  color: var(--muted);
+  color: var(--bdv-encre-4);
   font-family: var(--font-mono);
-  font-size: var(--t-mini);
+  font-size: var(--bdv-f-1);
   overflow-wrap: anywhere;
 }
 
@@ -1778,7 +1876,10 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 .equipe-ligne__gestes { justify-self: end; text-align: right; white-space: nowrap; }
 
 /* de style.css L8382 */
-.equipe-ligne__gestes .btn--geste + .btn--geste { margin-left: var(--trait); }
+/* 1 px en clair, pas un jeton : c'est un cheveu entre deux boutons nus, pas un
+   pas de l'echelle d'espacement. `var(--trait)` valait deja 1px, et c'etait un
+   jeton d'EPAISSEUR de filet detourne en marge. */
+.equipe-ligne__gestes .btn--geste + .btn--geste { margin-left: 1px; }
 
 /* de style.css L8389 */
 /* L'etiquette de role dit un ETAT, pas un geste : elle ne se clique pas et ne
@@ -1786,144 +1887,256 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 /* `justify-self` N'EST PAS DECORATIF : sans lui l'etiquette prend toute sa cellule de
    grille, et sur telephone « MAITRE » devenait un bandeau de bord a bord qu'on prend
    pour un bouton. Une etiquette dit un etat, elle epouse son mot. */
+/* LES DEUX ETIQUETTES SONT UN ETAT, ET UN ETAT SE LIT. Chacune porte son MOT,
+   « MAITRE » ou « UTILISATEUR », donc la couleur ne porte rien toute seule :
+   c'est la regle des etats de bdv-theme.css. Mais un mot qu'on ne voit pas ne
+   vaut pas mieux qu'une couleur : en papier, `--ink` (#1E2536) sur le bureau
+   sombre donnait 1,20:1, mesure a la capture du 21/09/2026. « UTILISATEUR »
+   etait litteralement absent de l'ecran, et lui seul : « MAITRE », pose sur
+   `--bordeaux`, restait lisible. Une piece ou l'un des deux etats disparait
+   est une piece qui dit que tout le monde est maitre.
+   ICI : le role simple prend la surface d'en dessous et l'encre courante, le
+   role maitre prend l'accent et sa seule encre (7,27:1 en clair, 8,65:1 en
+   sombre). 12 px et pas 9,92 : sous 12 px une capitale espacee n'est plus une
+   etiquette, c'est un motif. */
 .equipe-role {
   justify-self: start;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  letter-spacing: var(--bdv-ls-etiq);
   text-transform: uppercase;
   padding: 0.2rem 0.6rem;
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
+  border-radius: var(--bdv-r-pastille);
+  background: var(--bdv-surface-2);
+  border: 1px solid var(--bdv-trait-fort);
+  color: var(--bdv-encre-2);
   white-space: nowrap;
 }
 
 /* de style.css L8400 */
 .equipe-role--maitre {
-  background: var(--bordeaux);
-  border-color: var(--bordeaux);
-  color: var(--on-dark);
+  background: var(--bdv-accent);
+  border-color: var(--bdv-accent);
+  color: var(--bdv-encre-sur-accent);
 }
 
 /* de style.css L8406 */
+/* LES TROIS AIDES DE LA PIECE. `--bdv-encre-3` et pas `--bdv-encre-4` : ce sont
+   des phrases entieres qu'on lit, pas des metadonnees qu'on balaye. 6,97:1 en
+   clair, 6,05:1 en sombre. */
 .equipe-note,
 .equipe-inviter__aide,
 .equipe-lien__aide {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin-top: var(--e-s);
+  color: var(--bdv-encre-3);
+  font-size: var(--bdv-f-2);
+  line-height: 1.5;
+  margin-top: var(--bdv-e-2);
 }
 
 /* de style.css L8415 */
+/* L'AVIS DE LA PIECE, et son jumeau en cas de souci. Meme matiere que
+   `.bureau-avis` plus haut dans cette feuille : un lavis, un filet de 2 px, et
+   pas une ombre. En papier c'etait `--paper-deep` #DACDAF, un aplat creme pose
+   au milieu du bureau sombre. */
 .equipe-avis {
-  margin: var(--e-s) 0 0;
-  padding: var(--e-s);
-  background: var(--paper-deep);
-  border-left: var(--trait-accent) solid var(--bordeaux);
+  margin: var(--bdv-e-2) 0 0;
+  padding: var(--bdv-e-2) var(--bdv-e-3);
+  background: var(--bdv-accent-lavis);
+  border-left: 2px solid var(--bdv-accent);
+  color: var(--bdv-encre-2);
+  font-size: var(--bdv-f-2);
 }
 
 /* de style.css L8421 */
+/* `--bdv-retard` sur `--bdv-retard-lavis` : 6,30:1 en clair, 6,93:1 en sombre,
+   calcules. Et l'etat reste double d'une PHRASE, jamais porte par la couleur. */
 .equipe-avis--souci {
-  background: var(--danger-bg);
-  border-left-color: var(--danger-deep);
-  color: var(--danger-deep);
+  background: var(--bdv-retard-lavis);
+  border-left-color: var(--bdv-retard);
+  color: var(--bdv-retard);
 }
 
 /* de style.css L8427 */
-.equipe-inviter { margin-top: var(--e-l); }
+.equipe-inviter { margin-top: var(--bdv-e-6); }
 
 /* de style.css L8428 */
-.equipe-inviter__l {
-  display: block;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
+/* LES QUATRE ETIQUETTES DE LA PIECE prennent la meme forme que `.zone__tete h2`
+   du bureau : 12 px, capitales espacees, `--bdv-encre-4`. En papier elles
+   etaient a 9,92 px et en `--muted`, soit 2,44:1 sur le bureau sombre, mesure a
+   la capture du 21/09/2026. */
+.equipe-inviter__l {  display: block;
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  letter-spacing: var(--bdv-ls-etiq);
   text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--e-xs);
+  color: var(--bdv-encre-4);
+  margin-bottom: var(--bdv-e-2);
 }
 
 /* de style.css L8437 */
-.equipe-inviter__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-inviter__ligne { display: flex; flex-wrap: wrap; gap: var(--bdv-e-2); }
 
 /* de style.css L8438 */
-.equipe-inviter__i { flex: 1 1 16rem; }
+.equipe-inviter__i { flex: 1 1 18rem; }
 
 /* de style.css L8439 */
-.equipe-inviter__i,
+/* CES SEPT DECLARATIONS ETAIENT MORTES, ET LE COMMENTAIRE MENTAIT.
+   ============================================================================
+   `.bdv-coque input` et `.bdv-coque select` (section 8 de bdv-bureau.css) pesent
+   (0,2,0) contre (0,1,0) ici, et leur feuille est liee APRES celle-ci : elles
+   gagnaient deja sur les sept proprietes. Le champ ne portait donc ni ce fond,
+   ni cette bordure, ni cette encre, ni cette taille. Et le commentaire annoncait
+   « 16 px, et pas moins » alors que `--t-base` vaut 0,88rem, c'est-a-dire
+   14 px : ce qui rend vraiment ce champ sur pour iOS est
+   `font-size:var(--bdv-f-saisie)` d'en face. Une declaration morte qui porte une
+   mesure fausse est pire que du poids mort, elle fait croire le controle fait.
+   Le releve de rendu du 21/09/2026 confirme : zero saisie sous 16 px, avant
+   comme apres. */
 .equipe-inviter__r,
 .equipe-lien__i {
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  /* 16 px, et pas moins : sous cette taille, iOS zoome tout seul a la saisie et
-     ne redezoome jamais. C'est la regle du bureau sur telephone. */
-  font-size: var(--t-base);
+  flex: 1 1 16rem;
 }
 
 /* de style.css L8453 */
+/* LE BLOC DU LIEN DE SECOURS, ET C'EST LE PIRE DE LA PIECE, MESURE LE
+   21/09/2026 : un aplat `--paper-deep` creme pose dans le bureau sombre, et SA
+   PHRASE A 1,00:1. Or cette phrase est la seule qui dise « il ne s'affichera
+   qu'une fois » : la base ne garde que l'empreinte du jeton. Un ecran qui
+   affiche un secret non reproductible sans pouvoir dire qu'il ne reviendra pas
+   est un piege. Le contenu ne change pas, il se LIT maintenant.
+   `--bdv-surface-2` et un filet de 1 px : la profondeur du bureau est un trait,
+   pas une ombre (bdv-bureau.css, section 7). */
 .equipe-lien {
-  margin-top: var(--e-m);
-  padding: var(--e-m);
-  background: var(--paper-deep);
-  box-shadow: var(--ombre-carte);
+  margin-top: var(--bdv-e-4);
+  padding: var(--bdv-e-4);
+  background: var(--bdv-surface-2);
+  border: 1px solid var(--bdv-trait);
+  border-radius: var(--bdv-r);
 }
 
 /* de style.css L8459 */
-.equipe-lien__titre { margin: 0; }
+/* L'ENCRE EST DITE ICI ET PAS HERITEE : c'est l'heritage qui la laissait a
+   1,00:1 sur le creme. 15,71:1 en clair, 13,99:1 en sombre. */
+.equipe-lien__titre { margin: 0; color: var(--bdv-encre-1); }
 
 /* de style.css L8460 */
 .equipe-lien__ligne {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--e-s);
-  margin-top: var(--e-s);
+  gap: var(--bdv-e-2);
+  margin-top: var(--bdv-e-2);
 }
 
 /* de style.css L8466 */
-.equipe-lien__i {
-  flex: 1 1 20rem;
-  font-family: var(--font-mono);
-  font-size: var(--t-mini);
-}
+/* LA FAMILLE ET LA TAILLE SONT RETIREES, ET C'EST UNE MESURE ET NON UN GOUT :
+   `.bdv-coque input` pese (0,2,0) contre (0,1,0) et arrive apres, donc ce champ
+   n'a JAMAIS ete en chasse fixe depuis que la coque existe. Les reecrire ici ne
+   les rendrait pas vivantes, et les rendre vivantes demanderait de descendre a
+   11,2 px, c'est-a-dire sous le plancher de saisie de 16 px. */
+.equipe-lien__i { flex: 1 1 20rem; }
 
 /* de style.css L8472 */
-.equipe-attentes { margin-top: var(--e-l); }
+.equipe-attentes { margin-top: var(--bdv-e-6); }
 
 /* de style.css L8473 */
 .equipe-attentes__t {
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  letter-spacing: var(--bdv-ls-etiq);
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--bdv-encre-4);
   margin: 0;
 }
 
 /* de style.css L8481 */
-.equipe-partir-ligne { margin-top: var(--e-xl); }
+.equipe-partir-ligne { margin-top: var(--bdv-e-8); }
+
+/* LE PLANCHER TACTILE DES TROIS ACTIONS DECISIVES DE CETTE PIECE, 21/09/2026.
+   ============================================================================
+   `.bdv-coque .btn` pose 36 px, et c'est la hauteur juste d'un bouton pose dans
+   une barre dense. Ces trois-la ne sont pas dans une barre : « Envoyer
+   l'invitation » ferme la seule chose qu'on vient faire ici, « Ouvrir mon
+   bureau » est la SEULE sortie de quelqu'un qui n'appartient a aucun bureau, et
+   « Rejoindre » est le seul geste du bandeau d'invitation. Chacun est pose a
+   cote d'un champ de 44 px, et un bouton de 36 a cote d'un champ de 44 se lit
+   comme un bouton de second rang.
+   MESURE LE 21/09/2026 SUR LE RENDU : 152x36, 149x36 et 277x36. `--bdv-cible`
+   vaut 44 px parce que CLAUDE.md le dit depuis le 11/09/2026, et on agrandit la
+   CIBLE, jamais le dessin.
+   LE SCOPE EST NECESSAIRE : `.bdv-coque .btn` pese (0,2,0) et vit dans une
+   feuille liee APRES celle-ci. Sans `.bdv-coque` devant, cette regle pese
+   (0,2,0) elle aussi et perdrait sur le seul ordre des feuilles. */
+.bdv-coque .equipe-inviter__ligne .btn,
+.bdv-coque .equipe-aucun__ligne .btn,
+.bdv-coque .invitation .btn {
+  min-height: var(--bdv-cible);
+}
 
 /* de style.css L8500 */
+/* ============================================================================
+   LE CADRE DU BANDEAU D'INVITATION SE RECOUVRE, IL NE SE REPEINT PAS
+   ============================================================================
+   `.invitation` est restee dans style.css a la scission du 21/09/2026, et c'est
+   le seul bloc de « L'equipe » dans ce cas. Le critere de tri du lot 6 est
+   « QUELLE PAGE CHARGE CETTE REGLE », pas « de quoi parle cette classe » : les
+   douze pages publiques chargent style.css, donc on ne touche pas a cette
+   feuille et on la RECOUVRE depuis ici, comme le dit la doctrine.
+
+   ET ON NOMME TOUTES LES PROPRIETES QUI PEIGNENT, les trois. C'est la premiere
+   des quatre lecons de specificite de CLAUDE.md : « une propriete qu'on ne
+   reecrit pas garde celle de la cascade, et en sombre cette valeur-la est
+   toujours du papier ». La barre d'onglets du telephone du lot 2 est restee
+   creme pour avoir oublie un fond et deux degrades.
+     background      --paper-deep  #DACDAF
+     border-left     3px solid --bordeaux
+     box-shadow      --ombre-carte
+   Le poids : `.bdv-coque .invitation` pese (0,2,0) contre (0,1,0), et cette
+   feuille arrive apres style.css. Les deux raisons vont dans le meme sens.
+
+   CE QUE CA CORRIGE, MESURE SUR LE RENDU LE 21/09/2026 : le bandeau etait un
+   aplat creme dans le bureau sombre, son titre a 1,43:1 et ses notes a 1,62:1.
+   C'est la premiere phrase que lit quelqu'un qui arrive par un lien, et souvent
+   la seule qu'il lira.
+
+   `grid-column: 1 / -1` N'EST PAS REECRIT : il vient de style.css, il vaut dans
+   les deux feuilles, et c'est lui qui empeche le bandeau de se replier a
+   soixante pixels le jour ou quelqu'un le posera dans un `.bureau-plan`. */
+.bdv-coque .invitation {
+  margin: var(--bdv-e-4) 0;
+  padding: var(--bdv-e-4);
+  background: var(--bdv-accent-lavis);
+  border-left: 2px solid var(--bdv-accent);
+  border-radius: var(--bdv-r);
+  box-shadow: none;
+}
+
+/* LE BANDEAU D'INVITATION, ET SON TITRE ETAIT A 1,00:1 EN SOMBRE. C'est la
+   premiere phrase que lit quelqu'un qui arrive par un lien, et souvent la
+   seule : « Untel t'invite a travailler dans Tel domaine. » Elle etait
+   invisible. La serif de la maquette papier s'en va avec : la coque du bureau
+   n'a qu'une famille, et `.zone__tete h2` la dit deja en `inherit`. */
 .invitation__titre {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  margin: 0 0 var(--e-xs);
+  font-family: inherit;
+  font-size: var(--bdv-f-5);
+  font-weight: 600;
+  letter-spacing: var(--bdv-ls-serre);
+  color: var(--bdv-encre-1);
+  margin: 0 0 var(--bdv-e-2);
 }
 
 /* de style.css L8505 */
 .invitation__note {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin: 0 0 var(--e-s);
+  color: var(--bdv-encre-3);
+  font-size: var(--bdv-f-2);
+  line-height: 1.5;
+  margin: 0 0 var(--bdv-e-2);
 }
 
 /* de style.css L8511 */
-.invitation__souci { color: var(--danger-deep); margin: 0; }
+/* 6,33:1 en clair et 6,85:1 en sombre sur `--bdv-accent-lavis`, calcules. Le
+   souci reste double de sa PHRASE : « ce lien n'est pas valable », « ce lien a
+   deja servi ». La couleur ne le porte pas toute seule. */
+.invitation__souci { color: var(--bdv-retard); margin: 0; }
 
 /* de style.css L8518 */
 /* LA LIGNE S'EMPILE QUAND SA ZONE SE SERRE. Quatre colonnes dans une zone etroite
@@ -1934,7 +2147,7 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 @container equipe (max-width: 46rem) {
   .equipe-ligne {
     grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: var(--e-xs);
+    row-gap: var(--bdv-e-2);
   }
   /* L'etiquette remonte a droite du nom, et les gestes passent sous les deux : la
      lecture reste « qui, et quel role », puis « ce que je peux en faire ». */
@@ -1963,91 +2176,91 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 
 /* de style.css L8545 */
 .equipe-bureau {
-  margin-bottom: var(--e-l);
-  padding-bottom: var(--e-m);
-  border-bottom: var(--trait) solid var(--rule);
+  margin-bottom: var(--bdv-e-6);
+  padding-bottom: var(--bdv-e-4);
+  border-bottom: 1px solid var(--bdv-trait);
 }
 
 /* de style.css L8550 */
-.equipe-bureau__l {
-  display: block;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
+.equipe-bureau__l {  display: block;
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  letter-spacing: var(--bdv-ls-etiq);
   text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--e-xs);
+  color: var(--bdv-encre-4);
+  margin-bottom: var(--bdv-e-2);
 }
 
 /* de style.css L8559 */
-.equipe-bureau__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-bureau__ligne { display: flex; flex-wrap: wrap; gap: var(--bdv-e-2); }
 
 /* de style.css L8560 */
-.equipe-bureau__s {
-  flex: 1 1 16rem;
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-}
+/* Meme constat que pour les deux champs d'invitation : `.bdv-coque select`
+   pese (0,2,0) contre (0,1,0) et arrive apres, ces sept declarations n'ont
+   jamais peint. Seule la souplesse de la ligne reste. */
+.equipe-bureau__s { flex: 1 1 16rem; }
 
 /* de style.css L8570 */
-.equipe-bureau__aide {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin-top: var(--e-s);
+.equipe-bureau__aide {  color: var(--bdv-encre-3);
+  font-size: var(--bdv-f-2);
+  line-height: 1.5;
+  margin-top: var(--bdv-e-2);
 }
 
 /* de style.css L8580 */
 /* Aucun bureau : un etat nomme, pas une panne. Meme matiere que le bandeau
    d'invitation, filet d'accent compris : ce sont les deux seuls blocs du bureau
    qui s'adressent a quelqu'un qui n'a encore rien. */
+/* `grid-column: 1 / -1` NE SE RETIRE PAS : ce bloc et le bandeau d'invitation
+   sont les deux seuls du bureau qui s'adressent a quelqu'un qui n'a encore
+   rien, et le bandeau s'est deja replie a soixante pixels le jour ou une page
+   d'apercu l'a pose dans un `.bureau-plan` (14/09/2026).
+   La matiere, elle, devient celle du bureau : un lavis d'accent et un filet de
+   2 px, au lieu de l'aplat creme `--paper-deep` qui trouait le bureau sombre. */
 .equipe-aucun {
   grid-column: 1 / -1;
-  margin-bottom: var(--e-l);
-  padding: var(--e-m);
-  background: var(--paper-deep);
-  border-left: var(--trait-accent) solid var(--bordeaux);
+  margin-bottom: var(--bdv-e-6);
+  padding: var(--bdv-e-4);
+  background: var(--bdv-accent-lavis);
+  border-left: 2px solid var(--bdv-accent);
+  border-radius: var(--bdv-r);
 }
 
 /* de style.css L8587 */
+/* Meme defaut que `.invitation__titre` et meme mesure : 1,00:1 en sombre sur
+   le creme, pour la phrase qui NOMME l'etat (« tu n'appartiens a aucun bureau »).
+   Sans elle, tout le bureau est muet sans qu'on sache pourquoi. */
 .equipe-aucun__t {
-  font-family: var(--font-titre);
-  font-size: var(--t-lead);
-  margin: 0 0 var(--e-xs);
+  font-family: inherit;
+  font-size: var(--bdv-f-5);
+  font-weight: 600;
+  letter-spacing: var(--bdv-ls-serre);
+  color: var(--bdv-encre-1);
+  margin: 0 0 var(--bdv-e-2);
 }
 
 /* de style.css L8592 */
 .equipe-aucun__n {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin: 0 0 var(--e-s);
+  color: var(--bdv-encre-3);
+  font-size: var(--bdv-f-2);
+  line-height: 1.5;
+  margin: 0 0 var(--bdv-e-2);
 }
 
 /* de style.css L8598 */
-.equipe-aucun__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-aucun__ligne { display: flex; flex-wrap: wrap; gap: var(--bdv-e-2); }
 
 /* de style.css L8599 */
-.equipe-aucun__i {
-  flex: 1 1 16rem;
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-}
+/* Sept declarations mortes de plus, meme motif : `.bdv-coque input` gagne. */
+.equipe-aucun__i { flex: 1 1 16rem; }
 
 /* de style.css L8618, dans @media (max-width:700px) */
-@media (max-width:700px) {
-.equipe-aucun__i { font-size: var(--t-corps); min-height: 44px; }
-}
+/* LA RUSTINE DE TELEPHONE S'EN VA, ET ELLE N'AVAIT JAMAIS SERVI. Elle remontait
+   ce champ de 14 a 16 px sous 700 px, c'est-a-dire qu'elle reparait la regle
+   morte ci-dessus avec une autre regle morte : (0,1,0) toutes les deux contre
+   (0,2,0) pour `.bdv-coque input`, qui pose deja `--bdv-f-saisie` et
+   `--bdv-cible` a TOUTES les largeurs. Le releve de rendu du 21/09/2026 le
+   confirme des deux cotes : zero saisie sous 16 px, avant comme apres. */
 
 /* de style.css L8625 */
 /* Les deux chemins de l'invitation, cote a cote : « je cree mon compte » et
@@ -2056,7 +2269,7 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 .invitation__gestes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--e-s);
+  gap: var(--bdv-e-2);
   margin: 0;
 }
 
@@ -2064,43 +2277,33 @@ button.tache__corps:focus-visible { outline: var(--trait-accent) solid var(--bor
 /* Le nom du bureau : meme dessin que le selecteur juste au-dessus, dont il est la
    suite logique. Le bloc ne s'affiche qu'aux maitres, comme la politique. */
 .equipe-nom {
-  margin-bottom: var(--e-l);
-  padding-bottom: var(--e-m);
-  border-bottom: var(--trait) solid var(--rule);
+  margin-bottom: var(--bdv-e-6);
+  padding-bottom: var(--bdv-e-4);
+  border-bottom: 1px solid var(--bdv-trait);
 }
 
 /* de style.css L8639 */
-.equipe-nom__l {
-  display: block;
-  font-family: var(--font-corps);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-etiq);
+.equipe-nom__l {  display: block;
+  font-family: inherit;
+  font-size: var(--bdv-f-1);
+  letter-spacing: var(--bdv-ls-etiq);
   text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--e-xs);
+  color: var(--bdv-encre-4);
+  margin-bottom: var(--bdv-e-2);
 }
 
 /* de style.css L8648 */
-.equipe-nom__ligne { display: flex; flex-wrap: wrap; gap: var(--e-s); }
+.equipe-nom__ligne { display: flex; flex-wrap: wrap; gap: var(--bdv-e-2); }
 
 /* de style.css L8649 */
-.equipe-nom__i {
-  flex: 1 1 16rem;
-  min-height: var(--h-controle);
-  padding: 0.4rem 0.6rem;
-  background: var(--white);
-  border: var(--trait) solid var(--rule-fort);
-  color: var(--ink);
-  font-family: var(--font-corps);
-  font-size: var(--t-base);
-}
+/* Sept declarations mortes de plus, meme motif : `.bdv-coque input` gagne. */
+.equipe-nom__i { flex: 1 1 16rem; }
 
 /* de style.css L8659 */
-.equipe-nom__aide {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  line-height: var(--lh-lecture);
-  margin-top: var(--e-s);
+.equipe-nom__aide {  color: var(--bdv-encre-3);
+  font-size: var(--bdv-f-2);
+  line-height: 1.5;
+  margin-top: var(--bdv-e-2);
 }
 
 /* de style.css L8950, dans @media (max-width:700px) */
@@ -2130,12 +2333,12 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
 .bdv-amorce {
   position: fixed; inset: 0; z-index: var(--z-amorce);
   display: flex; align-items: center; justify-content: center;
-  padding: var(--e-m);
+  padding: var(--bdv-e-4);
   background: var(--bdv-voile);
 }
 .bdv-amorce__carte {
   width: 100%; max-width: 26rem;
-  padding: var(--e-l);
+  padding: var(--bdv-e-6);
   background: var(--bdv-surface-3);
   color: var(--bdv-encre-2);
   border: 1px solid var(--bdv-trait);
@@ -2148,7 +2351,7 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
      ET ELLE DEFILE. Trouve par `npm run apercu:amorce` le 17/09/2026, pas par les 27
      controles du banc : cinq etapes, la phrase d'echec et deux boutons ne tiennent pas
      dans un telephone en paysage. Un contenu trop grand doit defiler DANS son cadre. */
-  max-height: calc(100dvh - 2 * var(--e-m));
+  max-height: calc(100dvh - 2 * var(--bdv-e-4));
   overflow-y: auto;
 }
 .bdv-amorce__titre {
@@ -2160,7 +2363,7 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
   line-height: 1.2;
   color: var(--bdv-encre-1);
 }
-.bdv-amorce__sous { margin: 0.35rem 0 var(--e-m); color: var(--bdv-encre-4); }
+.bdv-amorce__sous { margin: 0.35rem 0 var(--bdv-e-4); color: var(--bdv-encre-4); }
 .bdv-amorce__liste { margin: 0; padding: 0; list-style: none; }
 /* Les trois etats d'une etape. En attente, l'etape est une metadonnee ; faite,
    elle passe a l'encre courante ; ratee, elle prend l'alerte. Le glyphe dit
@@ -2179,7 +2382,7 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
 .bdv-amorce__etape--rate { color: var(--bdv-alerte); }
 .bdv-amorce__etape--rate .bdv-amorce__puce::before { content: '\0021'; }
 .bdv-amorce__pied:empty { display: none; }
-.bdv-amorce__pied { margin-top: var(--e-m); border-top: 1px solid var(--bdv-trait); padding-top: var(--e-m); }
+.bdv-amorce__pied { margin-top: var(--bdv-e-4); border-top: 1px solid var(--bdv-trait); padding-top: var(--bdv-e-4); }
 .bdv-amorce__manque { margin: 0 0 var(--e-s); color: var(--bdv-alerte); }
 .bdv-amorce__pied .btn + .btn { margin-left: var(--e-s); }
 
