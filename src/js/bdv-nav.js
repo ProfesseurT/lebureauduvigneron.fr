@@ -959,6 +959,93 @@
     invitationEventuelle();
   }
 
+  /* ======================= LE TIROIR, 23/09/2026 =======================
+     LE BUREAU A DEUX BOITES QUI S'OUVRENT PAR-DESSUS LUI : la fiche client, que
+     `bdv-ecrans.js` pose dans `#modale`, et la modale d'une tache, que
+     `bdv-taches.js` fabrique dans son propre element. Elles ne partagent ni un
+     div, ni une feuille, ni un fichier.
+
+     ELLES DOIVENT POURTANT SE COMPORTER PAREIL, et c'est la seule chose que Ted
+     ait demandee en ouvrant le lot 2 : « ok same pour les taches ». Le danger
+     n'est pas d'avoir deux boites, c'est d'avoir DEUX ENDROITS QUI DECIDENT.
+     Deux seuils qui divergent au premier reglage, deux contrats ARIA dont un
+     seul est defait, deux classes posees sur le corps de page qui se retirent
+     l'une l'autre : ce fichier documente cette famille de panne a une douzaine
+     d'endroits, et elle ne se voit jamais a l'ecran.
+
+     LA DECISION VIT DONC ICI, ET ICI SEULEMENT. `bdv-nav.js` est le module de la
+     coque, il porte deja le SEUL point d'entree des reglages pour exactement la
+     meme raison. Il est charge SANS `defer` alors que `bdv-taches.js` l'est AVEC,
+     donc il s'execute avant lui ; `bdv-ecrans.js` arrive plus tard encore, au
+     premier clic sur une piece de vente. Les deux appelants le trouvent.
+
+     LE SEUIL EST JUMEAU de la media query de la section 22 de
+     src/css/bdv-bureau.css. Une media query ne se lit pas depuis le JavaScript,
+     et poser un temoin dans le CSS pour se faire lire serait un jeton de plus a
+     tenir a la main. `npm run banc:tiroir` interdit aux deux de diverger. */
+  var TIROIR_SEUIL = 1320;   // JUMEAU de @media (min-width:1320px), section 22 de bdv-bureau.css
+  var TIROIR_MQ = (typeof window.matchMedia === 'function')
+    ? window.matchMedia('(min-width:' + TIROIR_SEUIL + 'px)') : null;
+
+  /* LE MODE SE DEMANDE, IL NE SE RETIENT PAS. Un booleen pose a l'ouverture serait
+     faux des que la fenetre change de taille, et c'est le geste le plus banal qui
+     soit : on attrape le bord de la fenetre pour voir la liste en grand. */
+  function tiroirActif() { return !!(TIROIR_MQ && TIROIR_MQ.matches); }
+
+  /* CE QUI EST OUVERT EN CE MOMENT, et il n'y en a qu'un a la fois. On retient la
+     BOITE et pas seulement un booleen : c'est elle qui porte le contrat ARIA, et
+     c'est a elle qu'il faut le rendre quand la fenetre traverse le seuil. */
+  var TIROIR_BOITE = null;
+
+  /* UN TIROIR N'EST PAS UNE MODALE, ET LE DIRE NE SUFFIT PAS : il faut defaire les
+     trois choses qu'une modale impose, sinon ce qui est a cote est visible et mort.
+     1. `aria-modal` MENT : il annonce qu'il n'y a rien d'autre a l'ecran, donc une
+        synthese vocale cesse de lire la liste, qui est pourtant le sujet. On le
+        RETIRE au lieu de le poser a `false` : c'est la valeur par defaut, l'ecrire
+        n'apporte rien et se relit comme un oubli.
+     2. `role="dialog"` devient `complementary` : c'est un complement de la liste,
+        pas une boite qui attend une reponse.
+     3. Le defilement du corps de page est RENDU. C'est tout l'interet du mode.
+     Le piege a focus, lui, n'est pas ici : seule la fiche client en pose un, et
+     c'est elle qui sait le retirer. */
+  function tiroirPoser(boite) {
+    TIROIR_BOITE = boite || TIROIR_BOITE;
+    var actif = tiroirActif();
+    document.body.classList.toggle('bdv-a-tiroir', actif);
+    document.body.style.overflow = actif ? '' : 'hidden';
+    if (!TIROIR_BOITE) return actif;
+    if (actif) {
+      TIROIR_BOITE.removeAttribute('aria-modal');
+      TIROIR_BOITE.setAttribute('role', 'complementary');
+    } else {
+      TIROIR_BOITE.setAttribute('aria-modal', 'true');
+      TIROIR_BOITE.setAttribute('role', 'dialog');
+    }
+    return actif;
+  }
+
+  /* LA FERMETURE EST SYMETRIQUE, ET ELLE OUBLIE LA BOITE. Sans cet oubli, une
+     fenetre redimensionnee apres la fermeture irait reposer un attribut sur un
+     noeud detache, ou pire sur une boite que l'autre modale vient de remplacer. */
+  function tiroirRetirer() {
+    document.body.classList.remove('bdv-a-tiroir');
+    document.body.style.overflow = '';
+    TIROIR_BOITE = null;
+  }
+
+  /* TRAVERSER LE SEUIL AVEC UNE BOITE OUVERTE EST UN VRAI CAS, pas une curiosite :
+     c'est ce qui arrive quand on agrandit la fenetre pour mieux lire. Sans cette
+     ecoute on garderait un tiroir sans son retrait, ou une modale dont le corps de
+     page defile derriere le voile. On ne redessine RIEN : le contenu ne depend pas
+     de la largeur, seul son contrat change. */
+  if (TIROIR_MQ && TIROIR_MQ.addEventListener) {
+    TIROIR_MQ.addEventListener('change', function () {
+      if (TIROIR_BOITE && TIROIR_BOITE.isConnected) tiroirPoser(null);
+    });
+  }
+
+  window.BdvTiroir = { actif: tiroirActif, poser: tiroirPoser, retirer: tiroirRetirer };
+
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
                     marquerActif: marquerActif, ouvrirReglages: ouvrirReglages,

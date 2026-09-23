@@ -2377,60 +2377,19 @@ let FICHE_ID=null;
    par-dessus. La liste reste vivante a cote, on enchaine les clients sans
    refermer, et le tri rapide de quinze relances redevient possible.
 
-   IL N'Y A TOUJOURS QU'UNE FICHE CLIENT. C'est la condition posee avant
-   d'ecrire une ligne, et CLAUDE.md la porte depuis le 11/09/2026 : « ne pas en
-   recreer une deuxieme, meme petite, meme juste pour le bureau ». Rien ici ne
-   fabrique de HTML : `ficheHTML()` reste le seul auteur de la fiche, `#modale`
-   reste le seul endroit ou elle se pose. Ce qui change est le CONTENANT, et il
-   change en CSS. Ces quelques lignes ne font que dire au CSS dans quel mode on
-   est, et reparer le contrat que ce mode casse.
+   IL N'Y A TOUJOURS QU'UNE FICHE CLIENT. C'est la condition posee avant d'ecrire
+   une ligne, et CLAUDE.md la porte depuis le 11/09/2026 : « ne pas en recreer une
+   deuxieme, meme petite, meme juste pour le bureau ». Rien ici ne fabrique de
+   HTML : `ficheHTML()` reste le seul auteur de la fiche, `#modale` reste le seul
+   endroit ou elle se pose. Ce qui change est le CONTENANT, et il change en CSS.
 
-   LE SEUIL EST ECRIT DEUX FOIS, ET C'EST ASSUME. Une media query ne se lit pas
-   depuis le JavaScript, et un temoin pose dans le CSS pour se faire lire serait
-   un jeton de plus a tenir. La valeur est donc jumelle de celle de la section 22
-   de src/css/bdv-bureau.css, et c'est `npm run banc:tiroir` qui interdit aux
-   deux de diverger : le depot a deja paye ce genre d'ecart avec l'empreinte du
-   courrier, et la reponse y avait ete la meme, un banc plutot qu'une convention. */
-const TIROIR_SEUIL = 1320;   // JUMEAU de @media (min-width:1320px), section 22 de bdv-bureau.css
-const TIROIR_MQ = (typeof window.matchMedia === 'function')
-  ? window.matchMedia('(min-width:' + TIROIR_SEUIL + 'px)') : null;
-
-/* LE MODE SE DEMANDE, IL NE SE RETIENT PAS. Un booleen pose a l'ouverture serait
-   faux des que la fenetre change de taille, et c'est le geste le plus banal qui
-   soit : on attrape le bord de la fenetre pour voir la liste en grand. */
-function modeTiroir(){ return !!(TIROIR_MQ && TIROIR_MQ.matches); }
-
-/* UN TIROIR N'EST PAS UNE MODALE, ET LE DIRE NE SUFFIT PAS : il faut defaire les
-   TROIS choses qu'une modale impose, sinon la liste est visible et morte.
-   1. `aria-modal` ment : il annonce qu'il n'y a rien d'autre a l'ecran. Une
-      synthese vocale cesse alors de lire la liste, qui est pourtant le sujet.
-      L'attribut est RETIRE et non pose a false : `aria-modal="false"` est la
-      valeur par defaut, l'ecrire n'apporte rien et se relit comme un oubli.
-   2. `role="dialog"` devient `role="complementary"` : la fiche est un complement
-      de la liste, pas une boite qui attend une reponse.
-   3. Le defilement du corps de page est RENDU. C'est tout l'interet du mode :
-      faire defiler la liste pendant que la fiche reste ouverte a cote. */
-function poserContratTiroir(m){
-  const tiroir = modeTiroir();
-  document.body.classList.toggle('bdv-a-tiroir', tiroir);
-  document.body.style.overflow = tiroir ? '' : 'hidden';
-  const boite = m.querySelector('.modale__box');
-  if(!boite) return;
-  if(tiroir){ boite.removeAttribute('aria-modal'); boite.setAttribute('role','complementary'); }
-  else { boite.setAttribute('aria-modal','true'); boite.setAttribute('role','dialog'); }
-}
-
-/* TRAVERSER LE SEUIL AVEC UNE FICHE OUVERTE EST UN VRAI CAS, pas une curiosite :
-   c'est ce qui arrive quand on agrandit la fenetre pour mieux lire. Sans cette
-   ecoute, on garderait une fiche en tiroir sans son retrait, ou une modale dont
-   le corps de page defile derriere le voile. On ne redessine RIEN : le contenu
-   de la fiche ne depend pas de la largeur, seul son contrat change. */
-if(TIROIR_MQ && TIROIR_MQ.addEventListener){
-  TIROIR_MQ.addEventListener('change', function(){
-    const m = el('modale');
-    if(m && m.classList.contains('on')) poserContratTiroir(m);
-  });
-}
+   ET LA DECISION N'EST PLUS ICI DEPUIS LE LOT 2. Elle vit dans `BdvTiroir`, en bas
+   de `bdv-nav.js`, parce que la modale d'une tache doit se comporter exactement
+   pareil et qu'elle est fabriquee par un autre fichier, dans un autre element.
+   Deux endroits qui decident, ce sont deux seuils qui divergent au premier reglage
+   et deux contrats ARIA dont un seul est defait. Ne pas reecrire un `matchMedia`
+   ici : le module est charge avant celui-ci, toujours. */
+function modeTiroir(){ return !!(window.BdvTiroir && window.BdvTiroir.actif()); }
 
 function ouvrirFiche(id,motif){
   const f=ficheClient(id);
@@ -2446,8 +2405,10 @@ function ouvrirFiche(id,motif){
   m.setAttribute('aria-hidden','false');
   // LE CONTRAT REMPLACE LE `overflow:hidden` QUI ETAIT ECRIT ICI : en tiroir, bloquer
   // le defilement du corps de page fige la liste, c'est-a-dire exactement ce qu'on
-  // vient d'ouvrir le tiroir pour garder vivant.
-  poserContratTiroir(m);
+  // vient d'ouvrir le tiroir pour garder vivant. Le module prend la BOITE et pas la
+  // modale : c'est elle qui porte `aria-modal` et `role`.
+  if(window.BdvTiroir)window.BdvTiroir.poser(m.querySelector('.modale__box'));
+  else document.body.style.overflow='hidden';
   // ON NE VOLE LE FOCUS QU'EN MODALE. Une modale s'ouvre PAR-DESSUS : le focus doit
   // y entrer, sans quoi le clavier pilote a l'aveugle un ecran couvert. Un tiroir
   // s'ouvre A COTE : le vigneron lit son client et continue de descendre sa liste, et
@@ -2540,7 +2501,7 @@ function fermerFiche(){
   const m=el('modale');m.classList.remove('on');m.setAttribute('aria-hidden','true');
   if(FICHE_ID)oublierBrouillon(FICHE_ID);   // fermer EST un geste : voir le point 3 ci-dessus
   m.innerHTML='';document.body.style.overflow='';
-  document.body.classList.remove('bdv-a-tiroir');   // le retrait de l'atelier s'en va avec le tiroir
+  if(window.BdvTiroir)window.BdvTiroir.retirer();   // le retrait de l'atelier s'en va avec le tiroir
   if(FICHE_OUVERTE&&FICHE_OUVERTE.focus)FICHE_OUVERTE.focus();
   FICHE_OUVERTE=null;FICHE_ID=null;
   // Un geste en attente meurt avec la fiche : fermer sans rien ecrire, c'est ne rien

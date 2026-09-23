@@ -5864,10 +5864,7 @@ themes et dans les deux modes : **zero paire sous son seuil**, tiroir comme moda
 
 ### CE QUI RESTE OUVERT
 
-- **« Mes taches » n'est pas fait.** C'est le lot 2, et il ne doit PAS recevoir un deuxieme
-  tiroir : `.tmod` de `bdv-taches.js` devra passer par le meme contenant, sans quoi le bureau
-  aura deux comportements pour le meme geste, ce que le conseil a refuse en ouvrant le
-  chantier.
+- ~~**« Mes taches » n'est pas fait.**~~ **FAIT LE MEME JOUR, AU LOT 2**, section suivante.
 - **Le tiroir recouvre le pied de page du site** quand la piece est courte. Il est `fixed` et
   va jusqu'en bas, c'est le dessin attendu d'un panneau lateral ; a rouvrir avec Ted si ca le
   gene a l'usage.
@@ -5877,3 +5874,104 @@ themes et dans les deux modes : **zero paire sous son seuil**, tiroir comme moda
 - **La fiche ne se recharge pas d'un client a l'autre au clavier.** Le tiroir rend possible
   d'enchainer les clients, mais rien n'a encore ete ajoute pour passer au suivant sans la
   souris. C'est le geste que Ted a decrit en ouvrant le chantier.
+
+
+### LOT 2, LE MEME JOUR : LA MODALE D'UNE TACHE
+
+« ok same pour les taches », demande de Ted apres avoir vu le lot 1.
+
+**LE PIEGE D'ENTREE : LES DEUX BOITES NE PARTAGENT RIEN.** La fiche client vit dans
+`#modale`, un div du gabarit rempli par `bdv-ecrans.js`. La modale d'une tache est fabriquee
+de toutes pieces par `bdv-taches.js`, dans son propre element ajoute au `<body>`. Ni le meme
+div, ni la meme feuille, ni le meme fichier.
+
+Le point ouvert du lot 1 disait « elle devra passer par le MEME CONTENANT ». **C'etait la
+mauvaise formulation, et l'appliquer aurait ete une faute.** Faire entrer la tache dans
+`#modale` lui donnerait en prime la classe `.bdv-ventes`, qui scope tout le dessin des ecrans
+de vente : on aurait echange un probleme de coherence contre un habillage qui change sous
+elle. Et `bdv-taches.js` doit rester le SEUL fichier qui ecrive dans la table des taches,
+regle du 08/09/2026.
+
+**CE QUI EST PARTAGE EST LA DECISION, PAS LE DIV.** Ted a demande le meme COMPORTEMENT, pas
+le meme element.
+
+### `BdvTiroir`, EN BAS DE `bdv-nav.js`, ET C'EST LE SEUL ENDROIT QUI DECIDE
+
+Le danger n'est pas d'avoir deux boites, c'est d'avoir **deux endroits qui decident** : deux
+seuils qui divergent au premier reglage, deux contrats ARIA dont un seul est defait, deux
+classes posees sur le corps de page qui se retirent l'une l'autre. **Aucun des trois ne se
+voit a l'ecran**, et ce fichier documente cette famille de panne a une douzaine d'endroits.
+
+`bdv-nav.js` est le module de la coque et porte deja le SEUL point d'entree des reglages,
+pour exactement la meme raison. **Il est charge SANS `defer` alors que `bdv-taches.js` l'est
+AVEC, donc il s'execute avant lui** ; `bdv-ecrans.js` arrive plus tard encore, au premier clic
+sur une piece de vente. Les deux appelants le trouvent, toujours.
+
+Il expose trois choses et rien d'autre : `actif()`, `poser(boite)`, `retirer()`. **On lui
+passe la BOITE et pas la modale** : c'est elle qui porte `aria-modal` et `role`.
+
+Quatre controles de `npm run banc:tiroir` gardent cette unicite, et ils sont le coeur du lot :
+un seul `matchMedia` de seuil dans tout le depot, un seul `TIROIR_SEUIL`, les deux boites qui
+passent par `poser` et `retirer`, et `bdv-a-tiroir` posee **nulle part ailleurs** que dans le
+module. Verifies en remettant le defaut : une tache qui se refabrique un seuil, une tache qui
+pose la classe elle-meme, le CSS qui oublie la tache, les champs de date laisses cote a cote.
+
+### CE QUE LA TACHE DEFAIT EN MOINS, ET CE QU'ELLE GARDE EN PLUS
+
+Elle n'a **pas** de piege a focus : seule la fiche client en pose un, depuis le 19/09/2026.
+Le module ne s'en occupe donc pas, et c'est la fiche qui sait le retirer.
+
+**Le focus, lui, a une exception, et elle est du CONTENU.** La regle du tiroir est de ne pas
+le voler : le vigneron garde sa liste sous les yeux et continue de la descendre. Mais une
+tache **NEUVE** est un formulaire vide qu'on vient d'ouvrir pour ecrire dedans : ne pas y
+poser le curseur ferait taper le titre dans le vide. Une tache qu'on relit, une obligation
+qu'on coche : non. `s.mode === 'neuve'` est le seul cas.
+
+### LES DEUX CHAMPS DE DATE SE REMETTENT L'UN SOUS L'AUTRE
+
+`.tmod__duo` les pose cote a cote, ce qui est juste dans une boite de 34 rem, soit 544 px. Le
+tiroir en fait 420, moins 48 de retrait : **372 px pour deux champs de date**. Un
+`<input type="date">` natif ne se comprime pas sous sa largeur intrinseque, **il DEBORDE**, et
+c'est la moitie droite qui sort du tiroir, donc « Jusqu'a quand ». La regle existe deja mot
+pour mot dans le bloc telephone de `bdv-poste.css` : la place manque ici pour la meme raison,
+on la reprend plutot que d'en inventer une autre.
+
+### ET UNE REGLE RECOPIEE DU TELEPHONE A ETE RETIREE APRES MESURE
+
+**C'est le defaut de ce lot, il etait de moi, et la capture l'a trouve.** Le bloc telephone
+porte aussi `margin-left:0` sur « Retirer cette tache », et je l'avais reprise **sans la
+remesurer**.
+
+Mesure a 1440 dans le tiroir : `margin-left:auto` tient parfaitement dans 372 px. Les deux
+boutons restent sur la meme ligne, le lien se cale a 24 px du bord droit, et **il reste 156 px
+entre les deux**. La rapprocher les collait l'un a l'autre : **le geste qui DETRUIT a douze
+pixels du geste qui valide**, dans un panneau ou l'on clique vite.
+
+**LA LECON, ET ELLE VAUT POUR TOUT RECOUVREMENT A VENIR : une regle ecrite pour un autre point
+de rupture repond a une autre largeur. On la remesure avant de la reprendre**, sinon on importe
+une contrainte qui n'existe pas et on defait un dessin qui avait raison.
+
+### CE QUI A ETE MESURE, ET CE QUI NE CHANGE PAS
+
+Sonde de rendu sur le VRAI balisage, celui de `npm run apercu:modale`, deux etats (une tache en
+retard avec son formulaire et ses reports, une DRM qui n'a droit ni a l'un ni a l'autre), deux
+themes, deux largeurs : **rien ne sort du tiroir, zero paire sous son seuil**. Les trois
+natures et leurs trois jeux de droits du 12/09/2026 sont intacts.
+
+**Les cibles sous 44 px de cette modale sont IDENTIQUES en tiroir et en modale** : 8 dans
+l'etat « tache en retard », 3 dans l'etat « obligation ». Ce n'est donc pas une regression du
+lot, c'est l'etat d'avant sur ordinateur, le plancher tactile n'etant impose que sous 700 px.
+**Signale, non corrige** : l'elargir demanderait de rouvrir le dessin de la modale sur toutes
+les largeurs, ce qui n'est pas ce lot.
+
+### CE QUI RESTE OUVERT APRES LE LOT 2
+
+- **La croix de la modale d'une tache n'est pas collante**, contrairement a celle de la fiche.
+  Mesure : le contenu du pire etat fait environ 680 px dans un tiroir de 766, donc elle ne
+  defile pas aujourd'hui. Sur un ecran court elle partirait avec le haut. Non corrige parce
+  que le cas n'existe pas encore ; `Echap` ferme de toute facon.
+- **Passer d'un client ou d'une tache au suivant au clavier n'existe pas.** Le tiroir le rend
+  possible, rien ne l'implemente. C'est le geste que Ted a decrit en ouvrant le chantier, et
+  c'est le seul morceau de sa demande qui reste entier.
+- Les points ouverts du lot 1 n'ont pas bouge : le tiroir recouvre le pied de page du site sur
+  une piece courte, et rien n'annonce qu'un tableau defile en mode tiroir sur ordinateur.

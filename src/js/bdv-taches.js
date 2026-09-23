@@ -1048,6 +1048,7 @@
     if (!modOuverte()) return;
     MOD.hidden = true;
     MOD_ETAT = null;
+    if (window.BdvTiroir) window.BdvTiroir.retirer();   // le retrait de l'atelier s'en va avec le tiroir
     var r = MOD_RETOUR; MOD_RETOUR = null;
     // Le focus revient d'ou il venait, et seulement si ce noeud est encore dans la page :
     // une ligne cochee depuis la modale a pu etre repeinte entre-temps, et rendre le focus
@@ -1124,10 +1125,29 @@
     MOD_RETOUR = declencheur || null;
     peindreModale(true);
     MOD.hidden = false;
-    // Une obligation n'a pas de champ a remplir : le focus va sur son seul geste, sinon
-    // il resterait sur le voile et la premiere tabulation repartirait du haut du document.
-    var premier = s.mode === 'echeance' ? el('tmodFait') : el('tmodNom');
-    if (premier) { try { premier.focus(); } catch (e) {} }
+    /* LE TIROIR, 23/09/2026. Demande de Ted : « ok same pour les taches ». La
+       decision NE SE PREND PAS ICI : elle vit dans `BdvTiroir`, en bas de
+       `bdv-nav.js`, parce que la fiche client doit se comporter exactement pareil
+       et qu'elle est fabriquee par un autre fichier. Deux endroits qui decident,
+       ce sont deux seuils qui divergent au premier reglage. `bdv-nav.js` est
+       charge sans `defer` et celui-ci avec : le module est donc toujours la.
+       On lui passe la BOITE, qui est ce qui porte `aria-modal` et `role`. */
+    var enTiroir = false;
+    if (window.BdvTiroir) enTiroir = window.BdvTiroir.poser(MOD.querySelector('.tmod__boite'));
+
+    /* ON NE VOLE LE FOCUS QU'EN MODALE. Une modale s'ouvre PAR-DESSUS : le focus
+       doit y entrer, sinon il reste sur le voile et la premiere tabulation repart
+       du haut du document. Un tiroir s'ouvre A COTE : le vigneron garde sa liste
+       sous les yeux et continue de la descendre, et lui arracher le focus
+       l'obligerait a revenir en arriere apres chaque clic.
+       UNE EXCEPTION, ET ELLE EST DU CONTENU : une tache NEUVE est un formulaire
+       vide qu'on vient d'ouvrir pour ecrire dedans. Ne pas y poser le curseur
+       ferait taper le titre dans le vide. Une tache qu'on relit, une obligation
+       qu'on coche : non. */
+    if (!enTiroir || s.mode === 'neuve') {
+      var premier = s.mode === 'echeance' ? el('tmodFait') : el('tmodNom');
+      if (premier) { try { premier.focus(); } catch (e) {} }
+    }
   }
 
   /* RECONSTRUIRE UNE OCCURRENCE QUE toutes() NE LISTE PAS. Elle ne connait que la

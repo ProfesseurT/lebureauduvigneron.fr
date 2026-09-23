@@ -27,18 +27,22 @@
    ========================================================================== */
 import fs from 'node:fs';
 
-const CSS = 'src/css/bdv-bureau.css';
-const JS  = 'src/js/bdv-ecrans.js';
+const CSS    = 'src/css/bdv-bureau.css';
+const NAV    = 'src/js/bdv-nav.js';      // LE module qui decide, depuis le lot 2
+const FICHE  = 'src/js/bdv-ecrans.js';   // la fiche client
+const TACHE  = 'src/js/bdv-taches.js';   // la modale d'une tache
 let echecs = 0;
 const t = (nom, ok, detail) => {
   console.log((ok ? '  OK   ' : '  ECHEC') + ' ' + nom + (ok || !detail ? '' : '\n         ' + detail));
   if (!ok) echecs++;
 };
 
-console.log('\nLE TIROIR : le seuil, le jeton, et le contrat\n');
+console.log('\nLE TIROIR : le seuil, le jeton, le contrat, et UN SEUL endroit qui decide\n');
 
-const css = fs.readFileSync(CSS, 'utf8');
-const js  = fs.readFileSync(JS, 'utf8');
+const css   = fs.readFileSync(CSS, 'utf8');
+const nav   = fs.readFileSync(NAV, 'utf8');
+const fiche = fs.readFileSync(FICHE, 'utf8');
+const tache = fs.readFileSync(TACHE, 'utf8');
 
 /* -- 1. LES DEUX SEUILS. On prend la media query qui ENVELOPPE la section 22,
       pas la premiere du fichier : il y en a une quarantaine avant elle. */
@@ -48,8 +52,8 @@ t('la section 22 du tiroir existe dans ' + CSS, sec.length > 0);
 const mq = sec.match(/@media\s*\(min-width:\s*(\d+)px\)/);
 t('elle est bornee par une media query de largeur minimale', !!mq);
 
-const cst = js.match(/const\s+TIROIR_SEUIL\s*=\s*(\d+)/);
-t('TIROIR_SEUIL est declare dans ' + JS, !!cst);
+const cst = nav.match(/var\s+TIROIR_SEUIL\s*=\s*(\d+)/);
+t('TIROIR_SEUIL est declare dans ' + NAV, !!cst);
 
 if (mq && cst) {
   t('les deux seuils sont le meme nombre',
@@ -88,18 +92,58 @@ t('--bdv-tiroir n\'est declare qu\'une fois, dans le bloc clair',
 /* -- 4. LE CONTRAT ARIA. Les trois defaits sont ce qui separe un tiroir d'une
       modale, et chacun se paie a la synthese vocale ou au clavier, jamais a
       l'image : aucune capture ne montre un `aria-modal` de trop. */
-t('le mode tiroir retire aria-modal', /removeAttribute\(\s*['"]aria-modal['"]\s*\)/.test(js));
+t('le mode tiroir retire aria-modal', /removeAttribute\(\s*['"]aria-modal['"]\s*\)/.test(nav));
 t('le mode tiroir rend le defilement du corps de page',
-  /document\.body\.style\.overflow\s*=\s*tiroir\s*\?\s*''/.test(js));
-t('le piege a focus se retire en mode tiroir',
-  /if\(modeTiroir\(\)\)return;/.test(js));
-t('le focus n\'est vole qu\'en modale',
-  /if\(!modeTiroir\(\)\)\{\s*const btn/.test(js));
+  /document\.body\.style\.overflow\s*=\s*actif\s*\?\s*''/.test(nav));
+t('le piege a focus de la fiche se retire en mode tiroir',
+  /if\(modeTiroir\(\)\)return;/.test(fiche));
+t('la fiche ne vole le focus qu\'en modale',
+  /if\(!modeTiroir\(\)\)\{\s*const btn/.test(fiche));
+t('la tache ne vole le focus qu\'en modale, sauf si elle est neuve',
+  /if \(!enTiroir \|\| s\.mode === 'neuve'\)/.test(tache));
+
+/* -- 4 bis. LA DECISION EST A UN SEUL ENDROIT, ET C'EST TOUT LE LOT 2.
+      Ted a demande « ok same pour les taches ». Le danger n'est pas d'avoir deux
+      boites, c'est d'avoir deux endroits qui DECIDENT : deux seuils qui divergent
+      au premier reglage, deux contrats ARIA dont un seul est defait, deux classes
+      posees sur le corps de page qui se retirent l'une l'autre. Aucun des trois ne
+      se voit a l'ecran. Ce controle est ce qui interdit a un futur lot de
+      recopier un `matchMedia` dans le fichier ou il travaille. */
+t('un seul matchMedia de seuil dans tout le depot',
+  (fiche + tache).indexOf('matchMedia(\'(min-width:') === -1
+  && (nav.match(/matchMedia\('\(min-width:/g) || []).length === 1,
+  'la fiche ou la tache s\'est refabrique un seuil a elle.');
+t('un seul TIROIR_SEUIL declare',
+  !/TIROIR_SEUIL\s*=\s*\d/.test(fiche) && !/TIROIR_SEUIL\s*=\s*\d/.test(tache));
+t('les deux boites passent par BdvTiroir.poser',
+  /BdvTiroir\.poser\(/.test(fiche) && /BdvTiroir\.poser\(/.test(tache));
+t('les deux boites passent par BdvTiroir.retirer',
+  /BdvTiroir\.retirer\(\)/.test(fiche) && /BdvTiroir\.retirer\(\)/.test(tache));
+t('BdvTiroir recoit la BOITE et pas la modale',
+  /poser\(m\.querySelector\('\.modale__box'\)\)/.test(fiche)
+  && /poser\(MOD\.querySelector\('\.tmod__boite'\)\)/.test(tache),
+  'c\'est la boite qui porte aria-modal et role, pas le voile qui l\'entoure.');
+
+/* -- 4 ter. LE CSS HABILLE LES DEUX. Une seule des deux habillee, et le bureau a
+      deux comportements pour le meme geste, ce qui est precisement ce que le lot
+      2 existe pour fermer. */
+t('la section 22 habille la fiche client', /#modale\.on\{/.test(sec));
+t('la section 22 habille la modale d\'une tache', /\.tmod\{/.test(sec));
+t('les deux perdent leur voile',
+  /#modale\.on \.modale__bg\{[^}]*display:none/.test(sec)
+  && /\.tmod__voile\{[^}]*display:none/.test(sec));
+t('les deux champs de date de la tache se remettent l\'un sous l\'autre',
+  /\.tmod__duo\{[^}]*grid-template-columns:1fr/.test(sec),
+  'deux inputs date dans 372 px debordent, ils ne se compriment pas.');
 
 /* -- 5. LA CLASSE PART A LA FERMETURE. Sans ca, le retrait de l'atelier reste
       pose sur une fiche fermee : une colonne vide de 420 px a droite du bureau,
       et rien pour dire pourquoi. */
-t('bdv-a-tiroir est retiree par fermerFiche', /classList\.remove\(['"]bdv-a-tiroir['"]\)/.test(js));
+t('bdv-a-tiroir n\'est posee et retiree que par le module',
+  /classList\.toggle\(['"]bdv-a-tiroir['"]/.test(nav)
+  && /classList\.remove\(['"]bdv-a-tiroir['"]\)/.test(nav)
+  && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(fiche)
+  && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(tache));
 
-console.log('\n' + (echecs ? echecs + ' ECHEC(S)' : 'LE TIROIR TIENT SES DEUX MOITIES') + '\n');
+console.log('\n' + (echecs ? echecs + ' ECHEC(S)' : 'LE TIROIR TIENT SES DEUX MOITIES, ET LES DEUX BOITES N\'EN FONT QU\'UNE') + '\n');
 process.exit(echecs ? 1 : 0);

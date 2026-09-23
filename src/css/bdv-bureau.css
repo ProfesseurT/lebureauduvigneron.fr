@@ -3086,4 +3086,86 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
   body.bdv-coque.bdv-a-tiroir .bdv-ventes table.data td.num{
     white-space:nowrap;
   }
+
+  /* ======================================================================
+     22.7 LA MODALE D'UNE TACHE, LOT 2 DU 23/09/2026
+
+     « ok same pour les taches », demande de Ted apres avoir vu le lot 1.
+
+     ELLE NE PARTAGE PAS `#modale` AVEC LA FICHE CLIENT, ET ELLE NE DOIT PAS.
+     `bdv-taches.js` fabrique son propre element et reste le SEUL fichier qui
+     ecrive dans la table des taches, regle du 08/09/2026. La faire entrer dans
+     `#modale` lui donnerait en prime la classe `.bdv-ventes`, qui scope tout le
+     dessin des ecrans de vente : on aurait echange un probleme de coherence
+     contre un habillage qui change sous elle.
+
+     CE QUI EST PARTAGE EST LA DECISION, PAS LE DIV. Un seul seuil, un seul
+     contrat ARIA, une seule classe sur le corps de page, et tout cela vit dans
+     `BdvTiroir` en bas de `bdv-nav.js`. Les deux boites se comportent donc
+     pareil sans rien partager de leur balisage, ce qui est exactement ce qu'on
+     voulait : Ted a demande le meme COMPORTEMENT, pas le meme element.
+
+     `.tmod` est dans `bdv-poste.css`, liee par le gabarit donc chargee AVANT
+     celle-ci : les regles ci-dessous la recouvrent sans course de specificite,
+     (0,4,1) contre ses (0,1,0). Elle n'est plus dans `style.css` depuis la
+     scission du 21/09/2026, et CLAUDE.md le disait encore : verifie avant
+     d'ecrire, pas deduit du fichier d'hier.
+     ====================================================================== */
+  body.bdv-coque.bdv-a-tiroir .tmod{
+    top:var(--h-entete);
+    right:0;
+    bottom:0;
+    left:auto;
+    width:var(--bdv-tiroir);
+    /* `display:flex` centre la boite dans la fenetre entiere en modale. Dans un
+       tiroir il n'y a rien a centrer : la boite REMPLIT, et le retrait passe sur
+       elle pour que son ascenseur aille d'un bord a l'autre. */
+    display:block;
+    padding:0;
+  }
+
+  /* PAS DE VOILE, PARCE QUE CE N'EST PLUS UNE MODALE. Le voile dit « le reste de
+     l'ecran est hors service » ; ici la liste des taches reste vivante a cote, et
+     c'est le sujet. Son flou de 2 px partirait de toute facon avec lui. */
+  body.bdv-coque.bdv-a-tiroir .tmod__voile{
+    display:none;
+  }
+
+  body.bdv-coque.bdv-a-tiroir .tmod__boite{
+    max-width:none;
+    width:100%;
+    height:100%;
+    max-height:none;
+    border-width:0 0 0 1px;
+    border-radius:0;
+    background:var(--bdv-surface);
+  }
+
+  /* LES DEUX CHAMPS DE DATE SE REMETTENT L'UN SOUS L'AUTRE. `.tmod__duo` les pose
+     cote a cote, ce qui est juste dans une boite de 34 rem, soit 544 px. Le tiroir
+     en fait 420, moins 48 de retrait : 372 px pour deux champs de date. Un
+     `<input type="date">` natif ne se comprime pas sous sa largeur intrinseque,
+     il DEBORDE, et c'est la moitie droite qui sort du tiroir, donc « Jusqu'a
+     quand ». La regle existe deja mot pour mot dans le bloc telephone de
+     `bdv-poste.css` : la place manque ici pour la meme raison, on la reprend
+     plutot que d'en inventer une autre. */
+  body.bdv-coque.bdv-a-tiroir .tmod__duo{
+    grid-template-columns:1fr;
+  }
+
+  /* CE QUI N'EST PAS ICI, ET QUI Y A ETE UNE HEURE : `margin-left:0` sur
+     « Retirer cette tache ». La regle avait ete recopiee du bloc telephone de
+     `bdv-poste.css`, ou elle est juste, SANS ETRE REMESUREE a cette largeur.
+
+     Mesure a 1440 dans le tiroir : `margin-left:auto` tient parfaitement dans
+     372 px. « C'est fait » et « Retirer cette tache » restent sur la meme ligne,
+     le lien se cale a 24 px du bord droit, et il reste **156 px** entre les deux.
+     La rapprocher les collait l'un a l'autre : le geste qui DETRUIT a douze
+     pixels du geste qui valide, dans un panneau ou l'on clique vite.
+
+     LA LECON, ET ELLE VAUT POUR TOUT RECOUVREMENT A VENIR : une regle ecrite
+     pour un autre point de rupture repond a une autre largeur. On la remesure
+     avant de la reprendre, sinon on importe une contrainte qui n'existe pas et
+     on defait un dessin qui avait raison. Trouvee a la capture du 23/09/2026,
+     comme les quatre defauts de specificite des lots 2 a 5. */
 }

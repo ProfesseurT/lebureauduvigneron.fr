@@ -12,6 +12,54 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 23/09/2026, la suite. « ok same pour les tâches », et ce que ça voulait dire
+
+Ted, après avoir vu le lot 1 : « ok same pour les tâches ». Trois mots, et un piège dedans.
+
+**Le point ouvert que j'avais écrit le matin même disait que la modale d'une tâche « devra
+passer par le MÊME CONTENANT ». C'était la mauvaise formulation, et l'appliquer aurait été une
+faute.** Les deux boîtes ne partagent rien : la fiche client vit dans `#modale`, un div du
+gabarit ; la modale d'une tâche est fabriquée de toutes pièces par `bdv-taches.js` dans son
+propre élément. La faire entrer dans `#modale` lui aurait donné la classe `.bdv-ventes`, qui
+scope tout le dessin des écrans de vente : on aurait échangé un problème de cohérence contre un
+habillage qui change sous elle.
+
+**Ce que Ted a demandé, c'est le même COMPORTEMENT, pas le même élément.** Le danger n'est pas
+d'avoir deux boîtes, c'est d'avoir deux endroits qui DÉCIDENT : deux seuils qui divergent au
+premier réglage, deux contrats ARIA dont un seul est défait, deux classes posées sur le corps
+de page qui se retirent l'une l'autre. Aucun des trois ne se voit à l'écran.
+
+La décision vit donc maintenant dans `BdvTiroir`, en bas de `bdv-nav.js`, et nulle part
+ailleurs. Le mécanisme a été **sorti** de `bdv-ecrans.js`, où le lot du matin l'avait écrit.
+`bdv-nav.js` est chargé sans `defer` alors que `bdv-taches.js` l'est avec : il s'exécute avant
+lui, et `bdv-ecrans.js` arrive plus tard encore. Les deux appelants le trouvent toujours.
+
+### Le défaut de ce lot était de moi, et c'est la capture qui l'a trouvé
+
+J'avais repris du bloc téléphone la règle qui colle « Retirer cette tâche » à gauche, **sans la
+remesurer à la largeur du tiroir**. Mesure : `margin-left:auto` tient parfaitement dans 372 px,
+et laisse **156 px** entre « C'est fait » et « Retirer cette tâche ». Ma règle les collait l'un
+à l'autre, c'est-à-dire **le geste qui détruit à douze pixels du geste qui valide**, dans un
+panneau où l'on clique vite. Retirée.
+
+La leçon vaut pour la suite : une règle écrite pour un autre point de rupture répond à une
+autre largeur. On la remesure avant de la reprendre, sinon on importe une contrainte qui
+n'existe pas et on défait un dessin qui avait raison.
+
+### Une exception assumée sur le focus
+
+La règle du tiroir est de ne pas voler le focus : le vigneron garde sa liste sous les yeux.
+Mais une tâche **neuve** est un formulaire vide qu'on vient d'ouvrir pour écrire dedans. Ne pas
+y poser le curseur ferait taper le titre dans le vide. C'est le seul cas, et c'est du contenu,
+pas de la mise en page.
+
+### Ce qui reste, et c'est le morceau de la demande de Ted qui n'est pas fait
+
+**Passer d'un client ou d'une tâche au suivant au clavier n'existe toujours pas.** Le tiroir le
+rend possible, rien ne l'implémente. C'est le geste qu'il a décrit en ouvrant le chantier.
+
+---
+
 ## 23/09/2026. La fiche client se lit à droite de la liste, plus par-dessus
 
 Demande de Ted, en ouvrant la session : « j'imagine bien avoir à droite un écran qui
