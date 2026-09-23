@@ -5746,18 +5746,26 @@ que ce mode casse.
 Releve au navigateur sur la page construite, rail a 184 px, retraits du travail a 24 px de
 chaque cote :
 
-| fenetre | contenu utile | reste a la liste, tiroir a 420 |
-|---|---|---|
-| 1920 | 1688 | 1268 |
-| 1440 | 1208 | 788  (l'ecran de Ted) |
-| 1366 | 1134 | 714 |
-| 1320 | 1088 | 668 |
-| 1280 | 1048 | 628  (sous le plancher) |
+| fenetre | contenu utile | tiroir a 32vw | reste a la liste |
+|---|---|---|---|
+| 2560 | 2328 | 820 (plafond) | 1508 |
+| 2296 | 2064 | 735 | 1329  (**la vraie fenetre de Ted**) |
+| 1920 | 1688 | 614 | 1074 |
+| 1440 | 1208 | 461 | 747 |
+| 1320 | 1088 | 422 | 666 |
+| 1280 | 1048 | pas de tiroir | (sous le seuil) |
 
 Les requetes de conteneur du sous-main replient la liste en fiches sous **40 rem, 640 px**.
 Le tiroir ne doit donc PAS exister sous 1292 px de fenetre : ouvrir un client replierait la
 liste sous l'oeil de celui qui l'ouvre, et **un geste de LECTURE ne change pas la mise en
-page de ce qu'on lit**. Le seuil est a 1320, ce qui laisse 28 px de marge sur ce plancher.
+page de ce qu'on lit**. Le seuil est a 1320, ce qui laisse 26 px de marge sur ce plancher.
+
+**LA LARGEUR EST PROPORTIONNELLE, ET ELLE NE L'ETAIT PAS AU PREMIER JET.** Elle valait
+420 px fixes, mesures sur un ecran de 1440 ou ils font 35 % de la largeur. La capture de Ted
+a montre sa VRAIE fenetre, relevee a **2296 px** : le tiroir n'y faisait plus que **18 %**,
+les quatre chiffres de la fiche se serraient en deux colonnes etroites, le conseil tombait
+en lignes de quatre mots. Son mot : « c'est pas utilisable, tu peux vraiment prendre 1/3 ».
+**Un nombre fixe ne peut pas repondre a deux ecrans qui vont du simple au double.**
 
 **Il est ecrit dans la media query de la section 22 de `bdv-bureau.css` ET dans
 `TIROIR_SEUIL` de `bdv-ecrans.js`**, parce qu'une media query ne se lit pas depuis le
@@ -5927,29 +5935,37 @@ tache **NEUVE** est un formulaire vide qu'on vient d'ouvrir pour ecrire dedans :
 poser le curseur ferait taper le titre dans le vide. Une tache qu'on relit, une obligation
 qu'on coche : non. `s.mode === 'neuve'` est le seul cas.
 
-### LES DEUX CHAMPS DE DATE SE REMETTENT L'UN SOUS L'AUTRE
+### DEUX REGLES RECOPIEES DU TELEPHONE, DEUX FOIS LA MEME FAUTE
 
-`.tmod__duo` les pose cote a cote, ce qui est juste dans une boite de 34 rem, soit 544 px. Le
-tiroir en fait 420, moins 48 de retrait : **372 px pour deux champs de date**. Un
-`<input type="date">` natif ne se comprime pas sous sa largeur intrinseque, **il DEBORDE**, et
-c'est la moitie droite qui sort du tiroir, donc « Jusqu'a quand ». La regle existe deja mot
-pour mot dans le bloc telephone de `bdv-poste.css` : la place manque ici pour la meme raison,
-on la reprend plutot que d'en inventer une autre.
+**C'est le defaut de ce lot, il etait de moi, et c'est la mesure qui l'a trouve les deux
+fois.** J'ai repris du bloc telephone de `bdv-poste.css` deux regles qui y sont justes, sans
+les redemontrer a la largeur du tiroir.
 
-### ET UNE REGLE RECOPIEE DU TELEPHONE A ETE RETIREE APRES MESURE
+**1. `grid-template-columns:1fr` sur `.tmod__duo`**, pour empiler les deux champs de date. Le
+raisonnement etait « un `<input type="date">` natif ne se comprime pas, il deborde ». Mesure
+du 23/09/2026, boite par boite de 360 a 620 px en forcant les deux colonnes : **le duo ne
+deborde jamais et le contenu n'est jamais tronque**. A 360 px de boite, la plus etroite
+testee, un champ fait encore 147 px et affiche « 09/20/2026 » en entier. La regle ne servait
+a rien, et elle coutait : chez Ted, dans un tiroir de 735 px, elle empilait deux champs qui
+avaient 687 px pour se tenir cote a cote.
 
-**C'est le defaut de ce lot, il etait de moi, et la capture l'a trouve.** Le bloc telephone
-porte aussi `margin-left:0` sur « Retirer cette tache », et je l'avais reprise **sans la
-remesurer**.
+**2. `margin-left:0` sur « Retirer cette tache »**, et celle-la etait pire.
 
 Mesure a 1440 dans le tiroir : `margin-left:auto` tient parfaitement dans 372 px. Les deux
 boutons restent sur la meme ligne, le lien se cale a 24 px du bord droit, et **il reste 156 px
 entre les deux**. La rapprocher les collait l'un a l'autre : **le geste qui DETRUIT a douze
 pixels du geste qui valide**, dans un panneau ou l'on clique vite.
 
-**LA LECON, ET ELLE VAUT POUR TOUT RECOUVREMENT A VENIR : une regle ecrite pour un autre point
-de rupture repond a une autre largeur. On la remesure avant de la reprendre**, sinon on importe
-une contrainte qui n'existe pas et on defait un dessin qui avait raison.
+**LA LECON EST PLUS DURE QUE « REMESURER », PARCE QUE LA FAUTE S'EST PRODUITE DEUX FOIS DANS
+LE MEME LOT : une regle ecrite pour un autre point de rupture ne se REPREND pas, elle se
+REDEMONTRE.** Tant qu'on n'a pas la mesure qui la justifie ICI, elle n'existe pas. Les deux
+fois, la regle importait une contrainte qui n'existait pas, et defaisait un dessin qui avait
+raison : l'une a colle le geste qui detruit au geste qui valide, l'autre a empile deux champs
+dans un panneau deux fois trop large pour ca.
+
+**A SIGNALER, ET HORS PERIMETRE :** si le duo tient a 360 px, la regle du bloc telephone
+merite d'etre remesuree elle aussi. Elle date du 12/09/2026, et les saisies y sont a 16 px
+alors qu'elles sont plus petites ici : c'est peut-etre ce qui la justifie encore. Non verifie.
 
 ### CE QUI A ETE MESURE, ET CE QUI NE CHANGE PAS
 
@@ -5975,3 +5991,26 @@ les largeurs, ce qui n'est pas ce lot.
   c'est le seul morceau de sa demande qui reste entier.
 - Les points ouverts du lot 1 n'ont pas bouge : le tiroir recouvre le pied de page du site sur
   une piece courte, et rien n'annonce qu'un tableau defile en mode tiroir sur ordinateur.
+
+
+### ET LE GARDE-FOU A DU APPRENDRE A LIRE LA NOUVELLE FORME, APRES ELLE
+
+`npm run banc:jetons` a **refuse le lot**, et il avait raison de refuser. Son detecteur
+d'echelle ne connaissait que la forme « un nombre suivi d'une unite » : il a range
+`clamp(400px,32vw,820px)` en MATIERE, donc exige qu'il se retourne dans les deux blocs
+sombres, c'est-a-dire qu'il a **crie sur du sain**. Et un controle qui crie sur du sain finit
+par ne plus etre lu, ce que ce fichier dit deja a propos de `charte.mjs` et des trois blocs de
+theme.
+
+**C'EST LA REGLE DU DEPOT PRISE A L'ENVERS**, celle qui est ecrite noir sur blanc a propos de
+`tokens.css` : « on apprend d'abord au garde-fou a lire la nouvelle forme, on change la forme
+ensuite. Jamais l'inverse. » Ici la forme a change d'abord.
+
+`EST_ECHELLE` sait maintenant qu'une fonction de calcul dont TOUS les termes sont des mesures
+est une echelle. **La regle reste dans la VALEUR et pas dans une liste de noms**, qui se
+perimerait au premier jeton ajoute. Le garde sur les couleurs n'est pas du zele : `color-mix()`
+et `clamp()` acceptent les memes parentheses, et une matiere calculee doit continuer de se
+retourner dans les deux blocs sombres.
+
+Verifie par trois mutations : une matiere retiree d'un bloc sombre crie toujours, une matiere
+CALCULEE non retournee crie, et une echelle calculee qu'on retournerait crie aussi.

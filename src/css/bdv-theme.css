@@ -226,7 +226,7 @@
   --bdv-cible:44px;                /* plancher tactile. On agrandit la CIBLE, jamais le dessin */
   --bdv-h-tete:56px;               /* l'en-tete du bureau : 44 px de cible plus son air */
   --bdv-rail:184px;                /* la barre des pieces sur grand ecran, voir bdv-bureau.css section 6 */
-  --bdv-tiroir:420px;              /* le panneau de detail a droite, voir bdv-bureau.css section 22. MESURE et pas choisi : voir la note de la section */
+  --bdv-tiroir:clamp(400px,32vw,820px);   /* le panneau de detail a droite. PROPORTIONNEL depuis le 23/09/2026 : voir la note de la section 22 de bdv-bureau.css */
 
   --bdv-d-court:150ms;             /* survol, selection, focus                */
   --bdv-d-long:300ms;              /* modale, feuille, tiroir                 */

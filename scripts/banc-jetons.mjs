@@ -295,8 +295,37 @@ console.log('\n== 4. La parite des deux themes ==');
          temps. Tout le reste est une matiere. On ne tient PAS une liste de noms :
          elle se perimerait au premier jeton ajoute, et un garde-fou qui se
          perime sans le dire est pire que pas de garde-fou. */
-      const EST_ECHELLE = v => /^-?\d*\.?\d+(px|rem|em|ex|ch|%|ms|s|vh|vw|dvh|dvw)$/i.test(v.trim())
-                            || /^-?\d*\.?\d+$/.test(v.trim())
+      const EST_MESURE = v => /^-?\d*\.?\d+(px|rem|em|ex|ch|%|ms|s|vh|vw|dvh|dvw|vmin|vmax|fr)$/i.test(v.trim())
+                           || /^-?\d*\.?\d+$/.test(v.trim());
+
+      /* UNE ECHELLE PEUT ETRE CALCULEE, ET LE BANC A DU L'APPRENDRE LE 23/09/2026.
+         `--bdv-tiroir` est passe de `420px` a `clamp(400px,32vw,820px)` : une
+         largeur fixe ne pouvait pas repondre a la fois a un ecran de 1440 et a
+         celui de Ted, releve a 2296. Le detecteur ne connaissait que la forme
+         « un nombre suivi d'une unite » : il a range le clamp en MATIERE et exige
+         qu'il se retourne en sombre, c'est-a-dire qu'il a crie sur du sain.
+
+         C'EST LA REGLE DU DEPOT PRISE A L'ENVERS, et il faut le dire : « on
+         apprend d'abord au garde-fou a lire la nouvelle forme, on change la forme
+         ensuite, jamais l'inverse ». Ici la forme a change d'abord, et le banc a
+         refuse le commit. Il a eu raison de refuser : c'est exactement pour ca
+         qu'il existe.
+
+         LA REGLE RESTE DANS LA VALEUR, PAS DANS UNE LISTE DE NOMS. Une fonction
+         de calcul dont TOUS les termes sont des mesures est une echelle. Le
+         garde sur les couleurs n'est pas du zele : `color-mix()` et `clamp()`
+         acceptent les memes parentheses, et une matiere calculee doit continuer
+         de se retourner dans les deux blocs sombres. */
+      const EST_CALCUL = v => {
+        const m = v.trim().match(/^(clamp|min|max|calc)\s*\(([\s\S]*)\)$/i);
+        if (!m) return false;
+        if (/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?|oklch|oklab|lab|lch|color-mix)\s*\(/i.test(m[2])) return false;
+        const termes = m[2].split(/[,\s+*/]+|(?<=[a-z%)])-/i).map(x => x.trim()).filter(Boolean);
+        return termes.length > 0 && termes.every(EST_MESURE);
+      };
+
+      const EST_ECHELLE = v => EST_MESURE(v)
+                            || EST_CALCUL(v)
                             || /^(cubic-bezier|steps|linear)\s*\(/i.test(v.trim())
                             || /^(ease|ease-in|ease-out|ease-in-out|step-start|step-end)$/i.test(v.trim());
 

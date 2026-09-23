@@ -469,12 +469,16 @@
   --bdv-cible:     44px;                /* meme valeur en sombre. plancher tactile, on agrandit la cible et jamais le dessin */
   --bdv-h-tete:    56px;                /* meme valeur en sombre. l'en-tete du bureau, 209 px avant le 21/09/2026 */
   --bdv-rail:      184px;               /* meme valeur en sombre. la barre des pieces sur grand ecran */
-  --bdv-tiroir:    420px;               /* meme valeur en sombre. le panneau de detail a droite de la liste.
-                                           MESURE, PAS CHOISI : a 1320 px de fenetre il reste 1088 px de contenu
-                                           utile (rail 184, retraits 48) ; 1088 moins 420 laisse 668 px a la liste,
-                                           soit au-dessus des 640 px ou les requetes de conteneur la replient en
-                                           fiches. Descendre le seuil ou monter cette valeur fait basculer la liste
-                                           sous l'oeil de quelqu'un qui ouvre simplement un client. */
+  --bdv-tiroir:    clamp(400px,32vw,820px);  /* meme valeur en sombre. le panneau de detail a droite de la liste.
+                                           PROPORTIONNEL, ET C'EST UNE MESURE QUI L'A IMPOSE : en 420px fixes il
+                                           faisait 35 % d'un ecran de 1440 et 18 % de celui de Ted, releve a 2296 px
+                                           sur sa capture du 23/09/2026. Le meme nombre ne peut pas repondre aux deux.
+                                           Les DEUX bornes sont mesurees, pas arrondies : 32vw laisse 666 px a la
+                                           liste au seuil de 1320, donc 26 px au-dessus des 640 ou elle se replie en
+                                           fiches ; 820 est la largeur ou le conseil de la fiche atteint cent signes
+                                           par ligne. `vw` et pas `%` : la meme valeur sert de largeur au tiroir et
+                                           de retrait a ce qui le pousse, et `%` se calculerait alors sur deux
+                                           boites differentes. */
 
   --bdv-d-court: 150ms;                 /* meme valeur en sombre. survol, selection, focus */
   --bdv-d-long:  300ms;                 /* meme valeur en sombre. modale, feuille, tiroir */

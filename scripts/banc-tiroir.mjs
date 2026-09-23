@@ -69,17 +69,54 @@ if (mq && cst) {
       ce qu'on lit. Ce controle est ce qui empeche de baisser le seuil « pour
       que le tiroir marche aussi sur le portable », sans refaire le calcul. */
 const RAIL = 184, RETRAITS = 48, REPLI = 640;
-const jeton = fs.readFileSync('src/css/bdv-theme.css', 'utf8').match(/--bdv-tiroir:\s*(\d+)px/);
-t('le jeton --bdv-tiroir est declare dans bdv-theme.css', !!jeton);
+const themeSrc = fs.readFileSync('src/css/bdv-theme.css', 'utf8');
 
-if (mq && jeton) {
-  const seuil = +mq[1], largeur = +jeton[1];
-  const reste = seuil - RAIL - RETRAITS - largeur;
+/* LE JETON EST UN `clamp`, ET LE CONTROLE PORTE SUR SES TROIS VALEURS.
+   Il valait 420 px fixes jusqu'a la capture de Ted du 23/09/2026 : juste sur
+   l'ecran de 1440 ou il avait ete mesure, 18 % de largeur sur sa vraie fenetre
+   de 2296 px. Un nombre fixe ne peut pas repondre a deux ecrans qui vont du
+   simple au double, donc la largeur est devenue proportionnelle, et ce banc avec
+   elle : c'est la valeur PROPORTIONNELLE, au seuil, qui decide si la liste se
+   replie. Lire seulement le plancher du clamp validerait une largeur que
+   personne ne voit jamais. */
+const cl = themeSrc.match(/--bdv-tiroir:\s*clamp\(\s*(\d+)px\s*,\s*(\d+)vw\s*,\s*(\d+)px\s*\)/);
+t('le jeton --bdv-tiroir est un clamp declare dans bdv-theme.css', !!cl,
+  'une largeur fixe est revenue : elle ne peut pas convenir a la fois a 1320 et a 2296 px.');
+
+if (mq && cl) {
+  const seuil = +mq[1], plancher = +cl[1], part = +cl[2], plafond = +cl[3];
+  const auSeuil = Math.max(plancher, Math.min(seuil * part / 100, plafond));
+  const reste = Math.round(seuil - RAIL - RETRAITS - auSeuil);
   t('au seuil, la liste reste au-dessus du repli en fiches',
     reste >= REPLI,
-    'a ' + seuil + 'px de fenetre il reste ' + reste + 'px a la liste, et elle se replie sous ' + REPLI + 'px.');
-  console.log('         (marge mesuree au seuil : ' + (reste - REPLI) + ' px)');
+    'a ' + seuil + 'px de fenetre le tiroir prend ' + Math.round(auSeuil) + 'px, il en reste ' + reste + ' a la liste, et elle se replie sous ' + REPLI + '.');
+  console.log('         (marge mesuree au seuil : ' + (reste - REPLI) + ' px, tiroir a ' + Math.round(auSeuil) + ' px)');
+
+  t('le plancher du clamp ne mord jamais au-dessus du seuil',
+    plancher <= seuil * part / 100,
+    'a ' + seuil + 'px, ' + part + 'vw vaut ' + Math.round(seuil * part / 100) + 'px : un plancher de ' + plancher + ' le remplacerait, et la largeur cesserait d\'etre proportionnelle la ou elle sert.');
+
+  /* LE PLAFOND EXISTE POUR LA LECTURE, PAS POUR LA MISE EN PAGE. Au-dela, la
+     seule vraie phrase de la fiche depasse cent signes par ligne. Un tiroir qui
+     grandirait sans fin rendrait son texte moins lisible en prenant plus de
+     place, ce qui est le contraire de ce qu'on lui demande. */
+  t('le plafond borne la longueur de ligne', plafond >= 700 && plafond <= 900,
+    plafond + 'px : sous 700 le tiroir cesse de suivre l\'ecran trop tot, au-dela de 900 le texte depasse cent signes par ligne.');
+
+  /* LA DEMANDE DE TED, EN CHIFFRES : « tu peux vraiment prendre 1/3 de l'ecran ».
+     Mesure sur sa fenetre, relevee a 2296 px sur sa capture. */
+  const chezTed = Math.max(plancher, Math.min(2296 * part / 100, plafond));
+  t('sur la fenetre de Ted, le tiroir tient environ le tiers',
+    chezTed / 2296 >= 0.28,
+    'il n\'en prend que ' + Math.round(chezTed / 2296 * 100) + ' %, et c\'est le defaut qu\'il a signale.');
+  console.log('         (chez Ted, 2296 px : tiroir ' + Math.round(chezTed) + ' px, soit ' + Math.round(chezTed / 2296 * 100) + ' % ; liste ' + Math.round(2296 - RAIL - RETRAITS - chezTed) + ' px)');
 }
+
+/* `vw` ET PAS `%` : la meme valeur sert de largeur au tiroir, qui est en position
+   fixe, et de retrait a l'atelier qui le pousse. Un pourcentage se calculerait sur
+   deux boites contenantes differentes et les deux moities se desaligneraient. */
+t('la largeur est en vw et jamais en pourcentage',
+  !/--bdv-tiroir:[^;]*\d%/.test(themeSrc));
 
 /* -- 3. LE JETON EST UNE ECHELLE, DONC IL NE SE RETOURNE PAS. Une longueur qui
       apparaitrait dans un bloc sombre ferait deja echouer la section 4 de
@@ -132,9 +169,16 @@ t('la section 22 habille la modale d\'une tache', /\.tmod\{/.test(sec));
 t('les deux perdent leur voile',
   /#modale\.on \.modale__bg\{[^}]*display:none/.test(sec)
   && /\.tmod__voile\{[^}]*display:none/.test(sec));
-t('les deux champs de date de la tache se remettent l\'un sous l\'autre',
-  /\.tmod__duo\{[^}]*grid-template-columns:1fr/.test(sec),
-  'deux inputs date dans 372 px debordent, ils ne se compriment pas.');
+/* LE DUO N'EST PAS FORCE EN UNE COLONNE, ET C'EST UNE MESURE QUI L'INTERDIT.
+   La regle y a ete une heure, reprise du bloc telephone sans etre remesuree.
+   Releve du 23/09/2026, boite par boite de 360 a 620 px en forcant les deux
+   colonnes : le duo ne deborde jamais, et le contenu des champs n'est jamais
+   tronque. A 360 px un champ fait encore 147 px et affiche sa date en entier.
+   La remettre empilerait, chez Ted, deux champs qui ont 687 px pour se tenir
+   cote a cote. */
+t('les deux champs de date ne sont pas empiles de force',
+  !/\.tmod__duo\{[^}]*grid-template-columns:\s*1fr\s*[;}]/.test(sec),
+  'la mesure dit que le duo tient des 360 px de boite : l\'empiler est une regle reprise d\'ailleurs, pas un besoin d\'ici.');
 
 /* -- 5. LA CLASSE PART A LA FERMETURE. Sans ca, le retrait de l'atelier reste
       pose sur une fiche fermee : une colonne vide de 420 px a droite du bureau,

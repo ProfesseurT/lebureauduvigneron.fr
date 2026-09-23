@@ -12,6 +12,50 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 23/09/2026, la fin. Un nombre fixe ne répond pas à deux écrans
+
+Ted, capture de son vrai bureau à l'appui : « non, là tu peux revoir la taille des écrans.
+regarde, c'est pas utilisable. Tu peux vraiment prendre 1/3 de l'écran ».
+
+**Sa capture a été mesurée avant d'être commentée**, et c'est elle qui a donné le chiffre qui
+manquait : le rail y fait 233 px d'image pour 184 px réels, ce qui donne une échelle de 1,115
+et une **fenêtre de 2296 px**. Le tiroir de 420 px n'y faisait que **18 %** de la largeur. Sur
+l'écran de 1440 où je l'avais mesuré, il en fait 35 %. **Le même nombre ne peut pas répondre
+aux deux.**
+
+C'est la même famille que la règle du 07/09/2026 sur le responsive : la largeur de la fenêtre
+ne dit rien de la place disponible, et une valeur posée sur une mesure prise ailleurs se
+trompe de cible. Je l'avais écrite le matin même dans CLAUDE.md, et j'ai quand même posé un
+nombre fixe.
+
+La largeur devient `clamp(400px, 32vw, 820px)`. Les deux bornes sont mesurées, pas arrondies :
+32vw laisse 666 px à la liste au seuil de 1320, donc 26 px au-dessus des 640 où elle se replie
+en fiches ; 820 est la largeur où le conseil de la fiche atteint cent signes par ligne. Et
+`vw` plutôt que `%`, parce que la même valeur sert de largeur au tiroir et de retrait à ce qui
+le pousse : un pourcentage se calculerait sur deux boîtes différentes.
+
+Chez Ted : **735 px, soit 32 %**. Les quatre chiffres de la fiche passent sur une ligne, le
+conseil se lit d'un trait, les trois boutons de report ne se replient plus.
+
+### La deuxième règle recopiée du téléphone, et c'est la même faute qu'il y a une heure
+
+En capturant à sa largeur, j'ai vu les deux champs de date empilés dans un tiroir de 735 px.
+C'était ma règle, reprise du bloc téléphone sur le raisonnement « un champ date ne se comprime
+pas, il déborde ». **Mesure, boîte par boîte de 360 à 620 px : il ne déborde jamais et son
+contenu n'est jamais tronqué.** À 360 px, la plus étroite testée, un champ fait encore 147 px
+et affiche sa date en entier.
+
+Deux fois dans le même lot, la même faute. La leçon écrite ce matin disait « on la remesure
+avant de la reprendre ». Elle est devenue plus dure : **une règle d'un autre point de rupture
+ne se reprend pas, elle se redémontre.** Tant qu'on n'a pas la mesure qui la justifie ici,
+elle n'existe pas.
+
+Le banc garde les deux sens désormais : il échoue si la largeur redevient fixe, si elle passe
+en pourcentage, si le tiroir grossit au point de replier la liste au seuil, si le plafond
+descend au point qu'il cesse de suivre l'écran, et si le duo est réempilé de force.
+
+---
+
 ## 23/09/2026, la suite. « ok same pour les tâches », et ce que ça voulait dire
 
 Ted, après avoir vu le lot 1 : « ok same pour les tâches ». Trois mots, et un piège dedans.
