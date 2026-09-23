@@ -478,14 +478,18 @@
      Donc UNE fonction, et les trois boutons passent par elle. En ajouter un quatrieme
      ailleurs, c'est l'appeler elle.
   --------------------------------------------------------------------------- */
-  function ouvrirReglages() {
+  /* `onglet` est facultatif et traverse tel quel jusqu'a BdvReglages : le bandeau du
+     classement au juge, pose le 23/09/2026 sur les ecrans de vente, demande « classement ».
+     Ce module reste le SEUL point d'entree des reglages, donc c'est ici que le parametre
+     passe, et pas dans un deuxieme chemin ecrit a cote. */
+  function ouvrirReglages(onglet) {
     /* Le panneau s'ouvre TOUT DE SUITE, sans attendre le moteur : « Toi » et « Le
        courrier » n'en ont pas besoin, et un panneau qui met une seconde a apparaitre
        donne l'impression d'un clic rate. « Ma base » et « Le classement » sont des
        calculs sur les lignes de vente : ils se remplissent quand le moteur arrive, par
        le rafraichissement que le module expose deja. */
-    if (typeof window.ouvrirPanneauReglages === 'function') window.ouvrirPanneauReglages();
-    else if (window.BdvReglages) window.BdvReglages.ouvrir();
+    if (typeof window.ouvrirPanneauReglages === 'function') window.ouvrirPanneauReglages(onglet);
+    else if (window.BdvReglages) window.BdvReglages.ouvrir(onglet);
 
     chargerMoteur().then(function () {
       if (window.BdvReglages && BdvReglages.rafraichir) BdvReglages.rafraichir();

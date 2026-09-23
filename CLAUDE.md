@@ -6232,12 +6232,91 @@ et les deux `erreur double saisie, ne pas utiliser` ne finissent pas par quatre 
 
 ### CE QUI RESTE OUVERT
 
-- **`gateBaseVide()` masque l'onglet « Le classement » tant que la base LOCALE est vide**, et
-  depuis l'amorcage leger elle l'est a chaque premiere ouverture. C'est-a-dire que le geste qui
-  ferait travailler le serveur est cache au moment ou l'on en aurait le plus besoin. Signale, non
-  corrige : le toucher demande de rouvrir `baseEstVide()` du panneau, ce qui n'etait pas ce lot.
-- **Rien ne dit au vigneron que son classement n'est pas valide**, ni ce qu'il y gagnerait. Tant
-  qu'il ne l'a pas valide, le serveur ne sert a rien et tout se calcule sur son appareil.
+- ~~**`gateBaseVide()` masque l'onglet « Le classement » tant que la base LOCALE est vide.**~~
+  **CETTE AFFIRMATION ETAIT FAUSSE, ET ELLE A ETE DEDUITE DE LA LECTURE AU LIEU D'ETRE REJOUEE.**
+  `baseEstVide()` du panneau delegue a `baseVide()` de bdv-ecrans.js, qui a justement ete corrige
+  le 18/09/2026 pour ne conclure « vide » que si le SERVEUR le dit aussi. Rejoue le 23/09/2026
+  par `"Claude outputs/lot32-verif-gate.mjs"`, quatre cas : base locale pleine, appareil neuf
+  serveur muet, appareil neuf serveur plein, vide des deux cotes. **Un seul rend « vide », et
+  c'est le bon.** Le garde est juste, l'onglet est atteignable. C'est la meme faute de methode que
+  les deux faux defauts SQL du 18/09 : un Postgres vide et huit minutes tranchent ce qu'une heure
+  de lecture ne tranche pas.
+- ~~**Rien ne dit au vigneron que son classement n'est pas valide**, ni ce qu'il y gagnerait.~~
+  **FAIT LE MEME JOUR**, voir « UN ETAT DEGRADE SE DIT LA OU SON PRIX SE PAIE » plus bas.
 - **`resumes_perimer()` et `resumes_perimer_reglages()` sont appelables par `anon`** en RPC, vu au
   controle de securite du jour. Ce sont des fonctions de declencheur : hors declencheur elles
   levent, faute de table de transition. Bruit, pas faille, mais a fermer avec le lot 16.
+
+
+## UN ETAT DEGRADE SE DIT LA OU SON PRIX SE PAIE, 23/09/2026
+
+Suite immediate de « UN RESUME VIDE N'EST PAS UN RESUME ». Une fois le melange repare, il restait
+la vraie question : **pourquoi Ted a-t-il tenu un bureau entier au juge sans le savoir ?**
+
+### L'AVEU EXISTAIT, ET IL ETAIT AU SEUL ENDROIT OU L'ON VA DEJA POUR CORRIGER
+
+`renderReglages()` ecrit depuis le 19/09/2026 : « L'outil fonctionne actuellement au juge. Les
+regroupements ci-dessous sont des propositions deduites de ton fichier, pas des certitudes. » La
+phrase est juste, elle nomme, elle distingue meme trois etats (regle / illisible / au juge), ce
+qui est exactement ce que ce depot demande.
+
+**Elle vit dans l'onglet « Le classement » du panneau de reglages.** Pour la lire, il faut ouvrir
+le panneau ET choisir cet onglet, c'est-a-dire faire les deux tiers du chemin qui mene a la
+correction. Le vigneron qui regarde « Mon cap » ne la voit jamais.
+
+**LA REGLE : un etat degrade se dit LA OU SON PRIX SE PAIE, pas la ou on le repare.** C'est le
+symetrique exact de la lecon du 19/09/2026 sur `noteComplement()` : annoncer ce qui manque sans
+poser le bouton qui le comble est une impasse ecrite en toutes lettres. Ici c'etait le bouton
+sans l'annonce.
+
+### CE QUI A ETE POSE, ET LES TROIS REFUS QUI COMPTENT PLUS QUE L'AFFICHAGE
+
+Un bandeau `.signal--info` dans `#noteClassement`, en tete de la coque des ecrans de vente, peint
+par `majNoteClassement()`. Il nomme ce qui est devine (les familles hors CA, les canaux), dit ce
+que ca coute (« tout se refait sur cet appareil a chaque ouverture ») et porte le bouton qui mene
+a l'onglet. **Le texte du panneau n'est PAS recopie** : deux endroits qui expliquent le meme etat
+divergeraient au premier ajustement. Le panneau garde l'explication longue, le bandeau dit une
+phrase et mene la-bas.
+
+**Ce qui rend ce bandeau tenable, ce sont ses trois refus, et le premier est le plus important :**
+
+1. **`classementIncertain()` : les reglages du COMPTE n'ont pas pu etre lus, donc on se tait.**
+   Accuser un vigneron d'un reglage manquant parce que son reseau a lache, c'est lui faire refaire
+   un classement qui existe deja sur son compte, et l'ecraser. Le panneau dit deja l'autre phrase,
+   avec l'autre geste. **Un bandeau qui accuse a tort coute plus cher que pas de bandeau : il
+   apprend a ignorer les bandeaux.**
+2. **`lignesPretes()`** : `REGLAGES_NON_LUS` part a `false`, et ce `false`-la veut dire « personne
+   n'a essaye », pas « la lecture a abouti ». La seule lecture des reglages du compte se fait dans
+   `tirerDuServeur()`, donc dans le meme chemin que les lignes : les attendre, c'est attendre la
+   reponse. **Un drapeau qui vaut `false` avant toute tentative n'est pas une reponse.**
+3. **`baseVide()`** : sans lignes il n'y a rien a classer, et `gateBaseVide()` ecarte deja l'onglet
+   dans ce cas. Proposer un geste impossible est pire que se taire.
+
+Branche sur les TROIS chemins, regle du 14/09/2026 : `ecranPeindre()`, `renderAll()` et
+`assurerLignes()`. Une zone qui n'a que le premier marche parfaitement le jour ou on l'ecrit.
+
+### LE RENVOI MENE A L'ONGLET, ET L'ORDRE EST UNE CONDITION
+
+`BdvNav.ouvrirReglages(onglet)` transmet jusqu'a `BdvReglages.ouvrir(onglet)`, qui traduit un
+alias court (`classement`) en id de bloc. Le module reste **le seul point d'entree des reglages**,
+regle du 07/09/2026 : on lui ajoute un parametre, on n'ecrit pas un deuxieme chemin a cote.
+
+**`viserOnglet()` s'appelle APRES `rafraichirTout()`, jamais avant.** `gateBaseVide()` force
+« Ma base » quand il n'y a rien a classer, et il a raison de le faire : poser l'onglet avant, c'est
+se faire corriger sans le voir. `montrerOnglet()` retombe de toute facon sur le premier onglet
+disponible si celui qu'on vise est ecarte.
+
+### ET LA PHRASE DU PANNEAU DISAIT CE QU'ON PERD, JAMAIS CE QU'ON GAGNE
+
+« Prends les chiffres de canaux et de typologie avec prudence » decrit une degradation et ne donne
+aucune raison d'agir : valider ressemblait a une corvee sans contrepartie. La phrase ajoutee n'est
+pas un argument de vente, elle est mesuree : tant que le classement n'est pas valide,
+`v_ventes.est_vente` vaut null, les trois fonctions de resume ne calculent rien, et chaque
+ouverture d'ecran refait le travail sur l'appareil.
+
+### `npm run banc:classement`, 21 CONTROLES, DANS `npm run verif`
+
+Il garde les trois refus, les trois chemins, la presence de `#noteClassement` dans la page
+CONSTRUITE (un id absent ne leve rien : la zone reste vide et personne ne le remarque), et l'ordre
+`rafraichirTout()` puis `viserOnglet()`. Verifie en remettant le defaut, trois mutations, trois
+echecs cibles : le garde de l'incertitude retire, `renderAll()` debranche, l'onglet vise trop tot.

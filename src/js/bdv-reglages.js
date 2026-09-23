@@ -1155,13 +1155,29 @@
 
   /* ====================== OUVRIR, FERMER ====================== */
 
-  function ouvrir(){
+  /* L'ONGLET DEMANDE, 23/09/2026. Le bandeau « ces chiffres sont calcules au juge » des
+     ecrans de vente mene ici, et il doit mener a l'onglet qui repare, pas au premier de la
+     rangee : un renvoi qui depose le vigneron devant six onglets lui laisse la moitie du
+     travail. On accepte un alias court plutot que l'id d'un bloc, pour que l'appelant n'ait
+     pas a connaitre le balisage de ce module.
+     L'ONGLET SE POSE APRES `rafraichirTout()`, ET C'EST UNE CONDITION : `gateBaseVide()`
+     force « Ma base » quand il n'y a rien a classer, et il a raison de le faire. Poser
+     l'onglet avant, c'est se faire corriger sans le voir. `montrerOnglet()` retombe de
+     toute facon sur le premier onglet disponible si celui-la est ecarte. */
+  const ONGLETS_NOMMES = { classement: 'bdvrBlocClassement', base: 'bdvrBlocBase',
+                           ventes: 'bdvrBlocVentes' };
+  function viserOnglet(onglet){
+    if(!onglet) return;
+    const id = ONGLETS_NOMMES[onglet] || onglet;
+    if(el(id)) montrerOnglet(id);
+  }
+  function ouvrir(onglet){
     construire();
     // Deja ouvert : on rafraichit et on ne touche NI au focus NI a TOUCHES. Le bouton
     // « Appliquer mes reglages » du classement est clique depuis l'interieur du panneau,
     // et un rappel d'ouverture y faisait sauter le curseur a l'autre bout du formulaire.
     const dejaLa = el('bdvrVoile') && !el('bdvrVoile').hidden;
-    if(dejaLa){ rafraichirTout(); return; }
+    if(dejaLa){ rafraichirTout(); viserOnglet(onglet); return; }
     RETOUR_FOCUS = document.activeElement;
     TOUCHES = {};
     remplir();
@@ -1170,6 +1186,7 @@
     document.body.style.overflow = 'hidden';
     el('bdvrPrenom').focus();
     rafraichirTout();
+    viserOnglet(onglet);
     // On rouvre sur ce qu'on a, puis on se corrige avec ce que le serveur dit. Tant que ces
     // lectures n'ont pas abouti, rien ne part : c'est le role des deux verrous.
     const encore = function(){ const v = el('bdvrVoile'); return v && !v.hidden; };

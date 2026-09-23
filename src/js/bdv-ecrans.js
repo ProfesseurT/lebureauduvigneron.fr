@@ -154,7 +154,7 @@ function brancherPanneauReglages(){
   // Le meme garde-fou de deconnexion qu'au bureau, ecrit une seule fois dans le module.
   BdvReglages.brancherSortie(el('tbSortir'),null);
 }
-function ouvrirPanneauReglages(){
+function ouvrirPanneauReglages(onglet){
   brancherPanneauReglages();
   /* LES DEUX BLOCS QUI LISENT LA BASE SE PEIGNENT ICI, depuis le 18/09/2026. « Ma base »
      et le bloc des reglages proposes parcourent les lignes pour compter les familles, les
@@ -163,7 +163,7 @@ function ouvrirPanneauReglages(){
      peint a ce geste. */
   ECRAN_COURANT = 'reglages';
   ecranPeindreQuandPret('reglages');
-  if(window.BdvReglages)BdvReglages.ouvrir();
+  if(window.BdvReglages)BdvReglages.ouvrir(onglet);
   else navTo('vide');   // module absent : au moins la zone de depot n'est pas hors d'atteinte
 }
 /* Combien de lignes cet appareil porte, SANS les deriver. Pose par l'amorcage, qui le
@@ -516,6 +516,7 @@ function assurerLignes(dire){
          quoi dire vrai, c'est-a-dire maintenant. */
       try{ deposerPourLeBureau(); }catch(e){}
       try{ majCompteurLignes(); }catch(e){}
+      try{ majNoteClassement(); }catch(e){}
       return true;
     }catch(e){
       /* On ne reessaie pas tout seul : `_lignesEnRoute` retombe a null, donc le prochain
@@ -541,12 +542,74 @@ const ECRANS_A_COMPLETER = ['annee', 'clients', 'produits'];
    s'emploie a eviter par ailleurs. */
 function ecranInvalider(){ ECRANS_PEINTS.clear(); }
 
+
+/* ============ LE CLASSEMENT AU JUGE SE DIT LA OU IL SE PAIE, 23/09/2026 ============
+
+   Ted a tenu un bureau entier au juge sans le savoir : classement jamais valide, donc
+   `v_ventes.est_vente` a null, donc AUCUN des trois resumes du serveur ne calculait quoi
+   que ce soit pour lui. Il l'a decouvert le jour ou un ecran a affiche 0 euro.
+
+   **L'aveu existait pourtant depuis le 19/09/2026**, ecrit noir sur blanc par
+   `renderReglages()` : « L'outil fonctionne actuellement au juge ». Il vit dans l'onglet
+   « Le classement » du panneau, c'est-a-dire **a l'endroit exact ou l'on va deja pour
+   corriger**, et nulle part ou l'on regarde des chiffres. Une phrase juste, posee la ou
+   personne n'a de raison de passer, ne dit rien a personne.
+
+   LA REGLE : **un etat degrade se dit la ou son prix se paie, pas la ou on le repare.**
+   Meme motif que `noteComplement()`, qui annonce ce qui manque ET pose le bouton qui le
+   comble : la lecon du 19/09 etait qu'annoncer sans le geste est une impasse ecrite en
+   toutes lettres. Ici c'est le symetrique : le geste sans l'annonce.
+
+   ON NE REECRIT PAS LE TEXTE DU PANNEAU, et c'est voulu : deux endroits qui expliquent le
+   meme etat divergeraient au premier ajustement. Le panneau garde l'explication longue et
+   les trois etats (regle / illisible / au juge) ; ce bandeau-ci dit la meme chose en une
+   phrase et mene la-bas.
+
+   LE GARDE TIENT EN TROIS REFUS, et les trois comptent :
+     - `classementIncertain()` : les reglages du COMPTE n'ont pas pu etre lus. On ne sait
+       pas, et « je ne sais pas » n'accuse personne. Le panneau le dit deja, lui, avec le
+       geste qui va avec (recharger, et surtout ne rien enregistrer par-dessus).
+     - `lignesPretes()` : tant que rien n'a ete charge, `REGLAGES_NON_LUS` vaut encore son
+       `false` de depart, qui veut dire « personne n'a essaye » et pas « la lecture a
+       abouti ». La lecture du compte se fait dans `tirerDuServeur()`, donc dans le meme
+       chemin que les lignes : les attendre, c'est attendre la reponse.
+     - `baseVide()` : sans lignes il n'y a rien a classer, et le panneau ecarte deja son
+       onglet dans ce cas (`gateBaseVide`). Proposer un geste impossible est pire que se
+       taire.
+
+   BRANCHE SUR LES TROIS CHEMINS, regle du 14/09/2026 : la peinture d'un ecran, le
+   rafraichissement apres un geste, et l'arrivee des lignes. Une zone qui n'a que le
+   premier marche parfaitement le jour ou on l'ecrit. */
+function classementAuJuge(){
+  if(typeof classementIncertain === 'function' && classementIncertain()) return false;
+  if(!lignesPretes()) return false;
+  if(baseVide()) return false;
+  return !(typeof REG !== 'undefined' && REG && REG.valide);
+}
+function majNoteClassement(){
+  const n = el('noteClassement'); if(!n) return;
+  if(!classementAuJuge()){ n.innerHTML = ''; return; }
+  n.innerHTML = signal('info','ℹ','Ces chiffres sont calculés au jugé.',
+    'Ton classement n\'est pas validé : les familles hors chiffre d\'affaires et les canaux de vente sont devinés sur leur nom, et ton compte ne peut rien calculer, donc tout se refait sur cet appareil à chaque ouverture. C\'est à régler une fois. '
+    + '<button class="btn btn--sm" onclick="bdvReglerClassement()" style="margin-top:.5rem">Régler mon classement</button>');
+}
+window.bdvMajNoteClassement = majNoteClassement;
+/* LE SEUL POINT D'ENTREE DES REGLAGES RESTE `BdvNav.ouvrirReglages()`, regle du
+   07/09/2026 : celui qui ouvre le panneau sans passer par lui ouvre un panneau dont
+   « Ma base » et « Le classement » restent vides, sans erreur. On lui passe l'onglet. */
+function bdvReglerClassement(){
+  if(window.BdvNav && BdvNav.ouvrirReglages) BdvNav.ouvrirReglages('classement');
+  else ouvrirPanneauReglages('classement');
+}
+window.bdvReglerClassement = bdvReglerClassement;
+
 function ecranPeindre(id){
   if(!id || ECRANS_PEINTS.has(id)) return;
   const f = PEINTRES[id];
   if(!f) return;
   ECRANS_PEINTS.add(id);
   f();
+  majNoteClassement();
 }
 
 /* ============ LE COMPLEMENT EST DEMANDE, JAMAIS AUTOMATIQUE ============
@@ -607,6 +670,7 @@ function ecranPeindreQuandPret(id){
 
 function renderAll(){
   ecranInvalider();
+  majNoteClassement();
   /* L'ecran courant est repeint TOUT DE SUITE : `renderAll()` est appelee apres un geste
      qui a change la donnee, et le vigneron regarde le resultat de son geste. Les autres
      attendront leur tour. */

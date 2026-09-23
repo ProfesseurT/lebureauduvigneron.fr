@@ -70,6 +70,14 @@
     </div>
   </div>
   <main class="content">
+    {# LE CLASSEMENT AU JUGE SE DIT LA OU IL SE PAIE, 23/09/2026. Le panneau de reglages
+       porte deja la phrase « L'outil fonctionne actuellement au juge », mais dans son
+       onglet « Le classement » : c'est-a-dire a l'endroit ou l'on va deja pour corriger,
+       et nulle part ou l'on regarde des chiffres. Ted a tenu un bureau entier au juge sans
+       jamais savoir que le serveur ne calculait rien pour lui. Ce bandeau est peint par
+       `majNoteClassement()`, il reste VIDE quand le classement est valide, et il ne prend
+       alors aucune place : la marge est portee par `.signal` lui-meme. #}
+    <div id="noteClassement"></div>
     <div class="filterbar" id="filterbar"></div>
     <section class="panel" id="p-annee">
       {# p-diagnostic porte toute la piece depuis le 11/09/2026 : renderCap() a absorbe

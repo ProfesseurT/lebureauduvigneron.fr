@@ -56,11 +56,28 @@ vers une liste qui en montre 56, parce que la liste écarte ceux qui portent dé
 solide. Aucun des deux n'avait tort, et c'est précisément ce qui rendait le renvoi inutilisable.
 Le signal applique désormais le même écart.
 
-**Ce qui reste ouvert, et qui est le vrai sujet de demain :** rien ne dit au vigneron que son
-classement n'est pas validé, ni ce qu'il y gagnerait, et `gateBaseVide()` masque justement
-l'onglet « Le classement » tant que la base locale est vide, donc à chaque première ouverture
-depuis l'amorçage léger. Le geste qui ferait travailler le serveur est caché au moment où on en
-aurait le plus besoin.
+**Le point ouvert, traité dans la foulée.** J'avais annoncé deux choses : que rien ne dit au
+vigneron que son classement n'est pas validé, et que `gateBaseVide()` masque justement l'onglet
+qui le répare. **La seconde était fausse**, et je l'avais déduite de la lecture au lieu de la
+rejouer — la faute exacte que ce dépôt documente depuis le 18/09. Rejouée sur quatre cas :
+`baseEstVide()` délègue à `baseVide()`, corrigé le 18/09 précisément pour ne conclure « vide » que
+si le serveur le dit aussi. L'onglet est atteignable. Corrigé dans CLAUDE.md, qui portait
+l'affirmation fausse pendant une heure.
+
+**La première était vraie, et elle avait une cause intéressante.** L'aveu existait : « L'outil
+fonctionne actuellement au jugé », écrit le 19/09 dans le panneau de réglages. Mais **dans
+l'onglet « Le classement »**, c'est-à-dire à l'endroit où l'on va déjà pour corriger. Une phrase
+juste, posée là où personne n'a de raison de passer, ne dit rien à personne. D'où la règle :
+**un état dégradé se dit là où son prix se paie, pas là où on le répare** — le symétrique exact de
+la leçon du 19/09 sur `noteComplement()`, qui annonce ce qui manque ET pose le bouton qui le
+comble.
+
+Un bandeau en tête des écrans de vente le dit donc en une phrase et mène à l'onglet. Ce qui a
+demandé le plus de soin n'est pas ce qu'il affiche mais **ce qu'il refuse d'afficher** : il se tait
+quand les réglages du compte n'ont pas pu être lus, parce qu'accuser quelqu'un d'un réglage
+manquant pendant que son réseau a lâché, c'est lui faire écraser un classement qui existe. Un
+bandeau qui accuse à tort coûte plus cher que pas de bandeau : il apprend à ignorer les bandeaux.
+`npm run banc:classement`, 21 contrôles, dans `npm run verif`, vérifié par trois mutations.
 ---
 
 ## 23/09/2026, plus tard. Le bouton « Vider la base » ne disait pas qu'il travaillait

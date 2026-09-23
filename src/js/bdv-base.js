@@ -1665,7 +1665,13 @@ function renderReglages(){
     ? signal('danger','⚠','Ton classement n\'a pas pu être lu.',
         'Ton compte n\'a pas répondu : l\'outil ne sait pas si tu as déjà rangé tes canaux et tes types de clients. En attendant il <b>devine</b>, et l\'exercice comptable est retombé sur l\'année civile. <b>Les chiffres de canaux, de typologie et de comparaison d\'exercice sont à prendre pour faux tant que cette phrase est là.</b> Recharge la page quand ta connexion sera revenue, plutôt que de tout re-régler ici : ce que tu enregistrerais maintenant écraserait ce qui est sur ton compte.')
     : signal('info','ℹ','L\'outil fonctionne actuellement au jugé.',
-        'Les regroupements ci-dessous sont des <b>propositions</b> déduites de ton fichier, pas des certitudes. Tant que tu ne les as pas validés, prends les chiffres de canaux et de typologie avec prudence.');
+        'Les regroupements ci-dessous sont des <b>propositions</b> déduites de ton fichier, pas des certitudes. Tant que tu ne les as pas validés, prends les chiffres de canaux et de typologie avec prudence. '
+        /* CE QU'ON Y GAGNE, AJOUTE LE 23/09/2026. La phrase disait ce qu'on perd et jamais
+           ce qu'on gagne, donc valider ressemblait a une corvee sans contrepartie. Ce n'est
+           pas un argument de vente : c'est mesure. Tant que le classement n'est pas valide,
+           `v_ventes.est_vente` vaut null, les trois fonctions de resume ne calculent rien,
+           et chaque ouverture d'ecran refait le travail sur l'appareil. */
+        + '<b>Et ton compte ne peut rien calculer tant qu\'ils ne sont pas validés</b> : tous tes chiffres se refont sur cet appareil à chaque ouverture, au lieu d\'arriver déjà prêts.');
 
   /* 0. L'exercice comptable. Range avant les quatre sections de classification parce que
      ce n'est pas une question de contenu de champ mais de decoupage du temps : il commande
