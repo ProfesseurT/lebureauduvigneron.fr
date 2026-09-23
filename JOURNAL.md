@@ -12,6 +12,57 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 23/09/2026, le soir. « Je peux pas faire confiance au reste à partir de là »
+
+Ted venait de rentrer une base de 5 210 lignes et a demandé un audit des calculs, captures à
+l'appui : 31 millésimes pour 13 cuvées, pas de chiffres sur « Mon cap », des doubles négatifs.
+
+**Il avait raison, et il y avait une seule cause pour l'essentiel.** `v_ventes.est_vente` vaut
+`null` tant que le classement des familles n'est pas validé en base, ce qui est la décision du
+lot 23 et qui est bonne. Ce qui ne l'était pas : dans cet état, `cap_resume` et `commerce_resume`
+rendaient un objet **complet dont presque tous les champs sont nuls**, et `Number(null)` vaut
+zéro. Seul `cuvees_resume` s'annonçait vide, avec `ok: false`, et c'est le seul des trois écrans
+qui était juste. Ce n'est pas une coïncidence, c'est la démonstration.
+
+Ce que ça donnait : « Mon cap » affichait **-26,1 % et 72 267 €** dans son bandeau, **0 €,
+« null mois connus » et « objectif menacé, -164 000 € »** dans les trois cartes juste dessous, et
+**« objectif jouable, atterrissage 223 302 € »** dans le conseil encore en dessous. Trois
+réponses à une seule question, sur un seul écran. La vérité, rejouée contre la base : 72 267 €
+réalisés sur deux mois, atterrissage 223 302 €, objectif 164 000 €, donc **+59 302 €**. L'écran
+disait l'inverse de la réalité sur le seul chiffre que Ted regarde.
+
+**Ce qui l'a rendue visible : cinq gardes différents pour un seul objet.** `capCadre()` exigeait
+un chiffre comparatif et retombait en local ; `capAtterrissage()` se contentait d'un numéro
+d'exercice et gardait le serveur. Deux blocs voisins, deux conditions, un écran moitié juste
+moitié faux.
+
+**L'arbitrage.** Ted a choisi de réparer le mélange d'abord plutôt que de valider son classement
+pour débloquer son propre bureau : ça soigne tous les vignerons à venir, pas seulement lui. Le
+garde se pose donc **à la pose du résumé, jamais bloc par bloc à la lecture** — un seul endroit
+décide, et un bloc écrit demain en hérite sans y penser. Et le lot 31 double le verrou côté
+serveur : `public.resume()` rend `null` plutôt qu'un objet à trous quand elle ne peut rien
+calculer. Les deux se doublent exprès.
+
+**Trois défauts d'affichage indépendants, corrigés dans la foulée.** `fmtPct` posait le signe
+deux fois (« - -26,1 % ») là où sa voisine `fmtDelta`, écrite le même jour, prenait bien la
+valeur absolue : le défaut n'a jamais touché les euros, et c'est ce qui l'a fait survivre. Le
+compteur de la barre disait « 0 lignes » sur 5 210, parce qu'il n'était écrit qu'à l'ouverture et
+après un import, jamais quand les lignes arrivent au premier geste qui en a besoin. Et les
+« 31 millésimes » comptaient des couples cuvée × millésime : le calcul était juste des deux côtés,
+c'est le libellé qui mentait, il dit maintenant « Références ».
+
+**Un signal qui annonce un nombre doit mener à ce nombre.** « 90 clients en retard » renvoyait
+vers une liste qui en montre 56, parce que la liste écarte ceux qui portent déjà une raison plus
+solide. Aucun des deux n'avait tort, et c'est précisément ce qui rendait le renvoi inutilisable.
+Le signal applique désormais le même écart.
+
+**Ce qui reste ouvert, et qui est le vrai sujet de demain :** rien ne dit au vigneron que son
+classement n'est pas validé, ni ce qu'il y gagnerait, et `gateBaseVide()` masque justement
+l'onglet « Le classement » tant que la base locale est vide, donc à chaque première ouverture
+depuis l'amorçage léger. Le geste qui ferait travailler le serveur est caché au moment où on en
+aurait le plus besoin.
+---
+
 ## 23/09/2026, plus tard. Le bouton « Vider la base » ne disait pas qu'il travaillait
 
 Ted, deux captures du bouton : « j'ai l'impression que c'est pas propre. Il faut forcément que

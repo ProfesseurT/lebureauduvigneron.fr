@@ -195,10 +195,23 @@ function baseVide(){
   if(LIGNES_EN_BASE !== 0) return false;
   return LIGNES_DISTANTES === 0;
 }
+/* LE COMPTEUR DE LA BARRE SE REPEINT QUAND LES LIGNES ARRIVENT, 23/09/2026.
+   Ted, capture a l'appui : « 0 LIGNES » en tete de « Mon cap » pendant que l'ecran
+   affichait ses signaux, ses clients et 550 286 euros de cuvees. Il avait 5 210 lignes.
+   Ce compteur n'etait ecrit qu'a DEUX moments, `openApp()` et `ecranRafraichir()`,
+   c'est-a-dire a l'ouverture et apres un import ou un reglage. Depuis l'amorcage leger
+   du 18/09/2026, les lignes n'arrivent plus a l'ouverture mais au premier geste qui en
+   a besoin : entre les deux, personne ne repassait dire combien il y en a.
+   Un seul endroit l'ecrit desormais, et `assurerLignes()` l'appelle en sortant. */
+function majCompteurLignes(){
+  const f = el('tbFile'); if(!f) return;
+  const combien = lignesPretes() ? ROWS.length : (LIGNES_EN_BASE || 0);
+  f.textContent = fmtNum(combien)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
+}
+window.bdvMajCompteurLignes = majCompteurLignes;
 function openApp(ecranDepart){
   el('app').classList.add('on');
-  const combien = lignesPretes() ? ROWS.length : (LIGNES_EN_BASE || 0);
-  el('tbFile').textContent=fmtNum(combien)+' lignes'+(META.min?' · '+fmtDate(META.min)+' au '+fmtDate(META.max):'');
+  majCompteurLignes();
   /* Le volet de gauche a disparu au lot 2d, avec son pied et avec le menu de secours de la
      barre haute. Ces trois-la existaient parce que cette page etait un lieu ou l'on entrait
      et dont il fallait pouvoir sortir. La barre du bureau tient ce role, elle est toujours
@@ -502,6 +515,7 @@ function assurerLignes(dire){
          l'amorcage : il y ecrirait des zeros. Il part donc au premier moment ou il a de
          quoi dire vrai, c'est-a-dire maintenant. */
       try{ deposerPourLeBureau(); }catch(e){}
+      try{ majCompteurLignes(); }catch(e){}
       return true;
     }catch(e){
       /* On ne reessaie pas tout seul : `_lignesEnRoute` retombe a null, donc le prochain
@@ -1136,7 +1150,11 @@ function computePriceVolume(){
        prouve la chaine, il ne supprime pas l'attente.
    ================================================================================= */
 let COM = null;
-function comPoser(x){ COM = (x && typeof x === 'object') ? x : null; }
+/* Voir « UN RESUME VIDE N'EST PAS UN RESUME », plus bas, au-dessus de `capPoser`. Le
+   temoin est ici l'exercice compare : sans classement valide il est null, et le `bridge`
+   sort quand meme a quatre zeros, ce qui donnait « Aucun mouvement de clientele sur la
+   periode » sur une base qui recule de 26 %. */
+function comPoser(x){ COM = (x && typeof x === 'object' && x.exerciceCur != null) ? x : null; }
 /* Voir `capRafraichir` : la mise a null est immediate, la redemande attend l'ecriture. */
 function comRafraichir(apres){
   comPoser(null);
@@ -1476,9 +1494,20 @@ function diagnosticSignals(){
   }
   const dec=agentDecrochage();
   if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',cible:'clients',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
+  /* LE SIGNAL COMPTE CE QUE LA LISTE MONTRE, 23/09/2026. Il annoncait « 90 clients en
+     retard sur leur cadence, 165 831 euros » et renvoyait vers un filtre de « Mon
+     commerce » qui en montre 56 pour 126 217 euros. Aucun des deux n'avait tort : ce
+     signal comptait tous les dormants, la liste ecarte ceux qui portent deja une raison
+     plus solide (`agentClients()` : « un client n'apparait qu'une seule fois »). Mais un
+     renvoi qui annonce un nombre et mene a un autre est un renvoi qui ne sert plus.
+     On applique donc ICI le meme ecart, et seulement lui : `agentPremierAchat()` n'est
+     pas rejoue, il ne change pas ces deux motifs-la et il coute cher. */
   const dor=agentDormants();
-  if(dor.dormants.length){const t3=dor.dormants.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
-    S.push({sev:2,impact:dor.ca,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dor.dormants.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dor.ca)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
+  const dejaPris=new Set(dec.decroche.map(c=>c.id));
+  const dorm=dor.dormants.filter(c=>!dejaPris.has(c.id));
+  const dormCa=sum(dorm,c=>c.montant);
+  if(dorm.length){const t3=dorm.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
+    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dorm.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dormCa)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
   const pv=computePriceVolume();
   if(pv){
     if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
@@ -1534,8 +1563,45 @@ function diagnosticSignals(){
    que le serveur ne connait pas), les signaux du diagnostic, la courbe de tendance et
    la decomposition prix/volume. Tant que ces quatre-la sont locaux, ouvrir « Mon cap »
    charge encore la base : ce lot prouve la chaine, il ne supprime pas encore l'attente. */
+/* ============ UN RESUME VIDE N'EST PAS UN RESUME, 23/09/2026 ============
+
+   LE DEFAUT, TEL QUE TED L'A VU : « Mon cap » annoncait -26,1 % et 72 267 euros dans
+   son bandeau, puis « 0 euro », « null mois connus » et « objectif menace, -164 000 »
+   dans les trois cartes juste dessous, et « objectif jouable, atterrissage 223 302 »
+   dans le conseil encore en dessous. Trois chiffres differents pour une seule question,
+   sur un seul ecran, sans la moindre erreur nulle part.
+
+   LA CAUSE N'ETAIT PAS UN CALCUL, C'ETAIT UN GARDE. Le serveur ne sait classer une
+   ligne en vente que si `reglages.classement` porte `valide: true` : sans lui,
+   `v_ventes.est_vente` vaut null et TOUTES les fonctions de resume rendent un objet
+   a trous. Mesure du 23/09/2026 sur la base de Ted : 5 210 lignes, ZERO vente cote
+   serveur, `cap_resume` rendant `exerciceNum: 2026` et tout le reste a null.
+
+   Et chaque bloc posait SA propre condition avant d'utiliser cet objet :
+
+     capCadre()        exigeait `caCoupePrecedent`  -> null -> local  -> JUSTE
+     capAtterrissage() se contentait d'`exerciceNum` -> present -> serveur -> 0 EUR
+     computeBridge()   se contentait de `bridge`     -> present -> serveur -> 0 EUR
+     agentCadence()    exigeait un TABLEAU           -> absent -> local  -> JUSTE
+     cuvPoser()        exigeait `ok`                 -> false  -> local  -> JUSTE
+
+   Cinq gardes pour un seul objet, trois bons, deux mauvais, et un ecran moitie serveur
+   moitie navigateur. **Number(null) vaut 0, et un zero ne se distingue pas d'un vrai
+   chiffre a l'ecran.** C'est la lecon deja ecrite pour le repere de synchronisation et
+   pour `baseVide()`, payee une troisieme fois : UNE ABSENCE N'EST PAS UN ZERO.
+
+   LA REGLE : **le resume se refuse a la POSE, jamais bloc par bloc a la lecture.** Un
+   seul endroit decide, donc tous les blocs retombent en local ENSEMBLE, et un bloc
+   ecrit demain herite du garde sans avoir a y penser. Le critere est le chiffre qui
+   justifie le resume : `ca` pour « Mon cap », l'exercice compare pour « Mon commerce »,
+   `ok` pour « Mes cuvees ». Un resume qui ne le porte pas n'a rien calcule.
+
+   CE N'EST PAS LE SEUL VERROU : `supabase/lot31-resume-refuse-sans-classement.sql` fait
+   desormais rendre `null` aux trois fonctions quand le classement n'est pas valide,
+   plutot qu'un objet a trous. Les deux se doublent expres, et celui-ci tient meme si
+   le SQL n'est pas passe. ============================================================ */
 let CAP = null;
-function capPoser(x){ CAP = (x && typeof x === 'object') ? x : null; }
+function capPoser(x){ CAP = (x && typeof x === 'object' && x.ca != null) ? x : null; }
 
 /* Le cadre de la comparaison a date egale. Meme forme que `yoyFrame()` + `yoyTotals()`
    reunis, parce que l'ecran a toujours besoin des deux ensemble. */
@@ -1960,7 +2026,7 @@ function renderProduits(){
 
   html+=`<div class="kpi-grid">
     ${kpiCard('Cuvées',fmtNum(A.liste.length),'au catalogue vendu',true)}
-    ${kpiCard('Millésimes',fmtNum(A.nbMillesimes),'en circulation dans ta base')}
+    ${kpiCard('Références',fmtNum(A.nbMillesimes),'couples cuvée × millésime en circulation')}
     ${kpiCard('Part du CA',fmtNum(top3,0)+' %','porté par tes 3 premières cuvées')}
     ${kpiCard('Chiffre d\'affaires',fmtMoney(A.caTotal),'toutes cuvées, tout l\'historique')}
   </div>`;

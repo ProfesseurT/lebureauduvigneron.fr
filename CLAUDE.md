@@ -6125,3 +6125,119 @@ montre ce qu'aucun banc ne disait : **le voile ne bougeait pas.**
   copies de `src/css` et `src/js` ne le sont pas. Contournement utilise ici : `cp` en place,
   qui tronque au lieu de supprimer. Les 37 etapes de `npm run verif` ont ete lancees UNE PAR
   UNE, sans tuyau, et sont toutes vertes.
+
+## UN RESUME VIDE N'EST PAS UN RESUME, 23/09/2026
+
+Ted, apres avoir rentre une base de 5 210 lignes : « j'ai des choses chelou, pas de chiffres,
+des doubles negatifs. Je peux pas faire confiance au reste a partir de la. » Il avait raison,
+et il y avait UNE cause pour l'essentiel, plus trois defauts d'affichage independants.
+
+### LA CAUSE : `est_vente` EST NUL, ET LE BUREAU LE PREND POUR UN ZERO
+
+`v_ventes.est_vente` vaut `null` tant que `reglages.classement` ne porte pas `valide: true`.
+C'est la decision du lot 23, elle est bonne, et elle est ecrite plus haut : « le mode devine
+n'est pas porte ». **Ce qui ne l'etait pas, c'est ce que les trois fonctions de resume rendent
+DANS CET ETAT.** Mesure du 23/09/2026 sur le bureau de Ted, 5 210 lignes, ZERO vente cote
+serveur :
+
+    cap_resume      -> { exerciceNum: 2026, ca: null, dernierMois: null, ... }  objet a trous
+    commerce_resume -> { bridge: {0,0,0,0,0}, decroche: null, ... }             objet a trous
+    cuvees_resume   -> { ok: false, ... }                                       DIT NON
+
+**`Number(null)` vaut 0, et un zero ne se distingue pas d'un vrai chiffre a l'ecran.** C'est la
+lecon deja ecrite pour le repere de synchronisation et pour `baseVide()`, payee une troisieme
+fois : UNE ABSENCE N'EST PAS UN ZERO.
+
+### CE QUI L'A RENDUE VISIBLE : CINQ GARDES POUR UN SEUL OBJET
+
+Chaque bloc posait SA condition avant d'utiliser le resume, et trois seulement tenaient :
+
+    capCadre()        exigeait `caCoupePrecedent`   -> null    -> local   -> JUSTE
+    capAtterrissage() se contentait d'`exerciceNum` -> present -> serveur -> 0 EUR
+    computeBridge()   se contentait de `bridge`     -> present -> serveur -> 0 EUR
+    agentCadence()    exigeait un TABLEAU           -> absent  -> local   -> JUSTE
+    agentDecrochage() exigeait un TABLEAU           -> absent  -> local   -> JUSTE
+    cuvPoser()        exigeait `ok`                 -> false   -> local   -> JUSTE
+
+D'ou un ecran moitie serveur moitie navigateur : « Mon cap » annoncait **-26,1 % et 72 267 EUR**
+dans son bandeau, **0 EUR, null mois connus et objectif menace -164 000 EUR** dans les trois
+cartes juste dessous, et **objectif jouable, atterrissage 223 302 EUR** dans le conseil encore en
+dessous. Trois reponses a une seule question, sur un seul ecran, sans une erreur nulle part.
+Verite mesuree ce jour-la : realise 72 267 EUR sur 2 mois, exercice precedent 302 295 EUR,
+97 831 EUR a date egale, atterrissage par saisonnalite 223 302 EUR, objectif 164 000 EUR, donc
+**+59 302 EUR**. L'ecran disait l'inverse.
+
+### LA REGLE : LE RESUME SE REFUSE A LA POSE, JAMAIS BLOC PAR BLOC A LA LECTURE
+
+**Un seul endroit decide, donc tous les blocs retombent en local ENSEMBLE, et un bloc ecrit
+demain herite du garde sans avoir a y penser.** Le critere est le chiffre qui JUSTIFIE le
+resume : `ca` pour `capPoser`, `exerciceCur` pour `comPoser`, `ok` pour `cuvPoser`, qui l'avait
+deja. Un resume qui ne le porte pas n'a rien calcule.
+
+**Ne pas remettre un garde dans un bloc de lecture** : ce serait le sixieme, et c'est la forme
+exacte du defaut. Le corollaire vaut au-dela de ce fichier : **quand un objet vient d'ailleurs,
+la question « puis-je m'en servir ? » se pose une fois, a l'entree, et jamais a chaque usage.**
+
+`npm run banc:cap-serveur` section 3 et `npm run banc:commerce-serveur` section 5 posent la
+charge REELLE relevee ce jour-la, champ pour champ, et exigent que l'ecran peint soit exactement
+l'ecran local, sans le mot « null » nulle part. Verifies en remettant le defaut : trois echecs
+d'un cote, un de l'autre.
+
+### ET LE SERVEUR REFUSE AUSSI, LOT 31
+
+`supabase/lot31-resume-refuse-sans-classement.sql` pose le garde dans `public.resume(b, cle)`,
+la porte unique des trois ecrans depuis le lot 27 : sans classement valide, elle rend `null`
+plutot qu'un objet a trous, AVANT meme de lire le cache. **Les deux verrous se doublent expres**
+: celui-ci ferme la classe pour tout appelant futur, celui du navigateur tient meme si le SQL
+n'est pas passe. Trois resumes vides etaient deja RANGES dans `resumes` pour le bureau de Ted,
+ils ont ete supprimes le meme jour.
+
+### LES TROIS DEFAUTS D'AFFICHAGE, INDEPENDANTS
+
+1. **`fmtPct` posait le signe DEUX FOIS.** `signeDe(n) + fmtNum(n)` donne « - -26,1 % » sur un
+   nombre negatif. Sa voisine `fmtDelta`, ecrite le meme jour, prenait bien `Math.abs` : le
+   defaut n'a jamais touche les euros, seulement les pourcentages, **et c'est exactement ce qui
+   l'a fait survivre**. Effet de bord voulu : « en repli de -12,3 % » devient « en repli de
+   12,3 % ».
+2. **Le compteur de la barre disait « 0 LIGNES » sur 5 210.** Il n'etait ecrit qu'a DEUX moments,
+   `openApp()` et `ecranRafraichir()`, avec deux formules differentes. Depuis l'amorcage leger du
+   18/09/2026 les lignes n'arrivent plus a l'ouverture mais au premier geste qui en a besoin :
+   entre les deux, personne ne repassait dire combien il y en a. **Un seul endroit l'ecrit
+   desormais, `majCompteurLignes()`, et `assurerLignes()` l'appelle en sortant.**
+3. **« 31 millesimes en circulation » en comptait 6.** Le compteur additionne les couples
+   cuvee x millesime, cote navigateur comme cote serveur (`sum(n_mil)` dans lot26), et les deux
+   sont d'accord : **le calcul n'etait pas faux, le LIBELLE l'etait.** Il dit « References,
+   couples cuvee x millesime en circulation ». Ne pas changer le calcul pour faire coller le
+   mot : ce serait casser la parite prouvee par `npm run controle:cuvees` pour un probleme de
+   vocabulaire.
+
+### ET UN SIGNAL QUI ANNONCE UN NOMBRE DOIT MENER A CE NOMBRE
+
+« Mon cap » annoncait « 90 clients en retard sur leur cadence, 165 831 EUR » et renvoyait vers un
+filtre de « Mon commerce » qui en montre **56 pour 126 217 EUR**. Aucun des deux n'avait tort :
+`agentClients()` ecarte les clients qui portent deja une raison plus solide (« un client
+n'apparait qu'une seule fois »), et 45 + 56 + 743 = 844 le prouve. Mais **un renvoi qui annonce
+un nombre et mene a un autre est un renvoi qui ne sert plus.** `diagnosticSignals()` applique
+donc le meme ecart, et seulement lui : `agentPremierAchat()` n'est pas rejoue, il ne change pas
+ces deux motifs-la et il coute cher.
+
+### CE QUI N'ETAIT PAS UN DEFAUT, ET QU'IL FAUT SAVOIR AVANT DE CHERCHER
+
+Le calcul LOCAL etait juste de bout en bout, rejoue ligne a ligne contre la base : 550 286 EUR de
+cuvees (554 158 moins les 3 872 de la famille « Divers »), -26,1 %, les listes de clients. Les
+1 382 lignes portant un type d'offert sont toutes a zero euro, donc le mode devine ne perd rien.
+Les trois « cuvees » etranges viennent de la saisie Vitisoft, pas du calcul : `Terre Mere 21 bis`
+et les deux `erreur double saisie, ne pas utiliser` ne finissent pas par quatre chiffres, donc
+`cuveeBase()` en fait des cuvees a part entiere. Vraies cuvees : 10 sur 13 annoncees.
+
+### CE QUI RESTE OUVERT
+
+- **`gateBaseVide()` masque l'onglet « Le classement » tant que la base LOCALE est vide**, et
+  depuis l'amorcage leger elle l'est a chaque premiere ouverture. C'est-a-dire que le geste qui
+  ferait travailler le serveur est cache au moment ou l'on en aurait le plus besoin. Signale, non
+  corrige : le toucher demande de rouvrir `baseEstVide()` du panneau, ce qui n'etait pas ce lot.
+- **Rien ne dit au vigneron que son classement n'est pas valide**, ni ce qu'il y gagnerait. Tant
+  qu'il ne l'a pas valide, le serveur ne sert a rien et tout se calcule sur son appareil.
+- **`resumes_perimer()` et `resumes_perimer_reglages()` sont appelables par `anon`** en RPC, vu au
+  controle de securite du jour. Ce sont des fonctions de declencheur : hors declencheur elles
+  levent, faute de table de transition. Bruit, pas faille, mais a fermer avec le lot 16.

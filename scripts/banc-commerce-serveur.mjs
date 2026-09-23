@@ -107,6 +107,20 @@ const test = `
   comPoser({});       var vide = computeBridge();
   comPoser(null);
 
+  /* ---- 3 bis. LE PONT A TROUS, 23/09/2026 ----
+     Releve sur la base de Ted : classement non valide, donc est_vente null, donc
+     commerce_resume rend « bridge » a QUATRE ZEROS et tout le reste a null. Le « bridge »
+     etant present, l'ecran le prenait pour un calcul et annoncait « Aucun mouvement de
+     clientele sur la periode » sur une base qui reculait de 26 %. Les deux voisins,
+     eux, exigeaient un TABLEAU et retombaient bien en local : trois gardes differents
+     pour un seul objet. */
+  comPoser({ bridge: { nw: 0, up: 0, down: 0, lost: 0, delta: 0 },
+             movers: null, decroche: null, ecartes: 0, caEcarte: 0, totPerdu: 0,
+             exerciceCur: null, exercicePrev: null, coupePos: null,
+             refJour: null, refJourTout: 20696, intervalleMedianBase: 0 });
+  var trous = computeBridge();
+  comPoser(null);
+
   window.__S = {
     /* LE PLANCHER SE MESURE DANS LA PAGE, PAS DANS LE HARNAIS, 19/09/2026 : le
        nombre de lignes que le MOTEUR a retenues, pas celui qu'on croit avoir
@@ -119,6 +133,7 @@ const test = `
     decLocal: decLocal, decServeur: decServeur,
     muetLocal: muet && muet.serveur === false,
     videLocal: vide && vide.serveur === false,
+    trousLocal: trous && trous.serveur === false,
     aRafraichir: typeof window.bdvCommerceRafraichir === 'function'
   };
 `;
@@ -283,6 +298,9 @@ console.log('\n== 4 bis. Aucun nombre venu du serveur ne reste une chaine ==');
 console.log('\n== 5. Un serveur qui tousse ne vide pas l\'ecran ==');
 t('pas de reponse du tout : on retombe sur le calcul local', S.muetLocal);
 t('reponse vide ou tronquee : on retombe aussi', S.videLocal);
+/* Verifie en remettant le defaut : rendre a `comPoser` son ancienne forme fait
+   echouer ce controle-la, et lui seul. */
+t('pont a quatre zeros sans exercice compare : on retombe aussi', S.trousLocal);
 t('la peremption est atteignable par le moteur', S.aRafraichir);
 
 /* --------------------------------------------------------------------------

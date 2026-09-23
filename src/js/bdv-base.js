@@ -209,11 +209,11 @@ function ecranRafraichir(){
   // Le compteur de la barre du haut. Il etait rafraichi par openApp(), qu'on appelait en fin
   // d'import : openApp() renvoyait aussi sur « Mon annee », ce qui refermait le panneau depuis
   // lequel on venait justement d'importer. On garde le compteur, on abandonne le saut d'ecran.
-  const f = el('tbFile');
-  if(f && typeof META !== 'undefined' && typeof ROWS !== 'undefined'){
-    f.textContent = fmtNum(ROWS.length) + ' lignes'
-      + (META.min ? ' · ' + fmtDate(META.min) + ' au ' + fmtDate(META.max) : '');
-  }
+  /* UN SEUL ENDROIT L'ECRIT, 23/09/2026 : `majCompteurLignes()` dans bdv-ecrans.js.
+     Il etait ecrit ici ET dans openApp(), avec deux formules differentes, et ni l'une
+     ni l'autre ne repassait quand les lignes arrivaient apres coup. Le bureau, lui,
+     n'a pas cette barre : d'ou le garde sur l'existence de la fonction. */
+  if(typeof majCompteurLignes === 'function'){ try{ majCompteurLignes(); }catch(e){} }
   if(typeof navTo === 'function' && typeof ROWS !== 'undefined' && !ROWS.length) navTo('vide');
   /* ET « MA JOURNEE » AVEC, depuis le 08/09/2026. Le bureau peignait son ardoise et son
      sous-main au chargement de la page, et plus jamais : un import ou un vidage fait depuis
@@ -723,7 +723,16 @@ function fmtMoney(n){return fmtNum(Math.round(n))+' €';}
 function signeDe(n){return n>0?'+':(n<0?'-':'');}
 function couleurDelta(n){return n>0?'var(--ok)':(n<0?'var(--danger-deep)':'inherit');}
 function fmtDelta(n){return signeDe(n)+fmtMoney(Math.abs(n));}
-function fmtPct(n,d){return signeDe(n)+fmtNum(n,d==null?1:d)+' %';}
+/* LE SIGNE EST POSE UNE FOIS, ET UNE SEULE, 23/09/2026. Cette fonction ecrivait
+   `signeDe(n) + fmtNum(n)` : pour un nombre negatif, `signeDe` posait le sien et
+   `fmtNum` gardait le sien, d'ou le « - -26,1 % » que Ted a vu en tete de « Mon cap ».
+   Sa voisine `fmtDelta`, ecrite le meme jour, prenait bien la valeur absolue : le
+   defaut n'a jamais touche les euros, seulement les pourcentages, ce qui est
+   exactement ce qui l'a fait survivre. Quatre appels dans le depot, dont le bandeau
+   de « Mon cap » et l'ardoise de « Ma journee ».
+   Effet de bord VOULU sur les phrases qui portent deja le sens : « en repli de
+   -12,3 % » devient « en repli de 12,3 % ». */
+function fmtPct(n,d){return signeDe(n)+fmtNum(Math.abs(n),d==null?1:d)+' %';}
 /* PASSE PAR fmtNum, 19/09/2026. `plur()` ecrivait « 8000 lignes » la ou tout le reste du
    bureau ecrit « 8 000 » : le meme nombre changeait de forme selon la phrase qui le
    portait. L'effet de bord est voulu et large, toutes les occurrences du projet gagnent le

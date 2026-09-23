@@ -111,6 +111,25 @@ const test = `
   capPoser({}); var apresVide = capCadre();
   capPoser(null);
 
+  /* ---- 3 bis. LE RESUME A TROUS, 23/09/2026 ----
+     Le cas reel, releve sur la base de Ted : le classement n'est pas valide, donc
+     v_ventes.est_vente vaut null, donc cap_resume rend un objet COMPLET dont un seul
+     champ est renseigne. Un serveur muet, le harnais savait deja le voir ; un serveur
+     bavard et vide, non, et c'est celui-la qui a peint 0 euro et null mois connus sous
+     un bandeau qui annoncait 72 267 euros. La charge ci-dessous est copiee du retour
+     reel, champ pour champ. */
+  capPoser({ exercice: '2026/2027', exerciceNum: f.cur, precedentNum: f.prev,
+             lignes: 5210, moisDebut: 7, objectif: 164000,
+             mois: [0,0,0,0,0,0,0,0,0,0,0,0], moisPrecedent: [0,0,0,0,0,0,0,0,0,0,0,0],
+             ca: null, caCoupe: null, caCoupePrecedent: null, dernierMois: null,
+             atterrissage: null, bas: null, haut: null, complet: null,
+             variation: null, variationEuros: null, coupeJour: null, coupePos: null,
+             clients: 0, factures: 0, panier: null, methode: 'lineaire' });
+  var cadreTrous = capCadre(), attTrous = capAtterrissage();
+  renderCap();
+  var htmlTrous = document.getElementById('p-diagnostic').innerHTML;
+  capPoser(null);
+
   window.__S = {
     /* LE PLANCHER SE MESURE DANS LA PAGE, PAS DANS LE HARNAIS, 19/09/2026 : c'est
        le nombre de lignes que le MOTEUR a retenues, pas celui qu'on croit avoir
@@ -122,6 +141,9 @@ const test = `
     attLocal: attLocal, attServeur: attServeur,
     apresMuetLocal: apresMuet && apresMuet.serveur === false,
     apresVideLocal: apresVide && apresVide.serveur === false,
+    trousCadreLocal: cadreTrous && cadreTrous.serveur === false,
+    trousAttLocal: attTrous && attTrous.serveur === false,
+    htmlTrous: htmlTrous,
     aCapRafraichir: typeof capRafraichir === 'function',
     aFenetre: typeof window.bdvCapRafraichir === 'function'
   };
@@ -211,6 +233,19 @@ console.log('\n== 3. Un serveur qui tousse ne vide pas l\'ecran ==');
    DECLARER comme tel : `serveur: false` est ce que lit le prochain lot. */
 t('pas de reponse du tout : on retombe sur le calcul local', S.apresMuetLocal);
 t('reponse vide ou tronquee : on retombe aussi', S.apresVideLocal);
+
+/* UN RESUME A TROUS EST UN RESUME MUET, 23/09/2026. Le garde est pose a la POSE et
+   pas a la lecture : les DEUX blocs doivent retomber en local ENSEMBLE, sinon on
+   retrouve le demi-ecran du 23/09. Verifie en remettant le defaut : rendre a
+   `capPoser` son ancienne forme fait echouer les quatre controles ci-dessous. */
+t('resume a trous : le cadre retombe sur le calcul local', S.trousCadreLocal);
+t('resume a trous : l\'atterrissage AUSSI, et c\'est tout le sujet', S.trousAttLocal);
+t('resume a trous : l\'ecran peint est exactement l\'ecran local',
+  S.htmlTrous === S.htmlLocal,
+  S.htmlTrous === S.htmlLocal ? '' : 'l\'ecran differe de sa version locale');
+t('resume a trous : le mot « null » n\'apparait nulle part a l\'ecran',
+  !/\bnull\b/.test(S.htmlTrous),
+  (S.htmlTrous.match(/.{0,40}\bnull\b.{0,40}/) || [''])[0]);
 
 console.log('\n== 4. La peremption existe, et elle est atteignable ==');
 t('capRafraichir() existe', S.aCapRafraichir);
