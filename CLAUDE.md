@@ -5716,3 +5716,164 @@ restent declares, ils serviront la.
 La carte « VINCA · IA » de l'etape 01 est devenue « Question en suspens », et elle ne porte plus la
 reponse. Deux defauts pour un : VINCA est un produit de Vitisoft, et une question deja repondue
 n'a rien a faire dans l'etape qui s'appelle « chaos administratif ».
+
+## LE TIROIR : LE DETAIL A DROITE DE LA LISTE, 23/09/2026
+
+Demande de Ted : « j'imagine bien avoir a droite un ecran qui represente la tache qu'on
+selectionne, pareil pour Mon commerce quand je selectionne un client, au lieu d'avoir une
+modale ». Lot 1 sur 2 : la FICHE CLIENT. « Mes taches » vient au lot suivant et heritera du
+meme composant, c'est la condition posee en ouvrant le chantier.
+
+**LA MODALE RESTE LE DEFAUT, ET C'EST TOUT LE DESSIN.** Rien de ce lot ne touche au
+comportement d'aujourd'hui : `.modale{position:fixed;inset:0}` de `bdv-ecrans.css` continue
+de decider partout, et le tiroir n'existe qu'au-dessus d'un seuil, sous une classe que le
+JavaScript pose. **En dessous, pas une declaration du lot ne s'applique**, donc aucune
+regression n'est possible sur telephone ni sur un portable etroit, qui sont les deux endroits
+ou ce depot a paye le plus cher. Verifie a la capture : a 1319 px l'ecran est celui d'avant,
+au pixel.
+
+### IL N'Y A TOUJOURS QU'UNE FICHE CLIENT
+
+C'est la condition qui a ete posee AVANT d'ecrire une ligne, et elle vient de la regle du
+11/09/2026 : « ne pas en recreer une deuxieme, meme petite, meme juste pour le bureau ».
+Aucune ligne du lot ne fabrique de HTML. `ficheHTML()` reste le seul auteur de la fiche,
+`#modale` reste le seul endroit ou elle se pose. **Ce qui change est le CONTENANT, et il
+change en CSS.** Le JavaScript ne fait que dire dans quel mode on est et reparer le contrat
+que ce mode casse.
+
+### LE SEUIL EST MESURE, ET IL EST ECRIT DEUX FOIS
+
+Releve au navigateur sur la page construite, rail a 184 px, retraits du travail a 24 px de
+chaque cote :
+
+| fenetre | contenu utile | reste a la liste, tiroir a 420 |
+|---|---|---|
+| 1920 | 1688 | 1268 |
+| 1440 | 1208 | 788  (l'ecran de Ted) |
+| 1366 | 1134 | 714 |
+| 1320 | 1088 | 668 |
+| 1280 | 1048 | 628  (sous le plancher) |
+
+Les requetes de conteneur du sous-main replient la liste en fiches sous **40 rem, 640 px**.
+Le tiroir ne doit donc PAS exister sous 1292 px de fenetre : ouvrir un client replierait la
+liste sous l'oeil de celui qui l'ouvre, et **un geste de LECTURE ne change pas la mise en
+page de ce qu'on lit**. Le seuil est a 1320, ce qui laisse 28 px de marge sur ce plancher.
+
+**Il est ecrit dans la media query de la section 22 de `bdv-bureau.css` ET dans
+`TIROIR_SEUIL` de `bdv-ecrans.js`**, parce qu'une media query ne se lit pas depuis le
+JavaScript. Ce que chaque sens de divergence produit, et les deux sont silencieux :
+
+- le JS en avance sur le CSS : la classe est posee, le retrait ne l'est pas, et la fiche se
+  peint en modale **sans son voile et sans son piege a focus**, c'est-a-dire une boite qui
+  couvre la liste et qu'on quitte au clavier sans le voir ;
+- le CSS en avance sur le JS : la fiche se range a droite en gardant `aria-modal`, le
+  defilement du corps reste bloque, et la liste est visible, **annoncee comme absente, et
+  figee**.
+
+`npm run banc:tiroir` interdit aux deux de diverger, et il est dans `npm run verif`. Meme
+reponse qu'a l'empreinte du courrier le 10/09/2026 : un banc plutot qu'une convention.
+Verifie en remettant le defaut, trois fois : seuil divergent, tiroir trop large, piege a
+focus laisse en place. Un controle qui n'a jamais echoue ne garde rien.
+
+### UN TIROIR N'EST PAS UNE MODALE, ET LE DIRE NE SUFFIT PAS
+
+Trois choses qu'une modale impose doivent etre DEFAITES, sinon la liste est visible et morte.
+Aucune des trois ne se voit sur une capture, et c'est ce qui les rend cheres.
+
+1. **`aria-modal` ment.** Il annonce qu'il n'y a rien d'autre a l'ecran ; une synthese vocale
+   cesse alors de lire la liste, qui est pourtant le sujet. L'attribut est RETIRE et non pose
+   a `false` : c'est la valeur par defaut, l'ecrire n'apporte rien et se relit comme un oubli.
+   `role` passe de `dialog` a `complementary`.
+2. **Le piege a focus s'en va avec elle.** Il a ete pose le 19/09/2026 parce que la boite
+   DISAIT qu'il n'y avait rien d'autre a l'ecran et que Tab prouvait le contraire. En tiroir
+   elle ne le dit plus : enfermer le clavier dans la fiche interdirait d'atteindre le client
+   suivant autrement qu'a la souris. **Le meme raisonnement, pris dans l'autre sens.**
+3. **Le defilement du corps de page est rendu.** `document.body.style.overflow='hidden'` est
+   tout l'inverse de ce qu'on vient d'ouvrir le tiroir pour obtenir.
+
+Et **le focus n'est vole qu'en modale**. Une modale s'ouvre PAR-DESSUS : le focus doit y
+entrer. Un tiroir s'ouvre A COTE : le vigneron lit son client et continue de descendre sa
+liste, et lui arracher le focus l'obligerait a revenir en arriere apres chaque clic.
+
+`Echap` ferme dans les deux modes sans une ligne de plus : l'ecouteur de `bdv-base.js` teste
+la classe `on` de `#modale`, qui ne change pas.
+
+### ON NE DEPLACE PAS `#modale` DANS LE DOM, ET C'EST UN ARBITRAGE
+
+La faire entrer dans `.bureau-atelier` pour en faire une vraie troisieme colonne serait plus
+elegant : elle vivrait dans le flux et se collerait comme le rail. Mais le controle « la
+modale de la fiche client est hors de #bureauVentes » de `scripts/banc-bureau.mjs` la cherche
+par sa POSITION dans le texte du HTML construit, entre deux marqueurs. **Un deplacement le
+laisserait passer au vert en ayant cesse de tester ce qu'il croit tester**, et ce depot dit
+qu'un controle dans cet etat est pire que pas de controle. Le tiroir pousse donc par un
+retrait pose sur ce qui est a sa gauche : meme pixel a l'ecran, pas une balise touchee.
+
+**LE RETRAIT EST POSE SUR L'ATELIER ET SUR LA LIGNE DE L'EN-TETE.** Sur l'atelier seul,
+« Mes reglages » et « Me deconnecter », qui sont cales a droite de l'en-tete, passeraient
+SOUS le tiroir : les deux seules sorties de la session, recouvertes par un panneau de lecture.
+Mesure a 1320, 1366, 1440, 1680 et 1920 : le bouton s'arrete exactement au bord du tiroir.
+
+### UN TABLEAU SE COMPRIME AVANT DE DEBORDER, ET LE TIROIR REFAIT LE COUP DU TELEPHONE
+
+Lecon du 11/09/2026 : `.content` porte `overflow-x:hidden`, donc on croit que les colonnes
+qui depassent sont rasees. La mesure dit autre chose, et c'est pire : **le tableau se
+COMPRIME pour tenir**. Pas de defilement, pas de coupure, juste des colonnes illisibles.
+
+Ouvrir le tiroir retire 420 px a la liste, c'est-a-dire qu'il refait exactement ce que faisait
+le passage sur telephone, **a une largeur ou personne ne l'avait mesure**. Les deux regles de
+defilement existent deja dans `bdv-ecrans.css`, avec le voile et l'ombre qui ANNONCENT le
+defilement ; elles etaient seulement bornees a `max-width:700px`. Elles sont portees au cas
+du tiroir, section 22.6.
+
+**ET PAS A TOUTES LES LARGEURS, CE QUI AURAIT PARU PLUS PROPRE.** `overflow-x:auto` fait
+passer `overflow-y` de `visible` a `auto` par la regle du CSS, ce qui casse le
+`position:sticky` d'un en-tete de tableau. Le depot en porte un, `table.data--sticky`, dont le
+point ouvert du 08/09/2026 n'est toujours pas traite. On ne touche donc qu'au seul etat ou la
+place manque, et le bureau ne bouge pas d'un pixel quand le tiroir est ferme.
+
+### CE QUE LES HARNAIS ONT APPRIS, ET LES DEUX FAISAIENT MENTIR LA MESURE
+
+**DIXIEME FOIS QUE CE FICHIER RACONTE LA MEME FAMILLE DE DEFAUT**, et cette fois c'est le
+harnais de mesure qui l'a portee, pas le produit.
+
+1. **`bdv-ecrans.css` n'est pas liee dans le HTML.** C'est `bdv-nav.js` qui la pose, au
+   premier clic sur une piece de vente. Un harnais qui retire les scripts ne la charge donc
+   jamais, et `.modale{position:fixed}` avec elle : le tiroir sortait en `position:static`,
+   colle a gauche, et le releve annoncait un bord gauche a 0. C'est la regle du 22/09/2026,
+   « un apercu charge ce que charge la page qu'il montre », dans le seul cas ou la feuille
+   n'est pas dans le HTML pour le dire.
+2. **Le retrait est en TRANSITION**, 300 ms. Deux trames d'attente lisaient un padding a
+   mi-course : le releve donnait -64 px de liste a 1440 la ou le calcul en annonce -420, et
+   **ce chiffre-la n'existe a aucun moment ou quelqu'un regarde l'ecran**. On attend la fin
+   de la transition, on ne la devine pas.
+3. Et un test peut echouer sur du sain : `getBoundingClientRect().right` inclut le RETRAIT,
+   donc la ligne de l'en-tete garde son bord droit au meme endroit pendant que son contenu se
+   decale. Le premier jet declarait « Me deconnecter » recouvert aux cinq largeurs. **On
+   mesure le bouton, pas la boite.**
+
+Les quatre outils sont dans `Claude outputs/` : `lot-tiroir-largeurs.mjs` (les largeurs de
+l'atelier), `lot-tiroir-poussee.mjs` (ce que le tiroir prend, a huit largeurs, avec le seuil
+teste a 1319 et 1320), `lot-tiroir-contraste.mjs` et `lot-tiroir-capture.mjs`.
+
+### LE CHANGEMENT DE FOND A ETE MESURE, PAS SUPPOSE
+
+La boite passe de `--bdv-surface-3` a `--bdv-surface` : **tous les textes de la fiche changent
+donc de paire de contraste**, et aucune feuille ne peut le dire, les encres venant d'ailleurs.
+Sonde de rendu sur la vraie fiche, celle que `npm run apercu:fiche` produit, dans les deux
+themes et dans les deux modes : **zero paire sous son seuil**, tiroir comme modale.
+
+### CE QUI RESTE OUVERT
+
+- **« Mes taches » n'est pas fait.** C'est le lot 2, et il ne doit PAS recevoir un deuxieme
+  tiroir : `.tmod` de `bdv-taches.js` devra passer par le meme contenant, sans quoi le bureau
+  aura deux comportements pour le meme geste, ce que le conseil a refuse en ouvrant le
+  chantier.
+- **Le tiroir recouvre le pied de page du site** quand la piece est courte. Il est `fixed` et
+  va jusqu'en bas, c'est le dessin attendu d'un panneau lateral ; a rouvrir avec Ted si ca le
+  gene a l'usage.
+- **Rien n'annonce encore qu'un tableau defile** en mode tiroir sur ordinateur : le voile et
+  l'ombre de `bdv-ecrans.css` sont dans le bloc telephone. Point ouvert du 11/09/2026, elargi
+  par ce lot.
+- **La fiche ne se recharge pas d'un client a l'autre au clavier.** Le tiroir rend possible
+  d'enchainer les clients, mais rien n'a encore ete ajoute pour passer au suivant sans la
+  souris. C'est le geste que Ted a decrit en ouvrant le chantier.

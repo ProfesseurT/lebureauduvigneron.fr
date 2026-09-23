@@ -12,6 +12,79 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 23/09/2026. La fiche client se lit à droite de la liste, plus par-dessus
+
+Demande de Ted, en ouvrant la session : « j'imagine bien avoir à droite un écran qui
+représente la tâche qu'on sélectionne, pareil pour Mon commerce quand je sélectionne un
+client, au lieu d'avoir une modale ».
+
+**Le conseil a été convoqué avant d'écrire une ligne, et il n'était pas d'accord avec
+lui-même.** L'ergonome a rappelé que c'est exactement la plainte du 11/09 (« on a perdu le tri
+rapide de quinze relances »). Le sceptique a soutenu que pour une tâche, qui est un titre et
+deux dates, le panneau volerait 40 % de la largeur de la liste pour un gain nul. Son
+contradicteur a tranché : si « Mon commerce » ouvre à droite et « Mes tâches » au milieu, le
+bureau a **deux comportements pour le même geste**, et ça ne se rattrape jamais. Accord final :
+un seul composant partagé, la fiche client d'abord parce que c'est là que ça se joue, les
+tâches au lot suivant.
+
+**Trois arbitrages ont été demandés à Ted, et il a pris les trois recommandations** : le
+panneau POUSSE la liste plutôt que de la recouvrir ; sous le seuil on retombe sur la modale
+d'aujourd'hui plutôt que d'inventer un troisième dessin ; et on commence par « Mon commerce »
+pour le juger à l'usage avant de porter « Mes tâches ».
+
+### Ce qui a décidé le seuil, et ce n'est pas un chiffre rond
+
+Le mesureur du conseil avait répondu [Probable]. La mesure au navigateur a donné [Certain] :
+l'atelier laisse **1208 px de contenu utile à 1440 px**, l'écran de Ted. Les requêtes de
+conteneur du sous-main replient la liste en fiches sous 640 px. Avec un tiroir de 420, le
+tiroir ne peut donc pas exister sous **1292 px de fenêtre**, sinon ouvrir un client replierait
+la liste sous l'œil de celui qui l'ouvre. Seuil retenu : **1320**, 28 px de marge, et sous
+1366 qui reste la résolution la plus répandue après celle de Ted.
+
+### Ce qu'on a écarté, et pourquoi
+
+**Faire de `#modale` une vraie troisième colonne de la grille.** C'était plus élégant : elle
+aurait vécu dans le flux et se serait collée comme le rail. Mais le contrôle « la modale de la
+fiche client est hors de #bureauVentes » de `banc-bureau.mjs` la cherche par sa POSITION dans
+le texte du HTML construit. Le déplacement l'aurait laissé au vert **en ayant cessé de tester
+ce qu'il croit tester**, et ce dépôt dit qu'un contrôle dans cet état est pire que pas de
+contrôle. Le tiroir pousse donc par un retrait : même pixel, pas une balise touchée.
+
+**Sortir les règles de défilement des tableaux du bloc téléphone.** Ça aurait paru plus propre
+et ça aurait cassé en silence le `position:sticky` des en-têtes de tableau, parce que
+`overflow-x:auto` fait passer `overflow-y` de `visible` à `auto`. Portées au seul cas du
+tiroir.
+
+### Le harnais a menti deux fois, et c'est la dixième fois de la même famille
+
+`bdv-ecrans.css` n'est **pas liée dans le HTML** : c'est `bdv-nav.js` qui la pose au premier
+clic sur une pièce de vente. Un harnais sans scripts ne la charge jamais, et
+`.modale{position:fixed}` avec elle : le tiroir sortait collé à gauche. Et le retrait est en
+**transition de 300 ms** : deux trames d'attente lisaient un padding à mi-course, soit -64 px
+de liste là où le calcul en annonce -420, un chiffre qui n'existe à aucun moment où quelqu'un
+regarde l'écran.
+
+Un troisième point, plus petit et plus sournois : le premier jet du test déclarait « Me
+déconnecter » recouvert aux cinq largeurs. Le code était juste ;
+`getBoundingClientRect().right` inclut le retrait. **On mesure le bouton, pas la boîte.**
+
+### Ce qui garde le lot
+
+`npm run banc:tiroir`, dans `npm run verif`, vérifié en remettant trois fois le défaut. Il
+interdit aux deux seuils de diverger, refuse un tiroir assez large pour replier la liste, et
+contrôle les trois moitiés du contrat ARIA. Plus la sonde de contraste sur la vraie fiche,
+dans les deux thèmes et les deux modes : **zéro paire sous son seuil**, alors que le lot change
+le fond de la boîte et donc toutes ses paires.
+
+### Ce qui reste, et Ted doit le savoir avant de juger
+
+« Mes tâches » n'est pas fait, c'est le lot 2, et il devra passer par le **même** contenant.
+Le tiroir recouvre le pied de page du site quand la pièce est courte. Et rien n'a encore été
+ajouté pour passer d'un client au suivant **au clavier**, qui est pourtant le geste que Ted a
+décrit en ouvrant le chantier.
+
+---
+
 ## 22/09/2026, l'après-midi. Les aperçus montraient des écrans nus, et rien ne le disait
 
 Relevé du matin, feuilles posées par chaque aperçu : `apercu-ardoise`, `apercu-mot` et

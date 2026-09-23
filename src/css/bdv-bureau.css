@@ -2927,3 +2927,163 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
 .bdv-coque .bureau-vide .btn{
   min-height:var(--bdv-cible);
 }
+
+
+/* ==========================================================================
+   22. LE TIROIR : LE DETAIL A DROITE DE LA LISTE, 23/09/2026
+
+   Demande de Ted : « j'imagine bien avoir a droite un ecran qui represente la
+   tache qu'on selectionne, pareil pour Mon commerce quand je selectionne un
+   client, au lieu d'avoir une modale ».
+
+   LA MODALE RESTE LE DEFAUT, ET C'EST TOUT LE DESSIN DE CETTE SECTION. Rien
+   ici ne touche au comportement d'aujourd'hui : `.modale{position:fixed;inset:0}`
+   de bdv-ecrans.css continue de decider partout, et le tiroir n'existe qu'au-dessus
+   d'un seuil, sous une classe que le JavaScript pose. En dessous, pas une
+   declaration de cette section ne s'applique, donc aucune regression n'est
+   possible sur telephone ni sur un portable etroit, qui sont les deux endroits
+   ou le depot a paye le plus cher.
+
+   POURQUOI UN RECOUVREMENT ET PAS UNE REECRITURE EN PLACE. La regle du
+   21/09/2026 dit qu'une feuille que SEUL le bureau charge se repeint en place,
+   et `bdv-ecrans.css` remplit ce critere. Elle ne remplit pas le second : elle
+   est posee par `bdv-nav.js` au premier clic sur une piece de vente, donc APRES
+   cette feuille-ci, qui est liee par le gabarit. A specificite egale c'est elle
+   qui gagnerait. Les regles ci-dessous pesent donc (0,4,1) contre ses (0,3,0),
+   et le balayage de specificite a ete fait AVANT la premiere capture, comme le
+   veut la lecon des quatre defauts des lots 2 a 5.
+
+   LE SEUIL EST MESURE, PAS CHOISI. Releve au navigateur le 23/09/2026 sur la
+   page construite, rail a 184 px et retraits du travail a 24 px de chaque cote :
+
+       fenetre   contenu utile   reste a la liste si le tiroir prend 420
+        1920         1688                      1268
+        1440         1208                       788      <- l'ecran de Ted
+        1366         1134                       714
+        1320         1088                       668
+        1280         1048                       628      <- sous le seuil
+        1024          792                       372
+
+   Les requetes de conteneur du sous-main replient la liste en fiches sous
+   40 rem, soit 640 px. Le tiroir ne doit donc PAS exister en dessous de
+   1292 px de fenetre, sans quoi ouvrir un client replierait la liste sous
+   l'oeil de celui qui l'ouvre : un geste de lecture ne change pas la mise en
+   page de ce qu'on lit. 1320 laisse 28 px de marge sur ce plancher et tombe
+   sous 1366, la resolution la plus repandue apres celle de Ted.
+
+   ON NE DEPLACE PAS `#modale` DANS LE DOM, et c'est un arbitrage. La faire
+   entrer dans `.bureau-atelier` pour en faire une vraie troisieme colonne
+   serait plus elegant : elle vivrait dans le flux et se collerait comme le
+   rail. Mais le controle « la modale de la fiche client est hors de
+   #bureauVentes » de `scripts/banc-bureau.mjs` la cherche par sa POSITION dans
+   le texte du HTML construit, entre deux marqueurs. Un deplacement le laisserait
+   passer au vert en ayant cesse de tester ce qu'il croit tester, et le depot
+   dit qu'un controle dans cet etat est pire que pas de controle. Le tiroir
+   pousse donc par un retrait pose sur ce qui est a sa gauche, ce qui donne le
+   meme pixel a l'ecran sans toucher a une seule balise.
+   ========================================================================== */
+@media (min-width:1320px){
+
+  /* -- 22.1 CE QUI POUSSE. Le retrait est pose sur l'atelier ET sur la ligne
+        de l'en-tete. Sur l'atelier seul, « Mes reglages » et « Me deconnecter »,
+        qui vivent dans l'en-tete et sont cales a droite, passeraient SOUS le
+        tiroir : les deux seules sorties de la session, recouvertes par un
+        panneau de lecture. La transition est celle de la grille de l'atelier,
+        qui existe deja pour le repli du rail. */
+  body.bdv-coque.bdv-a-tiroir .bureau-atelier,
+  body.bdv-coque.bdv-a-tiroir .bureau-tete__ligne{
+    padding-right:var(--bdv-tiroir);
+    transition:padding-right var(--bdv-d-long) var(--bdv-courbe);
+  }
+
+  /* -- 22.2 LE TIROIR LUI-MEME. `left:auto` est indispensable : `.modale` pose
+        `inset:0`, donc les quatre cotes a zero, et une largeur posee sur une
+        boite calee a gauche ET a droite ne sert a rien. Il part sous le bandeau
+        du site, qui est le seul element collant au-dessus de lui. */
+  body.bdv-coque.bdv-a-tiroir #modale.on{
+    top:var(--h-entete);
+    right:0;
+    bottom:0;
+    left:auto;
+    width:var(--bdv-tiroir);
+  }
+
+  /* -- 22.3 PAS DE VOILE, PARCE QUE CE N'EST PLUS UNE MODALE. Un voile dit
+        « le reste de l'ecran est hors service » ; ici la liste reste vivante et
+        c'est le sujet. Le retirer n'est donc pas une economie de dessin, c'est
+        la moitie visible d'un changement de contrat : l'autre moitie est dans
+        le JavaScript, qui cesse de bloquer le defilement et de pieger le focus. */
+  body.bdv-coque.bdv-a-tiroir #modale.on .modale__bg{
+    display:none;
+  }
+
+  /* -- 22.4 LA BOITE REMPLIT LE TIROIR. Elle garde son propre ascenseur : une
+        fiche client est longue, et le tiroir est haut comme l'ecran et pas
+        comme son contenu. Le trait de gauche est la profondeur du bureau, un
+        filet de 1 px et jamais une ombre, regle du 21/09/2026. Les autres
+        cotes le perdent : il tomberait sur le bord de la fenetre. */
+  body.bdv-coque.bdv-a-tiroir #modale.on .modale__box{
+    max-width:none;
+    width:100%;
+    height:100%;
+    max-height:none;
+    margin:0;
+    border-width:0 0 0 1px;
+    border-radius:0;
+    padding:var(--bdv-e-6);
+    background:var(--bdv-surface);
+  }
+
+  /* -- 22.5 LE BOUTON DE FERMETURE RESTE ATTEIGNABLE EN DEFILANT. Dans la
+        modale il est en haut a droite d'une boite qui tient dans l'ecran ; ici
+        la boite defile, et un bouton pose en absolu s'en irait avec le haut de
+        la fiche. Il devient collant dans son propre ascenseur. Sa cible garde
+        ses 44 px : c'est la seule sortie du tiroir a la souris. */
+  body.bdv-coque.bdv-a-tiroir #modale.on .modale__close{
+    position:sticky;
+    top:0;
+    float:right;
+    min-width:var(--bdv-cible);
+    min-height:var(--bdv-cible);
+    background:var(--bdv-surface);
+    z-index:1;
+  }
+
+  /* -- 22.6 UN TABLEAU SE COMPRIME AVANT DE DEBORDER, ET C'EST PIRE.
+        Lecon du 11/09/2026, payee sur telephone : `.content` porte
+        `overflow-x:hidden`, donc on croit que les colonnes qui depassent sont
+        rasees. La mesure dit autre chose : le tableau se COMPRIME pour tenir,
+        et six colonnes se serrent dans la place de trois. Pas de defilement,
+        pas de coupure, juste des colonnes illisibles.
+
+        Ouvrir le tiroir retire 420 px a la liste, c'est-a-dire qu'il refait
+        exactement ce que faisait le passage sur telephone, a une largeur ou
+        personne ne l'avait mesure. Les deux regles de defilement existent deja
+        dans `bdv-ecrans.css`, avec leur voile et leur ombre qui ANNONCENT le
+        defilement ; elles sont seulement bornees a `max-width:700px`.
+
+        ON LES PORTE AU CAS DU TIROIR, ET PAS A TOUTES LES LARGEURS. Les sortir
+        du bloc telephone aurait paru plus propre et aurait eu un cout invisible :
+        `overflow-x:auto` fait passer `overflow-y` de `visible` a `auto` par la
+        regle du CSS, ce qui casse le `position:sticky` d'un en-tete de tableau.
+        Le depot en porte un, `table.data--sticky`, et son point ouvert du
+        08/09/2026 n'est toujours pas traite. On ne touche donc qu'au seul etat
+        ou la place manque vraiment, et le reste du bureau ne bouge pas d'un
+        pixel quand le tiroir est ferme. */
+  body.bdv-coque.bdv-a-tiroir .bdv-ventes .card:has(> table.data),
+  body.bdv-coque.bdv-a-tiroir .bdv-ventes .card:has(> details table.data),
+  body.bdv-coque.bdv-a-tiroir .bdv-ventes .tablewrap{
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+  }
+
+  /* Et les en-tetes et les colonnes de nombres reprennent leur largeur
+     naturelle, sans quoi le tableau continue de se comprimer et ne defile
+     JAMAIS : la premiere regle seule ne sert a rien, c'est la mesure du
+     11/09/2026. Les colonnes de TEXTE gardent le droit de se replier, sinon un
+     client a longue adresse fait defiler le tableau sur trois ecrans. */
+  body.bdv-coque.bdv-a-tiroir .bdv-ventes table.data th,
+  body.bdv-coque.bdv-a-tiroir .bdv-ventes table.data td.num{
+    white-space:nowrap;
+  }
+}

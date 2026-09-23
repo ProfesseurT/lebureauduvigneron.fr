@@ -469,6 +469,12 @@
   --bdv-cible:     44px;                /* meme valeur en sombre. plancher tactile, on agrandit la cible et jamais le dessin */
   --bdv-h-tete:    56px;                /* meme valeur en sombre. l'en-tete du bureau, 209 px avant le 21/09/2026 */
   --bdv-rail:      184px;               /* meme valeur en sombre. la barre des pieces sur grand ecran */
+  --bdv-tiroir:    420px;               /* meme valeur en sombre. le panneau de detail a droite de la liste.
+                                           MESURE, PAS CHOISI : a 1320 px de fenetre il reste 1088 px de contenu
+                                           utile (rail 184, retraits 48) ; 1088 moins 420 laisse 668 px a la liste,
+                                           soit au-dessus des 640 px ou les requetes de conteneur la replient en
+                                           fiches. Descendre le seuil ou monter cette valeur fait basculer la liste
+                                           sous l'oeil de quelqu'un qui ouvre simplement un client. */
 
   --bdv-d-court: 150ms;                 /* meme valeur en sombre. survol, selection, focus */
   --bdv-d-long:  300ms;                 /* meme valeur en sombre. modale, feuille, tiroir */

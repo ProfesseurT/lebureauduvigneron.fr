@@ -2372,6 +2372,66 @@ let FICHE_OUVERTE=null;
 // l'element a qui rendre le focus a la fermeture : comparer un element DOM a une chaine
 // est toujours faux, et la fiche ne se redessinait donc jamais apres un geste.
 let FICHE_ID=null;
+/* ======================= LE TIROIR, 23/09/2026 =======================
+   Demande de Ted : la fiche d'un client se lit A DROITE de la liste, et pas
+   par-dessus. La liste reste vivante a cote, on enchaine les clients sans
+   refermer, et le tri rapide de quinze relances redevient possible.
+
+   IL N'Y A TOUJOURS QU'UNE FICHE CLIENT. C'est la condition posee avant
+   d'ecrire une ligne, et CLAUDE.md la porte depuis le 11/09/2026 : « ne pas en
+   recreer une deuxieme, meme petite, meme juste pour le bureau ». Rien ici ne
+   fabrique de HTML : `ficheHTML()` reste le seul auteur de la fiche, `#modale`
+   reste le seul endroit ou elle se pose. Ce qui change est le CONTENANT, et il
+   change en CSS. Ces quelques lignes ne font que dire au CSS dans quel mode on
+   est, et reparer le contrat que ce mode casse.
+
+   LE SEUIL EST ECRIT DEUX FOIS, ET C'EST ASSUME. Une media query ne se lit pas
+   depuis le JavaScript, et un temoin pose dans le CSS pour se faire lire serait
+   un jeton de plus a tenir. La valeur est donc jumelle de celle de la section 22
+   de src/css/bdv-bureau.css, et c'est `npm run banc:tiroir` qui interdit aux
+   deux de diverger : le depot a deja paye ce genre d'ecart avec l'empreinte du
+   courrier, et la reponse y avait ete la meme, un banc plutot qu'une convention. */
+const TIROIR_SEUIL = 1320;   // JUMEAU de @media (min-width:1320px), section 22 de bdv-bureau.css
+const TIROIR_MQ = (typeof window.matchMedia === 'function')
+  ? window.matchMedia('(min-width:' + TIROIR_SEUIL + 'px)') : null;
+
+/* LE MODE SE DEMANDE, IL NE SE RETIENT PAS. Un booleen pose a l'ouverture serait
+   faux des que la fenetre change de taille, et c'est le geste le plus banal qui
+   soit : on attrape le bord de la fenetre pour voir la liste en grand. */
+function modeTiroir(){ return !!(TIROIR_MQ && TIROIR_MQ.matches); }
+
+/* UN TIROIR N'EST PAS UNE MODALE, ET LE DIRE NE SUFFIT PAS : il faut defaire les
+   TROIS choses qu'une modale impose, sinon la liste est visible et morte.
+   1. `aria-modal` ment : il annonce qu'il n'y a rien d'autre a l'ecran. Une
+      synthese vocale cesse alors de lire la liste, qui est pourtant le sujet.
+      L'attribut est RETIRE et non pose a false : `aria-modal="false"` est la
+      valeur par defaut, l'ecrire n'apporte rien et se relit comme un oubli.
+   2. `role="dialog"` devient `role="complementary"` : la fiche est un complement
+      de la liste, pas une boite qui attend une reponse.
+   3. Le defilement du corps de page est RENDU. C'est tout l'interet du mode :
+      faire defiler la liste pendant que la fiche reste ouverte a cote. */
+function poserContratTiroir(m){
+  const tiroir = modeTiroir();
+  document.body.classList.toggle('bdv-a-tiroir', tiroir);
+  document.body.style.overflow = tiroir ? '' : 'hidden';
+  const boite = m.querySelector('.modale__box');
+  if(!boite) return;
+  if(tiroir){ boite.removeAttribute('aria-modal'); boite.setAttribute('role','complementary'); }
+  else { boite.setAttribute('aria-modal','true'); boite.setAttribute('role','dialog'); }
+}
+
+/* TRAVERSER LE SEUIL AVEC UNE FICHE OUVERTE EST UN VRAI CAS, pas une curiosite :
+   c'est ce qui arrive quand on agrandit la fenetre pour mieux lire. Sans cette
+   ecoute, on garderait une fiche en tiroir sans son retrait, ou une modale dont
+   le corps de page defile derriere le voile. On ne redessine RIEN : le contenu
+   de la fiche ne depend pas de la largeur, seul son contrat change. */
+if(TIROIR_MQ && TIROIR_MQ.addEventListener){
+  TIROIR_MQ.addEventListener('change', function(){
+    const m = el('modale');
+    if(m && m.classList.contains('on')) poserContratTiroir(m);
+  });
+}
+
 function ouvrirFiche(id,motif){
   const f=ficheClient(id);
   if(!f){status('error','Client introuvable.');return;}
@@ -2384,8 +2444,15 @@ function ouvrirFiche(id,motif){
   monterSelectCanal();
   m.classList.add('on');
   m.setAttribute('aria-hidden','false');
-  document.body.style.overflow='hidden';
-  const btn=m.querySelector('.modale__close');if(btn)btn.focus();
+  // LE CONTRAT REMPLACE LE `overflow:hidden` QUI ETAIT ECRIT ICI : en tiroir, bloquer
+  // le defilement du corps de page fige la liste, c'est-a-dire exactement ce qu'on
+  // vient d'ouvrir le tiroir pour garder vivant.
+  poserContratTiroir(m);
+  // ON NE VOLE LE FOCUS QU'EN MODALE. Une modale s'ouvre PAR-DESSUS : le focus doit
+  // y entrer, sans quoi le clavier pilote a l'aveugle un ecran couvert. Un tiroir
+  // s'ouvre A COTE : le vigneron lit son client et continue de descendre sa liste, et
+  // lui arracher le focus l'obligerait a revenir en arriere apres chaque clic.
+  if(!modeTiroir()){ const btn=m.querySelector('.modale__close'); if(btn)btn.focus(); }
   majLienMail();   // le lien de messagerie se construit a partir des champs affiches
   reprendreBrouillon(id);   // APRES majLienMail : le brouillon refait le lien s'il reprend le message
 }
@@ -2473,6 +2540,7 @@ function fermerFiche(){
   const m=el('modale');m.classList.remove('on');m.setAttribute('aria-hidden','true');
   if(FICHE_ID)oublierBrouillon(FICHE_ID);   // fermer EST un geste : voir le point 3 ci-dessus
   m.innerHTML='';document.body.style.overflow='';
+  document.body.classList.remove('bdv-a-tiroir');   // le retrait de l'atelier s'en va avec le tiroir
   if(FICHE_OUVERTE&&FICHE_OUVERTE.focus)FICHE_OUVERTE.focus();
   FICHE_OUVERTE=null;FICHE_ID=null;
   // Un geste en attente meurt avec la fiche : fermer sans rien ecrire, c'est ne rien
@@ -2498,6 +2566,13 @@ function fermerFiche(){
 document.addEventListener('keydown',function(e){
   if(e.key!=='Tab')return;
   const m=el('modale');if(!m||!m.classList.contains('on'))return;
+  /* LE PIEGE EST LA MOITIE D'UN CONTRAT DE MODALE, DONC IL S'EN VA AVEC ELLE.
+     En tiroir, la liste reste a l'ecran et reste le sujet : enfermer le clavier
+     dans la fiche interdirait d'atteindre le client suivant autrement qu'a la
+     souris. Le meme raisonnement qu'au 19/09/2026, pris dans l'autre sens : ce
+     jour-la on a pose le piege parce que la boite DISAIT qu'il n'y avait rien
+     d'autre a l'ecran ; ici elle ne le dit plus. */
+  if(modeTiroir())return;
   /* `offsetParent` est nul pour ce qui est masque : c'est ce qui ecarte le contenu des
      blocs replies (`details` fermes), qui existe dans le DOM sans etre atteignable. */
   const cibles=[].slice.call(m.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'))
