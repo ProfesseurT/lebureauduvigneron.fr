@@ -55,6 +55,7 @@ const ORDRE = [
   'lot26-mes-cuvees.sql',
   'lot27-cache-des-resumes.sql',
   'lot28-vider-sans-doute.sql',
+  'lot30-vider-la-preuve-complete.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

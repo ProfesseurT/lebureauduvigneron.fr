@@ -2386,6 +2386,53 @@ body.bdv-poste .panneau .postit__l { order: 4; flex: 1 1 auto; min-width: 0; }
 .bdv-amorce__manque { margin: 0 0 var(--e-s); color: var(--bdv-alerte); }
 .bdv-amorce__pied .btn + .btn { margin-left: var(--e-s); }
 
+/* ============================================================================
+   LE VOILE DU VIDAGE, 23/09/2026 : LE MEME DESSIN, PLUS UNE CHOSE QUI BOUGE
+   ----------------------------------------------------------------------------
+   `viderBase()` reutilise les classes ci-dessus, et c'est voulu : ce dessin est
+   deja scope, deja mesure dans les deux themes, et chacun de ses etats se dit
+   par un GLYPHE et par un mot cache en plus de sa couleur. En ecrire un second
+   aurait ajoute une valeur a trois echelles fermees de `npm run charte --bureau`
+   pour redire moins bien la meme chose.
+
+   CE QUE LA MARQUE `--vidage` AJOUTE, ET RIEN D'AUTRE : du MOUVEMENT. Demande de
+   Ted, et ce n'est pas du confort. Le voile d'amorcage dure deux secondes ; un
+   vidage de 171 569 lignes tient l'ecran six secondes ou plus, et un chapelet
+   d'etapes immobiles pendant six secondes ne se distingue pas d'un plantage.
+
+   IL S'ARRETE SUR L'ATTRIBUT, PAS SUR UN MINUTEUR. `aria-busy` passe a « false »
+   dans `vidageFin()`, c'est-a-dire apres la verification, et le rail disparait
+   avec. Une animation qu'on arrete au bout de n secondes ment le jour ou le
+   travail en prend n+1 ; celle-ci ne peut pas mentir, elle est branchee sur le
+   meme attribut que la synthese vocale.
+
+   ET ELLE SE TAIT POUR QUI DEMANDE LE CALME. `prefers-reduced-motion` n'est pas
+   une option sur un voile plein ecran : le rail devient un trait plein, qui dit
+   la meme chose sans bouger. Le mouvement ne porte JAMAIS seul une information
+   ici, les trois etapes la portent en mots.
+   ============================================================================ */
+.bdv-amorce--vidage .bdv-amorce__rail {
+  height: 2px; margin: 0 0 var(--bdv-e-4);
+  background: var(--bdv-trait); overflow: hidden;
+}
+.bdv-amorce--vidage .bdv-amorce__rail span {
+  display: block; width: 30%; height: 100%;
+  background: var(--bdv-encre-4);
+  animation: bdvVidageVaEtVient 1.4s ease-in-out infinite;
+}
+/* Le travail est fini : le rail n'a plus rien a dire, et un rail qui continue de
+   courir sous un bilan d'effacement se lit comme un travail qui continue. */
+.bdv-amorce--vidage[aria-busy="false"] .bdv-amorce__rail { display: none; }
+.bdv-amorce--vidage .bdv-amorce__etape--encours .bdv-amorce__puce::before {
+  animation: bdvVidageBat 1.1s ease-in-out infinite;
+}
+@keyframes bdvVidageVaEtVient { from { transform: translateX(-100%); } to { transform: translateX(333%); } }
+@keyframes bdvVidageBat { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) {
+  .bdv-amorce--vidage .bdv-amorce__rail span { animation: none; width: 100%; }
+  .bdv-amorce--vidage .bdv-amorce__etape--encours .bdv-amorce__puce::before { animation: none; }
+}
+
 /* Sur telephone la carte prend la largeur, retraits compris : une carte bornee a 26 rem
    dans une fenetre de 390 px laisserait deux marges pour rien la ou le texte en a besoin. */
 @media (max-width: 700px) {

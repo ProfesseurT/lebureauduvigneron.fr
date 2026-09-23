@@ -51,6 +51,7 @@
     "banc:invitation": "node scripts/banc-invitation.mjs",
     "banc:amorce": "node scripts/banc-amorce.mjs",
     "apercu:amorce": "node scripts/apercu-amorce.mjs",
+    "apercu:vidage": "node scripts/apercu-vidage.mjs",
     "banc:volume": "node scripts/banc-volume.mjs",
     "banc:cap-serveur": "node scripts/banc-cap-serveur.mjs",
     "temoin:commerce": "node scripts/temoin-commerce.mjs",

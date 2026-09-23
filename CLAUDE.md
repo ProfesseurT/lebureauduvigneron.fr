@@ -6014,3 +6014,114 @@ retourner dans les deux blocs sombres.
 
 Verifie par trois mutations : une matiere retiree d'un bloc sombre crie toujours, une matiere
 CALCULEE non retournee crie, et une echelle calculee qu'on retournerait crie aussi.
+
+## UN GESTE QUI DETRUIT SE VOIT, ET IL NE S'ARRETE QUE SUR UNE PREUVE, 23/09/2026
+
+Ted, deux captures du bouton a l'appui : « j'ai l'impression que c'est pas propre. Il faut
+forcement que l'interface montre une animation tant que ca travaille et que ca vide toute la
+base, meme dans les reglages et tout. Il devra y avoir une verification pour que l'animation
+s'arrete. »
+
+**CE QUI SE PASSAIT.** Entre la confirmation et le message final il y avait l'appel serveur
+(1,4 s mesure sur 171 569 lignes, plus le reseau), le vidage d'IndexedDB, puis une repeinture
+complete du bureau et du panneau. **Rien a l'ecran pendant tout ce temps.** Le bouton restait
+cliquable, et la ZONE DE DEPOT D'EXPORT de la carte d'a cote aussi.
+
+### CE QUE L'AUDIT A TROUVE, ET LE PIRE N'ETAIT PAS L'ABSENCE D'ANIMATION
+
+1. **`await dbClear()` n'avait aucun filet.** Son rejet sortait de `viderBase()` en silence :
+   compte vide, appareil plein, pas un message, et `oublierRepere()` deja appele a l'interieur
+   d'`effacerTout()`. C'est l'asymetrie du 18/09/2026 prise dans l'autre sens, et elle etait
+   MUETTE. Si le vigneron reimporte la-dessus, les deux bases se remelangent.
+2. **La preuve chiffree du lot 28 etait jetee.** Le serveur rend le compte de ce qu'il a
+   efface, table par table ; `viderBase()` ne lisait que `vide`. Un vidage annonce sur zero
+   ligne est le symptome exact d'un melange de bases, et sans chiffre il ne se voit pas.
+3. **Rien ne relisait l'appareil.** `dbClear()` se resout sur `tx.oncomplete` : ca prouve
+   qu'une transaction a abouti, pas que le magasin est vide.
+4. **Le lot 28 ne recomptait qu'une table sur cinq.** Il vidait `ventes`, `ventes_lignes`,
+   `suivi_clients`, `echanges` et `resumes`, et relisait `ventes` seule. Il ne pouvait donc pas
+   lever sur un suivi client reste entier, c'est-a-dire sur **la seule chose que le vigneron ne
+   peut pas reimporter**. Ferme par le lot 30, qui recompte les cinq et NOMME celle qui resiste.
+5. **Aucun garde de re-entree.** Un second clic relancait tout : le second vidage rend
+   `vide: true` avec quatre zeros et recouvre le bilan du premier.
+
+**UNE BONNE NOUVELLE MESUREE, a ne pas re-verifier.** On croit volontiers que `#status` et
+`#busyov` sont invisibles depuis le panneau : ils sont ecrits dans `ecrans-vente.njk`, donc
+dans `#bureauVentes`, masque tant qu'aucune piece de vente n'a ete ouverte. C'est faux :
+`sortirHorsPage()` dans `bdv-nav.js` les deplace sous `<body>` A L'OUVERTURE de la page,
+exactement pour ca. Le deduire de l'arborescence fait perdre une heure.
+
+### LES CINQ REGLES DU GESTE
+
+1. **LE VOILE EST POSE APRES LE `confirm()`, ET RETIRE DANS UN SEUL `finally`.** Avant, il ne
+   serait jamais peint : un dialogue natif bloque le rendu, et il resterait sous la boite. Six
+   chemins quittent `viderBase()`, dont deux qu'on n'ecrit pas (un jet de `capPerimer()`, de
+   `computeMeta()` ou d'`ecranRafraichir()`). Le `finally` repose une fin si aucun chemin ne
+   l'a fait : **un voile qui tourne sur un bureau a moitie vide est pire que pas de voile**, il
+   donne a un effacement interrompu l'apparence d'un travail en cours.
+2. **LA VERIFICATION A TROIS ETATS, JAMAIS DEUX.** `dbCount()` doit rendre 0 ET
+   `auMoinsUneVente()` doit rendre `false`. Zero arrete en succes, un reste arrete en ECHEC
+   NOMME, un `null` arrete en « non verifie ». **Un « je ne sais pas » pris pour un zero, c'est
+   le defaut du 18/09/2026 rejoue.** Meme regle en trois etats que le garde d'ouverture.
+3. **LE PANNEAU ENTIER EST NEUTRALISE, PAS LE BOUTON.** `inert` sur `#bdvrVoile`. Ce qui est
+   dangereux n'est pas un second clic sur « Vider la base », c'est la zone de depot d'export
+   qui vit dans la MEME rangee. Et `aria-modal` du panneau est RENDU le temps du travail :
+   tant qu'il vaut « true », tout ce qui vit hors du panneau est **muet a la synthese vocale**,
+   et le voile serait vu sans etre entendu.
+4. **LE GARDE DE RE-ENTREE EST UN DRAPEAU DE MODULE, PAS UN BOUTON GRISE.** `renderBase()`
+   reecrit ce bouton et la sortie appelle `ecranRafraichir()` : un `disabled` pose sur le noeud
+   se rallumerait tout seul en plein `await`. Le drapeau est la verite, **et c'est
+   `renderBase()` qui repose l'etat du bouton en LISANT le drapeau a chaque rendu.**
+5. **LE BILAN EST CHIFFRE ET IL NE S'EFFACE PAS.** `status()` masque un succes au bout de
+   quatre secondes : le seul compte rendu d'un effacement definitif partirait avant d'avoir ete
+   lu. Le voile porte sa phrase jusqu'a ce que le vigneron ferme.
+
+### LE VOILE REUTILISE LES CLASSES DE L'AMORCAGE, ET CE N'EST PAS DE LA PARESSE
+
+`.bdv-amorce*` est deja scope, deja mesure dans les deux themes, et chacun de ses etats se dit
+par un GLYPHE et par un mot cache en plus de sa couleur. Ecrire un second voile aurait ajoute
+une valeur a trois echelles fermees de `npm run charte --bureau` (les tailles, les filets, les
+couches) et une paire de contraste de plus a mesurer, **pour redire moins bien ce que celui-ci
+sait deja dire.** Les deux ne peuvent pas etre a l'ecran en meme temps : l'amorcage se ferme
+avant que le bureau soit utilisable, le vidage demande un panneau ouvert.
+
+**CE QUE LA MARQUE `.bdv-amorce--vidage` AJOUTE, ET RIEN D'AUTRE : du MOUVEMENT.** Le voile
+d'amorcage dure deux secondes, un vidage de 171 569 lignes tient l'ecran six secondes ou plus,
+et **un chapelet d'etapes immobiles pendant six secondes ne se distingue pas d'un plantage**.
+Le rail s'arrete sur `aria-busy`, c'est-a-dire sur la verification, et **jamais sur un
+minuteur** : une animation qu'on arrete au bout de n secondes ment le jour ou le travail en
+prend n+1. `prefers-reduced-motion` la remplace par un trait plein, et le mouvement ne porte
+jamais seul une information : les trois etapes la portent en mots.
+
+### CE QUE LE BANC GARDE, ET CE QU'IL NE PEUT PAS GARDER
+
+`npm run banc:vidage` a gagne une section 6 ecrite EN NEGATIF, plus une section 6 bis qui
+EXECUTE `vidageVerifier()` sur les sept situations possibles. Verifiees en remettant le
+defaut, quatorze mutations, chacune fait echouer le banc. Deux d'entre elles sont des lecons :
+
+- **la mutation « `reste` devient `r_ventes + r_lignes` » passait au vert** tant que la regex
+  du banc n'exigeait pas la virgule de fin. Un controle non mute est un controle non ecrit.
+- **la section 3 a du apprendre la nouvelle forme AVANT que la forme ne change** : `preuve`
+  n'est plus declaree avec `const`, et le refus ne part plus par `status()` mais par
+  `vidageFin()`. Le texte, lui, n'a pas bouge d'un mot. C'est la regle du depot, « on apprend
+  d'abord au garde-fou a lire la nouvelle forme ».
+
+**IL NE PROUVE PAS QU'UN VOILE SE VOIT.** jsdom ne fait aucune mise en page et ne rejoue
+aucune cascade. `npm run apercu:vidage` ecrit `_apercu/vidage.html`, cinq etats fois deux
+themes, depuis les VRAIES fonctions de `bdv-base.js`. Audit de rendu a 1000 px, les deux
+themes : **zero paire sous son seuil, zero cible sous 44 px.** Et c'est la planche qui a
+montre ce qu'aucun banc ne disait : **le voile ne bougeait pas.**
+
+### CE QUI RESTE OUVERT
+
+- **Le voile d'amorcage ne prend pas la marque `--vidage`.** Il ne bouge pas non plus, et il
+  dure deux secondes. A rouvrir avec Ted, pas a trancher seul : on ne repeint pas un ecran
+  qu'on n'a pas regarde.
+- **`lot29-index-et-fonctions-de-declencheur.sql` n'est pas dans la liste `ORDRE` de
+  `scripts/banc-rejeu.mjs`.** Signale, non corrige : d'apres la regle de ce banc, il est donc
+  absent de la procedure de reconstruction. A verifier avant de refaire une base de zero.
+- **`npm run build` ne peut pas aboutir depuis la session**, la panne du pont est revenue :
+  EPERM sur l'unlink de `_site/manifest.webmanifest`. Les pages et le HTML sont ecrits, les
+  copies de `src/css` et `src/js` ne le sont pas. Contournement utilise ici : `cp` en place,
+  qui tronque au lieu de supprimer. Les 37 etapes de `npm run verif` ont ete lancees UNE PAR
+  UNE, sans tuyau, et sont toutes vertes.

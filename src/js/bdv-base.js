@@ -1907,7 +1907,10 @@ function renderBase(){
       <p class="mini-line">Chaque nouvel export s'ajoute, les doublons sont ignorés automatiquement. Réservé aux utilisateurs de Vitisoft.</p>
     </div>
     <div class="card"><div class="card__title"><span>Vider la base</span></div>
-      <button class="btn btn--danger" onclick="viderBase()">Vider la base</button>
+      <!-- LE BOUTON RELIT LE DRAPEAU, 23/09/2026. Ce rendu tourne a chaque renderAll(), donc
+           aussi pendant le vidage : sans cette lecture, le bouton se reactiverait tout seul au
+           milieu d'un await. Le drapeau est la verite, ce disabled n'est que l'affordance. -->
+      <button class="btn btn--danger" onclick="viderBase()"${VIDAGE_EN_COURS?' disabled':''}>Vider la base</button>
       <p class="mini-line">Efface toutes les lignes cumulées, sur cet appareil comme sur ton compte. Action définitive.</p>
     </div>
   </div>`;
@@ -1919,6 +1922,195 @@ function renderBase(){
   // renderAll(), donc a chaque changement de periode. Le panneau compte quand il S'OUVRE,
   // seul moment ou quelqu'un le regarde, cf. ouvrir() dans bdv-reglages.js.
 }
+/* ============ LE VIDAGE SE VOIT, ET IL NE S'ARRETE QUE SUR UNE PREUVE, 23/09/2026 ============
+   Ted, capture a l'appui : « il faut forcement que l'interface montre une animation tant que
+   ca travaille et que ca vide toute la base, meme dans les reglages et tout. Il devra y avoir
+   une verification pour que l'animation s'arrete. »
+
+   CE QUI SE PASSAIT AVANT. Entre la confirmation et le message final il y avait l'appel
+   serveur (1,4 s mesure sur 171 569 lignes, plus le reseau), le vidage d'IndexedDB, puis une
+   repeinture complete du bureau et du panneau. Rien a l'ecran pendant tout ce temps. Le bouton
+   restait cliquable, et la ZONE DE DEPOT D'EXPORT de la carte d'a cote aussi : deposer un
+   export pendant que le DELETE serveur tourne, c'est l'incident du 18/09/2026 refait par la
+   porte d'a cote.
+
+   LE VOILE REUTILISE LES CLASSES DE `bdv-amorce.js`, ET CE N'EST PAS DE LA PARESSE. Ce dessin
+   existe, il est scope, mesure dans les deux themes, et chacun de ses etats se dit par un
+   GLYPHE et par un mot cache en plus de sa couleur. Ecrire un deuxieme voile aurait ajoute une
+   valeur a trois echelles fermees de `npm run charte --bureau` (les tailles, les filets, les
+   couches) et une paire de contraste de plus a mesurer, pour redire moins bien ce que celui-ci
+   sait deja dire. Les deux voiles ne peuvent pas etre a l'ecran en meme temps : l'amorcage se
+   ferme avant que le bureau soit utilisable, le vidage demande un panneau ouvert.
+
+   TROIS ETATS ET PAS DEUX, POUR LA VERIFICATION. Zero arrete l'animation en succes, un reste
+   l'arrete en ECHEC NOMME, et un « je ne sais pas » l'arrete en « non verifie ». Confondre le
+   troisieme avec le premier rejouerait exactement le defaut du 18/09/2026, ou un silence
+   passait pour un succes. C'est la meme regle en trois etats que le garde d'ouverture, dix
+   lignes plus bas.
+   ============================================================================================ */
+/* `var` ET PAS `let`, ET C'EST MESURE. `renderBase()` lit ce drapeau, et il est ecrit
+   PLUS HAUT dans le fichier que cette declaration. Un `let` de premier niveau reste en
+   zone morte jusqu'a sa ligne : un rendu qui tomberait avant leverait une erreur, et
+   `typeof` ne rattrape pas ce cas, il leve aussi. `var` est hisse, donc il vaut
+   `undefined` avant sa ligne, ce qui est exactement la bonne reponse : le vidage ne
+   tourne pas encore. */
+var VIDAGE_EN_COURS = false;
+let VIDAGE_VOILE = null;
+let VIDAGE_LIGNES = null;
+
+const VIDAGE_ETAPES = [
+  { cle: 'compte',   texte: 'Ton compte' },
+  { cle: 'appareil', texte: 'Cet appareil' },
+  { cle: 'preuve',   texte: 'Vérification' }
+];
+
+/* Le voile est construit au moment ou il sert, et jamais pose d'avance dans la page : un bloc
+   pose d'avance doit etre cache par une feuille chargee PARTOUT, sinon il tombe nu dans le flux
+   le temps que sa feuille arrive. Defaut paye le 08/09/2026 par le bandeau de statut, et
+   `bdv-amorce.js` porte deja ce commentaire pour la meme raison. */
+function vidageMonter(){
+  if(VIDAGE_VOILE) return;
+  const v = document.createElement('div');
+  /* LA MARQUE `--vidage` PORTE LA SEULE CHOSE QUI SEPARE CE VOILE DE CELUI DE
+     L'AMORCAGE : il BOUGE. Ted a demande une animation, et un chapelet d'etapes
+     immobiles n'en est pas une : sur une base de 171 569 lignes, six secondes
+     d'ecran fige ne se distinguent pas d'un plantage. C'est la meme mesure que
+     celle qui a fait ecrire « Analyse de tes ventes, 96 000 lignes sur 171 569 »
+     le 17/09/2026. Le voile d'amorcage, lui, ne prend pas cette marque : il n'est
+     pas dans le perimetre de ce lot, et on ne repeint pas un ecran qu'on n'a pas
+     regarde. */
+  v.className = 'bdv-amorce bdv-amorce--vidage';
+  v.id = 'bdvVidage';
+  /* `alertdialog` et pas `dialog` : ce qui se passe derriere est destructif et irreversible,
+     et c'est le seul role que les lecteurs d'ecran annoncent avec cette urgence-la. */
+  v.setAttribute('role', 'alertdialog');
+  v.setAttribute('aria-modal', 'true');
+  v.setAttribute('aria-labelledby', 'bdvVidageTitre');
+  v.setAttribute('aria-busy', 'true');
+  let h = '<div class="bdv-amorce__carte">'
+    + '<p class="bdv-amorce__titre" id="bdvVidageTitre">On vide ta base</p>'
+    + '<p class="bdv-amorce__sous" id="bdvVidageSous">Ne ferme pas cette page, ne dépose aucun export.</p>'
+    /* Le rail est `aria-hidden` : ce qu'il dit est deja dit en mots par les trois
+       etapes et par leur mot cache. Une deuxieme annonce du meme etat n'apprend rien
+       et coupe la parole a la premiere. */
+    + '<div class="bdv-amorce__rail" aria-hidden="true"><span></span></div>'
+    + '<ul class="bdv-amorce__liste" aria-live="polite">';
+  VIDAGE_ETAPES.forEach(function(e){
+    h += '<li class="bdv-amorce__etape" data-etape="' + e.cle + '">'
+      +  '<span class="bdv-amorce__puce" aria-hidden="true"></span>'
+      +  '<span class="bdv-amorce__texte">' + e.texte + '</span>'
+      +  '<span class="hors-ecran bdv-amorce__dit">en attente</span></li>';
+  });
+  h += '</ul><div class="bdv-amorce__pied"></div></div>';
+  v.innerHTML = h;
+  document.body.appendChild(v);
+  VIDAGE_VOILE = v;
+  VIDAGE_LIGNES = {};
+  VIDAGE_ETAPES.forEach(function(e){
+    VIDAGE_LIGNES[e.cle] = v.querySelector('[data-etape="' + e.cle + '"]');
+  });
+}
+/* L'etat se dit DEUX FOIS : par la classe, qui peint, et par un mot cache que la synthese
+   vocale lit. Une couleur ne s'entend pas, et elle ne se voit pas en niveaux de gris. */
+function vidageDire(cle, etat, mot){
+  const li = VIDAGE_LIGNES && VIDAGE_LIGNES[cle];
+  if(!li) return;
+  li.className = 'bdv-amorce__etape bdv-amorce__etape--' + etat;
+  const dit = li.querySelector('.bdv-amorce__dit');
+  if(dit) dit.textContent = mot;
+}
+function vidagePreciser(cle, texte){
+  const li = VIDAGE_LIGNES && VIDAGE_LIGNES[cle];
+  if(!li) return;
+  const t = li.querySelector('.bdv-amorce__texte');
+  if(t) t.textContent = texte;
+}
+/* LE PLANCHER, 600 ms. Sur un compte qui porte trois lignes, les trois etapes defilent en
+   cent millisecondes : un voile qui apparait et disparait dans cet intervalle se lit comme un
+   defaut d'affichage, pas comme un travail. C'est la meme mesure et la meme raison que les
+   450 ms du voile d'amorcage, et c'est la seule attente artificielle de ce geste. */
+function vidagePlancher(t0){
+  const reste = 600 - (Date.now() - t0);
+  return reste > 0 ? new Promise(function(r){ setTimeout(r, reste); }) : Promise.resolve();
+}
+/* LA FIN. C'est ici, et nulle part ailleurs, que l'animation s'arrete : `aria-busy` tombe, le
+   pied recoit sa seule sortie, et le bilan RESTE a l'ecran. `status()` efface un succes au
+   bout de quatre secondes : le seul compte rendu d'un effacement definitif partirait avant
+   d'avoir ete lu. */
+function vidageFin(titre, phrase, reussi){
+  if(!VIDAGE_VOILE) return;
+  VIDAGE_VOILE.setAttribute('aria-busy', 'false');
+  if(!reussi) VIDAGE_VOILE.setAttribute('aria-live', 'assertive');
+  const t = el('bdvVidageTitre'); if(t) t.textContent = titre;
+  const s = el('bdvVidageSous');  if(s) s.textContent = phrase;
+  const p = VIDAGE_VOILE.querySelector('.bdv-amorce__pied');
+  if(p){
+    p.innerHTML = '<button class="btn btn--geste" type="button" id="bdvVidageFermer">Fermer</button>';
+    const b = el('bdvVidageFermer');
+    if(b){
+      b.addEventListener('click', vidageDemonter);
+      /* Le focus n'est vole qu'ICI, jamais pendant le travail : pousser le focus sur un voile
+         qui va disparaitre oblige a revenir en arriere, et pendant le travail il n'y a rien a
+         faire. A la fin il y a une chose a faire, et une seule. */
+      try{ b.focus(); }catch(e){}
+    }
+  }
+}
+function vidageDemonter(){
+  if(VIDAGE_VOILE && VIDAGE_VOILE.parentNode) VIDAGE_VOILE.parentNode.removeChild(VIDAGE_VOILE);
+  VIDAGE_VOILE = null; VIDAGE_LIGNES = null;
+}
+/* LE PANNEAU ENTIER EST NEUTRALISE, PAS SEULEMENT LE BOUTON. Neutraliser la carte aurait
+   ferme un second clic sur « Vider la base » ; ce qui est reellement dangereux est a cote,
+   dans la meme rangee : la zone de depot d'export. Et un reglage enregistre pendant le vidage
+   ecrirait sur un bureau en train de disparaitre.
+   `aria-modal` du panneau est RENDU le temps du travail : tant qu'il vaut « true », tout ce
+   qui vit hors du panneau est muet a la synthese vocale, et notre voile serait vu sans etre
+   entendu. Il est repose a la sortie, dans le meme `finally`. */
+function vidagePanneau(bloque){
+  const v = el('bdvrVoile');
+  if(!v) return;
+  const p = v.querySelector('.bdvr-panneau');
+  if(bloque){ v.setAttribute('inert', ''); if(p) p.setAttribute('aria-modal', 'false'); }
+  else      { v.removeAttribute('inert'); if(p) p.setAttribute('aria-modal', 'true'); }
+}
+/* LA VERIFICATION, ET C'EST ELLE QUI AUTORISE L'ARRET. `dbClear()` se resout sur
+   `tx.oncomplete` : ca prouve qu'une transaction a abouti, pas que le magasin est vide. On
+   relit donc les DEUX cotes, avec les deux sondes que ce fichier utilise deja dix lignes plus
+   bas : `dbCount()` coute une transaction en lecture, quelques millisecondes ; le compte
+   repond par `auMoinsUneVente()`, qui demande UNE ligne et jamais un comptage, le comptage
+   exact ayant rendu un `57014 statement timeout` le 18/09/2026.
+   Un `null` n'est jamais un zero. Il rend « inconnu », et l'ecran le dit. */
+async function vidageVerifier(){
+  let ici = null, laBas = null;
+  try{ ici = await dbCount(); }catch(e){ ici = null; }
+  if(syncPret() && BdvSync.auMoinsUneVente){
+    try{ laBas = await BdvSync.auMoinsUneVente(); }catch(e){ laBas = null; }
+  }
+  const verdict = (ici === 0 && (!syncPret() || laBas === false)) ? 'vide'
+                : ((ici > 0 || laBas === true) ? 'reste' : 'inconnu');
+  return { ici: ici, laBas: laBas, verdict: verdict };
+}
+/* LE BILAN EST CHIFFRE, ET LES CHIFFRES VIENNENT DU SERVEUR. `vider_la_base_du_bureau` rend
+   depuis le 18/09/2026 le compte de ce qu'elle a efface, table par table ; jusqu'a aujourd'hui
+   `viderBase()` ne lisait que `vide` et jetait le reste. Un vidage annonce sur zero ligne est
+   le symptome exact du melange de bases : sans chiffre, il ne se voit pas. */
+function vidageBilan(preuve, connecte){
+  const bouts = [];
+  if(preuve){
+    if(preuve.ventes)   bouts.push(plur(preuve.ventes, 'ligne') + ' de vente');
+    if(preuve.suivi)    bouts.push(plur(preuve.suivi, 'fiche') + ' de suivi');
+    if(preuve.echanges) bouts.push(plur(preuve.echanges, 'échange', 'enregistré'));
+  }
+  const ou = connecte ? 'de ton compte et de cet appareil' : 'de cet appareil';
+  return (bouts.length ? 'Parti ' + ou + ' : ' + bouts.join(', ') + '. '
+                       : (connecte ? 'Ton compte et cet appareil sont vides. '
+                                   : 'Cet appareil est vide. '))
+    + (connecte ? "Rien de tout ça n'existe plus nulle part, Vitisoft n'en garde aucune trace. "
+                : "Ton compte n'était pas joignable : sa copie est intacte, et la prochaine ouverture la redescendra. ")
+    + 'Dépose ton nouvel export quand tu veux.';
+}
+
 /* ============ ON N'OUVRE PAS CE GESTE SUR UN CHIFFRE QU'ON N'A PAS, 19/09/2026 ============
    L'avertissement plus bas compte `ROWS`, c'est-a-dire les lignes CHARGEES EN MEMOIRE. Si
    le chargement du panneau a echoue, `ROWS` est vide et le texte annoncait « 0 ligne de
@@ -1940,6 +2132,12 @@ function renderBase(){
      3. Un « je ne sais pas » (null) n'est jamais un « c'est vide ». Il fait refuser.
    On ne laisse passer que le cas ou les trois disent zero, et la il n'y a rien a perdre. */
 async function viderBase(){
+  /* LE GARDE DE RE-ENTREE EST UN DRAPEAU DE MODULE, ET IL EST EN TETE. Un `disabled` pose sur
+     le bouton ne suffit pas et ne peut pas suffire : `renderBase()` reecrit ce bouton, et la
+     sortie de cette fonction appelle `ecranRafraichir()`. Le bouton se reactiverait donc tout
+     seul au milieu d'un `await`. Le drapeau est la verite, le `disabled` n'est que l'affordance,
+     et c'est `renderBase()` qui le repose en LISANT le drapeau a chaque rendu. */
+  if(VIDAGE_EN_COURS) return;
   if(!ROWS.length){
     let ici=null;
     try{ ici=await dbCount(); }catch(e){ ici=null; }
@@ -1996,55 +2194,131 @@ async function viderBase(){
           + "ouverture rapatrierait tout depuis le compte. Mieux vaut réessayer plus tard.\n\n")
     + 'Confirmer la suppression définitive ?')) return;
 
-  /* ET ON NE TOUCHE A RIEN TANT QUE LE SERVEUR N'A PAS PROUVE QU'IL A VIDE.
-     C'est le defaut qui a melange les deux bases de Ted : l'appareil se vidait, le
-     compte gardait ses lignes, et le prochain import montait par-dessus. Desormais un
-     vidage serveur rate ARRETE le geste, et le bureau reste exactement comme il etait.
-     Mieux vaut un bouton qui refuse qu'un bouton qui ment. */
-  if(syncPret()){
-    const preuve = await BdvSync.effacerTout();
-    if(!preuve){
-      status('error', "Ton compte n'a PAS été vidé, donc rien n'a été touché sur cet "
-        + "appareil non plus. Vérifie ta connexion et réessaie. Si ça recommence, ne "
-        + "réimporte pas : les deux bases se mélangeraient.");
+  /* LE VOILE EST POSE ICI, ET PAS AVANT. Un `confirm()` natif bloque le rendu du navigateur :
+     pose plus haut, le voile ne serait jamais peint, puis resterait sous la boite de dialogue.
+     Il ne couvre donc que le TRAVAIL, jamais la question. */
+  const connecte = syncPret();
+  const t0 = Date.now();
+  VIDAGE_EN_COURS = true;
+  vidageMonter();
+  vidagePanneau(true);
+  let preuve = null;
+  try{
+    /* ET ON NE TOUCHE A RIEN TANT QUE LE SERVEUR N'A PAS PROUVE QU'IL A VIDE.
+       C'est le defaut qui a melange les deux bases de Ted : l'appareil se vidait, le
+       compte gardait ses lignes, et le prochain import montait par-dessus. Desormais un
+       vidage serveur rate ARRETE le geste, et le bureau reste exactement comme il etait.
+       Mieux vaut un bouton qui refuse qu'un bouton qui ment. */
+    if(connecte){
+      vidageDire('compte','encours','en cours');
+      preuve = await BdvSync.effacerTout();
+      if(!preuve){
+        vidageDire('compte','rate','a échoué');
+        await vidagePlancher(t0);
+        vidageFin("Ton compte n'a PAS été vidé",
+          "Rien n'a été touché sur cet appareil non plus : tes deux copies sont exactement dans "
+          + "l'état d'avant. Vérifie ta connexion et réessaie. Si ça recommence, ne réimporte "
+          + "rien : les deux bases se mélangeraient.", false);
+        return;
+      }
+      vidageDire('compte','fait','fait');
+      vidagePreciser('compte','Ton compte, ' + plur(preuve.ventes || 0,'ligne') + ' effacée' + ((preuve.ventes||0)>1?'s':''));
+    }else{
+      vidageDire('compte','rate','pas joignable');
+      vidagePreciser('compte','Ton compte, pas joignable');
+    }
+
+    vidageDire('appareil','encours','en cours');
+    /* `dbClear()` N'AVAIT AUCUN FILET JUSQU'AU 23/09/2026, et c'est le pire etat de tout ce
+       geste : la promesse de `viderBase()` partait en rejet silencieux, le compte etait vide,
+       l'appareil gardait ses 171 569 lignes, rien ne s'affichait, et `oublierRepere()` avait
+       DEJA ete appele a l'interieur de `effacerTout()`. Il faut donc nommer les deux moities
+       separement : laquelle est partie, laquelle ne l'est pas. C'est la seule chose qui compte
+       quand on rouvre, et c'est la regle de `banc:amorce`, « une etape ratee se dit par son nom ». */
+    try{
+      await dbClear();
+    }catch(e){
+      vidageDire('appareil','rate','a échoué');
+      await vidagePlancher(t0);
+      vidageFin("Ton compte est vide, cet appareil ne l'est pas",
+        (connecte ? "Ton compte a bien été vidé. " : "")
+        + "Cet appareil n'a pas pu effacer sa copie, et elle est donc seule au monde. "
+        + "NE RÉIMPORTE RIEN et n'ouvre pas tes écrans de vente : ferme cet onglet, rouvre ton "
+        + "bureau, et relance le vidage.", false);
       return;
     }
-  }
-  await dbClear();
-  /* ET LE REPERE DE SYNCHRONISATION, 17/09/2026. effacerTout() l'oublie deja quand elle
-     reussit ; ici on couvre le cas ou elle a ECHOUE : le serveur garde alors ses lignes,
-     l'appareil vient de perdre les siennes, et un repere survivant annoncerait « rien de
-     neuf » sur une base vide. Plus rien ne redescendrait, jamais. */
-  if(window.BdvSync&&BdvSync.oublierRepere)BdvSync.oublierRepere();
-  // Le serveur a tout efface (ventes, suivi, journal, reglages) : l'appareil doit suivre,
-  // sinon le prochain rapatriement REINSTALLE le suivi et le journal locaux sur un serveur
-  // vide, et la suppression n'aura rien efface de ce que le vigneron voyait.
-  CRM={};ECHANGES={};
-  try{localStorage.removeItem(CRM_KEY);localStorage.removeItem(ECH_KEY);}catch(e){}
-  /* ET LE MIROIR DE LA FILE, qui manquait ici jusqu'au 08/09/2026. Les deux cles effacees
-     juste au-dessus sont celles du MOTEUR ; le sous-main et l'ardoise du bureau, eux,
-     lisent MIROIR_KEY, la cle de bdv-crm.js. Elle survivait au vidage, donc le bureau
-     continuait de peindre un chiffre d'affaires et une file de rappels tires d'une base
-     effacee, jusqu'au rechargement de la page.
+    /* ET LE REPERE DE SYNCHRONISATION, 17/09/2026. effacerTout() l'oublie deja quand elle
+       reussit ; ici on couvre le cas ou elle a ECHOUE : le serveur garde alors ses lignes,
+       l'appareil vient de perdre les siennes, et un repere survivant annoncerait « rien de
+       neuf » sur une base vide. Plus rien ne redescendrait, jamais. */
+    if(window.BdvSync&&BdvSync.oublierRepere)BdvSync.oublierRepere();
+    // Le serveur a tout efface (ventes, suivi, journal, reglages) : l'appareil doit suivre,
+    // sinon le prochain rapatriement REINSTALLE le suivi et le journal locaux sur un serveur
+    // vide, et la suppression n'aura rien efface de ce que le vigneron voyait.
+    CRM={};ECHANGES={};
+    try{localStorage.removeItem(CRM_KEY);localStorage.removeItem(ECH_KEY);}catch(e){}
+    /* ET LE MIROIR DE LA FILE, qui manquait ici jusqu'au 08/09/2026. Les deux cles effacees
+       juste au-dessus sont celles du MOTEUR ; le sous-main et l'ardoise du bureau, eux,
+       lisent MIROIR_KEY, la cle de bdv-crm.js. Elle survivait au vidage, donc le bureau
+       continuait de peindre un chiffre d'affaires et une file de rappels tires d'une base
+       effacee, jusqu'au rechargement de la page.
 
-     On passe par oublier() et pas par un removeItem d'ici : la cle appartient a bdv-crm.js,
-     et deux fichiers qui ecrivent la meme cle, c'est un renommage silencieux qui attend son
-     heure. Meme regle que « bdv-taches.js est le seul a ecrire dans la table des taches ». */
-  if(window.BdvCrm&&BdvCrm.oublier)BdvCrm.oublier();
-  // Un resume de serveur survivant a un vidage afficherait un chiffre d'affaires sur une
-  // base vide, et c'est exactement ce que le vigneron vient de demander de faire partir.
-  capPerimer();
-  ROWS=[];computeMeta();
-  /* LE COMPTE LOCAL PASSE A ZERO, ET LE COMPTE DISTANT AUSSI. Sans ces deux lignes,
-     `baseVide()` continuerait de lire les valeurs d'avant le vidage, et le bureau
-     hesiterait entre « vide » et « pas encore chargee » sur une base qu'on vient
-     justement de vider en connaissance de cause. « Quand on revient sur le bureau,
-     y'aura pas de doute », Ted, 18/09/2026. */
-  if(typeof LIGNES_EN_BASE !== 'undefined') LIGNES_EN_BASE = 0;
-  if(typeof LIGNES_DISTANTES !== 'undefined') LIGNES_DISTANTES = 0;
-  if(typeof _lignesChargees !== 'undefined') _lignesChargees = false;
-  status('success','Base vidée, sur cet appareil et sur ton compte. Dépose ton nouvel export quand tu veux.');
-  ecranRafraichir();
+       On passe par oublier() et pas par un removeItem d'ici : la cle appartient a bdv-crm.js,
+       et deux fichiers qui ecrivent la meme cle, c'est un renommage silencieux qui attend son
+       heure. Meme regle que « bdv-taches.js est le seul a ecrire dans la table des taches ». */
+    if(window.BdvCrm&&BdvCrm.oublier)BdvCrm.oublier();
+    // Un resume de serveur survivant a un vidage afficherait un chiffre d'affaires sur une
+    // base vide, et c'est exactement ce que le vigneron vient de demander de faire partir.
+    capPerimer();
+    ROWS=[];computeMeta();
+    /* LE COMPTE LOCAL PASSE A ZERO, ET LE COMPTE DISTANT AUSSI. Sans ces deux lignes,
+       `baseVide()` continuerait de lire les valeurs d'avant le vidage, et le bureau
+       hesiterait entre « vide » et « pas encore chargee » sur une base qu'on vient
+       justement de vider en connaissance de cause. « Quand on revient sur le bureau,
+       y'aura pas de doute », Ted, 18/09/2026. */
+    if(typeof LIGNES_EN_BASE !== 'undefined') LIGNES_EN_BASE = 0;
+    if(typeof LIGNES_DISTANTES !== 'undefined') LIGNES_DISTANTES = 0;
+    if(typeof _lignesChargees !== 'undefined') _lignesChargees = false;
+    vidageDire('appareil','fait','fait');
+
+    /* LA VERIFICATION. C'est elle, et rien d'autre, qui autorise l'arret de l'animation :
+       ni la fin d'une promesse, ni l'absence d'erreur. Trois verdicts, jamais deux. */
+    vidageDire('preuve','encours','en cours');
+    const v = await vidageVerifier();
+    await vidagePlancher(t0);
+    if(v.verdict === 'vide'){
+      vidageDire('preuve','fait','vérifié');
+      vidageFin("C'est fait", vidageBilan(preuve, connecte), true);
+    }else if(v.verdict === 'reste'){
+      vidageDire('preuve','rate','il reste des lignes');
+      vidageFin('Le vidage n\'est pas complet',
+        ((v.ici > 0) ? 'Cet appareil porte encore ' + plur(v.ici,'ligne') + '. ' : '')
+        + ((v.laBas === true) ? 'Ton compte porte encore des lignes. ' : '')
+        + "NE RÉIMPORTE RIEN : un export déposé par-dessus mélangerait deux bases. Recharge ton "
+        + "bureau et relance le vidage.", false);
+    }else{
+      vidageDire('preuve','rate','non vérifié');
+      vidageFin("On n'a pas pu vérifier",
+        "L'effacement a été demandé des deux côtés et rien n'a signalé d'erreur, mais la relecture "
+        + "qui devait le prouver n'a pas répondu. NE RÉIMPORTE RIEN avant d'avoir rechargé ton "
+        + "bureau et regardé ce qu'il reste.", false);
+    }
+  }finally{
+    /* LE SEUL POINT DE SORTIE, ET C'EST TOUTE LA DEMANDE DE TED. Six chemins quittent cette
+       fonction, dont deux qu'on n'a pas ecrits : un jet de `capPerimer()`, de `computeMeta()`
+       ou d'`ecranRafraichir()`. Un voile qui tourne sur un bureau a moitie vide, sans un mot,
+       est pire que pas de voile : il donne a un effacement interrompu l'apparence d'un travail
+       en cours. Aucun chemin ne sort d'ici sans que l'animation soit arretee et qu'une phrase
+       soit posee. */
+    VIDAGE_EN_COURS = false;
+    vidagePanneau(false);
+    if(VIDAGE_VOILE && VIDAGE_VOILE.getAttribute('aria-busy') === 'true'){
+      vidageFin("Le vidage s'est interrompu",
+        "Une erreur inattendue l'a arrêté en cours de route, et on ne sait pas où. NE RÉIMPORTE "
+        + "RIEN : recharge ton bureau et regarde ce qu'il reste avant de recommencer.", false);
+    }
+    try{ ecranRafraichir(); }catch(e){}
+  }
 }
 
 /* La fonction refreshResume() a disparu avec l'ecran d'import plein page : le nombre de

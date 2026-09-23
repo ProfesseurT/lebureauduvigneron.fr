@@ -12,6 +12,70 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 23/09/2026, plus tard. Le bouton « Vider la base » ne disait pas qu'il travaillait
+
+Ted, deux captures du bouton : « j'ai l'impression que c'est pas propre. Il faut forcément que
+l'interface montre une animation tant que ça travaille, même dans les réglages. Il devra y avoir
+une vérification pour que l'animation s'arrête. »
+
+Il avait raison sur le symptôme, et l'audit a trouvé plus grave que le symptôme.
+
+**Ce qu'on voyait :** entre la confirmation et le message final, rien. L'appel serveur (1,4 s
+mesuré sur 171 569 lignes), le vidage local, puis la repeinture complète du bureau et du panneau,
+écran figé. Le bouton restait cliquable et la zone de dépôt d'export, dans la même rangée,
+restait active : déposer un export pendant que le DELETE tourne, c'est l'incident du 18/09 refait
+par la porte d'à côté.
+
+**Ce qu'on ne voyait pas, et c'est le vrai sujet.** `await dbClear()` n'avait aucun filet : son
+rejet sortait de la fonction en silence, compte vide, appareil plein, pas un message, et le repère
+de synchronisation déjà oublié à l'intérieur d'`effacerTout()`. L'asymétrie du 18/09 prise dans
+l'autre sens, et muette. Et la preuve chiffrée que le lot 28 avait été écrit pour produire, le
+compte de ce qui est effacé table par table, était calculée, transmise, puis jetée : `viderBase()`
+ne lisait que `vide`.
+
+**Et le lot 28 lui-même ne recomptait qu'une table sur cinq.** Il vide `ventes`, `ventes_lignes`,
+`suivi_clients`, `echanges` et `resumes`, et relisait `ventes` seule. Il ne pouvait donc pas lever
+sur un suivi client resté entier, c'est-à-dire sur la seule chose que le vigneron ne peut pas
+réimporter. Le lot 30 recompte les cinq et nomme celle qui résiste.
+
+### Les arbitrages
+
+**Le voile couvre tout l'écran, pas seulement le panneau.** Choix de Ted. Ce qui le justifie n'est
+pas l'effet : c'est que le geste porte aussi sur le compte, donc sur le bureau des autres membres.
+
+**Il réutilise les classes du voile d'amorçage.** Ce dessin est déjà scopé, déjà mesuré dans les
+deux thèmes, et chacun de ses états se dit par un glyphe et par un mot caché en plus de sa couleur.
+En écrire un second aurait ajouté une valeur à trois échelles fermées de `charte --bureau` pour
+redire moins bien la même chose. La seule chose que la marque `--vidage` ajoute, c'est du
+mouvement : un rail qui court, arrêté par `aria-busy`, jamais par un minuteur.
+
+**Le panneau entier est neutralisé, pas le bouton.** Le bouton n'était pas le danger ; la zone de
+dépôt d'à côté l'était. Et `aria-modal` du panneau est rendu le temps du travail, sans quoi le
+voile aurait été vu et pas entendu : un dialogue modal rend muet tout ce qui vit en dehors de lui.
+
+**La vérification a trois états et pas deux.** Zéro arrête en succès, un reste arrête en échec
+nommé, un « je ne sais pas » arrête en « non vérifié ». C'est la même règle que le garde
+d'ouverture, et confondre le troisième avec le premier, c'est rejouer le 18/09.
+
+### Ce que la planche a montré et que les bancs validaient
+
+Quatorze mutations, chacune fait échouer `banc:vidage`. Les 37 étapes de `verif` sont vertes. Et
+la première capture de `apercu:vidage` a montré la seule chose que Ted avait demandée et que
+personne ne mesurait : **le voile ne bougeait pas.** Trois étapes immobiles pendant six secondes ne
+se distinguent pas d'un plantage. Neuvième fois que ce fichier raconte la même leçon.
+
+### À faire, dans l'ordre
+
+1. Coller `supabase/lot30-vider-la-preuve-complete.sql` dans Supabase. Tant qu'il n'est pas passé,
+   la preuve reste partielle : c'est exactement l'état décrit par la note du lot 6.
+2. Ouvrir `_apercu/vidage.html` et regarder les cinq états dans les deux thèmes.
+3. Signalé et non corrigé : `lot29-index-et-fonctions-de-declencheur.sql` n'est pas dans la liste
+   `ORDRE` de `banc-rejeu.mjs`, donc absent de la procédure de reconstruction.
+4. Non tranché : le voile d'amorçage ne bouge pas non plus. Il dure deux secondes, et on ne
+   repeint pas un écran qu'on n'a pas regardé.
+
+---
+
 ## 23/09/2026, la fin. Un nombre fixe ne répond pas à deux écrans
 
 Ted, capture de son vrai bureau à l'appui : « non, là tu peux revoir la taille des écrans.
