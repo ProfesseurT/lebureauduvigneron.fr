@@ -6174,9 +6174,33 @@ demain herite du garde sans avoir a y penser.** Le critere est le chiffre qui JU
 resume : `ca` pour `capPoser`, `exerciceCur` pour `comPoser`, `ok` pour `cuvPoser`, qui l'avait
 deja. Un resume qui ne le porte pas n'a rien calcule.
 
-**Ne pas remettre un garde dans un bloc de lecture** : ce serait le sixieme, et c'est la forme
-exacte du defaut. Le corollaire vaut au-dela de ce fichier : **quand un objet vient d'ailleurs,
-la question « puis-je m'en servir ? » se pose une fois, a l'entree, et jamais a chaque usage.**
+Le corollaire vaut au-dela de ce fichier : **quand un objet vient d'ailleurs, la question
+« puis-je m'en servir ? » se pose une fois, a l'entree, et jamais a chaque usage.**
+
+### ET LES CINQ GARDES DE LECTURE SONT RESTES, PARCE QU'ILS NE POSENT PAS LA MEME QUESTION
+
+**A relire avant de « finir le menage » : les supprimer serait une regression.** Cette section a
+d'abord ete ecrite « ne pas remettre un garde dans un bloc de lecture, ce serait le sixieme ».
+Relu le 23/09/2026 au tour d'audit suivant : c'etait trop absolu, et applique a la lettre ca
+cassait deux cas legitimes.
+
+    capPoser()        « CET OBJET a-t-il calcule quelque chose ? »   garde d'OBJET
+    capCadre()        « l'exercice PRECEDENT existe-t-il ? »         garde de CHAMP
+    agentCadence()    « le serveur a-t-il porte CE bloc-la ? »       garde de CHAMP
+
+Un garde d'objet repond a « puis-je me servir de ce resume », et il n'y en a qu'un, a l'entree.
+Un garde de champ repond a « ce champ-la est-il renseigne », et il y en a autant que de champs
+facultatifs. **Le defaut du 23/09 n'etait pas d'avoir plusieurs gardes, c'etait d'avoir plusieurs
+gardes d'OBJET, tous differents.**
+
+Concretement : `caCoupePrecedent` est null pour un domaine dont la base ne couvre qu'un seul
+exercice, et `ca` ne l'est pas. Retirer le garde de `capCadre()` ferait afficher « contre 0 euro
+le precedent au meme jour » a tout nouveau vigneron, par `Number(null)`. Le meme raisonnement
+vaut pour les trois `Array.isArray` de « Mon commerce » : le serveur porte trois blocs dont un
+seul est aujourd'hui rendu, et un tableau absent n'est pas un tableau vide.
+
+**La question a se poser devant un garde : repond-il pour TOUT l'objet, ou pour un champ ?** Si
+c'est pour tout l'objet, il doit etre unique et vivre a la pose.
 
 `npm run banc:cap-serveur` section 3 et `npm run banc:commerce-serveur` section 5 posent la
 charge REELLE relevee ce jour-la, champ pour champ, et exigent que l'ecran peint soit exactement
