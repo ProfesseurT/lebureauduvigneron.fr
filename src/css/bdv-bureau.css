@@ -363,114 +363,6 @@ body.bdv-coque{
 
 
 /* ==========================================================================
-   3 ter. L'EN-TETE COLLE, SA LUNE, SES ETATS CLIQUABLES ET SA PERIODE, 24/09/2026
-
-   Choix C de Ted parmi trois propositions. L'en-tete reste a l'ecran sur
-   ordinateur aussi (il l'etait deja sur telephone), sous l'entete du site, qui
-   est collee a `top:0` : deux collants a zero ne se partagent pas le haut, d'ou
-   `--h-entete`, MESUREE par `mesurerEntete()` de bdv-nav.js.
-
-   IL SE TASSE AU DEFILEMENT, et c'est la condition pour que le coller reste
-   tenable : trois bandes collees faisaient 169 px sur un ecran de 900. La classe
-   `bureau-tete--retracte` est posee par le script de src/mon-bureau.njk. En
-   retracte, la date part et la lune ne garde que son dessin (la phrase reste
-   dans `title` et dans `aria-label`).
-
-   LA LUNE REVIENT ICI EN VERSION COURTE. Elle etait descendue dans « Ma
-   journee » le 21/09 ; Ted la veut dans toutes les pieces. Le grand bloc de
-   « Ma journee » reste, les deux sont peints par le meme calcul.
-
-   LE RESUME DEVIENT DES LIENS : chaque etat mene a sa piece. Soulignes au
-   survol seulement, parce qu'un en-tete souligne de bout en bout se lit comme
-   une rature ; mais ils portent un filet, pour qu'on voie qu'on peut cliquer.
-   ========================================================================== */
-@media (min-width:701px){
-  .bdv-coque .bureau-tete{
-    position:sticky;
-    top:var(--h-entete);
-    z-index:2;
-    background:var(--bdv-fond);
-  }
-  .bdv-coque .bureau-tete--retracte .bureau-tete__ligne{ min-height:var(--bdv-cible); }
-  .bdv-coque .bureau-tete--retracte .bureau-tete__jour,
-  .bdv-coque .bureau-tete--retracte .bureau-tete__lunette-mot{ display:none; }
-}
-.bdv-coque .bureau-tete__lunette{
-  display:inline-flex;
-  align-items:center;
-  gap:var(--bdv-e-2);
-  margin:0;
-  font-size:var(--bdv-f-2);
-  color:var(--bdv-encre-3);
-  white-space:nowrap;
-}
-.bdv-coque .bureau-tete__lunette[hidden]{ display:none; }
-.bdv-coque .bureau-tete__lunette-dessin{ flex:0 0 auto; width:var(--bdv-f-5); height:var(--bdv-f-5); }
-/* Sous 1280 px, la phrase de la lune part la premiere : le dessin reste, et son
-   `title` dit la phase. C'est ce qui tient la rangee a 1100 px. */
-@media (max-width:1280px){ .bdv-coque .bureau-tete__lunette-mot{ display:none; } }
-/* LE RESUME CEDE LA PLACE AVANT DE FAIRE DEBORDER LA PAGE. Mesure du 24/09/2026 a
-   1100 px : titre, date, lune, deux etats, le bouton de mise a jour et les trois
-   actions demandaient 1 350 px. Le resume est le seul morceau qui peut se couper
-   sans perdre une commande : il retrecit et coupe, il ne pousse jamais. */
-.bdv-coque .bureau-tete__resume{
-  display:flex;
-  gap:var(--bdv-e-2);
-  align-items:center;
-  max-width:none;
-  min-width:0;
-  flex:0 1 auto;
-  overflow:hidden;
-}
-.bdv-coque .bureau-tete__etat{
-  display:inline-flex;
-  align-items:center;
-  min-height:32px;
-  padding:0 var(--bdv-e-3);
-  border:1px solid var(--bdv-trait-fort);
-  border-radius:var(--bdv-r-rond);
-  background:var(--bdv-surface);
-  color:var(--bdv-encre-2);
-  font-size:var(--bdv-f-2);
-  text-decoration:none;
-  white-space:nowrap;
-  transition:background var(--bdv-d-court) var(--bdv-courbe),
-             border-color var(--bdv-d-court) var(--bdv-courbe);
-}
-.bdv-coque .bureau-tete__etat::after{ display:none; }
-.bdv-coque .bureau-tete__etat:hover{
-  background:var(--bdv-surface-2);
-  border-color:var(--bdv-encre-4);
-  color:var(--bdv-encre-1);
-}
-.bdv-coque .bureau-tete__periode{
-  display:inline-flex;
-  align-items:center;
-  gap:var(--bdv-e-2);
-  margin:0;
-  font-size:var(--bdv-f-1);
-  text-transform:uppercase;
-  letter-spacing:var(--bdv-ls-etiq);
-  color:var(--bdv-encre-4);
-  white-space:nowrap;
-}
-.bdv-coque .bureau-tete__periode[hidden]{ display:none; }
-.bdv-coque .bureau-tete__periode select{
-  min-height:36px;
-  padding:0 var(--bdv-e-3);
-  border:1px solid var(--bdv-accent);
-  border-radius:var(--bdv-r);
-  background:var(--bdv-accent-lavis);
-  color:var(--bdv-accent);
-  font:inherit;
-  font-size:var(--bdv-f-2);
-  text-transform:none;
-  letter-spacing:0;
-  font-weight:600;
-}
-
-
-/* ==========================================================================
    4. OU SONT PASSES LE SALUT, LA PLAQUE ET LA LUNE
 
    Ils sont descendus dans « Ma journee », en tete du plan, dans
@@ -727,17 +619,6 @@ body.bdv-coque{
      dans `aria-label`, pose par `majBoutonMaj()`. */
   .bdv-coque .bureau-tete__maj{ width:var(--bdv-cible); padding:0; }
   .bdv-coque .bureau-tete__maj-mot{ display:none; }
-  /* LA LUNE ET LA PERIODE SUR TELEPHONE. La lune garde son dessin, sans phrase :
-     la colonne du titre fait deja 130 px. La periode ne remonte pas : la barre
-     y fait trois rangees, et un selecteur de plus dans 390 px pousserait la
-     deconnexion hors du cadre. */
-  .bdv-coque .bureau-tete__lunette-mot{ display:none; }
-  /* Une colonne de plus, entre le titre et les actions : pose en ligne 2 a cote
-     de la date, le dessin tombait DESSUS (mesure du 24/09/2026 a 390 px). */
-  .bdv-coque .bureau-tete__ligne{ grid-template-columns:minmax(0,1fr) auto auto; }
-  .bdv-coque .bureau-tete__lunette{ grid-column:2; grid-row:1 / span 2; }
-  .bdv-coque .bureau-tete__actions{ grid-column:3; }
-  .bdv-coque .bureau-tete__periode{ display:none; }
   /* L'EN-TETE SE RETRACTE AU DEFILEMENT. La classe est posee par le script de
      src/mon-bureau.njk des que la page a defile de plus d'une hauteur
      d'en-tete. On ne cache que la DATE : le nom de la piece et les actions
@@ -3395,3 +3276,519 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
      on defait un dessin qui avait raison. Trouvee a la capture du 23/09/2026,
      comme les quatre defauts de specificite des lots 2 a 5. */
 }
+
+
+/* ============================================================================
+   EN-TETE FLOTTANT, DIRECTION C : « LE CADRE »
+   ----------------------------------------------------------------------------
+   L'idee : l'en-tete et la barre des pieces ne font plus qu'un. Ils prennent le
+   meme gris (--bdv-surface-2) et dessinent un cadre en L autour du travail, qui
+   reste sur le fond de page. Le filet vertical de la barre monte jusqu'a la
+   navigation du site ; le filet du bas de l'en-tete ne commence qu'a droite de
+   la barre. Dans le coin, au-dessus des pieces, la lune s'installe comme un
+   almanach. Le nom de la piece tombe a l'aplomb exact des cartes.
+
+   24/09/2026 : choisie par Ted parmi trois pistes dessinees par un agent design
+   (A « Le Registre », B « La Console », C « Le Cadre »). Posee EN DERNIER dans
+   cette feuille, et toutes ses regles pesent (0,3,0) : elles l'emportent sur les
+   sections 2, 3 et 3 bis sans les supprimer (les keyframes de la pulsation
+   restent en 3 bis, une seule definition).
+   Toutes les couleurs sont des jetons --bdv-*. Aucune ombre, aucun degrade.
+   ============================================================================ */
+
+/* ---- 1. LA BANDE : le gris de la barre des pieces ------------------------ */
+.bdv-coque .bureau-tete{
+  position:relative;
+  background:var(--bdv-surface-2);
+  border-bottom:0;
+  color:var(--bdv-encre-2);
+  padding-block:0;
+}
+.bdv-coque .bureau-tete::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:1px;
+  background:var(--bdv-trait);
+  pointer-events:none;
+}
+.bdv-coque .bureau-tete .bureau-tete__ligne{
+  position:relative;
+  max-width:none;
+  margin:0;
+  padding:0 var(--bdv-e-6);
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:var(--bdv-e-3);
+  min-height:var(--bdv-h-tete);
+  transition:min-height var(--bdv-d-court) var(--bdv-courbe);
+}
+
+/* ---- 2. OU JE SUIS ------------------------------------------------------- */
+.bdv-coque .bureau-tete .bureau-tete__piece{
+  margin:0;
+  font-family:var(--font-titre);
+  font-size:var(--bdv-f-5);
+  font-weight:600;
+  line-height:1.1;
+  letter-spacing:var(--bdv-ls-serre);
+  color:var(--bdv-encre-1);
+  white-space:nowrap;
+}
+.bdv-coque .bureau-tete .bureau-tete__jour{
+  display:inline-flex;
+  align-items:center;
+  margin:0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+  white-space:nowrap;
+}
+.bdv-coque .bureau-tete .bureau-tete__jour::before{
+  content:"";
+  display:inline-block;
+  width:3px;
+  height:3px;
+  margin-right:var(--bdv-e-3);
+  border-radius:var(--bdv-r-rond);
+  background:var(--bdv-encre-4);
+}
+
+/* ---- 3. LA LUNE ---------------------------------------------------------- */
+.bdv-coque .bureau-tete .bureau-tete__lunette{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin:0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+  white-space:nowrap;
+}
+.bdv-coque .bureau-tete .bureau-tete__lunette-dessin{ flex:0 0 auto; width:18px; height:18px; display:block; }
+.bdv-coque .bureau-tete .bureau-tete__lunette-mot{ display:inline-flex; align-items:baseline; }
+.bdv-coque .bureau-tete .bureau-tete__lunette-pct{ font-variant-numeric:tabular-nums; }
+/*   clair  : eclaire --bdv-surface / ombre --bdv-encre-4   5,88:1
+              filet --bdv-encre-4 sur la bande (--bdv-surface-2) 5,19:1
+     sombre : eclaire --bdv-encre-1 / ombre --bdv-fond      17,78:1
+              filet --bdv-encre-4 sur la bande (--bdv-surface-2) 5,11:1 */
+.bdv-coque .bureau-tete .bureau-tete__lune-ombre{ fill:var(--bdv-lune-ombre); }
+.bdv-coque .bureau-tete .bureau-tete__lune-clair{ fill:var(--bdv-lune-clair); }
+.bdv-coque .bureau-tete .bureau-tete__lune-bord{
+  fill:none;
+  stroke:var(--bdv-encre-4);
+  stroke-width:1px;
+  vector-effect:non-scaling-stroke;
+}
+
+/* ---- 4. LE CADRE EN L, AU-DESSUS DE 900 px (la ou la barre est une colonne)
+   Le coin fait exactement --bdv-rail de large et porte le meme filet droit que
+   la barre : les deux se continuent. La lune y est alignee sur les icones des
+   pieces (12 px de marge de la barre + 8 px de la ligne = 20 px). Le titre, lui,
+   part a --bdv-rail + --bdv-e-6 : l'aplomb exact des cartes du travail. */
+@media (min-width:901px){
+  .bdv-coque .bureau-tete::after{ left:var(--bdv-rail); }
+  .bdv-coque .bureau-tete .bureau-tete__ligne{
+    padding-left:calc(var(--bdv-rail) + var(--bdv-e-6));
+  }
+  .bdv-coque .bureau-tete .bureau-tete__lunette{
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width:var(--bdv-rail);
+    box-sizing:border-box;
+    gap:var(--bdv-e-2);
+    padding:0 6px 0 18px;
+    border-right:1px solid var(--bdv-trait);
+  }
+  /* 20 px, centre sur l'axe des icones des pieces (x = 28 px). Budget de
+     largeur mesure : 184 - 18 - 20 - 8 - 6 = 132 px pour la phase ; la plus
+     longue, « Gibbeuse decroissante », fait 129 px en Inter 500 a 12 px. */
+  .bdv-coque .bureau-tete .bureau-tete__lunette-dessin{ width:20px; height:20px; }
+  /* La phrase sur deux lignes : la phase, puis le pourcentage. Un almanach, pas
+     une deuxieme ligne d'en-tete : elle vit dans le coin, hors de la rangee. */
+  .bdv-coque .bureau-tete .bureau-tete__lunette-mot{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    min-width:0;
+    font-size:var(--bdv-f-1);
+    line-height:1.3;
+  }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-sep{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-phase{
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-weight:500;
+    color:var(--bdv-encre-2);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-pct{
+    font-size:var(--bdv-f-1);
+    color:var(--bdv-encre-4);
+  }
+}
+
+/* ---- 5. LA PERIODE (Mon cap, retracte) ----------------------------------- */
+.bdv-coque .bureau-tete .bureau-tete__periode{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin:0 0 0 var(--bdv-e-2);
+  font-size:var(--bdv-f-1);
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-encre-4);
+  white-space:nowrap;
+}
+.bdv-coque .bureau-tete .bureau-tete__periode[hidden]{ display:none; }
+.bdv-coque .bureau-tete .bureau-tete__periode select{
+  appearance:none;
+  -webkit-appearance:none;
+  height:32px;
+  padding:0 30px 0 var(--bdv-e-3);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-1);
+  font-family:var(--font-corps);
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  text-transform:none;
+  letter-spacing:0;
+  cursor:pointer;
+  transition:border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete .bureau-tete__periode select:hover{ border-color:var(--bdv-encre-4); }
+.bdv-coque .bureau-tete .bureau-tete__periode::after{
+  content:"";
+  position:absolute;
+  right:13px;
+  top:50%;
+  width:6px;
+  height:6px;
+  margin-top:-5px;
+  border-right:1.5px solid var(--bdv-encre-3);
+  border-bottom:1.5px solid var(--bdv-encre-3);
+  transform:rotate(45deg);
+  pointer-events:none;
+}
+
+/* ---- 6. CE QUI M'ATTEND : pastilles pleines et douces --------------------
+   Texte --bdv-accent sur --bdv-accent-lavis : 6,51:1 clair, 7,70:1 sombre.
+   L'echeance : --bdv-alerte sur --bdv-alerte-lavis : 5,61:1 / 7,47:1.
+   Pas de cadre : la couleur de fond suffit a dire « ceci se clique et te
+   concerne », et c'est le seul endroit teinte de la bande. */
+.bdv-coque .bureau-tete .bureau-tete__resume{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  min-width:0;
+  max-width:none;
+  flex:0 1 auto;
+  margin:0 0 0 auto;
+  overflow:hidden;
+}
+.bdv-coque .bureau-tete .bureau-tete__resume[hidden] + .bureau-tete__actions{ margin-left:auto; }
+.bdv-coque .bureau-tete .bureau-tete__etat{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  height:32px;
+  min-height:0;
+  padding:0 var(--bdv-e-3) 0 10px;
+  border:0;
+  border-radius:var(--bdv-r-rond);
+  background:var(--bdv-accent-lavis);
+  color:var(--bdv-accent);
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  text-decoration:none;
+  white-space:nowrap;
+  transition:color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete .bureau-tete__etat--echeance{
+  background:var(--bdv-alerte-lavis);
+  color:var(--bdv-alerte);
+}
+.bdv-coque .bureau-tete .bureau-tete__etat::after{ display:none; }
+.bdv-coque .bureau-tete .bureau-tete__etat:hover{
+  background:var(--bdv-accent-lavis);
+  color:var(--bdv-accent-fort);
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+.bdv-coque .bureau-tete .bureau-tete__etat--echeance:hover{ background:var(--bdv-alerte-lavis); color:var(--bdv-alerte); }
+.bdv-coque .bureau-tete .bureau-tete__etat-g{ flex:0 0 auto; width:15px; height:15px; }
+.bdv-coque .bureau-tete .bureau-tete__etat-n{ display:none; }
+
+/* ---- 7. LES ACTIONS ------------------------------------------------------ */
+.bdv-coque .bureau-tete .bureau-tete__actions{
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin:0 0 0 var(--bdv-e-3);
+}
+.bdv-coque .bureau-tete .bureau-tete__maj{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  height:36px;
+  min-height:0;
+  padding:0 var(--bdv-e-4) 0 var(--bdv-e-3);
+  border:1px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  font-family:var(--font-corps);
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  white-space:nowrap;
+  outline:2px solid transparent;
+  outline-offset:2px;
+  animation:bdv-maj-pouls 1.4s var(--bdv-courbe) 3;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete .bureau-tete__maj[hidden]{ display:none; }
+.bdv-coque .bureau-tete .bureau-tete__maj:hover{ background:var(--bdv-accent-fort); border-color:var(--bdv-accent-fort); }
+.bdv-coque .bureau-tete .bureau-tete__maj:focus-visible{ animation:none; outline:2px solid var(--bdv-anneau); }
+.bdv-coque .bureau-tete .bureau-tete__maj[aria-busy="true"]{ animation:none; cursor:progress; }
+.bdv-coque .bureau-tete .bureau-tete__maj-g{ flex:0 0 auto; width:16px; height:16px; }
+
+.bdv-coque .bureau-tete .bdv-bascule{
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  display:grid;
+  place-items:center;
+  border:1px solid transparent;
+  border-radius:var(--bdv-r);
+  background:transparent;
+  color:var(--bdv-encre-3);
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete .bdv-bascule svg{ width:20px; height:20px; }
+.bdv-coque .bureau-tete .bdv-bascule:hover{ background:var(--bdv-surface); border-color:var(--bdv-trait-fort); color:var(--bdv-encre-1); }
+.bdv-coque .bureau-tete .bdv-bascule[data-etat="light"],
+.bdv-coque .bureau-tete .bdv-bascule[data-etat="dark"]{
+  background:transparent;
+  border-color:transparent;
+  color:var(--bdv-accent);
+}
+.bdv-coque .bureau-tete .bureau-tete__reglages,
+.bdv-coque .bureau-tete .bureau-tete__sortir{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:var(--bdv-e-2);
+  height:36px;
+  min-height:0;
+  margin:0;
+  font-family:var(--font-corps);
+  font-size:var(--bdv-f-2);
+  text-transform:none;
+  letter-spacing:0;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe),
+             color var(--bdv-d-court) var(--bdv-courbe);
+}
+/* « Mes reglages » : le seul bouton cadre de la bande, blanc sur le gris. */
+.bdv-coque .bureau-tete .bureau-tete__reglages{
+  padding:0 var(--bdv-e-3) 0 10px;
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-2);
+  font-weight:500;
+}
+.bdv-coque .bureau-tete .bureau-tete__reglages:hover{ border-color:var(--bdv-encre-4); background:var(--bdv-surface); color:var(--bdv-encre-1); }
+.bdv-coque .bureau-tete .bureau-tete__reglages-g{ flex:0 0 auto; color:var(--bdv-encre-3); }
+.bdv-coque .bureau-tete .bureau-tete__sortir{
+  padding:0 var(--bdv-e-2);
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--bdv-encre-4);
+  font-weight:400;
+}
+.bdv-coque .bureau-tete .bureau-tete__sortir:hover{
+  color:var(--bdv-encre-1);
+  background:transparent;
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+.bdv-coque .bureau-tete .bureau-tete__sortir-g{ display:none; }
+
+/* ---- 8. COLLE ET RETRACTE (ordinateur) ----------------------------------- */
+@media (min-width:701px){
+  .bdv-coque .bureau-tete{
+    position:sticky;
+    top:var(--h-entete);
+    z-index:2;
+  }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__ligne{ min-height:var(--bdv-cible); }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__piece{ font-size:var(--bdv-f-4); }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__jour,
+  .bdv-coque .bureau-tete--retracte .bureau-tete__lunette-mot{ display:none; }
+}
+@media (min-width:901px){
+  .bdv-coque .bureau-tete--retracte .bureau-tete__lunette{ padding-left:18px; }
+}
+/* Entre 701 et 1280 px sans le coin (701-900), la phrase part la premiere. */
+@media (min-width:701px) and (max-width:900px){ .bdv-coque .bureau-tete .bureau-tete__lunette-mot{ display:none; } }
+
+/* ---- 9. TELEPHONE : pas de barre en colonne, donc pas de coin ------------- */
+@media (max-width:700px){
+  .bdv-coque .bureau-tete{
+    position:sticky;
+    top:0;
+    z-index:1;
+    background:var(--bdv-surface-2);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__ligne{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto auto;
+    grid-template-rows:auto auto;
+    column-gap:var(--bdv-e-2);
+    row-gap:2px;
+    align-content:center;
+    padding:0 var(--bdv-e-2) 0 var(--bdv-e-4);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__piece{
+    grid-column:1; grid-row:1;
+    align-self:end;
+    font-size:var(--bdv-f-4);
+    line-height:1.2;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .bdv-coque .bureau-tete .bureau-tete__jour{
+    grid-column:1; grid-row:2;
+    align-self:start;
+    display:block;
+    min-width:0;
+    font-size:var(--bdv-f-1);
+    color:var(--bdv-encre-4);
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .bdv-coque .bureau-tete .bureau-tete__jour::before{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette{ grid-column:2; grid-row:1 / span 2; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-dessin{ width:20px; height:20px; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-mot{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__periode{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__resume{
+    grid-column:3; grid-row:1 / span 2;
+    display:flex;
+    gap:var(--bdv-e-1);
+    margin:0;
+  }
+  /* Pastille chiffree pleine : CIBLE 44 px de haut, DESSIN 32 (::after). */
+  .bdv-coque .bureau-tete .bureau-tete__etat{
+    position:relative;
+    isolation:isolate;
+    height:auto;
+    min-height:var(--bdv-cible);
+    min-width:40px;
+    justify-content:center;
+    gap:var(--bdv-e-1);
+    padding:0 10px 0 var(--bdv-e-2);
+    background:none;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .bdv-coque .bureau-tete .bureau-tete__etat::after{
+    display:block;
+    content:"";
+    position:absolute;
+    inset:6px 0;
+    z-index:1;
+    border-radius:var(--bdv-r-rond);
+    background:var(--bdv-accent-lavis);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__etat--echeance::after{ background:var(--bdv-alerte-lavis); }
+  .bdv-coque .bureau-tete .bureau-tete__etat:hover,
+  .bdv-coque .bureau-tete .bureau-tete__etat--echeance:hover{ background:none; }
+  .bdv-coque .bureau-tete .bureau-tete__etat-g{ width:14px; height:14px; }
+  /* Le calque de fond est a 1, le contenu a 2 : pas de z-index negatif, l'echelle
+     des couches est fermee (section A de npm run charte --bureau). */
+  .bdv-coque .bureau-tete .bureau-tete__etat > *,
+  .bdv-coque .bureau-tete .bureau-tete__maj > *{ position:relative; z-index:2; }
+  .bdv-coque .bureau-tete .bureau-tete__etat-mot{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__etat-n{ display:inline; }
+
+  .bdv-coque .bureau-tete .bureau-tete__actions{ grid-column:4; grid-row:1 / span 2; gap:0; margin:0; }
+  .bdv-coque .bureau-tete .bdv-bascule{ width:var(--bdv-cible); height:var(--bdv-cible); flex-basis:var(--bdv-cible); }
+  .bdv-coque .bureau-tete .bureau-tete__reglages{ display:none; }
+  /* PENDANT que « Mettre a jour » est la (quelques secondes), la bascule de
+     theme s'efface : sur telephone le theme suit deja celui du telephone, et
+     c'est elle qui coute les 44 px dont le nom de la piece a besoin. */
+  .bdv-coque .bureau-tete .bureau-tete__maj:not([hidden]) ~ .bdv-bascule{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__maj{
+    position:relative; isolation:isolate;
+    width:var(--bdv-cible); height:var(--bdv-cible);
+    margin:0; padding:0; justify-content:center;
+    background:transparent; border-color:transparent;
+  }
+  .bdv-coque .bureau-tete .bureau-tete__maj::before{
+    content:""; position:absolute; inset:4px; z-index:1;
+    border-radius:var(--bdv-r); background:var(--bdv-accent);
+    transition:background var(--bdv-d-court) var(--bdv-courbe);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__maj:hover{ background:transparent; border-color:transparent; }
+  .bdv-coque .bureau-tete .bureau-tete__maj:hover::before{ background:var(--bdv-accent-fort); }
+  .bdv-coque .bureau-tete .bureau-tete__maj-g{ width:20px; height:20px; }
+  .bdv-coque .bureau-tete .bureau-tete__maj-mot{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__sortir{ width:var(--bdv-cible); height:var(--bdv-cible); padding:0; color:var(--bdv-encre-3); }
+  .bdv-coque .bureau-tete .bureau-tete__sortir-g{ display:block; width:20px; height:20px; }
+  .bdv-coque .bureau-tete .bureau-tete__sortir-mot{
+    position:absolute; width:1px; height:1px; overflow:hidden;
+    clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap;
+  }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__ligne{ min-height:var(--bdv-cible); }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__jour{ display:none; }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__piece{ grid-row:1 / span 2; align-self:center; }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__resume{ display:flex; }
+}
+
+/* ---- 10. ENTRE LE TELEPHONE ET LE GRAND ECRAN (701 a 1180 px) ------------
+   Mesure du 24/09/2026, etat retracte le plus charge (periode + mise a jour +
+   deux etats) : la rangee debordait de 56 px a 800 px. On ne coupe plus rien :
+   les etats prennent leur forme chiffree (celle du telephone), « Mes reglages »
+   garde son icone seule (son nom reste lu : le texte est la, a taille nulle), et
+   sous 960 px « Mettre a jour » garde son icone seule (nom dans aria-label). */
+@media (min-width:701px) and (max-width:1180px){
+  .bdv-coque .bureau-tete .bureau-tete__etat-mot{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__etat-n{ display:inline; font-weight:600; font-variant-numeric:tabular-nums; }
+  .bdv-coque .bureau-tete .bureau-tete__reglages{ width:36px; padding:0; font-size:0; gap:0; }
+  .bdv-coque .bureau-tete .bureau-tete__reglages-g{ display:block; width:18px; height:18px; }
+  .bdv-coque .bureau-tete .bureau-tete__etat{ padding:0 10px; gap:6px; }
+}
+/* 1180 et pas 960 : mesure du 24/09/2026 a 1000 px, etat retracte avec la periode,
+   « Mettre a jour » en toutes lettres rognait le chiffre « 40 » de la derniere pastille. */
+@media (min-width:701px) and (max-width:1180px){
+  .bdv-coque .bureau-tete .bureau-tete__maj{ width:36px; padding:0; justify-content:center; }
+  .bdv-coque .bureau-tete .bureau-tete__maj-mot{ display:none; }
+}
+
+/* ---- 11. RETRACTE, LA PERIODE PREND LA PLACE DES PHRASES (701 a 1440 px) --
+   Mesure du 24/09/2026 a 1181 px : en defilant, la periode et « Mettre a jour »
+   entrent dans la rangee et les phrases des etats etaient rognees (« Une echeance
+   en ce… », la pastille des rappels disparue). En retracte, les etats prennent
+   donc leur forme chiffree jusqu'a 1440 px ; la phrase reste dans aria-label. */
+@media (min-width:701px) and (max-width:1440px){
+  .bdv-coque .bureau-tete--retracte .bureau-tete__etat-mot,
+  .bdv-coque .bureau-tete:has(.bureau-tete__maj:not([hidden])) .bureau-tete__etat-mot{ display:none; }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__etat-n,
+  .bdv-coque .bureau-tete:has(.bureau-tete__maj:not([hidden])) .bureau-tete__etat-n{ display:inline; font-weight:600; font-variant-numeric:tabular-nums; }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__etat,
+  .bdv-coque .bureau-tete:has(.bureau-tete__maj:not([hidden])) .bureau-tete__etat{ padding:0 10px; gap:6px; }
+}
+/* Meme chose au repos quand « Mettre a jour » est affiche : a 1181 et 1300 px, sa
+   largeur rognait la derniere pastille. `:has()` : Safari 15.4, Chrome 105,
+   Firefox 121 ; plus ancien, la pastille est rognee, rien ne deborde. */

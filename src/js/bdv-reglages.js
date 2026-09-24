@@ -1256,14 +1256,17 @@
       if(window.BdvCompte && BdvCompte.deconnexion) BdvCompte.deconnexion();
       location.replace('/mon-bureau/');
     };
+    /* Depuis le 24/09/2026 le bouton porte une icone (en-tete « Le Cadre ») : on reecrit
+       son MOT, jamais le bouton entier, sinon l'icone disparait au premier clic. */
+    const motSortie = bouton.querySelector('.bureau-tete__sortir-mot') || bouton;
     bouton.addEventListener('click', async function(){
       if(arme){
         if(confirm(arme + '\n\nPartir quand même et vider ce navigateur ?')) partir();
         return;
       }
-      const libelle = bouton.textContent;
+      const libelle = motSortie.textContent;
       bouton.disabled = true;
-      bouton.textContent = 'Vérification…';
+      motSortie.textContent = 'Vérification…';
       const local = await compterLignesLocales();
       const distant = await compteAUneLigne();
       const attente = ecrituresEnAttente();
@@ -1290,10 +1293,10 @@
       if(alerte){
         dire(alerte);
         arme = alerte;
-        bouton.textContent = 'Partir quand même';
+        motSortie.textContent = 'Partir quand même';
         return;
       }
-      bouton.textContent = libelle;
+      motSortie.textContent = libelle;
       if(!confirm('Te déconnecter ?\n\nCe navigateur sera vidé. Tes chiffres, tes notes et tes '
         + 'réglages restent sur ton compte et redescendront à ta prochaine connexion, ici ou '
         + 'ailleurs. Sans connexion, tu ne les verras plus sur ce poste.')) return;

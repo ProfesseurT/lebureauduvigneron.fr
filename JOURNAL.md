@@ -12,6 +12,31 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. L'en-tête flottant redessiné : « Le Cadre »
+
+Ted : « mouais c'est vraiment bof, appelle un agent design ». Un agent design a dessiné trois
+pistes (A « Le Registre », B « La Console », C « Le Cadre »), maquettes et contrastes à l'appui.
+**Ted a choisi C.**
+
+- L'en-tête et la barre des pièces prennent le même gris et font un cadre en L autour du travail.
+  La lune s'installe dans le coin au-dessus des pièces (phase, puis pourcentage) ; le nom de la
+  pièce tombe à l'aplomb des cartes.
+- **La lune est corrigée** : la part éclairée était peinte en encre foncée, une lune presque pleine
+  se lisait comme un disque noir. Deux jetons neufs, `--bdv-lune-clair` et `--bdv-lune-ombre`,
+  dans les trois blocs de `bdv-theme.css` et dans `tokens.css`. Le grand bloc de Ma journée n'a
+  pas été touché.
+- Les états sont des pastilles teintées avec icône (calendrier orangé, téléphone bordeaux), et
+  passent en forme chiffrée quand la place manque (téléphone, écrans moyens, en-tête rétracté,
+  « Mettre à jour » affiché).
+- « Mes réglages » prend une icône ; « Me déconnecter » aussi, visible seule sur téléphone.
+  `brancherSortie()` réécrit maintenant le MOT du bouton, plus le bouton entier.
+- Le CSS de la piste est posé en fin de `bdv-bureau.css` (section « Le Cadre », règles à (0,3,0)) ;
+  la section 3 ter du matin est retirée. Deux corrections du jet de l'agent : les variantes
+  sombres écrites hors du scope `.bdv-coque` (refusées par la charte) remplacées par les jetons,
+  et un `z-index:-1` qui ajoutait une neuvième couche.
+- Mesuré à 1440, 1500, 1300, 1181, 1000, 760 et 390 px, deux thèmes : hauteur 56 px au repos,
+  44 px rétracté, aucune pastille rognée, aucun débordement.
+
 ## 24/09/2026. L'en-tête du bureau reste à l'écran, avec la lune et la période
 
 Trois options proposées à Ted (A : en-tête collé ; B : A + bandeau du site retiré du bureau ;

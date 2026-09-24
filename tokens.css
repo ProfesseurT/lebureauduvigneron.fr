@@ -367,6 +367,8 @@
   --bdv-alerte-lavis: #FBF3E7;          /* sombre #2A2015 */
   --bdv-bon:          #0E6A49;          /* sombre #5FD6A5 */
   --bdv-bon-lavis:    #EBF6F1;          /* sombre #12251E */
+  --bdv-lune-clair:   #FFFFFF;          /* sombre #F3F4F6. La part eclairee de la lune de l'en-tete, claire dans les deux themes (24/09/2026) */
+  --bdv-lune-ombre:   #5F656E;          /* sombre #0B0C0E. Son ombre. 5,88:1 et 17,78:1 */
 
   /* SERIES DE GRAPHIQUE DU BUREAU. DEUX, et ce ne sont ni les huit --serie-*
      des ecrans de vente ni les quatre --fam-* du calendrier : ici on ne compare

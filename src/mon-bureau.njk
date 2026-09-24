@@ -108,7 +108,7 @@ theme_bureau: true
           <path class="bureau-tete__lune-clair" id="bureauLuneMiniClair" d=""/>
           <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
         </svg>
-        <span class="bureau-tete__lunette-mot" id="bureauLuneMiniTxt"></span>
+        <span class="bureau-tete__lunette-mot" id="bureauLuneMiniTxt"><span class="bureau-tete__lunette-phase" id="bureauLunePhase"></span><span class="bureau-tete__lunette-sep">, </span><span class="bureau-tete__lunette-pct" id="bureauLunePct"></span></span>
       </p>
       <!-- LA PERIODE REMONTE DANS L'EN-TETE QUAND SA BARRE SORT DE L'ECRAN, 24/09/2026.
            Choix C de Ted : une seule bande collee au lieu de deux. Le selecteur est un
@@ -160,11 +160,11 @@ theme_bureau: true
                   stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button">Mes réglages</button>
+        <button class="bureau-tete__reglages" id="bureauOuvrirReglages" type="button"><svg class="bureau-tete__reglages-g" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="17" r="2" stroke="currentColor" stroke-width="1.8"/></svg>Mes réglages</button>
         <!-- Se déconnecter EFFACE ce navigateur. Le bouton est donc volontairement discret et
              en second : une action définitive n'a pas à attirer l'oeil autant que les
              réglages, et elle ne doit jamais se cliquer par réflexe. -->
-        <button class="bureau-tete__sortir" id="bureauSortir" type="button">Me déconnecter</button>
+        <button class="bureau-tete__sortir" id="bureauSortir" type="button"><svg class="bureau-tete__sortir-g" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M14 4.5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M11 12h9M17 8.5l3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="bureau-tete__sortir-mot">Me déconnecter</span></button>
         <p class="bureau-tete__sortir-avis" id="bureauSortirAvis" role="status" hidden></p>
       </div>
     </div>
@@ -2037,7 +2037,8 @@ theme_bureau: true
       var mc = el('bureauLuneMiniClair');
       mc.setAttribute('d', BdvAlmanach.chemin(L.eclairee));
       if(L.croissante) mc.removeAttribute('transform'); else mc.setAttribute('transform', 'scale(-1,1)');
-      txt(el('bureauLuneMiniTxt'), L.nom + ', ' + L.pourcent + ' %');
+      txt(el('bureauLunePhase'), L.nom);
+      txt(el('bureauLunePct'), L.pourcent + ' %');
       mini.setAttribute('aria-label', L.nom + ', ' + L.pourcent + ' % éclairée, lune ' + (L.montante ? 'montante' : 'descendante'));
       mini.hidden = false;
     }
@@ -2379,25 +2380,38 @@ theme_bureau: true
        « 40 clients a rappeler » et ne mene nulle part oblige a chercher ou ils sont.
        Les adresses sont des pieces du bureau, `/mon-bureau/#<id>`, que bdv-nav.js
        intercepte deja : pas de rechargement, pas de deuxieme routeur. */
+    /* [phrase, piece, nature, chiffre] : la nature choisit l'icone et la teinte (en-tete
+       « Le Cadre », 24/09/2026), le chiffre seul sert quand la place manque. */
     if(ECHEANCE && (ECHEANCE.enCours || ECHEANCE.jours <= 7)){
       var je = ECHEANCE.jours;
       m.push([ECHEANCE.enCours ? 'Une échéance en ce moment'
            : je === 0 ? 'Une échéance aujourd’hui'
            : je === 1 ? 'Une échéance demain'
-           : 'Une échéance dans ' + je + ' jours', 'calendrier']);
+           : 'Une échéance dans ' + je + ' jours', 'calendrier', 'echeance', '1']);
     }
     var n = (window.BdvCrm && ETAT_FILE) ? BdvCrm.file(ETAT_FILE).length : 0;
-    if(n) m.push([n + ' client' + (n > 1 ? 's' : '') + ' à rappeler', 'journee']);
+    if(n) m.push([n + ' client' + (n > 1 ? 's' : '') + ' à rappeler', 'journee', 'rappel', String(n)]);
     var l = parEtat('a_lire').length;
-    if(l) m.push([l + ' article' + (l > 1 ? 's' : '') + ' de côté', 'journee']);
+    if(l) m.push([l + ' article' + (l > 1 ? 's' : '') + ' de côté', 'journee', 'lecture', String(l)]);
     var r = el('bureauResume'); if(!r) return;
     r.textContent = '';
     if(!m.length){ r.textContent = 'Rien ne presse aujourd’hui.'; return; }
+    var ICO = {
+      echeance: '<rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+      rappel: '<path d="M6.6 3.5h2.6l1.4 4.2-2 1.4a11 11 0 0 0 6.3 6.3l1.4-2 4.2 1.4v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+      lecture: '<path d="M6 3.5h12v17l-6-4-6 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'
+    };
+    /* Le HTML est fabrique ici, mais AUCUN texte venu de la base n'y entre : les phrases
+       et les chiffres passent par textContent, seules les icones sont ecrites en dur. */
     m.forEach(function(x){
       var a = document.createElement('a');
-      a.className = 'bureau-tete__etat';
+      a.className = 'bureau-tete__etat bureau-tete__etat--' + x[2];
       a.href = '/mon-bureau/#' + x[1];
-      a.textContent = x[0];
+      a.setAttribute('aria-label', x[0]);
+      a.innerHTML = '<svg class="bureau-tete__etat-g" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' + ICO[x[2]] + '</svg>'
+        + '<span class="bureau-tete__etat-n" aria-hidden="true"></span><span class="bureau-tete__etat-mot"></span>';
+      a.querySelector('.bureau-tete__etat-n').textContent = x[3];
+      a.querySelector('.bureau-tete__etat-mot').textContent = x[0];
       r.appendChild(a);
     });
   }

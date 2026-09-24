@@ -137,6 +137,11 @@
   --bdv-alerte-lavis:#FBF3E7;
   --bdv-bon:#0E6A49;
   --bdv-bon-lavis:#EBF6F1;
+  /* La lune de l'en-tete, 24/09/2026 : la part ECLAIREE reste claire et l'ombre foncee
+     dans les deux themes. Avec les encres, le clair devenait sombre en theme clair et
+     une lune presque pleine se lisait comme un disque noir. 5,88:1 clair, 17,78:1 sombre. */
+  --bdv-lune-clair:#FFFFFF;
+  --bdv-lune-ombre:#5F656E;
 
   /* -- SERIES DE GRAPHIQUE ------------------------------------------------- */
   --bdv-serie-a:#6E737C;           /* 2026, les barres                        */
@@ -272,6 +277,8 @@
     --bdv-alerte-lavis:#2A2015;
     --bdv-bon:#5FD6A5;
     --bdv-bon-lavis:#12251E;
+    --bdv-lune-clair:#F3F4F6;
+    --bdv-lune-ombre:#0B0C0E;
 
     --bdv-serie-a:#8E959F;
     --bdv-serie-b:#7B828A;
@@ -337,6 +344,8 @@
   --bdv-alerte-lavis:#2A2015;
   --bdv-bon:#5FD6A5;
   --bdv-bon-lavis:#12251E;
+  --bdv-lune-clair:#F3F4F6;
+  --bdv-lune-ombre:#0B0C0E;
 
   --bdv-serie-a:#8E959F;
   --bdv-serie-b:#7B828A;
