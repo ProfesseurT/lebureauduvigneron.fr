@@ -12,6 +12,13 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. « À regarder en priorité » rejoint le dépliant du cap
+
+Demande de Ted : les signaux entrent dans le même dépliant que le bandeau et les trois cartes, et le
+titre devient une invitation à cliquer : « Ouvre ton cap et tes priorités : -26,1 % à date,
+atterrissage 223 302 €, 3 points à traiter » (ou « rien d'urgent »). Tant que les lignes ne sont
+pas chargées, le titre ne compte pas les points : on ne compte pas ce qu'on n'a pas calculé.
+
 ## 24/09/2026. Le cap passe sous un dépliant
 
 Demande de Ted, choix « bandeau + Où en es-tu » : le bloc « -26,1 % » et les trois cartes

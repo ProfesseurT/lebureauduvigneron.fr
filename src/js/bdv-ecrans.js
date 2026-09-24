@@ -1772,7 +1772,7 @@ function capAtterrissage(){
   return at;
 }
 
-/* LE CAP SE REPLIE, 24/09/2026. Demande de Ted, apres « D'ou vient ta variation » dans
+/* LE CAP SE REPLIE, AVEC « A REGARDER EN PRIORITE », 24/09/2026. Demande de Ted, apres « D'ou vient ta variation » dans
    « Mon commerce » : le bandeau et les trois cartes « Ou en es-tu » restaient en dur en
    tete de piece, et poussaient « A regarder en priorite », la liste ou l'on agit, sous la
    ligne de flottaison. Ils passent dans un depliant FERME, et c'est Ted qui l'a tranche
@@ -1781,14 +1781,20 @@ function capAtterrissage(){
    date et l'atterrissage. Un depliant dont le titre ne dit rien oblige a l'ouvrir pour
    savoir s'il fallait l'ouvrir. Meme habit que le pied de la piece et que la variation de
    « Mon commerce ». */
-function replierCap(corps, f, at){
+function replierCap(corps, f, at, nbSignaux){
   if(!corps) return '';
   const morceaux = [];
   if(f && f.d != null) morceaux.push(fmtPct(f.d) + ' à date');
   if(at && !at.complete) morceaux.push('atterrissage ' + fmtMoney(at.central));
   else if(at && at.complete) morceaux.push(fmtMoney(at.total) + ', ' + exComplet());
-  const annee = f ? exLabelCourt(f.cur) : (at ? exLabelCourt(at.cur) : '');
-  const titre = 'Ton cap' + (annee ? ' ' + annee : '') + (morceaux.length ? ' : ' + morceaux.join(', ') : '');
+  /* LE TITRE EST UNE INVITATION, 24/09/2026. Ted : « modifie le nom du bouton depliant
+     pour les faire cliquer dessus ». Il commence donc par un verbe, et il dit ce qu'on
+     trouvera dedans, points a traiter compris : « 3 points à traiter » donne une raison
+     d'ouvrir que « Ton cap » ne donnait pas. `nbSignaux` vaut null tant que les lignes
+     ne sont pas chargees : on ne compte pas ce qu'on n'a pas calcule. */
+  if(nbSignaux > 0) morceaux.push(nbSignaux + (nbSignaux > 1 ? ' points à traiter' : ' point à traiter'));
+  else if(nbSignaux === 0) morceaux.push('rien d\'urgent');
+  const titre = 'Ouvre ton cap et tes priorités' + (morceaux.length ? ' : ' + morceaux.join(', ') : '');
   return `<div class="card"><details class="msg--replie" id="pied-cap-tete">
     <summary>${titre}</summary>${corps}</details></div>`;
 }
@@ -1851,7 +1857,6 @@ function renderCap(){
      ecrans differents, et celui-ci ne se repeignait qu'au rendu de la piece : de quoi voir
      deux montants differents pour le meme reglage. Il reste une phrase qui dit ou aller. */
   html+=`<p class="note">${objectif?`Objectif fixé à ${fmtMoney(objectif)}.`:`Aucun objectif de CA fixé.`} Il se règle dans <b>Mes réglages</b>, onglet « Tes ventes ».</p>`;
-  html=html.slice(0,debutCap)+replierCap(html.slice(debutCap),f,at);
 
   /* ================= CE QUI SUIT LIT ENCORE LES LIGNES, 18/09/2026 =================
 
@@ -1867,6 +1872,7 @@ function renderCap(){
 
      `ecranPeindre()` repeint cette piece des que les lignes arrivent. */
   if(!lignesPretes()){
+    html=html.slice(0,debutCap)+replierCap(html.slice(debutCap),f,at,null);
     html+=noteComplement('Il manque ici les signaux, la courbe des mois, les compteurs de la période affichée et la décomposition prix/volume.');
     p.innerHTML=html;
     return;
@@ -1877,6 +1883,8 @@ function renderCap(){
   const sigs=diagnosticSignals();
   if(sigs.length)sigs.forEach(x=>html+=signal(x.kind,x.ico,x.verdict,x.action));
   else html+=signal('ok','✔','Rien d\'urgent sur la base chargée.','Tes indicateurs sont au vert. Continue le suivi régulier.');
+  // Le cap ET ce qui presse se replient ensemble : voir replierCap().
+  html=html.slice(0,debutCap)+replierCap(html.slice(debutCap),f,at,sigs.length);
 
   /* ------------------------- ETAGE 2 : LA FORME ET LES CHIFFRES ------------------------- */
   html+=`<div style="margin:.2rem 0 1.1rem"><span class="toggle">
