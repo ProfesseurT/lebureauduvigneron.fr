@@ -3938,3 +3938,30 @@ body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
     white-space:nowrap;
   }
 }
+
+
+/* ==========================================================================
+   24. LE CALENDRIER DE « MA JOURNEE » FLOTTE A COTE DU SOUS-MAIN, 24/09/2026
+
+   Demande de Ted : « laisse le calendrier flottant la ». Le sous-main fait
+   quarante lignes, le bloc calendrier cinq : sous lui, la colonne de droite
+   etait vide sur tout le defilement. Il se colle donc sous le bandeau et
+   l'en-tete retracte, et descend avec la liste.
+
+   IL NE PEUT PAS SORTIR DE SA RANGEE : un collant reste dans sa cellule de
+   grille, et `.bureau-plan` porte `align-items:start`. Il s'arrete donc avec
+   le sous-main, et quand les deux s'empilent (cellule a sa propre hauteur) la
+   regle ne fait rien. Aucune couche ajoutee : pas de z-index, il ne recouvre
+   rien. Le decalage suit la regle des deux collants du 08/09/2026 : le bandeau
+   (--h-entete) plus l'en-tete retracte (--bdv-cible), plus un ecart. */
+@media (min-width:901px){
+  .bdv-coque .zone--calendrier{
+    position:sticky;
+    top:calc(var(--h-entete) + var(--bdv-cible) + var(--bdv-e-4));
+  }
+}
+
+/* LA LIGNE DU SOUS-MAIN SE CLIQUE EN ENTIER, meme jour : le clic est rendu au nom par
+   l'ecouteur de src/mon-bureau.njk. La main le dit ; une ligne deja traitee ne s'ouvre plus. */
+.bdv-coque .listb tbody tr.listb__l{ cursor:pointer; }
+.bdv-coque .listb tbody tr.listb__l--partie{ cursor:default; }

@@ -1096,6 +1096,12 @@ theme_bureau: true
        - « Ecarte » pose son geste tout de suite, sans fiche. */
   document.addEventListener('click', function(e){
     var t = e.target.closest && e.target.closest('[data-fiche]');
+    /* Toute la ligne ouvre la fiche : voir CLAUDE.md. */
+    if(!t && e.target.closest && !e.target.closest('button, a, input, select, textarea')){
+      var tl = e.target.closest('.listb__l');
+      if(tl && !tl.classList.contains('listb__l--partie') && !String(window.getSelection ? getSelection() : ''))
+        t = tl.querySelector('[data-fiche]');
+    }
     if(t && !(e.target.closest && e.target.closest('[data-geste]'))){
       ouvrirFiche(t.getAttribute('data-fiche'));
       return;

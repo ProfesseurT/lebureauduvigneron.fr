@@ -3357,9 +3357,21 @@ laterale qu'on peut ranger.
   piece reste dans le DOM, masque visuellement : c'est le nom accessible du lien.
 - **Le bouton est HORS de `.bureau-nav__liste`** : ce n'est pas une piece, et les bancs comptent
   `.bureau-nav__ligne`. Il n'existe qu'a partir de 1181 px ; en dessous la largeur decide seule.
-- **`banc:poids` est a 119,5 ko sur 120.** Les commentaires d'un script EN LIGNE partent au
+- **`banc:poids` est a 119,9 ko sur 120.** Les commentaires d'un script EN LIGNE partent au
   navigateur (le crochet du build ne degraisse que `_site/js/`) : un pourquoi long va dans ce
   fichier, pas dans `mon-bureau.njk`.
+
+### LE CALENDRIER FLOTTE, ET LA LIGNE DU SOUS-MAIN SE CLIQUE EN ENTIER, 24/09/2026
+
+- **Le bloc calendrier de « Ma journee » est collant** au-dessus de 900 px (section 24 de
+  `bdv-bureau.css`), decale du bandeau et de l'en-tete retracte. Il reste dans sa cellule de
+  grille, donc s'arrete avec le sous-main, et ne fait rien quand les deux s'empilent.
+- **Toute la ligne du sous-main ouvre la fiche**, comme dans « Mon commerce ». Mais PAS comme
+  dans « Mon commerce » techniquement : la ligne porte des boutons d'action, donc elle ne devient
+  pas un `role="button"` (un interactif dans un interactif, deja paye au sous-main et au post-it).
+  Le nom reste le SEUL bouton ; l'ecouteur de clic de `mon-bureau.njk` rend au nom tout clic tombe
+  ailleurs sur la ligne, sauf sur un bouton, un lien, un champ, une ligne deja traitee, ou pendant
+  une selection de texte. Un arret clavier par ligne, comme avant.
 
 ## IL N'Y A QU'UNE FICHE CLIENT, ET ELLE NE S'ECRIT PAS TOUTE SEULE, 11/09/2026
 

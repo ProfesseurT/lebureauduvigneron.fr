@@ -30,8 +30,11 @@ lune reste entière. Et on devra pouvoir ranger la barre latérale. »
   supprimé le 07/09 revient donc, sous la seule forme que la règle de l'époque autorisait.
 - **Entre 901 et 1180 px la largeur décide seule** : la colonne passe à 64 px. Elle restait à
   184 px pour neuf icônes centrées, les noms étant déjà cachés par `style.css`.
+- **Même passe, deux demandes de plus** : le bloc calendrier de Ma journée flotte à côté du sous-main
+  pendant qu'on fait défiler, et toute la ligne d'un client du sous-main ouvre sa fiche (le nom
+  reste le seul bouton, le clic ailleurs lui est rendu).
 - `npm run banc` garde le nouveau repli (7 contrôles à la place des 3 qui gardaient sa
-  suppression). `banc:poids` passe à **119,5 ko sur 120** : le commentaire de `logerLune()` a dû
+  suppression). `banc:poids` passe à **119,9 ko sur 120** : le commentaire de `logerLune()` a dû
   sortir du script en ligne pour tenir. La prochaine ligne de script en ligne fera déborder.
 
 ---
