@@ -3965,3 +3965,36 @@ body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
    l'ecouteur de src/mon-bureau.njk. La main le dit ; une ligne deja traitee ne s'ouvre plus. */
 .bdv-coque .listb tbody tr.listb__l{ cursor:pointer; }
 .bdv-coque .listb tbody tr.listb__l--partie{ cursor:default; }
+
+
+/* ==========================================================================
+   25. LE MOT DU JOUR DANS LE BANDEAU D'ACCUEIL, 24/09/2026
+
+   Demande de Ted : « place-les en haut, entre la lune et Bonjour Ted, dans une
+   espece de cadre style ». La zone garde son balisage et sa carte (section 13) ;
+   elle prend ici sa place dans la rangee flexible du bandeau : elle occupe ce
+   qui reste entre le salut et la lune, et passe sous le salut quand la place
+   manque (`flex-wrap` du bandeau).
+
+   LE CADRE : la carte du bureau, plus un filet d'accent de 2 px a gauche, la
+   meme epaisseur que la barre de la piece active du rail. Rien de neuf dans les
+   echelles fermees : ni ombre, ni rayon, ni epaisseur. Le titre et le pied se
+   resserrent pour que le bandeau ne devienne pas une zone de plus. */
+.bdv-coque .bureau-accueil .zone--mot{
+  flex:1 1 380px;
+  min-width:0;
+  max-width:760px;
+  margin:0 auto;
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border-left:2px solid var(--bdv-accent);
+}
+.bdv-coque .bureau-accueil .zone--mot[hidden]{ display:none; }
+.bdv-coque .bureau-accueil .zone--mot .zone__tete{ margin-bottom:var(--bdv-e-2); }
+.bdv-coque .bureau-accueil .zone--mot .zone__pied{
+  margin-top:0;
+  padding-top:0;
+  border-top:0;
+}
+@media (max-width:700px){
+  .bdv-coque .bureau-accueil .zone--mot{ flex-basis:100%; max-width:none; order:3; }
+}

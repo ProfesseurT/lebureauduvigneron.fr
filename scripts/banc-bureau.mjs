@@ -627,8 +627,17 @@ titre('Le plateau, dans l\'ordre de Ted');
   const zones = [...doc.querySelectorAll('#bureauJournee > .zone')]
     .map(z => [...z.classList].find(c => c.startsWith('zone--')));
   t('les zones sont dans l\'ordre dicte',
-    zones.join(' > ') === 'zone--panneau > zone--sousmain > zone--calendrier > zone--ardoise > zone--mot > zone--lecture > zone--classeur > zone--courrier',
+    zones.join(' > ') === 'zone--panneau > zone--sousmain > zone--calendrier > zone--ardoise > zone--lecture > zone--classeur > zone--courrier',
     zones.join(' > '));
+  /* LE MOT DU JOUR EST MONTE DANS LE BANDEAU D'ACCUEIL le 24/09/2026, demande de Ted :
+     entre le salut et la lune, et pas ailleurs. */
+  {
+    const acc = doc.getElementById('bureauAccueil');
+    const kids = acc ? [...acc.children].map(e => e.id) : [];
+    const iMot = kids.indexOf('zoneMot'), iSal = kids.indexOf('bureauSalut'), iLune = kids.indexOf('bureauLune');
+    t('le mot du jour est dans le bandeau d\'accueil, entre le salut et la lune',
+      iSal > -1 && iMot > iSal && iLune > iMot, kids.join(' > '));
+  }
   /* Le titre AFFICHE, et pas le mot : les commentaires du gabarit expliquent
      justement pourquoi le pense-bete a disparu, et ils doivent pouvoir le dire. */
   t('le pense-bete n\'existe plus, le calendrier a pris sa place',

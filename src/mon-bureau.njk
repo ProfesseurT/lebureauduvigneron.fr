@@ -215,6 +215,21 @@ theme_bureau: true
            touche pas, et `peindreIdentite()` la retrouve par son identifiant. -->
       <p class="bureau-tete__plaque" id="bureauPlaque" hidden></p>
 
+      <!-- LE MOT DU JOUR MONTE ICI, entre le salut et la lune, 24/09/2026, demande de
+           Ted. Il garde sa classe `zone zone--mot` et son id : `peindreMot()`, les trois
+           chemins de repeinture et les bancs le retrouvent par eux. Il n'est donc plus un
+           enfant direct de #bureauJournee, et la liste d'ordre de `npm run banc` passe a
+           sept zones. -->
+      <section class="zone zone--mot" id="zoneMot" hidden>
+        <div class="zone__tete">
+          <h2>Le mot du jour</h2>
+          <span class="zone__note" id="motNote"></span>
+        </div>
+        <!-- `aria-live` : le bouton « Le suivant » remplace le conseil SUR PLACE. Sans zone
+             vivante, un clic ne produit rien du tout a la synthese vocale. 14/09/2026. -->
+        <div id="bureauMot" aria-live="polite"></div>
+      </section>
+
       <!-- LA LUNE. Elle est CALCULEE, jamais tapee : bdv-almanach.js rend la
            position reelle du Soleil et de la Lune, la fraction eclairee au
            millieme, et la declinaison. Le dessin n'est pas un caractere de
@@ -290,17 +305,6 @@ theme_bureau: true
         <span class="zone__note" id="ardoiseQuand"></span>
       </div>
       <div class="ardoise" id="bureauChiffres"></div>
-    </section>
-
-    <!-- LE MOT DU JOUR : un conseil, un seul, celui qui pese le plus lourd. -->
-    <section class="zone zone--mot" id="zoneMot" hidden>
-      <div class="zone__tete">
-        <h2>Le mot du jour</h2>
-        <span class="zone__note" id="motNote"></span>
-      </div>
-      <!-- `aria-live` : le bouton « Le suivant » remplace le conseil SUR PLACE. Sans zone
-           vivante, un clic ne produit rien du tout a la synthese vocale. 14/09/2026. -->
-      <div id="bureauMot" aria-live="polite"></div>
     </section>
 
     <!-- LA PILE DE LECTURE -->

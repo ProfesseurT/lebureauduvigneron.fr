@@ -12,6 +12,19 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. Le mot du jour monte entre le salut et la lune
+
+Ted : « les mots du jour interactifs, place-les en haut, entre la lune et Bonjour Ted, dans une
+espèce de cadre stylé ». La zone déménage dans le bandeau d'accueil sans changer de balisage ni
+de code, dans une carte à filet d'accent. L'ordre des zones gardé par `npm run banc` passe de
+huit à sept, et un contrôle vérifie la nouvelle place.
+
+Signalé, non corrigé : à 390 px, la note du sous-main (`#fileNote`) déborde de 120 px et fait
+défiler la page en largeur. Et la grande lune du bandeau d'accueil reste un disque sombre en
+clair (ses couleurs ne sont repeintes que sous `.bureau-tete`).
+
+---
+
 ## 24/09/2026. La lune monte dans le bandeau, et la barre se replie
 
 Ted, capture à l'appui : « pas fan de la lune comme ça, pas assez gros », puis, sur la

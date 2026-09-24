@@ -3373,6 +3373,16 @@ laterale qu'on peut ranger.
   ailleurs sur la ligne, sauf sur un bouton, un lien, un champ, une ligne deja traitee, ou pendant
   une selection de texte. Un arret clavier par ligne, comme avant.
 
+### LE MOT DU JOUR EST MONTE DANS LE BANDEAU D'ACCUEIL, 24/09/2026
+
+Demande de Ted : entre « Bonjour » et la lune, dans un cadre. La section `#zoneMot` a DEMENAGE
+dans `.bureau-accueil`, avec sa classe `zone zone--mot` et ses ids : `peindreMot()`, ses trois
+chemins de repeinture et ses bancs n'ont pas bouge. **Consequence : elle n'est plus un enfant
+direct de `#bureauJournee`, et l'ordre controle par `npm run banc` passe a SEPT zones**, plus un
+controle qui exige le mot entre le salut et la lune. Le cadre est la section 25 de
+`bdv-bureau.css` : la carte du bureau et un filet d'accent de 2 px, rien de neuf dans les
+echelles. Sous 700 px il passe sous la lune, pleine largeur.
+
 ## IL N'Y A QU'UNE FICHE CLIENT, ET ELLE NE S'ECRIT PAS TOUTE SEULE, 11/09/2026
 
 Le bureau avait la sienne, 280 lignes dans `src/mon-bureau.njk` : prochaine action, coordonnees,
