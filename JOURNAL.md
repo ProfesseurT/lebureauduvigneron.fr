@@ -12,6 +12,37 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. Le bouton « Charger mes lignes et compléter » monte dans l'en-tête
+
+Capture de Ted sur « Mon cap » : « ce bouton est clairement pas cool, il apparaît dans d'autres
+bases ». La carte était posée en bas de trois écrans (Mon cap, Mon commerce, Mes cuvées), sous la
+ligne de flottaison, avec trois phrases différentes.
+
+**Ce qui change.**
+
+- La carte disparaît des trois écrans. `noteComplement()` garde son nom et ses appelants mais ne
+  dessine plus rien : elle retient la phrase de l'écran.
+- Un seul bouton, `#bureauMaj`, « Mettre à jour », dans l'en-tête, à gauche de la bascule de thème.
+  Il porte l'accent, il pulse trois fois en apparaissant, puis reste plein. Son nom accessible est
+  la phrase de l'écran (« Il manque ici les signaux… »).
+- `besoinMaj()` dans `bdv-ecrans.js` décide seul : écran de vente incomplet, lignes pas chargées,
+  base pas vide. `bdv-nav.js` le cache en quittant une pièce de vente.
+- Sur téléphone, l'icône seule en 44 × 44, et la date de l'en-tête se coupe au lieu de passer sous
+  le bouton (débordement de 3 px mesuré à 390 px).
+
+**Deux choix faits sans demander, à rouvrir si Ted n'est pas d'accord.**
+
+1. **Le bouton n'existe que quand il sert.** Resté affiché une fois les lignes chargées, il devrait
+   dire « à jour », et ce serait un témoin de synchronisation qui ne lit aucune source : CLAUDE.md
+   l'interdit pour cet en-tête.
+2. **Trois pulsations, pas un clignotement continu.** WCAG 2.2.2 : un mouvement de plus de cinq
+   secondes doit pouvoir s'arrêter. 3 × 1,4 s = 4,2 s. `prefers-reduced-motion` le coupe.
+
+**Vérifié** : les 40 étapes de `npm run verif` une par une, toutes vertes (`build` bloqué par le pont,
+contourné comme d'habitude, et `banc:poids` rejoué après le dégraissage que le crochet n'a pas pu
+faire). `banc:amorcage-leger` réécrit : il exige le bouton visible, son nom qui dit ce qui manque,
+et l'absence de la carte. Capture des deux thèmes aux deux largeurs.
+
 ## 24/09/2026. La fiche d'une cuvée n'affichait aucun conditionnement
 
 Capture de Ted sur « Le Miracle » : le titre « Conditionnements » et rien dessous.

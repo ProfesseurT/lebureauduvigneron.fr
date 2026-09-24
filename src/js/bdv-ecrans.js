@@ -319,6 +319,7 @@ function navTo(id){
      sans lui, le premier clic sur « Mes cuvees » figerait la page une seconde et demie
      sans un mot, ce qui est exactement le reproche de Ted du 17/09. */
   ECRAN_COURANT = id;
+  majBoutonMaj(id);
   if(PEINTRES[id] && !ECRANS_PEINTS.has(id)){
     if(lignesPretes()) runBusy('Analyse de tes ventes…', function(){ ecranPeindre(id); });
     else ecranPeindreQuandPret(id);
@@ -517,6 +518,7 @@ function assurerLignes(dire){
       try{ deposerPourLeBureau(); }catch(e){}
       try{ majCompteurLignes(); }catch(e){}
       try{ majNoteClassement(); }catch(e){}
+      try{ majBoutonMaj(); }catch(e){}
       return true;
     }catch(e){
       /* On ne reessaie pas tout seul : `_lignesEnRoute` retombe a null, donc le prochain
@@ -533,7 +535,7 @@ function assurerLignes(dire){
    reponse du serveur et se peignent d'abord, quitte a se completer ensuite. */
 const ECRANS_TOUT_LOCAL = ['chercher', 'reglages'];
 /* Et ceux qui, servis par le serveur, ont encore des blocs locaux. Ils s'affichent sans
-   les lignes et proposent un bouton pour les completer : voir `completerEcran()`. */
+   les lignes, et le bouton de mise a jour de l'en-tete les complete : voir `besoinMaj()`. */
 const ECRANS_A_COMPLETER = ['annee', 'clients', 'produits'];
 
 /* La marque tombe pour TOUS les ecrans, jamais pour un seul : un import change le chiffre
@@ -610,6 +612,7 @@ function ecranPeindre(id){
   ECRANS_PEINTS.add(id);
   f();
   majNoteClassement();
+  majBoutonMaj();
 }
 
 /* ============ LE COMPLEMENT EST DEMANDE, JAMAIS AUTOMATIQUE ============
@@ -617,12 +620,7 @@ function ecranPeindre(id){
    Premiere version : l'ecran se peignait sur les chiffres du serveur, puis lancait le
    chargement des lignes en arriere-plan pour completer. Le banc de l'amorcage leger l'a
    refuse, et il avait raison : **charger 171 569 lignes sans que personne l'ait demande
-   reste charger 171 569 lignes.** Le voile disparaissait, le navigateur ramait quand
-   meme, et Ted aurait revu « Recuperation de tes ventes » deux secondes apres l'ouverture.
-
-   Le complement part donc d'un CLIC. L'ecran dit ce qu'il lui manque et ce que ca coute ;
-   le vigneron decide. La plupart du temps il ne cliquera pas, parce que le bandeau et
-   l'atterrissage sont ce qu'il venait voir.
+   reste charger 171 569 lignes.** Le complement part donc d'un CLIC.
 
    CE N'EST PAS UNE ELEGANCE, C'EST UN AVEU : ces blocs-la ne sont pas encore portes. Le
    bouton disparaitra a mesure qu'ils le seront, et avec lui le dernier chargement. */
@@ -634,21 +632,65 @@ function completerEcran(id){
       try{
         if(bon){ ECRANS_PEINTS.delete(cible); ecranPeindre(cible); }
         else status('error', 'Tes lignes n\'ont pas pu être récupérées. Réessaie.');
-      }finally{ busy(false); }
+      }finally{ busy(false); majBoutonMaj(); }
     });
 }
 window.bdvCompleterEcran = completerEcran;
 
-/* La phrase et le bouton, ecrits une fois : trois ecrans les montrent, et trois textes
-   differents pour la meme situation, c'est trois occasions d'en laisser un mentir. */
+/* ============ LE BOUTON DE MISE A JOUR VIT DANS L'EN-TETE, 24/09/2026 ============
+
+   Jusqu'a ce jour, chaque ecran incomplet posait EN BAS de sa page une carte avec une
+   phrase et un bouton « Charger mes lignes et completer ». Ted : « clairement pas cool,
+   il apparait dans d'autres bases ». Il avait raison deux fois : le geste etait sous la
+   ligne de flottaison, et il etait ecrit trois fois, une par ecran.
+
+   Il n'y a plus qu'UN bouton, `#bureauMaj`, dans l'en-tete de src/mon-bureau.njk, et UNE
+   fonction qui decide s'il se montre : `besoinMaj()`. `noteComplement()` garde son nom
+   et ses appelants, mais ne dessine plus rien : elle retient la phrase de l'ecran, qui
+   devient le nom accessible du bouton.
+
+   IL N'EXISTE QUE QUAND IL SERT, ET CE N'EST PAS UN OUBLI. Un bouton qui resterait la
+   une fois les lignes chargees devrait dire quelque chose ; « A jour » serait un temoin
+   de synchronisation qui ne lit aucune source, et CLAUDE.md l'interdit en toutes lettres
+   pour cet en-tete (« un point vert qui ne lit rien est un temoin qui ment »).
+
+   IL CLIGNOTE TROIS FOIS, PAS INDEFINIMENT. WCAG 2.2.2 : un mouvement qui dure plus de
+   cinq secondes doit pouvoir s'arreter. Trois pulsations de 1,4 s font 4,2 s, puis le
+   bouton reste plein, a l'accent, ce qui suffit a le distinguer des deux autres. */
+const MANQUE = {};
 function noteComplement(quoi){
-  return `<div class="card" style="margin-top:1.2rem">
-    <p class="note" style="margin:0 0 .7rem">${quoi} Ces blocs-là se calculent encore sur
-    tes lignes de vente, qui ne sont pas chargées : les chiffres ci-dessus viennent de ton
-    compte et sont à jour.</p>
-    <button class="btn" onclick="bdvCompleterEcran()">Charger mes lignes et compléter</button>
-  </div>`;
+  if(ECRAN_COURANT) MANQUE[ECRAN_COURANT] = quoi;
+  return '';
 }
+function besoinMaj(id){
+  const ecran = id || ECRAN_COURANT;
+  if(ECRANS_A_COMPLETER.indexOf(ecran) < 0) return false;
+  if(lignesPretes()) return false;
+  if(baseVide()) return false;
+  return true;
+}
+function majBoutonMaj(id){
+  const b = document.getElementById('bureauMaj'); if(!b) return;
+  const ecran = id || ECRAN_COURANT;
+  if(!b.dataset.branche){
+    b.dataset.branche = '1';
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      b.disabled = true; b.setAttribute('aria-busy', 'true');
+      completerEcran(ECRAN_COURANT);
+    });
+  }
+  const besoin = besoinMaj(ecran);
+  b.hidden = !besoin;
+  if(!besoin){ b.disabled = false; b.removeAttribute('aria-busy'); return; }
+  if(!_lignesEnRoute){ b.disabled = false; b.removeAttribute('aria-busy'); }
+  const quoi = MANQUE[ecran] || 'Une partie de cet écran attend tes lignes de vente.';
+  const nom = 'Mettre à jour. ' + quoi + ' Les chiffres affichés viennent de ton compte et sont à jour.';
+  b.setAttribute('aria-label', nom);
+  b.title = nom;
+}
+window.bdvMajBoutonMaj = majBoutonMaj;
+window.bdvBesoinMaj = besoinMaj;
 
 /* Peindre un ecran qui ne sait rien faire sans les lignes : on les charge D'ABORD, avec
    le voile, parce qu'il n'y a rien a montrer entre-temps. */

@@ -3312,6 +3312,26 @@ Mais promettre un calcul qu'on ne fait pas reste le pire des trois etats.
   premiere personne. Une description ecrite par le Bureau n'en porte pas. Le modele du vrai
   temoignage est dans `conseil-temoignage.njk`.
 
+## LE COMPLEMENT DES LIGNES PASSE PAR L'EN-TETE, 24/09/2026
+
+La carte « Charger mes lignes et completer » posee en bas de « Mon cap », « Mon commerce » et
+« Mes cuvees » est SUPPRIMEE. Demande de Ted : un bouton « Mettre a jour » dans l'en-tete, qui
+clignote quand il faut l'activer. Il s'appelle `#bureauMaj`, vit dans `src/mon-bureau.njk`, et
+son dessin est la section 3 bis de `bdv-bureau.css`.
+
+- **Un seul endroit decide s'il se montre, `besoinMaj()` dans `bdv-ecrans.js`.** Ecran dans
+  `ECRANS_A_COMPLETER`, lignes pas pretes, base pas vide. Il est reevalue par `navTo()`,
+  `ecranPeindre()`, `assurerLignes()` et `completerEcran()`, et `marquerActif()` de `bdv-nav.js`
+  le cache sur les pieces qui ne sont pas de vente.
+- **`noteComplement()` ne dessine plus rien**, elle retient la phrase de l'ecran, qui devient le
+  nom accessible du bouton. Ne pas lui refaire rendre du HTML « pour que l'ecran dise ce qui
+  manque » : ce serait remettre la carte que Ted a demande de retirer.
+- **Il n'existe que quand il sert.** Pas d'etat « A jour » : ce serait le temoin de
+  synchronisation qui ne lit rien, interdit plus haut pour cet en-tete.
+- **Il pulse TROIS fois, pas indefiniment** (WCAG 2.2.2, 4,2 s), par un anneau d'`outline` et
+  jamais par une `box-shadow` (ce fichier n'en pose aucune, et l'echelle des ombres est fermee).
+- `npm run banc:amorcage-leger` le garde : bouton visible, nom qui dit ce qui manque, carte absente.
+
 ## IL N'Y A QU'UNE FICHE CLIENT, ET ELLE NE S'ECRIT PAS TOUTE SEULE, 11/09/2026
 
 Le bureau avait la sienne, 280 lignes dans `src/mon-bureau.njk` : prochaine action, coordonnees,

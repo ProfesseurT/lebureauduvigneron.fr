@@ -421,6 +421,14 @@
        qui montent la barre sans l'en-tete. */
     var tete = document.getElementById('bureauPiece');
     if (tete && nomActif) tete.textContent = nomActif;
+    /* ------- LE BOUTON DE MISE A JOUR SUIT LA PIECE, 24/09/2026 -------
+       Il vit dans l'en-tete, qui est commun aux neuf pieces. `bdv-ecrans.js` decide
+       s'il sert (`besoinMaj()`) ; tant que ce module n'est pas charge, aucune piece de
+       vente n'a encore ete ouverte, donc il n'y a rien a mettre a jour et on le cache.
+       Sans cette ligne, quitter « Mon cap » pour « Ma journee » laisserait clignoter un
+       bouton qui ne concerne plus l'ecran. */
+    if (window.bdvMajBoutonMaj) window.bdvMajBoutonMaj(id);
+    else { var maj = document.getElementById('bureauMaj'); if (maj) maj.hidden = true; }
     /* ------- LA PIECE ACTIVE SE RAMENE DANS LE CHAMP, 19/09/2026 -------
        Sous 700 px la barre du bas DEFILE horizontalement : neuf cellules de 48 px font
        432 px, et un telephone courant en tient 390. Ces 48 px ne sont pas negociables,

@@ -307,6 +307,62 @@ body.bdv-coque{
 
 
 /* ==========================================================================
+   3 bis. LE BOUTON DE MISE A JOUR, DANS L'EN-TETE, 24/09/2026
+
+   Il remplace la carte « Charger mes lignes et completer » que trois ecrans
+   posaient en bas de page. Il n'existe que quand l'ecran ouvert attend ses
+   lignes (`besoinMaj()` dans bdv-ecrans.js) : c'est l'action primaire du
+   moment, donc il prend l'ACCENT, le seul des trois boutons a le porter.
+
+   IL PULSE TROIS FOIS, PAS INDEFINIMENT. WCAG 2.2.2 : un mouvement de plus de
+   cinq secondes doit pouvoir s'arreter. 3 x 1,4 s = 4,2 s, puis il reste plein.
+   La pulsation est un ANNEAU d'`outline`, pas une ombre : ce fichier ne pose
+   aucune `box-shadow`, et une recette d'ombre de plus ferait deborder
+   l'echelle fermee de la section A de `npm run charte --bureau`. Elle s'arrete
+   au focus clavier, qui porte son propre anneau, et `prefers-reduced-motion`
+   la ramene a zero par la regle globale de style.css.
+   ========================================================================== */
+.bdv-coque .bureau-tete__maj{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:var(--bdv-e-2);
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-4);
+  border-radius:var(--bdv-r);
+  border:1px solid var(--bdv-accent);
+  background:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+  font-weight:600;
+  white-space:nowrap;
+  outline:2px solid transparent;
+  outline-offset:2px;
+  animation:bdv-maj-pouls 1.4s var(--bdv-courbe) 3;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete__maj[hidden]{ display:none; }
+.bdv-coque .bureau-tete__maj:hover{
+  background:var(--bdv-accent-fort);
+  border-color:var(--bdv-accent-fort);
+}
+.bdv-coque .bureau-tete__maj:focus-visible{
+  animation:none;
+  outline:2px solid var(--bdv-anneau);
+}
+.bdv-coque .bureau-tete__maj[aria-busy="true"]{
+  animation:none;
+  cursor:progress;
+}
+.bdv-coque .bureau-tete__maj-g{ flex:0 0 auto; }
+@keyframes bdv-maj-pouls{
+  0%  { outline-color:var(--bdv-accent);  outline-offset:0; }
+  70% { outline-color:transparent;        outline-offset:6px; }
+  100%{ outline-color:transparent;        outline-offset:6px; }
+}
+
+
+/* ==========================================================================
    4. OU SONT PASSES LE SALUT, LA PLAQUE ET LA LUNE
 
    Ils sont descendus dans « Ma journee », en tete du plan, dans
@@ -545,6 +601,11 @@ body.bdv-coque{
      de la deuxieme ligne et ne separe plus rien. */
   .bdv-coque .bureau-tete__jour::before{ display:none; }
   .bdv-coque .bureau-tete__jour{ grid-column:1; grid-row:2; }
+  /* LA DATE SE COUPE AU LIEU DE PASSER SOUS LES BOUTONS. Mesure du 24/09/2026 a
+     390 px : avec le bouton de mise a jour, la colonne du titre tombe a 130 px et
+     « Jeudi 24 septembre » debordait de 3 px sous lui. La date est le seul texte
+     de l'en-tete qu'on peut perdre sans perdre de sens. */
+  .bdv-coque .bureau-tete__jour{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bdv-coque .bureau-tete__actions{ grid-column:2; grid-row:1 / span 2; }
   /* « Mes reglages » EST DEJA LA NEUVIEME CELLULE DE LA BARRE DU BAS, et c'est
      par elle que passe le geste sur telephone depuis le 19/09/2026. Deux portes
@@ -553,6 +614,11 @@ body.bdv-coque{
      que c'est la SEULE facon de fermer sa session, et un geste unique ne se
      cache pas. */
   .bdv-coque .bureau-tete__reglages{ display:none; }
+  /* Le bouton de mise a jour garde sa CIBLE et perd son mot : « Mettre a jour »
+     ne tient pas a cote de « Me deconnecter » dans 390 px. Son nom complet reste
+     dans `aria-label`, pose par `majBoutonMaj()`. */
+  .bdv-coque .bureau-tete__maj{ width:var(--bdv-cible); padding:0; }
+  .bdv-coque .bureau-tete__maj-mot{ display:none; }
   /* L'EN-TETE SE RETRACTE AU DEFILEMENT. La classe est posee par le script de
      src/mon-bureau.njk des que la page a defile de plus d'une hauteur
      d'en-tete. On ne cache que la DATE : le nom de la piece et les actions

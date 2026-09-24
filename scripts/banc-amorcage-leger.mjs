@@ -42,6 +42,7 @@ const ids = ['app','tbFile','filterbar','p-annee','p-diagnostic','p-clients','p-
   'busyov','busytxt'];
 const dom = new JSDOM('<!doctype html><body>'
   + ids.map(i => `<section class="panel" id="${i}"></section>`).join('')
+  + '<button id="bureauMaj" hidden></button>'
   + '</body>', { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/' });
 const w = dom.window;
 w.Chart = function(){ this.destroy = () => {}; };
@@ -92,6 +93,8 @@ const test = `
     .then(function(){
       return { lu: LU, capPose: !!CAP, pretes: lignesPretes(),
                capHTML: document.getElementById('p-diagnostic').innerHTML,
+               majVisible: !document.getElementById('bureauMaj').hidden,
+               majNom: document.getElementById('bureauMaj').getAttribute('aria-label') || '',
                clientsHTML: document.getElementById('p-clients').innerHTML };
     });
 `;
@@ -116,8 +119,14 @@ t('aucune derivation : dbGetAll() n\'est pas appelee', S.lu.getAll === 0, S.lu.g
 /* Le comptage, lui, est la seule lecture locale permise : quelques millisecondes, et il
    repond a « la base est-elle vide ? », que `ROWS.length` ne sait plus dire. */
 t('un seul comptage local, pour savoir si la base est vide', S.lu.count === 1, S.lu.count);
-t('et rien n\'est propose sans le dire : le complement a un bouton',
-  /bdvCompleterEcran/.test(S.capHTML));
+/* DEPUIS LE 24/09/2026, le complement ne se propose plus en bas de chaque ecran : il a
+   UN bouton, dans l'en-tete, qui n'apparait que quand il sert. On verifie les deux
+   moities : la carte a disparu de l'ecran, et le bouton de l'en-tete s'est montre avec
+   un nom qui dit ce qui manque. */
+t('et rien n\'est propose sans le dire : le bouton de mise a jour se montre',
+  S.majVisible === true);
+t('son nom accessible dit ce qui manque', /Mettre à jour\. Il manque ici/.test(S.majNom), S.majNom.slice(0, 80));
+t('la carte « Charger mes lignes » a disparu de l\'ecran', !/Charger mes lignes/.test(S.capHTML));
 t('les lignes ne sont donc PAS pretes', S.pretes === false);
 
 console.log('\n== 2. Mais l\'ecran s\'ouvre quand meme, sur les chiffres du serveur ==');
@@ -131,8 +140,10 @@ t('les blocs qui lisent les lignes ne sont PAS dessines a zero',
   !/Sur la période affichée/.test(S.capHTML));
 /* IL DIT CE QUI MANQUE, ET IL LE NOMME. « Certaines données ne sont pas disponibles »
    n'aide personne : le vigneron doit savoir si ce qui manque est ce qu'il venait voir. */
-t('et l\'ecran nomme ce qui manque', /signaux/.test(S.capHTML) && /prix\/volume/.test(S.capHTML));
-t('et dit que les chiffres affiches, eux, sont a jour', /à jour/.test(S.capHTML));
+/* Depuis le 24/09/2026 la phrase vit dans le NOM du bouton de l'en-tete, plus dans
+   une carte en bas d'ecran. Meme exigence, autre endroit. */
+t('et le bouton nomme ce qui manque', /signaux/.test(S.majNom) && /prix\/volume/.test(S.majNom));
+t('et dit que les chiffres affiches, eux, sont a jour', /sont à jour/.test(S.majNom));
 
 console.log('\n== 3. Les autres pieces ne sont pas peintes ==');
 t('« Mon commerce » reste vide tant qu\'on n\'y va pas',

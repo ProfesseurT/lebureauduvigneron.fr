@@ -101,6 +101,19 @@ theme_bureau: true
       <p class="bureau-tete__resume" id="bureauResume"></p>
 
       <div class="bureau-tete__actions">
+        <!-- LE BOUTON DE MISE A JOUR, 24/09/2026. Il remplace la carte « Charger mes
+             lignes et completer » que trois ecrans posaient en bas de page. Il n'existe
+             que quand l'ecran ouvert attend ses lignes : c'est `besoinMaj()` dans
+             bdv-ecrans.js qui le dit, et `majBoutonMaj()` qui pose son nom accessible.
+             Il pulse trois fois en apparaissant, pas plus (WCAG 2.2.2). -->
+        <button class="bureau-tete__maj" id="bureauMaj" type="button" hidden
+                aria-label="Mettre à jour cet écran">
+          <svg class="bureau-tete__maj-g" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path d="M19.5 12a7.5 7.5 0 0 1-13 5.1M4.5 12a7.5 7.5 0 0 1 13-5.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M17.8 3.4v3.9h-3.9M6.2 20.6v-3.9h3.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="bureau-tete__maj-mot">Mettre à jour</span>
+        </button>
         <!-- LA BASCULE CLAIR / SOMBRE, 44 x 44, ET TROIS ETATS ET PAS DEUX.
              « comme mon telephone » est le DEFAUT et ne pose aucun attribut ;
              le bouton doit pouvoir y revenir, sinon le premier clic enferme
