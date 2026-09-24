@@ -3381,49 +3381,111 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
 }
 
 /* ---- 4. LE CADRE EN L, AU-DESSUS DE 900 px (la ou la barre est une colonne)
-   Le coin fait exactement --bdv-rail de large et porte le meme filet droit que
-   la barre : les deux se continuent. La lune y est alignee sur les icones des
-   pieces (12 px de marge de la barre + 8 px de la ligne = 20 px). Le titre, lui,
-   part a --bdv-rail + --bdv-e-6 : l'aplomb exact des cartes du travail. */
+   Le coin fait exactement la largeur du rail et porte le meme filet droit que
+   la barre : les deux se continuent. Le titre part a rail + --bdv-e-6 :
+   l'aplomb exact des cartes du travail.
+
+   LA LUNE GRANDIT LE 24/09/2026, demande de Ted (« pas assez gros ») : 20 px
+   devenaient un point, et le nom se coupait en « Lune gibbeuse crois… ». Le
+   dessin passe a 32 px, CENTRE SUR L'AXE DES ICONES DU RAIL (12 de marge + 8 de
+   ligne + 8 de demi-icone = 28 px ; 12 + 16 = 28 aussi). Le nom a le droit de
+   passer sur deux lignes, jamais d'etre tronque. Budget mesure : 184 - 12 - 32
+   - 8 - 8 = 124 px, « Lune gibbeuse » tient sur la premiere ligne a 13 px, et
+   trois lignes (nom, nom, pourcentage) font 48 px dans un coin de 56.
+
+   CHAQUE REGLE EST ECRITE POUR DEUX ENDROITS, le coin de l'en-tete ET le
+   bandeau rouge du site, parce que le meme element passe de l'un a l'autre au
+   defilement (section 4 bis). Un seul element, deux lieux, jamais deux copies :
+   deux lunes sur une page, c'est deux phases le jour ou l'une est corrigee. */
 @media (min-width:901px){
   .bdv-coque .bureau-tete::after{ left:var(--bdv-rail); }
   .bdv-coque .bureau-tete .bureau-tete__ligne{
     padding-left:calc(var(--bdv-rail) + var(--bdv-e-6));
   }
-  .bdv-coque .bureau-tete .bureau-tete__lunette{
+  .bdv-coque .bureau-tete .bureau-tete__lunette,
+  .bdv-coque .nav .bureau-tete__lunette{
     position:absolute;
     left:0; top:0; bottom:0;
     width:var(--bdv-rail);
     box-sizing:border-box;
+    display:flex;
+    align-items:center;
     gap:var(--bdv-e-2);
-    padding:0 6px 0 18px;
+    margin:0;
+    padding:0 var(--bdv-e-2) 0 var(--bdv-e-3);
     border-right:1px solid var(--bdv-trait);
+    white-space:normal;
+    overflow:hidden;
   }
-  /* 20 px, centre sur l'axe des icones des pieces (x = 28 px). Budget de
-     largeur mesure : 184 - 18 - 20 - 8 - 6 = 132 px pour la phase ; la plus
-     longue, « Gibbeuse decroissante », fait 129 px en Inter 500 a 12 px. */
-  .bdv-coque .bureau-tete .bureau-tete__lunette-dessin{ width:20px; height:20px; }
-  /* La phrase sur deux lignes : la phase, puis le pourcentage. Un almanach, pas
-     une deuxieme ligne d'en-tete : elle vit dans le coin, hors de la rangee. */
-  .bdv-coque .bureau-tete .bureau-tete__lunette-mot{
+  .bdv-coque .bureau-tete .bureau-tete__lunette-dessin,
+  .bdv-coque .nav .bureau-tete__lunette-dessin{ flex:0 0 auto; display:block; width:32px; height:32px; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-mot,
+  .bdv-coque .nav .bureau-tete__lunette-mot{
     display:flex;
     flex-direction:column;
     align-items:flex-start;
     min-width:0;
-    font-size:var(--bdv-f-1);
-    line-height:1.3;
+    font-family:var(--font-corps);
+    line-height:1.25;
   }
-  .bdv-coque .bureau-tete .bureau-tete__lunette-sep{ display:none; }
-  .bdv-coque .bureau-tete .bureau-tete__lunette-phase{
-    max-width:100%;
-    overflow:hidden;
-    text-overflow:ellipsis;
+  .bdv-coque .bureau-tete .bureau-tete__lunette-sep,
+  .bdv-coque .nav .bureau-tete__lunette-sep{ display:none; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-phase,
+  .bdv-coque .nav .bureau-tete__lunette-phase{
+    font-size:var(--bdv-f-2);
     font-weight:500;
     color:var(--bdv-encre-2);
   }
-  .bdv-coque .bureau-tete .bureau-tete__lunette-pct{
+  .bdv-coque .bureau-tete .bureau-tete__lunette-pct,
+  .bdv-coque .nav .bureau-tete__lunette-pct{
     font-size:var(--bdv-f-1);
+    font-variant-numeric:tabular-nums;
     color:var(--bdv-encre-4);
+  }
+}
+
+/* ---- 4 bis. LA LUNE MONTE DANS LE BANDEAU ROUGE AU DEFILEMENT, 24/09/2026
+   Demande de Ted, au lieu d'agrandir l'en-tete : quand l'en-tete se retracte,
+   la lune quitte son coin et se loge dans le coin gauche du bandeau du site,
+   a l'aplomb du rail, ENTIERE. C'est `logerLune()` de src/mon-bureau.njk qui
+   deplace l'element ; ici il n'y a que ses couleurs sur ce fond-la.
+
+   LE BANDEAU EST LE SITE, PAS LE BUREAU : il reste --bordeaux-deep dans les
+   deux themes. Ses encres sont donc celles du site, comme son logo, et pas des
+   `--bdv-*` qui se retourneraient sur un fond qui, lui, ne se retourne pas.
+   Mesures sur --bordeaux-deep (#45101D) :
+     phase   --on-dark              12,69:1
+     pct     --on-dark-soft (75 %)   7,59:1, compose sur le bandeau
+     eclaire --on-dark / ombre --bordeaux  10,88:1
+     l'ombre seule ne se detache pas du bandeau (1,17:1) : c'est le BORD, en
+     --on-dark-soft a 7,59:1, qui dessine le disque. Objet graphique, seuil 3:1.
+
+   ON DEPLACE L'ELEMENT PLUTOT QUE DE LE FAIRE GLISSER EN CSS, et ce n'est pas
+   un detour : l'en-tete porte `z-index:2` pour se coller, donc tout ce qu'il
+   contient se peint SOUS le bandeau (--z-nav, 100), transformation comprise.
+   Lui donner une couche au-dessus du bandeau ajouterait une valeur a l'echelle
+   fermee des z-index de la section A de `npm run charte`. */
+@media (min-width:901px){
+  .bdv-coque .nav .bureau-tete__lunette{ border-right-color:var(--on-dark-rule); }
+  .bdv-coque .nav .bureau-tete__lunette-phase{ color:var(--on-dark); }
+  .bdv-coque .nav .bureau-tete__lunette-pct{ color:var(--on-dark-soft); }
+  .bdv-coque .nav .bureau-tete__lune-ombre{ fill:var(--bordeaux); }
+  .bdv-coque .nav .bureau-tete__lune-clair{ fill:var(--on-dark); }
+  .bdv-coque .nav .bureau-tete__lune-bord{
+    fill:none;
+    stroke:var(--on-dark-soft);
+    stroke-width:1px;
+    vector-effect:non-scaling-stroke;
+  }
+  /* LE LOGO S'ALIGNE SUR LE TITRE DE LA PIECE. Sans ca, entre 901 et environ
+     1420 px, le conteneur centre de 1100 px posait le logo DANS le coin de la
+     lune. Dans le bureau le bandeau suit donc la grille du bureau : logo a
+     l'aplomb du nom de la piece, liens alignes sur les actions de l'en-tete. */
+  .bdv-coque .nav .nav__inner{
+    max-width:none;
+    padding-left:calc(var(--bdv-rail) + var(--bdv-e-6));
+    padding-right:var(--bdv-e-6);
+    transition:padding-left var(--bdv-d-long) var(--bdv-courbe);
   }
 }
 
@@ -3636,9 +3698,8 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
   .bdv-coque .bureau-tete--retracte .bureau-tete__jour,
   .bdv-coque .bureau-tete--retracte .bureau-tete__lunette-mot{ display:none; }
 }
-@media (min-width:901px){
-  .bdv-coque .bureau-tete--retracte .bureau-tete__lunette{ padding-left:18px; }
-}
+/* Au-dessus de 900 px la lune retractee n'est plus dans l'en-tete : elle est
+   montee dans le bandeau (section 4 bis). Rien a regler ici. */
 /* Entre 701 et 1280 px sans le coin (701-900), la phrase part la premiere. */
 @media (min-width:701px) and (max-width:900px){ .bdv-coque .bureau-tete .bureau-tete__lunette-mot{ display:none; } }
 
@@ -3792,3 +3853,88 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
 /* Meme chose au repos quand « Mettre a jour » est affiche : a 1181 et 1300 px, sa
    largeur rognait la derniere pastille. `:has()` : Safari 15.4, Chrome 105,
    Firefox 121 ; plus ancien, la pastille est rognee, rien ne deborde. */
+
+
+/* ==========================================================================
+   23. LA BARRE DES PIECES SE REPLIE, 24/09/2026
+
+   Demande de Ted : « on devra pouvoir ranger la barre laterale ». Le repli
+   avait ete SUPPRIME le 07/09/2026 ; il revient sous une seule forme, les
+   ICONES SEULES, jamais a zero. C'est la condition que bdv-nav.js posait en
+   le supprimant : une barre qui peut disparaitre enferme dans la piece ou
+   l'on est. Ici chaque piece garde son icone, sa cible et son `title`.
+
+   L'ETAT EST UNE CLASSE DU CORPS DE PAGE, `bdv-rail-replie`, posee par
+   bdv-nav.js au clic et par le script en tete de src/mon-bureau.njk AVANT le
+   premier rendu, sinon la barre s'ouvre a 184 px puis claque a 64 sous les
+   yeux. La cle est `bureau_rail_v1`, hors du prefixe `bdv_` pour la meme
+   raison que le theme : un confort d'affichage survit a la deconnexion.
+
+   ENTRE 901 ET 1180 px LA LARGEUR DECIDE SEULE : style.css y cachait deja les
+   noms, mais la colonne restait a 184 px, soit 120 px de vide autour de neuf
+   icones. Elle prend la largeur repliee, et le bouton n'y parait pas : il n'y
+   a rien a choisir.
+
+   Le nom reste DANS LE DOM, masque visuellement et pas `display:none` : il est
+   le nom accessible du lien. Le `title` de chaque piece dit deja le reste.
+   ========================================================================== */
+body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
+@media (min-width:1181px){
+  body.bdv-coque .bureau-nav .bureau-nav__replier{
+    display:flex;
+    margin-top:var(--bdv-e-3);
+    border-top:1px solid var(--bdv-trait);
+    border-radius:0;
+    padding-top:var(--bdv-e-1);
+    min-height:var(--bdv-cible);
+    color:var(--bdv-encre-4);
+    cursor:pointer;
+  }
+  body.bdv-coque .bureau-nav .bureau-nav__replier:hover{ color:var(--bdv-encre-1); }
+  .bdv-coque .bureau-nav__replier .bureau-nav__ico svg{
+    display:block;
+    transition:transform var(--bdv-d-long) var(--bdv-courbe);
+  }
+  .bdv-coque.bdv-rail-replie .bureau-nav__replier .bureau-nav__ico svg{ transform:scaleX(-1); }
+}
+@media (min-width:901px){
+  .bdv-coque .bureau-atelier{
+    transition:grid-template-columns var(--bdv-d-long) var(--bdv-courbe);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__ligne{
+    transition:min-height var(--bdv-d-court) var(--bdv-courbe),
+               padding-left var(--bdv-d-long) var(--bdv-courbe);
+  }
+}
+@media (min-width:901px) and (max-width:1180px){
+  .bdv-coque .bureau-atelier{ grid-template-columns:var(--bdv-rail-replie) minmax(0,1fr); }
+  .bdv-coque .bureau-tete::after{ left:var(--bdv-rail-replie); }
+  .bdv-coque .bureau-tete .bureau-tete__ligne{ padding-left:calc(var(--bdv-rail-replie) + var(--bdv-e-6)); }
+  .bdv-coque .nav .nav__inner{ padding-left:calc(var(--bdv-rail-replie) + var(--bdv-e-6)); }
+  .bdv-coque .bureau-tete .bureau-tete__lunette,
+  .bdv-coque .nav .bureau-tete__lunette{ width:var(--bdv-rail-replie); justify-content:center; padding:0; }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-mot,
+  .bdv-coque .nav .bureau-tete__lunette-mot{ display:none; }
+  .bdv-coque .bureau-nav__bureau{ display:none; }
+}
+@media (min-width:1181px){
+  .bdv-coque.bdv-rail-replie .bureau-atelier{ grid-template-columns:var(--bdv-rail-replie) minmax(0,1fr); }
+  .bdv-coque.bdv-rail-replie .bureau-tete::after{ left:var(--bdv-rail-replie); }
+  .bdv-coque.bdv-rail-replie .bureau-tete .bureau-tete__ligne{ padding-left:calc(var(--bdv-rail-replie) + var(--bdv-e-6)); }
+  .bdv-coque.bdv-rail-replie .nav .nav__inner{ padding-left:calc(var(--bdv-rail-replie) + var(--bdv-e-6)); }
+  .bdv-coque.bdv-rail-replie .bureau-tete .bureau-tete__lunette,
+  .bdv-coque.bdv-rail-replie .nav .bureau-tete__lunette{ width:var(--bdv-rail-replie); justify-content:center; padding:0; }
+  .bdv-coque.bdv-rail-replie .bureau-tete .bureau-tete__lunette-mot,
+  .bdv-coque.bdv-rail-replie .nav .bureau-tete__lunette-mot{ display:none; }
+  .bdv-coque.bdv-rail-replie .bureau-nav__bureau{ display:none; }
+  .bdv-coque.bdv-rail-replie .bureau-nav__item{ justify-content:center; padding-inline:0; }
+  .bdv-coque.bdv-rail-replie .bureau-nav__nom{
+    position:absolute;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    clip-path:inset(50%);
+    white-space:nowrap;
+  }
+}

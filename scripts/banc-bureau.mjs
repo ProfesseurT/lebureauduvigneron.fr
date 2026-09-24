@@ -161,18 +161,40 @@ t('le calendrier ne sort plus du bureau',
 t('les reglages sont un bouton, pas un lien',
   B.nav.querySelector('[data-bdv-nav-panneau]').tagName === 'BUTTON');
 
-/* ---- le repli a ete SUPPRIME le 07/09/2026 ----
-   Ces controles gardent la suppression, ils ne gardent pas un bouton. Motif ecrit
-   en tete de bdv-nav.js : la largeur decide seule, et il ne reste aucun etat a
-   relire. Ils echouent donc si quelqu'un reintroduit un bouton, un raccourci ou
-   la classe de repli sans reintroduire un menu de secours avec. */
+/* ---- le repli, SUPPRIME le 07/09/2026 et REMIS le 24/09/2026 ----
+   Demande de Ted, sous une seule forme : les icones seules, jamais zero. Ces
+   controles gardent les trois conditions de ce retour : un vrai bouton, aucune
+   piece qui disparait quand on replie, et une cle hors du prefixe `bdv_` (un
+   confort d'affichage survit a la deconnexion). L'ancienne preference du
+   premier repli ne doit pas revenir. */
 const atelier = B.doc.getElementById('bureauAtelier');
-t('la barre n\'a plus de bouton de repli',
-  B.doc.getElementById('bureauNavPlier') === null);
+const replier = B.doc.getElementById('bureauNavReplier');
+t('la barre porte un bouton de repli, et c\'est un bouton',
+  replier !== null && replier.tagName === 'BUTTON');
+t('le bouton de repli n\'est pas une piece de la barre',
+  replier && !replier.closest('.bureau-nav__ligne'));
 t('aucune classe de repli sur l\'atelier',
   !atelier.classList.contains('bureau-atelier--replie'));
-t('la barre ne pose plus de preference de repli',
+t('l\'ancienne preference de repli ne revient pas',
   B.window.localStorage.getItem('bdv_volet_replie') === null);
+{
+  const avant = B.nav.querySelectorAll('.bureau-nav__ligne .bureau-nav__ico').length;
+  replier.click();
+  t('replier pose la classe sur le corps de page et le dit',
+    B.doc.body.classList.contains('bdv-rail-replie')
+    && replier.getAttribute('aria-expanded') === 'false'
+    && replier.textContent.includes('Déplier'));
+  t('replier garde le choix sous une cle hors du prefixe bdv_',
+    B.window.localStorage.getItem('bureau_rail_v1') === 'replie');
+  t('replie, chaque piece garde son icone et son nom (jamais a zero)',
+    B.nav.querySelectorAll('.bureau-nav__ligne .bureau-nav__ico').length === avant
+    && [...B.nav.querySelectorAll('.bureau-nav__ligne .bureau-nav__nom')].every(n => n.textContent.trim()));
+  replier.click();
+  t('deplier retire la classe et oublie la cle',
+    !B.doc.body.classList.contains('bdv-rail-replie')
+    && B.window.localStorage.getItem('bureau_rail_v1') === null
+    && replier.getAttribute('aria-expanded') === 'true');
+}
 const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true }));
 frappe(B.doc.body);
 t('le crochet ouvrant ne replie plus rien',

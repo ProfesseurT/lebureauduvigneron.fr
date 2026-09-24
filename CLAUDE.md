@@ -3332,6 +3332,35 @@ son dessin est la section 3 bis de `bdv-bureau.css`.
   jamais par une `box-shadow` (ce fichier n'en pose aucune, et l'echelle des ombres est fermee).
 - `npm run banc:amorcage-leger` le garde : bouton visible, nom qui dit ce qui manque, carte absente.
 
+## LA LUNE MONTE DANS LE BANDEAU, ET LA BARRE SE REPLIE, 24/09/2026
+
+Demande de Ted : une lune plus grosse, qui reste ENTIERE quand on fait defiler, et une barre
+laterale qu'on peut ranger.
+
+- **Un seul element, deux lieux.** `#bureauLuneMini` vit dans le coin de l'en-tete au repos ;
+  au-dessus de 900 px et en-tete retracte, `logerLune()` (dans `brancherRetraction()`,
+  `src/mon-bureau.njk`) le DEPLACE dans `.nav`, puis le repose avant `#bureauPeriode`. Le
+  glissement est un FLIP fait apres coup, saute si `prefers-reduced-motion`. **Ne pas en faire
+  une deuxieme lune dans le bandeau** : `peindreLune()` le retrouve par son id, ou qu'il soit.
+- **Pourquoi deplacer et pas glisser en CSS** : l'en-tete porte `z-index:2` pour se coller, donc
+  tout ce qu'il contient se peint SOUS le bandeau (`--z-nav`, 100). Lui donner une couche au-dessus
+  ajouterait une valeur a l'echelle fermee des z-index de la section A de la charte.
+- **Dans le bandeau, les encres sont celles du SITE** (`--on-dark`, `--on-dark-soft`,
+  `--bordeaux`) : le bandeau ne se retourne pas en sombre, des `--bdv-*` s'y retourneraient.
+  Mesures dans la section 4 bis de `bdv-bureau.css`.
+- **Le logo du bandeau suit la grille du bureau** (`padding-left: rail + --bdv-e-6`). Le remettre
+  centre sur 1100 px refait chevaucher la lune et le logo entre 901 et ~1420 px.
+- **Le repli est a 64 px, JAMAIS a zero** : c'est la condition posee le 07/09/2026 en supprimant
+  le premier. Classe `bdv-rail-replie` sur le corps de page, posee AVANT le premier rendu par le
+  script en tete de `mon-bureau.njk`, et par `poserRepli()` de `bdv-nav.js` au clic. Cle
+  `bureau_rail_v1`, **hors du prefixe `bdv_`**, meme raison que `bureau_theme_v1`. Le nom de chaque
+  piece reste dans le DOM, masque visuellement : c'est le nom accessible du lien.
+- **Le bouton est HORS de `.bureau-nav__liste`** : ce n'est pas une piece, et les bancs comptent
+  `.bureau-nav__ligne`. Il n'existe qu'a partir de 1181 px ; en dessous la largeur decide seule.
+- **`banc:poids` est a 119,5 ko sur 120.** Les commentaires d'un script EN LIGNE partent au
+  navigateur (le crochet du build ne degraisse que `_site/js/`) : un pourquoi long va dans ce
+  fichier, pas dans `mon-bureau.njk`.
+
 ## IL N'Y A QU'UNE FICHE CLIENT, ET ELLE NE S'ECRIT PAS TOUTE SEULE, 11/09/2026
 
 Le bureau avait la sienne, 280 lignes dans `src/mon-bureau.njk` : prochaine action, coordonnees,

@@ -12,6 +12,30 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. La lune monte dans le bandeau, et la barre se replie
+
+Ted, capture à l'appui : « pas fan de la lune comme ça, pas assez gros », puis, sur la
+proposition de la fusionner avec le bandeau rouge au défilement : « ultra stylé ça, comme ça la
+lune reste entière. Et on devra pouvoir ranger la barre latérale. »
+
+- **La lune du coin grandit** : dessin de 20 à 32 px, centré sur l'axe des icônes du rail, nom
+  en entier sur deux lignes (plus de « Lune gibbeuse crois… »), pourcentage dessous.
+- **Au défilement, au-dessus de 900 px, elle monte dans le bandeau rouge**, à l'aplomb du rail,
+  en crème, entière, et redescend quand on remonte. Un seul élément qui déménage
+  (`logerLune()` dans `mon-bureau.njk`), jamais une deuxième lune.
+- **Conséquence voulue** : dans le bureau, le logo du bandeau s'aligne sur le nom de la pièce au
+  lieu d'être centré sur 1100 px. Sans ça, entre 901 et ~1420 px, la lune chevauchait le logo.
+- **La barre se replie**, bouton en bas du rail, icônes seules à 64 px, jamais à zéro. Clé
+  `bureau_rail_v1`, hors du préfixe `bdv_` (survit à la déconnexion, comme le thème). Le repli
+  supprimé le 07/09 revient donc, sous la seule forme que la règle de l'époque autorisait.
+- **Entre 901 et 1180 px la largeur décide seule** : la colonne passe à 64 px. Elle restait à
+  184 px pour neuf icônes centrées, les noms étant déjà cachés par `style.css`.
+- `npm run banc` garde le nouveau repli (7 contrôles à la place des 3 qui gardaient sa
+  suppression). `banc:poids` passe à **119,5 ko sur 120** : le commentaire de `logerLune()` a dû
+  sortir du script en ligne pour tenir. La prochaine ligne de script en ligne fera déborder.
+
+---
+
 ## 24/09/2026. L'en-tête flottant redessiné : « Le Cadre »
 
 Ted : « mouais c'est vraiment bof, appelle un agent design ». Un agent design a dessiné trois

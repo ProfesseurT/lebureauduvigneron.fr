@@ -10,6 +10,13 @@ permalink: /mon-bureau/
 theme_bureau: true
 ---
 
+{# LA BARRE REPLIEE SE POSE AVANT LE PREMIER RENDU, 24/09/2026. Meme raison que le
+   script de theme : posee apres, la barre s'ouvre a 184 px et claque a 64 sous les
+   yeux. Il ne lit QUE sa cle, `bureau_rail_v1`, et ne dessine rien. La cle est hors
+   du prefixe `bdv_` : un confort d'affichage survit a la deconnexion. Le reste de la
+   mecanique est dans bdv-nav.js (`poserRepli`) et la section 23 de bdv-bureau.css. #}
+<script>try{if(localStorage.getItem('bureau_rail_v1')==='replie')document.body.classList.add('bdv-rail-replie');}catch(e){}</script>
+
 {# Les contenus du site et les echeances, poses une fois, lus par le script plus bas. #}
 <script id="bdvContenus" type="application/json">
 [{% for post in collections.posts %}{"url":{{ post.url | dump | safe }},"titre":{{ post.data.title | dump | safe }},"date":"{{ post.date | dateISO }}","rubrique":{{ (post.data.categorie | rubriqueNom) | dump | safe }},"temps":{{ (post.data.temps_lecture or "") | dump | safe }}}{% if not loop.last %},
@@ -2040,6 +2047,7 @@ theme_bureau: true
       txt(el('bureauLunePhase'), L.nom);
       txt(el('bureauLunePct'), L.pourcent + ' %');
       mini.setAttribute('aria-label', L.nom + ', ' + L.pourcent + ' % éclairée, lune ' + (L.montante ? 'montante' : 'descendante'));
+      mini.title = L.nom + ', ' + L.pourcent + ' % éclairée';
       mini.hidden = false;
     }
     txt(el('bureauLuneNom'), L.nom);
@@ -2217,6 +2225,30 @@ theme_bureau: true
       var y = window.pageYOffset || document.documentElement.scrollTop || 0;
       if(!pose && y > 64){ t.classList.add('bureau-tete--retracte'); pose = true; }
       else if(pose && y < 48){ t.classList.remove('bureau-tete--retracte'); pose = false; }
+      logerLune();
+    }
+
+    /* La lune monte dans le bandeau au-dessus de 900 px, retracte : voir CLAUDE.md, « LA LUNE MONTE DANS LE BANDEAU ». */
+    var large = window.matchMedia('(min-width:901px)');
+    var calme = window.matchMedia('(prefers-reduced-motion: reduce)');
+    function logerLune(){
+      var mini = el('bureauLuneMini');
+      var bandeau = document.querySelector('.nav');
+      var ligne = t.querySelector('.bureau-tete__ligne');
+      if(!mini || !bandeau || !ligne) return;
+      var enHaut = pose && large.matches;
+      if(enHaut === (mini.parentNode === bandeau)) return;
+      var avant = mini.getBoundingClientRect();
+      if(enHaut) bandeau.appendChild(mini);
+      else ligne.insertBefore(mini, el('bureauPeriode'));
+      if(calme.matches || !mini.animate || mini.hidden) return;
+      var apres = mini.getBoundingClientRect();
+      var dx = avant.left - apres.left, dy = avant.top - apres.top;
+      if(!dx && !dy) return;
+      mini.animate([
+        { transform: 'translate(' + dx + 'px,' + dy + 'px)', opacity: 0.4 },
+        { transform: 'none', opacity: 1 }
+      ], { duration: 300, easing: 'cubic-bezier(.22,.61,.36,1)' });
     }
     window.addEventListener('scroll', juger, { passive: true });
     window.addEventListener('resize', juger, { passive: true });

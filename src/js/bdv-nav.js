@@ -21,14 +21,16 @@
    copie, s'ouvre dans un autre onglet, se met en favori, et fonctionne encore
    si le JavaScript n'a pas pris.
 
-   LE REPLI A ETE SUPPRIME le 07/09/2026, sur decision de Ted : bouton, raccourci
-   clavier, preference `bdv_volet_replie` et classe `--replie`. Motif, et il vaut
-   pour tout bouton qu'on serait tente d'ajouter ici : personne ne clique pour
-   gagner 170 pixels sur un ecran qui en a 1670, et un hamburger dans une barre
-   qui ne nomme que des objets du bureau ne ressemble a rien de ce bureau. La
-   largeur decide maintenant seule : intercalaires complets, puis icones seules
-   sous 1180 px, puis barre horizontale sous 901 px. C'est du CSS, il n'y a plus
-   d'etat a garder ni de preference a relire.
+   LE REPLI A ETE SUPPRIME le 07/09/2026, puis REMIS le 24/09/2026, les deux fois
+   sur demande de Ted. Le premier (bouton, raccourci, `bdv_volet_replie`, classe
+   `--replie`) est parti parce que personne ne clique pour gagner 170 px sur un
+   ecran de 1670. Le second revient sur le grand ecran de Ted (2296 px) sous UNE
+   seule forme : les ICONES SEULES, 64 px, jamais zero. Un bouton en bas de la
+   barre, `poserRepli()` plus bas, une classe `bdv-rail-replie` sur le corps de
+   page, et la cle `bureau_rail_v1`, hors du prefixe `bdv_` pour survivre a la
+   deconnexion comme le theme. Sous 1181 px la largeur decide seule (icones
+   seules entre 901 et 1180, barre horizontale en dessous) et le bouton n'y parait
+   pas. Le dessin est dans la section 23 de bdv-bureau.css.
 
    NE PAS REINTRODUIRE un repli a zero sans reintroduire un menu de secours avec :
    la barre ne doit jamais pouvoir disparaitre completement, sinon on s'enferme
@@ -718,6 +720,27 @@
      Monter la barre. `idActif` designe la piece ou l'on se trouve : elle n'est
      pas un lien, on n'a pas a pouvoir cliquer sur la page ou l'on est deja.
   --------------------------------------------------------------------------- */
+  /* Replier ou deplier la barre. `garder` ecrit le choix : faux quand on ne fait
+     que relire l'etat pose avant le premier rendu par src/mon-bureau.njk. Le mot
+     du bouton dit ce que fera le PROCHAIN appui, et `aria-expanded` l'etat. */
+  var CLE_RAIL = 'bureau_rail_v1';
+  function poserRepli(replie, garder) {
+    document.body.classList.toggle('bdv-rail-replie', replie);
+    var b = document.getElementById('bureauNavReplier');
+    if (b) {
+      var mot = replie ? 'Déplier la barre' : 'Replier la barre';
+      b.setAttribute('aria-expanded', replie ? 'false' : 'true');
+      b.title = mot;
+      var n = b.querySelector('.bureau-nav__nom');
+      if (n) n.textContent = mot;
+    }
+    if (!garder) return;
+    try {
+      if (replie) localStorage.setItem(CLE_RAIL, 'replie');
+      else localStorage.removeItem(CLE_RAIL);
+    } catch (e) { /* stockage refuse : le repli vaut pour cette page, c'est tout */ }
+  }
+
   function monter(conteneur, idActif) {
     if (!conteneur) return;
 
@@ -764,7 +787,25 @@
     });
 
     html += '</ul>';
+    /* LE BOUTON DE REPLI, 24/09/2026. Une ligne de la barre comme les autres, pour
+       heriter de son survol et de son anneau, mais HORS de la liste : ce n'est pas
+       une piece, et `.bureau-nav__ligne` est ce que les bancs comptent. Le CSS le
+       cache sous 1181 px, ou la largeur decide seule. */
+    html += '<button class="bureau-nav__item bureau-nav__replier" id="bureauNavReplier"'
+      + ' type="button" aria-controls="bureauNav" aria-expanded="true" title="Replier la barre">'
+      + '<span class="bureau-nav__ico"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"'
+      + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
+      + ' aria-hidden="true" focusable="false"><path d="M10.5 5.5L6 10l4.5 4.5"/><path d="M15 5.5L10.5 10l4.5 4.5"/></svg></span>'
+      + '<span class="bureau-nav__nom">Replier la barre</span></button>';
     conteneur.innerHTML = html;
+
+    var replier = conteneur.querySelector('#bureauNavReplier');
+    if (replier) {
+      poserRepli(document.body.classList.contains('bdv-rail-replie'), false);
+      replier.addEventListener('click', function () {
+        poserRepli(!document.body.classList.contains('bdv-rail-replie'), true);
+      });
+    }
 
     /* Les reglages sont un panneau, pas une page : la fonction vit dans
        bdv-reglages.js, chargee en defer, donc pas forcement la au moment ou on

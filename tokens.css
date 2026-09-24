@@ -471,6 +471,7 @@
   --bdv-cible:     44px;                /* meme valeur en sombre. plancher tactile, on agrandit la cible et jamais le dessin */
   --bdv-h-tete:    56px;                /* meme valeur en sombre. l'en-tete du bureau, 209 px avant le 21/09/2026 */
   --bdv-rail:      184px;               /* meme valeur en sombre. la barre des pieces sur grand ecran */
+  --bdv-rail-replie: 64px;             /* meme valeur en sombre. la barre repliee, icones seules, 24/09/2026 : demande de Ted, jamais a zero */
   --bdv-tiroir:    clamp(400px,32vw,820px);  /* meme valeur en sombre. le panneau de detail a droite de la liste.
                                            PROPORTIONNEL, ET C'EST UNE MESURE QUI L'A IMPOSE : en 420px fixes il
                                            faisait 35 % d'un ecran de 1440 et 18 % de celui de Ted, releve a 2296 px
