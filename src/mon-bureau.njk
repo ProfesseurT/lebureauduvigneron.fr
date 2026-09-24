@@ -98,6 +98,26 @@ theme_bureau: true
     <div class="container--bureau bureau-tete__ligne">
       <h1 class="bureau-tete__piece" id="bureauPiece">Ma journée</h1>
       <p class="bureau-tete__jour" id="bureauJour"></p>
+      <!-- LA LUNE DANS L'EN-TETE, 24/09/2026. Choix C de Ted. Elle etait descendue dans
+           « Ma journee » le 21/09 ; elle remonte en version courte (dessin, phase,
+           pourcentage) parce qu'elle sert a toutes les pieces, et `peindreLune()` peint
+           les deux a partir du MEME calcul. Retracte, il ne reste que le dessin. -->
+      <p class="bureau-tete__lunette" id="bureauLuneMini" hidden>
+        <svg class="bureau-tete__lunette-dessin" viewBox="-52 -52 104 104" aria-hidden="true" focusable="false">
+          <circle class="bureau-tete__lune-ombre" cx="0" cy="0" r="50"/>
+          <path class="bureau-tete__lune-clair" id="bureauLuneMiniClair" d=""/>
+          <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
+        </svg>
+        <span class="bureau-tete__lunette-mot" id="bureauLuneMiniTxt"></span>
+      </p>
+      <!-- LA PERIODE REMONTE DANS L'EN-TETE QUAND SA BARRE SORT DE L'ECRAN, 24/09/2026.
+           Choix C de Ted : une seule bande collee au lieu de deux. Le selecteur est un
+           MIROIR de la barre, rempli par `buildFilterBar()` de bdv-ecrans.js, et il
+           appelle les memes fonctions qu'elle : aucune periode ne se choisit ailleurs. -->
+      <p class="bureau-tete__periode" id="bureauPeriode" hidden>
+        <label for="bureauPeriodeChoix">Période</label>
+        <select id="bureauPeriodeChoix"></select>
+      </p>
       <p class="bureau-tete__resume" id="bureauResume"></p>
 
       <div class="bureau-tete__actions">
@@ -2010,6 +2030,17 @@ theme_bureau: true
     if(L.croissante) clair.removeAttribute('transform');
     else clair.setAttribute('transform', 'scale(-1,1)');
 
+    /* La version courte de l'en-tete lit le MEME objet `L` : deux calculs de la lune
+       sur une page, c'est deux phases differentes le jour ou l'un est corrige. */
+    var mini = el('bureauLuneMini');
+    if(mini){
+      var mc = el('bureauLuneMiniClair');
+      mc.setAttribute('d', BdvAlmanach.chemin(L.eclairee));
+      if(L.croissante) mc.removeAttribute('transform'); else mc.setAttribute('transform', 'scale(-1,1)');
+      txt(el('bureauLuneMiniTxt'), L.nom + ', ' + L.pourcent + ' %');
+      mini.setAttribute('aria-label', L.nom + ', ' + L.pourcent + ' % éclairée, lune ' + (L.montante ? 'montante' : 'descendante'));
+      mini.hidden = false;
+    }
     txt(el('bureauLuneNom'), L.nom);
     txt(el('bureauLuneNote'), L.pourcent + ' % éclairée · lune ' +
         (L.montante ? 'montante' : 'descendante'));
@@ -2042,6 +2073,7 @@ theme_bureau: true
       'et descendante le même jour.';
 
     bloc.hidden = false;
+    if(mini) mini.title = bloc.title;
   }
 
   /* On repeint toutes les demi-heures, et non par une minuterie posee sur minuit :
@@ -2177,11 +2209,10 @@ theme_bureau: true
     if(!t || !window.matchMedia) return;
     var etroit = window.matchMedia('(max-width:700px)');
     var pose = false;
+    /* DEPUIS LE 24/09/2026 LA RETRACTION VAUT A TOUTES LES LARGEURS : l'en-tete est
+       aussi colle sur ordinateur (choix C de Ted). `etroit` reste declare, il ne
+       decide plus rien ici ; ce que la retraction CACHE differe par largeur, en CSS. */
     function juger(){
-      if(!etroit.matches){
-        if(pose){ t.classList.remove('bureau-tete--retracte'); pose = false; }
-        return;
-      }
       var y = window.pageYOffset || document.documentElement.scrollTop || 0;
       if(!pose && y > 64){ t.classList.add('bureau-tete--retracte'); pose = true; }
       else if(pose && y < 48){ t.classList.remove('bureau-tete--retracte'); pose = false; }
@@ -2344,20 +2375,31 @@ theme_bureau: true
        fonction phrase(). On s'aligne dessus au mot pres plutot que d'en inventer un
        deuxieme, sinon la meme obligation se dit de deux facons a deux endroits de la
        meme page. */
+    /* CHAQUE MORCEAU EST UN LIEN depuis le 24/09/2026 (choix C de Ted) : un etat qui dit
+       « 40 clients a rappeler » et ne mene nulle part oblige a chercher ou ils sont.
+       Les adresses sont des pieces du bureau, `/mon-bureau/#<id>`, que bdv-nav.js
+       intercepte deja : pas de rechargement, pas de deuxieme routeur. */
     if(ECHEANCE && (ECHEANCE.enCours || ECHEANCE.jours <= 7)){
       var je = ECHEANCE.jours;
-      m.push(ECHEANCE.enCours ? 'une échéance en ce moment'
-           : je === 0 ? 'une échéance aujourd’hui'
-           : je === 1 ? 'une échéance demain'
-           : 'une échéance dans ' + je + ' jours');
+      m.push([ECHEANCE.enCours ? 'Une échéance en ce moment'
+           : je === 0 ? 'Une échéance aujourd’hui'
+           : je === 1 ? 'Une échéance demain'
+           : 'Une échéance dans ' + je + ' jours', 'calendrier']);
     }
     var n = (window.BdvCrm && ETAT_FILE) ? BdvCrm.file(ETAT_FILE).length : 0;
-    if(n) m.push(n + ' client' + (n > 1 ? 's' : '') + ' à rappeler');
+    if(n) m.push([n + ' client' + (n > 1 ? 's' : '') + ' à rappeler', 'journee']);
     var l = parEtat('a_lire').length;
-    if(l) m.push(l + ' article' + (l > 1 ? 's' : '') + ' de côté');
-    txt(el('bureauResume'), m.length
-      ? m.join(', ').charAt(0).toUpperCase() + m.join(', ').slice(1) + '.'
-      : 'Rien ne presse aujourd’hui.');
+    if(l) m.push([l + ' article' + (l > 1 ? 's' : '') + ' de côté', 'journee']);
+    var r = el('bureauResume'); if(!r) return;
+    r.textContent = '';
+    if(!m.length){ r.textContent = 'Rien ne presse aujourd’hui.'; return; }
+    m.forEach(function(x){
+      var a = document.createElement('a');
+      a.className = 'bureau-tete__etat';
+      a.href = '/mon-bureau/#' + x[1];
+      a.textContent = x[0];
+      r.appendChild(a);
+    });
   }
 
   peindreLectures();

@@ -320,6 +320,7 @@ function navTo(id){
      sans un mot, ce qui est exactement le reproche de Ted du 17/09. */
   ECRAN_COURANT = id;
   majBoutonMaj(id);
+  majPeriodeTete(id);
   if(PEINTRES[id] && !ECRANS_PEINTS.has(id)){
     if(lignesPretes()) runBusy('Analyse de tes ventes…', function(){ ecranPeindre(id); });
     else ecranPeindreQuandPret(id);
@@ -384,7 +385,54 @@ function buildFilterBar(){
   const rel=(filters.preset==='12m'||filters.preset==='3m'||filters.preset==='1m');
   h+=`<span class="filterbar__scope" title="${rel?'Fenêtre comptée depuis la dernière date présente en base, pas depuis aujourd\'hui.':''}">${esc(libellePerimetre())}${rel?' · depuis la fin de ta base':''}</span>`;
   el('filterbar').innerHTML=h;
+  miroirPeriode();
 }
+/* ============ LA PERIODE DANS L'EN-TETE, 24/09/2026 ============
+   Choix C de Ted : quand la barre de periode de « Mon cap » sort de l'ecran, son choix
+   remonte dans l'en-tete colle, sous forme d'un selecteur. UNE seule bande collee au lieu
+   de deux, et 54 px d'ecran rendus.
+   LE SELECTEUR EST UN MIROIR, IL NE DECIDE RIEN. Ses options sont refaites a chaque
+   `buildFilterBar()`, et chaque choix appelle `setExercice()` ou `setPeriode()`, les
+   memes fonctions que les pastilles. Un deuxieme endroit qui calculerait une periode
+   divergerait au premier preset ajoute.
+   « Dates precises… » n'a pas de sens dans une liste : il ramene a la barre, ou sont les
+   deux champs de date. */
+function miroirPeriode(){
+  const sel=document.getElementById('bureauPeriodeChoix'); if(!sel) return;
+  const opts=[['tous',"Tout l'historique"]];
+  (META.exercices||[]).forEach(y=>opts.push(['ex'+y,exLabel(y)]));
+  if(META.max){ opts.push(['12m','12 derniers mois'],['3m','3 derniers mois'],['1m','Dernier mois']); }
+  opts.push(['perso','Dates précises…']);
+  sel.innerHTML=opts.map(o=>`<option value="${o[0]}"${filters.preset===o[0]?' selected':''}>${esc(o[1])}</option>`).join('');
+  if(!sel.dataset.branche){
+    sel.dataset.branche='1';
+    sel.addEventListener('change',function(){
+      const v=sel.value;
+      if(v==='tous') setExercice(null);
+      else if(v.indexOf('ex')===0) setExercice(Number(v.slice(2)));
+      else if(v==='perso'){ const f=el('filterbar'); if(f) f.scrollIntoView({block:'center'}); setPeriode('perso'); }
+      else setPeriode(v);
+    });
+    window.addEventListener('scroll',function(){ if(!_perRaf) _perRaf=requestAnimationFrame(function(){ _perRaf=0; majPeriodeTete(); }); },{passive:true});
+    window.addEventListener('resize',function(){ majPeriodeTete(); },{passive:true});
+  }
+  majPeriodeTete();
+}
+let _perRaf=0;
+/* Montre le selecteur quand la barre est passee SOUS l'en-tete colle, pas avant : les
+   deux a l'ecran en meme temps, c'est deux commandes pour le meme reglage sous l'oeil. */
+function majPeriodeTete(id){
+  const bloc=document.getElementById('bureauPeriode'); if(!bloc) return;
+  const ecran=id||ECRAN_COURANT, f=el('filterbar');
+  let montrer=false;
+  if(ecran==='annee' && f && f.style.display!=='none'){
+    const tete=document.querySelector('.bureau-tete');
+    const bas=tete?tete.getBoundingClientRect().bottom:0;
+    montrer=f.getBoundingClientRect().bottom < bas;
+  }
+  bloc.hidden=!montrer;
+}
+window.bdvMajPeriodeTete=majPeriodeTete;
 // Un exercice entier. Il efface toute plage libre : les deux ensemble n'ont pas de sens
 // pour le lecteur, qui ne saurait plus si le chiffre affiche est celui de l'exercice.
 function setExercice(y){

@@ -363,6 +363,114 @@ body.bdv-coque{
 
 
 /* ==========================================================================
+   3 ter. L'EN-TETE COLLE, SA LUNE, SES ETATS CLIQUABLES ET SA PERIODE, 24/09/2026
+
+   Choix C de Ted parmi trois propositions. L'en-tete reste a l'ecran sur
+   ordinateur aussi (il l'etait deja sur telephone), sous l'entete du site, qui
+   est collee a `top:0` : deux collants a zero ne se partagent pas le haut, d'ou
+   `--h-entete`, MESUREE par `mesurerEntete()` de bdv-nav.js.
+
+   IL SE TASSE AU DEFILEMENT, et c'est la condition pour que le coller reste
+   tenable : trois bandes collees faisaient 169 px sur un ecran de 900. La classe
+   `bureau-tete--retracte` est posee par le script de src/mon-bureau.njk. En
+   retracte, la date part et la lune ne garde que son dessin (la phrase reste
+   dans `title` et dans `aria-label`).
+
+   LA LUNE REVIENT ICI EN VERSION COURTE. Elle etait descendue dans « Ma
+   journee » le 21/09 ; Ted la veut dans toutes les pieces. Le grand bloc de
+   « Ma journee » reste, les deux sont peints par le meme calcul.
+
+   LE RESUME DEVIENT DES LIENS : chaque etat mene a sa piece. Soulignes au
+   survol seulement, parce qu'un en-tete souligne de bout en bout se lit comme
+   une rature ; mais ils portent un filet, pour qu'on voie qu'on peut cliquer.
+   ========================================================================== */
+@media (min-width:701px){
+  .bdv-coque .bureau-tete{
+    position:sticky;
+    top:var(--h-entete);
+    z-index:2;
+    background:var(--bdv-fond);
+  }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__ligne{ min-height:var(--bdv-cible); }
+  .bdv-coque .bureau-tete--retracte .bureau-tete__jour,
+  .bdv-coque .bureau-tete--retracte .bureau-tete__lunette-mot{ display:none; }
+}
+.bdv-coque .bureau-tete__lunette{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin:0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+  white-space:nowrap;
+}
+.bdv-coque .bureau-tete__lunette[hidden]{ display:none; }
+.bdv-coque .bureau-tete__lunette-dessin{ flex:0 0 auto; width:var(--bdv-f-5); height:var(--bdv-f-5); }
+/* Sous 1280 px, la phrase de la lune part la premiere : le dessin reste, et son
+   `title` dit la phase. C'est ce qui tient la rangee a 1100 px. */
+@media (max-width:1280px){ .bdv-coque .bureau-tete__lunette-mot{ display:none; } }
+/* LE RESUME CEDE LA PLACE AVANT DE FAIRE DEBORDER LA PAGE. Mesure du 24/09/2026 a
+   1100 px : titre, date, lune, deux etats, le bouton de mise a jour et les trois
+   actions demandaient 1 350 px. Le resume est le seul morceau qui peut se couper
+   sans perdre une commande : il retrecit et coupe, il ne pousse jamais. */
+.bdv-coque .bureau-tete__resume{
+  display:flex;
+  gap:var(--bdv-e-2);
+  align-items:center;
+  max-width:none;
+  min-width:0;
+  flex:0 1 auto;
+  overflow:hidden;
+}
+.bdv-coque .bureau-tete__etat{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:0 var(--bdv-e-3);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r-rond);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-2);
+  font-size:var(--bdv-f-2);
+  text-decoration:none;
+  white-space:nowrap;
+  transition:background var(--bdv-d-court) var(--bdv-courbe),
+             border-color var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .bureau-tete__etat::after{ display:none; }
+.bdv-coque .bureau-tete__etat:hover{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-4);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bureau-tete__periode{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin:0;
+  font-size:var(--bdv-f-1);
+  text-transform:uppercase;
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-encre-4);
+  white-space:nowrap;
+}
+.bdv-coque .bureau-tete__periode[hidden]{ display:none; }
+.bdv-coque .bureau-tete__periode select{
+  min-height:36px;
+  padding:0 var(--bdv-e-3);
+  border:1px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-accent-lavis);
+  color:var(--bdv-accent);
+  font:inherit;
+  font-size:var(--bdv-f-2);
+  text-transform:none;
+  letter-spacing:0;
+  font-weight:600;
+}
+
+
+/* ==========================================================================
    4. OU SONT PASSES LE SALUT, LA PLAQUE ET LA LUNE
 
    Ils sont descendus dans « Ma journee », en tete du plan, dans
@@ -619,6 +727,17 @@ body.bdv-coque{
      dans `aria-label`, pose par `majBoutonMaj()`. */
   .bdv-coque .bureau-tete__maj{ width:var(--bdv-cible); padding:0; }
   .bdv-coque .bureau-tete__maj-mot{ display:none; }
+  /* LA LUNE ET LA PERIODE SUR TELEPHONE. La lune garde son dessin, sans phrase :
+     la colonne du titre fait deja 130 px. La periode ne remonte pas : la barre
+     y fait trois rangees, et un selecteur de plus dans 390 px pousserait la
+     deconnexion hors du cadre. */
+  .bdv-coque .bureau-tete__lunette-mot{ display:none; }
+  /* Une colonne de plus, entre le titre et les actions : pose en ligne 2 a cote
+     de la date, le dessin tombait DESSUS (mesure du 24/09/2026 a 390 px). */
+  .bdv-coque .bureau-tete__ligne{ grid-template-columns:minmax(0,1fr) auto auto; }
+  .bdv-coque .bureau-tete__lunette{ grid-column:2; grid-row:1 / span 2; }
+  .bdv-coque .bureau-tete__actions{ grid-column:3; }
+  .bdv-coque .bureau-tete__periode{ display:none; }
   /* L'EN-TETE SE RETRACTE AU DEFILEMENT. La classe est posee par le script de
      src/mon-bureau.njk des que la page a defile de plus d'une hauteur
      d'en-tete. On ne cache que la DATE : le nom de la piece et les actions

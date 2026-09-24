@@ -429,6 +429,9 @@
        bouton qui ne concerne plus l'ecran. */
     if (window.bdvMajBoutonMaj) window.bdvMajBoutonMaj(id);
     else { var maj = document.getElementById('bureauMaj'); if (maj) maj.hidden = true; }
+    /* Meme raisonnement pour le selecteur de periode, qui ne sert qu'a « Mon cap ». */
+    if (window.bdvMajPeriodeTete) window.bdvMajPeriodeTete(id);
+    else { var per = document.getElementById('bureauPeriode'); if (per) per.hidden = true; }
     /* ------- LA PIECE ACTIVE SE RAMENE DANS LE CHAMP, 19/09/2026 -------
        Sous 700 px la barre du bas DEFILE horizontalement : neuf cellules de 48 px font
        432 px, et un telephone courant en tient 390. Ces 48 px ne sont pas negociables,

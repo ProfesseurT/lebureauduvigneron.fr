@@ -12,6 +12,25 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. L'en-tête du bureau reste à l'écran, avec la lune et la période
+
+Trois options proposées à Ted (A : en-tête collé ; B : A + bandeau du site retiré du bureau ;
+C : A + la période qui remonte dans l'en-tête). **Il a choisi C.**
+
+- L'en-tête est collé sous le bandeau du site sur ordinateur (il l'était déjà sur téléphone), et se
+  tasse de 56 à 44 px au défilement : la date part, la lune ne garde que son dessin.
+- **La lune remonte en version courte** (dessin, phase, pourcentage), peinte par le même calcul que
+  le grand bloc de « Ma journée ». C'est un retour assumé sur la décision du 21/09. Sous 1280 px la
+  phrase part, le dessin reste ; sur téléphone, le dessin seul.
+- **Le résumé devient des liens** : l'échéance mène au calendrier, les clients à rappeler et les
+  articles à Ma journée.
+- **La période** : dans « Mon cap », quand la barre des dates passe sous l'en-tête, un sélecteur
+  « Période » apparaît dans l'en-tête (`miroirPeriode()`, `majPeriodeTete()`). C'est un miroir, il
+  appelle `setExercice()` et `setPeriode()`. Le collage de la barre du matin est retiré ; `clip` sur
+  `.content` reste. Pas sur téléphone.
+- Mesuré à la capture : 1440, 1100 et 390 px, deux thèmes, aucun débordement. À 1100 px le résumé
+  se coupe plutôt que de pousser la page.
+
 ## 24/09/2026. « À regarder en priorité » rejoint le dépliant du cap
 
 Demande de Ted : les signaux entrent dans le même dépliant que le bandeau et les trois cartes, et le
