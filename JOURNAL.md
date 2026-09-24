@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. Le calendrier flottant s'arrête à l'ardoise
+
+Ted : « le calendrier est flottant mais s'arrête à l'ardoise bien entendu ». Mesure faite, il ne
+s'arrêtait PAS : il glissait par-dessus l'ardoise en fin de liste, parce que le navigateur borne
+un bloc collant à son parent et non à sa case de grille. Corrigé en deux étages : la zone
+s'étire sur la rangée, la carte à l'intérieur (`.zone__flotte`) colle, et elle s'arrête au bas
+du sous-main. Vérifié : en fin de défilement, le bas du calendrier tombe pile sur le bas du
+sous-main, 16 px au-dessus de l'ardoise.
+
+---
+
 ## 24/09/2026. Le mot du jour monte entre le salut et la lune
 
 Ted : « les mots du jour interactifs, place-les en haut, entre la lune et Bonjour Ted, dans une

@@ -3364,8 +3364,11 @@ laterale qu'on peut ranger.
 ### LE CALENDRIER FLOTTE, ET LA LIGNE DU SOUS-MAIN SE CLIQUE EN ENTIER, 24/09/2026
 
 - **Le bloc calendrier de « Ma journee » est collant** au-dessus de 900 px (section 24 de
-  `bdv-bureau.css`), decale du bandeau et de l'en-tete retracte. Il reste dans sa cellule de
-  grille, donc s'arrete avec le sous-main, et ne fait rien quand les deux s'empilent.
+  `bdv-bureau.css`), decale du bandeau et de l'en-tete retracte, et **il s'arrete a l'ardoise**.
+  Premier jet faux, mesure a la capture : la zone elle-meme en `sticky` passait PAR-DESSUS
+  l'ardoise, Chromium bornant un collant a son PARENT (tout le plan), pas a sa cellule de grille.
+  La zone s'etire donc sur sa rangee et ne sert que de rail ; c'est `.zone__flotte`, la carte a
+  l'interieur, qui colle. **Ne pas remettre `sticky` sur la zone.**
 - **Toute la ligne du sous-main ouvre la fiche**, comme dans « Mon commerce ». Mais PAS comme
   dans « Mon commerce » techniquement : la ligne porte des boutons d'action, donc elle ne devient
   pas un `role="button"` (un interactif dans un interactif, deja paye au sous-main et au post-it).

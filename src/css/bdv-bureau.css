@@ -3948,16 +3948,33 @@ body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
    etait vide sur tout le defilement. Il se colle donc sous le bandeau et
    l'en-tete retracte, et descend avec la liste.
 
-   IL NE PEUT PAS SORTIR DE SA RANGEE : un collant reste dans sa cellule de
-   grille, et `.bureau-plan` porte `align-items:start`. Il s'arrete donc avec
-   le sous-main, et quand les deux s'empilent (cellule a sa propre hauteur) la
-   regle ne fait rien. Aucune couche ajoutee : pas de z-index, il ne recouvre
-   rien. Le decalage suit la regle des deux collants du 08/09/2026 : le bandeau
-   (--h-entete) plus l'en-tete retracte (--bdv-cible), plus un ecart. */
+   IL S'ARRETE A L'ARDOISE, et ce n'est pas le collant qui s'en charge tout
+   seul. Premier jet : la zone elle-meme en `sticky`. Mesure a la capture : elle
+   passait PAR-DESSUS l'ardoise, parce que Chromium borne un collant a son
+   PARENT (tout le plan) et non a sa cellule de grille. D'ou deux etages :
+   - la ZONE s'etire sur toute la hauteur de sa rangee (`align-self:stretch`)
+     et perd son habit de carte, elle ne sert plus que de rail ;
+   - la CARTE est `.zone__flotte`, a l'interieur, et c'est elle qui colle. Son
+     parent etant la zone, elle s'arrete au bas de la rangee, donc au-dessus de
+     l'ardoise. Quand les deux blocs s'empilent, la zone fait sa propre hauteur
+     et rien ne bouge.
+   Aucune couche ajoutee. Le decalage suit la regle des deux collants du
+   08/09/2026 : le bandeau (--h-entete) plus l'en-tete retracte (--bdv-cible),
+   plus un ecart. */
 @media (min-width:901px){
   .bdv-coque .zone--calendrier{
+    align-self:stretch;
+    background:none;
+    border:0;
+    padding:0;
+  }
+  .bdv-coque .zone--calendrier .zone__flotte{
     position:sticky;
     top:calc(var(--h-entete) + var(--bdv-cible) + var(--bdv-e-4));
+    background:var(--bdv-surface);
+    border:1px solid var(--bdv-trait);
+    border-radius:var(--bdv-r);
+    padding:var(--bdv-e-4);
   }
 }
 
