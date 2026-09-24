@@ -1992,6 +1992,12 @@
     "prixHaut": 20,
     "nPrix": 1,
     "condDom": "75cl",
+    "conds": [
+     {
+      "c": "75cl",
+      "btl": 12
+     }
+    ],
     "millesimes": [
      {
       "m": "sans millésime",
@@ -2034,6 +2040,12 @@
     "prixHaut": 12.048193,
     "nPrix": 124,
     "condDom": "75cl",
+    "conds": [
+     {
+      "c": "75cl",
+      "btl": 19672
+     }
+    ],
     "millesimes": [
      {
       "m": "2024",
@@ -2076,6 +2088,16 @@
     "prixHaut": 18,
     "nPrix": 12,
     "condDom": "75cl",
+    "conds": [
+     {
+      "c": "75cl",
+      "btl": 360
+     },
+     {
+      "c": "Magnum",
+      "btl": 12
+     }
+    ],
     "millesimes": [
      {
       "m": "2025",
@@ -2118,6 +2140,12 @@
     "prixHaut": 15,
     "nPrix": 12,
     "condDom": "75cl",
+    "conds": [
+     {
+      "c": "75cl",
+      "btl": 252
+     }
+    ],
     "millesimes": [
      {
       "m": "2024",
@@ -2167,6 +2195,12 @@
     "prixHaut": 30,
     "nPrix": 6,
     "condDom": "75cl",
+    "conds": [
+     {
+      "c": "75cl",
+      "btl": 205
+     }
+    ],
     "millesimes": [
      {
       "m": "2023",

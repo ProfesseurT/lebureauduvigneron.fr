@@ -6344,3 +6344,20 @@ Il garde les trois refus, les trois chemins, la presence de `#noteClassement` da
 CONSTRUITE (un id absent ne leve rien : la zone reste vide et personne ne le remarque), et l'ordre
 `rafraichirTout()` puis `viserOnglet()`. Verifie en remettant le defaut, trois mutations, trois
 echecs cibles : le garde de l'incertitude retire, `renderAll()` debranche, l'onglet vise trop tot.
+
+
+## UN CHAMP QUE LE SERVEUR NE REND PAS NE PEUT PAS DIVERGER, 24/09/2026
+
+La fiche d'une cuvée affichait « Conditionnements » sans rien dessous depuis le lot 26 :
+`cuvees_resume()` ne rendait que le conditionnement dominant, et `agentProduits()` posait
+`cond: {}` en dur. Le contrôle de parité était vert, parce qu'il ne compare que ce que le serveur
+rend. Lot 32 : le serveur rend `conds`, un tableau `[{c, btl}]`.
+
+**LA REGLE : quand on porte un écran sur le serveur, lister ce que l'écran LIT, pas ce que le
+serveur REND.** Tout champ lu et non rendu est soit porté, soit refusé explicitement (`null`, et
+l'écran se tait). Jamais remplacé par un vide écrit en dur. Encore « une absence n'est pas un zéro ».
+
+Le bloc se cache quand le champ manque (`condsDuServeur()` rend `null`) : c'est ce qui protège un
+résumé rangé en cache avant le lot 32. Le lot 32 efface ce cache, mais le garde de l'écran ne dépend
+pas de ce collage. `npm run banc:cuvees-serveur` garde les deux.
+

@@ -12,6 +12,30 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. La fiche d'une cuvée n'affichait aucun conditionnement
+
+Capture de Ted sur « Le Miracle » : le titre « Conditionnements » et rien dessous.
+
+**La cause.** Depuis le lot 26, `cuvees_resume()` calcule le volume par conditionnement mais ne
+rend que le DOMINANT, celui qui porte la fourchette de prix. Côté navigateur, `agentProduits()`
+remplissait le détail avec un objet vide écrit en dur. `npm run controle:cuvees` ne pouvait pas le
+voir : il compare les champs que le serveur rend, et un champ qu'il ne rend pas ne diverge jamais.
+
+**Deux corrections proposées, Ted a choisi la seconde** : le serveur rend le détail (lot 32), plutôt
+que de recalculer la liste sur l'appareil. C'est le sens du chantier de portage.
+
+- `supabase/lot32-cuvees-conditionnements.sql` : un champ additif `conds`, la fonction recopiée du
+  lot 26, vérifiée identique à la production, et le cache `cuvees` effacé. Calcul rejoué en lecture
+  seule sur la base de Ted : Le Miracle, 10 334 bouteilles de 75 cl et 159 magnums, soit les
+  10 493 de la fiche.
+- `bdv-ecrans.js` : `condsDuServeur()` traduit le champ, et **un résumé sans le champ cache le bloc**
+  au lieu de peindre un titre sur du vide.
+- `controle:cuvees` compare désormais `conds` ; `banc:cuvees-serveur`, 11 contrôles, dans `verif`,
+  vérifié en remettant les deux défauts.
+- `banc:rejeu` : les lots 31 et 32 ajoutés à `ORDRE`. Le 31 en manquait.
+
+**À faire par Ted** : coller le lot 32 dans Supabase, puis pousser.
+
 ## 23/09/2026, le soir. « Je peux pas faire confiance au reste à partir de là »
 
 Ted venait de rentrer une base de 5 210 lignes et a demandé un audit des calculs, captures à

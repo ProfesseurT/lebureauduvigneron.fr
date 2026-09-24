@@ -1917,6 +1917,18 @@ function cuvRafraichir(apres){
 }
 window.bdvCuveesRafraichir = cuvRafraichir;
 
+/* LE DETAIL DES CONDITIONNEMENTS, LOT 32, 24/09/2026. Jusque-la le serveur ne rendait
+   que le DOMINANT, et cette ligne ecrivait `cond: {}` en dur : la fiche affichait le
+   titre « Conditionnements » sans rien dessous, depuis le lot 26. Un objet vide ecrit
+   en dur ressemble a une cuvee sans conditionnement ; c'etait une question jamais posee.
+   `null` quand le champ manque (resume range en cache avant le lot 32, SQL pas encore
+   colle) : la fiche cache alors le bloc au lieu de peindre un titre sur du vide. */
+function condsDuServeur(t){
+  if(!Array.isArray(t))return null;
+  const o={};
+  t.forEach(function(x){ if(x&&x.c!=null)o[x.c]=comNb(x.btl); });
+  return o;
+}
 function agentProduits(){
   if(CUV && Array.isArray(CUV.liste)){
     /* Le serveur rend les millesimes en TABLEAU, l'ecran les lit en OBJET indexe par le
@@ -1935,7 +1947,7 @@ function agentProduits(){
                prixBas: comNb(c.prixBas), prixHaut: comNb(c.prixHaut),
                nPrix: c.nPrix, condDom: c.condDom, millesimes: mil,
                parMois: (c.parMois || []).map(comNb),
-               cond: {}, achats: {}, prixPar: {} };
+               cond: condsDuServeur(c.conds), achats: {}, prixPar: {} };
     }).sort(function(a,b){ return b.ca - a.ca; });
     return { ok: true, liste: liste, caTotal: comNb(CUV.caTotal),
              f: { cur: CUV.exerciceCur, prev: CUV.exerciceCur - 1, cutPos: CUV.coupePos },
@@ -2156,7 +2168,7 @@ function produitHTML(c,A){
   const ref=META.max?Math.floor(Date.UTC(META.max.y,META.max.m-1,META.max.d)/86400000):null;
   const mils=Object.entries(c.millesimes).sort((a,b)=>b[1].ca-a[1].ca);
   const maxMil=mils.length?mils[0][1].ca:0;
-  const conds=Object.entries(c.cond).sort((a,b)=>b[1]-a[1]);
+  const conds=Object.entries(c.cond||{}).sort((a,b)=>b[1]-a[1]);
   const moisMax=Math.max(...c.parMois);
   // Qui l'achete : les plus gros acheteurs de cette cuvee.
   const parClient={};
@@ -2192,10 +2204,10 @@ function produitHTML(c,A){
         <div class="rep">${mils.map(([m,o])=>`<div class="rep__row">
           <div class="rep__bar"><div class="rep__fill" style="width:${maxMil>0?(o.ca/maxMil*100).toFixed(1):0}%"></div><div class="rep__lbl">${esc(m)}</div></div>
           <div class="rep__val">${fmtMoney(o.ca)} <span class="rep__pct">${o.cur>0?'encore vendu':'épuisé'}</span></div></div>`).join('')}</div>
-        <div class="section-label">Conditionnements</div>
+        ${conds.length?`<div class="section-label">Conditionnements</div>
         <div class="rep">${conds.map(([k,v])=>`<div class="rep__row">
           <div class="rep__bar"><div class="rep__fill" style="width:${conds[0][1]>0?(v/conds[0][1]*100).toFixed(1):0}%"></div><div class="rep__lbl">${esc(k)}</div></div>
-          <div class="rep__val">${fmtNum(v)} btl</div></div>`).join('')}</div>
+          <div class="rep__val">${fmtNum(v)} btl</div></div>`).join('')}</div>`:''}
       </div>
       <div>
         <div class="section-label">Qui l'achète</div>

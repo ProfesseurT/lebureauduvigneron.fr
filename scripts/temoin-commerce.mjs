@@ -119,6 +119,9 @@ const test = `
         prixBas: Math.round(c.prixBas*1000000)/1000000,
         prixHaut: Math.round(c.prixHaut*1000000)/1000000,
         nPrix: c.nPrix, condDom: c.condDom,
+        /* LOT 32 : le detail des conditionnements, que la fiche affiche. */
+        conds: Object.keys(c.cond).sort().map(function(k){
+          return { c: k, btl: Math.round(c.cond[k]*1000)/1000 }; }),
         millesimes: Object.keys(c.millesimes).sort().map(function(m){ return {
           m: m, ca: Math.round(c.millesimes[m].ca*100)/100,
           btl: Math.round(c.millesimes[m].btl*1000)/1000,

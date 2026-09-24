@@ -25,16 +25,25 @@ if (!T.produits || !T.produits.ok) {
   process.exit(2);
 }
 const q = s => "'" + String(s).replace(/'/g, "''") + "'";
+/* LOT 32 : les conditionnements se comparent comme UN TEXTE, trie par nom, des deux
+   cotes. Un temoin d'avant le lot 32 n'a pas ce champ : on le dit, on ne compare pas
+   du vide a du plein (un champ absent ne diverge jamais, c'est le defaut du lot 26). */
+if (T.produits.liste.some(c => !Array.isArray(c.conds))) {
+  console.error('Le temoin ne porte pas les conditionnements : relance npm run temoin:commerce');
+  process.exit(2);
+}
+function condsTexte(t){ return t.slice().sort((a,b) => a.c < b.c ? -1 : 1)
+  .map(x => x.c + ':' + Number(x.btl).toFixed(3)).join(' | '); }
 const lignes = T.produits.liste.map(c => '(' + [q(c.nom), c.ca, c.btl, c.clients, c.part,
   c.cur, c.prev, c.delta, c.top1, q(c.nomTop), c.rachat, c.prixMed, c.prixBas, c.prixHaut,
-  c.nPrix, q(c.condDom), c.millesimes.length].join(',') + ')').join(',\n  ');
+  c.nPrix, q(c.condDom), c.millesimes.length, q(condsTexte(c.conds))].join(',') + ')').join(',\n  ');
 
 /* Les euros au centime, les rapports a la sixieme decimale : au-dela on comparerait du
    bruit de virgule flottante, et un banc qui echoue au hasard finit ignore. */
 const NOMBRES = [['ca',2],['btl',3],['part',6],['cur',2],['prev',2],['delta',2],
                  ['top1',6],['rachat',6],['prixmed',6],['prixbas',6],['prixhaut',6]];
 const ENTIERS = ['clients','nprix','nmil'];
-const TEXTES  = ['nomtop','conddom'];
+const TEXTES  = ['nomtop','conddom','conds'];
 const cmp = ([f,d]) => `round(n.${f}::numeric,${d}) is distinct from round(s.${f},${d})`;
 const tous = [...NOMBRES.map(cmp),
               ...ENTIERS.map(f => `n.${f} is distinct from s.${f}`),
@@ -43,7 +52,7 @@ const tous = [...NOMBRES.map(cmp),
 console.log(`/* Comparaison navigateur / serveur des cuvees, sur le bureau d'essai.
    Engendree par scripts/controle-cuvees.mjs, temoin du ${new Date().toISOString().slice(0,10)}.
    ZERO LIGNE = les deux cotes sont d'accord. */
-with nav(nom,ca,btl,clients,part,cur,prev,delta,top1,nomtop,rachat,prixmed,prixbas,prixhaut,nprix,conddom,nmil) as (values
+with nav(nom,ca,btl,clients,part,cur,prev,delta,top1,nomtop,rachat,prixmed,prixbas,prixhaut,nprix,conddom,nmil,conds) as (values
   ${lignes}
 ),
 srv as (
@@ -54,7 +63,10 @@ srv as (
          e->>'nomTop' as nomtop, (e->>'rachat')::numeric as rachat,
          (e->>'prixMed')::numeric as prixmed, (e->>'prixBas')::numeric as prixbas,
          (e->>'prixHaut')::numeric as prixhaut, (e->>'nPrix')::int as nprix,
-         e->>'condDom' as conddom, jsonb_array_length(e->'millesimes') as nmil
+         e->>'condDom' as conddom, jsonb_array_length(e->'millesimes') as nmil,
+         (select string_agg(k->>'c' || ':' || to_char((k->>'btl')::numeric, 'FM999999999990.000'),
+                            ' | ' order by k->>'c')
+            from jsonb_array_elements(e->'conds') k) as conds
     from jsonb_array_elements(public.cuvees_resume('${BUREAU}')->'liste') e
 )
 select coalesce(n.nom, s.nom) as cuvee,
