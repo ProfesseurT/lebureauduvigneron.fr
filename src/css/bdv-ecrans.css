@@ -459,6 +459,17 @@
 .bdv-ventes .fiche__mois-l{font-size:var(--bdv-f-1);color:var(--bdv-encre-4);text-align:center;margin-top:2px}
 .bdv-ventes tr.clic{cursor:pointer}
 .bdv-ventes tr.clic:hover{background:var(--bdv-survol)}
+.bdv-ventes .cmd__b{background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;white-space:nowrap}
+.bdv-ventes .cmd__b::before{content:"\25B8";display:inline-block;width:1em;color:var(--bdv-encre-3)}
+.bdv-ventes .cmd__b[aria-expanded="true"]::before{content:"\25BE"}
+.bdv-ventes tr.cmd__d>td{background:var(--bdv-surface-2);padding:var(--bdv-e-3)}
+.bdv-ventes .cmd__num{font-size:var(--bdv-f-1);color:var(--bdv-encre-3);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .cmd__t{width:100%;border-collapse:collapse;font-size:var(--bdv-f-1);color:var(--bdv-encre-2)}
+.bdv-ventes table.data table.cmd__t th{position:static;background:none;text-align:left;font-size:var(--bdv-f-1);font-weight:600;color:var(--bdv-encre-3);padding:var(--bdv-e-1) var(--bdv-e-2);white-space:nowrap}
+.bdv-ventes table.data table.cmd__t td{padding:var(--bdv-e-1) var(--bdv-e-2);border-top:1px solid var(--bdv-trait);border-bottom:none;height:auto}
+.bdv-ventes table.data table.cmd__t .num{text-align:right;white-space:nowrap;width:1%}
+.bdv-ventes .cmd__f{color:var(--bdv-encre-3);white-space:nowrap}
+.bdv-ventes .cmd__of{font-size:var(--bdv-f-1);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);color:var(--bdv-encre-3)}
 .bdv-ventes tr.clic:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:-2px}
 /* Cartes de motif de l'ecran Mes clients : elles servent de filtre ET de resume chiffre. */
 .bdv-ventes .panel#p-annee > div + div{margin-top:var(--bdv-e-12);padding-top:var(--bdv-e-8);border-top:1px solid var(--bdv-trait-fort)}

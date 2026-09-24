@@ -3312,6 +3312,22 @@ Mais promettre un calcul qu'on ne fait pas reste le pire des trois etats.
   premiere personne. Une description ecrite par le Bureau n'en porte pas. Le modele du vrai
   temoignage est dans `conseil-temoignage.njk`.
 
+## LE DETAIL D'UNE COMMANDE SE DEPLIE, IL NE S'OUVRE PAS PAR-DESSUS, 24/09/2026
+
+Dans « Ses commandes » de la fiche client, un clic sur une ligne deplie la facture en dessous
+(`detailCommande()` et `basculerCommande()` dans `bdv-ecrans.js`, `.cmd__*` dans
+`bdv-ecrans.css`). Arbitrage de Ted : pas de modale dans la modale.
+
+- **Le detail porte les MEMES lignes que le total** (`facture.detail`, rempli dans
+  `ficheClient()` sur les seules lignes `_vin`). Y ajouter d'autres lignes ferait un detail qui
+  ne tombe plus sur le montant affiche.
+- **Un prix unitaire vide reste vide** (`pu: null`), jamais `parseNum('')`, qui vaut 0.
+- **Pas d'`onclick` sur la ligne** (la section B1 de la charte le refuse) : le bouton de la date
+  est le seul arret clavier, et un ecouteur DELEGUE sur `document` bascule toute ligne
+  `#modale tr.cmd`. Poser l'ecouteur sur les lignes le ferait mourir au premier redessin.
+- **Le tableau interieur est dans un `table.data`** : ses regles s'ecrivent
+  `.bdv-ventes table.data table.cmd__t ...`, sinon celles du tableau exterieur gagnent.
+
 ## LE COMPLEMENT DES LIGNES PASSE PAR L'EN-TETE, 24/09/2026
 
 La carte « Charger mes lignes et completer » posee en bas de « Mon cap », « Mon commerce » et

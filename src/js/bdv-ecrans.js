@@ -2406,8 +2406,13 @@ function ficheClient(id){
   const base=lignes[0];
   const factures={};
   ventes.forEach(r=>{const f=r.numFacture||'?';
-    const o=factures[f]||(factures[f]={num:f,date:r._date,jour:r._dayNum,total:0,btl:0,lignes:0,canal:r._canal});
-    o.total+=r._total;o.btl+=r._qte;o.lignes++;});
+    const o=factures[f]||(factures[f]={num:f,date:r._date,jour:r._dayNum,total:0,btl:0,lignes:0,canal:r._canal,detail:[]});
+    o.total+=r._total;o.btl+=r._qte;o.lignes++;
+    // Le DETAIL de la facture, 24/09/2026 : les memes lignes que celles qui font le total,
+    // et elles seules. Un detail qui compterait d'autres lignes que la somme affichee au-dessus
+    // ne tomberait pas juste, et c'est le seul controle que le vigneron fera a l'oeil.
+    o.detail.push({produit:r.produit||'(sans nom)',mil:r.millesime||'',cond:r.conditionnement||'',
+      qte:r._qte,pu:(r.puHT==null||String(r.puHT).trim()==='')?null:parseNum(r.puHT),total:r._total,offert:!!r._offert});});
   const listeF=Object.values(factures).sort((a,b)=>(b.jour||0)-(a.jour||0));
   const ca=sum(ventes,r=>r._total), btl=sum(ventes,r=>r._qte);
   const jours=[...new Set(ventes.map(r=>r._dayNum).filter(v=>v!=null))].sort((a,b)=>a-b);
@@ -2888,6 +2893,33 @@ function viserDansLaFiche(cible){
   });
 }
 window.ouvrirFicheClient=ouvrirFicheClient;
+/* LE DETAIL D'UNE COMMANDE, 24/09/2026. Demande de Ted : « on aurait le detail de cette
+   commande quand on clique dessus ? ». Arbitrage : un DEPLIANT sous la ligne, pas une modale.
+   La fiche est deja une modale (ou un tiroir) : une fenetre par-dessus une fenetre casse le
+   clavier et cache la liste qu'on est en train de comparer.
+   UN SEUL arret clavier par ligne, le bouton de la date ; le clic sur le reste de la ligne
+   remonte a la ligne, qui n'est pas un element interactif. Meme regle que le sous-main. */
+function detailCommande(x){
+  const tete=x.num&&x.num!=='?'?`Facture ${esc(x.num)}`:'Facture sans numéro';
+  return `<div class="cmd__det"><div class="cmd__num">${tete}, ${plur(x.detail.length,'ligne')}</div>
+    <table class="cmd__t"><thead><tr><th>Vin</th><th class="num">Qté</th><th class="num">PU HT</th><th class="num">Total HT</th></tr></thead><tbody>
+    ${x.detail.map(d=>`<tr><td>${esc(d.produit)}${d.mil&&String(d.produit).indexOf(d.mil)<0?' '+esc(d.mil):''}${d.cond?` <span class="cmd__f">${esc(d.cond)}</span>`:''}${d.offert?' <span class="cmd__of">offert</span>':''}</td><td class="num">${fmtNum(d.qte)}</td><td class="num">${d.pu==null?'':fmtNum(d.pu,2)+' €'}</td><td class="num">${fmtMoney(d.total)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function basculerCommande(tr){
+  const b=tr.querySelector('.cmd__b'), d=tr.nextElementSibling;
+  if(!b||!d)return;
+  const ouvert=b.getAttribute('aria-expanded')==='true';
+  b.setAttribute('aria-expanded',ouvert?'false':'true');
+  d.hidden=ouvert;
+}
+// Un seul ecouteur, delegue : la fiche est reecrite a chaque geste, un ecouteur pose sur ses
+// lignes mourrait au premier redessin. Le clavier arrive par le bouton, dont le clic remonte ici.
+document.addEventListener('click',function(e){
+  const tr=e.target.closest&&e.target.closest('#modale tr.cmd');
+  if(!tr||window.getSelection&&String(window.getSelection()).length)return;
+  basculerCommande(tr);
+});
 function ficheHTML(f,motif){
   const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
   const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
@@ -2965,7 +2997,8 @@ function ficheHTML(f,motif){
         <div class="section-label">Ses commandes</div>
         <div class="tablewrap" style="max-height:270px;overflow-y:auto">
           <table class="data"><thead><tr><th>Date</th><th class="num">Montant</th><th class="num">Btl</th><th>Où</th></tr></thead><tbody>
-          ${f.factures.map(x=>`<tr><td>${fmtDate(x.date)}</td><td class="num">${fmtMoney(x.total)}</td><td class="num">${fmtNum(x.btl)}</td><td>${esc(x.canal||'')}</td></tr>`).join('')}
+          ${f.factures.map((x,i)=>`<tr class="clic cmd"><td><button type="button" class="cmd__b" aria-expanded="false" aria-controls="cmd-${i}">${fmtDate(x.date)}<span class="hors-ecran">, voir le détail de la facture</span></button></td><td class="num">${fmtMoney(x.total)}</td><td class="num">${fmtNum(x.btl)}</td><td>${esc(x.canal||'')}</td></tr>
+          <tr class="cmd__d" id="cmd-${i}" hidden><td colspan="4">${detailCommande(x)}</td></tr>`).join('')}
           </tbody></table>
         </div>
         <div class="section-label">Quand il commande</div>

@@ -12,6 +12,19 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. Le détail d'une commande dans la fiche client
+
+Ted : « on aurait le détail de cette commande quand on clique dessus, dans une petite modale ? ».
+Arbitrage de Ted : un DÉPLIANT sous la ligne, pas une modale. La fiche est déjà une modale ou un
+tiroir, et une fenêtre par-dessus une fenêtre casse le clavier et cache la liste qu'on compare.
+Chaque ligne de « Ses commandes » s'ouvre sur : numéro de facture, chaque vin avec son format,
+quantité, prix unitaire et total. Ce sont exactement les lignes qui font le montant affiché
+au-dessus, donc le détail tombe juste. Un prix unitaire absent de l'export reste une case vide,
+jamais un « 0 € ». Un seul arrêt clavier par ligne (le bouton de la date), un seul écouteur
+délégué, parce que la fiche est réécrite à chaque geste.
+
+---
+
 ## 24/09/2026. Le calendrier flottant s'arrête à l'ardoise
 
 Ted : « le calendrier est flottant mais s'arrête à l'ardoise bien entendu ». Mesure faite, il ne
