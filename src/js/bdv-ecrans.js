@@ -1313,8 +1313,8 @@ function computeBridge(){
 function bridgeHero(){
   const br=computeBridge();
   if(!br){
-    return `<div class="section-label">D'où vient ta variation</div>`+
-      signal('info','ℹ','Décomposition indisponible.',`Il faut deux ${exMot()}s comparables dans la base pour savoir si ton chiffre bouge parce que tu gagnes des clients ou parce que tu en perds. Ajoute un export couvrant le précédent.`);
+    return replierVariation(`D'où vient ta variation`,
+      signal('info','ℹ','Décomposition indisponible.',`Il faut deux ${exMot()}s comparables dans la base pour savoir si ton chiffre bouge parce que tu gagnes des clients ou parce que tu en perds. Ajoute un export couvrant le précédent.`));
   }
   const gagne=br.nw+br.up, perdu=Math.abs(br.down+br.lost);
   const ratio=perdu>0?gagne/perdu:null;
@@ -1350,8 +1350,8 @@ function bridgeHero(){
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
       <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--bdv-bon)':'var(--bdv-retard)'}"></span></td>
       <td class="num" style="color:${val===0?'inherit':(pos?'var(--bdv-bon)':'var(--bdv-retard)')};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
-  return `<div class="section-label">D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale</div>`
-    +signal(kind,ico,verdict,action)
+  return replierVariation(`D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale : ${fmtDelta(br.delta)}`,
+    signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
       <table class="data"><tbody>
       ${ligne('Clients nouveaux',br.nw,true,'ils n\'achetaient pas l\'an dernier')}
@@ -1360,7 +1360,16 @@ function bridgeHero(){
       ${ligne('Clients perdus',br.lost,false,'ils achetaient l\'an dernier, plus rien cette année')}
       <tr><td><b>Variation totale</b></td><td></td><td class="num"><b>${fmtDelta(br.delta)}</b></td></tr>
       </tbody></table>
-      <p class="note">Les quatre lignes bouclent sur le total : chaque euro gagné ou perdu est dans une seule d\'entre elles. Un client ne peut pas être à la fois perdu et en baisse.</p></div>`;
+      <p class="note">Les quatre lignes bouclent sur le total : chaque euro gagné ou perdu est dans une seule d\'entre elles. Un client ne peut pas être à la fois perdu et en baisse.</p></div>`);
+}
+/* LA VARIATION SE REPLIE, 24/09/2026. Demande de Ted : ce bloc passait AVANT « Qui
+   rappeler », c'est-a-dire avant la liste pour laquelle on ouvre « Mon commerce ». Il
+   explique, il ne fait pas agir : c'est le troisieme etage de la regle des trois etages,
+   donc replie par defaut. Le TOTAL reste dans le titre du depliant, pour que le chiffre
+   se lise sans ouvrir. Meme habit que les pieds de « Mon cap » et « Mes cuvees ». */
+function replierVariation(titre, corps){
+  return `<div class="card"><details class="msg--replie" id="pied-variation">
+    <summary>${titre}</summary>${corps}</details></div>`;
 }
 
 function drawTrend(labels,data){

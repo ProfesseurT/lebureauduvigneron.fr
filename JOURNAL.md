@@ -12,6 +12,14 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. « D'où vient ta variation » se replie dans Mon commerce
+
+Demande de Ted. Le bloc passait avant « Qui rappeler », la liste pour laquelle on ouvre la pièce.
+Il explique sans faire agir : troisième étage de la règle des trois étages, donc replié par défaut
+(`replierVariation()` dans `bdv-ecrans.js`, même habit que les pieds de Mon cap et Mes cuvées).
+Le total reste dans le titre du dépliant (« … à date égale : -25 564 € ») pour se lire sans ouvrir.
+Le cas « décomposition indisponible » est replié de la même façon.
+
 ## 24/09/2026. Le bouton « Charger mes lignes et compléter » monte dans l'en-tête
 
 Capture de Ted sur « Mon cap » : « ce bouton est clairement pas cool, il apparaît dans d'autres
