@@ -12,6 +12,15 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. La barre de période de Mon cap reste à l'écran
+
+Ted : « les dates restent flottantes, c'est pas utilisable sinon ». La barre est collée sous
+l'entête du site (`top: var(--h-entete)`), sur ordinateur seulement : sur téléphone elle fait trois
+rangées de chips et mangerait l'écran. La vraie cause qui empêchait tout collage : `.content`
+portait `overflow-x: hidden`, qui en fait un cadre de défilement. Passé à `clip`, qui coupe pareil
+sans créer de cadre. Vérifié dans un navigateur en faisant défiler : la barre reste en place à
+1440 px, reste dans le flux à 390 px.
+
 ## 24/09/2026. « D'où vient ta variation » se replie dans Mon commerce
 
 Demande de Ted. Le bloc passait avant « Qui rappeler », la liste pour laquelle on ouvre la pièce.

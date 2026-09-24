@@ -266,7 +266,22 @@
 
 /* Le pied du volet : les autres pieces du bureau. Le tableau de bord n'est pas une
    application dont on sort, c'est une piece dans laquelle on passe. */
-.bdv-ventes .content{background:var(--bdv-fond);padding:var(--bdv-e-6) var(--bdv-e-6) var(--bdv-e-12);overflow-x:hidden;min-width:0}
+.bdv-ventes .content{background:var(--bdv-fond);padding:var(--bdv-e-6) var(--bdv-e-6) var(--bdv-e-12);overflow-x:clip;min-width:0}
+/* LA BARRE DE PERIODE RESTE A L'ECRAN, 24/09/2026. Ted : « dans Mon cap, les dates
+   restent flottantes, c'est pas utilisable sinon ». Elle pilote TOUS les chiffres de
+   la piece, et on la perdait des le premier defilement.
+   DEUX CONDITIONS, ET LA PREMIERE EST INVISIBLE A LA LECTURE :
+   1. `.content` portait `overflow-x:hidden`, qui fait de lui un conteneur de
+      defilement : un `sticky` s'y colle a un cadre qui ne defile jamais, donc ne colle
+      rien. `clip` coupe pareil sans creer de conteneur. C'est la seule difference.
+   2. `top:var(--h-entete)` et pas 0 : l'entete du site est collee a `top:0` avec un
+      fond opaque, et deux collants a zero ne se partagent pas le haut (regle du
+      08/09/2026). La hauteur est MESUREE par `mesurerEntete()` de bdv-nav.js.
+   PAS SUR TELEPHONE : la barre y passe sur trois rangees de chips, et collee elle
+   mangerait le tiers de l'ecran. */
+@media (min-width:701px){
+  .bdv-ventes .filterbar{position:sticky;top:var(--h-entete);z-index:2}
+}
 
 /* FILTRES */
 .bdv-ventes .filterbar{display:flex;gap:var(--bdv-e-2);flex-wrap:wrap;align-items:center;background:var(--bdv-surface);border:1px solid var(--bdv-trait);border-radius:var(--bdv-r);padding:var(--bdv-e-2) var(--bdv-e-3);margin-bottom:var(--bdv-e-6);font-size:var(--bdv-f-2)}
