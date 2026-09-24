@@ -1772,6 +1772,26 @@ function capAtterrissage(){
   return at;
 }
 
+/* LE CAP SE REPLIE, 24/09/2026. Demande de Ted, apres « D'ou vient ta variation » dans
+   « Mon commerce » : le bandeau et les trois cartes « Ou en es-tu » restaient en dur en
+   tete de piece, et poussaient « A regarder en priorite », la liste ou l'on agit, sous la
+   ligne de flottaison. Ils passent dans un depliant FERME, et c'est Ted qui l'a tranche
+   (bandeau ET cartes, pas l'un sans l'autre).
+   LES DEUX CHIFFRES QUI REPONDENT A « OU J'EN SUIS » RESTENT DANS LE TITRE : l'evolution a
+   date et l'atterrissage. Un depliant dont le titre ne dit rien oblige a l'ouvrir pour
+   savoir s'il fallait l'ouvrir. Meme habit que le pied de la piece et que la variation de
+   « Mon commerce ». */
+function replierCap(corps, f, at){
+  if(!corps) return '';
+  const morceaux = [];
+  if(f && f.d != null) morceaux.push(fmtPct(f.d) + ' à date');
+  if(at && !at.complete) morceaux.push('atterrissage ' + fmtMoney(at.central));
+  else if(at && at.complete) morceaux.push(fmtMoney(at.total) + ', ' + exComplet());
+  const annee = f ? exLabelCourt(f.cur) : (at ? exLabelCourt(at.cur) : '');
+  const titre = 'Ton cap' + (annee ? ' ' + annee : '') + (morceaux.length ? ' : ' + morceaux.join(', ') : '');
+  return `<div class="card"><details class="msg--replie" id="pied-cap-tete">
+    <summary>${titre}</summary>${corps}</details></div>`;
+}
 function renderCap(){
   const p=el('p-diagnostic');if(!p)return;
   capAuBesoin();
@@ -1800,6 +1820,7 @@ function renderCap(){
      « Evolution vs N-1 » du diagnostic affichaient le meme calcul et les deux memes
      montants. Le bandeau gagne : il dit en plus les deux totaux et l'atterrissage, et il
      se lit d'un coup d'oeil. Le compteur a ete retire de la grille. */
+  const debutCap=html.length;   // le bandeau et « Ou en es-tu » se replient ensemble, voir replierCap()
   if(f){
     /* Les trois valeurs viennent de `capCadre()`, donc du serveur quand il a repondu.
        Elles etaient recalculees ici alors que `yoyTotals()` les avait deja : un
@@ -1830,6 +1851,7 @@ function renderCap(){
      ecrans differents, et celui-ci ne se repeignait qu'au rendu de la piece : de quoi voir
      deux montants differents pour le meme reglage. Il reste une phrase qui dit ou aller. */
   html+=`<p class="note">${objectif?`Objectif fixé à ${fmtMoney(objectif)}.`:`Aucun objectif de CA fixé.`} Il se règle dans <b>Mes réglages</b>, onglet « Tes ventes ».</p>`;
+  html=html.slice(0,debutCap)+replierCap(html.slice(debutCap),f,at);
 
   /* ================= CE QUI SUIT LIT ENCORE LES LIGNES, 18/09/2026 =================
 

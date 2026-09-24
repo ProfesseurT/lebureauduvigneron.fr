@@ -12,6 +12,14 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24/09/2026. Le cap passe sous un dépliant
+
+Demande de Ted, choix « bandeau + Où en es-tu » : le bloc « -26,1 % » et les trois cartes
+(réalisé, atterrissage, écart à l'objectif) avec leurs notes passent dans un dépliant fermé
+(`replierCap()` dans `bdv-ecrans.js`). « À regarder en priorité » remonte en tête. Le titre garde
+les deux chiffres qui répondent à « où j'en suis » : « Ton cap 2026/27 : -26,1 % à date,
+atterrissage 223 302 € ». Aucun graphique dedans, donc pas de piège de canevas à hauteur zéro.
+
 ## 24/09/2026. La barre de période de Mon cap reste à l'écran
 
 Ted : « les dates restent flottantes, c'est pas utilisable sinon ». La barre est collée sous
