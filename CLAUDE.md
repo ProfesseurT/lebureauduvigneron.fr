@@ -6655,3 +6655,16 @@ Section 28 de `bdv-bureau.css`, bloc de fin de `bdv-ecrans.css`.
 - Non traite : les deux lignes suivantes du bloc calendrier (10 oct., 16 oct.) ne menent nulle
   part, et les lignes des ecrans de vente n'ont pas ete essayees charge complete (le banc hors
   ligne ne les charge pas).
+
+## LE SITE S'OUVRE DANS UN AUTRE ONGLET DEPUIS LE BUREAU, 25/09/2026
+
+Demande de Ted : les liens du bandeau (Articles, Outils, Conseil terrain, La redaction) et du
+pied de page faisaient quitter le bureau. `ouvrirLeSiteAilleurs()` dans `bdv-nav.js`, appelee au
+montage : dans `/mon-bureau/` seulement (seul ce module le fait, et il n'est charge que la), tout
+lien de `.nav` et `.footer-rich` qui mene ailleurs sur le site recoit `target="_blank"`, `rel` et
+une mention `.hors-ecran` « (nouvel onglet) ». Restent dans l'onglet : `/mon-bureau/`, `tel:`,
+`mailto:`, et ce qui dit deja sa cible. **Pose au montage et pas au clic** : le survol et le clic
+du milieu font alors ce qu'on attend. Verifie au navigateur : clic sur Articles et Outils, un
+onglet s'ouvre, le bureau reste en place ; sur /articles/ rien n'a change.
+Ce n'est pas l'ecouteur du mode plein ecran (« Les quatre sorties fermees ») : lui ne vise que
+l'app d'ecran d'accueil et reste tel quel ; il sort sans rien faire sur un lien qui a deja sa cible.

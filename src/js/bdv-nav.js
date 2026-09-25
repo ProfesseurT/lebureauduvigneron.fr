@@ -396,6 +396,38 @@
        2. .status sert aux imports faits depuis le panneau de reglages, qui s'ouvre
           sans avoir jamais affiche un ecran de vente. Laisse dans le conteneur
           masque, il aurait rendu ces imports muets. */
+  /* LE SITE S'OUVRE DANS UN AUTRE ONGLET, DEPUIS LE BUREAU, 25/09/2026. Demande de
+     Ted : « Articles », « Outils », « Conseil terrain », « La redaction » du bandeau
+     du haut faisaient QUITTER le bureau, et le pied de page aussi. Dans le bureau, et
+     seulement la (ce module n'est charge que par /mon-bureau/), tout lien du bandeau et
+     du pied de page qui mene ailleurs sur le site s'ouvre dans un nouvel onglet : le
+     bureau reste ouvert derriere. Sur le site public, rien ne change.
+
+     POSE AU MONTAGE ET PAS AU CLIC : le navigateur l'annonce alors au survol, et un clic
+     du milieu ou Cmd + clic fait ce qu'on attend. Ce qui reste dans l'onglet : les liens
+     vers /mon-bureau/ (« Mon bureau »), tel:, mailto:, et ceux qui disent deja leur cible.
+
+     ET CA SE DIT A L'OREILLE : `target="_blank"` ne se voit pas avant le clic et ne
+     s'entend pas du tout (regle des cartes de la page des outils, 12/09/2026). D'ou une
+     mention `.hors-ecran` dans le nom du lien. */
+  function ouvrirLeSiteAilleurs() {
+    var liens = document.querySelectorAll('.nav a[href], .footer-rich a[href]');
+    for (var i = 0; i < liens.length; i++) {
+      var a = liens[i], u;
+      if (a.target || a.hasAttribute('download')) continue;
+      try { u = new URL(a.getAttribute('href'), location.href); } catch (e) { continue; }
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
+      if (u.origin !== location.origin) continue;
+      if (u.pathname.indexOf('/mon-bureau/') === 0) continue;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      var m = document.createElement('span');
+      m.className = 'hors-ecran';
+      m.textContent = ' (nouvel onglet)';
+      a.appendChild(m);
+    }
+  }
+
   function sortirHorsPage() {
     ['status', 'busyov', 'printReport', 'modale'].forEach(function (id) {
       var n = document.getElementById(id);
@@ -925,6 +957,7 @@
     }
 
     sortirHorsPage();
+    ouvrirLeSiteAilleurs();
     mesurerEntete();
     // Le bouton Retour du navigateur circule dans le bureau au lieu d'en sortir.
     window.addEventListener('popstate', suivreAdresse);
