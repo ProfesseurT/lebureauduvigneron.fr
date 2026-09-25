@@ -6609,3 +6609,22 @@ Section 27 de `bdv-bureau.css`, `peindreArdoise()` et `brancherLuneVue()` dans `
 - **Le harnais** : `scripts/capture-journee.mjs` (playwright, hors `verif`) photographie « Ma
   journee » garnie a plusieurs largeurs et dans les deux themes, et mesure la lune et le debordement.
   Il pose le salut, la plaque et un resume complet a la main : hors ligne le profil n'arrive pas.
+
+## LA LUNE RESPIRE DANS LE COIN, ET ELLE A SES MERS, 25/09/2026
+
+Demande de Ted : de l'air autour de la lune « quand elle est au-dessus des fonctions »,
+**pas dans le bandeau rouge**, et une lune plus texturee.
+
+- **Le coin (section 4 ter de `bdv-bureau.css`)** : le pourcentage suit le nom sur la meme
+  ligne, en 12 px. Deux lignes au lieu de trois, mesure a 1440 : **12,4 px d'air en haut et en
+  bas** (4 avant), 17 px avant le filet. Le retrait gauche reste 12 px, il centre le disque sur
+  l'axe des icones. **La section est placee AVANT les sections 8 et 23** : leurs regles qui
+  cachent le texte (retracte, rail replie, 901-1180 px) pesent le meme poids et gagnent par
+  l'ordre. Deplacee apres, elle rallumerait le texte dans un coin de 64 px.
+- **Le bandeau rouge n'a pas bouge** : le scope `.bureau-tete` ne l'atteint pas.
+- **Les mers** sont posees UNE fois, `{% set mersLune %}` en tete de `src/mon-bureau.njk`, et
+  lues par les deux lunes (coin et accueil). Vraies mers de la face visible, nord en haut. Elles
+  ne se retournent PAS quand la lune decroit (c'est la lumiere qui change de cote, pas la face).
+  Peintes de la couleur de l'OMBRE, opacite sur le GROUPE : elles disparaissent d'elles-memes
+  sur la partie sombre, sans masque par phase, et deux mers qui se chevauchent ne noircissent
+  pas. Ne pas y mettre `fill-opacity` par forme.

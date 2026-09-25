@@ -17,6 +17,27 @@ theme_bureau: true
    mecanique est dans bdv-nav.js (`poserRepli`) et la section 23 de bdv-bureau.css. #}
 <script>try{if(localStorage.getItem('bureau_rail_v1')==='replie')document.body.classList.add('bdv-rail-replie');}catch(e){}</script>
 
+{# LES MERS DE LA LUNE, 25/09/2026, demande de Ted (« la texturer un peu plus »).
+   Les vraies taches sombres de la face visible, a leur place, nord en haut : la
+   Mer des Pluies, de la Serenite, de la Tranquillite, des Crises, de la Fecondite,
+   du Nectar, des Nuees, des Humeurs, du Froid et l'Ocean des Tempetes. Posees UNE
+   fois ici et lues par les deux lunes : deux dessins differents se liraient comme
+   deux lunes. Elles ne se RETOURNENT PAS quand la lune decroit (c'est la lumiere qui
+   change de cote, pas la face), et elles sont peintes de la couleur de l'OMBRE :
+   sur la partie sombre elles disparaissent d'elles-memes, sans masque a calculer. #}
+{% set mersLune %}<g class="bureau-tete__lune-mers">
+            <ellipse cx="-27" cy="0" rx="14" ry="24" transform="rotate(12 -27 0)"/>
+            <ellipse cx="-12" cy="-19" rx="15" ry="11"/>
+            <circle cx="9" cy="-17" r="9"/>
+            <ellipse cx="17" cy="-2" rx="11" ry="9" transform="rotate(-25 17 -2)"/>
+            <ellipse cx="-2" cy="-6" rx="8" ry="6"/>
+            <ellipse cx="36" cy="-12" rx="6.5" ry="5.5"/>
+            <ellipse cx="29" cy="9" rx="7" ry="9"/>
+            <circle cx="19" cy="17" r="5"/>
+            <ellipse cx="-10" cy="21" rx="11" ry="8"/>
+            <circle cx="-27" cy="25" r="6"/>
+            <ellipse cx="-4" cy="-36" rx="22" ry="4"/>
+          </g>{% endset %}
 {# Les contenus du site et les echeances, poses une fois, lus par le script plus bas. #}
 <script id="bdvContenus" type="application/json">
 [{% for post in collections.posts %}{"url":{{ post.url | dump | safe }},"titre":{{ post.data.title | dump | safe }},"date":"{{ post.date | dateISO }}","rubrique":{{ (post.data.categorie | rubriqueNom) | dump | safe }},"temps":{{ (post.data.temps_lecture or "") | dump | safe }}}{% if not loop.last %},
@@ -113,6 +134,7 @@ theme_bureau: true
         <svg class="bureau-tete__lunette-dessin" viewBox="-52 -52 104 104" aria-hidden="true" focusable="false">
           <circle class="bureau-tete__lune-ombre" cx="0" cy="0" r="50"/>
           <path class="bureau-tete__lune-clair" id="bureauLuneMiniClair" d=""/>
+          {{ mersLune | safe }}
           <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
         </svg>
         <span class="bureau-tete__lunette-mot" id="bureauLuneMiniTxt"><span class="bureau-tete__lunette-phase" id="bureauLunePhase"></span><span class="bureau-tete__lunette-sep">, </span><span class="bureau-tete__lunette-pct" id="bureauLunePct"></span></span>
@@ -245,6 +267,7 @@ theme_bureau: true
              aria-hidden="true" focusable="false">
           <circle class="bureau-tete__lune-ombre" cx="0" cy="0" r="50"/>
           <path class="bureau-tete__lune-clair" id="bureauLuneClair" d=""/>
+          {{ mersLune | safe }}
           <circle class="bureau-tete__lune-bord" cx="0" cy="0" r="50"/>
         </svg>
         <div>

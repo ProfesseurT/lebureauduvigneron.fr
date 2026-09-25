@@ -3489,6 +3489,48 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
   }
 }
 
+/* ---- 4 ter. DE L'AIR POUR LA LUNE DU COIN, ET SES MERS, 25/09/2026
+   Demande de Ted, capture a l'appui : dans le coin au-dessus de la barre des
+   pieces, la lune tenait sur TROIS lignes dans 56 px (nom sur deux lignes, puis
+   le pourcentage), soit 4 px d'air en haut et en bas, et le texte touchait le
+   filet de droite. SEULEMENT DANS LE COIN : dans le bandeau rouge, decision de
+   Ted, rien ne bouge (le scope `.bureau-tete` ne l'atteint pas, l'element y est
+   deplace par `logerLune()`).
+
+   Ce qui change : le pourcentage suit le nom sur la meme ligne au lieu d'en
+   prendre une, en 12 px. Deux lignes font 31 px, soit environ 12 px d'air de
+   chaque cote. Le retrait gauche reste 12 px : c'est lui qui centre le disque
+   sur l'axe des icones du rail (section 4). A droite 16 px, et 12 d'ecart.
+   Budget : 184 - 12 - 32 - 12 - 16 = 112 px de texte.
+
+   PLACE AVANT LES SECTIONS 8 ET 23, et ce n'est pas un hasard : leurs regles qui
+   cachent le texte (retracte, rail replie, 901 a 1180 px) pesent le meme poids
+   et doivent gagner par l'ordre. Posee apres elles, cette section rallumerait
+   le texte dans un coin de 64 px. */
+@media (min-width:901px){
+  .bdv-coque .bureau-tete .bureau-tete__lunette{
+    gap:var(--bdv-e-3);
+    padding:0 var(--bdv-e-4) 0 var(--bdv-e-3);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-mot{
+    display:block;
+    line-height:1.3;
+    font-size:var(--bdv-f-1);
+  }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-phase{ font-size:var(--bdv-f-1); }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-sep{ display:inline; color:var(--bdv-encre-4); }
+  .bdv-coque .bureau-tete .bureau-tete__lunette-pct{ white-space:nowrap; }
+}
+/* LES MERS se peignent de la couleur de l'OMBRE, a 24 %, et l'opacite est posee
+   sur le GROUPE : deux mers qui se chevauchent ne font pas une tache plus noire. sur la partie eclairee
+   elles font des taches grises, sur la partie sombre elles se confondent avec
+   elle. C'est ce qui evite un masque par phase. Objet decoratif, le disque reste
+   lisible par son bord (sections 3 et 4 bis), les mers n'y portent rien. */
+.bdv-coque .bureau-tete__lune-mers{ fill:var(--bdv-lune-ombre); opacity:.24; }
+@media (min-width:901px){
+  .bdv-coque .nav .bureau-tete__lune-mers{ fill:var(--bordeaux); opacity:.3; }
+}
+
 /* ---- 5. LA PERIODE (Mon cap, retracte) ----------------------------------- */
 .bdv-coque .bureau-tete .bureau-tete__periode{
   position:relative;
