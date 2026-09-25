@@ -4015,3 +4015,94 @@ body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
 @media (max-width:700px){
   .bdv-coque .bureau-accueil .zone--mot{ flex-basis:100%; max-width:none; order:3; }
 }
+
+/* ==========================================================================
+   26. LA FICHE CLIENT EN PLEINE PAGE, 24/09/2026
+
+   Demande de Ted : un bouton « Agrandir » qui ouvre le client dans un NOUVEL
+   ONGLET, pour travailler dessus a cote de sa liste. C'est le TROISIEME
+   contenant de la seule fiche du bureau : la modale, le tiroir (section 22),
+   et celui-ci. `ouvrirPageFiche()` de mon-bureau.njk pose la classe
+   `bdv-page-fiche` sur le corps de page avant tout le reste.
+
+   CE QUI DOIT SE VOIR SANS DEFILER, decision de Ted : les chiffres cles et la
+   prochaine action. D'ou deux colonnes au-dessus de 1100 px : a gauche le nom,
+   les contacts, les quatre chiffres et le conseil, puis ce qu'il achete et ses
+   commandes ; a droite le suivi et le redacteur, collants. En dessous, la
+   fiche reprend l'ordre de la modale, qui les met deja en tete.
+
+   `.fiche__corps` et `.fiche__cote` valent `display:contents` partout ailleurs
+   (bdv-ecrans.css) : ils ne changent rien a la modale ni au tiroir.
+   ========================================================================== */
+body.bdv-coque.bdv-page-fiche > :not(#modale):not(#busyov):not(.status):not(.bdv-amorce):not(#pageFicheAvis):not(script){
+  display:none;
+}
+body.bdv-coque.bdv-page-fiche{ background:var(--bdv-fond); }
+body.bdv-coque.bdv-page-fiche #modale.on{
+  position:static;
+  display:block;
+}
+body.bdv-coque.bdv-page-fiche #modale.on .modale__bg,
+body.bdv-coque.bdv-page-fiche #modale.on .fiche__agrandir{
+  display:none;
+}
+body.bdv-coque.bdv-page-fiche #modale.on .modale__box{
+  max-width:1600px;
+  min-height:100vh;
+  max-height:none;
+  margin:0 auto;
+  overflow:visible;
+  border-width:0;
+  border-radius:0;
+  padding:var(--bdv-e-8);
+  background:var(--bdv-fond);
+}
+body.bdv-coque.bdv-page-fiche #modale.on .modale__close{
+  min-width:var(--bdv-cible);
+  min-height:var(--bdv-cible);
+}
+@media (min-width:1100px){
+  body.bdv-coque.bdv-page-fiche #modale.on .modale__box{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(380px,34%);
+    /* La colonne du suivi couvre les deux rangees : sans `1fr` sur la seconde, sa hauteur
+       se reportait sur la premiere et ouvrait un trou sous le conseil. */
+    grid-template-rows:auto 1fr;
+    column-gap:var(--bdv-e-8);
+    align-items:start;
+  }
+  body.bdv-coque.bdv-page-fiche #modale.on .fiche__corps{
+    display:block;
+    grid-column:1;
+    grid-row:1;
+  }
+  body.bdv-coque.bdv-page-fiche #modale.on .fiche__cols{
+    grid-column:1;
+    grid-row:2;
+  }
+  /* LA COLONNE DU SUIVI RESTE A L'ECRAN QUAND ON DESCEND DANS LES COMMANDES : c'est la
+     qu'on note l'appel qu'on est en train de passer. Elle garde son propre ascenseur, sans
+     quoi un long fil d'echanges la ferait deborder par le bas (lecon du 08/09/2026 sur les
+     collants : descendre un element le fait depasser d'autant). */
+  body.bdv-coque.bdv-page-fiche #modale.on .fiche__cote{
+    display:block;
+    grid-column:2;
+    grid-row:1 / span 2;
+    position:sticky;
+    top:var(--bdv-e-6);
+    max-height:calc(100vh - var(--bdv-e-12));
+    overflow-y:auto;
+    padding-top:var(--bdv-e-12);
+  }
+}
+body.bdv-coque .page-fiche__avis{
+  max-width:640px;
+  margin:var(--bdv-e-12) auto;
+  padding:var(--bdv-e-6);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-1);
+  font-size:var(--bdv-f-3);
+}
+body.bdv-coque .page-fiche__avis a{ color:var(--bdv-accent); }

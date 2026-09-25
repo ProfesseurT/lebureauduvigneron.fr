@@ -429,6 +429,18 @@
   line-height:1;color:var(--bdv-encre-3);cursor:pointer;padding:var(--bdv-e-1) var(--bdv-e-2);border-radius:var(--bdv-r)}
 .bdv-ventes .modale__close:hover{color:var(--bdv-encre-1);background:var(--bdv-survol)}
 .bdv-ventes .fiche__head{display:flex;gap:var(--bdv-e-4);align-items:flex-start;flex-wrap:wrap;padding-right:var(--bdv-e-12)}
+/* Les deux enveloppes de la fiche (24/09/2026) ne dessinent RIEN en modale ni en tiroir :
+   `display:contents` rend leurs enfants au flux, dans l'ordre d'avant. Elles n'existent que
+   pour la pleine page, ou elles deviennent les deux colonnes (section 26 de bdv-bureau.css). */
+.bdv-ventes .fiche__corps,.bdv-ventes .fiche__cote{display:contents}
+.bdv-ventes .fiche__agrandir{margin-left:auto;display:inline-flex;align-items:center;min-height:var(--bdv-cible);padding:0 var(--bdv-e-3);
+  border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);color:var(--bdv-encre-2);font-size:var(--bdv-f-2);font-weight:600;text-decoration:none}
+.bdv-ventes .fiche__agrandir::after{content:"\2197";margin-left:var(--bdv-e-2)}
+.bdv-ventes .fiche__agrandir:hover{background:var(--bdv-survol);color:var(--bdv-encre-1)}
+.bdv-ventes .fiche__agrandir:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+/* Sur telephone la fiche EST deja une page entiere : un onglet de plus n'apporte rien, et
+   une app posee sur l'ecran d'accueil n'a pas d'onglets du tout. */
+@media (max-width:700px){.bdv-ventes .fiche__agrandir{display:none}}
 .bdv-ventes .fiche__nom{font-size:var(--bdv-f-5);font-weight:600;margin:0 0 var(--bdv-e-1);line-height:1.15;color:var(--bdv-encre-1)}
 .bdv-ventes .fiche__meta{font-size:var(--bdv-f-2);color:var(--bdv-encre-4);font-family:inherit}
 .bdv-ventes .fiche__contacts{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin:var(--bdv-e-4) 0 var(--bdv-e-4)}
@@ -853,4 +865,60 @@
     padding-left: 0;
     padding-right: 0;
   }
+}
+
+/* ---------- « Mes clients », l'annuaire, 24/09/2026 ----------
+   Une carte, trois barres (les vues, les filtres, la selection) et un tableau triable.
+   Le tri se dit par `aria-sort` sur l'en-tete ET par une fleche : la couleur ne porte
+   rien. La rangee cochee prend le lavis de l'accent, la seule teinte de selection du
+   bureau. Les champs montent a 44 px et 16 px sur telephone, regle du 11/09/2026. */
+.bdv-ventes .annu{padding:var(--bdv-e-4)}
+.bdv-ventes .annu__barre{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);align-items:center;padding-bottom:var(--bdv-e-3);margin-bottom:var(--bdv-e-3);border-bottom:1px solid var(--bdv-trait)}
+.bdv-ventes .annu__barre select,.bdv-ventes .annu__barre input[type=text],.bdv-ventes .annu__barre input[type=search]{
+  min-height:36px;max-width:100%;box-sizing:border-box;padding:0 var(--bdv-e-2);font-family:inherit;font-size:var(--bdv-f-2);
+  border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);background:var(--bdv-surface);color:var(--bdv-encre-1)}
+.bdv-ventes .annu__q{flex:1 1 260px}
+.bdv-ventes .annu__lbl{font-size:var(--bdv-f-1);color:var(--bdv-encre-3);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq)}
+.bdv-ventes .annu__sep{width:1px;align-self:stretch;background:var(--bdv-trait)}
+.bdv-ventes .annu__note{margin:0;font-size:var(--bdv-f-2);color:var(--bdv-encre-3)}
+.bdv-ventes .annu__lot{padding:var(--bdv-e-3);border:1px solid var(--bdv-accent-trait);border-radius:var(--bdv-r);background:var(--bdv-accent-lavis)}
+.bdv-ventes .annu__lot[hidden]{display:none}
+.bdv-ventes .annu__nsel{margin:0;font-size:var(--bdv-f-2);color:var(--bdv-encre-1)}
+.bdv-ventes .annu__desel{margin-left:auto}
+.bdv-ventes .annu__haut{display:flex;align-items:center;justify-content:space-between;gap:var(--bdv-e-3);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .annu__compte{margin:0;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
+.bdv-ventes .annu__t th.annu__coche,.bdv-ventes .annu__t td.annu__coche{width:2.5rem}
+.bdv-ventes .annu__t input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--bdv-accent)}
+.bdv-ventes .annu__tri{display:inline-flex;align-items:center;gap:var(--bdv-e-1);padding:0;border:0;background:none;font-family:inherit;font-size:inherit;font-weight:inherit;color:inherit;
+  text-align:inherit;text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);cursor:pointer}
+.bdv-ventes .annu__cherche{border-bottom:0;margin-bottom:var(--bdv-e-2);padding-bottom:0}
+.bdv-ventes .annu__replis{margin-bottom:var(--bdv-e-3)}
+.bdv-ventes .annu__replis>summary{padding:var(--bdv-e-2) 0;cursor:pointer;font-size:var(--bdv-f-2);font-weight:600;color:var(--bdv-encre-2)}
+.bdv-ventes .annu__replis>summary:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+/* UN TABLEAU TROP LARGE DEFILE DANS SON CADRE, jamais la page (regle du 07/09/2026). Et le
+   nom du client ne se coupe pas au milieu d'un mot : c'est lui qu'on cherche des yeux. */
+.bdv-ventes .annu__wrap{position:relative;overflow-x:auto}
+.bdv-ventes .annu__t td:nth-child(2){min-width:12rem}
+.bdv-ventes .annu__nom{overflow-wrap:normal;word-break:normal}
+.bdv-ventes .annu__tri:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+.bdv-ventes .annu__nom{font-weight:600;color:var(--bdv-encre-1);text-decoration:none}
+.bdv-ventes .annu__nom:hover{text-decoration:underline}
+.bdv-ventes .annu__nom:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+.bdv-ventes .annu__sous,.bdv-ventes .annu__motif{display:block;font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
+.bdv-ventes .annu__vide,.bdv-ventes .annu__dormant{font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
+.bdv-ventes .annu__rap--retard{font-weight:600;color:var(--bdv-retard)}
+.bdv-ventes .annu__tag{display:inline-block;margin:0 var(--bdv-e-1) var(--bdv-e-1) 0;padding:0 var(--bdv-e-2);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r-pastille);font-size:var(--bdv-f-1);color:var(--bdv-encre-2)}
+.bdv-ventes tr.annu__l.is-coche td{background:var(--bdv-accent-lavis)}
+.bdv-ventes .annu__rien{padding:var(--bdv-e-6);text-align:center;color:var(--bdv-encre-3)}
+.bdv-ventes .annu__pied{display:flex;justify-content:center;padding-top:var(--bdv-e-3)}
+.bdv-ventes .action__proprio{display:flex;align-items:center;gap:var(--bdv-e-2);margin-top:var(--bdv-e-2)}
+.bdv-ventes .action__proprio select{min-height:36px;padding:0 var(--bdv-e-2);font-family:inherit;font-size:var(--bdv-f-2);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);background:var(--bdv-surface);color:var(--bdv-encre-1)}
+.bdv-ventes .action__auteur{margin:var(--bdv-e-1) 0 0}
+@media (max-width:700px){
+  .bdv-ventes .annu__barre select,.bdv-ventes .annu__barre input[type=text],.bdv-ventes .annu__barre input[type=search],
+  .bdv-ventes .action__proprio select{min-height:var(--bdv-cible);font-size:var(--bdv-f-saisie);flex:1 1 100%}
+  .bdv-ventes .annu__sep{display:none}
+  .bdv-ventes .annu__t input[type=checkbox]{width:24px;height:24px}
+  .bdv-ventes .annu__tri{min-height:var(--bdv-cible)}
+  .bdv-ventes .annu__replis>summary{min-height:var(--bdv-cible)}
 }

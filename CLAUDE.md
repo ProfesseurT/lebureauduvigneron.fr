@@ -3402,6 +3402,97 @@ controle qui exige le mot entre le salut et la lune. Le cadre est la section 25 
 `bdv-bureau.css` : la carte du bureau et un filet d'accent de 2 px, rien de neuf dans les
 echelles. Sous 700 px il passe sous la lune, pleine largeur.
 
+## « MES CLIENTS » ET LA FICHE EN PLEINE PAGE, 24/09/2026
+
+Demande de Ted : une base « Mes clients » pour faire des listings, et une fiche client qu'on ouvre
+en PLEINE PAGE pour vraiment travailler dessus. Tout le code de la piece est dans
+`src/js/bdv-annuaire.js`, charge APRES `bdv-ecrans.js` (RESSOURCES de `bdv-nav.js`), le dessin
+dans `bdv-ecrans.css` (`.annu*`), la pleine page dans la section 26 de `bdv-bureau.css`. Le banc
+est `npm run banc:annuaire`, dans `npm run verif`.
+
+### LA PIECE EST UN ANNUAIRE, PAS UN TRI
+
+- **Identifiant `annuaire`, libelle « Mes clients », avant « Mon commerce ».** `clients` est deja
+  l'identifiant de « Mon commerce » et tient ses adresses. `viti: true`.
+- **« Mon commerce » repond a « qui relancer », « Mes clients » a « qui sont mes clients ».** Ne
+  pas y poser un verdict ou un conseil : ce serait refaire « Mon commerce » a cote de lui-meme.
+- **Vitisoft fait foi** : aucune ecriture de coordonnees ne part d'ici. **Seuls les clients des
+  exports** : la liste se CALCULE sur ROWS (`ECRANS_TOUT_LOCAL`), elle ne se saisit pas.
+- **Elle marche sans classement valide**, en mode devine, la ou les resumes serveur rendent null.
+- **Nom, ville, CP, pays viennent de la ligne la PLUS RECENTE du client.** `ficheClient()` fait
+  pareil depuis ce jour (elle prenait `lignes[0]`, c'est-a-dire l'ordre des empreintes, donc un
+  nom tire au sort). Les deux doivent rester d'accord.
+- **La selection multiple exporte, etiquette et attribue. Elle ne pose JAMAIS de rappel** : c'est
+  la note qui pose la trace (regle du 11/09/2026). Decision de Ted.
+- **Les gestes groupes passent par CRM, `crmSave()` puis `BdvSync.ecrireSuiviLot()`** (une
+  requete par tranche de 200), et une fiche videe par le geste par `syncSuivi()` qui la supprime.
+  Jamais une ecriture du suivi a cote.
+
+### LA FICHE A TROIS CONTENANTS, ET TOUJOURS UN SEUL AUTEUR
+
+Modale, tiroir (section 22), et pleine page depuis ce jour : `ficheHTML()` reste l'unique auteur.
+La pleine page est un ONGLET a l'adresse `/mon-bureau/#fiche=<cle>`, ouvert par « Agrandir »
+(`agrandirFiche()`, par `window.open` pour que la croix puisse fermer l'onglet) ou par Cmd + clic
+sur un nom.
+
+- **`ouvrirPageFiche()` (mon-bureau.njk) demarre ALLEGE** : deux etapes d'amorcage, le bureau puis
+  la fiche. Ni « Ma journee », ni file, ni panneau. `monter()` tourne quand meme, il sort #modale,
+  #busyov et .status hors de la page.
+- **`modeTiroir()` repond VRAI en pleine page** : pas de piege a focus, pas de vol de focus. Le
+  contrat ARIA est pose par `poserPage()` (role main, sans aria-modal), jamais par `BdvTiroir`.
+- **Echap ne ferme pas une page.** La croix ferme l'onglet, ou retombe sur « Mes clients ».
+- **`.fiche__corps` et `.fiche__cote` valent `display:contents`** hors pleine page : ils ne
+  changent rien a la modale ni au tiroir. Ne pas leur donner de dessin la-bas.
+- **`#fiche=` au clic simple ouvre la fiche SUR PLACE** (`bdvOuvrirFiche`), sans changer de piece.
+  `#client=` garde son sens d'avant (« Mon commerce » puis la fiche) : il est dans des favoris.
+  Un lien `target="_blank"` n'est jamais rabattu par l'interception de `bdv-nav.js`.
+- **« Agrandir » ne perd pas le brouillon** : il le sauve avant d'ouvrir et referme sans l'oublier.
+
+### DEUX ONGLETS, UN SUIVI
+
+CRM et ECHANGES vivent en memoire et `crmSave()` ecrit l'objet ENTIER : sans rien, le second
+onglet a ecrire effacait le premier. Deux canaux, qui ne repondent pas a la meme question :
+l'evenement `storage` recopie la memoire de l'autre onglet (avant le serveur, c'est voulu), et le
+BroadcastChannel `bdv-bureau` dit de RELIRE LE COMPTE, emis seulement apres la confirmation du
+serveur, ecoute dans `bdv-crm.js` (l'onglet de la liste n'a pas forcement le moteur). Le message
+porte `onglet` : un BroadcastChannel livre aussi aux autres objets du meme onglet.
+
+### LE LOT 33 : TOUT LE BUREAU ECRIT SUR LA FICHE, ET ON NOMME QUI
+
+**AMENDE LA REGLE DU 13/09/2026 « chacun n'ecrit que ses propres lignes » POUR `suivi_clients`
+SEULEMENT.** Decision de Ted : tout membre du bureau modifie et supprime n'importe quelle fiche
+client, et la base signe chaque geste dans `maj_par` (declencheur `suivi_signer`, jamais le
+navigateur). `proprietaire` est facultatif et doit etre un membre du bureau (le declencheur
+refuse sinon). Les etiquettes (`tags`) deviennent donc communes. `vues_clients` porte les vues
+enregistrees, communes au bureau. `echanges`, `taches` et `calendrier_choix` gardent la regle du
+13/09.
+
+- **La fusion au chargement a change avec** (`tirerDuServeurUneFois`) : une fiche SANS
+  `_apousser` prend la ligne du serveur entiere ; l'ancienne regle ne vaut plus que pour une
+  fiche qui a un geste en attente. Sans ca, on ne voyait jamais l'etiquette posee par un
+  collegue, ni celle qu'il avait retiree.
+- **`crmVide()` compte `proprietaire`** : sans lui, attribuer un client neuf le supprimait.
+- **Le navigateur marche AVANT le SQL.** `lireSuivi()` lit `select=*` et decouvre les colonnes ;
+  `proprietaire` ne part en ecriture que si `BdvSync.lot33()` a repondu `true` (trois etats, et
+  une attribution rejouee demande d'abord). Nommer la colonne avant le SQL ferait refuser TOUTE
+  ecriture du suivi, c'est-a-dire vider les rappels du bureau pour une colonne pas encore creee.
+- **« Personne » part en `null` EXPLICITE** : absent du corps, l'upsert ne touche pas la colonne
+  et l'ancien proprietaire resterait. Tout autre geste n'envoie pas le proprietaire.
+
+### LE BUDGET BLOQUANT : LES COMMENTAIRES DU SCRIPT EN LIGNE SONT EN NUNJUCKS
+
+Le script ecrit dans `src/mon-bureau.njk` portait 50 ko de commentaires JavaScript, envoyes au
+navigateur a chaque ouverture (le crochet du build ne degraisse que `_site/js/`). Ils sont
+devenus des commentaires Nunjucks `{# ... #}`, retires a la construction : 119,9 ko bloquants
+tombes a 74,3, plafond de `banc:poids` descendu a 80. **Dans ce script, un pourquoi s'ecrit en
+`{# #}`, jamais en `//` ni en `/* */`.** Un commentaire Nunjucks ne doit pas contenir `#}`.
+
+### PIEGE D'OUTIL, 24/09/2026 : UNE COPIE DEPOSEE N'EST PAS FORCEMENT LA DERNIERE
+
+Depuis la session, un fichier depose sur le Mac par `device_commit_files` juste apres avoir ete
+modifie dans le conteneur est arrive DEUX FOIS dans sa version d'avant, sans erreur. Apres tout
+depot, comparer les `md5sum` des deux cotes, ou editer directement sur le Mac.
+
 ## IL N'Y A QU'UNE FICHE CLIENT, ET ELLE NE S'ECRIT PAS TOUTE SEULE, 11/09/2026
 
 Le bureau avait la sienne, 280 lignes dans `src/mon-bureau.njk` : prochaine action, coordonnees,
@@ -4999,6 +5090,8 @@ n'a encore la cle. `BdvCompte.chargerBureau()` va la chercher et previent par l'
 `bdv:bureau`.
 
 ### Chacun n'ecrit que ses propres lignes, et le maitre n'y echappe pas
+
+**AMENDE LE 24/09/2026 POUR `suivi_clients`** : tout le bureau y ecrit et la base signe (`maj_par`). Voir « MES CLIENTS » ET LA FICHE EN PLEINE PAGE, lot 33.
 
 Arbitrage de Ted du 13/09/2026. Sur `suivi_clients`, `echanges`, `taches` et
 `calendrier_choix`, seul `cree_par` peut modifier ou supprimer. Consequences a connaitre

@@ -117,6 +117,8 @@ const NAV=[
   // « Mon cap » depuis le 11/09/2026, lot 4 : le nom pose la question a laquelle la piece
   // repond, au lieu de nommer une periode. Et il ne varie plus avec l'exercice comptable.
   {id:'annee',   ico:'&#128200;', label:'Mon cap'},
+  // « Mes clients », 24/09/2026 : l'annuaire. Son dessin et son calcul sont dans bdv-annuaire.js.
+  {id:'annuaire',ico:'&#128101;', label:'Mes clients'},
   {id:'clients', ico:'&#128101;', label:'Mon commerce'},
   // « Mes cuvees » et plus « Mes produits » depuis le 11/09/2026 : la barre du bureau disait
   // deja « Mes cuvees », et le titre de l'ecran disait autre chose. Deux noms pour une piece.
@@ -502,6 +504,7 @@ function setBorne(quelle,v){
    reflexe, applique a un seul ecran. */
 const PEINTRES = {
   annee:    function(){ renderCap(); },
+  annuaire: function(){ if(window.BdvAnnuaire)window.BdvAnnuaire.peindre(); },
   clients:  function(){ renderClients(); },
   produits: function(){ renderProduits(); },
   chercher: function(){ renderExplo(); },
@@ -581,7 +584,7 @@ function assurerLignes(dire){
 }
 /* Les ecrans qui ne savent rien faire sans les lignes. Ceux qui n'y sont pas ont une
    reponse du serveur et se peignent d'abord, quitte a se completer ensuite. */
-const ECRANS_TOUT_LOCAL = ['chercher', 'reglages'];
+const ECRANS_TOUT_LOCAL = ['annuaire', 'chercher', 'reglages'];
 /* Et ceux qui, servis par le serveur, ont encore des blocs locaux. Ils s'affichent sans
    les lignes, et le bouton de mise a jour de l'en-tete les complete : voir `besoinMaj()`. */
 const ECRANS_A_COMPLETER = ['annee', 'clients', 'produits'];
@@ -2403,7 +2406,12 @@ function ficheClient(id){
   const lignes=ROWS.filter(r=>clientKey(r)===id);
   if(!lignes.length)return null;
   const ventes=lignes.filter(r=>r._vin);
-  const base=lignes[0];
+  /* LA LIGNE LA PLUS RECENTE, depuis le 24/09/2026, et plus `lignes[0]`. L'ordre de ROWS est
+     celui d'IndexedDB, c'est-a-dire celui des empreintes : le nom, la ville et le tarif de la
+     fiche venaient donc d'une facture tiree au sort. Un client qui a change de nom dans
+     Vitisoft s'affichait sous l'un ou l'autre selon l'appareil. « Mes clients » prend la plus
+     recente ; la fiche qu'elle ouvre doit dire le meme nom. */
+  const base=lignes.reduce((a,r)=>((r._dayNum==null?-1:r._dayNum)>=(a._dayNum==null?-1:a._dayNum)?r:a),lignes[0]);
   const factures={};
   ventes.forEach(r=>{const f=r.numFacture||'?';
     const o=factures[f]||(factures[f]={num:f,date:r._date,jour:r._dayNum,total:0,btl:0,lignes:0,canal:r._canal,detail:[]});
@@ -2665,7 +2673,39 @@ let FICHE_ID=null;
    Deux endroits qui decident, ce sont deux seuils qui divergent au premier reglage
    et deux contrats ARIA dont un seul est defait. Ne pas reecrire un `matchMedia`
    ici : le module est charge avant celui-ci, toujours. */
-function modeTiroir(){ return !!(window.BdvTiroir && window.BdvTiroir.actif()); }
+function modeTiroir(){ return pageFiche() || !!(window.BdvTiroir && window.BdvTiroir.actif()); }
+/* LA FICHE EN PLEINE PAGE, 24/09/2026 : le TROISIEME contenant de la meme fiche, dans un
+   onglet ouvert par « Agrandir » (/mon-bureau/#fiche=<cle>). C'est `ouvrirPageFiche()` de
+   mon-bureau.njk qui pose la classe, avant tout le reste.
+
+   `modeTiroir()` repond VRAI ici aussi, et c'est voulu : ses deux lecteurs demandent
+   « la fiche est-elle seule a l'ecran ? » pour decider de voler le focus et de poser le
+   piege. Une page n'est pas une boite par-dessus autre chose : elle ne vole rien et
+   n'enferme personne, exactement comme le tiroir. Le contrat ARIA, lui, n'est PAS celui
+   du tiroir : il est pose par `poserPage()`, et `BdvTiroir` n'est jamais appele ici,
+   sans quoi le retrait de l'atelier se poserait sur une page qui n'en a pas. */
+function pageFiche(){ return document.body.classList.contains('bdv-page-fiche'); }
+function poserPage(boite,f){
+  if(!boite)return;
+  boite.removeAttribute('aria-modal');
+  boite.setAttribute('role','main');
+  document.body.style.overflow='';
+  document.title=(f&&f.nom?f.nom+' · ':'')+'Fiche client · Le Bureau du Vigneron';
+}
+/* « Agrandir » ouvre la fiche dans un onglet, et referme celle d'ici : deux copies de la
+   meme fiche, ce sont deux brouillons (sessionStorage est par onglet) et une note qu'on
+   croit avoir ecrite dans l'autre. L'onglet est ouvert PAR SCRIPT, ce qui l'autorise a se
+   refermer lui-meme par la croix (`window.close()` n'est permis que dans ce cas). */
+function agrandirFiche(a){
+  /* LE BROUILLON NE MEURT PAS AVEC LA FICHE D'ICI : « Agrandir » n'est pas un geste de
+     fermeture. On le sauve AVANT d'ouvrir (Chrome recopie sessionStorage dans un onglet ouvert
+     par script, et la fiche agrandie le reprend), et on referme sans l'oublier. */
+  sauverBrouillon();
+  const w=window.open(a.href,'_blank');
+  if(!w)return true;   // bloque par le navigateur : le lien fait alors son travail tout seul
+  GARDER_BROUILLON=true; fermerFiche(); GARDER_BROUILLON=false;
+  return false;
+}
 
 function ouvrirFiche(id,motif){
   const f=ficheClient(id);
@@ -2683,7 +2723,8 @@ function ouvrirFiche(id,motif){
   // le defilement du corps de page fige la liste, c'est-a-dire exactement ce qu'on
   // vient d'ouvrir le tiroir pour garder vivant. Le module prend la BOITE et pas la
   // modale : c'est elle qui porte `aria-modal` et `role`.
-  if(window.BdvTiroir)window.BdvTiroir.poser(m.querySelector('.modale__box'));
+  if(pageFiche())poserPage(m.querySelector('.modale__box'),f);
+  else if(window.BdvTiroir)window.BdvTiroir.poser(m.querySelector('.modale__box'));
   else document.body.style.overflow='hidden';
   // ON NE VOLE LE FOCUS QU'EN MODALE. Une modale s'ouvre PAR-DESSUS : le focus doit
   // y entrer, sans quoi le clavier pilote a l'aveugle un ecran couvert. Un tiroir
@@ -2773,9 +2814,19 @@ document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='hidden')sauverBrouillon();
 });
 
+let GARDER_BROUILLON=false;
 function fermerFiche(){
+  /* EN PLEINE PAGE, FERMER C'EST FERMER L'ONGLET. Une fiche vide dans un onglet qui ne sert
+     qu'a elle n'a aucun sens. Si le navigateur refuse (onglet ouvert au Cmd + clic, donc pas
+     par script), on retombe sur « Mes clients » plutot que de laisser une page blanche. */
+  if(pageFiche()){
+    if(FICHE_ID)oublierBrouillon(FICHE_ID);
+    try{window.close();}catch(e){}
+    setTimeout(function(){location.href='/mon-bureau/#annuaire';location.reload();},250);
+    return;
+  }
   const m=el('modale');m.classList.remove('on');m.setAttribute('aria-hidden','true');
-  if(FICHE_ID)oublierBrouillon(FICHE_ID);   // fermer EST un geste : voir le point 3 ci-dessus
+  if(FICHE_ID&&!GARDER_BROUILLON)oublierBrouillon(FICHE_ID);   // fermer EST un geste : voir le point 3 ci-dessus
   m.innerHTML='';document.body.style.overflow='';
   if(window.BdvTiroir)window.BdvTiroir.retirer();   // le retrait de l'atelier s'en va avec le tiroir
   if(FICHE_OUVERTE&&FICHE_OUVERTE.focus)FICHE_OUVERTE.focus();
@@ -2943,6 +2994,7 @@ function ficheHTML(f,motif){
   <div class="modale__box" role="dialog" aria-modal="true" aria-label="Fiche de ${esc(f.nom)}">
     <button class="modale__close" onclick="fermerFiche()" aria-label="Fermer">&times;</button>
 
+    <div class="fiche__corps">
     <div class="fiche__head">
       <div>
         <h3 class="fiche__nom">${esc(f.nom)}</h3>
@@ -2952,6 +3004,7 @@ function ficheHTML(f,motif){
         </div>
       </div>
       ${lib?`<span class="motif ${cls}">${lib}</span>`:''}
+      <a class="fiche__agrandir" href="/mon-bureau/#fiche=${esc(encodeURIComponent(f.id))}" target="_blank" rel="noopener" onclick="return agrandirFiche(this)">Agrandir<span class="hors-ecran"> la fiche dans un nouvel onglet</span></a>
     </div>
 
     <div class="fiche__contacts">
@@ -2973,10 +3026,13 @@ function ficheHTML(f,motif){
       <div class="fiche__conseil-t">Ce que je ferais</div>
       ${conseils.map(c=>`<p>${c}</p>`).join('')}
     </div>
+    </div>
 
+    <div class="fiche__cote">
     ${suiviHTML(f,s)}
 
     ${(f.emails.length||f.tels.length)?`<details class="msg msg--replie"><summary>Écrire un message à ce client</summary>${messageHTML(f,motif||'premier')}</details>`:''}
+    </div>
 
     <div class="fiche__cols">
       <div>
@@ -3128,6 +3184,8 @@ function suiviCorps(f,s){
   // Plus de `section-label` ici : le titre du bloc est desormais le summary du repli, et
   // deux fois le mot « Suivi » l'un sous l'autre se lit comme un defaut d'affichage.
   let h=`<div class="action">${action}</div>`;
+  // Qui suit ce client, et qui a fait le dernier geste (lot 33, 24/09/2026).
+  if(window.BdvAnnuaire&&BdvAnnuaire.blocFiche)h+=BdvAnnuaire.blocFiche(f.id,s);
 
   // ---- La saisie : une seule, toujours au meme endroit. ----
   if(!clos){

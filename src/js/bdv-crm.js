@@ -652,4 +652,20 @@
     ecrireReglages: ecrireReglages,
     isoLocal: isoLocal
   };
+
+  /* UN AUTRE ONGLET A ECRIT, ET LE SERVEUR L'A CONFIRME, 24/09/2026. C'est bdv-base.js
+     qui emet, depuis la fiche, juste apres `bdvFicheAEcrit()` : l'onglet de la liste
+     relit donc le compte par le meme chemin que s'il avait ecrit lui-meme. L'ecouteur
+     vit ici et pas dans le moteur, parce que « Ma journee » n'a pas forcement charge le
+     moteur : c'est meme le cas le plus frequent. */
+  try {
+    if ('BroadcastChannel' in window) {
+      window.BDV_ONGLET = window.BDV_ONGLET || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+      new BroadcastChannel('bdv-bureau').onmessage = function (e) {
+        if (e && e.data && e.data.onglet && e.data.onglet === window.BDV_ONGLET) return;
+        if (typeof window.bdvFicheAEcrit === 'function') { try { window.bdvFicheAEcrit(); } catch (e) {} }
+        if (typeof window.bdvCrmAChange === 'function') { try { window.bdvCrmAChange(); } catch (e) {} }
+      };
+    }
+  } catch (e) {}
 })();

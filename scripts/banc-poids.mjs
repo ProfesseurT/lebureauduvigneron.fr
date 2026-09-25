@@ -48,7 +48,10 @@ const PAGE = path.join(SITE, 'mon-bureau', 'index.html');
    Un plafond qui laisse 43 ko de mou ne garde plus rien : on le redescend a 120, et
    on le redescendra encore dans le meme commit que le prochain gain. CE CHIFFRE NE
    REMONTE JAMAIS. S'il faut de la place, c'est qu'il faut retirer du poids. */
-const BUDGET = 120 * 1024;
+/* 80 ko le 24/09/2026 : les 50 ko de commentaires du script en ligne de mon-bureau.njk
+   sont passes en commentaires Nunjucks, que la construction retire. La mesure est tombee
+   de 119,9 a 74,3 ko, « Mes clients » compris. Meme regle : le plafond suit la mesure. */
+const BUDGET = 80 * 1024;
 
 let ok = 0, ko = 0;
 const t = (nom, bon, det) => {

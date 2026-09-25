@@ -544,7 +544,12 @@
   // {clientId: {statut, notes, rappel, rappel_titre, canal, tags}}
   async function lireSuivi(){
     if(!pret()) return {};
-    const lignes = await BdvCompte.api('/suivi_clients?select=client_id,statut,notes,rappel,rappel_titre,canal,tags,cree_par' + auBureau());
+    /* `select=*` DEPUIS LE 24/09/2026, et c'est une condition, pas une paresse. Le lot 33
+       ajoute `proprietaire` et `maj_par` ; les nommer ici avant que Ted ait passe le SQL
+       ferait repondre 400 a TOUTE la lecture du suivi, c'est-a-dire vider les rappels de
+       tout le bureau pour une colonne pas encore creee. `*` rend ce qui existe, et la
+       presence de la colonne dit elle-meme si le lot est passe. */
+    const lignes = await BdvCompte.api('/suivi_clients?select=*' + auBureau());
     const out = {};
     (lignes || []).forEach(function(l){
       const c = {};
@@ -563,13 +568,20 @@
          l'inclut pas, et la base le pose elle-meme. Il ne compte pas non plus dans
          `crmVide()` : une fiche qui ne porterait que son auteur reste une fiche vide. */
       if(l.cree_par) c.cree_par = l.cree_par;
+      /* LOT 33, 24/09/2026. `proprietaire` est relu parce qu'il REPART en ecriture (meme
+         regle que le motif ci-dessus). `maj_par` ne repart jamais : c'est la base qui le
+         pose, a chaque ecriture, pour nommer qui a fait le dernier geste. */
+      if('proprietaire' in l) LOT33 = true;
+      if(l.proprietaire) c.proprietaire = l.proprietaire;
+      if(l.maj_par) c.maj_par = l.maj_par;
       out[l.client_id] = c;
     });
     return out;
   }
 
-  async function ecrireSuivi(clientId, fiche){
-    if(!pret() || !clientId) return false;
+  /* LA LIGNE QUE L'ON ENVOIE, en un seul endroit : `ecrireSuivi()` et `ecrireSuiviLot()`
+     ne doivent jamais diverger sur une colonne. */
+  function ligneSuivi(clientId, fiche){
     fiche = fiche || {};
     const corps = {
       bureau: BdvCompte.monBureau(),
@@ -582,6 +594,83 @@
       tags:   fiche.tags   || [],
       maj_le: new Date().toISOString()
     };
+    /* LE PROPRIETAIRE NE PART QUE S'IL A ETE TOUCHE ICI, et que la colonne existe.
+       Absent du corps, un upsert `merge-duplicates` n'y touche pas : c'est ce qui garde
+       l'attribution faite par un collegue quand on ne fait que noter un appel. Et tant
+       que le lot 33 n'est pas passe, l'envoyer ferait refuser TOUTE l'ecriture. */
+    if(LOT33 === true && Object.prototype.hasOwnProperty.call(fiche, 'proprietaire')) corps.proprietaire = fiche.proprietaire || null;
+    return corps;
+  }
+
+  /* PLUSIEURS FICHES EN UNE ECRITURE, pour les gestes groupes de « Mes clients »
+     (etiqueter, attribuer). Un seul aller-retour, et une seule reponse : tout est passe,
+     ou rien, parce que PostgREST fait un tableau en une transaction. */
+  async function ecrireSuiviLot(fiches){
+    if(!pret() || !fiches || !fiches.length) return false;
+    if(LOT33 === null && fiches.some(function(x){ return x.fiche && Object.prototype.hasOwnProperty.call(x.fiche, 'proprietaire'); })) await lot33();
+    try{
+      const r = await BdvCompte.api('/suivi_clients?on_conflict=bureau,client_id', {
+        methode: 'POST',
+        corps: fiches.map(function(x){ return ligneSuivi(x.id, x.fiche); }),
+        entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+      });
+      return Array.isArray(r) && r.length === fiches.length;
+    }catch(e){ return false; }
+  }
+
+  /* LE LOT 33 EST-IL PASSE ? Trois reponses et pas deux, regle du depot : `true`, `false`,
+     et `null` quand on ne sait pas (pas de session, reseau). Une seule question par session :
+     la reponse ne change pas tant que Ted n'a pas colle le SQL. */
+  let LOT33 = null;
+  async function lot33(){
+    if(LOT33 !== null) return LOT33;
+    if(!pret()) return null;
+    try{
+      await BdvCompte.api('/suivi_clients?select=proprietaire&limit=1' + auBureau());
+      LOT33 = true;
+    }catch(e){
+      LOT33 = (e && (e.status === 400 || e.statut === 400 || /proprietaire|42703|column/i.test(String(e.message || e)))) ? false : null;
+    }
+    return LOT33;
+  }
+
+  /* LES VUES ENREGISTREES DE « MES CLIENTS », communes au bureau (decision de Ted). */
+  async function lireVues(){
+    if(!pret()) return null;
+    try{
+      const r = await BdvCompte.api('/vues_clients?select=vue_id,nom,filtres,cree_par,cree_le&order=nom.asc' + auBureau());
+      return Array.isArray(r) ? r : null;
+    }catch(e){ return null; }
+  }
+  async function ecrireVue(nom, filtres){
+    if(!pret() || !nom) return null;
+    try{
+      const r = await BdvCompte.api('/vues_clients?on_conflict=bureau,nom', {
+        methode: 'POST',
+        corps: [{ bureau: BdvCompte.monBureau(), nom: String(nom).slice(0, 60), filtres: filtres || {} }],
+        entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+      });
+      return (Array.isArray(r) && r[0]) ? r[0] : null;
+    }catch(e){ return null; }
+  }
+  async function supprimerVue(vueId){
+    if(!pret() || !vueId) return false;
+    try{
+      const r = await BdvCompte.api('/vues_clients?vue_id=eq.' + encodeURIComponent(vueId) + auBureau(), {
+        methode: 'DELETE', entetes: { 'Prefer': 'return=representation' }
+      });
+      return Array.isArray(r);
+    }catch(e){ return false; }
+  }
+
+  async function ecrireSuivi(clientId, fiche){
+    if(!pret() || !clientId) return false;
+    fiche = fiche || {};
+    /* UNE ATTRIBUTION REJOUEE AU CHARGEMENT part AVANT la lecture du suivi, donc avant que
+       la colonne ait ete vue : sans cette question, `crmRejouer()` l'enverrait sans son
+       proprietaire, puis la lecture du serveur l'effacerait en local. */
+    if(LOT33 === null && Object.prototype.hasOwnProperty.call(fiche, 'proprietaire')) await lot33();
+    const corps = ligneSuivi(clientId, fiche);
     try{
       /* return=representation, et PAS minimal. BdvCompte.api() rend `null` SANS LEVER dans
          DEUX cas : session tombee, et reponse 2xx a corps vide. En minimal, une ecriture
@@ -767,6 +856,11 @@
     ecrireReglages: ecrireReglages,
     lireSuivi: lireSuivi,
     ecrireSuivi: ecrireSuivi,
+    ecrireSuiviLot: ecrireSuiviLot,
+    lot33: lot33,
+    lireVues: lireVues,
+    ecrireVue: ecrireVue,
+    supprimerVue: supprimerVue,
     supprimerSuivi: supprimerSuivi,
     deposerFile: deposerFile,
     lireEchanges: lireEchanges,

@@ -315,7 +315,7 @@ titre('5. Le panneau : ce qui presse, et cliquable');
     (p.querySelector('[data-cle="crm-retard"] .postit__tampon') || {}).textContent);
 
   t('la punaise du retard mene DROIT a la fiche du client, pas a une liste',
-    !!p.querySelector('[data-cle="crm-retard"] a.postit__lien[href*="#client=JAYAMA"]'));
+    !!p.querySelector('[data-cle="crm-retard"] a.postit__lien[href*="#fiche=JAYAMA"]'));
   t('la prochaine promesse est la, avec son nom',
     html().indexOf('Clos du Pierrier') >= 0 && html().indexOf('prochain rappel') >= 0);
 

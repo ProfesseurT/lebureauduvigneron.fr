@@ -116,6 +116,10 @@
     // Mes clients : deux tetes, celle de devant entiere, celle de derriere devinee.
     clients:  '<circle cx="8" cy="7" r="2.6"/><path d="M3.5 16.5c0-2.5 2-4.2 4.5-4.2s4.5 1.7 4.5 4.2"/>'
               + '<path d="M13.2 5.1a2.6 2.6 0 0 1 0 4.6"/><path d="M14.5 12.9c1.3.7 2 1.9 2 3.6"/>',
+    /* Mes clients (24/09/2026) : la boite a fiches, ouverte, trois fiches debout. C'est
+       l'annuaire, pas les gens : « Mon commerce » porte deja les deux tetes. */
+    annuaire: '<path d="M3 9h14v7.5H3z"/><path d="M5.5 9V4.5h9V9"/><path d="M7.5 6.5h5"/>'
+              + '<path d="M8 12.5h4"/>',
     // Mes cuvees : un verre a pied. Le seul trace qui ne soit pas du mobilier, et
     // c'est bien : c'est ce qu'il y a dans le verre qu'on vend.
     produits: '<path d="M6 3.5h8l-.6 5a3.4 3.4 0 0 1-6.8 0z"/><path d="M10 12v4.5"/>'
@@ -178,6 +182,13 @@
        l'adresse /mon-bureau/#clients, donc les signets du vigneron et les liens qu'il a
        copies, et c'est lui que `npm run banc` compare avec NAV dans bdv-ecrans.js.
        Renommer le libelle ne coute rien ; renommer l'identifiant casserait les deux. */
+    /* « MES CLIENTS », 24/09/2026 : l'annuaire. Place AVANT « Mon commerce » parce que
+       c'est la base, et « Mon commerce » un tri de cette base. L'identifiant est
+       `annuaire` et pas `clients` : `clients` tient deja l'adresse de « Mon commerce »
+       (voir juste en dessous). `viti` : sans export il n'y a aucun client a lister. */
+    { id: 'annuaire', viti: true,  ico: TRACES.annuaire, label: 'Mes clients',
+      href: '/mon-bureau/#annuaire',
+      quoi: 'Tous tes clients, à trier, filtrer, étiqueter' },
     { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mon commerce',
       href: '/mon-bureau/#clients',
       quoi: 'Qui rappeler, qui décroche, d\'où vient ton chiffre' },
@@ -284,7 +295,10 @@
     { css: '/css/bdv-ecrans.css' },
     { js: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js' },
     { js: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js' },
-    { js: '/js/bdv-ecrans.js' }
+    { js: '/js/bdv-ecrans.js' },
+    /* « Mes clients » APRES les ecrans : elle lit leurs fonctions (jourDepuisISO,
+       toXlsxOrCsv) et la fiche l'appelle pour son bloc « Suivi par ». */
+    { js: '/js/bdv-annuaire.js' }
   ];
 
   /* LE CALENDRIER : deux fichiers, et rien d'autre. Ni Chart.js, ni le lecteur
@@ -843,9 +857,24 @@
       var a = e.target.closest && e.target.closest('a[href^="/mon-bureau/#"]');
       if (!a || conteneur.contains(a)) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      /* Un lien qui demande un autre onglet (« Agrandir » la fiche) garde son geste : le
+         rabattre ici rouvrirait la fiche dans l'onglet qu'on voulait justement garder. */
+      if (a.target === '_blank') return;
       var brut = a.getAttribute('href').split('#')[1] || '';
       e.preventDefault();
-      if (brut.indexOf('client=') === 0) afficher('clients', { client: decodeURIComponent(brut.slice(7)) });
+      /* L'ONGLET D'UNE FICHE EN PLEINE PAGE N'A PAS DE PIECES : `afficher()` y peindrait
+         dans des conteneurs masques. Un lien vers une piece y fait donc ce qu'il ferait
+         sans ce script, recharger le bureau a cette adresse. */
+      if (document.body.classList.contains('bdv-page-fiche')) {
+        location.href = '/mon-bureau/#' + brut; location.reload(); return;
+      }
+      /* `#fiche=` (24/09/2026) ouvre la fiche LA OU L'ON EST, par le seul ouvreur du
+         bureau. `#client=` garde son sens d'avant, « Mon commerce » puis la fiche : il est
+         dans des favoris et des courriers deja partis. */
+      if (brut.indexOf('fiche=') === 0 && typeof window.bdvOuvrirFiche === 'function') {
+        window.bdvOuvrirFiche(decodeURIComponent(brut.slice(6)));
+      }
+      else if (brut.indexOf('client=') === 0 || brut.indexOf('fiche=') === 0) afficher('clients', { client: decodeURIComponent(brut.slice(brut.indexOf('=') + 1)) });
       else afficher(brut || 'journee');
     });
 

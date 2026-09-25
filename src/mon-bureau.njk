@@ -734,13 +734,13 @@ theme_bureau: true
 (function(){
   'use strict';
 
-  /* Le bureau : des zones nommees, toujours a la meme place. On ne cherche pas ses
+  {# Le bureau : des zones nommees, toujours a la meme place. On ne cherche pas ses
      affaires sur un bureau, on sait ou elles sont. Le sous-main est le plus grand parce
      que c'est la qu'on travaille.
 
      Regle qui gouverne toute la page : LA FILE NE MONTRE QUE CINQ LIGNES. Quarante
      clients a traiter n'est pas une journee, c'est un mur, et un mur on cesse de le
-     regarder. Le reste est a un clic, dans le tableau de bord. */
+     regarder. Le reste est a un clic, dans le tableau de bord. #}
   var FILE_VUE = 5;
   var TOUT_VOIR = false;
 
@@ -755,7 +755,7 @@ theme_bureau: true
   document.getElementById('bureauInvite').hidden = connecte;
   document.getElementById('bureauContenu').hidden = !connecte;
 
-  /* LE CORPS DE PAGE DIT QU'ON EST AU POSTE DE TRAVAIL, 11/09/2026.
+  {# LE CORPS DE PAGE DIT QU'ON EST AU POSTE DE TRAVAIL, 11/09/2026.
 
      Une seule classe, et c'est la seule chose que le CSS ait besoin de savoir pour sortir
      le site public du bureau sur telephone : son bandeau marchand au-dessus, son pied de
@@ -771,12 +771,12 @@ theme_bureau: true
      ELLE SE RETIRE AUSSI. Une deconnexion dans l'onglet voisin repeint cette page par
      bdv:session, et un bureau ferme qui garderait la classe serait un site public sans
      navigation ni pied de page. La regle du 08/09/2026 vaut pour une classe comme pour
-     une zone : ce qui sait se montrer doit savoir se cacher. */
+     une zone : ce qui sait se montrer doit savoir se cacher. #}
   document.body.classList.toggle('bdv-poste', connecte);
   document.addEventListener('bdv:session', function(){
     document.body.classList.toggle('bdv-poste', !!session());
   });
-  /* LE BUREAU FERME SAIT SE REVEILLER. Ajoute le 08/09/2026.
+  {# LE BUREAU FERME SAIT SE REVEILLER. Ajoute le 08/09/2026.
 
      Tout ce qui suit ce point — les treize zones, la barre des pieces, le branchement du
      panneau, jusqu'a window.bdvMajJournee elle-meme — n'existe pas quand la page s'ouvre
@@ -793,7 +793,7 @@ theme_bureau: true
      La destination demandee par la porte est reprise avant de recharger : « Deposer ma
      base maintenant » doit atterrir sur l'onglet Ma base, pas sur Ma journee. On la pose
      dans l'adresse, PUIS on recharge — location.replace() sur une simple ancre ne
-     rechargerait pas davantage, c'est exactement le piege qu'on repare. */
+     rechargerait pas davantage, c'est exactement le piege qu'on repare. #}
   if(!connecte){
     document.addEventListener('bdv:session', function(){
       if(!session()) return;
@@ -802,7 +802,7 @@ theme_bureau: true
         if(window.BdvCompte && BdvCompte.destinationDemandee) ou = BdvCompte.destinationDemandee();
       }catch(e){ ou = null; }
       try{
-        // Une autre page se rejoint normalement : c'est une vraie navigation.
+        {# Une autre page se rejoint normalement : c'est une vraie navigation. #}
         if(ou && ou.indexOf(location.pathname) !== 0){ location.href = ou; return; }
         if(ou) history.replaceState(null, '', ou);
         location.reload();
@@ -836,28 +836,30 @@ theme_bureau: true
     return Object.keys(s).filter(function(r){ return s[r].etat === etat; });
   }
 
-  /* ---------------- L'EN-TETE ---------------- */
+  {# ---------------- L'EN-TETE ---------------- #}
   var jour = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
   txt(el('bureauJour'), jour.charAt(0).toUpperCase() + jour.slice(1));
 
-  /* ---------------- LE SOUS-MAIN : LA FILE ----------------
+  {# ---------------- LE SOUS-MAIN : LA FILE ----------------
      Chaque ligne est cliquable et mene DROIT a la fiche du client dans le tableau de
      bord, pas a une liste ou il faudrait le rechercher. Les trois gestes restent a
-     droite, toujours a la meme place, pour descendre la file sans relire. */
+     droite, toujours a la meme place, pour descendre la file sans relire. #}
   var ETAT_FILE = null;
 
   function lienFiche(id){
-    // Depuis le lot 2c, la fiche client s'ouvre DANS le bureau. L'adresse reste un vrai
-    // lien, copiable et rechargeable : c'est bdv-nav.js qui l'intercepte au clic.
-    return '/mon-bureau/#client=' + encodeURIComponent(id);
+    {# Depuis le lot 2c, la fiche client s'ouvre DANS le bureau. L'adresse reste un vrai #}
+    {# lien, copiable et rechargeable : c'est bdv-nav.js qui l'intercepte au clic. #}
+    {# Depuis le 24/09/2026 le lien dit `#fiche=` : au clic simple la fiche s'ouvre ICI #}
+    {# (tiroir ou modale), au Cmd + clic elle s'ouvre en PLEINE PAGE dans un onglet. #}
+    return '/mon-bureau/#fiche=' + encodeURIComponent(id);
   }
 
-  /* UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
+  {# UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
      retard, geste. Ce sont les colonnes que Ted a dictees.
 
      LA LIGNE N'EST PLUS UN BOUTON, et c'etait un vrai defaut : elle etait un
      <button> qui contenait trois <button>, ce que le HTML interdit. Le nom du
-     client porte maintenant le clic ; la ligne n'est plus qu'une rangee. */
+     client porte maintenant le clic ; la ligne n'est plus qu'une rangee. #}
   function cellule(classe, contenu){
     var td = document.createElement('td');
     td.className = classe;
@@ -866,7 +868,7 @@ theme_bureau: true
     return td;
   }
 
-  /* LES TROIS BOUTONS DE LA LIGNE, ET CE QU'ILS FONT DEPUIS LE 11/09/2026.
+  {# LES TROIS BOUTONS DE LA LIGNE, ET CE QU'ILS FONT DEPUIS LE 11/09/2026.
 
      Ils etaient dessines a partir de `BdvCrm.GESTES`, parce qu'ils POSAIENT les trois
      gestes. Deux d'entre eux ne les posent plus : ils ouvrent la fiche du client a
@@ -880,7 +882,7 @@ theme_bureau: true
 
      « Message » ouvre le redacteur, et plus « laisse un message sur le repondeur » : c'est
      de la que part « Considere comme envoye ». Un appel tombe sur un repondeur se note
-     dans le bloc de suivi, canal Repondeur, comme n'importe quel autre echange. */
+     dans le bloc de suivi, canal Repondeur, comme n'importe quel autre echange. #}
   var ACTIONS = [
     { cle: 'appel',   court: 'Appelé',  cible: 'suivi',
       label: 'Je l’ai appelé : ouvrir sa fiche pour noter ce qui s’est dit' },
@@ -894,14 +896,14 @@ theme_bureau: true
     return ACTIONS.filter(function(a){ return a.cle === cle; })[0] || null;
   }
 
-  /* UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
+  {# UNE LIGNE DE LISTING, cinq colonnes : reference, fichier client, motif,
      retard, geste. Ce sont les colonnes que Ted a dictees.
 
      C'EST UN <tr> ET PAS UN <div>, pour deux raisons qui se cumulent :
      - la ligne etait un <button> qui contenait trois <button>, ce que le HTML
        interdit. Le nom du client porte maintenant le clic, seul ;
      - une grille d'en-tete et une grille de ligne ne partagent pas leurs
-       colonnes. Un tableau, si. */
+       colonnes. Un tableau, si. #}
   function ligneFile(l){
     var tr = document.createElement('tr');
     tr.className = 'listb__l';
@@ -909,11 +911,11 @@ theme_bureau: true
     var enRetard = l.source === 'rappel' && l.retard > 0;
     if(enRetard) tr.setAttribute('data-retard', 'oui');
 
-    /* LA REFERENCE PASSE SOUS LE NOM, dans la meme cellule. Elle avait sa
+    {# LA REFERENCE PASSE SOUS LE NOM, dans la meme cellule. Elle avait sa
        colonne ; mesure faite, les cinq colonnes plus trois boutons demandent
        858 px et le tableau n'en fait que 644 sur un portable de 1280. Sous le
        nom elle ne coute RIEN : la ligne a un plancher de 44 px pour le tactile,
-       et deux lignes de texte y tiennent. Une colonne rendue pour zero pixel. */
+       et deux lignes de texte y tiennent. Une colonne rendue pour zero pixel. #}
     var boite = document.createElement('span');
     boite.className = 'listb__fichier';
     var nom = document.createElement('button');
@@ -930,16 +932,16 @@ theme_bureau: true
     boite.appendChild(ref);
     tr.appendChild(cellule('listb__nom-c', boite));
 
-    /* LE MOTIF DIT LA RAISON, LE MONTANT EST A PART, ET C'EST L'IDIOME D'UN
+    {# LE MOTIF DIT LA RAISON, LE MONTANT EST A PART, ET C'EST L'IDIOME D'UN
        LISTING : le texte a gauche, les nombres a droite, alignes pour se
        comparer d'un coup d'oeil. Avant, le motif etait « 5 922 € CA historique »,
        une phrase qui melangeait les deux et qu'il fallait relire ligne a ligne.
        Les deux morceaux existaient deja separement dans la file, l.montant et
-       l.lib : rien de nouveau n'est calcule. */
-    /* LE MOTIF DIT CE QUE LE VIGNERON S'ETAIT PROMIS, quand il l'a ecrit. Depuis le
+       l.lib : rien de nouveau n'est calcule. #}
+    {# LE MOTIF DIT CE QUE LE VIGNERON S'ETAIT PROMIS, quand il l'a ecrit. Depuis le
        11/09/2026 un rappel porte un motif facultatif : « lui reparler du reassort » vaut
        mieux que « Rappel ce jour », qui ne dit que ce que la colonne Retard dit deja.
-       Sans motif, la phrase d'avant. */
+       Sans motif, la phrase d'avant. #}
     var quoi = l.source === 'rappel'
       ? (l.titre || (enRetard ? 'Rappel non fait' : 'Rappel ce jour'))
       : (l.lib || l.detail || 'Signalé');
@@ -949,9 +951,9 @@ theme_bureau: true
 
     tr.appendChild(cellule('listb__montant', l.montant ? euros(l.montant) : '\u2014'));
 
-    /* LA COLONNE RETARD DIT DES JOURS, pas une phrase : c'est une colonne de
+    {# LA COLONNE RETARD DIT DES JOURS, pas une phrase : c'est une colonne de
        listing, elle se lit en balayant verticalement une suite de J+quelque
-       chose. « J+0 » et pas « aujourd'hui » : 39 px contre 91 mesures. */
+       chose. « J+0 » et pas « aujourd'hui » : 39 px contre 91 mesures. #}
     tr.appendChild(cellule('listb__retard', l.source !== 'rappel' ? '\u2014'
       : (enRetard ? 'J+' + l.retard : 'J+0')));
 
@@ -962,9 +964,9 @@ theme_bureau: true
       b.className = 'btn--geste';
       b.setAttribute('data-geste', a.cle);
       b.setAttribute('data-id', l.id);
-      /* Le mot court sur le bouton, la phrase complete dans le title ET dans
+      {# Le mot court sur le bouton, la phrase complete dans le title ET dans
          l'aria-label : ce que la souris apprend en survolant, le clavier et le
-         lecteur d'ecran l'ont sans survoler. */
+         lecteur d'ecran l'ont sans survoler. #}
       b.textContent = a.court;
       b.title = a.label;
       b.setAttribute('aria-label', a.label);
@@ -974,21 +976,21 @@ theme_bureau: true
     return tr;
   }
 
-  /* LE TABLEAU DU LISTING. Monte a chaque peinture, avec ses lignes : hors du
+  {# LE TABLEAU DU LISTING. Monte a chaque peinture, avec ses lignes : hors du
      listing l'en-tete n'a aucun sens, et un en-tete qui reste au-dessus d'une
-     zone vide donne l'air d'un tableau en panne. */
+     zone vide donne l'air d'un tableau en panne. #}
   function tableFile(){
     var t = document.createElement('table');
     t.className = 'listb';
     var thead = document.createElement('thead');
     var tr = document.createElement('tr');
-    /* « ACTION » ET PLUS « GESTE », 10/09/2026, sur demande de Ted. Le mot a change au
+    {# « ACTION » ET PLUS « GESTE », 10/09/2026, sur demande de Ted. Le mot a change au
        panneau ; le laisser ici aurait fait dire deux mots a la meme page pour la meme
        chose. Les NOMS DE CODE, eux, ne bougent pas : `BdvCrm.GESTES`, `.postit__gestes`,
        `data-punaise="crm-appel"`. Un renommage traversant trois fichiers pour un mot
        d'ecran n'apporterait qu'un risque, et c'est la regle deja posee pour `date` dans
        bdv-echeances.js. A savoir en relisant : l'ecran dit « action », le code dit
-       « geste ». */
+       « geste ». #}
     ['Fichier client', 'Motif', 'Montant', 'Retard', 'Action'].forEach(function(m){
       var th = document.createElement('th');
       th.scope = 'col';
@@ -1003,7 +1005,7 @@ theme_bureau: true
 
   var LECTURE_KO = false;
 
-  /* LE SOUS-MAIN PEUT S'EN ALLER. Decision de Ted du 08/09/2026, apres avoir decoche
+  {# LE SOUS-MAIN PEUT S'EN ALLER. Decision de Ted du 08/09/2026, apres avoir decoche
      Vitisoft et vide sa base : la zone restait a l'ecran avec ses rappels, alors qu'elle
      n'avait plus rien a montrer et plus aucun moyen d'en montrer un jour.
 
@@ -1017,11 +1019,11 @@ theme_bureau: true
        3. Sinon la zone vit des qu'un export a ete depose une fois (`deposeLe`). Tant que
           rien n'a jamais ete depose, elle ne promet rien ; une fois qu'elle a servi, elle
           reste, y compris les jours ou tout est traite : « Rien a faire aujourd'hui.
-          Profites-en. » est un message, pas un vide. */
+          Profites-en. » est un message, pas un vide. #}
   function sousMainUtile(){
     if(SANS_VITI) return false;
     if(LECTURE_KO) return true;
-    /* SUR UN BUREAU SANS AUCUN EXPORT, PLUS RIEN N'INVITE AU DEPOT, ET C'EST A TED DE
+    {# SUR UN BUREAU SANS AUCUN EXPORT, PLUS RIEN N'INVITE AU DEPOT, ET C'EST A TED DE
        TRANCHER. Constat de l'audit du 19/09/2026 : la seule phrase qui invitait a
        deposer un export (« Ouvre Mon cap une fois... », plus bas dans peindreFile)
        vit DANS cette zone, et cette zone se cache justement tant que rien n'a jamais
@@ -1034,7 +1036,7 @@ theme_bureau: true
            07/09/2026, garde par banc-bureau ;
          - montrer le sous-main sans depot casse « sans aucun depot, le sous-main
            n'est pas la », garde deux fois par banc-journee.
-       Donc on ne touche a rien et on le laisse choisir. */
+       Donc on ne touche a rien et on le laisse choisir. #}
     return !!(ETAT_FILE && ETAT_FILE.deposeLe);
   }
   function peindreFile(){
@@ -1042,8 +1044,8 @@ theme_bureau: true
     var zone = el('zoneSousMain');
     if(zone) zone.hidden = !sousMainUtile();
     if(zone && zone.hidden){
-      // On vide aussi le contenu : une zone cachee qui garde ses lignes les reafficherait
-      // telles quelles au prochain deshabillage, et elles seraient perimees.
+      {# On vide aussi le contenu : une zone cachee qui garde ses lignes les reafficherait #}
+      {# telles quelles au prochain deshabillage, et elles seraient perimees. #}
       boite.innerHTML = ''; boite.className = '';
       txt(el('fileNote'), '');
       el('filePied').hidden = true;
@@ -1065,8 +1067,8 @@ theme_bureau: true
       return;
     }
     var retards = lignes.filter(function(l){ return l.source === 'rappel' && l.retard > 0; }).length;
-    /* ETAT_FILE.perime est posé par BdvCrm.charger() quand les DEUX lectures sont
-       tombées : ce qui s'affiche est l'état de la dernière visite, pas celui du jour. */
+    {# ETAT_FILE.perime est posé par BdvCrm.charger() quand les DEUX lectures sont
+       tombées : ce qui s'affiche est l'état de la dernière visite, pas celui du jour. #}
     var note = retards ? retards + ' en retard' : lignes.length + ' en attente';
     if(ETAT_FILE.perime) note += ' · données de ta dernière visite, ton compte n\'a pas répondu';
     txt(el('fileNote'), note);
@@ -1078,8 +1080,8 @@ theme_bureau: true
     lignes.slice(0, TOUT_VOIR ? lignes.length : FILE_VUE).forEach(function(l){ corps.appendChild(ligneFile(l)); });
     boite.appendChild(table);
 
-    // « Tout voir » déplie la file ICI. Sauter vers le tableau de bord faisait sortir du
-    // poste de travail pour retrouver une liste d'analyse, qui n'est pas la même chose.
+    {# « Tout voir » déplie la file ICI. Sauter vers le tableau de bord faisait sortir du #}
+    {# poste de travail pour retrouver une liste d'analyse, qui n'est pas la même chose. #}
     var pied = el('filePied');
     if(lignes.length > FILE_VUE){
       pied.innerHTML = '';
@@ -1095,14 +1097,14 @@ theme_bureau: true
     }else pied.hidden = true;
   }
 
-  /* LE CLIC SUR LA LIGNE. Trois issues, et deux d'entre elles n'ecrivent rien :
+  {# LE CLIC SUR LA LIGNE. Trois issues, et deux d'entre elles n'ecrivent rien :
        - le NOM ouvre la fiche en haut ;
        - « Appele » et « Message » ouvrent la fiche a leur endroit, le geste reste EN
          ATTENTE : si le vigneron ferme sans rien ecrire, la ligne est toujours la ;
-       - « Ecarte » pose son geste tout de suite, sans fiche. */
+       - « Ecarte » pose son geste tout de suite, sans fiche. #}
   document.addEventListener('click', function(e){
     var t = e.target.closest && e.target.closest('[data-fiche]');
-    /* Toute la ligne ouvre la fiche : voir CLAUDE.md. */
+    {# Toute la ligne ouvre la fiche : voir CLAUDE.md. #}
     if(!t && e.target.closest && !e.target.closest('button, a, input, select, textarea')){
       var tl = e.target.closest('.listb__l');
       if(tl && !tl.classList.contains('listb__l--partie') && !String(window.getSelection ? getSelection() : ''))
@@ -1122,10 +1124,10 @@ theme_bureau: true
       ouvrirFiche(id, act.cible, act.cle);
       return;
     }
-    /* LE GESTE NE PEUT PLUS ETRE POSE DEUX FOIS. Avant, la ligne traitee recevait
+    {# LE GESTE NE PEUT PLUS ETRE POSE DEUX FOIS. Avant, la ligne traitee recevait
        `pointer-events: none`, qui n'arrete que la souris : au clavier, Entree deux
        fois posait deux gestes. On desactive les boutons, ce que le clavier respecte
-       autant que la souris. */
+       autant que la souris. #}
     var ligne = b.closest('.listb__l');
     if(ligne){
       ligne.classList.add('listb__l--partie');
@@ -1134,9 +1136,9 @@ theme_bureau: true
     BdvCrm.geste(b.getAttribute('data-geste'), id).then(function(ok){
       ETAT_FILE = BdvCrm.miroir();
       peindreFile(); peindreResume();
-      // Le miroir vient d'etre elague de ce client : le panneau compterait un carnet plus
-      // court et ignorerait le rappel qu'on vient de poser. On le repeint sur la verite
-      // du serveur, pas sur l'optimisme local.
+      {# Le miroir vient d'etre elague de ce client : le panneau compterait un carnet plus #}
+      {# court et ignorerait le rappel qu'on vient de poser. On le repeint sur la verite #}
+      {# du serveur, pas sur l'optimisme local. #}
       if(ok) BdvCrm.charger().then(function(etat){
         if(!etat) return;
         ETAT_FILE = etat;
@@ -1150,7 +1152,7 @@ theme_bureau: true
     });
   });
 
-  /* ---------------- LA FICHE CLIENT : UNE SEULE, ET C'EST LA VRAIE ----------------
+  {# ---------------- LA FICHE CLIENT : UNE SEULE, ET C'EST LA VRAIE ----------------
      Demande de Ted, 11/09/2026 : « la petite modale disparait a jamais ».
 
      Le bureau avait sa propre fiche, 280 lignes, qui montrait la prochaine action, les
@@ -1171,11 +1173,11 @@ theme_bureau: true
 
      ET SI LE MOTEUR NE CONNAIT PAS CE CLIENT, ON LE DIT. La file se lit depuis un appareil
      sur lequel aucun export n'a jamais ete depose : la petite fiche s'en moquait, celle-ci
-     ne peut pas. Un message clair vaut mieux qu'une fiche vide. */
+     ne peut pas. Un message clair vaut mieux qu'une fiche vide. #}
   var FICHE_EN_COURS = null;
 
-  /* L'attente se voit SUR LA LIGNE qu'on vient de cliquer, et nulle part ailleurs : un
-     voile sur toute la page pour une fiche qui s'ouvre ferait croire a un rechargement. */
+  {# L'attente se voit SUR LA LIGNE qu'on vient de cliquer, et nulle part ailleurs : un
+     voile sur toute la page pour une fiche qui s'ouvre ferait croire a un rechargement. #}
   function attenteFiche(ligne, oui){
     if(ligne) ligne.setAttribute('data-attente', oui ? 'oui' : 'non');
     txt(el('fileNote'), oui ? 'Ouverture de la fiche…' : '');
@@ -1188,9 +1190,9 @@ theme_bureau: true
     return s ? (s.motif || '') : '';
   }
 
-  /* `cible` dit OU ouvrir : null (en haut), 'suivi' (le bloc de suivi, curseur dans la
+  {# `cible` dit OU ouvrir : null (en haut), 'suivi' (le bloc de suivi, curseur dans la
      zone de notes), 'message' (le redacteur, deplie). `geste` est le geste en attente :
-     rien n'est ecrit tant que le vigneron n'a pas enregistre sa note. */
+     rien n'est ecrit tant que le vigneron n'a pas enregistre sa note. #}
   function ouvrirFiche(id, cible, geste){
     if(!id || FICHE_EN_COURS) return;
     if(!window.BdvNav || !BdvNav.chargerEcrans) return;
@@ -1207,8 +1209,8 @@ theme_bureau: true
       FICHE_EN_COURS = null;
       attenteFiche(ligne, false);
       if(ok) return;
-      // Le moteur a bien demarre, mais ce client n'est dans aucune ligne de vente de cet
-      // appareil. On ne bricole pas une demi-fiche : on dit ce qui manque et quoi faire.
+      {# Le moteur a bien demarre, mais ce client n'est dans aucune ligne de vente de cet #}
+      {# appareil. On ne bricole pas une demi-fiche : on dit ce qui manque et quoi faire. #}
       av.textContent = 'Ce client n’est pas dans les ventes de cet appareil. Ouvre « Mon commerce » une fois pour récupérer tes lignes, puis reclique sur son nom.';
       av.hidden = false;
     })['catch'](function(){
@@ -1219,15 +1221,15 @@ theme_bureau: true
     });
   }
 
-  /* IL N'Y A QU'UN OUVREUR DE FICHE DANS LE BUREAU, et le voici. Le calendrier s'en
+  {# IL N'Y A QU'UN OUVREUR DE FICHE DANS LE BUREAU, et le voici. Le calendrier s'en
      sert pour ses rappels clients : lui donner le sien voudrait dire deux endroits qui
      savent charger le moteur et rattraper une panne de reseau, et ces deux-la
-     divergeraient au premier message d'erreur reecrit. */
+     divergeraient au premier message d'erreur reecrit. #}
   window.bdvOuvrirFiche = ouvrirFiche;
 
-  /* Le bureau se repeint quand la fiche a ecrit quelque chose. C'est bdv-base.js qui
+  {# Le bureau se repeint quand la fiche a ecrit quelque chose. C'est bdv-base.js qui
      appelle, APRES la reponse du serveur et jamais avant : repeindre sur l'optimisme
-     local ferait reapparaitre une ligne que le compte a deja vu partir. */
+     local ferait reapparaitre une ligne que le compte a deja vu partir. #}
   window.bdvFicheAEcrit = function(){
     if(!window.BdvCrm) return;
     BdvCrm.charger().then(function(etat){
@@ -1238,7 +1240,7 @@ theme_bureau: true
   };
 
 
-  /* ---------------- LE PENSE-BETE ---------------- */
+  {# ---------------- LE PENSE-BETE ---------------- #}
   var ECHEANCE = null;
   function peindreEcheance(){
     var boite = el('bureauEcheance');
@@ -1249,13 +1251,13 @@ theme_bureau: true
     var bloc = document.createElement('div');
     bloc.className = 'calbloc';
 
-    /* LE BLOC MENE AU CALENDRIER, et plus a l'article de l'echeance. Avant, cliquer
+    {# LE BLOC MENE AU CALENDRIER, et plus a l'article de l'echeance. Avant, cliquer
        sur le pense-bete pouvait ouvrir un article de blog : on cliquait sur une date
        et on tombait sur un texte. On clique sur un calendrier pour voir le
        calendrier. L'article reste atteignable depuis la piece elle-meme.
        Depuis le 08/09/2026 il mene A LA PIECE du bureau et plus a la page publique :
        le clic est intercepte par bdv-nav.js, qui attrape tous les liens en
-       /mon-bureau/# poses ailleurs que dans la barre. On ne quitte plus le bureau. */
+       /mon-bureau/# poses ailleurs que dans la barre. On ne quitte plus le bureau. #}
     var a = document.createElement('a');
     a.className = 'calbloc__une';
     a.href = '/mon-bureau/#calendrier';
@@ -1274,9 +1276,9 @@ theme_bureau: true
     a.appendChild(quand); a.appendChild(t);
     bloc.appendChild(a);
 
-    /* LES DEUX SUIVANTES, en liste. Le bloc dit ce qui tombe le plus tot, la liste
+    {# LES DEUX SUIVANTES, en liste. Le bloc dit ce qui tombe le plus tot, la liste
        dit ce qui vient apres : c'est ce que le pense-bete ne disait pas, et ce pour
-       quoi il fallait aller voir ailleurs. */
+       quoi il fallait aller voir ailleurs. #}
     var toutes = BdvEcheances.calculer(BdvEcheances.depuisLaPage('bdvEcheances'))
       .filter(function (x) { return x.jours >= 0 && x.e.titre !== ECHEANCE.e.titre; })
       .slice(0, 2);
@@ -1294,10 +1296,10 @@ theme_bureau: true
     }
     boite.appendChild(bloc);
 
-    /* LE COMPTE EST DANS LE LIEN, PAS DANS L'ETIQUETTE DE LA ZONE. Vu sur
+    {# LE COMPTE EST DANS LE LIEN, PAS DANS L'ETIQUETTE DE LA ZONE. Vu sur
        capture : « 5 échéances suivies » en etiquette poussait le titre « Le
        calendrier » sur deux lignes, la zone ne faisant que trois colonnes sur
-       douze. Le lien du pied, lui, a toute la largeur. */
+       douze. Le lien du pied, lui, a toute la largeur. #}
     var n = BdvEcheances.depuisLaPage('bdvEcheances').length;
     var tout = document.createElement('p');
     tout.className = 'zone__pied';
@@ -1308,17 +1310,17 @@ theme_bureau: true
     boite.appendChild(tout);
   }
 
-  /* ---------------- LE MOT DU JOUR ----------------
+  {# ---------------- LE MOT DU JOUR ----------------
      UN conseil, pas six. Ceux du tableau de bord sont déjà triés par gravité puis par
      euros en jeu ; on prend le premier, et on offre de voir les suivants.
 
      « Journalier » veut dire qu'il tourne : sans rotation, le même paragraphe finit par
      faire partie du décor et plus personne ne le lit. La rotation est calée sur le jour
      de l'année, donc stable dans la journée et différente le lendemain, sans rien avoir
-     à mémoriser côté serveur. */
+     à mémoriser côté serveur. #}
   var MOT_I = 0;
 
-  /* LE CONSEIL ARRIVE EN HTML, ET CETTE ZONE L'ECRIT EN TEXTE, 14/09/2026.
+  {# LE CONSEIL ARRIVE EN HTML, ET CETTE ZONE L'ECRIT EN TEXTE, 14/09/2026.
      Les deux phrases viennent telles quelles de `diagnosticSignals()` (bdv-ecrans.js),
      qui ecrit ses renvois en gras, « la liste est dans <b>Mon commerce</b> », et qui
      passe les noms de clients par `esc()`. Peintes avec `textContent`, ces deux
@@ -1337,7 +1339,7 @@ theme_bureau: true
      ce serait rouvrir une porte d'injection sur du texte qui traverse la base, pour
      economiser dix lignes. Et on retire les balises AVANT de decoder, jamais l'inverse :
      dans l'autre sens, un `&lt;b&gt;` volontairement echappe deviendrait une vraie balise
-     puis disparaitrait, au lieu de s'afficher comme le texte qu'il est. */
+     puis disparaitrait, au lieu de s'afficher comme le texte qu'il est. #}
   var ENTITES = { amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:'\u00a0' };
   function texteDuConseil(s){
     return String(s == null ? '' : s)
@@ -1352,30 +1354,30 @@ theme_bureau: true
         return ENTITES[nom] != null ? ENTITES[nom] : tout;
       });
   }
-  /* Expose pour le banc, au meme titre que `bdvMajJournee` et `bdvProfilLu`. Lire la zone
+  {# Expose pour le banc, au meme titre que `bdvMajJournee` et `bdvProfilLu`. Lire la zone
      peinte ne prouve que les cas que la fixture contient ; appeler la fonction permet
-     d'interdire la CLASSE, chevron volontairement echappe et entite inconnue compris. */
+     d'interdire la CLASSE, chevron volontairement echappe et entite inconnue compris. #}
   window.bdvTexteDuConseil = texteDuConseil;
   function jourDeLAnnee(){
     var d = new Date();
     return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
   }
-  /* OU LE CONSEIL EMMENE. `cible` est l'identifiant d'une piece de `bdv-nav.js`, pose par
+  {# OU LE CONSEIL EMMENE. `cible` est l'identifiant d'une piece de `bdv-nav.js`, pose par
      `conseilsPourLeBureau()` depuis le 14/09/2026. On ne fabrique PAS l'adresse a partir du
      texte du conseil : ce serait un deuxieme endroit qui decide ou mene un signal, et il
      divergerait au premier signal ajoute. Un depot anterieur n'a pas de cible : le conseil
-     s'affiche alors sans lien, comme avant, et le prochain import comble le trou. */
+     s'affiche alors sans lien, comme avant, et le prochain import comble le trou. #}
   var MOT_PIECES = { clients:'Mon commerce', annee:'Mon cap', produits:'Mes cuvées',
                      chercher:'Mon registre', calendrier:'Le calendrier', taches:'Mes tâches' };
 
-  /* LA GRAVITE NE SE DIT PLUS PAR LA SEULE COULEUR, 14/09/2026. Quatre fonds et quatre
+  {# LA GRAVITE NE SE DIT PLUS PAR LA SEULE COULEUR, 14/09/2026. Quatre fonds et quatre
      filets, et rien d'autre : ca ne se voit pas en niveaux de gris, ca ne se voit pas en
      vision deuteranope, et ca ne s'entend pas du tout. C'est WCAG 1.4.1, et c'est la meme
      regle que la cinquieme famille du calendrier, qui a pris une MATIERE faute de couleur
      disponible. Ici le signe existait deja : `ico` etait transporte depuis le tableau de
      bord jusqu'a cette zone et pose NULLE PART. Il est pose, et un mot hors ecran dit la
      meme chose a qui ecoute. Le signe n'est pas colore : `--warn` et `--danger` ne tiennent
-     pas AA sur ce papier, et un glyphe distingue par sa forme n'a pas besoin d'une teinte. */
+     pas AA sur ce papier, et un glyphe distingue par sa forme n'a pas besoin d'une teinte. #}
   var MOT_GRAVITE = { danger:'Urgent.', warn:'À surveiller.',
                       ok:'Bonne nouvelle.', info:'Pour information.' };
   var MOT_SIGNE   = { danger:'\u26a0', warn:'\u21bb', ok:'\u2714', info:'\u2139' };
@@ -1383,11 +1385,11 @@ theme_bureau: true
   function peindreMot(){
     var c = (ETAT_FILE && ETAT_FILE.resume && ETAT_FILE.resume.conseils) || [];
     var zone = el('zoneMot');
-    /* MEME REGLE QUE L'ARDOISE, et elle manquait ici : ces conseils sont calcules sur un
+    {# MEME REGLE QUE L'ARDOISE, et elle manquait ici : ces conseils sont calcules sur un
        export Vitisoft qui n'arrivera jamais pour qui a repondu « non ». Une zone qui sait
        se montrer doit savoir se cacher (08/09/2026) ; celle-ci ne le savait que pour une
        base vide, et elle ne rendait pas non plus son contenu, qui repartait donc au
-       prochain affichage de la zone. */
+       prochain affichage de la zone. #}
     if(SANS_VITI || !c.length){
       zone.hidden = true;
       el('bureauMot').innerHTML = '';
@@ -1396,7 +1398,7 @@ theme_bureau: true
     }
     zone.hidden = false;
 
-    /* « LES CONSEILS GRAVES NE TOURNENT PAS » NE VEUT PAS DIRE « ILS NE BOUGENT PAS ».
+    {# « LES CONSEILS GRAVES NE TOURNENT PAS » NE VEUT PAS DIRE « ILS NE BOUGENT PAS ».
        La regle a ete appliquee au sens fort jusqu'au 14/09/2026 : des qu'un conseil etait
        grave, `i` valait 0, `MOT_I` s'incrementait dans le vide et l'etiquette restait
        figee. Le bouton « Le suivant » marchait donc les jours ou il ne sert a rien, et
@@ -1411,7 +1413,7 @@ theme_bureau: true
        avait un : le vigneron lisait « 1 sur 2 » alors que le tableau de bord en avait
        depose quatre, et les deux autres etaient inatteignables. Les conseils arrivent DEJA
        tries par gravite puis par euros en jeu (`diagnosticSignals()`), donc un grave est en
-       tete sans qu'on ait rien a filtrer ici. */
+       tete sans qu'on ait rien a filtrer ici. #}
     var grave = c.filter(function(x){ return x.sev >= 3; }).length > 0;
     var depart = grave ? 0 : jourDeLAnnee();
     var i = ((depart + MOT_I) % c.length + c.length) % c.length;
@@ -1436,23 +1438,23 @@ theme_bureau: true
     var a = document.createElement('p'); a.className = 'mot__a';
     a.textContent = texteDuConseil(m.action);
 
-    /* LA PHRASE PORTE LE LIEN, ET UN CALQUE REND LA CARTE CLIQUABLE, comme les cartes de
+    {# LA PHRASE PORTE LE LIEN, ET UN CALQUE REND LA CARTE CLIQUABLE, comme les cartes de
        la page des outils. La carte entiere en `<a>` donnerait un nom accessible fait du
        verdict PLUS l'action, soit deux phrases annoncees comme un seul libelle. Le bouton
        « Le suivant », lui, reste DEHORS de la carte : un element interactif dans un element
-       interactif est interdit par le HTML, et ce projet l'a deja paye deux fois. */
+       interactif est interdit par le HTML, et ce projet l'a deja paye deux fois. #}
     var ou = MOT_PIECES[m.cible];
     if(ou){
       var l = document.createElement('a');
       l.className = 'mot__aller';
       l.href = '/mon-bureau/#' + m.cible;
       l.textContent = texteDuConseil(m.verdict);
-      /* UNE FLECHE, PARCE QUE LA CAPTURE A MONTRE UN BLOC MORT. Le lien etait pose, le
+      {# UNE FLECHE, PARCE QUE LA CAPTURE A MONTRE UN BLOC MORT. Le lien etait pose, le
          banc le voyait, et a l'ecran rien ne disait qu'on pouvait cliquer : `color:
          inherit` et pas de soulignement, donc un paragraphe comme un autre. Un lien
          qu'on ne voit pas ne vaut pas mieux qu'une phrase qui decrit un chemin.
          Elle est cachee a la synthese vocale : le hors-ecran juste apres dit deja ou
-         l'on va, en mots, et une fleche annoncee deux fois est une fleche de trop. */
+         l'on va, en mots, et une fleche annoncee deux fois est une fleche de trop. #}
       var fl = document.createElement('span');
       fl.className = 'mot__fleche';
       fl.setAttribute('aria-hidden', 'true');
@@ -1467,8 +1469,8 @@ theme_bureau: true
       v.textContent = texteDuConseil(m.verdict);
     }
 
-    // La gravite en toutes lettres, pour qui n'a pas la couleur. Devant le verdict, parce
-    // qu'elle le qualifie : annoncee apres, elle arrive quand la phrase est deja lue.
+    {# La gravite en toutes lettres, pour qui n'a pas la couleur. Devant le verdict, parce #}
+    {# qu'elle le qualifie : annoncee apres, elle arrive quand la phrase est deja lue. #}
     var g = document.createElement('span');
     g.className = 'hors-ecran';
     g.textContent = (MOT_GRAVITE[kind] || MOT_GRAVITE.info) + ' ';
@@ -1482,11 +1484,11 @@ theme_bureau: true
       var p = document.createElement('p'); p.className = 'zone__pied';
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'btn--lienb'; b.textContent = 'Le suivant';
-      /* LE BOUTON SE DETRUIT LUI-MEME EN REPEIGNANT, et le focus tombait sur le corps de
+      {# LE BOUTON SE DETRUIT LUI-MEME EN REPEIGNANT, et le focus tombait sur le corps de
          page : au clavier, un deuxieme « suivant » demandait de retraverser toute la zone.
          On le repose sur le bouton qui vient de naitre. Et seulement quand le clic vient
          du clavier ou de la souris, jamais au premier rendu, sinon la page volerait le
-         focus a l'arrivee. */
+         focus a l'arrivee. #}
       b.onclick = function(){ MOT_I++; peindreMot(); rendreLeFocusAuSuivant(); };
       p.appendChild(b); boite.appendChild(p);
     }
@@ -1496,23 +1498,23 @@ theme_bureau: true
     if(b && b.focus) b.focus();
   }
 
-  /* ---------------- L'ARDOISE ---------------- */
-  /* L'ARDOISE SAIT MAINTENANT SE CACHER, et c'est tout le defaut du 08/09/2026 : elle ne
+  {# ---------------- L'ARDOISE ---------------- #}
+  {# L'ARDOISE SAIT MAINTENANT SE CACHER, et c'est tout le defaut du 08/09/2026 : elle ne
      savait que se montrer. Les deux `return` de tete sortaient sans toucher a la zone, donc
      une base videe laissait le dernier chiffre d'affaires connu affiche jusqu'au
      rechargement de la page, ou la zone repartait cachee par son attribut `hidden` de
      depart. D'ou l'impression, juste, que « il faut recharger pour que ca disparaisse ».
 
      Sans Vitisoft, meme regle que le sous-main : ces chiffres viennent d'un export qui
-     n'arrivera jamais. */
+     n'arrivera jamais. #}
   function peindreArdoise(){
     var zone = el('zoneArdoise');
     var effacer = function(){ if(zone) zone.hidden = true; el('bureauChiffres').innerHTML = '';
                               txt(el('ardoiseQuand'), ''); };
     if(SANS_VITI || !ETAT_FILE || !ETAT_FILE.resume) return effacer();
     var r = ETAT_FILE.resume, cases = [];
-    // Chaque chiffre porte sa comparaison. Un chiffre d'affaires seul ne dit rien : ce
-    // qui compte, c'est s'il monte ou s'il descend, et où il finira.
+    {# Chaque chiffre porte sa comparaison. Un chiffre d'affaires seul ne dit rien : ce #}
+    {# qui compte, c'est s'il monte ou s'il descend, et où il finira. #}
     if(r.ca != null){
       var sous = r.exercice || '';
       if(r.variation != null){
@@ -1551,7 +1553,7 @@ theme_bureau: true
     }
   }
 
-  /* ---------------- LE PANNEAU DE LIEGE ----------------
+  {# ---------------- LE PANNEAU DE LIEGE ----------------
      Refait le 10/09/2026, sur demande de Ted : « il faut le rendre bcp plus usefull,
      il y a des KPI qui servent a rien, il faut que ca soit cliquable et que les
      elements decides apparents servent a quelque chose. Je veux du dynamisme. »
@@ -1579,7 +1581,7 @@ theme_bureau: true
 
      LA REGLE QUI TIENT TOUJOURS : aucun chiffre de VENTE ici. L'ardoise mesure le
      domaine, le panneau mesure le vigneron. C'est la seule chose qui autorise deux
-     tableaux de chiffres sur la meme page. */
+     tableaux de chiffres sur la meme page. #}
   var JOURNAL = undefined;   // undefined : pas encore lu. null : illisible. [] : lu, vide.
 
   function minuit(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
@@ -1594,39 +1596,39 @@ theme_bureau: true
     var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
     return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
   }
-  /* Une date de punaise tient sur une ligne : « 9 oct. » et pas « 9 octobre ». Le
+  {# Une date de punaise tient sur une ligne : « 9 oct. » et pas « 9 octobre ». Le
      post-it fait 160 px de large au minimum mesure, et « septembre » seul en fait 92
      dans la fonte des chiffres : le mois long repliait la valeur sur deux lignes et
-     poussait le libelle hors du papier. */
+     poussait le libelle hors du papier. #}
   function dateBreve(iso){
     var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
     return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
   }
 
-  /* LE MOMENT DE LA JOURNEE. Il ne change pas les chiffres, il change ce que le
+  {# LE MOMENT DE LA JOURNEE. Il ne change pas les chiffres, il change ce que le
      panneau MET EN AVANT : le matin on montre ce qui reste a faire, le soir on
      montre aussi ce qui a ete fait. C'est la meme donnee, lue a l'heure ou elle
-     compte. */
+     compte. #}
   function momentDuJour(){
     var h = new Date().getHours();
     return h < 12 ? 'matin' : (h < 17 ? 'apresmidi' : 'soir');
   }
 
-  /* LE MOUVEMENT EST UN CHOIX DE L'UTILISATEUR, PAS DU DEVELOPPEUR. Tout ce qui
+  {# LE MOUVEMENT EST UN CHOIX DE L'UTILISATEUR, PAS DU DEVELOPPEUR. Tout ce qui
      bouge sur ce panneau passe par ce test : la cascade d'arrivee, le chiffre qui
      monte, la punaise qui se decroche. Sans lui, un vigneron qui a demande a son
-     systeme de calmer les animations verrait son bureau sautiller quand meme. */
+     systeme de calmer les animations verrait son bureau sautiller quand meme. #}
   function sansMouvement(){
     try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
     catch(e){ return false; }
   }
 
-  /* LE CHIFFRE QUI MONTE. Seulement sur un entier : « 9 oct. » ou « en retard » n'ont
+  {# LE CHIFFRE QUI MONTE. Seulement sur un entier : « 9 oct. » ou « en retard » n'ont
      pas de valeur de depart, et les faire defiler serait du bruit.
 
      LE TEXTE FINAL EST POSE D'ABORD, l'animation ne fait que le remplacer pendant un
      tiers de seconde. Une page lue par un lecteur d'ecran, un banc, ou un navigateur
-     qui n'a pas de requestAnimationFrame lit donc toujours la bonne valeur. */
+     qui n'a pas de requestAnimationFrame lit donc toujours la bonne valeur. #}
   function animerChiffre(node, texte){
     node.textContent = texte;
     if(sansMouvement() || !window.requestAnimationFrame) return;
@@ -1643,7 +1645,7 @@ theme_bureau: true
     });
   }
 
-  /* UN POST-IT N'EST PLUS UN <a>, ET C'EST LE MEME DEFAUT QUE LE SOUS-MAIN AVAIT
+  {# UN POST-IT N'EST PLUS UN <a>, ET C'EST LE MEME DEFAUT QUE LE SOUS-MAIN AVAIT
      DEJA PAYE : un lien qui contiendrait les boutons « Fait » et « Demain » serait un
      element interactif dans un element interactif, ce que le HTML interdit et ce que
      le clavier traverse de travers.
@@ -1673,28 +1675,28 @@ theme_bureau: true
 
      LE LIEN SUIT LA TETE. Il se pose sur le libelle quand il y en a un, sinon sur la
      ligne de tete. Autrement dit : toujours sur le texte qui porte le sens, jamais sur
-     un chiffre nu, qu'on ne songerait pas a cliquer. */
+     un chiffre nu, qu'on ne songerait pas a cliquer. #}
   function postit(o){
     var n = document.createElement('div');
     n.className = 'postit';
     if(o.ton) n.setAttribute('data-ton', o.ton);
     if(o.cle) n.setAttribute('data-cle', o.cle);
 
-    /* LE LIEN SE POSE SUR LA LIGNE DE TETE, et la ligne de tete est le libelle quand
+    {# LE LIEN SE POSE SUR LA LIGNE DE TETE, et la ligne de tete est le libelle quand
        il y en a un, sinon la valeur. Autrement dit : toujours sur le texte qui porte
        le sens, jamais sur un chiffre nu qu'on ne songerait pas a cliquer. On decide
        AVANT de construire, parce qu'un element deja peint puis remplace laisserait le
-       compteur anime ecrire dans un noeud detache du document. */
+       compteur anime ecrire dans un noeud detache du document. #}
     var surValeur = !o.libelle;
     function ligne(classe, texte, lien){
       var e = document.createElement(lien ? 'a' : 'span');
       e.className = classe + (lien ? ' postit__lien' : '');
       if(lien) e.href = o.href;
-      /* LA PUNAISE D'UNE TACHE OUVRE SA MODALE, depuis le 12/09/2026, au lieu de
+      {# LA PUNAISE D'UNE TACHE OUVRE SA MODALE, depuis le 12/09/2026, au lieu de
          changer de piece pour aller la rechercher dans une liste. Le `href` reste
          pose dessous : il sert quand le module des taches n'a pas encore parle, et
          c'est le seul chemin qu'un clic milieu sache suivre. C'est bdv-taches.js qui
-         intercepte, comme pour toutes les autres portes de cette modale. */
+         intercepte, comme pour toutes les autres portes de cette modale. #}
       if(lien && o.ouvre) e.setAttribute('data-tache-ouvrir', o.ouvre);
       e.textContent = texte;
       return e;
@@ -1709,9 +1711,9 @@ theme_bureau: true
 
     var mot = String(o.valeur);
     var v = ligne('postit__v', '', !!o.href && surValeur);
-    // Trois paliers, mesures sur un post-it de 160 px : un chiffre tient a 2 rem, un
-    // mot court a 1,4 rem, et au-dela de seize signes il faut redescendre au corps du
-    // chapo sous peine de trois lignes.
+    {# Trois paliers, mesures sur un post-it de 160 px : un chiffre tient a 2 rem, un #}
+    {# mot court a 1,4 rem, et au-dela de seize signes il faut redescendre au corps du #}
+    {# chapo sous peine de trois lignes. #}
     if(mot.length > 16) v.setAttribute('data-mot', 'long');
     else if(mot.length > 4) v.setAttribute('data-mot', 'oui');
     animerChiffre(v, mot);
@@ -1744,12 +1746,12 @@ theme_bureau: true
     return n;
   }
 
-  /* LE PANNEAU SE FIGE PENDANT QU'UNE PUNAISE TOMBE, et c'est la seule raison de ces
+  {# LE PANNEAU SE FIGE PENDANT QU'UNE PUNAISE TOMBE, et c'est la seule raison de ces
      trois variables. Sans elles, cocher une tache appelait `rendre()` dans
      bdv-taches.js, qui rappelle `bdvMajPanneau` DANS LA FOULEE : le panneau se
      repeignait avant la premiere image de l'animation, et la punaise disparaissait
      d'un coup. On retient donc les repeintures le temps de la chute, et on en joue
-     UNE seule a la sortie, meme si trois sont arrivees entre-temps. */
+     UNE seule a la sortie, meme si trois sont arrivees entre-temps. #}
   var PANNEAU_GELE = 0, PANNEAU_DU = false;
   function gelerPanneau(ms){
     if(sansMouvement()) return;               // rien ne tombe, rien a attendre
@@ -1772,24 +1774,24 @@ theme_bureau: true
       var s = signaux.filter(function(x){ return x.id === id; })[0];
       return (s && s.nom) || noms[id] || id;
     }
-    // Une fiche videe ne compte pas : `planifier(id, null)` laisse une ligne qui ne
-    // porte plus rien, et la compter ferait grossir le carnet a chaque rappel retire.
+    {# Une fiche videe ne compte pas : `planifier(id, null)` laisse une ligne qui ne #}
+    {# porte plus rien, et la compter ferait grossir le carnet a chaque rappel retire. #}
     var portent = suivi.filter(function(l){ return l.statut || l.rappel; });
     var vivants = suivi.filter(function(l){ return l.statut !== 'traite' && l.rappel; });
     function parDate(a, b){ return a.rappel < b.rappel ? -1 : 1; }
 
-    /* 1. CE QUI EST EN RETARD, ET RIEN AU-DESSUS. C'est la punaise qui manquait :
+    {# 1. CE QUI EST EN RETARD, ET RIEN AU-DESSUS. C'est la punaise qui manquait :
        une promesse qu'on s'est faite et qu'on n'a pas tenue passe devant tout, y
-       compris devant une obligation legale qui tombe dans trois jours. */
+       compris devant une obligation legale qui tombe dans trois jours. #}
     var retards = aujISO ? vivants.filter(function(l){ return l.rappel < aujISO; }).sort(parDate) : [];
     if(retards.length){
       var vieux = retards[0];
       var age = jours(auj, new Date(vieux.rappel + 'T00:00:00'));
       var appel = [{ cle: 'crm-appel', id: vieux.id, mot: 'Appelé',
                      titre: 'Noter un appel passé à ' + nomDe(vieux.id) }];
-      /* A UN SEUL, ON NOMME ; A PLUSIEURS, ON COMPTE. Decision de Ted le 10/09/2026,
+      {# A UN SEUL, ON NOMME ; A PLUSIEURS, ON COMPTE. Decision de Ted le 10/09/2026,
          dans le meme mouvement que le tampon : un gros « 1 » n'apprend rien a
-         personne, alors que le nom du client dit tout, et c'est lui qu'on appelle. */
+         personne, alors que le nom du client dit tout, et c'est lui qu'on appelle. #}
       pile.push(retards.length === 1
         ? { cle: 'crm-retard', tampon: 'en retard', valeur: nomDe(vieux.id),
             sous: 'depuis ' + pluriel(age, 'jour'), ton: 'vieux',
@@ -1799,9 +1801,9 @@ theme_bureau: true
             ton: 'vieux', href: lienFiche(vieux.id), gestes: appel });
     }
 
-    /* 2. CE QUI TOMBE AUJOURD'HUI, COTE CLIENTS. Pas de ton particulier : le mot
+    {# 2. CE QUI TOMBE AUJOURD'HUI, COTE CLIENTS. Pas de ton particulier : le mot
        « aujourd'hui » est dans le libelle, et un mot se lit quand une teinte se
-       devine. */
+       devine. #}
     var duJour = aujISO ? vivants.filter(function(l){ return l.rappel === aujISO; }).sort(parDate) : [];
     if(duJour.length){
       var prem = duJour[0];
@@ -1815,19 +1817,19 @@ theme_bureau: true
             href: lienFiche(prem.id), gestes: appelJ });
     }
 
-    /* 3. LES TROIS CHOSES A FAIRE LES PLUS PRESSANTES, plus le renvoi vers le reste.
+    {# 3. LES TROIS CHOSES A FAIRE LES PLUS PRESSANTES, plus le renvoi vers le reste.
        Elles viennent de bdv-taches.js, qui est le seul a savoir fusionner les taches
-       ecrites et les obligations du calendrier. */
+       ecrites et les obligations du calendrier. #}
     if(window.BdvTaches){ try{ pile = pile.concat(BdvTaches.punaises()); }catch(e){} }
 
-    /* 4. LA PROCHAINE PROMESSE. C'est le seul endroit du bureau qui montre l'avenir
+    {# 4. LA PROCHAINE PROMESSE. C'est le seul endroit du bureau qui montre l'avenir
        plutot que le jour meme, et il ne montre que la PREMIERE : une liste de choses
-       qui ne pressent pas encore n'a rien a faire sur une pile de travail. */
+       qui ne pressent pas encore n'a rien a faire sur une pile de travail. #}
     var venir = aujISO ? vivants.filter(function(l){ return l.rappel > aujISO; }).sort(parDate) : [];
     if(venir.length){
-      /* Elle etait deja de la deuxieme nature sans qu'on l'ait vu : « 9 oct. » en gros
+      {# Elle etait deja de la deuxieme nature sans qu'on l'ait vu : « 9 oct. » en gros
          et le nom du client en dessous, alors que c'est le client qu'on rappelle. La
-         date devient le tampon, comme sur les autres. */
+         date devient le tampon, comme sur les autres. #}
       pile.push({
         cle: 'crm-venir',
         tampon: dateBreve(venir[0].rappel),
@@ -1837,10 +1839,10 @@ theme_bureau: true
       });
     }
 
-    /* 5. L'AGE DES CHIFFRES, MAIS SEULEMENT QUAND IL DERANGE. Cette punaise annoncait
+    {# 5. L'AGE DES CHIFFRES, MAIS SEULEMENT QUAND IL DERANGE. Cette punaise annoncait
        « du jour » tous les jours ou tout allait bien : elle occupait une place de la
        pile pour dire qu'il n'y avait rien a faire. Elle ne revient qu'au-dela de
-       quinze jours, et la fraicheur ordinaire passe dans l'etiquette de zone. */
+       quinze jours, et la fraicheur ordinaire passe dans l'etiquette de zone. #}
     var age = null;
     if(ETAT_FILE && ETAT_FILE.deposeLe){
       var d = new Date(ETAT_FILE.deposeLe);
@@ -1853,23 +1855,23 @@ theme_bureau: true
         libelle: 'depuis ta dernière analyse',
         sous: age > 30 ? 'l’ardoise a vieilli, réimporte ton export' : 'ton export commence à dater',
         ton: age > 30 ? 'vieux' : '',
-        // Cette punaise mene la ou on repare ce qu'elle signale.
+        {# Cette punaise mene la ou on repare ce qu'elle signale. #}
         href: '/mon-bureau/#base'
       });
     }
 
-    /* 6. LE BILAN. Il n'apparait pas le matin : ouvrir son bureau a 8 h sur « 0 fait
+    {# 6. LE BILAN. Il n'apparait pas le matin : ouvrir son bureau a 8 h sur « 0 fait
        aujourd'hui » est un reproche, pas un bilan. L'apres-midi il recompense, et le
        soir il cloture. Il apparait aussi des que la pile est vide, a n'importe quelle
-       heure : c'est le moment ou il a le plus de sens. */
+       heure : c'est le moment ou il a le plus de sens. #}
     var faits = 0;
     if(window.BdvTaches && BdvTaches.faitsAujourdhui){ try{ faits = BdvTaches.faitsAujourdhui(); }catch(e){} }
-    /* LE BILAN NE CHASSE JAMAIS DU TRAVAIL. Premiere capture du 10/09/2026 : il
+    {# LE BILAN NE CHASSE JAMAIS DU TRAVAIL. Premiere capture du 10/09/2026 : il
        prenait la cinquieme place et poussait dehors « dans 3j · Commander des
        bouchons » ET la punaise de renvoi vers Mes taches, c'est-a-dire la seule
        porte du panneau vers tout le reste. Une felicitation qui coute une chose a
        faire est un mauvais echange. Il ne se montre donc que s'il reste une place,
-       et son compte est de toute facon dans l'etiquette de zone. */
+       et son compte est de toute facon dans l'etiquette de zone. #}
     var bilan = null;
     if(faits && pile.length < 5 && (momentDuJour() !== 'matin' || !pile.length)){
       bilan = {
@@ -1882,9 +1884,9 @@ theme_bureau: true
       };
     }
 
-    /* 7. LA PILE VIDE EST UN MESSAGE, PAS UN TROU. Une zone qui disparait quand tout
+    {# 7. LA PILE VIDE EST UN MESSAGE, PAS UN TROU. Une zone qui disparait quand tout
        est fait retire au vigneron le seul moment ou son bureau lui dit merci. Meme
-       raisonnement que « Rien a faire aujourd'hui. Profites-en. » au sous-main. */
+       raisonnement que « Rien a faire aujourd'hui. Profites-en. » au sous-main. #}
     if(!pile.length && !bilan){
       pile.push({
         cle: 'vide',
@@ -1897,26 +1899,26 @@ theme_bureau: true
 
     if(bilan) pile.push(bilan);
 
-    /* CINQ PUNAISES AU PLUS. LE CHIFFRE VIENT D'UNE CAPTURE, pas d'un avis : a six
+    {# CINQ PUNAISES AU PLUS. LE CHIFFRE VIENT D'UNE CAPTURE, pas d'un avis : a six
        punaises, sur une fenetre de 1200 px, la cinquieme finit la rangee et la
        sixieme part seule sur une deuxieme, avec quatre cases de liege nu a cote
        d'elle. Une pile de travail qui deborde n'est plus une pile, c'est un mur — le
        defaut qu'on evitait deja avec les taches. Ce qui ne tient pas ici n'est jamais
        perdu : il est dans Mes taches ou au sous-main, ou la punaise de renvoi mene en
-       un clic. */
+       un clic. #}
     pile = pile.slice(0, 5);
 
-    /* LES COMPTEURS DECLASSES. Ils ne valent plus une punaise chacun, mais ils valent
+    {# LES COMPTEURS DECLASSES. Ils ne valent plus une punaise chacun, mais ils valent
        une ligne : ce sont eux qui disent si la semaine avance. Le journal absent se
        tait, le journal ILLISIBLE le dit — un compte neuf et une table en panne ne
-       sont pas la meme chose. */
+       sont pas la meme chose. #}
     var note = [];
     if(JOURNAL){
       var debutSem = lundi(), debutPrec = new Date(debutSem);
       debutPrec.setDate(debutPrec.getDate() - 7);
-      // La semaine en cours est INCOMPLETE. La comparer a une semaine pleine annoncerait
-      // « -9 » tous les mardis matin, pour la seule raison qu'on est mardi. On coupe donc
-      // la semaine passee au meme jour, et on compare deux tranches de meme longueur.
+      {# La semaine en cours est INCOMPLETE. La comparer a une semaine pleine annoncerait #}
+      {# « -9 » tous les mardis matin, pour la seule raison qu'on est mardi. On coupe donc #}
+      {# la semaine passee au meme jour, et on compare deux tranches de meme longueur. #}
       var finPrec = new Date(debutPrec);
       finPrec.setDate(finPrec.getDate() + jours(auj, debutSem) + 1);
       var sem = 0, prec = 0, mois = 0;
@@ -1938,10 +1940,10 @@ theme_bureau: true
     if(JOURNAL === null) note.push('ton journal n’est pas encore lisible');
     txt(el('panneauNote'), note.join(' · '));
 
-    /* UNE ZONE QUI SAIT SE MONTRER DOIT SAVOIR SE CACHER. Le panneau ne vit que si le
+    {# UNE ZONE QUI SAIT SE MONTRER DOIT SAVOIR SE CACHER. Le panneau ne vit que si le
        vigneron a DEJA quelque chose quelque part : un export depose, une fiche suivie,
        ou une tache ecrite. Sur un bureau tout neuf, « Rien ne presse aujourd'hui » ne
-       serait pas une recompense, ce serait une promesse vide. */
+       serait pas une recompense, ce serait une promesse vide. #}
     var aQuelqueChose = !!(ETAT_FILE && ETAT_FILE.deposeLe) || portent.length > 0
       || !!(window.BdvTaches && BdvTaches.toutes && BdvTaches.toutes().length);
     var boite = el('bureauPanneau');
@@ -1951,21 +1953,21 @@ theme_bureau: true
     pile.forEach(function(c, i){
       var n = postit(c);
       n.style.setProperty('--tour', ((i % 3) - 1) * 0.7 + 'deg');
-      // Le rang commande le retard d'arrivee : les punaises se posent de gauche a
-      // droite, comme une main qui epingle, et pas toutes ensemble.
+      {# Le rang commande le retard d'arrivee : les punaises se posent de gauche a #}
+      {# droite, comme une main qui epingle, et pas toutes ensemble. #}
       n.style.setProperty('--rang', String(i));
       boite.appendChild(n);
     });
     el('zonePanneau').hidden = false;
   }
-  /* Le liege est peint une fois, au chargement, depuis ce qu'on a alors sous la main. Les
+  {# Le liege est peint une fois, au chargement, depuis ce qu'on a alors sous la main. Les
      taches, elles, arrivent du serveur APRES : sans ce point d'entree, une DRM qui tombe
      demain n'apparaissait au panneau qu'au rechargement suivant. Meme motif que
      window.bdvMajBandeau pour la pastille des signets : c'est la donnee qui rappelle
-     l'ecran, et pas l'ecran qui interroge en boucle. */
+     l'ecran, et pas l'ecran qui interroge en boucle. #}
   window.bdvMajPanneau = peindrePanneau;
 
-  /* ---------------- AGIR DEPUIS LA PUNAISE, 10/09/2026 ----------------
+  {# ---------------- AGIR DEPUIS LA PUNAISE, 10/09/2026 ----------------
      Ted : « je peux agir depuis la punaise ». Trois gestes, pas un de plus, et chacun
      est celui qui fait DISPARAITRE la punaise sur laquelle on clique. Un bouton qui
      laisse la punaise en place apprend au vigneron que ses clics ne servent a rien.
@@ -1977,7 +1979,7 @@ theme_bureau: true
 
      LES BOUTONS SONT DESACTIVES DES LE PREMIER CLIC. Le sous-main avait paye ce
      defaut : `pointer-events: none` n'arrete que la souris, et Entree deux fois de
-     suite posait deux gestes. */
+     suite posait deux gestes. #}
   document.addEventListener('click', function(e){
     var b = e.target.closest && e.target.closest('[data-punaise]');
     if(!b) return;
@@ -1994,12 +1996,12 @@ theme_bureau: true
     if(cle === 'tache-fait' && window.BdvTaches){ BdvTaches.basculer(id); return; }
     if(cle === 'tache-demain' && window.BdvTaches){ BdvTaches.repousser(id, 1); return; }
     if(cle === 'crm-appel'){
-      /* MEME CHEMIN QUE LE SOUS-MAIN, volontairement : un appel note depuis la punaise
+      {# MEME CHEMIN QUE LE SOUS-MAIN, volontairement : un appel note depuis la punaise
          et un appel note depuis la ligne doivent ecrire la meme chose, sinon le meme
          client se retrouve traite d'un cote et pas de l'autre. Depuis le 11/09/2026 ce
          chemin ouvre la fiche au lieu de poser le geste : rien n'est ecrit tant que le
          vigneron n'a pas dit ce qui s'est passe. La punaise ne tombe donc plus toute
-         seule, on la remet en place et c'est l'ecriture qui la fera disparaitre. */
+         seule, on la remet en place et c'est l'ecriture qui la fera disparaitre. #}
       if(carte){
         carte.classList.remove('postit--decroche');
         [].forEach.call(carte.querySelectorAll('.postit__g'), function(x){ x.disabled = false; });
@@ -2008,7 +2010,7 @@ theme_bureau: true
     }
   });
 
-  /* REPEINDRE « MA JOURNEE » SUR DEMANDE DU MOTEUR. Ajoute le 08/09/2026, appele par
+  {# REPEINDRE « MA JOURNEE » SUR DEMANDE DU MOTEUR. Ajoute le 08/09/2026, appele par
      ecranRafraichir() dans bdv-base.js apres un import ou un vidage de base.
 
      Le probleme repare : ces zones etaient peintes au chargement de la page, puis plus
@@ -2017,28 +2019,28 @@ theme_bureau: true
      d'etre effacee, a dix centimetres de la modale qui annoncait « Aucune ligne ».
 
      On relit le miroir plutot que de faire confiance a ETAT_FILE : viderBase() vient
-     justement de l'effacer (BdvCrm.oublier()), et c'est cette relecture qui rend le vide. */
+     justement de l'effacer (BdvCrm.oublier()), et c'est cette relecture qui rend le vide. #}
   window.bdvMajJournee = function(){
     if(window.BdvCrm) ETAT_FILE = BdvCrm.miroir();
     peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
   };
 
-  /* ---------------- QUI EST LA ----------------
+  {# ---------------- QUI EST LA ----------------
      Le prenom et le nom du domaine ne sont pas des decorations : ils sont demandes a
      l'inscription, et jusqu'ici seul le prenom servait a quelque chose. Un bureau ou
-     rien ne porte votre nom n'est pas votre bureau. */
+     rien ne porte votre nom n'est pas votre bureau. #}
   var PROFIL = null;
-  /* Faux par defaut, et c'est volontaire : la fiche profil arrive du reseau APRES les
+  {# Faux par defaut, et c'est volontaire : la fiche profil arrive du reseau APRES les
      premieres peintures. On ne cache pas une zone sur une absence de reponse, on la cache
-     sur un « non » lu. peindreIdentite() repeint les deux zones quand la reponse arrive. */
+     sur un « non » lu. peindreIdentite() repeint les deux zones quand la reponse arrive. #}
   var SANS_VITI = false;
   var METIERS = { 'vigneron':'Vigneron', 'caviste-negoce':'Caviste ou négociant',
                   'etudiant':'Étudiant', 'pro-filiere':'Pro de la filière', 'autre':'' };
 
-  /* ---------------- LA LUNE DE L'ENTETE ----------------
+  {# ---------------- LA LUNE DE L'ENTETE ----------------
      Posee le 08/09/2026. Le calcul ET le dessin sont dans bdv-almanach.js, ou
      scripts/banc-lune.mjs les met a l'epreuve contre les exemples publies de
-     Meeus. Ici il ne reste que les mots et le cote eclaire. */
+     Meeus. Ici il ne reste que les mots et le cote eclaire. #}
   function peindreLune(){
     var bloc = el('bureauLune');
     if(!bloc || !window.BdvAlmanach) return;
@@ -2049,8 +2051,8 @@ theme_bureau: true
     if(L.croissante) clair.removeAttribute('transform');
     else clair.setAttribute('transform', 'scale(-1,1)');
 
-    /* La version courte de l'en-tete lit le MEME objet `L` : deux calculs de la lune
-       sur une page, c'est deux phases differentes le jour ou l'un est corrige. */
+    {# La version courte de l'en-tete lit le MEME objet `L` : deux calculs de la lune
+       sur une page, c'est deux phases differentes le jour ou l'un est corrige. #}
     var mini = el('bureauLuneMini');
     if(mini){
       var mc = el('bureauLuneMiniClair');
@@ -2066,9 +2068,9 @@ theme_bureau: true
     txt(el('bureauLuneNote'), L.pourcent + ' % éclairée · lune ' +
         (L.montante ? 'montante' : 'descendante'));
 
-    /* « Dans 3 jours » se compte de minuit a minuit, pas en heures divisees : le
+    {# « Dans 3 jours » se compte de minuit a minuit, pas en heures divisees : le
        chiffre doit tomber sur la case du calendrier, sinon les deux ecrans se
-       contredisent le meme jour. Le calcul est fait dans l'almanach. */
+       contredisent le meme jour. Le calcul est fait dans l'almanach. #}
     var pr = L.prochaine, suite = el('bureauLuneSuite');
     if(pr){
       txt(suite, pr.jours <= 0 ? pr.nom + " aujourd'hui"
@@ -2079,9 +2081,9 @@ theme_bureau: true
       suite.hidden = true;
     }
 
-    /* LE SURVOL PORTE LA SEULE CHOSE QUE DEUX MOTS NE PEUVENT PAS DIRE : que
+    {# LE SURVOL PORTE LA SEULE CHOSE QUE DEUX MOTS NE PEUVENT PAS DIRE : que
        croissante et montante ne sont pas la meme chose. C'est le piege de fond de
-       ce bloc pour qui travaille au calendrier lunaire, et il ne se devine pas. */
+       ce bloc pour qui travaille au calendrier lunaire, et il ne se devine pas. #}
     bloc.title =
       L.nom + ' — ' + L.pourcent + ' % de la surface éclairée.\n\n' +
       'Phase ' + (L.croissante ? 'croissante' : 'décroissante') + ' : la part ' +
@@ -2097,10 +2099,10 @@ theme_bureau: true
     if(mini) mini.title = bloc.title;
   }
 
-  /* On repeint toutes les demi-heures, et non par une minuterie posee sur minuit :
+  {# On repeint toutes les demi-heures, et non par une minuterie posee sur minuit :
      un portable qui dort rate son rendez-vous de minuit et n'a aucun moyen de le
      savoir, alors qu'un intervalle repart tout seul au reveil. Le cout est de
-     quelques dizaines de sinus, une fois par demi-heure. */
+     quelques dizaines de sinus, une fois par demi-heure. #}
   function peindreIdentite(){
     var p = PROFIL || {};
     var prenom = (p.prenom || '').trim();
@@ -2117,7 +2119,7 @@ theme_bureau: true
       plaque.textContent = bits.join(' · ');
       plaque.hidden = false;
     }else if(!prenom){
-      // Ni prenom ni domaine : une invitation, une seule fois, la ou le nom devrait etre.
+      {# Ni prenom ni domaine : une invitation, une seule fois, la ou le nom devrait etre. #}
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'bureau-tete__invite';
       b.textContent = 'Dis-moi comment t’appeler';
@@ -2128,36 +2130,36 @@ theme_bureau: true
       plaque.hidden = true;
     }
 
-    // Sans Vitisoft, le tableau de bord ne lira rien : on ne montre pas la porte.
-    // Le meme filtre s'applique aux blocs du panneau de reglages, mais ce n'est plus notre
-    // affaire depuis la fusion : le module le fait lui-meme, sur la meme fiche profil,
-    // cf. gateVitisoft() dans bdv-reglages.js.
+    {# Sans Vitisoft, le tableau de bord ne lira rien : on ne montre pas la porte. #}
+    {# Le meme filtre s'applique aux blocs du panneau de reglages, mais ce n'est plus notre #}
+    {# affaire depuis la fusion : le module le fait lui-meme, sur la meme fiche profil, #}
+    {# cf. gateVitisoft() dans bdv-reglages.js. #}
     var sansViti = (p.utilise_vitisoft === 'non');
     if(window.BdvNav) BdvNav.sansVitisoft(sansViti);
-    /* LES DEUX ZONES DE VENTE DU PLAN SUIVENT LA BARRE, depuis le 08/09/2026. Retirer les
+    {# LES DEUX ZONES DE VENTE DU PLAN SUIVENT LA BARRE, depuis le 08/09/2026. Retirer les
        pieces de vente de la barre sans toucher au plan laissait le sous-main promettre des
        rappels et l'ardoise afficher un chiffre d'affaires a quelqu'un qui vient de dire
-       qu'il n'a pas Vitisoft. La barre et le plan doivent dire la meme chose. */
+       qu'il n'a pas Vitisoft. La barre et le plan doivent dire la meme chose. #}
     if(sansViti !== SANS_VITI){
       SANS_VITI = sansViti;
-      /* LE MOT DU JOUR MANQUAIT A CETTE LISTE, 14/09/2026. La zone est nee apres le
+      {# LE MOT DU JOUR MANQUAIT A CETTE LISTE, 14/09/2026. La zone est nee apres le
          defaut du 08/09 et n'a jamais ete branchee sur la reponse du profil : l'ardoise
-         et le sous-main s'en allaient, un conseil sur le chiffre d'affaires restait. */
+         et le sous-main s'en allaient, un conseil sur le chiffre d'affaires restait. #}
       peindreFile(); peindreArdoise(); peindreMot(); peindreResume();
     }
   }
 
-  // UNE seule lecture du profil pour les deux ecrans, et elle vit dans le module : deux
-  // lectures voulaient dire deux verrous a tenir d'accord, et c'est exactement ce genre de
-  // doublon que la fusion du 07/09/2026 supprime. Le module rappelle surProfil quand la
-  // fiche arrive, ce qui repeint l'entete d'ici.
+  {# UNE seule lecture du profil pour les deux ecrans, et elle vit dans le module : deux #}
+  {# lectures voulaient dire deux verrous a tenir d'accord, et c'est exactement ce genre de #}
+  {# doublon que la fusion du 07/09/2026 supprime. Le module rappelle surProfil quand la #}
+  {# fiche arrive, ce qui repeint l'entete d'ici. #}
   var PROFIL_LU = false;
 
-  /* UN SEUL CHEMIN POUR L'ARRIVEE DU PROFIL, et il est nomme. Le panneau de reglages le
+  {# UN SEUL CHEMIN POUR L'ARRIVEE DU PROFIL, et il est nomme. Le panneau de reglages le
      rappelle quand il a lu la fiche ET a chaque enregistrement, donc c'est ici que passe
      « le vigneron vient de repondre non a Vitisoft », et c'est d'ici que la barre et le
      plan se remettent d'accord. Expose sur window pour que banc-journee.mjs puisse rejouer
-     cette arrivee sans monter tout le module de reglages. */
+     cette arrivee sans monter tout le module de reglages. #}
   function profilLu(p){ PROFIL = p; PROFIL_LU = true; peindreIdentite(); }
   window.bdvProfilLu = profilLu;
 
@@ -2166,26 +2168,26 @@ theme_bureau: true
     return BdvReglages.chargerProfil();
   }
 
-  /* ---------------- LES REGLAGES, PANNEAU UNIQUE ----------------
+  {# ---------------- LES REGLAGES, PANNEAU UNIQUE ----------------
      Tout ce qui vivait ici (le formulaire, ses deux verrous, le garde TOUCHES, l'ecriture
      des deux tables, les quatre messages du allSettled) a demenage dans
      /js/bdv-reglages.js le 07/09/2026, pour que le tableau de bord ouvre exactement le
      meme panneau. Il ne reste que le branchement : qui salue, et qui ouvre.
 
      Le garde-fou de deconnexion a suivi le meme chemin, et pour la meme raison : un
-     garde-fou recopie est un garde-fou qu'on oubliera de corriger d'un cote. */
+     garde-fou recopie est un garde-fou qu'on oubliera de corriger d'un cote. #}
   function ouvrirReglages(){
-    // PAR BdvNav, jamais par le module directement : c'est lui qui sait que « Ma base » et
-    // « Le classement » ont besoin du moteur de la base, et que le moteur n'est plus charge
-    // a l'ouverture du bureau depuis le 07/09/2026. Appeler BdvReglages.ouvrir() d'ici
-    // rouvrirait la panne que le banc a attrapee : un panneau qui s'ouvre avec deux onglets
-    // vides, sans erreur et sans message.
+    {# PAR BdvNav, jamais par le module directement : c'est lui qui sait que « Ma base » et #}
+    {# « Le classement » ont besoin du moteur de la base, et que le moteur n'est plus charge #}
+    {# a l'ouverture du bureau depuis le 07/09/2026. Appeler BdvReglages.ouvrir() d'ici #}
+    {# rouvrirait la panne que le banc a attrapee : un panneau qui s'ouvre avec deux onglets #}
+    {# vides, sans erreur et sans message. #}
     if(window.BdvNav && BdvNav.ouvrirReglages){ BdvNav.ouvrirReglages(); return; }
     if(window.BdvReglages) BdvReglages.ouvrir();
     else location.href = '/compte/';   // module absent : on ne laisse pas un clic sans effet
   }
 
-  /* LA BASCULE CLAIR / SOMBRE, 21/09/2026. TROIS ETATS ET PAS DEUX : 'light',
+  {# LA BASCULE CLAIR / SOMBRE, 21/09/2026. TROIS ETATS ET PAS DEUX : 'light',
      'dark', et la cle ABSENTE qui veut dire « comme mon telephone ». Un bouton a
      deux positions enfermerait pour toujours celui qui a clique une fois, et rien
      a l'ecran ne dirait que le reglage du systeme n'est plus suivi. Le cycle
@@ -2193,7 +2195,7 @@ theme_bureau: true
      plus de l'etat courant, sinon il faut appuyer pour savoir ou l'on va ; un
      dessin de lune ne s'entend pas. `data-etat` pilote le glyphe en CSS.
      On ne lit PAS `prefers-color-scheme` ici : le bouton dit ce qu'il COMMANDE.
-     Le raisonnement complet est dans CLAUDE.md. */
+     Le raisonnement complet est dans CLAUDE.md. #}
   var THEME_SUITE = { auto:'light', light:'dark', dark:null };
   var THEME_DIT = {
     auto:  'Thème : comme ton téléphone. Appuie pour forcer le clair.',
@@ -2207,8 +2209,8 @@ theme_bureau: true
   }
   function brancherTheme(){
     var b = el('bureauTheme');
-    // Pas de BdvTheme, pas de bouton : un bouton qui ne commande rien est pire
-    // qu'un bouton absent. Le cas existe, sur un apercu monte sans le gabarit.
+    {# Pas de BdvTheme, pas de bouton : un bouton qui ne commande rien est pire #}
+    {# qu'un bouton absent. Le cas existe, sur un apercu monte sans le gabarit. #}
     if(!b) return;
     if(!window.BdvTheme){ b.hidden = true; return; }
     peindreBascule(b, BdvTheme.lire() || 'auto');
@@ -2219,20 +2221,20 @@ theme_bureau: true
     });
   }
 
-  /* L'EN-TETE SE RETRACTE AU DEFILEMENT, SOUS 700 px SEULEMENT, ou il est colle
+  {# L'EN-TETE SE RETRACTE AU DEFILEMENT, SOUS 700 px SEULEMENT, ou il est colle
      en haut (il n'y a plus de bandeau de site a cette largeur depuis le
      11/09/2026). 56 px pris en permanence sur 844, c'est 7 % de l'ecran pour une
      date deja lue. On ne cache QUE la date et l'etat : le nom de la piece et les
      actions sont ce qu'on vient chercher en remontant. HYSTERESIS de 8 px, sans
-     quoi un doigt pose pile sur le seuil fait clignoter l'en-tete. */
+     quoi un doigt pose pile sur le seuil fait clignoter l'en-tete. #}
   function brancherRetraction(){
     var t = document.querySelector('.bureau-tete');
     if(!t || !window.matchMedia) return;
     var etroit = window.matchMedia('(max-width:700px)');
     var pose = false;
-    /* DEPUIS LE 24/09/2026 LA RETRACTION VAUT A TOUTES LES LARGEURS : l'en-tete est
+    {# DEPUIS LE 24/09/2026 LA RETRACTION VAUT A TOUTES LES LARGEURS : l'en-tete est
        aussi colle sur ordinateur (choix C de Ted). `etroit` reste declare, il ne
-       decide plus rien ici ; ce que la retraction CACHE differe par largeur, en CSS. */
+       decide plus rien ici ; ce que la retraction CACHE differe par largeur, en CSS. #}
     function juger(){
       var y = window.pageYOffset || document.documentElement.scrollTop || 0;
       if(!pose && y > 64){ t.classList.add('bureau-tete--retracte'); pose = true; }
@@ -2240,7 +2242,7 @@ theme_bureau: true
       logerLune();
     }
 
-    /* La lune monte dans le bandeau au-dessus de 900 px, retracte : voir CLAUDE.md, « LA LUNE MONTE DANS LE BANDEAU ». */
+    {# La lune monte dans le bandeau au-dessus de 900 px, retracte : voir CLAUDE.md, « LA LUNE MONTE DANS LE BANDEAU ». #}
     var large = window.matchMedia('(min-width:901px)');
     var calme = window.matchMedia('(prefers-reduced-motion: reduce)');
     function logerLune(){
@@ -2267,27 +2269,27 @@ theme_bureau: true
     juger();
   }
 
-  // Appele depuis DOMContentLoaded, jamais a l'analyse du document : bdv-reglages.js est
-  // charge en defer, window.BdvReglages n'existe pas encore quand ce script est lu.
+  {# Appele depuis DOMContentLoaded, jamais a l'analyse du document : bdv-reglages.js est #}
+  {# charge en defer, window.BdvReglages n'existe pas encore quand ce script est lu. #}
   function brancherReglages(){
     var b = el('bureauOuvrirReglages');
     if(b) b.addEventListener('click', ouvrirReglages);
     if(!window.BdvReglages) return;
     BdvReglages.brancherSortie(el('bureauSortir'), el('bureauSortirAvis'));
     BdvReglages.brancher({
-      // La SEULE chose que le bureau ait encore besoin de dire au panneau : repeindre
-      // l'entete quand le prenom ou le nom du domaine changent.
-      //
-      // Les blocs de renvoi qui vivaient ici (« le classement se regle depuis le tableau de
-      // bord », « deposer un export la-bas ») ont disparu le 07/09/2026 : le moteur est
-      // charge sur cette page, le panneau monte « Ma base » et « Le classement » lui-meme,
-      // et les deux modales sont enfin les memes. Ne pas les reintroduire : un renvoi est
-      // exactement ce que Ted a demande de supprimer.
+      {# La SEULE chose que le bureau ait encore besoin de dire au panneau : repeindre #}
+      {# l'entete quand le prenom ou le nom du domaine changent. #}
+      {#  #}
+      {# Les blocs de renvoi qui vivaient ici (« le classement se regle depuis le tableau de #}
+      {# bord », « deposer un export la-bas ») ont disparu le 07/09/2026 : le moteur est #}
+      {# charge sur cette page, le panneau monte « Ma base » et « Le classement » lui-meme, #}
+      {# et les deux modales sont enfin les memes. Ne pas les reintroduire : un renvoi est #}
+      {# exactement ce que Ted a demande de supprimer. #}
       surProfil: profilLu
     });
   }
 
-  /* ---------------- LES CONTENUS ---------------- */
+  {# ---------------- LES CONTENUS ---------------- #}
   function carteLecture(ref, titre, avecPunaise){
     var c = PAR_URL[ref] || {};
     var a = document.createElement('a');
@@ -2296,7 +2298,7 @@ theme_bureau: true
     var t = document.createElement('span'); t.className = 'fiche-l__t';
     t.textContent = c.titre || titre || ref;
     a.appendChild(t);
-    /* LA RUBRIQUE, ET PLUS LE PILIER. 12/09/2026, feu vert de Ted.
+    {# LA RUBRIQUE, ET PLUS LE PILIER. 12/09/2026, feu vert de Ted.
        `pilier` etait l'ancienne classification (« Process 🔧 », « Marketing 📈 »),
        abandonnee par l'arbitrage du 10/09 au profit de `categorie` : le fichier des
        rubriques dit depuis ce jour-la que « pilier n'est plus lu par aucun gabarit ».
@@ -2310,7 +2312,7 @@ theme_bureau: true
 
        LE PILIER RESTE AFFICHE SUR DEUX COMPOSANTS PUBLICS, articles-une.njk et
        articles-recent.njk. Signale a Ted le 12/09, pas corrige : c'est la page
-       d'accueil, et changer ce qu'elle montre est sa decision. */
+       d'accueil, et changer ce qu'elle montre est sa decision. #}
     var meta = [c.rubrique, c.temps].filter(Boolean).join(' · ');
     if(meta){ var m = document.createElement('span'); m.className = 'fiche-l__m'; m.textContent = meta; a.appendChild(m); }
     if(avecPunaise){ var p = document.createElement('span'); p.className = 'fiche-l__p'; a.appendChild(p); }
@@ -2336,7 +2338,7 @@ theme_bureau: true
 
   var MARQUE = 'bdv_bureau_vu_le';
 
-  /* UNE LETTRE, ET PAS UNE FICHE DE PLUS. Refait le 12/09/2026 avec le dessin de
+  {# UNE LETTRE, ET PAS UNE FICHE DE PLUS. Refait le 12/09/2026 avec le dessin de
      la zone : le courrier partageait `carteLecture` avec « A lire » et « Le
      classeur », donc les trois zones du bas montraient le meme objet, un titre
      d'article et son etiquette.
@@ -2352,7 +2354,7 @@ theme_bureau: true
      milieu d'un dessin de papier et d'encre. Les deux zones voisines l'affichent
      TOUJOURS : c'est signale a Ted, ce n'est pas corrige ici, parce que changer
      l'etiquette de « A lire » et du « classeur » est une decision de contenu et
-     pas de dessin. */
+     pas de dessin. #}
   function dateLettre(iso){
     var d = new Date(iso && iso.length > 10 ? iso : iso + 'T00:00:00');
     if(isNaN(d)) return '';
@@ -2386,9 +2388,9 @@ theme_bureau: true
     var b = el('bureauCourrier'); b.innerHTML = '';
     if(!nouveaux.length) vide(b, 'Rien de neuf depuis ton dernier passage.');
     else nouveaux.slice(0, 5).forEach(function(c){ b.appendChild(lettre(c, !!seuil)); });
-    /* LA NOTE DIT DEPUIS QUAND, et plus « les 3 derniers », qui ne disait rien
+    {# LA NOTE DIT DEPUIS QUAND, et plus « les 3 derniers », qui ne disait rien
        d'autre que le nombre de lignes qu'on voyait deja. Sans repere de derniere
-       visite, elle dit ce que la zone montre vraiment : les dernieres parutions. */
+       visite, elle dit ce que la zone montre vraiment : les dernieres parutions. #}
     txt(el('compteCourrier'), seuil
         ? (nouveaux.length ? 'depuis le ' + dateLettre(precedent) : '')
         : 'les dernières parutions');
@@ -2398,10 +2400,10 @@ theme_bureau: true
     }catch(e){}
   }
 
-  /* ---------------- LA PHRASE D'EN-TETE ---------------- */
+  {# ---------------- LA PHRASE D'EN-TETE ---------------- #}
   function peindreResume(){
     var m = [];
-    /* « UNE ECHEANCE DANS -26 JOUR », signale par Ted le 10/09/2026 sur sa vraie page.
+    {# « UNE ECHEANCE DANS -26 JOUR », signale par Ted le 10/09/2026 sur sa vraie page.
        Deux fautes dans quatre mots, et la seconde vient de la premiere.
 
        LA CAUSE : `laPlusPressante()` garde `jours >= 0 OU enCours`. Un nombre negatif
@@ -2419,13 +2421,13 @@ theme_bureau: true
        « En ce moment », « C'est aujourd'hui », « Demain », « Dans N jours » : c'est sa
        fonction phrase(). On s'aligne dessus au mot pres plutot que d'en inventer un
        deuxieme, sinon la meme obligation se dit de deux facons a deux endroits de la
-       meme page. */
-    /* CHAQUE MORCEAU EST UN LIEN depuis le 24/09/2026 (choix C de Ted) : un etat qui dit
+       meme page. #}
+    {# CHAQUE MORCEAU EST UN LIEN depuis le 24/09/2026 (choix C de Ted) : un etat qui dit
        « 40 clients a rappeler » et ne mene nulle part oblige a chercher ou ils sont.
        Les adresses sont des pieces du bureau, `/mon-bureau/#<id>`, que bdv-nav.js
-       intercepte deja : pas de rechargement, pas de deuxieme routeur. */
-    /* [phrase, piece, nature, chiffre] : la nature choisit l'icone et la teinte (en-tete
-       « Le Cadre », 24/09/2026), le chiffre seul sert quand la place manque. */
+       intercepte deja : pas de rechargement, pas de deuxieme routeur. #}
+    {# [phrase, piece, nature, chiffre] : la nature choisit l'icone et la teinte (en-tete
+       « Le Cadre », 24/09/2026), le chiffre seul sert quand la place manque. #}
     if(ECHEANCE && (ECHEANCE.enCours || ECHEANCE.jours <= 7)){
       var je = ECHEANCE.jours;
       m.push([ECHEANCE.enCours ? 'Une échéance en ce moment'
@@ -2445,8 +2447,8 @@ theme_bureau: true
       rappel: '<path d="M6.6 3.5h2.6l1.4 4.2-2 1.4a11 11 0 0 0 6.3 6.3l1.4-2 4.2 1.4v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
       lecture: '<path d="M6 3.5h12v17l-6-4-6 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'
     };
-    /* Le HTML est fabrique ici, mais AUCUN texte venu de la base n'y entre : les phrases
-       et les chiffres passent par textContent, seules les icones sont ecrites en dur. */
+    {# Le HTML est fabrique ici, mais AUCUN texte venu de la base n'y entre : les phrases
+       et les chiffres passent par textContent, seules les icones sont ecrites en dur. #}
     m.forEach(function(x){
       var a = document.createElement('a');
       a.className = 'bureau-tete__etat bureau-tete__etat--' + x[2];
@@ -2470,7 +2472,7 @@ theme_bureau: true
     if(e.target.closest && e.target.closest('[data-signet]')) setTimeout(function(){ peindreLectures(); peindreResume(); }, 0);
   });
 
-  /* ===================== L'AMORCAGE, 17/09/2026 =====================
+  {# ===================== L'AMORCAGE, 17/09/2026 =====================
 
      CE QUE TED A VU : « quand je me connecte, rien ne s'affiche ». Le sous-main disait
      « Ta file n'a pas pu etre lue », le panneau « ton journal n'est pas encore lisible »,
@@ -2498,7 +2500,7 @@ theme_bureau: true
 
      Une etape qui rend `false` a echoue. Chacune traduit elle-meme son « je ne sais
      pas » : `BdvCrm.charger()` rend `null` quand la lecture echoue et un etat quand elle
-     aboutit, meme sur une base vide, et c'est ici qu'on le sait. */
+     aboutit, meme sur une base vide, et c'est ici qu'on le sait. #}
   function amorcer(){
     var depuis = new Date(); depuis.setDate(depuis.getDate() - 28);
     var etapes = [
@@ -2515,8 +2517,8 @@ theme_bureau: true
           return Promise.resolve(BdvCrm.rejouer())
             .then(function(){ return BdvCrm.charger(); })
             .then(function(etat){
-              // Pas de reponse ET pas de miroir : la zone doit dire quelque chose. Un
-              // titre au-dessus du vide se lit comme une panne muette.
+              {# Pas de reponse ET pas de miroir : la zone doit dire quelque chose. Un #}
+              {# titre au-dessus du vide se lit comme une panne muette. #}
               if(!etat){ if(!ETAT_FILE){ LECTURE_KO = true; peindreFile(); } return false; }
               LECTURE_KO = false;
               ETAT_FILE = etat;
@@ -2526,8 +2528,8 @@ theme_bureau: true
       { cle: 'journal', texte: 'Ton journal récent', faire: function(){
           if(!window.BdvCrm) return false;
           return BdvCrm.journal(depuis.toISOString()).then(function(j){
-            // Quatre semaines, pas plus : c'est tout ce que les deux punaises
-            // « gestes » ont besoin de savoir.
+            {# Quatre semaines, pas plus : c'est tout ce que les deux punaises #}
+            {# « gestes » ont besoin de savoir. #}
             JOURNAL = j; peindrePanneau();
             return j === null ? false : true;
           });
@@ -2538,36 +2540,95 @@ theme_bureau: true
         } },
       { cle: 'profil', texte: 'Tes réglages', faire: function(){ return chargerProfil(); } }
     ];
-    /* Sans le module, on garde l'ORDRE et on perd seulement le voile. Un bureau qui
+    {# Sans le module, on garde l'ORDRE et on perd seulement le voile. Un bureau qui
        s'ouvrirait en parallele parce qu'un fichier manque ramenerait le defaut du jour
-       exactement, et sans rien dire. */
+       exactement, et sans rien dire. #}
     if(window.BdvAmorce) return BdvAmorce.lancer(etapes);
     return etapes.reduce(function(p, e){
       return p.then(function(){ return Promise.resolve(e.faire()).catch(function(){}); });
     }, Promise.resolve());
   }
 
+  {# LA FICHE EN PLEINE PAGE, 24/09/2026. Demande de Ted : « Agrandir » ouvre le client
+     dans un NOUVEL ONGLET, pour travailler dessus a cote de sa liste. L'adresse est
+     /mon-bureau/#fiche=<cle>, et cet onglet ne sert QU'A la fiche.
+
+     IL N'Y A TOUJOURS QU'UNE FICHE. On ne fabrique rien ici : c'est la meme
+     `ouvrirFicheClient()`, posee dans un troisieme contenant, et c'est
+     `body.bdv-page-fiche` qui change le contenant, en CSS (section 26 de
+     bdv-bureau.css). Les deux autres restent la modale et le tiroir.
+
+     LE DEMARRAGE EST ALLEGE, et c'est tout l'interet : on ne peint ni « Ma journee »,
+     ni la file, ni le panneau, et l'amorcage n'a que DEUX etapes. Le bureau d'abord,
+     parce que toute lecture nomme son bureau (regle du 13/09/2026) et que sans lui
+     rien ne part ; la fiche ensuite, qui charge le moteur et les lignes. La barre est
+     quand meme montee : `monter()` sort #modale, #busyov et .status hors de la page,
+     et sans elle la fiche se peindrait dans un conteneur masque. #}
+  function ficheDemandee(){
+    var h = location.hash || '';
+    if(h.indexOf('#fiche=') !== 0) return null;
+    try{ return decodeURIComponent(h.slice(7)) || null; }catch(e){ return null; }
+  }
+  function avisPageFiche(texte){
+    var p = el('pageFicheAvis');
+    if(!p){ p = document.createElement('p'); p.id = 'pageFicheAvis'; p.className = 'page-fiche__avis'; p.setAttribute('role', 'status'); document.body.appendChild(p); }
+    p.innerHTML = '';
+    p.appendChild(document.createTextNode(texte + ' '));
+    var a = document.createElement('a'); a.href = '/mon-bureau/#annuaire'; a.textContent = 'Retour à Mes clients';
+    a.addEventListener('click', function(e){ e.preventDefault(); location.href = '/mon-bureau/#annuaire'; location.reload(); });
+    p.appendChild(a);
+  }
+  function ouvrirPageFiche(){
+    var id = ficheDemandee();
+    if(!id) return false;
+    document.body.classList.add('bdv-page-fiche');
+    if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
+    brancherTheme();
+    var etapes = [
+      { cle: 'bureau', texte: 'Ton bureau', faire: function(){
+          if(!(window.BdvCompte && BdvCompte.chargerBureau)) return false;
+          return BdvCompte.chargerBureau().then(function(b){ return b ? true : false; });
+        } },
+      { cle: 'fiche', texte: 'La fiche du client', faire: function(){
+          if(!window.BdvNav || !BdvNav.chargerEcrans) return false;
+          return BdvNav.chargerEcrans().then(function(){
+            if(typeof window.ouvrirFicheClient !== 'function') return false;
+            return window.ouvrirFicheClient(id, {});
+          }).then(function(ok){
+            if(!ok) avisPageFiche('Ce client n’est pas dans les ventes de ton bureau.');
+            return ok !== false;
+          });
+        } }
+    ];
+    var fin = window.BdvAmorce ? BdvAmorce.lancer(etapes) : Promise.reject(new Error('amorce absente'));
+    fin.then(function(bilan){
+      if(bilan && bilan.rates && bilan.rates.length) avisPageFiche('La fiche n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.');
+    })['catch'](function(){ avisPageFiche('La fiche n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.'); });
+    return true;
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
-    // La barre en premier : elle est le cadre, tout le reste se peint dedans.
+    if(ouvrirPageFiche()) return;
+    {# La barre en premier : elle est le cadre, tout le reste se peint dedans. #}
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
     brancherReglages();
     brancherTheme();
     brancherRetraction();
     peindreEcheance(); peindreResume();
     if(window.BdvCrm){
-      // Le miroir AVANT le reseau. Ce script s'execute pendant l'analyse du document,
-      // donc avant les modules charges en defer : au premier passage plus haut,
-      // window.BdvCrm n'existait pas encore et rien n'etait peint. Sans cette ligne, le
-      // sous-main restait vide le temps d'un aller-retour, alors que la reponse etait
-      // deja sur le disque.
+      {# Le miroir AVANT le reseau. Ce script s'execute pendant l'analyse du document, #}
+      {# donc avant les modules charges en defer : au premier passage plus haut, #}
+      {# window.BdvCrm n'existait pas encore et rien n'etait peint. Sans cette ligne, le #}
+      {# sous-main restait vide le temps d'un aller-retour, alors que la reponse etait #}
+      {# deja sur le disque. #}
       ETAT_FILE = BdvCrm.miroir();
       peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); peindreResume();
     }
     amorcer();
 
-    /* La lune. L'almanach arrive en defer, donc avant nous : on peint tout de
+    {# La lune. L'almanach arrive en defer, donc avant nous : on peint tout de
        suite. Si jamais il manquait, peindreLune() sort sans rien faire et le bloc
-       reste cache - un decor absent ne casse pas un bureau. */
+       reste cache - un decor absent ne casse pas un bureau. #}
     peindreLune();
     setInterval(peindreLune, 30 * 60 * 1000);
   });

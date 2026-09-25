@@ -192,6 +192,33 @@ const CRM_KEY='bdv_crm_v1';
 let CRM={};
 try{CRM=JSON.parse(localStorage.getItem(CRM_KEY))||{};}catch(e){CRM={};}
 function crmSave(){try{localStorage.setItem(CRM_KEY,JSON.stringify(CRM));}catch(e){}}
+/* ============ DEUX ONGLETS, UN SEUL SUIVI, 24/09/2026 ============
+   Depuis « Agrandir », une fiche peut vivre dans un onglet pendant que la liste vit dans
+   un autre. Chacun garde CRM et ECHANGES EN MEMOIRE, lus une fois au chargement, et
+   `crmSave()` ecrit l'objet ENTIER : sans rien de plus, l'onglet qui ecrit en second
+   effacait en local ce que le premier venait de poser, et affichait l'ancien rappel.
+
+   DEUX CANAUX, ET ILS NE REPONDENT PAS A LA MEME QUESTION.
+   1. L'evenement `storage` recopie la memoire de l'autre onglet des qu'elle change. Il
+      arrive AVANT la reponse du serveur, et c'est ce qu'on veut ici : ce qu'il corrige,
+      c'est la copie locale, pas le compte.
+   2. `bdv-bureau`, un BroadcastChannel, ne part qu'APRES la confirmation du serveur, la
+      ou `bdvFicheAEcrit()` est deja appele. Il dit aux autres onglets de RELIRE LE COMPTE
+      (le sous-main, le panneau), et relire avant la confirmation ramenerait l'ancienne
+      date : c'est la regle du 11/09/2026, prise d'un onglet a l'autre.
+   L'ecouteur du second est dans bdv-crm.js, parce que l'onglet de la liste n'a pas
+   forcement charge ce moteur-ci. */
+const BDV_CANAL=(function(){try{return ('BroadcastChannel' in window)?new BroadcastChannel('bdv-bureau'):null;}catch(e){return null;}})();
+/* `onglet` : un BroadcastChannel livre AUSSI aux autres objets du meme onglet, donc a
+   l'ecouteur de bdv-crm.js d'ici. Sans cette marque, l'onglet qui ecrit se repeignait deux fois. */
+function prevenirLesOnglets(quoi,id){try{if(BDV_CANAL)BDV_CANAL.postMessage({quoi:quoi,id:id||null,onglet:window.BDV_ONGLET||null});}catch(e){}}
+window.addEventListener('storage',function(e){
+  if(e.key!==CRM_KEY&&e.key!==ECH_KEY)return;
+  let v={};try{v=JSON.parse(e.newValue||'{}')||{};}catch(_){return;}
+  if(e.key===CRM_KEY)CRM=v;else ECHANGES=v;
+  try{ if(typeof FICHE_ID!=='undefined'&&FICHE_ID&&typeof redessinerSuivi==='function')redessinerSuivi(FICHE_ID); }catch(_){}
+  if(typeof window.bdvCrmAChange==='function'){try{window.bdvCrmAChange();}catch(_){}}
+});
 
 /* ---------- Branchements vers le serveur (voir src/js/bdv-sync.js) ----------
    Aucun appelant n'attend ces fonctions, volontairement : elles partent en tache de fond et
@@ -398,6 +425,7 @@ function syncSuivi(id){
        de traiter. La fonction n'existe que dans le bureau ; au tableau de bord autonome
        il n'y a rien a repeindre. */
     if(ok&&typeof window.bdvFicheAEcrit==='function'){try{window.bdvFicheAEcrit();}catch(e){}}
+    if(ok)prevenirLesOnglets('suivi',id);
     return !!ok;
   }).catch(function(){
     const f=CRM[id];
@@ -509,9 +537,16 @@ async function tirerDuServeurUneFois(){
   // Regle retenue : le local gagne SAUF sur les champs que seul le bureau ecrit
   // (statut, rappel, canal), ou le serveur fait foi quand il porte quelque chose.
   const CHAMPS_BUREAU=['statut','rappel','canal'];
+  /* 24/09/2026 : UNE FICHE QUI N'A RIEN EN ATTENTE PREND LA LIGNE DU SERVEUR, ENTIERE.
+     Depuis le lot 33 tout le bureau ecrit sur la meme fiche (decision de Ted : « on nomme
+     qui a fait l'action »). Les etiquettes et le proprietaire sont donc COMMUNS : garder
+     la version locale d'une fiche dont rien n'est en attente, c'etait ne jamais voir
+     l'etiquette posee par Romane, ni celle qu'elle a retiree. La regle d'avant ne vaut
+     plus que pour une fiche qui porte `_apousser`, c'est-a-dire un geste fait ici et pas
+     encore arrive : lui, on ne l'ecrase pas. */
   Object.keys(suivi||{}).forEach(function(id){
     const distant=suivi[id]||{}, local=CRM[id];
-    if(!local){CRM[id]=distant;return;}
+    if(!local||!local._apousser){CRM[id]=distant;return;}
     Object.keys(distant).forEach(function(k){
       if(local[k]==null||CHAMPS_BUREAU.indexOf(k)>=0)local[k]=distant[k];
     });
@@ -536,9 +571,13 @@ function nomClient(id){
   }
   return NOMS_CACHE[id]||id;
 }
-function crmVide(c){return !c||(!c.statut&&!c.notes&&!c.rappel&&!c.canal&&!(c.tags&&c.tags.length));}
+/* `proprietaire` compte depuis le 24/09/2026 : une fiche qui ne porte QUE son proprietaire
+   est une fiche attribuee, pas une fiche vide. Sans lui, attribuer un client neuf le faisait
+   passer par `supprimerSuivi()`, c'est-a-dire qu'on l'effacait en croyant l'attribuer. */
+function crmVide(c){return !c||(!c.statut&&!c.notes&&!c.rappel&&!c.canal&&!c.proprietaire&&!(c.tags&&c.tags.length));}
 function crmRafraichirListe(){
   const p=el('p-clients');if(p&&p.classList.contains('on')&&typeof renderClients==='function')renderClients();
+  if(typeof window.bdvCrmAChange==='function'){try{window.bdvCrmAChange();}catch(e){}}
   // Le bureau sert la file deposee : un client traite ici doit en sortir tout de suite,
   // pas au prochain import.
   if(typeof deposerPourLeBureau==='function')deposerPourLeBureau();
@@ -633,7 +672,7 @@ function echAjouter(id,type,canal,resume){
 function echPousser(e){
   if(!syncPret()||!BdvSync.ecrireEchange){e._apousser=true;echSave();return;}
   BdvSync.ecrireEchange(e).then(function(ok){
-    if(ok){ if(e._apousser){delete e._apousser;echSave();} }
+    if(ok){ if(e._apousser){delete e._apousser;echSave();} prevenirLesOnglets('echange',e.client_id||e.clientId); }
     else { e._apousser=true;echSave(); }
   }).catch(function(){ e._apousser=true;echSave(); });
 }
@@ -1142,7 +1181,7 @@ async function dbCount(){
 /* ======================= IMPORT ======================= */
 // Echap ferme la fiche client, ou l'ecran d'import si aucune fiche n'est ouverte.
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&el('modale')&&el('modale').classList.contains('on')&&typeof fermerFiche==='function'){e.preventDefault();fermerFiche();}
+  if(e.key==='Escape'&&!document.body.classList.contains('bdv-page-fiche')&&el('modale')&&el('modale').classList.contains('on')&&typeof fermerFiche==='function'){e.preventDefault();fermerFiche();}
 });
 // Deux zones de depot vivent dans la page depuis le 04/09/2026 : celle de l'ecran d'arrivee,
 // et celle de l'ecran « Ma base », pour qu'ajouter un export ne fasse plus sortir de l'outil.

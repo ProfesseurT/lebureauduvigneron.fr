@@ -330,7 +330,9 @@ console.log('\n== 9. Les lectures demandent bien la colonne ==');
     const src = fs.readFileSync(path.join(JS, a[0]), 'utf8');
     const i = src.indexOf(a[1]);
     const ligne = i < 0 ? '' : src.slice(i, src.indexOf('\n', i));
-    dit(i >= 0 && ligne.indexOf('cree_par') >= 0,
+    /* `select=*` rend toutes les colonnes, `cree_par` compris : c'est la forme de la
+       lecture du suivi depuis le 24/09/2026 (lot 33, voir lireSuivi()). */
+    dit(i >= 0 && (ligne.indexOf('cree_par') >= 0 || ligne.indexOf(a[1] + '*') >= 0),
       a[2] + ' demande cree_par', ligne.trim().slice(0, 90));
   });
 }

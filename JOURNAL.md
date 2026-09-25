@@ -12,6 +12,49 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 24-25/09/2026. « Mes clients », la fiche en pleine page, et le bureau qui écrit à plusieurs
+
+Ted : « j'ai un paquet de données sur les clients mais pas de base Mes clients qui me permettrait
+de faire des listings, et surtout d'ouvrir une fiche client en pleine page ». Quatre lots, faits
+d'une traite à sa demande.
+
+Ses arbitrages, un par un :
+- « Mes clients » est une NOUVELLE PIÈCE, avant « Mon commerce ». « Mon commerce » reste la liste
+  de ceux à relancer ; « Mes clients » est l'annuaire. Les deux ouvrent la même fiche.
+- Vitisoft fait foi sur les coordonnées : lecture seule, on corrige dans Vitisoft.
+- Seuls les clients des exports entrent dans la base. Pas de prospect saisi à la main.
+- Quatre outils : étiquettes libres, vues enregistrées, sélection multiple, propriétaire du client.
+- La fiche pleine page montre sans défiler les chiffres clés et la prochaine action.
+- « Agrandir » ouvre un NOUVEL ONGLET.
+- Propriétaire : tout le bureau peut noter un appel sur n'importe quel client, et on nomme qui a
+  fait l'action. C'est un retour sur la règle du 13/09 (« chacun n'écrit que ses propres
+  lignes »), pour `suivi_clients` seulement.
+- La sélection multiple ne pose JAMAIS de rappel (c'est la note qui pose la trace, règle du 11/09).
+  Elle sert à exporter, étiqueter, attribuer.
+- Les étiquettes et les vues sont communes à tout le bureau.
+
+Ce qui a été fait en plus, et pourquoi :
+- La page du bureau a perdu 45 ko de code bloquant : les 50 ko de commentaires du script écrit
+  dans la page sont passés en commentaires Nunjucks, que la construction retire. Le budget était
+  à 119,9 ko sur 120. Il est à 74,3 ko, et le plafond est descendu à 80.
+- La fiche prenait son nom et sa ville d'une ligne de vente tirée au sort (l'ordre de la base).
+  Elle prend la plus récente, comme la liste.
+- Deux onglets ouverts ne se contredisent plus : chacun recopie la mémoire de l'autre, et relit le
+  compte quand l'autre a écrit.
+
+Ce qui reste à faire par Ted : coller le lot 33 dans Supabase. Avant, tout marche sauf
+l'attribution et les vues, et l'écran le dit.
+
+Ce qui reste ouvert :
+- La liste se calcule sur les lignes de l'appareil. Sur 171 569 lignes, l'ouverture de la pièce
+  attend le chargement des lignes (quelques secondes, la première fois de la session). Un résumé
+  serveur « annuaire » est possible, sur le modèle des trois autres : à faire si ça gêne.
+- Sur téléphone, le tableau défile à l'horizontale dans son cadre. Il pourrait perdre deux
+  colonnes (commandes, CA précédent) sous 700 px.
+- Aucun banc ne rejoue encore un vrai second onglet dans un vrai navigateur.
+
+---
+
 ## 24/09/2026. Le détail d'une commande dans la fiche client
 
 Ted : « on aurait le détail de cette commande quand on clique dessus, dans une petite modale ? ».

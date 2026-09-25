@@ -137,19 +137,19 @@ t('la coque de l\'atelier existe dans le HTML produit',
   !!B.nav && !!B.doc.getElementById('bureauAtelier'));
 
 const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
-t('neuf pieces montees', lignes.length === 9, lignes.length + ' trouvee(s)');
+t('dix pieces montees (Mes clients, 24/09/2026)', lignes.length === 10, lignes.length + ' trouvee(s)');
 /* L'ORDRE EST UN CONTROLE ET PAS UN DETAIL : il porte l'hypothese H2 du document
    de refonte, le vigneron vient pour ne rien oublier. Si quelqu'un le change, il
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mes clients | Mon commerce | Mon cap | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
-t('les sept pieces internes pointent DANS le bureau',
+t('les huit pieces internes pointent DANS le bureau',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
-    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 7);
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 8);
 /* LE CALENDRIER EST UNE ADRESSE DU BUREAU depuis le 08/09/2026, et ce controle est
    a l'envers de celui qu'il remplace. Il gardait l'inverse : que la piece pointe sur
    /outils/echeances/. C'etait le defaut signale par Ted, la seule piece de la barre
@@ -199,13 +199,13 @@ const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { ke
 frappe(B.doc.body);
 t('le crochet ouvrant ne replie plus rien',
   !atelier.classList.contains('bureau-atelier--replie'));
-t('les neuf languettes restent toutes visibles',
-  lignes.filter(l => !l.hidden).length === 9, lignes.filter(l => !l.hidden).length);
+t('les dix languettes restent toutes visibles',
+  lignes.filter(l => !l.hidden).length === 10, lignes.filter(l => !l.hidden).length);
 
 /* ---- sans Vitisoft : regle metier, pas cosmetique ---- */
 B.window.BdvNav.sansVitisoft(true);
-t('sans Vitisoft, les quatre pieces de vente disparaissent',
-  lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,chercher,clients,produits');
+t('sans Vitisoft, les cinq pieces de vente disparaissent',
+  lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,annuaire,chercher,clients,produits');
 t('sans Vitisoft, la journee, les taches, le calendrier et les reglages RESTENT',
   ['journee', 'taches', 'calendrier', 'reglages']
     .every(id => !lignes.find(l => l.dataset.piece === id).hidden));
@@ -310,7 +310,8 @@ const ATTENDU = [
   '/js/bdv-base.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-  '/js/bdv-ecrans.js'
+  '/js/bdv-ecrans.js',
+  '/js/bdv-annuaire.js'
 ].join(' | ');
 t('le moteur puis les ecrans, dans cet ordre',
   B.charges.join(' | ') === ATTENDU, B.charges.join(' | ') || '(aucune)');
@@ -324,7 +325,7 @@ t('les ecrans sont demarres sur la bonne piece',
 
 B.clic('produits');
 await B.repos();
-t('un second clic ne recharge RIEN', B.charges.length === 7, B.charges.length + ' ressources');
+t('un second clic ne recharge RIEN', B.charges.length === 8, B.charges.length + ' ressources');
 t('mais il navigue',
   JSON.stringify(ecransDemarres()[1]) === '{"ecran":"produits"}', JSON.stringify(ecransDemarres()));
 
@@ -482,7 +483,7 @@ t('ouvrir ensuite un ecran de vente ne recharge pas le moteur',
   M.charges.filter(c => c === '/js/bdv-base.js').length === 1,
   M.charges.filter(c => c === '/js/bdv-base.js').length + ' fois');
 t('et il charge bien les ecrans par-dessus',
-  M.charges.length === 7, M.charges.length + ' ressources');
+  M.charges.length === 8, M.charges.length + ' ressources');
 
 /* CE CONTROLE A CHANGE DE SENS LE 11/09/2026, lot 4, et c'est le but du lot.
 
@@ -554,6 +555,25 @@ fiche.dispatchEvent(new H.window.MouseEvent('click', { bubbles: true, cancelable
 await H.repos(() => H.appels.length > 0);
 t('un lien de fiche client ouvre la fiche',
   JSON.stringify(H.appels) === '[{"client":"JAYAMA"}]', JSON.stringify(H.appels));
+
+/* `#fiche=` (24/09/2026) ouvre la fiche LA OU L'ON EST, par le seul ouvreur du bureau,
+   et ne change pas de piece. Et un lien `target="_blank"` (« Agrandir ») garde son onglet. */
+const H2 = bureau();
+H2.window.__ouvert = [];
+H2.window.bdvOuvrirFiche = (id) => H2.window.__ouvert.push(id);
+const fiche2 = H2.doc.createElement('a');
+fiche2.href = '/mon-bureau/#fiche=JAYAMA';
+H2.doc.getElementById('bureauJournee').appendChild(fiche2);
+fiche2.dispatchEvent(new H2.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+t('un lien #fiche= ouvre la fiche sur place, sans changer de piece',
+  H2.window.__ouvert.join() === 'JAYAMA' && !H2.journee.hidden && H2.ventes.hidden, H2.window.__ouvert.join());
+const agrandir = H2.doc.createElement('a');
+agrandir.href = '/mon-bureau/#fiche=JAYAMA'; agrandir.target = '_blank';
+H2.doc.getElementById('bureauJournee').appendChild(agrandir);
+const ev = new H2.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+agrandir.dispatchEvent(ev);
+t('un lien qui demande un autre onglet n\'est pas rabattu dans celui-ci',
+  H2.window.__ouvert.length === 1 && !ev.defaultPrevented);
 
 const I = bureau();
 const nouvelOnglet = I.doc.createElement('a');
