@@ -1293,11 +1293,14 @@ theme_bureau: true
     a.href = '/mon-bureau/#calendrier';
     a.setAttribute('data-niveau', ECHEANCE.niveau);
     var mois = document.createElement('span'); mois.className = 'calbloc__mois';
-    mois.textContent = ECHEANCE.date.toLocaleDateString('fr-FR', { month: 'long' });
+    {# EN COURS, ON MONTRE LA FIN, 26/09/2026 (arbitrage de Ted) : « AOUT 15 » pour des
+       vendanges commencees se lisait comme la date du jour. #}
+    var fin = ECHEANCE.enCours && ECHEANCE.fin;
+    mois.textContent = fin ? 'Jusqu’au' : ECHEANCE.date.toLocaleDateString('fr-FR', { month: 'long' });
     var trous = document.createElement('span'); trous.className = 'calbloc__trous';
     trous.setAttribute('aria-hidden', 'true');
     var jour = document.createElement('span'); jour.className = 'calbloc__jour';
-    jour.textContent = ECHEANCE.date.getDate();
+    jour.textContent = fin ? (fin.getDate() === 1 ? '1er' : fin.getDate()) + ' ' + fin.toLocaleDateString('fr-FR', { month: 'short' }) : ECHEANCE.date.getDate();
     var quand = document.createElement('span'); quand.className = 'calbloc__quand';
     quand.textContent = ECHEANCE.phrase;
     var t = document.createElement('span'); t.className = 'calbloc__titre';

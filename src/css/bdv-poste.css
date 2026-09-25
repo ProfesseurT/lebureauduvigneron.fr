@@ -1339,8 +1339,24 @@ body.bdv-poste .tachesf__i,
   background: var(--bdv-surface-2);
   color: var(--bdv-encre-4);
   border-left-color: var(--bdv-trait-fort);
-  text-decoration: line-through;
 }
+/* LA CASE REMPLACE LE BARRE, 26/09/2026 (arbitrage de Ted) : un mot barre se lisait
+   « supprime ». Une case pleine avec sa coche quand la famille est allumee, vide quand
+   elle est eteinte : l'etat se dit par une FORME, et le texte reste lisible. */
+.filtfam::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: var(--bdv-e-2);
+  border: 1px solid currentColor;
+  border-radius: var(--bdv-r);
+  font-size: var(--bdv-f-1);
+  line-height: 1;
+}
+.filtfam--off::before { content: ""; }
 
 /* de style.css L7947 */
 .filtfam:focus-visible {
@@ -1525,8 +1541,10 @@ body.bdv-poste .tachesf__i,
 /* de style.css L8094 */
 /* Le retard porte son MOT : `.tache__quand` ecrit « en retard de 5 jours » ou
    « aujourd'hui », la couleur ne fait que le rendre reperable en balayant. */
-.tache[data-ton="retard"] .tache__quand,
-.tache[data-ton="aujourdhui"] .tache__quand { color: var(--bdv-retard); }
+.tache[data-ton="retard"] .tache__quand { color: var(--bdv-retard); }
+/* Le rouge est reserve au RETARD depuis le 26/09/2026 (arbitrage de Ted) : « C'est
+   aujourd'hui » n'est pas une faute, il se dit en gras dans l'encre du texte. */
+.tache[data-ton="aujourdhui"] .tache__quand { color: var(--bdv-encre-1); font-weight: 600; }
 
 /* de style.css L8097 */
 /* Faite, la ligne s'efface sans disparaitre : elle est la preuve du travail fait. */

@@ -4665,3 +4665,10 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
   position:absolute; width:1px; height:1px; overflow:hidden;
   clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; margin:0;
 }
+
+/* -- 29.11 « MES REGLAGES » N'EST PLUS DANS L'EN-TETE SUR ORDINATEUR, 26/09/2026,
+   arbitrage de Ted : il y etait deux fois, dans la barre de gauche et ici. Le
+   bouton reste dans le DOM (les bancs et `BdvNav.ouvrirReglages()` le connaissent),
+   et il reste visible sur la fiche en pleine page, qui n'a pas de barre. */
+body.bdv-coque .bureau-tete .bureau-tete__reglages{ display:none; }
+body.bdv-coque.bdv-page-fiche .bureau-tete .bureau-tete__reglages{ display:inline-flex; }

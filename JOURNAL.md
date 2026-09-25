@@ -13,6 +13,15 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 26/09/2026, troisieme tour de la revue
+
+Quatre oui de Ted : le bloc calendrier de « Ma journee » montre la FIN d'une periode en cours
+(« Jusqu'au 13 oct. ») au lieu de son debut, qui se lisait comme la date du jour ; « Mes
+reglages » quitte l'en-tete sur ordinateur (il reste dans la barre, et sur la fiche en pleine
+page) ; les filtres eteints de « Mes taches » et du calendrier ne sont plus barres, une case
+vide ou cochee dit l'etat ; le rouge de « Mes taches » est reserve au retard, « C'est
+aujourd'hui » passe en gras dans l'encre du texte.
+
 ## 26/09/2026, quatre arbitrages de plus apres la revue
 
 Quatre oui de Ted : le petit texte du pied de page passe a `--on-dark-soft` (7,6:1 au lieu de
