@@ -13,6 +13,26 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 25/09/2026, « Ma journée » qui se travaille, et l'agent vigneron
+
+Ted, capture de sa vraie page, tiroir ouvert : la lune tombait seule sous le mot du jour, le
+panneau s'étalait sur 1 100 px, les cartes se détachaient mal, l'ardoise « sans détails ». Il a
+demandé un agent « travail empathique vigneron » : il vit dans `agents/vigneron-empathique.md`
+(un vigneron qui juge l'écran à 6 h au chai, à 10 h sur le portable, à 23 h en sombre), et c'est
+lui qui a tranché la disposition du panneau, puis revérifié sur les captures.
+
+Fait : la lune vit dans le bloc d'identité (salut, plaque, lune), le repli se juge sur la largeur
+du plan et plus sur la fenêtre ; la petite lune du coin s'efface tant que la grande est vue et
+revient au défilement (arbitrage de Ted) ; le panneau en cartes, 2 colonnes dès 720 px de zone, 3
+au-delà de 1 500, gestes toujours dessinés ; trait de carte `--bdv-trait-fort` sur la pièce ;
+l'ardoise à trois étages (CA avec variation en % et en euros et jauge d'objectif, douze mois,
+projection/clients/panier) et datée par la période de l'export. Le débordement de 123 px à
+390 px (note du sous-main) est fermé.
+
+Écarté : changer `--bdv-fond` ou `--bdv-surface` pour tout le bureau (Ted a dit « pour ma
+journée », et le fond porte le cadre de la coque). Resté ouvert : le vide sous le sous-main à
+1440 (point déjà à trancher avec Ted), la plaque du rail rognée par l'en-tête collé au défilement.
+
 ## 25/09/2026, les étiquettes qu'on peut vraiment utiliser
 
 Ted ne pouvait rien faire de ses étiquettes. Trois défauts : la fiche ne se redessinait pas

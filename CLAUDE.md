@@ -6585,3 +6585,25 @@ Le bloc se cache quand le champ manque (`condsDuServeur()` rend `null`) : c'est 
 résumé rangé en cache avant le lot 32. Le lot 32 efface ce cache, mais le garde de l'écran ne dépend
 pas de ce collage. `npm run banc:cuvees-serveur` garde les deux.
 
+## « MA JOURNEE » QUI SE TRAVAILLE, ET L'AGENT VIGNERON, 25/09/2026
+
+Section 27 de `bdv-bureau.css`, `peindreArdoise()` et `brancherLuneVue()` dans `src/mon-bureau.njk`.
+
+- **Tout redessin d'une piece passe par l'agent `agents/vigneron-empathique.md`**, AVANT
+  (il tranche sur les captures) et APRES (il revérifie). Demande de Ted. Il ne code pas.
+- **La lune est DANS le bloc d'identite** (grille `salut / plaque / lune` a gauche, mot a droite).
+  Le repli se juge par `@container journee` (le `.bureau-plan`), JAMAIS par la fenetre : le tiroir
+  retire un tiers de place sans changer la fenetre. Ne pas remettre `.bureau-accueil` en flex.
+  L'ordre du DOM (salut, mot, lune) ne bouge pas, `npm run banc` le controle.
+- **Une seule lune a l'ecran** : `bdv-lune-vue` sur le corps de page masque la lunette du coin
+  (visibilite, sa place reste) tant que la grande est vue. La marge haute de l'observateur est la
+  hauteur de l'en-tete MESUREE au depart.
+- **Le panneau est une grille de cartes** par `@container panneau` (2 col. >= 720, 3 >= 1500), dans
+  l'ordre du document. Les gestes sont toujours dessines (panneau et sous-main) : le devoilement au
+  survol de la section 9 est leve, ne pas le remettre.
+- **L'ardoise ne calcule rien** : tout vient de `resumeVentes()`. Trois etats de mois (vendu, zero,
+  a venir), la regle du courrier du matin. La note dit la PERIODE de l'export (`du`/`au`), plus la
+  date du depot.
+- **Le harnais** : `scripts/capture-journee.mjs` (playwright, hors `verif`) photographie « Ma
+  journee » garnie a plusieurs largeurs et dans les deux themes, et mesure la lune et le debordement.
+  Il pose le salut, la plaque et un resume complet a la main : hors ligne le profil n'arrive pas.

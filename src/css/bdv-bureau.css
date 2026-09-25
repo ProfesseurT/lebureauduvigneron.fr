@@ -4125,3 +4125,251 @@ body.bdv-coque .page-fiche__avis{
   font-size:var(--bdv-f-3);
 }
 body.bdv-coque .page-fiche__avis a{ color:var(--bdv-accent); }
+
+/* ==========================================================================
+   27. « MA JOURNEE » QUI SE TRAVAILLE, 25/09/2026
+
+   Quatre demandes de Ted sur sa vraie page, arbitrees par l'agent « vigneron
+   empathique » (agents/vigneron-empathique.md) sur les captures reelles :
+
+   1. LA LUNE NE TOMBE PLUS SOUS LE MOT DU JOUR. Le bandeau d'accueil n'a plus que
+      DEUX blocs : l'identite (salut, plaque, lune) et le mot. La lune vit DANS
+      l'identite, donc elle ne peut plus partir seule sur une ligne. Le repli se
+      juge sur la LARGEUR DU PLAN (conteneur `journee`), pas sur la fenetre : le
+      tiroir ouvert retire un tiers de la place sans changer la fenetre, c'est
+      exactement le cas de la capture de Ted.
+      La petite lune du coin s'efface tant que celle-ci est vue (classe
+      `bdv-lune-vue`, posee par `brancherLuneVue()` de mon-bureau.njk) : une seule
+      lune a l'ecran, et les deux lisent le MEME calcul.
+   2. LE PANNEAU N'EST PLUS UNE RANGEE DE 1 100 px. Ses punaises passent en grille
+      de cartes : 2 colonnes des 720 px de contenu, 3 au-dela de 1 500, 1 en
+      dessous. La pile reste une pile : l'ordre du document EST l'ordre de lecture
+      (1 et 2, puis 3 et 4), donc le retard reste en haut a gauche. Les gestes sont
+      toujours dessines : un bouton qu'on devine au survol, on ne le trouve pas.
+   3. PLUS DE CONTRASTE ENTRE LES CARTES ET LE FOND, sur cette piece. Le trait de
+      carte passe a `--bdv-trait-fort` et les titres de zone a `--bdv-encre-2`.
+      Aucun jeton nouveau, aucune ombre (la regle du bureau tient).
+   4. L'ARDOISE DIT DES DETAILS : chiffre d'affaires, variation en % et en euros,
+      jauge d'objectif ; les douze mois ; projection, clients, panier. Tout vient
+      de `resumeVentes()`, rien n'est calcule dans la page.
+   ========================================================================== */
+
+/* -- 27.1 LE BANDEAU D'ACCUEIL ------------------------------------------- */
+.bdv-coque .bureau-plan{ container-type:inline-size; container-name:journee; }
+.bdv-coque .bureau-accueil{
+  display:grid;
+  grid-template-columns:minmax(15rem,4fr) minmax(0,8fr);
+  grid-template-areas:"salut mot" "plaque mot" "lune mot" ". mot";
+  grid-template-rows:auto auto auto 1fr;
+  column-gap:var(--bdv-e-6);
+  row-gap:var(--bdv-e-2);
+  align-items:start;
+}
+.bdv-coque .bureau-accueil:has(> .zone--mot[hidden]){
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"salut lune" "plaque lune";
+  grid-template-rows:auto auto;
+}
+.bdv-coque .bureau-accueil__salut{ grid-area:salut; }
+.bdv-coque .bureau-accueil .bureau-tete__plaque{ grid-area:plaque; margin:0; }
+.bdv-coque .bureau-accueil .zone--mot{
+  grid-area:mot;
+  flex:none;
+  max-width:none;
+  margin:0;
+  order:0;
+}
+.bdv-coque .bureau-accueil .bureau-tete__lune{
+  grid-area:lune;
+  justify-self:start;
+  align-self:start;
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-3);
+  margin:var(--bdv-e-2) 0 0;
+}
+.bdv-coque .bureau-accueil .bureau-tete__lune-dessin{ width:var(--bdv-e-8); height:var(--bdv-e-8); }
+/* MEME DESSIN QUE LA LUNE DU COIN : deux lunes qui ne se ressemblent pas se lisent
+   comme deux phases. Avant ce jour, celle-ci peignait sa partie eclairee en encre
+   grise : a 98 % elle faisait un disque SOMBRE, c'est-a-dire une nouvelle lune. */
+.bdv-coque .bureau-accueil .bureau-tete__lune-ombre{ fill:var(--bdv-lune-ombre); }
+.bdv-coque .bureau-accueil .bureau-tete__lune-clair{ fill:var(--bdv-lune-clair); }
+.bdv-coque .bureau-accueil .bureau-tete__lune-bord{ fill:none; stroke:var(--bdv-trait-fort); stroke-width:2; }
+.bdv-coque .bureau-accueil .bureau-tete__lune-nom{ color:var(--bdv-encre-1); }
+.bdv-coque .bureau-accueil .bureau-tete__lune-note{ color:var(--bdv-encre-3); }
+@container journee (max-width:760px){
+  .bdv-coque .bureau-accueil,
+  .bdv-coque .bureau-accueil:has(> .zone--mot[hidden]){
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"salut lune" "plaque lune" "mot mot";
+    grid-template-rows:auto auto auto;
+    column-gap:var(--bdv-e-3);
+  }
+  .bdv-coque .bureau-accueil .bureau-tete__lune{ margin:0; justify-self:end; }
+  .bdv-coque .bureau-accueil .bureau-tete__lune-suite{ display:none; }
+  .bdv-coque .bureau-accueil .bureau-tete__lune-dessin{ width:var(--bdv-e-6); height:var(--bdv-e-6); }
+}
+@container journee (max-width:420px){
+  .bdv-coque .bureau-accueil .bureau-tete__lune-note{ display:none; }
+}
+/* LA PETITE LUNE DU COIN S'EFFACE QUAND LA GRANDE EST VUE, et garde sa place :
+   un en-tete dont les elements bougent au defilement se relit a chaque fois. */
+.bdv-coque .bureau-tete__lunette{
+  transition:opacity var(--bdv-d-court) var(--bdv-courbe),
+             visibility var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque.bdv-lune-vue .bureau-tete .bureau-tete__lunette{ opacity:0; visibility:hidden; }
+
+/* -- 27.2 LE PANNEAU EN GRILLE DE CARTES ---------------------------------- */
+@container panneau (min-width:720px){
+  .bdv-coque .panneau{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:var(--bdv-e-3);
+  }
+  .bdv-coque .panneau .postit,
+  .bdv-coque .panneau .postit:last-child{
+    align-content:start;
+    padding:var(--bdv-e-3) var(--bdv-e-4);
+    border:1px solid var(--bdv-trait-fort);
+    border-radius:var(--bdv-r);
+    background:var(--bdv-surface);
+  }
+  .bdv-coque .panneau .postit[data-ton="vieux"]{
+    background:var(--bdv-retard-lavis);
+    border-color:var(--bdv-retard);
+    border-left-width:3px;
+  }
+  .bdv-coque .panneau .postit[data-ton="fait"]{ background:var(--bdv-bon-lavis); }
+}
+@container panneau (min-width:1500px){
+  .bdv-coque .panneau{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+/* LES GESTES TOUJOURS DESSINES. Le devoilement au survol de la section 9 est
+   leve : l'agent l'a mesure comme le premier defaut du panneau, et Ted voyait
+   « Appele » et « Fait » grises sur sa vraie page. */
+.bdv-coque .panneau .postit__gestes{ opacity:1; }
+
+/* -- 27.3 LE CONTRASTE DES CARTES SUR « MA JOURNEE » ----------------------- */
+.bdv-coque #bureauJournee > .zone,
+.bdv-coque .bureau-accueil .zone--mot{ border-color:var(--bdv-trait-fort); }
+.bdv-coque .bureau-accueil .zone--mot{ border-left-color:var(--bdv-accent); }
+.bdv-coque #bureauJournee .zone__tete h2{ color:var(--bdv-encre-2); }
+.bdv-coque #bureauJournee .zone__note{ color:var(--bdv-encre-3); }
+
+/* -- 27.4 L'ARDOISE A TROIS ETAGES ----------------------------------------- */
+.bdv-coque .zone--ardoise{ container-type:inline-size; container-name:ardoise; }
+.bdv-coque .ardoise{
+  display:grid;
+  grid-template-columns:minmax(0,5fr) minmax(0,4fr) minmax(0,3fr);
+  grid-template-rows:none;
+  gap:0;
+  align-items:stretch;
+}
+.bdv-coque .ardoise .chiffre{
+  grid-row:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:var(--bdv-e-1);
+  text-align:left;
+  text-decoration:none;
+}
+.bdv-coque .ardoise .chiffre__v{ justify-self:auto; align-self:flex-start; margin-top:0; }
+.bdv-coque .ardoise .chiffre--hi{
+  padding:var(--bdv-e-4) var(--bdv-e-6) var(--bdv-e-4) var(--bdv-e-4);
+  border-right:1px solid var(--bdv-trait);
+}
+.bdv-coque .ardoise .chiffre--hi .chiffre__s{ color:var(--bdv-encre-2); font-size:var(--bdv-f-3); }
+.bdv-coque .ardoise .chiffre--hi[data-sens="haut"] .chiffre__s{ color:var(--bdv-bon); }
+.bdv-coque .ardoise .chiffre--hi[data-sens="bas"] .chiffre__s{ color:var(--bdv-retard); }
+.bdv-coque .ardoise .chiffre__l{ color:var(--bdv-encre-3); margin:0; }
+.bdv-coque .ardoise .chiffre__jauge{
+  display:block;
+  width:100%;
+  height:var(--bdv-e-2);
+  margin-top:var(--bdv-e-3);
+  background:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r-pastille);
+  overflow:hidden;
+}
+.bdv-coque .ardoise .chiffre__jauge i{ display:block; height:100%; background:var(--bdv-accent); }
+.bdv-coque .ardoise .chiffre__objectif{ font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+
+.bdv-coque .ardoise__mois{
+  display:flex;
+  flex-direction:column;
+  gap:var(--bdv-e-2);
+  padding:var(--bdv-e-4);
+  border-right:1px solid var(--bdv-trait);
+}
+.bdv-coque .ardoise__barres{
+  flex:1 1 auto;
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:var(--bdv-e-1);
+  align-items:end;
+  min-height:calc(var(--bdv-e-12) + var(--bdv-e-8));
+}
+.bdv-coque .ardoise__b{
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  height:100%;
+  gap:var(--bdv-e-1);
+}
+.bdv-coque .ardoise__b i{
+  align-self:end;
+  display:block;
+  width:100%;
+  background:var(--bdv-encre-4);
+}
+.bdv-coque .ardoise__b--dernier i{ background:var(--bdv-accent); }
+.bdv-coque .ardoise__b--zero i{ height:2px; background:var(--bdv-trait-fort); }
+.bdv-coque .ardoise__b--avenir i{
+  height:var(--bdv-e-2);
+  background:none;
+  border-top:1px dashed var(--bdv-trait-fort);
+}
+.bdv-coque .ardoise__b b{
+  font-size:var(--bdv-f-1);
+  font-weight:500;
+  line-height:1;
+  text-align:center;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .ardoise__b--avenir b{ color:var(--bdv-encre-4); }
+.bdv-coque .ardoise__b--dernier b{ color:var(--bdv-encre-1); font-weight:600; }
+
+.bdv-coque .ardoise__cote{ display:flex; flex-direction:column; }
+.bdv-coque .ardoise__cote .chiffre{
+  flex:1 1 auto;
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border-right:0;
+  border-bottom:1px solid var(--bdv-trait);
+}
+.bdv-coque .ardoise__cote .chiffre:last-child{ border-bottom:0; }
+.bdv-coque .ardoise__cote .chiffre__v{ font-size:var(--bdv-f-5); }
+.bdv-coque .ardoise__cote .chiffre__s{ font-size:var(--bdv-f-1); }
+
+@container ardoise (max-width:760px){
+  .bdv-coque .ardoise{ grid-template-columns:minmax(0,1fr); }
+  .bdv-coque .ardoise .chiffre--hi,
+  .bdv-coque .ardoise__mois{ border-right:0; border-bottom:1px solid var(--bdv-trait); }
+  .bdv-coque .ardoise__barres{ min-height:calc(var(--bdv-e-12) + var(--bdv-e-3)); }
+}
+
+/* -- 27.5 LES ACTIONS DU SOUS-MAIN DESSINEES, comme au panneau (meme defaut vu par
+   l'agent : trois mots gris qu'on devine au survol). */
+.bdv-coque .listb td.listb__gestes{ opacity:1; }
+.bdv-coque #bureauJournee .listb .btn--geste:not(:disabled){
+  border-color:var(--bdv-trait-fort);
+  color:var(--bdv-encre-2);
+}
+
+/* -- 27.6 L'EN-TETE DE ZONE SE REPLIE AU LIEU DE DEBORDER. A 390 px, « Le
+   sous-main » s'ecrivait sur trois lignes et sa note sortait de 123 px de la page
+   (mesure du 25/09/2026) : le titre garde sa ligne, la note passe dessous. */
+.bdv-coque #bureauJournee .zone__tete{ flex-wrap:wrap; row-gap:var(--bdv-e-1); }
+.bdv-coque #bureauJournee .zone__tete h2{ white-space:nowrap; }
+.bdv-coque #bureauJournee .zone__note{ min-width:0; overflow-wrap:anywhere; }

@@ -1512,46 +1512,97 @@ theme_bureau: true
     var effacer = function(){ if(zone) zone.hidden = true; el('bureauChiffres').innerHTML = '';
                               txt(el('ardoiseQuand'), ''); };
     if(SANS_VITI || !ETAT_FILE || !ETAT_FILE.resume) return effacer();
-    var r = ETAT_FILE.resume, cases = [];
-    {# Chaque chiffre porte sa comparaison. Un chiffre d'affaires seul ne dit rien : ce #}
-    {# qui compte, c'est s'il monte ou s'il descend, et où il finira. #}
-    if(r.ca != null){
-      var sous = r.exercice || '';
-      if(r.variation != null){
-        sous = (r.variation >= 0 ? '+' : '') + r.variation.toString().replace('.', ',')
-             + ' % vs l’an dernier à date égale';
-      }
-      cases.push(['Chiffre d’affaires', euros(r.ca), sous]);
-    }
-    if(r.objectifPct != null){
-      var reste = (r.objectif || 0) - (r.ca || 0);
-      cases.push(['Objectif', r.objectifPct + ' %',
-        reste > 0 ? 'il reste ' + euros(reste) : 'objectif dépassé']);
-    }else if(r.atterrissage != null){
-      cases.push(['Fin d’exercice', euros(r.atterrissage), 'projection au rythme actuel']);
-    }
-    if(r.clients != null) cases.push(['Clients', String(r.clients), 'sur l’exercice']);
-    if(r.panier != null) cases.push(['Panier moyen', euros(r.panier), 'par commande']);
-    if(!cases.length) return effacer();
+    var r = ETAT_FILE.resume;
+    if(r.ca == null && r.clients == null && r.panier == null) return effacer();
+    {# L'ARDOISE A TROIS ETAGES, 25/09/2026, demande de Ted (« j'ai pas de details »),
+       dessin tranche par l'agent vigneron : a gauche le chiffre d'affaires, sa variation
+       en % ET en euros, et la jauge d'objectif ; au centre les douze mois de l'exercice ;
+       a droite la projection, les clients, le panier. RIEN N'EST CALCULE ICI : tout vient
+       de `resumeVentes()` (bdv-ecrans.js). Une case sans sa donnee ne s'ecrit pas. #}
     var boite = el('bureauChiffres');
     boite.innerHTML = '';
-    var r2 = ETAT_FILE.resume;
-    cases.forEach(function(c, i){
+    function cellule(cls, l, v, s){
       var d = document.createElement('a');
-      d.className = 'chiffre' + (i === 0 ? ' chiffre--hi' : '');
-      if(i === 0 && r2.variation != null) d.setAttribute('data-sens', r2.variation >= 0 ? 'haut' : 'bas');
+      d.className = 'chiffre ' + cls;
       d.href = '/mon-bureau/#annee';
-      ['chiffre__l','chiffre__v','chiffre__s'].forEach(function(cl, k){
-        var sp = document.createElement('span'); sp.className = cl; sp.textContent = c[k]; d.appendChild(sp);
+      [['chiffre__l', l], ['chiffre__v', v], ['chiffre__s', s]].forEach(function(p){
+        if(p[1] == null || p[1] === '') return;
+        var sp = document.createElement('span'); sp.className = p[0]; sp.textContent = p[1]; d.appendChild(sp);
       });
-      boite.appendChild(d);
-    });
+      return d;
+    }
+    if(r.ca != null){
+      var sous = r.exercice ? 'exercice ' + r.exercice : '';
+      if(r.variation != null){
+        sous = (r.variation >= 0 ? '+' : '') + r.variation.toString().replace('.', ',') + ' %';
+        if(r.variationEuros != null) sous += ', ' + (r.variationEuros >= 0 ? '+' : '−') + euros(Math.abs(r.variationEuros));
+        sous += ' vs l’an dernier à date égale';
+      }
+      var ca = cellule('chiffre--hi', 'Chiffre d’affaires' + (r.exercice ? ' ' + r.exercice : ''), euros(r.ca), sous);
+      if(r.variation != null) ca.setAttribute('data-sens', r.variation >= 0 ? 'haut' : 'bas');
+      {# La jauge ne s'ecrit que sur un objectif POSE : une jauge sans cible mesure le vide. #}
+      if(r.objectif && r.objectifPct != null){
+        var pct = Math.max(0, Math.min(100, r.objectifPct));
+        var j = document.createElement('span'); j.className = 'chiffre__jauge';
+        j.setAttribute('role', 'img');
+        j.setAttribute('aria-label', r.objectifPct + ' % de l’objectif atteint');
+        var b = document.createElement('i'); b.style.width = pct + '%'; j.appendChild(b);
+        ca.appendChild(j);
+        var reste = r.objectif - (r.ca || 0);
+        var jt = document.createElement('span'); jt.className = 'chiffre__objectif';
+        jt.textContent = r.objectifPct + ' % de l’objectif de ' + euros(r.objectif)
+          + (reste > 0 ? ', il reste ' + euros(reste) : ', objectif dépassé');
+        ca.appendChild(jt);
+      }
+      boite.appendChild(ca);
+    }
+    {# LES DOUZE MOIS, TROIS ETATS ET PAS DEUX, la regle du courrier du matin
+       (histogramme() de bdv-courrier.js) : un mois a venir n'est pas un mois a zero. #}
+    if(r.mois && r.mois.length === 12){
+      var max = Math.max.apply(null, r.mois.map(function(v){ return v || 0; }));
+      if(max > 0){
+        var debut = r.moisDebut || 1, dernier = r.dernierMois || 12;
+        var INIT = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+        var NOMS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+        var m = document.createElement('div'); m.className = 'ardoise__mois';
+        var t = document.createElement('p'); t.className = 'chiffre__l'; t.textContent = 'Mois par mois';
+        m.appendChild(t);
+        var g = document.createElement('div'); g.className = 'ardoise__barres';
+        var dit = [];
+        r.mois.forEach(function(v, i){
+          var n = (debut - 1 + i) % 12, val = v || 0, aVenir = (i + 1) > dernier;
+          var c = document.createElement('span');
+          c.className = 'ardoise__b' + (aVenir ? ' ardoise__b--avenir' : val <= 0 ? ' ardoise__b--zero' : '')
+                      + ((i + 1) === dernier ? ' ardoise__b--dernier' : '');
+          var barre = document.createElement('i');
+          if(!aVenir) barre.style.height = (val <= 0 ? 0 : Math.max(4, Math.round(val / max * 100))) + '%';
+          c.appendChild(barre);
+          var e = document.createElement('b'); e.textContent = INIT[n]; c.appendChild(e);
+          c.title = NOMS[n] + (aVenir ? ' : à venir' : ' : ' + euros(val));
+          g.appendChild(c);
+          if(!aVenir) dit.push(NOMS[n] + ' ' + euros(val));
+        });
+        g.setAttribute('role', 'img');
+        g.setAttribute('aria-label', 'Chiffre d’affaires par mois : ' + dit.join(', '));
+        m.appendChild(g);
+        boite.appendChild(m);
+      }
+    }
+    var cote = document.createElement('div'); cote.className = 'ardoise__cote';
+    if(r.atterrissage != null) cote.appendChild(cellule('chiffre--petit', 'Fin d’exercice', euros(r.atterrissage), 'projection au rythme actuel, pas une vente'));
+    if(r.clients != null) cote.appendChild(cellule('chiffre--petit', 'Clients', String(r.clients), 'sur l’exercice'));
+    if(r.panier != null) cote.appendChild(cellule('chiffre--petit', 'Panier moyen', euros(r.panier), 'par commande'));
+    if(cote.children.length) boite.appendChild(cote);
     el('zoneArdoise').hidden = false;
-    if(ETAT_FILE.deposeLe){
+    {# D'OU VIENNENT LES CHIFFRES : la periode de l'export, pas la date du depot. « au 25
+       septembre » faisait croire que les ventes allaient jusqu'a aujourd'hui. #}
+    if(r.du && r.au) txt(el('ardoiseQuand'), 'ventes du ' + r.du + ' au ' + r.au + ', export Vitisoft');
+    else if(ETAT_FILE.deposeLe){
       var dt = new Date(ETAT_FILE.deposeLe);
       if(!isNaN(dt)) txt(el('ardoiseQuand'), 'au ' + dt.toLocaleDateString('fr-FR', { day:'numeric', month:'long' }));
     }
   }
+
 
   {# ---------------- LE PANNEAU DE LIEGE ----------------
      Refait le 10/09/2026, sur demande de Ted : « il faut le rendre bcp plus usefull,
@@ -2269,6 +2320,22 @@ theme_bureau: true
     juger();
   }
 
+  {# UNE SEULE LUNE A L'ECRAN, 25/09/2026, decision de Ted : sur « Ma journee », la
+     petite lune du coin s'efface tant que celle de l'accueil est visible, et revient
+     quand on a fait defiler. La marge du haut retire le bandeau et l'en-tete colles, mesures au depart :
+     une lune passee dessous n'est plus vue. Sans IntersectionObserver, rien ne change. #}
+  function brancherLuneVue(){
+    var grande = el('bureauLune');
+    if(!grande || !('IntersectionObserver' in window)) return;
+    var tete = document.querySelector('.bureau-tete');
+    var haut = tete ? Math.max(0, Math.round(tete.getBoundingClientRect().bottom)) : 0;
+    var o = new IntersectionObserver(function(ents){
+      var e = ents[ents.length - 1];
+      document.body.classList.toggle('bdv-lune-vue', !!(e && e.isIntersecting && !grande.hidden));
+    }, { rootMargin: '-' + haut + 'px 0px 0px 0px', threshold: 0.6 });
+    o.observe(grande);
+  }
+
   {# Appele depuis DOMContentLoaded, jamais a l'analyse du document : bdv-reglages.js est #}
   {# charge en defer, window.BdvReglages n'existe pas encore quand ce script est lu. #}
   function brancherReglages(){
@@ -2614,6 +2681,7 @@ theme_bureau: true
     brancherReglages();
     brancherTheme();
     brancherRetraction();
+    brancherLuneVue();
     peindreEcheance(); peindreResume();
     if(window.BdvCrm){
       {# Le miroir AVANT le reseau. Ce script s'execute pendant l'analyse du document, #}
