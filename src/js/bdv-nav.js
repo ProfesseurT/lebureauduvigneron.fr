@@ -182,19 +182,19 @@
        l'adresse /mon-bureau/#clients, donc les signets du vigneron et les liens qu'il a
        copies, et c'est lui que `npm run banc` compare avec NAV dans bdv-ecrans.js.
        Renommer le libelle ne coute rien ; renommer l'identifiant casserait les deux. */
-    /* « MES CLIENTS », 24/09/2026 : l'annuaire. Place AVANT « Mon commerce » parce que
-       c'est la base, et « Mon commerce » un tri de cette base. L'identifiant est
-       `annuaire` et pas `clients` : `clients` tient deja l'adresse de « Mon commerce »
-       (voir juste en dessous). `viti` : sans export il n'y a aucun client a lister. */
-    { id: 'annuaire', viti: true,  ico: TRACES.annuaire, label: 'Mes clients',
-      href: '/mon-bureau/#annuaire',
-      quoi: 'Tous tes clients, à trier, filtrer, étiqueter' },
     { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mon commerce',
       href: '/mon-bureau/#clients',
       quoi: 'Qui rappeler, qui décroche, d\'où vient ton chiffre' },
     { id: 'annee', viti: true,     ico: TRACES.annee, label: 'Mon cap',
       href: '/mon-bureau/#annee',
       quoi: 'Où tu en es, où tu finis l\'année' },
+    /* « MES CLIENTS », 24/09/2026 : l'annuaire. Rangee SOUS « Mon cap » depuis le 25/09/2026, demande
+       de Ted. L'identifiant est
+       `annuaire` et pas `clients` : `clients` tient deja l'adresse de « Mon commerce »
+       (plus haut). `viti` : sans export il n'y a aucun client a lister. */
+    { id: 'annuaire', viti: true,  ico: TRACES.annuaire, label: 'Mes clients',
+      href: '/mon-bureau/#annuaire',
+      quoi: 'Tous tes clients, à trier, filtrer, étiqueter' },
     { id: 'produits', viti: true,  ico: TRACES.produits, label: 'Mes cuvées',
       href: '/mon-bureau/#produits',
       quoi: 'Ce qui part, ce qui dort' },

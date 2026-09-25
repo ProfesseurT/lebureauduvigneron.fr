@@ -3881,21 +3881,32 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
 body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
 @media (min-width:1181px){
   body.bdv-coque .bureau-nav .bureau-nav__replier{
+    /* DISCRET depuis le 25/09/2026, demande de Ted : un chevron seul, sans filet
+       ni libelle visible. Le libelle reste dans le DOM, c'est le nom accessible. */
     display:flex;
-    margin-top:var(--bdv-e-3);
-    border-top:1px solid var(--bdv-trait);
+    align-self:flex-end;
+    justify-content:center;
+    width:var(--bdv-cible);
+    margin-top:var(--bdv-e-2);
+    padding:0;
+    border:0;
     border-radius:0;
-    padding-top:var(--bdv-e-1);
+    background:transparent;
     min-height:var(--bdv-cible);
     color:var(--bdv-encre-4);
     cursor:pointer;
   }
-  body.bdv-coque .bureau-nav .bureau-nav__replier:hover{ color:var(--bdv-encre-1); }
+  body.bdv-coque .bureau-nav .bureau-nav__replier .bureau-nav__nom{
+    position:absolute; width:1px; height:1px; overflow:hidden;
+    clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap;
+  }
+  body.bdv-coque .bureau-nav .bureau-nav__replier:hover{ color:var(--bdv-encre-1); background:transparent; }
   .bdv-coque .bureau-nav__replier .bureau-nav__ico svg{
     display:block;
     transition:transform var(--bdv-d-long) var(--bdv-courbe);
   }
   .bdv-coque.bdv-rail-replie .bureau-nav__replier .bureau-nav__ico svg{ transform:scaleX(-1); }
+  body.bdv-coque.bdv-rail-replie .bureau-nav .bureau-nav__replier{ align-self:center; }
 }
 @media (min-width:901px){
   .bdv-coque .bureau-atelier{

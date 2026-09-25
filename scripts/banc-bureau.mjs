@@ -143,7 +143,7 @@ t('dix pieces montees (Mes clients, 24/09/2026)', lignes.length === 10, lignes.l
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mes clients | Mon commerce | Mon cap | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes clients | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
 t('les huit pieces internes pointent DANS le bureau',

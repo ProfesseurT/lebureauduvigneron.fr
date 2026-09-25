@@ -3371,6 +3371,8 @@ laterale qu'on peut ranger.
   script en tete de `mon-bureau.njk`, et par `poserRepli()` de `bdv-nav.js` au clic. Cle
   `bureau_rail_v1`, **hors du prefixe `bdv_`**, meme raison que `bureau_theme_v1`. Le nom de chaque
   piece reste dans le DOM, masque visuellement : c'est le nom accessible du lien.
+- **Le bouton de repli est DISCRET depuis le 25/09/2026** (demande de Ted) : un chevron seul, 44 px de cible, sans filet ni libelle visible. Le libelle reste dans le DOM, masque visuellement : c'est son nom accessible.
+- **« Mes clients » est range SOUS « Mon cap »** depuis le 25/09/2026 (demande de Ted). L'ordre est garde par `banc-bureau.mjs`.
 - **Le bouton est HORS de `.bureau-nav__liste`** : ce n'est pas une piece, et les bancs comptent
   `.bureau-nav__ligne`. Il n'existe qu'a partir de 1181 px ; en dessous la largeur decide seule.
 - **`banc:poids` est a 119,9 ko sur 120.** Les commentaires d'un script EN LIGNE partent au
