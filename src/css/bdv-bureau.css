@@ -4057,28 +4057,48 @@ body.bdv-coque.bdv-page-fiche #modale.on .modale__box{
   padding:var(--bdv-e-8);
   background:var(--bdv-fond);
 }
-body.bdv-coque.bdv-page-fiche #modale.on .modale__close{
-  min-width:var(--bdv-cible);
+/* EN PLEINE PAGE, LA SORTIE EST UN LIEN QUI DIT OU IL MENE, pas une croix seule dans un
+   coin : on ne « ferme » pas une page, on retourne a sa liste. */
+body.bdv-coque.bdv-page-fiche #modale.on .modale__close{ display:none; }
+body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour{
+  display:inline-flex;
+  align-items:center;
   min-height:var(--bdv-cible);
+  margin-bottom:var(--bdv-e-4);
+  padding:0;
+  border:0;
+  background:none;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  color:var(--bdv-encre-2);
+  cursor:pointer;
 }
+body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour:hover{ color:var(--bdv-encre-1); }
+body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
 @media (min-width:1100px){
   body.bdv-coque.bdv-page-fiche #modale.on .modale__box{
     display:grid;
     grid-template-columns:minmax(0,1fr) minmax(380px,34%);
     /* La colonne du suivi couvre les deux rangees : sans `1fr` sur la seconde, sa hauteur
        se reportait sur la premiere et ouvrait un trou sous le conseil. */
-    grid-template-rows:auto 1fr;
+    grid-template-rows:auto auto 1fr;
     column-gap:var(--bdv-e-8);
     align-items:start;
+  }
+  body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour{
+    grid-column:1 / -1;
+    grid-row:1;
+    justify-self:start;
   }
   body.bdv-coque.bdv-page-fiche #modale.on .fiche__corps{
     display:block;
     grid-column:1;
-    grid-row:1;
-  }
-  body.bdv-coque.bdv-page-fiche #modale.on .fiche__cols{
-    grid-column:1;
     grid-row:2;
+  }
+  body.bdv-coque.bdv-page-fiche #modale.on .fiche__onglets{
+    grid-column:1;
+    grid-row:3;
   }
   /* LA COLONNE DU SUIVI RESTE A L'ECRAN QUAND ON DESCEND DANS LES COMMANDES : c'est la
      qu'on note l'appel qu'on est en train de passer. Elle garde son propre ascenseur, sans
@@ -4087,12 +4107,11 @@ body.bdv-coque.bdv-page-fiche #modale.on .modale__close{
   body.bdv-coque.bdv-page-fiche #modale.on .fiche__cote{
     display:block;
     grid-column:2;
-    grid-row:1 / span 2;
+    grid-row:2 / span 2;
     position:sticky;
     top:var(--bdv-e-6);
     max-height:calc(100vh - var(--bdv-e-12));
     overflow-y:auto;
-    padding-top:var(--bdv-e-12);
   }
 }
 body.bdv-coque .page-fiche__avis{

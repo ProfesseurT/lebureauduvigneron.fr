@@ -569,7 +569,7 @@
     if(p && p.classList.contains('on') && p.querySelector('.annu')){ repeindreBarres(); majListe(); }
   };
 
-  window.BdvAnnuaire = { peindre: ouvrir, attribuer: attribuer, etiqueter: etiqueter, blocFiche: blocFiche,
+  window.BdvAnnuaire = { peindre: ouvrir, attribuer: attribuer, etiqueter: etiqueter, blocFiche: blocFiche, nomDe: nomDe,
     _maj: function(){ majListe(); },
     _etat: function(){ return { ETAT: ETAT, LISTE: LISTE, FILTREE: FILTREE, SEL: SEL, LOT33: LOT33, VUES: VUES }; } };
 })();

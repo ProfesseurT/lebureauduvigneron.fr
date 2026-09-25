@@ -3487,6 +3487,26 @@ devenus des commentaires Nunjucks `{# ... #}`, retires a la construction : 119,9
 tombes a 74,3, plafond de `banc:poids` descendu a 80. **Dans ce script, un pourquoi s'ecrit en
 `{# #}`, jamais en `//` ni en `/* */`.** Un commentaire Nunjucks ne doit pas contenir `#}`.
 
+### LA FICHE REDESSINEE, 25/09/2026 (valable dans les TROIS contenants)
+
+Ted, capture de la pleine page : « tres destructure et pas forcement tres utilisable ».
+- **En-tete** : numero, ville, « client depuis », suivi par, pastilles (typologie, canal,
+  etiquettes), puis QUATRE actions (Appeler en `tel:`, Ecrire, Noter un echange, Planifier un
+  rappel). Les actions n'ecrivent rien : elles emmenent au bloc qui ecrit (`ficheViser()`).
+- **Chiffres** : CA de l'EXERCICE compare au precedent, le RANG (« 15e client sur 1 012 », plus
+  jamais « top 88 % »), la cadence et la PROCHAINE COMMANDE ATTENDUE. Le delai se dit « (fin de
+  l'export) » : il se compte depuis la derniere vente de la base (regle du 19/09).
+- **Le conseil** : la phrase en gras devant, le reste sous « Pourquoi je dis ça ».
+- **Onglets** (motif ARIA, fleches) : Commandes, Ce qu'il achete (formats et millesimes),
+  A lui proposer, Infos Vitisoft (champs perso sous leurs libelles). Le choix tient tant qu'on
+  reste sur le meme client (`FICHE_ONGLET`).
+- **`motifDeduit()`** : une fiche ouverte sans motif prenait le conseil du PREMIER ACHAT, « n'est
+  venu qu'une fois », meme pour un client a dix commandes. Le motif se deduit (premier, cadence,
+  regulier) et le branchement `regulier` existe dans `conseilClient()`.
+- **« Ecrire » depliait le suivi** : `viserDansLaFiche('message')` prenait le premier
+  `details.msg--replie`, qui est le suivi. Il vise `details.fiche__redac`.
+- Les etiquettes sont des pastilles retirables une a une ; tout passe par `crmSetTags()`.
+
 ### PIEGE D'OUTIL, 24/09/2026 : UNE COPIE DEPOSEE N'EST PAS FORCEMENT LA DERNIERE
 
 Depuis la session, un fichier depose sur le Mac par `device_commit_files` juste apres avoir ete

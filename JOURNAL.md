@@ -12,6 +12,19 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 25/09/2026. La fiche client redessinée
+
+Ted, sur la pleine page : « très déstructuré et pas forcément très utilisable ». Revue design et
+revue des libellés, puis ses trois arbitrages : onglets en bas de page, nouveaux libellés partout
+(modale, tiroir, pleine page), construction directe sans maquette.
+En haut, qui est le client et quatre actions ; puis des chiffres lisibles (CA de l'exercice
+contre le précédent, rang, prochaine commande attendue) ; le conseil en une phrase ; le détail en
+quatre onglets. Deux défauts trouvés en chemin : le conseil « n'est venu qu'une fois » s'affichait
+pour des clients réguliers ouverts depuis « Mes clients », et « Écrire » dépliait le suivi au lieu
+du message. Corrigés.
+
+---
+
 ## 24-25/09/2026. « Mes clients », la fiche en pleine page, et le bureau qui écrit à plusieurs
 
 Ted : « j'ai un paquet de données sur les clients mais pas de base Mes clients qui me permettrait

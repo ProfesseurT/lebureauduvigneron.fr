@@ -113,7 +113,8 @@ const aberrantes = (texteFiche.match(/\bNaN\b|\bInfinity\b|\bundefined\b/g) || [
 t('aucun NaN, Infinity ou undefined affiche dans la fiche', aberrantes.length === 0,
   aberrantes.join(', ') + '  (contexte : ' + (texteFiche.match(/.{0,45}(NaN|Infinity|undefined).{0,25}/) || [''])[0].trim() + ')');
 t('le prix moyen du domaine est un nombre lisible',
-  !S.fiche.includes('domaine NaN') && /domaine \d/.test(texteFiche));
+  /* « domaine 10,72 € » est devenu « ta moyenne 10,72 € » le 25/09/2026 (revue des libelles). */
+  !S.fiche.includes('moyenne NaN') && /ta moyenne \d/.test(texteFiche));
 
 console.log('\n== VERDICT ==\n  ' + (ko ? ko + ' echec(s)' : '16 controles passes, 0 en echec'));
 process.exit(ko ? 1 : 0);

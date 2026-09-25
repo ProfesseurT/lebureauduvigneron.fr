@@ -2436,7 +2436,9 @@ function ficheClient(id){
   const pxRef=offerts.length?prixVenteMoyen():null;   // calcule une fois, pas une fois par ligne
   return {id,nom:base.client||id,ville:base.ville||'',cp:base.cp||'',pays:base.pays||'',
     type:base._typeClient||'',tarif:base.codeTarif||'',commercial:base.commercial||'',
-    origine:base.origine||'',lieu:base.lieuVente||'',
+    origine:base.origine||'',lieu:base.lieuVente||'',canal:base._canal||'',
+    // Les champs perso client de Vitisoft, sous les libelles que le vigneron leur a donnes.
+    perso:[1,2,3,4,5,6,7,8,9].map(i=>['persoClient'+i,String(base['persoClient'+i]||'').trim()]).filter(x=>x[1]).map(x=>[persoLabel(x[0]),x[1]]),
     ca,btl,nbFactures:listeF.length,factures:listeF,
     // « Commandes » = jours d'achat distincts, comme partout ailleurs dans l'outil.
     // Deux factures editees le meme jour sont un seul passage, pas deux commandes.
@@ -2467,6 +2469,12 @@ function conseilClient(f,motif){
     parts.push(`Ce client a un rythme : environ une commande tous les ${fmtDelai(f.cadence)}. Il n'a rien pris depuis ${fmtDelai(f.silence)}.`);
     if(!fiable)parts.push(`<b>Prudence</b> : ce rythme est déduit de ${plur(f.nbCommandes,'commande')} seulement, l'outil ne peut pas en dire beaucoup plus. Vérifie avant d'insister.`);
     parts.push(`<b>Le bon prétexte est le réassort</b>, pas la nouveauté. Propose-lui ce qu'il prend d'habitude, dans la quantité qu'il prend d'habitude.`);
+  }else if(motif==='regulier'){
+    /* 25/09/2026 : une fiche ouverte SANS motif (depuis « Mes clients ») tombait ici sur le
+       conseil du premier achat, « n'est venu qu'une fois », y compris pour un client a dix
+       commandes. Le motif se deduit maintenant (motifDeduit), et un client regulier a le sien. */
+    parts.push(`Client régulier : ${plur(f.nbCommandes,'commande')}, environ une tous les ${fmtDelai(f.cadence)}, la dernière ${f.silence>0?'il y a '+fmtDelai(f.silence):'tout récemment'}.`);
+    parts.push(`<b>Rien ne presse.</b> Garde le contact au rythme de ses commandes : un mot juste avant la date attendue vaut mieux qu'une relance après.`);
   }else{
     parts.push(`Ce client n'est venu qu'une fois, le ${fmtDate(f.premier)}, pour ${fmtMoney(f.ca)}.`);
     parts.push(`<b>Il ne repassera pas au caveau tout seul.</b> Le seul message qui transforme, c'est celui qui lève l'obstacle : lui dire que tu livres, et à partir de combien de bouteilles.`);
@@ -2930,7 +2938,9 @@ function viserDansLaFiche(cible){
   if(!cible)return;
   requestAnimationFrame(function(){
     if(cible==='message'){
-      const d=el('modale').querySelector('details.msg--replie');
+      /* Le redacteur, et PAS le premier `details.msg--replie` : depuis le 11/09/2026 le suivi
+         porte la meme classe et vient avant lui, donc « Ecrire » depliait le suivi. */
+      const d=el('modale').querySelector('details.fiche__redac')||el('modale').querySelector('details.msg--replie:not(#suiviRepli)');
       if(d){d.open=true;d.scrollIntoView({block:'start'});}
       return;
     }
@@ -2971,101 +2981,211 @@ document.addEventListener('click',function(e){
   if(!tr||window.getSelection&&String(window.getSelection()).length)return;
   basculerCommande(tr);
 });
+/* ======================= LA FICHE, REDESSINEE LE 25/09/2026 =======================
+   Demande de Ted, capture a l'appui : « tres destructure et pas forcement tres
+   utilisable ». Quatre changements, et ils valent pour les TROIS contenants (modale,
+   tiroir, pleine page) : une seule fiche, un seul vocabulaire.
+
+   1. EN TETE, QUI IL EST ET CE QU'ON PEUT FAIRE TOUT DE SUITE. Le numero, la ville,
+      depuis quand il est client, ses pastilles (typologie, canal, etiquettes), puis
+      QUATRE actions : appeler, ecrire, noter un echange, planifier un rappel. Avant,
+      pour appeler il fallait deviner que la pastille du telephone etait un lien.
+   2. DES CHIFFRES QUI SE LISENT. « top 88 % de tes clients » voulait dire « parmi les
+      plus petits » : on dit le RANG. Le CA est celui de l'exercice, compare au
+      precedent. La cadence donne la PROCHAINE COMMANDE ATTENDUE, le chiffre le plus
+      utile au telephone.
+   3. LE CONSEIL TIENT EN UNE LIGNE, le reste se deplie. C'est la regle des trois
+      etages : le verdict en haut, ce qui explique replie.
+   4. LE DETAIL PASSE EN ONGLETS : commandes, ce qu'il achete, a lui proposer, infos
+      Vitisoft. Un seul visible a la fois, et l'onglet choisi tient tant qu'on reste
+      sur le meme client (les gestes redessinent la fiche).
+
+   RIEN N'EST INVENTE. Tout ce qui s'affiche vient des lignes de vente ou du suivi.
+   L'adresse postale, l'interlocuteur et le SIRET ne sont pas dans l'export : ils ne
+   sont pas ici. */
+let FICHE_ONGLET={id:null,onglet:'cmd'};
+function rangPlace(ca){
+  if(!CLASSEMENT)rangClient(ca);                 // construit la table triee, une fois
+  const t=CLASSEMENT||[];if(!t.length)return null;
+  let lo=0,hi=t.length;while(lo<hi){const m=(lo+hi)>>1;if(t[m]>ca)lo=m+1;else hi=m;}
+  return {place:lo+1,total:t.length};
+}
+function moisAn(d){return d?(MOIS_FR[d.m-1]||'')+' '+d.y:'';}
+function ficheOnglets(f,reco){
+  const ong=(FICHE_ONGLET.id===f.id)?FICHE_ONGLET.onglet:'cmd';
+  const maxCuvee=f.cuvees.length?f.cuvees[0][1].ca:0;
+  const moisMax=Math.max(...f.parMois);
+  /* Formats et millesimes : lus dans le DETAIL des factures, c'est-a-dire les memes lignes
+     que le chiffre d'affaires. Un format compte en bouteilles, jamais en lignes. */
+  const formats={},mils={};
+  f.factures.forEach(x=>(x.detail||[]).forEach(d=>{if(d.offert)return;
+    const c=d.cond||'non précisé';formats[c]=(formats[c]||0)+(Number(d.qte)||0);
+    if(d.mil)mils[d.mil]=(mils[d.mil]||0)+(Number(d.qte)||0);}));
+  const liste=(o)=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,6)
+    .map(([k,v])=>`<li><span>${esc(k)}</span><b>${fmtNum(v)} btl</b></li>`).join('');
+  const infos=[['Typologie',f.type&&f.type!=='Non typé'?f.type:''],['Canal',f.canal],['Code tarif',f.tarif],
+    ['Commercial',f.commercial],['Origine',f.origine],['Lieu de vente',f.lieu],['Pays',f.pays]]
+    .concat(f.perso||[]).filter(x=>x[1]);
+  const O=[
+    ['cmd','Commandes',f.factures.length,`
+      <div class="tablewrap fiche__cmds"><table class="data"><thead><tr><th>Date</th><th class="num">Montant</th><th class="num">Btl</th><th>Où</th></tr></thead><tbody>
+      ${f.factures.map((x,i)=>`<tr class="clic cmd"><td><button type="button" class="cmd__b" aria-expanded="false" aria-controls="cmd-${i}">${fmtDate(x.date)}<span class="hors-ecran">, voir le détail de la facture</span></button></td><td class="num">${fmtMoney(x.total)}</td><td class="num">${fmtNum(x.btl)}</td><td>${esc(x.canal||'')}</td></tr>
+      <tr class="cmd__d" id="cmd-${i}" hidden><td colspan="4">${detailCommande(x)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="section-label">Ses mois d'achat</div>
+      <div class="fiche__mois">
+        ${f.parMois.slice(1).map((v,i)=>`<div class="fiche__mois-c" title="${MOIS_FR[i]} : ${fmtMoney(v)}">
+          <div class="fiche__mois-b" style="height:${moisMax>0?Math.max(2,v/moisMax*100):2}%"></div>
+          <div class="fiche__mois-l">${MOIS_FR[i].slice(0,1)}</div></div>`).join('')}
+      </div>`],
+    ['achat','Ce qu\'il achète',f.cuvees.length,`
+      <div class="rep">
+        ${f.cuvees.slice(0,10).map(([c,v])=>`<div class="rep__row">
+          <div class="rep__bar"><div class="rep__fill" style="width:${maxCuvee>0?(v.ca/maxCuvee*100).toFixed(1):0}%"></div><div class="rep__lbl">${esc(c)}</div></div>
+          <div class="rep__val">${fmtMoney(v.ca)} <span class="rep__pct">${fmtNum(v.btl)} btl</span></div></div>`).join('')}
+      </div>
+      ${f.cuvees.length>10?`<p class="note">Et ${plur(f.cuvees.length-10,'autre référence')}.</p>`:''}
+      <div class="fiche__deux">
+        <div><div class="section-label">Formats</div><ul class="fiche__liste">${liste(formats)||'<li><span>Aucun format précisé</span></li>'}</ul></div>
+        <div><div class="section-label">Millésimes</div><ul class="fiche__liste">${liste(mils)||'<li><span>Aucun millésime précisé</span></li>'}</ul></div>
+      </div>
+      ${f.offerts?`<p class="note">${plur(f.offerts,'ligne offerte')} ou perdue(s), ${fmtMoney(f.coutOfferts)} au prix de vente moyen.</p>`:''}`],
+    ['proposer','À lui proposer',reco.length,reco.length?`
+      <div class="fiche__reco">
+        ${reco.map(r=>`<div class="fiche__reco-l"><b>${esc(r.cuvee)}</b><span class="muted-cell">Prise par ${fmtNum(r.clients)} clients qui achètent comme lui</span></div>`).join('')}
+      </div>
+      <p class="note">Calculé sur les clients qui achètent les mêmes cuvées que lui, millésimes confondus.</p>`
+      :`<p class="fil__vide">Rien à lui proposer pour l'instant : il faut d'autres clients qui achètent comme lui.</p>`],
+    ['infos','Infos Vitisoft',null,infos.length?`
+      <dl class="fiche__infos">${infos.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      <p class="note">Ces informations viennent de ton export Vitisoft : c'est là-bas qu'on les corrige.</p>`
+      :`<p class="fil__vide">Ton export ne porte aucune autre information sur ce client.</p>`]
+  ];
+  return `<div class="fiche__onglets">
+    <div class="onglets" role="tablist" aria-label="Le détail de ce client">
+      ${O.map(([k,lib,n])=>`<button type="button" role="tab" class="onglets__t" id="ft-${k}" aria-controls="fp-${k}" aria-selected="${k===ong}" tabindex="${k===ong?0:-1}" data-onglet="${k}">${esc(lib)}${n!=null?` <span class="onglets__n">${fmtNum(n)}</span>`:''}</button>`).join('')}
+    </div>
+    ${O.map(([k,,,corps])=>`<div class="onglets__p" role="tabpanel" id="fp-${k}" aria-labelledby="ft-${k}" tabindex="0"${k===ong?'':' hidden'}>${corps}</div>`).join('')}
+  </div>`;
+}
+/* Les onglets : un ecouteur DELEGUE sur le document, pose une fois, parce que la fiche est
+   reecrite a chaque geste (meme motif que le detail des commandes). Fleches, Debut et Fin
+   deplacent le choix, comme le veut le motif ARIA des onglets. */
+function choisirOnglet(b,focus){
+  const box=b.closest('.fiche__onglets');if(!box)return;
+  box.querySelectorAll('[role="tab"]').forEach(t=>{const on=t===b;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;
+    const p=document.getElementById(t.getAttribute('aria-controls'));if(p)p.hidden=!on;});
+  if(FICHE_ID)FICHE_ONGLET={id:FICHE_ID,onglet:b.getAttribute('data-onglet')};
+  if(focus)b.focus();
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest&&e.target.closest('#modale .onglets__t');if(b)choisirOnglet(b,false);
+});
+document.addEventListener('keydown',function(e){
+  const b=e.target.closest&&e.target.closest('#modale .onglets__t');if(!b)return;
+  const ts=[].slice.call(b.parentNode.querySelectorAll('[role="tab"]')),i=ts.indexOf(b);let j=-1;
+  if(e.key==='ArrowRight')j=(i+1)%ts.length;else if(e.key==='ArrowLeft')j=(i-1+ts.length)%ts.length;
+  else if(e.key==='Home')j=0;else if(e.key==='End')j=ts.length-1;
+  if(j<0)return;e.preventDefault();choisirOnglet(ts[j],true);
+});
+/* Les quatre actions de l'en-tete visent des blocs qui existent deja dans la fiche : elles
+   n'ecrivent rien, elles emmenent au bon endroit. Appeler est un vrai lien `tel:`. */
+function ficheViser(quoi){
+  if(quoi==='message'){viserDansLaFiche('message');return;}
+  viserDansLaFiche('suivi');
+  if(quoi==='rappel')requestAnimationFrame(function(){const t=el('rappelTitre')||el('modale').querySelector('.action__titre');if(t)t.focus({preventScroll:true});});
+}
+
+/* Le motif d'une fiche ouverte sans contexte (depuis « Mes clients », une adresse, un
+   onglet) : il se deduit de l'historique, avec les memes seuils que la cadence. */
+function motifDeduit(f){
+  if(f.nbCommandes<=1)return 'premier';
+  if(f.cadence&&f.silence!=null&&f.silence>1.5*f.cadence)return 'cadence';
+  return 'regulier';
+}
 function ficheHTML(f,motif){
   const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
   const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
-  const conseils=conseilClient(f,motif||'premier');
+  const mot=motif||motifDeduit(f);
+  const conseils=conseilClient(f,mot);
   const s=CRM[f.id]||{};
-  const maxCuvee=f.cuvees.length?f.cuvees[0][1].ca:0;
-  const reco=recoPour(f.id,3);
+  const reco=recoPour(f.id,5);
   const prixBase=prixMoyenBouteilleDomaine();   // un NOMBRE. prixVenteMoyen() rend un objet, et fmtNum(objet) vaut NaN
-  const moisMax=Math.max(...f.parMois);
-  /* 19/09/2026. La carte disait « dernier achat 12/08/2026 · il y a 0 j » un 18 septembre.
-     Le delai n'etait pas faux, il etait compte depuis la DERNIERE VENTE DE LA BASE et non
-     depuis aujourd'hui, et rien ne le disait. On ne le recale pas sur la date du jour :
-     `f.silence` est la reference de TOUT l'ecran — le conseil juste en dessous, la cadence,
-     le decrochage — et de la barre de periode, qui ecrit deja « depuis la fin de ta base ».
-     Deplacer ce seul chiffre aurait donne deux delais differents pour le meme client sur le
-     meme ecran. On dit donc par rapport a quoi il se compte, et le cas a zero — le client
-     qui porte la derniere vente lue — se dit en toutes lettres plutot que « il y a 0 j ». */
+  /* LE DELAI SE COMPTE DEPUIS LA FIN DE L'EXPORT, jamais depuis aujourd'hui (regle du
+     19/09/2026 : c'est la reference de tout l'ecran). On le dit donc en toutes lettres. */
   const dernierDelai = f.silence==null ? ''
-    : (f.silence>0 ? fmtDelai(f.silence)+' avant la fin de ta base' : 'dernière vente de ta base');
+    : (f.silence>0 ? 'il y a '+fmtDelai(f.silence)+' (fin de l\'export)' : 'la plus récente de l\'export');
+  const prochaine=(f.cadence&&f.nbCommandes>1&&f.dernier)
+    ? dayToDate(Math.floor(Date.UTC(f.dernier.y,f.dernier.m-1,f.dernier.d)/86400000)+Math.round(f.cadence)) : null;
+  // L'EXERCICE EN COURS, et le precedent a cote : un total depuis toujours ne dit pas si ca monte.
+  const ex=(META&&META.exercices)||[],cur=ex.length?ex[ex.length-1]:null;
+  const caCur=cur!=null?(f.parAn[cur]||0):f.ca, caPrev=cur!=null?(f.parAn[cur-1]||0):0;
+  const evo=caPrev>0?(caCur-caPrev)/caPrev*100:null;
+  const rp=rangPlace(f.ca);
+  const tags=s.tags||[];
+  const proprio=(s.proprietaire&&window.BdvAnnuaire&&BdvAnnuaire.nomDe)?BdvAnnuaire.nomDe(s.proprietaire):'';
+  const tel=f.tels[0], mail=f.emails[0];
+  const meta=[f.id&&f.id!==f.nom?'n°'+f.id:'', [f.cp,f.ville].filter(Boolean).join(' '),
+    f.pays&&!/^france$/i.test(f.pays)?f.pays:'', f.premier?'client depuis '+moisAn(f.premier):'',
+    proprio?'suivi par '+proprio:''].filter(Boolean);
+  const pastilles=[f.type&&f.type!=='Non typé'?f.type:'',f.canal&&!/^autre/i.test(f.canal)?f.canal:''].filter(Boolean);
+  /* LE CONSEIL : la phrase qui porte le verdict (celle en gras) passe devant, le reste se
+     deplie. Les phrases viennent telles quelles de conseilClient() : on ne les reecrit pas. */
+  const iLead=Math.max(0,conseils.findIndex(c=>c.indexOf('<b>')>=0));
+  const lead=conseils[iLead]||'', reste=conseils.filter((_,i)=>i!==iLead);
   return `<div class="modale__bg" aria-hidden="true" onclick="fermerFiche()"></div>
   <div class="modale__box" role="dialog" aria-modal="true" aria-label="Fiche de ${esc(f.nom)}">
     <button class="modale__close" onclick="fermerFiche()" aria-label="Fermer">&times;</button>
+    <button type="button" class="fiche__retour" onclick="fermerFiche()">← Mes clients</button>
 
     <div class="fiche__corps">
     <div class="fiche__head">
-      <div>
+      <div class="fiche__id">
         <h3 class="fiche__nom">${esc(f.nom)}</h3>
-        <div class="fiche__meta">
-          ${f.ville?esc(f.ville)+(f.cp?' '+esc(f.cp):'')+' · ':''}${f.pays?esc(f.pays)+' · ':''}client n°${esc(f.id)}
-          ${f.tarif?' · tarif '+esc(f.tarif):''}${f.commercial?' · suivi par '+esc(f.commercial):''}
-        </div>
+        <div class="fiche__meta">${meta.map(esc).join(' · ')}</div>
+        ${(pastilles.length||tags.length)?`<div class="fiche__pastilles">${pastilles.map(p=>`<span class="fiche__pastille">${esc(p)}</span>`).join('')}${tags.map(t=>`<span class="fiche__pastille fiche__pastille--tag">${esc(t)}</span>`).join('')}</div>`:''}
       </div>
       ${lib?`<span class="motif ${cls}">${lib}</span>`:''}
       <a class="fiche__agrandir" href="/mon-bureau/#fiche=${esc(encodeURIComponent(f.id))}" target="_blank" rel="noopener" onclick="return agrandirFiche(this)">Agrandir<span class="hors-ecran"> la fiche dans un nouvel onglet</span></a>
     </div>
 
+    <div class="fiche__actions">
+      ${tel?`<a class="btn btn--primary btn--sm" href="tel:${esc(tel.appel)}">☎ Appeler<span class="hors-ecran"> ${esc(tel.affiche)}</span></a>`:''}
+      ${mail?`<button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('message')">✉ Écrire</button>`:''}
+      <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('note')">Noter un échange</button>
+      <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('rappel')">Planifier un rappel</button>
+    </div>
+
     <div class="fiche__contacts">
       ${f.emails.map(e=>`<a class="chipc" href="mailto:${esc(e)}">✉ ${esc(e)}</a>`).join('')}
       ${f.tels.map(t=>`<a class="chipc" href="tel:${esc(t.appel)}">☎ ${esc(t.affiche)}</a>`).join('')}
-      ${(!f.emails.length&&!f.tels.length)?'<span class="muted-cell">aucun contact enregistré</span>':''}
+      ${(!f.emails.length&&!f.tels.length)?'<span class="muted-cell">Aucun e-mail ni téléphone dans ton export.</span>':''}
     </div>
 
     <div class="fiche__kpis">
-      ${ficheKpi(fmtMoney(f.ca),'chiffre d\'affaires','top '+rangClient(f.ca)+' % de tes clients')}
+      ${ficheKpi(fmtMoney(caCur),cur!=null?'CA '+exLabel(cur):'chiffre d\'affaires',
+        (evo!=null?(evo>=0?'+':'−')+fmtNum(Math.abs(evo),0)+' % vs '+exLabel(cur-1):(caPrev===0&&cur!=null&&f.ca>caCur?'rien en '+exLabel(cur-1)+', ':'')+'au total '+fmtMoney(f.ca))
+        +(rp?' · '+(rp.place===1?'1er':fmtNum(rp.place)+'ᵉ')+' client sur '+fmtNum(rp.total):''))}
       ${ficheKpi(fmtNum(f.nbCommandes),f.nbCommandes>1?'commandes':'commande',
-        (f.nbCommandes>1?'panier moyen '+fmtMoney(f.panier):'jamais revenu')
-        +(f.nbFactures>f.nbCommandes?', '+fmtNum(f.nbFactures)+' factures':''))}
-      ${ficheKpi(fmtNum(f.btl),'bouteilles',fmtNum(f.prixMoyen,2)+' € en moyenne'+(prixBase?', domaine '+fmtNum(prixBase,2)+' €':''))}
-      ${ficheKpi(f.dernier?fmtDate(f.dernier):'n/d','dernier achat',dernierDelai)}
+        f.nbCommandes>1?'tous les '+fmtDelai(f.cadence)+' · panier '+fmtMoney(f.panier):'jamais revenu')}
+      ${ficheKpi(fmtNum(f.btl),f.btl>1?'bouteilles':'bouteille',fmtNum(f.prixMoyen,2)+' € la bouteille'+(prixBase?' · ta moyenne '+fmtNum(prixBase,2)+' €':''))}
+      ${ficheKpi(f.dernier?fmtDate(f.dernier):'n/d','dernière commande',dernierDelai+(prochaine?' · prochaine vers le '+fmtDate(prochaine):''))}
     </div>
 
-    <div class="fiche__conseil">
+    ${lead?`<div class="fiche__conseil">
       <div class="fiche__conseil-t">Ce que je ferais</div>
-      ${conseils.map(c=>`<p>${c}</p>`).join('')}
-    </div>
+      <p>${lead}</p>
+      ${reste.length?`<details class="fiche__pourquoi"><summary>Pourquoi je dis ça</summary>${reste.map(c=>`<p>${c}</p>`).join('')}</details>`:''}
+    </div>`:''}
     </div>
 
     <div class="fiche__cote">
     ${suiviHTML(f,s)}
 
-    ${(f.emails.length||f.tels.length)?`<details class="msg msg--replie"><summary>Écrire un message à ce client</summary>${messageHTML(f,motif||'premier')}</details>`:''}
+    ${(f.emails.length||f.tels.length)?`<details class="msg msg--replie fiche__redac"><summary>Écrire un message à ce client</summary>${messageHTML(f,mot)}</details>`:''}
     </div>
 
-    <div class="fiche__cols">
-      <div>
-        <div class="section-label">Ce qu'il achète</div>
-        <div class="rep">
-          ${f.cuvees.slice(0,7).map(([c,v])=>`<div class="rep__row">
-            <div class="rep__bar"><div class="rep__fill" style="width:${maxCuvee>0?(v.ca/maxCuvee*100).toFixed(1):0}%"></div><div class="rep__lbl">${esc(c)}</div></div>
-            <div class="rep__val">${fmtMoney(v.ca)} <span class="rep__pct">${fmtNum(v.btl)} btl</span></div></div>`).join('')}
-        </div>
-        ${f.cuvees.length>7?`<p class="note">et ${f.cuvees.length-7} autre(s) référence(s).</p>`:''}
-        ${reco.length?`<div class="section-label">Ce qu'il ne prend jamais</div>
-          <div class="fiche__reco">
-            ${reco.map(r=>`<div class="fiche__reco-l"><b>${esc(r.cuvee)}</b><span class="muted-cell">${fmtNum(r.clients)} de tes clients en prennent, dont ceux qui achètent comme lui</span></div>`).join('')}
-          </div>
-          <p class="note">Calculé sur les clients qui achètent les mêmes cuvées que lui, millésimes confondus.</p>`:''}
-      </div>
-      <div>
-        <div class="section-label">Ses commandes</div>
-        <div class="tablewrap" style="max-height:270px;overflow-y:auto">
-          <table class="data"><thead><tr><th>Date</th><th class="num">Montant</th><th class="num">Btl</th><th>Où</th></tr></thead><tbody>
-          ${f.factures.map((x,i)=>`<tr class="clic cmd"><td><button type="button" class="cmd__b" aria-expanded="false" aria-controls="cmd-${i}">${fmtDate(x.date)}<span class="hors-ecran">, voir le détail de la facture</span></button></td><td class="num">${fmtMoney(x.total)}</td><td class="num">${fmtNum(x.btl)}</td><td>${esc(x.canal||'')}</td></tr>
-          <tr class="cmd__d" id="cmd-${i}" hidden><td colspan="4">${detailCommande(x)}</td></tr>`).join('')}
-          </tbody></table>
-        </div>
-        <div class="section-label">Quand il commande</div>
-        <div class="fiche__mois">
-          ${f.parMois.slice(1).map((v,i)=>`<div class="fiche__mois-c" title="${MOIS_FR[i]} : ${fmtMoney(v)}">
-            <div class="fiche__mois-b" style="height:${moisMax>0?Math.max(2,v/moisMax*100):2}%"></div>
-            <div class="fiche__mois-l">${MOIS_FR[i].slice(0,1)}</div></div>`).join('')}
-        </div>
-        ${f.offerts?`<p class="note">${plur(f.offerts,'ligne')} offerte(s) ou perdue(s), ${fmtMoney(f.coutOfferts)} au prix de vente moyen.</p>`:''}
-      </div>
-    </div>
+    ${ficheOnglets(f,reco)}
   </div>`;
 }
 /* ======================= LE SUIVI D'UN CLIENT =======================
@@ -3153,7 +3273,7 @@ function suiviCorps(f,s){
          `suivi_clients.rappel_titre`, a cote de la date : c'est le meme rappel, pas une
          deuxieme chose a faire. Il est facultatif, et une date sans motif reste valable. */
       +`<input type="text" class="action__titre" maxlength="120" value="${esc(s.rappel_titre||'')}"
-               placeholder="Pourquoi ? (lui reparler du réassort)" aria-label="Le motif de ce rappel"
+               placeholder="Motif du rappel · ex. lui reparler du réassort" aria-label="Le motif de ce rappel"
                onchange="crmSet(${arg},'rappel_titre',this.value.trim())">`;
   }else{
     /* DEUX PHRASES POSSIBLES, et la seconde n'arrive qu'apres un geste. Un CRM ne laisse
@@ -3163,27 +3283,27 @@ function suiviCorps(f,s){
     action=`<span class="action__non">`
       +(DEMANDE_DATE===String(f.id)
         ? `C'est noté. Et maintenant, tu le rappelles quand ?`
-        : `Aucune action prévue. Ce client va sortir de ta tête.`)
+        : `<b>Aucun rappel prévu.</b> Sans rappel, il sortira de ta file.`)
       +`</span>`
       /* LE MOTIF SE TAPE AVANT LA DATE, et c'est voulu : les quatre facons de poser la
          date le lisent, les trois raccourcis comme le calendrier. Un champ pose apres
          les boutons n'aurait ete lu par aucun d'eux, et il aurait fallu un cinquieme
          bouton pour l'enregistrer. */
       +`<input type="text" class="action__titre" id="rappelTitre" maxlength="120"
-               placeholder="Pourquoi ? (lui reparler du réassort)" aria-label="Le motif de ce rappel">`
-      +[7,30,90].map(n=>`<button class="btn btn--ghost btn--sm" onclick="planifier(${arg},${n})">Dans ${n} j</button>`).join('')
+               placeholder="Motif du rappel · ex. lui reparler du réassort" aria-label="Le motif de ce rappel">`
+      +[[7,'1 semaine'],[30,'1 mois'],[90,'3 mois']].map(([n,l])=>`<button class="btn btn--ghost btn--sm" onclick="planifier(${arg},${n})">Dans ${l}</button>`).join('')
       /* « ou le » n'est pas une decoration : un champ de date nu, pose apres trois
          boutons de delai, se lit comme un quatrieme bouton qu'on ne sait pas remplir.
          Deux mots disent que c'est l'autre facon de faire la meme chose. */
       +`<label class="action__lbl" for="rappelDate">ou le</label>`
       +`<input type="date" class="action__date" id="rappelDate" min="${esc(isoDepuisJour(Math.floor(Date.now()/86400000)))}"
                aria-label="Choisir la date du rappel" onchange="poserRappel(${arg},this.value)">`
-      +`<button class="btn btn--ghost btn--sm" onclick="clore(${arg})">Ne plus me le proposer</button>`;
+      +`<button class="btn btn--ghost btn--sm" onclick="clore(${arg})" title="Il ne te sera plus proposé dans ta file">Mettre de côté</button>`;
   }
 
   // Plus de `section-label` ici : le titre du bloc est desormais le summary du repli, et
   // deux fois le mot « Suivi » l'un sous l'autre se lit comme un defaut d'affichage.
-  let h=`<div class="action">${action}</div>`;
+  let h=`<div class="section-label suivi__t">Prochaine action</div><div class="action">${action}</div>`;
   // Qui suit ce client, et qui a fait le dernier geste (lot 33, 24/09/2026).
   if(window.BdvAnnuaire&&BdvAnnuaire.blocFiche)h+=BdvAnnuaire.blocFiche(f.id,s);
 
@@ -3198,7 +3318,7 @@ function suiviCorps(f,s){
       ${att?`<p class="note saisie__att">Note ce qui s'est dit : en enregistrant, ce client repartira dans ${att.jours} jours. Tant que tu n'as rien écrit, rien n'est parti.</p>`:''}
       <textarea class="saisie__txt" id="saisieTxt" rows="2"
         aria-label="Note de suivi : ce qui s'est passé avec ce client"
-        placeholder="Qu'est-ce qui s'est passé avec ce client ?"></textarea>
+        placeholder="Noter un échange : ce qui s'est dit, ce qui est promis…"></textarea>
       <div class="saisie__pied">
         <div class="saisie__types">
           <label class="saisie__etiq" for="saisieCanal">Par</label>
@@ -3209,10 +3329,16 @@ function suiviCorps(f,s){
     </div>`;
   }
 
-  // ---- Les etiquettes, discretes. ----
-  h+=`<input class="etiq" type="text" value="${esc((s.tags||[]).join(', '))}"
-        aria-label="Étiquettes de ce client, séparées par des virgules"
-        placeholder="Étiquettes : VIP, difficile à joindre…" onchange="crmSetTags(${arg},this.value)">`;
+  /* ---- Les etiquettes, en PASTILLES depuis le 25/09/2026. Une ligne de texte separee par
+     des virgules ne montrait pas ce qui etait pose, et en retirer une demandait de retaper
+     les autres. Chaque pastille se retire seule ; le champ n'en ajoute qu'une. Tout passe
+     toujours par crmSetTags(), le seul chemin qui ecrive les etiquettes. ---- */
+  const tags=s.tags||[];
+  const sans=t=>JSON.stringify(tags.filter(x=>x!==t).join(', ')).replace(/"/g,'&quot;');
+  h+=`<div class="section-label suivi__t">Étiquettes</div><div class="etiqs">`
+    +tags.map(t=>`<span class="etiqs__p">${esc(t)}<button type="button" class="etiqs__x" onclick="crmSetTags(${arg},${sans(t)})" aria-label="Retirer l'étiquette ${esc(t)}">×</button></span>`).join('')
+    +`<input class="etiq etiqs__ajout" type="text" maxlength="40" aria-label="Ajouter une étiquette"
+        placeholder="+ Étiquette" onchange="if(this.value.trim())crmSetTags(${arg},${JSON.stringify(tags.join(', ')).replace(/"/g,'&quot;')}+(${tags.length?1:0}?', ':'')+this.value.replace(/,/g,' '))"></div>`;
 
   /* ---- QUI A ECRIT QUOI, 14/09/2026. ----
      `quiEcrit` se tait dans un bureau seul et sur mes propres lignes : le nom
@@ -3225,7 +3351,7 @@ function suiviCorps(f,s){
   }
 
   // ---- Le fil. Les anciennes notes ouvrent la marche, elles ne sont pas perdues. ----
-  h+=`<div class="fil">`;
+  h+=`<div class="section-label suivi__t">Historique</div><div class="fil">`;
   if(s.notes){
     /* LA NOTE EPINGLEE PORTE L'AUTEUR DE LA FICHE, et pas celui d'une entree : le
        suivi est UNE ligne par client, donc une seule main l'a ecrite, et c'est cette
@@ -3239,7 +3365,7 @@ function suiviCorps(f,s){
     </div>`;
   }
   if(!ech.length&&!s.notes){
-    h+=`<p class="fil__vide">Rien encore. La première chose que tu écris s'inscrit ici, datée.</p>`;
+    h+=`<p class="fil__vide">Aucun échange noté. Le premier apparaîtra ici, daté.</p>`;
   }else{
     h+=ech.slice(0,40).map(function(e){
       const t=libEchange(e);
