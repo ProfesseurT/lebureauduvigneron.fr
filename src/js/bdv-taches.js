@@ -441,7 +441,9 @@
   }
   function dateCourte(isoJour) {
     var d = new Date(isoJour + 'T00:00:00');
-    return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    if (isNaN(d)) return '';
+    var t = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    return d.getDate() === 1 ? t.replace(/^1 /, '1er ') : t;
   }
   /* « du 9 au 11 fevrier » plutot que « 9 fevrier » : une periode dit sa fin, sinon
      le vigneron croit que son salon tient sur une journee. */

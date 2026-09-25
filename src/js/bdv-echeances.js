@@ -201,21 +201,29 @@
     if (n <= 30) return 'proche';
     return 'loin';
   }
-  function phrase(n, encours) {
+  // Le passe se dit selon la NATURE, 25/09/2026 (arbitrage de Ted) : « En vigueur
+  // depuis le » tombait aussi sur une tache en retard et sur les Journees du
+  // patrimoine, et cassait la phrase devant une periode (« depuis le / du 19 au 20 »).
+  // Un repere passe est passe ; tout le reste (obligation, tache, rappel) est en retard.
+  function phrase(n, encours, statut) {
     if (encours) return 'En ce moment';
-    if (n < 0) return 'En vigueur depuis le';
+    if (n < 0) return statut === 'repere' ? 'Passé' : 'En retard';
     if (n === 0) return "C'est aujourd'hui";
     if (n === 1) return 'Demain';
     return 'Dans ' + n + ' jours';
   }
+  // « 1 septembre » s'ecrit « 1er septembre ». Seul le premier du mois change.
+  function premier(txt, d) {
+    return d.getDate() === 1 ? txt.replace(/(^|\s)1 (?=\S)/, '$11er ') : txt;
+  }
   function enFrancais(d) {
-    return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return premier(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), d);
   }
   function courte(d) {
-    return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return premier(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), d);
   }
   function sansJour(d) {
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    return premier(d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }), d);
   }
 
   // La forme d'une occurrence, ecrite UNE fois. calculer() et etaler() la
@@ -234,7 +242,7 @@
     var n = Math.round((d - ref) / JOUR);
     return {
       e: e, date: d, debut: d, fin: f, duree: duree(r), enCours: encours,
-      jours: n, niveau: niveau(n, encours), phrase: phrase(n, encours),
+      jours: n, niveau: niveau(n, encours), phrase: phrase(n, encours, e.statut || 'obligation'),
       dateLongue: enFrancais(d), dateCourte: courte(d),
       // « du 1er decembre au 15 mars », pour tout ce qui dure plus d'un jour.
       periode: duree(r) > 1 ? ('du ' + sansJour(d) + ' au ' + sansJour(f)) : null,

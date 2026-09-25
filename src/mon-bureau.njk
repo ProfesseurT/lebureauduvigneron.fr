@@ -860,8 +860,15 @@ theme_bureau: true
   }
 
   {# ---------------- L'EN-TETE ---------------- #}
-  var jour = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
-  txt(el('bureauJour'), jour.charAt(0).toUpperCase() + jour.slice(1));
+  {# Deux formes, et la feuille choisit : sous 700 px « Vendredi 25 septembre » se
+     coupait en « Vendredi 25 septem… ». La forme courte tient : « ven. 25 sept. ». #}
+  (function(o, d){
+    if(!o) return;
+    function f(x, cl){ var t = d.toLocaleDateString('fr-FR', { weekday:x, day:'numeric', month:x });
+      if(d.getDate() === 1) t = t.replace(/ 1 /, ' 1er ');
+      return '<span class="' + cl + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</span>'; }
+    o.innerHTML = f('long', 'bureau-tete__jour-long') + f('short', 'bureau-tete__jour-court" aria-hidden="true');
+  })(el('bureauJour'), new Date());
 
   {# ---------------- LE SOUS-MAIN : LA FILE ----------------
      Chaque ligne est cliquable et mene DROIT a la fiche du client dans le tableau de
@@ -1668,7 +1675,9 @@ theme_bureau: true
   function pluriel(n, mot){ return n + ' ' + mot + (n > 1 ? 's' : ''); }
   function dateCourte(iso){
     var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
-    return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+    if(isNaN(d)) return '';
+    var t = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+    return d.getDate() === 1 ? t.replace(/^1 /, '1er ') : t;
   }
   {# Une date de punaise tient sur une ligne : « 9 oct. » et pas « 9 octobre ». Le
      post-it fait 160 px de large au minimum mesure, et « septembre » seul en fait 92

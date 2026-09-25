@@ -1119,12 +1119,12 @@ function classerLigne(o){
 // Canal normalise a partir du lieu de vente brut.
 function normCanal(raw){
   const k=norm(raw);
-  if(!k)return 'Autre / non renseigne';
+  if(!k)return 'Autre / non renseigné';
   for(const c of CANAUX){
     if(c.startsWith&&c.startsWith.some(p=>k.startsWith(norm(p))))return c.label;
     if(c.match&&c.match.some(p=>k.includes(norm(p))))return c.label;
   }
-  return 'Autre / non renseigne';
+  return 'Autre / non renseigné';
 }
 
 /* ======================= INDEXEDDB ======================= */

@@ -117,7 +117,7 @@
     var ici = BdvCompte.monBureau();
     choix.innerHTML = liste.map(function (b) {
       return '<option value="' + esc(b.bureau) + '"' + (b.bureau === ici ? ' selected' : '') + '>'
-        + esc(b.nom) + (b.role === 'maitre' ? ' \u2014 ma\u00eetre' : '') + '</option>';
+        + esc(b.nom) + (b.role === 'maitre' ? ' (ma\u00eetre)' : '') + '</option>';
     }).join('');
     bloc.hidden = false;
   }
@@ -188,7 +188,7 @@
       if (MAITRE && !cestMoi) {
         gestes = '<button type="button" class="btn btn--geste" data-role="'
           + (g.role === 'maitre' ? 'simple' : 'maitre') + '" data-qui="' + esc(g.personne) + '">'
-          + (g.role === 'maitre' ? 'Repasser en simple' : 'Nommer maître') + '</button>'
+          + (g.role === 'maitre' ? 'Repasser en utilisateur' : 'Nommer maître') + '</button>'
           + ' <button type="button" class="btn btn--geste" data-retirer="' + esc(g.personne) + '"'
           + ' data-nom="' + esc(nomDe(g)) + '">Retirer</button>';
       }

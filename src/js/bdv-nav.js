@@ -240,6 +240,8 @@
   }
 
 
+
+
   /* =========================================================================
      LES ECRANS DE VENTE, CHARGES AU PREMIER CLIC
      -------------------------------------------------------------------------
@@ -832,6 +834,13 @@
       html += '</li>';
     });
 
+    /* « PLUS », 25/09/2026, SUR TELEPHONE SEULEMENT. Dix pieces ne tiennent pas dans
+       390 px : la barre du bas en montre quatre fixes et range le reste derriere cette
+       case. Ce n'est pas une piece, donc pas une `.bureau-nav__ligne` : les bancs
+       comptent celles-la. Le CSS la cache au-dessus de 700 px. */
+    html += '<li class="bureau-nav__plus-l"><button class="bureau-nav__item bureau-nav__plus" id="bureauNavPlus"'
+      + ' type="button" aria-expanded="false" aria-controls="bureauNavListe" aria-label="Les autres pièces">'
+      + '<span class="bureau-nav__ico" aria-hidden="true">•••</span></button></li>';
     html += '</ul>';
     /* LE BOUTON DE REPLI, 24/09/2026. Une ligne de la barre comme les autres, pour
        heriter de son survol et de son anneau, mais HORS de la liste : ce n'est pas
@@ -844,6 +853,25 @@
       + ' aria-hidden="true" focusable="false"><path d="M10.5 5.5L6 10l4.5 4.5"/><path d="M15 5.5L10.5 10l4.5 4.5"/></svg></span>'
       + '<span class="bureau-nav__nom">Replier la barre</span></button>';
     conteneur.innerHTML = html;
+
+    /* « Plus » ouvre et referme le reste de la barre du bas ; toucher une piece, a
+       cote ou Echap le referme. Quelles pieces restent fixes est decide en CSS
+       (section 29.8 de bdv-bureau.css), sur `data-piece`, sans une ligne ici. */
+    var plus = conteneur.querySelector('#bureauNavPlus');
+    function ouvrirPlus(oui) {
+      conteneur.classList.toggle('bureau-nav--ouverte', oui);
+      plus.setAttribute('aria-expanded', oui);
+    }
+    if (plus) {
+      document.addEventListener('click', function (e) {
+        var ouvert = conteneur.classList.contains('bureau-nav--ouverte');
+        if (plus.contains(e.target)) ouvrirPlus(!ouvert);
+        else if (ouvert) ouvrirPlus(false);
+      }, true);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && conteneur.classList.contains('bureau-nav--ouverte')) { ouvrirPlus(false); plus.focus(); }
+      });
+    }
 
     var replier = conteneur.querySelector('#bureauNavReplier');
     if (replier) {

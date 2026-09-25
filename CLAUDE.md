@@ -6668,3 +6668,19 @@ du milieu font alors ce qu'on attend. Verifie au navigateur : clic sur Articles 
 onglet s'ouvre, le bureau reste en place ; sur /articles/ rien n'a change.
 Ce n'est pas l'ecouteur du mode plein ecran (« Les quatre sorties fermees ») : lui ne vise que
 l'app d'ecran d'accueil et reste tel quel ; il sort sans rien faire sur un lien qui a deja sa cible.
+
+## LA BARRE DU BAS : QUATRE PIECES ET « PLUS », 25/09/2026
+
+Demande de Ted. Sous 700 px la barre montre Ma journee, Mes taches, Le calendrier et Mes clients,
+plus une case « Plus » (`#bureauNavPlus`, hors des `.bureau-nav__ligne` que les bancs comptent) qui
+ouvre le reste au-dessus, avec les noms. **Le choix des quatre est en CSS, sur `data-piece`**
+(section 29.8 de `bdv-bureau.css`), et aucune ligne n'est deplacee dans le DOM : l'ordre est celui
+que `banc-bureau.mjs` controle. La case prend l'accent quand la piece ouverte est rangee derriere
+elle (`:has`). Toucher une piece, a cote ou Echap referme.
+
+## LE PASSE SE DIT SELON LA NATURE, 25/09/2026
+
+`phrase()` de `bdv-echeances.js` recoit le `statut` : un repere passe dit « Passe », tout le reste
+« En retard ». Plus jamais « En vigueur depuis le », qui cassait la phrase devant une periode.
+Et « 1er » le premier du mois, par `premier()` dans le meme fichier. **Ce fichier est joint a
+`agenda-ics` : toute retouche demande `npm run agenda:joindre` puis un redeploiement.**

@@ -4532,3 +4532,125 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
   background-repeat:no-repeat;
   background-position:left top;
 }
+
+/* ==========================================================================
+   29. LA REVUE DU VIGNERON, 25/09/2026
+   Petites choses relevees par l'agent vigneron sur les captures reelles, et
+   remesurees une par une avant d'etre corrigees.
+   ========================================================================== */
+
+/* -- 29.1 LA NOTE D'UNE ZONE PASSE A LA LIGNE. `style.css` pose `nowrap` sur
+   `.zone__note` : a 390 px la note du sous-main sortait de 63 px de la page. */
+.bdv-coque #bureauJournee .zone__note{ white-space:normal; }
+
+/* -- 29.2 UNE ZONE EST SA PROPRE COUCHE. Les gestes d'une tuile repassent
+   au-dessus de son calque par un `z-index` ; sans contexte d'empilement a la
+   zone, ce `z-index` concourait avec l'en-tete colle, et au defilement sur
+   telephone « Fait » et « Demain » passaient par-dessus l'en-tete. */
+.bdv-coque .zone{ isolation:isolate; }
+
+/* -- 29.3 LA LUNE DE L'ACCUEIL A UN BORD QUI SE VOIT. Pleine, elle est blanche
+   sur une page presque blanche : le bord en `--bdv-trait-fort` tenait 1,6:1, et
+   c'etait la seule chose qui dessinait le disque. Meme encre que la lunette du coin. */
+.bdv-coque .bureau-accueil .bureau-tete__lune-bord{ stroke:var(--bdv-encre-4); stroke-width:1px; vector-effect:non-scaling-stroke; }
+
+/* -- 29.4 LA DATE COURTE SUR TELEPHONE. Deux formes posees par le script ; la
+   longue reste lue a la synthese vocale, la courte est seule a l'ecran. */
+.bdv-coque .bureau-tete__jour-court{ display:none; }
+@media (max-width:700px){
+  .bdv-coque .bureau-tete__jour-court{ display:inline; }
+  .bdv-coque .bureau-tete__jour-long{
+    position:absolute; width:1px; height:1px; overflow:hidden;
+    clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap;
+  }
+  /* -- 29.5 LE NOM DU BUREAU N'A RIEN A FAIRE DANS LA BARRE BASSE. C'est
+     l'en-tete du rail : sur telephone il ressortait en chasse fixe par-dessus
+     les icones. Il reste dans « L'equipe ». */
+  body.bdv-poste.bdv-coque .bureau-nav__bureau{ display:none; }
+}
+
+/* -- 29.6 LE RAIL VA JUSQU'EN BAS, ET PASSE SOUS L'EN-TETE COLLE. Son fond
+   s'arretait avec sa derniere piece (y 710 sur un 1440 x 900), et une fois la
+   page defilee l'en-tete retracte recouvrait son haut : il ne restait que
+   « COTEAUX » du nom du bureau. */
+@media (min-width:901px){
+  .bdv-coque .bureau-nav{
+    top:calc(var(--h-entete) + var(--bdv-cible));
+    min-height:calc(100vh - var(--h-entete) - var(--bdv-cible));
+    max-height:calc(100vh - var(--h-entete) - var(--bdv-cible));
+  }
+}
+
+/* -- 29.7 « L'EQUIPE » : UN GESTE SEUL SUR SA LIGNE A L'AIR D'UN BOUTON.
+   `.btn--geste` est nu au repos, c'est juste dans une rangee dense ; ici
+   « Y aller », « Renommer », « Retirer » ou « Quitter ce bureau » sont les seules
+   actions de leur ligne et se lisaient comme du texte. Meme reponse que le
+   pied du voile d'amorcage au lot 5. */
+.bdv-coque .zone--equipe .btn--geste{
+  border-color:var(--bdv-trait-fort);
+  background:var(--bdv-surface);
+  min-height:var(--bdv-cible);
+}
+.bdv-coque .zone--equipe .btn--geste:hover{ border-color:var(--bdv-encre-4); }
+.bdv-coque .zone--equipe select{ max-width:100%; }
+
+/* -- 29.8 LA BARRE DU BAS : QUATRE PIECES ET « PLUS », 25/09/2026, demande de Ted.
+   Dix cellules ne tiennent pas dans 390 px : on en voyait cinq, la cinquieme
+   coupee, et la barre glissait vers la piece ouverte, donc aucune icone n'etait
+   jamais au meme endroit. Les quatre du geste quotidien restent fixes, choisies
+   sur `data-piece` ; sans Vitisoft « Mes clients » disparait et il en reste trois.
+   Ouvert, le reste monte AU-DESSUS de la rangee fixe, quatre par ligne, avec son
+   nom : une icone qu'on ne voit qu'une fois par semaine ne se reconnait pas.
+   On ne DEPLACE aucune ligne : l'ordre du DOM est celui que les bancs controlent.
+   Au-dessus de 700 px la case « Plus » n'existe pas. */
+.bdv-coque .bureau-nav__plus-l{ display:none; }
+@media (max-width:700px){
+  body.bdv-poste.bdv-coque .bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="annuaire"]){ display:none; }
+  body.bdv-poste.bdv-coque .bureau-nav__plus-l{ display:block; flex:1 1 20%; min-width:var(--bdv-cible); }
+  body.bdv-poste.bdv-coque .bureau-nav__ligne{ flex:1 1 20%; }
+  /* La piece ouverte est rangee derriere « Plus » : la case le dit, sinon rien
+     dans la barre ne dirait ou l'on est. */
+  body.bdv-poste.bdv-coque .bureau-nav__liste:has(.bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="annuaire"]) .bureau-nav__item--actif) .bureau-nav__plus{ color:var(--bdv-accent); }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__liste{
+    flex-wrap:wrap;
+    overflow:visible;
+    background-image:none;
+  }
+  /* La rangee fixe reste EN BAS, entiere : elle passe apres le reste (order 1), et un
+     saut de ligne invisible la separe des pieces rangees. */
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne,
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__plus-l{ order:1; }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__liste::after{ content:""; order:0; flex:0 0 100%; }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="annuaire"]):not([hidden]){
+    display:block;
+    order:-1;
+    flex:0 0 25%;
+    min-width:0;
+    border-bottom:1px solid var(--bdv-trait);
+  }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne .bureau-nav__item{ height:auto; min-height:60px; justify-content:flex-start; padding:var(--bdv-e-2) var(--bdv-e-1); }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne .bureau-nav__nom{
+    display:block;
+    flex-shrink:0;
+    max-width:100%;
+    white-space:normal;
+    line-height:1.2;
+    font-size:var(--bdv-f-1);
+    text-align:center;
+  }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne:is([data-piece="journee"],[data-piece="taches"],[data-piece="calendrier"],[data-piece="annuaire"]) .bureau-nav__nom{ display:none; }
+}
+
+/* -- 29.9 LE SOUS-MAIN SUR DEUX LIGNES, 25/09/2026, arbitrage de Ted. En tableau,
+   « Domaine des Hauts C… » et « Il voulait un devis pou… » se coupaient alors que la
+   rangee avait de la place en hauteur. Le nom passe sur deux lignes au plus, le motif
+   se replie. On coupe sur l'element INTERIEUR du nom, jamais sur la cellule : une
+   cellule en `display:block` sort du tableau (regle du 07/09/2026). */
+.bdv-coque .listb td.listb__nom-c .listb__nom{
+  white-space:normal;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+}
+.bdv-coque .listb td.listb__motif{ white-space:normal; }

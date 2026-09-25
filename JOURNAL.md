@@ -13,6 +13,36 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 25/09/2026 au soir, la revue du vigneron et les petites choses
+
+Ted : « sors l'agent vigneron empathique et corrige toutes les petites choses ». L'agent a regardé
+les dix pièces, clair et sombre, 1440 et 390 px, et rendu 48 trouvailles évidentes et 31 à trancher.
+Chacune a été remesurée avant d'être corrigée ; celles qui venaient du décor d'essai (dates en
+mm/jj/aaaa, chiffres qui se contredisent entre pièces) ont été écartées.
+
+Corrigé : la page débordait de 63 px à 390 (note du sous-main en `nowrap`) ; les boutons des
+cartes passaient par-dessus l'en-tête collé au défilement (chaque zone est sa propre couche) ; le
+nom du bureau ressortait dans la barre du bas ; la date de l'en-tête est courte sur téléphone
+(« Ven. 25 sept. ») ; le rail va jusqu'en bas et ne passe plus sous l'en-tête retracté ; les noms
+de « Mes clients » ne se coupent plus au milieu du mot, et la case à cocher ne prend plus 144 px
+sur téléphone ; la lune de l'accueil a un bord qui se voit en clair ; « Autre / non renseigné »
+prend son accent (le serveur l'avait déjà) ; « L'équipe » : boutons qui ressemblent à des
+boutons, plus de tiret cadratin dans le sélecteur, « Repasser en utilisateur » ; « Régler mon
+classement » est un vrai bouton, sur sa ligne.
+
+Tranché par Ted (quatre oui) : la barre du bas passe à quatre pièces fixes (Ma journée, Mes
+tâches, Le calendrier, Mes clients) plus « Plus » qui ouvre le reste avec les noms ; « 1er » le
+premier du mois partout ; le passé se dit « En retard » (obligation, tâche, rappel) ou « Passé »
+(repère), plus jamais « En vigueur depuis le » ; le sous-main laisse le nom et le motif passer sur
+deux lignes.
+
+Ce que ça demande : `bdv-echeances.js` a bougé, donc l'agenda `agenda-ics` est à REDÉPLOYER après
+le push (code joint 179703a232fa5988). `banc:poids` est à 79,8 ko sur 80.
+
+Reste ouvert, non tranché : la coche de « Mes tâches » sur téléphone (carré de 44 px, point ouvert
+du lot 3), le petit texte du pied de page du site à 2,67:1, le titre de pièce répété sous
+l'en-tête, la phrase de « L'équipe » sur « ses propres lignes » à relire après le SQL du lot 33.
+
 ## 25/09/2026, « Ma journée » qui se travaille, et l'agent vigneron
 
 Ted, capture de sa vraie page, tiroir ouvert : la lune tombait seule sous le mot du jour, le

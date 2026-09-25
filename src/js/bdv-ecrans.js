@@ -644,7 +644,7 @@ function majNoteClassement(){
   if(!classementAuJuge()){ n.innerHTML = ''; return; }
   n.innerHTML = signal('info','ℹ','Ces chiffres sont calculés au jugé.',
     'Ton classement n\'est pas validé : les familles hors chiffre d\'affaires et les canaux de vente sont devinés sur leur nom, et ton compte ne peut rien calculer, donc tout se refait sur cet appareil à chaque ouverture. C\'est à régler une fois. '
-    + '<button class="btn btn--sm" onclick="bdvReglerClassement()" style="margin-top:.5rem">Régler mon classement</button>');
+    + '<button class="btn btn--sm btn--ghost" onclick="bdvReglerClassement()" style="display:flex;width:max-content;margin-top:.5rem">Régler mon classement</button>');
 }
 window.bdvMajNoteClassement = majNoteClassement;
 /* LE SEUL POINT D'ENTREE DES REGLAGES RESTE `BdvNav.ouvrirReglages()`, regle du

@@ -846,6 +846,10 @@
      qu'elle se lit. */
   .bdv-ventes .card table.data th:first-child,
   .bdv-ventes .card table.data td:first-child { min-width: 9rem; }
+  /* Sauf dans « Mes clients », ou la premiere colonne est la case a cocher : a
+     9 rem elle prenait 144 px et coupait les noms au milieu du mot. */
+  .bdv-ventes .card table.data td.annu__coche:first-child,
+  .bdv-ventes .card table.data th.annu__coche:first-child { min-width: 0; width: 2.75rem; }
 
   /* --- 4. La fiche client plein ecran ----------------------------------- */
   .bdv-ventes .modale__box { max-height: 100dvh; overscroll-behavior: contain; }
@@ -957,6 +961,9 @@
 .bdv-ventes .annu__wrap{position:relative;overflow-x:auto}
 .bdv-ventes .annu__t td:nth-child(2){min-width:12rem}
 .bdv-ventes .annu__nom{overflow-wrap:normal;word-break:normal}
+/* `.bdv-ventes .data a` pose `word-break:break-all` et pese un nom d'element de plus :
+   « Cave du Vieux Pres / soir ». Le nom d'un client se coupe entre deux mots, jamais dedans. */
+.bdv-ventes .data a.annu__nom{overflow-wrap:break-word;word-break:normal}
 .bdv-ventes .annu__tri:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
 .bdv-ventes .annu__nom{font-weight:600;color:var(--bdv-encre-1);text-decoration:none}
 .bdv-ventes .annu__nom:hover,.bdv-ventes .data a.annu__nom:hover{text-decoration:none}
