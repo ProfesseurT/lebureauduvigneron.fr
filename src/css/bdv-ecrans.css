@@ -959,7 +959,7 @@
 .bdv-ventes .annu__nom{overflow-wrap:normal;word-break:normal}
 .bdv-ventes .annu__tri:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
 .bdv-ventes .annu__nom{font-weight:600;color:var(--bdv-encre-1);text-decoration:none}
-.bdv-ventes .annu__nom:hover{text-decoration:underline}
+.bdv-ventes .annu__nom:hover,.bdv-ventes .data a.annu__nom:hover{text-decoration:none}
 .bdv-ventes .annu__nom:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
 .bdv-ventes .annu__sous,.bdv-ventes .annu__motif{display:block;font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
 .bdv-ventes .annu__vide,.bdv-ventes .annu__dormant{font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
@@ -994,3 +994,32 @@
   .bdv-ventes .etiqs__voir{min-width:var(--bdv-cible)}
   .bdv-ventes .annu__gin,.bdv-ventes .etiqs__form .etiq.etiqs__ajout{min-height:var(--bdv-cible);font-size:var(--bdv-f-saisie);flex:1 1 100%}
 }
+
+/* ==========================================================================
+   UNE TUILE QUI MENE QUELQUE PART SE CLIQUE EN ENTIER, 25/09/2026
+   Meme dessin que la section 28 de bdv-bureau.css (choix C de Ted) : le fond
+   monte d'un cran et un filet bordeaux de 3 px a gauche, rien ne se souligne.
+   Sur un tableau, le filet va sur la PREMIERE CELLULE : pose sur un `<tr>`, un
+   fond d'image se repete cellule par cellule dans certains moteurs.
+   ========================================================================== */
+.bdv-ventes tr.clic:hover > td:first-child,
+.bdv-ventes tr.clic:focus-visible > td:first-child,
+.bdv-ventes tr.annu__l:hover > td:first-child,
+.bdv-ventes tr.annu__l:has(:focus-visible) > td:first-child{
+  background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));
+  background-size:3px 100%;background-repeat:no-repeat;background-position:left top
+}
+.bdv-ventes tr.annu__l:hover td{background-color:var(--bdv-survol)}
+/* Une rangee de « Mes clients » s'ouvre en entier : le calque vient du nom, la
+   case a cocher et les boutons de la rangee repassent au-dessus. */
+.bdv-ventes tr.annu__l{position:relative}
+.bdv-ventes .annu__nom::after{content:"";position:absolute;inset:0;z-index:1}
+.bdv-ventes tr.annu__l input,.bdv-ventes tr.annu__l button,.bdv-ventes tr.annu__l a:not(.annu__nom){position:relative;z-index:2}
+/* Un signal qui porte un renvoi (« Voir la cuvee ») se clique en entier. */
+.bdv-ventes .signal:has(.signal__action a){position:relative}
+.bdv-ventes .signal .signal__action a:last-of-type::after{content:"";position:absolute;inset:0;z-index:1}
+.bdv-ventes .signal:has(.signal__action a):hover,
+.bdv-ventes .signal:has(.signal__action a:focus-visible){
+  background-color:var(--bdv-surface-2)
+}
+.bdv-ventes .signal .signal__action a{text-decoration:none;font-weight:600}

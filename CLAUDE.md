@@ -6628,3 +6628,30 @@ Demande de Ted : de l'air autour de la lune « quand elle est au-dessus des fonc
   Peintes de la couleur de l'OMBRE, opacite sur le GROUPE : elles disparaissent d'elles-memes
   sur la partie sombre, sans masque par phase, et deux mers qui se chevauchent ne noircissent
   pas. Ne pas y mettre `fill-opacity` par forme.
+
+## UNE TUILE QUI MENE QUELQUE PART SE CLIQUE EN ENTIER, 25/09/2026
+
+Demande de Ted : toute la tuile cliquable, une couleur au survol, plus de lien souligne. Quatre
+essais montres sur les vraies tuiles, dans les deux themes ; **choix C** : le fond monte a
+`--bdv-surface-2` et **un filet bordeaux de 3 px a gauche**, le titre ne change pas de couleur.
+Section 28 de `bdv-bureau.css`, bloc de fin de `bdv-ecrans.css`.
+
+- **Le filet est un fond** (`linear-gradient` a deux arrets identiques, 3 px), pas une bordure
+  (decalerait le contenu) ni une ombre (echelle fermee, et ce fichier n'en pose aucune).
+- **Meme etat au clavier** par `:has(:focus-visible)`.
+- **Pas de filet la ou le bord gauche porte deja un sens** : l'echeance (sa famille) et le
+  signal des ecrans de vente (sa gravite). Seul le fond monte.
+- **Sur un tableau, le filet va sur la premiere cellule** : un fond pose sur un `<tr>` se
+  repete cellule par cellule dans certains moteurs.
+- **Rendues cliquables en entier ce jour-la** : la tache (calque de `tache__corps`), l'echeance
+  du calendrier (calque du titre, qui ouvre la modale), la rangee de « Mes clients » (calque du
+  nom), le signal qui porte un renvoi. Toujours le meme motif : l'action principale etend un
+  `::after`, les autres gestes repassent au-dessus par leur `z-index`. **Une tuile qui porte
+  d'autres boutons ne devient jamais un `<a>`.** Verifie au navigateur : coin de chaque tuile
+  cliquable, aucun bouton interieur recouvert, dans les deux themes.
+- **Le mot du jour, le haut du bloc calendrier et la tache** ont un retrait compense par une
+  marge negative, pose EN PERMANENCE : pose au survol seulement, la tuile bougerait sous la
+  souris.
+- Non traite : les deux lignes suivantes du bloc calendrier (10 oct., 16 oct.) ne menent nulle
+  part, et les lignes des ecrans de vente n'ont pas ete essayees charge complete (le banc hors
+  ligne ne les charge pas).

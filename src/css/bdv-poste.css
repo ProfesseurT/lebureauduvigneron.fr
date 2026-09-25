@@ -475,7 +475,7 @@ body.bdv-poste .tachesf__i,
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.listb__nom:hover { text-decoration: underline; color: var(--bdv-accent); }
+.listb__nom:hover { text-decoration: none; color: var(--bdv-accent); }
 /* Un nom trop long est coupe et pas replie : la ligne garde sa hauteur, et le
    nom entier reste lisible dans l'infobulle et dans la fiche. */
 /* PAS D'OVERFLOW SUR UNE CELLULE DE TABLEAU. Vu sur capture : avec
@@ -1116,7 +1116,7 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L7330 */
-.mot__aller:hover { text-decoration: underline; }
+.mot__aller:hover { text-decoration: none; }
 
 /* de style.css L7335 */
 /* La fleche est le SEUL signe visible que la carte mene quelque part : le verdict garde
@@ -1195,7 +1195,7 @@ body.bdv-poste .tachesf__i,
 .postit__lien::after { content: ""; position: absolute; inset: 0; }
 
 /* de style.css L7658 */
-.postit:hover .postit__lien { text-decoration: underline; }
+.postit:hover .postit__lien { text-decoration: none; }
 
 /* de style.css L7662 */
 /* L'anneau se pose sur le PAPIER et jamais sur le liege : --bordeaux sur --paper-light

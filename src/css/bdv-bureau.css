@@ -4426,3 +4426,109 @@ body.bdv-coque .page-fiche__avis a{ color:var(--bdv-accent); }
 .bdv-coque #bureauJournee .zone__tete{ flex-wrap:wrap; row-gap:var(--bdv-e-1); }
 .bdv-coque #bureauJournee .zone__tete h2{ white-space:nowrap; }
 .bdv-coque #bureauJournee .zone__note{ min-width:0; overflow-wrap:anywhere; }
+
+/* ==========================================================================
+   28. UNE TUILE QUI MENE QUELQUE PART SE CLIQUE EN ENTIER, 25/09/2026
+
+   Demande de Ted : « toute la tuile cliquable, une couleur differente au lieu
+   d'un lien souligne moche ». Quatre essais montres sur les vraies tuiles de
+   « Ma journee », dans les deux themes ; il a choisi le C : LE FOND MONTE D'UN
+   CRAN (`--bdv-surface-2`) ET UN FILET BORDEAUX DE 3 px A GAUCHE. Le titre ne
+   change pas de couleur, rien ne se souligne. Contrastes mesures au survol :
+   5,19:1 au pire en clair, 5,11:1 en sombre.
+
+   LE FILET EST UN APLAT DE FOND, PAS UNE BORDURE NI UNE OMBRE. Une bordure plus
+   epaisse decalerait le contenu de 2 px au survol, et ce fichier ne pose aucune
+   `box-shadow` (echelle des ombres fermee, section A de la charte). Un
+   `linear-gradient` a deux arrets identiques n'est pas un degrade : c'est un
+   rectangle de 3 px, et il suit l'arrondi de la tuile.
+
+   LE MEME ETAT AU CLAVIER : `:has(:focus-visible)`. Une tuile qui ne s'allume
+   qu'a la souris dit a qui tabule qu'elle n'est pas cliquable.
+
+   ET LA REGLE DE STRUCTURE, deja tenue par les post-it, le mot du jour et les
+   cartes des outils : UNE TUILE N'EST PAS UN `<a>` QUAND ELLE PORTE D'AUTRES
+   BOUTONS. Son action principale etend un calque `::after` sur toute la carte,
+   et les autres gestes repassent au-dessus par leur `z-index`. Un element
+   interactif dans un element interactif est interdit par le HTML.
+
+   `body.bdv-coque` et pas `.bdv-coque` : ces regles doivent battre les survols
+   deja ecrits plus haut (sections 9 a 14) et `bdv-calendrier.css`, posee par du
+   JavaScript APRES cette feuille. */
+body.bdv-coque .panneau .postit:hover,
+body.bdv-coque .panneau .postit:has(:focus-visible),
+body.bdv-coque .mot:hover,
+body.bdv-coque .mot:has(:focus-visible),
+body.bdv-coque .calbloc__une:hover,
+body.bdv-coque .calbloc__une:focus-visible,
+body.bdv-coque a.chiffre:hover,
+body.bdv-coque a.chiffre:focus-visible,
+body.bdv-coque a.lettre:hover,
+body.bdv-coque a.lettre:focus-visible,
+body.bdv-coque a.fiche-l:hover,
+body.bdv-coque a.fiche-l:focus-visible,
+body.bdv-coque .tache:hover,
+body.bdv-coque .tache:has(:focus-visible){
+  background-color:var(--bdv-surface-2);
+  background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));
+  background-size:3px 100%;
+  background-repeat:no-repeat;
+  background-position:left top;
+  text-decoration:none;
+}
+/* Les deux tuiles sans retrait interieur (le mot du jour, le haut du bloc
+   calendrier) : le fond collait aux lettres. Le retrait est compense par une
+   marge negative, POSE EN PERMANENCE : pose au survol seulement, il ferait
+   bouger la tuile sous la souris. */
+body.bdv-coque .mot,
+body.bdv-coque .calbloc__une{
+  padding:var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-3);
+  margin:calc(-1 * var(--bdv-e-2)) calc(-1 * var(--bdv-e-2)) calc(-1 * var(--bdv-e-2)) calc(-1 * var(--bdv-e-3));
+  border-radius:var(--bdv-r);
+  transition:background-color var(--bdv-d-court) var(--bdv-courbe);
+}
+/* LE TITRE NE CHANGE PLUS DE COULEUR, NI DE SOULIGNEMENT : le fond et le filet
+   disent seuls « ca mene quelque part », c'est le dessin retenu. */
+body.bdv-coque .panneau .postit:hover .postit__lien,
+body.bdv-coque .mot__aller:hover,
+body.bdv-coque .calbloc__une:hover .calbloc__titre,
+body.bdv-coque .fiche-l:hover .fiche-l__t,
+body.bdv-coque .lettre:hover .lettre__t,
+body.bdv-coque .tache button.tache__corps:hover .tache__titre,
+body.bdv-coque .bdv-cal .echeance__ouvrir:hover{ color:inherit; text-decoration:none; }
+
+/* -- 28.1 LES TUILES QUI NE SE CLIQUAIENT PAS EN ENTIER ------------------- */
+/* Une tache : l'action principale est d'ouvrir la tache. La coche et « Ce que
+   ca exige » gardent leur geste, au-dessus du calque. */
+/* La coche est collee au bord gauche de la rangee : sans retrait, le filet
+   passait dessus. Retrait compense par une marge negative, pose en permanence. */
+body.bdv-coque .tache{ position:relative; padding-left:var(--bdv-e-3); margin-left:calc(-1 * var(--bdv-e-3)); }
+body.bdv-coque .tache button.tache__corps::after{ content:""; position:absolute; inset:0; z-index:1; }
+body.bdv-coque .tache .tache__coche,
+body.bdv-coque .tache .tache__source,
+body.bdv-coque .tache .tache__x{ position:relative; z-index:2; }
+body.bdv-coque .tache .tache__source:hover{ text-decoration:none; color:var(--bdv-accent); }
+/* Une echeance du calendrier : l'action principale est de l'ouvrir (le titre).
+   « C'est fait », l'article et la source officielle restent des gestes a part. */
+body.bdv-coque .bdv-cal .echeance{ position:relative; transition:background-color var(--bdv-d-court) var(--bdv-courbe); }
+/* PAS DE FILET BORDEAUX SUR UNE ECHEANCE : elle porte deja le filet de sa
+   FAMILLE sur le bord gauche, et deux traits cote a cote se liraient comme une
+   famille de plus. Meme regle pour les signaux des ecrans de vente, qui portent
+   leur gravite. Seul le fond monte. */
+body.bdv-coque .bdv-cal .echeance:hover,
+body.bdv-coque .bdv-cal .echeance:has(:focus-visible){ background-color:var(--bdv-surface-2); }
+body.bdv-coque .bdv-cal .echeance__ouvrir::after{ content:""; position:absolute; inset:0; z-index:1; }
+body.bdv-coque .bdv-cal .echeance__liens a,
+body.bdv-coque .bdv-cal .echeance__liens button{ position:relative; z-index:2; }
+
+/* -- 28.2 LES RANGEES DE TABLEAU : LE FILET SUR LA PREMIERE CELLULE --------
+   Un fond d'image pose sur un `<tr>` se repete cellule par cellule dans
+   certains moteurs : le filet va donc sur la premiere cellule, et la rangee
+   garde son survol d'avant. */
+body.bdv-coque .listb tbody tr:hover > td:first-child,
+body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
+  background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));
+  background-size:3px 100%;
+  background-repeat:no-repeat;
+  background-position:left top;
+}
