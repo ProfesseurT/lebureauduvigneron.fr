@@ -468,6 +468,8 @@
 .bdv-ventes .fiche__pastille{padding:0 var(--bdv-e-2);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r-pastille);font-size:var(--bdv-f-1);color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__pastille--tag{border-color:var(--bdv-accent-trait);background:var(--bdv-accent-lavis);color:var(--bdv-encre-1)}
 .bdv-ventes .fiche__actions{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin-top:var(--bdv-e-4)}
+.bdv-ventes .fiche__vise{outline:2px solid transparent;animation:bdv-maj-pouls 1.4s ease-out 2}
+@media (prefers-reduced-motion:reduce){.bdv-ventes .fiche__vise{animation:none;outline-color:var(--bdv-accent);outline-offset:2px}}
 .bdv-ventes .fiche__pourquoi{margin-top:var(--bdv-e-2)}
 .bdv-ventes .fiche__pourquoi>summary{cursor:pointer;font-size:var(--bdv-f-2);font-weight:600;color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__pourquoi>summary:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}

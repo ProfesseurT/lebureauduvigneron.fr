@@ -660,6 +660,12 @@ function echAjouter(id,type,canal,resume){
   const quand=new Date().toISOString();
   const e={echange_id:echId(),client_id:String(id),le:quand,maj_le:quand,
            type:type||'note',canal:canal||null,resume:resume||null};
+  /* L'AUTEUR SE POSE DES L'ECRITURE LOCALE, 25/09/2026. La base le pose aussi (defaut
+     auth.uid()), mais seulement a la relecture : entre les deux, l'entree n'avait pas de
+     `cree_par`, et `quiEcrit()` lit une absence comme un compte supprime. Ted voyait sa
+     propre note signee « d'un ancien membre ». Ce champ ne part jamais en ecriture :
+     ecrireEchange() construit son corps colonne par colonne. */
+  if(window.BdvCompte&&BdvCompte.monId&&BdvCompte.monId())e.cree_par=BdvCompte.monId();
   (ECHANGES[id]||(ECHANGES[id]=[])).push(e);
   echSave();
   echPousser(e);

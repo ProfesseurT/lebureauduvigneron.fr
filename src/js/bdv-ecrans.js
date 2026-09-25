@@ -3090,10 +3090,26 @@ document.addEventListener('keydown',function(e){
 });
 /* Les quatre actions de l'en-tete visent des blocs qui existent deja dans la fiche : elles
    n'ecrivent rien, elles emmenent au bon endroit. Appeler est un vrai lien `tel:`. */
+/* ET LE BLOC VISE S'ALLUME, 25/09/2026. Ted proposait une modale « zoom » au milieu de
+   l'ecran ; refuse pour deux raisons : en modale et en tiroir ce serait une modale dans la
+   modale (arbitrage du 24/09/2026), et noter un appel se fait EN REGARDANT la fiche, ses
+   montants et son historique, qu'une modale recouvrirait. Le bloc cible pulse donc deux fois
+   (anneau d'`outline`, jamais d'ombre) : l'oeil sait ou aller sans que rien ne cache rien. */
+function allumer(n){
+  if(!n)return;
+  n.classList.remove('fiche__vise');void n.offsetWidth;n.classList.add('fiche__vise');
+  setTimeout(function(){n.classList.remove('fiche__vise');},3000);
+}
 function ficheViser(quoi){
-  if(quoi==='message'){viserDansLaFiche('message');return;}
+  if(quoi==='message'){viserDansLaFiche('message');requestAnimationFrame(function(){allumer(el('modale').querySelector('details.fiche__redac'));});return;}
   viserDansLaFiche('suivi');
-  if(quoi==='rappel')requestAnimationFrame(function(){const t=el('rappelTitre')||el('modale').querySelector('.action__titre');if(t)t.focus({preventScroll:true});});
+  requestAnimationFrame(function(){
+    const m=el('modale');
+    if(quoi==='rappel'){
+      const t=el('rappelTitre')||m.querySelector('.action__titre');if(t)t.focus({preventScroll:true});
+      allumer(m.querySelector('#suiviBloc .action'));
+    }else allumer(m.querySelector('#suiviBloc .saisie'));
+  });
 }
 
 /* Le motif d'une fiche ouverte sans contexte (depuis « Mes clients », une adresse, un
@@ -3128,7 +3144,9 @@ function ficheHTML(f,motif){
   const meta=[f.id&&f.id!==f.nom?'n°'+f.id:'', [f.cp,f.ville].filter(Boolean).join(' '),
     f.pays&&!/^france$/i.test(f.pays)?f.pays:'', f.premier?'client depuis '+moisAn(f.premier):'',
     proprio?'suivi par '+proprio:''].filter(Boolean);
-  const pastilles=[f.type&&f.type!=='Non typé'?f.type:'',f.canal&&!/^autre/i.test(f.canal)?f.canal:''].filter(Boolean);
+  // Une typologie et un canal qui disent le meme mot (« PART » et « Part ») ne font qu'une pastille.
+  const pastilles=[f.type&&f.type!=='Non typé'?f.type:'',f.canal&&!/^autre/i.test(f.canal)?f.canal:''].filter(Boolean)
+    .filter((p,i,a)=>a.findIndex(q=>q.toLowerCase()===p.toLowerCase())===i);
   /* LE CONSEIL : la phrase qui porte le verdict (celle en gras) passe devant, le reste se
      deplie. Les phrases viennent telles quelles de conseilClient() : on ne les reecrit pas. */
   const iLead=Math.max(0,conseils.findIndex(c=>c.indexOf('<b>')>=0));
