@@ -167,6 +167,51 @@ w.localStorage.setItem('bdv_crm_v1', autre);
 w.dispatchEvent(new w.StorageEvent('storage', { key: 'bdv_crm_v1', newValue: autre }));
 t('l\'evenement storage d\'un autre onglet remplace la memoire', w.__x(`CRM['C9'] && CRM['C9'].rappel`) === '2026-10-01');
 
+/* ---- 6. les etiquettes, deuxieme version (25/09/2026) ---- */
+console.log('== 6. Les etiquettes ==');
+w.document.body.classList.remove('bdv-page-fiche');
+w.__x(`Object.keys(CRM).forEach(function(k){ delete CRM[k]; }); CRM['C1']={tags:['VIP']}; CRM['C3']={tags:['VIP']}; BdvAnnuaire._maj()`);
+w.__x(`fermerFiche(); ouvrirFiche('C2','')`);
+const q6 = s => w.document.querySelector(s), qa6 = s => w.document.querySelectorAll(s);
+t('fiche sans etiquette : une phrase dit a quoi elles servent', !!q6('#suiviBloc .etiqs__vide'));
+t('les etiquettes du bureau sont proposees en un clic', Array.from(qa6('#suiviBloc .etiqs__s')).some(b => /VIP/.test(b.textContent)),
+  q6('#suiviBloc') && q6('#suiviBloc').innerHTML.slice(0, 300));
+t('il y a un vrai bouton « Ajouter »', !!q6('#suiviBloc .etiqs__form button[type="submit"]'));
+w.__x(`crmAjouterTag('C2','vip')`);
+t('« vip » reprend l\'orthographe du bureau', w.__x(`(CRM['C2'].tags||[]).join()`) === 'VIP', w.__x(`JSON.stringify(CRM['C2'])`));
+t('la pastille apparait AUSSITOT dans le suivi', qa6('#suiviBloc .etiqs__p').length === 1);
+t('et dans l\'en-tete de la fiche', /VIP/.test((q6('#fichePastilles') || {}).textContent || ''));
+t('une etiquette deja posee ne se propose plus', !Array.from(qa6('#suiviBloc .etiqs__s')).some(b => /VIP/.test(b.textContent)));
+w.__x(`crmAjouterTag('C2','VIP')`);
+t('la reposer ne la double pas', w.__x(`CRM['C2'].tags.length`) === 1);
+w.__x(`crmRetirerTag('C2','VIP')`);
+t('la retirer l\'efface de la fiche et de la memoire', qa6('#suiviBloc .etiqs__p').length === 0 && w.__x(`!CRM['C2']`));
+q6('#suiviBloc .etiqs__ajout').value = 'Salon';
+/* Le jsdom de ce banc n'execute pas les attributs onsubmit : on appelle ce qu'il appelle,
+   et on verifie qu'il l'appelle bien. */
+t('le formulaire appelle etiqAjouter', /etiqAjouter\(/.test(q6('#suiviBloc .etiqs__form').getAttribute('onsubmit')));
+w.__x(`etiqAjouter('C2', document.querySelector('#suiviBloc .etiqs__form'))`);
+t('Entree dans le champ enregistre l\'etiquette', w.__x(`(CRM['C2']&&CRM['C2'].tags||[]).join()`) === 'Salon');
+const champ = q6('#suiviBloc .etiqs__ajout'); champ.value = 'zz'; w.__x(`etiqFiltrer(document.querySelector('#suiviBloc .etiqs__ajout'))`);
+t('la frappe filtre les propositions', Array.from(qa6('#suiviBloc .etiqs__s')).every(b => b.hidden));
+t('le bloc « Gérer les étiquettes » est dans Mes clients', !!q6('#annuGerer .annu__gest'));
+await w.__x(`BdvAnnuaire.renommerEtiquette('Salon','vip')`);
+t('renommer vers un nom existant REUNIT les deux', w.__x(`CRM['C2'].tags.join()`) === 'VIP' && w.__x(`BdvAnnuaire.etiquettes().length`) === 1,
+  w.__x(`JSON.stringify(BdvAnnuaire.etiquettes())`));
+await w.__x(`BdvAnnuaire.renommerEtiquette('VIP','Grands comptes')`);
+t('renommer touche TOUS les clients qui la portent', w.__x(`BdvAnnuaire.etiquettes().map(function(x){return x.t+':'+x.n}).join()`) === 'Grands comptes:3',
+  w.__x(`JSON.stringify(BdvAnnuaire.etiquettes())`));
+w.__x(`BdvAnnuaire._etat().ETAT.tag='grands comptes'; BdvAnnuaire._maj()`);
+t('le filtre ne tient pas compte des majuscules', w.__x(`BdvAnnuaire._etat().FILTREE.length`) === 3);
+q6('#annuCorps [data-a="tag-filtre"]').click();
+t('cliquer l\'etiquette d\'une ligne filtre la liste', w.__x(`BdvAnnuaire._etat().ETAT.tag`) === 'Grands comptes');
+await w.__x(`BdvAnnuaire.supprimerEtiquette('Grands comptes')`);
+t('supprimer l\'etiquette la retire de tous', w.__x(`BdvAnnuaire.etiquettes().length`) === 0 && w.__x(`BdvAnnuaire._etat().ETAT.tag`) === '');
+w.__x(`crmAjouterTag('C1','Salon'); ouvrirFiche('C1','')`);
+w.__x(`etiqVoir('Salon')`);
+t('la pastille de la fiche ouvre Mes clients filtre, fiche fermee', w.__x(`BdvAnnuaire._etat().ETAT.tag`) === 'Salon' && w.__x(`FICHE_ID`) == null
+  && w.__x(`BdvAnnuaire._etat().FILTREE.map(function(c){return c.id}).join()`) === 'C1');
+
 /* ---- 5. le corps de l'ecriture ---- */
 console.log('== 5. Le corps de l\'ecriture du suivi ==');
 const d2 = new JSDOM(`<!doctype html><body></body>`, { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/' });

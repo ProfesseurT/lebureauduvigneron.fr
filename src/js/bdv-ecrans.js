@@ -3119,6 +3119,16 @@ function motifDeduit(f){
   if(f.cadence&&f.silence!=null&&f.silence>1.5*f.cadence)return 'cadence';
   return 'regulier';
 }
+/* LES PASTILLES DE L'EN-TETE, a part depuis le 25/09/2026 : redessinerSuivi() les
+   repeint aussi. Avant, une etiquette posee dans le bloc de suivi n'apparaissait en
+   tete qu'a la reouverture de la fiche. */
+function pastillesFiche(f,s){
+  // Une typologie et un canal qui disent le meme mot (« PART » et « Part ») ne font qu'une pastille.
+  const pastilles=[f.type&&f.type!=='Non typé'?f.type:'',f.canal&&!/^autre/i.test(f.canal)?f.canal:''].filter(Boolean)
+    .filter((p,i,a)=>a.findIndex(q=>q.toLowerCase()===p.toLowerCase())===i);
+  return pastilles.map(p=>`<span class="fiche__pastille">${esc(p)}</span>`).join('')
+    +((s&&s.tags)||[]).map(t=>`<span class="fiche__pastille fiche__pastille--tag">${esc(t)}</span>`).join('');
+}
 function ficheHTML(f,motif){
   const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
   const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
@@ -3144,9 +3154,6 @@ function ficheHTML(f,motif){
   const meta=[f.id&&f.id!==f.nom?'n°'+f.id:'', [f.cp,f.ville].filter(Boolean).join(' '),
     f.pays&&!/^france$/i.test(f.pays)?f.pays:'', f.premier?'client depuis '+moisAn(f.premier):'',
     proprio?'suivi par '+proprio:''].filter(Boolean);
-  // Une typologie et un canal qui disent le meme mot (« PART » et « Part ») ne font qu'une pastille.
-  const pastilles=[f.type&&f.type!=='Non typé'?f.type:'',f.canal&&!/^autre/i.test(f.canal)?f.canal:''].filter(Boolean)
-    .filter((p,i,a)=>a.findIndex(q=>q.toLowerCase()===p.toLowerCase())===i);
   /* LE CONSEIL : la phrase qui porte le verdict (celle en gras) passe devant, le reste se
      deplie. Les phrases viennent telles quelles de conseilClient() : on ne les reecrit pas. */
   const iLead=Math.max(0,conseils.findIndex(c=>c.indexOf('<b>')>=0));
@@ -3161,7 +3168,7 @@ function ficheHTML(f,motif){
       <div class="fiche__id">
         <h3 class="fiche__nom">${esc(f.nom)}</h3>
         <div class="fiche__meta">${meta.map(esc).join(' · ')}</div>
-        ${(pastilles.length||tags.length)?`<div class="fiche__pastilles">${pastilles.map(p=>`<span class="fiche__pastille">${esc(p)}</span>`).join('')}${tags.map(t=>`<span class="fiche__pastille fiche__pastille--tag">${esc(t)}</span>`).join('')}</div>`:''}
+        <div class="fiche__pastilles" id="fichePastilles">${pastillesFiche(f,s)}</div>
       </div>
       ${lib?`<span class="motif ${cls}">${lib}</span>`:''}
       <a class="fiche__agrandir" href="/mon-bureau/#fiche=${esc(encodeURIComponent(f.id))}" target="_blank" rel="noopener" onclick="return agrandirFiche(this)">Agrandir<span class="hors-ecran"> la fiche dans un nouvel onglet</span></a>
@@ -3347,16 +3354,32 @@ function suiviCorps(f,s){
     </div>`;
   }
 
-  /* ---- Les etiquettes, en PASTILLES depuis le 25/09/2026. Une ligne de texte separee par
-     des virgules ne montrait pas ce qui etait pose, et en retirer une demandait de retaper
-     les autres. Chaque pastille se retire seule ; le champ n'en ajoute qu'une. Tout passe
-     toujours par crmSetTags(), le seul chemin qui ecrive les etiquettes. ---- */
+  /* ---- LES ETIQUETTES, 25/09/2026, deuxieme version. ----
+     La premiere (des pastilles et un champ qui n'enregistrait qu'en quittant le champ)
+     ne marchait pas : rien ne redessinait la fiche, l'etiquette posee restait invisible,
+     et rien ne montrait celles que le bureau utilise deja, si bien que chacun retapait
+     « VIP », « vip », « Vip ». Maintenant :
+       - Entree ou « Ajouter » enregistre, et la pastille apparait aussitot ;
+       - les etiquettes du bureau sont proposees en un clic, et se filtrent a la frappe ;
+       - une etiquette tapee autrement (« vip ») reprend l'orthographe du bureau (« VIP ») ;
+       - cliquer une pastille ouvre « Mes clients » filtre sur elle : c'est a ca qu'elle sert.
+     Tout passe toujours par crmSetTags(), le seul chemin qui ecrive les etiquettes. ---- */
   const tags=s.tags||[];
-  const sans=t=>JSON.stringify(tags.filter(x=>x!==t).join(', ')).replace(/"/g,'&quot;');
-  h+=`<div class="section-label suivi__t">Étiquettes</div><div class="etiqs">`
-    +tags.map(t=>`<span class="etiqs__p">${esc(t)}<button type="button" class="etiqs__x" onclick="crmSetTags(${arg},${sans(t)})" aria-label="Retirer l'étiquette ${esc(t)}">×</button></span>`).join('')
-    +`<input class="etiq etiqs__ajout" type="text" maxlength="40" aria-label="Ajouter une étiquette"
-        placeholder="+ Étiquette" onchange="if(this.value.trim())crmSetTags(${arg},${JSON.stringify(tags.join(', ')).replace(/"/g,'&quot;')}+(${tags.length?1:0}?', ':'')+this.value.replace(/,/g,' '))"></div>`;
+  const q=t=>JSON.stringify(String(t)).replace(/"/g,'&quot;');
+  const bureau=(window.BdvAnnuaire&&BdvAnnuaire.etiquettes)?BdvAnnuaire.etiquettes():[];
+  const bas=tags.map(t=>t.toLowerCase());
+  const proposees=bureau.filter(e=>bas.indexOf(e.t.toLowerCase())<0).slice(0,15);
+  h+=`<div class="section-label suivi__t">Étiquettes</div>`
+    +(tags.length?`<div class="etiqs">`+tags.map(t=>`<span class="etiqs__p"><button type="button" class="etiqs__voir" onclick="etiqVoir(${q(t)})" title="Voir tous les clients « ${esc(t)} » dans Mes clients">${esc(t)}</button><button type="button" class="etiqs__x" onclick="crmRetirerTag(${arg},${q(t)})" aria-label="Retirer l'étiquette ${esc(t)}">×</button></span>`).join('')+`</div>`
+      :`<p class="note etiqs__vide">Aucune étiquette. Une étiquette sert à retrouver ce client dans Mes clients, avec tous ceux qui la portent.</p>`)
+    +`<form class="etiqs__form" onsubmit="event.preventDefault();etiqAjouter(${arg},this)">
+        <input class="etiq etiqs__ajout" name="t" type="text" maxlength="40" autocomplete="off" aria-label="Nouvelle étiquette"
+          placeholder="VIP, Salon Bordeaux…" oninput="etiqFiltrer(this)">
+        <button type="submit" class="btn btn--ghost btn--sm">Ajouter</button>
+      </form>`
+    +(proposees.length?`<div class="etiqs__sugg"><span class="etiqs__sugg-t">Déjà utilisées au bureau</span>`
+      +proposees.map(e=>`<button type="button" class="etiqs__s" data-t="${esc(e.t.toLowerCase())}" onclick="crmAjouterTag(${arg},${q(e.t)})" aria-label="Ajouter l'étiquette ${esc(e.t)}">+ ${esc(e.t)} <span class="etiqs__n">${e.n}</span></button>`).join('')
+      +`</div>`:'');
 
   /* ---- QUI A ECRIT QUOI, 14/09/2026. ----
      `quiEcrit` se tait dans un bureau seul et sur mes propres lignes : le nom
@@ -3473,7 +3496,25 @@ function redessinerSuivi(id){
   const boite=el('suiviBloc');if(!boite||FICHE_ID!==id)return;
   const f=ficheClient(id);if(!f)return;
   boite.innerHTML=suiviCorps(f,CRM[id]||{});
+  const pa=el('fichePastilles');if(pa)pa.innerHTML=pastillesFiche(f,CRM[id]||{});
   monterSelectCanal();
+}
+
+/* Les trois gestes du bloc « Étiquettes ». Le champ garde le focus apres un ajout : on
+   pose souvent deux ou trois etiquettes d'affilee. */
+function etiqAjouter(id,form){
+  const i=form&&form.elements&&form.elements.t;const v=i?i.value.trim():'';
+  if(!v){status('error','Écris l’étiquette à ajouter, ou choisis-en une du bureau.');if(i)i.focus();return;}
+  crmAjouterTag(id,v);
+  const n=document.querySelector('#suiviBloc .etiqs__ajout');if(n)n.focus();
+}
+function etiqFiltrer(i){
+  const v=(i.value||'').trim().toLowerCase();
+  const b=i.closest('#suiviBloc')||document;
+  b.querySelectorAll('.etiqs__s').forEach(x=>{x.hidden=!!v&&x.getAttribute('data-t').indexOf(v)<0;});
+}
+function etiqVoir(t){
+  if(window.BdvAnnuaire&&BdvAnnuaire.voirEtiquette)BdvAnnuaire.voirEtiquette(t);
 }
 
 // Un geste pose depuis la fiche : meme effet que dans la file, plus le redessin de la

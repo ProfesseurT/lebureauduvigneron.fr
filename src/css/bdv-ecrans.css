@@ -496,6 +496,23 @@
 .bdv-ventes .etiqs__x{padding:0 var(--bdv-e-2);border:0;background:none;font-size:var(--bdv-f-3);color:var(--bdv-encre-3);cursor:pointer}
 .bdv-ventes .etiqs__x:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:1px}
 .bdv-ventes .etiq.etiqs__ajout{display:inline-block;flex:1 1 140px;width:auto;margin:0}
+/* Etiquettes, deuxieme version (25/09/2026) : la pastille ouvre « Mes clients » filtre,
+   un vrai bouton « Ajouter », et les etiquettes du bureau proposees en un clic. */
+.bdv-ventes .etiqs__voir{padding:0;border:0;background:none;font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-1);cursor:pointer}
+.bdv-ventes .etiqs__voir:hover{text-decoration:underline}
+.bdv-ventes .etiqs__voir:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:1px}
+.bdv-ventes .etiqs__vide{margin:0 0 var(--bdv-e-2)}
+.bdv-ventes .etiqs__form{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);align-items:center;margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .etiqs__form .etiq.etiqs__ajout{flex:1 1 auto;min-width:0;border-style:solid;border-radius:var(--bdv-r);background:var(--bdv-surface);color:var(--bdv-encre-1)}
+.bdv-ventes .etiqs__sugg{display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-1);margin-bottom:var(--bdv-e-2)}
+.bdv-ventes .etiqs__sugg-t{flex:1 1 100%;font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
+.bdv-ventes .etiqs__s{display:inline-flex;align-items:center;gap:var(--bdv-e-1);padding:0 var(--bdv-e-2);border:1px dashed var(--bdv-trait-fort);border-radius:var(--bdv-r-pastille);
+  background:none;font-family:inherit;font-size:var(--bdv-f-2);color:var(--bdv-encre-2);cursor:pointer}
+.bdv-ventes .etiqs__s:hover{border-style:solid;border-color:var(--bdv-accent-trait);background:var(--bdv-accent-lavis);color:var(--bdv-encre-1)}
+.bdv-ventes .etiqs__s:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:1px}
+.bdv-ventes .etiqs__s[hidden]{display:none}
+.bdv-ventes .etiqs__n{font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
+.bdv-ventes .fiche__pastilles:empty{display:none}
 @media (max-width:700px){
   .bdv-ventes .onglets__t,.bdv-ventes .fiche__pourquoi>summary{min-height:var(--bdv-cible)}
   .bdv-ventes .etiqs__x{min-width:var(--bdv-cible);min-height:var(--bdv-cible)}
@@ -949,6 +966,18 @@
 .bdv-ventes .annu__rap--retard{font-weight:600;color:var(--bdv-retard)}
 .bdv-ventes .annu__tag{display:inline-block;margin:0 var(--bdv-e-1) var(--bdv-e-1) 0;padding:0 var(--bdv-e-2);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r-pastille);font-size:var(--bdv-f-1);color:var(--bdv-encre-2)}
 .bdv-ventes tr.annu__l.is-coche td{background:var(--bdv-accent-lavis)}
+.bdv-ventes button.annu__tag{background:none;font-family:inherit;cursor:pointer}
+.bdv-ventes button.annu__tag:hover{border-color:var(--bdv-accent-trait);background:var(--bdv-accent-lavis);color:var(--bdv-encre-1)}
+.bdv-ventes button.annu__tag:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:1px}
+.bdv-ventes .annu__gest{padding-bottom:var(--bdv-e-3);margin-bottom:var(--bdv-e-3);border-bottom:1px solid var(--bdv-trait)}
+.bdv-ventes .annu__gest>summary{padding:var(--bdv-e-2) 0;cursor:pointer;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
+.bdv-ventes .annu__gest>summary:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+.bdv-ventes .annu__gl{list-style:none;margin:0;padding:0;max-width:720px}
+.bdv-ventes .annu__gl li{display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-2);padding:var(--bdv-e-1) 0;border-bottom:1px solid var(--bdv-trait)}
+.bdv-ventes .annu__gl .annu__tag{margin:0}
+.bdv-ventes .annu__gn{flex:1 1 auto;font-size:var(--bdv-f-1);color:var(--bdv-encre-3)}
+.bdv-ventes .annu__gin{min-height:36px;padding:0 var(--bdv-e-2);font-family:inherit;font-size:var(--bdv-f-2);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);background:var(--bdv-surface);color:var(--bdv-encre-1)}
+.bdv-ventes .annu__garme{border-color:var(--bdv-alerte);color:var(--bdv-alerte)}
 .bdv-ventes .annu__rien{padding:var(--bdv-e-6);text-align:center;color:var(--bdv-encre-3)}
 .bdv-ventes .annu__pied{display:flex;justify-content:center;padding-top:var(--bdv-e-3)}
 .bdv-ventes .action__proprio{display:flex;align-items:center;gap:var(--bdv-e-2);margin-top:var(--bdv-e-2)}
@@ -961,4 +990,7 @@
   .bdv-ventes .annu__t input[type=checkbox]{width:24px;height:24px}
   .bdv-ventes .annu__tri{min-height:var(--bdv-cible)}
   .bdv-ventes .annu__replis>summary{min-height:var(--bdv-cible)}
+  .bdv-ventes .annu__gest>summary,.bdv-ventes button.annu__tag,.bdv-ventes .etiqs__s,.bdv-ventes .etiqs__voir{min-height:var(--bdv-cible)}
+  .bdv-ventes .etiqs__voir{min-width:var(--bdv-cible)}
+  .bdv-ventes .annu__gin,.bdv-ventes .etiqs__form .etiq.etiqs__ajout{min-height:var(--bdv-cible);font-size:var(--bdv-f-saisie);flex:1 1 100%}
 }

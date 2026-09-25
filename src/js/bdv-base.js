@@ -610,14 +610,37 @@ function crmSetPlusieurs(id,champs){
   // Pas de message ici : geste() annonce deja ce qu'il vient de faire, en mieux.
   if(typeof FICHE_ID!=='undefined'&&FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
 }
-function crmSetTags(id,texte){
-  const tags=texte.split(',').map(t=>t.trim()).filter(Boolean);
+/* Les etiquettes. crmSetTags() reste LE seul chemin qui les ecrit ; il redessine la
+   fiche ouverte depuis le 25/09/2026 (sans quoi l'etiquette posee ne se voyait pas) et
+   dedoublonne sans tenir compte des majuscules : « VIP » et « vip » ne font qu'une. */
+function crmSetTags(id,texte,message){
+  const vus=new Set();
+  const tags=String(texte||'').split(',').map(t=>t.trim().slice(0,40)).filter(Boolean)
+    .filter(t=>{const k=t.toLowerCase();if(vus.has(k))return false;vus.add(k);return true;});
   const c=CRM[id]||{};
   if(tags.length)c.tags=tags;else delete c.tags;
   if(crmVide(c))delete CRM[id];else CRM[id]=c;
   crmSave();const _p=syncSuivi(id);crmRafraichirListe();
-  status('success',tags.length?'Étiquettes enregistrées.':'Étiquettes effacées.');
+  if(typeof FICHE_ID!=='undefined'&&FICHE_ID===id&&typeof redessinerSuivi==='function')redessinerSuivi(id);
+  status('success',message||(tags.length?'Étiquettes enregistrées.':'Étiquettes effacées.'));
   crmDireSiPasParti(_p,'Les étiquettes');
+}
+/* Ajouter UNE etiquette. Tapee autrement qu'au bureau (« vip » pour « VIP »), elle
+   reprend l'orthographe deja en usage : sinon le filtre de « Mes clients » en verrait deux. */
+function crmAjouterTag(id,t){
+  t=String(t||'').replace(/,/g,' ').replace(/\s+/g,' ').trim().slice(0,40);
+  if(!t)return;
+  const bureau=(window.BdvAnnuaire&&BdvAnnuaire.etiquettes)?BdvAnnuaire.etiquettes():[];
+  const deja=bureau.filter(e=>e.t.toLowerCase()===t.toLowerCase())[0];
+  if(deja)t=deja.t;
+  const tags=((CRM[id]&&CRM[id].tags)||[]).slice();
+  if(tags.some(x=>x.toLowerCase()===t.toLowerCase())){status('success','Ce client porte déjà l’étiquette « '+t+' ».');return;}
+  tags.push(t);
+  crmSetTags(id,tags.join(', '),'Étiquette « '+t+' » ajoutée.');
+}
+function crmRetirerTag(id,t){
+  const tags=((CRM[id]&&CRM[id].tags)||[]).filter(x=>x!==t);
+  crmSetTags(id,tags.join(', '),'Étiquette « '+t+' » retirée.');
 }
 const STATUTS_SUIVI={
   a_faire:{label:'À faire',cls:'m-statut-afaire'},

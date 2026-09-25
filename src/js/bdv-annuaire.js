@@ -132,6 +132,19 @@
     if(uid === moi()) return 'Moi';
     return (TROMBI && TROMBI.gens && TROMBI.gens[uid]) || 'ancien membre';
   }
+  /* LES ETIQUETTES DU BUREAU, avec le nombre de clients qui les portent, les plus
+     utilisees d'abord : c'est l'ordre dans lequel la fiche les propose. */
+  function etiquettes(){
+    const m = new Map();
+    Object.keys(typeof CRM !== 'undefined' ? CRM : {}).forEach(function(id){
+      (CRM[id].tags || []).forEach(function(t){ m.set(t, (m.get(t) || 0) + 1); });
+    });
+    return Array.from(m, function(x){ return { t: x[0], n: x[1] }; })
+      .sort(function(a, b){ return b.n - a.n || a.t.localeCompare(b.t, 'fr'); });
+  }
+  function porteurs(tag){
+    return Object.keys(typeof CRM !== 'undefined' ? CRM : {}).filter(function(id){ return (CRM[id].tags || []).indexOf(tag) >= 0; });
+  }
   function toutesLesEtiquettes(){
     const s = new Set();
     Object.keys(typeof CRM !== 'undefined' ? CRM : {}).forEach(function(id){ (CRM[id].tags || []).forEach(function(t){ s.add(t); }); });
@@ -159,7 +172,7 @@
     if(e.pays && c.pays !== e.pays) return false;
     if(e.etat && c.etat !== e.etat) return false;
     if(e.rappel && etatRappel(s) !== e.rappel) return false;
-    if(e.tag && (s.tags || []).indexOf(e.tag) < 0) return false;
+    if(e.tag && !(s.tags || []).some(function(t){ return t.toLowerCase() === e.tag.toLowerCase(); })) return false;
     if(e.proprio){
       const p = s.proprietaire || '';
       if(e.proprio === 'moi' ? p !== moi() : e.proprio === 'personne' ? !!p : p !== e.proprio) return false;
@@ -242,7 +255,7 @@
       + '<td class="num">' + ca + '</td>'
       + (EX_PREV != null ? '<td class="num">' + caP + '</td>' : '')
       + '<td>' + action + '</td>'
-      + '<td>' + (s.tags || []).map(function(t){ return '<span class="annu__tag">' + esc(t) + '</span>'; }).join('') + '</td>'
+      + '<td>' + (s.tags || []).map(function(t){ return '<button type="button" class="annu__tag" data-a="tag-filtre" data-t="' + esc(t) + '" title="Ne montrer que les clients « ' + esc(t) + ' »">' + esc(t) + '</button>'; }).join('') + '</td>'
       + (proprioVisible() ? '<td>' + esc(nomDe(s.proprietaire)) + '</td>' : '')
       + '</tr>';
   }
@@ -271,9 +284,85 @@
       + '<select data-f="pays" aria-label="Pays">' + options(valeursDe('pays'), e.pays, 'Tous les pays') + '</select>'
       + '<select data-f="etat" aria-label="Activité">' + options([['actif', 'Actifs (moins d’un an)'], ['dormant', 'Dormants (plus d’un an)'], ['sans', 'Sans commande']], e.etat, 'Actifs et dormants') + '</select>'
       + '<select data-f="rappel" aria-label="Prochaine action">' + options([['retard', 'Rappel en retard'], ['prevu', 'Rappel prévu'], ['aucun', 'Sans rappel']], e.rappel, 'Toute action') + '</select>'
-      + '<select data-f="tag" aria-label="Étiquette">' + options(toutesLesEtiquettes(), e.tag, 'Toutes les étiquettes') + '</select>'
+      + '<select data-f="tag" aria-label="Étiquette">' + options(etiquettes().map(function(x){ return [x.t, x.t + ' (' + x.n + ')']; })
+          .sort(function(a, b){ return a[0].localeCompare(b[0], 'fr'); }), e.tag, 'Toutes les étiquettes') + '</select>'
       + (proprioVisible() ? '<select data-f="proprio" aria-label="Suivi par">' + options(proprios, e.proprio, 'Suivis par tout le monde') + '</select>' : '')
       + '<button type="button" class="btn btn--ghost btn--sm" data-a="raz">Tout effacer</button>';
+  }
+
+  /* GERER LES ETIQUETTES DU BUREAU, 25/09/2026. Sans cet endroit, une faute de frappe
+     (« Salon Bordaux ») restait pour toujours, et « VIP » et « Vip » vivaient cote a cote.
+     Renommer vers un nom qui existe deja FUSIONNE les deux. Supprimer demande un second
+     clic, sans fenetre du navigateur : le bouton dit lui-meme combien de clients il touche. */
+  let GERER_OUVERT = false, GERER_EDIT = null, GERER_ARME = null;
+  function blocGerer(){
+    const l = etiquettes();
+    if(!l.length) return '';
+    return '<details class="annu__gest"' + (GERER_OUVERT ? ' open' : '') + '><summary>Gérer les étiquettes du bureau (' + l.length + ')</summary>'
+      + '<ul class="annu__gl">' + l.map(function(x){
+          const d = ' data-t="' + esc(x.t) + '"';
+          if(GERER_EDIT === x.t) return '<li' + d + '><input type="text" class="annu__gin" maxlength="40" value="' + esc(x.t) + '" aria-label="Nouveau nom pour « ' + esc(x.t) + ' »">'
+            + '<button type="button" class="btn btn--primary btn--sm" data-a="g-ok">Renommer</button>'
+            + '<button type="button" class="btn btn--ghost btn--sm" data-a="g-annuler">Annuler</button>'
+            + '<span class="annu__note">Un nom déjà utilisé réunit les deux étiquettes.</span></li>';
+          return '<li' + d + '><span class="annu__tag annu__tag--fixe">' + esc(x.t) + '</span><span class="annu__gn">' + plur(x.n, 'client') + '</span>'
+            + '<button type="button" class="btn btn--ghost btn--sm" data-a="g-voir">Voir</button>'
+            + '<button type="button" class="btn btn--ghost btn--sm" data-a="g-renommer">Renommer</button>'
+            + (GERER_ARME === x.t
+                ? '<button type="button" class="btn btn--ghost btn--sm annu__garme" data-a="g-suppr">Confirmer : retirer de ' + plur(x.n, 'client') + '</button>'
+                  + '<button type="button" class="btn btn--ghost btn--sm" data-a="g-annuler">Annuler</button>'
+                : '<button type="button" class="btn btn--ghost btn--sm" data-a="g-suppr">Supprimer</button>')
+            + '</li>';
+        }).join('') + '</ul></details>';
+  }
+  function repeindreGerer(focus){
+    const g = P() && P().querySelector('#annuGerer'); if(!g) return;
+    g.innerHTML = blocGerer();
+    if(focus){ const n = g.querySelector(focus); if(n){ n.focus(); if(n.select) n.select(); } }
+  }
+  function renommer(ancien, nouveau){
+    nouveau = String(nouveau || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+    if(!nouveau){ status('error', 'Donne un nom à l’étiquette.'); return; }
+    if(nouveau === ancien){ GERER_EDIT = null; repeindreGerer(); return; }
+    const autre = etiquettes().filter(function(x){ return x.t !== ancien && x.t.toLowerCase() === nouveau.toLowerCase(); })[0];
+    if(autre) nouveau = autre.t;
+    const ids = porteurs(ancien);
+    GERER_EDIT = null;
+    if(ETAT.tag === ancien) ETAT.tag = nouveau;
+    return ecrireGroupe(ids, function(c){
+      const vus = new Set();
+      const t = (c.tags || []).map(function(x){ return x === ancien ? nouveau : x; })
+        .filter(function(x){ const k = x.toLowerCase(); if(vus.has(k)) return false; vus.add(k); return true; });
+      if(t.length) c.tags = t; else delete c.tags;
+    }, autre ? 'Étiquette « ' + ancien + ' » réunie avec « ' + nouveau + ' »' : 'Étiquette « ' + ancien + ' » renommée en « ' + nouveau + ' »');
+  }
+  function supprimerEtiquette(tag){
+    const ids = porteurs(tag);
+    GERER_ARME = null;
+    if(ETAT.tag === tag) ETAT.tag = '';
+    return ecrireGroupe(ids, function(c){
+      const t = (c.tags || []).filter(function(x){ return x !== tag; });
+      if(t.length) c.tags = t; else delete c.tags;
+    }, 'Étiquette « ' + tag + ' » supprimée');
+  }
+
+  /* Depuis une pastille de la fiche : « Mes clients », filtre sur cette etiquette. En pleine
+     page, l'onglet n'a pas la piece chargee : on repart sur l'adresse, et le filtre attend
+     dans la session de l'onglet. */
+  function voirEtiquette(t){
+    if(typeof pageFiche === 'function' && pageFiche()){
+      try{ sessionStorage.setItem('bdv_annu_tag', t); }catch(e){}
+      location.href = '/mon-bureau/#annuaire'; location.reload(); return;
+    }
+    ETAT = Object.assign({}, ETAT_VIDE, { tag: t }); MONTRES = PAS;
+    if(typeof FICHE_ID !== 'undefined' && FICHE_ID && typeof fermerFiche === 'function') fermerFiche();
+    const p = P();
+    if(p && p.classList.contains('on') && p.querySelector('.annu')){
+      const r = p.querySelector('.annu__replis'); if(r) r.open = true;
+      const f = p.querySelector('.annu__filtres'); if(f) f.innerHTML = barreDesFiltres();
+      caleRecherche(); majListe();
+    }else if(window.BdvNav && BdvNav.afficher) BdvNav.afficher('annuaire');
+    status('success', 'Clients portant l’étiquette « ' + t + ' ».');
   }
 
   function barreDeSelection(){
@@ -284,7 +373,7 @@
       + '<span class="annu__sep" aria-hidden="true"></span>'
       + '<label class="annu__lbl" for="annuTag">Étiquette</label>'
       + '<input id="annuTag" type="text" maxlength="40" list="annuTags" placeholder="VIP, Salon Bordeaux…">'
-      + '<datalist id="annuTags">' + toutesLesEtiquettes().map(function(t){ return '<option value="' + esc(t) + '">'; }).join('') + '</datalist>'
+      + '<datalist id="annuTags">' + etiquettes().map(function(x){ return x.t; }).map(function(t){ return '<option value="' + esc(t) + '">'; }).join('') + '</datalist>'
       + '<button type="button" class="btn btn--ghost btn--sm" data-a="tag-plus">Ajouter</button>'
       + '<button type="button" class="btn btn--ghost btn--sm" data-a="tag-moins">Retirer</button>'
       + '<span class="annu__sep" aria-hidden="true"></span>'
@@ -338,9 +427,10 @@
       /* LES FILTRES ET LES VUES SE REPLIENT, et ils sont ouverts a l'arrivee sur ordinateur.
          Sur telephone, huit listes deroulantes empilees font deux ecrans de reglages avant
          le premier client : la recherche reste dehors, le reste attend qu'on le demande. */
-      +   '<details class="annu__replis"' + (window.innerWidth > 700 ? ' open' : '') + '><summary>Filtres et vues</summary>'
+      +   '<details class="annu__replis"' + (window.innerWidth > 700 || ETAT.tag ? ' open' : '') + '><summary>Filtres et vues</summary>'
       +     '<div class="annu__barre annu__vues">' + barreDesVues() + '</div>'
       +     '<div class="annu__barre annu__filtres">' + barreDesFiltres() + '</div>'
+      +     '<div class="annu__gerer" id="annuGerer">' + blocGerer() + '</div>'
       +   '</details>'
       +   '<div class="annu__barre annu__lot" id="annuLot" hidden></div>'
       +   '<div class="annu__haut"><p class="annu__compte" id="annuCompte" aria-live="polite"></p>'
@@ -360,6 +450,8 @@
     const q = document.activeElement && document.activeElement.id === 'annuQ';
     if(f && !q) f.innerHTML = barreDesFiltres();
     const v = p.querySelector('.annu__vues'); if(v) v.innerHTML = barreDesVues();
+    const g = p.querySelector('#annuGerer');
+    if(g && !(document.activeElement && g.contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) g.innerHTML = blocGerer();
   }
 
   function caleRecherche(){ const q = document.getElementById('annuQ'); if(q) q.value = ETAT.q || ''; }
@@ -405,8 +497,10 @@
   function etiqueter(ids, tag, ajouter){
     tag = String(tag || '').trim().replace(/,/g, ' ').slice(0, 40);
     if(!tag){ status('error', 'Écris l’étiquette à ' + (ajouter ? 'ajouter' : 'retirer') + '.'); return; }
+    const deja = etiquettes().filter(function(x){ return x.t.toLowerCase() === tag.toLowerCase(); })[0];
+    if(deja) tag = deja.t;
     return ecrireGroupe(ids, function(c){
-      const t = (c.tags || []).filter(function(x){ return x !== tag; });
+      const t = (c.tags || []).filter(function(x){ return x.toLowerCase() !== tag.toLowerCase(); });
       if(ajouter) t.push(tag);
       if(t.length) c.tags = t; else delete c.tags;
     }, ajouter ? 'Étiquette « ' + tag + ' » ajoutée' : 'Étiquette « ' + tag + ' » retirée');
@@ -498,6 +592,23 @@
       else if(a === 'exporter'){ exporter(FILTREE, 'liste'); }
       else if(a === 'exporter-sel'){ exporter(LISTE.filter(function(c){ return SEL.has(c.id); }), 'selection'); }
       else if(a === 'tag-plus' || a === 'tag-moins'){ const i = document.getElementById('annuTag'); etiqueter(ids, i && i.value, a === 'tag-plus'); }
+      else if(a === 'tag-filtre'){
+        ETAT.tag = b.getAttribute('data-t'); MONTRES = PAS;
+        const r = P().querySelector('.annu__replis'); if(r) r.open = true;
+        const f = P().querySelector('.annu__filtres'); if(f) f.innerHTML = barreDesFiltres();
+        majListe();
+      }
+      else if(a.indexOf('g-') === 0){
+        const li = b.closest('li'); const t = li && li.getAttribute('data-t');
+        if(a === 'g-voir'){ ETAT.tag = t; MONTRES = PAS; const f = P().querySelector('.annu__filtres'); if(f) f.innerHTML = barreDesFiltres(); majListe(); }
+        else if(a === 'g-renommer'){ GERER_EDIT = t; GERER_ARME = null; repeindreGerer('.annu__gin'); }
+        else if(a === 'g-annuler'){ GERER_EDIT = null; GERER_ARME = null; repeindreGerer(); }
+        else if(a === 'g-ok'){ const i = li.querySelector('.annu__gin'); renommer(t, i && i.value); }
+        else if(a === 'g-suppr'){
+          if(GERER_ARME === t) supprimerEtiquette(t);
+          else { GERER_ARME = t; GERER_EDIT = null; repeindreGerer('[data-a="g-suppr"]'); }
+        }
+      }
       else if(a === 'attribuer'){ const s = document.getElementById('annuProprio'); attribuer(ids, s && s.value); }
       else if(a === 'vue-enr'){
         const i = document.getElementById('annuVueNom'); const nom = i && i.value.trim();
@@ -518,6 +629,14 @@
         });
       }
     });
+    p.addEventListener('toggle', function(e){ if(e.target.classList && e.target.classList.contains('annu__gest')) GERER_OUVERT = e.target.open; }, true);
+    p.addEventListener('keydown', function(e){
+      if(!e.target.classList) return;
+      if(e.target.classList.contains('annu__gin')){
+        if(e.key === 'Enter'){ e.preventDefault(); const li = e.target.closest('li'); renommer(li.getAttribute('data-t'), e.target.value); }
+        else if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); GERER_EDIT = null; repeindreGerer(); }
+      }else if(e.target.id === 'annuTag' && e.key === 'Enter'){ e.preventDefault(); etiqueter(Array.from(SEL), e.target.value, true); }
+    });
     document.addEventListener('bdv:trombinoscope', function(){
       if(window.BdvCompte && BdvCompte.trombinoscope) BdvCompte.trombinoscope().then(function(t){ TROMBI = t; repeindreBarres(); majListe(); });
     });
@@ -535,6 +654,10 @@
     return _pret;
   }
   function ouvrir(){
+    try{
+      const t = sessionStorage.getItem('bdv_annu_tag');
+      if(t){ sessionStorage.removeItem('bdv_annu_tag'); ETAT = Object.assign({}, ETAT_VIDE, { tag: t }); MONTRES = PAS; }
+    }catch(e){}
     peindre();
     preparer().then(lireLesVues).then(function(){ repeindreBarres(); majListe(); }).catch(function(){});
   }
@@ -570,6 +693,7 @@
   };
 
   window.BdvAnnuaire = { peindre: ouvrir, attribuer: attribuer, etiqueter: etiqueter, blocFiche: blocFiche, nomDe: nomDe,
+    etiquettes: etiquettes, voirEtiquette: voirEtiquette, renommerEtiquette: renommer, supprimerEtiquette: supprimerEtiquette,
     _maj: function(){ majListe(); },
     _etat: function(){ return { ETAT: ETAT, LISTE: LISTE, FILTREE: FILTREE, SEL: SEL, LOT33: LOT33, VUES: VUES }; } };
 })();

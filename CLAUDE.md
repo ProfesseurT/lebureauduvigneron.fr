@@ -3487,6 +3487,27 @@ devenus des commentaires Nunjucks `{# ... #}`, retires a la construction : 119,9
 tombes a 74,3, plafond de `banc:poids` descendu a 80. **Dans ce script, un pourquoi s'ecrit en
 `{# #}`, jamais en `//` ni en `/* */`.** Un commentaire Nunjucks ne doit pas contenir `#}`.
 
+### LES ETIQUETTES, 25/09/2026 (deuxieme version)
+
+Ted : « gros souci de gestion des etiquettes, aucun moyen de les utiliser correctement ».
+Cause : `crmSetTags()` ne redessinait pas la fiche (etiquette posee invisible), le champ
+n'enregistrait qu'en le quittant, et rien ne proposait les etiquettes deja en usage.
+
+Regles :
+- `crmSetTags()` reste LE seul chemin qui ecrit `tags`. Il redessine la fiche ouverte
+  (`redessinerSuivi()` repeint aussi `#fichePastilles`) et dedoublonne sans les majuscules.
+- `crmAjouterTag()` / `crmRetirerTag()` : une etiquette tapee autrement qu'au bureau
+  (« vip ») reprend l'orthographe en usage (« VIP »). Meme regle dans l'etiquetage groupe.
+- Fiche : pastilles (clic = « Mes clients » filtre sur elle, via `BdvAnnuaire.voirEtiquette`,
+  en pleine page par `sessionStorage bdv_annu_tag` + rechargement), champ + bouton « Ajouter »,
+  « Déjà utilisées au bureau » en un clic, filtrees a la frappe.
+- « Mes clients » : l'etiquette d'une ligne filtre la liste ; le filtre ignore les majuscules ;
+  « Gérer les étiquettes du bureau » renomme (vers un nom existant = REUNIR), supprime en
+  deux clics (le bouton dit combien de clients il touche), sans fenetre du navigateur.
+- Renommer/supprimer passent par `ecrireGroupe()`, donc par CRM puis le serveur : avant le
+  SQL du lot 33, les fiches ecrites par un autre membre seront refusees et le message le dit.
+- Banc : section 6 de banc-annuaire.mjs (le jsdom du banc n'execute pas les `onsubmit`).
+
 ### LA FICHE REDESSINEE, 25/09/2026 (valable dans les TROIS contenants)
 
 Ted, capture de la pleine page : « tres destructure et pas forcement tres utilisable ».

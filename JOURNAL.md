@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+
+## 25/09/2026, les étiquettes qu'on peut vraiment utiliser
+
+Ted ne pouvait rien faire de ses étiquettes. Trois défauts : la fiche ne se redessinait pas
+après l'ajout, le champ n'enregistrait qu'en le quittant, et aucune étiquette existante
+n'était proposée, d'où « VIP », « vip », « Vip ». Corrigé : bouton « Ajouter » et Entrée,
+pastille visible aussitôt, étiquettes du bureau proposées en un clic, orthographe du bureau
+reprise, clic sur une étiquette = « Mes clients » filtré, et dans « Mes clients » un bloc
+« Gérer les étiquettes du bureau » (renommer, réunir, supprimer en deux clics). Écarté : une
+fenêtre de confirmation du navigateur pour supprimer (le bouton confirme lui-même).
+
 ## 25/09/2026. La fiche client redessinée
 
 Ted, sur la pleine page : « très déstructuré et pas forcément très utilisable ». Revue design et
