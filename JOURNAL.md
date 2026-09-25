@@ -13,6 +13,19 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 26/09/2026, quatre arbitrages de plus apres la revue
+
+Quatre oui de Ted : le petit texte du pied de page passe a `--on-dark-soft` (7,6:1 au lieu de
+2,0 a 4,1:1, sur le site comme dans le bureau) ; le nom de la piece n'est plus repete en gros
+titre sous l'en-tete dans les cinq pieces de vente (le `h2` reste, masque, classe `titre-piece`) ;
+le verdict de « Mon cap » est ouvert a l'arrivee, ce qui retourne le choix du 24/09 de le replier ;
+la phrase qui promettait les vues enregistrees de « Mes clients » disparait tant que la table
+n'existe pas.
+
+Note de banc : lance entre minuit et 2 h du matin heure de Paris, `banc:journee` echoue sur
+trois controles de date (decalage UTC du jeu d'essai), y compris sur le code d'avant. Relancer
+avec `TZ=UTC` ou en journee.
+
 ## 25/09/2026 au soir, la revue du vigneron et les petites choses
 
 Ted : « sors l'agent vigneron empathique et corrige toutes les petites choses ». L'agent a regardé

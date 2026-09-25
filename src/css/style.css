@@ -1641,8 +1641,10 @@ em { font-style: italic; }
 }
 .footer-rich__tagline {
   font-size: var(--t-base);
-  color: var(--paper);
-  opacity: 0.5;
+  /* 25/09/2026 : l'opacite 0,5 donnait 4,1:1 sur --bordeaux-deep, sous le seuil
+     de 4,5. --on-dark-soft tient 7,6:1. Meme correction pour les trois petits
+     textes ci-dessous, qui tombaient a 2,7 et 2,0:1. */
+  color: var(--on-dark-soft);
   font-style: italic;
   margin-bottom: 1rem;
   line-height: 1.55;
@@ -1652,8 +1654,7 @@ em { font-style: italic; }
   font-size: var(--t-micro);
   text-transform: uppercase;
   letter-spacing: var(--ls-large);
-  color: var(--paper);
-  opacity: 0.35;
+  color: var(--on-dark-soft);
   margin-bottom: 1rem;
 }
 .footer-rich__col ul {
@@ -1682,16 +1683,14 @@ em { font-style: italic; }
 .footer-rich__legal {
   font-family: var(--font-corps);
   font-size: var(--t-micro);
-  color: var(--paper);
-  opacity: 0.35;
+  color: var(--on-dark-soft);
   letter-spacing: var(--ls-doux);
   margin: 0;
 }
 .footer-rich__mention {
   font-family: var(--font-corps);
   font-size: var(--t-micro);
-  color: var(--paper);
-  opacity: 0.25;
+  color: var(--on-dark-soft);
   letter-spacing: var(--ls-doux);
   margin: 0;
 }

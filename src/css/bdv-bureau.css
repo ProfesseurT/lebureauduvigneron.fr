@@ -4654,3 +4654,14 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
   overflow:hidden;
 }
 .bdv-coque .listb td.listb__motif{ white-space:normal; }
+
+/* -- 29.10 LE NOM DE LA PIECE NE SE DIT QU'UNE FOIS A L'ECRAN, 25/09/2026,
+   arbitrage de Ted. L'en-tete porte deja « Mon cap » en `h1` ; le meme mot en gros
+   titre juste dessous prenait une ligne pour rien. Le `h2` reste dans la page,
+   masque visuellement : il tient le plan des titres pour la synthese vocale.
+   Seules les cinq pieces de vente le portent (`titre-piece`) : « Ta base
+   est vide » et les titres de bloc restent affiches. */
+.bdv-coque .bdv-ventes .titre-piece{
+  position:absolute; width:1px; height:1px; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; margin:0;
+}

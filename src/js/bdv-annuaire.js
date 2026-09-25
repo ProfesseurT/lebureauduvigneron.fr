@@ -261,7 +261,9 @@
   }
 
   function barreDesVues(){
-    if(VUES === false) return '<p class="annu__note">Les vues enregistrées arrivent avec la prochaine mise à jour de ton compte.</p>';
+    /* Rien tant que la table n'existe pas (SQL du lot 33) : on ne promet pas une
+       fonction qui n'est pas encore la. Arbitrage de Ted, 25/09/2026. */
+    if(VUES === false) return '';
     const liste = (VUES || []).map(function(v){ return [v.vue_id, v.nom]; });
     return '<label class="annu__lbl" for="annuVue">Vue</label>'
       + '<select id="annuVue" data-a="vue">' + options(liste, '', liste.length ? 'Choisir une vue enregistrée' : 'Aucune vue enregistrée') + '</select>'
@@ -412,14 +414,14 @@
     const p = P(); if(!p) return;
     brancher();
     if(!(ROWS && ROWS.length)){
-      p.innerHTML = '<h2 class="panel__title">Mes clients</h2><p class="panel__sub">Tes clients apparaîtront ici dès que ton premier export Vitisoft sera déposé.</p>';
+      p.innerHTML = '<h2 class="panel__title titre-piece">Mes clients</h2><p class="panel__sub">Tes clients apparaîtront ici dès que ton premier export Vitisoft sera déposé.</p>';
       return;
     }
     construire();
     // Une selection qui designe un client disparu de la base (base videe, autre bureau) ne vaut rien.
     const ids = new Set(LISTE.map(function(c){ return c.id; }));
     Array.from(SEL).forEach(function(id){ if(!ids.has(id)) SEL.delete(id); });
-    p.innerHTML = '<h2 class="panel__title">Mes clients</h2>'
+    p.innerHTML = '<h2 class="panel__title titre-piece">Mes clients</h2>'
       + '<p class="panel__sub">Tous les clients de tes exports, ' + plur(LISTE.length, 'client') + '. '
       + 'Les coordonnées viennent de Vitisoft et se corrigent là-bas ; les étiquettes, le suivi et les vues sont communs à ton bureau.</p>'
       + '<div class="card annu">'

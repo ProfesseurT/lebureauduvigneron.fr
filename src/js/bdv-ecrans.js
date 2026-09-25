@@ -939,7 +939,7 @@ function renderExplo(){
   const rows=exploRows(),base=ROWS.filter(r=>r._vin);
   const a1=axisOuDefaut(exploAxis1);
 
-  let html=`<h2 class="panel__title">Mon registre</h2><div class="panel__sub">Choisis ce que tu veux voir, affine si besoin, le résultat se met à jour en dessous. Répartis par mois ou par ${EX_START===1?'année':'exercice'} et la courbe apparaît. Mesure : ${mesureLabel()}.</div>`;
+  let html=`<h2 class="panel__title titre-piece">Mon registre</h2><div class="panel__sub">Choisis ce que tu veux voir, affine si besoin, le résultat se met à jour en dessous. Répartis par mois ou par ${EX_START===1?'année':'exercice'} et la courbe apparaît. Mesure : ${mesureLabel()}.</div>`;
 
   /* ---------- BARRE DE PILOTAGE, en haut ----------
      Quatre reglages seulement sont visibles en permanence : ils suffisent a repondre a la
@@ -1845,8 +1845,11 @@ function replierCap(corps, f, at, nbSignaux){
      ne sont pas chargees : on ne compte pas ce qu'on n'a pas calcule. */
   if(nbSignaux > 0) morceaux.push(nbSignaux + (nbSignaux > 1 ? ' points à traiter' : ' point à traiter'));
   else if(nbSignaux === 0) morceaux.push('rien d\'urgent');
-  const titre = 'Ouvre ton cap et tes priorités' + (morceaux.length ? ' : ' + morceaux.join(', ') : '');
-  return `<div class="card"><details class="msg--replie" id="pied-cap-tete">
+  /* OUVERT A L'ARRIVEE DEPUIS LE 25/09/2026, arbitrage de Ted apres la revue du
+     vigneron : le verdict est ce qu'on vient chercher, il ne doit pas demander un clic.
+     Le depliant reste, pour qui veut le ranger ; le titre perd donc son verbe. */
+  const titre = 'Ton cap et tes priorités' + (morceaux.length ? ' : ' + morceaux.join(', ') : '');
+  return `<div class="card"><details class="msg--replie" id="pied-cap-tete" open>
     <summary>${titre}</summary>${corps}</details></div>`;
 }
 function renderCap(){
@@ -1861,7 +1864,7 @@ function renderCap(){
   const scope=libellePerimetre();
   const f=capCadre(),at=capAtterrissage(),yt=yoyTotals();
 
-  let html=`<h2 class="panel__title">Mon cap</h2><div class="panel__sub">Où tu en es, où tu finis ton ${exMot()}, et pourquoi. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
+  let html=`<h2 class="panel__title titre-piece">Mon cap</h2><div class="panel__sub">Où tu en es, où tu finis ton ${exMot()}, et pourquoi. CA HT, hors transport, pub, remises, offerts et casse. Périmètre : ${scope}.</div>`;
 
   // Garde-fou anti-ecran-vide : des lignes en base, mais aucune vente detectee.
   if(!rows.length && ROWS.length){
@@ -2218,7 +2221,7 @@ function renderProduits(){
   const A=agentProduits();
   // « Mes cuvees », comme la barre du bureau. L'ecran disait « Mes produits », et c'etait
   // le seul endroit du bureau ou une piece portait deux noms.
-  let html=`<h2 class="panel__title">Mes cuvées</h2>`;
+  let html=`<h2 class="panel__title titre-piece">Mes cuvées</h2>`;
   if(!A.ok){
     /* 19/09/2026. L'ecran disait ce qui manque et sortait AVANT la ligne qui pose le bouton
        pour aller le chercher : `noteComplement()` est plus bas, apres ce `return`, donc seul
@@ -3837,7 +3840,7 @@ function comAuBesoin(){
 function renderClients(){
   comAuBesoin();
   CLIENTS=agentClients();
-  let html=`<h2 class="panel__title">Mon commerce</h2>`;
+  let html=`<h2 class="panel__title titre-piece">Mon commerce</h2>`;
 
   /* ETAGE 1, LE VERDICT. Arrive de « Mon annee » le 11/09/2026, et il est EN TETE, avant
      meme le test de liste vide : « tu fais du surplace » reste vrai un jour ou il n'y a
