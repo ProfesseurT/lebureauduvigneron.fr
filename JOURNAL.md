@@ -13,6 +13,17 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 26/09/2026, quatrieme tour de la revue
+
+Quatre « oui » de Ted, quatre corrections :
+
+- **« + Ajouter un export » devient « + Déposer un fichier Vitisoft »** (bouton de Mon commerce et titre de la carte de Ma base). Un vigneron ne sait pas ce qu'est « un export » ; il sait ce qu'est son fichier Vitisoft.
+- **Legende sous la grille du mois** : ● nouvelle lune, ◑ premier quartier, ○ pleine lune, ◐ dernier quartier, F jour ferie, ✲ saison. Les signes ne se lisaient qu'au survol, et un telephone ne survole pas. Posee seulement quand « Lune et feriés » est allume.
+- **Le filtre « Mes clients » s'appelle « Rappels clients »** : il portait le meme nom que la piece « Mes clients », et ne montre que les rappels promis. Bancs banc-taches et banc-calclients suivis, agenda:joindre refait (l'agenda .ics ne lit pas les libelles, pas de redeploiement).
+- **L'annee apparait quand la date est a plus de six mois** (Mes taches, calendrier, periodes) : « 15 mai 2027 » et plus « 15 mai » en septembre.
+
+A surveiller : le poids bloquant est a 79,9 ko sur 80. La prochaine ligne de JS dans bdv-echeances.js devra en retirer une.
+
 ## 26/09/2026, troisieme tour de la revue
 
 Quatre oui de Ted : le bloc calendrier de « Ma journee » montre la FIN d'une periode en cours

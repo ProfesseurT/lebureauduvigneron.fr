@@ -219,11 +219,22 @@
   function enFrancais(d) {
     return premier(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), d);
   }
-  function courte(d) {
-    return premier(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), d);
+  // A plus de six mois d'ici (dans un sens ou dans l'autre), le mois seul ne dit
+  // plus de quelle annee on parle : « 15 mars » en septembre, c'est lequel ?
+  // On ajoute l'annee. En deca, elle alourdirait chaque ligne pour rien.
+  // (26/09/2026, revue du vigneron.)
+  function loin(d) {
+    return Math.abs(d - new Date()) > 183 * 86400000;
   }
-  function sansJour(d) {
-    return premier(d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }), d);
+  function courte(d) {
+    var o = { weekday: 'long', day: 'numeric', month: 'long' };
+    if (loin(d)) o.year = 'numeric';
+    return premier(d.toLocaleDateString('fr-FR', o), d);
+  }
+  function sansJour(d, an) {
+    var o = { day: 'numeric', month: 'long' };
+    if (an) o.year = 'numeric';
+    return premier(d.toLocaleDateString('fr-FR', o), d);
   }
 
   // La forme d'une occurrence, ecrite UNE fois. calculer() et etaler() la
@@ -245,7 +256,7 @@
       jours: n, niveau: niveau(n, encours), phrase: phrase(n, encours, e.statut || 'obligation'),
       dateLongue: enFrancais(d), dateCourte: courte(d),
       // « du 1er decembre au 15 mars », pour tout ce qui dure plus d'un jour.
-      periode: duree(r) > 1 ? ('du ' + sansJour(d) + ' au ' + sansJour(f)) : null,
+      periode: duree(r) > 1 ? ('du ' + sansJour(d, loin(d) && d.getFullYear() !== f.getFullYear()) + ' au ' + sansJour(f, loin(f))) : null,
       famille: e.famille || 'obligations',
       statut: e.statut || 'obligation',
       decale: decale(e)
@@ -417,7 +428,7 @@
        ET ELLE NE SE COCHE PAS. « Fait » pour un client, ce n'est pas une case : c'est
        ce qu'il a dit. Ces lignes menent a sa fiche, qui est le seul endroit ou l'on
        note un echange depuis le 11/09/2026. */
-    { cle: 'clients',     label: 'Mes clients',  quoi: 'Ceux que j’ai promis de rappeler' }
+    { cle: 'clients',     label: 'Rappels clients',  quoi: 'Ceux que j’ai promis de rappeler' }
   ];
   function deLaFamille(echeances, cle) {
     return (echeances || []).filter(function (e) {

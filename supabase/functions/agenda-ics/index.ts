@@ -56,7 +56,7 @@
    `_deploiement/agenda-ics/` envoie les octets exacts, et ce bloc peut etre
    retire.
 
-   empreinte du code joint : sha256 179703a232fa5988, 609 lignes.
+   empreinte du code joint : sha256 955ff4db0ad8c529, 620 lignes.
    empreinte de la bibliotheque deployee : sha256 95e1df263f3b95b0, 49 occurrences.
 
    ----------------------------------------------------------------------------

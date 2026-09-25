@@ -94,7 +94,7 @@ dit(grille().indexOf('data-cal-client="706"') >= 0,
   'la pastille mene a la fiche du client, qui est le seul endroit ou l\'on note ce qu\'il a dit');
 dit(grille().indexOf('deja traite') < 0,
   'un client mis de cote n\'apparait pas : sa fiche fait foi');
-dit(w.document.getElementById('calFiltre').innerHTML.indexOf('Mes clients') >= 0,
+dit(w.document.getElementById('calFiltre').innerHTML.indexOf('Rappels clients') >= 0,
   'la famille est dans le filtre, elle s\'eteint comme les autres');
 
 console.log('\n== 2. La vue liste ==');

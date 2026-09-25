@@ -1981,7 +1981,7 @@ function renderBase(){
   // ZONE C : gestion (deux actions sobres cote a cote).
   html+=`<div class="section-label">Gestion</div>
   <div class="grid-2">
-    <div class="card"><div class="card__title"><span>Ajouter un export</span></div>
+    <div class="card"><div class="card__title"><span>Déposer un fichier Vitisoft</span></div>
       <div class="dropzone dropzone--compact" id="dropzoneReg">
         <div class="dz-icon">&#9095;</div><h3>Dépose ton export ici</h3>
         <p>Export Vitisoft (.csv) · ou clique pour choisir</p>

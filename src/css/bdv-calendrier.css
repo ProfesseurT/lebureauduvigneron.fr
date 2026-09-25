@@ -287,6 +287,17 @@
   font-family: var(--font-mono);
   text-transform: uppercase;
 }
+/* La legende des signes, sous la grille (26/09/2026). */
+.bdv-cal .cal__legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bdv-e-1) var(--bdv-e-3);
+  margin: var(--bdv-e-2) 0 0;
+  color: var(--bdv-encre-3);
+  font-size: var(--bdv-f-1);
+}
+.bdv-cal .cal__legende-i { white-space: nowrap; }
+.bdv-cal .cal__legende .calf__m { color: var(--bdv-encre-4); }
 
 /* ---------------------------------------------------------------------------
    LES OCCURRENCES DANS LA GRILLE

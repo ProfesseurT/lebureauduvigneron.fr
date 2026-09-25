@@ -334,6 +334,25 @@
     });
     return par;
   }
+  function legendeFond() {
+    var p = document.createElement('p');
+    p.className = 'cal__legende';
+    [['lune', SIGNES[0], 'nouvelle lune'], ['lune', SIGNES[1], 'premier quartier'],
+     ['lune', SIGNES[2], 'pleine lune'], ['lune', SIGNES[3], 'dernier quartier'],
+     ['ferie', 'f', 'jour férié'], ['saison', '✲', 'saison']].forEach(function (x) {
+      var it = document.createElement('span');
+      it.className = 'cal__legende-i';
+      var m = document.createElement('span');
+      m.className = 'calf__m';
+      m.setAttribute('data-nature', x[0]);
+      m.setAttribute('aria-hidden', 'true');
+      m.textContent = x[1];
+      it.appendChild(m);
+      it.appendChild(document.createTextNode(' ' + x[2]));
+      p.appendChild(it);
+    });
+    return p;
+  }
   function poserFond(td, liste) {
     if (!liste || !liste.length) return;
     var box = document.createElement('span');
@@ -558,6 +577,11 @@
     }
     table.appendChild(tbody);
     hote.appendChild(table);
+    /* LA LEGENDE DES SIGNES (26/09/2026, revue du vigneron) : les ronds et les
+       croissants du coin des cases ne se lisaient qu'en survolant, et un
+       telephone ne survole pas. Une ligne sous la grille, seulement quand le
+       fond de carte est allume. */
+    if (fond && window.BdvAlmanach) hote.appendChild(legendeFond());
 
     /* LE DETAIL SOUS LA GRILLE. C'est ce qui fait la difference entre un
        calendrier et une decoration : la case dit qu'il y a quelque chose, la

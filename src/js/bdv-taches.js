@@ -442,7 +442,10 @@
   function dateCourte(isoJour) {
     var d = new Date(isoJour + 'T00:00:00');
     if (isNaN(d)) return '';
-    var t = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    // A plus de six mois, l'annee (26/09/2026) : « 15 mars » ne dit pas lequel.
+    var o = { day: 'numeric', month: 'long' };
+    if (Math.abs(d - new Date()) > 183 * 86400000) o.year = 'numeric';
+    var t = d.toLocaleDateString('fr-FR', o);
     return d.getDate() === 1 ? t.replace(/^1 /, '1er ') : t;
   }
   /* « du 9 au 11 fevrier » plutot que « 9 fevrier » : une periode dit sa fin, sinon

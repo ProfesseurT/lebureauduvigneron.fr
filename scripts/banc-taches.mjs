@@ -527,7 +527,7 @@ console.log('\n== 9. Les rappels clients ==');
 
   t.T.basculerFamille('clients');
   dit(t.T.toutes().filter(x => x.source === 'client').length === 0,
-    'eteindre « Mes clients » les retire de la liste');
+    'eteindre « Rappels clients » les retire de la liste');
   dit(t.T.toutes().filter(x => x.source === 'echeance').length === 1,
     'et ne touche pas aux obligations');
   t.T.basculerFamille('clients');
