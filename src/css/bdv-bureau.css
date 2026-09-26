@@ -2089,10 +2089,32 @@ body.bdv-coque{
 .bdv-coque .bdv-cal .calo[data-long="oui"][data-famille="travaux"]    .calo__b{ border-bottom-color:var(--bdv-fam-2); }
 .bdv-coque .bdv-cal .calo[data-long="oui"][data-famille="rendezvous"] .calo__b{ border-bottom-color:var(--bdv-fam-3); }
 .bdv-coque .bdv-cal .calo[data-long="oui"][data-famille="tempsforts"] .calo__b{ border-bottom-color:var(--bdv-fam-4); }
+/* L'OBLIGATION A UNE FORME EN PLUS DE SA COULEUR, 26/09/2026 : un aplat plein.
+   C'est la seule famille qui coute une amende, et un filet de 3 px ne se voit
+   pas a 6 h au chai (verdict de l'agent vigneron). Une seule famille recoit un
+   aplat : ca ne cree ni couleur ni ombre, et ca se lit en niveaux de gris. Une
+   obligation PASSEE perd son aplat, elle n'a plus rien a reclamer. */
+.bdv-coque .bdv-cal .calo[data-famille="obligations"] .calo__b{
+  background:var(--bdv-fam-1);
+  color:var(--bdv-encre-sur-fam-1);
+  font-weight:600;
+}
+.bdv-coque .bdv-cal .calo[data-famille="obligations"][data-niveau="passe"] .calo__b{
+  background:none;
+  color:var(--bdv-encre-2);
+  font-weight:inherit;
+}
 /* CE QUI PRESSE ET CE QUI EST PASSE. Le mot est dans l'intitule et dans la
-   liste du dessous ; ici la couleur ne fait que reperer. */
-.bdv-coque .bdv-cal .calo[data-niveau="urgent"] .calo__b,
-.bdv-coque .bdv-cal .calo[data-niveau="aujourdhui"] .calo__b{ border-left-color:var(--bdv-retard); }
+   liste du dessous ; ici la couleur ne fait que reperer.
+   DEPUIS LE 26/09/2026, LE FILET NE DIT QUE LA FAMILLE. Il disait aussi
+   l'urgence, donc une obligation changeait de couleur selon sa date (rouge,
+   ocre, gris, indigo) et se confondait avec les temps forts. Le rouge d'urgence
+   ne reste que sur les deux familles SANS couleur (mes taches, rappels
+   clients), qui n'ont rien d'autre pour le dire dans la grille. */
+.bdv-coque .bdv-cal .calo[data-niveau="urgent"][data-tache="oui"] .calo__b,
+.bdv-coque .bdv-cal .calo[data-niveau="urgent"][data-client="oui"] .calo__b,
+.bdv-coque .bdv-cal .calo[data-niveau="aujourdhui"][data-tache="oui"] .calo__b,
+.bdv-coque .bdv-cal .calo[data-niveau="aujourdhui"][data-client="oui"] .calo__b{ border-left-color:var(--bdv-retard); }
 .bdv-coque .bdv-cal .calo[data-niveau="passe"] .calo__b{ border-left-color:var(--bdv-trait-fort); }
 .bdv-coque .bdv-cal .calo[data-fait="oui"] .calo__b{ color:var(--bdv-encre-4); }
 .bdv-coque .bdv-cal .calm__plus{
@@ -2263,6 +2285,10 @@ body.bdv-coque{
 .bdv-coque .bdv-cal .echeance[data-famille="travaux"]   { border-left-color:var(--bdv-fam-2); }
 .bdv-coque .bdv-cal .echeance[data-famille="rendezvous"]{ border-left-color:var(--bdv-fam-3); }
 .bdv-coque .bdv-cal .echeance[data-famille="tempsforts"]{ border-left-color:var(--bdv-fam-4); }
+/* L'obligation reprend sa couleur quel que soit son delai (26/09/2026) : les
+   quatre tons du dessus la peignaient en ocre, gris ou rouge, et elle devenait
+   un temps fort. Le delai reste dit par le mot et la couleur de « dans 14 jours ». */
+.bdv-coque .bdv-cal .echeance[data-famille="obligations"]{ border-left-color:var(--bdv-fam-1); }
 .bdv-coque .bdv-cal .echeance[data-fait="oui"] .echeance__quand{ color:var(--bdv-bon); }
 .bdv-coque .bdv-cal .echeance__repere{
   color:var(--bdv-encre-4);
@@ -2366,8 +2392,22 @@ body.bdv-coque{
   .bdv-coque .bdv-cal .calm__l .calo[data-famille="travaux"]    .calo__b{ background:var(--bdv-fam-2); }
   .bdv-coque .bdv-cal .calm__l .calo[data-famille="rendezvous"] .calo__b{ background:var(--bdv-fam-3); }
   .bdv-coque .bdv-cal .calm__l .calo[data-famille="tempsforts"] .calo__b{ background:var(--bdv-fam-4); }
-  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="urgent"] .calo__b,
-  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="aujourdhui"] .calo__b{ background:var(--bdv-retard); }
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="urgent"][data-tache="oui"] .calo__b,
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="urgent"][data-client="oui"] .calo__b,
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="aujourdhui"][data-tache="oui"] .calo__b,
+  .bdv-coque .bdv-cal .calm__l .calo[data-niveau="aujourdhui"][data-client="oui"] .calo__b{ background:var(--bdv-retard); }
+  /* L'obligation est un CARRE de 10 px, les autres des ronds de 6 : la forme la
+     distingue sans couleur, et la case de 44 px le permet. */
+  .bdv-coque .bdv-cal .calm__l .calo[data-famille="obligations"] .calo__b{
+    width:10px;
+    height:10px;
+    border-radius:0;
+  }
+  /* Et il passe en TETE de la rangee de points : sur telephone il n'y a pas de
+     bandeau a garder aligne d'une case a l'autre, rien ne l'empeche d'etre vu
+     en premier. Sur ordinateur, non : les periodes longues forment des bandeaux
+     qui traversent la semaine, et les reordonner dans une seule case les casserait. */
+  .bdv-coque .bdv-cal .calm__l .calo[data-famille="obligations"]{ order:-1; }
   .bdv-coque .bdv-cal .calm__l .calo[data-niveau="passe"] .calo__b{ background:var(--bdv-trait-fort); }
   /* Ce qui est fait se creuse au lieu de se remplir : un anneau, pas un point.
      C'est la FORME qui porte l'etat, la couleur ne fait que confirmer. */
@@ -4672,3 +4712,44 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
    et il reste visible sur la fiche en pleine page, qui n'a pas de barre. */
 body.bdv-coque .bureau-tete .bureau-tete__reglages{ display:none; }
 body.bdv-coque.bdv-page-fiche .bureau-tete .bureau-tete__reglages{ display:inline-flex; }
+
+/* -- 30. LA FAMILLE SE VOIT PARTOUT, ET ELLE NE DIT QU'ELLE, 26/09/2026 -------
+   Demande de Ted : les couleurs du calendrier et des taches sont-elles assez
+   vives pour distinguer les familles ? Verdict de l'agent vigneron et du calcul :
+   non. Les teintes sont refaites dans bdv-theme.css ; ici, ce qui manquait.
+
+   1. « MES TACHES » PORTE LE FILET DE FAMILLE sur chaque ligne. Elle n'en portait
+      aucun, seuls ses boutons de filtre le montraient. C'est un fond de 3 px et
+      pas une bordure, pour la meme raison que la section 28 : la ligne a deja un
+      retrait gauche, et une bordure la decalerait. Au survol, le fond monte et le
+      filet GARDE sa famille : la regle de la section 28, pas de filet d'accent la
+      ou le bord gauche porte deja un sens.
+   2. « Mes notes » garde sa matiere, le pointille ; les rappels clients gardent
+      leur combine et n'ont pas de filet. */
+body.bdv-coque .tache[data-famille]{
+  background-size:3px 100%;
+  background-repeat:no-repeat;
+  background-position:left top;
+}
+body.bdv-coque .tache[data-famille="obligations"],
+body.bdv-coque .tache[data-famille="obligations"]:hover,
+body.bdv-coque .tache[data-famille="obligations"]:has(:focus-visible){ background-image:linear-gradient(var(--bdv-fam-1),var(--bdv-fam-1)); }
+body.bdv-coque .tache[data-famille="travaux"],
+body.bdv-coque .tache[data-famille="travaux"]:hover,
+body.bdv-coque .tache[data-famille="travaux"]:has(:focus-visible){ background-image:linear-gradient(var(--bdv-fam-2),var(--bdv-fam-2)); }
+body.bdv-coque .tache[data-famille="rendezvous"],
+body.bdv-coque .tache[data-famille="rendezvous"]:hover,
+body.bdv-coque .tache[data-famille="rendezvous"]:has(:focus-visible){ background-image:linear-gradient(var(--bdv-fam-3),var(--bdv-fam-3)); }
+body.bdv-coque .tache[data-famille="tempsforts"],
+body.bdv-coque .tache[data-famille="tempsforts"]:hover,
+body.bdv-coque .tache[data-famille="tempsforts"]:has(:focus-visible){ background-image:linear-gradient(var(--bdv-fam-4),var(--bdv-fam-4)); }
+body.bdv-coque .tache[data-famille="notes"],
+body.bdv-coque .tache[data-famille="notes"]:hover,
+body.bdv-coque .tache[data-famille="notes"]:has(:focus-visible){
+  background-image:repeating-linear-gradient(var(--bdv-encre-4) 0 2px,transparent 2px 4px);
+}
+/* 3. DEUX FILTRES PORTAIENT LA COULEUR DES OBLIGATIONS SANS EN ETRE : « Rappels
+      clients » et « Lune et feries ». `.filtfam` pose `--bdv-fam-1` par defaut,
+      et aucune regle ne les en ecartait. Ils prennent le trait neutre. */
+.bdv-coque .filtfam[data-fam="clients"],
+.bdv-coque .filtfam.cal__fond{ border-left-color:var(--bdv-trait-fort); }

@@ -336,6 +336,7 @@
         var l = map[tid];
         return {
           tache_id: tid, titre: x.e.titre, source: 'echeance', ref: x.e.cle,
+          famille: x.e.famille || 'obligations',
           /* L'AUTEUR VIENT DE LA LIGNE COCHEE, ET N'EXISTE QUE SI ELLE EXISTE. Une
              obligation non cochee n'est stockee nulle part : elle est calculee ici,
              elle n'a donc pas d'auteur, et son nom ne doit pas etre le mien. */
@@ -635,6 +636,11 @@
     li.className = 'tache';
     li.setAttribute('data-fait', t.fait_le ? 'oui' : 'non');
     var to = ton(t); if (to) li.setAttribute('data-ton', to);
+    /* LA FAMILLE SE VOIT SUR LA LIGNE, 26/09/2026 : un filet de sa couleur, comme
+       dans le calendrier (section 30 de bdv-bureau.css). Une tache ecrite est une
+       note, un rappel client n'a pas de couleur. */
+    li.setAttribute('data-famille', t.source === 'client' ? 'clients'
+      : (t.source === 'echeance' ? (t.famille || 'obligations') : 'notes'));
 
     /* UN CLIENT N'A PAS DE CASE, il a une pastille inerte. La rangee est une grille
        de trois colonnes : lui retirer sa premiere cellule decalerait tout le texte de

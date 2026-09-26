@@ -6684,3 +6684,21 @@ elle (`:has`). Toucher une piece, a cote ou Echap referme.
 « En retard ». Plus jamais « En vigueur depuis le », qui cassait la phrase devant une periode.
 Et « 1er » le premier du mois, par `premier()` dans le meme fichier. **Ce fichier est joint a
 `agenda-ics` : toute retouche demande `npm run agenda:joindre` puis un redeploiement.**
+
+## LE FILET DIT LA FAMILLE, ET RIEN D'AUTRE, 26/09/2026
+
+Dans le calendrier et « Mes taches », le filet de 3 px (et la pastille du telephone) porte
+la FAMILLE, jamais l'urgence. Avant, les etats `data-niveau` (urgent, proche, loin, passe)
+repeignaient le filet : une obligation devenait rouge, ocre ou grise selon sa date, et se
+confondait avec les temps forts. Le delai se dit par le MOT et la couleur de la date.
+Deux exceptions nommees : le rouge de retard reste sur les familles SANS couleur (notes,
+rappels clients), et une occurrence passee reste grise dans la grille.
+
+- **L'obligation est indigo, pas bordeaux** (`--bdv-fam-1`) : un bordeaux se confond avec
+  l'accent des boutons, en clair comme en sombre et en daltonisme. Ne pas la ramener au
+  bordeaux « pour la marque ».
+- **Elle a une forme en plus** : aplat plein dans la grille (texte `--bdv-encre-sur-fam-1`),
+  carre de 10 px en tete de case sur telephone. Une seule famille a droit a l'aplat.
+- **Nouvelle echelle calculee** dans `bdv-theme.css`, avec ses mesures en commentaire. Une
+  famille ajoutee ne prend pas une cinquieme teinte (la bande est pleine) : une matiere.
+- `bdv-taches.js` pose `data-famille` sur chaque ligne ; section 30 de `bdv-bureau.css`.

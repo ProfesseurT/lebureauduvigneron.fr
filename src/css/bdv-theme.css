@@ -201,10 +201,23 @@
         3,42:1 (sombre, fam-4 sur --bdv-surface-3) : ce sont des OBJETS graphiques,
         un filet de 3 px et une pastille de 6 px, jamais du texte, donc le seuil
         applicable est 3:1. ------------------------------------------------------ */
-  --bdv-fam-1:#4A1220;             /* obligations : bordeaux profond              */
-  --bdv-fam-2:#3D5233;             /* travaux : vert-olive de vigne               */
-  --bdv-fam-3:#3A6E8F;             /* rendez-vous : bleu ardoise                  */
-  --bdv-fam-4:#B07D22;             /* temps forts : ocre                          */
+  /* REVUES LE 26/09/2026, a la demande de Ted (« assez flashy pour les
+     distinguer ? ») : non. Trois familles sur quatre avaient une chroma sous 25,
+     l'obligation se lisait comme de l'encre noire (dE00 22 avec l'encre) et comme
+     l'accent (dE00 17,8 ; 13,6 en sombre). Nouvelle echelle, calculee : C* >= 35,
+     3:1 sur chaque surface (pire 3,11 en clair, 3,68 en sombre), dL* >= 10 entre
+     familles (niveaux de gris), dE00 >= 16,5 entre familles en deuteranopie et
+     protanopie, >= 31 avec l'accent. L'OBLIGATION QUITTE LE BORDEAUX POUR
+     L'INDIGO : aucun bordeaux ne s'ecarte assez de l'accent. Ordre L* clair
+     24 / 34 / 47 / 57 (travaux, obligations, temps forts, rendez-vous), sombre
+     52 / 63 / 76 / 88 (obligations, temps forts, rendez-vous, travaux). */
+  --bdv-fam-1:#443DB7;             /* obligations : indigo                        */
+  --bdv-fam-2:#004310;             /* travaux : vert vigne                        */
+  --bdv-fam-3:#0494BC;             /* rendez-vous : bleu ciel                     */
+  --bdv-fam-4:#996301;             /* temps forts : ocre                          */
+  /* Le texte pose SUR l'aplat d'une obligation, dans la grille du mois : 8,09:1
+     en clair, 4,68:1 en sombre. */
+  --bdv-encre-sur-fam-1:#FFFFFF;
 
   /* -- ECHELLES. Memes valeurs dans les deux themes : un theme change des
         couleurs, il ne change ni le rythme ni la taille du texte. ----------- */
@@ -296,10 +309,11 @@
     --bdv-serie-8:#E8DCBB;
     --bdv-aire-accent:rgba(242,148,169,.18);
 
-    --bdv-fam-1:#F5C9D3;
-    --bdv-fam-2:#94BC7E;
-    --bdv-fam-3:#6295B8;
-    --bdv-fam-4:#9A6F1E;
+    --bdv-fam-1:#8169DF;
+    --bdv-fam-2:#A3F089;
+    --bdv-fam-3:#17CDF0;
+    --bdv-fam-4:#B49540;
+    --bdv-encre-sur-fam-1:#0B0C0E;
   }
 }
 
@@ -363,10 +377,11 @@
   --bdv-serie-8:#E8DCBB;
   --bdv-aire-accent:rgba(242,148,169,.18);
 
-  --bdv-fam-1:#F5C9D3;
-  --bdv-fam-2:#94BC7E;
-  --bdv-fam-3:#6295B8;
-  --bdv-fam-4:#9A6F1E;
+  --bdv-fam-1:#8169DF;
+  --bdv-fam-2:#A3F089;
+  --bdv-fam-3:#17CDF0;
+  --bdv-fam-4:#B49540;
+  --bdv-encre-sur-fam-1:#0B0C0E;
 }
 
 

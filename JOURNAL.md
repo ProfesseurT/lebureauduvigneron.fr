@@ -13,6 +13,35 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 26/09/2026, les couleurs de famille du calendrier et des taches
+
+Question de Ted : les couleurs sont-elles assez vives pour distinguer les familles ? Avis de
+l'agent vigneron (sur captures reelles) et d'un calcul de contraste : **non**, et le vrai
+defaut etait ailleurs que dans l'eclat.
+
+- **Le filet disait deux choses** : la famille ET l'urgence (rouge, ocre, gris). Une
+  obligation changeait donc de couleur selon sa date et devenait un « temps fort » ocre dans
+  la liste. Desormais le filet ne dit que la famille ; l'urgence reste dans le mot et la date.
+  Le rouge de retard ne reste que sur les deux familles sans couleur (notes, rappels clients).
+- **Nouvelle palette**, calculee (C* >= 35, 3:1 sur chaque surface, lisible en niveaux de
+  gris et en daltonisme). **L'obligation passe du bordeaux a l'indigo** : aucun bordeaux ne
+  se distinguait de l'accent des boutons. Clair #443DB7 / #004310 / #0494BC / #996301,
+  sombre #8169DF / #A3F089 / #17CDF0 / #B49540.
+- **L'obligation a une forme en plus** : aplat plein dans la grille, carre de 10 px en tete
+  de case sur telephone. Passee, elle perd son aplat.
+- **« Mes taches » porte le filet de famille** sur chaque ligne (pointille pour les notes).
+- **Les filtres « Rappels clients » et « Lune et feries »** ne portent plus la couleur des
+  obligations.
+
+Ecarte : un aplat teinte a la place du filet (ne distingue rien en daltonisme, mesure).
+Ecarte : remonter l'obligation en tete de case sur ordinateur (casserait l'alignement des
+bandeaux de periodes longues).
+
+Reste ouvert : la vue « L'annee » ne montre toujours aucune famille ; les periodes longues
+(vendanges, vinification) remplissent la grille de septembre et d'octobre, question de
+contenu ; en clair, sans couleur, l'indigo et l'accent ont le meme gris et seule la forme
+les separe.
+
 ## 26/09/2026, quatrieme tour de la revue
 
 Quatre « oui » de Ted, quatre corrections :
