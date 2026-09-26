@@ -43,7 +43,8 @@ mois-ci » et « le deuxième achat pendant qu'il est temps », proposés par l'
 **Le poids** : les nouveaux textes faisaient passer le script de « Ma journée » à 80,0 ko sur 80. La construction retire
 maintenant son indentation (7 ko), avec les mêmes garde-fous que pour les fichiers JavaScript : 73,3 ko, plafond inchangé.
 
-**À faire** : redéployer `courrier-matin` (ses textes ont changé).
+**Fait** : `courrier-matin` redéployé le même jour en version 17, vérifié identique au dépôt octet par octet. Le droit de
+suppression accordé pour la session a permis de construire le site et de recoller le courrier depuis la session.
 
 ## 26/09/2026, les mails dans le fil du client : écarté. L'historique monte sous le conseil.
 

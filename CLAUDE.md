@@ -6751,7 +6751,7 @@ Scripts de la passe : `Claude outputs/audit-phrases-*.py`.
 - **Le bloc « saison » ne se propose que si le mois fort est A VENIR** (1 a 3 mois apres la fin
   de l'export) : « je prends un peu d'avance » est faux pendant ou apres.
 - Le courrier du matin a change de mots (« Ce que dit ton bureau », « a faire ») :
-  `courrier-matin` est A REDEPLOYER depuis `_deploiement/courrier-matin/`.
+  `courrier-matin` redeploye le 26/09/2026 (version 17), identique au depot a l'octet pres.
 
 ## DEUX LISTES DE PLUS DANS « QUI RAPPELER », 26/09/2026
 
@@ -6772,6 +6772,6 @@ priorite : recul > cadence > deuxieme > saison > premier (un client n'apparait q
 - **Le signal de Mon cap compte ce que le filtre montre** (memes ecarts qu'`agentClients()`).
 - **`motifDeduit()` reprend d'abord le motif de la liste** (`CLIENTS`) : un client, une raison.
 - `deuxieme` se traite comme `premier` dans le conseil et le mail, `saison` comme `cadence` pour le
-  reassort. Le courrier du matin nomme les deux motifs (`TITRES_MOTIF`) : A REDEPLOYER.
+  reassort. Le courrier du matin nomme les deux motifs (`TITRES_MOTIF`) : redeploye en version 17.
 - Au passage : les dates des lettres aux clients s'ecrivent « 15 juin 2026 » (`dateLettre()`), et
   `avecLe()` dit « la Cuvee ».
