@@ -667,7 +667,7 @@ function batir(d){
   }
 
   if(signaux.length){
-    corps += bande('Ta file de travail',
+    corps += bande('Tes clients à voir',
                    reste > 0 ? (signaux.length+' sur '+tousSig.length) : String(tousSig.length));
     /* ON GROUPE D'ABORD, ON DESSINE ENSUITE, et c'est une correction du
        09/09/2026 trouvee par le controle 6 de l'apercu. En dessinant au fil des
@@ -717,9 +717,9 @@ function batir(d){
           + 'font-size:11px;line-height:1.5;color:'+C.muted+';">'+esc(pied.join(' '))+'</td></tr></table>';
     /* padding 8px 28px : les 10 px de la ligne, plus les 18 px de l'encart. */
   } else if(perime && (file.signaux||[]).length){
-    corps += bande('Ta file de travail', 'périmée');
+    corps += bande('Tes clients à voir', 'liste périmée');
     corps += ligne(false,
-        '<div style="font-size:13px;">Ta file n\'est plus affichée ici : elle a été calculée '
+        '<div style="font-size:13px;">Cette liste n\'est plus affichée ici : elle a été calculée '
       + (jDepot ? 'le '+esc(fmtJourCourt(jDepot))+', il y a '+plur(ageDepot,'jour') : 'à une date inconnue')
       + '. Importe ton dernier export dans le bureau pour la rafraîchir.</div>', '');
   }
@@ -911,7 +911,7 @@ function batir(d){
     t.push('');
   }
   if(signaux.length){
-    t.push('TA FILE DE TRAVAIL'+(reste>0 ? '  ('+signaux.length+' sur '+tousSig.length+')' : ''));
+    t.push('TES CLIENTS À VOIR'+(reste>0 ? '  ('+signaux.length+' sur '+tousSig.length+')' : ''));
     var groupesT = [], parMotifT = {};
     signaux.forEach(function(s){
       var k = s.motif || '';
@@ -938,7 +938,7 @@ function batir(d){
     t.push('  Calculée à ton dernier import, le '+fmtJourCourt(jDepot)+'.', '');
   }
   if(conseils.length){
-    t.push('CE QUE DIT TON TABLEAU DE BORD');
+    t.push('CE QUE DIT TON BUREAU');
     conseils.forEach(function(c){
       t.push('  '+sansBalise(c.verdict));
       if(c.action) t.push('    '+sansBalise(c.action));
