@@ -2617,7 +2617,12 @@ function messageEnvoye(btn){
   const z=el('msgZone');if(!z)return;
   const id=z.dataset.id;const mail=z.dataset.mail||'';
   const sujet=(el('msgSujet')||{}).value||'';
-  echAjouter(id,'message',mail?'email':null,'Message envoyé'+(sujet?' : '+sujet:''));
+  /* LE CORPS DU MAIL EST GARDE depuis le 26/09/2026 (demande de Ted : « on n'a que l'objet »).
+     Premiere ligne inchangee, « Message envoye : objet », puis une ligne vide, puis le texte
+     tel qu'il est parti dans le lien mailto. Meme colonne `resume` : pas de SQL, et les
+     anciennes entrees, qui n'ont que la premiere ligne, s'affichent comme avant. */
+  const corps=((el('msgTexte')||{}).value||'').trim();
+  echAjouter(id,'message',mail?'email':null,'Message envoyé'+(sujet?' : '+sujet:'')+(corps?'\n\n'+corps:''));
   btn.disabled=true;btn.textContent='Noté comme envoyé';
   const s=CRM[id]||{};
   DEMANDE_DATE=s.rappel?null:String(id);
@@ -3426,15 +3431,27 @@ function filCorps(f,s){
   if(!ech.length&&!s.notes){
     h+=`<p class="fil__vide">Aucun échange noté. Le premier apparaîtra ici, daté.</p>`;
   }else{
+    /* CHAQUE ENTREE SE DEPLIE, 26/09/2026. Le titre dit PAR QUOI et PAR QUI (« E-mail par
+       Teddy »), la date a cote, et la premiere ligne en apercu. Un clic deplie le texte
+       ENTIER, retours a la ligne compris : un compte rendu d'appel ou un mail se relit tel
+       qu'il a ete ecrit. <details> natif : clavier, lecteur d'ecran et repli sans script. */
+    const nom=id=>(window.BdvCompte&&BdvCompte.nomAuteur)?BdvCompte.nomAuteur(id):'';
     h+=ech.slice(0,40).map(function(e){
       const t=libEchange(e);
       const d=new Date(e.le);
       const quand=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
-      return `<div class="fil__l">
-        <span class="fil__ico" aria-hidden="true">${t.ico}</span>
-        <span class="fil__quand">${esc(quand)}</span>
-        <span class="fil__quoi">${e.resume?esc(e.resume):'<i>'+esc(t.label)+'</i>'} ${auteur(e.cree_par)}</span>
-      </div>`;
+      const qui=nom(e.cree_par);
+      const texte=String(e.resume||'').trim();
+      const apercu=texte.split('\n')[0];
+      return `<details class="fil__l">
+        <summary class="fil__s">
+          <span class="fil__ico" aria-hidden="true">${t.ico}</span>
+          <span class="fil__titre">${esc(t.label)}${qui?' <span class="fil__qui">par '+esc(qui)+'</span>':''}</span>
+          <span class="fil__quand">${esc(quand)}</span>
+          ${apercu?`<span class="fil__apercu">${esc(apercu)}</span>`:''}
+        </summary>
+        <div class="fil__txt">${texte?esc(texte):'<i>Aucun texte noté.</i>'}</div>
+      </details>`;
     }).join('');
     if(ech.length>40)h+=`<p class="fil__vide">${plur(ech.length-40,'entrée')} plus ancienne(s) non affichée(s).</p>`;
   }

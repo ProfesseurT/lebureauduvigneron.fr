@@ -202,6 +202,27 @@
    s'ecrivait UN MOT PAR LIGNE. Defaut present depuis que ce media existe, jamais vu
    parce que personne n'avait regarde le fil d'un client a 400 px. */
 @media(max-width:640px){.bdv-ventes .fil__l{grid-template-columns:20px 1fr}.bdv-ventes .fil__quand,.bdv-ventes .fil__quoi{grid-column:2}}
+/* LE FIL QUI SE DEPLIE, 26/09/2026. L'entree est un <details> : la grille passe sur son
+   <summary>, le texte entier dessous garde ses retours a la ligne. */
+.bdv-ventes details.fil__l{display:block;padding:0}
+.bdv-ventes .fil__s{display:grid;grid-template-columns:20px 1fr auto;gap:var(--bdv-e-1) var(--bdv-e-2);align-items:baseline;
+  padding:var(--bdv-e-2) 0;cursor:pointer;list-style:none}
+.bdv-ventes .fil__s::-webkit-details-marker{display:none}
+/* Le triangle vit dans le titre (::after). Celui que le telephone pose sur tout summary (::before)
+   prendrait la premiere cellule de la grille et decalerait la ligne entiere. */
+.bdv-ventes details.fil__l>.fil__s::before{content:none}
+.bdv-ventes .fil__s::marker{content:""}
+.bdv-ventes .fil__s:hover .fil__titre{color:var(--bdv-accent-fort)}
+.bdv-ventes .fil__s:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+.bdv-ventes .fil__titre{font-weight:600;color:var(--bdv-encre-1)}
+.bdv-ventes .fil__titre::after{content:" ▸";color:var(--bdv-encre-4);font-weight:400}
+.bdv-ventes details[open]>.fil__s .fil__titre::after{content:" ▾"}
+.bdv-ventes .fil__qui{font-weight:400;color:var(--bdv-encre-3)}
+.bdv-ventes .fil__apercu{grid-column:2 / -1;color:var(--bdv-encre-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bdv-ventes details[open]>.fil__s .fil__apercu{display:none}
+.bdv-ventes .fil__txt{margin:0 0 var(--bdv-e-3) 28px;padding:var(--bdv-e-3) var(--bdv-e-4);background:var(--bdv-surface-2);
+  border-radius:var(--bdv-r);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;color:var(--bdv-encre-1)}
+@media(max-width:700px){.bdv-ventes .fil__s{min-height:44px;align-content:center}}
 .bdv-ventes .pas-viti{margin-top:var(--bdv-e-6);padding:var(--bdv-e-4) var(--bdv-e-6);background:var(--bdv-surface-2);border:1px solid var(--bdv-encre-3);border-left:3px solid var(--bdv-encre-3);text-align:left;font-size:var(--bdv-f-3);line-height:1.5}
 .bdv-ventes .pas-viti p{margin:0 0 var(--bdv-e-2)}
 .bdv-ventes .pas-viti p:last-child{margin-bottom:0}

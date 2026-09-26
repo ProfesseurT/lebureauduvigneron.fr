@@ -3532,6 +3532,11 @@ Ted, capture de la pleine page : « tres destructure et pas forcement tres utili
 - **L'historique est SOUS « Ce que je ferais »** depuis le 26/09/2026 (demande de Ted), dans
   `.fiche__corps`, par `filCorps()`. La colonne du suivi ne garde que ce qui ECRIT. `redessinerSuivi()`
   repeint `#suiviBloc` ET `#ficheHist` : oublier le second, et une note n'apparait qu'a la reouverture.
+- **Chaque entree de l'historique se DEPLIE** (26/09/2026) : un `<details>`, titre « E-mail par Teddy »
+  (`BdvCompte.nomAuteur()`, qui nomme TOUJOURS, moi compris, contrairement a `mentionAuteur()`), date,
+  premiere ligne en apercu, texte ENTIER dessous. « Considere comme envoye » garde maintenant le CORPS du
+  mail : `resume` = « Message envoye : objet », ligne vide, corps. Meme colonne, pas de SQL. Ne pas
+  couper `resume` a l'ecriture « pour faire court » : c'est la seule copie du mail.
 
 ### PIEGE D'OUTIL, 24/09/2026 : UNE COPIE DEPOSEE N'EST PAS FORCEMENT LA DERNIERE
 

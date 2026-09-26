@@ -24,6 +24,10 @@ qui ferait entrer les mails dans le fil, sans suivi.
 **L'historique de la fiche client passe sous « Ce que je ferais »**, demande de Ted : il était en bas de la colonne du
 suivi, sous les étiquettes. Voir CLAUDE.md, section « LA FICHE REDESSINEE ».
 
+**Chaque entrée de l'historique se déplie**, demande de Ted : titre « moyen de communication par personne », un clic
+montre le texte entier. Le mail noté « considéré comme envoyé » garde désormais son corps, pas seulement l'objet. Les
+mails notés avant ce jour n'ont que l'objet : le corps n'avait jamais été enregistré.
+
 ---
 
 

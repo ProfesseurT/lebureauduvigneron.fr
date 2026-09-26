@@ -1437,6 +1437,22 @@
     return (q === ANCIEN) ? 'd’un ancien membre' : 'de ' + q;
   }
 
+  /* LE NOM, TOUJOURS, POUR LE TITRE D'UNE ENTREE DU FIL. 26/09/2026, demande de Ted :
+     « E-mail par Teddy ». `quiEcrit` se tait sur mes lignes et dans un bureau seul, et
+     c'est juste pour une MENTION glissee a cote d'un texte. Un TITRE, lui, doit toujours
+     dire qui : sinon la moitie des titres s'arreteraient a « E-mail par ».
+     Pour moi, le trombinoscope s'il est la, sinon le prenom du profil, sinon « toi ». */
+  function nomAuteur(id){
+    const t = lireTrombi();
+    if(id && id === monId()){
+      let p = t && t.gens && t.gens[id];
+      if(!p){ try{ p = (localStorage.getItem('bureau_prenom') || '').trim(); }catch(e){ p = ''; } }
+      return p || 'toi';
+    }
+    if(!id) return 'un ancien membre';
+    return (t && t.gens && t.gens[id]) || 'un ancien membre';
+  }
+
   /* ================================================================
      LES FILES DE TRAVAIL HORS LIGNE, ET POURQUOI ELLES BLOQUENT LA BASCULE
      ================================================================
@@ -1633,7 +1649,8 @@
     refusEnFrancais: refusEnFrancais,
     trombinoscope: chargerTrombinoscope,
     quiEcrit: quiEcrit,
-    mentionAuteur: mentionAuteur
+    mentionAuteur: mentionAuteur,
+    nomAuteur: nomAuteur
   };
 
   // Un profil que le reseau avait refuse repart a la premiere occasion, et la file se vide
