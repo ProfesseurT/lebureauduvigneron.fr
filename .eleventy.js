@@ -420,6 +420,72 @@ module.exports = function(eleventyConfig) {
       + Math.round(gagne / 1024) + " Ko de moins a servir");
   });
 
+  /* ==========================================================================
+     L'INDENTATION DU SCRIPT EN LIGNE DE /mon-bureau/, 26/09/2026.
+     Ses commentaires sont deja en Nunjucks (retires a la construction), mais
+     ~6,5 Ko d'espaces de debut de ligne partaient encore au navigateur a chaque
+     ouverture, en bloquant l'affichage : `npm run banc:poids` etait a 80,0 sur 80.
+     Meme prudence que le hook des fichiers JS juste au-dessus :
+       - on ne retire une indentation QUE si elle tombe hors de tout jeton : une
+         chaine ou un gabarit `...` sur plusieurs lignes garde ses espaces ;
+       - l'arbre est recompte des deux cotes, par type de noeud ; un ecart, ou un
+         script illisible par acorn, et la page reste telle quelle.
+     ========================================================================== */
+  eleventyConfig.on("eleventy.after", async () => {
+    const fsp = require("fs");
+    const chemin = require("path");
+    const page = chemin.join(__dirname, "_site", "mon-bureau", "index.html");
+    if (!fsp.existsSync(page)) return;
+    let acorn;
+    try { acorn = require("acorn"); } catch (e) { return; }
+    const types = (arbre) => {
+      const c = Object.create(null);
+      const voir = (n) => {
+        if (!n || typeof n !== "object") return;
+        if (Array.isArray(n)) { for (const x of n) voir(x); return; }
+        if (typeof n.type === "string") c[n.type] = (c[n.type] || 0) + 1;
+        for (const k of Object.keys(n)) if (k !== "type" && k !== "start" && k !== "end") voir(n[k]);
+      };
+      voir(arbre);
+      return Object.keys(c).sort().map((k) => k + ":" + c[k]).join(",");
+    };
+    const html = fsp.readFileSync(page, "utf8");
+    let gagne = 0;
+    const sortie = html.replace(/(<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>)([\s\S]*?)(<\/script>)/g, (tout, ouv, js, ferm) => {
+      let arbre, jetons = [];
+      try {
+        arbre = acorn.parse(js, { ecmaVersion: "latest", sourceType: "script", onToken: jetons });
+      } catch (e) { return tout; }
+      /* Les plages qu'on ne touche jamais : chaines et gabarits. */
+      const garde = jetons.filter((t) => t.type.label === "string" || t.type.label === "template"
+        || t.type.label === "`" || t.type.label === "${").map((t) => [t.start, t.end]);
+      const dedans = (i) => garde.some(([a, b]) => i > a && i < b);
+      let nouveau = "", curseur = 0;
+      const re = /(^|\n)([ \t]+)/g; let m;
+      while ((m = re.exec(js))) {
+        const debut = m.index + m[1].length;
+        if (dedans(debut)) continue;
+        nouveau += js.slice(curseur, debut);
+        curseur = debut + m[2].length;
+      }
+      nouveau += js.slice(curseur);
+      if (nouveau.length >= js.length) return tout;
+      let apres;
+      try { apres = acorn.parse(nouveau, { ecmaVersion: "latest", sourceType: "script" }); }
+      catch (e) { return tout; }
+      if (types(arbre) !== types(apres)) {
+        console.warn("[html] mon-bureau : ECART d'arbre apres retrait d'indentation, script laisse tel quel");
+        return tout;
+      }
+      gagne += js.length - nouveau.length;
+      return ouv + nouveau + ferm;
+    });
+    if (gagne > 0) {
+      fsp.writeFileSync(page, sortie);
+      console.log("[html] mon-bureau : " + Math.round(gagne / 1024) + " Ko d'indentation retires du script en ligne");
+    }
+  });
+
   return {
     dir: {
       input: "src",

@@ -973,8 +973,8 @@ theme_bureau: true
        mieux que « Rappel ce jour », qui ne dit que ce que la colonne Retard dit deja.
        Sans motif, la phrase d'avant. #}
     var quoi = l.source === 'rappel'
-      ? (l.titre || (enRetard ? 'Rappel non fait' : 'Rappel ce jour'))
-      : (l.lib || l.detail || 'Signalé');
+      ? (l.titre || (enRetard ? 'Rappel à faire' : 'Rappel du jour'))
+      : (l.lib || l.detail || 'À voir');
     var cMotif = cellule('listb__motif', quoi);
     cMotif.title = quoi;   // coupe a l'ecran si la colonne est courte, entier a l'infobulle
     tr.appendChild(cMotif);
@@ -1569,7 +1569,7 @@ theme_bureau: true
       if(r.variation != null){
         sous = (r.variation >= 0 ? '+' : '') + r.variation.toString().replace('.', ',') + ' %';
         if(r.variationEuros != null) sous += ', ' + (r.variationEuros >= 0 ? '+' : '−') + euros(Math.abs(r.variationEuros));
-        sous += ' vs l’an dernier à date égale';
+        sous += ' par rapport à l’exercice précédent, à date égale';
       }
       var ca = cellule('chiffre--hi', 'Chiffre d’affaires' + (r.exercice ? ' ' + r.exercice : ''), euros(r.ca), sous);
       if(r.variation != null) ca.setAttribute('data-sens', r.variation >= 0 ? 'haut' : 'bas');
@@ -1624,7 +1624,7 @@ theme_bureau: true
     var cote = document.createElement('div'); cote.className = 'ardoise__cote';
     if(r.atterrissage != null) cote.appendChild(cellule('chiffre--petit', 'Fin d’exercice', euros(r.atterrissage), 'projection au rythme actuel, pas une vente'));
     if(r.clients != null) cote.appendChild(cellule('chiffre--petit', 'Clients', String(r.clients), 'sur l’exercice'));
-    if(r.panier != null) cote.appendChild(cellule('chiffre--petit', 'Panier moyen', euros(r.panier), 'par commande'));
+    if(r.panier != null) cote.appendChild(cellule('chiffre--petit', 'Commande moyenne', euros(r.panier), 'ce qu’un client dépense par commande'));
     if(cote.children.length) boite.appendChild(cote);
     el('zoneArdoise').hidden = false;
     {# D'OU VIENNENT LES CHIFFRES : la periode de l'export, pas la date du depot. « au 25
@@ -1938,8 +1938,8 @@ theme_bureau: true
       pile.push({
         cle: 'analyse',
         valeur: pluriel(age, 'jour'),
-        libelle: 'depuis ta dernière analyse',
-        sous: age > 30 ? 'l’ardoise a vieilli, réimporte ton export' : 'ton export commence à dater',
+        libelle: 'depuis ton dernier export déposé',
+        sous: age > 30 ? 'dépose ton dernier export Vitisoft pour des chiffres à jour' : 'tes chiffres commencent à dater',
         ton: age > 30 ? 'vieux' : '',
         {# Cette punaise mene la ou on repare ce qu'elle signale. #}
         href: '/mon-bureau/#base'

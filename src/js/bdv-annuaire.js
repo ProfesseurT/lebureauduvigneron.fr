@@ -284,7 +284,7 @@
     return '<select data-f="canal" aria-label="Canal">' + options(valeursDe('canal'), e.canal, 'Tous les canaux') + '</select>'
       + '<select data-f="type" aria-label="Typologie">' + options(valeursDe('type').filter(function(t){ return t !== 'Non typé'; }), e.type, 'Toutes les typologies') + '</select>'
       + '<select data-f="pays" aria-label="Pays">' + options(valeursDe('pays'), e.pays, 'Tous les pays') + '</select>'
-      + '<select data-f="etat" aria-label="Activité">' + options([['actif', 'Actifs (moins d’un an)'], ['dormant', 'Dormants (plus d’un an)'], ['sans', 'Sans commande']], e.etat, 'Actifs et dormants') + '</select>'
+      + '<select data-f="etat" aria-label="Activité">' + options([['actif', 'Actifs (commande depuis moins d’un an)'], ['dormant', 'Dormants (rien depuis plus d’un an)'], ['sans', 'Sans commande']], e.etat, 'Actifs et dormants') + '</select>'
       + '<select data-f="rappel" aria-label="Prochaine action">' + options([['retard', 'Rappel en retard'], ['prevu', 'Rappel prévu'], ['aucun', 'Sans rappel']], e.rappel, 'Toute action') + '</select>'
       + '<select data-f="tag" aria-label="Étiquette">' + options(etiquettes().map(function(x){ return [x.t, x.t + ' (' + x.n + ')']; })
           .sort(function(a, b){ return a[0].localeCompare(b[0], 'fr'); }), e.tag, 'Toutes les étiquettes') + '</select>'
@@ -383,7 +383,7 @@
           ? '<label class="annu__lbl" for="annuProprio">Suivi par</label>'
             + '<select id="annuProprio">' + options(membres, '', 'Personne') + '</select>'
             + '<button type="button" class="btn btn--ghost btn--sm" data-a="attribuer">Attribuer</button>'
-          : '<span class="annu__note">' + (LOT33 === false ? 'L’attribution arrive avec la prochaine mise à jour de ton compte.' : 'L’attribution demande un bureau à plusieurs (pièce L’équipe).') + '</span>')
+          : '<span class="annu__note">' + (LOT33 === false ? 'Attribuer un client à un collègue n’est pas encore ouvert sur ton bureau.' : 'L’attribution demande un bureau à plusieurs (pièce L’équipe).') + '</span>')
       + '<button type="button" class="btn btn--ghost btn--sm annu__desel" data-a="desel">Tout désélectionner</button>';
   }
 
@@ -512,7 +512,7 @@
      ne toucherait pas a la colonne et l'ancien proprietaire resterait. C'est la seule
      valeur du suivi qui doit pouvoir s'ecrire vide. */
   function attribuer(ids, uid){
-    if(LOT33 !== true){ status('error', 'L’attribution arrive avec la prochaine mise à jour de ton compte.'); return; }
+    if(LOT33 !== true){ status('error', 'Attribuer un client à un collègue n’est pas encore ouvert sur ton bureau.'); return; }
     return ecrireGroupe(ids, function(c){ c.proprietaire = uid || null; },
       uid ? 'Suivi par ' + nomDe(uid) : 'Plus personne ne suit');
   }

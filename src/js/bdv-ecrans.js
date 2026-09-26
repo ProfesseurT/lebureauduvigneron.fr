@@ -1182,7 +1182,7 @@ function evoCommentaire(periods,segs,bySeg,segTot,totByPeriod,dimGet,pas,dimLabe
     const avgM={};for(const mm in byM)avgM[mm]=byM[mm]/cM[mm];
     const arr=Object.keys(avgM).map(Number);let pk=arr[0],tr=arr[0];arr.forEach(mm=>{if(avgM[mm]>avgM[pk])pk=mm;if(avgM[mm]<avgM[tr])tr=mm;});
     const cv=avg?_stdev(totByPeriod)/Math.abs(avg)*100:0;
-    out.push(signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Variabilité ${cv>40?'forte':(cv>20?'modérée':'faible')} (CV ${fmtNum(cv,0)} %).`,`${cv>40?'Anticipe la trésorerie autour des creux et charge les actions commerciales avant les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`));
+    out.push(signal('info','◷',`Saisonnalité : pic en ${MOIS_FR[pk-1]}, creux en ${MOIS_FR[tr-1]}. Tes ventes varient ${cv>40?'beaucoup':(cv>20?'assez':'peu')} d'un mois à l'autre.`,`${cv>40?'Prévois ta trésorerie autour des creux, et fais tes relances le mois qui précède les pics.':'Mois assez réguliers, peu d\'à-coups saisonniers.'}`));
   }
 
   // 7. Qualite : poids du non renseigne
@@ -1374,18 +1374,18 @@ function bridgeHero(){
   if(ratio!=null&&ratio<1.05&&ratio>0.95){
     kind='warn';ico='⇄';
     verdict=`Tu fais du surplace : ${fmtMoney(gagne)} gagnés, ${fmtMoney(perdu)} perdus.`;
-    action=`Tout ton effort d'acquisition sert à compenser les départs. <b>Action : la question n'est pas de trouver plus de clients, c'est de garder ceux que tu as.</b>`;
+    action=`Tes nouveaux clients ne font que remplacer ceux qui partent. <b>Action : la question n'est pas de trouver plus de clients, c'est de garder ceux que tu as.</b>`;
   }else if(ratio!=null&&ratio<0.95){
     kind='danger';ico='▼';
     verdict=`Tu perds plus que tu ne gagnes : ${fmtMoney(perdu)} perdus contre ${fmtMoney(gagne)} gagnés.`;
-    action=`<b>Action : traiter les départs avant de chercher de nouveaux clients.</b> Reconquérir coûte moins cher que conquérir.`;
+    action=`<b>Action : traiter les départs avant de chercher de nouveaux clients.</b> Rappeler un client qui part coûte moins cher que d'en trouver un nouveau : ils sont dans la liste juste en dessous, filtres « Recul confirmé » et « Retard de cadence ».`;
   }else if(gagne<=0&&perdu<=0){
     kind='info';ico='ℹ';
     verdict=`Aucun mouvement de clientèle sur la période.`;
     action=`Ni gain ni perte à comparer : il faut deux ${exMot()}s qui portent des ventes pour que cette décomposition dise quelque chose.`;
   }else{
     verdict=`Tu gagnes plus que tu ne perds : ${fmtMoney(gagne)} contre ${fmtMoney(perdu)}.`;
-    action=`Ta croissance est réelle, pas seulement un remplacement. <b>Action : regarde quand même la ligne des clients perdus, c'est le gisement le moins cher.</b>`;
+    action=`Ta croissance est réelle, pas seulement un remplacement. <b>Action : regarde quand même la ligne des clients perdus, les rappeler coûte moins cher que d'en trouver de nouveaux.</b>`;
   }
   const barre=(v,tot)=>tot>0?Math.max(2,Math.round(Math.abs(v)/tot*100)):0;
   const ech=Math.max(br.nw,Math.abs(br.lost),Math.abs(br.down),br.up,1);
@@ -1654,12 +1654,12 @@ function diagnosticSignals(){
   const at=computeAtterrissage();
   if(at&&!at.complete){
     if(objectif){const gap=at.central-objectif;
-      if(gap<0)S.push({sev:3,impact:Math.abs(gap),kind:'danger',cible:'annee',ico:'⚑',verdict:`Objectif menacé : au rythme actuel il manquerait ${fmtMoney(Math.abs(gap))} pour tenir ${fmtMoney(objectif)}.`,action:`Atterrissage estimé ${fmtMoney(at.central)}. Active les leviers ci-dessous d'ici la fin d'année.`});
-      else S.push({sev:1,impact:gap,kind:'ok',cible:'annee',ico:'✔',verdict:`Objectif jouable : atterrissage estimé ${fmtMoney(at.central)}, soit ${fmtMoney(gap)} au-dessus de l'objectif.`,action:`Sécurise la trajectoire, ne relâche pas sur les clients à risque.`});
-    }else S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Saisis-le dans la trajectoire pour mesurer l'écart projeté.`});
+      if(gap<0)S.push({sev:3,impact:Math.abs(gap),kind:'danger',cible:'annee',ico:'⚑',verdict:`Objectif menacé : au rythme actuel il manquerait ${fmtMoney(Math.abs(gap))} pour tenir ${fmtMoney(objectif)}.`,action:`Fin d'${exMot()} estimée à ${fmtMoney(at.central)}. Le plus rapide pour combler l'écart : rappeler tes clients en recul et en retard, listés dans <b>Mon commerce</b>.`});
+      else S.push({sev:1,impact:gap,kind:'ok',cible:'annee',ico:'✔',verdict:`Objectif jouable : fin d'${exMot()} estimée à ${fmtMoney(at.central)}, soit ${fmtMoney(gap)} au-dessus de l'objectif.`,action:`Garde ton rythme de rappels : un client en recul rattrapé maintenant compte plus qu'un nouveau client trouvé à la dernière minute.`});
+    }else S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Fixe-le dans <b>Mes réglages</b>, onglet « Tes ventes » : je te dirai s'il tient, et combien il manque sinon.`});
   }
   const dec=agentDecrochage();
-  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',cible:'clients',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de CA en moins vs ${exPrecedent()} à date égale.`,action:`À rappeler en priorité, du plus gros montant perdu au plus petit. La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
+  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',cible:'clients',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de chiffre d'affaires en moins par rapport à ${exPrecedent()}, à date égale.`,action:`Appelle d'abord ceux qui ont le plus baissé, avec une raison concrète (millésime, fin de stock, livraison). La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
   /* LE SIGNAL COMPTE CE QUE LA LISTE MONTRE, 23/09/2026. Il annoncait « 90 clients en
      retard sur leur cadence, 165 831 euros » et renvoyait vers un filtre de « Mon
      commerce » qui en montre 56 pour 126 217 euros. Aucun des deux n'avait tort : ce
@@ -1673,19 +1673,19 @@ function diagnosticSignals(){
   const dorm=dor.dormants.filter(c=>!dejaPris.has(c.id));
   const dormCa=sum(dorm,c=>c.montant);
   if(dorm.length){const t3=dorm.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
-    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dorm.length,'client')} en retard sur leur cadence d'achat : ${fmtMoney(dormCa)} de CA historique en sommeil.`,action:`À relancer en priorité : ${t3}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
+    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dorm.length,'client')} ${dorm.length>1?'n\'ont':'n\'a'} pas recommandé à ${dorm.length>1?'leur':'sa'} date habituelle. ${dorm.length>1?'Ensemble, ils t\'ont':'Il t\'a'} acheté ${fmtMoney(dormCa)} depuis le début de ta base.`,action:`Commence par ${t3}, en proposant le réassort habituel. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
   const pv=computePriceVolume();
   if(pv){
-    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Revois remises et grille tarifaire.`});
-    else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',cible:'annee',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Le sujet, c'est le nombre de bouteilles vendues. Pousse acquisition et réactivation.`});
-    else if(pv.delta>0)S.push({sev:1,impact:pv.delta,kind:'ok',cible:'annee',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Continue sur le levier qui marche.`});
+    if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Vérifie tes remises au cas par cas : <b>Mes cuvées</b> signale celles qui se vendent à des prix très différents.`});
+    else if(pv.volEff<0&&Math.abs(pv.volEff)>Math.abs(pv.priceEff))S.push({sev:2,impact:Math.abs(pv.volEff),kind:'warn',cible:'annee',ico:'▤',verdict:`Recul des volumes : ${fmtMoney(Math.abs(pv.volEff))} de CA en moins à prix constant.`,action:`Tu vends moins de bouteilles, pas moins cher. Avant de chercher de nouveaux clients, relance ceux qui achètent moins : la liste est dans <b>Mon commerce</b>.`});
+    else if(pv.delta>0)S.push({sev:1,impact:pv.delta,kind:'ok',cible:'annee',ico:'✔',verdict:`Croissance saine : +${fmtMoney(pv.delta)}, portés ${pv.volEff>=pv.priceEff?'surtout par les volumes':'surtout par le prix'}.`,action:`Rien à corriger. En bas de <b>Mon commerce</b>, « Plus gros mouvements par client » montre qui porte cette hausse : ce sont eux à servir en premier.`});
   }
   const con=agentConcentration();
-  if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',cible:'clients',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Un départ ferait mal. Élargis ta base de gros comptes pour diluer le risque.`});
+  if(con&&con.alert)S.push({sev:2,impact:0,kind:'warn',cible:'clients',ico:'▦',verdict:`Dépendance : tes 3 premiers clients pèsent ${fmtNum(con.part,0)}% du CA, élevé pour une base de ${fmtNum(con.clients)} clients (seuil ${fmtNum(con.seuil,0)}%).`,action:`Si l'un d'eux part, ça se verra tout de suite sur ton chiffre. Garde-les en rappel régulier, et propose tes cuvées phares aux clients qui viennent juste derrière eux.`});
   const cm=agentCanalMover();
-  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,cible:'produits',kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'progresse':'recule'} de ${fmtNum(Math.abs(cm.mover.dPts),1)} points de mix.`,action:`${cm.mover.dPts>=0?'Capitalise sur ce canal qui monte.':'Comprends pourquoi ce canal recule.'} Le détail est dans <b>Mes cuvées</b>, au pied de l'écran.`});
+  if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,cible:'produits',kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'gagne':'perd'} ${fmtNum(Math.abs(cm.mover.dPts),1)} points dans la répartition de ton chiffre d'affaires.`,action:`${cm.mover.dPts>=0?'Regarde quelles cuvées le portent, pour les proposer à tes autres clients.':'Regarde si ce sont les clients ou les prix qui baissent sur ce canal.'} Le détail est dans <b>Mes cuvées</b>, au pied de l'écran.`});
   const series=monthlySeries();
-  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Anticipe la trésorerie et charge les actions commerciales juste avant.`});}
+  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Écris à tes clients le mois d'avant, avec un prétexte (millésime, fin de stock, offre de saison), et prévois ta trésorerie pour ce mois-là.`});}
   S.sort((a,b)=>b.sev-a.sev||b.impact-a.impact);
   return S;
 }
@@ -1870,7 +1870,7 @@ function renderCap(){
   if(!rows.length && ROWS.length){
     html+=signal('danger','⚠',
       `Aucune vente détectée, alors que la base contient ${fmtNum(ROWS.length)} lignes.`,
-      `Certaines familles sont peut-être classées à tort en hors-vente (transport, remises, pub, divers). Le réglage des familles arrivera dans l'onglet « Le classement ». En attendant, vérifie que tes noms de famille ne contiennent pas un mot de la liste noire.`);
+      `Certaines familles sont peut-être classées à tort hors des ventes (transport, remises, pub, divers). Vérifie-les dans <b>Mes réglages</b>, onglet « Le classement ».`);
     p.innerHTML=html;
     return;
   }
@@ -1936,7 +1936,7 @@ function renderCap(){
   html+=`<div class="section-label">À regarder en priorité</div>`;
   const sigs=diagnosticSignals();
   if(sigs.length)sigs.forEach(x=>html+=signal(x.kind,x.ico,x.verdict,x.action));
-  else html+=signal('ok','✔','Rien d\'urgent sur la base chargée.','Tes indicateurs sont au vert. Continue le suivi régulier.');
+  else html+=signal('ok','✔','Rien d\'urgent sur la base chargée.','Profite du calme pour préparer la saison : écris à tes clients réguliers avant qu\'ils ne commandent ailleurs.');
   // Le cap ET ce qui presse se replient ensemble : voir replierCap().
   html=html.slice(0,debutCap)+replierCap(html.slice(debutCap),f,at,sigs.length);
 
@@ -1952,7 +1952,7 @@ function renderCap(){
   html+=`<div class="section-label">Sur la période affichée</div><div class="kpi-grid">
     ${kpiCard('CA HT',fmtMoney(ca),plur(rows.length,'ligne')+' de vente',true)}
     ${kpiCard('Bouteilles / cols',fmtNum(btl),'quantité vendue')}
-    ${kpiCard('Panier moyen',fmtMoney(panier),'par facture')}
+    ${kpiCard('Commande moyenne',fmtMoney(panier),'par facture')}
     ${kpiCard('Factures',fmtNum(factures),'factures distinctes')}
     ${kpiCard('Clients actifs',fmtNum(clients),'ont acheté sur la période')}
   </div>`;
@@ -2157,11 +2157,11 @@ function alertesProduits(A){
     if(c.top1>=60&&c.clients>=2&&(c.ca*c.top1/100)>A.caTotal*0.005)
       out.push({t:'danger',rang:3,enjeu:c.ca*c.top1/100,famille:'dependance',cuvee:c.nom,
         ico:'⚠',titre:`${c.nom} tient à un seul client`,
-        txt:`${fmtNum(c.top1,0)} % des ventes de cette cuvée viennent de ${esc(c.nomTop)}. S'il s'arrête, c'est ${fmtMoney(c.ca*c.top1/100)} qui disparaissent. <b>Action : élargir, en la proposant aux clients qui achètent les cuvées voisines.</b>`});
+        txt:`${fmtNum(c.top1,0)} % des ventes de cette cuvée viennent de ${esc(c.nomTop)}. Sur tout ton historique, ${fmtMoney(c.ca*c.top1/100)} de ses ventes reposent sur lui. <b>Action : la proposer à tes clients qui prennent déjà des cuvées du même style.</b>`});
     if(c.rachat>A.repRachat&&c.clients<A.repClients&&c.clients>=8)
       out.push({t:'ok',rang:2,enjeu:c.ca,famille:'opportunite',ico:'↑',cuvee:c.nom,
         titre:`${c.nom} plaît, mais peu de gens y goûtent`,
-        txt:`${fmtNum(c.rachat*100,0)} % de ceux qui l'ont prise en ont repris, contre ${fmtNum(A.repRachat*100,0)} % en moyenne chez toi, et elle n'a touché que ${fmtNum(c.clients)} clients. <b>Action : la mettre en avant, c'est la cuvée la plus sous-exploitée du portefeuille.</b>`});
+        txt:`${fmtNum(c.rachat*100,0)} % de ceux qui l'ont prise en ont repris, contre ${fmtNum(A.repRachat*100,0)} % en moyenne chez toi, et elle n'a touché que ${fmtNum(c.clients)} clients. <b>Action : la faire goûter à tes clients réguliers qui ne l'ont jamais prise.</b>`});
     if(c.prixBas>0&&c.nPrix>=25&&c.prixHaut/c.prixBas>=1.8)
       out.push({t:'warn',rang:1,enjeu:c.ca,famille:'prix',ico:'€',cuvee:c.nom,
         titre:`${c.nom} se vend à des prix très différents`,
@@ -2464,26 +2464,38 @@ function conseilClient(f,motif){
   const nomMois=MOIS_FR[moisFort-1]||'';
   const rang=rangClient(f.ca);
   const parts=[];
+  const nm=f.nbCommandes>1?nouveauMillesime(f):null;
+  const pretexte=nm?`le ${nm.recent} ${avecDe(nm.cuvee)} est disponible, et il avait pris le ${nm.pris}`:'';
+  /* L'ACTION D'ABORD, 26/09/2026 (audit des phrases, agents vigneron et commercial).
+     ficheHTML() met en tete la PREMIERE phrase qui porte un <b> : c'etait le constat
+     (« achetait et achete moins ») ou la mise en garde (« Prudence »), et l'action tombait
+     sous « Pourquoi je dis ca ». Chaque branche ouvre donc sur son action en gras, et les
+     explications suivent SANS gras. `parts.ton` donne le registre, que la fiche affiche en
+     titre : alerte (de l'argent part), conseil (une action a poser), calme (rien ne presse). */
   if(motif==='recul'){
-    parts.push(`Ce client <b>achetait et achète moins</b>. C'est le signal le plus fiable de l'outil, parce qu'il compare deux périodes équivalentes.`);
-    parts.push(`Il a commandé ${f.nbCommandes} fois pour ${fmtMoney(f.ca)}. <b>Appelle-le plutôt que de lui écrire</b> : à ce niveau d'historique, un e-mail passe pour une relance de masse.`);
+    parts.ton='alerte';
+    parts.push(`<b>${f.tels.length?'Appelle-le cette semaine, plutôt que de lui écrire.':'Contacte-le cette semaine.'}</b> ${pretexte?'Ton prétexte est tout trouvé : '+pretexte+'.':'Ouvre avec une nouvelle du domaine (le millésime qui sort, une cuvée, une date de livraison), jamais avec « ça fait longtemps ».'}`);
+    parts.push(`Il achète moins qu'avant, à date égale. Il a déjà commandé ${f.nbCommandes} fois pour ${fmtMoney(f.ca)}. C'est le signal le plus sûr de l'outil : il compare deux périodes équivalentes. Avec cet historique, un e-mail se lirait comme un envoi groupé.`);
   }else if(motif==='cadence'){
+    parts.ton='conseil';
     const fiable=f.nbCommandes>=3;
-    parts.push(`Ce client a un rythme : environ une commande tous les ${fmtDelai(f.cadence)}. Il n'a rien pris depuis ${fmtDelai(f.silence)}.`);
-    if(!fiable)parts.push(`<b>Prudence</b> : ce rythme est déduit de ${plur(f.nbCommandes,'commande')} seulement, l'outil ne peut pas en dire beaucoup plus. Vérifie avant d'insister.`);
-    parts.push(`<b>Le bon prétexte est le réassort</b>, pas la nouveauté. Propose-lui ce qu'il prend d'habitude, dans la quantité qu'il prend d'habitude.`);
+    parts.push(`<b>Relance-le maintenant sur son réassort</b> : propose-lui ce qu'il prend d'habitude, dans sa quantité habituelle, avec une date de livraison.${pretexte?' Encore mieux : '+pretexte+'.':''}`);
+    parts.push(`Il commande environ tous les ${fmtDelai(f.cadence)} et n'a rien pris depuis ${fmtDelai(f.silence)} : il a dépassé sa date habituelle, c'est ton prétexte. Le réassort marche mieux que la nouveauté avec un client qui a ses habitudes.`);
+    if(!fiable)parts.push(`Ce rythme est déduit de ${plur(f.nbCommandes,'commande')} seulement : une relance légère suffit, sans insister.`);
   }else if(motif==='regulier'){
     /* 25/09/2026 : une fiche ouverte SANS motif (depuis « Mes clients ») tombait ici sur le
        conseil du premier achat, « n'est venu qu'une fois », y compris pour un client a dix
        commandes. Le motif se deduit maintenant (motifDeduit), et un client regulier a le sien. */
+    parts.ton='calme';
+    parts.push(`<b>Rien ne presse : donne-lui des nouvelles juste avant sa date habituelle.</b> ${pretexte?'Le prétexte est tout trouvé : '+pretexte+'.':'Un mot qui arrive avant la commande vaut mieux qu\'une relance après, c\'est comme ça qu\'on garde un fidèle.'}`);
     parts.push(`Client régulier : ${plur(f.nbCommandes,'commande')}, environ une tous les ${fmtDelai(f.cadence)}, la dernière ${f.silence>0?'il y a '+fmtDelai(f.silence):'tout récemment'}.`);
-    parts.push(`<b>Rien ne presse.</b> Garde le contact au rythme de ses commandes : un mot juste avant la date attendue vaut mieux qu'une relance après.`);
   }else{
-    parts.push(`Ce client n'est venu qu'une fois, le ${fmtDate(f.premier)}, pour ${fmtMoney(f.ca)}.`);
-    parts.push(`<b>Il ne repassera pas au caveau tout seul.</b> Le seul message qui transforme, c'est celui qui lève l'obstacle : lui dire que tu livres, et à partir de combien de bouteilles.`);
+    parts.ton='conseil';
+    parts.push(`<b>${f.silence!=null&&f.silence<=90?'Contacte-le dans la semaine':'Contacte-le'} : il ne repassera pas tout seul.</b> Donne-lui une raison simple de recommander : si tu livres, dis-le, et à partir de combien de bouteilles.`);
+    parts.push(`Il n'est venu qu'une fois, le ${fmtDate(f.premier)}, pour ${fmtMoney(f.ca)}. Le deuxième achat est le vrai premier : c'est lui qui fait un client.`);
   }
   if(rang<=10)parts.push(`Il fait partie de tes <b>${rang} % de meilleurs clients</b>. À traiter en personne, pas dans un envoi groupé.`);
-  if(moisFort&&f.parMois[moisFort]>f.ca*0.5)parts.push(`Il commande surtout en <b>${nomMois}</b> : c'est le moment où le message a le plus de chances de tomber juste.`);
+  if(moisFort&&f.parMois[moisFort]>f.ca*0.5)parts.push(`Il commande surtout en <b>${nomMois}</b> : écris-lui deux à trois semaines avant, pas pendant, sinon sa commande est déjà passée ailleurs.`);
   if(!f.emails.length&&f.tels.length)parts.push(`Pas d'adresse e-mail connue, mais un numéro : <b>c'est un appel, pas un message</b>.`);
   if(!f.emails.length&&!f.tels.length)parts.push(`<b>Aucun contact enregistré.</b> Le premier travail est de récupérer une adresse ou un numéro dans ton logiciel.`);
   return parts;
@@ -2540,49 +2552,110 @@ function blocsMessage(f,motif){
   const derniere=f.factures.length?f.factures[0]:null;
   const lignesDerniere=derniere?ROWS.filter(r=>r._vin&&clientKey(r)===f.id&&r.numFacture===derniere.num):[];
   const estPro=/^(CAV|CHR|RESTAU|EXPORT|PRO)/i.test(f.type||'')||f.btl>=60;
+  // UN MAIL, UNE OFFRE : quand le nouveau millesime est la, il porte seul le message.
+  const nm=nouveauMillesime(f), nmOn=!!nm&&motif!=='premier';
   if(f.cuvees.length)
-    b.push({k:'achats',lbl:'Rappeler ce qu\'il a pris',defaut:true,
+    b.push({k:'achats',lbl:'Rappeler ce qu\'il a pris',defaut:!nmOn,
       txt:estPro
         ? `Vos commandes portaient sur ${listeFr(detailAchats(f,2))}.`
-        : `Vous étiez reparti avec ${listeFr(detailAchats(f,2))}.`});
+        : `Vous aviez choisi ${listeFr(detailAchats(f,2))}.`});
   if(lignesDerniere.length&&f.nbCommandes>1)
-    b.push({k:'reassort',lbl:'Proposer le même réassort',defaut:motif==='cadence',
-      txt:`Si vous le souhaitez, je vous prépare la même chose que la dernière fois : ${listeFr(lignesDerniere.slice(0,3).map(r=>`${fmtNum(r._qte)} ${avecDe(r.produit)}`))}.`});
+    b.push({k:'reassort',lbl:'Proposer le même réassort',defaut:motif==='cadence'&&!nmOn,
+      txt:`Si vous le souhaitez, je vous prépare la même chose que la dernière fois : ${listeFr(lignesDerniere.slice(0,3).map(r=>`${fmtNum(r._qte)} ${r._qte>1?'bouteilles':'bouteille'} ${avecDe(r.produit)}`))}.`});
   const reco=recoPour(f.id,1);
   if(reco.length&&f.cuvees.length)
-    b.push({k:'nouveaute',lbl:'Suggérer une cuvée qu\'il ne connaît pas',defaut:motif!=='cadence',
-      txt:`Une chose : beaucoup de ceux qui aiment ${avecLe(cuveeBase(f.cuvees[0][0]))} prennent aussi ${avecLe(reco[0].cuvee)}. Je peux vous en glisser quelques bouteilles pour goûter.`});
+    b.push({k:'nouveaute',lbl:'Suggérer une cuvée qu\'il ne connaît pas',defaut:motif!=='cadence'&&!nmOn,
+      txt:`Beaucoup de ceux qui aiment ${avecLe(cuveeBase(f.cuvees[0][0]))} apprécient aussi ${avecLe(reco[0].cuvee)} : je peux en ajouter quelques bouteilles à votre prochaine commande, pour que vous puissiez y goûter.`});
   b.push({k:'livraison',lbl:estPro?'Proposer une expédition':'Rappeler que tu livres',defaut:motif==='premier'&&!estPro,
     txt:estPro?`Je peux organiser l'expédition dès que vous me donnez le feu vert.`
            :`Je peux vous l'expédier directement, sans que vous ayez à repasser.`});
   const moisFort=(()=>{let m=0,v=-1;for(let i=1;i<=12;i++)if(f.parMois[i]>v){v=f.parMois[i];m=i;}return m;})();
-  if(moisFort&&f.parMois[moisFort]>f.ca*0.4)
+  // La saison ne se propose que si ce mois est A VENIR (1 a 3 mois apres la fin de l'export) :
+  // « je prends un peu d'avance » est faux pendant le mois fort ou apres.
+  const mRef=META&&META.max?META.max.m:null, ecart=mRef==null?1:(moisFort-mRef+12)%12;
+  if(moisFort&&f.parMois[moisFort]>f.ca*0.4&&ecart>=1&&ecart<=3)
     b.push({k:'saison',lbl:'Mentionner sa saison d\'achat',defaut:false,
-      txt:`Je sais que ${MOIS_PLEIN[moisFort-1]} est votre période, je prends un peu d'avance.`});
+      txt:`Vous commandez souvent en ${MOIS_PLEIN[moisFort-1]} : je prends un peu d'avance pour que tout soit prêt.`});
+  /* LE NOUVEAU MILLESIME, 26/09/2026 : le meilleur pretexte de relance du vin, et il est
+     VRAI. Coche d'office, sauf au premier achat (le client n'a pas encore d'habitude). */
+  if(nm)b.unshift({k:'millesime',lbl:'Annoncer le nouveau millésime',defaut:nmOn,
+    txt:`Le ${nm.recent} ${avecDe(nm.cuvee)} est disponible, la suite du ${nm.pris} que vous aviez pris. Je vous en mets de côté ?`});
   return b;
+}
+/* Le millesime le plus recent d'une cuvee, parmi ceux qui se sont VRAIMENT VENDUS dans les
+   200 jours qui precedent la fin de l'export : au moins 3 clients distincts ou 12 bouteilles.
+   Une bouteille d'echantillon ou une prevente ne fait pas un millesime en vente, et un faux
+   pretexte annonce a un client fidele coute plus cher que pas de relance du tout (agent
+   commercial, 26/09/2026). On dit « disponible », jamais « arrive » : la base ne connait ni
+   le stock ni la date de sortie. Calcule une fois par base chargee (motif de CLASSEMENT). */
+let MIL_RECENT=null,MIL_ROWS=null,MIL_N=-1;
+function millesimesRecents(){
+  if(MIL_RECENT&&MIL_ROWS===ROWS&&MIL_N===ROWS.length)return MIL_RECENT;
+  MIL_ROWS=ROWS;MIL_N=ROWS.length;
+  const ref=META&&META.max?Math.floor(Date.UTC(META.max.y,META.max.m-1,META.max.d)/86400000):null;
+  const acc={};
+  ROWS.forEach(r=>{
+    if(!r._vin||!(r._qte>0))return;
+    const m=String(r.millesime||'').trim();if(!/^\d{4}$/.test(m))return;
+    if(ref!=null&&r._dayNum!=null&&ref-r._dayNum>200)return;
+    const c=cuveeBase(r.produit||'');if(!c)return;
+    const o=acc[c+'\u0001'+m]||(acc[c+'\u0001'+m]={c,m,cli:new Set(),btl:0});
+    o.cli.add(clientKey(r));o.btl+=r._qte;
+  });
+  MIL_RECENT={};
+  Object.values(acc).forEach(o=>{
+    if(o.cli.size<3&&o.btl<12)return;
+    if(!MIL_RECENT[o.c]||o.m>MIL_RECENT[o.c])MIL_RECENT[o.c]=o.m;
+  });
+  return MIL_RECENT;
+}
+// Rend {cuvee, pris, recent} si le client a pris un millesime plus ancien que celui en vente.
+function nouveauMillesime(f){
+  const recents=millesimesRecents(),dernier={};
+  ROWS.forEach(r=>{
+    if(!r._vin||clientKey(r)!==f.id)return;
+    const m=String(r.millesime||'').trim();if(!/^\d{4}$/.test(m))return;
+    const c=cuveeBase(r.produit||'');if(!c)return;
+    if(!dernier[c])dernier[c]={m,ca:0};
+    if(m>dernier[c].m)dernier[c].m=m;
+    dernier[c].ca+=r._total;
+  });
+  let best=null;
+  Object.keys(dernier).forEach(c=>{
+    const rec=recents[c];
+    if(rec&&rec>dernier[c].m&&(!best||dernier[c].ca>best.ca))best={cuvee:c,pris:dernier[c].m,recent:rec,ca:dernier[c].ca};
+  });
+  return best;
 }
 function accrocheMessage(f,motif){
   // Un caviste qui a pris 500 bouteilles n'est pas « passé au caveau ». Le volume et le type
   // de client disent lequel des deux on a en face, et la phrase change en consequence.
   const pro=/^(CAV|CHR|RESTAU|EXPORT|PRO)/i.test(f.type||'')||f.btl>=60;
   if(motif==='premier')return pro
-    ? `Nous avons honoré votre première commande le ${fmtDate(f.premier)}, et j'espère qu'elle vous a donné satisfaction.`
-    : `Vous êtes passé chez nous le ${fmtDate(f.premier)}, et j'espère que le vin a été à la hauteur.`;
-  if(motif==='cadence')return `Vous avez l'habitude de commander tous les ${fmtDelai(f.cadence)} environ, et cela fait ${fmtDelai(f.silence)} que nous n'avons pas eu de vos nouvelles.`;
-  return `Je reprends contact : nos échanges se sont espacés cette année, alors que vous étiez un client régulier.`;
+    ? `Merci pour votre première commande du ${fmtDate(f.premier)}, et pour votre confiance.`
+    : `Merci pour votre commande du ${fmtDate(f.premier)}.`;
+  /* 26/09/2026 : plus de delai chiffre (« 38 j », « 2,4 mois ») dans une lettre, et plus de
+     reproche. Le client regulier avait la phrase du client en recul, « nos echanges se sont
+     espaces » : un reproche a tort a son meilleur client. Chaque motif a la sienne. */
+  if(motif==='cadence')return `Votre dernière commande doit commencer à s'épuiser, alors je prends les devants pour que vous ne soyez pas à court.`;
+  if(motif==='regulier')return `Merci de votre fidélité : je tenais à vous donner moi-même des nouvelles du domaine.`;
+  return `Je tenais à vous écrire personnellement, pour vous donner des nouvelles du domaine et de nos vins cette saison.`;
 }
-function sujetMessage(f,motif){
-  const cuvee=f.cuvees.length?f.cuvees[0][0]:'nos vins';
-  if(motif==='premier')return `${cuvee} vous suit${f.ville?' à '+villeJolie(f.ville):''}`;
-  if(motif==='cadence')return `${cuvee}, on vous en remet ?`;
-  return `Prendre de vos nouvelles`;
+function sujetMessage(f,motif,coches){
+  const cuvee=f.cuvees.length?cuveeBase(f.cuvees[0][0]):'nos vins';
+  // L'objet ne parle du millesime que si le corps en parle : coche, ou coche d'office.
+  const nm=(coches?coches.indexOf('millesime')>=0:motif!=='premier')?nouveauMillesime(f):null;
+  if(nm)return `Le ${nm.recent} ${avecDe(nm.cuvee)} est disponible`;
+  if(motif==='premier')return `Suite à votre commande ${avecDe(cuvee)}`;
+  if(motif==='cadence')return `Votre réassort ${avecDe(cuvee)}`;
+  return `Des nouvelles du domaine`;
 }
 // Assemble le message a partir des blocs coches.
 function composerMessage(f,motif,coches){
   const b=blocsMessage(f,motif).filter(x=>coches.indexOf(x.k)>=0);
   const corps=['Bonjour,','',accrocheMessage(f,motif)];
   if(b.length){corps.push('');corps.push(b.map(x=>x.txt).join(' '));}
-  corps.push('','Dites-moi simplement ce qui vous ferait plaisir.','','Bien à vous,');
+  corps.push('','Un simple retour à ce message suffit, je m\'occupe du reste.','','Bien à vous,');
   return corps.join('\n');
 }
 function majMessage(){
@@ -2590,6 +2663,8 @@ function majMessage(){
   const f=ficheClient(z.dataset.id),motif=z.dataset.motif;
   const coches=[...document.querySelectorAll('#msgBlocs input:checked')].map(i=>i.value);
   const ta=el('msgTexte');if(ta)ta.value=composerMessage(f,motif,coches);
+  // L'objet suit les blocs tant que le vigneron ne l'a pas retouche lui-meme.
+  const sj=el('msgSujet');if(sj&&sj.dataset.auto==='1')sj.value=sujetMessage(f,motif,coches);
   majLienMail();
 }
 function majLienMail(){
@@ -2645,7 +2720,7 @@ function messageHTML(f,motif){
   if(!f.emails.length&&!f.tels.length)return '';
   const blocs=blocsMessage(f,motif);
   const coches=blocs.filter(b=>b.defaut).map(b=>b.k);
-  const sujet=sujetMessage(f,motif);
+  const sujet=sujetMessage(f,motif,coches);
   const texte=composerMessage(f,motif,coches);
   const mail=f.emails[0]||'';
   return `<div class="msg" id="msgZone" data-id="${esc(f.id)}" data-motif="${esc(motif)}" data-mail="${esc(mail)}">
@@ -2654,7 +2729,7 @@ function messageHTML(f,motif){
       ${blocs.map(b=>`<label class="chk"><input type="checkbox" value="${b.k}" ${coches.indexOf(b.k)>=0?'checked':''} onchange="majMessage()"> ${esc(b.lbl)}</label>`).join('')}
     </div>
     <label class="msg__lbl">Objet</label>
-    <input class="msg__sujet" id="msgSujet" type="text" aria-label="Objet du message" value="${esc(sujet)}" oninput="majLienMail()">
+    <input class="msg__sujet" id="msgSujet" type="text" aria-label="Objet du message" value="${esc(sujet)}" data-auto="1" oninput="this.dataset.auto='';majLienMail()">
     <label class="msg__lbl">Texte, modifiable avant envoi</label>
     <textarea class="msg__texte" id="msgTexte" rows="11" aria-label="Texte du message, modifiable avant envoi" oninput="majLienMail()">${esc(texte)}</textarea>
     <div class="fiche__actions">
@@ -3148,7 +3223,7 @@ function ficheHTML(f,motif){
   /* LE DELAI SE COMPTE DEPUIS LA FIN DE L'EXPORT, jamais depuis aujourd'hui (regle du
      19/09/2026 : c'est la reference de tout l'ecran). On le dit donc en toutes lettres. */
   const dernierDelai = f.silence==null ? ''
-    : (f.silence>0 ? 'il y a '+fmtDelai(f.silence)+' (fin de l\'export)' : 'la plus récente de l\'export');
+    : (f.silence>0 ? fmtDelai(f.silence)+' avant la fin de ton export' : 'la plus récente de ton export');
   const prochaine=(f.cadence&&f.nbCommandes>1&&f.dernier)
     ? dayToDate(Math.floor(Date.UTC(f.dernier.y,f.dernier.m-1,f.dernier.d)/86400000)+Math.round(f.cadence)) : null;
   // L'EXERCICE EN COURS, et le precedent a cote : un total depuis toujours ne dit pas si ca monte.
@@ -3199,16 +3274,16 @@ function ficheHTML(f,motif){
 
     <div class="fiche__kpis">
       ${ficheKpi(fmtMoney(caCur),cur!=null?'CA '+exLabel(cur):'chiffre d\'affaires',
-        (evo!=null?(evo>=0?'+':'−')+fmtNum(Math.abs(evo),0)+' % vs '+exLabel(cur-1):(caPrev===0&&cur!=null&&f.ca>caCur?'rien en '+exLabel(cur-1)+', ':'')+'au total '+fmtMoney(f.ca))
+        (evo!=null?(evo>=0?'+':'−')+fmtNum(Math.abs(evo),0)+' % par rapport à '+exLabel(cur-1):(caPrev===0&&cur!=null&&f.ca>caCur?'rien en '+exLabel(cur-1)+', ':'')+'au total '+fmtMoney(f.ca))
         +(rp?' · '+(rp.place===1?'1er':fmtNum(rp.place)+'ᵉ')+' client sur '+fmtNum(rp.total):''))}
       ${ficheKpi(fmtNum(f.nbCommandes),f.nbCommandes>1?'commandes':'commande',
-        f.nbCommandes>1?'tous les '+fmtDelai(f.cadence)+' · panier '+fmtMoney(f.panier):'jamais revenu')}
+        f.nbCommandes>1?'tous les '+fmtDelai(f.cadence)+' · '+fmtMoney(f.panier)+' par commande':'pas encore revenu')}
       ${ficheKpi(fmtNum(f.btl),f.btl>1?'bouteilles':'bouteille',fmtNum(f.prixMoyen,2)+' € la bouteille'+(prixBase?' · ta moyenne '+fmtNum(prixBase,2)+' €':''))}
-      ${ficheKpi(f.dernier?fmtDate(f.dernier):'n/d','dernière commande',dernierDelai+(prochaine?' · prochaine vers le '+fmtDate(prochaine):''))}
+      ${ficheKpi(f.dernier?fmtDate(f.dernier):'aucune','dernière commande',dernierDelai+(prochaine?' · prochaine vers le '+fmtDate(prochaine):''))}
     </div>
 
     ${lead?`<div class="fiche__conseil">
-      <div class="fiche__conseil-t">Ce que je ferais</div>
+      <div class="fiche__conseil-t">${({alerte:'À faire cette semaine',calme:'Pour le garder'})[conseils.ton]||'Ce que je ferais'}</div>
       <p>${lead}</p>
       ${reste.length?`<details class="fiche__pourquoi"><summary>Pourquoi je dis ça</summary>${reste.map(c=>`<p>${c}</p>`).join('')}</details>`:''}
     </div>`:''}
@@ -3319,7 +3394,7 @@ function suiviCorps(f,s){
     action=`<span class="action__non">`
       +(DEMANDE_DATE===String(f.id)
         ? `C'est noté. Et maintenant, tu le rappelles quand ?`
-        : `<b>Aucun rappel prévu.</b> Sans rappel, il sortira de ta file.`)
+        : `<b>Aucun rappel prévu.</b> Sans date, il disparaîtra de tes clients à rappeler.`)
       +`</span>`
       /* LE MOTIF SE TAPE AVANT LA DATE, et c'est voulu : les quatre facons de poser la
          date le lisent, les trois raccourcis comme le calendrier. Un champ pose apres
@@ -3747,7 +3822,7 @@ function agentClients(){
   D.decroche.forEach(c=>{
     if(vus.has(c.id))return;vus.add(c.id);
     out.push({id:c.id,nom:c.nom,motif:'recul',montant:c.perdu,
-      lib:'perdu cette année',
+      lib:'perdu à date égale',
       detail:`${fmtMoney(c.prev)} ${exPrecedent()}, ${fmtMoney(c.cur)} ${exCe()} à date égale`,
       chance:null});
   });
@@ -3755,8 +3830,8 @@ function agentClients(){
   R.dormants.forEach(c=>{
     if(vus.has(c.id))return;vus.add(c.id);
     out.push({id:c.id,nom:c.nom,motif:'cadence',montant:c.montant,
-      lib:'CA historique',
-      detail:`commande tous les ${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}, silence depuis ${fmtDelai(c.silence)}`,
+      lib:'acheté au total',
+      detail:`commande tous les ${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}, rien depuis ${fmtDelai(c.silence)}`,
       chance:null});
   });
   // 3. Premier achat sans suite : aucune cadence calculable, mais un taux de retour mesure.
@@ -3770,9 +3845,9 @@ function agentClients(){
   return out;
 }
 const MOTIFS={
-  recul:  {label:'Recul confirmé',    cls:'m-recul',   aide:'Clients fidèles dont le chiffre baisse anormalement, à date égale. C\'est un fait mesuré.'},
-  cadence:{label:'Retard de cadence', cls:'m-cadence', aide:'Clients qui avaient un rythme d\'achat régulier et qui l\'ont rompu. C\'est une prédiction.'},
-  premier:{label:'Premier achat',     cls:'m-premier', aide:'Clients venus une seule fois. Le taux de retour est mesuré sur ta base, par montant et par type.'}
+  recul:  {label:'Recul confirmé',    cls:'m-recul',   aide:'Clients fidèles qui achètent moins qu\'avant, à date égale. C\'est un fait mesuré : ce sont eux à appeler en premier.'},
+  cadence:{label:'Retard de cadence', cls:'m-cadence', aide:'Clients qui commandaient à un rythme régulier et qui ont laissé passer leur date habituelle. C\'est une estimation : relance légère, sans insister.'},
+  premier:{label:'Premier achat',     cls:'m-premier', aide:'Clients venus une seule fois. La colonne « Chance » dit combien de clients comme eux sont revenus chez toi : relance d\'abord les plus fortes chances.'}
 };
 let filtreMotif='tous';
 /* ================= MON COMMERCE : L'ETAGE 3, REPLIE =================
@@ -3892,7 +3967,7 @@ function renderClients(){
        Le bloc voisin faisait deja la difference (« Decomposition indisponible »). Celui-ci
        la fait maintenant aussi : on ne rend un verdict que si `lignesPretes()`. */
     const verdict = lignesPretes()
-      ? signal('ok','✔','Personne à relancer.','Aucun client ne recule, ne rompt son rythme ni ne reste sans suite. Profites-en.')
+      ? signal('ok','✔','Personne à relancer.','Aucun client ne recule ni ne rompt son rythme. Bon moment pour préparer la saison : tous tes clients sont dans <b>Mes clients</b>, filtre « Actifs ».')
       : signal('info','i','Liste pas encore établie.','Tes lignes ne sont pas encore chargées sur cet appareil. Ce bloc dira qui rappeler dès qu\'elles seront là.');
     /* 19/09/2026, meme defaut qu'a « Mes cuvees » : cette sortie precede le
        `noteComplement()` de la fin de fonction, donc l'ecran annoncait des lignes non
@@ -3910,14 +3985,14 @@ function renderClients(){
      annoncait que ces clients composent les lignes « perdus » et « en baisse » d'un autre
      ecran. Ces deux lignes sont maintenant juste au-dessus. Renvoyer ailleurs serait faux. */
   html+=`<div class="section-label">Qui rappeler</div>`
-    +`<div class="panel__sub">Un client n'apparaît qu'une seule fois, avec la raison la plus solide qui le concerne. Les trois analyses tournent toujours, elles sont devenues les filtres ci-dessous.</div>`;
+    +`<div class="panel__sub">Chaque client n'apparaît qu'une fois, avec sa raison la plus sûre. Commence par le haut : c'est là qu'il y a le plus d'argent.</div>`;
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
   html+=`<div class="motif-cards">${['recul','cadence','premier'].map(m=>`
     <button class="motif-card${filtreMotif===m?' on':''}" onclick="setMotif('${m}')" aria-pressed="${filtreMotif===m}">
       <span class="motif-card__n">${fmtNum(nb(m))}</span>
       <span class="motif-card__l">${MOTIFS[m].label}</span>
-      <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${m==='recul'?'perdus':(m==='cadence'?'de CA historique':'de premiers achats')}</span></span>
+      <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${m==='recul'?'perdus à date égale':(m==='cadence'?'achetés par eux au total':'de premiers achats')}</span></span>
     </button>`).join('')}
     <button class="motif-card${filtreMotif==='tous'?' on':''}" onclick="setMotif('tous')" aria-pressed="${filtreMotif==='tous'}">
       <span class="motif-card__n">${fmtNum(CLIENTS.length)}</span>
@@ -3948,7 +4023,7 @@ function renderClients(){
       <td>${s.canal?esc(libCanal(s.canal)):'<span class="muted-cell">-</span>'}</td>
     </tr>`;}).join('')}
     </tbody></table></div></div>`;
-  html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul motif dont le taux de retour soit mesurable sur ${PROFIL&&PROFIL.moisCouverts?PROFIL.moisCouverts:'la'} mois d'historique. Pour les deux autres, il faudrait respectivement 30 et 36 mois. Mieux vaut une case vide qu'un chiffre inventé.</p>`;
+  html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul cas où ton historique${PROFIL&&PROFIL.moisCouverts?' de '+PROFIL.moisCouverts+' mois':''} suffit pour mesurer un taux de retour. Pour les deux autres, il faudrait 30 et 36 mois de ventes. Une case vide vaut mieux qu'un chiffre inventé.</p>`;
   /* LES TROIS LISTES COMPLETES, REBRANCHEES ICI LE 11/09/2026 (lot 5).
 
      Leurs boutons vivaient dans les trois ecrans fantomes, masques depuis la fusion du

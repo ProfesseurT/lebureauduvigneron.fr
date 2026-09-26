@@ -12,6 +12,28 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 26/09/2026, audit des phrases : le bureau dit quoi faire, et le ton suit la gravité
+
+Demande de Ted : que le vigneron qui gère ses clients puisse se reposer sur son bureau. Deux agents en parallèle,
+vigneron empathique et expert commercial viticole (nouveau), puis une passe de vérification par les deux.
+Plus de 80 textes réécrits (conseils, verdicts, indicateurs, messages aux clients, courrier du matin).
+
+**Le ton est tranché par la gravité, pas par un réglage** : alerte, conseil, bonne nouvelle, explication.
+Un réglage « ton » par vigneron a été écarté : un conseil grave doit rester grave quel que soit le goût.
+
+**Défauts réels trouvés** : le client régulier recevait le mail du client en recul (« nos échanges se sont espacés »),
+« 12 du Rosé » sans le mot bouteilles, « Je sais que octobre », l'action cachée sous « Pourquoi je dis ça »,
+des renvois vers « la trajectoire » et un onglet qui « arrivera », « sur la mois d'historique ».
+
+**Ajouté** : le prétexte du nouveau millésime, calculé sur les ventes, avec des garde-fous (3 clients ou 12 bouteilles,
+« disponible » et jamais « arrivé », un seul prétexte par mail). Écarté pour l'instant, à rouvrir : « à préparer ce
+mois-ci » et « le deuxième achat pendant qu'il est temps », proposés par l'agent commercial.
+
+**Le poids** : les nouveaux textes faisaient passer le script de « Ma journée » à 80,0 ko sur 80. La construction retire
+maintenant son indentation (7 ko), avec les mêmes garde-fous que pour les fichiers JavaScript : 73,3 ko, plafond inchangé.
+
+**À faire** : redéployer `courrier-matin` (ses textes ont changé).
+
 ## 26/09/2026, les mails dans le fil du client : écarté. L'historique monte sous le conseil.
 
 **Synchroniser les mails (Gmail, Microsoft 365) et suivre ouvertures et clics, comme HubSpot : écarté pour l'instant.**

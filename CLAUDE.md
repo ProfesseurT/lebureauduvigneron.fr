@@ -3490,6 +3490,13 @@ devenus des commentaires Nunjucks `{# ... #}`, retires a la construction : 119,9
 tombes a 74,3, plafond de `banc:poids` descendu a 80. **Dans ce script, un pourquoi s'ecrit en
 `{# #}`, jamais en `//` ni en `/* */`.** Un commentaire Nunjucks ne doit pas contenir `#}`.
 
+**ET SON INDENTATION PART AUSSI, 26/09/2026.** `banc:poids` etait a 80,0 sur 80 apres l'audit des
+phrases. Un troisieme crochet `eleventy.after` de `.eleventy.js` retire les espaces de debut de ligne
+du script en ligne de `_site/mon-bureau/index.html` (7 Ko), JAMAIS dans une chaine ou un gabarit, et
+recompte l'arbre des deux cotes : au moindre ecart la page reste telle quelle. 73,3 Ko apres, plafond
+inchange. **Depuis la session, `npm run build` n'aboutit que si Ted accorde le droit de suppression
+sur le dossier** (une demande par session) : le pont l'interdit sinon, et le poids mesure est alors faux.
+
 ### LES ETIQUETTES, 25/09/2026 (deuxieme version)
 
 Ted : « gros souci de gestion des etiquettes, aucun moyen de les utiliser correctement ».
@@ -6711,3 +6718,37 @@ rappels clients), et une occurrence passee reste grise dans la grille.
 - **Nouvelle echelle calculee** dans `bdv-theme.css`, avec ses mesures en commentaire. Une
   famille ajoutee ne prend pas une cinquieme teinte (la bande est pleine) : une matiere.
 - `bdv-taches.js` pose `data-famille` sur chaque ligne ; section 30 de `bdv-bureau.css`.
+
+## UNE PHRASE DU BUREAU DIT QUOI FAIRE, ET LE TON SUIT LA GRAVITE, 26/09/2026
+
+Audit des phrases toutes faites par deux agents, `agents/vigneron-empathique.md` et
+`agents/expert-commercial-viticole.md` (cree ce jour). **Tout texte qui pousse a une action
+commerciale passe par les deux, avant puis apres**, comme les redessins passent par le premier.
+Scripts de la passe : `Claude outputs/audit-phrases-*.py`.
+
+- **Le ton n'est pas un reglage, c'est la GRAVITE.** Quatre registres : ALERTE (de l'argent
+  part : direct, en euros, un geste), CONSEIL (une action et le pretexte a donner au client),
+  BONNE NOUVELLE (sobre, et quoi en faire), EXPLICATION (repliee sous « Pourquoi je dis ca »).
+- **Dans `conseilClient()`, chaque branche OUVRE sur son action en gras** et les explications
+  suivent SANS gras : `ficheHTML()` met en tete la premiere phrase qui porte un `<b>`. Un constat
+  ou une mise en garde en gras en premier fait tomber l'action sous « Pourquoi je dis ca ».
+  `parts.ton` (alerte, conseil, calme) donne le titre : « A faire cette semaine », « Ce que je
+  ferais », « Pour le garder ».
+- **Un verdict nomme l'endroit ou agir** (piece et filtre), jamais « les leviers » ni « la
+  trajectoire ». Mots bannis de l'ecran : levier, trajectoire, acquisition, gisement, points de
+  mix, CV, panier, n/d, vs, « CA historique » (dire « achete au total » : ce n'est pas de
+  l'argent perdu cette annee).
+- **Les mails aux clients : aucun reproche, aucun delai chiffre** (« 38 j »), aucun accord au
+  masculin impose, aucune promesse que la fiche ne tient pas (la livraison n'est que « si tu
+  livres »). Chaque motif a son accroche ; le client regulier recevait celle du client en recul.
+- **UN MAIL, UNE OFFRE.** Le nouveau millesime (`nouveauMillesime()`), quand il existe, est
+  coche d'office et eteint par defaut le rappel d'achats, le reassort et la suggestion.
+  **L'objet ne parle du millesime que si le bloc est coche** ; il suit les blocs tant que le
+  vigneron ne l'a pas retouche (`data-auto`).
+- **Un millesime n'est « disponible » que s'il s'est VRAIMENT vendu** dans les 200 jours avant la
+  fin de l'export : 3 clients distincts ou 12 bouteilles. Jamais « arrive » : la base ne connait
+  ni le stock ni la date de sortie. Un faux pretexte annonce a un fidele coute plus qu'un silence.
+- **Le bloc « saison » ne se propose que si le mois fort est A VENIR** (1 a 3 mois apres la fin
+  de l'export) : « je prends un peu d'avance » est faux pendant ou apres.
+- Le courrier du matin a change de mots (« Ce que dit ton bureau », « a faire ») :
+  `courrier-matin` est A REDEPLOYER depuis `_deploiement/courrier-matin/`.

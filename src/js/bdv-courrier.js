@@ -202,7 +202,7 @@ function fmtJ(n){
 
 var TITRES_MOTIF = {
   recul:   'ils achetaient, ils achètent moins',
-  cadence: 'ils ont dépassé leur rythme',
+  cadence: 'en retard sur leur rythme habituel',
   unique:  'venus une seule fois'
 };
 function titreMotif(k){ return TITRES_MOTIF[k] || String(k||'sans motif'); }
@@ -264,7 +264,7 @@ function normTache(t, jAuj){
   var jf = jour(t.fin_le);
   var encours = !!(jf && jf.n >= jAuj.n && jd.n <= jAuj.n);
   var meta = [];
-  if(t.source === 'echeance') meta.push('échéance du métier');
+  if(t.source === 'echeance') meta.push('du calendrier');
   meta.push(jf ? ('du '+fmtJourCourt(jd)+' au '+fmtJourCourt(jf))
                : fmtJourCourt(jd));
   return { type:'tache', titre:String(t.titre||'(sans titre)'), jour:jd,
@@ -658,7 +658,7 @@ function batir(d){
   var corps = '';
 
   if(compteurs.echus){
-    corps += bande('Ce matin', compteurs.echus+' ligne'+(compteurs.echus>1?'s':''));
+    corps += bande('Ce matin', compteurs.echus+' à faire');
     corps += journee.echus.map(function(o,i){ return ligneAFaire(o, i%2===1); }).join('');
   }
   if(compteurs.venir){
@@ -725,7 +725,7 @@ function batir(d){
   }
 
   if(conseils.length){
-    corps += bande('Ce que dit ton tableau de bord', '');
+    corps += bande('Ce que dit ton bureau', '');
     corps += conseils.map(function(c,i){
       return ligne(i%2===1,
         '<div>'+htmlLimite(c.verdict)+'</div>'
