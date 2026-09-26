@@ -12,6 +12,20 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 26/09/2026, les mails dans le fil du client : écarté. L'historique monte sous le conseil.
+
+**Synchroniser les mails (Gmail, Microsoft 365) et suivre ouvertures et clics, comme HubSpot : écarté pour l'instant.**
+Les vignerons sont chez Orange, Wanadoo, SFR ou AOL. Sans Gmail ni Microsoft 365, le bureau ne peut ni lire leurs mails
+ni en envoyer en leur nom (Resend ne peut pas signer pour `wanadoo.fr`), sauf à stocker leur mot de passe de messagerie,
+refusé. Ouvertures et clics n'existent que pour un mail envoyé PAR l'outil, et les pixels demandent en plus le
+consentement du destinataire (recommandation CNIL). Seule piste restée ouverte : une adresse de copie cachée par bureau,
+qui ferait entrer les mails dans le fil, sans suivi.
+
+**L'historique de la fiche client passe sous « Ce que je ferais »**, demande de Ted : il était en bas de la colonne du
+suivi, sous les étiquettes. Voir CLAUDE.md, section « LA FICHE REDESSINEE ».
+
+---
+
 
 ## 26/09/2026, les couleurs de famille du calendrier et des taches
 

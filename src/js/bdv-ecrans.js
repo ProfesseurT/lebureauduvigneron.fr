@@ -3205,6 +3205,8 @@ function ficheHTML(f,motif){
       <p>${lead}</p>
       ${reste.length?`<details class="fiche__pourquoi"><summary>Pourquoi je dis ça</summary>${reste.map(c=>`<p>${c}</p>`).join('')}</details>`:''}
     </div>`:''}
+
+    <section class="fiche__hist" id="ficheHist" aria-label="Historique des échanges avec ce client">${filCorps(f,s)}</section>
     </div>
 
     <div class="fiche__cote">
@@ -3276,7 +3278,6 @@ function suiviHTML(f,s){
 
 function suiviCorps(f,s){
   const arg=JSON.stringify(String(f.id)).replace(/"/g,'&quot;');
-  const ech=echDe(f.id);
   const clos=s.statut==='traite';
 
   // ---- La prochaine action, en tete. Le reste de la fiche en decoule. ----
@@ -3384,6 +3385,20 @@ function suiviCorps(f,s){
       +proposees.map(e=>`<button type="button" class="etiqs__s" data-t="${esc(e.t.toLowerCase())}" onclick="crmAjouterTag(${arg},${q(e.t)})" aria-label="Ajouter l'étiquette ${esc(e.t)}">+ ${esc(e.t)} <span class="etiqs__n">${e.n}</span></button>`).join('')
       +`</div>`:'');
 
+  return h;
+}
+
+
+/* ---- L'HISTORIQUE, SORTI DU SUIVI LE 26/09/2026. ----
+   Demande de Ted, capture a l'appui : le fil vivait en bas de la colonne du suivi, sous les
+   etiquettes, la ou personne ne le lit. Il monte dans le corps de la fiche, juste sous
+   « Ce que je ferais » : ce qui s'est passe avec ce client se lit a cote de ce qu'on
+   conseille d'en faire. La colonne du suivi garde ce qui ECRIT (rappel, saisie, etiquettes).
+   `redessinerSuivi()` repeint AUSSI `#ficheHist` : sans ca, une note enregistree
+   n'apparaitrait qu'a la reouverture de la fiche. */
+function filCorps(f,s){
+  const arg=JSON.stringify(String(f.id)).replace(/"/g,'&quot;');
+  const ech=echDe(f.id);
   /* ---- QUI A ECRIT QUOI, 14/09/2026. ----
      `quiEcrit` se tait dans un bureau seul et sur mes propres lignes : le nom
      n'apparait donc que la ou il explique quelque chose, c'est-a-dire exactement la
@@ -3395,7 +3410,7 @@ function suiviCorps(f,s){
   }
 
   // ---- Le fil. Les anciennes notes ouvrent la marche, elles ne sont pas perdues. ----
-  h+=`<div class="section-label suivi__t">Historique</div><div class="fil">`;
+  let h=`<div class="section-label fiche__hist-t">Historique</div><div class="fil">`;
   if(s.notes){
     /* LA NOTE EPINGLEE PORTE L'AUTEUR DE LA FICHE, et pas celui d'une entree : le
        suivi est UNE ligne par client, donc une seule main l'a ecrite, et c'est cette
@@ -3499,6 +3514,7 @@ function redessinerSuivi(id){
   const boite=el('suiviBloc');if(!boite||FICHE_ID!==id)return;
   const f=ficheClient(id);if(!f)return;
   boite.innerHTML=suiviCorps(f,CRM[id]||{});
+  const hi=el('ficheHist');if(hi)hi.innerHTML=filCorps(f,CRM[id]||{});
   const pa=el('fichePastilles');if(pa)pa.innerHTML=pastillesFiche(f,CRM[id]||{});
   monterSelectCanal();
 }

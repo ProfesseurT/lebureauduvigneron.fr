@@ -3529,6 +3529,9 @@ Ted, capture de la pleine page : « tres destructure et pas forcement tres utili
 - **« Ecrire » depliait le suivi** : `viserDansLaFiche('message')` prenait le premier
   `details.msg--replie`, qui est le suivi. Il vise `details.fiche__redac`.
 - Les etiquettes sont des pastilles retirables une a une ; tout passe par `crmSetTags()`.
+- **L'historique est SOUS « Ce que je ferais »** depuis le 26/09/2026 (demande de Ted), dans
+  `.fiche__corps`, par `filCorps()`. La colonne du suivi ne garde que ce qui ECRIT. `redessinerSuivi()`
+  repeint `#suiviBloc` ET `#ficheHist` : oublier le second, et une note n'apparait qu'a la reouverture.
 
 ### PIEGE D'OUTIL, 24/09/2026 : UNE COPIE DEPOSEE N'EST PAS FORCEMENT LA DERNIERE
 

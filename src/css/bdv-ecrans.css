@@ -458,6 +458,9 @@
   color:var(--bdv-accent-fort);margin-bottom:var(--bdv-e-2)}
 .bdv-ventes .fiche__conseil p{margin:0 0 var(--bdv-e-2);font-size:var(--bdv-f-3);line-height:1.55}
 .bdv-ventes .fiche__conseil p:last-of-type{margin-bottom:0}
+/* L'historique, sous le conseil depuis le 26/09/2026 : il ouvre sur son titre, sans la marge haute d'une section. */
+.bdv-ventes .fiche__hist{margin-bottom:var(--bdv-e-6)}
+.bdv-ventes .fiche__hist-t{margin-top:0}
 .bdv-ventes .fiche__actions{display:flex;gap:var(--bdv-e-2);flex-wrap:wrap;margin-top:var(--bdv-e-4)}
 /* `.fiche__msg` A ETE RETIRE LE 19/09/2026 : plus aucun module ne pose la classe. */
 /* ---------- La fiche redessinee, 25/09/2026 : en-tete, actions, onglets ----------
