@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 26/09/2026, deux listes de plus : « Deuxième achat à jouer » et « Sa saison arrive »
+
+Proposées par l'agent commercial, validées par Ted, relues deux fois par les deux agents. Elles entrent dans
+« Qui rappeler » de Mon commerce, dans Mon cap, le mot du jour et le courrier, avec leur conseil et leur mail.
+
+**Arbitrage principal, venu des deux agents** : elles se taisent si l'export a plus de trois semaines. Elles
+parlent au présent, et un faux « sa saison arrive » envoyé à un fidèle coûte plus cher qu'un silence.
+
+**Seuils retenus** : deuxième achat, une commande 3 à 8 semaines avant la fin de l'export. Saison, une commande
+l'an dernier 2 à 7 semaines après la même date, au moins 3 commandes au total, rien depuis 6 semaines.
+
 ## 26/09/2026, audit des phrases : le bureau dit quoi faire, et le ton suit la gravité
 
 Demande de Ted : que le vigneron qui gère ses clients puisse se reposer sur son bureau. Deux agents en parallèle,

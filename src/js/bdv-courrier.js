@@ -203,7 +203,10 @@ function fmtJ(n){
 var TITRES_MOTIF = {
   recul:   'ils achetaient, ils achètent moins',
   cadence: 'en retard sur leur rythme habituel',
-  unique:  'venus une seule fois'
+  unique:  'venus une seule fois',
+  premier: 'venus une seule fois',
+  deuxieme:'nouveaux clients, à faire revenir',
+  saison:  'leur saison de commande arrive'
 };
 function titreMotif(k){ return TITRES_MOTIF[k] || String(k||'sans motif'); }
 

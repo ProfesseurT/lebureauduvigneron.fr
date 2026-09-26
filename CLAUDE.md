@@ -6752,3 +6752,26 @@ Scripts de la passe : `Claude outputs/audit-phrases-*.py`.
   de l'export) : « je prends un peu d'avance » est faux pendant ou apres.
 - Le courrier du matin a change de mots (« Ce que dit ton bureau », « a faire ») :
   `courrier-matin` est A REDEPLOYER depuis `_deploiement/courrier-matin/`.
+
+## DEUX LISTES DE PLUS DANS « QUI RAPPELER », 26/09/2026
+
+Idees de l'agent commercial, verifiees par les deux agents. `agentDeuxieme()` et `agentSaison()` dans
+`bdv-ecrans.js`, inserees dans `agentClients()` entre la cadence et le premier achat. Ordre de
+priorite : recul > cadence > deuxieme > saison > premier (un client n'apparait qu'une fois).
+
+- **« Deuxieme achat a jouer »** : une seule commande, 21 a 56 jours avant la fin de l'export.
+  `agentPremierAchat()` ne voit pas cette fenetre, et il refuse de repondre sous 40 clients observables.
+- **« Sa saison arrive »** : a commande l'an dernier 2 a 7 semaines apres la date de fin d'export,
+  au moins 3 commandes dans sa vie, rien depuis 6 semaines. Le montant est celui de CETTE periode.
+- **LES DEUX SE TAISENT SI LA DERNIERE VENTE DE L'EXPORT A PLUS DE 21 JOURS** (`exportFrais()`), et
+  « Mon commerce » le dit. Elles parlent au present : sur un export ancien, la saison est peut-etre
+  passee, et ce serait un faux pretexte. C'est le seul endroit ou l'on compare a aujourd'hui, pour
+  decider si la liste a un sens, jamais pour calculer.
+- **Aucune nouvelle couleur** : elles reprennent `m-premier` et `m-cadence`. Leurs cartes ne
+  s'affichent que si elles ont au moins un client.
+- **Le signal de Mon cap compte ce que le filtre montre** (memes ecarts qu'`agentClients()`).
+- **`motifDeduit()` reprend d'abord le motif de la liste** (`CLIENTS`) : un client, une raison.
+- `deuxieme` se traite comme `premier` dans le conseil et le mail, `saison` comme `cadence` pour le
+  reassort. Le courrier du matin nomme les deux motifs (`TITRES_MOTIF`) : A REDEPLOYER.
+- Au passage : les dates des lettres aux clients s'ecrivent « 15 juin 2026 » (`dateLettre()`), et
+  `avecLe()` dit « la Cuvee ».

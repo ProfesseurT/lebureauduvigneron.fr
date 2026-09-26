@@ -1579,6 +1579,61 @@ function agentPremierAchat(){
           classes:Object.keys(parClasse).map(k=>({i:+k,lib:libClasse(+k),...parClasse[k]})).sort((a,b)=>b.i-a.i),
           types:Object.keys(parType).map(k=>({lib:k,...parType[k]})).sort((a,b)=>(b.taux||0)-(a.taux||0))};
 }
+/* ===== DEUX LISTES DE PLUS, 26/09/2026, proposees par l'agent commercial =====
+   « Deuxieme achat a jouer » : venus une seule fois, il y a 3 a 8 semaines. C'est la
+   fenetre ou le deuxieme achat se gagne, et agentPremierAchat() ne la voit pas : il
+   refuse de repondre sous 40 clients observables a un an (la base de Ted en a 34).
+   « Sa saison arrive » : ont commande l'an dernier dans les 3 a 6 semaines qui suivent
+   la fin de l'export, et rien depuis 3 semaines. Le montant est celui de CETTE periode
+   l'an dernier, pas tout l'historique.
+   LES DEUX SE COMPTENT DEPUIS LA FIN DE L'EXPORT (META.max), jamais depuis aujourd'hui,
+   comme tout l'ecran. Elles lisent les lignes : sans lignes, agentClients() et
+   diagnosticSignals() ne les appellent pas, et ne concluent donc rien sur un vide. */
+function jourFinExport(){return META&&META.max?Math.floor(Date.UTC(META.max.y,META.max.m-1,META.max.d)/86400000):null;}
+function jourDuJour(){const d=new Date();return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000);}
+/* CES DEUX LISTES PARLENT AU PRESENT (« sa saison arrive », « ecris-lui dans la
+   semaine ») et se comptent depuis la derniere vente de l'export. Si elle a plus de
+   21 jours, la saison est peut-etre deja passee et le deuxieme achat deja joue sans le
+   vigneron : un faux pretexte presente comme sur. Elles se taisent donc, et « Mon
+   commerce » dit pourquoi (agents vigneron et commercial, 26/09/2026). C'est le SEUL
+   endroit de l'ecran ou l'on compare a aujourd'hui, et c'est voulu : on ne calcule
+   rien avec cette date, on decide seulement si la liste a encore un sens. */
+function exportFrais(){const ref=jourFinExport();return ref!=null&&jourDuJour()-ref<=21;}
+function agentDeuxieme(){
+  const ref=jourFinExport();if(ref==null||!exportFrais())return [];
+  const jours=clientPurchaseDays(),cand={};
+  for(const id in jours){const j=jours[id];if(j.length!==1)continue;const age=ref-j[0];
+    if(age>=21&&age<=56)cand[id]={id,nom:id,montant:0,jour:j[0],age,prod:{}};}
+  ROWS.forEach(r=>{if(!r._vin)return;const c=cand[clientKey(r)];if(!c)return;
+    c.montant+=r._total;if(c.nom===c.id&&r.client)c.nom=r.client;
+    if(r.produit)c.prod[r.produit]=(c.prod[r.produit]||0)+r._total;});
+  return Object.values(cand).filter(c=>c.montant>0).map(c=>{
+    const e=Object.entries(c.prod).sort((a,b)=>b[1]-a[1]);
+    return {id:c.id,nom:c.nom,montant:c.montant,date:dayToDate(c.jour),age:c.age,cuvee:e.length?e[0][0]:''};
+  }).sort((a,b)=>b.montant-a.montant);
+}
+let SAI_CACHE=null,SAI_ROWS=null,SAI_N=-1;
+function agentSaison(){
+  if(SAI_CACHE&&SAI_ROWS===ROWS&&SAI_N===ROWS.length)return SAI_CACHE;
+  SAI_ROWS=ROWS;SAI_N=ROWS.length;SAI_CACHE=[];
+  const ref=jourFinExport();if(ref==null||!exportFrais())return SAI_CACHE;
+  /* La fenetre est LARGE, 2 a 7 semaines apres la date de l'an dernier : une commande
+     annuelle de caviste varie de deux semaines d'une annee a l'autre. Un client servi
+     dans les 6 dernieres semaines a deja son reassort. Et une seule commande dans la
+     vie du client ne fait pas une saison (un mariage, un cadeau) : trois au moins. */
+  const du=ref-365+14,au=ref-365+49,recent=ref-42;
+  const m={},exclus=new Set(),jours={};
+  ROWS.forEach(r=>{if(!r._vin||r._dayNum==null)return;const id=clientKey(r);
+    (jours[id]||(jours[id]=new Set())).add(r._dayNum);
+    if(r._dayNum>recent){exclus.add(id);return;}
+    if(r._dayNum>=du&&r._dayNum<=au){const c=m[id]||(m[id]={id,nom:r.client||id,montant:0,jour:r._dayNum});
+      c.montant+=r._total;if(r._dayNum<c.jour)c.jour=r._dayNum;}});
+  SAI_CACHE=Object.values(m).filter(c=>c.montant>0&&!exclus.has(c.id)&&jours[c.id].size>=3)
+    .map(c=>({id:c.id,nom:c.nom,montant:c.montant,du:dayToDate(du),au:dayToDate(au),mois:dayToDate(c.jour).m}))
+    .sort((a,b)=>b.montant-a.montant);
+  return SAI_CACHE;
+}
+function saisonDe(id){return agentSaison().find(c=>c.id===id)||null;}
 function agentDormants(){
   const ref=META.max;const cad=agentCadence();if(!cad.ok)return{ref:null,dormants:[],ca:0,base:!!(PROFIL&&PROFIL.intervalleMedianBase)};
   const dormants=cad.enRetard.filter(c=>c.n>=SEUILS.rfmMinFreq&&c.montant>0)
@@ -1673,7 +1728,18 @@ function diagnosticSignals(){
   const dorm=dor.dormants.filter(c=>!dejaPris.has(c.id));
   const dormCa=sum(dorm,c=>c.montant);
   if(dorm.length){const t3=dorm.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
-    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dorm.length,'client')} ${dorm.length>1?'n\'ont':'n\'a'} pas recommandé à ${dorm.length>1?'leur':'sa'} date habituelle. ${dorm.length>1?'Ensemble, ils t\'ont':'Il t\'a'} acheté ${fmtMoney(dormCa)} depuis le début de ta base.`,action:`Commence par ${t3}, en proposant le réassort habituel. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
+    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dorm.length,'client')} ${dorm.length>1?'n\'ont':'n\'a'} pas recommandé à ${dorm.length>1?'leur':'sa'} date habituelle. ${dorm.length>1?'Ensemble, ils t\'ont':'Il t\'a'} acheté ${fmtMoney(dormCa)} depuis le début de ton export.`,action:`${dorm.length>1?'Commence par '+t3+', en proposant le réassort habituel':'C\'est '+t3+' : propose-lui son réassort habituel'}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
+  /* LES DEUX LISTES DU 26/09/2026, avec les memes ecarts qu'agentClients() : un client
+     n'apparait qu'une fois, donc le nombre annonce est celui que le filtre montre. */
+  if(!(typeof lignesPretes==='function'&&!lignesPretes())){
+    const pris=new Set([...dejaPris,...dorm.map(c=>c.id)]);
+    const deu=agentDeuxieme().filter(c=>!pris.has(c.id));deu.forEach(c=>pris.add(c.id));
+    const sai=agentSaison().filter(c=>!pris.has(c.id));
+    if(sai.length){const caS=sum(sai,c=>c.montant),t3=sai.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
+      S.push({sev:2,impact:caS,kind:'warn',cible:'clients',ico:'◔',verdict:`${plur(sai.length,'client')} ${sai.length>1?'commandent':'commande'} d'habitude dans les semaines qui viennent : ${fmtMoney(caS)} l'an dernier sur la même période.`,action:`${sai.length>1?'Écris-leur dans les jours qui viennent, avec leur réassort habituel : commence par '+t3:'Écris à '+t3+' dans les jours qui viennent, avec son réassort habituel'}. La liste est dans <b>Mon commerce</b>, filtre « Sa saison arrive ».`});}
+    if(deu.length){const caD=sum(deu,c=>c.montant);
+      S.push({sev:2,impact:caD,kind:'info',cible:'clients',ico:'↺',verdict:`${deu.length>1?deu.length+' nouveaux clients':'Un nouveau client'} à faire revenir : premier achat 3 à 8 semaines avant la fin de ton export, ${fmtMoney(caD)} de premières commandes.`,action:`Le deuxième achat se joue maintenant : ${deu.length>1?'écris-leur':'écris-lui'} dans la semaine. La liste est dans <b>Mon commerce</b>, filtre « Deuxième achat à jouer ».`});}
+  }
   const pv=computePriceVolume();
   if(pv){
     if(pv.priceEff<0&&Math.abs(pv.priceEff)>=Math.abs(pv.volEff))S.push({sev:2,impact:Math.abs(pv.priceEff),kind:'warn',cible:'annee',ico:'€',verdict:`Érosion par le prix : ${fmtMoney(Math.abs(pv.priceEff))} de CA perdus (prix moyen ${fmtNum(pv.P0,2)} € vers ${fmtNum(pv.P1,2)} €).`,action:`Le recul vient surtout du prix, pas du volume. Vérifie tes remises au cas par cas : <b>Mes cuvées</b> signale celles qui se vendent à des prix très différents.`});
@@ -1685,7 +1751,7 @@ function diagnosticSignals(){
   const cm=agentCanalMover();
   if(cm&&cm.mover&&Math.abs(cm.mover.dPts)>=2)S.push({sev:1,impact:0,cible:'produits',kind:cm.mover.dPts>=0?'ok':'info',ico:cm.mover.dPts>=0?'↗':'↘',verdict:`Le canal ${cm.mover.k} ${cm.mover.dPts>=0?'gagne':'perd'} ${fmtNum(Math.abs(cm.mover.dPts),1)} points dans la répartition de ton chiffre d'affaires.`,action:`${cm.mover.dPts>=0?'Regarde quelles cuvées le portent, pour les proposer à tes autres clients.':'Regarde si ce sont les clients ou les prix qui baissent sur ce canal.'} Le détail est dans <b>Mes cuvées</b>, au pied de l'écran.`});
   const series=monthlySeries();
-  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_FR[tr-1]}.`,action:`Écris à tes clients le mois d'avant, avec un prétexte (millésime, fin de stock, offre de saison), et prévois ta trésorerie pour ce mois-là.`});}
+  if(series.length>=6){const byM={},cM={};series.forEach(p=>{byM[p.m]=(byM[p.m]||0)+p.v;cM[p.m]=(cM[p.m]||0)+1;});const avgM={};for(const m in byM)avgM[m]=byM[m]/cM[m];let tr=null;for(let m=1;m<=12;m++)if(avgM[m]!=null&&(tr==null||avgM[m]<avgM[tr]))tr=m;if(tr)S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'◷',verdict:`Ton mois le plus creux est historiquement ${MOIS_PLEIN[tr-1]}.`,action:`Écris à tes clients le mois d'avant, avec un prétexte (millésime, fin de stock, offre de saison), et prévois ta trésorerie pour ce mois-là.`});}
   S.sort((a,b)=>b.sev-a.sev||b.impact-a.impact);
   return S;
 }
@@ -2464,6 +2530,8 @@ function conseilClient(f,motif){
   const nomMois=MOIS_FR[moisFort-1]||'';
   const rang=rangClient(f.ca);
   const parts=[];
+  if(motif==='deuxieme')motif='premier';
+  if(motif==='saison'&&!saisonDe(f.id))motif=motifDeduit(f);
   const nm=f.nbCommandes>1?nouveauMillesime(f):null;
   const pretexte=nm?`le ${nm.recent} ${avecDe(nm.cuvee)} est disponible, et il avait pris le ${nm.pris}`:'';
   /* L'ACTION D'ABORD, 26/09/2026 (audit des phrases, agents vigneron et commercial).
@@ -2482,6 +2550,11 @@ function conseilClient(f,motif){
     parts.push(`<b>Relance-le maintenant sur son réassort</b> : propose-lui ce qu'il prend d'habitude, dans sa quantité habituelle, avec une date de livraison.${pretexte?' Encore mieux : '+pretexte+'.':''}`);
     parts.push(`Il commande environ tous les ${fmtDelai(f.cadence)} et n'a rien pris depuis ${fmtDelai(f.silence)} : il a dépassé sa date habituelle, c'est ton prétexte. Le réassort marche mieux que la nouveauté avec un client qui a ses habitudes.`);
     if(!fiable)parts.push(`Ce rythme est déduit de ${plur(f.nbCommandes,'commande')} seulement : une relance légère suffit, sans insister.`);
+  }else if(motif==='saison'){
+    const s=saisonDe(f.id);
+    parts.ton='conseil';
+    parts.push(`<b>Contacte-le maintenant : sa saison de commande arrive.</b> L'an dernier, il a commandé ${fmtMoney(s.montant)} entre le ${fmtDate(s.du)} et le ${fmtDate(s.au)}. Propose-lui son réassort habituel.${pretexte?' Encore mieux : '+pretexte+'.':''}`);
+    parts.push(`En écrivant avant sa période, tu passes avant les autres ; pendant, sa commande est souvent déjà passée ailleurs.`);
   }else if(motif==='regulier'){
     /* 25/09/2026 : une fiche ouverte SANS motif (depuis « Mes clients ») tombait ici sur le
        conseil du premier achat, « n'est venu qu'une fois », y compris pour un client a dix
@@ -2491,11 +2564,12 @@ function conseilClient(f,motif){
     parts.push(`Client régulier : ${plur(f.nbCommandes,'commande')}, environ une tous les ${fmtDelai(f.cadence)}, la dernière ${f.silence>0?'il y a '+fmtDelai(f.silence):'tout récemment'}.`);
   }else{
     parts.ton='conseil';
-    parts.push(`<b>${f.silence!=null&&f.silence<=90?'Contacte-le dans la semaine':'Contacte-le'} : il ne repassera pas tout seul.</b> Donne-lui une raison simple de recommander : si tu livres, dis-le, et à partir de combien de bouteilles.`);
+    const pro=/^(CAV|CHR|RESTAU|EXPORT|PRO)/i.test(f.type||'')||f.btl>=60;
+    parts.push(`<b>${f.silence!=null&&f.silence<=90?'Contacte-le dans la semaine':'Contacte-le'} : il ne repassera pas tout seul.</b> ${pro?'Propose-lui son réassort et une cuvée à ajouter à la commande.':'Donne-lui une raison simple de recommander : si tu livres, dis-le, et à partir de combien de bouteilles.'}`);
     parts.push(`Il n'est venu qu'une fois, le ${fmtDate(f.premier)}, pour ${fmtMoney(f.ca)}. Le deuxième achat est le vrai premier : c'est lui qui fait un client.`);
   }
   if(rang<=10)parts.push(`Il fait partie de tes <b>${rang} % de meilleurs clients</b>. À traiter en personne, pas dans un envoi groupé.`);
-  if(moisFort&&f.parMois[moisFort]>f.ca*0.5)parts.push(`Il commande surtout en <b>${nomMois}</b> : écris-lui deux à trois semaines avant, pas pendant, sinon sa commande est déjà passée ailleurs.`);
+  if(motif!=='saison'&&f.nbCommandes>=3&&moisFort&&f.parMois[moisFort]>f.ca*0.5)parts.push(`Il commande surtout en <b>${nomMois}</b> : écris-lui deux à trois semaines avant, pas pendant, sinon sa commande est déjà passée ailleurs.`);
   if(!f.emails.length&&f.tels.length)parts.push(`Pas d'adresse e-mail connue, mais un numéro : <b>c'est un appel, pas un message</b>.`);
   if(!f.emails.length&&!f.tels.length)parts.push(`<b>Aucun contact enregistré.</b> Le premier travail est de récupérer une adresse ou un numéro dans ton logiciel.`);
   return parts;
@@ -2539,6 +2613,7 @@ function avecDe(nom){
 // Apres « ceux qui aiment », il faut « le Miracle », pas « du Miracle ».
 function avecLe(nom){
   const t=String(nom||'').trim();
+  if(/^cuv[ée]e\s/i.test(t))return 'la '+t;   // « la Cuvée du Clos », pas « le Cuvée »
   return /^(le |la |les |l')/i.test(t)?t.charAt(0).toLowerCase()+t.slice(1):'le '+t;
 }
 function listeFr(arr){
@@ -2548,6 +2623,7 @@ function listeFr(arr){
 }
 // Les blocs disponibles pour ce client. Chacun n'apparait que si la donnee existe.
 function blocsMessage(f,motif){
+  if(motif==='deuxieme')motif='premier';
   const b=[];
   const derniere=f.factures.length?f.factures[0]:null;
   const lignesDerniere=derniere?ROWS.filter(r=>r._vin&&clientKey(r)===f.id&&r.numFacture===derniere.num):[];
@@ -2557,15 +2633,15 @@ function blocsMessage(f,motif){
   if(f.cuvees.length)
     b.push({k:'achats',lbl:'Rappeler ce qu\'il a pris',defaut:!nmOn,
       txt:estPro
-        ? `Vos commandes portaient sur ${listeFr(detailAchats(f,2))}.`
+        ? `${f.nbCommandes>1?'Vos commandes portaient':'Votre commande portait'} sur ${listeFr(detailAchats(f,2))}.`
         : `Vous aviez choisi ${listeFr(detailAchats(f,2))}.`});
   if(lignesDerniere.length&&f.nbCommandes>1)
-    b.push({k:'reassort',lbl:'Proposer le même réassort',defaut:motif==='cadence'&&!nmOn,
+    b.push({k:'reassort',lbl:'Proposer le même réassort',defaut:(motif==='cadence'||motif==='saison')&&!nmOn,
       txt:`Si vous le souhaitez, je vous prépare la même chose que la dernière fois : ${listeFr(lignesDerniere.slice(0,3).map(r=>`${fmtNum(r._qte)} ${r._qte>1?'bouteilles':'bouteille'} ${avecDe(r.produit)}`))}.`});
   const reco=recoPour(f.id,1);
   if(reco.length&&f.cuvees.length)
-    b.push({k:'nouveaute',lbl:'Suggérer une cuvée qu\'il ne connaît pas',defaut:motif!=='cadence'&&!nmOn,
-      txt:`Beaucoup de ceux qui aiment ${avecLe(cuveeBase(f.cuvees[0][0]))} apprécient aussi ${avecLe(reco[0].cuvee)} : je peux en ajouter quelques bouteilles à votre prochaine commande, pour que vous puissiez y goûter.`});
+    b.push({k:'nouveaute',lbl:'Suggérer une cuvée qu\'il ne connaît pas',defaut:motif!=='cadence'&&motif!=='saison'&&!nmOn,
+      txt:`${estPro?'Beaucoup de nos clients qui prennent':'Beaucoup de ceux qui aiment'} ${avecLe(cuveeBase(f.cuvees[0][0]))} ${estPro?'prennent':'apprécient'} aussi ${avecLe(reco[0].cuvee)} : je peux en ajouter quelques bouteilles à votre prochaine commande, pour que vous puissiez y goûter.`});
   b.push({k:'livraison',lbl:estPro?'Proposer une expédition':'Rappeler que tu livres',defaut:motif==='premier'&&!estPro,
     txt:estPro?`Je peux organiser l'expédition dès que vous me donnez le feu vert.`
            :`Je peux vous l'expédier directement, sans que vous ayez à repasser.`});
@@ -2573,7 +2649,7 @@ function blocsMessage(f,motif){
   // La saison ne se propose que si ce mois est A VENIR (1 a 3 mois apres la fin de l'export) :
   // « je prends un peu d'avance » est faux pendant le mois fort ou apres.
   const mRef=META&&META.max?META.max.m:null, ecart=mRef==null?1:(moisFort-mRef+12)%12;
-  if(moisFort&&f.parMois[moisFort]>f.ca*0.4&&ecart>=1&&ecart<=3)
+  if(motif!=='saison'&&moisFort&&f.parMois[moisFort]>f.ca*0.4&&ecart>=1&&ecart<=3)
     b.push({k:'saison',lbl:'Mentionner sa saison d\'achat',defaut:false,
       txt:`Vous commandez souvent en ${MOIS_PLEIN[moisFort-1]} : je prends un peu d'avance pour que tout soit prêt.`});
   /* LE NOUVEAU MILLESIME, 26/09/2026 : le meilleur pretexte de relance du vin, et il est
@@ -2627,27 +2703,35 @@ function nouveauMillesime(f){
   });
   return best;
 }
+// Une date dans une LETTRE a un client : « 15 juin 2026 », pas « 15/06/2026 ».
+function dateLettre(d){return d?(d.d===1?'1er':d.d)+' '+MOIS_PLEIN[d.m-1]+' '+d.y:'';}
 function accrocheMessage(f,motif){
+  if(motif==='deuxieme')motif='premier';
   // Un caviste qui a pris 500 bouteilles n'est pas « passé au caveau ». Le volume et le type
   // de client disent lequel des deux on a en face, et la phrase change en consequence.
   const pro=/^(CAV|CHR|RESTAU|EXPORT|PRO)/i.test(f.type||'')||f.btl>=60;
   if(motif==='premier')return pro
-    ? `Merci pour votre première commande du ${fmtDate(f.premier)}, et pour votre confiance.`
-    : `Merci pour votre commande du ${fmtDate(f.premier)}.`;
+    ? `Merci pour votre première commande du ${dateLettre(f.premier)}, et pour votre confiance.`
+    : `Merci pour votre commande du ${dateLettre(f.premier)}.`;
   /* 26/09/2026 : plus de delai chiffre (« 38 j », « 2,4 mois ») dans une lettre, et plus de
      reproche. Le client regulier avait la phrase du client en recul, « nos echanges se sont
      espaces » : un reproche a tort a son meilleur client. Chaque motif a la sienne. */
   if(motif==='cadence')return `Votre dernière commande doit commencer à s'épuiser, alors je prends les devants pour que vous ne soyez pas à court.`;
+  if(motif==='saison'){const s=saisonDe(f.id);
+    return s?`L'an dernier, vous aviez commandé chez nous en ${MOIS_PLEIN[s.mois-1]} : je prends les devants pour que tout soit prêt.`
+            :`Je prends les devants pour votre prochaine commande, pour que tout soit prêt.`;}
   if(motif==='regulier')return `Merci de votre fidélité : je tenais à vous donner moi-même des nouvelles du domaine.`;
   return `Je tenais à vous écrire personnellement, pour vous donner des nouvelles du domaine et de nos vins cette saison.`;
 }
 function sujetMessage(f,motif,coches){
+  if(motif==='deuxieme')motif='premier';
   const cuvee=f.cuvees.length?cuveeBase(f.cuvees[0][0]):'nos vins';
   // L'objet ne parle du millesime que si le corps en parle : coche, ou coche d'office.
   const nm=(coches?coches.indexOf('millesime')>=0:motif!=='premier')?nouveauMillesime(f):null;
   if(nm)return `Le ${nm.recent} ${avecDe(nm.cuvee)} est disponible`;
-  if(motif==='premier')return `Suite à votre commande ${avecDe(cuvee)}`;
-  if(motif==='cadence')return `Votre réassort ${avecDe(cuvee)}`;
+  if(motif==='premier')return (/^(CAV|CHR|RESTAU|EXPORT|PRO)/i.test(f.type||'')||f.btl>=60)
+    ? `Votre réassort ${avecDe(cuvee)}` : `Suite à votre commande ${avecDe(cuvee)}`;
+  if(motif==='cadence'||motif==='saison')return `Votre réassort ${avecDe(cuvee)}`;
   return `Des nouvelles du domaine`;
 }
 // Assemble le message a partir des blocs coches.
@@ -3198,8 +3282,14 @@ function ficheViser(quoi){
 /* Le motif d'une fiche ouverte sans contexte (depuis « Mes clients », une adresse, un
    onglet) : il se deduit de l'historique, avec les memes seuils que la cadence. */
 function motifDeduit(f){
+  /* La liste « Qui rappeler » a deja tranche, avec les vrais calculs de cadence et de
+     recul : la fiche reprend son motif. Sans ca, un client range en « Retard de
+     cadence » a 2 640 euros pouvait s'ouvrir sur « sa saison arrive » a 1 440. */
+  const deja=(typeof CLIENTS!=='undefined'&&CLIENTS)?CLIENTS.find(c=>c.id===f.id):null;
+  if(deja)return deja.motif;
   if(f.nbCommandes<=1)return 'premier';
   if(f.cadence&&f.silence!=null&&f.silence>1.5*f.cadence)return 'cadence';
+  if(saisonDe(f.id))return 'saison';
   return 'regulier';
 }
 /* LES PASTILLES DE L'EN-TETE, a part depuis le 25/09/2026 : redessinerSuivi() les
@@ -3834,7 +3924,25 @@ function agentClients(){
       detail:`commande tous les ${fmtDelai(c.cadence!=null?c.cadence:c.cadRef)}, rien depuis ${fmtDelai(c.silence)}`,
       chance:null});
   });
-  // 3. Premier achat sans suite : aucune cadence calculable, mais un taux de retour mesure.
+  // 3 et 4, 26/09/2026 : le deuxieme achat a jouer, puis la saison qui arrive.
+  if(!sansLignes){
+    const chances={};if(A.ok)A.liste.forEach(c=>{chances[c.id]=c.chance;});
+    agentDeuxieme().forEach(c=>{
+      if(vus.has(c.id))return;vus.add(c.id);
+      out.push({id:c.id,nom:c.nom,motif:'deuxieme',montant:c.montant,
+        lib:'premier achat récent',
+        detail:`venu une fois le ${fmtDate(c.date)}${c.cuvee?', '+c.cuvee:''}`,
+        chance:chances[c.id]!=null?chances[c.id]:null});
+    });
+    agentSaison().forEach(c=>{
+      if(vus.has(c.id))return;vus.add(c.id);
+      out.push({id:c.id,nom:c.nom,motif:'saison',montant:c.montant,
+        lib:'l\'an dernier, sur ces semaines',
+        detail:`l'an dernier, commande entre le ${fmtDate(c.du)} et le ${fmtDate(c.au)}`,
+        chance:null});
+    });
+  }
+  // 5. Premier achat sans suite : aucune cadence calculable, mais un taux de retour mesure.
   if(A.ok)A.liste.forEach(c=>{
     if(vus.has(c.id))return;vus.add(c.id);
     out.push({id:c.id,nom:c.nom,motif:'premier',montant:c.montant,
@@ -3847,6 +3955,8 @@ function agentClients(){
 const MOTIFS={
   recul:  {label:'Recul confirmé',    cls:'m-recul',   aide:'Clients fidèles qui achètent moins qu\'avant, à date égale. C\'est un fait mesuré : ce sont eux à appeler en premier.'},
   cadence:{label:'Retard de cadence', cls:'m-cadence', aide:'Clients qui commandaient à un rythme régulier et qui ont laissé passer leur date habituelle. C\'est une estimation : relance légère, sans insister.'},
+  deuxieme:{label:'Deuxième achat à jouer', cls:'m-premier', aide:'Clients venus pour la première fois il y a 3 à 8 semaines, comptées depuis la fin de ton export. Le deuxième achat se joue maintenant : écris-leur dans la semaine.'},
+  saison: {label:'Sa saison arrive', cls:'m-cadence', aide:'Clients qui, l\'an dernier, ont commandé dans les semaines qui viennent, et n\'ont rien pris depuis six semaines. Écris-leur maintenant, avec leur réassort : une fois la période commencée, leur commande est souvent déjà passée ailleurs.'},
   premier:{label:'Premier achat',     cls:'m-premier', aide:'Clients venus une seule fois. La colonne « Chance » dit combien de clients comme eux sont revenus chez toi : relance d\'abord les plus fortes chances.'}
 };
 let filtreMotif='tous';
@@ -3985,14 +4095,15 @@ function renderClients(){
      annoncait que ces clients composent les lignes « perdus » et « en baisse » d'un autre
      ecran. Ces deux lignes sont maintenant juste au-dessus. Renvoyer ailleurs serait faux. */
   html+=`<div class="section-label">Qui rappeler</div>`
-    +`<div class="panel__sub">Chaque client n'apparaît qu'une fois, avec sa raison la plus sûre. Commence par le haut : c'est là qu'il y a le plus d'argent.</div>`;
+    +`<div class="panel__sub">Chaque client n'apparaît qu'une fois, avec sa raison la plus sûre. Commence par le haut : c'est là qu'il y a le plus d'argent.</div>`
+    +(exportFrais()?'':`<p class="note">« Deuxième achat à jouer » et « Sa saison arrive » attendent un export de moins de trois semaines : ta dernière vente connue date du ${fmtDate(META.max)}. Dépose ton dernier export pour les voir.</p>`);
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
-  html+=`<div class="motif-cards">${['recul','cadence','premier'].map(m=>`
+  html+=`<div class="motif-cards">${['recul','cadence','deuxieme','saison','premier'].filter(m=>['recul','cadence','premier'].indexOf(m)>=0||nb(m)>0).map(m=>`
     <button class="motif-card${filtreMotif===m?' on':''}" onclick="setMotif('${m}')" aria-pressed="${filtreMotif===m}">
       <span class="motif-card__n">${fmtNum(nb(m))}</span>
       <span class="motif-card__l">${MOTIFS[m].label}</span>
-      <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${m==='recul'?'perdus à date égale':(m==='cadence'?'achetés par eux au total':'de premiers achats')}</span></span>
+      <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${m==='recul'?'perdus à date égale':(m==='cadence'?'achetés par eux au total':(m==='saison'?'commandés l\'an dernier sur les semaines qui viennent':'de premiers achats'))}</span></span>
     </button>`).join('')}
     <button class="motif-card${filtreMotif==='tous'?' on':''}" onclick="setMotif('tous')" aria-pressed="${filtreMotif==='tous'}">
       <span class="motif-card__n">${fmtNum(CLIENTS.length)}</span>
