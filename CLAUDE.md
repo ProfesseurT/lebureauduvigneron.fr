@@ -3449,6 +3449,7 @@ sur un nom.
   `#client=` garde son sens d'avant (« Mon commerce » puis la fiche) : il est dans des favoris.
   Un lien `target="_blank"` n'est jamais rabattu par l'interception de `bdv-nav.js`.
 - **« Agrandir » ne perd pas le brouillon** : il le sauve avant d'ouvrir et referme sans l'oublier.
+- **« Agrandir » vit A COTE DE LA CROIX**, dans `.fiche__coin` (26/09/2026, demande de Ted) : une fleche seule, 44 px, meme dessin que la croix, son nom dans le hors-ecran. Le coin entier colle en tiroir (section 22.5). On choisit fermer ou agrandir au meme endroit.
 
 ### DEUX ONGLETS, UN SUIVI
 

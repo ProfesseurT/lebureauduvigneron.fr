@@ -454,9 +454,14 @@
    `display:contents` rend leurs enfants au flux, dans l'ordre d'avant. Elles n'existent que
    pour la pleine page, ou elles deviennent les deux colonnes (section 26 de bdv-bureau.css). */
 .bdv-ventes .fiche__corps,.bdv-ventes .fiche__cote{display:contents}
-.bdv-ventes .fiche__agrandir{margin-left:auto;display:inline-flex;align-items:center;min-height:var(--bdv-cible);padding:0 var(--bdv-e-3);
-  border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r);color:var(--bdv-encre-2);font-size:var(--bdv-f-2);font-weight:600;text-decoration:none}
-.bdv-ventes .fiche__agrandir::after{content:"\2197";margin-left:var(--bdv-e-2)}
+/* « Agrandir » et la croix vivent ENSEMBLE dans le coin (26/09/2026, demande de Ted) : deux
+   cibles de 44 px au meme dessin, on choisit au meme endroit entre fermer et agrandir. */
+.bdv-ventes .fiche__coin{position:absolute;top:var(--bdv-e-3);right:var(--bdv-e-4);display:flex;align-items:center;gap:var(--bdv-e-1);z-index:1}
+.bdv-ventes .fiche__coin .modale__close{position:static;min-width:var(--bdv-cible);min-height:var(--bdv-cible);display:flex;align-items:center;justify-content:center;padding:0}
+.bdv-ventes .modale__box:has(.fiche__coin) .fiche__head{padding-right:calc(var(--bdv-cible) * 2 + var(--bdv-e-4))}
+.bdv-ventes .fiche__agrandir{display:inline-flex;align-items:center;justify-content:center;min-width:var(--bdv-cible);min-height:var(--bdv-cible);
+  border-radius:var(--bdv-r);color:var(--bdv-encre-3);font-size:var(--bdv-f-5);line-height:1;text-decoration:none}
+.bdv-ventes .fiche__agrandir::after{content:"\2197"}
 .bdv-ventes .fiche__agrandir:hover{background:var(--bdv-survol);color:var(--bdv-encre-1)}
 .bdv-ventes .fiche__agrandir:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
 /* Sur telephone la fiche EST deja une page entiere : un onglet de plus n'apporte rien, et

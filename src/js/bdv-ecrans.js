@@ -3168,7 +3168,10 @@ function ficheHTML(f,motif){
   const lead=conseils[iLead]||'', reste=conseils.filter((_,i)=>i!==iLead);
   return `<div class="modale__bg" aria-hidden="true" onclick="fermerFiche()"></div>
   <div class="modale__box" role="dialog" aria-modal="true" aria-label="Fiche de ${esc(f.nom)}">
-    <button class="modale__close" onclick="fermerFiche()" aria-label="Fermer">&times;</button>
+    <div class="fiche__coin">
+      <a class="fiche__agrandir" href="/mon-bureau/#fiche=${esc(encodeURIComponent(f.id))}" target="_blank" rel="noopener" onclick="return agrandirFiche(this)" title="Agrandir dans un nouvel onglet"><span class="hors-ecran">Agrandir la fiche dans un nouvel onglet</span></a>
+      <button class="modale__close" onclick="fermerFiche()" aria-label="Fermer" title="Fermer">&times;</button>
+    </div>
     <button type="button" class="fiche__retour" onclick="fermerFiche()">← Mes clients</button>
 
     <div class="fiche__corps">
@@ -3179,7 +3182,6 @@ function ficheHTML(f,motif){
         <div class="fiche__pastilles" id="fichePastilles">${pastillesFiche(f,s)}</div>
       </div>
       ${lib?`<span class="motif ${cls}">${lib}</span>`:''}
-      <a class="fiche__agrandir" href="/mon-bureau/#fiche=${esc(encodeURIComponent(f.id))}" target="_blank" rel="noopener" onclick="return agrandirFiche(this)">Agrandir<span class="hors-ecran"> la fiche dans un nouvel onglet</span></a>
     </div>
 
     <div class="fiche__actions">

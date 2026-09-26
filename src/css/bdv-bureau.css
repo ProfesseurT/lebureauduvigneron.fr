@@ -3169,6 +3169,12 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
         la boite defile, et un bouton pose en absolu s'en irait avec le haut de
         la fiche. Il devient collant dans son propre ascenseur. Sa cible garde
         ses 44 px : c'est la seule sortie du tiroir a la souris. */
+  body.bdv-coque.bdv-a-tiroir #modale.on .fiche__coin .modale__close{
+    position:static;
+    float:none;
+    background:none;
+  }
+  body.bdv-coque.bdv-a-tiroir #modale.on .fiche__coin,
   body.bdv-coque.bdv-a-tiroir #modale.on .modale__close{
     position:sticky;
     top:0;
