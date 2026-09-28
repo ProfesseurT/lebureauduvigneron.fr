@@ -5040,7 +5040,7 @@ body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }
   -webkit-overflow-scrolling:touch;
 }
 .bdv-coque .aff-col{
-  flex:0 0 min(84vw, 17rem);
+  flex:1 0 min(84vw, 15rem);
   scroll-snap-align:start;
   display:flex;
   flex-direction:column;
@@ -5083,7 +5083,6 @@ body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }
 }
 .bdv-coque .aff-carte__deplacer{ flex:1 1 8rem; min-width:0; font-size:var(--bdv-f-2); padding:var(--bdv-e-1) var(--bdv-e-2); }
 .bdv-coque .aff-kanban__rel{ margin:0 0 var(--bdv-e-3); font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
-.bdv-coque .aff-kanban__detail{ margin-top:var(--bdv-e-4); }
 .bdv-coque .aff-marque{
   display:inline-block;
   margin:var(--bdv-e-1) 0 0;
@@ -5120,7 +5119,139 @@ body.bdv-poste.bdv-coque .aff-carte .btn,
 body.bdv-poste.bdv-coque .aff-carte select,
 body.bdv-poste.bdv-coque .aff-trouve,
 body.bdv-poste.bdv-coque .aff-vues .chip,
-body.bdv-poste.bdv-coque .aff-kanban__detail .btn{ min-height:var(--bdv-cible); }
+body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
+
+/* -- 31 quater. MES AFFAIRES, LOT 40 (28/09/2026) : le panneau sur le cote, et la
+      liste redessinee. Demande de Ted : « garder le meme delire que sur les autres
+      menus, l'ecran sur le cote ». LE PANNEAU EST UNE `.tmod` : meme papier, meme
+      croix, et le tiroir de la section 22.7 s'applique tel quel au-dessus de
+      1320 px. Rien ici ne redit une regle de tiroir. */
+.bdv-coque .amod .aff-form,
+.bdv-coque .amod .aff-edit{
+  margin:0;
+  padding:0;
+  border:0;
+  background:none;
+}
+.bdv-coque .amod__tete{ margin-bottom:var(--bdv-e-4); padding-right:var(--bdv-e-8); }
+.bdv-coque .amod__marques{ margin:0 0 var(--bdv-e-2); display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2); }
+.bdv-coque .amod__marques .tmod__tampon{ float:none; margin:0; }
+.bdv-coque .amod__marques .aff-marque{ margin:0; }
+.bdv-coque .amod__etat{
+  margin:var(--bdv-e-3) 0 0;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border-left:3px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface-2);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .amod__etat b{ color:var(--bdv-encre-1); }
+.bdv-coque .amod .aff-avis{ margin:0 0 var(--bdv-e-3); }
+
+/* LE BILAN : trois cases, le chiffre en grand et son mot en capitales, le meme
+   contraste d'echelle que l'ardoise. « A relancer » prend l'encre du retard
+   quand il n'est pas nul, et son mot le dit deja. */
+.bdv-coque .aff-bilan{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--bdv-e-2);
+  margin:0 0 var(--bdv-e-4);
+}
+.bdv-coque .aff-bilan__case{
+  flex:1 1 7rem;
+  display:flex;
+  flex-direction:column-reverse;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+}
+.bdv-coque .aff-bilan dt{
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-bilan__n{
+  margin:0;
+  font-size:var(--bdv-f-6);
+  font-weight:600;
+  line-height:1.1;
+  font-variant-numeric:tabular-nums;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-bilan__n--presse{ color:var(--bdv-retard); }
+
+/* LA LIGNE : le nom est un bouton, et son calque rend la ligne entiere
+   cliquable (meme montage que les cartes des outils, `z-index` compris : sans
+   lui, « Etape suivante » passerait sous le calque et ne se cliquerait plus). */
+.bdv-coque .aff-ligne{ position:relative; align-items:center; }
+.bdv-coque .aff-ligne:hover{ background-color:var(--bdv-surface-2); }
+.bdv-coque .aff-ligne--ouverte,
+.bdv-coque .aff-ligne--ouverte:hover{
+  background-color:var(--bdv-survol);
+  background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));
+}
+.bdv-coque .aff-ligne__qui,
+.bdv-coque .aff-carte .aff-ligne__qui{
+  padding:0;
+  border:0;
+  background:none;
+  font:inherit;
+  font-weight:600;
+  color:var(--bdv-encre-1);
+  text-align:left;
+  cursor:pointer;
+}
+.bdv-coque .aff-ligne__qui::after{
+  content:'';
+  position:absolute;
+  inset:0;
+}
+.bdv-coque .aff-ligne__qui:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-ligne__gestes,
+.bdv-coque .aff-carte__gestes,
+.bdv-coque .aff-ligne .aff-marque{ position:relative; z-index:1; }
+.bdv-coque .aff-ligne__titre{
+  margin:var(--bdv-e-1) 0 0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-ligne__etape{
+  flex:1 1 14rem;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:var(--bdv-e-1);
+}
+.bdv-coque .aff-ligne__etape .aff-ligne__s{ margin:0; }
+.bdv-coque .aff-ligne__rappel{ flex:1 1 12rem; margin:0; }
+.bdv-coque .aff-pastille{
+  display:inline-block;
+  padding:1px var(--bdv-e-2);
+  border-radius:var(--bdv-r-pastille);
+  background:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait);
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-ligne .aff-ligne__corps{ flex:1 1 13rem; }
+/* Sur une largeur de piece suffisante, la ligne devient un tableau sans en etre
+   un : nom, etape, rappel, geste, alignes d'une ligne a l'autre. */
+@container affaires (min-width: 52rem){
+  .bdv-coque .aff-ligne{
+    display:grid;
+    grid-template-columns:minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) auto;
+    column-gap:var(--bdv-e-4);
+  }
+}
+.bdv-coque .aff-carte{ position:relative; }
+.bdv-coque .aff-carte--ouverte{ background-color:var(--bdv-survol); }
+.bdv-coque .aff-tete{ margin-bottom:var(--bdv-e-3); }
+.bdv-coque .aff-tete .btn--bordeaux{ margin-left:auto; }
 
 /* -- 31 bis. LES AFFAIRES DANS LE CALENDRIER ET « MES TACHES », lot 37 (28/09/2026).
       Elles prennent la matiere des rappels clients (pointille, pas de case, pas de

@@ -29,10 +29,12 @@ const t = (nom, v, detail) => {
   else { KO++; console.log('  ECHEC : ' + nom + (detail !== undefined ? '  →  ' + detail : '')); }
 };
 const titre = s => console.log('\n== ' + s + ' ==');
+/* L'avis vit au-dessus de la liste, ou dans le panneau quand il est ouvert (lot 40). */
+const avis = X => ['affAvis', 'amodAvis'].map(i => (X.doc.getElementById(i) || {}).textContent || '').join(' ');
 const attendre = (ms) => new Promise(r => setTimeout(r, ms || 0));
 
 function monter() {
-  const dom = new JSDOM('<!doctype html><body><p id="affAvis" hidden></p><div id="affCorps"></div></body>',
+  const dom = new JSDOM('<!doctype html><body><h2 id="affTitre">Mes affaires</h2><p id="affAvis" hidden></p><div id="affCorps"></div></body>',
     { runScripts: 'outside-only', url: 'https://lebureauduvigneron.fr/mon-bureau/#affaires' });
   const w = dom.window;
   const base = { affaire_types: [], affaire_etapes: [], pistes: [], affaires: [] };
@@ -131,9 +133,9 @@ const etapeAvant = B.base.affaires[0].etape_id;
 B.clic('[data-aff="suivante"]');
 await attendre(20);
 t('rien n\'est ecrit pendant le delai', B.requetes.filter(r => r.methode === 'PATCH').length === avantPatch);
-t('l\'avis propose d\'annuler', !!B.doc.querySelector('#affAvis [data-aff="annulerSuivante"]'));
+t('l\'avis propose d\'annuler', !!B.doc.querySelector('[data-aff="annulerSuivante"]'));
 t('et le champ de rappel est ouvert', !!B.doc.querySelector('form.aff-edit input[name="rappel"]'));
-B.doc.querySelector('#affAvis [data-aff="annulerSuivante"]').click();
+B.doc.querySelector('[data-aff="annulerSuivante"]').click();
 await attendre(20);
 t('annuler n\'ecrit rien', B.requetes.filter(r => r.methode === 'PATCH').length === avantPatch);
 t('et l\'affaire reste a son etape', B.base.affaires[0].etape_id === etapeAvant);
@@ -188,7 +190,7 @@ B.clic('[data-aff="retirerEtape"][data-etape="' + cible + '"]');
 await attendre(20);
 t('l\'etape est retiree', !B.base.affaire_etapes.some(e => e.etape_id === cible));
 t('et l\'affaire est deplacee, pas perdue', B.base.affaires.length === 1 && B.base.affaires[0].etape_id !== cible);
-t('on le dit', /affaire déplacée vers/.test(B.doc.getElementById('affAvis').textContent));
+t('on le dit', /affaire déplacée vers/.test(avis(B)));
 
 titre('Une affaire chez un client, depuis sa fiche (lot 35)');
 {
@@ -236,8 +238,8 @@ titre('Lot 39 : la bascule Liste / Kanban');
   sel.value = 'e3'; sel.dispatchEvent(new K.w.Event('change', { bubbles: true }));
   t('le deplacement n\'ecrit rien pendant le delai d\'annulation', K.requetes.filter(r => r.methode === 'PATCH').length === avant);
   t('la carte a change de colonne a l\'ecran', !!K.doc.querySelector('[data-colonne="e3"] [data-affaire="a1"]'));
-  t('et l\'avis propose d\'annuler', !!K.doc.querySelector('#affAvis [data-aff="annulerSuivante"]'));
-  K.doc.querySelector('#affAvis [data-aff="annulerSuivante"]').click();
+  t('et l\'avis propose d\'annuler', !!K.doc.querySelector('[data-aff="annulerSuivante"]'));
+  K.doc.querySelector('[data-aff="annulerSuivante"]').click();
   await attendre(20);
   t('« Annuler » n\'ecrit rien et la carte revient', K.requetes.filter(r => r.methode === 'PATCH').length === avant && !!K.doc.querySelector('[data-colonne="e1"] [data-affaire="a1"]'));
   // Le glisser-deposer : un faux transfert, jsdom n'en a pas.
@@ -267,13 +269,13 @@ titre('Lot 39 : le client de l\'affaire');
   t('un client existant se voit proposer aussi la famille « client »', [...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
   P.doc.getElementById('affForme').dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
-  t('sans client choisi, rien n\'est cree, et on le dit', P.base.affaires.length === 0 && /Choisis le client/.test(P.doc.getElementById('affAvis').textContent));
+  t('sans client choisi, rien n\'est cree, et on le dit', P.base.affaires.length === 0 && /Choisis le client/.test(avis(P)));
   const q = P.doc.getElementById('affCherche');
   q.value = 'paul'; q.dispatchEvent(new P.w.Event('input', { bubbles: true }));
   t('la recherche trouve le client de l\'export', P.doc.querySelectorAll('#affTrouves [data-aff="prendreClient"]').length === 1 && /Chez Paul/.test(P.doc.getElementById('affTrouves').textContent));
   P.clic('#affTrouves [data-aff="prendreClient"]');
   t('le client choisi est nomme', /Client : Chez Paul/.test(P.doc.getElementById('affChoisi').textContent));
-  P.doc.getElementById('affTitre').value = 'Le rosé';
+  P.doc.getElementById('affIntitule').value = 'Le rosé';
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
   const a1 = P.base.affaires[0] || {};
@@ -307,7 +309,7 @@ titre('Lot 39 : le client de l\'affaire');
   P.doc.getElementById('affSiret').value = '1234';
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
-  t('un SIRET qui n\'a pas 14 chiffres est refuse', P.base.pistes.length === 1 && /14 chiffres/.test(P.doc.getElementById('affAvis').textContent));
+  t('un SIRET qui n\'a pas 14 chiffres est refuse', P.base.pistes.length === 1 && /14 chiffres/.test(avis(P)));
 
   // Le lot 39 pas passe : la base refuse la colonne siret
   const vraie = P.w.BdvCompte.api;
@@ -320,7 +322,7 @@ titre('Lot 39 : le client de l\'affaire');
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
   t('sans le SQL du lot 39, le client se cree quand meme, et on le dit',
-    P.base.pistes.some(p => p.nom === 'Chez Marcel') && /lot 39/.test(P.doc.getElementById('affAvis').textContent));
+    P.base.pistes.some(p => p.nom === 'Chez Marcel') && /lot 39/.test(avis(P)));
   P.w.BdvCompte.api = vraie;
 
   // Changer le client d'une affaire
@@ -334,6 +336,60 @@ titre('Lot 39 : le client de l\'affaire');
   const apres = P.base.affaires.find(a => a.affaire_id === cible.affaire_id);
   t('changer de client REMPLACE le client, un seul par affaire', apres.client_id === 'C8' && apres.client_nom === 'Le Bistrot' && !apres.piste_id);
   t('ni NaN, ni undefined, ni null a l\'ecran', !/NaN|undefined|\bnull\b/.test(P.doc.body.textContent));
+}
+
+titre('Lot 40 : le panneau sur le cote, comme une tache ou un client');
+{
+  const Q = monter();
+  const appels = { poser: [], retirer: 0 };
+  Q.w.BdvTiroir = { actif: () => true, poser: (b) => { appels.poser.push(b); return true; }, retirer: () => { appels.retirer++; } };
+  Q.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  Q.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 },
+                             { bureau: BUREAU, etape_id: 'e2', type_id: 't1', nom: 'Premier contact', ordre: 2 });
+  Q.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', opposition: false });
+  Q.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Cave du Port', issue: 'en_cours',
+                         rappel: '2099-01-01', etape_le: new Date().toISOString() });
+  await Q.w.BdvAffaires.ouvrir();
+  const panneau = () => Q.doc.getElementById('affaireModale');
+  t('rien d\'ouvert : pas de panneau visible', !panneau() || panneau().hidden);
+  t('la ligne ne dit plus « 0 jour »', !/\b0 jour\b/.test(Q.doc.getElementById('affCorps').textContent));
+  const avantFocus = Q.doc.activeElement;
+  Q.clic('[data-affaire="a1"] [data-aff="ouvrir"]');
+  t('ouvrir une affaire montre le panneau', !!panneau() && !panneau().hidden);
+  t('le panneau porte le nom et l\'etape', /Cave du Port/.test(panneau().textContent) && /Repéré/.test(panneau().textContent));
+  t('l\'editeur est dans le panneau, plus dans la liste',
+    !!panneau().querySelector('form.aff-edit') && !Q.doc.querySelector('#affCorps form.aff-edit'));
+  t('la decision du tiroir passe par BdvTiroir.poser, avec la BOITE',
+    appels.poser.length > 0 && appels.poser[0] && appels.poser[0].classList.contains('tmod__boite'));
+  t('en tiroir, ouvrir une affaire ne vole pas le focus', Q.doc.activeElement === avantFocus || !panneau().contains(Q.doc.activeElement));
+  t('la ligne ouverte est marquee', Q.doc.querySelector('#affCorps [data-affaire="a1"]').classList.contains('aff-ligne--ouverte'));
+  Q.doc.dispatchEvent(new Q.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  t('Echap ferme le panneau, et le tiroir est retire', panneau().hidden && appels.retirer === 1);
+  Q.clic('[data-aff="nouvelle"]');
+  t('« Nouvelle affaire » s\'ouvre dans le panneau', !panneau().hidden && !!panneau().querySelector('#affForme') && !Q.doc.querySelector('#affCorps #affForme'));
+  t('le formulaire neuf recoit le focus, meme en tiroir', panneau().contains(Q.doc.activeElement));
+  const man = Q.doc.querySelector('input[name="affPourQui"][value="manuel"]');
+  man.checked = true; man.dispatchEvent(new Q.w.Event('change', { bubbles: true }));
+  const nom = Q.doc.getElementById('affNom'); nom.value = 'Chez Lulu';
+  Q.clic('[data-aff="filtre"][data-type="t1"]');
+  t('cliquer un filtre n\'efface pas ce qu\'on tape', Q.doc.getElementById('affNom') && Q.doc.getElementById('affNom').value === 'Chez Lulu');
+  t('ni le choix « Pour qui ? »', Q.doc.querySelector('input[name="affPourQui"][value="manuel"]').checked && !Q.doc.querySelector('[data-zone="nouveau"]').hidden);
+  Q.doc.getElementById('affNom').value = '';
+  Q.doc.getElementById('affForme').dispatchEvent(new Q.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('une erreur de saisie se dit DANS le panneau', /Il faut le nom/.test(Q.doc.getElementById('amodAvis').textContent));
+  Q.doc.getElementById('affNom').value = 'Chez Lulu';
+  Q.doc.getElementById('affIntitule').value = 'La carte des vins';
+  Q.doc.getElementById('affForme').dispatchEvent(new Q.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('creer ferme le panneau', panneau().hidden);
+  t('et garde le titre tape (l\'id ne se confond plus avec le titre de la piece)',
+    Q.base.affaires.some(a => a.titre === 'La carte des vins'));
+  t('le panneau ferme, le message revient au-dessus de la liste', /Affaire ouverte/.test(Q.doc.getElementById('affAvis').textContent));
+  Q.clic('[data-affaire="a1"] [data-aff="ouvrir"]');
+  Q.clic('#affaireModale [data-aff="fermerPanneau"].tmod__x');
+  t('la croix ferme', panneau().hidden);
+  t('aucun onclick dans le panneau', !/\sonclick=/.test(panneau().innerHTML));
 }
 
 titre('Les affaires dans « Ma journee » (bdv-affaires-jour.js)');

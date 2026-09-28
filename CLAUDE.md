@@ -6992,6 +6992,26 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 - **SQL `lot39-nouveau-client.sql`** : `pistes.siret` (14 chiffres) et `pistes.adresse`. Sans lui, la piste se
   cree sans ces deux champs et l'avis le dit ; l'editeur ne montre SIRET et adresse que si la colonne existe.
 
+### LOT 40 : LE PANNEAU SUR LE COTE, ET LA PIECE REDESSINEE (28/09/2026)
+
+- **Demande de Ted : « garder le meme delire que sur les autres menus, l'ecran sur le cote »**, et revoir le
+  dessin. Une affaire ouverte ET une nouvelle affaire s'ouvrent dans un panneau : tiroir a droite a partir de
+  1320 px, modale en dessous. Plus rien ne se deplie dans la liste ni sous le kanban.
+- **Le panneau est une `.tmod`** (`#affaireModale`, classes `tmod amod`), fabrique par `bdv-affaires.js`. Il
+  passe par `BdvTiroir.poser(boite)` / `.retirer()` comme la tache et la fiche client : aucun seuil, aucune
+  regle de tiroir de plus, la section 22.7 l'habille deja. `banc:tiroir` garde cette troisieme boite.
+- **Il ne se repeint que si son sujet change ou si la base a parle** (`S.panneauSale`) : un clic sur un filtre
+  n'efface pas ce qu'on tape. Les ecouteurs delegues sont poses sur le corps ET sur le panneau (`brancherSur`).
+  `dire()` ecrit dans l'avis du panneau quand il est ouvert : en modale, l'avis de la page est sous le voile.
+- **Focus** : vole en modale ; en tiroir seulement pour un formulaire neuf (meme exception que la tache neuve).
+- **La ligne** : le nom est un bouton dont le calque `::after` rend la ligne cliquable (pas de `z-index` sur le
+  calque, la charte borne la famille ; les gestes sont en `z-index:1`). Etape en etiquette, duree seule dessous
+  (`ligneDuree`), rappel a part, « Etape suivante » a droite. Grille alignee au-dessus de 52 rem de piece.
+- **Le bilan** (en cours, a relancer, rappels prevus) : « a relancer » compte EXACTEMENT le bloc du meme nom.
+- **DEFAUT TROUVE EN PASSANT** : le champ « L'affaire » du lot 39 portait `id="affTitre"`, deja pris par le `h2`
+  de la piece dans `mon-bureau.njk`. `el('affTitre')` rendait le titre : le texte tape etait perdu. Renomme
+  `affIntitule`, et le harnais de `banc:affaires` porte maintenant ce `h2`, sans quoi il ne pouvait pas le voir.
+
 ### OU EN EST LA BRANCHE, CLOTURE DU 28/09/2026
 
 - En production : lots 34 a 38 (affaires, journee, courrier v18, calendrier, taches, fiche du domaine).

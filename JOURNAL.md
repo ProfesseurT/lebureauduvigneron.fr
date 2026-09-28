@@ -95,6 +95,12 @@ les exports et les nouveaux clients, SIRET par l'annuaire officiel, à la main) 
 dans la fiche (il REMPLACE). SQL `lot39-nouveau-client.sql` (SIRET et adresse sur `pistes`) à coller par Ted ; le
 navigateur marche sans et le dit. `banc:affaires` 82 contrôles, `verif` complet vert.
 
+**Lot 40, 28/09/2026 (suite).** Ted : « garder le même délire que sur les autres menus, l'écran sur le côté »,
+et revoir le dessin. Une affaire ouverte et une nouvelle affaire s'ouvrent maintenant dans un panneau à droite
+(modale sous 1320 px), comme une tâche ou un client. La liste est redessinée : bilan en trois chiffres, ligne
+cliquable, étape en étiquette, rappel à part. Défaut du lot 39 trouvé et corrigé : le titre tapé d'une nouvelle
+affaire était perdu (identifiant en double avec le titre de la pièce). `banc:affaires` 101 contrôles, `verif` vert.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 

@@ -131,7 +131,9 @@
     return 'Rien n’a été enregistré : la base a refusé, ou la connexion a lâché. Réessaie.';
   }
   function dire(html, souci) {
-    var n = el('affAvis');
+    var n = (panneauVoulu() && el('amodAvis')) || el('affAvis');
+    var autre = n && n.id === 'amodAvis' ? el('affAvis') : el('amodAvis');
+    if (autre) { autre.hidden = true; autre.innerHTML = ''; }
     if (!n) return;
     n.innerHTML = html || '';
     n.hidden = !html;
@@ -190,7 +192,7 @@
       S.types = r[0]; S.etapes = r[1];
       S.pistes = {}; r[2].forEach(function (p) { S.pistes[p.piste_id] = p; });
       S.affaires = r[3];
-      S.charge = true; S.erreur = false;
+      S.charge = true; S.erreur = false; S.panneauSale = true;
       /* La journee lit les memes affaires : on les lui pose, elle repeint son panneau. */
       if (window.BdvAffairesJour) BdvAffairesJour.poser(S.affaires, S.pistes);
       return true;
@@ -247,10 +249,129 @@
       return;
     }
     if (!S.types.length) { c.innerHTML = htmlDemarrage(); return; }
-    c.innerHTML = htmlTete() + (S.nouvelle === 'client' ? htmlNouvelleClient() : S.nouvelle ? htmlNouvelle() : '')
+    c.innerHTML = htmlTete() + htmlBilan()
       + (S.vue === 'kanban' ? htmlKanban() : htmlRelancer() + htmlListe())
       + htmlCloses() + htmlReglages();
-    if (S.nouvelle === true) apresNouvelle();
+    peindrePanneau();
+  }
+
+  /* ================= LE PANNEAU, 28/09/2026 (lot 40) =================
+     Demande de Ted : « garder le meme delire que sur les autres menus, l'ecran
+     sur le cote ». Une affaire ouverte, et une nouvelle affaire, ne se deplient
+     plus dans la liste : elles s'ouvrent dans un panneau, A DROITE de la liste
+     au-dessus de 1320 px (le tiroir), en MODALE en dessous. Exactement comme une
+     tache ou la fiche d'un client.
+
+     LA DECISION N'EST PAS ICI : elle vit dans `BdvTiroir`, en bas de
+     `bdv-nav.js`, comme pour les deux autres (regle du 23/09/2026 : deux
+     endroits qui decident, ce sont deux seuils qui divergent). On lui passe la
+     BOITE. Le dessin reprend les classes `.tmod` de la modale d'une tache :
+     meme papier, meme croix, meme tiroir, sans une regle de tiroir de plus.
+     Ce fichier fabrique son propre element et reste le seul a ecrire dans les
+     affaires (regle du lot 34). */
+  var MOD = null, MOD_RETOUR = null, MOD_CLE = '';
+  function panneauVoulu() { return !!(S.nouvelle || S.ouverte); }
+  function monterPanneau() {
+    if (MOD) return MOD;
+    MOD = document.createElement('div');
+    MOD.className = 'tmod amod';
+    MOD.id = 'affaireModale';
+    MOD.hidden = true;
+    MOD.innerHTML = '<div class="tmod__voile" data-aff="fermerPanneau"></div>'
+      + '<div class="tmod__boite amod__boite" role="dialog" aria-modal="true" aria-labelledby="amodTitre">'
+      + '<button type="button" class="tmod__x" data-aff="fermerPanneau" aria-label="Fermer">×</button>'
+      + '<div class="amod__tete" id="amodTete"></div>'
+      + '<p class="aff-avis" id="amodAvis" role="status" aria-live="polite" hidden></p>'
+      + '<div class="amod__corps" id="amodCorps"></div></div>';
+    document.body.appendChild(MOD);
+    brancherSur(MOD);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && MOD && !MOD.hidden) { e.preventDefault(); fermerPanneau(); }
+    });
+    return MOD;
+  }
+  function cleDuPanneau() {
+    if (S.nouvelle) return 'n:' + S.nouvelle;
+    return S.ouverte ? 'a:' + S.ouverte : '';
+  }
+  /* LE PANNEAU NE SE REPEINT QUE SI SON SUJET CHANGE, OU SI LA BASE A PARLE.
+     `rendre()` repasse ici a chaque clic sur un filtre : repeindre le formulaire a
+     chaque fois effacerait ce que le vigneron est en train de taper. */
+  function peindrePanneau(force) {
+    var cle = cleDuPanneau();
+    if (!cle) { if (MOD && !MOD.hidden) fermerPanneau(true); return; }
+    var a = S.ouverte && S.affaires.filter(function (x) { return x.affaire_id === S.ouverte; })[0];
+    if (S.ouverte && !S.nouvelle && !a) { fermerPanneau(true); return; }
+    monterPanneau();
+    var neuf = MOD.hidden;
+    if (!neuf && cle === MOD_CLE && !force && !S.panneauSale) return;
+    MOD_CLE = cle; S.panneauSale = false;
+    var tete = el('amodTete'), corps = el('amodCorps');
+    if (S.nouvelle) {
+      corps.removeAttribute('data-affaire');
+      tete.innerHTML = '<h2 class="tmod__titre" id="amodTitre">Nouvelle affaire</h2>'
+        + '<p class="tmod__sous">' + (S.nouvelle === 'client'
+          ? 'Chez ' + esc((S.clientPropose || {}).nom || 'ce client') + '.'
+          : 'Pour un client que tu as déjà, ou un nouveau.') + '</p>';
+      corps.innerHTML = S.nouvelle === 'client' ? htmlNouvelleClient() : htmlNouvelle();
+      if (S.nouvelle === true) apresNouvelle();
+    } else {
+      var e = etat(a), t = typeDe(a.type_id), et = etapeDe(a.etape_id);
+      corps.setAttribute('data-affaire', a.affaire_id);
+      tete.innerHTML = '<p class="amod__marques"><span class="tmod__tampon"' + (e.retard > 0 ? ' data-ton="retard"' : '') + '>'
+        + esc(et ? et.nom : 'étape') + '</span>'
+        + (estNouveau(a) ? ' <span class="aff-marque">Nouveau client</span>' : '') + '</p>'
+        + '<h2 class="tmod__titre" id="amodTitre">' + esc(sujet(a)) + '</h2>'
+        + '<p class="tmod__sous">' + [a.titre && a.titre !== sujet(a) ? esc(a.titre) : '', t ? esc(t.nom) : '']
+          .filter(Boolean).join(' · ') + '</p>'
+        + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e) + '</p>';
+      corps.innerHTML = htmlEditeur(a);
+    }
+    if (neuf) {
+      MOD_RETOUR = document.activeElement;
+      MOD.hidden = false;
+    }
+    var enTiroir = false;
+    if (window.BdvTiroir) enTiroir = window.BdvTiroir.poser(MOD.querySelector('.tmod__boite'));
+    else document.body.style.overflow = 'hidden';
+    /* ON NE VOLE LE FOCUS QU'EN MODALE, sauf pour un formulaire NEUF, qu'on vient
+       d'ouvrir pour ecrire dedans (meme exception que la tache neuve). */
+    if (neuf && (!enTiroir || S.nouvelle)) {
+      var premier = S.nouvelle
+        ? (S.nouvelle === 'client' ? el('affTitreClient') : (S.choix && S.choix.mode === 'existant' ? el('affCherche') : el('affNom')))
+        : MOD.querySelector('.tmod__x');
+      if (premier) { try { premier.focus(); } catch (x) {} }
+    }
+  }
+  function fermerPanneau(silence) {
+    var etait = S.ouverte || S.nouvelle;
+    S.ouverte = null; S.nouvelle = false; S.choix = null; S.clientPropose = null;
+    if (MOD && !MOD.hidden) {
+      MOD.hidden = true;
+      MOD_CLE = '';
+      if (window.BdvTiroir) window.BdvTiroir.retirer();   // le retrait de l'atelier s'en va avec le tiroir
+      else document.body.style.overflow = '';
+      var r = MOD_RETOUR; MOD_RETOUR = null;
+      if (r && r.isConnected && typeof r.focus === 'function') { try { r.focus(); } catch (x) {} }
+    }
+    if (!silence && etait) { viderAttente(); rendre(); }
+  }
+
+  /* LE BILAN EN UNE LIGNE, au-dessus de la liste : ce qu'on a en cours, ce qui
+     presse. Les memes mots que les blocs, jamais une couleur seule. */
+  function htmlBilan() {
+    /* « A relancer » compte EXACTEMENT ce que compte le bloc du meme nom (rappel du
+       ou passe, OU endormie) : deux nombres differents sous le meme mot, c'est le
+       vigneron qui se demande lequel croire. */
+    var v = visibles();
+    var rel = v.filter(function (a) { var e = etat(a); return e.relancer || e.endormie; }).length;
+    var prevus = v.filter(function (a) { var e = etat(a); return e.retard != null && e.retard < 0; }).length;
+    var cases = [[v.length, 'en cours', ''],
+                 [rel, 'à relancer', rel ? 'aff-bilan__n--presse' : ''],
+                 [prevus, prevus > 1 ? 'rappels prévus' : 'rappel prévu', '']];
+    return '<dl class="aff-bilan">' + cases.map(function (c) {
+      return '<div class="aff-bilan__case"><dt>' + c[1] + '</dt><dd class="aff-bilan__n ' + c[2] + '">' + c[0] + '</dd></div>';
+    }).join('') + '</dl>';
   }
 
   function htmlDemarrage() {
@@ -283,7 +404,7 @@
     return '<div class="aff-tete"><div class="aff-chips" role="group" aria-label="Type d’affaire">' + chips + '</div>'
       + vues
       + '<button type="button" class="btn btn--bordeaux" data-aff="nouvelle"'
-      + ' aria-expanded="' + (S.nouvelle ? 'true' : 'false') + '">Nouvelle affaire</button></div>';
+      + ' aria-haspopup="dialog" aria-controls="affaireModale">Nouvelle affaire</button></div>';
   }
 
   /* Une affaire de la famille « client » porte sur un client existant : elle se
@@ -315,7 +436,6 @@
     }).join('');
     var dans7 = new Date(); dans7.setDate(dans7.getDate() + 7);
     return '<form class="aff-form" id="affForme" novalidate>'
-      + '<p class="aff-form__t">Nouvelle affaire</p>'
       + '<fieldset class="aff-groupe"><legend>Pour qui ?</legend><div class="aff-radios">' + modes + '</div></fieldset>'
       /* ZONE 1 : un client existant, de Vitisoft ou deja cree ici */
       + '<div class="aff-zone" data-zone="existant">'
@@ -350,7 +470,7 @@
       + '</div></details></div>'
       /* L'AFFAIRE */
       + '<label class="aff-champ"><span>L’affaire (facultatif)</span>'
-      + '<input id="affTitre" type="text" maxlength="120" autocomplete="off" placeholder="Le rosé, le mariage de juin, la carte des vins…"></label>'
+      + '<input id="affIntitule" type="text" maxlength="120" autocomplete="off" placeholder="Le rosé, le mariage de juin, la carte des vins…"></label>'
       + '<div class="aff-duo"><label class="aff-champ"><span>Type d’affaire</span><select id="affType"></select></label>'
       + '<label class="aff-champ"><span>Je le rappelle le</span><input id="affRappel" type="date" value="' + jourIso(dans7) + '" required></label></div>'
       + '<label class="aff-champ"><span>Pour quoi faire (facultatif)</span>'
@@ -524,7 +644,7 @@
       return '<option value="' + t.type_id + '"' + (pref && t.type_id === pref.type_id ? ' selected' : '') + '>' + esc(t.nom) + '</option>';
     }).join('');
     return '<form class="aff-form" id="affFormeClient" novalidate>'
-      + '<p class="aff-form__t">Nouvelle affaire chez ' + esc(c.nom || ('le client n°' + c.id)) + '</p>'
+      + '<p class="aff-form__t hors-ecran">Nouvelle affaire chez ' + esc(c.nom || ('le client n°' + c.id)) + '</p>'
       + '<label class="aff-champ"><span>Ce que tu veux lui faire prendre</span>'
       + '<input id="affTitreClient" type="text" maxlength="120" autocomplete="off" placeholder="Le rosé, le magnum, la cuvée export…" required></label>'
       + '<div class="aff-duo"><label class="aff-champ"><span>Type d’affaire</span><select id="affTypeClient">' + options + '</select></label>'
@@ -557,7 +677,7 @@
      peut arriver, et on le compte en jours restants ou ecoules. */
   function ligneEtape(a, e) {
     var et = etapeDe(a.etape_id);
-    var txt = pluriel(e.jours, 'jour', 'jours') + ' dans « ' + esc(et ? et.nom : 'étape') + ' »';
+    var txt = (e.jours === 0 ? 'Depuis aujourd’hui' : pluriel(e.jours, 'jour', 'jours')) + ' dans « ' + esc(et ? et.nom : 'étape') + ' »';
     if (e.endormie) return '<b>Endormie depuis ' + pluriel(e.jours - e.sommeil, 'jour', 'jours') + '</b> : ' + txt;
     if (e.retard == null) {
       var reste = e.sommeil - e.jours;
@@ -566,27 +686,39 @@
     return txt;
   }
 
-  function htmlAffaire(a) {
+  /* LA LIGNE, REDESSINEE AU LOT 40. Le nom ouvre le panneau (toute la ligne est
+     cliquable, par le calque du bouton), l'etape est une etiquette, le rappel dit
+     en mots ce qui presse. « Etape suivante » reste a portee de pouce. */
+  /* SOUS L'ETIQUETTE D'ETAPE, LA DUREE SEULE : redire le nom de l'etape juste sous
+     l'etiquette qui le porte faisait lire deux fois la meme chose. */
+  function ligneDuree(a, e) {
+    var depuis = e.jours === 0 ? 'Depuis aujourd’hui' : 'Depuis ' + pluriel(e.jours, 'jour', 'jours');
+    if (e.endormie) return '<b>Endormie depuis ' + pluriel(e.jours - e.sommeil, 'jour', 'jours') + '</b>';
+    if (e.retard == null) return depuis + ', s’endort dans ' + pluriel(e.sommeil - e.jours, 'jour', 'jours') + ' sans rappel';
+    return depuis;
+  }
+  function htmlAffaire(a, avecType) {
     var e = etat(a);
     var suite = etapeSuivante(a);
     var ouverte = S.ouverte === a.affaire_id;
-    var t = typeDe(a.type_id);
+    var t = typeDe(a.type_id), et = etapeDe(a.etape_id);
     var qui = sujet(a);
     return '<li class="aff-ligne' + (e.endormie ? ' aff-ligne--dort' : '') + (e.retard > 0 ? ' aff-ligne--retard' : '')
-      + '" data-affaire="' + a.affaire_id + '">'
+      + (ouverte ? ' aff-ligne--ouverte' : '') + '" data-affaire="' + a.affaire_id + '">'
       + '<div class="aff-ligne__corps">'
-      + '<p class="aff-ligne__t"><span class="aff-ligne__qui">' + esc(qui) + '</span>'
-      + (a.titre && a.titre !== qui ? ' <span class="aff-ligne__titre">' + esc(a.titre) + '</span>' : '')
+      + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir"'
+      + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>'
       + (estNouveau(a) ? ' <span class="aff-marque">Nouveau client</span>' : '') + '</p>'
-      + '<p class="aff-ligne__s">' + (S.filtre || !t ? '' : esc(t.nom) + ', ') + ligneEtape(a, e) + '</p>'
-      + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
-      + '</div><div class="aff-ligne__gestes">'
+      + (a.titre && a.titre !== qui ? '<p class="aff-ligne__titre">' + esc(a.titre) + '</p>' : '')
+      + '</div>'
+      + '<p class="aff-ligne__etape"><span class="aff-pastille">' + esc(et ? et.nom : 'étape') + '</span>'
+      + '<span class="aff-ligne__s">' + (avecType && !S.filtre && t ? esc(t.nom) + ' · ' : '') + ligneDuree(a, e) + '</span></p>'
+      + '<p class="aff-ligne__rappel aff-ligne__s">' + ligneRappel(a, e) + '</p>'
+      + '<div class="aff-ligne__gestes">'
       + (suite
-        ? '<button type="button" class="btn" data-aff="suivante" aria-label="Passer à l’étape suivante, « ' + esc(suite.nom) + ' »">Étape suivante</button>'
+        ? '<button type="button" class="btn" data-aff="suivante" aria-label="Passer « ' + esc(qui) + ' » à l’étape suivante, « ' + esc(suite.nom) + ' »">Étape suivante</button>'
         : '<span class="aff-ligne__fin">Dernière étape</span>')
-      + '<button type="button" class="btn" data-aff="ouvrir" aria-expanded="' + (ouverte ? 'true' : 'false') + '">'
-      + (ouverte ? 'Fermer' : 'Ouvrir') + '</button></div>'
-      + (ouverte ? htmlEditeur(a) : '') + '</li>';
+      + '</div></li>';
   }
 
   function htmlEditeur(a) {
@@ -690,18 +822,13 @@
     var cols = etapesDe(t.type_id).map(function (et) {
       var ici = dans.filter(function (a) { return a.etape_id === et.etape_id; });
       return '<section class="aff-col" data-colonne="' + et.etape_id + '" aria-label="' + esc(et.nom) + ', ' + ici.length + '">'
-        + '<h4 class="aff-col__t">' + esc(et.nom) + ', ' + ici.length + '</h4>'
+        + '<h3 class="aff-col__t">' + esc(et.nom) + ', ' + ici.length + '</h3>'
         + '<ul class="aff-col__liste">' + ici.map(htmlCarte).join('') + '</ul></section>';
     }).join('');
-    var ouverte = S.ouverte && dans.filter(function (a) { return a.affaire_id === S.ouverte; })[0];
     return '<div class="aff-bloc">'
-      + (nRel ? '<p class="aff-kanban__rel"><b>À relancer : ' + nRel + '</b>, signalées en mots sur leur carte.</p>'
-        : '<p class="aff-vide">Rien à relancer aujourd’hui.</p>')
+      + (nRel ? '<p class="aff-kanban__rel">Les affaires à relancer sont signalées en mots sur leur carte.</p>' : '')
       + (dans.length ? '' : '<p class="aff-vide">Aucune affaire en cours dans « ' + esc(t.nom) + ' ».</p>')
       + '<div class="aff-kanban">' + cols + '</div>'
-      + (ouverte ? '<div class="aff-kanban__detail" data-affaire="' + ouverte.affaire_id + '">'
-        + '<p class="aff-form__t">' + esc(sujet(ouverte)) + (ouverte.titre && ouverte.titre !== sujet(ouverte) ? ', ' + esc(ouverte.titre) : '') + '</p>'
-        + htmlEditeur(ouverte) + '</div>' : '')
       + '</div>';
   }
   function htmlCarte(a) {
@@ -712,15 +839,15 @@
     var ouverte = S.ouverte === a.affaire_id;
     return '<li class="aff-carte' + (e.endormie ? ' aff-ligne--dort' : '') + (e.retard > 0 ? ' aff-ligne--retard' : '')
       + (ouverte ? ' aff-carte--ouverte' : '') + '" data-affaire="' + a.affaire_id + '" draggable="true">'
-      + '<p class="aff-ligne__t"><span class="aff-ligne__qui">' + esc(qui) + '</span></p>'
+      + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir" aria-haspopup="dialog"'
+      + ' aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__s">' + esc(a.titre) + '</p>' : '')
       + (estNouveau(a) ? '<p class="aff-marque">Nouveau client</p>' : '')
       + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
       + (e.endormie ? '<p class="aff-ligne__s"><b>Endormie depuis ' + pluriel(e.jours - e.sommeil, 'jour', 'jours') + '</b></p>' : '')
       + '<div class="aff-carte__gestes">'
       + '<select class="aff-carte__deplacer" data-deplacer aria-label="Déplacer « ' + esc(qui) + ' » vers une autre étape">' + opts + '</select>'
-      + '<button type="button" class="btn" data-aff="ouvrir" aria-expanded="' + (ouverte ? 'true' : 'false') + '">'
-      + (ouverte ? 'Fermer' : 'Ouvrir') + '</button></div></li>';
+      + '</div></li>';
   }
 
   function htmlRelancer() {
@@ -732,7 +859,7 @@
     if (!r.length) return '<div class="aff-bloc"><h3 class="aff-bloc__t">À relancer</h3>'
       + '<p class="aff-vide">Rien à relancer aujourd’hui.</p></div>';
     return '<div class="aff-bloc aff-bloc--relancer"><h3 class="aff-bloc__t">À relancer : ' + r.length + '</h3>'
-      + '<ul class="aff-liste">' + r.map(htmlAffaire).join('') + '</ul></div>';
+      + '<ul class="aff-liste">' + r.map(function (a) { return htmlAffaire(a, true); }).join('') + '</ul></div>';
   }
   function htmlListe() {
     var reste = visibles().filter(function (a) { var e = etat(a); return !(e.relancer || e.endormie); });
@@ -745,7 +872,7 @@
         var ici = dans.filter(function (a) { return a.etape_id === et.etape_id; });
         if (!ici.length) return '';
         return '<h4 class="aff-etape">' + esc(et.nom) + ', ' + ici.length + '</h4>'
-          + '<ul class="aff-liste">' + ici.map(htmlAffaire).join('') + '</ul>';
+          + '<ul class="aff-liste">' + ici.map(function (a) { return htmlAffaire(a, false); }).join('') + '</ul>';
       }).join('');
       html += (S.filtre ? '' : '<h3 class="aff-bloc__t">' + esc(t.nom) + '</h3>') + blocs;
     });
@@ -856,7 +983,7 @@
         siret: sir || null, adresse: v('affAdresse') };
       affaire.piste_id = piste.piste_id;
     }
-    affaire.titre = v('affTitre') || nom;
+    affaire.titre = v('affIntitule') || nom;
     var sansSiret = false;
     try {
       if (piste) {
@@ -947,7 +1074,7 @@
     if (!cible || etapeId === a.etape_id || cible.type_id !== a.type_id) return;
     var avant = a.etape_id;
     a.etape_id = etapeId; a.etape_le = new Date().toISOString();
-    S.ouverte = a.affaire_id;
+    S.ouverte = a.affaire_id; S.nouvelle = false; S.panneauSale = true;
     S.attente = { id: a.affaire_id, avant: avant, apres: etapeId,
       minuterie: setTimeout(viderAttente, DELAI_ANNULER) };
     rendre();
@@ -1070,6 +1197,12 @@
     var c = el('affCorps');
     if (!c || c.getAttribute('data-branche')) return;
     c.setAttribute('data-branche', '1');
+    brancherSur(c);
+    ecouteursUniques();
+  }
+  /* Le corps de la piece ET le panneau : les memes ecouteurs delegues, poses une
+     fois sur chacun. Le panneau vit hors de `#affCorps`, dans le <body>. */
+  function brancherSur(c) {
     c.addEventListener('click', function (ev) {
       var b = ev.target.closest('[data-aff]');
       if (!b || !c.contains(b)) return;
@@ -1082,28 +1215,26 @@
       }
       if (quoi === 'filtre') { S.filtre = b.getAttribute('data-type') || ''; rendre(); return; }
       if (quoi === 'nouvelle') {
-        S.nouvelle = !S.nouvelle; S.choix = null; rendre();
-        var premier = S.nouvelle && (S.choix && S.choix.mode === 'existant' ? el('affCherche') : el('affNom'));
-        if (premier) premier.focus();
+        viderAttente(); S.ouverte = null; S.nouvelle = true; S.choix = null; MOD_CLE = ''; rendre();
         return;
       }
-      if (quoi === 'annulerNouvelle') { S.nouvelle = false; S.clientPropose = null; S.choix = null; rendre(); return; }
+      if (quoi === 'annulerNouvelle' || quoi === 'fermerPanneau') { fermerPanneau(); return; }
+      if (quoi === 'annulerSuivante') { annulerSuivante(); return; }
       if (quoi === 'vue') { viderAttente(); poserVue(b.getAttribute('data-vue')); rendre(); return; }
       if (quoi === 'chercherSiret') { chercherSiret(); return; }
       if (quoi === 'prendreSiret') { prendreSiret(+b.getAttribute('data-i')); return; }
       if (quoi === 'prendreClient') {
         S.choix.client = trouverConnu(b.getAttribute('data-genre'), b.getAttribute('data-id')) || null;
         peindreChoisi();
-        var tt = el('affTitre'); if (tt) tt.focus();
+        var tt = el('affIntitule'); if (tt) tt.focus();
         return;
       }
       if (quoi === 'lacherClient') { S.choix.client = null; peindreChoisi(); if (el('affCherche')) el('affCherche').focus(); peindreTrouves(); return; }
       if (quoi === 'rattacher' && a) { rattacher(a, b.getAttribute('data-genre'), b.getAttribute('data-id')); return; }
       if (quoi === 'ouvrir' && a) {
-        viderAttente(); S.ouverte = S.ouverte === a.affaire_id ? null : a.affaire_id; rendre();
-        /* Dans le kanban la fiche s'ouvre SOUS le tableau : on l'amene a l'ecran. */
-        var det = S.vue === 'kanban' && S.ouverte && c.querySelector('.aff-kanban__detail');
-        if (det && det.scrollIntoView) det.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        viderAttente();
+        if (S.ouverte === a.affaire_id) { fermerPanneau(); return; }
+        S.nouvelle = false; S.choix = null; S.ouverte = a.affaire_id; rendre();
         return;
       }
       if (quoi === 'suivante' && a) { suivante(a); return; }
@@ -1197,6 +1328,8 @@
       var ad = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
       if (ad) deplacer(ad, col.getAttribute('data-colonne'));
     });
+  }
+  function ecouteursUniques() {
     /* « Annuler » vit dans l'avis, au-dessus du corps : son propre ecouteur. */
     var av = el('affAvis');
     if (av) av.addEventListener('click', function (ev) {
