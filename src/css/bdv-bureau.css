@@ -5026,6 +5026,102 @@ body.bdv-poste.bdv-coque .aff-tete .btn,
 body.bdv-poste.bdv-coque .aff-avis .btn{ min-height:var(--bdv-cible); }
 body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }
 
+/* -- 31 ter. MES AFFAIRES, LOT 39 (28/09/2026) : la bascule Liste / Kanban, le kanban,
+      et le choix du client. Le kanban DEFILE EN LARGEUR DANS SA BOITE, jamais la page :
+      sur telephone une colonne fait presque l'ecran, et l'on glisse de l'une a l'autre. */
+.bdv-coque .aff-vues{ display:flex; gap:var(--bdv-e-1); }
+.bdv-coque .aff-kanban{
+  display:flex;
+  gap:var(--bdv-e-3);
+  overflow-x:auto;
+  max-width:100%;
+  padding-bottom:var(--bdv-e-2);
+  scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;
+}
+.bdv-coque .aff-col{
+  flex:0 0 min(84vw, 17rem);
+  scroll-snap-align:start;
+  display:flex;
+  flex-direction:column;
+  min-height:8rem;
+  padding:var(--bdv-e-2);
+  background:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .aff-col--survol{ outline:2px dashed var(--bdv-accent); outline-offset:-2px; }
+.bdv-coque .aff-col__t{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+  margin:0 0 var(--bdv-e-2);
+}
+.bdv-coque .aff-col__liste{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:var(--bdv-e-2);
+  flex:1 1 auto;
+}
+.bdv-coque .aff-carte{
+  padding:var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-3);
+  background-color:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background-image:linear-gradient(var(--bdv-trait-fort),var(--bdv-trait-fort));
+  background-size:3px 100%;
+  background-repeat:no-repeat;
+  cursor:grab;
+}
+.bdv-coque .aff-carte--ouverte{ border-color:var(--bdv-accent); }
+.bdv-coque .aff-carte--prise{ opacity:.5; }
+.bdv-coque .aff-carte__gestes{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2);
+  margin-top:var(--bdv-e-2);
+}
+.bdv-coque .aff-carte__deplacer{ flex:1 1 8rem; min-width:0; font-size:var(--bdv-f-2); padding:var(--bdv-e-1) var(--bdv-e-2); }
+.bdv-coque .aff-kanban__rel{ margin:0 0 var(--bdv-e-3); font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+.bdv-coque .aff-kanban__detail{ margin-top:var(--bdv-e-4); }
+.bdv-coque .aff-marque{
+  display:inline-block;
+  margin:var(--bdv-e-1) 0 0;
+  padding:0 var(--bdv-e-1);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r-pastille);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-cherche{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:var(--bdv-e-2); }
+.bdv-coque .aff-cherche .aff-champ{ flex:1 1 14rem; }
+.bdv-coque .aff-trouves{ list-style:none; margin:var(--bdv-e-1) 0 0; padding:0; }
+.bdv-coque .aff-trouve{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:0 var(--bdv-e-2);
+  width:100%;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  border-top-width:0;
+  color:var(--bdv-encre-1);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.bdv-coque .aff-trouves li:first-child .aff-trouve{ border-top-width:1px; }
+.bdv-coque .aff-trouve:hover,
+.bdv-coque .aff-trouve:focus-visible{ background:var(--bdv-survol); }
+.bdv-coque .aff-trouve__nom{ font-weight:600; }
+.bdv-coque .aff-trouve__d{ flex-basis:100%; font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .aff-choisi{ margin:var(--bdv-e-2) 0; }
+body.bdv-poste.bdv-coque .aff-carte .btn,
+body.bdv-poste.bdv-coque .aff-carte select,
+body.bdv-poste.bdv-coque .aff-trouve,
+body.bdv-poste.bdv-coque .aff-vues .chip,
+body.bdv-poste.bdv-coque .aff-kanban__detail .btn{ min-height:var(--bdv-cible); }
+
 /* -- 31 bis. LES AFFAIRES DANS LE CALENDRIER ET « MES TACHES », lot 37 (28/09/2026).
       Elles prennent la matiere des rappels clients (pointille, pas de case, pas de
       teinte : la bande du papier n'en loge pas une septieme) et se distinguent par

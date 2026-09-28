@@ -209,6 +209,133 @@ titre('Une affaire chez un client, depuis sa fiche (lot 35)');
   t('la liste affiche le nom, pas le numero', /Cave du Vieux Pressoir/.test(C.doc.getElementById('affCorps').textContent));
 }
 
+titre('Lot 39 : la bascule Liste / Kanban');
+{
+  const K = monter();
+  K.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false },
+                            { bureau: BUREAU, type_id: 't2', nom: 'Mariage', famille: 'evenement', sommeil_jours: 15, ordre: 1, archive: false });
+  K.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 },
+                             { bureau: BUREAU, etape_id: 'e2', type_id: 't1', nom: 'Premier contact', ordre: 2 },
+                             { bureau: BUREAU, etape_id: 'e3', type_id: 't1', nom: 'Tarif envoyé', ordre: 3 },
+                             { bureau: BUREAU, etape_id: 'm1', type_id: 't2', nom: 'Demande reçue', ordre: 1 });
+  K.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', opposition: false });
+  K.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Cave du Port', issue: 'en_cours',
+                         rappel: '2099-01-01', etape_le: new Date().toISOString() });
+  await K.w.BdvAffaires.ouvrir();
+  t('la liste est la disposition par defaut', K.doc.querySelector('[data-aff="vue"][data-vue="liste"]').getAttribute('aria-pressed') === 'true');
+  K.clic('[data-aff="vue"][data-vue="kanban"]');
+  t('le choix se retient sur l\'appareil', K.w.localStorage.getItem('bdv_aff_vue') === 'kanban');
+  t('sur « Toutes », le kanban demande un type', /Choisis un type d’affaire/.test(K.doc.body.textContent) && !K.doc.querySelector('.aff-kanban'));
+  K.clic('[data-aff="filtre"][data-type="t1"]');
+  t('un type choisi : une colonne par etape', K.doc.querySelectorAll('.aff-col').length === 3);
+  t('la carte est dans sa colonne', !!K.doc.querySelector('[data-colonne="e1"] [data-affaire="a1"]'));
+  t('la carte dit « Nouveau client »', /Nouveau client/.test(K.doc.querySelector('[data-affaire="a1"]').textContent));
+  t('la carte se deplace aussi sans glisser (liste « Deplacer vers »)', !!K.doc.querySelector('[data-affaire="a1"] select[data-deplacer]'));
+  const avant = K.requetes.filter(r => r.methode === 'PATCH').length;
+  const sel = K.doc.querySelector('[data-affaire="a1"] select[data-deplacer]');
+  sel.value = 'e3'; sel.dispatchEvent(new K.w.Event('change', { bubbles: true }));
+  t('le deplacement n\'ecrit rien pendant le delai d\'annulation', K.requetes.filter(r => r.methode === 'PATCH').length === avant);
+  t('la carte a change de colonne a l\'ecran', !!K.doc.querySelector('[data-colonne="e3"] [data-affaire="a1"]'));
+  t('et l\'avis propose d\'annuler', !!K.doc.querySelector('#affAvis [data-aff="annulerSuivante"]'));
+  K.doc.querySelector('#affAvis [data-aff="annulerSuivante"]').click();
+  await attendre(20);
+  t('« Annuler » n\'ecrit rien et la carte revient', K.requetes.filter(r => r.methode === 'PATCH').length === avant && !!K.doc.querySelector('[data-colonne="e1"] [data-affaire="a1"]'));
+  // Le glisser-deposer : un faux transfert, jsdom n'en a pas.
+  const ev = new K.w.Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(ev, 'dataTransfer', { value: { getData: () => 'a1' } });
+  K.doc.querySelector('[data-colonne="e2"]').dispatchEvent(ev);
+  t('deposer la carte sur une colonne la deplace', !!K.doc.querySelector('[data-colonne="e2"] [data-affaire="a1"]'));
+  K.clic('[data-aff="vue"][data-vue="liste"]');   // un autre geste vide l'attente : l'ecriture part
+  await attendre(20);
+  t('et l\'ecriture part ensuite, vers la bonne etape', K.base.affaires[0].etape_id === 'e2', K.base.affaires[0].etape_id);
+  t('aucun onclick, aucun tiret cadratin dans le kanban', !/\sonclick=/.test(K.doc.body.innerHTML) && !/—/.test(K.doc.body.textContent));
+}
+
+titre('Lot 39 : le client de l\'affaire');
+{
+  const P = monter();
+  P.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false },
+                            { bureau: BUREAU, type_id: 'tc', nom: 'Nouvelle cuvée chez un client', famille: 'client', sommeil_jours: 45, ordre: 1, archive: false });
+  P.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 },
+                             { bureau: BUREAU, etape_id: 'c1', type_id: 'tc', nom: 'Idée notée', ordre: 1 });
+  P.w.eval("var ROWS = [{ numClient: 'C7', client: 'Chez Paul', ville: 'Nantes', _dayNum: 3 }, { numClient: 'C8', client: 'Le Bistrot', ville: 'Angers', _dayNum: 4 }];");
+  await P.w.BdvAffaires.ouvrir();
+  P.clic('[data-aff="nouvelle"]');
+  const f = () => P.doc.getElementById('affForme');
+  t('avec des clients connus, « Un client que j\'ai deja » est coche', P.doc.querySelector('input[name="affPourQui"][value="existant"]').checked);
+  t('la fiche d\'un nouveau client est cachee', P.doc.querySelector('[data-zone="nouveau"]').hidden);
+  t('un client existant se voit proposer aussi la famille « client »', [...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
+  P.doc.getElementById('affForme').dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('sans client choisi, rien n\'est cree, et on le dit', P.base.affaires.length === 0 && /Choisis le client/.test(P.doc.getElementById('affAvis').textContent));
+  const q = P.doc.getElementById('affCherche');
+  q.value = 'paul'; q.dispatchEvent(new P.w.Event('input', { bubbles: true }));
+  t('la recherche trouve le client de l\'export', P.doc.querySelectorAll('#affTrouves [data-aff="prendreClient"]').length === 1 && /Chez Paul/.test(P.doc.getElementById('affTrouves').textContent));
+  P.clic('#affTrouves [data-aff="prendreClient"]');
+  t('le client choisi est nomme', /Client : Chez Paul/.test(P.doc.getElementById('affChoisi').textContent));
+  P.doc.getElementById('affTitre').value = 'Le rosé';
+  f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  const a1 = P.base.affaires[0] || {};
+  t('l\'affaire porte le client, sans piste creee', a1.client_id === 'C7' && a1.client_nom === 'Chez Paul' && !a1.piste_id && P.base.pistes.length === 0, JSON.stringify(a1));
+  t('avec son titre', a1.titre === 'Le rosé');
+
+  // Par le SIRET
+  P.w.BdvDomaine = { chercher: async () => ({ ok: true, liste: [{ nom: 'SARL CAVE DES QUAIS', siret: '12345678901234', adresse: '3 quai de la Fosse',
+    code_postal: '44000', ville: 'Nantes', actif: true }] }) };
+  P.clic('[data-aff="nouvelle"]');
+  const r = P.doc.querySelector('input[name="affPourQui"][value="siret"]');
+  r.checked = true; r.dispatchEvent(new P.w.Event('change', { bubbles: true }));
+  t('le choix SIRET montre la recherche et la fiche', !P.doc.querySelector('[data-zone="siret"]').hidden && !P.doc.querySelector('[data-zone="nouveau"]').hidden);
+  t('et ne propose plus la famille « client »', ![...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
+  P.doc.getElementById('affSiretQ').value = '12345678901234';
+  P.clic('[data-aff="chercherSiret"]');
+  await attendre(20);
+  P.clic('[data-aff="prendreSiret"]');
+  t('l\'annuaire remplit la fiche', P.doc.getElementById('affNom').value === 'SARL CAVE DES QUAIS' && P.doc.getElementById('affSiret').value === '12345678901234' && P.doc.getElementById('affVille').value === 'Nantes');
+  f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  const pi = P.base.pistes[0] || {};
+  t('un nouveau client est cree avec son SIRET et son adresse', pi.siret === '12345678901234' && pi.adresse === '3 quai de la Fosse', JSON.stringify(pi));
+  t('et l\'affaire porte sur lui', P.base.affaires.some(a => a.piste_id === pi.piste_id));
+
+  // A la main, SIRET faux
+  P.clic('[data-aff="nouvelle"]');
+  const m = P.doc.querySelector('input[name="affPourQui"][value="manuel"]');
+  m.checked = true; m.dispatchEvent(new P.w.Event('change', { bubbles: true }));
+  P.doc.getElementById('affNom').value = 'Chez Marcel';
+  P.doc.getElementById('affSiret').value = '1234';
+  f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('un SIRET qui n\'a pas 14 chiffres est refuse', P.base.pistes.length === 1 && /14 chiffres/.test(P.doc.getElementById('affAvis').textContent));
+
+  // Le lot 39 pas passe : la base refuse la colonne siret
+  const vraie = P.w.BdvCompte.api;
+  P.w.BdvCompte.api = async (chemin, o) => {
+    if (o && o.methode === 'POST' && chemin === '/pistes' && o.corps.some(l => 'siret' in l))
+      throw { detail: '{"message":"Could not find the \'siret\' column of \'pistes\' in the schema cache"}' };
+    return vraie(chemin, o);
+  };
+  P.doc.getElementById('affSiret').value = '98765432109876';
+  f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('sans le SQL du lot 39, le client se cree quand meme, et on le dit',
+    P.base.pistes.some(p => p.nom === 'Chez Marcel') && /lot 39/.test(P.doc.getElementById('affAvis').textContent));
+  P.w.BdvCompte.api = vraie;
+
+  // Changer le client d'une affaire
+  const cible = P.base.affaires.find(a => a.client_id === 'C7');
+  P.clic('[data-affaire="' + cible.affaire_id + '"] [data-aff="ouvrir"]');
+  const cq = P.doc.querySelector('[data-affaire="' + cible.affaire_id + '"] .aff-change-q');
+  cq.value = 'bistrot'; cq.dispatchEvent(new P.w.Event('input', { bubbles: true }));
+  t('la recherche du changement ne repropose pas le client actuel', !/Chez Paul/.test(P.doc.querySelector('[data-affaire="' + cible.affaire_id + '"] .aff-change-l').textContent));
+  P.clic('[data-affaire="' + cible.affaire_id + '"] [data-aff="rattacher"]');
+  await attendre(20);
+  const apres = P.base.affaires.find(a => a.affaire_id === cible.affaire_id);
+  t('changer de client REMPLACE le client, un seul par affaire', apres.client_id === 'C8' && apres.client_nom === 'Le Bistrot' && !apres.piste_id);
+  t('ni NaN, ni undefined, ni null a l\'ecran', !/NaN|undefined|\bnull\b/.test(P.doc.body.textContent));
+}
+
 titre('Les affaires dans « Ma journee » (bdv-affaires-jour.js)');
 {
   const J = new JSDOM('<!doctype html><body></body>', { runScripts: 'outside-only' });

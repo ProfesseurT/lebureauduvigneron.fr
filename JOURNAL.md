@@ -75,6 +75,26 @@ fin de mois pour les boissons alcooliques (economie.gouv.fr), donc 60 est refus�
 Le vigneron empathique a fait trier les entreprises fermées en dernier, avec un bouton creux, et remplir la forme
 juridique depuis le sigle du nom. Petits correctifs : « rappel client » en premier mot dans Mes tâches.
 
+**Clôture de la session du 28/09/2026.** Poussé jusqu'au lot 38, SQL 34 à 38 passés et vérifiés en base, courrier du
+matin en version 18. À vérifier par Ted : la recherche SIRET dans « Mon domaine » (l'annuaire répond-il depuis le
+navigateur ?) et une vraie affaire avec rappel (Ma journée, calendrier, Mes tâches, courrier de 8 h).
+**Reste, dans l'ordre** : le devis (lignes depuis l'historique, calcul HT/TVA/TTC, numéro, validité, aperçu
+imprimable), la signature en ligne (limites d'envoi Resend, juriste avant les particuliers), le fichier de commande
+Vitisoft, le retour de facture par la 44e colonne, le script Solumatic (cahier des charges prêt). **Question ouverte,
+posée deux fois** : le journal des échanges d'une piste, protégé du vidage dans `echanges` ou journal à part.
+Petits restes : année des dates de la semaine dans le courrier, file hors ligne de « Mes affaires », lune qui
+chevauche le titre, pastilles à 1100 px.
+
+**Lot 39, 28/09/2026 (suite).** Demande de Ted : Liste / Kanban, client dans l'affaire, client créé par SIRET ou à la
+main. **Arbitrages de Ted** : une affaire = UN client (la possibilité de plusieurs clients est retirée, parce que devis,
+signature et commande Vitisoft vont à un seul client) ; le client créé s'affiche « Nouveau client, pas encore dans
+Vitisoft » et ne se mêle pas à Mes clients ; le Kanban demande de choisir un type sur « Toutes ». Fait : bascule
+retenue sur l'appareil, colonnes par étape, glisser-déposer ET liste « Déplacer vers » (téléphone, clavier), même
+annulation de 6 s que « Étape suivante » ; « Pour qui ? » en tête de la nouvelle affaire (client existant cherché dans
+les exports et les nouveaux clients, SIRET par l'annuaire officiel, à la main) ; « Changer le client de cette affaire »
+dans la fiche (il REMPLACE). SQL `lot39-nouveau-client.sql` (SIRET et adresse sur `pistes`) à coller par Ted ; le
+navigateur marche sans et le dit. `banc:affaires` 82 contrôles, `verif` complet vert.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 

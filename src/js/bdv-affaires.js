@@ -50,7 +50,20 @@
   var DELAI_ANNULER = 6000;
 
   var S = { types: [], etapes: [], pistes: {}, affaires: [], charge: false, erreur: false,
-            filtre: '', ouverte: null, nouvelle: false, attente: null, reglagesOuverts: false };
+            filtre: '', ouverte: null, nouvelle: false, attente: null, reglagesOuverts: false,
+            vue: lireVue(), choix: null, trouves: [] };
+
+  /* LA DISPOSITION, LISTE OU KANBAN, 28/09/2026 (lot 39). Elle se retient sur CET
+     appareil : c'est une preference de lecture, pas une donnee du bureau. Le
+     stockage peut manquer (navigation privee) : la liste reste alors la valeur. */
+  function lireVue() {
+    try { return localStorage.getItem('bdv_aff_vue') === 'kanban' ? 'kanban' : 'liste'; }
+    catch (e) { return 'liste'; }
+  }
+  function poserVue(v) {
+    S.vue = v === 'kanban' ? 'kanban' : 'liste';
+    try { localStorage.setItem('bdv_aff_vue', S.vue); } catch (e) {}
+  }
 
   /* ---------------- OUTILS ---------------- */
   function el(id) { return document.getElementById(id); }
@@ -195,6 +208,8 @@
     var et = etapeDe(a.etape_id);
     return et ? etapesDe(a.type_id).filter(function (x) { return x.ordre > et.ordre; })[0] : null;
   }
+  /* Un « nouveau client » est une piste que Vitisoft ne connait pas encore. */
+  function estNouveau(a) { var p = a.piste_id && S.pistes[a.piste_id]; return !!(p && !p.client_id); }
   function sujet(a) {
     if (a.piste_id) { var p = S.pistes[a.piste_id]; return p ? p.nom : 'Piste'; }
     return a.client_nom || ('Client n°' + a.client_id);
@@ -232,8 +247,10 @@
       return;
     }
     if (!S.types.length) { c.innerHTML = htmlDemarrage(); return; }
-    c.innerHTML = htmlTete() + (S.nouvelle === 'client' ? htmlNouvelleClient() : S.nouvelle ? htmlNouvelle() : '') + htmlRelancer()
-      + htmlListe() + htmlCloses() + htmlReglages();
+    c.innerHTML = htmlTete() + (S.nouvelle === 'client' ? htmlNouvelleClient() : S.nouvelle ? htmlNouvelle() : '')
+      + (S.vue === 'kanban' ? htmlKanban() : htmlRelancer() + htmlListe())
+      + htmlCloses() + htmlReglages();
+    if (S.nouvelle === true) apresNouvelle();
   }
 
   function htmlDemarrage() {
@@ -258,7 +275,13 @@
           + ' aria-pressed="' + (S.filtre === t.type_id ? 'true' : 'false') + '">'
           + esc(t.nom) + ', ' + n + ' en cours</button>';
       }).join('');
+    var vues = '<div class="aff-vues" role="group" aria-label="Disposition">'
+      + [['liste', 'Liste'], ['kanban', 'Kanban']].map(function (v) {
+        return '<button type="button" class="chip" data-aff="vue" data-vue="' + v[0] + '" aria-pressed="'
+          + (S.vue === v[0] ? 'true' : 'false') + '">' + v[1] + '</button>';
+      }).join('') + '</div>';
     return '<div class="aff-tete"><div class="aff-chips" role="group" aria-label="Type d’affaire">' + chips + '</div>'
+      + vues
       + '<button type="button" class="btn btn--bordeaux" data-aff="nouvelle"'
       + ' aria-expanded="' + (S.nouvelle ? 'true' : 'false') + '">Nouvelle affaire</button></div>';
   }
@@ -268,40 +291,226 @@
   function typesPourPiste() {
     return typesActifs().filter(function (t) { return t.famille !== 'client'; });
   }
+  /* LA NOUVELLE AFFAIRE COMMENCE PAR « POUR QUI ? », 28/09/2026 (lot 39). Demande
+     de Ted : rattacher un client qu'il a deja, ou en creer un, par le SIRET ou a la
+     main. UNE AFFAIRE, UN CLIENT (arbitrage de Ted du meme jour : un devis, une
+     signature et une commande Vitisoft vont a UN client).
+
+     Un client cree ici n'existe pas encore dans Vitisoft : en base c'est une
+     « piste », a l'ecran un « Nouveau client, pas encore dans Vitisoft ». Il y entrera
+     a l'import de sa premiere commande. Les trois zones sont dans le HTML des le
+     depart et se montrent ou se cachent : changer de choix ne perd rien de tape. */
+  var MODES = [['existant', 'Un client que j’ai déjà'], ['siret', 'Un nouveau client, par son SIRET'],
+               ['manuel', 'Un nouveau client, à la main']];
+  function modeDefaut() { return clientsConnus().length ? 'existant' : 'manuel'; }
   function htmlNouvelle() {
-    var tp = typesPourPiste();
-    var choisi = tp.filter(function (t) { return t.type_id === S.filtre; })[0] ? S.filtre : '';
+    if (!S.choix) S.choix = { mode: modeDefaut(), client: null };
     var natures = NATURES.map(function (n, i) {
       return '<label class="aff-radio"><input type="radio" name="affNature" value="' + n[0] + '"'
         + (i === 0 ? ' checked' : '') + '> ' + n[1] + '</label>';
     }).join('');
-    var dans7 = new Date(); dans7.setDate(dans7.getDate() + 7);
-    var options = tp.map(function (t) {
-      return '<option value="' + t.type_id + '"' + (t.type_id === choisi ? ' selected' : '') + '>' + esc(t.nom) + '</option>';
+    var modes = MODES.map(function (m) {
+      return '<label class="aff-radio"><input type="radio" name="affPourQui" value="' + m[0] + '"'
+        + (m[0] === S.choix.mode ? ' checked' : '') + '> ' + m[1] + '</label>';
     }).join('');
+    var dans7 = new Date(); dans7.setDate(dans7.getDate() + 7);
     return '<form class="aff-form" id="affForme" novalidate>'
-      + '<p class="aff-form__t">Nouvelle affaire, avec un établissement que tu ne factures pas encore</p>'
+      + '<p class="aff-form__t">Nouvelle affaire</p>'
+      + '<fieldset class="aff-groupe"><legend>Pour qui ?</legend><div class="aff-radios">' + modes + '</div></fieldset>'
+      /* ZONE 1 : un client existant, de Vitisoft ou deja cree ici */
+      + '<div class="aff-zone" data-zone="existant">'
+      + '<label class="aff-champ"><span>Chercher le client</span>'
+      + '<input id="affCherche" type="search" autocomplete="off" placeholder="Nom, n° client, ville"></label>'
+      + '<p class="aff-choisi" id="affChoisi" hidden></p>'
+      + '<ul class="aff-trouves" id="affTrouves" aria-live="polite"></ul></div>'
+      /* ZONE 2 : la recherche dans l'annuaire officiel */
+      + '<div class="aff-zone" data-zone="siret" hidden>'
+      + '<div class="aff-cherche"><label class="aff-champ"><span>SIRET, SIREN ou nom de l’entreprise</span>'
+      + '<input id="affSiretQ" type="search" autocomplete="off" inputmode="search"></label>'
+      + '<button type="button" class="btn" data-aff="chercherSiret">Chercher</button></div>'
+      + '<p class="aff-aide" id="affSiretMot">L’annuaire officiel des entreprises remplit la fiche. Tu relis avant de créer.</p>'
+      + '<ul class="aff-trouves" id="affSiretTrouves" aria-live="polite"></ul></div>'
+      /* ZONE 2 ET 3 : la fiche du nouveau client */
+      + '<div class="aff-zone" data-zone="nouveau" hidden>'
+      + '<p class="aff-marque">Nouveau client, pas encore dans Vitisoft</p>'
       + '<label class="aff-champ"><span>Le nom de l’établissement</span>'
       + '<input id="affNom" type="text" maxlength="120" autocomplete="off" required></label>'
       + '<p class="aff-doublon" id="affDoublon" hidden></p>'
       + '<fieldset class="aff-groupe"><legend>C’est qui ?</legend><div class="aff-radios">' + natures + '</div></fieldset>'
-      + '<div class="aff-duo"><label class="aff-champ"><span>Type d’affaire</span><select id="affType">' + options + '</select></label>'
-      + '<label class="aff-champ"><span>Je le rappelle le</span><input id="affRappel" type="date" value="' + jourIso(dans7) + '" required></label></div>'
-      + '<label class="aff-champ"><span>Pour quoi faire (facultatif)</span>'
-      + '<input id="affMotifRappel" type="text" maxlength="120" placeholder="Envoyer le tarif, passer déposer deux bouteilles…"></label>'
-      + '<details class="aff-plus"><summary>Plus de détails</summary><div class="aff-plus__corps">'
+      + '<div class="aff-duo">' + champ('affSiret', 'SIRET (facultatif)', 'text', 17)
+      + champ('affAdresse', 'Adresse', 'text', 200) + '</div>'
+      + '<div class="aff-duo">' + champ('affCp', 'Code postal', 'text', 12) + champ('affVille', 'Ville', 'text', 80) + '</div>'
+      + '<details class="aff-plus"><summary>Son contact</summary><div class="aff-plus__corps">'
       + champ('affContact', 'Le nom de ton contact', 'text', 120)
       + champ('affFonction', 'Sa fonction', 'text', 80)
       + champ('affTel', 'Téléphone', 'tel', 40)
       + champ('affEmail', 'Mail', 'email', 200)
-      + champ('affVille', 'Ville', 'text', 80)
-      + champ('affCp', 'Code postal', 'text', 12)
       + champ('affSource', 'D’où il vient (salon, bouche à oreille…)', 'text', 120)
       + '<p class="aff-aide">C’est une fiche professionnelle : n’y note rien de personnel.</p>'
-      + '</div></details>'
+      + '</div></details></div>'
+      /* L'AFFAIRE */
+      + '<label class="aff-champ"><span>L’affaire (facultatif)</span>'
+      + '<input id="affTitre" type="text" maxlength="120" autocomplete="off" placeholder="Le rosé, le mariage de juin, la carte des vins…"></label>'
+      + '<div class="aff-duo"><label class="aff-champ"><span>Type d’affaire</span><select id="affType"></select></label>'
+      + '<label class="aff-champ"><span>Je le rappelle le</span><input id="affRappel" type="date" value="' + jourIso(dans7) + '" required></label></div>'
+      + '<label class="aff-champ"><span>Pour quoi faire (facultatif)</span>'
+      + '<input id="affMotifRappel" type="text" maxlength="120" placeholder="Envoyer le tarif, passer déposer deux bouteilles…"></label>'
       + '<div class="aff-form__pied"><button type="submit" class="btn btn--bordeaux">Créer l’affaire</button>'
       + '<button type="button" class="btn" data-aff="annulerNouvelle">Annuler</button></div>'
       + '</form>';
+  }
+  /* Apres chaque peinture du formulaire : les zones et les types du choix en cours. */
+  function apresNouvelle() {
+    if (!el('affForme') || !S.choix) return;
+    montrerMode(S.choix.mode);
+    if (S.choix.client) peindreChoisi();
+  }
+  function montrerMode(mode) {
+    S.choix.mode = mode;
+    var f = el('affForme');
+    if (!f) return;
+    [].forEach.call(f.querySelectorAll('[data-zone]'), function (z) {
+      var zone = z.getAttribute('data-zone');
+      z.hidden = zone === 'nouveau' ? mode === 'existant' : zone !== mode;
+    });
+    /* La famille « client » (nouvelle cuvee chez un client) n'a pas de sens pour un
+       client qu'on vient de creer : on ne la propose qu'a un client existant. */
+    var sel = el('affType');
+    var garde = sel.value || S.filtre;
+    var liste = mode === 'existant' ? typesActifs() : typesPourPiste();
+    sel.innerHTML = liste.map(function (t) {
+      return '<option value="' + t.type_id + '"' + (t.type_id === garde ? ' selected' : '') + '>' + esc(t.nom) + '</option>';
+    }).join('');
+    if (mode === 'existant') peindreTrouves();
+  }
+
+  /* LES CLIENTS QUE LE VIGNERON A DEJA : ceux de ses exports (les lignes de vente de
+     cet appareil, comme « Mes clients ») et ceux crees ici. Calcule une fois par
+     nombre de lignes : 171 569 lignes ne se relisent pas a chaque touche. */
+  var CACHE_CLI = { n: -1, liste: [] };
+  function lignes() { try { return (typeof ROWS !== 'undefined' && ROWS) ? ROWS : []; } catch (e) { return []; } }
+  function cleClient(r) {
+    try { if (typeof clientKey === 'function') return clientKey(r); } catch (e) {}
+    return r.numClient || r.client || '(inconnu)';
+  }
+  function clientsVitisoft() {
+    var R = lignes();
+    if (CACHE_CLI.n === R.length) return CACHE_CLI.liste;
+    var m = {};
+    for (var i = 0; i < R.length; i++) {
+      var r = R[i], id = cleClient(r), c = m[id];
+      if (!c) c = m[id] = { genre: 'client', id: String(id), num: String(r.numClient || ''), nom: '', ville: '', _vu: -1 };
+      var j = r._dayNum == null ? -1 : r._dayNum;
+      if (j >= c._vu) { c._vu = j; if (r.client) c.nom = String(r.client).trim(); if (r.ville) c.ville = String(r.ville).trim(); }
+    }
+    CACHE_CLI.liste = Object.keys(m).map(function (k) {
+      var c = m[k]; c.nom = c.nom || c.id; c.cle = norm(c.nom + ' ' + c.num + ' ' + c.ville); delete c._vu; return c;
+    }).sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+    CACHE_CLI.n = R.length;
+    return CACHE_CLI.liste;
+  }
+  function clientsConnus() {
+    var nouveaux = Object.keys(S.pistes).map(function (k) { return S.pistes[k]; })
+      .filter(function (p) { return !p.opposition && !p.client_id; })
+      .map(function (p) { return { genre: 'piste', id: p.piste_id, nom: p.nom, ville: p.ville || '', num: '',
+        cle: norm(p.nom + ' ' + (p.ville || '') + ' ' + (p.siret || '')) }; });
+    return clientsVitisoft().concat(nouveaux);
+  }
+  function chercherConnus(q) {
+    var mots = norm(q).split(' ').filter(Boolean);
+    if (!mots.length) return [];
+    return clientsConnus().filter(function (c) {
+      return mots.every(function (m) { return c.cle.indexOf(m) >= 0; });
+    }).slice(0, 8);
+  }
+  function htmlTrouve(c, geste) {
+    var d = [c.num ? 'n° ' + c.num : '', c.ville].filter(Boolean).join(', ');
+    return '<li><button type="button" class="aff-trouve" data-aff="' + geste + '" data-genre="' + c.genre + '" data-id="' + esc(c.id) + '">'
+      + '<span class="aff-trouve__nom">' + esc(c.nom) + '</span>'
+      + (c.genre === 'piste' ? ' <span class="aff-marque">Nouveau client</span>' : '')
+      + (d ? '<span class="aff-trouve__d">' + esc(d) + '</span>' : '') + '</button></li>';
+  }
+  /* Les lignes ne sont peut-etre pas encore sur l'appareil (la piece s'ouvre sans
+     elles) : on les demande une fois, et on le dit. */
+  var LIGNES_DEMANDEES = false;
+  function motSansClients() {
+    if (!lignes().length && typeof assurerLignes === 'function' && !LIGNES_DEMANDEES) {
+      LIGNES_DEMANDEES = true;
+      Promise.resolve(assurerLignes()).then(function () { CACHE_CLI.n = -1; peindreTrouves(); rafraichirChangements(); })
+        .catch(function () {});
+      return 'Tes clients arrivent sur cet appareil…';
+    }
+    return clientsConnus().length ? 'Aucun client ne correspond. Tu peux le créer : « Un nouveau client ».'
+      : 'Aucun client pour l’instant : ils arrivent avec ton premier export Vitisoft. Tu peux créer un nouveau client.';
+  }
+  function peindreTrouves() {
+    var ul = el('affTrouves'), q = el('affCherche');
+    if (!ul || !q) return;
+    var v = q.value.trim();
+    if (!v) {
+      ul.innerHTML = lignes().length || clientsConnus().length ? '' : '<li class="aff-aide">' + motSansClients() + '</li>';
+      return;
+    }
+    var l = chercherConnus(v);
+    ul.innerHTML = l.length ? l.map(function (c) { return htmlTrouve(c, 'prendreClient'); }).join('')
+      : '<li class="aff-aide">' + motSansClients() + '</li>';
+  }
+  function trouverConnu(genre, id) {
+    return clientsConnus().filter(function (c) { return c.genre === genre && c.id === id; })[0];
+  }
+  function peindreChoisi() {
+    var p = el('affChoisi'), c = S.choix && S.choix.client;
+    if (!p) return;
+    p.hidden = !c;
+    p.innerHTML = c ? 'Client : <b>' + esc(c.nom) + '</b>' + (c.genre === 'piste' ? ' (nouveau client)' : '')
+      + ' <button type="button" class="btn" data-aff="lacherClient">Changer</button>' : '';
+    var ch = el('affCherche'); if (ch) ch.closest('.aff-champ').hidden = !!c;
+    var ul = el('affTrouves'); if (ul && c) ul.innerHTML = '';
+  }
+
+  /* LA RECHERCHE SIRET passe par `BdvDomaine.chercher()`, la meme que la fiche du
+     domaine (API Recherche d'entreprises, gratuite et sans cle). Une seule porte vers
+     l'annuaire : un changement de l'API ne se corrige qu'a un endroit. */
+  async function chercherSiret() {
+    var q = el('affSiretQ'), ul = el('affSiretTrouves'), mot = el('affSiretMot');
+    if (!q || !ul) return;
+    if (!window.BdvDomaine || !BdvDomaine.chercher) { mot.textContent = 'La recherche n’est pas disponible. Remplis la fiche à la main.'; return; }
+    mot.textContent = 'Recherche dans l’annuaire…';
+    var r = await BdvDomaine.chercher(q.value);
+    if (!r.ok) { mot.textContent = r.mot; ul.innerHTML = ''; return; }
+    S.trouves = r.liste;
+    mot.textContent = r.liste.length ? 'Choisis la bonne ligne. Tu pourras corriger la fiche avant de créer.'
+      : 'Rien trouvé. Vérifie le numéro, ou remplis la fiche à la main.';
+    ul.innerHTML = r.liste.map(function (x, i) {
+      return '<li><button type="button" class="aff-trouve" data-aff="prendreSiret" data-i="' + i + '">'
+        + '<span class="aff-trouve__nom">' + esc(x.nom) + '</span>'
+        + (x.actif ? '' : ' <span class="aff-marque">Fermée</span>')
+        + '<span class="aff-trouve__d">' + esc([x.code_postal + ' ' + x.ville, 'SIRET ' + x.siret].join(', ')) + '</span></button></li>';
+    }).join('');
+  }
+  function prendreSiret(i) {
+    var x = S.trouves[i];
+    if (!x) return;
+    function poser(id, v) { var n = el(id); if (n) n.value = v || ''; }
+    poser('affNom', x.nom); poser('affSiret', x.siret); poser('affAdresse', x.adresse);
+    poser('affCp', x.code_postal); poser('affVille', x.ville);
+    el('affSiretTrouves').innerHTML = '';
+    el('affSiretMot').textContent = x.actif ? 'Fiche remplie depuis l’annuaire. Relis-la, puis crée l’affaire.'
+      : 'Attention : l’annuaire dit que cette entreprise est fermée. Vérifie avant de créer.';
+    signalerDoublon();
+    el('affNom').focus();
+  }
+  function signalerDoublon() {
+    var d = el('affDoublon'), nom = el('affNom'), sir = el('affSiret');
+    if (!d || !nom) return;
+    var n = norm(nom.value), s = String(sir && sir.value || '').replace(/\D/g, '');
+    var p = Object.keys(S.pistes).map(function (k) { return S.pistes[k]; }).filter(function (p) {
+      return (s.length === 14 && p.siret === s) || (n.length > 2 && norm(p.nom) === n);
+    })[0];
+    var c = !p && n.length > 2 && clientsVitisoft().filter(function (c) { return norm(c.nom) === n; })[0];
+    d.hidden = !p && !c;
+    d.textContent = p ? 'Tu as déjà un nouveau client « ' + p.nom + ' ». Choisis-le plutôt dans « Un client que j’ai déjà ».'
+      : c ? 'Un client Vitisoft porte déjà ce nom. Vérifie que ce n’est pas le même.' : '';
   }
   /* UNE AFFAIRE CHEZ UN CLIENT, ouverte depuis sa fiche. Pas de piste : le client
      existe deja dans Vitisoft, on ne lui redemande ni son nom ni son adresse. Le
@@ -367,7 +576,8 @@
       + '" data-affaire="' + a.affaire_id + '">'
       + '<div class="aff-ligne__corps">'
       + '<p class="aff-ligne__t"><span class="aff-ligne__qui">' + esc(qui) + '</span>'
-      + (a.titre && a.titre !== qui ? ' <span class="aff-ligne__titre">' + esc(a.titre) + '</span>' : '') + '</p>'
+      + (a.titre && a.titre !== qui ? ' <span class="aff-ligne__titre">' + esc(a.titre) + '</span>' : '')
+      + (estNouveau(a) ? ' <span class="aff-marque">Nouveau client</span>' : '') + '</p>'
       + '<p class="aff-ligne__s">' + (S.filtre || !t ? '' : esc(t.nom) + ', ') + ligneEtape(a, e) + '</p>'
       + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
       + '</div><div class="aff-ligne__gestes">'
@@ -395,8 +605,10 @@
       + '<label class="aff-champ"><span>Pour quoi faire</span><input name="rappel_titre" type="text" maxlength="120" value="' + esc(a.rappel_titre || '') + '"></label>'
       + '<label class="aff-champ"><span>Titre de l’affaire</span><input name="titre" type="text" maxlength="120" value="' + esc(a.titre || '') + '"></label>'
       + '<label class="aff-champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea></label>'
-      + (p ? '<details class="aff-plus"><summary>La piste : ' + esc(p.nom || '') + '</summary><div class="aff-plus__corps">'
+      + htmlChanger(a)
+      + (p ? '<details class="aff-plus"><summary>Nouveau client, pas encore dans Vitisoft : ' + esc(p.nom || '') + '</summary><div class="aff-plus__corps">'
         + champNomme('p_nom', 'Le nom de l’établissement', 'text', 120, p.nom)
+        + ('siret' in p ? champNomme('p_siret', 'SIRET', 'text', 17, p.siret) + champNomme('p_adresse', 'Adresse', 'text', 200, p.adresse) : '')
         + champNomme('p_contact_nom', 'Le nom de ton contact', 'text', 120, p.contact_nom)
         + champNomme('p_contact_fonction', 'Sa fonction', 'text', 80, p.contact_fonction)
         + champNomme('p_telephone', 'Téléphone', 'tel', 40, p.telephone)
@@ -418,6 +630,97 @@
       + '<label class="aff-champ"><span>Pourquoi ?</span><select name="motif">' + motifs + '</select></label>'
       + '<button type="button" class="btn btn--bordeaux" data-aff="confirmerPerdue">La classer</button></div>'
       + '</div></form>';
+  }
+
+  /* CHANGER LE CLIENT D'UNE AFFAIRE, 28/09/2026 (lot 39) : on s'est trompe de fiche,
+     ou le nouveau client est enfin dans Vitisoft. Toujours UN client : l'ancien est
+     remplace, jamais ajoute. Un nouveau client se cree depuis « Nouvelle affaire ». */
+  function htmlChanger(a) {
+    return '<details class="aff-plus aff-changer"><summary>Changer le client de cette affaire</summary><div class="aff-plus__corps">'
+      + '<label class="aff-champ"><span>Chercher le client</span><input class="aff-change-q" type="search" autocomplete="off" placeholder="Nom, n° client, ville"></label>'
+      + '<ul class="aff-trouves aff-change-l" aria-live="polite"></ul>'
+      + '<p class="aff-aide">Une affaire porte sur un seul client : celui-ci remplace « ' + esc(sujet(a)) + ' ».</p>'
+      + '</div></details>';
+  }
+  function peindreChangement(inp) {
+    var ul = inp.closest('.aff-plus__corps').querySelector('.aff-change-l');
+    var a = affaireDe(inp);
+    var v = inp.value.trim();
+    var l = v ? chercherConnus(v).filter(function (c) {
+      return a && !(c.genre === 'client' ? a.client_id === c.id : a.piste_id === c.id);
+    }) : [];
+    ul.innerHTML = !v ? '' : l.length ? l.map(function (c) { return htmlTrouve(c, 'rattacher'); }).join('')
+      : '<li class="aff-aide">' + motSansClients() + '</li>';
+  }
+  function rafraichirChangements() {
+    [].forEach.call(document.querySelectorAll('.aff-change-q'), function (i) { if (i.value.trim()) peindreChangement(i); });
+  }
+  async function rattacher(a, genre, id) {
+    await viderAttente();
+    var c = trouverConnu(genre, id);
+    if (!c) return;
+    var champs = genre === 'client'
+      ? { client_id: c.id, client_nom: c.nom, piste_id: null }
+      : { piste_id: c.id, client_id: null, client_nom: null };
+    try {
+      await modifier('affaires', 'affaire_id', a.affaire_id, champs);
+      dire('L’affaire porte maintenant sur ' + esc(c.nom) + '.');
+    } catch (e) { dire(raison(e), true); }
+    await charger(); rendre();
+  }
+
+  /* ---------------- LE KANBAN, 28/09/2026 (lot 39) ----------------
+     Une colonne par etape. Chaque type a SES etapes : sur « Toutes », le kanban
+     demande de choisir un type (arbitrage de Ted), sauf s'il n'y en a qu'un.
+     On deplace une carte en la glissant, OU par sa liste « Deplacer vers » : le
+     glisser-deposer ne se fait ni au clavier ni partout au doigt. Le deplacement
+     passe par le meme delai d'annulation que « Etape suivante ». Les affaires a
+     relancer restent dans leur colonne, marquees en mots : les sortir ferait des
+     trous dans le tableau. */
+  function typeKanban() {
+    if (S.filtre) return typeDe(S.filtre);
+    var t = typesActifs();
+    return t.length === 1 ? t[0] : null;
+  }
+  function htmlKanban() {
+    var t = typeKanban();
+    if (!t) return '<div class="aff-bloc"><p class="aff-vide">Choisis un type d’affaire au-dessus pour voir ses colonnes.</p></div>';
+    var dans = enCours().filter(function (a) { return a.type_id === t.type_id; });
+    var nRel = dans.filter(function (a) { var e = etat(a); return e.relancer || e.endormie; }).length;
+    var cols = etapesDe(t.type_id).map(function (et) {
+      var ici = dans.filter(function (a) { return a.etape_id === et.etape_id; });
+      return '<section class="aff-col" data-colonne="' + et.etape_id + '" aria-label="' + esc(et.nom) + ', ' + ici.length + '">'
+        + '<h4 class="aff-col__t">' + esc(et.nom) + ', ' + ici.length + '</h4>'
+        + '<ul class="aff-col__liste">' + ici.map(htmlCarte).join('') + '</ul></section>';
+    }).join('');
+    var ouverte = S.ouverte && dans.filter(function (a) { return a.affaire_id === S.ouverte; })[0];
+    return '<div class="aff-bloc">'
+      + (nRel ? '<p class="aff-kanban__rel"><b>À relancer : ' + nRel + '</b>, signalées en mots sur leur carte.</p>'
+        : '<p class="aff-vide">Rien à relancer aujourd’hui.</p>')
+      + (dans.length ? '' : '<p class="aff-vide">Aucune affaire en cours dans « ' + esc(t.nom) + ' ».</p>')
+      + '<div class="aff-kanban">' + cols + '</div>'
+      + (ouverte ? '<div class="aff-kanban__detail" data-affaire="' + ouverte.affaire_id + '">'
+        + '<p class="aff-form__t">' + esc(sujet(ouverte)) + (ouverte.titre && ouverte.titre !== sujet(ouverte) ? ', ' + esc(ouverte.titre) : '') + '</p>'
+        + htmlEditeur(ouverte) + '</div>' : '')
+      + '</div>';
+  }
+  function htmlCarte(a) {
+    var e = etat(a), qui = sujet(a);
+    var opts = etapesDe(a.type_id).map(function (x) {
+      return '<option value="' + x.etape_id + '"' + (x.etape_id === a.etape_id ? ' selected' : '') + '>' + esc(x.nom) + '</option>';
+    }).join('');
+    var ouverte = S.ouverte === a.affaire_id;
+    return '<li class="aff-carte' + (e.endormie ? ' aff-ligne--dort' : '') + (e.retard > 0 ? ' aff-ligne--retard' : '')
+      + (ouverte ? ' aff-carte--ouverte' : '') + '" data-affaire="' + a.affaire_id + '" draggable="true">'
+      + '<p class="aff-ligne__t"><span class="aff-ligne__qui">' + esc(qui) + '</span></p>'
+      + (a.titre && a.titre !== qui ? '<p class="aff-ligne__s">' + esc(a.titre) + '</p>' : '')
+      + (estNouveau(a) ? '<p class="aff-marque">Nouveau client</p>' : '')
+      + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
+      + (e.endormie ? '<p class="aff-ligne__s"><b>Endormie depuis ' + pluriel(e.jours - e.sommeil, 'jour', 'jours') + '</b></p>' : '')
+      + '<div class="aff-carte__gestes">'
+      + '<select class="aff-carte__deplacer" data-deplacer aria-label="Déplacer « ' + esc(qui) + ' » vers une autre étape">' + opts + '</select>'
+      + '<button type="button" class="btn" data-aff="ouvrir" aria-expanded="' + (ouverte ? 'true' : 'false') + '">'
+      + (ouverte ? 'Fermer' : 'Ouvrir') + '</button></div></li>';
   }
 
   function htmlRelancer() {
@@ -518,27 +821,57 @@
     await charger(); rendre();
   }
 
+  /* LA CREATION SELON « POUR QUI ? ». Un client existant : l'affaire porte son
+     numero (et son nom en etiquette) ou la piste deja creee ; rien de nouveau n'est
+     ecrit. Un nouveau client : une piste, puis l'affaire. Le SIRET et l'adresse
+     partent seulement si la base les connait (lot 39) : sans ce SQL, la piste se
+     cree sans eux et on le dit. */
   async function creerAffaire() {
-    var nom = (el('affNom').value || '').trim();
+    var mode = (S.choix && S.choix.mode) || 'manuel';
     var typeId = el('affType') && el('affType').value;
     var rappel = el('affRappel').value;
-    if (!nom) { dire('Il faut le nom de l’établissement.', true); el('affNom').focus(); return; }
+    function v(id) { var n = el(id); var x = n ? n.value.trim() : ''; return x || null; }
     if (!typeId) { dire('Crée d’abord un type d’affaire, dans « Régler mes types d’affaires ».', true); return; }
     if (!rappel) { dire('Choisis la date à laquelle tu le rappelles.', true); el('affRappel').focus(); return; }
     var premiere = etapesDe(typeId)[0];
     if (!premiere) { dire('Ce type d’affaire n’a aucune étape.', true); return; }
-    var nat = document.querySelector('input[name="affNature"]:checked');
-    function v(id) { var n = el(id); var x = n ? n.value.trim() : ''; return x || null; }
-    var piste = { piste_id: uuid(), nom: nom, nature: nat ? nat.value : 'autre',
-      contact_nom: v('affContact'), contact_fonction: v('affFonction'), telephone: v('affTel'),
-      email: v('affEmail'), ville: v('affVille'), code_postal: v('affCp'), source: v('affSource') };
     var affaire = { affaire_id: uuid(), type_id: typeId, etape_id: premiere.etape_id,
-      piste_id: piste.piste_id, titre: nom, rappel: rappel, rappel_titre: v('affMotifRappel') };
+      rappel: rappel, rappel_titre: v('affMotifRappel') };
+    var piste = null, nom;
+    if (mode === 'existant') {
+      var c = S.choix.client;
+      if (!c) { dire('Choisis le client dans la liste, ou crée un nouveau client.', true); if (el('affCherche')) el('affCherche').focus(); return; }
+      nom = c.nom;
+      if (c.genre === 'client') { affaire.client_id = c.id; affaire.client_nom = c.nom; }
+      else affaire.piste_id = c.id;
+    } else {
+      nom = v('affNom');
+      if (!nom) { dire('Il faut le nom de l’établissement.', true); el('affNom').focus(); return; }
+      var sir = String(v('affSiret') || '').replace(/\s/g, '');
+      if (sir && !/^\d{14}$/.test(sir)) { dire('Un SIRET a 14 chiffres.', true); el('affSiret').focus(); return; }
+      var nat = document.querySelector('input[name="affNature"]:checked');
+      piste = { piste_id: uuid(), nom: nom, nature: nat ? nat.value : 'autre',
+        contact_nom: v('affContact'), contact_fonction: v('affFonction'), telephone: v('affTel'),
+        email: v('affEmail'), ville: v('affVille'), code_postal: v('affCp'), source: v('affSource'),
+        siret: sir || null, adresse: v('affAdresse') };
+      affaire.piste_id = piste.piste_id;
+    }
+    affaire.titre = v('affTitre') || nom;
+    var sansSiret = false;
     try {
-      await creer('pistes', [piste]);
+      if (piste) {
+        try { await creer('pistes', [piste]); }
+        catch (e) {
+          if (!/siret|adresse/.test(String(e && e.detail || ''))) throw e;
+          sansSiret = !!(piste.siret || piste.adresse);
+          delete piste.siret; delete piste.adresse;
+          await creer('pistes', [piste]);
+        }
+      }
       await creer('affaires', [affaire]);
-      S.nouvelle = false;
-      dire('Affaire ouverte : ' + esc(nom) + ', rappel le ' + dateCourte(rappel) + '.');
+      S.nouvelle = false; S.choix = null;
+      dire('Affaire ouverte : ' + esc(nom) + ', rappel le ' + dateCourte(rappel) + '.'
+        + (sansSiret ? ' Le SIRET et l’adresse n’ont pas été gardés : la base attend encore sa mise à jour (lot 39).' : ''));
     } catch (e) { dire(raison(e), true); }
     await charger(); rendre();
   }
@@ -585,6 +918,11 @@
         ['nom', 'contact_nom', 'contact_fonction', 'telephone', 'email', 'ville', 'code_postal', 'source']
           .forEach(function (k) { p[k] = val('p_' + k) || null; });
         if (!p.nom) p.nom = (S.pistes[a.piste_id] || {}).nom;
+        if (f.elements.p_siret) {
+          var sir = val('p_siret').replace(/\s/g, '');
+          if (sir && !/^\d{14}$/.test(sir)) { dire('Un SIRET a 14 chiffres.', true); return; }
+          p.siret = sir || null; p.adresse = val('p_adresse') || null;
+        }
         await modifier('pistes', 'piste_id', a.piste_id, p);
       }
       S.ouverte = null;
@@ -599,16 +937,21 @@
      Depuis la derniere etape il n'y a pas de bouton : conclure est un geste a part,
      avec sa confirmation. */
   function suivante(a) {
-    viderAttente();
     var suite = etapeSuivante(a);
-    if (!suite) return;
+    if (suite) deplacer(a, suite.etape_id);
+  }
+  /* Tout deplacement d'etape (bouton, kanban, liste « Deplacer vers ») passe ici. */
+  function deplacer(a, etapeId) {
+    viderAttente();
+    var cible = etapeDe(etapeId);
+    if (!cible || etapeId === a.etape_id || cible.type_id !== a.type_id) return;
     var avant = a.etape_id;
-    a.etape_id = suite.etape_id; a.etape_le = new Date().toISOString();
+    a.etape_id = etapeId; a.etape_le = new Date().toISOString();
     S.ouverte = a.affaire_id;
-    S.attente = { id: a.affaire_id, avant: avant, apres: suite.etape_id,
+    S.attente = { id: a.affaire_id, avant: avant, apres: etapeId,
       minuterie: setTimeout(viderAttente, DELAI_ANNULER) };
     rendre();
-    dire('Passée à « ' + esc(suite.nom) + ' ». Choisis la prochaine date de rappel. '
+    dire('Passée à « ' + esc(cible.nom) + ' ». Choisis la prochaine date de rappel. '
       + '<button type="button" class="btn" data-aff="annulerSuivante">Annuler</button>');
     var f = formEdit(a.affaire_id);
     if (f && f.elements.rappel) f.elements.rappel.focus();
@@ -738,9 +1081,31 @@
         creerModeles(cles); return;
       }
       if (quoi === 'filtre') { S.filtre = b.getAttribute('data-type') || ''; rendre(); return; }
-      if (quoi === 'nouvelle') { S.nouvelle = !S.nouvelle; rendre(); if (S.nouvelle && el('affNom')) el('affNom').focus(); return; }
-      if (quoi === 'annulerNouvelle') { S.nouvelle = false; S.clientPropose = null; rendre(); return; }
-      if (quoi === 'ouvrir' && a) { viderAttente(); S.ouverte = S.ouverte === a.affaire_id ? null : a.affaire_id; rendre(); return; }
+      if (quoi === 'nouvelle') {
+        S.nouvelle = !S.nouvelle; S.choix = null; rendre();
+        var premier = S.nouvelle && (S.choix && S.choix.mode === 'existant' ? el('affCherche') : el('affNom'));
+        if (premier) premier.focus();
+        return;
+      }
+      if (quoi === 'annulerNouvelle') { S.nouvelle = false; S.clientPropose = null; S.choix = null; rendre(); return; }
+      if (quoi === 'vue') { viderAttente(); poserVue(b.getAttribute('data-vue')); rendre(); return; }
+      if (quoi === 'chercherSiret') { chercherSiret(); return; }
+      if (quoi === 'prendreSiret') { prendreSiret(+b.getAttribute('data-i')); return; }
+      if (quoi === 'prendreClient') {
+        S.choix.client = trouverConnu(b.getAttribute('data-genre'), b.getAttribute('data-id')) || null;
+        peindreChoisi();
+        var tt = el('affTitre'); if (tt) tt.focus();
+        return;
+      }
+      if (quoi === 'lacherClient') { S.choix.client = null; peindreChoisi(); if (el('affCherche')) el('affCherche').focus(); peindreTrouves(); return; }
+      if (quoi === 'rattacher' && a) { rattacher(a, b.getAttribute('data-genre'), b.getAttribute('data-id')); return; }
+      if (quoi === 'ouvrir' && a) {
+        viderAttente(); S.ouverte = S.ouverte === a.affaire_id ? null : a.affaire_id; rendre();
+        /* Dans le kanban la fiche s'ouvre SOUS le tableau : on l'amene a l'ecran. */
+        var det = S.vue === 'kanban' && S.ouverte && c.querySelector('.aff-kanban__detail');
+        if (det && det.scrollIntoView) det.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        return;
+      }
       if (quoi === 'suivante' && a) { suivante(a); return; }
       if (quoi === 'gagnee' || quoi === 'perdue') {
         var f = b.closest('form');
@@ -772,6 +1137,12 @@
        d'import, un caviste ou un restaurant au type qui parle de caviste. Il peut
        toujours changer : on propose, on n'impose rien. */
     c.addEventListener('change', function (ev) {
+      if (ev.target.name === 'affPourQui') { montrerMode(ev.target.value); return; }
+      if (ev.target.hasAttribute && ev.target.hasAttribute('data-deplacer')) {
+        var ad = affaireDe(ev.target);
+        if (ad) deplacer(ad, ev.target.value);
+        return;
+      }
       if (ev.target.name !== 'affNature') return;
       var sel = el('affType');
       if (!sel) return;
@@ -781,12 +1152,50 @@
       if (o) sel.value = o.value;
     });
     c.addEventListener('input', function (ev) {
-      if (ev.target.id !== 'affNom') return;
-      var n = norm(ev.target.value), d = el('affDoublon');
-      if (!d) return;
-      var deja = n.length > 2 && Object.keys(S.pistes).some(function (k) { return norm(S.pistes[k].nom) === n; });
-      d.hidden = !deja;
-      d.textContent = deja ? 'Tu as déjà une piste à ce nom. Vérifie que ce n’est pas la même avant de la créer.' : '';
+      var t = ev.target;
+      if (t.id === 'affCherche') { peindreTrouves(); return; }
+      if (t.classList && t.classList.contains('aff-change-q')) { peindreChangement(t); return; }
+      if (t.id === 'affNom' || t.id === 'affSiret') signalerDoublon();
+    });
+    /* Entree dans la recherche SIRET cherche, elle ne cree pas l'affaire. */
+    c.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      if (ev.target.id === 'affSiretQ') { ev.preventDefault(); chercherSiret(); }
+      else if (ev.target.id === 'affCherche' || (ev.target.classList && ev.target.classList.contains('aff-change-q'))) ev.preventDefault();
+    });
+    /* LE GLISSER-DEPOSER DU KANBAN. L'identifiant voyage dans le transfert ; la
+       colonne d'arrivee decide de l'etape. Rien ne s'ecrit avant le delai. */
+    function colonne(n) { return n && n.closest ? n.closest('[data-colonne]') : null; }
+    c.addEventListener('dragstart', function (ev) {
+      var li = ev.target.closest && ev.target.closest('.aff-carte');
+      if (!li || !ev.dataTransfer) return;
+      ev.dataTransfer.setData('text/plain', li.getAttribute('data-affaire'));
+      ev.dataTransfer.effectAllowed = 'move';
+      li.classList.add('aff-carte--prise');
+    });
+    c.addEventListener('dragend', function () {
+      [].forEach.call(c.querySelectorAll('.aff-carte--prise, .aff-col--survol'), function (n) {
+        n.classList.remove('aff-carte--prise'); n.classList.remove('aff-col--survol');
+      });
+    });
+    c.addEventListener('dragover', function (ev) {
+      var col = colonne(ev.target);
+      if (!col) return;
+      ev.preventDefault();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+      col.classList.add('aff-col--survol');
+    });
+    c.addEventListener('dragleave', function (ev) {
+      var col = colonne(ev.target);
+      if (col && !col.contains(ev.relatedTarget)) col.classList.remove('aff-col--survol');
+    });
+    c.addEventListener('drop', function (ev) {
+      var col = colonne(ev.target);
+      if (!col || !ev.dataTransfer) return;
+      ev.preventDefault();
+      var id = ev.dataTransfer.getData('text/plain');
+      var ad = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+      if (ad) deplacer(ad, col.getAttribute('data-colonne'));
     });
     /* « Annuler » vit dans l'avis, au-dessus du corps : son propre ecouteur. */
     var av = el('affAvis');
@@ -822,5 +1231,6 @@
     rendre();
   }
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, MODELES: MODELES };
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, MODELES: MODELES, _deplacer: function (id, e) {
+    var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();

@@ -6972,3 +6972,33 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 - **Le panneau des reglages lit enfin l'echec d'un bloc contribue** (`hoteOk`) : avant, un bloc
   refuse faisait annoncer « C'est enregistre » et fermer.
 - Garde : `npm run banc:domaine` (34 controles).
+
+### LOT 39 : LISTE / KANBAN, ET LE CLIENT DE L'AFFAIRE (28/09/2026)
+
+- **UNE AFFAIRE, UN CLIENT. Arbitrage de Ted du 28/09/2026**, apres qu'il a demande « un ou plusieurs clients » :
+  le devis, la signature et la commande Vitisoft vont a UN client, donc la contrainte `affaires_sujet` reste.
+  « Changer le client » REMPLACE, n'ajoute jamais. Ne pas construire de table de liaison affaire-clients.
+- **Le nouveau client est une piste** en base, et « Nouveau client, pas encore dans Vitisoft » a l'ecran (marque
+  `.aff-marque`). Le mot « piste » ne s'affiche plus. Il n'entre PAS dans Mes clients (choix de Ted) : il y
+  arrivera par l'export, une fois facture.
+- **« Pour qui ? »** ouvre la nouvelle affaire : client existant (clients des lignes de l'appareil + nouveaux
+  clients deja crees), SIRET (`BdvDomaine.chercher()`, une seule porte vers l'annuaire), a la main. Les trois
+  zones sont dans le HTML et se cachent : changer d'avis ne perd rien. Un client existant peut prendre un type de
+  famille `client`, un nouveau non. Si les lignes ne sont pas chargees, `assurerLignes()` est appele une fois.
+- **Kanban** : `S.vue`, retenu dans `localStorage` (`bdv_aff_vue`). Chaque type a ses etapes : sur « Toutes »
+  il demande un type (choix de Ted), sauf s'il n'y en a qu'un. Glisser-deposer ET liste « Deplacer vers » sur
+  chaque carte ; tout deplacement passe par `deplacer()`, avec le delai d'annulation. Les affaires a relancer
+  restent dans leur colonne, marquees en mots. Le tableau defile dans sa boite, jamais la page (mesure 390 px).
+- **SQL `lot39-nouveau-client.sql`** : `pistes.siret` (14 chiffres) et `pistes.adresse`. Sans lui, la piste se
+  cree sans ces deux champs et l'avis le dit ; l'editeur ne montre SIRET et adresse que si la colonne existe.
+
+### OU EN EST LA BRANCHE, CLOTURE DU 28/09/2026
+
+- En production : lots 34 a 38 (affaires, journee, courrier v18, calendrier, taches, fiche du domaine).
+- Prochain lot : LE DEVIS. Lignes proposees depuis l'historique des ventes, prix saisi (decision de
+  Ted), en-tete lu dans `BdvDomaine.fiche()` (refuser l'envoi si `complete()` est faux), conditions
+  par `BdvDomaine.conditions()`, validite depuis `domaine.validite_jours`. Prix HT droits d'accises
+  inclus, TVA 20 % a verifier au moment d'ecrire.
+- Puis : signature, fichier de commande Vitisoft, retour facture, script Solumatic.
+- Ouvert, a Ted : le journal des echanges d'une piste (vide par « Vider la base » si on le range dans
+  `echanges`). Ne pas le construire sans sa reponse.
