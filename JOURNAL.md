@@ -56,6 +56,12 @@ aux tâches, un client qui attend passant avant une affaire à date égale (`sup
 sinon une piste passe pour un client qui attend. Le message du vidage dit « Tes pistes et tes affaires restent »,
 validé par Ted. La page RGPD dit que le courrier porte aussi les noms des pistes.
 
+**Déployé le même jour** : SQL du lot 36 vérifié en base (colonne `affaires` en dernier, `security_invoker` gardé,
+aucun droit pour `anon`), puis `courrier-matin` en version 18 depuis `_deploiement/courrier-matin/` (empreintes
+identiques au dépôt avant envoi). Aperçu lancé par le déclencheur lui-même (`?apercu=1`, rien d'envoyé) : 200, trois
+comptes lus du premier coup, `affaires_absentes` à faux. Aucune affaire en base ce jour-là : la première vraie ligne
+d'affaire dans un mail reste à voir.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 
