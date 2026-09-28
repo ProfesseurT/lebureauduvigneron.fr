@@ -68,6 +68,13 @@ d'affaire dans un mail reste à voir.
 « affaire » en premier mot. Aucun SQL, aucun redéploiement : `bdv-echeances.js` (joint à l'agenda .ics) n'est pas
 touché.
 
+**Lot 38, le même jour : la fiche du domaine**, première pièce du devis. Décisions de Ted : produits proposés depuis
+l'historique des ventes avec prix saisi, recherche SIRET par l'API du ministère, conditions de paiement et validité
+choisies par le vigneron. **Arbitrage** : Ted proposait « 30 ou 60 jours fin de mois » ; la loi plafonne à 30 jours
+fin de mois pour les boissons alcooliques (economie.gouv.fr), donc 60 est refusé, par l'écran et par la base.
+Le vigneron empathique a fait trier les entreprises fermées en dernier, avec un bouton creux, et remplir la forme
+juridique depuis le sigle du nom. Petits correctifs : « rappel client » en premier mot dans Mes tâches.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 

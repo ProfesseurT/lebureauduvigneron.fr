@@ -715,12 +715,15 @@
     /* « affaire » EN PREMIER MOT : sur un telephone la ligne se coupe en deux, et le
        mot qui dit ce que c'est ne doit pas tomber dans la seconde moitie. */
     if (t.source === 'affaire') mots.push('affaire');
+    /* Et le rappel client dit ce qu'il est, pour la meme raison : sans motif ecrit, sa
+       ligne ne portait qu'une date (vigneron empathique, captures du lot 37). */
+    if (t.source === 'client') mots.push('rappel client');
     if (t.echue_le) mots.push(quand(t), quandDate(t));
     if (t.source === 'echeance') mots.push('obligation');
     /* LE MOTIF DU RAPPEL SE LIT ICI. « Rappeler MARTIN » sans le pourquoi oblige a
        ouvrir la fiche pour savoir ce qu'on avait promis, et c'est exactement le
        voyage que ce motif existe pour eviter. */
-    if (t.source === 'client') mots.push(t.motif || 'à rappeler');
+    if (t.source === 'client' && t.motif) mots.push(t.motif);
     /* « affaire » en toutes lettres : sans lui, une piste se lit comme un client qui
        attend (le vigneron empathique, sur le courrier du 28/09/2026). */
     if (t.source === 'affaire') mots.push(t.motif || 'à relancer');

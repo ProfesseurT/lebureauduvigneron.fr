@@ -477,6 +477,16 @@
         </div>
       </fieldset>
 
+      <!-- LA FICHE DU DOMAINE, lot 38 (28/09/2026). Remplie par bdv-domaine.js : ce qui
+           s'imprime en tete d'un devis. Le texte de repli ne se voit que si le module
+           n'est pas charge (page du tableau de bord), et il le dit. -->
+      <fieldset class="bdvr-bloc" id="bdvrBlocDomaine" data-onglet="Mon domaine">
+        <legend class="bdvr-legende">Mon domaine</legend>
+        <div class="bdvr-hote" id="bdvrHoteDomaine">
+          <p class="bdvr-aide">La fiche du domaine se remplit depuis ton bureau.</p>
+        </div>
+      </fieldset>
+
       <fieldset class="bdvr-bloc" id="bdvrBlocVentes" data-onglet="Tes ventes">
         <legend class="bdvr-legende">Tes ventes</legend>
         <div class="bdvr-grille">
@@ -641,7 +651,8 @@
   const HOTES = {
     'classement':   'bdvrHoteClassement',
     'base':         'bdvrHoteBase',
-    'base-actions': 'bdvrBaseActions'
+    'base-actions': 'bdvrBaseActions',
+    'domaine':      'bdvrHoteDomaine'
   };
   function monterBloc(b){
     const cible = el(HOTES[b.hote] || 'bdvrHoteBase');
@@ -1122,6 +1133,10 @@
     ].concat(hote)).then(function(res){
       const profilOk = res[0].status === 'fulfilled';
       const reglagesOk = res[1].status === 'fulfilled';
+      /* LES BLOCS DE L'HOTE COMPTENT AUSSI, 28/09/2026. Leur echec n'etait pas lu : une
+         fiche du domaine refusee faisait annoncer « C'est enregistre » et fermer le
+         panneau. Le bloc dit lui-meme ce qui cloche ; ici on refuse seulement de mentir. */
+      const hoteOk = res.slice(2).every(function(x){ return x.status === 'fulfilled'; });
       if(profilOk && bougeProfil){
         PROFIL = Object.assign({}, PROFIL, champs);
         gateVitisoft();
@@ -1137,7 +1152,9 @@
         if('objectif' in nouv && typeof adopterObjectif === 'function') adopterObjectif(nouv.objectif);
         if('exercice_debut' in nouv && typeof adopterExercice === 'function') adopterExercice(nouv.exercice_debut);
       }
-      if(profilOk && reglagesOk){
+      if(!hoteOk){
+        avis('Une partie n’est pas enregistrée. Le détail est dans l’onglet concerné.', false);
+      }else if(profilOk && reglagesOk){
         avis('C’est enregistré.', true);
         setTimeout(function(){ const v = el('bdvrVoile'); if(v && !v.hidden) fermer(); }, 900);
       }else if(!profilOk && !reglagesOk){

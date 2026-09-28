@@ -6950,3 +6950,25 @@ chaque point vient du vigneron empathique, avant ou apres capture :
   pour aligner les titres (demandes du vigneron empathique apres captures).
 - Apres chaque lecture ou geste, `BdvAffairesJour` repeint par `BdvTaches.rendre()`, qui
   repose le panneau et previent le calendrier (`bdv:taches`).
+
+### LOT 38 : LA FICHE DU DOMAINE (28/09/2026), premiere piece du devis
+
+- **Table `domaine`, une ligne par bureau**, tout le bureau lit et ecrit (forme « IN »),
+  signee par `domaine_signer()`. « Vider la base » n'y touche pas. `supabase/lot38-domaine.sql`.
+- **Onglet « Mon domaine » des reglages**, rempli par `src/js/bdv-domaine.js` (bloc contribue
+  par `BdvReglages.brancher`, hote `domaine`). Section 32 de `bdv-bureau.css`.
+- **Recherche par l'API Recherche d'entreprises (DINUM)**, demande de Ted : gratuite, sans cle,
+  7 appels par seconde, appelee par le navigateur. L'annuaire TROUVE, le vigneron CHOISIT : rien
+  n'est ecrit sans son clic. Annuaire muet : on remplit a la main. Les ouvertes d'abord, une
+  fermee a un bouton creux et un avertissement. [Probable] l'API accepte les appels du
+  navigateur (CORS) : a verifier en production au premier clic, le repli existe.
+- **Le numero de TVA n'est JAMAIS calcule** depuis le SIREN : un domaine en franchise n'en a pas.
+  On prend celui de l'annuaire (`tva[0]`), sinon vide. La forme juridique se lit dans le sigle
+  en tete du nom (EARL, SCEA, GAEC...), jamais dans le code INSEE.
+- **Plafond legal du paiement, tenu par la base ET l'ecran** : boissons alcooliques soumises
+  aux accises, 30 jours fin de mois au plus (Code de commerce L441-11, economie.gouv.fr). Ted
+  voulait « 30 ou 60 jours fdm » : 60 refuse, et pourquoi. Modes : fin de mois, nets (1 a 30),
+  a reception. Validite d'un devis : 1 a 365 jours, choisie par le vigneron.
+- **Le panneau des reglages lit enfin l'echec d'un bloc contribue** (`hoteOk`) : avant, un bloc
+  refuse faisait annoncer « C'est enregistre » et fermer.
+- Garde : `npm run banc:domaine` (34 controles).

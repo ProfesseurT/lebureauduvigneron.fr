@@ -5045,3 +5045,27 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 @media (max-width:700px){
   body.bdv-coque .tache__puce{ width:32px; text-align:left; }
 }
+
+/* ==========================================================================
+   32. « MON DOMAINE », lot 38 (28/09/2026). La recherche dans l'annuaire et ses
+   resultats, dans le panneau des reglages. Rien de neuf dans les echelles : la
+   rangee reprend le filet et les espacements du panneau.
+   ========================================================================== */
+.bdv-coque .bdvd-cherche{ align-items:end; margin:var(--bdv-e-3) 0 0; }
+.bdv-coque .bdvd-cherche .bdvr-btn{ justify-self:start; }
+/* Les deux intertitres du bloc : sans eux, « Telephone » et « Paiement » se suivaient
+   comme deux champs du meme formulaire (capture du 28/09/2026). `inherit` et pas la
+   police des titres du site, regle de la section 31. */
+.bdv-coque .bdvd-sous{ font-family:inherit; font-size:var(--bdv-f-3); font-weight:600;
+  color:var(--bdv-encre-2); margin:var(--bdv-e-6) 0 var(--bdv-e-3); }
+.bdv-coque .bdvd-res{ list-style:none; margin:var(--bdv-e-3) 0 var(--bdv-e-4); padding:0; }
+.bdv-coque .bdvd-res:empty{ display:none; }
+.bdv-coque .bdvd-ligne{ display:grid; grid-template-columns:1fr auto; gap:var(--bdv-e-1) var(--bdv-e-4);
+  align-items:center; padding:var(--bdv-e-3) 0; border-bottom:1px solid var(--bdv-trait); }
+.bdv-coque .bdvd-nom{ font-size:var(--bdv-f-3); color:var(--bdv-encre-1); overflow-wrap:anywhere; }
+.bdv-coque .bdvd-detail{ grid-column:1; font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .bdvd-ligne .bdvr-btn{ grid-column:2; grid-row:1 / span 2; min-height:44px; }
+@media (max-width:700px){
+  .bdv-coque .bdvd-ligne{ grid-template-columns:1fr; }
+  .bdv-coque .bdvd-ligne .bdvr-btn{ grid-column:1; grid-row:auto; justify-self:start; }
+}
