@@ -6893,4 +6893,22 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 - **Le journal des echanges d'une piste.** `echanges` est vide par « Vider la base » : y ranger les
   echanges d'une piste les ferait partir avec l'export. Soit une exclusion dans
   `effacer_mes_donnees()` (et dans sa preuve chiffree), soit un journal a part. A trancher.
-- **La page rgpd** doit nommer cette categorie de donnees avant la premiere piste reelle.
+### LOT 35 : LES AFFAIRES DANS MA JOURNEE ET SUR LA FICHE CLIENT (28/09/2026)
+
+- **`src/js/bdv-affaires-jour.js` ne fait que LIRE.** Charge avec la page, lu par une etape
+  `affaires` d'`amorcer()` (avant `lectures`), jamais au chargement du fichier. La piece reste
+  la seule a ecrire ; apres chaque geste elle appelle `BdvAffairesJour.poser()`, la journee ne
+  refait pas de requete.
+- **Une seule punaise d'affaires**, posee APRES les rappels clients et les taches : a une
+  affaire due on la nomme (« affaire du jour » ou « affaire en retard »), a plusieurs on compte
+  (« N affaires a relancer, a commencer par ... »).
+- **« Nouvelle affaire » sur la fiche client** passe par `sessionStorage` (`bdv_affaire_client`,
+  id et nom) puis ouvre la piece, qui propose le formulaire client avec un type de famille
+  `client` en premier. La fiche montre « Affaire en cours : ... ».
+- **`affaires.client_nom`** (lot 35) garde le nom lisible d'un client : la piece ne relit pas les
+  ventes. Si la colonne manque, lecture et creation se refont sans elle.
+- **La page rgpd** nomme pistes et affaires, la purge a trois ans, et le fait que « Vider la
+  base » n'y touche pas. Le texte de confirmation du vidage (mots de Ted, garde par
+  `banc:vidage`) ne le dit pas encore : a proposer a Ted.
+- Reste : courrier du matin (redeploiement de `courrier-matin`), affaires dans Mes taches et le
+  calendrier, file hors ligne, devis, signature, fichier de commande Vitisoft, retour facture.

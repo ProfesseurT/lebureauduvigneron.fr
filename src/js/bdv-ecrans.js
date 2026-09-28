@@ -2989,6 +2989,24 @@ document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='hidden')sauverBrouillon();
 });
 
+/* « NOUVELLE AFFAIRE » DEPUIS LA FICHE, 28/09/2026 (lot 35). La piece « Mes affaires »
+   n'est peut-etre pas chargee, et la fiche peut vivre dans un autre onglet : on laisse
+   le client dans sessionStorage et la piece le reprend a l'ouverture. On ne recopie
+   rien d'autre que le numero et le nom : Vitisoft fait foi pour le reste. */
+function ficheNouvelleAffaire(b){
+  try{sessionStorage.setItem('bdv_affaire_client',JSON.stringify({id:b.getAttribute('data-id'),nom:b.getAttribute('data-nom')}));}catch(e){}
+  if(pageFiche()){location.href='/mon-bureau/#affaires';return;}
+  fermerFiche();
+  if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('affaires');else location.hash='affaires';
+}
+/* Les affaires en cours du client, lues par bdv-affaires-jour.js. Une ligne, pas un
+   bloc : c'est un rappel de contexte, le travail se fait dans « Mes affaires ». */
+function ficheAffaires(f){
+  const l=(window.BdvAffairesJour&&BdvAffairesJour.duClient)?BdvAffairesJour.duClient(f.id):[];
+  if(!l.length)return '';
+  return `<p class="fiche__affaires"><a href="/mon-bureau/#affaires">${l.length>1?l.length+' affaires en cours':'Affaire en cours'}</a> : ${l.map(a=>esc(a.titre)).join(', ')}</p>`;
+}
+
 let GARDER_BROUILLON=false;
 function fermerFiche(){
   /* EN PLEINE PAGE, FERMER C'EST FERMER L'ONGLET. Une fiche vide dans un onglet qui ne sert
@@ -3354,7 +3372,9 @@ function ficheHTML(f,motif){
       ${mail?`<button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('message')">✉ Écrire</button>`:''}
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('note')">Noter un échange</button>
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('rappel')">Planifier un rappel</button>
+      <button type="button" class="btn btn--ghost btn--sm" data-id="${esc(f.id)}" data-nom="${esc(f.nom)}" onclick="ficheNouvelleAffaire(this)">Nouvelle affaire</button>
     </div>
+    ${ficheAffaires(f)}
 
     <div class="fiche__contacts">
       ${f.emails.map(e=>`<a class="chipc" href="mailto:${esc(e)}">✉ ${esc(e)}</a>`).join('')}

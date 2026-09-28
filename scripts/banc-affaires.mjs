@@ -190,6 +190,52 @@ t('l\'etape est retiree', !B.base.affaire_etapes.some(e => e.etape_id === cible)
 t('et l\'affaire est deplacee, pas perdue', B.base.affaires.length === 1 && B.base.affaires[0].etape_id !== cible);
 t('on le dit', /affaire déplacée vers/.test(B.doc.getElementById('affAvis').textContent));
 
+titre('Une affaire chez un client, depuis sa fiche (lot 35)');
+{
+  const C = monter();
+  C.base.affaire_types.push({ bureau: BUREAU, type_id: 'tc', nom: 'Nouvelle cuvée chez un client', famille: 'client', sommeil_jours: 45, ordre: 0, archive: false });
+  C.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'ec1', type_id: 'tc', nom: 'Idée notée', ordre: 1 });
+  C.w.sessionStorage.setItem('bdv_affaire_client', JSON.stringify({ id: 'C0412', nom: 'Cave du Vieux Pressoir' }));
+  await C.w.BdvAffaires.ouvrir();
+  t('le mot laisse par la fiche ouvre le formulaire du client', !!C.doc.getElementById('affFormeClient'));
+  t('il nomme le client', /chez Cave du Vieux Pressoir/.test(C.doc.getElementById('affFormeClient').textContent));
+  t('et le mot est consomme', C.w.sessionStorage.getItem('bdv_affaire_client') === null);
+  C.doc.getElementById('affTitreClient').value = 'Le rosé';
+  C.doc.getElementById('affFormeClient').dispatchEvent(new C.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  const ac = C.base.affaires[0] || {};
+  t('l\'affaire porte le client et pas de piste', ac.client_id === 'C0412' && !ac.piste_id && C.base.pistes.length === 0);
+  t('avec le nom du client comme etiquette', ac.client_nom === 'Cave du Vieux Pressoir');
+  t('la liste affiche le nom, pas le numero', /Cave du Vieux Pressoir/.test(C.doc.getElementById('affCorps').textContent));
+}
+
+titre('Les affaires dans « Ma journee » (bdv-affaires-jour.js)');
+{
+  const J = new JSDOM('<!doctype html><body></body>', { runScripts: 'outside-only' });
+  const SRCJ = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
+  let repeint = 0;
+  J.window.bdvMajPanneau = () => { repeint++; };
+  J.window.eval(SRCJ);
+  const AJ = J.window.BdvAffairesJour;
+  t('rien de lu, aucune punaise', AJ.punaises().length === 0);
+  const auj = new Date(); const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const hier = new Date(Date.now() - 86400000), demain = new Date(Date.now() + 86400000);
+  AJ.poser([{ affaire_id: 'x1', issue: 'en_cours', titre: 'x', piste_id: 'p1', rappel: iso(hier), rappel_titre: 'Envoyer le tarif' },
+            { affaire_id: 'x2', issue: 'en_cours', titre: 'y', piste_id: 'p2', rappel: iso(demain) },
+            { affaire_id: 'x3', issue: 'perdue', titre: 'z', piste_id: 'p3', rappel: iso(hier) }],
+           { p1: { nom: 'Cave du Port' }, p2: { nom: 'Bistrot' }, p3: { nom: 'Perdue' } });
+  t('poser repeint le panneau', repeint === 1);
+  const p1 = AJ.punaises();
+  t('une affaire en retard : une punaise qui la nomme', p1.length === 1 && p1[0].valeur === 'Cave du Port' && p1[0].tampon === 'affaire en retard' && p1[0].ton === 'vieux', JSON.stringify(p1));
+  t('une affaire a venir ou close ne s\'epingle pas', !JSON.stringify(p1).includes('Bistrot') && !JSON.stringify(p1).includes('Perdue'));
+  AJ.poser([{ affaire_id: 'x1', issue: 'en_cours', titre: 'x', piste_id: 'p1', rappel: iso(hier) },
+            { affaire_id: 'x4', issue: 'en_cours', titre: 'Le rosé', client_id: 'C1', client_nom: 'Chez Paul', rappel: iso(auj) }],
+           { p1: { nom: 'Cave du Port' } });
+  const p2 = AJ.punaises();
+  t('deux affaires dues : une seule punaise qui compte', p2.length === 1 && p2[0].valeur === '2' && p2[0].libelle === 'affaires à relancer', JSON.stringify(p2));
+  t('la fiche du client retrouve son affaire', AJ.duClient('C1').length === 1 && AJ.duClient('C2').length === 0);
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + OK + ' controle(s) passe(s), ' + KO + ' echec(s)');
 console.log(KO ? '  MES AFFAIRES NE FONT PAS CE QU\'ELLES DISENT' : '  MES AFFAIRES FONT CE QU\'ELLES DISENT');

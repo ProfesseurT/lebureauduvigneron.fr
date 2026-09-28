@@ -46,8 +46,12 @@ en 44e colonne, catalogue et tarifs), prix HT droits d'accises inclus.
 après : « s'endort à 30 » ne disait pas 30 quoi, « C'est qui ? » et « Type d'affaire » posaient deux fois la même
 question, les affaires closes ne ressemblaient pas à un lien. Corrigé.
 
-**Pas encore fait** : les relances dans « Ma journée » et le courrier du matin, les affaires sur un client
-existant (depuis sa fiche), le journal des échanges d'une piste, la file hors ligne, la page RGPD.
+**Lot 35, le même jour** : les affaires à relancer remontent dans « Ma journée » (une punaise, après les
+clients et les tâches), « Nouvelle affaire » depuis la fiche d'un client, le nom du client gardé sur l'affaire
+(`supabase/lot35-affaires-client.sql`), la page RGPD mise à jour.
+
+**Pas encore fait** : le courrier du matin, les affaires dans Mes tâches et le calendrier, le journal des
+échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 
 ## 26/09/2026, deux listes de plus : « Deuxième achat à jouer » et « Sa saison arrive »
 

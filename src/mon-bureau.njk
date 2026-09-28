@@ -754,6 +754,7 @@ theme_bureau: true
      apres bdv-compte.js, dont il lit la session. Tous en defer, donc dans l'ordre
      de declaration. -->
 <script src="/js/bdv-taches.js" defer></script>
+<script src="/js/bdv-affaires-jour.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
 <!-- L'ALMANACH. Il etait charge au premier clic sur le calendrier, par la constante
      RESSOURCES_CAL de bdv-nav.js. La lune de l'entete, elle, doit etre la des la
@@ -1921,6 +1922,9 @@ theme_bureau: true
        Elles viennent de bdv-taches.js, qui est le seul a savoir fusionner les taches
        ecrites et les obligations du calendrier. #}
     if(window.BdvTaches){ try{ pile = pile.concat(BdvTaches.punaises()); }catch(e){} }
+    {# LES AFFAIRES A RELANCER (lot 35), apres les clients et les taches : un client #}
+    {# qui attend passe avant une piste. Une seule punaise, qui compte ou qui nomme. #}
+    if(window.BdvAffairesJour){ try{ pile = pile.concat(BdvAffairesJour.punaises()); }catch(e){} }
 
     {# 4. LA PROCHAINE PROMESSE. C'est le seul endroit du bureau qui montre l'avenir
        plutot que le jour meme, et il ne montre que la PREMIERE : une liste de choses
@@ -2649,6 +2653,10 @@ theme_bureau: true
             JOURNAL = j; peindrePanneau();
             return j === null ? false : true;
           });
+        } },
+      { cle: 'affaires', texte: 'Tes affaires', faire: function(){
+          if(!window.BdvAffairesJour) return false;
+          return BdvAffairesJour.charger().then(function(ok){ peindrePanneau(); return ok; });
         } },
       { cle: 'lectures', texte: 'Ce que tu as mis de côté', faire: function(){
           if(!window.BdvSignets) return false;

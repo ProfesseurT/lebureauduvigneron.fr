@@ -178,6 +178,8 @@
       S.pistes = {}; r[2].forEach(function (p) { S.pistes[p.piste_id] = p; });
       S.affaires = r[3];
       S.charge = true; S.erreur = false;
+      /* La journee lit les memes affaires : on les lui pose, elle repeint son panneau. */
+      if (window.BdvAffairesJour) BdvAffairesJour.poser(S.affaires, S.pistes);
       return true;
     } catch (e) { S.erreur = true; return false; }
   }
@@ -195,7 +197,7 @@
   }
   function sujet(a) {
     if (a.piste_id) { var p = S.pistes[a.piste_id]; return p ? p.nom : 'Piste'; }
-    return a.client_id;
+    return a.client_nom || ('Client n°' + a.client_id);
   }
   /* A RELANCER : un rappel passe ou du jour. ENDORMIE : aucun rappel a venir, et
      plus longtemps dans l'etape que le delai du type. Une affaire qui a une date
@@ -230,7 +232,7 @@
       return;
     }
     if (!S.types.length) { c.innerHTML = htmlDemarrage(); return; }
-    c.innerHTML = htmlTete() + (S.nouvelle ? htmlNouvelle() : '') + htmlRelancer()
+    c.innerHTML = htmlTete() + (S.nouvelle === 'client' ? htmlNouvelleClient() : S.nouvelle ? htmlNouvelle() : '') + htmlRelancer()
       + htmlListe() + htmlCloses() + htmlReglages();
   }
 
@@ -297,6 +299,29 @@
       + champ('affSource', 'D’où il vient (salon, bouche à oreille…)', 'text', 120)
       + '<p class="aff-aide">C’est une fiche professionnelle : n’y note rien de personnel.</p>'
       + '</div></details>'
+      + '<div class="aff-form__pied"><button type="submit" class="btn btn--bordeaux">Créer l’affaire</button>'
+      + '<button type="button" class="btn" data-aff="annulerNouvelle">Annuler</button></div>'
+      + '</form>';
+  }
+  /* UNE AFFAIRE CHEZ UN CLIENT, ouverte depuis sa fiche. Pas de piste : le client
+     existe deja dans Vitisoft, on ne lui redemande ni son nom ni son adresse. Le
+     type propose d'abord la famille « client » (nouvelle cuvee, nouveau format). */
+  function htmlNouvelleClient() {
+    var c = S.clientPropose || {};
+    var tous = typesActifs();
+    var pref = tous.filter(function (t) { return t.famille === 'client'; })[0] || tous[0];
+    var dans7 = new Date(); dans7.setDate(dans7.getDate() + 7);
+    var options = tous.map(function (t) {
+      return '<option value="' + t.type_id + '"' + (pref && t.type_id === pref.type_id ? ' selected' : '') + '>' + esc(t.nom) + '</option>';
+    }).join('');
+    return '<form class="aff-form" id="affFormeClient" novalidate>'
+      + '<p class="aff-form__t">Nouvelle affaire chez ' + esc(c.nom || ('le client n°' + c.id)) + '</p>'
+      + '<label class="aff-champ"><span>Ce que tu veux lui faire prendre</span>'
+      + '<input id="affTitreClient" type="text" maxlength="120" autocomplete="off" placeholder="Le rosé, le magnum, la cuvée export…" required></label>'
+      + '<div class="aff-duo"><label class="aff-champ"><span>Type d’affaire</span><select id="affTypeClient">' + options + '</select></label>'
+      + '<label class="aff-champ"><span>Je le rappelle le</span><input id="affRappelClient" type="date" value="' + jourIso(dans7) + '" required></label></div>'
+      + '<label class="aff-champ"><span>Pour quoi faire (facultatif)</span>'
+      + '<input id="affMotifClient" type="text" maxlength="120" placeholder="Lui faire goûter, lui envoyer le tarif…"></label>'
       + '<div class="aff-form__pied"><button type="submit" class="btn btn--bordeaux">Créer l’affaire</button>'
       + '<button type="button" class="btn" data-aff="annulerNouvelle">Annuler</button></div>'
       + '</form>';
@@ -518,6 +543,32 @@
     await charger(); rendre();
   }
 
+  async function creerAffaireClient() {
+    var c = S.clientPropose || {};
+    var titre = (el('affTitreClient').value || '').trim();
+    var typeId = el('affTypeClient') && el('affTypeClient').value;
+    var rappel = el('affRappelClient').value;
+    if (!titre) { dire('Dis ce que tu veux lui faire prendre.', true); el('affTitreClient').focus(); return; }
+    if (!rappel) { dire('Choisis la date à laquelle tu le rappelles.', true); el('affRappelClient').focus(); return; }
+    var premiere = etapesDe(typeId)[0];
+    if (!premiere) { dire('Ce type d’affaire n’a aucune étape.', true); return; }
+    var motif = (el('affMotifClient').value || '').trim() || null;
+    var affaire = { affaire_id: uuid(), type_id: typeId, etape_id: premiere.etape_id,
+      client_id: String(c.id), client_nom: c.nom || null, titre: titre, rappel: rappel, rappel_titre: motif };
+    try {
+      try { await creer('affaires', [affaire]); }
+      catch (e) {
+        /* Le lot 35 pas encore passe : la colonne du nom manque. On cree sans elle. */
+        if (!/client_nom/.test(String(e && e.detail || ''))) throw e;
+        delete affaire.client_nom;
+        await creer('affaires', [affaire]);
+      }
+      S.nouvelle = false; S.clientPropose = null;
+      dire('Affaire ouverte chez ' + esc(c.nom || c.id) + ', rappel le ' + dateCourte(rappel) + '.');
+    } catch (e) { dire(raison(e), true); }
+    await charger(); rendre();
+  }
+
   function formEdit(id) { return document.querySelector('form.aff-edit[data-edit="' + id + '"]'); }
 
   async function enregistrer(a) {
@@ -688,7 +739,7 @@
       }
       if (quoi === 'filtre') { S.filtre = b.getAttribute('data-type') || ''; rendre(); return; }
       if (quoi === 'nouvelle') { S.nouvelle = !S.nouvelle; rendre(); if (S.nouvelle && el('affNom')) el('affNom').focus(); return; }
-      if (quoi === 'annulerNouvelle') { S.nouvelle = false; rendre(); return; }
+      if (quoi === 'annulerNouvelle') { S.nouvelle = false; S.clientPropose = null; rendre(); return; }
       if (quoi === 'ouvrir' && a) { viderAttente(); S.ouverte = S.ouverte === a.affaire_id ? null : a.affaire_id; rendre(); return; }
       if (quoi === 'suivante' && a) { suivante(a); return; }
       if (quoi === 'gagnee' || quoi === 'perdue') {
@@ -710,6 +761,7 @@
       ev.preventDefault();
       var f = ev.target;
       if (f.id === 'affForme') { creerAffaire(); return; }
+      if (f.id === 'affFormeClient') { creerAffaireClient(); return; }
       if (f.classList.contains('aff-edit')) { var a = affaireDe(f); if (a) enregistrer(a); return; }
       if (f.classList.contains('aff-type')) { enregistrerType(f); return; }
     });
@@ -747,7 +799,22 @@
     window.addEventListener('pagehide', viderAttente);
   }
 
+  /* LA FICHE D'UN CLIENT LAISSE UN MOT ICI, « Nouvelle affaire », dans
+     sessionStorage : la piece n'est pas forcement chargee au moment du clic, et la
+     fiche peut vivre dans un autre onglet. Prefixe `bdv_` : il part a la
+     deconnexion avec le reste. */
+  function lireClientPropose() {
+    try {
+      var brut = sessionStorage.getItem('bdv_affaire_client');
+      if (!brut) return;
+      sessionStorage.removeItem('bdv_affaire_client');
+      var c = JSON.parse(brut);
+      if (c && c.id) { S.clientPropose = c; S.nouvelle = 'client'; }
+    } catch (e) {}
+  }
+
   async function ouvrir() {
+    lireClientPropose();
     brancher();
     rendre();
     if (!pret()) { dire('Ton bureau n’est pas encore raccordé. Reviens dans un instant.', true); return; }
