@@ -50,7 +50,13 @@ question, les affaires closes ne ressemblaient pas à un lien. Corrigé.
 clients et les tâches), « Nouvelle affaire » depuis la fiche d'un client, le nom du client gardé sur l'affaire
 (`supabase/lot35-affaires-client.sql`), la page RGPD mise à jour.
 
-**Pas encore fait** : le courrier du matin, les affaires dans Mes tâches et le calendrier, le journal des
+**Lot 36, le même jour** : les affaires à relancer entrent dans le courrier du matin, mélangées aux rappels et
+aux tâches, un client qui attend passant avant une affaire à date égale (`supabase/lot36-courrier-affaires.sql`,
+`courrier-matin` à redéployer après le SQL). Le vigneron empathique a demandé que « affaire » soit écrit en gras :
+sinon une piste passe pour un client qui attend. Le message du vidage dit « Tes pistes et tes affaires restent »,
+validé par Ted. La page RGPD dit que le courrier porte aussi les noms des pistes.
+
+**Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 
 ## 26/09/2026, deux listes de plus : « Deuxième achat à jouer » et « Sa saison arrive »

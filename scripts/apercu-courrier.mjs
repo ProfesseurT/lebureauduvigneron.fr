@@ -127,6 +127,36 @@ function verifier(cas, r, donnees){
       }
     }
   }
+  /* 10. UNE AFFAIRE SANS RAPPEL, OU CLOSE, N'ENTRE JAMAIS DANS LE COURRIER. Meme
+         raison que la tache sans date : rien ne la fait tomber ce matin. Lot 36. */
+  for(const a of (donnees.affaires||[])){
+    if(!a || !a.nom) continue;
+    if((!a.rappel || (a.issue && a.issue !== 'en_cours')) && r.html.includes(a.nom)){
+      ennuis.push(`${cas} : l'affaire « ${a.nom} » n'a pas de rappel ou est close, et se retrouve dans le mail.`);
+    }
+  }
+  /* 11. A RETARD EGAL, LE CLIENT QUI ATTEND PASSE AVANT L'AFFAIRE A GAGNER.
+         Regle du vigneron empathique, la meme que dans « Ma journee ». */
+  if(auj){
+    const j = BdvCourrier._outils.trierAFaire(donnees.suivis, donnees.taches,
+      (donnees.file_travail||{}).noms || {}, auj, donnees.affaires);
+    for(const liste of [j.echus, j.venir]){
+      for(let i = 1; i < liste.length; i++){
+        const a = liste[i-1], b = liste[i];
+        if(a.type === 'affaire' && b.type !== 'affaire' && a.ecart === b.ecart && !a.encours && !b.encours){
+          ennuis.push(`${cas} : l'affaire « ${a.titre} » passe devant « ${b.titre} » a date egale.`);
+        }
+      }
+    }
+    /* 12. Une affaire due doit bien etre dans le mail : un filtre trop large
+           la ferait disparaitre sans bruit. */
+    for(const a of (donnees.affaires||[])){
+      const o = BdvCourrier._outils.normAffaire(a, auj);
+      if(o && o.ecart >= 0 && !r.texte.includes(o.titre)){
+        ennuis.push(`${cas} : l'affaire « ${o.titre} » est due et manque au mail.`);
+      }
+    }
+  }
   /* 5. Un depot perime ne doit afficher aucun signal. */
   if(r.compteurs.perime && r.compteurs.signaux > 0){
     ennuis.push(`${cas} : depot perime (${r.compteurs.ageDepot} jours) et ${r.compteurs.signaux} signaux affiches.`);

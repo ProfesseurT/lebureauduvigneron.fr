@@ -187,6 +187,48 @@
         "canal": "visite",
         "notes": "Passe au domaine, prévoir une dégustation."
       }
+    ],
+    "affaires": [
+      {
+        "affaire_id": "a-1",
+        "nom": "Cave du Quai (piste inventée)",
+        "titre": "Cave du Quai",
+        "type": "Caviste / restaurant",
+        "etape": "Dégustation faite",
+        "rappel": "2026-09-08",
+        "rappel_titre": "Passer déposer deux bouteilles du 2024",
+        "issue": "en_cours"
+      },
+      {
+        "affaire_id": "a-2",
+        "nom": "Importateur Nordique (inventé)",
+        "titre": "Suède, gamme bio",
+        "type": "Importateur",
+        "etape": "Échantillons envoyés",
+        "rappel": "2026-09-11",
+        "rappel_titre": "Rappeler après leur salon",
+        "issue": "en_cours"
+      },
+      {
+        "affaire_id": "a-3",
+        "nom": "Affaire sans rappel (ne doit PAS apparaître)",
+        "titre": "x",
+        "type": "Caviste / restaurant",
+        "etape": "Repéré",
+        "rappel": null,
+        "rappel_titre": null,
+        "issue": "en_cours"
+      },
+      {
+        "affaire_id": "a-4",
+        "nom": "Affaire gagnée (ne doit PAS apparaître)",
+        "titre": "y",
+        "type": "Caviste / restaurant",
+        "etape": "Tarif envoyé",
+        "rappel": "2026-09-05",
+        "rappel_titre": "z",
+        "issue": "gagnee"
+      }
     ]
   },
   "vide": {
@@ -353,6 +395,18 @@
         "rappel": "2026-09-01",
         "canal": "appel",
         "notes": "Déjà traité : ne doit PAS apparaître."
+      }
+    ],
+    "affaires": [
+      {
+        "affaire_id": "a-9",
+        "nom": null,
+        "titre": "Mariage Dupont-Martin (inventé)",
+        "type": "Mariage",
+        "etape": null,
+        "rappel": "2026-09-09",
+        "rappel_titre": "Envoyer le devis <b>avant midi</b>",
+        "issue": "en_cours"
       }
     ]
   }

@@ -6910,5 +6910,25 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 - **La page rgpd** nomme pistes et affaires, la purge a trois ans, et le fait que « Vider la
   base » n'y touche pas. Le texte de confirmation du vidage (mots de Ted, garde par
   `banc:vidage`) ne le dit pas encore : a proposer a Ted.
-- Reste : courrier du matin (redeploiement de `courrier-matin`), affaires dans Mes taches et le
-  calendrier, file hors ligne, devis, signature, fichier de commande Vitisoft, retour facture.
+- Reste : affaires dans Mes taches et le calendrier, file hors ligne, devis, signature,
+  fichier de commande Vitisoft, retour facture.
+
+### LOT 36 : LES AFFAIRES DANS LE COURRIER DU MATIN (28/09/2026)
+
+- **`v_courrier` gagne une colonne `affaires`, posee EN DERNIER** (`create or replace view`
+  n'ajoute qu'a la fin), `security_invoker` garde. Elle porte les affaires en cours QUI ONT UN
+  RAPPEL, avec le nom resolu (piste, sinon `client_nom`, sinon titre), type, etape, date et motif.
+  Ni notes ni coordonnees. Le SQL reprend la ligne du lot 35 : la vue lit `client_nom`.
+- **Dans la fabrique, `normAffaire()` rejoint rappels et taches** : meme forme, meme dessinateur,
+  melangees dans « Ce matin ». Pas de rappel ou affaire close : jamais dans le mail. A date
+  egale, un client qui attend passe AVANT une affaire (controles 10, 11 et 12 de
+  `npm run courrier`, verifies par mutation).
+- **« affaire » est une MARQUE en encre et en gras**, pas un mot gris : le vigneron empathique a
+  vu « Cave du Quai » passer pour un client qui attend. Le type n'est pas sur la ligne, elle
+  tenait sur trois lignes a 390 px.
+- **ORDRE DE MISE EN PRODUCTION : le SQL, puis le commit, puis le deploiement.** Si la fonction
+  part avant le SQL, elle relit sans les affaires et le dit (`affaires_absentes` dans le
+  rapport) : le courrier part quand meme, pour tout le monde.
+- Le texte de confirmation du vidage dit maintenant « Tes pistes et tes affaires restent. »
+  (valide par Ted, garde par `banc:vidage`). Verifie en base : `vider_la_base_du_bureau` ne
+  nomme ni `affaires` ni `pistes`.

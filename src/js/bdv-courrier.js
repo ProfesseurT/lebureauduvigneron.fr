@@ -273,20 +273,53 @@ function normTache(t, jAuj){
   return { type:'tache', titre:String(t.titre||'(sans titre)'), jour:jd,
            ecart:jAuj.n - jd.n, encours:encours, meta:meta, note:'' };
 }
+/* UNE AFFAIRE A RELANCER, LOT 36 (28/09/2026). Meme forme que le rappel et la
+   tache : pour le vigneron a 8 h c'est encore quelque chose qui lui tombe
+   dessus. Une affaire sans rappel n'entre jamais, pour la meme raison qu'une
+   tache sans date : rien ne la fait tomber ce matin plutot qu'un autre. Une
+   affaire close non plus (la vue ne les rend deja pas, on ne s'y fie pas).
+   Le nom est celui que la vue a resolu (piste, sinon client, sinon titre). */
+function normAffaire(a, jAuj){
+  if(!a || !a.rappel || (a.issue && a.issue !== 'en_cours')) return null;
+  var jr = jour(a.rappel);
+  if(!jr) return null;
+  /* LE TYPE N'EST PAS SUR LA LIGNE : le vigneron sait ce qu'est la Cave du Quai.
+     Avec lui la ligne grise tenait sur trois lignes a 390 px, plus haute que la
+     chose a faire. « affaire » suffit a la distinguer d'un rappel client, et
+     l'etape dit ou on en est. */
+  /* « AFFAIRE » EST UNE MARQUE, PAS UN MOT GRIS. Le vigneron empathique, sur les
+     captures du 28/09/2026 : pour un client, le premier mot gris dit ce qu'on fait
+     (« appel »), pour une affaire il dit ce que c'est, meme taille, meme gris, et a
+     6 h « Cave du Quai » passe pour un client qui attend. `ligneAFaire()` la
+     dessine en encre et en gras : le repere ne tient pas a la couleur. */
+  var meta = [];
+  var etape = sansBalise(a.etape).trim();
+  if(etape) meta.push(etape);
+  meta.push('rappel du '+fmtJourCourt(jr));
+  return { type:'affaire', marque:'affaire', titre:sansBalise(a.nom || a.titre || '(sans nom)').trim(), jour:jr,
+           ecart:jAuj.n - jr.n, encours:false, meta:meta,
+           note:sansBalise(a.rappel_titre).trim() };
+}
 /* Melanges et pas separes : le vigneron ne trie pas sa matinee par table de
    base de donnees. Le plus en retard d'abord, et ce qui est EN COURS passe
    apres ce qui est vraiment en retard. */
-function trierAFaire(suivis, taches, annuaire, jAuj){
+function trierAFaire(suivis, taches, annuaire, jAuj, affaires){
   var tout = [];
   (suivis||[]).forEach(function(s){ var o=normRappel(s,annuaire,jAuj); if(o)tout.push(o); });
   (taches||[]).forEach(function(t){ var o=normTache(t,jAuj);           if(o)tout.push(o); });
+  (affaires||[]).forEach(function(a){ var o=normAffaire(a,jAuj);       if(o)tout.push(o); });
   var echus = tout.filter(function(o){ return o.ecart >= 0; });
   var venir = tout.filter(function(o){ return o.ecart < 0 && o.ecart >= -HORIZON_J; });
   echus.sort(function(a,b){
     if(a.encours !== b.encours) return a.encours ? 1 : -1;
-    return b.ecart - a.ecart;
+    if(b.ecart !== a.ecart) return b.ecart - a.ecart;
+    /* A retard egal, un client qui attend passe avant une affaire a gagner. */
+    return (a.type === 'affaire' ? 1 : 0) - (b.type === 'affaire' ? 1 : 0);
   });
-  venir.sort(function(a,b){ return a.jour.n - b.jour.n; });
+  venir.sort(function(a,b){
+    if(a.jour.n !== b.jour.n) return a.jour.n - b.jour.n;
+    return (a.type === 'affaire' ? 1 : 0) - (b.type === 'affaire' ? 1 : 0);
+  });
   return { echus:echus, venir:venir };
 }
 
@@ -383,8 +416,12 @@ function ligneAFaire(o, pair){
   else if(o.ecart===0) droite = '<span style="font-weight:700;">'+esc(j)+'</span>';
   else                 droite = '<span style="color:'+C.muted+';">'+esc(j)+'</span>';
   var gauche = '<div>'+esc(o.titre)+'</div>'
-    + (o.meta.length
+    + (o.meta.length || o.marque
       ? '<div style="font-family:'+F_MONO+';font-size:11px;color:'+C.muted+';padding-top:2px;">'
+        + (o.marque
+          ? '<span style="color:'+C.ink+';font-weight:700;">'+esc(o.marque)+'</span>'
+            + (o.meta.length ? '  ·  ' : '')
+          : '')
         + esc(o.meta.join('  ·  '))+'</div>'
       : '')
     + (o.note
@@ -626,7 +663,8 @@ function batir(d){
   var ageDepot  = jDepot ? (jAuj.n - jDepot.n) : null;
   var perime    = (ageDepot == null) || (ageDepot > PEREMPTION_J);
 
-  var journee  = trierAFaire(suivis, taches, annuaire, jAuj);
+  var affaires = d.affaires || [];
+  var journee  = trierAFaire(suivis, taches, annuaire, jAuj, affaires);
   var tousSig  = perime ? [] : ecarterLesSuivis(file.signaux, suivis);
   var signaux  = tousSig.slice(0, MAX_SIGNAUX);
   var reste    = tousSig.length - signaux.length;
@@ -900,7 +938,7 @@ function batir(d){
     t.push('CE MATIN');
     journee.echus.forEach(function(o){
       t.push(colonne('  '+o.titre, o.encours ? 'EN COURS' : fmtJ(o.ecart)));
-      if(o.meta.length) t.push('    '+o.meta.join('  ·  '));
+      if(o.meta.length || o.marque) t.push('    '+(o.marque ? [o.marque.toUpperCase()] : []).concat(o.meta).join('  ·  '));
       if(o.note)        t.push('    '+o.note);
     });
     t.push('');
@@ -909,7 +947,7 @@ function batir(d){
     t.push('LES JOURS QUI VIENNENT');
     journee.venir.forEach(function(o){
       t.push(colonne('  '+o.titre, fmtJ(o.ecart)));
-      if(o.meta.length) t.push('    '+o.meta.join('  ·  '));
+      if(o.meta.length || o.marque) t.push('    '+(o.marque ? [o.marque.toUpperCase()] : []).concat(o.meta).join('  ·  '));
     });
     t.push('');
   }
@@ -1014,7 +1052,7 @@ var api = { batir:batir, PEREMPTION_J:PEREMPTION_J, HORIZON_J:HORIZON_J,
             CACHER_LES_EMAILS:CACHER_LES_EMAILS,
             _outils:{ jour:jour, fmtMoney:fmtMoney, htmlLimite:htmlLimite, fmtJ:fmtJ,
                       contactUtile:contactUtile,
-                      normTache:normTache, normRappel:normRappel, trierAFaire:trierAFaire } };
+                      normTache:normTache, normRappel:normRappel, normAffaire:normAffaire, trierAFaire:trierAFaire } };
 racine.BdvCourrier = api;
 if(typeof module !== 'undefined' && module.exports) module.exports = api;
 

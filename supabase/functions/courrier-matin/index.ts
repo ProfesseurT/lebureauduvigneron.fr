@@ -18,7 +18,7 @@
    controlee par `npm run verif`. Ne pas la modifier a la main, ne pas la
    reformater : elle est lue par une expression exacte.
 
-   empreinte de la fabrique deployee : sha256 d0ae817af358c007, 1021 lignes.
+   empreinte de la fabrique deployee : sha256 4c034e94ef21aacc, 1059 lignes.
 
    POURQUOI ELLE N'EST PLUS TENUE A LA MAIN, 10/09/2026. Elle l'etait, et elle
    annoncait 512 lignes quand la fabrique en faisait 880. Pire : le depot
@@ -265,7 +265,16 @@ function reponse(corps: unknown, code = 200): Response {
    garde-fou 3bis refusait TOUS les comptes, la fonction repondait 200, et
    `courrier_envois` restait vide. Deux jours de silence pour un mot manquant.
    `npm run courrier:verif` compare desormais cette liste aux champs lus. */
-const CHAMPS = 'id,email,jeton_emails,depose_le,noms,signaux,suivis,taches,resume_ventes';
+const CHAMPS = 'id,email,jeton_emails,depose_le,noms,signaux,suivis,taches,resume_ventes,affaires';
+
+/* LES AFFAIRES SONT ENTREES AU LOT 36 (28/09/2026), et la vue ne les rend que
+   si le SQL du lot est passe. Si ce n'est pas le cas, PostgREST refuse TOUTE la
+   lecture pour une colonne inconnue : le courrier de 8 h ne partirait pour
+   personne a cause d'un bloc qui n'existait pas la veille. On relit donc sans
+   elle, et le rapport le DIT (`affaires_absentes`) : une reprise muette serait
+   le silence de deux jours du 11/09/2026, en plus poli. */
+const CHAMPS_SANS_AFFAIRES = CHAMPS.replace(',affaires', '');
+let AFFAIRES_ABSENTES = false;
 
 /* ---- UNE SEULE REPRISE, ET ELLE N'EST LEGITIME QUE SUR CETTE LECTURE ----
    Le 13/09/2026 a 8 h 05, cette requete a rendu 504 en 30 millisecondes : la
@@ -302,6 +311,10 @@ async function lireLesComptes() {
         };
       }
       dernier = `${r.status} ${await r.text()}`;
+      if (!AFFAIRES_ABSENTES && r.status === 400 && /affaires/.test(dernier)) {
+        AFFAIRES_ABSENTES = true;
+        return lireSans();
+      }
     } catch (e) {
       dernier = String(e);
     }
@@ -310,6 +323,18 @@ async function lireLesComptes() {
     }
   }
   throw new Error(`lecture de v_courrier, ${ESSAIS_LECTURE} essais : ${dernier}`);
+}
+
+async function lireSans() {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/v_courrier?select=${CHAMPS_SANS_AFFAIRES}`, {
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      Accept: 'application/json',
+    },
+  });
+  if (!r.ok) throw new Error(`lecture de v_courrier sans les affaires : ${r.status} ${await r.text()}`);
+  return { comptes: await r.json() as Array<Record<string, unknown>>, essais: 1 };
 }
 
 async function envoyerParResend(a: string, sujet: string, html: string, texte: string) {
@@ -454,6 +479,9 @@ Deno.serve(async (req: Request) => {
        dit que la passerelle a refuse une fois. C'est le seul endroit ou un
        reveil rate se voit, puisque la reprise le rattrape en silence. */
     essais_lecture: essaisLecture,
+    /* Vrai si la vue n'a pas encore la colonne du lot 36 : le courrier part,
+       sans les affaires, et c'est ici qu'on le voit. */
+    affaires_absentes: AFFAIRES_ABSENTES,
     envoyes: 0,
     deja_envoyes: 0,
     sans_jeton: 0,
@@ -490,6 +518,7 @@ Deno.serve(async (req: Request) => {
       resume_ventes: c.resume_ventes,
       suivis: c.suivis,
       taches: c.taches,
+      affaires: c.affaires,
     });
 
     /* Un mail vide ne part pas. C'est la fabrique qui le DIT (`vide`), et c'est

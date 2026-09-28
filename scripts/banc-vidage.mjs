@@ -193,6 +193,10 @@ else {
     [/ne se\s+.{0,20}récupèrent nulle part|récupèrent nulle part/i, 'il dit que ca ne se recupere nulle part'],
   ];
   doit.forEach(([re, quoi]) => re.test(t) ? ok(quoi) : ko('le texte ne dit pas : ' + quoi));
+  /* 28/09/2026 : le vidage ne touche pas aux affaires, et le texte le dit. */
+  if (/pistes et tes affaires restent/.test(t))
+    ok('il dit que les pistes et les affaires restent');
+  else ko('il ne dit pas que les pistes et les affaires restent');
   if (/autres personnes de ton bureau/.test(t))
     ok('il previent que les autres membres du bureau perdent la meme chose');
   else ko('il ne dit pas que le vidage porte aussi pour les autres membres');

@@ -2270,6 +2270,9 @@ async function viderBase(){
     + "RIEN DE TOUT ÇA N'EST REMONTÉ DANS VITISOFT. Tes notes de suivi, tes échanges et "
     + "ton classement n'existent que dans le bureau : une fois effacés, ils ne se "
     + "récupèrent nulle part.\n\n"
+    /* Ajoute le 28/09/2026, valide par Ted : le vidage ne touche pas aux affaires
+       (lot 34), et le vigneron qui en a en cours doit le lire avant de cliquer. */
+    + "Tes pistes et tes affaires restent.\n\n"
     + (syncPret()
         ? "L'effacement porte sur cet appareil ET sur ton compte, donc aussi pour les "
           + "autres personnes de ton bureau.\n\n"
