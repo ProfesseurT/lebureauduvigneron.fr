@@ -6775,3 +6775,122 @@ priorite : recul > cadence > deuxieme > saison > premier (un client n'apparait q
   reassort. Le courrier du matin nomme les deux motifs (`TITRES_MOTIF`) : redeploye en version 17.
 - Au passage : les dates des lettres aux clients s'ecrivent « 15 juin 2026 » (`dateLettre()`), et
   `avecLe()` dit « la Cuvee ».
+
+## LES AFFAIRES : LA BRANCHE QUI NE LIT PAS LES VENTES, 28/09/2026
+
+Decide avec Ted du 26 au 28/09/2026, apres deux passes du conseil (vigneron empathique, expert
+commercial, architecte). Le moteur ne regarde plus ce que les clients ONT achete mais ce qu'on
+fait pour les OBTENIR. **C'est la premiere donnee du bureau SAISIE par le vigneron comme source**,
+et pas deduite d'un export : la regle « une case vide vaut mieux qu'une valeur inventee » y vaut
+double.
+
+### LE PARCOURS, ET QUI FAIT QUOI
+
+1. L'affaire se mene dans le bureau : etapes, envois, relances.
+2. Le DEVIS se fait dans le bureau (Vitisoft n'importe que des commandes, jamais des devis).
+3. Le client SIGNE le devis en ligne, signature faite maison avec dossier de preuve.
+4. Le bureau fabrique la COMMANDE au format de l'import de commandes Vitisoft ; le vigneron
+   l'importe. Client inconnu : `numero_client` vide, Vitisoft le cree.
+5. La facture se fait dans Vitisoft.
+6. Elle revient au bureau par l'export de ventes, avec la reference de l'affaire (script
+   Solumatic, voir plus bas). Le lien affaire vers facture est EXACT, jamais devine.
+
+Reference de l'import : `https://doc.solumatic.fr/guides/import-de-commandes-Y9h9c7.html`
+(page en JavaScript : un simple telechargement la rend vide, la lire dans un navigateur). Ce
+qu'il faut en savoir : CSV lu PAR POSITION, `;`, point decimal, UTF-8, CR+LF, aucun guillemet ;
+quatre colonnes obligatoires ; client par numero OU par e-mail ; PAS d'API ; la fiche d'un
+client existant n'est jamais mise a jour ; erreur 12 si la commande est deja importee.
+
+### LES DECISIONS, UNE PAR UNE
+
+- **Types d'affaires et etapes : crees par le vigneron**, a partir de modeles (caviste /
+  restaurant, importateur, mariage, seminaire, nouvelle cuvee chez un client). Six etapes au
+  plus. Le mot « canal » est INTERDIT pour ca : il designe deja le canal de vente tire de
+  Vitisoft. On dit « type d'affaire ».
+- **Chaque type se rattache a une FAMILLE fixe** : `conquete`, `evenement`, `client`. C'est
+  elle qui decide de ce que le bureau calcule, et elle garde les chiffres comparables.
+- **Deux fins seulement**, « Gagnee » et « Pas pour cette fois » (en base `gagnee` / `perdue`),
+  avec un motif choisi dans une liste courte. Ce ne sont PAS des etapes : le vigneron ne peut
+  ni les renommer ni les supprimer. « Endormie » n'est pas une etape non plus, c'est un etat
+  CALCULE sur `etape_le` et le delai du type.
+- **Une affaire porte sur une piste OU sur un client, jamais les deux** (contrainte en base).
+  Une affaire chez un client existant se voit sur sa fiche ET dans la liste des affaires.
+- **Une piste ne disparait jamais au lien** : `pistes.client_id` pointe le client, l'historique
+  reste attache. Toujours UNE seule fiche client.
+- **Le montant n'est un chiffre que s'il vient d'un document envoye** (devis). Un tarif envoye a
+  un caviste n'est pas un montant. Aucun total « prevu » qui additionne tout.
+- **Les tarifs et le catalogue viennent de Vitisoft**, par le script. En attendant, repli sur
+  les produits deja vendus et leur dernier prix, et l'ecran le dit. **Les prix HT incluent les
+  droits d'accises** (Ted, 28/09/2026). Le PRIX SIGNE part dans la commande (`prix_unitaire`) :
+  Vitisoft facture ce prix, a recalcul TTC pres, et le bureau affiche l'ecart.
+- **Tout le bureau lit et ecrit les affaires**, la base signe (`maj_par`), modele du lot 33.
+  Arbitrage PAR DEFAUT, pris sans reponse de Ted : a rouvrir s'il le demande.
+- **« Vider la base » ne touche pas aux affaires** : elles ne viennent pas d'un export. Arbitrage
+  par defaut lui aussi. Le texte de confirmation du vidage devra le dire quand la piece existera.
+
+### LE SCRIPT SOLUMATIC, UNIQUE
+
+Ted l'a valide : un seul script, deux sorties. Le cahier des charges est dans
+`CAHIER_script-vitisoft.md`. **LA 44E COLONNE DE L'EXPORT S'AJOUTE A LA FIN, JAMAIS AU MILIEU** :
+`HASH_COLS` reste a 40 et la lecture par position de `ENTETES` casserait sinon, en doublant le
+chiffre d'affaires en silence. `verifierEntete()` tolere deja un export plus long.
+
+### LA SIGNATURE : SIMPLE, FAITE MAISON, AVEC SA PREUVE
+
+Code civil 1366 et 1367 : une signature electronique simple est recevable mais NE BENEFICIE PAS de
+la presomption de fiabilite. C'est le vigneron qui devra prouver le procede. D'ou un dossier de
+preuve : empreinte du devis fige, horodatage serveur, e-mail verifie par code, nom tape, adresse
+de connexion. Un devis signe ne se modifie plus : une correction est une nouvelle version, a
+signer de nouveau. Les services du marche (Yousign / Youtrust : 104 EUR par mois pour l'API)
+sont hors de la regle du gratuit.
+
+**CE QUI BLOQUE L'OUVERTURE AUX CLIENTS FINAUX** : le code part de chez nous vers des gens qui ne
+sont ni Ted ni un vigneron, donc la regle du SEUIL (palier Resend payant, textes legaux). Et les
+particuliers (mariages) : droit de retractation de 14 jours d'un contrat a distance, exception
+possible pour une prestation de loisirs a date fixee. **A faire valider par un juriste. On
+commence par les pros.**
+
+### LE LOT 34, LA BASE (`supabase/lot34-affaires.sql`)
+
+Quatre tables : `affaire_types`, `affaire_etapes`, `pistes`, `affaires`. **La base refuse ce que
+l'ecran ne doit pas permettre** : supprimer une etape ou un type qui porte encore une affaire
+(cle etrangere `restrict`), une septieme etape, une etape d'un autre type, un proprietaire
+hors du bureau, une affaire sans sujet ou avec deux. Les colonnes de signature (`cree_par`,
+`maj_par`, `lie_par`, `etape_le`, `close_le`) sont reecrites par les declencheurs : **un
+`revoke update (colonne)` ne protege rien quand le droit de table existe**, c'est pour ca qu'il
+n'y en a pas. Une affaire close perd son rappel : elle ne doit plus remonter dans la journee.
+
+**La purge RGPD existe AVANT que la page ne l'annonce** (regle du 11/09/2026) : `pistes_purger()`,
+lundi 3 h 29, efface les coordonnees d'une piste jamais cliente, sans geste depuis trois ans.
+`opposition` efface les coordonnees tout de suite et garde le nom, pour ne pas la rappeler.
+
+**Teste sur un PostgreSQL 16 jetable** avec deux bureaux et deux comptes : rejouable deux fois,
+les douze refus attendus levent, un compte d'un autre bureau voit zero ligne et n'en modifie
+aucune, `anon` n'a aucun droit, la purge n'est pas appelable par un compte connecte.
+
+### LA PIECE « MES AFFAIRES » (`src/js/bdv-affaires.js`)
+
+Chargee au premier clic comme l'equipe, dessin en section 31 de `bdv-bureau.css`, garde par
+`npm run banc:affaires` (38 controles, verifies par mutation). Ce qui ne doit pas se defaire, et
+chaque point vient du vigneron empathique, avant ou apres capture :
+
+- **« Etape suivante » n'ecrit rien pendant six secondes** : c'est ce delai qui rend « Annuler »
+  vrai sans remettre a zero les jours passes dans l'etape. L'ecriture part au prochain geste, ou
+  quand la page se cache. A la derniere etape il n'y a PAS de bouton : conclure est un geste a
+  part, avec confirmation.
+- **Une affaire n'est « endormie » que si elle n'a aucun rappel.** Un « rappelez en janvier » note
+  n'est pas un sommeil. Le delai ne s'affiche que quand il peut arriver, en jours restants.
+- **« A relancer : N » en tete**, et ces affaires ne sont pas repetees dans la liste.
+- **« C'est qui ? » propose le type d'affaire**, sans l'imposer.
+- **Les gestes de rangee sont des `.btn` dessines**, pas des `.btn--geste` nus : a 6 h au chai un
+  bouton qui ressemble a du texte ne se touche pas.
+- Toute requete nomme son bureau ; une mise a jour passe par PATCH et verifie qu'une ligne a ete
+  touchee : un PATCH filtre en silence rend une liste vide, et on le dit au lieu d'annoncer
+  « Enregistre ».
+
+### CE QUI RESTE OUVERT
+
+- **Le journal des echanges d'une piste.** `echanges` est vide par « Vider la base » : y ranger les
+  echanges d'une piste les ferait partir avec l'export. Soit une exclusion dans
+  `effacer_mes_donnees()` (et dans sa preuve chiffree), soit un journal a part. A trancher.
+- **La page rgpd** doit nommer cette categorie de donnees avant la premiere piste reelle.

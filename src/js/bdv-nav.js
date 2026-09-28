@@ -136,6 +136,12 @@
        dessiner. */
     equipe:   '<circle cx="5.5" cy="10" r="3"/><path d="M8.5 10h8"/>'
               + '<path d="M13 10v2.6M15.5 10v2"/>',
+    /* Mes affaires (28/09/2026) : la chemise a rabat, et la fleche qui en sort.
+       Une affaire est un dossier qui avance : ni une poignee de main, ni un
+       entonnoir, qui seraient du vocabulaire de commercial et pas un objet du
+       bureau. */
+    affaires: '<path d="M3 5.5h5l1.5 1.8H17v9.2H3z"/><path d="M7 12h5.5"/>'
+              + '<path d="M11 10l2 2-2 2"/>',
     // Mes reglages : un curseur de reglage, pas une roue crantee. On regle son bureau,
     // on ne le demonte pas.
     reglages: '<path d="M3.5 6.5h13M3.5 13.5h13"/><circle cx="12.5" cy="6.5" r="2.2"/>'
@@ -173,6 +179,14 @@
     { id: 'calendrier', ico: TRACES.calendrier, label: 'Le calendrier',
       href: '/mon-bureau/#calendrier',
       quoi: 'DRM, DAI, récolte, facturation' },
+    /* MES AFFAIRES, 28/09/2026 : ce qu'on fait pour OBTENIR un client, et plus ce
+       qu'il a achete. Juste apres le calendrier, devant les pieces de vente : on y
+       va pour agir, comme dans « Mes taches ». Pas `viti` : une piste n'a besoin
+       d'aucun export, et c'est une raison de plus de creer un compte sans Vitisoft.
+       Voir CLAUDE.md, « LES AFFAIRES ». */
+    { id: 'affaires',  ico: TRACES.affaires,   label: 'Mes affaires',
+      href: '/mon-bureau/#affaires',
+      quoi: 'Tes pistes et tes affaires, étape par étape' },
     /* « MON COMMERCE » DEPUIS LE 11/09/2026, et c'etait « Mes clients ». La piece ne dit
        plus seulement qui rappeler : elle porte maintenant le verdict « d'ou vient ta
        variation » et les quatre mouvements de clientele, qui etaient empiles dans « Mon
@@ -332,6 +346,15 @@
   function chargerEquipe() {
     if (!_equipe) _equipe = enchainer(RESSOURCES_EQUIPE);
     return _equipe;
+  }
+
+  /* MES AFFAIRES, chargees au premier clic comme l'equipe. Un seul fichier ; son
+     dessin vit dans bdv-bureau.css, section 31, liee par le gabarit. */
+  var RESSOURCES_AFFAIRES = [{ js: '/js/bdv-affaires.js' }];
+  var _affaires = null;
+  function chargerAffaires() {
+    if (!_affaires) _affaires = enchainer(RESSOURCES_AFFAIRES);
+    return _affaires;
   }
 
   function poserCss(href) {
@@ -572,6 +595,7 @@
   function seule(quelle) {
     var zones = { journee: 'bureauJournee', taches: 'bureauTaches',
                   calendrier: 'bureauCalendrier', equipe: 'bureauEquipe',
+                  affaires: 'bureauAffaires',
                   ventes: 'bureauVentes' };
     Object.keys(zones).forEach(function (k) {
       var n = document.getElementById(zones[k]);
@@ -641,6 +665,31 @@
         if (avc) {
           avc.textContent = 'Ton calendrier n\'a pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
           avc.hidden = false;
+        }
+      });
+      return;
+    }
+
+    /* MES AFFAIRES. Meme forme que l'equipe, et pour la meme raison : chargement au
+       premier clic, retour a « Ma journee » si le reseau lache. */
+    if (id === 'affaires') {
+      seule('affaires');
+      marquerActif('affaires');
+      if (opts.ecrire !== false && location.hash !== '#affaires') {
+        history.pushState(null, '', '#affaires');
+      }
+      attente('affaires', true);
+      chargerAffaires().then(function () {
+        attente('affaires', false);
+        if (window.BdvAffaires) BdvAffaires.ouvrir();
+      })['catch'](function () {
+        attente('affaires', false);
+        _affaires = null;
+        afficher('journee');
+        var ava = document.getElementById('bureauAvis');
+        if (ava) {
+          ava.textContent = 'Tes affaires n\'ont pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+          ava.hidden = false;
         }
       });
       return;

@@ -137,19 +137,19 @@ t('la coque de l\'atelier existe dans le HTML produit',
   !!B.nav && !!B.doc.getElementById('bureauAtelier'));
 
 const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
-t('dix pieces montees (Mes clients, 24/09/2026)', lignes.length === 10, lignes.length + ' trouvee(s)');
+t('onze pieces montees (Mes affaires, 28/09/2026)', lignes.length === 11, lignes.length + ' trouvee(s)');
 /* L'ORDRE EST UN CONTROLE ET PAS UN DETAIL : il porte l'hypothese H2 du document
    de refonte, le vigneron vient pour ne rien oublier. Si quelqu'un le change, il
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes clients | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mes affaires | Mon commerce | Mon cap | Mes clients | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
-t('les huit pieces internes pointent DANS le bureau',
+t('les neuf pieces internes pointent DANS le bureau (Mes affaires, 28/09/2026)',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
-    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 8);
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 9);
 /* LE CALENDRIER EST UNE ADRESSE DU BUREAU depuis le 08/09/2026, et ce controle est
    a l'envers de celui qu'il remplace. Il gardait l'inverse : que la piece pointe sur
    /outils/echeances/. C'etait le defaut signale par Ted, la seule piece de la barre
@@ -199,15 +199,15 @@ const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { ke
 frappe(B.doc.body);
 t('le crochet ouvrant ne replie plus rien',
   !atelier.classList.contains('bureau-atelier--replie'));
-t('les dix languettes restent toutes visibles',
-  lignes.filter(l => !l.hidden).length === 10, lignes.filter(l => !l.hidden).length);
+t('les onze languettes restent toutes visibles',
+  lignes.filter(l => !l.hidden).length === 11, lignes.filter(l => !l.hidden).length);
 
 /* ---- sans Vitisoft : regle metier, pas cosmetique ---- */
 B.window.BdvNav.sansVitisoft(true);
 t('sans Vitisoft, les cinq pieces de vente disparaissent',
   lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,annuaire,chercher,clients,produits');
-t('sans Vitisoft, la journee, les taches, le calendrier et les reglages RESTENT',
-  ['journee', 'taches', 'calendrier', 'reglages']
+t('sans Vitisoft, la journee, les taches, le calendrier, les affaires et les reglages RESTENT',
+  ['journee', 'taches', 'calendrier', 'affaires', 'reglages']
     .every(id => !lignes.find(l => l.dataset.piece === id).hidden));
 B.window.BdvNav.sansVitisoft(false);
 t('avec Vitisoft, tout revient', lignes.filter(l => l.hidden).length === 0);

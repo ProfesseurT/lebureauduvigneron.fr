@@ -12,6 +12,43 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 28/09/2026, les affaires : la branche qui s'intéresse à ce qu'on fait pour obtenir un client
+
+Demande de Ted : un moteur qui ne regarde plus ce que les clients ont acheté mais les actions commerciales
+menées pour les obtenir, avec des affaires qui avancent d'étape en étape. Trois passes du conseil (vigneron
+empathique, expert commercial viticole, architecte), puis la lecture de la doc de l'import de commandes Vitisoft.
+
+**Le parcours retenu** : l'affaire et le devis dans le bureau, la signature du client en ligne, la commande
+fabriquée par le bureau et importée dans Vitisoft, la facture dans Vitisoft, le retour par l'export avec la
+référence de l'affaire. Voir CLAUDE.md, « LES AFFAIRES ».
+
+**Ce qui a été écarté, et pourquoi** :
+- un rapprochement « ça ressemble » (nom, ville, téléphone) entre une piste et un client : le script
+  Solumatic porte la référence de l'affaire jusqu'à l'export, le lien devient exact ;
+- un « montant espéré » avec un pourcentage de chance : un chiffre inventé posé à côté de vrais chiffres ;
+- un service de signature du marché (104 € par mois pour l'API Youtrust) : hors de la règle du gratuit ;
+- le mot « canal » pour les mariages ou les séminaires : il désigne déjà le canal de vente tiré de Vitisoft.
+
+**Un temps d'arrêt utile** : Ted a demandé « on est d'accord que ça devient une usine à gaz ? ». Oui : chaque
+question avait ajouté une couche. L'import de commandes Vitisoft a remis tout à plat, parce que c'est le bureau
+qui fabrique la commande et donc la clé du retour.
+
+**Décisions de Ted** : étapes créées par le vigneron, plusieurs types d'affaires, affaires chez les pistes et
+chez les clients, devis dans le bureau, signature numérique par le client, un script Solumatic unique (référence
+en 44e colonne, catalogue et tarifs), prix HT droits d'accises inclus.
+
+**Arbitrages pris par défaut, sans réponse de Ted, à rouvrir s'il le veut** : tout le bureau écrit les affaires
+(modèle du lot 33), « Vider la base » ne touche pas aux affaires.
+
+**Fait** : le lot 34 (la base), testé sur un PostgreSQL jetable, le cahier des charges du script
+(`CAHIER_script-vitisoft.md`), et la pièce « Mes affaires » (`src/js/bdv-affaires.js`, section 31 de
+`bdv-bureau.css`, `npm run banc:affaires`). Le vigneron empathique a jugé la maquette avant, puis les captures
+après : « s'endort à 30 » ne disait pas 30 quoi, « C'est qui ? » et « Type d'affaire » posaient deux fois la même
+question, les affaires closes ne ressemblaient pas à un lien. Corrigé.
+
+**Pas encore fait** : les relances dans « Ma journée » et le courrier du matin, les affaires sur un client
+existant (depuis sa fiche), le journal des échanges d'une piste, la file hors ligne, la page RGPD.
+
 ## 26/09/2026, deux listes de plus : « Deuxième achat à jouer » et « Sa saison arrive »
 
 Proposées par l'agent commercial, validées par Ted, relues deux fois par les deux agents. Elles entrent dans

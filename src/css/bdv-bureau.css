@@ -4759,3 +4759,268 @@ body.bdv-coque .tache[data-famille="notes"]:has(:focus-visible){
       et aucune regle ne les en ecartait. Ils prennent le trait neutre. */
 .bdv-coque .filtfam[data-fam="clients"],
 .bdv-coque .filtfam.cal__fond{ border-left-color:var(--bdv-trait-fort); }
+
+/* ==========================================================================
+   31. « MES AFFAIRES », 28/09/2026
+   Une piece de rangees, sur les primitives de la section 8 : la zone, la chip,
+   le bouton, le champ. Rien de neuf dans les echelles fermees : ni taille, ni
+   rayon, ni ombre, ni epaisseur de filet. Le retard et l'affaire endormie se
+   disent EN MOTS dans la ligne (regle WCAG 1.4.1) ; le filet de gauche n'est
+   qu'un rappel pour l'oeil.
+   ========================================================================== */
+.bdv-coque .zone--affaires{
+  grid-column:span 12;
+  container-type:inline-size;
+  container-name:affaires;
+}
+.bdv-coque .aff-avis{
+  margin:0 0 var(--bdv-e-3);
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-1);
+  font-size:var(--bdv-f-3);
+}
+.bdv-coque .aff-avis--souci{
+  background:var(--bdv-alerte-lavis);
+  border-color:var(--bdv-alerte);
+}
+.bdv-coque .aff-vide,
+.bdv-coque .aff-aide{
+  color:var(--bdv-encre-3);
+  font-size:var(--bdv-f-2);
+  margin:var(--bdv-e-2) 0;
+}
+.bdv-coque .aff-tete{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--bdv-e-3);
+  margin-bottom:var(--bdv-e-4);
+}
+/* LES CHIPS PASSENT A LA LIGNE, elles ne defilent pas au doigt : demande du
+   vigneron empathique, 28/09/2026. */
+.bdv-coque .aff-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--bdv-e-2);
+}
+.bdv-coque .aff-bloc{ margin-bottom:var(--bdv-e-6); }
+.bdv-coque .aff-bloc__t{
+  font-family:inherit;
+  font-size:var(--bdv-f-4);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+  margin:0 0 var(--bdv-e-2);
+}
+.bdv-coque .aff-liste + .aff-bloc__t{ margin-top:var(--bdv-e-6); }
+.bdv-coque .aff-etape{
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-4);
+  margin:var(--bdv-e-3) 0 var(--bdv-e-1);
+}
+.bdv-coque .aff-liste{
+  list-style:none;
+  margin:0;
+  padding:0;
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .aff-ligne{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  gap:var(--bdv-e-2) var(--bdv-e-3);
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border-bottom:1px solid var(--bdv-trait);
+  background-image:linear-gradient(var(--bdv-trait-fort),var(--bdv-trait-fort));
+  background-size:3px 100%;
+  background-repeat:no-repeat;
+}
+.bdv-coque .aff-ligne--retard{ background-image:linear-gradient(var(--bdv-retard),var(--bdv-retard)); }
+.bdv-coque .aff-ligne--dort{ background-image:repeating-linear-gradient(var(--bdv-encre-4) 0 2px,transparent 2px 4px); }
+.bdv-coque .aff-ligne__corps{ flex:1 1 16rem; min-width:0; }
+.bdv-coque .aff-ligne__t{
+  margin:0;
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-ligne__qui{ font-weight:600; }
+.bdv-coque .aff-ligne__titre{ color:var(--bdv-encre-3); }
+.bdv-coque .aff-ligne__s{
+  margin:var(--bdv-e-1) 0 0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-ligne__s b{ color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .aff-ligne__gestes{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--bdv-e-2);
+}
+.bdv-coque .aff-ligne__fin{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-4);
+}
+/* LE FORMULAIRE ET L'EDITEUR DEPLIE : une colonne, des paires cote a cote
+   quand la ZONE a la place (regle du 07/09/2026 : on juge la zone, pas la
+   fenetre). */
+.bdv-coque .aff-form,
+.bdv-coque .aff-edit,
+.bdv-coque .aff-type,
+.bdv-coque .aff-depart{
+  display:grid;
+  gap:var(--bdv-e-3);
+  padding:var(--bdv-e-4);
+  margin-bottom:var(--bdv-e-4);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+}
+.bdv-coque .aff-edit{
+  flex:1 1 100%;
+  margin:var(--bdv-e-2) 0 0;
+}
+.bdv-coque .aff-form__t,
+.bdv-coque .aff-depart__t,
+.bdv-coque .aff-type__t{
+  margin:0;
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-champ{
+  display:grid;
+  gap:var(--bdv-e-1);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-champ input,
+.bdv-coque .aff-champ select,
+.bdv-coque .aff-champ textarea{ width:100%; }
+.bdv-coque .aff-duo{
+  display:grid;
+  gap:var(--bdv-e-3);
+}
+@container affaires (min-width: 34rem){
+  .bdv-coque .aff-duo{ grid-template-columns:1fr 1fr; }
+}
+.bdv-coque .aff-groupe{
+  border:0;
+  margin:0;
+  padding:0;
+}
+.bdv-coque .aff-groupe legend{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+  margin-bottom:var(--bdv-e-1);
+}
+.bdv-coque .aff-radios{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--bdv-e-2);
+}
+/* 44 px DE CIBLE sur le libelle entier : a 6 h au chai, on vise le mot, pas le
+   rond de 16 px. */
+.bdv-coque .aff-radio{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-1);
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-2);
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .aff-radio:has(input:checked){
+  border-color:var(--bdv-accent);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-doublon{
+  margin:0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-plus summary{
+  min-height:var(--bdv-cible);
+  display:flex;
+  align-items:center;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+  cursor:pointer;
+}
+.bdv-coque .aff-plus__corps{
+  display:grid;
+  gap:var(--bdv-e-3);
+  padding-top:var(--bdv-e-2);
+}
+.bdv-coque .aff-form__pied,
+.bdv-coque .aff-edit__liens,
+.bdv-coque .aff-conclure{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--bdv-e-2);
+}
+/* style.css pose une ombre dure sur le second lien d'une rangee de boutons :
+   la profondeur du bureau est un trait, pas une ombre. */
+.bdv-coque .aff-edit__liens .btn{ box-shadow:none; }
+.bdv-coque .aff-conclure{
+  padding-top:var(--bdv-e-3);
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .aff-conclure__confirme{
+  flex:1 1 100%;
+  display:grid;
+  gap:var(--bdv-e-2);
+}
+.bdv-coque .aff-depart__liste,
+.bdv-coque .aff-type__etapes{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:grid;
+  gap:var(--bdv-e-2);
+}
+.bdv-coque .aff-depart__li{
+  display:grid;
+  gap:var(--bdv-e-1);
+}
+.bdv-coque .aff-depart__l{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  min-height:var(--bdv-cible);
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-depart__nom{ font-weight:600; }
+.bdv-coque .aff-depart__etapes{
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+  padding-left:var(--bdv-e-6);
+}
+.bdv-coque .aff-type__etape{
+  display:flex;
+  gap:var(--bdv-e-2);
+  align-items:center;
+}
+.bdv-coque .aff-type__etape input{ flex:1 1 auto; min-width:0; }
+/* SUR TELEPHONE, les boutons de ligne remontent a 44 px (plancher tactile du
+   11/09/2026) et la ligne tient en deux lignes de texte plus les gestes. */
+body.bdv-poste.bdv-coque .aff-ligne .btn,
+body.bdv-poste.bdv-coque .aff-form .btn,
+body.bdv-poste.bdv-coque .aff-edit .btn,
+body.bdv-poste.bdv-coque .aff-type .btn,
+body.bdv-poste.bdv-coque .aff-depart .btn,
+body.bdv-poste.bdv-coque .aff-tete .btn,
+body.bdv-poste.bdv-coque .aff-avis .btn{ min-height:var(--bdv-cible); }
+body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }

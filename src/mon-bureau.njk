@@ -686,6 +686,20 @@ theme_bureau: true
       </section>
     </div>
 
+    {# ================= MES AFFAIRES, 28/09/2026 =================
+       Le corps est vide : src/js/bdv-affaires.js le remplit, et lui seul, comme
+       pour l'equipe. Voir CLAUDE.md, « LES AFFAIRES ». #}
+    <div class="bureau-plan" id="bureauAffaires" hidden>
+      <section class="zone zone--affaires" aria-labelledby="affTitre">
+        <div class="zone__tete">
+          <h2 id="affTitre">Mes affaires</h2>
+          <span class="zone__note">Ce que tu fais pour gagner un client</span>
+        </div>
+        <p class="aff-avis" id="affAvis" role="status" aria-live="polite" hidden></p>
+        <div class="aff-corps" id="affCorps"></div>
+      </section>
+    </div>
+
     <div id="bureauVentes" hidden>
       {% include "components/ecrans-vente.njk" %}
     </div>
