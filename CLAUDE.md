@@ -6932,3 +6932,21 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 - Le texte de confirmation du vidage dit maintenant « Tes pistes et tes affaires restent. »
   (valide par Ted, garde par `banc:vidage`). Verifie en base : `vider_la_base_du_bureau` ne
   nomme ni `affaires` ni `pistes`.
+
+### LOT 37 : LES AFFAIRES DANS LE CALENDRIER ET « MES TACHES » (28/09/2026)
+
+- **La famille `affaires` est ajoutee A L'EXECUTION par `bdv-affaires-jour.js`** dans
+  `BdvEcheances.familles`, et PAS ecrite dans `bdv-echeances.js` : ce fichier est joint a
+  `agenda-ics` avec une empreinte, et l'abonnement .ics n'emporte jamais les affaires
+  (FAMILLES_PUBLIQUES, decision du 15/09/2026). Une seule declaration, inscrite une fois.
+- **Lues, jamais stockees, jamais cochees**, comme les rappels clients : `datees()` rend des
+  copies, `reglesDesAffaires()` et `affairesDatees()` les emballent, le clic mene a « Mes
+  affaires » (`ouvrirPiece()`). Pas de punaise de tache : elles ont la leur. A date egale, le
+  client passe avant l'affaire. Garde : `npm run banc:calaffaires` (22 controles, mutation
+  verifiee).
+- **Signe : un fanion `\2691` a la place du combine**, pose en CSS (section 31 bis). Le mot
+  « affaire » est dans la ligne : premier mot dans « Mes taches », « Affaire a relancer » dans
+  la vue liste. Le signe est a 20 px (`--bdv-f-5`), comme la case, et prend 32 px sous 700 px
+  pour aligner les titres (demandes du vigneron empathique apres captures).
+- Apres chaque lecture ou geste, `BdvAffairesJour` repeint par `BdvTaches.rendre()`, qui
+  repose le panneau et previent le calendrier (`bdv:taches`).

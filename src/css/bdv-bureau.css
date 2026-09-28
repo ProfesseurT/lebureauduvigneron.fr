@@ -4758,6 +4758,7 @@ body.bdv-coque .tache[data-famille="notes"]:has(:focus-visible){
       clients » et « Lune et feries ». `.filtfam` pose `--bdv-fam-1` par defaut,
       et aucune regle ne les en ecartait. Ils prennent le trait neutre. */
 .bdv-coque .filtfam[data-fam="clients"],
+.bdv-coque .filtfam[data-fam="affaires"],
 .bdv-coque .filtfam.cal__fond{ border-left-color:var(--bdv-trait-fort); }
 
 /* ==========================================================================
@@ -5024,3 +5025,23 @@ body.bdv-poste.bdv-coque .aff-depart .btn,
 body.bdv-poste.bdv-coque .aff-tete .btn,
 body.bdv-poste.bdv-coque .aff-avis .btn{ min-height:var(--bdv-cible); }
 body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }
+
+/* -- 31 bis. LES AFFAIRES DANS LE CALENDRIER ET « MES TACHES », lot 37 (28/09/2026).
+      Elles prennent la matiere des rappels clients (pointille, pas de case, pas de
+      teinte : la bande du papier n'en loge pas une septieme) et se distinguent par
+      leur SIGNE, un fanion au lieu du combine. Il se lit en niveaux de gris, et la
+      ligne dit « affaire » en toutes lettres pour qui ne voit pas le signe. */
+.bdv-coque .bdv-cal .calo[data-affaire="oui"] .calo__b::before,
+.bdv-coque .bdv-cal .echeance[data-affaire="oui"] .echeance__titre::before{ content:"\2691\00A0"; }
+body.bdv-coque .tache[data-famille="affaires"] .tache__puce::before{ content:"\2691"; }
+/* LE SIGNE A LA TAILLE DE LA CASE, demande du vigneron empathique sur les captures
+   du lot 37 : a 7 px le fanion passait pour un point, et la colonne de gauche ne
+   disait plus « case, combine ou fanion » d'un coup d'oeil. 20 px, comme la case ;
+   l'encre du texte courant et plus le gris clair. Vaut aussi pour le combine. */
+body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2); }
+/* Sous 700 px la case gagne sa cible de 44 px (bdv-poste.css) et occupe 32 px de la
+   ligne : le signe prend la meme largeur, sinon le nom d'un client ou d'une affaire
+   commence douze pixels plus a gauche que le titre d'une tache. */
+@media (max-width:700px){
+  body.bdv-coque .tache__puce{ width:32px; text-align:left; }
+}

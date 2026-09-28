@@ -99,7 +99,7 @@
      le premier endroit a mentir. */
   function toutesLesRegles() {
     var base = window.BdvEcheances ? BdvEcheances.depuisLaPage('bdvEcheances') : [];
-    return base.concat(reglesDesTaches(), reglesDesRappels());
+    return base.concat(reglesDesTaches(), reglesDesRappels(), reglesDesAffaires());
   }
 
   /* ---------------- LES TACHES DATEES, EN REGLES SYNTHETIQUES ----------------
@@ -192,6 +192,29 @@
     });
   }
 
+  /* ---------------- LES AFFAIRES A RELANCER, LOT 37 (28/09/2026) ----------------
+     Meme chemin que les rappels clients : LUES dans la copie de BdvAffairesJour, jamais
+     recopiees, jamais cochees. La case porte le NOM (piste ou client), le motif du
+     rappel descend en detail. `clientId` n'est PAS pose : c'est `affaireId` qui dit
+     « ca s'ouvre ailleurs », et le clic mene a « Mes affaires », pas a une fiche. */
+  function reglesDesAffaires() {
+    if (!window.BdvAffairesJour || !BdvAffairesJour.datees) return [];
+    return BdvAffairesJour.datees().map(function (a) {
+      return {
+        cle: 'affaire:' + a.affaire_id,
+        affaireId: String(a.affaire_id),
+        titre: a.nom || a.titre || 'Affaire',
+        famille: 'affaires',
+        statut: 'affaire',
+        faitLe: null,
+        /* Le mot, pas seulement le fanion : la vue liste le lit sous le nom. */
+        qui: 'Affaire à relancer', detail: a.rappel_titre || null,
+        recurrence: { type: 'unique', date: a.rappel, duree: 1 },
+        source: null, sourceNom: null, article: null
+      };
+    });
+  }
+
   /* CE QUE LE VIGNERON A CHOISI, applique ici et a un seul endroit.
      UNE OBLIGATION NE S'ETEINT PAS ET NE SE DECALE PAS, et le garde-fou est
      double : l'ecran ne montre pas les gestes, et cette fonction les ignorerait
@@ -247,6 +270,10 @@
      client, c'est ce qu'il a dit, et ca s'ecrit dans sa fiche. Une case a cocher ici
      rendrait au calendrier le tri rapide qu'on vient justement de retirer du sous-main. */
   function estUnClient(o) { return !!(o.e && o.e.clientId); }
+  /* UNE AFFAIRE NE SE COCHE PAS NON PLUS, pour la meme raison : elle avance d'etape
+     dans sa piece. `lue` couvre les deux : ce qui se lit ici et se traite ailleurs. */
+  function estUneAffaire(o) { return !!(o.e && o.e.affaireId); }
+  function estLue(o) { return estUnClient(o) || estUneAffaire(o); }
   /* UNE TACHE SE COCHE PAR SON PROPRE IDENTIFIANT, pas par une occurrence
      d'echeance. Une tache est une ligne unique en base, elle ne revient pas tous
      les mois : lui fabriquer un identifiant d'occurrence creerait une deuxieme
@@ -405,7 +432,8 @@
     li.setAttribute('data-niveau', o.niveau);
     li.setAttribute('data-famille', o.famille);
     if (estUneTache(o)) li.setAttribute('data-tache', 'oui');
-    if (estUnClient(o)) li.setAttribute('data-client', 'oui');
+    if (estLue(o)) li.setAttribute('data-client', 'oui');
+    if (estUneAffaire(o)) li.setAttribute('data-affaire', 'oui');
     if (o.duree > 1) {
       li.setAttribute('data-long', 'oui');
       if (memeJour(jour, o.debut)) li.setAttribute('data-bord', 'debut');
@@ -440,6 +468,16 @@
       bc.setAttribute('aria-label', bc.title);
       bc.textContent = libelle;
       li.appendChild(bc);
+    } else if (estUneAffaire(o)) {
+      var ba = document.createElement('button');
+      ba.type = 'button';
+      ba.className = 'calo__b';
+      ba.setAttribute('data-cal-affaire', o.e.affaireId);
+      ba.title = 'Ouvrir mes affaires : ' + infobulle
+        + (o.e.detail ? ', ' + o.e.detail : '');
+      ba.setAttribute('aria-label', ba.title);
+      ba.textContent = libelle;
+      li.appendChild(ba);
     } else if (tachesLa()) {
       var b = document.createElement('button');
       b.type = 'button';
@@ -767,7 +805,8 @@
       art.setAttribute('data-niveau', o.niveau);
       art.setAttribute('data-famille', o.famille);
       if (estUneTache(o)) art.setAttribute('data-tache', 'oui');
-      if (estUnClient(o)) art.setAttribute('data-client', 'oui');
+      if (estLue(o)) art.setAttribute('data-client', 'oui');
+      if (estUneAffaire(o)) art.setAttribute('data-affaire', 'oui');
       if (faite(o)) art.setAttribute('data-fait', 'oui');
 
       var g = document.createElement('div');
@@ -792,7 +831,7 @@
          place d'une porte.
          UN RAPPEL CLIENT N'Y ENTRE PAS : il mene a sa fiche. Le refus est aussi dans la
          donnee, chez BdvTaches.modale(), et pas seulement dans ce test d'ecran. */
-      var ouvrable = !estUnClient(o) && !!window.BdvTaches
+      var ouvrable = !estLue(o) && !!window.BdvTaches
         && !!(estUneTache(o) ? BdvTaches.modale : BdvTaches.modaleOccurrence);
       var h = document.createElement('h3');
       h.className = 'echeance__titre';
@@ -839,6 +878,13 @@
         bc.setAttribute('data-cal-client', o.e.clientId);
         bc.textContent = 'Ouvrir sa fiche';
         liens.appendChild(bc);
+      } else if (estUneAffaire(o)) {
+        var ba2 = document.createElement('button');
+        ba2.type = 'button';
+        ba2.className = 'cal__coche';
+        ba2.setAttribute('data-cal-affaire', o.e.affaireId);
+        ba2.textContent = 'Ouvrir mes affaires';
+        liens.appendChild(ba2);
       } else if (tachesLa()) {
         var b = document.createElement('button');
         b.type = 'button';
@@ -1082,6 +1128,12 @@
          celui du sous-main, expose par le bureau. Le calendrier ne sait pas charger le
          moteur des ventes et n'a pas a l'apprendre : un deuxieme ouvreur, c'est un
          deuxieme endroit ou rattraper une panne de reseau. */
+      var ca = e.target.closest && e.target.closest('[data-cal-affaire]');
+      if (ca) {
+        e.preventDefault();
+        if (window.BdvAffairesJour && BdvAffairesJour.ouvrirPiece) BdvAffairesJour.ouvrirPiece();
+        return;
+      }
       var cl = e.target.closest && e.target.closest('[data-cal-client]');
       if (cl) {
         e.preventDefault();

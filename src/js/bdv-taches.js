@@ -409,13 +409,41 @@
     });
   }
 
+  /* ---------------- LES AFFAIRES A RELANCER, LUES ET JAMAIS STOCKEES ----------------
+     Lot 37, 28/09/2026. Meme regle que les rappels clients, pour la meme raison : la
+     verite est dans `affaires`, et c'est « Mes affaires » qui ecrit (bdv-affaires.js).
+     Ici on LIT la copie de BdvAffairesJour. Pas de case a cocher : faire avancer une
+     affaire, c'est dire a quelle etape elle en est, et ca se dit dans sa piece. */
+  function affairesDatees() {
+    if (!familleAffichee('affaires')) return [];
+    if (!window.BdvAffairesJour || !BdvAffairesJour.datees) return [];
+    var auj = minuit(new Date());
+    return BdvAffairesJour.datees().map(function (a) {
+      var d = minuit(new Date(a.rappel + 'T00:00:00'));
+      return {
+        tache_id: 'affaire:' + a.affaire_id, titre: a.nom || a.titre || 'Affaire',
+        source: 'affaire', ref: String(a.affaire_id), motif: a.rappel_titre || '',
+        cree_par: null,
+        echue_le: a.rappel, fin_le: null, fait_le: null,
+        jours: isNaN(d) ? null : Math.round((d - auj) / JOUR)
+      };
+    });
+  }
+  /* Ce qui se lit ailleurs et ne se coche pas ici : un client, une affaire. */
+  function estLue(t) { return t.source === 'client' || t.source === 'affaire'; }
+
   /* Sans date, une tache n'est ni en retard ni pressante : elle attend. Elle passe donc
      APRES tout ce qui porte une date, et pas avant, sinon une note ecrite en passant
      couvrirait une DRM qui tombe demain. */
   function rang(t) { return t.jours === null ? 99999 : t.jours; }
   function toutes() {
-    return obligations().concat(libres(), rappelsClients())
-      .sort(function (a, b) { return rang(a) - rang(b); });
+    /* A retard egal, un client qui attend passe avant une affaire a gagner : meme
+       regle que le courrier et « Ma journee ». */
+    return obligations().concat(libres(), rappelsClients(), affairesDatees())
+      .sort(function (a, b) {
+        return (rang(a) - rang(b))
+          || ((a.source === 'affaire' ? 1 : 0) - (b.source === 'affaire' ? 1 : 0));
+      });
   }
 
   /* ---------------- LES MOTS DU TEMPS ----------------
@@ -640,13 +668,14 @@
        dans le calendrier (section 30 de bdv-bureau.css). Une tache ecrite est une
        note, un rappel client n'a pas de couleur. */
     li.setAttribute('data-famille', t.source === 'client' ? 'clients'
+      : t.source === 'affaire' ? 'affaires'
       : (t.source === 'echeance' ? (t.famille || 'obligations') : 'notes'));
 
     /* UN CLIENT N'A PAS DE CASE, il a une pastille inerte. La rangee est une grille
        de trois colonnes : lui retirer sa premiere cellule decalerait tout le texte de
        la ligne, et l'oeil perdrait la colonne des titres. La pastille tient la place
        et porte la matiere de cette famille, le combine, comme dans le calendrier. */
-    if (t.source === 'client') {
+    if (estLue(t)) {
       var pu = document.createElement('span');
       pu.className = 'tache__puce';
       pu.setAttribute('aria-hidden', 'true');
@@ -667,7 +696,7 @@
        et un <li> avec un ecouteur de clic ne s'atteint pas au clavier. UN CLIENT GARDE
        SON <span> INERTE : il a deja son bouton « Ouvrir sa fiche », et sa fiche est le
        seul endroit ou l'on note ce qu'il a dit. */
-    var ouvrable = t.source !== 'client';
+    var ouvrable = !estLue(t);
     var corps = document.createElement(ouvrable ? 'button' : 'span');
     corps.className = 'tache__corps';
     if (ouvrable) {
@@ -683,12 +712,18 @@
     var bas = document.createElement('span');
     bas.className = 'tache__quand';
     var mots = [];
+    /* « affaire » EN PREMIER MOT : sur un telephone la ligne se coupe en deux, et le
+       mot qui dit ce que c'est ne doit pas tomber dans la seconde moitie. */
+    if (t.source === 'affaire') mots.push('affaire');
     if (t.echue_le) mots.push(quand(t), quandDate(t));
     if (t.source === 'echeance') mots.push('obligation');
     /* LE MOTIF DU RAPPEL SE LIT ICI. « Rappeler MARTIN » sans le pourquoi oblige a
        ouvrir la fiche pour savoir ce qu'on avait promis, et c'est exactement le
        voyage que ce motif existe pour eviter. */
     if (t.source === 'client') mots.push(t.motif || 'à rappeler');
+    /* « affaire » en toutes lettres : sans lui, une piste se lit comme un client qui
+       attend (le vigneron empathique, sur le courrier du 28/09/2026). */
+    if (t.source === 'affaire') mots.push(t.motif || 'à relancer');
     /* QUI L'A ECRITE, ET SEULEMENT QUAND CA SERT. `quiEcrit` se tait dans un bureau
        seul et sur mes propres lignes : le nom n'apparait que la ou il explique
        quelque chose, c'est-a-dire la ou je ne pourrai pas modifier la ligne. */
@@ -707,6 +742,13 @@
       ac.setAttribute('data-tache-client', t.ref);
       ac.textContent = 'Ouvrir sa fiche';
       li.appendChild(ac);
+    } else if (t.source === 'affaire') {
+      var af = document.createElement('button');
+      af.type = 'button';
+      af.className = 'tache__source';
+      af.setAttribute('data-tache-affaire', t.ref);
+      af.textContent = 'Ouvrir mes affaires';
+      li.appendChild(af);
     } else if (t.source === 'echeance') {
       // Le lien vers la piece qui porte les sources officielles : cocher une DRM sans
       // pouvoir relire ce qu'elle exige serait un piege. Depuis le 08/09/2026 c'est la
@@ -861,7 +903,8 @@
        prochain rappel », et il pose « Appele », qui ecrit vraiment. La regle du projet
        tient : un seul endroit repond a « qui dois-je appeler ». La PIECE « Mes taches »,
        elle, continue de les lister, avec « Ouvrir sa fiche » et sans case a cocher. */
-    var afaire = toutes().filter(function (x) { return !x.fait_le && x.source !== 'client'; });
+    /* Les affaires non plus : elles ont leur propre punaise (bdv-affaires-jour.js). */
+    var afaire = toutes().filter(function (x) { return !x.fait_le && !estLue(x); });
     var presse = afaire.filter(function (x) { return x.jours !== null && x.jours <= 7; });
     var tete = presse.slice(0, 3);
     var out = tete.map(function (t) {
@@ -1197,7 +1240,7 @@
          || depuisIdOccurrence(tid);
     // UN CLIENT SORT ICI, et ce n'est pas un oubli d'ecran : sa fiche est le seul
     // endroit ou l'on note ce qu'il a dit. Le refus est dans la donnee.
-    if (!t || t.source === 'client') return false;
+    if (!t || estLue(t)) return false;
     ouvrirModale({ mode: t.source === 'echeance' ? 'echeance' : 'libre',
                    tid: t.tache_id, titre: t.titre, ref: t.ref,
                    echue_le: t.echue_le || null, fin_le: t.fin_le || null,
@@ -1309,6 +1352,12 @@
     var mz = e.target.closest && e.target.closest('[data-tache-oter]');
     if (mz) { e.preventDefault(); gesteOter(); return; }
 
+    var ta = e.target.closest && e.target.closest('[data-tache-affaire]');
+    if (ta) {
+      e.preventDefault();
+      if (window.BdvAffairesJour && BdvAffairesJour.ouvrirPiece) BdvAffairesJour.ouvrirPiece();
+      return;
+    }
     var cl = e.target.closest && e.target.closest('[data-tache-client]');
     if (cl) {
       e.preventDefault();

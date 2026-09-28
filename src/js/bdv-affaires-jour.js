@@ -26,6 +26,28 @@
   var EN_COURS = null;   // null = pas encore lu ; [] = lu, rien en cours
   var NOMS = {};         // piste_id -> nom
 
+  /* LA FAMILLE « MES AFFAIRES », LOT 37 (28/09/2026). Elle rejoint la liste unique des
+     familles, celle que lisent le filtre du calendrier et celui de « Mes taches ».
+     ELLE EST AJOUTEE ICI, A L'EXECUTION, ET PAS ECRITE DANS bdv-echeances.js : ce
+     fichier-la est joint a la fonction `agenda-ics` avec une empreinte, et le toucher
+     forcerait un redeploiement pour une famille que l'abonnement .ics n'emportera
+     JAMAIS (decision de Ted du 15/09/2026, FAMILLES_PUBLIQUES). La liste reste une :
+     personne d'autre n'y ajoute, et on n'ajoute qu'une fois. */
+  var FAMILLE = { cle: 'affaires', label: 'Mes affaires', quoi: 'Ceux que je veux gagner' };
+  (function inscrire() {
+    var l = window.BdvEcheances && BdvEcheances.familles;
+    if (!l || !l.push) return;
+    for (var i = 0; i < l.length; i++) if (l[i].cle === FAMILLE.cle) return;
+    l.push(FAMILLE);
+  })();
+
+  /* Le reste du bureau se repeint par « Mes taches » : son `rendre()` repose le panneau
+     ET previent le calendrier par `bdv:taches`. Un seul chemin, celui qui existe. */
+  function repeindre() {
+    if (window.BdvTaches && BdvTaches.rendre) { try { BdvTaches.rendre(); return; } catch (e) {} }
+    if (window.bdvMajPanneau) { try { window.bdvMajPanneau(); } catch (e) {} }
+  }
+
   function bureau() { return window.BdvCompte && BdvCompte.monBureau && BdvCompte.monBureau(); }
   function jourIso(d) {
     d = d || new Date();
@@ -51,6 +73,7 @@
         (ps || []).forEach(function (p) { noms[p.piste_id] = p.nom; });
       }
       EN_COURS = aff; NOMS = noms;
+      repeindre();
       return true;
     } catch (e) {
       /* LE LOT 35 N'EST PEUT-ETRE PAS PASSE : `client_nom` n'existe pas encore.
@@ -61,6 +84,7 @@
             + '&issue=eq.en_cours&bureau=eq.' + encodeURIComponent(b));
           if (a2 == null) return false;
           EN_COURS = a2;
+          repeindre();
           return true;
         } catch (x) { return false; }
       }
@@ -74,7 +98,7 @@
     EN_COURS = (affaires || []).filter(function (a) { return a.issue === 'en_cours'; });
     NOMS = {};
     Object.keys(pistes || {}).forEach(function (k) { NOMS[k] = pistes[k].nom; });
-    if (window.bdvMajPanneau) { try { window.bdvMajPanneau(); } catch (e) {} }
+    repeindre();
   }
 
   function nomDe(a) {
@@ -114,5 +138,25 @@
     return EN_COURS.filter(function (a) { return a.client_id === String(cle); });
   }
 
-  window.BdvAffairesJour = { charger: charger, poser: poser, punaises: punaises, duClient: duClient };
+  /* LES AFFAIRES DATEES, POUR LE CALENDRIER ET « MES TACHES ». Copies, jamais les
+     objets eux-memes : ces deux pieces lisent, elles n'ecrivent pas. Une affaire sans
+     rappel n'en fait pas partie, pour la raison qui tient une tache sans date hors du
+     courrier : rien ne la fait tomber un jour plutot qu'un autre. */
+  function datees() {
+    if (!EN_COURS) return [];
+    return EN_COURS.filter(function (a) { return !!a.rappel; }).map(function (a) {
+      return { affaire_id: a.affaire_id, nom: nomDe(a), titre: a.titre || '',
+               rappel: a.rappel, rappel_titre: a.rappel_titre || '' };
+    });
+  }
+
+  /* Ouvrir « Mes affaires » depuis une autre piece. La piece elle-meme ne sait pas
+     encore deplier une affaire donnee : on l'ouvre, la relance est en tete. */
+  function ouvrirPiece() {
+    if (window.BdvNav && BdvNav.afficher) { try { BdvNav.afficher('affaires'); return; } catch (e) {} }
+    location.hash = '#affaires';
+  }
+
+  window.BdvAffairesJour = { charger: charger, poser: poser, punaises: punaises, duClient: duClient,
+                             datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE };
 })();

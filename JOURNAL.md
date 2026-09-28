@@ -62,6 +62,12 @@ identiques au dépôt avant envoi). Aperçu lancé par le déclencheur lui-même
 comptes lus du premier coup, `affaires_absentes` à faux. Aucune affaire en base ce jour-là : la première vraie ligne
 d'affaire dans un mail reste à voir.
 
+**Lot 37, le même jour** : les affaires datées entrent dans « Le calendrier » et « Mes tâches », avec leur filtre
+« Mes affaires ». Elles ne se cochent pas, elles mènent à leur pièce. Un fanion à la place du combiné, et le mot
+« affaire » dans la ligne. Le vigneron empathique a fait grossir le signe à la taille de la case et mettre
+« affaire » en premier mot. Aucun SQL, aucun redéploiement : `bdv-echeances.js` (joint à l'agenda .ics) n'est pas
+touché.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 
