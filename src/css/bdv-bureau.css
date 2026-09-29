@@ -5094,8 +5094,6 @@ body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }
   letter-spacing:var(--bdv-ls-etiq);
   color:var(--bdv-encre-2);
 }
-.bdv-coque .aff-cherche{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:var(--bdv-e-2); }
-.bdv-coque .aff-cherche .aff-champ{ flex:1 1 14rem; }
 .bdv-coque .aff-trouves{ list-style:none; margin:var(--bdv-e-1) 0 0; padding:0; }
 .bdv-coque .aff-trouve{
   display:flex; flex-wrap:wrap; align-items:baseline; gap:0 var(--bdv-e-2);
@@ -5147,6 +5145,91 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
 }
 .bdv-coque .amod__etat b{ color:var(--bdv-encre-1); }
 .bdv-coque .amod .aff-avis{ margin:0 0 var(--bdv-e-3); }
+/* LE PANNEAU EST SON PROPRE CONTENEUR : il vit hors de la piece, dans le <body>,
+   donc les requetes `@container affaires` ne l'atteignaient pas et chaque duo de
+   champs s'empilait, meme dans 700 px de tiroir (capture de Ted, 29/09/2026). */
+.bdv-coque .amod__corps{ container:affaires / inline-size; }
+
+/* -- LOT 41 (29/09/2026) : UNE BARRE POUR CHERCHER OU CREER LE CLIENT. */
+.bdv-coque .aff-form .aff-client,
+.bdv-coque .aff-form .aff-fiche,
+.bdv-coque .aff-form .aff-affaire{ display:grid; gap:var(--bdv-e-3); }
+.bdv-coque .aff-form .aff-affaire{
+  padding-top:var(--bdv-e-4);
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .aff-client .aff-aide{ margin:0; }
+.bdv-coque .aff-propositions{ display:grid; gap:var(--bdv-e-1); }
+.bdv-coque .aff-propositions:empty{ display:none; }
+.bdv-coque .aff-propositions__t{
+  margin:var(--bdv-e-2) 0 0;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-propositions .aff-aide{ margin:0; }
+.bdv-coque .aff-trouve--deja{ background:var(--bdv-surface-2); }
+.bdv-coque .aff-marque--deja{ border-color:var(--bdv-alerte); color:var(--bdv-encre-1); }
+.bdv-coque .aff-trouve--creer{
+  margin-top:var(--bdv-e-2);
+  border:1px dashed var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .aff-trouve--creer .aff-trouve__nom{ color:var(--bdv-accent); }
+.bdv-coque .aff-choisi{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  margin:0;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border:1px solid var(--bdv-trait);
+  border-left:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+}
+.bdv-coque .aff-choisi[hidden]{ display:none; }
+.bdv-coque .aff-choisi__l{
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-choisi__d{ font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .aff-lien{
+  margin-left:auto;
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-1);
+  border:0;
+  background:none;
+  font:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+  text-decoration:underline;
+  cursor:pointer;
+}
+.bdv-coque .aff-lien:hover{ color:var(--bdv-accent); }
+.bdv-coque .aff-fiche__tete{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2); }
+.bdv-coque .aff-fiche__tete .aff-marque{ margin:0; }
+.bdv-coque .aff-doublon{
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border:1px solid var(--bdv-alerte);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-alerte-lavis);
+}
+.bdv-coque .aff-doublon[hidden]{ display:none; }
+.bdv-coque .aff-doublon .btn{ display:flex; width:fit-content; margin-top:var(--bdv-e-2); }
+/* DANS LE PANNEAU, LES DUOS SE TIENNENT COTE A COTE DES 22 REM. Le seuil de la
+   piece (34 rem) est celui d'une liste ; dans un tiroir de 460 px a 1440, il
+   empilait code postal et ville. La mesure du 23/09/2026 (lot 2 du tiroir) dit
+   qu'un champ date tient en entier des 147 px : ici chaque champ en a pres de 200. */
+@container affaires (min-width: 22rem){
+  .bdv-coque .amod .aff-duo{ grid-template-columns:1fr 1fr; }
+}
+.bdv-coque .aff-doublon--bloque{ border-color:var(--bdv-retard); background:var(--bdv-retard-lavis); }
 
 /* LE BILAN : trois cases, le chiffre en grand et son mot en capitales, le meme
    contraste d'echelle que l'ardoise. « A relancer » prend l'encre du retard

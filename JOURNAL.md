@@ -101,6 +101,12 @@ et revoir le dessin. Une affaire ouverte et une nouvelle affaire s'ouvrent maint
 cliquable, étape en étiquette, rappel à part. Défaut du lot 39 trouvé et corrigé : le titre tapé d'une nouvelle
 affaire était perdu (identifiant en double avec le titre de la pièce). `banc:affaires` 101 contrôles, `verif` vert.
 
+**Lot 41, 29/09/2026.** Ted, sur capture : une seule barre pour chercher ou créer le client, et prévenir si le
+SIRET ou le nom existe déjà. Fait : la barre propose tes clients, puis l'annuaire officiel (les entreprises déjà
+connues y sont marquées), puis « Créer » à la main. Un SIRET déjà connu bloque la création, un nom déjà connu
+prévient ; les deux proposent de prendre le client existant. Les champs du panneau se rangent par deux.
+`banc:affaires` 114 contrôles, `verif` vert.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 

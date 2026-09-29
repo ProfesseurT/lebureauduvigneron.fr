@@ -7012,6 +7012,24 @@ chaque point vient du vigneron empathique, avant ou apres capture :
   de la piece dans `mon-bureau.njk`. `el('affTitre')` rendait le titre : le texte tape etait perdu. Renomme
   `affIntitule`, et le harnais de `banc:affaires` porte maintenant ce `h2`, sans quoi il ne pouvait pas le voir.
 
+### LOT 41 : UNE BARRE POUR CHERCHER OU CREER LE CLIENT (29/09/2026)
+
+- **Demande de Ted, sur capture** : « mixer la creation. Barre de recherche pour chercher un client existant ou
+  creer. Si on tape un SIRET deja existant dans la base ou un nom qui existe deja, on previent. » Les trois
+  boutons « Pour qui ? » du lot 39 sont SUPPRIMES : ils faisaient choisir la methode avant de chercher.
+- **La barre propose, dans cet ordre** : tes clients (exports + nouveaux clients, par nom, n°, ville, ou debut de
+  SIRET), puis l'annuaire officiel (`BdvDomaine.chercher()`, apres 450 ms de pause, numero de sequence contre
+  les reponses dans le desordre), puis « Creer ... » a la main. Une ligne d'annuaire deja connue par son SIRET
+  est marquee « Deja dans ta base » et la choisir PREND le client existant.
+- **UN SIRET DEJA CONNU BLOQUE, UN NOM DEJA CONNU PREVIENT** (arbitrage par defaut, a confirmer par Ted) : deux
+  etablissements peuvent porter le meme nom, deux fiches ne portent pas le meme SIRET. Les deux cas proposent
+  « Prendre ... » en un geste. Le SIRET se compare sans espaces ni points.
+- **Limite connue** : les clients Vitisoft n'ont pas de SIRET dans l'export lu par le bureau [Probable], donc
+  pour eux seul le NOM previent.
+- **Le panneau est son propre conteneur** (`.amod__corps{container:affaires / inline-size}`) : hors de la piece,
+  les `@container affaires` ne l'atteignaient pas et tous les duos s'empilaient. Dans le panneau les duos se
+  tiennent des 22 rem.
+
 ### OU EN EST LA BRANCHE, CLOTURE DU 28/09/2026
 
 - En production : lots 34 a 38 (affaires, journee, courrier v18, calendrier, taches, fiche du domaine).

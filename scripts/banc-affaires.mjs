@@ -95,7 +95,9 @@ titre('Nouvelle affaire');
 B.clic('[data-aff="nouvelle"]');
 t('le formulaire s\'ouvre', !!B.doc.getElementById('affForme'));
 t('« C\'est qui ? » et pas « type d\'etablissement »', /C’est qui/.test(B.doc.getElementById('affForme').textContent));
-B.doc.getElementById('affNom').value = 'Cave du Port';
+{ const q = B.doc.getElementById('affCherche'); q.value = 'Cave du Port'; q.dispatchEvent(new B.w.Event('input', { bubbles: true })); }
+B.clic('[data-aff="creerMain"]');
+t('« Creer » ouvre la fiche avec le nom tape dans la barre', B.doc.getElementById('affNom').value === 'Cave du Port');
 B.doc.getElementById('affForme').dispatchEvent(new B.w.Event('submit', { bubbles: true, cancelable: true }));
 await attendre(20);
 t('une piste et une affaire ecrites', B.base.pistes.length === 1 && B.base.affaires.length === 1);
@@ -253,7 +255,7 @@ titre('Lot 39 : la bascule Liste / Kanban');
   t('aucun onclick, aucun tiret cadratin dans le kanban', !/\sonclick=/.test(K.doc.body.innerHTML) && !/—/.test(K.doc.body.textContent));
 }
 
-titre('Lot 39 : le client de l\'affaire');
+titre('Lot 41 : UNE barre pour chercher ou creer le client');
 {
   const P = monter();
   P.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false },
@@ -261,20 +263,32 @@ titre('Lot 39 : le client de l\'affaire');
   P.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 },
                              { bureau: BUREAU, etape_id: 'c1', type_id: 'tc', nom: 'Idée notée', ordre: 1 });
   P.w.eval("var ROWS = [{ numClient: 'C7', client: 'Chez Paul', ville: 'Nantes', _dayNum: 3 }, { numClient: 'C8', client: 'Le Bistrot', ville: 'Angers', _dayNum: 4 }];");
+  let appelsAnnuaire = 0;
+  const ANNUAIRE = [{ nom: 'SARL CAVE DES QUAIS', siret: '12345678901234', adresse: '3 quai de la Fosse', code_postal: '44000', ville: 'Nantes', actif: true },
+                    { nom: 'LE BISTROT', siret: '55555555500011', adresse: '1 rue', code_postal: '49000', ville: 'Angers', actif: true }];
+  P.w.BdvDomaine = { chercher: async () => { appelsAnnuaire++; return { ok: true, liste: ANNUAIRE }; } };
   await P.w.BdvAffaires.ouvrir();
   P.clic('[data-aff="nouvelle"]');
   const f = () => P.doc.getElementById('affForme');
-  t('avec des clients connus, « Un client que j\'ai deja » est coche', P.doc.querySelector('input[name="affPourQui"][value="existant"]').checked);
-  t('la fiche d\'un nouveau client est cachee', P.doc.querySelector('[data-zone="nouveau"]').hidden);
-  t('un client existant se voit proposer aussi la famille « client »', [...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
-  P.doc.getElementById('affForme').dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  const taper = async (v) => { const q = P.doc.getElementById('affCherche'); q.value = v; q.dispatchEvent(new P.w.Event('input', { bubbles: true })); };
+  t('plus de boutons « Pour qui ? » : une seule barre', !P.doc.querySelector('input[name="affPourQui"]') && !!P.doc.getElementById('affCherche'));
+  t('la fiche d\'un nouveau client est cachee au depart', P.doc.querySelector('[data-zone="nouveau"]').hidden);
+  f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
   t('sans client choisi, rien n\'est cree, et on le dit', P.base.affaires.length === 0 && /Choisis le client/.test(avis(P)));
-  const q = P.doc.getElementById('affCherche');
-  q.value = 'paul'; q.dispatchEvent(new P.w.Event('input', { bubbles: true }));
-  t('la recherche trouve le client de l\'export', P.doc.querySelectorAll('#affTrouves [data-aff="prendreClient"]').length === 1 && /Chez Paul/.test(P.doc.getElementById('affTrouves').textContent));
-  P.clic('#affTrouves [data-aff="prendreClient"]');
-  t('le client choisi est nomme', /Client : Chez Paul/.test(P.doc.getElementById('affChoisi').textContent));
+  await taper('paul');
+  const box = () => P.doc.getElementById('affPropositions');
+  t('la barre propose d\'abord le client de l\'export', /Tes clients/.test(box().textContent) && /Chez Paul/.test(box().textContent));
+  t('et toujours « Creer ... » en dernier', /Créer « paul »/.test(box().textContent));
+  t('l\'annuaire attend une pause de frappe', appelsAnnuaire === 0 && /Recherche dans l’annuaire/.test(box().textContent));
+  await taper('paule'); await taper('paul');
+  await attendre(520);
+  t('une seule demande a l\'annuaire pour trois frappes rapides', appelsAnnuaire === 1, appelsAnnuaire);
+  t('les resultats de l\'annuaire suivent tes clients', /Dans l’annuaire officiel/.test(box().textContent) && /SARL CAVE DES QUAIS/.test(box().textContent));
+  t('une ligne de l\'annuaire au meme nom qu\'un client le dit', /porte déjà ce nom : « Le Bistrot »/.test(box().textContent));
+  t('un client existant se voit proposer aussi la famille « client »', [...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
+  P.clic('#affPropositions [data-aff="prendreClient"]');
+  t('le client choisi est nomme, et la barre s\'efface', /Chez Paul/.test(P.doc.getElementById('affChoisi').textContent) && P.doc.querySelector('[data-zone="cherche"]').hidden);
   P.doc.getElementById('affIntitule').value = 'Le rosé';
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
@@ -282,34 +296,47 @@ titre('Lot 39 : le client de l\'affaire');
   t('l\'affaire porte le client, sans piste creee', a1.client_id === 'C7' && a1.client_nom === 'Chez Paul' && !a1.piste_id && P.base.pistes.length === 0, JSON.stringify(a1));
   t('avec son titre', a1.titre === 'Le rosé');
 
-  // Par le SIRET
-  P.w.BdvDomaine = { chercher: async () => ({ ok: true, liste: [{ nom: 'SARL CAVE DES QUAIS', siret: '12345678901234', adresse: '3 quai de la Fosse',
-    code_postal: '44000', ville: 'Nantes', actif: true }] }) };
+  // Depuis l'annuaire
   P.clic('[data-aff="nouvelle"]');
-  const r = P.doc.querySelector('input[name="affPourQui"][value="siret"]');
-  r.checked = true; r.dispatchEvent(new P.w.Event('change', { bubbles: true }));
-  t('le choix SIRET montre la recherche et la fiche', !P.doc.querySelector('[data-zone="siret"]').hidden && !P.doc.querySelector('[data-zone="nouveau"]').hidden);
+  await taper('cave des quais'); await attendre(520);
+  P.clic('#affPropositions [data-aff="prendreSiret"][data-i="0"]');
+  t('une ligne de l\'annuaire ouvre la fiche remplie', !P.doc.querySelector('[data-zone="nouveau"]').hidden
+    && P.doc.getElementById('affNom').value === 'SARL CAVE DES QUAIS' && P.doc.getElementById('affSiret').value === '12345678901234' && P.doc.getElementById('affVille').value === 'Nantes');
   t('et ne propose plus la famille « client »', ![...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
-  P.doc.getElementById('affSiretQ').value = '12345678901234';
-  P.clic('[data-aff="chercherSiret"]');
-  await attendre(20);
-  P.clic('[data-aff="prendreSiret"]');
-  t('l\'annuaire remplit la fiche', P.doc.getElementById('affNom').value === 'SARL CAVE DES QUAIS' && P.doc.getElementById('affSiret').value === '12345678901234' && P.doc.getElementById('affVille').value === 'Nantes');
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
   const pi = P.base.pistes[0] || {};
   t('un nouveau client est cree avec son SIRET et son adresse', pi.siret === '12345678901234' && pi.adresse === '3 quai de la Fosse', JSON.stringify(pi));
   t('et l\'affaire porte sur lui', P.base.affaires.some(a => a.piste_id === pi.piste_id));
 
-  // A la main, SIRET faux
+  // Le meme SIRET une deuxieme fois
   P.clic('[data-aff="nouvelle"]');
-  const m = P.doc.querySelector('input[name="affPourQui"][value="manuel"]');
-  m.checked = true; m.dispatchEvent(new P.w.Event('change', { bubbles: true }));
-  P.doc.getElementById('affNom').value = 'Chez Marcel';
-  P.doc.getElementById('affSiret').value = '1234';
+  await taper('12345678901234'); await attendre(520);
+  t('taper un SIRET deja connu retrouve le client dans « Tes clients »', /SARL CAVE DES QUAIS/.test(P.doc.querySelector('#affPropositions .aff-trouves').textContent));
+  t('et l\'annuaire le marque « Deja dans ta base »', /Déjà dans ta base/.test(box().textContent));
+  P.clic('#affPropositions [data-aff="prendreSiret"][data-i="0"]');
+  t('le choisir dans l\'annuaire PREND le client existant, sans fiche nouvelle',
+    /SARL CAVE DES QUAIS/.test(P.doc.getElementById('affChoisi').textContent) && P.doc.querySelector('[data-zone="nouveau"]').hidden && /déjà dans ta base/.test(avis(P)));
+
+  // A la main : nom deja connu, SIRET deja connu, SIRET faux
+  P.clic('[data-aff="lacherClient"]');
+  await taper('Chez Paul');
+  P.clic('[data-aff="creerMain"]');
+  t('« Creer ... » ouvre la fiche avec le nom tape', P.doc.getElementById('affNom').value === 'Chez Paul');
+  t('un nom deja connu previent, et propose de le prendre', /s’appelle déjà « Chez Paul »/.test(P.doc.getElementById('affDoublon').textContent)
+    && !!P.doc.querySelector('#affDoublon [data-aff="prendreClient"]'));
+  const nomI = P.doc.getElementById('affNom'); nomI.value = 'Chez Marcel'; nomI.dispatchEvent(new P.w.Event('input', { bubbles: true }));
+  t('le nom change : l\'avertissement part', P.doc.getElementById('affDoublon').hidden);
+  const sir = P.doc.getElementById('affSiret'); sir.value = '123 456 789 01234'; sir.dispatchEvent(new P.w.Event('input', { bubbles: true }));
+  t('un SIRET deja connu previent, meme tape avec des espaces', /Ce SIRET est déjà celui de « SARL CAVE DES QUAIS »/.test(P.doc.getElementById('affDoublon').textContent));
+  const avant = P.base.pistes.length;
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
-  t('un SIRET qui n\'a pas 14 chiffres est refuse', P.base.pistes.length === 1 && /14 chiffres/.test(avis(P)));
+  t('et la creation est refusee : une entreprise, une fiche', P.base.pistes.length === avant && /déjà celui de/.test(avis(P)));
+  sir.value = '1234';
+  f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('un SIRET qui n\'a pas 14 chiffres est refuse', P.base.pistes.length === avant && /14 chiffres/.test(avis(P)));
 
   // Le lot 39 pas passe : la base refuse la colonne siret
   const vraie = P.w.BdvCompte.api;
@@ -318,7 +345,7 @@ titre('Lot 39 : le client de l\'affaire');
       throw { detail: '{"message":"Could not find the \'siret\' column of \'pistes\' in the schema cache"}' };
     return vraie(chemin, o);
   };
-  P.doc.getElementById('affSiret').value = '98765432109876';
+  sir.value = '98765432109876';
   f().dispatchEvent(new P.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
   t('sans le SQL du lot 39, le client se cree quand meme, et on le dit',
@@ -368,12 +395,11 @@ titre('Lot 40 : le panneau sur le cote, comme une tache ou un client');
   Q.clic('[data-aff="nouvelle"]');
   t('« Nouvelle affaire » s\'ouvre dans le panneau', !panneau().hidden && !!panneau().querySelector('#affForme') && !Q.doc.querySelector('#affCorps #affForme'));
   t('le formulaire neuf recoit le focus, meme en tiroir', panneau().contains(Q.doc.activeElement));
-  const man = Q.doc.querySelector('input[name="affPourQui"][value="manuel"]');
-  man.checked = true; man.dispatchEvent(new Q.w.Event('change', { bubbles: true }));
-  const nom = Q.doc.getElementById('affNom'); nom.value = 'Chez Lulu';
+  const cq0 = Q.doc.getElementById('affCherche'); cq0.value = 'Chez Lulu'; cq0.dispatchEvent(new Q.w.Event('input', { bubbles: true }));
+  Q.clic('[data-aff="creerMain"]');
   Q.clic('[data-aff="filtre"][data-type="t1"]');
   t('cliquer un filtre n\'efface pas ce qu\'on tape', Q.doc.getElementById('affNom') && Q.doc.getElementById('affNom').value === 'Chez Lulu');
-  t('ni le choix « Pour qui ? »', Q.doc.querySelector('input[name="affPourQui"][value="manuel"]').checked && !Q.doc.querySelector('[data-zone="nouveau"]').hidden);
+  t('ni la fiche ouverte', !Q.doc.querySelector('[data-zone="nouveau"]').hidden);
   Q.doc.getElementById('affNom').value = '';
   Q.doc.getElementById('affForme').dispatchEvent(new Q.w.Event('submit', { bubbles: true, cancelable: true }));
   await attendre(20);
