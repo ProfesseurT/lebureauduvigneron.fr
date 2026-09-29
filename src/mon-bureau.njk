@@ -686,13 +686,30 @@ theme_bureau: true
       </section>
     </div>
 
-    {# ================= MES AFFAIRES, 28/09/2026 =================
+    {# ================= « MON COMMERCE », SES DEUX ONGLETS, lot 43 (29/09/2026) =================
+       Decision de Ted : « Mes affaires » et « Mon commerce » font une piece. La barre est
+       HORS des deux conteneurs, puisque l'un ou l'autre est masque : « A gagner » est
+       #bureauAffaires juste dessous, « Clients a suivre » est #p-clients dans la coque des
+       ventes. bdv-nav.js la montre, la cache (sans Vitisoft) et pose les roles de panneau
+       (poserOnglets). Dessin : section 33 de bdv-bureau.css. #}
+    <div class="com-onglets" id="bureauComOnglets" role="tablist" aria-label="Mon commerce" hidden>
+      <button type="button" role="tab" class="com-onglet" id="comOngletGagner" data-onglet="gagner"
+              aria-controls="bureauAffaires" aria-selected="true">À gagner</button>
+      <button type="button" role="tab" class="com-onglet" id="comOngletSuivre" data-onglet="suivre"
+              aria-controls="p-clients" aria-selected="false" tabindex="-1">Clients à suivre</button>
+    </div>
+
+    {# ================= MES AFFAIRES, 28/09/2026, onglet « A gagner » depuis le 29/09 =================
        Le corps est vide : src/js/bdv-affaires.js le remplit, et lui seul, comme
-       pour l'equipe. Voir CLAUDE.md, « LES AFFAIRES ». #}
+       pour l'equipe. Voir CLAUDE.md, « LES AFFAIRES ».
+       LE TITRE EST « A GAGNER » ET IL EST MASQUE A L'OEIL (lot 43) : l'en-tete dit deja
+       « Mon commerce » et l'onglet dit « A gagner ». Meme regle que `titre-piece` des
+       ecrans de vente (section 29.10) : le h2 reste pour le plan des titres, et l'id
+       `affTitre` reste, la section s'y nomme et le harnais de banc:affaires le porte. #}
     <div class="bureau-plan" id="bureauAffaires" hidden>
       <section class="zone zone--affaires" aria-labelledby="affTitre">
         <div class="zone__tete">
-          <h2 id="affTitre">Mes affaires</h2>
+          <h2 id="affTitre" class="hors-ecran">À gagner</h2>
           <span class="zone__note">Ce que tu fais pour gagner un client</span>
         </div>
         <p class="aff-avis" id="affAvis" role="status" aria-live="polite" hidden></p>

@@ -150,7 +150,9 @@
     });
   }
 
-  /* Ouvrir « Mes affaires » depuis une autre piece. La piece elle-meme ne sait pas
+  /* Ouvrir « Mes affaires » depuis une autre piece : depuis le 29/09/2026 (lot 43),
+     c'est l'onglet « A gagner » de « Mon commerce ». BdvNav.afficher('affaires') le
+     traduit, et l'adresse #affaires aussi. La piece elle-meme ne sait pas
      encore deplier une affaire donnee : on l'ouvre, la relance est en tete. */
   function ouvrirPiece() {
     if (window.BdvNav && BdvNav.afficher) { try { BdvNav.afficher('affaires'); return; } catch (e) {} }

@@ -308,7 +308,11 @@ function navTo(id){
      maintenant, et il n'est pas dans ce fichier. navTo est appele aussi de l'interieur des
      ecrans (un filtre, un lien de fiche) : sans cette ligne, la barre resterait sur la
      piece precedente alors que l'ecran a change. */
-  if(window.BdvNav && BdvNav.marquerActif) BdvNav.marquerActif(id);
+  /* Coque des ventes cachee (le vigneron est parti sur « A gagner » pendant que le
+     moteur arrivait, lot 43) : on prepare l'ecran, mais l'adresse, la barre et le
+     defilement appartiennent a la piece affichee. Voir ventesEnVue() de bdv-nav.js. */
+  const enVue = !(window.BdvNav && BdvNav.ventesEnVue) || BdvNav.ventesEnVue();
+  if(enVue && window.BdvNav && BdvNav.marquerActif) BdvNav.marquerActif(id);
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
@@ -321,12 +325,12 @@ function navTo(id){
      sans lui, le premier clic sur « Mes cuvees » figerait la page une seconde et demie
      sans un mot, ce qui est exactement le reproche de Ted du 17/09. */
   ECRAN_COURANT = id;
-  majBoutonMaj(id);
-  majPeriodeTete(id);
+  if(enVue){ majBoutonMaj(id); majPeriodeTete(id); }
   if(PEINTRES[id] && !ECRANS_PEINTS.has(id)){
     if(lignesPretes()) runBusy('Analyse de tes ventes…', function(){ ecranPeindre(id); });
     else ecranPeindreQuandPret(id);
   }
+  if(!enVue) return;
   window.scrollTo(0,0);
   // L'ecran s'ecrit dans l'adresse. Trois consequences voulues : le bureau peut pointer
   // droit sur « Mes clients », le bouton Retour du navigateur circule dans l'outil, et un
@@ -2992,7 +2996,9 @@ document.addEventListener('visibilitychange',function(){
 /* « NOUVELLE AFFAIRE » DEPUIS LA FICHE, 28/09/2026 (lot 35). La piece « Mes affaires »
    n'est peut-etre pas chargee, et la fiche peut vivre dans un autre onglet : on laisse
    le client dans sessionStorage et la piece le reprend a l'ouverture. On ne recopie
-   rien d'autre que le numero et le nom : Vitisoft fait foi pour le reste. */
+   rien d'autre que le numero et le nom : Vitisoft fait foi pour le reste.
+   Depuis le 29/09/2026 (lot 43), « Mes affaires » est l'onglet « A gagner » de « Mon
+   commerce » : 'affaires' et #affaires y menent, bdv-nav.js les traduit. */
 function ficheNouvelleAffaire(b){
   try{sessionStorage.setItem('bdv_affaire_client',JSON.stringify({id:b.getAttribute('data-id'),nom:b.getAttribute('data-nom')}));}catch(e){}
   if(pageFiche()){location.href='/mon-bureau/#affaires';return;}

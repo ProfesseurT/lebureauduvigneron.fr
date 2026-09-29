@@ -136,12 +136,9 @@
        dessiner. */
     equipe:   '<circle cx="5.5" cy="10" r="3"/><path d="M8.5 10h8"/>'
               + '<path d="M13 10v2.6M15.5 10v2"/>',
-    /* Mes affaires (28/09/2026) : la chemise a rabat, et la fleche qui en sort.
-       Une affaire est un dossier qui avance : ni une poignee de main, ni un
-       entonnoir, qui seraient du vocabulaire de commercial et pas un objet du
-       bureau. */
-    affaires: '<path d="M3 5.5h5l1.5 1.8H17v9.2H3z"/><path d="M7 12h5.5"/>'
-              + '<path d="M11 10l2 2-2 2"/>',
+    /* Le trace de « Mes affaires » (la chemise a rabat) est parti le 29/09/2026 avec la
+       piece : les affaires sont l'onglet « A gagner » de « Mon commerce », qui garde ses
+       deux tetes. Lot 43, voir CLAUDE.md. */
     // Mes reglages : un curseur de reglage, pas une roue crantee. On regle son bureau,
     // on ne le demonte pas.
     reglages: '<path d="M3.5 6.5h13M3.5 13.5h13"/><circle cx="12.5" cy="6.5" r="2.2"/>'
@@ -179,14 +176,6 @@
     { id: 'calendrier', ico: TRACES.calendrier, label: 'Le calendrier',
       href: '/mon-bureau/#calendrier',
       quoi: 'DRM, DAI, récolte, facturation' },
-    /* MES AFFAIRES, 28/09/2026 : ce qu'on fait pour OBTENIR un client, et plus ce
-       qu'il a achete. Juste apres le calendrier, devant les pieces de vente : on y
-       va pour agir, comme dans « Mes taches ». Pas `viti` : une piste n'a besoin
-       d'aucun export, et c'est une raison de plus de creer un compte sans Vitisoft.
-       Voir CLAUDE.md, « LES AFFAIRES ». */
-    { id: 'affaires',  ico: TRACES.affaires,   label: 'Mes affaires',
-      href: '/mon-bureau/#affaires',
-      quoi: 'Tes pistes et tes affaires, étape par étape' },
     /* « MON COMMERCE » DEPUIS LE 11/09/2026, et c'etait « Mes clients ». La piece ne dit
        plus seulement qui rappeler : elle porte maintenant le verdict « d'ou vient ta
        variation » et les quatre mouvements de clientele, qui etaient empiles dans « Mon
@@ -195,10 +184,21 @@
        L'IDENTIFIANT NE CHANGE PAS, et c'est une precaution, pas un oubli : `clients` tient
        l'adresse /mon-bureau/#clients, donc les signets du vigneron et les liens qu'il a
        copies, et c'est lui que `npm run banc` compare avec NAV dans bdv-ecrans.js.
-       Renommer le libelle ne coute rien ; renommer l'identifiant casserait les deux. */
-    { id: 'clients', viti: true,   ico: TRACES.clients, label: 'Mon commerce',
+       Renommer le libelle ne coute rien ; renommer l'identifiant casserait les deux.
+
+       ET ELLE A ABSORBE « MES AFFAIRES » LE 29/09/2026, decision de Ted (lot 43). Deux
+       onglets : « A gagner » (les affaires, #bureauAffaires, adresse #affaires) puis
+       « Clients a suivre » (l'ancien Mon commerce, #p-clients, adresse #clients). Elle
+       prend donc la place de « Mes affaires », juste apres le calendrier : on y va pour
+       agir, comme dans « Mes taches ».
+
+       PLUS `viti` : sans Vitisoft, la piece reste et montre « A gagner » seul. Laisser
+       `viti` cacherait les affaires a ceux qui n'ont pas d'export, alors qu'une piste
+       n'en demande aucun. `ventes` dit a la place que son second onglet est un ecran de
+       bdv-ecrans.js : c'est ce que `npm run banc` compare avec NAV. */
+    { id: 'clients', ventes: true, ico: TRACES.clients, label: 'Mon commerce',
       href: '/mon-bureau/#clients',
-      quoi: 'Qui rappeler, qui décroche, d\'où vient ton chiffre' },
+      quoi: 'Tes affaires à gagner, tes clients à suivre' },
     { id: 'annee', viti: true,     ico: TRACES.annee, label: 'Mon cap',
       href: '/mon-bureau/#annee',
       quoi: 'Où tu en es, où tu finis l\'année' },
@@ -250,6 +250,105 @@
       if (!p.viti) return;
       var n = document.querySelector('.bureau-nav__ligne[data-piece="' + p.id + '"]');
       if (n) n.hidden = !!oui;
+    });
+    /* « MON COMMERCE » RESTE, SANS SON SECOND ONGLET, 29/09/2026 (lot 43). « Clients a
+       suivre » lit l'export : sans Vitisoft la barre d'onglets part, et si l'on s'y
+       trouvait deja (un favori sur #clients ouvert avant l'arrivee du profil), on
+       retombe sur « A gagner » plutot que de laisser un ecran de vente sans onglet
+       pour en sortir. */
+    SANS_VITI = !!oui;
+    if (SANS_VITI && ONGLET_COURANT === 'suivre') afficher('clients', { onglet: 'gagner' });
+    else poserOnglets(ONGLET_COURANT);
+  }
+
+  /* =========================================================================
+     « MON COMMERCE » EN DEUX ONGLETS, LOT 43 (29/09/2026)
+     -------------------------------------------------------------------------
+     Decision de Ted : « Mes affaires » et « Mon commerce » font UNE piece, deux
+     onglets. « A gagner » est #bureauAffaires, charge a la demande par
+     bdv-affaires.js SANS le moteur des ventes. « Clients a suivre » est #p-clients,
+     dans la coque des ecrans de vente, et tire le moteur au premier affichage comme
+     avant. Les deux conteneurs ne bougent pas : seule la barre d'onglets est neuve,
+     et elle vit HORS des deux (#bureauComOnglets), puisque l'un ou l'autre est masque.
+
+     L'ADRESSE DIT L'ONGLET : #affaires ouvre « A gagner », #clients ouvre « Clients a
+     suivre », #client=<id> la fiche. Seul le clic sur la BARRE reprend le dernier
+     onglet ouvert : un signet, un lien ou un renvoi nomme ce qu'il veut voir.
+
+     LE DERNIER ONGLET se garde sous `bdv_com_onglet`, prefixe `bdv_` : un confort
+     de ce poste, qui part a la deconnexion avec le reste. Stockage refuse (navigation
+     privee stricte, apercu) : on ne retient rien et on ouvre « A gagner ».
+  ========================================================================= */
+  var CLE_ONGLET = 'bdv_com_onglet';
+  var SANS_VITI = false;
+  var ONGLET_COURANT = null;   // l'onglet affiche en ce moment, null hors de la piece
+  function ongletRetenu() {
+    try { return localStorage.getItem(CLE_ONGLET) === 'suivre' ? 'suivre' : 'gagner'; }
+    catch (e) { return 'gagner'; }
+  }
+  function retenirOnglet(o) {
+    try { localStorage.setItem(CLE_ONGLET, o); } catch (e) { /* rien a retenir, rien de casse */ }
+  }
+
+  /* LA BARRE D'ONGLETS ET LES DEUX PANNEAUX, dans un seul endroit. `onglet` vaut
+     'gagner', 'suivre' ou null (hors de la piece). Les roles de panneau se posent et
+     se retirent avec la barre : un `tabpanel` sans onglet pour le nommer serait un
+     mensonge fait a la synthese vocale, et c'est le cas sans Vitisoft. */
+  function poserOnglets(onglet) {
+    ONGLET_COURANT = onglet || null;
+    var barre = document.getElementById('bureauComOnglets');
+    if (!barre) return;
+    var montrer = !!onglet && !SANS_VITI;
+    barre.hidden = !montrer;
+    var tabs = barre.querySelectorAll('[role="tab"]');
+    for (var i = 0; i < tabs.length; i++) {
+      var on = tabs[i].getAttribute('data-onglet') === onglet;
+      tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');
+      tabs[i].tabIndex = on ? 0 : -1;
+      var pan = document.getElementById(tabs[i].getAttribute('aria-controls'));
+      if (!pan) continue;
+      if (montrer) { pan.setAttribute('role', 'tabpanel'); pan.setAttribute('aria-labelledby', tabs[i].id); }
+      else { pan.removeAttribute('role'); pan.removeAttribute('aria-labelledby'); }
+    }
+  }
+
+  /* LA COURSE DU MOTEUR, verificateur du lot 43 (29/09/2026). Le vigneron clique
+     « Clients a suivre », le moteur des ventes met six secondes a venir, il revient
+     sur « A gagner » entre-temps. Le moteur finit, `navTo('clients')` passe quand
+     meme : l'ecran reste cache (bien), mais il reecrivait #clients dans l'adresse et
+     remontait la page. Un rechargement, un favori ou le bouton Retour ouvraient alors
+     l'onglet que le vigneron venait de quitter. navTo() demande donc ici si la coque
+     des ventes est a l'ecran avant de toucher a l'adresse, a la barre et au defilement.
+     Hors du bureau (la page autonome) il n'y a pas de coque : on repond oui. */
+  function ventesEnVue() {
+    var zv = document.getElementById('bureauVentes');
+    return !zv || !zv.hidden;
+  }
+
+  /* Clic, Entree, Espace : le bouton fait son travail. Fleches, Debut et Fin
+     deplacent le choix ET l'activent, comme les onglets de la fiche client
+     (choisirOnglet() de bdv-ecrans.js) : un seul comportement d'onglets au bureau. */
+  function brancherOnglets() {
+    var barre = document.getElementById('bureauComOnglets');
+    if (!barre || barre.getAttribute('data-branche')) return;
+    barre.setAttribute('data-branche', '1');
+    barre.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[role="tab"]');
+      if (b) afficher('clients', { onglet: b.getAttribute('data-onglet') });
+    });
+    barre.addEventListener('keydown', function (e) {
+      var b = e.target.closest && e.target.closest('[role="tab"]');
+      if (!b) return;
+      var tabs = [].slice.call(barre.querySelectorAll('[role="tab"]'));
+      var i = tabs.indexOf(b), j = -1;
+      if (e.key === 'ArrowRight') j = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') j = 0;
+      else if (e.key === 'End') j = tabs.length - 1;
+      if (j < 0) return;
+      e.preventDefault();
+      afficher('clients', { onglet: tabs[j].getAttribute('data-onglet') });
+      tabs[j].focus();
     });
   }
 
@@ -494,13 +593,28 @@
        qui montent la barre sans l'en-tete. */
     var tete = document.getElementById('bureauPiece');
     if (tete && nomActif) tete.textContent = nomActif;
+    /* navTo() de bdv-ecrans.js change d'ecran sans passer par afficher() (un filtre,
+       un lien de fiche) et appelle cette fonction : c'est donc ici que la barre
+       d'onglets de « Mon commerce » suit un ecran de vente ouvert de l'interieur. */
+    /* Les reglages s'ouvrent PAR-DESSUS la piece : la barre d'onglets reste. */
+    if (id !== 'clients' && id !== 'reglages') { if (ONGLET_COURANT) poserOnglets(null); }
+    else if (!ONGLET_COURANT || ONGLET_COURANT === 'suivre') {
+      var zv = document.getElementById('bureauVentes');
+      if (zv && !zv.hidden) poserOnglets('suivre');
+    }
     /* ------- LE BOUTON DE MISE A JOUR SUIT LA PIECE, 24/09/2026 -------
        Il vit dans l'en-tete, qui est commun aux neuf pieces. `bdv-ecrans.js` decide
        s'il sert (`besoinMaj()`) ; tant que ce module n'est pas charge, aucune piece de
        vente n'a encore ete ouverte, donc il n'y a rien a mettre a jour et on le cache.
        Sans cette ligne, quitter « Mon cap » pour « Ma journee » laisserait clignoter un
        bouton qui ne concerne plus l'ecran. */
-    if (window.bdvMajBoutonMaj) window.bdvMajBoutonMaj(id);
+    /* « A GAGNER » N'EST PAS UN ECRAN DE VENTE (verificateur du lot 43, 29/09/2026) :
+       il porte l'id `clients` dans la barre, mais « Mettre a jour » y completerait
+       l'onglet cache. Sur capture, le bouton s'allumait sur « A gagner » des que le
+       moteur avait servi une fois, et chez un vigneron sans Vitisoft. On lui nomme
+       donc l'onglet reel ; 'affaires' n'est pas un ecran a completer, il se cache. */
+    var ecranMaj = (id === 'clients' && ONGLET_COURANT === 'gagner') ? 'affaires' : id;
+    if (window.bdvMajBoutonMaj) window.bdvMajBoutonMaj(ecranMaj);
     else { var maj = document.getElementById('bureauMaj'); if (maj) maj.hidden = true; }
     /* Meme raisonnement pour le selecteur de periode, qui ne sert qu'a « Mon cap ». */
     if (window.bdvMajPeriodeTete) window.bdvMajPeriodeTete(id);
@@ -601,10 +715,20 @@
       var n = document.getElementById(zones[k]);
       if (n) n.hidden = (k !== quelle);
     });
+    /* La barre d'onglets de « Mon commerce » se retire a chaque bascule ; les deux
+       branches de la piece la reposent juste apres. Nommee ici pour la meme raison
+       que les zones : sinon elle resterait un jour au-dessus de « Mon cap ». */
+    poserOnglets(null);
   }
 
   function afficher(id, opts) {
     opts = opts || {};
+    /* « MES AFFAIRES » N'EST PLUS UNE PIECE depuis le 29/09/2026 (lot 43) : c'est
+       l'onglet « A gagner » de « Mon commerce ». Tous les chemins qui la demandaient
+       encore par son nom (la punaise de Ma journee, le calendrier et Mes taches par
+       BdvAffairesJour.ouvrirPiece(), « Nouvelle affaire » de la fiche, un lien
+       #affaires) arrivent ICI, et c'est ici qu'on les traduit, une seule fois. */
+    if (id === 'affaires') { id = 'clients'; opts = { onglet: 'gagner', ecrire: opts.ecrire }; }
     var journee = document.getElementById('bureauJournee');
     var ventes = document.getElementById('bureauVentes');
     if (!journee || !ventes) return;
@@ -670,20 +794,36 @@
       return;
     }
 
-    /* MES AFFAIRES. Meme forme que l'equipe, et pour la meme raison : chargement au
-       premier clic, retour a « Ma journee » si le reseau lache. */
-    if (id === 'affaires') {
+    /* MON COMMERCE : QUEL ONGLET. Une fiche demandee (#client=) est dans « Clients a
+       suivre ». Un onglet nomme (l'adresse, un lien, un renvoi, la barre d'onglets)
+       l'emporte. Seul le clic sur la barre des pieces (`opts.barre`) reprend le
+       dernier ouvert. Sans Vitisoft il n'y a qu'« A gagner ». */
+    var onglet = null;
+    if (id === 'clients') {
+      onglet = opts.client ? 'suivre' : (opts.onglet || (opts.barre ? ongletRetenu() : 'suivre'));
+      if (onglet !== 'gagner' && onglet !== 'suivre') onglet = 'suivre';
+      if (SANS_VITI) onglet = 'gagner';
+      else retenirOnglet(onglet);
+    }
+
+    /* « A GAGNER », l'ancienne piece « Mes affaires ». Meme forme que l'equipe, et pour
+       la meme raison : chargement au premier clic, retour a « Ma journee » si le reseau
+       lache. Le moteur des ventes n'est PAS demande : les affaires ne lisent aucune
+       ligne de vente. La barre des pieces reste sur « Mon commerce », l'adresse dit
+       #affaires. */
+    if (onglet === 'gagner') {
       seule('affaires');
-      marquerActif('affaires');
+      poserOnglets('gagner');
+      marquerActif('clients');
       if (opts.ecrire !== false && location.hash !== '#affaires') {
         history.pushState(null, '', '#affaires');
       }
-      attente('affaires', true);
+      attente('clients', true);
       chargerAffaires().then(function () {
-        attente('affaires', false);
+        attente('clients', false);
         if (window.BdvAffaires) BdvAffaires.ouvrir();
       })['catch'](function () {
-        attente('affaires', false);
+        attente('clients', false);
         _affaires = null;
         afficher('journee');
         var ava = document.getElementById('bureauAvis');
@@ -722,6 +862,7 @@
     }
 
     seule('ventes');
+    if (onglet) poserOnglets(onglet);
     marquerActif(id);
     if (opts.ecrire !== false) {
       var h = '#' + (opts.client ? 'client=' + encodeURIComponent(opts.client) : id);
@@ -798,6 +939,11 @@
        une adresse se copie et se met en favori, c'est tout l'interet d'en avoir
        une, et un favori qui tombe a cote n'affiche aucune erreur. */
     if (brut === 'echeances') return { id: 'calendrier' };
+    /* LOT 43, 29/09/2026 : #affaires et #clients sont les deux onglets de « Mon
+       commerce ». #affaires n'est plus une piece de la barre, et reste une adresse :
+       des favoris, la punaise de Ma journee et la fiche client y menent. */
+    if (brut === 'affaires') return { id: 'clients', onglet: 'gagner' };
+    if (brut === 'clients') return { id: 'clients', onglet: 'suivre' };
     /* TOUTE piece de la barre est une adresse, et pas seulement les quatre pieces
        de vente. Ce filtre exigeait `viti` jusqu'au 08/09/2026 : un favori sur
        /mon-bureau/#taches ouvrait « Ma journee », sans erreur et sans que personne
@@ -810,7 +956,7 @@
 
   function suivreAdresse() {
     var a = lireAdresse();
-    afficher(a.id, { client: a.client, ecrire: false });
+    afficher(a.id, { client: a.client, onglet: a.onglet, ecrire: false });
   }
 
   /* ---------------------------------------------------------------------------
@@ -954,7 +1100,8 @@
       var id = l && l.dataset.piece;
       if (!id) return;
       e.preventDefault();
-      afficher(id);
+      /* « Mon commerce » depuis la barre reprend le dernier onglet ouvert (lot 43). */
+      afficher(id, id === 'clients' ? { barre: true } : undefined);
     });
 
     /* Le meme interception, mais pour TOUS les liens du bureau qui pointent une piece :
@@ -1034,6 +1181,7 @@
     }
 
     sortirHorsPage();
+    brancherOnglets();
     ouvrirLeSiteAilleurs();
     mesurerEntete();
     // Le bouton Retour du navigateur circule dans le bureau au lieu d'en sortir.
@@ -1243,6 +1391,7 @@
 
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
-                    marquerActif: marquerActif, ouvrirReglages: ouvrirReglages,
+                    marquerActif: marquerActif, ventesEnVue: ventesEnVue,
+                    ouvrirReglages: ouvrirReglages,
                     chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe };
 })();

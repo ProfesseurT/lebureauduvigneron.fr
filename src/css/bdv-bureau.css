@@ -5391,3 +5391,45 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   .bdv-coque .bdvd-ligne{ grid-template-columns:1fr; }
   .bdv-coque .bdvd-ligne .bdvr-btn{ grid-column:1; grid-row:auto; justify-self:start; }
 }
+
+/* ==========================================================================
+   33. « MON COMMERCE » EN DEUX ONGLETS, lot 43 (29/09/2026)
+   Decision de Ted : « Mes affaires » devient l'onglet « A gagner » de « Mon
+   commerce », a cote de « Clients a suivre ». LE DESSIN EST CELUI DES ONGLETS DE
+   LA FICHE CLIENT (`.onglets` de bdv-ecrans.css) : un filet sous la rangee, un
+   trait d'accent sous l'onglet choisi, aucun aplat. Il est REDIT ici et pas
+   reutilise parce que cette feuille-la n'arrive qu'avec le moteur des ventes, et
+   « A gagner » s'ouvre justement sans lui. Memes jetons, memes echelles : rien de
+   neuf pour la charte. Deux onglets de 44 px tiennent sur une ligne a 390 px
+   (« Clients a suivre » fait environ 130 px en --bdv-f-3) : pas de retour a la
+   ligne, `nowrap` et le defilement horizontal en dernier recours seulement.
+   ========================================================================== */
+.bdv-coque .com-onglets{
+  display:flex;
+  gap:var(--bdv-e-1);
+  margin:0 0 var(--bdv-e-4);
+  border-bottom:1px solid var(--bdv-trait);
+  overflow-x:auto;
+}
+.bdv-coque .com-onglets[hidden]{ display:none; }
+.bdv-coque .com-onglet{
+  flex:0 0 auto;
+  min-height:var(--bdv-cible);
+  margin-bottom:-1px;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border:0;
+  border-bottom:2px solid transparent;
+  background:none;
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  white-space:nowrap;
+  color:var(--bdv-encre-3);
+  cursor:pointer;
+}
+.bdv-coque .com-onglet:hover{ color:var(--bdv-encre-1); }
+.bdv-coque .com-onglet[aria-selected="true"]{
+  border-bottom-color:var(--bdv-accent);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .com-onglet:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:-2px; }

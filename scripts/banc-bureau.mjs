@@ -137,19 +137,24 @@ t('la coque de l\'atelier existe dans le HTML produit',
   !!B.nav && !!B.doc.getElementById('bureauAtelier'));
 
 const lignes = [...B.nav.querySelectorAll('.bureau-nav__ligne')];
-t('onze pieces montees (Mes affaires, 28/09/2026)', lignes.length === 11, lignes.length + ' trouvee(s)');
+/* DIX PIECES DEPUIS LE 29/09/2026, lot 43 : « Mes affaires » est entree dans « Mon
+   commerce », dont elle est l'onglet « A gagner », et la piece fusionnee a pris sa
+   place juste apres le calendrier. Decision de Ted, voir CLAUDE.md. */
+t('dix pieces montees (Mon commerce absorbe Mes affaires, 29/09/2026)', lignes.length === 10, lignes.length + ' trouvee(s)');
 /* L'ORDRE EST UN CONTROLE ET PAS UN DETAIL : il porte l'hypothese H2 du document
    de refonte, le vigneron vient pour ne rien oublier. Si quelqu'un le change, il
    doit le changer ICI aussi, donc en connaissance de cause. */
 t('l\'ordre porte l\'hypothese du document',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | ')
-  === 'Ma journée | Mes tâches | Le calendrier | Mes affaires | Mon commerce | Mon cap | Mes clients | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
+  === 'Ma journée | Mes tâches | Le calendrier | Mon commerce | Mon cap | Mes clients | Mes cuvées | Mon registre | L\'équipe | Mes réglages',
   lignes.map(l => l.querySelector('.bureau-nav__nom').textContent).join(' | '));
 t('chaque piece porte un title', lignes.every(l => l.querySelector('[title]')));
-t('les neuf pieces internes pointent DANS le bureau (Mes affaires, 28/09/2026)',
+t('les huit pieces internes pointent DANS le bureau (lot 43, 29/09/2026)',
   [...B.nav.querySelectorAll('a.bureau-nav__item')]
     .map(a => a.getAttribute('href'))
-    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 9);
+    .filter(h => /^\/mon-bureau\/#/.test(h)).length === 8);
+t('aucune piece de la barre ne s\'appelle plus « Mes affaires »',
+  !lignes.some(l => l.dataset.piece === 'affaires'));
 /* LE CALENDRIER EST UNE ADRESSE DU BUREAU depuis le 08/09/2026, et ce controle est
    a l'envers de celui qu'il remplace. Il gardait l'inverse : que la piece pointe sur
    /outils/echeances/. C'etait le defaut signale par Ted, la seule piece de la barre
@@ -199,15 +204,18 @@ const frappe = (c) => c.dispatchEvent(new B.window.KeyboardEvent('keydown', { ke
 frappe(B.doc.body);
 t('le crochet ouvrant ne replie plus rien',
   !atelier.classList.contains('bureau-atelier--replie'));
-t('les onze languettes restent toutes visibles',
-  lignes.filter(l => !l.hidden).length === 11, lignes.filter(l => !l.hidden).length);
+t('les dix languettes restent toutes visibles',
+  lignes.filter(l => !l.hidden).length === 10, lignes.filter(l => !l.hidden).length);
 
 /* ---- sans Vitisoft : regle metier, pas cosmetique ---- */
 B.window.BdvNav.sansVitisoft(true);
-t('sans Vitisoft, les cinq pieces de vente disparaissent',
-  lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,annuaire,chercher,clients,produits');
-t('sans Vitisoft, la journee, les taches, le calendrier, les affaires et les reglages RESTENT',
-  ['journee', 'taches', 'calendrier', 'affaires', 'reglages']
+/* « MON COMMERCE » N'EST PLUS `viti` DEPUIS LE LOT 43 (29/09/2026) : sans Vitisoft elle
+   reste, avec « A gagner » seul. Ce sont donc QUATRE pieces de vente qui partent. */
+t('sans Vitisoft, les quatre pieces de vente disparaissent',
+  lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(',') === 'annee,annuaire,chercher,produits',
+  lignes.filter(l => l.hidden).map(l => l.dataset.piece).sort().join(','));
+t('sans Vitisoft, la journee, les taches, le calendrier, Mon commerce et les reglages RESTENT',
+  ['journee', 'taches', 'calendrier', 'clients', 'reglages']
     .every(id => !lignes.find(l => l.dataset.piece === id).hidden));
 B.window.BdvNav.sansVitisoft(false);
 t('avec Vitisoft, tout revient', lignes.filter(l => l.hidden).length === 0);
@@ -251,8 +259,10 @@ t('la coque des ecrans porte ses ' + REPERES.length + ' reperes',
 const ECRANS = fs.readFileSync(path.join(RACINE, 'src/js/bdv-ecrans.js'), 'utf8');
 const bloc = ECRANS.slice(ECRANS.indexOf('const NAV=['), ECRANS.indexOf('];', ECRANS.indexOf('const NAV=[')));
 const idsEcrans = [...bloc.matchAll(/id:\s*'([^']+)'/g)].map(m => m[1]).sort();
+/* `ventes` (lot 43) : « Mon commerce » n'est plus `viti`, mais son onglet « Clients a
+   suivre » reste un ecran de bdv-ecrans.js. */
 const idsBarre = B.window.BdvNav.pieces
-  .filter(p => p.viti || p.id === 'reglages').map(p => p.id).sort();
+  .filter(p => p.viti || p.ventes || p.id === 'reglages').map(p => p.id).sort();
 t('les identifiants d\'ecran sont les memes dans bdv-nav.js et bdv-ecrans.js',
   idsEcrans.join(',') === idsBarre.join(','),
   'ecrans : ' + idsEcrans.join(',') + '  /  barre : ' + idsBarre.join(','));
@@ -287,6 +297,10 @@ B.clic('journee');
 t('revenir a « Ma journee » remasque les taches',
   !B.journee.hidden && B.taches.hidden);
 
+/* « Clients a suivre » retenu comme dernier onglet (lot 43) : sans cela, la barre ouvre
+   « A gagner », qui ne charge pas le moteur, et les controles du chargement qui suivent
+   n'auraient rien a mesurer. Le choix de l'onglet a sa section plus bas. */
+B.window.localStorage.setItem('bdv_com_onglet', 'suivre');
 B.clic('clients');
 t('un clic sur « Mon commerce » masque la journee, les taches, et montre les ventes',
   B.journee.hidden && B.taches.hidden && !B.ventes.hidden);
@@ -477,6 +491,7 @@ t('le bouton de la barre et l\'adresse #base demandent tous deux le moteur',
 t('et tous deux rafraichissent le panneau une fois le moteur la',
   R1.appels.some(a => a.rafraichi) && R2.appels.some(a => a.rafraichi));
 
+M.window.localStorage.setItem('bdv_com_onglet', 'suivre');
 M.clic('clients');
 await M.repos();
 t('ouvrir ensuite un ecran de vente ne recharge pas le moteur',
@@ -587,6 +602,7 @@ t('cmd-clic est laisse au navigateur : c\'est une demande d\'autre onglet',
 /* ---- le bouton Retour ---- */
 titre('Le bouton Retour');
 const J = bureau();
+J.window.localStorage.setItem('bdv_com_onglet', 'suivre');
 J.clic('clients');
 await J.repos();
 J.window.history.back();
@@ -594,6 +610,185 @@ await new Promise(r => setTimeout(r, 30));
 t('Retour depuis un ecran de vente ramene a « Ma journee » sans quitter le bureau',
   !J.journee.hidden && J.ventes.hidden,
   'hash : ' + J.window.location.hash);
+
+/* ======================= MON COMMERCE EN DEUX ONGLETS (lot 43, 29/09/2026) =======================
+   Decision de Ted : « Mes affaires » et « Mon commerce » font une piece. Ce que ces
+   controles gardent : les deux onglets et leur ordre, le chargement a la demande de
+   chacun (« A gagner » ne tire PAS le moteur), les adresses (#affaires, #clients,
+   #client=), le dernier onglet repris par la barre, et la piece sans Vitisoft, qui
+   reste avec « A gagner » seul. */
+titre('Mon commerce, deux onglets (lot 43)');
+{
+  const K = bureau();
+  K.window.BdvAffaires = { ouvrir: () => { K.appels.push({ affaires: true }); } };
+  const barre = K.doc.getElementById('bureauComOnglets');
+  const tabs = barre ? [...barre.querySelectorAll('[role="tab"]')] : [];
+  const noms = tabs.map(x => x.textContent.trim()).join(' | ');
+  const aff = K.doc.getElementById('bureauAffaires');
+  t('la barre d\'onglets est dans la page, en tablist, « A gagner » puis « Clients a suivre »',
+    !!barre && barre.getAttribute('role') === 'tablist' && noms === 'À gagner | Clients à suivre', noms);
+  t('chaque onglet designe son panneau, et ce panneau existe',
+    tabs.length === 2 && tabs[0].getAttribute('aria-controls') === 'bureauAffaires'
+    && tabs[1].getAttribute('aria-controls') === 'p-clients'
+    && tabs.every(x => K.doc.getElementById(x.getAttribute('aria-controls'))));
+  t('hors de la piece, la barre d\'onglets est cachee', !!barre && barre.hidden);
+  K.clic('clients');
+  await K.repos(() => K.appels.some(a => a.affaires));
+  t('sans onglet retenu, la barre des pieces ouvre « A gagner »',
+    !aff.hidden && K.ventes.hidden && !barre.hidden
+    && tabs[0].getAttribute('aria-selected') === 'true' && tabs[1].getAttribute('aria-selected') === 'false',
+    K.window.location.hash);
+  t('l\'adresse dit #affaires et la barre surligne « Mon commerce »',
+    K.window.location.hash === '#affaires'
+    && K.doc.querySelector('.bureau-nav__ligne[data-piece="clients"] .bureau-nav__item--actif') !== null,
+    K.window.location.hash);
+  t('« A gagner » charge bdv-affaires.js, et PAS le moteur des ventes',
+    K.charges.join(' | ') === '/js/bdv-affaires.js', K.charges.join(' | '));
+  t('la piece des affaires est ouverte', K.appels.some(a => a.affaires));
+  t('le panneau affiche porte le role tabpanel et le nom de son onglet',
+    aff.getAttribute('role') === 'tabpanel' && aff.getAttribute('aria-labelledby') === 'comOngletGagner');
+  tabs[1].click();
+  await K.repos(() => K.appels.some(a => a.ecran === 'clients'));
+  t('« Clients a suivre » montre les ventes et demarre l\'ecran clients',
+    aff.hidden && !K.ventes.hidden && !barre.hidden && tabs[1].getAttribute('aria-selected') === 'true'
+    && K.appels.some(a => a.ecran === 'clients'), JSON.stringify(K.appels));
+  t('et c\'est lui qui charge le moteur, au premier affichage',
+    K.charges.includes('/js/bdv-base.js') && K.charges.includes('/js/bdv-ecrans.js'), K.charges.join(' | '));
+  t('l\'adresse dit #clients', K.window.location.hash === '#clients', K.window.location.hash);
+  t('le dernier onglet est retenu sous bdv_com_onglet',
+    K.window.localStorage.getItem('bdv_com_onglet') === 'suivre');
+  K.clic('journee');
+  t('quitter la piece cache la barre d\'onglets', barre.hidden);
+  K.clic('clients');
+  await K.repos();
+  t('revenir par la barre des pieces rouvre le dernier onglet ouvert',
+    !K.ventes.hidden && aff.hidden && K.window.location.hash === '#clients', K.window.location.hash);
+  tabs[1].focus();
+  tabs[1].dispatchEvent(new K.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  t('fleche gauche : « A gagner », avec le focus et la tabulation',
+    !aff.hidden && K.ventes.hidden && K.doc.activeElement === tabs[0]
+    && tabs[0].tabIndex === 0 && tabs[1].tabIndex === -1);
+  tabs[0].dispatchEvent(new K.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  t('fleche droite : retour a « Clients a suivre »',
+    aff.hidden && !K.ventes.hidden && K.doc.activeElement === tabs[1]);
+  K.clic('annee');
+  await K.repos();
+  t('un autre ecran de vente retire la barre d\'onglets', barre.hidden && !K.ventes.hidden);
+}
+{
+  const onglet = (X) => (X.doc.querySelector('#bureauComOnglets [aria-selected="true"]') || {}).id;
+  const surCommerce = (X) => X.doc.querySelector('.bureau-nav__ligne[data-piece="clients"] .bureau-nav__item--actif') !== null;
+  const A1 = bureau('#affaires');
+  await A1.repos();
+  t('un favori sur #affaires ouvre « A gagner », la barre sur « Mon commerce »',
+    !A1.doc.getElementById('bureauAffaires').hidden && A1.ventes.hidden
+    && onglet(A1) === 'comOngletGagner' && surCommerce(A1)
+    && !A1.charges.includes('/js/bdv-base.js'), A1.charges.join(' | '));
+  const A2 = bureau('#clients');
+  await A2.repos();
+  t('un favori sur #clients ouvre « Clients a suivre »',
+    A2.doc.getElementById('bureauAffaires').hidden && !A2.ventes.hidden
+    && onglet(A2) === 'comOngletSuivre' && surCommerce(A2));
+  const A3 = bureau('#client=JAYAMA');
+  await A3.repos();
+  t('#client= ouvre la fiche dans « Clients a suivre »',
+    onglet(A3) === 'comOngletSuivre' && JSON.stringify(A3.appels) === '[{"client":"JAYAMA"}]',
+    JSON.stringify(A3.appels));
+  /* Un lien #affaires (la punaise de Ma journee, la fiche client) et un renvoi par son
+     nom (BdvAffairesJour.ouvrirPiece, « Nouvelle affaire ») menent a « A gagner »,
+     MEME quand le dernier onglet retenu est l'autre : ils nomment ce qu'ils veulent. */
+  const A4 = bureau();
+  A4.window.localStorage.setItem('bdv_com_onglet', 'suivre');
+  const lien = A4.doc.createElement('a');
+  lien.href = '/mon-bureau/#affaires';
+  A4.doc.getElementById('bureauJournee').appendChild(lien);
+  lien.dispatchEvent(new A4.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+  await A4.repos();
+  t('un lien #affaires du bureau mene a « A gagner », sans rechargement',
+    !A4.doc.getElementById('bureauAffaires').hidden && onglet(A4) === 'comOngletGagner'
+    && surCommerce(A4) && A4.window.location.hash === '#affaires', A4.window.location.hash);
+  const A5 = bureau();
+  A5.window.localStorage.setItem('bdv_com_onglet', 'suivre');
+  A5.window.BdvNav.afficher('affaires');
+  await A5.repos();
+  t('BdvNav.afficher(\'affaires\') (renvois, fiche client) mene a « A gagner »',
+    !A5.doc.getElementById('bureauAffaires').hidden && onglet(A5) === 'comOngletGagner' && surCommerce(A5));
+}
+{
+  const S1 = bureau();
+  S1.window.localStorage.setItem('bdv_com_onglet', 'suivre');
+  S1.window.BdvNav.sansVitisoft(true);
+  S1.clic('clients');
+  await S1.repos();
+  const b1 = S1.doc.getElementById('bureauComOnglets');
+  t('sans Vitisoft, « Mon commerce » s\'ouvre sur « A gagner » seul, sans barre d\'onglets',
+    !S1.doc.getElementById('bureauAffaires').hidden && S1.ventes.hidden && b1.hidden
+    && !S1.charges.includes('/js/bdv-base.js'), S1.charges.join(' | '));
+  t('et le panneau n\'annonce pas un role d\'onglet orphelin',
+    !S1.doc.getElementById('bureauAffaires').hasAttribute('role'));
+  const S2 = bureau('#clients');
+  await S2.repos();
+  S2.window.BdvNav.sansVitisoft(true);
+  t('un favori sur #clients retombe sur « A gagner » quand le profil dit « sans Vitisoft »',
+    !S2.doc.getElementById('bureauAffaires').hidden && S2.ventes.hidden
+    && S2.doc.getElementById('bureauComOnglets').hidden && S2.window.location.hash === '#affaires',
+    S2.window.location.hash);
+  S2.window.BdvNav.sansVitisoft(false);
+  t('Vitisoft revenu, la barre d\'onglets revient', !S2.doc.getElementById('bureauComOnglets').hidden);
+}
+{
+  const Q = bureau();
+  Q.window.Storage.prototype.getItem = function () { throw new Error('refuse'); };
+  Q.window.Storage.prototype.setItem = function () { throw new Error('refuse'); };
+  let casse = null;
+  try { Q.clic('clients'); } catch (e) { casse = e; }
+  await Q.repos();
+  t('stockage refuse : pas d\'erreur, « A gagner » s\'ouvre',
+    casse === null && !Q.doc.getElementById('bureauAffaires').hidden, String(casse));
+}
+
+{
+  /* LA COURSE DU MOTEUR (verificateur du lot 43, 29/09/2026). « Clients a suivre »
+     demande le moteur, le vigneron revient sur « A gagner » avant qu'il arrive, puis
+     le moteur finit et appelle navTo('clients'). On rejoue le VRAI navTo() de
+     bdv-ecrans.js, extrait du fichier, avec des doubles pour ce qu'il lit autour. */
+  const debut = ECRANS.indexOf('function navTo(id){');
+  const srcNavTo = ECRANS.slice(debut, ECRANS.indexOf('\n}\n', debut) + 2);
+  const C = bureau();
+  C.window.BdvAffaires = { ouvrir: () => {} };
+  C.window.eval('var ECRAN_COURANT=null, PEINTRES={}, ECRANS_PEINTS=new Set();'
+    + 'function el(i){return document.getElementById(i)||{style:{},classList:{contains:function(){return false;}}};}'
+    + 'function majBoutonMaj(){} function majPeriodeTete(){} window.scrollTo=function(){ window.__defile=(window.__defile||0)+1; };'
+    + srcNavTo + ';window.navTo=navTo;');
+  C.window.BdvNav.afficher('clients', { onglet: 'suivre' });
+  await C.repos();
+  C.window.BdvNav.afficher('affaires');
+  await C.repos();
+  C.window.__defile = 0;
+  C.window.navTo('clients');
+  const sel = (C.doc.querySelector('#bureauComOnglets [aria-selected="true"]') || {}).id;
+  t('le moteur qui finit apres le retour sur « A gagner » ne reecrit pas #clients dans l\'adresse',
+    C.window.location.hash === '#affaires', C.window.location.hash);
+  t('et « A gagner » reste affiche, son onglet choisi, la page non remontee',
+    !C.doc.getElementById('bureauAffaires').hidden && C.ventes.hidden && sel === 'comOngletGagner'
+    && C.window.__defile === 0, sel + ' / defile ' + C.window.__defile);
+  /* Le bouton « Mettre a jour » suit l'ONGLET, pas l'id de la piece : sur « A gagner »
+     il n'a rien a completer (capture du verificateur, bouton allume chez un vigneron
+     sans Vitisoft). */
+  const vus = [];
+  C.window.bdvMajBoutonMaj = (e) => vus.push(e);
+  C.window.BdvNav.afficher('clients', { onglet: 'suivre' });
+  await C.repos();
+  C.window.BdvNav.afficher('affaires');
+  await C.repos();
+  t('« Mettre a jour » n\'est pas demande pour l\'ecran clients sur « A gagner »',
+    vus.length >= 2 && vus[0] === 'clients' && vus[vus.length - 1] !== 'clients', vus.join(','));
+  C.window.BdvNav.afficher('clients', { onglet: 'suivre' });
+  await C.repos();
+  C.window.navTo('annee');
+  t('coque des ventes a l\'ecran, navTo() ecrit toujours son adresse',
+    C.window.location.hash === '#annee', C.window.location.hash);
+}
 
 /* ======================= L'ANCIENNE ADRESSE ======================= */
 titre("L'ancienne adresse du tableau de bord");

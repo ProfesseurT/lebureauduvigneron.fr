@@ -12,6 +12,34 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 29/09/2026, Mon commerce et Mes affaires ne font plus qu'une pièce
+
+Demande de Ted : mixer le travail d'un commercial sur les clients existants, les prospects et les affaires
+créées à la volée, avec des propositions tirées des logiciels existants. Le devis et la commande viennent
+APRÈS : « on ne met pas la charrue avant les bœufs ».
+
+**Ce qu'on a regardé** : Odoo, Salesforce, HubSpot, Pipedrive, Dynamics 365, Sellsy, Axonaut, Wineriz. Ce qui
+revient partout : la piste est une porte d'entrée qu'on convertit, l'affaire a des étapes en liste et en kanban,
+le devis naît de l'affaire, la commande directe existe sans affaire et n'en crée aucune, le client qui rachète
+se suit par des relances et pas par le pipeline.
+
+**Trois options au conseil** : A (deux onglets), B (une seule liste mélangée), C (le client au centre). Le vigneron
+et le directeur commercial préféraient B ; l'architecte a montré que B refait « Ma journée », qui porte déjà
+rappels, tâches, affaires et liste de relance. C refait « Mes clients ».
+
+**Choix de Ted : « A amélioré »**, le verdict part dans Mon cap, une commande directe ne crée jamais d'affaire,
+le nom reste « Mon commerce ». Détail et plan des lots 43 à 47 dans CLAUDE.md.
+
+**Ce qui a été écarté** : une deuxième file « qui appeler » ; un type d'affaire « réassort » ; une affaire gagnée
+fabriquée à chaque commande (Sellsy le propose, ça fausse le taux de réussite).
+
+**Lot 43 fait le même jour** : « Mes affaires » sort de la barre (10 pièces), « Mon commerce » n'est plus réservé à
+Vitisoft et porte deux onglets, « À gagner » et « Clients à suivre ». Le vérificateur a trouvé deux défauts que les
+bancs ne voyaient pas (l'adresse réécrite par un moteur en retard, le bouton « Mettre à jour » allumé sur les
+affaires), corrigés. Reste à trancher : la place de « Mon commerce » dans la barre du bas sur téléphone.
+
+---
+
 ## 28/09/2026, les affaires : la branche qui s'intéresse à ce qu'on fait pour obtenir un client
 
 Demande de Ted : un moteur qui ne regarde plus ce que les clients ont acheté mais les actions commerciales

@@ -7046,10 +7046,87 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 ### OU EN EST LA BRANCHE, CLOTURE DU 28/09/2026
 
 - En production : lots 34 a 38 (affaires, journee, courrier v18, calendrier, taches, fiche du domaine).
-- Prochain lot : LE DEVIS. Lignes proposees depuis l'historique des ventes, prix saisi (decision de
+- ~~Prochain lot : le devis.~~ REMPLACE le 29/09/2026 par la fusion (voir plus bas). Le devis garde ce
+  contenu, il arrive au lot 47. Lignes proposees depuis l'historique des ventes, prix saisi (decision de
   Ted), en-tete lu dans `BdvDomaine.fiche()` (refuser l'envoi si `complete()` est faux), conditions
   par `BdvDomaine.conditions()`, validite depuis `domaine.validite_jours`. Prix HT droits d'accises
   inclus, TVA 20 % a verifier au moment d'ecrire.
 - Puis : signature, fichier de commande Vitisoft, retour facture, script Solumatic.
 - Ouvert, a Ted : le journal des echanges d'une piste (vide par « Vider la base » si on le range dans
   `echanges`). Ne pas le construire sans sa reponse.
+
+## MON COMMERCE ET MES AFFAIRES FUSIONNENT, DECISION DE TED DU 29/09/2026
+
+Demande de Ted : mixer le travail d'un commercial sur les clients existants, les prospects et les
+affaires creees a la volee. Une affaire pourra mener a un devis ou une commande ; une commande pourra
+se saisir sans affaire. « Pas la charrue avant les boeufs » : la fusion passe AVANT le devis.
+Conseil tenu (vigneron, directeur commercial, architecte) et releve de 8 logiciels (Odoo, Salesforce,
+HubSpot, Pipedrive, Dynamics 365, Sellsy, Axonaut, Wineriz). Voir JOURNAL.md du 29/09/2026.
+
+**Les quatre arbitrages de Ted :**
+1. **Option « A ameliore »** : UNE piece « Mon commerce », deux onglets, « A gagner » (les affaires) et
+   « Clients a suivre » (l'ancien Mon commerce), sous un bilan commun chiffre. PAS de liste unique melangee :
+   elle existe deja, c'est « Ma journee ». Deux listes qui repondent a « qui j'appelle » se contredisent
+   des le premier geste. La piece repond a « ou en est mon commerce, et que puis-je gagner ».
+2. **Le verdict « d'ou vient ta variation » part dans « Mon cap »** : c'est un constat, pas une action.
+   Il reste un renvoi d'une ligne dans Mon commerce.
+3. **Une commande directe ne cree JAMAIS d'affaire**, ni gagnee ni automatique : le taux de reussite de la
+   prospection resterait faux (ni Odoo ni Dynamics ne le font). Le reachat reste HORS pipeline : pas de type
+   « reassort », il passe par les motifs (cadence, saison) et par Ma journee.
+4. **Le nom reste « Mon commerce ».**
+
+**Ce qui ne doit pas se defaire :**
+- La piece n'est PAS `viti` : sans Vitisoft, elle montre « A gagner » seul. Laisser `viti` cacherait les
+  affaires a ceux qui n'ont pas Vitisoft.
+- Signets : `#affaires` ouvre « A gagner », `#clients` ouvre « Clients a suivre », `#client=<id>` ouvre la fiche.
+- Un client qui a une affaire ouverte n'apparait qu'UNE fois : l'affaire l'emporte, le motif Vitisoft
+  s'affiche dessus en contexte (lot 45).
+- La commande sans affaire part de la FICHE CLIENT, pas des affaires.
+
+**Plan des lots :**
+- 43 : la piece fusionnee en deux onglets, barre de 11 a 10 pieces, `banc-bureau.mjs` suit.
+- 44 : « En faire une affaire » sur chaque client a suivre, « Voir sa fiche » depuis une affaire.
+- 45 : bilan commun en tete, regle « un client une fois », verdict deplace dans Mon cap.
+- 46 : emplacements « Nouveau devis » (affaire) et « Nouvelle commande » (fiche client), grises « bientot ».
+- 47 et suivants : devis, signature, fichier de commande Vitisoft, retour facture, script Solumatic.
+
+### LOT 43 : LA PIECE FUSIONNEE EN DEUX ONGLETS (29/09/2026)
+
+- **La barre a DIX pieces** : Ma journee | Mes taches | Le calendrier | Mon commerce | Mon cap | Mes clients |
+  Mes cuvees | Mon registre | L'equipe | Mes reglages. L'entree `affaires` est SORTIE de `PIECES` (et son trace
+  avec elle). « Mon commerce » garde l'id `clients`, prend la place des affaires, n'est PLUS `viti` et porte
+  `ventes: true` : c'est ce drapeau que `npm run banc` lit pour comparer PIECES et NAV. L'ordre et le nombre
+  sont gardes par `banc-bureau.mjs`.
+- **Deux onglets, une barre HORS des deux conteneurs** : `#bureauComOnglets` (mon-bureau.njk), « A gagner »
+  (`aria-controls="bureauAffaires"`) puis « Clients a suivre » (`aria-controls="p-clients"`). Les deux
+  conteneurs n'ont pas bouge. Dessin : section 33 de `bdv-bureau.css`, redit d'apres `.onglets` de la fiche
+  parce que `bdv-ecrans.css` n'arrive qu'avec le moteur. Fleches, Debut, Fin deplacent ET activent, comme la
+  fiche.
+- **UN SEUL ENDROIT DECIDE, `poserOnglets()` de bdv-nav.js** : barre visible ou non, `aria-selected`,
+  `tabindex`, et les roles `tabpanel` poses ou RETIRES (sans Vitisoft, pas de panneau orphelin). `seule()` la
+  retire a chaque bascule, `marquerActif()` la suit quand `navTo()` change d'ecran de l'interieur, sauf pour
+  les reglages qui s'ouvrent par-dessus.
+- **« A gagner » ne charge PAS le moteur** (bdv-affaires.js seul). « Clients a suivre » le charge au premier
+  affichage, comme l'ancien Mon commerce.
+- **Adresses** : `#affaires` = « A gagner », `#clients` = « Clients a suivre », `#client=<id>` = la fiche dans
+  « Clients a suivre ». `afficher('affaires')` est TRADUIT en tete d'`afficher()` : punaise de Ma journee,
+  calendrier et Mes taches (`BdvAffairesJour.ouvrirPiece`), « Nouvelle affaire » de la fiche, liens `#affaires`
+  passent tous par la. Ne pas ajouter un deuxieme traducteur ailleurs.
+- **Seul le clic sur la BARRE reprend le dernier onglet** (`opts.barre`, cle `bdv_com_onglet`, sous try/catch,
+  « A gagner » par defaut). Un signet, un lien ou un renvoi nomme son onglet et l'emporte sur le souvenir.
+- **Sans Vitisoft** : pas de barre d'onglets, « A gagner » seul, et `sansVitisoft(true)` fait retomber sur
+  « A gagner » une piece ouverte sur « Clients a suivre » avant l'arrivee du profil.
+- **Le h2 `#affTitre` dit « A gagner » et il est masque a l'oeil** (`hors-ecran`), meme regle que `titre-piece`
+  (29.10). L'id reste. Le h2 de `renderClients()` dit encore « Mon commerce » : `banc:commerce` le lit.
+- **Pas encore fait, et c'est voulu** : bilan commun, « En faire une affaire », verdict dans Mon cap, emplacements
+  devis et commande (lots 44 a 46). La famille « Mes affaires » des filtres du calendrier et de Mes taches garde
+  son nom : c'est une famille d'elements, pas une piece.
+- **Garde** : `npm run banc`, 148 controles, dont 28 nouveaux pour ce lot, verifies par mutation.
+- **Verification du 29/09/2026, deux defauts corriges.** (1) Moteur arrive en retard alors que le vigneron est
+  revenu sur « A gagner » : `navTo()` reecrivait `#clients` dans l'adresse et remontait la page. Il prepare
+  toujours l'ecran, mais ne touche ni a l'adresse, ni au defilement, ni a la barre quand `BdvNav.ventesEnVue()`
+  est faux. (2) « Mettre a jour » s'allumait sur « A gagner » : `bdvMajBoutonMaj` recoit `affaires` quand cet
+  onglet est ouvert. 4 controles dans `banc-bureau.mjs`, verifies par mutation.
+- Ouvert, a Ted : a 390 px, « Mon commerce » est derriere « Plus » dans la barre du bas (fixees : journee,
+  taches, calendrier, Mes clients, decision du 25/09). Cosmetique : trait de l'onglet actif a 1 px au lieu de 2
+  (`overflow-x:auto` rogne le `margin-bottom:-1px`), texte des onglets decale de 12 px (meme dessin que la fiche).
