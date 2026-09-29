@@ -7030,6 +7030,19 @@ chaque point vient du vigneron empathique, avant ou apres capture :
   les `@container affaires` ne l'atteignaient pas et tous les duos s'empilaient. Dans le panneau les duos se
   tiennent des 22 rem.
 
+### LOT 42 : UN NOM PROCHE NE CREE PAS DE DOUBLON (29/09/2026)
+
+- **Capture de Ted** : « SOLUMATIC » (nouveau client, sans SIRET) dans sa base, et l'annuaire qui rend
+  « SOLUMATIC (MS FORMATION - VITIWIN - ...) ». L'egalite stricte des noms ne les rapprochait pas : choisir la
+  ligne de l'annuaire creait un doublon. « Il ne faut pas sachant que je l'ai deja dans la base. »
+- **`nomsProches()`** compare le COEUR des noms : sans les parentheses (enseignes ajoutees par l'annuaire), sans la
+  forme juridique (`FORMES_J`), puis egalite, ou l'un contenu dans l'autre en mots entiers s'il fait au moins
+  cinq signes. « Cave » seul ne rapproche pas « Cave de la Loire ».
+- **Une ligne d'annuaire au nom proche DEMANDE** « C'est la meme entreprise que ... ? » avant tout. Oui :
+  l'affaire porte sur le client existant, et un nouveau client sans SIRET voit sa fiche COMPLETEE (SIRET,
+  adresse, CP, ville, champ vide par champ vide) a la creation de l'affaire. Jamais un client Vitisoft : Vitisoft
+  fait foi sur ses coordonnees. Non : la fiche d'un nouveau client s'ouvre, et previent encore.
+
 ### OU EN EST LA BRANCHE, CLOTURE DU 28/09/2026
 
 - En production : lots 34 a 38 (affaires, journee, courrier v18, calendrier, taches, fiche du domaine).

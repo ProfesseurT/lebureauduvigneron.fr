@@ -5230,6 +5230,18 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
   .bdv-coque .amod .aff-duo{ grid-template-columns:1fr 1fr; }
 }
 .bdv-coque .aff-doublon--bloque{ border-color:var(--bdv-retard); background:var(--bdv-retard-lavis); }
+/* LOT 42 : « C'EST LA MEME ENTREPRISE ? », sous la ligne d'annuaire au nom proche. */
+.bdv-coque .aff-confirme{
+  display:grid;
+  gap:var(--bdv-e-2);
+  padding:var(--bdv-e-3);
+  border:1px solid var(--bdv-alerte);
+  border-top:0;
+  background:var(--bdv-alerte-lavis);
+}
+.bdv-coque .aff-confirme__q{ margin:0; font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .aff-confirme .aff-aide{ margin:0; }
+.bdv-coque .aff-confirme__gestes{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); }
 
 /* LE BILAN : trois cases, le chiffre en grand et son mot en capitales, le meme
    contraste d'echelle que l'ardoise. « A relancer » prend l'encre du retard

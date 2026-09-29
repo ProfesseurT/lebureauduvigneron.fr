@@ -107,6 +107,11 @@ connues y sont marquées), puis « Créer » à la main. Un SIRET déjà connu b
 prévient ; les deux proposent de prendre le client existant. Les champs du panneau se rangent par deux.
 `banc:affaires` 114 contrôles, `verif` vert.
 
+**Lot 42, 29/09/2026.** Ted, sur capture : l'annuaire proposait « SOLUMATIC (MS FORMATION - ...) » alors que
+« SOLUMATIC » était déjà dans sa base, et le choisir faisait un doublon. Les noms se comparent maintenant sans
+parenthèses ni forme juridique ; une ligne au nom proche demande « C'est la même entreprise ? ». Oui : l'affaire
+porte sur le client existant et sa fiche prend le SIRET de l'annuaire. `banc:affaires` 126 contrôles, `verif` vert.
+
 **Pas encore fait** : les affaires dans Mes tâches et le calendrier, le journal des
 échanges d'une piste, la file hors ligne, le devis, la signature, le fichier de commande Vitisoft.
 

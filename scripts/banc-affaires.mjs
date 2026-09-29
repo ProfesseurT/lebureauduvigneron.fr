@@ -285,7 +285,12 @@ titre('Lot 41 : UNE barre pour chercher ou creer le client');
   await attendre(520);
   t('une seule demande a l\'annuaire pour trois frappes rapides', appelsAnnuaire === 1, appelsAnnuaire);
   t('les resultats de l\'annuaire suivent tes clients', /Dans l’annuaire officiel/.test(box().textContent) && /SARL CAVE DES QUAIS/.test(box().textContent));
-  t('une ligne de l\'annuaire au meme nom qu\'un client le dit', /porte déjà ce nom : « Le Bistrot »/.test(box().textContent));
+  t('une ligne de l\'annuaire au nom d\'un client le dit', /Sans doute déjà dans ta base/.test(box().textContent) && /Tu as déjà « Le Bistrot »/.test(box().textContent));
+  P.clic('#affPropositions [data-aff="prendreSiret"][data-i="1"]');
+  P.clic('[data-aff="confirmeNon"]');
+  t('« Non, en creer un nouveau » ouvre la fiche remplie par l\'annuaire', !P.doc.querySelector('[data-zone="nouveau"]').hidden && P.doc.getElementById('affNom').value === 'LE BISTROT');
+  t('et la fiche previent encore du nom proche', !P.doc.getElementById('affDoublon').hidden);
+  P.clic('[data-aff="lacherNouveau"]');
   t('un client existant se voit proposer aussi la famille « client »', [...P.doc.getElementById('affType').options].some(o => o.value === 'tc'));
   P.clic('#affPropositions [data-aff="prendreClient"]');
   t('le client choisi est nomme, et la barre s\'efface', /Chez Paul/.test(P.doc.getElementById('affChoisi').textContent) && P.doc.querySelector('[data-zone="cherche"]').hidden);
@@ -363,6 +368,43 @@ titre('Lot 41 : UNE barre pour chercher ou creer le client');
   const apres = P.base.affaires.find(a => a.affaire_id === cible.affaire_id);
   t('changer de client REMPLACE le client, un seul par affaire', apres.client_id === 'C8' && apres.client_nom === 'Le Bistrot' && !apres.piste_id);
   t('ni NaN, ni undefined, ni null a l\'ecran', !/NaN|undefined|\bnull\b/.test(P.doc.body.textContent));
+}
+
+titre('Lot 42 : un nom proche ne cree pas de doublon (capture de Ted, SOLUMATIC)');
+{
+  const S2 = monter();
+  S2.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  S2.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  S2.base.pistes.push({ bureau: BUREAU, piste_id: 'pS', nom: 'SOLUMATIC', opposition: false, siret: null, adresse: null, ville: null, code_postal: null });
+  S2.w.BdvDomaine = { chercher: async () => ({ ok: true, liste: [
+    { nom: 'SOLUMATIC (MS FORMATION - VITIWIN - MULTYSOFT - VITISOFT)', siret: '79899297000045', adresse: '1 rue des Tours', code_postal: '37170', ville: 'CHAMBRAY-LES-TOURS', actif: true },
+    { nom: 'SEBASTIEN GARNIER', siret: '51229069300047', adresse: '', code_postal: '13100', ville: 'AIX', actif: false }] }) };
+  await S2.w.BdvAffaires.ouvrir();
+  S2.clic('[data-aff="nouvelle"]');
+  const q = S2.doc.getElementById('affCherche'); q.value = 'Solumatic'; q.dispatchEvent(new S2.w.Event('input', { bubbles: true }));
+  await attendre(520);
+  const box = () => S2.doc.getElementById('affPropositions');
+  t('la ligne « SOLUMATIC (MS FORMATION ...) » est reconnue comme SOLUMATIC', /Sans doute déjà dans ta base/.test(box().querySelector('[data-i="0"]').textContent));
+  t('la ligne sans rapport ne l\'est pas', !/déjà dans ta base/.test(box().querySelector('[data-i="1"]').textContent));
+  S2.clic('#affPropositions [data-aff="prendreSiret"][data-i="0"]');
+  t('la choisir DEMANDE avant tout : c\'est la meme entreprise ?', /C’est la même entreprise que « SOLUMATIC »/.test(box().textContent)
+    && S2.doc.querySelector('[data-zone="nouveau"]').hidden);
+  S2.clic('[data-aff="confirmeOui"]');
+  t('Oui : l\'affaire porte sur le client existant', /SOLUMATIC/.test(S2.doc.getElementById('affChoisi').textContent) && !S2.doc.getElementById('affChoisi').hidden);
+  S2.doc.getElementById('affForme').dispatchEvent(new S2.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  t('AUCUN doublon cree', S2.base.pistes.length === 1, S2.base.pistes.length);
+  t('l\'affaire porte sur la piste existante', S2.base.affaires.length === 1 && S2.base.affaires[0].piste_id === 'pS');
+  t('et sa fiche a pris le SIRET et l\'adresse de l\'annuaire', S2.base.pistes[0].siret === '79899297000045' && S2.base.pistes[0].adresse === '1 rue des Tours', JSON.stringify(S2.base.pistes[0]));
+  // Non : on cree bien un nouveau client
+  S2.clic('[data-aff="nouvelle"]');
+  const q2 = S2.doc.getElementById('affCherche'); q2.value = 'Solumatic'; q2.dispatchEvent(new S2.w.Event('input', { bubbles: true }));
+  await attendre(520);
+  t('une fois le SIRET pris, la ligne dit « Deja dans ta base »', /Déjà dans ta base/.test(box().querySelector('[data-i="0"]').textContent));
+  const nv = S2.w.BdvAffaires._nomsProches;
+  t('noms proches : les formes juridiques et les parentheses ne comptent pas',
+    nv('SARL Cave du Port', 'CAVE DU PORT') && nv('SOLUMATIC', 'SOLUMATIC (MS FORMATION)') && nv('Cave du Port', 'Cave du Port de Nantes'));
+  t('noms proches : un mot court seul ne rapproche pas', !nv('Cave', 'Cave de la Loire') && !nv('Le Bistrot', 'Chez Paul'));
 }
 
 titre('Lot 40 : le panneau sur le cote, comme une tache ou un client');

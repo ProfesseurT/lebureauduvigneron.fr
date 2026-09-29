@@ -547,10 +547,31 @@
     if (!siret || siret.length !== 14) return null;
     return clientsConnus().filter(function (c) { return c.siret === siret; })[0] || null;
   }
+  /* DEUX NOMS PROCHES, ET PAS SEULEMENT EGAUX, 29/09/2026 (lot 42). Capture de
+     Ted : « SOLUMATIC » dans sa base, et l'annuaire qui rend « SOLUMATIC (MS
+     FORMATION - VITIWIN - ...) ». L'egalite stricte ne les rapprochait pas, et le
+     choisir creait un doublon. On compare donc le COEUR du nom : sans ce qui est
+     entre parentheses (les enseignes que l'annuaire ajoute), sans la forme
+     juridique (SARL, EARL...). Puis egalite, ou l'un contenu dans l'autre en mots
+     entiers s'il fait au moins cinq signes (« Cave du Port » dans « Cave du Port
+     de Nantes » ; « cave » seul dans « cave de la Loire », non). */
+  var FORMES_J = ['sarl', 'sas', 'sasu', 'eurl', 'sa', 'earl', 'scea', 'gaec', 'sci', 'snc', 'sca', 'scv', 'gfa',
+                  'ei', 'eirl', 'selarl', 'ste', 'societe'];
+  function nomCoeur(nom) {
+    return norm(String(nom || '').replace(/\([^)]*\)/g, ' ')).split(' ')
+      .filter(function (m) { return m && FORMES_J.indexOf(m) < 0; }).join(' ');
+  }
+  function nomsProches(a, b) {
+    var x = nomCoeur(a), y = nomCoeur(b);
+    if (x.length < 3 || y.length < 3) return false;
+    if (x === y) return true;
+    var court = x.length <= y.length ? x : y, long = court === x ? y : x;
+    return court.length >= 5 && (' ' + long + ' ').indexOf(' ' + court + ' ') >= 0;
+  }
   function parNom(nom) {
-    var n = norm(nom);
-    if (n.length < 3) return null;
-    return clientsConnus().filter(function (c) { return norm(c.nom) === n; })[0] || null;
+    var l = clientsConnus();
+    return l.filter(function (c) { return nomCoeur(c.nom) === nomCoeur(nom) && nomCoeur(nom).length >= 3; })[0]
+      || l.filter(function (c) { return nomsProches(c.nom, nom); })[0] || null;
   }
   function htmlTrouve(c, geste) {
     var d = [c.num ? 'n° ' + c.num : '', c.ville].filter(Boolean).join(', ');
@@ -614,8 +635,11 @@
           + (deja ? ' <span class="aff-marque aff-marque--deja">Déjà dans ta base</span>' : '')
           + (x.actif ? '' : ' <span class="aff-marque">Fermée</span>')
           + '<span class="aff-trouve__d">' + esc([x.code_postal + ' ' + x.ville, 'SIRET ' + x.siret].join(', ')) + '</span>'
-          + (meme ? '<span class="aff-trouve__d">Un de tes clients porte déjà ce nom : « ' + esc(meme.nom) + ' ».</span>' : '')
-          + '</button></li>';
+          + (meme ? ' <span class="aff-marque aff-marque--deja">Sans doute déjà dans ta base</span>'
+            + '<span class="aff-trouve__d">Tu as déjà « ' + esc(meme.nom) + ' »' + (meme.ville ? ', à ' + esc(meme.ville) : '') + '.</span>' : '')
+          + '</button>'
+          + (S.choix && S.choix.confirme === i && meme ? htmlConfirme(meme, x) : '')
+          + '</li>';
       }).join('') + '</ul>';
     }
     h += '<button type="button" class="aff-trouve aff-trouve--creer" data-aff="creerMain">'
@@ -627,7 +651,7 @@
   }
   function prendreClient(c) {
     if (!c) return;
-    S.choix.client = c; S.choix.nouveau = false;
+    S.choix.client = c; S.choix.nouveau = false; S.choix.completer = null; S.choix.confirme = null;
     peindreChoix();
     var tt = el('affIntitule'); if (tt) tt.focus();
   }
@@ -642,6 +666,36 @@
   }
   /* UNE LIGNE DE L'ANNUAIRE DEJA CONNUE PAR SON SIRET prend le client existant, et
      le dit : on ne cree pas une deuxieme fiche de la meme entreprise. */
+  /* UN NOM PROCHE D'UN CLIENT DEJA CONNU NE CREE RIEN SANS QU'ON LE DISE : on
+     demande « c'est la meme entreprise ? ». Oui : l'affaire porte sur le client
+     existant, et s'il s'agit d'un nouveau client sans SIRET, l'annuaire COMPLETE sa
+     fiche a la creation de l'affaire (jamais un client Vitisoft : Vitisoft fait
+     foi sur ses coordonnees). Non : la fiche d'un nouveau client s'ouvre. */
+  function htmlConfirme(meme, x) {
+    var complete = meme.genre === 'piste' && !meme.siret;
+    return '<div class="aff-confirme" role="group" aria-label="Même entreprise ?">'
+      + '<p class="aff-confirme__q">C’est la même entreprise que « ' + esc(meme.nom) + ' » ?</p>'
+      + (complete ? '<p class="aff-aide">Si oui, sa fiche prendra le SIRET et l’adresse de l’annuaire.</p>' : '')
+      + '<div class="aff-confirme__gestes">'
+      + '<button type="button" class="btn btn--bordeaux" data-aff="confirmeOui">Oui, c’est « ' + esc(meme.nom) + ' »</button>'
+      + '<button type="button" class="btn" data-aff="confirmeNon">Non, en créer un nouveau</button></div></div>';
+  }
+  function confirmer(oui) {
+    var i = S.choix && S.choix.confirme;
+    var x = ANNU.liste && ANNU.liste[i];
+    S.choix.confirme = null;
+    if (!x) { peindrePropositions(); return; }
+    var meme = parNom(x.nom);
+    if (oui && meme) {
+      prendreClient(meme);
+      if (meme.genre === 'piste' && !meme.siret) {
+        S.choix.completer = { siret: x.siret, adresse: x.adresse || null, code_postal: x.code_postal || null, ville: x.ville || null };
+        dire('L’affaire portera sur « ' + esc(meme.nom) + ' ». Sa fiche prendra le SIRET ' + esc(x.siret) + ' à la création.');
+      }
+      return;
+    }
+    ouvrirFiche({ affNom: x.nom, affSiret: x.siret, affAdresse: x.adresse, affCp: x.code_postal, affVille: x.ville });
+  }
   function prendreSiret(i) {
     var x = ANNU.liste && ANNU.liste[i];
     if (!x) return;
@@ -649,6 +703,13 @@
     if (deja) {
       prendreClient(deja);
       dire('« ' + esc(deja.nom) + ' » est déjà dans ta base avec ce SIRET : l’affaire portera sur lui.');
+      return;
+    }
+    if (parNom(x.nom)) {
+      S.choix.confirme = S.choix.confirme === i ? null : i;
+      peindrePropositions();
+      var oui = el('affPropositions') && el('affPropositions').querySelector('[data-aff="confirmeOui"]');
+      if (oui) oui.focus();
       return;
     }
     ouvrirFiche({ affNom: x.nom, affSiret: x.siret, affAdresse: x.adresse, affCp: x.code_postal, affVille: x.ville });
@@ -1028,6 +1089,16 @@
     affaire.titre = v('affIntitule') || nom;
     var sansSiret = false;
     try {
+      /* Le client choisi est un nouveau client sans SIRET, reconnu dans l'annuaire :
+         on complete sa fiche, champ vide par champ vide, jamais par-dessus une saisie. */
+      if (ch.client && ch.completer && ch.client.genre === 'piste') {
+        var p0 = S.pistes[ch.client.id] || {}, comp = {};
+        Object.keys(ch.completer).forEach(function (k) { if (ch.completer[k] && !p0[k]) comp[k] = ch.completer[k]; });
+        if (Object.keys(comp).length) {
+          try { await modifier('pistes', 'piste_id', ch.client.id, comp); }
+          catch (e) { if (!/siret|adresse/.test(String(e && e.detail || ''))) throw e; sansSiret = true; }
+        }
+      }
       if (piste) {
         try { await creer('pistes', [piste]); }
         catch (e) {
@@ -1265,6 +1336,7 @@
       if (quoi === 'vue') { viderAttente(); poserVue(b.getAttribute('data-vue')); rendre(); return; }
       if (quoi === 'prendreSiret') { prendreSiret(+b.getAttribute('data-i')); return; }
       if (quoi === 'prendreClient') { prendreClient(trouverConnu(b.getAttribute('data-genre'), b.getAttribute('data-id'))); return; }
+      if (quoi === 'confirmeOui' || quoi === 'confirmeNon') { confirmer(quoi === 'confirmeOui'); return; }
       if (quoi === 'creerMain') { ouvrirFiche({ affNom: (el('affCherche') || {}).value || '' }); return; }
       if (quoi === 'lacherClient' || quoi === 'lacherNouveau') {
         S.choix.client = null; S.choix.nouveau = false; peindreChoix();
@@ -1324,7 +1396,7 @@
     });
     c.addEventListener('input', function (ev) {
       var t = ev.target;
-      if (t.id === 'affCherche') { peindrePropositions(); return; }
+      if (t.id === 'affCherche') { if (S.choix) S.choix.confirme = null; peindrePropositions(); return; }
       if (t.classList && t.classList.contains('aff-change-q')) { peindreChangement(t); return; }
       if (t.id === 'affNom' || t.id === 'affSiret') signalerDoublon();
     });
@@ -1403,6 +1475,6 @@
     rendre();
   }
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, MODELES: MODELES, _deplacer: function (id, e) {
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, MODELES: MODELES, _nomsProches: nomsProches, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();
