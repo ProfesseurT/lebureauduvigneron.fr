@@ -4644,19 +4644,23 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
    Dix cellules ne tiennent pas dans 390 px : on en voyait cinq, la cinquieme
    coupee, et la barre glissait vers la piece ouverte, donc aucune icone n'etait
    jamais au meme endroit. Les quatre du geste quotidien restent fixes, choisies
-   sur `data-piece` ; sans Vitisoft « Mes clients » disparait et il en reste trois.
+   sur `data-piece`.
+   MON COMMERCE PREND LA PLACE FIXE DE « MES CLIENTS », 29/09/2026, LOT 44, decision
+   de Ted : les quatre fixes sont journee, taches, calendrier et `clients` (Mon
+   commerce), l'annuaire passe derriere « Plus ». `clients` n'est plus `viti` : sans
+   Vitisoft les quatre restent. L'ordre visuel suit le DOM, rien n'a bouge.
    Ouvert, le reste monte AU-DESSUS de la rangee fixe, quatre par ligne, avec son
    nom : une icone qu'on ne voit qu'une fois par semaine ne se reconnait pas.
    On ne DEPLACE aucune ligne : l'ordre du DOM est celui que les bancs controlent.
    Au-dessus de 700 px la case « Plus » n'existe pas. */
 .bdv-coque .bureau-nav__plus-l{ display:none; }
 @media (max-width:700px){
-  body.bdv-poste.bdv-coque .bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="annuaire"]){ display:none; }
+  body.bdv-poste.bdv-coque .bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="clients"]){ display:none; }
   body.bdv-poste.bdv-coque .bureau-nav__plus-l{ display:block; flex:1 1 20%; min-width:var(--bdv-cible); }
   body.bdv-poste.bdv-coque .bureau-nav__ligne{ flex:1 1 20%; }
   /* La piece ouverte est rangee derriere « Plus » : la case le dit, sinon rien
      dans la barre ne dirait ou l'on est. */
-  body.bdv-poste.bdv-coque .bureau-nav__liste:has(.bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="annuaire"]) .bureau-nav__item--actif) .bureau-nav__plus{ color:var(--bdv-accent); }
+  body.bdv-poste.bdv-coque .bureau-nav__liste:has(.bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="clients"]) .bureau-nav__item--actif) .bureau-nav__plus{ color:var(--bdv-accent); }
   body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__liste{
     flex-wrap:wrap;
     overflow:visible;
@@ -4667,7 +4671,7 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
   body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne,
   body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__plus-l{ order:1; }
   body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__liste::after{ content:""; order:0; flex:0 0 100%; }
-  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="annuaire"]):not([hidden]){
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne:not([data-piece="journee"]):not([data-piece="taches"]):not([data-piece="calendrier"]):not([data-piece="clients"]):not([hidden]){
     display:block;
     order:-1;
     flex:0 0 25%;
@@ -4684,7 +4688,7 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
     font-size:var(--bdv-f-1);
     text-align:center;
   }
-  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne:is([data-piece="journee"],[data-piece="taches"],[data-piece="calendrier"],[data-piece="annuaire"]) .bureau-nav__nom{ display:none; }
+  body.bdv-poste.bdv-coque .bureau-nav--ouverte .bureau-nav__ligne:is([data-piece="journee"],[data-piece="taches"],[data-piece="calendrier"],[data-piece="clients"]) .bureau-nav__nom{ display:none; }
 }
 
 /* -- 29.9 LE SOUS-MAIN SUR DEUX LIGNES, 25/09/2026, arbitrage de Ted. En tableau,
@@ -5404,19 +5408,41 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
    (« Clients a suivre » fait environ 130 px en --bdv-f-3) : pas de retour a la
    ligne, `nowrap` et le defilement horizontal en dernier recours seulement.
    ========================================================================== */
+/* LE FILET DE LA BARRE EST UN FOND, PAS UNE BORDURE, 29/09/2026, lot 44. En bordure,
+   il passait SOUS les onglets et le trait actif devait deborder de 1 px
+   (`margin-bottom:-1px`) pour le couvrir : `overflow-x:auto` rognait ce pixel et le
+   trait ne faisait que 1 px a l'ecran. Le filet est maintenant peint dans la boite de
+   la barre, sur son dernier pixel (degrade a deux arrets identiques, meme recette que la
+   section 28), et la bordure de 2 px de l'onglet actif le recouvre de l'interieur. Plus rien
+   ne depend d'un debordement. Aucune epaisseur nouvelle : 1 px et 2 px existent.
+   L'ECART ENTRE DEUX MOTS EST DE 24 px (gap --bdv-e-4 et 4 px de retrait de chaque onglet) :
+   voir `.com-onglet` dessous. */
 .bdv-coque .com-onglets{
   display:flex;
-  gap:var(--bdv-e-1);
-  margin:0 0 var(--bdv-e-4);
-  border-bottom:1px solid var(--bdv-trait);
+  gap:var(--bdv-e-4);
+  margin:0 calc(-1 * var(--bdv-e-1)) var(--bdv-e-4);
+  background-image:linear-gradient(var(--bdv-trait),var(--bdv-trait));
+  background-repeat:no-repeat;
+  background-position:left bottom;
+  background-size:100% 1px;
   overflow-x:auto;
 }
 .bdv-coque .com-onglets[hidden]{ display:none; }
+/* LE TEXTE DU PREMIER ONGLET SUR LE BORD DU CONTENU, 29/09/2026, lot 44. Le padding
+   horizontal de 12 px decalait « A gagner » de 12 px a droite du contenu dessous. Les
+   onglets n'ont plus de padding lateral : le texte part du bord, le trait fait la
+   largeur du mot, et l'ecart entre deux mots (4 + 12 + 12 = 28 px avant) est tenu par
+   le `gap` de la barre, 24 px. Pas de marge negative : dans une barre en
+   `overflow-x:auto`, elle serait rognee a gauche. La cible garde 44 px de haut
+   (min-height) et plus de 44 px de large (le mot le plus court fait environ 65 px).
+   L'ANNEAU DE FOCUS TOUCHAIT LES LETTRES, meme jour : 4 px de retrait lateral sur
+   l'onglet (--bdv-e-1), rendus par -4 px de marge sur la BARRE et non sur l'onglet (la
+   barre defile, elle ne rogne donc que ce qu'elle contient). Le texte reste sur le bord
+   du contenu, et l'ecart entre deux mots reste a 24 px : 4 + 16 (gap) + 4. */
 .bdv-coque .com-onglet{
   flex:0 0 auto;
   min-height:var(--bdv-cible);
-  margin-bottom:-1px;
-  padding:var(--bdv-e-2) var(--bdv-e-3);
+  padding:var(--bdv-e-2) var(--bdv-e-1);
   border:0;
   border-bottom:2px solid transparent;
   background:none;

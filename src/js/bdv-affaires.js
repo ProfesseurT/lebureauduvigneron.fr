@@ -216,6 +216,17 @@
     if (a.piste_id) { var p = S.pistes[a.piste_id]; return p ? p.nom : 'Piste'; }
     return a.client_nom || ('Client n°' + a.client_id);
   }
+  /* LE CLIENT VITISOFT DE L'AFFAIRE, 29/09/2026 (lot 44) : celui dont on peut ouvrir la
+     fiche. Une affaire sur un client existant le porte ; une piste le porte aussi une
+     fois devenue cliente (`pistes.client_id`). Un nouveau client n'en a pas : il n'a
+     pas encore de fiche. Sans Vitisoft non plus, il n'y a pas de fiche a ouvrir. */
+  function clientDe(a) {
+    if (!a) return null;
+    if (window.BdvNav && BdvNav.avecVitisoft && !BdvNav.avecVitisoft()) return null;
+    if (a.client_id) return String(a.client_id);
+    var p = a.piste_id && S.pistes[a.piste_id];
+    return p && p.client_id ? String(p.client_id) : null;
+  }
   /* A RELANCER : un rappel passe ou du jour. ENDORMIE : aucun rappel a venir, et
      plus longtemps dans l'etape que le delai du type. Une affaire qui a une date
      de rappel dans trois mois n'est PAS endormie : le client a dit « rappelez en
@@ -744,12 +755,16 @@
     }).join('');
     return '<form class="aff-form" id="affFormeClient" novalidate>'
       + '<p class="aff-form__t hors-ecran">Nouvelle affaire chez ' + esc(c.nom || ('le client n°' + c.id)) + '</p>'
+      /* LA RAISON DE « CLIENTS A SUIVRE » (lot 44) : lue a l'ecran, jamais ecrite en base.
+         Seul le pretexte propose peut partir, dans le motif du rappel, s'il le garde. */
+      + (c.raison ? '<p class="aff-aide">Dans tes clients à suivre : ' + esc(c.raison) + (c.enjeu ? ', ' + esc(c.enjeu) : '') + '.</p>' : '')
       + '<label class="aff-champ"><span>Ce que tu veux lui faire prendre</span>'
       + '<input id="affTitreClient" type="text" maxlength="120" autocomplete="off" placeholder="Le rosé, le magnum, la cuvée export…" required></label>'
       + '<div class="aff-duo"><label class="aff-champ"><span>Type d’affaire</span><select id="affTypeClient">' + options + '</select></label>'
       + '<label class="aff-champ"><span>Je le rappelle le</span><input id="affRappelClient" type="date" value="' + jourIso(dans7) + '" required></label></div>'
       + '<label class="aff-champ"><span>Pour quoi faire (facultatif)</span>'
-      + '<input id="affMotifClient" type="text" maxlength="120" placeholder="Lui faire goûter, lui envoyer le tarif…"></label>'
+      + '<input id="affMotifClient" type="text" maxlength="120" placeholder="Lui faire goûter, lui envoyer le tarif…"'
+      + (c.pretexte ? ' value="' + esc(c.pretexte) + '"' : '') + '></label>'
       + '<div class="aff-form__pied"><button type="submit" class="btn btn--bordeaux">Créer l’affaire</button>'
       + '<button type="button" class="btn" data-aff="annulerNouvelle">Annuler</button></div>'
       + '</form>';
@@ -828,6 +843,7 @@
     var liens = '';
     if (p && p.telephone) liens += '<a class="btn" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
     if (p && p.email) liens += '<a class="btn" href="mailto:' + esc(p.email) + '">Écrire à ' + esc(p.email) + '</a>';
+    if (clientDe(a)) liens += '<button type="button" class="btn" data-aff="voirFiche">Voir sa fiche</button>';
     var motifs = MOTIFS.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('');
     return '<form class="aff-edit" data-edit="' + a.affaire_id + '" novalidate>'
       + (liens ? '<div class="aff-edit__liens">' + liens + '</div>' : '')
@@ -1297,6 +1313,46 @@
     await charger(); rendre();
   }
 
+  /* « VOIR SA FICHE », 29/09/2026 (lot 44). UNE SEULE BOITE A LA FOIS : le panneau et
+     la fiche passent tous deux par `BdvTiroir`, on ferme donc le panneau (l'etape en
+     attente part avec) avant de demander la fiche au SEUL ouvreur du bureau,
+     `window.bdvOuvrirFiche`. Il rend une promesse : `false` si le moteur ne connait pas
+     ce client sur cet appareil, 'panne' si le reseau a lache. On le DIT ici, parce que
+     c'est d'ici qu'est parti le clic : son propre avis vit dans « Ma journee ». */
+  function voirFiche(a) {
+    var id = clientDe(a);
+    if (!id) return;
+    viderAttente();
+    fermerPanneau();
+    var ouvreur = window.bdvOuvrirFiche;
+    if (typeof ouvreur !== 'function') {
+      direVisible('Sa fiche ne s’ouvre pas d’ici. Tu la trouves dans « Clients à suivre » ou « Mes clients ».');
+      return;
+    }
+    /* LES MOTS SONT CEUX DE L'OUVREUR (`motInconnu`, `motPanne`, mon-bureau.njk) : un seul
+       texte pour dire la meme panne, ou qu'on ait clique. `muet` lui dit de ne pas ecrire
+       aussi dans l'avis de « Ma journee », qu'on retrouverait au retour. */
+    var panne = ouvreur.motPanne || 'Sa fiche n’a pas pu s’ouvrir : vérifie ta connexion et réessaie.';
+    var r;
+    try { r = ouvreur(id, null, null, { muet: true }); } catch (e) { r = 'panne'; }
+    return Promise.resolve(r).then(function (ok) {
+      if (ok === false) direVisible(ouvreur.motInconnu || 'Sa fiche ne s’ouvre pas d’ici.');
+      else if (ok === 'panne') direVisible(panne);
+    }, function () { direVisible(panne); });
+  }
+  /* UN AVIS HORS DE L'ECRAN N'EST PAS DIT, 29/09/2026 (lot 44). A 390 px, page descendue,
+     `#affAvis` est au-dessus de ce qu'on voit : on l'amene au milieu de l'ecran (le haut
+     passerait sous l'en-tete colle), sans animation si le vigneron les a coupees. Le
+     panneau est ferme a ce moment-la : modale ou tiroir, c'est le meme avis de la page. */
+  function direVisible(html) {
+    dire(html, true);
+    var n = (panneauVoulu() && el('amodAvis')) || el('affAvis');
+    if (!n || n.hidden || typeof n.scrollIntoView !== 'function') return;
+    var calme = false;
+    try { calme = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+    try { n.scrollIntoView({ block: 'center', behavior: calme ? 'auto' : 'smooth' }); } catch (e) {}
+  }
+
   function affaireDe(n) {
     var li = n.closest('[data-affaire]');
     var id = li && li.getAttribute('data-affaire');
@@ -1351,6 +1407,7 @@
         return;
       }
       if (quoi === 'suivante' && a) { suivante(a); return; }
+      if (quoi === 'voirFiche' && a) { voirFiche(a); return; }
       if (quoi === 'gagnee' || quoi === 'perdue') {
         var f = b.closest('form');
         [].forEach.call(f.querySelectorAll('[data-confirme]'), function (n) {
@@ -1465,13 +1522,28 @@
       if (c && c.id) { S.clientPropose = c; S.nouvelle = 'client'; }
     } catch (e) {}
   }
+  /* « VOIR SON AFFAIRE » DEPUIS « CLIENTS A SUIVRE », 29/09/2026 (lot 44) : le client a
+     deja une affaire en cours, on l'ouvre plutot que d'en creer une deuxieme. Meme
+     passage par sessionStorage, pour la meme raison que la fiche. */
+  function lireAffaireDemandee() {
+    try {
+      var id = sessionStorage.getItem('bdv_affaire_ouvrir');
+      if (!id) return null;
+      sessionStorage.removeItem('bdv_affaire_ouvrir');
+      return id;
+    } catch (e) { return null; }
+  }
 
   async function ouvrir() {
     lireClientPropose();
+    var demandee = lireAffaireDemandee();
     brancher();
     rendre();
     if (!pret()) { dire('Ton bureau n’est pas encore raccordé. Reviens dans un instant.', true); return; }
     await charger();
+    if (demandee && !S.nouvelle && S.affaires.some(function (a) { return a.affaire_id === demandee && a.issue === 'en_cours'; })) {
+      S.ouverte = demandee;
+    }
     rendre();
   }
 

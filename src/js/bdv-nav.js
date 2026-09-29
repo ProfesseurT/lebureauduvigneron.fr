@@ -1391,6 +1391,9 @@
 
   window.BdvNav = { pieces: PIECES, monter: monter, libelle: libelle,
                     sansVitisoft: sansVitisoft, afficher: afficher,
+                    /* Lecture seule (lot 44) : « Voir sa fiche » d'une affaire ne se montre
+                       pas sans Vitisoft, il n'y a pas de fiche client a ouvrir. */
+                    avecVitisoft: function () { return !SANS_VITI; },
                     marquerActif: marquerActif, ventesEnVue: ventesEnVue,
                     ouvrirReglages: ouvrirReglages,
                     chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe };

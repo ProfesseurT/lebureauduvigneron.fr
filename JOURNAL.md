@@ -12,6 +12,22 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 29/09/2026, lot 44 : passer d'un client à une affaire, et retour
+
+Fait par trois agents à la suite (barre et onglets, gestes, vérification), puis une passe de corrections sur les
+neuf défauts trouvés par le vérificateur.
+
+- À 390 px, « Mon commerce » prend la place fixe de « Mes clients » dans la barre du bas.
+- Onglets : trait actif à 2 px réels, texte aligné au bord du contenu, anneau de focus dégagé des lettres.
+- « En faire une affaire » sur chaque client à suivre, avec la raison, l'enjeu et un prétexte prérempli ;
+  « Voir son affaire » quand elle existe déjà. « Voir sa fiche » depuis le panneau d'une affaire client.
+- Un défaut plus ancien et grave trouvé en route : hors ligne, la fiche client figeait l'onglet (requêtes et
+  redessins en boucle). Corrigé, gardé par un banc.
+- Écartés, à trancher avec Ted : « Nouvelle affaire » sur la fiche d'un client qui en a déjà une, filtre de
+  « Voir ses N affaires », trois détails de la barre du bas à 390 px.
+
+---
+
 ## 29/09/2026, Mon commerce et Mes affaires ne font plus qu'une pièce
 
 Demande de Ted : mixer le travail d'un commercial sur les clients existants, les prospects et les affaires

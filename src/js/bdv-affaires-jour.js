@@ -25,6 +25,7 @@
 
   var EN_COURS = null;   // null = pas encore lu ; [] = lu, rien en cours
   var NOMS = {};         // piste_id -> nom
+  var CLIENT_DE = {};    // piste_id -> client_id, pour une piste devenue cliente (lot 44)
 
   /* LA FAMILLE « MES AFFAIRES », LOT 37 (28/09/2026). Elle rejoint la liste unique des
      familles, celle que lisent le filtre du calendrier et celui de « Mes taches ».
@@ -66,13 +67,13 @@
         + '&issue=eq.en_cours&bureau=eq.' + encodeURIComponent(b));
       if (aff == null) return false;
       var ids = aff.map(function (a) { return a.piste_id; }).filter(Boolean);
-      var noms = {};
+      var noms = {}, clients = {};
       if (ids.length) {
-        var ps = await BdvCompte.api('/pistes?select=piste_id,nom&bureau=eq.' + encodeURIComponent(b)
+        var ps = await BdvCompte.api('/pistes?select=piste_id,nom,client_id&bureau=eq.' + encodeURIComponent(b)
           + '&piste_id=in.(' + ids.map(encodeURIComponent).join(',') + ')');
-        (ps || []).forEach(function (p) { noms[p.piste_id] = p.nom; });
+        (ps || []).forEach(function (p) { noms[p.piste_id] = p.nom; if (p.client_id) clients[p.piste_id] = String(p.client_id); });
       }
-      EN_COURS = aff; NOMS = noms;
+      EN_COURS = aff; NOMS = noms; CLIENT_DE = clients;
       repeindre();
       return true;
     } catch (e) {
@@ -96,8 +97,11 @@
      qu'elle vient de relire, sans que la journee refasse une requete. */
   function poser(affaires, pistes) {
     EN_COURS = (affaires || []).filter(function (a) { return a.issue === 'en_cours'; });
-    NOMS = {};
-    Object.keys(pistes || {}).forEach(function (k) { NOMS[k] = pistes[k].nom; });
+    NOMS = {}; CLIENT_DE = {};
+    Object.keys(pistes || {}).forEach(function (k) {
+      NOMS[k] = pistes[k].nom;
+      if (pistes[k].client_id) CLIENT_DE[k] = String(pistes[k].client_id);
+    });
     repeindre();
   }
 
@@ -133,9 +137,15 @@
       href: '/mon-bureau/#affaires' }];
   }
 
+  /* LES AFFAIRES D'UN CLIENT : portees par son numero, OU par une piste devenue ce client
+     (`pistes.client_id`, lot 44). Sans la seconde, « Clients a suivre » lui proposait
+     d'en creer une deuxieme. */
   function duClient(cle) {
     if (!EN_COURS || cle == null) return [];
-    return EN_COURS.filter(function (a) { return a.client_id === String(cle); });
+    var c = String(cle);
+    return EN_COURS.filter(function (a) {
+      return (a.client_id != null && String(a.client_id) === c) || (!!a.piste_id && CLIENT_DE[a.piste_id] === c);
+    });
   }
 
   /* LES AFFAIRES DATEES, POUR LE CALENDRIER ET « MES TACHES ». Copies, jamais les

@@ -6687,7 +6687,7 @@ l'app d'ecran d'accueil et reste tel quel ; il sort sans rien faire sur un lien 
 
 ## LA BARRE DU BAS : QUATRE PIECES ET « PLUS », 25/09/2026
 
-Demande de Ted. Sous 700 px la barre montre Ma journee, Mes taches, Le calendrier et Mes clients,
+Demande de Ted. Sous 700 px la barre montre Ma journee, Mes taches, Le calendrier et Mon commerce (Mes clients jusqu'au lot 44, 29/09/2026),
 plus une case « Plus » (`#bureauNavPlus`, hors des `.bureau-nav__ligne` que les bancs comptent) qui
 ouvre le reste au-dessus, avec les noms. **Le choix des quatre est en CSS, sur `data-piece`**
 (section 29.8 de `bdv-bureau.css`), et aucune ligne n'est deplacee dans le DOM : l'ordre est celui
@@ -7132,6 +7132,41 @@ HubSpot, Pipedrive, Dynamics 365, Sellsy, Axonaut, Wineriz). Voir JOURNAL.md du 
   toujours l'ecran, mais ne touche ni a l'adresse, ni au defilement, ni a la barre quand `BdvNav.ventesEnVue()`
   est faux. (2) « Mettre a jour » s'allumait sur « A gagner » : `bdvMajBoutonMaj` recoit `affaires` quand cet
   onglet est ouvert. 4 controles dans `banc-bureau.mjs`, verifies par mutation.
-- Ouvert, a Ted : a 390 px, « Mon commerce » est derriere « Plus » dans la barre du bas (fixees : journee,
+- ~~Ouvert, a Ted~~ FERME AU LOT 44 : a 390 px, « Mon commerce » est derriere « Plus » dans la barre du bas (fixees : journee,
   taches, calendrier, Mes clients, decision du 25/09). Cosmetique : trait de l'onglet actif a 1 px au lieu de 2
   (`overflow-x:auto` rogne le `margin-bottom:-1px`), texte des onglets decale de 12 px (meme dessin que la fiche).
+
+### LOT 44 : LE PASSAGE ENTRE UN CLIENT ET UNE AFFAIRE (29/09/2026)
+
+- **Barre du bas sous 700 px** (section 29.8) : Ma journee, Mes taches, Le calendrier, MON COMMERCE, puis « Plus ».
+  « Mes clients » passe derriere « Plus ». Sans Vitisoft, les quatre restent (Mon commerce n'est pas viti).
+- **Onglets** (section 33) : le filet de la barre est un FOND de 1 px (linear-gradient), plus une bordure ; le
+  trait de l'onglet actif (2 px) est DANS la boite, donc `overflow-x:auto` n'a plus rien a rogner. Onglet a 4 px de
+  marge laterale (l'anneau de focus ne touche plus les lettres), compensee par -4 px sur la BARRE, jamais sur
+  l'onglet (rogne par le defilement). Mesure : texte de « A gagner » au bord du contenu, ecart 0, a 1440 et 390.
+- **« En faire une affaire »** sur chaque ligne de « Clients a suivre » : meme fonction que la fiche,
+  `ficheNouvelleAffaire()`, qui pose `bdv_affaire_client` (id, nom, raison, enjeu, pretexte). Le panneau affiche
+  « Dans tes clients a suivre : <raison>, <montant de la ligne> » et preremplit « Pour quoi faire » (un pretexte
+  par motif, moins de 40 signes, garde par `banc:commerce`). Rien de nouveau en base : le pretexte part dans
+  `rappel_titre`. Deja une affaire en cours : « Voir son affaire » (`bdv_affaire_ouvrir`), plusieurs : « Voir ses
+  N affaires ». `BdvAffairesJour.duClient()` compte aussi une piste devenue cliente (`pistes.client_id`).
+  Le libelle se met a jour EN PLACE sur `bdv:taches` (jamais outerHTML : le focus se perdrait).
+- **La ligne de « Clients a suivre » n'est plus `role=button`** : le NOM est le bouton, son calque `::after` rend la
+  ligne cliquable, geste et contacts repassent en `z-index:1`. Un interactif dans un interactif reste interdit.
+  La regle « un client une fois, l'affaire l'emporte » reste au lot 45 : aucun client n'est retire.
+- **« Voir sa fiche »** dans le panneau d'une affaire client (pas une piste « nouveau client », pas sans Vitisoft,
+  `BdvNav.avecVitisoft()`). Ordre : ecrire l'etape en attente, fermer le panneau (`BdvTiroir.retirer`), puis
+  `bdvOuvrirFiche(id, ..., {muet:true})`. **`bdvOuvrirFiche` rend une promesse** (true / false / 'panne') ; en
+  `muet` il n'ecrit rien dans `#bureauAvis`, et l'appelant dit lui-meme l'echec (`direVisible()`, qui ramene l'avis a
+  l'ecran). Les deux phrases vivent une seule fois dans l'ouvreur (`bdvOuvrirFiche.motInconnu` / `.motPanne`).
+  L'ancien texte « Ouvre Mon commerce une fois... » a disparu : il etait faux depuis que la fiche charge ses lignes.
+- **Defaut ANTERIEUR corrige en passant** (`bdv-annuaire.js`) : hors ligne, `lot33()` qui rend « je ne sais pas »
+  remettait `_pret` a rien, et chaque dessin de la fiche redemandait au serveur puis redessinait, en boucle :
+  ONGLET FIGE (mesure sur HEAD). Desormais une question par session, au plus une nouvelle tentative (geste
+  d'ecriture ou retour sur l'onglet), et seul un « oui » redessine. `banc:annuaire` section 7, par mutation.
+- Verifie : `verif` 45 etapes vertes (jouees une par une : le pont coupe a 180 s), captures clair/sombre 1440/390
+  dans `Claude outputs/lot44b-*.png`, clics reels, fiche hors ligne 10 s sans requete de plus.
+- **Ouvert, a Ted** : la fiche propose encore « Nouvelle affaire » chez un client qui en a deja une (anterieur) ;
+  « Voir ses N affaires » ouvre la piece sans filtrer ; barre du bas a 390 : fondu residuel sur « Plus », deux traits
+  sur la case active, « Mes reglages » decale de 10 px dans le menu ouvert (anterieurs, a regarder avec Ted).
+

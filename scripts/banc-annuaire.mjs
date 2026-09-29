@@ -99,6 +99,11 @@ const scenario = `
   window.__S = S;
   window.__x = function(code){ return eval(code); };
 `;
+/* LE MOTEUR DES VENTES DEMARRE SUR DOMContentLoaded (lot 44). Cette fenetre n'a pas
+   d'ecran #app : on laisse passer l'evenement AVANT de charger les scripts. Sans cela, il
+   tombait a la premiere attente d'une section suivante et arretait le banc. */
+if (dom.window.document.readyState === 'loading')
+  await new Promise(r => dom.window.document.addEventListener('DOMContentLoaded', r));
 try {
   w.eval(fs.readFileSync(R + 'bdv-base.js', 'utf8') + '\n' + fs.readFileSync(R + 'bdv-ecrans.js', 'utf8') + '\n'
     + fs.readFileSync(R + 'bdv-annuaire.js', 'utf8')
@@ -247,6 +252,81 @@ t('l\'ecriture groupee part en UNE requete, avec son bureau',
   w3.__REQ[3] && w3.__REQ[3].corps.length === 2 && /on_conflict=bureau,client_id/.test(w3.__REQ[3].chemin));
 await w3.BdvSync.lireVues();
 t('les vues se lisent dans le bureau courant', /\/vues_clients\?.*bureau=eq\.b1/.test(w3.__REQ[4].chemin), w3.__REQ[4].chemin);
+
+/* ---- 7. un « je ne sais pas » du lot 33 ne tourne pas en boucle (29/09/2026, lot 44) ----
+   Hors ligne, `lot33()` rend null. Avant, chaque dessin de fiche redemandait au serveur et
+   la reponse redessinait la fiche, qui redemandait : onglet fige. Verifie par mutation
+   (retour de l'ancien `_pret = null`, redessin sur un echec, relance sur `peindre()`,
+   tentatives illimitees) : chaque fois un controle ci-dessous echoue.
+   Les fenetres des sections d'avant sont FERMEES : leurs minuteries (le moteur des ventes
+   demarre en differe) tomberaient pendant les attentes de celle-ci. */
+w.close(); w2.close(); w3.close();
+console.log('== 7. Hors ligne : la fiche ne redemande pas le lot 33 en boucle ==');
+const d4 = new JSDOM(`<!doctype html><body>
+  <section class="panel on" id="p-annuaire"></section>
+  <div id="modale" class="bdv-ventes modale"></div>
+  <div id="status"></div><div id="statusTxt"></div><div id="statusSpin"></div>
+  <div id="busyov"></div><div id="busytxt"></div>
+</body>`, { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/' });
+const w4 = d4.window;
+/* Le moteur des ventes demarre sur DOMContentLoaded et veut tout l'ecran (#app) : on laisse
+   passer l'evenement AVANT de charger les scripts, cette fenetre ne teste que la fiche. */
+const charge = (d) => d.window.document.readyState !== 'loading' ? Promise.resolve()
+  : new Promise(r => d.window.document.addEventListener('DOMContentLoaded', r));
+await charge(d4);
+w4.Chart = function(){ this.destroy = () => {}; };
+w4.Papa = {};
+w4.__N33 = 0; w4.__DESSINS = 0; w4.__REPONSES = [null, null, null, null];
+w4.BdvSync = { pret: () => true, ecrireSuiviLot: async () => true, ecrireSuivi: async () => true, supprimerSuivi: async () => true,
+  lot33: async () => { w4.__N33++; return w4.__REPONSES.length ? w4.__REPONSES.shift() : null; }, lireVues: async () => null };
+w4.eval(fs.readFileSync(R + 'bdv-base.js', 'utf8') + '\n' + fs.readFileSync(R + 'bdv-ecrans.js', 'utf8') + '\n'
+  + fs.readFileSync(R + 'bdv-annuaire.js', 'utf8') + `
+  FICHE_ID = 'C1';
+  /* La vraie fiche redessine son suivi, qui rappelle blocFiche : on garde ce circuit. */
+  redessinerSuivi = function(id){ window.__DESSINS++; if(window.__DESSINS < 50) BdvAnnuaire.blocFiche(id, {}); };
+  window.__x4 = function(code){ return eval(code); };
+`);
+const tic = async (n) => { for (let i = 0; i < (n || 10); i++) await new Promise(r => setTimeout(r, 0)); };
+const visible = () => { Object.defineProperty(d4.window.document, 'visibilityState', { value: 'visible', configurable: true });
+  d4.window.document.dispatchEvent(new w4.Event('visibilitychange')); };
+for (let i = 0; i < 5; i++) { w4.__x4(`BdvAnnuaire.blocFiche('C1', {})`); await tic(1); }
+await tic();
+t('cinq dessins de fiche hors ligne : UNE seule question au serveur', w4.__N33 === 1, 'lot33 appele ' + w4.__N33 + ' fois');
+t('une reponse inconnue ne redessine rien (pas de boucle)', w4.__DESSINS === 0, w4.__DESSINS + ' redessins');
+w4.__x4(`BdvAnnuaire.peindre()`); await tic();
+for (let i = 0; i < 5; i++) { w4.__x4(`BdvAnnuaire.blocFiche('C1', {})`); await tic(1); }
+t('ni ouvrir « Mes clients » ni d\'autres dessins ne reposent la question', w4.__N33 === 1, 'lot33 appele ' + w4.__N33 + ' fois');
+visible(); await tic();
+t('le retour sur l\'onglet retente UNE fois', w4.__N33 === 2, 'lot33 appele ' + w4.__N33 + ' fois');
+visible(); await tic(); visible(); await tic();
+w4.__x4(`BdvAnnuaire.etiqueter(['C1'], 'vip', true)`); await tic();
+t('puis plus jamais, ni au retour, ni sur un geste d\'ecriture', w4.__N33 === 2, 'lot33 appele ' + w4.__N33 + ' fois');
+t('toujours inconnu : aucun redessin, et « Suivi par » ne se montre pas',
+  w4.__DESSINS === 0 && !/ficheProprio/.test(w4.__x4(`BdvAnnuaire.blocFiche('C1', {})`)), w4.__DESSINS + ' redessins');
+t('toujours inconnu : l\'attribution reste fermee', w4.__x4(`BdvAnnuaire._etat().LOT33`) === null);
+
+/* Un geste d'ecriture est l'autre porte de la nouvelle tentative, et un « oui » redessine. */
+const d5 = new JSDOM(`<!doctype html><body><section class="panel on" id="p-annuaire"></section>
+  <div id="modale" class="bdv-ventes modale"></div><div id="status"></div><div id="statusTxt"></div><div id="statusSpin"></div>
+  <div id="busyov"></div><div id="busytxt"></div></body>`, { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/' });
+const w5 = d5.window;
+await charge(d5);
+w5.Chart = function(){ this.destroy = () => {}; }; w5.Papa = {};
+w5.__N33 = 0; w5.__DESSINS = 0; w5.__REPONSES = [null, true];
+w5.BdvSync = { pret: () => true, ecrireSuiviLot: async () => true, ecrireSuivi: async () => true, supprimerSuivi: async () => true,
+  lot33: async () => { w5.__N33++; return w5.__REPONSES.length ? w5.__REPONSES.shift() : null; }, lireVues: async () => null };
+w5.eval(fs.readFileSync(R + 'bdv-base.js', 'utf8') + '\n' + fs.readFileSync(R + 'bdv-ecrans.js', 'utf8') + '\n'
+  + fs.readFileSync(R + 'bdv-annuaire.js', 'utf8') + `
+  FICHE_ID = 'C1';
+  redessinerSuivi = function(id){ window.__DESSINS++; };
+  window.__x5 = function(code){ return eval(code); };
+`);
+const tic5 = async () => { for (let i = 0; i < 10; i++) await new Promise(r => setTimeout(r, 0)); };
+w5.__x5(`BdvAnnuaire.blocFiche('C1', {})`); await tic5();
+w5.__x5(`BdvAnnuaire.etiqueter(['C1'], 'vip', true)`); await tic5();
+t('un geste d\'ecriture retente la question une fois', w5.__N33 === 2, 'lot33 appele ' + w5.__N33 + ' fois');
+t('et un « oui » redessine la fiche une fois', w5.__DESSINS === 1 && w5.__x5(`BdvAnnuaire._etat().LOT33`) === true, w5.__DESSINS + ' redessins');
+w4.close(); w5.close();
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');

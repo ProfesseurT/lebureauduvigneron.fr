@@ -1054,6 +1054,20 @@
 .bdv-ventes tr.annu__l{position:relative}
 .bdv-ventes .annu__nom::after{content:"";position:absolute;inset:0;z-index:1}
 .bdv-ventes tr.annu__l input,.bdv-ventes tr.annu__l button,.bdv-ventes tr.annu__l a:not(.annu__nom){position:relative;z-index:2}
+/* « Clients a suivre », 29/09/2026 (lot 44) : la rangee etait un `<tr role=button>` qui
+   portait deja des liens, et il fallait y poser « En faire une affaire ». Meme montage que
+   « Mes clients » : le NOM est le bouton qui ouvre la fiche, son calque couvre la rangee,
+   les contacts et le geste repassent au-dessus. */
+.bdv-ventes tr.suivre__l{position:relative}
+.bdv-ventes .suivre__nom{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.bdv-ventes .suivre__nom::after{content:"";position:absolute;inset:0}
+.bdv-ventes .suivre__nom:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+.bdv-ventes tr.suivre__l a,.bdv-ventes tr.suivre__l .suivre__geste{position:relative;z-index:1}
+.bdv-ventes .suivre__geste{margin-top:var(--bdv-e-2)}
+.bdv-ventes tr.suivre__l:has(:focus-visible) > td:first-child{
+  background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));
+  background-size:3px 100%;background-repeat:no-repeat;background-position:left top
+}
 /* Un signal qui porte un renvoi (« Voir la cuvee ») se clique en entier. */
 .bdv-ventes .signal:has(.signal__action a){position:relative}
 .bdv-ventes .signal .signal__action a:last-of-type::after{content:"";position:absolute;inset:0;z-index:1}

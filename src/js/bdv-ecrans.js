@@ -2999,12 +2999,52 @@ document.addEventListener('visibilitychange',function(){
    rien d'autre que le numero et le nom : Vitisoft fait foi pour le reste.
    Depuis le 29/09/2026 (lot 43), « Mes affaires » est l'onglet « A gagner » de « Mon
    commerce » : 'affaires' et #affaires y menent, bdv-nav.js les traduit. */
+/* « EN FAIRE UNE AFFAIRE », 29/09/2026 (lot 44) : les lignes de « Clients a suivre »
+   passent par ICI, le meme chemin que la fiche. Elles portent `data-suivre` et deux
+   choses de plus. (1) Si le client a DEJA une affaire en cours, on l'ouvre au lieu d'en
+   creer une deuxieme : relu au clic dans BdvAffairesJour, parce que la ligne a pu etre
+   peinte avant la lecture des affaires. (2) Sa raison (`data-motif`) : la piece la
+   montre, et propose un pretexte dans le motif du rappel, que le vigneron garde ou
+   efface. Rien d'autre n'est ecrit : ni colonne, ni champ nouveau. */
+/* Moins de 40 signes chacun : au-dela, le champ du rappel les coupait a l'ecran. */
+const PRETEXTES={recul:'Lui reproposer ce qu\'il prenait',
+  cadence:'Lui proposer sa commande habituelle',deuxieme:'Lui faire passer sa deuxième commande',
+  saison:'Lui proposer son réassort de saison',premier:'Le faire revenir une deuxième fois'};
+function affairesDuClient(id){
+  return (window.BdvAffairesJour&&BdvAffairesJour.duClient)?BdvAffairesJour.duClient(id):[];
+}
 function ficheNouvelleAffaire(b){
-  try{sessionStorage.setItem('bdv_affaire_client',JSON.stringify({id:b.getAttribute('data-id'),nom:b.getAttribute('data-nom')}));}catch(e){}
+  const id=b.getAttribute('data-id'),nom=b.getAttribute('data-nom'),m=b.getAttribute('data-motif'),enjeu=b.getAttribute('data-enjeu');
+  const deja=b.hasAttribute('data-suivre')?affairesDuClient(id):[];
+  try{
+    if(deja.length){if(deja.length===1)sessionStorage.setItem('bdv_affaire_ouvrir',deja[0].affaire_id);}
+    else sessionStorage.setItem('bdv_affaire_client',JSON.stringify(m&&MOTIFS[m]?{id,nom,raison:MOTIFS[m].label,enjeu:enjeu||'',pretexte:PRETEXTES[m]}:{id,nom}));
+  }catch(e){}
   if(pageFiche()){location.href='/mon-bureau/#affaires';return;}
-  fermerFiche();
+  if(el('modale')&&el('modale').classList.contains('on'))fermerFiche();
   if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('affaires');else location.hash='affaires';
 }
+/* Le libelle du geste : ce qui se passera au clic. Un client, une affaire (arbitrage du
+   28/09) : on ne propose pas d'en creer une de plus. */
+function libelleGeste(id){
+  const n=affairesDuClient(id).length;
+  return n>1?'Voir ses '+n+' affaires':(n?'Voir son affaire':'En faire une affaire');
+}
+/* L'enjeu est celui que la ligne affiche deja (montant et sa nature) : rien de recalcule. */
+function gesteAffaire(c){
+  return `<button type="button" class="btn btn--light btn--sm suivre__geste" data-suivre data-id="${esc(c.id)}" data-nom="${esc(c.nom)}" data-motif="${esc(c.motif)}" data-enjeu="${esc(fmtMoney(c.montant)+' '+c.lib)}" onclick="ficheNouvelleAffaire(this)">${libelleGeste(c.id)}<span class="hors-ecran">, ${esc(c.nom)}</span></button>`;
+}
+/* Les affaires arrivent souvent APRES la liste (amorcage, geste dans « A gagner ») :
+   `bdv:taches` est le signal que BdvAffairesJour fait deja passer apres chaque lecture.
+   On ne repeint que le LIBELLE, en place : remplacer le bouton ferait perdre le focus a
+   qui navigue au clavier, et un filtre tape ne se perd pas. */
+document.addEventListener('bdv:taches',function(){
+  const tb=el('clientsBody');if(!tb)return;
+  tb.querySelectorAll('.suivre__geste').forEach(function(b){
+    const t=b.firstChild,lib=libelleGeste(b.getAttribute('data-id'));
+    if(t&&t.nodeType===3){if(t.nodeValue!==lib)t.nodeValue=lib;}else b.insertBefore(document.createTextNode(lib),b.firstChild);
+  });
+});
 /* Les affaires en cours du client, lues par bdv-affaires-jour.js. Une ligne, pas un
    bloc : c'est un rappel de contexte, le travail se fait dans « Mes affaires ». */
 function ficheAffaires(f){
@@ -3938,7 +3978,7 @@ function agentClients(){
   D.decroche.forEach(c=>{
     if(vus.has(c.id))return;vus.add(c.id);
     out.push({id:c.id,nom:c.nom,motif:'recul',montant:c.perdu,
-      lib:'perdu à date égale',
+      lib:'perdus à date égale',
       detail:`${fmtMoney(c.prev)} ${exPrecedent()}, ${fmtMoney(c.cur)} ${exCe()} à date égale`,
       chance:null});
   });
@@ -4145,11 +4185,8 @@ function renderClients(){
     <div class="tablewrap"><table class="data data--sticky"><thead><tr>
       <th>Client</th><th>Contact</th><th>Raison</th><th class="num">Montant</th><th class="num">Chance</th>
       <th>Statut</th><th>Rappel</th><th>Étiquettes</th><th>Canal</th></tr></thead><tbody id="clientsBody">
-    ${liste.map(c=>{const s=CRM[c.id]||{};return `<tr class="clic" data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}"
-        tabindex="0" role="button" aria-label="Ouvrir la fiche de ${esc(c.nom)}"
-        onclick="ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}')"
-        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}');}">
-      <td>${esc(c.nom)}<span class="why">${esc(c.detail)}</span></td>
+    ${liste.map(c=>{const s=CRM[c.id]||{};return `<tr class="clic suivre__l" data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}">
+      <td><button type="button" class="suivre__nom" onclick="ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}')">${esc(c.nom)}<span class="hors-ecran">, ouvrir sa fiche</span></button><span class="why">${esc(c.detail)}</span>${gesteAffaire(c)}</td>
       <td>${contactCell(c.id)}</td>
       <td><span class="motif ${MOTIFS[c.motif].cls}">${MOTIFS[c.motif].label}</span></td>
       <td class="num">${fmtMoney(c.montant)}<span class="why">${c.lib}</span></td>

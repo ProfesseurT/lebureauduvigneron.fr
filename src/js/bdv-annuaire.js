@@ -466,6 +466,7 @@
      supprimer. */
   async function ecrireGroupe(ids, modifier, libelle){
     if(!ids.length) return;
+    retenter();   // un geste d'ecriture : la seule nouvelle question du lot 33 (voir preparer)
     const pleines = [], videes = [];
     ids.forEach(function(id){
       const c = Object.assign({}, CRM[id] || {});
@@ -646,15 +647,38 @@
 
   /* Le moment ou la piece se montre : on peint tout de suite, et ce qui vient du compte
      (lot 33, trombinoscope, vues) repeint en arrivant. Rien ne fait attendre la liste. */
-  let _pret = null;
+  /* UN « JE NE SAIS PAS » EST RETENU POUR LA SESSION, 29/09/2026, lot 44. Avant, une
+     reponse nulle du lot 33 (hors ligne) remettait `_pret` a rien : `blocFiche()`
+     redemandait, la reponse redessinait le suivi, qui rappelait `blocFiche()`... une
+     boucle sans fin, onglet fige. Maintenant :
+     - `_pret` n'est JAMAIS remis a rien : aucun dessin ne redemande ;
+     - une reponse inconnue ne redessine rien (seul un `true` change la fiche) ;
+     - UNE nouvelle tentative par session au plus, `retenter()`, sur un geste d'ecriture
+       (`ecrireGroupe()`) ou au retour de visibilite de l'onglet, jamais sur un dessin.
+     L'attribution reste fermee tant que LOT33 n'est pas `true` (`attribuer()`, lot 33), et
+     `bdv-sync.js` repose de lui-meme la question avant d'ecrire un proprietaire. */
+  let _pret = null, _repondu = false, _retente = false;
   function preparer(){
     if(_pret) return _pret;
     const attentes = [];
-    if(window.BdvSync && BdvSync.lot33) attentes.push(BdvSync.lot33().then(function(v){ LOT33 = v; }));
+    if(window.BdvSync && BdvSync.lot33) attentes.push(BdvSync.lot33().then(function(v){ LOT33 = v; }).catch(function(){}));
     if(window.BdvCompte && BdvCompte.trombinoscope) attentes.push(BdvCompte.trombinoscope().then(function(t){ TROMBI = t; }).catch(function(){}));
-    _pret = Promise.all(attentes).then(function(){ if(LOT33 === null) _pret = null; });   // un « je ne sais pas » se redemande
+    _pret = Promise.all(attentes).then(function(){ _repondu = true; });
     return _pret;
   }
+  function retenter(){
+    if(LOT33 !== null || !_repondu || _retente) return;
+    if(!(window.BdvSync && BdvSync.lot33)) return;
+    _retente = true;
+    BdvSync.lot33().then(function(v){
+      LOT33 = v;
+      if(v !== true) return;                     // toujours inconnu, ou refuse : rien a repeindre
+      const p = P();
+      if(p && p.classList.contains('on') && p.querySelector('.annu')){ repeindreBarres(); majListe(); }
+      if(typeof redessinerSuivi === 'function' && typeof FICHE_ID !== 'undefined' && FICHE_ID) redessinerSuivi(FICHE_ID);
+    }).catch(function(){});
+  }
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') retenter(); });
   function ouvrir(){
     try{
       const t = sessionStorage.getItem('bdv_annu_tag');
@@ -672,8 +696,10 @@
     let h = '';
     /* Ouverte depuis « Ma journee » ou en pleine page, la fiche arrive avant que la piece
        ait demande au compte si le lot 33 est passe : on le demande ici, et la fiche se
-       redessine a la reponse. Une seule fois par session. */
+       redessine a la reponse. Une seule fois par session : `_pret` n'est plus jamais
+       remis a rien (lot 44), et seule une reponse `true` redessine. */
     if(LOT33 === null && !_pret) preparer().then(function(){
+      if(LOT33 !== true) return;
       if(typeof redessinerSuivi === 'function' && typeof FICHE_ID !== 'undefined' && FICHE_ID === id) redessinerSuivi(id);
     });
     const t = TROMBI;

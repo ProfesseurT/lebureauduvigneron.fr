@@ -460,6 +460,134 @@ titre('Lot 40 : le panneau sur le cote, comme une tache ou un client');
   t('aucun onclick dans le panneau', !/\sonclick=/.test(panneau().innerHTML));
 }
 
+/* ---------------------------------------------------------------------------
+   LOT 44, 29/09/2026 : « VOIR SA FICHE » DEPUIS UNE AFFAIRE, ET LE CHEMIN INVERSE.
+   Verifie par mutation le 29/09/2026, un defaut a la fois : bouton montre a un
+   nouveau client, bouton montre sans Vitisoft, mauvais id passe a l'ouvreur,
+   panneau laisse ouvert sous la fiche, retour `false` passe sous silence, affaire
+   demandee par « Voir son affaire » non ouverte, pretexte non repris. Chaque fois
+   le controle vise echoue.
+   --------------------------------------------------------------------------- */
+titre('Lot 44 : « Voir sa fiche » depuis une affaire');
+{
+  const F = monter();
+  const trace = [];
+  let retour = true;
+  F.w.BdvTiroir = { actif: () => true, poser: () => true, retirer: () => { trace.push('retirer'); } };
+  const optsVus = [];
+  F.w.bdvOuvrirFiche = (id, cible, geste, opts) => { trace.push('fiche:' + id); optsVus.push(opts || null); return Promise.resolve(retour); };
+  /* Les phrases vivent sur l'ouvreur (mon-bureau.njk) : le banc en pose des temoins. */
+  F.w.bdvOuvrirFiche.motInconnu = 'TEMOIN-INCONNU';
+  F.w.bdvOuvrirFiche.motPanne = 'TEMOIN-PANNE';
+  const defiles = [];
+  F.w.Element.prototype.scrollIntoView = function (o) { defiles.push({ id: this.id, o: o || null }); };
+  let viti = true;
+  F.w.BdvNav = { avecVitisoft: () => viti };
+  F.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  F.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  F.base.pistes.push({ bureau: BUREAU, piste_id: 'pN', nom: 'Cave Neuve', opposition: false },
+                     { bureau: BUREAU, piste_id: 'pC', nom: 'Cave Devenue Cliente', client_id: 'C9', opposition: false });
+  const jour = new Date().toISOString();
+  F.base.affaires.push(
+    { bureau: BUREAU, affaire_id: 'aC', type_id: 't1', etape_id: 'e1', client_id: 'C7', client_nom: 'Chez Paul', titre: 'Le rosé', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aN', type_id: 't1', etape_id: 'e1', piste_id: 'pN', titre: 'Cave Neuve', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aP', type_id: 't1', etape_id: 'e1', piste_id: 'pC', titre: 'Cave Devenue Cliente', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  await F.w.BdvAffaires.ouvrir();
+  const panneau = () => F.doc.getElementById('affaireModale');
+  const bouton = () => panneau() && panneau().querySelector('[data-aff="voirFiche"]');
+  const ouvrirAff = (id) => { if (panneau() && !panneau().hidden) F.clic('#affaireModale .tmod__x'); F.clic('#affCorps [data-affaire="' + id + '"] [data-aff="ouvrir"]'); };
+
+  ouvrirAff('aC');
+  t('une affaire sur un client existant montre « Voir sa fiche »', !!bouton() && bouton().textContent === 'Voir sa fiche' && bouton().classList.contains('btn'));
+  ouvrirAff('aN');
+  t('un nouveau client, pas encore dans Vitisoft, n\'a pas de fiche : pas de bouton', !bouton());
+  ouvrirAff('aP');
+  t('une piste devenue cliente (pistes.client_id) mene aussi a sa fiche', !!bouton());
+  trace.length = 0;
+  bouton().click();
+  await attendre(10);
+  t('le clic appelle le seul ouvreur, avec le numero du client de la piste', trace.includes('fiche:C9'), trace.join(' '));
+
+  ouvrirAff('aC');
+  trace.length = 0;
+  bouton().click();
+  await attendre(10);
+  t('« Voir sa fiche » appelle bdvOuvrirFiche avec le bon numero', trace.filter(x => /^fiche:/.test(x)).join() === 'fiche:C7', trace.join(' '));
+  t('une seule boite a la fois : le panneau est ferme, et son tiroir retire, AVANT la fiche',
+    panneau().hidden && trace.indexOf('retirer') >= 0 && trace.indexOf('retirer') < trace.indexOf('fiche:C7'), trace.join(' '));
+  t('une fiche ouverte ne laisse aucun message', F.doc.getElementById('affAvis').hidden);
+
+  retour = false;
+  ouvrirAff('aC'); bouton().click();
+  await attendre(10);
+  t('un retour « false » de l\'ouvreur est DIT au vigneron, avec les mots de l\'ouvreur',
+    !F.doc.getElementById('affAvis').hidden && /TEMOIN-INCONNU/.test(avis(F)), avis(F));
+  t('l\'ouvreur est appele « muet » : l\'avis de Ma journee ne double pas celui-ci',
+    optsVus.length > 0 && optsVus.every(o => o && o.muet === true), JSON.stringify(optsVus));
+  const dv = defiles[defiles.length - 1];
+  t('l\'avis est amene a l\'ecran (page descendue a 390 px)', !!dv && dv.id === 'affAvis' && dv.o && dv.o.block === 'center', JSON.stringify(defiles));
+  t('en douceur si le vigneron n\'a rien coupe', !!dv && dv.o && dv.o.behavior === 'smooth');
+  F.w.matchMedia = (q) => ({ matches: /prefers-reduced-motion: reduce/.test(q), addEventListener() {}, removeEventListener() {} });
+  retour = 'panne';
+  ouvrirAff('aC'); bouton().click();
+  await attendre(10);
+  t('une panne de reseau aussi, avec les mots de l\'ouvreur', /TEMOIN-PANNE/.test(avis(F)), avis(F));
+  const dv2 = defiles[defiles.length - 1];
+  t('mouvements reduits : l\'avis vient sans animation', !!dv2 && dv2.o && dv2.o.behavior === 'auto', JSON.stringify(dv2));
+  delete F.w.matchMedia;
+  retour = true;
+  const garde = F.w.bdvOuvrirFiche; delete F.w.bdvOuvrirFiche;
+  ouvrirAff('aC'); bouton().click();
+  await attendre(10);
+  t('sans ouvreur dans la page, on le dit aussi', /ne s’ouvre pas d’ici/.test(avis(F)), avis(F));
+  F.w.bdvOuvrirFiche = garde;
+
+  viti = false;
+  ouvrirAff('aC');
+  t('sans Vitisoft, pas de « Voir sa fiche »', !bouton());
+  viti = true;
+  t('aucun onclick, aucun tiret cadratin', !/\sonclick=/.test(panneau().innerHTML) && !/—/.test(panneau().textContent));
+
+  /* Le chemin inverse : « Voir son affaire » depuis Clients a suivre. */
+  F.clic('#affaireModale .tmod__x');
+  F.w.sessionStorage.setItem('bdv_affaire_ouvrir', 'aC');
+  await F.w.BdvAffaires.ouvrir();
+  t('« Voir son affaire » ouvre CETTE affaire dans le panneau', !panneau().hidden && /Chez Paul/.test(panneau().querySelector('#amodTitre').textContent));
+  t('et le mot est consomme', F.w.sessionStorage.getItem('bdv_affaire_ouvrir') === null);
+  F.clic('#affaireModale .tmod__x');
+  F.w.sessionStorage.setItem('bdv_affaire_ouvrir', 'inconnue');
+  await F.w.BdvAffaires.ouvrir();
+  t('une affaire qui n\'est plus en cours n\'ouvre rien', panneau().hidden);
+
+  /* « En faire une affaire » : la raison se lit, le pretexte se propose. */
+  F.w.sessionStorage.setItem('bdv_affaire_client', JSON.stringify({ id: 'C5', nom: 'Bar du Coin', raison: 'Retard de cadence', enjeu: '1 200 € acheté au total', pretexte: 'Lui proposer sa commande habituelle' }));
+  await F.w.BdvAffaires.ouvrir();
+  t('la raison ET l\'enjeu de « Clients a suivre » sont ecrits dans le formulaire',
+    /Dans tes clients à suivre : Retard de cadence, 1 200 € acheté au total\./.test(panneau().textContent), panneau().textContent.slice(0, 200));
+  t('et son pretexte est propose dans « Pour quoi faire »', F.doc.getElementById('affMotifClient').value === 'Lui proposer sa commande habituelle');
+  F.doc.getElementById('affTitreClient').value = 'Le magnum';
+  F.doc.getElementById('affFormeClient').dispatchEvent(new F.w.Event('submit', { bubbles: true, cancelable: true }));
+  await attendre(20);
+  const cree = F.base.affaires.find(a => a.client_id === 'C5') || {};
+  t('le pretexte part dans le motif du rappel, aucun champ de plus', cree.rappel_titre === 'Lui proposer sa commande habituelle'
+    && !('raison' in cree) && !('pretexte' in cree), JSON.stringify(cree));
+}
+
+/* L'ouvreur du bureau doit RENDRE sa reponse, sinon l'appelant ne peut rien dire : lu
+   dans le gabarit, parce que ce banc ne monte pas mon-bureau.njk. Mutation verifiee. */
+{
+  const njk = fs.readFileSync(path.join(RACINE, 'src/mon-bureau.njk'), 'utf8');
+  const i = njk.indexOf('function ouvrirFiche(id, cible, geste');
+  const corps = i < 0 ? '' : njk.slice(i, njk.indexOf('window.bdvOuvrirFiche = ouvrirFiche', i));
+  t('les phrases de panne vivent sur l\'ouvreur, et le texte d\'avant la fusion est parti',
+    /ouvrirFiche\.motInconnu = MOT_INCONNU;/.test(njk) && /ouvrirFiche\.motPanne = MOT_PANNE;/.test(njk)
+    && /MOT_INCONNU = 'Ce client n’est pas dans les ventes de cet appareil\. Dépose ton dernier export Vitisoft, puis réessaie\.'/.test(njk)
+    && !/Ouvre « Mon commerce » une fois/.test(njk));
+  t('« muet » fait taire l\'avis de Ma journee', /if\(muet \|\| !av\) return;/.test(corps) && /var muet = !!\(opts && opts\.muet\);/.test(corps));
+  t('bdvOuvrirFiche rend sa promesse (true, false ou « panne »)',
+    /return BdvNav\.chargerEcrans\(\)/.test(corps) && /return false;/.test(corps) && /return 'panne';/.test(corps) && /if\(ok\) return true;/.test(corps));
+}
+
 titre('Les affaires dans « Ma journee » (bdv-affaires-jour.js)');
 {
   const J = new JSDOM('<!doctype html><body></body>', { runScripts: 'outside-only' });
@@ -485,6 +613,19 @@ titre('Les affaires dans « Ma journee » (bdv-affaires-jour.js)');
   const p2 = AJ.punaises();
   t('deux affaires dues : une seule punaise qui compte', p2.length === 1 && p2[0].valeur === '2' && p2[0].libelle === 'affaires à relancer', JSON.stringify(p2));
   t('la fiche du client retrouve son affaire', AJ.duClient('C1').length === 1 && AJ.duClient('C2').length === 0);
+  /* LOT 44 : une affaire portee par une PISTE DEVENUE CLIENTE compte pour ce client. */
+  AJ.poser([{ affaire_id: 'x5', issue: 'en_cours', titre: 'La carte', piste_id: 'p9' },
+            { affaire_id: 'x6', issue: 'en_cours', titre: 'Rien', piste_id: 'p8' }],
+           { p9: { nom: 'Cave Devenue', client_id: 'C9' }, p8: { nom: 'Toujours neuve' } });
+  t('une piste devenue cliente : son affaire compte pour le client (poser)', AJ.duClient('C9').length === 1 && AJ.duClient('C9')[0].affaire_id === 'x5');
+  t('une piste encore neuve ne compte pour personne', AJ.duClient('p8').length === 0 && AJ.duClient('undefined').length === 0);
+  const reqJ = [];
+  J.window.BdvCompte = { monBureau: () => 'b1', api: async (c) => { reqJ.push(c);
+    if (/^\/affaires/.test(c)) return [{ affaire_id: 'x7', titre: 'T', piste_id: 'p7', client_id: null, rappel: null }];
+    if (/^\/pistes/.test(c)) return [{ piste_id: 'p7', nom: 'Cave Lue', client_id: 'C77' }];
+    return []; } };
+  await AJ.charger();
+  t('la lecture demande le client de la piste, et s\'en sert (charger)', reqJ.some(c => /\/pistes\?select=[^&]*client_id/.test(c)) && AJ.duClient('C77').length === 1, reqJ.join(' ; '));
 }
 
 console.log('\n== VERDICT ==');

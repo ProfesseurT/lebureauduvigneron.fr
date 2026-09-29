@@ -1256,31 +1256,39 @@ theme_bureau: true
   {# `cible` dit OU ouvrir : null (en haut), 'suivi' (le bloc de suivi, curseur dans la
      zone de notes), 'message' (le redacteur, deplie). `geste` est le geste en attente :
      rien n'est ecrit tant que le vigneron n'a pas enregistre sa note. #}
-  function ouvrirFiche(id, cible, geste){
-    if(!id || FICHE_EN_COURS) return;
-    if(!window.BdvNav || !BdvNav.chargerEcrans) return;
+  {# Rend une promesse (lot 44) : true ouverte, false client inconnu ici, 'panne'.
+     `opts.muet` : l'appelant dit lui-meme la panne (A gagner), l'avis du sous-main se tait.
+     Les deux phrases vivent ICI, sur l'ouvreur, et l'appelant les reprend. #}
+  var MOT_INCONNU = 'Ce client n’est pas dans les ventes de cet appareil. Dépose ton dernier export Vitisoft, puis réessaie.';
+  var MOT_PANNE = 'Sa fiche n’a pas pu s’ouvrir : vérifie ta connexion et reclique.';
+  function ouvrirFiche(id, cible, geste, opts){
+    var muet = !!(opts && opts.muet);
+    if(FICHE_EN_COURS) return Promise.resolve(true);
+    if(!id || !window.BdvNav || !BdvNav.chargerEcrans) return Promise.resolve(false);
     FICHE_EN_COURS = id;
     var ligne = document.querySelector('.listb__l [data-fiche="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
     ligne = ligne ? ligne.closest('.listb__l') : null;
     attenteFiche(ligne, true);
-    var av = el('bureauAvis'); av.hidden = true;
+    var av = el('bureauAvis');
+    function avis(t){ if(muet || !av) return; av.textContent = t; av.hidden = !t; }
+    avis('');
 
-    BdvNav.chargerEcrans().then(function(){
+    return BdvNav.chargerEcrans().then(function(){
       if(typeof window.ouvrirFicheClient !== 'function') throw new Error('ecrans absents');
       return window.ouvrirFicheClient(id, { cible: cible, geste: geste, motif: motifDe(id) });
     }).then(function(ok){
       FICHE_EN_COURS = null;
       attenteFiche(ligne, false);
-      if(ok) return;
+      if(ok) return true;
       {# Le moteur a bien demarre, mais ce client n'est dans aucune ligne de vente de cet #}
       {# appareil. On ne bricole pas une demi-fiche : on dit ce qui manque et quoi faire. #}
-      av.textContent = 'Ce client n’est pas dans les ventes de cet appareil. Ouvre « Mon commerce » une fois pour récupérer tes lignes, puis reclique sur son nom.';
-      av.hidden = false;
+      avis(MOT_INCONNU);
+      return false;
     })['catch'](function(){
       FICHE_EN_COURS = null;
       attenteFiche(ligne, false);
-      av.textContent = 'Sa fiche n’a pas pu s’ouvrir : vérifie ta connexion et reclique.';
-      av.hidden = false;
+      avis(MOT_PANNE);
+      return 'panne';
     });
   }
 
@@ -1289,6 +1297,8 @@ theme_bureau: true
      savent charger le moteur et rattraper une panne de reseau, et ces deux-la
      divergeraient au premier message d'erreur reecrit. #}
   window.bdvOuvrirFiche = ouvrirFiche;
+  ouvrirFiche.motInconnu = MOT_INCONNU;
+  ouvrirFiche.motPanne = MOT_PANNE;
 
   {# Le bureau se repeint quand la fiche a ecrit quelque chose. C'est bdv-base.js qui
      appelle, APRES la reponse du serveur et jamais avant : repeindre sur l'optimisme
