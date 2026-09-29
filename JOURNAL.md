@@ -36,7 +36,8 @@ fabriquée à chaque commande (Sellsy le propose, ça fausse le taux de réussit
 **Lot 43 fait le même jour** : « Mes affaires » sort de la barre (10 pièces), « Mon commerce » n'est plus réservé à
 Vitisoft et porte deux onglets, « À gagner » et « Clients à suivre ». Le vérificateur a trouvé deux défauts que les
 bancs ne voyaient pas (l'adresse réécrite par un moteur en retard, le bouton « Mettre à jour » allumé sur les
-affaires), corrigés. Reste à trancher : la place de « Mon commerce » dans la barre du bas sur téléphone.
+affaires), corrigés. Tranché par Ted : sur téléphone, « Mon commerce » prendra la place de « Mes clients » dans la barre du bas. Ajouté
+au lot 44 avec les deux petits défauts des onglets (trait de 1 px, décalage de 12 px). Rien n'est construit avant.
 
 ---
 

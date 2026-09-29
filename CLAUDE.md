@@ -7086,6 +7086,11 @@ HubSpot, Pipedrive, Dynamics 365, Sellsy, Axonaut, Wineriz). Voir JOURNAL.md du 
 **Plan des lots :**
 - 43 : la piece fusionnee en deux onglets, barre de 11 a 10 pieces, `banc-bureau.mjs` suit.
 - 44 : « En faire une affaire » sur chaque client a suivre, « Voir sa fiche » depuis une affaire.
+  Ajoute au lot 44 par Ted le 29/09/2026 (a construire AVEC le lot, pas avant) :
+  - a 390 px, « Mon commerce » prend dans la barre du bas la place fixe de « Mes clients », qui passe
+    derriere « Plus » (defait la decision du 25/09 sur ce seul point) ;
+  - le trait de l'onglet actif a 2 px (aujourd'hui 1 px, rogne par `overflow-x:auto` sur `margin-bottom:-1px`) ;
+  - le texte des onglets aligne sur le contenu dessous (aujourd'hui decale de 12 px).
 - 45 : bilan commun en tete, regle « un client une fois », verdict deplace dans Mon cap.
 - 46 : emplacements « Nouveau devis » (affaire) et « Nouvelle commande » (fiche client), grises « bientot ».
 - 47 et suivants : devis, signature, fichier de commande Vitisoft, retour facture, script Solumatic.
