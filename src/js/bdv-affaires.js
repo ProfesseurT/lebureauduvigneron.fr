@@ -884,7 +884,8 @@
      `disabled` : un bouton desactive ne prend pas le focus et ne dit rien a celui qui
      le touche. Un client comme un nouveau client (un devis se fait aussi a un
      prospect) ; jamais sur une affaire close. Place sous « Enregistrer », au-dessus de
-     « Gagnee » : dans l'ordre du parcours, sans prendre la place du geste principal. */
+     « Gagnee » : dans l'ordre du parcours, sans prendre la place du geste principal. La phrase
+     tient en trois lignes a 390 px pour un nom de client d'une vingtaine de signes. */
   function htmlDevis(a) {
     if (!a || a.issue !== 'en_cours') return '';
     return '<div class="aff-devis"><button type="button" class="btn btn--bientot" data-aff="devis" aria-disabled="true"'
@@ -894,9 +895,18 @@
   function expliquerDevis(b, a) {
     var mot = b.parentNode.querySelector('.aff-devis__mot');
     if (!mot || !a) return;
-    mot.textContent = 'Bientôt : tu feras ici le devis de cette affaire. ' + sujet(a)
-      + ' le signera en ligne, puis le bureau te préparera la commande à importer dans Vitisoft.'
-      + ' En attendant, fais ton devis comme d’habitude et note son envoi dans les notes ci-dessus.';
+    mot.textContent = 'Bientôt : tu feras ici le devis, ' + sujet(a)
+      + ' le signera en ligne et la commande sera prête pour Vitisoft. En attendant, note ton devis dans Notes.';
+    montrer(mot);
+  }
+  /* LA PHRASE EST RAMENEE DANS LA VUE, dans le panneau qui defile (modale ou tiroir) :
+     sous « Enregistrer », elle tombait sous le bord a 1440 et coupee a 390. `nearest` :
+     on ne bouge que ce qu'il faut. Instantane si le vigneron a coupe les mouvements. */
+  function montrer(n) {
+    if (!n || typeof n.scrollIntoView !== 'function') return;
+    var calme = false;
+    try { calme = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+    try { n.scrollIntoView({ block: 'nearest', behavior: calme ? 'auto' : 'smooth' }); } catch (e) {}
   }
 
   /* CHANGER LE CLIENT D'UNE AFFAIRE, 28/09/2026 (lot 39) : on s'est trompe de fiche,

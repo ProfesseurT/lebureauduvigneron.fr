@@ -859,16 +859,21 @@ titre('Lot 46 : « Nouveau devis », un emplacement qui s\'explique');
     t('place : sous « Enregistrer », au-dessus de « Gagnée », dans son propre bloc', iP >= 0 && iD === iP + 1 && iC === iD + 1, [iP, iD, iC].join(','));
     t('« Enregistrer » reste le seul bouton plein du pied', f && f.querySelectorAll('.aff-form__pied .btn--bordeaux').length === 1 && !f.querySelector('.aff-form__pied [data-aff="devis"]')); }
   t('la ligne d\'explication existe AVANT l\'appui, vide, annoncee poliment', !!mot() && mot().getAttribute('aria-live') === 'polite' && mot().textContent === '' && !mot().hidden);
+  const defiles = [];
+  F.w.Element.prototype.scrollIntoView = function (o) { defiles.push({ n: this, o: o || null }); };
   const reqAvant = F.requetes.length; stockes.length = 0;
   b.focus();
   t('le bouton prend le focus', F.doc.activeElement === b);
   b.click();
   await attendre(20);
   const texte = mot() ? mot().textContent : '';
-  t('un appui ouvre l\'explication juste sous le bouton', /^Bientôt : tu feras ici le devis de cette affaire\. Chez Paul le signera en ligne/.test(texte)
+  t('un appui ouvre l\'explication juste sous le bouton', /^Bientôt : tu feras ici le devis, Chez Paul le signera en ligne/.test(texte)
     && b.nextElementSibling === mot(), texte);
-  t('elle dit le vrai chemin : la commande se prepare pour Vitisoft, le vigneron l\'importe', /commande à importer dans Vitisoft/.test(texte), texte);
-  t('et le geste d\'en attendant', /En attendant, fais ton devis comme d’habitude/.test(texte), texte);
+  t('elle dit le vrai chemin : la commande sera prete pour Vitisoft (pas envoyee)', /la commande sera prête pour Vitisoft\./.test(texte) && !/partira/.test(texte), texte);
+  t('et le geste d\'en attendant', /En attendant, note ton devis dans Notes\.$/.test(texte), texte);
+  t('courte : trois lignes a 390 px (moins de 150 signes avec « Chez Paul »)', texte.length <= 150, texte.length);
+  const dv = defiles.filter(d => d.n === mot()).pop();
+  t('la phrase est ramenee dans la vue, au plus pres, en douceur', !!dv && dv.o && dv.o.block === 'nearest' && dv.o.behavior === 'smooth', JSON.stringify(defiles.map(d => d.o)));
   t('ni date, ni « en un clic », ni tiret cadratin', !/\d|en un clic|—/.test(texte), texte);
   t('le bouton decrit par cette ligne (aria-describedby)', b.getAttribute('aria-describedby') === mot().id);
   t('aucune requete au serveur, ni par le compte ni en direct', F.requetes.length === reqAvant && directs.length === 0,
@@ -878,9 +883,12 @@ titre('Lot 46 : « Nouveau devis », un emplacement qui s\'explique');
 
   ouvrirAff('aN');
   t('nouveau client (piste) : « Nouveau devis » aussi, un devis se fait a un prospect', !!devis() && devis().getAttribute('aria-disabled') === 'true');
-  const r2 = F.requetes.length; stockes.length = 0;
+  const r2 = F.requetes.length; stockes.length = 0; defiles.length = 0;
+  F.w.matchMedia = (q) => ({ matches: /prefers-reduced-motion: reduce/.test(q), addEventListener() {}, removeEventListener() {} });
   devis().click();
   await attendre(20);
+  delete F.w.matchMedia;
+  t('mouvements reduits : ramenee sans animation', defiles.some(d => d.n === mot() && d.o && d.o.block === 'nearest' && d.o.behavior === 'auto'), JSON.stringify(defiles.map(d => d.o)));
   t('et l\'appui nomme le prospect, sans requete ni stockage', /Cave Neuve le signera/.test(mot().textContent) && F.requetes.length === r2 && stockes.length === 0,
     mot().textContent + ' / ' + (F.requetes.length - r2) + ' / ' + stockes.join(' '));
 

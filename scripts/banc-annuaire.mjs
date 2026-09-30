@@ -286,9 +286,12 @@ console.log('== 8. « Nouvelle commande » sur la fiche, dans ses trois contenan
     w.__x(`ouvrirFiche('C1','')`);
     const b = q8('#modale .fiche__actions [data-bientot="commande"]');
     const mot = q8('#modale #ficheBientot');
-    t(nom + ' : « Nouvelle commande » est dans la rangee des actions, apres « Nouvelle affaire »',
-      !!b && /^Nouvelle commande/.test(b.textContent.trim()) && b.previousElementSibling && /Nouvelle affaire/.test(b.previousElementSibling.textContent),
+    t(nom + ' : « Commande bientôt » est dans la rangee des actions, apres « Nouvelle affaire »',
+      !!b && /^Commande\s+bientôt$/.test(b.textContent.trim()) && b.previousElementSibling && /Nouvelle affaire/.test(b.previousElementSibling.textContent),
       b && b.outerHTML);
+    { const vu = b ? b.textContent.trim().replace(/\s+/g, ' ').toLowerCase() : '', nomA = b ? (b.getAttribute('aria-label') || '').toLowerCase() : '';
+      t(nom + ' : son nom accessible commence par le texte visible (WCAG 2.5.3) et dit « nouvelle commande »',
+        !!nomA && nomA.startsWith(vu) && /nouvelle commande/.test(nomA), nomA); }
     t(nom + ' : il dit « bientôt », aria-disabled="true" et PAS disabled', !!b && /bientôt/.test(b.textContent)
       && b.getAttribute('aria-disabled') === 'true' && !b.hasAttribute('disabled') && !b.disabled);
     t(nom + ' : pas dessine en bouton qui promet (ni plein, ni fantome)', !!b && b.classList.contains('btn--bientot')
@@ -296,14 +299,22 @@ console.log('== 8. « Nouvelle commande » sur la fiche, dans ses trois contenan
     t(nom + ' : la ligne d\'explication est la, vide, juste sous la rangee, annoncee poliment', !!mot && mot.textContent === ''
       && mot.getAttribute('aria-live') === 'polite' && !mot.hidden && b && b.parentNode.nextElementSibling === mot && b.getAttribute('aria-describedby') === mot.id);
     stockes.length = 0;
+    const defiles = [];
+    w.Element.prototype.scrollIntoView = function (o) { defiles.push({ n: this, o: o || null }); };
+    const calme = nom === 'en pleine page';
+    if (calme) w.matchMedia = (q) => ({ matches: /prefers-reduced-motion: reduce/.test(q), addEventListener() {}, removeEventListener() {} });
     b.focus();
     t(nom + ' : le bouton prend le focus', w.document.activeElement === b);
     b.click();
     await new Promise(r => setTimeout(r, 20));
+    if (calme) delete w.matchMedia;
     const txt = mot.textContent;
     t(nom + ' : un appui ouvre l\'explication, qui nomme le client', /^Bientôt : tu saisiras ici une commande pour Domaine Neuf, sans ouvrir d’affaire/.test(txt), txt);
-    t(nom + ' : le vrai chemin (fichier a importer dans Vitisoft) et le geste d\'en attendant',
-      /fichier à importer dans Vitisoft/.test(txt) && /En attendant, saisis-la dans Vitisoft comme d’habitude\./.test(txt), txt);
+    t(nom + ' : le vrai chemin (prete pour Vitisoft, pas envoyee) et le geste d\'en attendant',
+      /prête pour Vitisoft\./.test(txt) && !/partira/.test(txt) && /En attendant, saisis-la dans Vitisoft\.$/.test(txt), txt);
+    t(nom + ' : courte, trois lignes a 390 px (moins de 150 signes avec « Domaine Neuf »)', txt.length <= 150, txt.length);
+    t(nom + ' : la phrase est ramenee dans la vue, au plus pres' + (calme ? ', sans animation (mouvements reduits)' : ', en douceur'),
+      defiles.some(d => d.n === mot && d.o && d.o.block === 'nearest' && d.o.behavior === (calme ? 'auto' : 'smooth')), JSON.stringify(defiles.map(d => d.o)));
     t(nom + ' : ni date, ni « en un clic », ni tiret cadratin', !/\d|en un clic|—/.test(txt), txt);
     t(nom + ' : aucune ecriture, aucune requete, rien dans le stockage',
       w.__ECRITS.length === ecritsAvant && w.__SUPPR.length === supprAvant && reseau.length === 0 && stockes.length === 0,

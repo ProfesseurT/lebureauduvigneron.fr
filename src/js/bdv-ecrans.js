@@ -3132,13 +3132,20 @@ function ficheNouvelleAffaire(b){
    un geste. Decision de Ted : une commande sans affaire part de la fiche client et ne
    cree JAMAIS d'affaire. D'ici le lot qui la fabrique, le bouton explique et c'est tout :
    rien en base, rien dans le stockage. `aria-disabled` et pas `disabled`, pour qu'il
-   prenne le focus et reponde. Ecouteur delegue : la fiche est reecrite a chaque geste,
+   prenne le focus et reponde. Libelle court, « Commande bientot » (156 px) : il tient a
+   390 px sur la rangee de « Nouvelle affaire » ; le nom accessible commence par le texte
+   visible (WCAG 2.5.3) et dit le reste. Ecouteur delegue : la fiche est reecrite a chaque geste,
    et il vaut pour ses trois contenants (modale, tiroir, pleine page). */
 function ficheBientot(b){
   const mot=el('ficheBientot');if(!mot)return;
   mot.textContent='Bientôt : tu saisiras ici une commande pour '+(b.getAttribute('data-nom')||'ce client')
-    +', sans ouvrir d’affaire, et le bureau te préparera le fichier à importer dans Vitisoft.'
-    +' En attendant, saisis-la dans Vitisoft comme d’habitude.';
+    +', sans ouvrir d’affaire, prête pour Vitisoft. En attendant, saisis-la dans Vitisoft.';
+  /* Ramenee dans la vue, dans la boite qui defile (modale, tiroir) ou la page : sur une
+     fiche descendue, la ligne peut etre sous le bord. Instantane si mouvements reduits. */
+  if(typeof mot.scrollIntoView==='function'){
+    let calme=false;try{calme=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){}
+    try{mot.scrollIntoView({block:'nearest',behavior:calme?'auto':'smooth'});}catch(e){}
+  }
 }
 document.addEventListener('click',function(e){
   const b=e.target.closest&&e.target.closest('#modale [data-bientot="commande"]');if(b)ficheBientot(b);
@@ -3538,7 +3545,7 @@ function ficheHTML(f,motif){
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('note')">Noter un échange</button>
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('rappel')">Planifier un rappel</button>
       <button type="button" class="btn btn--ghost btn--sm" data-id="${esc(f.id)}" data-nom="${esc(f.nom)}" onclick="ficheNouvelleAffaire(this)">Nouvelle affaire</button>
-      <button type="button" class="btn btn--sm btn--bientot" data-bientot="commande" data-nom="${esc(f.nom)}" aria-disabled="true" aria-describedby="ficheBientot">Nouvelle commande <span class="btn__bientot">bientôt</span></button>
+      <button type="button" class="btn btn--sm btn--bientot" data-bientot="commande" data-nom="${esc(f.nom)}" aria-disabled="true" aria-describedby="ficheBientot" aria-label="Commande bientôt : nouvelle commande, pas encore disponible">Commande <span class="btn__bientot">bientôt</span></button>
     </div>
     <p class="fiche__bientot" id="ficheBientot" aria-live="polite"></p>
     ${ficheAffaires(f)}

@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 30/09/2026, lot 46 : les places du devis et de la commande
+
+- « Nouveau devis » dans le panneau d'une affaire en cours, « Commande bientôt » sur la fiche client. Visibles, pas
+  encore actifs : un appui dit ce qu'ils feront et quoi faire en attendant. Rien n'est écrit, rien ne part.
+- Une commande depuis la fiche ne crée jamais d'affaire (décision de Ted du 29/09).
+- Le commit 164f0fe porte le message du lot 45 mais contient la première version du lot 46 : le commit suivant
+  s'intitule bien « Lot 46 ».
+- Suivant : le lot 47, le devis lui-même.
+
+---
+
 ## 30/09/2026, lot 45 : un bilan commun, un client une seule fois, le verdict dans Mon cap
 
 Le conseil (vigneron + commercial) a écrit la spécification, deux agents l'ont codée, un troisième l'a vérifiée
