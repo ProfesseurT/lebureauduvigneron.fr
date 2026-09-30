@@ -296,6 +296,13 @@
      mensonge fait a la synthese vocale, et c'est le cas sans Vitisoft. */
   function poserOnglets(onglet) {
     ONGLET_COURANT = onglet || null;
+    /* LE BILAN COMMUN (lot 45) suit la piece, avec ou sans Vitisoft, sur les deux
+       onglets. bdv-affaires-jour.js le peint, et le recache s'il n'a rien a dire. */
+    var bilan = document.getElementById('bureauComBilan');
+    if (bilan) {
+      bilan.hidden = !onglet;
+      if (window.BdvAffairesJour && BdvAffairesJour.peindreBilan) { try { BdvAffairesJour.peindreBilan(); } catch (e) {} }
+    }
     var barre = document.getElementById('bureauComOnglets');
     if (!barre) return;
     var montrer = !!onglet && !SANS_VITI;
@@ -861,6 +868,12 @@
       return;
     }
 
+    /* REMONTER EN HAUT : un clic sur la barre (meme sur la piece ouverte), ou une coque des
+       ventes qui etait cachee (on arrive d'une autre piece). Sinon navTo() ne remonte que
+       s'il change d'ecran : un navTo repete sur l'ecran affiche ne touche plus au
+       defilement (verificateur du lot 45, 30/09/2026). RETOUR / SUIVANT : 'historique', et
+       navTo() remonte encore une image plus tard, APRES la restauration du navigateur. */
+    var haut = opts.historique ? 'historique' : (!!opts.barre || ventes.hidden);
     seule('ventes');
     if (onglet) poserOnglets(onglet);
     marquerActif(id);
@@ -907,14 +920,14 @@
       { cle: 'moteur', texte: 'Le moteur d\u2019analyse', faire: function () { return chargerEcrans(); } },
       { cle: 'ventes', texte: 'Tes ventes', faire: function (dire) {
           if (typeof window.demarrerEcransVente !== 'function') return false;
-          return window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id }, dire);
+          return window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id, haut: haut }, dire);
         } }
     ];
     var ouverture = window.BdvAmorce
       ? window.BdvAmorce.lancer(etapes)
       : chargerEcrans().then(function () {
           if (typeof window.demarrerEcransVente !== 'function') return;
-          return window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id });
+          return window.demarrerEcransVente(opts.client ? { client: opts.client } : { ecran: id, haut: haut });
         });
     ouverture.then(function (bilan) {
       attente(id, false);
@@ -956,7 +969,7 @@
 
   function suivreAdresse() {
     var a = lireAdresse();
-    afficher(a.id, { client: a.client, onglet: a.onglet, ecrire: false });
+    afficher(a.id, { client: a.client, onglet: a.onglet, ecrire: false, historique: true });
   }
 
   /* ---------------------------------------------------------------------------
@@ -1101,7 +1114,7 @@
       if (!id) return;
       e.preventDefault();
       /* « Mon commerce » depuis la barre reprend le dernier onglet ouvert (lot 43). */
-      afficher(id, id === 'clients' ? { barre: true } : undefined);
+      afficher(id, { barre: true });   // « Mon commerce » y reprend son dernier onglet (lot 43)
     });
 
     /* Le meme interception, mais pour TOUS les liens du bureau qui pointent une piece :
@@ -1395,6 +1408,7 @@
                        pas sans Vitisoft, il n'y a pas de fiche client a ouvrir. */
                     avecVitisoft: function () { return !SANS_VITI; },
                     marquerActif: marquerActif, ventesEnVue: ventesEnVue,
+                    ongletCourant: function () { return ONGLET_COURANT; },
                     ouvrirReglages: ouvrirReglages,
                     chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe };
 })();

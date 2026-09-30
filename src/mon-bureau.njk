@@ -692,6 +692,9 @@ theme_bureau: true
        #bureauAffaires juste dessous, « Clients a suivre » est #p-clients dans la coque des
        ventes. bdv-nav.js la montre, la cache (sans Vitisoft) et pose les roles de panneau
        (poserOnglets). Dessin : section 33 de bdv-bureau.css. #}
+    {# LE BILAN COMMUN, lot 45 (29/09/2026) : trois boutons au-dessus des onglets, peints par
+       bdv-affaires-jour.js, montres par poserOnglets(). Dessin : .aff-bilan, section 31. #}
+    <div class="aff-bilan" id="bureauComBilan" role="group" aria-label="Où en est ton commerce" hidden></div>
     <div class="com-onglets" id="bureauComOnglets" role="tablist" aria-label="Mon commerce" hidden>
       <button type="button" role="tab" class="com-onglet" id="comOngletGagner" data-onglet="gagner"
               aria-controls="bureauAffaires" aria-selected="true">À gagner</button>

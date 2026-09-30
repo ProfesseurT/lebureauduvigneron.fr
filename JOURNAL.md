@@ -12,6 +12,22 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 30/09/2026, lot 45 : un bilan commun, un client une seule fois, le verdict dans Mon cap
+
+Le conseil (vigneron + commercial) a écrit la spécification, deux agents l'ont codée, un troisième l'a vérifiée
+en navigateur six fois de suite ; chaque passe a trouvé quelque chose.
+
+- En tête de « Mon commerce » : affaires en cours, à relancer, clients à suivre. Chaque case mène à son nombre.
+  Sur téléphone, une seule rangée : « 3 en cours », « 2 à relancer », « 12 à suivre ».
+- « À relancer » compte la même chose partout (la pièce, le bilan, la punaise de Ma journée).
+- Un client qui a une affaire en cours sort de « Clients à suivre » et son motif s'affiche sur l'affaire.
+- « D'où vient ta variation » est dans Mon cap, avec un lien depuis Mon commerce qui amène vraiment au bon endroit.
+- En route : la page ne remonte plus toute seule quand on la fait défiler pendant le chargement.
+- Écartés, à trancher avec Ted : Ma journée et le courrier montrent encore les clients qui ont une affaire (il faut
+  du SQL) ; « 4 clients à rappeler » dans l'en-tête contre « 1 client à suivre » dans le bilan.
+
+---
+
 ## 29/09/2026, lot 44 : passer d'un client à une affaire, et retour
 
 Fait par trois agents à la suite (barre et onglets, gestes, vérification), puis une passe de corrections sur les

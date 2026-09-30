@@ -302,7 +302,7 @@ if(window.ResizeObserver){
 
 // Ne sort plus de l'application : le depot de fichier est un ecran comme un autre.
 function showImport(){ ouvrirPanneauReglages(); }
-function navTo(id){
+function navTo(id, opts){
   /* LE REPERAGE VIT DANS LA BARRE DU BUREAU. Trois endroits le portaient avant le lot 2d :
      le volet, le menu de secours et le libelle de la barre haute. Un seul le porte
      maintenant, et il n'est pas dans ce fichier. navTo est appele aussi de l'interieur des
@@ -324,6 +324,11 @@ function navTo(id){
      pour « Mon registre ». `runBusy` annonce l'attente quand il y a de quoi attendre ;
      sans lui, le premier clic sur « Mes cuvees » figerait la page une seconde et demie
      sans un mot, ce qui est exactement le reproche de Ted du 17/09. */
+  /* ON NE REMONTE QUE SI L'ECRAN CHANGE, ou sur demande explicite (`opts.haut` : clic sur
+     la barre, arrivee depuis une autre piece, voir afficher() de bdv-nav.js). L'amorce
+     rappelle navTo() sur l'ecran deja affiche ; il remontait la page sous le doigt du
+     vigneron qui venait de faire tourner la molette (verificateur du lot 45, 30/09/2026). */
+  const remonter = ECRAN_COURANT !== id || !!(opts && opts.haut);
   ECRAN_COURANT = id;
   if(enVue){ majBoutonMaj(id); majPeriodeTete(id); }
   if(PEINTRES[id] && !ECRANS_PEINTS.has(id)){
@@ -331,7 +336,17 @@ function navTo(id){
     else ecranPeindreQuandPret(id);
   }
   if(!enVue) return;
-  window.scrollTo(0,0);
+  if(remonter){
+    window.scrollTo(0,0);
+    /* RETOUR / SUIVANT (opts.haut === 'historique') : le navigateur restaure son ancien
+       defilement APRES nous. On remonte encore une image plus tard, en instantane. */
+    if(opts && opts.haut === 'historique'){
+      const image=window.requestAnimationFrame||function(f){setTimeout(f,16);};
+      image(function(){ if(ECRAN_COURANT===id){ try{window.scrollTo({top:0,behavior:'instant'});}catch(e){} } });
+    }
+  }
+  if(id==='annee') ouvrirPiedCap();   // « Voir dans Mon cap » (lot 45) : APRES le retour en haut
+  else PIED_CAP_DEMANDE=0;
   // L'ecran s'ecrit dans l'adresse. Trois consequences voulues : le bureau peut pointer
   // droit sur « Mes clients », le bouton Retour du navigateur circule dans l'outil, et un
   // vigneron peut mettre un ecran en favori. replaceState et pas pushState au premier
@@ -1362,14 +1377,19 @@ function computeBridge(){
   return{cur:f.cur,prev:f.prev,nw,up,down,lost,delta:nw+up+down+lost,movers,serveur:false};
 }
 
-// Synthese du bridge, en tete du Diagnostic. Quatre mouvements qui bouclent sur le total :
+// Synthese du bridge. Quatre mouvements qui bouclent sur le total :
 // chaque euro de variation est dans exactement une ligne, un client ne peut pas etre a la fois
 // perdu et en baisse. C'est ce qui en fait une lecture fiable, et pas une opinion de plus.
-function bridgeHero(){
-  const br=computeBridge();
+/* LE VERDICT EST PASSE DANS MON CAP, lot 45 (29/09/2026). « D'ou vient ta variation »
+   repond a « ou en est mon total », la question de « Mon cap », pas a « qui rappeler ».
+   Il est la PREMIERE carte de son etage 3 (#pied-cap). La fonction est coupee en deux :
+   le CORPS (le signal et le tableau des quatre mouvements), qui se pose tel quel dans le
+   repli de Mon cap, sans repli dans le repli ; et l'ENVELOPPE, `titreVariation()`, qui
+   donne son titre au repli. `pied-variation` a disparu avec l'ancien repli. « Clients a
+   suivre » garde une ligne de renvoi, `renvoiVariation()`, sans aucun chiffre. */
+function bridgeCorps(br){
   if(!br){
-    return replierVariation(`D'où vient ta variation`,
-      signal('info','ℹ','Décomposition indisponible.',`Il faut deux ${exMot()}s comparables dans la base pour savoir si ton chiffre bouge parce que tu gagnes des clients ou parce que tu en perds. Ajoute un export couvrant le précédent.`));
+    return signal('info','ℹ','Décomposition indisponible.',`Il faut deux ${exMot()}s comparables dans la base pour savoir si ton chiffre bouge parce que tu gagnes des clients ou parce que tu en perds. Ajoute un export couvrant le précédent.`);
   }
   const gagne=br.nw+br.up, perdu=Math.abs(br.down+br.lost);
   const ratio=perdu>0?gagne/perdu:null;
@@ -1382,7 +1402,7 @@ function bridgeHero(){
   }else if(ratio!=null&&ratio<0.95){
     kind='danger';ico='▼';
     verdict=`Tu perds plus que tu ne gagnes : ${fmtMoney(perdu)} perdus contre ${fmtMoney(gagne)} gagnés.`;
-    action=`<b>Action : traiter les départs avant de chercher de nouveaux clients.</b> Rappeler un client qui part coûte moins cher que d'en trouver un nouveau : ils sont dans la liste juste en dessous, filtres « Recul confirmé » et « Retard de cadence ».`;
+    action=`<b>Action : traiter les départs avant de chercher de nouveaux clients.</b> Rappeler un client qui part coûte moins cher que d'en trouver un nouveau : ils sont dans <b>Mon commerce</b>, onglet « Clients à suivre », filtres « Recul confirmé » et « Retard de cadence ».`;
   }else if(gagne<=0&&perdu<=0){
     kind='info';ico='ℹ';
     verdict=`Aucun mouvement de clientèle sur la période.`;
@@ -1405,8 +1425,7 @@ function bridgeHero(){
       <td>${lbl}${sub?`<span class="mini-line" style="display:block;margin:0">${sub}</span>`:''}</td>
       <td style="width:42%"><span style="display:block;height:9px;width:${barre(val,ech)}%;background:${pos?'var(--bdv-bon)':'var(--bdv-retard)'}"></span></td>
       <td class="num" style="color:${val===0?'inherit':(pos?'var(--bdv-bon)':'var(--bdv-retard)')};white-space:nowrap">${val===0?fmtMoney(0):(pos?'+':'-')+fmtMoney(Math.abs(val))}</td></tr>`;
-  return replierVariation(`D'où vient ta variation, ${exLabelCourt(br.prev)} vs ${exLabelCourt(br.cur)} à date égale : ${fmtDelta(br.delta)}`,
-    signal(kind,ico,verdict,action)
+  return signal(kind,ico,verdict,action)
     +`<div class="card"><div class="card__title"><span>Le détail, par mouvement de clientèle</span></div>
       <table class="data"><tbody>
       ${ligne('Clients nouveaux',br.nw,true,'ils n\'achetaient pas l\'an dernier')}
@@ -1415,17 +1434,88 @@ function bridgeHero(){
       ${ligne('Clients perdus',br.lost,false,'ils achetaient l\'an dernier, plus rien cette année')}
       <tr><td><b>Variation totale</b></td><td></td><td class="num"><b>${fmtDelta(br.delta)}</b></td></tr>
       </tbody></table>
-      <p class="note">Les quatre lignes bouclent sur le total : chaque euro gagné ou perdu est dans une seule d\'entre elles. Un client ne peut pas être à la fois perdu et en baisse.</p></div>`);
+      <p class="note">Les quatre lignes bouclent sur le total : chaque euro gagné ou perdu est dans une seule d\'entre elles. Un client ne peut pas être à la fois perdu et en baisse.</p></div>`;
 }
-/* LA VARIATION SE REPLIE, 24/09/2026. Demande de Ted : ce bloc passait AVANT « Qui
-   rappeler », c'est-a-dire avant la liste pour laquelle on ouvre « Mon commerce ». Il
-   explique, il ne fait pas agir : c'est le troisieme etage de la regle des trois etages,
-   donc replie par defaut. Le TOTAL reste dans le titre du depliant, pour que le chiffre
-   se lise sans ouvrir. Meme habit que les pieds de « Mon cap » et « Mes cuvees ». */
-function replierVariation(titre, corps){
-  return `<div class="card"><details class="msg--replie" id="pied-variation">
-    <summary>${titre}</summary>${corps}</details></div>`;
+/* L'ENVELOPPE : le titre du repli de « Mon cap ». LE MONTANT N'Y EST QUE S'IL EST CELUI DU
+   BANDEAU, a l'euro. Le bandeau lit `capCadre()` (cap_resume ou le calcul local), les
+   quatre mouvements lisent `computeBridge()` (commerce_resume ou le calcul local) : deux
+   calculs, deux fonctions du serveur, et rien ne garantit qu'ils ne divergent jamais sur
+   une vraie base. Deux montants differents pour « ta variation » dans la meme piece, c'est
+   le vigneron qui se demande lequel croire. On compare donc a chaque dessin ; s'ils ne
+   tombent pas d'accord a l'euro (ou pas sur les memes exercices), le titre se tait sur le
+   montant, et le tableau du dessous garde le sien. `banc:cap` prouve les deux cas. */
+function titreVariation(br, f){
+  const base='Ce qui explique ta variation';
+  if(!br||!f||f.curW==null||f.prevW==null)return base;
+  if(br.cur!==f.cur||br.prev!==f.prev)return base;
+  if(!(Math.abs(br.delta-(f.curW-f.prevW))<1))return base;
+  return `${base}, ${exLabelCourt(br.cur)} vs ${exLabelCourt(br.prev)} à date égale : ${fmtDelta(br.delta)}`;   // l'annee en cours d'abord, comme le bandeau
 }
+/* LE RENVOI DE « CLIENTS A SUIVRE », une ligne et un lien, aucun chiffre : le chiffre est
+   dans Mon cap, et un deuxieme endroit qui le dirait finirait par en dire un autre. */
+function renvoiVariation(){
+  return `<p class="note renvoi-cap">D'où vient ta variation d'un an sur l'autre : c'est dans <b>Mon cap</b>, « Ce qui explique ta variation ». <a href="/mon-bureau/#annee" onclick="voirVariation();return false">Voir dans Mon cap</a></p>`;
+}
+/* « VOIR DANS MON CAP » : ouvre la piece, ouvre #pied-cap (son `toggle` y dessine la
+   tendance) et fait defiler jusqu'a lui.
+   LA DEMANDE N'EST PAS CONSOMMEE AU PREMIER SERVICE, correction du verificateur
+   (29/09/2026) : `BdvNav.afficher('annee')` passe par l'amorce, qui rappelle
+   `navTo('annee')` plus tard, et parfois deux fois ; le premier remonte la page
+   (`scrollTo(0,0)`), les suivants plus depuis le 30/09/2026. Une demande servie tout de suite puis effacee laissait donc la
+   page en haut. Elle reste ouverte quelques secondes : CHAQUE `navTo('annee')` la
+   ressert apres son retour en haut, et `renderCap()` apres chaque dessin (le resume
+   du serveur repeint la piece, et referme le repli). Elle tombe des que le vigneron
+   agit lui-meme (molette, doigt, touche, clic) ou part sur un autre ecran. */
+let PIED_CAP_DEMANDE=0;   // l'heure ou la demande tombe ; 0 = aucune
+function voirVariation(){
+  PIED_CAP_DEMANDE=Date.now()+10000;
+  if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('annee');else navTo('annee');
+}
+function ouvrirPiedCap(){
+  if(!PIED_CAP_DEMANDE)return;
+  if(Date.now()>PIED_CAP_DEMANDE){PIED_CAP_DEMANDE=0;return;}
+  if(ECRAN_COURANT!=='annee')return;
+  if(window.BdvNav&&BdvNav.ventesEnVue&&!BdvNav.ventesEnVue())return;
+  const d=el('pied-cap');if(!d)return;
+  d.open=true;
+  defilerSousCollants(d);
+  const s=d.querySelector('summary');if(s){try{s.focus({preventScroll:true});}catch(e){}}
+  /* LE RECALAGE, UNE FOIS. Le defilement fait passer la page au-dela de 64 px : l'en-tete
+     se retracte (brancherRetraction, mon-bureau.njk), sa hauteur change et tout ce qui
+     suit remonte d'autant (112 px mesures a 390). Deux images plus tard, la mise en page
+     a suivi : on remesure et on recale, une seule fois par service. Un geste du vigneron
+     entre-temps remet la demande a zero : on ne reprend pas la main. */
+  const jeton=++PIED_CAP_RECALE;
+  const image=window.requestAnimationFrame?function(f){window.requestAnimationFrame(f);}:function(f){setTimeout(f,16);};
+  image(function(){image(function(){
+    if(jeton!==PIED_CAP_RECALE||!PIED_CAP_DEMANDE)return;
+    defilerSousCollants(d);
+  });});
+}
+let PIED_CAP_RECALE=0;
+/* SOUS LES COLLANTS REELS, verificateur du 30/09/2026. `scroll-margin-top` supposait un
+   bandeau de site de 4rem, qui mesure 0 sous 700 px, et ne voyait pas la retraction. On
+   lit le bas REEL du bandeau (.nav) et de l'en-tete du bureau (.bureau-tete) au moment de
+   defiler, on garde le plus bas des deux qui se voit, et on pose le titre un ecart
+   dessous. `behavior:'instant'` : la page a `scroll-behavior:smooth`, et un defilement
+   doux serait encore en route au moment du recalage. */
+function basDesCollants(){
+  let bas=0;
+  ['.nav','.bureau-tete'].forEach(function(sel){
+    const e=document.querySelector(sel);if(!e)return;
+    const r=e.getBoundingClientRect();
+    if(r.height>0&&r.bottom>bas)bas=r.bottom;
+  });
+  return bas;
+}
+function defilerSousCollants(d){
+  const y=d.getBoundingClientRect().top+(window.pageYOffset||0)-basDesCollants()-16;
+  try{window.scrollTo({top:Math.max(0,Math.round(y)),behavior:'instant'});}catch(e){}
+}
+['wheel','touchmove','keydown','pointerdown'].forEach(function(t){
+  document.addEventListener(t,function(){PIED_CAP_DEMANDE=0;},{capture:true,passive:true});
+});
+window.voirVariation=voirVariation;
 
 function drawTrend(labels,data){
   destroyChart('chTrend');const ctx=el('chTrend');if(!ctx)return;
@@ -1718,7 +1808,13 @@ function diagnosticSignals(){
     }else S.push({sev:0,impact:0,kind:'info',cible:'annee',ico:'ℹ',verdict:`Aucun objectif de CA fixé.`,action:`Fixe-le dans <b>Mes réglages</b>, onglet « Tes ventes » : je te dirai s'il tient, et combien il manque sinon.`});
   }
   const dec=agentDecrochage();
-  if(dec.decroche.length)S.push({sev:3,impact:dec.totPerdu,kind:'danger',cible:'clients',ico:'⚠',verdict:`${plur(dec.decroche.length,'client')} en décrochage : ${fmtMoney(dec.totPerdu)} de chiffre d'affaires en moins par rapport à ${exPrecedent()}, à date égale.`,action:`Appelle d'abord ceux qui ont le plus baissé, avec une raison concrète (millésime, fin de stock, livraison). La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
+  /* UN CLIENT, UNE FOIS, lot 45 : un client qui a une affaire en cours sort de « Clients a
+     suivre », donc des nombres qui y renvoient. Retire APRES les ecarts existants (qui
+     restent calcules sur les listes entieres, comme dans agentClients()), pour que le
+     signal compte ce que la carte montre. Aucun retrait : le total du serveur reste. */
+  const decV=horsAffaire(dec.decroche);
+  const decPerdu=decV.length===dec.decroche.length?dec.totPerdu:sum(decV,c=>c.perdu);
+  if(decV.length)S.push({sev:3,impact:decPerdu,kind:'danger',cible:'clients',ico:'⚠',verdict:`${plur(decV.length,'client')} en décrochage : ${fmtMoney(decPerdu)} de chiffre d'affaires en moins par rapport à ${exPrecedent()}, à date égale.`,action:`Appelle d'abord ceux qui ont le plus baissé, avec une raison concrète (millésime, fin de stock, livraison). La liste est dans <b>Mon commerce</b>, filtre « Recul confirmé ».`});
   /* LE SIGNAL COMPTE CE QUE LA LISTE MONTRE, 23/09/2026. Il annoncait « 90 clients en
      retard sur leur cadence, 165 831 euros » et renvoyait vers un filtre de « Mon
      commerce » qui en montre 56 pour 126 217 euros. Aucun des deux n'avait tort : ce
@@ -1730,15 +1826,17 @@ function diagnosticSignals(){
   const dor=agentDormants();
   const dejaPris=new Set(dec.decroche.map(c=>c.id));
   const dorm=dor.dormants.filter(c=>!dejaPris.has(c.id));
-  const dormCa=sum(dorm,c=>c.montant);
-  if(dorm.length){const t3=dorm.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
-    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dorm.length,'client')} ${dorm.length>1?'n\'ont':'n\'a'} pas recommandé à ${dorm.length>1?'leur':'sa'} date habituelle. ${dorm.length>1?'Ensemble, ils t\'ont':'Il t\'a'} acheté ${fmtMoney(dormCa)} depuis le début de ton export.`,action:`${dorm.length>1?'Commence par '+t3+', en proposant le réassort habituel':'C\'est '+t3+' : propose-lui son réassort habituel'}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
+  const dormV=horsAffaire(dorm);
+  const dormCa=sum(dormV,c=>c.montant);
+  if(dormV.length){const t3=dormV.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
+    S.push({sev:2,impact:dormCa,kind:'warn',cible:'clients',ico:'↻',verdict:`${plur(dormV.length,'client')} ${dormV.length>1?'n\'ont':'n\'a'} pas recommandé à ${dormV.length>1?'leur':'sa'} date habituelle. ${dormV.length>1?'Ensemble, ils t\'ont':'Il t\'a'} acheté ${fmtMoney(dormCa)} depuis le début de ton export.`,action:`${dormV.length>1?'Commence par '+t3+', en proposant le réassort habituel':'C\'est '+t3+' : propose-lui son réassort habituel'}. La liste est dans <b>Mon commerce</b>, filtre « Retard de cadence ».`});}
   /* LES DEUX LISTES DU 26/09/2026, avec les memes ecarts qu'agentClients() : un client
      n'apparait qu'une fois, donc le nombre annonce est celui que le filtre montre. */
   if(!(typeof lignesPretes==='function'&&!lignesPretes())){
     const pris=new Set([...dejaPris,...dorm.map(c=>c.id)]);
-    const deu=agentDeuxieme().filter(c=>!pris.has(c.id));deu.forEach(c=>pris.add(c.id));
-    const sai=agentSaison().filter(c=>!pris.has(c.id));
+    const deuT=agentDeuxieme().filter(c=>!pris.has(c.id));deuT.forEach(c=>pris.add(c.id));
+    const saiT=agentSaison().filter(c=>!pris.has(c.id));
+    const deu=horsAffaire(deuT), sai=horsAffaire(saiT);   // lot 45, apres les ecarts
     if(sai.length){const caS=sum(sai,c=>c.montant),t3=sai.slice(0,3).map(c=>esc(c.nom)+' ('+fmtMoney(c.montant)+')').join(', ');
       S.push({sev:2,impact:caS,kind:'warn',cible:'clients',ico:'◔',verdict:`${plur(sai.length,'client')} ${sai.length>1?'commandent':'commande'} d'habitude dans les semaines qui viennent : ${fmtMoney(caS)} l'an dernier sur la même période.`,action:`${sai.length>1?'Écris-leur dans les jours qui viennent, avec leur réassort habituel : commence par '+t3:'Écris à '+t3+' dans les jours qui viennent, avec son réassort habituel'}. La liste est dans <b>Mon commerce</b>, filtre « Sa saison arrive ».`});}
     if(deu.length){const caD=sum(deu,c=>c.montant);
@@ -1999,6 +2097,7 @@ function renderCap(){
     html=html.slice(0,debutCap)+replierCap(html.slice(debutCap),f,at,null);
     html+=noteComplement('Il manque ici les signaux, la courbe des mois, les compteurs de la période affichée et la décomposition prix/volume.');
     p.innerHTML=html;
+    SIG_CAP=sigEnAffaire(null);
     return;
   }
 
@@ -2033,7 +2132,10 @@ function renderCap(){
      dessine a zero pixel sans rien dire. */
   const series=monthlySeries();
   const pv=computePriceVolume();
-  let fond='';
+  /* LA PREMIERE CARTE DU REPLI : d'ou vient ta variation (lot 45), avant la tendance et
+     l'effet prix contre volume. Son titre est celui du repli, voir titreVariation(). */
+  const br=computeBridge();
+  let fond=bridgeCorps(br);
   if(series.length>=6)fond+=`<div class="card"><div class="card__title"><span>Élan réel mois après mois, corrigé de la saisonnalité</span></div><div class="chart-wrap"><canvas id="chTrend"></canvas></div><p class="note">On neutralise tes pics et tes creux de saison pour voir ta vraie dynamique. Une pente qui monte, c'est du progrès hors effet calendaire.</p></div>`;
   else fond+=signal('info','ℹ','Pas assez de mois pour dégager une tendance.','Il faut au moins six mois de données datées dans la base.');
   if(pv){
@@ -2045,9 +2147,10 @@ function renderCap(){
       </tbody></table><p class="note">À date égale. Effet volume = ce que font les quantités à prix constant ; effet prix = ce que fait ton prix moyen à volume constant.</p></div>`;
   }else fond+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
   html+=`<div class="card"><details class="msg--replie" id="pied-cap">
-    <summary>Ce qui explique ta variation</summary>${fond}</details></div>`;
+    <summary>${titreVariation(br,f)}</summary>${fond}</details></div>`;
 
   p.innerHTML=html;
+  SIG_CAP=sigEnAffaire(null);
   drawApMonth();
   const d=el('pied-cap');
   if(d)d.addEventListener('toggle',function(){
@@ -2055,6 +2158,7 @@ function renderCap(){
     d.dataset.peint='1';
     if(series.length>=6){const si=seasonalIndex(series),labels=[],data=[];series.forEach(pt=>{const idx=si.idx[pt.m]||1;labels.push(MOIS_FR[pt.m-1]+' '+String(pt.y).slice(2));data.push(idx?pt.v/idx:pt.v);});drawTrend(labels,data);}
   });
+  ouvrirPiedCap();
 }
 
 /* ======================= EXPERTISE 1 : REACTIVATION (RFM) ======================= */
@@ -3032,7 +3136,7 @@ function libelleGeste(id){
 }
 /* L'enjeu est celui que la ligne affiche deja (montant et sa nature) : rien de recalcule. */
 function gesteAffaire(c){
-  return `<button type="button" class="btn btn--light btn--sm suivre__geste" data-suivre data-id="${esc(c.id)}" data-nom="${esc(c.nom)}" data-motif="${esc(c.motif)}" data-enjeu="${esc(fmtMoney(c.montant)+' '+c.lib)}" onclick="ficheNouvelleAffaire(this)">${libelleGeste(c.id)}<span class="hors-ecran">, ${esc(c.nom)}</span></button>`;
+  return `<button type="button" class="btn btn--light btn--sm suivre__geste" data-suivre data-id="${esc(c.id)}" data-nom="${esc(c.nom)}" data-motif="${esc(c.motif)}" data-enjeu="${esc(fmtMoney(c.montant)+' '+natureAccordee(c.montant,c.lib))}" onclick="ficheNouvelleAffaire(this)">${libelleGeste(c.id)}<span class="hors-ecran">, ${esc(c.nom)}</span></button>`;
 }
 /* Les affaires arrivent souvent APRES la liste (amorcage, geste dans « A gagner ») :
    `bdv:taches` est le signal que BdvAffairesJour fait deja passer apres chaque lecture.
@@ -3965,6 +4069,102 @@ function deposerPourLeBureau(){
    Les montants ne sont pas de meme nature d'un motif a l'autre : chacun porte donc son
    libelle, et le total general n'est jamais additionne. */
 let CLIENTS=[];
+/* LE NOMBRE DU BILAN COMMUN, lot 45 (29/09/2026). `CLIENTS` vaut [] avant tout calcul :
+   un tableau vide n'est pas « personne a suivre ». Tant que renderClients() n'est pas
+   passe, le bilan recoit `null` et ne montre aucun chiffre. `partiel` : calcule sans les
+   lignes, donc sans les premiers achats. */
+let CLIENTS_CALCULES=false, CLIENTS_PARTIEL=false;
+/* DEPUIS LA PARTIE B DU LOT 45, le nombre est compte APRES le retrait des clients en
+   affaire, et c'est celui que la carte « Tous » a PEINT (`NB_VUS`) : la liste visible
+   n'est jamais repeinte sous les yeux, donc le bilan ne doit pas la devancer. */
+let NB_VUS=0, VIS_PEINTS=null;
+window.bdvClientsASuivre=function(){
+  if(!CLIENTS_CALCULES)return null;
+  if(CLIENTS_PARTIEL&&!CLIENTS.length)return null;   // « Liste pas encore établie » : rien a compter
+  return NB_VUS;                                     // la carte « Tous », apres retrait
+};
+window.bdvClientsASuivre.partiel=function(){return CLIENTS_CALCULES&&CLIENTS_PARTIEL;};
+/* Zero PARCE QUE tous sont en affaire : le bilan ne dit pas « 0 », il dit ou ils sont. */
+window.bdvClientsASuivre.tousEnAffaire=function(){return CLIENTS_CALCULES&&NB_VUS===0&&CLIENTS.length>0;};
+/* La case « Clients a suivre » du bilan mene au filtre « Tous ». */
+window.bdvMotifTous=function(){
+  if(filtreMotif==='tous')return;
+  filtreMotif='tous';
+  if(el('p-clients')&&el('p-clients').innerHTML)renderClients();
+};
+function signalerClients(){try{document.dispatchEvent(new CustomEvent('bdv:clients'));}catch(e){}}
+
+/* ================= UN CLIENT, UNE FOIS : L'AFFAIRE L'EMPORTE, LOT 45 (29/09/2026) =================
+   Un client qui a une affaire en cours est suivi dans « A gagner ». « Clients a suivre »
+   le retire, A L'AFFICHAGE SEULEMENT : `agentClients()` et `fileSignaux()` ne changent
+   pas (le courrier du matin, `v_courrier` et Ma journee non plus). Le retrait s'applique a
+   `renderClients()` (cartes, « Tous », liste), a `exportClients()` et a
+   `diagnosticSignals()`. Les quatre exports complets restent entiers.
+   `enAffaire()` vaut `null` tant que les affaires ne sont pas lues : on ne retire
+   personne, et aucune note ne le dit (une absence n'est pas un zero). */
+function enAffaire(){
+  try{return (window.BdvAffairesJour&&BdvAffairesJour.clientsEnAffaire)?BdvAffairesJour.clientsEnAffaire():null;}
+  catch(e){return null;}
+}
+function horsAffaire(liste){
+  const s=enAffaire();
+  if(!s||!s.size)return liste;
+  return liste.filter(c=>!s.has(String(c.id)));
+}
+/* LA SIGNATURE : qui sort, en une chaine. `parmi` restreint aux clients de la liste (une
+   affaire chez un client qui n'est pas a suivre ne change rien a l'ecran). */
+function sigEnAffaire(parmi){
+  const s=enAffaire();
+  if(!s)return 'x';
+  let ids=[...s];
+  if(parmi){const ici=new Set(parmi.map(c=>String(c.id)));ids=ids.filter(i=>ici.has(i));}
+  return ids.sort().join('|');
+}
+let SIG_COM=null, SIG_CAP=null;
+/* Les affaires ont bouge (`bdv:taches`). Clients a suivre CACHE : on repeint. VISIBLE : on
+   ne repeint pas sous les yeux (focus et filtre tape perdus) ; le libelle du geste se
+   met a jour en place (lot 44, plus bas) et l'ecran se repeindra au prochain affichage.
+   Mon cap se repeint s'il est a l'ecran : ses signaux comptent les memes clients. */
+function ventesVisibles(id){
+  return ECRAN_COURANT===id&&(!(window.BdvNav&&BdvNav.ventesEnVue)||BdvNav.ventesEnVue());
+}
+document.addEventListener('bdv:taches',function(){
+  if(SIG_COM!=null&&el('p-clients')&&el('p-clients').innerHTML&&sigEnAffaire(CLIENTS)!==SIG_COM){
+    if(ventesVisibles('clients'))ECRANS_PEINTS.delete('clients');
+    else renderClients();
+  }
+  if(SIG_CAP!=null&&sigEnAffaire(null)!==SIG_CAP){
+    ECRANS_PEINTS.delete('annee');
+    if(ventesVisibles('annee')&&lignesPretes())ecranPeindre('annee');
+  }
+});
+/* LA RAISON D'UN CLIENT, POUR « A GAGNER » : cherchee dans `CLIENTS`, la liste entiere
+   (ceux qui ont une affaire en font partie : c'est justement pour eux qu'on la demande).
+   Rien en base. Sans moteur, sans calcul, sans Vitisoft, ou client absent : `null`, et
+   la piece se tait. `enjeu` : le montant et sa nature tels que la ligne les affiche. */
+window.bdvMotifClient=function(id){
+  if(!CLIENTS_CALCULES||id==null)return null;
+  if(window.BdvNav&&BdvNav.avecVitisoft&&!BdvNav.avecVitisoft())return null;
+  const c=CLIENTS.find(x=>String(x.id)===String(id));
+  if(!c||!MOTIFS[c.motif])return null;
+  const lib=natureAccordee(c.montant,c.lib);
+  return {label:MOTIFS[c.motif].label,cls:MOTIFS[c.motif].cls,montant:c.montant,lib:lib,detail:c.detail,
+          enjeu:fmtMoney(c.montant)+' '+lib};
+};
+/* La note sous « Qui rappeler » : combien sont partis dans « A gagner », et le geste qui y
+   mene (filtre « Toutes », pour qu'aucun ne soit cache par un type choisi). */
+function noteEnAffaire(n){
+  if(!(n>0))return '';
+  const t=n>1?`${fmtNum(n)} clients à suivre sont déjà dans une affaire : tu les retrouves dans « À gagner », avec leur raison.`
+             :`1 client à suivre est déjà dans une affaire : tu le retrouves dans « À gagner », avec sa raison.`;
+  return `<p class="note note-affaire">${t} <button type="button" class="btn btn--ghost btn--sm" onclick="voirEnAffaires()">Les voir dans À gagner</button></p>`;
+}
+function voirEnAffaires(){
+  try{sessionStorage.setItem('bdv_affaire_vue',JSON.stringify({filtre:''}));}catch(e){}
+  if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('clients',{onglet:'gagner'});
+  else location.hash='affaires';
+}
+window.voirEnAffaires=voirEnAffaires;
 function agentClients(){
   /* « PREMIER ACHAT » N'EST PAS PORTE (voir lot 25) : il lit les lignes, et lui seul. Les
      deux autres motifs viennent du serveur et remplissent deja la liste. Sans lignes on
@@ -4018,6 +4218,20 @@ function agentClients(){
   });
   return out;
 }
+/* L'ACCORD DE LA NATURE D'UN MONTANT, 29/09/2026 (verificateur du lot 45). « 12 600 €
+   acheté au total » face a « perdus a date egale » : la nature suit un montant en
+   euros, et s'accorde avec lui, au pluriel des 2 € (arrondis comme on les affiche). UNE
+   fonction, appelee partout ou une nature suit un montant : la liste, les cartes, le
+   geste « En faire une affaire », la raison lue par « A gagner », l'export. `c.lib`
+   reste tel quel : c'est lui que lisent fileSignaux(), le courrier et Ma journee. */
+const ACCORDS=[['perdu à date égale','perdus à date égale'],['acheté au total','achetés au total'],
+  ['acheté par eux au total','achetés par eux au total'],
+  ['commandé l\'an dernier sur les semaines qui viennent','commandés l\'an dernier sur les semaines qui viennent']];
+function natureAccordee(montant, lib){
+  const pl=Math.abs(Math.round(montant||0))>=2;
+  for(const a of ACCORDS){if(lib===a[0]||lib===a[1])return pl?a[1]:a[0];}
+  return lib;
+}
 const MOTIFS={
   recul:  {label:'Recul confirmé',    cls:'m-recul',   aide:'Clients fidèles qui achètent moins qu\'avant, à date égale. C\'est un fait mesuré : ce sont eux à appeler en premier.'},
   cadence:{label:'Retard de cadence', cls:'m-cadence', aide:'Clients qui commandaient à un rythme régulier et qui ont laissé passer leur date habituelle. C\'est une estimation : relance légère, sans insister.'},
@@ -4029,7 +4243,7 @@ let filtreMotif='tous';
 /* ================= MON COMMERCE : L'ETAGE 3, REPLIE =================
    Ecrit le 11/09/2026, lot 1 de la redecoupe du bureau.
 
-   TROIS ETAGES, ET PAS UNE PILE. La piece s'ouvre sur un VERDICT (bridgeHero), continue
+   TROIS ETAGES, ET PAS UNE PILE. La piece s'ouvre sur un renvoi vers le VERDICT de Mon cap (lot 45), continue
    par la LISTE ou l'on agit, et finit par ce qui explique sans rien demander. Ce
    troisieme etage est replie : visible, cliquable, mais il ne pousse pas la liste hors
    de l'ecran. C'est cette discipline qui evite de refabriquer « Mon annee » ailleurs.
@@ -4126,14 +4340,19 @@ function comAuBesoin(){
 function renderClients(){
   comAuBesoin();
   CLIENTS=agentClients();
+  CLIENTS_CALCULES=true;CLIENTS_PARTIEL=!lignesPretes();
+  /* LOT 45 : ce que la piece MONTRE, apres retrait des clients en affaire. */
+  const VIS=horsAffaire(CLIENTS), N_AFF=CLIENTS.length-VIS.length;
+  NB_VUS=VIS.length;VIS_PEINTS=VIS;SIG_COM=sigEnAffaire(CLIENTS);
   let html=`<h2 class="panel__title titre-piece">Mon commerce</h2>`;
 
-  /* ETAGE 1, LE VERDICT. Arrive de « Mon annee » le 11/09/2026, et il est EN TETE, avant
-     meme le test de liste vide : « tu fais du surplace » reste vrai un jour ou il n'y a
-     personne a rappeler, et c'est meme ce jour-la qu'il est le plus utile a lire. */
-  html+=bridgeHero();
+  /* ETAGE 1. Le verdict « d'ou vient ta variation » etait ici depuis le 11/09/2026 ; il
+     est reparti dans « Mon cap » au lot 45 (29/09/2026), premiere carte de son repli :
+     il repond a « ou en est mon total », pas a « qui rappeler ». Il reste ici UNE ligne
+     de renvoi, sans chiffre, EN TETE, avant meme le test de liste vide. */
+  html+=renvoiVariation();
 
-  if(!CLIENTS.length){
+  if(!VIS.length){
     /* UNE LISTE VIDE N'EST PAS UN VERDICT TANT QU'ON N'A PAS LU LA BASE, 18/09/2026.
        Ted : « en premiere vue, il affiche quand meme personne a relancer, comme si y'avait
        rien. mais ca se transforme rapidement avec la bonne base. » Entre les deux, l'ecran
@@ -4142,7 +4361,9 @@ function renderClients(){
        vigneron qui lit ca et ferme son bureau repart rassure a tort.
        Le bloc voisin faisait deja la difference (« Decomposition indisponible »). Celui-ci
        la fait maintenant aussi : on ne rend un verdict que si `lignesPretes()`. */
-    const verdict = lignesPretes()
+    /* Tous les clients a suivre sont deja dans une affaire : « personne ne recule » serait
+       faux. La note le dit, et mene a eux. */
+    const verdict = N_AFF>0 ? noteEnAffaire(N_AFF) : lignesPretes()
       ? signal('ok','✔','Personne à relancer.','Aucun client ne recule ni ne rompt son rythme. Bon moment pour préparer la saison : tous tes clients sont dans <b>Mes clients</b>, filtre « Actifs ».')
       : signal('info','i','Liste pas encore établie.','Tes lignes ne sont pas encore chargées sur cet appareil. Ce bloc dira qui rappeler dès qu\'elles seront là.');
     /* 19/09/2026, meme defaut qu'a « Mes cuvees » : cette sortie precede le
@@ -4153,31 +4374,31 @@ function renderClients(){
       +verdict
       +(lignesPretes()?'':noteComplement('Il manque ici la liste de qui rappeler : les reculs, les rythmes rompus et les clients venus une seule fois.'))
       +piedCommerce();
-    el('p-clients').innerHTML=html;return;
+    el('p-clients').innerHTML=html;signalerClients();return;
   }
-  const parMotif=m=>CLIENTS.filter(c=>c.motif===m);
+  const parMotif=m=>VIS.filter(c=>c.motif===m);
   const nb=m=>parMotif(m).length, som=m=>sum(parMotif(m),c=>c.montant);
-  /* LA PHRASE DE RENVOI VERS « MON ANNEE » A DISPARU, et computeBridge() avec elle : elle
-     annoncait que ces clients composent les lignes « perdus » et « en baisse » d'un autre
-     ecran. Ces deux lignes sont maintenant juste au-dessus. Renvoyer ailleurs serait faux. */
+  /* Les lignes « perdus » et « en baisse » vivent dans Mon cap depuis le lot 45 : le
+     renvoi en tete de piece y mene. */
   html+=`<div class="section-label">Qui rappeler</div>`
     +`<div class="panel__sub">Chaque client n'apparaît qu'une fois, avec sa raison la plus sûre. Commence par le haut : c'est là qu'il y a le plus d'argent.</div>`
-    +(exportFrais()?'':`<p class="note">« Deuxième achat à jouer » et « Sa saison arrive » attendent un export de moins de trois semaines : ta dernière vente connue date du ${fmtDate(META.max)}. Dépose ton dernier export pour les voir.</p>`);
+    +(exportFrais()?'':`<p class="note">« Deuxième achat à jouer » et « Sa saison arrive » attendent un export de moins de trois semaines : ta dernière vente connue date du ${fmtDate(META.max)}. Dépose ton dernier export pour les voir.</p>`)
+    +noteEnAffaire(N_AFF);
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
   html+=`<div class="motif-cards">${['recul','cadence','deuxieme','saison','premier'].filter(m=>['recul','cadence','premier'].indexOf(m)>=0||nb(m)>0).map(m=>`
     <button class="motif-card${filtreMotif===m?' on':''}" onclick="setMotif('${m}')" aria-pressed="${filtreMotif===m}">
       <span class="motif-card__n">${fmtNum(nb(m))}</span>
       <span class="motif-card__l">${MOTIFS[m].label}</span>
-      <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${m==='recul'?'perdus à date égale':(m==='cadence'?'achetés par eux au total':(m==='saison'?'commandés l\'an dernier sur les semaines qui viennent':'de premiers achats'))}</span></span>
+      <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${natureAccordee(som(m),m==='recul'?'perdus à date égale':(m==='cadence'?'achetés par eux au total':(m==='saison'?'commandés l\'an dernier sur les semaines qui viennent':'de premiers achats')))}</span></span>
     </button>`).join('')}
     <button class="motif-card${filtreMotif==='tous'?' on':''}" onclick="setMotif('tous')" aria-pressed="${filtreMotif==='tous'}">
-      <span class="motif-card__n">${fmtNum(CLIENTS.length)}</span>
+      <span class="motif-card__n">${fmtNum(VIS.length)}</span>
       <span class="motif-card__l">Tous</span>
       <span class="motif-card__s"><span class="muted-cell">montants de natures différentes, non additionnés</span></span>
     </button></div>`;
 
-  const liste=(filtreMotif==='tous'?CLIENTS:parMotif(filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
+  const liste=(filtreMotif==='tous'?VIS:parMotif(filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
   if(filtreMotif!=='tous')html+=`<p class="note" style="margin:.2rem 0 1rem">${MOTIFS[filtreMotif].aide}</p>`;
   html+=`<div class="card">
     <div class="toolbar"><span class="card__title" style="margin:0">${filtreMotif==='tous'?'Tous les clients à traiter':MOTIFS[filtreMotif].label}, du plus gros montant au plus petit</span>
@@ -4189,7 +4410,7 @@ function renderClients(){
       <td><button type="button" class="suivre__nom" onclick="ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}')">${esc(c.nom)}<span class="hors-ecran">, ouvrir sa fiche</span></button><span class="why">${esc(c.detail)}</span>${gesteAffaire(c)}</td>
       <td>${contactCell(c.id)}</td>
       <td><span class="motif ${MOTIFS[c.motif].cls}">${MOTIFS[c.motif].label}</span></td>
-      <td class="num">${fmtMoney(c.montant)}<span class="why">${c.lib}</span></td>
+      <td class="num">${fmtMoney(c.montant)}<span class="why">${natureAccordee(c.montant,c.lib)}</span></td>
       <td class="num">${c.chance!=null?fmtNum(c.chance*100,0)+' %':'<span class="muted-cell">n/d</span>'}</td>
       <td>${s.statut&&STATUTS_SUIVI[s.statut]?`<span class="motif ${STATUTS_SUIVI[s.statut].cls}">${STATUTS_SUIVI[s.statut].label}</span>`:'<span class="muted-cell">-</span>'}</td>
       <td>${s.rappel?rappelCell(s.rappel):'<span class="muted-cell">-</span>'}</td>
@@ -4226,15 +4447,19 @@ function renderClients(){
     html+=noteComplement('Il manque ici les clients venus une seule fois, et le bloc « qui pèse quoi dans ton chiffre ».');
   el('p-clients').innerHTML=html;
   FILTRES.clientsBody={q:'',joign:false};applyFilters('clientsBody');
+  signalerClients();   // le bilan commun se recompte (lot 45)
 }
 function setMotif(m){filtreMotif=m;renderClients();navTo('clients');}
 function exportClients(){
-  const liste=(filtreMotif==='tous'?CLIENTS:CLIENTS.filter(c=>c.motif===filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
+  /* Lot 45 : ce que la liste MONTRE, sans les clients en affaire. La liste peinte, et pas
+     un recalcul : visible, elle n'est pas repeinte quand les affaires bougent. */
+  const vis=VIS_PEINTS||horsAffaire(CLIENTS);
+  const liste=(filtreMotif==='tous'?vis:vis.filter(c=>c.motif===filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
   if(!liste.length){status('error','Aucun client a exporter.');return;}
   const aoa=[['Client','E-mail','Telephone','Autres contacts','Raison','Montant','Nature du montant','Chance de retour %','Detail',
     'Statut','Rappel','Etiquettes','Canal prefere','Notes']];
   liste.forEach(c=>{const s=CRM[c.id]||{};aoa.push([c.nom,emailOf(c.id),telOf(c.id),autresContacts(c.id),MOTIFS[c.motif].label,
-    Math.round(c.montant),c.lib,c.chance!=null?+(c.chance*100).toFixed(1):'',c.detail,
+    Math.round(c.montant),natureAccordee(c.montant,c.lib),c.chance!=null?+(c.chance*100).toFixed(1):'',c.detail,
     s.statut&&STATUTS_SUIVI[s.statut]?STATUTS_SUIVI[s.statut].label:'',s.rappel||'',(s.tags||[]).join(', '),s.canal||'',s.notes||'']);});
   // Le fichier porte le nom de la piece, comme partout ailleurs : c'etait « Mes clients ».
   toXlsxOrCsv([{name:'Mon commerce',aoa}],'mon-commerce-'+filtreMotif);
@@ -4601,7 +4826,7 @@ async function demarrerEcransVente(depart, dire){
   if(ECRANS_DEMARRES){
     if(depart.client){ navTo('clients'); setTimeout(function(){ ouvrirFiche(depart.client); }, 60); }
     else if(depart.ecran === 'reglages') ouvrirPanneauReglages();
-    else if(depart.ecran) navTo(depart.ecran);
+    else if(depart.ecran) navTo(depart.ecran, { haut: depart.haut || false });
     return;
   }
   ECRANS_DEMARRES = true;

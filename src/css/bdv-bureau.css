@@ -5148,6 +5148,31 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
   color:var(--bdv-encre-2);
 }
 .bdv-coque .amod__etat b{ color:var(--bdv-encre-1); }
+/* CE QUE DISENT SES VENTES, lot 45 (29/09/2026) : la raison du client, dans le panneau
+   (phrase) et sur la ligne et la carte kanban (etiquette en toutes lettres). Les memes
+   trois encres que les etiquettes de « Clients a suivre » (.motif de bdv-ecrans.css,
+   sous .bdv-ventes, que « A gagner » ne recoit pas : le moteur n'y est pas charge). */
+.bdv-coque .amod__ventes{
+  margin:var(--bdv-e-2) 0 0;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-motif{
+  display:inline-block;
+  margin:var(--bdv-e-1) 0 0;
+  padding:0 var(--bdv-e-1);
+  border-radius:var(--bdv-r-pastille);
+  background:var(--bdv-surface-2);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-motif.m-recul{ background:var(--bdv-retard-lavis); color:var(--bdv-retard); }
+.bdv-coque .aff-motif.m-cadence{ background:var(--bdv-alerte-lavis); color:var(--bdv-alerte); }
+.bdv-coque .aff-motif.m-premier{ background:var(--bdv-bon-lavis); color:var(--bdv-bon); }
+.bdv-coque .aff-carte__motif{ margin:0; }
 .bdv-coque .amod .aff-avis{ margin:0 0 var(--bdv-e-3); }
 /* LE PANNEAU EST SON PROPRE CONTENEUR : il vit hors de la piece, dans le <body>,
    donc les requetes `@container affaires` ne l'atteignaient pas et chaque duo de
@@ -5247,29 +5272,53 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
 .bdv-coque .aff-confirme .aff-aide{ margin:0; }
 .bdv-coque .aff-confirme__gestes{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); }
 
-/* LE BILAN : trois cases, le chiffre en grand et son mot en capitales, le meme
-   contraste d'echelle que l'ardoise. « A relancer » prend l'encre du retard
-   quand il n'est pas nul, et son mot le dit deja. */
+/* LE BILAN COMMUN DE « MON COMMERCE », lot 45 (29/09/2026). Il a quitte « A gagner »
+   pour se poser au-dessus des deux onglets (#bureauComBilan) : trois BOUTONS, le
+   chiffre en grand et son mot en capitales, le meme contraste d'echelle que
+   l'ardoise. « A relancer » prend l'encre du retard quand il n'est pas nul, et son
+   mot le dit deja.
+   IL N'EST DANS AUCUN CONTENEUR : #bureauComBilan est hors de `.zone--affaires`, donc
+   aucune regle `@container affaires` ne l'atteint, et il n'en a pas besoin. LE CALCUL
+   A 390 px : le travail a 12 px de marge de chaque cote sous 700 px (section 5), il
+   reste 366 px ; trois cases de 7rem (112 px, bordure et marge interieure comprises,
+   `border-box`) et deux ecarts de 8 px font 352 px. Elles tiennent sur une rangee. Le
+   mot le plus long en capitales (« AFFAIRES », « RELANCER ») fait une centaine de px
+   au plus, marges comprises ; les sous-lignes sont en bas de casse : aucune case ne
+   force sa largeur au-dela de 112 px. `banc:bureau` refait ce calcul
+   sur cette feuille. La cible fait 44 px de haut au moins, a toutes les tailles. */
 .bdv-coque .aff-bilan{
   display:flex;
   flex-wrap:wrap;
   gap:var(--bdv-e-2);
   margin:0 0 var(--bdv-e-4);
 }
+.bdv-coque .aff-bilan[hidden]{ display:none; }
 .bdv-coque .aff-bilan__case{
   flex:1 1 7rem;
   display:flex;
-  flex-direction:column-reverse;
+  flex-direction:column;
+  align-items:flex-start;
+  min-height:var(--bdv-cible);
   padding:var(--bdv-e-2) var(--bdv-e-3);
   border:1px solid var(--bdv-trait);
   border-radius:var(--bdv-r);
   background:var(--bdv-surface-2);
+  font-family:inherit;
+  text-align:left;
+  color:var(--bdv-encre-1);
+  cursor:pointer;
 }
-.bdv-coque .aff-bilan dt{
+.bdv-coque .aff-bilan__case:hover{ border-color:var(--bdv-trait-fort); }
+.bdv-coque .aff-bilan__case:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-bilan__l{
   font-size:var(--bdv-f-1);
   font-weight:600;
   letter-spacing:var(--bdv-ls-etiq);
   text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-bilan__s{
+  font-size:var(--bdv-f-1);
   color:var(--bdv-encre-3);
 }
 .bdv-coque .aff-bilan__n{
@@ -5281,6 +5330,38 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
   color:var(--bdv-encre-1);
 }
 .bdv-coque .aff-bilan__n--presse{ color:var(--bdv-retard); }
+/* LE BILAN SOUS 700 px, verificateur du lot 45 (29/09/2026). A 390 px il prenait 120 px
+   (cases de 117 x 119, « A » seul au-dessus de « RELANCER »). Sous 700 px chaque case
+   montre le chiffre et un mot COURT (`.aff-bilan__c` : « 3 en cours », « 2 à relancer »,
+   « 12 à suivre »), sur UNE rangee de 44 px. Le mot long et la sous-ligne partent ; le nom
+   du bouton (`aria-label`) garde la phrase entiere, a toutes les largeurs.
+   LE CALCUL A 390 px, pire cas a trois chiffres : 366 px de travail (390 moins deux
+   marges de 12). Chiffre en --bdv-f-3 (15 px, 0,62 em par chiffre : 28 px pour « 123 »),
+   ecart de 4, mot en --bdv-f-2 (13 px, 0,52 em par signe), marge interieure 2 x 8 et
+   bordure 2 : « 123 en cours » 104, « 123 à relancer » 117, « 123 à suivre » 104, plus
+   deux ecarts de 8 : 341 px pour 366. Ca tient. A 320 px (296 utiles) ca ne tient plus :
+   `flex-wrap` passe la troisieme case sur une deuxieme rangee (44 + 8 + 44 = 96 px), sans
+   debordement, chaque case restant sur une ligne (`nowrap`). `banc:bureau` refait ce calcul. */
+.bdv-coque .aff-bilan__c{ display:none; }
+@media (max-width:700px){
+  body.bdv-poste.bdv-coque .aff-bilan__case{
+    flex:1 1 auto;
+    flex-direction:row;
+    align-items:center;
+    gap:var(--bdv-e-1);
+    min-height:var(--bdv-cible);
+    padding:0 var(--bdv-e-2);
+    white-space:nowrap;
+  }
+  body.bdv-poste.bdv-coque .aff-bilan__n{ font-size:var(--bdv-f-3); line-height:1; }
+  body.bdv-poste.bdv-coque .aff-bilan__l,
+  body.bdv-poste.bdv-coque .aff-bilan__s{ display:none; }
+  body.bdv-poste.bdv-coque .aff-bilan__c{
+    display:inline;
+    font-size:var(--bdv-f-2);
+    color:var(--bdv-encre-1);
+  }
+}
 
 /* LA LIGNE : le nom est un bouton, et son calque rend la ligne entiere
    cliquable (meme montage que les cartes des outils, `z-index` compris : sans
@@ -5459,3 +5540,9 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   color:var(--bdv-encre-1);
 }
 .bdv-coque .com-onglet:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:-2px; }
+
+/* -- 33 bis. « VOIR DANS MON CAP » : la regle `scroll-margin-top` posee le 30/09/2026 est
+   RETIREE le meme jour. Elle supposait un bandeau de 4rem (il mesure 0 sous 700 px) et ne
+   voyait pas la retraction de l'en-tete. Le defilement lit desormais le bas REEL des
+   collants au moment de defiler, puis se recale une fois : `defilerSousCollants()` dans
+   bdv-ecrans.js. */

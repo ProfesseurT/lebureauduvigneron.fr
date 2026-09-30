@@ -192,8 +192,11 @@ if (S.htmlLocal === S.htmlServeur) {
     '\n            local   : ...' + S.htmlLocal.slice(Math.max(0, i - 70), i + 70)
     + '\n            serveur : ...' + S.htmlServeur.slice(Math.max(0, i - 70), i + 70));
 }
-t('le verdict des quatre mouvements est bien peint',
-  S.htmlLocal.includes('D’où vient ta variation') || S.htmlLocal.includes('où vient ta variation'));
+/* LOT 45 : le verdict des quatre mouvements est parti dans Mon cap (banc:cap-serveur
+   garde sa parite la-bas). Ici il reste le renvoi, sans chiffre, des deux cotes. */
+t('le renvoi vers Mon cap est peint, et plus le tableau des quatre mouvements',
+  S.htmlLocal.includes('renvoi-cap') && S.htmlLocal.includes('Voir dans Mon cap')
+  && !S.htmlLocal.includes('mouvement de clientèle') && !S.htmlServeur.includes('mouvement de clientèle'));
 t('et la liste des clients a rappeler aussi', S.htmlLocal.includes('m-recul') || S.htmlLocal.includes('m-cadence'));
 
 console.log('\n== 2. Les quatre mouvements, champ par champ ==');

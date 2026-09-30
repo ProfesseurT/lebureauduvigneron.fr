@@ -21,6 +21,9 @@ import { JSDOM } from 'jsdom';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires.js'), 'utf8');
+/* LA REGLE « A RELANCER » VIT DANS bdv-affaires-jour.js DEPUIS LE LOT 45 : la piece
+   l'appelle. Le module part avec la page, avant elle ; le harnais fait pareil. */
+const SRCJ_REGLE = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
 const BUREAU = 'aaaaaaaa-0000-0000-0000-000000000001';
 
 let OK = 0, KO = 0;
@@ -72,6 +75,7 @@ function monter() {
       if (o.methode === 'DELETE') { base[nomTable] = rows.filter(r => !filtre(r)); return null; }
     }
   };
+  w.eval(SRCJ_REGLE);
   w.eval(SRC);
   return { w, doc: w.document, base, requetes, cles,
     clic(sel) { const n = w.document.querySelector(sel); if (!n) throw new Error('introuvable : ' + sel); n.click(); } };
@@ -560,10 +564,10 @@ titre('Lot 44 : « Voir sa fiche » depuis une affaire');
   t('une affaire qui n\'est plus en cours n\'ouvre rien', panneau().hidden);
 
   /* « En faire une affaire » : la raison se lit, le pretexte se propose. */
-  F.w.sessionStorage.setItem('bdv_affaire_client', JSON.stringify({ id: 'C5', nom: 'Bar du Coin', raison: 'Retard de cadence', enjeu: '1 200 € acheté au total', pretexte: 'Lui proposer sa commande habituelle' }));
+  F.w.sessionStorage.setItem('bdv_affaire_client', JSON.stringify({ id: 'C5', nom: 'Bar du Coin', raison: 'Retard de cadence', enjeu: '1 200 € achetés au total', pretexte: 'Lui proposer sa commande habituelle' }));
   await F.w.BdvAffaires.ouvrir();
   t('la raison ET l\'enjeu de « Clients a suivre » sont ecrits dans le formulaire',
-    /Dans tes clients à suivre : Retard de cadence, 1 200 € acheté au total\./.test(panneau().textContent), panneau().textContent.slice(0, 200));
+    /Dans tes clients à suivre : Retard de cadence, 1 200 € achetés au total\./.test(panneau().textContent), panneau().textContent.slice(0, 200));
   t('et son pretexte est propose dans « Pour quoi faire »', F.doc.getElementById('affMotifClient').value === 'Lui proposer sa commande habituelle');
   F.doc.getElementById('affTitreClient').value = 'Le magnum';
   F.doc.getElementById('affFormeClient').dispatchEvent(new F.w.Event('submit', { bubbles: true, cancelable: true }));
@@ -626,6 +630,196 @@ titre('Les affaires dans « Ma journee » (bdv-affaires-jour.js)');
     return []; } };
   await AJ.charger();
   t('la lecture demande le client de la piste, et s\'en sert (charger)', reqJ.some(c => /\/pistes\?select=[^&]*client_id/.test(c)) && AJ.duClient('C77').length === 1, reqJ.join(' ; '));
+}
+
+/* ----------------------------------------------------------------------------
+   LOT 45, 29/09/2026 : LA REGLE « A RELANCER » UNIQUE, LE BILAN COMMUN.
+   La regle vit dans bdv-affaires-jour.js ; la piece l'appelle par `etat()`, la
+   punaise de Ma journee et la case « A relancer » du bilan comptent avec elle.
+   Le cas qui les faisait diverger : une affaire ENDORMIE SANS RAPPEL (le bloc la
+   comptait, la punaise non). Le bilan n'est plus dans #affCorps.
+   ---------------------------------------------------------------------------- */
+titre('Lot 45 : une regle « a relancer », un bilan au-dessus des onglets');
+{
+  t('etat() de la piece appelle la regle de bdv-affaires-jour.js, et ne la redit pas',
+    /return BdvAffairesJour\.etat\(a, t\.sommeil_jours, aujourdhui\);/.test(SRC)
+    && !/retard\s*==\s*null\s*&&\s*jours/.test(SRC) && !/ecartJours\(a\.rappel/.test(SRC) && !/retard\s*>=\s*0/.test(SRC));
+  t('htmlBilan() a quitte la piece', !/htmlBilan/.test(SRC) && !/aff-bilan/.test(SRC));
+
+  const H = monter();
+  /* Le bilan vit hors de #affCorps : le harnais porte l'element et un double de la barre. */
+  const bil = H.doc.createElement('div');
+  bil.id = 'bureauComBilan'; bil.className = 'aff-bilan'; bil.hidden = true;
+  H.doc.body.insertBefore(bil, H.doc.body.firstChild);
+  const vus = [];
+  H.w.BdvNav = { ongletCourant: () => 'gagner', avecVitisoft: () => false,
+    afficher: (id, o) => { vus.push(id + ':' + ((o || {}).onglet || '')); H.w.BdvAffaires.ouvrir(); } };
+  await H.w.BdvAffaires.ouvrir();
+  H.clic('[data-aff="demarrer"]');
+  await attendre(20);
+  const tid = H.base.affaire_types[0].type_id;
+  const et1 = H.base.affaire_etapes.filter(e => e.type_id === tid).sort((a, b) => a.ordre - b.ordre)[0].etape_id;
+  const loin = new Date(Date.now() - 200 * 86400000).toISOString();
+  const pr = (id, nom) => H.base.pistes.push({ piste_id: id, nom, bureau: BUREAU });
+  pr('q1', 'Cave Endormie'); pr('q2', 'Cave En Retard'); pr('q3', 'Cave Tranquille');
+  const af = (id, piste, rappel, etape_le) => H.base.affaires.push({ affaire_id: id, bureau: BUREAU, type_id: tid,
+    etape_id: et1, piste_id: piste, titre: 'T' + id, issue: 'en_cours', rappel, etape_le, maj_le: new Date().toISOString() });
+  af('e1', 'q1', null, loin);                         // endormie, SANS rappel
+  af('e2', 'q2', '2020-01-01', new Date().toISOString()); // rappel passe
+  af('e3', 'q3', null, new Date().toISOString());     // ni l'un ni l'autre
+  H.w.localStorage.setItem('bdv_aff_vue', 'kanban');
+  H.w.BdvAffaires._S.vue = 'liste';
+  await H.w.BdvAffaires.ouvrir();
+  const bloc = (H.doc.body.textContent.match(/À relancer : (\d+)/) || [])[1];
+  t('le bloc compte l\'endormie sans rappel : « A relancer : 2 »', bloc === '2', bloc);
+  t('la regle unique dit la meme chose (BdvAffairesJour.aRelancer)', H.w.BdvAffairesJour.aRelancer().length === 2);
+  const pun = H.w.BdvAffairesJour.punaises();
+  t('la punaise de Ma journee dit le meme mot et le meme nombre',
+    pun.length === 1 && pun[0].valeur === '2' && pun[0].libelle === 'affaires à relancer', JSON.stringify(pun));
+  H.w.BdvAffairesJour.peindreBilan();
+  const n = (q) => ((bil.querySelector('[data-bilan="' + q + '"] .aff-bilan__n') || {}).textContent);
+  t('la case « A relancer » du bilan = le bloc « A relancer : N »', n('relancer') === bloc, n('relancer') + ' / ' + bloc);
+  t('sa sous-ligne dit ce qu\'elle compte',
+    /rappel passé ou affaire endormie/.test((bil.querySelector('[data-bilan="relancer"]') || {}).textContent || ''));
+  t('« Affaires en cours » compte les trois, au pluriel',
+    n('affaires') === '3' && /affaires en cours/.test(bil.textContent));
+  t('aucun bilan dans #affCorps, aucun montant dans le bilan',
+    !H.doc.querySelector('#affCorps .aff-bilan') && !/€/.test(bil.textContent));
+  t('chaque case est un bouton', [...bil.children].length === 2 && [...bil.children].every(b => b.tagName === 'BUTTON'));
+  /* Le geste « A relancer » : Toutes, Liste EN MEMOIRE, focus sur le bloc. */
+  H.w.BdvAffaires._S.filtre = tid;
+  H.w.BdvAffaires._S.vue = 'kanban';
+  bil.querySelector('[data-bilan="relancer"]').click();
+  await attendre(30);
+  t('« A relancer » ouvre « A gagner »', vus[vus.length - 1] === 'clients:gagner', vus.join(','));
+  t('sur « Toutes », en Liste', H.w.BdvAffaires._S.filtre === '' && H.w.BdvAffaires._S.vue === 'liste');
+  t('sans reecrire bdv_aff_vue', H.w.localStorage.getItem('bdv_aff_vue') === 'kanban', H.w.localStorage.getItem('bdv_aff_vue'));
+  t('le focus est sur le bloc « A relancer : N »',
+    H.doc.activeElement && H.doc.activeElement.id === 'affRelancer' && /À relancer : 2/.test(H.doc.activeElement.textContent),
+    H.doc.activeElement && H.doc.activeElement.id);
+  H.w.BdvAffaires._S.filtre = tid;
+  bil.querySelector('[data-bilan="affaires"]').click();
+  await attendre(30);
+  t('« Affaires en cours » ouvre « A gagner » sur « Toutes »',
+    vus[vus.length - 1] === 'clients:gagner' && H.w.BdvAffaires._S.filtre === '');
+}
+{
+  /* LA PUNAISE D'UNE SEULE ENDORMIE : elle la nomme, et le dit. */
+  const J2 = new JSDOM('<!doctype html><body></body>', { runScripts: 'outside-only' });
+  J2.window.eval(SRCJ_REGLE);
+  const A2 = J2.window.BdvAffairesJour;
+  A2.poser([{ affaire_id: 'z1', issue: 'en_cours', titre: 'z', piste_id: 'p1', rappel: null, type_id: 'T', etape_le: new Date(Date.now() - 20 * 86400000).toISOString() }],
+    { p1: { nom: 'Cave Muette' } }, [{ type_id: 'T', sommeil_jours: 10 }]);
+  const p = A2.punaises();
+  t('une seule endormie sans rappel : une punaise qui la nomme',
+    p.length === 1 && p[0].valeur === 'Cave Muette' && p[0].tampon === 'affaire endormie', JSON.stringify(p));
+  A2.poser([{ affaire_id: 'z1', issue: 'en_cours', titre: 'z', piste_id: 'p1', rappel: null, type_id: 'T', etape_le: new Date(Date.now() - 20 * 86400000).toISOString() }],
+    { p1: { nom: 'Cave Muette' } }, [{ type_id: 'T', sommeil_jours: 30 }]);
+  t('le delai du type est lu : a 20 jours sur 30, pas de punaise', A2.punaises().length === 0);
+  const reqs = [];
+  J2.window.BdvCompte = { monBureau: () => 'b1', api: async (c) => { reqs.push(c);
+    if (/^\/affaires/.test(c)) return [];
+    if (/^\/affaire_types/.test(c)) return [];
+    return []; } };
+  await A2.charger();
+  t('la lecture demande etape_le et type_id, puis le delai des types (sommeil_jours)',
+    reqs.some(c => /^\/affaires\?select=[^&]*etape_le/.test(c) && /type_id/.test(c))
+    && reqs.some(c => /^\/affaire_types\?select=type_id,sommeil_jours&bureau=eq\.b1/.test(c)), reqs.join(' ; '));
+}
+
+/* ----------------------------------------------------------------------------
+   LOT 45, PARTIE B, 29/09/2026 : UN CLIENT, UNE FOIS. Un client en affaire sort de
+   « Clients a suivre » ; sa raison le suit dans « A gagner » : etiquette `.motif` sur
+   la ligne et la carte kanban, phrase « Ce que disent tes ventes » dans le panneau.
+   Lue par `bdvMotifClient` (moteur des ventes), jamais chargee pour elle : sans
+   moteur, sans Vitisoft, ou pour un nouveau client, rien. `bdv:clients` repeint la
+   piece si une etiquette change ; le panneau ne change que si son sujet change.
+   Verifie par mutation le 29/09/2026.
+   ---------------------------------------------------------------------------- */
+titre('Lot 45 : la raison du client suit son affaire');
+{
+  const F = monter();
+  F.w.BdvTiroir = { actif: () => true, poser: () => true, retirer: () => {} };
+  let viti = true;
+  F.w.BdvNav = { avecVitisoft: () => viti };
+  F.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  F.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  F.base.pistes.push({ bureau: BUREAU, piste_id: 'pN', nom: 'Cave Neuve', opposition: false },
+                     { bureau: BUREAU, piste_id: 'pC', nom: 'Cave Devenue Cliente', client_id: 'C9', opposition: false });
+  const jour = new Date().toISOString();
+  F.base.affaires.push(
+    { bureau: BUREAU, affaire_id: 'aC', type_id: 't1', etape_id: 'e1', client_id: 'C7', client_nom: 'Chez Paul', titre: 'Le rosé', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aX', type_id: 't1', etape_id: 'e1', client_id: 'C8', client_nom: 'Chez Rien', titre: 'Le blanc', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aN', type_id: 't1', etape_id: 'e1', piste_id: 'pN', titre: 'Cave Neuve', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aP', type_id: 't1', etape_id: 'e1', piste_id: 'pC', titre: 'Cave Devenue Cliente', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  t('avant la lecture, clientsEnAffaire() rend null (on ne sait pas)', F.w.BdvAffairesJour.clientsEnAffaire() === null);
+  await F.w.BdvAffaires.ouvrir();
+  const enA = F.w.BdvAffairesJour.clientsEnAffaire();
+  t('clientsEnAffaire() : les clients par leur numero ET la piste devenue cliente, pas la piste neuve',
+    !!enA && enA.has('C7') && enA.has('C8') && enA.has('C9') && enA.size === 3, enA && [...enA].join(','));
+  t('la piece ne charge jamais le moteur des ventes pour la raison',
+    !/chargerEcrans|demarrerEcransVente/.test(SRC));
+  const lig = (id) => F.doc.querySelector('#affCorps [data-affaire="' + id + '"]');
+  const eti = (id) => { const l = lig(id); return l ? [...l.querySelectorAll('.aff-motif')].map(n => n.textContent).join('|') : 'ABSENTE'; };
+  t('moteur pas charge : aucune etiquette', !F.doc.querySelector('#affCorps .aff-motif'));
+
+  const MOT = {
+    C7: { label: 'Recul confirmé', cls: 'm-recul', montant: 1234, lib: 'perdus à date égale', detail: '2 000 € en 2025, 766 € en 2026 à date égale', enjeu: '1 234 € perdus à date égale' },
+    C9: { label: 'Retard de cadence', cls: 'm-cadence', montant: 800, lib: 'achetés au total', detail: 'commande tous les 30 j, rien depuis 3 mois', enjeu: '800 € achetés au total' },
+    pN: { label: 'NE DOIT PAS SORTIR', cls: 'm-recul' }
+  };
+  const vus = [];
+  F.w.bdvMotifClient = (id) => { vus.push(id); return MOT[id] || null; };
+  F.doc.dispatchEvent(new F.w.CustomEvent('bdv:clients'));
+  t('bdv:clients : la ligne d\'un client en recul porte « Recul confirmé »', eti('aC') === 'Recul confirmé', eti('aC'));
+  t('en toutes lettres, dans une etiquette .motif a l\'encre du motif',
+    !!lig('aC').querySelector('.motif.aff-motif.m-recul'));
+  t('la piste devenue cliente porte sa raison a elle (autre motif)', eti('aP') === 'Retard de cadence', eti('aP'));
+  t('un client sans raison : pas d\'etiquette', eti('aX') === '', eti('aX'));
+  t('un nouveau client : pas d\'etiquette, et on ne le demande meme pas', eti('aN') === '' && vus.indexOf('pN') < 0, vus.join(','));
+  t('aucun montant sur la ligne', !/€/.test(lig('aC').textContent));
+
+  /* Le panneau : la phrase, et elle ne bouge pas tant que le sujet reste le meme. */
+  F.clic('#affCorps [data-affaire="aC"] [data-aff="ouvrir"]');
+  const phrase = () => ((F.doc.querySelector('#affaireModale .amod__ventes') || {}).textContent || '');
+  t('le panneau dit « Ce que disent tes ventes : Recul confirmé, 1 234 € perdus à date égale (...) »',
+    phrase() === 'Ce que disent tes ventes : Recul confirmé, 1 234 € perdus à date égale (2 000 € en 2025, 766 € en 2026 à date égale).', phrase());
+  t('la phrase est sous l\'etat de l\'affaire',
+    !!F.doc.querySelector('#affaireModale .amod__etat + .amod__ventes'));
+  MOT.C7 = Object.assign({}, MOT.C7, { label: 'Deuxième achat à jouer', cls: 'm-premier' });
+  F.doc.dispatchEvent(new F.w.CustomEvent('bdv:clients'));
+  t('bdv:clients repeint l\'etiquette de la ligne', eti('aC') === 'Deuxième achat à jouer', eti('aC'));
+  t('mais pas le panneau ouvert sur le meme sujet', /Recul confirmé/.test(phrase()), phrase());
+  F.clic('#affaireModale .tmod__x');
+  F.clic('#affCorps [data-affaire="aX"] [data-aff="ouvrir"]');
+  t('une affaire sans raison connue : pas de phrase', !F.doc.querySelector('#affaireModale .amod__ventes'));
+  F.clic('#affaireModale .tmod__x');
+
+  /* Le focus : repeindre sous le doigt le rend au meme geste de la meme affaire. */
+  F.doc.querySelector('#affCorps [data-affaire="aP"] [data-aff="ouvrir"]').focus();
+  MOT.C9 = Object.assign({}, MOT.C9, { label: 'Sa saison arrive' });
+  F.doc.dispatchEvent(new F.w.CustomEvent('bdv:clients'));
+  const act = F.doc.activeElement;
+  t('apres un repeint sur bdv:clients, le focus est rendu au meme geste',
+    eti('aP') === 'Sa saison arrive' && act && act.getAttribute('data-aff') === 'ouvrir' && act.closest('[data-affaire]').getAttribute('data-affaire') === 'aP',
+    eti('aP') + ' / ' + (act && act.outerHTML.slice(0, 60)));
+  const avant = F.doc.getElementById('affCorps').innerHTML;
+  F.doc.dispatchEvent(new F.w.CustomEvent('bdv:clients'));
+  t('rien n\'a change : pas de repeint', F.doc.querySelector('#affCorps [data-affaire="aP"] [data-aff="ouvrir"]') === act && F.doc.getElementById('affCorps').innerHTML === avant);
+
+  /* La carte kanban. */
+  F.w.BdvAffaires._S.vue = 'kanban'; F.w.BdvAffaires._S.filtre = 't1';
+  await F.w.BdvAffaires.ouvrir();
+  const carte = F.doc.querySelector('#affCorps .aff-carte[data-affaire="aC"]');
+  t('la carte kanban porte l\'etiquette seule', !!carte && [...carte.querySelectorAll('.aff-motif')].map(n => n.textContent).join('|') === 'Deuxième achat à jouer' && !/€/.test(carte.textContent),
+    carte && carte.textContent);
+  t('et la carte du nouveau client n\'en porte pas', !F.doc.querySelector('#affCorps .aff-carte[data-affaire="aN"] .aff-motif'));
+  /* Sans Vitisoft : pas de fiche, pas de raison. */
+  viti = false;
+  F.w.BdvAffaires._S.vue = 'liste';
+  await F.w.BdvAffaires.ouvrir();
+  t('sans Vitisoft : aucune etiquette', !F.doc.querySelector('#affCorps .aff-motif'));
+  t('pas de tiret cadratin', !/—/.test(F.doc.body.textContent));
 }
 
 console.log('\n== VERDICT ==');

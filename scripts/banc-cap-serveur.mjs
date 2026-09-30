@@ -200,6 +200,15 @@ if (S.htmlLocal === S.htmlServeur) {
 }
 t('le bandeau de comparaison est bien peint dans les deux cas',
   S.htmlLocal.includes('class="hero"') && S.htmlServeur.includes('class="hero"'));
+/* LOT 45 : le verdict des quatre mouvements est la premiere carte de #pied-cap, et son
+   titre porte la variation du bandeau quand les deux calculs tombent d'accord a l'euro.
+   Bandeau venu du serveur, mouvements calcules ici : le titre doit etre le meme. */
+{
+  const titre = (x) => { const m = /id="pied-cap">\s*<summary>([^<]*)</.exec(x); return m ? m[1] : null; };
+  t('le repli « Ce qui explique ta variation » porte le meme titre, montant compris, des deux cotes',
+    !!titre(S.htmlLocal) && titre(S.htmlLocal) === titre(S.htmlServeur) && /à date égale : [+\-−]/.test(titre(S.htmlServeur)),
+    titre(S.htmlLocal) + ' / ' + titre(S.htmlServeur));
+}
 t('et la fourchette d\'atterrissage aussi',
   S.htmlLocal.includes('fourchette') && S.htmlServeur.includes('fourchette'));
 

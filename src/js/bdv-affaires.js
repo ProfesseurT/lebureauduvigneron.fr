@@ -91,11 +91,6 @@
     var d = horo ? new Date(horo) : null;
     return d && !isNaN(d) ? jourIso(d) : null;
   }
-  function ecartJours(isoA, isoB) {
-    var a = versDate(isoA), b = versDate(isoB);
-    if (!a || !b) return null;
-    return Math.round((b - a) / 86400000);
-  }
   var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
   function dateCourte(iso) {
     var d = versDate(iso);
@@ -194,7 +189,7 @@
       S.affaires = r[3];
       S.charge = true; S.erreur = false; S.panneauSale = true;
       /* La journee lit les memes affaires : on les lui pose, elle repeint son panneau. */
-      if (window.BdvAffairesJour) BdvAffairesJour.poser(S.affaires, S.pistes);
+      if (window.BdvAffairesJour) BdvAffairesJour.poser(S.affaires, S.pistes, S.types);
       return true;
     } catch (e) { S.erreur = true; return false; }
   }
@@ -227,21 +222,31 @@
     var p = a.piste_id && S.pistes[a.piste_id];
     return p && p.client_id ? String(p.client_id) : null;
   }
-  /* A RELANCER : un rappel passe ou du jour. ENDORMIE : aucun rappel a venir, et
-     plus longtemps dans l'etape que le delai du type. Une affaire qui a une date
-     de rappel dans trois mois n'est PAS endormie : le client a dit « rappelez en
-     janvier », et c'est exactement ce qu'on a note. */
+  /* CE QUE DISENT SES VENTES, lot 45 (29/09/2026). Un client en affaire a quitte
+     « Clients a suivre » : sa raison le suit ici, lue dans la liste du moteur
+     (`bdvMotifClient`, bdv-ecrans.js). Rien en base, et le moteur n'est JAMAIS charge
+     pour elle : sans lui, sans Vitisoft, ou pour un nouveau client, on se tait.
+     `clientDe()` rend deja `null` pour les deux derniers cas (pas de numero Vitisoft). */
+  function motifDe(a) {
+    var id = clientDe(a);
+    if (!id || typeof window.bdvMotifClient !== 'function') return null;
+    try { return window.bdvMotifClient(id) || null; } catch (e) { return null; }
+  }
+  function htmlMotif(m) {
+    return m ? '<span class="motif aff-motif ' + esc(m.cls) + '">' + esc(m.label) + '</span>' : '';
+  }
+  function sigMotifs() {
+    return enCours().map(function (a) { var m = motifDe(a); return a.affaire_id + ':' + (m ? m.label : ''); }).join('|');
+  }
+  var SIG_MOTIFS = null;
+
+  /* A RELANCER, ENDORMIE : LA REGLE VIT DANS bdv-affaires-jour.js (lot 45), une seule
+     fois, parce que la punaise de Ma journee et le bilan de « Mon commerce » comptent
+     avec elle. Ici on lui passe le delai du type, rien d'autre. `aRelancer` = rappel
+     passe ou du jour, OU endormie : c'est le bloc « A relancer : N ». */
   function etat(a, aujourdhui) {
     var t = typeDe(a.type_id) || { sommeil_jours: 30 };
-    var auj = aujourdhui || jourIso();
-    var retard = a.rappel ? ecartJours(a.rappel, auj) : null;
-    var jours = ecartJours(jourLocal(a.etape_le), auj);
-    jours = jours == null ? 0 : Math.max(0, jours);
-    return {
-      jours: jours, sommeil: t.sommeil_jours, retard: retard,
-      relancer: retard != null && retard >= 0,
-      endormie: retard == null && jours > t.sommeil_jours
-    };
+    return BdvAffairesJour.etat(a, t.sommeil_jours, aujourdhui);
   }
   function enCours() { return S.affaires.filter(function (a) { return a.issue === 'en_cours'; }); }
   function typesActifs() { return S.types.filter(function (t) { return !t.archive; }); }
@@ -260,7 +265,8 @@
       return;
     }
     if (!S.types.length) { c.innerHTML = htmlDemarrage(); return; }
-    c.innerHTML = htmlTete() + htmlBilan()
+    SIG_MOTIFS = sigMotifs();
+    c.innerHTML = htmlTete()
       + (S.vue === 'kanban' ? htmlKanban() : htmlRelancer() + htmlListe())
       + htmlCloses() + htmlReglages();
     peindrePanneau();
@@ -335,7 +341,8 @@
         + '<h2 class="tmod__titre" id="amodTitre">' + esc(sujet(a)) + '</h2>'
         + '<p class="tmod__sous">' + [a.titre && a.titre !== sujet(a) ? esc(a.titre) : '', t ? esc(t.nom) : '']
           .filter(Boolean).join(' · ') + '</p>'
-        + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e) + '</p>';
+        + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e) + '</p>'
+        + htmlVentes(motifDe(a));
       corps.innerHTML = htmlEditeur(a);
     }
     if (neuf) {
@@ -354,6 +361,13 @@
       if (premier) { try { premier.focus(); } catch (x) {} }
     }
   }
+  /* « Ce que disent tes ventes : Recul confirme, 1 234 EUR perdus a date egale (...). » Le
+     montant et sa nature sont ceux de la ligne de « Clients a suivre », mot pour mot. */
+  function htmlVentes(m) {
+    if (!m) return '';
+    return '<p class="amod__ventes">Ce que disent tes ventes : ' + esc(m.label)
+      + (m.enjeu ? ', ' + esc(m.enjeu) : '') + (m.detail ? ' (' + esc(m.detail) + ')' : '') + '.</p>';
+  }
   function fermerPanneau(silence) {
     var etait = S.ouverte || S.nouvelle;
     S.ouverte = null; S.nouvelle = false; S.choix = null; S.clientPropose = null;
@@ -366,23 +380,6 @@
       if (r && r.isConnected && typeof r.focus === 'function') { try { r.focus(); } catch (x) {} }
     }
     if (!silence && etait) { viderAttente(); rendre(); }
-  }
-
-  /* LE BILAN EN UNE LIGNE, au-dessus de la liste : ce qu'on a en cours, ce qui
-     presse. Les memes mots que les blocs, jamais une couleur seule. */
-  function htmlBilan() {
-    /* « A relancer » compte EXACTEMENT ce que compte le bloc du meme nom (rappel du
-       ou passe, OU endormie) : deux nombres differents sous le meme mot, c'est le
-       vigneron qui se demande lequel croire. */
-    var v = visibles();
-    var rel = v.filter(function (a) { var e = etat(a); return e.relancer || e.endormie; }).length;
-    var prevus = v.filter(function (a) { var e = etat(a); return e.retard != null && e.retard < 0; }).length;
-    var cases = [[v.length, 'en cours', ''],
-                 [rel, 'à relancer', rel ? 'aff-bilan__n--presse' : ''],
-                 [prevus, prevus > 1 ? 'rappels prévus' : 'rappel prévu', '']];
-    return '<dl class="aff-bilan">' + cases.map(function (c) {
-      return '<div class="aff-bilan__case"><dt>' + c[1] + '</dt><dd class="aff-bilan__n ' + c[2] + '">' + c[0] + '</dd></div>';
-    }).join('') + '</dl>';
   }
 
   function htmlDemarrage() {
@@ -822,7 +819,8 @@
       + '<div class="aff-ligne__corps">'
       + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir"'
       + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>'
-      + (estNouveau(a) ? ' <span class="aff-marque">Nouveau client</span>' : '') + '</p>'
+      + (estNouveau(a) ? ' <span class="aff-marque">Nouveau client</span>' : '')
+      + (motifDe(a) ? ' ' + htmlMotif(motifDe(a)) : '') + '</p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__titre">' + esc(a.titre) + '</p>' : '')
       + '</div>'
       + '<p class="aff-ligne__etape"><span class="aff-pastille">' + esc(et ? et.nom : 'étape') + '</span>'
@@ -933,7 +931,7 @@
     var t = typeKanban();
     if (!t) return '<div class="aff-bloc"><p class="aff-vide">Choisis un type d’affaire au-dessus pour voir ses colonnes.</p></div>';
     var dans = enCours().filter(function (a) { return a.type_id === t.type_id; });
-    var nRel = dans.filter(function (a) { var e = etat(a); return e.relancer || e.endormie; }).length;
+    var nRel = dans.filter(function (a) { return etat(a).aRelancer; }).length;
     var cols = etapesDe(t.type_id).map(function (et) {
       var ici = dans.filter(function (a) { return a.etape_id === et.etape_id; });
       return '<section class="aff-col" data-colonne="' + et.etape_id + '" aria-label="' + esc(et.nom) + ', ' + ici.length + '">'
@@ -958,6 +956,7 @@
       + ' aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__s">' + esc(a.titre) + '</p>' : '')
       + (estNouveau(a) ? '<p class="aff-marque">Nouveau client</p>' : '')
+      + (motifDe(a) ? '<p class="aff-carte__motif">' + htmlMotif(motifDe(a)) + '</p>' : '')
       + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
       + (e.endormie ? '<p class="aff-ligne__s"><b>Endormie depuis ' + pluriel(e.jours - e.sommeil, 'jour', 'jours') + '</b></p>' : '')
       + '<div class="aff-carte__gestes">'
@@ -966,18 +965,19 @@
   }
 
   function htmlRelancer() {
-    var r = visibles().filter(function (a) { var e = etat(a); return e.relancer || e.endormie; })
+    var r = visibles().filter(function (a) { return etat(a).aRelancer; })
       .sort(function (a, b) {
         var ra = etat(a).retard, rb = etat(b).retard;
         return (rb == null ? -1 : rb) - (ra == null ? -1 : ra);
       });
-    if (!r.length) return '<div class="aff-bloc"><h3 class="aff-bloc__t">À relancer</h3>'
+    /* `affRelancer` : la case « A relancer » du bilan commun y pose le focus (lot 45). */
+    if (!r.length) return '<div class="aff-bloc"><h3 class="aff-bloc__t" id="affRelancer" tabindex="-1">À relancer</h3>'
       + '<p class="aff-vide">Rien à relancer aujourd’hui.</p></div>';
-    return '<div class="aff-bloc aff-bloc--relancer"><h3 class="aff-bloc__t">À relancer : ' + r.length + '</h3>'
+    return '<div class="aff-bloc aff-bloc--relancer"><h3 class="aff-bloc__t" id="affRelancer" tabindex="-1">À relancer : ' + r.length + '</h3>'
       + '<ul class="aff-liste">' + r.map(function (a) { return htmlAffaire(a, true); }).join('') + '</ul></div>';
   }
   function htmlListe() {
-    var reste = visibles().filter(function (a) { var e = etat(a); return !(e.relancer || e.endormie); });
+    var reste = visibles().filter(function (a) { return !etat(a).aRelancer; });
     var types = S.filtre ? [typeDe(S.filtre)].filter(Boolean) : typesActifs();
     var html = '';
     types.forEach(function (t) {
@@ -1534,9 +1534,27 @@
     } catch (e) { return null; }
   }
 
+  /* LE BILAN COMMUN DEMANDE UNE VUE, 29/09/2026 (lot 45) : « Affaires en cours » et
+     « A relancer » menent a « Toutes » ; « A relancer » demande en plus la Liste et le
+     focus sur son bloc. La Liste est posee EN MEMOIRE : `bdv_aff_vue` garde le choix
+     du vigneron, un clic sur un chiffre ne le reecrit pas. */
+  function lireVueDemandee() {
+    try {
+      var brut = sessionStorage.getItem('bdv_affaire_vue');
+      if (!brut) return null;
+      sessionStorage.removeItem('bdv_affaire_vue');
+      return JSON.parse(brut) || null;
+    } catch (e) { return null; }
+  }
+
   async function ouvrir() {
     lireClientPropose();
     var demandee = lireAffaireDemandee();
+    var vue = lireVueDemandee();
+    if (vue) {
+      S.filtre = vue.filtre || '';
+      if (vue.vue === 'liste') S.vue = 'liste';
+    }
     brancher();
     rendre();
     if (!pret()) { dire('Ton bureau n’est pas encore raccordé. Reviens dans un instant.', true); return; }
@@ -1545,7 +1563,28 @@
       S.ouverte = demandee;
     }
     rendre();
+    if (vue && vue.focus === 'relancer' && !S.nouvelle && !S.ouverte) {
+      var h = el('affRelancer');
+      if (h) { try { h.focus(); } catch (e) {} }
+    }
   }
+
+  /* « Clients a suivre » vient de se calculer (`bdv:clients`) : les raisons ont pu
+     arriver ou changer. On repeint la piece seulement si une etiquette change, en
+     rendant le focus au meme geste de la meme affaire. Le panneau, lui, ne se repeint
+     que si son sujet change (peindrePanneau). */
+  document.addEventListener('bdv:clients', function () {
+    if (!S.charge || !S.types.length || !el('affCorps')) return;
+    if (sigMotifs() === SIG_MOTIFS) return;
+    var act = document.activeElement, c = el('affCorps');
+    var li = act && c.contains(act) && act.closest ? act.closest('[data-affaire]') : null;
+    var cle = li ? li.getAttribute('data-affaire') : null, geste = act && act.getAttribute ? act.getAttribute('data-aff') : null;
+    rendre();
+    if (cle) {
+      var n = c.querySelector('[data-affaire="' + cle + '"] ' + (geste ? '[data-aff="' + geste + '"]' : 'button, select'));
+      if (n) { try { n.focus(); } catch (e) {} }
+    }
+  });
 
   window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, MODELES: MODELES, _nomsProches: nomsProches, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };

@@ -335,13 +335,13 @@ t('le moteur puis les ecrans, dans cet ordre',
    dit « les ecrans ne demarrent pas » alors qu'ils demarraient tres bien. */
 const ecransDemarres = () => B.appels.filter(a => a.ecran || a.client);
 t('les ecrans sont demarres sur la bonne piece',
-  JSON.stringify(ecransDemarres()) === '[{"ecran":"clients"}]', JSON.stringify(B.appels));
+  JSON.stringify(ecransDemarres()) === '[{"ecran":"clients","haut":true}]', JSON.stringify(B.appels));
 
 B.clic('produits');
 await B.repos();
 t('un second clic ne recharge RIEN', B.charges.length === 8, B.charges.length + ' ressources');
 t('mais il navigue',
-  JSON.stringify(ecransDemarres()[1]) === '{"ecran":"produits"}', JSON.stringify(ecransDemarres()));
+  JSON.stringify(ecransDemarres()[1]) === '{"ecran":"produits","haut":true}', JSON.stringify(ecransDemarres()));
 
 B.clic('journee');
 t('revenir a « Ma journee » remontre la journee et masque les ventes',
@@ -532,9 +532,21 @@ titre('L\'adresse d\'arrivee');
 const C = bureau('#clients');
 t('un favori sur #clients ouvre les clients, pas la journee',
   C.journee.hidden && !C.ventes.hidden);
-await C.repos();
-t('et demarre les ecrans dessus',
-  JSON.stringify(C.appels) === '[{"ecran":"clients"}]', JSON.stringify(C.appels));
+await C.repos(() => C.appels.length > 0);
+/* L'adresse est lue par suivreAdresse() : c'est le chemin de l'historique (Retour, Suivant,
+   arrivee sur un favori), donc `haut` vaut 'historique' (remontee apres la restauration). */
+t('et demarre les ecrans dessus, en remontant apres la restauration du navigateur',
+  JSON.stringify(C.appels) === '[{"ecran":"clients","haut":"historique"}]', JSON.stringify(C.appels));
+{
+  /* Retour / Suivant : popstate vers une autre piece de vente, depuis une piece defilee. */
+  const H2 = bureau('#annee');
+  await H2.repos(() => H2.appels.some(a => a.ecran === 'annee'));
+  H2.window.history.pushState(null, '', '#produits');
+  H2.window.dispatchEvent(new H2.window.PopStateEvent('popstate'));
+  await H2.repos(() => H2.appels.some(a => a.ecran === 'produits'));
+  const dp = H2.appels.filter(a => a.ecran === 'produits').pop();
+  t('Retour / Suivant (popstate) : afficher() demande haut:\'historique\'', !!dp && dp.haut === 'historique', JSON.stringify(dp));
+}
 
 const D = bureau('#client=DOMAINE%20X');
 await D.repos();
@@ -752,13 +764,13 @@ titre('Mon commerce, deux onglets (lot 43)');
      demande le moteur, le vigneron revient sur « A gagner » avant qu'il arrive, puis
      le moteur finit et appelle navTo('clients'). On rejoue le VRAI navTo() de
      bdv-ecrans.js, extrait du fichier, avec des doubles pour ce qu'il lit autour. */
-  const debut = ECRANS.indexOf('function navTo(id){');
+  const debut = ECRANS.indexOf('function navTo(id, opts){');
   const srcNavTo = ECRANS.slice(debut, ECRANS.indexOf('\n}\n', debut) + 2);
   const C = bureau();
   C.window.BdvAffaires = { ouvrir: () => {} };
   C.window.eval('var ECRAN_COURANT=null, PEINTRES={}, ECRANS_PEINTS=new Set();'
     + 'function el(i){return document.getElementById(i)||{style:{},classList:{contains:function(){return false;}}};}'
-    + 'function majBoutonMaj(){} function majPeriodeTete(){} window.scrollTo=function(){ window.__defile=(window.__defile||0)+1; };'
+    + 'function majBoutonMaj(){} function majPeriodeTete(){} function ouvrirPiedCap(){} window.scrollTo=function(){ window.__defile=(window.__defile||0)+1; };'
     + srcNavTo + ';window.navTo=navTo;');
   C.window.BdvNav.afficher('clients', { onglet: 'suivre' });
   await C.repos();
@@ -788,6 +800,317 @@ titre('Mon commerce, deux onglets (lot 43)');
   C.window.navTo('annee');
   t('coque des ventes a l\'ecran, navTo() ecrit toujours son adresse',
     C.window.location.hash === '#annee', C.window.location.hash);
+}
+
+/* ======================= LE BILAN COMMUN (lot 45, 29/09/2026) =======================
+   Trois boutons au-dessus des deux onglets de « Mon commerce », peints par
+   bdv-affaires-jour.js, montres par poserOnglets(). Visible sur les deux onglets,
+   cache ailleurs ; sans Vitisoft pas de case clients ; affaires pas lues, aucune case
+   d'affaire et aucun « 0 ». Et le calcul des trois cases a 390 px, sur la feuille. */
+titre('Le bilan commun de Mon commerce (lot 45)');
+{
+  const AJSRC = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
+  const monte = (hash) => {
+    const X = bureau(hash);
+    X.window.BdvAffaires = { ouvrir: () => { X.appels.push({ affaires: true }); } };
+    X.window.eval(AJSRC);
+    return X;
+  };
+  /* WCAG 2.5.3 : pour chaque case, le texte VISIBLE (au telephone : chiffre et mot court ;
+     a l'ordinateur : chiffre et mot, puis la sous-ligne), espaces normalises et sans
+     casse, est contenu dans le nom accessible ; celui du telephone en tete. Le « : » de
+     `hors-ecran` ne se voit pas : il n'est pas du texte visible. */
+  const norm = (x) => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const vuDe = (k, cls) => { const x = k.querySelector(cls); if (!x) return ''; const c = x.cloneNode(true);
+    c.querySelectorAll('.hors-ecran').forEach(h => h.remove()); return c.textContent; };
+  const contientVu = (b) => [...b.querySelectorAll('[data-bilan]')].every(k => {
+    const nom = norm(k.getAttribute('aria-label')), n = vuDe(k, '.aff-bilan__n');
+    const tel = norm(n + ' ' + vuDe(k, '.aff-bilan__c')), ordi = norm(n + ' ' + vuDe(k, '.aff-bilan__l')), sous = norm(vuDe(k, '.aff-bilan__s'));
+    return !!nom && nom.indexOf(tel) === 0 && nom.includes(ordi) && nom.includes(sous);
+  });
+  const cases = (b) => [...b.querySelectorAll('[data-bilan]')].map(x => x.getAttribute('data-bilan')).join(',');
+  const K = monte();
+  const bil = K.doc.getElementById('bureauComBilan');
+  const barre = K.doc.getElementById('bureauComOnglets');
+  t('#bureauComBilan est dans la page, juste au-dessus de la barre d\'onglets',
+    !!bil && bil.nextElementSibling === barre);
+  t('il est hors des deux panneaux et de toute zone (aucun @container affaires ne l\'atteint)',
+    !!bil && !bil.closest('.zone--affaires') && !bil.closest('#bureauAffaires') && !bil.closest('#bureauVentes'));
+  t('hors de la piece, il est cache', !!bil && bil.hidden);
+  K.clic('clients');
+  await K.repos(() => K.appels.some(a => a.affaires));
+  t('« A gagner », affaires pas lues : visible, la seule case clients, et aucun chiffre',
+    !bil.hidden && cases(bil) === 'clients' && !/\d/.test(bil.textContent)
+    && /Clients à suivre :\s*comptés à l’ouverture de l’onglet/.test((bil.querySelector('.aff-bilan__l') || {}).textContent + ' ' + (bil.querySelector('.aff-bilan__s') || {}).textContent)
+    && bil.querySelector('[data-bilan="clients"]').getAttribute('aria-label') === 'à suivre : Clients à suivre : comptés à l’ouverture de l’onglet'
+    && contientVu(bil)
+    && (bil.querySelector('.aff-bilan__c') || {}).textContent === 'à suivre',
+    cases(bil) + ' / ' + bil.textContent);
+  K.window.BdvAffairesJour.poser([{ affaire_id: 'a1', issue: 'en_cours', rappel: '2020-01-01', piste_id: 'p1' },
+    { affaire_id: 'a2', issue: 'en_cours', rappel: null, piste_id: 'p2' }], { p1: { nom: 'A' }, p2: { nom: 'B' } }, []);
+  t('affaires lues : trois cases, dans l\'ordre, chacune un bouton',
+    cases(bil) === 'affaires,relancer,clients' && [...bil.children].every(x => x.tagName === 'BUTTON'), cases(bil));
+  const nomDe = (q) => (bil.querySelector('[data-bilan="' + q + '"]') || { getAttribute: () => '' }).getAttribute('aria-label');
+  const courtDe = (q) => ((bil.querySelector('[data-bilan="' + q + '"] .aff-bilan__c') || {}).textContent || '');
+  t('le nom accessible garde la phrase entiere, le mot court est pour le telephone',
+    nomDe('affaires') === '2 en cours : 2 affaires en cours' && nomDe('relancer') === '1 à relancer : 1 affaire à relancer, rappel passé ou affaire endormie'
+    && contientVu(bil)
+    && courtDe('affaires') === 'en cours' && courtDe('relancer') === 'à relancer', nomDe('affaires') + ' | ' + nomDe('relancer'));
+  t('« Affaires en cours » et « A relancer » disent leur nombre, sans montant',
+    /2\s*affaires en cours/.test(bil.textContent) && /1\s*à relancer/.test(bil.textContent) && !/€/.test(bil.textContent),
+    bil.textContent);
+  const tabs = [...barre.querySelectorAll('[role="tab"]')];
+  tabs[1].click();
+  await K.repos(() => K.appels.some(a => a.ecran === 'clients'));
+  t('visible aussi sur « Clients a suivre »', !K.ventes.hidden && !bil.hidden);
+  K.window.bdvClientsASuivre = () => 5;
+  K.window.bdvClientsASuivre.partiel = () => true;
+  K.doc.dispatchEvent(new K.window.CustomEvent('bdv:clients'));
+  t('bdv:clients le repeint : le nombre de « Tous », et la sous-ligne sans lignes',
+    /5\s*clients à suivre/.test(bil.textContent) && /sans les premiers achats pour l’instant/.test(bil.textContent)
+    && nomDe('clients') === '5 à suivre : 5 clients à suivre, sans les premiers achats pour l’instant' && courtDe('clients') === 'à suivre' && contientVu(bil), bil.textContent);
+  /* Zero PARCE QUE tous sont en affaire : une phrase, pas de chiffre. Un vrai zero garde le
+     sien, au singulier et en bas de casse apres le chiffre (verificateur, 29/09/2026). */
+  const caseC = () => { const k = bil.querySelector('[data-bilan="clients"]'); return k ? [...k.children].filter(x => !x.classList.contains('aff-bilan__c')).map(x => x.textContent).join(' ') : ''; };
+  K.window.bdvClientsASuivre = () => 0;
+  K.window.bdvClientsASuivre.partiel = () => false;
+  K.window.bdvClientsASuivre.tousEnAffaire = () => true;
+  K.doc.dispatchEvent(new K.window.CustomEvent('bdv:clients'));
+  t('tous les clients a suivre en affaire : « Tous tes clients à suivre sont dans une affaire », sans chiffre',
+    caseC().trim() === 'Tous tes clients à suivre sont dans une affaire' && courtDe('clients') === 'tous en affaire'
+    && nomDe('clients') === 'tous en affaire : Tous tes clients à suivre sont dans une affaire' && contientVu(bil) && !/\d/.test(bil.querySelector('[data-bilan="clients"]').textContent), caseC());
+  K.window.bdvClientsASuivre.tousEnAffaire = () => false;
+  K.doc.dispatchEvent(new K.window.CustomEvent('bdv:clients'));
+  t('un vrai zero, sans affaire : « 0 client à suivre »', /^0\s+client à suivre$/.test(caseC().trim()) && nomDe('clients') === '0 à suivre : 0 client à suivre' && contientVu(bil), caseC());
+  K.window.bdvClientsASuivre = () => 5;
+  K.window.bdvClientsASuivre.partiel = () => true;
+  K.doc.dispatchEvent(new K.window.CustomEvent('bdv:clients'));
+  const rel = bil.querySelector('[data-bilan="relancer"]');
+  rel.focus();
+  K.window.BdvAffairesJour.poser([{ affaire_id: 'a1', issue: 'en_cours', rappel: '2020-01-01', piste_id: 'p1' }], {}, []);
+  t('repeint sous le doigt, le focus reste sur la meme case',
+    K.doc.activeElement && K.doc.activeElement.getAttribute('data-bilan') === 'relancer' && /1\s*affaire en cours/.test(bil.textContent),
+    bil.textContent);
+  K.clic('journee');
+  t('quitter la piece le cache', bil.hidden);
+  K.clic('annee');
+  await K.repos();
+  t('un autre ecran de vente le cache aussi', bil.hidden && !K.ventes.hidden);
+  let tous = 0;
+  K.window.bdvMotifTous = () => { tous++; };
+  K.clic('journee');
+  K.window.BdvNav.afficher('affaires');
+  await K.repos();
+  bil.querySelector('[data-bilan="clients"]').click();
+  await K.repos();
+  t('la case clients ouvre « Clients a suivre », filtre « Tous »',
+    tous === 1 && !K.ventes.hidden && (K.doc.querySelector('#bureauComOnglets [aria-selected="true"]') || {}).id === 'comOngletSuivre');
+  bil.querySelector('[data-bilan="relancer"]').click();
+  await K.repos();
+  let dem = null;
+  try { dem = JSON.parse(K.window.sessionStorage.getItem('bdv_affaire_vue')); } catch (e) {}
+  t('la case « A relancer » ouvre « A gagner » et demande Toutes, la Liste, le focus',
+    !K.doc.getElementById('bureauAffaires').hidden && dem && dem.filtre === '' && dem.vue === 'liste' && dem.focus === 'relancer'
+    && K.window.localStorage.getItem('bdv_aff_vue') === null, JSON.stringify(dem));
+}
+{
+  const AJSRC = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
+  const S = bureau();
+  S.window.BdvAffaires = { ouvrir: () => {} };
+  S.window.eval(AJSRC);
+  const bil = S.doc.getElementById('bureauComBilan');
+  S.window.BdvNav.sansVitisoft(true);
+  S.clic('clients');
+  await S.repos();
+  t('sans Vitisoft, affaires pas lues : pas de bilan', bil.hidden);
+  S.window.BdvAffairesJour.poser([{ affaire_id: 'a1', issue: 'en_cours', piste_id: 'p1' }], {}, []);
+  const c = [...bil.querySelectorAll('[data-bilan]')].map(x => x.getAttribute('data-bilan')).join(',');
+  t('sans Vitisoft, avec une affaire : les cases d\'affaire, pas de case clients', !bil.hidden && c === 'affaires,relancer', c);
+  S.window.BdvAffairesJour.poser([], {}, []);
+  t('sans Vitisoft et sans affaire en cours : pas de bilan', bil.hidden);
+}
+{
+  /* LE CALCUL A 390 px, SUR LA FEUILLE ET LES JETONS. */
+  const csstree = await import('css-tree');
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8');
+  const jetons = fs.readFileSync(path.join(RACINE, 'tokens.css'), 'utf8');
+  const px = (nom) => { const m = jetons.match(new RegExp('--' + nom + ':\\s*([\\d.]+)(px|em)')); return m ? +m[1] : NaN; };
+  const regles = [];
+  (function marcher(n, ctx) {
+    (n.children ? n.children.toArray() : []).forEach(ch => {
+      if (ch.type === 'Rule') {
+        const decl = {};
+        ch.block.children.forEach(d => { if (d.type === 'Declaration') decl[d.property] = csstree.generate(d.value).trim(); });
+        regles.push({ sel: csstree.generate(ch.prelude), ctx, decl });
+      } else if (ch.type === 'Atrule' && ch.block) marcher(ch.block, ctx.concat('@' + ch.name + ' ' + (ch.prelude ? csstree.generate(ch.prelude) : '')));
+    });
+  })(csstree.parse(css), []);
+  const top = (sel) => regles.filter(r => r.sel === sel && !r.ctx.length).pop() || { decl: {} };
+  const kase = top('.bdv-coque .aff-bilan__case').decl, rang = top('.bdv-coque .aff-bilan').decl;
+  const trav = regles.filter(r => r.sel === '.bdv-coque .bureau-atelier__travail' && r.ctx.join() === '@media (max-width:700px)').pop();
+  const pad = trav ? px(((trav.decl.padding || '').match(/--([\w-]+)\)\s+var\(--([\w-]+)/) || [])[2]) : NaN;
+  const base = (((kase.flex || '').match(/([\d.]+)rem$/) || [])[1] || NaN) * 16;
+  const gap = px(((rang.gap || '').match(/--([\w-]+)/) || [])[1]);
+  const dispo = 390 - 2 * pad, besoin = 3 * base + 2 * gap;
+  t('a 390 px, les trois cases tiennent sur une rangee (' + besoin + ' px pour ' + dispo + ')',
+    rang['flex-wrap'] === 'wrap' && besoin <= dispo, 'flex ' + kase.flex + ', gap ' + rang.gap + ', marge ' + pad);
+  t('aucune regle @container ne redessine le bilan, et une seule @media : sous 700 px',
+    regles.filter(r => /aff-bilan/.test(r.sel) && r.ctx.length && r.ctx.join() !== '@media (max-width:700px)').length === 0,
+    regles.filter(r => /aff-bilan/.test(r.sel) && r.ctx.length).map(r => r.ctx.join() + ' ' + r.sel).join(' ; '));
+  /* Le mot le plus long ne doit pas forcer une case au-dela de sa base : capitales a
+     0,75 em plus l'espacement, bas de casse a 0,6 em (estimations larges), marges et
+     bordure comprises. Les mots sont ceux que le module ecrit. */
+  const f1 = px('bdv-f-1'), ls = px('bdv-ls-etiq') * f1, marge = 2 * px('bdv-e-3') + 2;
+  const AJ = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
+  const lib = ['affaires en cours', 'à relancer', 'clients à suivre', 'Tous tes clients à suivre sont dans une affaire'];
+  const sous = ['rappel passé ou affaire endormie', 'comptés à l’ouverture de l’onglet', 'sans les premiers achats pour l’instant'];
+  const larg = (mots, cap) => Math.max(...mots.join(' ').split(/\s+/).map(m => m.length * (cap ? 0.75 * f1 + ls : 0.6 * f1))) + marge;
+  t('les libelles et sous-lignes sont bien ceux du module', lib.concat(sous).every(x => AJ.includes(x)));
+  t('le mot le plus long ne force aucune case au-dela de ' + base + ' px',
+    larg(lib, true) <= base && larg(sous, false) <= base, larg(lib, true).toFixed(0) + ' / ' + larg(sous, false).toFixed(0));
+  t('chaque case est une cible de 44 px au moins, a toutes les tailles', kase['min-height'] === 'var(--bdv-cible)' && px('bdv-cible') >= 44);
+  t('le bilan cache ne se dessine pas (display:none sur [hidden])',
+    (top('.bdv-coque .aff-bilan[hidden]').decl.display || '') === 'none');
+
+  /* SOUS 700 px (verificateur du lot 45, 29/09/2026) : le chiffre et un mot COURT, UNE
+     rangee de 44 px. Le calcul, pire cas a trois chiffres : chiffre a 0,62 em de f-3,
+     mot a 0,52 em de f-2 (estimations larges pour Inter), ecart e-1, marge interieure et
+     bordure. A 390 px la rangee doit tenir ; a 320 px elle se replie sur deux rangees,
+     chaque case sur une ligne, sans debordement. */
+  const tel = (sel) => regles.filter(r => r.ctx.join() === '@media (max-width:700px)'
+    && r.sel.split(',').map(x => x.trim()).includes('body.bdv-poste.bdv-coque ' + sel)).pop() || { decl: {} };
+  const tb = tel('.aff-bilan').decl, tk = tel('.aff-bilan__case').decl, tl = tel('.aff-bilan__l').decl,
+        ts = tel('.aff-bilan__s').decl, tc = tel('.aff-bilan__c').decl;
+  const f2 = px('bdv-f-2'), f3 = px('bdv-f-3'), e1 = px('bdv-e-1'), e2 = px('bdv-e-2');
+  const padT = 2 * px(((tk.padding || '').match(/--([\w-]+)\)\s*$/) || [])[1]) + 2;
+  const largT = (chiffre, mot) => (chiffre ? chiffre.length * 0.62 * f3 + e1 : 0) + mot.length * 0.52 * f2 + padT;
+  const rangee = (cs) => cs.reduce((a, c) => a + largT(c[0], c[1]), 0) + (cs.length - 1) * e2;
+  const pire = [['123', 'en cours'], ['123', 'à relancer'], ['123', 'à suivre']];
+  const tous = [['123', 'en cours'], ['123', 'à relancer'], [null, 'tous en affaire']];
+  const nul = [['123', 'en cours'], ['123', 'à relancer'], [null, 'à suivre']];
+  const nulLong = [['123', 'en cours'], ['123', 'à relancer'], [null, 'à suivre : à l’ouverture']];
+  t('a 390 px, « 123 en cours », « 123 à relancer », « 123 à suivre » tiennent sur une rangee (' + rangee(pire).toFixed(0) + ' px pour ' + dispo + ')',
+    !isNaN(padT) && rangee(pire) <= dispo && rangee(tous) <= dispo && rangee(nul) <= dispo,
+    [pire, tous, nul].map(x => rangee(x).toFixed(0)).join(' / '));
+  t('« à suivre : à l’ouverture » ne tiendrait pas (' + rangee(nulLong).toFixed(0) + ' px) : le cas null dit « à suivre » seul',
+    rangee(nulLong) > dispo && AJ.includes("false, 'à suivre', 'Clients à suivre : comptés"));
+  const dispo320 = 320 - 2 * pad, deux = rangee(pire.slice(0, 2)), maxCase = Math.max(...pire.map(c => largT(c[0], c[1])));
+  t('a 320 px (' + dispo320 + ' utiles) la rangee ne tient pas (' + rangee(pire).toFixed(0) + ') : repli sur deux rangees, 44 + 8 + 44 = 96 px, sans debordement',
+    rangee(pire) > dispo320 && deux <= dispo320 && maxCase <= dispo320 && rang['flex-wrap'] === 'wrap' && tk['white-space'] === 'nowrap' && !tb['flex-wrap'],
+    deux.toFixed(0) + ' / ' + maxCase.toFixed(0) + ' / ' + JSON.stringify(tb));
+  t('chaque case : une ligne, chiffre puis mot court, cible de 44 px, et plus de liste',
+    tk['flex-direction'] === 'row' && tk['min-height'] === 'var(--bdv-cible)' && tb['flex-direction'] !== 'column', JSON.stringify(tk));
+  t('sous 700 px le mot long et la sous-ligne partent, le mot court arrive ; sur l\'ordinateur, l\'inverse',
+    tl.display === 'none' && ts.display === 'none' && tc.display === 'inline' && (top('.bdv-coque .aff-bilan__c').decl.display || '') === 'none');
+  t('les mots courts sont ceux que le module ecrit', ['en cours', 'à relancer', 'à suivre', 'tous en affaire'].every(x => AJ.includes("'" + x + "'")));
+}
+
+/* ======================= « VOIR DANS MON CAP » ET L'ORDRE DES navTo (lot 45) =======================
+   Verificateur, 29/09/2026 : la demande etait servie tout de suite, puis l'amorce rappelait
+   navTo('annee') DEUX fois, et chaque navTo remonte la page. On rejoue le VRAI navTo() et
+   le VRAI bloc de la demande, extraits du fichier, dans cet ordre : demande, puis deux
+   navTo('annee'). Le defilement vers #pied-cap doit etre la DERNIERE chose demandee. */
+titre('« Voir dans Mon cap » defile en dernier (lot 45)');
+{
+  const debut = ECRANS.indexOf('function navTo(id, opts){');
+  const srcNavTo = ECRANS.slice(debut, ECRANS.indexOf('\n}\n', debut) + 2);
+  const d0 = ECRANS.indexOf('let PIED_CAP_DEMANDE=');
+  const srcDem = ECRANS.slice(d0, ECRANS.indexOf('window.voirVariation=voirVariation;', d0));
+  /* jsdom ne met rien en page : les boites des deux collants et du repli sont posees a la
+     main. Le bandeau du site a 60 px, l'en-tete du bureau a 115 px, le repli a 500 px. */
+  const V = new JSDOM('<!doctype html><body><nav class="nav"></nav><header class="bureau-tete"></header><div id="filterbar"></div><div class="panel" id="p-annee"><details class="msg--replie" id="pied-cap"><summary>Ce qui explique ta variation</summary></details></div></body>',
+    { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/#clients' });
+  const vw = V.window, vd = vw.document, journal = [];
+  const boite = { nav: 60, tete: 115 };
+  vd.querySelector('.nav').getBoundingClientRect = () => ({ top: 0, bottom: boite.nav, height: boite.nav });
+  vd.querySelector('.bureau-tete').getBoundingClientRect = () => ({ top: 0, bottom: boite.tete, height: boite.tete });
+  vd.getElementById('pied-cap').getBoundingClientRect = () => ({ top: 500, bottom: 530, height: 30 });
+  /* navTo remonte par scrollTo(0,0) ; le service defile par scrollTo({top, behavior}). */
+  vw.scrollTo = (x) => journal.push(typeof x === 'object' ? 'defile:' + x.top + ':' + x.behavior : 'haut');
+  vw.BdvNav = { ventesEnVue: () => true, marquerActif: () => {},
+    /* Comme l'amorce : un navTo tout de suite, un second apres un tour de boucle. */
+    afficher: (id) => { vw.navTo(id); setTimeout(() => vw.navTo(id), 5); } };
+  /* On part de « Clients a suivre », comme le lien. */
+  vw.eval('var ECRAN_COURANT="clients", PEINTRES={}, ECRANS_PEINTS=new Set(["annee","clients"]);'
+    + 'function el(i){return document.getElementById(i);} function majBoutonMaj(){} function majPeriodeTete(){}'
+    + srcNavTo + srcDem + ';window.navTo=navTo;window.voirVariation=voirVariation;');
+  const attendre = (ms) => new Promise(r => setTimeout(r, ms));
+  vw.voirVariation();
+  await attendre(80);
+  const dernierHaut = journal.lastIndexOf('haut');
+  t('deux navTo(\'annee\') : seul le premier, qui CHANGE d\'ecran, remonte la page', journal.filter(x => x === 'haut').length === 1 && journal[0] === 'haut', journal.join(','));
+  t('le defilement vers #pied-cap est demande EN DERNIER, apres le retour en haut',
+    /^defile:/.test(journal[journal.length - 1]) && journal.slice(dernierHaut + 1).every(x => /^defile:/.test(x)), journal.join(','));
+  t('et le repli est ouvert', vd.getElementById('pied-cap').open === true);
+  /* LE CALCUL LIT LES DEUX COLLANTS, et garde le plus bas : 500 - 115 - 16 = 369, en
+     defilement instantane (la page est en scroll-behavior:smooth). */
+  t('l\'ecart vient du bas REEL des collants (le plus bas des deux) : 369 px, instantane',
+    journal.slice(dernierHaut + 1)[0] === 'defile:369:instant', journal.join(','));
+  /* LE RECALAGE, UNE FOIS : l'en-tete se retracte (24 px), le bandeau disparait (0). */
+  vw.voirVariation(); await attendre(80);
+  journal.length = 0;
+  vw.navTo('annee');
+  boite.tete = 24; boite.nav = 0;
+  await attendre(80);
+  t('apres la retraction, un seul recalage, sur les nouvelles boites : 500 - 24 - 16 = 460',
+    journal.join(',') === 'defile:369:instant,defile:460:instant', journal.join(','));
+  await attendre(80);
+  t('et plus rien ensuite', journal.length === 2, journal.join(','));
+  /* Le vigneron agit avant le recalage : on ne reprend pas la main. */
+  boite.tete = 115; boite.nav = 60;
+  journal.length = 0;
+  vw.navTo('annee');
+  vd.dispatchEvent(new vw.KeyboardEvent('keydown', { key: 'ArrowUp' }));
+  boite.tete = 24;
+  await attendre(80);
+  t('geste du vigneron avant le recalage : pas de recalage', journal.join(',') === 'defile:369:instant', journal.join(','));
+  /* L'en-tete du bureau absent ou replie a zero : le bandeau du site seul fait la marge. */
+  boite.tete = 0; boite.nav = 60;
+  vw.voirVariation(); journal.length = 0; vw.navTo('annee');
+  t('sans en-tete visible, le bandeau seul : 500 - 60 - 16 = 424', journal[0] === 'defile:424:instant', journal.join(','));
+  /* LE DEFAUT DU 30/09/2026 : la molette, puis l'amorce qui rappelle navTo sur l'ecran deja
+     affiche. Ni remontee, ni defilement : la page reste ou le vigneron l'a mise. */
+  vd.dispatchEvent(new vw.WheelEvent('wheel', { deltaY: 120 }));
+  await attendre(80);
+  journal.length = 0;
+  vw.navTo('annee'); vw.navTo('annee');
+  await attendre(80);
+  t('molette, puis navTo repete sur le meme ecran : aucun scrollTo, ni en haut ni vers le repli', journal.length === 0, journal.join(','));
+  vw.navTo('annee', { haut: true });
+  t('un clic volontaire sur la barre (haut) remonte quand meme', journal.join(',') === 'haut', journal.join(','));
+  await attendre(40);
+  t('et une seule fois (pas de seconde remontee hors historique)', journal.join(',') === 'haut', journal.join(','));
+  journal.length = 0;
+  vw.navTo('annee', { haut: 'historique' });
+  t('Retour / Suivant : remontee tout de suite', journal.join(',') === 'haut', journal.join(','));
+  await attendre(40);
+  t('puis encore une image plus tard, en instantane, apres la restauration du navigateur',
+    journal.join(',') === 'haut,defile:0:instant', journal.join(','));
+  journal.length = 0;
+  vw.navTo('produits');
+  t('changer d\'ecran remonte la page', journal.join(',') === 'haut', journal.join(','));
+  /* Un autre ecran annule aussi la demande. */
+  vw.voirVariation(); await attendre(80);
+  vw.navTo('clients'); journal.length = 0; vw.navTo('annee'); await attendre(80);
+  t('partir sur un autre ecran annule la demande', !journal.some(x => /^defile:/.test(x)), journal.join(','));
+}
+
+/* LA BARRE ET LA COQUE DECIDENT DU « haut » (bdv-nav.js) : un clic sur la barre le
+   demande toujours ; un afficher() programme sur une coque des ventes deja visible
+   (« Voir dans Mon cap » depuis « Clients a suivre ») ne le demande pas. */
+{
+  const H = bureau();
+  H.clic('annee');
+  await H.repos(() => H.appels.some(a => a.ecran === 'annee'));
+  const d1 = H.appels.filter(a => a.ecran).pop();
+  H.window.BdvNav.afficher('clients', { onglet: 'suivre' });
+  await H.repos(() => H.appels.filter(a => a.ecran).length >= 2);
+  const d2 = H.appels.filter(a => a.ecran).pop();
+  H.clic('clients');
+  await H.repos(() => H.appels.filter(a => a.ecran).length >= 3);
+  const d3 = H.appels.filter(a => a.ecran).pop();
+  t('clic sur la barre : haut demande', d1 && d1.haut === true && d3 && d3.haut === true, JSON.stringify([d1, d3]));
+  t('afficher() programme, coque deja visible : pas de haut', d2 && d2.ecran === 'clients' && d2.haut === false, JSON.stringify(d2));
 }
 
 /* ======================= L'ANCIENNE ADRESSE ======================= */

@@ -7007,7 +7007,7 @@ chaque point vient du vigneron empathique, avant ou apres capture :
 - **La ligne** : le nom est un bouton dont le calque `::after` rend la ligne cliquable (pas de `z-index` sur le
   calque, la charte borne la famille ; les gestes sont en `z-index:1`). Etape en etiquette, duree seule dessous
   (`ligneDuree`), rappel a part, « Etape suivante » a droite. Grille alignee au-dessus de 52 rem de piece.
-- **Le bilan** (en cours, a relancer, rappels prevus) : « a relancer » compte EXACTEMENT le bloc du meme nom.
+- ~~**Le bilan** (en cours, a relancer, rappels prevus)~~ REMPLACE AU LOT 45 par le bilan commun `#bureauComBilan` : « a relancer » compte EXACTEMENT le bloc du meme nom.
 - **DEFAUT TROUVE EN PASSANT** : le champ « L'affaire » du lot 39 portait `id="affTitre"`, deja pris par le `h2`
   de la piece dans `mon-bureau.njk`. `el('affTitre')` rendait le titre : le texte tape etait perdu. Renomme
   `affIntitule`, et le harnais de `banc:affaires` porte maintenant ce `h2`, sans quoi il ne pouvait pas le voir.
@@ -7169,4 +7169,54 @@ HubSpot, Pipedrive, Dynamics 365, Sellsy, Axonaut, Wineriz). Voir JOURNAL.md du 
 - **Ouvert, a Ted** : la fiche propose encore « Nouvelle affaire » chez un client qui en a deja une (anterieur) ;
   « Voir ses N affaires » ouvre la piece sans filtrer ; barre du bas a 390 : fondu residuel sur « Plus », deux traits
   sur la case active, « Mes reglages » decale de 10 px dans le menu ouvert (anterieurs, a regarder avec Ted).
+
+### LOT 45 : UN BILAN COMMUN, UN CLIENT UNE FOIS, LE VERDICT DANS MON CAP (30/09/2026)
+
+Specification du conseil (vigneron + commercial) : `Claude outputs/lot45-spec.md`.
+
+- **Le bilan commun `#bureauComBilan`** (mon-bureau.njk, au-dessus de `#bureauComOnglets`), visible sur les deux
+  onglets, pose par `poserOnglets()`, peint par `BdvAffairesJour.peindreBilan()`, JAMAIS le moteur des ventes. Trois
+  cases-boutons : « Affaires en cours », « A relancer » (rappel passe ou affaire endormie), « Clients a suivre »
+  (= la carte « Tous », par `window.bdvClientsASuivre()`, `null` tant que non calcule : « comptes a l'ouverture de
+  l'onglet », jamais 0 ; `.tousEnAffaire()` : « Tous tes clients a suivre sont dans une affaire »). Aucun montant.
+  Affaires non lues : pas de case d'affaire. Sans Vitisoft : pas de case clients. `htmlBilan()` (lot 40) SUPPRIME :
+  deux bilans, meme mot, deux nombres.
+- **Sous 700 px, mots courts sur UNE rangee de 44 px** : « 3 en cours », « 2 a relancer », « 12 a suivre ». Le nom
+  accessible COMMENCE par le texte visible au telephone et contient celui de l'ordinateur (WCAG 2.5.3). A 320 px la
+  rangee tient encore.
+- **LA REGLE « A RELANCER » VIT UNE FOIS**, `BdvAffairesJour.etat()` / `aRelancer()` (lit `etape_le`, `type_id`,
+  `affaire_types.sommeil_jours`). La piece, la case du bilan et la punaise de Ma journee l'appellent : meme mot,
+  meme nombre. Le courrier du matin (`v_courrier`, rappels seuls) ne change pas.
+- **UN CLIENT, UNE FOIS : LE FILTRE EST A L'AFFICHAGE, JAMAIS DANS `agentClients()` NI `fileSignaux()`.**
+  `horsAffaire()` (bdv-ecrans.js) sur `BdvAffairesJour.clientsEnAffaire()` (Set, piste devenue cliente comprise,
+  `null` si non lues : personne ne sort). Applique par `renderClients()`, `exportClients()`, `diagnosticSignals()`
+  (apres les ecarts existants : le signal de Mon cap compte ce que montre le filtre). Note « N clients a suivre sont
+  deja dans une affaire... » + « Les voir dans A gagner ». Repeint sur `bdv:taches` seulement si la signature
+  change, JAMAIS sous les yeux (la liste visible garde son focus, repeinte au prochain affichage).
+  **Ma journee, le sous-main et le courrier du matin montrent encore ces clients** : la bonne correction est une
+  anti-jointure dans `v_courrier` + le meme retrait dans `file()` de bdv-crm.js, dans un meme lot, SQL a passer
+  par Ted. Pas faite.
+- **Le motif sur l'affaire** : `window.bdvMotifClient(id)` lit `CLIENTS`, rien en base ; silence sans moteur, sans
+  Vitisoft ou pour un nouveau client. Etiquette `.aff-motif` sur la ligne et la carte kanban, et dans le panneau
+  « Ce que disent tes ventes : Recul confirme, 1 234 EUR perdus a date egale (...) ». `bdv:clients` (emis par
+  `renderClients()`) fait repeindre la piece si une etiquette change.
+- **Accords** : `natureAccordee(montant, lib)` met la nature au pluriel des 2 EUR (montant arrondi comme affiche) :
+  liste, cartes, geste, panneau, export. `c.lib` reste BRUT : Ma journee et le courrier disent encore « achete ».
+- **« D'ou vient ta variation » est dans Mon cap**, premiere carte de `#pied-cap`, titre « Ce qui explique ta
+  variation, 2026 vs 2025 a date egale : -6 456 EUR » (meme ordre que le bandeau), le montant SEULEMENT si
+  `|br.delta - (curW - prevW)| < 1` (garde a l'execution : bandeau et pont viennent de deux calculs serveur).
+  `pied-variation` n'existe plus. Dans Clients a suivre : une ligne de renvoi et « Voir dans Mon cap ».
+- **« Voir dans Mon cap » pose une DEMANDE (10 s)**, resservie par chaque `navTo('annee')` et chaque `renderCap()`,
+  annulee par molette/doigt/touche/clic ou un autre ecran. `defilerSousCollants()` defile en instantane sous le bas
+  REEL de `.nav` et `.bureau-tete` (+16 px), puis se recale UNE fois apres la retraction. `scroll-margin-top` a ete
+  essaye et abandonne : faux a 390 px (bandeau a 0 mais `--h-entete` a 4rem) et depasse par la retraction.
+- **`navTo(id, opts)` NE REMONTE PLUS LA PAGE SI L'ECRAN NE CHANGE PAS.** Le deuxieme `navTo` de l'amorce renvoyait
+  en haut un vigneron qui venait de faire defiler. `opts.haut` : `afficher()` le pose sur un clic de barre, en
+  arrivant d'une autre piece, et `'historique'` sur Retour/Suivant (remontee immediate puis une image plus tard,
+  apres la restauration du navigateur). Un clic sur une carte de motif ne remonte plus : voulu.
+- Verifie : `verif` 45 etapes vertes (jouees une par une), captures `Claude outputs/lot45*-*.png`, clics reels.
+  `banc:poids` a 79,0 ko sur 80 : LE PROCHAIN LOT DOIT FAIRE DE LA PLACE avant d'ajouter du code bloquant.
+- **Ouvert, a Ted** : a l'ecran, l'en-tete dit « 4 clients a rappeler » (file du courrier) et le bilan « 1 client a
+  suivre » : deux mots proches, deux nombres ; les clients en affaire restent dans Ma journee et le courrier (voir
+  plus haut) ; « Nouvelle affaire » sur la fiche d'un client qui en a deja une (lot 44).
 
