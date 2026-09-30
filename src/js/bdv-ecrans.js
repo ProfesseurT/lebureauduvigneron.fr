@@ -3128,6 +3128,21 @@ function ficheNouvelleAffaire(b){
   if(el('modale')&&el('modale').classList.contains('on'))fermerFiche();
   if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('affaires');else location.hash='affaires';
 }
+/* « NOUVELLE COMMANDE », 30/09/2026 (lot 46) : un EMPLACEMENT sur la fiche, pas encore
+   un geste. Decision de Ted : une commande sans affaire part de la fiche client et ne
+   cree JAMAIS d'affaire. D'ici le lot qui la fabrique, le bouton explique et c'est tout :
+   rien en base, rien dans le stockage. `aria-disabled` et pas `disabled`, pour qu'il
+   prenne le focus et reponde. Ecouteur delegue : la fiche est reecrite a chaque geste,
+   et il vaut pour ses trois contenants (modale, tiroir, pleine page). */
+function ficheBientot(b){
+  const mot=el('ficheBientot');if(!mot)return;
+  mot.textContent='Bientôt : tu saisiras ici une commande pour '+(b.getAttribute('data-nom')||'ce client')
+    +', sans ouvrir d’affaire, et le bureau te préparera le fichier à importer dans Vitisoft.'
+    +' En attendant, saisis-la dans Vitisoft comme d’habitude.';
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest&&e.target.closest('#modale [data-bientot="commande"]');if(b)ficheBientot(b);
+});
 /* Le libelle du geste : ce qui se passera au clic. Un client, une affaire (arbitrage du
    28/09) : on ne propose pas d'en creer une de plus. */
 function libelleGeste(id){
@@ -3523,7 +3538,9 @@ function ficheHTML(f,motif){
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('note')">Noter un échange</button>
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('rappel')">Planifier un rappel</button>
       <button type="button" class="btn btn--ghost btn--sm" data-id="${esc(f.id)}" data-nom="${esc(f.nom)}" onclick="ficheNouvelleAffaire(this)">Nouvelle affaire</button>
+      <button type="button" class="btn btn--sm btn--bientot" data-bientot="commande" data-nom="${esc(f.nom)}" aria-disabled="true" aria-describedby="ficheBientot">Nouvelle commande <span class="btn__bientot">bientôt</span></button>
     </div>
+    <p class="fiche__bientot" id="ficheBientot" aria-live="polite"></p>
     ${ficheAffaires(f)}
 
     <div class="fiche__contacts">

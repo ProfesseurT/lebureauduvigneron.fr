@@ -260,6 +260,69 @@ t('les vues se lisent dans le bureau courant', /\/vues_clients\?.*bureau=eq\.b1/
    tentatives illimitees) : chaque fois un controle ci-dessous echoue.
    Les fenetres des sections d'avant sont FERMEES : leurs minuteries (le moteur des ventes
    demarre en differe) tomberaient pendant les attentes de celle-ci. */
+/* ---- 8. « Nouvelle commande », lot 46 ---- */
+console.log('== 8. « Nouvelle commande » sur la fiche, dans ses trois contenants ==');
+{
+  const q8 = s => w.document.querySelector(s);
+  const ecritsAvant = w.__ECRITS.length, supprAvant = w.__SUPPR.length;
+  const reseau = [], stockes = [], navs = [];
+  const fetchAvant = w.fetch;
+  /* Une reponse vide et pas un refus : un refus non rattrape arreterait le banc au lieu de le faire echouer. */
+  w.fetch = function (u) { reseau.push(String(u)); return Promise.resolve({ ok: false, status: 503, json: async () => null, text: async () => '' }); };
+  const P = w.Storage.prototype, setI = P.setItem, rmI = P.removeItem;
+  P.setItem = function (k, v) { stockes.push('set:' + k); return setI.call(this, k, v); };
+  P.removeItem = function (k) { stockes.push('rm:' + k); return rmI.call(this, k); };
+  const navAvant = w.BdvNav;
+  w.BdvNav = { afficher: (x) => { navs.push(x); } };
+  const hashAvant = w.location.hash;
+  const contenants = [
+    ['en modale', () => { w.document.body.classList.remove('bdv-page-fiche'); delete w.BdvTiroir; }],
+    ['en tiroir', () => { w.document.body.classList.remove('bdv-page-fiche'); w.BdvTiroir = { actif: () => true, poser: () => true, retirer: () => {} }; }],
+    ['en pleine page', () => { delete w.BdvTiroir; w.document.body.classList.add('bdv-page-fiche'); }]
+  ];
+  for (const [nom, poser] of contenants) {
+    w.__x(`fermerFiche()`);
+    poser();
+    w.__x(`ouvrirFiche('C1','')`);
+    const b = q8('#modale .fiche__actions [data-bientot="commande"]');
+    const mot = q8('#modale #ficheBientot');
+    t(nom + ' : « Nouvelle commande » est dans la rangee des actions, apres « Nouvelle affaire »',
+      !!b && /^Nouvelle commande/.test(b.textContent.trim()) && b.previousElementSibling && /Nouvelle affaire/.test(b.previousElementSibling.textContent),
+      b && b.outerHTML);
+    t(nom + ' : il dit « bientôt », aria-disabled="true" et PAS disabled', !!b && /bientôt/.test(b.textContent)
+      && b.getAttribute('aria-disabled') === 'true' && !b.hasAttribute('disabled') && !b.disabled);
+    t(nom + ' : pas dessine en bouton qui promet (ni plein, ni fantome)', !!b && b.classList.contains('btn--bientot')
+      && !b.classList.contains('btn--primary') && !b.classList.contains('btn--ghost'));
+    t(nom + ' : la ligne d\'explication est la, vide, juste sous la rangee, annoncee poliment', !!mot && mot.textContent === ''
+      && mot.getAttribute('aria-live') === 'polite' && !mot.hidden && b && b.parentNode.nextElementSibling === mot && b.getAttribute('aria-describedby') === mot.id);
+    stockes.length = 0;
+    b.focus();
+    t(nom + ' : le bouton prend le focus', w.document.activeElement === b);
+    b.click();
+    await new Promise(r => setTimeout(r, 20));
+    const txt = mot.textContent;
+    t(nom + ' : un appui ouvre l\'explication, qui nomme le client', /^Bientôt : tu saisiras ici une commande pour Domaine Neuf, sans ouvrir d’affaire/.test(txt), txt);
+    t(nom + ' : le vrai chemin (fichier a importer dans Vitisoft) et le geste d\'en attendant',
+      /fichier à importer dans Vitisoft/.test(txt) && /En attendant, saisis-la dans Vitisoft comme d’habitude\./.test(txt), txt);
+    t(nom + ' : ni date, ni « en un clic », ni tiret cadratin', !/\d|en un clic|—/.test(txt), txt);
+    t(nom + ' : aucune ecriture, aucune requete, rien dans le stockage',
+      w.__ECRITS.length === ecritsAvant && w.__SUPPR.length === supprAvant && reseau.length === 0 && stockes.length === 0,
+      [w.__ECRITS.length - ecritsAvant, w.__SUPPR.length - supprAvant, reseau.join(' '), stockes.join(' ')].join(' / '));
+    t(nom + ' : et aucune affaire ne part (ni piece ouverte, ni adresse changee)', navs.length === 0 && w.location.hash === hashAvant
+      && q8('#modale').classList.contains('on'), navs.join() + ' ' + w.location.hash);
+  }
+  /* Hors pleine page AVANT de fermer : en pleine page, fermer la fiche ferme l'onglet. */
+  w.document.body.classList.remove('bdv-page-fiche'); delete w.BdvTiroir;
+  w.__x(`fermerFiche()`);
+  w.fetch = fetchAvant; P.setItem = setI; P.removeItem = rmI; w.BdvNav = navAvant;
+
+  /* Le dessin : sans ce rendu, style.css (`[aria-disabled]` : pointer-events:none,
+     opacite 0.45) mangerait l'appui et rendrait le mot illisible dehors. */
+  const css8 = fs.readFileSync(path.join(RACINE, 'src/css/bdv-ecrans.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const r8 = (css8.match(/\.bdv-ventes \.btn--bientot\[aria-disabled="true"\]\s*\{([^}]*)\}/) || [])[1] || '';
+  t('bdv-ecrans.css rend l\'appui et l\'encre au bouton en attente', /pointer-events:\s*auto/.test(r8) && /opacity:\s*1\b/.test(r8) && /dashed/.test(r8), r8);
+}
+
 w.close(); w2.close(); w3.close();
 console.log('== 7. Hors ligne : la fiche ne redemande pas le lot 33 en boucle ==');
 const d4 = new JSDOM(`<!doctype html><body>

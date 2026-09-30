@@ -865,6 +865,7 @@
         + '<p><button type="button" class="btn" data-aff="opposition">Ne plus la contacter</button></p>'
         + '</div></details>' : '')
       + '<div class="aff-form__pied"><button type="submit" class="btn btn--bordeaux">Enregistrer</button></div>'
+      + htmlDevis(a)
       + '<div class="aff-conclure">'
       + '<button type="button" class="btn" data-aff="gagnee">Gagnée</button>'
       + '<button type="button" class="btn" data-aff="perdue">Pas pour cette fois</button>'
@@ -875,6 +876,27 @@
       + '<label class="aff-champ"><span>Pourquoi ?</span><select name="motif">' + motifs + '</select></label>'
       + '<button type="button" class="btn btn--bordeaux" data-aff="confirmerPerdue">La classer</button></div>'
       + '</div></form>';
+  }
+
+  /* « NOUVEAU DEVIS », 30/09/2026 (lot 46) : un EMPLACEMENT, pas encore un geste. Le
+     devis arrive aux lots suivants ; d'ici la, le bouton ne fait qu'expliquer ce qu'il
+     fera, et rien ne part, ni en base ni dans le stockage. `aria-disabled` et PAS
+     `disabled` : un bouton desactive ne prend pas le focus et ne dit rien a celui qui
+     le touche. Un client comme un nouveau client (un devis se fait aussi a un
+     prospect) ; jamais sur une affaire close. Place sous « Enregistrer », au-dessus de
+     « Gagnee » : dans l'ordre du parcours, sans prendre la place du geste principal. */
+  function htmlDevis(a) {
+    if (!a || a.issue !== 'en_cours') return '';
+    return '<div class="aff-devis"><button type="button" class="btn btn--bientot" data-aff="devis" aria-disabled="true"'
+      + ' aria-describedby="affDevisMot">Nouveau devis <span class="btn__bientot">bientôt</span></button>'
+      + '<p class="aff-aide aff-devis__mot" id="affDevisMot" aria-live="polite"></p></div>';
+  }
+  function expliquerDevis(b, a) {
+    var mot = b.parentNode.querySelector('.aff-devis__mot');
+    if (!mot || !a) return;
+    mot.textContent = 'Bientôt : tu feras ici le devis de cette affaire. ' + sujet(a)
+      + ' le signera en ligne, puis le bureau te préparera la commande à importer dans Vitisoft.'
+      + ' En attendant, fais ton devis comme d’habitude et note son envoi dans les notes ci-dessus.';
   }
 
   /* CHANGER LE CLIENT D'UNE AFFAIRE, 28/09/2026 (lot 39) : on s'est trompe de fiche,
@@ -1408,6 +1430,7 @@
       }
       if (quoi === 'suivante' && a) { suivante(a); return; }
       if (quoi === 'voirFiche' && a) { voirFiche(a); return; }
+      if (quoi === 'devis') { expliquerDevis(b, a); return; }
       if (quoi === 'gagnee' || quoi === 'perdue') {
         var f = b.closest('form');
         [].forEach.call(f.querySelectorAll('[data-confirme]'), function (n) {

@@ -497,6 +497,14 @@
 .bdv-ventes .fiche__pastille{padding:0 var(--bdv-e-2);border:1px solid var(--bdv-trait-fort);border-radius:var(--bdv-r-pastille);font-size:var(--bdv-f-1);color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__pastille--tag{border-color:var(--bdv-accent-trait);background:var(--bdv-accent-lavis);color:var(--bdv-encre-1)}
 .bdv-ventes .fiche__actions{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin-top:var(--bdv-e-4)}
+/* « Nouvelle commande », lot 46 : un emplacement qui s'explique, dessine en attente (trait
+   tirete, encre du second niveau, le mot « bientot » ecrit). style.css pose
+   `pointer-events:none` et une opacite de 0.45 sur `[aria-disabled]` : on les rend.
+   La ligne d'explication est vide, donc sans hauteur, tant qu'on n'a pas appuye. */
+.bdv-ventes .btn--bientot[aria-disabled="true"]{opacity:1;pointer-events:auto;cursor:help;background:var(--bdv-surface-2);color:var(--bdv-encre-3);border:1px dashed var(--bdv-trait-fort)}
+.bdv-ventes .btn__bientot{font-weight:400;text-transform:none;letter-spacing:0;color:var(--bdv-encre-4)}
+.bdv-ventes .fiche__bientot{margin:0;font-size:var(--bdv-f-2);line-height:1.5;color:var(--bdv-encre-2)}
+.bdv-ventes .fiche__bientot:not(:empty){margin-top:var(--bdv-e-2)}
 /* Les affaires en cours du client (lot 35) : une ligne de contexte sous les actions. */
 .bdv-ventes .fiche__affaires{margin:var(--bdv-e-3) 0 0;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__affaires a{color:var(--bdv-accent);font-weight:600}

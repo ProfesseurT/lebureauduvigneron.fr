@@ -4987,6 +4987,31 @@ body.bdv-coque .tache[data-famille="notes"]:has(:focus-visible){
   display:grid;
   gap:var(--bdv-e-2);
 }
+/* « NOUVEAU DEVIS », lot 46 : un emplacement qui s'explique. Dessine en attente et pas
+   en bouton plein qui promet : trait tirete, encre du second niveau, le mot « bientot »
+   ecrit (jamais la seule couleur). style.css pose `pointer-events:none` et une opacite
+   de 0.45 sur tout `[aria-disabled]` : on les rend, sinon l'appui n'arriverait jamais
+   et le texte serait illisible dehors. */
+.bdv-coque .aff-devis{
+  display:grid;
+  justify-items:start;
+  gap:var(--bdv-e-1);
+}
+.bdv-coque .aff-devis .aff-aide{ margin:0; }
+.bdv-coque .btn--bientot[aria-disabled="true"]{
+  opacity:1;
+  pointer-events:auto;
+  cursor:help;
+  background:var(--bdv-surface-2);
+  border:1px dashed var(--bdv-trait-fort);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .btn__bientot{ font-weight:400; color:var(--bdv-encre-4); }
+/* `.tmod .btn` ne passe a 44 px que sous 620 : l'emplacement, lui, suit la regle du
+   bureau, 44 px sous 700. */
+@media (max-width:700px){
+  .bdv-coque .btn--bientot{ min-height:var(--bdv-cible); }
+}
 .bdv-coque .aff-depart__liste,
 .bdv-coque .aff-type__etapes{
   margin:0;

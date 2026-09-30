@@ -7220,3 +7220,39 @@ Specification du conseil (vigneron + commercial) : `Claude outputs/lot45-spec.md
   suivre » : deux mots proches, deux nombres ; les clients en affaire restent dans Ma journee et le courrier (voir
   plus haut) ; « Nouvelle affaire » sur la fiche d'un client qui en a deja une (lot 44).
 
+### LOT 46 : LES EMPLACEMENTS « NOUVEAU DEVIS » ET « NOUVELLE COMMANDE » (30/09/2026)
+
+- **Deux boutons qui n'expliquent que ce qu'ils feront.** Rien en base, rien dans le stockage, aucune requete.
+  `aria-disabled="true"` et JAMAIS `disabled` : un bouton desactive ne prend pas le focus et ne dit rien. Un appui
+  remplit une ligne `aria-live="polite"`, presente et vide des le dessin (une region qui apparait n'est pas toujours
+  annoncee), liee au bouton par `aria-describedby`.
+- **Le dessin en attente, `.btn--bientot`** : trait tirete, fond `--bdv-surface-2`, encre `--bdv-encre-3`, et le mot
+  « bientot » ecrit dans le bouton (`.btn__bientot`, jamais la seule couleur). **style.css pose `pointer-events:none` et
+  une opacite de 0.45 sur tout `[aria-disabled="true"]`** : les deux regles du lot les rendent, sinon l'appui n'arrive
+  jamais et le mot est illisible dehors. Section 31 de `bdv-bureau.css` (panneau, `.bdv-coque`) et `bdv-ecrans.css`
+  (fiche, `.bdv-ventes`). Aucune ombre, aucun z-index, que des jetons.
+- **« Nouveau devis »** (bdv-affaires.js, `htmlDevis()`), dans le panneau `#affaireModale`, bloc `.aff-devis` SOUS
+  « Enregistrer » et AU-DESSUS de « Gagnee / Pas pour cette fois » : l'ordre du parcours, sans toucher au geste
+  principal. Client comme nouveau client (un devis se fait a un prospect), jamais sur une affaire close. 44 px sous
+  700 (`.tmod .btn` n'y passe que sous 620). Texte : « Bientot : tu feras ici le devis de cette affaire. <Nom> le
+  signera en ligne, puis le bureau te preparera la commande a importer dans Vitisoft. En attendant, fais ton devis
+  comme d'habitude et note son envoi dans les notes ci-dessus. »
+- **« Nouvelle commande »** (bdv-ecrans.js, `ficheHTML()`, donc les TROIS contenants), DERNIER de `.fiche__actions`,
+  apres « Nouvelle affaire » ; la ligne `#ficheBientot` juste sous la rangee. Ecouteur delegue sur `#modale`, pas
+  d'`onclick`. Il ne cree JAMAIS d'affaire (decision de Ted) : ni `bdv_affaire_client`, ni `afficher('affaires')`.
+  Texte : « Bientot : tu saisiras ici une commande pour <Nom>, sans ouvrir d'affaire, et le bureau te preparera le
+  fichier a importer dans Vitisoft. En attendant, saisis-la dans Vitisoft comme d'habitude. »
+- **Les textes demandes ont ete corriges sur un point** : « la commande partira vers Vitisoft » etait une promesse que
+  le parcours ne tient pas (PAS d'API : le bureau fabrique le fichier, le vigneron l'importe). Aucune date, pas de
+  « en un clic », un geste pour « en attendant », le client nomme.
+- **La rangee de la fiche, mesuree par calcul** (Inter 600 a 12 px, capitales, +0.09 em, 24 px de marge, 8 px
+  d'ecart ; « Nouvelle commande bientot » = 233 px) : rien ne deborde nulle part (le plus large, 233, tient dans
+  326 px, pleine page a 390). Elle prend une rangee de plus a 390 (4 -> 5, +52 px), en modale de 1280 (1 -> 2), en
+  tiroir de 1320 a 1440 et en pleine page a 1440 ; aucune a 760, ni dans le tiroir de Ted (2296). Controle au
+  navigateur sur `_apercu/fiche.html` : 5 rangees a 390, aucun defilement horizontal, 44 px de haut.
+- **Garde** : `banc:affaires` (24 controles de plus) et `banc:annuaire` section 8 (31, les trois contenants),
+  26 mutations toutes tuees.
+- **Ouvert, a Ted** : a 390 px la rangee d'actions de la fiche a 5 rangees ; un libelle court (« Commande », 156 px)
+  la ferait tenir sur la rangee de « Nouvelle affaire », au prix du libelle demande. `apercu:modale` ne montre pas le
+  panneau d'une affaire (il ne montre que les taches) : le devis n'a pas d'apercu.
+

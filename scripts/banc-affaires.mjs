@@ -822,6 +822,94 @@ titre('Lot 45 : la raison du client suit son affaire');
   t('pas de tiret cadratin', !/—/.test(F.doc.body.textContent));
 }
 
+titre('Lot 46 : « Nouveau devis », un emplacement qui s\'explique');
+{
+  const F = monter();
+  F.w.BdvTiroir = { actif: () => true, poser: () => true, retirer: () => {} };
+  F.w.BdvNav = { avecVitisoft: () => true };
+  F.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  F.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  F.base.pistes.push({ bureau: BUREAU, piste_id: 'pN', nom: 'Cave Neuve', opposition: false });
+  const jour = new Date().toISOString();
+  F.base.affaires.push(
+    { bureau: BUREAU, affaire_id: 'aC', type_id: 't1', etape_id: 'e1', client_id: 'C7', client_nom: 'Chez Paul', titre: 'Le rosé', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aN', type_id: 't1', etape_id: 'e1', piste_id: 'pN', titre: 'Cave Neuve', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'aG', type_id: 't1', etape_id: 'e1', client_id: 'C8', client_nom: 'Le Bistrot', titre: 'Le blanc', issue: 'gagnee', close_le: jour, etape_le: jour });
+  await F.w.BdvAffaires.ouvrir();
+  const panneau = () => F.doc.getElementById('affaireModale');
+  const devis = () => panneau() && !panneau().hidden ? panneau().querySelector('[data-aff="devis"]') : null;
+  const mot = () => panneau() && panneau().querySelector('.aff-devis__mot');
+  const ouvrirAff = (id) => { if (panneau() && !panneau().hidden) F.clic('#affaireModale .tmod__x'); F.clic('#affCorps [data-affaire="' + id + '"] [data-aff="ouvrir"]'); };
+  /* Le stockage est espionne : l'emplacement ne doit RIEN y laisser. */
+  const stockes = [], directs = [];
+  F.w.fetch = function (u) { directs.push(String(u)); return Promise.resolve({ ok: false, status: 503, json: async () => null, text: async () => '' }); };
+  const P = F.w.Storage.prototype, setI = P.setItem, rmI = P.removeItem;
+  P.setItem = function (k, v) { stockes.push('set:' + k); return setI.call(this, k, v); };
+  P.removeItem = function (k) { stockes.push('rm:' + k); return rmI.call(this, k); };
+
+  ouvrirAff('aC');
+  const b = devis();
+  t('affaire en cours chez un client : « Nouveau devis » est la', !!b && /^Nouveau devis/.test(b.textContent.trim()) && b.classList.contains('btn'), b && b.outerHTML);
+  t('il dit « bientôt » en toutes lettres, pas par la seule couleur', !!b && /bientôt/.test(b.textContent));
+  t('aria-disabled="true", et PAS disabled (il prend le focus et repond)', !!b && b.getAttribute('aria-disabled') === 'true' && !b.disabled && !b.hasAttribute('disabled'));
+  t('il n\'est pas dessine en bouton plein qui promet', !!b && b.classList.contains('btn--bientot') && !b.classList.contains('btn--bordeaux'));
+  { const f = panneau().querySelector('form.aff-edit'), kids = f ? [...f.children] : [];
+    const iP = kids.findIndex(n => n.classList.contains('aff-form__pied')), iD = kids.findIndex(n => n.classList.contains('aff-devis')),
+      iC = kids.findIndex(n => n.classList.contains('aff-conclure'));
+    t('place : sous « Enregistrer », au-dessus de « Gagnée », dans son propre bloc', iP >= 0 && iD === iP + 1 && iC === iD + 1, [iP, iD, iC].join(','));
+    t('« Enregistrer » reste le seul bouton plein du pied', f && f.querySelectorAll('.aff-form__pied .btn--bordeaux').length === 1 && !f.querySelector('.aff-form__pied [data-aff="devis"]')); }
+  t('la ligne d\'explication existe AVANT l\'appui, vide, annoncee poliment', !!mot() && mot().getAttribute('aria-live') === 'polite' && mot().textContent === '' && !mot().hidden);
+  const reqAvant = F.requetes.length; stockes.length = 0;
+  b.focus();
+  t('le bouton prend le focus', F.doc.activeElement === b);
+  b.click();
+  await attendre(20);
+  const texte = mot() ? mot().textContent : '';
+  t('un appui ouvre l\'explication juste sous le bouton', /^Bientôt : tu feras ici le devis de cette affaire\. Chez Paul le signera en ligne/.test(texte)
+    && b.nextElementSibling === mot(), texte);
+  t('elle dit le vrai chemin : la commande se prepare pour Vitisoft, le vigneron l\'importe', /commande à importer dans Vitisoft/.test(texte), texte);
+  t('et le geste d\'en attendant', /En attendant, fais ton devis comme d’habitude/.test(texte), texte);
+  t('ni date, ni « en un clic », ni tiret cadratin', !/\d|en un clic|—/.test(texte), texte);
+  t('le bouton decrit par cette ligne (aria-describedby)', b.getAttribute('aria-describedby') === mot().id);
+  t('aucune requete au serveur, ni par le compte ni en direct', F.requetes.length === reqAvant && directs.length === 0,
+    F.requetes.slice(reqAvant).map(r => r.methode + ' ' + r.chemin).concat(directs).join(' ; '));
+  t('aucune ecriture de stockage', stockes.length === 0, stockes.join(' '));
+  t('le panneau reste ouvert, sur la meme affaire', !panneau().hidden && /Chez Paul/.test(panneau().querySelector('#amodTitre').textContent));
+
+  ouvrirAff('aN');
+  t('nouveau client (piste) : « Nouveau devis » aussi, un devis se fait a un prospect', !!devis() && devis().getAttribute('aria-disabled') === 'true');
+  const r2 = F.requetes.length; stockes.length = 0;
+  devis().click();
+  await attendre(20);
+  t('et l\'appui nomme le prospect, sans requete ni stockage', /Cave Neuve le signera/.test(mot().textContent) && F.requetes.length === r2 && stockes.length === 0,
+    mot().textContent + ' / ' + (F.requetes.length - r2) + ' / ' + stockes.join(' '));
+
+  /* Une affaire close ne s'ouvre pas dans le panneau par l'ecran : on l'y force, pour
+     que la garde soit tenue meme si un chemin de plus l'y amene un jour. */
+  F.w.BdvAffaires._S.ouverte = 'aG';
+  F.clic('#affCorps [data-aff="filtre"]');
+  t('le panneau d\'une affaire close est bien peint (temoin du controle suivant)', !panneau().hidden && /Le Bistrot/.test(panneau().querySelector('#amodTitre').textContent),
+    panneau().hidden + ' ' + (panneau().querySelector('#amodTitre') || {}).textContent);
+  t('affaire close (gagnée) : pas de « Nouveau devis »', !devis() && !panneau().querySelector('.aff-devis'));
+  /* Et le vrai chemin : conclure l'affaire ouverte. */
+  ouvrirAff('aC');
+  F.clic('#affaireModale [data-aff="gagnee"]');
+  F.clic('#affaireModale [data-aff="confirmerGagnee"]');
+  await attendre(30);
+  t('conclure « Gagnée » : l\'affaire est close et plus aucun « Nouveau devis » ne reste a l\'ecran',
+    F.base.affaires.find(a => a.affaire_id === 'aC').issue === 'gagnee' && !devis(), String(!!devis()));
+  t('aucun onclick, aucun tiret cadratin', !/\sonclick=/.test(panneau().innerHTML) && !/—/.test(panneau().textContent));
+  P.setItem = setI; P.removeItem = rmI;
+
+  /* Le dessin : sans ce rendu, style.css (`[aria-disabled]` : pointer-events:none,
+     opacite 0.45) mangerait l'appui et rendrait le mot illisible dehors. */
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const regle = (css.match(/\.bdv-coque \.btn--bientot\[aria-disabled="true"\]\s*\{([^}]*)\}/) || [])[1] || '';
+  t('bdv-bureau.css rend l\'appui et l\'encre au bouton en attente', /pointer-events:\s*auto/.test(regle) && /opacity:\s*1\b/.test(regle) && /dashed/.test(regle), regle);
+  t('sous 700 px, sa cible fait 44 px (le panneau n\'y passe que sous 620)',
+    /@media\s*\(max-width:\s*700px\)\s*\{\s*\.bdv-coque \.btn--bientot\s*\{\s*min-height:\s*var\(--bdv-cible\)/.test(css));
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + OK + ' controle(s) passe(s), ' + KO + ' echec(s)');
 console.log(KO ? '  MES AFFAIRES NE FONT PAS CE QU\'ELLES DISENT' : '  MES AFFAIRES FONT CE QU\'ELLES DISENT');
