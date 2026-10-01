@@ -48,7 +48,16 @@ export const FEUILLES_JS = [
     portee: '.bdvr-panneau' },
   { fichier: 'src/css/bdv-calendrier.css',
     posee: 'bdv-nav.js, au premier clic sur « Le calendrier »',
-    portee: '.bdv-cal' }
+    portee: '.bdv-cal' },
+  /* LOT 47, 30/09/2026 : la boite d'un devis, et le papier qu'on imprime. La
+     seconde n'est jamais posee dans la page : elle est ecrite dans l'iframe
+     d'impression. Elle est nommee ici quand meme, pour que la charte la lise. */
+  { fichier: 'src/css/bdv-devis.css',
+    posee: 'bdv-affaires.js, au premier clic sur « Nouveau devis » ou sur un devis',
+    portee: '.dmod' },
+  { fichier: 'src/css/bdv-devis-papier.css',
+    posee: 'bdv-devis.js, dans l\'iframe d\'impression et d\'apercu du devis',
+    portee: '.dpap' }
 ];
 
 /* LES FEUILLES LIEES, LUES SUR LA PAGE CONSTRUITE. On ne garde que les href

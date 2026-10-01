@@ -7260,3 +7260,51 @@ Specification du conseil (vigneron + commercial) : `Claude outputs/lot45-spec.md
 - **Ouvert, a Ted** : `apercu:modale` ne montre pas le panneau d'une affaire (seulement les taches) : le devis n'a pas
   d'apercu. La marge de la rangee en pleine page a 390 est de 2 px : un libelle plus long la casse.
 
+
+### LOT 47 : LE DEVIS (30/09/2026)
+
+Specification du conseil (vigneron, directeur commercial, architecte) : `Claude outputs/lot47-spec.md`. Verification :
+`Claude outputs/lot47-verif.md` (trois passages sur la vraie page, captures `lot47*-*.png`).
+
+- **Arbitrages de Ted** : remise en % PAR LIGNE ET GLOBALE ; nouveau client = vins vendus par le domaine sur 12 mois,
+  prix le plus courant (a egalite le plus haut) ; numero `D-AAAA-NNNN` par bureau, sans trou, donne a l'enregistrement,
+  repart a 1 chaque annee (annee a Paris) ; pas de port ; pas d'envoi, signature ni fichier Vitisoft (lots 48, 49).
+- **TVA 20 %** [Certain] : service-public F22399, « Toutes les boissons alcoolisees sont vendues au taux normal de 20 % ».
+  Calculee UNE fois sur le total HT (art. 242 nonies A ann. II CGI). `tva_cb` n'accepte que 2000 dans ce lot.
+- **LA REGLE DE CALCUL (C), EN CENTIMES ENTIERS, LA MEME EN JS ET EN SQL** : `pu_l = arrondi(pu*(10000-rl)/10000)`,
+  `pu_f = arrondi(pu_l*(10000-g)/10000)` (prix SIGNE, colonne 23 de l'import), `net = qte*pu_l`, `final = qte*pu_f`
+  (colonne 24, exacte par construction), remise globale AFFICHEE = total des vins - total HT. Elle s'ecarte de g % exact
+  de quelques centimes, et c'est voulu : zero ecart avec la facture Vitisoft. L'ecran et le papier l'expliquent
+  (« Appliquee a chaque prix unitaire, arrondie au centime. »). Colonne « Prix net » = `pu_l` (remise de LIGNE seule),
+  Total de ligne = `net` : prix net x quantite = total, somme = total des vins. Ne pas y mettre `pu_f` : deux colonnes
+  se contredisaient (vu au 2e passage). Quantites entieres. Table de cas partagee `scripts/fixtures/devis-calculs.json`
+  (17 cas, calcules en Python Decimal par `devis-calculs.py`), jouee par `banc:devis` ET par la RPC.
+- **Base, `supabase/lot47-devis.sql`, a coller par Ted APRES 38 et 39.** Tables `devis`, `devis_lignes`,
+  `devis_compteurs` (aucun droit). `authenticated` n'a que SELECT : TOUTE ecriture passe par les RPC security definer
+  `devis_enregistrer()` et `devis_abandonner()`, qui verifient `est_membre()` en premiere ligne. Le numero est pris dans
+  la meme transaction : un echec plus bas le rend (teste en concurrence). Instantanes `vendeur` / `acheteur` en jsonb,
+  recopies a chaque enregistrement tant que le devis n'est pas envoye. Statuts : `enregistre`, `abandonne`, et
+  `envoye` / `signe` / `refuse` prepares pour le lot 48 (gel par declencheur des qu'envoye). `devis_propositions()` en
+  security invoker sur `v_ventes` : offerts (pu 0), avoirs et non-ventes exclus, groupe par num_produit + conditionnement
+  + millesime. « Vider la base » n'y touche pas. Banc `supabase/banc-lot47-devis.sql` sur PostgreSQL 16 jetable :
+  108 controles.
+- **Navigateur** : `bdv-devis-calcul.js`, `bdv-devis.js`, `bdv-devis.css`, `bdv-devis-papier.css`, charges par un
+  chargeur de bdv-affaires.js. ZERO octet bloquant (banc:poids 79,0/80 inchange). Le calcul (2,9 ko) part a l'ouverture
+  du panneau d'une affaire : il ecrit les montants de la liste des devis. Boite `#devisModale` a elle, via BdvTiroir
+  (retirer le panneau d'affaire puis poser). Brouillon sur l'APPAREIL seulement (`bdv_devis_brouillon_<affaire>`), aucun
+  numero avant « Enregistrer le devis ». Un devis enregistre reste modifiable jusqu'a l'envoi, JAMAIS supprime
+  (« Abandonner ce devis », focus sur « Non, le garder »). Une affaire close garde la liste de ses devis en lecture seule
+  (« Ses devis » dans les affaires closes, au-dessus du calque `::after` de la ligne).
+- **L'impression passe par un IFRAME CACHE** rempli par `htmlPapier()` (pur), feuille `bdv-devis-papier.css`, A4,
+  theme clair. JAMAIS de `@media print` du devis dans la page : `#printReport` et le `@page A3` du calendrier s'y
+  melangeraient. Pied de page `@page` (numero, Page N/M) en police ECRITE EN DUR : les `var()` n'entrent pas dans les
+  boites de marge. Apercu : modale large (992 px) a 1440, feuille reduite a 390 avec « Pour lire en grand, enregistre-le
+  en PDF. »
+- **`BdvDomaine.lue()`** distingue une fiche illisible (panne) d'une fiche incomplete : deux phrases differentes.
+- **Garde** : `banc:devis` 186 controles (dans `verif` apres banc:domaine), banc:affaires 229, banc:domaine 36 ; 88
+  mutations au total, toutes tuees (lanceur qui attend et recompare). `verif` 46 etapes vertes, jouees une par une.
+- **Ouvert, a Ted** : rue du client absente de l'export Vitisoft (devis client = CP + ville) ; export / intra-UE et
+  franchise de TVA non geres ; particuliers pas avant un juriste ; le `pu_ht` de l'export est-il deja remise ? ;
+  decimales de `prix_unitaire` dans l'import ; phrases « Indique la quantite / un prix pour ... » (au lieu de « Combien
+  de ... ? ») ; ecart voulu de la remise globale. Anterieur : a 390, la tabulation sort de la boite (comme le panneau
+  d'une affaire).

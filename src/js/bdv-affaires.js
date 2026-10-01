@@ -51,7 +51,7 @@
 
   var S = { types: [], etapes: [], pistes: {}, affaires: [], charge: false, erreur: false,
             filtre: '', ouverte: null, nouvelle: false, attente: null, reglagesOuverts: false,
-            vue: lireVue(), choix: null, trouves: [] };
+            vue: lireVue(), choix: null, trouves: [], devisDe: {}, closesDevis: {}, focusDevis: null };
 
   /* LA DISPOSITION, LISTE OU KANBAN, 28/09/2026 (lot 39). Elle se retient sur CET
      appareil : c'est une preference de lecture, pas une donnee du bureau. Le
@@ -344,6 +344,7 @@
         + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e) + '</p>'
         + htmlVentes(motifDe(a));
       corps.innerHTML = htmlEditeur(a);
+      lireDevis(a);
     }
     if (neuf) {
       MOD_RETOUR = document.activeElement;
@@ -878,26 +879,161 @@
       + '</div></form>';
   }
 
-  /* « NOUVEAU DEVIS », 30/09/2026 (lot 46) : un EMPLACEMENT, pas encore un geste. Le
-     devis arrive aux lots suivants ; d'ici la, le bouton ne fait qu'expliquer ce qu'il
-     fera, et rien ne part, ni en base ni dans le stockage. `aria-disabled` et PAS
-     `disabled` : un bouton desactive ne prend pas le focus et ne dit rien a celui qui
-     le touche. Un client comme un nouveau client (un devis se fait aussi a un
-     prospect) ; jamais sur une affaire close. Place sous « Enregistrer », au-dessus de
-     « Gagnee » : dans l'ordre du parcours, sans prendre la place du geste principal. La phrase
-     tient en trois lignes a 390 px pour un nom de client d'une vingtaine de signes. */
+  /* « NOUVEAU DEVIS », lot 47 (30/09/2026) : UN VRAI BOUTON, ET LA LISTE DES DEVIS.
+     L'emplacement du lot 46 (`aria-disabled`, `btn--bientot`, la phrase « Bientot »)
+     est parti : le devis existe. Place inchangee, sous « Enregistrer », au-dessus de
+     « Gagnee » ; un client comme un nouveau client, jamais sur une affaire close.
+     La liste dit chaque devis de l'affaire en une ligne, « D-2026-0007, 1 240,00 EUR
+     TTC, 30/09/2026 », et le rouvre ; un devis abandonne a son numero barre et le mot.
+     Un devis ENREGISTRE ne donne pas de montant a l'affaire (regle du 28/09/2026) :
+     rien ici n'ecrit dans `affaires`. */
+  /* UNE AFFAIRE CLOSE GARDE LA LISTE DE SES DEVIS (a relire, a imprimer), sans « Nouveau
+     devis » : retour du verificateur du lot 47. */
   function htmlDevis(a) {
-    if (!a || a.issue !== 'en_cours') return '';
-    return '<div class="aff-devis"><button type="button" class="btn btn--bientot" data-aff="devis" aria-disabled="true"'
-      + ' aria-describedby="affDevisMot">Nouveau devis <span class="btn__bientot">bientôt</span></button>'
+    if (!a) return '';
+    var ouverte = a.issue === 'en_cours';
+    var l = htmlListeDevis(a);
+    return '<div class="aff-devis">'
+      + (ouverte ? '<button type="button" class="btn" data-aff="devis" aria-describedby="affDevisMot">Nouveau devis</button>' : '')
+      + '<ul class="aff-devis__liste" id="affDevisListe"' + (l ? '' : ' hidden') + '>' + l + '</ul>'
       + '<p class="aff-aide aff-devis__mot" id="affDevisMot" aria-live="polite"></p></div>';
   }
-  function expliquerDevis(b, a) {
-    var mot = b.parentNode.querySelector('.aff-devis__mot');
-    if (!mot || !a) return;
-    mot.textContent = 'Bientôt : tu feras ici le devis, ' + sujet(a)
-      + ' le signera en ligne et la commande sera prête pour Vitisoft. En attendant, note ton devis dans Notes.';
-    montrer(mot);
+  function htmlListeDevis(a) {
+    var l = S.devisDe[a.affaire_id];
+    if (!Array.isArray(l) || !window.BdvDevisCalcul) return '';
+    return l.map(function (d) {
+      var ab = d.statut === 'abandonne';
+      return '<li><button type="button" class="aff-devis__un" data-aff="devisOuvrir" data-devis="' + esc(d.devis_id) + '">'
+        + (ab ? '<s>' + esc(d.numero) + '</s> abandonné' : esc(d.numero))
+        + ', ' + esc(BdvDevisCalcul.euros(d.total_ttc_c)) + ' TTC, ' + esc(dateFr(d.date_devis)) + '</button></li>';
+    }).join('');
+  }
+  function dateFr(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+  }
+  /* LES DEVIS D'UNE AFFAIRE, relus a chaque ouverture du panneau. Table absente (SQL
+     du lot 47 pas encore passe) ou panne : la liste se tait, le bouton reste. */
+  function lireDevis(a) {
+    if (!a || !pret()) return Promise.resolve();
+    var id = a.affaire_id;
+    return Promise.all([
+      BdvCompte.api('/devis?bureau=eq.' + encodeURIComponent(bureau()) + '&affaire_id=eq.' + encodeURIComponent(id) + '&order=cree_le.desc'),
+      chargerCalcul()
+    ]).then(function (r) {
+      S.devisDe[id] = Array.isArray(r[0]) ? r[0] : [];
+      peindreListeDevis(id);
+    }, function () {});
+  }
+  function peindreListeDevis(id) {
+    var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+    if (!a) return;
+    var h = htmlListeDevis(a);
+    /* La liste d'une affaire close, sous sa ligne dans « affaires closes ». */
+    var uc = el('affDevisC-' + id);
+    if (uc) uc.innerHTML = h || '<li class="aff-aide">Aucun devis.</li>';
+    var corps = el('amodCorps'), ul = el('affDevisListe');
+    if (!ul || !corps || corps.getAttribute('data-affaire') !== id) return;
+    /* Repeindre la liste ne fait pas perdre le focus a la ligne qui l'avait. */
+    var act = document.activeElement, garde = act && ul.contains(act) ? act.getAttribute('data-devis') : null;
+    ul.innerHTML = h;
+    ul.hidden = !h;
+    if (garde) { var n = ul.querySelector('[data-devis="' + garde + '"]'); if (n) { try { n.focus({ preventScroll: true }); } catch (e) {} } }
+    focusDevisAttendu(id);
+  }
+  /* RETOUR D'UN DEVIS : la ligne du devis (neuf ou rouvert) est ramenee dans la vue du
+     panneau et recoit le focus ; tant qu'elle n'est pas lue, « Nouveau devis » le garde. */
+  function focusDevisAttendu(id) {
+    var voulu = S.focusDevis;
+    if (!voulu || voulu.affaire !== id) return;
+    var n = voulu.devis ? document.querySelector('#affaireModale [data-aff="devisOuvrir"][data-devis="' + voulu.devis + '"]') : null;
+    if (n) S.focusDevis = null;
+    n = n || document.querySelector('#affaireModale [data-aff="devis"]') || document.querySelector('#affaireModale [data-aff="devisOuvrir"]')
+      || document.querySelector('#affaireModale .tmod__x');
+    if (!n) return;
+    try { n.focus({ preventScroll: true }); } catch (e) { try { n.focus(); } catch (x) {} }
+    if (typeof n.scrollIntoView === 'function') { try { n.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+  }
+  /* LA SORTIE DU DEVIS (croix, Echap, « Completer Mon domaine ») rend le focus a un
+     element VIVANT : le bouton de la ligne qui avait ouvert l'affaire, sinon le titre
+     de la piece. Jamais le corps de page. */
+  function focusSortie(id) {
+    var n = document.querySelector('#affCorps [data-affaire="' + id + '"] [data-aff="ouvrir"]')
+      || document.querySelector('#affCorps [data-affaire="' + id + '"] [data-aff="devisClose"]');
+    if (n) return n;
+    var t = el('affTitre');
+    if (t && !t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+    return t;
+  }
+
+  /* LE CHARGEUR DU DEVIS, sur le modele de `poserCss` / `poserJs` de bdv-nav.js : la
+     feuille, le calcul, puis la piece, AU CLIC et une seule fois (la promesse est
+     retenue). Rien de tout cela n'est dans le code bloquant du bureau. Un echec rend
+     la main : le clic suivant reessaie. */
+  var _devis = null;
+  function poserCss(href) {
+    return new Promise(function (ok) {
+      if (document.querySelector('link[href="' + href + '"]')) return ok();
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = href;
+      l.onload = l.onerror = function () { ok(); };
+      document.head.appendChild(l);
+    });
+  }
+  function poserJs(src) {
+    return new Promise(function (ok, ko) {
+      if (document.querySelector('script[src="' + src + '"]')) return ok();
+      var t = document.createElement('script');
+      t.src = src;
+      t.onload = function () { ok(); };
+      t.onerror = function () { t.remove(); ko(new Error('chargement impossible : ' + src)); };
+      document.head.appendChild(t);
+    });
+  }
+  function chargerCalcul() {
+    return window.BdvDevisCalcul ? Promise.resolve() : poserJs('/js/bdv-devis-calcul.js');
+  }
+  function chargerDevis() {
+    if (window.BdvDevis) return Promise.resolve(window.BdvDevis);
+    if (_devis) return _devis;
+    var p = poserCss('/css/bdv-devis.css').then(chargerCalcul)
+      .then(function () { return window.BdvDevis ? null : poserJs('/js/bdv-devis.js'); })
+      .then(function () { if (!window.BdvDevis) throw new Error('devis absent'); return window.BdvDevis; });
+    _devis = p;
+    p.catch(function () { if (_devis === p) _devis = null; });
+    return p;
+  }
+  /* OUVRIR UN DEVIS : UNE SEULE BOITE A LA FOIS (regle du lot 44). L'etape en attente
+     s'ecrit, le panneau d'affaire se retire (`BdvTiroir.retirer`), puis la piece du
+     devis pose `#devisModale`. « Retour a l'affaire » rouvre ce panneau. On ne ferme
+     rien tant que la piece n'est pas arrivee : un echec laisse le vigneron ou il etait. */
+  function ouvrirDevis(a, devisId) {
+    if (!a) return;
+    var mot = el('affDevisMot');
+    if (mot) mot.textContent = '';
+    var dv = devisId ? (S.devisDe[a.affaire_id] || []).filter(function (d) { return d.devis_id === devisId; })[0] : null;
+    if (devisId && !dv) return;
+    var id = a.affaire_id, qui = sujet(a), neuf = estNouveau(a), issue = a.issue;
+    return chargerDevis().then(function (D) {
+      viderAttente();
+      fermerPanneau();
+      D.ouvrir({
+        bureau: bureau(), affaire: { affaire_id: id, issue: issue }, sujet: qui, nouveau: neuf, devis: dv || null,
+        retour: function (devisId) {
+          if (issue !== 'en_cours') { rendre(); var b = focusSortie(id); if (b) { try { b.focus(); } catch (e) {} } return; }
+          S.nouvelle = false; S.choix = null; S.ouverte = id; MOD_CLE = '';
+          S.focusDevis = { affaire: id, devis: devisId || null };
+          rendre();
+          focusDevisAttendu(id);
+        },
+        focusSortie: function () { return focusSortie(id); },
+        change: function () { S.devisDe[id] = null; }
+      });
+    }, function () {
+      var m = el('affDevisMot');
+      if (m) { m.textContent = 'Le devis ne s’est pas ouvert : vérifie ta connexion et réessaie.'; montrer(m); }
+    });
   }
   /* LA PHRASE EST RAMENEE DANS LA VUE, dans le panneau qui defile (modale ou tiroir) :
      sous « Enregistrer », elle tombait sous le bord a 1440 et coupee a 390. `nearest` :
@@ -1035,7 +1171,8 @@
     });
     if (!c.length) return '';
     var g = c.filter(function (a) { return a.issue === 'gagnee'; }).length;
-    return '<details class="aff-plus aff-closes"><summary>Voir et rouvrir les affaires closes depuis un an ('
+    var deplie = Object.keys(S.closesDevis).some(function (k) { return S.closesDevis[k]; });
+    return '<details class="aff-plus aff-closes"' + (deplie ? ' open' : '') + '><summary>Voir et rouvrir les affaires closes depuis un an ('
       + g + ' gagnée' + (g > 1 ? 's' : '') + ' sur ' + c.length + ')</summary><ul class="aff-liste">'
       + c.map(function (a) {
         var m = MOTIFS.filter(function (x) { return x[0] === a.motif; })[0];
@@ -1043,7 +1180,12 @@
           + '<p class="aff-ligne__t"><span class="aff-ligne__qui">' + esc(sujet(a)) + '</span></p>'
           + '<p class="aff-ligne__s">' + (a.issue === 'gagnee' ? 'Gagnée' : 'Pas pour cette fois' + (m ? ' (' + m[1].toLowerCase() + ')' : ''))
           + ' le ' + dateCourte(jourLocal(a.close_le)) + '</p></div>'
-          + '<div class="aff-ligne__gestes"><button type="button" class="btn" data-aff="rouvrir">Rouvrir</button></div></li>';
+          + '<div class="aff-ligne__gestes"><button type="button" class="btn" data-aff="devisClose" aria-controls="affDevisC-' + a.affaire_id + '"'
+          + ' aria-expanded="' + (S.closesDevis[a.affaire_id] ? 'true' : 'false') + '">Ses devis</button>'
+          + '<button type="button" class="btn" data-aff="rouvrir">Rouvrir</button></div>'
+          + '<ul class="aff-devis__liste" id="affDevisC-' + a.affaire_id + '"' + (S.closesDevis[a.affaire_id] ? '' : ' hidden') + '>'
+          + (S.closesDevis[a.affaire_id] ? (htmlListeDevis(a) || (Array.isArray(S.devisDe[a.affaire_id]) ? '<li class="aff-aide">Aucun devis.</li>' : '')) : '')
+          + '</ul></li>';
       }).join('') + '</ul></details>';
   }
   function htmlReglages() {
@@ -1440,7 +1582,16 @@
       }
       if (quoi === 'suivante' && a) { suivante(a); return; }
       if (quoi === 'voirFiche' && a) { voirFiche(a); return; }
-      if (quoi === 'devis') { expliquerDevis(b, a); return; }
+      if (quoi === 'devis' && a) { ouvrirDevis(a, null); return; }
+      if (quoi === 'devisOuvrir' && a) { ouvrirDevis(a, b.getAttribute('data-devis')); return; }
+      if (quoi === 'devisClose' && a) {
+        var ouvre = !S.closesDevis[a.affaire_id];
+        S.closesDevis[a.affaire_id] = ouvre;
+        b.setAttribute('aria-expanded', ouvre ? 'true' : 'false');
+        var uc = el('affDevisC-' + a.affaire_id);
+        if (uc) { uc.hidden = !ouvre; if (ouvre) { uc.innerHTML = htmlListeDevis(a); lireDevis(a); } }
+        return;
+      }
       if (quoi === 'gagnee' || quoi === 'perdue') {
         var f = b.closest('form');
         [].forEach.call(f.querySelectorAll('[data-confirme]'), function (n) {
@@ -1619,6 +1770,6 @@
     }
   });
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, MODELES: MODELES, _nomsProches: nomsProches, _deplacer: function (id, e) {
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, _chargerDevis: chargerDevis, MODELES: MODELES, _nomsProches: nomsProches, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();

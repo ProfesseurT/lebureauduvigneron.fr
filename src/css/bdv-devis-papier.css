@@ -1,0 +1,96 @@
+/* ==========================================================================
+   src/css/bdv-devis-papier.css : LE DEVIS SUR PAPIER, lot 47 (30/09/2026)
+   ==========================================================================
+   LA FEUILLE DE L'IFRAME D'IMPRESSION, ET D'ELLE SEULE. Jamais liee par la
+   page : bdv-devis.js l'ecrit dans le document que `htmlPapier()` fabrique,
+   avec bdv-theme.css pour les jetons et `data-theme="light"` sur sa racine. Le
+   papier est clair dans les deux themes.
+
+   C'EST ICI, ET SEULEMENT ICI, QUE VIT UN `@page`. La page du bureau porte deja
+   `#printReport` et le `@page A3` du calendrier : un `@media print` de plus dans
+   la page les aurait croises. Dans l'iframe, rien d'autre n'existe.
+   ========================================================================== */
+@page{ size:A4 portrait; margin:14mm 14mm 16mm; }
+
+.dpap{
+  --font-corps:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  margin:0;
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-1);
+  font-family:var(--font-corps);
+  font-size:var(--bdv-f-2);
+  line-height:1.45;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
+.dpap .dpap__feuille{ max-width:182mm; margin:0 auto; padding:var(--bdv-e-6) var(--bdv-e-4); }
+.dpap p{ margin:0; }
+.dpap .dpap__tete{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:var(--bdv-e-4) var(--bdv-e-8);
+  padding-bottom:var(--bdv-e-4);
+  border-bottom:2px solid var(--bdv-encre-1);
+}
+.dpap .dpap__raison{ font-weight:600; font-size:var(--bdv-f-3); }
+.dpap .dpap__titre{ margin-left:auto; text-align:right; }
+.dpap .dpap__h1{ margin:0 0 var(--bdv-e-1); font-size:var(--bdv-f-5); font-weight:700; letter-spacing:var(--bdv-ls-serre); }
+.dpap .dpap__client{
+  margin:var(--bdv-e-6) 0 var(--bdv-e-6) auto;
+  max-width:90mm;
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+}
+.dpap .dpap__etiq{
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.dpap .dpap__table{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+/* L'en-tete des colonnes se repete en haut de chaque page. */
+.dpap .dpap__table thead{ display:table-header-group; }
+/* Totaux et mentions voyagent ensemble : jamais les mentions seules sur une page. */
+.dpap .dpap__fin{ break-inside:avoid; }
+.dpap .dpap__table th{
+  padding:var(--bdv-e-2);
+  border-bottom:1px solid var(--bdv-encre-1);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  text-align:left;
+  color:var(--bdv-encre-2);
+}
+.dpap .dpap__table td{ padding:var(--bdv-e-2); border-bottom:1px solid var(--bdv-trait); vertical-align:top; }
+.dpap .dpap__table tr{ break-inside:avoid; }
+.dpap .dpap__table .dpap__n{ text-align:right; white-space:nowrap; }
+.dpap .dpap__code{ font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+.dpap .dpap__totaux{
+  margin:var(--bdv-e-4) 0 0 auto;
+  max-width:80mm;
+  display:grid;
+  gap:var(--bdv-e-1);
+  font-variant-numeric:tabular-nums;
+  break-inside:avoid;
+}
+.dpap .dpap__totaux p{ display:flex; justify-content:space-between; gap:var(--bdv-e-4); }
+.dpap .dpap__totaux .dpap__x{ display:block; font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+.dpap .dpap__ttc{
+  padding-top:var(--bdv-e-2);
+  border-top:2px solid var(--bdv-encre-1);
+  font-size:var(--bdv-f-4);
+  font-weight:700;
+}
+.dpap .dpap__mentions{
+  margin-top:var(--bdv-e-8);
+  display:grid;
+  gap:var(--bdv-e-2);
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-2);
+  break-inside:avoid;
+}
+.dpap .dpap__notes{ white-space:pre-wrap; color:var(--bdv-encre-1); font-size:var(--bdv-f-2); }

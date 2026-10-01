@@ -12,6 +12,26 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 30/09/2026, lot 47 : le devis
+
+Tes quatre choix : remise en % par ligne ET sur tout le devis ; pour un nouveau client, les vins que
+tu as vendus sur 12 mois au prix le plus courant ; un numéro D-2026-0001 sans trou ; pas de port.
+
+Le conseil a tranché le reste, à rouvrir si tu veux :
+- le brouillon reste sur l'appareil, sans numéro ; le numéro naît à « Enregistrer le devis » ;
+- un devis enregistré se modifie jusqu'à l'envoi (lot 48), ne se supprime jamais : on l'abandonne ;
+- la remise sur tout le devis s'applique à chaque prix unitaire, arrondi au centime. Le montant affiché
+  peut s'écarter de quelques centimes du pourcentage exact, mais la facture Vitisoft tombera juste ;
+- la TVA (20 %, service-public) se calcule sur le total HT ;
+- les lignes « offert » ne comptent pas pour le dernier prix.
+
+Trois passages de vérification dans le vrai bureau ont trouvé 17 défauts puis 12, tous corrigés :
+messages d'erreur hors de l'écran, aperçu illisible dans le tiroir, colonnes qui se contredisaient
+sur le papier, devis d'une affaire close impossible à ouvrir à la souris.
+
+À trancher : la rue du client n'existe pas dans l'export Vitisoft ; export et UE pas gérés ; le prix
+de l'export est-il déjà remisé ?
+
 ## 30/09/2026, lot 46 : les places du devis et de la commande
 
 - « Nouveau devis » dans le panneau d'une affaire en cours, « Commande bientôt » sur la fiche client. Visibles, pas

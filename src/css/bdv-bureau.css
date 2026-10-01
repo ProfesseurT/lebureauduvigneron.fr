@@ -4987,7 +4987,9 @@ body.bdv-coque .tache[data-famille="notes"]:has(:focus-visible){
   display:grid;
   gap:var(--bdv-e-2);
 }
-/* « NOUVEAU DEVIS », lot 46 : un emplacement qui s'explique. Dessine en attente et pas
+/* « NOUVEAU DEVIS », lot 46 : un emplacement qui s'explique. DEPUIS LE LOT 47 le devis est
+   un vrai bouton ; `.btn--bientot` ne sert plus qu'a « Commande bientot » de la fiche client.
+   Dessine en attente et pas
    en bouton plein qui promet : trait tirete, encre du second niveau, le mot « bientot »
    ecrit (jamais la seule couleur). style.css pose `pointer-events:none` et une opacite
    de 0.45 sur tout `[aria-disabled]` : on les rend, sinon l'appui n'arriverait jamais
@@ -4998,6 +5000,37 @@ body.bdv-coque .tache[data-famille="notes"]:has(:focus-visible){
   gap:var(--bdv-e-1);
 }
 .bdv-coque .aff-devis .aff-aide{ margin:0; }
+/* LOT 47 (30/09/2026) : « Nouveau devis » est un vrai bouton, et la liste des devis de
+   l'affaire vit sous lui. Chaque ligne est un bouton qui rouvre le devis ; un devis
+   abandonne a son numero barre ET le mot « abandonne » (jamais la seule rature). La
+   boite du devis elle-meme est dans bdv-devis.css, posee au clic. */
+.bdv-coque .aff-devis__liste{
+  justify-self:stretch;
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:grid;
+  gap:var(--bdv-e-1);
+}
+.bdv-coque .aff-devis__liste[hidden]{ display:none; }
+.bdv-coque .aff-devis__un{
+  padding:var(--bdv-e-1) 0;
+  background:none;
+  border:0;
+  font:inherit;
+  font-size:var(--bdv-f-2);
+  font-variant-numeric:tabular-nums;
+  color:var(--bdv-accent);
+  text-align:left;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.bdv-coque .aff-devis__un:hover{ color:var(--bdv-accent-fort); }
+.bdv-coque .aff-devis__un:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-devis__un s{ color:var(--bdv-encre-3); }
+@media (max-width:700px){
+  .bdv-coque .aff-devis__un{ min-height:var(--bdv-cible); }
+}
 .bdv-coque .btn--bientot[aria-disabled="true"]{
   opacity:1;
   pointer-events:auto;
@@ -5417,7 +5450,8 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
 .bdv-coque .aff-ligne__qui:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
 .bdv-coque .aff-ligne__gestes,
 .bdv-coque .aff-carte__gestes,
-.bdv-coque .aff-ligne .aff-marque{ position:relative; z-index:1; }
+.bdv-coque .aff-ligne .aff-marque,
+.bdv-coque .aff-ligne .aff-devis__liste{ position:relative; z-index:1; }
 .bdv-coque .aff-ligne__titre{
   margin:var(--bdv-e-1) 0 0;
   font-size:var(--bdv-f-2);

@@ -45,6 +45,8 @@ const fiche = fs.readFileSync(FICHE, 'utf8');
 const tache = fs.readFileSync(TACHE, 'utf8');
 /* LA TROISIEME BOITE, lot 40 du 28/09/2026 : une affaire ouverte ou neuve. */
 const affaire = fs.readFileSync('src/js/bdv-affaires.js', 'utf8');
+/* LA QUATRIEME BOITE, lot 47 du 30/09/2026 : le devis d'une affaire, `#devisModale`. */
+const devis = fs.readFileSync('src/js/bdv-devis.js', 'utf8');
 
 /* -- 1. LES DEUX SEUILS. On prend la media query qui ENVELOPPE la section 22,
       pas la premiere du fichier : il y en a une quarantaine avant elle. */
@@ -166,6 +168,14 @@ t('l\'affaire est une .tmod, donc habillee par la section 22.7 sans regle de plu
   /MOD\.className = 'tmod amod'/.test(affaire));
 t('l\'affaire ne vole le focus qu\'en modale, sauf formulaire neuf',
   /if \(neuf && \(!enTiroir \|\| S\.nouvelle\)\)/.test(affaire));
+t('le devis passe aussi par BdvTiroir.poser et .retirer, avec sa BOITE',
+  /BdvTiroir\.poser\(MOD\.querySelector\('\.tmod__boite'\)\)/.test(devis) && /BdvTiroir\.retirer\(\)/.test(devis));
+t('le devis ne se fabrique ni seuil ni matchMedia',
+  devis.indexOf("matchMedia('(min-width:") === -1 && !/TIROIR_SEUIL\s*=\s*\d/.test(devis));
+t('le devis est une .tmod, donc habille par la section 22.7 sans regle de plus',
+  /MOD\.className = 'tmod dmod'/.test(devis) && !/bdv-a-tiroir/.test(fs.readFileSync('src/css/bdv-devis.css', 'utf8')));
+t('une boite a la fois : l\'affaire retire son panneau AVANT de poser le devis',
+  /viderAttente\(\);\s*fermerPanneau\(\);\s*D\.ouvrir\(/.test(affaire));
 t('BdvTiroir recoit la BOITE et pas la modale',
   /poser\(m\.querySelector\('\.modale__box'\)\)/.test(fiche)
   && /poser\(MOD\.querySelector\('\.tmod__boite'\)\)/.test(tache),
@@ -198,7 +208,8 @@ t('bdv-a-tiroir n\'est posee et retiree que par le module',
   && /classList\.remove\(['"]bdv-a-tiroir['"]\)/.test(nav)
   && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(fiche)
   && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(tache)
-  && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(affaire));
+  && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(affaire)
+  && !/classList\.(add|remove|toggle)\(['"]bdv-a-tiroir['"]/.test(devis));
 
-console.log('\n' + (echecs ? echecs + ' ECHEC(S)' : 'LE TIROIR TIENT SES DEUX MOITIES, ET LES DEUX BOITES N\'EN FONT QU\'UNE') + '\n');
+console.log('\n' + (echecs ? echecs + ' ECHEC(S)' : 'LE TIROIR TIENT SES DEUX MOITIES, ET LES QUATRE BOITES N\'EN FONT QU\'UNE') + '\n');
 process.exit(echecs ? 1 : 0);

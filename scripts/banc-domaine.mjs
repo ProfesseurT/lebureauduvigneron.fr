@@ -152,6 +152,19 @@ dit(/const hoteOk = res\.slice\(2\)\.every/.test(reg) && /if\(!hoteOk\)\{/.test(
   'un bloc qui echoue empeche « C\'est enregistre » et la fermeture du panneau');
 dit(/'domaine':\s*'bdvrHoteDomaine'/.test(reg) && /id="bdvrBlocDomaine" data-onglet="Mon domaine"/.test(reg), 'l\'onglet « Mon domaine » existe et recoit le bloc');
 
+console.log('\n== 9. Lot 47 : panne reseau et table absente ne se disent pas pareil ==');
+{
+  const api0 = w.BdvCompte.api;
+  w.BdvCompte.api = (chemin, o) => (o && o.methode) ? api0(chemin, o) : Promise.reject(new TypeError('Failed to fetch'));
+  await blocs[0].rafraichir();
+  dit($('bdvdMot').textContent === 'Je n’arrive pas à lire la fiche de ton domaine. Vérifie ta connexion.' && w.BdvDomaine.lue() === false,
+    'coupure reseau : « Je n’arrive pas à lire la fiche de ton domaine. Vérifie ta connexion. »', $('bdvdMot').textContent);
+  w.BdvCompte.api = (chemin, o) => { if (o && o.methode) return api0(chemin, o); const e = new Error('404'); e.status = 404; e.detail = '{"code":"PGRST205"}'; return Promise.reject(e); };
+  await blocs[0].rafraichir();
+  dit($('bdvdMot').textContent === 'La fiche du domaine n’est pas encore disponible sur ton compte.', 'table absente (404 / PGRST) : la phrase du lot 38', $('bdvdMot').textContent);
+  w.BdvCompte.api = api0;
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 console.log(ko ? '  LA FICHE DU DOMAINE PEUT MENTIR\n' : '  LA FICHE DU DOMAINE DIT CE QUE LE VIGNERON A CHOISI\n');

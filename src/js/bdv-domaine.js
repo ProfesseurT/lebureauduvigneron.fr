@@ -26,6 +26,7 @@
   var API = 'https://recherche-entreprises.api.gouv.fr/search';
   var FICHE = null;       // la ligne lue, ou null
   var LU = false;         // la lecture a-t-elle abouti une fois
+  var ABSENTE = false;    // la table manque (SQL du lot 38 pas passe), distinct d'une panne
   var TOUCHE = false;     // le vigneron a-t-il modifie quelque chose
   var TROUVES = [];       // les resultats de la derniere recherche
 
@@ -46,12 +47,16 @@
     try {
       var l = await BdvCompte.api('/domaine?select=*&bureau=eq.' + encodeURIComponent(b));
       FICHE = (Array.isArray(l) && l[0]) || null;
-      LU = true;
+      /* Un retour vide (pas de session) n'est pas une lecture : le devis doit savoir
+         dire « je n'arrive pas a lire » plutot que « il manque des infos » (lot 47). */
+      LU = Array.isArray(l);
+      ABSENTE = false;
       return FICHE;
     } catch (e) {
       /* LE LOT 38 N'EST PEUT-ETRE PAS PASSE : la table n'existe pas encore. On le dit
          dans le bloc au lieu de laisser croire que la fiche est vide. */
       LU = false;
+      ABSENTE = !!e && (e.status === 404 || /PGRST|42P01/.test(String(e.detail || '')));
       return null;
     }
   }
@@ -324,7 +329,9 @@
 
   async function rafraichir() {
     await charger();
-    if (!LU && el('bdvdMot')) dire('La fiche du domaine n’est pas encore disponible sur ton compte.', true);
+    /* Table absente et coupure reseau ne se disent pas pareil (lot 47, contre-verification). */
+    if (!LU && el('bdvdMot')) dire(ABSENTE ? 'La fiche du domaine n’est pas encore disponible sur ton compte.'
+      : 'Je n’arrive pas à lire la fiche de ton domaine. Vérifie ta connexion.', true);
     if (!TOUCHE) peindre();
   }
 
@@ -347,6 +354,6 @@
   }
   if (!brancher()) document.addEventListener('DOMContentLoaded', brancher);
 
-  window.BdvDomaine = { charger: charger, fiche: function () { return FICHE; }, complete: complete,
+  window.BdvDomaine = { charger: charger, fiche: function () { return FICHE; }, lue: function () { return LU; }, complete: complete,
                         conditions: conditions, chercher: chercher, _lire: lire, _defauts: defauts };
 })();

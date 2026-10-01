@@ -1,0 +1,240 @@
+/* ==========================================================================
+   src/css/bdv-devis.css : LA BOITE D'UN DEVIS, lot 47 (30/09/2026)
+   ==========================================================================
+   Posee par bdv-affaires.js AU CLIC sur « Nouveau devis » ou sur un devis de
+   la liste, avec bdv-devis-calcul.js et bdv-devis.js. Declaree dans
+   scripts/feuilles-bureau.mjs (FEUILLES_JS) : sans cette ligne, la charte ne
+   la lirait jamais.
+
+   LA BOITE EST UNE `.tmod` (`#devisModale`, classes `tmod dmod`) : meme papier,
+   meme croix que le panneau d'une affaire, et le tiroir de la section 22.7 de
+   bdv-bureau.css s'applique tel quel au-dessus de 1320 px. Rien ici ne redit une
+   regle de tiroir.
+
+   QUE DES JETONS, pour les deux themes : aucune couleur, aucune taille de texte,
+   aucun rayon ecrit en dur. Aucune ombre, aucun z-index. Pas de `@media print` :
+   l'impression passe par un iframe cache et sa propre feuille,
+   bdv-devis-papier.css.
+
+   390 px : 44 px de cible sous 700 px, aucune barre horizontale (min-width:0 et
+   coupure des longs noms), et le total TTC colle en bas avec « Enregistrer ».
+   ========================================================================== */
+.bdv-coque .dmod__boite{
+  max-width:48rem;
+  /* LA HAUTEUR DU PIED COLLANT EST RESERVEE a ce qui recoit le focus (WCAG 2.4.11) ;
+     bdv-devis.js recale en plus chaque focus au-dessus du pied, mesure a l'appui. */
+  scroll-padding-bottom:calc(var(--bdv-e-12) + var(--bdv-e-12) + var(--bdv-e-6));
+}
+.bdv-coque .dmod__boite--apercu{ max-width:62rem; }
+.bdv-coque .dmod__tete{ margin-bottom:var(--bdv-e-3); padding-right:var(--bdv-e-8); }
+.bdv-coque .dmod__retour-l{ margin:0 0 var(--bdv-e-3); }
+.bdv-coque .dmod__corps{ container:devis / inline-size; min-width:0; }
+
+.bdv-coque .dmod__bloc{
+  margin:0 0 var(--bdv-e-4);
+  padding-top:var(--bdv-e-4);
+  border-top:1px solid var(--bdv-trait);
+  min-width:0;
+}
+.bdv-coque .dmod__t{
+  margin:0 0 var(--bdv-e-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .dmod__st{
+  margin:var(--bdv-e-3) 0 var(--bdv-e-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .dmod__qui{ margin:0; font-weight:400; color:var(--bdv-encre-1); overflow-wrap:anywhere; }
+.bdv-coque .dmod__qui-m{ margin:0; }
+.bdv-coque .dmod__phrase{ margin:0 0 var(--bdv-e-3); font-size:var(--bdv-f-3); color:var(--bdv-encre-1); }
+.bdv-coque .dmod__gestes{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--bdv-e-2) var(--bdv-e-4);
+  margin:0;
+}
+
+/* LES VINS. Une ligne cochee porte ses quatre champs ; une proposition, sa case et
+   son prix d'origine. Le nom se coupe plutot que de pousser la boite. */
+.bdv-coque .dmod__lignes,
+.bdv-coque .dmod__props{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:grid;
+  gap:var(--bdv-e-2);
+}
+.bdv-coque .dmod__props{ gap:0; }
+.bdv-coque .dmod__ligne{
+  padding:var(--bdv-e-2) var(--bdv-e-3) var(--bdv-e-3);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+  min-width:0;
+}
+.bdv-coque .dmod__prop{ border-bottom:1px solid var(--bdv-trait); min-width:0; }
+.bdv-coque .dmod__coche{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0 var(--bdv-e-2);
+  min-height:var(--bdv-cible);
+  min-width:0;
+  cursor:pointer;
+}
+.bdv-coque .dmod__coche input{ flex:none; margin:0; }
+.bdv-coque .dmod__nom{
+  flex:1 1 10rem;
+  min-width:0;
+  margin:0;
+  font-weight:600;
+  color:var(--bdv-encre-1);
+  overflow-wrap:anywhere;
+}
+.bdv-coque .dmod__prix{
+  flex:1 1 100%;
+  padding:0 0 var(--bdv-e-2) var(--bdv-e-6);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .dmod__code{ margin:0 0 var(--bdv-e-1); font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+.bdv-coque .dmod__champs{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:var(--bdv-e-2) var(--bdv-e-3);
+  min-width:0;
+}
+@container devis (min-width:36rem){
+  .bdv-coque .dmod__champs{ grid-template-columns:minmax(0, 0.7fr) minmax(0, 1.3fr) minmax(0, 0.7fr) minmax(0, 1fr); }
+}
+.bdv-coque .dmod__champs .aff-champ{ min-width:0; align-content:start; }
+.bdv-coque .dmod__src{ font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+/* L'ERREUR SOUS LE CHAMP FAUTIF : un mot, un signe, une couleur (jamais la seule couleur). */
+.bdv-coque .dmod__err{ font-size:var(--bdv-f-2); font-weight:600; color:var(--bdv-retard); }
+.bdv-coque .dmod__err::before{ content:'\0021'; margin-right:var(--bdv-e-1); }
+.bdv-coque .dmod [aria-invalid="true"]{ border-color:var(--bdv-retard); }
+.bdv-coque .dmod__lt{
+  margin:0;
+  display:grid;
+  align-content:start;
+  gap:var(--bdv-e-1);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .dmod__lt b{ font-size:var(--bdv-f-3); color:var(--bdv-encre-1); font-variant-numeric:tabular-nums; }
+.bdv-coque .dmod__cherche{ margin-top:var(--bdv-e-3); }
+.bdv-coque .dmod__remise{ max-width:12rem; }
+
+/* LE TOTAL, ordre fixe. Les chiffres en colonnes egales, alignes a droite. */
+.bdv-coque .dmod__totaux{ display:grid; gap:var(--bdv-e-1); }
+.bdv-coque .dmod__tl{
+  margin:0;
+  display:flex;
+  justify-content:space-between;
+  gap:var(--bdv-e-3);
+  color:var(--bdv-encre-2);
+  font-variant-numeric:tabular-nums;
+}
+.bdv-coque .dmod__tl-x{ margin:0; font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+.bdv-coque .dmod__tl--ttc{
+  padding-top:var(--bdv-e-2);
+  border-top:1px solid var(--bdv-trait-fort);
+  font-size:var(--bdv-f-4);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .dmod__cond{ margin:0; color:var(--bdv-encre-2); overflow-wrap:anywhere; }
+.bdv-coque .dmod__notes{ width:100%; }
+
+/* LE LIEN QUI N'EST PAS UN BOUTON PLEIN : « Changer dans Mon domaine », « Voir les N
+   autres », et « Abandonner ce devis », qui DETRUIT et reste donc loin du geste qui
+   valide (regle du 23/09/2026) et porte l'encre du retard. */
+.bdv-coque .dmod__lien{
+  padding:0;
+  background:none;
+  border:0;
+  font:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-accent);
+  text-decoration:underline;
+  cursor:pointer;
+}
+.bdv-coque .dmod__lien:hover{ color:var(--bdv-accent-fort); }
+.bdv-coque .dmod__lien:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .dmod__lien--x{ margin-left:auto; color:var(--bdv-retard); }
+.bdv-coque .dmod__confirme{
+  margin-top:var(--bdv-e-3);
+  padding:var(--bdv-e-3);
+  border:1px solid var(--bdv-alerte);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-alerte-lavis);
+}
+.bdv-coque .dmod__confirme[hidden]{ display:none; }
+.bdv-coque .dmod__confirme .aff-aide{ margin:0 0 var(--bdv-e-2); color:var(--bdv-encre-1); }
+
+/* LE PIED COLLANT : le total TTC et « Enregistrer le devis » restent sous le pouce
+   pendant qu'on descend la liste. Il deborde des marges de la boite pour couvrir
+   toute sa largeur ; dernier enfant, il se peint au-dessus sans z-index. MESURE du
+   30/09/2026 (Chromium, 390 et 1440) : `bottom:0` le collait a 24 px du bord, sous le
+   retrait de la boite, et laissait passer les champs dessous. Le decalage negatif
+   egal au retrait le pose sur le bord. */
+.bdv-coque .dmod__pied{
+  position:sticky;
+  bottom:calc(-1 * var(--bdv-e-6));
+  margin:var(--bdv-e-4) calc(-1 * var(--bdv-e-6)) calc(-1 * var(--bdv-e-6));
+  padding:var(--bdv-e-3) var(--bdv-e-6);
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--bdv-e-2) var(--bdv-e-4);
+  background:var(--bdv-surface-3);
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .dmod__pied-t{ margin:0; color:var(--bdv-encre-2); font-variant-numeric:tabular-nums; }
+.bdv-coque .dmod__pied-t b{ font-size:var(--bdv-f-4); color:var(--bdv-encre-1); }
+
+/* L'APERCU : une feuille A4 entiere, en proportion. Le papier est clair dans les
+   deux themes : c'est un document, il sort sur une imprimante. */
+.bdv-coque .dmod__feuille{
+  margin-top:var(--bdv-e-4);
+  overflow:hidden;
+  border:1px solid var(--bdv-trait);
+  background:var(--bdv-surface);
+}
+/* L'iframe a la largeur A4 (794 px) et la hauteur de son document, posees par
+   bdv-devis.js, puis reduite par `scale()` a la largeur de la boite. */
+.bdv-coque .dmod__feuille-i{
+  display:block;
+  margin:0 auto;
+  border:0;
+  transform-origin:0 0;
+  background:var(--bdv-surface);
+}
+/* L'IFRAME QUI IMPRIME, hors de la vue : c'est SON document qui part a l'imprimante. */
+.bdv-coque .dmod__imprimeur{
+  position:fixed;
+  right:0;
+  bottom:0;
+  width:0;
+  height:0;
+  border:0;
+}
+
+.bdv-coque .dmod__pdf{ display:none; }
+@media (max-width:700px){
+  .bdv-coque .dmod__pdf{ display:block; }
+  .bdv-coque .dmod .btn,
+  .bdv-coque .dmod input[type="text"],
+  .bdv-coque .dmod input[type="search"],
+  .bdv-coque .dmod textarea,
+  .bdv-coque .dmod__lien{ min-height:var(--bdv-cible); }
+  .bdv-coque .dmod__pied .btn{ flex:1 1 auto; }
+}

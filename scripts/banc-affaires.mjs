@@ -822,14 +822,27 @@ titre('Lot 45 : la raison du client suit son affaire');
   t('pas de tiret cadratin', !/—/.test(F.doc.body.textContent));
 }
 
-titre('Lot 46 : « Nouveau devis », un emplacement qui s\'explique');
+titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de l\'affaire');
 {
   const F = monter();
-  F.w.BdvTiroir = { actif: () => true, poser: () => true, retirer: () => {} };
+  const appels = { poser: [], retirer: 0, ordre: [] };
+  F.w.BdvTiroir = { actif: () => true,
+    poser: (b) => { appels.poser.push(b); appels.ordre.push('poser:' + (b.closest('#devisModale') ? 'devis' : 'affaire')); return true; },
+    retirer: () => { appels.retirer++; appels.ordre.push('retirer'); } };
   F.w.BdvNav = { avecVitisoft: () => true };
+  /* Le calcul (euros) est pose par le chargeur ; jsdom ne charge pas les <script src>,
+     le harnais le pose donc lui-meme, comme la page le ferait au premier panneau. */
+  F.w.eval(fs.readFileSync(path.join(RACINE, 'src/js/bdv-devis-calcul.js'), 'utf8'));
+  const ouverts = [];
+  F.w.BdvDevis = { ouvrir: (ctx) => { appels.ordre.push('ouvrir'); ouverts.push(ctx); } };
   F.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
   F.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
   F.base.pistes.push({ bureau: BUREAU, piste_id: 'pN', nom: 'Cave Neuve', opposition: false });
+  F.base.devis = [
+    { bureau: BUREAU, devis_id: 'd7', affaire_id: 'aC', numero: 'D-2026-0007', statut: 'enregistre', total_ttc_c: 124000, date_devis: '2026-09-30' },
+    { bureau: BUREAU, devis_id: 'd3', affaire_id: 'aC', numero: 'D-2026-0003', statut: 'abandonne', total_ttc_c: 5000, date_devis: '2026-09-12' },
+    { bureau: BUREAU, devis_id: 'dX', affaire_id: 'aN', numero: 'D-2026-0009', statut: 'enregistre', total_ttc_c: 100, date_devis: '2026-09-29' },
+    { bureau: BUREAU, devis_id: 'dG', affaire_id: 'aG', numero: 'D-2026-0004', statut: 'enregistre', total_ttc_c: 9900, date_devis: '2026-09-20' }];
   const jour = new Date().toISOString();
   F.base.affaires.push(
     { bureau: BUREAU, affaire_id: 'aC', type_id: 't1', etape_id: 'e1', client_id: 'C7', client_nom: 'Chez Paul', titre: 'Le rosé', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
@@ -838,77 +851,149 @@ titre('Lot 46 : « Nouveau devis », un emplacement qui s\'explique');
   await F.w.BdvAffaires.ouvrir();
   const panneau = () => F.doc.getElementById('affaireModale');
   const devis = () => panneau() && !panneau().hidden ? panneau().querySelector('[data-aff="devis"]') : null;
-  const mot = () => panneau() && panneau().querySelector('.aff-devis__mot');
-  const ouvrirAff = (id) => { if (panneau() && !panneau().hidden) F.clic('#affaireModale .tmod__x'); F.clic('#affCorps [data-affaire="' + id + '"] [data-aff="ouvrir"]'); };
-  /* Le stockage est espionne : l'emplacement ne doit RIEN y laisser. */
-  const stockes = [], directs = [];
-  F.w.fetch = function (u) { directs.push(String(u)); return Promise.resolve({ ok: false, status: 503, json: async () => null, text: async () => '' }); };
-  const P = F.w.Storage.prototype, setI = P.setItem, rmI = P.removeItem;
+  let ouvrirAff = async (id) => { if (panneau() && !panneau().hidden) F.clic('#affaireModale .tmod__x'); F.clic('#affCorps [data-affaire="' + id + '"] [data-aff="ouvrir"]'); await attendre(20); };
+  const stockes = [];
+  const P = F.w.Storage.prototype, setI = P.setItem;
   P.setItem = function (k, v) { stockes.push('set:' + k); return setI.call(this, k, v); };
-  P.removeItem = function (k) { stockes.push('rm:' + k); return rmI.call(this, k); };
 
-  ouvrirAff('aC');
+  await ouvrirAff('aC');
   const b = devis();
-  t('affaire en cours chez un client : « Nouveau devis » est la', !!b && /^Nouveau devis/.test(b.textContent.trim()) && b.classList.contains('btn'), b && b.outerHTML);
-  t('il dit « bientôt » en toutes lettres, pas par la seule couleur', !!b && /bientôt/.test(b.textContent));
-  t('aria-disabled="true", et PAS disabled (il prend le focus et repond)', !!b && b.getAttribute('aria-disabled') === 'true' && !b.disabled && !b.hasAttribute('disabled'));
-  t('il n\'est pas dessine en bouton plein qui promet', !!b && b.classList.contains('btn--bientot') && !b.classList.contains('btn--bordeaux'));
+  t('affaire en cours chez un client : « Nouveau devis » est un vrai bouton', !!b && b.textContent.trim() === 'Nouveau devis' && b.classList.contains('btn'), b && b.outerHTML);
+  t('plus d\'aria-disabled, plus de btn--bientot, plus de mot « bientôt »', !!b && !b.hasAttribute('aria-disabled') && !b.disabled
+    && !b.classList.contains('btn--bientot') && !panneau().querySelector('.btn__bientot') && !/bientôt|Bientôt/.test(panneau().textContent));
+  t('il n\'est pas un bouton plein : « Enregistrer » reste le geste principal', !!b && !b.classList.contains('btn--bordeaux'));
   { const f = panneau().querySelector('form.aff-edit'), kids = f ? [...f.children] : [];
     const iP = kids.findIndex(n => n.classList.contains('aff-form__pied')), iD = kids.findIndex(n => n.classList.contains('aff-devis')),
       iC = kids.findIndex(n => n.classList.contains('aff-conclure'));
     t('place : sous « Enregistrer », au-dessus de « Gagnée », dans son propre bloc', iP >= 0 && iD === iP + 1 && iC === iD + 1, [iP, iD, iC].join(','));
     t('« Enregistrer » reste le seul bouton plein du pied', f && f.querySelectorAll('.aff-form__pied .btn--bordeaux').length === 1 && !f.querySelector('.aff-form__pied [data-aff="devis"]')); }
-  t('la ligne d\'explication existe AVANT l\'appui, vide, annoncee poliment', !!mot() && mot().getAttribute('aria-live') === 'polite' && mot().textContent === '' && !mot().hidden);
-  const defiles = [];
-  F.w.Element.prototype.scrollIntoView = function (o) { defiles.push({ n: this, o: o || null }); };
-  const reqAvant = F.requetes.length; stockes.length = 0;
-  b.focus();
-  t('le bouton prend le focus', F.doc.activeElement === b);
+  const lecture = F.requetes.filter(r => /^\/devis\?/.test(r.chemin)).pop();
+  t('la liste des devis est lue pour CE bureau et CETTE affaire', !!lecture && lecture.chemin === '/devis?bureau=eq.' + BUREAU + '&affaire_id=eq.aC&order=cree_le.desc', lecture && lecture.chemin);
+  const lis = [...panneau().querySelectorAll('#affDevisListe li')];
+  t('le bloc liste les devis de l\'affaire, et seulement eux', lis.length === 2, lis.length);
+  t('« D-2026-0007, 1 240,00 € TTC, 30/09/2026 »', !!lis[0] && lis[0].textContent === 'D-2026-0007, 1 240,00 € TTC, 30/09/2026', lis[0] && JSON.stringify(lis[0].textContent));
+  t('un devis abandonne : numero barre et le mot « abandonné »', !!lis[1] && !!lis[1].querySelector('s') && lis[1].querySelector('s').textContent === 'D-2026-0003'
+    && /abandonné/.test(lis[1].textContent), lis[1] && lis[1].innerHTML);
+  t('chaque devis est un bouton qui le rouvre', lis.every(li => li.querySelector('button[data-aff="devisOuvrir"]')));
+
+  const ecr = F.requetes.filter(r => r.methode !== 'GET').length; stockes.length = 0;
+  const avantOrdre = appels.ordre.length;
   b.click();
   await attendre(20);
-  const texte = mot() ? mot().textContent : '';
-  t('un appui ouvre l\'explication juste sous le bouton', /^Bientôt : tu feras ici le devis, Chez Paul le signera en ligne/.test(texte)
-    && b.nextElementSibling === mot(), texte);
-  t('elle dit le vrai chemin : la commande sera prete pour Vitisoft (pas envoyee)', /la commande sera prête pour Vitisoft\./.test(texte) && !/partira/.test(texte), texte);
-  t('et le geste d\'en attendant', /En attendant, note ton devis dans Notes\.$/.test(texte), texte);
-  t('courte : trois lignes a 390 px (moins de 150 signes avec « Chez Paul »)', texte.length <= 150, texte.length);
-  const dv = defiles.filter(d => d.n === mot()).pop();
-  t('la phrase est ramenee dans la vue, au plus pres, en douceur', !!dv && dv.o && dv.o.block === 'nearest' && dv.o.behavior === 'smooth', JSON.stringify(defiles.map(d => d.o)));
-  t('ni date, ni « en un clic », ni tiret cadratin', !/\d|en un clic|—/.test(texte), texte);
-  t('le bouton decrit par cette ligne (aria-describedby)', b.getAttribute('aria-describedby') === mot().id);
-  t('aucune requete au serveur, ni par le compte ni en direct', F.requetes.length === reqAvant && directs.length === 0,
-    F.requetes.slice(reqAvant).map(r => r.methode + ' ' + r.chemin).concat(directs).join(' ; '));
-  t('aucune ecriture de stockage', stockes.length === 0, stockes.join(' '));
-  t('le panneau reste ouvert, sur la meme affaire', !panneau().hidden && /Chez Paul/.test(panneau().querySelector('#amodTitre').textContent));
+  const o = ouverts[0];
+  t('un appui ouvre le devis : la boite de l\'affaire est RETIREE avant que celle du devis se pose',
+    JSON.stringify(appels.ordre.slice(avantOrdre)) === JSON.stringify(['retirer', 'ouvrir']) && panneau().hidden, JSON.stringify(appels.ordre.slice(avantOrdre)));
+  t('le devis recoit le bureau, l\'affaire, le client, et aucun devis (neuf)', !!o && o.bureau === BUREAU && o.affaire.affaire_id === 'aC'
+    && o.sujet === 'Chez Paul' && o.nouveau === false && o.devis === null, o && JSON.stringify(o));
+  t('rien n\'est ecrit par l\'affaire : le devis enregistre ne donne pas de montant', F.requetes.filter(r => r.methode !== 'GET').length === ecr && stockes.length === 0,
+    F.requetes.filter(r => r.methode !== 'GET').map(r => r.methode + ' ' + r.chemin).join(' ; ') + ' ' + stockes.join(' '));
+  const vus = [];
+  F.w.Element.prototype.scrollIntoView = function (op) { vus.push({ n: this, op }); };
+  o.retour(null);
+  t('« Retour à l’affaire » (devis pas enregistre) : focus sur « Nouveau devis » du panneau rouvert, jamais body',
+    F.doc.activeElement === panneau().querySelector('[data-aff="devis"]'), F.doc.activeElement && F.doc.activeElement.outerHTML.slice(0, 80));
+  await attendre(20);
+  t('« Retour à l’affaire » rouvre son panneau, par BdvTiroir', !panneau().hidden && /Chez Paul/.test(panneau().querySelector('#amodTitre').textContent)
+    && appels.ordre[appels.ordre.length - 1] === 'poser:affaire');
+  F.clic('#affaireModale .tmod__x');
+  F.clic('#affCorps [data-affaire="aC"] [data-aff="ouvrir"]');
+  await attendre(20);
+  panneau().querySelector('[data-aff="devis"]').click();
+  await attendre(20);
+  vus.length = 0;
+  ouverts[ouverts.length - 1].retour('d7');
+  await attendre(30);
+  const ligneD7 = panneau().querySelector('[data-aff="devisOuvrir"][data-devis="d7"]');
+  t('« Retour à l’affaire » apres un devis : SA ligne recoit le focus et est ramenee dans la vue du panneau',
+    !!ligneD7 && F.doc.activeElement === ligneD7 && vus.some(v => v.n.getAttribute && v.n.getAttribute('data-devis') === 'd7'), F.doc.activeElement && F.doc.activeElement.outerHTML.slice(0, 80));
+  const sortie = ouverts[ouverts.length - 1].focusSortie();
+  t('croix, Echap, « Compléter Mon domaine » : la sortie designe un element VIVANT (le bouton de la ligne de l\'affaire)',
+    !!sortie && sortie.isConnected && sortie.getAttribute('data-aff') === 'ouvrir' && !!sortie.closest('[data-affaire="aC"]'));
+  F.base.affaires.find(a => a.affaire_id === 'aC').titre = 'Le rosé';
+  { const S0 = F.w.BdvAffaires._S; const sauve = S0.affaires; S0.affaires = sauve.filter(a => a.affaire_id !== 'aC');
+    F.clic('#affCorps [data-aff="filtre"]');
+    const s2 = ouverts[ouverts.length - 1].focusSortie();
+    t('ligne disparue : la sortie tombe sur le titre de la piece, rendu focalisable', !!s2 && s2.id === 'affTitre' && s2.getAttribute('tabindex') === '-1');
+    S0.affaires = sauve; F.clic('#affCorps [data-aff="filtre"]'); }
+  ouvrirAff = ouvrirAff;
+  panneau().querySelector('[data-aff="devisOuvrir"][data-devis="d7"]').click();
+  await attendre(20);
+  { const o2 = ouverts[ouverts.length - 1];
+    t('rouvrir un devis de la liste : c\'est CE devis qui s\'ouvre', !!o2.devis && o2.devis.devis_id === 'd7' && o2.devis.numero === 'D-2026-0007'); }
 
-  ouvrirAff('aN');
-  t('nouveau client (piste) : « Nouveau devis » aussi, un devis se fait a un prospect', !!devis() && devis().getAttribute('aria-disabled') === 'true');
-  const r2 = F.requetes.length; stockes.length = 0; defiles.length = 0;
-  F.w.matchMedia = (q) => ({ matches: /prefers-reduced-motion: reduce/.test(q), addEventListener() {}, removeEventListener() {} });
+  await ouvrirAff('aN');
+  t('nouveau client (piste) : « Nouveau devis » aussi, un devis se fait a un prospect', !!devis() && !devis().hasAttribute('aria-disabled'));
   devis().click();
   await attendre(20);
-  delete F.w.matchMedia;
-  t('mouvements reduits : ramenee sans animation', defiles.some(d => d.n === mot() && d.o && d.o.block === 'nearest' && d.o.behavior === 'auto'), JSON.stringify(defiles.map(d => d.o)));
-  t('et l\'appui nomme le prospect, sans requete ni stockage', /Cave Neuve le signera/.test(mot().textContent) && F.requetes.length === r2 && stockes.length === 0,
-    mot().textContent + ' / ' + (F.requetes.length - r2) + ' / ' + stockes.join(' '));
+  { const o3 = ouverts[ouverts.length - 1];
+    t('et le devis sait que c\'est un nouveau client', o3.nouveau === true && o3.sujet === 'Cave Neuve' && o3.affaire.affaire_id === 'aN'); }
 
-  /* Une affaire close ne s'ouvre pas dans le panneau par l'ecran : on l'y force, pour
-     que la garde soit tenue meme si un chemin de plus l'y amene un jour. */
+  /* Une affaire close ne s'ouvre pas dans le panneau par l'ecran : on l'y force. */
   F.w.BdvAffaires._S.ouverte = 'aG';
   F.clic('#affCorps [data-aff="filtre"]');
-  t('le panneau d\'une affaire close est bien peint (temoin du controle suivant)', !panneau().hidden && /Le Bistrot/.test(panneau().querySelector('#amodTitre').textContent),
-    panneau().hidden + ' ' + (panneau().querySelector('#amodTitre') || {}).textContent);
-  t('affaire close (gagnée) : pas de « Nouveau devis »', !devis() && !panneau().querySelector('.aff-devis'));
-  /* Et le vrai chemin : conclure l'affaire ouverte. */
-  ouvrirAff('aC');
-  F.clic('#affaireModale [data-aff="gagnee"]');
-  F.clic('#affaireModale [data-aff="confirmerGagnee"]');
-  await attendre(30);
-  t('conclure « Gagnée » : l\'affaire est close et plus aucun « Nouveau devis » ne reste a l\'ecran',
-    F.base.affaires.find(a => a.affaire_id === 'aC').issue === 'gagnee' && !devis(), String(!!devis()));
+  t('le panneau d\'une affaire close est bien peint (temoin du controle suivant)', !panneau().hidden && /Le Bistrot/.test(panneau().querySelector('#amodTitre').textContent));
+  await attendre(20);
+  t('affaire close (gagnée) : pas de « Nouveau devis »', !devis());
+  t('mais la liste de ses devis reste, rouvrable', !!panneau().querySelector('.aff-devis [data-aff="devisOuvrir"][data-devis="dG"]'),
+    (panneau().querySelector('.aff-devis') || {}).innerHTML);
+  panneau().querySelector('[data-aff="devisOuvrir"][data-devis="dG"]').click();
+  await attendre(20);
+  t('et le devis d\'une affaire close s\'ouvre avec son issue (lecture seule cote devis)', ouverts[ouverts.length - 1].devis.devis_id === 'dG'
+    && ouverts[ouverts.length - 1].affaire.issue === 'gagnee');
+  /* Le chemin de l'ecran : « Ses devis » dans les affaires closes. */
+  const sesDevis = F.doc.querySelector('#affCorps [data-affaire="aG"] [data-aff="devisClose"]');
+  { const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const m = css.match(/([^{}]*)\{\s*position:relative;\s*z-index:1;\s*\}/g) || [];
+    t('la liste des devis d\'une ligne close passe AU-DESSUS du calque ::after du nom (lot 44)',
+      m.some(r => /\.bdv-coque \.aff-ligne \.aff-devis__liste/.test(r)) && /\.aff-ligne__qui::after\{[^}]*inset:0/.test(css.replace(/\s+/g, '')));
+    t('dans le panneau, le bloc .aff-devis n\'est dans aucune ligne a calque', !panneau().querySelector('.aff-devis').closest('.aff-ligne')); }
+  t('dans « affaires closes », chaque affaire a « Ses devis »', !!sesDevis && sesDevis.getAttribute('aria-expanded') === 'false');
+  sesDevis.click();
+  await attendre(20);
+  const uc = F.doc.getElementById('affDevisC-aG');
+  t('« Ses devis » deplie la liste de l\'affaire close, lue pour ce bureau', !!uc && !uc.hidden && /D-2026-0004, 99,00\u00a0€ TTC, 20\/09\/2026/.test(uc.textContent)
+    && F.requetes.some(r => r.chemin === '/devis?bureau=eq.' + BUREAU + '&affaire_id=eq.aG&order=cree_le.desc'), uc && uc.textContent);
+  uc.querySelector('[data-aff="devisOuvrir"]').click();
+  await attendre(20);
+  t('et le devis s\'y rouvre', ouverts[ouverts.length - 1].devis.devis_id === 'dG');
   t('aucun onclick, aucun tiret cadratin', !/\sonclick=/.test(panneau().innerHTML) && !/—/.test(panneau().textContent));
-  P.setItem = setI; P.removeItem = rmI;
-
+  P.setItem = setI;
+}
+{
+  /* LE CHARGEUR QUI ECHOUE : le vigneron reste sur son affaire, on le lui dit, et le
+     clic suivant reessaie (la promesse ratee n'est pas retenue). */
+  const G = monter();
+  const appels = { retirer: 0 };
+  G.w.BdvTiroir = { actif: () => true, poser: () => true, retirer: () => { appels.retirer++; } };
+  G.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  G.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  G.base.affaires.push({ bureau: BUREAU, affaire_id: 'aC', type_id: 't1', etape_id: 'e1', client_id: 'C7', client_nom: 'Chez Paul', issue: 'en_cours', rappel: '2099-01-01', etape_le: new Date().toISOString() });
+  const poses = [];
+  const ajout = G.w.Node.prototype.appendChild;
+  G.doc.head.appendChild = function (n) {
+    const r = ajout.call(this, n);
+    poses.push(n.tagName === 'LINK' ? n.getAttribute('href') : n.getAttribute('src'));
+    setTimeout(() => { if (n.tagName === 'LINK') n.onload && n.onload(); else n.onerror && n.onerror(); }, 0);
+    return r;
+  };
+  await G.w.BdvAffaires.ouvrir();
+  G.clic('#affCorps [data-affaire="aC"] [data-aff="ouvrir"]');
+  await attendre(20);
+  const r0 = appels.retirer;
+  G.clic('#affaireModale [data-aff="devis"]');
+  await attendre(30);
+  const mot = G.doc.getElementById('affDevisMot');
+  t('le chargeur pose la feuille du devis puis le calcul, au clic', poses.indexOf('/css/bdv-devis.css') >= 0 && poses.indexOf('/js/bdv-devis-calcul.js', poses.indexOf('/css/bdv-devis.css')) > poses.indexOf('/css/bdv-devis.css'), poses.join(' , '));
+  t('piece introuvable : « Le devis ne s’est pas ouvert... », le panneau reste ouvert',
+    !!mot && mot.textContent === 'Le devis ne s’est pas ouvert : vérifie ta connexion et réessaie.' && !G.doc.getElementById('affaireModale').hidden && appels.retirer === r0, mot && mot.textContent);
+  const n0 = poses.length;
+  G.clic('#affaireModale [data-aff="devis"]');
+  await attendre(30);
+  t('le clic suivant reessaie (la promesse ratee n\'est pas retenue)', poses.length > n0, poses.slice(n0).join(' , '));
+}
+{
+  /* Le dessin : « Commande bientot » de la fiche garde son rendu (style.css pose
+     `pointer-events:none` et une opacite de 0.45 sur tout `[aria-disabled="true"]`). */
   /* Le dessin : sans ce rendu, style.css (`[aria-disabled]` : pointer-events:none,
      opacite 0.45) mangerait l'appui et rendrait le mot illisible dehors. */
   const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');

@@ -1,0 +1,694 @@
+/* ============================================================================
+   scripts/banc-devis.mjs : LE DEVIS, lot 47 (30/09/2026)
+   ============================================================================
+       npm run banc:devis        (lit les SOURCES, pas _site : aucun build requis)
+
+   Ce qu'il garde, et ce que chaque point coute s'il lache :
+   1. LES CALCULS, sur la table de cas partagee avec la RPC
+      (scripts/fixtures/devis-calculs.json, ecrite par un script Python a part) :
+      un centime d'ecart avec Vitisoft, et la facture ne rapproche plus le devis.
+   2. LA PIECE, dans jsdom, avec un FAUX SERVEUR : chaque requete nomme son bureau ;
+      un retour vide n'est JAMAIS « enregistre » ; aucun numero avant l'enregistrement ;
+      un devis abandonne ne se modifie plus ; la provenance du prix est dite, et un
+      prix change a la main part en 'saisi' ; fiche du domaine incomplete = blocage
+      des l'ouverture ; SQL pas encore passe = la phrase dediee ; BdvTiroir pose et
+      retire la boite ; ids uniques, prefixes `dev` ; ni onclick ni tiret cadratin.
+   3. LE PAPIER (`htmlPapier`, pur) : numero, date, validite, conditions de
+      `BdvDomaine.conditions()`, « droits d'accises inclus », penalites et 40 EUR,
+      TVA 20 %, numero de TVA du domaine s'il existe, jamais de numero d'accises.
+   4. LE POIDS : rien dans bdv-nav.js ni dans la page, tout est pose au clic.
+   ============================================================================ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { JSDOM } from 'jsdom';
+
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const lire = (f) => fs.readFileSync(path.join(RACINE, f), 'utf8');
+const SRC_CALC = lire('src/js/bdv-devis-calcul.js');
+const SRC_DEVIS = lire('src/js/bdv-devis.js');
+const SRC_DOMAINE = lire('src/js/bdv-domaine.js');
+const SRC_AFF = lire('src/js/bdv-affaires.js');
+const BUREAU = 'b4700000-0000-0000-0000-000000000047';
+
+let OK = 0, KO = 0;
+const t = (nom, v, detail) => {
+  if (v) { OK++; console.log('  ok    : ' + nom); }
+  else { KO++; console.log('  ECHEC : ' + nom + (detail !== undefined ? '  ->  ' + detail : '')); }
+};
+const titre = s => console.log('\n== ' + s + ' ==');
+/* UNE PROMESSE REJETEE SANS PRISE EST UN ECHEC DIT, pas un banc qui s'arrete muet : c'est
+   exactement ce que ferait un devis qui prend un retour vide pour un succes. */
+process.on('unhandledRejection', (e) => { KO++; console.log('  ECHEC : promesse rejetee sans prise : ' + (e && e.message)); });
+const attendre = (ms) => new Promise(r => setTimeout(r, ms || 0));
+const sansCommentaires = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+
+/* ---------------------------------------------------------------------------- */
+titre('1. Les calculs, sur la table de cas partagee avec la RPC');
+const require = createRequire(import.meta.url);
+const C = require(path.join(RACINE, 'src/js/bdv-devis-calcul.js'));
+const FIX = JSON.parse(lire('scripts/fixtures/devis-calculs.json'));
+const cas = FIX.cas || [];
+t('la table porte au moins 12 cas', cas.length >= 12, cas.length);
+const noms = cas.map(c => c.nom).join(' | ');
+t('elle couvre 0 et 100 %, les demis centimes, remise ligne + globale, 200 lignes, les grands montants',
+  /0 %/.test(noms) && /100 %/.test(noms) && /demi/.test(noms) && /ligne .*globale/.test(noms)
+  && cas.some(c => c.lignes.length === 200) && cas.some(c => c.attendu.total_ht * 2000 > Number.MAX_SAFE_INTEGER), noms);
+t('elle est ecrite par un script Python a part, pas par le code qu\'elle controle',
+  fs.existsSync(path.join(RACINE, 'scripts/fixtures/devis-calculs.py')) && /ROUND_HALF_UP/.test(lire('scripts/fixtures/devis-calculs.py'))
+  && !/bdv-devis-calcul/.test(sansCommentaires(lire('scripts/fixtures/devis-calculs.py')).replace(/^#.*$/gm, '')));
+const ecarts = cas.filter(c => JSON.stringify(C.devis(c.lignes, c.remise_globale_cb, 2000)) !== JSON.stringify(c.attendu));
+t('chaque cas rend EXACTEMENT les centimes attendus (' + cas.length + ' cas)', ecarts.length === 0,
+  ecarts.map(c => c.nom + ' : ' + JSON.stringify(Object.assign({}, C.devis(c.lignes, c.remise_globale_cb), { lignes: undefined }))).join(' ; '));
+t('colonne 23 x quantite = colonne 24, sur toutes les lignes de la table',
+  cas.every(c => C.devis(c.lignes, c.remise_globale_cb).lignes.every((l, i) => l.final === c.lignes[i].qte * l.pu_f)));
+t('la remise globale est la DIFFERENCE total vins - total HT', cas.every(c => { const r = C.devis(c.lignes, c.remise_globale_cb); return r.remise_globale === r.total_vins - r.total_ht; }));
+t('arrondi demi vers le haut, en entier : 1005 a 50 % = 503, 999 a 50 % = 500, 1 a 75 % = 0',
+  C.mulDiv(1005, 5000, 10000) === 503 && C.mulDiv(999, 5000, 10000) === 500 && C.mulDiv(1, 2500, 10000) === 0);
+t('au-dela de 2^53 le calcul reste exact (BigInt), il ne perd pas un centime',
+  C.mulDiv(1799788206917650, 2000, 10000) === 359957641383530 && C.mulDiv(9007199254740991, 9999, 10000) === 9006298534815517);
+const src = sansCommentaires(SRC_CALC);
+t('aucun flottant dans un montant : ni parseFloat, ni toFixed, ni Math.round', !/parseFloat|toFixed|Math\.round/.test(src));
+t('centimes("8,50") = 850, "8,5" = 850, "8" = 800, "1 234,56" = 123456',
+  C.centimes('8,50') === 850 && C.centimes('8,5') === 850 && C.centimes('8') === 800 && C.centimes('1 234,56') === 123456);
+t('centimes : plus de 2 decimales, texte, signe -> null (jamais d\'arrondi silencieux)',
+  C.centimes('8,505') === null && C.centimes('abc') === null && C.centimes('-1') === null && C.centimes('') === null && C.centimes('8,5,0') === null);
+t('remiseCb("12,5") = 1250, "100" = 10000, "0,01" = 1, "12,345" = null',
+  C.remiseCb('12,5') === 1250 && C.remiseCb('100') === 10000 && C.remiseCb('0,01') === 1 && C.remiseCb('12,345') === null);
+t('euros(123456) = « 1 234,56 € », espace fine insecable et insecable avant €',
+  C.euros(123456) === '1 234,56 €' && C.euros(5) === '0,05 €' && C.euros(123456789) === '1 234 567,89 €', JSON.stringify(C.euros(123456)));
+t('pourcent : 500 -> 5, 1250 -> 12,5, 1205 -> 12,05', C.pourcent(500) === '5' && C.pourcent(1250) === '12,5' && C.pourcent(1205) === '12,05');
+t('le module est UMD : module.exports ET window.BdvDevisCalcul', /module\.exports\s*=\s*api/.test(src) && /racine\.BdvDevisCalcul\s*=\s*api/.test(src));
+
+/* ----------------------------------------------------------------------------
+   LE HARNAIS : la piece dans jsdom, le vrai bdv-domaine.js, un faux serveur.
+   ---------------------------------------------------------------------------- */
+const FICHE = { bureau: BUREAU, raison_sociale: 'EARL DOMAINE DES ESSAIS', forme_juridique: 'EARL', siret: '12345678900017',
+  siren: '123456789', tva: 'FR32123456789', adresse: '3 rue des Vignes', code_postal: '44190', ville: 'Clisson',
+  email: 'contact@essais.fr', telephone: '02 40 00 00 00', paiement_mode: 'fdm', paiement_jours: 30, validite_jours: 30 };
+function props(n, source) {
+  const l = [];
+  for (let i = 0; i < n; i++) l.push({ num_produit: 'P' + (100 + i), designation: 'Cuvée ' + String.fromCharCode(65 + i), conditionnement: '75 cl',
+    millesime: String(2015 + i), pu_ht_c: 850 + i * 100, derniere_qte: source === 'client' ? (i === 0 ? 12 : null) : null,
+    derniere_vente: '2026-03-' + String(12 - (i % 10)).padStart(2, '0'), nb_ventes: 20 - i, source });
+  return l;
+}
+const DOMAINE_ENTIER = [{ num_produit: 'P900', designation: 'Crémant de Loire', conditionnement: '75 cl', millesime: null,
+  pu_ht_c: 1190, derniere_qte: null, derniere_vente: '2026-06-01', nb_ventes: 9, source: 'bureau' }];
+
+function monter(o) {
+  o = o || {};
+  const dom = new JSDOM('<!doctype html><html><head></head><body class="bdv-coque bdv-poste"><p id="avant">liste</p><button id="depart">Nouveau devis</button></body></html>',
+    { runScripts: 'outside-only', url: 'https://lebureauduvigneron.fr/mon-bureau/#affaires', pretendToBeVisual: true });
+  const w = dom.window;
+  const X = { w, doc: w.document, requetes: [], devis: [], lignes: {}, tiroir: { poser: [], retirer: 0 }, reglages: [], mode: o.mode || 'ok', domaine: o.domaine || 'ok',
+    fiche: o.fiche === undefined ? Object.assign({}, FICHE) : o.fiche, props: o.props || props(10, 'client'), n: 0 };
+  w.BdvTiroir = { actif: () => !!o.tiroir, poser: (b) => { X.tiroir.poser.push(b); return !!o.tiroir; }, retirer: () => { X.tiroir.retirer++; } };
+  w.BdvNav = { ouvrirReglages: (onglet) => X.reglages.push(onglet) };
+  w.Element.prototype.scrollIntoView = function () {};
+  const refus = (status, detail) => { const e = new Error('Supabase a refuse (' + status + ')'); e.status = status; e.detail = detail; return e; };
+  w.BdvCompte = {
+    monBureau: () => BUREAU,
+    api: async (chemin, op) => {
+      op = op || {};
+      X.requetes.push({ chemin, methode: op.methode || 'GET', corps: op.corps === undefined ? undefined : JSON.parse(JSON.stringify(op.corps)) });
+      await attendre(0);
+      if (/^\/domaine\?/.test(chemin)) {
+        if (X.domaine === 'panne') throw new TypeError('Failed to fetch');
+        if (X.domaine === 'sql') throw refus(404, '{"code":"PGRST205","message":"Could not find the table public.domaine"}');
+        return X.fiche ? [Object.assign({}, X.fiche)] : [];
+      }
+      if (chemin === '/rpc/devis_propositions') {
+        if (X.mode === 'sql-ouverture') throw refus(404, '{"code":"PGRST202","message":"Could not find the function"}');
+        if (X.mode === 'panne-ouverture') return null;
+        return op.corps.p_tout_le_domaine ? DOMAINE_ENTIER.map(x => ({ ...x })) : X.props.map(x => ({ ...x }));
+      }
+      if (/^\/devis_lignes\?/.test(chemin)) {
+        const id = new URLSearchParams(chemin.split('?')[1]).get('devis_id').slice(3);
+        return (X.lignes[id] || []).map(x => ({ ...x }));
+      }
+      if (chemin === '/rpc/devis_enregistrer') {
+        if (X.mode === 'null') return null;
+        if (X.mode === 'sans-numero') return {};
+        if (X.mode === 'sql') throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_enregistrer"}');
+        if (X.mode === 'panne') throw new TypeError('Failed to fetch');
+        if (X.mode === 'refus') throw refus(400, '{"code":"23514","message":"un devis porte de 1 a 200 lignes"}');
+        if (X.mode === 'incomplete') throw refus(400, '{"code":"23514","message":"fiche du domaine incomplete"}');
+        const c = op.corps;
+        if (c.p_bureau !== BUREAU) throw refus(403, '{"code":"42501"}');
+        const g = c.p_remise_globale_cb || 0;
+        const r = C.devis(c.p_lignes.map(l => ({ pu_c: l.pu_ht_c, qte: l.quantite, remise_cb: l.remise_cb })), g);
+        let d = c.p_devis ? X.devis.find(x => x.devis_id === c.p_devis) : null;
+        if (c.p_devis && (!d || d.statut !== 'enregistre')) throw refus(400, '{"code":"23514","message":"devis fige : il ne se modifie plus"}');
+        if (!d) {
+          X.n++;
+          d = { bureau: BUREAU, devis_id: 'dv' + X.n, affaire_id: c.p_affaire, numero: 'D-2026-' + String(X.n).padStart(4, '0'), statut: 'enregistre',
+            date_devis: '2026-09-30', valable_jusqu: '2026-10-30', cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-09-30T08:00:00+00:00' };
+          X.devis.push(d);
+        } else d.maj_le = '2026-09-30T09:15:00+00:00';
+        Object.assign(d, { vendeur: Object.assign({}, X.fiche), acheteur: { nom: 'Chez Paul', nouveau: false, code_postal: '44000', ville: 'Nantes', num_client: 'C7' },
+          paiement_mode: X.fiche.paiement_mode, paiement_jours: X.fiche.paiement_jours, validite_jours: X.fiche.validite_jours,
+          remise_globale_cb: g, tva_cb: 2000, total_vins_c: r.total_vins, remise_globale_c: r.remise_globale, total_ht_c: r.total_ht,
+          tva_c: r.tva, total_ttc_c: r.ttc, notes: c.p_notes, abandonne_le: null });
+        X.lignes[d.devis_id] = c.p_lignes.map((l, i) => Object.assign({ rang: i + 1 }, l,
+          { pu_l_c: r.lignes[i].pu_l, pu_f_c: r.lignes[i].pu_f, net_c: r.lignes[i].net, final_c: r.lignes[i].final }));
+        return { ...d };
+      }
+      if (chemin === '/rpc/devis_abandonner') {
+        if (X.mode === 'null') return null;
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        if (!d) throw refus(404, '{"code":"P0002"}');
+        d.statut = 'abandonne'; d.abandonne_le = '2026-09-30T10:00:00+00:00';
+        return { ...d };
+      }
+      throw refus(404, 'route inconnue du faux serveur : ' + chemin);
+    }
+  };
+  w.eval(SRC_DOMAINE);
+  w.eval(SRC_CALC);
+  w.eval(SRC_DEVIS);
+  X.ctx = Object.assign({ bureau: BUREAU, affaire: { affaire_id: 'aC', issue: 'en_cours' }, sujet: 'Chez Paul', nouveau: false, devis: null,
+    retour: (id) => { X.retours = (X.retours || 0) + 1; X.retourId = id; },
+    focusSortie: () => w.document.getElementById('depart'), change: (d) => { X.changes = (X.changes || []).concat([d]); } }, o.ctx || {});
+  X.modale = () => w.document.getElementById('devisModale');
+  X.corps = () => w.document.getElementById('devCorps');
+  X.avis = () => (w.document.getElementById('devAvis') || {}).textContent || '';
+  X.clic = (sel) => { const n = X.modale().querySelector(sel); if (!n) throw new Error('introuvable : ' + sel); n.click(); };
+  X.cocher = (cle, oui) => { const n = X.modale().querySelector('[data-dev-coche="' + cle + '"]'); if (!n) throw new Error('case introuvable : ' + cle);
+    n.checked = oui !== false; n.dispatchEvent(new w.Event('change', { bubbles: true })); };
+  X.taper = (n, v) => { n.value = v; n.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  X.champ = (cle, nom) => X.modale().querySelector('.dmod__ligne[data-cle="' + cle + '"] [data-dev-champ="' + nom + '"]');
+  X.ouvrir = async (ctx) => { const p = w.BdvDevis.ouvrir(Object.assign({}, X.ctx, ctx || {})); await p; await attendre(5); };
+  X.enregistrer = async () => { X.clic('[data-dev="enregistrer"]'); await attendre(10); };
+  return X;
+}
+const CLE0 = 'P100|Cuvée A|75 cl|2015', CLE1 = 'P101|Cuvée B|75 cl|2016';
+
+/* ---------------------------------------------------------------------------- */
+titre('2. La piece : un devis neuf chez un client');
+{
+  const X = monter();
+  await X.ouvrir();
+  const m = X.modale();
+  t('la boite #devisModale existe, en `tmod dmod`', !!m && m.className === 'tmod dmod' && !m.hidden);
+  t('elle passe par BdvTiroir.poser, avec la BOITE', X.tiroir.poser.length === 1 && X.tiroir.poser[0].classList.contains('tmod__boite') && m.contains(X.tiroir.poser[0]));
+  t('la boite porte role="dialog" et un titre', m.querySelector('.tmod__boite').getAttribute('role') === 'dialog' && X.doc.getElementById('devTitre').textContent === 'Devis pour Chez Paul');
+  t('le nom n\'est dit qu\'une fois en tete : ni « Pour Chez Paul » sous le titre, ni en gras dans « Pour qui »',
+    !/Pour Chez Paul/.test(m.querySelector('.tmod__sous').textContent) && m.querySelectorAll('.dmod__qui b, .dmod__qui strong').length === 0
+    && /\.dmod__qui\{[^}]*font-weight:400/.test(lire('src/css/bdv-devis.css').replace(/\s+/g, '')));
+  t('« Retour à l’affaire » en haut, et il recoit le focus', !!X.doc.getElementById('devRetour') && X.doc.activeElement === X.doc.getElementById('devRetour')
+    && m.querySelector('.tmod__boite').firstElementChild.nextElementSibling === X.doc.getElementById('devRetourL'));
+  t('AUCUN numero avant l\'enregistrement', !/D-\d{4}-\d+/.test(m.textContent), m.textContent.match(/D-\d{4}-\d+/));
+  const h3 = [...m.querySelectorAll('.dmod__bloc > h3')].map(h => h.textContent);
+  t('les blocs dans l\'ordre : Pour qui, Tes vins, Remise sur tout le devis, Total, Conditions, Notes',
+    JSON.stringify(h3) === JSON.stringify(['Pour qui', 'Tes vins', 'Remise sur tout le devis', 'Total', 'Conditions', 'Notes']), JSON.stringify(h3));
+  const pied = m.querySelector('.dmod__pied');
+  t('« Enregistrer le devis » vit dans le pied, avec le total TTC, et le pied est le dernier bloc',
+    !!pied && /Enregistrer le devis/.test(pied.textContent) && /Total TTC/.test(pied.textContent) && X.corps().lastElementChild === pied);
+  t('la liste du client : « Ce qu’il t’a déjà pris »', /Ce qu’il t’a déjà pris/.test(X.corps().textContent));
+  t('8 lignes proposees, puis « Voir les 2 autres »', m.querySelectorAll('.dmod__prop').length === 8 && /Voir les 2 autres/.test(X.corps().textContent),
+    m.querySelectorAll('.dmod__prop').length);
+  t('du plus recent au plus ancien', m.querySelector('.dmod__prop').textContent.indexOf('Cuvée A') >= 0 && /12\/03\/2026/.test(m.querySelector('.dmod__prop').textContent));
+  X.clic('[data-dev="voirTout"]');
+  t('« Voir les 2 autres » montre les 10', m.querySelectorAll('.dmod__prop').length === 10);
+  const reqP = X.requetes.filter(r => r.chemin === '/rpc/devis_propositions');
+  t('les propositions demandees pour CE bureau et CETTE affaire', reqP.length === 1 && reqP[0].corps.p_bureau === BUREAU && reqP[0].corps.p_affaire === 'aC' && reqP[0].corps.p_tout_le_domaine === false,
+    JSON.stringify(reqP.map(r => r.corps)));
+  t('les conditions sont celles de Mon domaine, avec « Changer dans Mon domaine »',
+    /Paiement à 30 jours fin de mois\. Devis valable 30 jours\./.test(X.corps().textContent) && !!m.querySelector('[data-dev="domaine"]'));
+
+  titre('2 bis. Les erreurs, dans les mots du vigneron');
+  const avantE = X.requetes.length;
+  await X.enregistrer();
+  t('rien de coche : « Coche au moins un vin. », et rien ne part', X.avis() === 'Coche au moins un vin.' && X.requetes.length === avantE, X.avis());
+  X.cocher(CLE0);
+  X.cocher(CLE1);
+  t('une case cochee devient une ligne, dans l\'ordre des coches', [...m.querySelectorAll('.dmod__ligne')].map(l => l.getAttribute('data-cle')).join(',') === CLE0 + ',' + CLE1);
+  t('quantite par defaut : la derniere du client (12)', X.champ(CLE0, 'qte').value === '12', X.champ(CLE0, 'qte').value);
+  t('sinon 6, jamais 0', X.champ(CLE1, 'qte').value === '6', X.champ(CLE1, 'qte').value);
+  t('le prix propose est son dernier prix, au centime', X.champ(CLE0, 'prix').value === '8,50');
+  const src0 = () => m.querySelector('.dmod__ligne[data-cle="' + CLE0 + '"] .dmod__src').textContent;
+  t('la provenance est dite sous le prix : « Son dernier prix, le 12/03/2026 »', src0() === 'Son dernier prix, le 12/03/2026', src0());
+  t('le prix porte sa provenance (aria-describedby)', (X.doc.getElementById(X.champ(CLE0, 'prix').getAttribute('aria-describedby')) || {}).textContent === src0());
+  { const ids = [...X.doc.querySelectorAll('[id]')].map(n => n.id);
+    t('deux lignes ouvertes : ids toujours uniques dans la page', new Set(ids).size === ids.length, ids.filter((x, i) => ids.indexOf(x) !== i).join(','));
+    t('et tous prefixes « dev » dans la boite', [...m.querySelectorAll('[id]')].every(n => /^dev/.test(n.id)), [...m.querySelectorAll('[id]')].map(n => n.id).filter(i => !/^dev/.test(i)).join(',')); }
+  const lt0 = () => m.querySelector('.dmod__ligne[data-cle="' + CLE0 + '"] [data-dev-lt]').textContent;
+  t('le total de la ligne est affiche : 12 x 8,50 = 102,00 €', lt0() === '102,00 €', lt0());
+  X.taper(X.champ(CLE1, 'qte'), '0');
+  await X.enregistrer();
+  t('quantite 0 : « Indique la quantité pour Cuvée B 2016, 75 cl. », et le curseur y va',
+    X.avis() === 'Indique la quantité pour Cuvée B 2016, 75 cl.' && X.doc.activeElement === X.champ(CLE1, 'qte') && X.requetes.length === avantE + 0 + X.requetes.filter((r, i) => i >= avantE && r.chemin !== '/rpc/devis_enregistrer').length, X.avis());
+  X.taper(X.champ(CLE1, 'qte'), '2,5');
+  await X.enregistrer();
+  { const q = X.champ(CLE1, 'qte'), err = q.nextElementSibling;
+    t('l\'erreur est ECRITE SOUS LE CHAMP fautif, pas seulement en haut de la boite', !!err && err.classList.contains('dmod__err')
+      && err.textContent === 'Indique la quantité pour Cuvée B 2016, 75 cl.' && err.closest('.aff-champ') === q.closest('.aff-champ'));
+    t('le champ est marque aria-invalid et decrit par cette ligne', q.getAttribute('aria-invalid') === 'true'
+      && (q.getAttribute('aria-describedby') || '').split(' ').indexOf(err.id) >= 0 && /^devErr/.test(err.id)); }
+  X.taper(X.champ(CLE1, 'qte'), '2,5');
+  t('saisie invalide : le total de la ligne dit « à corriger », jamais un montant qui ignore la valeur',
+    m.querySelector('.dmod__ligne[data-cle="' + CLE1 + '"] [data-dev-lt]').textContent === 'à corriger');
+  t('et le pied collant aussi, et le bloc Total', X.doc.getElementById('devPiedTtc').textContent === 'à corriger'
+    && /Total TTCà corriger/.test(X.doc.getElementById('devTotal').textContent) && !/\d,\d\d\u00a0€/.test(X.doc.getElementById('devTotal').textContent));
+  t('corriger le champ efface son erreur', !X.champ(CLE1, 'qte').hasAttribute('aria-invalid') && !m.querySelector('.dmod__err'));
+  await X.enregistrer();
+  t('quantite decimale : refusee de meme', /^Indique la quantité pour Cuvée B/.test(X.avis()));
+  X.taper(X.champ(CLE1, 'qte'), '6');
+  X.taper(X.champ(CLE1, 'prix'), 'abc');
+  await X.enregistrer();
+  t('prix illisible : « Indique un prix pour Cuvée B 2016, 75 cl. »', X.avis() === 'Indique un prix pour Cuvée B 2016, 75 cl.', X.avis());
+  t('une seule ligne d\'erreur a la fois', m.querySelectorAll('.dmod__err').length === 1);
+  X.taper(X.champ(CLE1, 'prix'), '9,555');
+  await X.enregistrer();
+  t('prix a trois decimales : refuse, jamais arrondi', /^Indique un prix pour Cuvée B/.test(X.avis()));
+  X.taper(X.champ(CLE1, 'prix'), '9,00');
+  t('prix change : « Prix changé à la main »', m.querySelector('.dmod__ligne[data-cle="' + CLE1 + '"] .dmod__src').textContent === 'Prix changé à la main');
+  X.taper(X.champ(CLE1, 'remise'), '120');
+  await X.enregistrer();
+  t('remise de ligne a 120 : « Une remise va de 0 à 100 %. »', X.avis() === 'Une remise va de 0 à 100 %.', X.avis());
+  X.taper(X.champ(CLE1, 'remise'), '10');
+  X.taper(X.doc.getElementById('devRemise'), '150');
+  t('remise globale hors borne pendant la frappe : « à corriger », pas un total sans remise', X.doc.getElementById('devPiedTtc').textContent === 'à corriger');
+  X.taper(X.doc.getElementById('devRemise'), '-5');
+  await X.enregistrer();
+  t('remise globale negative : meme phrase', X.avis() === 'Une remise va de 0 à 100 %.', X.avis());
+  t('aucun enregistrement n\'est parti pendant ces refus', !X.requetes.some(r => r.chemin === '/rpc/devis_enregistrer'));
+  X.taper(X.doc.getElementById('devRemise'), '5');
+  const tot = X.doc.getElementById('devTotal').textContent;
+  t('le total dit « Remise sur tout le devis 5 % : -... », et dessous, en petit, comment elle s\'applique',
+    /Remise sur tout le devis 5 % :-7,44/.test(tot) && X.doc.querySelector('#devTotal .dmod__tl-x').textContent === 'Appliquée à chaque prix unitaire, arrondie au centime.', tot);
+  t('prix net (apres remise de ligne) sous le total d\'une ligne remisee : 9,00 a 10 % = 8,10, x 6 = 48,60',
+    m.querySelector('.dmod__ligne[data-cle="' + CLE1 + '"] [data-dev-net]').textContent === 'Prix net 8,10\u00a0€'
+    && m.querySelector('.dmod__ligne[data-cle="' + CLE1 + '"] [data-dev-lt]').textContent === '48,60\u00a0€'
+    && m.querySelector('.dmod__ligne[data-cle="' + CLE0 + '"] [data-dev-net]').textContent === '');
+  t('et, remise de ligne ET globale : « Les deux remises s’ajoutent... »', /Les deux remises s’ajoutent : la remise sur tout le devis s’applique après celles des lignes\./.test(tot));
+  t('l\'ordre du total : vins HT, remise, HT, TVA 20 %, TTC', /Total des vins HT.*Remise sur tout le devis.*Total HT.*TVA 20 %.*Total TTC/.test(tot));
+  t('« Prix HT, droits d’accises inclus. » est ecrit', /Prix HT, droits d’accises inclus\./.test(tot));
+  /* 12 x 8,50 = 102,00 ; 6 x 9,00 a 10 % = 6 x 8,10 = 48,60 ; vins 150,60. Globale 5 % :
+     8,50 -> 8,08 (x12 = 96,96) ; 8,10 -> 7,70 (x6 = 46,20) ; HT 143,16 ; TVA 28,63 ; TTC 171,79. */
+  t('les montants suivent la regle : HT 143,16 €, TTC 171,79 € (colle en bas)', /Total HT143,16 €/.test(tot) && X.doc.getElementById('devPiedTtc').textContent === '171,79 €', tot + ' / ' + X.doc.getElementById('devPiedTtc').textContent);
+  t('le brouillon est garde sur l\'appareil, sous bdv_devis_brouillon_<affaire>', !!X.w.localStorage.getItem('bdv_devis_brouillon_aC'));
+
+  titre('2 ter. Un retour vide n\'est jamais « enregistre »');
+  for (const [mode, phrase] of [['null', 'Le devis n’est pas enregistré. Réessaie dans un instant. Tes lignes sont gardées.'],
+                                ['sans-numero', 'Le devis n’est pas enregistré. Réessaie dans un instant. Tes lignes sont gardées.'],
+                                ['panne', 'Le devis n’est pas enregistré, ta connexion a coupé. Tes lignes sont gardées.'],
+                                ['sql', 'Le devis n’est pas encore disponible sur ton compte.']]) {
+    X.mode = mode;
+    await X.enregistrer();
+    t('retour « ' + mode + ' » : « ' + phrase + ' »', X.avis() === phrase && !/enregistré\.$/.test(X.avis()) && !/D-\d{4}/.test(m.textContent), X.avis());
+  }
+  t('et les lignes sont toujours la, le brouillon aussi', m.querySelectorAll('.dmod__ligne').length === 2 && !!X.w.localStorage.getItem('bdv_devis_brouillon_aC'));
+
+  titre('2 quater. Enregistrer');
+  X.mode = 'ok';
+  X.taper(X.doc.getElementById('devNotes'), 'Livraison en octobre.');
+  await X.enregistrer();
+  const env = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('« Devis D-2026-0001 enregistré. »', X.avis() === 'Devis D-2026-0001 enregistré.', X.avis());
+  t('le numero vient du serveur et s\'affiche dans le titre', /Devis D-2026-0001/.test(X.doc.getElementById('devTitre').textContent));
+  t('le corps nomme le bureau, l\'affaire, et p_devis vide pour un neuf', env.p_bureau === BUREAU && env.p_affaire === 'aC' && env.p_devis === null);
+  t('quantites, prix et remises partent en ENTIERS (centimes, centiemes de %)',
+    env.p_lignes.every(l => Number.isInteger(l.quantite) && Number.isInteger(l.pu_ht_c) && Number.isInteger(l.remise_cb)) && env.p_remise_globale_cb === 500
+    && env.p_lignes[0].pu_ht_c === 850 && env.p_lignes[1].pu_ht_c === 900 && env.p_lignes[1].remise_cb === 1000, JSON.stringify(env.p_lignes));
+  t('provenance : le prix du client part en « client », le prix change en « saisi »',
+    env.p_lignes[0].source_prix === 'client' && env.p_lignes[1].source_prix === 'saisi', env.p_lignes.map(l => l.source_prix).join(','));
+  t('la designation, le millesime et le conditionnement partent separes', env.p_lignes[0].designation === 'Cuvée A' && env.p_lignes[0].millesime === '2015' && env.p_lignes[0].conditionnement === '75 cl' && env.p_lignes[0].num_produit === 'P100');
+  t('le brouillon est efface apres l\'enregistrement', X.w.localStorage.getItem('bdv_devis_brouillon_aC') === null);
+  t('l\'affaire est prevenue (sa liste de devis se relira)', (X.changes || []).length === 1);
+  t('« Voir et imprimer » et « Abandonner ce devis » apparaissent', !!m.querySelector('[data-dev="apercu"]') && !!m.querySelector('[data-dev="abandonner"]'));
+  X.taper(X.champ(CLE0, 'qte'), '24');
+  await X.enregistrer();
+  const env2 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('modifier : le meme devis (p_devis), le meme numero', env2.p_devis === 'dv1' && /D-2026-0001/.test(X.avis()) && X.devis.length === 1, X.avis());
+  t('« Modifié le 30/09/2026 » sous le titre', /Modifié le 30\/09\/2026/.test(X.modale().querySelector('.tmod__sous').textContent));
+  t('un devis ENREGISTRE ne touche jamais a l\'affaire (aucune requete sur affaires)', !X.requetes.some(r => /^\/affaires/.test(r.chemin)));
+
+  titre('2 quinquies. Abandonner');
+  const nAb = X.requetes.filter(r => r.chemin === '/rpc/devis_abandonner').length;
+  X.clic('[data-dev="abandonner"]');
+  t('« Abandonner ce devis » demande confirmation, rien ne part', !X.doc.getElementById('devConfirme').hidden && X.requetes.filter(r => r.chemin === '/rpc/devis_abandonner').length === nAb);
+  X.clic('[data-dev="confirmerAbandon"]');
+  await attendre(10);
+  const ab = X.requetes.filter(r => r.chemin === '/rpc/devis_abandonner').pop();
+  t('la confirmation abandonne, pour ce bureau', !!ab && ab.corps.p_bureau === BUREAU && ab.corps.p_devis === 'dv1');
+  t('le numero est garde, barre, et le mot « abandonné » est ecrit', !!X.doc.querySelector('#devTitre s') && X.doc.querySelector('#devTitre s').textContent === 'D-2026-0001' && /abandonné/.test(X.doc.getElementById('devTitre').textContent));
+  t('LECTURE SEULE : aucun champ, aucune case, aucun « Enregistrer »', X.corps().querySelectorAll('input, textarea, select').length === 0 && !m.querySelector('[data-dev="enregistrer"]') && !m.querySelector('[data-dev="abandonner"]'));
+  t('et les lignes restent lisibles', /Cuvée A 2015, 75 cl/.test(X.corps().textContent) && /24 x 8,50/.test(X.corps().textContent), X.corps().textContent.slice(0, 200));
+
+  titre('2 sexies. Retour, Echap, et les regles du depot');
+  const ids = [...X.doc.querySelectorAll('[id]')].map(n => n.id);
+  t('ids uniques dans la page', new Set(ids).size === ids.length, ids.filter((x, i) => ids.indexOf(x) !== i).join(','));
+  t('tous les ids de la boite commencent par « dev »', [...m.querySelectorAll('[id]')].concat([m]).every(n => /^dev/.test(n.id)));
+  t('aucun onclick, aucun tiret cadratin', !/\sonclick=/i.test(m.innerHTML) && !/—/.test(m.textContent));
+  const rAv = X.tiroir.retirer;
+  X.clic('[data-dev="retour"]');
+  t('« Retour à l’affaire » retire la boite par BdvTiroir et rend la main a l\'affaire', m.hidden && X.tiroir.retirer === rAv + 1 && X.retours === 1);
+  const toutes = X.requetes.filter(r => r.methode === 'GET');
+  t('chaque lecture nomme le bureau', toutes.length > 0 && toutes.every(r => r.chemin.indexOf('bureau=eq.' + BUREAU) >= 0), toutes.map(r => r.chemin).join(' ; '));
+  const rpcs = X.requetes.filter(r => /^\/rpc\//.test(r.chemin));
+  t('chaque fonction appelee nomme le bureau', rpcs.length > 0 && rpcs.every(r => r.corps && r.corps.p_bureau === BUREAU));
+  await X.ouvrir({ devis: { ...X.devis[0] } });
+  t('un devis abandonne se rouvre en lecture seule, sans demander de propositions',
+    X.corps().querySelectorAll('input, textarea').length === 0 && X.requetes.filter(r => r.chemin === '/rpc/devis_propositions').length === 1);
+  X.doc.dispatchEvent(new X.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  t('Echap ferme la boite et retire le tiroir', X.modale().hidden && X.tiroir.retirer === rAv + 2);
+  const lignesLues = X.requetes.filter(r => /^\/devis_lignes/.test(r.chemin));
+  t('les lignes d\'un devis rouvert sont lues pour CE bureau et CE devis', lignesLues.length >= 2
+    && lignesLues.every(r => r.chemin === '/devis_lignes?bureau=eq.' + BUREAU + '&devis_id=eq.dv1&order=rang'), lignesLues.map(r => r.chemin).join(' ; '));
+}
+
+/* ---------------------------------------------------------------------------- */
+titre('3. Ce qui bloque, ce qui manque');
+{
+  const X = monter({ fiche: Object.assign({}, FICHE, { siret: null, adresse: '' }) });
+  await X.ouvrir();
+  t('fiche du domaine incomplete : bloque DES L\'OUVERTURE, et dit ce qui manque',
+    /Il manque des infos sur ton domaine pour faire un devis : le SIRET et l’adresse\./.test(X.corps().textContent), X.corps().textContent);
+  t('aucune proposition demandee, aucun champ a remplir', !X.requetes.some(r => /devis_/.test(r.chemin)) && !X.corps().querySelector('input'));
+  /* Les reglages, tels qu'ils s'ouvrent : l'onglet « Toi » cache, « Mon domaine » visible. */
+  X.doc.body.insertAdjacentHTML('beforeend', '<div id="bdvrVoile"><fieldset id="bdvrBlocToi" hidden><input id="bdvrPrenom"></fieldset>'
+    + '<fieldset id="bdvrBlocDomaine"><input type="hidden" id="devCache"><input id="bdvdQ"><input id="bdvdRaison"></fieldset></div>');
+  X.clic('[data-dev="domaine"]');
+  t('« Compléter Mon domaine » : le focus va dans le premier champ de l\'onglet Mon domaine', X.doc.activeElement === X.doc.getElementById('bdvdQ'),
+    X.doc.activeElement && (X.doc.activeElement.id || X.doc.activeElement.tagName));
+  t('« Compléter Mon domaine » ferme le devis et ouvre l\'onglet Mon domaine des reglages',
+    /Compléter Mon domaine/.test(X.modale().textContent) && X.modale().hidden && X.reglages[0] === 'bdvrBlocDomaine', JSON.stringify(X.reglages));
+  const Y = monter({ fiche: null });
+  await Y.ouvrir();
+  t('pas de fiche du tout : les cinq champs sont nommes',
+    /la raison sociale, le SIRET, l’adresse, le code postal et la ville\./.test(Y.corps().textContent), Y.corps().textContent);
+}
+{
+  const X = monter({ mode: 'sql-ouverture' });
+  await X.ouvrir();
+  t('SQL pas encore passe (404 / PGRST202) : « Le devis n’est pas encore disponible sur ton compte. »',
+    X.corps().textContent === 'Le devis n’est pas encore disponible sur ton compte.', X.corps().textContent);
+  const Y = monter({ mode: 'panne-ouverture' });
+  await Y.ouvrir();
+  t('propositions illisibles (retour vide) : la panne est dite, avec « Réessayer »', /ta connexion a coupé/.test(Y.corps().textContent) && !!Y.modale().querySelector('[data-dev="relire"]'));
+}
+{
+  const X = monter({ props: props(3, 'bureau'), ctx: { nouveau: true, sujet: 'Cave Neuve', affaire: { affaire_id: 'aN', issue: 'en_cours' } } });
+  await X.ouvrir();
+  t('nouveau client : « Nouveau client, pas encore dans Vitisoft »', /Nouveau client, pas encore dans Vitisoft/.test(X.corps().textContent));
+  t('et « Tes vins vendus ces 12 derniers mois »', /Tes vins vendus ces 12 derniers mois/.test(X.corps().textContent));
+  X.cocher(CLE0);
+  t('la provenance : « Ton prix le plus courant », quantite 6',
+    X.modale().querySelector('.dmod__src').textContent === 'Ton prix le plus courant' && X.champ(CLE0, 'qte').value === '6');
+  await X.enregistrer();
+  t('et ce prix part en « bureau »', X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps.p_lignes[0].source_prix === 'bureau');
+}
+{
+  const X = monter({ props: [] });
+  await X.ouvrir();
+  t('aucune vente : « Tu n’as encore rien vendu sur 12 mois. »', /Tu n’as encore rien vendu sur 12 mois\./.test(X.corps().textContent));
+}
+{
+  const X = monter();
+  await X.ouvrir();
+  X.taper(X.doc.getElementById('devCherche'), 'cuvee 2017');
+  t('« Chercher un vin » filtre la liste proposee', X.modale().querySelectorAll('.dmod__prop').length === 1 && /Cuvée C/.test(X.doc.getElementById('devProps').textContent));
+  X.taper(X.doc.getElementById('devCherche'), 'cremant');
+  await attendre(10);
+  const dem = X.requetes.filter(r => r.chemin === '/rpc/devis_propositions' && r.corps.p_tout_le_domaine === true);
+  t('absent de la liste du client : on cherche dans les ventes du domaine, une fois', dem.length === 1 && /Dans les ventes de ton domaine/.test(X.doc.getElementById('devProps').textContent)
+    && /Crémant de Loire/.test(X.doc.getElementById('devProps').textContent), X.doc.getElementById('devProps').textContent);
+  X.cocher('P900|Crémant de Loire|75 cl|');
+  t('coche depuis le domaine : « Ton prix le plus courant »', X.modale().querySelector('.dmod__ligne .dmod__src').textContent === 'Ton prix le plus courant');
+  t('et la liste ne dit pas « Aucun vin ne correspond » pour un vin qu\'on vient de cocher',
+    !/Aucun vin ne correspond/.test(X.doc.getElementById('devProps').textContent) && /déjà coché/.test(X.doc.getElementById('devProps').textContent), X.doc.getElementById('devProps').textContent);
+  t('le champ de recherche garde le focus pendant la frappe (la liste se repeint, pas le champ)', X.doc.getElementById('devCherche').value === 'cremant');
+
+  titre('3 bis. Le brouillon de l\'appareil');
+  const cle = 'bdv_devis_brouillon_aC';
+  t('une ligne cochee laisse un brouillon', !!X.w.localStorage.getItem(cle));
+  X.clic('[data-dev="fermer"]');
+  await X.ouvrir();
+  const jj = new Date(); const dm = String(jj.getDate()).padStart(2, '0') + '/' + String(jj.getMonth() + 1).padStart(2, '0');
+  t('a la reouverture : « Tu avais commencé un devis le ' + dm + '. Le reprendre ? »', X.corps().textContent.indexOf('Tu avais commencé un devis le ' + dm + '. Le reprendre ?') === 0, X.corps().textContent);
+  t('« Reprendre » et « Repartir de zéro »', /Reprendre/.test(X.corps().textContent) && /Repartir de zéro/.test(X.corps().textContent));
+  X.clic('[data-dev="reprendre"]');
+  t('« Reprendre » rend les lignes', X.modale().querySelectorAll('.dmod__ligne').length === 1 && /Crémant de Loire/.test(X.doc.getElementById('devLignes').textContent));
+  X.clic('[data-dev="fermer"]');
+  await X.ouvrir();
+  X.clic('[data-dev="zero"]');
+  t('« Repartir de zéro » efface le brouillon', X.w.localStorage.getItem(cle) === null && X.modale().querySelectorAll('.dmod__ligne').length === 0);
+  /* Le stockage peut manquer (navigation privee) : la piece marche quand meme. */
+  const P = X.w.Storage.prototype, g0 = P.getItem, s0 = P.setItem;
+  P.getItem = () => { throw new Error('bloque'); }; P.setItem = () => { throw new Error('bloque'); };
+  X.clic('[data-dev="fermer"]');
+  let casse = null;
+  try { await X.ouvrir(); X.cocher(CLE0); } catch (e) { casse = e; }
+  P.getItem = g0; P.setItem = s0;
+  t('stockage refuse : rien ne casse (try/catch)', !casse && X.modale().querySelectorAll('.dmod__ligne').length === 1, String(casse));
+}
+
+/* ---------------------------------------------------------------------------- */
+titre('4. Le papier (htmlPapier, pur)');
+{
+  const X = monter();
+  await X.ouvrir();
+  const D = X.w.BdvDevis;
+  const d = { numero: 'D-2026-0007', date_devis: '2026-09-30', valable_jusqu: '2026-10-30', statut: 'enregistre', vendeur: Object.assign({}, FICHE),
+    acheteur: { nom: 'Chez Paul', num_client: 'C7', code_postal: '44000', ville: 'Nantes', siret: '98765432100011' },
+    paiement_mode: 'fdm', paiement_jours: 30, validite_jours: 30, remise_globale_cb: 500, total_vins_c: 15060, remise_globale_c: 744,
+    total_ht_c: 14316, tva_c: 2863, total_ttc_c: 17179, notes: 'Livraison en octobre.' };
+  const lg = [{ num_produit: 'P100', designation: 'Cuvée A', millesime: '2015', conditionnement: '75 cl', quantite: 12, pu_ht_c: 850, remise_cb: 0, net_c: 10200, pu_l_c: 850, pu_f_c: 808 },
+              { num_produit: 'P101', designation: 'Cuvée B', millesime: '2016', conditionnement: '75 cl', quantite: 6, pu_ht_c: 900, remise_cb: 1000, net_c: 4860, pu_l_c: 810, pu_f_c: 770 }];
+  const avant = X.doc.body.innerHTML;
+  const h = D.htmlPapier(d, lg, {});
+  const txt = new JSDOM(h).window.document.body.textContent;
+  t('pur : le meme appel rend le meme document, et la page n\'a pas bouge', D.htmlPapier(d, lg, {}) === h && X.doc.body.innerHTML === avant);
+  t('un document complet, en theme clair, avec sa feuille propre', /^<!doctype html>/.test(h) && /data-theme="light"/.test(h) && /\/css\/bdv-devis-papier\.css/.test(h) && /\/css\/bdv-theme\.css/.test(h));
+  t('numero et date', /Devis D-2026-0007/.test(txt) && /Date du devis : 30\/09\/2026/.test(txt));
+  t('« Devis valable jusqu’au 30/10/2026 »', /Devis valable jusqu’au 30\/10\/2026/.test(txt));
+  const cond = X.w.BdvDomaine.conditions(d);
+  t('les conditions sont celles de BdvDomaine.conditions() : « ' + cond + ' »', cond.length > 10 && txt.indexOf(cond + '.') >= 0);
+  t('sans redite « Conditions de paiement : Paiement… »', !/Conditions de paiement : Paiement/.test(txt));
+  const d2 = Object.assign({}, d, { paiement_mode: 'reception', paiement_jours: null });
+  t('et elles suivent l\'instantane du devis (a reception)', new JSDOM(D.htmlPapier(d2, lg, {})).window.document.body.textContent.indexOf(X.w.BdvDomaine.conditions(d2)) >= 0);
+  t('« Prix HT, droits d’accises inclus. »', /Prix HT, droits d’accises inclus\./.test(txt));
+  t('les penalites de retard et l\'indemnite de 40 € (L441-10)', /Pénalités de retard : taux BCE majoré de 10 points\./.test(txt) && /40 € \(Code de commerce, L441-10\)/.test(txt));
+  t('TVA 20 %, total HT et TTC', /TVA 20 %/.test(txt) && /Total HT143,16 €/.test(txt) && /Total TTC171,79 €/.test(txt));
+  t('la remise sur tout le devis, si elle existe, et comment elle s\'applique', /Remise sur tout le devis 5 % :-7,44\u00a0€Appliquée à chaque prix unitaire, arrondie au centime\./.test(txt));
+  { const tb = new JSDOM(h).window.document;
+    const rangs = [...tb.querySelectorAll('.dpap__table tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(td => td.textContent));
+    const c = (s) => C.centimes(String(s).replace(/[^\d,]/g, ''));
+    t('« Prix net » x quantite = « Total HT » sur CHAQUE ligne, et leur somme = total des vins',
+      rangs.length === 2 && rangs.every(r => r.length === 6 && +r[1] * c(r[4]) === c(r[5])) && rangs.reduce((s, r) => s + c(r[5]), 0) === d.total_vins_c,
+      JSON.stringify(rangs));
+    const glob = D.htmlPapier(d, lg.map(l => Object.assign({}, l, { remise_cb: 0, net_c: l.quantite * l.pu_ht_c })), {});
+    t('remise globale seule : pas de colonne « Prix net » (la remise reste une ligne des totaux)', !/Prix net/.test(glob) && /Remise sur tout le devis 5 %/.test(glob)); }
+  t('pied de page imprime en police LITTERALE (les var() ne passent pas dans @page)',
+    /@bottom-left\{content:"Devis D-2026-0007";font-family:'Inter'[^}]*font-size:8pt/.test(h) && !/@bottom[^}]*var\(/.test(h));
+  t('une remise existe : la colonne « Prix net » (prix unitaire signe) est imprimee', /<th class="dpap__n">Prix net<\/th>/.test(h));
+  const sansRemise = D.htmlPapier(Object.assign({}, d, { remise_globale_cb: 0 }), lg.map(l => Object.assign({}, l, { remise_cb: 0 })), {});
+  t('sans aucune remise, pas de colonne « Prix net »', !/Prix net/.test(sansRemise));
+  t('sur chaque page : le numero du devis et « Page N/M » (boites de marge @page)',
+    /@bottom-left\{content:"Devis D-2026-0007"/.test(h) && /@bottom-right\{content:"Page " counter\(page\) "\/" counter\(pages\)/.test(h));
+  t('totaux et mentions voyagent ensemble, et l\'en-tete du tableau se repete', /<div class="dpap__fin"><section class="dpap__totaux">[\s\S]*dpap__mentions[\s\S]*<\/section><\/div>/.test(h)
+    && /\.dpap__fin\{\s*break-inside:avoid/.test(lire('src/css/bdv-devis-papier.css')) && /thead\{\s*display:table-header-group/.test(lire('src/css/bdv-devis-papier.css')));
+  t('le vendeur : raison sociale, adresse, SIRET, n° de TVA du domaine', /EARL DOMAINE DES ESSAIS/.test(txt) && /3 rue des Vignes/.test(txt) && /44190 Clisson/.test(txt)
+    && /SIRET 12345678900017/.test(txt) && /N° de TVA intracommunautaire FR32123456789/.test(txt));
+  const sansTva = new JSDOM(D.htmlPapier(Object.assign({}, d, { vendeur: Object.assign({}, FICHE, { tva: null }) }), lg, {})).window.document.body.textContent;
+  t('sans n° de TVA au domaine : aucun n\'est invente', !/TVA intracommunautaire/.test(sansTva) && !/FR\d{2}\d{9}/.test(sansTva));
+  t('jamais de numero d\'accises', !/n° d.accises|numéro d.accises|entrepositaire/i.test(txt));
+  t('le client : nom, SIRET, ville, n° client Vitisoft', /Chez Paul/.test(txt) && /SIRET 98765432100011/.test(txt) && /44000 Nantes/.test(txt) && /N° client C7/.test(txt));
+  t('le detail : designation, millesime, conditionnement, code, quantite, PU HT, remise, total', /Cuvée A 2015, 75 cl/.test(txt) && /Code article P100/.test(txt)
+    && /128,50\u00a0€8,50\u00a0€102,00\u00a0€/.test(txt) && /69,00\u00a0€10 %8,10\u00a0€48,60\u00a0€/.test(txt), txt.slice(txt.indexOf('Cuvée A'), txt.indexOf('Cuvée A') + 160));
+  t('les notes', /Livraison en octobre\./.test(txt));
+  t('echappe ce qu\'il imprime', !/<script>/.test(D.htmlPapier(Object.assign({}, d, { notes: '<script>x</script>' }), lg, {})));
+
+  titre('4 bis. L\'apercu et l\'impression par un iframe cache');
+  await X.enregistrer();                              // rien de coche : refuse, on en coche un
+  X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="apercu"]');
+  await attendre(10);
+  const f = X.doc.getElementById('devFeuille');
+  t('« Voir et imprimer » : la feuille en entier, et les deux boutons', !!f && /Imprimer ou enregistrer en PDF/.test(X.corps().textContent) && /Revenir au devis/.test(X.corps().textContent));
+  t('la feuille montre le devis enregistre', !!f && /D-2026-0001/.test(f.contentDocument.body.textContent) && /Prix HT, droits d’accises inclus/.test(f.contentDocument.body.textContent));
+  let imprime = 0;
+  X.clic('[data-dev="imprimer"]');
+  const fi = X.doc.getElementById('devImpression');
+  if (fi) { fi.contentWindow.print = () => { imprime++; }; fi.contentWindow.focus = () => {}; }
+  await attendre(60);
+  t('l\'impression passe par un iframe cache, meme origine, rempli par htmlPapier', !!fi && fi.classList.contains('dmod__imprimeur') && fi.getAttribute('aria-hidden') === 'true'
+    && /D-2026-0001/.test(fi.contentDocument.body.textContent));
+  t('et c\'est SON contentWindow.print() qui part', imprime === 1, imprime);
+  X.clic('[data-dev="revenir"]');
+  t('« Revenir au devis » rend le devis', !!X.modale().querySelector('[data-dev="enregistrer"]'));
+}
+
+/* ---------------------------------------------------------------------------- */
+titre('4 ter. Retour du verificateur : ce qui se voit, ce qui garde le focus');
+{
+  /* LE PIED COLLANT NE COUVRE NI LE CHAMP FAUTIF NI LE FOCUS. jsdom n'a pas de mise en
+     page : on lui donne des boites, et on regarde ce que la piece fait defiler. */
+  const X = monter();
+  await X.ouvrir();
+  const m = X.modale(), box = m.querySelector('.tmod__boite');
+  let st = 0;
+  Object.defineProperty(box, 'scrollTop', { get: () => st, set: (v) => { st = v; }, configurable: true });
+  box.getBoundingClientRect = () => ({ top: 0, bottom: 800, height: 800 });
+  const rect = (n, top, h) => { n.getBoundingClientRect = () => ({ top: top - st, bottom: top - st + h, height: h }); };
+  rect(m.querySelector('.dmod__pied'), 700 + 0, 100);
+  m.querySelector('.dmod__pied').getBoundingClientRect = () => ({ top: 700, bottom: 800, height: 100 });
+  const cb = m.querySelector('.dmod__prop input');
+  rect(cb, 720, 20);
+  cb.focus();
+  t('une case qui recoit le focus SOUS le pied collant est ramenee au-dessus de lui', st === 48, st);
+  X.cocher(CLE0);
+  X.taper(X.champ(CLE0, 'qte'), '0');
+  m.querySelector('.dmod__pied').getBoundingClientRect = () => ({ top: 700, bottom: 800, height: 100 });
+  st = 0;
+  rect(X.champ(CLE0, 'qte').closest('.aff-champ'), 1500, 60);
+  rect(X.champ(CLE0, 'qte'), 1520, 40);
+  await X.enregistrer();
+  const cq = X.champ(CLE0, 'qte').closest('.aff-champ').getBoundingClientRect();
+  t('erreur : le focus est dans le champ, et le champ AVEC sa ligne d\'erreur est visible au-dessus du pied',
+    X.doc.activeElement === X.champ(CLE0, 'qte') && cq.top >= 8 && cq.bottom <= 700 - 8 + 0.5, JSON.stringify(cq) + ' st=' + st);
+  t('la feuille reserve aussi la hauteur du pied (scroll-padding-bottom)', /\.dmod__boite\{[^}]*scroll-padding-bottom:/.test(lire('src/css/bdv-devis.css').replace(/\s+/g, '')));
+  X.taper(X.champ(CLE0, 'qte'), '6');
+  X.mode = 'ok';
+  await X.enregistrer();
+  X.clic('[data-dev="apercu"]');
+  t('l\'apercu ne garde pas l\'avis precedent (« ... enregistré. »)', X.avis() === '' && X.doc.getElementById('devAvis').hidden);
+  t('en entrant dans l\'apercu, le focus va sur « Imprimer ou enregistrer en PDF », pas sur body',
+    X.doc.activeElement === m.querySelector('[data-dev="imprimer"]'));
+  t('sous 700 px, une phrase dit comment lire en grand', m.querySelector('.dmod__pdf').textContent === 'Pour lire en grand, enregistre-le en PDF.'
+    && /\.dmod__pdf\{display:none;\}@media\(max-width:700px\)\{\.bdv-coque\.dmod__pdf\{display:block;\}/.test(lire('src/css/bdv-devis.css').replace(/\s+/g, '')));
+  t('la feuille est centree dans son cadre', /\.dmod__feuille-i\{[^}]*margin:0auto/.test(lire('src/css/bdv-devis.css').replace(/\s+/g, '')));
+  X.clic('[data-dev="revenir"]');
+  m.querySelector('.dmod__pied').getBoundingClientRect = () => ({ top: 700, bottom: 800, height: 100 });
+  st = 0;
+  X.clic('[data-dev="abandonner"]');
+  const oui = m.querySelector('[data-dev="confirmerAbandon"]');
+  t('« Abandonner ce devis » : le focus va sur « Non, le garder », jamais sur le geste qui detruit',
+    X.doc.activeElement === m.querySelector('[data-dev="garder"]') && X.doc.activeElement !== oui);
+  X.clic('[data-dev="garder"]');
+  X.clic('[data-dev="fermer"]');
+  t('la croix rend le focus a un element VIVANT (celui que designe l\'affaire), jamais body', X.doc.activeElement === X.doc.getElementById('depart'),
+    X.doc.activeElement && X.doc.activeElement.tagName);
+  await X.ouvrir({ devis: { ...X.devis[0] } });
+  X.clic('[data-dev="retour"]');
+  t('« Retour à l’affaire » passe le devis ouvert, pour que l\'affaire ramene sa ligne', X.retourId === 'dv1', X.retourId);
+}
+{
+  /* L'APERCU SORT DU TIROIR ETROIT, et la feuille est A4 reduite, sans defilement dans l'iframe. */
+  const X = monter({ tiroir: true });
+  await X.ouvrir();
+  X.cocher(CLE0);
+  await X.enregistrer();
+  const box = X.modale().querySelector('.tmod__boite');
+  const r0 = X.tiroir.retirer, p0 = X.tiroir.poser.length;
+  X.clic('[data-dev="apercu"]');
+  await attendre(20);
+  t('en tiroir, « Voir et imprimer » rend le tiroir et fait de la boite une modale large',
+    X.tiroir.retirer === r0 + 1 && box.getAttribute('role') === 'dialog' && box.getAttribute('aria-modal') === 'true' && box.classList.contains('dmod__boite--apercu'));
+  const f = X.doc.getElementById('devFeuille');
+  t('la feuille est rendue a la largeur A4 (794 px) et a la hauteur de son document, puis mise a l\'echelle',
+    !!f && f.style.width === '794px' && /^\d+px$/.test(f.style.height) && /^scale\(/.test(f.style.transform), f && f.getAttribute('style'));
+  t('et la feuille de la page ne la contraint plus par un aspect-ratio (qui faisait defiler l\'iframe)', !/aspect-ratio/.test(lire('src/css/bdv-devis.css')));
+  X.clic('[data-dev="revenir"]');
+  t('« Revenir au devis » repose le tiroir', X.tiroir.poser.length === p0 + 1);
+  X.clic('[data-dev="abandonner"]'); X.clic('[data-dev="confirmerAbandon"]'); await attendre(10);
+  t('devis abandonne : « Devis D-… abandonné, pour X » (le mot ne s\'accorde pas au client)',
+    /^Devis D-2026-0001 abandonné, pour Chez Paul$/.test(X.doc.getElementById('devTitre').textContent), X.doc.getElementById('devTitre').textContent);
+}
+{
+  const X = monter({ domaine: 'panne' });
+  await X.ouvrir();
+  t('fiche du domaine ILLISIBLE (reseau) : phrase distincte, pas « il manque des infos »',
+    X.corps().textContent === 'Je n’arrive pas à lire la fiche de ton domaine. Vérifie ta connexion et rouvre le devis.', X.corps().textContent);
+  const Y = monter({ domaine: 'sql' });
+  await Y.ouvrir();
+  t('et de meme si la table du lot 38 manque', /Je n’arrive pas à lire la fiche de ton domaine/.test(Y.corps().textContent));
+  const Z = monter();
+  await Z.ouvrir();
+  Z.cocher(CLE0);
+  Z.mode = 'incomplete';
+  Z.fiche.ville = null;
+  await Z.enregistrer();
+  await attendre(10);
+  t('refus « fiche du domaine incomplete » : la fiche est RELUE et seuls les vrais manques sont dits',
+    /Il manque des infos sur ton domaine pour faire un devis : la ville\./.test(Z.corps().textContent), Z.corps().textContent);
+}
+{
+  const X = monter({ props: props(9, 'client') });
+  await X.ouvrir();
+  t('un seul vin de plus : « Voir l’autre vin », pas « Voir les 1 autres »', /Voir l’autre vin/.test(X.corps().textContent) && !/Voir les 1 /.test(X.corps().textContent));
+}
+{
+  /* UNE AFFAIRE GAGNEE OU PERDUE : ses devis se relisent et s'impriment, rien ne se modifie. */
+  const X = monter({ fiche: Object.assign({}, FICHE, { siret: null }), ctx: { affaire: { affaire_id: 'aG', issue: 'gagnee' } } });
+  X.lignes.dG = [{ rang: 1, num_produit: 'P100', designation: 'Cuvée A', conditionnement: '75 cl', millesime: '2015', quantite: 6, pu_ht_c: 850, remise_cb: 0,
+    source_prix: 'client', pu_l_c: 850, pu_f_c: 850, net_c: 5100, final_c: 5100 }];
+  await X.ouvrir({ devis: { bureau: BUREAU, devis_id: 'dG', affaire_id: 'aG', numero: 'D-2026-0004', statut: 'enregistre', date_devis: '2026-09-20',
+    valable_jusqu: '2026-10-20', vendeur: FICHE, acheteur: { nom: 'Le Bistrot' }, paiement_mode: 'fdm', paiement_jours: 30, validite_jours: 30,
+    remise_globale_cb: 0, total_vins_c: 5100, remise_globale_c: 0, total_ht_c: 5100, tva_c: 1020, total_ttc_c: 6120 } });
+  t('affaire close : le devis s\'ouvre en lecture seule (aucun champ, aucun « Enregistrer »), meme si la fiche a change depuis',
+    X.corps().querySelectorAll('input, textarea').length === 0 && !X.modale().querySelector('[data-dev="enregistrer"]') && /Cuvée A 2015/.test(X.corps().textContent));
+  t('mais « Voir et imprimer » reste', !!X.modale().querySelector('[data-dev="apercu"]'));
+  t('et aucune proposition n\'est demandee', !X.requetes.some(r => r.chemin === '/rpc/devis_propositions'));
+}
+
+/* ---------------------------------------------------------------------------- */
+titre('5. Charge au clic : rien dans le code bloquant');
+{
+  const nav = lire('src/js/bdv-nav.js');
+  t('bdv-nav.js ne nomme pas le devis', !/bdv-devis|BdvDevis/.test(nav));
+  const gabarits = ['src/mon-bureau.njk', 'src/_includes/base.njk'].map(lire).join('\n');
+  t('le gabarit ne lie ni la piece, ni le calcul, ni les feuilles du devis', !/bdv-devis/.test(gabarits));
+  const aff = sansCommentaires(SRC_AFF);
+  t('bdv-affaires.js pose la feuille, le calcul et la piece au clic, dans cet ordre',
+    /poserCss\('\/css\/bdv-devis\.css'\)\.then\(chargerCalcul\)/.test(aff) && /poserJs\('\/js\/bdv-devis-calcul\.js'\)/.test(aff) && /poserJs\('\/js\/bdv-devis\.js'\)/.test(aff));
+  t('la promesse du chargeur est retenue (un seul chargement)', /if \(_devis\) return _devis;/.test(aff) && /_devis = p;/.test(aff));
+  const feuilles = lire('scripts/feuilles-bureau.mjs');
+  t('les deux feuilles sont declarees dans feuilles-bureau.mjs', /src\/css\/bdv-devis\.css/.test(feuilles) && /src\/css\/bdv-devis-papier\.css/.test(feuilles));
+  const pkg = JSON.parse(lire('package.json'));
+  const v = pkg.scripts.verif || '';
+  t('« banc:devis » est dans verif, apres banc:domaine et avant banc:poids',
+    pkg.scripts['banc:devis'] === 'node scripts/banc-devis.mjs' && v.indexOf('npm run banc:domaine && npm run banc:devis && npm run banc:poids') >= 0);
+}
+
+titre('6. Le dessin : que des jetons, 44 px, pas de @media print');
+{
+  const css = sansCommentaires(lire('src/css/bdv-devis.css'));
+  const pap = sansCommentaires(lire('src/css/bdv-devis-papier.css'));
+  t('aucune couleur en dur dans les deux feuilles', !/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i.test(css + pap));
+  t('tailles de texte et rayons par jetons seulement', !/font-size:\s*(?!var\()/.test(css + pap) && !/border-radius:\s*(?!var\()/.test(css + pap));
+  t('ni ombre, ni z-index', !/box-shadow|z-index/.test(css + pap));
+  t('PAS de @media print, ni de @page, dans la feuille de la page', !/@media\s+print|@page/.test(css));
+  t('le @page A4 portrait vit dans la feuille du papier', /@page\s*\{\s*size:\s*A4 portrait/.test(pap));
+  t('chaque regle de la boite est portee par .bdv-coque', css.split('}').map(r => r.split('{')[0].trim()).filter(s => s && !/^@/.test(s))
+    .every(s => s.split(',').every(x => /^\.bdv-coque\s/.test(x.trim()))));
+  t('le pied est collant en bas', /\.dmod__pied\{[^}]*position:sticky;[^}]*bottom:calc\(-1\*var\(--bdv-e-6\)\)/.test(css.replace(/\s+/g, '')));
+  t('sous 700 px, boutons, champs et liens a 44 px', /@media\s*\(max-width:700px\)\{[^@]*\.dmod \.btn[^{]*\{\s*min-height:var\(--bdv-cible\)/.test(css));
+  t('la case d\'une ligne est une cible de 44 px a toutes les largeurs', /\.dmod__coche\{[^}]*min-height:var\(--bdv-cible\)/.test(css.replace(/\s+/g, '')));
+}
+
+titre('7. Les ids du devis ne rencontrent aucun gabarit');
+{
+  const ids = [...new Set([...SRC_DEVIS.matchAll(/id="(dev[A-Za-z0-9]*)/g)].map(m => m[1]).concat(['devisModale', 'devImpression']))];
+  const trouves = [];
+  const marcher = (d) => fs.readdirSync(d, { withFileTypes: true }).forEach(e => {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) return marcher(p);
+    if (/\.njk$/.test(e.name)) { const s = fs.readFileSync(p, 'utf8'); ids.forEach(id => { if (new RegExp('id=["\']' + id + '["\']').test(s)) trouves.push(id + ' dans ' + path.relative(RACINE, p)); }); }
+  });
+  marcher(path.join(RACINE, 'src'));
+  t('ids releves dans la piece : ' + ids.length, ids.length >= 10);
+  t('aucun n\'est deja pris par un gabarit .njk', trouves.length === 0, trouves.join(', '));
+  const autres = ['src/js/bdv-affaires.js', 'src/js/bdv-ecrans.js', 'src/js/bdv-taches.js', 'src/js/bdv-reglages.js', 'src/js/bdv-domaine.js'].map(lire).join('\n');
+  t('ni par un autre module du bureau', ids.every(id => !new RegExp('id="' + id + '"').test(autres)));
+  t('aucun onclick, aucun tiret cadratin dans les sources du devis',
+    ![SRC_DEVIS, SRC_CALC, lire('src/css/bdv-devis.css'), lire('src/css/bdv-devis-papier.css')].some(s => /onclick|—/.test(s)));
+}
+
+console.log('\n== VERDICT ==');
+console.log('  ' + OK + ' controle(s) passe(s), ' + KO + ' echec(s)');
+console.log(KO ? '  LE DEVIS NE FAIT PAS CE QU\'IL DIT' : '  LE DEVIS FAIT CE QU\'IL DIT');
+process.exit(KO ? 1 : 0);
