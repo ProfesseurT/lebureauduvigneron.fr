@@ -7378,6 +7378,45 @@ Valide par Ted (« ouais ») apres l'avis du conseil sur ce qui manquait aux lot
   (`lireMontants` qui rend `{}` au lieu de `null` en panne : meme ecran, rien a voir).
 - **Pas de capture faite pour ce lot** : la verification est par bancs seulement.
 
+### LOT 51 : MENTIONS LEGALES, REFUS DU CLIENT, ANNULER UNE ACCEPTATION (01/10/2026)
+
+Choix de Ted : « les trois d'un coup ». `supabase/lot51-devis-mentions-refus.sql`, a coller APRES 50.
+
+- **Mentions** [Certain, greffe du TAE de Paris et Bpifrance] : R123-237 du Code de commerce impose
+  aux immatricules au RCS le SIREN, « RCS » suivi de la ville du greffe et le siege ; le capital est
+  exige pour les SARL et societes par actions. D'ou deux colonnes FACULTATIVES de `domaine`,
+  `rcs_ville` et `capital_eur` (euros entiers, 1 a 999 999 999 999), recopiees dans l'instantane
+  `vendeur` par `devis_enregistrer`. Papier : « RCS Nantes 123 456 789 », « Capital de 7 500 EUR ».
+  **Un exploitant en nom propre n'est pas au RCS : rien n'est invente si c'est vide.**
+- **Le navigateur marche avant le SQL** : `bdv-domaine.js` ne montre ni n'ECRIT les deux champs que
+  si la base les connait (`MENTIONS` : cle presente dans la fiche lue, sinon une sonde
+  `select=rcs_ville`). Les nommer avant le SQL ferait refuser toute la fiche.
+- **« Bon pour accord »** : cadre sur le papier (date, nom et qualite, signature et cachet), un trait
+  de 1 px, jamais coupe entre deux pages. Usage, pas obligation. Absent d'un devis abandonne ou refuse.
+- **« Il a dit non »** (`devis_refuser(p_bureau, p_devis, p_motif, p_clore)`) sur un devis enregistre
+  ou envoye : statut `refuse`, `refuse_le`, `refuse_par`, `refuse_motif`. **Les motifs sont ceux
+  d'une affaire perdue**, la meme liste a TROIS endroits (`MOTIFS` de bdv-affaires.js,
+  `MOTIFS_REFUS` de bdv-devis.js, contrainte `devis_refuse_motif`) : `banc:devis` refuse qu'elles
+  divergent. La case « Passer l'affaire a Pas pour cette fois » n'est proposee que si l'affaire est
+  ouverte et qu'aucun autre de ses devis n'est en cours (`ctx.autresEnCours`) ; la base REFUSE la
+  cloture sinon. Un devis refuse ne bouge plus mais SE REFAIT (`p_version_de` l'accepte ; il garde
+  son statut `refuse` au lieu de passer abandonne : le refus est une trace).
+- **« Annuler l'acceptation »** (`devis_annuler_accord(p_bureau, p_devis, p_rouvrir)`) : le devis
+  revient `envoye` s'il etait parti, `enregistre` sinon ; date, auteur et code tarif de l'accord
+  effaces ; trace `accord_annule_le` / `_par` affichee (« Acceptation annulee le ... »). Case
+  « Rouvrir l'affaire » si elle est gagnee. **La base ne sait pas si la commande est dans Vitisoft** :
+  l'ecran dit de la supprimer la-bas, sinon elle sera facturee. Re-accepter redonne le meme numero
+  (erreur 12 si deja importee).
+- **Le gel `devis_signer` reecrit** : abandonne et refuse ne bougent plus ; accepte ne bouge plus,
+  SAUF l'aller-retour de l'annulation (statut coherent avec `envoye_le`, accord efface, trace
+  NOUVELLE). Tester une sortie de fonction ET un etat de table dans le meme `select ... and ...` est
+  un piege : l'ordre d'evaluation n'est pas garanti, le banc les separe.
+- **Piege paye** : `refuser(message, champ)` existait deja dans bdv-devis.js (aide de validation).
+  Une seconde declaration du meme nom l'ecrasait en silence : la RPC s'appelle `noterRefus()`.
+- Garde : banc SQL `supabase/banc-lot51-devis-mentions-refus.sql` (32 controles, rejoue 47, 49, 50 ;
+  6 mutations tuees), `banc:devis` sections 9 a 9 ter (35 controles), `banc:domaine` section 10
+  (7 controles) ; 9 mutations JS tuees. `banc-rejeu.mjs` liste le lot 51. Pas de capture.
+
 ### PROCHAIN LOT, ET LE MUR QU'IL RENCONTRE (01/10/2026)
 
 Le lot 48 prevu (envoi + signature en ligne avec e-mail verifie par code) fait partir du courrier du

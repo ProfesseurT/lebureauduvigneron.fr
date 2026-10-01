@@ -165,6 +165,39 @@ console.log('\n== 9. Lot 47 : panne reseau et table absente ne se disent pas par
   w.BdvCompte.api = api0;
 }
 
+console.log('\n== 10. Lot 51 : le RCS et le capital, seulement si la base les connait ==');
+{
+  const api0 = w.BdvCompte.api;
+  const avec = (fiche) => (chemin, o) => {
+    if (o && o.methode) return api0(chemin, o);
+    if (/select=rcs_ville/.test(chemin)) return fiche === 'sonde-ko' ? Promise.reject(Object.assign(new Error('400'), { status: 400, detail: '{"code":"42703"}' })) : Promise.resolve([]);
+    return Promise.resolve(fiche && typeof fiche === 'object' ? [Object.assign({}, fiche)] : []);
+  };
+  const base = { bureau: B, raison_sociale: 'EARL X', siret: '12345678900017', adresse: 'a', code_postal: '44000', ville: 'Nantes', paiement_mode: 'fdm', paiement_jours: 30, validite_jours: 30 };
+  w.BdvCompte.api = avec(base);
+  await blocs[0].rafraichir();
+  dit($('bdvdMentions').hidden === true && w.BdvDomaine.mentions() === false, 'une fiche SANS la colonne (SQL du lot 51 pas passe) : les champs restent caches');
+  $('bdvdVille').value = 'NANTES'; $('bdvdVille').dispatchEvent(new w.Event('input', { bubbles: true }));
+  let n0 = ecrits.length; await blocs[0].enregistrer();
+  dit(ecrits.length === n0 + 1 && !('rcs_ville' in ecrits[ecrits.length - 1].o.corps) && !('capital_eur' in ecrits[ecrits.length - 1].o.corps),
+    '... et l\'enregistrement ne les nomme pas (sinon toute la fiche serait refusee)', JSON.stringify(Object.keys(ecrits[ecrits.length - 1].o.corps)));
+  w.BdvCompte.api = avec(Object.assign({}, base, { rcs_ville: 'Nantes', capital_eur: 7500 }));
+  await blocs[0].rafraichir();
+  dit($('bdvdMentions').hidden === false && $('bdvdRcs').value === 'Nantes' && $('bdvdCapital').value === '7500', 'une fiche AVEC la colonne : les champs sont la, remplis');
+  $('bdvdCapital').value = '12 000'; $('bdvdCapital').dispatchEvent(new w.Event('input', { bubbles: true }));
+  n0 = ecrits.length; await blocs[0].enregistrer();
+  const c = ecrits[ecrits.length - 1].o.corps;
+  dit(ecrits.length === n0 + 1 && c.rcs_ville === 'Nantes' && c.capital_eur === 12000, '« 12 000 » part en 12000, la ville du greffe telle quelle', JSON.stringify({ r: c.rcs_ville, k: c.capital_eur }));
+  w.BdvCompte.api = avec(null);
+  await blocs[0].rafraichir();
+  dit(w.BdvDomaine.mentions() === true && $('bdvdMentions').hidden === false, 'pas encore de fiche : la colonne est SONDEE, et la base la connait');
+  w.BdvCompte.api = avec('sonde-ko');
+  await blocs[0].rafraichir();
+  dit(w.BdvDomaine.mentions() === false && $('bdvdMentions').hidden === true, 'pas de fiche et la sonde echoue : caches');
+  dit(w.BdvDomaine._defauts({ paiement_mode: 'reception', validite_jours: 30, capital_eur: 0 }).some(x => /capital social/.test(x)), 'un capital a zero est refuse avant d\'envoyer');
+  w.BdvCompte.api = api0;
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 console.log(ko ? '  LA FICHE DU DOMAINE PEUT MENTIR\n' : '  LA FICHE DU DOMAINE DIT CE QUE LE VIGNERON A CHOISI\n');

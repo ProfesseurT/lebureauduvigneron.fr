@@ -12,6 +12,24 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 51 : mentions légales, refus du client, annuler une acceptation
+
+Tu as choisi les trois d'un coup.
+
+- La fiche « Mon domaine » prend deux champs facultatifs, la ville du greffe et le capital social. Le
+  devis imprime « RCS Nantes 123 456 789 » et « Capital de 7 500 € » quand ils sont remplis
+  (Code de commerce, R123-237 ; le capital pour les SARL et SAS). Plus un cadre « Bon pour accord ».
+- « Il a dit non » note le refus, avec le motif des affaires perdues, et peut passer l'affaire à
+  « Pas pour cette fois » si aucun autre devis n'est en cours. Un devis refusé se refait.
+- « Annuler l'acceptation » ramène le devis à envoyé (ou enregistré), rouvre l'affaire si tu
+  coches, garde la trace, et te rappelle de supprimer la commande dans Vitisoft si elle y est.
+- `supabase/lot51-devis-mentions-refus.sql`, à coller après le lot 50.
+
+Ce qui reste ouvert : garder une copie du PDF envoyé, champs de livraison, TVA autre que 20 %,
+trace du téléchargement du fichier de commande, et la signature en ligne (règle du seuil).
+
+---
+
 ## 01/10/2026, lot 50 : le devis envoyé, sa relance, et le montant de l'affaire
 
 Tu as demandé ce qu'on avait manqué dans les lots devis et commande. Le conseil a relevé surtout

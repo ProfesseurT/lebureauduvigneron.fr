@@ -29,6 +29,11 @@
   var ABSENTE = false;    // la table manque (SQL du lot 38 pas passe), distinct d'une panne
   var TOUCHE = false;     // le vigneron a-t-il modifie quelque chose
   var TROUVES = [];       // les resultats de la derniere recherche
+  /* LOT 51 : les deux mentions (RCS, capital) n'existent qu'apres le SQL du lot 51. On
+     ne les ECRIT que si la base les a montrees, sinon tout l'enregistrement serait
+     refuse pour deux colonnes pas encore creees (regle « le navigateur marche avant le
+     SQL »). `null` = on ne sait pas encore, et on ne les montre pas. */
+  var MENTIONS = null;
 
   /* LE PLAFOND LEGAL, ecrit une fois. Boissons alcooliques soumises aux droits
      d'accises : 30 jours apres la fin du mois de livraison au plus (Code de commerce,
@@ -47,6 +52,8 @@
     try {
       var l = await BdvCompte.api('/domaine?select=*&bureau=eq.' + encodeURIComponent(b));
       FICHE = (Array.isArray(l) && l[0]) || null;
+      if (FICHE) MENTIONS = Object.prototype.hasOwnProperty.call(FICHE, 'rcs_ville');
+      else if (Array.isArray(l)) MENTIONS = await sonderMentions(b);
       /* Un retour vide (pas de session) n'est pas une lecture : le devis doit savoir
          dire « je n'arrive pas a lire » plutot que « il manque des infos » (lot 47). */
       LU = Array.isArray(l);
@@ -60,6 +67,14 @@
       return null;
     }
   }
+
+  /* Sans fiche, `select=*` ne dit rien des colonnes : on demande la colonne elle-meme. Une
+     colonne inconnue rend une erreur, c'est la reponse. */
+  async function sonderMentions(b) {
+    try { await BdvCompte.api('/domaine?select=rcs_ville,capital_eur&limit=1&bureau=eq.' + encodeURIComponent(b)); return true; }
+    catch (e) { return false; }
+  }
+  function capitalDe(s) { var c = chiffres(s); return c ? Number(c) : null; }
 
   function lireChamps() {
     var mode = el('bdvdPaiement') ? el('bdvdPaiement').value : 'fdm';
@@ -75,6 +90,8 @@
       ville: net(el('bdvdVille').value) || null,
       email: net(el('bdvdEmail').value) || null,
       telephone: net(el('bdvdTel').value) || null,
+      rcs_ville: el('bdvdRcs') ? (net(el('bdvdRcs').value) || null) : null,
+      capital_eur: el('bdvdCapital') ? capitalDe(el('bdvdCapital').value) : null,
       paiement_mode: mode,
       paiement_jours: mode === 'reception' ? null : (isNaN(jours) ? null : jours),
       validite_jours: isNaN(val) ? null : val
@@ -92,6 +109,8 @@
       else if (f.paiement_jours > JOURS_MAX) d.push('Pour le vin, la loi plafonne à 30 jours fin de mois.');
     }
     if (!f.validite_jours || f.validite_jours < 1 || f.validite_jours > 365) d.push('La validité d’un devis va de 1 à 365 jours.');
+    if (f.capital_eur !== null && f.capital_eur !== undefined && !(f.capital_eur >= 1 && f.capital_eur <= 999999999999)) d.push('Le capital social s’écrit en euros, sans centimes.');
+    if (f.rcs_ville && f.rcs_ville.length > 80) d.push('La ville du greffe tient en 80 caractères.');
     return d;
   }
 
@@ -104,6 +123,7 @@
     if (d.length) { dire(d.join(' '), true); throw new Error('fiche invalide'); }
     f.bureau = b;
     f.siren = f.siret ? f.siret.slice(0, 9) : null;
+    if (!MENTIONS) { delete f.rcs_ville; delete f.capital_eur; }
     var l = await BdvCompte.api('/domaine?on_conflict=bureau', {
       methode: 'POST', corps: f,
       entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
@@ -237,6 +257,16 @@
     champ(g, 'bdvdTel', 'Téléphone du domaine', { type: 'tel', auto: 'tel' });
     cible.appendChild(g);
 
+    /* LOT 51 : les mentions de l'immatriculation (Code de commerce, R123-237) et le capital
+       (SARL et societes par actions). Facultatives : un exploitant en nom propre n'est pas au
+       RCS. Le bloc n'existe que si la base les connait. */
+    var gm = document.createElement('div'); gm.className = 'bdvr-grille'; gm.id = 'bdvdMentions'; gm.hidden = true;
+    champ(gm, 'bdvdRcs', 'Ville du greffe (RCS)', { auto: 'off',
+      aide: 'Si ton domaine est immatriculé au RCS : la ville du greffe, imprimée « RCS Nantes » avec ton SIREN. Vide sinon.' });
+    champ(gm, 'bdvdCapital', 'Capital social, en euros', { mode: 'numeric',
+      aide: 'Obligatoire sur tes devis pour une SARL ou une SAS. Vide sinon.' });
+    cible.appendChild(gm);
+
     sousTitre(cible, 'Tes conditions');
     var g2 = document.createElement('div'); g2.className = 'bdvr-grille';
     champ(g2, 'bdvdPaiement', 'Paiement', { select: true, options: [
@@ -320,6 +350,11 @@
     el('bdvdVille').value = f.ville || '';
     el('bdvdEmail').value = f.email || '';
     el('bdvdTel').value = f.telephone || '';
+    if (el('bdvdMentions')) {
+      el('bdvdMentions').hidden = !MENTIONS;
+      el('bdvdRcs').value = f.rcs_ville || '';
+      el('bdvdCapital').value = f.capital_eur ? String(f.capital_eur) : '';
+    }
     el('bdvdPaiement').value = f.paiement_mode || 'fdm';
     el('bdvdJours').value = f.paiement_mode === 'reception' ? '' : String(f.paiement_jours || 30);
     el('bdvdValidite').value = String(f.validite_jours || 30);
@@ -355,5 +390,6 @@
   if (!brancher()) document.addEventListener('DOMContentLoaded', brancher);
 
   window.BdvDomaine = { charger: charger, fiche: function () { return FICHE; }, lue: function () { return LU; }, complete: complete,
-                        conditions: conditions, chercher: chercher, _lire: lire, _defauts: defauts };
+                        conditions: conditions, chercher: chercher, mentions: function () { return MENTIONS; },
+                        _lire: lire, _defauts: defauts };
 })();

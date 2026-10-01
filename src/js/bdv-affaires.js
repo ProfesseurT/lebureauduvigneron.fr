@@ -962,10 +962,10 @@
     var l = S.devisDe[a.affaire_id];
     if (!Array.isArray(l) || !window.BdvDevisCalcul) return '';
     return l.map(function (d) {
-      var ab = d.statut === 'abandonne';
+      var ab = d.statut === 'abandonne' || d.statut === 'refuse';
       var mot = d.statut === 'accepte' ? ' accepté' : d.statut === 'envoye' ? (expireD(d) ? ' expiré' : ' envoyé le ' + dateFr(d.envoye_le)) : '';
       return '<li><button type="button" class="aff-devis__un" data-aff="devisOuvrir" data-devis="' + esc(d.devis_id) + '">'
-        + (ab ? '<s>' + esc(d.numero) + '</s> abandonné' : esc(d.numero) + esc(mot))
+        + (ab ? '<s>' + esc(d.numero) + '</s> ' + (d.statut === 'refuse' ? 'refusé' : 'abandonné') : esc(d.numero) + esc(mot))
         + ', ' + esc(BdvDevisCalcul.euros(d.total_ttc_c)) + ' TTC, ' + esc(dateFr(d.date_devis)) + '</button></li>';
     }).join('');
   }
@@ -1077,12 +1077,16 @@
     var dv = devisId ? (S.devisDe[a.affaire_id] || []).filter(function (d) { return d.devis_id === devisId; })[0] : null;
     if (devisId && !dv) return;
     var id = a.affaire_id, qui = sujet(a), neuf = estNouveau(a), issue = a.issue, etD = a.issue === 'en_cours' ? etapeDevis(a) : null;
+    /* LOT 51 : combien d'AUTRES devis de l'affaire sont encore en cours. « Il a dit non » ne
+       propose de clore l'affaire que s'il n'y en a aucun (la base refuse sinon). */
+    var autres = (S.devisDe[a.affaire_id] || []).filter(function (x) {
+      return (!dv || x.devis_id !== dv.devis_id) && (x.statut === 'enregistre' || x.statut === 'envoye'); }).length;
     return chargerDevis().then(function (D) {
       viderAttente();
       fermerPanneau();
       D.ouvrir({
         bureau: bureau(), affaire: { affaire_id: id, issue: issue, rappel: a.rappel || null, rappel_titre: a.rappel_titre || null },
-        etapeDevis: etD, sujet: qui, nouveau: neuf, devis: dv || null,
+        etapeDevis: etD, sujet: qui, nouveau: neuf, devis: dv || null, autresEnCours: autres,
         retour: function (devisId) {
           if (issue !== 'en_cours') { rendre(); var b = focusSortie(id); if (b) { try { b.focus(); } catch (e) {} } return; }
           S.nouvelle = false; S.choix = null; S.ouverte = id; MOD_CLE = '';
@@ -1099,6 +1103,9 @@
         change: function (d) {
           S.devisDe[id] = null;
           if (d && d.statut === 'accepte') issue = 'gagnee';
+          /* LOT 51 : un refus qui clot l'affaire, une acceptation annulee qui la rouvre. */
+          if (d && d.statut === 'refuse' && d.affaireClose) issue = 'perdue';
+          if (d && d.affaireRouverte && issue === 'gagnee') issue = 'en_cours';
           charger().then(function (ok) { if (ok) rendre(); });
         }
       });

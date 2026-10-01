@@ -173,6 +173,23 @@ function monter(o) {
         d.statut = 'envoye'; d.envoye_le = c.p_jour;
         return { ...d };
       }
+      if (chemin === '/rpc/devis_refuser') {
+        if (X.mode === 'ref-null') return null;
+        if (X.mode === 'ref-sql') throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_refuser"}');
+        if (X.mode === 'ref-autre') throw refus(400, '{"code":"23514","message":"autre devis en cours"}');
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        if (!d || ['enregistre', 'envoye'].indexOf(d.statut) < 0) throw refus(400, '{"code":"23514"}');
+        Object.assign(d, { statut: 'refuse', refuse_le: '2026-10-01T09:00:00+00:00', refuse_motif: op.corps.p_motif });
+        return { ...d };
+      }
+      if (chemin === '/rpc/devis_annuler_accord') {
+        if (X.mode === 'ann-null') return null;
+        if (X.mode === 'ann-encore') return { ...X.devis.find(x => x.devis_id === op.corps.p_devis), statut: 'envoye' };
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        if (!d || d.statut !== 'accepte') throw refus(400, '{"code":"23514"}');
+        Object.assign(d, { statut: d.envoye_le ? 'envoye' : 'enregistre', accepte_le: null, accord_annule_le: '2026-10-01T10:00:00+00:00' });
+        return { ...d };
+      }
       throw refus(404, 'route inconnue du faux serveur : ' + chemin);
     }
   };
@@ -738,8 +755,8 @@ titre('8. Lot 50 : « Je l’ai envoyé », la relance, l’expiration, refaire'
   t('l\'envoi part pour CE bureau, CE devis, la date, la relance, l\'etape',
     env.p_bureau === BUREAU && env.p_devis === 'dv1' && env.p_jour === '2026-09-30' && /^\d{4}-\d{2}-\d{2}$/.test(env.p_rappel) && env.p_etape === 'e2' && env.p_rappel_titre === null, JSON.stringify(env));
   t('« Devis D-2026-0001 noté envoyé le 30/09/2026. Relance prévue le ... »', /^Devis D-2026-0001 noté envoyé le 30\/09\/2026\. Relance prévue le \d{2}\/\d{2}\/\d{4}, dans Ma journée\.$/.test(X.avis()), X.avis());
-  t('ENVOYE = LECTURE SEULE : aucun champ, aucun « Enregistrer », plus de « Je l’ai envoyé »',
-    X.corps().querySelectorAll('input, textarea, select').length === 0 && !m.querySelector('[data-dev="enregistrer"]') && !m.querySelector('[data-dev="envoyer"]'));
+  t('ENVOYE = LECTURE SEULE : aucun champ (hors confirmation repliee), aucun « Enregistrer », plus de « Je l’ai envoyé »',
+    [...X.corps().querySelectorAll('input, textarea, select')].filter(n => !n.closest('[hidden]')).length === 0 && !m.querySelector('[data-dev="enregistrer"]') && !m.querySelector('[data-dev="envoyer"]'));
   t('le titre dit « envoyé », et « Refaire ce devis » est propose', /envoyé/.test(X.doc.getElementById('devTitre').textContent) && !!m.querySelector('[data-dev="refaire"]'));
   t('l\'affaire est prevenue, et son rappel devient « Relancer le devis D-2026-0001 »',
     (X.changes || []).slice(-1)[0].statut === 'envoye' && X.ctx.affaire.rappel_titre === 'Relancer le devis D-2026-0001' && X.ctx.affaire.rappel === env.p_rappel, X.ctx.affaire.rappel_titre);
@@ -779,6 +796,108 @@ titre('8. Lot 50 : « Je l’ai envoyé », la relance, l’expiration, refaire'
   X.lignes.dvY = [];
   await X.ouvrir({ devis: { ...X.devis[0] } });
   t('pas de « Refaire ce devis », pas de « Le client a dit oui »', !X.modale().querySelector('[data-dev="refaire"]') && !X.modale().querySelector('[data-dev="accepter"]'));
+}
+
+titre('9. Lot 51 : « Il a dit non »');
+{
+  const X = monter({ ctx: { affaire: { affaire_id: 'aC', issue: 'en_cours' }, autresEnCours: 0 } });
+  await X.ouvrir();
+  const m = X.modale();
+  X.cocher(CLE0); X.taper(X.champ(CLE0, 'qte'), '12');
+  t('avant l\'enregistrement, pas de « Il a dit non »', !m.querySelector('[data-dev="refuser"]'));
+  await X.enregistrer();
+  t('apres, « Il a dit non » est la, a cote d\'« Abandonner »', !!m.querySelector('[data-dev="refuser"]'), X.avis() + ' / ' + X.devis.length);
+  const motifsDevis = [...m.querySelectorAll('#devRefusMotif option')].map(o => o.value + '=' + o.textContent);
+  const motifsAff = [...SRC_AFF.match(/var MOTIFS = \[([\s\S]*?)\];/)[1].matchAll(/\['(\w+)', '([^']+)'\]/g)].map(x => x[1] + '=' + x[2]);
+  t('les motifs du refus sont ceux d\'une affaire perdue, dans le meme ordre', motifsDevis.join('|') === motifsAff.join('|') && motifsDevis.length === 6, motifsDevis.join('|'));
+  t('les motifs sont ceux de la base (devis_refuse_motif)', motifsAff.map(x => x.split('=')[0]).every(c => lire('supabase/lot51-devis-mentions-refus.sql').indexOf("'" + c + "'") >= 0));
+  X.taper(X.champ(CLE0, 'qte'), '13');
+  X.clic('[data-dev="refuser"]');
+  t('un formulaire modifie ne se note pas refuse : on le dit', /Enregistre d’abord/.test(X.avis()) && X.doc.getElementById('devRefus').hidden, X.avis());
+  await X.enregistrer();
+  const nR = X.requetes.filter(r => r.chemin === '/rpc/devis_refuser').length;
+  X.clic('[data-dev="refuser"]');
+  const box = X.doc.getElementById('devRefus');
+  t('la confirmation s\'ouvre, focus sur « Pas encore », rien ne part', !box.hidden && X.doc.activeElement === box.querySelector('[data-dev="pasRefus"]') && X.requetes.filter(r => r.chemin === '/rpc/devis_refuser').length === nR);
+  t('« Passer l’affaire à Pas pour cette fois » est propose, coche', !!X.doc.getElementById('devRefusClore') && X.doc.getElementById('devRefusClore').checked);
+  X.clic('[data-dev="pasRefus"]');
+  t('« Pas encore » referme et rend le focus a « Il a dit non »', box.hidden && X.doc.activeElement === m.querySelector('[data-dev="refuser"]'));
+  X.clic('[data-dev="refuser"]');
+  X.doc.getElementById('devRefusMotif').value = 'prix';
+  for (const [mode, re] of [['ref-null', /Le refus n’est pas noté.*n’a pas bougé/], ['ref-sql', /Noter un refus n’est pas encore disponible/], ['ref-autre', /autre devis en cours/]]) {
+    X.mode = mode; X.clic('[data-dev="confirmerRefus"]'); await attendre(10);
+    t('retour « ' + mode + ' » : le devis n\'a pas bouge, et on le dit', re.test(X.avis()) && X.devis[0].statut === 'enregistre', X.avis());
+  }
+  X.mode = 'ok';
+  X.clic('[data-dev="confirmerRefus"]'); await attendre(10);
+  const c = X.requetes.filter(r => r.chemin === '/rpc/devis_refuser').pop().corps;
+  t('le refus part pour CE bureau, CE devis, le motif et la cloture', c.p_bureau === BUREAU && c.p_devis === 'dv1' && c.p_motif === 'prix' && c.p_clore === true, JSON.stringify(c));
+  t('« Devis D-2026-0001 noté refusé. L’affaire passe à « Pas pour cette fois ». »', /^Devis D-2026-0001 noté refusé\. L’affaire passe à « Pas pour cette fois »\.$/.test(X.avis()), X.avis());
+  t('le titre dit « refusé », le sous-titre le motif', /refusé/.test(X.doc.getElementById('devTitre').textContent) && /Refusé le 01\/10\/2026 : le prix\./.test(m.querySelector('.tmod__sous').textContent), m.querySelector('.tmod__sous').textContent);
+  t('LECTURE SEULE, et pas de « Refaire » sur une affaire close', X.corps().querySelectorAll('input, textarea, select').length === 0 && !m.querySelector('[data-dev="refaire"]') && !m.querySelector('[data-dev="enregistrer"]'));
+  t('l\'affaire est prevenue : refus ET cloture', (X.changes || []).slice(-1)[0].statut === 'refuse' && (X.changes || []).slice(-1)[0].affaireClose === true && X.ctx.affaire.issue === 'perdue');
+}
+{
+  const X = monter({ ctx: { affaire: { affaire_id: 'aC', issue: 'en_cours' }, autresEnCours: 1 } });
+  await X.ouvrir();
+  X.cocher(CLE0); X.taper(X.champ(CLE0, 'qte'), '12');
+  await X.enregistrer();
+  X.clic('[data-dev="refuser"]');
+  t('un autre devis en cours : pas de case, la phrase dit que l\'affaire reste ouverte',
+    !X.doc.getElementById('devRefusClore') && /un autre devis en cours : elle reste ouverte/.test(X.doc.getElementById('devRefus').textContent));
+  X.clic('[data-dev="confirmerRefus"]'); await attendre(10);
+  t('le refus part sans cloture, et l\'affaire reste en cours', X.requetes.filter(r => r.chemin === '/rpc/devis_refuser').pop().corps.p_clore === false && X.ctx.affaire.issue === 'en_cours');
+  t('sur une affaire ouverte, un devis refuse se REFAIT', !!X.modale().querySelector('[data-dev="refaire"]'));
+  X.clic('[data-dev="refaire"]'); await attendre(10);
+  t('« Refaire » d\'un refuse ouvre un nouveau devis aux memes lignes', !!X.modale().querySelector('[data-dev="enregistrer"]') && /Nouveau devis, avec les lignes du D-2026-0001/.test(X.avis()), X.avis());
+}
+
+titre('9 bis. Lot 51 : « Annuler l’acceptation »');
+{
+  const X = monter({ ctx: { affaire: { affaire_id: 'aC', issue: 'gagnee' } } });
+  X.devis.push({ bureau: BUREAU, devis_id: 'dvA', affaire_id: 'aC', numero: 'D-2026-0020', statut: 'accepte', date_devis: '2026-09-30', valable_jusqu: '2099-01-01',
+    envoye_le: '2026-09-30', accepte_le: '2026-10-01T08:00:00+00:00', vendeur: Object.assign({}, FICHE), acheteur: { nom: 'Chez Paul', nouveau: false, num_client: 'C7' },
+    remise_globale_cb: 0, tva_cb: 2000, total_vins_c: 1000, remise_globale_c: 0, total_ht_c: 1000, tva_c: 200, total_ttc_c: 1200,
+    cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-10-01T08:00:00+00:00' });
+  X.lignes.dvA = [{ rang: 1, num_produit: 'P100', designation: 'Cuvée A', millesime: '2015', conditionnement: '75 cl', quantite: 1, pu_ht_c: 1000, remise_cb: 0, pu_l_c: 1000, pu_f_c: 1000, net_c: 1000, final_c: 1000, source_prix: 'client' }];
+  await X.ouvrir({ devis: { ...X.devis[0] } });
+  const m = X.modale();
+  t('un devis accepte propose « Annuler l’acceptation »', !!m.querySelector('[data-dev="annulerAccord"]'));
+  X.clic('[data-dev="annulerAccord"]');
+  const box = X.doc.getElementById('devAnnul');
+  t('la confirmation s\'ouvre, focus sur « Non, la garder »', !box.hidden && X.doc.activeElement === box.querySelector('[data-dev="garderAccord"]'));
+  t('elle previent pour Vitisoft et dit ou revient le devis', /supprime-la aussi là-bas : sinon elle sera facturée/.test(box.textContent) && /repassera envoyé/.test(box.textContent), box.textContent);
+  t('« Rouvrir l’affaire » est propose, coche', !!X.doc.getElementById('devAnnulRouvrir') && X.doc.getElementById('devAnnulRouvrir').checked);
+  X.mode = 'ann-null'; X.clic('[data-dev="confirmerAnnul"]'); await attendre(10);
+  t('retour vide : « toujours accepté », rien n\'a bouge', /toujours accepté/.test(X.avis()) && X.devis[0].statut === 'accepte', X.avis());
+  X.mode = 'ann-encore'; X.clic('[data-dev="confirmerAnnul"]'); await attendre(10);
+  t('un retour qui porte encore la date d\'accord n\'est pas une annulation', /toujours accepté/.test(X.avis()) && /accepté/.test(X.doc.getElementById('devTitre').textContent), X.avis());
+  X.mode = 'ok'; X.clic('[data-dev="confirmerAnnul"]'); await attendre(10);
+  const c = X.requetes.filter(r => r.chemin === '/rpc/devis_annuler_accord').pop().corps;
+  t('l\'annulation part pour CE bureau, CE devis, et rouvrir', c.p_bureau === BUREAU && c.p_devis === 'dvA' && c.p_rouvrir === true, JSON.stringify(c));
+  t('le devis est de nouveau envoye, l\'affaire rouverte, Vitisoft rappele', /envoyé/.test(X.doc.getElementById('devTitre').textContent)
+    && X.ctx.affaire.issue === 'en_cours' && /Acceptation du devis D-2026-0020 annulée : il est de nouveau envoyé\. L’affaire est rouverte\. Pense à supprimer la commande dans Vitisoft/.test(X.avis()), X.avis());
+  t('la trace s\'affiche : « Acceptation annulée le »', /Acceptation annulée le 01\/10\/2026/.test(m.querySelector('.tmod__sous').textContent));
+  t('l\'affaire est prevenue (affaireRouverte)', (X.changes || []).slice(-1)[0].affaireRouverte === true);
+  t('et le devis se re-accepte : « Le client a dit oui ? » revient', !!m.querySelector('[data-dev="accepter"]') || !!m.querySelector('#devCmdT'));
+}
+
+titre('9 ter. Lot 51 : les mentions et le bon pour accord sur le papier');
+{
+  const X = monter();
+  const v = Object.assign({}, FICHE, { siret: '12345678900012', siren: '123456789', rcs_ville: 'Nantes', capital_eur: 7500 });
+  const base = { numero: 'D-2026-0001', statut: 'enregistre', date_devis: '2026-09-30', valable_jusqu: '2026-10-30', acheteur: { nom: 'X' },
+    total_vins_c: 100, remise_globale_c: 0, total_ht_c: 100, tva_c: 20, total_ttc_c: 120, remise_globale_cb: 0 };
+  const h = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { vendeur: v }), [], { conditions: 'Paiement à 30 jours fin de mois' }).replace(/[  ]/g, ' ');
+  t('« RCS Nantes 123 456 789 » imprime avec le SIREN', /RCS Nantes 123 456 789/.test(h));
+  t('« Capital de 7 500 € » imprime', /Capital de 7 500 €/.test(h), (h.match(/Capital[^<]*/) || [''])[0]);
+  t('le cadre « Bon pour accord » : date, nom et qualite, signature et cachet', /Bon pour accord/.test(h) && /Date :/.test(h) && /Nom et qualité du signataire :/.test(h) && /Signature et cachet :/.test(h));
+  const h2 = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { vendeur: Object.assign({}, FICHE) }), [], { conditions: '' });
+  t('sans RCS ni capital : rien d\'invente', !/RCS /.test(h2) && !/Capital de/.test(h2));
+  const h3 = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { statut: 'refuse', vendeur: v }), [], { conditions: '' });
+  t('un devis refuse n\'a pas de bon pour accord', !/Bon pour accord/.test(h3));
+  const css = lire('src/css/bdv-devis-papier.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  t('le cadre ne se coupe pas entre deux pages', /\.dpap\.dpap__accord\{[^}]*break-inside:avoid/.test(css.replace(/\s+/g, '')));
 }
 
 console.log('\n== VERDICT ==');

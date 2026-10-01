@@ -94,3 +94,19 @@
   break-inside:avoid;
 }
 .dpap .dpap__notes{ white-space:pre-wrap; color:var(--bdv-encre-1); font-size:var(--bdv-f-2); }
+
+/* LOT 51 : LE CADRE « BON POUR ACCORD ». Trois lignes a remplir a la main, la derniere
+   assez haute pour une signature et un cachet. Un trait de 1 px, comme le reste du papier,
+   et jamais coupe entre deux pages. */
+.dpap .dpap__accord{
+  margin-top:var(--bdv-e-6);
+  margin-left:auto;
+  width:min(100%, 22rem);
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border:1px solid var(--bdv-encre-2);
+  break-inside:avoid;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-1);
+}
+.dpap .dpap__case{ margin:0; padding:var(--bdv-e-2) 0; border-bottom:1px solid var(--bdv-trait); }
+.dpap .dpap__case--signe{ min-height:5rem; border-bottom:0; }

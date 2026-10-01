@@ -61,6 +61,16 @@
   /* Une semaine pour relancer, et jamais apres l'expiration : passe ce jour, le devis ne
      tient plus ses prix. Le vigneron change la date s'il veut. */
   var RELANCE_JOURS = 7;
+  /* LOT 51 : le motif d'un refus est celui d'une affaire perdue, dans le meme ordre. La
+     liste vit aussi dans bdv-affaires.js (MOTIFS) et dans la base (`devis_refuse_motif`) :
+     `npm run banc:devis` refuse qu'elles divergent. */
+  var MOTIFS_REFUS = [
+    ['prix', 'Le prix'], ['fournisseur', 'Un fournisseur déjà en place'],
+    ['moment', 'Pas le bon moment'], ['sans_reponse', 'Pas de réponse'],
+    ['indisponible', 'Date ou capacité indisponible'], ['autre', 'Autre raison']
+  ];
+  var MOT_SQL_REFUS = 'Noter un refus n’est pas encore disponible sur ton compte.';
+  var MOT_SQL_ANNUL = 'Annuler une acceptation n’est pas encore disponible sur ton compte.';
   /* Police et encre du pied de page imprime, en dur : une boite de marge de @page ne lit
      pas les jetons (mesure du verificateur, 30/09/2026). Inter 8 pt, encre-3 du clair. */
   var MARGE = "font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:8pt;color:#4C525A;";
@@ -326,7 +336,7 @@
     S = { ctx: ctx, etat: 'chargement', props: [], source: ctx.nouveau ? 'bureau' : 'client', propsDomaine: null,
           lignes: [], remise: '0', notes: '', devis: ctx.devis || null, lignesServeur: null, voirTout: false,
           q: '', brouillon: null, confirme: false, attente: false, manque: [], accord: false, modifie: false,
-          envoi: false, versionDe: null };
+          envoi: false, versionDe: null, refus: false, annul: false };
     var moi = S;
     monter();
     peindre();
@@ -404,6 +414,7 @@
     var titre = d
       ? (d.statut === 'abandonne' ? 'Devis <s>' + esc(d.numero) + '</s> <span class="aff-marque dmod__abandonne">abandonné</span>,' + pour
         : d.statut === 'accepte' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque">accepté</span>,' + pour
+        : d.statut === 'refuse' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque dmod__abandonne">refusé</span>,' + pour
         : d.statut === 'envoye' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque">' + (expire(d) ? 'expiré' : 'envoyé') + '</span>,' + pour
         : 'Devis ' + esc(d.numero) + pour)
       : (S.versionDe ? 'Nouveau devis' : 'Devis') + pour;
@@ -415,6 +426,8 @@
       if (d.envoye_le && d.statut !== 'abandonne') sous += ' Envoyé le ' + esc(dateFr(d.envoye_le)) + '.';
       if (expire(d)) sous += ' Il a expiré : ses prix ne tiennent plus, relance ou refais-le.';
       if (d.statut === 'accepte' && d.accepte_le) sous += ' Accepté le ' + esc(dateFr(d.accepte_le)) + '.';
+      if (d.statut === 'refuse' && d.refuse_le) sous += ' Refusé le ' + esc(dateFr(d.refuse_le)) + (motifRefus(d.refuse_motif) ? ' : ' + esc(motifRefus(d.refuse_motif).toLowerCase()) : '') + '.';
+      if (d.statut !== 'accepte' && d.accord_annule_le) sous += ' Acceptation annulée le ' + esc(dateFr(d.accord_annule_le)) + '.';
     }
     /* « Retour a l'affaire » n'est PAS repeint : il garde le focus pendant que le corps
        arrive. Il se cache seulement quand personne n'a donne de chemin de retour. */
@@ -474,8 +487,9 @@
       + '<textarea id="devNotes" class="dmod__notes" rows="3" maxlength="2000" aria-labelledby="devNotesT">' + esc(S.notes) + '</textarea></section>'
       + (enreg ? '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
         + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
+        + '<button type="button" class="dmod__lien" data-dev="refuser">Il a dit non</button>'
         + '<button type="button" class="dmod__lien dmod__lien--x" data-dev="abandonner">Abandonner ce devis</button></p>'
-        + htmlConfirmeAbandon() + '</section>'
+        + htmlConfirmeAbandon() + htmlConfirmeRefus() + '</section>'
         + htmlEnvoiAvant() + htmlCommandeAvant() : '')
       + '<div class="dmod__pied"><p class="dmod__pied-t">Total TTC <b id="devPiedTtc"></b></p>'
       + '<button type="button" class="btn btn--bordeaux" data-dev="enregistrer">Enregistrer le devis</button></div>';
@@ -485,6 +499,33 @@
       + '<p class="aff-aide">Tu abandonnes ce devis ? Il garde son numéro ' + esc(S.devis.numero) + ' et ne se modifie plus.</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAbandon">Oui, l’abandonner</button>'
       + '<button type="button" class="btn" data-dev="garder">Non, le garder</button></p></div>';
+  }
+  function motifRefus(code) { var m = MOTIFS_REFUS.filter(function (x) { return x[0] === code; })[0]; return m ? m[1] : ''; }
+  /* « IL A DIT NON » : le motif, et la case qui clot l'affaire. Elle n'est proposee que si
+     l'affaire est ouverte ET qu'aucun autre de ses devis n'est en cours (la base refuse
+     sinon, et on le dit avant). Le focus va sur « Pas encore ». */
+  function htmlConfirmeRefus() {
+    var d = S.devis, autres = Number(S.ctx.autresEnCours) || 0;
+    return '<div class="dmod__confirme" id="devRefus"' + (S.refus ? '' : ' hidden') + '>'
+      + '<p class="aff-aide">Le devis ' + esc(d.numero) + ' passera refusé : il garde son numéro et ne se modifie plus. Tu pourras le refaire.</p>'
+      + '<label class="aff-champ"><span>Pourquoi ?</span><select id="devRefusMotif">'
+      + MOTIFS_REFUS.map(function (m) { return '<option value="' + m[0] + '">' + esc(m[1]) + '</option>'; }).join('') + '</select></label>'
+      + (!affaireOuverte() ? ''
+        : autres > 0 ? '<p class="aff-aide">L’affaire a encore ' + (autres > 1 ? autres + ' autres devis' : 'un autre devis') + ' en cours : elle reste ouverte.</p>'
+        : '<label class="dmod__coche"><input type="checkbox" id="devRefusClore" checked><span>Passer l’affaire à « Pas pour cette fois »</span></label>')
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerRefus">Oui, il a dit non</button>'
+      + '<button type="button" class="btn" data-dev="pasRefus">Pas encore</button></p></div>';
+  }
+  /* « ANNULER L'ACCEPTATION » : pour un « oui » clique par erreur. La base ne sait pas si
+     la commande est deja dans Vitisoft : l'ecran le dit, avant. */
+  function htmlConfirmeAnnul() {
+    var d = S.devis, gagnee = S.ctx.affaire && S.ctx.affaire.issue === 'gagnee';
+    return '<div class="dmod__confirme" id="devAnnul"' + (S.annul ? '' : ' hidden') + '>'
+      + '<p class="aff-aide">Le devis ' + esc(d.numero) + ' repassera ' + (d.envoye_le ? 'envoyé' : 'enregistré')
+      + ' et la commande ne se téléchargera plus. Si tu l’as déjà importée dans Vitisoft, supprime-la aussi là-bas : sinon elle sera facturée.</p>'
+      + (gagnee ? '<label class="dmod__coche"><input type="checkbox" id="devAnnulRouvrir" checked><span>Rouvrir l’affaire</span></label>' : '')
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAnnul">Oui, annuler l’acceptation</button>'
+      + '<button type="button" class="btn" data-dev="garderAccord">Non, la garder</button></p></div>';
   }
   function affaireOuverte() { var i = S.ctx.affaire && S.ctx.affaire.issue; return !i || i === 'en_cours'; }
 
@@ -520,9 +561,10 @@
     return '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
       + (ouverte ? '<button type="button" class="btn" data-dev="refaire">Refaire ce devis</button>' : '')
+      + '<button type="button" class="dmod__lien" data-dev="refuser">Il a dit non</button>'
       + '<button type="button" class="dmod__lien dmod__lien--x" data-dev="abandonner">Abandonner ce devis</button></p>'
       + (ouverte ? '<p class="aff-aide">Pour changer un prix ou une quantité, refais-le : il reprend tes lignes sous un nouveau numéro, et celui-ci passe abandonné.</p>' : '')
-      + htmlConfirmeAbandon() + '</section>'
+      + htmlConfirmeAbandon() + htmlConfirmeRefus() + '</section>'
       + (perdue ? '' : htmlCommandeAvant());
   }
   function htmlLignes() {
@@ -664,7 +706,9 @@
       + '<p class="dmod__cond">Accepté le ' + esc(dateFr(S.devis.accepte_le)) + '. L’affaire est gagnée.</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="telecharger">Télécharger la commande</button>'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p>'
-      + '<p class="aff-aide">' + esc(IMPORT_VITI) + ' ' + esc(DEJA_12) + '</p></section>';
+      + '<p class="aff-aide">' + esc(IMPORT_VITI) + ' ' + esc(DEJA_12) + '</p>'
+      + '<p class="dmod__gestes"><button type="button" class="dmod__lien dmod__lien--x" data-dev="annulerAccord">Annuler l’acceptation</button></p>'
+      + htmlConfirmeAnnul() + '</section>';
   }
 
   function htmlLecture() {
@@ -684,6 +728,9 @@
       + htmlConditions(false)
       + (d.notes ? '<section class="dmod__bloc" aria-labelledby="devNotesT"><h3 class="dmod__t" id="devNotesT">Notes</h3><p class="dmod__cond">' + esc(d.notes) + '</p></section>' : '')
       + (d.statut === 'abandonne' ? '<p class="aff-aide">Ce devis est abandonné : il garde son numéro et ne se modifie plus.</p>'
+        : d.statut === 'refuse' ? '<section class="dmod__bloc dmod__suite"><p class="aff-aide">Ce devis a été refusé : il garde son numéro et ne se modifie plus.</p>'
+          + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
+          + (affaireOuverte() ? '<button type="button" class="btn" data-dev="refaire">Refaire ce devis</button>' : '') + '</p></section>'
         : d.statut === 'accepte' ? htmlCommandeApres()
         : d.statut === 'envoye' ? htmlSuiteEnvoye()
         : '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes"><button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p></section>');
@@ -771,6 +818,28 @@
     if (q === 'pasEnvoye') { S.envoi = false; var ev2 = el('devEnvoi'); if (ev2) ev2.hidden = true;
       var be = MOD.querySelector('[data-dev="envoyer"]'); if (be) { try { be.focus(); } catch (e) {} } return; }
     if (q === 'confirmerEnvoi') { envoyer(); return; }
+    if (q === 'refuser' || q === 'annulerAccord') {
+      var refus = q === 'refuser';
+      if (refus && S.modifie) { dire('Enregistre d’abord tes changements, ou ferme sans enregistrer : c’est le devis enregistré qu’il refuse.', true); return; }
+      S[refus ? 'refus' : 'annul'] = true;
+      var bx = el(refus ? 'devRefus' : 'devAnnul');
+      if (bx) {
+        bx.hidden = false;
+        var nn = bx.querySelector(refus ? '[data-dev="pasRefus"]' : '[data-dev="garderAccord"]');
+        if (nn) { try { nn.focus({ preventScroll: true }); } catch (e) { nn.focus(); } }
+        montrerDansBoite(bx);
+      }
+      return;
+    }
+    if (q === 'pasRefus' || q === 'garderAccord') {
+      var r1 = q === 'pasRefus';
+      S[r1 ? 'refus' : 'annul'] = false;
+      var bx2 = el(r1 ? 'devRefus' : 'devAnnul'); if (bx2) bx2.hidden = true;
+      var rb = MOD.querySelector(r1 ? '[data-dev="refuser"]' : '[data-dev="annulerAccord"]'); if (rb) { try { rb.focus(); } catch (e) {} }
+      return;
+    }
+    if (q === 'confirmerRefus') { noterRefus(); return; }
+    if (q === 'confirmerAnnul') { annulerAccord(); return; }
     if (q === 'refaire') { refaire(); return; }
     if (q === 'telecharger') { var nm = telecharger(); if (nm) dire('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
@@ -963,6 +1032,67 @@
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
   }
 
+  /* « OUI, IL A DIT NON » : un retour sans statut `refuse` est un ECHEC, le devis n'a pas
+     bouge. Clore l'affaire est la case, et la base refuse si un autre devis est en cours. */
+  async function noterRefus() {
+    if (S.attente || !S.devis || (S.devis.statut !== 'enregistre' && S.devis.statut !== 'envoye')) return;
+    var cM = el('devRefusMotif'), cC = el('devRefusClore');
+    var motif = cM && cM.value ? cM.value : 'autre', clore = !!(cC && cC.checked && affaireOuverte());
+    var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerRefus"]');
+    S.attente = true;
+    if (b) b.setAttribute('aria-busy', 'true');
+    try { r = unSeul(await rpc('devis_refuser', { p_bureau: bureau(), p_devis: S.devis.devis_id, p_motif: motif, p_clore: clore })); }
+    catch (e) { err = e; }
+    if (moi !== S) return;
+    S.attente = false;
+    if (b) b.removeAttribute('aria-busy');
+    if (err || !r || r.statut !== 'refuse') {
+      var det = err ? String(err.detail || err.message || '') : '';
+      if (err && sqlAbsent(err)) dire(MOT_SQL_REFUS, true);
+      else if (/autre devis en cours/.test(det)) dire('L’affaire a un autre devis en cours : décoche « Pas pour cette fois », ou abandonne l’autre devis d’abord.', true);
+      else if (/affaire close/.test(det)) dire('Cette affaire est déjà close : décoche « Pas pour cette fois ».', true);
+      else dire('Le refus n’est pas noté : ' + (err && !err.status ? 'ta connexion a coupé.' : 'la base l’a refusé.') + ' Le devis n’a pas bougé.', true);
+      return;
+    }
+    S.devis = r;
+    S.refus = false;
+    if (clore && S.ctx.affaire) { S.ctx.affaire.issue = 'perdue'; S.ctx.affaire.rappel = null; }
+    peindre();
+    dire('Devis ' + r.numero + ' noté refusé.' + (clore ? ' L’affaire passe à « Pas pour cette fois ».' : ''));
+    var t = MOD.querySelector('[data-dev="apercu"]');
+    if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
+    if (typeof S.ctx.change === 'function') { try { S.ctx.change(Object.assign({}, r, { affaireClose: clore })); } catch (e) {} }
+  }
+  /* « OUI, ANNULER L'ACCEPTATION » : le devis revient envoye ou enregistre. S'il redevient
+     modifiable, ses lignes et ses propositions sont relues, comme a l'ouverture. */
+  async function annulerAccord() {
+    if (S.attente || !S.devis || S.devis.statut !== 'accepte') return;
+    var cR = el('devAnnulRouvrir');
+    var rouvrir = !!(cR && cR.checked);
+    var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerAnnul"]');
+    S.attente = true;
+    if (b) b.setAttribute('aria-busy', 'true');
+    try { r = unSeul(await rpc('devis_annuler_accord', { p_bureau: bureau(), p_devis: S.devis.devis_id, p_rouvrir: rouvrir })); }
+    catch (e) { err = e; }
+    if (moi !== S) return;
+    S.attente = false;
+    if (b) b.removeAttribute('aria-busy');
+    if (err || !r || (r.statut !== 'envoye' && r.statut !== 'enregistre') || r.accepte_le) {
+      dire(err && sqlAbsent(err) ? MOT_SQL_ANNUL
+        : 'L’acceptation n’est pas annulée : ' + (err && !err.status ? 'ta connexion a coupé.' : 'la base l’a refusé.') + ' Le devis est toujours accepté.', true);
+      return;
+    }
+    S.devis = r;
+    S.annul = false;
+    if (rouvrir && S.ctx.affaire && S.ctx.affaire.issue === 'gagnee') S.ctx.affaire.issue = 'en_cours';
+    var mot = 'Acceptation du devis ' + r.numero + ' annulée : il est de nouveau ' + (r.statut === 'envoye' ? 'envoyé' : 'enregistré') + '.'
+      + (rouvrir ? ' L’affaire est rouverte.' : '') + ' Pense à supprimer la commande dans Vitisoft si tu l’avais importée.';
+    if (typeof S.ctx.change === 'function') { try { S.ctx.change(Object.assign({}, r, { affaireRouverte: rouvrir })); } catch (e) {} }
+    if (r.statut === 'enregistre' && !lectureSeule()) { S.etat = 'chargement'; peindre(); await charger(moi); if (moi !== S) return; }
+    else peindre();
+    dire(mot);
+  }
+
   async function accepter() {
     if (S.attente || !S.devis || (S.devis.statut !== 'enregistre' && S.devis.statut !== 'envoye')) return;
     if (S.modifie) { dire('Enregistre d’abord tes changements : la commande part du devis enregistré.', true); return; }
@@ -1044,7 +1174,7 @@
      l'ancien dans la meme transaction. Les propositions sont relues : le devis envoye ne les
      avait pas chargees. */
   async function refaire() {
-    if (S.attente || !S.devis || (S.devis.statut !== 'envoye' && S.devis.statut !== 'enregistre') || !affaireOuverte()) return;
+    if (S.attente || !S.devis || ['envoye', 'enregistre', 'refuse'].indexOf(S.devis.statut) < 0 || !affaireOuverte()) return;
     var moi = S, ancien = S.devis, lignes = S.lignesServeur || [];
     S.etat = 'chargement'; peindre();
     try {
@@ -1180,6 +1310,7 @@
      le devis porte `paiement_mode` et `paiement_jours` copies a l'enregistrement.
      Ce qui est imprime : section B de la specification. Jamais de numero d'accises. */
   function prixNet(l) { return l.pu_l_c != null ? l.pu_l_c : C.ligne(l.pu_ht_c, l.quantite, l.remise_cb || 0, 0).pu_l; }
+  function sirenFr(s) { return String(s || '').replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3'); }
   function cssTexte(t) { return String(t).replace(/[\\"]/g, '\\$&').replace(/[\n\r]/g, ' '); }
   function htmlPapier(d, lignes, o) {
     o = o || {};
@@ -1223,6 +1354,8 @@
       + '<p class="dpap__raison">' + esc(raisonV) + forme + '</p>'
       + ligneSi(v.adresse) + ligneSi(cpVille(v))
       + ligneSi(v.siret ? 'SIRET ' + v.siret : '')
+      + ligneSi(v.rcs_ville && (v.siren || v.siret) ? 'RCS ' + v.rcs_ville + ' ' + sirenFr(v.siren || String(v.siret).slice(0, 9)) : '')
+      + ligneSi(v.capital_eur ? 'Capital de ' + Number(v.capital_eur).toLocaleString('fr-FR') + '\u00a0€' : '')
       + ligneSi(v.tva ? 'N° de TVA intracommunautaire ' + v.tva : '')
       + ligneSi(v.email) + ligneSi(v.telephone)
       + '</div><div class="dpap__titre"><h1 class="dpap__h1">Devis ' + esc(d.numero || '') + '</h1>'
@@ -1250,7 +1383,14 @@
       + (cond ? '<p>' + esc(cond) + '.</p>' : '')
       + '<p>' + esc(PENALITES) + '</p>'
       + (d.notes ? '<p class="dpap__notes">' + esc(d.notes) + '</p>' : '')
-      + '</section></div></main></body></html>';
+      + '</section></div>'
+      /* LOT 51 : le cadre « Bon pour accord ». L'usage, pas une obligation : c'est ce que le
+         client remplit quand il signe sur papier. Absent d'un devis abandonne ou refuse. */
+      + (d.statut === 'abandonne' || d.statut === 'refuse' ? ''
+        : '<section class="dpap__accord" aria-label="Bon pour accord"><p class="dpap__etiq">Bon pour accord</p>'
+          + '<p class="dpap__case">Date :</p><p class="dpap__case">Nom et qualité du signataire :</p>'
+          + '<p class="dpap__case dpap__case--signe">Signature et cachet :</p></section>')
+      + '</main></body></html>';
   }
 
   window.BdvDevis = { ouvrir: ouvrir, fermer: fermer, htmlPapier: htmlPapier,
