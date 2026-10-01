@@ -12,6 +12,23 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 54 : la TVA autre que 20 %
+
+- Un choix « Où va le vin ? » sur le devis : en France, à l'export hors de l'UE, ou à un pro dans
+  un autre pays de l'UE.
+- En France, chaque ligne est à 20 % ou à 5,5 % (jus de raisin, moût, épicerie). La TVA se calcule
+  par taux, et le devis montre une ligne de TVA par taux. Le port reste à 20 %.
+- Export et UE : TVA à 0, la mention légale imprimée, le numéro de TVA du client (et le tien)
+  obligatoires en UE. Un avertissement sur l'accise, et une case « Mes prix comprennent les droits
+  d'accises » qui change la phrase du devis.
+- Le fichier Vitisoft gagne une 39e colonne : le taux de TVA de chaque ligne.
+- `supabase/lot54-devis-tva.sql`, à coller après le lot 53.
+
+Ce qui reste : la signature en ligne (lot 55). À demander chez Solumatic : un code TVA à 0 % dans
+Vitisoft, et le taux du « Produit pour transport » à l'export.
+
+---
+
 ## 01/10/2026, lot 53 : la livraison sur le devis, et trois arbitrages
 
 Tu as tranché la signature : le lien part de ta messagerie, le bureau n'envoie aucun mail, donc la

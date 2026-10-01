@@ -48,24 +48,37 @@
     return { pu_l: pu_l, pu_f: pu_f, net: qte * pu_l, final: qte * pu_f };
   }
 
-  /* lignes : [{ pu_c, qte, remise_cb }] ; g : remise globale (cb) ; tvaCb : 2000 ;
-     portC : frais de port HT en centimes (lot 53, 0 par defaut). LE PORT ENTRE DANS LE
-     TOTAL HT, la remise globale ne le touche pas, et la TVA (une fois, sur le total) le
-     couvre : total_ht = somme des final + port ; remise_globale = total_vins - somme des final. */
-  function devis(lignes, g, tvaCb, portC) {
+  /* lignes : [{ pu_c, qte, remise_cb, tva_cb? }] ; g : remise globale (cb) ; tvaCb : taux par
+     defaut d'une ligne (2000) ; portC : frais de port HT en centimes (lot 53, 0 par defaut) ;
+     portTvaCb : taux du port (lot 54, par defaut tvaCb).
+     LE PORT ENTRE DANS LE TOTAL HT, la remise globale ne le touche pas :
+       total_ht = somme des final + port ; remise_globale = total_vins - somme des final.
+     LOT 54 : LA TVA SE CALCULE PAR TAUX, une fois par taux, sur la base HT de ce taux (lignes
+     a ce taux, plus le port s'il est a ce taux), arrondie au centime. Un devis a un seul taux
+     rend exactement l'ancien calcul (une TVA sur le total). `bases` : { taux_cb: base_c }. */
+  function devis(lignes, g, tvaCb, portC, portTvaCb) {
     g = g || 0;
     tvaCb = tvaCb == null ? 2000 : tvaCb;
     var port = portC || 0;
-    var sortie = [], vins = 0, fin = 0;
+    var tPort = portTvaCb == null ? tvaCb : portTvaCb;
+    var sortie = [], vins = 0, fin = 0, bases = {};
     (lignes || []).forEach(function (l) {
       var x = ligne(l.pu_c, l.qte, l.remise_cb || 0, g);
+      var t = l.tva_cb == null ? tvaCb : l.tva_cb;
+      x.tva_cb = t;
       sortie.push(x);
       vins += x.net;
       fin += x.final;
+      bases[t] = (bases[t] || 0) + x.final;
     });
-    var ht = fin + port;
-    var tva = mulDiv(ht, tvaCb, 10000);
-    return { lignes: sortie, total_vins: vins, remise_globale: vins - fin, port: port, total_ht: ht, tva: tva, ttc: ht + tva };
+    if (port > 0) bases[tPort] = (bases[tPort] || 0) + port;
+    var ht = fin + port, tva = 0, taux = [];
+    Object.keys(bases).map(Number).sort(function (a, b) { return b - a; }).forEach(function (t) {
+      var m = mulDiv(bases[t], t, 10000);
+      tva += m;
+      taux.push({ tva_cb: t, base: bases[t], tva: m });
+    });
+    return { lignes: sortie, total_vins: vins, remise_globale: vins - fin, port: port, total_ht: ht, tva: tva, ttc: ht + tva, taux: taux };
   }
 
   /* LA SAISIE : « 8,50 » -> 850. Plus de deux decimales, un signe, du texte : null,

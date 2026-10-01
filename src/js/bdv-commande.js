@@ -3,7 +3,7 @@
    telechargement est fait par bdv-devis.js ; ce fichier ne fait que FABRIQUER.
 
    LE FORMAT EST CELUI DE LA SECTION 3 DE CAHIER_script-vitisoft.md, confirme par Ted :
-   38 colonnes lues PAR POSITION (24 au lot 49, plus 14 de livraison au lot 53), une rangee par ligne du devis, les colonnes 1 a 18
+   39 colonnes lues PAR POSITION (24 au lot 49, 14 de livraison au lot 53, le taux de TVA au lot 54), une rangee par ligne du devis, les colonnes 1 a 18
    repetees sur chaque rangee. Regles de la doc Vitisoft (Import de commandes) :
    point-virgule, point decimal, UTF-8, fin de ligne CR+LF, AUCUN guillemet, date
    AAAA-MM-JJ HH:MM:SS, premiere ligne = titres.
@@ -26,7 +26,13 @@
     /* LOT 53 : la livraison, A LA FIN (colonnes 25 a 38). Rien ne bouge avant. */
     'civilité_livraison', 'nom_livraison', 'prénom_livraison', 'adresse1_livraison', 'adresse2_livraison',
     'adresse3_livraison', 'code_postal_livraison', 'ville_livraison', 'pays_livraison', 'téléphone_livraison',
-    'mobile_livraison', 'transporteur', 'commentaire_livraison', 'montant_livraison'];
+    'mobile_livraison', 'transporteur', 'commentaire_livraison', 'montant_livraison',
+    /* LOT 54 : le taux de TVA de la ligne, en 39e. Il PREVAUT sur celui du produit dans Vitisoft
+       (doc Import de commandes, colonne taux_tva). Une ligne sans taux (SQL du lot 54 pas encore
+       passe) part vide : le taux du produit s'applique. Une fois le SQL passe, toute ligne a son
+       taux (20 par defaut, ce que disait le papier). Le PORT n'a pas de colonne de taux : Vitisoft
+       applique celui de son « Produit pour transport » (0 % requis a l'export et en UE). */
+    'taux_tva'];
 
   function champ(v) {
     return String(v == null ? '' : v).replace(/["“”]/g, '').replace(/;/g, ',')
@@ -84,6 +90,14 @@
       mode === 'retrait' ? '' : d.transporteur, com, port > 0 ? prix(port) : ''].map(champ);
   }
 
+  /* 2000 -> « 20 », 550 -> « 5.5 », 0 -> « 0 » (point decimal, comme les montants). */
+  function taux(l) {
+    if (l.tva_cb == null) return '';
+    var t = Number(l.tva_cb);
+    if ([2000, 550, 0].indexOf(t) < 0) throw new Error('taux illisible');
+    return t === 550 ? '5.5' : String(t / 100);
+  }
+
   function fabriquer(d, lignes) {
     if (!d || d.statut !== 'accepte' || !d.accepte_le) throw new Error('devis non accepte');
     if (manques(d, lignes).length) throw new Error('devis incomplet');
@@ -101,7 +115,7 @@
     var rangs = (lignes || []).slice().sort(function (x, y) { return x.rang - y.rang; });
     var rangees = [TITRES.join(';')].concat(rangs.map(function (l, i) {
       return tete.concat([String(i + 1), champ(l.num_produit), champ(l.designation), String(l.quantite),
-        prix(l.pu_f_c), prix(l.final_c)]).concat(liv).join(';');
+        prix(l.pu_f_c), prix(l.final_c)]).concat(liv).concat([taux(l)]).join(';');
     }));
     return { nom: 'commande-' + champ(d.numero) + '.csv', texte: rangees.join('\r\n') + '\r\n' };
   }

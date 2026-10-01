@@ -73,11 +73,11 @@ titre('1. Le fichier');
     'prix_unitaire', 'total_ht_ligne',
     'civilité_livraison', 'nom_livraison', 'prénom_livraison', 'adresse1_livraison', 'adresse2_livraison',
     'adresse3_livraison', 'code_postal_livraison', 'ville_livraison', 'pays_livraison', 'téléphone_livraison',
-    'mobile_livraison', 'transporteur', 'commentaire_livraison', 'montant_livraison'];
-  t('les 38 titres de la section 3 du CAHIER, dans l\'ordre (24 du lot 49, puis 14 de livraison A LA FIN)', JSON.stringify(titres) === JSON.stringify(attendus), titres.join('|'));
-  t('le CAHIER porte bien ces 38 colonnes', attendus.every((x, i) => new RegExp('\\| ' + (i + 1) + ' \\| ' + x + ' \\|').test(lire('CAHIER_script-vitisoft.md'))));
+    'mobile_livraison', 'transporteur', 'commentaire_livraison', 'montant_livraison', 'taux_tva'];
+  t('les 39 titres de la section 3 du CAHIER, dans l\'ordre (24 du lot 49, 14 de livraison, le taux de TVA, A LA FIN)', JSON.stringify(titres) === JSON.stringify(attendus), titres.join('|'));
+  t('le CAHIER porte bien ces 39 colonnes', attendus.every((x, i) => new RegExp('\\| ' + (i + 1) + ' \\| ' + x + ' \\|').test(lire('CAHIER_script-vitisoft.md'))));
   const r1 = rangees[1].split(';'), r2 = rangees[2].split(';');
-  t('chaque rangee a exactement 38 colonnes, meme avec un « ; » dans le nom du client', r1.length === 38 && r2.length === 38, r1.length + '/' + r2.length);
+  t('chaque rangee a exactement 39 colonnes, meme avec un « ; » dans le nom du client', r1.length === 39 && r2.length === 39, r1.length + '/' + r2.length);
   t('devis d\'avant le lot 53 : les 14 colonnes de livraison sont VIDES (Vitisoft reprend la facturation)', r1.slice(24).every(x => x === ''), r1.slice(24).join('|'));
   t('colonnes 1 et 3 = numero du devis', r1[0] === 'D-2026-0007' && r1[2] === 'D-2026-0007');
   t('colonne 2 = heure de PARIS, AAAA-MM-JJ HH:MM:SS (22:30 UTC le 1er juillet = 00:30 le 2)', r1[1] === '2026-07-02 00:30:05', r1[1]);
@@ -197,7 +197,7 @@ titre('1 bis. Lot 53 : la livraison dans le fichier');
     livraison: { nom: 'Le Quai', adresse1: '3 quai de la Fosse', adresse2: 'Porte "B"', code_postal: '44000', ville: 'Nantes', pays: 'France', telephone: '0240' } });
   const r = K.fabriquer(adr, LIGNES).texte.split('\r\n');
   const a1 = r[1].split(';'), a2 = r[2].split(';');
-  t('autre adresse : 38 colonnes, bloc de livraison en 26, 28, 29, 31 a 34', a1.length === 38 && a1[25] === 'Le Quai' && a1[27] === '3 quai de la Fosse'
+  t('autre adresse : 39 colonnes, bloc de livraison en 26, 28, 29, 31 a 34', a1.length === 39 && a1[25] === 'Le Quai' && a1[27] === '3 quai de la Fosse'
     && a1[28] === 'Porte B' && a1[30] === '44000' && a1[31] === 'Nantes' && a1[32] === 'France' && a1[33] === '0240', a1.slice(24).join('|'));
   t('civilite, prenom, adresse 3 et mobile restent vides', a1[24] === '' && a1[26] === '' && a1[29] === '' && a1[34] === '');
   t('transporteur en 36, son « ; » devenu virgule', a1[35] === 'Kuehne, Nagel', a1[35]);
@@ -213,6 +213,18 @@ titre('1 bis. Lot 53 : la livraison dans le fichier');
   const sansPort = K.fabriquer(Object.assign({}, DEVIS, { livraison_mode: 'client', port_c: 0 }), LIGNES).texte.split('\r\n')[1].split(';');
   t('sans port : montant_livraison VIDE (sinon Vitisoft exige un produit de transport, erreur 7)', sansPort[37] === '', sansPort[37]);
   t('le CAHIER dit le « Produit pour transport » et l\'erreur 7', /Produit pour transport/.test(lire('CAHIER_script-vitisoft.md')) && /erreur 7/.test(lire('CAHIER_script-vitisoft.md')));
+}
+
+titre('1 ter. Lot 54 : le taux de TVA par ligne (colonne 39)');
+{
+  const L = [Object.assign({}, LIGNES[1], { tva_cb: 2000 }), Object.assign({}, LIGNES[0], { tva_cb: 550 })];
+  const r = K.fabriquer(DEVIS, L).texte.split('\r\n');
+  t('colonne 39 : « 20 » et « 5.5 », point decimal', r[1].split(';')[38] === '20' && r[2].split(';')[38] === '5.5', r[1].split(';')[38] + ' ' + r[2].split(';')[38]);
+  const z = K.fabriquer(Object.assign({}, DEVIS, { regime_tva: 'export' }), L.map(l => Object.assign({}, l, { tva_cb: 0 }))).texte.split('\r\n')[1].split(';');
+  t('export / UE : « 0 »', z[38] === '0', z[38]);
+  t('devis d\'avant le lot (lignes sans taux) : colonne 39 VIDE, le taux du produit Vitisoft s\'applique', K.fabriquer(DEVIS, LIGNES).texte.split('\r\n')[1].split(';')[38] === '');
+  let leve = false; try { K.fabriquer(DEVIS, [Object.assign({}, LIGNES[0], { tva_cb: 1000 })]); } catch (e) { leve = true; }
+  t('un taux inconnu LEVE (jamais un fichier faux)', leve);
 }
 
 titre('2. La piece : « Le client a dit oui »');

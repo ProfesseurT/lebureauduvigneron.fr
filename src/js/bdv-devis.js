@@ -77,6 +77,21 @@
   /* LOT 53 : la livraison. Trois facons de livrer, dans les mots du vigneron. */
   var MODES_LIV = [['client', 'À l’adresse du client'], ['adresse', 'À une autre adresse'], ['retrait', 'Il vient chercher au domaine']];
   var MOT_SQL_LIV = 'La livraison sur le devis n’est pas encore disponible sur ton compte. Tes lignes sont gardées.';
+  /* LOT 54 : la TVA autre que 20 %. Trois regimes ; deux taux en France. Les mentions sont
+     celles du BOFiP : BOI-TVA-DECLA-30-20-20-30 § 70 pour l'UE (texte exact), reference au
+     262 I du CGI pour l'export (BOI-TVA-DECLA-30-20-20-10 § 490 exige la reference au texte). */
+  var REGIMES = [['france', 'En France'], ['export', 'Export hors de l’UE'], ['ue', 'Un pro dans un autre pays de l’UE']];
+  var TAUX = [['2000', '20 %'], ['550', '5,5 %']];
+  var MENTION_EXPORT = 'Exonération de TVA, article 262 I du CGI.';
+  var MENTION_UE = 'Exonération TVA, art. 262 ter-I du code général des impôts.';
+  var ACCISES_HORS = 'Prix HT, hors droits d’accises.';
+  var AIDE_ACCISE = 'Un vin qui part en suspension de droits (sous DAE) ne paie pas l’accise française : si c’est le cas, enlève-la de tes prix.';
+  var AIDE_VIES = 'Vérifie ce numéro sur le site VIES de la Commission européenne avant d’envoyer : sans numéro valide, la vente reste taxée en France.';
+  var AIDE_55 = 'Le 5,5 % vaut pour le jus de raisin non fermenté, le moût et l’épicerie. Le vin reste à 20 %.';
+  /* Le fichier donne le taux de chaque LIGNE ; le port, Vitisoft le taxe au taux de son
+     « Produit pour transport » (doc Import de commandes). Hors de France, il doit etre a 0 %. */
+  var PORT_0 = 'Si tu factures du port, le « Produit pour transport » de Vitisoft doit être à 0 % de TVA : sinon Vitisoft taxera le port et la facture ne collera plus au devis.';
+  var MOT_SQL_TVA = 'La TVA autre que 20 % n’est pas encore disponible sur ton compte. Tes lignes sont gardées.';
   var TRANSPORT_VITI = 'Des frais de port : dans Vitisoft, la configuration d’import doit avoir un « Produit pour transport », sinon la commande est refusée.';
   var FEUILLES_PAPIER = ['/css/bdv-theme.css', '/css/bdv-devis-papier.css'];
   var FEUILLES = null;   // le texte des deux feuilles, lu une fois par session
@@ -216,6 +231,11 @@
     return !!(d && d.livraison_mode && (d.livraison_mode !== 'client' || d.livraison_souhaitee || d.transporteur || Number(d.port_c) > 0));
   }
   /* « Livraison : ... » en une phrase, pour la lecture et le papier. */
+  /* Deux taux dans les lignes : le taux se dit sur chaque ligne. */
+  function mixte(lignes) {
+    var vus = {}; (lignes || []).forEach(function (l) { vus[l.tva_cb == null ? 2000 : l.tva_cb] = 1; });
+    return Object.keys(vus).length > 1;
+  }
   function phraseLiv(d) {
     var m = d && d.livraison_mode, a = (d && d.livraison) || {};
     var j = d && d.livraison_souhaitee ? dateFr(String(d.livraison_souhaitee).slice(0, 10)) : '';
@@ -223,6 +243,51 @@
     var ou = m === 'adresse' ? 'À livrer à ' + [a.nom, a.adresse1, a.adresse2, [a.code_postal, a.ville].filter(Boolean).join(' '),
       a.pays && !/^france$/i.test(a.pays) ? a.pays : ''].filter(Boolean).join(', ') : 'À livrer à l’adresse du client';
     return ou + (j ? ', souhaitée le ' + j : '') + (d && d.transporteur ? ', par ' + d.transporteur : '') + '.';
+  }
+
+  /* ---------------- LA TVA (lot 54) ----------------
+     Un devis d'avant le lot (ou sans le SQL) n'a pas ces colonnes : il est « en France »,
+     lignes a 20 %, et c'est ce qu'il etait. */
+  function tvaVide() { return { regime: 'france', client: '', accises: false }; }
+  function lot54() { return !!(S && S.devis && Object.prototype.hasOwnProperty.call(S.devis, 'regime_tva')); }
+  function tvaDeDevis(d) {
+    var v = tvaVide();
+    if (!d) return v;
+    v.regime = ['france', 'export', 'ue'].indexOf(d.regime_tva) >= 0 ? d.regime_tva : 'france';
+    v.client = d.client_tva || '';
+    v.accises = v.regime !== 'france' && !!d.accises_incluses;
+    return v;
+  }
+  function horsFrance() { return S.tva && S.tva.regime !== 'france'; }
+  /* Le taux d'une ligne a l'ecran : 2000 ou 550 en France, 0 ailleurs. */
+  function tauxDe(l) { return horsFrance() ? 0 : (String(l.tva) === '550' ? 550 : 2000); }
+  function tvaParDefaut() { return S.tva.regime === 'france' && !S.lignes.some(function (l) { return String(l.tva) === '550'; }); }
+  function tvaCorps() {
+    var o = { regime: S.tva.regime };
+    if (S.tva.regime === 'ue') o.client_tva = String(S.tva.client || '').trim();
+    if (S.tva.regime !== 'france') o.accises_incluses = !!S.tva.accises;
+    return o;
+  }
+  function numeroTva(t) { return String(t || '').toUpperCase().replace(/[\s.\-]/g, ''); }
+  function libTaux(cb) { return cb === 550 ? '5,5 %' : cb === 0 ? '0 %' : C.pourcent(cb) + ' %'; }
+  /* Les lignes de TVA des totaux : une par taux. Un devis a un seul taux de 20 % rend la
+     MEME ligne qu'avant le lot (son papier, et sa copie, ne changent pas d'un octet). */
+  function lignesTva(t, regime, cls) {
+    if (regime === 'export' || regime === 'ue') return '<p' + cls + '><span>TVA</span><span>' + C.euros(0) + '</span></p>';
+    var taux = (t.taux || []).filter(function (x) { return x.base > 0 || (t.taux || []).length === 1; });
+    if (taux.length <= 1) return '<p' + cls + '><span>TVA ' + libTaux(taux.length ? taux[0].tva_cb : 2000) + '</span><span>' + C.euros(t.tva) + '</span></p>';
+    return taux.map(function (x) {
+      return '<p' + cls + '><span>TVA ' + libTaux(x.tva_cb) + ' sur ' + C.euros(x.base) + '</span><span>' + C.euros(x.tva) + '</span></p>';
+    }).join('');
+  }
+  /* Les bases d'un devis enregistre, refaites depuis ses lignes (meme regle que la base). */
+  function tauxDuDevis(d, lignes) {
+    var r = C.devis((lignes || []).map(function (l) { return { pu_c: l.pu_ht_c, qte: l.quantite, remise_cb: l.remise_cb, tva_cb: l.tva_cb == null ? 2000 : l.tva_cb }; }),
+      d.remise_globale_cb || 0, 2000, Number(d.port_c) || 0, d.tva_cb == null ? 2000 : d.tva_cb);
+    return r.taux;
+  }
+  function phraseAccises(d) {
+    return d && (d.regime_tva === 'export' || d.regime_tva === 'ue') && !d.accises_incluses ? ACCISES_HORS : ACCISES;
   }
 
   /* ---------------- LE DOMAINE ---------------- */
@@ -243,7 +308,7 @@
     var q = parseInt(p.derniere_qte, 10);
     return { cle: cleDe(p), num_produit: p.num_produit || null, designation: p.designation || '',
       conditionnement: p.conditionnement || null, millesime: p.millesime || null,
-      qte: String(q > 0 ? q : 6), prix: C.saisie(pu), remise: '0',
+      qte: String(q > 0 ? q : 6), prix: C.saisie(pu), remise: '0', tva: '2000',
       pu_origine: pu, source_origine: p.source === 'client' ? 'client' : 'bureau',
       derniere_vente: p.derniere_vente || null };
   }
@@ -252,7 +317,7 @@
     var pu = Number(l.pu_ht_c) || 0;
     return { cle: cleDe(l), num_produit: l.num_produit || null, designation: l.designation || '',
       conditionnement: l.conditionnement || null, millesime: l.millesime || null,
-      qte: String(l.quantite), prix: C.saisie(pu), remise: C.pourcent(l.remise_cb || 0),
+      qte: String(l.quantite), prix: C.saisie(pu), remise: C.pourcent(l.remise_cb || 0), tva: l.tva_cb === 550 ? '550' : '2000',
       pu_origine: pu, source_origine: l.source_prix || 'saisi',
       derniere_vente: p && p.source === 'client' ? p.derniere_vente : null };
   }
@@ -283,10 +348,10 @@
     S.lignes.forEach(function (l) {
       var q = qteDe(l), pu = puDe(l), r = rlDe(l);
       l._c = (q !== null && pu !== null && r !== null) ? C.ligne(pu, q, r, g) : null;
-      if (l._c) ok.push({ pu_c: pu, qte: q, remise_cb: r });
+      if (l._c) ok.push({ pu_c: pu, qte: q, remise_cb: r, tva_cb: tauxDe(l) });
     });
     var port = portDe();
-    var t = C.devis(ok, g, 2000, port || 0);
+    var t = C.devis(ok, g, 2000, port || 0, horsFrance() ? 0 : 2000);
     /* UNE VALEUR FAUSSE N'EST JAMAIS IGNOREE EN SILENCE : le total dit « a corriger ». */
     t.invalide = gDe() === null || port === null || S.lignes.some(function (l) { return !l._c; });
     return t;
@@ -302,12 +367,12 @@
   function ecrireBrouillon() {
     if (!S || S.devis || S.etat !== 'edition') return;
     var id = S.ctx.affaire.affaire_id;
-    var vide = !S.lignes.length && !String(S.notes || '').trim() && !(C.remiseCb(S.remise) > 0) && livParDefaut(S.liv);
+    var vide = !S.lignes.length && !String(S.notes || '').trim() && !(C.remiseCb(S.remise) > 0) && livParDefaut(S.liv) && S.tva.regime === 'france';
     try {
       if (vide) { localStorage.removeItem(CLE_BROUILLON + id); return; }
       localStorage.setItem(CLE_BROUILLON + id, JSON.stringify({ le: jourIso(), lignes: S.lignes.map(function (l) {
         var x = {}; Object.keys(l).forEach(function (k) { if (k.charAt(0) !== '_') x[k] = l[k]; }); return x;
-      }), remise: S.remise, notes: S.notes, version_de: S.versionDe || null, liv: S.liv }));
+      }), remise: S.remise, notes: S.notes, version_de: S.versionDe || null, liv: S.liv, tva: S.tva }));
     } catch (e) {}
   }
   function effacerBrouillon(id) { try { localStorage.removeItem(CLE_BROUILLON + id); } catch (e) {} }
@@ -416,7 +481,7 @@
     S = { ctx: ctx, etat: 'chargement', props: [], source: ctx.nouveau ? 'bureau' : 'client', propsDomaine: null,
           lignes: [], remise: '0', notes: '', devis: ctx.devis || null, lignesServeur: null, voirTout: false,
           q: '', brouillon: null, confirme: false, attente: false, manque: [], accord: false, modifie: false,
-          envoi: false, versionDe: null, refus: false, annul: false, liv: livVide() };
+          envoi: false, versionDe: null, refus: false, annul: false, liv: livVide(), tva: tvaVide() };
     var moi = S;
     monter();
     peindre();
@@ -461,6 +526,7 @@
         S.remise = C.pourcent(S.devis.remise_globale_cb || 0);
         S.notes = S.devis.notes || '';
         S.liv = livDeDevis(S.devis);
+        S.tva = tvaDeDevis(S.devis);
         S.etat = 'edition';
       } else {
         S.brouillon = lireBrouillon(S.ctx.affaire.affaire_id);
@@ -565,6 +631,7 @@
       + '<label class="aff-champ dmod__remise"><span>En %, 0 si aucune</span>'
       + '<input id="devRemise" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="' + esc(S.remise) + '"></label></section>'
       + '<section class="dmod__bloc" aria-labelledby="devLivT" id="devLiv">' + htmlLivraison() + '</section>'
+      + '<section class="dmod__bloc" aria-labelledby="devTvaT" id="devTva">' + htmlTva() + '</section>'
       + '<section class="dmod__bloc" aria-labelledby="devTotalT"><h3 class="dmod__t" id="devTotalT">Total</h3><div id="devTotal"></div></section>'
       + htmlConditions(true)
       + '<section class="dmod__bloc" aria-labelledby="devNotesT"><h3 class="dmod__t" id="devNotesT">Notes</h3>'
@@ -582,7 +649,7 @@
      mode ne sont pas dessines (un champ cache ne doit rien envoyer). */
   function champLiv(id, cle, lib, o) {
     o = o || {};
-    return '<label class="aff-champ' + (o.large ? ' dmod__liv-l' : '') + '"><span>' + lib + '</span><input id="' + id + '" data-dev-liv="' + cle + '" type="'
+    return '<label class="aff-champ' + (o.large ? ' dmod__liv-l' : '') + (o.type === 'date' ? ' dmod__liv-date' : '') + '"><span>' + lib + '</span><input id="' + id + '" data-dev-liv="' + cle + '" type="'
       + (o.type || 'text') + '"' + (o.mode ? ' inputmode="' + o.mode + '"' : '') + ' autocomplete="' + (o.auto || 'off') + '" maxlength="' + (o.max || 80) + '"'
       + (o.min ? ' min="' + esc(o.min) + '"' : '') + ' value="' + esc(S.liv[cle]) + '"></label>';
   }
@@ -610,6 +677,24 @@
         + champLiv('devLivPort', 'port', 'Frais de port HT, 0 si aucun', { mode: 'decimal', max: 12 }))
       + '</div>'
       + (l.mode !== 'retrait' && portDe() > 0 ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '');
+  }
+  /* LA TVA A L'ECRAN : le regime d'abord. Les champs qui ne servent pas ne sont pas dessines. */
+  function htmlTva() {
+    var t = S.tva, f = S.fiche || {};
+    return '<h3 class="dmod__t" id="devTvaT">TVA</h3>'
+      + '<fieldset class="dmod__liv-modes"><legend class="dmod__st">Où va le vin ?</legend>'
+      + REGIMES.map(function (m) {
+        return '<label class="dmod__coche"><input type="radio" name="devTvaRegime" data-dev-regime value="' + m[0] + '"'
+          + (t.regime === m[0] ? ' checked' : '') + '><span>' + esc(m[1]) + '</span></label>';
+      }).join('') + '</fieldset>'
+      + (t.regime === 'france' ? '<p class="aff-aide">' + esc(AIDE_55) + '</p>' : '')
+      + (t.regime === 'ue' ? '<div class="dmod__liv-champs"><label class="aff-champ dmod__liv-l"><span>Numéro de TVA intracommunautaire du client</span>'
+        + '<input id="devTvaClient" type="text" autocomplete="off" maxlength="20" value="' + esc(t.client) + '"></label></div>'
+        + '<p class="aff-aide">' + esc(AIDE_VIES) + '</p>'
+        + (f.tva ? '' : '<p class="aff-aide">Ton numéro de TVA intracommunautaire manque : il doit figurer sur le devis. <button type="button" class="dmod__lien" data-dev="domaine">Le mettre dans Mon domaine</button></p>') : '')
+      + (t.regime !== 'france' ? '<p class="aff-aide">' + esc(AIDE_ACCISE) + '</p>'
+        + '<label class="dmod__coche"><input type="checkbox" id="devTvaAccises"' + (t.accises ? ' checked' : '') + '><span>Mes prix comprennent les droits d’accises</span></label>'
+        + '<p class="aff-aide">' + esc(PORT_0) + '</p>' : '');
   }
   function htmlConfirmeAbandon() {
     return '<div class="dmod__confirme" id="devConfirme"' + (S.confirme ? '' : ' hidden') + '>'
@@ -693,11 +778,13 @@
         + '<label class="dmod__coche"><input type="checkbox" checked data-dev-coche="' + esc(l.cle) + '">'
         + '<span class="dmod__nom">' + esc(nomDe(l)) + '</span></label>'
         + (l.num_produit ? '<p class="dmod__code">Code ' + esc(l.num_produit) + '</p>' : '')
-        + '<div class="dmod__champs">'
+        + '<div class="dmod__champs' + (horsFrance() ? '' : ' dmod__champs--tva') + '">'
         + '<label class="aff-champ"><span>Quantité</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="5" data-dev-champ="qte" value="' + esc(l.qte) + '"></label>'
         + '<label class="aff-champ"><span>Prix HT unitaire</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="12" data-dev-champ="prix" value="' + esc(l.prix) + '" aria-describedby="devSrc' + i + '">'
         + '<small class="dmod__src" id="devSrc' + i + '" data-dev-src>' + esc(provenance(l)) + '</small></label>'
         + '<label class="aff-champ"><span>Remise %</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="6" data-dev-champ="remise" value="' + esc(l.remise) + '"></label>'
+        + (horsFrance() ? '' : '<label class="aff-champ"><span>TVA</span><select data-dev-champ="tva">' + TAUX.map(function (x) {
+          return '<option value="' + x[0] + '"' + (String(l.tva) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label>')
         + '<p class="dmod__lt"><span>Total de la ligne</span><b data-dev-lt></b><small class="dmod__src" data-dev-net></small></p>'
         + '</div></li>';
     }).join('');
@@ -770,15 +857,17 @@
         + '<p class="dmod__tl-x">' + EXPLICATION_REMISE + '</p>' : '')
       + (t.port > 0 ? '<p class="dmod__tl"><span>Frais de port HT</span><span>' + C.euros(t.port) + '</span></p>' : '')
       + '<p class="dmod__tl"><span>Total HT</span><span>' + C.euros(t.total_ht) + '</span></p>'
-      + '<p class="dmod__tl"><span>TVA 20 %</span><span>' + C.euros(t.tva) + '</span></p>'
+      + lignesTva(t, t.regime, ' class="dmod__tl"')
       + '<p class="dmod__tl dmod__tl--ttc"><span>Total TTC</span><span>' + C.euros(t.ttc) + '</span></p></div>'
-      + '<p class="aff-aide">' + ACCISES + '</p>'
+      + (t.regime === 'export' ? '<p class="aff-aide">' + MENTION_EXPORT + '</p>' : t.regime === 'ue' ? '<p class="aff-aide">' + MENTION_UE + '</p>' : '')
+      + '<p class="aff-aide">' + (t.accisesHors ? ACCISES_HORS : ACCISES) + '</p>'
       + (avecDeux ? '<p class="aff-aide">Les deux remises s’ajoutent : la remise sur tout le devis s’applique après celles des lignes.</p>' : '');
   }
   /* LES MONTANTS SE METTENT A JOUR EN PLACE : repeindre la liste a chaque touche
      ferait perdre le champ ou l'on tape. */
   function majTotaux() {
     var t = calcul(), g = gDe() || 0;
+    t.regime = S.tva.regime; t.accisesHors = horsFrance() && !S.tva.accises;
     var deux = g > 0 && S.lignes.some(function (l) { return (rlDe(l) || 0) > 0; });
     var tot = el('devTotal'); if (tot) tot.innerHTML = t.invalide ? htmlACorriger() : htmlTotaux(t, g, deux);
     var pied = el('devPiedTtc'); if (pied) pied.textContent = t.invalide ? MOT_CORRIGER : C.euros(t.ttc);
@@ -836,15 +925,19 @@
   function htmlLecture() {
     var l = S.lignesServeur || [];
     var d = S.devis;
-    var t = { total_vins: d.total_vins_c, remise_globale: d.remise_globale_c, port: Number(d.port_c) || 0, total_ht: d.total_ht_c, tva: d.tva_c, ttc: d.total_ttc_c };
+    var t = { total_vins: d.total_vins_c, remise_globale: d.remise_globale_c, port: Number(d.port_c) || 0, total_ht: d.total_ht_c, tva: d.tva_c, ttc: d.total_ttc_c,
+      taux: tauxDuDevis(d, l), regime: d.regime_tva, accisesHors: phraseAccises(d) === ACCISES_HORS };
     var deux = d.remise_globale_cb > 0 && l.some(function (x) { return x.remise_cb > 0; });
     return htmlQui()
       + '<section class="dmod__bloc" aria-labelledby="devVinsT"><h3 class="dmod__t" id="devVinsT">Tes vins</h3>'
       + '<ul class="dmod__lignes dmod__lignes--lues">' + l.map(function (x) {
         return '<li class="dmod__ligne"><p class="dmod__nom">' + esc(nomDe(x)) + '</p><p class="aff-aide">'
           + esc(x.quantite + ' x ' + C.euros(x.pu_ht_c) + ' HT' + (x.remise_cb ? ', remise ' + C.pourcent(x.remise_cb) + ' % (prix net ' + C.euros(prixNet(x)) + ')' : '')
-          + ' : ' + C.euros(x.net_c)) + '</p></li>';
+          + ' : ' + C.euros(x.net_c) + (mixte(l) ? ', TVA ' + libTaux(x.tva_cb) : '')) + '</p></li>';
       }).join('') + '</ul></section>'
+      + (d.regime_tva === 'export' || d.regime_tva === 'ue' ? '<section class="dmod__bloc" aria-labelledby="devTvaT"><h3 class="dmod__t" id="devTvaT">TVA</h3><p class="dmod__cond">'
+        + (d.regime_tva === 'ue' ? 'Pro dans l’UE, n° de TVA ' + esc(d.client_tva || '') + '. ' : 'Export hors de l’UE. ') + esc(d.regime_tva === 'ue' ? MENTION_UE : MENTION_EXPORT) + '</p>'
+        + (Number(d.port_c) > 0 ? '<p class="aff-aide">' + esc(PORT_0) + '</p>' : '') + '</section>' : '')
       + '<section class="dmod__bloc" aria-labelledby="devLivT"><h3 class="dmod__t" id="devLivT">Livraison</h3><p class="dmod__cond">' + esc(phraseLiv(d)) + '</p>'
       + (Number(d.port_c) > 0 && d.statut === 'accepte' ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '') + '</section>'
       + '<section class="dmod__bloc" aria-labelledby="devTotalT"><h3 class="dmod__t" id="devTotalT">Total</h3>'
@@ -881,9 +974,10 @@
       S.notes = br.notes || '';
       S.versionDe = br.version_de && br.version_de.devis_id ? br.version_de : null;
       S.liv = Object.assign(livVide(), br.liv && typeof br.liv === 'object' ? br.liv : {});
+      S.tva = Object.assign(tvaVide(), br.tva && typeof br.tva === 'object' ? br.tva : {});
       S.brouillon = null; S.etat = 'edition'; S.modifie = true; peindre(); return;
     }
-    if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.liv = livVide(); S.etat = 'edition'; peindre(); return; }
+    if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.liv = livVide(); S.tva = tvaVide(); S.etat = 'edition'; peindre(); return; }
     if (q === 'voirTout') { S.voirTout = true; peindreProps(); return; }
     if (q === 'enregistrer') { enregistrer(); return; }
     if (q === 'apercu') { entrerApercu(); return; }
@@ -976,6 +1070,17 @@
   }
   function surChangement(ev) {
     var t = ev.target;
+    if (S && S.etat === 'edition' && t.id === 'devTvaAccises') { S.tva.accises = !!t.checked; S.modifie = true; majTotaux(); ecrireBrouillon(); return; }
+    if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-regime')) {
+      /* LE REGIME CHANGE : la section TVA ET les lignes se repeignent (le choix du taux n'existe
+         qu'en France) ; le focus reste sur le bouton choisi. */
+      S.tva.regime = t.value;
+      var sx = el('devTva'); if (sx) sx.innerHTML = htmlTva();
+      var nl = el('devLignes'); if (nl) nl.innerHTML = htmlLignes();
+      S.modifie = true; majTotaux(); ecrireBrouillon();
+      var fr = MOD.querySelector('[data-dev-regime][value="' + cssEsc(S.tva.regime) + '"]'); if (fr) { try { fr.focus(); } catch (e) {} }
+      return;
+    }
     if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-livmode')) {
       /* LE MODE CHANGE : la section se repeint, le focus reste sur le bouton choisi. */
       S.liv.mode = t.value;
@@ -1009,6 +1114,7 @@
     if (t.id === 'devCherche') { S.q = t.value; peindreProps(); return; }
     if (t.id === 'devRemise') S.remise = t.value;
     else if (t.id === 'devNotes') S.notes = t.value;
+    else if (t.id === 'devTvaClient') S.tva.client = t.value;
     else if (t.hasAttribute && t.hasAttribute('data-dev-liv')) {
       var avant = portDe() > 0;
       S.liv[t.getAttribute('data-dev-liv')] = t.value;
@@ -1089,8 +1195,11 @@
       if (q === null) return refuser('Indique la quantité pour ' + nom + '.', champDe(l, 'qte'));
       if (pu === null) return refuser('Indique un prix pour ' + nom + '.', champDe(l, 'prix'));
       if (r === null) return refuser('Une remise va de 0 à 100 %.', champDe(l, 'remise'));
-      sortie.push({ num_produit: l.num_produit, designation: l.designation, conditionnement: l.conditionnement,
-        millesime: l.millesime, quantite: q, pu_ht_c: pu, remise_cb: r, source_prix: sourceDe(l) });
+      var lx = { num_produit: l.num_produit, designation: l.designation, conditionnement: l.conditionnement,
+        millesime: l.millesime, quantite: q, pu_ht_c: pu, remise_cb: r, source_prix: sourceDe(l) };
+      /* Le taux ne part que s'il dit quelque chose (5,5 %), ou si le SQL du lot 54 est passe. */
+      if (tauxDe(l) !== 2000 || lot54() || !tvaParDefaut()) lx.tva_cb = tauxDe(l);
+      sortie.push(lx);
     }
     if (gDe() === null) return refuser('Une remise va de 0 à 100 %.', el('devRemise'));
     var lv = S.liv;
@@ -1099,6 +1208,12 @@
       if (!String(lv.adresse1).trim()) return refuser('Indique l’adresse de livraison.', el('devLivA1'));
       if (!String(lv.cp).trim()) return refuser('Indique le code postal de livraison.', el('devLivCp'));
       if (!String(lv.ville).trim()) return refuser('Indique la ville de livraison.', el('devLivVille'));
+    }
+    if (S.tva.regime === 'ue') {
+      var nt = numeroTva(S.tva.client);
+      if (!/^[A-Z]{2}[0-9A-Z+*]{2,13}$/.test(nt)) return refuser('Indique le numéro de TVA intracommunautaire du client, avec le code de son pays (par exemple DE123456789).', el('devTvaClient'));
+      if (nt.slice(0, 2) === 'FR') return refuser('Un numéro qui commence par FR est français : choisis « En France ».', el('devTvaClient'));
+      if (!(S.fiche && S.fiche.tva)) return refuser('Ton numéro de TVA intracommunautaire manque dans Mon domaine : il doit figurer sur le devis.', MOD.querySelector('#devTva [data-dev="domaine"]'));
     }
     if (portDe() === null) return refuser('Les frais de port s’écrivent en euros, par exemple 15 ou 12,50.', el('devLivPort'));
     var dj = String(lv.date || '').trim(), dmin = S.devis && S.devis.date_devis ? String(S.devis.date_devis) : jourIso();
@@ -1125,6 +1240,8 @@
          quand le devis a deja les colonnes (le SQL est passe : remettre a l'adresse du client
          doit s'ecrire aussi). */
       if (!livParDefaut(S.liv) || lot53()) corps.p_livraison = livCorps();
+      /* LE NEUVIEME (lot 54), meme regle. */
+      if (!tvaParDefaut() || lot54()) corps.p_tva = tvaCorps();
       r = unSeul(await rpc('devis_enregistrer', corps));
     } catch (e) { err = e; }
     if (moi !== S) return;
@@ -1133,7 +1250,10 @@
     /* UN RETOUR VIDE OU SANS NUMERO EST UN ECHEC, et il se dit comme tel. */
     if (err || !r || !r.numero) {
       var detail = err ? String(err.detail || '') : '';
-      if (err && sqlAbsent(err) && corps && corps.p_livraison && !lot53()) dire(MOT_SQL_LIV, true);
+      if (err && sqlAbsent(err) && corps && corps.p_tva && !lot54()) dire(MOT_SQL_TVA, true);
+      else if (err && sqlAbsent(err) && corps && corps.p_livraison && !lot53()) dire(MOT_SQL_LIV, true);
+      else if (/tva :.*domaine/.test(detail)) dire('Ton numéro de TVA intracommunautaire manque dans Mon domaine. Tes lignes sont gardées.', true);
+      else if (/tva :/.test(detail)) dire('La TVA n’est pas complète : vérifie le numéro de TVA du client. Tes lignes sont gardées.', true);
       else if (err && sqlAbsent(err)) dire(MOT_SQL, true);
       else if (/livraison/.test(detail)) dire('La livraison n’est pas complète : vérifie l’adresse, la date et les frais de port. Tes lignes sont gardées.', true);
       else if (/fiche du domaine incomplete/.test(detail)) {
@@ -1156,13 +1276,14 @@
     var neuf = !S.devis, remplace = neuf && S.versionDe ? S.versionDe.numero : '';
     S.devis = r;
     if (lot53()) S.liv = livDeDevis(r);
+    if (lot54()) S.tva = tvaDeDevis(r);
     S.versionDe = null;
     effacerBrouillon(S.ctx.affaire.affaire_id);
     /* Le prix enregistre devient l'origine : sa provenance est celle qu'on vient d'ecrire. */
     S.lignes.forEach(function (l, i) { l.pu_origine = lignes[i].pu_ht_c; l.source_origine = lignes[i].source_prix; });
     S.lignesServeur = lignes.map(function (x, i) {
       var c = C.ligne(x.pu_ht_c, x.quantite, x.remise_cb, g);
-      return Object.assign({ rang: i + 1, pu_l_c: c.pu_l, pu_f_c: c.pu_f, net_c: c.net, final_c: c.final }, x);
+      return Object.assign({ rang: i + 1, tva_cb: x.tva_cb == null ? 2000 : x.tva_cb, pu_l_c: c.pu_l, pu_f_c: c.pu_f, net_c: c.net, final_c: c.final }, x);
     });
     try {
       var lu = await api('/devis_lignes?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(r.devis_id) + '&order=rang');
@@ -1360,6 +1481,7 @@
     S.remise = C.pourcent(ancien.remise_globale_cb || 0);
     S.notes = ancien.notes || '';
     S.liv = livDeDevis(ancien);
+    S.tva = tvaDeDevis(ancien);
     /* Une date souhaitee deja passee ne se reprend pas : le nouveau devis la refuserait. */
     if (S.liv.date && S.liv.date < jourIso()) S.liv.date = '';
     S.confirme = false; S.accord = false; S.envoi = false;
@@ -1614,6 +1736,7 @@
        de la ligne, et leur somme = total des vins. La remise globale reste une ligne des
        totaux. La colonne n'existe que si une ligne est remisee. */
     var avecNet = (lignes || []).some(function (l) { return l.remise_cb > 0; });
+    var avecTva = mixte(lignes);
     var lg = (lignes || []).map(function (l) {
       return '<tr><td class="dpap__vin"><b>' + esc(l.designation) + '</b>'
         + (l.millesime ? ' ' + esc(l.millesime) : '') + (l.conditionnement ? ', ' + esc(l.conditionnement) : '')
@@ -1622,6 +1745,7 @@
         + '<td class="dpap__n">' + C.euros(l.pu_ht_c) + '</td>'
         + '<td class="dpap__n">' + (l.remise_cb ? C.pourcent(l.remise_cb) + ' %' : '') + '</td>'
         + (avecNet ? '<td class="dpap__n">' + C.euros(prixNet(l)) + '</td>' : '')
+        + (avecTva ? '<td class="dpap__n">' + libTaux(l.tva_cb == null ? 2000 : l.tva_cb) + '</td>' : '')
         + '<td class="dpap__n">' + C.euros(l.net_c) + '</td></tr>';
     }).join('');
     return '<!doctype html><html lang="fr" data-theme="light"><head><meta charset="utf-8">'
@@ -1651,12 +1775,13 @@
       + ligneSi(a.contact_nom ? 'À l’attention de ' + a.contact_nom : '')
       + ligneSi(a.adresse) + ligneSi(cpVille(a)) + ligneSi(a.pays && !/^france$/i.test(a.pays) ? a.pays : '')
       + ligneSi(a.siret ? 'SIRET ' + a.siret : '')
+      + ligneSi(d.regime_tva === 'ue' && d.client_tva ? 'N° de TVA intracommunautaire ' + d.client_tva : '')
       + ligneSi(a.num_client ? 'N° client ' + a.num_client : '')
       + '</section>'
       /* LOT 53 : la livraison, sous le client. Un devis d'avant le lot n'a rien a dire. */
       + (livAdire(d) ? '<section class="dpap__liv"><p class="dpap__etiq">Livraison</p><p>' + esc(phraseLiv(d)) + '</p></section>' : '')
       + '<table class="dpap__table"><thead><tr><th>Vin</th><th class="dpap__n">Quantité</th><th class="dpap__n">Prix HT</th>'
-      + '<th class="dpap__n">Remise</th>' + (avecNet ? '<th class="dpap__n">Prix net</th>' : '')
+      + '<th class="dpap__n">Remise</th>' + (avecNet ? '<th class="dpap__n">Prix net</th>' : '') + (avecTva ? '<th class="dpap__n">TVA</th>' : '')
       + '<th class="dpap__n">Total HT</th></tr></thead><tbody>' + lg + '</tbody></table>'
       + '<div class="dpap__fin"><section class="dpap__totaux">'
       + '<p><span>Total des vins HT</span><span>' + C.euros(d.total_vins_c) + '</span></p>'
@@ -1664,10 +1789,12 @@
         + '<p class="dpap__x">' + EXPLICATION_REMISE + '</p>' : '')
       + (Number(d.port_c) > 0 ? '<p><span>Frais de port HT</span><span>' + C.euros(d.port_c) + '</span></p>' : '')
       + '<p><span>Total HT</span><span>' + C.euros(d.total_ht_c) + '</span></p>'
-      + '<p><span>TVA 20 %</span><span>' + C.euros(d.tva_c) + '</span></p>'
+      + lignesTva({ tva: d.tva_c, taux: d.regime_tva ? tauxDuDevis(d, lignes) : null }, d.regime_tva, '')
       + '<p class="dpap__ttc"><span>Total TTC</span><span>' + C.euros(d.total_ttc_c) + '</span></p>'
       + '</section>'
-      + '<section class="dpap__mentions"><p>' + ACCISES + '</p>'
+      + '<section class="dpap__mentions">'
+      + (d.regime_tva === 'export' ? '<p>' + MENTION_EXPORT + '</p>' : d.regime_tva === 'ue' ? '<p>' + MENTION_UE + '</p>' : '')
+      + '<p>' + phraseAccises(d) + '</p>'
       + (cond ? '<p>' + esc(cond) + '.</p>' : '')
       + '<p>' + esc(PENALITES) + '</p>'
       + (d.notes ? '<p class="dpap__notes">' + esc(d.notes) + '</p>' : '')

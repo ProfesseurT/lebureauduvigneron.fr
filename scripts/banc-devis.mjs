@@ -61,7 +61,9 @@ t('elle est ecrite par un script Python a part, pas par le code qu\'elle control
   && !/bdv-devis-calcul/.test(sansCommentaires(lire('scripts/fixtures/devis-calculs.py')).replace(/^#.*$/gm, '')));
 /* LOT 53 : le calcul rend aussi `port` (0 sans port). La table de cas est d'avant le port :
    on la compare sans lui, et on verifie a part qu'il vaut 0 et ne change rien. */
-const sansPort = (r) => { const x = Object.assign({}, r); delete x.port; return x; };
+/* LOT 54 : le calcul rend aussi `taux` (les bases par taux) et le taux de chaque ligne. */
+const sansPort = (r) => { const x = Object.assign({}, r); delete x.port; delete x.taux;
+  x.lignes = x.lignes.map(l => { const y = Object.assign({}, l); delete y.tva_cb; return y; }); return x; };
 const ecarts = cas.filter(c => JSON.stringify(sansPort(C.devis(c.lignes, c.remise_globale_cb, 2000))) !== JSON.stringify(c.attendu));
 t('sans port, le calcul rend port 0 et les memes centimes qu\'avant', cas.every(c => C.devis(c.lignes, c.remise_globale_cb, 2000).port === 0
   && JSON.stringify(sansPort(C.devis(c.lignes, c.remise_globale_cb, 2000, 0))) === JSON.stringify(c.attendu)));
@@ -158,7 +160,10 @@ function monter(o) {
         if (X.mode === 'liv-refus') throw refus(400, '{"code":"23514","message":"livraison : adresse incomplete"}');
         const lv = c.p_livraison || { mode: 'client' };
         const g = c.p_remise_globale_cb || 0;
-        const r = C.devis(c.p_lignes.map(l => ({ pu_c: l.pu_ht_c, qte: l.quantite, remise_cb: l.remise_cb })), g, 2000, lv.port_c || 0);
+        if (c.p_tva !== undefined && !o.lot54) throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_enregistrer(p_tva)"}');
+        if (X.mode === 'tva-refus') throw refus(400, '{"code":"23514","message":"tva : numero de TVA du client manquant ou illisible"}');
+        const tv = c.p_tva || { regime: 'france' }, fr = tv.regime === 'france';
+        const r = C.devis(c.p_lignes.map(l => ({ pu_c: l.pu_ht_c, qte: l.quantite, remise_cb: l.remise_cb, tva_cb: fr ? (l.tva_cb == null ? 2000 : l.tva_cb) : 0 })), g, 2000, lv.port_c || 0, fr ? 2000 : 0);
         let d = c.p_devis ? X.devis.find(x => x.devis_id === c.p_devis) : null;
         if (c.p_devis && (!d || d.statut !== 'enregistre')) throw refus(400, '{"code":"23514","message":"devis fige : il ne se modifie plus"}');
         if (!d) {
@@ -173,10 +178,12 @@ function monter(o) {
           paiement_mode: X.fiche.paiement_mode, paiement_jours: X.fiche.paiement_jours, validite_jours: X.fiche.validite_jours,
           remise_globale_cb: g, tva_cb: 2000, total_vins_c: r.total_vins, remise_globale_c: r.remise_globale, total_ht_c: r.total_ht,
           tva_c: r.tva, total_ttc_c: r.ttc, notes: c.p_notes, abandonne_le: null });
+        if (o.lot54) Object.assign(d, { regime_tva: tv.regime, client_tva: tv.regime === 'ue' ? String(tv.client_tva).toUpperCase().replace(/[\s.\-]/g, '') : null,
+          accises_incluses: fr ? true : !!tv.accises_incluses, tva_cb: fr ? 2000 : 0 });
         if (o.lot53) Object.assign(d, { livraison_mode: lv.mode || 'client', port_c: lv.port_c || 0, transporteur: lv.transporteur || null,
           livraison_souhaitee: lv.souhaitee || null, livraison: lv.mode === 'adresse' ? Object.assign({ pays: 'France' }, lv.adresse, { pays: (lv.adresse && lv.adresse.pays) || 'France' }) : null });
         X.lignes[d.devis_id] = c.p_lignes.map((l, i) => Object.assign({ rang: i + 1 }, l,
-          { pu_l_c: r.lignes[i].pu_l, pu_f_c: r.lignes[i].pu_f, net_c: r.lignes[i].net, final_c: r.lignes[i].final }));
+          { pu_l_c: r.lignes[i].pu_l, pu_f_c: r.lignes[i].pu_f, net_c: r.lignes[i].net, final_c: r.lignes[i].final }, o.lot54 ? { tva_cb: r.lignes[i].tva_cb } : {}));
         return { ...d };
       }
       if (chemin === '/rpc/devis_abandonner') {
@@ -263,8 +270,8 @@ titre('2. La piece : un devis neuf chez un client');
     && m.querySelector('.tmod__boite').firstElementChild.nextElementSibling === X.doc.getElementById('devRetourL'));
   t('AUCUN numero avant l\'enregistrement', !/D-\d{4}-\d+/.test(m.textContent), m.textContent.match(/D-\d{4}-\d+/));
   const h3 = [...m.querySelectorAll('.dmod__bloc > h3')].map(h => h.textContent);
-  t('les blocs dans l\'ordre : Pour qui, Tes vins, Remise sur tout le devis, Livraison (lot 53), Total, Conditions, Notes',
-    JSON.stringify(h3) === JSON.stringify(['Pour qui', 'Tes vins', 'Remise sur tout le devis', 'Livraison', 'Total', 'Conditions', 'Notes']), JSON.stringify(h3));
+  t('les blocs dans l\'ordre : Pour qui, Tes vins, Remise sur tout le devis, Livraison (lot 53), TVA (lot 54), Total, Conditions, Notes',
+    JSON.stringify(h3) === JSON.stringify(['Pour qui', 'Tes vins', 'Remise sur tout le devis', 'Livraison', 'TVA', 'Total', 'Conditions', 'Notes']), JSON.stringify(h3));
   const pied = m.querySelector('.dmod__pied');
   t('« Enregistrer le devis » vit dans le pied, avec le total TTC, et le pied est le dernier bloc',
     !!pied && /Enregistrer le devis/.test(pied.textContent) && /Total TTC/.test(pied.textContent) && X.corps().lastElementChild === pied);
@@ -1089,6 +1096,90 @@ const radio = (X, v) => { const n = X.modale().querySelector('[data-dev-livmode]
   t('papier « a l\'adresse du client » sans rien d\'autre : AUCUN bloc (le papier d\'avant, a l\'octet pres)', !/dpap__liv/.test(rien) && rien === ancien.replace('', ''));
   const ret = X.w.BdvDevis.htmlPapier(Object.assign({}, d, { livraison_mode: 'retrait', livraison: null, transporteur: null, port_c: 0, livraison_souhaitee: null }), [], { conditions: '' });
   t('papier retrait : « Il vient chercher au domaine. »', /Il vient chercher au domaine\./.test(ret));
+}
+
+titre('12. Lot 54 : la TVA autre que 20 %');
+t('calcul : a l\'export le port est a 0 % (taux du port), meme si le taux par defaut des lignes est 20 %',
+  C.devis([{ pu_c: 1000, qte: 6, tva_cb: 0 }], 0, 2000, 1500, 0).tva === 0 && C.devis([{ pu_c: 1000, qte: 6 }], 0, 2000, 1500, 2000).tva === 1500);
+t('calcul : en France le port rejoint la base 20 %, meme si toutes les lignes sont a 5,5 %',
+  C.devis([{ pu_c: 1000, qte: 6, tva_cb: 550 }], 0, 2000, 1500, 2000).tva === C.mulDiv(6000, 550, 10000) + C.mulDiv(1500, 2000, 10000));
+const regime = (X, v) => { const n = X.modale().querySelector('[data-dev-regime][value="' + v + '"]'); n.checked = true; n.dispatchEvent(new X.w.Event('change', { bubbles: true })); };
+const choisir = (X, cle, v) => { const n = X.champ(cle, 'tva'); n.value = v; n.dispatchEvent(new X.w.Event('input', { bubbles: true })); };
+{
+  const X = monter({ lot53: true, lot54: true });
+  await X.ouvrir(); X.cocher(CLE0); X.cocher(CLE1);
+  t('section TVA : trois regimes, « En France » coche, un choix 20 % / 5,5 % par ligne', !!X.doc.getElementById('devTva')
+    && tous(X, '[data-dev-regime]').length === 3 && X.modale().querySelector('[data-dev-regime]:checked').value === 'france'
+    && !!X.champ(CLE0, 'tva') && X.champ(CLE0, 'tva').value === '2000');
+  await X.enregistrer(); await attendre(20);
+  const c0 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer')[0].corps;
+  t('devis neuf tout a 20 % : ni p_tva ni taux de ligne ne partent (compatible avant le SQL)', !('p_tva' in c0) && c0.p_lignes.every(l => !('tva_cb' in l)), JSON.stringify(c0.p_lignes[0]));
+  const q0 = Number(X.champ(CLE0, 'qte').value), q1 = Number(X.champ(CLE1, 'qte').value);
+  choisir(X, CLE1, '550');
+  const b20 = q0 * 850, b55 = q1 * 950, attendu = b20 + b55 + C.mulDiv(b20, 2000, 10000) + C.mulDiv(b55, 550, 10000);
+  t('une ligne a 5,5 % : deux lignes de TVA, et le TTC calcule par taux', /TVA 20 % sur/.test(X.doc.getElementById('devTotal').textContent)
+    && /TVA 5,5 % sur/.test(X.doc.getElementById('devTotal').textContent) && X.doc.getElementById('devPiedTtc').textContent === C.euros(attendu), X.doc.getElementById('devTotal').textContent);
+  await X.enregistrer(); await attendre(20);
+  const c1 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('le taux part par ligne, et p_tva aussi', c1.p_lignes.map(l => l.tva_cb).join(',') === '2000,550' && c1.p_tva && c1.p_tva.regime === 'france', JSON.stringify(c1.p_lignes.map(l => l.tva_cb)));
+  regime(X, 'export');
+  t('export : plus de choix de taux sur les lignes, avertissement accise et case decochee', !X.champ(CLE0, 'tva')
+    && /suspension de droits/.test(X.doc.getElementById('devTva').textContent) && X.doc.getElementById('devTvaAccises') && !X.doc.getElementById('devTvaAccises').checked);
+  t('export : TVA 0, la mention 262 I et « hors droits d\'accises »', /TVA0,00/.test(X.doc.getElementById('devTotal').textContent.replace(/\s/g, ''))
+    && /article 262 I du CGI/.test(X.doc.getElementById('devTotal').textContent) && /hors droits d’accises/.test(X.doc.getElementById('devTotal').textContent)
+    && X.doc.getElementById('devPiedTtc').textContent === C.euros(b20 + b55), X.doc.getElementById('devTotal').textContent);
+  t('le focus reste sur le regime choisi', X.doc.activeElement && X.doc.activeElement.value === 'export');
+  const ca = X.doc.getElementById('devTvaAccises'); ca.checked = true; ca.dispatchEvent(new X.w.Event('change', { bubbles: true }));
+  t('accises cochees : « droits d\'accises inclus »', /droits d’accises inclus/.test(X.doc.getElementById('devTotal').textContent));
+  await X.enregistrer(); await attendre(20);
+  const c2 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('export : lignes a 0, p_tva export avec les accises', c2.p_lignes.every(l => l.tva_cb === 0) && c2.p_tva.regime === 'export' && c2.p_tva.accises_incluses === true && !('client_tva' in c2.p_tva), JSON.stringify(c2.p_tva));
+  regime(X, 'ue');
+  X.taper(X.doc.getElementById('devTvaClient'), 'FR12345678901');
+  await X.enregistrer(); await attendre(20);
+  t('UE avec un numero FR : refus sur le champ', /commence par FR/.test(X.avis()) && X.doc.getElementById('devTvaClient').getAttribute('aria-invalid') === 'true', X.avis());
+  X.taper(X.doc.getElementById('devTvaClient'), 'de 123 456 789');
+  await X.enregistrer(); await attendre(20);
+  const c3 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('UE : numero envoye, regime ue', c3.p_tva.regime === 'ue' && /^de 123 456 789$/.test(c3.p_tva.client_tva) && /enregistré/.test(X.avis()), JSON.stringify(c3.p_tva) + ' ' + X.avis());
+  regime(X, 'france');
+  t('retour en France : les lignes retrouvent leur taux choisi', X.champ(CLE1, 'tva') && X.champ(CLE1, 'tva').value === '550');
+  choisir(X, CLE1, '2000');
+  await X.enregistrer(); await attendre(20);
+  const c4 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('revenir en France tout a 20 % sur un devis du lot 54 : p_tva part quand meme (sinon la base le garderait en UE)', c4.p_tva && c4.p_tva.regime === 'france', JSON.stringify(c4.p_tva));
+}
+{
+  const X = monter({ lot53: true, lot54: true, fiche: Object.assign({}, FICHE, { tva: null }) });
+  await X.ouvrir(); X.cocher(CLE0); regime(X, 'ue');
+  t('UE sans numero de TVA du domaine : on le dit, avec le lien vers Mon domaine', /numéro de TVA intracommunautaire manque/.test(X.doc.getElementById('devTva').textContent)
+    && !!X.modale().querySelector('#devTva [data-dev="domaine"]'));
+  X.taper(X.doc.getElementById('devTvaClient'), 'DE123456789');
+  await X.enregistrer(); await attendre(20);
+  t('... et l\'enregistrement est refuse avant de partir', /manque dans Mon domaine/.test(X.avis()) && !X.requetes.some(r => r.chemin === '/rpc/devis_enregistrer'), X.avis());
+}
+{
+  const X = monter({ lot53: true });
+  await X.ouvrir(); X.cocher(CLE0); choisir(X, CLE0, '550');
+  await X.enregistrer(); await attendre(20);
+  t('SANS le SQL du lot 54 : la phrase dediee, rien d\'enregistre', /TVA autre que 20 % n’est pas encore disponible/.test(X.avis()) && !X.devis.length, X.avis());
+}
+{
+  const X = monter({});
+  const base = { numero: 'D-2026-0098', statut: 'envoye', date_devis: '2026-09-30', valable_jusqu: '2026-10-30', vendeur: FICHE, acheteur: { nom: 'Weinhaus', pays: 'Allemagne' },
+    remise_globale_cb: 0, total_vins_c: 9330, remise_globale_c: 0, port_c: 0, total_ht_c: 9330, paiement_mode: 'fdm', paiement_jours: 30 };
+  const L = [{ designation: 'Vin', quantite: 6, pu_ht_c: 1000, remise_cb: 0, net_c: 6000, final_c: 6000, tva_cb: 2000 },
+             { designation: 'Jus de raisin', quantite: 10, pu_ht_c: 333, remise_cb: 0, net_c: 3330, final_c: 3330, tva_cb: 550 }];
+  const fr = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { regime_tva: 'france', tva_cb: 2000, accises_incluses: true, tva_c: 1383, total_ttc_c: 10713 }), L, { conditions: '' });
+  t('papier mixte : colonne TVA, et deux lignes « TVA 20 % sur » / « TVA 5,5 % sur »', /<th class="dpap__n">TVA<\/th>/.test(fr) && /TVA 20 % sur 60,00/.test(fr) && /TVA 5,5 % sur 33,30/.test(fr) && /droits d’accises inclus/.test(fr), fr.match(/dpap__totaux[^]*?<\/section>/)[0]);
+  const ue = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { regime_tva: 'ue', client_tva: 'DE123456789', tva_cb: 0, accises_incluses: false, tva_c: 0, total_ttc_c: 9330 }),
+    L.map(l => Object.assign({}, l, { tva_cb: 0 })), { conditions: '' });
+  t('papier UE : les DEUX numeros, la mention 262 ter-I mot pour mot, TVA 0, hors accises', /N° de TVA intracommunautaire FR32123456789/.test(ue) && /N° de TVA intracommunautaire DE123456789/.test(ue)
+    && /Exonération TVA, art\. 262 ter-I du code général des impôts\./.test(ue) && /<span>TVA<\/span><span>0,00/.test(ue) && /hors droits d’accises/.test(ue) && !/<th class="dpap__n">TVA/.test(ue));
+  const ex = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { regime_tva: 'export', tva_cb: 0, accises_incluses: true, tva_c: 0, total_ttc_c: 9330 }), L.map(l => Object.assign({}, l, { tva_cb: 0 })), { conditions: '' });
+  t('papier export : mention 262 I, accises incluses si coche', /Exonération de TVA, article 262 I du CGI\./.test(ex) && /droits d’accises inclus/.test(ex));
+  const ancien = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { tva_c: 1866, total_ttc_c: 11196 }), L.map(l => { const y = Object.assign({}, l); delete y.tva_cb; return y; }), { conditions: '' });
+  t('papier d\'un devis d\'avant le lot : « TVA 20 % » seule, comme avant', /<p><span>TVA 20 %<\/span><span>18,66/.test(ancien) && !/TVA 5,5/.test(ancien) && !/<th class="dpap__n">TVA/.test(ancien));
 }
 
 console.log('\n== VERDICT ==');

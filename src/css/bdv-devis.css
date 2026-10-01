@@ -113,6 +113,8 @@
 }
 @container devis (min-width:36rem){
   .bdv-coque .dmod__champs{ grid-template-columns:minmax(0, 0.7fr) minmax(0, 1.3fr) minmax(0, 0.7fr) minmax(0, 1fr); }
+  /* LOT 54 : en France, un cinquieme champ (le taux de TVA) avant le total de la ligne. */
+  .bdv-coque .dmod__champs--tva{ grid-template-columns:minmax(0, 0.7fr) minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 0.8fr) minmax(0, 1fr); }
 }
 .bdv-coque .dmod__champs .aff-champ{ min-width:0; align-content:start; }
 .bdv-coque .dmod__src{ font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
@@ -143,6 +145,13 @@
   min-width:0;
 }
 .bdv-coque .dmod__liv-champs .aff-champ{ min-width:0; align-content:start; }
+/* Un champ date a une largeur propre (le calendrier, ~190 px dans Chromium) que `min-width:0`
+   ne reduit pas : mesure a 390, il depassait sa colonne de 5 px. Il prend la ligne entiere
+   quand la boite est etroite. */
+.bdv-coque .dmod__liv-champs input{ min-width:0; }
+@container devis (max-width:30rem){
+  .bdv-coque .dmod__liv-date{ grid-column:1 / -1; }
+}
 .bdv-coque .dmod__liv-l{ grid-column:1 / -1; }
 
 /* LE TOTAL, ordre fixe. Les chiffres en colonnes egales, alignes a droite. */

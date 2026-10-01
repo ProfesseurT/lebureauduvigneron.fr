@@ -7508,3 +7508,39 @@ Autres arbitrages du meme jour (detail : `Claude outputs/` n'en a pas, tout est 
   nouveaux numeros de colonne.
 - Garde : `supabase/banc-lot53-devis-livraison.sql` (30 controles, rejoue 47 a 52), `banc:devis`
   section 11, `banc:commande` section 1 bis, 7 mutations JS tuees. `banc-rejeu.mjs` liste le lot 53.
+
+### LOT 54 : LA TVA AUTRE QUE 20 % (01/10/2026)
+
+- **`supabase/lot54-devis-tva.sql`, a coller par Ted APRES 53.** `devis.regime_tva` (`france` |
+  `export` | `ue`, defaut `france`), `devis.client_tva` (obligatoire en `ue`, jamais FR),
+  `devis.accises_incluses` (vrai en France ; a l'export et en UE, case decochee par defaut),
+  `devis_lignes.tva_cb` (2000 | 550 | 0). **`devis.tva_cb` devient le TAUX DU PORT** (2000 en
+  France, 0 sinon). L'ancienne contrainte `devis_tva` (une TVA sur le total) est remplacee par
+  `regime_tva = 'france' or tva_c = 0` : avec deux taux elle ne tenait plus.
+- **LA TVA SE CALCULE PAR TAUX**, une fois par taux sur sa base HT (le port dans la base de son
+  taux), arrondie au centime (art. 242 nonies A : par taux sur la facture). Un devis a un seul taux
+  rend EXACTEMENT l'ancien calcul. Meme regle JS (`C.devis(lignes, g, 2000, port, tauxPort)`, qui
+  rend aussi `taux`) et SQL ; banc SQL et banc JS sur les memes cas, dont un ou l'arrondi par taux
+  differe de l'arrondi global (16,83 et non 16,84).
+- **En France, une ligne est a 20 % ou 5,5 %, jamais 0.** Hors France, tout est a 0 quoi que dise
+  la ligne. L'UE exige aussi le numero de TVA du DOMAINE (Mon domaine).
+- **`devis_enregistrer` passe a 9 arguments** (`p_tva jsonb`). NULL sur un devis existant : il
+  GARDE son regime, et une ligne sans taux reprend le sien (reconnue par code + designation).
+  Le navigateur n'envoie `p_tva` et `tva_cb` que s'ils disent quelque chose, ou si le devis a les
+  colonnes (`lot54()`). Sans le SQL : `MOT_SQL_TVA`.
+- **Mentions** : export « Exonération de TVA, article 262 I du CGI. » (le BOFiP exige la reference
+  au texte, le libelle est d'usage) ; UE « Exonération TVA, art. 262 ter-I du code général des
+  impôts. » (BOFiP BOI-TVA-DECLA-30-20-20-30 § 70, mot pour mot) et les DEUX numeros de TVA.
+  « Prix HT, hors droits d'accises. » quand la case accises n'est pas cochee.
+- **Le papier d'un devis d'avant le lot sort a l'octet pres** (`lignesTva` rend la meme ligne
+  « TVA 20 % »). Colonne TVA dans le tableau seulement si deux taux.
+- **Fichier de commande : colonne 39 `taux_tva`** (« 20 », « 5.5 », « 0 »), qui PREVAUT sur le
+  produit Vitisoft. Le port n'a pas de taux dans le fichier : hors France, le « Produit pour
+  transport » de Vitisoft doit etre a 0 % (l'ecran le dit). Question ouverte a Solumatic : un code
+  TVA a 0 % existe-t-il dans Vitisoft ?
+- Garde : `supabase/banc-lot54-devis-tva.sql` (32 controles, rejoue 47 a 53, 9 mutations tuees),
+  `banc:devis` section 12, `banc:commande` section 1 ter, 7 mutations JS tuees. Verificateur
+  independant : 4 defauts mineurs corriges.
+- **PIEGE DU PONT (01/10/2026)** : recommiter vers l'appareil depuis le MEME `stagedPath` peut
+  livrer l'ANCIEN contenu (le correctif CSS du lot 53 s'est perdu ainsi). Toujours un dossier
+  neuf dans /mnt/user-data/outputs, puis comparer les md5 des deux cotes.

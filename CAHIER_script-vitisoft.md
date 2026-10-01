@@ -115,8 +115,9 @@ porter ces numéros de colonne. **Confirmée par Ted le 01/10/2026** (lot 49, qu
 | 36 | transporteur | Créé à la volée par Vitisoft s'il n'existe pas. Vide pour un retrait au domaine. |
 | 37 | commentaire_livraison | « Livraison souhaitée le JJ/MM/AAAA », ou « Enlèvement au domaine » (avec la date prévue s'il y en a une). |
 | 38 | montant_livraison | Les frais de port HT. Vide s'il n'y en a pas. |
+| 39 | taux_tva | Le taux de TVA de la ligne : `20`, `5.5` ou `0` (export, UE). Il prévaut sur celui du produit Vitisoft. Ajouté le 01/10/2026 (lot 54). |
 
-**Colonnes 25 à 38, ajoutées le 01/10/2026 (lot 53), À LA FIN** : les 24 premières ne bougent pas.
+**Colonnes 25 à 38, ajoutées le 01/10/2026 (lot 53), puis 39 (lot 54), À LA FIN** : les 24 premières ne bougent pas.
 Les colonnes 25 à 35 sont VIDES quand le vin part à l'adresse du client ou quand il vient le
 chercher au domaine : Vitisoft reprend alors l'adresse de facturation. La configuration déjà posée
 doit recevoir ces 14 numéros de colonne.
@@ -124,7 +125,9 @@ doit recevoir ces 14 numéros de colonne.
 Réglages de la configuration : première ligne = titres (coché), mode de facturation par défaut `HT`,
 format de date `AAAA-MM-JJ HH:MM:SS`, et un **« Produit pour transport »** renseigné : sans lui,
 Vitisoft refuse toute commande qui porte des frais de port (erreur 7). Ce produit porte le taux de
-TVA du port : 20 %, comme le devis. Le fichier respectera les règles de la doc (point-virgule, point
+TVA du port : 20 %, comme le devis. **Question ouverte (lot 54)** : à l'export et en UE, le devis
+met le port à 0 % ; Vitisoft appliquera le taux de ce produit de transport. Et pour une ligne à
+`0`, un code TVA à 0 % doit exister dans Vitisoft (la doc dit que le code « doit exister »). Le fichier respectera les règles de la doc (point-virgule, point
 décimal, UTF-8, CR+LF, aucun guillemet) et sera contrôlé avec le vérificateur de la section 13 de
 la doc avant chaque livraison.
 
