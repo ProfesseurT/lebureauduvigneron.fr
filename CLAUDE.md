@@ -7263,6 +7263,7 @@ Specification du conseil (vigneron + commercial) : `Claude outputs/lot45-spec.md
 
 ### LOT 47 : LE DEVIS (30/09/2026)
 
+**CLOS le 01/10/2026 : commit eeade3e pousse par Ted, `supabase/lot47-devis.sql` passe en base par Ted.**
 Specification du conseil (vigneron, directeur commercial, architecte) : `Claude outputs/lot47-spec.md`. Verification :
 `Claude outputs/lot47-verif.md` (trois passages sur la vraie page, captures `lot47*-*.png`).
 
@@ -7308,3 +7309,10 @@ Specification du conseil (vigneron, directeur commercial, architecte) : `Claude 
   decimales de `prix_unitaire` dans l'import ; phrases « Indique la quantite / un prix pour ... » (au lieu de « Combien
   de ... ? ») ; ecart voulu de la remise globale. Anterieur : a 390, la tabulation sort de la boite (comme le panneau
   d'une affaire).
+
+### PROCHAIN LOT, ET LE MUR QU'IL RENCONTRE (01/10/2026)
+
+Le lot 48 prevu (envoi + signature en ligne avec e-mail verifie par code) fait partir du courrier du
+bureau vers le CLIENT DU VIGNERON : c'est le premier destinataire qui n'est ni Ted ni un vigneron, donc
+la regle du SEUIL s'applique AVANT (palier Resend payant, textes legaux, juriste pour les particuliers).
+Le palier payant contredit la regle du gratuit. A trancher par Ted avant de construire la signature.

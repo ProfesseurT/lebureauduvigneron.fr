@@ -14,6 +14,8 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ## 30/09/2026, lot 47 : le devis
 
+Clos le 01/10/2026 : commit eeade3e poussé, SQL passé dans Supabase.
+
 Tes quatre choix : remise en % par ligne ET sur tout le devis ; pour un nouveau client, les vins que
 tu as vendus sur 12 mois au prix le plus courant ; un numéro D-2026-0001 sans trou ; pas de port.
 
