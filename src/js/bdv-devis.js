@@ -74,6 +74,10 @@
   /* LOT 52 : la copie du devis envoye, et la trace du fichier de commande. */
   var MOT_COPIE_RATEE = 'La copie du devis n’a pas pu être gardée.';
   var MOT_TRACE_RATEE = 'Ce téléchargement n’a pas pu être noté.';
+  /* LOT 53 : la livraison. Trois facons de livrer, dans les mots du vigneron. */
+  var MODES_LIV = [['client', 'À l’adresse du client'], ['adresse', 'À une autre adresse'], ['retrait', 'Il vient chercher au domaine']];
+  var MOT_SQL_LIV = 'La livraison sur le devis n’est pas encore disponible sur ton compte. Tes lignes sont gardées.';
+  var TRANSPORT_VITI = 'Des frais de port : dans Vitisoft, la configuration d’import doit avoir un « Produit pour transport », sinon la commande est refusée.';
   var FEUILLES_PAPIER = ['/css/bdv-theme.css', '/css/bdv-devis-papier.css'];
   var FEUILLES = null;   // le texte des deux feuilles, lu une fois par session
   /* Police et encre du pied de page imprime, en dur : une boite de marge de @page ne lit
@@ -164,6 +168,63 @@
     return !!(S.devis && (S.devis.statut !== 'enregistre' || (S.ctx.affaire && S.ctx.affaire.issue && S.ctx.affaire.issue !== 'en_cours')));
   }
 
+  /* ---------------- LA LIVRAISON (lot 53) ----------------
+     L'ecran garde le TEXTE saisi, comme pour les lignes. Un devis d'avant le lot (ou dont
+     le SQL n'est pas passe) n'a pas ces colonnes : il vaut « a l'adresse du client », sans
+     port, et c'est ce qu'il etait. */
+  function livVide() {
+    return { mode: 'client', nom: '', adresse1: '', adresse2: '', cp: '', ville: '', pays: 'France', tel: '',
+             date: '', transporteur: '', port: '' };
+  }
+  function lot53() { return !!(S && S.devis && Object.prototype.hasOwnProperty.call(S.devis, 'livraison_mode')); }
+  function livDeDevis(d) {
+    var v = livVide(), a = (d && d.livraison) || {};
+    if (!d) return v;
+    v.mode = ['client', 'adresse', 'retrait'].indexOf(d.livraison_mode) >= 0 ? d.livraison_mode : 'client';
+    v.nom = a.nom || ''; v.adresse1 = a.adresse1 || ''; v.adresse2 = a.adresse2 || '';
+    v.cp = a.code_postal || ''; v.ville = a.ville || ''; v.pays = a.pays || 'France'; v.tel = a.telephone || '';
+    v.date = d.livraison_souhaitee ? String(d.livraison_souhaitee).slice(0, 10) : '';
+    v.transporteur = d.transporteur || '';
+    v.port = Number(d.port_c) > 0 ? C.saisie(Number(d.port_c)) : '';
+    return v;
+  }
+  /* Le port lisible, en centimes ; vide = 0 ; illisible = null (le total dit « a corriger »). */
+  function portDe() {
+    if (!S.liv || S.liv.mode === 'retrait') return 0;
+    var t = String(S.liv.port == null ? '' : S.liv.port).trim();
+    if (t === '') return 0;
+    var c = C.centimes(t);
+    return c !== null && c <= MAX_PU ? c : null;
+  }
+  /* Rien a dire : a l'adresse du client, sans date, sans transporteur, sans port. */
+  function livParDefaut(l) {
+    return l.mode === 'client' && !String(l.date || '').trim() && !String(l.transporteur || '').trim() && !(portDe() > 0);
+  }
+  /* Ce que la base recoit (`p_livraison`). Les champs vides partent vides : c'est elle qui
+     nettoie, et elle refuse ce qui manque. */
+  function livCorps() {
+    var l = S.liv, o = { mode: l.mode, souhaitee: String(l.date || '').trim() || null };
+    if (l.mode !== 'retrait') { o.transporteur = String(l.transporteur || '').trim() || null; o.port_c = portDe() || 0; }
+    if (l.mode === 'adresse') o.adresse = { nom: l.nom, adresse1: l.adresse1, adresse2: l.adresse2, code_postal: l.cp,
+      ville: l.ville, pays: l.pays, telephone: l.tel };
+    return o;
+  }
+  /* LE PAPIER NE PARLE DE LIVRAISON QUE S'IL Y A QUELQUE CHOSE A DIRE : un devis d'avant le lot
+     (ou sans rien de livraison) imprime comme avant, a l'octet pres, et sa copie rattrapee a
+     l'accord ne dit rien que le papier envoye ne disait pas. */
+  function livAdire(d) {
+    return !!(d && d.livraison_mode && (d.livraison_mode !== 'client' || d.livraison_souhaitee || d.transporteur || Number(d.port_c) > 0));
+  }
+  /* « Livraison : ... » en une phrase, pour la lecture et le papier. */
+  function phraseLiv(d) {
+    var m = d && d.livraison_mode, a = (d && d.livraison) || {};
+    var j = d && d.livraison_souhaitee ? dateFr(String(d.livraison_souhaitee).slice(0, 10)) : '';
+    if (m === 'retrait') return 'Il vient chercher au domaine' + (j ? ', le ' + j : '') + '.';
+    var ou = m === 'adresse' ? 'À livrer à ' + [a.nom, a.adresse1, a.adresse2, [a.code_postal, a.ville].filter(Boolean).join(' '),
+      a.pays && !/^france$/i.test(a.pays) ? a.pays : ''].filter(Boolean).join(', ') : 'À livrer à l’adresse du client';
+    return ou + (j ? ', souhaitée le ' + j : '') + (d && d.transporteur ? ', par ' + d.transporteur : '') + '.';
+  }
+
   /* ---------------- LE DOMAINE ---------------- */
   function manquesDomaine(f) {
     if (window.BdvDomaine && BdvDomaine.complete && BdvDomaine.complete(f)) return [];
@@ -224,9 +285,10 @@
       l._c = (q !== null && pu !== null && r !== null) ? C.ligne(pu, q, r, g) : null;
       if (l._c) ok.push({ pu_c: pu, qte: q, remise_cb: r });
     });
-    var t = C.devis(ok, g, 2000);
+    var port = portDe();
+    var t = C.devis(ok, g, 2000, port || 0);
     /* UNE VALEUR FAUSSE N'EST JAMAIS IGNOREE EN SILENCE : le total dit « a corriger ». */
-    t.invalide = gDe() === null || S.lignes.some(function (l) { return !l._c; });
+    t.invalide = gDe() === null || port === null || S.lignes.some(function (l) { return !l._c; });
     return t;
   }
 
@@ -240,12 +302,12 @@
   function ecrireBrouillon() {
     if (!S || S.devis || S.etat !== 'edition') return;
     var id = S.ctx.affaire.affaire_id;
-    var vide = !S.lignes.length && !String(S.notes || '').trim() && !(C.remiseCb(S.remise) > 0);
+    var vide = !S.lignes.length && !String(S.notes || '').trim() && !(C.remiseCb(S.remise) > 0) && livParDefaut(S.liv);
     try {
       if (vide) { localStorage.removeItem(CLE_BROUILLON + id); return; }
       localStorage.setItem(CLE_BROUILLON + id, JSON.stringify({ le: jourIso(), lignes: S.lignes.map(function (l) {
         var x = {}; Object.keys(l).forEach(function (k) { if (k.charAt(0) !== '_') x[k] = l[k]; }); return x;
-      }), remise: S.remise, notes: S.notes, version_de: S.versionDe || null }));
+      }), remise: S.remise, notes: S.notes, version_de: S.versionDe || null, liv: S.liv }));
     } catch (e) {}
   }
   function effacerBrouillon(id) { try { localStorage.removeItem(CLE_BROUILLON + id); } catch (e) {} }
@@ -354,7 +416,7 @@
     S = { ctx: ctx, etat: 'chargement', props: [], source: ctx.nouveau ? 'bureau' : 'client', propsDomaine: null,
           lignes: [], remise: '0', notes: '', devis: ctx.devis || null, lignesServeur: null, voirTout: false,
           q: '', brouillon: null, confirme: false, attente: false, manque: [], accord: false, modifie: false,
-          envoi: false, versionDe: null, refus: false, annul: false };
+          envoi: false, versionDe: null, refus: false, annul: false, liv: livVide() };
     var moi = S;
     monter();
     peindre();
@@ -398,6 +460,7 @@
         S.lignes = l.map(ligneDeDevis);
         S.remise = C.pourcent(S.devis.remise_globale_cb || 0);
         S.notes = S.devis.notes || '';
+        S.liv = livDeDevis(S.devis);
         S.etat = 'edition';
       } else {
         S.brouillon = lireBrouillon(S.ctx.affaire.affaire_id);
@@ -501,6 +564,7 @@
       + '<section class="dmod__bloc" aria-labelledby="devRemiseT"><h3 class="dmod__t" id="devRemiseT">Remise sur tout le devis</h3>'
       + '<label class="aff-champ dmod__remise"><span>En %, 0 si aucune</span>'
       + '<input id="devRemise" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="' + esc(S.remise) + '"></label></section>'
+      + '<section class="dmod__bloc" aria-labelledby="devLivT" id="devLiv">' + htmlLivraison() + '</section>'
       + '<section class="dmod__bloc" aria-labelledby="devTotalT"><h3 class="dmod__t" id="devTotalT">Total</h3><div id="devTotal"></div></section>'
       + htmlConditions(true)
       + '<section class="dmod__bloc" aria-labelledby="devNotesT"><h3 class="dmod__t" id="devNotesT">Notes</h3>'
@@ -513,6 +577,39 @@
         + htmlEnvoiAvant() + htmlCommandeAvant() : '')
       + '<div class="dmod__pied"><p class="dmod__pied-t">Total TTC <b id="devPiedTtc"></b></p>'
       + '<button type="button" class="btn btn--bordeaux" data-dev="enregistrer">Enregistrer le devis</button></div>';
+  }
+  /* LA LIVRAISON A L'ECRAN. Le mode se choisit d'abord ; les champs qui ne servent pas a ce
+     mode ne sont pas dessines (un champ cache ne doit rien envoyer). */
+  function champLiv(id, cle, lib, o) {
+    o = o || {};
+    return '<label class="aff-champ' + (o.large ? ' dmod__liv-l' : '') + '"><span>' + lib + '</span><input id="' + id + '" data-dev-liv="' + cle + '" type="'
+      + (o.type || 'text') + '"' + (o.mode ? ' inputmode="' + o.mode + '"' : '') + ' autocomplete="' + (o.auto || 'off') + '" maxlength="' + (o.max || 80) + '"'
+      + (o.min ? ' min="' + esc(o.min) + '"' : '') + ' value="' + esc(S.liv[cle]) + '"></label>';
+  }
+  function htmlLivraison() {
+    var l = S.liv, auj = jourIso();
+    var min = S.devis && S.devis.date_devis && String(S.devis.date_devis) < auj ? String(S.devis.date_devis) : auj;
+    return '<h3 class="dmod__t" id="devLivT">Livraison</h3>'
+      + '<fieldset class="dmod__liv-modes"><legend class="dmod__st">Comment le vin part ?</legend>'
+      + MODES_LIV.map(function (m) {
+        return '<label class="dmod__coche"><input type="radio" name="devLivMode" data-dev-livmode value="' + m[0] + '"'
+          + (l.mode === m[0] ? ' checked' : '') + '><span>' + esc(m[1]) + '</span></label>';
+      }).join('') + '</fieldset>'
+      + (l.mode === 'adresse' ? '<div class="dmod__liv-champs">'
+        + champLiv('devLivNom', 'nom', 'Destinataire', { large: true, auto: 'organization' })
+        + champLiv('devLivA1', 'adresse1', 'Adresse', { large: true, max: 120, auto: 'address-line1' })
+        + champLiv('devLivA2', 'adresse2', 'Complément (facultatif)', { large: true, max: 120, auto: 'address-line2' })
+        + champLiv('devLivCp', 'cp', 'Code postal', { max: 10, auto: 'postal-code' })
+        + champLiv('devLivVille', 'ville', 'Ville', { max: 60, auto: 'address-level2' })
+        + champLiv('devLivPays', 'pays', 'Pays', { max: 60, auto: 'country-name' })
+        + champLiv('devLivTel', 'tel', 'Téléphone (facultatif)', { type: 'tel', max: 20, auto: 'tel' })
+        + '</div>' : '')
+      + '<div class="dmod__liv-champs">'
+      + champLiv('devLivDate', 'date', l.mode === 'retrait' ? 'Il passe le (facultatif)' : 'Livraison souhaitée le (facultatif)', { type: 'date', min: min, max: 10 })
+      + (l.mode === 'retrait' ? '' : champLiv('devLivTransp', 'transporteur', 'Transporteur (facultatif)', { max: 60 })
+        + champLiv('devLivPort', 'port', 'Frais de port HT, 0 si aucun', { mode: 'decimal', max: 12 }))
+      + '</div>'
+      + (l.mode !== 'retrait' && portDe() > 0 ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '');
   }
   function htmlConfirmeAbandon() {
     return '<div class="dmod__confirme" id="devConfirme"' + (S.confirme ? '' : ' hidden') + '>'
@@ -663,7 +760,7 @@
   var EXPLICATION_REMISE = 'Appliquée à chaque prix unitaire, arrondie au centime.';
   function htmlACorriger() {
     return '<div class="dmod__totaux"><p class="dmod__tl dmod__tl--ttc"><span>Total TTC</span><span>' + MOT_CORRIGER + '</span></p></div>'
-      + '<p class="aff-aide">Une quantité, un prix ou une remise n’est pas lisible : corrige-le pour voir le total.</p>'
+      + '<p class="aff-aide">Une quantité, un prix, une remise ou les frais de port ne sont pas lisibles : corrige-les pour voir le total.</p>'
       + '<p class="aff-aide">' + ACCISES + '</p>';
   }
   function htmlTotaux(t, g, avecDeux) {
@@ -671,6 +768,7 @@
       + '<p class="dmod__tl"><span>Total des vins HT</span><span>' + C.euros(t.total_vins) + '</span></p>'
       + (g > 0 ? '<p class="dmod__tl"><span>' + libelleRemise(g) + ' :</span><span>-' + C.euros(t.remise_globale) + '</span></p>'
         + '<p class="dmod__tl-x">' + EXPLICATION_REMISE + '</p>' : '')
+      + (t.port > 0 ? '<p class="dmod__tl"><span>Frais de port HT</span><span>' + C.euros(t.port) + '</span></p>' : '')
       + '<p class="dmod__tl"><span>Total HT</span><span>' + C.euros(t.total_ht) + '</span></p>'
       + '<p class="dmod__tl"><span>TVA 20 %</span><span>' + C.euros(t.tva) + '</span></p>'
       + '<p class="dmod__tl dmod__tl--ttc"><span>Total TTC</span><span>' + C.euros(t.ttc) + '</span></p></div>'
@@ -738,7 +836,7 @@
   function htmlLecture() {
     var l = S.lignesServeur || [];
     var d = S.devis;
-    var t = { total_vins: d.total_vins_c, remise_globale: d.remise_globale_c, total_ht: d.total_ht_c, tva: d.tva_c, ttc: d.total_ttc_c };
+    var t = { total_vins: d.total_vins_c, remise_globale: d.remise_globale_c, port: Number(d.port_c) || 0, total_ht: d.total_ht_c, tva: d.tva_c, ttc: d.total_ttc_c };
     var deux = d.remise_globale_cb > 0 && l.some(function (x) { return x.remise_cb > 0; });
     return htmlQui()
       + '<section class="dmod__bloc" aria-labelledby="devVinsT"><h3 class="dmod__t" id="devVinsT">Tes vins</h3>'
@@ -747,6 +845,8 @@
           + esc(x.quantite + ' x ' + C.euros(x.pu_ht_c) + ' HT' + (x.remise_cb ? ', remise ' + C.pourcent(x.remise_cb) + ' % (prix net ' + C.euros(prixNet(x)) + ')' : '')
           + ' : ' + C.euros(x.net_c)) + '</p></li>';
       }).join('') + '</ul></section>'
+      + '<section class="dmod__bloc" aria-labelledby="devLivT"><h3 class="dmod__t" id="devLivT">Livraison</h3><p class="dmod__cond">' + esc(phraseLiv(d)) + '</p>'
+      + (Number(d.port_c) > 0 && d.statut === 'accepte' ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '') + '</section>'
       + '<section class="dmod__bloc" aria-labelledby="devTotalT"><h3 class="dmod__t" id="devTotalT">Total</h3>'
       + htmlTotaux(t, d.remise_globale_cb || 0, deux) + '</section>'
       + htmlConditions(false)
@@ -780,9 +880,10 @@
       S.remise = br.remise == null ? '0' : String(br.remise);
       S.notes = br.notes || '';
       S.versionDe = br.version_de && br.version_de.devis_id ? br.version_de : null;
+      S.liv = Object.assign(livVide(), br.liv && typeof br.liv === 'object' ? br.liv : {});
       S.brouillon = null; S.etat = 'edition'; S.modifie = true; peindre(); return;
     }
-    if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.etat = 'edition'; peindre(); return; }
+    if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.liv = livVide(); S.etat = 'edition'; peindre(); return; }
     if (q === 'voirTout') { S.voirTout = true; peindreProps(); return; }
     if (q === 'enregistrer') { enregistrer(); return; }
     if (q === 'apercu') { entrerApercu(); return; }
@@ -867,8 +968,23 @@
     if (q === 'refaire') { refaire(); return; }
     if (q === 'telecharger') { var nm = telecharger(); if (nm) noterTelechargement('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
+  function majAideLiv() {
+    var sec = el('devLiv'); if (!sec) return;
+    var p = sec.querySelector('.aff-aide'), veut = S.liv.mode !== 'retrait' && portDe() > 0;
+    if (veut && !p) { p = document.createElement('p'); p.className = 'aff-aide'; p.textContent = TRANSPORT_VITI; sec.appendChild(p); }
+    else if (!veut && p) p.remove();
+  }
   function surChangement(ev) {
     var t = ev.target;
+    if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-livmode')) {
+      /* LE MODE CHANGE : la section se repeint, le focus reste sur le bouton choisi. */
+      S.liv.mode = t.value;
+      if (S.liv.mode === 'retrait') { S.liv.port = ''; S.liv.transporteur = ''; }
+      var sec = el('devLiv'); if (sec) sec.innerHTML = htmlLivraison();
+      S.modifie = true; majTotaux(); ecrireBrouillon();
+      var f = MOD.querySelector('[data-dev-livmode][value="' + cssEsc(S.liv.mode) + '"]'); if (f) { try { f.focus(); } catch (e) {} }
+      return;
+    }
     if (!S || S.etat !== 'edition' || !t.hasAttribute || !t.hasAttribute('data-dev-coche')) return;
     var cle = t.getAttribute('data-dev-coche');
     if (t.checked) {
@@ -893,6 +1009,12 @@
     if (t.id === 'devCherche') { S.q = t.value; peindreProps(); return; }
     if (t.id === 'devRemise') S.remise = t.value;
     else if (t.id === 'devNotes') S.notes = t.value;
+    else if (t.hasAttribute && t.hasAttribute('data-dev-liv')) {
+      var avant = portDe() > 0;
+      S.liv[t.getAttribute('data-dev-liv')] = t.value;
+      /* La phrase Vitisoft du port apparait / disparait sans repeindre le champ ou l'on tape. */
+      if ((portDe() > 0) !== avant) majAideLiv();
+    }
     else if (t.hasAttribute && t.hasAttribute('data-dev-champ')) {
       var l = ligneDe(t);
       if (!l) return;
@@ -971,6 +1093,16 @@
         millesime: l.millesime, quantite: q, pu_ht_c: pu, remise_cb: r, source_prix: sourceDe(l) });
     }
     if (gDe() === null) return refuser('Une remise va de 0 à 100 %.', el('devRemise'));
+    var lv = S.liv;
+    if (lv.mode === 'adresse') {
+      if (!String(lv.nom).trim()) return refuser('Indique le destinataire de la livraison.', el('devLivNom'));
+      if (!String(lv.adresse1).trim()) return refuser('Indique l’adresse de livraison.', el('devLivA1'));
+      if (!String(lv.cp).trim()) return refuser('Indique le code postal de livraison.', el('devLivCp'));
+      if (!String(lv.ville).trim()) return refuser('Indique la ville de livraison.', el('devLivVille'));
+    }
+    if (portDe() === null) return refuser('Les frais de port s’écrivent en euros, par exemple 15 ou 12,50.', el('devLivPort'));
+    var dj = String(lv.date || '').trim(), dmin = S.devis && S.devis.date_devis ? String(S.devis.date_devis) : jourIso();
+    if (dj && (!/^\d{4}-\d{2}-\d{2}$/.test(dj) || dj < dmin)) return refuser('La date de livraison ne peut pas être avant le devis.', el('devLivDate'));
     return sortie;
   }
   async function enregistrer() {
@@ -981,14 +1113,18 @@
     var moi = S, bouton = MOD.querySelector('[data-dev="enregistrer"]'), g = gDe();
     S.attente = true;
     if (bouton) bouton.setAttribute('aria-busy', 'true');
-    var r = null, err = null;
+    var r = null, err = null, corps = null;
     try {
-      var corps = { p_bureau: bureau(), p_affaire: S.ctx.affaire.affaire_id, p_devis: S.devis ? S.devis.devis_id : null,
+      corps = { p_bureau: bureau(), p_affaire: S.ctx.affaire.affaire_id, p_devis: S.devis ? S.devis.devis_id : null,
         p_lignes: lignes, p_remise_globale_cb: g, p_notes: String(S.notes || '').trim() || null };
       /* LE SEPTIEME ARGUMENT NE PART QUE S'IL SERT : tant que le SQL du lot 50 n'est pas passe,
          la base ne connait que la fonction a six arguments, et PostgREST refuserait TOUT
          enregistrement qui nomme un argument qu'elle n'a pas. */
       if (!S.devis && S.versionDe) corps.p_version_de = S.versionDe.devis_id;
+      /* LE HUITIEME ARGUMENT (lot 53), meme regle : il part quand il dit quelque chose, ou
+         quand le devis a deja les colonnes (le SQL est passe : remettre a l'adresse du client
+         doit s'ecrire aussi). */
+      if (!livParDefaut(S.liv) || lot53()) corps.p_livraison = livCorps();
       r = unSeul(await rpc('devis_enregistrer', corps));
     } catch (e) { err = e; }
     if (moi !== S) return;
@@ -997,7 +1133,9 @@
     /* UN RETOUR VIDE OU SANS NUMERO EST UN ECHEC, et il se dit comme tel. */
     if (err || !r || !r.numero) {
       var detail = err ? String(err.detail || '') : '';
-      if (err && sqlAbsent(err)) dire(MOT_SQL, true);
+      if (err && sqlAbsent(err) && corps && corps.p_livraison && !lot53()) dire(MOT_SQL_LIV, true);
+      else if (err && sqlAbsent(err)) dire(MOT_SQL, true);
+      else if (/livraison/.test(detail)) dire('La livraison n’est pas complète : vérifie l’adresse, la date et les frais de port. Tes lignes sont gardées.', true);
       else if (/fiche du domaine incomplete/.test(detail)) {
         /* La base a relu la fiche et la trouve incomplete : on la relit aussi, pour
            nommer les VRAIS manques (et non les cinq champs par defaut). */
@@ -1017,6 +1155,7 @@
     }
     var neuf = !S.devis, remplace = neuf && S.versionDe ? S.versionDe.numero : '';
     S.devis = r;
+    if (lot53()) S.liv = livDeDevis(r);
     S.versionDe = null;
     effacerBrouillon(S.ctx.affaire.affaire_id);
     /* Le prix enregistre devient l'origine : sa provenance est celle qu'on vient d'ecrire. */
@@ -1220,6 +1359,9 @@
     S.lignes = lignes.map(ligneDeDevis);
     S.remise = C.pourcent(ancien.remise_globale_cb || 0);
     S.notes = ancien.notes || '';
+    S.liv = livDeDevis(ancien);
+    /* Une date souhaitee deja passee ne se reprend pas : le nouveau devis la refuserait. */
+    if (S.liv.date && S.liv.date < jourIso()) S.liv.date = '';
     S.confirme = false; S.accord = false; S.envoi = false;
     S.etat = 'edition'; S.modifie = true;
     peindre();
@@ -1511,6 +1653,8 @@
       + ligneSi(a.siret ? 'SIRET ' + a.siret : '')
       + ligneSi(a.num_client ? 'N° client ' + a.num_client : '')
       + '</section>'
+      /* LOT 53 : la livraison, sous le client. Un devis d'avant le lot n'a rien a dire. */
+      + (livAdire(d) ? '<section class="dpap__liv"><p class="dpap__etiq">Livraison</p><p>' + esc(phraseLiv(d)) + '</p></section>' : '')
       + '<table class="dpap__table"><thead><tr><th>Vin</th><th class="dpap__n">Quantité</th><th class="dpap__n">Prix HT</th>'
       + '<th class="dpap__n">Remise</th>' + (avecNet ? '<th class="dpap__n">Prix net</th>' : '')
       + '<th class="dpap__n">Total HT</th></tr></thead><tbody>' + lg + '</tbody></table>'
@@ -1518,6 +1662,7 @@
       + '<p><span>Total des vins HT</span><span>' + C.euros(d.total_vins_c) + '</span></p>'
       + (g > 0 ? '<p><span>' + libelleRemise(g) + ' :</span><span>-' + C.euros(d.remise_globale_c) + '</span></p>'
         + '<p class="dpap__x">' + EXPLICATION_REMISE + '</p>' : '')
+      + (Number(d.port_c) > 0 ? '<p><span>Frais de port HT</span><span>' + C.euros(d.port_c) + '</span></p>' : '')
       + '<p><span>Total HT</span><span>' + C.euros(d.total_ht_c) + '</span></p>'
       + '<p><span>TVA 20 %</span><span>' + C.euros(d.tva_c) + '</span></p>'
       + '<p class="dpap__ttc"><span>Total TTC</span><span>' + C.euros(d.total_ttc_c) + '</span></p>'

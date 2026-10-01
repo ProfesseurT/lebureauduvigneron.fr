@@ -59,7 +59,15 @@ t('elle couvre 0 et 100 %, les demis centimes, remise ligne + globale, 200 ligne
 t('elle est ecrite par un script Python a part, pas par le code qu\'elle controle',
   fs.existsSync(path.join(RACINE, 'scripts/fixtures/devis-calculs.py')) && /ROUND_HALF_UP/.test(lire('scripts/fixtures/devis-calculs.py'))
   && !/bdv-devis-calcul/.test(sansCommentaires(lire('scripts/fixtures/devis-calculs.py')).replace(/^#.*$/gm, '')));
-const ecarts = cas.filter(c => JSON.stringify(C.devis(c.lignes, c.remise_globale_cb, 2000)) !== JSON.stringify(c.attendu));
+/* LOT 53 : le calcul rend aussi `port` (0 sans port). La table de cas est d'avant le port :
+   on la compare sans lui, et on verifie a part qu'il vaut 0 et ne change rien. */
+const sansPort = (r) => { const x = Object.assign({}, r); delete x.port; return x; };
+const ecarts = cas.filter(c => JSON.stringify(sansPort(C.devis(c.lignes, c.remise_globale_cb, 2000))) !== JSON.stringify(c.attendu));
+t('sans port, le calcul rend port 0 et les memes centimes qu\'avant', cas.every(c => C.devis(c.lignes, c.remise_globale_cb, 2000).port === 0
+  && JSON.stringify(sansPort(C.devis(c.lignes, c.remise_globale_cb, 2000, 0))) === JSON.stringify(c.attendu)));
+t('avec port : HT = somme des final + port, la remise ne touche pas le port, TVA sur le tout',
+  cas.every(c => { const a = C.devis(c.lignes, c.remise_globale_cb, 2000), b = C.devis(c.lignes, c.remise_globale_cb, 2000, 1999);
+    return b.total_ht === a.total_ht + 1999 && b.remise_globale === a.remise_globale && b.tva === C.mulDiv(a.total_ht + 1999, 2000, 10000) && b.ttc === b.total_ht + b.tva; }));
 t('chaque cas rend EXACTEMENT les centimes attendus (' + cas.length + ' cas)', ecarts.length === 0,
   ecarts.map(c => c.nom + ' : ' + JSON.stringify(Object.assign({}, C.devis(c.lignes, c.remise_globale_cb), { lignes: undefined }))).join(' ; '));
 t('colonne 23 x quantite = colonne 24, sur toutes les lignes de la table',
@@ -145,8 +153,12 @@ function monter(o) {
         if (X.mode === 'incomplete') throw refus(400, '{"code":"23514","message":"fiche du domaine incomplete"}');
         const c = op.corps;
         if (c.p_bureau !== BUREAU) throw refus(403, '{"code":"42501"}');
+        /* LOT 53 : sans le SQL du lot, la base ne connait pas le huitieme argument. */
+        if (c.p_livraison !== undefined && !o.lot53) throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_enregistrer(p_livraison)"}');
+        if (X.mode === 'liv-refus') throw refus(400, '{"code":"23514","message":"livraison : adresse incomplete"}');
+        const lv = c.p_livraison || { mode: 'client' };
         const g = c.p_remise_globale_cb || 0;
-        const r = C.devis(c.p_lignes.map(l => ({ pu_c: l.pu_ht_c, qte: l.quantite, remise_cb: l.remise_cb })), g);
+        const r = C.devis(c.p_lignes.map(l => ({ pu_c: l.pu_ht_c, qte: l.quantite, remise_cb: l.remise_cb })), g, 2000, lv.port_c || 0);
         let d = c.p_devis ? X.devis.find(x => x.devis_id === c.p_devis) : null;
         if (c.p_devis && (!d || d.statut !== 'enregistre')) throw refus(400, '{"code":"23514","message":"devis fige : il ne se modifie plus"}');
         if (!d) {
@@ -161,6 +173,8 @@ function monter(o) {
           paiement_mode: X.fiche.paiement_mode, paiement_jours: X.fiche.paiement_jours, validite_jours: X.fiche.validite_jours,
           remise_globale_cb: g, tva_cb: 2000, total_vins_c: r.total_vins, remise_globale_c: r.remise_globale, total_ht_c: r.total_ht,
           tva_c: r.tva, total_ttc_c: r.ttc, notes: c.p_notes, abandonne_le: null });
+        if (o.lot53) Object.assign(d, { livraison_mode: lv.mode || 'client', port_c: lv.port_c || 0, transporteur: lv.transporteur || null,
+          livraison_souhaitee: lv.souhaitee || null, livraison: lv.mode === 'adresse' ? Object.assign({ pays: 'France' }, lv.adresse, { pays: (lv.adresse && lv.adresse.pays) || 'France' }) : null });
         X.lignes[d.devis_id] = c.p_lignes.map((l, i) => Object.assign({ rang: i + 1 }, l,
           { pu_l_c: r.lignes[i].pu_l, pu_f_c: r.lignes[i].pu_f, net_c: r.lignes[i].net, final_c: r.lignes[i].final }));
         return { ...d };
@@ -249,8 +263,8 @@ titre('2. La piece : un devis neuf chez un client');
     && m.querySelector('.tmod__boite').firstElementChild.nextElementSibling === X.doc.getElementById('devRetourL'));
   t('AUCUN numero avant l\'enregistrement', !/D-\d{4}-\d+/.test(m.textContent), m.textContent.match(/D-\d{4}-\d+/));
   const h3 = [...m.querySelectorAll('.dmod__bloc > h3')].map(h => h.textContent);
-  t('les blocs dans l\'ordre : Pour qui, Tes vins, Remise sur tout le devis, Total, Conditions, Notes',
-    JSON.stringify(h3) === JSON.stringify(['Pour qui', 'Tes vins', 'Remise sur tout le devis', 'Total', 'Conditions', 'Notes']), JSON.stringify(h3));
+  t('les blocs dans l\'ordre : Pour qui, Tes vins, Remise sur tout le devis, Livraison (lot 53), Total, Conditions, Notes',
+    JSON.stringify(h3) === JSON.stringify(['Pour qui', 'Tes vins', 'Remise sur tout le devis', 'Livraison', 'Total', 'Conditions', 'Notes']), JSON.stringify(h3));
   const pied = m.querySelector('.dmod__pied');
   t('« Enregistrer le devis » vit dans le pied, avec le total TTC, et le pied est le dernier bloc',
     !!pied && /Enregistrer le devis/.test(pied.textContent) && /Total TTC/.test(pied.textContent) && X.corps().lastElementChild === pied);
@@ -984,6 +998,97 @@ async function devisEnvoye(o) {
   await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
   X.clic('[data-dev="apercu"]'); await attendre(30);
   t('un devis enregistre : apercu refait, sans note ni sandbox', X.doc.getElementById('devCopieNote').hidden && !X.doc.getElementById('devFeuille').hasAttribute('sandbox'));
+}
+
+titre('11. Lot 53 : la livraison');
+const tous = (X, sel) => [].slice.call(X.modale().querySelectorAll(sel));
+const radio = (X, v) => { const n = X.modale().querySelector('[data-dev-livmode][value="' + v + '"]'); n.checked = true; n.dispatchEvent(new X.w.Event('change', { bubbles: true })); };
+{
+  const X = monter({ lot53: true });
+  await X.ouvrir(); X.cocher(CLE0);
+  t('la section Livraison est la, trois facons, « a l\'adresse du client » cochee', !!X.doc.getElementById('devLiv')
+    && tous(X, '[data-dev-livmode]').length === 3 && X.modale().querySelector('[data-dev-livmode]:checked').value === 'client');
+  t('par defaut : pas de champ d\'adresse, mais date, transporteur et port', !X.doc.getElementById('devLivNom')
+    && !!X.doc.getElementById('devLivDate') && !!X.doc.getElementById('devLivTransp') && !!X.doc.getElementById('devLivPort'));
+  await X.enregistrer(); await attendre(20);
+  const c0 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer')[0].corps;
+  t('un devis sans rien de livraison, neuf : p_livraison NE PART PAS (compatible avant le SQL)', !('p_livraison' in c0), JSON.stringify(Object.keys(c0)));
+  X.taper(X.doc.getElementById('devLivPort'), '15');
+  t('le port s\'ajoute au total, sous la remise : TTC = (vins + 15) x 1,2', /Frais de port HT/.test(X.doc.getElementById('devTotal').textContent)
+    && X.doc.getElementById('devPiedTtc').textContent === C.euros(Math.round((Number(X.champ(CLE0, 'qte').value) * 850 + 1500) * 1.2)), X.doc.getElementById('devPiedTtc').textContent);
+  t('la phrase Vitisoft du produit de transport apparait avec le port', /Produit pour transport/.test(X.doc.getElementById('devLiv').textContent));
+  X.taper(X.doc.getElementById('devLivPort'), '12,345');
+  t('un port illisible : le total dit « a corriger »', X.doc.getElementById('devPiedTtc').textContent === 'à corriger');
+  await X.enregistrer(); await attendre(20);
+  t('... et l\'enregistrement refuse, sur le champ du port', /frais de port/.test(X.avis()) && X.doc.getElementById('devLivPort').getAttribute('aria-invalid') === 'true', X.avis());
+  X.taper(X.doc.getElementById('devLivPort'), '15');
+  radio(X, 'adresse');
+  t('« a une autre adresse » : les champs d\'adresse apparaissent, pays France', !!X.doc.getElementById('devLivNom') && X.doc.getElementById('devLivPays').value === 'France');
+  t('le focus reste sur le bouton choisi', X.doc.activeElement && X.doc.activeElement.value === 'adresse');
+  await X.enregistrer(); await attendre(20);
+  t('adresse vide : refus sur le destinataire, rien n\'est parti', /destinataire/.test(X.avis()) && X.doc.getElementById('devLivNom').getAttribute('aria-invalid') === 'true'
+    && X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').length === 1, X.avis());
+  X.taper(X.doc.getElementById('devLivNom'), 'Restaurant Le Quai'); X.taper(X.doc.getElementById('devLivA1'), '3 quai de la Fosse');
+  X.taper(X.doc.getElementById('devLivCp'), '44000'); X.taper(X.doc.getElementById('devLivVille'), 'Nantes');
+  X.taper(X.doc.getElementById('devLivTransp'), 'Kuehne'); X.taper(X.doc.getElementById('devLivDate'), '2099-01-15');
+  await X.enregistrer(); await attendre(20);
+  const c1 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('p_livraison part, complet, port en CENTIMES entiers', c1.p_livraison && c1.p_livraison.mode === 'adresse' && c1.p_livraison.port_c === 1500
+    && c1.p_livraison.transporteur === 'Kuehne' && c1.p_livraison.souhaitee === '2099-01-15' && c1.p_livraison.adresse.ville === 'Nantes', JSON.stringify(c1.p_livraison));
+  t('enregistre : l\'avis le dit', /enregistré/.test(X.avis()), X.avis());
+  radio(X, 'retrait');
+  t('retrait : ni adresse, ni transporteur, ni port a l\'ecran', !X.doc.getElementById('devLivNom') && !X.doc.getElementById('devLivTransp') && !X.doc.getElementById('devLivPort')
+    && !/Frais de port/.test(X.doc.getElementById('devTotal').textContent));
+  await X.enregistrer(); await attendre(20);
+  const c2 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('retrait : ni port ni transporteur ne partent', c2.p_livraison.mode === 'retrait' && !('port_c' in c2.p_livraison) && !('transporteur' in c2.p_livraison) && !c2.p_livraison.adresse, JSON.stringify(c2.p_livraison));
+  radio(X, 'client'); X.taper(X.doc.getElementById('devLivDate'), '');
+  await X.enregistrer(); await attendre(20);
+  const c3 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('revenir a l\'adresse du client sur un devis du lot 53 : p_livraison part quand meme (sinon la base garderait l\'ancien)', c3.p_livraison && c3.p_livraison.mode === 'client', JSON.stringify(c3));
+}
+{
+  const X = monter({ lot53: true });
+  await X.ouvrir(); X.cocher(CLE0);
+  X.taper(X.doc.getElementById('devLivDate'), '2001-01-01');
+  await X.enregistrer(); await attendre(20);
+  t('une date de livraison avant le devis est refusee sur son champ', /avant le devis/.test(X.avis()) && X.doc.getElementById('devLivDate').getAttribute('aria-invalid') === 'true', X.avis());
+}
+{
+  const X = monter({});
+  await X.ouvrir(); X.cocher(CLE0);
+  X.taper(X.doc.getElementById('devLivPort'), '10');
+  await X.enregistrer(); await attendre(20);
+  t('SANS le SQL du lot 53 : la phrase dediee, et les lignes gardees', /livraison sur le devis n’est pas encore disponible/.test(X.avis()) && !X.devis.length, X.avis());
+}
+{
+  const X = monter({ lot53: true, mode: 'liv-refus' });
+  await X.ouvrir(); X.cocher(CLE0); X.taper(X.doc.getElementById('devLivPort'), '10');
+  await X.enregistrer(); await attendre(20);
+  t('un refus de la base sur la livraison se dit comme tel', /La livraison n’est pas complète/.test(X.avis()), X.avis());
+}
+{
+  const X = monter({ lot53: true });
+  await X.ouvrir(); X.cocher(CLE0); radio(X, 'adresse');
+  X.taper(X.doc.getElementById('devLivNom'), 'Le Quai');
+  const br = JSON.parse(X.w.localStorage.getItem('bdv_devis_brouillon_aC') || 'null');
+  t('le brouillon garde la livraison', br && br.liv && br.liv.mode === 'adresse' && br.liv.nom === 'Le Quai', JSON.stringify(br && br.liv));
+}
+{
+  const d = { numero: 'D-2026-0099', statut: 'envoye', date_devis: '2026-09-30', valable_jusqu: '2026-10-30', vendeur: FICHE, acheteur: { nom: 'Chez Paul' },
+    remise_globale_cb: 0, total_vins_c: 6000, remise_globale_c: 0, port_c: 1500, total_ht_c: 7500, tva_c: 1500, total_ttc_c: 9000,
+    livraison_mode: 'adresse', livraison: { nom: 'Le Quai', adresse1: '3 quai', code_postal: '44000', ville: 'Nantes', pays: 'France' },
+    livraison_souhaitee: '2026-10-15', transporteur: 'Kuehne', paiement_mode: 'fdm', paiement_jours: 30 };
+  const X = monter({});
+  const h = X.w.BdvDevis.htmlPapier(d, [{ designation: 'Vin', quantite: 6, pu_ht_c: 1000, remise_cb: 0, net_c: 6000 }], { conditions: '' });
+  t('papier : « Frais de port HT 15,00 » entre les vins et le total HT', /Total des vins HT[\s\S]*Frais de port HT<\/span><span>15,00\u00a0€[\s\S]*Total HT/.test(h));
+  t('papier : la livraison en une phrase, sous le client', /dpap__liv[\s\S]*À livrer à Le Quai, 3 quai, 44000 Nantes, souhaitée le 15\/10\/2026, par Kuehne\./.test(h), (h.match(/dpap__liv[^]*?<\/section>/) || [''])[0]);
+  const ancien = X.w.BdvDevis.htmlPapier(Object.assign({}, d, { livraison_mode: undefined, port_c: undefined }), [], { conditions: '' });
+  t('papier d\'un devis d\'avant le lot : ni bloc livraison, ni ligne de port', !/dpap__liv/.test(ancien) && !/Frais de port/.test(ancien));
+  const rien = X.w.BdvDevis.htmlPapier(Object.assign({}, d, { livraison_mode: 'client', livraison: null, transporteur: null, port_c: 0, livraison_souhaitee: null }), [], { conditions: '' });
+  t('papier « a l\'adresse du client » sans rien d\'autre : AUCUN bloc (le papier d\'avant, a l\'octet pres)', !/dpap__liv/.test(rien) && rien === ancien.replace('', ''));
+  const ret = X.w.BdvDevis.htmlPapier(Object.assign({}, d, { livraison_mode: 'retrait', livraison: null, transporteur: null, port_c: 0, livraison_souhaitee: null }), [], { conditions: '' });
+  t('papier retrait : « Il vient chercher au domaine. »', /Il vient chercher au domaine\./.test(ret));
 }
 
 console.log('\n== VERDICT ==');

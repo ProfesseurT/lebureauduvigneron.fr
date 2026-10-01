@@ -101,10 +101,30 @@ porter ces numéros de colonne. **Confirmée par Ted le 01/10/2026** (lot 49, qu
 | 22 | quantité | |
 | 23 | prix_unitaire | **Le prix signé par le client**, remise déduite. |
 | 24 | total_ht_ligne | |
+| 25 | civilité_livraison | Toujours vide. |
+| 26 | nom_livraison | Le destinataire, quand le vin part à une autre adresse. |
+| 27 | prénom_livraison | Toujours vide. |
+| 28 | adresse1_livraison | |
+| 29 | adresse2_livraison | Le complément d'adresse. |
+| 30 | adresse3_livraison | Toujours vide. |
+| 31 | code_postal_livraison | |
+| 32 | ville_livraison | |
+| 33 | pays_livraison | |
+| 34 | téléphone_livraison | |
+| 35 | mobile_livraison | Toujours vide. |
+| 36 | transporteur | Créé à la volée par Vitisoft s'il n'existe pas. Vide pour un retrait au domaine. |
+| 37 | commentaire_livraison | « Livraison souhaitée le JJ/MM/AAAA », ou « Enlèvement au domaine » (avec la date prévue s'il y en a une). |
+| 38 | montant_livraison | Les frais de port HT. Vide s'il n'y en a pas. |
+
+**Colonnes 25 à 38, ajoutées le 01/10/2026 (lot 53), À LA FIN** : les 24 premières ne bougent pas.
+Les colonnes 25 à 35 sont VIDES quand le vin part à l'adresse du client ou quand il vient le
+chercher au domaine : Vitisoft reprend alors l'adresse de facturation. La configuration déjà posée
+doit recevoir ces 14 numéros de colonne.
 
 Réglages de la configuration : première ligne = titres (coché), mode de facturation par défaut `HT`,
-format de date `AAAA-MM-JJ HH:MM:SS`. Pas de frais de livraison dans la première version, donc pas
-de produit de transport nécessaire. Le fichier respectera les règles de la doc (point-virgule, point
+format de date `AAAA-MM-JJ HH:MM:SS`, et un **« Produit pour transport »** renseigné : sans lui,
+Vitisoft refuse toute commande qui porte des frais de port (erreur 7). Ce produit porte le taux de
+TVA du port : 20 %, comme le devis. Le fichier respectera les règles de la doc (point-virgule, point
 décimal, UTF-8, CR+LF, aucun guillemet) et sera contrôlé avec le vérificateur de la section 13 de
 la doc avant chaque livraison.
 

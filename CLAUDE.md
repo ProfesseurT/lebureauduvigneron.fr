@@ -7462,3 +7462,49 @@ Le lot 48 prevu (envoi + signature en ligne avec e-mail verifie par code) fait p
 bureau vers le CLIENT DU VIGNERON : c'est le premier destinataire qui n'est ni Ted ni un vigneron, donc
 la regle du SEUIL s'applique AVANT (palier Resend payant, textes legaux, juriste pour les particuliers).
 Le palier payant contredit la regle du gratuit. A trancher par Ted avant de construire la signature.
+
+**TRANCHE PAR TED LE 01/10/2026 : LE LIEN DE SIGNATURE PART DE LA MESSAGERIE DU VIGNERON.** Le bureau
+n'envoie AUCUN mail au client final, donc la regle du SEUIL ne joue pas (meme raisonnement que
+l'invitation par lien). Pas de code par mail. Apres signature, le bureau ACCEPTE seul (devis accepte,
+affaire Gagnee). Preuve gardee : nom, qualite, case « Bon pour accord », date et heure serveur,
+empreinte de la copie (lot 52) et adresse IP (`x-forwarded-for`, premiere valeur : un INDICE, le client
+peut la forger). L'IP est une donnee personnelle : le signataire est informe sur la page (art. 13
+RGPD) et la page RGPD le dit. La page de signature passe par une Edge Function, PAS par une RPC
+`security definer` ouverte a `anon` dans `public` : la doc Supabase l'interdit en toutes lettres.
+
+Autres arbitrages du meme jour (detail : `Claude outputs/` n'en a pas, tout est ici) :
+- TVA : 5,5 %, export hors UE, pro de l'UE. FRANCHISE ABANDONNEE : le BOFiP (BOI-TVA-DECLA-40-10-10,
+  § 80) l'exclut pour l'exploitant agricole qui a opte pour la TVA.
+- Export et UE : TVA 0 avec la mention legale, et un AVERTISSEMENT accise a l'ecran (un vin en
+  suspension de droits sous DAE ne paie pas l'accise francaise) ; le vigneron corrige ses prix.
+- Port au taux du devis : 20 % en France, 0 a l'export et en UE ; devis mixte 20 / 5,5 : port a 20 %.
+- Ordre : lot 53 livraison, lot 54 TVA, lot 55 signature.
+
+### LOT 53 : LA LIVRAISON DU DEVIS (01/10/2026)
+
+- **`supabase/lot53-devis-livraison.sql`, a coller par Ted APRES 52.** Colonnes `livraison_mode`
+  (`client` | `adresse` | `retrait`, defaut `client`), `livraison` (jsonb, seulement en `adresse`),
+  `livraison_souhaitee` (date, jamais avant `date_devis`), `transporteur`, `port_c`. Un retrait n'a
+  ni port ni transporteur (la TABLE le refuse, pas seulement la fonction).
+- **LE PORT ENTRE DANS LE TOTAL HT** : `total_ht = somme des final + port`, `remise_globale =
+  total_vins - somme des final` (la remise ne touche pas le port), TVA une fois sur le total.
+  `devis_totaux` reecrite : `remise_globale_c = total_vins_c + port_c - total_ht_c`. Les anciens
+  devis (port 0) restent vrais. Le montant de l'affaire (`total_ht_c`) compte donc le port, comme la
+  facture Vitisoft.
+- **`devis_enregistrer` passe a 8 arguments** (`p_livraison jsonb default null` ; NULL : un devis
+  NEUF part a l'adresse du client sans port, un devis EXISTANT GARDE sa livraison, pour qu'un onglet
+  reste sur l'ancien code n'efface rien). Le papier n'imprime le bloc Livraison que s'il dit quelque
+  chose (`livAdire`) : un devis sans livraison sort comme avant. « Refaire » ne reprend pas une date
+  souhaitee deja passee. L'ancienne a 7 est retiree ; l'appel NOMME a 7 passe toujours. Dans la
+  remise a zero des totaux, `port_c` repasse a 0 aussi : sinon la contrainte d'egalite casse.
+- **Le navigateur n'envoie `p_livraison` que s'il dit quelque chose, OU si le devis a deja les
+  colonnes** (`lot53()`) : revenir « a l'adresse du client » doit s'ecrire. Sans le SQL : phrase
+  `MOT_SQL_LIV`, lignes gardees.
+- **Le fichier de commande passe a 38 colonnes** : 25 a 35 le bloc de livraison Vitisoft (vide en
+  `client` et en `retrait` : Vitisoft reprend la facturation), 36 transporteur, 37
+  commentaire_livraison (date souhaitee, « Enlèvement au domaine »), 38 montant_livraison (vide sans
+  port). **Avec du port, la config Vitisoft doit avoir un « Produit pour transport », sinon
+  erreur 7** : le CAHIER le dit, l'ecran aussi. La config d'import de Ted doit recevoir les 14
+  nouveaux numeros de colonne.
+- Garde : `supabase/banc-lot53-devis-livraison.sql` (30 controles, rejoue 47 a 52), `banc:devis`
+  section 11, `banc:commande` section 1 bis, 7 mutations JS tuees. `banc-rejeu.mjs` liste le lot 53.

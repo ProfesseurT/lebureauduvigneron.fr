@@ -132,6 +132,19 @@
 .bdv-coque .dmod__cherche{ margin-top:var(--bdv-e-3); }
 .bdv-coque .dmod__remise{ max-width:12rem; }
 
+/* LOT 53 : LA LIVRAISON. Trois boutons radio, puis les champs du mode choisi, en grille. */
+.bdv-coque .dmod__liv-modes{ margin:0 0 var(--bdv-e-3); padding:0; border:0; min-width:0; }
+.bdv-coque .dmod__liv-modes legend{ padding:0; }
+.bdv-coque .dmod__liv-champs{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:var(--bdv-e-2) var(--bdv-e-3);
+  margin-bottom:var(--bdv-e-3);
+  min-width:0;
+}
+.bdv-coque .dmod__liv-champs .aff-champ{ min-width:0; align-content:start; }
+.bdv-coque .dmod__liv-l{ grid-column:1 / -1; }
+
 /* LE TOTAL, ordre fixe. Les chiffres en colonnes egales, alignes a droite. */
 .bdv-coque .dmod__totaux{ display:grid; gap:var(--bdv-e-1); }
 .bdv-coque .dmod__tl{

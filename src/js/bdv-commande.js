@@ -3,7 +3,7 @@
    telechargement est fait par bdv-devis.js ; ce fichier ne fait que FABRIQUER.
 
    LE FORMAT EST CELUI DE LA SECTION 3 DE CAHIER_script-vitisoft.md, confirme par Ted :
-   24 colonnes lues PAR POSITION, une rangee par ligne du devis, les colonnes 1 a 18
+   38 colonnes lues PAR POSITION (24 au lot 49, plus 14 de livraison au lot 53), une rangee par ligne du devis, les colonnes 1 a 18
    repetees sur chaque rangee. Regles de la doc Vitisoft (Import de commandes) :
    point-virgule, point decimal, UTF-8, fin de ligne CR+LF, AUCUN guillemet, date
    AAAA-MM-JJ HH:MM:SS, premiere ligne = titres.
@@ -22,7 +22,11 @@
     'adresse_email', 'société_facturation', 'nom_facturation', 'prénom_facturation', 'adresse1_facturation',
     'adresse2_facturation', 'code_postal_facturation', 'ville_facturation', 'pays_facturation',
     'téléphone_facturation', 'mobile_facturation', 'mode_de_facturation', 'code_tarif', 'commentaire',
-    'numéro_ligne', 'numéro_produit', 'désignation', 'quantité', 'prix_unitaire', 'total_ht_ligne'];
+    'numéro_ligne', 'numéro_produit', 'désignation', 'quantité', 'prix_unitaire', 'total_ht_ligne',
+    /* LOT 53 : la livraison, A LA FIN (colonnes 25 a 38). Rien ne bouge avant. */
+    'civilité_livraison', 'nom_livraison', 'prénom_livraison', 'adresse1_livraison', 'adresse2_livraison',
+    'adresse3_livraison', 'code_postal_livraison', 'ville_livraison', 'pays_livraison', 'téléphone_livraison',
+    'mobile_livraison', 'transporteur', 'commentaire_livraison', 'montant_livraison'];
 
   function champ(v) {
     return String(v == null ? '' : v).replace(/["“”]/g, '').replace(/;/g, ',')
@@ -62,6 +66,24 @@
     return m;
   }
 
+  /* LOT 53 : LA LIVRAISON, colonnes 25 a 38, repetees sur chaque rangee comme la tete.
+     - A l'adresse du client (ou devis d'avant le lot) : bloc vide, Vitisoft reprend
+       l'adresse de facturation.
+     - Retrait au domaine : bloc vide, et « Enlèvement au domaine » en commentaire.
+     - La date souhaitee n'a pas de colonne chez Vitisoft : elle va dans le commentaire.
+     - montant_livraison vide quand il n'y a pas de port : avec un montant, Vitisoft exige un
+       « Produit pour transport » dans sa configuration (erreur 7). */
+  function livraison(d) {
+    var mode = d.livraison_mode || 'client', a = (mode === 'adresse' && d.livraison) || {};
+    var j = d.livraison_souhaitee ? jourFr(d.livraison_souhaitee + 'T12:00:00Z') : '';
+    var com = mode === 'retrait' ? 'Enlèvement au domaine' + (j ? ', prévu le ' + j : '')
+      : (j ? 'Livraison souhaitée le ' + j : '');
+    var port = Number(d.port_c) || 0;
+    return ['', a.nom, '', a.adresse1, a.adresse2, '', a.code_postal, a.ville,
+      mode === 'adresse' ? (a.pays || 'France') : '', a.telephone, '',
+      mode === 'retrait' ? '' : d.transporteur, com, port > 0 ? prix(port) : ''].map(champ);
+  }
+
   function fabriquer(d, lignes) {
     if (!d || d.statut !== 'accepte' || !d.accepte_le) throw new Error('devis non accepte');
     if (manques(d, lignes).length) throw new Error('devis incomplet');
@@ -75,15 +97,17 @@
       'HT', d.code_tarif || '',
       'Devis ' + d.numero + ' accepté le ' + jourFr(d.accepte_le)
     ].map(champ);
+    var liv = livraison(d);
     var rangs = (lignes || []).slice().sort(function (x, y) { return x.rang - y.rang; });
     var rangees = [TITRES.join(';')].concat(rangs.map(function (l, i) {
       return tete.concat([String(i + 1), champ(l.num_produit), champ(l.designation), String(l.quantite),
-        prix(l.pu_f_c), prix(l.final_c)]).join(';');
+        prix(l.pu_f_c), prix(l.final_c)]).concat(liv).join(';');
     }));
     return { nom: 'commande-' + champ(d.numero) + '.csv', texte: rangees.join('\r\n') + '\r\n' };
   }
 
-  var api = { fabriquer: fabriquer, manques: manques, titres: TITRES.slice(), _champ: champ, _prix: prix, _dateHeure: dateHeure };
+  var api = { fabriquer: fabriquer, manques: manques, titres: TITRES.slice(), _champ: champ, _prix: prix, _dateHeure: dateHeure,
+              _livraison: livraison };
   if (typeof window !== 'undefined') window.BdvCommande = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

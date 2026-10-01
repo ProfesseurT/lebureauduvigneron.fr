@@ -70,11 +70,15 @@ titre('1. Le fichier');
     'société_facturation', 'nom_facturation', 'prénom_facturation', 'adresse1_facturation', 'adresse2_facturation',
     'code_postal_facturation', 'ville_facturation', 'pays_facturation', 'téléphone_facturation', 'mobile_facturation',
     'mode_de_facturation', 'code_tarif', 'commentaire', 'numéro_ligne', 'numéro_produit', 'désignation', 'quantité',
-    'prix_unitaire', 'total_ht_ligne'];
-  t('les 24 titres de la section 3 du CAHIER, dans l\'ordre', JSON.stringify(titres) === JSON.stringify(attendus), titres.join('|'));
-  t('le CAHIER porte bien ces 24 colonnes', attendus.every((x, i) => new RegExp('\\| ' + (i + 1) + ' \\| ' + x + ' \\|').test(lire('CAHIER_script-vitisoft.md'))));
+    'prix_unitaire', 'total_ht_ligne',
+    'civilité_livraison', 'nom_livraison', 'prénom_livraison', 'adresse1_livraison', 'adresse2_livraison',
+    'adresse3_livraison', 'code_postal_livraison', 'ville_livraison', 'pays_livraison', 'téléphone_livraison',
+    'mobile_livraison', 'transporteur', 'commentaire_livraison', 'montant_livraison'];
+  t('les 38 titres de la section 3 du CAHIER, dans l\'ordre (24 du lot 49, puis 14 de livraison A LA FIN)', JSON.stringify(titres) === JSON.stringify(attendus), titres.join('|'));
+  t('le CAHIER porte bien ces 38 colonnes', attendus.every((x, i) => new RegExp('\\| ' + (i + 1) + ' \\| ' + x + ' \\|').test(lire('CAHIER_script-vitisoft.md'))));
   const r1 = rangees[1].split(';'), r2 = rangees[2].split(';');
-  t('chaque rangee a exactement 24 colonnes, meme avec un « ; » dans le nom du client', r1.length === 24 && r2.length === 24, r1.length + '/' + r2.length);
+  t('chaque rangee a exactement 38 colonnes, meme avec un « ; » dans le nom du client', r1.length === 38 && r2.length === 38, r1.length + '/' + r2.length);
+  t('devis d\'avant le lot 53 : les 14 colonnes de livraison sont VIDES (Vitisoft reprend la facturation)', r1.slice(24).every(x => x === ''), r1.slice(24).join('|'));
   t('colonnes 1 et 3 = numero du devis', r1[0] === 'D-2026-0007' && r1[2] === 'D-2026-0007');
   t('colonne 2 = heure de PARIS, AAAA-MM-JJ HH:MM:SS (22:30 UTC le 1er juillet = 00:30 le 2)', r1[1] === '2026-07-02 00:30:05', r1[1]);
   t('heure d\'hiver aussi : 2026-12-31 23:30 UTC = 2027-01-01 00:30:00', K._dateHeure('2026-12-31T23:30:00Z') === '2027-01-01 00:30:00', K._dateHeure('2026-12-31T23:30:00Z'));
@@ -184,6 +188,31 @@ function monter(o) {
   X.clic = async (sel) => { const n = X.q(sel); if (!n) throw new Error('introuvable : ' + sel); n.click(); await attendre(10); };
   X.ouvrir = async () => { await w.BdvDevis.ouvrir(X.ctx); await attendre(5); };
   return X;
+}
+
+titre('1 bis. Lot 53 : la livraison dans le fichier');
+{
+  const base = Object.assign({}, DEVIS, { total_ht_c: 14316 + 1500, port_c: 1500 });
+  const adr = Object.assign({}, base, { livraison_mode: 'adresse', livraison_souhaitee: '2026-10-15', transporteur: 'Kuehne; Nagel',
+    livraison: { nom: 'Le Quai', adresse1: '3 quai de la Fosse', adresse2: 'Porte "B"', code_postal: '44000', ville: 'Nantes', pays: 'France', telephone: '0240' } });
+  const r = K.fabriquer(adr, LIGNES).texte.split('\r\n');
+  const a1 = r[1].split(';'), a2 = r[2].split(';');
+  t('autre adresse : 38 colonnes, bloc de livraison en 26, 28, 29, 31 a 34', a1.length === 38 && a1[25] === 'Le Quai' && a1[27] === '3 quai de la Fosse'
+    && a1[28] === 'Porte B' && a1[30] === '44000' && a1[31] === 'Nantes' && a1[32] === 'France' && a1[33] === '0240', a1.slice(24).join('|'));
+  t('civilite, prenom, adresse 3 et mobile restent vides', a1[24] === '' && a1[26] === '' && a1[29] === '' && a1[34] === '');
+  t('transporteur en 36, son « ; » devenu virgule', a1[35] === 'Kuehne, Nagel', a1[35]);
+  t('la date souhaitee part en commentaire de livraison (37)', a1[36] === 'Livraison souhaitée le 15/10/2026', a1[36]);
+  t('montant_livraison (38) = port HT, point decimal', a1[37] === '15.00', a1[37]);
+  t('le bloc de livraison est repete a l\'identique sur chaque rangee', JSON.stringify(a1.slice(24)) === JSON.stringify(a2.slice(24)));
+  t('les lignes ne portent PAS le port : somme des colonnes 24 + colonne 38 = total HT', Math.round((Number(a1[23]) + Number(a2[23]) + Number(a1[37])) * 100) === adr.total_ht_c);
+  const ret = K.fabriquer(Object.assign({}, DEVIS, { livraison_mode: 'retrait', livraison_souhaitee: '2026-10-20', transporteur: 'X', port_c: 0 }), LIGNES).texte.split('\r\n')[1].split(';');
+  t('retrait : bloc vide, ni transporteur ni montant, « Enlèvement au domaine, prévu le 20/10/2026 »',
+    ret.slice(24, 35).every(x => x === '') && ret[35] === '' && ret[37] === '' && ret[36] === 'Enlèvement au domaine, prévu le 20/10/2026', ret.slice(24).join('|'));
+  const cli = K.fabriquer(Object.assign({}, base, { livraison_mode: 'client', livraison: { nom: 'NE DOIT PAS PARTIR' } }), LIGNES).texte.split('\r\n')[1].split(';');
+  t('a l\'adresse du client : pas de bloc (meme si une adresse traine), le port part quand meme', cli.slice(24, 35).every(x => x === '') && cli[37] === '15.00', cli.slice(24).join('|'));
+  const sansPort = K.fabriquer(Object.assign({}, DEVIS, { livraison_mode: 'client', port_c: 0 }), LIGNES).texte.split('\r\n')[1].split(';');
+  t('sans port : montant_livraison VIDE (sinon Vitisoft exige un produit de transport, erreur 7)', sansPort[37] === '', sansPort[37]);
+  t('le CAHIER dit le « Produit pour transport » et l\'erreur 7', /Produit pour transport/.test(lire('CAHIER_script-vitisoft.md')) && /erreur 7/.test(lire('CAHIER_script-vitisoft.md')));
 }
 
 titre('2. La piece : « Le client a dit oui »');

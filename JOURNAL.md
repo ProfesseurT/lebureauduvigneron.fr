@@ -12,6 +12,27 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 53 : la livraison sur le devis, et trois arbitrages
+
+Tu as tranché la signature : le lien part de ta messagerie, le bureau n'envoie aucun mail, donc la
+règle du seuil ne joue plus. Et tu as écarté la franchise de TVA, que le BOFiP refuse à un
+exploitant agricole qui a opté pour la TVA.
+
+Ce qui a été fait :
+- Un bloc « Livraison » dans le devis : à l'adresse du client, à une autre adresse, ou il vient
+  chercher au domaine. Plus une date souhaitée, un transporteur et des frais de port.
+- Les frais de port entrent dans le total HT, la remise du devis ne les touche pas, la TVA les couvre.
+- Le papier dit la livraison sous le client, et une ligne « Frais de port HT » dans les totaux.
+- Le fichier de commande Vitisoft passe de 24 à 38 colonnes, les 14 nouvelles à la fin. Avec du
+  port, ta configuration Vitisoft doit avoir un « Produit pour transport », sinon la commande est
+  refusée (erreur 7).
+- `supabase/lot53-devis-livraison.sql`, à coller après le lot 52.
+
+Ce qui reste : la TVA (lot 54), la signature en ligne (lot 55). Question pour Solumatic : un code TVA
+à 0 % pour l'export et l'UE existe-t-il dans Vitisoft ? La purge RGPD des pistes reste à trancher.
+
+---
+
 ## 01/10/2026, lot 52 : la copie du devis envoyé, et la trace du fichier de commande
 
 Tu as choisi « Copie + trace ».

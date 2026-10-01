@@ -43,6 +43,8 @@
   border:1px solid var(--bdv-trait-fort);
   border-radius:var(--bdv-r);
 }
+/* LOT 53 : la livraison, sous le client, en une phrase. */
+.dpap .dpap__liv{ margin:0 0 var(--bdv-e-6) auto; max-width:90mm; padding:0 var(--bdv-e-4); }
 .dpap .dpap__etiq{
   font-size:var(--bdv-f-1);
   font-weight:600;

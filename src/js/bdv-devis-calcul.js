@@ -14,8 +14,8 @@
      pu_l  = arrondi(pu   * (10000 - rl) / 10000)   prix apres remise de ligne
      pu_f  = arrondi(pu_l * (10000 - g)  / 10000)   prix unitaire SIGNE (col. 23 Vitisoft)
      net   = qte * pu_l ; final = qte * pu_f        (col. 24, exacte par construction)
-     total_vins = somme des net ; total_ht = somme des final
-     remise_globale = total_vins - total_ht        (peut s'ecarter de g % de quelques
+     total_vins = somme des net ; total_ht = somme des final + port (lot 53)
+     remise_globale = total_vins - somme des final (peut s'ecarter de g % de quelques
                                                     centimes : voulu, zero ecart Vitisoft)
      tva = arrondi(total_ht * tva_cb / 10000) SUR LE TOTAL ; ttc = total_ht + tva
 
@@ -48,19 +48,24 @@
     return { pu_l: pu_l, pu_f: pu_f, net: qte * pu_l, final: qte * pu_f };
   }
 
-  /* lignes : [{ pu_c, qte, remise_cb }] ; g : remise globale (cb) ; tvaCb : 2000. */
-  function devis(lignes, g, tvaCb) {
+  /* lignes : [{ pu_c, qte, remise_cb }] ; g : remise globale (cb) ; tvaCb : 2000 ;
+     portC : frais de port HT en centimes (lot 53, 0 par defaut). LE PORT ENTRE DANS LE
+     TOTAL HT, la remise globale ne le touche pas, et la TVA (une fois, sur le total) le
+     couvre : total_ht = somme des final + port ; remise_globale = total_vins - somme des final. */
+  function devis(lignes, g, tvaCb, portC) {
     g = g || 0;
     tvaCb = tvaCb == null ? 2000 : tvaCb;
-    var sortie = [], vins = 0, ht = 0;
+    var port = portC || 0;
+    var sortie = [], vins = 0, fin = 0;
     (lignes || []).forEach(function (l) {
       var x = ligne(l.pu_c, l.qte, l.remise_cb || 0, g);
       sortie.push(x);
       vins += x.net;
-      ht += x.final;
+      fin += x.final;
     });
+    var ht = fin + port;
     var tva = mulDiv(ht, tvaCb, 10000);
-    return { lignes: sortie, total_vins: vins, remise_globale: vins - ht, total_ht: ht, tva: tva, ttc: ht + tva };
+    return { lignes: sortie, total_vins: vins, remise_globale: vins - fin, port: port, total_ht: ht, tva: tva, ttc: ht + tva };
   }
 
   /* LA SAISIE : « 8,50 » -> 850. Plus de deux decimales, un signe, du texte : null,
