@@ -64,7 +64,7 @@ function monter() {
       const p = new URLSearchParams(qs || '');
       const rows = base[nomTable];
       const filtre = (r) => [...p.entries()].every(([k, v]) =>
-        !/^eq\./.test(v) || String(r[k]) === v.slice(3));
+        /^in\.\(/.test(v) ? v.slice(4, -1).split(',').indexOf(String(r[k])) >= 0 : (!/^eq\./.test(v) || String(r[k]) === v.slice(3)));
       if (!o.methode || o.methode === 'GET') return rows.filter(filtre).map(r => ({ ...r }));
       if (o.methode === 'POST') { o.corps.forEach(l => rows.push(signer(nomTable, { ...l }))); return null; }
       if (o.methode === 'PATCH') {
@@ -1001,6 +1001,49 @@ titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de
   t('bdv-bureau.css rend l\'appui et l\'encre au bouton en attente', /pointer-events:\s*auto/.test(regle) && /opacity:\s*1\b/.test(regle) && /dashed/.test(regle), regle);
   t('sous 700 px, sa cible fait 44 px (le panneau n\'y passe que sous 620)',
     /@media\s*\(max-width:\s*700px\)\s*\{\s*\.bdv-coque \.btn--bientot\s*\{\s*min-height:\s*var\(--bdv-cible\)/.test(css));
+}
+
+titre('Lot 50 : le montant de l\'affaire se LIT dans son devis envoye ou accepte');
+{
+  const F = monter();
+  F.w.BdvNav = { avecVitisoft: () => true };
+  F.w.eval(fs.readFileSync(path.join(RACINE, 'src/js/bdv-devis-calcul.js'), 'utf8'));
+  F.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste / restaurant', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  F.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 },
+    { bureau: BUREAU, etape_id: 'e2', type_id: 't1', nom: 'Devis envoyé', ordre: 2 });
+  const jour = new Date().toISOString();
+  F.base.affaires.push(
+    { bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', client_id: 'C1', client_nom: 'Chez Paul', titre: 'Le rosé', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'a2', type_id: 't1', etape_id: 'e1', client_id: 'C2', client_nom: 'Le Quai', titre: 'Le blanc', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'a3', type_id: 't1', etape_id: 'e1', client_id: 'C3', client_nom: 'Sans devis', titre: 'Rien', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour },
+    { bureau: BUREAU, affaire_id: 'a4', type_id: 't1', etape_id: 'e1', client_id: 'C4', client_nom: 'Accord', titre: 'Le rouge', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  F.base.devis = [
+    { bureau: BUREAU, affaire_id: 'a1', devis_id: 'd1', numero: 'D-2026-0011', statut: 'envoye', total_ht_c: 124000, envoye_le: '2026-09-30', valable_jusqu: '2099-01-01', cree_le: '2026-09-30T08:00:00Z' },
+    { bureau: BUREAU, affaire_id: 'a2', devis_id: 'd2', numero: 'D-2026-0012', statut: 'envoye', total_ht_c: 50000, envoye_le: '2026-01-03', valable_jusqu: '2026-02-01', cree_le: '2026-01-02T08:00:00Z' },
+    { bureau: BUREAU, affaire_id: 'a3', devis_id: 'd3', numero: 'D-2026-0013', statut: 'enregistre', total_ht_c: 999900, cree_le: '2026-09-30T08:00:00Z' },
+    /* dans l'ordre de la lecture, cree_le decroissant : l'envoye plus recent arrive AVANT l'accepte */
+    { bureau: BUREAU, affaire_id: 'a4', devis_id: 'd5', numero: 'D-2026-0015', statut: 'envoye', total_ht_c: 70000, envoye_le: '2026-09-29', valable_jusqu: '2099-01-01', cree_le: '2026-09-29T08:00:00Z' },
+    { bureau: BUREAU, affaire_id: 'a4', devis_id: 'd4', numero: 'D-2026-0014', statut: 'accepte', total_ht_c: 30000, envoye_le: '2026-09-20', valable_jusqu: '2099-01-01', cree_le: '2026-09-20T08:00:00Z' }];
+  await F.w.BdvAffaires.ouvrir();
+  const lec = F.requetes.filter(r => /^\/devis\?select=/.test(r.chemin));
+  t('les montants sont lus UNE fois, pour CE bureau, devis envoyes ou acceptes seulement',
+    lec.length >= 1 && lec.every(r => r.chemin.indexOf('bureau=eq.' + BUREAU) >= 0 && /statut=in\.\(envoye,accepte\)/.test(r.chemin)), lec.map(r => r.chemin).join(' ; '));
+  const tx = F.doc.getElementById('affCorps').textContent;
+  t('« En devis envoyé : 1 740 € HT, sur 2 affaires (dont 1 expiré, à relancer ou refaire) »',
+    /En devis envoyé : 1 ?740 € HT, sur 2 affaires \(dont 1 expiré, à relancer ou refaire\)\./.test(tx.replace(/ /g, ' ')), (tx.match(/En devis envoyé[^.]*\./) || [''])[0]);
+  t('un devis enregistre (pas envoye) ne compte pas : ni 9 999 €, ni dans le total', !/9\s?999/.test(tx.replace(/[  ]/g, ' ')));
+  const ligne = (id) => (F.doc.querySelector('#affCorps [data-affaire="' + id + '"]') || {}).textContent || '';
+  t('la ligne dit le numero, « envoyé », la validite et le montant', /Devis D-2026-0011 envoyé, valable jusqu’au .*1\s?240 € HT/.test(ligne('a1').replace(/[  ]/g, ' ')), ligne('a1'));
+  t('un devis expire le dit en gras', /expiré le/.test(ligne('a2')) && !!F.doc.querySelector('#affCorps [data-affaire="a2"] b'), ligne('a2'));
+  t('le devis accepte l\'emporte sur un envoye plus recent', /D-2026-0014 accepté, 300 € HT/.test(ligne('a4').replace(/[  ]/g, ' ')), ligne('a4'));
+  t('une affaire sans devis envoye ne porte aucun montant', !/€ HT/.test(ligne('a3')), ligne('a3'));
+  const G = monter();
+  G.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  G.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  G.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', client_id: 'C1', client_nom: 'Chez Paul', titre: 'x', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  /* pas de table devis : la lecture leve, comme avant le SQL du lot 50. Une absence n'est pas un zero. */
+  await G.w.BdvAffaires.ouvrir();
+  t('montants illisibles : la piece se tait, aucun « 0 € »', !/€ HT|En devis envoyé/.test(G.doc.getElementById('affCorps').textContent));
 }
 
 console.log('\n== VERDICT ==');

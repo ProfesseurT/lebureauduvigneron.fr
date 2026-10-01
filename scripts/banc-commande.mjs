@@ -237,7 +237,7 @@ titre('3. Le branchement');
   t('un devis accepte fait relire les affaires et repeindre', /d\.statut === 'accepte'[\s\S]{0,120}charger\(\)\.then/.test(a));
   t('le retour suit le chemin d\'une affaire close', /issue = 'gagnee'/.test(a));
   const dv = sansCommentaires(SRC_DEVIS);
-  t('bdv-devis.js n\'ecrit que par ses RPC connues', (dv.match(/rpc\('devis_[a-z]+'/g) || []).every(x => /enregistrer|abandonner|accepter|propositions/.test(x)));
+  t('bdv-devis.js n\'ecrit que par ses RPC connues', (dv.match(/rpc\('devis_[a-z]+'/g) || []).every(x => /enregistrer|abandonner|accepter|envoyer|propositions/.test(x)));
   t('aucun onclick, aucun tiret cadratin', ![SRC_CMD, SRC_DEVIS].some(s => /onclick|—/.test(s)));
   t('rien dans bdv-nav.js ni dans la page', !/bdv-commande/.test(lire('src/js/bdv-nav.js')) && !/bdv-commande/.test(lire('src/mon-bureau.njk')));
   t('le SQL du lot est inscrit dans la procedure de reconstruction', /'lot49-commande\.sql'/.test(lire('scripts/banc-rejeu.mjs')));

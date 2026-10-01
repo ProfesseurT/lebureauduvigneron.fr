@@ -7339,6 +7339,45 @@ commande = numero du devis ; configuration d'import = section 3 du CAHIER, confi
   (`lectureSeule()`), la base l'accepterait ; `cssEsc()` du devis n'echappe pas un retour a la
   ligne dans une designation (anterieur, signale).
 
+### LOT 50 : LE DEVIS ENVOYE, SA RELANCE, ET LE MONTANT DE L'AFFAIRE (01/10/2026)
+
+Valide par Ted (« ouais ») apres l'avis du conseil sur ce qui manquait aux lots 34 a 49.
+
+- **« Je l'ai envoye » N'ENVOIE RIEN.** Le vigneron envoie le PDF par sa messagerie et note la date
+  (`envoye_le`, un JOUR, aujourd'hui par defaut, jamais dans le futur ni avant `date_devis`). Aucun
+  mail ne part du bureau : la regle du SEUIL ne s'applique pas. Un formulaire modifie ne se note pas
+  envoye (« Enregistre d'abord tes changements »).
+- **Le meme geste pose la relance** : le rappel de l'AFFAIRE (« Relancer le devis D-... »), propose
+  7 jours apres l'envoi, au plus tard le dernier jour de validite (`RELANCE_JOURS`, `relanceProposee()`).
+  Le rappel deja pose est NOMME, parce que celui-ci le remplace. Il remonte seul dans Ma journee, le
+  calendrier et le courrier du matin : rien de neuf a brancher. L'etape n'est que PROPOSEE, et
+  seulement si le type a une etape plus loin dont le nom contient « devis » (`etapeDevis()`).
+- **Un devis ENVOYE est fige** (gel `devis_signer` reecrit : seules les colonnes des transitions
+  envoye -> accepte / abandonne bougent). D'ou **« Refaire ce devis »** : un nouveau devis aux memes
+  lignes, rien d'ecrit avant « Enregistrer » ; alors `devis_enregistrer(..., p_version_de)` donne un
+  nouveau numero qui porte `version_de` et abandonne l'ancien DANS LA MEME TRANSACTION.
+  **`p_version_de` ne part QUE s'il est pose** : PostgREST associe les cles du corps aux noms des
+  parametres, l'envoyer toujours casserait tout enregistrement tant que le SQL n'est pas passe.
+- **Expire n'est pas un statut** : `expire()` / `expireD()` lisent `valable_jusqu` au jour local.
+  Titre « expire », phrase « relance ou refais-le », et l'accord d'un devis expire le rappelle.
+- **Le montant de l'affaire se LIT dans `devis`** (envoye ou accepte, l'accepte l'emporte, sinon le
+  plus recent), JAMAIS copie sur `affaires` (`lireMontants()`, une requete pour la piece). Ligne de
+  l'affaire et carte du kanban : « Devis D-... envoye, valable jusqu'au ..., 1 240 EUR HT ». En tete :
+  « En devis envoye : N EUR HT, sur N affaires (dont N expire) », devis ENVOYES d'affaires en cours du
+  filtre choisi seulement, HT, et PAS dans le bilan commun (arbitrage par defaut). Lecture ratee ou
+  SQL absent : `null`, la piece se tait, jamais « 0 EUR ».
+- **`supabase/lot50-devis-envoye.sql`, a coller par Ted APRES 49.** Colonnes `envoye_le`,
+  `envoye_par`, contrainte `devis_envoye_date`, RPC `devis_envoyer(p_bureau, p_devis, p_jour,
+  p_rappel, p_rappel_titre, p_etape)` security definer, `est_membre()` en premiere ligne, refuse une
+  affaire close et une etape d'un autre type ; `devis_accepter` et `devis_abandonner` acceptent
+  `envoye` ; l'ancienne `devis_enregistrer` a six arguments est SUPPRIMEE (sinon deux surcharges).
+  Banc `supabase/banc-lot50-devis-envoye.sql` sur PostgreSQL 16 : 39 controles. `banc-rejeu.mjs`
+  liste le lot 50.
+- Garde : `banc:devis` sections 8 a 8 quater (26 controles), `banc:affaires` section lot 50
+  (8 controles, le faux serveur lit maintenant `in.(...)`). 9 mutations tuees ; une equivalente
+  (`lireMontants` qui rend `{}` au lieu de `null` en panne : meme ecran, rien a voir).
+- **Pas de capture faite pour ce lot** : la verification est par bancs seulement.
+
 ### PROCHAIN LOT, ET LE MUR QU'IL RENCONTRE (01/10/2026)
 
 Le lot 48 prevu (envoi + signature en ligne avec e-mail verifie par code) fait partir du courrier du

@@ -145,6 +145,7 @@ function monter(o) {
           X.n++;
           d = { bureau: BUREAU, devis_id: 'dv' + X.n, affaire_id: c.p_affaire, numero: 'D-2026-' + String(X.n).padStart(4, '0'), statut: 'enregistre',
             date_devis: '2026-09-30', valable_jusqu: '2026-10-30', cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-09-30T08:00:00+00:00' };
+          if (c.p_version_de) { const v = X.devis.find(x => x.devis_id === c.p_version_de); if (v) { v.statut = 'abandonne'; d.version_de = v.devis_id; } }
           X.devis.push(d);
         } else d.maj_le = '2026-09-30T09:15:00+00:00';
         Object.assign(d, { vendeur: Object.assign({}, X.fiche), acheteur: { nom: 'Chez Paul', nouveau: false, code_postal: '44000', ville: 'Nantes', num_client: 'C7' },
@@ -160,6 +161,16 @@ function monter(o) {
         const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
         if (!d) throw refus(404, '{"code":"P0002"}');
         d.statut = 'abandonne'; d.abandonne_le = '2026-09-30T10:00:00+00:00';
+        return { ...d };
+      }
+      if (chemin === '/rpc/devis_envoyer') {
+        if (X.mode === 'env-null') return null;
+        if (X.mode === 'env-sql') throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_envoyer"}');
+        if (X.mode === 'env-futur') throw refus(400, '{"code":"23514","message":"date d envoi dans le futur"}');
+        const c = op.corps;
+        const d = X.devis.find(x => x.devis_id === c.p_devis);
+        if (!d || d.statut !== 'enregistre') throw refus(400, '{"code":"23514","message":"devis fige"}');
+        d.statut = 'envoye'; d.envoye_le = c.p_jour;
         return { ...d };
       }
       throw refus(404, 'route inconnue du faux serveur : ' + chemin);
@@ -686,6 +697,88 @@ titre('7. Les ids du devis ne rencontrent aucun gabarit');
   t('ni par un autre module du bureau', ids.every(id => !new RegExp('id="' + id + '"').test(autres)));
   t('aucun onclick, aucun tiret cadratin dans les sources du devis',
     ![SRC_DEVIS, SRC_CALC, lire('src/css/bdv-devis.css'), lire('src/css/bdv-devis-papier.css')].some(s => /onclick|—/.test(s)));
+}
+
+titre('8. Lot 50 : « Je l’ai envoyé », la relance, l’expiration, refaire');
+{
+  const X = monter({ ctx: { affaire: { affaire_id: 'aC', issue: 'en_cours', rappel: '2026-10-20', rappel_titre: 'Rappeler Paul' }, etapeDevis: { etape_id: 'e2', nom: 'Devis envoyé' } } });
+  await X.ouvrir();
+  const m = X.modale();
+  X.cocher(CLE0); X.cocher(CLE1);
+  X.taper(X.champ(CLE0, 'qte'), '12'); X.taper(X.champ(CLE1, 'qte'), '6');
+  t('avant l\'enregistrement, pas de « Je l’ai envoyé »', !m.querySelector('[data-dev="envoyer"]'));
+  await X.enregistrer();
+  t('apres l\'enregistrement, « Je l’ai envoyé » apparait', !!m.querySelector('[data-dev="envoyer"]'), X.avis());
+  X.taper(X.champ(CLE0, 'qte'), '13');
+  const nE0 = X.requetes.filter(r => r.chemin === '/rpc/devis_envoyer').length;
+  X.clic('[data-dev="envoyer"]');
+  t('un formulaire modifie ne se note pas envoye : on le dit, rien ne part',
+    /Enregistre d’abord/.test(X.avis()) && X.doc.getElementById('devEnvoi').hidden && X.requetes.filter(r => r.chemin === '/rpc/devis_envoyer').length === nE0, X.avis());
+  await X.enregistrer();
+  X.clic('[data-dev="envoyer"]');
+  const box = X.doc.getElementById('devEnvoi');
+  t('« Je l’ai envoyé » ouvre le bloc, focus sur « Pas encore »', !box.hidden && X.doc.activeElement === box.querySelector('[data-dev="pasEnvoye"]'));
+  t('la relance est proposee une semaine apres l\'envoi (ou au dernier jour de validite)',
+    X.doc.getElementById('devEnvoiRelance').value === (() => { const a = X.doc.getElementById('devEnvoiJour').value; const d = new Date(a + 'T12:00:00'); d.setDate(d.getDate() + 7); const r = d.toISOString().slice(0, 10); return r > '2026-10-30' ? '2026-10-30' : r; })(), X.doc.getElementById('devEnvoiRelance').value);
+  t('le rappel deja pose est nomme : celui-ci le remplace', /remplace celui du 20\/10\/2026 \(Rappeler Paul\)/.test(box.textContent), box.textContent);
+  t('l\'etape « Devis envoyé » est proposee, cochee', !!X.doc.getElementById('devEnvoiEtape') && X.doc.getElementById('devEnvoiEtape').checked);
+  t('et le bloc dit que le devis ne se modifiera plus', /ne se modifiera plus/.test(box.textContent));
+  X.doc.getElementById('devEnvoiJour').value = '2099-01-01';
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(10);
+  t('une date d\'envoi dans le futur est refusee avant de partir', /futur/.test(X.avis() + X.modale().textContent) && X.requetes.filter(r => r.chemin === '/rpc/devis_envoyer').length === nE0);
+  X.doc.getElementById('devEnvoiJour').value = '2026-09-30';
+  for (const [mode, re] of [['env-null', /L’envoi n’est pas noté.*pas figé/], ['env-sql', /pas encore disponible/], ['env-futur', /futur/]]) {
+    X.mode = mode;
+    X.clic('[data-dev="confirmerEnvoi"]'); await attendre(10);
+    t('retour « ' + mode + ' » : le devis n\'est pas fige, et on le dit', re.test(X.avis()) && X.devis[0].statut === 'enregistre' && !!m.querySelector('[data-dev="enregistrer"]'), X.avis());
+  }
+  X.mode = 'ok';
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(10);
+  const env = X.requetes.filter(r => r.chemin === '/rpc/devis_envoyer').pop().corps;
+  t('l\'envoi part pour CE bureau, CE devis, la date, la relance, l\'etape',
+    env.p_bureau === BUREAU && env.p_devis === 'dv1' && env.p_jour === '2026-09-30' && /^\d{4}-\d{2}-\d{2}$/.test(env.p_rappel) && env.p_etape === 'e2' && env.p_rappel_titre === null, JSON.stringify(env));
+  t('« Devis D-2026-0001 noté envoyé le 30/09/2026. Relance prévue le ... »', /^Devis D-2026-0001 noté envoyé le 30\/09\/2026\. Relance prévue le \d{2}\/\d{2}\/\d{4}, dans Ma journée\.$/.test(X.avis()), X.avis());
+  t('ENVOYE = LECTURE SEULE : aucun champ, aucun « Enregistrer », plus de « Je l’ai envoyé »',
+    X.corps().querySelectorAll('input, textarea, select').length === 0 && !m.querySelector('[data-dev="enregistrer"]') && !m.querySelector('[data-dev="envoyer"]'));
+  t('le titre dit « envoyé », et « Refaire ce devis » est propose', /envoyé/.test(X.doc.getElementById('devTitre').textContent) && !!m.querySelector('[data-dev="refaire"]'));
+  t('l\'affaire est prevenue, et son rappel devient « Relancer le devis D-2026-0001 »',
+    (X.changes || []).slice(-1)[0].statut === 'envoye' && X.ctx.affaire.rappel_titre === 'Relancer le devis D-2026-0001' && X.ctx.affaire.rappel === env.p_rappel, X.ctx.affaire.rappel_titre);
+
+  titre('8 bis. Refaire ce devis');
+  const nEnr = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').length;
+  X.clic('[data-dev="refaire"]'); await attendre(10);
+  t('« Refaire » ouvre un NOUVEAU devis aux memes lignes, rien n\'est ecrit',
+    !!m.querySelector('[data-dev="enregistrer"]') && m.querySelectorAll('.dmod__ligne input[data-dev-coche]:checked').length === 2
+    && X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').length === nEnr && /Nouveau devis, avec les lignes du D-2026-0001/.test(X.avis()), X.avis());
+  t('aucun numero tant qu\'il n\'est pas enregistre', !/D-2026-0002/.test(X.doc.getElementById('devTitre').textContent));
+  await X.enregistrer();
+  const env3 = X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps;
+  t('l\'enregistrement porte p_version_de = l\'ancien, et p_devis vide', env3.p_version_de === 'dv1' && env3.p_devis === null, JSON.stringify({ v: env3.p_version_de, d: env3.p_devis }));
+  t('le nouveau prend D-2026-0002, l\'ancien passe abandonne', /D-2026-0002/.test(X.avis()) && X.devis[0].statut === 'abandonne' && X.devis[1].version_de === 'dv1', X.avis());
+  const env4 = (await (async () => { X.taper(X.champ(CLE0, 'qte'), '14'); await X.enregistrer(); return X.requetes.filter(r => r.chemin === '/rpc/devis_enregistrer').pop().corps; })());
+  t('une modification suivante ne renvoie plus p_version_de (PostgREST nomme les parametres)', !('p_version_de' in env4) && env4.p_devis === 'dv2', JSON.stringify(Object.keys(env4)));
+}
+{
+  titre('8 ter. Un devis envoye dont la validite est passee');
+  const X = monter();
+  X.devis.push({ bureau: BUREAU, devis_id: 'dvX', affaire_id: 'aC', numero: 'D-2026-0009', statut: 'envoye', date_devis: '2026-01-02', valable_jusqu: '2026-02-01', envoye_le: '2026-01-03',
+    vendeur: Object.assign({}, FICHE), acheteur: { nom: 'Chez Paul', nouveau: false, code_postal: '44000', ville: 'Nantes', num_client: 'C7' },
+    remise_globale_cb: 0, tva_cb: 2000, total_vins_c: 1000, remise_globale_c: 0, total_ht_c: 1000, tva_c: 200, total_ttc_c: 1200, cree_le: '2026-01-02T08:00:00+00:00', maj_le: '2026-01-03T08:00:00+00:00' });
+  X.lignes.dvX = [{ rang: 1, num_produit: 'P100', designation: 'Cuvée A', millesime: '2015', conditionnement: '75 cl', quantite: 1, pu_ht_c: 1000, remise_cb: 0, pu_l_c: 1000, pu_f_c: 1000, net_c: 1000, final_c: 1000, source_prix: 'client' }];
+  await X.ouvrir({ devis: { ...X.devis[0] } });
+  t('le titre dit « expiré », pas « envoyé »', /expiré/.test(X.doc.getElementById('devTitre').textContent) && !/envoyé/.test(X.doc.getElementById('devTitre').textContent), X.doc.getElementById('devTitre').textContent);
+  t('et la phrase dit quoi faire : relancer ou refaire', /Il a expiré : ses prix ne tiennent plus, relance ou refais-le\./.test(X.modale().textContent));
+  t('le refaire reste propose', !!X.modale().querySelector('[data-dev="refaire"]'));
+}
+{
+  titre('8 quater. Sur une affaire close, un devis envoye se relit, il ne se refait pas');
+  const X = monter({ ctx: { affaire: { affaire_id: 'aC', issue: 'perdue' } } });
+  X.devis.push({ bureau: BUREAU, devis_id: 'dvY', affaire_id: 'aC', numero: 'D-2026-0010', statut: 'envoye', date_devis: '2026-09-30', valable_jusqu: '2099-01-01', envoye_le: '2026-09-30',
+    vendeur: Object.assign({}, FICHE), acheteur: { nom: 'Chez Paul', nouveau: false }, remise_globale_cb: 0, tva_cb: 2000, total_vins_c: 1000, remise_globale_c: 0, total_ht_c: 1000, tva_c: 200, total_ttc_c: 1200,
+    cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-09-30T08:00:00+00:00' });
+  X.lignes.dvY = [];
+  await X.ouvrir({ devis: { ...X.devis[0] } });
+  t('pas de « Refaire ce devis », pas de « Le client a dit oui »', !X.modale().querySelector('[data-dev="refaire"]') && !X.modale().querySelector('[data-dev="accepter"]'));
 }
 
 console.log('\n== VERDICT ==');

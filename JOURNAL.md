@@ -12,6 +12,33 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 50 : le devis envoyé, sa relance, et le montant de l'affaire
+
+Tu as demandé ce qu'on avait manqué dans les lots devis et commande. Le conseil a relevé surtout
+qu'un devis ne savait pas qu'il était parti : pas de date d'envoi, pas de relance, pas d'expiration
+visible, et une affaire sans montant. Tu as validé le lot (« ouais »).
+
+Ce qui a été fait :
+- « Je l'ai envoyé » : le bureau note la date, n'envoie rien (donc la règle du seuil ne joue pas),
+  et pose si tu veux le rappel « Relancer le devis D-... », une semaine après, dans la limite de la
+  validité. Le rappel déjà posé est nommé, puisqu'il est remplacé.
+- Un devis envoyé est figé. « Refaire ce devis » reprend ses lignes sous un nouveau numéro, et
+  l'ancien passe abandonné au moment où le nouveau est enregistré.
+- « Expiré » se lit sur la date de validité, avec la phrase « relance ou refais-le ».
+- Le montant d'une affaire vient de son devis envoyé ou accepté, lu et jamais recopié ; en tête de
+  « À gagner », le total HT des devis envoyés, avec les expirés comptés à part.
+- `supabase/lot50-devis-envoye.sql`, à coller après le lot 49.
+
+Choix pris par défaut, à me dire si tu veux autrement : l'étape « devis » est proposée par une case
+(pas imposée) ; le total « en devis envoyé » est dans « À gagner », pas dans le bilan commun ; les
+montants sont HT.
+
+Ce qui reste ouvert : annuler une acceptation, mentions légales du devis (RCS, capital, « bon pour
+accord »), noter un refus du client, garder une copie du PDF envoyé, champs de livraison, TVA autre
+que 20 %, trace du téléchargement du fichier de commande.
+
+---
+
 ## 01/10/2026, lot 49 : le devis accepté devient une commande Vitisoft
 
 Tes trois choix : la signature en ligne (lot 48) attend, parce que le premier mail vers le client

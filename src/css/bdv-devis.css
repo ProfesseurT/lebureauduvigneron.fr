@@ -178,6 +178,10 @@
 }
 .bdv-coque .dmod__confirme[hidden]{ display:none; }
 .bdv-coque .dmod__confirme .aff-aide{ margin:0 0 var(--bdv-e-2); color:var(--bdv-encre-1); }
+/* LOT 50 : « Je l'ai envoyé » n'est pas une mise en garde, c'est une note. Le cadre
+   d'alerte ci-dessus dirait le contraire : le meme bloc, en neutre. */
+.bdv-coque .dmod__confirme--neutre{ border-color:var(--bdv-trait); background:var(--bdv-surface-2); }
+.bdv-coque .dmod__jour{ max-width:12rem; margin-bottom:var(--bdv-e-2); }
 
 /* LE PIED COLLANT : le total TTC et « Enregistrer le devis » restent sous le pouce
    pendant qu'on descend la liste. Il deborde des marges de la boite pour couvrir

@@ -187,11 +187,57 @@
       S.types = r[0]; S.etapes = r[1];
       S.pistes = {}; r[2].forEach(function (p) { S.pistes[p.piste_id] = p; });
       S.affaires = r[3];
+      S.devisResume = await lireMontants();
       S.charge = true; S.erreur = false; S.panneauSale = true;
       /* La journee lit les memes affaires : on les lui pose, elle repeint son panneau. */
       if (window.BdvAffairesJour) BdvAffairesJour.poser(S.affaires, S.pistes, S.types);
       return true;
     } catch (e) { S.erreur = true; return false; }
+  }
+
+  /* ---------------- LE MONTANT DE L'AFFAIRE, LOT 50 (01/10/2026) ----------------
+     Regle du 28/09/2026 : « le montant n'est un chiffre que s'il vient d'un document
+     ENVOYE ». Il se LIT dans `devis` (statut envoye ou accepte), il n'est copie nulle part :
+     aucune colonne de montant sur `affaires`, deux endroits qui portent le meme chiffre
+     divergeraient. Le devis accepte l'emporte, sinon le dernier envoye.
+     UNE ABSENCE N'EST PAS UN ZERO : lecture ratee ou SQL du lot 50 pas passe (la colonne
+     `envoye_le` n'existe pas), `null`, et la piece se tait sur les montants. */
+  async function lireMontants() {
+    try {
+      var l = await BdvCompte.api('/devis?select=affaire_id,devis_id,numero,statut,total_ht_c,envoye_le,valable_jusqu,cree_le'
+        + '&bureau=eq.' + encodeURIComponent(bureau()) + '&statut=in.(envoye,accepte)&order=cree_le.desc');
+      if (!Array.isArray(l)) return null;
+      var m = {};
+      l.forEach(function (d) {
+        var deja = m[d.affaire_id];
+        if (!deja || (d.statut === 'accepte' && deja.statut !== 'accepte')) m[d.affaire_id] = d;
+      });
+      return m;
+    } catch (e) { return null; }
+  }
+  function devisDe(a) { return (S.devisResume && a && S.devisResume[a.affaire_id]) || null; }
+  function expireD(d) { return !!(d && d.statut === 'envoye' && d.valable_jusqu && String(d.valable_jusqu) < jourIso()); }
+  function eurosHT(c) {
+    var n = Math.round((Number(c) || 0) / 100);
+    return n.toLocaleString('fr-FR') + ' € HT';
+  }
+  /* « Devis D-2026-0007 envoyé, 1 240 € HT, valable jusqu'au 30/10 » : une ligne, le numero,
+     le montant, et ce qui presse. `court` pour la carte du kanban. */
+  function ligneDevis(a, court) {
+    var d = devisDe(a);
+    if (!d) return '';
+    var etat = d.statut === 'accepte' ? 'accepté'
+      : expireD(d) ? 'expiré le ' + dateCourte(d.valable_jusqu)
+      : 'envoyé' + (court ? '' : ', valable jusqu’au ' + dateCourte(d.valable_jusqu));
+    return (court ? '' : 'Devis ' + esc(d.numero) + ' ') + (expireD(d) ? '<b>' + esc(etat) + '</b>' : esc(etat))
+      + ', ' + esc(eurosHT(d.total_ht_c));
+  }
+  /* L'ETAPE « DEVIS » DU TYPE, si elle existe plus loin que l'etape courante. Les etapes sont
+     celles du vigneron : on ne devine que sur le mot, et on ne fait que PROPOSER. */
+  function etapeDevis(a) {
+    var et = etapeDe(a.etape_id);
+    var cand = etapesDe(a.type_id).filter(function (x) { return /devis/.test(norm(x.nom)) && (!et || x.ordre > et.ordre); })[0];
+    return cand ? { etape_id: cand.etape_id, nom: cand.nom } : null;
   }
 
   /* ---------------- CE QUI SE CALCULE ---------------- */
@@ -266,7 +312,7 @@
     }
     if (!S.types.length) { c.innerHTML = htmlDemarrage(); return; }
     SIG_MOTIFS = sigMotifs();
-    c.innerHTML = htmlTete()
+    c.innerHTML = htmlTete() + htmlEnDevis()
       + (S.vue === 'kanban' ? htmlKanban() : htmlRelancer() + htmlListe())
       + htmlCloses() + htmlReglages();
     peindrePanneau();
@@ -341,7 +387,8 @@
         + '<h2 class="tmod__titre" id="amodTitre">' + esc(sujet(a)) + '</h2>'
         + '<p class="tmod__sous">' + [a.titre && a.titre !== sujet(a) ? esc(a.titre) : '', t ? esc(t.nom) : '']
           .filter(Boolean).join(' · ') + '</p>'
-        + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e) + '</p>'
+        + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e)
+        + (devisDe(a) ? '<br>' + ligneDevis(a, false) : '') + '</p>'
         + htmlVentes(motifDe(a));
       corps.innerHTML = htmlEditeur(a);
       lireDevis(a);
@@ -395,6 +442,18 @@
       + '</ul><button type="button" class="btn btn--bordeaux" data-aff="demarrer">C’est parti</button></div>';
   }
 
+  /* « En devis envoyé : 12 340 € HT, sur 4 affaires (dont 1 expiré) » : ce que tu peux
+     gagner, et rien d'autre. Seulement des devis ENVOYES d'affaires en cours, dans le filtre
+     choisi. Pas de ligne du tout si rien n'est envoye, ou si les montants n'ont pas ete lus. */
+  function htmlEnDevis() {
+    if (!S.devisResume) return '';
+    var l = visibles().map(devisDe).filter(function (d) { return d && d.statut === 'envoye'; });
+    if (!l.length) return '';
+    var t = 0, x = 0;
+    l.forEach(function (d) { t += Number(d.total_ht_c) || 0; if (expireD(d)) x++; });
+    return '<p class="aff-aide aff-endevis">En devis envoyé : <b>' + esc(eurosHT(t)) + '</b>, sur '
+      + pluriel(l.length, 'affaire', 'affaires') + (x ? ' (dont ' + x + (x > 1 ? ' expirés' : ' expiré') + ', à relancer ou refaire)' : '') + '.</p>';
+  }
   function htmlTete() {
     var ec = enCours();
     var chips = '<button type="button" class="chip" data-aff="filtre" data-type=""'
@@ -823,6 +882,7 @@
       + (estNouveau(a) ? ' <span class="aff-marque">Nouveau client</span>' : '')
       + (motifDe(a) ? ' ' + htmlMotif(motifDe(a)) : '') + '</p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__titre">' + esc(a.titre) + '</p>' : '')
+      + (devisDe(a) ? '<p class="aff-ligne__s aff-ligne__devis">' + ligneDevis(a, false) + '</p>' : '')
       + '</div>'
       + '<p class="aff-ligne__etape"><span class="aff-pastille">' + esc(et ? et.nom : 'étape') + '</span>'
       + '<span class="aff-ligne__s">' + (avecType && !S.filtre && t ? esc(t.nom) + ' · ' : '') + ligneDuree(a, e) + '</span></p>'
@@ -903,8 +963,9 @@
     if (!Array.isArray(l) || !window.BdvDevisCalcul) return '';
     return l.map(function (d) {
       var ab = d.statut === 'abandonne';
+      var mot = d.statut === 'accepte' ? ' accepté' : d.statut === 'envoye' ? (expireD(d) ? ' expiré' : ' envoyé le ' + dateFr(d.envoye_le)) : '';
       return '<li><button type="button" class="aff-devis__un" data-aff="devisOuvrir" data-devis="' + esc(d.devis_id) + '">'
-        + (ab ? '<s>' + esc(d.numero) + '</s> abandonné' : esc(d.numero))
+        + (ab ? '<s>' + esc(d.numero) + '</s> abandonné' : esc(d.numero) + esc(mot))
         + ', ' + esc(BdvDevisCalcul.euros(d.total_ttc_c)) + ' TTC, ' + esc(dateFr(d.date_devis)) + '</button></li>';
     }).join('');
   }
@@ -1015,12 +1076,13 @@
     if (mot) mot.textContent = '';
     var dv = devisId ? (S.devisDe[a.affaire_id] || []).filter(function (d) { return d.devis_id === devisId; })[0] : null;
     if (devisId && !dv) return;
-    var id = a.affaire_id, qui = sujet(a), neuf = estNouveau(a), issue = a.issue;
+    var id = a.affaire_id, qui = sujet(a), neuf = estNouveau(a), issue = a.issue, etD = a.issue === 'en_cours' ? etapeDevis(a) : null;
     return chargerDevis().then(function (D) {
       viderAttente();
       fermerPanneau();
       D.ouvrir({
-        bureau: bureau(), affaire: { affaire_id: id, issue: issue }, sujet: qui, nouveau: neuf, devis: dv || null,
+        bureau: bureau(), affaire: { affaire_id: id, issue: issue, rappel: a.rappel || null, rappel_titre: a.rappel_titre || null },
+        etapeDevis: etD, sujet: qui, nouveau: neuf, devis: dv || null,
         retour: function (devisId) {
           if (issue !== 'en_cours') { rendre(); var b = focusSortie(id); if (b) { try { b.focus(); } catch (e) {} } return; }
           S.nouvelle = false; S.choix = null; S.ouverte = id; MOD_CLE = '';
@@ -1032,12 +1094,12 @@
         /* LOT 49 : un devis ACCEPTE a passe l'affaire a Gagnee dans la base. On relit les
            affaires tout de suite (la liste, le bilan et Ma journee), et le retour suit
            le chemin d'une affaire close. */
+        /* LOT 50 : l'envoi pose le rappel et peut changer l'etape, refaire abandonne l'ancien, et
+           tout change le montant : on relit les affaires a chaque geste qui ecrit. */
         change: function (d) {
           S.devisDe[id] = null;
-          if (d && d.statut === 'accepte') {
-            issue = 'gagnee';
-            charger().then(function (ok) { if (ok) rendre(); });
-          }
+          if (d && d.statut === 'accepte') issue = 'gagnee';
+          charger().then(function (ok) { if (ok) rendre(); });
         }
       });
     }, function () {
@@ -1136,6 +1198,7 @@
       + (estNouveau(a) ? '<p class="aff-marque">Nouveau client</p>' : '')
       + (motifDe(a) ? '<p class="aff-carte__motif">' + htmlMotif(motifDe(a)) + '</p>' : '')
       + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
+      + (devisDe(a) ? '<p class="aff-ligne__s aff-ligne__devis">Devis ' + ligneDevis(a, true) + '</p>' : '')
       + (e.endormie ? '<p class="aff-ligne__s"><b>Endormie depuis ' + pluriel(e.jours - e.sommeil, 'jour', 'jours') + '</b></p>' : '')
       + '<div class="aff-carte__gestes">'
       + '<select class="aff-carte__deplacer" data-deplacer aria-label="Déplacer « ' + esc(qui) + ' » vers une autre étape">' + opts + '</select>'
@@ -1181,9 +1244,12 @@
     });
     if (!c.length) return '';
     var g = c.filter(function (a) { return a.issue === 'gagnee'; }).length;
+    var gHT = 0, gN = 0;
+    c.forEach(function (a) { var d = a.issue === 'gagnee' && devisDe(a); if (d && d.statut === 'accepte') { gHT += Number(d.total_ht_c) || 0; gN++; } });
     var deplie = Object.keys(S.closesDevis).some(function (k) { return S.closesDevis[k]; });
     return '<details class="aff-plus aff-closes"' + (deplie ? ' open' : '') + '><summary>Voir et rouvrir les affaires closes depuis un an ('
-      + g + ' gagnée' + (g > 1 ? 's' : '') + ' sur ' + c.length + ')</summary><ul class="aff-liste">'
+      + g + ' gagnée' + (g > 1 ? 's' : '') + ' sur ' + c.length
+      + (gN ? ', ' + eurosHT(gHT) + ' en devis acceptés' : '') + ')</summary><ul class="aff-liste">'
       + c.map(function (a) {
         var m = MOTIFS.filter(function (x) { return x[0] === a.motif; })[0];
         return '<li class="aff-ligne" data-affaire="' + a.affaire_id + '"><div class="aff-ligne__corps">'
