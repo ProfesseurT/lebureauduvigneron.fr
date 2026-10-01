@@ -157,6 +157,24 @@ function verifier(cas, r, donnees){
       }
     }
   }
+  /* 13. LOT 55 : UN DEVIS SIGNE DEPUIS HIER EST DANS LE MAIL, en tete, et son nom de
+         client passe par esc() (il vient d'une saisie libre). Un mail qui n'a qu'une
+         signature n'est pas vide : c'est une nouvelle ET un geste. */
+  for(const x of (donnees.signes||[])){
+    if(!x || !x.numero) continue;
+    if(!r.texte.includes(x.numero) || !r.html.includes(x.numero)){
+      ennuis.push(`${cas} : le devis signe ${x.numero} manque au mail.`);
+    }
+  }
+  if((donnees.signes||[]).some(x => x && x.numero)){
+    if(r.vide) ennuis.push(`${cas} : un devis signe et le mail se dit vide.`);
+    if(!/devis sign/.test(r.sujet)) ennuis.push(`${cas} : un devis signe et le sujet ne le dit pas.`);
+    for(const x of donnees.signes){
+      if(x && x.client && /[<>&]/.test(x.client) && r.html.includes(x.client)){
+        ennuis.push(`${cas} : le client « ${x.client} » passe sans echappement dans le mail.`);
+      }
+    }
+  }
   /* 5. Un depot perime ne doit afficher aucun signal. */
   if(r.compteurs.perime && r.compteurs.signaux > 0){
     ennuis.push(`${cas} : depot perime (${r.compteurs.ageDepot} jours) et ${r.compteurs.signaux} signaux affiches.`);

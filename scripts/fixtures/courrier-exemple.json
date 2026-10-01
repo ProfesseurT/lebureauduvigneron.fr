@@ -229,6 +229,15 @@
         "rappel_titre": "z",
         "issue": "gagnee"
       }
+    ],
+    "signes": [
+      {
+        "numero": "D-2026-0012",
+        "client": "Cave du Moulin",
+        "signataire": "Jeanne Martin",
+        "total_ht_c": 124000,
+        "signe_le": "2026-09-08T16:42:00+02:00"
+      }
     ]
   },
   "vide": {
@@ -407,6 +416,42 @@
         "rappel": "2026-09-09",
         "rappel_titre": "Envoyer le devis <b>avant midi</b>",
         "issue": "en_cours"
+      }
+    ],
+    "signes": [
+      {
+        "numero": "D-2026-0031",
+        "client": "Chapelle & Fils <b>",
+        "signataire": "Paul \"P.\" O'Brien",
+        "total_ht_c": null,
+        "signe_le": "2026-09-08T09:01:00+02:00"
+      },
+      {
+        "numero": null,
+        "client": "sans numero"
+      }
+    ]
+  },
+  "signe": {
+    "_but": "LOT 55 : rien d'autre qu'un devis signé depuis hier. Le mail n'est PAS vide : la signature est une nouvelle et un geste.",
+    "aujourdhui": "2026-09-09",
+    "depose_le": "2026-09-08T14:26:17+00:00",
+    "taches": [],
+    "file_travail": {
+      "noms": {},
+      "signaux": []
+    },
+    "resume_ventes": {
+      "conseils": []
+    },
+    "suivis": [],
+    "signes": [
+      {
+        "numero": "D-2026-0040",
+        "client": "Bistrot du Port",
+        "signataire": "Luc Morel",
+        "total_ht_c": 56000,
+        "signe_le": "2026-09-08T18:10:00+02:00"
       }
     ]
   }

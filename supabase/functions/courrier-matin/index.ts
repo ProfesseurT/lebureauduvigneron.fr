@@ -18,7 +18,7 @@
    controlee par `npm run verif`. Ne pas la modifier a la main, ne pas la
    reformater : elle est lue par une expression exacte.
 
-   empreinte de la fabrique deployee : sha256 4c034e94ef21aacc, 1059 lignes.
+   empreinte de la fabrique deployee : sha256 bcc3da3a9b1272aa, 1084 lignes.
 
    POURQUOI ELLE N'EST PLUS TENUE A LA MAIN, 10/09/2026. Elle l'etait, et elle
    annoncait 512 lignes quand la fabrique en faisait 880. Pire : le depot
@@ -265,7 +265,7 @@ function reponse(corps: unknown, code = 200): Response {
    garde-fou 3bis refusait TOUS les comptes, la fonction repondait 200, et
    `courrier_envois` restait vide. Deux jours de silence pour un mot manquant.
    `npm run courrier:verif` compare desormais cette liste aux champs lus. */
-const CHAMPS = 'id,email,jeton_emails,depose_le,noms,signaux,suivis,taches,resume_ventes,affaires';
+const CHAMPS = 'id,email,jeton_emails,depose_le,noms,signaux,suivis,taches,resume_ventes,affaires,signes';
 
 /* LES AFFAIRES SONT ENTREES AU LOT 36 (28/09/2026), et la vue ne les rend que
    si le SQL du lot est passe. Si ce n'est pas le cas, PostgREST refuse TOUTE la
@@ -273,8 +273,16 @@ const CHAMPS = 'id,email,jeton_emails,depose_le,noms,signaux,suivis,taches,resum
    personne a cause d'un bloc qui n'existait pas la veille. On relit donc sans
    elle, et le rapport le DIT (`affaires_absentes`) : une reprise muette serait
    le silence de deux jours du 11/09/2026, en plus poli. */
-const CHAMPS_SANS_AFFAIRES = CHAMPS.replace(',affaires', '');
 let AFFAIRES_ABSENTES = false;
+/* LES DEVIS SIGNES SONT ENTRES AU LOT 55 (01/10/2026), meme regle que les affaires :
+   la vue sans la colonne ne bloque pas le courrier, et le rapport le DIT. */
+let SIGNES_ABSENTS = false;
+function champsDemandes() {
+  let liste = CHAMPS;
+  if (AFFAIRES_ABSENTES) liste = liste.replace(',affaires', '');
+  if (SIGNES_ABSENTS) liste = liste.replace(',signes', '');
+  return liste;
+}
 
 /* ---- UNE SEULE REPRISE, ET ELLE N'EST LEGITIME QUE SUR CETTE LECTURE ----
    Le 13/09/2026 a 8 h 05, cette requete a rendu 504 en 30 millisecondes : la
@@ -293,11 +301,10 @@ const ESSAIS_LECTURE = 2;
 const PAUSE_LECTURE  = 2000;
 
 async function lireLesComptes() {
-  const url = `${SUPABASE_URL}/rest/v1/v_courrier?select=${CHAMPS}`;
   let dernier = '';
   for (let essai = 1; essai <= ESSAIS_LECTURE; essai++) {
     try {
-      const r = await fetch(url, {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/v_courrier?select=${champsDemandes()}`, {
         headers: {
           apikey: SERVICE_KEY,
           Authorization: `Bearer ${SERVICE_KEY}`,
@@ -311,6 +318,10 @@ async function lireLesComptes() {
         };
       }
       dernier = `${r.status} ${await r.text()}`;
+      if (!SIGNES_ABSENTS && r.status === 400 && /signes/.test(dernier)) {
+        SIGNES_ABSENTS = true;
+        return lireSans();
+      }
       if (!AFFAIRES_ABSENTES && r.status === 400 && /affaires/.test(dernier)) {
         AFFAIRES_ABSENTES = true;
         return lireSans();
@@ -325,15 +336,21 @@ async function lireLesComptes() {
   throw new Error(`lecture de v_courrier, ${ESSAIS_LECTURE} essais : ${dernier}`);
 }
 
-async function lireSans() {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/v_courrier?select=${CHAMPS_SANS_AFFAIRES}`, {
+async function lireSans(): Promise<{ comptes: Array<Record<string, unknown>>; essais: number }> {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/v_courrier?select=${champsDemandes()}`, {
     headers: {
       apikey: SERVICE_KEY,
       Authorization: `Bearer ${SERVICE_KEY}`,
       Accept: 'application/json',
     },
   });
-  if (!r.ok) throw new Error(`lecture de v_courrier sans les affaires : ${r.status} ${await r.text()}`);
+  if (!r.ok) {
+    const t = await r.text();
+    /* Une deuxieme colonne absente (les deux lots sautes) : on la retire aussi, une fois. */
+    if (r.status === 400 && !SIGNES_ABSENTS && /signes/.test(t)) { SIGNES_ABSENTS = true; return lireSans(); }
+    if (r.status === 400 && !AFFAIRES_ABSENTES && /affaires/.test(t)) { AFFAIRES_ABSENTES = true; return lireSans(); }
+    throw new Error(`lecture de v_courrier sans les colonnes absentes : ${r.status} ${t}`);
+  }
   return { comptes: await r.json() as Array<Record<string, unknown>>, essais: 1 };
 }
 
@@ -482,6 +499,8 @@ Deno.serve(async (req: Request) => {
     /* Vrai si la vue n'a pas encore la colonne du lot 36 : le courrier part,
        sans les affaires, et c'est ici qu'on le voit. */
     affaires_absentes: AFFAIRES_ABSENTES,
+    /* Vrai si la vue n'a pas encore la colonne du lot 55 : pas de devis signes. */
+    signes_absents: SIGNES_ABSENTS,
     envoyes: 0,
     deja_envoyes: 0,
     sans_jeton: 0,
@@ -519,6 +538,7 @@ Deno.serve(async (req: Request) => {
       suivis: c.suivis,
       taches: c.taches,
       affaires: c.affaires,
+      signes: c.signes,
     });
 
     /* Un mail vide ne part pas. C'est la fabrique qui le DIT (`vide`), et c'est

@@ -1,0 +1,90 @@
+---
+layout: base.njk
+title: Signer un devis
+description: Signez en ligne le devis que votre vigneron vous a envoyé. Sans compte.
+permalink: /signer/
+eleventyExcludeFromCollections: true
+noindex: true
+---
+
+{#- LOT 55, 01/10/2026 : LA PAGE OU LE CLIENT DU VIGNERON SIGNE SON DEVIS.
+    Elle s'ouvre SANS COMPTE : la porte est le jeton pose apres le # du lien,
+    que le vigneron a colle dans son propre mail. Apres le #, il ne part ni au
+    serveur du site, ni dans un en-tete Referer.
+    LE CLIENT EST VOUVOYE : regle du depot pour tout ce qui s'adresse aux
+    clients du vigneron.
+    La page ne parle qu'a la fonction Edge `signature`, jamais a la base
+    directement. Elle ne decide de rien : le jeton, l'etat, l'expiration, la
+    copie montree, tout vient de la base.
+    `noindex` dans l'entete (voir mes-emails.njk : une balise posee dans le corps
+    est ignoree par les robots). -#}
+
+<section class="about-hero">
+  <div class="container">
+    <h1>Signer un devis</h1>
+    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
+      En ligne, sans compte, en une minute.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:52rem;">
+
+    <p id="sigAttente" role="status">Chargement du devis…</p>
+
+    <div id="sigFin" hidden>
+      <h2 id="sigFinT"></h2>
+      <p id="sigFinP"></p>
+    </div>
+
+    <div id="sigDevis" hidden>
+      <p id="sigIntro"></p>
+      <p style="margin:0 0 .5rem 0;">
+        <button type="button" class="btn" id="sigImprimer"
+                style="background:transparent; color:var(--bordeaux); border:1px solid var(--bordeaux);">Imprimer le devis</button>
+      </p>
+      <div id="sigFeuilleW" style="overflow:hidden; border:1px solid var(--rule); background:var(--white); margin:0 0 .5rem 0;"></div>
+      <p style="font-size:.85rem; color:var(--muted); margin:0;">Pour le lire en grand, appuyez sur « Imprimer le devis » et enregistrez-le en PDF.</p>
+      <p id="sigEmpreinte" style="font-size:.85rem; color:var(--muted); margin:0 0 1.5rem 0;"></p>
+
+      <form id="sigForm" novalidate hidden>
+        <h2 style="margin-top:0;">Votre accord</h2>
+        <p style="font-size:.95rem;">Ce lien est réservé aux clients professionnels : vous signez au nom de
+          <b id="sigAuNomDe"></b>.</p>
+        <p style="margin:0 0 1rem 0;">
+          <label for="sigNom" style="display:block; font-weight:600; margin-bottom:.25rem;">Votre nom et prénom</label>
+          <input id="sigNom" name="nom" type="text" autocomplete="name" maxlength="120" required
+                 style="width:100%; max-width:26rem; min-height:44px; font-size:16px; padding:.5rem;">
+        </p>
+        <p style="margin:0 0 1rem 0;">
+          <label for="sigQualite" style="display:block; font-weight:600; margin-bottom:.25rem;">Votre fonction</label>
+          <input id="sigQualite" name="qualite" type="text" autocomplete="organization-title" maxlength="120" required
+                 placeholder="Gérant, acheteur, responsable de cave…"
+                 style="width:100%; max-width:26rem; min-height:44px; font-size:16px; padding:.5rem;">
+        </p>
+        <p style="margin:0 0 1rem 0;">
+          <label style="display:flex; gap:.6rem; align-items:flex-start; min-height:44px;">
+            <input type="checkbox" id="sigAccord" style="width:22px; height:22px; margin-top:.15rem; flex:none;">
+            <span><b>Bon pour accord.</b> J’accepte ce devis, ses prix et ses conditions, au nom de
+              <span id="sigAuNomDe2"></span>.</span>
+          </label>
+        </p>
+        <p id="sigErreur" role="alert" hidden style="font-weight:600; color:var(--danger-deep);"></p>
+        <p style="margin:0 0 1rem 0;"><button type="submit" class="btn btn--bordeaux" id="sigSigner">Je signe le devis</button></p>
+        <p style="font-size:.85rem; color:var(--muted);">
+          En signant, nous enregistrons votre nom, votre fonction, la date et l’heure de la signature,
+          l’empreinte numérique du devis signé, ainsi que l’adresse IP et le navigateur utilisés. Ces
+          informations servent de preuve de votre accord : elles sont conservées avec le devis et ne
+          servent à rien d’autre. Le domaine qui vous a envoyé ce devis en est responsable ; le
+          Bureau du Vigneron les héberge pour lui.
+          <a href="/politique-confidentialite/">Politique de confidentialité</a>.
+        </p>
+      </form>
+    </div>
+
+    <p style="margin-top:2rem;"><a href="/">Le Bureau du Vigneron</a></p>
+  </div>
+</section>
+
+<script src="/js/bdv-signer.js" defer></script>

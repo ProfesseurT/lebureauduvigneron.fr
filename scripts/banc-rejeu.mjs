@@ -71,6 +71,7 @@ const ORDRE = [
   'lot52-devis-copie-trace.sql',
   'lot53-devis-livraison.sql',
   'lot54-devis-tva.sql',
+  'lot55-signature.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

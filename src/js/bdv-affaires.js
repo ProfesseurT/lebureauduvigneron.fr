@@ -1814,9 +1814,22 @@
     } catch (e) { return null; }
   }
 
+  /* LOT 55 : « Ouvrir le devis » depuis la punaise ou le bandeau d'un devis signe en ligne.
+     L'affaire est gagnee : on ouvre directement son devis, pas le panneau de l'affaire. */
+  function lireDevisDemande() {
+    try {
+      var brut = sessionStorage.getItem('bdv_devis_ouvrir');
+      if (!brut) return null;
+      sessionStorage.removeItem('bdv_devis_ouvrir');
+      var o = JSON.parse(brut);
+      return o && o.affaire && o.devis ? o : null;
+    } catch (e) { return null; }
+  }
+
   async function ouvrir() {
     lireClientPropose();
     var demandee = lireAffaireDemandee();
+    var devisDemande = lireDevisDemande();
     var vue = lireVueDemandee();
     if (vue) {
       S.filtre = vue.filtre || '';
@@ -1830,6 +1843,10 @@
       S.ouverte = demandee;
     }
     rendre();
+    if (devisDemande) {
+      var ad = S.affaires.filter(function (x) { return x.affaire_id === devisDemande.affaire; })[0];
+      if (ad) { await lireDevis(ad); ouvrirDevis(ad, devisDemande.devis); return; }
+    }
     if (vue && vue.focus === 'relancer' && !S.nouvelle && !S.ouverte) {
       var h = el('affRelancer');
       if (h) { try { h.focus(); } catch (e) {} }

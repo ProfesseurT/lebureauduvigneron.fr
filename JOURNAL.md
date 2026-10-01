@@ -12,6 +12,29 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 55 : la signature en ligne du devis
+
+Arbitrages de Ted, le même jour :
+- Le lien se crée AVEC l'envoi (case « Avec un lien de signature en ligne », cochée). Il part de
+  TA messagerie : le bureau n'envoie aucun mail au client, la règle du SEUIL ne joue pas.
+- Le client ne peut que signer. Un non se dit au téléphone, et tu le notes avec « Il a dit non ».
+- Tu l'apprends de deux façons : une punaise dans Ma journée tant que la commande Vitisoft n'est
+  pas téléchargée, un bandeau tout de suite si ton bureau est ouvert, et une ligne « Signé depuis
+  hier » dans le courrier du lendemain.
+- Pros seulement pour l'instant : les particuliers attendent l'avis d'un juriste (rétractation).
+
+Ce qui est fait : la page `/signer/` (vouvoiement, copie exacte du lot 52, empreinte, nom,
+fonction, « Bon pour accord »), la fonction Edge `signature` (publique, elle ne fait que passer
+le jeton à la base), `supabase/lot55-signature.sql` (liens, preuves, acceptation automatique,
+courrier). Relecture indépendante : cinq défauts corrigés (course entre deux liens, acceptation
+concurrente, lien éteint qui montrait encore les montants, affaire gagnée à la main, nom en
+caractères invisibles).
+
+Ce qui reste ouvert : la copie imprimée depuis la page ne porte pas de mention « signé » ; les
+particuliers ; l'apercu du panneau d'un devis n'a pas été photographié.
+
+---
+
 ## 01/10/2026, lot 54 : la TVA autre que 20 %
 
 - Un choix « Où va le vin ? » sur le devis : en France, à l'export hors de l'UE, ou à un pro dans

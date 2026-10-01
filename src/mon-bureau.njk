@@ -1952,6 +1952,9 @@ theme_bureau: true
     {# 3. LES TROIS CHOSES A FAIRE LES PLUS PRESSANTES, plus le renvoi vers le reste.
        Elles viennent de bdv-taches.js, qui est le seul a savoir fusionner les taches
        ecrites et les obligations du calendrier. #}
+    {# LOT 55 : UN DEVIS SIGNE EN LIGNE, avant les taches : c'est une commande qui attend #}
+    {# d'etre telechargee pour Vitisoft. Apres les rappels clients, le retard passe avant tout. #}
+    if(window.BdvAffairesJour && BdvAffairesJour.punaisesSignes){ try{ pile = pile.concat(BdvAffairesJour.punaisesSignes()); }catch(e){} }
     if(window.BdvTaches){ try{ pile = pile.concat(BdvTaches.punaises()); }catch(e){} }
     {# LES AFFAIRES A RELANCER (lot 35), apres les clients et les taches : un client #}
     {# qui attend passe avant une piste. Une seule punaise, qui compte ou qui nomme. #}

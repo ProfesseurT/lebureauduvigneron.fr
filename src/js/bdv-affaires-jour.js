@@ -31,6 +31,7 @@
   var NOMS = {};         // piste_id -> nom
   var CLIENT_DE = {};    // piste_id -> client_id, pour une piste devenue cliente (lot 44)
   var SOMMEIL = {};      // type_id -> sommeil_jours, le delai qui endort une affaire (lot 45)
+  var SIGNES = null;     // lot 55 : devis signes en ligne dont la commande n'est pas telechargee
 
   /* LA FAMILLE « MES AFFAIRES », LOT 37 (28/09/2026). Elle rejoint la liste unique des
      familles, celle que lisent le filtre du calendrier et celui de « Mes taches ».
@@ -130,7 +131,9 @@
         (ps || []).forEach(function (p) { noms[p.piste_id] = p.nom; if (p.client_id) clients[p.piste_id] = String(p.client_id); });
       }
       EN_COURS = aff; NOMS = noms; CLIENT_DE = clients; SOMMEIL = som;
+      await lireSignes(b);
       repeindre();
+      surveiller();
       return true;
     } catch (e) {
       /* LE LOT 35 N'EST PEUT-ETRE PAS PASSE : `client_nom` n'existe pas encore.
@@ -172,6 +175,108 @@
       if (pistes[k].client_id) CLIENT_DE[k] = String(pistes[k].client_id);
     });
     repeindre();
+    relireSignes();
+  }
+
+  /* ================= LES DEVIS SIGNES EN LIGNE, LOT 55 (01/10/2026) =================
+     Le client signe sur /signer/, la base accepte seule. Le vigneron l'apprend de deux
+     facons (decision de Ted) : une PUNAISE tant que la commande Vitisoft n'est pas
+     telechargee, et un BANDEAU tout de suite si son bureau est ouvert. Plus une ligne au
+     courrier du lendemain, qui vient de la vue `v_courrier`.
+     UNE LECTURE RATEE NE VIDE RIEN : on garde ce qu'on savait (une absence n'est pas un
+     zero). La colonne `signe_le` existe depuis le lot 47 : avant le SQL du lot 55 la
+     requete marche et ne rend rien. */
+  async function lireSignes(b) {
+    b = b || bureau();
+    if (!b || !window.BdvCompte) return SIGNES;
+    try {
+      var l = await BdvCompte.api('/devis?select=devis_id,affaire_id,numero,signe_le,total_ht_c,acheteur'
+        + '&statut=eq.accepte&signe_le=not.is.null&commande_telechargee_le=is.null&bureau=eq.' + encodeURIComponent(b)
+        + '&order=signe_le.desc&limit=20');
+      if (Array.isArray(l)) SIGNES = l;
+    } catch (e) {}
+    return SIGNES;
+  }
+  function clientDe(d) { return (d.acheteur && d.acheteur.nom) || 'Ton client'; }
+  function punaisesSignes() {
+    if (!SIGNES || !SIGNES.length) return [];
+    var d = SIGNES[0];
+    if (SIGNES.length === 1) return [{ cle: 'signe:' + d.affaire_id + ':' + d.devis_id, tampon: 'devis signé',
+      valeur: clientDe(d), sous: 'devis ' + d.numero + ' : télécharge la commande Vitisoft', href: '/mon-bureau/#affaires' }];
+    return [{ cle: 'signe:' + d.affaire_id + ':' + d.devis_id, valeur: String(SIGNES.length), libelle: 'devis signés à commander',
+      sous: 'à commencer par ' + clientDe(d) + ', ' + d.numero, href: '/mon-bureau/#affaires' }];
+  }
+  /* LA PUNAISE OUVRE LE DEVIS, pas seulement la piece : la demande passe par
+     sessionStorage (`bdv_devis_ouvrir`), comme « Voir son affaire ». Le `href` reste
+     dessous pour un clic milieu. */
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('[data-cle^="signe:"] a, [data-signe-ouvrir]');
+    if (!a) return;
+    var cle = a.getAttribute('data-signe-ouvrir') || (a.closest('[data-cle]') || {}).getAttribute('data-cle');
+    var m = /^signe:([^:]+):(.+)$/.exec(String(cle || ''));
+    if (!m) return;
+    try { sessionStorage.setItem('bdv_devis_ouvrir', JSON.stringify({ affaire: m[1], devis: m[2] })); } catch (e) {}
+    vu(m[2]);
+    if (a.hasAttribute('data-signe-ouvrir')) { ev.preventDefault(); ouvrirPiece(); }
+  });
+
+  /* LE BANDEAU : seulement pour une signature que ce navigateur n'a pas encore montree.
+     Cle `bdv_` : elle part a la deconnexion, avec le reste. */
+  var CLE_VUS = 'bdv_signes_vus_v1';
+  function vus() { try { return JSON.parse(localStorage.getItem(CLE_VUS) || '[]') || []; } catch (e) { return []; } }
+  function vu(id) {
+    try { var v = vus(); if (v.indexOf(id) < 0) { v.push(id); localStorage.setItem(CLE_VUS, JSON.stringify(v.slice(-50))); } } catch (e) {}
+  }
+  function peindreBandeau() {
+    var av = document.getElementById('bureauAvis');
+    if (!av || !av.parentNode || !SIGNES) return;
+    var neufs = SIGNES.filter(function (d) { return vus().indexOf(d.devis_id) < 0; });
+    var b = document.getElementById('bureauSigne');
+    if (!neufs.length) { if (b) b.hidden = true; return; }
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'bureauSigne';
+      b.className = 'bureau-avis bureau-signe';
+      b.setAttribute('data-ok', 'oui');
+      b.setAttribute('role', 'status');
+      av.parentNode.insertBefore(b, av);
+      b.addEventListener('click', function (ev) {
+        if (ev.target.closest('[data-signe-fermer]')) {
+          (SIGNES || []).forEach(function (d) { vu(d.devis_id); });
+          b.hidden = true;
+        }
+      });
+    }
+    var d = neufs[0];
+    var dit = neufs.length === 1
+      ? clientDe(d) + ' a signé en ligne le devis ' + d.numero + '. Il est accepté et l’affaire est gagnée : télécharge la commande Vitisoft.'
+      : neufs.length + ' devis viennent d’être signés en ligne, à commencer par ' + clientDe(d) + ' (' + d.numero + ').';
+    b.innerHTML = '';
+    var p = document.createElement('span'); p.textContent = 'Bonne nouvelle. ' + dit + ' ';
+    var o = document.createElement('button'); o.type = 'button'; o.className = 'btn'; o.textContent = 'Ouvrir le devis';
+    o.setAttribute('data-signe-ouvrir', 'signe:' + d.affaire_id + ':' + d.devis_id);
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'btn btn--geste'; x.textContent = 'Plus tard';
+    x.setAttribute('data-signe-fermer', '1');
+    b.appendChild(p); b.appendChild(o); b.appendChild(document.createTextNode(' ')); b.appendChild(x);
+    b.hidden = false;
+  }
+  /* LA SURVEILLANCE : une requete etroite toutes les deux minutes, et seulement quand la
+     page est vue ; plus une au retour sur l'onglet. Pas de connexion temps reel : une
+     signature n'est pas une course, deux minutes suffisent. */
+  var VEILLE = null;
+  function surveiller() {
+    peindreBandeau();
+    if (VEILLE) return;
+    VEILLE = setInterval(function () { if (document.visibilityState === 'visible') relireSignes(); }, 120000);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') relireSignes(); });
+  }
+  function relireSignes() {
+    var avant = JSON.stringify((SIGNES || []).map(function (d) { return d.devis_id; }));
+    return lireSignes().then(function () {
+      var apres = JSON.stringify((SIGNES || []).map(function (d) { return d.devis_id; }));
+      if (apres !== avant) repeindre();
+      peindreBandeau();
+    });
   }
 
   function nomDe(a) {
@@ -351,5 +456,6 @@
 
   window.BdvAffairesJour = { charger: charger, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
                              datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE,
-                             etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan };
+                             etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan,
+                             signes: function () { return SIGNES; }, relireSignes: relireSignes, punaisesSignes: punaisesSignes };
 })();

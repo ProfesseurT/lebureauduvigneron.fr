@@ -7544,3 +7544,49 @@ Autres arbitrages du meme jour (detail : `Claude outputs/` n'en a pas, tout est 
 - **PIEGE DU PONT (01/10/2026)** : recommiter vers l'appareil depuis le MEME `stagedPath` peut
   livrer l'ANCIEN contenu (le correctif CSS du lot 53 s'est perdu ainsi). Toujours un dossier
   neuf dans /mnt/user-data/outputs, puis comparer les md5 des deux cotes.
+
+
+### LOT 55 : LA SIGNATURE EN LIGNE DU DEVIS (01/10/2026)
+
+Arbitrages de Ted : lien cree AVEC l'envoi, client qui ne peut que signer, punaise + bandeau +
+ligne du courrier, pros seulement. Le lien part de la messagerie du vigneron : aucun mail du bureau.
+
+- **`supabase/lot55-signature.sql`, a coller par Ted APRES 54.** Tables `devis_liens` (une ligne
+  par lien, le dernier non `remplace_le` est le seul vivant ; `jeton_hash` n'est lisible par
+  PERSONNE du navigateur, droits par colonne, donc jamais `select=*` sur cette table) et
+  `devis_signatures` (la preuve, figee comme `devis_copies`). Jeton : deux uuid v4, 64 hex, 244 bits.
+- **Rien n'est ouvert a `anon`.** La page `/signer/` parle a la fonction Edge `signature`
+  (`supabase/functions/signature/index.ts`, suivie par git, deployee avec `verify_jwt = false`),
+  qui appelle `signature_lire` et `signature_poser` avec la cle de service. Ces deux fonctions ne
+  sont executables que par `service_role`. La fonction Edge ne decide de rien.
+- **Le coeur de l'acceptation est UN** : `devis_accepter_coeur()` (appelable par la seule base),
+  appele par `devis_accepter` (bureau, apres `est_membre`) et par `signature_poser` (auteur null,
+  `signe_le` = l'heure de la preuve). `devis_obstacle()` dit, une fois, ce qui empeche une commande ;
+  la creation d'un lien et la signature le lisent : on ne fait pas signer ce qui ne s'accepterait pas.
+- **`signature_poser` verrouille le devis PUIS l'affaire, RELIT le lien sous le verrou** (un lien
+  remplace pendant l'attente ne signe plus, prouve a deux sessions), refuse une empreinte autre que
+  celle de la copie montree, un nom ou une fonction sans lettre, et rend `bloque` au lieu d'une
+  erreur si l'acceptation refuse. Un lien eteint ou expire ne montre ni client, ni montants, ni copie.
+- **`devis_annuler_accord` efface `signe_le` et eteint les liens** ; la preuve reste. Pour faire
+  resigner : un nouveau lien.
+- **`v_courrier` gagne `signes` EN DERNIER** : signatures de moins de 24 h dont le devis est
+  toujours accepte (`dv.signe_le = sig.signe_le`). L'alias `s` est deja pris par la vue :
+  `banc:rejeu` le confondait, d'ou `sig`.
+- **Courrier** : bloc « Signé depuis hier » en tete, sujet « 1 devis signé », un mail qui n'a qu'une
+  signature n'est pas vide. `index.ts` (la SOURCE est `supabase/functions/courrier-matin/index.ts`,
+  `_deploiement/` est regenere par `courrier:joindre`) relit sans `signes` si la colonne manque
+  (`signes_absents` au rapport). Controle 13 de `npm run courrier`.
+- **Bureau** : `bdv-devis.js` (case a l'envoi, `creerLien()`, lien affiche UNE fois avec « Copier
+  le lien » et « Copier un message avec le lien », vouvoye ; preuve dans « La commande Vitisoft » ;
+  « signé » dans le titre). `bdv-affaires-jour.js` lit les devis signes dont la commande n'est pas
+  telechargee : `punaisesSignes()` (posee dans la pile APRES les rappels clients, AVANT les taches),
+  bandeau `#bureauSigne` une fois par devis (`bdv_signes_vus_v1`), relecture toutes les 2 min si la
+  page est vue. `bdv_devis_ouvrir` (sessionStorage) ouvre le devis d'une affaire gagnee.
+- **Ordre de mise en production** : le SQL, puis le commit, puis le deploiement de `signature` et
+  de `courrier-matin`. Avant le SQL, la case de l'envoi mene a « La signature en ligne n'est pas
+  encore disponible » sans rien casser.
+- Garde : `supabase/banc-lot55-signature.sql` (50 controles, rejoue 47 a 54), `npm run
+  banc:signature` (37, page, fonction Edge, punaise, bandeau), `banc:devis` section 13, controle 13
+  du courrier. Mutations toutes tuees sauf la relecture du lien, prouvee a deux sessions.
+- Ouvert : la copie imprimee depuis /signer/ ne porte pas « signé » ; les particuliers ; le panneau
+  du devis cote bureau n'a pas ete photographie (la page /signer/ l'a ete, 1440 et 390).

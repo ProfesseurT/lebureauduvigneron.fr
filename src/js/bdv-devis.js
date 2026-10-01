@@ -93,6 +93,11 @@
   var PORT_0 = 'Si tu factures du port, le « Produit pour transport » de Vitisoft doit être à 0 % de TVA : sinon Vitisoft taxera le port et la facture ne collera plus au devis.';
   var MOT_SQL_TVA = 'La TVA autre que 20 % n’est pas encore disponible sur ton compte. Tes lignes sont gardées.';
   var TRANSPORT_VITI = 'Des frais de port : dans Vitisoft, la configuration d’import doit avoir un « Produit pour transport », sinon la commande est refusée.';
+  /* LOT 55 : la signature en ligne. Le lien part de la messagerie du vigneron, pas du
+     bureau (decision de Ted du 01/10/2026). Le jeton ne s'affiche qu'une fois. */
+  var MOT_SQL_SIG = 'La signature en ligne n’est pas encore disponible sur ton compte.';
+  var MOT_LIEN_UNE_FOIS = 'Ce lien ne s’affiche qu’une fois : colle-le dans ton mail maintenant. Il sert à une seule signature. Perdu ? Crée un nouveau lien, l’ancien s’éteint.';
+  var MOT_PROS = 'Réservé aux clients professionnels pour l’instant.';
   var FEUILLES_PAPIER = ['/css/bdv-theme.css', '/css/bdv-devis-papier.css'];
   var FEUILLES = null;   // le texte des deux feuilles, lu une fois par session
   /* Police et encre du pied de page imprime, en dur : une boite de marge de @page ne lit
@@ -481,7 +486,8 @@
     S = { ctx: ctx, etat: 'chargement', props: [], source: ctx.nouveau ? 'bureau' : 'client', propsDomaine: null,
           lignes: [], remise: '0', notes: '', devis: ctx.devis || null, lignesServeur: null, voirTout: false,
           q: '', brouillon: null, confirme: false, attente: false, manque: [], accord: false, modifie: false,
-          envoi: false, versionDe: null, refus: false, annul: false, liv: livVide(), tva: tvaVide() };
+          envoi: false, versionDe: null, refus: false, annul: false, liv: livVide(), tva: tvaVide(),
+          lien: null, lienInfo: null, preuve: null };
     var moi = S;
     monter();
     peindre();
@@ -528,6 +534,7 @@
         S.liv = livDeDevis(S.devis);
         S.tva = tvaDeDevis(S.devis);
         S.etat = 'edition';
+        lireSignature(moi);
       } else {
         S.brouillon = lireBrouillon(S.ctx.affaire.affaire_id);
         S.etat = S.brouillon ? 'reprise' : 'edition';
@@ -560,7 +567,7 @@
     var pour = ' pour ' + esc(S.ctx.sujet || 'ce client');
     var titre = d
       ? (d.statut === 'abandonne' ? 'Devis <s>' + esc(d.numero) + '</s> <span class="aff-marque dmod__abandonne">abandonné</span>,' + pour
-        : d.statut === 'accepte' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque">accepté</span>,' + pour
+        : d.statut === 'accepte' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque">' + (d.signe_le ? 'signé' : 'accepté') + '</span>,' + pour
         : d.statut === 'refuse' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque dmod__abandonne">refusé</span>,' + pour
         : d.statut === 'envoye' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque">' + (expire(d) ? 'expiré' : 'envoyé') + '</span>,' + pour
         : 'Devis ' + esc(d.numero) + pour)
@@ -728,6 +735,7 @@
       + (Number(d.commande_telechargements) > 0 && d.commande_telechargee_le
         ? 'Son fichier a été téléchargé le ' + esc(dateFr(d.commande_telechargee_le)) + ' : elle est sans doute déjà dans Vitisoft. Supprime-la aussi là-bas, sinon elle sera facturée.</p>'
         : 'Si tu l’as déjà importée dans Vitisoft, supprime-la aussi là-bas : sinon elle sera facturée.</p>')
+      + (d.signe_le ? '<p class="aff-aide">Il a été signé en ligne : la preuve reste gardée, et le lien s’éteint. Pour le faire signer de nouveau, tu créeras un nouveau lien.</p>' : '')
       + (gagnee ? '<label class="dmod__coche"><input type="checkbox" id="devAnnulRouvrir" checked><span>Rouvrir l’affaire</span></label>' : '')
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAnnul">Oui, annuler l’acceptation</button>'
       + '<button type="button" class="btn" data-dev="garderAccord">Non, la garder</button></p></div>';
@@ -739,15 +747,127 @@
      (« Relancer le devis D-... ») : c'est lui qui remonte dans Ma journee, le calendrier et le
      courrier du matin. Le rappel deja pose est NOMME, parce que celui-ci le remplace. L'etape
      n'est proposee que si le type d'affaire en a une qui parle de devis, plus loin. */
+  /* ---------------- LA SIGNATURE EN LIGNE (lot 55) ----------------
+     Le lien ne vaut que pour la COPIE FIGEE (lot 52) d'un devis envoye, et seulement si le
+     devis ferait une commande importable : le client ne signe pas ce que le bureau ne
+     saurait pas accepter. `lienInfo` : null pas encore lu, false aucun lien vivant,
+     {cree_le} un lien vivant (dont le jeton ne se reaffiche pas), 'absent' SQL pas passe. */
+  function lienPossible() { return lot52() && !manquesCommande().length; }
+  function urlDuLien(jeton) { return location.origin + '/signer/#' + jeton; }
+  function lireSignature(moi) {
+    var d = S.devis;
+    if (!d || !lot52()) return;
+    if (d.statut === 'envoye') {
+      api('/devis_liens?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+        + '&remplace_le=is.null&select=cree_le,cree_par&order=cree_le.desc&limit=1').then(function (l) {
+        if (moi !== S || !S.devis || S.devis.devis_id !== d.devis_id) return;
+        S.lienInfo = Array.isArray(l) && l[0] ? l[0] : false;
+        if (S.etat === 'edition') peindre();
+      }, function (e) { if (moi === S && e && sqlAbsent(e)) { S.lienInfo = 'absent'; if (S.etat === 'edition') peindre(); } });
+    }
+    if (d.statut === 'accepte' && d.signe_le) {
+      api('/devis_signatures?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+        + '&order=signe_le.desc&limit=1').then(function (l) {
+        if (moi !== S || !S.devis || S.devis.devis_id !== d.devis_id) return;
+        S.preuve = Array.isArray(l) && l[0] ? l[0] : null;
+        if (S.etat === 'edition') peindre();
+      }, function () {});
+    }
+  }
+  function heureFr(horo) {
+    var x = new Date(horo);
+    if (isNaN(x.getTime())) return '';
+    return dateFr(jourIso(x)) + ' à ' + String(x.getHours()).padStart(2, '0') + ' h ' + String(x.getMinutes()).padStart(2, '0');
+  }
+  /* LE MESSAGE A COLLER : le client est VOUVOYE (regle du depot). Pas de tiret cadratin. */
+  function messageType(url) {
+    var d = S.devis, v = (d.vendeur && d.vendeur.raison_sociale) || '';
+    return 'Bonjour,\n\nVoici notre devis ' + d.numero + ' (PDF joint). Vous pouvez le signer en ligne, sans créer de compte, à cette adresse :\n'
+      + url + '\n\n' + (d.valable_jusqu ? 'Il est valable jusqu’au ' + dateFr(d.valable_jusqu) + '.\n\n' : '')
+      + 'Bien cordialement,\n' + v;
+  }
+  function htmlLienMontre() {
+    var url = S.lien.url;
+    return '<div class="dmod__confirme dmod__confirme--neutre dmod__lienbloc">'
+      + '<label class="aff-champ"><span>Le lien de signature</span><input id="devLienUrl" type="text" readonly value="' + esc(url) + '"></label>'
+      + '<p class="aff-aide dmod__copie--souci">' + esc(MOT_LIEN_UNE_FOIS) + '</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="lienCopier">Copier le lien</button>'
+      + '<button type="button" class="btn" data-dev="messageCopier">Copier un message avec le lien</button></p>'
+      + '<p class="aff-aide">Colle-le dans ton mail avec le PDF du devis, puis envoie-le. Quand ton client signe, le devis passe accepté tout seul et la commande Vitisoft est prête.</p>'
+      + '<p class="aff-aide" id="devLienMot" aria-live="polite"></p></div>';
+  }
+  function htmlSignature() {
+    var d = S.devis;
+    if (!lot52() || S.lienInfo === 'absent') return '';
+    var t = '<section class="dmod__bloc" aria-labelledby="devSigT"><h3 class="dmod__t" id="devSigT">Signature en ligne</h3>';
+    if (expire(d)) return t + '<p class="aff-aide">Le devis a expiré : il ne se signe plus en ligne. Refais-le pour envoyer un nouveau lien.</p></section>';
+    if (!d.papier_empreinte) return t + '<p class="aff-aide">Pas de copie exacte gardée pour ce devis : il ne peut pas se signer en ligne. Refais-le pour en avoir une.</p></section>';
+    var m = manquesCommande();
+    if (m.length) return t + '<p class="aff-aide">Pas de signature en ligne pour ce devis : ' + esc(phraseManques(m)) + '</p></section>';
+    if (S.lien && S.lien.devis_id === d.devis_id) return t + htmlLienMontre() + '</section>';
+    if (S.lienInfo && S.lienInfo.cree_le) return t + '<p class="aff-aide">Un lien de signature a été créé le ' + esc(heureFr(S.lienInfo.cree_le))
+      + '. Il ne se réaffiche pas. Pour le renvoyer, crée un nouveau lien : l’ancien s’éteint.</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="lienCreer">Créer un nouveau lien</button></p></section>';
+    return t + '<p class="aff-aide">Ton client peut signer ce devis en ligne, sans compte. Crée un lien et colle-le dans ton mail. ' + esc(MOT_PROS) + '</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="lienCreer">Créer un lien de signature</button></p></section>';
+  }
+  /* `motEnvoi` : la phrase de l'envoi qui vient de reussir, gardee devant toute erreur du lien. */
+  async function creerLien(motEnvoi) {
+    if (S.attente || !S.devis || S.devis.statut !== 'envoye') return false;
+    var moi = S, r = null, err = null, d = S.devis;
+    S.attente = true;
+    try { r = await rpc('devis_lien_creer', { p_bureau: bureau(), p_devis: d.devis_id }); }
+    catch (e) { err = e; }
+    if (moi !== S) return false;
+    S.attente = false;
+    var jeton = typeof r === 'string' ? r : (Array.isArray(r) ? r[0] : r);
+    if (err || typeof jeton !== 'string' || !/^[0-9a-f]{64}$/.test(jeton)) {
+      var det = err ? String(err.detail || err.message || '') : '';
+      var debut = (motEnvoi ? motEnvoi + ' Mais le' : 'Le') + ' lien de signature n’a pas pu se créer : ';
+      if (err && sqlAbsent(err)) dire((motEnvoi ? motEnvoi + ' ' : '') + MOT_SQL_SIG, true);
+      else if (/copie absente/.test(det)) dire(debut + 'pas de copie exacte gardée. Refais le devis pour en avoir une.', true);
+      else if (/expire/.test(det)) dire(debut + 'le devis a expiré.', true);
+      else if (/numero produit|sans numero ni e-mail/.test(det)) dire(debut + 'il ne ferait pas une commande importable dans Vitisoft.', true);
+      else if (/affaire close|deja commandee/.test(det)) dire(debut + 'l’affaire est close ou déjà commandée.', true);
+      else dire(debut + (err && !err.status ? 'ta connexion a coupé.' : 'la base l’a refusé.') + ' Réessaie avec « Créer un lien de signature ».', true);
+      peindre();
+      return false;
+    }
+    S.lien = { devis_id: d.devis_id, url: urlDuLien(jeton) };
+    S.lienInfo = { cree_le: new Date().toISOString() };
+    peindre();
+    var u = el('devLienUrl');
+    if (u) { try { u.focus({ preventScroll: true }); u.select(); } catch (e) {} montrerDansBoite(u.closest('.dmod__bloc') || u); }
+    return true;
+  }
+  /* COPIER : le presse-papier quand le navigateur le permet, sinon le champ selectionne
+     (le vigneron fait Cmd + C). Jamais un faux « copie ». */
+  function copier(texte, mot) {
+    var dit = el('devLienMot');
+    function ok() { if (dit) dit.textContent = mot; }
+    function rate() {
+      var u = el('devLienUrl');
+      if (u) { try { u.focus(); u.select(); } catch (e) {} }
+      if (dit) dit.textContent = 'Copie impossible ici : le lien est sélectionné, copie-le avec Cmd + C (Ctrl + C sur PC).';
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(texte).then(ok, rate); return; }
+    } catch (e) {}
+    rate();
+  }
+
   function htmlEnvoiAvant() {
     var d = S.devis, auj = jourIso(), a = S.ctx.affaire || {}, et = S.ctx.etapeDevis;
     var min = d.date_devis && String(d.date_devis) < auj ? String(d.date_devis) : auj;
     return '<section class="dmod__bloc" aria-labelledby="devEnvT"><h3 class="dmod__t" id="devEnvT">Tu l’as envoyé au client ?</h3>'
-      + '<p class="aff-aide">Envoie le PDF par ta messagerie, puis note-le ici : le bureau te rappellera de le relancer.</p>'
+      + '<p class="aff-aide">Envoie le PDF par ta messagerie, puis note-le ici : le bureau te rappellera de le relancer.'
+      + (lienPossible() ? ' Pour que ton client signe en ligne, note-le AVANT d’envoyer ton mail : le bureau te donne un lien à coller dedans.' : '') + '</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="envoyer">Je l’ai envoyé</button></p>'
       + '<div class="dmod__confirme dmod__confirme--neutre" id="devEnvoi"' + (S.envoi ? '' : ' hidden') + '>'
       + '<label class="aff-champ dmod__jour"><span>Envoyé le</span><input id="devEnvoiJour" type="date" value="' + auj
       + '" min="' + esc(min) + '" max="' + auj + '"></label>'
+      + (lienPossible() ? '<label class="dmod__coche"><input type="checkbox" id="devEnvoiLien" checked><span>Avec un lien de signature en ligne. '
+        + esc(MOT_PROS) + '</span></label>' : '')
       + '<label class="dmod__coche"><input type="checkbox" id="devEnvoiRappel" checked><span>Me rappeler de le relancer</span></label>'
       + '<label class="aff-champ dmod__jour"><span>Le</span><input id="devEnvoiRelance" type="date" value="' + relanceProposee(auj, d)
       + '" min="' + auj + '"></label>'
@@ -763,7 +883,7 @@
      plus : le client a ce papier entre les mains. */
   function htmlSuiteEnvoye() {
     var ouverte = affaireOuverte(), perdue = S.ctx.affaire && S.ctx.affaire.issue === 'perdue';
-    return '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
+    return (perdue ? '' : htmlSignature()) + '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
       + (ouverte ? '<button type="button" class="btn" data-dev="refaire">Refaire ce devis</button>' : '')
       + '<button type="button" class="dmod__lien" data-dev="refuser">Il a dit non</button>'
@@ -913,13 +1033,26 @@
   }
   function htmlCommandeApres() {
     return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">La commande Vitisoft</h3>'
-      + '<p class="dmod__cond">Accepté le ' + esc(dateFr(S.devis.accepte_le)) + '. L’affaire est gagnée.</p>'
+      + (S.devis.signe_le ? htmlPreuve() : '<p class="dmod__cond">Accepté le ' + esc(dateFr(S.devis.accepte_le)) + '. L’affaire est gagnée.</p>')
       + '<p class="aff-aide" id="devCmdTrace"' + (phraseTrace(S.devis) ? '' : ' hidden') + '>' + esc(phraseTrace(S.devis)) + '</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="telecharger">Télécharger la commande</button>'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p>'
       + '<p class="aff-aide">' + esc(IMPORT_VITI) + ' ' + esc(DEJA_12) + '</p>'
       + '<p class="dmod__gestes"><button type="button" class="dmod__lien dmod__lien--x" data-dev="annulerAccord">Annuler l’acceptation</button></p>'
       + htmlConfirmeAnnul() + '</section>';
+  }
+
+  /* LA PREUVE D'UNE SIGNATURE EN LIGNE : ce que la base a garde, dit en clair. L'adresse IP
+     est un indice (le client peut la forger), pas une identite : elle est nommee comme telle. */
+  function htmlPreuve() {
+    var d = S.devis, p = S.preuve;
+    var h = '<p class="dmod__cond">Signé en ligne le ' + esc(heureFr(d.signe_le)) + (p ? ' par ' + esc(p.nom) + ' (' + esc(p.qualite) + ')'
+      + (p.au_nom_de ? ', au nom de ' + esc(p.au_nom_de) : '') : '') + '. Le devis est accepté, l’affaire est gagnée.</p>';
+    if (p) h += '<details class="aff-plus"><summary>La preuve gardée</summary><p class="aff-aide">Case « Bon pour accord » cochée. Empreinte du devis signé : '
+      + esc(empreinteLisible(p.papier_empreinte)) + (p.papier_empreinte === d.papier_empreinte ? ', la même que la copie gardée.' : '.')
+      + (p.ip ? ' Adresse IP : ' + esc(p.ip) + ' (un indice, pas une identité).' : '') + (p.agent ? ' Navigateur : ' + esc(p.agent) + '.' : '')
+      + ' Date et heure du serveur.</p></details>';
+    return h;
   }
 
   function htmlLecture() {
@@ -1060,6 +1193,9 @@
     if (q === 'confirmerRefus') { noterRefus(); return; }
     if (q === 'confirmerAnnul') { annulerAccord(); return; }
     if (q === 'refaire') { refaire(); return; }
+    if (q === 'lienCreer') { creerLien(false); return; }
+    if (q === 'lienCopier' && S.lien) { copier(S.lien.url, 'Lien copié : colle-le dans ton mail.'); return; }
+    if (q === 'messageCopier' && S.lien) { copier(messageType(S.lien.url), 'Message copié : colle-le dans ton mail, joins le PDF, envoie.'); return; }
     if (q === 'telecharger') { var nm = telecharger(); if (nm) noterTelechargement('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
   function majAideLiv() {
@@ -1367,6 +1503,8 @@
       return;
     }
     S.devis = r;
+    /* LOT 55 : l'annulation eteint les liens ; un lien encore affiche serait un lien mort. */
+    S.lien = null; S.lienInfo = false; S.preuve = null;
     S.annul = false;
     if (rouvrir && S.ctx.affaire && S.ctx.affaire.issue === 'gagnee') S.ctx.affaire.issue = 'en_cours';
     var mot = 'Acceptation du devis ' + r.numero + ' annulée : il est de nouveau ' + (r.statut === 'envoye' ? 'envoyé' : 'enregistré') + '.'
@@ -1429,6 +1567,7 @@
       if (!/^\d{4}-\d{2}-\d{2}$/.test(rappel) || rappel < jour) return refuser('La relance ne peut pas tomber avant l’envoi.', cRel);
     }
     var et = cEt && cEt.checked && S.ctx.etapeDevis ? S.ctx.etapeDevis.etape_id : null;
+    var cLien = el('devEnvoiLien'), avecLien = !!(cLien && cLien.checked && lienPossible());
     var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerEnvoi"]');
     S.attente = true;
     if (b) b.setAttribute('aria-busy', 'true');
@@ -1453,10 +1592,24 @@
     }
     S.devis = r;
     S.envoi = false;
+    S.lienInfo = false;
     if (rappel && S.ctx.affaire) { S.ctx.affaire.rappel = rappel; S.ctx.affaire.rappel_titre = 'Relancer le devis ' + r.numero; }
     peindre();
-    dire('Devis ' + r.numero + ' noté envoyé le ' + dateFr(r.envoye_le) + '.' + (rappel ? ' Relance prévue le ' + dateFr(rappel) + ', dans Ma journée.' : '')
-      + (copieE ? (r.papier_empreinte ? ' Une copie exacte est gardée.' : ' ' + MOT_COPIE_RATEE) : ''), copieE && !r.papier_empreinte);
+    var motE = 'Devis ' + r.numero + ' noté envoyé le ' + dateFr(r.envoye_le) + '.' + (rappel ? ' Relance prévue le ' + dateFr(rappel) + ', dans Ma journée.' : '')
+      + (copieE ? (r.papier_empreinte ? ' Une copie exacte est gardée.' : ' ' + MOT_COPIE_RATEE) : '');
+    /* LE LIEN APRES L'ENVOI : il ne vaut que pour la copie figee. Copie ratee, pas de lien. */
+    if (avecLien && r.papier_empreinte) {
+      if (await creerLien(motE)) {
+        if (moi !== S) return;
+        dire(motE + ' Ton lien de signature est prêt : copie-le dans ton mail.');
+        if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
+        return;
+      }
+      if (moi !== S) return;
+      if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
+      return;
+    }
+    dire(motE + (avecLien && !r.papier_empreinte ? ' Sans copie exacte, pas de lien de signature.' : ''), copieE && !r.papier_empreinte);
     var t = MOD.querySelector('[data-dev="apercu"]');
     if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
@@ -1520,6 +1673,8 @@
     if (moi !== S) return;
     if (!r || !(Number(r.commande_telechargements) > 0)) { dire(mot + ' ' + MOT_TRACE_RATEE, true); return; }
     S.devis = r;
+    /* LOT 55 : la punaise d'un devis signe s'en va quand sa commande est telechargee. */
+    if (window.BdvAffairesJour && BdvAffairesJour.relireSignes) { try { BdvAffairesJour.relireSignes(); } catch (e) {} }
     var n = el('devCmdTrace');
     if (n) { n.textContent = phraseTrace(r); n.hidden = !n.textContent; }
     /* La confirmation d'annulation (repliee) cite la trace : elle est redite, pas repeinte. */

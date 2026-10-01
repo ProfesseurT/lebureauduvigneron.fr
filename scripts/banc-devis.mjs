@@ -231,6 +231,33 @@ function monter(o) {
         const id = q.get('devis_id').slice(3), pap = X.copies[id];
         return pap ? [{ papier: X.copieAlteree ? pap + ' ' : pap, empreinte: sha(pap), cree_le: '2026-10-01T09:00:00+00:00' }] : [];
       }
+      if (chemin === '/rpc/devis_accepter') {
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        if (!d || ['enregistre', 'envoye'].indexOf(d.statut) < 0) throw refus(400, '{"code":"23514"}');
+        Object.assign(d, { statut: 'accepte', accepte_le: '2026-10-01T11:00:00+00:00' });
+        return { ...d };
+      }
+      if (chemin === '/rpc/devis_noter_telechargement') {
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        Object.assign(d, { commande_telechargements: (d.commande_telechargements || 0) + 1, commande_telechargee_le: '2026-10-01T11:01:00+00:00' });
+        return { ...d };
+      }
+      /* LOT 55 : la signature en ligne. Sans le SQL du lot, la fonction n'existe pas. */
+      if (chemin === '/rpc/devis_lien_creer') {
+        if (!o.lot55) throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_lien_creer"}');
+        if (op.corps.p_bureau !== BUREAU) throw refus(403, '{"code":"42501"}');
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        if (!d || d.statut !== 'envoye' || !d.papier_empreinte) throw refus(400, '{"code":"23514","message":"copie absente : pas de lien de signature"}');
+        X.liens = (X.liens || 0) + 1;
+        return (X.liens % 10).toString().repeat(64).replace(/^./, 'a');
+      }
+      if (/^\/devis_liens\?/.test(chemin)) {
+        if (!o.lot55) throw refus(404, '{"code":"PGRST205","message":"Could not find the table public.devis_liens"}');
+        return o.lienExistant ? [{ cree_le: '2026-10-01T08:30:00+00:00', cree_par: null }] : [];
+      }
+      if (/^\/devis_signatures\?/.test(chemin)) {
+        return o.preuve ? [Object.assign({}, o.preuve)] : [];
+      }
       throw refus(404, 'route inconnue du faux serveur : ' + chemin);
     }
   };
@@ -719,8 +746,8 @@ titre('5. Charge au clic : rien dans le code bloquant');
   t('les deux feuilles sont declarees dans feuilles-bureau.mjs', /src\/css\/bdv-devis\.css/.test(feuilles) && /src\/css\/bdv-devis-papier\.css/.test(feuilles));
   const pkg = JSON.parse(lire('package.json'));
   const v = pkg.scripts.verif || '';
-  t('« banc:devis » est dans verif, apres banc:domaine, suivi de banc:commande (lot 49) puis banc:poids',
-    pkg.scripts['banc:devis'] === 'node scripts/banc-devis.mjs' && v.indexOf('npm run banc:domaine && npm run banc:devis && npm run banc:commande && npm run banc:poids') >= 0);
+  t('« banc:devis » est dans verif, apres banc:domaine, suivi de banc:commande (lot 49), banc:signature (lot 55) puis banc:poids',
+    pkg.scripts['banc:devis'] === 'node scripts/banc-devis.mjs' && v.indexOf('npm run banc:domaine && npm run banc:devis && npm run banc:commande && npm run banc:signature && npm run banc:poids') >= 0);
 }
 
 titre('6. Le dessin : que des jetons, 44 px, pas de @media print');
@@ -1180,6 +1207,89 @@ const choisir = (X, cle, v) => { const n = X.champ(cle, 'tva'); n.value = v; n.d
   t('papier export : mention 262 I, accises incluses si coche', /Exonération de TVA, article 262 I du CGI\./.test(ex) && /droits d’accises inclus/.test(ex));
   const ancien = X.w.BdvDevis.htmlPapier(Object.assign({}, base, { tva_c: 1866, total_ttc_c: 11196 }), L.map(l => { const y = Object.assign({}, l); delete y.tva_cb; return y; }), { conditions: '' });
   t('papier d\'un devis d\'avant le lot : « TVA 20 % » seule, comme avant', /<p><span>TVA 20 %<\/span><span>18,66/.test(ancien) && !/TVA 5,5/.test(ancien) && !/<th class="dpap__n">TVA/.test(ancien));
+}
+
+titre('13. Lot 55 : la signature en ligne, cote bureau');
+{
+  const X = monter({ lot52: true, lot55: true, fetch: 'ok' });
+  await X.ouvrir();
+  X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]');
+  const cL = X.doc.getElementById('devEnvoiLien');
+  t('a l\'envoi, la case « Avec un lien de signature en ligne » est cochee, et dit « professionnels »',
+    !!cL && cL.checked && /Avec un lien de signature en ligne/.test(cL.closest('label').textContent) && /professionnels/.test(cL.closest('label').textContent));
+  X.doc.getElementById('devEnvoiRappel').checked = false;
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(30);
+  const env = X.requetes.findIndex(r => r.chemin === '/rpc/devis_envoyer'), lien = X.requetes.findIndex(r => r.chemin === '/rpc/devis_lien_creer');
+  t('le lien se cree APRES l\'envoi (la copie d\'abord), pour CE bureau et CE devis', env >= 0 && lien > env
+    && X.requetes[lien].corps.p_bureau === BUREAU && X.requetes[lien].corps.p_devis === X.devis[0].devis_id);
+  const u = X.doc.getElementById('devLienUrl');
+  t('le lien s\'affiche : /signer/# suivi du jeton de 64 caracteres', !!u && /^https:\/\/lebureauduvigneron\.fr\/signer\/#[0-9a-f]{64}$/.test(u.value), u && u.value);
+  t('et l\'ecran dit qu\'il ne s\'affiche qu\'une fois, et sert a une seule signature', /ne s’affiche qu’une fois/.test(X.corps().textContent) && /une seule signature/.test(X.corps().textContent));
+  t('l\'avis garde la phrase de l\'envoi et annonce le lien', /noté envoyé/.test(X.avis()) && /copie exacte est gardée/.test(X.avis()) && /lien de signature est prêt/.test(X.avis()), X.avis());
+  let copie = '';
+  X.w.navigator.clipboard = { writeText: async (t2) => { copie = t2; } };
+  X.clic('[data-dev="messageCopier"]'); await attendre(5);
+  t('le message a coller vouvoie le client, porte le numero et le lien, sans tiret cadratin',
+    /Vous pouvez le signer en ligne/.test(copie) && copie.indexOf(u.value) > 0 && /D-2026-0001/.test(copie) && !/\u2014/.test(copie), copie);
+  t('« Copier » dit ce qu\'il a fait', /Message copié/.test(X.doc.getElementById('devLienMot').textContent));
+  X.clic('[data-dev="accepter"]'); X.clic('[data-dev="confirmerAccord"]'); await attendre(30);
+  X.clic('[data-dev="annulerAccord"]'); X.clic('[data-dev="confirmerAnnul"]'); await attendre(30);
+  t('une acceptation annulee eteint le lien : il ne s\'affiche plus, on propose d\'en creer un', X.devis[0].statut === 'envoye'
+    && !X.doc.getElementById('devLienUrl') && !!X.modale().querySelector('[data-dev="lienCreer"]'), X.avis());
+}
+{
+  const X = monter({ lot52: true, lot55: true, fetch: 'ok' });
+  await X.ouvrir();
+  X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]');
+  X.doc.getElementById('devEnvoiLien').checked = false;
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(30);
+  t('case decochee : aucun lien cree, et le devis propose « Créer un lien de signature »', !X.requetes.some(r => r.chemin === '/rpc/devis_lien_creer')
+    && !!X.modale().querySelector('[data-dev="lienCreer"]'));
+}
+{
+  const X = monter({ lot52: true, fetch: 'ok' });
+  await X.ouvrir();
+  X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]');
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(30);
+  t('SANS le SQL du lot 55 : le devis est envoye, l\'avis garde la copie ET dit que la signature n\'est pas disponible',
+    X.devis[0].statut === 'envoye' && /copie exacte est gardée/.test(X.avis()) && /signature en ligne n’est pas encore disponible/.test(X.avis()), X.avis());
+}
+{
+  const X = monter({ lot52: true, lot55: true, fetch: 'ko' });
+  await X.ouvrir();
+  X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]');
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(30);
+  t('copie ratee : pas de lien demande, et l\'avis le dit', !X.requetes.some(r => r.chemin === '/rpc/devis_lien_creer') && /pas de lien de signature/.test(X.avis()), X.avis());
+}
+{
+  const dv = { devis_id: 'dvE', affaire_id: 'aC', numero: 'D-2026-0077', statut: 'envoye', date_devis: '2026-09-30', valable_jusqu: '2099-10-30', envoye_le: '2026-09-30',
+    papier_empreinte: 'b'.repeat(64), papier_le: '2026-09-30T09:00:00+00:00', commande_telechargements: 0, vendeur: FICHE, acheteur: { nom: 'Chez Paul', num_client: 'C7' },
+    remise_globale_cb: 0, total_vins_c: 1000, remise_globale_c: 0, total_ht_c: 1000, tva_cb: 2000, tva_c: 200, total_ttc_c: 1200 };
+  const X = monter({ lot52: true, lot55: true, lienExistant: true });
+  X.devis.push(dv); X.lignes.dvE = [{ rang: 1, num_produit: 'P1', designation: 'Vin', quantite: 1, pu_ht_c: 1000, remise_cb: 0, net_c: 1000, final_c: 1000 }];
+  await X.ouvrir({ devis: Object.assign({}, dv) }); await attendre(20);
+  t('un devis envoye qui a deja un lien : la date, « il ne se réaffiche pas », et « Créer un nouveau lien »',
+    /Un lien de signature a été créé le 01\/10\/2026/.test(X.corps().textContent) && /ne se réaffiche pas/.test(X.corps().textContent)
+    && /Créer un nouveau lien/.test(X.modale().querySelector('[data-dev="lienCreer"]').textContent) && !X.doc.getElementById('devLienUrl'));
+  t('la lecture du lien nomme le bureau et ne demande pas l\'empreinte du jeton', X.requetes.some(r => /^\/devis_liens\?bureau=eq\./.test(r.chemin) && /remplace_le=is\.null/.test(r.chemin) && !/jeton/.test(r.chemin)));
+}
+{
+  const dv = { devis_id: 'dvS', affaire_id: 'aC', numero: 'D-2026-0078', statut: 'accepte', date_devis: '2026-09-30', valable_jusqu: '2099-10-30', envoye_le: '2026-09-30',
+    accepte_le: '2026-10-01T12:05:00+00:00', signe_le: '2026-10-01T12:05:00+00:00', papier_empreinte: 'c'.repeat(64), commande_telechargements: 0,
+    vendeur: FICHE, acheteur: { nom: 'Chez Paul', num_client: 'C7' }, remise_globale_cb: 0, total_vins_c: 1000, remise_globale_c: 0, total_ht_c: 1000, tva_cb: 2000, tva_c: 200, total_ttc_c: 1200 };
+  const X = monter({ lot52: true, lot55: true, preuve: { nom: 'Jean Dupont', qualite: 'Gérant', au_nom_de: 'Chez Paul', papier_empreinte: 'c'.repeat(64), ip: '203.0.113.7', agent: 'Mozilla/5.0' } });
+  X.devis.push(dv); X.lignes.dvS = [{ rang: 1, num_produit: 'P1', designation: 'Vin', quantite: 1, pu_ht_c: 1000, remise_cb: 0, net_c: 1000, final_c: 1000 }];
+  await X.ouvrir({ devis: Object.assign({}, dv), affaire: { affaire_id: 'aC', issue: 'gagnee' } }); await attendre(20);
+  t('un devis signe en ligne : « signé » dans le titre', /signé/.test(X.doc.getElementById('devTitre').textContent), X.doc.getElementById('devTitre').textContent);
+  t('la preuve : qui, en quelle qualite, au nom de qui, l\'empreinte identique, l\'IP nommee comme un indice',
+    /Signé en ligne le 01\/10\/2026/.test(X.corps().textContent) && /Jean Dupont \(Gérant\), au nom de Chez Paul/.test(X.corps().textContent)
+    && /la même que la copie gardée/.test(X.corps().textContent) && /203\.0\.113\.7 \(un indice, pas une identité\)/.test(X.corps().textContent));
+  X.clic('[data-dev="annulerAccord"]');
+  t('annuler l\'accord d\'un devis signe dit que la preuve reste et que le lien s\'eteint', /preuve reste gardée/.test(X.doc.getElementById('devAnnul').textContent));
 }
 
 console.log('\n== VERDICT ==');

@@ -665,6 +665,10 @@ function batir(d){
 
   var affaires = d.affaires || [];
   var journee  = trierAFaire(suivis, taches, annuaire, jAuj, affaires);
+  /* LOT 55 : LES DEVIS SIGNES EN LIGNE DEPUIS LA VEILLE. La vue les borne a 24 heures ;
+     ici on ne garde que ceux qui portent un numero. C'est une bonne nouvelle ET un geste
+     (telecharger la commande Vitisoft) : elle passe en tete, avant ce qui presse. */
+  var signes   = (d.signes || []).filter(function(x){ return x && x.numero; });
   var tousSig  = perime ? [] : ecarterLesSuivis(file.signaux, suivis);
   var signaux  = tousSig.slice(0, MAX_SIGNAUX);
   var reste    = tousSig.length - signaux.length;
@@ -676,12 +680,13 @@ function batir(d){
     signaux:  signaux.length,
     reste:    reste,
     conseils: conseils.length,
+    signes:   signes.length,
     ageDepot: ageDepot,
     perime:   perime
   };
   /* Le mail est VIDE quand il n'a rien de neuf a dire. Il ne decide pas de ne
      pas partir : l'appelant tranche. */
-  var vide = (compteurs.echus + compteurs.venir + tousSig.length) === 0;
+  var vide = (compteurs.echus + compteurs.venir + tousSig.length + compteurs.signes) === 0;
 
   /* ---- LE SUJET ----
      LE NOMBRE ANNONCE EST CELUI QU'ON MONTRE, correction du 09/09/2026. La
@@ -690,6 +695,7 @@ function batir(d){
      Un nombre qui ne bouge jamais n'informe pas, et promettre quarante pour en
      montrer huit fait douter du reste. */
   var bouts = [];
+  if(compteurs.signes)  bouts.push(compteurs.signes+(compteurs.signes>1 ? ' devis signés' : ' devis signé'));
   if(compteurs.echus)   bouts.push(compteurs.echus+' à faire');
   if(compteurs.signaux) bouts.push(plur(compteurs.signaux,'client')+' à voir');
   if(!bouts.length && compteurs.venir) bouts.push(plur(compteurs.venir,'échéance')+' cette semaine');
@@ -697,6 +703,17 @@ function batir(d){
 
   /* ---- LE CORPS ---- */
   var corps = '';
+
+  if(compteurs.signes){
+    corps += bande('Signé depuis hier', compteurs.signes+' devis');
+    corps += signes.map(function(x,i){
+      return ligne(i%2===1,
+        '<div>'+esc((x.client || 'Ton client')+' a signé le devis '+x.numero)+'</div>'
+        + '<div style="font-family:'+F_MONO+';font-size:11px;color:'+C.muted+';padding-top:2px;">'
+        + esc((x.signataire ? 'par '+x.signataire+'  ·  ' : '')+'commande Vitisoft à télécharger')+'</div>',
+        x.total_ht_c != null ? esc(fmtMoney(Number(x.total_ht_c)/100))+'<div style="font-size:10px;color:'+C.muted+';">HT</div>' : '');
+    }).join('');
+  }
 
   if(compteurs.echus){
     corps += bande('Ce matin', compteurs.echus+' à faire');
@@ -934,6 +951,14 @@ function batir(d){
   var t = [];
   t.push(sujet);
   t.push('='.repeat(70), '');
+  if(compteurs.signes){
+    t.push('SIGNÉ DEPUIS HIER');
+    signes.forEach(function(x){
+      t.push(colonne('  '+(x.client || 'Ton client')+', devis '+x.numero, x.total_ht_c != null ? fmtMoney(Number(x.total_ht_c)/100)+' HT' : ''));
+      t.push('    '+(x.signataire ? 'signé par '+x.signataire+', ' : '')+'commande Vitisoft à télécharger dans ton bureau');
+    });
+    t.push('');
+  }
   if(compteurs.echus){
     t.push('CE MATIN');
     journee.echus.forEach(function(o){

@@ -1025,7 +1025,8 @@ titre('Lot 50 : le montant de l\'affaire se LIT dans son devis envoye ou accepte
     { bureau: BUREAU, affaire_id: 'a4', devis_id: 'd5', numero: 'D-2026-0015', statut: 'envoye', total_ht_c: 70000, envoye_le: '2026-09-29', valable_jusqu: '2099-01-01', cree_le: '2026-09-29T08:00:00Z' },
     { bureau: BUREAU, affaire_id: 'a4', devis_id: 'd4', numero: 'D-2026-0014', statut: 'accepte', total_ht_c: 30000, envoye_le: '2026-09-20', valable_jusqu: '2099-01-01', cree_le: '2026-09-20T08:00:00Z' }];
   await F.w.BdvAffaires.ouvrir();
-  const lec = F.requetes.filter(r => /^\/devis\?select=/.test(r.chemin));
+  /* Lot 55 : la lecture des devis signes (bdv-affaires-jour.js) n'est pas celle des montants. */
+  const lec = F.requetes.filter(r => /^\/devis\?select=/.test(r.chemin) && !/signe_le=not\.is\.null/.test(r.chemin));
   t('les montants sont lus UNE fois, pour CE bureau, devis envoyes ou acceptes seulement',
     lec.length >= 1 && lec.every(r => r.chemin.indexOf('bureau=eq.' + BUREAU) >= 0 && /statut=in\.\(envoye,accepte\)/.test(r.chemin)), lec.map(r => r.chemin).join(' ; '));
   const tx = F.doc.getElementById('affCorps').textContent;
