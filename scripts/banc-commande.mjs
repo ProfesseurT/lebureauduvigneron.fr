@@ -158,11 +158,23 @@ function monter(o) {
         if (X.mode === 'sql') throw refus(404, '{"code":"PGRST202"}');
         if (X.mode === 'commandee') throw refus(400, '{"code":"23514","message":"affaire deja commandee"}');
         if (X.mode === 'produit') throw refus(400, '{"code":"23514","message":"ligne sans numero produit"}');
-        return Object.assign({}, d, { statut: 'accepte', accepte_le: '2026-10-01T08:00:00+00:00', code_tarif: 'CHR' });
+        Object.assign(d, { statut: 'accepte', accepte_le: '2026-10-01T08:00:00+00:00', code_tarif: 'CHR' });
+        if (op.corps.p_papier && 'papier_empreinte' in d) d.papier_empreinte = 'ab'.repeat(32);
+        return Object.assign({}, d);
+      }
+      if (chemin === '/rpc/devis_noter_telechargement') {
+        if (op.corps.p_bureau !== BUREAU || op.corps.p_devis !== d.devis_id) throw refus(403, '{"code":"42501"}');
+        if (X.mode === 'trace-ko') throw new TypeError('Failed to fetch');
+        if (X.mode === 'trace-vide') return null;
+        if (!d.commande_telechargee_le) Object.assign(d, { commande_telechargee_le: '2026-10-01T09:00:00+00:00', commande_telechargee_par: 'u-moi' });
+        d.commande_telechargements = (d.commande_telechargements || 0) + 1;
+        return Object.assign({}, d);
       }
       throw refus(404, 'route inconnue : ' + chemin);
     }
   };
+  w.BdvCompte.nomAuteur = (id) => id === 'u-moi' ? 'Teddy' : 'un ancien membre';
+  if (o.fetch) w.fetch = async (h) => ({ ok: true, text: async () => '.dpap{color:#000}/*' + h + '*/' });
   w.eval(SRC_DOMAINE); w.eval(SRC_CALC); w.eval(SRC_CMD); w.eval(SRC_DEVIS);
   X.ctx = { bureau: BUREAU, affaire: { affaire_id: 'aC', issue: 'en_cours' }, sujet: 'Chez Paul', nouveau: false, devis: d,
     retour: () => {}, focusSortie: () => w.document.getElementById('depart'), change: (x) => X.changes.push(x) };
@@ -230,6 +242,52 @@ for (const [mode, motif] of [['null', /n’est pas accepté/], ['enregistre', /n
   t('et le telechargement marche sans accord', X.telecharges.length === 1 && !X.requetes.some(r => r.chemin === '/rpc/devis_accepter'));
 }
 
+titre('2 ter. Lot 52 : la trace du fichier, et la copie a l\'accord');
+const L52 = { papier_empreinte: null, papier_le: null, commande_telechargee_le: null, commande_telechargee_par: null, commande_derniere_le: null, commande_telechargements: 0 };
+{
+  const X = monter({ fetch: true, devis: Object.assign({}, L52) }); await X.ouvrir();
+  t('avant l\'accord, pas de trace', !X.q('#devCmdTrace'));
+  await X.clic('[data-dev="accepter"]'); await X.clic('[data-dev="confirmerAccord"]'); await attendre(10);
+  const n = X.requetes.filter(r => r.chemin === '/rpc/devis_noter_telechargement');
+  t('le fichier parti a l\'accord est NOTE, pour CE bureau et CE devis', n.length === 1 && n[0].corps.p_bureau === BUREAU && n[0].corps.p_devis === 'dv1', JSON.stringify(n));
+  t('un devis enregistre (jamais envoye) ne joint pas de copie a l\'accord',
+    !('p_papier' in X.requetes.filter(r => r.chemin === '/rpc/devis_accepter')[0].corps));
+  const tr = X.q('#devCmdTrace');
+  t('la trace dit « Déjà téléchargée une fois, le 01/10/2026 par Teddy. »', !!tr && !tr.hidden && tr.textContent === 'Déjà téléchargée une fois, le 01/10/2026 par Teddy.', tr && tr.textContent);
+  const bt = X.q('[data-dev="telecharger"]'); bt.focus();
+  await X.clic('[data-dev="telecharger"]'); await attendre(10);
+  t('le deuxieme : « 2 fois, la première le ... », le focus reste sur le bouton',
+    X.q('#devCmdTrace').textContent === 'Déjà téléchargée 2 fois, la première le 01/10/2026 par Teddy.' && X.doc.activeElement === bt, X.q('#devCmdTrace').textContent);
+  t('l\'avis ne parle pas d\'echec', !/pas pu être noté/.test(X.avis()), X.avis());
+  await X.clic('[data-dev="annulerAccord"]');
+  t('la confirmation d\'annulation dit que le fichier a ete telecharge, donc sans doute dans Vitisoft',
+    /Son fichier a été téléchargé le 01\/10\/2026 : elle est sans doute déjà dans Vitisoft/.test(X.q('#devAnnul').textContent), X.q('#devAnnul').textContent);
+}
+for (const mode of ['trace-ko', 'trace-vide']) {
+  const X = monter({ devis: Object.assign({}, L52, { statut: 'accepte', accepte_le: '2026-10-01T08:00:00+00:00' }) }); await X.ouvrir();
+  X.mode = mode;
+  await X.clic('[data-dev="telecharger"]'); await attendre(10);
+  t('trace « ' + mode + ' » : le fichier est parti, et l\'avis dit qu\'il n\'est pas note',
+    X.telecharges.length === 1 && /téléchargé\..*Ce téléchargement n’a pas pu être noté\./.test(X.avis()) && X.q('#devCmdTrace').hidden, X.avis());
+}
+{
+  const X = monter(); await X.ouvrir();
+  await X.clic('[data-dev="accepter"]'); await X.clic('[data-dev="confirmerAccord"]'); await attendre(10);
+  t('SANS le SQL du lot 52 : aucune trace demandee, rien en plus a l\'accord',
+    !X.requetes.some(r => r.chemin === '/rpc/devis_noter_telechargement') && !('p_papier' in X.requetes.filter(r => r.chemin === '/rpc/devis_accepter')[0].corps) && !X.q('#devCmdTrace').textContent);
+}
+{
+  const X = monter({ fetch: true, devis: Object.assign({}, L52, { statut: 'envoye', envoye_le: '2026-09-30' }) }); await X.ouvrir();
+  await X.clic('[data-dev="accepter"]'); await X.clic('[data-dev="confirmerAccord"]'); await attendre(10);
+  const c = X.requetes.filter(r => r.chemin === '/rpc/devis_accepter')[0].corps;
+  t('un devis ENVOYE sans copie la joint a l\'accord, feuilles en ligne', /^<!doctype html>/.test(c.p_papier || '') && /<style>\.dpap\{color:#000\}/.test(c.p_papier) && !/<link rel="stylesheet" href="\/css\//.test(c.p_papier), (c.p_papier || '').slice(0, 120));
+}
+{
+  const X = monter({ fetch: true, devis: Object.assign({}, L52, { statut: 'envoye', envoye_le: '2026-09-30', papier_empreinte: 'cd'.repeat(32) }) }); await X.ouvrir();
+  await X.clic('[data-dev="accepter"]'); await X.clic('[data-dev="confirmerAccord"]'); await attendre(10);
+  t('un devis qui a deja sa copie ne la renvoie pas', !('p_papier' in X.requetes.filter(r => r.chemin === '/rpc/devis_accepter')[0].corps));
+}
+
 titre('3. Le branchement');
 {
   const a = sansCommentaires(SRC_AFF);
@@ -237,7 +295,7 @@ titre('3. Le branchement');
   t('un devis accepte fait relire les affaires et repeindre', /d\.statut === 'accepte'[\s\S]{0,500}charger\(\)\.then/.test(a));
   t('le retour suit le chemin d\'une affaire close', /issue = 'gagnee'/.test(a));
   const dv = sansCommentaires(SRC_DEVIS);
-  t('bdv-devis.js n\'ecrit que par ses RPC connues', (dv.match(/rpc\('devis_[a-z_]+'/g) || []).every(x => /enregistrer|abandonner|accepter|envoyer|refuser|annuler_accord|propositions/.test(x)));
+  t('bdv-devis.js n\'ecrit que par ses RPC connues', (dv.match(/rpc\('devis_[a-z_]+'/g) || []).every(x => /enregistrer|abandonner|accepter|envoyer|refuser|annuler_accord|propositions|noter_telechargement/.test(x)));
   t('aucun onclick, aucun tiret cadratin', ![SRC_CMD, SRC_DEVIS].some(s => /onclick|—/.test(s)));
   t('rien dans bdv-nav.js ni dans la page', !/bdv-commande/.test(lire('src/js/bdv-nav.js')) && !/bdv-commande/.test(lire('src/mon-bureau.njk')));
   t('le SQL du lot est inscrit dans la procedure de reconstruction', /'lot49-commande\.sql'/.test(lire('scripts/banc-rejeu.mjs')));

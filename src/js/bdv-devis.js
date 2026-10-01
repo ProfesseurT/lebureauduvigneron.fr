@@ -71,6 +71,11 @@
   ];
   var MOT_SQL_REFUS = 'Noter un refus n’est pas encore disponible sur ton compte.';
   var MOT_SQL_ANNUL = 'Annuler une acceptation n’est pas encore disponible sur ton compte.';
+  /* LOT 52 : la copie du devis envoye, et la trace du fichier de commande. */
+  var MOT_COPIE_RATEE = 'La copie du devis n’a pas pu être gardée.';
+  var MOT_TRACE_RATEE = 'Ce téléchargement n’a pas pu être noté.';
+  var FEUILLES_PAPIER = ['/css/bdv-theme.css', '/css/bdv-devis-papier.css'];
+  var FEUILLES = null;   // le texte des deux feuilles, lu une fois par session
   /* Police et encre du pied de page imprime, en dur : une boite de marge de @page ne lit
      pas les jetons (mesure du verificateur, 30/09/2026). Inter 8 pt, encre-3 du clair. */
   var MARGE = "font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:8pt;color:#4C525A;";
@@ -128,6 +133,19 @@
      verificateur). */
   /* UN DEVIS ENVOYE DONT LA VALIDITE EST PASSEE. `expire` n'est pas un statut (lot 47) : il
      se lit sur la date, au jour local. */
+  /* LOT 52 : la base connait-elle la copie ? La colonne arrive avec le SQL ; avant lui, rien
+     ne part en plus (PostgREST refuserait un parametre inconnu). */
+  function lot52() { return !!(S && S.devis && Object.prototype.hasOwnProperty.call(S.devis, 'papier_empreinte')); }
+  function empreinteLisible(e) { return String(e || '').slice(0, 16).replace(/(.{4})(?=.)/g, '$1 '); }
+  function auteur(id) { return window.BdvCompte && BdvCompte.nomAuteur ? BdvCompte.nomAuteur(id) : ''; }
+  /* « Déjà téléchargée 2 fois, la première le 01/10/2026 par Teddy. » Vide si jamais. */
+  function phraseTrace(d) {
+    var n = d && Number(d.commande_telechargements) || 0;
+    if (!n || !d.commande_telechargee_le) return '';
+    var qui = auteur(d.commande_telechargee_par);
+    return 'Déjà téléchargée ' + (n === 1 ? 'une fois, le ' : n + ' fois, la première le ') + dateFr(d.commande_telechargee_le)
+      + (qui ? ' par ' + qui : '') + '.';
+  }
   function expire(d) { return !!(d && d.statut === 'envoye' && d.valable_jusqu && String(d.valable_jusqu) < jourIso()); }
   function plusJours(iso, n) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
@@ -428,6 +446,8 @@
       if (d.statut === 'accepte' && d.accepte_le) sous += ' Accepté le ' + esc(dateFr(d.accepte_le)) + '.';
       if (d.statut === 'refuse' && d.refuse_le) sous += ' Refusé le ' + esc(dateFr(d.refuse_le)) + (motifRefus(d.refuse_motif) ? ' : ' + esc(motifRefus(d.refuse_motif).toLowerCase()) : '') + '.';
       if (d.statut !== 'accepte' && d.accord_annule_le) sous += ' Acceptation annulée le ' + esc(dateFr(d.accord_annule_le)) + '.';
+      if (d.statut !== 'accepte' && Number(d.commande_telechargements) > 0 && d.commande_telechargee_le)
+        sous += ' Sa commande avait été téléchargée le ' + esc(dateFr(d.commande_telechargee_le)) + '.';
     }
     /* « Retour a l'affaire » n'est PAS repeint : il garde le focus pendant que le corps
        arrive. Il se cache seulement quand personne n'a donne de chemin de retour. */
@@ -522,7 +542,10 @@
     var d = S.devis, gagnee = S.ctx.affaire && S.ctx.affaire.issue === 'gagnee';
     return '<div class="dmod__confirme" id="devAnnul"' + (S.annul ? '' : ' hidden') + '>'
       + '<p class="aff-aide">Le devis ' + esc(d.numero) + ' repassera ' + (d.envoye_le ? 'envoyé' : 'enregistré')
-      + ' et la commande ne se téléchargera plus. Si tu l’as déjà importée dans Vitisoft, supprime-la aussi là-bas : sinon elle sera facturée.</p>'
+      + ' et la commande ne se téléchargera plus. '
+      + (Number(d.commande_telechargements) > 0 && d.commande_telechargee_le
+        ? 'Son fichier a été téléchargé le ' + esc(dateFr(d.commande_telechargee_le)) + ' : elle est sans doute déjà dans Vitisoft. Supprime-la aussi là-bas, sinon elle sera facturée.</p>'
+        : 'Si tu l’as déjà importée dans Vitisoft, supprime-la aussi là-bas : sinon elle sera facturée.</p>')
       + (gagnee ? '<label class="dmod__coche"><input type="checkbox" id="devAnnulRouvrir" checked><span>Rouvrir l’affaire</span></label>' : '')
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAnnul">Oui, annuler l’acceptation</button>'
       + '<button type="button" class="btn" data-dev="garderAccord">Non, la garder</button></p></div>';
@@ -704,6 +727,7 @@
   function htmlCommandeApres() {
     return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">La commande Vitisoft</h3>'
       + '<p class="dmod__cond">Accepté le ' + esc(dateFr(S.devis.accepte_le)) + '. L’affaire est gagnée.</p>'
+      + '<p class="aff-aide" id="devCmdTrace"' + (phraseTrace(S.devis) ? '' : ' hidden') + '>' + esc(phraseTrace(S.devis)) + '</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="telecharger">Télécharger la commande</button>'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p>'
       + '<p class="aff-aide">' + esc(IMPORT_VITI) + ' ' + esc(DEJA_12) + '</p>'
@@ -841,7 +865,7 @@
     if (q === 'confirmerRefus') { noterRefus(); return; }
     if (q === 'confirmerAnnul') { annulerAccord(); return; }
     if (q === 'refaire') { refaire(); return; }
-    if (q === 'telecharger') { var nm = telecharger(); if (nm) dire('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
+    if (q === 'telecharger') { var nm = telecharger(); if (nm) noterTelechargement('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
   function surChangement(ev) {
     var t = ev.target;
@@ -1099,7 +1123,10 @@
     var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerAccord"]');
     S.attente = true;
     if (b) b.setAttribute('aria-busy', 'true');
-    try { r = unSeul(await rpc('devis_accepter', { p_bureau: bureau(), p_devis: S.devis.devis_id })); }
+    var corpsA = { p_bureau: bureau(), p_devis: S.devis.devis_id };
+    var copieA = lot52() && S.devis.statut === 'envoye' && !S.devis.papier_empreinte;
+    if (copieA) { var papA = await copieDuPapier(); if (moi !== S) return; if (papA) corpsA.p_papier = papA; }
+    try { r = unSeul(await rpc('devis_accepter', corpsA)); }
     catch (e) { err = e; }
     if (moi !== S) return;
     S.attente = false;
@@ -1119,8 +1146,9 @@
     S.accord = false;
     peindre();
     var nom = telecharger();
-    dire('Devis ' + r.numero + ' accepté, affaire gagnée. ' + (nom ? 'Fichier ' + nom + ' téléchargé. ' + IMPORT_VITI
-      : 'Le fichier n’est pas parti : appuie sur « Télécharger la commande ».'), !nom);
+    var motA = 'Devis ' + r.numero + ' accepté, affaire gagnée. ' + (copieA && !r.papier_empreinte ? MOT_COPIE_RATEE + ' ' : '');
+    if (nom) noterTelechargement(motA + 'Fichier ' + nom + ' téléchargé. ' + IMPORT_VITI);
+    else dire(motA + 'Le fichier n’est pas parti : appuie sur « Télécharger la commande ».', true);
     var t = MOD.querySelector('[data-dev="telecharger"]');
     if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
@@ -1144,7 +1172,10 @@
     var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerEnvoi"]');
     S.attente = true;
     if (b) b.setAttribute('aria-busy', 'true');
-    try { r = unSeul(await rpc('devis_envoyer', { p_bureau: bureau(), p_devis: S.devis.devis_id, p_jour: jour, p_rappel: rappel, p_rappel_titre: null, p_etape: et })); }
+    var corpsE = { p_bureau: bureau(), p_devis: S.devis.devis_id, p_jour: jour, p_rappel: rappel, p_rappel_titre: null, p_etape: et };
+    var copieE = lot52();
+    if (copieE) { var papE = await copieDuPapier(); if (moi !== S) { return; } if (papE) corpsE.p_papier = papE; }
+    try { r = unSeul(await rpc('devis_envoyer', corpsE)); }
     catch (e) { err = e; }
     if (moi !== S) return;
     S.attente = false;
@@ -1164,7 +1195,8 @@
     S.envoi = false;
     if (rappel && S.ctx.affaire) { S.ctx.affaire.rappel = rappel; S.ctx.affaire.rappel_titre = 'Relancer le devis ' + r.numero; }
     peindre();
-    dire('Devis ' + r.numero + ' noté envoyé le ' + dateFr(r.envoye_le) + '.' + (rappel ? ' Relance prévue le ' + dateFr(rappel) + ', dans Ma journée.' : ''));
+    dire('Devis ' + r.numero + ' noté envoyé le ' + dateFr(r.envoye_le) + '.' + (rappel ? ' Relance prévue le ' + dateFr(rappel) + ', dans Ma journée.' : '')
+      + (copieE ? (r.papier_empreinte ? ' Une copie exacte est gardée.' : ' ' + MOT_COPIE_RATEE) : ''), copieE && !r.papier_empreinte);
     var t = MOD.querySelector('[data-dev="apercu"]');
     if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
@@ -1212,7 +1244,95 @@
     return f.nom;
   }
 
+  /* LOT 52 : LE TELECHARGEMENT EST NOTE APRES COUP. Le fichier est deja parti : une trace
+     ratee ne le reprend pas, elle se dit. Le texte de la trace est remplace EN PLACE, le
+     focus reste sur le bouton. */
+  async function noterTelechargement(mot) {
+    dire(mot);
+    if (!lot52() || !S.devis || S.devis.statut !== 'accepte') return;
+    var moi = S, r = null;
+    try { r = unSeul(await rpc('devis_noter_telechargement', { p_bureau: bureau(), p_devis: S.devis.devis_id })); }
+    catch (e) { r = null; }
+    if (moi !== S) return;
+    if (!r || !(Number(r.commande_telechargements) > 0)) { dire(mot + ' ' + MOT_TRACE_RATEE, true); return; }
+    S.devis = r;
+    var n = el('devCmdTrace');
+    if (n) { n.textContent = phraseTrace(r); n.hidden = !n.textContent; }
+    /* La confirmation d'annulation (repliee) cite la trace : elle est redite, pas repeinte. */
+    var an = el('devAnnul');
+    if (an && an.hidden) an.outerHTML = htmlConfirmeAnnul();
+  }
+
   /* ---------------- L'APERCU ET L'IMPRESSION ---------------- */
+  /* LOT 52 : LA COPIE EXACTE. Le papier, avec le TEXTE de ses deux feuilles (servies,
+     minifiees) a la place des liens : imprime dans un an, apres un changement de dessin, il
+     sortira pareil. Les polices restent des liens (elles ne portent aucun contenu). Une
+     feuille qui ne se lit pas : pas de copie, et l'ecran le dit. */
+  async function feuillesPapier() {
+    if (FEUILLES) return FEUILLES;
+    if (typeof fetch !== 'function') return null;
+    try {
+      var t = await Promise.all(FEUILLES_PAPIER.map(function (h) {
+        return fetch(h, { credentials: 'same-origin' }).then(function (r) { if (!r.ok) throw new Error(h); return r.text(); });
+      }));
+      if (t.some(function (x) { return !x || /<\s*\/?\s*(style|script)/i.test(x); })) return null;
+      FEUILLES = t;
+      return t;
+    } catch (e) { return null; }
+  }
+  async function copieDuPapier() {
+    var f = await feuillesPapier();
+    if (!f || !S || !S.devis) return null;
+    return htmlPapier(S.devis, S.lignesServeur || [], { polices: polices(), feuilles: f });
+  }
+  /* LA COPIE GARDEE, relue a la demande (30 a 40 ko : jamais avec la liste). `verifiee` :
+     true si son empreinte est retrouvee ici, false si elle ne correspond pas, null si ce
+     navigateur ne sait pas la calculer. */
+  async function lireCopie() {
+    var d = S.devis;
+    var l = await api('/devis_copies?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.'
+      + encodeURIComponent(d.devis_id) + '&select=papier,empreinte,cree_le');
+    var c = Array.isArray(l) ? l[0] : null;
+    if (!c || !c.papier) return null;
+    var v = null;
+    try {
+      var sub = window.crypto && window.crypto.subtle;
+      if (sub && typeof TextEncoder === 'function') {
+        var h = new Uint8Array(await sub.digest('SHA-256', new TextEncoder().encode(c.papier)));
+        var hex = Array.prototype.map.call(h, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+        v = hex === c.empreinte && hex === d.papier_empreinte;
+      }
+    } catch (e) { v = null; }
+    return { id: d.devis_id, papier: c.papier, empreinte: c.empreinte, le: c.cree_le, verifiee: v };
+  }
+  /* CE QUE L'APERCU MONTRE. Un devis qui a sa copie montre LA COPIE (c'est le papier que le
+     client a eu). Sans copie, le devis est refait de ses donnees, et un devis parti le dit. */
+  async function sourceApercu() {
+    var d = S.devis;
+    if (lot52() && d && d.papier_empreinte) {
+      if (!S.copie || S.copie.id !== d.devis_id) {
+        var moi = S, c = null;
+        try { c = await lireCopie(); } catch (e) { c = null; }
+        if (moi !== S) return null;
+        S.copie = c;   // null : une lecture ratee se retente a la prochaine ouverture
+      }
+      if (S.copie) return { html: S.copie.papier, copie: true, note: noteCopie(S.copie) };
+      return { html: papierCourant(), copie: false, souci: true,
+        note: 'La copie gardée n’a pas pu être lue (connexion). Ceci est le devis refait à partir de ses données.' };
+    }
+    if (lot52() && d && (d.envoye_le || d.statut === 'accepte'))
+      return { html: papierCourant(), copie: false,
+        note: d.envoye_le ? 'Pas de copie gardée pour ce devis : il a été envoyé avant que le bureau les garde. Ceci est le devis refait à partir de ses données.'
+          : 'Ce devis n’a pas été noté envoyé : pas de copie gardée. Ceci est le devis refait à partir de ses données.' };
+    return { html: papierCourant(), copie: false, note: '' };
+  }
+  function noteCopie(c) {
+    var d = S.devis;
+    var quoi = d.envoye_le ? 'C’est la copie exacte du devis envoyé le ' + dateFr(d.envoye_le) : 'C’est la copie exacte du devis gardée le ' + dateFr(c.le);
+    return quoi + ' : elle ne se modifie plus. Empreinte numérique ' + empreinteLisible(c.empreinte)
+      + (c.verifiee === true ? ', vérifiée.' : c.verifiee === false ? '.' : '.')
+      + (c.verifiee === false ? ' Attention : la copie ne correspond plus à son empreinte.' : '');
+  }
   function polices() {
     return [].map.call(document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis.com"]'), function (l) { return l.href; });
   }
@@ -1279,25 +1399,47 @@
     corps.innerHTML = '<p class="dmod__gestes dmod__apercu-g">'
       + '<button type="button" class="btn btn--bordeaux" data-dev="imprimer">Imprimer ou enregistrer en PDF</button>'
       + '<button type="button" class="btn" data-dev="revenir">Revenir au devis</button></p>'
-      + '<div class="dmod__feuille"><iframe id="devFeuille" class="dmod__feuille-i" title="Aperçu du devis ' + esc(num) + '"></iframe></div>'
+      + '<p class="aff-aide dmod__copie" id="devCopieNote" hidden></p>'
+      + '<div class="dmod__feuille" id="devFeuilleW"></div>'
       + '<p class="aff-aide dmod__pdf">Pour lire en grand, enregistre-le en PDF.</p>';
     /* La feuille se lit depuis son haut : la boite gardait la position du formulaire. */
     MOD.querySelector('.tmod__boite').scrollTop = 0;
-    var f = el('devFeuille');
-    if (f) remplir(f, papierCourant()).then(ajusterFeuille);
+    var moi = S;
+    S.apercu = null;
+    sourceApercu().then(function (src) {
+      if (moi !== S || S.etat !== 'apercu' || !src) return;
+      S.apercu = src;
+      var n = el('devCopieNote');
+      if (n) { n.textContent = src.note; n.hidden = !src.note; n.classList.toggle('dmod__copie--souci', !!src.souci || / Attention /.test(src.note)); }
+      var w = el('devFeuilleW');
+      if (!w) return;
+      var f = cadre('devFeuille', 'dmod__feuille-i', 'Aperçu du devis ' + num, src.copie);
+      w.appendChild(f);
+      remplir(f, src.html).then(ajusterFeuille);
+    });
+  }
+  /* UNE COPIE VIENT DE LA BASE : elle s'affiche dans une iframe SANS SCRIPT (`sandbox`, meme
+     origine pour la remplir et l'imprimer, modales pour l'impression). La base refuse deja
+     tout `<script>` ; ceci ferme le reste (un attribut `on...`). */
+  function cadre(id, classe, titre, copie) {
+    var f = document.createElement('iframe');
+    f.id = id; f.className = classe; f.title = titre;
+    if (copie) f.setAttribute('sandbox', 'allow-same-origin allow-modals');
+    return f;
   }
   async function imprimer() {
-    var f = el('devImpression');
+    var src = S.apercu || await sourceApercu();
+    if (!src) return;
+    /* Une iframe par sorte : on ne retire pas un `sandbox` a une iframe deja chargee. */
+    var id = src.copie ? 'devImpressionCopie' : 'devImpression';
+    var f = el(id);
     if (!f) {
-      f = document.createElement('iframe');
-      f.id = 'devImpression';
-      f.className = 'dmod__imprimeur';
+      f = cadre(id, 'dmod__imprimeur', 'Impression du devis', src.copie);
       f.setAttribute('aria-hidden', 'true');
       f.setAttribute('tabindex', '-1');
-      f.title = 'Impression du devis';
       document.body.appendChild(f);
     }
-    await remplir(f, papierCourant());
+    await remplir(f, src.html);
     var doc = f.contentDocument;
     try { if (doc && doc.fonts && doc.fonts.ready) await doc.fonts.ready; } catch (e) {}
     try { f.contentWindow.focus(); f.contentWindow.print(); }
@@ -1343,7 +1485,8 @@
     return '<!doctype html><html lang="fr" data-theme="light"><head><meta charset="utf-8">'
       + '<title>Devis ' + esc(d.numero || '') + '</title>'
       + (o.polices || []).map(function (h) { return '<link rel="stylesheet" href="' + esc(h) + '">'; }).join('')
-      + '<link rel="stylesheet" href="/css/bdv-theme.css"><link rel="stylesheet" href="/css/bdv-devis-papier.css">'
+      + (o.feuilles ? o.feuilles.map(function (t) { return '<style>' + t + '</style>'; }).join('')
+        : '<link rel="stylesheet" href="/css/bdv-theme.css"><link rel="stylesheet" href="/css/bdv-devis-papier.css">')
       /* SUR CHAQUE PAGE : le numero du devis et « Page N/M » (boites de marge de @page). Le
          numero change a chaque devis, d'ou ces deux regles ecrites ici et pas dans la feuille. */
       /* Valeurs LITTERALES : les var() de la page ne passent pas dans les boites de marge. */

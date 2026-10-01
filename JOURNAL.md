@@ -12,6 +12,27 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 52 : la copie du devis envoyé, et la trace du fichier de commande
+
+Tu as choisi « Copie + trace ».
+
+- Au « Je l'ai envoyé », le bureau garde une copie exacte du devis tel qu'imprimé, feuilles de style
+  comprises : réimprimé dans un an, après un changement de dessin, il sortira pareil (vérifié au
+  pixel). C'est la base qui calcule son empreinte, et la copie ne se modifie ni ne se supprime.
+  « Voir et imprimer » montre la copie, dans un cadre où aucun script ne tourne.
+- Un devis envoyé avant ce lot reçoit sa copie à l'acceptation. Un devis accepté sans avoir été
+  noté envoyé n'en garde pas : il peut redevenir modifiable après une annulation, la copie mentirait.
+- Une copie ratée n'empêche pas l'envoi ; l'écran le dit.
+- Le fichier de commande note chaque téléchargement (date, qui, combien). La trace survit à une
+  annulation, et la confirmation d'annulation dit alors que la commande est sans doute dans Vitisoft.
+- `supabase/lot52-devis-copie-trace.sql`, à coller après le lot 51.
+
+Ce qui reste ouvert : livraison, TVA autre que 20 %, signature en ligne (règle du seuil). Et la
+purge RGPD des pistes à trois ans n'efface ni les devis ni leurs copies, qui gardent le nom et
+l'adresse du client (déjà vrai avant ce lot) : à trancher.
+
+---
+
 ## 01/10/2026, lot 51 : mentions légales, refus du client, annuler une acceptation
 
 Tu as choisi les trois d'un coup.

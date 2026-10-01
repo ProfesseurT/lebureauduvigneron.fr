@@ -232,6 +232,11 @@
   border:0;
 }
 
+/* LOT 52 : ce que montre l'apercu (la copie gardee, ou le devis refait) se dit au-dessus
+   de la feuille. Un souci se double d'un signe, jamais de la seule couleur. */
+.bdv-coque .dmod__copie{ margin-top:var(--bdv-e-3); }
+.bdv-coque .dmod__copie--souci{ font-weight:600; color:var(--bdv-retard); }
+.bdv-coque .dmod__copie--souci::before{ content:'\0021'; margin-right:var(--bdv-e-1); }
 .bdv-coque .dmod__pdf{ display:none; }
 @media (max-width:700px){
   .bdv-coque .dmod__pdf{ display:block; }

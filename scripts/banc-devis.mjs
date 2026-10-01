@@ -23,6 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { JSDOM } from 'jsdom';
+import { createHash } from 'node:crypto';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lire = (f) => fs.readFileSync(path.join(RACINE, f), 'utf8');
@@ -106,6 +107,13 @@ function monter(o) {
     fiche: o.fiche === undefined ? Object.assign({}, FICHE) : o.fiche, props: o.props || props(10, 'client'), n: 0 };
   w.BdvTiroir = { actif: () => !!o.tiroir, poser: (b) => { X.tiroir.poser.push(b); return !!o.tiroir; }, retirer: () => { X.tiroir.retirer++; } };
   w.BdvNav = { ouvrirReglages: (onglet) => X.reglages.push(onglet) };
+  /* LOT 52 : les feuilles servies, la copie rangee, l'empreinte calculee « par la base ». */
+  X.copies = {};
+  if (o.fetch) w.fetch = async (h) => { X.fetchs = (X.fetchs || 0) + 1; if (o.fetch === 'ko') throw new TypeError('Failed to fetch');
+    return { ok: true, text: async () => (o.fetch === 'script' ? '.x{}</style><script>alert(1)</script>' : '') + '.dpap{color:#000}/*' + h + '*/' }; };
+  if (!w.crypto || !w.crypto.subtle) Object.defineProperty(w, 'crypto', { value: globalThis.crypto, configurable: true });
+  if (!w.TextEncoder) w.TextEncoder = TextEncoder;
+  const sha = (txt) => createHash('sha256').update(txt, 'utf8').digest('hex');
   w.Element.prototype.scrollIntoView = function () {};
   const refus = (status, detail) => { const e = new Error('Supabase a refuse (' + status + ')'); e.status = status; e.detail = detail; return e; };
   w.BdvCompte = {
@@ -146,6 +154,7 @@ function monter(o) {
           d = { bureau: BUREAU, devis_id: 'dv' + X.n, affaire_id: c.p_affaire, numero: 'D-2026-' + String(X.n).padStart(4, '0'), statut: 'enregistre',
             date_devis: '2026-09-30', valable_jusqu: '2026-10-30', cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-09-30T08:00:00+00:00' };
           if (c.p_version_de) { const v = X.devis.find(x => x.devis_id === c.p_version_de); if (v) { v.statut = 'abandonne'; d.version_de = v.devis_id; } }
+          if (o.lot52) Object.assign(d, { papier_empreinte: null, papier_le: null, commande_telechargements: 0, commande_telechargee_le: null });
           X.devis.push(d);
         } else d.maj_le = '2026-09-30T09:15:00+00:00';
         Object.assign(d, { vendeur: Object.assign({}, X.fiche), acheteur: { nom: 'Chez Paul', nouveau: false, code_postal: '44000', ville: 'Nantes', num_client: 'C7' },
@@ -170,6 +179,10 @@ function monter(o) {
         const c = op.corps;
         const d = X.devis.find(x => x.devis_id === c.p_devis);
         if (!d || d.statut !== 'enregistre') throw refus(400, '{"code":"23514","message":"devis fige"}');
+        if (c.p_papier !== undefined && !o.lot52) throw refus(404, '{"code":"PGRST202","message":"p_papier inconnu"}');
+        if (c.p_papier && /^<!doctype html>/.test(c.p_papier) && c.p_papier.indexOf('Devis ' + d.numero) >= 0) {
+          X.copies[d.devis_id] = c.p_papier; d.papier_empreinte = sha(c.p_papier); d.papier_le = '2026-10-01T09:00:00+00:00';
+        }
         d.statut = 'envoye'; d.envoye_le = c.p_jour;
         return { ...d };
       }
@@ -189,6 +202,13 @@ function monter(o) {
         if (!d || d.statut !== 'accepte') throw refus(400, '{"code":"23514"}');
         Object.assign(d, { statut: d.envoye_le ? 'envoye' : 'enregistre', accepte_le: null, accord_annule_le: '2026-10-01T10:00:00+00:00' });
         return { ...d };
+      }
+      if (/^\/devis_copies\?/.test(chemin)) {
+        if (X.mode === 'copie-panne') throw new TypeError('Failed to fetch');
+        const q = new URLSearchParams(chemin.split('?')[1]);
+        if (q.get('bureau') !== 'eq.' + BUREAU) throw refus(403, '{"code":"42501"}');
+        const id = q.get('devis_id').slice(3), pap = X.copies[id];
+        return pap ? [{ papier: X.copieAlteree ? pap + ' ' : pap, empreinte: sha(pap), cree_le: '2026-10-01T09:00:00+00:00' }] : [];
       }
       throw refus(404, 'route inconnue du faux serveur : ' + chemin);
     }
@@ -898,6 +918,72 @@ titre('9 ter. Lot 51 : les mentions et le bon pour accord sur le papier');
   t('un devis refuse n\'a pas de bon pour accord', !/Bon pour accord/.test(h3));
   const css = lire('src/css/bdv-devis-papier.css').replace(/\/\*[\s\S]*?\*\//g, '');
   t('le cadre ne se coupe pas entre deux pages', /\.dpap\.dpap__accord\{[^}]*break-inside:avoid/.test(css.replace(/\s+/g, '')));
+}
+
+titre('10. Lot 52 : la copie exacte du devis envoye');
+async function devisEnvoye(o) {
+  const X = monter(o);
+  await X.ouvrir();
+  X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]');
+  X.doc.getElementById('devEnvoiRappel').checked = false;
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(20);
+  X.env = X.requetes.filter(r => r.chemin === '/rpc/devis_envoyer').pop().corps;
+  return X;
+}
+{
+  const X = await devisEnvoye({ lot52: true, fetch: 'ok' });
+  const p = X.env.p_papier || '';
+  t('a l\'envoi, la copie part avec : un document complet, au numero du devis', /^<!doctype html>/.test(p) && p.indexOf('Devis D-2026-0001') >= 0, p.slice(0, 80));
+  t('les DEUX feuilles y sont en ligne, plus aucun lien vers /css/', (p.match(/<style>\.dpap\{color:#000\}/g) || []).length === 2
+    && /bdv-theme\.css/.test(p) && /bdv-devis-papier\.css/.test(p) && !/<link rel="stylesheet" href="\/css\//.test(p));
+  t('aucun script dans la copie', !/<\s*script/i.test(p));
+  t('l\'avis dit qu\'une copie exacte est gardee', /Une copie exacte est gardée\./.test(X.avis()), X.avis());
+  X.clic('[data-dev="apercu"]'); await attendre(30);
+  const lec = X.requetes.filter(r => /^\/devis_copies\?/.test(r.chemin));
+  t('l\'apercu relit LA COPIE, pour CE bureau et CE devis', lec.length === 1 && /bureau=eq\./.test(lec[0].chemin) && /devis_id=eq\.dv1/.test(lec[0].chemin), JSON.stringify(lec));
+  const f = X.doc.getElementById('devFeuille'), note = X.doc.getElementById('devCopieNote');
+  t('elle s\'affiche dans une iframe SANS SCRIPT (sandbox sans allow-scripts)', !!f && f.getAttribute('sandbox') === 'allow-same-origin allow-modals');
+  t('la note dit la copie exacte, la date d\'envoi, et l\'empreinte verifiee',
+    !!note && !note.hidden && /C’est la copie exacte du devis envoyé le \d{2}\/\d{2}\/\d{4} : elle ne se modifie plus\. Empreinte numérique [0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4}, vérifiée\./.test(note.textContent), note && note.textContent);
+  t('... sans souci', !note.classList.contains('dmod__copie--souci'));
+  X.clic('[data-dev="imprimer"]'); await attendre(20);
+  const imp = X.doc.getElementById('devImpressionCopie');
+  t('l\'impression passe par une iframe a part, elle aussi sans script', !!imp && imp.getAttribute('sandbox') === 'allow-same-origin allow-modals' && !X.doc.getElementById('devImpression'));
+  X.clic('[data-dev="revenir"]'); X.copieAlteree = true; X.w.BdvDevis._S().copie = null;
+  X.clic('[data-dev="apercu"]'); await attendre(30);
+  t('une copie qui ne correspond plus a son empreinte : on le DIT, en souci',
+    /Attention : la copie ne correspond plus à son empreinte\./.test(X.doc.getElementById('devCopieNote').textContent)
+    && X.doc.getElementById('devCopieNote').classList.contains('dmod__copie--souci'), X.doc.getElementById('devCopieNote').textContent);
+  X.clic('[data-dev="revenir"]'); X.copieAlteree = false; X.w.BdvDevis._S().copie = null; X.mode = 'copie-panne';
+  X.clic('[data-dev="apercu"]'); await attendre(30);
+  t('copie illisible (connexion) : le devis est refait, et on le dit', /La copie gardée n’a pas pu être lue \(connexion\)/.test(X.doc.getElementById('devCopieNote').textContent)
+    && !X.doc.getElementById('devFeuille').hasAttribute('sandbox'));
+}
+{
+  const X = await devisEnvoye({ lot52: true, fetch: 'ko' });
+  t('feuilles illisibles : l\'envoi part SANS copie et passe quand meme', !('p_papier' in X.env) && X.devis[0].statut === 'envoye');
+  t('... et l\'avis le dit, en souci', /La copie du devis n’a pas pu être gardée\./.test(X.avis()) && X.doc.getElementById('devAvis').classList.contains('aff-avis--souci'), X.avis());
+  X.clic('[data-dev="apercu"]'); await attendre(30);
+  t('l\'apercu d\'un devis parti sans copie le dit', /Pas de copie gardée pour ce devis/.test(X.doc.getElementById('devCopieNote').textContent)
+    && !X.requetes.some(r => /^\/devis_copies\?/.test(r.chemin)));
+}
+{
+  const X = await devisEnvoye({ lot52: true, fetch: 'script' });
+  t('une feuille servie qui porterait une balise de script ou de style : pas de copie', !('p_papier' in X.env) && /La copie du devis n’a pas pu être gardée/.test(X.avis()), X.avis());
+}
+{
+  const X = await devisEnvoye({ fetch: 'ok' });
+  t('SANS le SQL du lot 52 : rien de plus ne part (PostgREST refuserait le parametre)', !('p_papier' in X.env) && !X.fetchs && X.devis[0].statut === 'envoye', JSON.stringify(Object.keys(X.env)));
+  t('... et l\'avis ne parle pas de copie', !/copie/i.test(X.avis()), X.avis());
+  X.clic('[data-dev="apercu"]'); await attendre(30);
+  t('... ni l\'apercu', X.doc.getElementById('devCopieNote').hidden);
+}
+{
+  const X = monter({ lot52: true, fetch: 'ok' });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="apercu"]'); await attendre(30);
+  t('un devis enregistre : apercu refait, sans note ni sandbox', X.doc.getElementById('devCopieNote').hidden && !X.doc.getElementById('devFeuille').hasAttribute('sandbox'));
 }
 
 console.log('\n== VERDICT ==');

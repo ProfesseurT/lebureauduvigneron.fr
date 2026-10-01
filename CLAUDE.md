@@ -7417,6 +7417,45 @@ Choix de Ted : « les trois d'un coup ». `supabase/lot51-devis-mentions-refus.s
   6 mutations tuees), `banc:devis` sections 9 a 9 ter (35 controles), `banc:domaine` section 10
   (7 controles) ; 9 mutations JS tuees. `banc-rejeu.mjs` liste le lot 51. Pas de capture.
 
+### LOT 52 : LA COPIE DU DEVIS ENVOYE, ET LA TRACE DU FICHIER DE COMMANDE (01/10/2026)
+
+Choix de Ted : « Copie + trace ». `supabase/lot52-devis-copie-trace.sql`, a coller APRES 51.
+
+- **La copie vit dans `devis_copies`, PAS dans `devis`** : la piece des affaires lit `devis` en
+  `select=*`, et 30 a 40 ko par devis y voyageraient. `devis` ne porte que `papier_empreinte` et
+  `papier_le`. Lecture par le bureau, AUCUNE ecriture pour `authenticated` ; un declencheur refuse
+  update et delete (sauf la cascade d'une suppression de bureau, `pg_trigger_depth() = 0`).
+- **L'empreinte est calculee par la BASE** (`sha256` du texte range, contrainte d'egalite sur la
+  table), jamais recue du navigateur. Elle se pose une fois, le gel `devis_signer` refuse de la
+  reecrire. `devis_ranger_copie()` (security definer, appelable par AUCUN role) est le seul
+  rangement, partage par `devis_envoyer(..., p_papier)` et `devis_accepter(..., p_papier)`.
+- **Une copie invalide est IGNOREE, jamais bloquante** (pas un document, sans `Devis <numero>`,
+  hors 500 a 600 000 octets, ou `<script`). Le devis rendu n'a pas d'empreinte, l'ecran le dit.
+- **A l'accord, seulement un devis ENVOYE** sans copie : un devis accepte sans envoi peut revenir
+  enregistre par l'annulation, puis changer, et sa copie mentirait.
+- **Le navigateur marche avant le SQL** : `lot52()` = la cle `papier_empreinte` presente dans la
+  ligne lue. Sans elle, `p_papier` ne part pas (PostgREST refuserait un parametre inconnu) et aucune
+  trace n'est demandee.
+- **La copie = `htmlPapier()` avec `o.feuilles`** : le TEXTE des deux feuilles servies
+  (`/css/bdv-theme.css`, `/css/bdv-devis-papier.css`, lu une fois par session) remplace leurs liens.
+  Polices en liens. Une feuille illisible ou qui porterait `<style`/`<script` : pas de copie.
+  Verifie au pixel : copie et papier lie sont identiques.
+- **« Voir et imprimer » montre LA COPIE** quand elle existe (relue a la demande, `S.copie` par
+  devis), dans une iframe `sandbox="allow-same-origin allow-modals"` : remplissable et imprimable par
+  la page, AUCUN script ni `on...` n'y tourne (verifie dans Chromium). Une iframe par sorte
+  (`devImpression` / `devImpressionCopie`) : on ne retire pas un sandbox a une iframe chargee.
+  L'empreinte est recalculee ici (`crypto.subtle`) : « verifiee », ou « ne correspond plus » en souci.
+  Sans copie, la note dit pourquoi (envoye avant le lot, ou jamais note envoye).
+- **La trace** : `devis_noter_telechargement()`, devis accepte seulement ; premiere date et auteur
+  figes, compte et derniere date qui avancent. Notee APRES le telechargement (le fichier est parti,
+  une trace ratee se dit). Elle SURVIT a l'annulation ; `htmlConfirmeAnnul()` dit alors « sans doute
+  deja dans Vitisoft », et le sous-titre « Sa commande avait ete telechargee le ... ».
+- Garde : banc SQL `supabase/banc-lot52-devis-copie-trace.sql` (31 controles, rejoue 47 a 51,
+  8 mutations tuees), `banc:devis` section 10, `banc:commande` section 2 ter (10 mutations JS tuees).
+  `banc-rejeu.mjs` liste le lot 52. `verif` 47 etapes vertes.
+- Ouvert : la purge RGPD des pistes (3 ans) n'efface ni les devis ni leurs copies (nom, adresse du
+  client) ; deja vrai pour l'instantane `acheteur` avant ce lot. A trancher avec Ted.
+
 ### PROCHAIN LOT, ET LE MUR QU'IL RENCONTRE (01/10/2026)
 
 Le lot 48 prevu (envoi + signature en ligne avec e-mail verifie par code) fait partir du courrier du
