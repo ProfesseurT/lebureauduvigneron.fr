@@ -12,6 +12,32 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 01/10/2026, lot 49 : le devis accepté devient une commande Vitisoft
+
+Tes trois choix : la signature en ligne (lot 48) attend, parce que le premier mail vers le client
+du vigneron déclenche la règle du seuil (Resend payant, textes légaux) ; « Le client a dit oui »
+fige le devis ET passe l'affaire à Gagnée, en un geste ; le numéro de commande est celui du devis.
+La configuration d'import du CAHIER est confirmée telle quelle.
+
+Ce qui a été fait :
+- `supabase/lot49-commande.sql` (à coller après le lot 47) : statut `accepte`, la fonction
+  `devis_accepter`, qui refuse AVANT de figer un devis qui ne ferait pas un fichier importable
+  (vin sans code article, client existant sans numéro ni e-mail), une seule commande par affaire,
+  et le code tarif relu dans la dernière vente du client. Banc PostgreSQL : 22 contrôles, 5
+  mutations tuées.
+- `src/js/bdv-commande.js` fabrique le fichier (24 colonnes, `;`, point décimal, CR+LF, aucun
+  guillemet, heure de Paris). Chargé au clic avec le devis, zéro octet bloquant.
+- Dans le devis : « Le client a dit oui ? », confirmation (focus sur « Pas encore »), puis le
+  fichier se télécharge ; un devis accepté se rouvre avec « Télécharger la commande » et le mode
+  d'emploi Vitisoft. `npm run banc:commande` : 71 contrôles, 9 mutations tuées.
+
+Écarté : accepter un formulaire modifié sans l'enregistrer (le fichier partirait d'autre chose que
+le devis que le client a vu). Ouvert : la rue du client existant n'est pas dans l'export (Vitisoft
+garde sa fiche, sans effet sur l'import) ; un devis encore « enregistré » sur une affaire gagnée à
+la main ne s'accepte pas depuis l'écran (la base l'accepte).
+
+---
+
 ## 30/09/2026, lot 47 : le devis
 
 Clos le 01/10/2026 : commit eeade3e poussé, SQL passé dans Supabase.

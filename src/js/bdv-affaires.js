@@ -998,6 +998,7 @@
     if (window.BdvDevis) return Promise.resolve(window.BdvDevis);
     if (_devis) return _devis;
     var p = poserCss('/css/bdv-devis.css').then(chargerCalcul)
+      .then(function () { return window.BdvCommande ? null : poserJs('/js/bdv-commande.js'); })
       .then(function () { return window.BdvDevis ? null : poserJs('/js/bdv-devis.js'); })
       .then(function () { if (!window.BdvDevis) throw new Error('devis absent'); return window.BdvDevis; });
     _devis = p;
@@ -1028,7 +1029,16 @@
           focusDevisAttendu(id);
         },
         focusSortie: function () { return focusSortie(id); },
-        change: function () { S.devisDe[id] = null; }
+        /* LOT 49 : un devis ACCEPTE a passe l'affaire a Gagnee dans la base. On relit les
+           affaires tout de suite (la liste, le bilan et Ma journee), et le retour suit
+           le chemin d'une affaire close. */
+        change: function (d) {
+          S.devisDe[id] = null;
+          if (d && d.statut === 'accepte') {
+            issue = 'gagnee';
+            charger().then(function (ok) { if (ok) rendre(); });
+          }
+        }
       });
     }, function () {
       var m = el('affDevisMot');

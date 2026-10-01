@@ -7310,6 +7310,35 @@ Specification du conseil (vigneron, directeur commercial, architecte) : `Claude 
   de ... ? ») ; ecart voulu de la remise globale. Anterieur : a 390, la tabulation sort de la boite (comme le panneau
   d'une affaire).
 
+### LOT 49 : LE DEVIS ACCEPTE DEVIENT UNE COMMANDE VITISOFT (01/10/2026)
+
+Decisions de Ted : le lot 48 (signature en ligne) ATTEND la regle du SEUIL ; « Le client a dit oui »
+fige le devis (statut `accepte`) ET passe l'affaire a Gagnee, en une transaction ; numero de
+commande = numero du devis ; configuration d'import = section 3 du CAHIER, confirmee telle quelle.
+
+- **`supabase/lot49-commande.sql`, a coller par Ted APRES 47.** `devis_accepter(p_bureau, p_devis)`,
+  security definer, `est_membre()` en premiere ligne. REFUSE AVANT DE FIGER : ligne sans
+  `num_produit`, client existant sans numero ni e-mail (Vitisoft creerait un doublon), affaire
+  perdue, affaire qui a deja un devis accepte. Deja accepte : rendu tel quel. Copie `code_tarif`
+  (derniere vente non vide du client). Le gel du lot 47 couvre `accepte` sans une ligne de plus.
+  Banc : `supabase/banc-lot49-commande.sql` (rejoue tout le banc 47 d'abord), 22 controles.
+- **`src/js/bdv-commande.js`, PUR**, charge par bdv-affaires.js avant bdv-devis.js. 24 colonnes
+  par position, une rangee par ligne, colonnes 1 et 3 = numero du devis (erreur 12 = deja
+  integree : re-telecharger ne double rien), colonne 23 = `pu_f_c`, 24 = `final_c`, colonne 2 =
+  `accepte_le` a l'heure de PARIS (en-GB + chiffres seuls, regle du 10/09), 16 = `HT`, 4 vide pour
+  un nouveau client. `;` devient `,`, guillemets et retours a la ligne retires : la doc interdit les
+  guillemets, un `;` decalerait les colonnes.
+- **Dans le devis** : bloc « Le client a dit oui ? » sous Voir et imprimer, confirmation focus sur
+  « Pas encore » ; un formulaire modifie (`S.modifie`) ne s'accepte pas ; un retour sans `accepte`
+  est un echec et rien ne part ; ce qui empeche le fichier est dit avant, sans bouton. Accepte :
+  « La commande Vitisoft », « Telecharger la commande », mode d'emploi et erreur 12.
+  `ctx.change(d)` d'un devis accepte fait relire les affaires (`charger().then(rendre)`).
+- Garde : `npm run banc:commande` (71 controles, dans `verif` apres banc:devis). `banc-rejeu.mjs`
+  liste maintenant 39, 47 et 49 (39 et 47 y manquaient).
+- Ouvert : un devis `enregistre` sur une affaire gagnee a la main ne s'accepte pas depuis l'ecran
+  (`lectureSeule()`), la base l'accepterait ; `cssEsc()` du devis n'echappe pas un retour a la
+  ligne dans une designation (anterieur, signale).
+
 ### PROCHAIN LOT, ET LE MUR QU'IL RENCONTRE (01/10/2026)
 
 Le lot 48 prevu (envoi + signature en ligne avec e-mail verifie par code) fait partir du courrier du

@@ -63,6 +63,9 @@ const ORDRE = [
   'lot35-affaires-client.sql',
   'lot36-courrier-affaires.sql',
   'lot38-domaine.sql',
+  'lot39-nouveau-client.sql',
+  'lot47-devis.sql',
+  'lot49-commande.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

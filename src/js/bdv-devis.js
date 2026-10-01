@@ -8,8 +8,8 @@
    bdv-devis-calcul.js et bdv-devis.css) au premier « Nouveau devis » ou au
    premier devis rouvert. Pas un octet dans bdv-nav.js ni dans le code bloquant.
 
-   CE FICHIER N'ECRIT QUE PAR DEUX FONCTIONS DE LA BASE, `devis_enregistrer` et
-   `devis_abandonner` : `authenticated` n'a que SELECT sur les tables du devis.
+   CE FICHIER N'ECRIT QUE PAR TROIS FONCTIONS DE LA BASE, `devis_enregistrer`,
+   `devis_abandonner` et `devis_accepter` (lot 49) : `authenticated` n'a que SELECT sur les tables du devis.
    Le numero D-AAAA-NNNN est donne PAR LA BASE a l'enregistrement : aucun
    numero n'existe a l'ecran avant. Un retour vide, ou sans numero, est un
    ECHEC dit comme tel, jamais « enregistre ».
@@ -47,6 +47,10 @@
   var MOT_CORRIGER = 'à corriger';
   var PENALITES = 'Pénalités de retard : taux BCE majoré de 10 points. Indemnité forfaitaire pour frais de recouvrement : 40\u00a0€ (Code de commerce, L441-10).';
   var ACCISES = 'Prix HT, droits d’accises inclus.';
+  /* LOT 49 : la commande Vitisoft. Les deux phrases du mode d'emploi vivent ici, une fois. */
+  var IMPORT_VITI = 'Dans Vitisoft : Commandes/BL, menu Outils, Importer des commandes, puis choisis ce fichier.';
+  var DEJA_12 = 'Si Vitisoft répond que la commande est déjà intégrée, elle y est déjà : rien à refaire.';
+  var MOT_SQL_CMD = 'La commande Vitisoft n’est pas encore disponible sur ton compte.';
   /* Police et encre du pied de page imprime, en dur : une boite de marge de @page ne lit
      pas les jetons (mesure du verificateur, 30/09/2026). Inter 8 pt, encre-3 du clair. */
   var MARGE = "font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:8pt;color:#4C525A;";
@@ -295,7 +299,7 @@
     RETOUR_FOCUS = document.activeElement;
     S = { ctx: ctx, etat: 'chargement', props: [], source: ctx.nouveau ? 'bureau' : 'client', propsDomaine: null,
           lignes: [], remise: '0', notes: '', devis: ctx.devis || null, lignesServeur: null, voirTout: false,
-          q: '', brouillon: null, confirme: false, attente: false, manque: [] };
+          q: '', brouillon: null, confirme: false, attente: false, manque: [], accord: false, modifie: false };
     var moi = S;
     monter();
     peindre();
@@ -371,13 +375,16 @@
        pas en gros. Aucun numero avant l'enregistrement. */
     var pour = ' pour ' + esc(S.ctx.sujet || 'ce client');
     var titre = d
-      ? (d.statut === 'abandonne' ? 'Devis <s>' + esc(d.numero) + '</s> <span class="aff-marque dmod__abandonne">abandonné</span>,' + pour : 'Devis ' + esc(d.numero) + pour)
+      ? (d.statut === 'abandonne' ? 'Devis <s>' + esc(d.numero) + '</s> <span class="aff-marque dmod__abandonne">abandonné</span>,' + pour
+        : d.statut === 'accepte' ? 'Devis ' + esc(d.numero) + ' <span class="aff-marque">accepté</span>,' + pour
+        : 'Devis ' + esc(d.numero) + pour)
       : 'Devis' + pour;
     var sous = d ? '' : 'Pas encore enregistré.';
     if (d) {
       sous += 'Du ' + esc(dateFr(d.date_devis)) + ', valable jusqu’au ' + esc(dateFr(d.valable_jusqu)) + '.';
       if (d.cree_le && d.maj_le && d.maj_le !== d.cree_le && d.statut === 'enregistre') sous += ' Modifié le ' + esc(dateFr(d.maj_le)) + '.';
       if (d.statut === 'abandonne' && d.abandonne_le) sous += ' Abandonné le ' + esc(dateFr(d.abandonne_le)) + '.';
+      if (d.statut === 'accepte' && d.accepte_le) sous += ' Accepté le ' + esc(dateFr(d.accepte_le)) + '.';
     }
     /* « Retour a l'affaire » n'est PAS repeint : il garde le focus pendant que le corps
        arrive. Il se cache seulement quand personne n'a donne de chemin de retour. */
@@ -441,7 +448,8 @@
         + '<div class="dmod__confirme" id="devConfirme"' + (S.confirme ? '' : ' hidden') + '>'
         + '<p class="aff-aide">Tu abandonnes ce devis ? Il garde son numéro ' + esc(S.devis.numero) + ' et ne se modifie plus.</p>'
         + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAbandon">Oui, l’abandonner</button>'
-        + '<button type="button" class="btn" data-dev="garder">Non, le garder</button></p></div></section>' : '')
+        + '<button type="button" class="btn" data-dev="garder">Non, le garder</button></p></div></section>'
+        + htmlCommandeAvant() : '')
       + '<div class="dmod__pied"><p class="dmod__pied-t">Total TTC <b id="devPiedTtc"></b></p>'
       + '<button type="button" class="btn btn--bordeaux" data-dev="enregistrer">Enregistrer le devis</button></div>';
   }
@@ -550,6 +558,42 @@
   }
   function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
 
+  /* ---------------- LA COMMANDE VITISOFT (lot 49) ----------------
+     « Le client a dit oui » FIGE le devis et passe l'affaire a Gagnee, dans la base, en
+     une transaction (`devis_accepter`). Le fichier part ensuite du devis ENREGISTRE :
+     un formulaire modifie et pas enregistre ne s'accepte pas. Ce qui empecherait un
+     fichier importable se dit AVANT, en nommant le vin ou le client. */
+  function phraseManques(m) {
+    return m.map(function (x) {
+      if (x.quoi === 'produit') return 'Pour Vitisoft, chaque vin doit avoir son code article, et il manque pour : '
+        + x.vins.join(', ') + (x.vins.length > 1 ? '. Retire-les du devis et ajoute-les' : '. Retire-le du devis et ajoute-le') + ' à la main dans Vitisoft.';
+      if (x.quoi === 'client') return 'Ce client n’a ni numéro Vitisoft ni e-mail dans tes exports : Vitisoft créerait un deuxième client. Saisis cette commande dans Vitisoft.';
+      return 'Ce devis n’a aucun vin.';
+    }).join(' ');
+  }
+  function manquesCommande() {
+    return window.BdvCommande ? BdvCommande.manques(S.devis, S.lignesServeur || []) : [];
+  }
+  function htmlCommandeAvant() {
+    var m = manquesCommande();
+    return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">Le client a dit oui ?</h3>'
+      + (m.length ? '<p class="aff-aide" id="devCmdManque">' + esc(phraseManques(m)) + '</p>'
+        : '<p class="aff-aide">Le devis enregistré devient une commande à importer dans Vitisoft.</p>')
+      + (m.length ? '' : '<p class="dmod__gestes"><button type="button" class="btn" data-dev="accepter">Préparer la commande Vitisoft</button></p>'
+        + '<div class="dmod__confirme" id="devAccord"' + (S.accord ? '' : ' hidden') + '>'
+        + '<p class="aff-aide">Le devis ' + esc(S.devis.numero) + ' ne se modifiera plus (une correction demandera un nouveau devis) et l’affaire passera Gagnée. Tu reçois ensuite le fichier pour Vitisoft.</p>'
+        + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAccord">Oui, il a dit oui</button>'
+        + '<button type="button" class="btn" data-dev="pasEncore">Pas encore</button></p></div>')
+      + '</section>';
+  }
+  function htmlCommandeApres() {
+    return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">La commande Vitisoft</h3>'
+      + '<p class="dmod__cond">Accepté le ' + esc(dateFr(S.devis.accepte_le)) + '. L’affaire est gagnée.</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="telecharger">Télécharger la commande</button>'
+      + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p>'
+      + '<p class="aff-aide">' + esc(IMPORT_VITI) + ' ' + esc(DEJA_12) + '</p></section>';
+  }
+
   function htmlLecture() {
     var l = S.lignesServeur || [];
     var d = S.devis;
@@ -567,6 +611,7 @@
       + htmlConditions(false)
       + (d.notes ? '<section class="dmod__bloc" aria-labelledby="devNotesT"><h3 class="dmod__t" id="devNotesT">Notes</h3><p class="dmod__cond">' + esc(d.notes) + '</p></section>' : '')
       + (d.statut === 'abandonne' ? '<p class="aff-aide">Ce devis est abandonné : il garde son numéro et ne se modifie plus.</p>'
+        : d.statut === 'accepte' ? htmlCommandeApres()
         : '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes"><button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p></section>');
   }
 
@@ -589,7 +634,7 @@
       S.lignes = (br.lignes || []).filter(function (l) { return l && l.cle; }).slice(0, MAX_LIGNES);
       S.remise = br.remise == null ? '0' : String(br.remise);
       S.notes = br.notes || '';
-      S.brouillon = null; S.etat = 'edition'; peindre(); return;
+      S.brouillon = null; S.etat = 'edition'; S.modifie = true; peindre(); return;
     }
     if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.etat = 'edition'; peindre(); return; }
     if (q === 'voirTout') { S.voirTout = true; peindreProps(); return; }
@@ -619,6 +664,24 @@
     }
     if (q === 'garder') { S.confirme = false; var c2 = el('devConfirme'); if (c2) c2.hidden = true; return; }
     if (q === 'confirmerAbandon') { abandonner(); return; }
+    if (q === 'accepter') {
+      if (S.modifie) { dire('Enregistre d’abord tes changements : la commande part du devis enregistré.', true); return; }
+      S.accord = true;
+      var ac = el('devAccord');
+      if (ac) {
+        ac.hidden = false;
+        /* Le focus va sur le geste qui ne fige rien : deux appuis sur Entree ne doivent
+           jamais accepter un devis. */
+        var pe = ac.querySelector('[data-dev="pasEncore"]');
+        if (pe) { try { pe.focus({ preventScroll: true }); } catch (e) { pe.focus(); } }
+        montrerDansBoite(ac);
+      }
+      return;
+    }
+    if (q === 'pasEncore') { S.accord = false; var a2 = el('devAccord'); if (a2) a2.hidden = true;
+      var bt = MOD.querySelector('[data-dev="accepter"]'); if (bt) { try { bt.focus(); } catch (e) {} } return; }
+    if (q === 'confirmerAccord') { accepter(); return; }
+    if (q === 'telecharger') { var nm = telecharger(); if (nm) dire('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
   function surChangement(ev) {
     var t = ev.target;
@@ -632,6 +695,7 @@
       S.lignes = S.lignes.filter(function (l) { return l.cle !== cle; });
     }
     var n = el('devLignes'); if (n) n.innerHTML = htmlLignes();
+    S.modifie = true;
     peindreProps();
     majTotaux();
     ecrireBrouillon();
@@ -650,6 +714,7 @@
       if (!l) return;
       l[t.getAttribute('data-dev-champ')] = t.value;
     } else return;
+    S.modifie = true;
     majTotaux();
     ecrireBrouillon();
   }
@@ -775,6 +840,7 @@
     } catch (e) {}
     if (moi !== S) return;
     S.confirme = false;
+    S.modifie = false;
     peindre();
     dire('Devis ' + r.numero + (neuf ? ' enregistré.' : ' enregistré, avec tes changements.'));
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
@@ -797,6 +863,55 @@
     peindre();
     dire('Devis ' + r.numero + ' abandonné. Il garde son numéro.');
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
+  }
+
+  async function accepter() {
+    if (S.attente || !S.devis || S.devis.statut !== 'enregistre') return;
+    if (S.modifie) { dire('Enregistre d’abord tes changements : la commande part du devis enregistré.', true); return; }
+    var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerAccord"]');
+    S.attente = true;
+    if (b) b.setAttribute('aria-busy', 'true');
+    try { r = unSeul(await rpc('devis_accepter', { p_bureau: bureau(), p_devis: S.devis.devis_id })); }
+    catch (e) { err = e; }
+    if (moi !== S) return;
+    S.attente = false;
+    if (b) b.removeAttribute('aria-busy');
+    /* UN RETOUR SANS STATUT `accepte` EST UN ECHEC : le devis n'est PAS fige. */
+    if (err || !r || r.statut !== 'accepte' || !r.accepte_le) {
+      var det = err ? String(err.detail || err.message || '') : '';
+      if (err && sqlAbsent(err)) dire(MOT_SQL_CMD, true);
+      else if (/numero produit/.test(det)) dire('Un vin du devis n’a pas de code article : Vitisoft ne saurait pas quoi facturer. Le devis n’est pas figé.', true);
+      else if (/sans numero ni e-mail/.test(det)) dire('Ce client n’a ni numéro Vitisoft ni e-mail : Vitisoft créerait un deuxième client. Le devis n’est pas figé.', true);
+      else if (/deja commandee/.test(det)) dire('Cette affaire a déjà une commande : un seul devis accepté par affaire.', true);
+      else if (/affaire close/.test(det)) dire('Cette affaire est perdue : son devis ne s’accepte plus.', true);
+      else dire('Le devis n’est pas accepté : ' + (err && !err.status ? 'ta connexion a coupé.' : 'la base l’a refusé.') + ' Réessaie.', true);
+      return;
+    }
+    S.devis = r;
+    S.accord = false;
+    peindre();
+    var nom = telecharger();
+    dire('Devis ' + r.numero + ' accepté, affaire gagnée. ' + (nom ? 'Fichier ' + nom + ' téléchargé. ' + IMPORT_VITI
+      : 'Le fichier n’est pas parti : appuie sur « Télécharger la commande ».'), !nom);
+    var t = MOD.querySelector('[data-dev="telecharger"]');
+    if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
+    if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
+  }
+  /* LE TELECHARGEMENT : le fichier se fabrique a chaque appui, depuis le devis fige et
+     ses lignes relues. Meme devis, meme fichier, au caractere pres. */
+  function telecharger() {
+    if (!window.BdvCommande || !S.devis || S.devis.statut !== 'accepte') return null;
+    var f;
+    try { f = BdvCommande.fabriquer(S.devis, S.lignesServeur || []); }
+    catch (e) { dire('Le fichier de commande n’a pas pu se fabriquer. Rouvre le devis et réessaie.', true); return null; }
+    try {
+      var u = URL.createObjectURL(new Blob([f.texte], { type: 'text/csv;charset=utf-8' }));
+      var a = document.createElement('a');
+      a.href = u; a.download = f.nom; a.hidden = true;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { try { URL.revokeObjectURL(u); } catch (e) {} }, 2000);
+    } catch (e) { dire('Le téléchargement n’a pas pu partir. Réessaie.', true); return null; }
+    return f.nom;
   }
 
   /* ---------------- L'APERCU ET L'IMPRESSION ---------------- */

@@ -650,8 +650,8 @@ titre('5. Charge au clic : rien dans le code bloquant');
   t('les deux feuilles sont declarees dans feuilles-bureau.mjs', /src\/css\/bdv-devis\.css/.test(feuilles) && /src\/css\/bdv-devis-papier\.css/.test(feuilles));
   const pkg = JSON.parse(lire('package.json'));
   const v = pkg.scripts.verif || '';
-  t('« banc:devis » est dans verif, apres banc:domaine et avant banc:poids',
-    pkg.scripts['banc:devis'] === 'node scripts/banc-devis.mjs' && v.indexOf('npm run banc:domaine && npm run banc:devis && npm run banc:poids') >= 0);
+  t('« banc:devis » est dans verif, apres banc:domaine, suivi de banc:commande (lot 49) puis banc:poids',
+    pkg.scripts['banc:devis'] === 'node scripts/banc-devis.mjs' && v.indexOf('npm run banc:domaine && npm run banc:devis && npm run banc:commande && npm run banc:poids') >= 0);
 }
 
 titre('6. Le dessin : que des jetons, 44 px, pas de @media print');

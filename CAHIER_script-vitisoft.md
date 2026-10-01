@@ -72,14 +72,14 @@ Un fichier à part, produit en même temps que l'export de ventes.
 
 Le fichier de commande fabriqué par le bureau suivra l'ordre ci-dessous. La configuration Vitisoft
 (Configuration, Configuration générale, onglet Commandes, onglet Import de commandes) doit donc
-porter ces numéros de colonne. **À confirmer avec vous avant le premier essai**, en particulier les
-libellés exacts de l'écran de configuration.
+porter ces numéros de colonne. **Confirmée par Ted le 01/10/2026** (lot 49, qui fabrique ce fichier :
+`src/js/bdv-commande.js`, gardé par `npm run banc:commande`).
 
 | Colonne | Donnée Vitisoft | Remarque |
 |---|---|---|
-| 1 | numéro_commande | Numéro propre au bureau, unique. |
+| 1 | numéro_commande | Le numéro du devis (D-AAAA-NNNN), unique. Vitisoft refuse un doublon (erreur 12). |
 | 2 | date_heure_commande | `AAAA-MM-JJ HH:MM:SS`. |
-| 3 | référence_commande_client | La référence de l'affaire, celle qu'on retrouvera en 44e colonne. |
+| 3 | référence_commande_client | Le numéro du devis (D-AAAA-NNNN), celui qu'on retrouvera en 44e colonne : il mène à l'affaire. |
 | 4 | numéro_client | Vide pour un nouveau client : Vitisoft le crée. |
 | 5 | adresse_email | Toujours renseignée. |
 | 6 | société_facturation | Raison sociale du client pro. |
@@ -94,7 +94,7 @@ libellés exacts de l'écran de configuration.
 | 15 | mobile_facturation | |
 | 16 | mode_de_facturation | `HT` pour un professionnel. |
 | 17 | code_tarif | Le code tarif choisi pour le client. |
-| 18 | commentaire | « Devis signé le JJ/MM/AAAA ». |
+| 18 | commentaire | « Devis D-AAAA-NNNN accepté le JJ/MM/AAAA ». |
 | 19 | numéro_ligne | |
 | 20 | numéro_produit | |
 | 21 | désignation | |
