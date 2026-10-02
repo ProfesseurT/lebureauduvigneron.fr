@@ -3738,6 +3738,11 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
 .bdv-coque .bureau-tete .bureau-tete__maj:hover{ background:var(--bdv-accent-fort); border-color:var(--bdv-accent-fort); }
 .bdv-coque .bureau-tete .bureau-tete__maj:focus-visible{ animation:none; outline:2px solid var(--bdv-anneau); }
 .bdv-coque .bureau-tete .bureau-tete__maj[aria-busy="true"]{ animation:none; cursor:progress; }
+/* 02/10/2026 : la mise a jour part toute seule. Pendant qu'elle travaille, le bouton n'est
+   pas une action : il prend le dessin d'une etiquette, sans l'aplat de l'accent. Seul
+   « Reessayer », apres un echec, garde l'aplat et la pulsation. */
+.bdv-coque .bureau-tete .bureau-tete__maj[aria-busy="true"],
+.bdv-coque .bureau-tete .bureau-tete__maj[aria-busy="true"]:hover{ background:var(--bdv-surface-2); border-color:var(--bdv-trait); color:var(--bdv-encre-2); }
 .bdv-coque .bureau-tete .bureau-tete__maj-g{ flex:0 0 auto; width:16px; height:16px; }
 
 .bdv-coque .bureau-tete .bdv-bascule{

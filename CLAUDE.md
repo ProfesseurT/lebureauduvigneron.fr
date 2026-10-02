@@ -3330,6 +3330,17 @@ Dans « Ses commandes » de la fiche client, un clic sur une ligne deplie la fac
 
 ## LE COMPLEMENT DES LIGNES PASSE PAR L'EN-TETE, 24/09/2026
 
+**AMENDE LE 02/10/2026 : LE COMPLEMENT PART TOUT SEUL.** Ted : « quand j'arrive sur cette page,
+blocage, et le bouton Mettre a jour apparait ; cliquer debloque. Pourquoi ne pas mettre a jour
+seul ? » Ouvrir « Mon cap », « Mon commerce » ou « Mes cuvees » EST la demande. Donc :
+l'ecran se peint d'abord sur les chiffres du serveur, puis `majBoutonMaj()` lance
+`completerEcran()` UNE fois, SANS VOILE, et repeint l'ecran s'il est toujours a l'ecran.
+Le bouton ne sert plus qu'a dire « Mise a jour… » (grise, dessin d'etiquette, sans pulsation)
+et, apres un ECHEC, « Reessayer » (aplat + pulsation). Un echec ne se rejoue jamais seul
+(`MAJ_ETAT === 'echec'`). Rien ne charge sur « Ma journee » ni a l'amorcage :
+`banc:amorcage-leger` verifie que rien de `/ventes` n'est lu AVANT que l'ecran soit peint.
+Ce qui suit reste vrai pour le reste.
+
 La carte « Charger mes lignes et completer » posee en bas de « Mon cap », « Mon commerce » et
 « Mes cuvees » est SUPPRIMEE. Demande de Ted : un bouton « Mettre a jour » dans l'en-tete, qui
 clignote quand il faut l'activer. Il s'appelle `#bureauMaj`, vit dans `src/mon-bureau.njk`, et

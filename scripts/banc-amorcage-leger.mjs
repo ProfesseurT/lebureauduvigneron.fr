@@ -51,6 +51,7 @@ w.Papa = {};
 /* Le faux compte. Il NOTE tout ce qu'on lui demande, et c'est tout l'objet du banc :
    une seule lecture de `/ventes` au demarrage suffit a faire echouer le controle. */
 const appels = [];
+w.__appels = appels;
 const deposes = [];
 w.BdvCompte = {
   monId: () => 'moi', monBureau: () => 'b1', refusDeProprietaire: () => false,
@@ -88,11 +89,22 @@ const test = `
      capAuBesoin() peint une premiere fois sans le resume, puis repeint avec. Lire trop
      tot, c'est mesurer la premiere peinture et conclure que le serveur n'a pas repondu.
      Ma premiere version du banc faisait exactement ca, et accusait le code a tort. */
+  /* DEPUIS LE 02/10/2026 le complement part TOUT SEUL apres la peinture. On photographie
+     donc l'etat au moment exact ou il part : c'est la que « rien n'a encore ete lu » doit
+     etre vrai. */
+  window.__avant = null;
+  var __orig = completerEcran;
+  completerEcran = function(){
+    if(!window.__avant) window.__avant = { appels: window.__appels.length, lu: { count: LU.count, getAll: LU.getAll },
+      capPose: !!CAP, capHTML: document.getElementById('p-diagnostic').innerHTML, depots: window.__depots.length };
+    return __orig.apply(this, arguments);
+  };
   window.__demarrage = demarrerEcransVente({ ecran: 'annee' })
     .then(function(){ return new Promise(function(r){ setTimeout(r, 200); }); })
     .then(function(){
       return { lu: LU, capPose: !!CAP, pretes: lignesPretes(),
                capHTML: document.getElementById('p-diagnostic').innerHTML,
+               avant: window.__avant,
                majVisible: !document.getElementById('bureauMaj').hidden,
                majNom: document.getElementById('bureauMaj').getAttribute('aria-label') || '',
                clientsHTML: document.getElementById('p-clients').innerHTML };
@@ -110,55 +122,35 @@ try {
 }
 const S = await w.__demarrage;
 
-console.log('\n== 1. Aucune ligne de vente n\'est lue au demarrage ==');
-const lectures = appels.filter(a => /\/ventes/.test(a));
-/* LE CONTROLE CENTRAL. Une seule lecture de `/ventes` ici, et c'est le retour des
-   171 569 lignes a chaque ouverture. */
-t('aucune lecture de /ventes sur le reseau', lectures.length === 0, lectures.slice(0, 3).join(' | '));
-t('aucune derivation : dbGetAll() n\'est pas appelee', S.lu.getAll === 0, S.lu.getAll + ' appel(s)');
-/* Le comptage, lui, est la seule lecture locale permise : quelques millisecondes, et il
-   repond a « la base est-elle vide ? », que `ROWS.length` ne sait plus dire. */
-t('un seul comptage local, pour savoir si la base est vide', S.lu.count === 1, S.lu.count);
-/* DEPUIS LE 24/09/2026, le complement ne se propose plus en bas de chaque ecran : il a
-   UN bouton, dans l'en-tete, qui n'apparait que quand il sert. On verifie les deux
-   moities : la carte a disparu de l'ecran, et le bouton de l'en-tete s'est montre avec
-   un nom qui dit ce qui manque. */
-t('et rien n\'est propose sans le dire : le bouton de mise a jour se montre',
-  S.majVisible === true);
-t('son nom accessible dit ce qui manque', /Mettre à jour\. Il manque ici/.test(S.majNom), S.majNom.slice(0, 80));
-t('la carte « Charger mes lignes » a disparu de l\'ecran', !/Charger mes lignes/.test(S.capHTML));
-t('les lignes ne sont donc PAS pretes', S.pretes === false);
+console.log('\n== 1. Aucune ligne de vente n\'est lue AVANT que l\'ecran soit peint ==');
+const A = S.avant || {};
+t('le complement est parti tout seul, sans clic (02/10/2026)', !!S.avant);
+const lecturesAvant = appels.slice(0, A.appels || 0).filter(a => /\/ventes/.test(a));
+/* LE CONTROLE CENTRAL. Une lecture de `/ventes` avant la peinture, et l'ecran attendrait
+   les 171 569 lignes pour s'ouvrir. */
+t('aucune lecture de /ventes avant que « Mon cap » soit peint', lecturesAvant.length === 0, lecturesAvant.slice(0, 3).join(' | '));
+t('aucune derivation avant la peinture : dbGetAll() n\'est pas appelee', A.lu && A.lu.getAll === 0, A.lu && A.lu.getAll);
+t('un seul comptage local avant, pour savoir si la base est vide', A.lu && A.lu.count === 1, A.lu && A.lu.count);
+t('la carte « Charger mes lignes » a disparu de l\'ecran', !/Charger mes lignes/.test(A.capHTML || ''));
+t('et les lignes sont ensuite demandees, puisque l\'ecran les attend', appels.some(a => /\/ventes/.test(a)));
 
-console.log('\n== 2. Mais l\'ecran s\'ouvre quand meme, sur les chiffres du serveur ==');
+console.log('\n== 2. L\'ecran s\'ouvre d\'abord sur les chiffres du serveur ==');
 t('le resume de « Mon cap » a ete demande', appels.some(a => /rpc\/resume/.test(a)));
-t('il est pose', S.capPose === true);
-t('et le bandeau est peint', /class="hero"/.test(S.capHTML), S.capHTML.slice(0, 80));
-t('le chiffre du serveur est a l\'ecran', /970\s?959/.test(S.capHTML.replace(/&nbsp;/g, ' ')));
-/* CE QUI N'EST PAS ENCORE CALCULABLE NE S'AFFICHE PAS A ZERO. Afficher « 0 facture,
-   0 client » sous un bandeau qui annonce 970 959 euros, c'est mentir en attendant. */
+t('il est pose avant le complement', A.capPose === true);
+t('et le bandeau est peint', /class="hero"/.test(A.capHTML || ''), (A.capHTML || '').slice(0, 80));
+t('le chiffre du serveur est a l\'ecran', /970\s?959/.test((A.capHTML || '').replace(/&nbsp;/g, ' ')));
+/* CE QUI N'EST PAS ENCORE CALCULABLE NE S'AFFICHE PAS A ZERO. */
 t('les blocs qui lisent les lignes ne sont PAS dessines a zero',
-  !/Sur la période affichée/.test(S.capHTML));
-/* IL DIT CE QUI MANQUE, ET IL LE NOMME. « Certaines données ne sont pas disponibles »
-   n'aide personne : le vigneron doit savoir si ce qui manque est ce qu'il venait voir. */
-/* Depuis le 24/09/2026 la phrase vit dans le NOM du bouton de l'en-tete, plus dans
-   une carte en bas d'ecran. Meme exigence, autre endroit. */
-t('et le bouton nomme ce qui manque', /signaux/.test(S.majNom) && /prix\/volume/.test(S.majNom));
-t('et dit que les chiffres affiches, eux, sont a jour', /sont à jour/.test(S.majNom));
+  !/Sur la période affichée/.test(A.capHTML || ''));
 
 console.log('\n== 3. Les autres pieces ne sont pas peintes ==');
 t('« Mon commerce » reste vide tant qu\'on n\'y va pas',
   S.clientsHTML.trim().length === 0, S.clientsHTML.slice(0, 60));
 
 console.log('\n== 4. Le depot pour « Ma journee » n\'ecrit PAS de zeros ==');
-/* Le garde-fou le plus dangereux du lot. `resumeVentes()` parcourt ROWS ; deposer a
-   vide remplacerait sur le compte le resume qui fait vivre le bureau et le courrier
-   du matin. Le vigneron verrait son chiffre d'affaires disparaitre, sans une erreur. */
-t('aucun depot tant que les lignes ne sont pas chargees', w.__depots.length === 0,
-  JSON.stringify(w.__depots[0] || {}).slice(0, 80));
+t('aucun depot avant que les lignes soient chargees', A.depots === 0, A.depots);
 
 console.log('\n== 5. Les reglages, eux, sont bien lus ==');
-/* Quelques centaines d'octets, et tout en depend : sans eux « Mon cap » afficherait
-   l'exercice civil a quelqu'un qui ouvre le sien en aout. */
 t('les reglages du compte sont demandes', appels.some(a => /\/reglages/.test(a)));
 
 console.log('\n== VERDICT ==');

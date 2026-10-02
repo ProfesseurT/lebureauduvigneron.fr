@@ -689,24 +689,44 @@ function ecranPeindre(id){
   majBoutonMaj();
 }
 
-/* ============ LE COMPLEMENT EST DEMANDE, JAMAIS AUTOMATIQUE ============
+/* ============ LE COMPLEMENT PART TOUT SEUL, 02/10/2026 ============
 
-   Premiere version : l'ecran se peignait sur les chiffres du serveur, puis lancait le
-   chargement des lignes en arriere-plan pour completer. Le banc de l'amorcage leger l'a
-   refuse, et il avait raison : **charger 171 569 lignes sans que personne l'ait demande
-   reste charger 171 569 lignes.** Le complement part donc d'un CLIC.
+   Du 18/09 au 02/10/2026 il partait d'un CLIC (« charger 171 569 lignes sans que personne
+   l'ait demande reste charger 171 569 lignes »). Ted, le 02/10/2026 : « quand j'arrive sur
+   cette page je me retrouve avec un blocage, et le bouton Mettre a jour apparait ; cliquer
+   debloque. Pourquoi ne pas retirer ce bouton et mettre a jour seul ? »
 
-   CE N'EST PAS UNE ELEGANCE, C'EST UN AVEU : ces blocs-la ne sont pas encore portes. Le
-   bouton disparaitra a mesure qu'ils le seront, et avec lui le dernier chargement. */
+   Il avait raison : OUVRIR « Mon cap », « Mon commerce » ou « Mes cuvees », c'est deja la
+   demande. Ce qui reste interdit, c'est de charger a l'amorcage, sur « Ma journee », ou
+   sur une piece qui n'en a pas besoin (`besoinMaj()` le dit, et l'ecran doit etre a l'ecran).
+
+   Trois regles :
+   1. L'ECRAN SE PEINT D'ABORD sur les chiffres du serveur, et le complement part APRES,
+      SANS VOILE : rien ne bloque, le vigneron lit ce qui est la. L'ecran se repeint quand
+      les lignes arrivent, s'il est toujours celui qu'on regarde.
+   2. LE BOUTON NE SERT PLUS QU'A DEUX CHOSES : dire que ca travaille (« Mise a jour… »,
+      grise, sans pulsation, sa progression dans son nom), et, si le chargement a ECHOUE,
+      proposer « Reessayer ». Il n'est jamais la quand tout va bien.
+   3. UN ECHEC NE SE REJOUE PAS TOUT SEUL : une boucle de reprise sur 171 569 lignes, c'est
+      un navigateur qui rame sans fin. Le prochain essai part du bouton. */
+let MAJ_ETAT = '';   // '' rien en cours, 'encours', 'echec'
 function completerEcran(id){
   const cible = id || ECRAN_COURANT;
-  busy(true, 'Récupération de tes ventes…');
-  assurerLignes(function(txt){ const z = el('busytxt'); if(z) z.textContent = txt; })
+  if(_lignesEnRoute || MAJ_ETAT === 'encours') return;
+  MAJ_ETAT = 'encours';
+  majBoutonMaj(cible);
+  const b = document.getElementById('bureauMaj');
+  assurerLignes(function(txt){ if(b){ b.title = txt; b.setAttribute('aria-label', 'Mise à jour en cours. ' + txt); } })
     .then(function(bon){
+      MAJ_ETAT = bon ? '' : 'echec';
       try{
-        if(bon){ ECRANS_PEINTS.delete(cible); ecranPeindre(cible); }
-        else status('error', 'Tes lignes n\'ont pas pu être récupérées. Réessaie.');
-      }finally{ busy(false); majBoutonMaj(); }
+        if(bon){
+          ECRANS_A_COMPLETER.forEach(function(e){ ECRANS_PEINTS.delete(e); });
+          const vu = !(window.BdvNav && BdvNav.ventesEnVue) || BdvNav.ventesEnVue();
+          if(vu && ECRANS_A_COMPLETER.indexOf(ECRAN_COURANT) >= 0) ecranPeindre(ECRAN_COURANT);
+        }
+        else status('error', 'Tes lignes n\'ont pas pu être récupérées. Appuie sur « Réessayer » en haut.');
+      }finally{ majBoutonMaj(); }
     });
 }
 window.bdvCompleterEcran = completerEcran;
@@ -749,19 +769,35 @@ function majBoutonMaj(id){
   if(!b.dataset.branche){
     b.dataset.branche = '1';
     b.addEventListener('click', function(){
-      if(b.disabled) return;
-      b.disabled = true; b.setAttribute('aria-busy', 'true');
+      if(b.disabled || MAJ_ETAT !== 'echec') return;
+      MAJ_ETAT = '';
       completerEcran(ECRAN_COURANT);
     });
   }
   const besoin = besoinMaj(ecran);
-  b.hidden = !besoin;
-  if(!besoin){ b.disabled = false; b.removeAttribute('aria-busy'); return; }
-  if(!_lignesEnRoute){ b.disabled = false; b.removeAttribute('aria-busy'); }
+  const mot = b.querySelector('.bureau-tete__maj-mot');
+  if(!besoin){ b.hidden = true; b.disabled = false; b.removeAttribute('aria-busy'); return; }
+  /* Le complement part TOUT SEUL, une fois, quand l'ecran qui l'attend est a l'ecran.
+     Apres la peinture : `ecranPeindre()` nous appelle au milieu de la sienne. */
+  const vu = ecran === ECRAN_COURANT && (!(window.BdvNav && BdvNav.ventesEnVue) || BdvNav.ventesEnVue());
+  if(MAJ_ETAT === '' && !_lignesEnRoute && vu){
+    setTimeout(function(){ if(besoinMaj(ECRAN_COURANT) && MAJ_ETAT === '') completerEcran(ECRAN_COURANT); }, 0);
+  }
+  b.hidden = MAJ_ETAT === '' && !_lignesEnRoute && !vu;
   const quoi = MANQUE[ecran] || 'Une partie de cet écran attend tes lignes de vente.';
-  const nom = 'Mettre à jour. ' + quoi + ' Les chiffres affichés viennent de ton compte et sont à jour.';
-  b.setAttribute('aria-label', nom);
-  b.title = nom;
+  if(MAJ_ETAT === 'echec'){
+    b.disabled = false; b.removeAttribute('aria-busy');
+    if(mot) mot.textContent = 'Réessayer';
+    const nom = 'Réessayer la mise à jour. Tes lignes de vente n\'ont pas pu être récupérées. ' + quoi;
+    b.setAttribute('aria-label', nom); b.title = nom;
+    return;
+  }
+  b.disabled = true; b.setAttribute('aria-busy', 'true');
+  if(mot) mot.textContent = 'Mise à jour…';
+  if(!b.getAttribute('aria-label') || b.getAttribute('aria-label').indexOf('Mise à jour en cours') !== 0){
+    const nom = 'Mise à jour en cours. ' + quoi + ' Les chiffres affichés viennent de ton compte et sont à jour.';
+    b.setAttribute('aria-label', nom); b.title = nom;
+  }
 }
 window.bdvMajBoutonMaj = majBoutonMaj;
 window.bdvBesoinMaj = besoinMaj;
