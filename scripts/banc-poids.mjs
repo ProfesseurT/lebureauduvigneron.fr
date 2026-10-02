@@ -51,7 +51,10 @@ const PAGE = path.join(SITE, 'mon-bureau', 'index.html');
 /* 80 ko le 24/09/2026 : les 50 ko de commentaires du script en ligne de mon-bureau.njk
    sont passes en commentaires Nunjucks, que la construction retire. La mesure est tombee
    de 119,9 a 74,3 ko, « Mes clients » compris. Meme regle : le plafond suit la mesure. */
-const BUDGET = 80 * 1024;
+/* 78 ko le 02/10/2026 (tour 2) : 79,5 mesures, ramenes a 77,4 sans toucher a ce que fait la
+   page (commentaires de fin de ligne passes en Nunjucks, `dateCourte` morte retiree, alias
+   locaux `DOC` et `mk()` pour 90 `document` et 68 `createElement`). Le plafond descend avec. */
+const BUDGET = 78 * 1024;
 
 let ok = 0, ko = 0;
 const t = (nom, bon, det) => {

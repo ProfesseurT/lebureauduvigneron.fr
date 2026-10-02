@@ -726,6 +726,9 @@
        branches de la piece la reposent juste apres. Nommee ici pour la meme raison
        que les zones : sinon elle resterait un jour au-dessus de « Mon cap ». */
     poserOnglets(null);
+    /* M5 (01/10/2026) : le panneau d'une affaire et le devis appartiennent a « A gagner ».
+       Changer de piece les ferme : sinon le tiroir restait a droite de « Ma journee ». */
+    if (quelle !== 'affaires') tiroirCroix('#affaireModale,#devisModale');
   }
 
   function afficher(id, opts) {
@@ -1364,7 +1367,19 @@
      3. Le defilement du corps de page est RENDU. C'est tout l'interet du mode.
      Le piege a focus, lui, n'est pas ici : seule la fiche client en pose un, et
      c'est elle qui sait le retirer. */
+  /* M6 (01/10/2026) : UNE BOITE A LA FOIS, ET C'EST ICI QU'ON LE TIENT. Poser une
+     autre boite pendant qu'une premiere est ouverte la remplacait sans la fermer : deux
+     boites a l'ecran, puis, a la fermeture de la seconde, la premiere restait au milieu
+     de l'ecran avec un contrat ARIA de tiroir. On ferme la precedente par SA croix : c'est
+     le geste du vigneron, il passe par la fermeture de chaque module (brouillon, focus). */
+  function tiroirCroix(sel) {
+    var b = TIROIR_BOITE;
+    if (!b || !b.isConnected || b.closest('[hidden]') || (sel && !b.closest(sel))) return;
+    var x = b.querySelector('.tmod__x,.modale__close');
+    if (x) x.click();
+  }
   function tiroirPoser(boite) {
+    if (boite && TIROIR_BOITE && TIROIR_BOITE !== boite) tiroirCroix();
     TIROIR_BOITE = boite || TIROIR_BOITE;
     var actif = tiroirActif();
     document.body.classList.toggle('bdv-a-tiroir', actif);

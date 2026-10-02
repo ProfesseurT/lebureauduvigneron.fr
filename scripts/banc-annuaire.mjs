@@ -402,6 +402,21 @@ t('un geste d\'ecriture retente la question une fois', w5.__N33 === 2, 'lot33 ap
 t('et un « oui » redessine la fiche une fois', w5.__DESSINS === 1 && w5.__x5(`BdvAnnuaire._etat().LOT33`) === true, w5.__DESSINS + ' redessins');
 w4.close(); w5.close();
 
+/* 01/10/2026, JUGE V18 : la phrase « bientot » ramenee par scrollIntoView se posait SOUS le
+   coin collant (fleche et croix) du tiroir. `scroll-margin-top` la pose dessous. */
+console.log('== 9. La phrase « bientot » ne passe pas sous le coin de la fiche ==');
+{
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-ecrans.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  t('.fiche__bientot reserve la hauteur du coin (scroll-margin-top : deux cibles)',
+    /\.bdv-ventes \.fiche__bientot\{scroll-margin-top:calc\(var\(--bdv-cible\) \* 2\)\}/.test(css));
+  /* Tour 2 (V18) : mesure a 1440, la phrase passait encore sous la fleche et la croix. Elle
+     garde a droite la largeur du coin (deux cibles et une marge), comme l'en-tete. */
+  t('V18 : la phrase « Bientot » garde a droite la largeur du coin',
+    /\.modale__box:has\(\.fiche__coin\) \.fiche__bientot:not\(:empty\)\{padding-right:calc\(var\(--bdv-cible\) \* 2 \+ var\(--bdv-e-6\)\)\}/.test(css));
+  const js = fs.readFileSync(R + 'bdv-ecrans.js', 'utf8');
+  t('et c\'est bien elle que ficheBientot() ramene dans la vue', /const mot=el\('ficheBientot'\)[\s\S]{0,600}mot\.scrollIntoView\(/.test(js));
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 console.log(ko ? '  « MES CLIENTS » NE TIENT PAS SES PROMESSES' : '  « MES CLIENTS » TIENT SES PROMESSES');

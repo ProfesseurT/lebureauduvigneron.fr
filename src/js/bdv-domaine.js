@@ -195,11 +195,18 @@
     c.className = 'bdvr-champ' + (opts.plein ? ' bdvr-champ--plein' : '');
     var l = document.createElement('label');
     l.className = 'bdvr-l'; l.htmlFor = id; l.textContent = libelle;
+    var requis = REQUIS.some(function (r) { return r[1] === id; });
+    if (requis) {
+      var m = document.createElement('span'); m.className = 'bdvd-requis'; m.textContent = ' · devis';
+      l.appendChild(m);
+    }
     var i = document.createElement(opts.select ? 'select' : 'input');
     i.className = 'bdvr-i'; i.id = id;
     if (!opts.select) i.type = opts.type || 'text';
     if (opts.mode) i.inputMode = opts.mode;
     if (opts.auto) i.autocomplete = opts.auto;
+    if (requis) i.setAttribute('data-requis', '');
+    if (opts.sansFocus) i.setAttribute('data-sans-focus', '');
     if (opts.min != null) i.min = opts.min;
     if (opts.max != null) i.max = opts.max;
     (opts.options || []).forEach(function (o) {
@@ -224,12 +231,12 @@
     cible.textContent = '';
     var intro = document.createElement('p');
     intro.className = 'bdvr-aide';
-    intro.textContent = 'Ce qui s’imprime en tête de tes devis. Une seule fiche pour tout ton bureau.';
+    intro.textContent = 'Ce qui s’imprime en tête de tes devis. Une seule fiche pour tout ton bureau. ' + phraseRequis();
     cible.appendChild(intro);
 
     /* La recherche d'abord : c'est elle qui evite de taper. */
     var g0 = document.createElement('div'); g0.className = 'bdvr-grille bdvd-cherche';
-    var q = champ(g0, 'bdvdQ', 'Retrouver mon domaine', { plein: true,
+    var q = champ(g0, 'bdvdQ', 'Retrouver mon domaine', { plein: true, sansFocus: true,
       aide: 'Ton SIRET, ton SIREN ou le nom de ton domaine. La recherche passe par l’annuaire officiel des entreprises.' });
     var bc = document.createElement('button');
     bc.type = 'button'; bc.className = 'bdvr-btn'; bc.id = 'bdvdChercher'; bc.textContent = 'Chercher';
@@ -248,7 +255,7 @@
     var g = document.createElement('div'); g.className = 'bdvr-grille';
     champ(g, 'bdvdRaison', 'Raison sociale', { plein: true, auto: 'organization' });
     champ(g, 'bdvdForme', 'Forme juridique', { aide: 'EARL, SCEA, GAEC, SARL… Laisse vide si tu ne sais pas.' });
-    champ(g, 'bdvdSiret', 'SIRET', { mode: 'numeric' });
+    champ(g, 'bdvdSiret', 'SIRET', { mode: 'numeric', auto: 'off' });
     champ(g, 'bdvdTva', 'N° de TVA intracommunautaire', { aide: 'Vide si ton domaine n’en a pas.' });
     champ(g, 'bdvdAdresse', 'Adresse', { plein: true, auto: 'street-address' });
     champ(g, 'bdvdCp', 'Code postal', { mode: 'numeric', auto: 'postal-code' });
@@ -260,7 +267,9 @@
     /* LOT 51 : les mentions de l'immatriculation (Code de commerce, R123-237) et le capital
        (SARL et societes par actions). Facultatives : un exploitant en nom propre n'est pas au
        RCS. Le bloc n'existe que si la base les connait. */
-    var gm = document.createElement('div'); gm.className = 'bdvr-grille'; gm.id = 'bdvdMentions'; gm.hidden = true;
+    /* `bdvd-suite` : deux grilles qui se suivent n'ont pas d'ecart entre elles, et
+       « Ville du greffe » collait a « Telephone du domaine » (saisie S14). */
+    var gm = document.createElement('div'); gm.className = 'bdvr-grille bdvd-suite'; gm.id = 'bdvdMentions'; gm.hidden = true;
     champ(gm, 'bdvdRcs', 'Ville du greffe (RCS)', { auto: 'off',
       aide: 'Si ton domaine est immatriculé au RCS : la ville du greffe, imprimée « RCS Nantes » avec ton SIREN. Vide sinon.' });
     champ(gm, 'bdvdCapital', 'Capital social, en euros', { mode: 'numeric',
@@ -368,12 +377,26 @@
     if (!LU && el('bdvdMot')) dire(ABSENTE ? 'La fiche du domaine n’est pas encore disponible sur ton compte.'
       : 'Je n’arrive pas à lire la fiche de ton domaine. Vérifie ta connexion.', true);
     if (!TOUCHE) peindre();
+    /* La fiche arrive APRES l'ouverture : le focus pose sur un champ vide l'est peut-etre
+       sur un champ qu'elle vient de remplir. Le panneau le repose, si personne n'a tape. */
+    if (window.BdvReglages && BdvReglages.reposerFocus) BdvReglages.reposerFocus();
   }
 
   /* ---------------- CE QUE LE DEVIS LIRA ---------------- */
+  /* LA LISTE DE CE QUE LE DEVIS EXIGE, ECRITE UNE FOIS, 01/10/2026 (juge V17). Elle sert
+     trois fois : `complete()` (le devis refuse de s'ouvrir sans elle), la phrase en tete du
+     bloc et la marque a cote de chaque champ. Trois endroits qui la recopieraient a la main
+     diraient trois choses au premier champ ajoute. */
+  var REQUIS = [['raison_sociale', 'bdvdRaison', 'la raison sociale'], ['siret', 'bdvdSiret', 'le SIRET'],
+    ['adresse', 'bdvdAdresse', 'l’adresse'], ['code_postal', 'bdvdCp', 'le code postal'], ['ville', 'bdvdVille', 'la ville']];
   function complete(f) {
     f = f || FICHE;
-    return !!(f && f.raison_sociale && f.siret && f.adresse && f.code_postal && f.ville);
+    return !!f && REQUIS.every(function (r) { return !!f[r[0]]; });
+  }
+  function phraseRequis() {
+    var m = REQUIS.map(function (r) { return r[2]; });
+    return 'Pour faire un devis, il faut au moins ' + m.slice(0, -1).join(', ') + ' et ' + m[m.length - 1]
+      + ', marqués « devis ». Le reste est facultatif.';
   }
   function conditions(f) {
     f = f || FICHE || {};
@@ -389,7 +412,7 @@
   }
   if (!brancher()) document.addEventListener('DOMContentLoaded', brancher);
 
-  window.BdvDomaine = { charger: charger, fiche: function () { return FICHE; }, lue: function () { return LU; }, complete: complete,
+  window.BdvDomaine = { charger: charger, fiche: function () { return FICHE; }, lue: function () { return LU; }, complete: complete, requis: function () { return REQUIS.map(function (r) { return r[0]; }); },
                         conditions: conditions, chercher: chercher, mentions: function () { return MENTIONS; },
                         _lire: lire, _defauts: defauts };
 })();

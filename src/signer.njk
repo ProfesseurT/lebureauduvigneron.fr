@@ -5,6 +5,7 @@ description: Signez en ligne le devis que votre vigneron vous a envoyé. Sans co
 permalink: /signer/
 eleventyExcludeFromCollections: true
 noindex: true
+sans_chrome: true
 ---
 
 {#- LOT 55, 01/10/2026 : LA PAGE OU LE CLIENT DU VIGNERON SIGNE SON DEVIS.
@@ -17,49 +18,80 @@ noindex: true
     directement. Elle ne decide de rien : le jeton, l'etat, l'expiration, la
     copie montree, tout vient de la base.
     `noindex` dans l'entete (voir mes-emails.njk : une balise posee dans le corps
-    est ignoree par les robots). -#}
+    est ignoree par les robots).
 
-<section class="about-hero">
-  <div class="container">
-    <h1>Signer un devis</h1>
-    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
-      En ligne, sans compte, en une minute.
-    </p>
+    LA PAGE EST CELLE DU DOMAINE, PAS DU SITE (juge V7, 01/10/2026). `sans_chrome`
+    retire le bandeau et le pied du Bureau du Vigneron (src/_includes/base.njk) :
+    un caviste qui ouvre le lien de son fournisseur voit le nom du domaine et le
+    numero du devis, un resume lisible en 16 px, et un seul geste, « Signer ce
+    devis », colle en bas tant que le formulaire n'est pas a l'ecran. En bas,
+    seulement les mentions legales et la politique de confidentialite. -#}
+
+<header style="background:var(--paper-light); border-bottom:1px solid var(--rule);">
+  <div class="container" style="max-width:52rem; padding-top:1rem; padding-bottom:1rem;">
+    <p id="sigVendeur" style="margin:0; font-weight:600; font-size:1.15rem; overflow-wrap:anywhere;">Signature d’un devis</p>
+    <p id="sigNumero" style="margin:0; color:var(--muted);"></p>
   </div>
-</section>
+</header>
 
-<section class="section">
+<main class="section" style="padding-top:1.5rem;">
   <div class="container" style="max-width:52rem;">
+
+    <h1 id="sigTitre" style="font-size:1.6rem; margin:0 0 .75rem 0;">Signer un devis</h1>
 
     <p id="sigAttente" role="status">Chargement du devis…</p>
 
     <div id="sigFin" hidden>
       <h2 id="sigFinT"></h2>
       <p id="sigFinP"></p>
+      <p id="sigFinC" hidden style="display:flex; flex-wrap:wrap; gap:0 1.5rem; margin:0;"></p>
     </div>
 
     <div id="sigDevis" hidden>
-      <p id="sigIntro"></p>
+      <p id="sigIntro" style="font-size:1rem;"></p>
+
+      <section id="sigResume" aria-label="Le devis en bref"
+               style="font-size:1rem; line-height:1.5; border:1px solid var(--rule); background:var(--paper-light); padding:.75rem 1rem; margin:0 0 1rem 0;">
+        <p id="sigResClient" style="margin:0 0 .35rem 0; overflow-wrap:anywhere;"></p>
+        <p id="sigResTotal" style="margin:0 0 .35rem 0; font-weight:600;"></p>
+        <p id="sigResValid" style="margin:0 0 .35rem 0;"></p>
+        <p id="sigResVins" style="margin:0;" hidden></p>
+        <ul id="sigResListe" style="margin:.25rem 0 0 0; padding-left:1.25rem; overflow-wrap:anywhere;" hidden></ul>
+      </section>
+
+      <h2 style="font-size:1.2rem; margin:0 0 .5rem 0;">Le devis complet</h2>
       <p style="margin:0 0 .5rem 0;">
         <button type="button" class="btn" id="sigImprimer"
-                style="background:transparent; color:var(--bordeaux); border:1px solid var(--bordeaux);">Imprimer le devis</button>
+                style="background:transparent; color:var(--bordeaux); border:1px solid var(--bordeaux); min-height:44px;">Imprimer le devis</button>
       </p>
       <div id="sigFeuilleW" style="overflow:hidden; border:1px solid var(--rule); background:var(--white); margin:0 0 .5rem 0;"></div>
       <p style="font-size:.85rem; color:var(--muted); margin:0;">Pour le lire en grand, appuyez sur « Imprimer le devis » et enregistrez-le en PDF.</p>
       <p id="sigEmpreinte" style="font-size:.85rem; color:var(--muted); margin:0 0 1.5rem 0;"></p>
+
+      {#- LA BARRE « SIGNER CE DEVIS » EST POSEE APRES LA FEUILLE, JUSTE AVANT LE FORMULAIRE (N5,
+          02/10/2026). Un collant `bottom:0` ne retient que ce qui est plus BAS que l'ecran : pose
+          sous le resume, il partait vers le haut des qu'on lisait. Ici il reste colle en bas tant
+          que le formulaire n'est pas a l'ecran, et bdv-signer.js l'efface (visibility, pour que
+          rien ne saute) quand le formulaire arrive. Sa marge basse NEGATIVE, egale a sa hauteur
+          (44 px de bouton, deux demi-rem de retrait, le filet), lui retire sa place dans la page :
+          « Votre accord » suit l'empreinte sans un trou de la taille de la barre (W2). Elle s'efface
+          des que le haut du formulaire paraît (seuil 0), donc elle ne le couvre pas. -#}
+      <p id="sigAller" style="position:sticky; bottom:0; margin:0 0 calc(-1 * (44px + 1rem + 1px)) 0; padding:.5rem 0; background:var(--paper); border-top:1px solid var(--rule);">
+        <button type="button" class="btn btn--bordeaux" id="sigAllerB" style="width:100%; min-height:44px;">Signer ce devis</button>
+      </p>
 
       <form id="sigForm" novalidate hidden>
         <h2 style="margin-top:0;">Votre accord</h2>
         <p style="font-size:.95rem;">Ce lien est réservé aux clients professionnels : vous signez au nom de
           <b id="sigAuNomDe"></b>.</p>
         <p style="margin:0 0 1rem 0;">
-          <label for="sigNom" style="display:block; font-weight:600; margin-bottom:.25rem;">Votre nom et prénom</label>
-          <input id="sigNom" name="nom" type="text" autocomplete="name" maxlength="120" required
+          <label for="sigNom" style="display:block; font-weight:600; margin-bottom:.25rem;">Votre nom et prénom (obligatoire)</label>
+          <input id="sigNom" name="nom" type="text" autocomplete="name" maxlength="120" required aria-required="true"
                  style="width:100%; max-width:26rem; min-height:44px; font-size:16px; padding:.5rem;">
         </p>
         <p style="margin:0 0 1rem 0;">
-          <label for="sigQualite" style="display:block; font-weight:600; margin-bottom:.25rem;">Votre fonction</label>
-          <input id="sigQualite" name="qualite" type="text" autocomplete="organization-title" maxlength="120" required
+          <label for="sigQualite" style="display:block; font-weight:600; margin-bottom:.25rem;">Votre fonction (obligatoire)</label>
+          <input id="sigQualite" name="qualite" type="text" autocomplete="organization-title" maxlength="120" required aria-required="true"
                  placeholder="Gérant, acheteur, responsable de cave…"
                  style="width:100%; max-width:26rem; min-height:44px; font-size:16px; padding:.5rem;">
         </p>
@@ -71,7 +103,7 @@ noindex: true
           </label>
         </p>
         <p id="sigErreur" role="alert" hidden style="font-weight:600; color:var(--danger-deep);"></p>
-        <p style="margin:0 0 1rem 0;"><button type="submit" class="btn btn--bordeaux" id="sigSigner">Je signe le devis</button></p>
+        <p style="margin:0 0 1rem 0;"><button type="submit" class="btn btn--bordeaux" id="sigSigner" style="min-height:44px;">Je signe le devis</button></p>
         <p style="font-size:.85rem; color:var(--muted);">
           En signant, nous enregistrons votre nom, votre fonction, la date et l’heure de la signature,
           l’empreinte numérique du devis signé, ainsi que l’adresse IP et le navigateur utilisés. Ces
@@ -82,9 +114,14 @@ noindex: true
         </p>
       </form>
     </div>
-
-    <p style="margin-top:2rem;"><a href="/">Le Bureau du Vigneron</a></p>
   </div>
-</section>
+</main>
+
+<footer style="border-top:1px solid var(--rule); padding:.5rem 0 1rem 0;">
+  <div class="container" style="max-width:52rem; display:flex; flex-wrap:wrap; gap:0 1.5rem; font-size:.9rem;">
+    <a href="/mentions-legales/" style="display:inline-flex; align-items:center; min-height:44px;">Mentions légales</a>
+    <a href="/politique-confidentialite/" style="display:inline-flex; align-items:center; min-height:44px;">Politique de confidentialité</a>
+  </div>
+</footer>
 
 <script src="/js/bdv-signer.js" defer></script>

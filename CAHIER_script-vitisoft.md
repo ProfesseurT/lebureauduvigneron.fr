@@ -81,7 +81,7 @@ porter ces numéros de colonne. **Confirmée par Ted le 01/10/2026** (lot 49, qu
 | 2 | date_heure_commande | `AAAA-MM-JJ HH:MM:SS`. |
 | 3 | référence_commande_client | Le numéro du devis (D-AAAA-NNNN), celui qu'on retrouvera en 44e colonne : il mène à l'affaire. |
 | 4 | numéro_client | Vide pour un nouveau client : Vitisoft le crée. |
-| 5 | adresse_email | Toujours renseignée. |
+| 5 | adresse_email | Renseignée si le bureau la connaît. Elle peut partir vide : un nouveau client sans e-mail, ou un client existant reconnu par son numéro seul (constaté le 01/10/2026, voir plus bas). |
 | 6 | société_facturation | Raison sociale du client pro. |
 | 7 | nom_facturation | Obligatoire pour un nouveau client. |
 | 8 | prénom_facturation | |
@@ -96,7 +96,7 @@ porter ces numéros de colonne. **Confirmée par Ted le 01/10/2026** (lot 49, qu
 | 17 | code_tarif | Le code tarif choisi pour le client. |
 | 18 | commentaire | « Devis D-AAAA-NNNN accepté le JJ/MM/AAAA ». |
 | 19 | numéro_ligne | |
-| 20 | numéro_produit | |
+| 20 | numéro_produit | Recopié tel quel. Un code qui porte un `;`, un guillemet, une tabulation ou un retour à la ligne n'est PAS changé : le devis refuse d'en faire un fichier et le dit en nommant le vin (01/10/2026). |
 | 21 | désignation | |
 | 22 | quantité | |
 | 23 | prix_unitaire | **Le prix signé par le client**, remise déduite. |
@@ -130,6 +130,12 @@ met le port à 0 % ; Vitisoft appliquera le taux de ce produit de transport. Et 
 `0`, un code TVA à 0 % doit exister dans Vitisoft (la doc dit que le code « doit exister »). Le fichier respectera les règles de la doc (point-virgule, point
 décimal, UTF-8, CR+LF, aucun guillemet) et sera contrôlé avec le vérificateur de la section 13 de
 la doc avant chaque livraison.
+
+**Une question à trancher par Ted (01/10/2026), la colonne 5 :** le bureau accepte aujourd'hui un nouveau
+client sans e-mail, et un client existant qui n'a que son numéro Vitisoft. Soit la colonne 5 reste
+« si connue » (c'est ce qui est écrit ci-dessus depuis ce jour), soit le bureau exige l'e-mail d'un
+nouveau client avant d'accepter le devis. Le second demande de changer `manques()` dans
+`src/js/bdv-commande.js` ET `devis_obstacle()` en base, ensemble.
 
 **Une question :** avec un `prix_unitaire` renseigné, Vitisoft facture-t-il bien ce prix, ou
 réapplique-t-il le tarif du client ? Le bureau a besoin que le prix signé soit celui facturé.

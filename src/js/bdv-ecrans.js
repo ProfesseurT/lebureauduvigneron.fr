@@ -658,12 +658,16 @@ function classementAuJuge(){
   if(baseVide()) return false;
   return !(typeof REG !== 'undefined' && REG && REG.valide);
 }
+function ecranEtroit(){ try{ return !!(window.matchMedia && matchMedia('(max-width:700px)').matches); }catch(e){ return false; } }
 function majNoteClassement(){
   const n = el('noteClassement'); if(!n) return;
   if(!classementAuJuge()){ n.innerHTML = ''; return; }
+  /* V16 (tour 2) : sous 700 px le bandeau tient en deux lignes, son titre puis son bouton ;
+     l'explication se deplie (« Pourquoi »). Ouverte d'office sur un ecran large. */
   n.innerHTML = signal('info','ℹ','Ces chiffres sont calculés au jugé.',
-    'Ton classement n\'est pas validé : les familles hors chiffre d\'affaires et les canaux de vente sont devinés sur leur nom, et ton compte ne peut rien calculer, donc tout se refait sur cet appareil à chaque ouverture. C\'est à régler une fois. '
-    + '<button class="btn btn--sm btn--ghost" onclick="bdvReglerClassement()" style="display:flex;width:max-content;margin-top:.5rem">Régler mon classement</button>');
+    '<span class="juge"><details class="juge__pourquoi"' + (ecranEtroit() ? '' : ' open') + '><summary>Pourquoi ?</summary>'
+    + 'Ton classement n\'est pas validé : les familles hors chiffre d\'affaires et les canaux de vente sont devinés sur leur nom, et ton compte ne peut rien calculer, donc tout se refait sur cet appareil à chaque ouverture. C\'est à régler une fois.</details> '
+    + '<button class="btn btn--sm btn--ghost juge__regler" onclick="bdvReglerClassement()">Régler mon classement</button></span>');
 }
 window.bdvMajNoteClassement = majNoteClassement;
 /* LE SEUL POINT D'ENTREE DES REGLAGES RESTE `BdvNav.ouvrirReglages()`, regle du
@@ -1454,7 +1458,8 @@ function titreVariation(br, f){
 /* LE RENVOI DE « CLIENTS A SUIVRE », une ligne et un lien, aucun chiffre : le chiffre est
    dans Mon cap, et un deuxieme endroit qui le dirait finirait par en dire un autre. */
 function renvoiVariation(){
-  return `<p class="note renvoi-cap">D'où vient ta variation d'un an sur l'autre : c'est dans <b>Mon cap</b>, « Ce qui explique ta variation ». <a href="/mon-bureau/#annee" onclick="voirVariation();return false">Voir dans Mon cap</a></p>`;
+  /* V16 (tour 2) : sous 700 px la phrase tient en une ligne (« renvoi-cap__long » se tait). */
+  return `<p class="note renvoi-cap"><span class="renvoi-cap__long">D'où vient ta variation d'un an sur l'autre : c'est dans <b>Mon cap</b>, « Ce qui explique ta variation ». </span><span class="renvoi-cap__court">D’où vient ta variation : </span><a href="/mon-bureau/#annee" onclick="voirVariation();return false">Voir dans Mon cap</a></p>`;
 }
 /* « VOIR DANS MON CAP » : ouvre la piece, ouvre #pied-cap (son `toggle` y dessine la
    tendance) et fait defiler jusqu'a lui.
@@ -4404,14 +4409,20 @@ function renderClients(){
   const nb=m=>parMotif(m).length, som=m=>sum(parMotif(m),c=>c.montant);
   /* Les lignes « perdus » et « en baisse » vivent dans Mon cap depuis le lot 45 : le
      renvoi en tete de piece y mene. */
+  /* V16 (tour 2) : sous 700 px, l'explication et la note de l'export se replient sous un
+     seul « A savoir » (ouvert d'office sur un ecran large) ; la note « deja dans une
+     affaire » reste dehors, en petit (regle du lot 45). Le premier client remonte ainsi
+     dans le premier ecran du telephone. */
   html+=`<div class="section-label">Qui rappeler</div>`
+    +`<details class="suivre__apropos"${ecranEtroit()?'':' open'}><summary>${N_AFF>0?'À savoir : '+(N_AFF>1?fmtNum(N_AFF)+' clients déjà dans une affaire':'1 client déjà dans une affaire'):'À savoir sur cette liste'}</summary>`
     +`<div class="panel__sub">Chaque client n'apparaît qu'une fois, avec sa raison la plus sûre. Commence par le haut : c'est là qu'il y a le plus d'argent.</div>`
     +(exportFrais()?'':`<p class="note">« Deuxième achat à jouer » et « Sa saison arrive » attendent un export de moins de trois semaines : ta dernière vente connue date du ${fmtDate(META.max)}. Dépose ton dernier export pour les voir.</p>`)
-    +noteEnAffaire(N_AFF);
+    +noteEnAffaire(N_AFF)
+    +`</details>`;
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
   html+=`<div class="motif-cards">${['recul','cadence','deuxieme','saison','premier'].filter(m=>['recul','cadence','premier'].indexOf(m)>=0||nb(m)>0).map(m=>`
-    <button class="motif-card${filtreMotif===m?' on':''}" onclick="setMotif('${m}')" aria-pressed="${filtreMotif===m}">
+    <button class="motif-card${filtreMotif===m?' on':''}${nb(m)?'':' motif-card--zero'}" onclick="setMotif('${m}')" aria-pressed="${filtreMotif===m}">
       <span class="motif-card__n">${fmtNum(nb(m))}</span>
       <span class="motif-card__l">${MOTIFS[m].label}</span>
       <span class="motif-card__s">${fmtMoney(som(m))} <span class="muted-cell">${natureAccordee(som(m),m==='recul'?'perdus à date égale':(m==='cadence'?'achetés par eux au total':(m==='saison'?'commandés l\'an dernier sur les semaines qui viennent':'de premiers achats')))}</span></span>
@@ -4435,7 +4446,7 @@ function renderClients(){
       <td>${contactCell(c.id)}</td>
       <td><span class="motif ${MOTIFS[c.motif].cls}">${MOTIFS[c.motif].label}</span></td>
       <td class="num">${fmtMoney(c.montant)}<span class="why">${natureAccordee(c.montant,c.lib)}</span></td>
-      <td class="num">${c.chance!=null?fmtNum(c.chance*100,0)+' %':'<span class="muted-cell">n/d</span>'}</td>
+      <td class="num">${c.chance!=null?fmtNum(c.chance*100,0)+' %':'<span class="hors-ecran">pas mesurée</span>'}</td>
       <td>${s.statut&&STATUTS_SUIVI[s.statut]?`<span class="motif ${STATUTS_SUIVI[s.statut].cls}">${STATUTS_SUIVI[s.statut].label}</span>`:'<span class="muted-cell">-</span>'}</td>
       <td>${s.rappel?rappelCell(s.rappel):'<span class="muted-cell">-</span>'}</td>
       <td>${(s.tags&&s.tags.length)?s.tags.map(esc).join(', '):'<span class="muted-cell">-</span>'}</td>

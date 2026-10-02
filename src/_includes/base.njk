@@ -220,9 +220,16 @@
     `.bdv-coque` suffit, le `<link>` partant avec le meme `{% raw %}{% if %}{% endraw %}`.
 
     PAS `.bdv-poste`, qui depend de l'etat de session : le bureau deconnecte le
-    perd, et sa porte doit suivre le meme dessin que le reste. -#}
-<body{% if theme_bureau %} class="bdv-coque"{% endif %}>
+    perd, et sa porte doit suivre le meme dessin que le reste.
 
+    `sans_chrome` (01/10/2026, juge V7) : une page qui n'est pas DU site mais POUR le
+    client d'un vigneron (/signer/) ne porte ni le bandeau ni le pied du site. Le
+    caviste qui ouvre un lien de son fournisseur tombait sur « Créer mon compte » et
+    « 2 000 vignerons qu'on a visites » : ca sentait la pub. Les deux `if` sont poses
+    sur des lignes qui etaient VIDES, et le pied dans sa propre ligne : sans le drapeau,
+    chaque page sort a l'octet pres comme avant. -#}
+<body{% if theme_bureau %} class="bdv-coque"{% endif %}>
+{% if not sans_chrome %}
   <nav class="nav">
     <div class="nav__inner">
       <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
@@ -289,10 +296,10 @@
     window.bdvMajBandeau();
     document.addEventListener('bdv:session', window.bdvMajBandeau);
   </script>
-
+{% endif %}
   {{ content | safe }}
 
-  {% include "components/footer-rich.njk" %}
+  {% if not sans_chrome %}{% include "components/footer-rich.njk" %}{% endif %}
 
 
 </body>

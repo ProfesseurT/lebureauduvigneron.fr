@@ -106,6 +106,9 @@ dit(w.document.getElementById('calFiltre').innerHTML.indexOf('Mes affaires') >= 
 const bouton = w.document.querySelector('[data-cal-affaire="a1"]');
 if (bouton) bouton.click();
 dit(ouvert === 1, 'un clic ouvre la piece « Mes affaires »', ouvert);
+/* M8 (01/10/2026) : et elle ouvre CETTE affaire, pas seulement la piece. */
+dit(w.sessionStorage.getItem('bdv_affaire_ouvrir') === 'a1', 'M8 : le clic demande l\'affaire a1 a la piece', w.sessionStorage.getItem('bdv_affaire_ouvrir'));
+w.sessionStorage.removeItem('bdv_affaire_ouvrir');
 
 console.log('\n== 2. La vue liste ==');
 w.BdvCalendrier.allerA('liste');
@@ -124,6 +127,11 @@ dit(ia >= 0, 'l\'affaire datee est dans la liste de « Mes taches »');
 dit(t.filter(x => x.source === 'affaire').length === 1, 'et elle seule : ni la sans-date, ni la gagnee');
 dit(ic >= 0 && ic < ia, 'A DATE EGALE, LE CLIENT QUI ATTEND PASSE AVANT L\'AFFAIRE', ic + ' / ' + ia);
 dit(w.BdvTaches.modale('affaire:a1') === false, 'elle n\'ouvre pas la modale d\'une tache : elle avance dans sa piece');
+{ const zt = w.document.createElement('div'); zt.id = 'banc-taches-m8'; w.document.body.appendChild(zt);
+  const n = w.document.createElement('button'); n.setAttribute('data-tache-affaire', 'a1'); zt.appendChild(n);
+  const avant = ouvert; n.click();
+  dit(ouvert === avant + 1 && w.sessionStorage.getItem('bdv_affaire_ouvrir') === 'a1', 'M8 : dans « Mes taches », le clic ouvre CETTE affaire', w.sessionStorage.getItem('bdv_affaire_ouvrir'));
+  w.sessionStorage.removeItem('bdv_affaire_ouvrir'); zt.remove(); }
 const pun = w.BdvTaches.punaises().map(p => p.cle).join(',');
 dit(pun.indexOf('affaire:') < 0, 'PAS DE PUNAISE DE TACHE pour une affaire : elle a la sienne', pun);
 w.BdvTaches.basculerFamille('affaires');
@@ -136,6 +144,25 @@ await new Promise(r => setTimeout(r, 120));
 dit(!w.localStorage.getItem('bdv_taches_attente'),
   'AFFICHER DES AFFAIRES N\'ECRIT RIEN DANS LA TABLE DES TACHES',
   w.localStorage.getItem('bdv_taches_attente'));
+
+console.log('\n== 5. N4 (tour 2) : une personne en opposition ne se rappelle pas ==');
+/* Le chemin de LECTURE de la journee : la colonne `opposition` doit etre demandee. Le faux
+   serveur ne la rend que si la requete la nomme, comme PostgREST. */
+w.BdvCompte.api = (chemin) => {
+  if (/^\/affaires\?/.test(chemin)) return Promise.resolve(/offset=0/.test(chemin) ? [
+    { affaire_id: 'a1', piste_id: 'p1', titre: 'Cave du Quai', rappel: jour(2), type_id: 't', etape_le: new Date().toISOString() },
+    { affaire_id: 'a4', piste_id: 'p4', titre: 'Bistrot des Halles', rappel: jour(-3), type_id: 't', etape_le: new Date().toISOString() }] : []);
+  if (/^\/pistes\?/.test(chemin)) {
+    const sel = (/select=([^&]*)/.exec(chemin) || [])[1] || '';
+    return Promise.resolve([{ piste_id: 'p1', nom: 'Cave du Quai' }, Object.assign({ piste_id: 'p4', nom: 'Bistrot des Halles' },
+      /opposition/.test(sel) ? { opposition: true } : {})]);
+  }
+  return Promise.resolve([]);
+};
+await w.BdvAffairesJour.charger();
+dit(w.BdvAffairesJour.datees().every(d => d.affaire_id !== 'a4'), 'son affaire n\'est ni dans le calendrier ni dans « Mes taches »');
+dit((w.BdvAffairesJour.aRelancer() || []).every(a => a.affaire_id !== 'a4'), 'ni « a relancer » (bilan et punaise)');
+dit(JSON.stringify(w.BdvAffairesJour.punaises()).indexOf('Bistrot') < 0, 'ni dans la punaise de Ma journee');
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');

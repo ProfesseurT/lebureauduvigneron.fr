@@ -1358,7 +1358,8 @@
     var ta = e.target.closest && e.target.closest('[data-tache-affaire]');
     if (ta) {
       e.preventDefault();
-      if (window.BdvAffairesJour && BdvAffairesJour.ouvrirPiece) BdvAffairesJour.ouvrirPiece();
+      /* M8 : l'identifiant de l'affaire suit, la piece ouvre CETTE affaire. */
+        if (window.BdvAffairesJour && BdvAffairesJour.ouvrirPiece) BdvAffairesJour.ouvrirPiece(ta.getAttribute('data-tache-affaire'));
       return;
     }
     var cl = e.target.closest && e.target.closest('[data-tache-client]');

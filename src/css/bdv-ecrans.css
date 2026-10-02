@@ -505,6 +505,15 @@
 .bdv-ventes .btn__bientot{font-weight:400;text-transform:none;letter-spacing:0;color:var(--bdv-encre-4)}
 .bdv-ventes .fiche__bientot{margin:0;font-size:var(--bdv-f-2);line-height:1.5;color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__bientot:not(:empty){margin-top:var(--bdv-e-2)}
+/* 01/10/2026 (juge V18). En tiroir, le coin (fleche et croix) colle en haut de la boite qui
+   defile : la phrase ramenee par `scrollIntoView` se posait SOUS lui, deux icones sur le
+   texte. `scroll-margin-top` la pose sous le coin, dans les trois contenants. */
+/* TOUR 2 (02/10/2026) : le coin colle sous la marge haute du tiroir, et « Cave du Vieux
+   Pressoir » passait encore sous la fleche et la croix. La marge couvre DEUX hauteurs de
+   cible, et la phrase garde a droite la largeur du coin, comme l'en-tete de la fiche :
+   elle ne passe sous lui a aucune position de defilement. */
+.bdv-ventes .fiche__bientot{scroll-margin-top:calc(var(--bdv-cible) * 2)}
+.bdv-ventes .modale__box:has(.fiche__coin) .fiche__bientot:not(:empty){padding-right:calc(var(--bdv-cible) * 2 + var(--bdv-e-6))}
 /* Les affaires en cours du client (lot 35) : une ligne de contexte sous les actions. */
 .bdv-ventes .fiche__affaires{margin:var(--bdv-e-3) 0 0;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__affaires a{color:var(--bdv-accent);font-weight:600}
@@ -594,6 +603,22 @@
 .bdv-ventes .motif-card__n{font-size:var(--bdv-f-6);line-height:1;color:var(--bdv-encre-1)}
 .bdv-ventes .motif-card__l{font-weight:600;font-size:var(--bdv-f-3);color:var(--bdv-encre-1)}
 .bdv-ventes .motif-card__s{font-size:var(--bdv-f-2);color:var(--bdv-encre-4)}
+/* UNE CARTE A ZERO S'EFFACE, 01/10/2026 (juge V16). « Retard de cadence 0 » avait le poids
+   de « Recul confirme 1 ». Encre et filet en retrait, et sa ligne de montant (« 0 € ... »)
+   s'en va : elle ne dit rien. Le chiffre zero reste, c'est lui l'information. Pas sur la
+   carte choisie (`.on`), qui garde son lavis : on doit voir ce qu'on a choisi. */
+.bdv-ventes .motif-card--zero:not(.on){background:transparent;border-color:var(--bdv-trait);border-top-color:var(--bdv-trait)}
+.bdv-ventes .motif-card--zero:not(.on) .motif-card__n,
+.bdv-ventes .motif-card--zero:not(.on) .motif-card__l{color:var(--bdv-encre-3);font-weight:500}
+.bdv-ventes .motif-card--zero .motif-card__s{display:none}
+/* SUR TELEPHONE, DEUX CARTES PAR RANGEE (juge V16). Quatre cartes empilees faisaient
+   440 px avant le premier client. Deux colonnes, le chiffre a la taille d'un titre : les
+   quatre tiennent en deux rangees, et la cible reste au-dessus de 44 px. */
+@media (max-width:700px){
+  .bdv-ventes .motif-cards{grid-template-columns:1fr 1fr;gap:var(--bdv-e-2);margin:var(--bdv-e-3) 0 var(--bdv-e-4)}
+  .bdv-ventes .motif-card{padding:var(--bdv-e-2) var(--bdv-e-3);min-height:var(--bdv-cible)}
+  .bdv-ventes .motif-card__n{font-size:var(--bdv-f-5)}
+}
 .bdv-ventes .motif{font-family:inherit;font-size:var(--bdv-f-2);letter-spacing:var(--bdv-ls-etiq);text-transform:uppercase;
   padding:var(--bdv-e-1) var(--bdv-e-2);border-radius:var(--bdv-r);white-space:nowrap;display:inline-block}
 .bdv-ventes .m-recul{background:var(--bdv-retard-lavis);color:var(--bdv-retard)}
@@ -1084,3 +1109,51 @@
   background-color:var(--bdv-surface-2)
 }
 .bdv-ventes .signal .signal__action a{text-decoration:none;font-weight:600}
+
+/* ==========================================================================
+   TOUR 2 (02/10/2026, devE) : « CLIENTS A SUIVRE » A 390 px (V16).
+   Le premier client arrivait en bas du deuxieme ecran du telephone. Le bandeau « au
+   juge » tient en deux lignes (titre, bouton) et son explication se deplie ; l'aide de la
+   liste se replie sous « A savoir » ; le renvoi vers Mon cap et la note « deja dans une
+   affaire » restent (regle du lot 45), en petit ; les cartes perdent leur sous-ligne.
+   ========================================================================== */
+.bdv-ventes .juge{display:flex;flex-direction:column;align-items:flex-start;gap:var(--bdv-e-2)}
+.bdv-ventes .juge__pourquoi>summary{cursor:pointer;color:var(--bdv-encre-2)}
+.bdv-ventes .juge__pourquoi[open]>summary{margin-bottom:var(--bdv-e-1)}
+.bdv-ventes .juge__regler{order:2}
+.bdv-ventes .suivre__apropos{margin:0 0 var(--bdv-e-2)}
+.bdv-ventes .suivre__apropos>summary{cursor:pointer;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
+.bdv-ventes .renvoi-cap__court{display:none}
+@media (max-width:700px){
+  .bdv-ventes #noteClassement .signal{padding:var(--bdv-e-2) var(--bdv-e-3);margin-bottom:var(--bdv-e-2)}
+  .bdv-ventes .juge{flex-direction:row;flex-wrap:wrap;align-items:center}
+  .bdv-ventes .juge__pourquoi{order:3;flex:1 1 100%}
+  .bdv-ventes .juge__regler{order:1}
+  .bdv-ventes .juge__pourquoi>summary,
+  .bdv-ventes .suivre__apropos>summary{min-height:var(--bdv-cible);display:flex;align-items:center}
+  .bdv-ventes .juge__pourquoi:not([open]){order:2;flex:0 1 auto}
+  .bdv-ventes #p-clients .renvoi-cap,
+  .bdv-ventes #p-clients .note-affaire{font-size:var(--bdv-f-1);margin:var(--bdv-e-1) 0}
+  .bdv-ventes #p-clients .note-affaire .btn{display:inline-flex;align-items:center}
+  .bdv-ventes #p-clients .motif-card__s{display:none}
+  .bdv-ventes #p-clients .toolbar .card__title{display:none}
+  .bdv-ventes #p-clients .section-label{display:none}
+  .bdv-ventes #p-clients .renvoi-cap__long{display:none}
+  .bdv-ventes #p-clients .renvoi-cap__court{display:inline}
+  .bdv-ventes #noteClassement .signal{margin-top:0}
+  /* Les quatre cartes sur UNE rangee : le chiffre et le mot, la sous-ligne part. */
+  .bdv-ventes #p-clients .motif-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--bdv-e-1);margin:var(--bdv-e-2) 0 var(--bdv-e-3)}
+  .bdv-ventes #p-clients .motif-card{padding:var(--bdv-e-1) var(--bdv-e-2);gap:0}
+  .bdv-ventes #p-clients .motif-card__l{font-size:var(--bdv-f-1);line-height:1.2}
+  .bdv-ventes #p-clients .card{padding:var(--bdv-e-3)}
+  /* Le filtre et « Exporter la liste » partagent la premiere rangee, la case dessous. */
+  .bdv-ventes #p-clients .toolbar{margin-bottom:var(--bdv-e-2)}
+  .bdv-ventes #p-clients .toolbar .search{flex:1 1 9rem;width:auto;order:0}
+  .bdv-ventes #p-clients .toolbar .btn{order:1}
+  .bdv-ventes #p-clients .toolbar .chk{order:2}
+  .bdv-ventes #p-clients .toolbar .muted-cell{order:3}
+  /* La barre du fichier : les trois boutons sur une rangee, le texte se replie dedans. */
+  .bdv-ventes .topbar{gap:var(--bdv-e-2);padding:var(--bdv-e-2) var(--bdv-e-3)}
+  .bdv-ventes .topbar__actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+  .bdv-ventes .topbar__actions .btn{white-space:normal;padding-left:var(--bdv-e-1);padding-right:var(--bdv-e-1);line-height:1.2}
+}

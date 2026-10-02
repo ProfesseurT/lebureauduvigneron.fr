@@ -1131,7 +1131,8 @@
       var ca = e.target.closest && e.target.closest('[data-cal-affaire]');
       if (ca) {
         e.preventDefault();
-        if (window.BdvAffairesJour && BdvAffairesJour.ouvrirPiece) BdvAffairesJour.ouvrirPiece();
+        /* M8 : l'identifiant de l'affaire suit, la piece ouvre CETTE affaire. */
+        if (window.BdvAffairesJour && BdvAffairesJour.ouvrirPiece) BdvAffairesJour.ouvrirPiece(ca.getAttribute('data-cal-affaire'));
         return;
       }
       var cl = e.target.closest && e.target.closest('[data-cal-client]');

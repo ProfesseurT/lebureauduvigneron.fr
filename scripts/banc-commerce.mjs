@@ -112,6 +112,7 @@ try {
 
 const h = w.__SORTIE.com;
 let ko = 0;
+const SRCE = fs.readFileSync(path.join(RACINE, 'src/js/bdv-ecrans.js'), 'utf8');
 const t = (nom, ok, det) => { if(!ok) ko++; console.log((ok?'  ok    : ':'  ECHEC : ')+nom+(ok||!det?'':'  -> '+det)); };
 
 console.log('== Mon commerce : la piece ==');
@@ -281,6 +282,19 @@ console.log('== lot 45 : un client, une fois ==');
   t('la note : « 2 clients a suivre sont deja dans une affaire... »',
     !!nt && /^2 clients à suivre sont déjà dans une affaire : tu les retrouves dans « À gagner », avec leur raison\./.test(nt.textContent), nt && nt.textContent);
   t('sous « Qui rappeler », avant les cartes', h.length > 0 && (() => { const x = d.getElementById('p-clients').innerHTML; return x.indexOf('Qui rappeler') < x.indexOf('note-affaire') && x.indexOf('note-affaire') < x.indexOf('motif-cards'); })());
+  /* V16 (tour 2) : a 390 px le premier client doit tenir dans le premier ecran. L'aide, la
+     note de l'export et la note « deja dans une affaire » vivent dans UN repli dont le titre
+     dit l'essentiel ; le renvoi vers Mon cap a sa forme courte ; les cartes tiennent en une
+     rangee. Mesure du tour 2 : premier client a 1 513 px avant, 728 px apres (ecran 844). */
+  { const rep = d.querySelector('#p-clients details.suivre__apropos');
+    t('V16 : la note « deja dans une affaire » est dans le repli « A savoir », dont le titre le dit',
+      !!rep && rep.contains(nt) && /^À savoir : 2 clients déjà dans une affaire$/.test(rep.querySelector('summary').textContent), rep && rep.querySelector('summary').textContent);
+    const cssV = fs.readFileSync(path.join(RACINE, 'src/css/bdv-ecrans.css'), 'utf8').split('TOUR 2 (02/10/2026, devE)')[1] || '';
+    t('V16 : sous 700 px, le renvoi court, les cartes sur une rangee, sans sous-ligne',
+      /#p-clients \.renvoi-cap__long\{display:none\}/.test(cssV) && /#p-clients \.motif-cards\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/.test(cssV)
+      && /#p-clients \.motif-card__s\{display:none\}/.test(cssV) && !!d.querySelector('#p-clients .renvoi-cap .renvoi-cap__court'));
+    t('V16 : le bandeau « au juge » replie son explication, le bouton reste dehors',
+      /details class="juge__pourquoi"/.test(SRCE) && /juge__regler/.test(SRCE)); }
   const b = nt && nt.querySelector('button');
   t('avec le bouton « Les voir dans À gagner »', !!b && b.textContent === 'Les voir dans À gagner' && /voirEnAffaires\(\)/.test(b.getAttribute('onclick') || ''));
   const vu = []; w.BdvNav = { afficher: (id, o) => vu.push(id + ':' + ((o || {}).onglet || '')) };
@@ -366,6 +380,32 @@ console.log('== lot 45 : la nature s\'accorde avec le montant ==');
   t('une nature qui n\'est pas un participe ne bouge pas', w.natureAccordee(500, 'premier achat récent') === 'premier achat récent');
   t('c.lib reste brut pour le courrier et Ma journee (fileSignaux)',
     w.fileSignaux().some(c => c.lib === 'acheté au total'), w.fileSignaux().map(c => c.lib).join('|'));
+}
+
+/* ---------------------------------------------------------------------------
+   01/10/2026, JUGE V16 : UNE CARTE A ZERO S'EFFACE, « n/d » QUITTE L'ECRAN, ET SUR
+   TELEPHONE LES CARTES VONT PAR DEUX.
+   --------------------------------------------------------------------------- */
+console.log('== 01/10/2026 : cartes a zero, « n/d », cartes par deux sur telephone ==');
+{
+  const d = w.document;
+  w.__filtre('tous'); w.renderClients();
+  const cartes = [...d.querySelectorAll('#p-clients .motif-card')];
+  const n = (c) => +c.querySelector('.motif-card__n').textContent.replace(/\D/g, '');
+  const zeros = cartes.filter(c => n(c) === 0), pleines = cartes.filter(c => n(c) > 0);
+  t('le decor a des cartes a zero ET des cartes pleines', zeros.length > 0 && pleines.length > 0, zeros.length + '/' + pleines.length);
+  t('chaque carte a zero porte motif-card--zero', zeros.every(c => c.classList.contains('motif-card--zero')));
+  t('aucune carte pleine ne la porte (ni « Tous »)', pleines.every(c => !c.classList.contains('motif-card--zero')));
+  const txt = d.getElementById('p-clients').textContent;
+  t('« n/d » n\'est plus nulle part dans la piece', !/n\/d/.test(txt));
+  const sansChance = [...d.querySelectorAll('#clientsBody tr')].map(r => r.querySelectorAll('td')[4]).filter(td => td && !/%/.test(td.textContent));
+  t('une chance non mesuree laisse la case vide a l\'oeil, dite a la synthese vocale',
+    sansChance.length > 0 && sansChance.every(td => td.querySelector('.hors-ecran') && td.querySelector('.hors-ecran').textContent === 'pas mesurée'), sansChance.length);
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-ecrans.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  t('la carte a zero est en retrait (encre --bdv-encre-3) et perd sa ligne de montant',
+    /\.motif-card--zero:not\(\.on\) \.motif-card__l\{color:var\(--bdv-encre-3\)/.test(css) && /\.motif-card--zero \.motif-card__s\{display:none\}/.test(css));
+  t('sous 700 px, deux cartes par rangee, cible de 44 px',
+    /@media \(max-width:700px\)\{\s*\.bdv-ventes \.motif-cards\{grid-template-columns:1fr 1fr;[^}]*\}\s*\.bdv-ventes \.motif-card\{[^}]*min-height:var\(--bdv-cible\)/.test(css));
 }
 
 console.log('\n== VERDICT ==\n  ' + (ko ? ko + ' echec(s)' : 'tous les controles passes, 0 en echec'));

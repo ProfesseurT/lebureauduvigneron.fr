@@ -319,6 +319,79 @@ console.log('\n== 4. Vider la base efface le miroir de la file, et repeint Ma jo
   dit(lire('bdv-crm.js').indexOf('function oublier') > 0, 'et oublier() vit bien dans bdv-crm.js');
 }
 
+/* ==========================================================================
+   5. LE FOCUS ET LE CLAVIER DU PANNEAU, 01/10/2026 (saisie S4, juge V17)
+   --------------------------------------------------------------------------
+   Ouvert sur « Mon domaine » depuis le devis, le focus visait « Ton prenom »,
+   un champ de l'onglet « Toi », donc cache : le curseur restait sous le voile.
+   Et Tab sortait de la boite qui porte `aria-modal="true"`. Le banc pose le
+   VRAI bdv-domaine.js, parce que c'est lui qui marque les champs exiges.
+   ========================================================================== */
+console.log('\n== 5. Le focus va au premier champ vide de l\'onglet affiche, Tab reste dedans ==');
+{
+  const t = monter({ objectif: 500000, exercice_debut: 4 });
+  let fiche = null, lectureDomaine = null;
+  t.w.BdvCompte.api = (chemin) => {
+    if (String(chemin).indexOf('/domaine') === 0) {
+      return new Promise(r => { lectureDomaine = () => r(fiche ? [Object.assign({}, fiche)] : []); });
+    }
+    return Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [{ prenom: 'Ted' }] : [{}]);
+  };
+  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  t.poser(lire('bdv-domaine.js'), 'bdv-domaine.js');
+  const d = t.w.document, $ = (id) => d.getElementById(id);
+  dit(lire('bdv-reglages.js').indexOf('Rien n\'est obligatoire') < 0, 'la phrase « Rien n\'est obligatoire » est partie (elle etait fausse)');
+  fiche = { raison_sociale: 'EARL X', siret: '12345678900017', paiement_mode: 'fdm', paiement_jours: 30, validite_jours: 30 };
+  t.w.BdvReglages.ouvrir('bdvrBlocDomaine');
+  const a0 = d.activeElement;
+  dit(a0 && a0.id === 'bdvdRaison', 'a l\'ouverture sur « Mon domaine », fiche pas encore lue : le premier champ exige (' + (a0 && a0.id) + ')');
+  dit(!!a0 && !!a0.closest('.bdvr-bloc--on'), 'et il est dans l\'onglet affiche, pas dans « Toi »');
+  if (lectureDomaine) lectureDomaine();
+  await dormir(80);
+  const a1 = d.activeElement;
+  dit(a1 && a1.id === 'bdvdAdresse', 'la fiche arrive (raison et SIRET remplis) : le focus passe a l\'adresse, premier exige vide (' + (a1 && a1.id) + ')');
+  $('bdvdAdresse').value = '1 rue des Vignes';
+  $('bdvdAdresse').dispatchEvent(new t.w.Event('input', { bubbles: true }));
+  t.w.BdvReglages.reposerFocus();
+  dit(d.activeElement === $('bdvdAdresse'), 'des qu\'on a tape, plus personne ne deplace le curseur');
+
+  /* LE PIEGE. Les cibles se lisent sans mise en page : jsdom n'en a pas. */
+  const tab = (shift) => { const e = new t.w.KeyboardEvent('keydown', { key: 'Tab', shiftKey: !!shift, bubbles: true, cancelable: true }); d.dispatchEvent(e); return e; };
+  const panneau = d.querySelector('#bdvrVoile .bdvr-panneau');
+  const cibles = [...panneau.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary')]
+    .filter(n => !n.closest('[hidden]') && (!n.closest('.bdvr-bloc') || n.closest('.bdvr-bloc--on')) && !n.closest('details:not([open])'));
+  const prem = cibles[0], dern = cibles[cibles.length - 1];
+  dern.focus(); let e = tab(false);
+  dit(e.defaultPrevented && d.activeElement === prem, 'Tab sur la derniere cible revient a la premiere (' + (d.activeElement && (d.activeElement.id || d.activeElement.className)) + ')');
+  prem.focus(); e = tab(true);
+  dit(e.defaultPrevented && d.activeElement === dern, 'Maj+Tab sur la premiere va a la derniere');
+  $('bureauReglages').focus(); e = tab(false);
+  dit(e.defaultPrevented && panneau.contains(d.activeElement), 'un focus reste dehors est ramene dans le panneau');
+  const vraies = t.w.BdvReglages._cibles();
+  dit(vraies.length > 3 && !vraies.some(n => n.closest('.bdvr-bloc') && !n.closest('.bdvr-bloc--on')) && !vraies.some(n => n.closest('[hidden]')),
+    'aucune cible d\'un onglet cache ni d\'un bloc masque n\'est comptee (' + vraies.length + ')');
+  panneau.removeAttribute('aria-modal');
+  dern.focus(); e = tab(false);
+  dit(!e.defaultPrevented, 'quand le vidage rend aria-modal, le piege se tait');
+  panneau.setAttribute('aria-modal', 'true');
+  t.w.BdvReglages.fermer();
+  dern.focus(); e = tab(false);
+  dit(!e.defaultPrevented, 'panneau ferme : Tab est libre');
+}
+
+/* ==========================================================================
+   6. LE BOUTON DU BUREAU NE SAUTE PAS AU SURVOL, 01/10/2026 (saisie S1, juge V11)
+   ========================================================================== */
+console.log('\n== 6. Ni ombre ni saut au survol des boutons du bureau ==');
+{
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const m = /\.bdv-coque \.btn:hover,\s*\.bdv-coque \.btn:active\s*\{([^}]*)\}/.exec(css);
+  dit(!!m && /transform:\s*none/.test(m[1]) && /box-shadow:\s*none/.test(m[1]),
+    '.bdv-coque .btn:hover et :active annulent transform et box-shadow de style.css (0,3,0 contre 0,2,0)');
+  const site = fs.readFileSync(path.join(RACINE, 'src/css/style.css'), 'utf8');
+  dit(/\.btn:hover \{\s*transform: translate\(-2px, -2px\);/.test(site), 'le site public garde son bouton qui avance (style.css intact)');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DES REGLAGES REFUSE\n'); process.exit(1); }

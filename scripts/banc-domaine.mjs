@@ -198,6 +198,31 @@ console.log('\n== 10. Lot 51 : le RCS et le capital, seulement si la base les co
   w.BdvCompte.api = api0;
 }
 
+console.log('\n== 11. 01/10/2026 : ce que le devis exige se dit, et se repere (juge V17, saisie S14) ==');
+{
+  const requis = ['bdvdRaison', 'bdvdSiret', 'bdvdAdresse', 'bdvdCp', 'bdvdVille'];
+  const lib = (id) => (w.document.querySelector('label[for="' + id + '"]') || {}).textContent || '';
+  dit(requis.every(id => $(id).hasAttribute('data-requis') && / · devis$/.test(lib(id))),
+    'les cinq champs que le devis exige portent la marque « devis » et data-requis', requis.map(lib).join(' | '));
+  const autres = [...$('hote').querySelectorAll('input,select')].filter(n => requis.indexOf(n.id) < 0);
+  dit(autres.every(n => !n.hasAttribute('data-requis')) && autres.every(n => !/ · devis$/.test(lib(n.id))),
+    'aucun autre champ ne porte la marque');
+  dit(JSON.stringify(w.BdvDomaine.requis()) === JSON.stringify(['raison_sociale', 'siret', 'adresse', 'code_postal', 'ville']),
+    'BdvDomaine.requis() rend la liste unique', JSON.stringify(w.BdvDomaine.requis()));
+  const intro = $('hote').querySelector('p.bdvr-aide').textContent;
+  dit(/Pour faire un devis, il faut au moins la raison sociale, le SIRET, l’adresse, le code postal et la ville, marqués « devis »\. Le reste est facultatif\./.test(intro),
+    'la phrase de tete dit ce que le devis exige', intro);
+  const plein = { raison_sociale: 'R', siret: '12345678900017', adresse: 'a', code_postal: '44000', ville: 'V' };
+  dit(w.BdvDomaine.complete(plein) && ['raison_sociale', 'siret', 'adresse', 'code_postal', 'ville'].every(k => {
+    const f = Object.assign({}, plein); delete f[k]; return !w.BdvDomaine.complete(f); }),
+    'complete() lit la meme liste : chaque champ manquant suffit a refuser');
+  dit($('bdvdQ').hasAttribute('data-sans-focus'), 'la recherche ne prend pas le focus d\'arrivee (elle est toujours vide)');
+  dit($('bdvdMentions').classList.contains('bdvd-suite'), 'la grille des mentions porte bdvd-suite (ecart avec « Telephone »)');
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8');
+  dit(/\.bdv-coque \.bdvd-suite\{\s*margin-top:var\(--bdv-e-4\);\s*\}/.test(css), 'section 32 : .bdvd-suite pose l\'ecart d\'une rangee (--bdv-e-4)');
+  dit(/\.bdv-coque \.bdvd-requis\{/.test(css), 'section 32 : la marque a son dessin');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 console.log(ko ? '  LA FICHE DU DOMAINE PEUT MENTIR\n' : '  LA FICHE DU DOMAINE DIT CE QUE LE VIGNERON A CHOISI\n');

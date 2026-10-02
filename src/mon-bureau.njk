@@ -792,6 +792,8 @@ theme_bureau: true
 <script>
 (function(){
   'use strict';
+  var DOC = document; {# alias locaux, 02/10/2026 (banc:poids) : 90 appels a `document` et 68 a `createElement`, 1,2 ko de moins dans le script bloquant, rien d'autre #}
+  function mk(t){ return DOC.createElement(t); }
 
   {# Le bureau : des zones nommees, toujours a la meme place. On ne cherche pas ses
      affaires sur un bureau, on sait ou elles sont. Le sous-main est le plus grand parce
@@ -810,9 +812,9 @@ theme_bureau: true
     }catch(e){ return null; }
   }
   var connecte = !!session();
-  document.getElementById('bureauInviteHero').hidden = connecte;
-  document.getElementById('bureauInvite').hidden = connecte;
-  document.getElementById('bureauContenu').hidden = !connecte;
+  DOC.getElementById('bureauInviteHero').hidden = connecte;
+  DOC.getElementById('bureauInvite').hidden = connecte;
+  DOC.getElementById('bureauContenu').hidden = !connecte;
 
   {# LE CORPS DE PAGE DIT QU'ON EST AU POSTE DE TRAVAIL, 11/09/2026.
 
@@ -831,9 +833,9 @@ theme_bureau: true
      bdv:session, et un bureau ferme qui garderait la classe serait un site public sans
      navigation ni pied de page. La regle du 08/09/2026 vaut pour une classe comme pour
      une zone : ce qui sait se montrer doit savoir se cacher. #}
-  document.body.classList.toggle('bdv-poste', connecte);
-  document.addEventListener('bdv:session', function(){
-    document.body.classList.toggle('bdv-poste', !!session());
+  DOC.body.classList.toggle('bdv-poste', connecte);
+  DOC.addEventListener('bdv:session', function(){
+    DOC.body.classList.toggle('bdv-poste', !!session());
   });
   {# LE BUREAU FERME SAIT SE REVEILLER. Ajoute le 08/09/2026.
 
@@ -854,7 +856,7 @@ theme_bureau: true
      dans l'adresse, PUIS on recharge — location.replace() sur une simple ancre ne
      rechargerait pas davantage, c'est exactement le piege qu'on repare. #}
   if(!connecte){
-    document.addEventListener('bdv:session', function(){
+    DOC.addEventListener('bdv:session', function(){
       if(!session()) return;
       var ou = null;
       try{
@@ -870,11 +872,11 @@ theme_bureau: true
     return;
   }
 
-  function el(id){ return document.getElementById(id); }
+  function el(id){ return DOC.getElementById(id); }
   function txt(n, t){ if(n) n.textContent = t; }
   function vide(boite, phrase){
     boite.innerHTML = '';
-    var p = document.createElement('p');
+    var p = mk('p');
     p.className = 'zone__vide';
     p.textContent = phrase;
     boite.appendChild(p);
@@ -927,7 +929,7 @@ theme_bureau: true
      <button> qui contenait trois <button>, ce que le HTML interdit. Le nom du
      client porte maintenant le clic ; la ligne n'est plus qu'une rangee. #}
   function cellule(classe, contenu){
-    var td = document.createElement('td');
+    var td = mk('td');
     td.className = classe;
     if(typeof contenu === 'string') td.textContent = contenu;
     else td.appendChild(contenu);
@@ -971,7 +973,7 @@ theme_bureau: true
      - une grille d'en-tete et une grille de ligne ne partagent pas leurs
        colonnes. Un tableau, si. #}
   function ligneFile(l){
-    var tr = document.createElement('tr');
+    var tr = mk('tr');
     tr.className = 'listb__l';
     tr.setAttribute('data-source', l.source);
     var enRetard = l.source === 'rappel' && l.retard > 0;
@@ -982,15 +984,15 @@ theme_bureau: true
        858 px et le tableau n'en fait que 644 sur un portable de 1280. Sous le
        nom elle ne coute RIEN : la ligne a un plancher de 44 px pour le tactile,
        et deux lignes de texte y tiennent. Une colonne rendue pour zero pixel. #}
-    var boite = document.createElement('span');
+    var boite = mk('span');
     boite.className = 'listb__fichier';
-    var nom = document.createElement('button');
+    var nom = mk('button');
     nom.type = 'button';
     nom.className = 'listb__nom';
     nom.setAttribute('data-fiche', l.id);
     nom.textContent = l.nom || l.id;
-    nom.title = l.nom || l.id;   // coupe a l'ecran, entier a l'infobulle
-    var ref = document.createElement('span');
+    nom.title = l.nom || l.id; {# coupe a l'ecran, entier a l'infobulle #}
+    var ref = mk('span');
     ref.className = 'listb__ref';
     ref.textContent = 'réf. ' + l.id;
     ref.title = 'Référence de ce fichier client dans ton export';
@@ -1012,7 +1014,7 @@ theme_bureau: true
       ? (l.titre || (enRetard ? 'Rappel à faire' : 'Rappel du jour'))
       : (l.lib || l.detail || 'À voir');
     var cMotif = cellule('listb__motif', quoi);
-    cMotif.title = quoi;   // coupe a l'ecran si la colonne est courte, entier a l'infobulle
+    cMotif.title = quoi; {# coupe a l'ecran si la colonne est courte, entier a l'infobulle #}
     tr.appendChild(cMotif);
 
     tr.appendChild(cellule('listb__montant', l.montant ? euros(l.montant) : '\u2014'));
@@ -1023,9 +1025,9 @@ theme_bureau: true
     tr.appendChild(cellule('listb__retard', l.source !== 'rappel' ? '\u2014'
       : (enRetard ? 'J+' + l.retard : 'J+0')));
 
-    var gestes = cellule('listb__gestes', document.createDocumentFragment());
+    var gestes = cellule('listb__gestes', DOC.createDocumentFragment());
     ACTIONS.forEach(function(a){
-      var b = document.createElement('button');
+      var b = mk('button');
       b.type = 'button';
       b.className = 'btn--geste';
       b.setAttribute('data-geste', a.cle);
@@ -1046,10 +1048,10 @@ theme_bureau: true
      listing l'en-tete n'a aucun sens, et un en-tete qui reste au-dessus d'une
      zone vide donne l'air d'un tableau en panne. #}
   function tableFile(){
-    var t = document.createElement('table');
+    var t = mk('table');
     t.className = 'listb';
-    var thead = document.createElement('thead');
-    var tr = document.createElement('tr');
+    var thead = mk('thead');
+    var tr = mk('tr');
     {# « ACTION » ET PLUS « GESTE », 10/09/2026, sur demande de Ted. Le mot a change au
        panneau ; le laisser ici aurait fait dire deux mots a la meme page pour la meme
        chose. Les NOMS DE CODE, eux, ne bougent pas : `BdvCrm.GESTES`, `.postit__gestes`,
@@ -1058,14 +1060,14 @@ theme_bureau: true
        bdv-echeances.js. A savoir en relisant : l'ecran dit « action », le code dit
        « geste ». #}
     ['Fichier client', 'Motif', 'Montant', 'Retard', 'Action'].forEach(function(m){
-      var th = document.createElement('th');
+      var th = mk('th');
       th.scope = 'col';
       th.textContent = m;
       tr.appendChild(th);
     });
     thead.appendChild(tr);
     t.appendChild(thead);
-    t.appendChild(document.createElement('tbody'));
+    t.appendChild(mk('tbody'));
     return t;
   }
 
@@ -1151,7 +1153,7 @@ theme_bureau: true
     var pied = el('filePied');
     if(lignes.length > FILE_VUE){
       pied.innerHTML = '';
-      var b = document.createElement('button');
+      var b = mk('button');
       b.type = 'button';
       b.className = 'btn--lienb';
       b.textContent = TOUT_VOIR
@@ -1168,7 +1170,7 @@ theme_bureau: true
        - « Appele » et « Message » ouvrent la fiche a leur endroit, le geste reste EN
          ATTENTE : si le vigneron ferme sans rien ecrire, la ligne est toujours la ;
        - « Ecarte » pose son geste tout de suite, sans fiche. #}
-  document.addEventListener('click', function(e){
+  DOC.addEventListener('click', function(e){
     var t = e.target.closest && e.target.closest('[data-fiche]');
     {# Toute la ligne ouvre la fiche : voir CLAUDE.md. #}
     if(!t && e.target.closest && !e.target.closest('button, a, input, select, textarea')){
@@ -1247,7 +1249,7 @@ theme_bureau: true
   function attenteFiche(ligne, oui){
     if(ligne) ligne.setAttribute('data-attente', oui ? 'oui' : 'non');
     txt(el('fileNote'), oui ? 'Ouverture de la fiche…' : '');
-    if(!oui) peindreFile();   // rend au pied sa vraie phrase, « 3 en retard » ou autre
+    if(!oui) peindreFile(); {# rend au pied sa vraie phrase, « 3 en retard » ou autre #}
   }
 
   function motifDe(id){
@@ -1269,7 +1271,7 @@ theme_bureau: true
     if(FICHE_EN_COURS) return Promise.resolve(true);
     if(!id || !window.BdvNav || !BdvNav.chargerEcrans) return Promise.resolve(false);
     FICHE_EN_COURS = id;
-    var ligne = document.querySelector('.listb__l [data-fiche="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+    var ligne = DOC.querySelector('.listb__l [data-fiche="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
     ligne = ligne ? ligne.closest('.listb__l') : null;
     attenteFiche(ligne, true);
     var av = el('bureauAvis');
@@ -1324,7 +1326,7 @@ theme_bureau: true
     ECHEANCE = BdvEcheances.laPlusPressante(BdvEcheances.depuisLaPage('bdvEcheances'));
     if(!ECHEANCE){ vide(boite, 'Rien en vue.'); return; }
     boite.innerHTML = '';
-    var bloc = document.createElement('div');
+    var bloc = mk('div');
     bloc.className = 'calbloc';
 
     {# LE BLOC MENE AU CALENDRIER, et plus a l'article de l'echeance. Avant, cliquer
@@ -1334,22 +1336,22 @@ theme_bureau: true
        Depuis le 08/09/2026 il mene A LA PIECE du bureau et plus a la page publique :
        le clic est intercepte par bdv-nav.js, qui attrape tous les liens en
        /mon-bureau/# poses ailleurs que dans la barre. On ne quitte plus le bureau. #}
-    var a = document.createElement('a');
+    var a = mk('a');
     a.className = 'calbloc__une';
     a.href = '/mon-bureau/#calendrier';
     a.setAttribute('data-niveau', ECHEANCE.niveau);
-    var mois = document.createElement('span'); mois.className = 'calbloc__mois';
+    var mois = mk('span'); mois.className = 'calbloc__mois';
     {# EN COURS, ON MONTRE LA FIN, 26/09/2026 (arbitrage de Ted) : « AOUT 15 » pour des
        vendanges commencees se lisait comme la date du jour. #}
     var fin = ECHEANCE.enCours && ECHEANCE.fin;
     mois.textContent = fin ? 'Jusqu’au' : ECHEANCE.date.toLocaleDateString('fr-FR', { month: 'long' });
-    var trous = document.createElement('span'); trous.className = 'calbloc__trous';
+    var trous = mk('span'); trous.className = 'calbloc__trous';
     trous.setAttribute('aria-hidden', 'true');
-    var jour = document.createElement('span'); jour.className = 'calbloc__jour';
+    var jour = mk('span'); jour.className = 'calbloc__jour';
     jour.textContent = fin ? (fin.getDate() === 1 ? '1er' : fin.getDate()) + ' ' + fin.toLocaleDateString('fr-FR', { month: 'short' }) : ECHEANCE.date.getDate();
-    var quand = document.createElement('span'); quand.className = 'calbloc__quand';
+    var quand = mk('span'); quand.className = 'calbloc__quand';
     quand.textContent = ECHEANCE.phrase;
-    var t = document.createElement('span'); t.className = 'calbloc__titre';
+    var t = mk('span'); t.className = 'calbloc__titre';
     t.textContent = ECHEANCE.e.titre;
     a.appendChild(mois); a.appendChild(trous); a.appendChild(jour);
     a.appendChild(quand); a.appendChild(t);
@@ -1362,13 +1364,13 @@ theme_bureau: true
       .filter(function (x) { return x.jours >= 0 && x.e.titre !== ECHEANCE.e.titre; })
       .slice(0, 2);
     if (toutes.length) {
-      var ul = document.createElement('ul');
+      var ul = mk('ul');
       ul.className = 'calbloc__suite';
       toutes.forEach(function (x) {
-        var li = document.createElement('li'); li.className = 'calbloc__ligne';
-        var d = document.createElement('span'); d.className = 'calbloc__d';
+        var li = mk('li'); li.className = 'calbloc__ligne';
+        var d = mk('span'); d.className = 'calbloc__d';
         d.textContent = x.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-        var q = document.createElement('span'); q.className = 'calbloc__q'; q.textContent = x.e.titre;
+        var q = mk('span'); q.className = 'calbloc__q'; q.textContent = x.e.titre;
         li.appendChild(d); li.appendChild(q); ul.appendChild(li);
       });
       bloc.appendChild(ul);
@@ -1380,9 +1382,9 @@ theme_bureau: true
        calendrier » sur deux lignes, la zone ne faisant que trois colonnes sur
        douze. Le lien du pied, lui, a toute la largeur. #}
     var n = BdvEcheances.depuisLaPage('bdvEcheances').length;
-    var tout = document.createElement('p');
+    var tout = mk('p');
     tout.className = 'zone__pied';
-    var l = document.createElement('a');
+    var l = mk('a');
     l.href = '/mon-bureau/#calendrier';
     l.textContent = n > 1 ? 'Les ' + n + ' échéances suivies' : 'Tout le calendrier';
     tout.appendChild(l);
@@ -1501,20 +1503,20 @@ theme_bureau: true
 
     var boite = el('bureauMot');
     boite.innerHTML = '';
-    var d = document.createElement('div');
+    var d = mk('div');
     d.className = 'mot';
     d.setAttribute('data-kind', kind);
 
-    var sg = document.createElement('span');
+    var sg = mk('span');
     sg.className = 'mot__ico';
     sg.setAttribute('aria-hidden', 'true');
     sg.textContent = m.ico || MOT_SIGNE[kind] || MOT_SIGNE.info;
     d.appendChild(sg);
 
-    var corps = document.createElement('div');
+    var corps = mk('div');
     corps.className = 'mot__corps';
-    var v = document.createElement('p'); v.className = 'mot__v';
-    var a = document.createElement('p'); a.className = 'mot__a';
+    var v = mk('p'); v.className = 'mot__v';
+    var a = mk('p'); a.className = 'mot__a';
     a.textContent = texteDuConseil(m.action);
 
     {# LA PHRASE PORTE LE LIEN, ET UN CALQUE REND LA CARTE CLIQUABLE, comme les cartes de
@@ -1524,7 +1526,7 @@ theme_bureau: true
        interactif est interdit par le HTML, et ce projet l'a deja paye deux fois. #}
     var ou = MOT_PIECES[m.cible];
     if(ou){
-      var l = document.createElement('a');
+      var l = mk('a');
       l.className = 'mot__aller';
       l.href = '/mon-bureau/#' + m.cible;
       l.textContent = texteDuConseil(m.verdict);
@@ -1534,12 +1536,12 @@ theme_bureau: true
          qu'on ne voit pas ne vaut pas mieux qu'une phrase qui decrit un chemin.
          Elle est cachee a la synthese vocale : le hors-ecran juste apres dit deja ou
          l'on va, en mots, et une fleche annoncee deux fois est une fleche de trop. #}
-      var fl = document.createElement('span');
+      var fl = mk('span');
       fl.className = 'mot__fleche';
       fl.setAttribute('aria-hidden', 'true');
       fl.textContent = ' \u2192';
       l.appendChild(fl);
-      var dit = document.createElement('span');
+      var dit = mk('span');
       dit.className = 'hors-ecran';
       dit.textContent = ' Voir dans ' + ou + '.';
       l.appendChild(dit);
@@ -1550,7 +1552,7 @@ theme_bureau: true
 
     {# La gravite en toutes lettres, pour qui n'a pas la couleur. Devant le verdict, parce #}
     {# qu'elle le qualifie : annoncee apres, elle arrive quand la phrase est deja lue. #}
-    var g = document.createElement('span');
+    var g = mk('span');
     g.className = 'hors-ecran';
     g.textContent = (MOT_GRAVITE[kind] || MOT_GRAVITE.info) + ' ';
     corps.appendChild(g);
@@ -1560,8 +1562,8 @@ theme_bureau: true
 
     txt(el('motNote'), c.length > 1 ? (i + 1) + ' sur ' + c.length : '');
     if(c.length > 1){
-      var p = document.createElement('p'); p.className = 'zone__pied';
-      var b = document.createElement('button');
+      var p = mk('p'); p.className = 'zone__pied';
+      var b = mk('button');
       b.type = 'button'; b.className = 'btn--lienb'; b.textContent = 'Le suivant';
       {# LE BOUTON SE DETRUIT LUI-MEME EN REPEIGNANT, et le focus tombait sur le corps de
          page : au clavier, un deuxieme « suivant » demandait de retraverser toute la zone.
@@ -1601,12 +1603,12 @@ theme_bureau: true
     var boite = el('bureauChiffres');
     boite.innerHTML = '';
     function cellule(cls, l, v, s){
-      var d = document.createElement('a');
+      var d = mk('a');
       d.className = 'chiffre ' + cls;
       d.href = '/mon-bureau/#annee';
       [['chiffre__l', l], ['chiffre__v', v], ['chiffre__s', s]].forEach(function(p){
         if(p[1] == null || p[1] === '') return;
-        var sp = document.createElement('span'); sp.className = p[0]; sp.textContent = p[1]; d.appendChild(sp);
+        var sp = mk('span'); sp.className = p[0]; sp.textContent = p[1]; d.appendChild(sp);
       });
       return d;
     }
@@ -1622,13 +1624,13 @@ theme_bureau: true
       {# La jauge ne s'ecrit que sur un objectif POSE : une jauge sans cible mesure le vide. #}
       if(r.objectif && r.objectifPct != null){
         var pct = Math.max(0, Math.min(100, r.objectifPct));
-        var j = document.createElement('span'); j.className = 'chiffre__jauge';
+        var j = mk('span'); j.className = 'chiffre__jauge';
         j.setAttribute('role', 'img');
         j.setAttribute('aria-label', r.objectifPct + ' % de l’objectif atteint');
-        var b = document.createElement('i'); b.style.width = pct + '%'; j.appendChild(b);
+        var b = mk('i'); b.style.width = pct + '%'; j.appendChild(b);
         ca.appendChild(j);
         var reste = r.objectif - (r.ca || 0);
-        var jt = document.createElement('span'); jt.className = 'chiffre__objectif';
+        var jt = mk('span'); jt.className = 'chiffre__objectif';
         jt.textContent = r.objectifPct + ' % de l’objectif de ' + euros(r.objectif)
           + (reste > 0 ? ', il reste ' + euros(reste) : ', objectif dépassé');
         ca.appendChild(jt);
@@ -1643,20 +1645,20 @@ theme_bureau: true
         var debut = r.moisDebut || 1, dernier = r.dernierMois || 12;
         var INIT = ['J','F','M','A','M','J','J','A','S','O','N','D'];
         var NOMS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-        var m = document.createElement('div'); m.className = 'ardoise__mois';
-        var t = document.createElement('p'); t.className = 'chiffre__l'; t.textContent = 'Mois par mois';
+        var m = mk('div'); m.className = 'ardoise__mois';
+        var t = mk('p'); t.className = 'chiffre__l'; t.textContent = 'Mois par mois';
         m.appendChild(t);
-        var g = document.createElement('div'); g.className = 'ardoise__barres';
+        var g = mk('div'); g.className = 'ardoise__barres';
         var dit = [];
         r.mois.forEach(function(v, i){
           var n = (debut - 1 + i) % 12, val = v || 0, aVenir = (i + 1) > dernier;
-          var c = document.createElement('span');
+          var c = mk('span');
           c.className = 'ardoise__b' + (aVenir ? ' ardoise__b--avenir' : val <= 0 ? ' ardoise__b--zero' : '')
                       + ((i + 1) === dernier ? ' ardoise__b--dernier' : '');
-          var barre = document.createElement('i');
+          var barre = mk('i');
           if(!aVenir) barre.style.height = (val <= 0 ? 0 : Math.max(4, Math.round(val / max * 100))) + '%';
           c.appendChild(barre);
-          var e = document.createElement('b'); e.textContent = INIT[n]; c.appendChild(e);
+          var e = mk('b'); e.textContent = INIT[n]; c.appendChild(e);
           c.title = NOMS[n] + (aVenir ? ' : à venir' : ' : ' + euros(val));
           g.appendChild(c);
           if(!aVenir) dit.push(NOMS[n] + ' ' + euros(val));
@@ -1667,7 +1669,7 @@ theme_bureau: true
         boite.appendChild(m);
       }
     }
-    var cote = document.createElement('div'); cote.className = 'ardoise__cote';
+    var cote = mk('div'); cote.className = 'ardoise__cote';
     if(r.atterrissage != null) cote.appendChild(cellule('chiffre--petit', 'Fin d’exercice', euros(r.atterrissage), 'projection au rythme actuel, pas une vente'));
     if(r.clients != null) cote.appendChild(cellule('chiffre--petit', 'Clients', String(r.clients), 'sur l’exercice'));
     if(r.panier != null) cote.appendChild(cellule('chiffre--petit', 'Commande moyenne', euros(r.panier), 'ce qu’un client dépense par commande'));
@@ -1712,22 +1714,17 @@ theme_bureau: true
      LA REGLE QUI TIENT TOUJOURS : aucun chiffre de VENTE ici. L'ardoise mesure le
      domaine, le panneau mesure le vigneron. C'est la seule chose qui autorise deux
      tableaux de chiffres sur la meme page. #}
-  var JOURNAL = undefined;   // undefined : pas encore lu. null : illisible. [] : lu, vide.
+  var JOURNAL = undefined; {# undefined : pas encore lu. null : illisible. [] : lu, vide. #}
 
   function minuit(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
   function lundi(){
     var d = minuit(new Date());
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));   // lundi = debut de semaine
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); {# lundi = debut de semaine #}
     return d;
   }
   function jours(a, b){ return Math.round((minuit(a) - minuit(b)) / 86400000); }
   function pluriel(n, mot){ return n + ' ' + mot + (n > 1 ? 's' : ''); }
-  function dateCourte(iso){
-    var d = new Date(iso.length > 10 ? iso : iso + 'T00:00:00');
-    if(isNaN(d)) return '';
-    var t = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
-    return d.getDate() === 1 ? t.replace(/^1 /, '1er ') : t;
-  }
+  {# `dateCourte` (mois long) est partie le 02/10/2026 : plus personne ne l'appelait ici (banc:poids). #}
   {# Une date de punaise tient sur une ligne : « 9 oct. » et pas « 9 octobre ». Le
      post-it fait 160 px de large au minimum mesure, et « septembre » seul en fait 92
      dans la fonte des chiffres : le mois long repliait la valeur sur deux lignes et
@@ -1766,13 +1763,13 @@ theme_bureau: true
     if(sansMouvement() || !window.requestAnimationFrame) return;
     if(!/^\d+$/.test(texte)) return;
     var cible = parseInt(texte, 10);
-    if(cible < 2) return;                      // de 0 a 1, il n'y a rien a regarder monter
+    if(cible < 2) return; {# de 0 a 1, il n'y a rien a regarder monter #}
     var debut = null, duree = 420;
     node.textContent = '0';
     requestAnimationFrame(function pas(t){
       if(debut === null) debut = t;
       var p = Math.min(1, (t - debut) / duree);
-      node.textContent = String(Math.round(cible * (p * (2 - p))));   // freine a l'arrivee
+      node.textContent = String(Math.round(cible * (p * (2 - p)))); {# freine a l'arrivee #}
       if(p < 1) requestAnimationFrame(pas); else node.textContent = texte;
     });
   }
@@ -1809,7 +1806,7 @@ theme_bureau: true
      ligne de tete. Autrement dit : toujours sur le texte qui porte le sens, jamais sur
      un chiffre nu, qu'on ne songerait pas a cliquer. #}
   function postit(o){
-    var n = document.createElement('div');
+    var n = mk('div');
     n.className = 'postit';
     if(o.ton) n.setAttribute('data-ton', o.ton);
     if(o.cle) n.setAttribute('data-cle', o.cle);
@@ -1821,7 +1818,7 @@ theme_bureau: true
        compteur anime ecrire dans un noeud detache du document. #}
     var surValeur = !o.libelle;
     function ligne(classe, texte, lien){
-      var e = document.createElement(lien ? 'a' : 'span');
+      var e = mk(lien ? 'a' : 'span');
       e.className = classe + (lien ? ' postit__lien' : '');
       if(lien) e.href = o.href;
       {# LA PUNAISE D'UNE TACHE OUVRE SA MODALE, depuis le 12/09/2026, au lieu de
@@ -1835,7 +1832,7 @@ theme_bureau: true
     }
 
     if(o.tampon){
-      var tp = document.createElement('span');
+      var tp = mk('span');
       tp.className = 'postit__tampon';
       tp.textContent = o.tampon;
       n.appendChild(tp);
@@ -1854,17 +1851,17 @@ theme_bureau: true
     if(o.libelle) n.appendChild(ligne('postit__l', o.libelle, !!o.href));
 
     if(o.sous){
-      var sp = document.createElement('span');
+      var sp = mk('span');
       sp.className = 'postit__s';
       sp.textContent = o.sous;
       n.appendChild(sp);
     }
 
     if(o.gestes && o.gestes.length){
-      var barre = document.createElement('span');
+      var barre = mk('span');
       barre.className = 'postit__gestes';
       o.gestes.forEach(function(g){
-        var b = document.createElement('button');
+        var b = mk('button');
         b.type = 'button';
         b.className = 'postit__g';
         b.setAttribute('data-punaise', g.cle);
@@ -1886,7 +1883,7 @@ theme_bureau: true
      UNE seule a la sortie, meme si trois sont arrivees entre-temps. #}
   var PANNEAU_GELE = 0, PANNEAU_DU = false;
   function gelerPanneau(ms){
-    if(sansMouvement()) return;               // rien ne tombe, rien a attendre
+    if(sansMouvement()) return; {# rien ne tombe, rien a attendre #}
     PANNEAU_GELE++;
     setTimeout(function(){
       PANNEAU_GELE--;
@@ -2118,7 +2115,7 @@ theme_bureau: true
      LES BOUTONS SONT DESACTIVES DES LE PREMIER CLIC. Le sous-main avait paye ce
      defaut : `pointer-events: none` n'arrete que la souris, et Entree deux fois de
      suite posait deux gestes. #}
-  document.addEventListener('click', function(e){
+  DOC.addEventListener('click', function(e){
     var b = e.target.closest && e.target.closest('[data-punaise]');
     if(!b) return;
     e.preventDefault();
@@ -2258,7 +2255,7 @@ theme_bureau: true
       plaque.hidden = false;
     }else if(!prenom){
       {# Ni prenom ni domaine : une invitation, une seule fois, la ou le nom devrait etre. #}
-      var b = document.createElement('button');
+      var b = mk('button');
       b.type = 'button'; b.className = 'bureau-tete__invite';
       b.textContent = 'Dis-moi comment t’appeler';
       b.onclick = ouvrirReglages;
@@ -2322,7 +2319,7 @@ theme_bureau: true
     {# vides, sans erreur et sans message. #}
     if(window.BdvNav && BdvNav.ouvrirReglages){ BdvNav.ouvrirReglages(); return; }
     if(window.BdvReglages) BdvReglages.ouvrir();
-    else location.href = '/compte/';   // module absent : on ne laisse pas un clic sans effet
+    else location.href = '/compte/'; {# module absent : on ne laisse pas un clic sans effet #}
   }
 
   {# LA BASCULE CLAIR / SOMBRE, 21/09/2026. TROIS ETATS ET PAS DEUX : 'light',
@@ -2354,7 +2351,7 @@ theme_bureau: true
     peindreBascule(b, BdvTheme.lire() || 'auto');
     b.addEventListener('click', function(){
       var suite = THEME_SUITE[b.getAttribute('data-etat') || 'auto'];
-      BdvTheme.poser(suite);            // ecrit la cle ET repose l'attribut
+      BdvTheme.poser(suite); {# ecrit la cle ET repose l'attribut #}
       peindreBascule(b, suite || 'auto');
     });
   }
@@ -2366,7 +2363,7 @@ theme_bureau: true
      actions sont ce qu'on vient chercher en remontant. HYSTERESIS de 8 px, sans
      quoi un doigt pose pile sur le seuil fait clignoter l'en-tete. #}
   function brancherRetraction(){
-    var t = document.querySelector('.bureau-tete');
+    var t = DOC.querySelector('.bureau-tete');
     if(!t || !window.matchMedia) return;
     var etroit = window.matchMedia('(max-width:700px)');
     var pose = false;
@@ -2374,7 +2371,7 @@ theme_bureau: true
        aussi colle sur ordinateur (choix C de Ted). `etroit` reste declare, il ne
        decide plus rien ici ; ce que la retraction CACHE differe par largeur, en CSS. #}
     function juger(){
-      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var y = window.pageYOffset || DOC.documentElement.scrollTop || 0;
       if(!pose && y > 64){ t.classList.add('bureau-tete--retracte'); pose = true; }
       else if(pose && y < 48){ t.classList.remove('bureau-tete--retracte'); pose = false; }
       logerLune();
@@ -2385,7 +2382,7 @@ theme_bureau: true
     var calme = window.matchMedia('(prefers-reduced-motion: reduce)');
     function logerLune(){
       var mini = el('bureauLuneMini');
-      var bandeau = document.querySelector('.nav');
+      var bandeau = DOC.querySelector('.nav');
       var ligne = t.querySelector('.bureau-tete__ligne');
       if(!mini || !bandeau || !ligne) return;
       var enHaut = pose && large.matches;
@@ -2414,11 +2411,11 @@ theme_bureau: true
   function brancherLuneVue(){
     var grande = el('bureauLune');
     if(!grande || !('IntersectionObserver' in window)) return;
-    var tete = document.querySelector('.bureau-tete');
+    var tete = DOC.querySelector('.bureau-tete');
     var haut = tete ? Math.max(0, Math.round(tete.getBoundingClientRect().bottom)) : 0;
     var o = new IntersectionObserver(function(ents){
       var e = ents[ents.length - 1];
-      document.body.classList.toggle('bdv-lune-vue', !!(e && e.isIntersecting && !grande.hidden));
+      DOC.body.classList.toggle('bdv-lune-vue', !!(e && e.isIntersecting && !grande.hidden));
     }, { rootMargin: '-' + haut + 'px 0px 0px 0px', threshold: 0.6 });
     o.observe(grande);
   }
@@ -2446,10 +2443,10 @@ theme_bureau: true
   {# ---------------- LES CONTENUS ---------------- #}
   function carteLecture(ref, titre, avecPunaise){
     var c = PAR_URL[ref] || {};
-    var a = document.createElement('a');
+    var a = mk('a');
     a.className = 'fiche-l';
     a.href = ref;
-    var t = document.createElement('span'); t.className = 'fiche-l__t';
+    var t = mk('span'); t.className = 'fiche-l__t';
     t.textContent = c.titre || titre || ref;
     a.appendChild(t);
     {# LA RUBRIQUE, ET PLUS LE PILIER. 12/09/2026, feu vert de Ted.
@@ -2468,8 +2465,8 @@ theme_bureau: true
        articles-recent.njk. Signale a Ted le 12/09, pas corrige : c'est la page
        d'accueil, et changer ce qu'elle montre est sa decision. #}
     var meta = [c.rubrique, c.temps].filter(Boolean).join(' · ');
-    if(meta){ var m = document.createElement('span'); m.className = 'fiche-l__m'; m.textContent = meta; a.appendChild(m); }
-    if(avecPunaise){ var p = document.createElement('span'); p.className = 'fiche-l__p'; a.appendChild(p); }
+    if(meta){ var m = mk('span'); m.className = 'fiche-l__m'; m.textContent = meta; a.appendChild(m); }
+    if(avecPunaise){ var p = mk('span'); p.className = 'fiche-l__p'; a.appendChild(p); }
     return a;
   }
 
@@ -2518,19 +2515,19 @@ theme_bureau: true
   }
 
   function lettre(c, neuve){
-    var a = document.createElement('a');
+    var a = mk('a');
     a.className = 'lettre';
     a.href = c.url;
-    var d = document.createElement('span'); d.className = 'lettre__d';
+    var d = mk('span'); d.className = 'lettre__d';
     d.textContent = dateLettre(c.date);
     a.appendChild(d);
-    var t = document.createElement('span'); t.className = 'lettre__t';
+    var t = mk('span'); t.className = 'lettre__t';
     t.textContent = (PAR_URL[c.url] || {}).titre || c.titre || c.url;
     a.appendChild(t);
     var m = (PAR_URL[c.url] || {}).temps || c.temps;
-    if(m){ var sm = document.createElement('span'); sm.className = 'lettre__m';
+    if(m){ var sm = mk('span'); sm.className = 'lettre__m';
            sm.textContent = m + ' de lecture'; a.appendChild(sm); }
-    if(neuve){ var p = document.createElement('span'); p.className = 'lettre__p'; a.appendChild(p); }
+    if(neuve){ var p = mk('span'); p.className = 'lettre__p'; a.appendChild(p); }
     return a;
   }
 
@@ -2604,7 +2601,7 @@ theme_bureau: true
     {# Le HTML est fabrique ici, mais AUCUN texte venu de la base n'y entre : les phrases
        et les chiffres passent par textContent, seules les icones sont ecrites en dur. #}
     m.forEach(function(x){
-      var a = document.createElement('a');
+      var a = mk('a');
       a.className = 'bureau-tete__etat bureau-tete__etat--' + x[2];
       a.href = '/mon-bureau/#' + x[1];
       a.setAttribute('aria-label', x[0]);
@@ -2622,7 +2619,7 @@ theme_bureau: true
   if(window.BdvCrm){ ETAT_FILE = BdvCrm.miroir(); peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); }
   peindreResume();
 
-  document.addEventListener('click', function(e){
+  DOC.addEventListener('click', function(e){
     if(e.target.closest && e.target.closest('[data-signet]')) setTimeout(function(){ peindreLectures(); peindreResume(); }, 0);
   });
 
@@ -2729,17 +2726,17 @@ theme_bureau: true
   }
   function avisPageFiche(texte){
     var p = el('pageFicheAvis');
-    if(!p){ p = document.createElement('p'); p.id = 'pageFicheAvis'; p.className = 'page-fiche__avis'; p.setAttribute('role', 'status'); document.body.appendChild(p); }
+    if(!p){ p = mk('p'); p.id = 'pageFicheAvis'; p.className = 'page-fiche__avis'; p.setAttribute('role', 'status'); DOC.body.appendChild(p); }
     p.innerHTML = '';
-    p.appendChild(document.createTextNode(texte + ' '));
-    var a = document.createElement('a'); a.href = '/mon-bureau/#annuaire'; a.textContent = 'Retour à Mes clients';
+    p.appendChild(DOC.createTextNode(texte + ' '));
+    var a = mk('a'); a.href = '/mon-bureau/#annuaire'; a.textContent = 'Retour à Mes clients';
     a.addEventListener('click', function(e){ e.preventDefault(); location.href = '/mon-bureau/#annuaire'; location.reload(); });
     p.appendChild(a);
   }
   function ouvrirPageFiche(){
     var id = ficheDemandee();
     if(!id) return false;
-    document.body.classList.add('bdv-page-fiche');
+    DOC.body.classList.add('bdv-page-fiche');
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
     brancherTheme();
     var etapes = [
@@ -2765,7 +2762,7 @@ theme_bureau: true
     return true;
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
+  DOC.addEventListener('DOMContentLoaded', function(){
     if(ouvrirPageFiche()) return;
     {# La barre en premier : elle est le cadre, tout le reste se peint dedans. #}
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');

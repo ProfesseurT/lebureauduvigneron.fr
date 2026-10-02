@@ -66,6 +66,11 @@
     var m = [];
     var sans = (lignes || []).filter(function (l) { return !champ(l.num_produit); });
     if (sans.length) m.push({ quoi: 'produit', vins: sans.map(function (l) { return champ(l.designation) || 'un vin'; }) });
+    /* UN CODE ARTICLE NE SE CHANGE PAS EN ROUTE (01/10/2026). `champ()` remplacerait son `;` par
+       une virgule : « P;7 » partirait « P,7 », un produit que Vitisoft ne trouve pas. Un nom de
+       vin peut etre retouche, un code non : on refuse, en nommant le vin. */
+    var abimes = (lignes || []).filter(function (l) { return champ(l.num_produit) && /[;"\u201c\u201d\r\n\t]/.test(String(l.num_produit)); });
+    if (abimes.length) m.push({ quoi: 'code', vins: abimes.map(function (l) { return champ(l.designation) || 'un vin'; }) });
     var a = (d && d.acheteur) || {};
     if (!a.nouveau && !champ(d && d.num_client) && !champ(a.num_client) && !champ(a.email)) m.push({ quoi: 'client' });
     if (!(lignes || []).length) m.push({ quoi: 'vide' });

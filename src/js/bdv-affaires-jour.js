@@ -31,6 +31,7 @@
   var NOMS = {};         // piste_id -> nom
   var CLIENT_DE = {};    // piste_id -> client_id, pour une piste devenue cliente (lot 44)
   var SOMMEIL = {};      // type_id -> sommeil_jours, le delai qui endort une affaire (lot 45)
+  var OPPOSE = {};       // piste_id -> true : la personne a demande a ne plus etre contactee (N4)
   var SIGNES = null;     // lot 55 : devis signes en ligne dont la commande n'est pas telechargee
 
   /* LA FAMILLE « MES AFFAIRES », LOT 37 (28/09/2026). Elle rejoint la liste unique des
@@ -87,8 +88,15 @@
      c'est ce que compte le bloc « A relancer : N » de la piece, la punaise de Ma
      journee et la case du bilan. ELLE N'EST ECRITE QU'ICI : `etat()` de
      bdv-affaires.js l'appelle, il ne la redit pas. */
-  function etat(a, sommeil, aujourdhui) {
+  /* N4 (tour 2, 02/10/2026) : UNE PERSONNE EN OPPOSITION NE SE RELANCE PAS. Son affaire
+     n'est ni « a relancer » ni « endormie » : elle sort du bloc, du bilan, de la punaise,
+     du calendrier et de « Mes taches ». `oppose` vient de la piste, l'appelant le passe. */
+  function etat(a, sommeil, aujourdhui, oppose) {
     var auj = aujourdhui || jourIso();
+    if (oppose) {
+      return { jours: 0, sommeil: sommeil > 0 ? sommeil : 30, retard: null, relancer: false, endormie: false,
+               aRelancer: false, oppose: true };
+    }
     var dort = sommeil > 0 ? sommeil : 30;
     var retard = a.rappel ? ecartJours(a.rappel, auj) : null;
     var jours = ecartJours(jourLocal(a.etape_le), auj);
@@ -98,7 +106,7 @@
     return { jours: jours, sommeil: dort, retard: retard, relancer: relancer, endormie: endormie,
              aRelancer: relancer || endormie };
   }
-  function etatIci(a, auj) { return etat(a, SOMMEIL[a.type_id], auj); }
+  function etatIci(a, auj) { return etat(a, SOMMEIL[a.type_id], auj, !!(a.piste_id && OPPOSE[a.piste_id])); }
   /* Les affaires a relancer, la plus en retard d'abord, les endormies ensuite :
      le meme ordre que le bloc de la piece. */
   function aRelancer() {
@@ -114,23 +122,40 @@
   /* Trois requetes etroites : les affaires en cours (sans leurs notes), le delai de
      sommeil de chaque type, puis le nom des seules pistes qui portent une affaire.
      Rend `false` si la lecture a echoue, comme les autres etapes de l'amorcage. */
+  /* B6 (01/10/2026) : PostgREST plafonne une reponse a 1 000 lignes (Max rows). Au-dela,
+     la liste etait tronquee sans un mot. On lit par pages, avec un ORDRE TOTAL (la cle
+     unique en dernier) : sans lui, deux pages peuvent se chevaucher ou sauter une ligne. */
+  var PAGE = 1000;
+  async function lirePages(chemin) {
+    var tout = [];
+    for (var off = 0; off < 200 * PAGE; off += PAGE) {
+      var r = await BdvCompte.api(chemin + '&limit=' + PAGE + '&offset=' + off);
+      if (r == null) return null;
+      tout = tout.concat(r);
+      if (r.length < PAGE) break;
+    }
+    return tout;
+  }
   async function charger() {
     var b = bureau();
     if (!b || !window.BdvCompte) return false;
     try {
-      var aff = await BdvCompte.api('/affaires?select=affaire_id,titre,rappel,rappel_titre,piste_id,client_id,client_nom,etape_le,type_id'
-        + '&issue=eq.en_cours&bureau=eq.' + encodeURIComponent(b));
+      var aff = await lirePages('/affaires?select=affaire_id,titre,rappel,rappel_titre,piste_id,client_id,client_nom,etape_le,type_id'
+        + '&issue=eq.en_cours&bureau=eq.' + encodeURIComponent(b) + '&order=affaire_id.asc');
       if (aff == null) return false;
       var som = await lireSommeils(b);
       if (som == null) return false;
       var ids = aff.map(function (a) { return a.piste_id; }).filter(Boolean);
-      var noms = {}, clients = {};
-      if (ids.length) {
-        var ps = await BdvCompte.api('/pistes?select=piste_id,nom,client_id&bureau=eq.' + encodeURIComponent(b)
-          + '&piste_id=in.(' + ids.map(encodeURIComponent).join(',') + ')');
-        (ps || []).forEach(function (p) { noms[p.piste_id] = p.nom; if (p.client_id) clients[p.piste_id] = String(p.client_id); });
+      var noms = {}, clients = {}, opp = {};
+      /* Les pistes par paquets de 100 : une adresse de 1 000 identifiants depasse ce
+         qu'un serveur accepte de lire. */
+      for (var i = 0; i < ids.length; i += 100) {
+        var ps = await BdvCompte.api('/pistes?select=piste_id,nom,client_id,opposition&bureau=eq.' + encodeURIComponent(b)
+          + '&piste_id=in.(' + ids.slice(i, i + 100).map(encodeURIComponent).join(',') + ')');
+        if (ps == null) return false;
+        ps.forEach(function (p) { noms[p.piste_id] = p.nom; if (p.client_id) clients[p.piste_id] = String(p.client_id); if (p.opposition) opp[p.piste_id] = true; });
       }
-      EN_COURS = aff; NOMS = noms; CLIENT_DE = clients; SOMMEIL = som;
+      EN_COURS = aff; NOMS = noms; CLIENT_DE = clients; SOMMEIL = som; OPPOSE = opp;
       await lireSignes(b);
       repeindre();
       surveiller();
@@ -140,8 +165,8 @@
          On relit sans lui plutot que de laisser la journee sans ses affaires. */
       if (e && /client_nom/.test(String(e.detail || ''))) {
         try {
-          var a2 = await BdvCompte.api('/affaires?select=affaire_id,titre,rappel,rappel_titre,piste_id,client_id,etape_le,type_id'
-            + '&issue=eq.en_cours&bureau=eq.' + encodeURIComponent(b));
+          var a2 = await lirePages('/affaires?select=affaire_id,titre,rappel,rappel_titre,piste_id,client_id,etape_le,type_id'
+            + '&issue=eq.en_cours&bureau=eq.' + encodeURIComponent(b) + '&order=affaire_id.asc');
           if (a2 == null) return false;
           var s2 = await lireSommeils(b);
           if (s2 == null) return false;
@@ -156,7 +181,7 @@
 
   /* Le delai de chaque type : la colonne est `sommeil_jours` (supabase/lot34-affaires.sql). */
   async function lireSommeils(b) {
-    var ts = await BdvCompte.api('/affaire_types?select=type_id,sommeil_jours&bureau=eq.' + encodeURIComponent(b));
+    var ts = await lirePages('/affaire_types?select=type_id,sommeil_jours&bureau=eq.' + encodeURIComponent(b) + '&order=type_id.asc');
     if (ts == null) return null;
     var m = {};
     ts.forEach(function (t) { m[t.type_id] = t.sommeil_jours; });
@@ -168,11 +193,12 @@
      une requete. */
   function poser(affaires, pistes, types) {
     EN_COURS = (affaires || []).filter(function (a) { return a.issue === 'en_cours'; });
-    NOMS = {}; CLIENT_DE = {}; SOMMEIL = {};
+    NOMS = {}; CLIENT_DE = {}; SOMMEIL = {}; OPPOSE = {};
     (types || []).forEach(function (t) { SOMMEIL[t.type_id] = t.sommeil_jours; });
     Object.keys(pistes || {}).forEach(function (k) {
       NOMS[k] = pistes[k].nom;
       if (pistes[k].client_id) CLIENT_DE[k] = String(pistes[k].client_id);
+      if (pistes[k].opposition) OPPOSE[k] = true;
     });
     repeindre();
     relireSignes();
@@ -201,10 +227,15 @@
   function punaisesSignes() {
     if (!SIGNES || !SIGNES.length) return [];
     var d = SIGNES[0];
-    if (SIGNES.length === 1) return [{ cle: 'signe:' + d.affaire_id + ':' + d.devis_id, tampon: 'devis signé',
-      valeur: clientDe(d), sous: 'devis ' + d.numero + ' : télécharge la commande Vitisoft', href: '/mon-bureau/#affaires' }];
-    return [{ cle: 'signe:' + d.affaire_id + ':' + d.devis_id, valeur: String(SIGNES.length), libelle: 'devis signés à commander',
-      sous: 'à commencer par ' + clientDe(d) + ', ' + d.numero, href: '/mon-bureau/#affaires' }];
+    /* X3 (tour 3) : la seule punaise sans geste se lisait comme une information. Elle porte
+       « Ouvrir le devis », un bouton de punaise (`postit__g`, a cote du lien, jamais dedans). */
+    var cle = 'signe:' + d.affaire_id + ':' + d.devis_id;
+    if (SIGNES.length === 1) return [{ cle: cle, tampon: 'devis signé',
+      valeur: clientDe(d), sous: 'devis ' + d.numero + ' : télécharge la commande Vitisoft', href: '/mon-bureau/#affaires',
+      gestes: [{ cle: 'signe-ouvrir', id: cle, mot: 'Ouvrir le devis', titre: 'Ouvrir le devis ' + d.numero + ' de ' + clientDe(d) }] }];
+    return [{ cle: cle, valeur: String(SIGNES.length), libelle: 'devis signés à commander',
+      sous: 'à commencer par ' + clientDe(d) + ', ' + d.numero, href: '/mon-bureau/#affaires',
+      gestes: [{ cle: 'signe-ouvrir', id: cle, mot: 'Ouvrir le premier', titre: 'Ouvrir le devis ' + d.numero + ' de ' + clientDe(d) }] }];
   }
   /* LA PUNAISE OUVRE LE DEVIS, pas seulement la piece : la demande passe par
      sessionStorage (`bdv_devis_ouvrir`), comme « Voir son affaire ». Le `href` reste
@@ -216,20 +247,57 @@
     var m = /^signe:([^:]+):(.+)$/.exec(String(cle || ''));
     if (!m) return;
     try { sessionStorage.setItem('bdv_devis_ouvrir', JSON.stringify({ affaire: m[1], devis: m[2] })); } catch (e) {}
+    /* M10 (01/10/2026) : marque « vu » au clic, mais la piece le DEMARQUE si le devis ne
+       s'ouvre pas (`BdvAffaires.ouvrir` appelle `pasVu`) : sinon le bandeau d'un devis
+       qu'on n'a jamais vu disparaissait pour toujours. */
     vu(m[2]);
     if (a.hasAttribute('data-signe-ouvrir')) { ev.preventDefault(); ouvrirPiece(); }
+  });
+
+  /* X3 : le bouton de la punaise. Ecoute en CAPTURE et arrete la : l'ecouteur commun des
+     punaises (src/mon-bureau.njk) decrocherait la punaise comme un geste fait, alors qu'ouvrir
+     le devis ne fait rien disparaitre (c'est le telechargement de la commande qui l'enleve). */
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-punaise="signe-ouvrir"]');
+    if (!b) return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    var m = /^signe:([^:]+):(.+)$/.exec(String(b.getAttribute('data-id') || ''));
+    if (!m) return;
+    try { sessionStorage.setItem('bdv_devis_ouvrir', JSON.stringify({ affaire: m[1], devis: m[2] })); } catch (e) {}
+    vu(m[2]);
+    ouvrirPiece();
+  }, true);
+
+  /* M8 : la punaise d'UNE affaire ouvre cette affaire. Le `href` mene a la piece ; la
+     demande posee avant la suit. */
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('[data-cle^="affaire:"] a');
+    if (!a) return;
+    var m = /^affaire:(.+)$/.exec(String((a.closest('[data-cle]') || {}).getAttribute('data-cle') || ''));
+    if (m) { try { sessionStorage.setItem('bdv_affaire_ouvrir', m[1]); } catch (e) {} }
   });
 
   /* LE BANDEAU : seulement pour une signature que ce navigateur n'a pas encore montree.
      Cle `bdv_` : elle part a la deconnexion, avec le reste. */
   var CLE_VUS = 'bdv_signes_vus_v1';
   function vus() { try { return JSON.parse(localStorage.getItem(CLE_VUS) || '[]') || []; } catch (e) { return []; } }
+  function pasVu(id) {
+    try { localStorage.setItem(CLE_VUS, JSON.stringify(vus().filter(function (x) { return x !== id; }))); } catch (e) {}
+  }
   function vu(id) {
     try { var v = vus(); if (v.indexOf(id) < 0) { v.push(id); localStorage.setItem(CLE_VUS, JSON.stringify(v.slice(-50))); } } catch (e) {}
   }
+  /* T1 (02/10/2026) : le bandeau vit EN TETE DE L'ATELIER, une seule fois, hors du
+     sous-main. Pose avant `#bureauAvis`, il disparaissait avec `#zoneSousMain`, qui
+     n'existe que si un export a ete depose, et il ne se voyait que dans Ma journee.
+     Un vigneron sans Vitisoft fait signer des devis lui aussi. Il est le premier
+     enfant de `.bureau-atelier__travail`, donc frere des quatre conteneurs que
+     `seule()` bascule, et jamais un enfant de `#bureauJournee` : l'ordre des zones
+     garde par `npm run banc` ne bouge pas. */
+  function hoteBandeau() { return document.querySelector('.bureau-atelier__travail'); }
   function peindreBandeau() {
-    var av = document.getElementById('bureauAvis');
-    if (!av || !av.parentNode || !SIGNES) return;
+    var hote = hoteBandeau();
+    if (!hote || !SIGNES) return;
     var neufs = SIGNES.filter(function (d) { return vus().indexOf(d.devis_id) < 0; });
     var b = document.getElementById('bureauSigne');
     if (!neufs.length) { if (b) b.hidden = true; return; }
@@ -239,7 +307,7 @@
       b.className = 'bureau-avis bureau-signe';
       b.setAttribute('data-ok', 'oui');
       b.setAttribute('role', 'status');
-      av.parentNode.insertBefore(b, av);
+      hote.insertBefore(b, hote.firstChild);
       b.addEventListener('click', function (ev) {
         if (ev.target.closest('[data-signe-fermer]')) {
           (SIGNES || []).forEach(function (d) { vu(d.devis_id); });
@@ -344,7 +412,7 @@
      courrier : rien ne la fait tomber un jour plutot qu'un autre. */
   function datees() {
     if (!EN_COURS) return [];
-    return EN_COURS.filter(function (a) { return !!a.rappel; }).map(function (a) {
+    return EN_COURS.filter(function (a) { return !!a.rappel && !(a.piste_id && OPPOSE[a.piste_id]); }).map(function (a) {
       return { affaire_id: a.affaire_id, nom: nomDe(a), titre: a.titre || '',
                rappel: a.rappel, rappel_titre: a.rappel_titre || '' };
     });
@@ -352,9 +420,12 @@
 
   /* Ouvrir « Mes affaires » depuis une autre piece : depuis le 29/09/2026 (lot 43),
      c'est l'onglet « A gagner » de « Mon commerce ». BdvNav.afficher('affaires') le
-     traduit, et l'adresse #affaires aussi. La piece elle-meme ne sait pas
-     encore deplier une affaire donnee : on l'ouvre, la relance est en tete. */
-  function ouvrirPiece() {
+     traduit, et l'adresse #affaires aussi.
+     M8 (01/10/2026) : avec un identifiant, la piece ouvre CETTE affaire (la demande passe
+     par `bdv_affaire_ouvrir`, comme « Voir son affaire » de la fiche). Le calendrier,
+     Mes taches et la punaise nominative de Ma journee le passent. */
+  function ouvrirPiece(id) {
+    if (id) { try { sessionStorage.setItem('bdv_affaire_ouvrir', String(id)); } catch (e) {} }
     if (window.BdvNav && BdvNav.afficher) { try { BdvNav.afficher('affaires'); return; } catch (e) {} }
     location.hash = '#affaires';
   }
@@ -377,9 +448,9 @@
   /* WCAG 2.5.3, LE NOM CONTIENT CE QU'ON VOIT : il COMMENCE par le texte du telephone
      (« 2 à relancer »), puis la phrase entiere, qui contient deja celui de l'ordinateur
      mot pour mot : on ne le repete pas. `banc:bureau` le verifie, etat par etat. */
-  function caseBilan(quoi, n, mot, sous, presse, court, nom) {
+  function caseBilan(quoi, n, mot, sous, presse, court, nom, sans) {
     nom = (n == null ? '' : n + ' ') + court + ' : ' + nom;
-    return '<button type="button" class="aff-bilan__case" data-bilan="' + quoi + '" aria-label="' + nom + '">'
+    return '<button type="button" class="aff-bilan__case' + (sans ? ' aff-bilan__case--sans' : '') + '" data-bilan="' + quoi + '" aria-label="' + nom + '">'
       + (n == null ? '' : '<span class="aff-bilan__n' + (presse ? ' aff-bilan__n--presse' : '') + '">' + n + '</span> ')
       + '<span class="aff-bilan__l">' + mot + '</span>'
       + '<span class="aff-bilan__c">' + court + '</span>'
@@ -402,8 +473,10 @@
       /* Pas encore compte : pas de chiffre. Sous 700 px, « à suivre » seul : « à suivre : à
          l'ouverture » ne tient pas sur la rangee a 390 px avec deux cases a trois chiffres
          (calcul dans `banc:bureau`). La phrase entiere reste le nom du bouton. */
+      /* S18 (01/10/2026) : « à suivre » seul se lisait comme un libelle casse. Le mot court
+         nomme la case en entier ; mesure a 390 px, la rangee tient encore (banc:bureau). */
       if (c == null) h += caseBilan('clients', null, 'Clients à suivre<span class="hors-ecran"> :</span>', 'comptés à l’ouverture de l’onglet',
-        false, 'à suivre', 'Clients à suivre : comptés à l’ouverture de l’onglet');
+        false, 'Clients à suivre', 'comptés à l’ouverture de l’onglet', true);
       /* Zero PARCE QUE tous sont deja dans une affaire : pas de « 0 », la phrase dit ou ils
          sont. Un vrai zero, sans affaire, garde son chiffre. */
       else if (c === 0 && window.bdvClientsASuivre.tousEnAffaire && window.bdvClientsASuivre.tousEnAffaire())
@@ -457,5 +530,6 @@
   window.BdvAffairesJour = { charger: charger, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
                              datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE,
                              etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan,
-                             signes: function () { return SIGNES; }, relireSignes: relireSignes, punaisesSignes: punaisesSignes };
+                             vu: function (id) { vu(id); peindreBandeau(); },
+                             pasVu: function (id) { pasVu(id); peindreBandeau(); }, signes: function () { return SIGNES; }, relireSignes: relireSignes, punaisesSignes: punaisesSignes };
 })();

@@ -68,6 +68,13 @@
   color:var(--bdv-encre-2);
 }
 .dpap .dpap__table td{ padding:var(--bdv-e-2); border-bottom:1px solid var(--bdv-trait); vertical-align:top; }
+/* UN NOM SANS ESPACE SE COUPE (D1, 01/10/2026) : une designation de 200 signes d'un seul mot
+   poussait le tableau a 2 376 px dans une feuille de 720, et les colonnes des prix sortaient
+   du A4, sur la copie meme que le client signe. `anywhere` compte dans la largeur minimale de
+   la colonne (`break-word` ne le fait pas) : le tableau tient sa feuille. Les colonnes de
+   nombres, elles, ne se coupent jamais. */
+.dpap .dpap__vin{ width:100%; overflow-wrap:anywhere; }
+.dpap .dpap__raison{ overflow-wrap:anywhere; }
 .dpap .dpap__table tr{ break-inside:avoid; }
 .dpap .dpap__table .dpap__n{ text-align:right; white-space:nowrap; }
 .dpap .dpap__code{ font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }

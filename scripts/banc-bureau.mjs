@@ -842,9 +842,9 @@ titre('Le bilan commun de Mon commerce (lot 45)');
   t('« A gagner », affaires pas lues : visible, la seule case clients, et aucun chiffre',
     !bil.hidden && cases(bil) === 'clients' && !/\d/.test(bil.textContent)
     && /Clients à suivre :\s*comptés à l’ouverture de l’onglet/.test((bil.querySelector('.aff-bilan__l') || {}).textContent + ' ' + (bil.querySelector('.aff-bilan__s') || {}).textContent)
-    && bil.querySelector('[data-bilan="clients"]').getAttribute('aria-label') === 'à suivre : Clients à suivre : comptés à l’ouverture de l’onglet'
+    && bil.querySelector('[data-bilan="clients"]').getAttribute('aria-label') === 'Clients à suivre : comptés à l’ouverture de l’onglet'
     && contientVu(bil)
-    && (bil.querySelector('.aff-bilan__c') || {}).textContent === 'à suivre',
+    && (bil.querySelector('.aff-bilan__c') || {}).textContent === 'Clients à suivre',
     cases(bil) + ' / ' + bil.textContent);
   K.window.BdvAffairesJour.poser([{ affaire_id: 'a1', issue: 'en_cours', rappel: '2020-01-01', piste_id: 'p1' },
     { affaire_id: 'a2', issue: 'en_cours', rappel: null, piste_id: 'p2' }], { p1: { nom: 'A' }, p2: { nom: 'B' } }, []);
@@ -987,13 +987,19 @@ titre('Le bilan commun de Mon commerce (lot 45)');
   const rangee = (cs) => cs.reduce((a, c) => a + largT(c[0], c[1]), 0) + (cs.length - 1) * e2;
   const pire = [['123', 'en cours'], ['123', 'à relancer'], ['123', 'à suivre']];
   const tous = [['123', 'en cours'], ['123', 'à relancer'], [null, 'tous en affaire']];
-  const nul = [['123', 'en cours'], ['123', 'à relancer'], [null, 'à suivre']];
+  /* S18 (01/10/2026) : sans chiffre, la case dit « Clients à suivre » en entier. */
+  const nul = [['123', 'en cours'], ['123', 'à relancer'], [null, 'Clients à suivre']];
   const nulLong = [['123', 'en cours'], ['123', 'à relancer'], [null, 'à suivre : à l’ouverture']];
   t('a 390 px, « 123 en cours », « 123 à relancer », « 123 à suivre » tiennent sur une rangee (' + rangee(pire).toFixed(0) + ' px pour ' + dispo + ')',
     !isNaN(padT) && rangee(pire) <= dispo && rangee(tous) <= dispo && rangee(nul) <= dispo,
     [pire, tous, nul].map(x => rangee(x).toFixed(0)).join(' / '));
-  t('« à suivre : à l’ouverture » ne tiendrait pas (' + rangee(nulLong).toFixed(0) + ' px) : le cas null dit « à suivre » seul',
-    rangee(nulLong) > dispo && AJ.includes("false, 'à suivre', 'Clients à suivre : comptés"));
+  t('« à suivre : à l’ouverture » ne tiendrait pas (' + rangee(nulLong).toFixed(0) + ' px) : le cas null dit « Clients à suivre » (' + rangee(nul).toFixed(0) + ' px), qui tient',
+    rangee(nulLong) > dispo && rangee(nul) <= dispo && AJ.includes("false, 'Clients à suivre', 'comptés à l’ouverture de l’onglet', true)"));
+  /* W5 (tour 2) : a 390 px, la case sans chiffre ne redit pas le nom de l'onglet juste
+     dessous ; elle revient avec son chiffre. */
+  t('W5 : sous 700 px, la case « Clients à suivre » sans chiffre ne s\'affiche pas',
+    (tel('.aff-bilan__case--sans').decl.display || '') === 'none'
+    && /aff-bilan__case--sans/.test(AJ) && AJ.includes("'comptés à l’ouverture de l’onglet', true)"));
   const dispo320 = 320 - 2 * pad, deux = rangee(pire.slice(0, 2)), maxCase = Math.max(...pire.map(c => largT(c[0], c[1])));
   t('a 320 px (' + dispo320 + ' utiles) la rangee ne tient pas (' + rangee(pire).toFixed(0) + ') : repli sur deux rangees, 44 + 8 + 44 = 96 px, sans debordement',
     rangee(pire) > dispo320 && deux <= dispo320 && maxCase <= dispo320 && rang['flex-wrap'] === 'wrap' && tk['white-space'] === 'nowrap' && !tb['flex-wrap'],
@@ -1193,9 +1199,9 @@ titre('Le plateau, dans l\'ordre de Ted');
      <button>. Le controle porte sur le CODE qui fabrique la ligne, parce que la
      ligne n'existe pas dans le HTML livre : elle est montee au chargement. */
   t('la ligne du sous-main est une rangee de tableau, pas un bouton',
-    /createElement\('tr'\)[\s\S]{0,200}listb__l/.test(HTML) && !/className = 'tache'/.test(HTML));
+    /(?:createElement|\bmk)\('tr'\)[\s\S]{0,200}listb__l/.test(HTML) && !/className = 'tache'/.test(HTML));
   t('le sous-main a un vrai en-tete de colonnes',
-    /createElement\('th'\)/.test(HTML) && /th\.scope = 'col'/.test(HTML));
+    /(?:createElement|\bmk)\('th'\)/.test(HTML) && /th\.scope = 'col'/.test(HTML));
   /* CINQ COLONNES, ET LA REFERENCE EST SOUS LE NOM. Ted a dicte Ref, Fichier
      client, Motif, Retard, Geste. La mesure a impose deux amenagements sans
      rien retirer : la reference passe sous le nom, dans la meme cellule, ou
@@ -1327,6 +1333,51 @@ t('le peintre de la lune n\'appelle pas les choix du calendrier',
   !/BdvCalchoix|reglesActives/.test(PEINTRE));
 t('il retourne le dessin quand la lune decroit, et pas autrement',
   /scale\(-1,1\)/.test(PEINTRE) && /removeAttribute\('transform'\)/.test(PEINTRE));
+
+/* ======================= UNE BOITE A LA FOIS (M5, M6, 01/10/2026) =======================
+   Deux defauts du verificateur mecanique : le panneau d'une affaire restait ouvert quand
+   on changeait de piece, et une seconde boite posee par BdvTiroir laissait la premiere a
+   l'ecran. On fabrique les deux boites telles que les modules les posent (une croix
+   `.tmod__x` ou `.modale__close` qui ferme et rend le tiroir), et on joue les gestes. */
+titre('Une boite a la fois');
+{
+  const U = bureau();
+  const d = U.doc;
+  const fabrique = (idMod, clsBoite, clsX) => {
+    let m = d.getElementById(idMod);
+    if (!m) { m = d.createElement('div'); m.id = idMod; d.body.appendChild(m); }
+    m.hidden = false;
+    m.innerHTML = '<div class="' + clsBoite + '"><button type="button" class="' + clsX + '">x</button></div>';
+    m.querySelector('.' + clsX).addEventListener('click', () => { m.hidden = true; U.window.BdvTiroir.retirer(); });
+    return m;
+  };
+  const aff = fabrique('affaireModale', 'tmod__boite', 'tmod__x');
+  U.window.BdvTiroir.poser(aff.querySelector('.tmod__boite'));
+  const fic = fabrique('ficheTest', 'modale__box', 'modale__close');
+  U.window.BdvTiroir.poser(fic.querySelector('.modale__box'));
+  t('M6 : poser une seconde boite ferme la premiere par sa croix', aff.hidden && !fic.hidden);
+  U.window.BdvTiroir.poser(fic.querySelector('.modale__box'));
+  t('M6 : reposer la MEME boite (bascule de seuil) ne la ferme pas', !fic.hidden);
+  fic.querySelector('.modale__close').click();
+  const aff2 = fabrique('affaireModale', 'tmod__boite', 'tmod__x');
+  U.window.BdvTiroir.poser(aff2.querySelector('.tmod__boite'));
+  U.window.BdvNav.afficher('affaires');
+  await U.repos();
+  t('M5 : rester sur « A gagner » garde le panneau d\'une affaire', !aff2.hidden);
+  U.clic('journee');
+  await U.repos();
+  t('M5 : changer de piece ferme le panneau d\'une affaire', aff2.hidden);
+  const dev = fabrique('devisModale', 'tmod__boite', 'tmod__x');
+  U.window.BdvTiroir.poser(dev.querySelector('.tmod__boite'));
+  U.clic('taches');
+  await U.repos();
+  t('M5 : et le devis', dev.hidden);
+  const tac = fabrique('tacheTest', 'tmod__boite', 'tmod__x');
+  U.window.BdvTiroir.poser(tac.querySelector('.tmod__boite'));
+  U.clic('journee');
+  await U.repos();
+  t('M5 : une autre boite (une tache) ne se ferme pas en changeant de piece', !tac.hidden);
+}
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');

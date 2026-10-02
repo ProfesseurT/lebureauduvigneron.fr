@@ -7,9 +7,11 @@
    la lirait jamais.
 
    LA BOITE EST UNE `.tmod` (`#devisModale`, classes `tmod dmod`) : meme papier,
-   meme croix que le panneau d'une affaire, et le tiroir de la section 22.7 de
-   bdv-bureau.css s'applique tel quel au-dessus de 1320 px. Rien ici ne redit une
-   regle de tiroir.
+   meme croix que le panneau d'une affaire. ELLE N'EST PLUS JAMAIS UN TIROIR
+   (01/10/2026, juge V4) : un devis est une saisie large, il s'ouvre en modale de
+   62 rem (992 px) a toutes les largeurs, et une ligne par vin en tableau des que la
+   boite le permet. bdv-devis.js ne passe plus par `BdvTiroir`, donc la section 22.7
+   de bdv-bureau.css ne la touche pas. Rien ici ne redit une regle de tiroir.
 
    QUE DES JETONS, pour les deux themes : aucune couleur, aucune taille de texte,
    aucun rayon ecrit en dur. Aucune ombre, aucun z-index. Pas de `@media print` :
@@ -20,7 +22,7 @@
    coupure des longs noms), et le total TTC colle en bas avec « Enregistrer ».
    ========================================================================== */
 .bdv-coque .dmod__boite{
-  max-width:48rem;
+  max-width:62rem;
   /* LA HAUTEUR DU PIED COLLANT EST RESERVEE a ce qui recoit le focus (WCAG 2.4.11) ;
      bdv-devis.js recale en plus chaque focus au-dessus du pied, mesure a l'appui. */
   scroll-padding-bottom:calc(var(--bdv-e-12) + var(--bdv-e-12) + var(--bdv-e-6));
@@ -28,6 +30,9 @@
 .bdv-coque .dmod__boite--apercu{ max-width:62rem; }
 .bdv-coque .dmod__tete{ margin-bottom:var(--bdv-e-3); padding-right:var(--bdv-e-8); }
 .bdv-coque .dmod__retour-l{ margin:0 0 var(--bdv-e-3); }
+/* X1 (tour 3) : la suite d'un devis enregistre, sous l'avis, dans le premier ecran. */
+.bdv-coque .dmod__prochaine{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2) var(--bdv-e-3); margin:0 0 var(--bdv-e-3); color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .dmod__prochaine[hidden]{ display:none; }
 .bdv-coque .dmod__corps{ container:devis / inline-size; min-width:0; }
 
 .bdv-coque .dmod__bloc{
@@ -83,13 +88,22 @@
 .bdv-coque .dmod__coche{
   display:flex;
   flex-wrap:wrap;
-  align-items:center;
+  /* LA CASE SUR LA PREMIERE LIGNE DE SON TEXTE (S6, vu a la capture du 01/10/2026) : centree,
+     elle tombait au milieu d'un libelle de trois lignes, et la premiere ligne partait au-dessus
+     d'elle. La ligne de base la pose sur la premiere ligne ; `align-content` garde centre dans
+     ses 44 px un libelle qui tient sur une seule. */
+  align-items:baseline;
+  align-content:center;
   gap:0 var(--bdv-e-2);
   min-height:var(--bdv-cible);
   min-width:0;
   cursor:pointer;
 }
 .bdv-coque .dmod__coche input{ flex:none; margin:0; }
+/* LE TEXTE D'UNE CASE RESTE A COTE DE SA CASE (S6) : un libelle long ne passe plus a la ligne
+   entier sous elle, il se replie a cote. Seuls les `span` sans classe : le nom et le prix d'une
+   proposition ont leur propre partage de la ligne. */
+.bdv-coque .dmod__coche > span:not([class]){ flex:1 1 0; min-width:0; }
 .bdv-coque .dmod__nom{
   flex:1 1 10rem;
   min-width:0;
@@ -117,6 +131,96 @@
   .bdv-coque .dmod__champs--tva{ grid-template-columns:minmax(0, 0.7fr) minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 0.8fr) minmax(0, 1fr); }
 }
 .bdv-coque .dmod__champs .aff-champ{ min-width:0; align-content:start; }
+
+/* Le pied d'une ligne (pli et total) ne compte qu'en carte etroite : ailleurs il s'efface. */
+.bdv-coque .dmod__lpied{ display:contents; }
+/* L'EN-TETE ET LA TETE D'UNE LIGNE. L'en-tete n'existe qu'en tableau (plus bas). */
+.bdv-coque .dmod__lentete{ display:none; }
+.bdv-coque .dmod__ltete{ min-width:0; }
+/* « REMISE OU AUTRE TVA » : le pli d'une carte etroite. Ailleurs il n'existe pas. */
+.bdv-coque .dmod__plus{ display:none; margin:0 0 var(--bdv-e-2); text-align:left; }
+.bdv-coque .dmod__plus-r{ font-weight:600; }
+@container devis (max-width:35.9375rem){
+  .bdv-coque .dmod__plus{ display:inline-block; }
+  /* LA CARTE AU DEFAUT TIENT EN TROIS RANGEES (juge V15 et W10, 02/10/2026) : le nom ; la
+     quantite (etroite) et le prix (large, sa provenance sur une ligne) ; puis « Remise ou autre
+     TVA » a gauche et le total de la ligne a droite, sur la meme rangee. La remise et la TVA
+     depliees passent au-dessus du total, qu'elles changent. */
+  .bdv-coque .dmod__ligne .dmod__champs{ grid-template-columns:minmax(0, 0.75fr) minmax(0, 1.25fr); }
+  .bdv-coque .dmod__lpied{
+    grid-column:1 / -1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--bdv-e-3);
+    min-width:0;
+  }
+  .bdv-coque .dmod__lpied .dmod__plus{ margin:0; flex:none; white-space:nowrap; }
+  .bdv-coque .dmod__lpied .dmod__lt{ margin-left:auto; text-align:right; gap:0; }
+  .bdv-coque .dmod__lpied .dmod__lt .dmod__lib{ font-size:var(--bdv-f-1); }
+  .bdv-coque .dmod__ligne [data-dev-src]{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* Le code remonte dans le blanc du bas de la case (44 px pour une ligne de nom) : il ne
+     recouvre aucune cible, la case garde ses 44 px. */
+  .bdv-coque .dmod__ligne{ padding-top:var(--bdv-e-1); padding-bottom:var(--bdv-e-2); }
+  .bdv-coque .dmod__ligne .dmod__code{ margin:calc(-1 * var(--bdv-e-2)) 0 var(--bdv-e-1); padding-left:var(--bdv-e-6); pointer-events:none; }
+  .bdv-coque .dmod__ligne:not(.dmod__ligne--plus) .dmod__repli{ display:none; }
+  /* Ouvert, le pli n'a plus rien a ouvrir : le bouton s'en va (le focus est deja sur la remise). */
+  .bdv-coque .dmod__ligne--plus .dmod__plus{ display:none; }
+}
+/* UNE LIGNE PAR VIN, EN TABLEAU (juge V4), des 50 rem de boite : le nom a gauche, les champs
+   sur la meme rangee, les noms des colonnes une seule fois en tete. Chaque champ garde son
+   libelle pour les aides techniques, masque a l'oeil comme `.hors-ecran`. */
+@container devis (min-width:50rem){
+  .bdv-coque .dmod__lentete,
+  .bdv-coque .dmod__ligne{
+    display:grid;
+    grid-template-columns:minmax(0, 19rem) minmax(0, 1fr);
+    column-gap:var(--bdv-e-3);
+    align-items:start;
+  }
+  .bdv-coque .dmod__lentete{
+    padding:0 var(--bdv-e-3);
+    font-size:var(--bdv-f-1);
+    font-weight:600;
+    letter-spacing:var(--bdv-ls-etiq);
+    text-transform:uppercase;
+    color:var(--bdv-encre-3);
+  }
+  .bdv-coque .dmod__lentete .dmod__champs{ display:grid; }
+  .bdv-coque .dmod__ligne{ padding:var(--bdv-e-1) var(--bdv-e-3); align-items:center; }
+  /* UNE RANGEE PAR VIN, SUR UNE LIGNE (juge V4, 02/10/2026) : le nom se coupe proprement (son
+     nom complet reste dans `title` et dans le libelle de la case), le code dessous en petit, et
+     la provenance du prix passe en infobulle du champ (`title`) en restant sa description pour
+     les aides techniques. Mesure : environ 56 px au lieu de 107 a 115. */
+  .bdv-coque .dmod__ligne .dmod__coche{ flex-wrap:nowrap; min-height:0; }
+  /* T2 (02/10/2026) : la coupe sur une ligne mangeait le format et le millesime (« Cuvée Les
+     Terrasses 2021, Bouteil… »), et la vue de lecture aussi. Le nom tient en DEUX lignes au
+     plus : la designation sur la premiere, coupee si elle est trop longue (sur deux lignes si
+     elle est seule), le millesime et le format sur la seconde, en petit, jamais coupes. */
+  .bdv-coque .dmod__ligne .dmod__nom{ flex:1 1 0; display:flex; flex-direction:column; overflow-wrap:normal; }
+  .bdv-coque .dmod__ligne .dmod__vin{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bdv-coque .dmod__ligne .dmod__vin:only-child{
+    white-space:normal; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow-wrap:anywhere;
+  }
+  .bdv-coque .dmod__ligne .dmod__fmt{ display:block; font-size:var(--bdv-f-1); font-weight:400; color:var(--bdv-encre-2); white-space:nowrap; }
+  /* LA LECTURE D'UN DEVIS ENVOYE NE COUPE RIEN : la place ne manque pas, rien n'est a saisir. */
+  .bdv-coque .dmod__lignes--lues .dmod__ligne .dmod__vin,
+  .bdv-coque .dmod__lignes--lues .dmod__ligne .dmod__fmt{ white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; }
+  .bdv-coque .dmod__ligne .dmod__code{ margin:0; padding-left:var(--bdv-e-6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bdv-coque .dmod__ligne .dmod__champs{ align-items:center; }
+  .bdv-coque .dmod__ligne [data-dev-src],
+  .bdv-coque .dmod__ligne .dmod__lib{
+    position:absolute;
+    width:1px;
+    height:1px;
+    margin:-1px;
+    padding:0;
+    overflow:hidden;
+    white-space:nowrap;
+    border:0;
+    clip-path:inset(50%);
+  }
+}
 .bdv-coque .dmod__src{ font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
 /* L'ERREUR SOUS LE CHAMP FAUTIF : un mot, un signe, une couleur (jamais la seule couleur). */
 .bdv-coque .dmod__err{ font-size:var(--bdv-f-2); font-weight:600; color:var(--bdv-retard); }
@@ -205,6 +309,28 @@
 .bdv-coque .dmod__confirme--neutre{ border-color:var(--bdv-trait); background:var(--bdv-surface-2); }
 .bdv-coque .dmod__jour{ max-width:12rem; margin-bottom:var(--bdv-e-2); }
 
+/* JUGE V1, TOUR 2 : la phrase qui dit ce que le bureau va noter, juste au-dessus du bouton. */
+.bdv-coque .dmod__envoi-phrase{ margin:var(--bdv-e-2) 0; font-weight:600; color:var(--bdv-encre-1); }
+/* N2 : le lien cree, en tete de la boite. Premier bloc du corps : pas de filet au-dessus. */
+.bdv-coque .dmod__lientete{ padding-top:0; border-top:0; }
+.bdv-coque .dmod__lientete .dmod__confirme{ margin-top:0; }
+.bdv-coque .dmod__lientete .dmod__t{ margin-bottom:var(--bdv-e-2); }
+/* W11 : pendant la preparation de l'envoi, « Oui, il accepte » et « Non, il refuse » en
+   retrait, trait tirete et encre douce, comme le pied (jamais la seule couleur : le mot
+   au-dessus dit pourquoi). Ils gardent le focus et l'appui, qui ramene ce mot. */
+.bdv-coque .dmod__attente{ margin:0 0 var(--bdv-e-2); color:var(--bdv-encre-2); }
+/* X7 (tour 3) : meme retrait pour « Créer un lien » et « Refaire ce devis » pendant la question
+   « Il a dit non » : ils vivent hors du bloc de la reponse. */
+.bdv-coque .dmod__commande .btn[aria-disabled="true"],
+.bdv-coque .dmod .btn[aria-describedby="devRefusAttente"][aria-disabled="true"]{
+  opacity:1;
+  pointer-events:auto;
+  cursor:not-allowed;
+  background:var(--bdv-surface-2);
+  border:1px dashed var(--bdv-trait-fort);
+  color:var(--bdv-encre-3);
+}
+
 /* LE PIED COLLANT : le total TTC et « Enregistrer le devis » restent sous le pouce
    pendant qu'on descend la liste. Il deborde des marges de la boite pour couvrir
    toute sa largeur ; dernier enfant, il se peint au-dessus sans z-index. MESURE du
@@ -226,6 +352,13 @@
 }
 .bdv-coque .dmod__pied-t{ margin:0; color:var(--bdv-encre-2); font-variant-numeric:tabular-nums; }
 .bdv-coque .dmod__pied-t b{ font-size:var(--bdv-f-4); color:var(--bdv-encre-1); }
+/* Le TTC suit le HT, plus discret (juge V3). */
+.bdv-coque .dmod__pied-ttc{ font-size:var(--bdv-f-2); color:var(--bdv-encre-3); white-space:nowrap; }
+/* Le mot passe SOUS le total et le bouton : il ne les separe pas sur deux rangees. */
+.bdv-coque .dmod__pied-mot{ margin:0; flex:1 1 100%; order:3; }
+/* L'ORDRE D'UN GESTE, en etapes numerotees (juge V1). */
+.bdv-coque .dmod__etapes{ margin:0 0 var(--bdv-e-2); padding-left:var(--bdv-e-6); }
+.bdv-coque .dmod__etapes li{ margin:0 0 var(--bdv-e-1); }
 
 /* L'APERCU : une feuille A4 entiere, en proportion. Le papier est clair dans les
    deux themes : c'est un document, il sort sur une imprimante. */

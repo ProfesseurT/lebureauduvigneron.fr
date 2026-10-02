@@ -429,7 +429,7 @@
   <div class="bdvr-tete">
     <button class="bdvr-x" id="bdvrFermer" type="button" aria-label="Fermer">&#215;</button>
     <h2 class="bdvr-titre" id="bdvrTitre">Mes réglages</h2>
-    <p class="bdvr-sous">Tout est modifiable, tout le temps. Rien n'est obligatoire.</p>
+    <p class="bdvr-sous">Tout est modifiable, tout le temps. Seul le devis exige une fiche « Mon domaine » remplie.</p>
     <div class="bdvr-onglets" id="bdvrOnglets" role="tablist"></div>
   </div>
 
@@ -618,6 +618,7 @@
     voile.addEventListener('click', function(e){ if(e.target === voile) fermer(); });
     document.addEventListener('keydown', function(e){
       if(e.key === 'Escape' && !voile.hidden) fermer();
+      if(e.key === 'Tab' && !voile.hidden) pieger(e);
     });
     // Regle 2 : un champ touche est marque des la premiere frappe, avant toute reponse reseau.
     el('bdvrForm').addEventListener('input', marquer);
@@ -859,8 +860,8 @@
   function relancerLectures(){
     const encore = function(){ const v = el('bdvrVoile'); return v && !v.hidden; };
     armerAttente();
-    if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()) remplir(); });
-    if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()) remplir(); });
+    if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()){ remplir(); reposerFocus(); } });
+    if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()){ remplir(); reposerFocus(); } });
   }
 
   function verrous(){
@@ -1201,20 +1202,88 @@
     avis('', true);
     el('bdvrVoile').hidden = false;
     document.body.style.overflow = 'hidden';
-    el('bdvrPrenom').focus();
     rafraichirTout();
     viserOnglet(onglet);
+    poserFocus();
     // On rouvre sur ce qu'on a, puis on se corrige avec ce que le serveur dit. Tant que ces
     // lectures n'ont pas abouti, rien ne part : c'est le role des deux verrous.
     const encore = function(){ const v = el('bdvrVoile'); return v && !v.hidden; };
     // Le plafond part avec les lectures : au bout de quinze secondes, le message d'attente
     // cede la place a une phrase qui nomme l'echec et a un bouton. Voir armerAttente().
     armerAttente();
-    if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()) remplir(); });
-    if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()) remplir(); });
+    if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()){ remplir(); reposerFocus(); } });
+    if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()){ remplir(); reposerFocus(); } });
+  }
+
+  /* LE FOCUS ET LE CLAVIER DU PANNEAU, 01/10/2026 (saisie S4, juge V17).
+     1. Le focus allait a « Ton prenom », un champ de l'onglet « Toi ». Ouvert sur « Mon
+        domaine » depuis le devis (« Completer Mon domaine »), il visait donc un champ CACHE :
+        le curseur restait sur la page, sous le voile. Il va maintenant au premier champ VIDE
+        de l'onglet affiche, et d'abord a un champ que le devis exige (`data-requis`, pose
+        par bdv-domaine.js) ; sinon au premier champ ; sinon a la croix. La recherche de
+        l'annuaire porte `data-sans-focus` : elle est toujours vide, et la viser ne dirait
+        rien de ce qui manque.
+     2. La fiche du domaine et le profil arrivent APRES l'ouverture. `reposerFocus()` refait
+        le choix si le focus est encore la ou on l'avait pose et que personne n'a tape :
+        sinon il resterait sur un champ que la lecture vient de remplir.
+     3. `aria-modal="true"` DIT qu'il n'y a rien d'autre a l'ecran ; Tab prouvait le
+        contraire (trois sorties vers le bandeau, sous le voile). Meme piege que la fiche
+        client (bdv-ecrans.js, 19/09/2026), et il se tait quand le vidage rend `aria-modal`
+        et pose `inert` : la, le voile du travail est hors du panneau, et il doit s'entendre.
+     « Atteignable » se juge sans mise en page quand il n'y en a pas (jsdom) : hors `[hidden]`,
+     hors `[inert]`, dans l'onglet affiche, hors d'un `details` ferme. Avec une mise en page,
+     on exige en plus une boite a l'ecran. */
+  let FOCUS_AUTO = null;
+  const CIBLES = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),'
+    + 'select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+  function atteignable(n){
+    if(n.closest('[hidden]') || n.closest('[inert]')) return false;
+    const bloc = n.closest('.bdvr-bloc');
+    if(bloc && !bloc.classList.contains('bdvr-bloc--on')) return false;
+    const d = n.closest('details:not([open])');
+    if(d && !(n.tagName === 'SUMMARY' && n.parentNode === d)) return false;
+    if(document.documentElement.getClientRects().length && !n.getClientRects().length) return false;
+    return true;
+  }
+  function poserFocus(){
+    const bloc = el(ONGLET);
+    let choix = null;
+    if(bloc){
+      const champs = Array.prototype.slice.call(bloc.querySelectorAll('input,select,textarea'))
+        .filter(function(n){ return !n.disabled && !n.readOnly && n.type !== 'hidden'
+          && n.type !== 'checkbox' && n.type !== 'radio' && !n.hasAttribute('data-sans-focus') && atteignable(n); });
+      const vide = function(n){ return !String(n.value || '').trim(); };
+      choix = champs.filter(function(n){ return n.hasAttribute('data-requis') && vide(n); })[0]
+           || champs.filter(vide)[0] || champs[0] || null;
+    }
+    if(!choix) choix = el('bdvrFermer');
+    FOCUS_AUTO = choix;
+    if(choix) choix.focus();
+  }
+  function reposerFocus(){
+    const v = el('bdvrVoile');
+    if(!v || v.hidden || !FOCUS_AUTO || document.activeElement !== FOCUS_AUTO) return;
+    if(Object.keys(TOUCHES).length) return;
+    poserFocus();
+  }
+  function ciblesPanneau(){
+    const p = document.querySelector('#bdvrVoile .bdvr-panneau');
+    return p ? Array.prototype.slice.call(p.querySelectorAll(CIBLES)).filter(atteignable) : [];
+  }
+  function pieger(e){
+    const v = el('bdvrVoile');
+    const p = v && v.querySelector('.bdvr-panneau');
+    if(!p || v.inert || p.getAttribute('aria-modal') !== 'true') return;
+    const cibles = ciblesPanneau();
+    if(!cibles.length) return;
+    const prem = cibles[0], dern = cibles[cibles.length - 1], ici = document.activeElement;
+    if(!p.contains(ici)){ e.preventDefault(); (e.shiftKey ? dern : prem).focus(); return; }
+    if(e.shiftKey && ici === prem){ e.preventDefault(); dern.focus(); }
+    else if(!e.shiftKey && ici === dern){ e.preventDefault(); prem.focus(); }
   }
 
   function fermer(){
+    FOCUS_AUTO = null;
     desarmerAttente();
     const v = el('bdvrVoile');
     if(v) v.hidden = true;
@@ -1343,6 +1412,8 @@
   window.BdvReglages = {
     ouvrir: ouvrir,
     fermer: fermer,
+    reposerFocus: reposerFocus,
+    _cibles: ciblesPanneau,
     brancher: brancher,
     brancherSortie: brancherSortie,
     actionsBase: actionsBase,

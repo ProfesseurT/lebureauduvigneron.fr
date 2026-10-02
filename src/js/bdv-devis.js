@@ -20,10 +20,14 @@
    numero n'existe a l'ecran avant. Un retour vide, ou sans numero, est un
    ECHEC dit comme tel, jamais « enregistre ».
 
-   LA BOITE `#devisModale` (`tmod dmod`) passe par `BdvTiroir.poser/retirer`,
-   comme le panneau d'une affaire, la tache et la fiche client : UNE boite a la
-   fois. L'ordre est celui du lot 44 : le panneau d'affaire ecrit son etape en
-   attente et se retire, puis le devis se pose. « Retour a l'affaire » fait le
+   LA BOITE `#devisModale` (`tmod dmod`) EST UNE MODALE LARGE, A TOUTES LES LARGEURS
+   (01/10/2026, juge vigneron V4). Un devis est une SAISIE : dans le tiroir d'un tiers
+   d'ecran chaque vin devenait une carte de 335 px, et la liste des affaires restait
+   derriere sans servir. Il ne passe donc PLUS par `BdvTiroir` : il pose lui-meme le
+   contrat d'une modale (role dialog, aria-modal, defilement du corps rendu a la
+   fermeture) et RETIENT LE CLAVIER, puisqu'il dit qu'il n'y a rien d'autre a l'ecran.
+   Toujours UNE boite a la fois : le panneau d'affaire ecrit son etape en attente et se
+   retire (`BdvTiroir.retirer`), puis le devis se pose ; « Retour a l'affaire » fait le
    chemin inverse.
 
    LE BROUILLON VIT SUR L'APPAREIL (localStorage, `bdv_devis_brouillon_<affaire>`,
@@ -85,6 +89,8 @@
   var MENTION_EXPORT = 'Exonération de TVA, article 262 I du CGI.';
   var MENTION_UE = 'Exonération TVA, art. 262 ter-I du code général des impôts.';
   var ACCISES_HORS = 'Prix HT, hors droits d’accises.';
+  /* V9 : tant que la question n'a pas de reponse, le total ne dit ni l'un ni l'autre. */
+  var ACCISES_A_DIRE = 'Dis plus haut si tes prix comprennent les droits d’accises : le devis l’écrira.';
   var AIDE_ACCISE = 'Un vin qui part en suspension de droits (sous DAE) ne paie pas l’accise française : si c’est le cas, enlève-la de tes prix.';
   var AIDE_VIES = 'Vérifie ce numéro sur le site VIES de la Commission européenne avant d’envoyer : sans numéro valide, la vente reste taxée en France.';
   var AIDE_55 = 'Le 5,5 % vaut pour le jus de raisin non fermenté, le moût et l’épicerie. Le vin reste à 20 %.';
@@ -135,6 +141,16 @@
     else if (!m) m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
     return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
   }
+  /* « 2 oct. », « 1er mai » : la date des phrases d'envoi (juge V1, 02/10/2026). */
+  var MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  function dateCourte(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    if (!m) return '';
+    var j = +m[3];
+    return (j === 1 ? '1er' : String(j)) + '\u00a0' + MOIS_COURTS[+m[2] - 1];
+  }
+  /* Une phrase qui finit sur « oct. » ne prend pas un second point (N8). */
+  function finPhrase(t) { return /[.!?]$/.test(t) ? t : t + '.'; }
   function bureau() { return S && S.ctx && S.ctx.bureau; }
   function cleDe(p) {
     return [p.num_produit || '', p.designation || '', p.conditionnement || '', p.millesime || ''].join('|');
@@ -142,6 +158,18 @@
   /* « Brut Tradition 2021, 75 cl » : produit + millesime + conditionnement. */
   function nomDe(l) {
     return String(l.designation || '') + (l.millesime ? ' ' + l.millesime : '') + (l.conditionnement ? ', ' + l.conditionnement : '');
+  }
+  /* T2 (02/10/2026) : le nom d'une ligne en DEUX morceaux. Le millesime et le format sont ce
+     qui distingue deux lignes (« Le Rosé 2025, Bouteille » / « Le Rosé 2024, Magnum ») : ils
+     ne disparaissent jamais. Si la place manque, c'est la designation qui se reduit
+     (bdv-devis.css), le nom complet reste en `title` et dans le libelle de la case. */
+  function fmtDe(l) {
+    return (l.millesime ? String(l.millesime) : '') + (l.conditionnement ? (l.millesime ? ', ' : '') + l.conditionnement : '');
+  }
+  function nomHtml(l, balise) {
+    var f = fmtDe(l), b = balise || 'span';
+    return '<' + b + ' class="dmod__nom" title="' + esc(nomDe(l)) + '"><span class="dmod__vin">' + esc(String(l.designation || '')) + '</span>'
+      + (f ? (l.millesime ? ' ' : ', ') + '<span class="dmod__fmt">' + esc(f) + '</span>' : '') + '</' + b + '>';
   }
   function sqlAbsent(e) {
     return !!e && (e.status === 404 || /PGRST202|PGRST205|42883|42P01/.test(String(e.detail || '')));
@@ -184,6 +212,7 @@
     if (r < envoi) r = envoi;
     return r;
   }
+  function titreRelance(numero) { return 'Relancer le devis ' + numero + ' (vérifie qu’il est bien parti)'; }
   function lectureSeule() {
     return !!(S.devis && (S.devis.statut !== 'enregistre' || (S.ctx.affaire && S.ctx.affaire.issue && S.ctx.affaire.issue !== 'en_cours')));
   }
@@ -253,14 +282,16 @@
   /* ---------------- LA TVA (lot 54) ----------------
      Un devis d'avant le lot (ou sans le SQL) n'a pas ces colonnes : il est « en France »,
      lignes a 20 %, et c'est ce qu'il etait. */
-  function tvaVide() { return { regime: 'france', client: '', accises: false }; }
+  /* `accises` : true, false, ou null tant que le vigneron n'a pas repondu (juge V9). */
+  function tvaVide() { return { regime: 'france', client: '', accises: null }; }
   function lot54() { return !!(S && S.devis && Object.prototype.hasOwnProperty.call(S.devis, 'regime_tva')); }
   function tvaDeDevis(d) {
     var v = tvaVide();
     if (!d) return v;
     v.regime = ['france', 'export', 'ue'].indexOf(d.regime_tva) >= 0 ? d.regime_tva : 'france';
     v.client = d.client_tva || '';
-    v.accises = v.regime !== 'france' && !!d.accises_incluses;
+    /* Un devis deja enregistre hors de France porte sa reponse ; en France la question ne se pose pas. */
+    v.accises = v.regime !== 'france' ? !!d.accises_incluses : null;
     return v;
   }
   function horsFrance() { return S.tva && S.tva.regime !== 'france'; }
@@ -395,6 +426,9 @@
       + '<p class="dmod__retour-l" id="devRetourL"><button type="button" class="btn dmod__retour" id="devRetour" data-dev="retour">Retour à l’affaire</button></p>'
       + '<div class="dmod__tete" id="devTete"></div>'
       + '<p class="aff-avis" id="devAvis" role="status" aria-live="polite" hidden></p>'
+      /* X1 (tour 3) : apres « Devis enregistré », la SUITE est dite et a portee, juste sous
+         l'avis, donc dans le premier ecran a 390 : le bloc d'envoi est tout en bas. */
+      + '<p class="dmod__prochaine" id="devProchaine" hidden>Prochaine étape : l’envoyer. <button type="button" class="btn" data-dev="allerEnvoi">Préparer l’envoi</button></p>'
       + '<div class="dmod__corps" id="devCorps"></div></div>';
     document.body.appendChild(MOD);
     MOD.addEventListener('click', surClic);
@@ -413,6 +447,17 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && MOD && !MOD.hidden) { e.preventDefault(); fermer(); }
     });
+    /* LE CLAVIER RESTE DANS LA BOITE (regle du 19/09/2026) : `aria-modal` annonce qu'il n'y
+       a rien d'autre a l'ecran, Tab doit le prouver. Du dernier arret on revient au premier,
+       et inversement ; un focus parti dehors (clic sur le voile, puis Tab) revient dedans. */
+    MOD.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || MOD.hidden) return;
+      var box = MOD.querySelector('.tmod__boite'), l = arrets(box);
+      if (!l.length) return;
+      var a = document.activeElement, i = l.indexOf(a);
+      if (e.shiftKey && (i <= 0)) { e.preventDefault(); l[l.length - 1].focus(); }
+      else if (!e.shiftKey && (i === l.length - 1 || i < 0)) { e.preventDefault(); l[0].focus(); }
+    });
     return MOD;
   }
   /* RAMENER UN ELEMENT DANS LA BOITE QUI DEFILE, entre son haut et le haut du pied
@@ -429,32 +474,46 @@
     else if (r.top < haut) d = r.top - haut;
     if (d) box.scrollTop = box.scrollTop + d;
   }
-  function dire(txt, souci) {
+  /* `sansDefiler` : l'avis est pose sans ramener la boite a lui (N2 : apres la creation du
+     lien, c'est le lien qui doit rester sous le doigt). */
+  function dire(txt, souci, sansDefiler) {
     var n = el('devAvis');
     if (!n) return;
+    var pr = el('devProchaine'); if (pr) pr.hidden = true;
     n.textContent = txt || '';
     n.hidden = !txt;
     n.classList.toggle('aff-avis--souci', !!souci);
-    if (txt && typeof n.scrollIntoView === 'function') { try { n.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+    if (txt && !sansDefiler && typeof n.scrollIntoView === 'function') { try { n.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
   }
 
   /* LE FOCUS VA AU « RETOUR A L'AFFAIRE », en modale COMME en tiroir : le bouton
      d'ou l'on vient vivait dans le panneau d'affaire, qui vient de se retirer. Le
      laisser la, ce serait le laisser sur un noeud cache. */
+  /* LES ARRETS DU CLAVIER DANS LA BOITE, dans l'ordre du document, sans ce qui est cache. */
+  function arrets(box) {
+    if (!box) return [];
+    return [].filter.call(box.querySelectorAll('a[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex="-1"])'), function (n) {
+      /* Un champ cache par une feuille (display:none) n'a aucun rectangle. Sans mise en page
+         (jsdom), rien n'en a : alors tout compte. */
+      var vu = typeof n.getClientRects !== 'function' || n.getClientRects().length > 0 || !document.body.getClientRects().length;
+      return !n.disabled && !n.closest('[hidden]') && n.getAttribute('tabindex') !== '-1' && vu;
+    });
+  }
   function poser() {
     monter();
     var neuf = MOD.hidden;
     MOD.hidden = false;
-    if (window.BdvTiroir) window.BdvTiroir.poser(MOD.querySelector('.tmod__boite'));
-    else document.body.style.overflow = 'hidden';
+    /* UNE MODALE, PAS UN TIROIR : le contrat est pose ICI (voir l'en-tete). */
+    var box = MOD.querySelector('.tmod__boite');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    document.body.style.overflow = 'hidden';
     if (neuf) { var r = el('devRetour') || MOD.querySelector('.tmod__x'); if (r) { try { r.focus(); } catch (e) {} } }
   }
   function retirer() {
     if (!MOD || MOD.hidden) return false;
-    if (S) S.horsTiroir = false;
     MOD.hidden = true;
-    if (window.BdvTiroir) window.BdvTiroir.retirer();
-    else document.body.style.overflow = '';
+    document.body.style.overflow = '';
     return true;
   }
   /* LE FOCUS EN SORTANT VA SUR UN ELEMENT VIVANT, jamais sur le corps de page :
@@ -587,7 +646,8 @@
     }
     /* « Retour a l'affaire » n'est PAS repeint : il garde le focus pendant que le corps
        arrive. Il se cache seulement quand personne n'a donne de chemin de retour. */
-    el('devRetourL').hidden = typeof S.ctx.retour !== 'function';
+    /* Dans l'apercu, un seul chemin de retour (juge V18) : « Revenir au devis ». */
+    el('devRetourL').hidden = typeof S.ctx.retour !== 'function' || S.etat === 'apercu';
     tete.innerHTML = '<h2 class="tmod__titre" id="devTitre">' + titre + '</h2><p class="tmod__sous">' + sous + '</p>';
     MOD.querySelector('.tmod__boite').classList.toggle('dmod__boite--apercu', S.etat === 'apercu');
     if (S.etat === 'chargement') corps.innerHTML = '<p class="aff-aide">Ouverture du devis…</p>';
@@ -629,11 +689,14 @@
   function htmlEdition() {
     var enreg = S.devis && S.devis.statut === 'enregistre';
     return htmlQui()
+      /* « CHERCHER UN VIN » EN TETE (juge V15) : pour ajouter un vin on ne descend plus sous
+         tous ceux deja coches. Ce qu'on peut ajouter d'abord, ce qui est dans le devis ensuite. */
       + '<section class="dmod__bloc" aria-labelledby="devVinsT"><h3 class="dmod__t" id="devVinsT">Tes vins</h3>'
-      + '<ul class="dmod__lignes" id="devLignes">' + htmlLignes() + '</ul>'
       + '<label class="aff-champ dmod__cherche"><span>Chercher un vin</span>'
       + '<input id="devCherche" type="search" autocomplete="off" maxlength="80" value="' + esc(S.q) + '"></label>'
-      + '<div id="devProps">' + htmlProps() + '</div></section>'
+      + '<div id="devProps">' + htmlProps() + '</div>'
+      + '<h4 class="dmod__st" id="devDansT">Dans le devis</h4>'
+      + '<ul class="dmod__lignes" id="devLignes" aria-labelledby="devDansT">' + htmlLignes() + '</ul></section>'
       + '<section class="dmod__bloc" aria-labelledby="devRemiseT"><h3 class="dmod__t" id="devRemiseT">Remise sur tout le devis</h3>'
       + '<label class="aff-champ dmod__remise"><span>En %, 0 si aucune</span>'
       + '<input id="devRemise" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="' + esc(S.remise) + '"></label></section>'
@@ -643,22 +706,31 @@
       + htmlConditions(true)
       + '<section class="dmod__bloc" aria-labelledby="devNotesT"><h3 class="dmod__t" id="devNotesT">Notes</h3>'
       + '<textarea id="devNotes" class="dmod__notes" rows="3" maxlength="2000" aria-labelledby="devNotesT">' + esc(S.notes) + '</textarea></section>'
+      /* L'ORDRE DU BAS EST CELUI DE LA VRAIE VIE (juge V12) : le voir, l'envoyer, la reponse du
+         client, et l'abandon tout en bas, loin du geste qui valide. */
       + (enreg ? '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
-        + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
-        + '<button type="button" class="dmod__lien" data-dev="refuser">Il a dit non</button>'
-        + '<button type="button" class="dmod__lien dmod__lien--x" data-dev="abandonner">Abandonner ce devis</button></p>'
-        + htmlConfirmeAbandon() + htmlConfirmeRefus() + '</section>'
-        + htmlEnvoiAvant() + htmlCommandeAvant() : '')
-      + '<div class="dmod__pied"><p class="dmod__pied-t">Total TTC <b id="devPiedTtc"></b></p>'
+        + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p></section>'
+        + htmlEnvoiAvant() + htmlReponse(true) + htmlAbandon() : '')
+      /* LE PIED DIT LE HT D'ABORD (juge V3) : partout ou un seul montant se lit, c'est le HT,
+         la monnaie du bureau ; le TTC suit, plus petit. */
+      + '<div class="dmod__pied"><p class="dmod__pied-t">Total HT <b id="devPiedHt"></b> <span class="dmod__pied-ttc">TTC <span id="devPiedTtc"></span></span></p>'
+      + '<p class="aff-aide dmod__pied-mot" id="devPiedMot" hidden></p>'
       + '<button type="button" class="btn btn--bordeaux" data-dev="enregistrer">Enregistrer le devis</button></div>';
   }
+  /* LE CLAVIER DU CODE POSTAL (S9, juge V18) : des chiffres en France ou sans pays, du texte
+     ailleurs (un code postal britannique ou neerlandais porte des lettres). */
+  function cpFrance(p) { var x = norm(String(p == null ? '' : p)).trim(); return !x || x === 'france' || x === 'fr'; }
+  function cpMode() { return cpFrance(S.liv && S.liv.pays) ? 'numeric' : 'text'; }
   /* LA LIVRAISON A L'ECRAN. Le mode se choisit d'abord ; les champs qui ne servent pas a ce
      mode ne sont pas dessines (un champ cache ne doit rien envoyer). */
   function champLiv(id, cle, lib, o) {
     o = o || {};
     return '<label class="aff-champ' + (o.large ? ' dmod__liv-l' : '') + (o.type === 'date' ? ' dmod__liv-date' : '') + '"><span>' + lib + '</span><input id="' + id + '" data-dev-liv="' + cle + '" type="'
       + (o.type || 'text') + '"' + (o.mode ? ' inputmode="' + o.mode + '"' : '') + ' autocomplete="' + (o.auto || 'off') + '" maxlength="' + (o.max || 80) + '"'
-      + (o.min ? ' min="' + esc(o.min) + '"' : '') + ' value="' + esc(S.liv[cle]) + '"></label>';
+      + (o.min ? ' min="' + esc(o.min) + '"' : '') + (o.aide ? ' aria-describedby="' + id + 'Aide"' : '') + ' value="' + esc(S.liv[cle]) + '">'
+      /* L'AIDE SOUS LE CHAMP, PAS DANS LE LIBELLE (S16) : deux libelles de hauteurs differentes
+         decalaient les deux champs voisins d'une ligne. */
+      + (o.aide ? '<small class="dmod__src" id="' + id + 'Aide">' + esc(o.aide) + '</small>' : '') + '</label>';
   }
   function htmlLivraison() {
     var l = S.liv, auj = jourIso();
@@ -673,7 +745,7 @@
         + champLiv('devLivNom', 'nom', 'Destinataire', { large: true, auto: 'organization' })
         + champLiv('devLivA1', 'adresse1', 'Adresse', { large: true, max: 120, auto: 'address-line1' })
         + champLiv('devLivA2', 'adresse2', 'Complément (facultatif)', { large: true, max: 120, auto: 'address-line2' })
-        + champLiv('devLivCp', 'cp', 'Code postal', { max: 10, auto: 'postal-code' })
+        + champLiv('devLivCp', 'cp', 'Code postal', { max: 10, auto: 'postal-code', mode: cpMode() })
         + champLiv('devLivVille', 'ville', 'Ville', { max: 60, auto: 'address-level2' })
         + champLiv('devLivPays', 'pays', 'Pays', { max: 60, auto: 'country-name' })
         + champLiv('devLivTel', 'tel', 'Téléphone (facultatif)', { type: 'tel', max: 20, auto: 'tel' })
@@ -681,7 +753,7 @@
       + '<div class="dmod__liv-champs">'
       + champLiv('devLivDate', 'date', l.mode === 'retrait' ? 'Il passe le (facultatif)' : 'Livraison souhaitée le (facultatif)', { type: 'date', min: min, max: 10 })
       + (l.mode === 'retrait' ? '' : champLiv('devLivTransp', 'transporteur', 'Transporteur (facultatif)', { max: 60 })
-        + champLiv('devLivPort', 'port', 'Frais de port HT, 0 si aucun', { mode: 'decimal', max: 12 }))
+        + champLiv('devLivPort', 'port', 'Frais de port HT', { mode: 'decimal', max: 12, aide: '0 si aucun' }))
       + '</div>'
       + (l.mode !== 'retrait' && portDe() > 0 ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '');
   }
@@ -695,12 +767,17 @@
           + (t.regime === m[0] ? ' checked' : '') + '><span>' + esc(m[1]) + '</span></label>';
       }).join('') + '</fieldset>'
       + (t.regime === 'france' ? '<p class="aff-aide">' + esc(AIDE_55) + '</p>' : '')
-      + (t.regime === 'ue' ? '<div class="dmod__liv-champs"><label class="aff-champ dmod__liv-l"><span>Numéro de TVA intracommunautaire du client</span>'
-        + '<input id="devTvaClient" type="text" autocomplete="off" maxlength="20" value="' + esc(t.client) + '"></label></div>'
+      + (t.regime === 'ue' ? '<div class="dmod__liv-champs"><label class="aff-champ dmod__liv-l"><span>Numéro de TVA intracommunautaire du client (obligatoire)</span>'
+        + '<input id="devTvaClient" type="text" autocomplete="off" maxlength="20" required aria-required="true" value="' + esc(t.client) + '"></label></div>'
         + '<p class="aff-aide">' + esc(AIDE_VIES) + '</p>'
         + (f.tva ? '' : '<p class="aff-aide">Ton numéro de TVA intracommunautaire manque : il doit figurer sur le devis. <button type="button" class="dmod__lien" data-dev="domaine">Le mettre dans Mon domaine</button></p>') : '')
+      /* LES ACCISES SANS REPONSE PAR DEFAUT (juge V9) : c'est une question d'argent, et une case
+         decochee d'office faisait imprimer « hors droits d'accises » sur des prix qui les
+         comprenaient. Deux boutons, aucun choisi ; l'enregistrement demande la reponse. */
       + (t.regime !== 'france' ? '<p class="aff-aide">' + esc(AIDE_ACCISE) + '</p>'
-        + '<label class="dmod__coche"><input type="checkbox" id="devTvaAccises"' + (t.accises ? ' checked' : '') + '><span>Mes prix comprennent les droits d’accises</span></label>'
+        + '<fieldset class="dmod__liv-modes" id="devTvaAccises"><legend class="dmod__st">Tes prix comprennent-ils les droits d’accises ? (obligatoire)</legend>'
+        + '<label class="dmod__coche"><input type="radio" name="devTvaAccises" data-dev-accises value="oui"' + (t.accises === true ? ' checked' : '') + '><span>Oui, mes prix comprennent l’accise</span></label>'
+        + '<label class="dmod__coche"><input type="radio" name="devTvaAccises" data-dev-accises value="non"' + (t.accises === false ? ' checked' : '') + '><span>Non, mes prix sont hors accise</span></label></fieldset>'
         + '<p class="aff-aide">' + esc(PORT_0) + '</p>' : '');
   }
   function htmlConfirmeAbandon() {
@@ -721,22 +798,28 @@
       + MOTIFS_REFUS.map(function (m) { return '<option value="' + m[0] + '">' + esc(m[1]) + '</option>'; }).join('') + '</select></label>'
       + (!affaireOuverte() ? ''
         : autres > 0 ? '<p class="aff-aide">L’affaire a encore ' + (autres > 1 ? autres + ' autres devis' : 'un autre devis') + ' en cours : elle reste ouverte.</p>'
-        : '<label class="dmod__coche"><input type="checkbox" id="devRefusClore" checked><span>Passer l’affaire à « Pas pour cette fois »</span></label>')
+        : '<label class="dmod__coche"><input type="checkbox" id="devRefusClore" checked><span>Passer l’affaire à « Pas pour cette\u00a0fois\u00a0»</span></label>')
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerRefus">Oui, il a dit non</button>'
-      + '<button type="button" class="btn" data-dev="pasRefus">Pas encore</button></p></div>';
+      + '<button type="button" class="btn" data-dev="pasRefus">Pas encore</button></p>'
+      /* X7 (tour 3) : pendant cette question, les autres gestes du devis attendent, et le disent. */
+      + '<p class="aff-aide dmod__attente" id="devRefusAttente">Les autres gestes du devis attendent ta réponse\u00a0: «\u00a0Oui, il a dit non\u00a0» ou «\u00a0Pas encore\u00a0».</p></div>';
   }
   /* « ANNULER L'ACCEPTATION » : pour un « oui » clique par erreur. La base ne sait pas si
      la commande est deja dans Vitisoft : l'ecran le dit, avant. */
   function htmlConfirmeAnnul() {
     var d = S.devis, gagnee = S.ctx.affaire && S.ctx.affaire.issue === 'gagnee';
+    /* T5 (tour 3) : l'affaire d'une personne en opposition ne se rouvre pas (la base le refuse
+       aussi, lot 56) : pas de case, et la phrase le dit. */
+    var opp = !!S.ctx.opposee;
     return '<div class="dmod__confirme" id="devAnnul"' + (S.annul ? '' : ' hidden') + '>'
-      + '<p class="aff-aide">Le devis ' + esc(d.numero) + ' repassera ' + (d.envoye_le ? 'envoyé' : 'enregistré')
+      + '<p class="aff-aide" id="devAnnulDit">Le devis ' + esc(d.numero) + ' repassera ' + (d.envoye_le ? 'envoyé' : 'enregistré')
       + ' et la commande ne se téléchargera plus. '
       + (Number(d.commande_telechargements) > 0 && d.commande_telechargee_le
         ? 'Son fichier a été téléchargé le ' + esc(dateFr(d.commande_telechargee_le)) + ' : elle est sans doute déjà dans Vitisoft. Supprime-la aussi là-bas, sinon elle sera facturée.</p>'
         : 'Si tu l’as déjà importée dans Vitisoft, supprime-la aussi là-bas : sinon elle sera facturée.</p>')
       + (d.signe_le ? '<p class="aff-aide">Il a été signé en ligne : la preuve reste gardée, et le lien s’éteint. Pour le faire signer de nouveau, tu créeras un nouveau lien.</p>' : '')
-      + (gagnee ? '<label class="dmod__coche"><input type="checkbox" id="devAnnulRouvrir" checked><span>Rouvrir l’affaire</span></label>' : '')
+      + (gagnee && !opp ? '<label class="dmod__coche"><input type="checkbox" id="devAnnulRouvrir" checked><span>Rouvrir l’affaire</span></label>' : '')
+      + (gagnee && opp ? '<p class="aff-aide">L’affaire reste close : cette personne a demandé à ne plus être contactée.</p>' : '')
       + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAnnul">Oui, annuler l’acceptation</button>'
       + '<button type="button" class="btn" data-dev="garderAccord">Non, la garder</button></p></div>';
   }
@@ -786,16 +869,35 @@
       + url + '\n\n' + (d.valable_jusqu ? 'Il est valable jusqu’au ' + dateFr(d.valable_jusqu) + '.\n\n' : '')
       + 'Bien cordialement,\n' + v;
   }
+  /* LE LIEN CREE, EN TETE DE LA BOITE (N2 et juge V1, tour 2) : copier le message, le coller
+     dans le mail avec le PDF, puis la date notee et le rattrapage de la relance. Un seul bouton
+     plein (V8). */
   function htmlLienMontre() {
-    var url = S.lien.url;
-    return '<div class="dmod__confirme dmod__confirme--neutre dmod__lienbloc">'
+    var url = S.lien.url, d = S.devis, a = S.ctx.affaire || {};
+    var qui = S.ctx.sujet ? ' à ' + esc(S.ctx.sujet) : '';
+    var auj = d.envoye_le && String(d.envoye_le).slice(0, 10) === jourIso();
+    var note = d.envoye_le ? 'Noté envoyé ' + (auj ? 'aujourd’hui, ' : 'le ') + dateCourte(d.envoye_le) : '';
+    if (note && a.rappel) note += ', relance le ' + dateCourte(a.rappel) + ' dans Ma journée';
+    note = note ? finPhrase(note) : '';
+    var rattrape = a.rappel ? ' ' + (auj ? 'Pas parti aujourd’hui ?' : 'Pas parti ce jour-là ?') + ' ' : '';
+    return '<section class="dmod__bloc dmod__lientete" id="devLienBloc" aria-labelledby="devLienT">'
+      + '<div class="dmod__confirme dmod__confirme--neutre dmod__lienbloc">'
+      + '<h3 class="dmod__t" id="devLienT">Ton envoi est prêt</h3>'
+      + '<ol class="dmod__etapes aff-aide"><li>Copie le message : le lien de signature est dedans.</li>'
+      + '<li>Colle-le dans ton mail' + qui + ', avec le PDF du devis (« Voir et imprimer », puis enregistrer en PDF), et envoie.</li></ol>'
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="messageCopier">Copier le message avec le lien</button>'
+      + '<button type="button" class="btn" data-dev="lienCopier">Copier le lien seul</button></p>'
+      + '<p class="aff-aide" id="devLienMot" aria-live="polite"></p>'
       + '<label class="aff-champ"><span>Le lien de signature</span><input id="devLienUrl" type="text" readonly value="' + esc(url) + '"></label>'
       + '<p class="aff-aide dmod__copie--souci">' + esc(MOT_LIEN_UNE_FOIS) + '</p>'
-      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="lienCopier">Copier le lien</button>'
-      + '<button type="button" class="btn" data-dev="messageCopier">Copier un message avec le lien</button></p>'
-      + '<p class="aff-aide">Colle-le dans ton mail avec le PDF du devis, puis envoie-le. Quand ton client signe, le devis passe accepté tout seul et la commande Vitisoft est prête.</p>'
-      + '<p class="aff-aide" id="devLienMot" aria-live="polite"></p></div>';
+      + (note || rattrape ? '<p class="aff-aide">' + esc(note) + rattrape
+        + (rattrape ? (typeof S.ctx.retour === 'function'
+          ? '<button type="button" class="dmod__lien" data-dev="retour">Décale la relance dans l’affaire</button>.'
+          : 'Décale la relance dans l’affaire.') : '') + '</p>' : '')
+      + '<p class="aff-aide">Quand ton client signe, le devis passe accepté tout seul et la commande Vitisoft est prête.</p>'
+      + '</div></section>';
   }
+  function lienMontre() { return !!(S.lien && S.devis && S.lien.devis_id === S.devis.devis_id && S.devis.statut === 'envoye'); }
   function htmlSignature() {
     var d = S.devis;
     if (!lot52() || S.lienInfo === 'absent') return '';
@@ -804,7 +906,7 @@
     if (!d.papier_empreinte) return t + '<p class="aff-aide">Pas de copie exacte gardée pour ce devis : il ne peut pas se signer en ligne. Refais-le pour en avoir une.</p></section>';
     var m = manquesCommande();
     if (m.length) return t + '<p class="aff-aide">Pas de signature en ligne pour ce devis : ' + esc(phraseManques(m)) + '</p></section>';
-    if (S.lien && S.lien.devis_id === d.devis_id) return t + htmlLienMontre() + '</section>';
+    if (lienMontre()) return t + '<p class="aff-aide">Ton lien de signature est en tête du devis, avec le message à copier.</p></section>';
     if (S.lienInfo && S.lienInfo.cree_le) return t + '<p class="aff-aide">Un lien de signature a été créé le ' + esc(heureFr(S.lienInfo.cree_le))
       + '. Il ne se réaffiche pas. Pour le renvoyer, crée un nouveau lien : l’ancien s’éteint.</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="lienCreer">Créer un nouveau lien</button></p></section>';
@@ -836,8 +938,14 @@
     S.lien = { devis_id: d.devis_id, url: urlDuLien(jeton) };
     S.lienInfo = { cree_le: new Date().toISOString() };
     peindre();
-    var u = el('devLienUrl');
-    if (u) { try { u.focus({ preventScroll: true }); u.select(); } catch (e) {} montrerDansBoite(u.closest('.dmod__bloc') || u); }
+    /* N2 (02/10/2026) : LE LIEN EST EN TETE DE LA BOITE, et la boite remonte a lui. Le focus va
+       sur « Copier le message avec le lien », le geste qui suit ; le lien seul reste dans son
+       champ, juste dessous, a selectionner. */
+    var box = MOD.querySelector('.tmod__boite'), bloc = el('devLienBloc');
+    if (box) box.scrollTop = 0;
+    var cm = bloc && bloc.querySelector('[data-dev="messageCopier"]');
+    if (cm) { try { cm.focus({ preventScroll: true }); } catch (e) {} }
+    if (bloc) montrerDansBoite(bloc.querySelector('.dmod__gestes') || bloc);
     return true;
   }
   /* COPIER : le presse-papier quand le navigateur le permet, sinon le champ selectionne
@@ -856,56 +964,151 @@
     rate();
   }
 
+  /* L'ENVOI EN DEUX TEMPS NOMMES (juge V1, 01/10/2026). Le bouton s'appelait « Je l'ai
+     envoyé » alors qu'il fallait le presser AVANT d'envoyer le mail pour avoir le lien : le nom
+     disait l'inverse du geste. Les noms disent maintenant l'ORDRE : « Préparer l'envoi » (le
+     devis se fige, le lien et le message arrivent), puis le mail part de la messagerie.
+     L'ORDRE DES APPELS NE CHANGE PAS : la base ne cree un lien que sur un devis ENVOYE
+     (`devis_lien_creer`, lot 55), donc preparer l'envoi le NOTE envoye, a la date choisie. */
+  /* AVANT LE CLIC, LE BUREAU DIT CE QU'IL VA NOTER (juge V1, tour 2, mots du vigneron) : la
+     date d'envoi et la relance se posent AVANT que le mail parte, donc une phrase le dit juste
+     au-dessus du bouton, avec les dates des champs, et se recalcule a chaque changement. Le
+     bouton dit ce qu'il fait : « Figer le devis et créer le lien », ou sans lien « Figer le
+     devis et le noter envoyé ». */
+  function phraseEnvoi() {
+    var auj = jourIso(), cJ = el('devEnvoiJour'), cR = el('devEnvoiRappel'), cRel = el('devEnvoiRelance');
+    var jour = cJ && /^\d{4}-\d{2}-\d{2}$/.test(cJ.value) ? cJ.value : auj;
+    var rel = cR ? (cR.checked ? (cRel && /^\d{4}-\d{2}-\d{2}$/.test(cRel.value) ? cRel.value : relanceProposee(jour, S.devis)) : '')
+      : relanceProposee(jour, S.devis);
+    return phraseEnvoiDe(jour, rel);
+  }
+  /* X9 (tour 3) : « Ce rappel remplace celui du 9 oct. » seulement si le rappel en place tombe
+     un AUTRE jour que la relance qu'on pose : le meme jour, la phrase n'apprenait rien. Ecrite
+     « 9 oct. » comme le reste de l'envoi, plus jamais 09/10/2026. Recalculee a chaque changement. */
+  function phraseRemplace(rel, avecRappel) {
+    var a = (S && S.ctx && S.ctx.affaire) || {}, ancien = String(a.rappel || '').slice(0, 10);
+    if (!ancien || !avecRappel || !rel || rel === ancien) return '';
+    return finPhrase('Ce rappel remplace celui du ' + dateCourte(ancien) + (a.rappel_titre ? ' (' + a.rappel_titre + ')' : ''));
+  }
+  function libelleEnvoi(avecLien) { return avecLien ? 'Figer le devis et créer le lien' : 'Figer le devis et le noter envoyé'; }
+  function majEnvoi() {
+    var p = el('devEnvoiPhrase'); if (p) p.textContent = phraseEnvoi();
+    var rp = el('devEnvoiRemplace');
+    if (rp) {
+      var cR2 = el('devEnvoiRappel'), cRel2 = el('devEnvoiRelance');
+      var txt = phraseRemplace(cRel2 && /^\d{4}-\d{2}-\d{2}$/.test(cRel2.value) ? cRel2.value : '', !cR2 || cR2.checked);
+      rp.textContent = txt; rp.hidden = !txt;
+    }
+    var b = MOD && MOD.querySelector('[data-dev="confirmerEnvoi"]'), c = el('devEnvoiLien');
+    if (b) b.textContent = libelleEnvoi(!!(c ? c.checked : false));
+  }
   function htmlEnvoiAvant() {
-    var d = S.devis, auj = jourIso(), a = S.ctx.affaire || {}, et = S.ctx.etapeDevis;
+    var d = S.devis, auj = jourIso(), a = S.ctx.affaire || {}, et = S.ctx.etapeDevis, lien = lienPossible();
     var min = d.date_devis && String(d.date_devis) < auj ? String(d.date_devis) : auj;
-    return '<section class="dmod__bloc" aria-labelledby="devEnvT"><h3 class="dmod__t" id="devEnvT">Tu l’as envoyé au client ?</h3>'
-      + '<p class="aff-aide">Envoie le PDF par ta messagerie, puis note-le ici : le bureau te rappellera de le relancer.'
-      + (lienPossible() ? ' Pour que ton client signe en ligne, note-le AVANT d’envoyer ton mail : le bureau te donne un lien à coller dedans.' : '') + '</p>'
-      + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="envoyer">Je l’ai envoyé</button></p>'
+    return '<section class="dmod__bloc" aria-labelledby="devEnvT"><h3 class="dmod__t" id="devEnvT">Envoyer le devis au client</h3>'
+      + '<ol class="dmod__etapes aff-aide"><li>Prépare l’envoi ici : le devis se fige' + (lien ? ', et le bureau te donne le lien de signature et le message à coller.' : '.') + '</li>'
+      + '<li>Envoie ton mail avec le PDF' + (lien ? ' et le lien' : '') + ', depuis ta messagerie.</li>'
+      + '<li>Le bureau te rappelle de le relancer.</li></ol>'
+      /* V8 : un changement pas enregistre se dit A COTE du bouton, pas seulement apres l'appui. */
+      + '<p class="aff-aide dmod__copie--souci" id="devEnvoiNote"' + (S.modifie ? '' : ' hidden') + '>Enregistre d’abord tes changements : c’est le devis enregistré que tu envoies.</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="envoyer">Préparer l’envoi</button></p>'
       + '<div class="dmod__confirme dmod__confirme--neutre" id="devEnvoi"' + (S.envoi ? '' : ' hidden') + '>'
       + '<label class="aff-champ dmod__jour"><span>Envoyé le</span><input id="devEnvoiJour" type="date" value="' + auj
-      + '" min="' + esc(min) + '" max="' + auj + '"></label>'
-      + (lienPossible() ? '<label class="dmod__coche"><input type="checkbox" id="devEnvoiLien" checked><span>Avec un lien de signature en ligne. '
+      + '" min="' + esc(min) + '" max="' + auj + '" aria-describedby="devEnvoiJourAide"><small class="dmod__src" id="devEnvoiJourAide">Aujourd’hui par défaut. Tu l’as déjà envoyé un autre jour ? Change la date.</small></label>'
+      + (lien ? '<label class="dmod__coche"><input type="checkbox" id="devEnvoiLien" checked><span>Avec un lien de signature en ligne. '
         + esc(MOT_PROS) + '</span></label>' : '')
       + '<label class="dmod__coche"><input type="checkbox" id="devEnvoiRappel" checked><span>Me rappeler de le relancer</span></label>'
       + '<label class="aff-champ dmod__jour"><span>Le</span><input id="devEnvoiRelance" type="date" value="' + relanceProposee(auj, d)
       + '" min="' + auj + '"></label>'
-      + (a.rappel ? '<p class="aff-aide">Ce rappel remplace celui du ' + esc(dateFr(a.rappel))
-        + (a.rappel_titre ? ' (' + esc(a.rappel_titre) + ')' : '') + '.</p>' : '')
+      + (a.rappel ? '<p class="aff-aide" id="devEnvoiRemplace"' + (phraseRemplace(relanceProposee(auj, d), true) ? '' : ' hidden') + '>'
+        + esc(phraseRemplace(relanceProposee(auj, d), true)) + '</p>' : '')
       + (et ? '<label class="dmod__coche"><input type="checkbox" id="devEnvoiEtape" checked><span>Passer l’affaire à « '
         + esc(et.nom) + ' »</span></label>' : '')
       + '<p class="aff-aide">Le devis ' + esc(d.numero) + ' ne se modifiera plus : pour le changer, tu le referas sous un nouveau numéro.</p>'
-      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerEnvoi">C’est noté</button>'
+      + '<p class="dmod__envoi-phrase" id="devEnvoiPhrase" aria-live="polite">' + esc(phraseEnvoiDe(auj, relanceProposee(auj, d))) + '</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerEnvoi">' + esc(libelleEnvoi(lien)) + '</button>'
       + '<button type="button" class="btn" data-dev="pasEnvoye">Pas encore</button></p></div></section>';
+  }
+  /* La meme phrase, sans les champs (premier dessin, avant qu'ils existent). */
+  function phraseEnvoiDe(jour, rel) {
+    var auj = jourIso();
+    var t = 'Le bureau le note envoyé ' + (jour === auj ? 'aujourd’hui, ' + dateCourte(jour) : 'le ' + dateCourte(jour));
+    if (rel) t += ', et te rappelle de le relancer le ' + dateCourte(rel);
+    t = finPhrase(t);
+    if (jour === auj) t += ' Envoie ton mail juste après.';
+    return t;
   }
   /* UN DEVIS ENVOYE SE RELIT, S'IMPRIME, SE REFAIT, S'ABANDONNE ET S'ACCEPTE. Il ne se modifie
      plus : le client a ce papier entre les mains. */
+  /* D2 (01/10/2026) : la signature en ligne n'est proposee QUE sur une affaire ouverte. Sur une
+     affaire gagnee a la main, la base refuse le lien (« affaire close ») : l'ecran ne propose
+     pas un bouton qui finit en refus. L'ordre du bas est celui de htmlEdition (V12). */
   function htmlSuiteEnvoye() {
     var ouverte = affaireOuverte(), perdue = S.ctx.affaire && S.ctx.affaire.issue === 'perdue';
-    return (perdue ? '' : htmlSignature()) + '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
+    return (ouverte ? htmlSignature() : '') + '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
-      + (ouverte ? '<button type="button" class="btn" data-dev="refaire">Refaire ce devis</button>' : '')
-      + '<button type="button" class="dmod__lien" data-dev="refuser">Il a dit non</button>'
-      + '<button type="button" class="dmod__lien dmod__lien--x" data-dev="abandonner">Abandonner ce devis</button></p>'
+      + (ouverte ? '<button type="button" class="btn" data-dev="refaire">Refaire ce devis</button>' : '') + '</p>'
       + (ouverte ? '<p class="aff-aide">Pour changer un prix ou une quantité, refais-le : il reprend tes lignes sous un nouveau numéro, et celui-ci passe abandonné.</p>' : '')
-      + htmlConfirmeAbandon() + htmlConfirmeRefus() + '</section>'
-      + (perdue ? '' : htmlCommandeAvant());
+      + '</section>'
+      + htmlReponse(!perdue) + htmlAbandon();
+  }
+  /* « LE CLIENT A REPONDU ? » : oui (la commande Vitisoft) ou non (le refus), cote a cote, avec
+     leurs deux confirmations. `avecOui` faux : l'affaire est perdue, un oui ne s'accepterait plus. */
+  function htmlReponse(avecOui) {
+    var m = avecOui ? manquesCommande() : [];
+    var oui = avecOui && !m.length;
+    return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">Le client a répondu ?</h3>'
+      + (m.length ? '<p class="aff-aide" id="devCmdManque">' + esc(phraseManques(m)) + '</p>'
+        : oui ? '<p class="aff-aide">S’il accepte, le devis se fige, l’affaire passe Gagnée et tu reçois le fichier de commande pour Vitisoft.</p>' : '')
+      + '<p class="aff-aide dmod__attente" id="devCmdAttente" hidden>Termine d’abord l’envoi ouvert plus haut, ou appuie sur « Pas encore » : un client répond au devis qu’il a reçu.</p>'
+      + '<p class="dmod__gestes">' + (oui ? '<button type="button" class="btn" data-dev="accepter">Oui, il accepte</button>' : '')
+      + '<button type="button" class="btn" data-dev="refuser">Non, il refuse</button></p>'
+      + (oui ? htmlConfirmeAccord() : '') + htmlConfirmeRefus() + '</section>';
+  }
+  function htmlAbandon() {
+    return '<section class="dmod__bloc dmod__fin"><p class="dmod__gestes">'
+      + '<button type="button" class="dmod__lien dmod__lien--x" data-dev="abandonner">Abandonner ce devis</button></p>'
+      + htmlConfirmeAbandon() + '</section>';
+  }
+  /* UNE LIGNE PAR VIN, EN TABLEAU QUAND LA PLACE LE PERMET (juge V4) : au-dessus de 56 rem de
+     boite, la ligne d'en-tete porte les noms des colonnes et chaque vin tient sur une rangee
+     (bdv-devis.css). En dessous, chaque vin reste une carte, et la remise et la TVA se
+     replient tant qu'elles valent leur defaut (juge V15) : la carte dit « remise 5 % » ou
+     « TVA 5,5 % » quand ce n'est pas le cas, et le pli s'ouvre de lui-meme. L'en-tete est un
+     `li` cache aux aides techniques : chaque champ garde son vrai libelle, masque a l'oeil. */
+  /* Une remise ou une TVA qui n'est pas le defaut ne se replie pas : on ne cache pas ce qui compte. */
+  function lignePlusRequis(l) { return !!l && ((C.remiseCb(l.remise) || 0) !== 0 || (!horsFrance() && String(l.tva) === '550')); }
+  function lignePlus(l) { return !!l._plus || (C.remiseCb(l.remise) || 0) !== 0 || (!horsFrance() && String(l.tva) === '550'); }
+  function resumePlus(l) {
+    var r = C.remiseCb(l.remise), m = [];
+    if (r) m.push('remise ' + C.pourcent(r) + '\u00a0%');
+    if (!horsFrance() && String(l.tva) === '550') m.push('TVA 5,5\u00a0%');
+    return m.join(', ');
   }
   function htmlLignes() {
-    return S.lignes.map(function (l, i) {
-      return '<li class="dmod__ligne" data-cle="' + esc(l.cle) + '">'
-        + '<label class="dmod__coche"><input type="checkbox" checked data-dev-coche="' + esc(l.cle) + '">'
-        + '<span class="dmod__nom">' + esc(nomDe(l)) + '</span></label>'
-        + (l.num_produit ? '<p class="dmod__code">Code ' + esc(l.num_produit) + '</p>' : '')
-        + '<div class="dmod__champs' + (horsFrance() ? '' : ' dmod__champs--tva') + '">'
-        + '<label class="aff-champ"><span>Quantité</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="5" data-dev-champ="qte" value="' + esc(l.qte) + '"></label>'
-        + '<label class="aff-champ"><span>Prix HT unitaire</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="12" data-dev-champ="prix" value="' + esc(l.prix) + '" aria-describedby="devSrc' + i + '">'
+    var tva = !horsFrance();
+    var tete = S.lignes.length ? '<li class="dmod__lentete" aria-hidden="true"><span>Vin</span><span class="dmod__champs' + (tva ? ' dmod__champs--tva' : '') + '">'
+      + '<span>Quantité</span><span>Prix HT unitaire</span><span>Remise %</span>' + (tva ? '<span>TVA</span>' : '') + '<span>Total HT</span></span></li>' : '';
+    return tete + S.lignes.map(function (l, i) {
+      var plus = lignePlus(l), rs = resumePlus(l);
+      return '<li class="dmod__ligne' + (plus ? ' dmod__ligne--plus' : '') + '" data-cle="' + esc(l.cle) + '">'
+        + '<div class="dmod__ltete"><label class="dmod__coche"><input type="checkbox" checked data-dev-coche="' + esc(l.cle) + '">'
+        + nomHtml(l) + '</label>'
+        + (l.num_produit ? '<p class="dmod__code">Code ' + esc(l.num_produit) + '</p>' : '') + '</div>'
+        + '<div class="dmod__champs' + (tva ? ' dmod__champs--tva' : '') + '">'
+        + '<label class="aff-champ"><span class="dmod__lib">Quantité</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="5" data-dev-champ="qte" value="' + esc(l.qte) + '"></label>'
+        + '<label class="aff-champ"><span class="dmod__lib">Prix HT unitaire</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="12" data-dev-champ="prix" value="' + esc(l.prix) + '" title="' + esc(provenance(l)) + '" aria-describedby="devSrc' + i + '">'
         + '<small class="dmod__src" id="devSrc' + i + '" data-dev-src>' + esc(provenance(l)) + '</small></label>'
-        + '<label class="aff-champ"><span>Remise %</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="6" data-dev-champ="remise" value="' + esc(l.remise) + '"></label>'
-        + (horsFrance() ? '' : '<label class="aff-champ"><span>TVA</span><select data-dev-champ="tva">' + TAUX.map(function (x) {
-          return '<option value="' + x[0] + '"' + (String(l.tva) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label>')
-        + '<p class="dmod__lt"><span>Total de la ligne</span><b data-dev-lt></b><small class="dmod__src" data-dev-net></small></p>'
+        + '<label class="aff-champ dmod__repli"><span class="dmod__lib">Remise %</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="6" data-dev-champ="remise" value="' + esc(l.remise) + '"></label>'
+        + (tva ? '<label class="aff-champ dmod__repli"><span class="dmod__lib">TVA</span><select data-dev-champ="tva">' + TAUX.map(function (x) {
+          return '<option value="' + x[0] + '"' + (String(l.tva) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label>' : '')
+        /* W10 (02/10/2026) : « Remise ou autre TVA » APRES la quantite et le prix, sur la meme
+           rangee que le total de la ligne. Avant, il passait devant le premier champ qu'on
+           touche. Le conteneur ne compte qu'en carte etroite (bdv-devis.css) ; ailleurs il
+           s'efface (`display:contents`) et le total reste la derniere colonne. */
+        + '<div class="dmod__lpied"><button type="button" class="dmod__lien dmod__plus" data-dev="plus" aria-expanded="' + (plus ? 'true' : 'false') + '">Remise ou autre TVA'
+        + (rs ? '<span class="dmod__plus-r"> : ' + esc(rs) + '</span>' : '') + '</button>'
+        + '<p class="dmod__lt"><span class="dmod__lib">Total HT de la ligne</span><b data-dev-lt></b><small class="dmod__src" data-dev-net></small></p></div>'
         + '</div></li>';
     }).join('');
   }
@@ -971,8 +1174,12 @@
       + '<p class="aff-aide">' + ACCISES + '</p>';
   }
   function htmlTotaux(t, g, avecDeux) {
+    /* X6 (tour 3) : sans remise sur tout le devis ni frais de port, « Total des vins HT » et
+       « Total HT » disaient le meme nombre deux fois. A L'ECRAN seulement : le papier d'un devis
+       deja envoye ne change pas d'un octet, sa copie gardee porte son empreinte. */
+    var deuxTotaux = g > 0 || t.port > 0 || t.total_vins !== t.total_ht;
     return '<div class="dmod__totaux">'
-      + '<p class="dmod__tl"><span>Total des vins HT</span><span>' + C.euros(t.total_vins) + '</span></p>'
+      + (deuxTotaux ? '<p class="dmod__tl"><span>Total des vins HT</span><span>' + C.euros(t.total_vins) + '</span></p>' : '')
       + (g > 0 ? '<p class="dmod__tl"><span>' + libelleRemise(g) + ' :</span><span>-' + C.euros(t.remise_globale) + '</span></p>'
         + '<p class="dmod__tl-x">' + EXPLICATION_REMISE + '</p>' : '')
       + (t.port > 0 ? '<p class="dmod__tl"><span>Frais de port HT</span><span>' + C.euros(t.port) + '</span></p>' : '')
@@ -980,16 +1187,18 @@
       + lignesTva(t, t.regime, ' class="dmod__tl"')
       + '<p class="dmod__tl dmod__tl--ttc"><span>Total TTC</span><span>' + C.euros(t.ttc) + '</span></p></div>'
       + (t.regime === 'export' ? '<p class="aff-aide">' + MENTION_EXPORT + '</p>' : t.regime === 'ue' ? '<p class="aff-aide">' + MENTION_UE + '</p>' : '')
-      + '<p class="aff-aide">' + (t.accisesHors ? ACCISES_HORS : ACCISES) + '</p>'
+      + '<p class="aff-aide">' + (t.accisesInconnu ? ACCISES_A_DIRE : t.accisesHors ? ACCISES_HORS : ACCISES) + '</p>'
       + (avecDeux ? '<p class="aff-aide">Les deux remises s’ajoutent : la remise sur tout le devis s’applique après celles des lignes.</p>' : '');
   }
   /* LES MONTANTS SE METTENT A JOUR EN PLACE : repeindre la liste a chaque touche
      ferait perdre le champ ou l'on tape. */
   function majTotaux() {
     var t = calcul(), g = gDe() || 0;
-    t.regime = S.tva.regime; t.accisesHors = horsFrance() && !S.tva.accises;
+    t.regime = S.tva.regime; t.accisesHors = horsFrance() && S.tva.accises === false;
+    t.accisesInconnu = horsFrance() && S.tva.accises !== true && S.tva.accises !== false;
     var deux = g > 0 && S.lignes.some(function (l) { return (rlDe(l) || 0) > 0; });
     var tot = el('devTotal'); if (tot) tot.innerHTML = t.invalide ? htmlACorriger() : htmlTotaux(t, g, deux);
+    var piedH = el('devPiedHt'); if (piedH) piedH.textContent = t.invalide ? MOT_CORRIGER : C.euros(t.total_ht);
     var pied = el('devPiedTtc'); if (pied) pied.textContent = t.invalide ? MOT_CORRIGER : C.euros(t.ttc);
     S.lignes.forEach(function (l) {
       var li = MOD.querySelector('.dmod__ligne[data-cle="' + cssEsc(l.cle) + '"]');
@@ -998,7 +1207,61 @@
       /* PRIX NET = prix apres la remise de LIGNE (pu_l) : prix net x quantite = total de la ligne. */
       li.querySelector('[data-dev-net]').textContent = l._c && rlDe(l) > 0 ? 'Prix net ' + C.euros(l._c.pu_l) : '';
       li.querySelector('[data-dev-src]').textContent = provenance(l);
+      var pi = li.querySelector('[data-dev-champ="prix"]'); if (pi) pi.title = provenance(l);
     });
+    majPrincipal();
+  }
+  /* UN SEUL BOUTON PRINCIPAL A LA FOIS (juge V8). Une confirmation ouverte porte le sien : le
+     pied se met en retrait et dit de la terminer. Sans confirmation, « Enregistrer le devis »
+     est le geste principal tant qu'il y a quelque chose a enregistrer ; un devis enregistre et
+     inchange passe la main a « Préparer l'envoi ». Repose a chaque saisie et a chaque
+     confirmation ouverte ou refermee, jamais en repeignant. */
+  function majPrincipal() {
+    if (!MOD) return;
+    var conf = !!(S && (S.envoi || S.accord || S.confirme || S.refus)), d = S && S.devis;
+    var enreg = MOD.querySelector('[data-dev="enregistrer"]'), env = MOD.querySelector('[data-dev="envoyer"]');
+    var aEnregistrer = !d || !!S.modifie;
+    if (enreg) enreg.classList.toggle('btn--bordeaux', !conf && aEnregistrer);
+    if (env) env.classList.toggle('btn--bordeaux', !conf && !aEnregistrer);
+    var mot = el('devPiedMot');
+    if (mot) {
+      mot.textContent = conf ? 'Termine d’abord la question ouverte plus haut.' : (d && S.modifie ? 'Modifié, pas encore enregistré.' : '');
+      mot.hidden = !mot.textContent;
+    }
+    var note = el('devEnvoiNote'); if (note) note.hidden = !S.modifie;
+    /* W11 (02/10/2026) : la preparation de l'envoi ouverte, « Oui, il accepte » et « Non, il
+       refuse » passent en retrait et disent pourquoi. Un client ne repond pas a un devis qu'on
+       est en train de lui envoyer. `aria-disabled` et pas `disabled` : le bouton garde le
+       focus et se fait lire. */
+    var attente = !!(S && S.envoi);
+    ['accepter', 'refuser'].forEach(function (q) {
+      var b = MOD.querySelector('.dmod__commande [data-dev="' + q + '"]');
+      if (!b) return;
+      if (attente) { b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-describedby', 'devCmdAttente'); }
+      else { b.removeAttribute('aria-disabled'); if (b.getAttribute('aria-describedby') === 'devCmdAttente') b.removeAttribute('aria-describedby'); }
+    });
+    var at = el('devCmdAttente'); if (at) at.hidden = !attente;
+    /* X7 (tour 3) : la question « Il a dit non » ouverte, UN seul geste actif. « Oui, il
+       accepte », « Créer un lien » et « Refaire ce devis » passent en retrait, et disent pourquoi. */
+    var refusOuvert = !!(S && S.refus);
+    MOD.querySelectorAll('[data-dev="accepter"], [data-dev="lienCreer"], [data-dev="refaire"]').forEach(function (b) {
+      if (refusOuvert) { b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-describedby', 'devRefusAttente'); }
+      else if (b.getAttribute('aria-describedby') === 'devRefusAttente') {
+        b.removeAttribute('aria-describedby');
+        if (!(attente && b.closest('.dmod__commande'))) b.removeAttribute('aria-disabled');
+      }
+    });
+  }
+  /* T7 (tour 3) : pendant la question « Annuler l'acceptation ? », un seul bouton plein, celui
+     de la question. « Télécharger la commande » passe en retrait (pas de `disabled` : il garde
+     le focus et se fait lire), et sa description dit ce qu'on attend. */
+  function poserAnnul(on) {
+    S.annul = !!on;
+    var b = MOD && MOD.querySelector('.dmod__commande [data-dev="telecharger"]');
+    if (!b) return;
+    b.classList.toggle('btn--bordeaux', !on);
+    if (on) { b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-describedby', 'devAnnulDit'); }
+    else { b.removeAttribute('aria-disabled'); b.removeAttribute('aria-describedby'); }
   }
   function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
 
@@ -1011,6 +1274,8 @@
     return m.map(function (x) {
       if (x.quoi === 'produit') return 'Pour Vitisoft, chaque vin doit avoir son code article, et il manque pour : '
         + x.vins.join(', ') + (x.vins.length > 1 ? '. Retire-les du devis et ajoute-les' : '. Retire-le du devis et ajoute-le') + ' à la main dans Vitisoft.';
+      if (x.quoi === 'code') return 'Le code article de ' + x.vins.join(', ') + ' porte un point-virgule, un guillemet ou un retour à la ligne, que le fichier de commande ne sait pas transporter sans le changer.'
+        + (x.vins.length > 1 ? ' Retire-les du devis et ajoute-les' : ' Retire-le du devis et ajoute-le') + ' à la main dans Vitisoft.';
       if (x.quoi === 'client') return 'Ce client n’a ni numéro Vitisoft ni e-mail dans tes exports : Vitisoft créerait un deuxième client. Saisis cette commande dans Vitisoft.';
       return 'Ce devis n’a aucun vin.';
     }).join(' ');
@@ -1018,24 +1283,18 @@
   function manquesCommande() {
     return window.BdvCommande ? BdvCommande.manques(S.devis, S.lignesServeur || []) : [];
   }
-  function htmlCommandeAvant() {
-    var m = manquesCommande();
-    return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">Le client a dit oui ?</h3>'
-      + (m.length ? '<p class="aff-aide" id="devCmdManque">' + esc(phraseManques(m)) + '</p>'
-        : '<p class="aff-aide">Le devis enregistré devient une commande à importer dans Vitisoft.</p>')
-      + (m.length ? '' : '<p class="dmod__gestes"><button type="button" class="btn" data-dev="accepter">Préparer la commande Vitisoft</button></p>'
-        + '<div class="dmod__confirme" id="devAccord"' + (S.accord ? '' : ' hidden') + '>'
-        + (expire(S.devis) ? '<p class="aff-aide">Ce devis a expiré le ' + esc(dateFr(S.devis.valable_jusqu)) + ' : tu confirmes qu’il accepte ces prix ?</p>' : '')
-        + '<p class="aff-aide">Le devis ' + esc(S.devis.numero) + ' ne se modifiera plus (une correction demandera un nouveau devis) et l’affaire passera Gagnée. Tu reçois ensuite le fichier pour Vitisoft.</p>'
-        + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAccord">Oui, il a dit oui</button>'
-        + '<button type="button" class="btn" data-dev="pasEncore">Pas encore</button></p></div>')
-      + '</section>';
+  function htmlConfirmeAccord() {
+    return '<div class="dmod__confirme" id="devAccord"' + (S.accord ? '' : ' hidden') + '>'
+      + (expire(S.devis) ? '<p class="aff-aide">Ce devis a expiré le ' + esc(dateFr(S.devis.valable_jusqu)) + ' : tu confirmes qu’il accepte ces prix ?</p>' : '')
+      + '<p class="aff-aide">Le devis ' + esc(S.devis.numero) + ' ne se modifiera plus (une correction demandera un nouveau devis) et l’affaire passera Gagnée. Tu reçois ensuite le fichier pour Vitisoft.</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="confirmerAccord">Oui, il a dit oui</button>'
+      + '<button type="button" class="btn" data-dev="pasEncore">Pas encore</button></p></div>';
   }
   function htmlCommandeApres() {
     return '<section class="dmod__bloc dmod__commande" aria-labelledby="devCmdT"><h3 class="dmod__t" id="devCmdT">La commande Vitisoft</h3>'
       + (S.devis.signe_le ? htmlPreuve() : '<p class="dmod__cond">Accepté le ' + esc(dateFr(S.devis.accepte_le)) + '. L’affaire est gagnée.</p>')
       + '<p class="aff-aide" id="devCmdTrace"' + (phraseTrace(S.devis) ? '' : ' hidden') + '>' + esc(phraseTrace(S.devis)) + '</p>'
-      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="telecharger">Télécharger la commande</button>'
+      + '<p class="dmod__gestes"><button type="button" class="btn' + (S.annul ? '" aria-disabled="true" aria-describedby="devAnnulDit"' : ' btn--bordeaux"') + ' data-dev="telecharger">Télécharger la commande</button>'
       + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p>'
       + '<p class="aff-aide">' + esc(IMPORT_VITI) + ' ' + esc(DEJA_12) + '</p>'
       + '<p class="dmod__gestes"><button type="button" class="dmod__lien dmod__lien--x" data-dev="annulerAccord">Annuler l’acceptation</button></p>'
@@ -1055,17 +1314,26 @@
     return h;
   }
 
+  function cmdEnTete(d) {
+    return !!d && d.statut === 'accepte' && !(Number(d.commande_telechargements) > 0) && !d.commande_telechargee_le;
+  }
   function htmlLecture() {
     var l = S.lignesServeur || [];
     var d = S.devis;
     var t = { total_vins: d.total_vins_c, remise_globale: d.remise_globale_c, port: Number(d.port_c) || 0, total_ht: d.total_ht_c, tva: d.tva_c, ttc: d.total_ttc_c,
       taux: tauxDuDevis(d, l), regime: d.regime_tva, accisesHors: phraseAccises(d) === ACCISES_HORS };
     var deux = d.remise_globale_cb > 0 && l.some(function (x) { return x.remise_cb > 0; });
-    return htmlQui()
+    /* X2 (tour 3) : un devis accepte (signe en ligne ou « il a dit oui ») dont la commande n'a
+       JAMAIS ete telechargee porte « La commande Vitisoft » EN TETE : la punaise et le bandeau
+       disent « telecharge la commande », le bouton doit etre dans le premier ecran, a 390 comme
+       a 1440 (meme motif que le lien de signature, N2). Une fois telechargee, le bloc retrouve
+       sa place apres les conditions, a la prochaine ouverture : on ne deplace rien sous le doigt. */
+    var cmdTete = cmdEnTete(d);
+    return (lienMontre() ? htmlLienMontre() : '') + (cmdTete ? htmlCommandeApres() : '') + htmlQui()
       + '<section class="dmod__bloc" aria-labelledby="devVinsT"><h3 class="dmod__t" id="devVinsT">Tes vins</h3>'
       + '<ul class="dmod__lignes dmod__lignes--lues">' + l.map(function (x) {
-        return '<li class="dmod__ligne"><p class="dmod__nom">' + esc(nomDe(x)) + '</p><p class="aff-aide">'
-          + esc(x.quantite + ' x ' + C.euros(x.pu_ht_c) + ' HT' + (x.remise_cb ? ', remise ' + C.pourcent(x.remise_cb) + ' % (prix net ' + C.euros(prixNet(x)) + ')' : '')
+        return '<li class="dmod__ligne">' + nomHtml(x, 'p') + '<p class="aff-aide">'
+          + esc(x.quantite + '\u00a0x ' + C.euros(x.pu_ht_c) + '\u00a0HT' + (x.remise_cb ? ', remise ' + C.pourcent(x.remise_cb) + '\u00a0% (prix net ' + C.euros(prixNet(x)) + ')' : '')
           + ' : ' + C.euros(x.net_c) + (mixte(l) ? ', TVA ' + libTaux(x.tva_cb) : '')) + '</p></li>';
       }).join('') + '</ul></section>'
       + (d.regime_tva === 'export' || d.regime_tva === 'ue' ? '<section class="dmod__bloc" aria-labelledby="devTvaT"><h3 class="dmod__t" id="devTvaT">TVA</h3><p class="dmod__cond">'
@@ -1081,7 +1349,7 @@
         : d.statut === 'refuse' ? '<section class="dmod__bloc dmod__suite"><p class="aff-aide">Ce devis a été refusé : il garde son numéro et ne se modifie plus.</p>'
           + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="apercu">Voir et imprimer</button>'
           + (affaireOuverte() ? '<button type="button" class="btn" data-dev="refaire">Refaire ce devis</button>' : '') + '</p></section>'
-        : d.statut === 'accepte' ? htmlCommandeApres()
+        : d.statut === 'accepte' ? (cmdTete ? '' : htmlCommandeApres())
         : d.statut === 'envoye' ? htmlSuiteEnvoye()
         : '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes"><button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p></section>');
   }
@@ -1092,7 +1360,10 @@
     var cle = li && li.getAttribute('data-cle');
     return S.lignes.filter(function (l) { return l.cle === cle; })[0];
   }
-  function surClic(ev) {
+  /* Apres chaque geste, le bouton principal est repose (V8) : une confirmation vient peut-etre
+     de s'ouvrir ou de se refermer. */
+  function surClic(ev) { surClicGeste(ev); if (S && S.etat === 'edition') majPrincipal(); }
+  function surClicGeste(ev) {
     var b = ev.target.closest('[data-dev]');
     if (!b || !MOD.contains(b) || !S) return;
     var q = b.getAttribute('data-dev');
@@ -1112,6 +1383,15 @@
     }
     if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.liv = livVide(); S.tva = tvaVide(); S.etat = 'edition'; peindre(); return; }
     if (q === 'voirTout') { S.voirTout = true; peindreProps(); return; }
+    if (q === 'plus') {
+      var lp = b.closest('.dmod__ligne');
+      if (!lp) return;
+      if (lp.classList.contains('dmod__ligne--plus') && !lignePlusRequis(ligneDe(lp))) {
+        var lx = ligneDe(lp); if (lx) lx._plus = false;
+        lp.classList.remove('dmod__ligne--plus'); b.setAttribute('aria-expanded', 'false');
+      } else ouvrirPlus(lp, true);
+      return;
+    }
     if (q === 'enregistrer') { enregistrer(); return; }
     if (q === 'apercu') { entrerApercu(); return; }
     if (q === 'revenir') {
@@ -1138,6 +1418,15 @@
     }
     if (q === 'garder') { S.confirme = false; var c2 = el('devConfirme'); if (c2) c2.hidden = true; return; }
     if (q === 'confirmerAbandon') { abandonner(); return; }
+    if ((q === 'accepter' || q === 'lienCreer' || q === 'refaire') && S.refus) {
+      var ra = el('devRefusAttente'); if (ra) montrerDansBoite(ra);
+      var cr = MOD.querySelector('[data-dev="confirmerRefus"]'); if (cr) { try { cr.focus({ preventScroll: true }); } catch (e) { cr.focus(); } }
+      return;
+    }
+    if ((q === 'accepter' || q === 'refuser') && S.envoi && b.closest('.dmod__commande')) {
+      var at2 = el('devCmdAttente'); if (at2) { at2.hidden = false; montrerDansBoite(at2); }
+      return;
+    }
     if (q === 'accepter') {
       if (S.modifie) { dire('Enregistre d’abord tes changements : la commande part du devis enregistré.', true); return; }
       S.accord = true;
@@ -1155,6 +1444,7 @@
     if (q === 'pasEncore') { S.accord = false; var a2 = el('devAccord'); if (a2) a2.hidden = true;
       var bt = MOD.querySelector('[data-dev="accepter"]'); if (bt) { try { bt.focus(); } catch (e) {} } return; }
     if (q === 'confirmerAccord') { accepter(); return; }
+    if (q === 'allerEnvoi') { var pr2 = el('devProchaine'); if (pr2) pr2.hidden = true; q = 'envoyer'; }
     if (q === 'envoyer') {
       if (S.modifie) { dire('Enregistre d’abord tes changements : c’est le devis enregistré que tu envoies.', true); return; }
       S.envoi = true;
@@ -1173,7 +1463,7 @@
     if (q === 'refuser' || q === 'annulerAccord') {
       var refus = q === 'refuser';
       if (refus && S.modifie) { dire('Enregistre d’abord tes changements, ou ferme sans enregistrer : c’est le devis enregistré qu’il refuse.', true); return; }
-      S[refus ? 'refus' : 'annul'] = true;
+      if (refus) S.refus = true; else poserAnnul(true);
       var bx = el(refus ? 'devRefus' : 'devAnnul');
       if (bx) {
         bx.hidden = false;
@@ -1185,7 +1475,7 @@
     }
     if (q === 'pasRefus' || q === 'garderAccord') {
       var r1 = q === 'pasRefus';
-      S[r1 ? 'refus' : 'annul'] = false;
+      if (r1) S.refus = false; else poserAnnul(false);
       var bx2 = el(r1 ? 'devRefus' : 'devAnnul'); if (bx2) bx2.hidden = true;
       var rb = MOD.querySelector(r1 ? '[data-dev="refuser"]' : '[data-dev="annulerAccord"]'); if (rb) { try { rb.focus(); } catch (e) {} }
       return;
@@ -1196,6 +1486,7 @@
     if (q === 'lienCreer') { creerLien(false); return; }
     if (q === 'lienCopier' && S.lien) { copier(S.lien.url, 'Lien copié : colle-le dans ton mail.'); return; }
     if (q === 'messageCopier' && S.lien) { copier(messageType(S.lien.url), 'Message copié : colle-le dans ton mail, joins le PDF, envoie.'); return; }
+    if (q === 'telecharger' && S.annul) { var ga = MOD.querySelector('#devAnnul [data-dev="garderAccord"]'); if (ga) { try { ga.focus(); } catch (e) {} } return; }
     if (q === 'telecharger') { var nm = telecharger(); if (nm) noterTelechargement('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
   function majAideLiv() {
@@ -1206,10 +1497,18 @@
   }
   function surChangement(ev) {
     var t = ev.target;
-    if (S && S.etat === 'edition' && t.id === 'devTvaAccises') { S.tva.accises = !!t.checked; S.modifie = true; majTotaux(); ecrireBrouillon(); return; }
+    /* Les champs de l'envoi refont la phrase et le nom du bouton (juge V1). */
+    if (t && t.closest && t.closest('#devEnvoi')) { majEnvoi(); return; }
+    if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-accises')) {
+      S.tva.accises = t.value === 'oui'; S.modifie = true;
+      var fx = el('devTvaAccises'); if (fx) { effacerErreur(fx); [].forEach.call(fx.querySelectorAll('input'), effacerErreur); [].forEach.call(fx.querySelectorAll('.dmod__err'), function (n) { n.remove(); }); }
+      majTotaux(); ecrireBrouillon(); return;
+    }
     if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-regime')) {
       /* LE REGIME CHANGE : la section TVA ET les lignes se repeignent (le choix du taux n'existe
          qu'en France) ; le focus reste sur le bouton choisi. */
+      /* En quittant la France, la question des accises se pose : sans reponse par defaut. */
+      if (S.tva.regime === 'france' && t.value !== 'france') S.tva.accises = null;
       S.tva.regime = t.value;
       var sx = el('devTva'); if (sx) sx.innerHTML = htmlTva();
       var nl = el('devLignes'); if (nl) nl.innerHTML = htmlLignes();
@@ -1219,8 +1518,11 @@
     }
     if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-livmode')) {
       /* LE MODE CHANGE : la section se repeint, le focus reste sur le bouton choisi. */
+      /* LE RETRAIT GARDE LE PORT ET LE TRANSPORTEUR DE COTE (S5, juge V10) : un clic par erreur
+         sur « Il vient chercher » puis un retour a « Une autre adresse » les retrouve. Ils sont
+         ignores tant que le mode est le retrait : `portDe()` rend 0, `livCorps()` ne les envoie
+         pas, et la base, qui les refuse en retrait, ne les voit jamais. */
       S.liv.mode = t.value;
-      if (S.liv.mode === 'retrait') { S.liv.port = ''; S.liv.transporteur = ''; }
       var sec = el('devLiv'); if (sec) sec.innerHTML = htmlLivraison();
       S.modifie = true; majTotaux(); ecrireBrouillon();
       var f = MOD.querySelector('[data-dev-livmode][value="' + cssEsc(S.liv.mode) + '"]'); if (f) { try { f.focus(); } catch (e) {} }
@@ -1244,6 +1546,7 @@
     if (f) { try { f.focus(); } catch (e) {} }
   }
   function surSaisie(ev) {
+    if (ev.target && ev.target.closest && ev.target.closest('#devEnvoi')) { majEnvoi(); return; }
     var t = ev.target;
     if (!S || S.etat !== 'edition') return;
     if (t.getAttribute && t.getAttribute('aria-invalid') === 'true') effacerErreur(t);
@@ -1254,6 +1557,7 @@
     else if (t.hasAttribute && t.hasAttribute('data-dev-liv')) {
       var avant = portDe() > 0;
       S.liv[t.getAttribute('data-dev-liv')] = t.value;
+      if (t.id === 'devLivPays') { var cpI = el('devLivCp'); if (cpI) cpI.setAttribute('inputmode', cpMode()); }
       /* La phrase Vitisoft du port apparait / disparait sans repeindre le champ ou l'on tape. */
       if ((portDe() > 0) !== avant) majAideLiv();
     }
@@ -1302,25 +1606,43 @@
     champ.removeAttribute('aria-invalid');
   }
   function effacerErreurs() {
-    [].forEach.call(MOD.querySelectorAll('[aria-invalid="true"]'), effacerErreur);
+    [].forEach.call(MOD.querySelectorAll('[aria-invalid="true"], [aria-describedby*="devErr"]'), effacerErreur);
     [].forEach.call(MOD.querySelectorAll('.dmod__err'), function (n) { n.remove(); });
   }
-  function refuser(txt, champ) {
+  /* `groupe` (facultatif) : un FIELDSET de choix. Le message va alors SOUS les choix, a la fin
+     du groupe, et non derriere le premier bouton radio, ou il coupait son libelle en deux
+     (N6, 02/10/2026) ; tous les choix le portent en description, et c'est le groupe entier
+     qui est ramene au-dessus du pied collant. */
+  function refuser(txt, champ, groupe) {
     effacerErreurs();
     dire(txt, true);
     if (champ) {
+      var li = champ.closest && champ.closest('.dmod__ligne');
+      if (li && champ.closest('.dmod__repli')) ouvrirPlus(li, false);
       var id = 'devErr' + (++N_ERR);
-      var e = document.createElement('span');
+      var e = document.createElement(groupe ? 'p' : 'span');
       e.className = 'dmod__err';
       e.id = id;
       e.textContent = txt;
-      champ.insertAdjacentElement('afterend', e);
-      champ.setAttribute('aria-invalid', 'true');
-      champ.setAttribute('aria-describedby', ((champ.getAttribute('aria-describedby') || '') + ' ' + id).trim());
+      var cibles = groupe ? [].slice.call(groupe.querySelectorAll('input')) : [champ];
+      if (groupe) { groupe.appendChild(e); groupe.setAttribute('aria-invalid', 'true'); }
+      else champ.insertAdjacentElement('afterend', e);
+      cibles.forEach(function (c) {
+        if (!groupe) c.setAttribute('aria-invalid', 'true');
+        c.setAttribute('aria-describedby', ((c.getAttribute('aria-describedby') || '') + ' ' + id).trim());
+      });
       try { champ.focus({ preventScroll: true }); } catch (x) { try { champ.focus(); } catch (y) {} }
-      montrerDansBoite(champ.closest('.aff-champ') || champ);
+      montrerDansBoite(groupe || champ.closest('.aff-champ') || champ);
     }
     return null;
+  }
+  /* LE PLI « REMISE OU AUTRE TVA » d'une ligne s'ouvre en place, sans repeindre la liste. */
+  function ouvrirPlus(li, focus) {
+    var l = ligneDe(li);
+    if (l) l._plus = true;
+    li.classList.add('dmod__ligne--plus');
+    var b = li.querySelector('[data-dev="plus"]'); if (b) b.setAttribute('aria-expanded', 'true');
+    if (focus) { var r = li.querySelector('[data-dev-champ="remise"]'); if (r) { try { r.focus(); } catch (e) {} } }
   }
   function verifier() {
     if (!S.lignes.length) return refuser('Coche au moins un vin.', el('devCherche'));
@@ -1351,6 +1673,8 @@
       if (nt.slice(0, 2) === 'FR') return refuser('Un numéro qui commence par FR est français : choisis « En France ».', el('devTvaClient'));
       if (!(S.fiche && S.fiche.tva)) return refuser('Ton numéro de TVA intracommunautaire manque dans Mon domaine : il doit figurer sur le devis.', MOD.querySelector('#devTva [data-dev="domaine"]'));
     }
+    if (horsFrance() && S.tva.accises !== true && S.tva.accises !== false)
+      return refuser('Dis si tes prix comprennent les droits d’accises : le devis l’écrit au client.', MOD.querySelector('[data-dev-accises]'), el('devTvaAccises'));
     if (portDe() === null) return refuser('Les frais de port s’écrivent en euros, par exemple 15 ou 12,50.', el('devLivPort'));
     var dj = String(lv.date || '').trim(), dmin = S.devis && S.devis.date_devis ? String(S.devis.date_devis) : jourIso();
     if (dj && (!/^\d{4}-\d{2}-\d{2}$/.test(dj) || dj < dmin)) return refuser('La date de livraison ne peut pas être avant le devis.', el('devLivDate'));
@@ -1430,6 +1754,9 @@
     S.modifie = false;
     peindre();
     dire('Devis ' + r.numero + (remplace ? ' enregistré. Il remplace le ' + remplace + ', abandonné.' : neuf ? ' enregistré.' : ' enregistré, avec tes changements.'));
+    /* X1 : la suite n'est proposee que si le bloc d'envoi est la pour la recevoir. */
+    var pro = el('devProchaine');
+    if (pro && MOD.querySelector('[data-dev="envoyer"]')) pro.hidden = false;
     if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
   }
 
@@ -1571,7 +1898,11 @@
     var moi = S, r = null, err = null, b = MOD.querySelector('[data-dev="confirmerEnvoi"]');
     S.attente = true;
     if (b) b.setAttribute('aria-busy', 'true');
-    var corpsE = { p_bureau: bureau(), p_devis: S.devis.devis_id, p_jour: jour, p_rappel: rappel, p_rappel_titre: null, p_etape: et };
+    /* LA RELANCE RATTRAPE LE DEVIS JAMAIS PARTI (juge V1, tour 2) : note envoye AUJOURD'HUI,
+       c'est-a-dire avant le mail, son rappel le dit dans Ma journee. Note envoye un autre jour,
+       le devis est parti : le titre par defaut de la base suffit. Moins de 80 signes. */
+    var titreRel = rappel && jour === auj ? titreRelance(S.devis.numero) : null;
+    var corpsE = { p_bureau: bureau(), p_devis: S.devis.devis_id, p_jour: jour, p_rappel: rappel, p_rappel_titre: titreRel, p_etape: et };
     var copieE = lot52();
     if (copieE) { var papE = await copieDuPapier(); if (moi !== S) { return; } if (papE) corpsE.p_papier = papE; }
     try { r = unSeul(await rpc('devis_envoyer', corpsE)); }
@@ -1593,7 +1924,7 @@
     S.devis = r;
     S.envoi = false;
     S.lienInfo = false;
-    if (rappel && S.ctx.affaire) { S.ctx.affaire.rappel = rappel; S.ctx.affaire.rappel_titre = 'Relancer le devis ' + r.numero; }
+    if (rappel && S.ctx.affaire) { S.ctx.affaire.rappel = rappel; S.ctx.affaire.rappel_titre = titreRel || 'Relancer le devis ' + r.numero; }
     peindre();
     var motE = 'Devis ' + r.numero + ' noté envoyé le ' + dateFr(r.envoye_le) + '.' + (rappel ? ' Relance prévue le ' + dateFr(rappel) + ', dans Ma journée.' : '')
       + (copieE ? (r.papier_empreinte ? ' Une copie exacte est gardée.' : ' ' + MOT_COPIE_RATEE) : '');
@@ -1601,7 +1932,9 @@
     if (avecLien && r.papier_empreinte) {
       if (await creerLien(motE)) {
         if (moi !== S) return;
-        dire(motE + ' Ton lien de signature est prêt : copie-le dans ton mail.');
+        /* N2 : l'avis ne redit pas tout (le bloc du lien porte la date et la relance) et il
+           ne fait pas defiler : `creerLien` a deja pose le lien en tete, sous le doigt. */
+        dire('Devis ' + r.numero + ' figé et noté envoyé. Une copie exacte est gardée. Ton message est prêt juste en dessous.', false, true);
         if (typeof S.ctx.change === 'function') { try { S.ctx.change(r); } catch (e) {} }
         return;
       }
@@ -1772,29 +2105,16 @@
       setTimeout(fin, 4000);   // une feuille qui ne vient pas n'empeche pas d'imprimer
     });
   }
-  /* L'APERCU SORT DU TIROIR : dans 461 px la feuille serait remise en page a un ou deux
-     mots par ligne. La boite redevient une modale large le temps de l'apercu (le tiroir
-     est rendu par `BdvTiroir.retirer`, puis repose au retour) ; le contrat ARIA suit. */
+  /* L'APERCU : la boite est deja une modale large (voir l'en-tete), rien a defaire. */
   function entrerApercu() {
     dire('');
-    var box = MOD.querySelector('.tmod__boite');
-    S.horsTiroir = !!(window.BdvTiroir && BdvTiroir.actif && BdvTiroir.actif());
-    if (S.horsTiroir) {
-      BdvTiroir.retirer();
-      box.setAttribute('role', 'dialog');
-      box.setAttribute('aria-modal', 'true');
-      document.body.style.overflow = 'hidden';
-    }
     S.etat = 'apercu';
     peindre();
     /* Le bouton « Voir et imprimer » vient de disparaitre : le focus va au geste de l'apercu. */
     var imp = MOD.querySelector('[data-dev="imprimer"]');
     if (imp) { try { imp.focus({ preventScroll: true }); } catch (e) { imp.focus(); } }
   }
-  function sortirApercu() {
-    if (S.horsTiroir && window.BdvTiroir) BdvTiroir.poser(MOD.querySelector('.tmod__boite'));
-    S.horsTiroir = false;
-  }
+  function sortirApercu() {}
   /* LA FEUILLE EST RENDUE A SA VRAIE LARGEUR (A4, 794 px), puis REDUITE a la place qu'on a :
      aucune colonne coupee, aucun defilement dans l'iframe (elle prend la hauteur du
      document), la seule chose qui defile est la boite. */

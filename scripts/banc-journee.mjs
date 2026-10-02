@@ -30,6 +30,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/* BANC_MAINTENANT=2026-10-02T00:30:00+02:00 rejoue le banc a une heure choisie (le banc
+   ET la page voient la meme horloge) : c'est ainsi qu'on verifie le passage de minuit,
+   sans faketime. Sans la variable, l'horloge est la vraie. */
+function figerDate(D, iso) {
+  const delta = Date.parse(iso) - D.now();
+  return class extends D {
+    constructor(...a) { if (a.length) super(...a); else super(D.now() + delta); }
+    static now() { return D.now() + delta; }
+  };
+}
+if (process.env.BANC_MAINTENANT) globalThis.Date = figerDate(Date, process.env.BANC_MAINTENANT);
 const PAGE = path.join(RACINE, '_site/mon-bureau/index.html');
 
 let JSDOM;
@@ -91,8 +102,17 @@ const VIDE = { signaux: [], noms: {}, resume: null, deposeLe: null, suivi: [],
 
 /* Le faux BdvCrm. `file()` rend une ligne des qu'il y a un resume : le sous-main a donc de
    quoi peindre dans l'etat plein, et rien dans l'etat vide. */
+const ISO_LOCAL = (() => {
+  const src = fs.readFileSync(path.join(RACINE, 'src/js/bdv-crm.js'), 'utf8');
+  const m = /function isoLocal\(d\) \{[\s\S]*?\n  \}/.exec(src);
+  if (!m) { console.log('  ECHEC : isoLocal introuvable dans bdv-crm.js'); process.exit(1); }
+  return new Function('return ' + m[0])();
+})();
 function fauxCrm(etatCourant) {
-  const iso = (d) => new Date(d).toISOString().slice(0, 10);
+  /* « Aujourd'hui » au jour LOCAL, comme le vrai : la fonction est RECOPIEE de
+     src/js/bdv-crm.js a chaque lancement. `toISOString()` donnait le jour de Londres, et
+     entre 0 h et 2 h a Paris le banc echouait trois fois sur une page juste (tour 2). */
+  const iso = (d) => ISO_LOCAL(new Date(d));
   return {
     // Les trois gestes du sous-main : le listing en fabrique un bouton chacun.
     GESTES: {
@@ -125,6 +145,7 @@ async function monter(etatDepart) {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     beforeParse(w) {
+      if (process.env.BANC_MAINTENANT) w.Date = figerDate(w.Date, process.env.BANC_MAINTENANT);
       /* UNE SESSION D'ABORD. Le script de la page sort par `if(!connecte) return;` : sans
          session en stockage local il ne peint rien du tout, et un banc qui l'ignore
          verifie une page vide en annoncant que tout va bien. */

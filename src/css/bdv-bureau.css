@@ -806,6 +806,17 @@ body.bdv-coque{
   border-color:var(--bdv-encre-4);
   color:var(--bdv-encre-1);
 }
+/* LE BOUTON NE SAUTE PAS, 01/10/2026 (saisie S1, juge V11). `.btn:hover` et
+   `.btn:active` de style.css (0,2,0) font avancer le bouton de 2 px et posent
+   l'ombre dure du site, en encre du SITE : une tache noire sous chaque bouton
+   du bureau au survol, dans les deux themes. Le lot 5 l'avait annule pour le
+   seul panneau de reglages ; ici pour toute la coque. A (0,3,0), et sous le
+   scope : la page d'accueil garde son bouton qui avance. */
+.bdv-coque .btn:hover,
+.bdv-coque .btn:active{
+  transform:none;
+  box-shadow:none;
+}
 .bdv-coque .btn--bordeaux{
   background:var(--bdv-accent);
   border-color:var(--bdv-accent);
@@ -1421,6 +1432,11 @@ body.bdv-coque{
 }
 .bdv-coque .bureau-avis[data-ok="oui"]{
   background:var(--bdv-bon-lavis);
+}
+/* T1 (tour 3) : le bandeau « devis signé » vit en tete de l'atelier, sur toutes les pieces. Sous
+   700 px, ses deux boutons prennent la cible tactile du bureau. */
+@media (max-width:700px){
+  body.bdv-poste.bdv-coque .bureau-signe .btn{ min-height:var(--bdv-cible); }
 }
 
 /* LE LISTING QUAND SA ZONE EST ETROITE : UNE FICHE PAR LIGNE. Le basculement
@@ -3184,6 +3200,12 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
     background:var(--bdv-surface);
     z-index:1;
   }
+  /* X8 (tour 3) : le coin colle en haut a droite pendant qu'on defile, donc la rangee des
+     actions passait DESSOUS (« Nouvelle affaire » rognee). Elle laisse la place du coin, ses
+     deux boutons de 44 px et leur ecart. */
+  body.bdv-coque.bdv-a-tiroir #modale.on .modale__box:has(.fiche__coin) .fiche__actions{
+    padding-right:calc(var(--bdv-cible) * 2 + var(--bdv-e-1));
+  }
 
   /* -- 22.6 UN TABLEAU SE COMPRIME AVANT DE DEBORDER, ET C'EST PIRE.
         Lecon du 11/09/2026, payee sur telephone : `.content` porte
@@ -3323,6 +3345,16 @@ body.bdv-coque .bdv-porte__bascule .bdv-porte__lien{
      comme les quatre defauts de specificite des lots 2 a 5. */
 }
 
+
+/* 22.9 S10 (01/10/2026) : en tiroir l'en-tete perd un tiers de sa largeur, et la pastille
+   des rappels se coupait en « 3 client ». Le tiroir ouvert prend la forme chiffree des
+   etats, comme a 390 ; la phrase reste dans aria-label. (0,4,1), au-dessus des sections 10
+   et 11. */
+@media (min-width:1320px){
+  body.bdv-a-tiroir.bdv-coque .bureau-tete .bureau-tete__etat-mot{ display:none; }
+  body.bdv-a-tiroir.bdv-coque .bureau-tete .bureau-tete__etat-n{ display:inline; font-weight:600; font-variant-numeric:tabular-nums; }
+  body.bdv-a-tiroir.bdv-coque .bureau-tete .bureau-tete__etat{ padding:0 10px; gap:6px; }
+}
 
 /* ============================================================================
    EN-TETE FLOTTANT, DIRECTION C : « LE CADRE »
@@ -5512,6 +5544,157 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   body.bdv-coque .tache__puce{ width:32px; text-align:left; }
 }
 
+/* -- 31 quinquies. A GAGNER, PASSE DU 01/10/2026 (devA) : ce que les verificateurs et le
+      vigneron ont vu, et rien d'autre. Que des jetons, aucune ombre, aucun z-index. */
+
+/* S8 : un repli se voit comme un repli. `display:flex` sur le summary retire le triangle
+   natif : on pose le signe nous-memes, et il tourne quand c'est ouvert. */
+.bdv-coque .aff-plus > summary{ list-style:none; gap:var(--bdv-e-2); }
+.bdv-coque .aff-plus > summary::-webkit-details-marker{ display:none; }
+.bdv-coque .aff-plus > summary::before{
+  content:"\25B8";
+  content:"\25B8" / "";
+  flex:0 0 auto;
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-plus[open] > summary::before{ content:"\25BE"; content:"\25BE" / ""; }
+/* V13 : les deux replis du bas (affaires closes, reglages) menent ailleurs : ils se
+   dessinent en liens. */
+.bdv-coque .aff-closes > summary,
+.bdv-coque .aff-reglages > summary{ color:var(--bdv-accent); text-decoration:underline; }
+
+/* S13 : le cadre d'etat va jusqu'au bord des champs. L'en-tete garde sa reserve a droite
+   pour la croix ; le cadre, pose plus bas, la reprend. */
+.bdv-coque .amod__etat{ margin-right:calc(-1 * var(--bdv-e-8)); }
+
+/* V6 : repousser d'un appui. */
+.bdv-coque .amod__report{
+  margin:var(--bdv-e-2) 0 0;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .amod__report .btn{ min-height:var(--bdv-cible); }
+/* Y1 (tour 4) : un seul ordre partout. Appeler et Ecrire sur une rangee, puis « Nouveau devis »
+   SEUL sur sa ligne, d'un autre dessin que les boutons de report (le lavis de l'accent et son
+   encre, 6,51:1 en clair, 7,70:1 en sombre), puis la rangee « Je le rappelle : ». */
+.bdv-coque .amod__contacts{ margin:var(--bdv-e-2) 0 0; display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); }
+.bdv-coque .amod__contacts .btn{ min-height:var(--bdv-cible); }
+/* X11 : le raccourci « Nouveau devis » de la tete du panneau n'existe que sous 700 px. */
+.bdv-coque .amod__raccourci{ display:none; }
+@media (max-width:700px){
+  .bdv-coque .amod__raccourci{ display:block; margin:var(--bdv-e-3) 0 var(--bdv-e-2); }
+  .bdv-coque .amod__raccourci .btn{ min-height:var(--bdv-cible); background:var(--bdv-accent-lavis); border-color:var(--bdv-accent-trait); color:var(--bdv-accent); }
+}
+.bdv-coque .amod__report-t{ margin:0; }
+
+/* V3 : le devis en carte, avec sa porte. */
+.bdv-coque .aff-devis__carte{
+  display:grid;
+  justify-items:start;
+  gap:var(--bdv-e-1);
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .aff-devis__detail{
+  margin:0;
+  font-size:var(--bdv-f-2);
+  font-variant-numeric:tabular-nums;
+  color:var(--bdv-encre-2);
+}
+
+/* V13 : la liste « Type » n'existe que sous 700 px ; au-dessus, les pastilles. La bascule
+   Liste / Kanban est un interrupteur a deux positions, pas deux filtres de plus. */
+.bdv-coque .aff-typeliste{ display:none; }
+.bdv-coque .aff-vues{
+  padding:var(--bdv-e-1);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r-rond);
+}
+.bdv-coque .aff-vues .chip{ border-color:transparent; }
+.bdv-coque .aff-vues .chip[aria-pressed="true"]{ background:var(--bdv-surface-2); border-color:var(--bdv-trait-fort); color:var(--bdv-encre-1); }
+
+/* S19 : la phrase du defilement ne sert que la ou le tableau defile. */
+.bdv-coque .aff-kanban__glisse{ display:none; }
+
+@media (max-width:700px){
+  .bdv-coque .aff-tete .aff-chips{ display:none; }
+  .bdv-coque .aff-tete .aff-typeliste{ display:grid; }
+  .bdv-coque .aff-typeliste select{ min-height:var(--bdv-cible); font-size:var(--bdv-f-saisie); }
+  /* S7 : 16 px, sinon iOS zoome a chaque appui. */
+  .bdv-coque .aff-carte__deplacer{ font-size:var(--bdv-f-saisie); }
+  /* V14 : une colonne vide se replie a 48 px, son nom ecrit en hauteur. */
+  .bdv-coque .aff-col--vide{ flex:0 0 var(--bdv-e-12); min-height:8rem; padding:var(--bdv-e-2) 0; align-items:center; }
+  .bdv-coque .aff-col--vide .aff-col__t{ writing-mode:vertical-rl; margin:0; }
+  .bdv-coque .aff-col--vide .aff-col__liste{ display:none; }
+  .bdv-coque .aff-kanban__glisse{ display:block; margin:0 0 var(--bdv-e-2); font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+  /* V6 : « Enregistrer » colle en pied, comme le pied du devis. */
+  .bdv-coque .amod .aff-edit .aff-form__pied{
+    position:sticky;
+    bottom:calc(-1 * var(--bdv-e-6));
+    margin:0 calc(-1 * var(--bdv-e-6));
+    padding:var(--bdv-e-3) var(--bdv-e-6);
+    background:var(--bdv-surface-3);
+    border-top:1px solid var(--bdv-trait);
+  }
+}
+
+/* -- 31 sexies. A GAGNER, TOUR 2 (02/10/2026, devE) : l'opposition, le choix de cloture
+      enfonce, la rangee de report, « Deplacer vers », la fiche neuve plus courte, la case
+      du bilan sans chiffre. Que des jetons, aucune ombre, aucun z-index. */
+
+/* N4 et N3 : « Ne veut plus etre contactee », en mots et en filet, jamais la seule couleur. */
+.bdv-coque .aff-marque--opposee{ border-color:var(--bdv-retard); color:var(--bdv-encre-1); }
+.bdv-coque .amod__etat--opposee{ border-left-color:var(--bdv-retard); color:var(--bdv-encre-1); }
+.bdv-coque .aff-notes-lues{ margin:0; white-space:pre-wrap; font-size:var(--bdv-f-2); color:var(--bdv-encre-1); }
+.bdv-coque .aff-trouve--opposee{ cursor:default; background:var(--bdv-surface-2); }
+.bdv-coque .aff-trouve--opposee:hover{ background:var(--bdv-surface-2); }
+.bdv-coque .aff-trouves .aff-trouve--opposee:first-child{ border-top-width:1px; }
+
+/* W1 : le choix fait se voit enfonce, avec sa coche ; un seul bouton plein a l'ecran. */
+.bdv-coque .aff-conclure__choix[aria-pressed="true"]{
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-encre-1);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-conclure__choix[aria-pressed="true"]::before{
+  content:"\2713";
+  content:"\2713" / "";
+  margin-right:var(--bdv-e-1);
+}
+.bdv-coque .aff-form__pied--retrait .btn--bordeaux{
+  opacity:1;
+  background:var(--bdv-surface-2);
+  border-color:var(--bdv-trait-fort);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-form__pied-mot{ flex:1 1 12rem; margin:0; }
+
+/* W6 : le libelle au-dessus, les trois boutons sur une ligne, la date a cote. */
+.bdv-coque .amod__report{ display:grid; justify-items:start; }
+.bdv-coque .amod__report-b{ display:grid; grid-template-columns:repeat(3, max-content); gap:var(--bdv-e-2); }
+
+/* W7 : « Deplacer vers » se lit au-dessus de la liste, en 13 px. */
+.bdv-coque .aff-carte__dep{ flex:1 1 8rem; min-width:0; display:grid; gap:var(--bdv-e-1); }
+.bdv-coque .aff-carte__dep-t{ font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+.bdv-coque .aff-carte__dep .aff-carte__deplacer{ width:100%; }
+
+/* W13 : contact et fonction sont deux champs courts, cote a cote meme a 390 px. */
+.bdv-coque .aff-duo--serre{ grid-template-columns:1fr 1fr; }
+
+@media (max-width:700px){
+  .bdv-coque .amod__report-b{ grid-template-columns:repeat(3, minmax(0, 1fr)); width:100%; }
+  .bdv-coque .amod__report-b .btn{ padding-left:var(--bdv-e-1); padding-right:var(--bdv-e-1); white-space:normal; }
+  /* W5 : tant que le chiffre n'est pas connu, la case « Clients a suivre » ne redit pas le
+     nom de l'onglet qui est juste dessous. Elle revient avec son chiffre. */
+  body.bdv-poste.bdv-coque .aff-bilan__case--sans{ display:none; }
+}
+
 /* ==========================================================================
    32. « MON DOMAINE », lot 38 (28/09/2026). La recherche dans l'annuaire et ses
    resultats, dans le panneau des reglages. Rien de neuf dans les echelles : la
@@ -5535,6 +5718,12 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   .bdv-coque .bdvd-ligne{ grid-template-columns:1fr; }
   .bdv-coque .bdvd-ligne .bdvr-btn{ grid-column:1; grid-row:auto; justify-self:start; }
 }
+/* 01/10/2026. La marque « devis » d'un champ que le devis exige (juge V17) : un MOT,
+   jamais la seule couleur, en encre secondaire pour ne pas peser comme le libelle. Et
+   l'ecart entre deux grilles qui se suivent (saisie S14) : celui des rangees d'une grille,
+   `--bdv-e-4`, que `.bdvr-grille` pose en `gap` mais pas entre deux grilles. */
+.bdv-coque .bdvd-requis{ font-weight:400; color:var(--bdv-encre-3); }
+.bdv-coque .bdvd-suite{ margin-top:var(--bdv-e-4); }
 
 /* ==========================================================================
    33. « MON COMMERCE » EN DEUX ONGLETS, lot 43 (29/09/2026)

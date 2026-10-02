@@ -119,6 +119,13 @@ titre('1. Le fichier');
   t('client existant sans numero MAIS avec e-mail : accepte', K.manques(Object.assign({}, anonyme, { acheteur: { nom: 'A', nouveau: false, email: 'a@x.fr' } }), LIGNES).length === 0);
   t('nouveau client sans numero : rien a signaler', K.manques(neuf, LIGNES).length === 0);
   t('aucune ligne : signale', K.manques(DEVIS, []).some(m => m.quoi === 'vide'));
+  /* D4 (01/10/2026) : un code article qui porte un « ; » sortirait change (« , ») et Vitisoft
+     ne reconnaitrait pas le produit. On le dit AVANT, en nommant le vin, au lieu de l'abimer. */
+  for (const c of ['P;12', 'P"12', 'P\n12', 'P\t12', 'P\u201c12']) {
+    const ab = [Object.assign({}, LIGNES[0], { num_produit: c, designation: 'Le Pic' })];
+    t('D4 : code article ' + JSON.stringify(c) + ' : signale, le vin nomme', K.manques(DEVIS, ab).some(m => m.quoi === 'code' && m.vins.join() === 'Le Pic'), JSON.stringify(K.manques(DEVIS, ab)));
+  }
+  t('D4 (temoin) : un code ordinaire avec tiret ou espace passe', K.manques(DEVIS, [Object.assign({}, LIGNES[0], { num_produit: 'P-12 B' })]).length === 0);
   const src = sansCommentaires(SRC_CMD);
   t('le module est pur : ni document, ni fetch, ni BdvCompte', !/document\.|fetch\(|BdvCompte/.test(src));
   t('aucun flottant dans un prix : ni toFixed ni parseFloat', !/toFixed|parseFloat/.test(src));
@@ -229,8 +236,16 @@ titre('1 ter. Lot 54 : le taux de TVA par ligne (colonne 39)');
 
 titre('2. La piece : « Le client a dit oui »');
 {
+  /* D4 a l'ecran : le code article qui ne passerait pas se dit AVANT, sans bouton « Oui ». */
+  const X = monter({ lignes: LIGNES.map((l, i) => Object.assign({}, l, i === 0 ? { num_produit: 'P;100', designation: 'Le Pic' } : { designation: 'Cuvée B' })) });
+  await X.ouvrir();
+  const mq = X.q('#devCmdManque');
+  t('D4 : « Le client a répondu ? » nomme le vin dont le code porte un point-virgule, et ne propose pas « Oui »', !!mq && /Le Pic/.test(mq.textContent) && /point-virgule/.test(mq.textContent)
+    && !X.q('[data-dev="accepter"]') && !!X.q('[data-dev="refuser"]'), mq && mq.textContent);
+}
+{
   const X = monter(); await X.ouvrir();
-  t('un devis enregistre montre « Le client a dit oui ? » et le bouton', /Le client a dit oui \?/.test(X.modale().textContent) && !!X.q('[data-dev="accepter"]'));
+  t('un devis enregistre montre « Le client a répondu ? » et le bouton', /Le client a répondu \?/.test(X.modale().textContent) && !!X.q('[data-dev="accepter"]'));
   t('la confirmation est cachee au depart', !!X.q('#devAccord') && X.q('#devAccord').hidden === true);
   await X.clic('[data-dev="accepter"]');
   t('un appui ouvre la confirmation, focus sur « Pas encore » (rien ne se fige a deux Entree)',

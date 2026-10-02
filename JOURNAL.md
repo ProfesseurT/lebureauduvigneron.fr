@@ -12,6 +12,30 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 02/10/2026, audit de la branche affaires (lots 34 a 55) et lot 56
+
+Demande de Ted : tout auditer depuis les affaires, liens, mecanismes, ecrans de saisie, avec le
+vigneron empathique comme juge, sans s'arreter avant son feu vert. Quatre tours : FEU ROUGE, FEU
+ROUGE, FEU ROUGE, puis FEU VERT.
+
+Ce qui a ete trouve et corrige, en gros : la recherche d'un client qui ne voyait pas les clients
+Vitisoft et laissait creer un doublon ; une saisie perdue a chaque echec d'enregistrement ; des
+panneaux qui restaient ouverts en changeant de piece, deux boites a la fois ; le focus perdu ; les
+punaises qui menaient a la piece et pas a l'affaire ; le bouton « Je l'ai envoye » qui disait
+l'inverse de l'ordre des gestes, et le lien de signature cache 2 000 px plus bas ; la page /signer/
+habillee comme le site, avec un grand blanc ; une personne en opposition encore proposee au rappel
+et recreable en deux clics ; un simple utilisateur qui pouvait supprimer toutes les affaires ; une
+etape deplacee qui figeait ses affaires ; la purge qui oubliait l'adresse et les notes.
+
+Arbitrages pris par defaut, a confirmer par Ted : l'opposition garde le nom, la ville et le SIRET ;
+elle ne se leve plus depuis le bureau ; une piste dont une affaire est gagnee n'est pas purgee ;
+le devis s'ouvre en modale large et non plus en tiroir ; le papier d'un devis deja envoye ne change
+jamais. Detail et regles : CLAUDE.md, « LOT 56 ET L'AUDIT DES AFFAIRES ».
+
+Ordre de mise en production : le SQL du lot 56, puis pousser, puis redeployer `signature`.
+
+---
+
 ## 01/10/2026, lot 55 : la signature en ligne du devis
 
 Arbitrages de Ted, le même jour :

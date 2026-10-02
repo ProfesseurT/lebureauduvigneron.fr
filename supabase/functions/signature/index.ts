@@ -17,7 +17,9 @@
    - relever l'adresse IP (premiere valeur de x-forwarded-for) et le navigateur.
      C'est un INDICE, pas une preuve : un client peut forger cet en-tete, et la
      page le dit (RGPD art. 13) ;
-   - borner la taille de ce qu'on recoit.
+   - borner la taille de ce qu'on recoit ;
+   - lire le STATUT du devis quand le lien dit « signe » ou « clos », et le telephone du
+     domaine quand il dit aussi « expire » (voir `devenir`).
 
    AUCUN MAIL NE PART D'ICI (decision de Ted du 01/10/2026) : le lien part de la
    messagerie du vigneron, et la regle du SEUIL ne joue pas.
@@ -79,6 +81,54 @@ async function rpc(nom: string, corps: Record<string, unknown>) {
   return t ? JSON.parse(t) : null;
 }
 
+/* CE QUE LE DEVIS EST DEVENU (01/10/2026), pour les deux etats ou la page doit le DIRE :
+   - `signe`, alors que le domaine a annule l'acceptation depuis : la base garde la preuve,
+     donc `signature_lire` dit encore « signe », et le client lirait un accord qui n'existe
+     plus ;
+   - `clos`, parce que le domaine a accepte le devis pendant que le client signait (course) :
+     sans le dire, le client lit « remplace ou retire », qui est faux.
+   C'est un FAIT lu dans la base (le statut du devis), jamais une decision : l'etat reste celui
+   que la base a rendu, et la page choisit sa phrase. Une lecture ratee ne rend rien, et la
+   page garde la phrase d'avant. A remplacer par un champ de `signature_lire` le jour ou son
+   SQL bougera : deux lectures de plus ici, seulement dans ces deux etats. */
+async function hex256(t: string) {
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
+  return Array.from(h, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+async function lireTable(chemin: string) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, Accept: 'application/json' },
+  });
+  if (!r.ok) return null;
+  const t = await r.text();
+  try { return t ? JSON.parse(t) : null; } catch { return null; }
+}
+async function devenir(j: string) {
+  try {
+    const l = await lireTable(`devis_liens?jeton_hash=eq.${await hex256(j)}&select=bureau,devis_id&limit=1`);
+    const x = Array.isArray(l) ? l[0] : null;
+    if (!x || !x.bureau || !x.devis_id) return null;
+    const d = await lireTable(`devis?bureau=eq.${encodeURIComponent(x.bureau)}&devis_id=eq.${encodeURIComponent(x.devis_id)}&select=statut,signe_le,vendeur_tel:vendeur->>telephone&limit=1`);
+    const y = Array.isArray(d) ? d[0] : null;
+    if (!y || !y.statut) return null;
+    const tel = typeof y.vendeur_tel === 'string' ? y.vendeur_tel.trim().slice(0, 40) : '';
+    return { statut: String(y.statut), signe: !!y.signe_le, tel };
+  } catch { return null; }
+}
+async function avecDevenir(j: string, r: unknown) {
+  const o = r as Record<string, unknown> | null;
+  if (o && typeof o === 'object' && (o.etat === 'signe' || o.etat === 'clos' || o.etat === 'expire')) {
+    const v = await devenir(j);
+    if (v && o.etat !== 'expire') { o.devis_statut = v.statut; o.devis_signe = v.signe; }
+    /* W9 (02/10/2026) : le TELEPHONE du domaine, pour qu'un lien eteint ou expire dise comment
+       le joindre. C'est le contact public deja imprime sur le devis (instantane `vendeur`), au
+       meme titre que `vendeur_email` que la base rend deja : rien du devis lui-meme (ni
+       client, ni montant, ni copie). Seulement s'il n'est pas deja dans la reponse. */
+    if (v && v.tel && !o.vendeur_tel) o.vendeur_tel = v.tel;
+  }
+  return o;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: ENTETES });
   if (!SUPABASE_URL || !SERVICE_KEY) return reponse({ erreur: 'configuration' }, 500);
@@ -87,7 +137,7 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       const j = (new URL(req.url).searchParams.get('j') ?? '').trim().toLowerCase();
       if (!JETON.test(j)) return reponse({ etat: 'inconnu' });
-      return reponse(await rpc('signature_lire', { p_jeton: j }));
+      return reponse(await avecDevenir(j, await rpc('signature_lire', { p_jeton: j })));
     }
 
     if (req.method === 'POST') {
@@ -95,10 +145,14 @@ Deno.serve(async (req) => {
       if (brut.length > 4000) return reponse({ erreur: 'trop long' }, 413);
       let c: Record<string, unknown> = {};
       try { c = JSON.parse(brut); } catch { return reponse({ erreur: 'illisible' }, 400); }
+      /* `null`, un nombre, une chaine ou un tableau se lisent en JSON : ce n'est pas un corps de
+         signature pour autant. Sans ce garde, `c.j` levait plus bas et le journal notait une
+         « panne » qui n'en etait pas une. */
+      if (!c || typeof c !== 'object' || Array.isArray(c)) return reponse({ erreur: 'illisible' }, 400);
       const j = String(c.j ?? '').trim().toLowerCase();
       if (!JETON.test(j)) return reponse({ etat: 'inconnu' });
       const empreinte = String(c.empreinte ?? '').trim().toLowerCase();
-      return reponse(await rpc('signature_poser', {
+      return reponse(await avecDevenir(j, await rpc('signature_poser', {
         p_jeton: j,
         p_nom: texte(c.nom, 200),
         p_qualite: texte(c.qualite, 200),
@@ -106,7 +160,7 @@ Deno.serve(async (req) => {
         p_empreinte: EMPREINTE.test(empreinte) ? empreinte : null,
         p_ip: adresseIp(req),
         p_agent: texte(req.headers.get('user-agent'), 400) || null,
-      }));
+      })));
     }
 
     return reponse({ erreur: 'methode' }, 405);

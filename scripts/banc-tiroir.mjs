@@ -168,14 +168,27 @@ t('l\'affaire est une .tmod, donc habillee par la section 22.7 sans regle de plu
   /MOD\.className = 'tmod amod'/.test(affaire));
 t('l\'affaire ne vole le focus qu\'en modale, sauf formulaire neuf',
   /if \(neuf && \(!enTiroir \|\| S\.nouvelle\)\)/.test(affaire));
-t('le devis passe aussi par BdvTiroir.poser et .retirer, avec sa BOITE',
-  /BdvTiroir\.poser\(MOD\.querySelector\('\.tmod__boite'\)\)/.test(devis) && /BdvTiroir\.retirer\(\)/.test(devis));
+/* REGLE EXPLICITE DU 01/10/2026 (juge vigneron V4) : le devis est une SAISIE large, pas une
+   lecture a cote d'une liste. Il ne passe PLUS par BdvTiroir, ni poser ni retirer, et pose
+   lui-meme le contrat d'une modale. Le seul appel au tiroir qui reste dans ce fichier est
+   celui qui le NOMME en commentaire. */
+const devisCode = devis.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+t('le devis ne passe PLUS par BdvTiroir (ni poser ni retirer) : c\'est une modale large',
+  !/BdvTiroir\.(poser|retirer|actif)\(/.test(devisCode));
+t('... et il pose lui-meme role dialog, aria-modal et le defilement du corps',
+  /setAttribute\('role', 'dialog'\)/.test(devisCode) && /setAttribute\('aria-modal', 'true'\)/.test(devisCode)
+  && /body\.style\.overflow = 'hidden'/.test(devisCode) && /body\.style\.overflow = ''/.test(devisCode));
+t('... et il retient le clavier, puisqu\'il dit qu\'il n\'y a rien d\'autre a l\'ecran',
+  /function arrets\(/.test(devisCode) && /e\.key !== 'Tab'/.test(devisCode));
 t('le devis ne se fabrique ni seuil ni matchMedia',
   devis.indexOf("matchMedia('(min-width:") === -1 && !/TIROIR_SEUIL\s*=\s*\d/.test(devis));
-t('le devis est une .tmod, donc habille par la section 22.7 sans regle de plus',
+t('le devis reste une .tmod, et sa feuille ne parle pas du tiroir',
   /MOD\.className = 'tmod dmod'/.test(devis) && !/bdv-a-tiroir/.test(fs.readFileSync('src/css/bdv-devis.css', 'utf8')));
+{ const c = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ');
+  t('X8 : en tiroir, la rangee des actions de la fiche laisse la place du coin collant (deux cibles de 44 px)',
+    /body\.bdv-coque\.bdv-a-tiroir #modale\.on \.modale__box:has\(\.fiche__coin\) \.fiche__actions\{ ?padding-right:calc\(var\(--bdv-cible\) \* 2 \+ var\(--bdv-e-1\)\);/.test(c)); }
 t('une boite a la fois : l\'affaire retire son panneau AVANT de poser le devis',
-  /viderAttente\(\);\s*fermerPanneau\(\);\s*D\.ouvrir\(/.test(affaire));
+  /viderAttente\(\);\s*fermerPanneau\(\);\s*(?:var ouvert = )?D\.ouvrir\(/.test(affaire));
 t('BdvTiroir recoit la BOITE et pas la modale',
   /poser\(m\.querySelector\('\.modale__box'\)\)/.test(fiche)
   && /poser\(MOD\.querySelector\('\.tmod__boite'\)\)/.test(tache),
@@ -203,6 +216,18 @@ t('les deux champs de date ne sont pas empiles de force',
 /* -- 5. LA CLASSE PART A LA FERMETURE. Sans ca, le retrait de l'atelier reste
       pose sur une fiche fermee : une colonne vide de 420 px a droite du bureau,
       et rien pour dire pourquoi. */
+/* -- 4 quater. UNE BOITE A LA FOIS (M6, 01/10/2026) : poser une autre boite ferme la
+      precedente par sa croix, et seulement si c'en est une autre. La preuve jouee est
+      dans banc-bureau.mjs, section « Une boite a la fois ». */
+t('BdvTiroir.poser ferme la boite precedente si elle est differente',
+  /function tiroirPoser\(boite\) \{\s*if \(boite && TIROIR_BOITE && TIROIR_BOITE !== boite\) tiroirCroix\(\);/.test(nav)
+  && /querySelector\('\.tmod__x,\.modale__close'\)/.test(nav));
+/* S10 : en tiroir, la pastille des rappels prend sa forme chiffree au lieu de se couper. */
+t('S10 : tiroir ouvert, l\'en-tete passe les etats en chiffres',
+  /@media \(min-width:1320px\)\{\s*body\.bdv-a-tiroir\.bdv-coque \.bureau-tete \.bureau-tete__etat-mot\{ display:none; \}\s*body\.bdv-a-tiroir\.bdv-coque \.bureau-tete \.bureau-tete__etat-n\{ display:inline;/.test(css));
+t('changer de piece ferme le panneau d\'une affaire et le devis (M5)',
+  /if \(quelle !== 'affaires'\) tiroirCroix\('#affaireModale,#devisModale'\);/.test(nav));
+
 t('bdv-a-tiroir n\'est posee et retiree que par le module',
   /classList\.toggle\(['"]bdv-a-tiroir['"]/.test(nav)
   && /classList\.remove\(['"]bdv-a-tiroir['"]\)/.test(nav)

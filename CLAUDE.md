@@ -7590,3 +7590,75 @@ ligne du courrier, pros seulement. Le lien part de la messagerie du vigneron : a
   du courrier. Mutations toutes tuees sauf la relecture du lien, prouvee a deux sessions.
 - Ouvert : la copie imprimee depuis /signer/ ne porte pas « signé » ; les particuliers ; le panneau
   du devis cote bureau n'a pas ete photographie (la page /signer/ l'a ete, 1440 et 390).
+
+### LOT 56 ET L'AUDIT DES AFFAIRES (01 et 02/10/2026)
+
+Demande de Ted : auditer tout ce qui a ete construit depuis les affaires (lots 34 a 55), liens,
+mecanismes et ecrans de saisie, « tu ne t'arretes pas tant que c'est pas parfait pour mon agent
+empathique ». Quatre verificateurs (mecanismes, devis et signature, ecrans de saisie, base), des
+developpeurs, puis le vigneron empathique a chaque tour : FEU ROUGE aux tours 1, 2 et 3, FEU VERT
+au tour 4. Rapports et harnais gardes dans `Claude outputs/audit-affaires-0210/`.
+
+**`supabase/lot56-affaires-durcies.sql`, a coller par Ted APRES 55, AVANT de pousser** (la page
+rgpd decrit deja ce qu'il fait). Rejouable deux fois, banc `supabase/banc-lot56-affaires-durcies.sql`
+(64 controles). Il fait :
+- une etape ne change plus de type (ses affaires etaient figees pour toujours) ; le type est
+  verrouille avant de compter, deux ajouts simultanes ne font plus 7 etapes ;
+- **plus aucun DELETE** sur `affaires`, `pistes`, `domaine` pour un compte connecte (l'ecran n'en
+  faisait jamais, un simple utilisateur pouvait tout effacer) ; la cascade d'un bureau marche ;
+- **l'opposition** efface aussi adresse, code postal, notes des affaires de la piste et leurs
+  rappels, rattrape les oppositions anterieures, ne se leve plus depuis le bureau (seul le role de
+  service), refuse une affaire neuve, un rappel, une reouverture et une piste neuve au meme nom ;
+  `v_courrier` est recree a l'identique avec `not coalesce(pi.opposition,false)` ;
+- la purge a trois ans epargne une piste dont une affaire est gagnee ;
+- index unique `(bureau, siret)` des pistes (zero doublon en production le 01/10/2026) ;
+  `client_id = ''` et affaire perdue sans motif refuses.
+
+**Ce qui ne doit pas se defaire cote ecran :**
+- Une piste en opposition : marque « Ne veut plus etre contactee », hors de « A relancer », du bilan,
+  de la punaise, du calendrier, de Mes taches et du courrier (regle unique dans `etat()` de
+  bdv-affaires-jour.js) ; panneau « X a demande a ne plus etre contacte. Ne le rappelle pas, ne lui
+  envoie rien. » avec un seul geste « Classer l'affaire : Pas pour cette fois ». La recherche la
+  MONTRE marquee, jamais ne la cache (sinon on la recree).
+- La recherche d'un client charge le moteur des ventes si besoin : « aucun ne correspond » ne se dit
+  que quand les lignes sont la. Un repli « sans colonne » ne se fait que sur une colonne INCONNUE
+  (PGRST204, 42703), jamais sur un refus de doublon.
+- Un echec d'enregistrement ne repeint pas le formulaire (`relireSansEffacer()`) : la saisie reste.
+- `seule()` ferme `#affaireModale` et `#devisModale` en quittant la piece ; `BdvTiroir.poser` ferme
+  la boite precedente ; le focus revient a un bouton VIVANT ; le panneau d'affaire en modale retient Tab.
+- `ouvrirPiece(id)` pose `bdv_affaire_ouvrir` : punaise, calendrier et Mes taches ouvrent L'affaire.
+- Lecture des affaires par pages de 1 000 (Range), pistes par paquets de 100.
+- Panneau d'une affaire, un seul ordre dans tous les etats : Appeler, Ecrire, Nouveau devis seul sur
+  sa ligne, puis « Je le rappelle : Demain / Dans 7 jours / Autre date ». « Autre date » mene au
+  champ de rappel existant, jamais un second champ.
+- **Le devis n'est plus un tiroir** : modale large (role dialog, Tab retenu), une ligne par vin des
+  50 rem. `banc:tiroir` le dit. Nom du vin en deux morceaux : la designation se reduit, millesime et
+  format ne se coupent jamais ; aucune coupe en lecture.
+- **L'envoi** : « Figer le devis et creer le lien » (la base exige un devis envoye avec sa copie
+  pour creer le lien, l'ordre des RPC ne change pas), phrase AVANT qui dit la date notee et la
+  relance, lien et « Copier le message » DANS LA VUE apres le clic, titre du rappel « Relancer le
+  devis D-... (verifie qu'il est bien parti) ». Un seul bouton plein a la fois ; pendant une question
+  ouverte (envoi, refus, annulation de l'accord), les autres gestes en retrait avec la raison.
+- Export / UE : la question des accises est un choix Oui / Non SANS reponse par defaut.
+- Devis signe dont la commande n'est pas telechargee : « Telecharger la commande » en tete du devis.
+  Le bandeau `#bureauSigne` est en tete de `.bureau-atelier__travail` (toutes les pieces).
+- `/signer/` porte le drapeau `sans_chrome` (ni bandeau ni pied du site), le nom du domaine, un
+  resume en 16 px qui nomme les vins, une barre « Signer ce devis » collante, et apres signature le
+  cadre « Bon pour accord » rempli A L'AFFICHAGE seulement : la copie rangee ne change pas.
+  La fonction `signature` rend `devis_statut`, `devis_signe` et `vendeur_tel` : **a redeployer**.
+- Le papier d'un devis deja envoye ne change pas (X6 n'a touche que l'ecran).
+- Un nom d'annuaire est propose sans la parenthese d'enseignes et en casse de titre s'il etait en
+  capitales (sigles juridiques gardes) : il part jusque dans la colonne 6 de la commande Vitisoft.
+- Les boutons du bureau ne sautent plus au survol (`.bdv-coque .btn:hover{transform:none;box-shadow:none}`).
+- `banc:journee` recopie `isoLocal` de bdv-crm.js et se fixe par `BANC_MAINTENANT` : il echouait
+  entre 0 h et 2 h, heure de Paris (c'etait le banc, pas le produit). `banc:poids` : 77,4 ko, plafond 78.
+
+**Ouvert, a Ted :**
+- D5 : la colonne 5 (e-mail) d'un nouveau client peut partir vide ; le CAHIER dit « si connue, a trancher ».
+- B7 : une base refaite DEPUIS LE DEPOT garde 26 politiques en `est_membre(bureau)` ligne par ligne
+  (ventes, reglages, suivi_clients, echanges, taches, calendrier_choix, bureaux, membres,
+  invitations) alors que la regle du 17/09/2026 veut la forme IN. Comparer avec la production :
+  `select tablename, policyname, cmd, qual from pg_policies where schemaname='public' order by 1,3,2;`
+- Proposition SQL non ecrite : `devis_obstacle()` devrait refuser un `num_produit` avec `;` `"`
+  tabulation ou retour a la ligne, comme `manques()`.
+- Un doublon de nom (non oppose) cree avant le lot 56 n'est pas signale.
