@@ -1200,8 +1200,24 @@
     const id = ONGLETS_NOMMES[onglet] || onglet;
     if(el(id)) montrerOnglet(id);
   }
+  /* LA CELLULE « MES REGLAGES » DE LA BARRE, 02/10/2026. Ted : ouvrir les reglages depuis
+     « Mon commerce » ecrivait « Mes reglages » dans l'en-tete, et rien ne l'en retirait. Le
+     panneau s'ouvre PAR-DESSUS la piece : on allume seulement la cellule (et on la ramene dans
+     le champ sur telephone, decision du 19/09/2026), puis on la rend a la piece en fermant.
+     Ici, et pas dans bdv-nav.js : tous les chemins qui ouvrent ce panneau passent par la. */
+  function celluleReglages(oui){
+    const nav = el('bureauNav');
+    if(!nav) return;
+    if(!oui){ if(window.BdvNav && BdvNav.piece && BdvNav.piece()) BdvNav.marquerActif(BdvNav.piece()); return; }
+    const it = nav.querySelector('.bureau-nav__ligne[data-piece="reglages"] .bureau-nav__item');
+    if(!it) return;
+    nav.querySelectorAll('.bureau-nav__item--actif').forEach(function(x){ x.classList.remove('bureau-nav__item--actif'); });
+    it.classList.add('bureau-nav__item--actif');
+    if(window.matchMedia && matchMedia('(max-width:700px)').matches) it.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }
   function ouvrir(onglet){
     construire();
+    celluleReglages(true);
     // Deja ouvert : on rafraichit et on ne touche NI au focus NI a TOUCHES. Le bouton
     // « Appliquer mes reglages » du classement est clique depuis l'interieur du panneau,
     // et un rappel d'ouverture y faisait sauter le curseur a l'autre bout du formulaire.
@@ -1301,6 +1317,7 @@
     document.body.style.overflow = '';
     if(RETOUR_FOCUS && RETOUR_FOCUS.focus) RETOUR_FOCUS.focus();
     RETOUR_FOCUS = null;
+    celluleReglages(false);
   }
 
   /* ====================== LE BOUTON « ME DECONNECTER » ======================

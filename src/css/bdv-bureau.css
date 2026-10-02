@@ -5181,7 +5181,6 @@ body.bdv-poste.bdv-coque .aff-chips .chip{ min-height:var(--bdv-cible); }
   margin-top:var(--bdv-e-2);
 }
 .bdv-coque .aff-carte__deplacer{ flex:1 1 8rem; min-width:0; font-size:var(--bdv-f-2); padding:var(--bdv-e-1) var(--bdv-e-2); }
-.bdv-coque .aff-kanban__rel{ margin:0 0 var(--bdv-e-3); font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
 .bdv-coque .aff-marque{
   display:inline-block;
   margin:var(--bdv-e-1) 0 0;
@@ -5390,9 +5389,13 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
 .bdv-coque .aff-bilan[hidden]{ display:none; }
 .bdv-coque .aff-bilan__case{
   flex:1 1 7rem;
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
+  /* 02/10/2026 : le chiffre a gauche, le mot et sa sous-ligne a cote (80 -> 56 px).
+     Sous 700 px la case repasse en ligne (`display:flex` dans son bloc telephone). */
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  column-gap:var(--bdv-e-3);
+  align-items:center;
+  align-content:center;
   min-height:var(--bdv-cible);
   padding:var(--bdv-e-2) var(--bdv-e-3);
   border:1px solid var(--bdv-trait);
@@ -5440,6 +5443,7 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
 .bdv-coque .aff-bilan__c{ display:none; }
 @media (max-width:700px){
   body.bdv-poste.bdv-coque .aff-bilan__case{
+    display:flex;
     flex:1 1 auto;
     flex-direction:row;
     align-items:center;
@@ -5700,9 +5704,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 .bdv-coque .aff-vues .chip{ border-color:transparent; }
 .bdv-coque .aff-vues .chip[aria-pressed="true"]{ background:var(--bdv-surface-2); border-color:var(--bdv-trait-fort); color:var(--bdv-encre-1); }
 
-/* S19 : la phrase du defilement ne sert que la ou le tableau defile. */
-.bdv-coque .aff-kanban__glisse{ display:none; }
-
 @media (max-width:700px){
   .bdv-coque .aff-tete .aff-chips{ display:none; }
   .bdv-coque .aff-tete .aff-typeliste{ display:grid; }
@@ -5713,7 +5714,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   .bdv-coque .aff-col--vide{ flex:0 0 var(--bdv-e-12); min-height:8rem; padding:var(--bdv-e-2) 0; align-items:center; }
   .bdv-coque .aff-col--vide .aff-col__t{ writing-mode:vertical-rl; margin:0; }
   .bdv-coque .aff-col--vide .aff-col__liste{ display:none; }
-  .bdv-coque .aff-kanban__glisse{ display:block; margin:0 0 var(--bdv-e-2); font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
   /* V6 : « Enregistrer » colle en pied, comme le pied du devis. */
   .bdv-coque .amod .aff-edit .aff-form__pied{
     position:sticky;
@@ -5762,7 +5762,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 
 /* W7 : « Deplacer vers » se lit au-dessus de la liste, en 13 px. */
 .bdv-coque .aff-carte__dep{ flex:1 1 8rem; min-width:0; display:grid; gap:var(--bdv-e-1); }
-.bdv-coque .aff-carte__dep-t{ font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
 .bdv-coque .aff-carte__dep .aff-carte__deplacer{ width:100%; }
 
 /* W13 : contact et fonction sont deux champs courts, cote a cote meme a 390 px. */
@@ -5774,6 +5773,215 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   /* W5 : tant que le chiffre n'est pas connu, la case « Clients a suivre » ne redit pas le
      nom de l'onglet qui est juste dessous. Elle revient avec son chiffre. */
   body.bdv-poste.bdv-coque .aff-bilan__case--sans{ display:none; }
+}
+
+/* -- 31 septies. « A GAGNER » REDESSINE, 02/10/2026. Demande de Ted : « revoir les boutons,
+      le responsive et l'utilisation ». Audit du vigneron empathique et de l'expert commercial,
+      maquette validee par Ted. Que des jetons, aucune ombre, aucun z-index.
+
+   1. UN SEUL APLAT D'ACCENT : « Nouvelle affaire ». Le filtre choisi prenait le meme rose
+      plein, et l'on ne savait plus lequel creait une affaire. Il prend un contour d'accent,
+      son encre courante et une coche : il se lit sans la couleur.
+   2. LA BASCULE LISTE / KANBAN est un interrupteur a deux cases, a droite, contre le bouton
+      qui cree. La pastille la faisait passer pour un troisieme filtre.
+   3. LA LIGNE « AUJOURD'HUI » remplace la note qui ne demandait rien.
+   4. LA RANGEE GARDE SA GRILLE quand le tiroir s'ouvre : en dessous de 52 rem de piece, le
+      geste reste A DROITE (deux colonnes) au lieu de descendre sous le nom.
+   5. LE KANBAN : les colonnes a la hauteur de leur contenu, « Rien ici pour l'instant » dans
+      une colonne vide, « Deplacer » replie. Sous 700 px les colonnes s'empilent. */
+.bdv-coque .aff-etat{
+  margin:0 0 var(--bdv-e-4);
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  background-color:var(--bdv-surface-2);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background-image:linear-gradient(var(--bdv-trait-fort),var(--bdv-trait-fort));
+  background-size:3px 100%;
+  background-repeat:no-repeat;
+  font-size:var(--bdv-f-3);
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-etat--presse{ background-image:linear-gradient(var(--bdv-retard),var(--bdv-retard)); }
+.bdv-coque .aff-etat p{ margin:0; }
+.bdv-coque .aff-etat p + p{ margin-top:var(--bdv-e-1); }
+.bdv-coque .aff-etat b{ font-weight:600; }
+.bdv-coque .aff-endevis{ font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+.bdv-coque .aff-etat__qui{
+  padding:0; border:0; background:none; font:inherit; font-weight:600;
+  color:var(--bdv-accent); text-decoration:underline; text-underline-offset:3px; cursor:pointer;
+}
+.bdv-coque .aff-etat__qui:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+
+.bdv-coque .aff-tete{ justify-content:flex-start; }
+.bdv-coque .aff-tete--un .aff-chips,
+.bdv-coque .aff-tete--un .aff-typeliste{ display:none; }
+.bdv-coque .aff-tete__d{ display:flex; align-items:center; gap:var(--bdv-e-2); margin-left:auto; }
+.bdv-coque .aff-tete .aff-tete__d .btn--bordeaux{ margin-left:0; }
+.bdv-coque .aff-chips .chip[aria-pressed="true"]{
+  background:var(--bdv-surface);
+  border-color:var(--bdv-accent);
+  color:var(--bdv-encre-1);
+  font-weight:600;
+}
+.bdv-coque .aff-chips .chip[aria-pressed="true"]::before{
+  content:"\2713";
+  content:"\2713" / "";
+  margin-right:var(--bdv-e-1);
+  color:var(--bdv-accent);
+}
+.bdv-coque .aff-vues{
+  display:inline-flex;
+  gap:0;
+  padding:0;
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  overflow:hidden;
+}
+.bdv-coque .aff-vue{
+  min-height:36px;
+  padding:0 var(--bdv-e-3);
+  border:0;
+  background:transparent;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  color:var(--bdv-encre-2);
+  cursor:pointer;
+}
+.bdv-coque .aff-vue + .aff-vue{ border-left:1px solid var(--bdv-trait-fort); }
+.bdv-coque .aff-vue:hover{ color:var(--bdv-encre-1); background:var(--bdv-survol); }
+.bdv-coque .aff-vue[aria-pressed="true"]{ background:var(--bdv-surface-3); color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .aff-vue:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:-2px; }
+
+/* « Nouveau client » : un mot, pas un bouton. Ni contour ni capitales espacees. */
+.bdv-coque .aff-marque--nouveau{
+  padding:0;
+  border:0;
+  letter-spacing:0;
+  font-size:var(--bdv-f-1);
+  font-weight:500;
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-marque--nouveau::before{ content:"\25CF\00A0"; content:"\25CF\00A0" / ""; color:var(--bdv-accent); }
+.bdv-coque .aff-carte__marque{ margin:var(--bdv-e-1) 0 0; }
+
+/* « Vers <etape> » : le second geste, un lien souligne qui garde sa cible de bouton. */
+.bdv-coque .aff-vers{
+  min-height:36px;
+  padding:0 var(--bdv-e-1);
+  border:0;
+  background:none;
+  font-family:inherit;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  color:var(--bdv-encre-2);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+  text-align:left;
+}
+.bdv-coque .aff-vers:hover{ color:var(--bdv-encre-1); }
+.bdv-coque .aff-vers:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-ligne__gestes{ justify-content:flex-end; }
+
+/* La rangee : une grille stable. Au large, quatre colonnes dont celle des gestes a largeur
+   FIXE, pour que nom, etape et rappel s'alignent d'une rangee a l'autre. Entre 34 et 52 rem
+   (piece etroite, tiroir ouvert), deux colonnes : le texte a gauche, les gestes a droite. */
+@container affaires (min-width: 34rem){
+  .bdv-coque .aff-ligne{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    column-gap:var(--bdv-e-4);
+    row-gap:var(--bdv-e-1);
+  }
+  .bdv-coque .aff-ligne > *{ grid-column:1; }
+  .bdv-coque .aff-ligne > .aff-ligne__gestes{ grid-column:2; grid-row:1 / span 3; align-self:center; }
+  .bdv-coque .aff-ligne__etape{ flex-direction:row; flex-wrap:wrap; align-items:baseline; gap:var(--bdv-e-2); }
+}
+@container affaires (min-width: 52rem){
+  .bdv-coque .aff-ligne{
+    grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.2fr) 20rem;
+    row-gap:0;
+  }
+  .bdv-coque .aff-ligne > .aff-ligne__corps{ grid-column:1; grid-row:1; }
+  .bdv-coque .aff-ligne > .aff-ligne__etape{ grid-column:2; grid-row:1; flex-direction:column; align-items:flex-start; gap:var(--bdv-e-1); }
+  .bdv-coque .aff-ligne > .aff-ligne__rappel{ grid-column:3; grid-row:1; }
+  .bdv-coque .aff-ligne > .aff-ligne__gestes{ grid-column:4; grid-row:1; }
+}
+
+/* Le kanban. */
+.bdv-coque .aff-kanban{ align-items:flex-start; }
+.bdv-coque .aff-col{ min-height:0; }
+.bdv-coque .aff-col__rien{
+  margin:0;
+  padding:var(--bdv-e-3);
+  border:1px dashed var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  font-size:var(--bdv-f-2);
+  text-align:center;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .aff-carte__gestes{ justify-content:space-between; }
+.bdv-coque .aff-carte__dep{ flex:0 0 auto; display:block; min-width:0; }
+.bdv-coque .aff-carte__dep > summary{
+  display:inline-flex;
+  align-items:center;
+  min-height:36px;
+  padding:0 var(--bdv-e-1);
+  list-style:none;
+  font-size:var(--bdv-f-2);
+  font-weight:500;
+  color:var(--bdv-encre-2);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+}
+.bdv-coque .aff-carte__dep > summary::-webkit-details-marker{ display:none; }
+.bdv-coque .aff-carte__dep > summary:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-carte__dep[open]{ flex:1 1 100%; }
+.bdv-coque .aff-carte__dep-l{ display:block; margin-top:var(--bdv-e-1); }
+.bdv-coque .aff-carte__dep .aff-carte__deplacer{ width:100%; }
+
+/* Le bilan, plus bas : le chiffre a gauche, le mot et sa sous-ligne a cote. 80 -> 56 px. */
+.bdv-coque .aff-bilan__n{ grid-row:1 / span 2; }
+.bdv-coque .aff-bilan__l,
+.bdv-coque .aff-bilan__s{ grid-column:2; }
+.bdv-coque .aff-bilan__case--sans .aff-bilan__l,
+.bdv-coque .aff-bilan__case--sans .aff-bilan__s{ grid-column:1 / -1; }
+
+/* Le panneau d'une affaire : « Nouveau devis » en tete a TOUTES les largeurs (le vigneron :
+   a 1440 il tombait sous « Enregistrer », hors de l'ecran). Celui du bas reste dans la page,
+   cache a l'oeil et a la synthese : un seul geste visible pour une seule chose. */
+.bdv-coque .amod__raccourci{ display:block; margin:var(--bdv-e-3) 0 var(--bdv-e-2); }
+.bdv-coque .amod__raccourci .btn{ min-height:var(--bdv-cible); background:var(--bdv-accent-lavis); border-color:var(--bdv-accent-trait); color:var(--bdv-accent); }
+.bdv-coque .amod .aff-devis > .btn[data-aff="devis"]{ display:none; }
+.bdv-coque .amod__fiche{ margin:var(--bdv-e-1) 0 0; }
+/* « Enregistrer » colle en pied a TOUTES les largeurs (en tiroir a 1440 il tombait coupe en
+   bas de l'ecran) : la regle du telephone (V6) vaut partout. */
+.bdv-coque .amod .aff-edit .aff-form__pied{
+  position:sticky;
+  bottom:calc(-1 * var(--bdv-e-6));
+  margin:0 calc(-1 * var(--bdv-e-6));
+  padding:var(--bdv-e-3) var(--bdv-e-6);
+  background:var(--bdv-surface-3);
+  border-top:1px solid var(--bdv-trait);
+}
+
+@media (max-width:700px){
+  .bdv-coque .aff-tete{ display:grid; grid-template-columns:1fr; gap:var(--bdv-e-2); }
+  .bdv-coque .aff-tete .aff-typeliste > span{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .bdv-coque .aff-tete__d{ display:grid; grid-template-columns:1fr 1fr; gap:var(--bdv-e-2); margin-left:0; }
+  .bdv-coque .aff-vues{ display:flex; }
+  .bdv-coque .aff-vue{ flex:1 1 0; min-height:var(--bdv-cible); }
+  .bdv-coque .aff-tete__d .btn--bordeaux{ min-height:var(--bdv-cible); }
+  .bdv-coque .aff-vers,
+  .bdv-coque .aff-carte__dep > summary{ min-height:var(--bdv-cible); }
+  .bdv-coque .aff-ligne__gestes{ justify-content:flex-start; }
+  /* Les colonnes s'empilent : au chai on lit de haut en bas, on ne fait pas glisser. */
+  .bdv-coque .aff-kanban{ flex-direction:column; overflow-x:visible; scroll-snap-type:none; padding-bottom:0; }
+  .bdv-coque .aff-col,
+  .bdv-coque .aff-col--vide{ flex:0 0 auto; width:100%; min-height:0; padding:var(--bdv-e-2); align-items:stretch; }
+  .bdv-coque .aff-col--vide .aff-col__t{ writing-mode:horizontal-tb; margin:0 0 var(--bdv-e-2); }
 }
 
 /* ==========================================================================

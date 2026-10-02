@@ -355,6 +355,26 @@ t('« Mes reglages » ne change pas d\'ecran : le panneau s\'ouvre par-dessus',
   !B.journee.hidden && B.ventes.hidden);
 t('et n\'ecrit rien dans l\'adresse', B.window.location.hash === '', B.window.location.hash);
 
+/* 02/10/2026, signale par Ted : le panneau ecrivait « Mes reglages » dans l'en-tete et
+   personne ne le retirait. L'en-tete et aria-current restent ceux de la piece ; seule la
+   cellule s'allume, et la fermeture du panneau la rend a la piece. */
+{
+  const cel = (p) => B.doc.querySelector('.bureau-nav__ligne[data-piece="' + p + '"] .bureau-nav__item');
+  const tete = B.doc.getElementById('bureauPiece');
+  t('les reglages ouverts : l\'en-tete garde le nom de la piece',
+    !tete || tete.textContent !== 'Mes réglages', tete && tete.textContent);
+  t('les reglages ouverts : aria-current reste sur la piece',
+    cel('journee').getAttribute('aria-current') === 'page' && !cel('reglages').hasAttribute('aria-current'));
+  t('les reglages ouverts : la cellule de la piece reste marquee pour bdv-reglages.js, qui la rend en fermant',
+    B.window.BdvNav.piece() === 'journee' && cel('journee').classList.contains('bureau-nav__item--actif'));
+  /* Ce que fait bdv-reglages.js en fermant : rendre la cellule a la piece. */
+  cel('journee').classList.remove('bureau-nav__item--actif'); cel('reglages').classList.add('bureau-nav__item--actif');
+  B.window.BdvNav.marquerActif(B.window.BdvNav.piece());
+  t('fermer les reglages rend la cellule a la piece',
+    cel('journee').classList.contains('bureau-nav__item--actif')
+    && !cel('reglages').classList.contains('bureau-nav__item--actif'));
+}
+
 /* ======================= LE CALENDRIER (08/09/2026) =======================
    Un bureau NEUF, et pas celui des essais precedents : les controles des ecrans de
    vente comptent les ressources chargees, et deux fichiers de plus dans le tableau
@@ -841,8 +861,8 @@ titre('Le bilan commun de Mon commerce (lot 45)');
   await K.repos(() => K.appels.some(a => a.affaires));
   t('« A gagner », affaires pas lues : visible, la seule case clients, et aucun chiffre',
     !bil.hidden && cases(bil) === 'clients' && !/\d/.test(bil.textContent)
-    && /Clients à suivre :\s*comptés à l’ouverture de l’onglet/.test((bil.querySelector('.aff-bilan__l') || {}).textContent + ' ' + (bil.querySelector('.aff-bilan__s') || {}).textContent)
-    && bil.querySelector('[data-bilan="clients"]').getAttribute('aria-label') === 'Clients à suivre : comptés à l’ouverture de l’onglet'
+    && /Clients à suivre :\s*ouvre l’onglet pour les compter/.test((bil.querySelector('.aff-bilan__l') || {}).textContent + ' ' + (bil.querySelector('.aff-bilan__s') || {}).textContent)
+    && bil.querySelector('[data-bilan="clients"]').getAttribute('aria-label') === 'Clients à suivre : ouvre l’onglet pour les compter'
     && contientVu(bil)
     && (bil.querySelector('.aff-bilan__c') || {}).textContent === 'Clients à suivre',
     cases(bil) + ' / ' + bil.textContent);
@@ -853,7 +873,7 @@ titre('Le bilan commun de Mon commerce (lot 45)');
   const nomDe = (q) => (bil.querySelector('[data-bilan="' + q + '"]') || { getAttribute: () => '' }).getAttribute('aria-label');
   const courtDe = (q) => ((bil.querySelector('[data-bilan="' + q + '"] .aff-bilan__c') || {}).textContent || '');
   t('le nom accessible garde la phrase entiere, le mot court est pour le telephone',
-    nomDe('affaires') === '2 en cours : 2 affaires en cours' && nomDe('relancer') === '1 à relancer : 1 affaire à relancer, rappel passé ou affaire endormie'
+    nomDe('affaires') === '2 en cours : 2 affaires en cours' && nomDe('relancer') === '1 à relancer : 1 affaire à relancer, promesse dépassée ou plus de nouvelles'
     && contientVu(bil)
     && courtDe('affaires') === 'en cours' && courtDe('relancer') === 'à relancer', nomDe('affaires') + ' | ' + nomDe('relancer'));
   t('« Affaires en cours » et « A relancer » disent leur nombre, sans montant',
@@ -963,7 +983,7 @@ titre('Le bilan commun de Mon commerce (lot 45)');
   const f1 = px('bdv-f-1'), ls = px('bdv-ls-etiq') * f1, marge = 2 * px('bdv-e-3') + 2;
   const AJ = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
   const lib = ['affaires en cours', 'à relancer', 'clients à suivre', 'Tous tes clients à suivre sont dans une affaire'];
-  const sous = ['rappel passé ou affaire endormie', 'comptés à l’ouverture de l’onglet', 'sans les premiers achats pour l’instant'];
+  const sous = ['promesse dépassée ou plus de nouvelles', 'ouvre l’onglet pour les compter', 'sans les premiers achats pour l’instant'];
   const larg = (mots, cap) => Math.max(...mots.join(' ').split(/\s+/).map(m => m.length * (cap ? 0.75 * f1 + ls : 0.6 * f1))) + marge;
   t('les libelles et sous-lignes sont bien ceux du module', lib.concat(sous).every(x => AJ.includes(x)));
   t('le mot le plus long ne force aucune case au-dela de ' + base + ' px',
@@ -994,12 +1014,12 @@ titre('Le bilan commun de Mon commerce (lot 45)');
     !isNaN(padT) && rangee(pire) <= dispo && rangee(tous) <= dispo && rangee(nul) <= dispo,
     [pire, tous, nul].map(x => rangee(x).toFixed(0)).join(' / '));
   t('« à suivre : à l’ouverture » ne tiendrait pas (' + rangee(nulLong).toFixed(0) + ' px) : le cas null dit « Clients à suivre » (' + rangee(nul).toFixed(0) + ' px), qui tient',
-    rangee(nulLong) > dispo && rangee(nul) <= dispo && AJ.includes("false, 'Clients à suivre', 'comptés à l’ouverture de l’onglet', true)"));
+    rangee(nulLong) > dispo && rangee(nul) <= dispo && AJ.includes("false, 'Clients à suivre', 'ouvre l’onglet pour les compter', true)"));
   /* W5 (tour 2) : a 390 px, la case sans chiffre ne redit pas le nom de l'onglet juste
      dessous ; elle revient avec son chiffre. */
   t('W5 : sous 700 px, la case « Clients à suivre » sans chiffre ne s\'affiche pas',
     (tel('.aff-bilan__case--sans').decl.display || '') === 'none'
-    && /aff-bilan__case--sans/.test(AJ) && AJ.includes("'comptés à l’ouverture de l’onglet', true)"));
+    && /aff-bilan__case--sans/.test(AJ) && AJ.includes("'ouvre l’onglet pour les compter', true)"));
   const dispo320 = 320 - 2 * pad, deux = rangee(pire.slice(0, 2)), maxCase = Math.max(...pire.map(c => largT(c[0], c[1])));
   t('a 320 px (' + dispo320 + ' utiles) la rangee ne tient pas (' + rangee(pire).toFixed(0) + ') : repli sur deux rangees, 44 + 8 + 44 = 96 px, sans debordement',
     rangee(pire) > dispo320 && deux <= dispo320 && maxCase <= dispo320 && rang['flex-wrap'] === 'wrap' && tk['white-space'] === 'nowrap' && !tb['flex-wrap'],

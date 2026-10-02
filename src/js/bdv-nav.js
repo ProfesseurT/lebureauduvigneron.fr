@@ -573,9 +573,15 @@
      l'autre. Le reperage dans la barre, l'adresse et l'affichage bougent
      ensemble : un seul chemin, donc rien a tenir d'accord.
   ========================================================================= */
+  /* LES REGLAGES NE SONT PAS UNE PIECE (02/10/2026, signale par Ted) : le panneau s'ouvre
+     PAR-DESSUS, donc l'en-tete, aria-current, les onglets et la mise a jour restent ceux de la
+     piece. bdv-reglages.js allume la cellule a l'ouverture et la rend a `piece()` en fermant. */
+  var PIECE_COURANTE = null;
   function marquerActif(id) {
+    if (id === 'reglages') return;
     var nav = document.getElementById('bureauNav');
     if (!nav) return;
+    PIECE_COURANTE = id;
     var ligneActive = null, nomActif = '';
     PIECES.forEach(function (p) {
       var l = nav.querySelector('.bureau-nav__ligne[data-piece="' + p.id + '"]');
@@ -1434,6 +1440,7 @@
                        pas sans Vitisoft, il n'y a pas de fiche client a ouvrir. */
                     avecVitisoft: function () { return !SANS_VITI; },
                     marquerActif: marquerActif, ventesEnVue: ventesEnVue,
+                    piece: function () { return PIECE_COURANTE; },
                     ongletCourant: function () { return ONGLET_COURANT; },
                     ouvrirReglages: ouvrirReglages,
                     chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe,

@@ -374,7 +374,7 @@
         + (act.hasAttribute('data-type') ? '[data-type="' + act.getAttribute('data-type') + '"]' : '')
         + (act.hasAttribute('data-vue') ? '[data-vue="' + act.getAttribute('data-vue') + '"]' : '');
     }
-    c.innerHTML = htmlPerime() + htmlTete() + htmlEnDevis()
+    c.innerHTML = htmlPerime() + htmlEtat() + htmlTete()
       + (S.vue === 'kanban' ? htmlKanban() : htmlRelancer() + htmlListe())
       + htmlCloses();
     var nf = garde && c.querySelector(garde);
@@ -566,10 +566,12 @@
     }
     tete.innerHTML = '<p class="amod__marques"><span class="tmod__tampon"' + (e.retard > 0 ? ' data-ton="retard"' : '') + '>'
       + esc(et ? et.nom : 'étape') + '</span>'
-      + (estNouveau(a) ? ' <span class="aff-marque">Pas encore dans Vitisoft</span>' : '') + '</p>'
+      + (estNouveau(a) ? ' ' + marqueNouveau() : '') + '</p>'
       + '<h2 class="tmod__titre" id="amodTitre">' + esc(sujet(a)) + '</h2>'
       + '<p class="tmod__sous">' + [a.titre && a.titre !== sujet(a) ? esc(a.titre) : '', t ? esc(t.nom) : '']
         .filter(Boolean).join(' · ') + '</p>'
+      /* « Voir sa fiche » sous le nom, en lien : seul sur sa ligne il prenait 60 px. */
+      + (clientDe(a) ? '<p class="amod__fiche"><button type="button" class="aff-vers" data-aff="voirFiche">Voir sa fiche</button></p>' : '')
       + '<p class="amod__etat">' + ligneEtape(a, e) + '<br>' + ligneRappel(a, e)
       + (devisDe(a) ? '<br>' + ligneDevis(a, false) : '') + '</p>'
       + htmlVentes(motifDe(a))
@@ -634,22 +636,51 @@
     if (!l.length) return '';
     var t = 0, x = 0;
     l.forEach(function (d) { t += Number(d.total_ht_c) || 0; if (expireD(d)) x++; });
-    return '<p class="aff-aide aff-endevis">En devis envoyé : <b>' + esc(eurosHT(t)) + '</b>, sur '
+    return '<p class="aff-endevis">En devis envoyé : <b>' + esc(eurosHT(t)) + '</b>, sur '
       + pluriel(l.length, 'affaire', 'affaires') + (x ? ' (dont ' + x + (x > 1 ? ' expirés' : ' expiré') + ', à relancer ou refaire)' : '') + '.</p>';
+  }
+  /* LA LIGNE « AUJOURD'HUI », 02/10/2026 (conseil : vigneron + expert commercial). Elle
+     remplace la phrase « Ce que tu fais pour gagner un client », qui ne demandait rien. A
+     un seul on nomme, a plusieurs on compte et on nomme le premier (le plus en retard,
+     l'ordre du bloc « A relancer »). Le montant vient de `htmlEnDevis()` : devis ENVOYES
+     seulement, jamais un total prevu. Rien a relancer et rien en devis : pas de ligne. */
+  function htmlEtat() {
+    var r = relancerTries();
+    var rel = '';
+    if (r.length) {
+      var a = r[0], qui = '<button type="button" class="aff-etat__qui" data-aff="ouvrir" data-id="' + a.affaire_id + '"'
+        + ' aria-haspopup="dialog" aria-controls="affaireModale">' + esc(sujet(a)) + '</button>';
+      var quoi = a.rappel_titre ? ' (' + esc(a.rappel_titre) + ')' : '';
+      rel = '<p class="aff-etat__t"><b>Aujourd’hui :</b> '
+        + (r.length === 1 ? 'rappelle ' + qui + quoi : r.length + ' affaires à relancer, à commencer par ' + qui + quoi) + '.</p>';
+    }
+    var dv = htmlEnDevis();
+    if (!rel && !dv) return '';
+    return '<div class="aff-etat' + (rel ? ' aff-etat--presse' : '') + '">' + rel + dv + '</div>';
+  }
+  function relancerTries() {
+    return visibles().filter(function (a) { return etat(a).aRelancer; })
+      .sort(function (a, b) {
+        var ra = etat(a).retard, rb = etat(b).retard;
+        return (rb == null ? -1 : rb) - (ra == null ? -1 : ra);
+      });
   }
   function htmlTete() {
     var ec = enCours();
     var chips = '<button type="button" class="chip" data-aff="filtre" data-type=""'
-      + ' aria-pressed="' + (S.filtre === '' ? 'true' : 'false') + '">Toutes, ' + ec.length + ' en cours</button>'
+      + ' aria-pressed="' + (S.filtre === '' ? 'true' : 'false') + '">Toutes, ' + ec.length + '<span class="hors-ecran"> en cours</span></button>'
       + typesActifs().map(function (t) {
         var n = ec.filter(function (a) { return a.type_id === t.type_id; }).length;
         return '<button type="button" class="chip" data-aff="filtre" data-type="' + t.type_id + '"'
           + ' aria-pressed="' + (S.filtre === t.type_id ? 'true' : 'false') + '">'
-          + esc(t.nom) + ', ' + n + ' en cours</button>';
+          + esc(t.nom) + ', ' + n + '<span class="hors-ecran"> en cours</span></button>';
       }).join('');
+    /* REFONTE DU 02/10/2026 (Ted : « revoir les boutons »). La bascule Liste / Kanban n'est
+       plus une pastille : on la prenait pour un troisieme filtre. C'est un interrupteur a deux
+       cases, a droite, contre « Nouvelle affaire ». */
     var vues = '<div class="aff-vues" role="group" aria-label="Disposition">'
       + [['liste', 'Liste'], ['kanban', 'Kanban']].map(function (v) {
-        return '<button type="button" class="chip" data-aff="vue" data-vue="' + v[0] + '" aria-pressed="'
+        return '<button type="button" class="aff-vue" data-aff="vue" data-vue="' + v[0] + '" aria-pressed="'
           + (S.vue === v[0] ? 'true' : 'false') + '">' + v[1] + '</button>';
       }).join('') + '</div>';
     /* V13 (01/10/2026) : sous 700 px, quatre pastilles faisaient 210 px de haut. Une liste
@@ -660,10 +691,13 @@
         var n = ec.filter(function (a) { return a.type_id === t.type_id; }).length;
         return '<option value="' + t.type_id + '"' + (S.filtre === t.type_id ? ' selected' : '') + '>' + esc(t.nom) + ', ' + n + ' en cours</option>';
       }).join('') + '</select></label>';
-    return '<div class="aff-tete"><div class="aff-chips" role="group" aria-label="Type d’affaire">' + chips + '</div>'
-      + liste + vues
+    /* Un seul type : « Toutes » et ce type disent la meme chose, le filtre se cache (CSS). */
+    var unSeul = typesActifs().length < 2;
+    return '<div class="aff-tete' + (unSeul ? ' aff-tete--un' : '') + '">'
+      + '<div class="aff-chips" role="group" aria-label="Type d’affaire">' + chips + '</div>' + liste
+      + '<div class="aff-tete__d">' + vues
       + '<button type="button" class="btn btn--bordeaux" data-aff="nouvelle"'
-      + ' aria-haspopup="dialog" aria-controls="affaireModale">Nouvelle affaire</button></div>';
+      + ' aria-haspopup="dialog" aria-controls="affaireModale">Nouvelle affaire</button></div></div>';
   }
 
   /* Une affaire de la famille « client » porte sur un client existant : elle se
@@ -755,7 +789,7 @@
     p.innerHTML = c ? '<span class="aff-choisi__l">Client</span> <b>' + esc(c.nom) + '</b>'
       /* V18 : « Pas encore dans Vitisoft », pas « Nouveau client », qui se lisait a cote de
          « Deja dans ta base » comme une contradiction. */
-      + (c.genre === 'piste' ? ' <span class="aff-marque">Pas encore dans Vitisoft</span>' : (c.num ? ' <span class="aff-choisi__d">n° ' + esc(c.num) + '</span>' : ''))
+      + (c.genre === 'piste' ? ' ' + marqueNouveau() : (c.num ? ' <span class="aff-choisi__d">n° ' + esc(c.num) + '</span>' : ''))
       + (c.ville ? ' <span class="aff-choisi__d">' + esc(c.ville) + '</span>' : '')
       + ' <button type="button" class="aff-lien" data-aff="lacherClient">Changer</button>' : '';
     /* La famille « client » (nouvelle cuvee chez un client) n'a pas de sens pour un
@@ -878,7 +912,7 @@
       + (d ? '<span class="aff-trouve__d">' + esc(d) + '</span>' : '') + '</li>';
     return '<li><button type="button" class="aff-trouve" data-aff="' + geste + '" data-genre="' + c.genre + '" data-id="' + esc(c.id) + '">'
       + '<span class="aff-trouve__nom">' + esc(c.nom) + '</span>'
-      + (c.genre === 'piste' ? ' <span class="aff-marque">Pas encore dans Vitisoft</span>' : '')
+      + (c.genre === 'piste' ? ' ' + marqueNouveau() : '')
       + (d ? '<span class="aff-trouve__d">' + esc(d) + '</span>' : '') + '</button></li>';
   }
   /* LES CLIENTS VITISOFT N'EXISTENT ICI QUE SI LE MOTEUR EST LA, M1 (01/10/2026).
@@ -1131,7 +1165,9 @@
   }
 
   function ligneRappel(a, e) {
-    if (!a.rappel) return 'Aucun rappel prévu';
+    if (!a.rappel) return e && e.endormie
+      ? '<b>Plus de nouvelles depuis ' + pluriel(e.jours, 'jour', 'jours') + '</b><br>Pas de rappel prévu'
+      : 'Pas de rappel prévu';
     var quoi = a.rappel_titre ? ' : ' + esc(a.rappel_titre) : '';
     if (e.retard > 0) return '<b>En retard de ' + pluriel(e.retard, 'jour', 'jours') + '</b>' + quoi;
     if (e.retard === 0) return '<b>À faire aujourd’hui</b>' + quoi;
@@ -1143,13 +1179,13 @@
      peut arriver, et on le compte en jours restants ou ecoules. */
   function ligneEtape(a, e) {
     var et = etapeDe(a.etape_id);
-    var txt = (e.jours === 0 ? 'Depuis aujourd’hui' : pluriel(e.jours, 'jour', 'jours')) + ' dans « ' + esc(et ? et.nom : 'étape') + ' »';
+    var txt = (e.jours === 0 ? 'Arrivée aujourd’hui' : pluriel(e.jours, 'jour', 'jours')) + ' dans « ' + esc(et ? et.nom : 'étape') + ' »';
     /* W4 (tour 2) : UNE SEULE DUREE. « Endormie depuis 20 jours : 50 jours dans ... » en
        portait deux, et on ne savait pas laquelle comptait. */
-    if (e.endormie) return '<b>' + pluriel(e.jours, 'jour', 'jours') + ' sans bouger</b> dans « ' + esc(et ? et.nom : 'étape') + ' » (endormie)';
+    if (e.endormie) return 'Dans « ' + esc(et ? et.nom : 'étape') + ' »';
     if (e.retard == null) {
       var reste = e.sommeil - e.jours;
-      return txt + ', s’endort dans ' + pluriel(reste, 'jour', 'jours') + ' sans rappel';
+      return txt + ' : sans rappel, à relancer dans ' + pluriel(reste, 'jour', 'jours');
     }
     return txt;
   }
@@ -1160,10 +1196,46 @@
   /* SOUS L'ETIQUETTE D'ETAPE, LA DUREE SEULE : redire le nom de l'etape juste sous
      l'etiquette qui le porte faisait lire deux fois la meme chose. */
   function ligneDuree(a, e) {
-    var depuis = e.jours === 0 ? 'Depuis aujourd’hui' : 'Depuis ' + pluriel(e.jours, 'jour', 'jours');
-    if (e.endormie) return '<b>' + pluriel(e.jours, 'jour', 'jours') + ' sans bouger</b> (endormie)';
-    if (e.retard == null) return depuis + ', s’endort dans ' + pluriel(e.sommeil - e.jours, 'jour', 'jours') + ' sans rappel';
+    /* 02/10/2026 : « Depuis aujourd'hui » cotoyait « En retard de 3 jours » et semblait le
+       contredire. On dit ce qu'on compte : le temps passe a CETTE etape. Endormie, la duree
+       est dans la colonne du rappel (« Plus de nouvelles depuis... »), pas deux fois. */
+    var depuis = e.jours === 0 ? 'Arrivée aujourd’hui' : 'À cette étape depuis ' + pluriel(e.jours, 'jour', 'jours');
+    if (e.endormie) return '';
+    if (e.retard == null) return depuis + '. Sans rappel, à relancer dans ' + pluriel(e.sommeil - e.jours, 'jour', 'jours');
     return depuis;
+  }
+  /* LE PREMIER GESTE D'UNE RANGEE SUIT L'ETAT DE L'AFFAIRE, 02/10/2026 (expert commercial :
+     « une affaire ne passe pas a l'etape suivante parce qu'on clique, mais parce qu'on a
+     parle au client »). En retard : Appeler, sinon Ecrire, sinon la reporter a demain. Sans
+     nouvelles (endormie, donc sans rappel) : lui poser un rappel demain. Sinon, rien
+     d'urgent. « Vers <etape> » reste a portee, en second, avec son delai d'annulation. */
+  /* LES MEMES DONNEES DANS LES QUATRE VUES (vigneron, passe apres) : le numero d'un client
+     Vitisoft n'est connu que quand le moteur des ventes est la, donc le geste changeait selon
+     qu'on avait ouvert « Clients a suivre » avant. On ne lit que ce que la piece possede : la
+     piste. Un client Vitisoft en retard mene a SA FICHE, qui porte son numero. */
+  function contactDe(a) {
+    var p = a.piste_id && S.pistes[a.piste_id];
+    return p ? { tel: p.telephone ? String(p.telephone).replace(/[^\d+]/g, '') : '', mail: p.email || '' } : { tel: '', mail: '' };
+  }
+  function gesteUrgent(a, e, qui) {
+    if (!e.aRelancer) return '';
+    if (e.endormie) return '<button type="button" class="btn" data-aff="reporter" data-jours="1"'
+      + ' aria-label="Rappeler « ' + esc(qui) + ' » demain">Le rappeler demain</button>';
+    var c = contactDe(a);
+    if (c.tel) return '<a class="btn" href="tel:' + esc(c.tel) + '" aria-label="Appeler « ' + esc(qui) + ' »">Appeler</a>';
+    if (c.mail) return '<a class="btn" href="mailto:' + esc(c.mail) + '" aria-label="Écrire à « ' + esc(qui) + ' »">Écrire</a>';
+    if (clientDe(a)) return '<button type="button" class="btn" data-aff="voirFiche"'
+      + ' aria-label="Ouvrir la fiche de « ' + esc(qui) + ' » pour l’appeler">Voir sa fiche</button>';
+    return '<button type="button" class="btn" data-aff="reporter" data-jours="1"'
+      + ' aria-label="Reporter le rappel de « ' + esc(qui) + ' » à demain">Reporter à demain</button>';
+  }
+  function gesteVers(a, suite, qui, plein) {
+    if (!suite) return '<span class="aff-ligne__fin">Dernière étape</span>';
+    return '<button type="button" class="' + (plein ? 'btn' : 'aff-vers') + '" data-aff="suivante"'
+      + ' aria-label="Passer « ' + esc(qui) + ' » à l’étape suivante, « ' + esc(suite.nom) + ' »">Vers ' + esc(suite.nom) + '</button>';
+  }
+  function marqueNouveau() {
+    return '<span class="aff-marque aff-marque--nouveau">Nouveau client<span class="hors-ecran">, pas encore dans Vitisoft</span></span>';
   }
   function htmlAffaire(a, avecType) {
     var e = etat(a);
@@ -1177,18 +1249,15 @@
       + '<div class="aff-ligne__corps">'
       + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir"'
       + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>'
-      + (estNouveau(a) ? ' <span class="aff-marque">Pas encore dans Vitisoft</span>' : '')
+      + (estNouveau(a) ? ' ' + marqueNouveau() : '')
       + (motifDe(a) ? ' ' + htmlMotif(motifDe(a)) : '') + '</p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__titre">' + esc(a.titre) + '</p>' : '')
       + (devisDe(a) ? '<p class="aff-ligne__s aff-ligne__devis">' + ligneDevis(a, false) + '</p>' : '')
       + '</div>'
       + '<p class="aff-ligne__etape"><span class="aff-pastille">' + esc(et ? et.nom : 'étape') + '</span>'
-      + '<span class="aff-ligne__s">' + (avecType && !S.filtre && t ? esc(t.nom) + ' · ' : '') + ligneDuree(a, e) + '</span></p>'
+      + '<span class="aff-ligne__s">' + [avecType && !S.filtre && t && typesActifs().length > 1 ? esc(t.nom) : '', ligneDuree(a, e)].filter(Boolean).join(' · ') + '</span></p>'
       + '<p class="aff-ligne__rappel aff-ligne__s">' + ligneRappel(a, e) + '</p>'
-      + '<div class="aff-ligne__gestes">'
-      + (suite
-        ? '<button type="button" class="btn" data-aff="suivante" aria-label="Passer « ' + esc(qui) + ' » à l’étape suivante, « ' + esc(suite.nom) + ' »">Étape suivante</button>'
-        : '<span class="aff-ligne__fin">Dernière étape</span>')
+      + '<div class="aff-ligne__gestes">' + gesteUrgent(a, e, qui) + gesteVers(a, suite, qui, false)
       + '</div></li>';
   }
 
@@ -1223,12 +1292,12 @@
       return '<option value="' + x.etape_id + '"' + (x.etape_id === a.etape_id ? ' selected' : '') + '>' + esc(x.nom) + '</option>';
     }).join('');
     var liens = '';
-    if (clientDe(a)) liens += '<button type="button" class="btn" data-aff="voirFiche">Voir sa fiche</button>';
+
     var motifs = MOTIFS.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('');
     return '<form class="aff-edit" data-edit="' + a.affaire_id + '" novalidate>'
       + (liens ? '<div class="aff-edit__liens">' + liens + '</div>' : '')
       + '<div class="aff-duo"><label class="aff-champ"><span>Étape</span><select name="etape">' + etapes + '</select></label>'
-      + '<label class="aff-champ"><span>Je le rappelle le</span><input name="rappel" id="affEditRappel" type="date" value="' + esc(a.rappel || '') + '"></label></div>'
+      + '<label class="aff-champ"><span>Rappel prévu le</span><input name="rappel" id="affEditRappel" type="date" value="' + esc(a.rappel || '') + '"></label></div>'
       + '<label class="aff-champ"><span>Pour quoi faire</span><input name="rappel_titre" type="text" maxlength="120" value="' + esc(a.rappel_titre || '') + '"></label>'
       + '<label class="aff-champ"><span>Titre de l’affaire</span><input name="titre" type="text" maxlength="120" value="' + esc(a.titre || '') + '"></label>'
       + '<label class="aff-champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea></label>'
@@ -1539,18 +1608,17 @@
     var t = typeKanban();
     if (!t) return '<div class="aff-bloc"><p class="aff-vide">Choisis un type d’affaire au-dessus pour voir ses colonnes.</p></div>';
     var dans = enCours().filter(function (a) { return a.type_id === t.type_id; });
-    var nRel = dans.filter(function (a) { return etat(a).aRelancer; }).length;
     var cols = etapesDe(t.type_id).map(function (et) {
       var ici = dans.filter(function (a) { return a.etape_id === et.etape_id; });
       return '<section class="aff-col' + (ici.length ? '' : ' aff-col--vide') + '" data-colonne="' + et.etape_id + '" aria-label="' + esc(et.nom) + ', ' + ici.length + '">'
         + '<h3 class="aff-col__t">' + esc(et.nom) + ', ' + ici.length + '</h3>'
-        + '<ul class="aff-col__liste">' + ici.map(htmlCarte).join('') + '</ul></section>';
+        + (ici.length ? '<ul class="aff-col__liste">' + ici.map(htmlCarte).join('') + '</ul>' : '<p class="aff-col__rien">Rien ici pour l’instant</p>') + '</section>';
     }).join('');
+    /* 02/10/2026 : la phrase qui expliquait le marquage (« signalees en mots... ») part,
+       la ligne « Aujourd'hui » nomme qui relancer. Sous 700 px les colonnes s'empilent :
+       plus de tableau a faire glisser, donc plus de phrase pour le dire. */
     return '<div class="aff-bloc">'
-      + (nRel ? '<p class="aff-kanban__rel">Les affaires à relancer sont signalées en mots sur leur carte.</p>' : '')
       + (dans.length ? '' : '<p class="aff-vide">Aucune affaire en cours dans « ' + esc(t.nom) + ' ».</p>')
-      /* S19 : sous 700 px, rien n'annoncait que le tableau defile de cote. */
-      + '<p class="aff-kanban__glisse">' + pluriel(etapesDe(t.type_id).length, 'étape', 'étapes') + ' : fais glisser le tableau de côté.</p>'
       + '<div class="aff-kanban">' + cols + '</div>'
       + '</div>';
   }
@@ -1562,8 +1630,10 @@
         + ' aria-controls="affaireModale" aria-expanded="' + (S.ouverte === a.affaire_id ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
         + '<p class="aff-marque aff-marque--opposee">' + MARQUE_OPP + '</p></li>';
     }
-    var opts = etapesDe(a.type_id).map(function (x) {
-      return '<option value="' + x.etape_id + '"' + (x.etape_id === a.etape_id ? ' selected' : '') + '>' + esc(x.nom) + '</option>';
+    /* L'etape ou la carte est deja n'est pas proposee : la liste disait « Repere » dans la
+       colonne Repere. */
+    var opts = '<option value="" selected>Choisir l’étape</option>' + etapesDe(a.type_id).filter(function (x) { return x.etape_id !== a.etape_id; }).map(function (x) {
+      return '<option value="' + x.etape_id + '">' + esc(x.nom) + '</option>';
     }).join('');
     var ouverte = S.ouverte === a.affaire_id;
     return '<li class="aff-carte' + (e.endormie ? ' aff-ligne--dort' : '') + (e.retard > 0 ? ' aff-ligne--retard' : '')
@@ -1575,25 +1645,21 @@
       + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" draggable="true" data-aff="ouvrir" aria-haspopup="dialog"'
       + ' aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__s">' + esc(a.titre) + '</p>' : '')
-      + (estNouveau(a) ? '<p class="aff-marque">Pas encore dans Vitisoft</p>' : '')
+      + (estNouveau(a) ? '<p class="aff-carte__marque">' + marqueNouveau() + '</p>' : '')
       + (motifDe(a) ? '<p class="aff-carte__motif">' + htmlMotif(motifDe(a)) + '</p>' : '')
       + '<p class="aff-ligne__s">' + ligneRappel(a, e) + '</p>'
       + (devisDe(a) ? '<p class="aff-ligne__s aff-ligne__devis">Devis ' + ligneDevis(a, true) + '</p>' : '')
-      + (e.endormie ? '<p class="aff-ligne__s"><b>' + pluriel(e.jours, 'jour', 'jours') + ' sans bouger</b> (endormie)</p>' : '')
-      + '<div class="aff-carte__gestes">'
-      /* W7 (tour 2) : le libelle « Deplacer vers » se lit au-dessus de la liste, sinon elle
-         ne montrait que le nom de l'etape, deja ecrit en tete de colonne. */
-      + '<label class="aff-carte__dep"><span class="aff-carte__dep-t">Déplacer vers<span class="hors-ecran"> une autre étape, « ' + esc(qui) + ' »</span></span>'
-      + '<select class="aff-carte__deplacer" data-deplacer>' + opts + '</select></label>'
+      + '<div class="aff-carte__gestes">' + (gesteUrgent(a, e, qui) || gesteVers(a, etapeSuivante(a), qui, true))
+      /* 02/10/2026 : « Deplacer vers » et sa liste prenaient la moitie de la carte, pour un
+         geste rare. Ils se replient derriere « Deplacer ». Le glisser reste. */
+      + '<details class="aff-carte__dep"><summary>Déplacer<span class="hors-ecran"> « ' + esc(qui) + ' » vers une autre étape</span></summary>'
+      + '<label class="aff-carte__dep-l"><span class="hors-ecran">Étape de « ' + esc(qui) + ' »</span>'
+      + '<select class="aff-carte__deplacer" data-deplacer>' + opts + '</select></label></details>'
       + '</div></li>';
   }
 
   function htmlRelancer() {
-    var r = visibles().filter(function (a) { return etat(a).aRelancer; })
-      .sort(function (a, b) {
-        var ra = etat(a).retard, rb = etat(b).retard;
-        return (rb == null ? -1 : rb) - (ra == null ? -1 : ra);
-      });
+    var r = relancerTries();
     /* `affRelancer` : la case « A relancer » du bilan commun y pose le focus (lot 45). */
     if (!r.length) return '<div class="aff-bloc"><h3 class="aff-bloc__t" id="affRelancer" tabindex="-1">À relancer</h3>'
       + '<p class="aff-vide">Rien à relancer aujourd’hui.</p></div>';
@@ -1613,9 +1679,9 @@
         return '<h4 class="aff-etape">' + esc(et.nom) + ', ' + ici.length + '</h4>'
           + '<ul class="aff-liste">' + ici.map(function (a) { return htmlAffaire(a, false); }).join('') + '</ul>';
       }).join('');
-      html += (S.filtre ? '' : '<h3 class="aff-bloc__t">' + esc(t.nom) + '</h3>') + blocs;
+      html += (S.filtre || types.length < 2 ? '' : '<h3 class="aff-bloc__t">' + esc(t.nom) + '</h3>') + blocs;
     });
-    if (!visibles().length) html = '<p class="aff-vide">Aucune affaire en cours. « Nouvelle affaire » pour en ouvrir une.</p>';
+    if (!visibles().length) html = '<p class="aff-vide">Rien en cours. Un caviste goûté au salon, un restaurant à rappeler ? « Nouvelle affaire » pour l’ouvrir.</p>';
     /* N4 : les affaires des personnes en opposition passent EN FIN, a part. */
     var opp = visibles().filter(oppose);
     if (opp.length) html += '<h3 class="aff-bloc__t">' + (opp.length > 1 ? 'Ne veulent plus être contactées : ' : 'Ne veut plus être contactée : ')
@@ -2265,7 +2331,7 @@
     var li = n.closest('[data-affaire]');
     /* L'en-tete du panneau (« Je le rappelle : Demain ») vit hors du corps qui porte
        `data-affaire` : il parle de l'affaire ouverte. */
-    var id = li ? li.getAttribute('data-affaire') : (MOD && MOD.contains(n) ? S.ouverte : null);
+    var id = li ? li.getAttribute('data-affaire') : n.getAttribute('data-id') || (MOD && MOD.contains(n) ? S.ouverte : null);
     return S.affaires.filter(function (a) { return a.affaire_id === id; })[0];
   }
 

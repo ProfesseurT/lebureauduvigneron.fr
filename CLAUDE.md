@@ -7718,3 +7718,37 @@ l'autre.** La rangee s'ouvre maintenant par un ecouteur (bdv-ecrans.js, bdv-annu
 rend le clic au nom, sauf sur un bouton, un lien, un champ, ou pendant une selection.
 **Ne jamais remettre un calque sur un `<tr>`** ; `banc:tiroir` le refuse, mutation verifiee.
 Le calque reste permis sur un BLOC (`.signal`, les tuiles, les lignes des affaires en grille).
+
+### LES REGLAGES N'ECRIVENT PAS DANS L'EN-TETE, 02/10/2026
+
+Le panneau s'ouvre PAR-DESSUS la piece. `marquerActif('reglages')` ne fait plus rien ;
+`celluleReglages()` de `bdv-reglages.js` allume la seule cellule a l'ouverture et la rend a
+`BdvNav.piece()` en fermant. En-tete, `aria-current`, onglets, mise a jour : ceux de la piece.
+Ne pas remettre ce code dans `bdv-nav.js` : `banc:poids` est a 77,7 ko sur 78.
+
+### « A GAGNER » REDESSINE, 02/10/2026 (section 31 septies de bdv-bureau.css)
+
+- **Un seul aplat d'accent par ecran : « Nouvelle affaire ».** Le filtre choisi a un contour et
+  une coche (`.aff-chips .chip[aria-pressed]`, scope a la piece : la chip du reste du bureau garde
+  son aplat). Liste / Kanban est un interrupteur `.aff-vue`, pas une `.chip`.
+- **Le premier geste suit l'etat, avec les SEULES donnees de la piece** (`gesteUrgent()`) :
+  piste en retard, `tel:` ou `mailto:` ; client Vitisoft en retard, « Voir sa fiche » ; sinon
+  « Reporter a demain » ; sans nouvelles, « Le rappeler demain ». Ne pas lire `telsOf()` du
+  moteur ici : il n'est pas charge sur « A gagner », et le bouton changerait d'une vue a l'autre.
+  « Vers <etape> » (`.aff-vers`, meme `data-aff="suivante"` et meme delai) vient en second.
+- **La ligne « Aujourd'hui » (`htmlEtat()`) ne porte que des chiffres existants** : le premier a
+  relancer (ordre de `relancerTries()`, celui du bloc), et `htmlEnDevis()` (devis envoyes).
+  Son bouton porte `data-id`, pas `data-affaire` : sinon les controles qui cherchent la rangee
+  d'une affaire en trouvent deux.
+- **Une seule duree sur une affaire sans nouvelles** : dans la colonne du rappel. `ligneDuree()`
+  rend vide pour une endormie.
+- **La grille de la rangee** : deux colonnes de 34 a 52 rem (tiroir ouvert), quatre au-dela avec
+  la colonne des gestes FIXE a 20 rem, pour que les rangees s'alignent.
+- **Le kanban** : la liste « Deplacer » est repliee dans un `<details>` et ne propose pas l'etape
+  actuelle ; sous 700 px les colonnes s'empilent (plus de glisse, plus de phrase).
+- **Le panneau** : `.amod__raccourci` (« Nouveau devis ») visible a toutes les largeurs, celui du
+  bas cache ; « Enregistrer » colle en pied partout.
+- Captures : `scripts/cap-gagner.mjs` avec `scripts/decor-gagner.mjs` (playwright, hors `verif`).
+  `VUE=1` pour une vue sans pleine page : la pleine page decale l'en-tete et fait croire a des
+  chevauchements qui n'existent pas.
+

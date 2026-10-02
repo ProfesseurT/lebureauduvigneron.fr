@@ -12,6 +12,44 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 02/10/2026, « A gagner » redessine, et les reglages n'ecrivent plus dans l'en-tete
+
+Signale par Ted : ouvrir « Mes reglages » depuis « Mon commerce » ecrivait « Mes reglages » dans
+l'en-tete, et rien ne l'en retirait a la fermeture (vrai depuis toutes les pieces). Corrige :
+l'en-tete, `aria-current` et les onglets restent ceux de la piece, la cellule s'allume seule, et
+la fermeture du panneau la rend a la piece. La logique vit dans `bdv-reglages.js` (seul point de
+passage de toutes les ouvertures), `bdv-nav.js` n'expose que `BdvNav.piece()` : le poids bloquant
+reste sous 78 ko.
+
+Puis la refonte de l'onglet « A gagner », demandee par Ted (« les boutons, le responsive et
+l'utilisation »). Audit par le vigneron empathique et l'expert commercial sur captures reelles,
+maquette validee par Ted, passe du vigneron apres. Ce qui a change :
+- une ligne « Aujourd'hui : rappelle X (motif) » en tete, avec le montant des devis ENVOYES
+  seulement. Elle remplace « Ce que tu fais pour gagner un client » ;
+- un seul aplat d'accent, « Nouvelle affaire ». Le filtre choisi prend un contour et une coche ;
+  la bascule Liste / Kanban devient un interrupteur a deux cases ; les filtres se cachent quand
+  il n'y a qu'un type ;
+- le premier geste d'une rangee suit l'etat : en retard, Appeler (ou Ecrire) pour une piste,
+  « Voir sa fiche » pour un client Vitisoft, sinon « Reporter a demain » ; sans nouvelles,
+  « Le rappeler demain ». « Etape suivante » devient « Vers <etape> », en second ;
+- les mots : « Nouveau client », « Plus de nouvelles depuis N jours », « Arrivee aujourd'hui »,
+  « A cette etape depuis N jours », « Rappel prevu le », « promesse depassee ou plus de nouvelles » ;
+- la rangee garde ses gestes a droite quand le tiroir est ouvert ; le kanban a des colonnes a leur
+  hauteur, « Rien ici pour l'instant », « Deplacer » replie, et s'empile sur telephone ;
+- le panneau : « Nouveau devis » en tete a toutes les largeurs, « Voir sa fiche » en lien sous
+  le nom, « Enregistrer » colle en pied aussi en tiroir.
+
+Ecarte : lire le numero d'un client Vitisoft depuis le moteur des ventes pour afficher
+« Appeler » dans la liste. Le vigneron l'a refuse a la passe apres : le moteur n'est pas charge
+sur « A gagner », donc la meme affaire aurait eu deux boutons selon qu'on avait ouvert « Clients a
+suivre » avant. Le chevauchement de la lune sur le titre, vu sur les premieres captures, etait un
+artefact de capture pleine page : mesure, rien a corriger.
+
+Reste ouvert : l'etiquette d'etape du panneau (`tmod__tampon`, partagee avec la modale d'une
+tache) ressemble encore a un bouton ; la chip pressee du reste du bureau garde l'aplat d'accent.
+
+---
+
 ## 02/10/2026, les types d'affaires passent dans Mes reglages, et le bandeau des affaires closes
 
 Demande de Ted, capture a l'appui : « les reglages des affaires arrivent maintenant dans

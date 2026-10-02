@@ -464,8 +464,8 @@
       /* LES MOTS EN BAS DE CASSE APRES UN CHIFFRE : l'ordinateur les passe en capitales. */
       var ms = n > 1 ? 'affaires en cours' : 'affaire en cours';
       h += caseBilan('affaires', n, ms, '', false, 'en cours', n + ' ' + ms);
-      h += caseBilan('relancer', r, 'à relancer', 'rappel passé ou affaire endormie', r > 0, 'à relancer',
-        r + (r > 1 ? ' affaires' : ' affaire') + ' à relancer, rappel passé ou affaire endormie');
+      h += caseBilan('relancer', r, 'à relancer', 'promesse dépassée ou plus de nouvelles', r > 0, 'à relancer',
+        r + (r > 1 ? ' affaires' : ' affaire') + ' à relancer, promesse dépassée ou plus de nouvelles');
     }
     if (avecViti()) {
       var c = null;
@@ -475,8 +475,8 @@
          (calcul dans `banc:bureau`). La phrase entiere reste le nom du bouton. */
       /* S18 (01/10/2026) : « à suivre » seul se lisait comme un libelle casse. Le mot court
          nomme la case en entier ; mesure a 390 px, la rangee tient encore (banc:bureau). */
-      if (c == null) h += caseBilan('clients', null, 'Clients à suivre<span class="hors-ecran"> :</span>', 'comptés à l’ouverture de l’onglet',
-        false, 'Clients à suivre', 'comptés à l’ouverture de l’onglet', true);
+      if (c == null) h += caseBilan('clients', null, 'Clients à suivre<span class="hors-ecran"> :</span>', 'ouvre l’onglet pour les compter',
+        false, 'Clients à suivre', 'ouvre l’onglet pour les compter', true);
       /* Zero PARCE QUE tous sont deja dans une affaire : pas de « 0 », la phrase dit ou ils
          sont. Un vrai zero, sans affaire, garde son chiffre. */
       else if (c === 0 && window.bdvClientsASuivre.tousEnAffaire && window.bdvClientsASuivre.tousEnAffaire())

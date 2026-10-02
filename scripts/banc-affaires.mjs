@@ -274,7 +274,8 @@ titre('Lot 39 : la bascule Liste / Kanban');
   t('un type choisi : une colonne par etape', K.doc.querySelectorAll('.aff-col').length === 3);
   t('la carte est dans sa colonne', !!K.doc.querySelector('[data-colonne="e1"] [data-affaire="a1"]'));
   /* V18 (01/10/2026) : l'etiquette dit ce qui manque, « Pas encore dans Vitisoft ». */
-  t('la carte dit « Pas encore dans Vitisoft »', /Pas encore dans Vitisoft/.test(K.doc.querySelector('[data-affaire="a1"]').textContent));
+  /* 02/10/2026 : « Nouveau client » a l'oeil, et la synthese garde « pas encore dans Vitisoft ». */
+  t('la carte dit « Nouveau client, pas encore dans Vitisoft »', /Nouveau client, pas encore dans Vitisoft/.test(K.doc.querySelector('[data-affaire="a1"]').textContent));
   t('la carte se deplace aussi sans glisser (liste « Deplacer vers »)', !!K.doc.querySelector('[data-affaire="a1"] select[data-deplacer]'));
   const avant = K.requetes.filter(r => r.methode === 'PATCH').length;
   const sel = K.doc.querySelector('[data-affaire="a1"] select[data-deplacer]');
@@ -569,7 +570,7 @@ titre('Lot 44 : « Voir sa fiche » depuis une affaire');
   const ouvrirAff = (id) => { if (panneau() && !panneau().hidden) F.clic('#affaireModale .tmod__x'); F.clic('#affCorps [data-affaire="' + id + '"] [data-aff="ouvrir"]'); };
 
   ouvrirAff('aC');
-  t('une affaire sur un client existant montre « Voir sa fiche »', !!bouton() && bouton().textContent === 'Voir sa fiche' && bouton().classList.contains('btn'));
+  t('une affaire sur un client existant montre « Voir sa fiche »', !!bouton() && bouton().textContent === 'Voir sa fiche' && !!bouton().closest('.amod__fiche'));
   ouvrirAff('aN');
   t('un nouveau client, pas encore dans Vitisoft, n\'a pas de fiche : pas de bouton', !bouton());
   ouvrirAff('aP');
@@ -747,7 +748,7 @@ titre('Lot 45 : une regle « a relancer », un bilan au-dessus des onglets');
   const n = (q) => ((bil.querySelector('[data-bilan="' + q + '"] .aff-bilan__n') || {}).textContent);
   t('la case « A relancer » du bilan = le bloc « A relancer : N »', n('relancer') === bloc, n('relancer') + ' / ' + bloc);
   t('sa sous-ligne dit ce qu\'elle compte',
-    /rappel passé ou affaire endormie/.test((bil.querySelector('[data-bilan="relancer"]') || {}).textContent || ''));
+    /promesse dépassée ou plus de nouvelles/.test((bil.querySelector('[data-bilan="relancer"]') || {}).textContent || ''));
   t('« Affaires en cours » compte les trois, au pluriel',
     n('affaires') === '3' && /affaires en cours/.test(bil.textContent));
   t('aucun bilan dans #affCorps, aucun montant dans le bilan',
@@ -1349,7 +1350,8 @@ titre('Passe du 01/10/2026 : A gagner');
     { const rc = P.querySelector('.amod__raccourci [data-aff="devisRaccourci"]'), bas = P.querySelector('.aff-devis [data-aff="devis"]');
       t('X11 : la tete du panneau porte un raccourci « Nouveau devis », AVANT le formulaire', !!rc && !!bas && !!(rc.compareDocumentPosition(P.querySelector('form.aff-edit')) & 4));
       const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-      t('X11 : ... montre sous 700 px seulement', /\.bdv-coque \.amod__raccourci\{ display:none; \}/.test(css) && /@media \(max-width:700px\)\{\s*\.bdv-coque \.amod__raccourci\{ display:block;/.test(css));
+      /* 02/10/2026 : montre a TOUTES les largeurs (a 1440 celui du bas tombait hors de l'ecran) ; celui du bas se cache. */
+      t('X11 : ... montre a toutes les largeurs, et celui du bas se cache', /\n\.bdv-coque \.amod__raccourci\{ display:block;/.test(css) && /\.bdv-coque \.amod \.aff-devis > \.btn\[data-aff="devis"\]\{ display:none; \}/.test(css));
       const ouv = []; Q.w.BdvDevis = { ouvrir: (ctx) => { ouv.push(ctx); } };
       Q.w.eval(fs.readFileSync(path.join(RACINE, 'src/js/bdv-devis-calcul.js'), 'utf8'));
       rc.click(); await attendre(30);
@@ -1472,7 +1474,8 @@ titre('Passe du 01/10/2026 : A gagner');
   const q5 = CSS.split('31 quinquies')[1] || '';
   t('S7 : sous 700 px, « Déplacer vers » a 16 px', /max-width:700px[\s\S]*\.aff-carte__deplacer\{ font-size:var\(--bdv-f-saisie\); \}/.test(q5));
   t('V14 : une colonne vide se replie a 48 px', /\.aff-col--vide\{ flex:0 0 var\(--bdv-e-12\)/.test(q5) && /aff-col--vide/.test(SRC));
-  t('S19 : la phrase du defilement n\'existe que sous 700 px', /\.aff-kanban__glisse\{ display:none; \}/.test(q5) && /\.aff-kanban__glisse\{ display:block/.test(q5));
+  /* 02/10/2026 : sous 700 px les colonnes s'empilent ; plus de tableau a faire glisser, plus de phrase. */
+  t('le kanban s\'empile sous 700 px, sans phrase de glisse', /max-width:700px[\s\S]*\.aff-kanban\{ flex-direction:column;/.test(q5) && !/aff-kanban__glisse/.test(q5));
   t('S8 : un repli porte son signe', /\.aff-plus > summary::before\{/.test(q5) && /\.aff-plus\[open\] > summary::before/.test(q5));
   t('S13 : le cadre d\'etat va jusqu\'au bord', /\.amod__etat\{ margin-right:calc\(-1 \* var\(--bdv-e-8\)\); \}/.test(q5));
   t('V13 : sous 700 px, la liste remplace les pastilles', /\.aff-tete \.aff-chips\{ display:none; \}/.test(q5) && /\.aff-typeliste select\{ min-height:var\(--bdv-cible\); font-size:var\(--bdv-f-saisie\); \}/.test(q5));
@@ -1547,9 +1550,11 @@ titre('Tour 2 : opposition, doublon de SIRET, conclure, reporter');
   t('N4 : dans le kanban, ni liste « Déplacer vers » ni glisser', !!carte && !carte.querySelector('[data-deplacer]') && carte.getAttribute('draggable') !== 'true'
     && /Ne veut plus être contactée/.test(carte.textContent));
   const carte1 = O.doc.querySelector('.aff-carte[data-affaire="a1"]');
-  t('W7 : la liste de deplacement porte son libelle visible « Déplacer vers »',
-    !!carte1 && /^Déplacer vers/.test((carte1.querySelector('.aff-carte__dep-t') || {}).textContent || '')
-    && !!carte1.querySelector('label.aff-carte__dep select[data-deplacer]'));
+  /* 02/10/2026 : « Deplacer » replie la liste, qui ne propose plus l'etape ou la carte est deja. */
+  t('la carte replie sa liste derriere « Déplacer », sans l\'etape actuelle',
+    !!carte1 && /^Déplacer/.test(((carte1.querySelector('details.aff-carte__dep > summary') || {}).textContent) || '')
+    && !!carte1.querySelector('details.aff-carte__dep select[data-deplacer]')
+    && ![].some.call(carte1.querySelectorAll('select[data-deplacer] option'), o => o.value && o.value === O.base.affaires.find(a => a.affaire_id === 'a1').etape_id));
   O.w.BdvAffaires._S.vue = 'liste';
 
   /* N3 : la recherche la montre marquee, et la creer de nouveau est refuse. */
@@ -1622,10 +1627,19 @@ titre('Tour 2 : opposition, doublon de SIRET, conclure, reporter');
   W.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', opposition: false });
   await W.w.BdvAffaires.ouvrir();
   const lw = W.doc.querySelector('#affCorps [data-affaire="a1"]').textContent;
-  t('W4 : la ligne d\'une endormie porte UNE duree', /50 jours sans bouger/.test(lw) && (lw.match(/\d+ jours?/g) || []).length === 1, lw);
+  t('W4 : la ligne d\'une endormie porte UNE duree', /Plus de nouvelles depuis 50 jours/.test(lw) && (lw.match(/\d+ jours?/g) || []).length === 1, lw);
+  /* 02/10/2026 : sans nouvelles, le premier geste pose un rappel ; « Vers <etape> » vient apres. */
+  { const lig = W.doc.querySelector('#affCorps .aff-ligne[data-affaire="a1"]');
+    const g = [].map.call(lig.querySelectorAll('.aff-ligne__gestes [data-aff]'), b => b.getAttribute('data-aff') + ':' + b.textContent.trim());
+    t('endormie : « Le rappeler demain » puis « Vers <etape> »', g[0] === 'reporter:Le rappeler demain' && /^suivante:Vers /.test(g[1] || ''), g.join(' | '));
+    const et = W.doc.querySelector('#affCorps .aff-etat');
+    t('la ligne « Aujourd\'hui » nomme l\'affaire a relancer, et son nom ouvre le panneau',
+      !!et && /Aujourd’hui : rappelle Cave du Port/.test(et.textContent) && !!et.querySelector('[data-aff="ouvrir"][data-id="a1"]'), et && et.textContent);
+    t('un seul aplat d\'accent dans la barre : « Nouvelle affaire »', W.doc.querySelectorAll('#affCorps .aff-tete .btn--bordeaux').length === 1
+      && !W.doc.querySelector('#affCorps .aff-vues .chip')); }
   W.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
   const tw = W.doc.getElementById('amodTete').textContent;
-  t('W4 : l\'etat du panneau aussi', /50 jours sans bouger dans « Repéré » \(endormie\)/.test(tw) && !/Endormie depuis/.test(tw), tw);
+  t('W4 : l\'etat du panneau aussi', /Dans « Repéré »/.test(tw) && /Plus de nouvelles depuis 50 jours/.test(tw) && (tw.match(/50 jours/g) || []).length === 1, tw);
   const fw = W.doc.querySelector('#affaireModale form.aff-edit');
   W.clic('#affaireModale [data-aff="perdue"]');
   const pied = fw.querySelector('.aff-form__pied');
