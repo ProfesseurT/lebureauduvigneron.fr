@@ -3206,6 +3206,25 @@ function fermerFiche(){
   GESTE_ATTENDU=null;DEMANDE_DATE=null;
 }
 
+/* PARTIR N'EST PAS FERMER, 02/10/2026 : appele par `afficher()` de bdv-nav.js quand le
+   vigneron change de piece avec une fiche ouverte. Meme chemin qu'« Agrandir » : le brouillon
+   est sauve et garde. Le focus n'est pas rendu a la ligne d'origine, elle va etre cachee. */
+window.bdvQuitterLaFiche=function(id,opts){
+  const m=el('modale');
+  if(!m||!m.classList.contains('on')||pageFiche())return;
+  opts=opts||{};
+  /* Ou l'on est, lu sur la barre (et l'onglet pour « Mon commerce »), que marquerActif() ecrit. */
+  const it=document.querySelector('#bureauNav .bureau-nav__item[aria-current="page"]');
+  const p=(it&&it.closest('.bureau-nav__ligne')||{dataset:{}}).dataset.piece||'';
+  const t=document.querySelector('#bureauComOnglets [role="tab"][aria-selected="true"]');
+  const avant=p==='clients'?'clients:'+((t&&t.getAttribute('data-onglet'))||''):p;
+  const vers=id==='clients'?'clients:'+(opts.client?'suivre':(opts.onglet||'')):id;
+  if(!avant||vers===avant||(vers==='clients:'&&avant.indexOf('clients:')===0))return;
+  sauverBrouillon();
+  FICHE_OUVERTE=null;
+  GARDER_BROUILLON=true; try{fermerFiche();}finally{GARDER_BROUILLON=false;}
+};
+
 /* ======================= LE PIEGE A FOCUS DE LA FICHE, 19/09/2026 =======================
    Echap etait deja la, mais ailleurs : `bdv-base.js` ecoute la touche et appelle
    `fermerFiche()` des que `#modale` porte la classe `on`. Ne pas en poser un deuxieme ici,

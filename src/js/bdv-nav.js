@@ -758,6 +758,17 @@
     var piece = PIECES.filter(function (p) { return p.id === id; })[0];
     if (!piece) id = 'journee';
 
+    /* LA FICHE CLIENT NE SUIT PAS LE VIGNERON DANS UNE AUTRE PIECE, 02/10/2026. Ted :
+       « quoi que je fasse, ca ouvre une fiche client sur le cote, toujours le meme,
+       impossible d'aller ailleurs ». En tiroir (1320 px et plus), la fiche restait a droite
+       de « Mon cap », de « Ma journee », de tout : la piece changeait dessous, la fiche du
+       meme client restait la. `seule()` fermait deja le panneau d'une affaire et le devis
+       (M5, lot 56), pas la fiche. On la ferme donc quand on CHANGE de piece ou d'onglet, et
+       seulement la : rester sur la meme piece (un clic sur son onglet, une autre fiche
+       demandee) la laisse. Partir n'est pas fermer : le brouillon est GARDE. La comparaison vit
+       dans bdv-ecrans.js, qui n'est pas bloquant (banc:poids). */
+    if (window.bdvQuitterLaFiche) window.bdvQuitterLaFiche(id, opts);
+
     if (id === 'journee') {
       seule('journee');
       marquerActif('journee');

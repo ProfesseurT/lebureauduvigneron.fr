@@ -7662,3 +7662,18 @@ rgpd decrit deja ce qu'il fait). Rejouable deux fois, banc `supabase/banc-lot56-
 - Proposition SQL non ecrite : `devis_obstacle()` devrait refuser un `num_produit` avec `;` `"`
   tabulation ou retour a la ligne, comme `manques()`.
 - Un doublon de nom (non oppose) cree avant le lot 56 n'est pas signale.
+
+### LA FICHE CLIENT NE SUIT PAS DANS UNE AUTRE PIECE, 02/10/2026
+
+Ted : « dans Mon commerce, quoi que je fasse, ca ouvre une fiche client sur le cote, toujours
+le meme, impossible d'aller ailleurs ». En tiroir (1320 px et plus), la fiche restait a droite de
+toutes les pieces : `seule()` fermait le panneau d'une affaire et le devis (M5), jamais `#modale`.
+Reproduit sur la production, dans un vrai navigateur, avec ses donnees.
+
+- `afficher()` (bdv-nav.js) appelle `window.bdvQuitterLaFiche(id, opts)` (bdv-ecrans.js, pas
+  bloquant : banc:poids est a 78 ko pile). Elle ferme la fiche quand la piece OU l'onglet de
+  « Mon commerce » change, lus sur la barre (`aria-current`) et sur `#bureauComOnglets`. Meme
+  piece, ou `#client=` : la fiche reste.
+- **Partir n'est pas fermer** : le brouillon est sauve et garde (meme chemin qu'« Agrandir »), et
+  il revient a la reouverture de la fiche. Le focus n'est pas rendu a une ligne qu'on va cacher.
+- Garde : `banc:tiroir`, deux controles, verifies par mutation.

@@ -228,6 +228,14 @@ t('S10 : tiroir ouvert, l\'en-tete passe les etats en chiffres',
 t('changer de piece ferme le panneau d\'une affaire et le devis (M5)',
   /if \(quelle !== 'affaires'\) tiroirCroix\('#affaireModale,#devisModale'\);/.test(nav));
 
+/* 02/10/2026 : changer de piece ferme la FICHE CLIENT, en gardant son brouillon. Ted : la fiche
+   du meme client restait a droite de toutes les pieces, « impossible d'aller ailleurs ». */
+t('changer de piece ou d\'onglet ferme la fiche client (afficher appelle bdvQuitterLaFiche)',
+  /window\.bdvQuitterLaFiche\(id, opts\)/.test(nav)
+  && /const avant=[\s\S]{0,200}const vers=[\s\S]{0,200}vers===avant/.test(fiche));
+t('quitter la fiche garde le brouillon (sauverBrouillon, GARDER_BROUILLON)',
+  /window\.bdvQuitterLaFiche=function\(id,opts\)\{[\s\S]{0,800}sauverBrouillon\(\);[\s\S]{0,80}GARDER_BROUILLON=true; try\{fermerFiche\(\);\}finally\{GARDER_BROUILLON=false;\}/.test(fiche));
+
 t('bdv-a-tiroir n\'est posee et retiree que par le module',
   /classList\.toggle\(['"]bdv-a-tiroir['"]/.test(nav)
   && /classList\.remove\(['"]bdv-a-tiroir['"]\)/.test(nav)
