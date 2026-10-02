@@ -1084,18 +1084,19 @@
 .bdv-ventes tr.annu__l:hover td{background-color:var(--bdv-survol)}
 /* Une rangee de « Mes clients » s'ouvre en entier : le calque vient du nom, la
    case a cocher et les boutons de la rangee repassent au-dessus. */
-.bdv-ventes tr.annu__l{position:relative}
-.bdv-ventes .annu__nom::after{content:"";position:absolute;inset:0;z-index:1}
-.bdv-ventes tr.annu__l input,.bdv-ventes tr.annu__l button,.bdv-ventes tr.annu__l a:not(.annu__nom){position:relative;z-index:2}
+/* 02/10/2026 : PLUS DE CALQUE `::after` SUR UNE RANGEE DE TABLEAU. Un `<tr>` en
+   `position:relative` n'est pas un bloc conteneur dans tous les navigateurs : chez Ted, le
+   calque du DERNIER client couvrait toute la liste, et tout clic ouvrait sa fiche (« toujours
+   le meme »). La rangee entiere s'ouvre par un ecouteur (bdv-annuaire.js, bdv-ecrans.js), qui
+   rend le clic au nom. Ne pas remettre de calque sur une rangee de tableau. */
+.bdv-ventes tr.annu__l{cursor:pointer}
 /* « Clients a suivre », 29/09/2026 (lot 44) : la rangee etait un `<tr role=button>` qui
    portait deja des liens, et il fallait y poser « En faire une affaire ». Meme montage que
-   « Mes clients » : le NOM est le bouton qui ouvre la fiche, son calque couvre la rangee,
-   les contacts et le geste repassent au-dessus. */
-.bdv-ventes tr.suivre__l{position:relative}
+   « Mes clients » : le NOM est le bouton qui ouvre la fiche, et un clic ailleurs sur la
+   rangee lui est rendu par un ecouteur (plus de calque depuis le 02/10/2026, voir plus haut). */
+.bdv-ventes tr.suivre__l{cursor:pointer}
 .bdv-ventes .suivre__nom{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.bdv-ventes .suivre__nom::after{content:"";position:absolute;inset:0}
 .bdv-ventes .suivre__nom:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
-.bdv-ventes tr.suivre__l a,.bdv-ventes tr.suivre__l .suivre__geste{position:relative;z-index:1}
 .bdv-ventes .suivre__geste{margin-top:var(--bdv-e-2)}
 .bdv-ventes tr.suivre__l:has(:focus-visible) > td:first-child{
   background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));

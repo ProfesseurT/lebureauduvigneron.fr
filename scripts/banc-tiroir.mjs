@@ -236,6 +236,17 @@ t('changer de piece ou d\'onglet ferme la fiche client (afficher appelle bdvQuit
 t('quitter la fiche garde le brouillon (sauverBrouillon, GARDER_BROUILLON)',
   /window\.bdvQuitterLaFiche=function\(id,opts\)\{[\s\S]{0,800}sauverBrouillon\(\);[\s\S]{0,80}GARDER_BROUILLON=true; try\{fermerFiche\(\);\}finally\{GARDER_BROUILLON=false;\}/.test(fiche));
 
+/* 02/10/2026 : un `<tr>` en position:relative n'est pas un bloc conteneur partout. Le calque
+   `::after` du dernier client couvrait toute la liste chez Ted. Plus aucun calque sur une rangee. */
+{
+  const ec = fs.readFileSync('src/css/bdv-ecrans.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  t('aucune rangee de tableau ne sert de bloc conteneur a un calque (02/10/2026)',
+    !/tr\.[\w-]+\s*\{[^}]*position\s*:\s*relative/.test(ec) && !/\.(suivre|annu)__nom::after/.test(ec));
+  t('la rangee de « Clients a suivre » et celle de « Mes clients » s\'ouvrent par un ecouteur',
+    /closest\('#clientsBody tr\.suivre__l'\)/.test(fiche)
+    && /closest\('tr\.annu__l'\)/.test(fs.readFileSync('src/js/bdv-annuaire.js', 'utf8')));
+}
+
 t('bdv-a-tiroir n\'est posee et retiree que par le module',
   /classList\.toggle\(['"]bdv-a-tiroir['"]/.test(nav)
   && /classList\.remove\(['"]bdv-a-tiroir['"]\)/.test(nav)

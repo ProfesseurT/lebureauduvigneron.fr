@@ -3191,6 +3191,17 @@ function ficheBientot(b){
 document.addEventListener('click',function(e){
   const b=e.target.closest&&e.target.closest('#modale [data-bientot="commande"]');if(b)ficheBientot(b);
 });
+/* 02/10/2026 : TOUTE LA RANGEE DE « CLIENTS A SUIVRE » OUVRE LA FICHE, par un ecouteur et
+   plus par un calque `::after` (voir bdv-ecrans.css : chez Ted, le calque du dernier client
+   couvrait toute la liste). Un clic sur un bouton, un lien ou un champ fait son propre travail ;
+   une selection de texte n'ouvre rien. */
+document.addEventListener('click',function(e){
+  const tr=e.target.closest&&e.target.closest('#clientsBody tr.suivre__l');
+  if(!tr||e.target.closest('button,a,input,select,textarea,label,summary'))return;
+  if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button!==0)return;
+  if(window.getSelection&&String(window.getSelection()).length)return;
+  const b=tr.querySelector('.suivre__nom');if(b)b.click();
+});
 /* Le libelle du geste : ce qui se passera au clic. Un client, une affaire (arbitrage du
    28/09) : on ne propose pas d'en creer une de plus. */
 function libelleGeste(id){

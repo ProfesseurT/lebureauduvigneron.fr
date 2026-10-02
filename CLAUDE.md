@@ -7688,3 +7688,15 @@ Reproduit sur la production, dans un vrai navigateur, avec ses donnees.
 - **Partir n'est pas fermer** : le brouillon est sauve et garde (meme chemin qu'« Agrandir »), et
   il revient a la reouverture de la fiche. Le focus n'est pas rendu a une ligne qu'on va cacher.
 - Garde : `banc:tiroir`, deux controles, verifies par mutation.
+
+**LA VRAIE CAUSE, TROUVEE LE MEME JOUR SUR LA CAPTURE DE TED** : la fiche qui s'ouvrait toute
+seule etait celle de BESSON BRUNO, **le 844e et dernier client de la liste**. La rangee de
+« Clients a suivre » (lot 44) et celle de « Mes clients » se cliquaient en entier par un calque
+`::after` en `inset:0`, accroche a un `<tr>` en `position:relative`. Chez Ted, ce `<tr>` n'etait
+pas le bloc conteneur : les 844 calques couvraient toute la liste, et celui du dernier client
+passait au-dessus. Tout clic ouvrait sa fiche. Dans le Chromium de la session, impossible a
+reproduire : **une rangee de tableau n'est pas un bloc conteneur fiable d'un navigateur a
+l'autre.** La rangee s'ouvre maintenant par un ecouteur (bdv-ecrans.js, bdv-annuaire.js), qui
+rend le clic au nom, sauf sur un bouton, un lien, un champ, ou pendant une selection.
+**Ne jamais remettre un calque sur un `<tr>`** ; `banc:tiroir` le refuse, mutation verifiee.
+Le calque reste permis sur un BLOC (`.signal`, les tuiles, les lignes des affaires en grille).

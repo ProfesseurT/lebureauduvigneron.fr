@@ -578,6 +578,15 @@
         const suppr = P().querySelector('[data-a="vue-suppr"]'); if(suppr) suppr.hidden = false;
       }
     });
+    /* 02/10/2026 : la rangee entiere ouvre la fiche, par cet ecouteur et plus par un calque
+       `::after` (voir bdv-ecrans.css). Le clic est rendu au lien du nom. */
+    p.addEventListener('click', function(e){
+      const tr = e.target.closest && e.target.closest('tr.annu__l');
+      if(!tr || e.target.closest('button,a,input,select,textarea,label,summary')) return;
+      if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      if(window.getSelection && String(window.getSelection()).length) return;
+      const a = tr.querySelector('.annu__nom'); if(a) a.click();
+    });
     p.addEventListener('click', function(e){
       const b = e.target.closest && e.target.closest('[data-a]');
       if(!b || b.tagName === 'INPUT' || b.tagName === 'SELECT') return;
