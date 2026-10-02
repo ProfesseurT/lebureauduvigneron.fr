@@ -33,7 +33,7 @@ const t = (nom, v, detail) => {
 };
 const titre = s => console.log('\n== ' + s + ' ==');
 /* L'avis vit au-dessus de la liste, ou dans le panneau quand il est ouvert (lot 40). */
-const avis = X => ['affAvis', 'amodAvis'].map(i => (X.doc.getElementById(i) || {}).textContent || '').join(' ');
+const avis = X => ['affAvis', 'amodAvis', 'affRegAvis'].map(i => (X.doc.getElementById(i) || {}).textContent || '').join(' ');
 const attendre = (ms) => new Promise(r => setTimeout(r, ms || 0));
 
 function monter() {
@@ -173,7 +173,11 @@ B.clic('[data-aff="confirmerPerdue"]');
 await attendre(20);
 t('la confirmation classe l\'affaire, avec son motif',
   B.base.affaires[0].issue === 'perdue' && B.base.affaires[0].motif === 'prix');
-t('elle rejoint les affaires closes', /Voir et rouvrir les affaires closes depuis un an \(0\u00a0gagnée sur 1\)/.test(B.doc.body.textContent));
+{ const tete = B.doc.querySelector('.aff-closes > summary.aff-closes__tete');
+  t('elle rejoint les affaires closes, dans un bandeau (02/10/2026)', !!tete && /Affaires closes, 12 derniers mois/.test(tete.textContent)
+    && (tete.querySelector('.aff-closes__bilan') || {}).textContent === '0\u00a0gagnée sur 1' && !!tete.querySelector('.aff-closes__voir') && !!tete.querySelector('.aff-closes__masquer'),
+    tete && tete.textContent); }
+t('les types d\'affaires ont quitte Mon commerce (02/10/2026)', !B.doc.getElementById('affCorps').querySelector('.aff-type, .aff-reglages') && !/Régler mes types/.test(B.doc.body.textContent));
 B.clic('[data-aff="rouvrir"]');
 await attendre(20);
 t('et se rouvre', B.base.affaires[0].issue === 'en_cours');
@@ -184,7 +188,12 @@ t('toute requete nomme son bureau', B.requetes.every(r => r.methode === 'POST' |
 t('toute ligne creee porte son bureau',
   B.requetes.filter(r => r.methode === 'POST').every(r => r.corps.every(l => l.bureau === BUREAU)));
 B.clic('[data-aff="nouvelle"]');
-B.doc.querySelector('.aff-reglages').open = true;
+/* Les types d'affaires vivent dans Mes reglages : on monte l'onglet comme le fait
+   bdv-affaires-jour.js, dans un hote a part. */
+const HOTE_R = B.doc.createElement('div'); B.doc.body.appendChild(HOTE_R);
+await B.w.BdvAffaires.reglages.ouvrir(HOTE_R);
+t('l\'onglet « Mes affaires » montre les types, sans <form> (le panneau en est deja un)',
+  !!HOTE_R.querySelector('.aff-type[data-type]') && !HOTE_R.querySelector('form'));
 const html = B.doc.body.innerHTML;
 t('aucun onclick dans le HTML produit', !/\sonclick=/.test(html));
 t('aucun tiret cadratin a l\'ecran', !/—/.test(B.doc.body.textContent));
@@ -197,6 +206,33 @@ await attendre(20);
 t('l\'etape est retiree', !B.base.affaire_etapes.some(e => e.etape_id === cible));
 t('et l\'affaire est deplacee, pas perdue', B.base.affaires.length === 1 && B.base.affaires[0].etape_id !== cible);
 t('on le dit', /affaire déplacée vers/.test(avis(B)));
+
+titre('Mes reglages, onglet « Mes affaires » (02/10/2026)');
+{
+  const box = () => HOTE_R.querySelector('.aff-type[data-type]');
+  const tid = box().getAttribute('data-type');
+  const nbAvant = B.base.affaire_etapes.filter(e => e.type_id === tid).length;
+  /* M3 : un geste immediat (ajouter un modele) repeint l'onglet sans perdre ce qui est tape. */
+  box().querySelector('input[name="ajout"]').value = 'Échantillons envoyés';
+  const nomI = box().querySelector('input[name="nom"]'); const nomAvant = nomI.value; nomI.value = nomAvant + ' bis';
+  const mod = HOTE_R.querySelector('[data-aff="ajoutModele"]');
+  if (mod) { mod.click(); await attendre(30); }
+  t('un repeint garde ce qui est tape et pas enregistre', box().querySelector('input[name="nom"]').value === nomAvant + ' bis'
+    && box().querySelector('input[name="ajout"]').value === 'Échantillons envoyés');
+  await B.w.BdvAffaires.reglages.enregistrer();
+  await attendre(20);
+  const tt = B.base.affaire_types.find(x => x.type_id === tid);
+  t('« Enregistrer » du panneau enregistre le type qui a bouge', tt && tt.nom === nomAvant + ' bis'
+    && B.base.affaire_etapes.filter(e => e.type_id === tid).length === nbAvant + 1, tt && tt.nom);
+  t('et l\'etape ajoutee ne se rajoute pas une seconde fois', !box().querySelector('input[name="ajout"]').value);
+  const nReq = B.requetes.length;
+  await B.w.BdvAffaires.reglages.enregistrer();
+  t('rien n\'a bouge : rien ne part', B.requetes.filter((r, i) => i >= nReq && r.methode !== 'GET').length === 0);
+  box().querySelector('input[name="sommeil"]').value = '900';
+  let rejet = false; try { await B.w.BdvAffaires.reglages.enregistrer(); } catch (e) { rejet = true; }
+  t('un delai hors bornes est refuse, dit, et le panneau n\'annonce pas « enregistre »', rejet && /de 1 à 365 jours/.test(avis(B)));
+  box().querySelector('input[name="sommeil"]').value = String(tt.sommeil_jours);
+}
 
 titre('Une affaire chez un client, depuis sa fiche (lot 35)');
 {
@@ -995,17 +1031,17 @@ titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de
   sesDevis.click();
   await attendre(20);
   const uc = F.doc.getElementById('affDevisC-aG');
-  { const sm = (F.doc.querySelector('.aff-closes summary') || {}).textContent || '';
+  { const sm = (F.doc.querySelector('.aff-closes .aff-closes__bilan') || {}).textContent || '';
     t('X4 : le resume des closes ne colle pas deux nombres par une virgule, et le montant est au centime ou absent',
-      /gagnée sur \d+(\u00a0· \d[\d\u00a0]*,\d\d\u00a0€\u00a0HT en devis acceptés)?\)$/.test(sm) && !/sur \d+, \d/.test(sm), JSON.stringify(sm)); }
+      /gagnée sur \d+(\u00a0· \d[\d\u00a0]*,\d\d\u00a0€\u00a0HT en devis acceptés)?$/.test(sm) && !/sur \d+, \d/.test(sm), JSON.stringify(sm)); }
   { const A = F.w.BdvAffaires, avant = A._S.devisResume;
     const aG = A._S.affaires.find(a => a.affaire_id === 'aG');
     A._S.devisResume = Object.assign({}, avant || {}, { aG: { statut: 'accepte', total_ht_c: 52680 } });
     const d = F.doc.createElement('div'); d.innerHTML = A._htmlCloses();
-    const sm2 = (d.querySelector('summary') || {}).textContent || '';
+    const sm2 = (d.querySelector('.aff-closes__bilan') || {}).textContent || '';
     A._S.devisResume = avant;
     t('X4 : avec un devis accepte, « 1 gagnée sur N · 526,80 € HT en devis acceptés », insecables, au centime',
-      !!aG && /\(1\u00a0gagnée sur \d+\u00a0· 526,80\u00a0€\u00a0HT en devis acceptés\)$/.test(sm2), JSON.stringify(sm2)); }
+      !!aG && /^1\u00a0gagnée sur \d+\u00a0· 526,80\u00a0€\u00a0HT en devis acceptés$/.test(sm2), JSON.stringify(sm2)); }
   t('« Ses devis » deplie la liste de l\'affaire close, lue pour ce bureau', !!uc && !uc.hidden && /Ouvrir le devis D-2026-0004/.test(uc.textContent) && /du 20\/09\/2026, pas encore envoyé, 82,50 € HT/.test(uc.textContent.replace(/[\u00a0\u202f]/g, ' '))
     && F.requetes.some(r => r.chemin === '/devis?bureau=eq.' + BUREAU + '&affaire_id=eq.aG&order=cree_le.desc'), uc && uc.textContent);
   uc.querySelector('[data-aff="devisOuvrir"]').click();

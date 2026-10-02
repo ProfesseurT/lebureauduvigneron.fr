@@ -12,6 +12,27 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 02/10/2026, les types d'affaires passent dans Mes reglages, et le bandeau des affaires closes
+
+Demande de Ted, capture a l'appui : « les reglages des affaires arrivent maintenant dans
+reglages », et « il faut ameliorer le bouton des anciennes affaires ».
+
+Ce qui a ete fait :
+- le repli « Regler mes types d'affaires » quitte le bas de Mon commerce. Il devient l'onglet
+  « Mes affaires » de Mes reglages, entre « Mon domaine » et « Tes ventes ». Les noms, les delais
+  et les etapes partent avec le bouton « Enregistrer » du bas du panneau (et donc avec Entree),
+  comme tout le reste des reglages. Retirer une etape, ne plus utiliser un type, ajouter un modele
+  restent des gestes immediats ;
+- le lien souligne « Voir et rouvrir les affaires closes depuis un an (...) » devient un bandeau :
+  titre « Affaires closes, 12 derniers mois », le bilan en gros (gagnees, montant accepte), et a
+  droite un vrai bouton « Voir et rouvrir », qui devient « Masquer » une fois ouvert.
+
+Ecarte : garder un raccourci « Regler mes types d'affaires » dans Mon commerce. Ted a demande le
+deplacement, pas un doublon. Facile a remettre s'il manque. Regles : CLAUDE.md, « LES TYPES
+D'AFFAIRES VIVENT DANS MES REGLAGES ».
+
+---
+
 ## 02/10/2026, audit de la branche affaires (lots 34 a 55) et lot 56
 
 Demande de Ted : tout auditer depuis les affaires, liens, mecanismes, ecrans de saisie, avec le

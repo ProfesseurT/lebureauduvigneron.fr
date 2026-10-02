@@ -50,7 +50,7 @@
   var DELAI_ANNULER = 6000;
 
   var S = { types: [], etapes: [], pistes: {}, affaires: [], charge: false, erreur: false,
-            filtre: '', ouverte: null, nouvelle: false, attente: null, reglagesOuverts: false,
+            filtre: '', ouverte: null, nouvelle: false, attente: null,
             vue: lireVue(), choix: null, trouves: [], devisDe: {}, closesDevis: {}, focusDevis: null };
 
   /* LA DISPOSITION, LISTE OU KANBAN, 28/09/2026 (lot 39). Elle se retient sur CET
@@ -352,6 +352,7 @@
 
   /* ---------------- LE DESSIN ---------------- */
   function rendre() {
+    peindreReglages();
     var c = el('affCorps');
     if (!c) return;
     if (!S.charge) {
@@ -375,7 +376,7 @@
     }
     c.innerHTML = htmlPerime() + htmlTete() + htmlEnDevis()
       + (S.vue === 'kanban' ? htmlKanban() : htmlRelancer() + htmlListe())
-      + htmlCloses() + htmlReglages();
+      + htmlCloses();
     var nf = garde && c.querySelector(garde);
     if (nf) { try { nf.focus({ preventScroll: true }); } catch (x) {} }
     peindrePanneau();
@@ -614,7 +615,7 @@
 
   function htmlDemarrage() {
     return '<div class="aff-depart"><p class="aff-depart__t">Par quoi tu commences ?</p>'
-      + '<p class="aff-aide">Coche les affaires que tu mènes. Tu pourras renommer chaque étape, en ajouter ou en retirer ensuite.</p>'
+      + '<p class="aff-aide">Coche les affaires que tu mènes. Tu pourras renommer chaque étape, en ajouter ou en retirer ensuite, dans Mes réglages, onglet « Mes affaires ».</p>'
       + '<ul class="aff-depart__liste">'
       + MODELES.map(function (m) {
         return '<li class="aff-depart__li"><label class="aff-depart__l"><input type="checkbox" name="affModele" value="' + m.cle + '"'
@@ -1633,11 +1634,19 @@
     var gHT = 0, gN = 0;
     c.forEach(function (a) { var d = a.issue === 'gagnee' && devisDe(a); if (d && d.statut === 'accepte') { gHT += Number(d.total_ht_c) || 0; gN++; } });
     var deplie = Object.keys(S.closesDevis).some(function (k) { return S.closesDevis[k]; });
-    return '<details class="aff-plus aff-closes"' + (deplie ? ' open' : '') + '><summary>Voir et rouvrir les affaires closes depuis un an ('
-      /* X4 : « 1 gagnée sur 2, 527 € » se lisait « 2,527 € ». Un point median separe les deux
-         nombres, et l'espace qui le precede est insecable : il ne part jamais seul a la ligne. */
-      + g + '\u00a0gagnée' + (g > 1 ? 's' : '') + ' sur ' + c.length
-      + (gN ? '\u00a0· ' + eurosHT(gHT) + ' en devis acceptés' : '') + ')</summary><ul class="aff-liste">'
+    /* LE BANDEAU DES AFFAIRES CLOSES, 02/10/2026. Ted : « il faut ameliorer le bouton des
+       anciennes affaires ». C'etait une ligne de lien soulignee, lue comme une note de bas
+       de page. C'est desormais un bandeau qui se voit comme un geste : un titre, le bilan
+       en clair (gagnees, montant accepte), et a droite ce que fait le clic, « Voir » ou
+       « Masquer » selon l'etat. La liste se deplie dessous, sans quitter la piece.
+       X4 tient toujours : « 1 gagnée sur 2 » et le montant sont separes par un point
+       median, l'espace qui le precede est insecable. */
+    return '<details class="aff-plus aff-closes"' + (deplie ? ' open' : '') + '><summary class="aff-closes__tete">'
+      + '<span class="aff-closes__texte"><span class="aff-closes__t">Affaires closes, 12 derniers mois</span>'
+      + '<span class="aff-closes__bilan">' + g + '\u00a0gagnée' + (g > 1 ? 's' : '') + ' sur ' + c.length
+      + (gN ? '\u00a0· ' + eurosHT(gHT) + ' en devis acceptés' : '') + '</span></span>'
+      + '<span class="aff-closes__geste"><span class="aff-closes__voir">Voir et rouvrir</span><span class="aff-closes__masquer">Masquer</span></span>'
+      + '</summary><ul class="aff-liste">'
       + c.map(function (a) {
         var m = MOTIFS.filter(function (x) { return x[0] === a.motif; })[0];
         return '<li class="aff-ligne" data-affaire="' + a.affaire_id + '"><div class="aff-ligne__corps">'
@@ -1655,37 +1664,154 @@
           + '</ul></li>';
       }).join('') + '</ul></details>';
   }
-  function htmlReglages() {
+  /* ================= LES TYPES D'AFFAIRES, DANS « MES REGLAGES » (02/10/2026) =================
+     Demande de Ted : « les reglages des affaires arrivent maintenant dans reglages ». Le repli
+     « Regler mes types d'affaires » quitte le bas de Mon commerce et devient l'onglet
+     « Mes affaires » du panneau unique (bdv-reglages.js). Le bloc est BRANCHE par
+     bdv-affaires-jour.js, qui part avec la page : ce fichier-ci n'arrive qu'au premier
+     clic, il est charge a la demande quand l'onglet s'ouvre.
+     PAS DE <form> ICI : le panneau EST un formulaire, et un formulaire dans un formulaire
+     est jete par le navigateur. Chaque type est un bloc `.aff-type[data-type]` ; son
+     enregistrement passe par le « Enregistrer » du pied du panneau (et donc par Entree),
+     comme tout le reste des reglages. Retirer une etape, ne plus utiliser un type, ajouter
+     un modele restent des gestes immediats, comme l'agenda.
+     UN REPEINT N'EFFACE PAS CE QUI EST TAPE (M3) : les champs modifies sont repris. */
+  var HOTE_REG = null;
+  function champsDe(box) {
+    var o = {};
+    [].forEach.call(box.querySelectorAll('[name]'), function (n) { o[n.name] = n; });
+    return o;
+  }
+  function boitesReg() { return HOTE_REG ? [].slice.call(HOTE_REG.querySelectorAll('.aff-type[data-type]')) : []; }
+  function typeBouge(box) {
+    var t = typeDe(box.getAttribute('data-type'));
+    if (!t) return false;
+    var E = champsDe(box);
+    if (E.nom && E.nom.value.trim() !== t.nom) return true;
+    if (E.sommeil && String(parseInt(E.sommeil.value, 10)) !== String(t.sommeil_jours)) return true;
+    if (E.ajout && E.ajout.value.trim()) return true;
+    return etapesDe(t.type_id).some(function (e) {
+      var n = E['etape_' + e.etape_id]; var v = n ? n.value.trim() : '';
+      return !!v && v !== e.nom;
+    });
+  }
+  function direR(html, souci) {
+    var n = HOTE_REG && HOTE_REG.isConnected && el('affRegAvis');
+    if (!n) { dire(html, souci); return; }
+    n.innerHTML = html || '';
+    n.hidden = !html;
+    n.classList.toggle('aff-avis--souci', !!souci);
+  }
+  function htmlTypes() {
+    if (!S.charge) {
+      return S.erreur
+        ? '<p class="bdvr-aide">Tes types d’affaires n’ont pas pu être lus. <button type="button" class="bdvr-btn bdvr-btn--creux" data-aff="relireReg">Réessayer</button></p>'
+        : '<p class="bdvr-aide">Lecture de tes types d’affaires…</p>';
+    }
     var presents = S.types.map(function (t) { return norm(t.nom); });
     var manquants = MODELES.filter(function (m) { return presents.indexOf(norm(m.nom)) < 0; });
-    return '<details class="aff-plus aff-reglages"' + (S.reglagesOuverts ? ' open' : '') + '><summary>Régler mes types d’affaires</summary><div class="aff-plus__corps">'
+    return '<p class="bdvr-aide">Chaque type d’affaire a ses étapes, dans l’ordre où tu les mènes. Renomme, ajoute, puis « Enregistrer » en bas.</p>'
+      + (S.types.length ? '' : '<p class="bdvr-aide">Tu n’as encore aucun type d’affaire. Choisis un modèle ci-dessous pour commencer.</p>')
       + S.types.map(function (t) {
         var ets = etapesDe(t.type_id);
-        return '<form class="aff-type" data-type="' + t.type_id + '" novalidate>'
-          + '<div class="aff-duo"><label class="aff-champ"><span>Nom</span><input name="nom" type="text" maxlength="60" value="' + esc(t.nom) + '"></label>'
-          + '<label class="aff-champ"><span>Une affaire s’endort après (jours)</span><input name="sommeil" type="number" min="1" max="365" value="' + t.sommeil_jours + '"></label></div>'
+        return '<div class="aff-type" data-type="' + t.type_id + '">'
+          + '<div class="aff-duo"><label class="aff-champ"><span>Nom</span><input class="bdvr-i" name="nom" type="text" maxlength="60" value="' + esc(t.nom) + '"></label>'
+          + '<label class="aff-champ"><span>Une affaire s’endort après (jours)</span><input class="bdvr-i" name="sommeil" type="number" min="1" max="365" value="' + t.sommeil_jours + '"></label></div>'
           + '<p class="aff-type__t">' + (t.archive ? 'Ne sert plus. ' : '') + 'Les étapes, dans l’ordre (' + ets.length + ' sur ' + MAX_ETAPES + ')</p>'
           + '<ol class="aff-type__etapes">' + ets.map(function (e, i) {
             var n = S.affaires.filter(function (a) { return a.etape_id === e.etape_id; }).length;
-            return '<li class="aff-type__etape"><input name="etape_' + e.etape_id + '" type="text" maxlength="60" value="' + esc(e.nom) + '" aria-label="Étape ' + (i + 1) + '">'
-              + '<button type="button" class="btn" data-aff="retirerEtape" data-etape="' + e.etape_id + '"'
+            return '<li class="aff-type__etape"><input class="bdvr-i" name="etape_' + e.etape_id + '" type="text" maxlength="60" value="' + esc(e.nom) + '" aria-label="Étape ' + (i + 1) + '">'
+              + '<button type="button" class="bdvr-btn bdvr-btn--creux" data-aff="retirerEtape" data-etape="' + e.etape_id + '"'
               + (ets.length <= 1 ? ' disabled' : '') + '>Retirer' + (n ? ' (' + pluriel(n, 'affaire', 'affaires') + ')' : '') + '</button></li>';
           }).join('') + '</ol>'
-          + (ets.length < MAX_ETAPES ? '<label class="aff-champ"><span>Ajouter une étape à la fin</span><input name="ajout" type="text" maxlength="60"></label>' : '')
-          + '<div class="aff-form__pied"><button type="submit" class="btn">Enregistrer ce type</button>'
-          + '<button type="button" class="btn" data-aff="archiver">' + (t.archive ? 'Le remettre en service' : 'Ne plus l’utiliser') + '</button></div>'
-          + '</form>';
+          + (ets.length < MAX_ETAPES ? '<label class="aff-champ"><span>Ajouter une étape à la fin</span><input class="bdvr-i" name="ajout" type="text" maxlength="60"></label>' : '')
+          + '<div class="aff-form__pied"><button type="button" class="bdvr-btn bdvr-btn--creux" data-aff="archiver">' + (t.archive ? 'Le remettre en service' : 'Ne plus l’utiliser') + '</button></div>'
+          + '</div>';
       }).join('')
       + (manquants.length ? '<p class="aff-type__t">Ajouter un modèle</p><div class="aff-chips">'
-        + manquants.map(function (m) { return '<button type="button" class="chip" data-aff="ajoutModele" data-modele="' + m.cle + '">' + esc(m.nom) + '</button>'; }).join('')
-        + '</div>' : '')
-      + '</div></details>';
+        + manquants.map(function (m) { return '<button type="button" class="bdvr-btn bdvr-btn--creux" data-aff="ajoutModele" data-modele="' + m.cle + '">' + esc(m.nom) + '</button>'; }).join('')
+        + '</div>' : '');
+  }
+  function peindreReglages() {
+    var h = HOTE_REG;
+    if (!h || !h.isConnected) return;
+    var corps = el('affRegCorps');
+    if (!corps) return;
+    var garde = {};
+    boitesReg().forEach(function (b) {
+      [].forEach.call(b.querySelectorAll('input[name]'), function (n) {
+        if (n.value !== n.defaultValue) garde[b.getAttribute('data-type') + '|' + n.name] = n.value;
+      });
+    });
+    var act = document.activeElement, vise = null;
+    if (act && corps.contains(act)) {
+      var bx = act.closest('[data-type]');
+      var pre = bx ? '[data-type="' + bx.getAttribute('data-type') + '"] ' : '';
+      if (act.name) vise = pre + '[name="' + act.name + '"]';
+      else if (act.getAttribute('data-aff')) {
+        vise = pre + '[data-aff="' + act.getAttribute('data-aff') + '"]'
+          + (act.hasAttribute('data-modele') ? '[data-modele="' + act.getAttribute('data-modele') + '"]' : '');
+      }
+      if (!vise && bx) vise = pre + 'input';
+    }
+    corps.innerHTML = htmlTypes();
+    boitesReg().forEach(function (b) {
+      [].forEach.call(b.querySelectorAll('input[name]'), function (n) {
+        var k = b.getAttribute('data-type') + '|' + n.name;
+        if (k in garde) n.value = garde[k];
+      });
+    });
+    if (vise || (act && !act.isConnected)) {
+      var nf = (vise && corps.querySelector(vise + ':not([disabled])')) || corps.querySelector('input, button:not([disabled])');
+      if (nf) { try { nf.focus({ preventScroll: true }); } catch (x) {} }
+    }
+  }
+  /* L'onglet s'ouvre : on pose le cadre une fois, puis on relit la base, sauf si le
+     vigneron a deja tape quelque chose qu'il n'a pas enregistre. */
+  async function ouvrirReglages(cible) {
+    if (!cible) return;
+    if (HOTE_REG !== cible || !el('affRegCorps')) {
+      HOTE_REG = cible;
+      cible.innerHTML = '<p class="aff-avis" id="affRegAvis" role="status" hidden></p><div class="aff-reglages" id="affRegCorps"></div>';
+      brancherReglages(cible);
+    }
+    if (boitesReg().some(typeBouge)) return;
+    peindreReglages();
+    if (!pret()) return;
+    await charger();
+    peindreReglages();
+  }
+  function brancherReglages(c) {
+    if (c.getAttribute('data-branche-aff')) return;
+    c.setAttribute('data-branche-aff', '1');
+    c.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-aff]');
+      if (!b || !c.contains(b)) return;
+      var quoi = b.getAttribute('data-aff');
+      if (quoi === 'relireReg') { S.erreur = false; peindreReglages(); charger().then(function () { rendre(); }); return; }
+      if (quoi === 'retirerEtape') { retirerEtape(b.getAttribute('data-etape')); return; }
+      if (quoi === 'archiver') { var bx = b.closest('[data-type]'); if (bx) archiver(bx.getAttribute('data-type')); return; }
+      if (quoi === 'ajoutModele') { creerModeles([b.getAttribute('data-modele')], true); return; }
+    });
+  }
+  /* Le « Enregistrer » du pied du panneau : seuls les types qui ont bouge partent. Un
+     echec se dit dans l'onglet, et la promesse est rejetee : le panneau refuse alors
+     d'annoncer « C'est enregistre ». */
+  async function enregistrerReglages() {
+    var bx = boitesReg().filter(typeBouge);
+    if (!bx.length) return;
+    var ok = true;
+    for (var i = 0; i < bx.length; i++) { if (!(await enregistrerType(bx[i]))) ok = false; }
+    if (ok) direR(bx.length > 1 ? 'Types d’affaires enregistrés.' : 'Type d’affaire enregistré.');
+    await charger(); rendre();
+    if (!ok) throw new Error('types d’affaires');
   }
 
   /* ---------------- LES GESTES ---------------- */
-  async function creerModeles(cles) {
+  async function creerModeles(cles, ici) {
+    var dit = ici ? direR : dire;
     var mods = MODELES.filter(function (m) { return cles.indexOf(m.cle) >= 0; });
-    if (!mods.length) { dire('Coche au moins un type d’affaire.', true); return; }
+    if (!mods.length) { dit('Coche au moins un type d’affaire.', true); return; }
     var base = S.types.length;
     var types = mods.map(function (m, i) {
       return { type_id: uuid(), nom: m.nom, famille: m.famille, sommeil_jours: m.sommeil, ordre: base + i };
@@ -1699,8 +1825,8 @@
     try {
       await creer('affaire_types', types);
       await creer('affaire_etapes', etapes);
-      dire('');
-    } catch (e) { dire(raison(e), true); }
+      dit(ici ? 'Modèle ajouté : ' + esc(mods.map(function (m) { return m.nom; }).join(', ')) + '.' : '');
+    } catch (e) { dit(raison(e), true); }
     await charger(); rendre();
   }
 
@@ -1725,7 +1851,7 @@
     var typeId = el('affType') && el('affType').value;
     var rappel = el('affRappel').value;
     function v(id) { var n = el(id); var x = n ? n.value.trim() : ''; return x || null; }
-    if (!typeId) { dire('Crée d’abord un type d’affaire, dans « Régler mes types d’affaires ».', true); return; }
+    if (!typeId) { dire('Crée d’abord un type d’affaire, dans Mes réglages, onglet « Mes affaires ».', true); return; }
     if (!rappel) { dire('Choisis la date à laquelle tu le rappelles.', true); el('affRappel').focus(); return; }
     var premiere = etapesDe(typeId)[0];
     if (!premiere) { dire('Ce type d’affaire n’a aucune étape.', true); return; }
@@ -2032,31 +2158,34 @@
     await charger(); rendre();
   }
 
-  async function enregistrerType(form) {
-    var tid = form.getAttribute('data-type');
+  /* Rend true si tout est parti. Ne relit pas : l'appelant relit une fois pour tous. */
+  async function enregistrerType(box) {
+    var tid = box.getAttribute('data-type');
     var t = typeDe(tid);
-    if (!t) return;
-    var nom = (form.elements.nom.value || '').trim();
-    var sommeil = parseInt(form.elements.sommeil.value, 10);
-    if (!nom) { dire('Un type d’affaire a besoin d’un nom.', true); return; }
-    if (!(sommeil >= 1 && sommeil <= 365)) { dire('Le délai va de 1 à 365 jours.', true); return; }
+    if (!t) return true;
+    var E = champsDe(box);
+    var nom = (E.nom.value || '').trim();
+    var sommeil = parseInt(E.sommeil.value, 10);
+    if (!nom) { direR('Un type d’affaire a besoin d’un nom.', true); return false; }
+    if (!(sommeil >= 1 && sommeil <= 365)) { direR('« ' + esc(nom) + ' » : le délai va de 1 à 365 jours.', true); return false; }
     try {
-      await modifier('affaire_types', 'type_id', tid, { nom: nom, sommeil_jours: sommeil });
+      if (nom !== t.nom || sommeil !== t.sommeil_jours) await modifier('affaire_types', 'type_id', tid, { nom: nom, sommeil_jours: sommeil });
       var ets = etapesDe(tid);
       for (var i = 0; i < ets.length; i++) {
-        var n = form.elements['etape_' + ets[i].etape_id];
+        var n = E['etape_' + ets[i].etape_id];
         var v = n ? n.value.trim() : '';
         if (v && v !== ets[i].nom) await modifier('affaire_etapes', 'etape_id', ets[i].etape_id, { nom: v });
       }
-      var ajout = form.elements.ajout ? form.elements.ajout.value.trim() : '';
+      var ajout = E.ajout ? E.ajout.value.trim() : '';
       if (ajout) {
         var dernier = ets.length ? ets[ets.length - 1].ordre : 0;
         await creer('affaire_etapes', [{ etape_id: uuid(), type_id: tid, nom: ajout, ordre: dernier + 1 }]);
+        E.ajout.value = '';
       }
-      dire('Type d’affaire enregistré.');
-    } catch (e) { dire(raison(e), true); }
-    S.reglagesOuverts = true;
-    await charger(); rendre();
+      /* Ce qui est parti n'est plus « tape et pas enregistre » : le repeint ne le reprend pas. */
+      [].forEach.call(box.querySelectorAll('input[name]'), function (x) { x.defaultValue = x.value; });
+      return true;
+    } catch (e) { direR(raison(e), true); return false; }
   }
 
   /* RETIRER UNE ETAPE QUI PORTE DES AFFAIRES : elles vont a l'etape d'avant, ou a
@@ -2075,10 +2204,9 @@
         await modifier('affaires', 'affaire_id', dedans[k].affaire_id, { etape_id: cible.etape_id });
       }
       await supprimer('affaire_etapes', 'etape_id', etapeId);
-      dire('Étape « ' + esc(e.nom) + ' » retirée' + (dedans.length
+      direR('Étape « ' + esc(e.nom) + ' » retirée' + (dedans.length
         ? ' : ' + pluriel(dedans.length, 'affaire déplacée', 'affaires déplacées') + ' vers « ' + esc(cible.nom) + ' ».' : '.'));
-    } catch (x) { dire(raison(x), true); }
-    S.reglagesOuverts = true;
+    } catch (x) { direR(raison(x), true); }
     await charger(); rendre();
   }
 
@@ -2088,9 +2216,8 @@
     try {
       await modifier('affaire_types', 'type_id', tid, { archive: !t.archive });
       if (!t.archive && S.filtre === tid) S.filtre = '';
-      dire(t.archive ? 'Remis en service.' : 'Ce type n’apparaît plus dans tes choix. Ses affaires restent.');
-    } catch (e) { dire(raison(e), true); }
-    S.reglagesOuverts = true;
+      direR(t.archive ? 'Remis en service.' : 'Ce type n’apparaît plus dans tes choix. Ses affaires restent.');
+    } catch (e) { direR(raison(e), true); }
     await charger(); rendre();
   }
 
@@ -2231,9 +2358,6 @@
       if (quoi === 'rouvrir' && a) { if (!oppose(a)) conclure(a, 'en_cours'); return; }
       if (quoi === 'opposition' && a) { opposition(a); return; }
       if (quoi === 'classerOppose' && a) { conclure(a, 'perdue', 'autre'); return; }
-      if (quoi === 'retirerEtape') { retirerEtape(b.getAttribute('data-etape')); return; }
-      if (quoi === 'archiver') { archiver(b.closest('form').getAttribute('data-type')); return; }
-      if (quoi === 'ajoutModele') { S.reglagesOuverts = true; creerModeles([b.getAttribute('data-modele')]); return; }
     });
     c.addEventListener('submit', function (ev) {
       ev.preventDefault();
@@ -2245,7 +2369,6 @@
         if (f.querySelector('.aff-form__pied--retrait')) return;
         var a = affaireDe(f); if (a) enregistrer(a); return;
       }
-      if (f.classList.contains('aff-type')) { enregistrerType(f); return; }
     });
     /* LE DOUBLON SE DIT A LA FRAPPE : une piste qui porte deja ce nom. On ne
        bloque rien, les homonymes existent ; on le signale. */
@@ -2435,6 +2558,7 @@
     if (n) { try { n.focus(); } catch (e) {} }
   });
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, _S: S, _chargerDevis: chargerDevis, MODELES: MODELES, _nomsProches: nomsProches, _nomPropose: nomPropose, _htmlCloses: htmlCloses, _deplacer: function (id, e) {
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat,
+    reglages: { ouvrir: ouvrirReglages, enregistrer: enregistrerReglages }, _S: S, _chargerDevis: chargerDevis, MODELES: MODELES, _nomsProches: nomsProches, _nomPropose: nomPropose, _htmlCloses: htmlCloses, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();

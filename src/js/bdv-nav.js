@@ -1436,5 +1436,6 @@
                     marquerActif: marquerActif, ventesEnVue: ventesEnVue,
                     ongletCourant: function () { return ONGLET_COURANT; },
                     ouvrirReglages: ouvrirReglages,
-                    chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe };
+                    chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe,
+                    chargerAffaires: chargerAffaires };
 })();

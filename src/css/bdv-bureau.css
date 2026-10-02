@@ -5563,10 +5563,86 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
   color:var(--bdv-encre-2);
 }
 .bdv-coque .aff-plus[open] > summary::before{ content:"\25BE"; content:"\25BE" / ""; }
-/* V13 : les deux replis du bas (affaires closes, reglages) menent ailleurs : ils se
-   dessinent en liens. */
-.bdv-coque .aff-closes > summary,
-.bdv-coque .aff-reglages > summary{ color:var(--bdv-accent); text-decoration:underline; }
+/* LE BANDEAU DES AFFAIRES CLOSES, 02/10/2026 (remplace V13). Ce n'est plus un lien
+   souligne : un bandeau pleine largeur, le titre et le bilan a gauche, le geste a droite
+   (« Voir et rouvrir », « Masquer » une fois ouvert) avec son chevron qui tourne. Le
+   triangle generique des replis est retire ici : le chevron du geste le remplace.
+   Les types d'affaires, eux, vivent dans Mes reglages (onglet « Mes affaires »). */
+.bdv-coque .aff-closes{ margin-top:var(--bdv-e-4); }
+.bdv-coque .aff-closes > summary.aff-closes__tete{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:var(--bdv-e-2) var(--bdv-e-4);
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-1);
+  text-decoration:none;
+  transition:border-color var(--bdv-d-court) var(--bdv-courbe), background var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .aff-closes > summary.aff-closes__tete::before{ content:none; display:none; }
+.bdv-coque .aff-closes > summary.aff-closes__tete:hover{ border-color:var(--bdv-trait-fort); background:var(--bdv-survol); }
+.bdv-coque .aff-closes > summary.aff-closes__tete:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-closes[open] > summary.aff-closes__tete{ border-color:var(--bdv-accent-trait); margin-bottom:var(--bdv-e-3); }
+.bdv-coque .aff-closes__texte{ display:flex; flex-direction:column; gap:var(--bdv-e-1); min-width:0; }
+.bdv-coque .aff-closes__t{
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .aff-closes__bilan{
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .aff-closes__geste{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  border:1px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  color:var(--bdv-accent);
+}
+.bdv-coque .aff-closes__geste::after{
+  content:"\25BE";
+  content:"\25BE" / "";
+  transition:transform var(--bdv-d-court) var(--bdv-courbe);
+}
+.bdv-coque .aff-closes[open] .aff-closes__geste::after{ transform:rotate(180deg); }
+.bdv-coque .aff-closes__masquer{ display:none; }
+.bdv-coque .aff-closes[open] .aff-closes__voir{ display:none; }
+.bdv-coque .aff-closes[open] .aff-closes__masquer{ display:inline; }
+@media (prefers-reduced-motion: reduce){
+  .bdv-coque .aff-closes__geste::after,
+  .bdv-coque .aff-closes > summary.aff-closes__tete{ transition:none; }
+}
+/* Dans le panneau des reglages, les types d'affaires : deux colonnes des qu'il y a la place. */
+.bdv-coque .bdvr-panneau .aff-reglages{ display:grid; gap:var(--bdv-e-3); }
+.bdv-coque .bdvr-panneau .aff-type{ margin-bottom:0; }
+/* Les etapes en deux colonnes alignees : le champ prend la place, le bouton la sienne,
+   et tous les champs ont la meme largeur quel que soit le libelle du bouton. */
+.bdv-coque .bdvr-panneau .aff-type__etapes{ grid-template-columns:minmax(0,1fr) max-content; align-items:center; }
+.bdv-coque .bdvr-panneau .aff-type__etape{ display:contents; }
+.bdv-coque .bdvr-panneau .aff-type__etape .bdvr-btn{ white-space:nowrap; }
+.bdv-coque .bdvr-panneau .aff-chips{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); }
+/* Sur telephone le champ garde toute la largeur : le bouton passe dessous, a droite. */
+@media (max-width: 40rem){
+  .bdv-coque .bdvr-panneau .aff-type__etapes{ grid-template-columns:minmax(0,1fr); row-gap:var(--bdv-e-1); }
+  .bdv-coque .bdvr-panneau .aff-type__etape .bdvr-btn{ justify-self:end; margin-bottom:var(--bdv-e-2); }
+}
+@media (min-width: 40rem){
+  .bdv-coque .bdvr-panneau .aff-duo{ grid-template-columns:1fr 1fr; }
+}
 
 /* S13 : le cadre d'etat va jusqu'au bord des champs. L'en-tete garde sa reserve a droite
    pour la croix ; le cadre, pose plus bas, la reprend. */

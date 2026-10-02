@@ -7602,6 +7602,24 @@ ligne du courrier, pros seulement. Le lien part de la messagerie du vigneron : a
 - Ouvert : la copie imprimee depuis /signer/ ne porte pas « signé » ; les particuliers ; le panneau
   du devis cote bureau n'a pas ete photographie (la page /signer/ l'a ete, 1440 et 390).
 
+### LES TYPES D'AFFAIRES VIVENT DANS MES REGLAGES (02/10/2026)
+
+Decision de Ted. Plus de repli « Regler mes types d'affaires » en bas de Mon commerce : c'est
+l'onglet « Mes affaires » du panneau unique (`bdvrBlocAffaires`, hote `affaires`).
+- QUI BRANCHE QUOI. `bdv-affaires-jour.js` (charge avec la page) branche le bloc aupres de
+  `BdvReglages` ; a l'ouverture du panneau il charge `bdv-affaires.js` par
+  `BdvNav.chargerAffaires()` et confie tout a `BdvAffaires.reglages.ouvrir(hote)`. La piece
+  reste la seule a ecrire.
+- PAS DE <form> DANS L'ONGLET. Le panneau est deja un formulaire : un formulaire imbrique est
+  jete par le navigateur. Un type est un `div.aff-type[data-type]`.
+- ENREGISTRER = LE PIED DU PANNEAU. `BdvAffaires.reglages.enregistrer()` n'envoie que les types
+  qui ont bouge, et REJETTE sa promesse en cas d'echec : le panneau n'annonce pas alors
+  « C'est enregistre ». Les messages de l'onglet passent par `direR` (`#affRegAvis`).
+- UN REPEINT GARDE CE QUI EST TAPE : les champs modifies et non enregistres sont repris.
+- Le bandeau des affaires closes (`summary.aff-closes__tete`) : titre, bilan `.aff-closes__bilan`
+  (regle X4 inchangee), geste « Voir et rouvrir » / « Masquer » selon `[open]`.
+Bancs : `banc:affaires`, section « Mes reglages, onglet Mes affaires ».
+
 ### LOT 56 ET L'AUDIT DES AFFAIRES (01 et 02/10/2026)
 
 Demande de Ted : auditer tout ce qui a ete construit depuis les affaires (lots 34 a 55), liens,

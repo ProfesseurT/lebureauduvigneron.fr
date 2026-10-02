@@ -487,6 +487,16 @@
         </div>
       </fieldset>
 
+      <!-- LES TYPES D'AFFAIRES, 02/10/2026. Ils vivaient en bas de Mon commerce, dans un
+           repli « Regler mes types d'affaires » ; Ted les a voulus ici. Rempli par
+           bdv-affaires.js (charge a la demande), branche par bdv-affaires-jour.js. -->
+      <fieldset class="bdvr-bloc" id="bdvrBlocAffaires" data-onglet="Mes affaires">
+        <legend class="bdvr-legende">Mes affaires</legend>
+        <div class="bdvr-hote" id="bdvrHoteAffaires">
+          <p class="bdvr-aide">Tes types d'affaires se règlent depuis ton bureau.</p>
+        </div>
+      </fieldset>
+
       <fieldset class="bdvr-bloc" id="bdvrBlocVentes" data-onglet="Tes ventes">
         <legend class="bdvr-legende">Tes ventes</legend>
         <div class="bdvr-grille">
@@ -653,7 +663,8 @@
     'classement':   'bdvrHoteClassement',
     'base':         'bdvrHoteBase',
     'base-actions': 'bdvrBaseActions',
-    'domaine':      'bdvrHoteDomaine'
+    'domaine':      'bdvrHoteDomaine',
+    'affaires':     'bdvrHoteAffaires'
   };
   function monterBloc(b){
     const cible = el(HOTES[b.hote] || 'bdvrHoteBase');
@@ -1183,7 +1194,7 @@
      l'onglet avant, c'est se faire corriger sans le voir. `montrerOnglet()` retombe de
      toute facon sur le premier onglet disponible si celui-la est ecarte. */
   const ONGLETS_NOMMES = { classement: 'bdvrBlocClassement', base: 'bdvrBlocBase',
-                           ventes: 'bdvrBlocVentes' };
+                           ventes: 'bdvrBlocVentes', affaires: 'bdvrBlocAffaires' };
   function viserOnglet(onglet){
     if(!onglet) return;
     const id = ONGLETS_NOMMES[onglet] || onglet;

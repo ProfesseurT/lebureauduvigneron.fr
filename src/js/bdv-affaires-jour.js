@@ -527,6 +527,35 @@
   document.addEventListener('bdv:taches', peindreBilan);
   document.addEventListener('bdv:clients', peindreBilan);
 
+  /* L'ONGLET « MES AFFAIRES » DE MES REGLAGES, 02/10/2026. Les types d'affaires s'y
+     reglent. Ce module part avec la page, la piece non : il BRANCHE donc le bloc, et
+     confie tout le reste a bdv-affaires.js, charge a la premiere ouverture du panneau.
+     Il n'ecrit rien lui-meme : la regle « la piece reste la seule a ecrire » tient. */
+  var HOTE_AFF = null;
+  function blocReglages() {
+    if (!window.BdvReglages || !BdvReglages.brancher) return false;
+    BdvReglages.brancher({ blocs: [{
+      hote: 'affaires',
+      monter: function (c) { HOTE_AFF = c; },
+      rafraichir: function () {
+        if (!HOTE_AFF) return;
+        var v = window.BdvAffaires ? Promise.resolve()
+          : (window.BdvNav && BdvNav.chargerAffaires ? BdvNav.chargerAffaires() : Promise.reject(new Error('pas de chargeur')));
+        v.then(function () {
+          if (window.BdvAffaires && BdvAffaires.reglages) return BdvAffaires.reglages.ouvrir(HOTE_AFF);
+          throw new Error('piece absente');
+        }).catch(function () {
+          HOTE_AFF.innerHTML = '<p class="bdvr-aide">Tes types d’affaires n’ont pas pu s’ouvrir. Ferme tes réglages et rouvre-les.</p>';
+        });
+      },
+      enregistrer: function () {
+        return window.BdvAffaires && BdvAffaires.reglages ? BdvAffaires.reglages.enregistrer() : undefined;
+      }
+    }] });
+    return true;
+  }
+  if (!blocReglages()) document.addEventListener('DOMContentLoaded', blocReglages);
+
   window.BdvAffairesJour = { charger: charger, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
                              datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE,
                              etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan,
