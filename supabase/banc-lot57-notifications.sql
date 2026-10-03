@@ -172,10 +172,9 @@ reset role;
 select banc.ok('gagnee par un collegue : sorte gagnee, client = nom de la piste, par = Camila',
   (select g->>'sorte' = 'gagnee' and g->>'client' = 'Cave du Port' and g->>'par' = 'Camila'
           and g->>'type' = 'Caviste' and g->>'bureau_nom' = 'Domaine BA' from t57));
-select banc.ok('destinataires : tout le bureau SAUF celui qui a clos',
-  (select jsonb_array_length(g->'destinataires') = 2
-          and not (g->'destinataires') @> '[{"email":"camila@ba.fr"}]'
-          and (g->'destinataires') @> '[{"email":"anne@ba.fr"},{"email":"bruno@ba.fr"}]' from t57));
+select banc.ok('destinataires : TOUT le bureau, celui qui a clos compris (sa confirmation)',
+  (select jsonb_array_length(g->'destinataires') = 3
+          and (g->'destinataires') @> '[{"email":"camila@ba.fr"},{"email":"anne@ba.fr"},{"email":"bruno@ba.fr"}]' from t57));
 select banc.ok('perdue : sorte perdue, motif rendu, par = la partie avant @ si pas de prenom',
   (select p->>'sorte' = 'perdue' and p->>'motif' = 'prix' and p->>'par' = 'bruno' from t57));
 select banc.ok('affaire client : le nom vient de client_nom',

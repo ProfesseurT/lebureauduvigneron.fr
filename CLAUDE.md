@@ -7833,7 +7833,8 @@ ou PERDUE PAR UN COLLEGUE. Ce que j'ai fait moi-meme n'est jamais une nouvelle.
 - **Le mail** : declencheur `affaires_notifier` (APRES, `update of issue`) -> pg_net -> fonction
   `supabase/functions/notif-commerce` (verify_jwt = false, secret `NOTIF_CLE` dans l'en-tete
   `x-notif-cle`, LE MEME que dans `notif_reglage`). La fonction ne decide de rien
-  (`notif_detail()` dit sorte, texte et destinataires = le bureau SAUF l'auteur), POSE la ligne
+  (`notif_detail()` dit sorte, texte et destinataires = TOUT le bureau, auteur compris : c'est sa
+  confirmation, decision de Ted du 03/10/2026 apres le premier essai), POSE la ligne
   de `notif_envois` avant d'envoyer, un mail par adresse, et ne rejoue jamais un echec. Tout
   l'appel pg_net est dans un bloc qui avale l'erreur : un mail rate ne bloque jamais une
   fermeture. Les motifs sont la meme liste a QUATRE endroits (piece, contrainte, nouvelles,

@@ -4,7 +4,8 @@
 -- Demande de Ted : quand un devis est SIGNE EN LIGNE par un client, ou qu'une affaire
 -- est GAGNEE ou PERDUE PAR UN COLLEGUE, un point sur « Mon commerce », un point sur
 -- « Mon bureau », une pastille dans l'en-tete, et un MAIL tout de suite a tout le bureau
--- (sauf a celui qui a fait le geste). Le bandeau vert des devis signes part.
+-- (y compris a celui qui a fait le geste : c'est sa confirmation, decision de Ted du
+-- 03/10/2026 apres le premier essai). Le bandeau vert des devis signes part.
 --
 -- A COLLER PAR TED DANS SUPABASE, APRES LE LOT 56. Rejouable.
 -- PUIS, une seule fois, remplir le reglage de l'envoi (section 4, bloc a completer).
@@ -87,7 +88,8 @@ revoke all on public.notif_reglage from public, anon, authenticated;
 -- SIGNEE EN LIGNE = gagnee SANS auteur (`close_par` vide : la signature passe par la cle
 -- de service) ET un devis accepte de l'affaire porte une signature. Pas de fenetre de
 -- temps : c'est l'absence d'auteur qui dit « le client l'a fait », pas une horloge.
--- Les destinataires : les membres du bureau qui ont une adresse, SAUF celui qui a clos.
+-- Les destinataires : TOUS les membres du bureau qui ont une adresse, celui qui a clos
+-- compris (le mail lui sert de confirmation, decision de Ted du 03/10/2026).
 -- Une affaire rouverte depuis rend null : il n'y a plus rien a annoncer.
 create or replace function public.notif_detail(p_bureau uuid, p_affaire uuid)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
@@ -136,8 +138,7 @@ begin
            'prenom', coalesce(nullif(btrim(pr.prenom), ''), split_part(pr.email, '@', 1))) order by pr.email), '[]'::jsonb)
     into v_dest
     from public.membres m join public.profils pr on pr.id = m.personne
-   where m.bureau = p_bureau and pr.email is not null and pr.email like '%@%'
-     and (a.close_par is null or m.personne <> a.close_par);
+   where m.bureau = p_bureau and pr.email is not null and pr.email like '%@%';
 
   return jsonb_build_object(
     'cle', p_affaire::text || ':' || to_char(a.close_le at time zone 'UTC', 'YYYYMMDDHH24MISSUS'),

@@ -33,6 +33,9 @@ comme vu » en vrai bouton, numero de devis jamais coupe, seconde ligne = type o
 ambres a la meme place partout, pied du mail juste pour une signature.
 Ecarte : point aussi pour une affaire perdue ? garde (Ted peut le retirer) ; reglage pour couper
 le mail : pas demande.
+Meme jour, apres le premier essai : Ted gagne une affaire et ne recoit rien, parce que l'auteur
+etait exclu. Il veut le mail aussi : c'est sa confirmation. Tout le bureau le recoit, auteur
+compris. La pastille et les points, eux, restent pour ce que font les AUTRES.
 
 ---
 

@@ -4,7 +4,8 @@
    ----------------------------------------------------------------------------
    Demande de Ted : un devis SIGNE EN LIGNE par un client, ou une affaire
    GAGNEE ou PERDUE PAR UN COLLEGUE, et tout le bureau recoit un mail tout de
-   suite, avec les details. Jamais celui qui a fait le geste : il le sait.
+   suite, avec les details. Celui qui a fait le geste le recoit aussi : c'est sa
+   confirmation (decision de Ted du 03/10/2026, apres le premier essai).
 
    QUI M'APPELLE. Le declencheur `affaires_notifier` (supabase/lot57-notifications.sql),
    par pg_net, une fois la fermeture validee. Personne d'autre : l'en-tete
@@ -203,10 +204,7 @@ function fabriquer(d: Detail) {
 
   const url = lienAffaire(String(d.affaire_id));
   const bureau = String(d.bureau_nom || 'ton bureau');
-  /* « Celui qui a fait le geste » ne veut rien dire quand c'est le CLIENT qui a signe. */
-  const pied = d.sorte === 'signe'
-    ? `Tu reçois ce message parce que tu es membre du bureau ${bureau}. Tout le bureau le reçoit.`
-    : `Tu reçois ce message parce que tu es membre du bureau ${bureau}. Celui qui a fait le geste ne le reçoit pas.`;
+  const pied = `Tu reçois ce message parce que tu es membre du bureau ${bureau}. Tout le bureau le reçoit.`;
 
   const rangees = lignesInfo.map(([k, v]) => `
           <tr>
