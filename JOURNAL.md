@@ -12,6 +12,22 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 03/10/2026, « A gagner » : le type en liste deroulante, les onglets en avant
+
+Demande de Ted sur capture : une liste deroulante au dessin du site pour choisir « le pipe de
+vente a travailler », et les deux onglets plus visibles. Designer et vigneron empathique avant,
+puis deux tours sur captures. Decide :
+- les pastilles de type partent, une liste « Type d'affaire » les remplace a toutes les
+  largeurs (« pipe » ecarte, mot de jargon selon le vigneron) ;
+- en Kanban sur « Toutes », un tableau par type qui a des affaires, au lieu d'un ecran vide qui
+  demandait de choisir un type (on revient sur l'arbitrage du lot 39) ; colonnes a largeur fixe ;
+- onglets a 20 px, trait actif de 3 px, sans compteur, toujours sous le bilan.
+Ecarte : bascule segmentee pleine (deuxieme aplat a cote de « Nouvelle affaire ») ; compteur
+dans l'onglet (le compte de « Clients a suivre » n'est connu qu'a l'ouverture).
+Laisse a Ted : onglets au-dessus du bilan ; hauteur avant la premiere affaire sur telephone.
+
+---
+
 ## 02/10/2026, « A gagner » redessine, et les reglages n'ecrivent plus dans l'en-tete
 
 Signale par Ted : ouvrir « Mes reglages » depuis « Mon commerce » ecrivait « Mes reglages » dans

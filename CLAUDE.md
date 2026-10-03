@@ -7728,9 +7728,9 @@ Ne pas remettre ce code dans `bdv-nav.js` : `banc:poids` est a 77,7 ko sur 78.
 
 ### « A GAGNER » REDESSINE, 02/10/2026 (section 31 septies de bdv-bureau.css)
 
-- **Un seul aplat d'accent par ecran : « Nouvelle affaire ».** Le filtre choisi a un contour et
-  une coche (`.aff-chips .chip[aria-pressed]`, scope a la piece : la chip du reste du bureau garde
-  son aplat). Liste / Kanban est un interrupteur `.aff-vue`, pas une `.chip`.
+- **Un seul aplat d'accent par ecran : « Nouvelle affaire ».** ~~Le filtre choisi a un contour et
+  une coche.~~ Depuis le 03/10/2026 le type se choisit dans une liste (section suivante).
+  Liste / Kanban est un interrupteur `.aff-vue`, pas une `.chip`.
 - **Le premier geste suit l'etat, avec les SEULES donnees de la piece** (`gesteUrgent()`) :
   piste en retard, `tel:` ou `mailto:` ; client Vitisoft en retard, « Voir sa fiche » ; sinon
   « Reporter a demain » ; sans nouvelles, « Le rappeler demain ». Ne pas lire `telsOf()` du
@@ -7791,3 +7791,33 @@ direct ». Maquette validee, conseil avant et apres (vigneron + expert commercia
   « Nouvelle affaire ») alors qu'il est plein dans la page ; le bandeau des devis signes dit
   « Ton client » quand le nom manque (anterieur) ; dates du champ natif en format US dans les
   captures (locale du Chromium de la session).
+
+### LE TYPE D'AFFAIRE EN LISTE, LES ONGLETS EN AVANT, 03/10/2026 (section 33 ter)
+
+Demande de Ted : « une deroulante du meme design que le reste du site pour choisir le pipe de
+vente », et « mettre plus en avant les 2 onglets ». Designer et vigneron empathique avant, puis
+deux tours sur captures (feu rouge, corrige, puis cette version).
+
+- **Plus de pastilles de type dans la tete d'« A gagner »** : une liste `select[data-aff-filtre]`
+  a toutes les largeurs, libelle visible « Type d'affaire » (pas « pipe » : le vigneron ne le dit
+  pas, et « Mes types d'affaires » est le mot des reglages), options « Toutes, N en cours » puis
+  chaque type, types a zero GARDES (on y choisit un type vide pour y creer une affaire). Dessin
+  du selecteur de periode de l'en-tete : `appearance:none`, chevron en `::after` sur
+  `.aff-typeliste__boite` (un `select` n'a pas de pseudo-element). Un seul type : cachee.
+- **Toute la rangee (liste, Liste / Kanban, « Nouvelle affaire ») fait 44 px** : la cible de
+  `body.bdv-poste.bdv-coque .aff-tete .btn` gagne partout, 40 px faisait trois hauteurs.
+  Le choix Liste / Kanban a un fond `--bdv-surface-2` en plus de la graisse.
+- **Kanban sur « Toutes » : un tableau par type QUI A des affaires**, sous « Type, N en cours ».
+  Revient sur l'arbitrage du lot 39 (« sur Toutes, il demande un type ») : l'ecran etait VIDE
+  pendant que le bilan annoncait des affaires. Les colonnes font 22 rem fixes au-dessus de
+  700 px, pour tomber les unes sous les autres d'un tableau a l'autre. Une carte deposee dans le
+  tableau d'un autre type est refusee avec une phrase (pas de changement de type en glissant).
+- **En vue liste, le titre de groupe dit aussi « Type, N en cours »** (meme nom dans les deux vues).
+- **Les onglets « A gagner / Clients a suivre »** : 20 px (17 sous 700), 600, inactif en encre 2,
+  52 px de haut, 32 px d'ecart, trait actif de 3 px sur un filet de 1 px (l'actif se dit par
+  l'epaisseur), trait `--bdv-trait-fort` au survol de l'inactif. SANS compteur : le bilan porte
+  les chiffres. Ils restent SOUS le bilan.
+- Ouvert, a Ted : monter les onglets au-dessus du bilan (vigneron pour, designer contre) ; sous
+  700 px la premiere affaire arrive vers 1 270 px (le bandeau des devis signes et « Ton client »
+  sans nom en sont la plus grosse part, anterieurs) ; le filet des onglets deborde de 4 px de
+  chaque cote (lot 44).

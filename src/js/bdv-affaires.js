@@ -680,14 +680,6 @@
   }
   function htmlTete() {
     var ec = enCours();
-    var chips = '<button type="button" class="chip" data-aff="filtre" data-type=""'
-      + ' aria-pressed="' + (S.filtre === '' ? 'true' : 'false') + '">Toutes, ' + ec.length + '<span class="hors-ecran"> en cours</span></button>'
-      + typesActifs().map(function (t) {
-        var n = ec.filter(function (a) { return a.type_id === t.type_id; }).length;
-        return '<button type="button" class="chip" data-aff="filtre" data-type="' + t.type_id + '"'
-          + ' aria-pressed="' + (S.filtre === t.type_id ? 'true' : 'false') + '">'
-          + esc(t.nom) + ', ' + n + '<span class="hors-ecran"> en cours</span></button>';
-      }).join('');
     /* REFONTE DU 02/10/2026 (Ted : « revoir les boutons »). La bascule Liste / Kanban n'est
        plus une pastille : on la prenait pour un troisieme filtre. C'est un interrupteur a deux
        cases, a droite, contre « Nouvelle affaire ». */
@@ -696,18 +688,24 @@
         return '<button type="button" class="aff-vue" data-aff="vue" data-vue="' + v[0] + '" aria-pressed="'
           + (S.vue === v[0] ? 'true' : 'false') + '">' + v[1] + '</button>';
       }).join('') + '</div>';
-    /* V13 (01/10/2026) : sous 700 px, quatre pastilles faisaient 210 px de haut. Une liste
-       « Type » les remplace (CSS) ; meme filtre, meme etat, un seul geste. */
-    var liste = '<label class="aff-champ aff-typeliste"><span>Type</span><select data-aff-filtre>'
+    /* LE TYPE D'AFFAIRE SE CHOISIT DANS UNE LISTE, A TOUTES LES LARGEURS, 03/10/2026.
+       Demande de Ted : « une deroulante du meme design que le reste du site pour choisir le
+       pipe de vente a travailler ». Les pastilles sont parties : a six types elles passaient
+       sur deux lignes, et un type a zero prenait autant de place qu'un type qui travaille.
+       Libelle « Type d'affaire » (avis du vigneron : « pipe » ne se dit pas au chai, et
+       « Mes types d'affaires » est deja le mot des reglages). Dessin : celui du selecteur de
+       periode de l'en-tete (section 31 octies). Les types a zero restent : c'est la qu'on en
+       choisit un pour y creer une affaire. */
+    var liste = '<label class="aff-typeliste"><span class="aff-typeliste__l">Type d’affaire</span>'
+      + '<span class="aff-typeliste__boite"><select data-aff-filtre>'
       + '<option value=""' + (S.filtre === '' ? ' selected' : '') + '>Toutes, ' + ec.length + ' en cours</option>'
       + typesActifs().map(function (t) {
         var n = ec.filter(function (a) { return a.type_id === t.type_id; }).length;
         return '<option value="' + t.type_id + '"' + (S.filtre === t.type_id ? ' selected' : '') + '>' + esc(t.nom) + ', ' + n + ' en cours</option>';
-      }).join('') + '</select></label>';
+      }).join('') + '</select></span></label>';
     /* Un seul type : « Toutes » et ce type disent la meme chose, le filtre se cache (CSS). */
     var unSeul = typesActifs().length < 2;
-    return '<div class="aff-tete' + (unSeul ? ' aff-tete--un' : '') + '">'
-      + '<div class="aff-chips" role="group" aria-label="Type d’affaire">' + chips + '</div>' + liste
+    return '<div class="aff-tete' + (unSeul ? ' aff-tete--un' : '') + '">' + liste
       + '<div class="aff-tete__d">' + vues
       + '<button type="button" class="btn btn--bordeaux" data-aff="nouvelle"'
       + ' aria-haspopup="dialog" aria-controls="affaireModale">Nouvelle affaire</button></div></div>';
@@ -1618,9 +1616,12 @@
     var t = typesActifs();
     return t.length === 1 ? t[0] : null;
   }
-  function htmlKanban() {
-    var t = typeKanban();
-    if (!t) return '<div class="aff-bloc"><p class="aff-vide">Choisis un type d’affaire au-dessus pour voir ses colonnes.</p></div>';
+  /* SUR « TOUTES », UN TABLEAU PAR TYPE QUI A DES AFFAIRES, 03/10/2026. Avant, le kanban
+     demandait de choisir un type (arbitrage du lot 39) et montrait un ecran vide pendant que
+     le bilan annoncait « 1 affaire en cours ». Avis du vigneron : « j'ouvre la piece pour
+     travailler et elle me repond par une consigne ». Chaque type garde SES colonnes, rien de
+     commun n'est invente ; les types sans affaire ne s'affichent pas dans cette vue. */
+  function htmlTableau(t, titre) {
     var dans = enCours().filter(function (a) { return a.type_id === t.type_id; });
     var cols = etapesDe(t.type_id).map(function (et) {
       var ici = dans.filter(function (a) { return a.etape_id === et.etape_id; });
@@ -1628,13 +1629,17 @@
         + '<h3 class="aff-col__t">' + esc(et.nom) + ', ' + ici.length + '</h3>'
         + (ici.length ? '<ul class="aff-col__liste">' + ici.map(htmlCarte).join('') + '</ul>' : '<p class="aff-col__rien">Rien ici pour l’instant</p>') + '</section>';
     }).join('');
-    /* 02/10/2026 : la phrase qui expliquait le marquage (« signalees en mots... ») part,
-       la ligne « Aujourd'hui » nomme qui relancer. Sous 700 px les colonnes s'empilent :
-       plus de tableau a faire glisser, donc plus de phrase pour le dire. */
-    return '<div class="aff-bloc">'
-      + (dans.length ? '' : '<p class="aff-vide">Aucune affaire en cours dans « ' + esc(t.nom) + ' ».</p>')
-      + '<div class="aff-kanban">' + cols + '</div>'
-      + '</div>';
+    return (titre ? '<h3 class="aff-bloc__t aff-kanban__type">' + esc(t.nom) + ', ' + dans.length + ' en cours</h3>' : '')
+      + (dans.length || titre ? '' : '<p class="aff-vide">Aucune affaire en cours dans « ' + esc(t.nom) + ' ».</p>')
+      + '<div class="aff-kanban">' + cols + '</div>';
+  }
+  function htmlKanban() {
+    var t = typeKanban();
+    if (t) return '<div class="aff-bloc">' + htmlTableau(t, false) + '</div>';
+    var ec = enCours();
+    var avec = typesActifs().filter(function (x) { return ec.some(function (a) { return a.type_id === x.type_id; }); });
+    if (!avec.length) return '<div class="aff-bloc"><p class="aff-vide">Rien en cours. « Nouvelle affaire » pour en ouvrir une.</p></div>';
+    return '<div class="aff-bloc">' + avec.map(function (x) { return htmlTableau(x, true); }).join('') + '</div>';
   }
   function htmlCarte(a) {
     var e = etat(a), qui = sujet(a);
@@ -1693,7 +1698,9 @@
         return '<h4 class="aff-etape">' + esc(et.nom) + ', ' + ici.length + '</h4>'
           + '<ul class="aff-liste">' + ici.map(function (a) { return htmlAffaire(a, false); }).join('') + '</ul>';
       }).join('');
-      html += (S.filtre || types.length < 2 ? '' : '<h3 class="aff-bloc__t">' + esc(t.nom) + '</h3>') + blocs;
+      /* 03/10/2026 : le titre du groupe se dit comme en kanban, « Type, N en cours ». */
+      var nt = enCours().filter(function (a) { return a.type_id === t.type_id; }).length;
+      html += (S.filtre || types.length < 2 ? '' : '<h3 class="aff-bloc__t">' + esc(t.nom) + ', ' + nt + ' en cours</h3>') + blocs;
     });
     if (!visibles().length) html = '<p class="aff-vide">Rien en cours. Un caviste goûté au salon, un restaurant à rappeler ? « Nouvelle affaire » pour l’ouvrir.</p>';
     /* N4 : les affaires des personnes en opposition passent EN FIN, a part. */
@@ -2551,7 +2558,11 @@
       ev.preventDefault();
       var id = ev.dataTransfer.getData('text/plain');
       var ad = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
-      if (ad) deplacer(ad, col.getAttribute('data-colonne'));
+      /* Plusieurs tableaux sur « Toutes » (03/10/2026) : une carte ne change pas de type
+         en glissant. La base le refuserait ; on ne le tente pas. */
+      var cible = col.getAttribute('data-colonne');
+      if (ad && etapesDe(ad.type_id).some(function (x) { return x.etape_id === cible; })) deplacer(ad, cible);
+      else if (ad) dire('Une affaire ne change pas de type en glissant : elle reste dans le tableau de son type.');
     });
   }
   function ecouteursUniques() {

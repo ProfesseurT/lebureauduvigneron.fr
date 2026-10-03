@@ -78,7 +78,10 @@ function monter() {
   w.eval(SRCJ_REGLE);
   w.eval(SRC);
   return { w, doc: w.document, base, requetes, cles,
-    clic(sel) { const n = w.document.querySelector(sel); if (!n) throw new Error('introuvable : ' + sel); n.click(); } };
+    clic(sel) { const n = w.document.querySelector(sel); if (!n) throw new Error('introuvable : ' + sel); n.click(); },
+    /* 03/10/2026 : le type d'affaire se choisit dans une liste, plus par des pastilles. */
+    filtre(v) { const n = w.document.querySelector('#affCorps select[data-aff-filtre]'); if (!n) throw new Error('introuvable : liste du type');
+      n.value = v; n.dispatchEvent(new w.Event('change', { bubbles: true })); } };
 }
 
 /* ---------------------------------------------------------------------------- */
@@ -269,8 +272,12 @@ titre('Lot 39 : la bascule Liste / Kanban');
   t('la liste est la disposition par defaut', K.doc.querySelector('[data-aff="vue"][data-vue="liste"]').getAttribute('aria-pressed') === 'true');
   K.clic('[data-aff="vue"][data-vue="kanban"]');
   t('le choix se retient sur l\'appareil', K.w.localStorage.getItem('bdv_aff_vue') === 'kanban');
-  t('sur « Toutes », le kanban demande un type', /Choisis un type d’affaire/.test(K.doc.body.textContent) && !K.doc.querySelector('.aff-kanban'));
-  K.clic('[data-aff="filtre"][data-type="t1"]');
+  /* 03/10/2026 : sur « Toutes », un tableau par type QUI A des affaires, jamais un ecran vide. */
+  t('sur « Toutes », le kanban montre le tableau du type qui a une affaire', !/Choisis un type/.test(K.doc.body.textContent)
+    && K.doc.querySelectorAll('.aff-kanban').length === 1 && /, 1 en cours/.test((K.doc.querySelector('.aff-kanban__type') || {}).textContent || ''),
+    K.doc.querySelectorAll('.aff-kanban').length + ' tableau(x)');
+  t('un type sans affaire n\'a pas de tableau sur « Toutes »', !K.doc.querySelector('[data-colonne="m1"]'));
+  K.filtre('t1');
   t('un type choisi : une colonne par etape', K.doc.querySelectorAll('.aff-col').length === 3);
   t('la carte est dans sa colonne', !!K.doc.querySelector('[data-colonne="e1"] [data-affaire="a1"]'));
   /* V18 (01/10/2026) : l'etiquette dit ce qui manque, « Pas encore dans Vitisoft ». */
@@ -511,7 +518,7 @@ titre('Lot 40 : le panneau sur le cote, comme une tache ou un client');
   t('le formulaire neuf recoit le focus, meme en tiroir', panneau().contains(Q.doc.activeElement));
   const cq0 = Q.doc.getElementById('affCherche'); cq0.value = 'Chez Lulu'; cq0.dispatchEvent(new Q.w.Event('input', { bubbles: true }));
   Q.clic('[data-aff="creerMain"]');
-  Q.clic('[data-aff="filtre"][data-type="t1"]');
+  Q.filtre('t1');
   t('cliquer un filtre n\'efface pas ce qu\'on tape', Q.doc.getElementById('affNom') && Q.doc.getElementById('affNom').value === 'Chez Lulu');
   t('ni la fiche ouverte', !Q.doc.querySelector('[data-zone="nouveau"]').hidden);
   Q.doc.getElementById('affNom').value = '';
@@ -996,10 +1003,10 @@ titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de
     !!sortie && sortie.isConnected && sortie.getAttribute('data-aff') === 'ouvrir' && !!sortie.closest('[data-affaire="aC"]'));
   F.base.affaires.find(a => a.affaire_id === 'aC').titre = 'Le rosé';
   { const S0 = F.w.BdvAffaires._S; const sauve = S0.affaires; S0.affaires = sauve.filter(a => a.affaire_id !== 'aC');
-    F.clic('#affCorps [data-aff="filtre"]');
+    F.filtre('');
     const s2 = ouverts[ouverts.length - 1].focusSortie();
     t('ligne disparue : la sortie tombe sur le titre de la piece, rendu focalisable', !!s2 && s2.id === 'affTitre' && s2.getAttribute('tabindex') === '-1');
-    S0.affaires = sauve; F.clic('#affCorps [data-aff="filtre"]'); }
+    S0.affaires = sauve; F.filtre(''); }
   ouvrirAff = ouvrirAff;
   panneau().querySelector('[data-aff="devisOuvrir"][data-devis="d7"]').click();
   await attendre(20);
@@ -1015,7 +1022,7 @@ titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de
 
   /* Une affaire close ne s'ouvre pas dans le panneau par l'ecran : on l'y force. */
   F.w.BdvAffaires._S.ouverte = 'aG';
-  F.clic('#affCorps [data-aff="filtre"]');
+  F.filtre('');
   t('le panneau d\'une affaire close est bien peint (temoin du controle suivant)', !panneau().hidden && /Le Bistrot/.test(panneau().querySelector('#amodTitre').textContent));
   await attendre(20);
   t('affaire close (gagnée) : pas de « Nouveau devis »', !devis());
@@ -1392,19 +1399,21 @@ titre('Passe du 01/10/2026 : A gagner');
   t('S3 : en tiroir, Tab n\'est pas retenu', !ev.defaultPrevented);
 
   /* M7 : une repeinte de la piece rend le focus au geste repeint (ici un filtre) */
-  T.doc.querySelector('#affCorps [data-aff="filtre"][data-type="t1"]').focus();
-  T.clic('#affCorps [data-aff="filtre"][data-type="t1"]');
-  t('M7 : apres un filtre, le focus est sur la pastille repeinte', T.doc.activeElement && T.doc.activeElement.getAttribute('data-aff') === 'filtre'
-    && T.doc.activeElement.getAttribute('data-type') === 't1' && T.doc.activeElement.isConnected);
-  T.clic('#affCorps [data-aff="filtre"][data-type=""]');
+  T.doc.querySelector('#affCorps select[data-aff-filtre]').focus();
+  T.filtre('t1');
+  t('M7 : apres un filtre, le focus est sur la liste repeinte', T.doc.activeElement && T.doc.activeElement.hasAttribute('data-aff-filtre')
+    && T.doc.activeElement.value === 't1' && T.doc.activeElement.isConnected);
+  T.filtre('');
 
-  /* V13 : la liste « Type » */
+  /* 03/10/2026 : la liste « Type d'affaire » remplace les pastilles, a toutes les largeurs. */
   const sel = T.doc.querySelector('#affCorps select[data-aff-filtre]');
-  t('V13 : une liste « Type » porte les memes filtres que les pastilles', !!sel && sel.options.length === T.doc.querySelectorAll('#affCorps .aff-chips [data-aff="filtre"]').length,
-    sel && sel.options.length + ' / ' + T.doc.querySelectorAll('#affCorps .aff-chips [data-aff="filtre"]').length);
+  t('la liste porte « Toutes » puis chaque type, avec « en cours »', !!sel && sel.options.length === 1 + T.w.BdvAffaires._S.types.filter(x => !x.archive).length
+    && /en cours/.test(sel.options[0].textContent), sel && sel.options.length);
+  t('plus aucune pastille de type dans la tete', !T.doc.querySelector('#affCorps .aff-tete .aff-chips, #affCorps [data-aff="filtre"]'));
+  t('la liste a un libelle visible', /Type d’affaire/.test((T.doc.querySelector('#affCorps .aff-typeliste__l') || {}).textContent || ''));
   sel.value = 't1'; sel.dispatchEvent(new T.w.Event('change', { bubbles: true }));
-  t('V13 : choisir un type dans la liste filtre la piece', T.w.BdvAffaires._S.filtre === 't1'
-    && T.doc.querySelector('#affCorps .aff-chips .chip[data-type="t1"]').getAttribute('aria-pressed') === 'true');
+  t('choisir un type dans la liste filtre la piece', T.w.BdvAffaires._S.filtre === 't1'
+    && T.doc.querySelector('#affCorps select[data-aff-filtre]').value === 't1');
 
   /* M8 : ouvrir CETTE affaire depuis ailleurs */
   T.clic('#affaireModale .tmod__x');
@@ -1482,7 +1491,9 @@ titre('Passe du 01/10/2026 : A gagner');
   t('le kanban s\'empile sous 700 px, sans phrase de glisse', /max-width:700px[\s\S]*\.aff-kanban\{ flex-direction:column;/.test(q5) && !/aff-kanban__glisse/.test(q5));
   t('S8 : un repli porte son signe', /\.aff-plus > summary::before\{/.test(q5) && /\.aff-plus\[open\] > summary::before/.test(q5));
   t('S13 : le cadre d\'etat va jusqu\'au bord', /\.amod__etat\{ margin-right:calc\(-1 \* var\(--bdv-e-8\)\); \}/.test(q5));
-  t('V13 : sous 700 px, la liste remplace les pastilles', /\.aff-tete \.aff-chips\{ display:none; \}/.test(q5) && /\.aff-typeliste select\{ min-height:var\(--bdv-cible\); font-size:var\(--bdv-f-saisie\); \}/.test(q5));
+  { const q8 = CSS.split('33 ter.')[1] || '';
+    t('la liste du type : dessin du selecteur de periode, 44 px et 16 px sous 700 px', /appearance:none/.test(q8) && /\.aff-typeliste__boite::after\{/.test(q8)
+      && /max-width:700px[\s\S]*min-height:var\(--bdv-cible\); height:var\(--bdv-cible\);\s*font-size:var\(--bdv-f-saisie\);/.test(q8)); }
   t('V6 : sous 700 px, « Enregistrer » colle en pied', /\.amod \.aff-edit \.aff-form__pied\{\s*position:sticky;/.test(q5));
   t('aucune ombre et aucun z-index dans la passe', !/box-shadow|z-index/.test(q5.slice(q5.indexOf('*/') + 2).split('/* ===')[0].replace(/\/\*[\s\S]*?\*\//g, '')));
 }

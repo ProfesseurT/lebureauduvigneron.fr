@@ -27,13 +27,16 @@ export async function contexte(nav, largeur, theme) {
   if (!process.env.NOFAKE) await ctx.addInitScript(({ B, theme, HORS33 }) => {
     try { localStorage.setItem('bureau_theme_v1', theme); } catch (e) {}
     const jour = new Date().toISOString();
-    const T = { affaire_types: [{ bureau: B, type_id: 't1', nom: 'Caviste / restaurant', famille: 'client', sommeil_jours: 30, ordre: 0, archive: false, cree_le: jour }],
-      affaire_etapes: [{ bureau: B, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 }, { bureau: B, etape_id: 'e2', type_id: 't1', nom: 'Échantillon envoyé', ordre: 2 }, { bureau: B, etape_id: 'e3', type_id: 't1', nom: 'Commande', ordre: 3 }],
+    const T = { affaire_types: [{ bureau: B, type_id: 't1', nom: 'Caviste / restaurant', famille: 'client', sommeil_jours: 30, ordre: 0, archive: false, cree_le: jour },
+        /* 03/10/2026 : un deuxieme type, pour voir la liste « Type d'affaire » et le kanban par type sur « Toutes ». */
+        { bureau: B, type_id: 't2', nom: 'Mariage', famille: 'evenement', sommeil_jours: 21, ordre: 1, archive: false, cree_le: jour }],
+      affaire_etapes: [{ bureau: B, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 }, { bureau: B, etape_id: 'e2', type_id: 't1', nom: 'Échantillon envoyé', ordre: 2 }, { bureau: B, etape_id: 'e3', type_id: 't1', nom: 'Commande', ordre: 3 },
+        { bureau: B, etape_id: 'm1', type_id: 't2', nom: 'Demande reçue', ordre: 1 }, { bureau: B, etape_id: 'm2', type_id: 't2', nom: 'Dégustation', ordre: 2 }],
       pistes: [{ bureau: B, piste_id: 'p1', nom: 'Bistrot des Halles', telephone: '06 12 00 00 01', opposition: false }],
       affaires: [
         { bureau: B, affaire_id: 'a1', type_id: 't1', etape_id: 'e2', client_id: 'C0288', client_nom: 'Cave du Vieux Pressoir', titre: 'Le magnum de rosé pour Noël', issue: 'en_cours', rappel: new Date(Date.now()-3*86400000).toISOString().slice(0,10), rappel_titre: 'Lui faire goûter le 2025', etape_le: jour, maj_le: jour, cree_le: jour },
         { bureau: B, affaire_id: 'a3', type_id: 't1', etape_id: 'e1', client_id: 'C0412', client_nom: 'Domaine des Hauts Coteaux et Fils', titre: 'Le BIB pour le caveau', issue: 'en_cours', rappel: null, etape_le: new Date(Date.now()-60*86400000).toISOString(), maj_le: jour, cree_le: jour },
-        { bureau: B, affaire_id: 'a2', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Carte des vins au verre', issue: 'en_cours', rappel: new Date(Date.now()+5*86400000).toISOString().slice(0,10), etape_le: jour, maj_le: jour, cree_le: jour } ],
+        { bureau: B, affaire_id: 'a2', type_id: 't2', etape_id: 'm1', piste_id: 'p1', titre: 'Carte des vins au verre', issue: 'en_cours', rappel: new Date(Date.now()+5*86400000).toISOString().slice(0,10), etape_le: jour, maj_le: jour, cree_le: jour } ],
       /* 03/10/2026 : le client en direct et la pleine page d'une affaire. */
       ventes_lignes: [{ bureau: B, client_cle: 'C0288', mobile: '06 12 34 56 78', fixe: '', emails: 'cave@exemple.fr', pays: 'France', le_jour: '2026-07-01' }],
       echanges: [{ bureau: B, echange_id: 'x1', client_id: 'C0288', le: new Date(Date.now()-8*86400000).toISOString(), type: 'appel', canal: 'appel', resume: 'Intéressé par le magnum, veut goûter le 2025 avant de commander.' },

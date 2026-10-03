@@ -5695,7 +5695,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 
 /* V13 : la liste « Type » n'existe que sous 700 px ; au-dessus, les pastilles. La bascule
    Liste / Kanban est un interrupteur a deux positions, pas deux filtres de plus. */
-.bdv-coque .aff-typeliste{ display:none; }
 .bdv-coque .aff-vues{
   padding:var(--bdv-e-1);
   border:1px solid var(--bdv-trait-fort);
@@ -5705,9 +5704,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 .bdv-coque .aff-vues .chip[aria-pressed="true"]{ background:var(--bdv-surface-2); border-color:var(--bdv-trait-fort); color:var(--bdv-encre-1); }
 
 @media (max-width:700px){
-  .bdv-coque .aff-tete .aff-chips{ display:none; }
-  .bdv-coque .aff-tete .aff-typeliste{ display:grid; }
-  .bdv-coque .aff-typeliste select{ min-height:var(--bdv-cible); font-size:var(--bdv-f-saisie); }
   /* S7 : 16 px, sinon iOS zoome a chaque appui. */
   .bdv-coque .aff-carte__deplacer{ font-size:var(--bdv-f-saisie); }
   /* V14 : une colonne vide se replie a 48 px, son nom ecrit en hauteur. */
@@ -5813,7 +5809,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 .bdv-coque .aff-etat__qui:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
 
 .bdv-coque .aff-tete{ justify-content:flex-start; }
-.bdv-coque .aff-tete--un .aff-chips,
 .bdv-coque .aff-tete--un .aff-typeliste{ display:none; }
 .bdv-coque .aff-tete__d{ display:flex; align-items:center; gap:var(--bdv-e-2); margin-left:auto; }
 .bdv-coque .aff-tete .aff-tete__d .btn--bordeaux{ margin-left:0; }
@@ -5969,7 +5964,6 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 
 @media (max-width:700px){
   .bdv-coque .aff-tete{ display:grid; grid-template-columns:1fr; gap:var(--bdv-e-2); }
-  .bdv-coque .aff-tete .aff-typeliste > span{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   .bdv-coque .aff-tete__d{ display:grid; grid-template-columns:1fr 1fr; gap:var(--bdv-e-2); margin-left:0; }
   .bdv-coque .aff-vues{ display:flex; }
   .bdv-coque .aff-vue{ flex:1 1 0; min-height:var(--bdv-cible); }
@@ -6037,7 +6031,7 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
    voir `.com-onglet` dessous. */
 .bdv-coque .com-onglets{
   display:flex;
-  gap:var(--bdv-e-4);
+  gap:var(--bdv-e-8);
   margin:0 calc(-1 * var(--bdv-e-1)) var(--bdv-e-4);
   background-image:linear-gradient(var(--bdv-trait),var(--bdv-trait));
   background-repeat:no-repeat;
@@ -6059,19 +6053,32 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
    du contenu, et l'ecart entre deux mots reste a 24 px : 4 + 16 (gap) + 4. */
 .bdv-coque .com-onglet{
   flex:0 0 auto;
-  min-height:var(--bdv-cible);
+  min-height:52px;
   padding:var(--bdv-e-2) var(--bdv-e-1);
   border:0;
-  border-bottom:2px solid transparent;
+  border-bottom:3px solid transparent;
   background:none;
   font-family:inherit;
-  font-size:var(--bdv-f-3);
+  font-size:var(--bdv-f-5);
   font-weight:600;
   white-space:nowrap;
-  color:var(--bdv-encre-3);
+  color:var(--bdv-encre-2);
   cursor:pointer;
 }
+/* LES ONGLETS MIS EN AVANT, 03/10/2026. Demande de Ted : « mettre plus en avant les 2
+   onglets ». Avis du designer et du vigneron : on garde des onglets SOULIGNES (une bascule
+   pleine ferait un deuxieme aplat a cote de « Nouvelle affaire »), mais ils deviennent le
+   plus gros texte sous le titre de la piece : 20 px (17 sous 700 px), 52 px de haut, 32 px
+   entre les deux. L'inactif passe en encre 2 (il etait en encre 3, qui se lisait comme un
+   intertitre). Le trait de l'actif passe a 3 px contre 1 px pour le filet : il se distingue
+   par l'EPAISSEUR, pas seulement par la couleur. Au survol, l'inactif annonce son trait en
+   --bdv-trait-fort. Aucun compteur : le bilan au-dessus porte deja les chiffres. */
 .bdv-coque .com-onglet:hover{ color:var(--bdv-encre-1); }
+.bdv-coque .com-onglet[aria-selected="false"]:hover{ border-bottom-color:var(--bdv-trait-fort); }
+@media (max-width:700px){
+  .bdv-coque .com-onglets{ gap:var(--bdv-e-6); }
+  .bdv-coque .com-onglet{ font-size:var(--bdv-f-4); }
+}
 .bdv-coque .com-onglet[aria-selected="true"]{
   border-bottom-color:var(--bdv-accent);
   color:var(--bdv-encre-1);
@@ -6213,4 +6220,87 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
   .bdv-coque .page-aff__et{ border-top:0; border-left:3px solid var(--bdv-trait-fort); }
   .bdv-coque .page-aff__et--fait{ border-left-color:var(--bdv-encre-3); }
   .bdv-coque .page-aff__et--ici{ border-left-color:var(--bdv-accent); }
+}
+
+/* ==========================================================================
+   33 ter. LE TYPE D'AFFAIRE EN LISTE DEROULANTE, 03/10/2026
+   Demande de Ted : « une deroulante du meme design que le reste du site pour choisir le
+   pipe de vente ». LE DESSIN EST CELUI DU SELECTEUR DE PERIODE DE L'EN-TETE (section 5) :
+   `appearance:none`, bord 1 px --bdv-trait-fort, fond --bdv-surface, texte 500, chevron
+   dessine par deux bordures tournees, bord --bdv-encre-4 au survol, --bdv-accent au focus.
+   Il est plus haut (44 px, la cible du bureau) pour s'aligner sur « Nouvelle affaire ».
+   Libelle VISIBLE a gauche, et au-dessus sous 700 px : une fois un type choisi, rien dans la
+   liste ne dirait de quoi elle parle. Les pastilles `.aff-chips` de la tete sont parties ;
+   celles des reglages (modeles a ajouter) restent.
+   ========================================================================== */
+.bdv-coque .aff-typeliste{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-3);
+  margin:0;
+}
+.bdv-coque .aff-typeliste__l{
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  color:var(--bdv-encre-2);
+  white-space:nowrap;
+}
+.bdv-coque .aff-typeliste__boite{ position:relative; display:inline-flex; }
+.bdv-coque .aff-typeliste select{
+  appearance:none;
+  -webkit-appearance:none;
+  min-height:var(--bdv-cible);
+  height:var(--bdv-cible);
+  min-width:240px;
+  max-width:360px;
+  padding:0 36px 0 var(--bdv-e-3);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:500;
+  cursor:pointer;
+}
+.bdv-coque .aff-typeliste select:hover{ border-color:var(--bdv-encre-4); }
+.bdv-coque .aff-typeliste select:focus{ border-color:var(--bdv-accent); }
+.bdv-coque .aff-typeliste select:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-typeliste__boite::after{
+  content:"";
+  position:absolute;
+  right:15px;
+  top:50%;
+  width:6px;
+  height:6px;
+  margin-top:-5px;
+  border-right:1.5px solid var(--bdv-encre-3);
+  border-bottom:1.5px solid var(--bdv-encre-3);
+  transform:rotate(45deg);
+  pointer-events:none;
+}
+/* UNE RANGEE, UNE HAUTEUR (deuxieme passe du designer) : la liste, l'interrupteur (bord de 1 px
+   compris) et « Nouvelle affaire » font tous 44 px, a toutes les largeurs. 40 px a ete essaye :
+   `body.bdv-poste.bdv-coque .aff-tete .btn` (section 31) pose deja la cible de 44 px partout, et
+   la rangee sortait sur trois hauteurs. Le choix Liste / Kanban se
+   voit aussi en clair : fond --bdv-surface-2, pas seulement la graisse. */
+.bdv-coque .aff-tete .aff-vue{ min-height:42px; }
+.bdv-coque .aff-tete .aff-vue[aria-pressed="true"]{ background:var(--bdv-surface-2); }
+/* LES COLONNES DU KANBAN ONT LA MEME LARGEUR D'UN TYPE A L'AUTRE : avec plusieurs tableaux
+   empiles sur « Toutes », des colonnes qui s'etirent ne tombaient plus les unes sous les autres
+   (382 px chez un type a trois etapes, 580 chez un type a deux). 22 rem fixes, le tableau
+   defile dans sa boite s'il le faut. Sous 700 px elles s'empilent, rien ne change. */
+@media (min-width:701px){
+  .bdv-coque .aff-kanban .aff-col{ flex:0 0 22rem; }
+}
+/* Sur « Toutes » en kanban : un tableau par type, chacun sous son titre. */
+.bdv-coque .aff-kanban + .aff-kanban__type{ margin-top:var(--bdv-e-6); }
+@media (max-width:700px){
+  .bdv-coque .aff-typeliste{ display:grid; grid-template-columns:1fr; gap:var(--bdv-e-1); }
+  .bdv-coque .aff-typeliste__boite{ display:flex; }
+  .bdv-coque .aff-typeliste select{
+    width:100%; max-width:none; min-width:0;
+    min-height:var(--bdv-cible); height:var(--bdv-cible);
+    font-size:var(--bdv-f-saisie);
+  }
 }
