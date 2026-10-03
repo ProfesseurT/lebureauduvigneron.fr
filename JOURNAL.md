@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 03/10/2026, lot 59 : activer les notifications sur cet appareil
+
+Le bouton « Activer sur cet appareil » dans « Le courrier », le récepteur `/sw.js`, la table des
+appareils. Rien n'est encore envoyé : le devis signé est le lot suivant, et l'écran le dit.
+Ted a généré la paire de clés sur son Mac ; il garde la clé privée, la publique est dans
+`bdv-push.js`.
+Le vérificateur a trouvé un vrai trou : un autre compte qui se connecte sur un poste partagé
+gardait les notifications du précédent. Corrigé, avec la requête de retrait en `keepalive`.
+Le vigneron (feu vert) a fait ajouter « Effet immédiat, sans Enregistrer » et « Pas encore
+possible ici » en tête de la phrase iPhone.
+
 ## 03/10/2026, lot 58 : les mails des nouvelles se règlent
 
 Premier lot du chantier des notifications. Une affaire perdue n'envoie plus de mail ; « devis

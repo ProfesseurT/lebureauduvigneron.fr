@@ -140,7 +140,9 @@
     let ancien = null;
     try{ ancien = localStorage.getItem(PROPRIO_KEY); }catch(e){}
     const change = !!(ancien && ancien !== s.user.id);
-    if(change) oublierCetAppareil();
+    // Et les notifications de l'ancien compte s'arretent sur cet appareil (lot 59) : sans ca,
+    // le nouvel arrivant recevrait celles du precedent jusqu'a son propre « Activer ».
+    if(change){ oublierNotifications(); oublierCetAppareil(); }
     try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch(e){}
     try{ localStorage.setItem(PROPRIO_KEY, s.user.id); }catch(e){}
     // On recharge la page, et ce n'est pas de la prudence excessive : les ecrans ont deja lu
@@ -438,7 +440,37 @@
     try{ document.dispatchEvent(new CustomEvent('bdv:session')); }catch(e){}
   }
 
-  function deconnexion(){ arreterRenouvellement(); oublierCetAppareil(); signalerSession(); }
+  /* SE DECONNECTER COUPE AUSSI LES NOTIFICATIONS DE CET APPAREIL (lot 59, 03/10/2026). Sinon
+     le poste partage continuerait de recevoir les nouvelles d'un compte qui n'y est plus.
+     Le jeton est lu MAINTENANT, avant que oublierCetAppareil() l'efface : la suite est
+     asynchrone. Rien ici ne retarde ni ne bloque la deconnexion, et un echec se tait :
+     l'abonnement est coupe cote navigateur quoi qu'il arrive, et l'adresse morte sera
+     nettoyee par l'envoi (le service repond 410). */
+  function oublierNotifications(){
+    try{
+      const s = lireSession();
+      if(!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.getRegistration('/').then(function(reg){
+        return reg && reg.pushManager ? reg.pushManager.getSubscription() : null;
+      }).then(function(abo){
+        if(!abo) return;
+        /* Les DEUX partent ensemble, et la requete en `keepalive` : la deconnexion recharge la
+           page aussitot, et une requete ordinaire peut mourir avec elle. Le desabonnement de
+           l'appareil ne depend donc jamais de la reponse de la base. */
+        const adresse = abo.endpoint;
+        const local = abo.unsubscribe().catch(function(){});
+        if(!s || !s.access_token || !SUPABASE_URL) return local;
+        const base = fetch(SUPABASE_URL + '/rest/v1/rpc/push_retirer', {
+          method: 'POST', keepalive: true,
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_endpoint: adresse })
+        }).catch(function(){});
+        return Promise.all([local, base]);
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  function deconnexion(){ oublierNotifications(); arreterRenouvellement(); oublierCetAppareil(); signalerSession(); }
 
   /* ================================================================
      UN BUREAU LAISSE OUVERT TOUTE LA MATINEE, 19/09/2026

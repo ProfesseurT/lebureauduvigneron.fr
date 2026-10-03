@@ -147,6 +147,9 @@
 /* Les deux mails immediats (lot 58) : un groupe, detache de la case d'avant et de celle
    d'apres, sinon l'aide se lit comme celle de la seule seconde case. */
 .bdvr-groupe{margin:var(--bdv-e-4) 0}
+/* L'etat des notifications de cet appareil (lot 59) : une phrase, lue AVANT le bouton. */
+.bdvr-push-etat{font-family:inherit;font-size:var(--bdv-f-3);font-weight:600;color:var(--bdv-encre-2);
+  line-height:1.5;margin:0 0 var(--bdv-e-2)}
 
 /* LE BANDEAU DE SAUVEGARDE. Il ne repete pas le compteur de lignes, qui est deja dans les
    cartes juste en dessous : il porte le VERDICT, appareil contre compte. C'est le seul
@@ -565,6 +568,17 @@
             confirmation, et il s'arrête aussi. Une affaire perdue n'envoie jamais de mail : tu la vois
             dans les nouvelles de « Mon commerce ».</p>
         </div>
+        <!-- LES NOTIFICATIONS DE CET APPAREIL, LOT 59, 03/10/2026. Un BOUTON et pas une case :
+             l'abonnement est par appareil, la grille du dessus est par compte. Le geste est
+             immediat, hors « Enregistrer », comme l'agenda : la permission du navigateur ne se
+             demande que sur un clic. La phrase d'etat dit la verite de CET ecran (bdv-push.js).
+             Bloc cache si bdv-push.js n'est pas charge sur la page. -->
+        <div class="bdvr-groupe" id="bdvrPush" hidden>
+          <p class="bdvr-push-etat" id="bdvrPushEtat" role="status"></p>
+          <button type="button" class="bdvr-btn bdvr-btn--creux" id="bdvrPushBouton" hidden>Activer sur cet appareil</button>
+          <p class="bdvr-aide">Effet immédiat, sans « Enregistrer ». Chaque appareil s'active à part :
+            ton téléphone, puis ton ordinateur. Les premières notifications arriveront avec le devis signé.</p>
+        </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
         <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>
         <p class="bdvr-aide">Le courrier du matin et l'édition portent aussi un lien qui ramène à leur case, sans
@@ -659,6 +673,7 @@
        gestes immediats, pas des champs a valider. Les poser dans le formulaire
        aurait fait d'un bouton de revocation un effet de bord d'un enregistrement
        qu'on croyait faire pour changer son prenom. */
+    el('bdvrPushBouton').addEventListener('click', basculerPush);
     el('bdvrAgendaCreer').addEventListener('click', creerAgenda);
     el('bdvrAgendaCopier').addEventListener('click', copierAgenda);
     el('bdvrAgendaRevoquer').addEventListener('click', revoquerAgenda);
@@ -984,6 +999,44 @@
     majOnglets();
   }
 
+  /* ====================== LES NOTIFICATIONS DE CET APPAREIL (lot 59) ======================
+     Tout le savoir est dans bdv-push.js ; ici on peint et on relaie le clic. PUSH_CODE garde
+     le dernier etat lu : le bouton dit ce qu'il va faire, jamais l'inverse. */
+  let PUSH_CODE = null, PUSH_EN_COURS = false;
+  function peindreEtatPush(e){
+    PUSH_CODE = e && e.code;
+    const t = el('bdvrPushEtat'), b = el('bdvrPushBouton');
+    if(t) t.textContent = (e && e.texte) || '';
+    if(b){
+      b.hidden = !(PUSH_CODE === 'actives' || PUSH_CODE === 'inactives');
+      b.textContent = PUSH_CODE === 'actives' ? 'Désactiver sur cet appareil' : 'Activer sur cet appareil';
+      b.disabled = PUSH_EN_COURS;
+    }
+  }
+  function peindrePush(){
+    const bloc = el('bdvrPush');
+    if(!bloc) return;
+    bloc.hidden = !window.BdvPush;
+    if(!window.BdvPush || PUSH_EN_COURS) return;
+    BdvPush.etat().then(peindreEtatPush, function(){ peindreEtatPush(null); });
+  }
+  function basculerPush(){
+    if(!window.BdvPush || PUSH_EN_COURS) return;
+    const geste = PUSH_CODE === 'actives' ? BdvPush.desactiver : BdvPush.activer;
+    PUSH_EN_COURS = true;
+    const b = el('bdvrPushBouton');
+    if(b){ b.disabled = true; b.textContent = 'Un instant…'; }
+    geste().then(function(e){ PUSH_EN_COURS = false; peindreEtatPush(e); },
+      function(){
+        PUSH_EN_COURS = false;
+        /* L'echec se DIT, et l'etat se relit : on ne laisse ni « Un instant… » a vie, ni une
+           phrase qui affirmerait ce qui n'a pas eu lieu. */
+        BdvPush.etat().then(function(e){
+          peindreEtatPush({ code: e.code, texte: 'Ça n\'a pas marché. ' + e.texte });
+        }, function(){ peindreEtatPush(null); });
+      });
+  }
+
   function remplir(){
     const p = PROFIL || {};
     poser('bdvrPrenom',  p.prenom);
@@ -999,6 +1052,7 @@
     if(mails) mails.hidden = !(MAILS_IMMEDIATS[0] in p);
     poser('bdvrMailSigne',  p.notif_mail_signe);
     poser('bdvrMailGagnee', p.notif_mail_gagnee);
+    peindrePush();
     const r = REGL || {};
     poser('bdvrObjectif', r.objectif);
     poser('bdvrExercice', r.exercice_debut);

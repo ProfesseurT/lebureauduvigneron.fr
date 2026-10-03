@@ -7923,3 +7923,31 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
 - Signale a Ted, hors lot : sur iPhone l'onglet actif des reglages est hors de l'ecran a
   l'ouverture ; les cases font environ 13 px ; sur portable, les blocs case + aide se touchent.
 
+### LOT 59, 03/10/2026 : ACTIVER LES NOTIFICATIONS SUR CET APPAREIL (deuxieme lot)
+
+- **SQL `supabase/lot59-push-abonnements.sql`, A COLLER AVANT LE PUSH.** Table
+  `push_abonnements`, une ligne PAR APPAREIL, cle = l'adresse d'envoi. Le navigateur la LIT
+  (les siennes) et ne l'ecrit jamais : `push_inscrire()` et `push_retirer()` seulement. Une
+  adresse deja rangee pour un autre compte CHANGE DE MAIN (poste partage). Dix appareils au plus
+  par personne. **L'adresse est filtree a l'entree** (`push_adresse_valide`) : seuls Apple,
+  Google, Mozilla et Microsoft passent, sinon le serveur du lot 3 ecrirait n'importe ou.
+- **`src/sw.js`, servi a la racine** (`.eleventy.js`) : afficher, et ouvrir au toucher. Aucun
+  ecouteur fetch, aucun cache, aucun import, aucun `self[...]`. Affiche TOUJOURS, meme un
+  message illisible. N'ouvre jamais un autre site. Contrat du message pour le lot 3 :
+  `{ titre, corps, url, tag }`. Sa procedure de retrait (la pierre tombale) est dans son
+  en-tete : ne JAMAIS supprimer ce fichier.
+- **`src/js/bdv-push.js`** (differe, sur le bureau) : sept etats, `actives` exige l'abonnement
+  local ET la ligne en base ET la meme cle. La permission n'est demandee que dans `activer()`.
+  La cle PUBLIQUE est dans ce fichier ; la cle PRIVEE est chez Ted, elle ira dans les secrets
+  de la fonction d'envoi au lot 3, une seule fois.
+- **Reglages, « Le courrier »** : la phrase d'etat, puis le bouton (`type="button"`, hors
+  « Enregistrer »). Un echec se dit (« Ça n'a pas marché. »).
+- **La deconnexion ET le changement de compte sur un poste coupent l'abonnement**
+  (`oublierNotifications()` dans bdv-compte.js) : jeton lu avant l'effacement, desabonnement
+  local sans attendre la base, requete en `keepalive`.
+- Bancs : `banc-lot59` SQL (18), `banc:push` (46, dans `verif` apres `banc:poids`, l'ordre
+  devis/commande/signature/poids etant tenu par banc:devis). Mutations faites par le
+  verificateur : 13 tuees ; survivaient la comparaison de cle et l'acces par crochets, bouches.
+- Reste pour plus tard : `pushsubscriptionchange` (renouvellement par le navigateur) ;
+  la liste « tes appareils » ; le nettoyage des adresses mortes (410) arrive avec l'envoi.
+

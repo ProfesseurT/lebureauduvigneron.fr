@@ -68,6 +68,9 @@ module.exports = function(eleventyConfig) {
      leve aucune erreur : la page declare simplement un manifeste qui rend 404, et
      l'installation retombe sur le comportement de signet, en silence. */
   eleventyConfig.addPassthroughCopy({ "src/manifest.webmanifest": "manifest.webmanifest" });
+  /* Le recepteur des notifications (lot 59). A LA RACINE, pas sous /js/ : un recepteur ne
+     couvre que les pages sous son dossier, et il doit couvrir /mon-bureau/. */
+  eleventyConfig.addPassthroughCopy({ "src/sw.js": "sw.js" });
   // Trier les posts du plus récent au plus ancien
   eleventyConfig.addCollection("posts", function(collectionApi) {
     return collectionApi.getFilteredByGlob("src/posts/*.md").reverse();
