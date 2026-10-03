@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 03/10/2026, lot 58 : les mails des nouvelles se règlent
+
+Premier lot du chantier des notifications. Une affaire perdue n'envoie plus de mail ; « devis
+signé » et « affaire gagnée » ont chacun leur case, par personne, cochée par défaut, dans
+l'onglet « Le courrier ». Le pied du mail dit où décocher.
+Méthode : contexte, puis un vérificateur indépendant (5 mutations, il a trouvé un trou du banc
+des réglages, bouché) et le vigneron empathique sur captures (feu rouge, puis feu vert après
+correction de la phrase « ces deux cases », devenue fausse avec quatre cases).
+Ordre de mise en prod : SQL du lot 58, puis push, puis redéploiement de `notif-commerce`.
+Incident : un `git status` lancé depuis Cowork a laissé `.git/index.lock` sur le Mac, retiré.
+
 ## 03/10/2026, les notifications et leurs réglages (décisions, rien de codé)
 
 Demande de Ted : notifications navigateur pour le devis signé, les échéances, les urgences à

@@ -35,6 +35,9 @@
   const PREFIXE = 'bdvr';
   let monte = false;              // le panneau est-il deja dans le document
   let PROFIL = null, PROFIL_LU = false;
+  /* Les deux mails qui partent a l'instant (lot 58). Cochees par defaut EN BASE : un profil
+     qui n'a jamais touche ces cases les recoit, comme au lot 57. */
+  const MAILS_IMMEDIATS = ['notif_mail_signe', 'notif_mail_gagnee'];
   let REGL = null,   REGL_LU = false;
   let TOUCHES = {};               // champs touches par le vigneron, cf. regle 2
   let RETOUR_FOCUS = null;
@@ -141,6 +144,9 @@
 .bdvr-chk{display:flex;align-items:flex-start;gap:var(--bdv-e-2);font-family:inherit;
   font-size:var(--bdv-f-3);color:var(--bdv-encre-2);line-height:1.5}
 .bdvr-chk input{accent-color:var(--bdv-accent)}
+/* Les deux mails immediats (lot 58) : un groupe, detache de la case d'avant et de celle
+   d'apres, sinon l'aide se lit comme celle de la seule seconde case. */
+.bdvr-groupe{margin:var(--bdv-e-4) 0}
 
 /* LE BANDEAU DE SAUVEGARDE. Il ne repete pas le compteur de lignes, qui est deja dans les
    cartes juste en dessous : il porte le VERDICT, appareil contre compte. C'est le seul
@@ -545,9 +551,23 @@
         <p class="bdvr-aide">Chaque matin à 8 h, s'il y a quelque chose à dire : tes rappels du
           jour, tes tâches en retard et ta file de travail. Rien de nouveau, rien dans ta boîte.
           Il porte les noms de tes clients et tes montants, donc il ne part que si tu coches.</p>
+        <!-- LES MAILS IMMEDIATS, LOT 58, 03/10/2026 (decisions de Ted). Juste apres le courrier
+             du matin : ce sont les deux seuls mails qui partent a l'instant. Chacun les regle pour
+             lui ; decocher coupe aussi la confirmation de celui qui a fait le geste (pas de
+             deuxieme case, decision de Ted). Une perdue n'envoie JAMAIS de mail. Le bloc reste
+             cache tant que la base n'a pas les colonnes (lot 58 pas encore colle) : une case
+             affichee sans colonne derriere ecrirait dans le vide. -->
+        <div id="bdvrMailsImmediats" class="bdvr-groupe" hidden>
+          <label class="bdvr-chk"><input type="checkbox" id="bdvrMailSigne"> Un mail dès qu'un client signe un devis en ligne</label>
+          <label class="bdvr-chk"><input type="checkbox" id="bdvrMailGagnee"> Un mail dès qu'un collègue gagne une affaire</label>
+          <p class="bdvr-aide">Tout de suite, avec le détail. Chacun règle les siens : décocher ici ne
+            change rien pour les autres. Quand c'est toi qui gagnes l'affaire, ce mail te sert de
+            confirmation, et il s'arrête aussi. Une affaire perdue n'envoie jamais de mail : tu la vois
+            dans les nouvelles de « Mon commerce ».</p>
+        </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
         <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>
-        <p class="bdvr-aide">Chaque envoi porte aussi un lien qui ramène à ces deux cases, sans
+        <p class="bdvr-aide">Le courrier du matin et l'édition portent aussi un lien qui ramène à leur case, sans
           mot de passe : s'arrêter doit être aussi simple que commencer, et depuis n'importe
           quel appareil.</p>
       </fieldset>
@@ -973,6 +993,12 @@
     poser('bdvrViti',    p.utilise_vitisoft);
     poser('bdvrCourrier', p.consent_courrier);
     poser('bdvrNews',    p.consent_news);
+    /* LOT 58 : les deux cases ne se montrent que si la base a les colonnes. Absentes, elles
+       ne valent pas « decoche » : une absence n'est pas un zero. */
+    const mails = el('bdvrMailsImmediats');
+    if(mails) mails.hidden = !(MAILS_IMMEDIATS[0] in p);
+    poser('bdvrMailSigne',  p.notif_mail_signe);
+    poser('bdvrMailGagnee', p.notif_mail_gagnee);
     const r = REGL || {};
     poser('bdvrObjectif', r.objectif);
     poser('bdvrExercice', r.exercice_debut);
@@ -1107,13 +1133,19 @@
       consent_courrier: !!el('bdvrCourrier').checked,
       consent_news: !!el('bdvrNews').checked
     };
+    // LOT 58 : seulement si la base porte les colonnes, sinon l'ecriture du profil entier
+    // serait refusee pour une colonne inconnue.
+    if(MAILS_IMMEDIATS[0] in p){
+      vus.notif_mail_signe  = !!el('bdvrMailSigne').checked;
+      vus.notif_mail_gagnee = !!el('bdvrMailGagnee').checked;
+    }
     const champs = {};
     Object.keys(vus).forEach(function(k){
       /* Les deux consentements se comparent en booleen et pas avec `|| null` : `false ||
          null` rend null, donc DECOCHER une case ne se voyait pas comme un changement et ne
          partait jamais. Le piege etait deja evite pour `consent_news` ; il fallait le dire
          pour deux, avant que la troisieme case ne le retrouve. */
-      const boolean = (k === 'consent_news' || k === 'consent_courrier');
+      const boolean = (k === 'consent_news' || k === 'consent_courrier' || MAILS_IMMEDIATS.indexOf(k) >= 0);
       const avant = boolean ? !!p[k] : (p[k] || null);
       if(vus[k] !== avant) champs[k] = vus[k];
     });

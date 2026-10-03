@@ -7895,3 +7895,31 @@ Edge ; s'abonner seulement en mode `standalone` sur iOS (sinon doublon Safari + 
 l'abonnement sur 404/410, a la deconnexion et a la sortie d'un bureau ; l'endpoint est une
 donnee personnelle (page rgpd) ; le service worker appelle TOUJOURS `showNotification`. Risque
 ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
+
+### LOT 58, 03/10/2026 : LES MAILS DES NOUVELLES SE REGLENT (premier lot du chantier ci-dessus)
+
+- **SQL `supabase/lot58-mails-reglables.sql`, A COLLER AVANT LE PUSH.** Deux colonnes sur
+  `profils`, `notif_mail_signe` et `notif_mail_gagnee`, `not null default true`, ecrites
+  colonne par colonne comme `consent_courrier`. `notif_detail()` rend null pour une perdue et
+  filtre les destinataires sur la case de LEUR sorte ; `affaires_notifier()` ne reveille plus la
+  fonction pour une perdue. Les deux gardes sont voulues : le declencheur economise l'appel,
+  `notif_detail` couvre un appel deja en file.
+- **L'ecran** : deux cases dans « Le courrier », juste apres le courrier du matin, groupe
+  `.bdvr-groupe`. CACHEES tant que le profil n'a pas les colonnes (`MAILS_IMMEDIATS[0] in p`) et
+  jamais envoyees dans ce cas : une absence n'est pas un zero, et une colonne inconnue ferait
+  refuser l'ecriture du profil entier.
+- **La fonction `notif-commerce` se redeploie une fois** pour son pied : « Tout le bureau le
+  recoit » est devenu faux, il dit maintenant ou decocher. Sa branche `perdue` reste, morte
+  pour les nouvelles fermetures : elle ne sert qu'aux appels deja en file, et `banc:signature`
+  la tient avec les motifs. A retirer au prochain passage, avec ce banc.
+- **Bancs** : `supabase/banc-lot58-mails-reglables.sql` (16 controles, rejoue 57 a 47 ; son
+  decor retire l'ecriture de toute la table comme `schema.sql`, sinon le droit par colonne ne
+  prouvait rien), `banc:reglages` section 7 (un profil DECOCHE en base, seul cas qui attrape le
+  piege `false || null`), `banc:signature` (le pied). Mutations faites : retirer l'une des deux
+  gardes de la perdue ou le filtre des destinataires fait echouer le banc 58.
+- **Ne jamais lancer `git status` sur le dossier du Mac** depuis le shell Cowork : il pose
+  `.git/index.lock` et ne peut pas le retirer. `git --no-optional-locks status` seulement.
+  Arrive le 03/10/2026, verrou retire avec la permission de suppression.
+- Signale a Ted, hors lot : sur iPhone l'onglet actif des reglages est hors de l'ecran a
+  l'ouverture ; les cases font environ 13 px ; sur portable, les blocs case + aide se touchent.
+

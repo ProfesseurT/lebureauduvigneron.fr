@@ -312,7 +312,8 @@ titre('2 bis. Le mail des nouvelles (fonction notif-commerce, lot 57)');
       t('le nom du signataire est echappe dans le HTML', /Paul &lt;b&gt;Martin&lt;\/b&gt;/.test(sg.html) && !/Paul <b>/.test(sg.html));
       t('le bouton mene a l\'affaire', /href="https:\/\/lebureauduvigneron\.fr\/mon-bureau\/#affaire=11111111-1111-1111-1111-111111111111"/.test(sg.html));
       t('gagnee : le collegue est nomme', ga.sujet === 'Affaire gagnée : Cave du Port (par Camila)' && /Camila a gagné l'affaire Cave du Port/.test(ga.texte));
-      t('le pied dit que tout le bureau le recoit, auteur compris', /Tout le bureau le reçoit\./.test(sg.texte) && /Tout le bureau le reçoit\./.test(ga.texte)
+      t('lot 58 : le pied dit ou couper ce mail, et plus « tout le bureau »', /onglet « Le courrier »\. Tu peux l'y décocher\./.test(sg.texte) && /onglet « Le courrier »\. Tu peux l'y décocher\./.test(ga.texte)
+        && !/Tout le bureau le reçoit/.test(sg.texte + ga.texte)
         && !/Celui qui a fait le geste/.test(sg.html + ga.html + pe.html));
       t('perdue : le motif en mots, pas en code', pe.sujet === 'Affaire perdue : Cave du Port (par Bruno)' && /Motif : Un fournisseur déjà en place/.test(pe.texte));
       t('largeur bornee a 560 px, en attribut et en style, fonds sur les cellules', /width="560"[^>]*max-width:560px/.test(sg.html) && /<td bgcolor="#FFFFFF" style="background-color:#FFFFFF/.test(sg.html));

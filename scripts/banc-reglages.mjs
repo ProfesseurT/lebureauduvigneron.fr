@@ -392,6 +392,54 @@ console.log('\n== 6. Ni ombre ni saut au survol des boutons du bureau ==');
   dit(/\.btn:hover \{\s*transform: translate\(-2px, -2px\);/.test(site), 'le site public garde son bouton qui avance (style.css intact)');
 }
 
+/* ==========================================================================
+   7. LES MAILS IMMEDIATS SE REGLENT, LOT 58, 03/10/2026 (decisions de Ted)
+   --------------------------------------------------------------------------
+   Deux cases par personne, cochees en base par defaut. Tant que le lot 58 n'est pas colle,
+   les colonnes n'existent pas : les cases ne se montrent pas ET ne partent pas, sinon
+   l'ecriture du profil entier serait refusee pour une colonne inconnue.
+   ========================================================================== */
+console.log('\n== 7. Les mails immediats, une case par personne ==');
+for (const avecColonnes of [false, true]) {
+  const t = monter({ objectif: 500000, exercice_debut: 4 });
+  const profil = avecColonnes
+    ? { prenom: 'Ted', consent_courrier: true, consent_news: false, notif_mail_signe: false, notif_mail_gagnee: true }
+    : { prenom: 'Ted', consent_courrier: true, consent_news: false };
+  const ecrits = [];
+  t.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
+  t.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, profil)] : [{}]);
+  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  const d = t.w.document, $ = (id) => d.getElementById(id);
+  t.w.BdvReglages.ouvrir('bdvrBlocCourrier');
+  await dormir(80);
+  const bloc = $('bdvrMailsImmediats');
+  const soumettre = async () => { $('bdvrForm').dispatchEvent(new t.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
+  if (!avecColonnes) {
+    dit(!!bloc && bloc.hidden, 'base sans le lot 58 : les deux cases restent cachees');
+    $('bdvrNews').checked = true;
+    await soumettre();
+    dit(ecrits.length === 1 && JSON.stringify(Object.keys(ecrits[0])) === '["consent_news"]',
+      'base sans le lot 58 : un enregistrement n\'envoie aucune colonne inconnue (' + JSON.stringify(ecrits) + ')');
+  } else {
+    dit(!!bloc && !bloc.hidden, 'base avec le lot 58 : les deux cases se montrent');
+    dit(bloc && bloc.closest('#bdvrBlocCourrier') !== null, 'elles sont dans l\'onglet « Le courrier »');
+    dit(!$('bdvrMailSigne').checked && $('bdvrMailGagnee').checked, 'cochees comme en base (signe decoche, gagnee cochee)');
+    await soumettre();
+    /* Une case DEJA decochee en base ne doit pas repartir a chaque enregistrement : c'est le
+       piege du `false || null` (lot 12), que seul un profil decoche peut attraper. */
+    dit(ecrits.length === 0, 'rien touche, une case deja decochee en base : rien ne part (' + JSON.stringify(ecrits) + ')');
+    $('bdvrMailGagnee').checked = false;
+    await soumettre();
+    dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_mail_gagnee":false}',
+      'decocher « affaire gagnee » n\'envoie que cette colonne, a false (' + JSON.stringify(ecrits) + ')');
+    const aide = bloc.textContent;
+    dit(/perdue n'envoie jamais de mail/.test(aide) && /confirmation/.test(aide),
+      'l\'aide dit la perdue sans mail et la confirmation coupee aussi');
+    const ordre = [...$('bdvrBlocCourrier').querySelectorAll('input[type=checkbox]')].map(n => n.id);
+    dit(ordre.join() === 'bdvrCourrier,bdvrMailSigne,bdvrMailGagnee,bdvrNews', 'le courrier du matin reste la premiere case (' + ordre.join() + ')');
+  }
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DES REGLAGES REFUSE\n'); process.exit(1); }
