@@ -7849,3 +7849,46 @@ ou PERDUE PAR UN COLLEGUE. Ce que j'ai fait moi-meme n'est jamais une nouvelle.
 - **Le bandeau vert `#bureauSigne` est supprime.** La punaise « devis signe » reste (une chose a
   faire, pas une nouvelle).
 - Captures : `NOUV=1 node scripts/cap-nouv.mjs 1440:light` (decor-gagner avec NOUV=1).
+
+## LES NOTIFICATIONS ET LEURS REGLAGES, DECISIONS DU 03/10/2026 (RIEN N'EST CODE)
+
+Avis demande par Ted, conseil : vigneron empathique + contradicteur technique (sources WebKit,
+RFC 8030, docs Supabase). Arbitrages de Ted le meme jour.
+
+**UNE SEULE GRILLE, dans l'onglet « Le courrier » des reglages.** Trois colonnes : Mail
+immediat / Courrier de 8 h / Notification. Cases par defaut :
+
+| Ligne | Mail immediat | Courrier 8 h | Notification |
+|---|---|---|---|
+| Devis signe en ligne | interrupteur, coche | coche | coche |
+| Affaire gagnee par un collegue | interrupteur, coche | coche | a trancher |
+| Affaire perdue par un collegue | **JAMAIS** (decision de Ted) | coche | decoche |
+| Devis qui expire demain sans reponse | n'existe pas | coche | coche |
+| Echeance qui coute une amende | n'existe pas | coche | coche |
+| Rappels promis pour aujourd'hui (17 h) | n'existe pas | coche | decoche |
+
+- **Le mail immediat n'existe que pour ce qui arrive par d'autres que soi** (signature,
+  collegue). Tout le reste passe par le courrier de 8 h. Raison : la regle du SEUIL (reputation
+  de `courrier.`, palier gratuit Resend).
+- **Consequence sur le lot 57** : le mail « affaire perdue » qu'il envoie aujourd'hui doit
+  DISPARAITRE, et les mails « devis signe » / « affaire gagnee » gagnent un interrupteur.
+- La colonne courrier se grise quand « Recevoir le courrier du matin » est decoche, et le dit.
+- Au-dessus de la grille : « Activer sur cet appareil » et l'etat visible (« notifications
+  actives sur cet iPhone »). L'abonnement est PAR APPAREIL, la grille est par compte.
+- Sous la grille : la plage de silence, 20 h a 7 h par defaut. Rien d'autre a regler.
+- **La regle du 11/09 est amendee** : la notification dit « ce qui sera trop tard demain », OU
+  une bonne nouvelle a saisir dans l'heure (le devis signe).
+
+**Ce que le vigneron a pose, a ne pas casser** : toucher la notification ouvre la chose exacte
+(meme apres reconnexion), une chose faite n'est plus jamais notifiee, une par jour au plus hors
+signatures, ni nom de client ni montant. Textes : « Un devis vient d'etre signe. », « DRM a
+deposer demain. », « Un devis expire demain sans reponse. », « 2 rappels promis pour
+aujourd'hui ne sont pas faits. »
+
+**Verifie par le contradicteur** : push web sur iPhone UE seulement app installee (iOS 16.4+),
+permission sur un geste ; Chrome/Edge/Firefox doivent tourner, Safari macOS non ; TTL de
+quelques jours (pas 0) ; envoi gratuit par VAPID + `jsr:@negrel/webpush` depuis une fonction
+Edge ; s'abonner seulement en mode `standalone` sur iOS (sinon doublon Safari + app) ; supprimer
+l'abonnement sur 404/410, a la deconnexion et a la sortie d'un bureau ; l'endpoint est une
+donnee personnelle (page rgpd) ; le service worker appelle TOUJOURS `showNotification`. Risque
+ouvert : un projet Supabase gratuit en pause arrete aussi le cron.

@@ -12,6 +12,23 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 03/10/2026, les notifications et leurs réglages (décisions, rien de codé)
+
+Demande de Ted : notifications navigateur pour le devis signé, les échéances, les urgences à
+rappeler, puis une gestion dans les réglages, par mail ou notification, pour chaque action.
+Conseil : vigneron empathique + contradicteur technique.
+Décidé :
+- une seule grille dans l'onglet « Le courrier » (mail immédiat / courrier de 8 h / notification) ;
+- le mail immédiat « devis signé » est gardé avec un interrupteur ; « affaire gagnée par un
+  collègue » aussi ;
+- **jamais de mail pour une affaire perdue** : celui du lot 57 doit être retiré ;
+- lignes ajoutées : devis qui expire demain, affaire perdue (sans mail) ;
+- les rappels clients sont décochés par défaut côté notification ;
+- la règle « trop tard demain » admet la bonne nouvelle à saisir (devis signé).
+Écarté : une case « mail » par action (trois messages pour une DRM, réputation de `courrier.`).
+Reste à trancher : la notification « affaire gagnée par un collègue ». Détail dans `CLAUDE.md`,
+section « LES NOTIFICATIONS ET LEURS REGLAGES ».
+
 ## 03/10/2026, lot 57 : les nouvelles de « Mon commerce »
 
 Demande de Ted : un point sur « Mon commerce », un point sur « Mon bureau », une pastille en
