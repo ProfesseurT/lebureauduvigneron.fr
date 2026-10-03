@@ -828,7 +828,11 @@ titre('Lot 45 : la raison du client suit son affaire');
   /* M1 (01/10/2026) : le moteur ne part QUE de la recherche d'un client (demanderLignes),
      jamais pour la raison d'une affaire ni a l'ouverture de la piece. */
   t('la piece ne charge jamais le moteur des ventes pour la raison',
-    !/demarrerEcransVente/.test(SRC) && (SRC.replace(/\/\*[\s\S]*?\*\//g, '').match(/BdvNav\.chargerEcrans\(\)/g) || []).length === 1
+    !/demarrerEcransVente/.test(SRC)
+    /* 03/10/2026 : un second appel, et un seul, dans `fichePage()` : la pleine page d'une
+       affaire client lit trois lignes de ses ventes (« Avant de l'appeler »). Jamais le panneau. */
+    && (SRC.replace(/\/\*[\s\S]*?\*\//g, '').match(/BdvNav\.chargerEcrans\(\)/g) || []).length === 2
+    && /function fichePage\(a\) \{[\s\S]{0,400}BdvNav\.chargerEcrans\(\)/.test(SRC)
     && /function demanderLignes\(\) \{[\s\S]{0,400}BdvNav\.chargerEcrans\(\)/.test(SRC)
     && !/async function ouvrir\(\) \{[\s\S]{0,1500}demanderLignes/.test(SRC));
   const lig = (id) => F.doc.querySelector('#affCorps [data-affaire="' + id + '"]');
@@ -1689,6 +1693,60 @@ titre('Tour 2 : opposition, doublon de SIRET, conclure, reporter');
   t('W1 : le choix enfonce porte sa coche en CSS', /\.aff-conclure__choix\[aria-pressed="true"\]::before\{/.test(sx));
   t('W6 : sous 700 px, les trois boutons de report partagent une ligne', /\.amod__report-b\{[^}]*display:grid/.test(sx));
   t('aucune ombre et aucun z-index dans la passe du tour 2', !/box-shadow|z-index/.test(sx.slice(sx.indexOf('*/') + 2).split('/* ===')[0].replace(/\/\*[\s\S]*?\*\//g, '')));
+}
+
+/* ---------------------------------------------------------------------------
+   03/10/2026 : LE CLIENT EN DIRECT, ET L'AFFAIRE EN PLEINE PAGE (#affaire=).
+   --------------------------------------------------------------------------- */
+titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
+{
+  const F = monter();
+  const w = F.w, jour = new Date().toISOString();
+  w.BdvNav = { avecVitisoft: () => true, chargerMoteur: () => Promise.resolve() };
+  w.eval(fs.readFileSync(path.join(RACINE, 'src/js/bdv-devis-calcul.js'), 'utf8'));
+  w.parseTels = (c) => c ? [{ appel: '+33612345678', affiche: '06 12 34 56 78' }] : [];
+  w.parseEmails = (c) => c ? [c] : [];
+  const ecrits = [];
+  w.BdvSync = { lireEchanges: async () => [{ echange_id: 'x1', client_id: 'C1', le: '2026-09-25T10:00:00Z', type: 'appel', canal: 'appel', resume: 'Veut goûter le 2025' }],
+    ecrireEchange: async (e) => { ecrits.push(e); return true; } };
+  F.base.ventes_lignes = [{ bureau: BUREAU, client_cle: 'C1', mobile: '0612345678', fixe: '', emails: 'cave@ex.fr', pays: 'France', le_jour: '2026-07-01' }];
+  F.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'client', sommeil_jours: 30, ordre: 0, archive: false });
+  F.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 }, { bureau: BUREAU, etape_id: 'e2', type_id: 't1', nom: 'Devis', ordre: 2 });
+  F.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', client_id: 'C1', client_nom: 'Chez Paul', titre: 'Le rosé', issue: 'en_cours', rappel: '2000-01-01', rappel_titre: 'Lui faire goûter', etape_le: jour, ouverte_le: jour });
+  F.base.devis = [{ bureau: BUREAU, affaire_id: 'a1', devis_id: 'd1', numero: 'D-2026-0001', statut: 'enregistre', total_ht_c: 999900, cree_le: jour }];
+  await w.BdvAffaires.ouvrir();
+  F.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(40);
+  const lc = F.requetes.filter(r => /^\/ventes_lignes\?/.test(r.chemin));
+  t('le numero se LIT dans ses ventes, pour ce bureau et ce client', lc.length >= 1 && lc.every(r => /bureau=eq\./.test(r.chemin) && /client_cle=eq\.C1/.test(r.chemin)), lc.map(r => r.chemin).join(' ; '));
+  const tete = F.doc.getElementById('amodTete');
+  const tel = tete && tete.querySelector('a[href^="tel:"]');
+  t('le panneau dit « Appeler le 06 12 34 56 78 » et compose le meme numero', !!tel && tel.getAttribute('href') === 'tel:+33612345678' && /06 12 34 56 78/.test(tel.textContent));
+  t('« Ecrire » ouvre le redacteur de sa fiche, pas un mailto', !!tete.querySelector('[data-aff="ecrireClient"]') && !tete.querySelector('a[href^="mailto:"]'));
+  t('son historique est a l\'ecran', /Veut goûter le 2025/.test(tete.textContent));
+  t('« Agrandir » mene a #affaire=a1 dans un nouvel onglet', (() => { const ag = F.doc.getElementById('amodAgrandir'); return !!ag && !ag.hidden && /#affaire=a1$/.test(ag.getAttribute('href')) && ag.target === '_blank'; })());
+  F.doc.querySelector('#amodTete .aff-noter__txt').value = 'Rappelé, 12 magnums';
+  F.clic('#amodTete [data-aff="noterEchange"]');
+  await attendre(40);
+  t('« Noter » ecrit dans le journal de la fiche (echanges), pas une copie', ecrits.length === 1 && ecrits[0].client_id === 'C1' && /12 magnums/.test(ecrits[0].resume));
+  t('la note apparait dans l\'historique', /12 magnums/.test(F.doc.getElementById('amodTete').textContent));
+
+  /* La pleine page */
+  F.clic('#affaireModale .tmod__x');
+  const ok = await w.BdvAffaires.page('a1');
+  await attendre(60);
+  const pg = F.doc.getElementById('pageAffaire');
+  const tx = pg ? pg.textContent.replace(/[  ]/g, ' ') : '';
+  t('la page se monte, une seule fois l\'avis de la piece', ok === true && !!pg && F.doc.querySelectorAll('#affAvis').length === 1 && pg.contains(F.doc.getElementById('affAvis')));
+  t('le moment : le rappel en retard passe avant un devis pas envoye', /Tu devais le rappeler/.test(tx) && !!pg.querySelector('.page-aff__moment a.btn--bordeaux[href^="tel:"]'));
+  t('aucun montant en tete pour un devis pas envoye', !pg.querySelector('.page-aff__gros'));
+  t('tous les devis de l\'affaire sont visibles', /D-2026-0001/.test(pg.querySelector('#affDevisListe').textContent));
+  t('un seul aplat d\'accent dans la page', [...pg.querySelectorAll('.btn--bordeaux')].filter(n => !n.closest('details:not([open])')).length === 1);
+  t('« Reperes » se tait sous 5 affaires closes du type', !/Pour préparer ta réponse/.test(tx));
+  F.base.devis.push({ bureau: BUREAU, affaire_id: 'a1', devis_id: 'd2', numero: 'D-2026-0002', statut: 'accepte', signe_le: jour, total_ht_c: 120000, envoye_le: '2026-09-01', valable_jusqu: '2099-01-01', cree_le: jour });
+  w.BdvAffaires._S.devisDe.a1 = F.base.devis.slice().reverse();
+  const m = w.BdvAffaires._moment(F.base.affaires[0], w.BdvAffaires.etat(F.base.affaires[0]));
+  t('un devis signe passe avant un rappel en retard (arbitre par Ted)', m.plein === 'devis' && /Signé en ligne/.test(m.t));
 }
 
 console.log('\n== VERDICT ==');

@@ -33,13 +33,19 @@ export async function contexte(nav, largeur, theme) {
       affaires: [
         { bureau: B, affaire_id: 'a1', type_id: 't1', etape_id: 'e2', client_id: 'C0288', client_nom: 'Cave du Vieux Pressoir', titre: 'Le magnum de rosé pour Noël', issue: 'en_cours', rappel: new Date(Date.now()-3*86400000).toISOString().slice(0,10), rappel_titre: 'Lui faire goûter le 2025', etape_le: jour, maj_le: jour, cree_le: jour },
         { bureau: B, affaire_id: 'a3', type_id: 't1', etape_id: 'e1', client_id: 'C0412', client_nom: 'Domaine des Hauts Coteaux et Fils', titre: 'Le BIB pour le caveau', issue: 'en_cours', rappel: null, etape_le: new Date(Date.now()-60*86400000).toISOString(), maj_le: jour, cree_le: jour },
-        { bureau: B, affaire_id: 'a2', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Carte des vins au verre', issue: 'en_cours', rappel: new Date(Date.now()+5*86400000).toISOString().slice(0,10), etape_le: jour, maj_le: jour, cree_le: jour } ] };
+        { bureau: B, affaire_id: 'a2', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Carte des vins au verre', issue: 'en_cours', rappel: new Date(Date.now()+5*86400000).toISOString().slice(0,10), etape_le: jour, maj_le: jour, cree_le: jour } ],
+      /* 03/10/2026 : le client en direct et la pleine page d'une affaire. */
+      ventes_lignes: [{ bureau: B, client_cle: 'C0288', mobile: '06 12 34 56 78', fixe: '', emails: 'cave@exemple.fr', pays: 'France', le_jour: '2026-07-01' }],
+      echanges: [{ bureau: B, echange_id: 'x1', client_id: 'C0288', le: new Date(Date.now()-8*86400000).toISOString(), type: 'appel', canal: 'appel', resume: 'Intéressé par le magnum, veut goûter le 2025 avant de commander.' },
+        { bureau: B, echange_id: 'x2', client_id: 'C0288', le: new Date(Date.now()-30*86400000).toISOString(), type: 'email', canal: 'email', resume: 'Message envoyé : tarifs 2026' }],
+      devis: [{ bureau: B, devis_id: 'd1', affaire_id: 'a1', numero: 'D-2026-0042', statut: 'envoye', total_ht_c: 124000, total_vins_c: 124000, remise_globale_c: 0, tva_c: 24800, total_ttc_c: 148800, port_c: 0, date_devis: new Date(Date.now()-10*86400000).toISOString().slice(0,10), envoye_le: new Date(Date.now()-10*86400000).toISOString().slice(0,10), valable_jusqu: new Date(Date.now()+20*86400000).toISOString().slice(0,10), cree_le: jour, papier_empreinte: null },
+        { bureau: B, devis_id: 'd0', affaire_id: 'a1', numero: 'D-2026-0009', statut: 'abandonne', total_ht_c: 98000, total_vins_c: 98000, remise_globale_c: 0, tva_c: 19600, total_ttc_c: 117600, port_c: 0, date_devis: new Date(Date.now()-40*86400000).toISOString().slice(0,10), cree_le: jour, papier_empreinte: null }] };
     window.__T = T; let n = 0;
     const avant = window.fetch;
     window.fetch = function (e, init) {
       const url = String((e && e.url) || e || '');
       if (/\/suivi_clients/.test(url)) window.__N33 = (window.__N33 || 0) + 1;
-      const m = url.match(new RegExp('supabase\\.co/rest/v1/(affaire_types|affaire_etapes|pistes|affaires|affaire_notes' + (HORS33 ? '' : '|suivi_clients|vues_clients') + ')(\\?|$)'));
+      const m = url.match(new RegExp('supabase\\.co/rest/v1/(affaire_types|affaire_etapes|pistes|affaires|affaire_notes' + (HORS33 ? '' : '|suivi_clients|vues_clients') + '|ventes_lignes|echanges|devis)(\\?|$)'));
       if (!m) return avant(e, init);
       const t = m[1], meth = (init && init.method) || 'GET';
       const rep = o => Promise.resolve(new Response(o == null ? '' : JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json' } }));
@@ -47,6 +53,9 @@ export async function contexte(nav, largeur, theme) {
       if (meth === 'GET') {
         let l = T[t];
         if (/issue=eq\.en_cours/.test(url)) l = l.filter(a => a.issue === 'en_cours');
+        [...url.matchAll(/[?&](affaire_id|client_cle|client_id)=eq\.([^&]+)/g)].forEach(m2 => { l = l.filter(x => String(x[m2[1]]) === decodeURIComponent(m2[2])); });
+        if (/[?&]affaire_id=in\./.test(url)) { const ids = decodeURIComponent(url.match(/affaire_id=in\.\(([^)]*)\)/)[1]).split(','); l = l.filter(x => ids.includes(x.affaire_id)); }
+        const off = +((url.match(/[?&]offset=(\d+)/) || [])[1] || 0); if (off) l = l.slice(off);
         return rep(l);
       }
       if (meth === 'POST') { const c = JSON.parse(init.body || '[]'); (Array.isArray(c) ? c : [c]).forEach(x => { const k = t === 'pistes' ? 'piste_id' : 'affaire_id'; T[t].push(Object.assign({ [k]: 'n' + (++n), issue: 'en_cours', etape_le: jour, maj_le: jour, cree_le: jour }, x)); }); return rep(null); }

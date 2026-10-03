@@ -144,6 +144,7 @@
   function doublonSiret(e) { return /pistes_siret_unique/.test(String((e && e.detail) || '')); }
   /* N8 : « le 9 oct.. » ; une date abregee porte deja son point. */
   function point(x) { return /\.$/.test(x) ? x : x + '.'; }
+  function pointB(x) { return /\.(<\/b>)?$/.test(x) ? x : x + '.'; }   // « 23 oct.</b> » finit deja la phrase
   function dire(html, souci) {
     var n = (panneauVoulu() && el('amodAvis')) || el('affAvis');
     var autre = n && n.id === 'amodAvis' ? el('affAvis') : el('amodAvis');
@@ -353,6 +354,7 @@
   /* ---------------- LE DESSIN ---------------- */
   function rendre() {
     peindreReglages();
+    if (S.page) { peindrePage(); return; }
     var c = el('affCorps');
     if (!c) return;
     if (!S.charge) {
@@ -418,6 +420,9 @@
     MOD.innerHTML = '<div class="tmod__voile" data-aff="fermerPanneau"></div>'
       + '<div class="tmod__boite amod__boite" role="dialog" aria-modal="true" aria-labelledby="amodTitre">'
       + '<button type="button" class="tmod__x" data-aff="fermerPanneau" aria-label="Fermer">×</button>'
+      /* « AGRANDIR », 03/10/2026 : l'affaire en pleine page, dans un nouvel onglet, comme la
+         fiche d'un client. A cote de la croix : fermer ou agrandir au meme endroit. */
+      + '<a class="amod__agrandir" id="amodAgrandir" href="/mon-bureau/#affaires" target="_blank" rel="noopener" title="Agrandir dans un nouvel onglet" hidden><span class="hors-ecran">Agrandir l’affaire dans un nouvel onglet</span></a>'
       + '<div class="amod__tete" id="amodTete"></div>'
       + '<p class="aff-avis" id="amodAvis" role="status" aria-live="polite" hidden></p>'
       + '<div class="amod__corps" id="amodCorps"></div></div>';
@@ -484,7 +489,10 @@
       peindreTete(a);
       corps.innerHTML = htmlEditeur(a);
       lireDevis(a);
+      if (clientDe(a)) chargerClient(a, function () { repeindreClient(a); });
     }
+    var ag = el('amodAgrandir');
+    if (ag) { ag.hidden = !S.ouverte || !!S.nouvelle; if (S.ouverte) ag.href = '/mon-bureau/#affaire=' + encodeURIComponent(S.ouverte); }
     if (neuf) {
       /* M7 : le bouton d'ou l'on vient a deja ete repeint par `rendre()` quand on arrive
          ici. On garde donc AUSSI ce qu'il designait (`S.retour`, pose au clic), pour
@@ -582,8 +590,13 @@
          X11 : le raccourci n'est montre que SOUS 700 px (bdv-bureau.css) ; au-dessus, le
          « Nouveau devis » du bas du panneau est deja dans l'ecran. Le meme geste. */
       + htmlContacts(a)
+      /* LE CLIENT EN DIRECT (03/10/2026) : son numero et son adresse LUS dans ses ventes,
+         « Ecrire » par le redacteur de sa fiche. */
+      + (clientDe(a) ? '<p class="amod__contacts">' + htmlContactsClient(a) + '</p>' : '')
       + (a.issue === 'en_cours' ? '<p class="amod__raccourci"><button type="button" class="btn" data-aff="devisRaccourci">Nouveau devis</button></p>' : '')
-      + htmlReport(a, e);
+      + htmlReport(a, e)
+      + (clientDe(a) ? htmlNoter(a) + '<details class="aff-plus amod__hist" data-bloc="hist"><summary>Son historique</summary><div class="aff-plus__corps">'
+        + htmlHistorique(a, 5) + '</div></details>' : '');
   }
   /* V6 (01/10/2026), demande du vigneron : « repousser une relance d'un pouce au chai ».
      Sous la boite d'etat d'une affaire A RELANCER (rappel passe ou du jour, ou endormie),
@@ -1300,7 +1313,7 @@
       + '<label class="aff-champ"><span>Rappel prévu le</span><input name="rappel" id="affEditRappel" type="date" value="' + esc(a.rappel || '') + '"></label></div>'
       + '<label class="aff-champ"><span>Pour quoi faire</span><input name="rappel_titre" type="text" maxlength="120" value="' + esc(a.rappel_titre || '') + '"></label>'
       + '<label class="aff-champ"><span>Titre de l’affaire</span><input name="titre" type="text" maxlength="120" value="' + esc(a.titre || '') + '"></label>'
-      + '<label class="aff-champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea></label>'
+      + '<label class="aff-champ aff-champ--notes"><span>Notes</span><textarea name="notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea></label>'
       + htmlChanger(a)
       + (p ? '<details class="aff-plus"><summary>Pas encore dans Vitisoft : ' + esc(p.nom || '') + '</summary><div class="aff-plus__corps">'
         + champNomme('p_nom', 'Le nom de l’établissement', 'text', 120, p.nom)
@@ -1505,6 +1518,7 @@
         bureau: bureau(), affaire: { affaire_id: id, issue: issue, rappel: a.rappel || null, rappel_titre: a.rappel_titre || null },
         etapeDevis: etD, sujet: qui, nouveau: neuf, devis: dv || null, autresEnCours: autres, opposee: oppose(a),
         retour: function (devisId) {
+          if (S.page) { rendre(); lireDevis({ affaire_id: id }).then(rendre); return; }
           if (issue !== 'en_cours') { rendre(); var b = focusSortie(id); if (b) { try { b.focus(); } catch (e) {} } return; }
           S.nouvelle = false; S.choix = null; S.ouverte = id; MOD_CLE = ''; S.retour = { affaire: id };
           S.focusDevis = { affaire: id, devis: devisId || null };
@@ -1524,7 +1538,7 @@
           /* LOT 51 : un refus qui clot l'affaire, une acceptation annulee qui la rouvre. */
           if (d && d.statut === 'refuse' && d.affaireClose) issue = 'perdue';
           if (d && d.affaireRouverte && issue === 'gagnee') issue = 'en_cours';
-          charger().then(function (ok) { if (ok) rendre(); });
+          charger().then(function (ok) { if (ok) rendre(); if (S.page) return lireDevis({ affaire_id: id }).then(rendre); });
           /* T4 (tour 3) : l'avis de la page disait encore « Affaire ouverte : ..., rappel le
              9 oct. » a cote de « Aucune affaire en cours », apres un devis qui avait clos
              l'affaire. Un geste du devis remplace l'avis : par ce que le geste a change a
@@ -2398,6 +2412,34 @@
         return;
       }
       if (quoi === 'voirFiche' && a) { voirFiche(a); return; }
+      if (quoi === 'noterEchange' && a) { noterEchange(a, b); return; }
+      if (quoi === 'ecrireClient' && a) { ecrireClient(a); return; }
+      /* PLEINE PAGE : « Autre date » et les deux fins menent au formulaire, deplie. */
+      if ((quoi === 'pageAutreDate' || quoi === 'pageConclure') && a) {
+        var dm = document.querySelector('#pageAffaire details[data-bloc="modifier"]');
+        if (dm) dm.open = true;
+        var fp = formEdit(a.affaire_id);
+        if (!fp) return;
+        var calmeP = false;
+        try { calmeP = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (x) {}
+        if (quoi === 'pageAutreDate') {
+          var chp = fp.elements.rappel;
+          if (chp) {
+            try { chp.scrollIntoView({ block: 'center', behavior: calmeP ? 'auto' : 'smooth' }); } catch (x) {}
+            try { chp.focus({ preventScroll: true }); } catch (x) {}
+            try { if (chp.showPicker) chp.showPicker(); } catch (x) {}
+          }
+          return;
+        }
+        var ch2 = b.getAttribute('data-choix');
+        poserConclure(fp, ch2);
+        var vp = fp.querySelector('[data-confirme="' + ch2 + '"] [data-aff^="confirmer"]') || fp.querySelector('.aff-conclure');
+        if (vp) {
+          try { vp.scrollIntoView({ block: 'center', behavior: calmeP ? 'auto' : 'smooth' }); } catch (x) {}
+          try { vp.focus({ preventScroll: true }); } catch (x) {}
+        }
+        return;
+      }
       /* X11 : le raccourci de tete porte son propre nom, pour que « [data-aff=devis] » reste
          UN bouton (le vrai, en bas, celui que lisent les bancs et les harnais). */
       if ((quoi === 'devis' || quoi === 'devisRaccourci') && a) { ouvrirDevis(a, null); return; }
@@ -2624,7 +2666,459 @@
     if (n) { try { n.focus(); } catch (e) {} }
   });
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat,
+  /* ================= LE CLIENT EN DIRECT, 03/10/2026 =================
+     Demande de Ted : « si un client est selectionne dans l'affaire on doit pouvoir faire
+     facilement des actions commerciales liees au client, pas une copie mais une action sur
+     cette base en direct ». Rien n'est recopie dans l'affaire :
+     - le numero et l'adresse se LISENT dans `ventes_lignes` (les lignes les plus recentes
+       du client, par l'index `ventes_lignes_client`), et passent par `parseTels` /
+       `parseEmails` du moteur, les MEMES que la fiche : un lien `tel:` ne compose jamais
+       autre chose que ce que l'ecran affiche (regle du 11/09/2026) ;
+     - « Noter un echange » ECRIT dans `echanges`, le journal de la fiche : la note se lit
+       des deux cotes. Par `echAjouter()` quand le moteur est la (miroir + file de rejeu),
+       sinon par `BdvSync.ecrireEchange()` ;
+     - « Ecrire » ouvre le redacteur de SA fiche (decision de Ted) ;
+     - l'historique se LIT dans `echanges` a chaque ouverture.
+     Le rappel reste celui de l'AFFAIRE (decision de Ted) : la fiche garde le sien. */
+  var CLI = {};   // par client : { contacts: {tel, affiche, mail} | null, echanges: [] | null, lu: bool }
+  function cliDe(a) { var id = clientDe(a); return id ? (CLI[id] || (CLI[id] = { contacts: undefined, echanges: undefined })) : null; }
+  function chargerMoteurSeul() {
+    if (typeof parseTels === 'function') return Promise.resolve();
+    return (window.BdvNav && BdvNav.chargerMoteur) ? BdvNav.chargerMoteur() : Promise.reject(new Error('moteur absent'));
+  }
+  function lireContacts(id) {
+    return Promise.all([
+      BdvCompte.api('/ventes_lignes?select=emails,fixe,mobile,pays,le_jour&bureau=eq.' + encodeURIComponent(bureau())
+        + '&client_cle=eq.' + encodeURIComponent(id) + '&order=le_jour.desc&limit=20'),
+      chargerMoteurSeul()
+    ]).then(function (r) {
+      var l = Array.isArray(r[0]) ? r[0] : [], tel = null, mail = '';
+      for (var i = 0; i < l.length && (!tel || !mail); i++) {
+        if (!tel) { var t = parseTels(l[i].mobile, l[i].pays).concat(parseTels(l[i].fixe, l[i].pays)); if (t.length) tel = t[0]; }
+        if (!mail) { var m = parseEmails(l[i].emails); if (m.length) mail = m[0]; }
+      }
+      return { tel: tel ? tel.appel : '', affiche: tel ? tel.affiche : '', mail: mail };
+    });
+  }
+  /* Une lecture ratee vaut `null` : l'ecran le dit, il n'affiche jamais « pas de numero ». */
+  function chargerClient(a, apres) {
+    var id = clientDe(a), c = cliDe(a);
+    if (!id || !pret()) return Promise.resolve();
+    var p1 = lireContacts(id).then(function (x) { c.contacts = x; }, function () { c.contacts = null; });
+    /* bdv-sync.js arrive AVEC le moteur : sur « A gagner » il n'est pas encore la. */
+    var p2 = chargerMoteurSeul().then(function () { return window.BdvSync && BdvSync.lireEchanges ? BdvSync.lireEchanges(id) : Promise.reject(); })
+      .then(function (l) { c.echanges = fusionEchanges(id, l); }, function () { c.echanges = null; });
+    return Promise.all([p1, p2]).then(function () { if (apres) apres(); });
+  }
+  /* Ce que le serveur rend, plus ce que cet appareil a ecrit et n'a pas encore pousse. */
+  function fusionEchanges(id, l) {
+    var vus = {}, out = [];
+    (Array.isArray(l) ? l : []).forEach(function (e) { vus[e.echange_id] = 1; out.push(e); });
+    try { if (typeof echDe === 'function') echDe(id).forEach(function (e) { if (!vus[e.echange_id]) out.push(e); }); } catch (x) {}
+    return out.sort(function (a, b) { return String(b.le).localeCompare(String(a.le)); });
+  }
+  function libEch(e) {
+    try { if (window.BdvCanaux) return BdvCanaux.libelleEntree(e); } catch (x) {}
+    return String(e.canal || e.type || 'Note');
+  }
+  function auteur(e) {
+    try { if (e.cree_par && window.BdvCompte && BdvCompte.nomAuteur) return BdvCompte.nomAuteur(e.cree_par); } catch (x) {}
+    return '';
+  }
+  function htmlHistorique(a, max) {
+    var c = cliDe(a);
+    if (!c) return '';
+    if (c.echanges === undefined) return '<p class="aff-aide">Lecture de son historique…</p>';
+    if (c.echanges === null) return '<p class="aff-aide">Son historique n’a pas pu être lu. Il reste dans sa fiche.</p>';
+    if (!c.echanges.length) return '<p class="aff-aide">Rien de noté pour l’instant. Note ton prochain appel ici : il apparaîtra aussi dans sa fiche.</p>';
+    return '<ul class="aff-hist">' + c.echanges.slice(0, max || 5).map(function (e) {
+      var qui = auteur(e), r = String(e.resume || '').split('\n')[0];
+      return '<li><span class="aff-hist__d">' + esc(dateCourte(String(e.le).slice(0, 10))) + '</span><span><b>' + esc(libEch(e)) + '</b>'
+        + (qui ? ' par ' + esc(qui) : '') + (r ? ' : ' + esc(r.length > 160 ? r.slice(0, 157) + '…' : r) : '') + '</span></li>';
+    }).join('') + '</ul>' + (c.echanges.length > (max || 5) ? '<p class="aff-aide">Et ' + (c.echanges.length - (max || 5)) + ' de plus dans sa fiche.</p>' : '');
+  }
+  function htmlNoter(a) {
+    if (!clientDe(a)) return '';
+    var opts = '';
+    try { if (window.BdvCanaux) BdvCanaux.liste.forEach(function (k) { opts += '<option value="' + esc(k.cle) + '"' + (k.cle === 'appel' ? ' selected' : '') + '>' + esc(k.label || k.libelle || k.cle) + '</option>'; }); } catch (x) {}
+    return '<details class="aff-noter" data-bloc="noter"><summary>Noter un échange</summary><div class="aff-noter__corps">'
+      + (opts ? '<label class="aff-champ"><span>Comment</span><select class="aff-noter__canal">' + opts + '</select></label>' : '')
+      + '<label class="aff-champ"><span>Ce qui s’est dit</span><textarea class="aff-noter__txt" rows="3" maxlength="2000"></textarea></label>'
+      + '<p><button type="button" class="btn" data-aff="noterEchange">Noter</button></p>'
+      + '<p class="aff-aide">Noté aussi dans sa fiche.</p></div></details>';
+  }
+  function noterEchange(a, bouton) {
+    var id = clientDe(a); if (!id) return;
+    var bloc = bouton.closest('.aff-noter'), txt = bloc && bloc.querySelector('.aff-noter__txt'), sel = bloc && bloc.querySelector('.aff-noter__canal');
+    var t = txt ? txt.value.trim() : '';
+    if (!t) { dire('Écris ce qui s’est passé avant de noter.', true); if (txt) txt.focus(); return; }
+    var cn = null;
+    try { cn = window.BdvCanaux && sel ? BdvCanaux.canal(sel.value) : null; } catch (x) {}
+    var type = cn ? cn.type : 'note', canal = cn ? cn.cle : null, e;
+    if (typeof echAjouter === 'function') {
+      e = echAjouter(id, type, canal, t);
+      fini(true);
+    } else {
+      var q = new Date().toISOString();
+      e = { echange_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), client_id: String(id), le: q, maj_le: q, type: type, canal: canal, resume: t };
+      if (window.BdvCompte && BdvCompte.monId) e.cree_par = BdvCompte.monId();
+      (window.BdvSync && BdvSync.ecrireEchange ? BdvSync.ecrireEchange(e) : Promise.resolve(false)).then(fini, function () { fini(false); });
+    }
+    function fini(ok) {
+      if (!ok) { dire('La note n’est pas partie : vérifie ta connexion et réessaie. Ton texte est gardé.', true); return; }
+      var c = cliDe(a);
+      if (c && Array.isArray(c.echanges) && e) c.echanges.unshift(e);
+      if (txt) txt.value = '';
+      dire('Noté, aussi dans sa fiche.');
+      repeindreClient(a);
+    }
+  }
+  function ecrireClient(a) {
+    var id = clientDe(a); if (!id) return;
+    if (typeof window.bdvOuvrirFiche !== 'function') { dire('Le rédacteur ne s’ouvre pas d’ici. Ouvre sa fiche dans « Mes clients ».', true); return; }
+    viderAttente();
+    if (!S.page) fermerPanneau();
+    Promise.resolve(window.bdvOuvrirFiche(id, 'message', null, { muet: true })).then(function (ok) {
+      if (ok === false) dire(window.bdvOuvrirFiche.motInconnu || 'Sa fiche ne s’ouvre pas d’ici.', true);
+      else if (ok === 'panne') dire(window.bdvOuvrirFiche.motPanne || 'Sa fiche n’a pas pu s’ouvrir.', true);
+    });
+  }
+  /* Le panneau ne repeint que sa tete ; la page se repeint entiere (elle garde ce qui est tape). */
+  function repeindreClient(a) {
+    if (S.page) { rendre(); return; }
+    if (MOD && !MOD.hidden && S.ouverte === a.affaire_id) {
+      var ouvert = MOD.querySelector('.aff-noter[open]'), txt = ouvert && ouvert.querySelector('.aff-noter__txt');
+      var garde = txt ? txt.value : null, hist = !!MOD.querySelector('.amod__hist[open]');
+      peindreTete(a);
+      if (ouvert) { var n = MOD.querySelector('.aff-noter'); if (n) { n.open = true; var t2 = n.querySelector('.aff-noter__txt'); if (t2 && garde) t2.value = garde; } }
+      if (hist) { var h = MOD.querySelector('.amod__hist'); if (h) h.open = true; }
+    }
+  }
+  /* Les contacts d'un client Vitisoft, LUS : « Appeler 06 12 34 56 78 », « Ecrire ». */
+  function htmlContactsClient(a, plein) {
+    var c = cliDe(a);
+    if (!c) return '';
+    var l = '';
+    if (c.contacts === undefined) l += '<span class="aff-aide">Lecture de son numéro…</span>';
+    else if (c.contacts === null) l += '<span class="aff-aide">Son numéro n’a pas pu être lu.</span>';
+    else if (c.contacts.tel) l += '<a class="btn' + (plein === 'appeler' ? ' btn--bordeaux' : '') + '" href="tel:' + esc(c.contacts.tel) + '">Appeler le ' + esc(c.contacts.affiche || c.contacts.tel) + '</a>';
+    else l += '<span class="aff-aide">Pas de numéro dans tes ventes.</span>';
+    l += '<button type="button" class="btn' + (plein === 'ecrire' ? ' btn--bordeaux' : '') + '" data-aff="ecrireClient">Écrire</button>';
+    return l;
+  }
+
+  /* ================= L'AFFAIRE EN PLEINE PAGE, 03/10/2026 =================
+     /mon-bureau/#affaire=<id>, ouverte par « Agrandir » (a cote de la croix du panneau),
+     comme la fiche client. Maquette validee par Ted le 03/10/2026, conseil : vigneron
+     empathique + expert commercial. Un seul aplat d'accent (le geste qui presse), le seul
+     montant est celui d'un devis envoye ou accepte, jamais de total « prevu ».
+     Ce n'est PAS une deuxieme fiche client : trois lignes de ses ventes, son historique,
+     et « Voir sa fiche complete » qui ouvre la vraie. */
+  var PAGE_FICHE = { id: null, f: undefined };
+  function fichePage(a) {
+    var id = clientDe(a);
+    if (!id) return null;
+    if (PAGE_FICHE.id === id) return PAGE_FICHE.f;
+    PAGE_FICHE = { id: id, f: undefined };
+    if (!(window.BdvNav && BdvNav.chargerEcrans)) { PAGE_FICHE.f = null; return null; }
+    BdvNav.chargerEcrans().then(function () {
+      return typeof assurerLignes === 'function' ? assurerLignes() : null;
+    }).then(function () {
+      PAGE_FICHE.f = typeof ficheClient === 'function' ? (ficheClient(id) || null) : null;
+    }, function () { PAGE_FICHE.f = null; }).then(function () { if (S.page) rendre(); });
+    return undefined;
+  }
+  function devisPrincipal(a) {
+    var l = S.devisDe[a.affaire_id];
+    if (!Array.isArray(l) || !l.length) return null;
+    return l.filter(function (d) { return d.statut === 'accepte'; })[0]
+      || l.filter(function (d) { return d.statut === 'envoye'; })[0]
+      || l.filter(function (d) { return d.statut === 'enregistre'; })[0] || null;
+  }
+  function joursDepuis(iso) {
+    if (!iso) return null;
+    var d = versDate(String(iso).slice(0, 10));
+    return d ? Math.round((versDate(jourIso()) - d) / 86400000) : null;
+  }
+  function jourSemaine(iso) {
+    var d = versDate(iso); if (!d) return dateCourte(iso);
+    var j = joursDepuis(iso);
+    return j != null && j >= 0 && j < 7 ? ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][d.getDay()] : 'le ' + dateCourte(iso);
+  }
+  /* LE MOMENT : une phrase, et le geste qui presse. Le premier cas qui s'applique gagne
+     (ordre arbitre par Ted : un devis signe passe avant un rappel en retard). */
+  function moment(a, e) {
+    var dv = devisPrincipal(a), c = cliDe(a), piste = a.piste_id && S.pistes[a.piste_id];
+    var joindre = (c && c.contacts && c.contacts.tel) || (piste && piste.telephone) ? 'appeler' : 'ecrire';
+    if (dv && dv.statut === 'accepte' && dv.signe_le && !dv.commande_telechargee_le)
+      return { t: '<b>Signé en ligne le ' + esc(dateCourte(String(dv.signe_le).slice(0, 10))) + '.</b> La commande n’est pas encore dans Vitisoft.', plein: 'devis', devis: dv, mot: 'Ouvrir le devis signé', ton: 'bon' };
+    if (e.relancer)
+      return { t: (e.retard > 0 ? '<span class="aff-retard">Tu devais le rappeler ' + esc(jourSemaine(a.rappel)) + '</span>' : '<span class="aff-retard">C’est aujourd’hui</span>')
+        + (a.rappel_titre ? ', pour ' + esc(minuscule(a.rappel_titre)) : '') + '.', plein: joindre, ton: 'retard' };
+    if (dv && dv.statut === 'envoye' && !expireD(dv) && joursDepuis(dv.envoye_le) >= 7)
+      return { t: 'Ton devis ' + esc(dv.numero) + ' est parti il y a ' + joursDepuis(dv.envoye_le) + ' jours, sans réponse. Relance-le.', plein: joindre, ton: 'retard' };
+    if (dv && expireD(dv))
+      return { t: 'Ton devis ' + esc(dv.numero) + ' a expiré le ' + esc(dateCourte(dv.valable_jusqu)) + '. Refais-le, ou appelle pour le prolonger.', plein: 'devis', devis: dv, mot: 'Ouvrir le devis expiré', ton: 'retard' };
+    if (dv && dv.statut === 'enregistre')
+      return { t: 'Ton devis ' + esc(dv.numero) + ' est prêt mais pas encore parti.', plein: 'devis', devis: dv, mot: 'Ouvrir le devis', ton: '' };
+    if (e.endormie)
+      return { t: '<span class="aff-retard">Plus de nouvelles depuis ' + pluriel(e.jours, 'jour', 'jours') + '.</span> Pose-lui un rappel.', plein: 'demain', ton: 'retard' };
+    if (a.rappel) return { t: 'Prochain rappel ' + esc(jourSemaine(a.rappel)) + (a.rappel_titre ? ', pour ' + esc(minuscule(a.rappel_titre)) : '') + '.', plein: null, ton: '' };
+    return { t: 'Aucun rappel posé. Note quand tu le rappelles.', plein: null, ton: '' };
+  }
+  function minuscule(s) { s = String(s || ''); return s.charAt(0).toLowerCase() + s.slice(1); }
+  function htmlGestesPage(a, m) {
+    var p = a.piste_id && S.pistes[a.piste_id], l = '';
+    if (m.plein === 'devis' && m.devis) l += '<button type="button" class="btn btn--bordeaux" data-aff="devisOuvrir" data-devis="' + esc(m.devis.devis_id) + '">' + esc(m.mot) + '</button>';
+    if (clientDe(a)) l += htmlContactsClient(a, m.plein);
+    else if (p) {
+      if (p.telephone) l += '<a class="btn' + (m.plein === 'appeler' ? ' btn--bordeaux' : '') + '" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
+      if (p.email) l += '<a class="btn' + (m.plein === 'ecrire' && !p.telephone ? ' btn--bordeaux' : '') + '" href="mailto:' + esc(p.email) + '">Écrire</a>';
+    }
+    /* Un devis envoye et valable : on le RELANCE, on n'en refait pas un (expert commercial,
+       03/10/2026). « Nouveau devis » reste dans « Les devis ». */
+    var dvE = devisPrincipal(a);
+    if (m.plein !== 'devis' && dvE && dvE.statut === 'envoye' && !expireD(dvE))
+      l += '<button type="button" class="btn page-aff__devis" data-aff="devisOuvrir" data-devis="' + esc(dvE.devis_id) + '">Ouvrir le devis ' + esc(dvE.numero) + '</button>';
+    else if (a.issue === 'en_cours') l += '<button type="button" class="btn page-aff__devis" data-aff="devis">Nouveau devis</button>';
+    var report = a.issue === 'en_cours' ? '<span class="page-aff__lib">Je le rappelle :</span>'
+      + '<button type="button" class="btn' + (m.plein === 'demain' ? ' btn--bordeaux' : '') + '" data-aff="reporter" data-jours="1">Demain</button>'
+      + '<button type="button" class="btn" data-aff="reporter" data-jours="7">Dans 7 jours</button>'
+      + '<button type="button" class="btn" data-aff="pageAutreDate">Autre date</button>' : '';
+    return '<div class="page-aff__gestes">' + l + '</div>' + (report ? '<div class="page-aff__gestes page-aff__report">' + report + '</div>' : '');
+  }
+  function htmlFrise(a, e) {
+    var et = etapeDe(a.etape_id), liste = etapesDe(a.type_id), suite = etapeSuivante(a);
+    return '<section class="page-aff__frise" aria-label="Les étapes"><ol class="page-aff__etapes">'
+      + liste.map(function (x) {
+        var etat = !et ? '' : x.ordre < et.ordre ? 'fait' : x.etape_id === et.etape_id ? 'ici' : '';
+        return '<li class="page-aff__et' + (etat ? ' page-aff__et--' + etat : '') + '"' + (etat === 'ici' ? ' aria-current="step"' : '') + '>'
+          + '<span class="page-aff__pt" aria-hidden="true">' + (etat === 'fait' ? '✓' : etat === 'ici' ? '●' : '○') + '</span>'
+          + esc(x.nom) + (etat === 'fait' ? '<span class="hors-ecran"> (passée)</span>' : '')
+          + (etat === 'ici' ? '<small>' + (e.jours === 0 ? 'ici depuis aujourd’hui' : 'ici depuis ' + pluriel(e.jours, 'jour', 'jours')) + '</small>' : '')
+          + '</li>';
+      }).join('') + '</ol>'
+      + (a.issue === 'en_cours' ? '<div class="page-aff__frise-d">' + gesteVers(a, suite, sujet(a), false)
+        + '<button type="button" class="btn" data-aff="pageConclure" data-choix="gagnee">Gagnée</button>'
+        + '<button type="button" class="btn" data-aff="pageConclure" data-choix="perdue">Pas pour cette fois</button></div>' : '')
+      + '</section>';
+  }
+  function htmlDevisPage(a) {
+    var l = S.devisDe[a.affaire_id], dv = devisPrincipal(a), h = '';
+    if (!Array.isArray(l)) return '<p class="aff-aide">Lecture des devis…</p>';
+    if (!l.length) return '<p>Pas encore de devis.</p>';
+    if (dv && (dv.statut === 'envoye' || dv.statut === 'accepte')) {
+      h += '<p class="page-aff__gros">' + esc(eurosHT(dv.total_ht_c)) + '</p>';
+      h += '<p>' + pointB('Devis ' + esc(dv.numero) + (dv.statut === 'accepte' ? ' accepté' + (dv.signe_le ? ', signé en ligne le ' + esc(dateCourte(String(dv.signe_le).slice(0, 10))) : '')
+        : ' envoyé le ' + esc(dateCourte(dv.envoye_le)) + (expireD(dv) ? ', <b>expiré</b>' : dv.valable_jusqu ? ', <b>valable jusqu’au ' + esc(dateCourte(dv.valable_jusqu)) + '</b>' : ''))) + '</p>';
+      if (dv.statut === 'accepte') h += '<p class="aff-aide">' + (dv.commande_telechargee_le ? 'Commande téléchargée le ' + esc(dateCourte(String(dv.commande_telechargee_le).slice(0, 10))) + '. Si tu l’as importée dans Vitisoft, cette vente est faite.' : 'La commande n’est pas encore téléchargée pour Vitisoft.') + '</p>';
+    } else if (dv) h += '<p>Devis ' + esc(dv.numero) + ' prêt, pas encore envoyé.</p>';
+    /* TOUS LES DEVIS DE L'AFFAIRE, visibles et pas replies (demande de Ted, 03/10/2026). */
+    h += '<ul class="aff-devis__liste page-aff__devisl" id="affDevisListe">' + htmlListeDevis(a) + '</ul>';
+    if (a.issue === 'en_cours' && dv && dv.statut === 'envoye' && !expireD(dv)) h += '<p><button type="button" class="btn" data-aff="devis">Nouveau devis</button></p>';
+    return h;
+  }
+  function htmlReperes(a, e) {
+    var r = [], t = typeDe(a.type_id);
+    if (a.issue === 'en_cours' && !e.endormie) {
+      r.push('<div class="page-aff__rep"><span class="page-aff__n">' + e.jours + ' j</span><span>dans « ' + esc((etapeDe(a.etape_id) || {}).nom || 'étape') + ' »'
+        + (e.retard == null && e.sommeil != null ? '. Sans rappel, à relancer dans ' + pluriel(Math.max(0, e.sommeil - e.jours), 'jour', 'jours') + '.' : '.') + '</span></div>');
+    }
+    var age = joursDepuis(a.ouverte_le || a.cree_le);
+    if (age != null) {
+      var med = medianeGagnees(a.type_id), cmp = '';
+      if (med && age > med.jours) cmp = ' Tes affaires « ' + esc(t ? t.nom : '') + ' » gagnées se concluent en <b>' + pluriel(med.jours, 'jour', 'jours') + '</b> en général (' + med.n + ' gagnées sur 12 mois).';
+      r.push('<div class="page-aff__rep"><span class="page-aff__n">' + age + ' j</span><span>depuis l’ouverture.' + cmp + '</span></div>');
+    }
+    return r.length ? '<div class="page-aff__reps">' + r.join('') + '</div>' : '';
+  }
+  var SEUIL_REPERE = 5;   // arbitre par Ted le 03/10/2026 : en dessous, la ligne se tait
+  function closesDuType(typeId) {
+    var il = new Date(); il.setFullYear(il.getFullYear() - 1);
+    var borne = jourIso(il);
+    return S.affaires.filter(function (x) { return x.type_id === typeId && x.issue !== 'en_cours' && (jourLocal(x.close_le) || '') >= borne; });
+  }
+  function medianeGagnees(typeId) {
+    var d = closesDuType(typeId).filter(function (x) { return x.issue === 'gagnee' && x.close_le && (x.ouverte_le || x.cree_le); })
+      .map(function (x) { return Math.round((new Date(x.close_le) - new Date(x.ouverte_le || x.cree_le)) / 86400000); })
+      .filter(function (n) { return n >= 0; }).sort(function (p, q) { return p - q; });
+    if (d.length < SEUIL_REPERE) return null;
+    var m = d.length % 2 ? d[(d.length - 1) / 2] : Math.round((d[d.length / 2 - 1] + d[d.length / 2]) / 2);
+    return { jours: m, n: d.length };
+  }
+  function htmlPreparer(a) {
+    var c = closesDuType(a.type_id), t = typeDe(a.type_id);
+    if (c.length < SEUIL_REPERE) return '';
+    var g = c.filter(function (x) { return x.issue === 'gagnee'; }).length, cpt = {};
+    c.forEach(function (x) { if (x.issue === 'perdue' && x.motif) cpt[x.motif] = (cpt[x.motif] || 0) + 1; });
+    var mots = Object.keys(cpt).filter(function (k) { return cpt[k] >= 2; }).sort(function (p, q) { return cpt[q] - cpt[p]; })
+      .map(function (k) { var m = MOTIFS.filter(function (x) { return x[0] === k; })[0]; return (m ? m[1].toLowerCase() : k) + ' (' + cpt[k] + ' fois)'; });
+    return '<details class="page-aff__bloc" data-bloc="preparer" open><summary class="page-aff__h">Pour préparer ta réponse</summary>'
+      + '<p>« ' + esc(t ? t.nom : '') + ' », sur 12 mois : <b>' + g + ' gagnée' + (g > 1 ? 's' : '') + ' sur ' + c.length + '</b>.'
+      + (mots.length ? ' Quand tu perds, c’est d’abord : ' + esc(mots.join(', puis ')) + '.' : '') + '</p></details>';
+  }
+  function htmlDejaDit(a) {
+    var id = clientDe(a), pid = a.piste_id;
+    var l = S.affaires.filter(function (x) {
+      if (x.affaire_id === a.affaire_id) return false;
+      return (id && (String(x.client_id) === id || (x.piste_id && S.pistes[x.piste_id] && String(S.pistes[x.piste_id].client_id) === id))) || (pid && x.piste_id === pid);
+    });
+    if (!l.length) return '';
+    return '<section class="page-aff__bloc"><h2 class="page-aff__h">Ce qu’il t’a déjà dit</h2><ul class="aff-hist">' + l.map(function (x) {
+      var m = MOTIFS.filter(function (k) { return k[0] === x.motif; })[0];
+      var quoi = x.issue === 'gagnee' ? '<b>Gagnée</b> le ' + esc(dateCourte(jourLocal(x.close_le))) + ' : ' + esc(x.titre)
+        : x.issue === 'perdue' ? '<b>Pas pour cette fois</b> le ' + esc(dateCourte(jourLocal(x.close_le))) + (m ? ' : ' + esc(m[1].toLowerCase()) : '') + '. ' + esc(x.titre)
+        : '<b>En cours aussi</b> : <a class="aff-lien" href="/mon-bureau/#affaire=' + encodeURIComponent(x.affaire_id) + '">' + esc(x.titre) + '</a>';
+      return '<li><span>' + quoi + '</span></li>';
+    }).join('') + '</ul></section>';
+  }
+  function htmlAvantAppel(a) {
+    var id = clientDe(a);
+    if (!id) {
+      var p = a.piste_id && S.pistes[a.piste_id];
+      if (!p) return '';
+      var lignes = [p.contact_nom ? esc(p.contact_nom) + (p.contact_fonction ? ', ' + esc(p.contact_fonction) : '') : '',
+        [p.adresse, [p.code_postal, p.ville].filter(Boolean).join(' ')].filter(Boolean).map(esc).join(', '),
+        p.siret ? 'SIRET ' + esc(p.siret) : '', p.source ? 'Vient de : ' + esc(p.source) : ''].filter(Boolean);
+      return '<section class="page-aff__bloc page-aff__bloc--avant"><h2 class="page-aff__h">Nouveau client, pas encore dans Vitisoft</h2>'
+        + (lignes.length ? lignes.map(function (x) { return '<p>' + x + '</p>'; }).join('') : '<p class="aff-aide">Pas encore de coordonnées : complète sa fiche dans « Modifier l’affaire ».</p>')
+        + (!p.email ? '<p class="aff-aide">Il manque son e-mail : sans lui, Vitisoft créera un doublon à l’import de la commande.</p>' : '') + '</section>';
+    }
+    var f = fichePage(a), l = [];
+    var mv = motifDe(a);
+    if (mv) l.push('<p><b>Ce que disent tes ventes :</b> ' + esc(mv.label) + (mv.enjeu ? ', ' + esc(mv.enjeu) : '') + '.</p>');
+    if (f === undefined) l.push('<p class="aff-aide">Lecture de ses ventes…</p>');
+    else if (f) {
+      if (f.dernier) l.push('<p>Dernière commande le ' + esc(f.dernier.d + '/' + String(f.dernier.m).padStart(2, '0') + '/' + f.dernier.y) + (f.nbCommandes ? ', ' + pluriel(f.nbCommandes, 'commande', 'commandes') + ' en tout' : '') + '.</p>');
+      var cuv = (f.cuvees || []).slice(0, 3).map(function (x) { return x[0]; }).filter(Boolean);
+      if (cuv.length && f.nbCommandes > 1) l.push('<p>Il prend surtout : <b>' + esc(cuv.join(', ')) + '</b>. ' + (devisPrincipal(a) ? 'Vérifie qu’ils sont dans ton devis.' : 'Mets-les en tête du devis.') + '</p>');
+      if (f.cadence && f.nbCommandes > 2 && f.dernier) {
+        var pro = new Date(Date.UTC(f.dernier.y, f.dernier.m - 1, f.dernier.d) + Math.round(f.cadence) * 86400000);
+        /* Une date attendue deja passee n'est pas une occasion, c'est une alerte. */
+        l.push(pro.toISOString().slice(0, 10) >= jourIso()
+          ? '<p>Il commande environ tous les ' + Math.round(f.cadence) + ' jours : prochaine commande attendue vers le ' + esc(dateCourte(pro.toISOString().slice(0, 10))) + ' (fin de l’export). Glisse ton offre avec.</p>'
+          : '<p>Il commandait environ tous les ' + Math.round(f.cadence) + ' jours, et ton export ne montre rien depuis. <b>Demande-lui ce qui a changé</b> avant de parler de l’affaire. Si ton export est ancien, recharge-le avant d’appeler.</p>');
+      }
+    } else l.push('<p class="aff-aide">Ses ventes ne sont pas sur cet appareil : sa fiche les montre une fois ton export déposé.</p>');
+    return '<section class="page-aff__bloc page-aff__bloc--avant"><h2 class="page-aff__h">Avant de l’appeler</h2>' + l.join('')
+      + '<p><a class="aff-vers" href="/mon-bureau/#fiche=' + encodeURIComponent(id) + '" target="_blank" rel="noopener">Voir sa fiche complète<span class="hors-ecran"> (nouvel onglet)</span></a></p></section>';
+  }
+  function htmlPage(a) {
+    var e = etat(a), t = typeDe(a.type_id), et = etapeDe(a.etape_id), m = a.issue === 'en_cours' ? moment(a, e) : null;
+    var sous = [a.titre && a.titre !== sujet(a) ? esc(a.titre) : '', 'ouverte le ' + esc(dateCourte(jourLocal(a.ouverte_le || a.cree_le)))]
+      .concat(a.maj_le ? ['modifiée le ' + esc(dateCourte(jourLocal(a.maj_le)))] : []).filter(Boolean).join(' · ');
+    var clos = a.issue !== 'en_cours' ? '<p class="page-aff__clos">' + (a.issue === 'gagnee' ? 'Affaire gagnée' : 'Pas pour cette fois') + ' le ' + esc(dateCourte(jourLocal(a.close_le))) + '.</p>' : '';
+    return '<div class="page-aff" data-affaire="' + a.affaire_id + '">'
+      + '<p><a class="page-aff__retour" href="/mon-bureau/#affaires">Retour à Mon commerce</a></p>'
+      + '<header class="page-aff__tete"><p class="page-aff__marques"><span class="page-aff__etape">Étape : <b>' + esc(et ? et.nom : 'étape') + '</b></span>'
+      + (t ? '<span>' + esc(t.nom) + '</span>' : '') + (estNouveau(a) ? marqueNouveau() : '') + '</p>'
+      + '<h1 class="page-aff__nom" id="pageAffTitre">' + esc(sujet(a)) + '</h1><p class="page-aff__sous">' + sous + '</p>' + clos + '</header>'
+      + (m ? '<section class="page-aff__moment' + (m.ton ? ' page-aff__moment--' + m.ton : '') + '"><p class="page-aff__phrase">' + m.t + '</p>' + htmlGestesPage(a, m) + '</section>' : '')
+      + htmlFrise(a, e)
+      + '<div class="page-aff__grille"><div class="page-aff__col">'
+      + '<section class="page-aff__bloc page-aff__bloc--devis"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>'
+      /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
+      + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')
+      + '<section class="page-aff__bloc"><h2 class="page-aff__h"><label for="pageAffNotes">Notes</label></h2>'
+      + '<textarea id="pageAffNotes" class="page-aff__notes" rows="5" maxlength="2000">' + esc(a.notes || '') + '</textarea>'
+      + '<p class="aff-aide" id="pageAffNotesMot" aria-live="polite">Enregistrées quand tu quittes le champ.</p></section>'
+      + '<details class="page-aff__bloc page-aff__modif" data-bloc="modifier"><summary class="page-aff__h">Modifier l’affaire</summary>' + htmlEditeur(a) + '</details>'
+      + '</div><div class="page-aff__col">'
+      + htmlAvantAppel(a)
+      + (clientDe(a) ? '<section class="page-aff__bloc page-aff__bloc--hist"><h2 class="page-aff__h">Son historique</h2><p class="aff-aide">Le même journal que sa fiche : ce que tu notes ici s’y retrouve, et l’inverse.</p>'
+        + htmlHistorique(a, 8) + htmlNoter(a) + '</section>' : '')
+      + htmlDejaDit(a) + htmlPreparer(a)
+      + '</div></div></div>';
+  }
+  function peindrePage() {
+    var box = el('pageAffCorps');
+    if (!box) return;
+    if (!S.charge) { box.innerHTML = '<p class="aff-vide">' + (S.erreur ? 'L’affaire n’a pas pu être lue. Recharge la page.' : 'Ouverture de l’affaire…') + '</p>'; return; }
+    var a = S.affaires.filter(function (x) { return x.affaire_id === S.page; })[0];
+    if (!a) { box.innerHTML = '<p class="aff-vide">Cette affaire n’existe pas dans ton bureau. <a href="/mon-bureau/#affaires">Retour à Mon commerce</a></p>'; return; }
+    /* REPEINDRE NE PERD RIEN : les notes en cours de frappe, la note d'echange, les blocs
+       ouverts, le focus et l'endroit ou l'on est dans la page. */
+    var garde = {}, act = document.activeElement;
+    var n0 = el('pageAffNotes'); if (n0 && n0.getAttribute('data-sale')) garde.notes = n0.value;
+    var t0 = box.querySelector('.aff-noter__txt'); if (t0 && t0.value) garde.noter = t0.value;
+    var ouverts = [].map.call(box.querySelectorAll('details[data-bloc][open]'), function (d) { return d.getAttribute('data-bloc'); });
+    var fermes = [].map.call(box.querySelectorAll('details[data-bloc]:not([open])'), function (d) { return d.getAttribute('data-bloc'); });
+    var focusSel = act && box.contains(act) ? (act.id ? '#' + act.id : act.getAttribute('data-aff') ? '[data-aff="' + act.getAttribute('data-aff') + '"]' + (act.getAttribute('data-jours') ? '[data-jours="' + act.getAttribute('data-jours') + '"]' : '') : null) : null;
+    var y = window.scrollY;
+    box.innerHTML = htmlPage(a);
+    document.title = sujet(a) + ' · Mon commerce';
+    [].forEach.call(box.querySelectorAll('details[data-bloc]'), function (d) {
+      var k = d.getAttribute('data-bloc');
+      if (ouverts.indexOf(k) >= 0) d.open = true; else if (fermes.indexOf(k) >= 0) d.open = false;
+    });
+    var n1 = el('pageAffNotes'); if (n1 && garde.notes != null) { n1.value = garde.notes; n1.setAttribute('data-sale', '1'); }
+    var t1 = box.querySelector('.aff-noter__txt'); if (t1 && garde.noter) { t1.value = garde.noter; t1.closest('details').open = true; }
+    var f = formEdit(a.affaire_id); if (f && f.elements.notes && n1) f.elements.notes.value = n1.value;
+    if (focusSel) { var nf = box.querySelector(focusSel); if (nf) { try { nf.focus({ preventScroll: true }); } catch (x) {} } }
+    window.scrollTo(0, y);
+  }
+  /* Les notes s'enregistrent en quittant le champ (arbitre par Ted le 03/10/2026), et
+     le DISENT. Le champ « Notes » de « Modifier l'affaire » suit, sans quoi son
+     « Enregistrer » remettrait l'ancien texte par-dessus. */
+  function notesPage(champ) {
+    var a = S.affaires.filter(function (x) { return x.affaire_id === S.page; })[0];
+    if (!a || !champ.getAttribute('data-sale')) return;
+    var v = champ.value.trim() || null, mot = el('pageAffNotesMot');
+    if (mot) mot.textContent = 'Enregistrement…';
+    modifier('affaires', 'affaire_id', a.affaire_id, { notes: v }).then(function (r) {
+      Object.assign(a, (r && r[0]) || { notes: v });
+      champ.removeAttribute('data-sale');
+      var d = new Date();
+      if (mot) mot.textContent = 'Enregistrées à ' + d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0') + '.';
+    }, function (e) { if (mot) mot.textContent = 'Pas enregistrées : ' + raison(e) + ' Ton texte est gardé.'; });
+  }
+  async function page(id) {
+    S.page = id;
+    var root = el('pageAffaire');
+    if (!root) {
+      root = document.createElement('main');
+      root.id = 'pageAffaire';
+      root.className = 'page-aff__racine';
+      root.setAttribute('aria-labelledby', 'pageAffTitre');
+      root.innerHTML = '<div id="pageAffCorps"></div>';
+      /* L'avis de la piece (« Annuler », les erreurs) est DEPLACE ici, pas recopie : deux
+         #affAvis, et `el()` ecrirait dans celui qu'on ne voit pas. */
+      var av = el('affAvis');
+      if (!av) { av = document.createElement('p'); av.className = 'aff-avis'; av.id = 'affAvis'; av.setAttribute('role', 'status'); av.setAttribute('aria-live', 'polite'); av.hidden = true; }
+      root.insertBefore(av, root.firstChild);
+      document.body.appendChild(root);
+      brancherSur(root);
+      ecouteursUniques();
+      root.addEventListener('input', function (ev) {
+        if (ev.target.id !== 'pageAffNotes') return;
+        ev.target.setAttribute('data-sale', '1');
+        var f = formEdit(S.page); if (f && f.elements.notes) f.elements.notes.value = ev.target.value;
+      });
+      root.addEventListener('focusout', function (ev) { if (ev.target.id === 'pageAffNotes') notesPage(ev.target); });
+      window.addEventListener('beforeunload', function (ev) {
+        var n = el('pageAffNotes'); if (n && n.getAttribute('data-sale')) { ev.preventDefault(); ev.returnValue = ''; }
+      });
+      /* La fiche du client (« Ecrire ») s'ouvre par-dessus la page : en la refermant, on
+         relit son historique, ou le mail « considere comme envoye » vient d'arriver. */
+      var mod = el('modale');
+      if (mod && window.MutationObserver) new MutationObserver(function () {
+        if (mod.classList.contains('on')) return;
+        var a = S.affaires.filter(function (x) { return x.affaire_id === S.page; })[0];
+        if (a && clientDe(a)) chargerClient(a, rendre);
+      }).observe(mod, { attributes: true, attributeFilter: ['class'] });
+    }
+    rendre();
+    if (!pret()) { dire('Ton bureau n’est pas encore raccordé. Recharge la page dans un instant.', true); return false; }
+    await charger();
+    var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+    rendre();
+    if (!a) return !!S.charge;   // « Cette affaire n'existe pas » est deja a l'ecran
+    lireDevis(a).then(function () { rendre(); });
+    chargerClient(a, rendre);
+    return true;
+  }
+
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, page: page, _moment: moment,
     reglages: { ouvrir: ouvrirReglages, enregistrer: enregistrerReglages }, _S: S, _chargerDevis: chargerDevis, MODELES: MODELES, _nomsProches: nomsProches, _nomPropose: nomPropose, _htmlCloses: htmlCloses, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();

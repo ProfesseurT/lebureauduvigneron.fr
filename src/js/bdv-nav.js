@@ -1154,7 +1154,7 @@
       /* L'ONGLET D'UNE FICHE EN PLEINE PAGE N'A PAS DE PIECES : `afficher()` y peindrait
          dans des conteneurs masques. Un lien vers une piece y fait donc ce qu'il ferait
          sans ce script, recharger le bureau a cette adresse. */
-      if (document.body.classList.contains('bdv-page-fiche')) {
+      if (/\bbdv-page-(fiche|affaire)\b/.test(document.body.className)) {
         location.href = '/mon-bureau/#' + brut; location.reload(); return;
       }
       /* `#fiche=` (24/09/2026) ouvre la fiche LA OU L'ON EST, par le seul ouvreur du
@@ -1444,5 +1444,5 @@
                     ongletCourant: function () { return ONGLET_COURANT; },
                     ouvrirReglages: ouvrirReglages,
                     chargerEcrans: chargerEcrans, chargerEquipe: chargerEquipe,
-                    chargerAffaires: chargerAffaires };
+                    chargerAffaires: chargerAffaires, chargerMoteur: chargerMoteur };
 })();

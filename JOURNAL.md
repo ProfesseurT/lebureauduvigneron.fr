@@ -10217,3 +10217,15 @@ déclencheurs. Sous-domaine d'envoi `courrier.lebureauduvigneron.fr` créé et v
 Séparation en deux sous-domaines d'envoi retenue : `courrier.` pour le transactionnel, `edition.`
 pour la newsletter, et le domaine racine doit sortir de Resend. Motif : la réputation d'envoi, et
 surtout le fait que la racine porte la boîte mail de Ted.
+
+## 03/10/2026 : l'affaire en pleine page, et le client en direct
+
+Demandes de Ted : « Agrandir » sur l'affaire comme sur la fiche client, un maximum de KPI et
+d'outils utiles ; des actions commerciales sur le client de l'affaire en direct sur la base
+(Appeler, Ecrire, Noter un echange) avec son historique a l'ecran ; tous les devis visibles.
+Arbitrages : reperes a partir de 5 affaires closes du type, devis signe avant rappel en retard,
+notes enregistrees en quittant le champ, rappel de l'affaire, redacteur de la fiche.
+Conseil apres capture : FEU ROUGE des deux agents, corrige (devis envoye a relancer et non a
+refaire, commande attendue passee dite en alerte, ordre en une colonne, reperes masques sous le
+seuil, double point de date). Les deux remarques restantes sont ouvertes a Ted (voir CLAUDE.md).
+Bancs : `banc:affaires` (+15 controles, mutations verifiees), `verif` 47 etapes vertes. Aucun SQL.

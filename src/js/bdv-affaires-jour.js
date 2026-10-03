@@ -556,7 +556,43 @@
   }
   if (!blocReglages()) document.addEventListener('DOMContentLoaded', blocReglages);
 
-  window.BdvAffairesJour = { charger: charger, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
+  /* L'AFFAIRE EN PLEINE PAGE, 03/10/2026 : /mon-bureau/#affaire=<id>, ouverte par
+     « Agrandir ». Meme principe que la fiche client (#fiche=, mon-bureau.njk) : un
+     demarrage ALLEGE en deux etapes, le bureau puis l'affaire. La piece seule ecrit,
+     elle est chargee ici. Rend vrai si l'adresse est la sienne. */
+  function pageAffaire() {
+    var h = location.hash || '', id = null;
+    if (h.indexOf('#affaire=') !== 0) return false;
+    try { id = decodeURIComponent(h.slice(9)); } catch (e) { id = null; }
+    if (!id) return false;
+    document.body.classList.add('bdv-page-affaire');
+    if (window.BdvNav) BdvNav.monter(document.getElementById('bureauNav'), 'journee');
+    function echec(t) {
+      var p = document.getElementById('pageAffCorps') || document.body;
+      if (p.querySelector && p.querySelector('.aff-vide')) return;
+      var n = document.createElement('p'); n.className = 'aff-vide'; n.setAttribute('role', 'status');
+      n.textContent = t + ' ';
+      var a = document.createElement('a'); a.href = '/mon-bureau/#affaires'; a.textContent = 'Retour à Mon commerce';
+      n.appendChild(a); p.appendChild(n);
+    }
+    var etapes = [
+      { cle: 'bureau', texte: 'Ton bureau', faire: function () {
+        if (!(window.BdvCompte && BdvCompte.chargerBureau)) return false;
+        return BdvCompte.chargerBureau().then(function (b) { return !!b; });
+      } },
+      { cle: 'affaire', texte: 'L’affaire', faire: function () {
+        if (!(window.BdvNav && BdvNav.chargerAffaires)) return false;
+        return BdvNav.chargerAffaires().then(function () { return window.BdvAffaires.page(id); });
+      } }
+    ];
+    var fin = window.BdvAmorce ? BdvAmorce.lancer(etapes) : Promise.reject(new Error('amorce absente'));
+    fin.then(function (bilan) {
+      if (bilan && bilan.rates && bilan.rates.length) echec('L’affaire n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.');
+    })['catch'](function () { echec('L’affaire n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.'); });
+    return true;
+  }
+
+  window.BdvAffairesJour = { charger: charger, pageAffaire: pageAffaire, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
                              datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE,
                              etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan,
                              vu: function (id) { vu(id); peindreBandeau(); },

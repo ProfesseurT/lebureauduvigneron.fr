@@ -2762,7 +2762,7 @@ theme_bureau: true
   }
 
   DOC.addEventListener('DOMContentLoaded', function(){
-    if(ouvrirPageFiche()) return;
+    if(ouvrirPageFiche() || (window.BdvAffairesJour && BdvAffairesJour.pageAffaire && BdvAffairesJour.pageAffaire())) return;
     {# La barre en premier : elle est le cadre, tout le reste se peint dedans. #}
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
     brancherReglages();

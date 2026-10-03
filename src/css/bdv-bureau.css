@@ -6083,3 +6083,134 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
    voyait pas la retraction de l'en-tete. Le defilement lit desormais le bas REEL des
    collants au moment de defiler, puis se recale une fois : `defilerSousCollants()` dans
    bdv-ecrans.js. */
+
+/* ==========================================================================
+   34. L'AFFAIRE EN PLEINE PAGE, ET LE CLIENT EN DIRECT, 03/10/2026
+
+   Demande de Ted : « Agrandir » ouvre l'affaire dans un NOUVEL ONGLET,
+   /mon-bureau/#affaire=<id>, comme la fiche client (section 26), avec le plus
+   d'outils utiles. Maquette validee le 03/10/2026. `pageAffaire()` de
+   bdv-affaires-jour.js pose `bdv-page-affaire` sur le corps de page.
+
+   UN SEUL APLAT D'ACCENT : le geste qui presse, dans la ligne du moment. Le seul
+   montant est celui d'un devis envoye ou accepte. Deux colonnes au-dessus de
+   1100 px, l'ordre de la maquette en dessous.
+   ========================================================================== */
+body.bdv-coque.bdv-page-affaire > :not(#pageAffaire):not(#modale):not(#devisModale):not(#busyov):not(.status):not(.bdv-amorce):not(script){
+  display:none;
+}
+body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
+.bdv-coque .page-aff__racine{ max-width:1440px; margin:0 auto; padding:var(--bdv-e-6) var(--bdv-e-8) var(--bdv-e-12); }
+.bdv-coque .page-aff__racine .aff-avis{ margin:0 0 var(--bdv-e-3); }
+.bdv-coque .page-aff{ display:grid; gap:var(--bdv-e-4); color:var(--bdv-encre-2); }
+.bdv-coque .page-aff p{ margin:0; }
+.bdv-coque .page-aff__retour{ display:inline-flex; align-items:center; min-height:var(--bdv-cible); color:var(--bdv-encre-2); font-size:var(--bdv-f-2); }
+.bdv-coque .page-aff__retour::before{ content:"\2190"; content:"\2190" / ""; margin-right:var(--bdv-e-2); }
+.bdv-coque .page-aff__marques{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-3); align-items:center; font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+.bdv-coque .page-aff__etape b{ color:var(--bdv-accent); font-weight:600; }
+.bdv-coque .page-aff__nom{ margin:var(--bdv-e-1) 0; font-family:inherit; letter-spacing:var(--bdv-ls-serre); font-size:var(--bdv-f-6); font-weight:600; line-height:1.15; color:var(--bdv-encre-1); }
+.bdv-coque .page-aff__sous{ font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .page-aff__clos{ margin-top:var(--bdv-e-2); font-weight:600; color:var(--bdv-encre-1); }
+
+/* LE MOMENT : une phrase, le geste qui presse. Le filet de gauche dit le retard,
+   et le MOT aussi (« Tu devais le rappeler ») : jamais la couleur seule. */
+.bdv-coque .page-aff__moment{
+  padding:var(--bdv-e-4); border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); background:var(--bdv-surface);
+}
+.bdv-coque .page-aff__moment--retard{ background-image:linear-gradient(var(--bdv-retard), var(--bdv-retard)); background-size:3px 100%; background-repeat:no-repeat; }
+.bdv-coque .page-aff__moment--bon{ background-image:linear-gradient(var(--bdv-bon), var(--bdv-bon)); background-size:3px 100%; background-repeat:no-repeat; }
+.bdv-coque .page-aff__phrase{ font-size:var(--bdv-f-4); color:var(--bdv-encre-1); margin-bottom:var(--bdv-e-3); }
+.bdv-coque .aff-retard{ color:var(--bdv-retard); font-weight:600; }
+.bdv-coque .page-aff__gestes{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); align-items:center; }
+.bdv-coque .page-aff__gestes + .page-aff__gestes{ margin-top:var(--bdv-e-3); }
+.bdv-coque .page-aff__gestes .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .page-aff__devis{ background:var(--bdv-accent-lavis); border-color:var(--bdv-accent-trait); color:var(--bdv-accent); }
+.bdv-coque .page-aff__lib{ font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+
+/* LA FRISE DES ETAPES : passees, ici, a venir. Le point et le mot cache disent
+   l'etat, le trait du haut ne le dit pas seul. */
+.bdv-coque .page-aff__frise{
+  display:flex; flex-wrap:wrap; gap:var(--bdv-e-3) var(--bdv-e-4); align-items:center; justify-content:space-between;
+  padding:var(--bdv-e-3) var(--bdv-e-4); border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); background:var(--bdv-surface);
+}
+.bdv-coque .page-aff__etapes{ display:flex; flex:1 1 30rem; gap:var(--bdv-e-1); margin:0; padding:0; list-style:none; }
+.bdv-coque .page-aff__et{ flex:1; padding:var(--bdv-e-2); border-top:3px solid var(--bdv-trait-fort); font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .page-aff__et--fait{ border-top-color:var(--bdv-encre-3); color:var(--bdv-encre-2); }
+.bdv-coque .page-aff__et--ici{ border-top-color:var(--bdv-accent); color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .page-aff__et small{ display:block; font-size:var(--bdv-f-1); font-weight:400; color:var(--bdv-encre-2); }
+.bdv-coque .page-aff__pt{ margin-right:var(--bdv-e-1); }
+.bdv-coque .page-aff__frise-d{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); align-items:center; }
+.bdv-coque .page-aff__frise-d .btn,
+.bdv-coque .page-aff__frise-d .aff-vers{ min-height:var(--bdv-cible); }
+
+.bdv-coque .page-aff__grille{ display:grid; gap:var(--bdv-e-4); }
+.bdv-coque .page-aff__col{ display:grid; gap:var(--bdv-e-4); align-content:start; min-width:0; }
+@media (min-width:1100px){
+  .bdv-coque .page-aff__grille{ grid-template-columns:7fr 5fr; align-items:start; }
+}
+/* EN UNE COLONNE, ON LIT AVANT D'APPELER (expert commercial, 03/10/2026) : « Avant de
+   l'appeler », puis les devis, puis son historique, puis le reste. */
+@media (max-width:1099px){
+  .bdv-coque .page-aff__col{ display:contents; }
+  .bdv-coque .page-aff__bloc--avant{ order:-3; }
+  .bdv-coque .page-aff__bloc--devis{ order:-2; }
+  .bdv-coque .page-aff__bloc--hist{ order:-1; }
+}
+.bdv-coque .page-aff__bloc{
+  display:grid; gap:var(--bdv-e-2); min-width:0;
+  padding:var(--bdv-e-4); border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); background:var(--bdv-surface);
+}
+.bdv-coque .page-aff__h{
+  margin:0; font-family:inherit; font-size:var(--bdv-f-1); font-weight:600; letter-spacing:var(--bdv-ls-etiq); text-transform:uppercase; color:var(--bdv-encre-3);
+}
+.bdv-coque details.page-aff__bloc > summary{ display:flex; align-items:center; gap:var(--bdv-e-2); min-height:var(--bdv-cible); cursor:pointer; list-style:none; }
+.bdv-coque details.page-aff__bloc > summary::-webkit-details-marker{ display:none; }
+.bdv-coque details.page-aff__bloc:not([open]){ padding-top:var(--bdv-e-1); padding-bottom:var(--bdv-e-1); }
+.bdv-coque details.page-aff__bloc > summary::before{ content:"\25B8"; content:"\25B8" / ""; }
+.bdv-coque details.page-aff__bloc[open] > summary::before{ content:"\25BE"; content:"\25BE" / ""; }
+.bdv-coque .page-aff__gros{ font-size:var(--bdv-f-5); font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .page-aff__reps{ display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr)); gap:var(--bdv-e-3); }
+.bdv-coque .page-aff__rep{ display:grid; gap:var(--bdv-e-1); font-size:var(--bdv-f-2); }
+.bdv-coque .page-aff__n{ font-size:var(--bdv-f-5); font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .page-aff__notes{
+  width:100%; min-height:6rem; padding:var(--bdv-e-2) var(--bdv-e-3); font:inherit; font-size:var(--bdv-f-saisie);
+  color:var(--bdv-encre-1); background:var(--bdv-surface-2); border:1px solid var(--bdv-trait-fort); border-radius:var(--bdv-r);
+}
+/* Les notes ont LEUR bloc dans la page : le champ du formulaire, synchronise, est cache. */
+.bdv-coque .page-aff__modif .aff-champ--notes{ display:none; }
+.bdv-coque .page-aff__devisl{ margin:var(--bdv-e-2) 0 0; }
+
+/* L'HISTORIQUE DU CLIENT, le meme journal que sa fiche (panneau et page). */
+.bdv-coque .aff-hist{ display:grid; gap:var(--bdv-e-2); margin:0; padding:0; list-style:none; font-size:var(--bdv-f-2); }
+.bdv-coque .aff-hist li{ display:grid; grid-template-columns:4.5rem 1fr; gap:var(--bdv-e-2); color:var(--bdv-encre-2); }
+.bdv-coque .aff-hist__d{ color:var(--bdv-encre-3); }
+.bdv-coque .aff-hist b{ color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .aff-noter > summary{ display:flex; align-items:center; min-height:var(--bdv-cible); cursor:pointer; color:var(--bdv-accent); font-weight:600; }
+.bdv-coque .aff-noter__corps{ display:grid; gap:var(--bdv-e-2); }
+.bdv-coque .aff-noter__txt,
+.bdv-coque .aff-noter__canal{ font-size:var(--bdv-f-saisie); }
+.bdv-coque .amod__hist{ margin-top:var(--bdv-e-2); }
+.bdv-coque .aff-noter .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .page-aff .aff-vers{ display:inline-flex; align-items:center; min-height:var(--bdv-cible); }
+
+/* « AGRANDIR », a cote de la croix du panneau : meme dessin que celui de la fiche. */
+.bdv-coque .amod__agrandir{
+  position:absolute; top:0.6rem; right:calc(0.8rem + var(--bdv-cible));
+  display:inline-flex; align-items:center; justify-content:center; min-width:var(--bdv-cible); min-height:var(--bdv-cible);
+  border-radius:var(--bdv-r); color:var(--bdv-encre-3); font-size:var(--bdv-f-5); line-height:1; text-decoration:none;
+}
+.bdv-coque .amod__agrandir[hidden]{ display:none; }
+.bdv-coque .amod__agrandir::after{ content:"\2197"; content:"\2197" / ""; }
+.bdv-coque .amod__agrandir:hover{ background:var(--bdv-survol); color:var(--bdv-encre-1); }
+.bdv-coque .amod__agrandir:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .amod__boite:has(.amod__agrandir:not([hidden])) .amod__tete{ padding-right:calc(var(--bdv-cible) * 2 + var(--bdv-e-4)); }
+@media (max-width:700px){
+  .bdv-coque .amod__agrandir{ display:none; }
+  .bdv-coque .page-aff__racine{ padding:var(--bdv-e-4); }
+  .bdv-coque .page-aff .btn{ min-height:var(--bdv-cible); }
+  .bdv-coque .page-aff__nom{ font-size:var(--bdv-f-5); }
+  .bdv-coque .page-aff__etapes{ flex-direction:column; }
+  .bdv-coque .page-aff__et{ border-top:0; border-left:3px solid var(--bdv-trait-fort); }
+  .bdv-coque .page-aff__et--fait{ border-left-color:var(--bdv-encre-3); }
+  .bdv-coque .page-aff__et--ici{ border-left-color:var(--bdv-accent); }
+}

@@ -7752,3 +7752,42 @@ Ne pas remettre ce code dans `bdv-nav.js` : `banc:poids` est a 77,7 ko sur 78.
   `VUE=1` pour une vue sans pleine page : la pleine page decale l'en-tete et fait croire a des
   chevauchements qui n'existent pas.
 
+
+### L'AFFAIRE EN PLEINE PAGE, ET LE CLIENT EN DIRECT, 03/10/2026
+
+Demande de Ted : « Agrandir » sur le panneau d'une affaire, comme la fiche client, et des
+actions commerciales sur le client de l'affaire « pas une copie, une action sur cette base en
+direct ». Maquette validee, conseil avant et apres (vigneron + expert commercial).
+
+- **`/mon-bureau/#affaire=<id>`**, ouvert par `#amodAgrandir` (a cote de la croix, cache sous
+  700 px). `BdvAffairesJour.pageAffaire()` pose `body.bdv-page-affaire` et lance un amorcage en
+  deux etapes (bureau, affaire) ; `BdvAffaires.page(id)` monte `main#pageAffaire`. Section 34 de
+  `bdv-bureau.css` cache tout le reste sauf `#modale` et `#devisModale`. `rendre()` passe par
+  `peindrePage()` quand `S.page` est pose. Un lien `/mon-bureau/#...` dans cet onglet recharge
+  (bdv-nav.js, comme la fiche).
+- **`#affAvis` est DEPLACE dans la page, jamais recopie** : deux ids, et `el()` ecrirait dans
+  celui qu'on ne voit pas.
+- **Le client en direct** (panneau ET page) : le numero et l'adresse se LISENT dans
+  `ventes_lignes` (`client_cle`, les 20 lignes les plus recentes) et passent par
+  `parseTels`/`parseEmails` du moteur ; « Noter un echange » ecrit dans `echanges` (par
+  `echAjouter`, sinon `BdvSync.ecrireEchange`), le journal de la fiche ; l'historique se lit dans
+  `echanges` ; « Ecrire » ouvre le redacteur de SA fiche (`bdvOuvrirFiche(id,'message')`). Le
+  rappel reste celui de l'AFFAIRE. Une lecture ratee vaut `null` et l'ecran le dit.
+- **Consequence assumee** : ouvrir le panneau d'une affaire client charge le moteur
+  (`BdvNav.chargerMoteur`, exporte pour ca). Le moteur des VENTES (`chargerEcrans`) ne part que
+  de la recherche d'un client, ou de `fichePage()` en pleine page (trois lignes de ses ventes) ;
+  `banc:affaires` compte les deux appels.
+- **Arbitrages de Ted** : « Reperes » et « Pour preparer ta reponse » seulement a partir de
+  5 affaires closes du type (`SEUIL_REPERE`) ; dans la ligne du moment, un devis signe passe
+  avant un rappel en retard (`moment()`, ordre complet en tete de la fonction) ; les notes
+  s'enregistrent en quittant le champ et le DISENT ; tous les devis visibles.
+- **Apres-passe du conseil** : un devis envoye et valable se RELANCE (« Ouvrir le devis », pas
+  « Nouveau devis », qui descend dans « Les devis ») ; une commande attendue deja passee est une
+  ALERTE, pas une occasion ; en une colonne (< 1100 px), « Avant de l'appeler » vient avant le
+  reste (`display:contents` + `order`).
+- Captures : `scripts/cap-page-affaire.mjs` (playwright, hors `verif`), decor
+  `scripts/decor-gagner.mjs` (sert aussi `ventes_lignes`, `echanges`, `devis`, avec `offset`).
+- Ouvert, a Ted : dans le panneau, « Appeler » reste en contour (un seul aplat par ecran,
+  « Nouvelle affaire ») alors qu'il est plein dans la page ; le bandeau des devis signes dit
+  « Ton client » quand le nom manque (anterieur) ; dates du champ natif en format US dans les
+  captures (locale du Chromium de la session).
