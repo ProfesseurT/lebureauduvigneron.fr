@@ -7872,6 +7872,9 @@ immediat / Courrier de 8 h / Notification. Cases par defaut :
   de `courrier.`, palier gratuit Resend).
 - **Consequence sur le lot 57** : le mail « affaire perdue » qu'il envoie aujourd'hui doit
   DISPARAITRE, et les mails « devis signe » / « affaire gagnee » gagnent un interrupteur.
+- **Les interrupteurs sont PAR PERSONNE** : chacun coupe ses mails sans toucher ceux des
+  collegues. Coupe, il coupe AUSSI la confirmation que recoit l'auteur du geste (decision de
+  Ted : pas de deuxieme case).
 - La colonne courrier se grise quand « Recevoir le courrier du matin » est decoche, et le dit.
 - Au-dessus de la grille : « Activer sur cet appareil » et l'etat visible (« notifications
   actives sur cet iPhone »). L'abonnement est PAR APPAREIL, la grille est par compte.
