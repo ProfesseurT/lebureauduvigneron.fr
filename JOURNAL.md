@@ -26,7 +26,7 @@ Décidé :
 - les rappels clients sont décochés par défaut côté notification ;
 - la règle « trop tard demain » admet la bonne nouvelle à saisir (devis signé).
 Écarté : une case « mail » par action (trois messages pour une DRM, réputation de `courrier.`).
-Reste à trancher : la notification « affaire gagnée par un collègue ». Détail dans `CLAUDE.md`,
+La notification « affaire gagnée par un collègue » est gardée aussi, cochée par défaut. Détail dans `CLAUDE.md`,
 section « LES NOTIFICATIONS ET LEURS REGLAGES ».
 
 ## 03/10/2026, lot 57 : les nouvelles de « Mon commerce »

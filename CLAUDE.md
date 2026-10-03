@@ -7861,7 +7861,7 @@ immediat / Courrier de 8 h / Notification. Cases par defaut :
 | Ligne | Mail immediat | Courrier 8 h | Notification |
 |---|---|---|---|
 | Devis signe en ligne | interrupteur, coche | coche | coche |
-| Affaire gagnee par un collegue | interrupteur, coche | coche | a trancher |
+| Affaire gagnee par un collegue | interrupteur, coche | coche | coche (decision de Ted) |
 | Affaire perdue par un collegue | **JAMAIS** (decision de Ted) | coche | decoche |
 | Devis qui expire demain sans reponse | n'existe pas | coche | coche |
 | Echeance qui coute une amende | n'existe pas | coche | coche |
