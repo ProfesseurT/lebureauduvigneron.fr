@@ -24,7 +24,7 @@ export async function contexte(nav, largeur, theme) {
     userAgent: tel ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1' : undefined });
   await garnirLeBureau(ctx, process.env.DECOR_BRUT ? lignesDeVente() : lignesAvecSignaux());
   await doublerLesBibliotheques(ctx);
-  if (!process.env.NOFAKE) await ctx.addInitScript(({ B, theme, HORS33 }) => {
+  if (!process.env.NOFAKE) await ctx.addInitScript(({ B, theme, HORS33, NOUV }) => {
     try { localStorage.setItem('bureau_theme_v1', theme); } catch (e) {}
     const jour = new Date().toISOString();
     const T = { affaire_types: [{ bureau: B, type_id: 't1', nom: 'Caviste / restaurant', famille: 'client', sommeil_jours: 30, ordre: 0, archive: false, cree_le: jour },
@@ -43,6 +43,16 @@ export async function contexte(nav, largeur, theme) {
         { bureau: B, echange_id: 'x2', client_id: 'C0288', le: new Date(Date.now()-30*86400000).toISOString(), type: 'email', canal: 'email', resume: 'Message envoyé : tarifs 2026' }],
       devis: [{ bureau: B, devis_id: 'd1', affaire_id: 'a1', numero: 'D-2026-0042', statut: 'envoye', total_ht_c: 124000, total_vins_c: 124000, remise_globale_c: 0, tva_c: 24800, total_ttc_c: 148800, port_c: 0, date_devis: new Date(Date.now()-10*86400000).toISOString().slice(0,10), envoye_le: new Date(Date.now()-10*86400000).toISOString().slice(0,10), valable_jusqu: new Date(Date.now()+20*86400000).toISOString().slice(0,10), cree_le: jour, papier_empreinte: null },
         { bureau: B, devis_id: 'd0', affaire_id: 'a1', numero: 'D-2026-0009', statut: 'abandonne', total_ht_c: 98000, total_vins_c: 98000, remise_globale_c: 0, tva_c: 19600, total_ttc_c: 117600, port_c: 0, date_devis: new Date(Date.now()-40*86400000).toISOString().slice(0,10), cree_le: jour, papier_empreinte: null }] };
+    /* Lot 57 (03/10/2026) : les nouvelles de Mon commerce. Une affaire gagnee par un collegue
+       (p2, du trombinoscope du decor), une perdue, et un devis signe en ligne. */
+    if (NOUV) {
+      const h = (x) => new Date(Date.now() - x * 3600000).toISOString();
+      T.pistes.push({ bureau: B, piste_id: 'p8', nom: 'Le Comptoir du Port', opposition: false });
+      T.affaires.push({ bureau: B, affaire_id: 'a8', type_id: 't1', etape_id: 'e3', piste_id: 'p8', titre: 'Carte d’automne', issue: 'gagnee', close_le: h(1), close_par: 'p2', etape_le: jour, maj_le: jour, cree_le: jour },
+        { bureau: B, affaire_id: 'a9', type_id: 't2', etape_id: 'm2', client_id: 'C0500', client_nom: 'Mariage Lefèvre', titre: 'Vin d’honneur', issue: 'perdue', motif: 'prix', close_le: h(26), close_par: 'p3', etape_le: jour, maj_le: jour, cree_le: jour },
+        { bureau: B, affaire_id: 'a7', type_id: 't1', etape_id: 'e3', client_id: 'C0610', client_nom: 'Cave Saint-Vincent', titre: 'Commande de Noël', issue: 'gagnee', close_le: h(2), etape_le: jour, maj_le: jour, cree_le: jour });
+      T.devis.push({ bureau: B, devis_id: 'd7', affaire_id: 'a7', numero: 'D-2026-0051', statut: 'accepte', signe_le: h(2), total_ht_c: 86400, total_vins_c: 86400, remise_globale_c: 0, tva_c: 17280, total_ttc_c: 103680, port_c: 0, acheteur: { nom: 'Cave Saint-Vincent' }, date_devis: h(72).slice(0, 10), cree_le: jour, papier_empreinte: null });
+    }
     window.__T = T; let n = 0;
     const avant = window.fetch;
     window.fetch = function (e, init) {
@@ -56,6 +66,10 @@ export async function contexte(nav, largeur, theme) {
       if (meth === 'GET') {
         let l = T[t];
         if (/issue=eq\.en_cours/.test(url)) l = l.filter(a => a.issue === 'en_cours');
+        if (/issue=in\.\(gagnee,perdue\)/.test(url)) l = l.filter(a => a.issue === 'gagnee' || a.issue === 'perdue');
+        if (/close_par=not\.is\.null/.test(url)) l = l.filter(a => !!a.close_par);
+        if (/statut=eq\.accepte/.test(url)) l = l.filter(a => a.statut === 'accepte');
+        if (/signe_le=(not\.is\.null|gte\.)/.test(url)) l = l.filter(a => !!a.signe_le);
         [...url.matchAll(/[?&](affaire_id|client_cle|client_id)=eq\.([^&]+)/g)].forEach(m2 => { l = l.filter(x => String(x[m2[1]]) === decodeURIComponent(m2[2])); });
         if (/[?&]affaire_id=in\./.test(url)) { const ids = decodeURIComponent(url.match(/affaire_id=in\.\(([^)]*)\)/)[1]).split(','); l = l.filter(x => ids.includes(x.affaire_id)); }
         const off = +((url.match(/[?&]offset=(\d+)/) || [])[1] || 0); if (off) l = l.slice(off);
@@ -65,7 +79,7 @@ export async function contexte(nav, largeur, theme) {
       if (meth === 'PATCH') { const c = JSON.parse(init.body || '{}'); const id = (url.match(/_id=eq\.([^&]+)/) || [])[1]; const r = T[t].filter(x => Object.values(x).includes(decodeURIComponent(id || ''))); r.forEach(x => Object.assign(x, c)); return rep(r); }
       return rep([]);
     };
-  }, { B: BUREAU_A, theme, HORS33: !!process.env.HORS33 });
+  }, { B: BUREAU_A, theme, HORS33: !!process.env.HORS33, NOUV: !!process.env.NOUV });
   return ctx;
 }
 export async function ouvrirPage(ctx, port) {

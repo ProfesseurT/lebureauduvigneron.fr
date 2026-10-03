@@ -12,6 +12,30 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 03/10/2026, lot 57 : les nouvelles de « Mon commerce »
+
+Demande de Ted : un point sur « Mon commerce », un point sur « Mon bureau », une pastille en
+haut comme « clients a rappeler », et un mail de confirmation detaille. Ses choix : deux
+evenements seulement (devis signe en ligne, affaire gagnee ou perdue par un COLLEGUE) ; une
+nouvelle disparait quand on ouvre l'affaire ou le devis ; mail tout de suite a tout le bureau,
+jamais a l'auteur du geste ; le bandeau vert des devis signes est retire.
+Decide :
+- `affaires.close_par`, pose par la base (pas `maj_par` : la signature ne le touche pas, et le
+  mail aurait nomme le mauvais collegue). Signe en ligne = gagnee SANS auteur + devis signe ;
+- le mail passe par pg_net vers une fonction `notif-commerce`, avec un journal a cle primaire
+  (un mail par fermeture, un seul) ; une panne de l'envoi ne bloque jamais la fermeture ;
+- trente jours de fenetre, et la premiere fois sur un appareil, ce qui a plus de deux jours
+  compte pour vu (sinon un mois de nouvelles d'un coup) ;
+- une affaire close ouverte depuis une nouvelle se montre depliee dans « Affaires closes »,
+  reperee jusqu'au clic suivant.
+Apres-passe du vigneron (feu orange, corrige) : voile sous la liste du telephone, « Tout marquer
+comme vu » en vrai bouton, numero de devis jamais coupe, seconde ligne = type ou motif, points
+ambres a la meme place partout, pied du mail juste pour une signature.
+Ecarte : point aussi pour une affaire perdue ? garde (Ted peut le retirer) ; reglage pour couper
+le mail : pas demande.
+
+---
+
 ## 03/10/2026, « A gagner » : le type en liste deroulante, les onglets en avant
 
 Demande de Ted sur capture : une liste deroulante au dessin du site pour choisir « le pipe de

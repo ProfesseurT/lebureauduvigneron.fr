@@ -247,7 +247,7 @@
         <!-- nav__compte aussi ici : la zone du compte commence apres le filet dans les DEUX
              etats, connecte comme deconnecte. Sinon la barre changeait de structure selon
              qui la regarde. -->
-        <li id="navBureau" class="nav__compte" hidden><a href="/mon-bureau/" class="nav__cta">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span></a></li>
+        <li id="navBureau" class="nav__compte" hidden><a href="/mon-bureau/" class="nav__cta">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span><span class="nav__point" id="navPoint" hidden><span class="hors-ecran">, nouvelles de ton commerce</span></span></a></li>
         <!-- DEUX portes visibles, decide le 07/09/2026. Il n'y en avait qu'une, « Creer mon
              compte », et un vigneron qui revenait ne trouvait aucun mot qui lui parlait : il
              devait cliquer sur « creer » pour DECOUVRIR qu'il pouvait se connecter.
@@ -273,18 +273,21 @@
       try{
         var s = JSON.parse(localStorage.getItem('bdv_session'));
         var connecte = !!(s && s.access_token && s.user);
-        // Se deconnecter et gerer son compte se font depuis le bureau, pas depuis un menu de
-        // navigation. Les DEUX portes tombent ensemble une fois connecte, « Mon bureau » les
-        // remplace : en oublier une laisserait « Connexion » proposee a quelqu'un de connecte.
+        {# Se deconnecter et gerer son compte se font depuis le bureau, pas depuis un menu de
+           navigation. Les DEUX portes tombent ensemble une fois connecte, « Mon bureau » les
+           remplace : en oublier une laisserait « Connexion » proposee a quelqu'un de connecte. #}
         var c = document.getElementById('navCompteLi');    if(c) c.hidden = connecte;
         var x = document.getElementById('navConnexionLi');  if(x) x.hidden = connecte;
         var b = document.getElementById('navBureau');       if(b) b.hidden = !connecte;
+        {# Lot 57 : le point des nouvelles de Mon commerce, dont le nombre est range par
+           bdv-affaires-jour.js. Sur une page du site il date de la derniere visite au bureau. #}
+        var q = document.getElementById('navPoint');        if(q) q.hidden = !(connecte && +localStorage.getItem('bdv_notifs_n') > 0);
         var p = document.getElementById('navPastille');
         if(p){
           p.hidden = true;
-          // Le compte a lire se lit dans le meme miroir que les boutons de signet. Il vaut
-          // mieux un compte d'une seconde d'age affiche tout de suite qu'un compte juste
-          // affiche apres un aller-retour reseau, qui ferait sauter le menu sous le curseur.
+          {# Le compte a lire se lit dans le meme miroir que les boutons de signet. Il vaut
+             mieux un compte d'une seconde d'age affiche tout de suite qu'un compte juste
+             affiche apres un aller-retour reseau, qui ferait sauter le menu sous le curseur. #}
           if(connecte) try{
             var sg = JSON.parse(localStorage.getItem('bdv_signets_v1')) || {};
             var n = Object.keys(sg).filter(function(k){ return sg[k].etat === 'a_lire'; }).length;

@@ -7821,3 +7821,30 @@ deux tours sur captures (feu rouge, corrige, puis cette version).
   700 px la premiere affaire arrive vers 1 270 px (le bandeau des devis signes et « Ton client »
   sans nom en sont la plus grosse part, anterieurs) ; le filet des onglets deborde de 4 px de
   chaque cote (lot 44).
+
+### LES NOUVELLES DE « MON COMMERCE », LOT 57, 03/10/2026
+
+Deux sortes et deux seulement (decision de Ted) : un devis SIGNE EN LIGNE, une affaire GAGNEE
+ou PERDUE PAR UN COLLEGUE. Ce que j'ai fait moi-meme n'est jamais une nouvelle.
+- **`affaires.close_par`** est pose par la base (`affaires_close_par`), jamais par le
+  navigateur : `auth.uid()` a la fermeture, vide pour la signature (cle de service), efface a
+  la reouverture. « Signe en ligne » = gagnee SANS auteur ET un devis accepte signe. Pas de
+  fenetre de temps.
+- **Le mail** : declencheur `affaires_notifier` (APRES, `update of issue`) -> pg_net -> fonction
+  `supabase/functions/notif-commerce` (verify_jwt = false, secret `NOTIF_CLE` dans l'en-tete
+  `x-notif-cle`, LE MEME que dans `notif_reglage`). La fonction ne decide de rien
+  (`notif_detail()` dit sorte, texte et destinataires = le bureau SAUF l'auteur), POSE la ligne
+  de `notif_envois` avant d'envoyer, un mail par adresse, et ne rejoue jamais un echec. Tout
+  l'appel pg_net est dans un bloc qui avale l'erreur : un mail rate ne bloque jamais une
+  fermeture. Les motifs sont la meme liste a QUATRE endroits (piece, contrainte, nouvelles,
+  mail) : `banc:signature` les compare.
+- **L'ecran** (`bdv-affaires-jour.js`) : pastille `bureau-tete__etat--commerce` ajoutee EN TETE
+  par `peindreResume()` (`BdvAffairesJour.nouv()`), un clic ouvre la liste `#bdvNouv` (panneau
+  du bas + voile sous 700 px) ; point `.bureau-nav__point` DANS l'icone de « Mon commerce » ;
+  point `#navPoint` sur « Mon bureau » du bandeau, lu dans `bdv_notifs_n` (sur une page du site,
+  il date de la derniere visite au bureau). Vus : `bdv_notifs_vues_v1`, par affaire et instant
+  de fermeture, plus `a:<affaire>` pose par `vuAffaire()` quand le panneau ou la pleine page
+  MONTRE l'affaire. Trente jours ; premiere fois sur un appareil, plus de deux jours = vu.
+- **Le bandeau vert `#bureauSigne` est supprime.** La punaise « devis signe » reste (une chose a
+  faire, pas une nouvelle).
+- Captures : `NOUV=1 node scripts/cap-nouv.mjs 1440:light` (decor-gagner avec NOUV=1).

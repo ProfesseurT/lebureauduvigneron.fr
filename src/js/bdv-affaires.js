@@ -486,6 +486,8 @@
       if (S.nouvelle === true) apresNouvelle();
     } else {
       corps.setAttribute('data-affaire', a.affaire_id);
+      /* Lot 57 : montrer l'affaire, c'est avoir vu ses nouvelles (devis signe, collegue). */
+      if (window.BdvAffairesJour && BdvAffairesJour.vuAffaire) BdvAffairesJour.vuAffaire(a.affaire_id);
       peindreTete(a);
       corps.innerHTML = htmlEditeur(a);
       lireDevis(a);
@@ -2643,7 +2645,29 @@
     if (demandee && !S.nouvelle && S.affaires.some(function (a) { return a.affaire_id === demandee && a.issue === 'en_cours'; })) {
       S.ouverte = demandee;
     }
+    /* LOT 57 : une affaire CLOSE demandee (une nouvelle « Romane a gagne ... ») ne s'ouvre pas en
+       panneau : elle se montre dans « Affaires closes », depliee avec ses devis, et prend le
+       focus. Le filtre de type est leve s'il la cachait. */
+    var close = demandee && !devisDemande && S.affaires.filter(function (a) { return a.affaire_id === demandee && a.issue !== 'en_cours'; })[0];
+    if (close) { if (S.filtre && S.filtre !== close.type_id) S.filtre = ''; S.closesDevis[close.affaire_id] = true; }
     rendre();
+    if (close) {
+      if (window.BdvAffairesJour && BdvAffairesJour.vuAffaire) BdvAffairesJour.vuAffaire(close.affaire_id);
+      var lc = document.querySelector('#affCorps .aff-closes [data-affaire="' + close.affaire_id + '"]');
+      if (lc) {
+        var dl = lc.closest('details'); if (dl) dl.open = true;
+        /* La ligne visee se REPERE parmi les closes (meme dessin que le survol d'une tuile),
+           jusqu'au prochain clic. */
+        lc.classList.add('aff-ligne--visee');
+        setTimeout(function () {
+          document.addEventListener('click', function f() { lc.classList.remove('aff-ligne--visee'); document.removeEventListener('click', f, true); }, true);
+        }, 0);
+        lireDevis(close);
+        try { lc.scrollIntoView({ block: 'center' }); } catch (e) {}
+        var bc = lc.querySelector('[data-aff="devisClose"]'); if (bc) { try { bc.focus({ preventScroll: true }); } catch (e) {} }
+      }
+      return;
+    }
     if (demandee) S.retour = { affaire: demandee };
     if (devisDemande) {
       var ad = S.affaires.filter(function (x) { return x.affaire_id === devisDemande.affaire; })[0];
@@ -3047,6 +3071,7 @@
     if (!S.charge) { box.innerHTML = '<p class="aff-vide">' + (S.erreur ? 'L’affaire n’a pas pu être lue. Recharge la page.' : 'Ouverture de l’affaire…') + '</p>'; return; }
     var a = S.affaires.filter(function (x) { return x.affaire_id === S.page; })[0];
     if (!a) { box.innerHTML = '<p class="aff-vide">Cette affaire n’existe pas dans ton bureau. <a href="/mon-bureau/#affaires">Retour à Mon commerce</a></p>'; return; }
+    if (window.BdvAffairesJour && BdvAffairesJour.vuAffaire) BdvAffairesJour.vuAffaire(a.affaire_id);
     /* REPEINDRE NE PERD RIEN : les notes en cours de frappe, la note d'echange, les blocs
        ouverts, le focus et l'endroit ou l'on est dans la page. */
     var garde = {}, act = document.activeElement;

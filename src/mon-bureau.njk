@@ -2589,6 +2589,8 @@ theme_bureau: true
     if(n) m.push([n + ' client' + (n > 1 ? 's' : '') + ' à rappeler', 'journee', 'rappel', String(n)]);
     var l = parEtat('a_lire').length;
     if(l) m.push([l + ' article' + (l > 1 ? 's' : '') + ' de côté', 'journee', 'lecture', String(l)]);
+    {# Lot 57 : les nouvelles de Mon commerce passent DEVANT (bdv-affaires-jour.js). #}
+    var nv = window.BdvAffairesJour && BdvAffairesJour.nouv && BdvAffairesJour.nouv(); if(nv) m.unshift(nv);
     var r = el('bureauResume'); if(!r) return;
     r.textContent = '';
     if(!m.length){ r.textContent = 'Rien ne presse aujourd’hui.'; return; }
@@ -2604,7 +2606,7 @@ theme_bureau: true
       a.className = 'bureau-tete__etat bureau-tete__etat--' + x[2];
       a.href = '/mon-bureau/#' + x[1];
       a.setAttribute('aria-label', x[0]);
-      a.innerHTML = '<svg class="bureau-tete__etat-g" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' + ICO[x[2]] + '</svg>'
+      a.innerHTML = '<svg class="bureau-tete__etat-g" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' + (x[4] || ICO[x[2]]) + '</svg>'
         + '<span class="bureau-tete__etat-n" aria-hidden="true"></span><span class="bureau-tete__etat-mot"></span>';
       a.querySelector('.bureau-tete__etat-n').textContent = x[3];
       a.querySelector('.bureau-tete__etat-mot').textContent = x[0];
@@ -2617,6 +2619,7 @@ theme_bureau: true
   peindreEcheance();
   if(window.BdvCrm){ ETAT_FILE = BdvCrm.miroir(); peindreFile(); peindreArdoise(); peindreMot(); peindrePanneau(); }
   peindreResume();
+  window.bdvMajResume = peindreResume;
 
   DOC.addEventListener('click', function(e){
     if(e.target.closest && e.target.closest('[data-signet]')) setTimeout(function(){ peindreLectures(); peindreResume(); }, 0);

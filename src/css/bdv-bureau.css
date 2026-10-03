@@ -1433,11 +1433,8 @@ body.bdv-coque{
 .bdv-coque .bureau-avis[data-ok="oui"]{
   background:var(--bdv-bon-lavis);
 }
-/* T1 (tour 3) : le bandeau « devis signé » vit en tete de l'atelier, sur toutes les pieces. Sous
-   700 px, ses deux boutons prennent la cible tactile du bureau. */
-@media (max-width:700px){
-  body.bdv-poste.bdv-coque .bureau-signe .btn{ min-height:var(--bdv-cible); }
-}
+/* Le bandeau « devis signé » (T1, tour 3) est parti au lot 57 : la pastille des nouvelles de
+   l'en-tete le remplace (section 35). */
 
 /* LE LISTING QUAND SA ZONE EST ETROITE : UNE FICHE PAR LIGNE. Le basculement
    est dans src/css/style.css, a 40 rem de CONTENEUR et pas de fenetre, et il
@@ -6303,4 +6300,162 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
     min-height:var(--bdv-cible); height:var(--bdv-cible);
     font-size:var(--bdv-f-saisie);
   }
+}
+
+
+/* ==========================================================================
+   35. LES NOUVELLES DE « MON COMMERCE », 03/10/2026 (lot 57)
+
+   Un devis signe en ligne, une affaire gagnee ou perdue par un collegue : une
+   PASTILLE dans l'en-tete (a cote de « clients a rappeler » et de l'echeance),
+   un POINT sur la ligne « Mon commerce » du rail (et donc sur sa case de la barre
+   du bas), et une LISTE sous la pastille. Le tout est peint par
+   src/js/bdv-affaires-jour.js ; la pastille passe par peindreResume().
+   La pastille prend la teinte de l'echeance : c'est un etat qui demande un regard,
+   pas l'accent du bouton principal. Aucune ombre (cette feuille n'en pose aucune) :
+   la liste se detache par son trait. Couche : --z-modale, rien de neuf a l'echelle.
+   ========================================================================== */
+.bdv-coque .bureau-tete .bureau-tete__etat--commerce{
+  background:var(--bdv-alerte-lavis);
+  color:var(--bdv-alerte);
+}
+.bdv-coque .bureau-tete .bureau-tete__etat--commerce:hover{ background:var(--bdv-alerte-lavis); color:var(--bdv-alerte); }
+@media (max-width:700px){
+  .bdv-coque .bureau-tete .bureau-tete__etat--commerce::after{ background:var(--bdv-alerte-lavis); }
+  .bdv-coque .bureau-tete .bureau-tete__etat--commerce:hover{ background:none; }
+}
+
+/* LE POINT DU RAIL. Sur le coin de l'icone : il reste visible quand le rail est replie a
+   64 px et dans la barre du bas, ou le nom n'est pas ecrit. Son anneau a la couleur du
+   rail, pour detacher le point de l'icone. Ce qui s'entend est son texte hors ecran. */
+/* Il vit DANS l'icone, en haut a droite, a toutes les largeurs : meme place sur le rail, rail
+   replie et barre du bas. Meme encre que la pastille ambre, pour qu'on relie les deux. */
+.bdv-coque .bureau-nav__ligne[data-piece="clients"] .bureau-nav__ico{ position:relative; }
+.bdv-coque .bureau-nav__point{
+  position:absolute;
+  top:-4px;
+  right:-6px;
+  box-sizing:content-box;
+  width:8px;
+  height:8px;
+  border:2px solid var(--bdv-surface-2);
+  border-radius:var(--bdv-r-rond);
+  background:var(--bdv-alerte);
+  pointer-events:none;
+}
+@media (max-width:700px){
+  body.bdv-poste.bdv-coque .bureau-nav__point{ border-color:var(--bdv-surface); }
+}
+
+/* Le voile du telephone (le script le pose a chaque ouverture ; au-dessus de 700 px, rien). */
+.bdv-coque .bdv-nouv-voile{ display:none; }
+@media (max-width:700px){
+  .bdv-coque .bdv-nouv-voile{ display:block; position:fixed; inset:0; z-index:var(--z-modale); background:var(--bdv-voile); }
+  .bdv-coque .bdv-nouv-voile[hidden]{ display:none; }
+}
+/* L'affaire close qu'une nouvelle vient d'ouvrir se repere (section 28, le survol d'une tuile). */
+.bdv-coque .aff-closes .aff-ligne--visee{
+  background:linear-gradient(to right, var(--bdv-accent) 0 3px, var(--bdv-surface-2) 3px 100%);
+}
+/* LA LISTE. Sous la pastille, calee a droite (top et right poses par le script). */
+.bdv-coque .bdv-nouv{
+  position:fixed;
+  z-index:var(--z-modale);
+  width:400px;
+  max-width:calc(100vw - 2 * var(--bdv-e-4));
+  max-height:calc(100dvh - 120px);
+  overflow-y:auto;
+  background:var(--bdv-surface-3);
+  color:var(--bdv-encre-1);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .bdv-nouv[hidden]{ display:none; }
+.bdv-coque .bdv-nouv__tete{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--bdv-e-2);
+  padding:var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-2) var(--bdv-e-4);
+  border-bottom:1px solid var(--bdv-trait);
+}
+.bdv-coque .bdv-nouv__titre{
+  margin:0;
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bdv-nouv__x{
+  width:var(--bdv-cible);
+  height:var(--bdv-cible);
+  border:0;
+  border-radius:var(--bdv-r);
+  background:none;
+  color:var(--bdv-encre-2);
+  font-size:var(--bdv-f-5);
+  cursor:pointer;
+}
+.bdv-coque .bdv-nouv__x:hover{ background:var(--bdv-survol); color:var(--bdv-encre-1); }
+.bdv-coque .bdv-nouv__liste{ list-style:none; margin:0; padding:0; }
+.bdv-coque .bdv-nouv__l{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-3);
+  min-height:56px;
+  padding:var(--bdv-e-2) var(--bdv-e-4);
+  border-bottom:1px solid var(--bdv-trait);
+}
+.bdv-coque .bdv-nouv__t{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.bdv-coque .bdv-nouv__t strong{
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  color:var(--bdv-encre-1);
+}
+.bdv-coque .bdv-nouv__s{
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .bdv-nouv .bdv-nouv__o{ flex:0 0 auto; min-height:var(--bdv-cible); }
+.bdv-coque .bdv-nouv__vide,
+.bdv-coque .bdv-nouv__reste{
+  margin:0;
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .bdv-nouv__pied{
+  display:flex;
+  justify-content:flex-end;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+}
+.bdv-coque .bdv-nouv__pied .btn{ min-height:var(--bdv-cible); }
+/* SOUS 700 px : un panneau du bas, pleine largeur, au-dessus de la barre des pieces.
+   « Tout marquer comme vu » reste en pied, toujours atteignable au pouce. */
+@media (max-width:700px){
+  .bdv-coque .bdv-nouv{
+    top:auto;
+    right:0;
+    left:0;
+    bottom:0;
+    width:auto;
+    max-width:none;
+    max-height:70dvh;
+    border-radius:var(--bdv-r) var(--bdv-r) 0 0;
+    border-width:1px 0 0;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .bdv-coque .bdv-nouv__pied{
+    position:sticky;
+    bottom:0;
+    background:var(--bdv-surface-3);
+    border-top:1px solid var(--bdv-trait);
+  }
+  .bdv-coque .bdv-nouv__pied{ padding:var(--bdv-e-2) var(--bdv-e-4); }
+  .bdv-coque .bdv-nouv__pied .btn{ width:100%; }
 }

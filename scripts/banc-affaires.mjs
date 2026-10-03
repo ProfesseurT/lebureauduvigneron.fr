@@ -799,7 +799,7 @@ titre('Lot 45 : une regle « a relancer », un bilan au-dessus des onglets');
   await A2.charger();
   t('la lecture demande etape_le et type_id, puis le delai des types (sommeil_jours)',
     reqs.some(c => /^\/affaires\?select=[^&]*etape_le/.test(c) && /type_id/.test(c))
-    && reqs.some(c => /^\/affaire_types\?select=type_id,sommeil_jours&bureau=eq\.b1/.test(c)), reqs.join(' ; '));
+    && reqs.some(c => /^\/affaire_types\?select=type_id,sommeil_jours(,nom)?&bureau=eq\.b1/.test(c)), reqs.join(' ; '));
 }
 
 /* ----------------------------------------------------------------------------
@@ -1156,8 +1156,9 @@ titre('Lot 50 : le montant de l\'affaire se LIT dans son devis envoye ou accepte
     { bureau: BUREAU, affaire_id: 'a4', devis_id: 'd5', numero: 'D-2026-0015', statut: 'envoye', total_ht_c: 70000, envoye_le: '2026-09-29', valable_jusqu: '2099-01-01', cree_le: '2026-09-29T08:00:00Z' },
     { bureau: BUREAU, affaire_id: 'a4', devis_id: 'd4', numero: 'D-2026-0014', statut: 'accepte', total_ht_c: 30000, envoye_le: '2026-09-20', valable_jusqu: '2099-01-01', cree_le: '2026-09-20T08:00:00Z' }];
   await F.w.BdvAffaires.ouvrir();
-  /* Lot 55 : la lecture des devis signes (bdv-affaires-jour.js) n'est pas celle des montants. */
-  const lec = F.requetes.filter(r => /^\/devis\?select=/.test(r.chemin) && !/signe_le=not\.is\.null/.test(r.chemin));
+  /* Lot 55 : la lecture des devis signes (bdv-affaires-jour.js) n'est pas celle des montants ;
+     lot 57 : celle des nouvelles (signe_le=gte.) non plus. */
+  const lec = F.requetes.filter(r => /^\/devis\?select=/.test(r.chemin) && !/signe_le=(not\.is\.null|gte\.)/.test(r.chemin));
   t('les montants sont lus UNE fois, pour CE bureau, devis envoyes ou acceptes seulement',
     lec.length >= 1 && lec.every(r => r.chemin.indexOf('bureau=eq.' + BUREAU) >= 0 && /statut=in\.\(envoye,accepte\)/.test(r.chemin)), lec.map(r => r.chemin).join(' ; '));
   const tx = F.doc.getElementById('affCorps').textContent;

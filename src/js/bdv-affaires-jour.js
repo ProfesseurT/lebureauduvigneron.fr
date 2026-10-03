@@ -32,6 +32,7 @@
   var CLIENT_DE = {};    // piste_id -> client_id, pour une piste devenue cliente (lot 44)
   var SOMMEIL = {};      // type_id -> sommeil_jours, le delai qui endort une affaire (lot 45)
   var OPPOSE = {};       // piste_id -> true : la personne a demande a ne plus etre contactee (N4)
+  var TYPE_NOM = {};     // type_id -> nom, pour dire le type d'une nouvelle (lot 57)
   var SIGNES = null;     // lot 55 : devis signes en ligne dont la commande n'est pas telechargee
 
   /* LA FAMILLE « MES AFFAIRES », LOT 37 (28/09/2026). Elle rejoint la liste unique des
@@ -157,6 +158,7 @@
       }
       EN_COURS = aff; NOMS = noms; CLIENT_DE = clients; SOMMEIL = som; OPPOSE = opp;
       await lireSignes(b);
+      await lireNouv(b);
       repeindre();
       surveiller();
       return true;
@@ -181,10 +183,10 @@
 
   /* Le delai de chaque type : la colonne est `sommeil_jours` (supabase/lot34-affaires.sql). */
   async function lireSommeils(b) {
-    var ts = await lirePages('/affaire_types?select=type_id,sommeil_jours&bureau=eq.' + encodeURIComponent(b) + '&order=type_id.asc');
+    var ts = await lirePages('/affaire_types?select=type_id,sommeil_jours,nom&bureau=eq.' + encodeURIComponent(b) + '&order=type_id.asc');
     if (ts == null) return null;
     var m = {};
-    ts.forEach(function (t) { m[t.type_id] = t.sommeil_jours; });
+    ts.forEach(function (t) { m[t.type_id] = t.sommeil_jours; if (t.nom) TYPE_NOM[t.type_id] = t.nom; });
     return m;
   }
 
@@ -194,7 +196,7 @@
   function poser(affaires, pistes, types) {
     EN_COURS = (affaires || []).filter(function (a) { return a.issue === 'en_cours'; });
     NOMS = {}; CLIENT_DE = {}; SOMMEIL = {}; OPPOSE = {};
-    (types || []).forEach(function (t) { SOMMEIL[t.type_id] = t.sommeil_jours; });
+    (types || []).forEach(function (t) { SOMMEIL[t.type_id] = t.sommeil_jours; if (t.nom) TYPE_NOM[t.type_id] = t.nom; });
     Object.keys(pistes || {}).forEach(function (k) {
       NOMS[k] = pistes[k].nom;
       if (pistes[k].client_id) CLIENT_DE[k] = String(pistes[k].client_id);
@@ -277,8 +279,10 @@
     if (m) { try { sessionStorage.setItem('bdv_affaire_ouvrir', m[1]); } catch (e) {} }
   });
 
-  /* LE BANDEAU : seulement pour une signature que ce navigateur n'a pas encore montree.
-     Cle `bdv_` : elle part a la deconnexion, avec le reste. */
+  /* LES DEVIS DEJA VUS (lot 55). Le bandeau vert qui s'en servait est parti au lot 57 ;
+     la liste reste HONOREE par les nouvelles : un devis signe ouvert depuis la punaise, ou
+     montre par l'ancien bandeau, n'est plus une nouvelle. Cle `bdv_` : elle part a la
+     deconnexion, avec le reste. */
   var CLE_VUS = 'bdv_signes_vus_v1';
   function vus() { try { return JSON.parse(localStorage.getItem(CLE_VUS) || '[]') || []; } catch (e) { return []; } }
   function pasVu(id) {
@@ -287,63 +291,271 @@
   function vu(id) {
     try { var v = vus(); if (v.indexOf(id) < 0) { v.push(id); localStorage.setItem(CLE_VUS, JSON.stringify(v.slice(-50))); } } catch (e) {}
   }
-  /* T1 (02/10/2026) : le bandeau vit EN TETE DE L'ATELIER, une seule fois, hors du
-     sous-main. Pose avant `#bureauAvis`, il disparaissait avec `#zoneSousMain`, qui
-     n'existe que si un export a ete depose, et il ne se voyait que dans Ma journee.
-     Un vigneron sans Vitisoft fait signer des devis lui aussi. Il est le premier
-     enfant de `.bureau-atelier__travail`, donc frere des quatre conteneurs que
-     `seule()` bascule, et jamais un enfant de `#bureauJournee` : l'ordre des zones
-     garde par `npm run banc` ne bouge pas. */
-  function hoteBandeau() { return document.querySelector('.bureau-atelier__travail'); }
-  function peindreBandeau() {
-    var hote = hoteBandeau();
-    if (!hote || !SIGNES) return;
-    var neufs = SIGNES.filter(function (d) { return vus().indexOf(d.devis_id) < 0; });
-    var b = document.getElementById('bureauSigne');
-    if (!neufs.length) { if (b) b.hidden = true; return; }
-    if (!b) {
-      b = document.createElement('div');
-      b.id = 'bureauSigne';
-      b.className = 'bureau-avis bureau-signe';
-      b.setAttribute('data-ok', 'oui');
-      b.setAttribute('role', 'status');
-      hote.insertBefore(b, hote.firstChild);
-      b.addEventListener('click', function (ev) {
-        if (ev.target.closest('[data-signe-fermer]')) {
-          (SIGNES || []).forEach(function (d) { vu(d.devis_id); });
-          b.hidden = true;
-        }
+  /* ================= LES NOUVELLES DE « MON COMMERCE », LOT 57 (03/10/2026) =================
+     Demande de Ted : « un point de notif sur la barre laterale Mon commerce, un point sur
+     Mon bureau en haut a droite, et un truc en haut comme pour clients a rappeler ». Deux
+     sortes de nouvelles, et deux seulement (ses choix) :
+       - un devis SIGNE EN LIGNE par un client (la base l'a accepte seule) ;
+       - une affaire GAGNEE ou PERDUE PAR UN COLLEGUE (`affaires.close_par`, pose par la base).
+     Ce que J'AI fait moi-meme n'est jamais une nouvelle.
+     UNE NOUVELLE DISPARAIT QUAND J'OUVRE L'AFFAIRE (ou son devis) : `vuAffaire()`, appelee par
+     la piece quand elle peint le panneau ou la pleine page d'une affaire. « Tout marquer comme
+     vu » range tout d'un geste.
+     LE BANDEAU VERT DES DEVIS SIGNES EST PARTI (choix de Ted) : la pastille de l'en-tete le
+     remplace. La PUNAISE, elle, reste : elle dit une chose a faire (telecharger la commande),
+     pas une nouvelle.
+     Fenetre : trente jours. Ce qui est plus vieux n'est plus une nouvelle.
+     UNE LECTURE RATEE NE VIDE RIEN : on garde ce qu'on savait. Avant le SQL du lot 57, la
+     colonne `close_par` n'existe pas : la lecture des affaires closes echoue, on n'annonce que
+     les devis signes, et on le sait (`SANS_COLLEGUES`). */
+  var NOUV = null;            // null = jamais lu ; [] = rien de neuf dans les 30 jours
+  var SANS_COLLEGUES = false;
+  var CLE_NV = 'bdv_notifs_vues_v1';   // prefixe bdv_ : part a la deconnexion
+  var CLE_NB = 'bdv_notifs_n';         // le nombre, lu par le bandeau du site (base.njk)
+  var FENETRE = 30 * 86400000;
+  var ICO_NOUV = '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 20.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+
+  function vuesNv() { try { return JSON.parse(localStorage.getItem(CLE_NV) || '{}') || {}; } catch (e) { return {}; } }
+  function marquer(cles) {
+    try {
+      var v = vuesNv(), k;
+      cles.forEach(function (c) { v[c] = Date.now(); });
+      /* On ne garde que ce qui peut encore apparaitre : trente jours et un peu. */
+      for (k in v) if (Date.now() - v[k] > FENETRE + 86400000) delete v[k];
+      localStorage.setItem(CLE_NV, JSON.stringify(v));
+    } catch (e) {}
+  }
+  function nouvelles() {
+    if (!NOUV) return [];
+    var v = vuesNv(), anc = vus();
+    return NOUV.filter(function (n) {
+      var va = v['a:' + n.affaire];
+      return !v[n.cle] && !(va && va >= Date.parse(n.quand)) && !(n.devis && anc.indexOf(n.devis) >= 0);
+    });
+  }
+  /* Les motifs d'une affaire perdue : la MEME liste que MOTIFS de bdv-affaires.js (le banc de
+     la signature refuse qu'elles divergent). Un code inconnu reste tel quel. */
+  var MOTIFS_NV = { prix: 'Le prix', fournisseur: 'Un fournisseur déjà en place', moment: 'Pas le bon moment',
+    sans_reponse: 'Pas de réponse', indisponible: 'Date ou capacité indisponible', autre: 'Autre raison' };
+  /* Un numero de devis ne se coupe jamais : traits d'union insecables. */
+  function numero(n) { return String(n || '').replace(/-/g, '\u2011'); }
+  function ilYA(iso) {
+    var t = new Date(iso).getTime(); if (isNaN(t)) return '';
+    var m = Math.round((Date.now() - t) / 60000);
+    if (m < 2) return 'à l’instant';
+    if (m < 60) return 'il y a ' + m + ' min';
+    var h = Math.round(m / 60);
+    if (h < 24) return 'il y a ' + h + ' h';
+    var j = Math.round(h / 24);
+    return j === 1 ? 'hier' : 'il y a ' + j + ' jours';
+  }
+  function euros(c) {
+    var n = Number(c); if (!isFinite(n)) return '';
+    return Math.round(n / 100).toLocaleString('fr-FR').replace(/[  ]/g, ' ') + ' € HT';
+  }
+  async function lireNouv(b) {
+    b = b || bureau();
+    if (!b || !window.BdvCompte) return NOUV;
+    var depuis = encodeURIComponent(new Date(Date.now() - FENETRE).toISOString());
+    var l = [];
+    try {
+      var s = await BdvCompte.api('/devis?select=devis_id,affaire_id,numero,signe_le,total_ht_c,acheteur'
+        + '&statut=eq.accepte&signe_le=gte.' + depuis + '&bureau=eq.' + encodeURIComponent(b)
+        + '&order=signe_le.desc&limit=30');
+      if (!Array.isArray(s)) return NOUV;
+      s.forEach(function (d) {
+        l.push({ cle: d.affaire_id + '@' + d.signe_le, sorte: 'signe', affaire: d.affaire_id, devis: d.devis_id,
+          quand: d.signe_le, titre: clientDe(d) + ' a signé le devis ' + numero(d.numero),
+          sous: [euros(d.total_ht_c), ilYA(d.signe_le)].filter(Boolean).join(', ') });
+      });
+    } catch (e) { return NOUV; }
+    var moi = BdvCompte.monId && BdvCompte.monId();
+    if (moi) {
+      try {
+        var a = await BdvCompte.api('/affaires?select=affaire_id,titre,issue,motif,type_id,close_le,close_par,client_nom,piste_id'
+          + '&bureau=eq.' + encodeURIComponent(b) + '&issue=in.(gagnee,perdue)&close_le=gte.' + depuis
+          + '&close_par=not.is.null&close_par=neq.' + encodeURIComponent(moi) + '&order=close_le.desc&limit=30');
+        if (Array.isArray(a) && a.length) {
+          SANS_COLLEGUES = false;
+          var ids = a.map(function (x) { return x.piste_id; }).filter(Boolean), noms = {};
+          if (ids.length) {
+            var ps = await BdvCompte.api('/pistes?select=piste_id,nom&bureau=eq.' + encodeURIComponent(b)
+              + '&piste_id=in.(' + ids.slice(0, 100).map(encodeURIComponent).join(',') + ')');
+            (ps || []).forEach(function (p) { noms[p.piste_id] = p.nom; });
+          }
+          if (BdvCompte.trombinoscope) { try { await BdvCompte.trombinoscope(); } catch (e) {} }
+          a.forEach(function (x) {
+            var qui = (BdvCompte.nomAuteur && BdvCompte.nomAuteur(x.close_par)) || '';
+            if (!qui || qui === 'un ancien membre') qui = 'Un collègue';
+            var client = (x.piste_id && noms[x.piste_id]) || x.client_nom || x.titre || 'une affaire';
+            l.push({ cle: x.affaire_id + '@' + x.close_le, sorte: x.issue, affaire: x.affaire_id,
+              quand: x.close_le, titre: qui + (x.issue === 'gagnee' ? ' a gagné ' + client : ' a perdu ' + client),
+              sous: [x.issue === 'perdue' ? (MOTIFS_NV[x.motif] || x.motif || '') : (TYPE_NOM[x.type_id] || ''), ilYA(x.close_le)]
+                .filter(Boolean).join(', ') });
+          });
+        } else if (Array.isArray(a)) SANS_COLLEGUES = false;
+      } catch (e) { SANS_COLLEGUES = true; }
+    }
+    l.sort(function (x, y) { return x.quand < y.quand ? 1 : x.quand > y.quand ? -1 : 0; });
+    /* LA PREMIERE FOIS SUR CET APPAREIL, on ne deverse pas trente jours d'un coup : ce qui
+       a plus de deux jours compte pour vu. Ensuite, la fenetre est de trente jours. */
+    var premiere = false;
+    try { premiere = localStorage.getItem(CLE_NV) == null; } catch (e) {}
+    if (premiere) marquer(l.filter(function (n) { return Date.now() - new Date(n.quand).getTime() > 2 * 86400000; })
+      .map(function (n) { return n.cle; }));
+    NOUV = l;
+    return NOUV;
+  }
+
+  /* LA PASTILLE DE L'EN-TETE : [phrase, piece, nature, chiffre, icone], la forme de
+     `peindreResume()` (mon-bureau.njk). Une seule nouvelle, on la nomme ; plusieurs, on compte. */
+  function nouv() {
+    var n = nouvelles();
+    if (!n.length) return null;
+    var phrase = n.length === 1 ? n[0].titre : n.length + ' nouvelles de ton commerce';
+    return [phrase, 'affaires', 'commerce', String(n.length), ICO_NOUV];
+  }
+
+  /* LES POINTS : la ligne « Mon commerce » de la barre (et donc sa case de la barre du bas,
+     qui est la meme ligne), et « Mon bureau » du bandeau du site, par le nombre range pour
+     base.njk. Le point est decoratif ; ce qui s'entend est le texte hors ecran du lien. */
+  function peindrePoints() {
+    var n = nouvelles().length;
+    try { if (n) localStorage.setItem(CLE_NB, String(n)); else localStorage.removeItem(CLE_NB); } catch (e) {}
+    if (window.bdvMajBandeau) { try { window.bdvMajBandeau(); } catch (e) {} }
+    var a0 = document.querySelector('.bureau-nav__ligne[data-piece="clients"] a');
+    if (!a0) return;
+    var lien = a0.querySelector('.bureau-nav__ico') || a0;
+    var p = lien.querySelector('.bureau-nav__point');
+    if (!n) { if (p) p.remove(); return; }
+    if (!p) {
+      p = document.createElement('span'); p.className = 'bureau-nav__point';
+      p.innerHTML = '<span class="hors-ecran"></span>';
+      lien.appendChild(p);
+    }
+    p.firstChild.textContent = n === 1 ? ', une nouvelle' : ', ' + n + ' nouvelles';
+  }
+
+  /* LA LISTE, sous la pastille (un panneau a la place d'une bulle sous 700 px). Elle ne
+     montre que ce qui est NOUVEAU ; « Ouvrir » mene a l'affaire (et au devis signe), ce qui
+     la marque vue. */
+  var POP = null, POP_DE = null, VOILE = null;
+  function fermerNouv(rendre) {
+    if (!POP || POP.hidden) return;
+    POP.hidden = true; if (VOILE) VOILE.hidden = true;
+    if (POP_DE) POP_DE.setAttribute('aria-expanded', 'false');
+    if (rendre && POP_DE && document.contains(POP_DE)) POP_DE.focus();
+  }
+  function htmlNouv() {
+    var n = nouvelles().slice(0, 8);
+    var h = '<div class="bdv-nouv__tete"><h2 class="bdv-nouv__titre" id="bdvNouvTitre">Nouvelles de ton commerce</h2>'
+      + '<button type="button" class="bdv-nouv__x" data-nouv="fermer" aria-label="Fermer">×</button></div>';
+    if (!n.length) return h + '<p class="bdv-nouv__vide">Rien de neuf.</p>';
+    h += '<ul class="bdv-nouv__liste">';
+    n.forEach(function (x, i) {
+      h += '<li class="bdv-nouv__l bdv-nouv__l--' + x.sorte + '"><span class="bdv-nouv__t"><strong></strong><span class="bdv-nouv__s"></span></span>'
+        + '<button type="button" class="btn bdv-nouv__o" data-nouv="ouvrir" data-i="' + i + '">Ouvrir</button></li>';
+    });
+    h += '</ul>';
+    var reste = nouvelles().length - n.length;
+    if (reste > 0) h += '<p class="bdv-nouv__reste">Et ' + reste + ' de plus, dans Mon commerce.</p>';
+    return h + '<div class="bdv-nouv__pied"><button type="button" class="btn" data-nouv="tout">Tout marquer comme vu</button></div>';
+  }
+  function ouvrirNouv(pastille) {
+    if (!POP) {
+      POP = document.createElement('div');
+      POP.id = 'bdvNouv'; POP.className = 'bdv-nouv'; POP.hidden = true;
+      POP.setAttribute('role', 'dialog'); POP.setAttribute('aria-labelledby', 'bdvNouvTitre');
+      /* Le voile (visible sous 700 px seulement) : un appui a cote ferme la liste et ne touche
+         a RIEN d'autre, pas meme le « Fait » d'une punaise juste au-dessus. */
+      VOILE = document.createElement('div');
+      VOILE.className = 'bdv-nouv-voile'; VOILE.hidden = true; VOILE.setAttribute('aria-hidden', 'true');
+      VOILE.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); fermerNouv(true); });
+      document.body.appendChild(VOILE);
+      document.body.appendChild(POP);
+      POP.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-nouv]');
+        if (!b) return;
+        var quoi = b.getAttribute('data-nouv');
+        if (quoi === 'fermer') { fermerNouv(true); return; }
+        if (quoi === 'tout') { marquer(nouvelles().map(function (x) { return x.cle; })); fermerNouv(true); majNouv(); return; }
+        var x = nouvelles().slice(0, 8)[+b.getAttribute('data-i')];
+        if (!x) return;
+        fermerNouv(false);
+        if (x.devis) { try { sessionStorage.setItem('bdv_devis_ouvrir', JSON.stringify({ affaire: x.affaire, devis: x.devis })); } catch (e) {} }
+        ouvrirPiece(x.affaire);
+      });
+      POP.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); fermerNouv(true); } });
+      document.addEventListener('click', function (ev) {
+        if (POP.hidden || POP.contains(ev.target) || (POP_DE && POP_DE.contains(ev.target))) return;
+        fermerNouv(false);
       });
     }
-    var d = neufs[0];
-    var dit = neufs.length === 1
-      ? clientDe(d) + ' a signé en ligne le devis ' + d.numero + '. Il est accepté et l’affaire est gagnée : télécharge la commande Vitisoft.'
-      : neufs.length + ' devis viennent d’être signés en ligne, à commencer par ' + clientDe(d) + ' (' + d.numero + ').';
-    b.innerHTML = '';
-    var p = document.createElement('span'); p.textContent = 'Bonne nouvelle. ' + dit + ' ';
-    var o = document.createElement('button'); o.type = 'button'; o.className = 'btn'; o.textContent = 'Ouvrir le devis';
-    o.setAttribute('data-signe-ouvrir', 'signe:' + d.affaire_id + ':' + d.devis_id);
-    var x = document.createElement('button'); x.type = 'button'; x.className = 'btn btn--geste'; x.textContent = 'Plus tard';
-    x.setAttribute('data-signe-fermer', '1');
-    b.appendChild(p); b.appendChild(o); b.appendChild(document.createTextNode(' ')); b.appendChild(x);
-    b.hidden = false;
+    POP_DE = pastille;
+    POP.innerHTML = htmlNouv();
+    var l = nouvelles().slice(0, 8), lis = POP.querySelectorAll('.bdv-nouv__l');
+    for (var i = 0; i < lis.length; i++) {
+      lis[i].querySelector('strong').textContent = l[i].titre;
+      lis[i].querySelector('.bdv-nouv__s').textContent = l[i].sous;
+      lis[i].querySelector('.bdv-nouv__o').setAttribute('aria-label', 'Ouvrir : ' + l[i].titre);
+    }
+    /* Sous la pastille, cale a droite de la fenetre ; le telephone en fait un panneau du bas (CSS). */
+    var r = pastille.getBoundingClientRect(), bas = window.matchMedia && matchMedia('(max-width:700px)').matches;
+    POP.style.top = bas ? '' : Math.round(r.bottom + 8) + 'px';
+    POP.style.right = bas ? '' : Math.max(16, Math.round(window.innerWidth - r.right)) + 'px';
+    POP.hidden = false; VOILE.hidden = false;
+    pastille.setAttribute('aria-expanded', 'true');
+    var f = POP.querySelector('.bdv-nouv__o') || POP.querySelector('[data-nouv="fermer"]');
+    if (f) f.focus();
   }
+  /* La pastille est un lien vers « A gagner » (un clic milieu y mene) ; un clic simple ouvre
+     la liste. En CAPTURE : l'interception des liens de bdv-nav.js ecoute en bulle. */
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('.bureau-tete__etat--commerce');
+    if (!a || ev.button || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    if (POP && !POP.hidden && POP_DE === a) { fermerNouv(true); return; }
+    ouvrirNouv(a);
+  }, true);
+
+  /* Tout ce qui fait changer le nombre passe par ici : la pastille, les points, et la liste
+     si elle est ouverte. */
+  function majNouv() {
+    if (window.bdvMajResume) { try { window.bdvMajResume(); } catch (e) {} }
+    var pa = document.querySelector('.bureau-tete__etat--commerce');
+    if (pa) { pa.setAttribute('aria-haspopup', 'dialog'); pa.setAttribute('aria-expanded', POP && !POP.hidden ? 'true' : 'false'); }
+    peindrePoints();
+    if (POP && !POP.hidden) {
+      if (!nouvelles().length || !pa) fermerNouv(false);
+      else ouvrirNouv(pa);
+    }
+  }
+  /* Appelee par la piece quand elle MONTRE une affaire (panneau ou pleine page). On retient
+     l'affaire et l'instant, pas les nouvelles : la pleine page s'ouvre sans les avoir lues, et
+     ce qui arrive APRES sur la meme affaire reste une nouvelle. */
+  function vuAffaire(id) {
+    if (!id) return;
+    var avant = nouvelles().length;
+    marquer(['a:' + id]);
+    if (nouvelles().length !== avant) majNouv();
+  }
+
   /* LA SURVEILLANCE : une requete etroite toutes les deux minutes, et seulement quand la
      page est vue ; plus une au retour sur l'onglet. Pas de connexion temps reel : une
      signature n'est pas une course, deux minutes suffisent. */
   var VEILLE = null;
   function surveiller() {
-    peindreBandeau();
+    majNouv();
     if (VEILLE) return;
     VEILLE = setInterval(function () { if (document.visibilityState === 'visible') relireSignes(); }, 120000);
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') relireSignes(); });
   }
   function relireSignes() {
     var avant = JSON.stringify((SIGNES || []).map(function (d) { return d.devis_id; }));
-    return lireSignes().then(function () {
+    return Promise.all([lireSignes(), lireNouv()]).then(function () {
       var apres = JSON.stringify((SIGNES || []).map(function (d) { return d.devis_id; }));
       if (apres !== avant) repeindre();
-      peindreBandeau();
+      majNouv();
     });
   }
 
@@ -595,6 +807,7 @@
   window.BdvAffairesJour = { charger: charger, pageAffaire: pageAffaire, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
                              datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE,
                              etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan,
-                             vu: function (id) { vu(id); peindreBandeau(); },
-                             pasVu: function (id) { pasVu(id); peindreBandeau(); }, signes: function () { return SIGNES; }, relireSignes: relireSignes, punaisesSignes: punaisesSignes };
+                             vu: function (id) { vu(id); majNouv(); },
+                             pasVu: function (id) { pasVu(id); majNouv(); },
+                             nouv: nouv, vuAffaire: vuAffaire, nouvelles: nouvelles, signes: function () { return SIGNES; }, relireSignes: relireSignes, punaisesSignes: punaisesSignes };
 })();

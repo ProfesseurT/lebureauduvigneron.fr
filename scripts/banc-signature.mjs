@@ -269,14 +269,70 @@ titre('2. La fonction Edge');
   t('la panne ne renvoie qu\'un mot, le detail reste au journal', /console\.error\('signature'/.test(code) && /erreur: 'panne'/.test(code));
 }
 
-titre('3. Le bureau : punaise et bandeau');
+titre('2 bis. Le mail des nouvelles (fonction notif-commerce, lot 57)');
 {
-  const dom = new JSDOM('<!doctype html><html><body><div class="bureau-atelier__travail"><div class="bureau-plan" id="bureauJournee"><section class="zone" id="zoneSousMain" hidden><p class="bureau-avis" id="bureauAvis" hidden></p></section></div><div id="bureauAffaires" hidden></div></div><div class="postit" data-cle="x"></div></body></html>',
+  const N = lire('supabase/functions/notif-commerce/index.ts');
+  const code = N.replace(/\/\*[\s\S]*?\*\//g, '');
+  t('elle refuse tout appel sans le secret NOTIF_CLE (32 signes au moins) dans x-notif-cle',
+    /if \(!CLE \|\| CLE\.length < 32 \|\| req\.headers\.get\('x-notif-cle'\) !== CLE\) return reponse\(\{ erreur: 'cle' \}, 401\)/.test(code));
+  t('elle ne decide de rien : une seule fonction de la base, notif_detail', (code.match(/rpc\('([a-z_]+)'/g) || []).join() === "rpc('notif_detail'");
+  t('elle POSE la ligne du journal AVANT d\'envoyer, et s\'arrete si elle existait',
+    /Prefer: 'resolution=ignore-duplicates,return=representation'/.test(code)
+    && code.indexOf('await reserver(') > 0 && code.indexOf('await reserver(') < code.indexOf('await envoyer(')
+    && /if \(!moi\) return reponse\(\{ deja: true/.test(code));
+  t('un destinataire a la fois, vingt au plus, adresses dedoublonnees', /const MAX_DEST = 20;/.test(code) && /\[\.\.\.new Set\(dest\)\]\.slice\(0, MAX_DEST\)/.test(code) && /to: \[a\]/.test(code));
+  t('le resultat est note, et un echec ne se rejoue pas tout seul', /await noter\(String\(d\.cle\), \{[\s\S]*echec: echecs\.length/.test(code) && !/setTimeout|retry/i.test(code));
+  t('le mail ne nomme aucune couleur sans son jeton', (N.match(/'#[0-9A-Fa-f]{6}',\s*\/\/ --[a-z-]+/g) || []).length === 8);
+  t('aucun tiret cadratin', !/\u2014/.test(N));
+  {
+    const AFm = lire('src/js/bdv-affaires.js'), BJm = lire('src/js/bdv-affaires-jour.js');
+    const ref = [...AFm.slice(AFm.indexOf('var MOTIFS = ['), AFm.indexOf('];', AFm.indexOf('var MOTIFS = ['))).matchAll(/\['([a-z_]+)', '([^']+)'\]/g)].map(m => m[1] + '=' + m[2]).sort().join('|');
+    const nv = [...BJm.slice(BJm.indexOf('var MOTIFS_NV'), BJm.indexOf('};', BJm.indexOf('var MOTIFS_NV'))).matchAll(/([a-z_]+): '([^']+)'/g)].map(m => m[1] + '=' + m[2]).sort().join('|');
+    const ma = [...N.slice(N.indexOf('const MOTIFS'), N.indexOf('};', N.indexOf('const MOTIFS'))).matchAll(/([a-z_]+): '([^']+)'/g)].map(m => m[1] + '=' + m[2]).sort().join('|');
+    t('les motifs d\'une affaire perdue sont les memes dans la piece, les nouvelles et le mail', !!ref && ref === nv && ref === ma, ref + ' / ' + nv + ' / ' + ma);
+  }
+  const nodeTs = Number(process.versions.node.split('.')[0]) > 22 || (Number(process.versions.node.split('.')[0]) === 22 && Number(process.versions.node.split('.')[1]) >= 6);
+  if (!nodeTs) console.log('  note  : node ' + process.versions.node + ' ne lit pas le TypeScript, la fabrique du mail n\'est pas executee ici');
+  else {
+    const { execFileSync } = await import('node:child_process');
+    const essai = 'globalThis.Deno={env:{get:(k)=>k==="NOTIF_BANC"?"1":""}};'
+      + 'const m=await import(' + JSON.stringify(path.join(RACINE, 'supabase/functions/notif-commerce/index.ts')) + ');'
+      + 'const base={cle:"x",bureau_nom:"Domaine Un",affaire_id:"11111111-1111-1111-1111-111111111111",titre:"Premiere",client:"Cave du Port",type:"Caviste",close_le:"2026-10-03T08:12:00Z"};'
+      + 'const dv={numero:"D-2026-0004",total_ht_c:124000,total_ttc_c:148800,signe_le:"2026-10-03T08:12:00Z",lignes:[{designation:"Le Rosé",millesime:"2025",conditionnement:"75 cl",quantite:60,pu_f_c:950,final_c:57000}],signataire:{nom:"Paul <b>Martin</b>",qualite:"Gérant"}};'
+      + 'console.log(JSON.stringify([m.fabriquer({...base,sorte:"signe",par:null,devis:dv}),m.fabriquer({...base,sorte:"gagnee",par:"Camila",devis:null}),m.fabriquer({...base,sorte:"perdue",par:"Bruno",motif:"fournisseur",devis:null})]));';
+    let r = null;
+    try { r = JSON.parse(execFileSync(process.execPath, ['--experimental-strip-types', '--no-warnings', '--input-type=module', '-e', essai], { encoding: 'utf8' })); } catch (e) { r = null; }
+    t('la fabrique tourne', Array.isArray(r) && r.length === 3);
+    if (r) {
+      const [sg, ga, pe] = r;
+      t('signe : le sujet nomme le devis et le client', sg.sujet === 'Devis D-2026-0004 signé par Cave du Port', sg.sujet);
+      t('signe : montants, vins, signataire, heure de Paris, et la suite (Vitisoft)', /1 240,00 € HT, 1 488,00 € TTC/.test(sg.texte)
+        && /Le Rosé, 2025, 75 cl : 60 x 9,50 € = 570,00 €/.test(sg.texte) && /samedi 3 octobre à 10 h 12/.test(sg.texte)
+        && /importer dans Vitisoft/.test(sg.texte), sg.texte);
+      t('le nom du signataire est echappe dans le HTML', /Paul &lt;b&gt;Martin&lt;\/b&gt;/.test(sg.html) && !/Paul <b>/.test(sg.html));
+      t('le bouton mene a l\'affaire', /href="https:\/\/lebureauduvigneron\.fr\/mon-bureau\/#affaire=11111111-1111-1111-1111-111111111111"/.test(sg.html));
+      t('gagnee : le collegue est nomme', ga.sujet === 'Affaire gagnée : Cave du Port (par Camila)' && /Camila a gagné l'affaire Cave du Port/.test(ga.texte));
+      t('signe : le pied dit que tout le bureau le recoit (c\'est le client qui a fait le geste)', /Tout le bureau le reçoit\./.test(sg.texte) && !/Celui qui a fait le geste/.test(sg.texte)
+        && /Celui qui a fait le geste ne le reçoit pas/.test(ga.texte));
+      t('perdue : le motif en mots, pas en code', pe.sujet === 'Affaire perdue : Cave du Port (par Bruno)' && /Motif : Un fournisseur déjà en place/.test(pe.texte));
+      t('largeur bornee a 560 px, en attribut et en style, fonds sur les cellules', /width="560"[^>]*max-width:560px/.test(sg.html) && /<td bgcolor="#FFFFFF" style="background-color:#FFFFFF/.test(sg.html));
+    }
+  }
+}
+
+titre('3. Le bureau : la punaise, et les nouvelles qui remplacent le bandeau (lot 57)');
+{
+  const dom = new JSDOM('<!doctype html><html><body><div class="bureau-atelier__travail"><div class="bureau-plan" id="bureauJournee"><section class="zone" id="zoneSousMain" hidden><p class="bureau-avis" id="bureauAvis" hidden></p></section></div><div id="bureauAffaires" hidden></div></div><div class="postit" data-cle="x"></div><ul><li class="bureau-nav__ligne" data-piece="clients"><a class="bureau-nav__item" href="/mon-bureau/#clients">Mon commerce</a></li></ul><p id="bureauResume"><a class="bureau-tete__etat bureau-tete__etat--commerce" href="/mon-bureau/#affaires">x</a></p></body></html>',
     { runScripts: 'outside-only', url: 'https://lebureauduvigneron.fr/mon-bureau/', pretendToBeVisual: true });
   const w = dom.window, req = [];
-  let SIG = [{ devis_id: 'dv1', affaire_id: 'af1', numero: 'D-2026-0012', signe_le: '2026-10-01T12:05:00Z', total_ht_c: 15000, acheteur: { nom: 'Cave du Quai' } }];
-  w.BdvCompte = { monBureau: () => 'B1', api: async (c) => { req.push(c); await attendre(0);
+  const ilYa = (h) => new Date(Date.now() - h * 3600000).toISOString();
+  let SIG = [{ devis_id: 'dv1', affaire_id: 'af1', numero: 'D-2026-0012', signe_le: ilYa(2), total_ht_c: 15000, acheteur: { nom: 'Cave du Quai' } }];
+  let CLOS = [], CLOS_PANNE = false;
+  w.BdvCompte = { monBureau: () => 'B1', monId: () => 'U1', nomAuteur: (id) => id === 'U2' ? 'Camila' : 'un ancien membre',
+    trombinoscope: async () => ({}), api: async (c) => { req.push(c); await attendre(0);
     if (/^\/devis\?/.test(c)) return SIG.map(x => Object.assign({}, x));
+    if (/^\/affaires\?/.test(c) && /close_par/.test(c)) { if (CLOS_PANNE) throw Object.assign(new Error('400'), { detail: 'column affaires.close_par does not exist' }); return CLOS.map(x => Object.assign({}, x)); }
+    if (/^\/pistes\?/.test(c)) return [{ piste_id: 'p9', nom: 'Domaine Voisin' }];
     if (/^\/affaires\?/.test(c)) return []; if (/^\/affaire_types\?/.test(c)) return []; return []; } };
   let piece = 0;
   w.BdvNav = { afficher: () => { piece++; } };
@@ -300,26 +356,63 @@ titre('3. Le bureau : punaise et bandeau');
     lu.splice(lu.indexOf('dv1'), 1); w.localStorage.setItem('bdv_signes_vus_v1', JSON.stringify(lu));
     await w.BdvAffairesJour.relireSignes(); await attendre(5);
   }
-  const b = w.document.getElementById('bureauSigne');
-  t('le bandeau parait, en bonne nouvelle, et dit quoi faire', !!b && !b.hidden && b.getAttribute('data-ok') === 'oui'
-    && /Cave du Quai a signé en ligne le devis D-2026-0012/.test(b.textContent));
-  const trav = w.document.querySelector('.bureau-atelier__travail');
-  t('T1 : il est EN TETE de l\'atelier, hors du sous-main (cache sans export) et hors de #bureauJournee', b.parentNode === trav && trav.firstElementChild === b
-    && !b.closest('#zoneSousMain') && !b.closest('#bureauJournee'));
-  b.querySelector('[data-signe-ouvrir]').click();
-  t('« Ouvrir le devis » demande CE devis et ouvre la piece', JSON.parse(w.sessionStorage.getItem('bdv_devis_ouvrir') || '{}').devis === 'dv1' && piece === 2);
-  await w.BdvAffairesJour.relireSignes(); await attendre(5);
-  t('vu une fois, le bandeau ne revient pas', w.document.getElementById('bureauSigne').hidden);
-  SIG = SIG.concat([{ devis_id: 'dv2', affaire_id: 'af2', numero: 'D-2026-0013', signe_le: '2026-10-01T13:00:00Z', acheteur: { nom: 'Bistrot' } }]);
-  await w.BdvAffairesJour.relireSignes(); await attendre(5);
-  const p2 = w.BdvAffairesJour.punaisesSignes();
-  t('deux : la punaise COMPTE, et le bandeau revient pour le neuf seulement', p2.length === 1 && p2[0].valeur === '2' && /devis signés/.test(p2[0].libelle)
-    && !w.document.getElementById('bureauSigne').hidden && /Bistrot/.test(w.document.getElementById('bureauSigne').textContent), JSON.stringify(p2));
-  t('T1 : sous 700 px, ses boutons ont la cible tactile du bureau',
-    /@media \(max-width:700px\)\{\s*body\.bdv-poste\.bdv-coque \.bureau-signe \.btn\{ min-height:var\(--bdv-cible\); \}/.test(lire('src/css/bdv-bureau.css')));
-  t('T1 : une seule fois, meme apres plusieurs repeintures', w.document.querySelectorAll('#bureauSigne').length === 1);
-  w.document.querySelector('[data-signe-fermer]').click();
-  t('« Plus tard » range le bandeau', w.document.getElementById('bureauSigne').hidden);
+  const D = w.document, BAJ = w.BdvAffairesJour;
+  t('lot 57 : le bandeau vert n\'existe plus', !D.getElementById('bureauSigne'));
+  const qn = req.find(c => /signe_le=gte\./.test(c)) || '';
+  t('lot 57 : les signatures des 30 derniers jours, de CE bureau, meme commande telechargee', /statut=eq\.accepte/.test(qn) && /bureau=eq\.B1/.test(qn) && !/commande_telechargee_le/.test(qn), qn);
+  const n1 = BAJ.nouv();
+  t('lot 57 : une nouvelle, on la NOMME, pour la piece A gagner, teinte « commerce »', !!n1 && n1[0] === 'Cave du Quai a signé le devis D\u20112026\u20110012'
+    && n1[1] === 'affaires' && n1[2] === 'commerce' && n1[3] === '1' && /<path/.test(n1[4]), JSON.stringify(n1));
+  const pt = D.querySelector('.bureau-nav__ligne[data-piece="clients"] .bureau-nav__point');
+  t('lot 57 : un point sur « Mon commerce » du rail, avec son texte hors ecran', !!pt && pt.querySelector('.hors-ecran').textContent === ', une nouvelle');
+  t('lot 57 : le nombre est range pour le bandeau du site', w.localStorage.getItem('bdv_notifs_n') === '1');
+  CLOS = [{ affaire_id: 'af2', titre: 'Salon', issue: 'gagnee', close_le: ilYa(1), close_par: 'U2', piste_id: 'p9' },
+          { affaire_id: 'af3', titre: 'Mariage Durand', issue: 'perdue', motif: 'prix', close_le: ilYa(3), close_par: 'U7', client_nom: null }];
+  await BAJ.relireSignes(); await attendre(5);
+  const qc = req.filter(c => /^\/affaires\?/.test(c) && /close_par/.test(c)).pop() || '';
+  t('lot 57 : les affaires closes par un AUTRE (close_par non vide et different de moi), 30 jours', /close_par=not\.is\.null/.test(qc)
+    && /close_par=neq\.U1/.test(qc) && /issue=in\.\(gagnee,perdue\)/.test(qc) && /close_le=gte\./.test(qc), qc);
+  const lst = BAJ.nouvelles();
+  t('lot 57 : trois nouvelles, la plus recente en tete, le collegue NOMME, un ancien membre devient « Un collègue »',
+    lst.length === 3 && lst[0].titre === 'Camila a gagné Domaine Voisin' && lst[2].titre === 'Un collègue a perdu Mariage Durand', JSON.stringify(lst.map(x => x.titre)));
+  t('lot 57 : la seconde ligne dit le motif d\'une perdue, jamais une redite du titre', /^Le prix, il y a 3 h$/.test(lst[2].sous), lst[2].sous);
+  t('lot 57 : plusieurs, on COMPTE', BAJ.nouv()[0] === '3 nouvelles de ton commerce' && BAJ.nouv()[3] === '3');
+  const pas = D.querySelector('.bureau-tete__etat--commerce');
+  const ev0 = new w.MouseEvent('click', { bubbles: true, cancelable: true });
+  pas.dispatchEvent(ev0);
+  const pop = D.getElementById('bdvNouv');
+  t('lot 57 : le lien de la pastille n\'est pas suivi (pas de saut vers A gagner)', ev0.defaultPrevented);
+  t('lot 57 : un clic sur la pastille ouvre la liste, sans suivre le lien', !!pop && !pop.hidden && pas.getAttribute('aria-expanded') === 'true'
+    && pop.querySelectorAll('.bdv-nouv__l').length === 3 && pop.getAttribute('role') === 'dialog');
+  t('lot 57 : chaque ligne a son « Ouvrir » nomme, et « Tout marquer comme vu » en pied',
+    pop.querySelectorAll('.bdv-nouv__o').length === 3 && /Camila a gagné Domaine Voisin/.test(pop.querySelector('.bdv-nouv__o').getAttribute('aria-label'))
+    && !!pop.querySelector('[data-nouv="tout"]'));
+  pop.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  t('lot 57 : Echap la ferme', pop.hidden && pas.getAttribute('aria-expanded') === 'false');
+  pas.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  const avantO = piece; w.sessionStorage.removeItem('bdv_devis_ouvrir');
+  pop.querySelectorAll('.bdv-nouv__o')[1].click();
+  t('lot 57 : « Ouvrir » un devis signe demande CE devis et ouvre la piece', JSON.parse(w.sessionStorage.getItem('bdv_devis_ouvrir') || '{}').devis === 'dv1'
+    && w.sessionStorage.getItem('bdv_affaire_ouvrir') === 'af1' && piece === avantO + 1 && pop.hidden);
+  BAJ.vuAffaire('af1');
+  t('lot 57 : montrer l\'affaire, c\'est avoir vu ses nouvelles', BAJ.nouvelles().length === 2 && BAJ.nouvelles().every(x => x.affaire !== 'af1'));
+  t('lot 57 : le point suit', D.querySelector('.bureau-nav__point .hors-ecran').textContent === ', 2 nouvelles' && w.localStorage.getItem('bdv_notifs_n') === '2');
+  pas.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  pop.querySelector('[data-nouv="tout"]').click();
+  t('lot 57 : « Tout marquer comme vu » : plus de pastille, plus de point, plus de nombre', BAJ.nouv() === null
+    && !D.querySelector('.bureau-nav__point') && w.localStorage.getItem('bdv_notifs_n') === null && pop.hidden);
+  CLOS = CLOS.concat([{ affaire_id: 'af2', titre: 'Salon', issue: 'perdue', close_le: ilYa(0.1), close_par: 'U2', piste_id: 'p9' }]);
+  await BAJ.relireSignes(); await attendre(5);
+  t('lot 57 : une affaire rouverte puis refermee est une NOUVELLE nouvelle', BAJ.nouvelles().length === 1 && BAJ.nouvelles()[0].titre === 'Camila a perdu Domaine Voisin');
+  w.localStorage.removeItem('bdv_notifs_vues_v1');
+  CLOS = [{ affaire_id: 'af8', titre: 'Vieux', issue: 'gagnee', close_le: ilYa(24 * 5), close_par: 'U2' }];
+  SIG = [];
+  await BAJ.relireSignes(); await attendre(5);
+  t('lot 57 : la premiere fois sur un appareil, ce qui a plus de deux jours compte pour vu', BAJ.nouvelles().length === 0);
+  CLOS_PANNE = true; SIG = [{ devis_id: 'dv4', affaire_id: 'af4', numero: 'D-2026-0020', signe_le: ilYa(0.5), acheteur: { nom: 'Cave Neuve' } }];
+  await BAJ.relireSignes(); await attendre(5);
+  t('lot 57 : avant le SQL (close_par absent), les devis signes s\'annoncent quand meme', BAJ.nouvelles().length === 1 && BAJ.nouvelles()[0].titre === 'Cave Neuve a signé le devis D\u20112026\u20110020');
+  CLOS_PANNE = false;
   SIG = [];
   await w.BdvAffairesJour.relireSignes();
   t('commande telechargee : plus de punaise', w.BdvAffairesJour.punaisesSignes().length === 0);
@@ -332,6 +425,16 @@ titre('3. Le bureau : punaise et bandeau');
   const NB = lire('src/mon-bureau.njk');
   const i = NB.indexOf('BdvAffairesJour.punaisesSignes()'), j = NB.indexOf('pile = pile.concat(BdvTaches.punaises())'), r = NB.indexOf("cle: 'crm-retard'");
   t('dans la pile, la punaise d\'un devis signe vient apres les retards et avant les taches', i > r && i < j && r > 0);
+  const PR = NB.slice(NB.indexOf('function peindreResume(){'), NB.indexOf('window.bdvMajResume = peindreResume;'));
+  t('lot 57 : la pastille des nouvelles passe DEVANT dans l\'en-tete, avec son icone', /BdvAffairesJour\.nouv\(\); if\(nv\) m\.unshift\(nv\);/.test(PR)
+    && /\(x\[4\] \|\| ICO\[x\[2\]\]\)/.test(PR) && PR.length > 100);
+  const AF = lire('src/js/bdv-affaires.js');
+  const pp = AF.slice(AF.indexOf('function peindrePanneau('), AF.indexOf('function peindreTete('));
+  const pg = AF.slice(AF.indexOf('function peindrePage('), AF.indexOf('function peindrePage(') + 1200);
+  t('lot 57 : le panneau ET la pleine page d\'une affaire la marquent vue', /BdvAffairesJour\.vuAffaire\(a\.affaire_id\)/.test(pp) && /BdvAffairesJour\.vuAffaire\(a\.affaire_id\)/.test(pg));
+  const BA = lire('src/_includes/base.njk');
+  t('lot 57 : « Mon bureau » du bandeau porte le point, lu dans le nombre range', /id="navPoint" hidden><span class="hors-ecran">/.test(BA)
+    && /getElementById\('navPoint'\)[^;]*;\s*if\(q\) q\.hidden = !\(connecte && \+localStorage\.getItem\('bdv_notifs_n'\) > 0\)/.test(BA));
 }
 
 console.log('\n== VERDICT ==');

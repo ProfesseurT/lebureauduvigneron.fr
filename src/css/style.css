@@ -7358,3 +7358,18 @@ button.bureau-nav__item:hover {
   body.bdv-poste .panneau .postit__s { order: 5; flex: 1 0 100%; font-size: 1.05rem; }
 }
 
+
+/* Le point des nouvelles de « Mon commerce », dans « Mon bureau » du bandeau (lot 57,
+   03/10/2026). Un point et pas un chiffre : la pastille d'a cote compte deja les articles.
+   L'ambre de la pastille du bureau (--warn, un etat, jamais un accent). Ce qui s'entend est
+   son texte hors ecran. */
+.nav__point {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-left: 0.4rem;
+  border-radius: var(--r-rond);
+  background: var(--warn);
+  vertical-align: middle;
+}
+.nav__point[hidden] { display: none; }
