@@ -20,6 +20,7 @@ Le chiffrement est écrit à la main, sans bibliothèque, et relu par la bibliot
 Le vérificateur a donné un feu rouge : un service d'envoi qui ne répond pas aurait bloqué le
 mail. Corrigé (5 s par envoi, tous en même temps), avec deux autres points.
 Reste pour le lot 4 : la plage de silence de la nuit.
+**Essai réel le 04/10/2026 à 9 h 17 : 2 mails, 2 notifications (Mac et iPhone), aucun échec.** La première notification est arrivée.
 
 ## 03/10/2026, lot 59 : activer les notifications sur cet appareil
 
