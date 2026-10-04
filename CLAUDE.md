@@ -7951,3 +7951,28 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
 - Reste pour plus tard : `pushsubscriptionchange` (renouvellement par le navigateur) ;
   la liste « tes appareils » ; le nettoyage des adresses mortes (410) arrive avec l'envoi.
 
+### LOT 60, 03-04/10/2026 : LA PREMIERE NOTIFICATION, LE DEVIS SIGNE (troisieme lot)
+
+- **`notif-commerce` envoie aussi une notification** quand un client signe un devis en ligne,
+  a tous les appareils actives des membres du bureau (`push_cibles`, SQL lot 60). Elle part
+  AVANT le mail, apres la reservation du journal, et ne suit PAS les cases du mail. Le journal
+  `notif_envois` note `push_partis` et `push_echec`.
+- **AUCUNE BIBLIOTHEQUE** : chiffrement RFC 8291/8188 et VAPID RFC 8292 ecrits avec WebCrypto
+  (jsr.io injoignable depuis le conteneur). `banc:notif-push` (29) les fait relire par http_ece
+  (devDependency, reference de l'auteur de la RFC) ; le verificateur les a aussi relus avec un
+  dechiffreur maison et compares a web-push. `deno check` passe.
+- **Pieges trouves par le verificateur, corriges** : sans plafond, un service d'envoi fige
+  bloquait la fonction et le mail ne partait jamais (5 s par envoi, `AbortSignal.timeout`, tous
+  en parallele) ; Deno ACCEPTE a l'import une cle privee qui ne va pas avec la publique (Node la
+  refuse) : la paire est controlee en relisant la signature ; un jeton VAPID par service et par
+  envoi (Apple : pas plus d'un renouvellement par heure).
+- **Secret** `VAPID_PRIVATE` : la cle privee de Ted, posee UNE fois dans les secrets des
+  fonctions. Sans elle, rien ne part et `push_echec` dit « VAPID_PRIVATE absente ». La cle
+  publique est en dur dans la fonction ET dans `bdv-push.js` ; le banc verifie qu'elles sont
+  identiques. Sujet VAPID : l'adresse du site, aucune boite mail exposee.
+- Le message : « Un devis vient d'être signé. » / « Ouvre ton bureau pour télécharger la
+  commande. », toucher = l'affaire. Ni client ni montant.
+- **Pas encore** : la plage de silence 20 h - 7 h (une signature de nuit sonne tout de suite ;
+  arrive avec le declencheur horaire du lot 4), et le filtre « devis signe seulement » est
+  encore dans la fonction : il ira en base avec les cases de la grille.
+

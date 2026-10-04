@@ -577,7 +577,8 @@
           <p class="bdvr-push-etat" id="bdvrPushEtat" role="status"></p>
           <button type="button" class="bdvr-btn bdvr-btn--creux" id="bdvrPushBouton" hidden>Activer sur cet appareil</button>
           <p class="bdvr-aide">Effet immédiat, sans « Enregistrer ». Chaque appareil s'active à part :
-            ton téléphone, puis ton ordinateur. Les premières notifications arriveront avec le devis signé.</p>
+            ton téléphone, puis ton ordinateur. Pour l'instant, une seule arrive : quand un client signe un
+            devis en ligne.</p>
         </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
         <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>

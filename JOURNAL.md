@@ -12,6 +12,15 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 04/10/2026, lot 60 : la première notification, le devis signé
+
+Ton Mac et ton iPhone sont inscrits (vérifié en base). Quand un client signe un devis en ligne,
+chaque appareil activé du bureau reçoit « Un devis vient d'être signé. », en plus du mail.
+Le chiffrement est écrit à la main, sans bibliothèque, et relu par la bibliothèque de référence.
+Le vérificateur a donné un feu rouge : un service d'envoi qui ne répond pas aurait bloqué le
+mail. Corrigé (5 s par envoi, tous en même temps), avec deux autres points.
+Reste pour le lot 4 : la plage de silence de la nuit.
+
 ## 03/10/2026, lot 59 : activer les notifications sur cet appareil
 
 Le bouton « Activer sur cet appareil » dans « Le courrier », le récepteur `/sw.js`, la table des

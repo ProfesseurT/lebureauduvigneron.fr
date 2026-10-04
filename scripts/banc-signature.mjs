@@ -275,7 +275,7 @@ titre('2 bis. Le mail des nouvelles (fonction notif-commerce, lot 57)');
   const code = N.replace(/\/\*[\s\S]*?\*\//g, '');
   t('elle refuse tout appel sans le secret NOTIF_CLE (32 signes au moins) dans x-notif-cle',
     /if \(!CLE \|\| CLE\.length < 32 \|\| req\.headers\.get\('x-notif-cle'\) !== CLE\) return reponse\(\{ erreur: 'cle' \}, 401\)/.test(code));
-  t('elle ne decide de rien : une seule fonction de la base, notif_detail', (code.match(/rpc\('([a-z_]+)'/g) || []).join() === "rpc('notif_detail'");
+  t('elle ne decide de rien : deux fonctions de la base seulement, notif_detail et push_cibles (lot 60)', (code.match(/rpc\('([a-z_]+)'/g) || []).join() === "rpc('push_cibles',rpc('notif_detail'");
   t('elle POSE la ligne du journal AVANT d\'envoyer, et s\'arrete si elle existait',
     /Prefer: 'resolution=ignore-duplicates,return=representation'/.test(code)
     && code.indexOf('await reserver(') > 0 && code.indexOf('await reserver(') < code.indexOf('await envoyer(')
