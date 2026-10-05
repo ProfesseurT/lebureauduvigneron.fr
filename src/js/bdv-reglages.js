@@ -41,6 +41,8 @@
   /* Les cases « sur mes appareils » (lot 61) : colonne en base, case affichee. */
   const PUSH_CASES = [['notif_push_signe', 'bdvrPushSigne'], ['notif_push_echeance', 'bdvrPushEcheance'],
                       ['notif_push_devis_expire', 'bdvrPushDevisExpire'], ['notif_push_rappels', 'bdvrPushRappels']];
+  /* Lot 62 : deux cases de plus, avec LEUR propre garde (la base peut avoir le lot 61 sans le 62). */
+  const PUSH_CASES_62 = [['notif_push_gagnee', 'bdvrPushGagnee'], ['notif_push_perdue', 'bdvrPushPerdue']];
   let REGL = null,   REGL_LU = false;
   let TOUCHES = {};               // champs touches par le vigneron, cf. regle 2
   let RETOUR_FOCUS = null;
@@ -147,10 +149,17 @@
 .bdvr-chk{display:flex;align-items:flex-start;gap:var(--bdv-e-2);font-family:inherit;
   font-size:var(--bdv-f-3);color:var(--bdv-encre-2);line-height:1.5}
 .bdvr-chk input{accent-color:var(--bdv-accent)}
+/* Une case cachee le reste : display:flex battrait sinon l attribut hidden (lot 62). */
+.bdvr-chk[hidden]{display:none}
 /* Les deux mails immediats (lot 58) : un groupe, detache de la case d'avant et de celle
    d'apres, sinon l'aide se lit comme celle de la seule seconde case. */
 .bdvr-groupe{margin:var(--bdv-e-4) 0}
 /* L'etat des notifications de cet appareil (lot 59) : une phrase, lue AVANT le bouton. */
+/* La liste des appareils (lot 62) : une ligne par appareil, le bouton a droite. */
+.bdvr-appareils{list-style:none;margin:0 0 var(--bdv-e-2);padding:0}
+.bdvr-appareil{display:flex;align-items:center;justify-content:space-between;gap:var(--bdv-e-3);
+  min-height:44px;border-bottom:1px solid var(--bdv-trait);font-size:var(--bdv-f-3);color:var(--bdv-encre-2)}
+.bdvr-btn--petit{min-height:36px;padding:0 var(--bdv-e-3)}
 .bdvr-push-etat{font-family:inherit;font-size:var(--bdv-f-3);font-weight:600;color:var(--bdv-encre-2);
   line-height:1.5;margin:0 0 var(--bdv-e-2)}
 
@@ -581,6 +590,11 @@
           <button type="button" class="bdvr-btn bdvr-btn--creux" id="bdvrPushBouton" hidden>Activer sur cet appareil</button>
           <p class="bdvr-aide">Effet immédiat, sans « Enregistrer ». Chaque appareil s'active à part :
             ton téléphone, puis ton ordinateur.</p>
+          <!-- LES APPAREILS DU COMPTE, LOT 62. Retirer a distance un telephone perdu ou vendu. -->
+          <div id="bdvrPushAppareils" class="bdvr-groupe" hidden>
+            <p class="bdvr-push-etat">Mes appareils qui reçoivent</p>
+            <ul class="bdvr-appareils" id="bdvrPushListe"></ul>
+          </div>
         </div>
         <!-- CE QUI SONNE, LOT 61, 05/10/2026. Des cases de COMPTE (elles valent pour tous les
              appareils), enregistrees avec « Enregistrer » comme les mails. Cachees tant que la base
@@ -594,8 +608,10 @@
           <label class="bdvr-chk"><input type="checkbox" id="bdvrPushEcheance"> Une échéance qui coûte une amende, la veille et le jour même (7 h 30)</label>
           <label class="bdvr-chk"><input type="checkbox" id="bdvrPushDevisExpire"> Un devis envoyé expire demain sans réponse (7 h 30)</label>
           <label class="bdvr-chk"><input type="checkbox" id="bdvrPushRappels"> Des rappels promis pour aujourd'hui ne sont pas faits (17 h 30)</label>
+          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushGagnee"> Un collègue gagne une affaire (pas la nuit)</label>
+          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushPerdue"> Un collègue perd une affaire (pas la nuit)</label>
           <p class="bdvr-aide">Rien ne sonne entre 20 h et 7 h : un devis signé la nuit t'est annoncé à
-            7 h 30. Le matin, tout tient dans une seule notification. Si tu l'as déjà cochée ou faite, on
+            7 h 30. Le matin, tout tient dans une seule notification. Une affaire gagnée ou perdue la nuit ne sonne pas, même le matin. Si tu l'as déjà cochée ou faite, on
             ne t'en reparle pas. Ni nom de client ni montant : l'écran verrouillé se lit par-dessus l'épaule.</p>
         </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
@@ -1041,6 +1057,42 @@
     bloc.hidden = !window.BdvPush;
     if(!window.BdvPush || PUSH_EN_COURS) return;
     BdvPush.etat().then(peindreEtatPush, function(){ peindreEtatPush(null); });
+    peindreAppareils();
+  }
+  /* La liste des appareils (lot 62). Construite en DOM, jamais en innerHTML : le nom d appareil
+     vient de la base. Vide ou illisible : le bloc se cache, il ne ment pas. */
+  function peindreAppareils(){
+    const zone = el('bdvrPushAppareils'), liste = el('bdvrPushListe');
+    if(!zone || !liste || !window.BdvPush || !BdvPush.appareils){ if(zone) zone.hidden = true; return; }
+    BdvPush.appareils().then(function(l){
+      liste.textContent = '';
+      const vus = {};
+      (l || []).forEach(function(a){ vus[a.appareil] = (vus[a.appareil] || 0) + 1; });
+      (l || []).forEach(function(a){
+        const li = document.createElement('li');
+        li.className = 'bdvr-appareil';
+        const nom = document.createElement('span');
+        /* Deux appareils du meme nom : la date d inscription les distingue. */
+        let date = '';
+        if(vus[a.appareil] > 1 && a.cree_le){
+          const d = new Date(a.cree_le);
+          if(!isNaN(d)) date = ', ajouté le ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+        }
+        nom.textContent = a.appareil + (a.ici ? ' (cet appareil)' : '') + date;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'bdvr-btn bdvr-btn--creux bdvr-btn--petit';
+        b.textContent = 'Retirer';
+        b.setAttribute('aria-label', 'Retirer ' + a.appareil);
+        b.addEventListener('click', function(){
+          b.disabled = true; b.textContent = 'Un instant…';
+          BdvPush.retirer(a.endpoint).then(function(e){ if(e) peindreEtatPush(e); peindreAppareils(); },
+            function(){ b.disabled = false; b.textContent = 'Retirer'; });
+        });
+        li.appendChild(nom); li.appendChild(b);
+        liste.appendChild(li);
+      });
+      zone.hidden = !(l && l.length);
+    }, function(){ zone.hidden = true; });
   }
   function basculerPush(){
     if(!window.BdvPush || PUSH_EN_COURS) return;
@@ -1048,7 +1100,7 @@
     PUSH_EN_COURS = true;
     const b = el('bdvrPushBouton');
     if(b){ b.disabled = true; b.textContent = 'Un instant…'; }
-    geste().then(function(e){ PUSH_EN_COURS = false; peindreEtatPush(e); },
+    geste().then(function(e){ PUSH_EN_COURS = false; peindreEtatPush(e); peindreAppareils(); },
       function(){
         PUSH_EN_COURS = false;
         /* L'echec se DIT, et l'etat se relit : on ne laisse ni « Un instant… » a vie, ni une
@@ -1077,6 +1129,9 @@
     const cases = el('bdvrPushCases');
     if(cases) cases.hidden = !(PUSH_CASES[0][0] in p);
     PUSH_CASES.forEach(function(c){ poser(c[1], p[c[0]]); });
+    const avec62 = PUSH_CASES_62[0][0] in p;
+    Array.prototype.forEach.call(document.querySelectorAll('#bdvrPushCases [data-lot62]'), function(n){ n.hidden = !avec62; });
+    PUSH_CASES_62.forEach(function(c){ poser(c[1], p[c[0]]); });
     peindrePush();
     const r = REGL || {};
     poser('bdvrObjectif', r.objectif);
@@ -1219,6 +1274,7 @@
       vus.notif_mail_gagnee = !!el('bdvrMailGagnee').checked;
     }
     if(PUSH_CASES[0][0] in p) PUSH_CASES.forEach(function(c){ vus[c[0]] = !!el(c[1]).checked; });
+    if(PUSH_CASES_62[0][0] in p) PUSH_CASES_62.forEach(function(c){ vus[c[0]] = !!el(c[1]).checked; });
     const champs = {};
     Object.keys(vus).forEach(function(k){
       /* Les deux consentements se comparent en booleen et pas avec `|| null` : `false ||
@@ -1226,7 +1282,7 @@
          partait jamais. Le piege etait deja evite pour `consent_news` ; il fallait le dire
          pour deux, avant que la troisieme case ne le retrouve. */
       const boolean = (k === 'consent_news' || k === 'consent_courrier' || MAILS_IMMEDIATS.indexOf(k) >= 0
-        || PUSH_CASES.some(function(c){ return c[0] === k; }));
+        || PUSH_CASES.concat(PUSH_CASES_62).some(function(c){ return c[0] === k; }));
       const avant = boolean ? !!p[k] : (p[k] || null);
       if(vus[k] !== avant) champs[k] = vus[k];
     });

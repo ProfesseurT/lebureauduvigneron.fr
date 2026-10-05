@@ -8010,3 +8010,29 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
   panneau) ; `banc:devis` « largeur A4 » echoue par intermittence sous la charge de `verif`
   (attente de 20 ms), deja vrai avant ce lot.
 
+### LOT 62, 05/10/2026 : LES AFFAIRES DES COLLEGUES, LES APPAREILS (cinquieme et dernier lot)
+
+- **Deux cases** `profils.notif_push_gagnee` (cochee) et `notif_push_perdue` (decochee), avec
+  « (pas la nuit) ». `push_cibles(bureau, sorte, sauf)` exclut l'auteur (`close_par`) : on ne se
+  notifie jamais soi-meme. Une gagnee ou perdue la nuit ne sonne pas, et n'est PAS reportee au
+  matin (l'ecran le dit).
+- **Jamais de mail pour une perdue** : la perdue revient dans `notif-commerce` (pour la
+  notification), mais `notif_detail` lui rend TOUJOURS une liste de destinataires vide. C'est la
+  BASE qui garantit la regle, `banc-lot62` le verifie. Ne jamais remettre de destinataire a la perdue.
+- **Mes appareils qui recoivent** : liste construite en DOM (jamais innerHTML), « (cet appareil) »
+  juste apres le nom, date « ajoute le » seulement si deux appareils ont le meme nom, un bouton
+  « Retirer » par ligne (l'appareil courant se desactive, un autre passe par `push_retirer`).
+- **Renouvellement** : `/sw.js` fait maintenant TROIS choses (afficher, ouvrir, et sur
+  `pushsubscriptionchange` appeler `push_remplacer` sans compte). Toujours aucun ecouteur fetch.
+  `push_remplacer` : l'ancienne adresse doit exister (preuve), une adresse retiree n'est jamais
+  recreee, la date d'ajout suit l'appareil. **REFUS si la nouvelle adresse est deja rangee pour
+  une autre personne** (feu rouge du verificateur : sinon, connaitre sa propre adresse suffisait a
+  prendre celle d'un collegue). Banc : vol refuse, cles gardees.
+- Page RGPD : section « Les notifications sur tes appareils ».
+- Verificateur : feu rouge (vol d'adresse) puis feu vert, 4 mutants sur 4 attrapes sur le refus.
+  Vigneron : feu vert sous deux conditions (« (cet appareil) » prouve, « (pas la nuit) »), remplies.
+- **Signale, hors lot** : `push_inscrire` (lot 59) fait `on conflict do update set personne` :
+  un compte connecte qui connait l'adresse d'un autre appareil peut se l'attribuer. Voulu en partie
+  (changement de compte sur un poste partage). A arbitrer.
+- **Restent ouverts** : double avertissement mail + notification pour la gagnee ; plage de
+  silence reglable ; toucher qui ouvre la chose exacte.

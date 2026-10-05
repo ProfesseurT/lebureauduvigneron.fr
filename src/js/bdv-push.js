@@ -149,5 +149,26 @@
     return etat();
   }
 
-  window.BdvPush = { etat: etat, activer: activer, desactiver: desactiver, PHRASES: PHRASES };
+  /* LES APPAREILS DU COMPTE (lot 62) : une ligne par appareil inscrit, le plus recent en tete,
+     avec `ici` pour celui sur lequel on lit. Lecture seule : la base ne rend que les siens. */
+  async function appareils() {
+    if (!connecte()) return [];
+    const l = await BdvCompte.api('/push_abonnements?select=endpoint,appareil,cree_le,vu_le&order=vu_le.desc');
+    let local = null;
+    try { const s = sait() ? await abonnementLocal() : null; local = s && s.endpoint; } catch (e) {}
+    return (Array.isArray(l) ? l : []).map(function (x) {
+      return { endpoint: x.endpoint, appareil: x.appareil || 'Appareil', cree_le: x.cree_le, ici: !!local && x.endpoint === local };
+    });
+  }
+
+  /* RETIRER UN APPAREIL A DISTANCE (un telephone perdu, vendu). La ligne part de la base : plus
+     rien n'y sera envoye. Si c'est CET appareil, on le desabonne aussi ici. */
+  async function retirer(endpoint) {
+    const s = sait() ? await abonnementLocal().catch(function () { return null; }) : null;
+    if (s && s.endpoint === endpoint) return desactiver();
+    await BdvCompte.api('/rpc/push_retirer', { methode: 'POST', corps: { p_endpoint: endpoint } });
+    return etat();
+  }
+
+  window.BdvPush = { etat: etat, activer: activer, desactiver: desactiver, appareils: appareils, retirer: retirer, PHRASES: PHRASES };
 })();

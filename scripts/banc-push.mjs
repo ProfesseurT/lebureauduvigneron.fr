@@ -86,6 +86,34 @@ t('la pierre tombale est decrite dans l\'en-tete', /PIERRE TOMBALE/.test(SW) && 
     vu === 'https://lebureauduvigneron.fr/mon-bureau/#affaire=9' && montre && ouverts.length === 1);
 }
 
+console.log('\n== 1 bis. L\'adresse qui change toute seule (lot 62) ==');
+{
+  const ecoute = {}, envois = [], abonnes = [];
+  const self = {
+    location: { origin: 'https://lebureauduvigneron.fr' },
+    addEventListener: (n, f) => { ecoute[n] = f; }, skipWaiting: () => {},
+    registration: { showNotification: () => Promise.resolve(),
+      pushManager: { subscribe: (o) => { abonnes.push(o); return Promise.resolve({ toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/neuve2', keys: { p256dh: 'P', auth: 'A' } }) }); } } },
+    clients: { claim: () => Promise.resolve() }
+  };
+  const fetch = (u, o) => { envois.push({ u, o }); return Promise.resolve({ ok: true }); };
+  vm.runInNewContext(SW, { self, URL, console, fetch });
+  const changer = async (ev) => { let p = null; ecoute.pushsubscriptionchange(Object.assign(ev, { waitUntil: (x) => { p = x; } })); await p; };
+  const nouv = { toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/neuve', keys: { p256dh: 'P', auth: 'A' } }) };
+  await changer({ oldSubscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/vieille' }, newSubscription: nouv });
+  const e0 = envois[0];
+  const cleCompte = (/const SUPABASE_ANON_KEY = '([^']+)';/.exec(lire('src/js/bdv-compte.js')) || [])[1];
+  t('le recepteur ecoute pushsubscriptionchange', typeof ecoute.pushsubscriptionchange === 'function');
+  t('il appelle push_remplacer avec l\'ancienne et la nouvelle adresse',
+    !!e0 && e0.u === 'https://qukmncqqwomhmrdhvetj.supabase.co/rest/v1/rpc/push_remplacer'
+    && JSON.parse(e0.o.body).p_ancien === 'https://fcm.googleapis.com/fcm/send/vieille' && JSON.parse(e0.o.body).p_nouveau === 'https://fcm.googleapis.com/fcm/send/neuve');
+  t('avec la cle publique du projet, la meme que bdv-compte.js', !!e0 && !!cleCompte && e0.o.headers.apikey === cleCompte);
+  await changer({ oldSubscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/v2', options: { applicationServerKey: new Uint8Array(65) } }, newSubscription: null });
+  t('sans nouvelle adresse fournie, il se reabonne avec la meme cle', abonnes.length === 1 && abonnes[0].userVisibleOnly === true && envois.length === 2);
+  await changer({ oldSubscription: null, newSubscription: nouv });
+  t('sans ancienne adresse, rien ne part (il ne pourrait rien prouver)', envois.length === 2);
+}
+
 /* ==========================================================================
    2. BDV-PUSH.JS, LES SEPT ETATS
    ========================================================================== */
@@ -189,6 +217,22 @@ d = decor({ cle: '' });
 e = await d.w.BdvPush.activer();
 t('sans cle, activer ne demande rien a personne', e.code === 'sans-cle' && d.notes.permission === 0 && d.notes.enregistre.length === 0);
 
+console.log('\n== 3 bis. La liste des appareils, retirer a distance (lot 62) ==');
+{
+  const d = decor({ permission: 'granted', abo: 'meme-cle', enBase: true });
+  const api0 = d.w.BdvCompte.api;
+  d.w.BdvCompte.api = (chemin, opt) => String(chemin).indexOf('/push_abonnements?select=endpoint,appareil') === 0
+    ? Promise.resolve([{ endpoint: 'https://web.push.apple.com/iphone', appareil: 'iPhone, Safari' }, { endpoint: 'https://fcm.googleapis.com/fcm/send/ancien', appareil: 'Mac, Safari' }])
+    : api0(chemin, opt);
+  const l = await d.w.BdvPush.appareils();
+  t('deux appareils, et celui sur lequel on lit est reconnu', l.length === 2 && !l[0].ici && l[1].ici && l[1].appareil === 'Mac, Safari');
+  await d.w.BdvPush.retirer('https://web.push.apple.com/iphone');
+  t('retirer un AUTRE appareil : push_retirer pour lui, celui-ci reste abonne',
+    d.notes.api.some((a) => a[0] === '/rpc/push_retirer' && a[1].corps.p_endpoint === 'https://web.push.apple.com/iphone') && d.notes.desabonne === 0);
+  await d.w.BdvPush.retirer('https://fcm.googleapis.com/fcm/send/ancien');
+  t('retirer CET appareil : la base, puis l\'abonnement local', d.notes.desabonne === 1);
+}
+
 /* ==========================================================================
    4. LE PANNEAU DE REGLAGES
    ========================================================================== */
@@ -206,6 +250,8 @@ for (const echec of [false, true]) {
     etat: () => Promise.resolve({ code, texte: code === 'actives' ? 'Notifications actives sur cet appareil.' : 'Notifications désactivées sur cet appareil.' }),
     activer: () => { appels.push('activer'); if (echec) return Promise.reject(new Error('x')); code = 'actives'; return w.BdvPush.etat(); },
     desactiver: () => { appels.push('desactiver'); code = 'inactives'; return w.BdvPush.etat(); },
+    appareils: () => Promise.resolve([{ endpoint: 'e1', appareil: 'iPhone <b>Safari</b>', ici: false }, { endpoint: 'e2', appareil: 'Mac, Safari', ici: true }]),
+    retirer: (e) => { appels.push('retirer:' + e); return w.BdvPush.etat(); },
     PHRASES: {}
   };
   const s = w.document.createElement('script'); s.textContent = lire('src/js/bdv-reglages.js'); w.document.body.appendChild(s);
@@ -218,6 +264,13 @@ for (const echec of [false, true]) {
     t('etat lu : la phrase, puis le bouton qui dit ce qu\'il va faire',
       $('bdvrPushEtat').textContent === 'Notifications désactivées sur cet appareil.' && !b.hidden && b.textContent === 'Activer sur cet appareil');
     t('appareil muet : la phrase « Rien ne sonnera ici » se montre', !$('bdvrPushMuet').hidden);
+    const lis = [...w.document.querySelectorAll('#bdvrPushListe li')];
+    t('lot 62 : la liste des appareils, « (cet appareil) » sur le bon', !$('bdvrPushAppareils').hidden && lis.length === 2
+      && lis[1].textContent.indexOf('Mac, Safari (cet appareil)') === 0);
+    t('le nom vient de la base et s\'ecrit en texte, jamais en HTML', lis[0].querySelector('b') === null && lis[0].textContent.indexOf('iPhone <b>Safari</b>') === 0);
+    lis[0].querySelector('button').click(); await dormir(30);
+    t('« Retirer » appelle BdvPush.retirer pour CET appareil-la', appels.indexOf('retirer:e1') >= 0);
+    appels.length = 0;
     b.click(); await dormir(40);
     t('active : la phrase se cache', $('bdvrPushMuet').hidden);
     t('un clic active, et le bouton devient « Désactiver »', appels.join() === 'activer' && b.textContent === 'Désactiver sur cet appareil'

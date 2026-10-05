@@ -123,11 +123,17 @@ const VAPID_PRIVEE = Deno.env.get('VAPID_PRIVATE') ?? '';
 
 /* Ce que porte la notification : ni nom de client ni montant (ecran verrouille). */
 function messagePush(d: Detail) {
+  /* LOT 62 : les affaires des collegues. Le prenom du collegue, jamais le client ni le
+     montant. La perdue dit « Pas pour cette fois », le mot de la piece. */
+  const par = String(d.par || 'Un collègue');
+  const id = String(d.affaire_id);
+  if (d.sorte === 'gagnee') return { titre: `${par} a gagné une affaire.`, corps: 'Ouvre ton bureau pour voir laquelle.', url: lienAffaire(id), tag: 'gagnee-' + id.slice(0, 8) };
+  if (d.sorte === 'perdue') return { titre: `${par} a classé une affaire en « Pas pour cette fois ».`, corps: 'Ouvre ton bureau pour voir laquelle.', url: lienAffaire(id), tag: 'perdue-' + id.slice(0, 8) };
   return {
     titre: 'Un devis vient d\'être signé.',
     corps: 'Ouvre ton bureau pour télécharger la commande.',
-    url: lienAffaire(String(d.affaire_id)),
-    tag: 'signe-' + String(d.affaire_id).slice(0, 8),
+    url: lienAffaire(id),
+    tag: 'signe-' + id.slice(0, 8),
   };
 }
 
@@ -145,11 +151,15 @@ async function oublierAppareil(endpoint: string) {
    « differee » et notif-horaire l'annonce a 7 h 30 (« 1 devis signe cette nuit »). Les
    destinataires et leurs cases sont decides en base (push_cibles, sorte comprise). */
 async function notifier(bureau: string, d: Detail) {
-  if (d.sorte !== 'signe') return { partis: null, echec: null, differe: false };
-  if (enSilence()) return { partis: null, echec: null, differe: true };
+  if (!['signe', 'gagnee', 'perdue'].includes(String(d.sorte))) return { partis: null, echec: null, differe: false };
+  /* La nuit : le devis signe est differe (annonce a 7 h 30). L'affaire d'un collegue,
+     elle, ne merite pas de reveiller : elle se lit au matin dans « Mon commerce ». */
+  if (enSilence()) return { partis: null, echec: null, differe: d.sorte === 'signe' };
   if (!VAPID_PRIVEE) return { partis: 0, echec: 'VAPID_PRIVATE absente', differe: false };
   let cibles: Detail[] = [];
-  try { cibles = (await rpc('push_cibles', { p_bureau: bureau, p_sorte: 'signe' })) || []; }
+  /* p_sauf : l'auteur du geste n'est jamais notifie de ce qu'il vient de faire (lot 57).
+     Pour une signature en ligne, close_par est vide : tout le monde est prevenu. */
+  try { cibles = (await rpc('push_cibles', { p_bureau: bureau, p_sorte: d.sorte, p_sauf: d.close_par ?? null })) || []; }
   catch (e) { return { partis: 0, echec: String(e).slice(0, 300), differe: false }; }
   const r = await envoyerAux(cibles, messagePush(d), VAPID_PRIVEE);
   for (const m of r.mortes) await oublierAppareil(m);
@@ -253,8 +263,10 @@ function fabriquer(d: Detail) {
   const url = lienAffaire(String(d.affaire_id));
   const bureau = String(d.bureau_nom || 'ton bureau');
   /* LOT 58 : le pied ne dit plus « tout le bureau le recoit », c'est faux depuis que chacun
-     coupe ses mails. Il dit OU les couper, comme le courrier du matin. Une perdue n'arrive
-     plus jamais ici (notif_detail la refuse) : sa branche reste pour les mails deja en file. */
+     coupe ses mails. Il dit OU les couper, comme le courrier du matin. LOT 62 : une perdue
+     revient ici (pour la notification), mais notif_detail lui rend TOUJOURS une liste de
+     destinataires vide, donc aucun mail ne part. C'est la base qui garantit « jamais de mail
+     pour une perdue » ; banc-lot62 le verifie. */
   const pied = `Tu reçois ce message parce que tu es membre du bureau ${bureau} et que ce mail est coché dans tes réglages, onglet « Le courrier ». Tu peux l'y décocher.`;
 
   const rangees = lignesInfo.map(([k, v]) => `

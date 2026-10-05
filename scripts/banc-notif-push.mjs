@@ -114,6 +114,11 @@ t('la signature se verifie avec la cle publique',
 console.log('\n== 3. Ce que dit la notification ==');
 const msg = JSON.parse(dansLaFonction('console.log(JSON.stringify(m.messagePush({affaire_id:"11111111-2222-3333-4444-555555555555",client:"Cave du Port",titre:"Premiere commande",devis:{total_ht_c:124000,numero:"D-2026-0004"}})));'));
 const tout = JSON.stringify(msg);
+const msgs = JSON.parse(dansLaFonction('const b={affaire_id:"11111111-2222-3333-4444-555555555555",client:"Cave du Port",titre:"Premiere commande",par:"Camila",devis:{total_ht_c:124000}};'
+  + 'console.log(JSON.stringify([m.messagePush({...b,sorte:"gagnee"}),m.messagePush({...b,sorte:"perdue"})]));'));
+t('lot 62 : « Camila a gagné une affaire. » et « Camila a classé une affaire en « Pas pour cette fois ». », sans client ni montant',
+  msgs[0].titre === 'Camila a gagné une affaire.' && msgs[1].titre === 'Camila a classé une affaire en « Pas pour cette fois ».'
+  && !/Cave du Port|Premiere|124000/.test(JSON.stringify(msgs)) && msgs.every((x) => /#affaire=11111111-/.test(x.url)), JSON.stringify(msgs));
 t('ni nom de client, ni titre, ni numero, ni montant', !/Cave du Port|Premiere|D-2026|1 ?240|124000/.test(tout), tout);
 t('le contrat du recepteur : titre, corps, url, tag',
   Object.keys(msg).sort().join() === 'corps,tag,titre,url' && /^https:\/\/lebureauduvigneron\.fr\/mon-bureau\/#affaire=11111111-/.test(msg.url));
@@ -172,7 +177,11 @@ const serve = SRC_F.slice(SRC_F.indexOf('Deno.serve('));
 t('la notification part AVANT le mail, et n\'attend pas qu\'il y ait des destinataires du mail',
   serve.indexOf('await notifier(') > 0 && serve.indexOf('await notifier(') < serve.indexOf('if (!uniques.length)'));
 t('elle ne part qu\'apres la reservation du journal (une fermeture, un envoi)', serve.indexOf('await reserver(') < serve.indexOf('await notifier('));
-t('le devis signe seul, et la nuit il est differe (lot 61)', /if \(d\.sorte !== 'signe'\) return \{ partis: null, echec: null, differe: false \};/.test(SRC_F) && /if \(enSilence\(\)\) return \{ partis: null, echec: null, differe: true \};/.test(SRC_F));
+t('signe, gagnee, perdue (lot 62) ; la nuit, seul le devis signe est differe',
+  /if \(!\['signe', 'gagnee', 'perdue'\]\.includes\(String\(d\.sorte\)\)\) return \{ partis: null, echec: null, differe: false \};/.test(SRC_F)
+  && /if \(enSilence\(\)\) return \{ partis: null, echec: null, differe: d\.sorte === 'signe' \};/.test(SRC_F));
+t('l\'auteur du geste n\'est jamais notifie : push_cibles recoit p_sauf = close_par',
+  /rpc\('push_cibles', \{ p_bureau: bureau, p_sorte: d\.sorte, p_sauf: d\.close_par \?\? null \}\)/.test(SRC_F));
 t('chaque envoi a un plafond de 5 s, et ils partent tous en meme temps',
   /signal: AbortSignal\.timeout\(PUSH_DELAI_MS\)/.test(SHARED) && /export const PUSH_DELAI_MS = 5000;/.test(SHARED) && /await Promise\.allSettled\(\(cibles/.test(SHARED));
 t('la paire de cles est controlee par une verification de la signature (Deno ne le fait pas a l\'import)',

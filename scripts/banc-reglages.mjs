@@ -470,6 +470,31 @@ for (const avecColonnes of [false, true]) {
     dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_rappels":true}', 'cocher les rappels n\'envoie que cette colonne (' + JSON.stringify(ecrits) + ')');
     dit(/entre 20 h et 7 h/.test($('bdvrPushCases').textContent) && /Ni nom de client ni montant/.test($('bdvrPushCases').textContent),
       'l\'aide dit la nuit et l\'ecran verrouille');
+    dit($('bdvrPushGagnee').closest('label').hidden && $('bdvrPushPerdue').closest('label').hidden,
+      'base sans le lot 62 : les cases gagnee et perdue restent cachees');
+  }
+}
+console.log('\n== 8 bis. Les affaires des collegues (lot 62) ==');
+{
+  const t = monter({ objectif: 500000, exercice_debut: 4 });
+  const profil = { prenom: 'Ted', consent_courrier: true, consent_news: false, notif_mail_signe: true, notif_mail_gagnee: true,
+    notif_push_signe: true, notif_push_echeance: true, notif_push_devis_expire: true, notif_push_rappels: false,
+    notif_push_gagnee: true, notif_push_perdue: false };
+  const ecrits = [];
+  t.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
+  t.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, profil)] : [{}]);
+  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  const d = t.w.document, $ = (id) => d.getElementById(id);
+  t.w.BdvReglages.ouvrir('bdvrBlocCourrier');
+  await dormir(80);
+  const soumettre = async () => { $('bdvrForm').dispatchEvent(new t.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
+  {
+    dit(!$('bdvrPushGagnee').closest('label').hidden && $('bdvrPushGagnee').checked && !$('bdvrPushPerdue').checked,
+      'base avec le lot 62 : gagnee cochee, perdue decochee, les deux visibles');
+    await soumettre();
+    dit(ecrits.length === 0, 'rien touche : rien ne part');
+    $('bdvrPushPerdue').checked = true; await soumettre();
+    dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_perdue":true}', 'cocher la perdue n\'envoie que sa colonne (' + JSON.stringify(ecrits) + ')');
   }
 }
 

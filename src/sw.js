@@ -1,10 +1,11 @@
 /* ============================================================================
    /sw.js : le recepteur des notifications du Bureau du Vigneron (lot 59, 03/10/2026)
    ----------------------------------------------------------------------------
-   UN ORGANE A FONCTION UNIQUE (arbitrage du 11/09/2026, JOURNAL.md). Il fait deux
+   UN ORGANE A FONCTION UNIQUE (arbitrage du 11/09/2026, JOURNAL.md). Il fait trois
    choses et rien d'autre :
      1. a l'arrivee d'un message, il AFFICHE une notification ;
-     2. au toucher de la notification, il OUVRE le bureau a la bonne page.
+     2. au toucher de la notification, il OUVRE le bureau a la bonne page ;
+     3. si le navigateur change l'adresse d'envoi, il la REMPLACE en base (lot 62).
 
    AUCUN ECOUTEUR « fetch », DONC AUCUN CACHE. Le bureau ne peut jamais etre servi
    dans une version perimee par ce fichier. `npm run banc:push` echoue si un ecouteur
@@ -77,4 +78,33 @@ self.addEventListener('notificationclick', (e) => {
     }
     return self.clients.openWindow(cible);
   })());
+});
+
+/* L'ADRESSE QUI CHANGE TOUTE SEULE (lot 62). Un navigateur peut renouveler l'adresse d'envoi
+   d'un appareil sans rien demander. Sans ce qui suit, l'appareil deviendrait muet en silence.
+   Le recepteur n'a pas de compte connecte : il prouve son droit en donnant l'ANCIENNE adresse,
+   que personne d'autre ne connait, et la base la remplace (`push_remplacer`, lot 62). Une
+   adresse retiree a distance n'est jamais recreee par ce chemin. Sans ancienne adresse (certains
+   navigateurs ne la donnent pas), rien ne part : l'ecran des reglages dira « desactivees » et
+   un clic suffira. L'adresse et la cle du projet sont publiques (les memes que bdv-compte.js,
+   `npm run banc:push` verifie qu'elles le restent). */
+const PROJET = 'https://qukmncqqwomhmrdhvetj.supabase.co';
+const CLE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a21uY3Fxd29taG1yZGh2ZXRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTUwMzksImV4cCI6MjEwMzgzMTAzOX0.jGCPLploiALbFMPt1edpVOyyr0emk8DP8ZdvnPLSLEM';
+self.addEventListener('pushsubscriptionchange', (e) => {
+  e.waitUntil((async () => {
+    const ancienne = e.oldSubscription;
+    if (!ancienne || !ancienne.endpoint) return;
+    let nouvelle = e.newSubscription;
+    if (!nouvelle) {
+      const cle = ancienne.options && ancienne.options.applicationServerKey;
+      if (!cle) return;
+      nouvelle = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cle });
+    }
+    const j = nouvelle.toJSON();
+    await fetch(PROJET + '/rest/v1/rpc/push_remplacer', {
+      method: 'POST',
+      headers: { apikey: CLE_ANON, Authorization: 'Bearer ' + CLE_ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_ancien: ancienne.endpoint, p_nouveau: j.endpoint, p_p256dh: j.keys && j.keys.p256dh, p_auth: j.keys && j.keys.auth })
+    });
+  })().catch(() => {}));
 });
