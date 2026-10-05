@@ -436,7 +436,40 @@ for (const avecColonnes of [false, true]) {
     dit(/perdue n'envoie jamais de mail/.test(aide) && /confirmation/.test(aide),
       'l\'aide dit la perdue sans mail et la confirmation coupee aussi');
     const ordre = [...$('bdvrBlocCourrier').querySelectorAll('input[type=checkbox]')].map(n => n.id);
-    dit(ordre.join() === 'bdvrCourrier,bdvrMailSigne,bdvrMailGagnee,bdvrNews', 'le courrier du matin reste la premiere case (' + ordre.join() + ')');
+    dit(ordre.slice(0, 3).join() === 'bdvrCourrier,bdvrMailSigne,bdvrMailGagnee' && ordre[ordre.length - 1] === 'bdvrNews', 'le courrier du matin reste la premiere case, l\'edition la derniere (' + ordre.join() + ')');
+  }
+}
+
+/* ==========================================================================
+   8. CE QUI SONNE SUR MES APPAREILS, LOT 61, 05/10/2026
+   ========================================================================== */
+console.log('\n== 8. Les cases « sur mes appareils » ==');
+for (const avecColonnes of [false, true]) {
+  const t = monter({ objectif: 500000, exercice_debut: 4 });
+  const profil = Object.assign({ prenom: 'Ted', consent_courrier: true, consent_news: false, notif_mail_signe: true, notif_mail_gagnee: true },
+    avecColonnes ? { notif_push_signe: true, notif_push_echeance: true, notif_push_devis_expire: true, notif_push_rappels: false } : {});
+  const ecrits = [];
+  t.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
+  t.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, profil)] : [{}]);
+  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  const d = t.w.document, $ = (id) => d.getElementById(id);
+  t.w.BdvReglages.ouvrir('bdvrBlocCourrier');
+  await dormir(80);
+  const soumettre = async () => { $('bdvrForm').dispatchEvent(new t.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
+  if (!avecColonnes) {
+    dit($('bdvrPushCases').hidden, 'base sans le lot 61 : les quatre cases restent cachees');
+    $('bdvrNews').checked = true; await soumettre();
+    dit(ecrits.length === 1 && Object.keys(ecrits[0]).join() === 'consent_news', 'et rien d\'inconnu ne part (' + JSON.stringify(ecrits) + ')');
+  } else {
+    dit(!$('bdvrPushCases').hidden && !!$('bdvrPushCases').closest('#bdvrBlocCourrier'), 'base avec le lot 61 : les quatre cases dans « Le courrier »');
+    dit($('bdvrPushSigne').checked && $('bdvrPushEcheance').checked && $('bdvrPushDevisExpire').checked && !$('bdvrPushRappels').checked,
+      'cochees comme en base, les rappels du soir decoches');
+    await soumettre();
+    dit(ecrits.length === 0, 'rien touche, une case decochee en base : rien ne part (' + JSON.stringify(ecrits) + ')');
+    $('bdvrPushRappels').checked = true; await soumettre();
+    dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_rappels":true}', 'cocher les rappels n\'envoie que cette colonne (' + JSON.stringify(ecrits) + ')');
+    dit(/entre 20 h et 7 h/.test($('bdvrPushCases').textContent) && /Ni nom de client ni montant/.test($('bdvrPushCases').textContent),
+      'l\'aide dit la nuit et l\'ecran verrouille');
   }
 }
 

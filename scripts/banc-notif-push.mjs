@@ -36,7 +36,10 @@ let ok = 0, ko = 0;
 const t = (m, b, detail) => { if (b) { ok++; console.log('  ok    : ' + m); } else { ko++; console.log('  ECHEC : ' + m + (detail ? '  -> ' + detail : '')); } };
 const b64u = (b) => Buffer.from(b).toString('base64url');
 const FONCTION = path.join(RACINE, 'supabase/functions/notif-commerce/index.ts');
-const SRC = lire('supabase/functions/notif-commerce/index.ts');
+const SRC_F = lire('supabase/functions/notif-commerce/index.ts');
+/* Depuis le lot 61, le chiffrement et l'envoi vivent dans _shared/webpush.ts : on lit les deux. */
+const SHARED = lire('supabase/functions/_shared/webpush.ts');
+const SRC = SRC_F + '\n' + SHARED;
 
 /* Fait tourner un morceau de code contre la VRAIE fonction, comme Deno le ferait. */
 function essaiDe(code, env = {}) {
@@ -116,7 +119,7 @@ t('le contrat du recepteur : titre, corps, url, tag',
   Object.keys(msg).sort().join() === 'corps,tag,titre,url' && /^https:\/\/lebureauduvigneron\.fr\/mon-bureau\/#affaire=11111111-/.test(msg.url));
 const pushJs = lire('src/js/bdv-push.js');
 const clePage = (/const CLE_PUBLIQUE = '([^']*)';/.exec(pushJs) || [])[1];
-const cleFonction = (/const VAPID_PUBLIQUE = '([^']*)';/.exec(SRC) || [])[1];
+const cleFonction = (/export const VAPID_PUBLIQUE = '([^']*)';/.exec(SHARED) || [])[1];
 t('la fonction et la page portent LA MEME cle publique', !!clePage && clePage === cleFonction);
 
 /* ==========================================================================
@@ -162,23 +165,25 @@ console.log('\n== 4. L\'envoi, de bout en bout, sur un faux service ==');
     + JSON.stringify(m_pub()) + ',' + JSON.stringify(jwk.d) + ');'); } catch (e) { refuse = /Invalid keyData|DataError|ne va pas avec la cle publique/.test(String(e.stderr || e)); }
   t('une cle privee qui ne va pas avec la publique est refusee avant tout envoi', refuse);
 }
-function m_pub() { return (/const VAPID_PUBLIQUE = '([^']*)';/.exec(SRC) || [])[1]; }
+function m_pub() { return (/export const VAPID_PUBLIQUE = '([^']*)';/.exec(SHARED) || [])[1]; }
 
 console.log('\n== 5. L\'ordre et les garde-fous de la fonction ==');
-const serve = SRC.slice(SRC.indexOf('Deno.serve('));
+const serve = SRC_F.slice(SRC_F.indexOf('Deno.serve('));
 t('la notification part AVANT le mail, et n\'attend pas qu\'il y ait des destinataires du mail',
   serve.indexOf('await notifier(') > 0 && serve.indexOf('await notifier(') < serve.indexOf('if (!uniques.length)'));
 t('elle ne part qu\'apres la reservation du journal (une fermeture, un envoi)', serve.indexOf('await reserver(') < serve.indexOf('await notifier('));
-t('le devis signe seul, pour ce lot', /if \(d\.sorte !== 'signe'\) return \{ partis: null, echec: null \};/.test(SRC));
+t('le devis signe seul, et la nuit il est differe (lot 61)', /if \(d\.sorte !== 'signe'\) return \{ partis: null, echec: null, differe: false \};/.test(SRC_F) && /if \(enSilence\(\)\) return \{ partis: null, echec: null, differe: true \};/.test(SRC_F));
 t('chaque envoi a un plafond de 5 s, et ils partent tous en meme temps',
-  /signal: AbortSignal\.timeout\(PUSH_DELAI_MS\)/.test(SRC) && /const PUSH_DELAI_MS = 5000;/.test(SRC) && /await Promise\.allSettled\(cibles/.test(SRC));
+  /signal: AbortSignal\.timeout\(PUSH_DELAI_MS\)/.test(SHARED) && /export const PUSH_DELAI_MS = 5000;/.test(SHARED) && /await Promise\.allSettled\(\(cibles/.test(SHARED));
 t('la paire de cles est controlee par une verification de la signature (Deno ne le fait pas a l\'import)',
   /crypto\.subtle\.verify\(/.test(SRC) && /VAPID_PRIVATE ne va pas avec la cle publique/.test(SRC));
 t('urgence normale, et la reponse du service est liberee', /Urgency: 'normal'/.test(SRC) && /await r\.body\?\.cancel\(\);/.test(SRC));
-t('une adresse morte (404, 410) est retiree de la base', /code === 404 \|\| code === 410\) await oublierAppareil/.test(SRC));
-t('sans cle privee, rien ne part et le journal le dit', /if \(!VAPID_PRIVEE\) return \{ partis: 0, echec: 'VAPID_PRIVATE absente' \};/.test(SRC));
-t('aucune bibliotheque importee (ni npm:, ni jsr:, ni https:)', !/^\s*import\s/m.test(SRC) && !/from ['"](npm|jsr|https?):/.test(SRC));
+t('une adresse morte (404, 410) est retiree de la base', /code === 404 \|\| code === 410\) mortes\.push/.test(SHARED) && /for \(const m of r\.mortes\) await oublierAppareil\(m\)/.test(SRC_F));
+t('sans cle privee, rien ne part et le journal le dit', /if \(!VAPID_PRIVEE\) return \{ partis: 0, echec: 'VAPID_PRIVATE absente', differe: false \};/.test(SRC_F));
+t('aucune bibliotheque importee : un seul import, le module partage du depot', (SRC.match(/^\s*import\s/gm) || []).length === 1 && /^import \{[^}]+\} from '\.\.\/_shared\/webpush\.ts';$/m.test(SRC_F) && !/from ['"](npm|jsr|https?):/.test(SRC));
 t('le journal note les notifications', (SRC.match(/\.\.\.pj/g) || []).length === 3);
+t('une signature de nuit est notee « differee » dans le journal (sinon le matin ne l\'annonce jamais)',
+  /const pj = p\.differe \? \{ push_differe: true \} :/.test(SRC_F));
 t('aucun tiret cadratin dans la fonction', SRC.indexOf('—') < 0);
 
 console.log('\n== VERDICT ==');

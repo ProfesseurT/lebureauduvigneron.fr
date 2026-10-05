@@ -12,6 +12,16 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 05/10/2026, lot 61 : le matin, le soir, la nuit
+
+Une horloge passe chaque heure à la demie. À 7 h 30, une seule notification regroupe ce qui presse
+(échéance qui coûte une amende, devis qui expire demain, devis signés pendant la nuit). À 17 h 30,
+pour qui l'a coché, les rappels promis pour aujourd'hui et pas faits. Entre 20 h et 7 h, rien ne
+sonne. Quatre cases « Ce qui sonne sur mes appareils » dans « Le courrier ».
+Le vigneron a fait changer le titre (« 3 choses ce matin ») et ajouter « Rien ne sonnera ici tant
+que tu n'as pas activé cet appareil ». Le vérificateur a trouvé une signature de nuit perdue quand
+elle tombe dans un autre bureau, et cinq trous dans les bancs : corrigés.
+
 ## 04/10/2026, lot 60 : la première notification, le devis signé
 
 Ton Mac et ton iPhone sont inscrits (vérifié en base). Quand un client signe un devis en ligne,

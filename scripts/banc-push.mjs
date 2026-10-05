@@ -217,7 +217,9 @@ for (const echec of [false, true]) {
     t('le bouton n\'est pas un « Enregistrer » deguise (type=button)', b && b.type === 'button');
     t('etat lu : la phrase, puis le bouton qui dit ce qu\'il va faire',
       $('bdvrPushEtat').textContent === 'Notifications désactivées sur cet appareil.' && !b.hidden && b.textContent === 'Activer sur cet appareil');
+    t('appareil muet : la phrase « Rien ne sonnera ici » se montre', !$('bdvrPushMuet').hidden);
     b.click(); await dormir(40);
+    t('active : la phrase se cache', $('bdvrPushMuet').hidden);
     t('un clic active, et le bouton devient « Désactiver »', appels.join() === 'activer' && b.textContent === 'Désactiver sur cet appareil'
       && $('bdvrPushEtat').textContent === 'Notifications actives sur cet appareil.');
     b.click(); await dormir(40);

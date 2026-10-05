@@ -38,6 +38,9 @@
   /* Les deux mails qui partent a l'instant (lot 58). Cochees par defaut EN BASE : un profil
      qui n'a jamais touche ces cases les recoit, comme au lot 57. */
   const MAILS_IMMEDIATS = ['notif_mail_signe', 'notif_mail_gagnee'];
+  /* Les cases « sur mes appareils » (lot 61) : colonne en base, case affichee. */
+  const PUSH_CASES = [['notif_push_signe', 'bdvrPushSigne'], ['notif_push_echeance', 'bdvrPushEcheance'],
+                      ['notif_push_devis_expire', 'bdvrPushDevisExpire'], ['notif_push_rappels', 'bdvrPushRappels']];
   let REGL = null,   REGL_LU = false;
   let TOUCHES = {};               // champs touches par le vigneron, cf. regle 2
   let RETOUR_FOCUS = null;
@@ -577,8 +580,23 @@
           <p class="bdvr-push-etat" id="bdvrPushEtat" role="status"></p>
           <button type="button" class="bdvr-btn bdvr-btn--creux" id="bdvrPushBouton" hidden>Activer sur cet appareil</button>
           <p class="bdvr-aide">Effet immédiat, sans « Enregistrer ». Chaque appareil s'active à part :
-            ton téléphone, puis ton ordinateur. Pour l'instant, une seule arrive : quand un client signe un
-            devis en ligne.</p>
+            ton téléphone, puis ton ordinateur.</p>
+        </div>
+        <!-- CE QUI SONNE, LOT 61, 05/10/2026. Des cases de COMPTE (elles valent pour tous les
+             appareils), enregistrees avec « Enregistrer » comme les mails. Cachees tant que la base
+             n'a pas les colonnes : une absence n'est pas un zero. Les rappels du soir sont
+             decoches par defaut (le vigneron : sans nom, « un client a rappeler » ne dit rien, et
+             le courrier de 8 h l'a deja dit). -->
+        <div id="bdvrPushCases" class="bdvr-groupe" hidden>
+          <p class="bdvr-push-etat">Ce qui sonne sur mes appareils</p>
+          <p class="bdvr-aide bdvr-aide--alerte" id="bdvrPushMuet" hidden>Rien ne sonnera ici tant que tu n'as pas activé cet appareil, juste au-dessus.</p>
+          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushSigne"> Un client signe un devis en ligne</label>
+          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushEcheance"> Une échéance qui coûte une amende, la veille et le jour même (7 h 30)</label>
+          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushDevisExpire"> Un devis envoyé expire demain sans réponse (7 h 30)</label>
+          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushRappels"> Des rappels promis pour aujourd'hui ne sont pas faits (17 h 30)</label>
+          <p class="bdvr-aide">Rien ne sonne entre 20 h et 7 h : un devis signé la nuit t'est annoncé à
+            7 h 30. Le matin, tout tient dans une seule notification. Si tu l'as déjà cochée ou faite, on
+            ne t'en reparle pas. Ni nom de client ni montant : l'écran verrouillé se lit par-dessus l'épaule.</p>
         </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
         <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>
@@ -1008,6 +1026,9 @@
     PUSH_CODE = e && e.code;
     const t = el('bdvrPushEtat'), b = el('bdvrPushBouton');
     if(t) t.textContent = (e && e.texte) || '';
+    /* Les cases peuvent etre cochees sur un appareil muet : on le dit, sinon on croit que ca sonnera. */
+    const muet = el('bdvrPushMuet');
+    if(muet) muet.hidden = PUSH_CODE === 'actives' || !PUSH_CODE;
     if(b){
       b.hidden = !(PUSH_CODE === 'actives' || PUSH_CODE === 'inactives');
       b.textContent = PUSH_CODE === 'actives' ? 'Désactiver sur cet appareil' : 'Activer sur cet appareil';
@@ -1053,6 +1074,9 @@
     if(mails) mails.hidden = !(MAILS_IMMEDIATS[0] in p);
     poser('bdvrMailSigne',  p.notif_mail_signe);
     poser('bdvrMailGagnee', p.notif_mail_gagnee);
+    const cases = el('bdvrPushCases');
+    if(cases) cases.hidden = !(PUSH_CASES[0][0] in p);
+    PUSH_CASES.forEach(function(c){ poser(c[1], p[c[0]]); });
     peindrePush();
     const r = REGL || {};
     poser('bdvrObjectif', r.objectif);
@@ -1194,13 +1218,15 @@
       vus.notif_mail_signe  = !!el('bdvrMailSigne').checked;
       vus.notif_mail_gagnee = !!el('bdvrMailGagnee').checked;
     }
+    if(PUSH_CASES[0][0] in p) PUSH_CASES.forEach(function(c){ vus[c[0]] = !!el(c[1]).checked; });
     const champs = {};
     Object.keys(vus).forEach(function(k){
       /* Les deux consentements se comparent en booleen et pas avec `|| null` : `false ||
          null` rend null, donc DECOCHER une case ne se voyait pas comme un changement et ne
          partait jamais. Le piege etait deja evite pour `consent_news` ; il fallait le dire
          pour deux, avant que la troisieme case ne le retrouve. */
-      const boolean = (k === 'consent_news' || k === 'consent_courrier' || MAILS_IMMEDIATS.indexOf(k) >= 0);
+      const boolean = (k === 'consent_news' || k === 'consent_courrier' || MAILS_IMMEDIATS.indexOf(k) >= 0
+        || PUSH_CASES.some(function(c){ return c[0] === k; }));
       const avant = boolean ? !!p[k] : (p[k] || null);
       if(vus[k] !== avant) champs[k] = vus[k];
     });

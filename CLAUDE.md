@@ -7976,3 +7976,37 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
   arrive avec le declencheur horaire du lot 4), et le filtre « devis signe seulement » est
   encore dans la fonction : il ira en base avec les cases de la grille.
 
+### LOT 61, 05/10/2026 : LE MATIN, LE SOIR, LA NUIT (quatrieme lot)
+
+- **Une horloge** (`pg_cron`, tache `notif-horaire`, `30 * * * *`) appelle la fonction
+  `notif-horaire` chaque heure a la demie, avec l'adresse et la cle deja rangees dans
+  `notif_reglage` (rien de recopie). La fonction ne travaille qu'a **7 h 30 (matin)** et
+  **17 h 30 (soir)**, heure de Paris lue dans le code (le cron est en heure de Greenwich).
+- **Tout se decide en base** dans `notif_horaire_lots(moment)`, qui POSE aussi le journal
+  `push_journal` (une ligne par personne, jour, moment) avant de rendre la liste : deux passages
+  n'envoient pas deux fois. Le matin regroupe en UNE notification : obligation qui coute une
+  amende demain (ou aujourd'hui pas cochee, coche = `taches` du bureau), devis `envoye` qui
+  expire demain, signatures de nuit (tous les bureaux de la personne). Titre « N choses ce matin »
+  (le vigneron : « pour aujourd'hui » contredisait « demain »). Le soir : rappels du jour pas faits
+  (`suivi_clients` pas traite + `affaires` en cours), case DECOCHEE par defaut.
+- **Les obligations sont recopiees en base** (`notif_obligations()`, sept lignes) avec un nom
+  court pour l'ecran verrouille. `banc:notif-horaire` les compare a `src/_data/echeances.json` :
+  ajouter une obligation au calendrier sans l'ajouter la fait echouer `verif`.
+- **La nuit (20 h - 7 h, fixe pour l'instant)** : `notif-commerce` ne sonne pas, note
+  `push_differe`, le matin l'annonce puis solde TOUTES les differees. Un essai force la nuit est
+  refuse (il aurait solde des signatures sans les annoncer).
+- **Le code d'envoi est partage** : `supabase/functions/_shared/webpush.ts` (chiffrement, VAPID,
+  envoi parallele, heure de Paris, silence). Un jeton VAPID par service ET par passage.
+- **Cases de compte** `profils.notif_push_signe | _echeance | _devis_expire | _rappels`, dans
+  « Le courrier », cachees sans les colonnes. Une phrase rouge dit « Rien ne sonnera ici » tant
+  que l'appareil n'est pas active (le vigneron croyait que ca sonnerait).
+- `push_cibles(bureau, sorte)` remplace la version a un argument (defaut 'signe' : l'ancienne
+  notif-commerce continue de marcher entre le SQL et le redeploiement).
+- Verificateur : feu vert sous reserve, cinq mutations survivaient (tache non cochee, membre
+  parti, devis accepte, affaire gagnee, `push_differe` jamais ecrit) : toutes bouchees dans les
+  bancs. Vigneron : feu rouge (titre, appareil muet, phrase floue) puis feu vert.
+- **Restent ouverts** : plage de silence reglable ; toucher qui ouvre la chose exacte (le matin
+  ouvre le bureau) ; lignes de cases a 44 px et contour de case en sombre (style de tout le
+  panneau) ; `banc:devis` « largeur A4 » echoue par intermittence sous la charge de `verif`
+  (attente de 20 ms), deja vrai avant ce lot.
+
