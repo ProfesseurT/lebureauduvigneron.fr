@@ -12,6 +12,14 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 05/10/2026 : chantier notifications clos
+
+Sept lots (58 à 64), tous en production et testés. Ce qui existe : le mail immédiat réglable,
+les notifications sur téléphone et ordinateur, le tableau « Mes alertes » qui règle mail et
+notification ligne par ligne, des objets qui disent l'essentiel. Restent pour plus tard : ouvrir
+directement le devis ou l'affaire en touchant la notification, et un essai automatique du devis
+qui échoue parfois tout seul.
+
 ## 05/10/2026, lot 64 : des objets et des notifications qui disent l'essentiel
 
 Les objets de mail commencent par le fait, puis le client et le montant : « Devis signé · Cave du

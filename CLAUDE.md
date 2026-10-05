@@ -8091,3 +8091,13 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
 - Verificateur : feu rouge (bancs 62 et 63 ne voyaient plus les nouvelles versions, fuite a
   plusieurs devis non surveillee) puis feu vert ; banc-lot64 REJOUE les promesses 62 et 63.
 
+### CHANTIER NOTIFICATIONS : CLOS LE 05/10/2026 (lots 58 a 64)
+
+Tout est en production et teste : mails immediats reglables, notifications sur appareils (devis
+signe, affaires des collegues, matin 7 h 30, soir 17 h 30), tableau « Mes alertes » mail x
+notification, objets nominatifs, case « client et montant ». Decisions de Ted a ne pas defaire :
+pas de silence de nuit (Ne pas deranger du telephone), mail de la perdue possible (decoche),
+inscription d'un appareil au dernier compte qui l'active (assume), 20 mails d'alerte par jour au plus.
+**Restent ouverts, hors chantier** : toucher la notification ouvre le bureau et non la chose
+exacte ; `banc:devis` « largeur A4 » echoue parfois sous la charge de `verif`.
+
