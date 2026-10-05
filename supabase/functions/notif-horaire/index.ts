@@ -126,6 +126,8 @@ export function fabriquerHoraire(m: Mail, moment: string) {
   const bonjour = `Bonjour ${m.prenom || ''},`.replace(' ,', ',');
   const pied = `Tu reçois ce message parce que tu es membre du bureau ${bureau} et que ce mail est coché dans tes réglages, onglet « Le courrier », tableau « Mes alertes ». Tu peux l'y décocher.`;
   const url = lien();
+  /* LOT 64 : le texte d'apercu (sous l'objet, dans la boite) donne le detail : montants, motifs. */
+  const apercu = rubriques.flatMap((r) => r.lignes).join(' · ').slice(0, 180);
 
   const blocs = rubriques.map((r) => (seule ? '' : `
       <tr><td bgcolor="${C.carte}" style="background-color:${C.carte};padding:16px 24px 6px 24px;font:bold 13px Arial,Helvetica,sans-serif;color:${C.doux};text-transform:uppercase;letter-spacing:1px;">${esc(r.titre)}</td></tr>`) + `
@@ -137,6 +139,7 @@ export function fabriquerHoraire(m: Mail, moment: string) {
 
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(sujet)}</title></head>
 <body style="margin:0;padding:0;background-color:${C.papier};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${esc(apercu)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.papier}" style="background-color:${C.papier};">
   <tr><td align="center" bgcolor="${C.papier}" style="background-color:${C.papier};padding:24px 12px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">

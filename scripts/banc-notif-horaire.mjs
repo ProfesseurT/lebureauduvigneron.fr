@@ -164,6 +164,8 @@ if (r) {
   t('le HTML echappe le client, le bureau et le prenom du bonjour (aucune balise injectee)', !!m && m.corps.html.indexOf('<b>du</b>') < 0
     && m.corps.html.indexOf('Cave &lt;b&gt;du&lt;/b&gt; Quai') > 0 && m.corps.html.indexOf('Domaine &lt;Test&gt;') > 0
     && m.corps.html.indexOf('<i>x</i>') < 0 && m.corps.html.indexOf('Camila &lt;i&gt;x&lt;/i&gt;') > 0);
+  t('lot 64 : un texte d\'apercu cache porte le detail (echeance, devis, montant), echappe',
+    !!m && /<div style="display:none;[^"]*">DRM, à faire demain · D-2026-007, Cave &lt;b&gt;du&lt;\/b&gt; Quai, 1 234,50 € HT<\/div>/.test(m.corps.html), m && m.corps.html.slice(0, 900));
   t('le pied dit ou decocher (« Mes alertes »)', !!m && /Mes alertes/.test(m.corps.text) && /décocher/.test(m.corps.text));
   t('le journal du mail est note pour p2, envoye', vu.mailj.length >= 1 && !!vu.mailj[0].corps.envoye_le
     && /personne=eq\.p2&jour=eq\.2026-10-09&moment=eq\.matin/.test(vu.mailj[0].url), JSON.stringify(vu.mailj));

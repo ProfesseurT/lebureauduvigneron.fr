@@ -45,7 +45,9 @@
     ['notif_mail_perdue', 'bdvrMailPerdue', 'perdue'],     ['notif_push_perdue', 'bdvrPushPerdue', 'perdue'],
     ['notif_mail_echeance', 'bdvrMailEcheance', 'echeance'], ['notif_push_echeance', 'bdvrPushEcheance', 'echeance'],
     ['notif_mail_devis_expire', 'bdvrMailDevisExpire', 'devis_expire'], ['notif_push_devis_expire', 'bdvrPushDevisExpire', 'devis_expire'],
-    ['notif_mail_rappels', 'bdvrMailRappels', 'rappels'],  ['notif_push_rappels', 'bdvrPushRappels', 'rappels']
+    ['notif_mail_rappels', 'bdvrMailRappels', 'rappels'],  ['notif_push_rappels', 'bdvrPushRappels', 'rappels'],
+    /* Lot 64 : pas une ligne du tableau, la case sous le tableau (sa ligne est son label). */
+    ['notif_push_detail', 'bdvrPushDetail', 'detail']
   ];
   let REGL = null,   REGL_LU = false;
   let TOUCHES = {};               // champs touches par le vigneron, cf. regle 2
@@ -601,10 +603,14 @@
             <tr data-ligne="rappels" hidden><th scope="row">Des rappels promis pour aujourd'hui ne sont pas faits <span class="bdvr-mat-h">17 h 30</span></th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailRappels" aria-label="Mail : des rappels pas faits"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushRappels" aria-label="Notification : des rappels pas faits"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
             </tbody>
           </table>
+          <!-- LOT 64 : le detail sur la notification, decoche par defaut (le vigneron : la plupart
+               laissent les apercus sur « Toujours », et l ecran se lit devant le saisonnier). -->
+          <label class="bdvr-chk" data-ligne="detail" hidden><input type="checkbox" id="bdvrPushDetail"> Montrer le client et le montant sur mes notifications</label>
+          <p class="bdvr-aide" data-ligne="detail" hidden>Pour les cacher quand ton téléphone est verrouillé : Réglages de l'iPhone, Notifications, Afficher les aperçus, « Si déverrouillé ».</p>
           <p class="bdvr-aide bdvr-aide--alerte" id="bdvrPushMuet" hidden>Les notifications ne sonneront ici que si tu actives cet appareil, juste en dessous.</p>
           <p class="bdvr-aide">Ça sonne de jour comme de nuit : pour être tranquille, mode Ne pas déranger du
-            téléphone. La notification ne dit ni nom de client ni montant ; le mail donne le détail, et sert de
-            confirmation quand c'est toi qui conclus l'affaire.</p>
+            téléphone. Sans la case ci-dessus, la notification ne dit ni nom de client ni montant ; le mail
+            donne le détail, et sert de confirmation quand c'est toi qui conclus l'affaire.</p>
         </div>
         <!-- LES NOTIFICATIONS DE CET APPAREIL, LOT 59, 03/10/2026. Un BOUTON et pas une case :
              l'abonnement est par appareil, la grille du dessus est par compte. Le geste est
@@ -1136,7 +1142,7 @@
       if(n) n.hidden = !la;
       if(la){ vues[c[2]] = true; poser(c[1], p[c[0]]); }
     });
-    Array.prototype.forEach.call(document.querySelectorAll('#bdvrAlertes tr[data-ligne]'), function(tr){
+    Array.prototype.forEach.call(document.querySelectorAll('#bdvrAlertes [data-ligne]'), function(tr){
       tr.hidden = !vues[tr.getAttribute('data-ligne')];
     });
     const alertes = el('bdvrAlertes');

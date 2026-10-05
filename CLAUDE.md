@@ -8072,3 +8072,22 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
 - **Assume** : un passage coupe apres la reservation laisse la ligne du journal sans
   `envoye_le` ni `echec` : le mail est perdu, jamais double.
 
+### LOT 64, 05/10/2026 : DES OBJETS ET DES NOTIFICATIONS QUI DISENT L'ESSENTIEL
+
+- **Demande de Ted : savoir en un coup d'oeil s'il faut ouvrir.** Arbitre avec le vigneron
+  (P5 + P3, sans P2, P6 ni P7).
+- **Objets de mail : le fait d'abord**, puis le client, puis le montant HT arrondi ou le motif :
+  « Devis signe · Cave du Quai · 1 240 € HT », « Gagnee par Camila · client · montant »,
+  « Perdue par Camila · client · le prix », « DRM a faire demain · devis X expire demain »,
+  « A rappeler aujourd'hui : X, Y +2 ». Un texte d'apercu cache (div display:none) dit l'action
+  (notif-commerce) ou le detail (notif-horaire). Ni emoji, ni expediteur qui change.
+- **Case `profils.notif_push_detail`, DECOCHEE par defaut** : « Montrer le client et le montant
+  sur mes notifications ». Decochee : la regle de l'ecran verrouille tient (ni nom ni montant).
+  Cochee : la discretion passe au reglage de l'iPhone (Afficher les apercus, « Si deverrouille »),
+  que l'aide indique. `push_cibles` porte `detail` par appareil ; notif-commerce envoie DEUX
+  messages (avec et sans detail) ; notif_horaire_lots ne nomme que si la case est cochee.
+- `notif_noms(text[])` : 2 noms au plus, puis « +n ».
+- La ligne 1 d'une notification iPhone (nom de l'application) ne se change pas par message.
+- Verificateur : feu rouge (bancs 62 et 63 ne voyaient plus les nouvelles versions, fuite a
+  plusieurs devis non surveillee) puis feu vert ; banc-lot64 REJOUE les promesses 62 et 63.
+

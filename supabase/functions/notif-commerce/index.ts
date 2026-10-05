@@ -121,8 +121,28 @@ async function envoyer(a: string, sujet: string, html: string, texte: string) {
 import { chiffrer, jetonVapid, pousser, envoyerAux, VAPID_PUBLIQUE } from '../_shared/webpush.ts';
 const VAPID_PRIVEE = Deno.env.get('VAPID_PRIVATE') ?? '';
 
-/* Ce que porte la notification : ni nom de client ni montant (ecran verrouille). */
-function messagePush(d: Detail) {
+/* Ce que porte la notification : ni nom de client ni montant (ecran verrouille).
+   LOT 64 : SAUF pour qui a coche « Montrer le client et le montant sur mes notifications »
+   (`detail`, decochee par defaut) : la discretion passe alors au reglage de son telephone. */
+function eurosRond(c: unknown) {
+  const n = Number(c);
+  if (!Number.isFinite(n)) return '';
+  return Math.round(n / 100).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ') + ' €';
+}
+function motifMot(m: unknown) {
+  const t = MOTIFS[String(m)] ?? String(m ?? '');
+  return t ? t.charAt(0).toLowerCase() + t.slice(1) : '';
+}
+function messagePush(d: Detail, detail = false) {
+  if (detail) {
+    const client = String(d.client || d.titre || 'ton client');
+    const ht = d.devis && d.devis.total_ht_c != null ? eurosRond(d.devis.total_ht_c) + ' HT' : '';
+    const par = String(d.par || 'Un collègue');
+    const id = String(d.affaire_id);
+    if (d.sorte === 'gagnee') return { titre: `${par} a gagné · ${client}`, corps: ht || 'Ouvre ton bureau pour voir le détail.', url: lienAffaire(id), tag: 'gagnee-' + id.slice(0, 8) };
+    if (d.sorte === 'perdue') return { titre: `${par} a perdu · ${client}`, corps: d.motif ? 'Motif : ' + motifMot(d.motif) : 'Ouvre ton bureau pour voir le détail.', url: lienAffaire(id), tag: 'perdue-' + id.slice(0, 8) };
+    return { titre: `Devis signé · ${client}`, corps: (ht ? ht + ' · ' : '') + 'télécharger la commande', url: lienAffaire(id), tag: 'signe-' + id.slice(0, 8) };
+  }
   /* LOT 62 : les affaires des collegues. Le prenom du collegue, jamais le client ni le
      montant. La perdue dit « Pas pour cette fois », le mot de la piece. */
   const par = String(d.par || 'Un collègue');
@@ -159,9 +179,14 @@ async function notifier(bureau: string, d: Detail) {
      Pour une signature en ligne, close_par est vide : tout le monde est prevenu. */
   try { cibles = (await rpc('push_cibles', { p_bureau: bureau, p_sorte: d.sorte, p_sauf: d.close_par ?? null })) || []; }
   catch (e) { return { partis: 0, echec: String(e).slice(0, 300), differe: false }; }
-  const r = await envoyerAux(cibles, messagePush(d), VAPID_PRIVEE);
-  for (const m of r.mortes) await oublierAppareil(m);
-  return { partis: r.partis, echec: r.echec, differe: false };
+  /* LOT 64 : deux messages, un par choix (avec ou sans le detail), un jeton par service. */
+  const jetons = new Map<string, Promise<string>>();
+  const avec = cibles.filter((c) => c.detail === true), sans = cibles.filter((c) => c.detail !== true);
+  const ra = avec.length ? await envoyerAux(avec, messagePush(d, true), VAPID_PRIVEE, jetons) : { partis: 0, mortes: [], echec: null };
+  const rs = sans.length ? await envoyerAux(sans, messagePush(d, false), VAPID_PRIVEE, jetons) : { partis: 0, mortes: [], echec: null };
+  for (const m of [...ra.mortes, ...rs.mortes]) await oublierAppareil(m);
+  const echec = [ra.echec, rs.echec].filter(Boolean).join(' | ') || null;
+  return { partis: ra.partis + rs.partis, echec, differe: false };
 }
 
 /* ---------------------------------------------------------------------------
@@ -227,16 +252,18 @@ function fabriquer(d: Detail) {
   const num = dv?.numero ? String(dv.numero) : '';
   const par = d.par ? String(d.par) : 'Un collègue';
   let sujet = '', phrase = '', couleur = C.accent, marque = '';
+  /* LOT 64 : l'objet commence par le fait, puis le client, puis le montant ou le motif. */
+  const ht = dv && dv.total_ht_c != null ? ' · ' + eurosRond(dv.total_ht_c) + ' HT' : '';
   if (d.sorte === 'signe') {
-    sujet = `Devis ${num} signé par ${client}`.replace(/\s+/g, ' ');
+    sujet = `Devis signé · ${client}${ht}`;
     phrase = `${client} vient de signer ${num ? 'le devis ' + num : 'son devis'} en ligne. L'affaire est gagnée.`;
     couleur = C.ok; marque = 'Devis signé';
   } else if (d.sorte === 'gagnee') {
-    sujet = `Affaire gagnée : ${client} (par ${par})`;
+    sujet = `Gagnée par ${par} · ${client}${ht}`;
     phrase = `${par} a gagné l'affaire ${client}${d.titre && d.titre !== client ? ', « ' + d.titre + ' »' : ''}.`;
     couleur = C.ok; marque = 'Affaire gagnée';
   } else {
-    sujet = `Affaire perdue : ${client} (par ${par})`;
+    sujet = `Perdue par ${par} · ${client}${d.motif ? ' · ' + motifMot(d.motif) : ''}`;
     phrase = `${par} a classé l'affaire ${client} en « Pas pour cette fois ».`;
     couleur = C.perdu; marque = 'Affaire perdue';
   }
@@ -287,6 +314,7 @@ function fabriquer(d: Detail) {
 
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(sujet)}</title></head>
 <body style="margin:0;padding:0;background-color:${C.papier};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${esc(suite)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.papier}" style="background-color:${C.papier};">
   <tr><td align="center" bgcolor="${C.papier}" style="background-color:${C.papier};padding:24px 12px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">

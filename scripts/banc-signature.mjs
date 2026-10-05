@@ -305,17 +305,18 @@ titre('2 bis. Le mail des nouvelles (fonction notif-commerce, lot 57)');
     t('la fabrique tourne', Array.isArray(r) && r.length === 3);
     if (r) {
       const [sg, ga, pe] = r;
-      t('signe : le sujet nomme le devis et le client', sg.sujet === 'Devis D-2026-0004 signé par Cave du Port', sg.sujet);
+      t('signe (lot 64) : l\'objet commence par le fait, puis le client et le montant HT arrondi', sg.sujet === 'Devis signé · Cave du Port · 1 240 € HT', sg.sujet);
+      t('lot 64 : un texte d\'apercu cache dit l\'action (telecharger la commande)', /<div style="display:none;[^"]*">Prochaine étape : télécharger la commande/.test(sg.html));
       t('signe : montants, vins, signataire, heure de Paris, et la suite (Vitisoft)', /1 240,00 € HT, 1 488,00 € TTC/.test(sg.texte)
         && /Le Rosé, 2025, 75 cl : 60 x 9,50 € = 570,00 €/.test(sg.texte) && /samedi 3 octobre à 10 h 12/.test(sg.texte)
         && /importer dans Vitisoft/.test(sg.texte), sg.texte);
       t('le nom du signataire est echappe dans le HTML', /Paul &lt;b&gt;Martin&lt;\/b&gt;/.test(sg.html) && !/Paul <b>/.test(sg.html));
       t('le bouton mene a l\'affaire', /href="https:\/\/lebureauduvigneron\.fr\/mon-bureau\/#affaire=11111111-1111-1111-1111-111111111111"/.test(sg.html));
-      t('gagnee : le collegue est nomme', ga.sujet === 'Affaire gagnée : Cave du Port (par Camila)' && /Camila a gagné l'affaire Cave du Port/.test(ga.texte));
+      t('gagnee : le collegue est nomme', ga.sujet === 'Gagnée par Camila · Cave du Port' && /Camila a gagné l'affaire Cave du Port/.test(ga.texte));
       t('lot 58 : le pied dit ou couper ce mail, et plus « tout le bureau »', /onglet « Le courrier »\. Tu peux l'y décocher\./.test(sg.texte) && /onglet « Le courrier »\. Tu peux l'y décocher\./.test(ga.texte)
         && !/Tout le bureau le reçoit/.test(sg.texte + ga.texte)
         && !/Celui qui a fait le geste/.test(sg.html + ga.html + pe.html));
-      t('perdue : le motif en mots, pas en code', pe.sujet === 'Affaire perdue : Cave du Port (par Bruno)' && /Motif : Un fournisseur déjà en place/.test(pe.texte));
+      t('perdue : le motif en mots, pas en code', pe.sujet === 'Perdue par Bruno · Cave du Port · un fournisseur déjà en place' && /Motif : Un fournisseur déjà en place/.test(pe.texte));
       t('largeur bornee a 560 px, en attribut et en style, fonds sur les cellules', /width="560"[^>]*max-width:560px/.test(sg.html) && /<td bgcolor="#FFFFFF" style="background-color:#FFFFFF/.test(sg.html));
     }
   }

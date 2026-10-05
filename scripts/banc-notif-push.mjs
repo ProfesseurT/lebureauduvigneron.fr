@@ -120,6 +120,18 @@ t('lot 62 : « Camila a gagné une affaire. » et « Camila a classé une affair
   msgs[0].titre === 'Camila a gagné une affaire.' && msgs[1].titre === 'Camila a classé une affaire en « Pas pour cette fois ».'
   && !/Cave du Port|Premiere|124000/.test(JSON.stringify(msgs)) && msgs.every((x) => /#affaire=11111111-/.test(x.url)), JSON.stringify(msgs));
 t('ni nom de client, ni titre, ni numero, ni montant', !/Cave du Port|Premiere|D-2026|1 ?240|124000/.test(tout), tout);
+/* LOT 64 : pour qui a coche « client et montant », la notification nomme. */
+const det = JSON.parse(dansLaFonction('const b={affaire_id:"11111111-2222-3333-4444-555555555555",client:"Cave du Port",titre:"Premiere commande",par:"Camila",motif:"prix",devis:{total_ht_c:124000}};'
+  + 'console.log(JSON.stringify([m.messagePush({...b,sorte:"signe"},true),m.messagePush({...b,sorte:"gagnee"},true),m.messagePush({...b,sorte:"perdue"},true),m.messagePush({...b,sorte:"signe"})]));'));
+t('lot 64, case cochee : « Devis signé · Cave du Port » / « 1 240 € HT · télécharger la commande »',
+  det[0].titre === 'Devis signé · Cave du Port' && det[0].corps === '1 240 € HT · télécharger la commande', JSON.stringify(det[0]));
+t('lot 64, case cochee : « Camila a gagné · Cave du Port » / montant ; « Camila a perdu · Cave du Port » / « Motif : le prix »',
+  det[1].titre === 'Camila a gagné · Cave du Port' && det[1].corps === '1 240 € HT' && det[2].titre === 'Camila a perdu · Cave du Port' && det[2].corps === 'Motif : le prix', JSON.stringify(det));
+t('lot 64, case decochee (par defaut) : rien de nominatif', !/Cave du Port|1 240/.test(JSON.stringify(det[3])));
+const SRCF = lire('supabase/functions/notif-commerce/index.ts');
+t('lot 64 : chaque appareil recoit la version de SON proprietaire (detail === true, sinon la discrete)',
+  /cibles\.filter\(\(c\) => c\.detail === true\)/.test(SRCF) && /cibles\.filter\(\(c\) => c\.detail !== true\)/.test(SRCF)
+  && /envoyerAux\(avec, messagePush\(d, true\)/.test(SRCF) && /envoyerAux\(sans, messagePush\(d, false\)/.test(SRCF));
 t('le contrat du recepteur : titre, corps, url, tag',
   Object.keys(msg).sort().join() === 'corps,tag,titre,url' && /^https:\/\/lebureauduvigneron\.fr\/mon-bureau\/#affaire=11111111-/.test(msg.url));
 const pushJs = lire('src/js/bdv-push.js');
@@ -187,7 +199,7 @@ t('chaque envoi a un plafond de 5 s, et ils partent tous en meme temps',
 t('la paire de cles est controlee par une verification de la signature (Deno ne le fait pas a l\'import)',
   /crypto\.subtle\.verify\(/.test(SRC) && /VAPID_PRIVATE ne va pas avec la cle publique/.test(SRC));
 t('urgence normale, et la reponse du service est liberee', /Urgency: 'normal'/.test(SRC) && /await r\.body\?\.cancel\(\);/.test(SRC));
-t('une adresse morte (404, 410) est retiree de la base', /code === 404 \|\| code === 410\) mortes\.push/.test(SHARED) && /for \(const m of r\.mortes\) await oublierAppareil\(m\)/.test(SRC_F));
+t('une adresse morte (404, 410) est retiree de la base', /code === 404 \|\| code === 410\) mortes\.push/.test(SHARED) && /for \(const m of \[\.\.\.ra\.mortes, \.\.\.rs\.mortes\]\) await oublierAppareil\(m\)/.test(SRC_F));
 t('sans cle privee, rien ne part et le journal le dit', /if \(!VAPID_PRIVEE\) return \{ partis: 0, echec: 'VAPID_PRIVATE absente', differe: false \};/.test(SRC_F));
 t('aucune bibliotheque importee : un seul import, le module partage du depot', (SRC.match(/^\s*import\s/gm) || []).length === 1 && /^import \{[^}]+\} from '\.\.\/_shared\/webpush\.ts';$/m.test(SRC_F) && !/from ['"](npm|jsr|https?):/.test(SRC));
 t('le journal note les notifications', (SRC.match(/\.\.\.pj/g) || []).length === 3);

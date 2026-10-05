@@ -444,7 +444,7 @@ async function monterAlertes(profil) {
 }
 {
   const { d, $, ecrits, soumettre, lignes } = await monterAlertes(Object.assign({}, BASE, L58, L61, L62, L63));
-  const cases = [...d.querySelectorAll('#bdvrAlertes input[type=checkbox]')];
+  const cases = [...d.querySelectorAll('#bdvrAlertes table input[type=checkbox]')];
   dit(cases.length === 12 && cases.every((n) => !n.hidden), 'base au lot 63 : douze cases, toutes visibles');
   dit(cases.every((n) => /^(Mail|Notification) : /.test(n.getAttribute('aria-label') || '')), 'chaque case dit son support et son evenement a un lecteur d\'ecran');
   dit(!!$('bdvrAlertes').closest('#bdvrBlocCourrier') && !!d.querySelector('#bdvrAlertes table th[scope=col]') && d.querySelectorAll('#bdvrAlertes tbody th[scope=row]').length === 6,
@@ -461,6 +461,18 @@ async function monterAlertes(profil) {
     'l\'aide dit Ne pas deranger, l\'ecran verrouille et la confirmation, et plus « jamais de mail » ni la nuit');
   const ordre = [...$('bdvrBlocCourrier').querySelectorAll('input[type=checkbox]')].map((n) => n.id);
   dit(ordre[0] === 'bdvrCourrier' && ordre[ordre.length - 1] === 'bdvrNews', 'le courrier du matin reste la premiere case, l\'edition la derniere (' + ordre.join() + ')');
+  dit($('bdvrPushDetail').closest('label').hidden, 'sans le lot 64 : la case « client et montant » reste cachee');
+}
+{
+  /* LOT 64 : la case « Montrer le client et le montant sur mes notifications ». */
+  const { $, ecrits, soumettre } = await monterAlertes(Object.assign({}, BASE, L58, L61, L62, L63, { notif_push_detail: false }));
+  const lab = $('bdvrPushDetail').closest('label');
+  dit(!lab.hidden && !$('bdvrPushDetail').checked, 'base au lot 64 : la case se montre, decochee comme en base');
+  dit(/Si déverrouillé/.test($('bdvrAlertes').textContent), 'elle dit comment cacher le detail sur un telephone verrouille');
+  await soumettre();
+  dit(ecrits.length === 0, 'rien touche : rien ne part');
+  $('bdvrPushDetail').checked = true; await soumettre();
+  dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_detail":true}', 'la cocher n\'envoie que sa colonne (' + JSON.stringify(ecrits) + ')');
 }
 
 console.log('\n== VERDICT ==');

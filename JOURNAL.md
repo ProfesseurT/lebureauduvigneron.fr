@@ -12,6 +12,14 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 05/10/2026, lot 64 : des objets et des notifications qui disent l'essentiel
+
+Les objets de mail commencent par le fait, puis le client et le montant : « Devis signé · Cave du
+Quai · 1 240 € HT ». Un texte d'aperçu dit quoi faire. Nouvelle case, décochée par défaut :
+« Montrer le client et le montant sur mes notifications ». Le vigneron l'a voulue décochée (l'écran
+se lit devant un saisonnier), avec l'astuce de l'iPhone « Si déverrouillé ». Ni emoji, ni expéditeur
+qui change. Le vérificateur a fait rejouer les promesses des lots 62 et 63 : feu vert.
+
 ## 05/10/2026, lot 63 : mes alertes, un tableau mail et notification
 
 Dans « Le courrier », un seul tableau : une ligne par événement, une case Mail et une case
