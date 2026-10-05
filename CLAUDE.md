@@ -8172,3 +8172,36 @@ Arbitrages de Ted :
   francais) ; « Changer dans Mon domaine » quitte le devis (le brouillon reste sur l'appareil) ;
   l'apercu papier n'existe qu'apres enregistrement ; le bouton Retour du navigateur n'avertit pas ;
   au telephone une ligne de vin prend un demi-ecran (a alleger, lot suivant).
+
+### LOT 67 : LE SUIVI DES DEVIS DEPUIS L'AFFAIRE, 05/10/2026
+
+- **Pas de SQL.** `bdv-affaires.js`, `bdv-devis.js`, `bdv-bureau.css`.
+- **Une carte par devis vivant** (pas encore envoye, envoye, accepte) : numero (+ « version N »),
+  l'etat EN MOTS, UNE phrase avec le delai et le montant en jeu, UN geste (`suiviDevis`) :
+  pas encore envoye « Préparer l’envoi » ; envoye valable « Noter sa réponse » (ARBITRE PAR TED,
+  l'appel est deja en haut) ; expire : APPELER D'ABORD (arbitre par Ted, lien tel: « L’appeler
+  d’abord ») puis « Le remettre à date » (rappel du lot 65, l'avertissement du lien coupe est SOUS
+  le bouton) ou « En faire un nouveau » si la base refuserait (pas de colonne version, commande
+  telechargee, acceptation annulee) ; accepte pas telecharge « Télécharger pour Vitisoft » ;
+  telecharge : rien. Puis les liens « Ouvrir le devis » et « Voir la version N ». Abandonne ou
+  refuse : ligne courte, SEUL le numero barre, le motif lisible.
+- **Le geste se fait dans le devis** (`ctx.agir`, `agirDepuisAffaire`) : SEULEMENT le premier pas
+  (ouvre la confirmation d'envoi ou de correction, pose le focus sur « Le client a répondu ? »,
+  reprend les lignes sans rien ecrire), sauf le telechargement. Il attend les lectures de
+  `lireSignature` (qui rend maintenant une promesse) : sinon une repeinte lui vole le focus.
+- **« Voir la version N »** (`sourceVersion`) : la copie de CETTE version (`devis_copies.version`),
+  titre « version N remplacée », bandeau « ce devis ne vaut plus » ajoute au papier MONTRE et
+  imprime (la copie gardee ne change pas), « Revenir au devis » en bouton plein.
+- Page de l'affaire : plus de gros montant ni de phrase au-dessus de la liste, plus de « Ouvrir le
+  devis » en haut ; le bouton plein du haut fait le geste du devis ; la section remonte sous la
+  frise quand un devis attend un geste (`page-aff__bloc--presse`) ; « Nouveau devis » est un lien
+  des qu'un devis vit ; deux devis vivants : « C’est lui qui compte pour l’affaire ».
+- PIEGE : `vivant(n)` existe deja dans bdv-affaires.js (un noeud focusable) : le test d'un devis
+  s'appelle `devisVivant`. Une carte porte plusieurs boutons du meme devis : la repeinte retrouve
+  le focus par `data-aff` + `data-devis` + `data-action` + `data-version`.
+- Garde : `banc:devis` section 18 (475), `banc:affaires` 415, capture `scripts/cap-devis67.mjs`
+  (container, hors verif). Conseil : vigneron (feu vert apres 2 tours), expert commercial (avant),
+  verificateur independant (feu vert, 8 mutations, toutes attrapees au 2e tour).
+- **Ouvert, a Ted** : a 390 la frise en colonne pousse le premier bouton du devis sous l'ecran
+  (vers 950 px pour 844) : se tranche sur toute la page de l'affaire ; la difference de montant
+  entre versions n'est pas affichee (seul le papier de la version 1 est garde).

@@ -1372,25 +1372,115 @@
        ailleurs dans le bureau. Un devis abandonne ou refuse reste en ligne courte. */
     return '<div class="aff-devis">'
       + '<ul class="aff-devis__liste" id="affDevisListe"' + (l ? '' : ' hidden') + '>' + l + '</ul>'
-      + (ouverte ? '<button type="button" class="btn" data-aff="devis" aria-describedby="affDevisMot">Nouveau devis</button>' : '')
+      + (ouverte ? '<button type="button" class="' + (devisCourt(a) ? 'aff-devis__lien' : 'btn') + '" data-aff="devis" aria-describedby="affDevisMot">Nouveau devis</button>' : '')
       + '<p class="aff-aide aff-devis__mot" id="affDevisMot" aria-live="polite"></p></div>';
   }
-  /* S11 : chaque date est NOMMEE (« du », « envoyé le », « valable jusqu'au ») : deux dates
-     nues cote a cote ne se lisent pas. */
+  /* LOT 67 (05/10/2026) : LE SUIVI DEPUIS L'AFFAIRE. UNE CARTE PAR DEVIS VIVANT (pas encore
+     envoye, envoye, accepte), l'etat EN MOTS, UNE phrase qui dit le delai et le montant en jeu,
+     et UN geste principal selon l'etat (decide par Ted, conseil vigneron + expert commercial) :
+       pas encore envoye      -> « Préparer l'envoi » (le devis s'ouvre, l'envoi deja ouvert)
+       envoye, valable        -> « Noter sa réponse » (arbitre par Ted : l'appel est en haut)
+       envoye, expire         -> APPELER D'ABORD (arbitre par Ted), puis « Le remettre à date »
+                                 (lot 65 : version N+1 datee du jour, l'ancien lien coupe, dit
+                                 SOUS le bouton) ou « En faire un nouveau » si la base refuserait
+       accepte, pas telecharge -> « Télécharger pour Vitisoft »
+       accepte, telecharge    -> aucun geste, la phrase le dit.
+     Les boutons de carte restent en contour : le seul bouton plein de la page est celui du
+     moment, en haut. « Ouvrir le devis » reste en lien, « Voir la version 1 » pour une
+     version 2 et plus. Abandonne ou refuse : ligne courte, le NUMERO seul barre, le mot et le
+     motif lisibles. */
+  function motifMot(c) { var m = MOTIFS.filter(function (x) { return x[0] === c; })[0]; return m ? String(m[1]).toLowerCase() : ''; }
+  function devisVivant(d) { return d && (d.statut === 'enregistre' || d.statut === 'envoye' || d.statut === 'accepte'); }
+  function versionD(d) { var v = Number(d && d.version); return v >= 1 ? v : null; }
+  function telDe(a) {
+    var c = cliDe(a), p = a && a.piste_id && S.pistes[a.piste_id];
+    if (c && c.contacts && c.contacts.tel) return { tel: c.contacts.tel, vu: c.contacts.affiche || c.contacts.tel };
+    if (!c && p && p.telephone) return { tel: String(p.telephone).replace(/[^\d+]/g, ''), vu: p.telephone };
+    return null;
+  }
+  /* La base accepterait-elle « remettre a date » ? (lot 65 : colonne version presente,
+     commande pas telechargee, pas signe puis annule ; l'ecran du devis reverifie.) */
+  function remiseADatePossible(d) {
+    return !!(d && 'version' in d && d.statut === 'envoye' && !(Number(d.commande_telechargements) > 0) && !d.accord_annule_le);
+  }
+  function suiviDevis(a, d) {
+    var ouverte = a.issue === 'en_cours', j, r = { phrase: '', geste: null, appel: null, aide: '' };
+    var ht = esc(eurosHT(d.total_ht_c)), v = versionD(d);
+    var remplace = v > 1 ? ' Version ' + v + ' du ' + esc(dateCourte(d.date_devis)) + ', elle remplace la version ' + (v - 1) + '.' : '';
+    if (d.statut === 'enregistre') {
+      r.marque = 'pas encore envoyé';
+      r.phrase = 'Prêt depuis le ' + esc(dateCourte(jourLocal(d.cree_le) || d.date_devis)) + ', pas encore parti : ' + ht + '. Tant qu’il ne l’a pas reçu, ton client ne peut pas dire oui.';
+      if (ouverte) r.geste = { action: 'envoi', mot: 'Préparer l’envoi' };
+    } else if (d.statut === 'envoye' && expireD(d)) {
+      j = joursDepuis(d.valable_jusqu);
+      r.marque = 'expiré';
+      r.phrase = 'Envoyé le ' + esc(dateCourte(d.envoye_le)) + ', expiré depuis ' + (j > 0 ? pluriel(j, 'jour', 'jours') : 'aujourd’hui') + ' (le ' + esc(dateCourte(d.valable_jusqu)) + ') : ' + ht + ' à reprendre.' + remplace;
+      if (ouverte) {
+        var t = telDe(a), redate = remiseADatePossible(d);
+        var g = redate ? { action: 'corriger', mot: 'Le remettre à date' } : { action: 'refaire', mot: 'En faire un nouveau' };
+        if (t) { r.appel = t; r.phrase += ' Appelle-le d’abord : « Je vous le prolonge tel quel, ou on ajuste quelque chose ? »'; }
+        r.geste = g;
+        r.aide = redate ? 'Il devient la version ' + ((v || 1) + 1) + ', datée d’aujourd’hui : l’ancien lien de signature ne marchera plus.'
+          : 'Il reprend ses lignes sous un nouveau numéro, et celui-ci passe abandonné.';
+      }
+    } else if (d.statut === 'envoye') {
+      j = joursDepuis(d.envoye_le);
+      var reste = joursDepuis(d.valable_jusqu);
+      r.marque = 'envoyé';
+      r.phrase = 'Envoyé le ' + esc(dateCourte(d.envoye_le)) + (j > 0 ? ', sans réponse depuis ' + pluriel(j, 'jour', 'jours') : '') + '. '
+        + (d.valable_jusqu ? 'Valable encore ' + pluriel(Math.max(0, -reste), 'jour', 'jours') + ', jusqu’au ' + esc(dateCourte(d.valable_jusqu)) + ' : ' : '') + ht + ' en jeu.' + remplace;
+      if (ouverte) r.geste = { action: 'reponse', mot: 'Noter sa réponse' };
+    } else {
+      var quand = d.signe_le ? String(d.signe_le).slice(0, 10) : (d.accepte_le ? jourLocal(d.accepte_le) : null);
+      r.marque = d.signe_le ? 'signé en ligne' : 'accepté';
+      r.phrase = (d.signe_le ? 'Signé en ligne le ' : 'Accepté') + (d.signe_le ? esc(dateCourte(quand)) : quand ? ' le ' + esc(dateCourte(quand)) : '') + ' : ' + ht + ' gagnés.';
+      if (d.commande_telechargee_le) r.phrase += ' Commande téléchargée le ' + esc(dateCourte(jourLocal(d.commande_telechargee_le))) + ' : si elle est dans Vitisoft, cette vente est faite.';
+      else { r.phrase += ' Télécharge la commande pour la saisir dans Vitisoft.'; r.geste = { action: 'commande', mot: 'Télécharger pour Vitisoft' }; }
+    }
+    return r;
+  }
   function htmlListeDevis(a) {
     var l = S.devisDe[a.affaire_id];
     if (!Array.isArray(l)) return '';
+    var vivants = l.filter(devisVivant).length, principal = devisPrincipal(a);
     return l.map(function (d) {
-      var ab = d.statut === 'abandonne' || d.statut === 'refuse';
-      var etat = d.statut === 'accepte' ? 'accepté'
-        : d.statut === 'envoye' ? (expireD(d) ? 'envoyé le ' + dateFr(d.envoye_le) + ', expiré' : 'envoyé le ' + dateFr(d.envoye_le))
-        : d.statut === 'refuse' ? 'refusé' : d.statut === 'abandonne' ? 'abandonné' : 'pas encore envoyé';
-      var detail = 'du ' + dateFr(d.date_devis) + ', ' + etat + ', ' + eurosHT(d.total_ht_c);
-      if (ab) return '<li class="aff-devis__court"><button type="button" class="aff-devis__un" data-aff="devisOuvrir" data-devis="' + esc(d.devis_id) + '">'
-        + '<s>' + esc(d.numero) + '</s> ' + esc(detail) + '</button></li>';
-      return '<li class="aff-devis__carte"><button type="button" class="btn aff-devis__ouvrir" data-aff="devisOuvrir" data-devis="' + esc(d.devis_id) + '">'
-        + 'Ouvrir le devis ' + esc(d.numero) + '</button><p class="aff-devis__detail">' + esc(detail) + '</p></li>';
+      var id = esc(d.devis_id), v = versionD(d);
+      if (!devisVivant(d)) {
+        var mot = d.statut === 'refuse' ? 'refusé' + (motifMot(d.refuse_motif) ? ', ' + motifMot(d.refuse_motif) : '') : 'abandonné';
+        return '<li class="aff-devis__court"><button type="button" class="aff-devis__un" data-aff="devisOuvrir" data-devis="' + id + '">'
+          + '<s>' + esc(d.numero) + '</s> ' + esc(mot) + ', du ' + esc(dateCourte(d.date_devis)) + ', ' + esc(eurosHT(d.total_ht_c)) + '</button></li>';
+      }
+      var r = suiviDevis(a, d), g = '';
+      /* Deux devis vivants : la carte de celui qui porte le montant de l'affaire le dit. */
+      var compte = vivants > 1 && principal && principal.devis_id === d.devis_id && d.statut !== 'enregistre';
+      if (r.appel) g += '<a class="btn" href="tel:' + esc(r.appel.tel) + '">L’appeler d’abord</a>';
+      if (r.geste) g += '<button type="button" class="btn" data-aff="devisAgir" data-action="' + r.geste.action + '" data-devis="' + id + '"'
+        + (r.aide ? ' aria-describedby="affDevisAide-' + id + '"' : '') + '>' + esc(r.geste.mot) + '</button>';
+      /* Vigneron (lot 67, tour 2) : la phrase d'aide colle aux boutons qu'elle explique ; les liens viennent apres. */
+      var li = '<button type="button" class="aff-devis__lien" data-aff="devisOuvrir" data-devis="' + id + '">Ouvrir le devis</button>';
+      for (var k = 1; v && k < v; k++)
+        li += '<button type="button" class="aff-devis__lien" data-aff="devisAgir" data-action="version" data-version="' + k + '" data-devis="' + id + '">Voir la version ' + k + '</button>';
+      return '<li class="aff-devis__carte" data-devis-carte="' + id + '"><p class="aff-devis__tete"><b>Devis ' + esc(d.numero) + (v > 1 ? ', version ' + v : '') + '</b> '
+        + '<span class="aff-marque">' + esc(r.marque) + '</span></p>'
+        + '<p class="aff-devis__detail">' + r.phrase + (compte ? ' C’est lui qui compte pour l’affaire.' : '') + '</p>'
+        + (g ? '<p class="aff-devis__gestes">' + g + '</p>' : '')
+        + (r.aide ? '<p class="aff-aide aff-devis__aide" id="affDevisAide-' + id + '">' + esc(r.aide) + '</p>' : '')
+        + '<p class="aff-devis__gestes aff-devis__liens">' + li + '</p>'
+        + '</li>';
     }).join('');
+  }
+  /* Un devis attend-il un geste ? (la section remonte sous la frise, vigneron lot 67) */
+  /* Un devis vivant court : « Nouveau devis » se fait discret (on le relance, on n'en refait
+     pas un ; expert commercial, lot 67). */
+  /* Vigneron (lot 67, tour 2) : UN seul aspect, d'une affaire a l'autre : des qu'un devis vit,
+     « Nouveau devis » est un lien ; sans devis vivant, c'est le bouton. */
+  function devisCourt(a) {
+    var l = S.devisDe[a.affaire_id];
+    return Array.isArray(l) && l.some(devisVivant);
+  }
+  function devisAttend(a) {
+    var l = S.devisDe[a.affaire_id];
+    return Array.isArray(l) && l.some(function (d) { return devisVivant(d) && !!suiviDevis(a, d).geste; });
   }
   function dateFr(iso) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
@@ -1419,10 +1509,14 @@
     var corps = el('amodCorps'), ul = el('affDevisListe');
     if (!ul || !corps || corps.getAttribute('data-affaire') !== id) return;
     /* Repeindre la liste ne fait pas perdre le focus a la ligne qui l'avait. */
-    var act = document.activeElement, garde = act && ul.contains(act) ? act.getAttribute('data-devis') : null;
+    /* LOT 67 : une carte porte plusieurs boutons du meme devis : on retrouve LE MEME (geste, version). */
+    var act = document.activeElement, garde = act && ul.contains(act) && act.getAttribute('data-devis')
+      ? '[data-aff="' + act.getAttribute('data-aff') + '"][data-devis="' + act.getAttribute('data-devis') + '"]'
+        + (act.getAttribute('data-action') ? '[data-action="' + act.getAttribute('data-action') + '"]' : '')
+        + (act.getAttribute('data-version') ? '[data-version="' + act.getAttribute('data-version') + '"]' : '') : null;
     ul.innerHTML = h;
     ul.hidden = !h;
-    if (garde) { var n = ul.querySelector('[data-devis="' + garde + '"]'); if (n) { try { n.focus({ preventScroll: true }); } catch (e) {} } }
+    if (garde) { var n = ul.querySelector(garde); if (n) { try { n.focus({ preventScroll: true }); } catch (e) {} } }
     focusDevisAttendu(id);
   }
   /* RETOUR D'UN DEVIS : la ligne du devis (neuf ou rouvert) est ramenee dans la vue du
@@ -1497,7 +1591,7 @@
      s'ecrit, le panneau d'affaire se retire (`BdvTiroir.retirer`), puis la piece du
      devis pose `#devisModale`. « Retour a l'affaire » rouvre ce panneau. On ne ferme
      rien tant que la piece n'est pas arrivee : un echec laisse le vigneron ou il etait. */
-  function ouvrirDevis(a, devisId) {
+  function ouvrirDevis(a, devisId, agir) {
     if (oppose(a) && a.issue === 'en_cours') return;
     if (!a) return;
     var mot = el('affDevisMot');
@@ -1517,6 +1611,7 @@
       var ouvert = D.ouvrir({
         bureau: bureau(), affaire: { affaire_id: id, issue: issue, rappel: a.rappel || null, rappel_titre: a.rappel_titre || null },
         etapeDevis: etD, sujet: qui, nouveau: neuf, devis: dv || null, autresEnCours: autres, opposee: oppose(a),
+        agir: dv && agir ? agir : null,
         retour: function (devisId) {
           if (S.page) { rendre(); lireDevis({ affaire_id: id }).then(rendre); return; }
           if (issue !== 'en_cours') { rendre(); var b = focusSortie(id); if (b) { try { b.focus(); } catch (e) {} } return; }
@@ -2453,6 +2548,12 @@
          UN bouton (le vrai, en bas, celui que lisent les bancs et les harnais). */
       if ((quoi === 'devis' || quoi === 'devisRaccourci') && a) { ouvrirDevis(a, null); return; }
       if (quoi === 'devisOuvrir' && a) { ouvrirDevis(a, b.getAttribute('data-devis')); return; }
+      /* LOT 67 : le geste de la carte ouvre le devis LA OU il se fait. */
+      if (quoi === 'devisAgir' && a) {
+        var ac = b.getAttribute('data-action');
+        ouvrirDevis(a, b.getAttribute('data-devis'), ac === 'version' ? { action: 'version', version: Number(b.getAttribute('data-version')) } : { action: ac });
+        return;
+      }
       if (quoi === 'devisClose' && a) {
         var ouvre = !S.closesDevis[a.affaire_id];
         S.closesDevis[a.affaire_id] = ouvre;
@@ -2886,16 +2987,22 @@
     var dv = devisPrincipal(a), c = cliDe(a), piste = a.piste_id && S.pistes[a.piste_id];
     var joindre = (c && c.contacts && c.contacts.tel) || (piste && piste.telephone) ? 'appeler' : 'ecrire';
     if (dv && dv.statut === 'accepte' && dv.signe_le && !dv.commande_telechargee_le)
-      return { t: '<b>Signé en ligne le ' + esc(dateCourte(String(dv.signe_le).slice(0, 10))) + '.</b> La commande n’est pas encore dans Vitisoft.', plein: 'devis', devis: dv, mot: 'Ouvrir le devis signé', ton: 'bon' };
+      return { t: '<b>Signé en ligne le ' + esc(dateCourte(String(dv.signe_le).slice(0, 10))) + '.</b> La commande n’est pas encore dans Vitisoft.', plein: 'devis', devis: dv, mot: 'Télécharger pour Vitisoft', action: 'commande', ton: 'bon' };
     if (e.relancer)
       return { t: (e.retard > 0 ? '<span class="aff-retard">Tu devais le rappeler ' + esc(jourSemaine(a.rappel)) + '</span>' : '<span class="aff-retard">C’est aujourd’hui</span>')
         + (a.rappel_titre ? ', pour ' + esc(minuscule(a.rappel_titre)) : '') + '.', plein: joindre, ton: 'retard' };
     if (dv && dv.statut === 'envoye' && !expireD(dv) && joursDepuis(dv.envoye_le) >= 7)
       return { t: 'Ton devis ' + esc(dv.numero) + ' est parti il y a ' + joursDepuis(dv.envoye_le) + ' jours, sans réponse. Relance-le.', plein: joindre, ton: 'retard' };
-    if (dv && expireD(dv))
-      return { t: 'Ton devis ' + esc(dv.numero) + ' a expiré le ' + esc(dateCourte(dv.valable_jusqu)) + '. Refais-le, ou appelle pour le prolonger.', plein: 'devis', devis: dv, mot: 'Ouvrir le devis expiré', ton: 'retard' };
+    /* LOT 67, arbitre par Ted : un devis expire, on APPELLE d'abord. Sans numero, le geste
+       redevient celui du devis (le remettre a date, ou en faire un nouveau). */
+    if (dv && expireD(dv)) {
+      var sx = suiviDevis(a, dv), tx = telDe(a);
+      return { t: 'Ton devis ' + esc(dv.numero) + ' a expiré le ' + esc(dateCourte(dv.valable_jusqu)) + '. ' + (tx ? 'Appelle-le avant de le remettre à date.'
+          : sx.geste && sx.geste.action === 'corriger' ? 'Remets-le à date : il deviendra la version ' + ((versionD(dv) || 1) + 1) + ', et l’ancien lien de signature ne marchera plus.' : 'Fais-en un nouveau.'),
+        plein: tx ? joindre : 'devis', devis: dv, mot: sx.geste ? sx.geste.mot : 'Ouvrir le devis expiré', action: sx.geste ? sx.geste.action : null, ton: 'retard' };
+    }
     if (dv && dv.statut === 'enregistre')
-      return { t: 'Ton devis ' + esc(dv.numero) + ' est prêt mais pas encore parti.', plein: 'devis', devis: dv, mot: 'Ouvrir le devis', ton: '' };
+      return { t: 'Ton devis ' + esc(dv.numero) + ' est prêt mais pas encore parti.', plein: 'devis', devis: dv, mot: 'Préparer l’envoi', action: 'envoi', ton: '' };
     if (e.endormie)
       return { t: '<span class="aff-retard">Plus de nouvelles depuis ' + pluriel(e.jours, 'jour', 'jours') + '.</span> Pose-lui un rappel.', plein: 'demain', ton: 'retard' };
     if (a.rappel) return { t: 'Prochain rappel ' + esc(jourSemaine(a.rappel)) + (a.rappel_titre ? ', pour ' + esc(minuscule(a.rappel_titre)) : '') + '.', plein: null, ton: '' };
@@ -2904,18 +3011,17 @@
   function minuscule(s) { s = String(s || ''); return s.charAt(0).toLowerCase() + s.slice(1); }
   function htmlGestesPage(a, m) {
     var p = a.piste_id && S.pistes[a.piste_id], l = '';
-    if (m.plein === 'devis' && m.devis) l += '<button type="button" class="btn btn--bordeaux" data-aff="devisOuvrir" data-devis="' + esc(m.devis.devis_id) + '">' + esc(m.mot) + '</button>';
+    if (m.plein === 'devis' && m.devis) l += '<button type="button" class="btn btn--bordeaux" data-aff="' + (m.action ? 'devisAgir' : 'devisOuvrir') + '"'
+      + (m.action ? ' data-action="' + m.action + '"' : '') + ' data-devis="' + esc(m.devis.devis_id) + '">' + esc(m.mot) + '</button>';
     if (clientDe(a)) l += htmlContactsClient(a, m.plein);
     else if (p) {
       if (p.telephone) l += '<a class="btn' + (m.plein === 'appeler' ? ' btn--bordeaux' : '') + '" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
       if (p.email) l += '<a class="btn' + (m.plein === 'ecrire' && !p.telephone ? ' btn--bordeaux' : '') + '" href="mailto:' + esc(p.email) + '">Écrire</a>';
     }
-    /* Un devis envoye et valable : on le RELANCE, on n'en refait pas un (expert commercial,
-       03/10/2026). « Nouveau devis » reste dans « Les devis ». */
+    /* LOT 67 (vigneron) : le devis vit dans SA carte, « Les devis ». Le haut ne redit plus
+       « Ouvrir le devis » ; il propose « Nouveau devis » seulement quand il n'y en a aucun de vivant. */
     var dvE = devisPrincipal(a);
-    if (m.plein !== 'devis' && dvE && dvE.statut === 'envoye' && !expireD(dvE))
-      l += '<button type="button" class="btn page-aff__devis" data-aff="devisOuvrir" data-devis="' + esc(dvE.devis_id) + '">Ouvrir le devis ' + esc(dvE.numero) + '</button>';
-    else if (a.issue === 'en_cours') l += '<button type="button" class="btn page-aff__devis" data-aff="devis">Nouveau devis</button>';
+    if (!dvE && a.issue === 'en_cours') l += '<button type="button" class="btn page-aff__devis" data-aff="devisRaccourci">Nouveau devis</button>';
     var report = a.issue === 'en_cours' ? '<span class="page-aff__lib">Je le rappelle :</span>'
       + '<button type="button" class="btn' + (m.plein === 'demain' ? ' btn--bordeaux' : '') + '" data-aff="reporter" data-jours="1">Demain</button>'
       + '<button type="button" class="btn" data-aff="reporter" data-jours="7">Dans 7 jours</button>'
@@ -2938,19 +3044,15 @@
         + '<button type="button" class="btn" data-aff="pageConclure" data-choix="perdue">Pas pour cette fois</button></div>' : '')
       + '</section>';
   }
+  /* LOT 67 : plus de gros montant ni de phrase au-dessus de la liste (le vigneron les lisait
+     deux fois) : chaque carte dit le sien. TOUS LES DEVIS DE L'AFFAIRE restent visibles (demande
+     de Ted, 03/10/2026). */
   function htmlDevisPage(a) {
-    var l = S.devisDe[a.affaire_id], dv = devisPrincipal(a), h = '';
+    var l = S.devisDe[a.affaire_id], h = '';
     if (!Array.isArray(l)) return '<p class="aff-aide">Lecture des devis…</p>';
-    if (!l.length) return '<p>Pas encore de devis.</p>';
-    if (dv && (dv.statut === 'envoye' || dv.statut === 'accepte')) {
-      h += '<p class="page-aff__gros">' + esc(eurosHT(dv.total_ht_c)) + '</p>';
-      h += '<p>' + pointB('Devis ' + esc(dv.numero) + (dv.statut === 'accepte' ? ' accepté' + (dv.signe_le ? ', signé en ligne le ' + esc(dateCourte(String(dv.signe_le).slice(0, 10))) : '')
-        : ' envoyé le ' + esc(dateCourte(dv.envoye_le)) + (expireD(dv) ? ', <b>expiré</b>' : dv.valable_jusqu ? ', <b>valable jusqu’au ' + esc(dateCourte(dv.valable_jusqu)) + '</b>' : ''))) + '</p>';
-      if (dv.statut === 'accepte') h += '<p class="aff-aide">' + (dv.commande_telechargee_le ? 'Commande téléchargée le ' + esc(dateCourte(String(dv.commande_telechargee_le).slice(0, 10))) + '. Si tu l’as importée dans Vitisoft, cette vente est faite.' : 'La commande n’est pas encore téléchargée pour Vitisoft.') + '</p>';
-    } else if (dv) h += '<p>Devis ' + esc(dv.numero) + ' prêt, pas encore envoyé.</p>';
-    /* TOUS LES DEVIS DE L'AFFAIRE, visibles et pas replies (demande de Ted, 03/10/2026). */
-    h += '<ul class="aff-devis__liste page-aff__devisl" id="affDevisListe">' + htmlListeDevis(a) + '</ul>';
-    if (a.issue === 'en_cours' && dv && dv.statut === 'envoye' && !expireD(dv)) h += '<p><button type="button" class="btn" data-aff="devis">Nouveau devis</button></p>';
+    if (l.length) h += '<ul class="aff-devis__liste page-aff__devisl" id="affDevisListe">' + htmlListeDevis(a) + '</ul>';
+    else h += '<p>Pas encore de devis.</p>';
+    if (a.issue === 'en_cours') h += '<p><button type="button" class="' + (devisCourt(a) ? 'aff-devis__lien' : 'btn') + '" data-aff="devis">Nouveau devis</button></p>';
     return h;
   }
   function htmlReperes(a, e) {
@@ -3051,7 +3153,7 @@
       + (m ? '<section class="page-aff__moment' + (m.ton ? ' page-aff__moment--' + m.ton : '') + '"><p class="page-aff__phrase">' + m.t + '</p>' + htmlGestesPage(a, m) + '</section>' : '')
       + htmlFrise(a, e)
       + '<div class="page-aff__grille"><div class="page-aff__col">'
-      + '<section class="page-aff__bloc page-aff__bloc--devis"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>'
+      + '<section class="page-aff__bloc page-aff__bloc--devis' + (devisAttend(a) ? ' page-aff__bloc--presse' : '') + '"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>'
       /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
       + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')
       + '<section class="page-aff__bloc"><h2 class="page-aff__h"><label for="pageAffNotes">Notes</label></h2>'
@@ -3154,7 +3256,7 @@
     return true;
   }
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, page: page, _moment: moment,
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, page: page, _moment: moment, _listeDevis: htmlListeDevis, _devisAttend: devisAttend,
     reglages: { ouvrir: ouvrirReglages, enregistrer: enregistrerReglages }, _S: S, _chargerDevis: chargerDevis, MODELES: MODELES, _nomsProches: nomsProches, _nomPropose: nomPropose, _htmlCloses: htmlCloses, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();

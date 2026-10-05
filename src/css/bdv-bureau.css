@@ -6172,7 +6172,6 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque details.page-aff__bloc:not([open]){ padding-top:var(--bdv-e-1); padding-bottom:var(--bdv-e-1); }
 .bdv-coque details.page-aff__bloc > summary::before{ content:"\25B8"; content:"\25B8" / ""; }
 .bdv-coque details.page-aff__bloc[open] > summary::before{ content:"\25BE"; content:"\25BE" / ""; }
-.bdv-coque .page-aff__gros{ font-size:var(--bdv-f-5); font-weight:600; color:var(--bdv-encre-1); }
 .bdv-coque .page-aff__reps{ display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr)); gap:var(--bdv-e-3); }
 .bdv-coque .page-aff__rep{ display:grid; gap:var(--bdv-e-1); font-size:var(--bdv-f-2); }
 .bdv-coque .page-aff__n{ font-size:var(--bdv-f-5); font-weight:600; color:var(--bdv-encre-1); }
@@ -6458,4 +6457,36 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
   }
   .bdv-coque .bdv-nouv__pied{ padding:var(--bdv-e-2) var(--bdv-e-4); }
   .bdv-coque .bdv-nouv__pied .btn{ width:100%; }
+}
+
+/* LOT 67 (05/10/2026) : LE SUIVI DES DEVIS DEPUIS L'AFFAIRE. Une carte par devis vivant :
+   numero et etat en mots, une phrase (delai, montant en jeu), une rangee de gestes (un seul
+   bouton, en contour : le bouton plein de la page est celui du moment), puis les liens
+   « Ouvrir le devis » et « Voir la version 1 ». */
+.bdv-coque .aff-devis__carte{ justify-items:stretch; }
+.bdv-coque .aff-devis__tete{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2); margin:0; }
+.bdv-coque .aff-devis__tete .aff-marque{ margin:0; }
+.bdv-coque .aff-devis__carte .aff-devis__detail{ color:var(--bdv-encre-1); }
+.bdv-coque .aff-devis__gestes{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2); margin:0; }
+.bdv-coque .aff-devis__gestes .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .aff-devis__lien{
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-1);
+  border:0;
+  background:none;
+  font:inherit;
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+  text-decoration:underline;
+  cursor:pointer;
+}
+.bdv-coque .aff-devis__lien:hover{ color:var(--bdv-accent); }
+.bdv-coque .aff-devis__lien:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .aff-devis__aide{ margin:0; }
+.bdv-coque .aff-devis__liens{ gap:var(--bdv-e-1); }
+/* Le mot d'un devis abandonne ou refuse reste lisible : seul le numero est barre. */
+.bdv-coque .aff-devis__court .aff-devis__un{ color:var(--bdv-encre-2); }
+/* Un devis qui attend un geste remonte sous la frise, en une colonne comme en deux. */
+@media (max-width:1099px){
+  .bdv-coque .page-aff__bloc--devis.page-aff__bloc--presse{ order:-4; }
 }

@@ -619,7 +619,10 @@
         S.tva = tvaDeDevis(S.devis);
         S.etat = 'edition';
         S.etape = 3; S.plis = null;
-        lireSignature(moi);
+        var lu = lireSignature(moi);
+        peindre();
+        if (S.ctx && S.ctx.agir) lu.then(function () { if (moi === S) agirDepuisAffaire(); }, function () { if (moi === S) agirDepuisAffaire(); });
+        return;
       } else {
         S.brouillon = lireBrouillon(S.ctx.affaire.affaire_id);
         S.etat = S.brouillon ? 'reprise' : 'edition';
@@ -629,6 +632,36 @@
       S.etat = sqlAbsent(e) ? 'indispo' : 'panne';
     }
     peindre();
+  }
+  /* LOT 67 : LE GESTE DE LA CARTE, FAIT DANS LE DEVIS. L'affaire passe `ctx.agir` ; le devis
+     s'ouvre a l'etape 3 et fait le PREMIER pas du geste, jamais le dernier : il ouvre l'envoi
+     (focus sur « Pas encore »), la confirmation de la correction (focus sur « Non, le garder »),
+     amene « Le client a répondu ? », telecharge la commande (le bouton disait « Télécharger »),
+     reprend les lignes dans un nouveau devis (rien n'est ecrit avant « Enregistrer »), ou
+     montre la copie d'une version precedente. Si le geste n'est plus possible, le devis
+     s'ouvre simplement : son ecran dit pourquoi. Une seule fois par ouverture. */
+  function agirDepuisAffaire() {
+    var g = S.ctx && S.ctx.agir;
+    if (S.ctx) S.ctx.agir = null;
+    if (!g || !S.devis || S.etat !== 'edition' || !MOD) return;
+    if (g.action === 'version' && g.version >= 1) { S.voirVersion = g.version; entrerApercu(); return; }
+    if (S.etape !== 3) montrerEtape(3, true);
+    var b = null;
+    if (g.action === 'envoi') b = MOD.querySelector('[data-dev="envoyer"]');
+    else if (g.action === 'corriger') b = MOD.querySelector('[data-dev="rappeler"]');
+    else if (g.action === 'commande') b = MOD.querySelector('.dmod__commande [data-dev="telecharger"]:not([aria-disabled="true"])');
+    else if (g.action === 'refaire') { if (MOD.querySelector('[data-dev="refaire"]')) { refaire(); return; } }
+    else if (g.action === 'reponse') {
+      var r = MOD.querySelector('.dmod__commande [data-dev="accepter"]') || MOD.querySelector('.dmod__commande [data-dev="refuser"]');
+      if (r) { try { r.focus({ preventScroll: true }); } catch (e) { try { r.focus(); } catch (x) {} } montrerDansBoite(r.closest('.dmod__commande') || r); }
+      return;
+    }
+    if (!b && g.action === 'corriger') {
+      var rf = MOD.querySelector('[data-dev="refaire"]');
+      if (rf) { try { rf.focus({ preventScroll: true }); } catch (e) {} montrerDansBoite(rf.closest('.dmod__suite') || rf); }
+      return;
+    }
+    if (b) b.click();
   }
   function trierProps(p) {
     var l = p.map(function (x, i) { return Object.assign({ _i: i }, x); });
@@ -676,6 +709,11 @@
        arrive. Il se cache seulement quand personne n'a donne de chemin de retour. */
     /* Dans l'apercu, un seul chemin de retour (juge V18) : « Revenir au devis ». */
     el('devRetourL').hidden = typeof S.ctx.retour !== 'function' || S.etat === 'apercu';
+    /* LOT 67 (vigneron) : la vue d'une version precedente porte SON titre, pas celui du devis en cours. */
+    if (S.etat === 'apercu' && S.voirVersion && d) {
+      titre = 'Devis ' + esc(d.numero) + ', version ' + S.voirVersion + ' <span class="aff-marque dmod__abandonne">remplacée</span>,' + pour;
+      sous = 'Elle a été remplacée par la version ' + (versionDe(d) || S.voirVersion + 1) + ' : elle ne vaut plus. Ne la renvoie pas.';
+    }
     tete.innerHTML = '<h2 class="tmod__titre" id="devTitre">' + titre + '</h2><p class="tmod__sous">' + sous + '</p>';
     MOD.querySelector('.tmod__boite').classList.toggle('dmod__boite--apercu', S.etat === 'apercu');
     if (S.etat === 'chargement') corps.innerHTML = '<p class="aff-aide">Ouverture du devis…</p>';
@@ -979,33 +1017,36 @@
      {cree_le} un lien vivant (dont le jeton ne se reaffiche pas), 'absent' SQL pas passe. */
   function lienPossible() { return lot52() && !manquesCommande().length; }
   function urlDuLien(jeton) { return location.origin + '/signer/#' + jeton; }
+  /* LOT 67 : rend la promesse de ses lectures (le geste venu de l'affaire attend la derniere
+     repeinte, sinon elle lui volerait le focus). */
   function lireSignature(moi) {
-    var d = S.devis;
-    if (!d || !lot52()) return;
+    var d = S.devis, att = [];
+    if (!d || !lot52()) return Promise.resolve();
     if (d.statut === 'envoye') {
-      api('/devis_liens?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+      att.push(api('/devis_liens?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
         + '&remplace_le=is.null&select=cree_le,cree_par&order=cree_le.desc&limit=1').then(function (l) {
         if (moi !== S || !S.devis || S.devis.devis_id !== d.devis_id) return;
         S.lienInfo = Array.isArray(l) && l[0] ? l[0] : false;
         if (S.etat === 'edition') peindre();
-      }, function (e) { if (moi === S && e && sqlAbsent(e)) { S.lienInfo = 'absent'; if (S.etat === 'edition') peindre(); } });
+      }, function (e) { if (moi === S && e && sqlAbsent(e)) { S.lienInfo = 'absent'; if (S.etat === 'edition') peindre(); } }));
     }
     if (d.statut === 'envoye' && d.accord_annule_le && lot65()) {
-      api('/devis_signatures?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+      att.push(api('/devis_signatures?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
         + '&select=lien_id&limit=1').then(function (l) {
         if (moi !== S || !S.devis || S.devis.devis_id !== d.devis_id) return;
         S.dejaSigne = Array.isArray(l) ? l.length > 0 : undefined;
         if (S.etat === 'edition') peindre();
-      }, function () {});
+      }, function () {}));
     }
     if (d.statut === 'accepte' && d.signe_le) {
-      api('/devis_signatures?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+      att.push(api('/devis_signatures?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
         + '&order=signe_le.desc&limit=1').then(function (l) {
         if (moi !== S || !S.devis || S.devis.devis_id !== d.devis_id) return;
         S.preuve = Array.isArray(l) && l[0] ? l[0] : null;
         if (S.etat === 'edition') peindre();
-      }, function () {});
+      }, function () {}));
     }
+    return Promise.all(att);
   }
   function heureFr(horo) {
     var x = new Date(horo);
@@ -1567,6 +1608,7 @@
     if (q === 'apercu') { entrerApercu(); return; }
     if (q === 'revenir') {
       sortirApercu();
+      S.voirVersion = null;
       S.etat = 'edition'; peindre();
       var a = MOD.querySelector('[data-dev="apercu"]'); if (a) { try { a.focus(); } catch (e) {} }
       return;
@@ -2295,6 +2337,7 @@
      client a eu). Sans copie, le devis est refait de ses donnees, et un devis parti le dit. */
   async function sourceApercu() {
     var d = S.devis;
+    if (S.voirVersion) return sourceVersion(S.voirVersion);
     if (lot52() && d && d.papier_empreinte) {
       if (!S.copie || S.copie.id !== d.devis_id) {
         var moi = S, c = null;
@@ -2311,6 +2354,26 @@
         note: d.envoye_le ? 'Pas de copie gardée pour ce devis : il a été envoyé avant que le bureau les garde. Ceci est le devis refait à partir de ses données.'
           : 'Ce devis n’a pas été noté envoyé : pas de copie gardée. Ceci est le devis refait à partir de ses données.' };
     return { html: papierCourant(), copie: false, note: '' };
+  }
+  /* LOT 67 : LA COPIE D'UNE VERSION PRECEDENTE (lot 65 : une copie par version envoyee). Elle
+     se montre telle que le client l'a recue, et la note dit qu'elle ne vaut plus. */
+  async function sourceVersion(n) {
+    var d = S.devis, v = versionDe(d) || 1, moi = S, l = null;
+    try {
+      l = await api('/devis_copies?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+        + '&version=eq.' + encodeURIComponent(String(n)) + '&select=papier,empreinte,cree_le');
+    } catch (e) { l = null; }
+    if (moi !== S) return null;
+    var c = Array.isArray(l) ? l[0] : null;
+    if (!c || !c.papier) return { html: '<!doctype html><html lang="fr"><meta charset="utf-8"><title>Version ' + n + '</title><body></body></html>', copie: true, souci: true,
+      note: 'La version ' + n + ' du devis ' + d.numero + ' n’a pas pu être lue : ' + (Array.isArray(l) ? 'aucune copie gardée pour elle.' : 'vérifie ta connexion et réessaie.') };
+    /* Le papier MONTRE (et imprime) porte en tete qu'il ne vaut plus : la copie gardee, elle, ne
+       change pas (l'empreinte n'est pas recalculee sur ce qui s'affiche). */
+    var bandeau = '<p style="margin:0 0 16px;padding:8px 12px;border:2px solid #000;font:700 14px/1.4 sans-serif;color:#000;background:#fff">'
+      + 'Version ' + n + ', remplacée par la version ' + v + ' : ce devis ne vaut plus.</p>';
+    var html = /<body[^>]*>/i.test(c.papier) ? c.papier.replace(/<body[^>]*>/i, function (m) { return m + bandeau; }) : bandeau + c.papier;
+    return { html: html, copie: true, version: n,
+      note: 'Copie de la version ' + n + ' gardée le ' + dateFr(c.cree_le) + '. Empreinte numérique ' + empreinteLisible(c.empreinte) + '.' };
   }
   function noteCopie(c) {
     var d = S.devis;
@@ -2345,7 +2408,7 @@
     S.etat = 'apercu';
     peindre();
     /* Le bouton « Voir et imprimer » vient de disparaitre : le focus va au geste de l'apercu. */
-    var imp = MOD.querySelector('[data-dev="imprimer"]');
+    var imp = MOD.querySelector(S.voirVersion ? '[data-dev="revenir"]' : '[data-dev="imprimer"]');
     if (imp) { try { imp.focus({ preventScroll: true }); } catch (e) { imp.focus(); } }
   }
   function sortirApercu() {}
@@ -2369,9 +2432,13 @@
   }
   function peindreApercu(corps) {
     var num = S.devis ? S.devis.numero : '';
+    /* LOT 67 (vigneron) : devant une version qui ne vaut plus, le geste principal est d'en sortir. */
+    var vieille = !!S.voirVersion;
     corps.innerHTML = '<p class="dmod__gestes dmod__apercu-g">'
-      + '<button type="button" class="btn btn--bordeaux" data-dev="imprimer">Imprimer ou enregistrer en PDF</button>'
-      + '<button type="button" class="btn" data-dev="revenir">Revenir au devis</button></p>'
+      + (vieille ? '<button type="button" class="btn btn--bordeaux" data-dev="revenir">Revenir au devis</button>'
+        + '<button type="button" class="btn" data-dev="imprimer">Imprimer cette ancienne version</button>'
+        : '<button type="button" class="btn btn--bordeaux" data-dev="imprimer">Imprimer ou enregistrer en PDF</button>'
+        + '<button type="button" class="btn" data-dev="revenir">Revenir au devis</button>') + '</p>'
       + '<p class="aff-aide dmod__copie" id="devCopieNote" hidden></p>'
       + '<div class="dmod__feuille" id="devFeuilleW"></div>'
       + '<p class="aff-aide dmod__pdf">Pour lire en grand, enregistre-le en PDF.</p>';
@@ -2386,7 +2453,7 @@
       if (n) { n.textContent = src.note; n.hidden = !src.note; n.classList.toggle('dmod__copie--souci', !!src.souci || / Attention /.test(src.note)); }
       var w = el('devFeuilleW');
       if (!w) return;
-      var f = cadre('devFeuille', 'dmod__feuille-i', 'Aperçu du devis ' + num, src.copie);
+      var f = cadre('devFeuille', 'dmod__feuille-i', 'Aperçu du devis ' + num + (src.version ? ', version ' + src.version : ''), src.copie);
       w.appendChild(f);
       remplir(f, src.html).then(ajusterFeuille);
     });

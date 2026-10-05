@@ -240,7 +240,8 @@ function monter(o) {
         /* LOT 65 : une copie PAR VERSION, rendues de la plus ancienne a la plus recente (l'ordre
            que PostgREST peut prendre sans tri). Le filtre `empreinte` choisit la bonne. */
         const toutes = X.copiesV[id] || (X.copies[id] ? [X.copies[id]] : []);
-        return toutes.filter(p => !e || e === 'eq.' + sha(p)).map(pap => ({ papier: X.copieAlteree ? pap + ' ' : pap, empreinte: sha(pap), cree_le: '2026-10-01T09:00:00+00:00' }));
+        const vq = q.get('version');
+        return toutes.filter((p, i) => (!e || e === 'eq.' + sha(p)) && (!vq || vq === 'eq.' + (i + 1))).map(pap => ({ papier: X.copieAlteree ? pap + ' ' : pap, empreinte: sha(pap), cree_le: '2026-10-01T09:00:00+00:00' }));
       }
       if (chemin === '/rpc/devis_accepter') {
         const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
@@ -1811,6 +1812,74 @@ titre('17. Lot 66 : le devis en pleine page et en trois etapes');
   t('pleine page : la boite couvre l\'ecran, la colonne garde 62 rem', /\.bdv-coque \.dmod\{ padding:0; \}/.test(css) && /\.bdv-coque \.dmod__boite\{[^}]*max-width:none;[^}]*height:100%/.test(css)
     && /\.bdv-coque \.dmod__boite > \*\{ max-width:62rem;/.test(css));
   t('les etapes collent en haut, comme le pied en bas', /\.bdv-coque \.dmod__nav\{[^}]*position:sticky/.test(css));
+}
+
+/* ---------------------------------------------------------------------------- */
+titre('18. Lot 67 : le geste de la carte de l\'affaire, fait dans le devis');
+{
+  const X = monter({ lot52: true });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer(); await attendre(20);
+  const d = X.devis[0], m = () => X.modale(), ecrit = () => X.requetes.filter(r => r.methode !== 'GET' && !/propositions|signatures|lire/.test(r.chemin)).length;
+  let n0 = ecrit();
+  await X.ouvrir({ devis: { ...d }, agir: { action: 'envoi' } }); await attendre(20);
+  t('« Préparer l’envoi » : le devis s\'ouvre a l\'etape 3, l\'envoi ouvert, focus sur « Pas encore », rien n\'est ecrit',
+    !m().querySelector('.dmod__etape[data-etape="3"]').hidden && !X.doc.getElementById('devEnvoi').hidden
+    && X.doc.activeElement === X.doc.querySelector('#devEnvoi [data-dev="pasEnvoye"]') && ecrit() === n0);
+  t('le geste ne se fait qu\'une fois par ouverture', X.w.BdvDevis._S().ctx.agir === null);
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  n0 = ecrit();
+  await X.ouvrir({ devis: { ...X.devis[0] }, agir: { action: 'reponse' } }); await attendre(20);
+  t('« Noter sa réponse » : focus sur « Oui, il accepte », aucune question ouverte, rien n\'est ecrit',
+    X.doc.activeElement === m().querySelector('.dmod__commande [data-dev="accepter"]') && X.doc.getElementById('devAccord').hidden && ecrit() === n0);
+  await X.ouvrir({ devis: { ...X.devis[0] }, agir: { action: 'corriger' } }); await attendre(20);
+  t('« Le remettre à date » sans le SQL du lot 65 : le devis s\'ouvre sur « Refaire ce devis », rien n\'est ecrit',
+    X.doc.activeElement === m().querySelector('[data-dev="refaire"]') && ecrit() === n0);
+  await X.ouvrir({ devis: { ...X.devis[0] }, agir: { action: 'refaire' } }); await attendre(30);
+  t('« En faire un nouveau » : un nouveau devis reprend ses lignes, rien n\'est ecrit avant « Enregistrer »',
+    X.w.BdvDevis._S().devis === null && (X.w.BdvDevis._S().versionDe || {}).devis_id === d.devis_id && m().querySelectorAll('.dmod__ligne[data-cle]').length === 1 && ecrit() === n0);
+}
+{
+  const X = monter({ lot52: true, ctx: { affaire: { affaire_id: 'aC', issue: 'gagnee' } } });
+  X.devis.push({ bureau: BUREAU, devis_id: 'dvA', affaire_id: 'aC', numero: 'D-2026-0020', statut: 'accepte', date_devis: '2026-09-30', valable_jusqu: '2099-01-01',
+    envoye_le: '2026-09-30', accepte_le: '2026-10-01T08:00:00+00:00', vendeur: Object.assign({}, FICHE), acheteur: { nom: 'Chez Paul', nouveau: false, num_client: 'C7' },
+    remise_globale_cb: 0, tva_cb: 2000, total_vins_c: 1000, remise_globale_c: 0, total_ht_c: 1000, tva_c: 200, total_ttc_c: 1200,
+    cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-10-01T08:00:00+00:00' });
+  X.lignes.dvA = [{ rang: 1, num_produit: 'P100', designation: 'Cuvée A', millesime: '2015', conditionnement: '75 cl', quantite: 1, pu_ht_c: 1000, remise_cb: 0, pu_l_c: 1000, pu_f_c: 1000, net_c: 1000, final_c: 1000, source_prix: 'client' }];
+  const nt = () => X.requetes.filter(r => r.chemin === '/rpc/devis_noter_telechargement').length;
+  X.w.BdvCommande = { fabriquer: () => ({ texte: 'x', nom: 'commande-D-2026-0020.csv' }) };
+  X.w.URL.createObjectURL = () => 'blob:x'; X.w.URL.revokeObjectURL = () => {};
+  await X.ouvrir({ devis: { ...X.devis[0] }, agir: { action: 'commande' } }); await attendre(40);
+  t('« Télécharger pour Vitisoft » : un appui, et le fichier de commande part', /Fichier commande-D-2026-0020.csv téléchargé/.test(X.avis()), X.avis());
+}
+{
+  const X = monter({ lot52: true, lot65: true, fetch: 'ok' });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  const d = X.devis[0], m = () => X.modale(), n0 = X.requetes.filter(r => r.methode !== 'GET' && !/propositions|signatures|lire/.test(r.chemin)).length;
+  await X.ouvrir({ devis: { ...d }, agir: { action: 'corriger' } }); await attendre(20);
+  t('« Le remettre à date » : la confirmation de la correction s\'ouvre, focus sur « Non, le garder », rien ne part',
+    !X.doc.getElementById('devRappel').hidden && X.doc.activeElement === X.doc.querySelector('#devRappel [data-dev="garderRappel"]')
+    && X.requetes.filter(r => r.methode !== 'GET' && !/propositions|signatures|lire/.test(r.chemin)).length === n0);
+  X.clic('[data-dev="confirmerRappel"]'); await attendre(40);
+  await X.enregistrer(); X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  await X.ouvrir({ devis: { ...X.devis[0] }, agir: { action: 'version', version: 1 } }); await attendre(40);
+  const lc = X.requetes.filter(r => /^\/devis_copies\?/.test(r.chemin)).pop(), S = X.w.BdvDevis._S();
+  const note = (X.doc.getElementById('devCopieNote') || {}).textContent || '';
+  t('« Voir la version 1 » : l\'apercu lit la copie de la VERSION 1, pour ce bureau et ce devis', S.etat === 'apercu' && !!lc
+    && /bureau=eq\./.test(lc.chemin) && lc.chemin.indexOf('devis_id=eq.' + d.devis_id) > 0 && /&version=eq\.1&/.test(lc.chemin), lc && lc.chemin);
+  t('la copie montree est la version 1 (pas « Version 2 »), et la note dit qu\'elle ne vaut plus',
+    !!S.apercu && !/Version 2, remplace/.test(S.apercu.html) && /^Copie de la version 1 gardée le .+\. Empreinte numérique /.test(note), note);
+  t('vue version 1 : le titre dit « version 1, remplacée », la ligne dit qu\'elle ne vaut plus', /version 1 remplacée/.test(X.doc.getElementById('devTitre').textContent)
+    && /ne vaut plus\. Ne la renvoie pas\./.test(X.modale().querySelector('.tmod__sous').textContent), X.doc.getElementById('devTitre').textContent);
+  t('vue version 1 : le papier montre porte « ce devis ne vaut plus » en tete, la copie gardee ne change pas',
+    /<body[^>]*><p [^>]*>Version 1, remplacée par la version 2 : ce devis ne vaut plus\.<\/p>/.test(S.apercu.html) && !/ne vaut plus/.test(X.copiesV[d.devis_id][0]));
+  t('vue version 1 : « Revenir au devis » est le bouton plein et prend le focus, l\'impression en contour',
+    X.modale().querySelector('[data-dev="revenir"]').classList.contains('btn--bordeaux') && !X.modale().querySelector('[data-dev="imprimer"]').classList.contains('btn--bordeaux')
+    && X.doc.activeElement === X.modale().querySelector('[data-dev="revenir"]'));
+  X.clic('[data-dev="revenir"]');
+  t('« Revenir au devis » oublie la version 1 : l\'apercu suivant montre la version 2', !X.w.BdvDevis._S().voirVersion);
+  await X.ouvrir({ devis: { ...X.devis[0] }, agir: { action: 'version', version: 7 } }); await attendre(40);
+  t('une version sans copie le DIT, sans page blanche muette', /La version 7 du devis .* n’a pas pu être lue : aucune copie gardée pour elle\./.test((X.doc.getElementById('devCopieNote') || {}).textContent || ''));
 }
 
 console.log('\n== VERDICT ==');

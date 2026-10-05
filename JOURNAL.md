@@ -12,6 +12,15 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 05/10/2026, lot 67 : suivre ses devis depuis l'affaire
+
+Chaque devis vivant a sa carte : son état en mots, le délai, le montant en jeu, et un seul geste.
+Ted a tranché deux désaccords du conseil : un devis envoyé encore valable propose « Noter sa
+réponse » (avis du vigneron, l'appel est déjà en haut de l'affaire) ; un devis expiré fait d'abord
+appeler, puis « Le remettre à date » (avis de l'expert commercial : un devis juste redaté ne signe
+pas). « Voir la version 1 » montre l'ancienne copie, marquée « ne vaut plus ». Pas de SQL. Reste
+à voir : la frise de l'affaire au téléphone, qui pousse les devis sous le premier écran.
+
 ## 05/10/2026, lot 66 : le devis en page entière, en 3 étapes
 
 Ted trouvait la fabrication d'un devis trop compliquée. Le devis prend maintenant toute la page,

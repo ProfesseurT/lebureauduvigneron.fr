@@ -957,11 +957,12 @@ titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de
   /* V3 et S11 (01/10/2026) : une carte qui porte sa porte, le montant en HT comme partout,
      chaque date nommee. */
   const sp = (x) => String(x || '').replace(/[\u00a0\u202f]/g, ' ');
-  t('V3 : la carte du devis porte « Ouvrir le devis D-2026-0007 »', !!lis[0] && !!lis[0].querySelector('button.btn[data-aff="devisOuvrir"]')
-    && lis[0].querySelector('button').textContent === 'Ouvrir le devis D-2026-0007', lis[0] && lis[0].innerHTML);
-  t('S11 : chaque date est nommee, et le montant est en HT : « du 30/09/2026, pas encore envoyé, 1 033,33 € HT »',
-    !!lis[0] && sp((lis[0].querySelector('.aff-devis__detail') || {}).textContent) === 'du 30/09/2026, pas encore envoyé, 1 033,33 € HT' && !/TTC/.test(panneau().querySelector('.aff-devis').textContent),
-    lis[0] && JSON.stringify(sp(lis[0].textContent)));
+  t('V3/L67 : la carte du devis porte son numero, son etat en mots et « Ouvrir le devis »', !!lis[0] && !!lis[0].querySelector('button.aff-devis__lien[data-aff="devisOuvrir"]')
+    && sp(lis[0].querySelector('.aff-devis__tete').textContent) === 'Devis D-2026-0007 pas encore envoyé', lis[0] && lis[0].innerHTML);
+  t('L67 : un devis pas encore envoye : « Préparer l’envoi », en contour, et la phrase dit le delai et le montant en HT',
+    !!lis[0] && !!lis[0].querySelector('button.btn[data-aff="devisAgir"][data-action="envoi"]') && !lis[0].querySelector('.btn--bordeaux')
+    && sp((lis[0].querySelector('.aff-devis__detail') || {}).textContent) === 'Prêt depuis le 30 sept., pas encore parti : 1 033,33 € HT. Tant qu’il ne l’a pas reçu, ton client ne peut pas dire oui.'
+    && !/TTC/.test(panneau().querySelector('.aff-devis').textContent), lis[0] && JSON.stringify(sp(lis[0].textContent)));
   t('V3 : la liste des devis est AU-DESSUS de « Nouveau devis »', (() => { const blk = panneau().querySelector('.aff-devis'), k = blk ? [...blk.children] : [];
     return k.findIndex(n => n.id === 'affDevisListe') >= 0 && k.findIndex(n => n.id === 'affDevisListe') < k.findIndex(n => n.getAttribute('data-aff') === 'devis'); })());
   t('un devis abandonne : numero barre et le mot « abandonné »', !!lis[1] && !!lis[1].querySelector('s') && lis[1].querySelector('s').textContent === 'D-2026-0003'
@@ -1054,7 +1055,7 @@ titre('Lot 47 : « Nouveau devis » est un vrai bouton, et la liste des devis de
     A._S.devisResume = avant;
     t('X4 : avec un devis accepte, « 1 gagnée sur N · 526,80 € HT en devis acceptés », insecables, au centime',
       !!aG && /^1\u00a0gagnée sur \d+\u00a0· 526,80\u00a0€\u00a0HT en devis acceptés$/.test(sm2), JSON.stringify(sm2)); }
-  t('« Ses devis » deplie la liste de l\'affaire close, lue pour ce bureau', !!uc && !uc.hidden && /Ouvrir le devis D-2026-0004/.test(uc.textContent) && /du 20\/09\/2026, pas encore envoyé, 82,50 € HT/.test(uc.textContent.replace(/[\u00a0\u202f]/g, ' '))
+  t('« Ses devis » deplie la liste de l\'affaire close, lue pour ce bureau', !!uc && !uc.hidden && /Devis D-2026-0004 pas encore envoyé/.test(uc.textContent) && /Ouvrir le devis/.test(uc.textContent) && /pas encore parti : 82,50 € HT/.test(uc.textContent.replace(/[\u00a0\u202f]/g, ' ')) && !uc.querySelector('[data-aff="devisAgir"]')
     && F.requetes.some(r => r.chemin === '/devis?bureau=eq.' + BUREAU + '&affaire_id=eq.aG&order=cree_le.desc'), uc && uc.textContent);
   uc.querySelector('[data-aff="devisOuvrir"]').click();
   await attendre(20);
@@ -1759,6 +1760,64 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
   w.BdvAffaires._S.devisDe.a1 = F.base.devis.slice().reverse();
   const m = w.BdvAffaires._moment(F.base.affaires[0], w.BdvAffaires.etat(F.base.affaires[0]));
   t('un devis signe passe avant un rappel en retard (arbitre par Ted)', m.plein === 'devis' && /Signé en ligne/.test(m.t));
+  t('LOT 67 : le bouton du moment d\'un devis signe telecharge la commande', m.action === 'commande' && m.mot === 'Télécharger pour Vitisoft');
+
+  /* LOT 67 : une carte par devis vivant, un geste par etat. */
+  const A1 = F.base.affaires[0], sp = (x) => String(x || '').replace(/[\u00a0\u202f]/g, ' ');
+  const iso = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const carte = (d) => { const x = F.doc.createElement('ul'); w.BdvAffaires._S.devisDe.a1 = [d]; x.innerHTML = w.BdvAffaires._listeDevis(A1); return x; };
+  const base = { bureau: BUREAU, affaire_id: 'a1', devis_id: 'dx', numero: 'D-2026-0009', total_ht_c: 124000, date_devis: iso(-10), cree_le: iso(-10) + 'T08:00:00Z' };
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-10), valable_jusqu: iso(20) }));
+    const g = c.querySelectorAll('[data-aff="devisAgir"]');
+    t('L67 envoye valable : UN geste, « Noter sa réponse » (arbitre par Ted), en contour', g.length === 1 && g[0].getAttribute('data-action') === 'reponse' && g[0].textContent === 'Noter sa réponse' && !c.querySelector('.btn--bordeaux'));
+    t('L67 envoye valable : la phrase dit le silence, le temps qui reste et le montant en jeu',
+      /^Envoyé le .+, sans réponse depuis 10 jours\. Valable encore 20 jours, jusqu’au .+ : 1 240,00 € HT en jeu\.$/.test(sp(c.querySelector('.aff-devis__detail').textContent)), sp(c.textContent));
+    t('L67 : « Ouvrir le devis » reste, en lien', !!c.querySelector('button.aff-devis__lien[data-aff="devisOuvrir"]'));
+    t('L67 : pas de « Voir la version » pour une version 1', !c.querySelector('[data-action="version"]')); }
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', version: 1, envoye_le: iso(-40), valable_jusqu: iso(-3) }));
+    const tel = c.querySelector('a.btn[href^="tel:"]'), g = c.querySelector('[data-aff="devisAgir"]');
+    t('L67 expire, numero connu : on APPELLE d\'abord (arbitre par Ted), puis « Le remettre à date »', !!tel && tel.textContent === 'L’appeler d’abord'
+      && (tel.compareDocumentPosition(g) & 4) !== 0 && g.getAttribute('data-action') === 'corriger' && g.textContent === 'Le remettre à date', c.innerHTML);
+    t('L67 expire : le lien coupe est dit AVANT de toucher, et relie au bouton', /Il devient la version 2, datée d’aujourd’hui : l’ancien lien de signature ne marchera plus\./.test(c.textContent)
+      && g.getAttribute('aria-describedby') === c.querySelector('.aff-devis__aide').id);
+    t('L67 expire : la phrase dit depuis quand et ce qu\'il y a a reprendre', /expiré depuis 3 jours .* : 1 240,00 € HT à reprendre\./.test(sp(c.textContent)), sp(c.textContent));
+    const r0 = A1.rappel; A1.rappel = '2099-01-01';
+    const mx = w.BdvAffaires._moment(A1, w.BdvAffaires.etat(A1)); A1.rappel = r0;
+    t('L67 : le moment d\'un devis expire, numero connu : appeler en plein', /Appelle-le avant de le remettre à date/.test(mx.t) && mx.plein === 'appeler', JSON.stringify(mx)); }
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', version: 1, commande_telechargements: 1, envoye_le: iso(-40), valable_jusqu: iso(-3) }));
+    t('L67 expire mais commande deja telechargee : « En faire un nouveau »', c.querySelector('[data-aff="devisAgir"]').getAttribute('data-action') === 'refaire'); }
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-40), valable_jusqu: iso(-3) }));
+    t('L67 expire sans le SQL du lot 65 : « En faire un nouveau »', c.querySelector('[data-aff="devisAgir"]').getAttribute('data-action') === 'refaire'); }
+  { const c = carte(Object.assign({}, base, { statut: 'enregistre' }));
+    t('L67 pas encore envoye : « Préparer l’envoi »', c.querySelector('[data-aff="devisAgir"]').getAttribute('data-action') === 'envoi' && c.querySelector('[data-aff="devisAgir"]').textContent === 'Préparer l’envoi'); }
+  { const c = carte(Object.assign({}, base, { statut: 'accepte', signe_le: iso(-2) + 'T10:00:00Z' }));
+    t('L67 signe, pas telecharge : « Télécharger pour Vitisoft », et la marque dit « signé en ligne »', c.querySelector('[data-aff="devisAgir"]').getAttribute('data-action') === 'commande'
+      && /signé en ligne/.test(c.querySelector('.aff-marque').textContent) && /1 240,00 € HT gagnés/.test(sp(c.textContent))); }
+  { const c = carte(Object.assign({}, base, { statut: 'accepte', accepte_le: iso(-2) + 'T10:00:00Z', commande_telechargee_le: iso(-1) + 'T10:00:00Z' }));
+    t('L67 accepte et telecharge : aucun geste, la phrase dit la vente faite', !c.querySelector('[data-aff="devisAgir"]') && /si elle est dans Vitisoft, cette vente est faite/.test(c.textContent)); }
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', version: 3, envoye_le: iso(-1), valable_jusqu: iso(29) }));
+    const v = [...c.querySelectorAll('[data-action="version"]')];
+    t('L67 version 3 : « Voir la version 1 » et « Voir la version 2 », le titre dit « version 3 »', v.length === 2 && v[0].textContent === 'Voir la version 1' && v[1].getAttribute('data-version') === '2'
+      && /Devis D-2026-0009, version 3/.test(c.querySelector('.aff-devis__tete').textContent)); }
+  { const c = carte(Object.assign({}, base, { statut: 'refuse', refuse_motif: 'prix' }));
+    t('L67 refuse : ligne courte, SEUL le numero barre, le motif lisible', c.querySelector('s').textContent === 'D-2026-0009' && /refusé, le prix/.test(c.textContent) && !c.querySelector('[data-aff="devisAgir"]'), c.textContent); }
+  { const n0 = A1.issue; A1.issue = 'perdue';
+    const c = carte(Object.assign({}, base, { statut: 'envoye', version: 1, envoye_le: iso(-40), valable_jusqu: iso(-3) }));
+    const c2 = carte(Object.assign({}, base, { statut: 'accepte', accepte_le: iso(-2) + 'T10:00:00Z' }));
+    A1.issue = n0;
+    t('L67 affaire close : aucun geste ni appel sur un devis expire, seul « Ouvrir le devis »', !c.querySelector('[data-aff="devisAgir"]') && !c.querySelector('a[href^="tel:"]') && !!c.querySelector('[data-aff="devisOuvrir"]'));
+    t('L67 affaire close : un devis accepte garde « Télécharger pour Vitisoft »', !!c2.querySelector('[data-action="commande"]')); }
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', numero: '<img src=x onerror=1>', envoye_le: iso(-1), valable_jusqu: iso(29) }));
+    t('L67 : le numero est echappe dans la carte', !c.querySelector('img') && /<img src=x onerror=1>/.test(c.querySelector('.aff-devis__tete').textContent)); }
+  { const x = F.doc.createElement('ul');
+    w.BdvAffaires._S.devisDe.a1 = [Object.assign({}, base, { devis_id: 'dn', statut: 'enregistre' }), Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-1), valable_jusqu: iso(29) })];
+    x.innerHTML = w.BdvAffaires._listeDevis(A1);
+    const cs = x.querySelectorAll('.aff-devis__carte');
+    t('L67 deux devis vivants : la carte de l\'envoye dit qu\'il compte, pas l\'autre', cs.length === 2 && !/compte pour l’affaire/.test(cs[0].textContent) && /C’est lui qui compte pour l’affaire\./.test(cs[1].textContent)); }
+  w.BdvAffaires._S.devisDe.a1 = [Object.assign({}, base, { statut: 'accepte', accepte_le: iso(-2) + 'T10:00:00Z', commande_telechargee_le: iso(-1) + 'T10:00:00Z' })];
+  t('L67 : un devis qui n\'attend rien ne remonte pas la section', w.BdvAffaires._devisAttend(A1) === false);
+  w.BdvAffaires._S.devisDe.a1 = [Object.assign({}, base, { statut: 'enregistre' })];
+  t('L67 : un devis qui attend un geste remonte la section', w.BdvAffaires._devisAttend(A1) === true);
 }
 
 console.log('\n== VERDICT ==');
