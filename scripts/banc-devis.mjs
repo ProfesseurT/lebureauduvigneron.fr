@@ -321,8 +321,8 @@ titre('2. La piece : un devis neuf chez un client');
     && m.querySelector('.tmod__boite').firstElementChild.nextElementSibling === X.doc.getElementById('devRetourL'));
   t('AUCUN numero avant l\'enregistrement', !/D-\d{4}-\d+/.test(m.textContent), m.textContent.match(/D-\d{4}-\d+/));
   const h3 = [...m.querySelectorAll('.dmod__bloc > h3')].map(h => h.textContent);
-  t('les blocs dans l\'ordre : Pour qui, Tes vins, Remise sur tout le devis, Livraison (lot 53), TVA (lot 54), Total, Conditions, Notes',
-    JSON.stringify(h3) === JSON.stringify(['Pour qui', 'Tes vins', 'Remise sur tout le devis', 'Livraison', 'TVA', 'Total', 'Conditions', 'Notes']), JSON.stringify(h3));
+  t('LOT 66 : les blocs dans l\'ordre des trois etapes : Tes vins | Remise, Livraison, TVA, Conditions, Notes | Pour qui, Ce que tu proposes, Total',
+    JSON.stringify(h3) === JSON.stringify(['Tes vins', 'Remise sur tout le devis', 'Livraison', 'TVA', 'Conditions', 'Notes', 'Pour qui', 'Ce que tu proposes', 'Total']), JSON.stringify(h3));
   const pied = m.querySelector('.dmod__pied');
   t('« Enregistrer le devis » vit dans le pied, avec le total, et le pied est le dernier bloc',
     !!pied && /Enregistrer le devis/.test(pied.textContent) && /Total HT/.test(pied.textContent) && X.corps().lastElementChild === pied);
@@ -560,7 +560,7 @@ titre('3. Ce qui bloque, ce qui manque');
   X.cocher('P900|Crémant de Loire|75 cl|');
   t('coche depuis le domaine : « Ton prix le plus courant »', X.modale().querySelector('.dmod__ligne .dmod__src').textContent === 'Ton prix le plus courant');
   t('et la liste ne dit pas « Aucun vin ne correspond » pour un vin qu\'on vient de cocher',
-    !/Aucun vin ne correspond/.test(X.doc.getElementById('devProps').textContent) && /déjà coché/.test(X.doc.getElementById('devProps').textContent), X.doc.getElementById('devProps').textContent);
+    !/Aucun vin ne correspond/.test(X.doc.getElementById('devProps').textContent) && /déjà dans le devis/.test(X.doc.getElementById('devProps').textContent), X.doc.getElementById('devProps').textContent);
   t('le champ de recherche garde le focus pendant la frappe (la liste se repeint, pas le champ)', X.doc.getElementById('devCherche').value === 'cremant');
 
   titre('3 bis. Le brouillon de l\'appareil');
@@ -1426,7 +1426,11 @@ titre('14. Les corrections du juge, 01/10/2026');
   plus.click();
   t('V15 : « Remise ou autre TVA » ouvre le pli en place, et le dit', plus.isConnected && plus.getAttribute('aria-expanded') === 'true' && ligne.classList.contains('dmod__ligne--plus'));
   const nb = () => [...X.modale().querySelectorAll('.btn--bordeaux')].filter(n => !n.closest('[hidden]')).length;
-  t('V8 : devis neuf, UN seul bouton plein, « Enregistrer le devis »', nb() === 1 && X.modale().querySelector('[data-dev="enregistrer"]').classList.contains('btn--bordeaux'));
+  t('V8/LOT 66 : devis neuf, etape 1, UN seul bouton plein, « Suivant : les conditions »', nb() === 1 && X.modale().querySelector('[data-dev="suivant"]').classList.contains('btn--bordeaux')
+    && X.modale().querySelector('[data-dev="suivant"]').textContent === 'Suivant : les conditions');
+  X.clic('[data-dev="suivant"]'); X.clic('[data-dev="suivant"]');
+  t('V8/LOT 66 : a l\'etape Verifier, UN seul bouton plein, « Enregistrer le devis »', nb() === 1 && X.modale().querySelector('[data-dev="enregistrer"]').classList.contains('btn--bordeaux')
+    && X.modale().querySelector('[data-dev="suivant"]').hidden);
   await X.enregistrer(); await attendre(20);
   t('V8 : enregistre et pas modifie, le bouton plein passe a « Préparer l’envoi »', nb() === 1 && X.modale().querySelector('[data-dev="envoyer"]').classList.contains('btn--bordeaux')
     && !X.modale().querySelector('[data-dev="enregistrer"]').classList.contains('btn--bordeaux'));
@@ -1718,6 +1722,95 @@ titre('16. Lot 65 : rappeler un devis envoye');
   const q = X.requetes.filter(r => /^\/devis_signatures\?/.test(r.chemin));
   t('signe puis annule : la preuve est cherchee, et pas de « Rappeler »', q.length >= 1 && !X.modale().querySelector('[data-dev="rappeler"]')
     && /signé en ligne : il n’est plus modifiable\. Pour le changer, appuie sur « Refaire ce devis »/.test(X.corps().textContent));
+}
+
+titre('17. Lot 66 : le devis en pleine page et en trois etapes');
+{
+  const X = monter({ lot52: true, lot53: true, lot54: true });
+  await X.ouvrir();
+  const m = X.modale(), et = (n) => m.querySelector('.dmod__etape[data-etape="' + n + '"]');
+  const nav = X.doc.getElementById('devEtapes'), bts = nav ? [...nav.querySelectorAll('.dmod__nav-b')] : [];
+  t('trois etapes nommees, cliquables : Les vins, Conditions, Vérifier', bts.length === 3 && bts.map(b => b.querySelector('.dmod__nav-t').textContent).join('|') === 'Les vins|Conditions|Vérifier'
+    && nav.getAttribute('aria-label') === 'Étapes du devis');
+  t('devis neuf : etape 1 visible et marquee, 2 et 3 cachees', !et(1).hidden && et(2).hidden && et(3).hidden && bts[0].getAttribute('aria-current') === 'step' && !bts[1].hasAttribute('aria-current'));
+  t('aucune case cochee d\'avance : on propose', ![...m.querySelectorAll('[data-dev-coche]')].some(c => c.checked) && m.querySelectorAll('.dmod__ligne[data-cle]').length === 0);
+  t('le pied (total et Enregistrer) est hors des etapes, toujours visible', !X.corps().querySelector('.dmod__pied').closest('.dmod__etape'));
+  X.cocher(CLE0);
+  const avant = X.requetes.length;
+  X.clic('[data-dev="suivant"]');
+  t('« Suivant » montre l\'etape 2, la marque, et n\'ecrit RIEN', !et(2).hidden && et(1).hidden && bts[1].getAttribute('aria-current') === 'step' && X.requetes.length === avant);
+  t('le focus va au titre de l\'etape (pour la synthese vocale)', X.doc.activeElement && X.doc.activeElement.classList.contains('dmod__etape-t') && /Étape 2 sur 3/.test(X.doc.activeElement.textContent));
+  t('le bouton dit la suite : « Suivant : vérifier »', X.doc.getElementById('devSuivant').textContent === 'Suivant : vérifier');
+  const resL = () => X.doc.getElementById('devRes_liv').textContent;
+  t('livraison repliee par defaut, en une ligne : « À l’adresse du client, sans frais de port. »', resL() === 'À l’adresse du client, sans frais de port.' && X.doc.getElementById('devPli_liv').hidden);
+  t('TVA et remise repliees, en une ligne', X.doc.getElementById('devRes_tva').textContent === 'En France, TVA 20 %.' && X.doc.getElementById('devRes_remise').textContent === 'Aucune remise sur tout le devis.'
+    && X.doc.getElementById('devPli_tva').hidden && X.doc.getElementById('devPli_remise').hidden);
+  const ch = m.querySelector('[data-dev="pli"][data-pli="liv"]');
+  t('« Changer » dit ce qu\'il change (hors ecran) et ce qu\'il ouvre', /Changer\s+la livraison/.test(ch.textContent) && ch.getAttribute('aria-controls') === 'devPli_liv' && ch.getAttribute('aria-expanded') === 'false');
+  ch.click();
+  t('« Changer » ouvre la livraison en place, dit « Masquer », et pose le focus dans le choix', !X.doc.getElementById('devPli_liv').hidden && ch.getAttribute('aria-expanded') === 'true'
+    && /Masquer/.test(ch.textContent) && X.doc.activeElement && X.doc.activeElement.hasAttribute('data-dev-livmode'));
+  X.taper(X.doc.getElementById('devLivPort'), '15');
+  t('la ligne suit la saisie, sans repeindre : « ... frais de port 15,00 € HT. »', /frais de port 15,00 € HT\.$/.test(resL()), resL());
+  X.clic('[data-dev="suivant"]');
+  const rc = X.doc.getElementById('devRecap');
+  t('etape 3 : ce que tu proposes, le vin, sa quantite et son total', !et(3).hidden && rc.querySelectorAll('.dmod__recap-l li').length === 1 && /Cuvée A/.test(rc.textContent) && /\u00a0x /.test(rc.textContent));
+  t('etape 3 : les trois conditions redites, et des liens pour les changer', /Livraison/.test(rc.textContent) && /frais de port 15,00/.test(rc.textContent) && /TVA/.test(rc.textContent)
+    && !!rc.querySelector('[data-dev="etape"][data-vers="1"]') && !!rc.querySelector('[data-dev="etape"][data-vers="2"]'));
+  rc.querySelector('[data-dev="etape"][data-vers="1"]').click();
+  t('« Changer les vins » ramene a l\'etape 1', !et(1).hidden && et(3).hidden);
+  /* Une erreur d'une autre etape y ramene, et ouvre son pli */
+  bts[1].click();
+  const ue = m.querySelector('[data-dev-regime][value="ue"]'); ue.checked = true; ue.dispatchEvent(new X.w.Event('change', { bubbles: true }));
+  bts[2].click();
+  X.clic('[data-dev="enregistrer"]'); await attendre(10);
+  t('erreur de TVA depuis l\'etape 3 : retour a l\'etape 2, pli ouvert, focus sur le champ fautif', !et(2).hidden && et(3).hidden && !X.doc.getElementById('devPli_tva').hidden
+    && X.doc.activeElement === X.doc.getElementById('devTvaClient') && X.doc.getElementById('devTvaClient').getAttribute('aria-invalid') === 'true', X.avis());
+}
+{
+  /* Le client habituel : Enregistrer des l'etape 1, sans passer les etapes. */
+  const X = monter({ lot52: true });
+  await X.ouvrir(); X.cocher(CLE0);
+  await X.enregistrer(); await attendre(20);
+  const m = X.modale();
+  t('enregistrer des l\'etape 1 marche, et mene a l\'etape 3 avec la suite (envoyer)', X.devis.length === 1 && !m.querySelector('.dmod__etape[data-etape="3"]').hidden
+    && !!m.querySelector('.dmod__etape[data-etape="3"] [data-dev="envoyer"]'));
+  X.w.BdvDevis.fermer(); await attendre(5);
+  await X.ouvrir({ devis: Object.assign({}, X.devis[0]) }); await attendre(20);
+  t('un devis enregistre rouvert s\'ouvre a l\'etape Vérifier', !X.modale().querySelector('.dmod__etape[data-etape="3"]').hidden && X.modale().querySelector('.dmod__etape[data-etape="1"]').hidden);
+}
+{
+  /* Verificateur, tour 1 : « Préparer l'envoi » depuis une autre etape, et une question ouverte qu'on quitte. */
+  const X = monter({ lot52: true });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer(); await attendre(20);
+  const m = X.modale(), et = (n) => m.querySelector('.dmod__etape[data-etape="' + n + '"]');
+  m.querySelector('.dmod__nav-b[data-vers="1"]').click();
+  X.doc.getElementById('devProchaine').hidden = false;
+  X.clic('[data-dev="allerEnvoi"]');
+  t('« Préparer l’envoi » depuis l\'etape 1 ramene a l\'etape 3, envoi ouvert et visible', !et(3).hidden && !X.doc.getElementById('devEnvoi').hidden && et(1).hidden);
+  m.querySelector('.dmod__nav-b[data-vers="1"]').click();
+  t('quitter l\'etape 3 referme la question ouverte, et un bouton plein reste', X.doc.getElementById('devEnvoi').hidden && !X.w.BdvDevis._S().envoi
+    && [...m.querySelectorAll('.btn--bordeaux')].filter(n => !n.closest('[hidden]')).length === 1 && X.doc.getElementById('devPiedMot').hidden);
+  /* Vigneron, tour 1 : un devis enregistre modifie ne part pas en silence */
+  X.taper(X.champ(CLE0, 'qte'), '12');
+  const r0 = X.retours || 0;
+  X.clic('[data-dev="retour"]');
+  t('changements pas enregistres : le premier « Retour » le dit et reste', (X.retours || 0) === r0 && /ne sont pas enregistrés/.test(X.avis()) && !m.hidden, X.avis());
+  X.clic('[data-dev="retour"]');
+  t('le second « Retour » part', (X.retours || 0) === r0 + 1);
+}
+{
+  const X = monter({});
+  await X.ouvrir();
+  t('« Dans le devis » vide dit quoi faire', /Aucun vin pour l’instant : coche-le dans la liste, ou cherche-le\./.test(X.doc.getElementById('devLignes').textContent));
+  const css = lire('src/css/bdv-devis.css').replace(/\s+/g, ' ');
+  t('une seule sortie : la croix se cache quand « Retour à l’affaire » est la', /\.dmod__boite:has\(> \.dmod__retour-l:not\(\[hidden\]\)\) > \.tmod__x\{ display:none; \}/.test(css));
+}
+{
+  const css = lire('src/css/bdv-devis.css').replace(/\s+/g, ' ');
+  t('pleine page : la boite couvre l\'ecran, la colonne garde 62 rem', /\.bdv-coque \.dmod\{ padding:0; \}/.test(css) && /\.bdv-coque \.dmod__boite\{[^}]*max-width:none;[^}]*height:100%/.test(css)
+    && /\.bdv-coque \.dmod__boite > \*\{ max-width:62rem;/.test(css));
+  t('les etapes collent en haut, comme le pied en bas', /\.bdv-coque \.dmod__nav\{[^}]*position:sticky/.test(css));
 }
 
 console.log('\n== VERDICT ==');

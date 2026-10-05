@@ -22,12 +22,17 @@
    coupure des longs noms), et le total TTC colle en bas avec « Enregistrer ».
    ========================================================================== */
 .bdv-coque .dmod__boite{
-  max-width:62rem;
+  /* LOT 66 : LA PLEINE PAGE (decision de Ted du 05/10/2026). La boite couvre tout l'ecran,
+     et ses enfants gardent une colonne de 62 rem au centre (regle de fin de feuille). */
+  max-width:none;
+  height:100%;
+  max-height:none;
+  border:0;
   /* LA HAUTEUR DU PIED COLLANT EST RESERVEE a ce qui recoit le focus (WCAG 2.4.11) ;
      bdv-devis.js recale en plus chaque focus au-dessus du pied, mesure a l'appui. */
   scroll-padding-bottom:calc(var(--bdv-e-12) + var(--bdv-e-12) + var(--bdv-e-6));
 }
-.bdv-coque .dmod__boite--apercu{ max-width:62rem; }
+.bdv-coque .dmod__boite--apercu{ max-width:none; }
 .bdv-coque .dmod__tete{ margin-bottom:var(--bdv-e-3); padding-right:var(--bdv-e-8); }
 .bdv-coque .dmod__retour-l{ margin:0 0 var(--bdv-e-3); }
 /* X1 (tour 3) : la suite d'un devis enregistre, sous l'avis, dans le premier ecran. */
@@ -401,4 +406,86 @@
   .bdv-coque .dmod textarea,
   .bdv-coque .dmod__lien{ min-height:var(--bdv-cible); }
   .bdv-coque .dmod__pied .btn{ flex:1 1 auto; }
+}
+
+/* ==========================================================================
+   LOT 66 : LE DEVIS EN PLEINE PAGE ET EN TROIS ETAPES, 05/10/2026
+   ==========================================================================
+   La boite couvre l'ecran (plus de voile autour), la saisie garde sa colonne de
+   62 rem. En haut, les trois etapes, collantes ; en bas, le pied, collant, porte
+   le total. Que des jetons : aucune ombre, aucun z-index, aucune couleur. */
+.bdv-coque .dmod{ padding:0; }
+.bdv-coque .dmod__boite > *{ max-width:62rem; margin-left:auto; margin-right:auto; }
+.bdv-coque .dmod__etape[hidden],
+.bdv-coque .dmod__pli-corps[hidden]{ display:none; }
+.bdv-coque .dmod__nav{
+  position:sticky;
+  top:calc(-1 * var(--bdv-e-6));
+  margin:0 calc(-1 * var(--bdv-e-6)) var(--bdv-e-4);
+  padding:var(--bdv-e-2) var(--bdv-e-6);
+  background:var(--bdv-surface-3);
+  border-bottom:1px solid var(--bdv-trait);
+}
+.bdv-coque .dmod__nav-l{ display:flex; gap:var(--bdv-e-2); margin:0; padding:0; list-style:none; }
+.bdv-coque .dmod__nav-l li{ flex:1 1 0; min-width:0; }
+.bdv-coque .dmod__nav-b{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  width:100%;
+  min-height:var(--bdv-cible);
+  padding:var(--bdv-e-1) var(--bdv-e-2);
+  background:none;
+  border:0;
+  border-bottom:3px solid transparent;
+  color:var(--bdv-encre-2);
+  font-family:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:600;
+  text-align:left;
+  cursor:pointer;
+}
+.bdv-coque .dmod__nav-b:hover{ color:var(--bdv-encre-1); border-bottom-color:var(--bdv-trait-fort); }
+.bdv-coque .dmod__nav-b[aria-current="step"]{ color:var(--bdv-encre-1); border-bottom-color:var(--bdv-accent); }
+.bdv-coque .dmod__nav-n{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:none;
+  min-width:var(--bdv-e-6);
+  height:var(--bdv-e-6);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  font-size:var(--bdv-f-1);
+}
+.bdv-coque .dmod__nav-b[aria-current="step"] .dmod__nav-n{ background:var(--bdv-accent); border-color:var(--bdv-accent); color:var(--bdv-encre-sur-accent); }
+.bdv-coque .dmod__nav-t{ min-width:0; overflow-wrap:anywhere; }
+/* Le premier bloc d'une etape ne redit pas le trait des etapes juste au-dessus. */
+.bdv-coque .dmod__etape > .dmod__etape-t + .dmod__bloc{ border-top:0; padding-top:0; }
+/* UNE SEULE SORTIE quand « Retour a l'affaire » est la : la croix ne la double plus. */
+.bdv-coque .dmod__boite:has(> .dmod__retour-l:not([hidden])) > .tmod__x{ display:none; }
+/* Le champ qui recoit le focus ne passe pas sous la barre des etapes. */
+.bdv-coque .dmod__boite{ scroll-padding-top:calc(var(--bdv-cible) + var(--bdv-e-6)); }
+/* En tableau, le millesime et le format vont sous le nom : la virgule d'un vin sans
+   millesime n'y occupe pas une ligne a elle seule. */
+@container devis (min-width:50rem){ .bdv-coque .dmod__ligne .dmod__sep{ display:none; } }
+/* UN PLI : ce qui est choisi en une ligne, et « Changer ». */
+.bdv-coque .dmod__pli{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--bdv-e-2) var(--bdv-e-4); }
+.bdv-coque .dmod__resume{ flex:1 1 16rem; min-width:0; margin:0; color:var(--bdv-encre-1); }
+.bdv-coque .dmod__pli-corps{ margin-top:var(--bdv-e-3); }
+/* VERIFIER : ce que tu proposes, relu avant d'enregistrer. */
+.bdv-coque .dmod__recap-l{ display:grid; gap:0; margin:0; padding:0; list-style:none; }
+.bdv-coque .dmod__recap-l li{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:0 var(--bdv-e-4); padding:var(--bdv-e-2) 0; border-bottom:1px solid var(--bdv-trait); }
+.bdv-coque .dmod__recap-n{ min-width:0; font-weight:600; color:var(--bdv-encre-1); overflow-wrap:anywhere; }
+.bdv-coque .dmod__recap-m{ color:var(--bdv-encre-2); font-variant-numeric:tabular-nums; }
+.bdv-coque .dmod__recap-c{ display:grid; gap:var(--bdv-e-1); margin:var(--bdv-e-3) 0 0; }
+.bdv-coque .dmod__recap-c div{ display:grid; grid-template-columns:minmax(0, 7rem) minmax(0, 1fr); gap:var(--bdv-e-3); }
+.bdv-coque .dmod__recap-c dt{ font-weight:600; color:var(--bdv-encre-2); }
+.bdv-coque .dmod__recap-c dd{ margin:0; color:var(--bdv-encre-1); overflow-wrap:anywhere; }
+.bdv-coque .dmod__recap-g{ margin:var(--bdv-e-2) 0 0; }
+.bdv-coque .dmod__pied-g{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); margin:0; }
+.bdv-coque .dmod__pied-g .btn[hidden]{ display:none; }
+@media (max-width:700px){
+  .bdv-coque .dmod__pied-g{ flex:1 1 auto; }
+  .bdv-coque .dmod__nav-b{ flex-direction:column; align-items:flex-start; gap:var(--bdv-e-1); font-size:var(--bdv-f-2); }
 }

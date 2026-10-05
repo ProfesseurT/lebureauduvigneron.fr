@@ -8146,3 +8146,29 @@ Arbitrages de Ted :
   vert. Vigneron : feu rouge (le verbe, les impasses) puis feu vert.
 - **Ouvert, a Ted** : un D-2026-xxxx corrige en 2027 est date de 2027 ; revoir la version 1 depuis
   l'ecran (prevu au lot 67) ; une correction ne s'annule pas (la version 1 a perdu son lien).
+
+### LOT 66 : LE DEVIS EN PAGE ENTIERE ET EN 3 ETAPES, 05/10/2026
+
+- **Pas de SQL.** Ecran seulement : `bdv-devis.js`, `bdv-devis.css`.
+- **Page entiere, meme onglet** : la boite prend toute la hauteur et la largeur, le contenu est
+  centre a 62rem. Seule sortie : « Retour a l'affaire » ; la croix est cachee quand ce bouton est
+  la (CSS `:has`). Un devis ENREGISTRE modifie et pas re-enregistre : le premier Retour, Fermer ou
+  Echap avertit, le second sort (`garderAvantDePartir()`, `S.quitterOk` remis a faux a CHAQUE
+  `S.modifie = true`).
+- **3 etapes** (`S.etape`, barre collante `#devEtapes`, `aria-current="step"`) :
+  1 « Les vins », 2 « Conditions » (remise, livraison, TVA en PLIS fermes avec un resume et
+  « Changer », puis conditions et notes), 3 « Verifier » (pour qui, « Ce que tu proposes », total,
+  puis pour un devis enregistre : apercu, envoi, reponse, abandon). Pied hors etapes : « Suivant »
+  en bouton principal aux etapes 1-2, « Enregistrer le devis » a l'etape 3.
+- Ouverture : devis existant et apres enregistrement = etape 3 ; nouveau, refaire, corriger,
+  reprendre = etape 1. Quitter l'etape 3 ferme les questions ouvertes (envoi, accord, refus,
+  rappel, annulation). « Preparer l'envoi » saute a l'etape 3. Une erreur ouvre le pli et l'etape
+  du champ fautif. Le focus recale sous la barre collante (`montrerDansBoite`, `scroll-padding-top`).
+- « On propose, on ne coche rien » : la liste propose, l'utilisateur coche.
+- Garde : `banc:devis` section 17 (461 controles). Verificateur : feu rouge (envoi depuis 1-2,
+  champ sous la barre, question restee ouverte, apercu etroit) puis feu vert. Vigneron : feu rouge
+  (texte « deja coche », virgule seule, deux sorties, liste vide muette) puis feu vert.
+- **Ouvert, a Ted** : la date suit la langue du navigateur (a verifier une fois sur un iPhone en
+  francais) ; « Changer dans Mon domaine » quitte le devis (le brouillon reste sur l'appareil) ;
+  l'apercu papier n'existe qu'apres enregistrement ; le bouton Retour du navigateur n'avertit pas ;
+  au telephone une ligne de vin prend un demi-ecran (a alleger, lot suivant).

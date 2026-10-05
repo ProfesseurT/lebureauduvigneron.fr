@@ -12,6 +12,15 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 05/10/2026, lot 66 : le devis en page entière, en 3 étapes
+
+Ted trouvait la fabrication d'un devis trop compliquée. Le devis prend maintenant toute la page,
+dans le même onglet, avec « Retour à l'affaire » comme seule sortie. Trois étapes : les vins, les
+conditions (remise, livraison et TVA repliées avec un résumé), vérifier puis envoyer. On ne coche
+rien à la place du vigneron, on propose. Pas de SQL. Écarté : un nouvel onglet. Le vigneron et le
+vérificateur ont donné chacun un feu rouge puis un feu vert. Reste à voir : la date sur un iPhone
+en français, et alléger les lignes de vin au téléphone.
+
 ## 05/10/2026 : chantier notifications clos
 
 Sept lots (58 à 64), tous en production et testés. Ce qui existe : le mail immédiat réglable,

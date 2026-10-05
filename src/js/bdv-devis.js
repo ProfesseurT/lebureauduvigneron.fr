@@ -171,7 +171,7 @@
   function nomHtml(l, balise) {
     var f = fmtDe(l), b = balise || 'span';
     return '<' + b + ' class="dmod__nom" title="' + esc(nomDe(l)) + '"><span class="dmod__vin">' + esc(String(l.designation || '')) + '</span>'
-      + (f ? (l.millesime ? ' ' : ', ') + '<span class="dmod__fmt">' + esc(f) + '</span>' : '') + '</' + b + '>';
+      + (f ? (l.millesime ? ' ' : '<span class="dmod__sep">, </span>') + '<span class="dmod__fmt">' + esc(f) + '</span>' : '') + '</' + b + '>';
   }
   function sqlAbsent(e) {
     return !!e && (e.status === 404 || /PGRST202|PGRST205|42883|42P01/.test(String(e.detail || '')));
@@ -481,7 +481,8 @@
     var b = box.getBoundingClientRect(), r = n.getBoundingClientRect();
     var pied = box.querySelector('.dmod__pied');
     var ph = pied ? pied.getBoundingClientRect().height : 0;
-    var haut = b.top + 8, bas = b.bottom - ph - 8;
+    var nav = box.querySelector('.dmod__nav'), nh = nav && !nav.closest('[hidden]') ? nav.getBoundingClientRect().height : 0;
+    var haut = b.top + nh + 8, bas = b.bottom - ph - 8;
     var d = 0;
     if (r.bottom > bas) d = Math.min(r.bottom - bas, r.top - haut);
     else if (r.top < haut) d = r.top - haut;
@@ -534,6 +535,7 @@
      le titre de la piece) ; a defaut, l'element d'ou l'on venait s'il existe encore. */
   function vivant(n) { return !!(n && n.isConnected && !n.closest('[hidden]') && typeof n.focus === 'function'); }
   function fermer() {
+    if (MOD && !MOD.hidden && garderAvantDePartir()) return;
     if (!retirer()) return;
     var r = RETOUR_FOCUS; RETOUR_FOCUS = null;
     var f = S && S.ctx && typeof S.ctx.focusSortie === 'function' ? S.ctx.focusSortie() : null;
@@ -542,7 +544,17 @@
   }
   /* « Retour a l'affaire » passe le devis ouvert : l'affaire ramene SA ligne dans la vue
      et y pose le focus (ou sur « Nouveau devis » s'il n'y en a pas). */
+  /* LOT 66 : DES CHANGEMENTS PAS ENREGISTRES SUR UN DEVIS DEJA ENREGISTRE ne partent pas en
+     silence. Un devis neuf garde son brouillon sur l'appareil ; un devis enregistre, non : le
+     premier appui le dit, le second sort. */
+  function garderAvantDePartir() {
+    if (!S || !S.devis || !S.modifie || S.etat !== 'edition' || S.quitterOk) return false;
+    S.quitterOk = true;
+    dire('Tes changements ne sont pas enregistrés. Appuie sur « Enregistrer le devis », ou appuie encore une fois pour partir sans eux.', true);
+    return true;
+  }
   function retour() {
+    if (garderAvantDePartir()) return;
     var f = S && S.ctx && S.ctx.retour;
     var id = S && S.devis ? S.devis.devis_id : null;
     retirer();
@@ -559,7 +571,7 @@
           lignes: [], remise: '0', notes: '', devis: ctx.devis || null, lignesServeur: null, voirTout: false,
           q: '', brouillon: null, confirme: false, attente: false, manque: [], accord: false, modifie: false,
           envoi: false, versionDe: null, refus: false, annul: false, liv: livVide(), tva: tvaVide(),
-          lien: null, lienInfo: null, preuve: null, rappel: false, dejaSigne: undefined };
+          lien: null, lienInfo: null, preuve: null, rappel: false, dejaSigne: undefined, etape: 1, plis: null };
     var moi = S;
     monter();
     peindre();
@@ -606,6 +618,7 @@
         S.liv = livDeDevis(S.devis);
         S.tva = tvaDeDevis(S.devis);
         S.etat = 'edition';
+        S.etape = 3; S.plis = null;
         lireSignature(moi);
       } else {
         S.brouillon = lireBrouillon(S.ctx.affaire.affaire_id);
@@ -701,36 +714,148 @@
       + (avecLien ? '<p><button type="button" class="dmod__lien" data-dev="domaine">Changer dans Mon domaine</button></p>' : '')
       + '</section>';
   }
+  /* ---------------- LOT 66 : LE DEVIS EN TROIS ETAPES (05/10/2026) ----------------
+     Decision de Ted : la fabrication en PLEINE PAGE, en trois etapes, Les vins, Conditions,
+     Verifier. LES TROIS ETAPES SONT TOUJOURS DANS LE DOCUMENT, et seule la visible n'est pas
+     `hidden` : passer d'une etape a l'autre ne repeint rien, donc ne perd ni un champ ni le
+     focus, et une erreur trouvee a l'enregistrement ramene a SON etape (`refuser`). Rien
+     n'est ecrit en base avant « Enregistrer le devis », qui reste au pied a chaque etape :
+     un client habituel se fait sans passer les etapes. Le pied garde le total en vue.
+     LIVRAISON, TVA ET REMISE SE REPLIENT en une ligne qui dit ce qui est choisi, avec
+     « Changer » ; elles s'ouvrent seules quand elles portent autre chose que le defaut. */
+  var ETAPES = [[1, 'Les vins'], [2, 'Conditions'], [3, 'Vérifier']];
+  var SUIVANT = { 1: 'Suivant : les conditions', 2: 'Suivant : vérifier' };
+  function initPlis() {
+    S.plis = { remise: (C.remiseCb(S.remise) || 0) !== 0, liv: !livParDefaut(S.liv), tva: S.tva.regime !== 'france' };
+  }
+  function pliOuvert(cle) { return !!(S.plis && S.plis[cle]); }
+  var NOM_PLI = { liv: 'la livraison', tva: 'la TVA', remise: 'la remise' };
+  function htmlPli(cle) {
+    var o = pliOuvert(cle), r = cle === 'liv' ? resumeLiv() : cle === 'tva' ? resumeTva() : resumeRemise();
+    return '<div class="dmod__pli"><p class="dmod__resume" id="devRes_' + cle + '">' + esc(r) + '</p>'
+      + '<button type="button" class="btn dmod__changer" data-dev="pli" data-pli="' + cle + '" aria-expanded="' + (o ? 'true' : 'false')
+      + '" aria-controls="devPli_' + cle + '"><span class="dmod__changer-m">' + (o ? 'Masquer' : 'Changer') + '</span><span class="hors-ecran"> ' + NOM_PLI[cle] + '</span></button></div>';
+  }
+  function resumeLiv() {
+    var l = S.liv, p = portDe(), j = String(l.date || '').trim();
+    var t = l.mode === 'retrait' ? 'Il vient chercher au domaine'
+      : l.mode === 'adresse' ? 'À une autre adresse' + ([l.nom, l.ville].filter(function (x) { return String(x || '').trim(); }).length ? ' : ' + [l.nom, l.ville].filter(function (x) { return String(x || '').trim(); }).join(', ') : '')
+      : 'À l’adresse du client';
+    if (j && /^\d{4}-\d{2}-\d{2}$/.test(j)) t += ', souhaitée le ' + dateFr(j);
+    if (l.mode !== 'retrait') t += p === null ? ', frais de port à corriger' : p > 0 ? ', frais de port ' + C.euros(p) + ' HT' : ', sans frais de port';
+    return t + '.';
+  }
+  function resumeTva() {
+    var t = S.tva;
+    if (t.regime === 'export') return 'Export hors de l’UE, sans TVA.';
+    if (t.regime === 'ue') return 'Un pro dans l’UE, sans TVA' + (String(t.client || '').trim() ? ', n° ' + numeroTva(t.client) : '') + '.';
+    return 'En France, TVA ' + (S.lignes.some(function (l) { return String(l.tva) === '550'; }) ? '20 % et 5,5 %' : '20 %') + '.';
+  }
+  function resumeRemise() {
+    var g = gDe();
+    return g === null ? 'Remise à corriger.' : g > 0 ? 'Remise de ' + C.pourcent(g) + ' % sur tout le devis.' : 'Aucune remise sur tout le devis.';
+  }
+  function majResumes() {
+    ['liv', 'tva', 'remise'].forEach(function (k) {
+      var n = el('devRes_' + k); if (n) n.textContent = k === 'liv' ? resumeLiv() : k === 'tva' ? resumeTva() : resumeRemise();
+    });
+    var rc = el('devRecap'); if (rc && S.etape === 3) rc.innerHTML = htmlRecap();
+  }
+  function basculerPli(cle, ouvrir, focus) {
+    if (!S.plis) initPlis();
+    S.plis[cle] = ouvrir === undefined ? !S.plis[cle] : !!ouvrir;
+    var c = el('devPli_' + cle); if (c) c.hidden = !S.plis[cle];
+    var b = MOD.querySelector('[data-dev="pli"][data-pli="' + cle + '"]');
+    if (b) { b.setAttribute('aria-expanded', S.plis[cle] ? 'true' : 'false'); var m = b.querySelector('.dmod__changer-m'); if (m) m.textContent = S.plis[cle] ? 'Masquer' : 'Changer'; }
+    if (focus && S.plis[cle] && c) { var f = c.querySelector('input:checked, input, select, textarea'); if (f) { try { f.focus(); } catch (e) {} } }
+  }
+  function htmlEtapesNav() {
+    return '<nav class="dmod__nav" id="devEtapes" aria-label="Étapes du devis"><ol class="dmod__nav-l">'
+      + ETAPES.map(function (e) {
+        return '<li><button type="button" class="dmod__nav-b" data-dev="etape" data-vers="' + e[0] + '"' + (S.etape === e[0] ? ' aria-current="step"' : '')
+          + '><span class="dmod__nav-n" aria-hidden="true">' + e[0] + '</span><span class="dmod__nav-t">' + e[1] + '</span></button></li>';
+      }).join('') + '</ol></nav>';
+  }
+  function etapeCachee(n) { return S.etape === n ? '' : ' hidden'; }
+  function titreEtape(n, t) { return '<h3 class="hors-ecran dmod__etape-t" tabindex="-1">Étape ' + n + ' sur 3 : ' + t + '</h3>'; }
+  /* CE QUE TU PROPOSES : ce que le client verra, relu avant d'enregistrer. Le papier exact
+     se voit apres, par « Voir et imprimer » : il porte le numero que la base donne. */
+  function htmlRecap() {
+    calcul();
+    var vins = S.lignes.length ? '<ul class="dmod__recap-l">' + S.lignes.map(function (l) {
+      var q = qteDe(l), pu = puDe(l), r = rlDe(l);
+      return '<li><span class="dmod__recap-n">' + esc(nomDe(l)) + '</span><span class="dmod__recap-m">'
+        + (l._c ? esc(q + '\u00a0x ' + C.euros(pu) + '\u00a0HT' + (r ? ', remise ' + C.pourcent(r) + '\u00a0%' : '') + ' : ' + C.euros(l._c.net)) : MOT_CORRIGER) + '</span></li>';
+    }).join('') + '</ul>' : '<p class="aff-aide">Aucun vin pour l’instant.</p>';
+    var cond = [['Livraison', resumeLiv()], ['TVA', resumeTva()], ['Remise', resumeRemise()]];
+    return vins + '<p class="dmod__recap-g"><button type="button" class="dmod__lien" data-dev="etape" data-vers="1">Changer les vins</button></p>'
+      + '<dl class="dmod__recap-c">' + cond.map(function (c) { return '<div><dt>' + c[0] + '</dt><dd>' + esc(c[1]) + '</dd></div>'; }).join('')
+      + (String(S.notes || '').trim() ? '<div><dt>Notes</dt><dd>' + esc(String(S.notes).trim()) + '</dd></div>' : '') + '</dl>'
+      + '<p class="dmod__recap-g"><button type="button" class="dmod__lien" data-dev="etape" data-vers="2">Changer les conditions</button></p>';
+  }
+  /* Montrer une etape : rien n'est repeint. `sansFocus` : une erreur ramene a son etape et
+     pose elle-meme le focus sur le champ fautif. */
+  function montrerEtape(n, sansFocus) {
+    if (!MOD || !(n >= 1 && n <= 3)) return;
+    /* Quitter l'etape 3 referme la question ouverte (envoi, accord, refus, abandon, rappel,
+       annulation) : le pied ne doit pas renvoyer a une question qu'on ne voit plus. */
+    if (n !== 3) {
+      S.envoi = false; S.accord = false; S.confirme = false; S.refus = false; S.rappel = false;
+      ['devEnvoi', 'devAccord', 'devConfirme', 'devRefus', 'devRappel'].forEach(function (id) { var x = el(id); if (x) x.hidden = true; });
+      if (S.annul) poserAnnul(false);
+      var ax = el('devAnnul'); if (ax) ax.hidden = true;
+    }
+    S.etape = n;
+    [].forEach.call(MOD.querySelectorAll('.dmod__etape[data-etape]'), function (x) { x.hidden = Number(x.getAttribute('data-etape')) !== n; });
+    [].forEach.call(MOD.querySelectorAll('.dmod__nav-b'), function (b) {
+      if (Number(b.getAttribute('data-vers')) === n) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    });
+    var rc = el('devRecap'); if (rc && n === 3) rc.innerHTML = htmlRecap();
+    majPrincipal();
+    if (sansFocus) return;
+    var box = MOD.querySelector('.tmod__boite'); if (box) box.scrollTop = 0;
+    var t = MOD.querySelector('.dmod__etape[data-etape="' + n + '"] .dmod__etape-t'); if (t) { try { t.focus({ preventScroll: true }); } catch (e) { try { t.focus(); } catch (x) {} } }
+  }
   function htmlEdition() {
     var enreg = S.devis && S.devis.statut === 'enregistre';
-    return htmlQui()
+    if (!S.plis) initPlis();
+    return htmlEtapesNav()
+      + '<div class="dmod__etape" data-etape="1"' + etapeCachee(1) + '>' + titreEtape(1, 'les vins')
       /* « CHERCHER UN VIN » EN TETE (juge V15) : pour ajouter un vin on ne descend plus sous
-         tous ceux deja coches. Ce qu'on peut ajouter d'abord, ce qui est dans le devis ensuite. */
+         tous ceux deja coches. Ce qu'on peut ajouter d'abord, ce qui est dans le devis ensuite.
+         LOT 66 : rien n'est coche d'avance, on PROPOSE (decision de Ted). */
       + '<section class="dmod__bloc" aria-labelledby="devVinsT"><h3 class="dmod__t" id="devVinsT">Tes vins</h3>'
       + '<label class="aff-champ dmod__cherche"><span>Chercher un vin</span>'
       + '<input id="devCherche" type="search" autocomplete="off" maxlength="80" value="' + esc(S.q) + '"></label>'
       + '<div id="devProps">' + htmlProps() + '</div>'
       + '<h4 class="dmod__st" id="devDansT">Dans le devis</h4>'
-      + '<ul class="dmod__lignes" id="devLignes" aria-labelledby="devDansT">' + htmlLignes() + '</ul></section>'
-      + '<section class="dmod__bloc" aria-labelledby="devRemiseT"><h3 class="dmod__t" id="devRemiseT">Remise sur tout le devis</h3>'
+      + '<ul class="dmod__lignes" id="devLignes" aria-labelledby="devDansT">' + htmlLignes() + '</ul></section></div>'
+      + '<div class="dmod__etape" data-etape="2"' + etapeCachee(2) + '>' + titreEtape(2, 'les conditions')
+      + '<section class="dmod__bloc" aria-labelledby="devRemiseT" id="devRemiseB"><h3 class="dmod__t" id="devRemiseT">Remise sur tout le devis</h3>' + htmlPli('remise')
+      + '<div class="dmod__pli-corps" id="devPli_remise"' + (pliOuvert('remise') ? '' : ' hidden') + '>'
       + '<label class="aff-champ dmod__remise"><span>En %, 0 si aucune</span>'
-      + '<input id="devRemise" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="' + esc(S.remise) + '"></label></section>'
+      + '<input id="devRemise" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="' + esc(S.remise) + '"></label></div></section>'
       + '<section class="dmod__bloc" aria-labelledby="devLivT" id="devLiv">' + htmlLivraison() + '</section>'
       + '<section class="dmod__bloc" aria-labelledby="devTvaT" id="devTva">' + htmlTva() + '</section>'
-      + '<section class="dmod__bloc" aria-labelledby="devTotalT"><h3 class="dmod__t" id="devTotalT">Total</h3><div id="devTotal"></div></section>'
       + htmlConditions(true)
       + '<section class="dmod__bloc" aria-labelledby="devNotesT"><h3 class="dmod__t" id="devNotesT">Notes</h3>'
-      + '<textarea id="devNotes" class="dmod__notes" rows="3" maxlength="2000" aria-labelledby="devNotesT">' + esc(S.notes) + '</textarea></section>'
+      + '<textarea id="devNotes" class="dmod__notes" rows="3" maxlength="2000" aria-labelledby="devNotesT">' + esc(S.notes) + '</textarea></section></div>'
+      + '<div class="dmod__etape" data-etape="3"' + etapeCachee(3) + '>' + titreEtape(3, 'vérifier')
+      + htmlQui()
+      + '<section class="dmod__bloc" aria-labelledby="devRecapT"><h3 class="dmod__t" id="devRecapT">Ce que tu proposes</h3><div id="devRecap">' + htmlRecap() + '</div></section>'
+      + '<section class="dmod__bloc" aria-labelledby="devTotalT"><h3 class="dmod__t" id="devTotalT">Total</h3><div id="devTotal"></div></section>'
       /* L'ORDRE DU BAS EST CELUI DE LA VRAIE VIE (juge V12) : le voir, l'envoyer, la reponse du
          client, et l'abandon tout en bas, loin du geste qui valide. */
       + (enreg ? '<section class="dmod__bloc dmod__suite"><p class="dmod__gestes">'
         + '<button type="button" class="btn" data-dev="apercu">Voir et imprimer</button></p></section>'
-        + htmlEnvoiAvant() + htmlReponse(true) + htmlAbandon() : '')
+        + htmlEnvoiAvant() + htmlReponse(true) + htmlAbandon() : '') + '</div>'
       /* LE PIED DIT LE HT D'ABORD (juge V3) : partout ou un seul montant se lit, c'est le HT,
-         la monnaie du bureau ; le TTC suit, plus petit. */
+         la monnaie du bureau ; le TTC suit, plus petit. Il porte « Suivant » aux deux premieres
+         etapes, et « Enregistrer le devis » a toutes. */
       + '<div class="dmod__pied"><p class="dmod__pied-t">Total HT <b id="devPiedHt"></b> <span class="dmod__pied-ttc">TTC <span id="devPiedTtc"></span></span></p>'
       + '<p class="aff-aide dmod__pied-mot" id="devPiedMot" hidden></p>'
-      + '<button type="button" class="btn btn--bordeaux" data-dev="enregistrer">Enregistrer le devis</button></div>';
+      + '<p class="dmod__pied-g"><button type="button" class="btn" data-dev="suivant" id="devSuivant"' + (S.etape === 3 ? ' hidden' : '') + '>' + (SUIVANT[S.etape] || '') + '</button>'
+      + '<button type="button" class="btn btn--bordeaux" data-dev="enregistrer">Enregistrer le devis</button></p></div>';
   }
   /* LE CLAVIER DU CODE POSTAL (S9, juge V18) : des chiffres en France ou sans pays, du texte
      ailleurs (un code postal britannique ou neerlandais porte des lettres). */
@@ -750,7 +875,8 @@
   function htmlLivraison() {
     var l = S.liv, auj = jourIso();
     var min = S.devis && S.devis.date_devis && String(S.devis.date_devis) < auj ? String(S.devis.date_devis) : auj;
-    return '<h3 class="dmod__t" id="devLivT">Livraison</h3>'
+    return '<h3 class="dmod__t" id="devLivT">Livraison</h3>' + htmlPli('liv')
+      + '<div class="dmod__pli-corps" id="devPli_liv"' + (pliOuvert('liv') ? '' : ' hidden') + '>'
       + '<fieldset class="dmod__liv-modes"><legend class="dmod__st">Comment le vin part ?</legend>'
       + MODES_LIV.map(function (m) {
         return '<label class="dmod__coche"><input type="radio" name="devLivMode" data-dev-livmode value="' + m[0] + '"'
@@ -770,12 +896,13 @@
       + (l.mode === 'retrait' ? '' : champLiv('devLivTransp', 'transporteur', 'Transporteur (facultatif)', { max: 60 })
         + champLiv('devLivPort', 'port', 'Frais de port HT', { mode: 'decimal', max: 12, aide: '0 si aucun' }))
       + '</div>'
-      + (l.mode !== 'retrait' && portDe() > 0 ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '');
+      + (l.mode !== 'retrait' && portDe() > 0 ? '<p class="aff-aide">' + esc(TRANSPORT_VITI) + '</p>' : '') + '</div>';
   }
   /* LA TVA A L'ECRAN : le regime d'abord. Les champs qui ne servent pas ne sont pas dessines. */
   function htmlTva() {
     var t = S.tva, f = S.fiche || {};
-    return '<h3 class="dmod__t" id="devTvaT">TVA</h3>'
+    return '<h3 class="dmod__t" id="devTvaT">TVA</h3>' + htmlPli('tva')
+      + '<div class="dmod__pli-corps" id="devPli_tva"' + (pliOuvert('tva') ? '' : ' hidden') + '>'
       + '<fieldset class="dmod__liv-modes"><legend class="dmod__st">Où va le vin ?</legend>'
       + REGIMES.map(function (m) {
         return '<label class="dmod__coche"><input type="radio" name="devTvaRegime" data-dev-regime value="' + m[0] + '"'
@@ -793,7 +920,7 @@
         + '<fieldset class="dmod__liv-modes" id="devTvaAccises"><legend class="dmod__st">Tes prix comprennent-ils les droits d’accises ? (obligatoire)</legend>'
         + '<label class="dmod__coche"><input type="radio" name="devTvaAccises" data-dev-accises value="oui"' + (t.accises === true ? ' checked' : '') + '><span>Oui, mes prix comprennent l’accise</span></label>'
         + '<label class="dmod__coche"><input type="radio" name="devTvaAccises" data-dev-accises value="non"' + (t.accises === false ? ' checked' : '') + '><span>Non, mes prix sont hors accise</span></label></fieldset>'
-        + '<p class="aff-aide">' + esc(PORT_0) + '</p>' : '');
+        + '<p class="aff-aide">' + esc(PORT_0) + '</p>' : '') + '</div>';
   }
   function htmlConfirmeAbandon() {
     return '<div class="dmod__confirme" id="devConfirme"' + (S.confirme ? '' : ' hidden') + '>'
@@ -1124,6 +1251,7 @@
   }
   function htmlLignes() {
     var tva = !horsFrance();
+    if (!S.lignes.length) return '<li class="aff-aide dmod__vide">Aucun vin pour l’instant : coche-le dans la liste, ou cherche-le.</li>';
     var tete = S.lignes.length ? '<li class="dmod__lentete" aria-hidden="true"><span>Vin</span><span class="dmod__champs' + (tva ? ' dmod__champs--tva' : '') + '">'
       + '<span>Quantité</span><span>Prix HT unitaire</span><span>Remise %</span>' + (tva ? '<span>TVA</span>' : '') + '<span>Total HT</span></span></li>' : '';
     return tete + S.lignes.map(function (l, i) {
@@ -1175,7 +1303,7 @@
       var montre = (S.voirTout || mots.length) ? l : l.slice(0, PREMIERES);
       var reste = l.length - montre.length;
       return '<h4 class="dmod__st">' + titre + '</h4>'
-        + (montre.length ? '<ul class="dmod__props">' + montre.map(htmlProp).join('') + '</ul>' : '<p class="aff-aide">Tout ce qui correspond est déjà coché.</p>')
+        + (montre.length ? '<ul class="dmod__props">' + montre.map(htmlProp).join('') + '</ul>' : '<p class="aff-aide">Tous ces vins sont déjà dans le devis.</p>')
         + (reste > 0 ? '<p><button type="button" class="dmod__lien" data-dev="voirTout">'
           + (reste === 1 ? 'Voir l’autre vin' : 'Voir les ' + reste + ' autres vins') + '</button></p>' : '');
     }
@@ -1185,7 +1313,7 @@
       var dt = S.propsDomaine.filter(function (p) { return correspond(p, mots); });
       var dl = dt.filter(function (p) { return !pris[cleDe(p)]; });
       if (dl.length) return '<h4 class="dmod__st">Dans les ventes de ton domaine</h4><ul class="dmod__props">' + dl.map(htmlProp).join('') + '</ul>';
-      if (dt.length) return '<p class="aff-aide">Tout ce qui correspond est déjà coché.</p>';
+      if (dt.length) return '<p class="aff-aide">Tous ces vins sont déjà dans le devis.</p>';
     }
     return '<p class="aff-aide">Aucun vin ne correspond à « ' + esc(S.q.trim()) + ' ».</p>';
   }
@@ -1235,6 +1363,7 @@
     t.accisesInconnu = horsFrance() && S.tva.accises !== true && S.tva.accises !== false;
     var deux = g > 0 && S.lignes.some(function (l) { return (rlDe(l) || 0) > 0; });
     var tot = el('devTotal'); if (tot) tot.innerHTML = t.invalide ? htmlACorriger() : htmlTotaux(t, g, deux);
+    majResumes();
     var piedH = el('devPiedHt'); if (piedH) piedH.textContent = t.invalide ? MOT_CORRIGER : C.euros(t.total_ht);
     var pied = el('devPiedTtc'); if (pied) pied.textContent = t.invalide ? MOT_CORRIGER : C.euros(t.ttc);
     S.lignes.forEach(function (l) {
@@ -1258,7 +1387,9 @@
     var conf = !!(S && (S.envoi || S.accord || S.confirme || S.refus)), d = S && S.devis;
     var enreg = MOD.querySelector('[data-dev="enregistrer"]'), env = MOD.querySelector('[data-dev="envoyer"]');
     var aEnregistrer = !d || !!S.modifie;
-    if (enreg) enreg.classList.toggle('btn--bordeaux', !conf && aEnregistrer);
+    var et = S && S.etape ? S.etape : 3, suiv = el('devSuivant');
+    if (suiv) { suiv.hidden = et === 3; suiv.textContent = SUIVANT[et] || ''; suiv.classList.toggle('btn--bordeaux', !conf && et < 3); }
+    if (enreg) enreg.classList.toggle('btn--bordeaux', !conf && aEnregistrer && (et === 3 || !suiv));
     if (env) env.classList.toggle('btn--bordeaux', !conf && !aEnregistrer);
     var mot = el('devPiedMot');
     if (mot) {
@@ -1407,6 +1538,9 @@
     if (q === 'fermer') { fermer(); return; }
     if (q === 'retour') { retour(); return; }
     if (q === 'domaine') { ouvrirDomaine(); return; }
+    if (q === 'etape') { montrerEtape(Number(b.getAttribute('data-vers'))); return; }
+    if (q === 'suivant') { montrerEtape(Math.min(3, (S.etape || 1) + 1)); return; }
+    if (q === 'pli') { basculerPli(b.getAttribute('data-pli'), undefined, true); return; }
     if (q === 'relire') { S.etat = 'chargement'; peindre(); charger(S); return; }
     if (q === 'reprendre') {
       var br = S.brouillon;
@@ -1416,9 +1550,9 @@
       S.versionDe = br.version_de && br.version_de.devis_id ? br.version_de : null;
       S.liv = Object.assign(livVide(), br.liv && typeof br.liv === 'object' ? br.liv : {});
       S.tva = Object.assign(tvaVide(), br.tva && typeof br.tva === 'object' ? br.tva : {});
-      S.brouillon = null; S.etat = 'edition'; S.modifie = true; peindre(); return;
+      S.brouillon = null; S.etat = 'edition'; S.modifie = true; S.quitterOk = false; S.plis = null; S.etape = 1; peindre(); return;
     }
-    if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.liv = livVide(); S.tva = tvaVide(); S.etat = 'edition'; peindre(); return; }
+    if (q === 'zero') { effacerBrouillon(S.ctx.affaire.affaire_id); S.brouillon = null; S.versionDe = null; S.liv = livVide(); S.tva = tvaVide(); S.etat = 'edition'; S.etape = 1; S.plis = null; peindre(); return; }
     if (q === 'voirTout') { S.voirTout = true; peindreProps(); return; }
     if (q === 'plus') {
       var lp = b.closest('.dmod__ligne');
@@ -1481,7 +1615,7 @@
     if (q === 'pasEncore') { S.accord = false; var a2 = el('devAccord'); if (a2) a2.hidden = true;
       var bt = MOD.querySelector('[data-dev="accepter"]'); if (bt) { try { bt.focus(); } catch (e) {} } return; }
     if (q === 'confirmerAccord') { accepter(); return; }
-    if (q === 'allerEnvoi') { var pr2 = el('devProchaine'); if (pr2) pr2.hidden = true; q = 'envoyer'; }
+    if (q === 'allerEnvoi') { var pr2 = el('devProchaine'); if (pr2) pr2.hidden = true; if (S.etape !== 3) montrerEtape(3, true); q = 'envoyer'; }
     if (q === 'envoyer') {
       if (S.modifie) { dire('Enregistre d’abord tes changements : c’est le devis enregistré que tu envoies.', true); return; }
       S.envoi = true;
@@ -1541,7 +1675,7 @@
     if (q === 'telecharger') { var nm = telecharger(); if (nm) noterTelechargement('Fichier ' + nm + ' téléchargé. ' + IMPORT_VITI); return; }
   }
   function majAideLiv() {
-    var sec = el('devLiv'); if (!sec) return;
+    var sec = el('devPli_liv') || el('devLiv'); if (!sec) return;
     var p = sec.querySelector('.aff-aide'), veut = S.liv.mode !== 'retrait' && portDe() > 0;
     if (veut && !p) { p = document.createElement('p'); p.className = 'aff-aide'; p.textContent = TRANSPORT_VITI; sec.appendChild(p); }
     else if (!veut && p) p.remove();
@@ -1551,7 +1685,7 @@
     /* Les champs de l'envoi refont la phrase et le nom du bouton (juge V1). */
     if (t && t.closest && t.closest('#devEnvoi')) { majEnvoi(); return; }
     if (S && S.etat === 'edition' && t.hasAttribute && t.hasAttribute('data-dev-accises')) {
-      S.tva.accises = t.value === 'oui'; S.modifie = true;
+      S.tva.accises = t.value === 'oui'; S.modifie = true; S.quitterOk = false;
       var fx = el('devTvaAccises'); if (fx) { effacerErreur(fx); [].forEach.call(fx.querySelectorAll('input'), effacerErreur); [].forEach.call(fx.querySelectorAll('.dmod__err'), function (n) { n.remove(); }); }
       majTotaux(); ecrireBrouillon(); return;
     }
@@ -1563,7 +1697,7 @@
       S.tva.regime = t.value;
       var sx = el('devTva'); if (sx) sx.innerHTML = htmlTva();
       var nl = el('devLignes'); if (nl) nl.innerHTML = htmlLignes();
-      S.modifie = true; majTotaux(); ecrireBrouillon();
+      S.modifie = true; S.quitterOk = false; majTotaux(); ecrireBrouillon();
       var fr = MOD.querySelector('[data-dev-regime][value="' + cssEsc(S.tva.regime) + '"]'); if (fr) { try { fr.focus(); } catch (e) {} }
       return;
     }
@@ -1575,7 +1709,7 @@
          pas, et la base, qui les refuse en retrait, ne les voit jamais. */
       S.liv.mode = t.value;
       var sec = el('devLiv'); if (sec) sec.innerHTML = htmlLivraison();
-      S.modifie = true; majTotaux(); ecrireBrouillon();
+      S.modifie = true; S.quitterOk = false; majTotaux(); ecrireBrouillon();
       var f = MOD.querySelector('[data-dev-livmode][value="' + cssEsc(S.liv.mode) + '"]'); if (f) { try { f.focus(); } catch (e) {} }
       return;
     }
@@ -1589,7 +1723,7 @@
       S.lignes = S.lignes.filter(function (l) { return l.cle !== cle; });
     }
     var n = el('devLignes'); if (n) n.innerHTML = htmlLignes();
-    S.modifie = true;
+    S.modifie = true; S.quitterOk = false;
     peindreProps();
     majTotaux();
     ecrireBrouillon();
@@ -1617,7 +1751,7 @@
       if (!l) return;
       l[t.getAttribute('data-dev-champ')] = t.value;
     } else return;
-    S.modifie = true;
+    S.modifie = true; S.quitterOk = false;
     majTotaux();
     ecrireBrouillon();
   }
@@ -1668,6 +1802,10 @@
     effacerErreurs();
     dire(txt, true);
     if (champ) {
+      var pli = champ.closest && champ.closest('.dmod__pli-corps');
+      if (pli && pli.hidden) basculerPli(pli.id.replace('devPli_', ''), true);
+      var etp = champ.closest && champ.closest('.dmod__etape[data-etape]');
+      if (etp && etp.hidden) montrerEtape(Number(etp.getAttribute('data-etape')), true);
       var li = champ.closest && champ.closest('.dmod__ligne');
       if (li && champ.closest('.dmod__repli')) ouvrirPlus(li, false);
       var id = 'devErr' + (++N_ERR);
@@ -1803,6 +1941,7 @@
     if (moi !== S) return;
     S.confirme = false;
     S.modifie = false;
+    S.etape = 3;
     peindre();
     dire('Devis ' + r.numero + (remplace ? ' enregistré. Il remplace le ' + remplace + ', abandonné.' : neuf ? ' enregistré.' : ' enregistré, avec tes changements.'));
     /* X1 : la suite n'est proposee que si le bloc d'envoi est la pour la recevoir. */
@@ -1867,7 +2006,7 @@
     S.liv = livDeDevis(r);
     S.tva = tvaDeDevis(r);
     S.modifie = false;
-    S.etat = 'edition';
+    S.etat = 'edition'; S.etape = 1; S.plis = null;
     peindre();
     dire('Devis ' + r.numero + ' en correction : son lien de signature ne marche plus. Modifie-le, enregistre, puis renvoie la version ' + r.version + '.'
       + (livEffacee ? ' Sa date de livraison souhaitée était passée : elle est effacée, remets-en une si besoin.' : ''));
@@ -2066,7 +2205,7 @@
     /* Une date souhaitee deja passee ne se reprend pas : le nouveau devis la refuserait. */
     if (S.liv.date && S.liv.date < jourIso()) S.liv.date = '';
     S.confirme = false; S.accord = false; S.envoi = false;
-    S.etat = 'edition'; S.modifie = true;
+    S.etat = 'edition'; S.modifie = true; S.quitterOk = false; S.etape = 1; S.plis = null;
     peindre();
     ecrireBrouillon();
     dire('Nouveau devis, avec les lignes du ' + ancien.numero + '. Change ce qu’il faut, puis enregistre-le.');
