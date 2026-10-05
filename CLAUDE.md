@@ -8012,10 +8012,15 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
 
 ### LOT 62, 05/10/2026 : LES AFFAIRES DES COLLEGUES, LES APPAREILS (cinquieme et dernier lot)
 
-- **Deux cases** `profils.notif_push_gagnee` (cochee) et `notif_push_perdue` (decochee), avec
-  « (pas la nuit) ». `push_cibles(bureau, sorte, sauf)` exclut l'auteur (`close_par`) : on ne se
-  notifie jamais soi-meme. Une gagnee ou perdue la nuit ne sonne pas, et n'est PAS reportee au
-  matin (l'ecran le dit).
+- **ARBITRAGE DE TED (05/10/2026) : PLUS DE SILENCE DE NUIT.** Tout part tout de suite, de jour
+  comme de nuit : les telephones ont le mode Ne pas deranger, chacun gere. `notif-commerce`
+  n'appelle plus `enSilence` et ne differe plus rien (`push_differe` n'est plus ecrit ; la
+  branche « signatures de nuit » du matin reste en base mais ne sert plus). Le silence du
+  lot 61 est donc ANNULE pour les envois immediats. `notif-horaire` ne tourne de toute facon
+  qu'a 7 h 30 et 17 h 30. Ne pas remettre de silence sans nouvel arbitrage.
+- **Deux cases** `profils.notif_push_gagnee` (cochee) et `notif_push_perdue` (decochee).
+  `push_cibles(bureau, sorte, sauf)` exclut l'auteur (`close_par`) : on ne se notifie jamais
+  soi-meme.
 - **Jamais de mail pour une perdue** : la perdue revient dans `notif-commerce` (pour la
   notification), mais `notif_detail` lui rend TOUJOURS une liste de destinataires vide. C'est la
   BASE qui garantit la regle, `banc-lot62` le verifie. Ne jamais remettre de destinataire a la perdue.
@@ -8030,9 +8035,11 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
   prendre celle d'un collegue). Banc : vol refuse, cles gardees.
 - Page RGPD : section « Les notifications sur tes appareils ».
 - Verificateur : feu rouge (vol d'adresse) puis feu vert, 4 mutants sur 4 attrapes sur le refus.
-  Vigneron : feu vert sous deux conditions (« (cet appareil) » prouve, « (pas la nuit) »), remplies.
+  Vigneron : feu vert sous deux conditions (« (cet appareil) » prouve, « (pas la nuit) »), remplies,
+  puis « (pas la nuit) » retire par l'arbitrage ci-dessus.
 - **Signale, hors lot** : `push_inscrire` (lot 59) fait `on conflict do update set personne` :
   un compte connecte qui connait l'adresse d'un autre appareil peut se l'attribuer. Voulu en partie
-  (changement de compte sur un poste partage). A arbitrer.
-- **Restent ouverts** : double avertissement mail + notification pour la gagnee ; plage de
-  silence reglable ; toucher qui ouvre la chose exacte.
+  (changement de compte sur un poste partage). **ARBITRE PAR TED LE 05/10/2026 : ON LAISSE
+  COMME CA** (risque minime : l'adresse ne s'affiche nulle part). Ne pas fermer sans nouvel arbitrage.
+- **Restent ouverts** : double avertissement mail + notification pour la gagnee ; toucher qui
+  ouvre la chose exacte. (La plage de silence reglable est abandonnee : arbitrage ci-dessus.)

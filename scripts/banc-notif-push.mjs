@@ -177,9 +177,9 @@ const serve = SRC_F.slice(SRC_F.indexOf('Deno.serve('));
 t('la notification part AVANT le mail, et n\'attend pas qu\'il y ait des destinataires du mail',
   serve.indexOf('await notifier(') > 0 && serve.indexOf('await notifier(') < serve.indexOf('if (!uniques.length)'));
 t('elle ne part qu\'apres la reservation du journal (une fermeture, un envoi)', serve.indexOf('await reserver(') < serve.indexOf('await notifier('));
-t('signe, gagnee, perdue (lot 62) ; la nuit, seul le devis signe est differe',
+t('signe, gagnee, perdue (lot 62) ; AUCUN silence de nuit (arbitrage du 05/10/2026) : tout part tout de suite',
   /if \(!\['signe', 'gagnee', 'perdue'\]\.includes\(String\(d\.sorte\)\)\) return \{ partis: null, echec: null, differe: false \};/.test(SRC_F)
-  && /if \(enSilence\(\)\) return \{ partis: null, echec: null, differe: d\.sorte === 'signe' \};/.test(SRC_F));
+  && !/enSilence/.test(SRC_F) && !/differe: d\.sorte/.test(SRC_F));
 t('l\'auteur du geste n\'est jamais notifie : push_cibles recoit p_sauf = close_par',
   /rpc\('push_cibles', \{ p_bureau: bureau, p_sorte: d\.sorte, p_sauf: d\.close_par \?\? null \}\)/.test(SRC_F));
 t('chaque envoi a un plafond de 5 s, et ils partent tous en meme temps',

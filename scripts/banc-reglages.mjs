@@ -468,8 +468,9 @@ for (const avecColonnes of [false, true]) {
     dit(ecrits.length === 0, 'rien touche, une case decochee en base : rien ne part (' + JSON.stringify(ecrits) + ')');
     $('bdvrPushRappels').checked = true; await soumettre();
     dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_rappels":true}', 'cocher les rappels n\'envoie que cette colonne (' + JSON.stringify(ecrits) + ')');
-    dit(/entre 20 h et 7 h/.test($('bdvrPushCases').textContent) && /Ni nom de client ni montant/.test($('bdvrPushCases').textContent),
-      'l\'aide dit la nuit et l\'ecran verrouille');
+    dit(/Ne pas déranger/.test($('bdvrPushCases').textContent) && !/entre 20 h et 7 h|pas la nuit/.test($('bdvrPushCases').textContent)
+        && /Ni nom de client ni montant/.test($('bdvrPushCases').textContent),
+      'l\'aide dit que ca sonne aussi la nuit (Ne pas deranger) et parle de l\'ecran verrouille');
     dit($('bdvrPushGagnee').closest('label').hidden && $('bdvrPushPerdue').closest('label').hidden,
       'base sans le lot 62 : les cases gagnee et perdue restent cachees');
   }

@@ -118,7 +118,7 @@ async function envoyer(a: string, sujet: string, html: string, texte: string) {
    ../_shared/webpush.ts depuis le lot 61 (notif-horaire s'en sert aussi). Ici : quoi
    dire, a qui, et la nuit. Le secret VAPID_PRIVATE est commun a tout le projet.
    --------------------------------------------------------------------------- */
-import { chiffrer, jetonVapid, pousser, envoyerAux, enSilence, VAPID_PUBLIQUE } from '../_shared/webpush.ts';
+import { chiffrer, jetonVapid, pousser, envoyerAux, VAPID_PUBLIQUE } from '../_shared/webpush.ts';
 const VAPID_PRIVEE = Deno.env.get('VAPID_PRIVATE') ?? '';
 
 /* Ce que porte la notification : ni nom de client ni montant (ecran verrouille). */
@@ -147,14 +147,12 @@ async function oublierAppareil(endpoint: string) {
 
 /* Rend { partis, echec, differe } pour le journal. Ne leve jamais : la notification ne
    doit jamais empecher le mail ni la reponse.
-   LOT 61 : LA NUIT (20 h - 7 h, heure de Paris), RIEN NE PART. La signature est notee
-   « differee » et notif-horaire l'annonce a 7 h 30 (« 1 devis signe cette nuit »). Les
-   destinataires et leurs cases sont decides en base (push_cibles, sorte comprise). */
+   ARBITRAGE DE TED, 05/10/2026 : PLUS AUCUN SILENCE DE NUIT. Tout part tout de suite, de
+   jour comme de nuit ; le telephone de chacun fait le silence (mode Ne pas deranger). Le
+   silence de 20 h a 7 h du lot 61 est retire ici. Les destinataires et leurs cases sont
+   decides en base (push_cibles, sorte comprise). */
 async function notifier(bureau: string, d: Detail) {
   if (!['signe', 'gagnee', 'perdue'].includes(String(d.sorte))) return { partis: null, echec: null, differe: false };
-  /* La nuit : le devis signe est differe (annonce a 7 h 30). L'affaire d'un collegue,
-     elle, ne merite pas de reveiller : elle se lit au matin dans « Mon commerce ». */
-  if (enSilence()) return { partis: null, echec: null, differe: d.sorte === 'signe' };
   if (!VAPID_PRIVEE) return { partis: 0, echec: 'VAPID_PRIVATE absente', differe: false };
   let cibles: Detail[] = [];
   /* p_sauf : l'auteur du geste n'est jamais notifie de ce qu'il vient de faire (lot 57).

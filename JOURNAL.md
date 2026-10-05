@@ -15,13 +15,18 @@ trois jours. Ne pas s'en étonner en relisant.
 ## 05/10/2026, lot 62 : les affaires des collègues, la liste des appareils
 
 Deux cases de plus dans « Ce qui sonne sur mes appareils » : un collègue gagne (cochée), un collègue
-perd (décochée), jamais la nuit, et jamais pour soi-même. Toujours aucun mail pour une perdue,
+perd (décochée), jamais pour soi-même. Toujours aucun mail pour une perdue,
 garanti par la base. La liste « Mes appareils qui reçoivent » avec « Retirer » sur chaque ligne.
 Quand un navigateur change tout seul son adresse d'envoi, le récepteur la remplace.
 Le vérificateur a donné un feu rouge : ce remplacement permettait de prendre l'adresse d'un
-collègue. Corrigé et couvert par le banc, puis feu vert. Le vigneron a fait ajouter « (pas la nuit) »,
-la date pour deux appareils du même nom, et la phrase « Une affaire gagnée ou perdue la nuit ne
-sonne pas, même le matin ».
+collègue. Corrigé et couvert par le banc, puis feu vert. Le vigneron a fait ajouter la date pour
+deux appareils du même nom.
+**Arbitrage de Ted : plus de silence de nuit.** Tout sonne dès que ça arrive, de jour comme de nuit.
+Les téléphones ont le mode Ne pas déranger, chacun le règle. Le silence de 20 h à 7 h du lot 61 est
+retiré, et l'écran le dit.
+**Arbitrage de Ted : on laisse l'inscription d'un appareil passer au dernier compte qui l'active**
+(utile sur un poste partagé). Le risque, s'attribuer l'adresse d'un autre appareil, est jugé minime
+car cette adresse ne s'affiche nulle part.
 Chantier notifications terminé (5 lots sur 5).
 
 ## 05/10/2026, lot 61 : le matin, le soir, la nuit

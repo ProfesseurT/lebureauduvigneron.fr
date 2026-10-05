@@ -608,10 +608,10 @@
           <label class="bdvr-chk"><input type="checkbox" id="bdvrPushEcheance"> Une échéance qui coûte une amende, la veille et le jour même (7 h 30)</label>
           <label class="bdvr-chk"><input type="checkbox" id="bdvrPushDevisExpire"> Un devis envoyé expire demain sans réponse (7 h 30)</label>
           <label class="bdvr-chk"><input type="checkbox" id="bdvrPushRappels"> Des rappels promis pour aujourd'hui ne sont pas faits (17 h 30)</label>
-          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushGagnee"> Un collègue gagne une affaire (pas la nuit)</label>
-          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushPerdue"> Un collègue perd une affaire (pas la nuit)</label>
-          <p class="bdvr-aide">Rien ne sonne entre 20 h et 7 h : un devis signé la nuit t'est annoncé à
-            7 h 30. Le matin, tout tient dans une seule notification. Une affaire gagnée ou perdue la nuit ne sonne pas, même le matin. Si tu l'as déjà cochée ou faite, on
+          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushGagnee"> Un collègue gagne une affaire</label>
+          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushPerdue"> Un collègue perd une affaire</label>
+          <p class="bdvr-aide">Ça sonne dès que ça arrive, de jour comme de nuit. Pour être tranquille la nuit,
+            active le mode Ne pas déranger de ton téléphone. Le matin, tout tient dans une seule notification. Si tu l'as déjà cochée ou faite, on
             ne t'en reparle pas. Ni nom de client ni montant : l'écran verrouillé se lit par-dessus l'épaule.</p>
         </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
