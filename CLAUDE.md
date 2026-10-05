@@ -8043,3 +8043,32 @@ ouvert : un projet Supabase gratuit en pause arrete aussi le cron.
   COMME CA** (risque minime : l'adresse ne s'affiche nulle part). Ne pas fermer sans nouvel arbitrage.
 - **Restent ouverts** : double avertissement mail + notification pour la gagnee ; toucher qui
   ouvre la chose exacte. (La plage de silence reglable est abandonnee : arbitrage ci-dessus.)
+
+### LOT 63, 05/10/2026 : MES ALERTES, UN TABLEAU MAIL x NOTIFICATION
+
+- **Demande de Ted : centraliser et lisser.** Dans « Le courrier », UN tableau `#bdvrAlertes`
+  remplace les listes des lots 58 et 61 : 6 lignes (devis signe, affaire du bureau gagnee,
+  perdue, echeance 7 h 30, devis qui expire 7 h 30, rappels 17 h 30) x 2 colonnes (Mail, Notif.).
+  Une case par colonne de `profils`, liste `ALERTES` de bdv-reglages.js, UNE GARDE PAR COLONNE
+  (une base en retard d'un lot ne recoit jamais de colonne inconnue). Le courrier du matin et
+  l'edition restent au-dessus et en dessous, a part.
+- **ARBITRAGE DE TED : la perdue PEUT partir par mail** (`notif_mail_perdue`, decochee par
+  defaut). La regle « jamais de mail pour une perdue » du lot 58 est ANNULEE.
+- **Trois vrais mails nouveaux**, decoches par defaut : `notif_mail_echeance`,
+  `notif_mail_devis_expire` (7 h 30), `notif_mail_rappels` (17 h 30). `notif_horaire_lots`
+  decide ET reserve mail et notification, chacun son journal (`push_journal`,
+  `notif_mail_journal`). Le mail porte le DETAIL (obligations, numero, client, montant, nom du
+  client du rappel pris dans `pistes.client_id` DU MEME BUREAU, sinon « Client » + numero) ; la
+  notification jamais.
+- **Quota Resend (100/jour, partage)** : ces mails sont plafonnes a `p_plafond` = 20 PAR JOUR
+  (matin et soir ensemble ; courrier du matin 40 ; reste 40 pour les mails immediats et les
+  codes). Au-dela rien n'est reserve, la reponse compte `plafonnes`. Les mails partent UN A UN,
+  600 ms de pause, un 429 retente une fois. Un echec ne se rejoue pas (pas de doublon).
+- **La tache cron `notif-horaire` attend 120 s** (au lieu de 30) : un passage de 20 mails dure
+  20 a 32 s.
+- Verificateur : feu rouge (mails en parallele, plafond par passage, delai pg_net, fuites non
+  couvertes) puis feu vert, banc SQL 30/30. Vigneron : feu vert (libelles « du bureau », aide
+  raccourcie qui commence par la nuit, pas d'intertitre pour une seule rubrique).
+- **Assume** : un passage coupe apres la reservation laisse la ligne du journal sans
+  `envoye_le` ni `echec` : le mail est perdu, jamais double.
+

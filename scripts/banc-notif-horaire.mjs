@@ -70,7 +70,7 @@ const paire = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
 const jwk = paire.privateKey.export({ format: 'jwk' });
 const CLE = 'k'.repeat(40);
 
-const vu = { rpc: [], patch: [], suppr: [], push: [] };
+const vu = { rpc: [], patch: [], suppr: [], push: [], mails: [], mailj: [] };
 const serveur = http.createServer((req, res) => {
   const morceaux = []; req.on('data', (x) => morceaux.push(x));
   req.on('end', () => {
@@ -82,8 +82,15 @@ const serveur = http.createServer((req, res) => {
       return res.end(JSON.stringify([
         { personne: 'p1', jour: '2026-10-09', moment: 'matin', message: { titre: 'DRM à faire demain.', corps: 'Ouvre ton bureau pour t\'en occuper.', url: '/mon-bureau/', tag: 'matin-2026-10-09' },
           cibles: [{ endpoint: `http://127.0.0.1:${port}/push/vivant`, p256dh: b64u(appareil.getPublicKey()), auth: b64u(secret) },
-                   { endpoint: `http://127.0.0.1:${port}/push/mort`, p256dh: b64u(appareil.getPublicKey()), auth: b64u(secret) }] }]));
+                   { endpoint: `http://127.0.0.1:${port}/push/mort`, p256dh: b64u(appareil.getPublicKey()), auth: b64u(secret) }] },
+        /* LOT 63 : une personne qui n'a que le mail coche, avec le detail. */
+        { personne: 'p2', jour: '2026-10-09', moment: 'matin',
+          mail: { email: 'camila@exemple.fr', prenom: 'Camila <i>x</i>', bureau_nom: 'Domaine <Test>', sujet: '2 choses à voir ce matin',
+                  echeances: [{ court: 'DRM', quand: 'demain' }],
+                  devis: [{ numero: 'D-2026-007', client: 'Cave <b>du</b> Quai', total_ht_c: 123450, affaire_id: 'a1' }], rappels: [] } }]));
     }
+    if (req.url.startsWith('/emails')) { vu.mails.push({ h: req.headers, corps: JSON.parse(corps.toString()) }); res.statusCode = 200; return res.end('{"id":"x"}'); }
+    if (req.url.startsWith('/rest/v1/notif_mail_journal')) { vu.mailj.push({ url: req.url, corps: JSON.parse(corps.toString()) }); res.statusCode = 204; return res.end(); }
     if (req.url.startsWith('/rest/v1/push_journal')) { vu.patch.push({ url: req.url, corps: JSON.parse(corps.toString()) }); res.statusCode = 204; return res.end(); }
     if (req.url.startsWith('/rest/v1/push_abonnements')) { vu.suppr.push(decodeURIComponent(req.url)); res.statusCode = 204; return res.end(); }
     if (req.url.startsWith('/push/')) { vu.push.push({ url: req.url, h: req.headers, b: corps }); res.statusCode = req.url.endsWith('mort') ? 410 : 201; return res.end(); }
@@ -101,7 +108,9 @@ const pubEssai = b64u(Buffer.concat([Buffer.from([4]), Buffer.from(jwk.x, 'base6
 const copie = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-horaire-'));
 fs.mkdirSync(path.join(copie, '_shared')); fs.mkdirSync(path.join(copie, 'notif-horaire'));
 fs.writeFileSync(path.join(copie, '_shared/webpush.ts'), SHARED.replace(/export const VAPID_PUBLIQUE = '[^']*';/, "export const VAPID_PUBLIQUE = '" + pubEssai + "';"));
-fs.copyFileSync(path.join(RACINE, 'supabase/functions/notif-horaire/index.ts'), path.join(copie, 'notif-horaire/index.ts'));
+/* Le service de mail est remplace par le faux serveur : seule l'adresse change dans la copie. */
+fs.writeFileSync(path.join(copie, 'notif-horaire/index.ts'),
+  lire('supabase/functions/notif-horaire/index.ts').split('https://api.resend.com/emails').join(`http://127.0.0.1:${port}/emails`));
 /* L'HEURE EST FIGEE : sans ca, le banc lance la nuit tomberait sur le silence. */
 const horloge = (iso) => 'const __RD=Date;globalThis.Date=class extends __RD{constructor(...a){super(...(a.length?a:[' + JSON.stringify(iso) + ']));}'
   + 'static now(){return new __RD(' + JSON.stringify(iso) + ').getTime();}};';
@@ -113,7 +122,7 @@ const lancerCopie = (scenario, env, iso = '2026-10-09T05:30:00Z') => {
   return new Promise((ok, ko) => execFile(process.execPath, ['--experimental-strip-types', '--no-warnings', '--input-type=module', '-e', code],
     { encoding: 'utf8', timeout: 30000 }, (e, so, se) => (e ? ko(new Error(se || e.message)) : ok(JSON.parse(so.trim())))));
 };
-const ENV = { SUPABASE_URL: `http://127.0.0.1:${port}`, SUPABASE_SERVICE_ROLE_KEY: 'service', NOTIF_CLE: CLE, VAPID_PRIVATE: jwk.d };
+const ENV = { SUPABASE_URL: `http://127.0.0.1:${port}`, SUPABASE_SERVICE_ROLE_KEY: 'service', NOTIF_CLE: CLE, VAPID_PRIVATE: jwk.d, RESEND_API_KEY: 're_essai' };
 let r = null;
 try {
   r = await lancerCopie([
@@ -121,15 +130,18 @@ try {
     { h: { 'x-notif-cle': CLE }, b: '{"moment":"matin"}' },
   ], ENV);
 } catch (e) { t('la fonction tourne', false, String(e).slice(0, 400)); }
+let sansVapid = null;
+try { sansVapid = await lancerCopie([{ h: { 'x-notif-cle': CLE }, b: '{"moment":"matin"}' }], Object.assign({}, ENV, { VAPID_PRIVATE: '' })); }
+catch (e) { sansVapid = null; }
 let nuit = null;
 try { nuit = await lancerCopie([{ h: { 'x-notif-cle': CLE }, b: '{"moment":"matin"}' }], ENV, '2026-10-11T20:00:00Z'); }
 catch (e) { nuit = null; }
 try { fs.rmSync(copie, { recursive: true, force: true }); } catch (e) {}
 serveur.close();
 if (r) {
-  t('sans la bonne cle : 401, et rien n\'est lu', r[0].code === 401 && vu.rpc.length === 1);
+  t('sans la bonne cle : 401, et rien n\'est lu', r[0].code === 401 && vu.rpc.length === 2); // 2 = l essai force, puis celui sans cle VAPID
   t('l\'essai force le matin : un lot, une personne prevenue, une notification partie',
-    r[1].code === 200 && r[1].corps.moment === 'matin' && r[1].corps.lots === 1 && r[1].corps.personnes === 1 && r[1].corps.notifications === 1, JSON.stringify(r[1]));
+    r[1].code === 200 && r[1].corps.moment === 'matin' && r[1].corps.lots === 2 && r[1].corps.personnes === 1 && r[1].corps.notifications === 1, JSON.stringify(r[1]));
   t('la base est interrogee avec le moment, et rien d\'autre', JSON.stringify(vu.rpc[0]) === '{"p_moment":"matin"}');
   const v = vu.push.find((p) => p.url.endsWith('vivant'));
   let lu = null;
@@ -138,9 +150,27 @@ if (r) {
   t('TTL de deux jours et autorisation VAPID', v && v.h.ttl === '172800' && /^vapid t=.+, k=/.test(v.h.authorization || ''));
   t('l\'adresse morte (410) est retiree de la base', vu.suppr.some((u) => u.includes('endpoint=eq.http://127.0.0.1:' + port + '/push/mort')));
   t('un essai force a 22 h ne passe pas : silence, et la base n\'est meme pas interrogee',
-    !!nuit && nuit[0].code === 200 && nuit[0].corps.silence === 22 && vu.rpc.length === 1, JSON.stringify(nuit));
-  t('le journal note 1 parti, sans echec', vu.patch.length === 1 && vu.patch[0].corps.partis === 1 && vu.patch[0].corps.echec === null
+    !!nuit && nuit[0].code === 200 && nuit[0].corps.silence === 22 && vu.rpc.length === 2, JSON.stringify(nuit));
+  t('le journal note 1 parti, sans echec', vu.patch[0] && vu.patch[0].corps.partis === 1 && vu.patch[0].corps.echec === null
     && /personne=eq\.p1&jour=eq\.2026-10-09&moment=eq\.matin/.test(vu.patch[0].url), JSON.stringify(vu.patch));
+
+  /* LOT 63 : LE MAIL */
+  const m = vu.mails[0];
+  t('lot 63 : un mail part pour p2, a sa seule adresse, avec la cle Resend', r[1].corps.mails === 1 && !!m
+    && JSON.stringify(m.corps.to) === '["camila@exemple.fr"]' && m.h.authorization === 'Bearer re_essai', JSON.stringify(r[1].corps));
+  t('le sujet est celui decide en base', !!m && m.corps.subject === '2 choses à voir ce matin');
+  t('le mail porte le detail : obligation, numero de devis, client, montant HT', !!m && /DRM, à faire demain/.test(m.corps.text)
+    && /D-2026-007, Cave <b>du<\/b> Quai, 1 234,50 € HT/.test(m.corps.text), m && m.corps.text);
+  t('le HTML echappe le client, le bureau et le prenom du bonjour (aucune balise injectee)', !!m && m.corps.html.indexOf('<b>du</b>') < 0
+    && m.corps.html.indexOf('Cave &lt;b&gt;du&lt;/b&gt; Quai') > 0 && m.corps.html.indexOf('Domaine &lt;Test&gt;') > 0
+    && m.corps.html.indexOf('<i>x</i>') < 0 && m.corps.html.indexOf('Camila &lt;i&gt;x&lt;/i&gt;') > 0);
+  t('le pied dit ou decocher (« Mes alertes »)', !!m && /Mes alertes/.test(m.corps.text) && /décocher/.test(m.corps.text));
+  t('le journal du mail est note pour p2, envoye', vu.mailj.length >= 1 && !!vu.mailj[0].corps.envoye_le
+    && /personne=eq\.p2&jour=eq\.2026-10-09&moment=eq\.matin/.test(vu.mailj[0].url), JSON.stringify(vu.mailj));
+  t('p1 (notification seule) ne recoit aucun mail', vu.mails.every((x) => JSON.stringify(x.corps.to) === '["camila@exemple.fr"]'));
+  t('sans cle VAPID : le mail part quand meme, la notification est notee en echec',
+    !!sansVapid && sansVapid[0].code === 200 && sansVapid[0].corps.mails === 1 && sansVapid[0].corps.notifications === 0
+    && vu.patch.some((x) => x.corps.echec === 'VAPID_PRIVATE absente'), JSON.stringify(sansVapid));
 }
 
 /* ==========================================================================
@@ -167,13 +197,16 @@ t('le matin a 7 h, le soir a 17 h, rien a 8 h ; un essai force un moment connu, 
 
 const F = lire('supabase/functions/notif-horaire/index.ts');
 t('la fonction n\'appelle que notif_horaire_lots', (F.match(/rpc\('([a-z_]+)'/g) || []).join() === "rpc('notif_horaire_lots'");
+t('lot 63 : les mails partent UN A UN avec une pause d au moins 500 ms (Resend : 2 par seconde)',
+  /export const PAUSE_MAIL_MS = (\d+);/.test(F) && +F.match(/export const PAUSE_MAIL_MS = (\d+);/)[1] >= 500
+  && /for \(const l of lots\) \{\s*if \(!l\.mail\) continue;/.test(F) && /setTimeout\(ok, PAUSE_MAIL_MS\)/.test(F));
 t('un seul import, le module partage', (F.match(/^\s*import\s/gm) || []).length === 1 && /from '\.\.\/_shared\/webpush\.ts';/.test(F));
 t('l\'horloge passe a la demie et reprend l\'adresse rangee, sans recopier la cle',
   /cron\.schedule\('notif-horaire', '30 \* \* \* \*'/.test(SQL) && /replace\(r\.url, '\/notif-commerce', '\/notif-horaire'\)/.test(SQL) && !/x-notif-cle', '[A-Za-z0-9]{20,}'/.test(SQL));
-for (const f of ['supabase/functions/notif-horaire/index.ts', 'supabase/functions/_shared/webpush.ts', 'supabase/lot61-notif-horaire.sql'])
+for (const f of ['supabase/functions/notif-horaire/index.ts', 'supabase/functions/_shared/webpush.ts', 'supabase/lot61-notif-horaire.sql', 'supabase/lot63-alertes.sql'])
   t(f + ' : aucun tiret cadratin', lire(f).indexOf('—') < 0);
 
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DU MATIN ET DU SOIR REFUSE\n'); process.exit(1); }
-console.log('  LE MATIN REGROUPE, LE SOIR SE TAIT PAR DEFAUT, LA NUIT SE TAIT TOUJOURS\n');
+console.log('  LE MATIN REGROUPE, LE SOIR SE TAIT PAR DEFAUT, LE MAIL PORTE LE DETAIL\n');

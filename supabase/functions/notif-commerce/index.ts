@@ -261,10 +261,9 @@ function fabriquer(d: Detail) {
   const url = lienAffaire(String(d.affaire_id));
   const bureau = String(d.bureau_nom || 'ton bureau');
   /* LOT 58 : le pied ne dit plus « tout le bureau le recoit », c'est faux depuis que chacun
-     coupe ses mails. Il dit OU les couper, comme le courrier du matin. LOT 62 : une perdue
-     revient ici (pour la notification), mais notif_detail lui rend TOUJOURS une liste de
-     destinataires vide, donc aucun mail ne part. C'est la base qui garantit « jamais de mail
-     pour une perdue » ; banc-lot62 le verifie. */
+     coupe ses mails. Il dit OU les couper, comme le courrier du matin. LOT 63 : une perdue
+     part par mail a ceux qui ont coche « Mail » sur sa ligne de « Mes alertes » (decoche par
+     defaut). Ted est revenu sur « jamais de mail pour une perdue » le 05/10/2026. */
   const pied = `Tu reçois ce message parce que tu es membre du bureau ${bureau} et que ce mail est coché dans tes réglages, onglet « Le courrier ». Tu peux l'y décocher.`;
 
   const rangees = lignesInfo.map(([k, v]) => `

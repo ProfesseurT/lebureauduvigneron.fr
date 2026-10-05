@@ -12,6 +12,17 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 05/10/2026, lot 63 : mes alertes, un tableau mail et notification
+
+Dans « Le courrier », un seul tableau : une ligne par événement, une case Mail et une case
+Notification. Trois mails nouveaux (échéance, devis qui expire, rappels du jour), décochés par
+défaut, avec le détail. **Arbitrage de Ted : une affaire perdue peut maintenant partir par mail**
+(décoché par défaut), la règle « jamais » du lot 58 tombe. Pour ménager le quota gratuit de
+Resend, ces mails sont plafonnés à 20 par jour et partent un par un.
+Le vérificateur a donné deux feux rouges (mails en parallèle, plafond mal compté, délai trop
+court), corrigés, puis feu vert. Le vigneron a fait écrire « Une affaire du bureau » et raccourcir
+l'aide.
+
 ## 05/10/2026, lot 62 : les affaires des collègues, la liste des appareils
 
 Deux cases de plus dans « Ce qui sonne sur mes appareils » : un collègue gagne (cochée), un collègue

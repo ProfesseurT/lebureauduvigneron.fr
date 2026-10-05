@@ -393,61 +393,20 @@ console.log('\n== 6. Ni ombre ni saut au survol des boutons du bureau ==');
 }
 
 /* ==========================================================================
-   7. LES MAILS IMMEDIATS SE REGLENT, LOT 58, 03/10/2026 (decisions de Ted)
+   7. MES ALERTES : UN TABLEAU MAIL x NOTIFICATION, LOT 63, 05/10/2026 (demande de Ted)
    --------------------------------------------------------------------------
-   Deux cases par personne, cochees en base par defaut. Tant que le lot 58 n'est pas colle,
-   les colonnes n'existent pas : les cases ne se montrent pas ET ne partent pas, sinon
-   l'ecriture du profil entier serait refusee pour une colonne inconnue.
+   Remplace les deux listes des lots 58 et 61. Chaque case n'apparait que si la base porte
+   sa colonne : une base en retard d'un lot ne recoit jamais de colonne inconnue (l'ecriture
+   du profil entier serait refusee), et une case absente ne vaut pas « decoche ».
    ========================================================================== */
-console.log('\n== 7. Les mails immediats, une case par personne ==');
-for (const avecColonnes of [false, true]) {
+console.log('\n== 7. Mes alertes, le tableau mail x notification ==');
+const BASE = { prenom: 'Ted', consent_courrier: true, consent_news: false };
+const L58 = { notif_mail_signe: false, notif_mail_gagnee: true };
+const L61 = { notif_push_signe: true, notif_push_echeance: true, notif_push_devis_expire: true, notif_push_rappels: false };
+const L62 = { notif_push_gagnee: true, notif_push_perdue: false };
+const L63 = { notif_mail_perdue: false, notif_mail_echeance: false, notif_mail_devis_expire: false, notif_mail_rappels: false };
+async function monterAlertes(profil) {
   const t = monter({ objectif: 500000, exercice_debut: 4 });
-  const profil = avecColonnes
-    ? { prenom: 'Ted', consent_courrier: true, consent_news: false, notif_mail_signe: false, notif_mail_gagnee: true }
-    : { prenom: 'Ted', consent_courrier: true, consent_news: false };
-  const ecrits = [];
-  t.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
-  t.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, profil)] : [{}]);
-  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
-  const d = t.w.document, $ = (id) => d.getElementById(id);
-  t.w.BdvReglages.ouvrir('bdvrBlocCourrier');
-  await dormir(80);
-  const bloc = $('bdvrMailsImmediats');
-  const soumettre = async () => { $('bdvrForm').dispatchEvent(new t.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
-  if (!avecColonnes) {
-    dit(!!bloc && bloc.hidden, 'base sans le lot 58 : les deux cases restent cachees');
-    $('bdvrNews').checked = true;
-    await soumettre();
-    dit(ecrits.length === 1 && JSON.stringify(Object.keys(ecrits[0])) === '["consent_news"]',
-      'base sans le lot 58 : un enregistrement n\'envoie aucune colonne inconnue (' + JSON.stringify(ecrits) + ')');
-  } else {
-    dit(!!bloc && !bloc.hidden, 'base avec le lot 58 : les deux cases se montrent');
-    dit(bloc && bloc.closest('#bdvrBlocCourrier') !== null, 'elles sont dans l\'onglet « Le courrier »');
-    dit(!$('bdvrMailSigne').checked && $('bdvrMailGagnee').checked, 'cochees comme en base (signe decoche, gagnee cochee)');
-    await soumettre();
-    /* Une case DEJA decochee en base ne doit pas repartir a chaque enregistrement : c'est le
-       piege du `false || null` (lot 12), que seul un profil decoche peut attraper. */
-    dit(ecrits.length === 0, 'rien touche, une case deja decochee en base : rien ne part (' + JSON.stringify(ecrits) + ')');
-    $('bdvrMailGagnee').checked = false;
-    await soumettre();
-    dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_mail_gagnee":false}',
-      'decocher « affaire gagnee » n\'envoie que cette colonne, a false (' + JSON.stringify(ecrits) + ')');
-    const aide = bloc.textContent;
-    dit(/perdue n'envoie jamais de mail/.test(aide) && /confirmation/.test(aide),
-      'l\'aide dit la perdue sans mail et la confirmation coupee aussi');
-    const ordre = [...$('bdvrBlocCourrier').querySelectorAll('input[type=checkbox]')].map(n => n.id);
-    dit(ordre.slice(0, 3).join() === 'bdvrCourrier,bdvrMailSigne,bdvrMailGagnee' && ordre[ordre.length - 1] === 'bdvrNews', 'le courrier du matin reste la premiere case, l\'edition la derniere (' + ordre.join() + ')');
-  }
-}
-
-/* ==========================================================================
-   8. CE QUI SONNE SUR MES APPAREILS, LOT 61, 05/10/2026
-   ========================================================================== */
-console.log('\n== 8. Les cases « sur mes appareils » ==');
-for (const avecColonnes of [false, true]) {
-  const t = monter({ objectif: 500000, exercice_debut: 4 });
-  const profil = Object.assign({ prenom: 'Ted', consent_courrier: true, consent_news: false, notif_mail_signe: true, notif_mail_gagnee: true },
-    avecColonnes ? { notif_push_signe: true, notif_push_echeance: true, notif_push_devis_expire: true, notif_push_rappels: false } : {});
   const ecrits = [];
   t.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
   t.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, profil)] : [{}]);
@@ -456,47 +415,52 @@ for (const avecColonnes of [false, true]) {
   t.w.BdvReglages.ouvrir('bdvrBlocCourrier');
   await dormir(80);
   const soumettre = async () => { $('bdvrForm').dispatchEvent(new t.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
-  if (!avecColonnes) {
-    dit($('bdvrPushCases').hidden, 'base sans le lot 61 : les quatre cases restent cachees');
-    $('bdvrNews').checked = true; await soumettre();
-    dit(ecrits.length === 1 && Object.keys(ecrits[0]).join() === 'consent_news', 'et rien d\'inconnu ne part (' + JSON.stringify(ecrits) + ')');
-  } else {
-    dit(!$('bdvrPushCases').hidden && !!$('bdvrPushCases').closest('#bdvrBlocCourrier'), 'base avec le lot 61 : les quatre cases dans « Le courrier »');
-    dit($('bdvrPushSigne').checked && $('bdvrPushEcheance').checked && $('bdvrPushDevisExpire').checked && !$('bdvrPushRappels').checked,
-      'cochees comme en base, les rappels du soir decoches');
-    await soumettre();
-    dit(ecrits.length === 0, 'rien touche, une case decochee en base : rien ne part (' + JSON.stringify(ecrits) + ')');
-    $('bdvrPushRappels').checked = true; await soumettre();
-    dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_rappels":true}', 'cocher les rappels n\'envoie que cette colonne (' + JSON.stringify(ecrits) + ')');
-    dit(/Ne pas déranger/.test($('bdvrPushCases').textContent) && !/entre 20 h et 7 h|pas la nuit/.test($('bdvrPushCases').textContent)
-        && /Ni nom de client ni montant/.test($('bdvrPushCases').textContent),
-      'l\'aide dit que ca sonne aussi la nuit (Ne pas deranger) et parle de l\'ecran verrouille');
-    dit($('bdvrPushGagnee').closest('label').hidden && $('bdvrPushPerdue').closest('label').hidden,
-      'base sans le lot 62 : les cases gagnee et perdue restent cachees');
-  }
+  const lignes = () => [...d.querySelectorAll('#bdvrAlertes tr[data-ligne]')].filter((tr) => !tr.hidden).map((tr) => tr.getAttribute('data-ligne')).join();
+  return { t, d, $, ecrits, soumettre, lignes };
 }
-console.log('\n== 8 bis. Les affaires des collegues (lot 62) ==');
 {
-  const t = monter({ objectif: 500000, exercice_debut: 4 });
-  const profil = { prenom: 'Ted', consent_courrier: true, consent_news: false, notif_mail_signe: true, notif_mail_gagnee: true,
-    notif_push_signe: true, notif_push_echeance: true, notif_push_devis_expire: true, notif_push_rappels: false,
-    notif_push_gagnee: true, notif_push_perdue: false };
-  const ecrits = [];
-  t.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
-  t.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, profil)] : [{}]);
-  t.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
-  const d = t.w.document, $ = (id) => d.getElementById(id);
-  t.w.BdvReglages.ouvrir('bdvrBlocCourrier');
-  await dormir(80);
-  const soumettre = async () => { $('bdvrForm').dispatchEvent(new t.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
-  {
-    dit(!$('bdvrPushGagnee').closest('label').hidden && $('bdvrPushGagnee').checked && !$('bdvrPushPerdue').checked,
-      'base avec le lot 62 : gagnee cochee, perdue decochee, les deux visibles');
-    await soumettre();
-    dit(ecrits.length === 0, 'rien touche : rien ne part');
-    $('bdvrPushPerdue').checked = true; await soumettre();
-    dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_perdue":true}', 'cocher la perdue n\'envoie que sa colonne (' + JSON.stringify(ecrits) + ')');
-  }
+  const { $, ecrits, soumettre } = await monterAlertes(BASE);
+  dit($('bdvrAlertes').hidden, 'base sans aucun lot de notifications : le tableau reste cache');
+  $('bdvrNews').checked = true; await soumettre();
+  dit(ecrits.length === 1 && Object.keys(ecrits[0]).join() === 'consent_news', 'et rien d\'inconnu ne part (' + JSON.stringify(ecrits) + ')');
+}
+{
+  const { $, ecrits, soumettre, lignes } = await monterAlertes(Object.assign({}, BASE, L58));
+  dit(!$('bdvrAlertes').hidden && lignes() === 'signe,gagnee', 'base au lot 58 : deux lignes, signe et gagnee (' + lignes() + ')');
+  dit(!$('bdvrMailSigne').hidden && $('bdvrPushSigne').hidden, 'la case mail se montre, la case notification (colonne absente) non');
+  dit(!$('bdvrMailSigne').checked && $('bdvrMailGagnee').checked, 'cochees comme en base');
+  await soumettre();
+  dit(ecrits.length === 0, 'rien touche, une case deja decochee en base : rien ne part (piege du false || null) (' + JSON.stringify(ecrits) + ')');
+  $('bdvrMailGagnee').checked = false; await soumettre();
+  dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_mail_gagnee":false}', 'decocher n\'envoie que cette colonne (' + JSON.stringify(ecrits) + ')');
+}
+{
+  const { $, ecrits, soumettre, lignes } = await monterAlertes(Object.assign({}, BASE, L58, L61, L62));
+  dit(lignes() === 'signe,gagnee,perdue,echeance,devis_expire,rappels', 'base au lot 62 : les six lignes (' + lignes() + ')');
+  dit($('bdvrMailPerdue').hidden && !$('bdvrPushPerdue').hidden && $('bdvrMailRappels').hidden,
+    'sans le lot 63 : les quatre nouveaux mails restent caches, les notifications se montrent');
+  $('bdvrPushPerdue').checked = true; await soumettre();
+  dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_perdue":true}', 'et aucune colonne du lot 63 ne part (' + JSON.stringify(ecrits) + ')');
+}
+{
+  const { d, $, ecrits, soumettre, lignes } = await monterAlertes(Object.assign({}, BASE, L58, L61, L62, L63));
+  const cases = [...d.querySelectorAll('#bdvrAlertes input[type=checkbox]')];
+  dit(cases.length === 12 && cases.every((n) => !n.hidden), 'base au lot 63 : douze cases, toutes visibles');
+  dit(cases.every((n) => /^(Mail|Notification) : /.test(n.getAttribute('aria-label') || '')), 'chaque case dit son support et son evenement a un lecteur d\'ecran');
+  dit(!!$('bdvrAlertes').closest('#bdvrBlocCourrier') && !!d.querySelector('#bdvrAlertes table th[scope=col]') && d.querySelectorAll('#bdvrAlertes tbody th[scope=row]').length === 6,
+    'un vrai tableau, dans « Le courrier », avec en-tetes de colonnes et de lignes');
+  dit(!$('bdvrMailPerdue').checked && !$('bdvrMailEcheance').checked && !$('bdvrMailDevisExpire').checked && !$('bdvrMailRappels').checked,
+    'les quatre nouveaux mails decoches, comme en base');
+  await soumettre();
+  dit(ecrits.length === 0, 'rien touche : rien ne part');
+  $('bdvrMailPerdue').checked = true; $('bdvrPushRappels').checked = true; await soumettre();
+  dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_mail_perdue":true,"notif_push_rappels":true}',
+    'cocher deux cases n\'envoie que leurs deux colonnes (' + JSON.stringify(ecrits) + ')');
+  const aide = $('bdvrAlertes').textContent;
+  dit(/Ne pas déranger/.test(aide) && /ni nom de client ni montant/i.test(aide) && /confirmation/.test(aide) && !/pas la nuit|entre 20 h et 7 h|jamais de mail/.test(aide),
+    'l\'aide dit Ne pas deranger, l\'ecran verrouille et la confirmation, et plus « jamais de mail » ni la nuit');
+  const ordre = [...$('bdvrBlocCourrier').querySelectorAll('input[type=checkbox]')].map((n) => n.id);
+  dit(ordre[0] === 'bdvrCourrier' && ordre[ordre.length - 1] === 'bdvrNews', 'le courrier du matin reste la premiere case, l\'edition la derniere (' + ordre.join() + ')');
 }
 
 console.log('\n== VERDICT ==');

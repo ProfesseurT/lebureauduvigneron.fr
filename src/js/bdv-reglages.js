@@ -35,14 +35,18 @@
   const PREFIXE = 'bdvr';
   let monte = false;              // le panneau est-il deja dans le document
   let PROFIL = null, PROFIL_LU = false;
-  /* Les deux mails qui partent a l'instant (lot 58). Cochees par defaut EN BASE : un profil
-     qui n'a jamais touche ces cases les recoit, comme au lot 57. */
-  const MAILS_IMMEDIATS = ['notif_mail_signe', 'notif_mail_gagnee'];
-  /* Les cases « sur mes appareils » (lot 61) : colonne en base, case affichee. */
-  const PUSH_CASES = [['notif_push_signe', 'bdvrPushSigne'], ['notif_push_echeance', 'bdvrPushEcheance'],
-                      ['notif_push_devis_expire', 'bdvrPushDevisExpire'], ['notif_push_rappels', 'bdvrPushRappels']];
-  /* Lot 62 : deux cases de plus, avec LEUR propre garde (la base peut avoir le lot 61 sans le 62). */
-  const PUSH_CASES_62 = [['notif_push_gagnee', 'bdvrPushGagnee'], ['notif_push_perdue', 'bdvrPushPerdue']];
+  /* MES ALERTES (lot 63) : chaque case = une colonne de profils. Les mails signe et gagnee
+     (lot 58) et les cases de notification (lots 61 et 62) sont cochees ou non EN BASE ; les
+     mails du lot 63 sont decoches par defaut. Chaque case a sa propre garde : la base peut
+     avoir un lot sans le suivant. [colonne, id de la case, ligne du tableau] */
+  const ALERTES = [
+    ['notif_mail_signe', 'bdvrMailSigne', 'signe'],        ['notif_push_signe', 'bdvrPushSigne', 'signe'],
+    ['notif_mail_gagnee', 'bdvrMailGagnee', 'gagnee'],     ['notif_push_gagnee', 'bdvrPushGagnee', 'gagnee'],
+    ['notif_mail_perdue', 'bdvrMailPerdue', 'perdue'],     ['notif_push_perdue', 'bdvrPushPerdue', 'perdue'],
+    ['notif_mail_echeance', 'bdvrMailEcheance', 'echeance'], ['notif_push_echeance', 'bdvrPushEcheance', 'echeance'],
+    ['notif_mail_devis_expire', 'bdvrMailDevisExpire', 'devis_expire'], ['notif_push_devis_expire', 'bdvrPushDevisExpire', 'devis_expire'],
+    ['notif_mail_rappels', 'bdvrMailRappels', 'rappels'],  ['notif_push_rappels', 'bdvrPushRappels', 'rappels']
+  ];
   let REGL = null,   REGL_LU = false;
   let TOUCHES = {};               // champs touches par le vigneron, cf. regle 2
   let RETOUR_FOCUS = null;
@@ -160,6 +164,19 @@
 .bdvr-appareil{display:flex;align-items:center;justify-content:space-between;gap:var(--bdv-e-3);
   min-height:44px;border-bottom:1px solid var(--bdv-trait);font-size:var(--bdv-f-3);color:var(--bdv-encre-2)}
 .bdvr-btn--petit{min-height:36px;padding:0 var(--bdv-e-3)}
+/* Mes alertes (lot 63) : le tableau evenement x support. Les cases font 44 px de cote cliquable. */
+.bdvr-matrice{width:100%;border-collapse:collapse;font-family:inherit;font-size:var(--bdv-f-3);color:var(--bdv-encre-2)}
+.bdvr-matrice th,.bdvr-matrice td{border-bottom:1px solid var(--bdv-trait);padding:var(--bdv-e-2) 0;text-align:left;vertical-align:middle;line-height:1.4}
+.bdvr-matrice thead th{font-size:var(--bdv-f-2);color:var(--bdv-encre-3);font-weight:600;padding-top:0}
+.bdvr-matrice thead th + th,.bdvr-mat-c{width:64px;text-align:center}
+.bdvr-matrice tbody th{font-weight:400;padding-right:var(--bdv-e-2)}
+.bdvr-mat-c input{width:22px;height:22px;margin:11px;accent-color:var(--bdv-accent)}
+.bdvr-mat-c input[hidden]{display:none}
+.bdvr-mat-sans{display:none;color:var(--bdv-encre-4)}
+.bdvr-mat-c input[hidden] + .bdvr-mat-sans{display:inline}
+.bdvr-mat-h{white-space:nowrap;color:var(--bdv-encre-3);font-size:var(--bdv-f-2)}
+.bdvr-matrice tr[hidden]{display:none}
+.bdvr-mat-cache{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .bdvr-push-etat{font-family:inherit;font-size:var(--bdv-f-3);font-weight:600;color:var(--bdv-encre-2);
   line-height:1.5;margin:0 0 var(--bdv-e-2)}
 
@@ -566,19 +583,28 @@
         <p class="bdvr-aide">Chaque matin à 8 h, s'il y a quelque chose à dire : tes rappels du
           jour, tes tâches en retard et ta file de travail. Rien de nouveau, rien dans ta boîte.
           Il porte les noms de tes clients et tes montants, donc il ne part que si tu coches.</p>
-        <!-- LES MAILS IMMEDIATS, LOT 58, 03/10/2026 (decisions de Ted). Juste apres le courrier
-             du matin : ce sont les deux seuls mails qui partent a l'instant. Chacun les regle pour
-             lui ; decocher coupe aussi la confirmation de celui qui a fait le geste (pas de
-             deuxieme case, decision de Ted). Une perdue n'envoie JAMAIS de mail. Le bloc reste
-             cache tant que la base n'a pas les colonnes (lot 58 pas encore colle) : une case
-             affichee sans colonne derriere ecrirait dans le vide. -->
-        <div id="bdvrMailsImmediats" class="bdvr-groupe" hidden>
-          <label class="bdvr-chk"><input type="checkbox" id="bdvrMailSigne"> Un mail dès qu'un client signe un devis en ligne</label>
-          <label class="bdvr-chk"><input type="checkbox" id="bdvrMailGagnee"> Un mail dès qu'un collègue gagne une affaire</label>
-          <p class="bdvr-aide">Tout de suite, avec le détail. Chacun règle les siens : décocher ici ne
-            change rien pour les autres. Quand c'est toi qui gagnes l'affaire, ce mail te sert de
-            confirmation, et il s'arrête aussi. Une affaire perdue n'envoie jamais de mail : tu la vois
-            dans les nouvelles de « Mon commerce ».</p>
+        <!-- MES ALERTES, LOT 63, 05/10/2026 (demande de Ted : centraliser). UN tableau : une
+             ligne par evenement, une colonne par support (mail, notification). Des cases de COMPTE,
+             enregistrees avec « Enregistrer ». Chaque case ne se montre que si la base porte sa
+             colonne (une absence n'est pas un zero) ; une ligne sans aucune colonne se cache, le
+             tableau entier aussi. Remplace les deux listes des lots 58 et 61. -->
+        <div id="bdvrAlertes" class="bdvr-groupe" hidden>
+          <p class="bdvr-push-etat" id="bdvrAlertesTitre">Mes alertes</p>
+          <table class="bdvr-matrice" aria-labelledby="bdvrAlertesTitre">
+            <thead><tr><th scope="col"><span class="bdvr-mat-cache">Quand</span></th><th scope="col">Mail</th><th scope="col">Notif.</th></tr></thead>
+            <tbody>
+            <tr data-ligne="signe" hidden><th scope="row">Un client signe un devis en ligne</th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailSigne" aria-label="Mail : un client signe un devis"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushSigne" aria-label="Notification : un client signe un devis"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
+            <tr data-ligne="gagnee" hidden><th scope="row">Une affaire du bureau est gagnée</th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailGagnee" aria-label="Mail : une affaire est gagnée"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushGagnee" aria-label="Notification : une affaire est gagnée"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
+            <tr data-ligne="perdue" hidden><th scope="row">Une affaire du bureau est perdue</th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailPerdue" aria-label="Mail : une affaire est perdue"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushPerdue" aria-label="Notification : une affaire est perdue"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
+            <tr data-ligne="echeance" hidden><th scope="row">Une échéance qui coûte une amende, la veille et le jour même <span class="bdvr-mat-h">7 h 30</span></th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailEcheance" aria-label="Mail : une échéance qui coûte une amende"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushEcheance" aria-label="Notification : une échéance qui coûte une amende"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
+            <tr data-ligne="devis_expire" hidden><th scope="row">Un devis envoyé expire demain sans réponse <span class="bdvr-mat-h">7 h 30</span></th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailDevisExpire" aria-label="Mail : un devis expire demain"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushDevisExpire" aria-label="Notification : un devis expire demain"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
+            <tr data-ligne="rappels" hidden><th scope="row">Des rappels promis pour aujourd'hui ne sont pas faits <span class="bdvr-mat-h">17 h 30</span></th><td class="bdvr-mat-c"><input type="checkbox" id="bdvrMailRappels" aria-label="Mail : des rappels pas faits"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td><td class="bdvr-mat-c"><input type="checkbox" id="bdvrPushRappels" aria-label="Notification : des rappels pas faits"><span class="bdvr-mat-sans" aria-hidden="true">·</span></td></tr>
+            </tbody>
+          </table>
+          <p class="bdvr-aide bdvr-aide--alerte" id="bdvrPushMuet" hidden>Les notifications ne sonneront ici que si tu actives cet appareil, juste en dessous.</p>
+          <p class="bdvr-aide">Ça sonne de jour comme de nuit : pour être tranquille, mode Ne pas déranger du
+            téléphone. La notification ne dit ni nom de client ni montant ; le mail donne le détail, et sert de
+            confirmation quand c'est toi qui conclus l'affaire.</p>
         </div>
         <!-- LES NOTIFICATIONS DE CET APPAREIL, LOT 59, 03/10/2026. Un BOUTON et pas une case :
              l'abonnement est par appareil, la grille du dessus est par compte. Le geste est
@@ -595,24 +621,6 @@
             <p class="bdvr-push-etat">Mes appareils qui reçoivent</p>
             <ul class="bdvr-appareils" id="bdvrPushListe"></ul>
           </div>
-        </div>
-        <!-- CE QUI SONNE, LOT 61, 05/10/2026. Des cases de COMPTE (elles valent pour tous les
-             appareils), enregistrees avec « Enregistrer » comme les mails. Cachees tant que la base
-             n'a pas les colonnes : une absence n'est pas un zero. Les rappels du soir sont
-             decoches par defaut (le vigneron : sans nom, « un client a rappeler » ne dit rien, et
-             le courrier de 8 h l'a deja dit). -->
-        <div id="bdvrPushCases" class="bdvr-groupe" hidden>
-          <p class="bdvr-push-etat">Ce qui sonne sur mes appareils</p>
-          <p class="bdvr-aide bdvr-aide--alerte" id="bdvrPushMuet" hidden>Rien ne sonnera ici tant que tu n'as pas activé cet appareil, juste au-dessus.</p>
-          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushSigne"> Un client signe un devis en ligne</label>
-          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushEcheance"> Une échéance qui coûte une amende, la veille et le jour même (7 h 30)</label>
-          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushDevisExpire"> Un devis envoyé expire demain sans réponse (7 h 30)</label>
-          <label class="bdvr-chk"><input type="checkbox" id="bdvrPushRappels"> Des rappels promis pour aujourd'hui ne sont pas faits (17 h 30)</label>
-          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushGagnee"> Un collègue gagne une affaire</label>
-          <label class="bdvr-chk" data-lot62><input type="checkbox" id="bdvrPushPerdue"> Un collègue perd une affaire</label>
-          <p class="bdvr-aide">Ça sonne dès que ça arrive, de jour comme de nuit. Pour être tranquille la nuit,
-            active le mode Ne pas déranger de ton téléphone. Le matin, tout tient dans une seule notification. Si tu l'as déjà cochée ou faite, on
-            ne t'en reparle pas. Ni nom de client ni montant : l'écran verrouillé se lit par-dessus l'épaule.</p>
         </div>
         <label class="bdvr-chk"><input type="checkbox" id="bdvrNews"> Recevoir l'édition bimensuelle du Bureau du Vigneron</label>
         <p class="bdvr-aide">Deux fois par mois, ce qui bouge dans la filière et dans l'outil. Se désinscrit d'ici, en un clic.</p>
@@ -1120,18 +1128,19 @@
     poser('bdvrViti',    p.utilise_vitisoft);
     poser('bdvrCourrier', p.consent_courrier);
     poser('bdvrNews',    p.consent_news);
-    /* LOT 58 : les deux cases ne se montrent que si la base a les colonnes. Absentes, elles
-       ne valent pas « decoche » : une absence n'est pas un zero. */
-    const mails = el('bdvrMailsImmediats');
-    if(mails) mails.hidden = !(MAILS_IMMEDIATS[0] in p);
-    poser('bdvrMailSigne',  p.notif_mail_signe);
-    poser('bdvrMailGagnee', p.notif_mail_gagnee);
-    const cases = el('bdvrPushCases');
-    if(cases) cases.hidden = !(PUSH_CASES[0][0] in p);
-    PUSH_CASES.forEach(function(c){ poser(c[1], p[c[0]]); });
-    const avec62 = PUSH_CASES_62[0][0] in p;
-    Array.prototype.forEach.call(document.querySelectorAll('#bdvrPushCases [data-lot62]'), function(n){ n.hidden = !avec62; });
-    PUSH_CASES_62.forEach(function(c){ poser(c[1], p[c[0]]); });
+    /* LOT 63 : une case ne se montre que si la base porte sa colonne. Absente, elle ne vaut
+       pas « decoche » : une absence n est pas un zero. */
+    const vues = {};
+    ALERTES.forEach(function(c){
+      const n = el(c[1]), la = c[0] in p;
+      if(n) n.hidden = !la;
+      if(la){ vues[c[2]] = true; poser(c[1], p[c[0]]); }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#bdvrAlertes tr[data-ligne]'), function(tr){
+      tr.hidden = !vues[tr.getAttribute('data-ligne')];
+    });
+    const alertes = el('bdvrAlertes');
+    if(alertes) alertes.hidden = !Object.keys(vues).length;
     peindrePush();
     const r = REGL || {};
     poser('bdvrObjectif', r.objectif);
@@ -1267,22 +1276,17 @@
       consent_courrier: !!el('bdvrCourrier').checked,
       consent_news: !!el('bdvrNews').checked
     };
-    // LOT 58 : seulement si la base porte les colonnes, sinon l'ecriture du profil entier
+    // LOT 63 : seulement les colonnes que la base porte, sinon l ecriture du profil entier
     // serait refusee pour une colonne inconnue.
-    if(MAILS_IMMEDIATS[0] in p){
-      vus.notif_mail_signe  = !!el('bdvrMailSigne').checked;
-      vus.notif_mail_gagnee = !!el('bdvrMailGagnee').checked;
-    }
-    if(PUSH_CASES[0][0] in p) PUSH_CASES.forEach(function(c){ vus[c[0]] = !!el(c[1]).checked; });
-    if(PUSH_CASES_62[0][0] in p) PUSH_CASES_62.forEach(function(c){ vus[c[0]] = !!el(c[1]).checked; });
+    ALERTES.forEach(function(c){ if(c[0] in p) vus[c[0]] = !!el(c[1]).checked; });
     const champs = {};
     Object.keys(vus).forEach(function(k){
       /* Les deux consentements se comparent en booleen et pas avec `|| null` : `false ||
          null` rend null, donc DECOCHER une case ne se voyait pas comme un changement et ne
          partait jamais. Le piege etait deja evite pour `consent_news` ; il fallait le dire
          pour deux, avant que la troisieme case ne le retrouve. */
-      const boolean = (k === 'consent_news' || k === 'consent_courrier' || MAILS_IMMEDIATS.indexOf(k) >= 0
-        || PUSH_CASES.concat(PUSH_CASES_62).some(function(c){ return c[0] === k; }));
+      const boolean = (k === 'consent_news' || k === 'consent_courrier'
+        || ALERTES.some(function(c){ return c[0] === k; }));
       const avant = boolean ? !!p[k] : (p[k] || null);
       if(vus[k] !== avant) champs[k] = vus[k];
     });
