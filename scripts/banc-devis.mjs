@@ -123,7 +123,7 @@ function monter(o) {
   w.BdvTiroir = { actif: () => !!o.tiroir, poser: (b) => { X.tiroir.poser.push(b); return !!o.tiroir; }, retirer: () => { X.tiroir.retirer++; } };
   w.BdvNav = { ouvrirReglages: (onglet) => X.reglages.push(onglet) };
   /* LOT 52 : les feuilles servies, la copie rangee, l'empreinte calculee « par la base ». */
-  X.copies = {};
+  X.copies = {}; X.copiesV = {};
   if (o.fetch) w.fetch = async (h) => { EN_VOL++; try { await pause(0); } finally { EN_VOL--; } X.fetchs = (X.fetchs || 0) + 1; if (o.fetch === 'ko') throw new TypeError('Failed to fetch');
     return { ok: true, text: async () => (o.fetch === 'script' ? '.x{}</style><script>alert(1)</script>' : '') + '.dpap{color:#000}/*' + h + '*/' }; };
   if (!w.crypto || !w.crypto.subtle) Object.defineProperty(w, 'crypto', { value: globalThis.crypto, configurable: true });
@@ -179,6 +179,7 @@ function monter(o) {
             date_devis: '2026-09-30', valable_jusqu: '2026-10-30', cree_le: '2026-09-30T08:00:00+00:00', maj_le: '2026-09-30T08:00:00+00:00' };
           if (c.p_version_de) { const v = X.devis.find(x => x.devis_id === c.p_version_de); if (v) { v.statut = 'abandonne'; d.version_de = v.devis_id; } }
           if (o.lot52) Object.assign(d, { papier_empreinte: null, papier_le: null, commande_telechargements: 0, commande_telechargee_le: null });
+          if (o.lot65) Object.assign(d, { version: 1, rappele_le: null });
           X.devis.push(d);
         } else d.maj_le = '2026-09-30T09:15:00+00:00';
         Object.assign(d, { vendeur: Object.assign({}, X.fiche), acheteur: { nom: 'Chez Paul', nouveau: false, code_postal: '44000', ville: 'Nantes', num_client: 'C7' },
@@ -209,7 +210,7 @@ function monter(o) {
         if (!d || d.statut !== 'enregistre') throw refus(400, '{"code":"23514","message":"devis fige"}');
         if (c.p_papier !== undefined && !o.lot52) throw refus(404, '{"code":"PGRST202","message":"p_papier inconnu"}');
         if (c.p_papier && /^<!doctype html>/.test(c.p_papier) && c.p_papier.indexOf('Devis ' + d.numero) >= 0) {
-          X.copies[d.devis_id] = c.p_papier; d.papier_empreinte = sha(c.p_papier); d.papier_le = '2026-10-01T09:00:00+00:00';
+          X.copies[d.devis_id] = c.p_papier; X.copiesV[d.devis_id] = (X.copiesV[d.devis_id] || []).concat([c.p_papier]); d.papier_empreinte = sha(c.p_papier); d.papier_le = '2026-10-01T09:00:00+00:00';
         }
         d.statut = 'envoye'; d.envoye_le = c.p_jour;
         return { ...d };
@@ -235,8 +236,11 @@ function monter(o) {
         if (X.mode === 'copie-panne') throw new TypeError('Failed to fetch');
         const q = new URLSearchParams(chemin.split('?')[1]);
         if (q.get('bureau') !== 'eq.' + BUREAU) throw refus(403, '{"code":"42501"}');
-        const id = q.get('devis_id').slice(3), pap = X.copies[id];
-        return pap ? [{ papier: X.copieAlteree ? pap + ' ' : pap, empreinte: sha(pap), cree_le: '2026-10-01T09:00:00+00:00' }] : [];
+        const id = q.get('devis_id').slice(3), e = q.get('empreinte');
+        /* LOT 65 : une copie PAR VERSION, rendues de la plus ancienne a la plus recente (l'ordre
+           que PostgREST peut prendre sans tri). Le filtre `empreinte` choisit la bonne. */
+        const toutes = X.copiesV[id] || (X.copies[id] ? [X.copies[id]] : []);
+        return toutes.filter(p => !e || e === 'eq.' + sha(p)).map(pap => ({ papier: X.copieAlteree ? pap + ' ' : pap, empreinte: sha(pap), cree_le: '2026-10-01T09:00:00+00:00' }));
       }
       if (chemin === '/rpc/devis_accepter') {
         const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
@@ -247,6 +251,18 @@ function monter(o) {
       if (chemin === '/rpc/devis_noter_telechargement') {
         const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
         Object.assign(d, { commande_telechargements: (d.commande_telechargements || 0) + 1, commande_telechargee_le: '2026-10-01T11:01:00+00:00' });
+        return { ...d };
+      }
+      /* LOT 65 : rappeler. Sans le SQL du lot, la fonction n'existe pas. */
+      if (chemin === '/rpc/devis_rappeler') {
+        if (!o.lot65) throw refus(404, '{"code":"PGRST202","message":"Could not find the function public.devis_rappeler"}');
+        if (X.mode === 'rap-panne') throw new TypeError('Failed to fetch');
+        if (X.mode === 'rap-signe') throw refus(400, '{"code":"23514","message":"devis signe : il ne se rappelle pas"}');
+        if (X.mode === 'rap-null') return null;
+        if (op.corps.p_bureau !== BUREAU) throw refus(403, '{"code":"42501"}');
+        const d = X.devis.find(x => x.devis_id === op.corps.p_devis);
+        if (!d || d.statut !== 'envoye') throw refus(400, '{"code":"23514"}');
+        Object.assign(d, { statut: 'enregistre', version: (d.version || 1) + 1, rappele_le: '2026-10-05T09:00:00+00:00', envoye_le: null, papier_empreinte: null, papier_le: null });
         return { ...d };
       }
       /* LOT 55 : la signature en ligne. Sans le SQL du lot, la fonction n'existe pas. */
@@ -1620,6 +1636,88 @@ titre('15. Tour 2 du juge (02/10/2026) : l\'envoi dit ce qu\'il note, le lien so
   t('V18 : un autre pays rend le clavier lettres (codes postaux avec lettres)', cp.getAttribute('inputmode') === 'text');
   X.taper(pays, 'France');
   t('V18 : revenu a la France, le clavier chiffres revient', cp.getAttribute('inputmode') === 'numeric');
+}
+
+titre('16. Lot 65 : rappeler un devis envoye');
+{
+  /* Sans le SQL du lot : rien ne change, « Refaire » reste. */
+  const X = monter({ lot52: true, fetch: 'ok' });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  t('sans le SQL : pas de « Rappeler », « Refaire ce devis » reste', !X.modale().querySelector('[data-dev="rappeler"]') && !!X.modale().querySelector('[data-dev="refaire"]'));
+}
+{
+  const X = monter({ lot52: true, lot65: true, fetch: 'ok' });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  const m = X.modale(), d = X.devis[0];
+  t('envoye : « Corriger ce devis (version 2) » remplace « Refaire ce devis »', !!m.querySelector('[data-dev="rappeler"]') && m.querySelector('[data-dev="rappeler"]').textContent === 'Corriger ce devis (version 2)' && !m.querySelector('[data-dev="refaire"]'));
+  t('son aide dit le lien coupe, le meme numero et la version 2', /lien de signature ne marchera plus/.test(X.doc.getElementById('devRappelAide').textContent)
+    && /même numéro, en version 2/.test(X.doc.getElementById('devRappelAide').textContent));
+  const avant = X.requetes.length;
+  X.clic('[data-dev="rappeler"]');
+  const bx = X.doc.getElementById('devRappel');
+  t('un appui ouvre la confirmation, focus sur « Non, le garder », et rien ne part', !bx.hidden && X.doc.activeElement === bx.querySelector('[data-dev="garderRappel"]') && X.requetes.length === avant);
+  t('la confirmation dit la version 2 datee d\'aujourd\'hui, la 1 gardee, et de prevenir le client',
+    /version 2 datée d’aujourd’hui/.test(bx.textContent) && /La version 1 reste gardée/.test(bx.textContent) && /tu ne pourras pas revenir en arrière : il faudra renvoyer une version 2, même identique/.test(bx.textContent) && /préviens-le qu’elle ne vaut plus/.test(bx.textContent));
+  X.clic('[data-dev="garderRappel"]');
+  t('« Non, le garder » referme sans rien envoyer', bx.hidden && X.requetes.length === avant);
+  X.clic('[data-dev="rappeler"]'); X.clic('[data-dev="confirmerRappel"]'); await attendre(40);
+  const rq = X.requetes.filter(r => r.chemin === '/rpc/devis_rappeler');
+  t('« Oui, le rappeler » appelle devis_rappeler pour CE bureau et CE devis', rq.length === 1 && rq[0].corps.p_bureau === BUREAU && rq[0].corps.p_devis === d.devis_id);
+  t('le devis revient en saisie : pied « Enregistrer le devis », lignes reprises', !!m.querySelector('[data-dev="enregistrer"]') && m.querySelectorAll('.dmod__ligne[data-cle]').length === 1);
+  t('le titre dit « version 2 », le sous-titre « Corrigé le », la 1 gardee', /, version 2/.test(X.doc.getElementById('devTitre').textContent) && /Corrigé le .* c’est la version 2, la version 1 est gardée/.test(m.querySelector('.tmod__sous').textContent),
+    X.doc.getElementById('devTitre').textContent);
+  t('l\'avis dit le lien qui ne marche plus et la version a renvoyer', /en correction : son lien de signature ne marche plus/.test(X.avis()) && /renvoie la version 2/.test(X.avis()), X.avis());
+  t('l\'affaire est prevenue (ctx.change)', (X.changes || []).some(c => c.statut === 'enregistre' && c.version === 2));
+  /* Renvoyer la version 2 : deux copies, l'apercu lit celle de la version 2 par son empreinte. */
+  await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  t('la version 2 renvoyee laisse deux copies', (X.copiesV[d.devis_id] || []).length === 2 && /Version 2, remplace la version 1/.test(X.copiesV[d.devis_id][1]));
+  X.clic('[data-dev="apercu"]'); await attendre(40);
+  const lc = X.requetes.filter(r => /^\/devis_copies\?/.test(r.chemin)).pop();
+  t('l\'apercu demande LA copie par son empreinte, et montre la version 2', !!lc && /&empreinte=eq\.[0-9a-f]{64}/.test(lc.chemin)
+    && /Version 2, remplace la version 1/.test((X.w.BdvDevis._S().copie || {}).papier || ''), lc && lc.chemin);
+  X.clic('[data-dev="revenir"]');
+  const D = X.w.BdvDevis, lg = X.lignes[d.devis_id];
+  const p2 = D.htmlPapier(Object.assign({}, d, { version: 2 }), lg, {}), p1 = D.htmlPapier(Object.assign({}, d, { version: 1 }), lg, {});
+  t('le papier de la version 2 dit « Version 2 » sous le numero, et dans le pied de page', /<h1 class="dpap__h1">Devis [^<]+<\/h1><p>Version 2, remplace la version 1<\/p>/.test(p2) && /content:"Devis [^"]+, version 2"/.test(p2));
+  t('le papier de la version 1 ne change pas (aucun mot « Version »)', !/Version|version \d/.test(p1) && p1 === D.htmlPapier(Object.assign({}, d, { version: undefined }), lg, {}));
+}
+{
+  const X = monter({ lot52: true, lot65: true, fetch: 'ok' });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  X.mode = 'rap-signe'; X.clic('[data-dev="rappeler"]'); X.clic('[data-dev="confirmerRappel"]'); await attendre(40);
+  t('refus « devis signe » : le dit, et propose de le refaire', /signé en ligne : il n’est plus modifiable\. Pour le changer, appuie sur « Refaire ce devis »/.test(X.avis()) && X.devis[0].statut === 'envoye', X.avis());
+  X.mode = 'rap-panne'; X.clic('[data-dev="confirmerRappel"]'); await attendre(40);
+  t('connexion coupee : le devis n\'a pas bouge, son lien marche toujours', /ta connexion a coupé\. Il n’a pas bougé, son lien marche toujours\./.test(X.avis()), X.avis());
+  X.mode = 'rap-null'; X.clic('[data-dev="confirmerRappel"]'); await attendre(40);
+  t('retour vide : un echec, jamais « rappelé »', !/en correction/.test(X.avis()) && !X.modale().querySelector('[data-dev="enregistrer"]'), X.avis());
+}
+{
+  /* Commande deja telechargee (accepte, telecharge, annule) : pas de rappel. */
+  const X = monter({ lot52: true, lot65: true, fetch: 'ok' });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  const d = X.devis[0];
+  Object.assign(d, { commande_telechargements: 1, commande_telechargee_le: '2026-10-01T11:01:00+00:00', accord_annule_le: '2026-10-01T12:00:00+00:00' });
+  X.w.BdvDevis.fermer(); await attendre(5);
+  await X.ouvrir({ devis: Object.assign({}, d) }); await attendre(20);
+  t('commande telechargee : pas de « Rappeler », « Refaire » et la raison', !X.modale().querySelector('[data-dev="rappeler"]') && !!X.modale().querySelector('[data-dev="refaire"]')
+    && /commande a déjà été téléchargée pour Vitisoft : il n’est plus modifiable\. Pour le changer, appuie sur « Refaire ce devis »/.test(X.corps().textContent));
+}
+{
+  /* Signe en ligne puis acceptation annulee : une preuve existe, pas de rappel. */
+  const X = monter({ lot52: true, lot55: true, lot65: true, fetch: 'ok', preuve: { lien_id: 'l1', nom: 'Jean', signe_le: '2026-10-01T10:00:00+00:00' } });
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoyer"]'); X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  const d = X.devis[0]; d.accord_annule_le = '2026-10-01T12:00:00+00:00';
+  X.w.BdvDevis.fermer(); await attendre(5);
+  await X.ouvrir({ devis: Object.assign({}, d) }); await attendre(30);
+  const q = X.requetes.filter(r => /^\/devis_signatures\?/.test(r.chemin));
+  t('signe puis annule : la preuve est cherchee, et pas de « Rappeler »', q.length >= 1 && !X.modale().querySelector('[data-dev="rappeler"]')
+    && /signé en ligne : il n’est plus modifiable\. Pour le changer, appuie sur « Refaire ce devis »/.test(X.corps().textContent));
 }
 
 console.log('\n== VERDICT ==');

@@ -74,6 +74,14 @@ const ORDRE = [
   'lot55-signature.sql',
   'lot56-affaires-durcies.sql',
   'lot57-notifications.sql',
+  'lot58-mails-reglables.sql',
+  'lot59-push-abonnements.sql',
+  'lot60-push-devis-signe.sql',
+  'lot61-notif-horaire.sql',
+  'lot62-notif-affaires.sql',
+  'lot63-alertes.sql',
+  'lot64-objets.sql',
+  'lot65-rappeler-devis.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

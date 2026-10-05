@@ -8101,3 +8101,48 @@ inscription d'un appareil au dernier compte qui l'active (assume), 20 mails d'al
 **Restent ouverts, hors chantier** : toucher la notification ouvre le bureau et non la chose
 exacte ; `banc:devis` « largeur A4 » echoue parfois sous la charge de `verif`.
 
+
+## LA REFONTE DU DEVIS, DECIDEE LE 05/10/2026 (lots 65 a 67)
+
+Demande de Ted : le parcours pour fabriquer un devis est trop complexe. Conseil tenu (vigneron,
+expert des outils de vente, avocat du diable). [Certain] Le createur de devis actuel de HubSpot
+n'est plus en etapes (les 7 etapes sont la version « legacy ») : on ne copie pas HubSpot tel quel.
+Arbitrages de Ted :
+1. « Rappeler » un devis = couper son lien de signature pour pouvoir le modifier, SOUS LE MEME
+   NUMERO, impossible s'il est signe. A l'ecran le geste s'appelle « Corriger ce devis » (le
+   vigneron lisait « rappeler » comme « telephoner »).
+2. La fabrication passe en PLEINE PAGE, dans le MEME ONGLET, avec un bouton « Retour a l'affaire ».
+3. Les vins sont PROPOSES, jamais coches d'avance.
+4. Refonte complete : lot 66, la page en 3 etapes (Les vins, Conditions, Verifier), client et total
+   toujours visibles ; lot 67, le suivi depuis l'affaire (une carte par devis, un seul bouton
+   principal selon l'etat).
+
+### LOT 65 : CORRIGER (RAPPELER) UN DEVIS ENVOYE, 05/10/2026
+
+- **SQL `supabase/lot65-rappeler-devis.sql`, a coller APRES 64.** `devis.version` (1 a 99),
+  `rappele_le`, `rappele_par`. Les copies passent a UNE PAR VERSION : cle
+  `(bureau, devis_id, version)`, les copies existantes sont la version 1. `devis_ranger_copie`
+  range la version en cours. `signature_lire` choisit la copie PAR SON EMPREINTE et rend `version`.
+- **`devis_rappeler(p_bureau, p_devis)`** : envoye vers enregistre, version + 1, envoi et
+  empreinte effaces, liens eteints, date du devis = le jour (sa validite repart, un devis expire se
+  corrige), une livraison souhaitee deja passee est EFFACEE (l'ecran le dit). Refus : signe (une
+  preuve existe, meme acceptation annulee), commande deja TELECHARGEE pour Vitisoft (numero deja
+  importe, erreur 12), affaire close, pas envoye. Deja enregistre : rendu tel quel.
+- **Le gel `devis_signer` reconnait le rappel a sa forme exacte** (colonnes permises, version + 1,
+  date entre l'ancienne et aujourd'hui, livraison inchangee ou effacee). Il ne porte PAS les refus
+  metier : seules les fonctions `security definer` ecrivent dans `devis`.
+- **Le papier** d'une version 2 dit « Version 2, remplace la version 1 » sous le numero, et le
+  pied de page « Devis D-..., version 2 ». Une version 1 sort a l'octet pres comme avant.
+  Le message a coller pour le client dit « version 2 ... Elle remplace la version precedente ».
+- **L'ecran** (`bdv-devis.js`) : `lot65()` = la colonne `version` presente ; avant le SQL rien ne
+  change. « Corriger ce devis (version N) » remplace « Refaire ce devis » quand la base
+  l'accepterait (`rappelPossible()`), un devis signe puis annule est verifie dans
+  `devis_signatures` (inconnu = bouton cache). Confirmation, focus sur « Non, le garder », qui dit
+  qu'on ne revient pas en arriere. `lireCopie()` filtre par EMPREINTE : sans ce filtre, apres une
+  version 2, l'apercu pouvait montrer la version 1.
+- Garde : `supabase/banc-lot65-rappeler-devis.sql` (40 controles, rejoue 47 a 64), `banc:devis`
+  section 16, `banc-commande` accepte la RPC. `banc-rejeu.mjs` liste maintenant 58 a 65 (58 a 64
+  y MANQUAIENT). Verificateur independant : feu rouge (copie au hasard, livraison passee) puis feu
+  vert. Vigneron : feu rouge (le verbe, les impasses) puis feu vert.
+- **Ouvert, a Ted** : un D-2026-xxxx corrige en 2027 est date de 2027 ; revoir la version 1 depuis
+  l'ecran (prevu au lot 67) ; une correction ne s'annule pas (la version 1 a perdu son lien).

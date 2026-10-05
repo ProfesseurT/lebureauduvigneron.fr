@@ -10375,3 +10375,15 @@ Conseil apres capture : FEU ROUGE des deux agents, corrige (devis envoye a relan
 refaire, commande attendue passee dite en alerte, ordre en une colonne, reperes masques sous le
 seuil, double point de date). Les deux remarques restantes sont ouvertes a Ted (voir CLAUDE.md).
 Bancs : `banc:affaires` (+15 controles, mutations verifiees), `verif` 47 etapes vertes. Aucun SQL.
+
+## 05/10/2026 : la refonte du devis, et le lot 65 (corriger un devis envoye)
+
+Ted : « le parcours client est beaucoup trop complexe pour fabriquer un devis ». Etat des lieux :
+quatre ecrans pour arriver au devis, puis une seule longue page de dix blocs, et la meme fenetre
+qui s'allonge pour le suivi. Conseil : vigneron, expert outils de vente (HubSpot verifie : plus en
+etapes), avocat du diable. Arbitrages de Ted : corriger un devis = couper son lien et le modifier
+sous le meme numero, pas si signe ; pleine page dans le meme onglet ; vins proposes, pas coches ;
+refonte complete en trois lots (65, 66, 67).
+Lot 65 fait : SQL a coller, versions et copies par version, gel adapte, geste « Corriger ce
+devis ». Le vigneron lisait « rappeler » comme « telephoner » : le mot d'ecran est « Corriger ».
+Bancs : SQL 40 controles, banc:devis 434, verif complete verte.
