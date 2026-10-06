@@ -23,6 +23,16 @@
   var MAX = 600;                    // la base refuse au-dela
   var MAX_SIGNES = 150000;          // idem
   var FLOU = 240;                   // sous cette hauteur, flou a 20 mm sur le papier
+  var POIDS_MAX = 15 * 1024 * 1024; // le fichier choisi, avant reduction
+  var ETAPE = 2400;                 // une image plus grande est d'abord ramenee a cette taille
+  /* LES CONDITIONS, ECRITES UNE FOIS : affichees sous l'aide, et reprises par les messages
+     d'erreur. Demande de Ted (06/10/2026) : « trop lourde » seul etait trop vague. */
+  var CONDITIONS = [
+    ['Format', 'PNG ou JPEG. Une photo de téléphone est convertie toute seule. Pas de SVG ni de PDF.'],
+    ['Poids du fichier', '15 Mo au plus.'],
+    ['Taille', 'au moins 240 px de haut pour qu’il soit net sur le devis. Plus grand, il est réduit tout seul à 600 px.'],
+    ['Idéal', 'un logo plus large que haut, détouré sur fond transparent.']
+  ];
   var FORME = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
 
   var LOGO = null;        // { bureau, empreinte, image, largeur, hauteur } ou null
@@ -123,8 +133,21 @@
   }
   /* LES MARGES TRANSPARENTES SONT RETIREES : un logo detoure livre dans un grand cadre vide
      sortirait minuscule dans ses 20 mm. On cherche le cadre des pixels visibles. */
+  function dims(im) { return { w: im.naturalWidth || im.width, h: im.naturalHeight || im.height }; }
+  /* UNE TRES GRANDE IMAGE EST D'ABORD RAMENEE A 2 400 px : Safari plafonne la memoire des
+     canvas, et une reduction en une seule fois de 8 000 a 600 px donne un logo crenele. */
+  function ramener(im) {
+    var d = dims(im), k = Math.min(1, ETAPE / d.w, ETAPE / d.h);
+    if (k >= 1) return im;
+    var cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(d.w * k)); cv.height = Math.max(1, Math.round(d.h * k));
+    var cx = cv.getContext('2d');
+    if (!cx) return im;
+    cx.drawImage(im, 0, 0, cv.width, cv.height);
+    return cv;
+  }
   function cadreVisible(im) {
-    var w = im.naturalWidth, h = im.naturalHeight;
+    var w = dims(im).w, h = dims(im).h;
     try {
       var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
       var cx = cv.getContext('2d'); cx.drawImage(im, 0, 0);
@@ -138,29 +161,45 @@
       return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
     } catch (e) { return { x: 0, y: 0, w: w, h: h }; }
   }
-  function dessiner(im, cote, type, c) {
-    c = c || { x: 0, y: 0, w: im.naturalWidth, h: im.naturalHeight };
+  function dessiner(im, cote, type, c, qualite) {
+    c = c || { x: 0, y: 0, w: dims(im).w, h: dims(im).h };
     var w = c.w, h = c.h;
     var k = Math.min(1, cote / w, cote / h);
     var W = Math.max(1, Math.round(w * k)), H = Math.max(1, Math.round(h * k));
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     var cx = cv.getContext('2d');
+    if (!cx) return { image: '' };
     /* Un JPEG n'a pas de transparence : un fond blanc, celui du papier, plutot que du noir. */
     if (type === 'image/jpeg') { cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H); }
     cx.drawImage(im, c.x, c.y, c.w, c.h, 0, 0, W, H);
-    return { image: cv.toDataURL(type, 0.9), largeur: W, hauteur: H, hauteurSource: h };
+    return { image: cv.toDataURL(type, qualite || 0.9), largeur: W, hauteur: H, hauteurSource: h };
   }
   /* PNG garde sa transparence ; s'il est trop lourd, on reduit, puis on passe en JPEG. */
+  /* Rend le logo prepare, ou { echec: 'poids' | 'redessin' } : les deux ne se disent pas
+     pareil. « redessin » = le navigateur n'a rien rendu d'utilisable (canvas vide). */
   function preparer(im, typeSource) {
-    var essais = typeSource === 'image/png' ? [['image/png', 600], ['image/png', 480], ['image/png', 360], ['image/jpeg', 600], ['image/jpeg', 480]]
-      : [['image/jpeg', 600], ['image/jpeg', 480], ['image/jpeg', 360]];
-    var c = typeSource === 'image/png' ? cadreVisible(im) : null;
+    var jpeg = [['image/jpeg', 600, 0.9], ['image/jpeg', 480, 0.85], ['image/jpeg', 360, 0.8], ['image/jpeg', 240, 0.7]];
+    var essais = typeSource === 'image/png' ? [['image/png', 600], ['image/png', 480], ['image/png', 360]].concat(jpeg) : jpeg;
+    var hSource = dims(im).h;
+    var src = ramener(im), k = dims(im).h / Math.max(1, dims(src).h);
+    var c = typeSource === 'image/png' ? cadreVisible(src) : null;
+    var vu = false;
     for (var i = 0; i < essais.length; i++) {
-      var r = dessiner(im, essais[i][1], essais[i][0], c);
-      if (FORME.test(r.image) && r.image.length <= MAX_SIGNES) return r;
+      var r;
+      try { r = dessiner(src, essais[i][1], essais[i][0], c, essais[i][2]); } catch (e) { r = { image: '' }; }
+      if (!FORME.test(r.image || '')) continue;
+      vu = true;
+      if (r.image.length <= MAX_SIGNES) { r.hauteurSource = Math.round(r.hauteurSource * k) || hSource; return r; }
     }
-    return null;
+    return { echec: vu ? 'poids' : 'redessin' };
+  }
+
+  function mo(n) { return (n / 1048576).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' Mo'; }
+  function decrire(f) {
+    var ext = (/\.([a-z0-9]{2,5})$/i.exec(f.name || '') || [])[1];
+    var type = ext ? ext.toUpperCase() : (f.type || 'format inconnu');
+    return type + ', ' + (f.size < 1048576 ? Math.max(1, Math.round(f.size / 1024)) + ' ko' : mo(f.size));
   }
 
   /* ---------------- LE BLOC DES REGLAGES ---------------- */
@@ -182,7 +221,12 @@
     cible.textContent = '';
     var h = mk('h3', 'bdvd-sous', 'Ton logo'); h.id = 'bdvlTitre';
     cible.appendChild(h);
-    cible.appendChild(mk('p', 'bdvr-aide', 'Il s’imprime en haut de tes devis, et se voit en bas de la barre de ton bureau. PNG, JPEG ou une photo de ton téléphone. Un logo détouré sur fond transparent rend le mieux.'));
+    cible.appendChild(mk('p', 'bdvr-aide', 'Il s’imprime en haut de tes devis, et se voit en bas de la barre de ton bureau.'));
+    var cond = mk('ul', 'bdvl-conditions'); cond.setAttribute('aria-label', 'Ce que le logo doit respecter');
+    CONDITIONS.forEach(function (x) {
+      var li = mk('li'); li.appendChild(mk('b', null, x[0] + ' : ')); li.appendChild(document.createTextNode(x[1])); cond.appendChild(li);
+    });
+    cible.appendChild(cond);
     var ap = mk('div', 'bdvl-apercu'); ap.setAttribute('aria-labelledby', 'bdvlTitre');
     var im = mk('img'); im.alt = 'Ton logo, tel qu’il sortira sur le devis'; im.hidden = true;
     var vide = mk('p', 'bdvl-vide', 'Pas encore de logo : tes devis sortent avec le nom du domaine en tête.');
@@ -245,15 +289,24 @@
   }
 
   async function deposer(f) {
-    if (/svg/i.test(f.type || '') || /\.svg$/i.test(f.name || '')) {
-      dire('Ce fichier n’est pas une image PNG ou JPEG. Enregistre ton logo dans un de ces formats et réessaie.', true);
+    var quoi = decrire(f);
+    if (/svg|pdf/i.test(f.type || '') || /\.(svg|pdf)$/i.test(f.name || '') || (f.type && !/^image\//.test(f.type))) {
+      dire('Ce fichier (' + quoi + ') n’est pas une image PNG ou JPEG. Enregistre ton logo dans un de ces formats et réessaie.', true);
+      return;
+    }
+    if (f.size > POIDS_MAX) {
+      dire('Ton fichier pèse ' + mo(f.size) + ' : 15 Mo au plus. Exporte ton logo en plus petit (2 000 px de large suffisent) et réessaie.', true);
       return;
     }
     dire('Préparation du logo…');
     var im;
-    try { im = await lireFichier(f); } catch (e) { dire('Je n’arrive pas à lire cette image. Essaie un autre fichier.', true); return; }
+    try { im = await lireFichier(f); } catch (e) { dire('Je n’arrive pas à lire cette image (' + quoi + '). Enregistre-la en PNG ou JPEG et réessaie.', true); return; }
+    var d = dims(im);
+    if (!d.w || !d.h) { dire('Cette image n’a pas de taille lisible (' + quoi + '). Enregistre-la en PNG ou JPEG et réessaie.', true); return; }
+    quoi += ', ' + d.w + ' × ' + d.h + ' px';
     var r = preparer(im, f.type === 'image/png' ? 'image/png' : 'image/jpeg');
-    if (!r) { dire('Cette image est trop lourde, même réduite. Essaie un fichier plus simple.', true); return; }
+    if (r.echec === 'redessin') { dire('Ton navigateur n’a pas réussi à préparer cette image (' + quoi + '). Enregistre-la en JPEG, ou essaie depuis un autre navigateur.', true); return; }
+    if (r.echec) { dire('Même réduite à 240 px, cette image reste trop chargée pour un logo (' + quoi + '). Garde le logo seul, sans photo ni dégradé de fond, et réessaie.', true); return; }
     var b = bureau();
     try {
       var l = await api('/rpc/domaine_logo_poser', { methode: 'POST',
@@ -312,6 +365,6 @@
   window.BdvLogo = {
     image: function () { return LOGO && FORME.test(LOGO.image) ? LOGO.image : null; },
     pret: pret, charger: charger, monter: monter, rafraichir: rafraichir,
-    _preparer: preparer, _forme: FORME
+    _preparer: preparer, _forme: FORME, _conditions: CONDITIONS
   };
 })();

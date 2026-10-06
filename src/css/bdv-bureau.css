@@ -6535,6 +6535,8 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 @media (min-width:901px) and (max-width:1180px){
   .bdv-coque .bureau-nav__logo{ display:none; }
 }
+.bdv-coque .bdvl-conditions{ margin:var(--bdv-e-2) 0 var(--bdv-e-3); padding-left:var(--bdv-e-6); font-size:var(--bdv-f-2); line-height:1.5; color:var(--bdv-encre-2); }
+.bdv-coque .bdvl-conditions b{ font-weight:600; color:var(--bdv-encre-1); }
 .bdv-coque .bdvl-apercu{
   display:flex; align-items:center; min-height:88px; margin:var(--bdv-e-3) 0;
   padding:var(--bdv-e-3) var(--bdv-e-4);

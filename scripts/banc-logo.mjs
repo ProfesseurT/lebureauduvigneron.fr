@@ -119,7 +119,10 @@ console.log('\n== 2. Le bloc des reglages ==');
   const { w, appels } = monterPage(base, true, null);
   const hote = w.document.getElementById('hote');
   w.BdvLogo.monter(hote); await w.BdvLogo.rafraichir();
-  dit(/Ton logo/.test(hote.textContent) && /PNG, JPEG ou une photo de ton téléphone/.test(hote.textContent), 'le bloc a son titre et son aide');
+  dit(/Ton logo/.test(hote.textContent), 'le bloc a son titre');
+  const li = [...hote.querySelectorAll('.bdvl-conditions li')].map(x => x.textContent);
+  dit(li.length === 4 && /^Format : PNG ou JPEG/.test(li[0]) && /15 Mo au plus/.test(li[1]) && /240 px/.test(li[2]) && /600 px/.test(li[2]),
+    'les conditions sont affichees : format, poids, taille, ideal', li.join(' | '));
   const gestes = hote.querySelector('.bdvl-gestes');
   dit(gestes && !gestes.hidden && /Choisir mon logo/.test(hote.querySelector('.bdvl-choisir').textContent), 'le maitre voit « Choisir mon logo »');
   dit(hote.querySelector('#bdvlFichier').getAttribute('accept') === 'image/png,image/jpeg', 'le champ demande PNG ou JPEG (Safari convertit les photos d\'iPhone)');
@@ -131,7 +134,16 @@ console.log('\n== 2. Le bloc des reglages ==');
   Object.defineProperty(input, 'files', { value: [f], configurable: true });
   input.dispatchEvent(new w.Event('change'));
   await pause();
-  dit(/n’est pas une image PNG ou JPEG/.test(hote.querySelector('.bdvl-mot').textContent), 'un SVG est refuse avec la phrase du conseil');
+  dit(/Ce fichier \(SVG, 1 ko\) n’est pas une image PNG ou JPEG/.test(hote.querySelector('.bdvl-mot').textContent), 'un SVG est refuse, et la phrase dit ce qu\'on a recu', hote.querySelector('.bdvl-mot').textContent);
+  /* Un fichier de plus de 15 Mo est refuse avant d'etre lu, avec son poids. */
+  const gros = new w.File([new Uint8Array(16 * 1024 * 1024)], 'logo.png', { type: 'image/png' });
+  Object.defineProperty(input, 'files', { value: [gros], configurable: true });
+  input.dispatchEvent(new w.Event('change')); await pause();
+  dit(/Ton fichier pèse 16 Mo : 15 Mo au plus/.test(hote.querySelector('.bdvl-mot').textContent), 'un fichier de 16 Mo est refuse avec son poids', hote.querySelector('.bdvl-mot').textContent);
+  const pdf = new w.File(['%PDF'], 'logo.pdf', { type: 'application/pdf' });
+  Object.defineProperty(input, 'files', { value: [pdf], configurable: true });
+  input.dispatchEvent(new w.Event('change')); await pause();
+  dit(/\(PDF, 1 ko\) n’est pas une image PNG ou JPEG/.test(hote.querySelector('.bdvl-mot').textContent), 'un PDF est refuse');
   dit(!appels.some(a => a.chemin === '/rpc/domaine_logo_poser'), 'et rien ne part en base');
 }
 {
