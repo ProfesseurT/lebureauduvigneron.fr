@@ -3174,7 +3174,10 @@ function ficheNouvelleAffaire(b){
     if(deja.length){if(deja.length===1)sessionStorage.setItem('bdv_affaire_ouvrir',deja[0].affaire_id);}
     else sessionStorage.setItem('bdv_affaire_client',JSON.stringify(m&&MOTIFS[m]?{id,nom,raison:MOTIFS[m].label,enjeu:enjeu||'',pretexte:PRETEXTES[m]}:{id,nom}));
   }catch(e){}
-  if(pageFiche()){location.href='/mon-bureau/#affaires';return;}
+  /* PLEINE PAGE : meme adresse, seule l'ancre change, donc le navigateur NE RECHARGE PAS et
+     la piece des affaires se peignait dans une page montee pour la seule fiche (06/10/2026,
+     capture de Ted). On recharge, comme le retour vers « Mes clients ». */
+  if(pageFiche()){location.href='/mon-bureau/#affaires';location.reload();return;}
   if(el('modale')&&el('modale').classList.contains('on'))fermerFiche();
   if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('affaires');else location.hash='affaires';
 }
@@ -4520,7 +4523,7 @@ function renderClients(){
       <th>Client</th><th>Contact</th><th>Raison</th><th class="num">Montant</th><th class="num">Chance</th>
       <th>Statut</th><th>Rappel</th><th>Étiquettes</th><th>Canal</th></tr></thead><tbody id="clientsBody">
     ${liste.map(c=>{const s=CRM[c.id]||{};return `<tr class="clic suivre__l" data-nom="${esc(norm(c.nom))}" data-mail="${esc(contactTexte(c.id))}">
-      <td><button type="button" class="suivre__nom" onclick="ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}')">${esc(c.nom)}<span class="hors-ecran">, ouvrir sa fiche</span></button><span class="why">${esc(c.detail)}</span>${gesteAffaire(c)}</td>
+      <td><button type="button" class="suivre__nom" onclick="ouvrirFiche(${JSON.stringify(c.id).replace(/"/g,'&quot;')},'${c.motif}')">${esc(c.nom)}<span class="hors-ecran">, ouvrir sa fiche</span></button><a class="suivre__onglet" href="/mon-bureau/#fiche=${esc(encodeURIComponent(c.id))}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet"><span class="hors-ecran">Ouvrir la fiche de ${esc(c.nom)} dans un nouvel onglet</span></a><span class="why">${esc(c.detail)}</span>${gesteAffaire(c)}</td>
       <td>${contactCell(c.id)}</td>
       <td><span class="motif ${MOTIFS[c.motif].cls}">${MOTIFS[c.motif].label}</span></td>
       <td class="num">${fmtMoney(c.montant)}<span class="why">${natureAccordee(c.montant,c.lib)}</span></td>

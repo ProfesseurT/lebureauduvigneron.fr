@@ -10429,3 +10429,9 @@ Barre du haut retiree de Mon commerce, « Qui pese quoi » deplace dans Mon cap,
 ta liste de travail », tuiles avec halo fixe + 3 pulsations a l'arrivee, listes completes
 remontees sous les tuiles. `npm run verif` vert, etape par etape. Captures 1440 clair et 390
 sombre verifiees.
+Meme jour : en pleine page client, « Nouvelle affaire » ne changeait que l'ancre de l'adresse,
+la page ne se rechargeait pas et la piece des affaires se peignait dans la page de la fiche.
+Elle recharge maintenant, comme le retour vers « Mes clients ». Garde : banc:commerce.
+Meme jour : « Clients a suivre », une fleche discrete apres le nom ouvre la fiche en pleine page
+dans un nouvel onglet (`.suivre__onglet`, `#fiche=`). Le clic sur la rangee ouvre toujours la
+fiche sur le cote. Cachee sous 700 px. Garde : banc:commerce.

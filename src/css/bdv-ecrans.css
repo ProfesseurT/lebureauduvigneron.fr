@@ -1116,6 +1116,18 @@
 .bdv-ventes .suivre__nom{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .bdv-ventes .suivre__nom:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
 .bdv-ventes .suivre__geste{margin-top:var(--bdv-e-2)}
+/* OUVRIR DANS UN NOUVEL ONGLET, 06/10/2026 (Ted) : le clic sur la rangee ouvre la fiche sur le
+   cote ; cette fleche l'ouvre en pleine page dans un autre onglet. Discrete au repos (encre
+   effacee), elle prend l'accent au survol de la rangee. Meme glyphe que « Agrandir » de la
+   fiche. Pas sur telephone : un onglet de plus n'y sert a rien. */
+.bdv-ventes .suivre__onglet{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin-left:var(--bdv-e-1);
+  vertical-align:middle;border-radius:var(--bdv-r);color:var(--bdv-encre-4);font-size:var(--bdv-f-3);line-height:1;text-decoration:none;
+  transition:color var(--bdv-d-court) var(--bdv-courbe),background var(--bdv-d-court) var(--bdv-courbe)}
+.bdv-ventes .suivre__onglet::after{content:"\2197"}
+.bdv-ventes tr.suivre__l:hover .suivre__onglet{color:var(--bdv-accent)}
+.bdv-ventes .suivre__onglet:hover{background:var(--bdv-survol);color:var(--bdv-accent)}
+.bdv-ventes .suivre__onglet:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:2px}
+@media (max-width:700px){.bdv-ventes .suivre__onglet{display:none}}
 .bdv-ventes tr.suivre__l:has(:focus-visible) > td:first-child{
   background-image:linear-gradient(var(--bdv-accent),var(--bdv-accent));
   background-size:3px 100%;background-repeat:no-repeat;background-position:left top

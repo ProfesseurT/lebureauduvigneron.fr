@@ -155,6 +155,12 @@ t('renderCap() le pose apres « Ce qui explique ta variation »',
 t('Mon commerce : la barre du haut (depot, PDF, Excel) est cachee par navTo()',
   /tb\.style\.display = \(id==='clients'\) \? 'none' : ''/.test(SRCE));
 
+t('pleine page : « Nouvelle affaire » recharge la page (ancre seule = pas de rechargement)',
+  /if\(pageFiche\(\)\)\{location\.href='\/mon-bureau\/#affaires';location\.reload\(\);return;\}/.test(SRCE));
+{ const d0 = new w.DOMParser().parseFromString('<table>'+h.slice(h.indexOf('<tbody id="clientsBody"'), h.indexOf('</tbody>')+8)+'</table>','text/html');
+  const ls = [...d0.querySelectorAll('tr.suivre__l')];
+  t('chaque client a son lien « nouvel onglet » vers sa fiche en pleine page',
+    ls.length > 0 && ls.every(r => { const a = r.querySelector('a.suivre__onglet'); return a && a.target === '_blank' && /^\/mon-bureau\/#fiche=/.test(a.getAttribute('href')) && /nouvel onglet/.test(a.textContent); })); }
 console.log('== 06/10/2026 : le titre invite a choisir une tuile ==');
 t('« Qui rappeler » devient « Choisis ta liste de travail »', h.includes('Choisis ta liste de travail') && !h.includes('>Qui rappeler<'));
 t('une phrase visible dit de toucher une tuile, avant les tuiles',
