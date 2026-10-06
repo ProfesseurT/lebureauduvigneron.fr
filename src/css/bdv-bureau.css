@@ -6589,3 +6589,10 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque .bdvl-conf[hidden]{ display:none; }
 .bdv-coque .bdvl-conf .bdvr-aide{ flex-basis:100%; margin:0; }
 .bdv-coque .bdvl-conf .bdvr-btn{ min-height:var(--bdv-cible); }
+
+/* LOT 71 : « Copier le lien du devis » (demande de Ted, 06/10/2026). Un bouton a contour d'accent
+   et son pictogramme de lien : il se distingue sans prendre l'aplat, reserve a l'action de
+   l'ecran. Copie : le mot change (« Lien copié ») et le fond prend le lavis, 2,5 s. */
+.bdv-coque .aff-devis__copier{ display:inline-flex; align-items:center; gap:var(--bdv-e-2); color:var(--bdv-accent); border-color:var(--bdv-accent); }
+.bdv-coque .aff-devis__copier:hover{ background:var(--bdv-accent-lavis); }
+.bdv-coque .aff-devis__copier--fait{ background:var(--bdv-accent-lavis); }

@@ -1780,9 +1780,9 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
     let c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) }));
     t('L71 : sans jeton garde, la carte ne montre aucun lien', !c.querySelector('[data-aff="devisLienCopier"]'));
     S0.lienDe.dx = J; c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) }));
-    const inp = c.querySelector('.aff-devis__signer input');
-    t('L71 : le lien de signature est sur la carte, en lecture seule, avec « Copier le lien »', !!inp && inp.readOnly && /\/signer\/#(ab){32}$/.test(inp.value)
-      && !!c.querySelector('[data-aff="devisLienCopier"][data-devis="dx"]'), c.innerHTML.slice(0, 300));
+    const bc = c.querySelector('[data-aff="devisLienCopier"][data-devis="dx"]');
+    t('L71 : UN bouton « Copier le lien du devis », et le lien complet ne s\'affiche pas (demande de Ted)', !!bc && bc.textContent === 'Copier le lien du devis'
+      && !c.querySelector('.aff-devis__signer input') && !/signer\/#/.test(c.textContent), c.innerHTML.slice(0, 300));
     c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-40), valable_jusqu: iso(-3) }));
     t('L71 : un devis expire ne montre pas son lien (il ne signe plus)', !c.querySelector('.aff-devis__signer'));
     c = carte(Object.assign({}, base, { statut: 'accepte', signe_le: iso(-1), envoye_le: iso(-5), valable_jusqu: iso(20) }));

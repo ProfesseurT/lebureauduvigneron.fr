@@ -1498,9 +1498,12 @@
         + (etat === 'ancien' ? 'Créer un nouveau lien' : 'Créer un lien de signature') + '</button></p>' + mot + '</div>';
     }
     if (!u) return '';
-    return '<div class="aff-devis__signer">'
-      + '<label class="aff-champ"><span>Lien de signature</span><input type="text" readonly value="' + esc(u) + '" id="affLienUrl-' + id + '"></label>'
-      + '<p class="aff-devis__gestes"><button type="button" class="btn" data-aff="devisLienCopier" data-devis="' + id + '">Copier le lien</button></p>'
+    /* Demande de Ted (06/10/2026) : UN bouton, le lien complet ne s'affiche pas. */
+    return '<div class="aff-devis__signer"><p class="aff-devis__gestes">'
+      + '<button type="button" class="btn aff-devis__copier" data-aff="devisLienCopier" data-devis="' + id + '">'
+      + '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>'
+      + '<span class="aff-devis__copier-t">Copier le lien du devis</span></button></p>'
       + mot + '</div>';
   }
   function devisParId(id) {
@@ -1533,15 +1536,28 @@
   }
   function copierLien(id) {
     var d = devisParId(id);
-    var u = urlSignature(d), dit = el('affLienMot-' + id), champ = el('affLienUrl-' + id);
+    var u = urlSignature(d), dit = el('affLienMot-' + id);
+    var b = document.querySelector('[data-aff="devisLienCopier"][data-devis="' + id + '"]');
     if (!u) return;
-    function ok() { if (dit) dit.textContent = 'Lien copié : colle-le dans ton mail.'; }
-    function rate() {
-      if (champ) { try { champ.focus(); champ.select(); } catch (e) {} }
-      if (dit) dit.textContent = 'Copie impossible ici : le lien est sélectionné, copie-le avec Cmd + C (Ctrl + C sur PC).';
+    function ok() {
+      if (dit) dit.textContent = 'Lien copié : colle-le dans ton mail.';
+      var t = b && b.querySelector('.aff-devis__copier-t');
+      if (t) { t.textContent = 'Lien copié'; b.classList.add('aff-devis__copier--fait');
+        setTimeout(function () { t.textContent = 'Copier le lien du devis'; b.classList.remove('aff-devis__copier--fait'); }, 2500); }
     }
-    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(ok, rate); return; } } catch (e) {}
-    rate();
+    /* Sans presse-papier moderne : un champ cache, selectionne, copie. Jamais un faux « copié ». */
+    function secours() {
+      var z = document.createElement('textarea'), fait = false;
+      z.value = u; z.setAttribute('readonly', ''); z.style.position = 'fixed'; z.style.opacity = '0'; z.style.left = '-9999px';
+      document.body.appendChild(z);
+      try { z.select(); fait = document.execCommand && document.execCommand('copy'); } catch (e) { fait = false; }
+      z.remove();
+      if (fait) ok();
+      else if (dit) dit.textContent = 'Copie impossible dans ce navigateur : ouvre le devis, le lien y est.';
+      if (b) { try { b.focus(); } catch (e) {} }
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(ok, secours); return; } } catch (e) {}
+    secours();
   }
   /* Le jeton des liens vivants de ces devis. Colonne absente (SQL du lot 71 pas passe) ou
      panne : rien, la carte se tait. */
