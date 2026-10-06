@@ -142,7 +142,8 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const brut = await req.text();
-      if (brut.length > 4000) return reponse({ erreur: 'trop long' }, 413);
+      /* LOT 70 : la signature voyage en image PNG (150 000 signes au plus, la base le verifie). */
+      if (brut.length > 160000) return reponse({ erreur: 'trop long' }, 413);
       let c: Record<string, unknown> = {};
       try { c = JSON.parse(brut); } catch { return reponse({ erreur: 'illisible' }, 400); }
       /* `null`, un nombre, une chaine ou un tableau se lisent en JSON : ce n'est pas un corps de
@@ -160,6 +161,9 @@ Deno.serve(async (req) => {
         p_empreinte: EMPREINTE.test(empreinte) ? empreinte : null,
         p_ip: adresseIp(req),
         p_agent: texte(req.headers.get('user-agent'), 400) || null,
+        /* L'image et sa facon ne sont pas lues ici : la base refuse tout ce qui n'est pas un PNG. */
+        p_trace: typeof c.trace === 'string' && c.trace.length <= 150000 ? c.trace : null,
+        p_trace_mode: c.trace_mode === 'dessin' || c.trace_mode === 'manuscrit' ? c.trace_mode : null,
       })));
     }
 

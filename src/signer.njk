@@ -65,7 +65,7 @@ sans_chrome: true
         <button type="button" class="btn" id="sigImprimer"
                 style="background:transparent; color:var(--bordeaux); border:1px solid var(--bordeaux); min-height:44px;">Imprimer le devis</button>
       </p>
-      <div id="sigFeuilleW" style="overflow:hidden; border:1px solid var(--rule); background:var(--white); margin:0 0 .5rem 0;"></div>
+      <div id="sigFeuilleW" style="position:relative; isolation:isolate; overflow:hidden; border:1px solid var(--rule); background:var(--white); margin:0 0 .5rem 0;"></div>
       <p style="font-size:.85rem; color:var(--muted); margin:0;">Pour le lire en grand, appuyez sur « Imprimer le devis » et enregistrez-le en PDF.</p>
       <p id="sigEmpreinte" style="font-size:.85rem; color:var(--muted); margin:0 0 1.5rem 0;"></p>
 
@@ -96,6 +96,51 @@ sans_chrome: true
                  placeholder="Gérant, acheteur, responsable de cave…"
                  style="width:100%; max-width:26rem; min-height:44px; font-size:16px; padding:.5rem;">
         </p>
+        {#- LOT 70, 06/10/2026 : LA SIGNATURE ELLE-MEME, OBLIGATOIRE (demande de Ted). Deux facons,
+            au choix du client : la DESSINER au doigt ou a la souris, ou ECRIRE son nom en
+            ecriture manuscrite (le nom tape plus haut, rendu en Caveat). Dans les deux cas la page
+            envoie une image PNG, gardee dans la preuve. L'ecriture manuscrite est aussi le chemin
+            de qui ne peut pas dessiner (clavier, lecteur d'ecran).
+            Sur un ordinateur SANS ecran tactile, un QR code ouvre le meme lien sur le telephone :
+            on y signe au doigt, et cette page se met a jour toute seule. -#}
+        <fieldset id="sigTrace" style="border:0; padding:0; margin:0 0 1rem 0; min-width:0;">
+          <legend style="font-weight:600; padding:0; margin-bottom:.25rem;">Votre signature (obligatoire)</legend>
+          <div style="display:flex; flex-wrap:wrap; gap:0 1.25rem; margin:0 0 .5rem 0;">
+            <label style="display:inline-flex; gap:.5rem; align-items:center; min-height:44px;">
+              <input type="radio" name="sigMode" id="sigModeDessin" value="dessin" checked style="width:20px; height:20px; flex:none;">
+              Je la dessine
+            </label>
+            <label style="display:inline-flex; gap:.5rem; align-items:center; min-height:44px;">
+              <input type="radio" name="sigMode" id="sigModeMan" value="manuscrit" style="width:20px; height:20px; flex:none;">
+              J’écris mon nom à la main
+            </label>
+          </div>
+          <div id="sigPadZone">
+            <canvas id="sigPad" tabindex="-1" role="img" aria-label="Cadre de signature : signez avec le doigt ou la souris"
+                    style="display:block; width:100%; max-width:30rem; height:160px; background:var(--white); border:1px solid var(--rule); border-bottom:2px solid var(--muted); touch-action:none; cursor:crosshair;"></canvas>
+            <p style="display:flex; flex-wrap:wrap; align-items:center; gap:0 1rem; margin:.25rem 0 0 0;">
+              <span id="sigPadAide" style="font-size:.9rem; color:var(--muted);">Signez dans le cadre, avec le doigt ou la souris.</span>
+              <button type="button" id="sigPadEffacer" class="btn"
+                      style="background:transparent; color:var(--bordeaux); border:1px solid var(--bordeaux); min-height:44px;">Effacer</button>
+            </p>
+            <div id="sigTelZone" hidden style="margin:.75rem 0 0 0;">
+              <button type="button" id="sigTelB" class="btn" aria-expanded="false" aria-controls="sigQR"
+                      style="background:transparent; color:var(--bordeaux); border:1px solid var(--bordeaux); min-height:44px;">Signer plutôt sur mon téléphone</button>
+              <div id="sigQR" hidden style="margin:.75rem 0 0 0; padding:.75rem; border:1px solid var(--rule); background:var(--paper-light); max-width:30rem;">
+                <canvas id="sigQRc" role="img" aria-label="QR code qui ouvre ce devis sur votre téléphone"
+                        style="display:block; width:200px; height:200px; background:var(--white);"></canvas>
+                <p style="margin:.5rem 0 0 0;">Visez ce code avec l’appareil photo de votre téléphone : le devis s’ouvre, vous signez au doigt. <b>Cette page se met à jour toute seule</b> une fois le devis signé.</p>
+                <p style="margin:.35rem 0 0 0; font-size:.85rem; color:var(--muted);">Ce code ouvre votre lien personnel : ne le montrez qu’à la personne qui signe.</p>
+                <p id="sigQRErreur" role="alert" hidden style="margin:.35rem 0 0 0; font-weight:600; color:var(--danger-deep);"></p>
+              </div>
+            </div>
+          </div>
+          <div id="sigManZone" hidden>
+            <p id="sigManApercu" aria-live="polite"
+               style="margin:0; min-height:4.5rem; max-width:30rem; padding:.25rem .75rem; display:flex; align-items:flex-end; background:var(--white); border:1px solid var(--rule); border-bottom:2px solid var(--muted); font-family:var(--font-manuscrit); font-size:2.6rem; line-height:1.1; color:var(--ink); overflow-wrap:anywhere;"></p>
+            <p style="font-size:.9rem; color:var(--muted); margin:.25rem 0 0 0;">C’est votre nom et prénom, écrits plus haut, qui servent de signature.</p>
+          </div>
+        </fieldset>
         <p style="margin:0 0 1rem 0;">
           <label style="display:flex; gap:.6rem; align-items:flex-start; min-height:44px;">
             <input type="checkbox" id="sigAccord" style="width:22px; height:22px; margin-top:.15rem; flex:none;">
@@ -106,7 +151,7 @@ sans_chrome: true
         <p id="sigErreur" role="alert" hidden style="font-weight:600; color:var(--danger-deep);"></p>
         <p style="margin:0 0 1rem 0;"><button type="submit" class="btn btn--bordeaux" id="sigSigner" style="min-height:44px;">Je signe le devis</button></p>
         <p style="font-size:.85rem; color:var(--muted);">
-          En signant, nous enregistrons votre nom, votre fonction, la date et l’heure de la signature,
+          En signant, nous enregistrons votre nom, votre fonction, votre signature, la date et l’heure de la signature,
           l’empreinte numérique du devis signé, ainsi que l’adresse IP et le navigateur utilisés. Ces
           informations servent de preuve de votre accord : elles sont conservées avec le devis et ne
           servent à rien d’autre. Le domaine qui vous a envoyé ce devis en est responsable ; le

@@ -128,6 +128,13 @@
     c[0].textContent = 'Date : ' + quand(d.signe_le);
     c[1].textContent = 'Nom et qualité du signataire : ' + (d.signe_nom || '') + (d.signe_qualite ? ', ' + d.signe_qualite : '');
     c[2].textContent = 'Signature et cachet : signé en ligne, case « Bon pour accord » cochée.';
+    /* LOT 70 : la signature dessinee ou manuscrite, telle que la base l'a gardee. Seul un PNG passe. */
+    if (PNG_TRACE.test(String(d.signe_trace || ''))) {
+      var im = doc.createElement('img');
+      im.src = d.signe_trace; im.alt = 'Signature de ' + (d.signe_nom || 'signataire');
+      im.style.cssText = 'display:block; max-width:100%; max-height:70px; width:auto; height:auto; margin-top:4px;';
+      c[2].appendChild(im);
+    }
   }
   /* X5 (tour 3) : LES VINS SE LISENT DANS LE RESUME, une ligne par vin en 16 px : « 12 × Le
      Rosé 2025, 75 cl, 106,80 € HT ». A 390 la feuille est reduite a 45 %, ses lettres font 6 px :
@@ -182,6 +189,7 @@
     f.style.transformOrigin = '0 0';
     /* + les bordures du cadre : la hauteur posee compte le cadre entier. */
     w.style.height = (Math.ceil(h * k) + Math.max(0, (w.offsetHeight || 0) - (w.clientHeight || 0))) + 'px';
+    poserCache(f, k);
   }
   function poserFeuille(html) {
     var w = el('sigFeuilleW');
@@ -265,20 +273,236 @@
       el('sigTitre').textContent = 'Devis signé';
       montrer('sigForm', false);
       montrer('sigAller', false);
+      veiller(false);
     } else {
       el('sigIntro').textContent = (d.vendeur || 'Le domaine') + ' vous a envoyé le devis ' + (d.numero || '')
-        + (d.client ? ' pour ' + d.client : '') + '. Lisez-le, puis signez avec le bouton «\u00a0Signer ce devis\u00a0».';
+        + (d.client ? ' pour ' + d.client : '') + '. Lisez-le, puis signez-le en bas de la page.';
       el('sigAuNomDe').textContent = d.client || 'votre entreprise';
       el('sigAuNomDe2').textContent = d.client || 'votre entreprise';
       el('sigTitre').textContent = 'Signer le devis ' + (d.numero || '');
       montrer('sigForm', true);
       montrer('sigAller', true);
+      montrer('sigTelZone', sansTactile());
+      poserMode();
       surveillerForm();
     }
     el('sigEmpreinte').textContent = d.empreinte ? 'Empreinte numérique du devis : ' + empreinteLisible(d.empreinte)
       + '. Elle change si une seule lettre du devis change.'
-      + (et === 'signe' ? ' Le cadre « Bon pour accord » est rempli ici à l’affichage ; la copie gardée par le domaine, celle de cette empreinte, n’a pas changé.' : '') : '';
+      + (et === 'signe' ? ' Votre signature est enregistrée à part, avec la preuve de votre accord. Le devis lui-même n’a pas été modifié : son empreinte reste la même.' : '') : '';
     poserFeuille(d.papier || '');
+  }
+
+  /* ==========================================================================
+     LOT 70, 06/10/2026 : LA SIGNATURE ELLE-MEME (demande de Ted). Obligatoire, deux facons :
+       - « dessin »    : au doigt ou a la souris, dans le cadre `#sigPad` ;
+       - « manuscrit » : le nom tape plus haut, rendu en Caveat (la police manuscrite du site).
+     Dans les deux cas on envoie une IMAGE PNG, et c'est elle que la base garde dans la preuve.
+     Le dessin est garde en POINTS (en proportion du cadre) : un changement de largeur le
+     redessine au lieu de l'effacer, et l'image envoyee est refaite a taille fixe.
+     ========================================================================= */
+  var ENCRE = '#16181C';            /* --bdv-encre-1, l'encre du papier du devis */
+  var PNG_TRACE = /^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/]+={0,2}$/;
+  var TRAITS = [], TRAIT = null;
+
+  function mode() { var r = el('sigModeMan'); return r && r.checked ? 'manuscrit' : 'dessin'; }
+  function ctxDe(c) { try { return c && c.getContext ? c.getContext('2d') : null; } catch (e) { return null; } }
+
+  function tracer(cx, w, h, epais) {
+    cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = ENCRE; cx.fillStyle = ENCRE; cx.lineWidth = epais;
+    TRAITS.forEach(function (t) {
+      if (!t.length) return;
+      cx.beginPath();
+      cx.moveTo(t[0][0] * w, t[0][1] * h);
+      if (t.length === 1) { cx.arc(t[0][0] * w, t[0][1] * h, epais / 2, 0, 2 * Math.PI); cx.fill(); return; }
+      for (var i = 1; i < t.length; i++) cx.lineTo(t[i][0] * w, t[i][1] * h);
+      cx.stroke();
+    });
+  }
+  function padRepeindre() {
+    var c = el('sigPad'), cx = ctxDe(c);
+    if (!cx) return;
+    var r = window.devicePixelRatio || 1, w = c.clientWidth || 300, h = c.clientHeight || 160;
+    if (c.width !== Math.round(w * r) || c.height !== Math.round(h * r)) { c.width = Math.round(w * r); c.height = Math.round(h * r); }
+    cx.setTransform(r, 0, 0, r, 0, 0);
+    cx.clearRect(0, 0, w, h);
+    tracer(cx, w, h, 2.5);
+  }
+  /* « Un point ne signe pas » : il faut un trace d'au moins 40 px de long et 30 px de large. */
+  function padSuffit() {
+    var c = el('sigPad'), w = (c && c.clientWidth) || 300, h = (c && c.clientHeight) || 160;
+    var lg = 0, x0 = 1, x1 = 0;
+    TRAITS.forEach(function (t) {
+      for (var i = 0; i < t.length; i++) {
+        x0 = Math.min(x0, t[i][0]); x1 = Math.max(x1, t[i][0]);
+        if (i) lg += Math.hypot((t[i][0] - t[i - 1][0]) * w, (t[i][1] - t[i - 1][1]) * h);
+      }
+    });
+    return lg >= 40 && (x1 - x0) * w >= 30;
+  }
+  function padPoint(ev) {
+    var c = el('sigPad'), b = c.getBoundingClientRect();
+    var w = b.width || 1, h = b.height || 1;
+    return [Math.min(1, Math.max(0, (ev.clientX - b.left) / w)), Math.min(1, Math.max(0, (ev.clientY - b.top) / h))];
+  }
+  function brancherPad() {
+    var c = el('sigPad');
+    if (!c) return;
+    c.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== undefined && ev.button > 0) return;
+      ev.preventDefault();
+      try { c.setPointerCapture(ev.pointerId); } catch (e) {}
+      TRAIT = [padPoint(ev)]; TRAITS.push(TRAIT);
+      erreur(''); c.removeAttribute('aria-invalid');
+      padRepeindre();
+    });
+    c.addEventListener('pointermove', function (ev) {
+      if (!TRAIT) return;
+      ev.preventDefault();
+      var p = padPoint(ev), d = TRAIT[TRAIT.length - 1];
+      if (Math.abs(p[0] - d[0]) + Math.abs(p[1] - d[1]) < 0.003) return;
+      TRAIT.push(p); padRepeindre();
+    });
+    function fin() { TRAIT = null; padAide(); }
+    c.addEventListener('pointerup', fin);
+    c.addEventListener('pointercancel', fin);
+    el('sigPadEffacer').addEventListener('click', function () { TRAITS = []; TRAIT = null; padRepeindre(); padAide(); });
+    window.addEventListener('resize', padRepeindre);
+  }
+  function padAide() {
+    var a = el('sigPadAide');
+    if (a) a.textContent = TRAITS.length ? 'Votre signature est dans le cadre. « Effacer » pour recommencer.' : (sansTactile() ? 'Signez dans le cadre, avec la souris ou le doigt.' : 'Signez dans le cadre avec le doigt.');
+  }
+
+  /* L'image envoyee : 600 x 200, fond transparent, encre du papier. */
+  function imageDessin() {
+    var c = document.createElement('canvas'); c.width = 600; c.height = 200;
+    var cx = ctxDe(c); if (!cx) return '';
+    tracer(cx, 600, 200, 4);
+    try { return c.toDataURL('image/png'); } catch (e) { return ''; }
+  }
+  /* Le nom en ecriture manuscrite. La police est attendue (1,5 s au plus) : sans elle, le
+     navigateur dessinerait le nom dans une police ordinaire, et l'image gardee ne serait pas
+     celle que le client a vue a l'ecran. La taille descend jusqu'a ce que le nom tienne. */
+  async function imageManuscrit(nom) {
+    try {
+      if (document.fonts && document.fonts.load) {
+        await Promise.race([document.fonts.load('64px Caveat', nom), new Promise(function (r) { setTimeout(r, 1500); })]);
+      }
+    } catch (e) {}
+    var c = document.createElement('canvas'); c.width = 600; c.height = 160;
+    var cx = ctxDe(c); if (!cx) return '';
+    var t = 72;
+    do { cx.font = t + 'px Caveat, cursive'; t -= 4; } while (t > 24 && cx.measureText(nom).width > 570);
+    cx.fillStyle = ENCRE; cx.textBaseline = 'alphabetic';
+    cx.fillText(nom, 15, 115);
+    try { return c.toDataURL('image/png'); } catch (e) { return ''; }
+  }
+  function manApercu() {
+    var p = el('sigManApercu');
+    if (p) p.textContent = el('sigNom').value.trim() || 'Votre nom apparaîtra ici';
+  }
+  function poserMode() {
+    var m = mode();
+    montrer('sigPadZone', m === 'dessin');
+    montrer('sigManZone', m === 'manuscrit');
+    if (m === 'dessin') padRepeindre(); else manApercu();
+    erreur('');
+  }
+
+  /* LE QR CODE, sur un ordinateur SANS ecran tactile seulement : signer a la souris est
+     malcommode. Il ouvre le MEME lien (jeton compris) sur le telephone. La bibliotheque
+     (qrcode-generator, MIT, dans /js/vendor/) n'est chargee qu'a la demande. Tant que le code
+     est montre, la page relit le devis toutes les 4 s, 20 minutes au plus, et se repeint
+     d'elle-meme quand il a ete signe ailleurs. */
+  var QR_LIB = null, VEILLE = null, VEILLE_FIN = 0;
+  function sansTactile() {
+    try { return !!(window.matchMedia && window.matchMedia('(any-pointer: fine)').matches && !window.matchMedia('(any-pointer: coarse)').matches); }
+    catch (e) { return false; }
+  }
+  function chargerQR() {
+    if (QR_LIB) return QR_LIB;
+    QR_LIB = new Promise(function (ok, ko) {
+      if (window.qrcode) return ok(window.qrcode);
+      var s = document.createElement('script');
+      s.src = '/js/vendor/qrcode-generator.js';
+      s.onload = function () { window.qrcode ? ok(window.qrcode) : ko(new Error('qrcode')); };
+      s.onerror = function () { QR_LIB = null; ko(new Error('qrcode')); };
+      document.head.appendChild(s);
+    });
+    return QR_LIB;
+  }
+  function dessinerQR(lib) {
+    var q = lib(0, 'M');
+    q.addData(location.href.split('#')[0] + '#' + JETON);
+    q.make();
+    var n = q.getModuleCount(), marge = 4, c = el('sigQRc'), cote = 200;
+    var r = window.devicePixelRatio || 1;
+    c.width = Math.round(cote * r); c.height = Math.round(cote * r);
+    var cx = ctxDe(c); if (!cx) throw new Error('canvas');
+    var k = c.width / (n + 2 * marge);
+    cx.fillStyle = '#FFFFFF'; cx.fillRect(0, 0, c.width, c.height);   /* --white : un QR se lit noir sur blanc */
+    cx.fillStyle = ENCRE;
+    for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+      if (q.isDark(y, x)) cx.fillRect(Math.floor((x + marge) * k), Math.floor((y + marge) * k), Math.ceil(k), Math.ceil(k));
+    }
+  }
+  function veiller(oui) {
+    if (VEILLE) { clearInterval(VEILLE); VEILLE = null; }
+    if (!oui) return;
+    VEILLE_FIN = Date.now() + 20 * 60 * 1000;
+    VEILLE = setInterval(async function () {
+      if (Date.now() > VEILLE_FIN || !DEVIS || DEVIS.etat !== 'a_signer') return veiller(false);
+      if (document.visibilityState === 'hidden' || EN_COURS) return;
+      try {
+        var r = await fetch(FONCTION + '?j=' + encodeURIComponent(JETON), { headers: { Accept: 'application/json' }, cache: 'no-store' });
+        var d = await r.json();
+        if (r.ok && d && !d.erreur && d.etat && d.etat !== 'a_signer') { veiller(false); peindre(d); }
+      } catch (e) {}
+    }, 4000);
+  }
+  async function basculerQR() {
+    var b = el('sigTelB'), z = el('sigQR'), ouvrir = z.hidden;
+    z.hidden = !ouvrir;
+    b.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
+    b.textContent = ouvrir ? 'Je signe sur cet ordinateur' : 'Signer plutôt sur mon téléphone';
+    var err = el('sigQRErreur'); err.hidden = true;
+    if (!ouvrir) return veiller(false);
+    try { dessinerQR(await chargerQR()); veiller(true); }
+    catch (e) {
+      err.textContent = 'Le code n’a pas pu s’afficher. Ouvrez sur votre téléphone le message qui contient le lien, et signez de là.';
+      err.hidden = false;
+    }
+  }
+
+  /* LE CACHE SUR LE CADRE « BON POUR ACCORD » (demande de Ted, 06/10/2026) : le cadre vide de
+     la copie faisait croire qu'il fallait imprimer et signer a la main. Un vrai bouton de la
+     page est pose PAR-DESSUS, a la place exacte du cadre (mesuree dans la feuille, puis mise a
+     l'echelle), et mene au formulaire. La copie elle-meme ne change pas : son empreinte est
+     celle que le client signe. `isolation:isolate` sur la boite de la feuille garde le cache
+     SOUS la barre collante « Signer ce devis » quand on fait defiler. */
+  function poserCache(f, k) {
+    var w = el('sigFeuilleW'), b = el('sigCache');
+    var cadre = null;
+    try { cadre = f.contentDocument.querySelector('.dpap__accord'); } catch (e) { cadre = null; }
+    if (!cadre || !DEVIS || DEVIS.etat !== 'a_signer') { if (b) b.hidden = true; return; }
+    if (!b) {
+      b = document.createElement('button');
+      b.type = 'button'; b.id = 'sigCache';
+      b.style.cssText = 'position:absolute; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.2rem;'
+        + ' padding:.25rem; margin:0; background:var(--paper-light); color:var(--bordeaux); border:2px dashed var(--bordeaux);'
+        + ' font:inherit; text-align:center; cursor:pointer; line-height:1.2;';
+      var t = document.createElement('span'); t.style.cssText = 'font-weight:700; font-size:1rem;'; t.textContent = 'Signer en ligne';
+      var s = document.createElement('span'); s.style.cssText = 'font-size:.85rem; color:var(--ink);'; s.textContent = (sansTactile() ? 'Cliquez' : 'Touchez') + ' ici pour signer en ligne, juste en dessous.';
+      b.appendChild(t); b.appendChild(s);
+      b.addEventListener('click', allerSigner);
+      w.appendChild(b);
+    }
+    var r = cadre.getBoundingClientRect();
+    b.style.left = Math.round(r.left * k) + 'px';
+    b.style.top = Math.round(r.top * k) + 'px';
+    b.style.width = Math.max(44, Math.round(r.width * k)) + 'px';
+    b.style.height = Math.max(44, Math.round(r.height * k)) + 'px';
+    b.hidden = false;
   }
 
   function erreur(t, champ) {
@@ -303,12 +527,16 @@
   async function signer(ev) {
     ev.preventDefault();
     if (EN_COURS || !DEVIS || DEVIS.etat !== 'a_signer') return;
-    ['sigNom', 'sigQualite', 'sigAccord'].forEach(function (i) { el(i).removeAttribute('aria-invalid'); });
+    ['sigNom', 'sigQualite', 'sigAccord', 'sigPad'].forEach(function (i) { el(i).removeAttribute('aria-invalid'); });
     var nom = el('sigNom').value.trim(), qual = el('sigQualite').value.trim(), ok = el('sigAccord').checked;
     if (nom.length < 2) return erreur('Indiquez votre nom et prénom.', 'sigNom');
     if (qual.length < 2) return erreur('Indiquez votre fonction dans l’entreprise.', 'sigQualite');
+    var m = mode();
+    if (m === 'dessin' && !padSuffit()) return erreur('Signez dans le cadre, avec le doigt ou la souris. Un point ne suffit pas.', 'sigPad');
     if (!ok) return erreur('Cochez « Bon pour accord » pour signer.', 'sigAccord');
     erreur('');
+    var trace = m === 'dessin' ? imageDessin() : await imageManuscrit(nom);
+    if (!PNG_TRACE.test(trace)) return erreur('Votre signature n’a pas pu être préparée par ce navigateur. Essayez l’autre façon de signer, ou un autre navigateur.');
     EN_COURS = true;
     var b = el('sigSigner');
     b.setAttribute('aria-busy', 'true');
@@ -317,7 +545,7 @@
     try {
       var r = await fetch(FONCTION, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, cache: 'no-store',
-        body: JSON.stringify({ j: JETON, nom: nom, qualite: qual, accord: true, empreinte: DEVIS.empreinte })
+        body: JSON.stringify({ j: JETON, nom: nom, qualite: qual, accord: true, empreinte: DEVIS.empreinte, trace: trace, trace_mode: m })
       });
       d = await r.json();
       if (!r.ok || d.erreur) d = null;
@@ -329,6 +557,7 @@
     if (d.refus === 'nom') return erreur('Indiquez votre nom et prénom.', 'sigNom');
     if (d.refus === 'qualite') return erreur('Indiquez votre fonction dans l’entreprise.', 'sigQualite');
     if (d.refus === 'accord') return erreur('Cochez « Bon pour accord » pour signer.', 'sigAccord');
+    if (d.refus === 'trace') return erreur('Votre signature n’a pas été reçue. Signez de nouveau dans le cadre, ou écrivez votre nom à la main.', m === 'dessin' ? 'sigPad' : 'sigModeMan');
     if (d.refus === 'empreinte') {
       erreur('Le devis a changé depuis que vous l’avez ouvert. Il se recharge : relisez-le avant de signer.');
       return lire();
@@ -373,6 +602,11 @@
     el('sigForm').addEventListener('submit', signer);
     el('sigImprimer').addEventListener('click', imprimer);
     el('sigAllerB').addEventListener('click', allerSigner);
+    brancherPad();
+    padAide();
+    ['sigModeDessin', 'sigModeMan'].forEach(function (i) { el(i).addEventListener('change', poserMode); });
+    el('sigNom').addEventListener('input', function () { if (mode() === 'manuscrit') manApercu(); });
+    el('sigTelB').addEventListener('click', basculerQR);
     if (!JETON) {
       fin('Ce lien est incomplet', 'Il manque la fin de l’adresse. Ouvrez le message reçu et recliquez sur le lien, ou copiez-le en entier dans votre navigateur.');
       return;

@@ -8304,3 +8304,29 @@ Demande de Ted, sur captures.
 - Garde : `npm run banc:logo` (45, mutations faites), place apres banc:notif-horaire (banc:devis
   exige d'etre juste apres banc:domaine).
 
+
+### LOT 70 : LA SIGNATURE ELLE-MEME SUR /signer/, 06/10/2026
+
+- **SQL `supabase/lot70-signature-trace.sql`, a coller APRES 69, PUIS push, PUIS redeploiement de
+  `signature`.** `devis_signatures.trace` (PNG en base64, 150 000 signes au plus, debut
+  `iVBORw0KGgo` exige par `signature_trace_valide()`) et `trace_mode` (`dessin` | `manuscrit`).
+  Contrainte en `coalesce(..., false)` : un mode NUL laissait passer une image (trouve par le banc).
+  `signature_poser` passe a 9 arguments et REFUSE `trace` sans image valide ; `signature_lire` rend
+  `signe_trace` et `signe_trace_mode`. Les signatures d'avant restent sans image. Banc :
+  `supabase/banc-lot70-signature-trace.sql` (16), liste `ORDRE` de banc-rejeu.
+- **Le cache** : un vrai `<button id="sigCache">` de la page, pose en absolu PAR-DESSUS
+  `.dpap__accord` (mesure dans l'iframe, multipliee par l'echelle), jamais dans la copie (son
+  empreinte est celle qui est signee). `isolation:isolate` sur `#sigFeuilleW` le garde sous la
+  barre collante « Signer ce devis ». Il disparait des que le devis n'est plus a signer.
+- **Deux facons, une image** : le pad garde les traits en proportion du cadre (redessines au
+  redimensionnement), refuse un point (40 px de trace et 30 px de large au moins), exporte en
+  600 x 200 ; le manuscrit attend Caveat (1,5 s au plus) puis ecrit le nom en 600 x 160. Le
+  manuscrit est aussi le chemin de qui ne peut pas dessiner (clavier, lecteur d'ecran).
+- **Le QR code** : seulement si `(any-pointer: fine)` et pas `(any-pointer: coarse)`. Bibliotheque
+  `src/js/vendor/qrcode-generator.js` (MIT, copie npm 2.0.4 sans modification), chargee a la
+  demande. Tant qu'il est ouvert, la page relit le devis toutes les 4 s (20 min au plus, page
+  visible) et se repeint seule quand il est signe ailleurs.
+- **Apres signature**, l'image s'affiche dans le cadre (seul un PNG passe), et dans « La preuve
+  gardee » du bureau (`.bdv-coque .dmod__signature`, fond `--bdv-fond-logo`).
+- La fonction `signature` accepte 160 000 octets de corps et passe `p_trace` / `p_trace_mode`
+  sans les juger : la base le fait. Garde : `banc:signature` section 1 quater (mutations faites).

@@ -10455,3 +10455,13 @@ dans un nouvel onglet (`.suivre__onglet`, `#fiche=`). Le clic sur la rangee ouvr
 fiche sur le cote. Cachee sous 700 px. Garde : banc:commerce.
 Meme jour : la barre du haut (depot Vitisoft, export PDF, export Excel, compteur) est retiree de
 TOUS les ecrans du bureau, pas seulement de Mon commerce. Le depot reste dans Mes reglages.
+
+## 06/10/2026 : lot 70, la signature en ligne se fait pour de vrai
+
+Ted, capture de /signer/ : le cadre vide « Bon pour accord » de la copie faisait croire qu'il
+fallait imprimer et signer a la main. Arbitrages de Ted : un cache « Signer en ligne » pose sur ce
+cadre, qui descend au formulaire ; une signature OBLIGATOIRE, au choix du client, dessinee au
+doigt ou a la souris, OU son nom ecrit en ecriture manuscrite ; sur un ordinateur sans ecran
+tactile, un QR code pour signer sur le telephone. Dans les deux cas une image PNG est gardee dans
+la preuve. SQL lot 70 a coller (banc 16 controles, rejoue 47 a 69), puis push, puis
+redeploiement de la fonction `signature`. Vigneron empathique : feu vert, cinq textes repris.

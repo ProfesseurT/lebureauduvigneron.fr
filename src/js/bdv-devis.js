@@ -1577,6 +1577,11 @@
     var d = S.devis, p = S.preuve;
     var h = '<p class="dmod__cond">Signé en ligne le ' + esc(heureFr(d.signe_le)) + (p ? ' par ' + esc(p.nom) + ' (' + esc(p.qualite) + ')'
       + (p.au_nom_de ? ', au nom de ' + esc(p.au_nom_de) : '') : '') + '. Le devis est accepté, l’affaire est gagnée.</p>';
+    /* LOT 70 : la signature elle-meme (dessinee ou nom en ecriture manuscrite), telle que la base
+       l'a gardee. Seul un PNG en base64 passe : l'adresse va dans un attribut. */
+    if (p && /^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/]+={0,2}$/.test(String(p.trace || '')))
+      h += '<p class="aff-aide">' + (p.trace_mode === 'manuscrit' ? 'Signature : son nom, écrit en écriture manuscrite.' : 'Signature dessinée par le client.')
+        + '</p><img class="dmod__signature" src="' + p.trace + '" alt="Signature de ' + esc(p.nom) + '">';
     if (p) h += '<details class="aff-plus"><summary>La preuve gardée</summary><p class="aff-aide">Case « Bon pour accord » cochée. Empreinte du devis signé : '
       + esc(empreinteLisible(p.papier_empreinte)) + (p.papier_empreinte === d.papier_empreinte ? ', la même que la copie gardée.' : '.')
       + (p.ip ? ' Adresse IP : ' + esc(p.ip) + ' (un indice, pas une identité).' : '') + (p.agent ? ' Navigateur : ' + esc(p.agent) + '.' : '')

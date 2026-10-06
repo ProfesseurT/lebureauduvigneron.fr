@@ -54,7 +54,16 @@ function page(o) {
     const r = post ? (typeof o.post === 'function' ? o.post(X.appels[X.appels.length - 1].corps) : o.post) : o.get;
     return { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(r)) };
   };
+  /* LOT 70 : jsdom n'a pas de canvas. Un faux contexte 2d suffit : il note ce qu'on y trace,
+     et toDataURL rend un vrai debut de PNG (la base ne laisse passer que ca). */
+  X.traces = [];
+  const faux = { setTransform() {}, clearRect() {}, beginPath() {}, moveTo() {}, lineTo(x, y) { X.traces.push([x, y]); }, stroke() {}, arc() {}, fill() {},
+    fillRect() {}, fillText(t) { X.texteEcrit = t; }, measureText(t) { return { width: String(t).length * 20 }; } };
+  w.HTMLCanvasElement.prototype.getContext = function () { return o.sansCanvas ? null : faux; };
+  w.HTMLCanvasElement.prototype.toDataURL = function () { return 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(400); };
+  if (o.matchMedia) w.matchMedia = o.matchMedia;
   w.eval(SRC);
+  X.manuscrit = () => { const r = X.doc.getElementById('sigModeMan'); r.checked = true; r.dispatchEvent(new w.Event('change', { bubbles: true })); };
   X.texte = () => X.doc.body.textContent.replace(/\s+/g, ' ');
   return X;
 }
@@ -114,17 +123,26 @@ titre('1. La page /signer/');
   X.doc.getElementById('sigNom').value = 'Jean Dupont';
   X.doc.getElementById('sigQualite').value = 'Gérant';
   soumettre(); await attendre(10);
+  t('LOT 70 : le pad vide (facon par defaut) refuse avant de partir, « Un point ne suffit pas »', X.appels.length === 1
+    && /Signez dans le cadre/.test(X.doc.getElementById('sigErreur').textContent) && X.doc.getElementById('sigPad').getAttribute('aria-invalid') === 'true');
+  X.manuscrit();
+  t('LOT 70 : en manuscrit, le cadre de dessin s\'efface et le nom tape s\'affiche en ecriture manuscrite',
+    X.doc.getElementById('sigPadZone').hidden && !X.doc.getElementById('sigManZone').hidden && X.doc.getElementById('sigManApercu').textContent === 'Jean Dupont');
+  soumettre(); await attendre(10);
   t('case non cochee : refuse avant de partir', X.appels.length === 1 && /Bon pour accord/.test(X.doc.getElementById('sigErreur').textContent));
   X.doc.getElementById('sigAccord').checked = true;
   soumettre(); await attendre(20);
   t('la signature part en POST avec le jeton, le nom, la qualite, l\'accord et l\'EMPREINTE MONTREE', X.appels.length === 2 && X.appels[1].init.method === 'POST'
     && corpsPost.j === JETON && corpsPost.nom === 'Jean Dupont' && corpsPost.qualite === 'Gérant' && corpsPost.accord === true && corpsPost.empreinte === EMP, JSON.stringify(corpsPost));
+  t('LOT 70 : la signature part avec son IMAGE PNG et sa facon (« manuscrit »), le nom ecrit dans l\'image',
+    /^data:image\/png;base64,iVBORw0KGgo/.test(corpsPost.trace) && corpsPost.trace_mode === 'manuscrit' && X.texteEcrit === 'Jean Dupont', JSON.stringify(corpsPost).slice(0, 200));
   t('signe : « Devis signé le 1er octobre 2026 à 14 h 05 par Jean Dupont (Gérant) », le formulaire part', /Devis signé le 1er octobre 2026 à 14 h 05 par Jean Dupont \(Gérant\)/.test(X.texte())
     && X.doc.getElementById('sigForm').hidden && X.doc.activeElement === X.doc.getElementById('sigIntro'), X.texte().slice(0, 300));
 }
 {
   const X = page({ get: A_SIGNER, post: { etat: 'a_signer', refus: 'empreinte' } });
   await attendre(10);
+  X.manuscrit();
   X.doc.getElementById('sigNom').value = 'Jean Dupont'; X.doc.getElementById('sigQualite').value = 'Gérant'; X.doc.getElementById('sigAccord').checked = true;
   X.doc.getElementById('sigForm').dispatchEvent(new X.w.Event('submit', { bubbles: true, cancelable: true })); await attendre(20);
   t('empreinte refusee : la page recharge le devis au lieu de dire « signe »', X.appels.length === 3 && !X.appels[2].init.method && !/Devis signé/.test(X.texte()));
@@ -132,10 +150,97 @@ titre('1. La page /signer/');
 {
   const X = page({ get: A_SIGNER, post: { erreur: 'panne' } });
   await attendre(10);
+  X.manuscrit();
   X.doc.getElementById('sigNom').value = 'Jean Dupont'; X.doc.getElementById('sigQualite').value = 'Gérant'; X.doc.getElementById('sigAccord').checked = true;
   X.doc.getElementById('sigForm').dispatchEvent(new X.w.Event('submit', { bubbles: true, cancelable: true })); await attendre(20);
   t('la fonction tombe : « Rien n’a été signé », jamais l\'inverse', /Rien n’a été signé/.test(X.doc.getElementById('sigErreur').textContent) && !/Devis signé/.test(X.texte()));
 }
+
+titre('1 quater. Lot 70 : la signature dessinee, manuscrite, ou sur le telephone');
+{
+  let corps = null;
+  const X = page({ get: A_SIGNER, post: (c) => { corps = c; return { etat: 'a_signer', refus: 'trace' }; } });
+  await attendre(10);
+  const pad = X.doc.getElementById('sigPad');
+  pad.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 160 });
+  Object.defineProperty(pad, 'clientWidth', { value: 300 }); Object.defineProperty(pad, 'clientHeight', { value: 160 });
+  const P = (type, x, y) => { const e = new X.w.Event(type, { bubbles: true, cancelable: true }); e.clientX = x; e.clientY = y; e.pointerId = 1; e.button = 0; pad.dispatchEvent(e); };
+  P('pointerdown', 20, 80); P('pointerup', 20, 80);
+  X.doc.getElementById('sigNom').value = 'Jean Dupont'; X.doc.getElementById('sigQualite').value = 'Gérant'; X.doc.getElementById('sigAccord').checked = true;
+  X.doc.getElementById('sigForm').dispatchEvent(new X.w.Event('submit', { bubbles: true, cancelable: true })); await attendre(10);
+  t('un POINT dans le cadre ne signe pas : refuse avant de partir', X.appels.length === 1 && /Un point ne suffit pas/.test(X.doc.getElementById('sigErreur').textContent));
+  P('pointerdown', 20, 80); P('pointermove', 80, 60); P('pointermove', 150, 100); P('pointermove', 220, 70); P('pointerup', 220, 70);
+  t('un vrai trait se dessine, et l\'aide le dit', X.traces.length > 0 && /Votre signature est dans le cadre/.test(X.doc.getElementById('sigPadAide').textContent));
+  X.doc.getElementById('sigForm').dispatchEvent(new X.w.Event('submit', { bubbles: true, cancelable: true })); await attendre(20);
+  t('le dessin part en image PNG, facon « dessin »', !!corps && corps.trace_mode === 'dessin' && /^data:image\/png;base64,iVBORw0KGgo/.test(corps.trace));
+  t('la base refuse l\'image (« trace ») : la page le dit, rien n\'est dit « signe »', /Votre signature n’a pas été reçue/.test(X.doc.getElementById('sigErreur').textContent) && !/Devis signé/.test(X.texte()));
+  X.doc.getElementById('sigPadEffacer').click();
+  X.doc.getElementById('sigForm').dispatchEvent(new X.w.Event('submit', { bubbles: true, cancelable: true })); await attendre(10);
+  t('« Effacer » vide le cadre : il faut resigner', X.appels.length === 2 && /Un point ne suffit pas/.test(X.doc.getElementById('sigErreur').textContent));
+}
+{
+  const X = page({ get: A_SIGNER, sansCanvas: true });
+  await attendre(10);
+  X.manuscrit();
+  X.doc.getElementById('sigNom').value = 'Jean Dupont'; X.doc.getElementById('sigQualite').value = 'Gérant'; X.doc.getElementById('sigAccord').checked = true;
+  X.doc.getElementById('sigForm').dispatchEvent(new X.w.Event('submit', { bubbles: true, cancelable: true })); await attendre(10);
+  t('un navigateur qui ne sait pas faire l\'image : rien ne part, la page le dit', X.appels.length === 1 && /n’a pas pu être préparée/.test(X.doc.getElementById('sigErreur').textContent));
+}
+{
+  const X = page({ get: Object.assign({}, A_SIGNER, { papier: '<!doctype html><html><body><div class="dpap__accord"><p class="dpap__case">Date :</p><p class="dpap__case">Nom</p><p class="dpap__case">Signature</p></div></body></html>' }) });
+  await attendre(10);
+  const f = X.doc.getElementById('sigFeuille'), fd = f && f.contentDocument;
+  if (fd) { fd.open(); fd.write(f.getAttribute('srcdoc')); fd.close(); f.dispatchEvent(new X.w.Event('load')); }
+  const c = X.doc.getElementById('sigCache');
+  t('a signer : un vrai bouton « Signer en ligne » couvre le cadre « Bon pour accord », 44 px au moins', !!c && !c.hidden && c.tagName === 'BUTTON'
+    && /Signer en ligne/.test(c.textContent) && parseInt(c.style.height, 10) >= 44 && c.parentNode === X.doc.getElementById('sigFeuilleW'));
+  t('la copie elle-meme n\'est pas touchee (le cache est HORS de la feuille)', fd && !fd.getElementById('sigCache') && fd.querySelectorAll('.dpap__case')[2].textContent === 'Signature');
+  c.click();
+  t('le cache mene au formulaire, focus sur le nom', X.doc.activeElement === X.doc.getElementById('sigNom'));
+  t('sans matchMedia (ecran tactile ou inconnu) : pas de QR code propose', X.doc.getElementById('sigTelZone').hidden);
+}
+{
+  const X = page({ get: A_SIGNER, matchMedia: (q) => ({ matches: q === '(any-pointer: fine)' }) });
+  await attendre(10);
+  t('ordinateur sans ecran tactile : « Signer plutôt sur mon téléphone » est propose', !X.doc.getElementById('sigTelZone').hidden && X.doc.getElementById('sigQR').hidden);
+  const q = lire('src/js/vendor/qrcode-generator.js');
+  X.w.eval(q);
+  X.doc.getElementById('sigTelB').click(); await attendre(20);
+  t('le QR code s\'ouvre, le bouton dit qu\'il est ouvert', !X.doc.getElementById('sigQR').hidden && X.doc.getElementById('sigTelB').getAttribute('aria-expanded') === 'true'
+    && X.doc.getElementById('sigQRErreur').hidden);
+  const lib = X.w.qrcode(0, 'M'); lib.addData('https://lebureauduvigneron.fr/signer/#' + JETON); lib.make();
+  t('le code porte le MEME lien, jeton compris', lib.getModuleCount() > 20);
+  X.w.document.dispatchEvent(new X.w.Event('x'));
+  const avant = X.appels.length;
+  const sig = Object.assign({}, A_SIGNER, { etat: 'signe', signe_le: '2026-10-01T12:05:00Z', signe_nom: 'Jean Dupont', signe_qualite: 'Gérant', devis_statut: 'accepte', devis_signe: true });
+  X.w.fetch = async (url) => { X.appels.push({ url: String(url), init: {} }); return { ok: true, status: 200, json: async () => sig }; };
+  await attendre(4300);
+  t('signe sur le telephone : cette page relit le devis et se met a jour toute seule', X.appels.length > avant && /Devis signé le 1er octobre 2026/.test(X.texte()), X.texte().slice(0, 160));
+}
+{
+  const PNG = 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(300);
+  const X = page({ get: Object.assign({}, A_SIGNER, { etat: 'signe', signe_le: '2026-10-01T12:05:00Z', signe_nom: 'Jean Dupont', signe_qualite: 'Gérant', devis_statut: 'accepte', devis_signe: true,
+    signe_trace: PNG, signe_trace_mode: 'dessin',
+    papier: '<!doctype html><html><body><div class="dpap__accord"><p class="dpap__case">Date :</p><p class="dpap__case">Nom</p><p class="dpap__case">Signature</p></div></body></html>' }) });
+  await attendre(10);
+  const f = X.doc.getElementById('sigFeuille'), fd = f && f.contentDocument;
+  if (fd) { fd.open(); fd.write(f.getAttribute('srcdoc')); fd.close(); f.dispatchEvent(new X.w.Event('load')); }
+  const im = fd && fd.querySelector('.dpap__accord img');
+  t('signe : la signature gardee s\'affiche dans le cadre, et plus de cache', !!im && im.getAttribute('src') === PNG && /Jean Dupont/.test(im.alt)
+    && !(X.doc.getElementById('sigCache') && !X.doc.getElementById('sigCache').hidden));
+}
+{
+  const X = page({ get: Object.assign({}, A_SIGNER, { etat: 'signe', signe_le: '2026-10-01T12:05:00Z', signe_nom: 'J', devis_statut: 'accepte', devis_signe: true,
+    signe_trace: 'data:image/svg+xml;base64,PHN2Zz4=',
+    papier: '<!doctype html><html><body><div class="dpap__accord"><p class="dpap__case">Date :</p><p class="dpap__case">Nom</p><p class="dpap__case">Signature</p></div></body></html>' }) });
+  await attendre(10);
+  const f = X.doc.getElementById('sigFeuille'), fd = f && f.contentDocument;
+  if (fd) { fd.open(); fd.write(f.getAttribute('srcdoc')); fd.close(); f.dispatchEvent(new X.w.Event('load')); }
+  t('une image qui n\'est pas un PNG ne s\'affiche jamais', fd && !fd.querySelector('img'));
+}
+t('la Fonction Edge transmet l\'image et sa facon, sans les juger (la base le fait)', /p_trace: typeof c\.trace === 'string' && c\.trace\.length <= 150000 \? c\.trace : null/.test(lire('supabase/functions/signature/index.ts'))
+  && /p_trace_mode: c\.trace_mode === 'dessin' \|\| c\.trace_mode === 'manuscrit'/.test(lire('supabase/functions/signature/index.ts')));
+t('le texte RGPD nomme la signature', /votre nom, votre fonction, votre signature/.test(NJK));
 
 titre('1 bis. Les corrections du juge, 01/10/2026');
 {
@@ -173,7 +278,7 @@ titre('1 bis. Les corrections du juge, 01/10/2026');
   const cases = fd ? [...fd.querySelectorAll('.dpap__accord .dpap__case')].map(n => n.textContent) : [];
   t('V7 : signe, le cadre « Bon pour accord » est rempli A L\'AFFICHAGE (date, nom et qualite, signe en ligne)', cases.length === 3 && /^Date : 1er octobre 2026/.test(cases[0])
     && /Jean Dupont, Gérant/.test(cases[1]) && /signé en ligne/.test(cases[2]), JSON.stringify(cases));
-  t('V7 : ... la page dit que la copie gardee n\'a pas change', /la copie gardée par le domaine, celle de cette empreinte, n’a pas changé/.test(X.texte()));
+  t('V7 : ... la page dit que la copie gardee n\'a pas change', /Le devis lui-même n’a pas été modifié : son empreinte reste la même/.test(X.texte()));
   t('V7 : le resume compte les vins de la copie', /2 vins au devis/.test(X.doc.getElementById('sigResVins').textContent) && !X.doc.getElementById('sigResVins').hidden);
   t('V7 : signe, plus de bouton « Signer ce devis »', X.doc.getElementById('sigAller').hidden);
 }
@@ -192,7 +297,7 @@ titre('1 bis. Les corrections du juge, 01/10/2026');
   t('X5 : le resume nomme chaque vin : « 12 × Le Rosé 2025, 75 cl, 106,80 € HT »', li.length === 2 && li[0] === '12\u00a0×\u00a0Le Rosé 2025, 75 cl, 106,80\u00a0€\u00a0HT', JSON.stringify(li));
   t('X5 : sans le code article, sans HTML recopie (« & » lu comme du texte)', li[1] === '6\u00a0×\u00a0Chapelle & Fils 2023, 150 cl, 132,00\u00a0€\u00a0HT' && !ul.querySelector('b, span'), JSON.stringify(li));
   t('X5 : la liste vit DANS le resume, en 16 px (1rem herite de la section)', !ul.hidden && ul.closest('#sigResume') && /font-size:1rem/.test(X.doc.getElementById('sigResume').getAttribute('style')));
-  t('X5 : les guillemets de « Signer ce devis » ne partent jamais seuls a la ligne', /bouton «\u00a0Signer ce devis\u00a0»/.test(X.doc.getElementById('sigIntro').textContent));
+  t('LOT 70 : l\'intro dit ou l\'on signe (« en bas de la page »)', /Lisez-le, puis signez-le en bas de la page\./.test(X.doc.getElementById('sigIntro').textContent));
   t('X5 : « 2 vins au devis : » annonce la liste', X.doc.getElementById('sigResVins').textContent === '2 vins au devis :');
 }
 {
@@ -257,7 +362,7 @@ titre('2. La fonction Edge');
   t('aucun mail ne part d\'ici (ni Resend ni smtp)', !/resend|smtp|mailto/i.test(code));
   t('le jeton est verifie (64 hexadecimaux) avant d\'appeler la base', /\^\[0-9a-f\]\{64\}\$/.test(code) && /if \(!JETON\.test\(j\)\) return reponse\(\{ etat: 'inconnu' \}\)/.test(code));
   t('l\'IP est la PREMIERE valeur de x-forwarded-for', /x-forwarded-for[\s\S]*split\(','\)\[0\]/.test(code));
-  t('ce qu\'elle recoit est borne (4000 octets, nom et qualite coupes)', /brut\.length > 4000/.test(code) && /texte\(c\.nom, 200\)/.test(code));
+  t('ce qu\'elle recoit est borne (160 000 octets avec l\'image, nom et qualite coupes)', /brut\.length > 160000/.test(code) && /texte\(c\.nom, 200\)/.test(code));
   t('l\'accord n\'est vrai que s\'il vaut true, pas une chaine', /p_accord: c\.accord === true/.test(code));
   t('D3 : un corps JSON null ou un tableau rend 400 « illisible », jamais une exception', /if \(!c \|\| typeof c !== 'object' \|\| Array\.isArray\(c\)\) return reponse\(\{ erreur: 'illisible' \}, 400\)/.test(code));
   t('D6/D7 : GET et POST passent par avecDevenir, qui lit le statut du devis par l\'empreinte du jeton', (code.match(/reponse\(await avecDevenir\(j, await rpc\(/g) || []).length === 2
