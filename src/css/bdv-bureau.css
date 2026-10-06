@@ -6596,3 +6596,183 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque .aff-devis__copier{ display:inline-flex; align-items:center; gap:var(--bdv-e-2); color:var(--bdv-accent); border-color:var(--bdv-accent); }
 .bdv-coque .aff-devis__copier:hover{ background:var(--bdv-accent-lavis); }
 .bdv-coque .aff-devis__copier--fait{ background:var(--bdv-accent-lavis); }
+/* ==========================================================================
+   36. L'AFFAIRE PREND LA SIGNATURE DE LA FICHE CLIENT, 06/10/2026
+
+   Demande de Ted : « tes pages d'affaires ont des allures de pas terminée, que ça
+   soit sur le côté ou en grand. Les boutons, déroulantes et tout doivent avoir la
+   signature de BDV, comme pour un client. » Le modele est la fiche client
+   (bdv-ecrans.css, sous .bdv-ventes) : boutons en capitales espacees, contour et
+   encre de l'accent, un seul aplat ; un cadre de conseil a filet d'accent ; des
+   tuiles de chiffres sur la surface 2 ; des titres de section en capitales sur un
+   filet. Le panneau (.amod) et la pleine page (.page-aff) seulement : le reste de
+   « A gagner » garde le dessin de la coque.
+
+   POIDS : `.bdv-coque :is(.amod, .page-aff) .btn` pese (0,3,0) et bat donc
+   `.bdv-coque .btn--bordeaux` (0,2,0). L'aplat est redit juste dessous, a (0,4,0).
+   Un bouton `aria-disabled` (« bientot ») garde son dessin d'attente.
+   ========================================================================== */
+.bdv-coque :is(.amod, .page-aff) .btn:not([aria-disabled="true"]){
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-4);
+  border:1px solid var(--bdv-accent);
+  background:transparent;
+  color:var(--bdv-accent);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+}
+.bdv-coque :is(.amod, .page-aff) .btn:not([aria-disabled="true"]):hover{
+  background:var(--bdv-accent-lavis);
+  border-color:var(--bdv-accent-fort);
+  color:var(--bdv-accent-fort);
+}
+.bdv-coque :is(.amod, .page-aff) .btn.btn--bordeaux:not([aria-disabled="true"]){
+  background:var(--bdv-accent);
+  border-color:var(--bdv-accent);
+  color:var(--bdv-encre-sur-accent);
+}
+.bdv-coque :is(.amod, .page-aff) .btn.btn--bordeaux:not([aria-disabled="true"]):hover{
+  background:var(--bdv-accent-fort);
+  border-color:var(--bdv-accent-fort);
+  color:var(--bdv-encre-sur-accent);
+}
+.bdv-coque :is(.amod, .page-aff) .btn:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+/* Le combine et l'enveloppe de la fiche, poses en CSS : le nom accessible reste
+   « Appeler le ... » et « Ecrire », les bancs le lisent tel quel. */
+.bdv-coque :is(.amod, .page-aff) a.btn[href^="tel:"]::before{ display:inline; content:"\260E"; content:"\260E" / ""; }
+.bdv-coque :is(.amod, .page-aff) :is(a.btn[href^="mailto:"], .btn[data-aff="ecrireClient"])::before{ display:inline; content:"\2709"; content:"\2709" / ""; }
+
+/* LES LIENS DE GESTE (« Voir sa fiche », « Vers <etape> », « Ouvrir le devis ») :
+   l'encre de l'accent, comme les liens de la fiche. Ils gardent leur soulignement. */
+.bdv-coque :is(.amod, .page-aff) :is(.aff-vers, .aff-devis__lien){ color:var(--bdv-accent); font-weight:600; }
+.bdv-coque :is(.amod, .page-aff) :is(.aff-vers, .aff-devis__lien):hover{ color:var(--bdv-accent-fort); }
+
+/* LES DEROULANTES ET LES CHAMPS : le dessin du selecteur de type (section 33 ter),
+   chevron trace par deux degrades en jetons (une image ecrirait une couleur en dur). */
+.bdv-coque :is(.amod, .page-aff) select{
+  appearance:none;
+  -webkit-appearance:none;
+  min-height:var(--bdv-cible);
+  padding:0 36px 0 var(--bdv-e-3);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  background-color:var(--bdv-surface);
+  background-image:linear-gradient(45deg, transparent 50%, var(--bdv-encre-3) 50%),
+                   linear-gradient(135deg, var(--bdv-encre-3) 50%, transparent 50%);
+  background-position:calc(100% - 19px) 50%, calc(100% - 14px) 50%;
+  background-size:5px 5px, 5px 5px;
+  background-repeat:no-repeat;
+  color:var(--bdv-encre-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-saisie);
+  font-weight:500;
+  cursor:pointer;
+}
+.bdv-coque :is(.amod, .page-aff) :is(input[type="text"], input[type="tel"], input[type="email"], input[type="date"], input[type="number"], input:not([type]), textarea){
+  min-height:var(--bdv-cible);
+  border:1px solid var(--bdv-trait-fort);
+  border-radius:var(--bdv-r);
+  background-color:var(--bdv-surface);
+  color:var(--bdv-encre-1);
+  font-family:inherit;
+  font-size:var(--bdv-f-saisie);
+}
+.bdv-coque :is(.amod, .page-aff) :is(input, textarea):not([type="checkbox"]):not([type="radio"]){ padding:0 var(--bdv-e-3); }
+.bdv-coque :is(.amod, .page-aff) textarea{ padding:var(--bdv-e-2) var(--bdv-e-3); line-height:1.5; }
+.bdv-coque :is(.amod, .page-aff) :is(select, input, textarea):hover{ border-color:var(--bdv-encre-4); }
+.bdv-coque :is(.amod, .page-aff) :is(select, input, textarea):focus{ border-color:var(--bdv-accent); }
+.bdv-coque :is(.amod, .page-aff) :is(select, input, textarea):focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:1px; }
+/* Les libelles des champs : la graisse et l'encre de ceux de la fiche. */
+.bdv-coque :is(.amod, .page-aff) .aff-champ > span{ font-size:var(--bdv-f-2); font-weight:600; color:var(--bdv-encre-2); }
+
+/* « NOTER UN ECHANGE » EST UN GESTE, PAS UN TITRE : il prend le dessin d'un bouton de
+   la fiche, et se deplie dessous. */
+.bdv-coque :is(.amod, .page-aff) .aff-noter > summary{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-4);
+  border:1px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-accent);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  list-style:none;
+}
+.bdv-coque :is(.amod, .page-aff) .aff-noter > summary::-webkit-details-marker{ display:none; }
+.bdv-coque :is(.amod, .page-aff) .aff-noter > summary:hover{ background:var(--bdv-accent-lavis); }
+.bdv-coque :is(.amod, .page-aff) .aff-noter[open] > summary{ margin-bottom:var(--bdv-e-3); background:transparent; }
+.bdv-coque .amod .aff-noter{ margin-top:var(--bdv-e-4); }
+
+/* LES TITRES DE SECTION : capitales sur un filet, comme « HISTORIQUE » dans la fiche. */
+.bdv-coque .page-aff .page-aff__h,
+.bdv-coque .amod .aff-plus.amod__hist > summary{
+  padding-bottom:var(--bdv-e-2);
+  border-bottom:1px solid var(--bdv-trait);
+  font-size:var(--bdv-f-2);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .page-aff details.page-aff__bloc:not([open]) > summary.page-aff__h{ padding-bottom:0; border-bottom:0; }
+.bdv-coque .amod .amod__hist{ margin-top:var(--bdv-e-6); }
+
+/* L'ETAT DE L'AFFAIRE ET LE MOMENT : le cadre de conseil de la fiche (surface 2,
+   filet d'accent de 3 px). Le retard garde son filet a lui et son MOT. */
+.bdv-coque .amod .amod__etat{
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border:1px solid var(--bdv-trait);
+  border-left:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  font-size:var(--bdv-f-2);
+  line-height:1.6;
+}
+.bdv-coque .amod .amod__etat--opposee{ border-left-color:var(--bdv-retard); }
+.bdv-coque .amod .amod__contacts,
+.bdv-coque .amod .amod__report{ margin-top:var(--bdv-e-4); }
+.bdv-coque .amod .amod__report-t{ font-size:var(--bdv-f-2); font-weight:600; color:var(--bdv-encre-2); margin-bottom:var(--bdv-e-2); }
+.bdv-coque .amod .amod__contacts{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); }
+/* Dans le panneau, la place est comptee : un retrait plus court, et les trois reports
+   se partagent la rangee (le vigneron, 06/10/2026 : « Autre date » ne reste pas seul). */
+.bdv-coque .amod .btn:not([aria-disabled="true"]){ padding:0 var(--bdv-e-3); }
+.bdv-coque .amod .amod__report-b{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--bdv-e-2); }
+.bdv-coque .amod .amod__report-b .btn{ padding:0 var(--bdv-e-1); letter-spacing:0; white-space:nowrap; text-align:center; }
+.bdv-coque .page-aff .page-aff__moment,
+.bdv-coque .page-aff .page-aff__bloc--avant{
+  background-color:var(--bdv-surface-2);
+  border-left:3px solid var(--bdv-accent);
+}
+.bdv-coque .page-aff .page-aff__moment--retard{ border-left-color:var(--bdv-retard); background-image:none; }
+.bdv-coque .page-aff .page-aff__moment--bon{ border-left-color:var(--bdv-bon); background-image:none; }
+.bdv-coque .page-aff .page-aff__bloc--avant .page-aff__h{ color:var(--bdv-accent-fort); border-bottom-color:var(--bdv-trait-fort); }
+.bdv-coque .page-aff .page-aff__lib{ font-weight:600; }
+
+/* L'ETAPE EN TETE DE LA PAGE : le tampon du panneau, pas un mot rouge perdu. */
+.bdv-coque .page-aff .page-aff__etape b{
+  display:inline-block;
+  padding:0 var(--bdv-e-2);
+  border:1px solid var(--bdv-accent-trait);
+  border-radius:var(--bdv-r);
+  font-size:var(--bdv-f-1);
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+}
+
+/* LES REPERES : les tuiles de chiffres de la fiche. */
+.bdv-coque .page-aff .page-aff__rep{ padding:var(--bdv-e-3) var(--bdv-e-4); border-radius:var(--bdv-r); background:var(--bdv-surface-2); }
+/* La reserve pour la croix et « Agrandir » ne vaut que pour la ligne du tampon et le
+   nom : posee sur tout l'en-tete, elle serrait les gestes dans 340 px et les empilait. */
+.bdv-coque .amod .amod__tete,
+.bdv-coque .amod .amod__boite:has(.amod__agrandir) .amod__tete{ padding-right:0; }
+.bdv-coque .amod .amod__tete > .amod__marques,
+.bdv-coque .amod .amod__tete > .tmod__titre,
+.bdv-coque .amod .amod__tete > .tmod__sous{ padding-right:calc(var(--bdv-cible) * 2); }
+.bdv-coque .amod .amod__etat{ margin-right:0; }
+/* « Lien copié » garde son lavis : la regle du bouton (0,3,0) l'effacait. */
+.bdv-coque :is(.amod, .page-aff) .btn.aff-devis__copier--fait{ background:var(--bdv-accent-lavis); }

@@ -8365,3 +8365,24 @@ Capture de Ted : un mot sans espace dans l'historique faisait deborder la page (
 - Reperes : « Aujourd'hui » au lieu de « 0 j ».
 - Sous 700 px, les boutons d'une rangee se partagent la largeur : aucun ne reste seul.
 - Vigneron empathique : feu rouge leger au premier tour (5 points), tous corriges.
+
+### L'AFFAIRE PREND LA SIGNATURE DE LA FICHE CLIENT, 06/10/2026
+
+Ted : « tes pages d'affaires ont des allures de pas terminée [...] les boutons, déroulantes et
+tout doivent avoir la signature de BDV, comme pour un client ». Section 36 de `bdv-bureau.css`,
+scopee au panneau (`.amod`) et a la pleine page (`.page-aff`) : le reste d'« A gagner » garde le
+dessin de la coque.
+- Boutons de la fiche : capitales espacees, contour et encre de l'accent, aplat pour le seul
+  `btn--bordeaux`. `:is(.amod,.page-aff) .btn` pese (0,3,0) : l'aplat est redit a (0,4,0). Un
+  `aria-disabled` garde son dessin d'attente. Combine et enveloppe en `::before` : le nom
+  accessible ne change pas.
+- « Appeler » est plein dans le panneau aussi (`htmlContactsClient(a, 'appeler')`), comme sur
+  la fiche : un geste a toucher en premier.
+- Deroulantes : le dessin du selecteur de type, chevron en deux degrades en jetons (une image
+  ecrirait une couleur en dur). Champs a 44 px et 16 px, bord accent au focus.
+- « Noter un echange » est un bouton, pas un titre ; titres de section en capitales sur filet ;
+  etat de l'affaire, moment et « Avant de l'appeler » dans le cadre de conseil de la fiche
+  (surface 2, filet de 3 px) ; etape en tampon ; reperes en tuiles.
+- La reserve pour la croix (`.amod__tete`) ne vaut plus que pour le tampon, le nom et le sous-titre.
+- Vigneron empathique : feu rouge leger (Appeler pas plein, « Dans 7 jours » sur deux lignes,
+  fond du « Noter » ouvert), corrige. Ouvert : pas de titre en capitales sur le cadre du moment.

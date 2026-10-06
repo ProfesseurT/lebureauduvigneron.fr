@@ -595,7 +595,7 @@
       + htmlContacts(a)
       /* LE CLIENT EN DIRECT (03/10/2026) : son numero et son adresse LUS dans ses ventes,
          « Ecrire » par le redacteur de sa fiche. */
-      + (clientDe(a) ? '<p class="amod__contacts">' + htmlContactsClient(a) + '</p>' : '')
+      + (clientDe(a) ? '<p class="amod__contacts">' + htmlContactsClient(a, 'appeler') + '</p>' : '')
       + (a.issue === 'en_cours' ? '<p class="amod__raccourci"><button type="button" class="btn" data-aff="devisRaccourci">Nouveau devis</button></p>' : '')
       + htmlReport(a, e)
       + (clientDe(a) ? htmlNoter(a) + '<details class="aff-plus amod__hist" data-bloc="hist"><summary>Son historique</summary><div class="aff-plus__corps">'
@@ -610,7 +610,7 @@
   /* Y1 : Appeler puis Ecrire, en tete du panneau, dans tous les etats. */
   function htmlContacts(a) {
     var p = a && a.piste_id ? (S.pistes[a.piste_id] || {}) : null, l = '';
-    if (p && p.telephone) l += '<a class="btn" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
+    if (p && p.telephone) l += '<a class="btn btn--bordeaux" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
     if (p && p.email) l += '<a class="btn" href="mailto:' + esc(p.email) + '">Écrire à ' + esc(p.email) + '</a>';
     return l ? '<p class="amod__contacts">' + l + '</p>' : '';
   }
