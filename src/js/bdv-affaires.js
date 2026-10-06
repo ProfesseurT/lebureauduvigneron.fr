@@ -1481,18 +1481,58 @@
     var j = d && S.lienDe[d.devis_id];
     return /^[0-9a-f]{64}$/.test(String(j || '')) ? location.origin + '/signer/#' + j : '';
   }
+  /* `S.lienDe[devis]` : le jeton ; « ancien » = un lien vivant cree AVANT le lot 71 (sans
+     jeton garde, il ne peut pas se reafficher) ; « aucun » = pas de lien vivant. Absent : pas
+     encore lu, ou SQL du lot 71 pas passe, et la carte se tait. Verifie chez Ted le 06/10/2026 :
+     son seul devis envoye avait un lien d'avant le lot, d'ou le geste « nouveau lien ». */
   function htmlLienSignature(a, d) {
     if (!d || d.statut !== 'envoye' || expireD(d) || a.issue !== 'en_cours') return '';
-    var u = urlSignature(d), id = esc(d.devis_id);
+    var u = urlSignature(d), id = esc(d.devis_id), etat = S.lienDe[d.devis_id];
+    var mot = '<p class="aff-aide" id="affLienMot-' + id + '" aria-live="polite"></p>';
+    if (!u && (etat === 'ancien' || etat === 'aucun')) {
+      return '<div class="aff-devis__signer">'
+        + '<p class="aff-aide">' + (etat === 'ancien'
+          ? 'Le lien de signature déjà envoyé a été créé avant que le bureau garde les liens : il ne peut pas se réafficher. Crée un nouveau lien pour l’avoir ici. L’ancien ne marchera plus : renvoie le nouveau à ton client.'
+          : 'Pas encore de lien de signature pour ce devis. Crée-le pour le copier dans ton mail.') + '</p>'
+        + '<p class="aff-devis__gestes"><button type="button" class="btn" data-aff="devisLienCreer" data-devis="' + id + '">'
+        + (etat === 'ancien' ? 'Créer un nouveau lien' : 'Créer un lien de signature') + '</button></p>' + mot + '</div>';
+    }
     if (!u) return '';
     return '<div class="aff-devis__signer">'
       + '<label class="aff-champ"><span>Lien de signature</span><input type="text" readonly value="' + esc(u) + '" id="affLienUrl-' + id + '"></label>'
       + '<p class="aff-devis__gestes"><button type="button" class="btn" data-aff="devisLienCopier" data-devis="' + id + '">Copier le lien</button></p>'
-      + '<p class="aff-aide" id="affLienMot-' + id + '" aria-live="polite"></p></div>';
+      + mot + '</div>';
   }
-  function copierLien(id) {
+  function devisParId(id) {
     var d = null;
     Object.keys(S.devisDe).forEach(function (k) { (S.devisDe[k] || []).forEach(function (x) { if (x.devis_id === id) d = x; }); });
+    return d;
+  }
+  function creerLienCarte(id) {
+    var d = devisParId(id), dit = el('affLienMot-' + id);
+    if (!d || S.lienEnCours) return;
+    S.lienEnCours = true;
+    if (dit) dit.textContent = 'Création du lien…';
+    BdvCompte.api('/rpc/devis_lien_creer', { methode: 'POST', corps: { p_bureau: bureau(), p_devis: id } }).then(function (r) {
+      S.lienEnCours = false;
+      var j = typeof r === 'string' ? r : (Array.isArray(r) ? r[0] : r);
+      if (!/^[0-9a-f]{64}$/.test(String(j || ''))) throw new Error('jeton');
+      S.lienDe[id] = j;
+      peindreListeDevis(d.affaire_id);
+      var b = document.querySelector('[data-aff="devisLienCopier"][data-devis="' + id + '"]'), m2 = el('affLienMot-' + id);
+      if (m2) m2.textContent = 'Nouveau lien créé : copie-le et envoie-le à ton client.';
+      if (b) { try { b.focus(); } catch (e) {} }
+    }).catch(function (e) {
+      S.lienEnCours = false;
+      var det = String((e && (e.detail || e.message)) || '');
+      var m3 = el('affLienMot-' + id);
+      if (m3) m3.textContent = 'Le lien n’a pas pu se créer : ' + (/expire/.test(det) ? 'le devis a expiré.'
+        : /numero produit|sans numero ni e-mail/.test(det) ? 'ce devis ne ferait pas une commande importable dans Vitisoft. Ouvre le devis pour voir ce qui manque.'
+        : e && !e.status ? 'ta connexion a coupé. Réessaie.' : 'la base l’a refusé. Ouvre le devis pour voir pourquoi.');
+    });
+  }
+  function copierLien(id) {
+    var d = devisParId(id);
     var u = urlSignature(d), dit = el('affLienMot-' + id), champ = el('affLienUrl-' + id);
     if (!u) return;
     function ok() { if (dit) dit.textContent = 'Lien copié : colle-le dans ton mail.'; }
@@ -1513,8 +1553,9 @@
       + ')&remplace_le=is.null&select=devis_id,jeton')
       .then(function (v) {
         if (!Array.isArray(v)) return;
-        var change = false;
-        v.forEach(function (x) { if (x && x.jeton && S.lienDe[x.devis_id] !== x.jeton) { S.lienDe[x.devis_id] = x.jeton; change = true; } });
+        var change = false, vu = {};
+        v.forEach(function (x) { if (x && x.devis_id) vu[x.devis_id] = x.jeton || 'ancien'; });
+        ids.forEach(function (k) { var e = vu[k] || 'aucun'; if (S.lienDe[k] !== e) { S.lienDe[k] = e; change = true; } });
         if (change) peindreListeDevis(id);
       }, function () {});
   }
@@ -2624,6 +2665,7 @@
       if ((quoi === 'devis' || quoi === 'devisRaccourci') && a) { ouvrirDevis(a, null); return; }
       if (quoi === 'devisOuvrir' && a) { ouvrirDevis(a, b.getAttribute('data-devis')); return; }
       if (quoi === 'devisLienCopier') { copierLien(b.getAttribute('data-devis')); return; }
+      if (quoi === 'devisLienCreer') { creerLienCarte(b.getAttribute('data-devis')); return; }
       if (quoi === 'friseBasculer') {
         S.friseOuverte = !S.friseOuverte;
         var fr = b.closest('.page-aff__frise');
@@ -3150,14 +3192,14 @@
   function htmlReperes(a, e) {
     var r = [], t = typeDe(a.type_id);
     if (a.issue === 'en_cours' && !e.endormie) {
-      r.push('<div class="page-aff__rep"><span class="page-aff__n">' + e.jours + ' j</span><span>dans « ' + esc((etapeDe(a.etape_id) || {}).nom || 'étape') + ' »'
+      r.push('<div class="page-aff__rep"><span class="page-aff__n">' + (e.jours ? e.jours + ' j' : 'Aujourd’hui') + '</span><span>dans « ' + esc((etapeDe(a.etape_id) || {}).nom || 'étape') + ' »'
         + (e.retard == null && e.sommeil != null ? '. Sans rappel, à relancer dans ' + pluriel(Math.max(0, e.sommeil - e.jours), 'jour', 'jours') + '.' : '.') + '</span></div>');
     }
     var age = joursDepuis(a.ouverte_le || a.cree_le);
     if (age != null) {
       var med = medianeGagnees(a.type_id), cmp = '';
       if (med && age > med.jours) cmp = ' Tes affaires « ' + esc(t ? t.nom : '') + ' » gagnées se concluent en <b>' + pluriel(med.jours, 'jour', 'jours') + '</b> en général (' + med.n + ' gagnées sur 12 mois).';
-      r.push('<div class="page-aff__rep"><span class="page-aff__n">' + age + ' j</span><span>depuis l’ouverture.' + cmp + '</span></div>');
+      r.push('<div class="page-aff__rep"><span class="page-aff__n">' + (age ? age + ' j' : 'Aujourd’hui') + '</span><span>' + (age ? 'depuis l’ouverture.' : 'ouverte aujourd’hui.') + '' + cmp + '</span></div>');
     }
     return r.length ? '<div class="page-aff__reps">' + r.join('') + '</div>' : '';
   }
@@ -3234,7 +3276,8 @@
   }
   function htmlPage(a) {
     var e = etat(a), t = typeDe(a.type_id), et = etapeDe(a.etape_id), m = a.issue === 'en_cours' ? moment(a, e) : null;
-    var sous = [a.titre && a.titre !== sujet(a) ? esc(a.titre) : '', 'ouverte le ' + esc(dateCourte(jourLocal(a.ouverte_le || a.cree_le)))]
+    var quoi = a.titre && a.titre !== sujet(a) ? '<span class="page-aff__quoi">' + esc(a.titre) + '</span>' : '';
+    var sous = [quoi, 'ouverte le ' + esc(dateCourte(jourLocal(a.ouverte_le || a.cree_le)))]
       .concat(a.maj_le ? ['modifiée le ' + esc(dateCourte(jourLocal(a.maj_le)))] : []).filter(Boolean).join(' · ');
     var clos = a.issue !== 'en_cours' ? '<p class="page-aff__clos">' + (a.issue === 'gagnee' ? 'Affaire gagnée' : 'Pas pour cette fois') + ' le ' + esc(dateCourte(jourLocal(a.close_le))) + '.</p>' : '';
     return '<div class="page-aff" data-affaire="' + a.affaire_id + '">'
@@ -3249,7 +3292,7 @@
       /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
       + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')
       + '<section class="page-aff__bloc"><h2 class="page-aff__h"><label for="pageAffNotes">Notes</label></h2>'
-      + '<textarea id="pageAffNotes" class="page-aff__notes" rows="5" maxlength="2000">' + esc(a.notes || '') + '</textarea>'
+      + '<textarea id="pageAffNotes" class="page-aff__notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea>'
       + '<p class="aff-aide" id="pageAffNotesMot" aria-live="polite">Enregistrées quand tu quittes le champ.</p></section>'
       + '<details class="page-aff__bloc page-aff__modif" data-bloc="modifier"><summary class="page-aff__h">Modifier l’affaire</summary>' + htmlEditeur(a) + '</details>'
       + '</div><div class="page-aff__col">'

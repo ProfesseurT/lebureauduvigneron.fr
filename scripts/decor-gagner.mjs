@@ -40,7 +40,9 @@ export async function contexte(nav, largeur, theme) {
       /* 03/10/2026 : le client en direct et la pleine page d'une affaire. */
       ventes_lignes: [{ bureau: B, client_cle: 'C0288', mobile: '06 12 34 56 78', fixe: '', emails: 'cave@exemple.fr', pays: 'France', le_jour: '2026-07-01' }],
       echanges: [{ bureau: B, echange_id: 'x1', client_id: 'C0288', le: new Date(Date.now()-8*86400000).toISOString(), type: 'appel', canal: 'appel', resume: 'Intéressé par le magnum, veut goûter le 2025 avant de commander.' },
-        { bureau: B, echange_id: 'x2', client_id: 'C0288', le: new Date(Date.now()-30*86400000).toISOString(), type: 'email', canal: 'email', resume: 'Message envoyé : tarifs 2026' }],
+        { bureau: B, echange_id: 'x2', client_id: 'C0288', le: new Date(Date.now()-30*86400000).toISOString(), type: 'email', canal: 'email', resume: 'Message envoyé : tarifs 2026' },
+        /* 06/10/2026 : un mot sans espace, comme Ted en a tape un. Il faisait deborder la page. */
+        { bureau: B, echange_id: 'x3', client_id: 'C0288', le: new Date(Date.now()-12*86400000).toISOString(), type: 'email', canal: 'email', resume: 'bobno'.repeat(40) }],
       devis: [{ bureau: B, devis_id: 'd1', affaire_id: 'a1', numero: 'D-2026-0042', statut: 'envoye', total_ht_c: 124000, total_vins_c: 124000, remise_globale_c: 0, tva_c: 24800, total_ttc_c: 148800, port_c: 0, date_devis: new Date(Date.now()-10*86400000).toISOString().slice(0,10), envoye_le: new Date(Date.now()-10*86400000).toISOString().slice(0,10), valable_jusqu: new Date(Date.now()+20*86400000).toISOString().slice(0,10), cree_le: jour, papier_empreinte: null },
         { bureau: B, devis_id: 'd0', affaire_id: 'a1', numero: 'D-2026-0009', statut: 'abandonne', total_ht_c: 98000, total_vins_c: 98000, remise_globale_c: 0, tva_c: 19600, total_ttc_c: 117600, port_c: 0, date_devis: new Date(Date.now()-40*86400000).toISOString().slice(0,10), cree_le: jour, papier_empreinte: null }] };
     /* Lot 57 (03/10/2026) : les nouvelles de Mon commerce. Une affaire gagnee par un collegue

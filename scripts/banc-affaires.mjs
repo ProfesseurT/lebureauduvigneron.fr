@@ -1787,6 +1787,21 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
     t('L71 : un devis expire ne montre pas son lien (il ne signe plus)', !c.querySelector('.aff-devis__signer'));
     c = carte(Object.assign({}, base, { statut: 'accepte', signe_le: iso(-1), envoye_le: iso(-5), valable_jusqu: iso(20) }));
     t('L71 : un devis signe ne montre plus son lien', !c.querySelector('.aff-devis__signer'));
+    S0.lienDe.dx = 'ancien'; c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) }));
+    const bn = c.querySelector('[data-aff="devisLienCreer"][data-devis="dx"]');
+    t('L71 : un lien d\'avant le lot (sans jeton garde) le dit, et propose « Créer un nouveau lien », en prevenant que l\'ancien s\'eteint',
+      !!bn && bn.textContent === 'Créer un nouveau lien' && /L’ancien ne marchera plus/.test(c.textContent) && !c.querySelector('[data-aff="devisLienCopier"]'), c.textContent);
+    S0.lienDe.dx = 'aucun'; c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) }));
+    t('L71 : sans lien du tout, « Créer un lien de signature »', (c.querySelector('[data-aff="devisLienCreer"]') || {}).textContent === 'Créer un lien de signature');
+    { const api0 = w.BdvCompte.api, ap = []; const J2 = 'cd'.repeat(32);
+      w.BdvCompte.api = async (ch, o) => { if (/^\/rpc\/devis_lien_creer/.test(ch)) { ap.push(o); return J2; } return api0(ch, o); };
+      S0.devisDe.a1 = [Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) })]; S0.lienDe.dx = 'ancien';
+      w.BdvAffaires._S.lienEnCours = false;
+      const hote = F.doc.createElement('div'); hote.innerHTML = '<ul id="affDevisListe">' + w.BdvAffaires._listeDevis(A1) + '</ul>'; (F.doc.getElementById('pageAffaire') || F.doc.body).appendChild(hote);
+      hote.querySelector('[data-aff="devisLienCreer"]').click(); await attendre(40);
+      t('L71 : « Créer un nouveau lien » appelle devis_lien_creer pour CE bureau et CE devis, et retient le jeton rendu',
+        ap.length === 1 && ap[0].corps.p_devis === 'dx' && !!ap[0].corps.p_bureau && S0.lienDe.dx === J2, JSON.stringify(ap));
+      hote.remove(); w.BdvCompte.api = api0; }
     S0.lienDe = {}; }
   { const c = carte(Object.assign({}, base, { statut: 'envoye', version: 1, envoye_le: iso(-40), valable_jusqu: iso(-3) }));
     const tel = c.querySelector('a.btn[href^="tel:"]'), g = c.querySelector('[data-aff="devisAgir"]');

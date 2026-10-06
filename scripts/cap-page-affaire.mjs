@@ -35,7 +35,7 @@ const m = await p2.evaluate(() => ({ sw: document.documentElement.scrollWidth, c
 console.log(k, JSON.stringify(m));
 /* 3. noter un echange depuis la page */
 const nt = p2.locator('#pageAffaire .aff-noter summary').first();
-if (await nt.count()) { await nt.click(); await p2.fill('#pageAffaire .aff-noter__txt', 'Rappelé, il prend 12 magnums.'); await p2.click('#pageAffaire [data-aff="noterEchange"]'); await p2.waitForTimeout(1200);
+if (await nt.count()) { await nt.click(); await p2.fill('#pageAffaire .aff-noter__txt', 'Rappelé, il prend 12 magnums.'); await p2.screenshot({ path: OUT + k + '-page-noter.png', fullPage: true }); await p2.click('#pageAffaire [data-aff="noterEchange"]'); await p2.waitForTimeout(1200);
   console.log('NOTE', JSON.stringify(await p2.evaluate(() => ({ avis: document.getElementById('affAvis').innerText, hist: [...document.querySelectorAll('#pageAffaire .aff-hist li')].map(x=>x.innerText).slice(0,3), T: (window.__T.echanges||[]).length })))); }
 /* 4. notes : focusout */
 await p2.fill('#pageAffNotes', 'Il veut une étiquette personnalisée.'); await p2.focus('#pageAffaire [data-aff="reporter"]'); await p2.waitForTimeout(1000);

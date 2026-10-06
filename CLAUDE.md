@@ -8343,5 +8343,25 @@ Demande de Ted, sur captures.
   part (`lireLiens()`), qui se tait si la colonne manque. Dans le devis, `lireSignature()` relit
   le jeton a part et repose `S.lien` : « Ton envoi est prêt » revient a la reouverture, et la
   phrase « ne s'affiche qu'une fois » n'apparait plus quand la base garde le jeton (`S.lot71`).
+- **Verifie chez Ted le meme jour** : son seul devis envoye avait un lien cree AVANT le lot, donc
+  sans jeton, et la carte se taisait. La carte dit maintenant l'etat (`S.lienDe` : jeton,
+  « ancien », « aucun ») et propose « Créer un nouveau lien » (en disant que l'ancien s'eteint) ou
+  « Créer un lien de signature », par `devis_lien_creer`, sans ouvrir le devis.
 - Au passage : « Envoyé le 6 oct.. » (la date abregee porte deja son point) : `finPoint()`.
 - Bancs : `supabase/banc-lot71-lien-recopiable.sql` (6), `banc:affaires` controles L71.
+
+### LA PAGE D'UNE AFFAIRE, REMISE EN ORDRE DES TAILLES, 06/10/2026
+
+Capture de Ted : un mot sans espace dans l'historique faisait deborder la page (2180 px pour
+1440) et « Noter un echange » sortait de sa carte. Section 34 de `bdv-bureau.css`.
+- **Toute grille de la page porte `minmax(0, ...)`** (grille, bloc, ligne d'historique) et le
+  texte d'un echange `overflow-wrap:anywhere`. Un `1fr` seul garde la largeur minimale de son
+  contenu : un seul mot long elargit la colonne entiere. Le decor `decor-gagner.mjs` porte ce mot.
+- **Une seule taille de texte dans les blocs, 15 px** (`--bdv-f-3`, interligne 1,55) : avant
+  de l'appeler, la carte du devis (13 px au panneau, 15 dans la page), l'historique. Les aides
+  et la ligne d'un devis abandonne a 13 px. « Noter un echange » a 13 px : il reste sous les
+  titres de section. Ce que l'affaire vend, sous le nom, est en encre et a 15 px.
+- Blocs a 24 px de retrait (16 sous 700), champ Notes sur la surface, 3 lignes.
+- Reperes : « Aujourd'hui » au lieu de « 0 j ».
+- Sous 700 px, les boutons d'une rangee se partagent la largeur : aucun ne reste seul.
+- Vigneron empathique : feu rouge leger au premier tour (5 points), tous corriges.
