@@ -114,6 +114,7 @@
   --bdv-encre-3:#4C525A;           /* second niveau                          */
   --bdv-encre-4:#5F656E;           /* metadonnees, jamais sous 12 px         */
   --bdv-encre-sur-accent:#FFFFFF;  /* le seul texte pose SUR l'accent        */
+  --bdv-fond-logo:#FFFFFF;         /* la pastille du logo du domaine (lot 69) : un logo fonce doit rester lisible en sombre */
 
   /* -- TRAIT -------------------------------------------------------------- */
   --bdv-trait:#E4E3DE;             /* separateur de 1 px, la profondeur du produit */
@@ -275,6 +276,7 @@
     --bdv-encre-3:#9CA3AC;
     --bdv-encre-4:#878E98;
     --bdv-encre-sur-accent:#23070E;
+    --bdv-fond-logo:#ECEAE4;
 
     --bdv-trait:#272B31;
     --bdv-trait-fort:#383D44;
@@ -344,6 +346,7 @@
   --bdv-encre-3:#9CA3AC;
   --bdv-encre-4:#878E98;
   --bdv-encre-sur-accent:#23070E;
+  --bdv-fond-logo:#ECEAE4;
 
   --bdv-trait:#272B31;
   --bdv-trait-fort:#383D44;

@@ -276,6 +276,12 @@
       aide: 'Obligatoire sur tes devis pour une SARL ou une SAS. Vide sinon.' });
     cible.appendChild(gm);
 
+    /* LOT 69 : le logo, monte par bdv-logo.js. Il s'enregistre seul, au depot : il ne
+       passe pas par « Enregistrer » et ne marque pas la fiche comme modifiee. */
+    var lg = document.createElement('div'); lg.className = 'bdvl'; lg.id = 'bdvdLogo';
+    cible.appendChild(lg);
+    if (window.BdvLogo && BdvLogo.monter) BdvLogo.monter(lg);
+
     sousTitre(cible, 'Tes conditions');
     var g2 = document.createElement('div'); g2.className = 'bdvr-grille';
     champ(g2, 'bdvdPaiement', 'Paiement', { select: true, options: [
@@ -294,8 +300,9 @@
       e.preventDefault();
       choisir(TROUVES[parseInt(b.getAttribute('data-bdvd-choisir'), 10)]);
     });
-    cible.addEventListener('input', function (e) { if (e.target && e.target.id !== 'bdvdQ') TOUCHE = true; peindreJours(); });
-    cible.addEventListener('change', function (e) { if (e.target && e.target.id !== 'bdvdQ') TOUCHE = true; peindreJours(); });
+    function compte(e) { return e.target && e.target.id !== 'bdvdQ' && !(e.target.closest && e.target.closest('#bdvdLogo')); }
+    cible.addEventListener('input', function (e) { if (compte(e)) TOUCHE = true; peindreJours(); });
+    cible.addEventListener('change', function (e) { if (compte(e)) TOUCHE = true; peindreJours(); });
     peindre();
   }
 
@@ -372,6 +379,7 @@
   }
 
   async function rafraichir() {
+    if (window.BdvLogo && BdvLogo.rafraichir) BdvLogo.rafraichir();
     await charger();
     /* Table absente et coupure reseau ne se disent pas pareil (lot 47, contre-verification). */
     if (!LU && el('bdvdMot')) dire(ABSENTE ? 'La fiche du domaine n’est pas encore disponible sur ton compte.'

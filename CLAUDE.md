@@ -8267,3 +8267,34 @@ Demande de Ted, sur captures.
   « Exporter la liste » reste au-dessus du tableau. Garde : `banc:commerce`.
 - Releve en passant, anterieur : a 390 px la page deborde (750 px de large) dans le decor de
   `cap-com`, avant comme apres ce lot. Non traite.
+
+### LOT 69 : LE LOGO DU DOMAINE, 06/10/2026
+
+- **SQL `supabase/lot69-logo-domaine.sql`, a coller APRES 68.** Table `domaine_logo`, une ligne
+  par bureau : `image` (adresse `data:image/png|jpeg;base64,...`, 150 000 signes au plus),
+  `empreinte` (sha256 calcule par la BASE), `largeur`/`hauteur` (600 px au plus). Tout le bureau
+  LIT ; personne n'ecrit en direct : `domaine_logo_poser()` et `domaine_logo_retirer()`,
+  security definer, `est_maitre()` en premiere ligne (arbitrage de Ted : le maitre seul). La base
+  verifie la forme ET les premiers octets (89 50 4E 47, FF D8 FF) : un SVG renomme est refuse,
+  meme ecrit par le proprietaire (declencheur). « Vider la base » n'y touche pas.
+  Banc : `supabase/banc-lot69-logo-domaine.sql` (22, rejoue 47 a 68).
+- **`src/js/bdv-logo.js`** (differe, charge AVANT bdv-domaine.js) : lit l'empreinte seule, ne
+  retelecharge l'image que si elle a change (copie de confort `bdv_logo_v1`, qui porte le
+  bureau). Il attend DOMContentLoaded pour poser la pastille : la barre montee apres l'effacerait.
+  L'image est REFAITE par un canvas : marges transparentes retirees, 600 px au plus, PNG garde
+  PNG (transparence), le reste en JPEG sur fond blanc. `accept="image/png,image/jpeg"` : Safari
+  convertit une photo HEIC. Avertissement sous 240 px de haut (flou a 20 mm).
+- **Mon domaine** : bloc « Ton logo » monte par bdv-domaine.js dans `#bdvdLogo`. Il s'enregistre
+  AU DEPOT, sans « Enregistrer », et ne marque pas la fiche comme modifiee. Retirer demande
+  confirmation (focus sur « Non, le garder »).
+- **Devis** : `htmlPapier(d, l, { logo })`, au-dessus du nom du vendeur, 20 mm de haut, 60 mm de
+  large au plus. Seule une adresse data: PNG/JPEG passe (`LOGO_PAPIER`). Sans logo, le papier
+  est identique a l'octet pres. La copie gardee (lot 52) attend `BdvLogo.pret()` avant de se
+  figer : les devis deja envoyes gardent leur papier.
+- **Page de signature** : `#sigLogo`, lu dans la copie montree (`.dpap__logo`), jamais ailleurs.
+  Pas de `display` en style dans la balise : il battrait `hidden`.
+- **Barre laterale** : `.bureau-nav__logo` (section 35 de bdv-bureau.css), fond `--bdv-fond-logo`
+  (blanc en clair, #ECEAE4 en sombre). Ni barre repliee, ni sous 1181 px.
+- Garde : `npm run banc:logo` (45, mutations faites), place apres banc:notif-horaire (banc:devis
+  exige d'etre juste apres banc:domaine).
+

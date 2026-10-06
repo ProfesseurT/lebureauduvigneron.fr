@@ -340,6 +340,7 @@
   --bdv-encre-3: #4C525A;               /* sombre #9CA3AC  second niveau */
   --bdv-encre-4: #5F656E;               /* sombre #878E98  metadonnees, jamais sous 12 px */
   --bdv-encre-sur-accent: #FFFFFF;      /* sombre #23070E  le SEUL texte pose sur l'accent */
+  --bdv-fond-logo: #FFFFFF;             /* sombre #ECEAE4  la pastille du logo du domaine (lot 69) : un logo fonce reste lisible en sombre, sans eblouir */
 
   /* TRAIT. Le filet est la profondeur de ce produit comme il l'est du site,
      mais ici il a une couleur et pas une epaisseur : voir la regle du prefixe

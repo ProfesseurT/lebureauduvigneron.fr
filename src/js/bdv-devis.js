@@ -2386,8 +2386,10 @@
   }
   async function copieDuPapier() {
     var f = await feuillesPapier();
+    /* Le logo lu avant de figer la copie : une copie sans logo ne se corrige plus. */
+    if (window.BdvLogo && BdvLogo.pret) { try { await BdvLogo.pret(); } catch (e) { /* sans logo */ } }
     if (!f || !S || !S.devis) return null;
-    return htmlPapier(S.devis, S.lignesServeur || [], { polices: polices(), feuilles: f });
+    return htmlPapier(S.devis, S.lignesServeur || [], { polices: polices(), feuilles: f, logo: logoPapier() });
   }
   /* LA COPIE GARDEE, relue a la demande (30 a 40 ko : jamais avec la liste). `verifiee` :
      true si son empreinte est retrouvee ici, false si elle ne correspond pas, null si ce
@@ -2462,7 +2464,7 @@
     return [].map.call(document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis.com"]'), function (l) { return l.href; });
   }
   function papierCourant() {
-    return htmlPapier(S.devis, S.lignesServeur || [], { polices: polices() });
+    return htmlPapier(S.devis, S.lignesServeur || [], { polices: polices(), logo: logoPapier() });
   }
   /* Le document s'ecrit dans l'iframe (meme origine : les feuilles /css/ se
      resolvent comme dans la page). On attend son `load`, qui suit les feuilles. */
@@ -2570,6 +2572,8 @@
   function prixNet(l) { return l.pu_l_c != null ? l.pu_l_c : C.ligne(l.pu_ht_c, l.quantite, l.remise_cb || 0, 0).pu_l; }
   function sirenFr(s) { return String(s || '').replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3'); }
   function cssTexte(t) { return String(t).replace(/[\\"]/g, '\\$&').replace(/[\n\r]/g, ' '); }
+  var LOGO_PAPIER = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
+  function logoPapier() { return window.BdvLogo && BdvLogo.image ? BdvLogo.image() : null; }
   function htmlPapier(d, lignes, o) {
     o = o || {};
     d = d || {};
@@ -2612,6 +2616,10 @@
       + '@bottom-right{content:"Page " counter(page) "/" counter(pages);' + MARGE + '}}</style>'
       + '</head><body class="dpap"><main class="dpap__feuille">'
       + '<header class="dpap__tete"><div class="dpap__vendeur">'
+      /* LOT 69 : le logo du domaine, s'il y en a un, au-dessus de son nom. Une adresse data:
+         en base64 verifiee ici ET par la base : il voyage DANS la copie gardee, jamais par
+         un lien, sinon changer de logo changerait un devis deja signe. */
+      + (o.logo && LOGO_PAPIER.test(o.logo) ? '<img class="dpap__logo" src="' + o.logo + '" alt="">' : '')
       + '<p class="dpap__raison">' + esc(raisonV) + forme + '</p>'
       + ligneSi(v.adresse) + ligneSi(cpVille(v))
       + ligneSi(v.siret ? 'SIRET ' + v.siret : '')

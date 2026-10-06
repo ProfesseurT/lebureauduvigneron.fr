@@ -34,6 +34,8 @@
   border-bottom:2px solid var(--bdv-encre-1);
 }
 .dpap .dpap__raison{ font-weight:600; font-size:var(--bdv-f-3); }
+/* LOT 69 : le logo du domaine, 20 mm de haut et 60 mm de large au plus, au-dessus de son nom. */
+.dpap .dpap__logo{ display:block; max-height:20mm; max-width:60mm; width:auto; height:auto; margin-bottom:var(--bdv-e-2); }
 .dpap .dpap__titre{ margin-left:auto; text-align:right; }
 .dpap .dpap__h1{ margin:0 0 var(--bdv-e-1); font-size:var(--bdv-f-5); font-weight:700; letter-spacing:var(--bdv-ls-serre); }
 .dpap .dpap__client{

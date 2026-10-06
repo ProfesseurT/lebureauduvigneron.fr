@@ -6509,3 +6509,52 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
   .bdv-coque .page-aff__frise-d{ gap:var(--bdv-e-1); }
   .bdv-coque .page-aff__frise-d .btn{ padding-left:var(--bdv-e-2); padding-right:var(--bdv-e-2); }
 }
+
+/* ==========================================================================
+   35. LE LOGO DU DOMAINE, lot 69 (06/10/2026). Deux endroits du bureau, poses par
+   bdv-logo.js : le bloc « Ton logo » de Mon domaine, et une pastille en bas de la barre
+   laterale. LA PASTILLE EST CLAIRE DANS LES DEUX THEMES (`--bdv-fond-logo`) : un logo
+   fonce detoure disparaitrait sur la barre sombre. Le logo est un decor : il ne parait
+   ni sur la barre repliee (un logo de 40 px ne se lit pas, vigneron empathique), ni sous
+   901 px (la barre devient le bas de l'ecran, sans place).
+   ========================================================================== */
+.bdv-coque .bureau-nav__logo{ display:none; }
+@media (min-width:901px){
+  .bdv-coque .bureau-nav__logo{
+    display:flex; align-items:center; justify-content:center;
+    margin-top:auto; padding:var(--bdv-e-2) var(--bdv-e-3);
+    background:var(--bdv-fond-logo);
+    border:1px solid var(--bdv-trait);
+    border-radius:var(--bdv-r);
+  }
+  .bdv-coque .bureau-nav__logo[hidden],
+  .bdv-coque.bdv-rail-replie .bureau-nav__logo{ display:none; }
+  .bdv-coque .bureau-nav__logo img{ display:block; max-width:100%; max-height:56px; width:auto; height:auto; }
+}
+/* Entre 901 et 1180 px la barre est etroite (icones seules) : pas de logo non plus. */
+@media (min-width:901px) and (max-width:1180px){
+  .bdv-coque .bureau-nav__logo{ display:none; }
+}
+.bdv-coque .bdvl-apercu{
+  display:flex; align-items:center; min-height:88px; margin:var(--bdv-e-3) 0;
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  background:var(--bdv-fond-logo);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+}
+/* L'apercu a la taille du papier : 20 mm de haut, 60 mm de large au plus. */
+.bdv-coque .bdvl-apercu img{ display:block; max-height:20mm; max-width:60mm; width:auto; height:auto; }
+.bdv-coque .bdvl-apercu img[hidden]{ display:none; }
+.bdv-coque .bdvl-apercu[hidden]{ display:none; }
+.bdv-coque .bdvl-vide{ margin:var(--bdv-e-3) 0; font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .bdvl-gestes{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); align-items:center; }
+.bdv-coque .bdvl-gestes[hidden]{ display:none; }
+.bdv-coque .bdvl-gestes .bdvr-btn{ min-height:var(--bdv-cible); display:inline-flex; align-items:center; cursor:pointer; }
+.bdv-coque .bdvl-gestes .bdvr-btn[hidden]{ display:none; }
+/* Le champ fichier est cache a l'oeil : c'est son libelle, dessine en bouton, qu'on touche. */
+.bdv-coque .bdvl-fichier{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
+.bdv-coque .bdvl-choisir:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .bdvl-conf{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); align-items:center; margin-top:var(--bdv-e-3); }
+.bdv-coque .bdvl-conf[hidden]{ display:none; }
+.bdv-coque .bdvl-conf .bdvr-aide{ flex-basis:100%; margin:0; }
+.bdv-coque .bdvl-conf .bdvr-btn{ min-height:var(--bdv-cible); }

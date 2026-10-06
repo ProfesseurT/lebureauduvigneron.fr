@@ -12,6 +12,19 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 06/10/2026, lot 69 : le logo du domaine
+
+Demande de Ted : un logo dans les réglages, sur les devis, et en bas de la barre du bureau.
+Arbitrages de Ted : rangé dans la base (option A, gratuit, visible sur tous ses appareils et par
+toute l'équipe), changé par le maître du bureau seul, et posé en bas de la barre latérale dans
+une pastille claire. Conseil avant (vigneron, expert commercial) : accepter les photos d'iPhone,
+garder la transparence d'un PNG, prévenir si le logo est petit, dire tout de suite « Logo
+enregistré », reprendre le logo en tête de la page de signature, lu dans la copie du devis.
+Ajouté en route : les marges transparentes d'un PNG sont retirées. Écarté : le prénom du maître
+dans la phrase du simple utilisateur (une lecture de plus) et une pastille plus sombre la nuit
+(un logo foncé y disparaîtrait). Les devis déjà envoyés gardent leur copie, donc leur papier.
+SQL à coller : supabase/lot69-logo-domaine.sql (après 68).
+
 ## 06/10/2026, lot 68 : les derniers points du devis
 
 Ce que Ted a tranché la veille est fait. Le bouton Retour du navigateur et le geste retour de

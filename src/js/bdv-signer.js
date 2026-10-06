@@ -102,6 +102,18 @@
     if (d && d.vendeur) el('sigVendeur').textContent = d.vendeur;
     el('sigNumero').textContent = d && d.numero ? 'Devis ' + d.numero : '';
   }
+  /* LOT 69 : LE LOGO DU DOMAINE EN TETE DE LA PAGE, LU DANS LA COPIE MONTREE (expert commercial,
+     06/10/2026) : jamais une deuxieme source, sinon la page et le papier pourraient se
+     contredire. Seule une adresse data: PNG ou JPEG en base64 passe ; sinon rien. */
+  function logoEnTete(f) {
+    var i = null, src = '';
+    try { i = f.contentDocument.querySelector('.dpap__logo'); } catch (e) { i = null; }
+    if (i) src = i.getAttribute('src') || '';
+    var img = el('sigLogo');
+    if (!img) return;
+    if (/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(src)) { img.src = src; img.hidden = false; }
+    else { img.removeAttribute('src'); img.hidden = true; }
+  }
   /* LE CADRE « BON POUR ACCORD » REMPLI A L'AFFICHAGE, apres signature (juge V7). La copie
      gardee ne change pas : son empreinte est celle qui a ete signee, et c'est le document de
      l'iframe, ici, qu'on complete pour le lecteur. La page le dit sous la feuille. */
@@ -185,7 +197,7 @@
     /* Le cadre « Bon pour accord » se remplit AVANT la mesure : il change la hauteur. Puis la
        feuille est suivie : une police qui arrive tard ne la coupe pas. */
     f.addEventListener('load', function () {
-      remplirAccord(f); ajuster(); compterVins(f);
+      remplirAccord(f); ajuster(); compterVins(f); logoEnTete(f);
       try {
         var RO = f.contentWindow && f.contentWindow.ResizeObserver, n = f.contentDocument.querySelector('.dpap__feuille');
         if (RO && n) new RO(function () { ajuster(); }).observe(n);
