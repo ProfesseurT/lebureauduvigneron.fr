@@ -152,8 +152,9 @@ t('piedCommerce() le rend toujours, replie, top clients dedans',
   w.__SORTIE.pied.includes('Qui pèse quoi dans ton chiffre') && w.__SORTIE.pied.indexOf('CA HT</th>') > w.__SORTIE.pied.indexOf('Qui pèse quoi'));
 t('renderCap() le pose apres « Ce qui explique ta variation »',
   /id="pied-cap">[\s\S]*?<\/details><\/div>`;[\s\S]{0,600}html\+=piedCommerce\(\);/.test(SRCE));
-t('Mon commerce : la barre du haut (depot, PDF, Excel) est cachee par navTo()',
-  /tb\.style\.display = \(id==='clients'\) \? 'none' : ''/.test(SRCE));
+{ const coque = fs.readFileSync(path.join(RACINE, 'src/_includes/components/ecrans-vente.njk'), 'utf8');
+  t('plus de barre du haut nulle part (depot, PDF, Excel)',
+    !/class="topbar"/.test(coque) && !/showImport\(\)|exportPDF\(\)|exportExcel\(\)/.test(coque) && /<span id="tbFile" hidden><\/span>/.test(coque)); }
 
 t('pleine page : « Nouvelle affaire » recharge la page (ancre seule = pas de rechargement)',
   /if\(pageFiche\(\)\)\{location\.href='\/mon-bureau\/#affaires';location\.reload\(\);return;\}/.test(SRCE));

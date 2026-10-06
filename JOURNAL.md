@@ -10435,3 +10435,5 @@ Elle recharge maintenant, comme le retour vers « Mes clients ». Garde : banc:c
 Meme jour : « Clients a suivre », une fleche discrete apres le nom ouvre la fiche en pleine page
 dans un nouvel onglet (`.suivre__onglet`, `#fiche=`). Le clic sur la rangee ouvre toujours la
 fiche sur le cote. Cachee sous 700 px. Garde : banc:commerce.
+Meme jour : la barre du haut (depot Vitisoft, export PDF, export Excel, compteur) est retiree de
+TOUS les ecrans du bureau, pas seulement de Mon commerce. Le depot reste dans Mes reglages.

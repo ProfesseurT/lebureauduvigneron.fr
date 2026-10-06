@@ -205,7 +205,7 @@ body.bdv-poste .tachesf__i,
 }
 
 /* de style.css L6076 */
-#bureauVentes .bdv-ventes .topbar { grid-column: 1 / 2; }
+/* (06/10/2026 : la barre `.topbar` est partie du bureau, sa regle avec elle.) */
 
 /* de style.css L6114 */
 /* Les six reperes en trop ne sont plus masques : ils ont ete retires de la coque au lot

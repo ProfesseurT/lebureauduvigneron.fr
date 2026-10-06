@@ -8250,9 +8250,10 @@ Arbitrages de Ted :
 ### « CLIENTS A SUIVRE » EST UNE BASE DE TRAVAIL, 06/10/2026
 
 Demande de Ted, sur captures.
-- **Plus de barre du haut sur Mon commerce** : ni « Deposer un fichier Vitisoft », ni « Exporter
-  PDF / Excel », ni le compteur de lignes. `navTo()` la cache pour `clients` seulement ; elle
-  reste sur Mon cap, Mes cuvees, Mon registre.
+- **Plus de barre du haut NULLE PART dans le bureau** (Ted, meme jour) : ni « Deposer un fichier
+  Vitisoft », ni « Exporter PDF / Excel », ni compteur de lignes. Le balisage est retire de
+  `ecrans-vente.njk` ; `#tbFile` reste en `<span hidden>` (le moteur y ecrit, `npm run banc` le
+  compte). Le depot passe par Mes reglages, « Ma base ». Ne pas remettre la barre.
 - **« Qui pese quoi dans ton chiffre » est dans Mon cap**, apres « Ce qui explique ta
   variation » (`html+=piedCommerce()` dans `renderCap()`). Il n'est plus dans Mon commerce.
 - **« Qui rappeler » devient « Choisis ta liste de travail »**, suivi de « Touche une tuile :

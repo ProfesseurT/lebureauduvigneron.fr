@@ -261,9 +261,6 @@
 .bdv-ventes .app{display:none;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
 /* Volet replie : le tableau recupere les 230 px, c'est tout l'objet. */
 .bdv-ventes .app.on{display:grid}
-.bdv-ventes .topbar{grid-column:1/3;background:var(--bdv-surface);color:var(--bdv-encre-1);display:flex;align-items:center;justify-content:space-between;padding:var(--bdv-e-3) var(--bdv-e-6);gap:var(--bdv-e-4);flex-wrap:wrap;border-bottom:1px solid var(--bdv-trait)}
-.bdv-ventes .topbar__file{font-family:inherit;font-size:var(--bdv-f-1);color:var(--bdv-encre-4);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq)}
-.bdv-ventes .topbar__actions{display:flex;gap:var(--bdv-e-2);flex-wrap:wrap}
 /* LE VOLET MAGNETIQUE, demande de Ted du 07/09/2026. Il reste colle en haut quand on
    descend dans un ecran long : changer d'ecran ne demande plus de remonter.
    Trois choses a ne pas defaire :
@@ -279,7 +276,6 @@
    ait besoin en cours de lecture, et la coller mangeait de la hauteur utile en permanence. */
 
 /* ---- VOLET : bouton et repere de position ---- */
-.bdv-ventes .topbar__gauche{display:flex;align-items:center;gap:var(--bdv-e-2);min-width:0}
 /* Volet replie, le menu disparait : la barre haute doit reprendre A LA FOIS
    le repere de position ET la navigation, sinon replier enferme le vigneron
    dans l'ecran ou il se trouve. */
@@ -1183,8 +1179,4 @@
   .bdv-ventes #p-clients .toolbar .btn{order:1}
   .bdv-ventes #p-clients .toolbar .chk{order:2}
   .bdv-ventes #p-clients .toolbar .muted-cell{order:3}
-  /* La barre du fichier : les trois boutons sur une rangee, le texte se replie dedans. */
-  .bdv-ventes .topbar{gap:var(--bdv-e-2);padding:var(--bdv-e-2) var(--bdv-e-3)}
-  .bdv-ventes .topbar__actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
-  .bdv-ventes .topbar__actions .btn{white-space:normal;padding-left:var(--bdv-e-1);padding-right:var(--bdv-e-1);line-height:1.2}
 }

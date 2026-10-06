@@ -316,10 +316,6 @@ function navTo(id, opts){
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
-  /* MON COMMERCE EST UNE BASE DE TRAVAIL, 06/10/2026 (Ted) : ni depot de fichier, ni export
-     PDF ou Excel, ni compteur de lignes. La barre reste sur les autres ecrans de vente. */
-  const tb=document.querySelector('.bdv-ventes .topbar');
-  if(tb) tb.style.display = (id==='clients') ? 'none' : '';
   if(id==='clients' && ECRAN_COURANT!=='clients' && typeof appelTuiles==='function') appelTuiles();
   /* MON REGISTRE SE REPEINT A L'ARRIVEE, depuis le 11/09/2026 : il porte une courbe, et
      renderAll() l'a peinte alors que le panneau etait masque, donc dans un canvas haut de

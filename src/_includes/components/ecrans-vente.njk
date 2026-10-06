@@ -61,14 +61,11 @@
         garde-fou. Deux boutons definitifs sur un meme ecran valent moins qu'un seul.
     Il reste ce qui appartient vraiment aux ventes : le compte de lignes, et les trois
     sorties. #}
-  <div class="topbar">
-    <div class="topbar__gauche"><span class="topbar__file" id="tbFile"></span></div>
-    <div class="topbar__actions">
-      <button class="btn btn--light btn--sm" onclick="showImport()">+ Déposer un fichier Vitisoft</button>
-      <button class="btn btn--light btn--sm" onclick="exportPDF()">Exporter PDF</button>
-      <button class="btn btn--light btn--sm" onclick="exportExcel()">Exporter Excel</button>
-    </div>
-  </div>
+  {# LA BARRE DU HAUT EST PARTIE DE TOUT LE BUREAU, 06/10/2026 (Ted) : ni « Deposer un fichier
+     Vitisoft », ni « Exporter PDF / Excel », ni compteur, sur aucun ecran. Le depot vit dans
+     Mes reglages, onglet « Ma base ». `#tbFile` reste, cache : le moteur y ecrit le compte de
+     lignes, et `npm run banc` le compte parmi les reperes de la coque. #}
+  <span id="tbFile" hidden></span>
   <main class="content">
     {# LE CLASSEMENT AU JUGE SE DIT LA OU IL SE PAIE, 23/09/2026. Le panneau de reglages
        porte deja la phrase « L'outil fonctionne actuellement au juge », mais dans son
