@@ -8386,3 +8386,38 @@ dessin de la coque.
 - La reserve pour la croix (`.amod__tete`) ne vaut plus que pour le tampon, le nom et le sous-titre.
 - Vigneron empathique : feu rouge leger (Appeler pas plein, « Dans 7 jours » sur deux lignes,
   fond du « Noter » ouvert), corrige. Ouvert : pas de titre en capitales sur le cadre du moment.
+
+### LOT 72 : ECRIRE UN MAIL DEPUIS UNE AFFAIRE, ET LE JOURNAL DE L'AFFAIRE (06/10/2026)
+
+- **SQL `supabase/lot72-journal-affaires.sql`, a coller APRES 71.** Table `affaire_echanges`
+  (type `email` | `note`, modele, destinataire, sujet, corps), tout le bureau lit et ECRIT
+  (insert seulement), la base signe (`cree_par`, `le`), personne ne modifie ni ne supprime.
+  Refus : note vide, mail sans objet ni texte, affaire d'une piste en opposition. L'opposition
+  et la purge a trois ans effacent objet, texte et destinataire (la ligne et sa date restent) :
+  `pistes_opposition_affaires()` et `pistes_purger()` sont redefinies ici. « Vider la base »
+  n'y touche pas. Banc : `supabase/banc-lot72-journal-affaires.sql` (16, rejoue 47 a 71).
+- **Arbitrage de Ted (choix A)** : les mails d'une affaire vont dans CE journal, jamais dans
+  `echanges` (une piste n'a pas de numero Vitisoft, et « Vider la base » l'emporterait).
+  L'historique d'une affaire client MELE ce journal et les echanges de sa fiche, par date.
+  La fiche client, elle, ne montre pas encore les mails de ses affaires.
+- **Les textes vivent dans `src/js/bdv-mails-affaire.js`**, PUR (ni DOM, ni reseau), charge par
+  bdv-affaires.js a la premiere ouverture d'un redacteur. `choisir(ctx)` rend le modele et sa
+  raison ; `blocs()` dit les blocs, grises avec la raison et le geste (`lien`, `envoi`). Le
+  devis et son lien se RELISENT a chaque composition (`ctxMail()`), jamais recopies.
+- **Regles d'ecriture** (conseil du 06/10/2026) : vouvoiement, aucun reproche, aucun delai
+  chiffre, une offre par mail, jamais « expire » (« je peux vous le remettre a jour »), toujours
+  « HT », la relance ne recopie pas le montant par defaut, deux creneaux d'appel (jamais « quand
+  vous voulez »), « Bien a vous, » sans signature (comme la fiche : la messagerie l'ajoute).
+- **« Ecrire »** (panneau, pleine page, client comme piste) ouvre le redacteur de l'affaire
+  (`data-aff="ecrireMail"`), plus le redacteur de la fiche ni un mailto nu. « Voir sa fiche »
+  reste. Le bureau N'ENVOIE RIEN : mailto, « Copier le texte », puis « Considere comme envoye »
+  qui ecrit le mail ENTIER et, pour degustation et relances, pose le rappel a 7 jours.
+- **L'etat du redacteur (`REDAC`) survit aux repeintes** : modele, blocs, objet, texte, ouvert,
+  focus et curseur (`focusRedac()` / `remettreFocus()`). Changer de modele ou de bloc reecrit le
+  texte ; un texte retouche est garde de cote (« Revenir a mon texte »). `boxRedac()` trouve le
+  redacteur visible : un panneau ferme garde son HTML, l'id seul trompe.
+- **Avant le SQL** : le redacteur marche, il dit que le mail ne sera pas note et cache
+  « Considere comme envoye » ; « Noter » d'une piste se cache.
+- Garde : `banc:affaires` (sections Lot 72, 47 controles). Captures : `scripts/cap-redac.mjs`.
+- **Lot 73** : premier contact, rendez-vous, objection prix, merci pour la signature,
+  evenement, pas pour cette fois. Ouvert a Ted : signer le texte, nommer le vin de l'affaire.

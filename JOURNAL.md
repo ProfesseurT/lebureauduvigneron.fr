@@ -12,6 +12,29 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 06/10/2026, lot 72 : écrire un mail depuis une affaire
+
+Demande de Ted : un outil de création de mail dans les affaires, sur le modèle de la fiche
+client, fusionné dans les échanges, avec des textes tout faits dont un qui porte le lien de
+signature du devis (grisé sans lien). Conseil avant (vigneron, expert commercial) : feu orange
+sur 13 modèles, ramenés à 11 plus un mail libre ; le modèle est choisi pour le vigneron et la
+raison est écrite ; une relance ne recopie pas le montant ; jamais « expiré » dans un mail au
+client ; le montant et la validité se relisent dans le devis vivant. Arbitrage de Ted (choix A) :
+les mails et les notes d'une affaire ont leur journal à eux (`affaire_echanges`), gardé quand on
+vide la base ; pour un client Vitisoft, l'historique mêle ce journal et les échanges de sa fiche.
+Ce lot livre 6 modèles : envoi du devis à signer, relance du devis, dégustation, relance après la
+dégustation, suite à notre échange, mail libre. « Écrire » (panneau et pleine page) ouvre ce
+rédacteur, plus le rédacteur de la fiche ni un mailto nu. « Noter un échange » existe enfin pour
+un nouveau client (ferme la question ouverte du 28/09). Vigneron après captures : feu orange,
+cinq points corrigés (texte sur 7 lignes pour voir le bouton, destinataire en tête, « Fermer le
+rédacteur », explication au-dessus de « Considéré comme envoyé », cases resserrées sur
+ordinateur). Laissés à Ted : la signature du vigneron dans le texte (la fiche client ne la met
+pas non plus, la messagerie l'ajoute), et nommer le vin de l'affaire dans la relance après
+dégustation (le titre d'une affaire n'est pas toujours un vin).
+SQL à coller : supabase/lot72-journal-affaires.sql (après 71).
+Lot 73 : premier contact, rendez-vous, objection prix, merci pour la signature, événement, pas
+pour cette fois.
+
 ## 06/10/2026, lot 69 : le logo du domaine
 
 Demande de Ted : un logo dans les réglages, sur les devis, et en bas de la barre du bureau.

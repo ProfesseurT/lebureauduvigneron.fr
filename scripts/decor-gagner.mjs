@@ -32,7 +32,10 @@ export async function contexte(nav, largeur, theme) {
         { bureau: B, type_id: 't2', nom: 'Mariage', famille: 'evenement', sommeil_jours: 21, ordre: 1, archive: false, cree_le: jour }],
       affaire_etapes: [{ bureau: B, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 }, { bureau: B, etape_id: 'e2', type_id: 't1', nom: 'Échantillon envoyé', ordre: 2 }, { bureau: B, etape_id: 'e3', type_id: 't1', nom: 'Commande', ordre: 3 },
         { bureau: B, etape_id: 'm1', type_id: 't2', nom: 'Demande reçue', ordre: 1 }, { bureau: B, etape_id: 'm2', type_id: 't2', nom: 'Dégustation', ordre: 2 }],
-      pistes: [{ bureau: B, piste_id: 'p1', nom: 'Bistrot des Halles', telephone: '06 12 00 00 01', opposition: false }],
+      pistes: [{ bureau: B, piste_id: 'p1', nom: 'Bistrot des Halles', contact_nom: 'Julie Marchand', telephone: '06 12 00 00 01', email: 'julie@bistrot-halles.fr', opposition: false }],
+      /* Lot 72 : le journal des affaires (mails et notes). */
+      affaire_echanges: [{ bureau: B, echange_id: 'j1', affaire_id: 'a2', le: new Date(Date.now()-9*86400000).toISOString(), type: 'email', modele: 'degustation', destinataire: 'julie@bistrot-halles.fr', sujet: 'Une dégustation de nos vins', corps: 'Bonjour Julie Marchand,\n\nComme évoqué, j’aimerais vous faire goûter nos vins.\n\nBien à vous,' }],
+      devis_liens: [{ bureau: B, devis_id: 'd1', jeton: 'c'.repeat(64) }],
       affaires: [
         { bureau: B, affaire_id: 'a1', type_id: 't1', etape_id: 'e2', client_id: 'C0288', client_nom: 'Cave du Vieux Pressoir', titre: 'Le magnum de rosé pour Noël', issue: 'en_cours', rappel: new Date(Date.now()-3*86400000).toISOString().slice(0,10), rappel_titre: 'Lui faire goûter le 2025', etape_le: jour, maj_le: jour, cree_le: jour },
         { bureau: B, affaire_id: 'a3', type_id: 't1', etape_id: 'e1', client_id: 'C0412', client_nom: 'Domaine des Hauts Coteaux et Fils', titre: 'Le BIB pour le caveau', issue: 'en_cours', rappel: null, etape_le: new Date(Date.now()-60*86400000).toISOString(), maj_le: jour, cree_le: jour },
@@ -60,7 +63,7 @@ export async function contexte(nav, largeur, theme) {
     window.fetch = function (e, init) {
       const url = String((e && e.url) || e || '');
       if (/\/suivi_clients/.test(url)) window.__N33 = (window.__N33 || 0) + 1;
-      const m = url.match(new RegExp('supabase\\.co/rest/v1/(affaire_types|affaire_etapes|pistes|affaires|affaire_notes' + (HORS33 ? '' : '|suivi_clients|vues_clients') + '|ventes_lignes|echanges|devis)(\\?|$)'));
+      const m = url.match(new RegExp('supabase\\.co/rest/v1/(affaire_types|affaire_etapes|pistes|affaires|affaire_notes' + (HORS33 ? '' : '|suivi_clients|vues_clients') + '|ventes_lignes|echanges|affaire_echanges|devis_liens|devis)(\\?|$)'));
       if (!m) return avant(e, init);
       const t = m[1], meth = (init && init.method) || 'GET';
       const rep = o => Promise.resolve(new Response(o == null ? '' : JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json' } }));
@@ -77,7 +80,7 @@ export async function contexte(nav, largeur, theme) {
         const off = +((url.match(/[?&]offset=(\d+)/) || [])[1] || 0); if (off) l = l.slice(off);
         return rep(l);
       }
-      if (meth === 'POST') { const c = JSON.parse(init.body || '[]'); (Array.isArray(c) ? c : [c]).forEach(x => { const k = t === 'pistes' ? 'piste_id' : 'affaire_id'; T[t].push(Object.assign({ [k]: 'n' + (++n), issue: 'en_cours', etape_le: jour, maj_le: jour, cree_le: jour }, x)); }); return rep(null); }
+      if (meth === 'POST') { const c = JSON.parse(init.body || '[]'); (Array.isArray(c) ? c : [c]).forEach(x => { if (t === 'affaire_echanges') { T[t].unshift(Object.assign({ echange_id: 'n' + (++n), le: new Date().toISOString() }, x)); return; } const k = t === 'pistes' ? 'piste_id' : 'affaire_id'; T[t].push(Object.assign({ [k]: 'n' + (++n), issue: 'en_cours', etape_le: jour, maj_le: jour, cree_le: jour }, x)); }); return rep(null); }
       if (meth === 'PATCH') { const c = JSON.parse(init.body || '{}'); const id = (url.match(/_id=eq\.([^&]+)/) || [])[1]; const r = T[t].filter(x => Object.values(x).includes(decodeURIComponent(id || ''))); r.forEach(x => Object.assign(x, c)); return rep(r); }
       return rep([]);
     };

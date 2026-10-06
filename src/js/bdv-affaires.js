@@ -493,6 +493,7 @@
       corps.innerHTML = htmlEditeur(a);
       lireDevis(a);
       if (clientDe(a)) chargerClient(a, function () { repeindreClient(a); });
+      lireJournal(a).then(function () { repeindreClient(a); });
     }
     var ag = el('amodAgrandir');
     if (ag) { ag.hidden = !S.ouverte || !!S.nouvelle; if (S.ouverte) ag.href = '/mon-bureau/#affaire=' + encodeURIComponent(S.ouverte); }
@@ -598,8 +599,10 @@
       + (clientDe(a) ? '<p class="amod__contacts">' + htmlContactsClient(a, 'appeler') + '</p>' : '')
       + (a.issue === 'en_cours' ? '<p class="amod__raccourci"><button type="button" class="btn" data-aff="devisRaccourci">Nouveau devis</button></p>' : '')
       + htmlReport(a, e)
-      + (clientDe(a) ? htmlNoter(a) + '<details class="aff-plus amod__hist" data-bloc="hist"><summary>Son historique</summary><div class="aff-plus__corps">'
-        + htmlHistorique(a, 5) + '</div></details>' : '');
+      /* LOT 72 : le redacteur de mails, puis noter et l'historique, client COMME piste. */
+      + htmlRedac(a)
+      + htmlNoter(a) + '<details class="aff-plus amod__hist" data-bloc="hist"><summary>' + (clientDe(a) ? 'Son historique' : 'Historique') + '</summary><div class="aff-plus__corps">'
+        + htmlHistorique(a, 5) + '</div></details>';
   }
   /* V6 (01/10/2026), demande du vigneron : « repousser une relance d'un pouce au chai ».
      Sous la boite d'etat d'une affaire A RELANCER (rappel passe ou du jour, ou endormie),
@@ -611,7 +614,8 @@
   function htmlContacts(a) {
     var p = a && a.piste_id ? (S.pistes[a.piste_id] || {}) : null, l = '';
     if (p && p.telephone) l += '<a class="btn btn--bordeaux" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
-    if (p && p.email) l += '<a class="btn" href="mailto:' + esc(p.email) + '">Écrire à ' + esc(p.email) + '</a>';
+    /* LOT 72 : « Ecrire » ouvre le redacteur de l'affaire, plus un mailto nu. */
+    if (p && p.email) l += '<button type="button" class="btn" data-aff="ecrireMail">Écrire à ' + esc(p.email) + '</button>';
     return l ? '<p class="amod__contacts">' + l + '</p>' : '';
   }
   function htmlReport(a, e) {
@@ -1513,10 +1517,10 @@
   }
   function creerLienCarte(id) {
     var d = devisParId(id), dit = el('affLienMot-' + id);
-    if (!d || S.lienEnCours) return;
+    if (!d || S.lienEnCours) return Promise.resolve();
     S.lienEnCours = true;
     if (dit) dit.textContent = 'Création du lien…';
-    BdvCompte.api('/rpc/devis_lien_creer', { methode: 'POST', corps: { p_bureau: bureau(), p_devis: id } }).then(function (r) {
+    return BdvCompte.api('/rpc/devis_lien_creer', { methode: 'POST', corps: { p_bureau: bureau(), p_devis: id } }).then(function (r) {
       S.lienEnCours = false;
       var j = typeof r === 'string' ? r : (Array.isArray(r) ? r[0] : r);
       if (!/^[0-9a-f]{64}$/.test(String(j || ''))) throw new Error('jeton');
@@ -1635,6 +1639,8 @@
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
     if (!a) return;
     var h = htmlListeDevis(a);
+    /* LOT 72 : le redacteur lit le devis et son lien ; il se met a jour quand ils arrivent. */
+    if (boxRedac() && (S.page === id || (S.ouverte === id && MOD && !MOD.hidden))) repeindreRedac(a);
     /* La liste d'une affaire close, sous sa ligne dans « affaires closes ». */
     var uc = el('affDevisC-' + id);
     if (uc) uc.innerHTML = h || '<li class="aff-aide">Aucun devis.</li>';
@@ -2598,6 +2604,7 @@
   /* Le corps de la piece ET le panneau : les memes ecouteurs delegues, poses une
      fois sur chacun. Le panneau vit hors de `#affCorps`, dans le <body>. */
   function brancherSur(c) {
+    brancherRedac(c);
     c.addEventListener('click', function (ev) {
       var b = ev.target.closest('[data-aff]');
       if (!b || !c.contains(b)) return;
@@ -2650,6 +2657,12 @@
       if (quoi === 'voirFiche' && a) { voirFiche(a); return; }
       if (quoi === 'noterEchange' && a) { noterEchange(a, b); return; }
       if (quoi === 'ecrireClient' && a) { ecrireClient(a); return; }
+      if (quoi === 'ecrireMail' && a) { ouvrirRedac(a); return; }
+      if (quoi === 'redacCopier' && a) { copierRedac(a, b); return; }
+      if (quoi === 'redacEnvoye' && a) { redacEnvoye(a, b); return; }
+      if (quoi === 'redacRevenir' && a) { var rr = REDAC[a.affaire_id]; if (rr && rr.garde != null) { rr.texte = rr.garde; rr.garde = null; rr.texteAuto = false; repeindreRedac(a, '[data-redac="texte"]'); } return; }
+      if (quoi === 'redacLien' && a) { var dl = devisPrincipal(a); if (dl) creerLienCarte(dl.devis_id).then(function () { repeindreRedac(a, '[data-redac="bloc"][value="lien"]'); }); return; }
+      if (quoi === 'redacEnvoi' && a) { var de = devisPrincipal(a); if (de) ouvrirDevis(a, de.devis_id, { action: 'envoi' }); return; }
       /* PLEINE PAGE : « Autre date » et les deux fins menent au formulaire, deplie. */
       if ((quoi === 'pageAutreDate' || quoi === 'pageConclure') && a) {
         var dm = document.querySelector('#pageAffaire details[data-bloc="modifier"]');
@@ -3003,36 +3016,73 @@
     try { if (e.cree_par && window.BdvCompte && BdvCompte.nomAuteur) return BdvCompte.nomAuteur(e.cree_par); } catch (x) {}
     return '';
   }
-  function htmlHistorique(a, max) {
-    var c = cliDe(a);
-    if (!c) return '';
-    if (c.echanges === undefined) return '<p class="aff-aide">Lecture de son historique…</p>';
-    if (c.echanges === null) return '<p class="aff-aide">Son historique n’a pas pu être lu. Il reste dans sa fiche.</p>';
-    if (!c.echanges.length) return '<p class="aff-aide">Rien de noté pour l’instant. Note ton prochain appel ici : il apparaîtra aussi dans sa fiche.</p>';
-    return '<ul class="aff-hist">' + c.echanges.slice(0, max || 5).map(function (e) {
-      var qui = auteur(e), r = String(e.resume || '').split('\n')[0];
-      return '<li><span class="aff-hist__d">' + esc(dateCourte(String(e.le).slice(0, 10))) + '</span><span><b>' + esc(libEch(e)) + '</b>'
-        + (qui ? ' par ' + esc(qui) : '') + (r ? ' : ' + esc(r.length > 160 ? r.slice(0, 157) + '…' : r) : '') + '</span></li>';
-    }).join('') + '</ul>' + (c.echanges.length > (max || 5) ? '<p class="aff-aide">Et ' + (c.echanges.length - (max || 5)) + ' de plus dans sa fiche.</p>' : '');
+  /* L'HISTORIQUE, LOT 72 : pour un client Vitisoft, ses echanges de fiche (`echanges`) ET le
+     journal de l'affaire (`affaire_echanges`), meles par date ; pour un nouveau client, le
+     journal seul. Un mail se deplie : objet et texte entiers, tels qu'ils sont partis. */
+  function entreesHistorique(a) {
+    var c = cliDe(a), j = JOURNAL[a.affaire_id], l = [];
+    if (c && Array.isArray(c.echanges)) c.echanges.forEach(function (e) {
+      var r = String(e.resume || ''), i = r.indexOf('\n\n');
+      l.push({ le: String(e.le || ''), lib: libEch(e), qui: auteur(e), titre: (i >= 0 ? r.slice(0, i) : r).split('\n')[0],
+        corps: i >= 0 ? r.slice(i + 2) : '' });
+    });
+    if (Array.isArray(j)) j.forEach(function (e) {
+      var m = e.type === 'email' && window.BdvMailsAffaire ? BdvMailsAffaire.nom(e.modele) : '';
+      l.push({ le: String(e.le || ''), qui: auteur(e),
+        lib: e.type === 'email' ? 'E-mail' + (m ? ' : ' + m : '') : libEch({ type: e.type, canal: e.canal }),
+        titre: e.type === 'email' ? (e.sujet || (e.corps == null ? 'contenu effacé' : '')) : String(e.corps || 'contenu effacé').split('\n')[0],
+        corps: e.type === 'email' ? String(e.corps || '') : (String(e.corps || '').indexOf('\n') >= 0 ? String(e.corps) : '') });
+    });
+    return l.sort(function (x, y) { return y.le.localeCompare(x.le); });
   }
+  function htmlHistorique(a, max) {
+    var c = cliDe(a), j = JOURNAL[a.affaire_id];
+    if ((c && c.echanges === undefined) || j === undefined) return '<p class="aff-aide">Lecture de l’historique…</p>';
+    var l = entreesHistorique(a), rate = [];
+    if (c && c.echanges === null) rate.push('ses échanges de fiche');
+    if (j === null && !JOURNAL_ABSENT) rate.push('les mails de l’affaire');
+    var mot = rate.length ? '<p class="aff-aide">L’historique n’a pas pu être lu en entier (' + rate.join(', ') + ').</p>' : '';
+    if (!l.length) return mot + '<p class="aff-aide">Rien de noté pour l’instant.' + (c ? ' Ce que tu notes ici apparaît aussi dans sa fiche.' : '') + '</p>';
+    var n = max || 5;
+    return mot + '<ul class="aff-hist">' + l.slice(0, n).map(function (e) {
+      var tete = '<span class="aff-hist__d">' + esc(dateCourte(jourLocal(e.le) || e.le.slice(0, 10))) + '</span><span><b>' + esc(e.lib) + '</b>'
+        + (e.qui ? ' par ' + esc(e.qui) : '') + (e.titre ? ' : ' + esc(e.titre.length > 160 ? e.titre.slice(0, 157) + '…' : e.titre) : '') + '</span>';
+      return e.corps ? '<li class="aff-hist__plie"><details><summary>' + tete + '</summary><p class="aff-hist__corps">' + esc(e.corps).replace(/\n/g, '<br>') + '</p></details></li>'
+        : '<li>' + tete + '</li>';
+    }).join('') + '</ul>' + (l.length > n ? '<p class="aff-aide">Et ' + (l.length - n) + ' de plus' + (c ? ' dans sa fiche' : '') + '.</p>' : '');
+  }
+  /* « Noter un echange » : dans la fiche pour un client Vitisoft (le meme journal des deux
+     cotes), dans le journal de l'affaire pour un nouveau client (lot 72). */
   function htmlNoter(a) {
-    if (!clientDe(a)) return '';
+    if (!a || oppose(a)) return '';
+    var client = !!clientDe(a);
+    if (!client && JOURNAL_ABSENT) return '';
     var opts = '';
     try { if (window.BdvCanaux) BdvCanaux.liste.forEach(function (k) { opts += '<option value="' + esc(k.cle) + '"' + (k.cle === 'appel' ? ' selected' : '') + '>' + esc(k.label || k.libelle || k.cle) + '</option>'; }); } catch (x) {}
     return '<details class="aff-noter" data-bloc="noter"><summary>Noter un échange</summary><div class="aff-noter__corps">'
       + (opts ? '<label class="aff-champ"><span>Comment</span><select class="aff-noter__canal">' + opts + '</select></label>' : '')
       + '<label class="aff-champ"><span>Ce qui s’est dit</span><textarea class="aff-noter__txt" rows="3" maxlength="2000"></textarea></label>'
       + '<p><button type="button" class="btn" data-aff="noterEchange">Noter</button></p>'
-      + '<p class="aff-aide">Noté aussi dans sa fiche.</p></div></details>';
+      + '<p class="aff-aide">' + (client ? 'Noté aussi dans sa fiche.' : 'Noté dans l’historique de l’affaire.') + '</p></div></details>';
   }
   function noterEchange(a, bouton) {
-    var id = clientDe(a); if (!id) return;
+    var id = clientDe(a);
     var bloc = bouton.closest('.aff-noter'), txt = bloc && bloc.querySelector('.aff-noter__txt'), sel = bloc && bloc.querySelector('.aff-noter__canal');
     var t = txt ? txt.value.trim() : '';
     if (!t) { dire('Écris ce qui s’est passé avant de noter.', true); if (txt) txt.focus(); return; }
     var cn = null;
     try { cn = window.BdvCanaux && sel ? BdvCanaux.canal(sel.value) : null; } catch (x) {}
     var type = cn ? cn.type : 'note', canal = cn ? cn.cle : null, e;
+    if (!id) {
+      /* Un nouveau client : le journal de l'affaire. La base signe (auteur, date). */
+      creer('affaire_echanges', [{ affaire_id: a.affaire_id, type: 'note', canal: canal, corps: t }])
+        .then(function () { return lireJournal(a); }).then(function () {
+          if (txt) txt.value = '';
+          dire('Noté dans l’historique de l’affaire.');
+          repeindreClient(a);
+        }, function (er) { dire('La note n’est pas partie : ' + raison(er) + ' Ton texte est gardé.', true); });
+      return;
+    }
     if (typeof echAjouter === 'function') {
       e = echAjouter(id, type, canal, t);
       fini(true);
@@ -3067,11 +3117,280 @@
     if (MOD && !MOD.hidden && S.ouverte === a.affaire_id) {
       var ouvert = MOD.querySelector('.aff-noter[open]'), txt = ouvert && ouvert.querySelector('.aff-noter__txt');
       var garde = txt ? txt.value : null, hist = !!MOD.querySelector('.amod__hist[open]');
+      var fr = focusRedac();
       peindreTete(a);
+      if (fr) remettreFocus(fr);
       if (ouvert) { var n = MOD.querySelector('.aff-noter'); if (n) { n.open = true; var t2 = n.querySelector('.aff-noter__txt'); if (t2 && garde) t2.value = garde; } }
       if (hist) { var h = MOD.querySelector('.amod__hist'); if (h) h.open = true; }
     }
   }
+  /* ================= LE REDACTEUR DE MAILS D'UNE AFFAIRE, LOT 72 (06/10/2026) =================
+     Demande de Ted : « un outil de creation d'email dans les affaires, comme pour les
+     echanges (memes principes que les clients) », fusionne dans l'historique, avec des
+     mails tout faits dont un qui porte le lien de signature du devis (grise sans lien).
+     Memes principes que le redacteur de la fiche client : un modele, des blocs a cocher,
+     un objet qui suit les blocs tant qu'on ne l'a pas retouche, un texte modifiable,
+     « Ouvrir dans ma messagerie » (mailto : le bureau N'ENVOIE RIEN), « Copier le texte »,
+     « Considere comme envoye ». Les textes vivent dans bdv-mails-affaire.js, charge a la
+     premiere ouverture.
+     Decision de Ted (choix A) : le mail note va dans le JOURNAL DE L'AFFAIRE
+     (`affaire_echanges`, SQL du lot 72), pas dans `echanges` : un nouveau client n'a pas de
+     numero Vitisoft, et « Vider la base » ne doit pas l'emporter.
+     L'etat de chaque redacteur (`REDAC`) survit aux repeintes : on ne perd jamais ce qui est tape. */
+  var REDAC = {};
+  /* Le redacteur visible : celui de la page en pleine page, sinon celui du panneau. Un panneau
+     ferme garde son HTML : chercher par l'id seul trouverait parfois le mauvais. */
+  function boxRedac() {
+    var r = S.page ? el('pageAffaire') : (MOD && !MOD.hidden ? MOD : null);
+    return r ? r.querySelector('#affRedac') : null;
+  }
+  var JOURNAL = {};          // par affaire : undefined (pas lu), null (illisible), [] (lu)
+  var JOURNAL_ABSENT = false; // la table n'existe pas encore (SQL du lot 72 pas passe)
+  var _mails = null;
+  function chargerMails() {
+    if (window.BdvMailsAffaire) return Promise.resolve();
+    if (!_mails) { _mails = poserJs('/js/bdv-mails-affaire.js'); _mails.catch(function () { _mails = null; }); }
+    return _mails;
+  }
+  function tableAbsente(e) {
+    var t = String((e && e.code) || '') + ' ' + String((e && (e.message || e.detail)) || '');
+    return !!(e && e.status === 404) || /PGRST205|42P01|affaire_echanges/.test(t);
+  }
+  function lireJournal(a) {
+    if (!a || !pret()) return Promise.resolve();
+    var id = a.affaire_id;
+    return BdvCompte.api('/affaire_echanges?select=*&bureau=eq.' + encodeURIComponent(bureau()) + '&affaire_id=eq.' + encodeURIComponent(id)
+      + '&order=le.desc,echange_id.asc&limit=200')
+      .then(function (l) { JOURNAL[id] = Array.isArray(l) ? l : null; if (Array.isArray(l)) JOURNAL_ABSENT = false; },
+        function (e) { JOURNAL[id] = null; if (tableAbsente(e)) JOURNAL_ABSENT = true; });
+  }
+  function pisteDe(a) { return a && a.piste_id ? S.pistes[a.piste_id] || null : null; }
+  function adresseMail(a) {
+    var c = cliDe(a);
+    if (c) return c.contacts ? String(c.contacts.mail || '') : '';
+    var p = pisteDe(a);
+    return p && p.email ? String(p.email) : '';
+  }
+  /* Ce que l'affaire sait, pour les textes. Rien n'est recopie : le devis, le lien et le
+     journal se relisent a chaque composition (un texte qui cite un devis remplace ment). */
+  function ctxMail(a) {
+    var dv = devisPrincipal(a), d = null;
+    if (dv) {
+      var u = urlSignature(dv);
+      d = { numero: dv.numero, version: dv.version, statut: dv.statut, total_ht_c: dv.total_ht_c, valable_jusqu: dv.valable_jusqu,
+        envoye_le: dv.envoye_le, url: u, lienEtat: u ? 'jeton' : S.lienDe[dv.devis_id], devis_id: dv.devis_id };
+    }
+    var j = Array.isArray(JOURNAL[a.affaire_id]) ? JOURNAL[a.affaire_id] : [], c = cliDe(a), dern = null, deg = null;
+    var notes = j.filter(function (e) { return e.type === 'note'; }).map(function (e) { return { le: e.le, canal: e.canal }; });
+    if (c && Array.isArray(c.echanges)) c.echanges.forEach(function (e) {
+      if (e.canal === 'email' || /^Message envoyé/.test(String(e.resume || ''))) return;
+      notes.push({ le: e.le, canal: e.canal });
+    });
+    notes.forEach(function (e) {
+      var le = String(e.le || '');
+      if (!dern || le > dern) dern = le;
+      if ((e.canal === 'echantillon' || e.canal === 'salon') && (!deg || le > deg)) deg = le;
+    });
+    var p = pisteDe(a), dom = '';
+    try { var f = window.BdvDomaine && BdvDomaine.fiche && BdvDomaine.fiche(); dom = f && f.raison_sociale ? String(f.raison_sociale) : ''; } catch (x) {}
+    return { contact: p && p.contact_nom ? String(p.contact_nom) : '', domaine: dom, aujourdhui: jourIso(), devis: d,
+      journal: j.map(function (e) { return { type: e.type, modele: e.modele, le: jourLocal(e.le) || String(e.le || '') }; }),
+      dernierEchange: dern ? jourLocal(dern) : null, degustation: deg ? jourLocal(deg) : null };
+  }
+  function etatRedac(a) {
+    var M = window.BdvMailsAffaire, id = a.affaire_id, ctx = ctxMail(a);
+    var r = REDAC[id] || (REDAC[id] = { kAuto: true, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: false, garde: null, mot: '' });
+    if (r.kAuto) { var ch = M.choisir(ctx); r.k = ch.k; r.raison = ch.raison; }
+    else if (M.dispo(r.k, ctx)) { r.k = 'libre'; r.kAuto = false; r.cochesAuto = true; }
+    var permis = M.blocs(r.k, ctx).filter(function (b) { return !b.off; }).map(function (b) { return b.k; });
+    if (r.cochesAuto || !r.coches) r.coches = M.defauts(r.k, ctx);
+    else r.coches = r.coches.filter(function (k) { return permis.indexOf(k) >= 0; });
+    if (r.sujetAuto) r.sujet = M.sujet(r.k, ctx);
+    if (r.texteAuto) r.texte = M.texte(r.k, ctx, r.coches);
+    if (r.rappelK !== r.k) { r.rappelK = r.k; r.rappel = ['degustation', 'relance_devis', 'relance_degustation'].indexOf(r.k) >= 0; }
+    return { r: r, ctx: ctx };
+  }
+  function lienMailto(a, r) {
+    var m = adresseMail(a);
+    return m ? 'mailto:' + encodeURIComponent(m) + '?subject=' + encodeURIComponent(r.sujet || '') + '&body=' + encodeURIComponent(r.texte || '') : '';
+  }
+  function htmlRedac(a) {
+    if (!a || oppose(a)) return '';
+    var M = window.BdvMailsAffaire;
+    if (!M) {
+      chargerMails().then(function () { repeindreRedac(a); }, function () {});
+      return '<div class="aff-redac" id="affRedac"><p class="aff-aide">Préparation des modèles de mails…</p></div>';
+    }
+    var x = etatRedac(a), r = x.r, ctx = x.ctx, mail = adresseMail(a), c = cliDe(a);
+    var opts = M.MODELES.map(function (m) {
+      var d = M.dispo(m.k, ctx);
+      return '<option value="' + m.k + '"' + (m.k === r.k ? ' selected' : '') + (d ? ' disabled' : '') + '>' + esc(m.nom + (d ? ' (' + d + ')' : '')) + '</option>';
+    }).join('');
+    var bl = M.blocs(r.k, ctx).map(function (b) {
+      var on = !b.off && r.coches.indexOf(b.k) >= 0;
+      return '<li class="aff-redac__bloc' + (b.off ? ' aff-redac__bloc--off' : '') + '"><label><input type="checkbox" data-redac="bloc" value="' + b.k + '"'
+        + (on ? ' checked' : '') + (b.off ? ' disabled aria-describedby="affRedacOff-' + b.k + '"' : '') + '> ' + esc(b.lbl) + '</label>'
+        + (b.off ? '<p class="aff-aide" id="affRedacOff-' + b.k + '">' + esc(b.off) + '</p>'
+          + (b.geste === 'lien' && a.issue === 'en_cours' ? '<p><button type="button" class="btn" data-aff="redacLien">Créer le lien de signature</button></p>'
+            : b.geste === 'envoi' && a.issue === 'en_cours' ? '<p><button type="button" class="btn" data-aff="redacEnvoi">Préparer l’envoi du devis</button></p>' : '') : '')
+        + '</li>';
+    }).join('');
+    var href = lienMailto(a, r), av = M.avertir(r.k, ctx, r.coches, href.length);
+    var rapK = a.issue === 'en_cours' && ['degustation', 'relance_devis', 'relance_degustation'].indexOf(r.k) >= 0;
+    return '<details class="aff-redac" id="affRedac" data-bloc="redac"' + (r.ouvert ? ' open' : '') + '><summary class="aff-redac__t"><span class="aff-redac__ouvrir">Écrire un mail</span><span class="aff-redac__fermer">Fermer le rédacteur</span></summary><div class="aff-redac__corps">'
+      + (r.kAuto ? '<p class="aff-redac__pourquoi">Proposé : <b>' + esc(M.nom(r.k)) + '</b>, parce que ' + esc(r.raison) + '.</p>' : '')
+      + '<p class="aff-redac__a">' + (mail ? 'À : <b>' + esc(mail) + '</b>' : c && c.contacts === undefined ? 'Lecture de son adresse…'
+        : 'Pas d’adresse e-mail : copie le texte et colle-le dans ta messagerie.') + '</p>'
+      + '<label class="aff-champ"><span>Modèle</span><select data-redac="modele">' + opts + '</select></label>'
+      + (bl ? '<fieldset class="aff-redac__blocs"><legend>Ce que tu mets dedans</legend><ul>' + bl + '</ul></fieldset>' : '')
+      + '<label class="aff-champ"><span>Objet</span><input type="text" data-redac="sujet" maxlength="300" value="' + esc(r.sujet || '') + '"></label>'
+      + '<label class="aff-champ"><span>Texte, modifiable avant envoi</span><textarea data-redac="texte" rows="7" maxlength="20000">' + esc(r.texte || '') + '</textarea></label>'
+      + (r.garde != null ? '<p class="aff-aide">Ton texte retouché a été remplacé par le modèle. <button type="button" class="aff-vers" data-aff="redacRevenir">Revenir à mon texte</button></p>' : '')
+      + '<ul class="aff-redac__avert" id="affRedacAvert"' + (av.length ? '' : ' hidden') + '>' + av.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'
+      + '<div class="aff-redac__gestes">'
+      + (mail ? '<a class="btn btn--bordeaux" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
+      + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button></div>'
+      + (JOURNAL_ABSENT ? '<p class="aff-aide">L’historique des mails n’est pas encore en place dans ton bureau : ce mail ne sera pas noté.</p>'
+        : '<div class="aff-redac__fin">'
+          + (rapK ? '<label class="aff-redac__rappel"><input type="checkbox" data-redac="rappel"' + (r.rappel ? ' checked' : '') + '> Me rappeler de le relancer dans 7 jours'
+            + (a.rappel ? ' (remplace ton rappel du ' + esc(dateCourte(a.rappel)) + ')' : '') + '</label>' : '')
+          + '<p class="aff-redac__explique">Ton mail est parti de ta messagerie ? Note-le : il entre dans l’historique de l’affaire.</p>'
+          + '<p><button type="button" class="btn" data-aff="redacEnvoye">Considéré comme envoyé</button></p></div>')
+      + '<p class="aff-aide aff-redac__mot" id="affRedacMot" role="status" aria-live="polite">' + esc(r.mot || '') + '</p>'
+      + '</div></details>';
+  }
+  function focusRedac() {
+    var act = document.activeElement, box = boxRedac();
+    if (!act || !box || !box.contains(act)) return null;
+    var k = act.getAttribute('data-redac'), q = act.getAttribute('data-aff');
+    var sel = k ? '[data-redac="' + k + '"]' + (k === 'bloc' ? '[value="' + act.value + '"]' : '') : q ? '[data-aff="' + q + '"]' : null;
+    if (!sel) return null;
+    var f = { sel: sel };
+    /* Le curseur reste ou il etait : une lecture qui arrive pendant qu'on tape ne le renvoie pas au debut. */
+    try { if (typeof act.selectionStart === 'number') { f.debut = act.selectionStart; f.fin = act.selectionEnd; } } catch (x) {}
+    return f;
+  }
+  function remettreFocus(f) {
+    if (typeof f === 'string') f = { sel: f };
+    var box = boxRedac(), n = box && f && f.sel ? box.querySelector(f.sel) : null;
+    if (!n && box) n = box.querySelector('summary');
+    if (!n) return;
+    try { n.focus({ preventScroll: true }); } catch (x) {}
+    if (f && f.debut != null) { try { n.setSelectionRange(f.debut, f.fin); } catch (x) {} }
+  }
+  /* On ne repeint QUE le redacteur : le reste du panneau (notes en cours) ne bouge pas. */
+  function repeindreRedac(a, focus) {
+    var box = boxRedac();
+    if (!box || !a) { if (S.page) rendre(); return; }
+    var f = focus || focusRedac(), t = document.createElement('div');
+    t.innerHTML = htmlRedac(a);
+    if (t.firstChild) box.replaceWith(t.firstChild);
+    if (f) remettreFocus(f);
+  }
+  function ouvrirRedac(a) {
+    var r = REDAC[a.affaire_id] || (REDAC[a.affaire_id] = { kAuto: true, cochesAuto: true, sujetAuto: true, texteAuto: true, garde: null, mot: '' });
+    r.ouvert = true;
+    var d = boxRedac();
+    if (!d) return;
+    if (d.tagName === 'DETAILS') d.open = true;
+    var calme = false;
+    try { calme = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (x) {}
+    try { d.scrollIntoView({ block: 'start', behavior: calme ? 'auto' : 'smooth' }); } catch (x) {}
+    var n = d.querySelector('[data-redac="modele"]');
+    if (n) { try { n.focus({ preventScroll: true }); } catch (x) {} }
+  }
+  function brancherRedac(c) {
+    c.addEventListener('toggle', function (ev) {
+      var d = ev.target;
+      if (!d || d.id !== 'affRedac') return;
+      var a = affaireDe(d); if (!a) return;
+      var r = REDAC[a.affaire_id]; if (r) r.ouvert = d.open;
+    }, true);
+    c.addEventListener('change', function (ev) {
+      var t = ev.target, k = t && t.getAttribute && t.getAttribute('data-redac');
+      if (!k || !t.closest('#affRedac')) return;
+      var a = affaireDe(t), r = a && REDAC[a.affaire_id];
+      if (!r) return;
+      if (k === 'rappel') { r.rappel = t.checked; return; }
+      if (k !== 'modele' && k !== 'bloc') return;
+      /* Changer de modele ou de bloc REECRIT le texte (comme la fiche client) ; un texte
+         retouche a la main est garde de cote, et « Revenir a mon texte » le rend. */
+      if (!r.texteAuto && r.texte) r.garde = r.texte;
+      r.texteAuto = true; r.mot = '';
+      if (k === 'modele') { r.k = t.value; r.kAuto = false; r.cochesAuto = true; r.sujetAuto = true; }
+      else {
+        r.cochesAuto = false;
+        r.coches = [].map.call(boxRedac().querySelectorAll('[data-redac="bloc"]:checked'), function (x) { return x.value; });
+      }
+      repeindreRedac(a);
+    });
+    c.addEventListener('input', function (ev) {
+      var t = ev.target, k = t && t.getAttribute && t.getAttribute('data-redac');
+      if (k !== 'sujet' && k !== 'texte') return;
+      var a = affaireDe(t), r = a && REDAC[a.affaire_id];
+      if (!r) return;
+      if (k === 'sujet') { r.sujet = t.value; r.sujetAuto = false; } else { r.texte = t.value; r.texteAuto = false; }
+      var o = boxRedac().querySelector('[data-redac="ouvrir"]');
+      var href = lienMailto(a, r);
+      if (o) o.setAttribute('href', href);
+      var M = window.BdvMailsAffaire, av = M ? M.avertir(r.k, ctxMail(a), r.coches, href.length) : [], ul = boxRedac() && boxRedac().querySelector('.aff-redac__avert');
+      if (ul) { ul.innerHTML = av.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join(''); ul.hidden = !av.length; }
+    });
+  }
+  function motRedac(a, t) {
+    var r = REDAC[a.affaire_id]; if (r) r.mot = t;
+    var m = boxRedac() && boxRedac().querySelector('.aff-redac__mot'); if (m) m.textContent = t;
+  }
+  function copierRedac(a, b) {
+    var r = REDAC[a.affaire_id]; if (!r) return;
+    var tout = (r.sujet ? 'Objet : ' + r.sujet + '\n\n' : '') + (r.texte || '');
+    function ok() { motRedac(a, 'Texte copié : colle-le dans ta messagerie.'); }
+    function secours() {
+      var ta = boxRedac() && boxRedac().querySelector('[data-redac="texte"]');
+      if (ta) { try { ta.focus(); ta.select(); } catch (x) {} }
+      motRedac(a, 'Copie impossible ici : le texte est sélectionné, copie-le avec ton clavier.');
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(tout).then(ok, secours); return; } } catch (x) {}
+    secours();
+  }
+  /* « CONSIDERE COMME ENVOYE » : le bureau n'a rien envoye, c'est le vigneron qui le dit.
+     Le mail entre dans le journal de l'affaire, objet et texte ENTIERS (la seule copie).
+     Avec la case cochee, le rappel de l'affaire passe a dans 7 jours, motif « Relancer ». */
+  var ENVOI_EN_COURS = false;
+  async function redacEnvoye(a, b) {
+    var r = REDAC[a.affaire_id];
+    if (!r || ENVOI_EN_COURS || oppose(a)) return;
+    if (!String(r.sujet || '').trim() && !String(r.texte || '').trim()) { motRedac(a, 'Écris un objet ou un texte avant de le noter.'); return; }
+    ENVOI_EN_COURS = true;
+    motRedac(a, 'Enregistrement…');
+    try {
+      await creer('affaire_echanges', [{ affaire_id: a.affaire_id, type: 'email', modele: r.k || null,
+        destinataire: adresseMail(a) || null, sujet: String(r.sujet || '').slice(0, 300) || null, corps: String(r.texte || '').slice(0, 20000) || null }]);
+    } catch (e) {
+      ENVOI_EN_COURS = false;
+      if (tableAbsente(e)) { JOURNAL_ABSENT = true; repeindreRedac(a); }
+      motRedac(a, 'Pas noté : ' + raison(e) + ' Ton texte est gardé.');
+      return;
+    }
+    var phrase = 'Mail noté dans l’historique de l’affaire.';
+    if (r.rappel && a.issue === 'en_cours' && ['degustation', 'relance_devis', 'relance_degustation'].indexOf(r.k) >= 0) {
+      var d = new Date(); d.setDate(d.getDate() + 7);
+      var iso = jourIso(d), titre = r.k === 'degustation' || r.k === 'relance_degustation' ? 'Relancer après la dégustation'
+        : 'Relancer le devis' + (ctxMail(a).devis ? ' ' + ctxMail(a).devis.numero : '');
+      try {
+        var rr = await modifier('affaires', 'affaire_id', a.affaire_id, { rappel: iso, rappel_titre: titre });
+        Object.assign(a, rr[0] || { rappel: iso, rappel_titre: titre });
+        phrase += ' Rappel posé le ' + dateCourte(iso) + '.';
+      } catch (e2) { phrase += ' Le rappel n’a pas pu se poser : ' + raison(e2); }
+    }
+    await lireJournal(a);
+    ENVOI_EN_COURS = false;
+    /* Le redacteur repart sur le modele qu'il proposera ensuite, le mail parti est dans l'historique. */
+    REDAC[a.affaire_id] = { kAuto: true, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: true, garde: null, mot: phrase };
+    if (S.page) { rendre(); remettreFocus('[data-redac="modele"]'); }
+    else if (MOD && !MOD.hidden && S.ouverte === a.affaire_id) { peindreTete(a); remettreFocus('[data-redac="modele"]'); }
+  }
+
   /* Les contacts d'un client Vitisoft, LUS : « Appeler 06 12 34 56 78 », « Ecrire ». */
   function htmlContactsClient(a, plein) {
     var c = cliDe(a);
@@ -3081,7 +3400,7 @@
     else if (c.contacts === null) l += '<span class="aff-aide">Son numéro n’a pas pu être lu.</span>';
     else if (c.contacts.tel) l += '<a class="btn' + (plein === 'appeler' ? ' btn--bordeaux' : '') + '" href="tel:' + esc(c.contacts.tel) + '">Appeler le ' + esc(c.contacts.affiche || c.contacts.tel) + '</a>';
     else l += '<span class="aff-aide">Pas de numéro dans tes ventes.</span>';
-    l += '<button type="button" class="btn' + (plein === 'ecrire' ? ' btn--bordeaux' : '') + '" data-aff="ecrireClient">Écrire</button>';
+    l += '<button type="button" class="btn' + (plein === 'ecrire' ? ' btn--bordeaux' : '') + '" data-aff="ecrireMail">Écrire</button>';
     return l;
   }
 
@@ -3158,7 +3477,7 @@
     if (clientDe(a)) l += htmlContactsClient(a, m.plein);
     else if (p) {
       if (p.telephone) l += '<a class="btn' + (m.plein === 'appeler' ? ' btn--bordeaux' : '') + '" href="tel:' + esc(String(p.telephone).replace(/[^\d+]/g, '')) + '">Appeler le ' + esc(p.telephone) + '</a>';
-      if (p.email) l += '<a class="btn' + (m.plein === 'ecrire' && !p.telephone ? ' btn--bordeaux' : '') + '" href="mailto:' + esc(p.email) + '">Écrire</a>';
+      if (p.email) l += '<button type="button" class="btn' + (m.plein === 'ecrire' && !p.telephone ? ' btn--bordeaux' : '') + '" data-aff="ecrireMail">Écrire</button>';
     }
     /* LOT 67 (vigneron) : le devis vit dans SA carte, « Les devis ». Le haut ne redit plus
        « Ouvrir le devis » ; il propose « Nouveau devis » seulement quand il n'y en a aucun de vivant. */
@@ -3313,8 +3632,10 @@
       + '<details class="page-aff__bloc page-aff__modif" data-bloc="modifier"><summary class="page-aff__h">Modifier l’affaire</summary>' + htmlEditeur(a) + '</details>'
       + '</div><div class="page-aff__col">'
       + htmlAvantAppel(a)
-      + (clientDe(a) ? '<section class="page-aff__bloc page-aff__bloc--hist"><h2 class="page-aff__h">Son historique</h2><p class="aff-aide">Le même journal que sa fiche : ce que tu notes ici s’y retrouve, et l’inverse.</p>'
-        + htmlHistorique(a, 8) + htmlNoter(a) + '</section>' : '')
+      + (oppose(a) ? '' : '<section class="page-aff__bloc page-aff__bloc--redac">' + htmlRedac(a) + '</section>')
+      + '<section class="page-aff__bloc page-aff__bloc--hist"><h2 class="page-aff__h">' + (clientDe(a) ? 'Son historique' : 'Historique') + '</h2>'
+        + (clientDe(a) ? '<p class="aff-aide">Ses échanges de fiche et les mails de cette affaire, mêlés par date.</p>' : '')
+        + htmlHistorique(a, 8) + htmlNoter(a) + '</section>'
       + htmlDejaDit(a) + htmlPreparer(a)
       + '</div></div></div>';
   }
@@ -3332,7 +3653,8 @@
     var t0 = box.querySelector('.aff-noter__txt'); if (t0 && t0.value) garde.noter = t0.value;
     var ouverts = [].map.call(box.querySelectorAll('details[data-bloc][open]'), function (d) { return d.getAttribute('data-bloc'); });
     var fermes = [].map.call(box.querySelectorAll('details[data-bloc]:not([open])'), function (d) { return d.getAttribute('data-bloc'); });
-    var focusSel = act && box.contains(act) ? (act.id ? '#' + act.id : act.getAttribute('data-aff') ? '[data-aff="' + act.getAttribute('data-aff') + '"]' + (act.getAttribute('data-jours') ? '[data-jours="' + act.getAttribute('data-jours') + '"]' : '') : null) : null;
+    var fRedac = focusRedac();
+    var focusSel = fRedac ? null : act && box.contains(act) ? (act.id ? '#' + act.id : act.getAttribute('data-aff') ? '[data-aff="' + act.getAttribute('data-aff') + '"]' + (act.getAttribute('data-jours') ? '[data-jours="' + act.getAttribute('data-jours') + '"]' : '') : null) : null;
     var y = window.scrollY;
     box.innerHTML = htmlPage(a);
     document.title = sujet(a) + ' · Mon commerce';
@@ -3344,6 +3666,7 @@
     var t1 = box.querySelector('.aff-noter__txt'); if (t1 && garde.noter) { t1.value = garde.noter; t1.closest('details').open = true; }
     var f = formEdit(a.affaire_id); if (f && f.elements.notes && n1) f.elements.notes.value = n1.value;
     if (focusSel) { var nf = box.querySelector(focusSel); if (nf) { try { nf.focus({ preventScroll: true }); } catch (x) {} } }
+    if (fRedac) remettreFocus(fRedac);
     window.scrollTo(0, y);
   }
   /* Les notes s'enregistrent en quittant le champ (arbitre par Ted le 03/10/2026), et
@@ -3404,6 +3727,7 @@
     if (!a) return !!S.charge;   // « Cette affaire n'existe pas » est deja a l'ecran
     lireDevis(a).then(function () { rendre(); });
     chargerClient(a, rendre);
+    lireJournal(a).then(rendre);
     return true;
   }
 

@@ -6776,3 +6776,94 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque .amod .amod__etat{ margin-right:0; }
 /* « Lien copié » garde son lavis : la regle du bouton (0,3,0) l'effacait. */
 .bdv-coque :is(.amod, .page-aff) .btn.aff-devis__copier--fait{ background:var(--bdv-accent-lavis); }
+
+/* =====================================================================
+   37. LE REDACTEUR DE MAILS D'UNE AFFAIRE, LOT 72 (06/10/2026)
+   Panneau et pleine page. « Ecrire un mail » est un GESTE, comme « Noter un
+   echange » : meme dessin de bouton, et il se deplie dessous. Un bloc grise dit
+   pourquoi en mots, et le geste qui le rend possible est juste dessous.
+   ===================================================================== */
+.bdv-coque :is(.amod, .page-aff) .aff-redac{ margin-top:var(--bdv-e-4); }
+.bdv-coque .page-aff .page-aff__bloc--redac .aff-redac{ margin-top:0; }
+.bdv-coque :is(.amod, .page-aff) .aff-redac > summary{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--bdv-e-2);
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-4);
+  border:1px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  color:var(--bdv-accent);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  list-style:none;
+  cursor:pointer;
+}
+.bdv-coque :is(.amod, .page-aff) .aff-redac > summary::-webkit-details-marker{ display:none; }
+.bdv-coque :is(.amod, .page-aff) .aff-redac > summary:hover{ background:var(--bdv-accent-lavis); }
+.bdv-coque :is(.amod, .page-aff) .aff-redac[open] > summary{ margin-bottom:var(--bdv-e-3); background:transparent; }
+.bdv-coque .aff-redac__corps{ display:grid; grid-template-columns:minmax(0,1fr); gap:var(--bdv-e-3); }
+.bdv-coque .aff-redac__pourquoi{
+  margin:0;
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border-left:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-2);
+  font-size:var(--bdv-f-2);
+}
+.bdv-coque .aff-redac__pourquoi b{ color:var(--bdv-encre-1); }
+.bdv-coque .aff-redac__blocs{ margin:0; padding:0; border:0; min-width:0; }
+.bdv-coque .aff-redac__blocs legend{ padding:0; margin-bottom:var(--bdv-e-2); font-size:var(--bdv-f-2); font-weight:600; color:var(--bdv-encre-2); }
+.bdv-coque .aff-redac__blocs ul{ display:grid; gap:var(--bdv-e-1); margin:0; padding:0; list-style:none; }
+.bdv-coque .aff-redac__bloc label{ display:flex; align-items:center; gap:var(--bdv-e-2); min-height:var(--bdv-cible); color:var(--bdv-encre-1); cursor:pointer; }
+.bdv-coque .aff-redac__bloc--off label{ color:var(--bdv-encre-3); cursor:default; }
+.bdv-coque .aff-redac__bloc > p{ margin:0 0 var(--bdv-e-2); }
+.bdv-coque .aff-redac__a{ margin:0; color:var(--bdv-encre-2); overflow-wrap:anywhere; }
+.bdv-coque .aff-redac__a b{ color:var(--bdv-encre-1); }
+.bdv-coque .aff-redac input[type="text"],
+.bdv-coque .aff-redac textarea{ font-size:var(--bdv-f-saisie); }
+.bdv-coque .aff-redac textarea{ min-height:9rem; line-height:1.5; resize:vertical; }
+.bdv-coque .aff-redac__avert{ margin:0; padding-left:var(--bdv-e-4); color:var(--bdv-encre-1); font-size:var(--bdv-f-2); }
+.bdv-coque .aff-redac__gestes{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); }
+.bdv-coque .aff-redac__gestes .btn,
+.bdv-coque .aff-redac__fin .btn,
+.bdv-coque .aff-redac__bloc .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .aff-redac__fin{ display:grid; gap:var(--bdv-e-2); padding-top:var(--bdv-e-3); border-top:1px solid var(--bdv-trait); }
+.bdv-coque .aff-redac__fin p{ margin:0; }
+.bdv-coque .aff-redac__rappel{ display:flex; align-items:center; gap:var(--bdv-e-2); min-height:var(--bdv-cible); color:var(--bdv-encre-1); }
+.bdv-coque .aff-redac__mot:empty{ display:none; }
+/* Ouvert, le bouton du haut dit qu'il referme (vigneron, lot 72). */
+.bdv-coque .aff-redac__fermer{ display:none; }
+.bdv-coque .aff-redac[open] > summary .aff-redac__ouvrir{ display:none; }
+.bdv-coque .aff-redac[open] > summary .aff-redac__fermer{ display:inline; }
+.bdv-coque .aff-redac__explique{ color:var(--bdv-encre-1); }
+/* Sur ordinateur, les cases se resserrent ; la cible de 44 px reste au doigt. */
+@media (min-width: 700px){
+  .bdv-coque .aff-redac__bloc label{ min-height:var(--bdv-e-8); }
+}
+
+/* Un mail de l'historique se deplie : objet et texte entiers. */
+.bdv-coque .aff-hist .aff-hist__plie{ display:block; }
+.bdv-coque .aff-hist__plie > details > summary{
+  display:grid;
+  grid-template-columns:4.5rem minmax(0,1fr);
+  gap:var(--bdv-e-2);
+  cursor:pointer;
+  list-style:none;
+}
+.bdv-coque .page-aff .aff-hist__plie > details > summary{ grid-template-columns:5rem minmax(0,1fr); }
+.bdv-coque .aff-hist__plie > details > summary::-webkit-details-marker{ display:none; }
+.bdv-coque .aff-hist__plie > details > summary > span{ min-width:0; overflow-wrap:anywhere; }
+.bdv-coque .aff-hist__plie > details > summary > span:last-child::after{ content:" \25BE"; color:var(--bdv-encre-3); }
+.bdv-coque .aff-hist__plie > details[open] > summary > span:last-child::after{ content:" \25B4"; }
+.bdv-coque .aff-hist__corps{
+  margin:var(--bdv-e-2) 0 0;
+  padding:var(--bdv-e-3);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-1);
+  overflow-wrap:anywhere;
+}

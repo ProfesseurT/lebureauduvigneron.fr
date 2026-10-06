@@ -24,6 +24,8 @@ const SRC = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires.js'), 'utf8')
 /* LA REGLE « A RELANCER » VIT DANS bdv-affaires-jour.js DEPUIS LE LOT 45 : la piece
    l'appelle. Le module part avec la page, avant elle ; le harnais fait pareil. */
 const SRCJ_REGLE = fs.readFileSync(path.join(RACINE, 'src/js/bdv-affaires-jour.js'), 'utf8');
+/* LOT 72 : les textes des mails. Le navigateur les charge a la premiere ouverture d'un redacteur. */
+const SRC_MAILS = fs.readFileSync(path.join(RACINE, 'src/js/bdv-mails-affaire.js'), 'utf8');
 const BUREAU = 'aaaaaaaa-0000-0000-0000-000000000001';
 
 let OK = 0, KO = 0;
@@ -40,12 +42,13 @@ function monter() {
   const dom = new JSDOM('<!doctype html><body><h2 id="affTitre">Mes affaires</h2><p id="affAvis" hidden></p><div id="affCorps"></div></body>',
     { runScripts: 'outside-only', url: 'https://lebureauduvigneron.fr/mon-bureau/#affaires' });
   const w = dom.window;
-  const base = { affaire_types: [], affaire_etapes: [], pistes: [], affaires: [] };
+  const base = { affaire_types: [], affaire_etapes: [], pistes: [], affaires: [], affaire_echanges: [] };
   const cles = { affaire_types: 'type_id', affaire_etapes: 'etape_id', pistes: 'piste_id', affaires: 'affaire_id' };
   const requetes = [];
   const maintenant = () => new Date().toISOString();
   function signer(table, l, avant) {
     l.maj_le = maintenant();
+    if (table === 'affaire_echanges' && !avant) l.le = maintenant();
     if (table === 'affaires') {
       if (!avant) { l.etape_le = maintenant(); l.ouverte_le = maintenant(); l.issue = l.issue || 'en_cours'; }
       else if (l.etape_id !== avant.etape_id) l.etape_le = maintenant();
@@ -76,6 +79,7 @@ function monter() {
     }
   };
   w.eval(SRCJ_REGLE);
+  w.eval(SRC_MAILS);
   w.eval(SRC);
   return { w, doc: w.document, base, requetes, cles,
     clic(sel) { const n = w.document.querySelector(sel); if (!n) throw new Error('introuvable : ' + sel); n.click(); },
@@ -1347,8 +1351,9 @@ titre('Passe du 01/10/2026 : A gagner');
     Q.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
     const P = pan(Q), tels = () => [...P.querySelectorAll('a[href^="tel:"]')].filter(n => !n.hidden);
     /* Y1 (tour 4) : l'ORDRE des gestes du panneau, du haut vers le bas, dans chaque etat. */
-    const ordre = () => [...P.querySelectorAll('a[href^="tel:"], a[href^="mailto:"], [data-aff="devisRaccourci"], [data-aff="reporter"], [data-aff="reporterDate"]')]
-      .filter(n => !n.closest('[hidden]')).map(n => /^tel:/.test(n.getAttribute('href') || '') ? 'appeler' : /^mailto:/.test(n.getAttribute('href') || '') ? 'ecrire'
+    /* LOT 72 : « Ecrire » est un bouton qui ouvre le redacteur de l'affaire (plus un mailto nu). */
+    const ordre = () => [...P.querySelectorAll('a[href^="tel:"], [data-aff="ecrireMail"], [data-aff="devisRaccourci"], [data-aff="reporter"], [data-aff="reporterDate"]')]
+      .filter(n => !n.closest('[hidden]')).map(n => /^tel:/.test(n.getAttribute('href') || '') ? 'appeler' : n.getAttribute('data-aff') === 'ecrireMail' ? 'ecrire'
         : n.getAttribute('data-aff') === 'devisRaccourci' ? 'devis' : 'report').filter((x, i, l) => x !== 'report' || l[i - 1] !== 'report').join(',');
     t('Y1 : en retard, Appeler, Ecrire, Nouveau devis, puis la rangee de report', ordre() === 'appeler,ecrire,devis,report', ordre());
     t('Y1 : « Nouveau devis » est seul sur sa ligne, hors du groupe de report', !!P.querySelector('.amod__raccourci') && !P.querySelector('.amod__report [data-aff="devisRaccourci"], .amod__contacts [data-aff="devisRaccourci"]')
@@ -1378,8 +1383,8 @@ titre('Passe du 01/10/2026 : A gagner');
     await Q.w.BdvAffaires.ouvrir();
     Q.clic('#affCorps [data-affaire="a2"] [data-aff="ouvrir"]');
     const P = pan(Q);
-    const ordre = [...P.querySelectorAll('a[href^="tel:"], a[href^="mailto:"], [data-aff="devisRaccourci"], [data-aff="reporter"]')].filter(n => !n.closest('[hidden]'))
-      .map(n => /^tel:/.test(n.getAttribute('href') || '') ? 'appeler' : /^mailto:/.test(n.getAttribute('href') || '') ? 'ecrire' : n.getAttribute('data-aff') === 'devisRaccourci' ? 'devis' : 'report').join(',');
+    const ordre = [...P.querySelectorAll('a[href^="tel:"], [data-aff="ecrireMail"], [data-aff="devisRaccourci"], [data-aff="reporter"]')].filter(n => !n.closest('[hidden]'))
+      .map(n => /^tel:/.test(n.getAttribute('href') || '') ? 'appeler' : n.getAttribute('data-aff') === 'ecrireMail' ? 'ecrire' : n.getAttribute('data-aff') === 'devisRaccourci' ? 'devis' : 'report').join(',');
     t('Y1 : en cours, le MEME ordre : Appeler, Ecrire, Nouveau devis', ordre === 'appeler,ecrire,devis', ordre);
     t('Y1 : les contacts ne sont plus dans le formulaire (un seul endroit)', !P.querySelector('form.aff-edit a[href^="tel:"], form.aff-edit a[href^="mailto:"]')); }
 
@@ -1735,7 +1740,7 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
   const tete = F.doc.getElementById('amodTete');
   const tel = tete && tete.querySelector('a[href^="tel:"]');
   t('le panneau dit « Appeler le 06 12 34 56 78 » et compose le meme numero', !!tel && tel.getAttribute('href') === 'tel:+33612345678' && /06 12 34 56 78/.test(tel.textContent));
-  t('« Ecrire » ouvre le redacteur de sa fiche, pas un mailto', !!tete.querySelector('[data-aff="ecrireClient"]') && !tete.querySelector('a[href^="mailto:"]'));
+  t('lot 72 : « Ecrire » ouvre le redacteur de l\'affaire, pas un mailto nu', !!tete.querySelector('[data-aff="ecrireMail"]') && !tete.querySelector('.amod__contacts a[href^="mailto:"]'));
   t('son historique est a l\'ecran', /Veut goûter le 2025/.test(tete.textContent));
   t('« Agrandir » mene a #affaire=a1 dans un nouvel onglet', (() => { const ag = F.doc.getElementById('amodAgrandir'); return !!ag && !ag.hidden && /#affaire=a1$/.test(ag.getAttribute('href')) && ag.target === '_blank'; })());
   F.doc.querySelector('#amodTete .aff-noter__txt').value = 'Rappelé, 12 magnums';
@@ -1880,6 +1885,169 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
     const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\s+/g, ' ');
     t('L68 : le repli n\'existe qu\'au telephone', /\.bdv-coque \.page-aff__frise-b\{ display:none; \}/.test(css)
       && /\.page-aff__frise:not\(\.page-aff__frise--ouverte\) \.page-aff__etapes\{ display:none; \}/.test(css)); }
+}
+
+
+/* ---------------------------------------------------------------------------
+   LOT 72 (06/10/2026) : LE REDACTEUR DE MAILS D'UNE AFFAIRE, ET SON JOURNAL.
+   --------------------------------------------------------------------------- */
+titre('Lot 72 : les mails tout faits (textes)');
+{
+  const X = monter(), M = X.w.BdvMailsAffaire;
+  const dv = (o) => Object.assign({ numero: 'D-2026-0012', version: 1, statut: 'envoye', total_ht_c: 124000, valable_jusqu: '2026-11-05',
+    envoye_le: '2026-10-01', url: 'https://lebureauduvigneron.fr/signer/#' + 'a'.repeat(64), lienEtat: 'jeton' }, o || {});
+  const ctx = (o) => Object.assign({ contact: '', domaine: 'Domaine Test', aujourdhui: '2026-10-06', devis: null, journal: [], dernierEchange: null, degustation: null }, o || {});
+  t('rien ne s\'impose : « Mail libre », et il le dit', M.choisir(ctx()).k === 'libre' && /ne s’impose/.test(M.choisir(ctx()).raison));
+  t('devis pas encore parti : « Envoi du devis », raison ecrite', (c => c.k === 'devis' && /pas encore parti/.test(c.raison))(M.choisir(ctx({ devis: dv({ statut: 'enregistre', url: '' }) }))));
+  t('devis envoye il y a 5 jours sans mail : « Envoi du devis »', M.choisir(ctx({ devis: dv() })).k === 'devis');
+  t('devis envoye il y a 9 jours : « Relance du devis », avec le nombre de jours', (c => c.k === 'relance_devis' && /9 jours/.test(c.raison))(M.choisir(ctx({ devis: dv({ envoye_le: '2026-09-27' }) }))));
+  t('une relance de moins de 7 jours ne relance pas encore', M.choisir(ctx({ devis: dv({ envoye_le: '2026-09-20' }), journal: [{ type: 'email', modele: 'relance_devis', le: '2026-10-03' }] })).k !== 'relance_devis');
+  t('devis arrive a son terme : relance, jamais le mot « expire » dans le mail',
+    (c => { const tx = M.texte('relance_devis', c, M.defauts('relance_devis', c)); return M.choisir(c).k === 'relance_devis' && /remettre à jour/.test(tx) && !/expir|dernier délai/i.test(tx); })(ctx({ devis: dv({ valable_jusqu: '2026-10-01' }) })));
+  t('mail de degustation il y a 8 jours : « Relance apres la degustation »', M.choisir(ctx({ journal: [{ type: 'email', modele: 'degustation', le: '2026-09-28' }] })).k === 'relance_degustation');
+  t('« Echantillon envoye » note il y a 8 jours : meme relance', M.choisir(ctx({ degustation: '2026-09-28' })).k === 'relance_degustation');
+  t('un echange note hier : « Suite a notre echange »', (c => c.k === 'suite' && /hier/.test(c.raison))(M.choisir(ctx({ dernierEchange: '2026-10-05' }))));
+  { const c = ctx({ devis: dv() }), tx = M.texte('devis', c, M.defauts('devis', c));
+    t('le mail du devis porte le lien de signature, le montant HT et la validite', /\/signer\/#a{64}/.test(tx) && /1 240,00 € HT/.test(tx) && /5 novembre 2026/.test(tx)); }
+  { const c = ctx({ devis: dv({ url: '', lienEtat: 'aucun' }) }), b = M.blocs('devis', c).filter(x => x.k === 'lien')[0];
+    t('sans lien : le bloc est grise, dit pourquoi, et propose de creer le lien', b.off && b.geste === 'lien' && !b.defaut && M.defauts('devis', c).indexOf('lien') < 0);
+    t('sans lien : le texte ne parle pas de lien, et l\'ecran dit de joindre le PDF',
+      !/signer/.test(M.texte('devis', c, ['lien', 'montant'])) && M.avertir('devis', c, M.defauts('devis', c), 10).some(x => /PDF/.test(x))); }
+  { const c = ctx({ devis: dv({ statut: 'enregistre', url: '' }) }), b = M.blocs('devis', c).filter(x => x.k === 'lien')[0];
+    t('devis pas parti : le lien se cree en faisant partir le devis', b.off && b.geste === 'envoi'); }
+  t('une version 2 dit qu\'elle remplace la precedente', (c => /version 2/.test(M.texte('devis', c, [])) && /remplace/.test(M.texte('devis', c, [])) && /version 2/.test(M.sujet('devis', c)))(ctx({ devis: dv({ version: 2 }) })));
+  t('la relance ne recopie PAS le montant par defaut', M.defauts('relance_devis', ctx({ devis: dv() })).indexOf('montant') < 0);
+  t('un devis accepte ne s\'envoie ni ne se relance', (c => M.dispo('devis', c) && M.dispo('relance_devis', c))(ctx({ devis: dv({ statut: 'accepte' }) })));
+  t('le tarif coche : l\'ecran rappelle de le joindre', M.avertir('degustation', ctx(), ['tarif'], 10).some(x => /joindre ton tarif/.test(x)));
+  t('un texte trop long pour un lien mailto le dit', M.avertir('libre', ctx(), [], M.MAX_MAILTO + 1).some(x => /Copier le texte/.test(x)));
+  t('un contact connu : « Bonjour Jean Dupont, », sinon « Bonjour, »', /^Bonjour Jean Dupont,/.test(M.texte('suite', ctx({ contact: 'Jean Dupont' }), [])) && /^Bonjour,/.test(M.texte('suite', ctx(), [])));
+  { const tous = [];
+    M.MODELES.forEach(m => { const c = ctx({ devis: dv() }); tous.push(M.sujet(m.k, c), M.texte(m.k, c, M.blocs(m.k, c).map(b => b.k))); });
+    const tx = tous.join('\n');
+    t('aucun tiret cadratin, aucun tutoiement, aucun « expire » dans les mails', !/—/.test(tx) && !/(^|[^\p{L}])(tu|ton|ta|tes|toi)(?![\p{L}])/iu.test(tx) && !/expir/i.test(tx));
+    t('deux moments pour un appel, jamais « quand vous voulez »', /mercredi 7 octobre à 10 h ou vendredi 9 octobre à 16 h/.test(tx) && !/quand vous voulez/.test(tx)); }
+}
+
+titre('Lot 72 : le redacteur dans le panneau, et le journal de l\'affaire');
+{
+  const garnir = (X, extra) => {
+    X.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+    X.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+    (extra || []).forEach(a => X.base.affaires.push(Object.assign({ bureau: BUREAU, type_id: 't1', etape_id: 'e1', issue: 'en_cours',
+      rappel: '2099-01-01', etape_le: new Date().toISOString() }, a)));
+  };
+  const R = monter();
+  garnir(R, [{ affaire_id: 'a1', piste_id: 'p1', titre: 'Cave du Port' }]);
+  R.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', contact_nom: 'Jean Dupont', telephone: '06 11 22 33 44', email: 'cave@port.fr', opposition: false });
+  R.base.devis = [];
+  await R.w.BdvAffaires.ouvrir();
+  R.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(40);
+  const P = R.doc.getElementById('affaireModale');
+  const lj = R.requetes.filter(q => /^\/affaire_echanges\?/.test(q.chemin));
+  t('le journal de l\'affaire est lu, pour ce bureau et cette affaire', lj.length >= 1 && lj.every(q => /bureau=eq\./.test(q.chemin) && /affaire_id=eq\.a1/.test(q.chemin)));
+  t('« Ecrire » est un bouton du redacteur, plus un mailto nu', !!P.querySelector('.amod__contacts [data-aff="ecrireMail"]') && !P.querySelector('.amod__contacts a[href^="mailto:"]'));
+  R.clic('#affaireModale [data-aff="ecrireMail"]');
+  const D = () => R.doc.getElementById('affRedac');
+  t('« Ecrire » deplie le redacteur et pose le focus sur le modele', D().open && R.doc.activeElement === D().querySelector('[data-redac="modele"]'));
+  t('le modele propose dit pourquoi', /Proposé : Mail libre, parce que/.test(D().textContent));
+  t('les modeles du devis sont grises sans devis, avec la raison', [...D().querySelectorAll('[data-redac="modele"] option[disabled]')].some(o => /pas de devis/.test(o.textContent)));
+  const sel = D().querySelector('[data-redac="modele"]');
+  sel.value = 'degustation'; sel.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+  const ta = () => D().querySelector('[data-redac="texte"]'), href = () => D().querySelector('[data-redac="ouvrir"]').getAttribute('href');
+  t('changer de modele reecrit l\'objet et le texte, et le lien mailto', /^Bonjour Jean Dupont,/.test(ta().value) && /goûter nos vins/.test(ta().value)
+    && /^mailto:cave%40port\.fr\?subject=Une%20d%C3%A9gustation/.test(href()));
+  t('le redacteur n\'ajoute qu\'un aplat : « Ouvrir dans ma messagerie »', D().querySelectorAll('.btn--bordeaux').length === 1 && !!D().querySelector('a.btn--bordeaux[data-redac="ouvrir"]'));
+  ta().value = 'Mon texte à moi'; ta().dispatchEvent(new R.w.Event('input', { bubbles: true }));
+  t('taper dans le texte met a jour le lien mailto sans repeindre', /Mon%20texte/.test(href()) && R.doc.activeElement !== null);
+  const passage = D().querySelector('[data-redac="bloc"][value="passage"]');
+  passage.checked = true; passage.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+  t('cocher un bloc reecrit le texte, et garde le texte retouche de cote', /bienvenu au domaine/.test(ta().value) && !!D().querySelector('[data-aff="redacRevenir"]'));
+  R.clic('#affRedac [data-aff="redacRevenir"]');
+  t('« Revenir a mon texte » le rend', ta().value === 'Mon texte à moi');
+  const tarif = D().querySelector('[data-redac="bloc"][value="tarif"]');
+  tarif.checked = true; tarif.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+  t('le tarif coche : « pense a joindre ton tarif » a l\'ecran', /joindre ton tarif/.test(D().textContent));
+  t('la case du rappel est cochee pour une degustation', D().querySelector('[data-redac="rappel"]').checked);
+  R.clic('#affRedac [data-aff="redacEnvoye"]');
+  await attendre(40);
+  const ec = R.base.affaire_echanges;
+  t('« Considere comme envoye » ecrit le mail ENTIER dans le journal de l\'affaire', ec.length === 1 && ec[0].bureau === BUREAU && ec[0].type === 'email'
+    && ec[0].modele === 'degustation' && ec[0].destinataire === 'cave@port.fr' && /joint|tarif/.test(ec[0].corps) && /dégustation/.test(ec[0].sujet), JSON.stringify(ec[0] || {}));
+  const a1 = R.base.affaires[0], d7 = new Date(); d7.setDate(d7.getDate() + 7);
+  t('et pose le rappel dans 7 jours, motif « Relancer »', a1.rappel === d7.toISOString().slice(0, 10) || a1.rappel === [d7.getFullYear(), String(d7.getMonth() + 1).padStart(2, '0'), String(d7.getDate()).padStart(2, '0')].join('-'), a1.rappel);
+  t('l\'historique montre le mail, depliable', /E-mail : Dégustation, échantillons/.test(P.textContent) && !!P.querySelector('.aff-hist__plie details'));
+  t('le redacteur repart vide et dit ce qui est fait', /Mail noté dans l’historique/.test(D().textContent));
+  /* Une note sur un NOUVEAU client va dans le journal de l'affaire. */
+  const n = P.querySelector('.aff-noter__txt');
+  t('« Noter un echange » existe aussi pour un nouveau client', !!n && /historique de l’affaire/.test(P.querySelector('.aff-noter').textContent));
+  n.value = 'Rappelé, il veut du blanc';
+  R.clic('#affaireModale [data-aff="noterEchange"]');
+  await attendre(40);
+  t('la note part dans le journal de l\'affaire', R.base.affaire_echanges.length === 2 && R.base.affaire_echanges[1].type === 'note' && /blanc/.test(R.base.affaire_echanges[1].corps));
+  t('aucune requete sans bureau', R.requetes.filter(q => /affaire_echanges/.test(q.chemin)).every(q => q.methode === 'POST' ? q.corps.every(l => l.bureau === BUREAU) : /bureau=eq\./.test(q.chemin)));
+  t('aucun onclick dans le redacteur', !/onclick/i.test(D().outerHTML));
+  /* La pleine page : le redacteur et l'historique, pour un nouveau client aussi. */
+  R.clic('#affaireModale .tmod__x');
+  await R.w.BdvAffaires.page('a1');
+  await attendre(60);
+  const pg = R.doc.getElementById('pageAffaire');
+  t('la page porte le redacteur et l\'historique de l\'affaire (nouveau client)', !!pg && !!pg.querySelector('#affRedac') && /E-mail : Dégustation/.test(pg.textContent)
+    && /blanc/.test(pg.textContent) && pg.querySelectorAll('#affRedac').length === 1, pg ? pg.textContent.slice(0, 600) : 'pas de page');
+  const ta2 = pg.querySelector('[data-redac="texte"]');
+  ta2.focus(); ta2.value = 'Bonjour, essai'; ta2.dispatchEvent(new R.w.Event('input', { bubbles: true })); ta2.setSelectionRange(5, 5);
+  await R.w.BdvAffaires.page('a1'); await attendre(40);
+  const ta3 = R.doc.querySelector('#pageAffaire [data-redac="texte"]');
+  t('une repeinte de la page garde le texte tape, le focus et le curseur', ta3.value === 'Bonjour, essai' && R.doc.activeElement === ta3 && ta3.selectionStart === 5);
+}
+titre('Lot 72 : le devis, son lien, et ce qui manque');
+{
+  const R = monter(), jour = new Date().toISOString(), env = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+  R.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  R.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  R.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'x', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  R.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', email: 'cave@port.fr', opposition: false });
+  R.base.devis = [{ bureau: BUREAU, affaire_id: 'a1', devis_id: 'd1', numero: 'D-2026-0007', statut: 'envoye', total_ht_c: 50000, envoye_le: env, valable_jusqu: '2099-12-31', date_devis: env, cree_le: jour }];
+  R.base.devis_liens = [{ bureau: BUREAU, devis_id: 'd1', jeton: 'b'.repeat(64) }];
+  R.base.devis_versions = [];
+  R.w.eval(fs.readFileSync(path.join(RACINE, 'src/js/bdv-devis-calcul.js'), 'utf8'));
+  await R.w.BdvAffaires.ouvrir();
+  R.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(60);
+  R.clic('#affaireModale [data-aff="ecrireMail"]');
+  const D = R.doc.getElementById('affRedac'), tx = D.querySelector('[data-redac="texte"]').value;
+  t('un devis envoye avec son lien : « Envoi du devis » propose, le lien dans le texte', /Envoi du devis à signer/.test(D.querySelector('.aff-redac__pourquoi').textContent) && /\/signer\/#b{64}/.test(tx), D.querySelector('.aff-redac__pourquoi').textContent + ' / ' + tx.slice(0, 300) + ' / ' + JSON.stringify(R.w.BdvAffaires._S.lienDe));
+  /* Le meme devis, lien d'avant le lot 71 : grise, et le geste qui le cree. */
+  R.w.BdvAffaires._S.lienDe.d1 = 'ancien';
+  R.clic('#affaireModale .tmod__x');
+  R.base.devis_liens = [{ bureau: BUREAU, devis_id: 'd1', jeton: null }];
+  R.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(60);
+  const D2 = R.doc.getElementById('affRedac'), lien = D2.querySelector('[data-redac="bloc"][value="lien"]');
+  t('lien ancien : la case est grisee, dit pourquoi, et « Creer le lien de signature » est la',
+    !!lien && lien.disabled && /ne peut pas se réafficher/.test(D2.textContent) && !!D2.querySelector('[data-aff="redacLien"]') && !/\/signer\//.test(D2.querySelector('[data-redac="texte"]').value));
+}
+titre('Lot 72 : personne en opposition, et SQL pas encore passe');
+{
+  const R = monter(), jour = new Date().toISOString();
+  R.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  R.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 });
+  R.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'x', issue: 'en_cours', rappel: null, etape_le: jour },
+                       { bureau: BUREAU, affaire_id: 'a2', type_id: 't1', etape_id: 'e1', piste_id: 'p2', titre: 'y', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  R.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Opposee', email: null, opposition: true }, { bureau: BUREAU, piste_id: 'p2', nom: 'Joignable', email: 'j@x.fr', opposition: false });
+  R.base.devis = [];
+  await R.w.BdvAffaires.ouvrir();
+  R.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(30);
+  t('une personne en opposition : ni redacteur, ni « Noter »', !R.doc.getElementById('affRedac') && !R.doc.querySelector('#affaireModale .aff-noter'));
+  R.clic('#affaireModale .tmod__x');
+  const api = R.w.BdvCompte.api;
+  R.w.BdvCompte.api = async (c, o) => { if (/^\/affaire_echanges/.test(c)) { const e = new Error('absente'); e.status = 404; e.code = 'PGRST205'; throw e; } return api(c, o); };
+  R.clic('#affCorps [data-affaire="a2"] [data-aff="ouvrir"]');
+  await attendre(40);
+  R.clic('#affaireModale [data-aff="ecrireMail"]');
+  const D = R.doc.getElementById('affRedac');
+  t('SQL du lot 72 pas passe : le redacteur marche, il dit que le mail ne sera pas note', !!D.querySelector('[data-redac="ouvrir"]') && !D.querySelector('[data-aff="redacEnvoye"]') && /pas encore en place/.test(D.textContent));
 }
 
 console.log('\n== VERDICT ==');
