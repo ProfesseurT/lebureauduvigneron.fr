@@ -104,6 +104,7 @@
   /* LOT 55 : la signature en ligne. Le lien part de la messagerie du vigneron, pas du
      bureau (decision de Ted du 01/10/2026). Le jeton ne s'affiche qu'une fois. */
   var MOT_SQL_SIG = 'La signature en ligne n’est pas encore disponible sur ton compte.';
+  var MOT_LIEN_GARDE = 'Ce lien reste ici, et sur la carte du devis dans l’affaire, tant que le devis n’est pas signé. Il sert à une seule signature.';
   var MOT_LIEN_UNE_FOIS = 'Ce lien ne s’affiche qu’une fois : colle-le dans ton mail maintenant. Il sert à une seule signature. Perdu ? Crée un nouveau lien, l’ancien s’éteint.';
   var MOT_PROS = 'Réservé aux clients professionnels pour l’instant.';
   var FEUILLES_PAPIER = ['/css/bdv-theme.css', '/css/bdv-devis-papier.css'];
@@ -1077,6 +1078,21 @@
         if (S.etat === 'edition') peindre();
       }, function (e) { if (moi === S && e && sqlAbsent(e)) { S.lienInfo = 'absent'; if (S.etat === 'edition') peindre(); } }));
     }
+    /* LOT 71 (06/10/2026, demande de Ted) : LE LIEN SE RELIT. La base garde maintenant le jeton
+       du lien vivant, lisible par le bureau : le lien redevient copiable a la reouverture. Lu A
+       PART, pour que la colonne absente (SQL pas passe) ne casse pas la lecture du dessus.
+       `S.lot71` dit seulement que la base garde le jeton (la phrase « ne s'affiche qu'une
+       fois » devient fausse). */
+    if (d.statut === 'envoye') {
+      att.push(api('/devis_liens?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
+        + '&remplace_le=is.null&select=jeton&order=cree_le.desc&limit=1').then(function (l) {
+        if (moi !== S || !S.devis || S.devis.devis_id !== d.devis_id) return;
+        S.lot71 = true;
+        var j = Array.isArray(l) && l[0] ? String(l[0].jeton || '') : '';
+        if (/^[0-9a-f]{64}$/.test(j) && !lienMontre()) S.lien = { devis_id: d.devis_id, url: urlDuLien(j) };
+        if (S.etat === 'edition') peindre();
+      }, function () {}));
+    }
     if (d.statut === 'envoye' && d.accord_annule_le && lot65()) {
       att.push(api('/devis_signatures?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=eq.' + encodeURIComponent(d.devis_id)
         + '&select=lien_id&limit=1').then(function (l) {
@@ -1127,7 +1143,7 @@
       + '<button type="button" class="btn" data-dev="lienCopier">Copier le lien seul</button></p>'
       + '<p class="aff-aide" id="devLienMot" aria-live="polite"></p>'
       + '<label class="aff-champ"><span>Le lien de signature</span><input id="devLienUrl" type="text" readonly value="' + esc(url) + '"></label>'
-      + '<p class="aff-aide dmod__copie--souci">' + esc(MOT_LIEN_UNE_FOIS) + '</p>'
+      + (S.lot71 ? '<p class="aff-aide">' + esc(MOT_LIEN_GARDE) + '</p>' : '<p class="aff-aide dmod__copie--souci">' + esc(MOT_LIEN_UNE_FOIS) + '</p>')
       + (note || rattrape ? '<p class="aff-aide">' + esc(note) + rattrape
         + (rattrape ? (typeof S.ctx.retour === 'function'
           ? '<button type="button" class="dmod__lien" data-dev="retour">Décale la relance dans l’affaire</button>.'

@@ -51,7 +51,7 @@
 
   var S = { types: [], etapes: [], pistes: {}, affaires: [], charge: false, erreur: false,
             filtre: '', ouverte: null, nouvelle: false, attente: null,
-            vue: lireVue(), choix: null, trouves: [], devisDe: {}, closesDevis: {}, focusDevis: null, versionsHt: {} };
+            vue: lireVue(), choix: null, trouves: [], devisDe: {}, lienDe: {}, closesDevis: {}, focusDevis: null, versionsHt: {} };
 
   /* LA DISPOSITION, LISTE OU KANBAN, 28/09/2026 (lot 39). Elle se retient sur CET
      appareil : c'est une preference de lecture, pas une donnee du bureau. Le
@@ -97,6 +97,7 @@
     if (!d) return '';
     return (d.getDate() === 1 ? '1er' : d.getDate()) + ' ' + MOIS[d.getMonth()];
   }
+  function finPoint(t) { return /[.!?]$/.test(t) ? t : t + '.'; }
   function pluriel(n, un, plusieurs) { return n + ' ' + (n > 1 ? plusieurs : un); }
   function norm(s) {
     return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -1429,7 +1430,8 @@
       j = joursDepuis(d.envoye_le);
       var reste = joursDepuis(d.valable_jusqu);
       r.marque = 'envoyé';
-      r.phrase = 'Envoyé le ' + esc(dateCourte(d.envoye_le)) + (j > 0 ? ', sans réponse depuis ' + pluriel(j, 'jour', 'jours') : '') + '. '
+      /* « Envoyé le 6 oct.. » : la date abregee porte deja son point (vu par Ted, 06/10/2026). */
+      r.phrase = finPoint('Envoyé le ' + esc(dateCourte(d.envoye_le)) + (j > 0 ? ', sans réponse depuis ' + pluriel(j, 'jour', 'jours') : '')) + ' '
         + (d.valable_jusqu ? 'Valable encore ' + pluriel(Math.max(0, -reste), 'jour', 'jours') + ', jusqu’au ' + esc(dateCourte(d.valable_jusqu)) + ' : ' : '') + ht + ' en jeu.' + remplace;
       if (ouverte) r.geste = { action: 'reponse', mot: 'Noter sa réponse' };
     } else {
@@ -1467,9 +1469,54 @@
         + '<p class="aff-devis__detail">' + r.phrase + (compte ? ' C’est lui qui compte pour l’affaire.' : '') + '</p>'
         + (g ? '<p class="aff-devis__gestes">' + g + '</p>' : '')
         + (r.aide ? '<p class="aff-aide aff-devis__aide" id="affDevisAide-' + id + '">' + esc(r.aide) + '</p>' : '')
+        + htmlLienSignature(a, d)
         + '<p class="aff-devis__gestes aff-devis__liens">' + li + '</p>'
         + '</li>';
     }).join('');
+  }
+  /* LOT 71 (06/10/2026, demande de Ted) : LE LIEN DE SIGNATURE, A COPIER SUR LA CARTE. Seulement
+     pour un devis envoye, pas expire, dont la base garde le jeton du lien vivant (liens crees a
+     partir du lot 71). Le champ est en lecture seule : il se selectionne si la copie echoue. */
+  function urlSignature(d) {
+    var j = d && S.lienDe[d.devis_id];
+    return /^[0-9a-f]{64}$/.test(String(j || '')) ? location.origin + '/signer/#' + j : '';
+  }
+  function htmlLienSignature(a, d) {
+    if (!d || d.statut !== 'envoye' || expireD(d) || a.issue !== 'en_cours') return '';
+    var u = urlSignature(d), id = esc(d.devis_id);
+    if (!u) return '';
+    return '<div class="aff-devis__signer">'
+      + '<label class="aff-champ"><span>Lien de signature</span><input type="text" readonly value="' + esc(u) + '" id="affLienUrl-' + id + '"></label>'
+      + '<p class="aff-devis__gestes"><button type="button" class="btn" data-aff="devisLienCopier" data-devis="' + id + '">Copier le lien</button></p>'
+      + '<p class="aff-aide" id="affLienMot-' + id + '" aria-live="polite"></p></div>';
+  }
+  function copierLien(id) {
+    var d = null;
+    Object.keys(S.devisDe).forEach(function (k) { (S.devisDe[k] || []).forEach(function (x) { if (x.devis_id === id) d = x; }); });
+    var u = urlSignature(d), dit = el('affLienMot-' + id), champ = el('affLienUrl-' + id);
+    if (!u) return;
+    function ok() { if (dit) dit.textContent = 'Lien copié : colle-le dans ton mail.'; }
+    function rate() {
+      if (champ) { try { champ.focus(); champ.select(); } catch (e) {} }
+      if (dit) dit.textContent = 'Copie impossible ici : le lien est sélectionné, copie-le avec Cmd + C (Ctrl + C sur PC).';
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(ok, rate); return; } } catch (e) {}
+    rate();
+  }
+  /* Le jeton des liens vivants de ces devis. Colonne absente (SQL du lot 71 pas passe) ou
+     panne : rien, la carte se tait. */
+  function lireLiens(id) {
+    var l = S.devisDe[id];
+    var ids = Array.isArray(l) ? l.filter(function (d) { return d.statut === 'envoye'; }).map(function (d) { return d.devis_id; }) : [];
+    if (!ids.length) return Promise.resolve();
+    return BdvCompte.api('/devis_liens?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=in.(' + ids.map(encodeURIComponent).join(',')
+      + ')&remplace_le=is.null&select=devis_id,jeton')
+      .then(function (v) {
+        if (!Array.isArray(v)) return;
+        var change = false;
+        v.forEach(function (x) { if (x && x.jeton && S.lienDe[x.devis_id] !== x.jeton) { S.lienDe[x.devis_id] = x.jeton; change = true; } });
+        if (change) peindreListeDevis(id);
+      }, function () {});
   }
   /* Un devis attend-il un geste ? (la section remonte sous la frise, vigneron lot 67) */
   /* Un devis vivant court : « Nouveau devis » se fait discret (on le relance, on n'en refait
@@ -1500,6 +1547,7 @@
       S.devisDe[id] = Array.isArray(r[0]) ? r[0] : [];
       peindreListeDevis(id);
       lireVersions(id);
+      lireLiens(id);
     }, function () {});
   }
   /* LOT 68 : LES TOTAUX GARDES DES VERSIONS PRECEDENTES (SQL du lot 68), lus seulement s'il y a
@@ -2575,6 +2623,7 @@
          UN bouton (le vrai, en bas, celui que lisent les bancs et les harnais). */
       if ((quoi === 'devis' || quoi === 'devisRaccourci') && a) { ouvrirDevis(a, null); return; }
       if (quoi === 'devisOuvrir' && a) { ouvrirDevis(a, b.getAttribute('data-devis')); return; }
+      if (quoi === 'devisLienCopier') { copierLien(b.getAttribute('data-devis')); return; }
       if (quoi === 'friseBasculer') {
         S.friseOuverte = !S.friseOuverte;
         var fr = b.closest('.page-aff__frise');

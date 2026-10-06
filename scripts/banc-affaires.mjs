@@ -1774,6 +1774,20 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
       /^Envoyé le .+, sans réponse depuis 10 jours\. Valable encore 20 jours, jusqu’au .+ : 1 240,00 € HT en jeu\.$/.test(sp(c.querySelector('.aff-devis__detail').textContent)), sp(c.textContent));
     t('L67 : « Ouvrir le devis » reste, en lien', !!c.querySelector('button.aff-devis__lien[data-aff="devisOuvrir"]'));
     t('L67 : pas de « Voir la version » pour une version 1', !c.querySelector('[data-action="version"]')); }
+  { const c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(0), valable_jusqu: iso(30) }));
+    t('L71 : envoye aujourd\'hui, jamais « oct.. » (un seul point apres la date abregee)', !/\.\./.test(c.querySelector('.aff-devis__detail').textContent), c.querySelector('.aff-devis__detail').textContent); }
+  { const S0 = w.BdvAffaires._S, J = 'ab'.repeat(32);
+    let c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) }));
+    t('L71 : sans jeton garde, la carte ne montre aucun lien', !c.querySelector('[data-aff="devisLienCopier"]'));
+    S0.lienDe.dx = J; c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-2), valable_jusqu: iso(20) }));
+    const inp = c.querySelector('.aff-devis__signer input');
+    t('L71 : le lien de signature est sur la carte, en lecture seule, avec « Copier le lien »', !!inp && inp.readOnly && /\/signer\/#(ab){32}$/.test(inp.value)
+      && !!c.querySelector('[data-aff="devisLienCopier"][data-devis="dx"]'), c.innerHTML.slice(0, 300));
+    c = carte(Object.assign({}, base, { statut: 'envoye', envoye_le: iso(-40), valable_jusqu: iso(-3) }));
+    t('L71 : un devis expire ne montre pas son lien (il ne signe plus)', !c.querySelector('.aff-devis__signer'));
+    c = carte(Object.assign({}, base, { statut: 'accepte', signe_le: iso(-1), envoye_le: iso(-5), valable_jusqu: iso(20) }));
+    t('L71 : un devis signe ne montre plus son lien', !c.querySelector('.aff-devis__signer'));
+    S0.lienDe = {}; }
   { const c = carte(Object.assign({}, base, { statut: 'envoye', version: 1, envoye_le: iso(-40), valable_jusqu: iso(-3) }));
     const tel = c.querySelector('a.btn[href^="tel:"]'), g = c.querySelector('[data-aff="devisAgir"]');
     t('L67 expire, numero connu : on APPELLE d\'abord (arbitre par Ted), puis « Le remettre à date »', !!tel && tel.textContent === 'L’appeler d’abord'
@@ -1836,6 +1850,9 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
     await w.BdvAffaires.page('a1'); await attendre(80);
     const rq = F.requetes.filter(r => /^\/devis_versions\?/.test(r.chemin)).pop();
     t('L68 : les totaux gardes se lisent pour ce bureau et ces devis seulement', !!rq && /bureau=eq\./.test(rq.chemin) && /devis_id=in\.\(d9\)/.test(rq.chemin), rq && rq.chemin);
+    const rl = F.requetes.filter(r => /^\/devis_liens\?/.test(r.chemin)).pop();
+    t('L71 : les jetons des liens vivants se lisent pour ce bureau et ces devis envoyes seulement', !!rl && /bureau=eq\./.test(rl.chemin) && /devis_id=in\.\(d9\)/.test(rl.chemin)
+      && /remplace_le=is\.null/.test(rl.chemin) && /select=devis_id,jeton/.test(rl.chemin), rl && rl.chemin);
     t('L68 : la page affiche l\'ecart lu', /300,00 € HT de moins que la version 1/.test(sp(F.doc.getElementById('pageAffaire').textContent)), sp((F.doc.querySelector('#pageAffaire .aff-devis__carte') || {}).textContent)); }
 
   /* LOT 68 : la frise repliee au telephone. */

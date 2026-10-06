@@ -8330,3 +8330,18 @@ Demande de Ted, sur captures.
   gardee » du bureau (`.bdv-coque .dmod__signature`, fond `--bdv-fond-logo`).
 - La fonction `signature` accepte 160 000 octets de corps et passe `p_trace` / `p_trace_mode`
   sans les juger : la base le fait. Garde : `banc:signature` section 1 quater (mutations faites).
+
+### LOT 71 : LE LIEN DE SIGNATURE SE RECOPIE, 06/10/2026
+
+- **SQL `supabase/lot71-lien-recopiable.sql`, a coller APRES 70.** Arbitrage de Ted : le jeton du
+  lien est garde EN BASE (`devis_liens.jeton`), lisible par le bureau seul (droit par colonne ;
+  `jeton_hash` reste illisible, `anon` ne lit rien). Contrainte : le jeton doit redonner son
+  empreinte. Un lien remplace oublie son jeton. `/signer/` ne change pas : il compare toujours
+  l'EMPREINTE. Les liens crees AVANT ce lot n'ont pas de jeton : il faut en creer un nouveau.
+- **Carte du devis** (`htmlLienSignature()` de bdv-affaires.js) : champ en lecture seule et
+  « Copier le lien », seulement pour un devis ENVOYE, pas expire, affaire en cours. Lecture a
+  part (`lireLiens()`), qui se tait si la colonne manque. Dans le devis, `lireSignature()` relit
+  le jeton a part et repose `S.lien` : « Ton envoi est prêt » revient a la reouverture, et la
+  phrase « ne s'affiche qu'une fois » n'apparait plus quand la base garde le jeton (`S.lot71`).
+- Au passage : « Envoyé le 6 oct.. » (la date abregee porte deja son point) : `finPoint()`.
+- Bancs : `supabase/banc-lot71-lien-recopiable.sql` (6), `banc:affaires` controles L71.

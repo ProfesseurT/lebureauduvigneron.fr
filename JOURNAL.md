@@ -10465,3 +10465,6 @@ doigt ou a la souris, OU son nom ecrit en ecriture manuscrite ; sur un ordinateu
 tactile, un QR code pour signer sur le telephone. Dans les deux cas une image PNG est gardee dans
 la preuve. SQL lot 70 a coller (banc 16 controles, rejoue 47 a 69), puis push, puis
 redeploiement de la fonction `signature`. Vigneron empathique : feu vert, cinq textes repris.
+Meme jour, lot 71 : Ted veut le lien de signature a copier sur la carte du devis. La base ne
+gardait que l'empreinte : arbitrage de Ted, le jeton est garde en base, lisible par le bureau
+seul. SQL lot 71 a coller. Corrige au passage « Envoyé le 6 oct.. ».
