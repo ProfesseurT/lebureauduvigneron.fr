@@ -8285,7 +8285,7 @@ Demande de Ted, sur captures.
   PNG (transparence), le reste en JPEG sur fond blanc. `accept="image/png,image/jpeg"` : Safari
   convertit une photo HEIC. Avertissement sous 240 px de haut (flou a 20 mm).
 - **LES CONDITIONS SONT AFFICHEES** (demande de Ted, 06/10/2026 : « trop lourde » seul etait trop
-  vague) : liste `CONDITIONS` de bdv-logo.js, ecrite UNE fois, sous l'aide (format, 15 Mo au plus,
+  vague) : liste `CONDITIONS` de bdv-logo.js, ecrite UNE fois, sous l'aide (format, 2 Mo au plus (arbitrage de Ted),
   240 px de haut pour un logo net, ideal). Chaque refus dit ce qu'il a recu (type, poids,
   dimensions) et pourquoi : format, poids du fichier, image illisible, navigateur qui n'a pas su
   la redessiner, ou trop chargee meme a 240 px. Une image de plus de 2 400 px est d'abord ramenee

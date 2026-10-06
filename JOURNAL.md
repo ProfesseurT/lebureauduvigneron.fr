@@ -25,7 +25,7 @@ dans la phrase du simple utilisateur (une lecture de plus) et une pastille plus 
 (un logo foncé y disparaîtrait). Les devis déjà envoyés gardent leur copie, donc leur papier.
 SQL à coller : supabase/lot69-logo-domaine.sql (après 68).
 Le même jour, Ted a eu « Cette image est trop lourde, même réduite » sans savoir quoi changer.
-Les conditions s'affichent maintenant sous l'aide (format, 15 Mo, 240 px de haut), et chaque
+Les conditions s'affichent maintenant sous l'aide (format, 2 Mo au plus, 240 px de haut), et chaque
 refus dit ce qu'il a reçu et pourquoi. La réduction est plus tenace (JPEG jusqu'à 240 px) et une
 très grande image est d'abord ramenée à 2 400 px. Le fichier de Ted n'a pas été reproduit :
 s'il bloque encore, le message nomme le format, le poids et la taille, qu'il suffit de relire.

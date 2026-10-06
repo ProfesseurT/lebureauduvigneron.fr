@@ -23,13 +23,13 @@
   var MAX = 600;                    // la base refuse au-dela
   var MAX_SIGNES = 150000;          // idem
   var FLOU = 240;                   // sous cette hauteur, flou a 20 mm sur le papier
-  var POIDS_MAX = 15 * 1024 * 1024; // le fichier choisi, avant reduction
+  var POIDS_MAX = 2 * 1024 * 1024;  // le fichier choisi, avant reduction (arbitrage de Ted, 06/10/2026)
   var ETAPE = 2400;                 // une image plus grande est d'abord ramenee a cette taille
   /* LES CONDITIONS, ECRITES UNE FOIS : affichees sous l'aide, et reprises par les messages
      d'erreur. Demande de Ted (06/10/2026) : « trop lourde » seul etait trop vague. */
   var CONDITIONS = [
     ['Format', 'PNG ou JPEG. Une photo de téléphone est convertie toute seule. Pas de SVG ni de PDF.'],
-    ['Poids du fichier', '15 Mo au plus.'],
+    ['Poids du fichier', '2 Mo au plus.'],
     ['Taille', 'au moins 240 px de haut pour qu’il soit net sur le devis. Plus grand, il est réduit tout seul à 600 px.'],
     ['Idéal', 'un logo plus large que haut, détouré sur fond transparent.']
   ];
@@ -295,7 +295,7 @@
       return;
     }
     if (f.size > POIDS_MAX) {
-      dire('Ton fichier pèse ' + mo(f.size) + ' : 15 Mo au plus. Exporte ton logo en plus petit (2 000 px de large suffisent) et réessaie.', true);
+      dire('Ton fichier pèse ' + mo(f.size) + ' : 2 Mo au plus. Exporte ton logo en plus petit (1 200 px de large suffisent) et réessaie.', true);
       return;
     }
     dire('Préparation du logo…');
