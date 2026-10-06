@@ -134,7 +134,7 @@ t('les quatre mouvements de clientele sont DANS #pied-cap',
 t('et en premiere carte, avant la tendance et l\'effet prix/volume',
   h.indexOf('mouvement de clientèle') < h.indexOf('chTrend') && h.indexOf('mouvement de clientèle') < h.indexOf('Effet prix contre effet volume'));
 t('pas de repli dans le repli, plus de « pied-variation »',
-  !h.includes('pied-variation') && (h.slice(h.indexOf('id="pied-cap"')).match(/<details/g) || []).length === 0);
+  !h.includes('pied-variation') && ((s => s.slice(0, s.indexOf('</details>')))(h.slice(h.indexOf('id="pied-cap"'))).match(/<details/g) || []).length === 0);
 t('plus de « juste en dessous »', !h.includes('juste en dessous'));
 t('la tendance corrigee est DANS le repli',
   h.indexOf('chTrend') > h.indexOf('id="pied-cap"'), 'elle est hors du repli');

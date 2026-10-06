@@ -8246,3 +8246,23 @@ Arbitrages de Ted :
 - Reste mineur : « 75 cl » peut passer seul a la ligne dans le nom d'un vin (les bancs lisent le
   nom avec une espace normale) ; deux clics en quelques millisecondes apres une sortie peuvent
   decaler l'entree d'historique (jamais reproduit).
+
+### « CLIENTS A SUIVRE » EST UNE BASE DE TRAVAIL, 06/10/2026
+
+Demande de Ted, sur captures.
+- **Plus de barre du haut sur Mon commerce** : ni « Deposer un fichier Vitisoft », ni « Exporter
+  PDF / Excel », ni le compteur de lignes. `navTo()` la cache pour `clients` seulement ; elle
+  reste sur Mon cap, Mes cuvees, Mon registre.
+- **« Qui pese quoi dans ton chiffre » est dans Mon cap**, apres « Ce qui explique ta
+  variation » (`html+=piedCommerce()` dans `renderCap()`). Il n'est plus dans Mon commerce.
+- **« Qui rappeler » devient « Choisis ta liste de travail »**, suivi de « Touche une tuile :
+  la liste en dessous ne garde que ses clients... » (visible, hors du repli « A savoir »).
+- **Les tuiles appellent le clic** : halo fixe (contour 3 px, jeton `--bdv-accent-halo`, jamais
+  une ombre) sur chaque tuile qui a des clients, et TROIS pulsations a l'arrivee sur l'onglet
+  (`appelTuiles()`, classe `.motif-cards--appel`), pas a chaque clic sur une tuile.
+- **Les quatre listes completes sont SOUS les tuiles** (`exportsMotif()`) : celles de la tuile
+  choisie (decrochage pour Recul, relance pour Cadence, les deux premiers achats pour Premier
+  achat), les quatre avec « Tous ». Le bloc « Sortir tes listes completes » du bas est parti.
+  « Exporter la liste » reste au-dessus du tableau. Garde : `banc:commerce`.
+- Releve en passant, anterieur : a 390 px la page deborde (750 px de large) dans le decor de
+  `cap-com`, avant comme apres ce lot. Non traite.

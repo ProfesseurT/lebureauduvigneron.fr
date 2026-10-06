@@ -10422,3 +10422,10 @@ refonte complete en trois lots (65, 66, 67).
 Lot 65 fait : SQL a coller, versions et copies par version, gel adapte, geste « Corriger ce
 devis ». Le vigneron lisait « rappeler » comme « telephoner » : le mot d'ecran est « Corriger ».
 Bancs : SQL 40 controles, banc:devis 434, verif complete verte.
+
+## 06/10/2026 : Clients a suivre, une base de travail
+
+Barre du haut retiree de Mon commerce, « Qui pese quoi » deplace dans Mon cap, titre « Choisis
+ta liste de travail », tuiles avec halo fixe + 3 pulsations a l'arrivee, listes completes
+remontees sous les tuiles. `npm run verif` vert, etape par etape. Captures 1440 clair et 390
+sombre verifiees.

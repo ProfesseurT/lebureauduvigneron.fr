@@ -356,6 +356,7 @@
   --bdv-accent:       #9E2B47;          /* sombre #F294A9 */
   --bdv-accent-fort:  #7E2139;          /* sombre #FFB9C7  survol et appui de l'action primaire */
   --bdv-accent-lavis: #FAF0F2;          /* sombre #251A1E  fond de rangee selectionnee, fond de zone */
+  --bdv-accent-halo: #E7C2CC;           /* sombre #5C2B39  halo fixe des tuiles a choisir de Mon commerce, demande de Ted du 06/10/2026 : elles doivent inviter au clic. Decor, jamais du texte. */
   --bdv-accent-trait: #E0BAC4;          /* sombre #56333C  bordure d'une carte qui porte l'accent */
 
   /* ETATS. Meme regle que les etats du site : chaque etat est double d'un

@@ -611,6 +611,24 @@
 .bdv-ventes .motif-card--zero:not(.on) .motif-card__n,
 .bdv-ventes .motif-card--zero:not(.on) .motif-card__l{color:var(--bdv-encre-3);font-weight:500}
 .bdv-ventes .motif-card--zero .motif-card__s{display:none}
+/* LES TUILES APPELLENT LE CLIC, 06/10/2026 (demande de Ted). « Mon commerce » est une base de
+   travail : on y choisit une liste, et rien ne le disait. Un halo FIXE (un contour de 3 px,
+   jamais une ombre : l'echelle des ombres est fermee) sur chaque tuile qui a des clients, et
+   TROIS pulsations a l'arrivee sur l'onglet (`.motif-cards--appel`, posee par appelTuiles()
+   de bdv-ecrans.js), jamais en boucle (WCAG 2.2.2). Pas de mouvement si on l'a coupe. */
+.bdv-ventes .motif-card:not(.motif-card--zero){outline:3px solid var(--bdv-accent-halo);outline-offset:0}
+.bdv-ventes .motif-cards--appel .motif-card:not(.motif-card--zero){animation:bdv-maj-pouls 1.4s ease-out 3}
+.bdv-ventes .motif-card:focus-visible{outline-color:var(--bdv-anneau);animation:none}
+@media (prefers-reduced-motion:reduce){.bdv-ventes .motif-cards--appel .motif-card{animation:none}}
+.bdv-ventes .motif-exports{display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-2);margin:calc(-1 * var(--bdv-e-3)) 0 var(--bdv-e-6)}
+.bdv-ventes .motif-exports__l{font-size:var(--bdv-f-2);color:var(--bdv-encre-3)}
+/* Sur telephone, deux boutons par rangee : quatre boutons pleine largeur poussaient la liste
+   de 400 px. Le libelle passe au-dessus, sur toute la largeur. */
+@media (max-width:700px){
+  .bdv-ventes .motif-exports{display:grid;grid-template-columns:1fr 1fr;margin-top:0}
+  .bdv-ventes .motif-exports__l{grid-column:1/-1}
+  .bdv-ventes .motif-exports .btn{white-space:normal;line-height:1.2;padding-left:var(--bdv-e-2);padding-right:var(--bdv-e-2)}
+}
 /* SUR TELEPHONE, DEUX CARTES PAR RANGEE (juge V16). Quatre cartes empilees faisaient
    440 px avant le premier client. Deux colonnes, le chiffre a la taille d'un titre : les
    quatre tiennent en deux rangees, et la cible reste au-dessus de 44 px. */

@@ -316,6 +316,11 @@ function navTo(id, opts){
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id||p.id==='p-'+id+'-panel'));
   // Le filtre annees n'a pas de sens sur "Ma base" (toujours tout l'historique) : on le masque.
   el('filterbar').style.display = (id==='annee') ? 'flex' : 'none';
+  /* MON COMMERCE EST UNE BASE DE TRAVAIL, 06/10/2026 (Ted) : ni depot de fichier, ni export
+     PDF ou Excel, ni compteur de lignes. La barre reste sur les autres ecrans de vente. */
+  const tb=document.querySelector('.bdv-ventes .topbar');
+  if(tb) tb.style.display = (id==='clients') ? 'none' : '';
+  if(id==='clients' && ECRAN_COURANT!=='clients' && typeof appelTuiles==='function') appelTuiles();
   /* MON REGISTRE SE REPEINT A L'ARRIVEE, depuis le 11/09/2026 : il porte une courbe, et
      renderAll() l'a peinte alors que le panneau etait masque, donc dans un canvas haut de
      zero pixel. Chart.js n'y dessine rien de visible et ne s'en plaint pas. Un seul clic,
@@ -2189,6 +2194,10 @@ function renderCap(){
   }else fond+=signal('info','ℹ','Décomposition prix/volume indisponible.',`Il faut deux ${exMot()}s comparables dans la base.`);
   html+=`<div class="card"><details class="msg--replie" id="pied-cap">
     <summary>${titreVariation(br,f)}</summary>${fond}</details></div>`;
+  /* « QUI PESE QUOI DANS TON CHIFFRE » VIT ICI DEPUIS LE 06/10/2026 (Ted) : il venait du pied
+     de « Mon commerce », qui reste une base de travail. Il explique le total, c'est la
+     question de cette piece. Replie, il se tait tant que les lignes ne sont pas la. */
+  html+=piedCommerce();
 
   p.innerHTML=html;
   SIG_CAP=sigEnAffaire(null);
@@ -4467,8 +4476,7 @@ function renderClients(){
     html+=`<div class="section-label">Qui rappeler</div>`
       +`<div class="panel__sub">Les clients à qui il se passe quelque chose, réunis en une seule liste.</div>`
       +verdict
-      +(lignesPretes()?'':noteComplement('Il manque ici la liste de qui rappeler : les reculs, les rythmes rompus et les clients venus une seule fois.'))
-      +piedCommerce();
+      +(lignesPretes()?'':noteComplement('Il manque ici la liste de qui rappeler : les reculs, les rythmes rompus et les clients venus une seule fois.'));
     el('p-clients').innerHTML=html;signalerClients();return;
   }
   const parMotif=m=>VIS.filter(c=>c.motif===m);
@@ -4479,7 +4487,10 @@ function renderClients(){
      seul « A savoir » (ouvert d'office sur un ecran large) ; la note « deja dans une
      affaire » reste dehors, en petit (regle du lot 45). Le premier client remonte ainsi
      dans le premier ecran du telephone. */
-  html+=`<div class="section-label">Qui rappeler</div>`
+  /* LE TITRE INVITE A CHOISIR, 06/10/2026 (Ted) : « Qui rappeler » nommait la liste sans
+     dire qu'on la choisit. Les tuiles sont la commande de la piece. */
+  html+=`<div class="section-label">Choisis ta liste de travail</div>`
+    +`<p class="panel__sub motif-invite">Touche une tuile : la liste en dessous ne garde que ses clients, du plus gros montant au plus petit.</p>`
     +`<details class="suivre__apropos"${ecranEtroit()?'':' open'}><summary>${N_AFF>0?'À savoir : '+(N_AFF>1?fmtNum(N_AFF)+' clients déjà dans une affaire':'1 client déjà dans une affaire'):'À savoir sur cette liste'}</summary>`
     +`<div class="panel__sub">Chaque client n'apparaît qu'une fois, avec sa raison la plus sûre. Commence par le haut : c'est là qu'il y a le plus d'argent.</div>`
     +(exportFrais()?'':`<p class="note">« Deuxième achat à jouer » et « Sa saison arrive » attendent un export de moins de trois semaines : ta dernière vente connue date du ${fmtDate(META.max)}. Dépose ton dernier export pour les voir.</p>`)
@@ -4487,7 +4498,7 @@ function renderClients(){
     +`</details>`;
 
   // Les trois motifs, en cartes cliquables. Chaque montant garde sa nature.
-  html+=`<div class="motif-cards">${['recul','cadence','deuxieme','saison','premier'].filter(m=>['recul','cadence','premier'].indexOf(m)>=0||nb(m)>0).map(m=>`
+  html+=`<div class="motif-cards${TUILES_APPEL?' motif-cards--appel':''}">${['recul','cadence','deuxieme','saison','premier'].filter(m=>['recul','cadence','premier'].indexOf(m)>=0||nb(m)>0).map(m=>`
     <button class="motif-card${filtreMotif===m?' on':''}${nb(m)?'':' motif-card--zero'}" onclick="setMotif('${m}')" aria-pressed="${filtreMotif===m}">
       <span class="motif-card__n">${fmtNum(nb(m))}</span>
       <span class="motif-card__l">${MOTIFS[m].label}</span>
@@ -4497,7 +4508,8 @@ function renderClients(){
       <span class="motif-card__n">${fmtNum(VIS.length)}</span>
       <span class="motif-card__l">Tous</span>
       <span class="motif-card__s"><span class="muted-cell">montants de natures différentes, non additionnés</span></span>
-    </button></div>`;
+    </button></div>`+exportsMotif(filtreMotif);
+  TUILES_APPEL=false;
 
   const liste=(filtreMotif==='tous'?VIS:parMotif(filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
   if(filtreMotif!=='tous')html+=`<p class="note" style="margin:.2rem 0 1rem">${MOTIFS[filtreMotif].aide}</p>`;
@@ -4520,37 +4532,40 @@ function renderClients(){
     </tr>`;}).join('')}
     </tbody></table></div></div>`;
   html+=`<p class="note">La colonne « Chance » n'est renseignée que pour les premiers achats : c'est le seul cas où ton historique${PROFIL&&PROFIL.moisCouverts?' de '+PROFIL.moisCouverts+' mois':''} suffit pour mesurer un taux de retour. Pour les deux autres, il faudrait 30 et 36 mois de ventes. Une case vide vaut mieux qu'un chiffre inventé.</p>`;
-  /* LES TROIS LISTES COMPLETES, REBRANCHEES ICI LE 11/09/2026 (lot 5).
-
-     Leurs boutons vivaient dans les trois ecrans fantomes, masques depuis la fusion du
-     07/09 : Ted ne pouvait plus les atteindre, et personne ne s'en etait apercu parce que
-     rien n'echoue quand un bouton n'est pas affiche. Arbitrage pris avec lui : les
-     rebrancher plutot que les supprimer avec le reste du menage.
-
-     ILS NE FONT PAS DOUBLON avec « Exporter la liste » de la liste ci-dessus. Celui-la sort
-     CE QUI EST AFFICHE : la liste unifiee, un client une seule fois, avec la raison la plus
-     solide qui le concerne. Ceux-ci sortent les listes ENTIERES de chaque analyse, avec les
-     colonnes qui servent a travailler et que l'autre n'a pas : cadence, rythme, fiabilite et
-     date de prochaine commande attendue pour la relance ; CA de l'exercice precedent, CA en
-     cours et euros perdus pour le decrochage. L'e-mail est en deuxieme colonne dans les
-     trois : le fichier part tel quel dans un outil d'emailing. */
-  html+=`<div class="card"><div class="card__title"><span>Sortir tes listes complètes</span></div>
-    <p class="note" style="margin-top:0">Le bouton « Exporter la liste » ci-dessus sort ce que tu vois : un client une seule fois, avec sa raison principale. Ces quatre-là sortent les listes entières de chaque analyse, avec leurs colonnes de travail.</p>
-    <div style="display:flex;flex-wrap:wrap;gap:.5rem">
-      <button class="btn btn--ghost btn--sm" onclick="exportReactList()">Clients à relancer</button>
-      <button class="btn btn--ghost btn--sm" onclick="exportDecroList()">Clients en décrochage</button>
-      <button class="btn btn--ghost btn--sm" onclick="exportPremierList()">Premiers achats, les prioritaires</button>
-      <button class="btn btn--ghost btn--sm" onclick="exportReste()">Premiers achats, le reste</button>
-    </div></div>`;
-
-  html+=piedCommerce();   // etage 3 : replie, il ne pousse jamais la liste hors de l'ecran
+  /* Les quatre listes completes (lot 5, 11/09/2026) sont remontees sous les tuiles le
+     06/10/2026 : exportsMotif(). Elles ne font pas doublon avec « Exporter la liste ». */
   if(!lignesPretes())
-    html+=noteComplement('Il manque ici les clients venus une seule fois, et le bloc « qui pèse quoi dans ton chiffre ».');
+    html+=noteComplement('Il manque ici les clients venus une seule fois.');
   el('p-clients').innerHTML=html;
   FILTRES.clientsBody={q:'',joign:false};applyFilters('clientsBody');
   signalerClients();   // le bilan commun se recompte (lot 45)
 }
 function setMotif(m){filtreMotif=m;renderClients();navTo('clients');}
+/* LES LISTES COMPLETES, SOUS LES TUILES, 06/10/2026 (Ted) : le bloc « Sortir tes listes
+   completes » du bas de page est remonte ici. On ne montre que la liste complete de la tuile
+   choisie (toutes avec « Tous ») : « Exporter la liste », au-dessus du tableau, sort ce qu'on
+   voit ; ceux-ci sortent l'analyse entiere avec ses colonnes de travail (cadence, rythme,
+   date attendue, euros perdus). Deuxieme achat et saison n'ont pas de liste a part. */
+const EXPORTS_MOTIF={
+  recul:[['exportDecroList','Clients en décrochage']],
+  cadence:[['exportReactList','Clients à relancer']],
+  premier:[['exportPremierList','Premiers achats, les prioritaires'],['exportReste','Premiers achats, le reste']]
+};
+function exportsMotif(m){
+  const l=m==='tous'?[].concat(EXPORTS_MOTIF.recul,EXPORTS_MOTIF.cadence,EXPORTS_MOTIF.premier):(EXPORTS_MOTIF[m]||[]);
+  if(!l.length)return '';
+  return `<div class="motif-exports"><span class="motif-exports__l">Liste complète, avec ses colonnes de travail :</span>`
+    +l.map(x=>`<button type="button" class="btn btn--ghost btn--sm" onclick="${x[0]}()">${x[1]}</button>`).join('')+`</div>`;
+}
+/* LES TUILES PULSENT A L'ARRIVEE SUR L'ONGLET, pas a chaque clic sur une tuile (06/10/2026).
+   Ecran deja peint : on relance l'animation sur place. Pas encore peint : renderClients()
+   pose la classe a son premier dessin. */
+let TUILES_APPEL=false;
+function appelTuiles(){
+  const c=document.querySelector('#p-clients .motif-cards');
+  if(!c){TUILES_APPEL=true;return;}
+  c.classList.remove('motif-cards--appel');void c.offsetWidth;c.classList.add('motif-cards--appel');
+}
 function exportClients(){
   /* Lot 45 : ce que la liste MONTRE, sans les clients en affaire. La liste peinte, et pas
      un recalcul : visible, elle n'est pas repeinte quand les affaires bougent. */

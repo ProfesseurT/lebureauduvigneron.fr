@@ -93,6 +93,12 @@ const test = `
   window.__APRES = window.bdvClientsASuivre();
   window.__PARTIEL = window.bdvClientsASuivre.partiel();
   window.__SORTIE = { com: document.getElementById('p-clients').innerHTML };
+  (function(){ var evt = window.__EVT, avant = filtreMotif; filtreMotif = 'tous'; renderClients();
+    window.__SORTIE.tous = document.getElementById('p-clients').innerHTML;
+    filtreMotif = 'premier'; renderClients();
+    window.__SORTIE.premier = document.getElementById('p-clients').innerHTML;
+    filtreMotif = avant; renderClients(); window.__EVT = evt; })();
+  window.__SORTIE.pied = piedCommerce();
   window.__PRE = PRETEXTES;
   /* Les globales en let du moteur ne sortent pas de cet eval : ces crochets y restent. */
   window.__ecran = function(id){ ECRAN_COURANT = id; };
@@ -126,7 +132,7 @@ console.log('== etage 1 : le renvoi vers Mon cap, avant la liste (lot 45) ==');
   const txt = r ? r.textContent : '';
   t('une ligne renvoie vers Mon cap, « Ce qui explique ta variation »',
     !!r && /D'où vient ta variation d'un an sur l'autre : c'est dans Mon cap, « Ce qui explique ta variation »\./.test(txt) && !!r.querySelector('b') && r.querySelector('b').textContent === 'Mon cap', txt);
-  t('elle est AU-DESSUS de « Qui rappeler »', h.indexOf('renvoi-cap') >= 0 && h.indexOf('renvoi-cap') < h.indexOf('Qui rappeler'));
+  t('elle est AU-DESSUS de « Choisis ta liste de travail »', h.indexOf('renvoi-cap') >= 0 && h.indexOf('renvoi-cap') < h.indexOf('Choisis ta liste de travail'));
   const a = r && r.querySelector('a');
   t('avec le lien « Voir dans Mon cap », vers #annee', !!a && a.textContent === 'Voir dans Mon cap' && /#annee$/.test(a.getAttribute('href')) && /voirVariation\(\)/.test(a.getAttribute('onclick') || ''));
   t('le renvoi ne porte aucun chiffre', !/\d/.test(txt), txt);
@@ -140,20 +146,28 @@ console.log('== etage 1 : le renvoi vers Mon cap, avant la liste (lot 45) ==');
   delete w.BdvNav;
 }
 
-console.log('== etage 3 : ce qui explique, replie ==');
-t('le pied est replie', h.includes('Qui pèse quoi dans ton chiffre'));
-/* On repere le tableau du pied par sa colonne « CA HT », et pas par « Client » : la
-   grande liste du dessus a elle aussi une colonne Client, et le test passait alors sur
-   la mauvaise occurrence. */
-t('le top clients est DANS le pied',
-  h.indexOf('CA HT</th>') > h.indexOf('Qui pèse quoi'), 'il est hors du repli');
+console.log('== 06/10/2026 : « Qui pèse quoi » est parti dans Mon cap ==');
+t('il n\'est plus dans Mon commerce', !h.includes('Qui pèse quoi') && !w.__SORTIE.tous.includes('Qui pèse quoi'));
+t('piedCommerce() le rend toujours, replie, top clients dedans',
+  w.__SORTIE.pied.includes('Qui pèse quoi dans ton chiffre') && w.__SORTIE.pied.indexOf('CA HT</th>') > w.__SORTIE.pied.indexOf('Qui pèse quoi'));
+t('renderCap() le pose apres « Ce qui explique ta variation »',
+  /id="pied-cap">[\s\S]*?<\/details><\/div>`;[\s\S]{0,600}html\+=piedCommerce\(\);/.test(SRCE));
+t('Mon commerce : la barre du haut (depot, PDF, Excel) est cachee par navTo()',
+  /tb\.style\.display = \(id==='clients'\) \? 'none' : ''/.test(SRCE));
 
-console.log('== les quatre listes completes sont atteignables ==');
+console.log('== 06/10/2026 : le titre invite a choisir une tuile ==');
+t('« Qui rappeler » devient « Choisis ta liste de travail »', h.includes('Choisis ta liste de travail') && !h.includes('>Qui rappeler<'));
+t('une phrase visible dit de toucher une tuile, avant les tuiles',
+  h.includes('Touche une tuile') && h.indexOf('Touche une tuile') < h.indexOf('motif-cards'));
+
+console.log('== les quatre listes completes, sous les tuiles ==');
+const T = w.__SORTIE.tous;
 [['exportReactList','relance'],['exportDecroList','decrochage'],
  ['exportPremierList','premiers achats prioritaires'],['exportReste','premiers achats, le reste']]
-  .forEach(([fn,quoi]) => t('l\'export « '+quoi+' » a un bouton', h.includes(fn+'()')));
-t('et la piece dit en quoi ils different de l\'export de la liste',
-  h.includes('Sortir tes listes complètes'));
+  .forEach(([fn,quoi]) => t('avec « Tous », l\'export « '+quoi+' » a un bouton sous les tuiles',
+    T.includes(fn+'()') && T.indexOf(fn+'()') > T.indexOf('motif-cards') && T.indexOf(fn+'()') < T.indexOf('clientsBody')));
+t('« Premier achat » ne montre que ses deux listes', w.__SORTIE.premier.includes('exportPremierList()') && w.__SORTIE.premier.includes('exportReste()') && !w.__SORTIE.premier.includes('exportDecroList()'));
+t('le bloc du bas « Sortir tes listes complètes » est parti', !T.includes('Sortir tes listes complètes'));
 
 /* ---------------------------------------------------------------------------
    LOT 44, 29/09/2026 : « EN FAIRE UNE AFFAIRE » SUR CHAQUE CLIENT A SUIVRE.
@@ -281,7 +295,7 @@ console.log('== lot 45 : un client, une fois ==');
   const nt = note();
   t('la note : « 2 clients a suivre sont deja dans une affaire... »',
     !!nt && /^2 clients à suivre sont déjà dans une affaire : tu les retrouves dans « À gagner », avec leur raison\./.test(nt.textContent), nt && nt.textContent);
-  t('sous « Qui rappeler », avant les cartes', h.length > 0 && (() => { const x = d.getElementById('p-clients').innerHTML; return x.indexOf('Qui rappeler') < x.indexOf('note-affaire') && x.indexOf('note-affaire') < x.indexOf('motif-cards'); })());
+  t('sous « Choisis ta liste de travail », avant les cartes', h.length > 0 && (() => { const x = d.getElementById('p-clients').innerHTML; return x.indexOf('Choisis ta liste de travail') < x.indexOf('note-affaire') && x.indexOf('note-affaire') < x.indexOf('motif-cards'); })());
   /* V16 (tour 2) : a 390 px le premier client doit tenir dans le premier ecran. L'aide, la
      note de l'export et la note « deja dans une affaire » vivent dans UN repli dont le titre
      dit l'essentiel ; le renvoi vers Mon cap a sa forme courte ; les cartes tiennent en une

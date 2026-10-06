@@ -127,6 +127,7 @@
   --bdv-accent:#9E2B47;
   --bdv-accent-fort:#7E2139;       /* survol et appui de l'action primaire    */
   --bdv-accent-lavis:#FAF0F2;      /* fond de rangee selectionnee, fond de zone */
+  --bdv-accent-halo:#E7C2CC;       /* halo des tuiles a choisir, Mon commerce (06/10/2026) */
   --bdv-accent-trait:#E0BAC4;      /* bordure d'une carte qui porte l'accent   */
 
   /* -- ETATS. Chaque etat est double d'un GLYPHE et d'un MOT, jamais porte
@@ -283,6 +284,7 @@
     --bdv-accent:#F294A9;
     --bdv-accent-fort:#FFB9C7;
     --bdv-accent-lavis:#251A1E;
+    --bdv-accent-halo:#5C2B39;
     --bdv-accent-trait:#56333C;
 
     --bdv-retard:#F2877C;
@@ -351,6 +353,7 @@
   --bdv-accent:#F294A9;
   --bdv-accent-fort:#FFB9C7;
   --bdv-accent-lavis:#251A1E;
+  --bdv-accent-halo:#5C2B39;
   --bdv-accent-trait:#56333C;
 
   --bdv-retard:#F2877C;
