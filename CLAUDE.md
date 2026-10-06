@@ -8205,3 +8205,44 @@ Arbitrages de Ted :
 - **Ouvert, a Ted** : a 390 la frise en colonne pousse le premier bouton du devis sous l'ecran
   (vers 950 px pour 844) : se tranche sur toute la page de l'affaire ; la difference de montant
   entre versions n'est pas affichee (seul le papier de la version 1 est garde).
+
+### POINTS OUVERTS DE LA REFONTE DU DEVIS, TRANCHES PAR TED LE 05/10/2026
+
+- Lot 65 : un D-2026 corrige en 2027 garde son numero et porte la date 2027 : ACCEPTE. Une
+  correction ne s'annule pas : ON GARDE. Les deux refus de « Corriger » (commande deja telechargee
+  pour Vitisoft, affaire close) : CONFIRMES.
+- Lot 66 : « Changer dans Mon domaine » quitte le devis (brouillon garde) : ON LAISSE. L'apercu
+  papier seulement apres enregistrement : ON LAISSE. La date suit la langue du navigateur : a
+  verifier une fois par Ted sur un iPhone en francais.
+- A FAIRE (lot 68) : 1) le bouton Retour du navigateur (et le geste retour iPhone) PREVIENT sur un
+  devis modifie, comme « Retour a l'affaire » ; 2) au telephone, la ligne de vin COMPACTE (nom +
+  « 12 x 8,90 EUR = 106,80 EUR HT », on touche pour changer) ; 3) au telephone, la frise de
+  l'affaire REPLIEE (« Etape : X (2 sur 3) » + « Vers ... », le detail se deplie) ; 4) l'ECART de
+  montant entre versions sur la carte du devis, a partir de maintenant (petit SQL : le total HT de
+  chaque version garde a la correction ; les devis deja corriges n'ont pas l'ecart).
+
+### LOT 68 : LES POINTS TRANCHES DU DEVIS, 06/10/2026
+
+- **SQL `supabase/lot68-ecart-versions.sql`, a coller APRES 65.** Table `devis_versions` (bureau,
+  devis, version, total HT, gardee le), remplie par le declencheur `devis_garder_version` (AFTER
+  UPDATE OF version) au moment d'une correction ; lecture pour les membres, aucune ecriture, une
+  ligne gardee est figee. Le gel `devis_signer` et `devis_rappeler` NE CHANGENT PAS. Les devis
+  deja corriges n'ont pas d'ecart (jamais invente). Banc : `banc-lot68-ecart-versions.sql` (12).
+- **L'ecart sur la carte** (`lireVersions`, `ecartVersion`) : « Version 2 : 60,00 € HT de moins
+  que la version 1. » ; sans total garde, la phrase « Version 2 du ..., elle remplace la version 1 ».
+- **Bouton Retour du navigateur / geste iPhone** (`poserHistoire`, `oterHistoire`, `surRetour`) :
+  le devis pose une entree d'historique A LA MEME ADRESSE ; un retour = « Retour a l'affaire »,
+  dans l'apercu = retour au devis, devis enregistre modifie = premier retour previent (« reviens
+  encore une fois en arriere »), le second sort. Sortie par un bouton : `history.back()` et ce
+  retour est avale. bdv-nav NE NOMME PAS le devis : il appelle `window.BdvPremierPlan.retour()`
+  avant de suivre l'adresse ; marques `__bdvVu` / `__bdvPris` sur l'evenement.
+- **Ligne de vin repliee au telephone** (container < 36 rem) : nom, puis « 6 x 8,90 € HT = 53,40 €
+  HT » et « Changer » toujours a droite. Ligne ajoutee depliee (les justes se replient), ligne
+  fausse toujours depliee, une erreur a l'enregistrement deplie sa ligne.
+- **Frise de l'affaire repliee au telephone** (< 700 px) : « Etape : X (2 sur 3) », « Voir les
+  etapes » ; les 3 gestes sur une rangee. Le premier bouton de devis entre dans le premier ecran.
+- Garde : `banc:devis` section 19 (497), `banc:affaires` 424, `npm run verif` vert. Verificateur
+  feu vert (mutations H1-H3, E1 attrapees), vigneron feu vert apres 2 tours.
+- Reste mineur : « 75 cl » peut passer seul a la ligne dans le nom d'un vin (les bancs lisent le
+  nom avec une espace normale) ; deux clics en quelques millisecondes apres une sortie peuvent
+  decaler l'entree d'historique (jamais reproduit).

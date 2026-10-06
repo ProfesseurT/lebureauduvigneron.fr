@@ -51,7 +51,7 @@
 
   var S = { types: [], etapes: [], pistes: {}, affaires: [], charge: false, erreur: false,
             filtre: '', ouverte: null, nouvelle: false, attente: null,
-            vue: lireVue(), choix: null, trouves: [], devisDe: {}, closesDevis: {}, focusDevis: null };
+            vue: lireVue(), choix: null, trouves: [], devisDe: {}, closesDevis: {}, focusDevis: null, versionsHt: {} };
 
   /* LA DISPOSITION, LISTE OU KANBAN, 28/09/2026 (lot 39). Elle se retient sur CET
      appareil : c'est une preference de lecture, pas une donnee du bureau. Le
@@ -1406,7 +1406,9 @@
   function suiviDevis(a, d) {
     var ouverte = a.issue === 'en_cours', j, r = { phrase: '', geste: null, appel: null, aide: '' };
     var ht = esc(eurosHT(d.total_ht_c)), v = versionD(d);
-    var remplace = v > 1 ? ' Version ' + v + ' du ' + esc(dateCourte(d.date_devis)) + ', elle remplace la version ' + (v - 1) + '.' : '';
+    /* Vigneron (lot 68) : une seule phrase pour la version ; l'ecart, s'il est connu, la remplace. */
+    var ec = v > 1 ? ecartVersion(d) : '';
+    var remplace = v > 1 ? (ec ? ' Version ' + v + ' :' + ec.replace(/^ /, ' ') : ' Version ' + v + ' du ' + esc(dateCourte(d.date_devis)) + ', elle remplace la version ' + (v - 1) + '.') : '';
     if (d.statut === 'enregistre') {
       r.marque = 'pas encore envoyé';
       r.phrase = 'Prêt depuis le ' + esc(dateCourte(jourLocal(d.cree_le) || d.date_devis)) + ', pas encore parti : ' + ht + '. Tant qu’il ne l’a pas reçu, ton client ne peut pas dire oui.';
@@ -1497,7 +1499,32 @@
     ]).then(function (r) {
       S.devisDe[id] = Array.isArray(r[0]) ? r[0] : [];
       peindreListeDevis(id);
+      lireVersions(id);
     }, function () {});
+  }
+  /* LOT 68 : LES TOTAUX GARDES DES VERSIONS PRECEDENTES (SQL du lot 68), lus seulement s'il y a
+     un devis corrige. Table absente ou panne : la carte se tait sur l'ecart. */
+  function lireVersions(id) {
+    var l = S.devisDe[id];
+    var ids = Array.isArray(l) ? l.filter(function (d) { return versionD(d) > 1; }).map(function (d) { return d.devis_id; }) : [];
+    if (!ids.length) return Promise.resolve();
+    return BdvCompte.api('/devis_versions?bureau=eq.' + encodeURIComponent(bureau()) + '&devis_id=in.(' + ids.map(encodeURIComponent).join(',') + ')&select=devis_id,version,total_ht_c')
+      .then(function (v) {
+        if (!Array.isArray(v)) return;
+        v.forEach(function (x) { S.versionsHt[x.devis_id + '|' + x.version] = Number(x.total_ht_c); });
+        peindreListeDevis(id);
+        var ul = el('affDevisListe'), a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+        if (S.page === id && ul && a && el('pageAffaire') && el('pageAffaire').contains(ul)) ul.innerHTML = htmlListeDevis(a);
+      }, function () {});
+  }
+  /* « 60,00 € HT de moins que la version 1 » : seulement si le total de la version d'avant a ete
+     garde (lot 68). Jamais d'ecart invente. */
+  function ecartVersion(d) {
+    var v = versionD(d), avant = v > 1 ? S.versionsHt[d.devis_id + '|' + (v - 1)] : undefined;
+    if (avant === undefined || isNaN(avant)) return '';
+    var e = Math.round(Number(d.total_ht_c) || 0) - avant;
+    return e === 0 ? ' même montant que la version ' + (v - 1) + '.'
+      : ' ' + esc(eurosHT(Math.abs(e))) + (e < 0 ? ' de moins' : ' de plus') + ' que la version ' + (v - 1) + '.';
   }
   function peindreListeDevis(id) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
@@ -2548,6 +2575,14 @@
          UN bouton (le vrai, en bas, celui que lisent les bancs et les harnais). */
       if ((quoi === 'devis' || quoi === 'devisRaccourci') && a) { ouvrirDevis(a, null); return; }
       if (quoi === 'devisOuvrir' && a) { ouvrirDevis(a, b.getAttribute('data-devis')); return; }
+      if (quoi === 'friseBasculer') {
+        S.friseOuverte = !S.friseOuverte;
+        var fr = b.closest('.page-aff__frise');
+        if (fr) fr.classList.toggle('page-aff__frise--ouverte', S.friseOuverte);
+        b.setAttribute('aria-expanded', S.friseOuverte ? 'true' : 'false');
+        var fv = b.querySelector('.page-aff__frise-v'); if (fv) fv.textContent = S.friseOuverte ? 'Masquer' : 'Voir les étapes';
+        return;
+      }
       /* LOT 67 : le geste de la carte ouvre le devis LA OU il se fait. */
       if (quoi === 'devisAgir' && a) {
         var ac = b.getAttribute('data-action');
@@ -3030,7 +3065,15 @@
   }
   function htmlFrise(a, e) {
     var et = etapeDe(a.etape_id), liste = etapesDe(a.type_id), suite = etapeSuivante(a);
-    return '<section class="page-aff__frise" aria-label="Les étapes"><ol class="page-aff__etapes">'
+    /* LOT 68 (arbitre par Ted) : au telephone, la frise se replie en une ligne, « Étape :
+       Échantillon envoyé (2 sur 3) » ; le detail se deplie. Les gestes restent visibles. */
+    var rang = et ? liste.filter(function (x) { return x.ordre <= et.ordre; }).length : 0;
+    var ouverte = !!S.friseOuverte;
+    return '<section class="page-aff__frise' + (ouverte ? ' page-aff__frise--ouverte' : '') + '" aria-label="Les étapes">'
+      + '<button type="button" class="page-aff__frise-b" data-aff="friseBasculer" aria-expanded="' + (ouverte ? 'true' : 'false') + '" aria-controls="pageAffEtapes">'
+      + 'Étape : <b>' + esc(et ? et.nom : 'étape') + '</b>' + (rang ? ' (' + rang + ' sur ' + liste.length + ')' : '')
+      + '<span class="page-aff__frise-v">' + (ouverte ? 'Masquer' : 'Voir les étapes') + '</span></button>'
+      + '<ol class="page-aff__etapes" id="pageAffEtapes">'
       + liste.map(function (x) {
         var etat = !et ? '' : x.ordre < et.ordre ? 'fait' : x.etape_id === et.etape_id ? 'ici' : '';
         return '<li class="page-aff__et' + (etat ? ' page-aff__et--' + etat : '') + '"' + (etat === 'ici' ? ' aria-current="step"' : '') + '>'

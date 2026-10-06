@@ -28,6 +28,7 @@ await ctx.addInitScript((V) => {
     if (/rpc\/devis_propositions/.test(url)) return rep([]);
     if (/rest\/v1\/devis_lignes/.test(url)) return rep([{ rang: 1, num_produit: 'P100', designation: 'Muscadet Sèvre et Maine sur lie', millesime: '2024', conditionnement: '75 cl', quantite: 120, pu_ht_c: 1000, remise_cb: 0, pu_l_c: 1000, net_c: 120000, final_c: 120000, source_prix: 'client' }]);
     if (/rest\/v1\/devis_liens/.test(url)) return rep([]);
+    if (/rest\/v1\/devis_versions/.test(url)) return rep([{ devis_id: 'd1', version: 1, total_ht_c: 124000 }]);
     if (/rest\/v1\/devis_copies/.test(url)) return rep(/version=eq\.1/.test(url) ? [{ papier: '<!doctype html><html lang="fr"><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px"><h1>Devis D-2026-0042</h1><p>Muscadet 2024 x 120 : 1 240,00 € HT</p></body></html>', empreinte: 'a1b2c3d4e5f6a7b8c9d0', cree_le: new Date(Date.now() - 40 * 86400000).toISOString() }] : []);
     return avant(e, init);
   };

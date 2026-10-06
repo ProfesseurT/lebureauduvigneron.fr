@@ -523,12 +523,57 @@
     box.setAttribute('aria-modal', 'true');
     document.body.style.overflow = 'hidden';
     if (neuf) { var r = el('devRetour') || MOD.querySelector('.tmod__x'); if (r) { try { r.focus(); } catch (e) {} } }
+    poserHistoire();
   }
   function retirer() {
     if (!MOD || MOD.hidden) return false;
     MOD.hidden = true;
     document.body.style.overflow = '';
+    oterHistoire();
     return true;
+  }
+  /* LOT 68 (arbitre par Ted) : LE BOUTON RETOUR DU NAVIGATEUR, et le geste retour de l'iPhone,
+     font ce que fait « Retour à l'affaire ». Le devis pose une entree d'historique a la MEME
+     adresse en s'ouvrant ; un retour la consomme :
+       - dans l'apercu, il ramene au devis ;
+       - sur un devis enregistre modifie, le premier retour reste et le dit (comme le bouton),
+         le second sort ;
+       - sinon il sort vers l'affaire.
+     En sortant par un bouton, le devis retire sa propre entree (`history.back`) et ce retour-la
+     est avale : bdv-nav ne repeint rien. `surRetour()`, expose en `window.BdvPremierPlan.retour`
+     (bdv-nav ne nomme pas le devis), est appele AVANT que bdv-nav suive l'adresse ; il rend vrai
+     quand le devis a pris le retour pour lui. */
+  var HIST = { pose: false, depiler: 0 };
+  function poserHistoire() {
+    if (HIST.pose || !window.history || typeof history.pushState !== 'function') return;
+    try { history.pushState({ bdvDevis: 1 }, '', location.href); HIST.pose = true; } catch (e) {}
+  }
+  function oterHistoire() {
+    if (!HIST.pose) return;
+    HIST.pose = false;
+    try { HIST.depiler++; history.back(); } catch (e) { HIST.depiler = Math.max(0, HIST.depiler - 1); }
+  }
+  function surRetour() {
+    if (HIST.depiler > 0) { HIST.depiler--; return true; }
+    if (!MOD || MOD.hidden || !HIST.pose) return false;
+    HIST.pose = false;   // l'entree vient d'etre consommee par le navigateur
+    if (S && S.etat === 'apercu') {
+      sortirApercu(); S.voirVersion = null; S.etat = 'edition'; peindre();
+      var a = MOD.querySelector('[data-dev="apercu"]'); if (a) { try { a.focus(); } catch (e) {} }
+      poserHistoire();
+      return true;
+    }
+    if (garderAvantDePartir(true)) { poserHistoire(); return true; }
+    if (S && S.ctx && typeof S.ctx.retour === 'function') retour(); else fermer();
+    return true;
+  }
+  window.BdvPremierPlan = { retour: surRetour };
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('popstate', function (ev) {
+      if (!ev || ev.__bdvVu) return;
+      ev.__bdvVu = true;
+      if (surRetour()) ev.__bdvPris = true;
+    });
   }
   /* LE FOCUS EN SORTANT VA SUR UN ELEMENT VIVANT, jamais sur le corps de page :
      l'appelant sait lequel (`focusSortie`, le bouton qui avait ouvert l'affaire, ou
@@ -547,10 +592,12 @@
   /* LOT 66 : DES CHANGEMENTS PAS ENREGISTRES SUR UN DEVIS DEJA ENREGISTRE ne partent pas en
      silence. Un devis neuf garde son brouillon sur l'appareil ; un devis enregistre, non : le
      premier appui le dit, le second sort. */
-  function garderAvantDePartir() {
+  function garderAvantDePartir(parRetour) {
     if (!S || !S.devis || !S.modifie || S.etat !== 'edition' || S.quitterOk) return false;
     S.quitterOk = true;
-    dire('Tes changements ne sont pas enregistrés. Appuie sur « Enregistrer le devis », ou appuie encore une fois pour partir sans eux.', true);
+    /* Vigneron (lot 68) : le geste de l'iPhone est un glissement, pas un appui. */
+    dire('Tes changements ne sont pas enregistrés. Appuie sur « Enregistrer le devis », ou '
+      + (parRetour ? 'reviens encore une fois en arrière' : 'appuie encore une fois') + ' pour partir sans eux.', true);
     return true;
   }
   function retour() {
@@ -1290,18 +1337,31 @@
     if (!horsFrance() && String(l.tva) === '550') m.push('TVA 5,5\u00a0%');
     return m.join(', ');
   }
+  /* LOT 68 (arbitre par Ted) : AU TELEPHONE, UNE LIGNE DE VIN SE REPLIE en deux lignes : son nom
+     et « 12 x 8,90 € HT = 106,80 € HT ». Un appui sur « Changer » la deplie. Une ligne qu'on vient
+     d'ajouter, ou qui a une erreur, est depliee. En carte large ou en tableau, rien ne change :
+     le resume n'existe pas (bdv-devis.css). */
+  function resumeLigne(l) {
+    var q = qteDe(l), pu = puDe(l), r = rlDe(l);
+    return l._c ? q + '\u00a0x ' + C.euros(pu) + '\u00a0HT' + (r ? ', remise ' + C.pourcent(r) + '\u00a0%' : '') + ' = ' + C.euros(l._c.net) + '\u00a0HT' : MOT_CORRIGER;
+  }
+  function ligneOuverte(l) { return !!l._ouverte || !l._c; }
   function htmlLignes() {
     var tva = !horsFrance();
+    calcul();
     if (!S.lignes.length) return '<li class="aff-aide dmod__vide">Aucun vin pour l’instant : coche-le dans la liste, ou cherche-le.</li>';
     var tete = S.lignes.length ? '<li class="dmod__lentete" aria-hidden="true"><span>Vin</span><span class="dmod__champs' + (tva ? ' dmod__champs--tva' : '') + '">'
       + '<span>Quantité</span><span>Prix HT unitaire</span><span>Remise %</span>' + (tva ? '<span>TVA</span>' : '') + '<span>Total HT</span></span></li>' : '';
     return tete + S.lignes.map(function (l, i) {
       var plus = lignePlus(l), rs = resumePlus(l);
-      return '<li class="dmod__ligne' + (plus ? ' dmod__ligne--plus' : '') + '" data-cle="' + esc(l.cle) + '">'
+      var o = ligneOuverte(l);
+      return '<li class="dmod__ligne' + (plus ? ' dmod__ligne--plus' : '') + (o ? ' dmod__ligne--ouverte' : '') + '" data-cle="' + esc(l.cle) + '">'
         + '<div class="dmod__ltete"><label class="dmod__coche"><input type="checkbox" checked data-dev-coche="' + esc(l.cle) + '">'
         + nomHtml(l) + '</label>'
         + (l.num_produit ? '<p class="dmod__code">Code ' + esc(l.num_produit) + '</p>' : '') + '</div>'
-        + '<div class="dmod__champs' + (tva ? ' dmod__champs--tva' : '') + '">'
+        + '<button type="button" class="dmod__lresume" data-dev="ligne" aria-expanded="' + (o ? 'true' : 'false') + '" aria-controls="devLC' + i + '">'
+        + '<span class="dmod__lresume-t" data-dev-lr>' + esc(resumeLigne(l)) + '</span><span class="dmod__lresume-g">' + (o ? 'Replier' : 'Changer') + '</span></button>'
+        + '<div class="dmod__champs' + (tva ? ' dmod__champs--tva' : '') + '" id="devLC' + i + '">'
         + '<label class="aff-champ"><span class="dmod__lib">Quantité</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="5" data-dev-champ="qte" value="' + esc(l.qte) + '"></label>'
         + '<label class="aff-champ"><span class="dmod__lib">Prix HT unitaire</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="12" data-dev-champ="prix" value="' + esc(l.prix) + '" title="' + esc(provenance(l)) + '" aria-describedby="devSrc' + i + '">'
         + '<small class="dmod__src" id="devSrc' + i + '" data-dev-src>' + esc(provenance(l)) + '</small></label>'
@@ -1411,6 +1471,7 @@
       var li = MOD.querySelector('.dmod__ligne[data-cle="' + cssEsc(l.cle) + '"]');
       if (!li) return;
       li.querySelector('[data-dev-lt]').textContent = l._c ? C.euros(l._c.net) : MOT_CORRIGER;
+      var lr = li.querySelector('[data-dev-lr]'); if (lr) lr.textContent = resumeLigne(l);
       /* PRIX NET = prix apres la remise de LIGNE (pu_l) : prix net x quantite = total de la ligne. */
       li.querySelector('[data-dev-net]').textContent = l._c && rlDe(l) > 0 ? 'Prix net ' + C.euros(l._c.pu_l) : '';
       li.querySelector('[data-dev-src]').textContent = provenance(l);
@@ -1582,6 +1643,7 @@
     if (q === 'etape') { montrerEtape(Number(b.getAttribute('data-vers'))); return; }
     if (q === 'suivant') { montrerEtape(Math.min(3, (S.etape || 1) + 1)); return; }
     if (q === 'pli') { basculerPli(b.getAttribute('data-pli'), undefined, true); return; }
+    if (q === 'ligne') { basculerLigne(b.closest('.dmod__ligne'), true); return; }
     if (q === 'relire') { S.etat = 'chargement'; peindre(); charger(S); return; }
     if (q === 'reprendre') {
       var br = S.brouillon;
@@ -1760,7 +1822,11 @@
     if (t.checked) {
       if (S.lignes.length >= MAX_LIGNES) { t.checked = false; dire('Un devis porte 200 lignes au plus.', true); return; }
       var p = S.props.concat(S.propsDomaine || []).filter(function (x) { return cleDe(x) === cle; })[0];
-      if (p && !S.lignes.some(function (l) { return l.cle === cle; })) S.lignes.push(ligneDeProposition(p));
+      if (p && !S.lignes.some(function (l) { return l.cle === cle; })) {
+        calcul();
+        S.lignes.forEach(function (l) { if (l._c) l._ouverte = false; });
+        var nl = ligneDeProposition(p); nl._ouverte = true; S.lignes.push(nl);
+      }
     } else {
       S.lignes = S.lignes.filter(function (l) { return l.cle !== cle; });
     }
@@ -1840,6 +1906,15 @@
      du groupe, et non derriere le premier bouton radio, ou il coupait son libelle en deux
      (N6, 02/10/2026) ; tous les choix le portent en description, et c'est le groupe entier
      qui est ramene au-dessus du pied collant. */
+  function basculerLigne(li, focus, ouvrir) {
+    var l = li && ligneDe(li);
+    if (!l) return;
+    l._ouverte = ouvrir === undefined ? !li.classList.contains('dmod__ligne--ouverte') : ouvrir;
+    li.classList.toggle('dmod__ligne--ouverte', l._ouverte);
+    var b = li.querySelector('[data-dev="ligne"]');
+    if (b) { b.setAttribute('aria-expanded', l._ouverte ? 'true' : 'false'); var g = b.querySelector('.dmod__lresume-g'); if (g) g.textContent = l._ouverte ? 'Replier' : 'Changer'; }
+    if (focus && l._ouverte) { var q = li.querySelector('[data-dev-champ="qte"]'); if (q) { try { q.focus({ preventScroll: true }); } catch (e) {} montrerDansBoite(q); } }
+  }
   function refuser(txt, champ, groupe) {
     effacerErreurs();
     dire(txt, true);
@@ -1849,6 +1924,7 @@
       var etp = champ.closest && champ.closest('.dmod__etape[data-etape]');
       if (etp && etp.hidden) montrerEtape(Number(etp.getAttribute('data-etape')), true);
       var li = champ.closest && champ.closest('.dmod__ligne');
+      if (li && !li.classList.contains('dmod__ligne--ouverte')) basculerLigne(li, false, true);
       if (li && champ.closest('.dmod__repli')) ouvrirPlus(li, false);
       var id = 'devErr' + (++N_ERR);
       var e = document.createElement(groupe ? 'p' : 'span');
@@ -2585,6 +2661,6 @@
       + '</main></body></html>';
   }
 
-  window.BdvDevis = { ouvrir: ouvrir, fermer: fermer, htmlPapier: htmlPapier,
+  window.BdvDevis = { ouvrir: ouvrir, fermer: fermer, htmlPapier: htmlPapier, surRetour: surRetour,
                       _S: function () { return S; }, _cle: CLE_BROUILLON };
 })();

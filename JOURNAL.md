@@ -12,6 +12,23 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 06/10/2026, lot 68 : les derniers points du devis
+
+Ce que Ted a tranché la veille est fait. Le bouton Retour du navigateur et le geste retour de
+l'iPhone font comme « Retour à l'affaire » et préviennent si des changements ne sont pas
+enregistrés. Au téléphone, une ligne de vin tient en deux lignes et la frise de l'affaire se
+replie : le premier bouton du devis entre dans le premier écran. La carte d'un devis corrigé dit
+l'écart avec la version d'avant, à partir de maintenant (SQL du lot 68).
+
+## 05/10/2026 : les points ouverts du devis, tranchés
+
+Ted a fermé les points laissés par les lots 65 à 67. Acceptés tels quels : un devis de 2026
+corrigé en 2027 porte la date 2027 ; une correction ne s'annule pas ; on ne corrige pas un devis
+déjà importé dans Vitisoft ni celui d'une affaire close ; « Changer dans Mon domaine » quitte le
+devis ; pas d'aperçu papier avant l'enregistrement. À faire au lot 68 : prévenir au retour du
+navigateur, une ligne de vin compacte au téléphone, la frise de l'affaire repliée au téléphone,
+et l'écart de montant entre deux versions d'un devis.
+
 ## 05/10/2026, lot 67 : suivre ses devis depuis l'affaire
 
 Chaque devis vivant a sa carte : son état en mots, le délai, le montant en jeu, et un seul geste.

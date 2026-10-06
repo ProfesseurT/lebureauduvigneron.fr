@@ -6490,3 +6490,22 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 @media (max-width:1099px){
   .bdv-coque .page-aff__bloc--devis.page-aff__bloc--presse{ order:-4; }
 }
+
+/* LOT 68 (06/10/2026, arbitre par Ted) : AU TELEPHONE, LA FRISE DE L'AFFAIRE SE REPLIE en une
+   ligne (« Étape : X (2 sur 3) ») ; un appui deplie les etapes. Au-dessus de 700 px, la frise
+   est toujours entiere et le bouton n'existe pas. Les gestes (« Vers ... », « Gagnée »)
+   restent visibles, repliee ou pas. */
+.bdv-coque .page-aff__frise-b{ display:none; }
+@media (max-width:700px){
+  .bdv-coque .page-aff__frise-b{
+    display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-1) var(--bdv-e-2);
+    width:100%; min-height:var(--bdv-cible); padding:0; border:0; background:none;
+    font:inherit; color:var(--bdv-encre-1); text-align:left; cursor:pointer;
+  }
+  .bdv-coque .page-aff__frise-b:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+  .bdv-coque .page-aff__frise-v{ margin-left:auto; font-size:var(--bdv-f-2); color:var(--bdv-encre-2); text-decoration:underline; }
+  .bdv-coque .page-aff__frise:not(.page-aff__frise--ouverte) .page-aff__etapes{ display:none; }
+  /* Vigneron (lot 68) : les trois gestes de la frise sur une rangee quand ils y tiennent. */
+  .bdv-coque .page-aff__frise-d{ gap:var(--bdv-e-1); }
+  .bdv-coque .page-aff__frise-d .btn{ padding-left:var(--bdv-e-2); padding-right:var(--bdv-e-2); }
+}

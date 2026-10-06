@@ -1818,6 +1818,36 @@ titre('03/10/2026 : le client en direct, l\'affaire en pleine page');
   t('L67 : un devis qui n\'attend rien ne remonte pas la section', w.BdvAffaires._devisAttend(A1) === false);
   w.BdvAffaires._S.devisDe.a1 = [Object.assign({}, base, { statut: 'enregistre' })];
   t('L67 : un devis qui attend un geste remonte la section', w.BdvAffaires._devisAttend(A1) === true);
+
+  /* LOT 68 : l'ecart entre deux versions, seulement s'il a ete garde. */
+  { const S0 = w.BdvAffaires._S;
+    const v2 = Object.assign({}, base, { devis_id: 'dv', statut: 'envoye', version: 2, total_ht_c: 118000, envoye_le: iso(-1), valable_jusqu: iso(29) });
+    let c = carte(v2);
+    t('L68 : sans total garde de la version 1, aucun ecart invente, la phrase de la version reste', !/de moins|de plus|même montant/.test(c.textContent) && /elle remplace la version 1\./.test(c.textContent), c.textContent);
+    S0.versionsHt['dv|1'] = 124000; c = carte(v2);
+    t('L68 : « 60,00 € HT de moins que la version 1 »', /Version 2 : 60,00 € HT de moins que la version 1\./.test(sp(c.textContent)) && !/remplace la version 1/.test(c.textContent), sp(c.textContent));
+    S0.versionsHt['dv|1'] = 100000; c = carte(v2);
+    t('L68 : un ecart a la hausse le dit aussi', /180,00 € HT de plus que la version 1\./.test(sp(c.textContent)));
+    S0.versionsHt['dv|1'] = 118000; c = carte(v2);
+    t('L68 : meme montant, il le dit', /Version 2 : même montant que la version 1\./.test(c.textContent));
+    S0.versionsHt = {};
+    F.base.devis_versions = [{ bureau: BUREAU, devis_id: 'd9', version: 1, total_ht_c: 150000 }];
+    F.base.devis = [{ bureau: BUREAU, affaire_id: 'a1', devis_id: 'd9', numero: 'D-2026-0099', statut: 'envoye', version: 2, total_ht_c: 120000, date_devis: iso(-1), envoye_le: iso(-1), valable_jusqu: iso(29), cree_le: iso(-1) + 'T08:00:00Z' }];
+    await w.BdvAffaires.page('a1'); await attendre(80);
+    const rq = F.requetes.filter(r => /^\/devis_versions\?/.test(r.chemin)).pop();
+    t('L68 : les totaux gardes se lisent pour ce bureau et ces devis seulement', !!rq && /bureau=eq\./.test(rq.chemin) && /devis_id=in\.\(d9\)/.test(rq.chemin), rq && rq.chemin);
+    t('L68 : la page affiche l\'ecart lu', /300,00 € HT de moins que la version 1/.test(sp(F.doc.getElementById('pageAffaire').textContent)), sp((F.doc.querySelector('#pageAffaire .aff-devis__carte') || {}).textContent)); }
+
+  /* LOT 68 : la frise repliee au telephone. */
+  { const pg = F.doc.getElementById('pageAffaire'), fb = pg.querySelector('[data-aff="friseBasculer"]'), fr = pg.querySelector('.page-aff__frise');
+    t('L68 : la frise porte son resume « Étape : X (n sur N) », repliee', !!fb && /^Étape : .+ \(\d sur \d\)/.test(fb.textContent) && fb.getAttribute('aria-expanded') === 'false'
+      && fb.getAttribute('aria-controls') === 'pageAffEtapes' && !fr.classList.contains('page-aff__frise--ouverte'), fb && fb.textContent);
+    fb.click();
+    const fb2 = pg.querySelector('[data-aff="friseBasculer"]');
+    t('L68 : un appui la deplie', pg.querySelector('.page-aff__frise').classList.contains('page-aff__frise--ouverte') && fb2.getAttribute('aria-expanded') === 'true' && /Masquer/.test(fb2.textContent));
+    const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8').replace(/\s+/g, ' ');
+    t('L68 : le repli n\'existe qu\'au telephone', /\.bdv-coque \.page-aff__frise-b\{ display:none; \}/.test(css)
+      && /\.page-aff__frise:not\(\.page-aff__frise--ouverte\) \.page-aff__etapes\{ display:none; \}/.test(css)); }
 }
 
 console.log('\n== VERDICT ==');

@@ -82,6 +82,7 @@ const ORDRE = [
   'lot63-alertes.sql',
   'lot64-objets.sql',
   'lot65-rappeler-devis.sql',
+  'lot68-ecart-versions.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

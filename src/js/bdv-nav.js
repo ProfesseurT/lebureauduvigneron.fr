@@ -987,7 +987,16 @@
     return p ? { id: brut } : { id: 'journee' };
   }
 
-  function suivreAdresse() {
+  function suivreAdresse(ev) {
+    /* LOT 68 : ce qui est AU PREMIER PLAN (une piece chargee au clic, comme le devis) peut
+       prendre le retour pour lui : `window.BdvPremierPlan.retour()` rend vrai s'il l'a pris.
+       L'evenement est marque : le premier des ecouteurs decide, les autres suivent. */
+    if (ev && !ev.__bdvVu) {
+      ev.__bdvVu = true;
+      var pp = window.BdvPremierPlan;
+      if (pp && typeof pp.retour === 'function' && pp.retour()) ev.__bdvPris = true;
+    }
+    if (ev && ev.__bdvPris) return;
     var a = lireAdresse();
     afficher(a.id, { client: a.client, onglet: a.onglet, ecrire: false, historique: true });
   }

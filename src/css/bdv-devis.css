@@ -489,3 +489,20 @@
   .bdv-coque .dmod__pied-g{ flex:1 1 auto; }
   .bdv-coque .dmod__nav-b{ flex-direction:column; align-items:flex-start; gap:var(--bdv-e-1); font-size:var(--bdv-f-2); }
 }
+
+/* LOT 68 (06/10/2026, arbitre par Ted) : AU TELEPHONE, UNE LIGNE DE VIN REPLIEE TIENT EN DEUX
+   LIGNES : son nom, puis « 12 x 8,90 € HT = 106,80 € HT » et « Changer ». Depliee, elle montre
+   ses champs comme avant. Le resume n'existe qu'en carte etroite. */
+.bdv-coque .dmod__lresume{ display:none; }
+@container devis (max-width:35.9375rem){
+  .bdv-coque .dmod__lresume{
+    display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:var(--bdv-e-1) var(--bdv-e-3);
+    width:100%; min-height:var(--bdv-cible); margin:0; padding:0 0 0 var(--bdv-e-6); border:0; background:none;
+    font:inherit; color:var(--bdv-encre-1); text-align:left; cursor:pointer; font-variant-numeric:tabular-nums;
+  }
+  .bdv-coque .dmod__lresume:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+  /* Vigneron (lot 68) : « Changer » toujours au meme endroit, a droite ; le resume passe a la ligne a sa gauche. */
+  .bdv-coque .dmod__lresume-g{ color:var(--bdv-accent); text-decoration:underline; white-space:nowrap; align-self:center; }
+  .bdv-coque .dmod__ligne:not(.dmod__ligne--ouverte) .dmod__champs{ display:none; }
+  .bdv-coque .dmod__ligne--ouverte .dmod__lresume-t{ color:var(--bdv-encre-2); }
+}

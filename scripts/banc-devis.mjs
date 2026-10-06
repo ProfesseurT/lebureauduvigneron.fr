@@ -1882,6 +1882,74 @@ titre('18. Lot 67 : le geste de la carte de l\'affaire, fait dans le devis');
   t('une version sans copie le DIT, sans page blanche muette', /La version 7 du devis .* n’a pas pu être lue : aucune copie gardée pour elle\./.test((X.doc.getElementById('devCopieNote') || {}).textContent || ''));
 }
 
+/* ---------------------------------------------------------------------------- */
+titre('19. Lot 68 : la ligne de vin repliee, et le bouton Retour du navigateur');
+{
+  const X = monter({ lot52: true });
+  await X.ouvrir();
+  const li = (cle) => X.modale().querySelector('.dmod__ligne[data-cle="' + cle + '"]');
+  const res = (cle) => li(cle).querySelector('[data-dev="ligne"]');
+  X.cocher(CLE0);
+  t('une ligne qu\'on vient d\'ajouter est depliee, son bouton dit « Replier »', li(CLE0).classList.contains('dmod__ligne--ouverte')
+    && res(CLE0).getAttribute('aria-expanded') === 'true' && /Replier/.test(res(CLE0).textContent)
+    && res(CLE0).getAttribute('aria-controls') === li(CLE0).querySelector('.dmod__champs').id);
+  X.taper(X.champ(CLE0, 'qte'), '12');
+  t('le resume suit la saisie : « 12 x prix HT = total HT »', /^12 x .+ HT = .+ HT$/.test(li(CLE0).querySelector('[data-dev-lr]').textContent), li(CLE0).querySelector('[data-dev-lr]').textContent);
+  X.cocher(CLE1);
+  t('ajouter un second vin replie le premier (juste) et deplie le nouveau', !li(CLE0).classList.contains('dmod__ligne--ouverte') && li(CLE1).classList.contains('dmod__ligne--ouverte')
+    && res(CLE0).getAttribute('aria-expanded') === 'false' && /Changer/.test(res(CLE0).textContent));
+  X.taper(X.champ(CLE1, 'qte'), '');
+  t('une ligne fausse ne se replie jamais seule', li(CLE1).classList.contains('dmod__ligne--ouverte'));
+  X.taper(X.champ(CLE1, 'qte'), '6');
+  res(CLE0).click();
+  t('« Changer » deplie la ligne et pose le focus sur sa quantite', li(CLE0).classList.contains('dmod__ligne--ouverte') && X.doc.activeElement === X.champ(CLE0, 'qte'));
+  res(CLE0).click();
+  t('« Replier » la replie', !li(CLE0).classList.contains('dmod__ligne--ouverte'));
+  /* Verificateur (lot 68) : une ligne fausse repliee a la main se rouvre sur son erreur. */
+  res(CLE0).click(); X.taper(X.champ(CLE0, 'qte'), 'abc'); res(CLE0).click();
+  t('(temoin) la ligne fausse est repliee a la main', !li(CLE0).classList.contains('dmod__ligne--ouverte'));
+  await X.enregistrer(); await attendre(10);
+  t('l\'enregistrement refuse la ligne fausse : elle se deplie, focus sur sa quantite', li(CLE0).classList.contains('dmod__ligne--ouverte')
+    && X.doc.activeElement === X.champ(CLE0, 'qte') && X.champ(CLE0, 'qte').getAttribute('aria-invalid') === 'true', X.doc.activeElement && X.doc.activeElement.outerHTML.slice(0, 80));
+  X.taper(X.champ(CLE0, 'qte'), '12');
+  await X.enregistrer(); await attendre(20);
+  const d = X.devis[0];
+  t('le devis s\'enregistre avec ses deux vins', !!d && (X.lignes[d.devis_id] || []).length === 2);
+  await X.ouvrir({ devis: { ...d } }); await attendre(20);
+  const ls = [...X.modale().querySelectorAll('.dmod__ligne[data-cle]')];
+  t('un devis rouvert montre ses lignes justes repliees', ls.length === 2 && ls.every(n => !n.classList.contains('dmod__ligne--ouverte')));
+  const css = lire('src/css/bdv-devis.css').replace(/\s+/g, ' ');
+  t('le resume n\'existe qu\'en carte etroite, et y cache les champs d\'une ligne repliee',
+    /\.bdv-coque \.dmod__lresume\{ display:none; \}/.test(css) && /@container devis \(max-width:35\.9375rem\)\{ \.bdv-coque \.dmod__lresume\{ display:grid;/.test(css)
+    && /\.dmod__ligne:not\(\.dmod__ligne--ouverte\) \.dmod__champs\{ display:none; \}/.test(css));
+}
+{
+  const X = monter({ lot52: true });
+  let retours = 0; const hb = X.w.history.back.bind(X.w.history);
+  X.w.history.back = () => { retours++; };
+  const l0 = X.w.history.length;
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer(); await attendre(20);
+  t('ouvrir le devis pose UNE entree d\'historique a la meme adresse', X.w.history.length === l0 + 1 && X.w.location.hash === '#affaires');
+  await X.ouvrir({ devis: { ...X.devis[0] } }); await attendre(20);
+  t('rouvrir un devis deja ouvert n\'en pose pas une deuxieme', X.w.history.length === l0 + 1);
+  X.taper(X.champ(CLE0, 'qte'), '24');
+  const r0 = X.retours || 0;
+  t('Retour du navigateur, devis modifie : le devis le prend, reste ouvert et le dit', X.w.BdvPremierPlan.retour() === true && !X.modale().hidden
+    && (X.retours || 0) === r0 && /ne sont pas enregistrés.*reviens encore une fois en arrière pour partir sans eux/.test(X.avis()), X.avis());
+  t('il repose son entree pour le retour suivant', X.w.history.length === l0 + 2);
+  t('le second retour sort vers l\'affaire', X.w.BdvPremierPlan.retour() === true && (X.retours || 0) === r0 + 1 && X.modale().hidden);
+  t('sortie par le navigateur : le devis ne recule pas l\'historique une fois de plus', retours === 0);
+  t('devis ferme : un retour suivant n\'est plus le sien', X.w.BdvPremierPlan.retour() === false);
+  await X.ouvrir({ devis: { ...X.devis[0] } }); await attendre(20);
+  X.clic('[data-dev="apercu"]'); await attendre(20);
+  t('Retour du navigateur dans l\'apercu : retour au devis, pas a l\'affaire', X.w.BdvPremierPlan.retour() === true && X.w.BdvDevis._S().etat === 'edition' && !X.modale().hidden);
+  X.clic('[data-dev="retour"]'); await attendre(10);
+  t('sortie par « Retour à l’affaire » : le devis retire son entree (history.back)', retours === 1 && X.modale().hidden);
+  t('et ce retour-la est avale : rien ne se repeint', X.w.BdvPremierPlan.retour() === true && X.w.BdvPremierPlan.retour() === false);
+  X.w.history.back = hb;
+  t('bdv-nav passe le retour au premier plan avant de suivre l\'adresse', /BdvPremierPlan/.test(lire('src/js/bdv-nav.js')) && /__bdvPris/.test(lire('src/js/bdv-nav.js')));
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + OK + ' controle(s) passe(s), ' + KO + ' echec(s)');
 console.log(KO ? '  LE DEVIS NE FAIT PAS CE QU\'IL DIT' : '  LE DEVIS FAIT CE QU\'IL DIT');
