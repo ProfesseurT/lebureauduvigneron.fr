@@ -40,6 +40,13 @@ Faits reverifies le 07/10/2026 (sources dans le rapport de la session) :
   decembre 2026), Outlook.com (basic auth coupee depuis le 16/09/2024), iCloud (587 seul).
   Ceux-la restent sur A jusqu'a D.
 
+**ESSAI REEL DU 07/10/2026 : B MARCHE.** Fonction jetable `smtp-essai` (code dans
+`supabase/functions/smtp-essai/`), appelee depuis la base par pg_net (le conteneur et le Mac
+n'atteignent pas `*.supabase.co`). Connexion TLS a smtp.gmail.com:465 en 118 ms, salut 220 ;
+authentification par mot de passe d'application puis envoi a soi-meme : « 250 2.0.0 OK » en
+1 510 ms, bien sous les 2 s de CPU. Fonction, secrets `SMTP_ESSAI_*` et mot de passe
+d'application a supprimer apres l'essai.
+
 Ordre retenu : B d'abord (essai reel du 465 avant tout), la demande de validation Google pour D
 en parallele, puis D. Question a poser a Solumatic : leur plan pour la coupure Microsoft, qui
 touche aussi l'ecran SMTP de Vitisoft.
