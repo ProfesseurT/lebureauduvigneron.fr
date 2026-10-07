@@ -13,6 +13,28 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+
+## 07/10/2026, lot 76 construit : brancher sa boite
+
+Dans « Mes envois », « D'ou partent tes mails » : ma messagerie (defaut) ou le bureau envoie
+pour moi. L'adresse, le fournisseur reconnu (domaine, puis MX), le mot de passe a donner, et
+« Tester et brancher » : un code a 6 chiffres part de la boite a elle-meme, seul ce code branche.
+Le mot de passe est dans Supabase Vault, jamais relisible ; retirer, quitter le bureau ou
+supprimer son compte l'efface. Rien n'envoie encore de mail a un client (lot 77), et l'ecran le dit.
+
+Faits fournisseurs verifies (port 465 SSL, seul a sortir de Supabase) : [Certain] Gmail et
+Workspace (mot de passe d'application, 2 etapes), OVH MX Plan (ssl0.ovh.net), IONOS
+(smtp.ionos.fr), Gandi (mail.gandi.net), Free (smtp.free.fr), Yahoo (mot de passe
+d'application) ; [Probable] Orange (smtp.orange.fr, mot de passe logiciels tiers), SFR, Bbox.
+587 seul, donc sur la messagerie : Microsoft 365, iCloud, La Poste, OVH E-mail Pro ; Outlook.com
+et Hotmail n'acceptent plus de mot de passe. Correction : Microsoft a repousse la coupure du
+mot de passe simple a « 2027 ou au-dela » pour les comptes 365 existants, mais le 465 n'y est
+pas documente.
+
+Conseil : vigneron empathique (orange, orange, puis vert) ; verificateur de securite (orange :
+le champ serveur permettait de viser un serveur interne ; corrige, plus l'empreinte salee, le
+verrou du plafond et le maitre seul pour voir les boites ; puis vert).
+
 ## 07/10/2026, lot 75 construit : l'onglet « Mes envois » et la signature
 
 Fait : le module `bdv-signature.js`, l'onglet dans les reglages, la signature collee par les deux

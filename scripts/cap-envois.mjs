@@ -9,7 +9,7 @@ const srv = await servir('./_site', port);
 const nav = await chromium.launch({ executablePath: EXE });
 const ctx = await contexte(nav, +L, th);
 const fin = new Date(Date.now() + 13 * 86400000).toISOString().slice(0, 10);
-await ctx.addInitScript(({ maitre, fin }) => {
+await ctx.addInitScript(({ maitre, fin, boite }) => {
   const S = { perso: { nom: 'Teddy Pereira', role: 'Vigneron', telephone: '06 12 34 56 78', dans_mails: true, messagerie_signe: false },
     commun: { nom_domaine: 'Domaine du Clos Fertel', appellation: 'Saumur-Champigny', action: 'Caveau ouvert du mardi au samedi, 10 h-12 h 30 et 14 h 30-18 h',
       lien: 'https://closfertel.fr/boutique', actualite: 'Salon des Vins de Loire, Angers, stand B12', actualite_fin: fin, pied_legal: true } };
@@ -20,15 +20,21 @@ await ctx.addInitScript(({ maitre, fin }) => {
     if (/rest\/v1\/signatures\?select=/.test(url)) return rep([S.perso]);
     if (/rest\/v1\/signature_domaine\?select=/.test(url)) return rep([S.commun]);
     if (/rest\/v1\/rpc\/est_maitre/.test(url)) return rep(maitre);
+    /* Lot 76 : la boite. BOITE=branchee ou BOITE=form (le formulaire ouvert). */
+    if (/rest\/v1\/boites\?select=/.test(url)) return rep(boite === 'branchee' ? [{ adresse: 'julien@closfertel.fr', fournisseur: 'workspace', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: new Date().toISOString() }] : []);
+    if (/rest\/v1\/rpc\/boites_du_bureau/.test(url)) return rep([]);
+    if (/functions\/v1\/boite/.test(url) && boite === 'mur') return rep({ statut: 'mur', nom: 'Outlook' });
+    if (/functions\/v1\/boite/.test(url)) return rep({ statut: 'connu', cle: 'gmail', nom: 'Gmail', serveur: 'smtp.gmail.com', motDePasse: 'Un mot de passe d’application Google (16 lettres), pas ton mot de passe habituel. Il demande la validation en deux étapes. Il se crée sur myaccount.google.com/apppasswords.' });
     return avant(e, init);
   };
-}, { maitre: process.env.MAITRE !== '0', fin });
+}, { maitre: process.env.MAITRE !== '0', fin, boite: process.env.BOITE || '' });
 const p = await ouvrirPage(ctx, port);
 const W = ms => p.waitForTimeout(ms);
 try { await p.getByRole('button', { name: /ouvrir quand m/i }).click({ timeout: 3000 }); } catch (e) {}
 await W(600);
 await p.evaluate(() => BdvNav.ouvrirReglages('envois')); await W(1500);
-const k = L + '-' + th + (process.env.MAITRE === '0' ? '-simple' : '');
+if (process.env.BOITE === 'form' || process.env.BOITE === 'mur') { await p.evaluate(() => { const r = document.getElementById('bdvbBureau'); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }); await W(900); }
+const k = L + '-' + th + (process.env.MAITRE === '0' ? '-simple' : '') + (process.env.BOITE ? '-' + process.env.BOITE : '');
 await p.screenshot({ path: OUT + 'envois-' + k + '.png' });
 // tout le contenu de l'onglet, en defilant la boite
 const box = await p.evaluate(() => { const b = document.querySelector('#bdvrBlocEnvois'); const s = b && b.closest('.bdvr-corps, .bdvr-boite, form'); return !!b; });

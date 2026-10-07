@@ -8509,3 +8509,35 @@ dessin de la coque.
   « Copier pour l'iPhone » en aplat a 390 (survol colle ?) a verifier sur un vrai iPhone ; la
   boucle « Passer sur Oui » n'a ete vue dans aucune capture (copie impossible hors navigateur reel).
 
+### LOT 76 : BRANCHER SA BOITE (07/10/2026)
+
+- **SQL `supabase/lot76-boites.sql`, a coller APRES 75, PUIS push, PUIS deploiement de la
+  fonction `boite` (verify_jwt = true, aucun secret a poser).** Table `boites` (une ligne par
+  bureau et personne, FK sur `membres` : quitter le bureau l'efface), `boite_essais` (plafond).
+  Le mot de passe est dans VAULT, et seulement la : `boite_ranger()` (cle de service seule) le
+  range APRES un envoi d'essai accepte ; `boites_oublier` l'efface de Vault a la suppression.
+  `secret_id` et `code_hash` ne sont lisibles par personne du navigateur (droits par colonne),
+  aucune ecriture directe. Reglages mesures le 07/10 : log_statement = ddl,
+  log_parameter_max_length_on_error = 0, pgaudit off.
+- **Rien n'est branche sans mail arrive** : la fonction envoie un code a 6 chiffres DE l'adresse
+  A elle-meme ; `boite_confirmer()` (empreinte salee, 15 min, 5 essais) branche. Plafond :
+  10 essais par heure et par personne, demande AVANT le serveur de mail (verrou par personne).
+- **La fonction `boite`** (`supabase/functions/boite/`) : `reconnaitre` (table par domaine,
+  puis MX : Workspace, OVH, IONOS, Gandi ; murs : Outlook, Hotmail, iCloud, La Poste,
+  Microsoft 365) et `tester`. Elle ne se connecte qu'a une IP PUBLIQUE resolue une fois
+  (servername = le nom) : pas de serveur interne. Elle ne renvoie jamais un message du serveur
+  de mail (il pourrait contenir le mot de passe). Seul le port 465 sort de Supabase.
+- **`boites_du_bureau()`** : le maitre seul voit qui envoie d'ou, jamais un code.
+- **L'ecran** : `src/js/bdv-boite.js` (defer, apres bdv-signature.js), zone « D'ou partent tes
+  mails » sous la phrase d'etat. Les gestes s'enregistrent tout de suite, pas par « Enregistrer ».
+  AU LOT 76 LE BUREAU N'ENVOIE ENCORE RIEN : la phrase d'etat du haut le dit des que B est
+  coche (et revient a la phrase A pour un mur). Section 38 bis de bdv-bureau.css.
+- Garde : banc SQL `supabase/banc-lot76-boites.sql` (36, doublure de Vault), `npm run banc:boite`
+  (44, dans `verif`), capture `scripts/cap-envois.mjs` (BOITE=form|mur|branchee).
+- Faits fournisseurs (verifies le 07/10/2026, JOURNAL) : [Certain] Gmail/Workspace, OVH MX
+  Plan, IONOS, Gandi, Free, Yahoo ; [Probable] Orange, SFR, Bbox. L'essai tranche.
+- Ouvert : la verification du certificat par `servername` n'a pas ete vue en reel (le conteneur
+  n'atteint pas le 465) : a confirmer au premier essai de Ted ; l'etape du code n'a pas de
+  capture ; avec une adresse Outlook le choix B reste coche ; `banc:signature` echoue parfois
+  sous la charge de `verif` (« la fonction tombe »), vert seul.
+

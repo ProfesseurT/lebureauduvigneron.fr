@@ -6921,3 +6921,29 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 /* « Copiee » se dit par un glyphe ET un mot, jamais par la seule couleur. */
 .bdv-coque .bdvs-copie-ok{ margin:0; font-weight:600; color:var(--bdv-encre-1); }
 .bdv-coque .bdvs-copie-ok::before{ content:"\2713\00a0"; color:var(--bdv-bon); }
+
+/* -- 38 bis. « D'OU PARTENT TES MAILS », lot 76 (07/10/2026) : brancher sa boite. Pose par
+   bdv-boite.js sous la phrase d'etat de « Mes envois ». Un etat se dit par un glyphe ET un
+   mot, jamais par la seule couleur. */
+.bdv-coque .bdvb{ margin:0 0 var(--bdv-e-6); padding-bottom:var(--bdv-e-4); border-bottom:1px solid var(--bdv-trait); }
+.bdv-coque .bdvb-corps[hidden],
+.bdv-coque .bdvb-form[hidden],
+.bdv-coque .bdvb-code[hidden],
+.bdv-coque .bdvb-etat[hidden]{ display:none; }
+.bdv-coque .bdvb .bdvr-chk b{ color:var(--bdv-encre-1); }
+.bdv-coque .bdvb-etat{ margin:var(--bdv-e-3) 0; }
+.bdv-coque .bdvb-etat .bdvr-btn,
+.bdv-coque .bdvb-gestes .bdvr-btn,
+.bdv-coque .bdvb-confirme .bdvr-btn{ min-height:var(--bdv-cible); }
+.bdv-coque .bdvb-gestes,
+.bdv-coque .bdvb-confirme{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); margin:var(--bdv-e-3) 0; }
+.bdv-coque .bdvb-confirme[hidden]{ display:none; }
+.bdv-coque .bdvb-confirme p{ flex-basis:100%; margin:0; color:var(--bdv-encre-1); }
+.bdv-coque .bdvb-fourn{ margin:var(--bdv-e-2) 0; }
+.bdv-coque .bdvb-fourn p{ margin:0 0 var(--bdv-e-1); }
+.bdv-coque .bdvb-ok{ margin:0 0 var(--bdv-e-1); font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .bdvb-ok::before{ content:"\2713\00a0"; color:var(--bdv-bon); }
+.bdv-coque .bdvb-mur{ padding:var(--bdv-e-3) var(--bdv-e-4); border-left:3px solid var(--bdv-trait-fort); background:var(--bdv-surface-2); color:var(--bdv-encre-1); }
+.bdv-coque .bdvb-mur p{ margin:0; }
+.bdv-coque .bdvb-etat > .bdvr-chk{ margin-bottom:var(--bdv-e-4); }
+.bdv-coque .bdvb-fourn a{ color:var(--bdv-accent); }
