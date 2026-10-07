@@ -12,6 +12,19 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/10/2026, l'accroche de l'accueil : « Moins de bureau. Plus de vigne. »
+
+Ted veut sortir de l'image vieillotte du site. Trois directions proposees, il choisit
+« le temps rendu ». Conseil avant (vigneron empathique, expert commercial) : « Liberer ma
+journee » refuse sur le bouton, on garde « Ouvrir mon bureau, gratuit » ; les 2 000 bureaux
+passent de titre a preuve ; aucun gain de temps chiffre (pas mesure). Vigneron apres, sur
+captures 1440 et 390 : feu VERT ; « avec ou sans Vitisoft » mis en gras. banc-hero conforme
+(7,4:1 au pire), charte conforme. Seuls `hero.njk` et la description de `index.njk` changent.
+
+Reste, pour le chantier du decor : la photo de salon ancien contredit « plus de vigne », le
+voile bordeaux eteint tout sur iPhone, le menu deborde a 390 px (« LA RE... »), sous-titre en
+italique sur 4 lignes au telephone (le passer en romain).
+
 ## 07/10/2026, lot 74 : la fiche client montre les mails de ses affaires
 
 Choix de Ted après le lot 73. Un mail écrit depuis une affaire allait dans le journal de
