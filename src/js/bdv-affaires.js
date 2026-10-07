@@ -2675,6 +2675,8 @@
       }
       if (quoi === 'redacCopier' && a) { copierRedac(a, b); return; }
       if (quoi === 'redacEnvoye' && a) { redacEnvoye(a, b); return; }
+      if (quoi === 'redacEnvoyer' && a) { redacEnvoyer(a, b); return; }
+      if (quoi === 'redacAutre' && a) { var ra = REDAC[a.affaire_id]; if (ra) { ra.parti = false; ra.echec = null; ra.mot = ''; } repeindreRedac(a, '[data-redac="modele"]'); return; }
       if (quoi === 'redacRevenir' && a) { var rr = REDAC[a.affaire_id]; if (rr && rr.garde != null) { rr.texte = rr.garde; rr.garde = null; rr.texteAuto = false; repeindreRedac(a, '[data-redac="texte"]'); } return; }
       if (quoi === 'redacLien' && a) { var dl = devisPrincipal(a); if (dl) creerLienCarte(dl.devis_id).then(function () { repeindreRedac(a, '[data-redac="bloc"][value="lien"]'); }); return; }
       if (quoi === 'redacEnvoi' && a) { var de = devisPrincipal(a); if (de) ouvrirDevis(a, de.devis_id, { action: 'envoi' }); return; }
@@ -3239,6 +3241,13 @@
     if (r.rappelK !== cle) { r.rappelK = cle; r.rappel = !!(rp && rp.defaut); }
     return { r: r, ctx: ctx };
   }
+  function boitePrete() { return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete()); }
+  /* La boite se lit apres coup : le redacteur ouvert se repeint quand elle arrive. */
+  document.addEventListener('bdv:boite', function () {
+    var id = S.page || (MOD && !MOD.hidden ? S.ouverte : null);
+    var a = id && S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+    if (a && boxRedac()) repeindreRedac(a);
+  });
   function lienMailto(a, r) {
     var m = adresseMail(a);
     return m ? 'mailto:' + encodeURIComponent(m) + '?subject=' + encodeURIComponent(r.sujet || '') + '&body=' + encodeURIComponent(r.texte || '') : '';
@@ -3270,22 +3279,32 @@
       + (r.kAuto ? '<p class="aff-redac__pourquoi">Proposé : <b>' + esc(M.nom(r.k)) + '</b>, parce que ' + esc(r.raison) + '.</p>' : '')
       + '<p class="aff-redac__a">' + (mail ? 'À : <b>' + esc(mail) + '</b>' : c && c.contacts === undefined ? 'Lecture de son adresse…'
         : 'Pas d’adresse e-mail : copie le texte et colle-le dans ta messagerie.') + '</p>'
+      /* LOT 77 : d'ou il part, AVANT le clic (vigneron). */
+      + (mail && boitePrete() ? '<p class="aff-redac__a">De : <b>' + esc(BdvBoite.adresse()) + '</b>, ta boîte branchée</p>' : '')
       + '<label class="aff-champ"><span>Modèle</span><select data-redac="modele">' + opts + '</select></label>'
       + (bl ? '<fieldset class="aff-redac__blocs"><legend>Ce que tu mets dedans</legend><ul>' + bl + '</ul></fieldset>' : '')
       + '<label class="aff-champ"><span>Objet</span><input type="text" data-redac="sujet" maxlength="300" value="' + esc(r.sujet || '') + '"></label>'
-      + '<label class="aff-champ"><span>Texte, modifiable avant envoi</span><textarea data-redac="texte" rows="7" maxlength="20000">' + esc(r.texte || '') + '</textarea></label>'
+      + '<label class="aff-champ"><span>Texte, modifiable avant envoi</span><textarea data-redac="texte" rows="10" maxlength="20000">' + esc(r.texte || '') + '</textarea></label>'
       + (r.garde != null ? '<p class="aff-aide">Ton texte retouché a été remplacé par le modèle. <button type="button" class="aff-vers" data-aff="redacRevenir">Revenir à mon texte</button></p>' : '')
       + '<ul class="aff-redac__avert" id="affRedacAvert"' + (av.length ? '' : ' hidden') + '>' + av.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'
+      /* LOT 77 : le rappel se decide AVANT d'envoyer, donc au-dessus du bouton (vigneron). */
+      + (rp && !JOURNAL_ABSENT && !r.parti ? '<label class="aff-redac__rappel"><input type="checkbox" data-redac="rappel"' + (r.rappel ? ' checked' : '') + '> ' + esc(rp.lbl)
+          + (rp.tache ? ', dans Mes tâches' : a.rappel ? ' (remplace ton rappel du ' + esc(dateCourte(a.rappel)) + ')' : '') + '</label>' : '')
+      /* Apres un envoi par la boite, le resultat prend la place des boutons : pas de second
+         envoi d'un clic, pas de double note. « Ecrire un autre mail » les rend (lot 77). */
+      + (r.parti ? '<div class="aff-redac__gestes aff-redac__parti"><p class="aff-redac__resultat" role="status">' + esc(r.mot || '') + '</p>'
+          + '<button type="button" class="btn" data-aff="redacAutre">Écrire un autre mail</button></div>'
+        : (r.echec ? '<p class="aff-redac__resultat aff-redac__resultat--echec" role="alert">' + esc(r.echec) + '</p>' : '')
       + '<div class="aff-redac__gestes">'
-      + (mail ? '<a class="btn btn--bordeaux" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
+      + (mail && boitePrete() ? '<button type="button" class="btn btn--bordeaux aff-redac__envoyer" data-aff="redacEnvoyer">Envoyer depuis ma boîte</button>' : '')
+      + (mail ? '<a class="btn' + (boitePrete() ? '' : ' btn--bordeaux') + '" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
       + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button></div>'
       + (JOURNAL_ABSENT ? '<p class="aff-aide">L’historique des mails n’est pas encore en place dans ton bureau : ce mail ne sera pas noté.</p>'
         : '<div class="aff-redac__fin">'
-          + (rp ? '<label class="aff-redac__rappel"><input type="checkbox" data-redac="rappel"' + (r.rappel ? ' checked' : '') + '> ' + esc(rp.lbl)
-            + (rp.tache ? ', dans Mes tâches' : a.rappel ? ' (remplace ton rappel du ' + esc(dateCourte(a.rappel)) + ')' : '') + '</label>' : '')
-          + '<p class="aff-redac__explique">Ton mail est parti de ta messagerie ? Note-le : il entre dans l’historique de l’affaire.</p>'
-          + '<p><button type="button" class="btn" data-aff="redacEnvoye">Considéré comme envoyé</button></p></div>')
-      + '<p class="aff-aide aff-redac__mot" id="affRedacMot" role="status" aria-live="polite">' + esc(r.mot || '') + '</p>'
+          + (mail && boitePrete() ? '<p class="aff-redac__explique">Envoyé depuis ta boîte, il entre tout seul dans l’historique. Parti de ta messagerie ? Note-le :</p>'
+            : '<p class="aff-redac__explique">Ton mail est parti de ta messagerie ? Note-le : il entre dans l’historique de l’affaire.</p>')
+          + '<p><button type="button" class="btn" data-aff="redacEnvoye">Considéré comme envoyé</button></p></div>'))
+      + '<p class="aff-aide aff-redac__mot" id="affRedacMot" role="status" aria-live="polite">' + esc(r.parti ? '' : r.mot || '') + '</p>'
       + '</div></details>';
   }
   function focusRedac() {
@@ -3386,7 +3405,34 @@
      Le mail entre dans le journal de l'affaire, objet et texte ENTIERS (la seule copie).
      Avec la case cochee, le rappel de l'affaire passe a dans 7 jours, motif « Relancer ». */
   var ENVOI_EN_COURS = false;
-  async function redacEnvoye(a, b) {
+  /* ENVOYER DEPUIS MA BOITE, lot 77. Le clic est la validation. Parti : le mail est note dans
+     le journal par le meme chemin que « Considere comme envoye » (rappel compris). Pas parti :
+     le texte reste, la messagerie reste proposee, et le motif est dit. */
+  async function redacEnvoyer(a, b) {
+    var r = REDAC[a.affaire_id], mail = adresseMail(a);
+    if (!r || ENVOI_EN_COURS || oppose(a) || !mail) return;
+    if (!String(r.sujet || '').trim() && !String(r.texte || '').trim()) { motRedac(a, 'Écris un objet ou un texte avant d’envoyer.'); return; }
+    if (b) b.disabled = true;
+    r.echec = null;
+    motRedac(a, 'Envoi depuis ta boîte…');
+    var res = await BdvBoite.envoyer({ a: mail, sujet: r.sujet || '', texte: r.texte || '' });
+    if (b) b.disabled = false;
+    if (!res.ok) {
+      motRedac(a, res.mot);
+      /* « Peut-etre parti » : on ne repropose pas d'envoyer d'un clic (verificateur). */
+      /* L'echec se dit LA OU ETAIT le bouton, pas en bas du redacteur (vigneron, lot 77). */
+      if (res.resultat === 'incertain') { r.parti = true; r.mot = res.mot; }
+      else { r.echec = res.mot; motRedac(a, ''); }
+      repeindreRedac(a);
+      return;
+    }
+    /* PARTI : plus de bouton d'envoi pour ce mail, quoi qu'il arrive au journal ensuite. */
+    r.parti = true;
+    if (JOURNAL_ABSENT) { r.mot = res.mot; repeindreRedac(a); return; }
+    await redacEnvoye(a, b, { parti: res.mot });
+  }
+  async function redacEnvoye(a, b, opts) {
+    opts = opts || {};
     var r = REDAC[a.affaire_id];
     if (!r || ENVOI_EN_COURS || oppose(a)) return;
     if (!String(r.sujet || '').trim() && !String(r.texte || '').trim()) { motRedac(a, 'Écris un objet ou un texte avant de le noter.'); return; }
@@ -3398,10 +3444,11 @@
     } catch (e) {
       ENVOI_EN_COURS = false;
       if (tableAbsente(e)) { JOURNAL_ABSENT = true; repeindreRedac(a); }
-      motRedac(a, 'Pas noté : ' + raison(e) + ' Ton texte est gardé.');
+      motRedac(a, (opts.parti ? opts.parti + ' Mais il n’a pas pu être noté : ' : 'Pas noté : ') + raison(e) + (opts.parti ? ' Ne le renvoie pas.' : ' Ton texte est gardé.'));
+      if (opts.parti) repeindreRedac(a);
       return;
     }
-    var phrase = 'Mail noté dans l’historique de l’affaire.';
+    var phrase = opts.parti ? opts.parti + ' Noté dans l’historique de l’affaire.' : 'Mail noté dans l’historique de l’affaire.';
     /* LOT 73 : le rappel vient de bdv-mails-affaire.js, seul a savoir quel mail se relance,
        quand, et sous quel motif. Une affaire close n'a plus de rappel (lot 34) : la promesse
        devient une tache datee de « Mes taches », par bdv-taches.js, son seul ecrivain. */
@@ -3409,19 +3456,24 @@
     if (r.rappel && rp && rp.tache) {
       var okT = false;
       try { okT = !!(window.BdvTaches && BdvTaches.ajouter(rp.titre + ' : ' + sujet(a), rp.iso)); } catch (eT) {}
-      phrase += okT ? ' Tâche posée dans Mes tâches le ' + dateCourte(rp.iso) + '.' : ' La tâche n’a pas pu se poser : note-la dans Mes tâches.';
+      phrase += okT ? finPoint(' Tâche posée dans Mes tâches le ' + dateCourte(rp.iso)) : ' La tâche n’a pas pu se poser : note-la dans Mes tâches.';
     } else if (r.rappel && rp && a.issue === 'en_cours') {
       var iso = rp.iso, titre = rp.titre;
       try {
         var rr = await modifier('affaires', 'affaire_id', a.affaire_id, { rappel: iso, rappel_titre: titre });
         Object.assign(a, rr[0] || { rappel: iso, rappel_titre: titre });
-        phrase += ' Rappel posé le ' + dateCourte(iso) + '.';
+        /* Le formulaire ouvert suit, sinon « Enregistrer » remettrait l'ancien rappel (lot 77). */
+        [].forEach.call(document.querySelectorAll('form[data-edit="' + a.affaire_id + '"]'), function (f) {
+          if (f.elements.rappel) f.elements.rappel.value = a.rappel || '';
+          if (f.elements.rappel_titre) f.elements.rappel_titre.value = a.rappel_titre || '';
+        });
+        phrase += finPoint(' Rappel posé le ' + dateCourte(iso));
       } catch (e2) { phrase += ' Le rappel n’a pas pu se poser : ' + raison(e2); }
     }
     await lireJournal(a);
     ENVOI_EN_COURS = false;
     /* Le redacteur repart sur le modele qu'il proposera ensuite, le mail parti est dans l'historique. */
-    REDAC[a.affaire_id] = { kAuto: true, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: true, garde: null, mot: phrase };
+    REDAC[a.affaire_id] = { kAuto: true, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: true, garde: null, mot: phrase, parti: !!opts.parti };
     if (S.page) { rendre(); remettreFocus('[data-redac="modele"]'); }
     else if (MOD && !MOD.hidden && S.ouverte === a.affaire_id) { peindreTete(a); remettreFocus('[data-redac="modele"]'); }
   }

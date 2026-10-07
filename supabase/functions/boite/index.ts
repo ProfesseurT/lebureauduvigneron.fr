@@ -5,13 +5,19 @@
    du vigneron, en SMTP sur le port 465 (Supabase bloque 25 et 587 ; l'essai reel du
    07/10/2026 a envoye par smtp.gmail.com:465 en 1 510 ms).
 
-   DEUX GESTES, appeles par l'onglet « Mes envois » avec le jeton de session :
+   TROIS GESTES, appeles avec le jeton de session :
      - `reconnaitre` : d'apres l'adresse, quel fournisseur, quel serveur, et quel mot de
        passe donner. Un domaine personnel se reconnait a ses enregistrements MX.
      - `tester` : envoie un mail d'essai A L'ADRESSE ELLE-MEME, avec un code a 6 chiffres.
        Si le serveur l'accepte, le mot de passe est range dans Vault par `boite_ranger()`
        (cle de service) et la boite attend son code. C'est `boite_confirmer()`, appelee par
        le navigateur, qui la branche : RIEN N'EST BRANCHE SANS MAIL ARRIVE.
+     - `envoyer` (lot 77) : un mail prepare dans un redacteur du bureau (une affaire, la fiche
+       d'un client), envoye par la boite branchee quand le vigneron clique « Envoyer depuis ma
+       boite ». Ce clic EST la validation. Un seul destinataire, texte simple (la signature y
+       est deja), copie a soi si la case est cochee. Plafond : 200 par jour et par personne.
+       Un refus du mot de passe passe la boite a « reconnecter » : le bureau repasse par la
+       messagerie.
 
    LE MOT DE PASSE :
      - il traverse cette fonction une fois, n'est jamais journalise, jamais renvoye ;
@@ -101,7 +107,9 @@ async function reconnaitre(adresse: string) {
   return { statut: 'inconnu', mx: mx.length > 0 };
 }
 
-const ADRESSE = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
+/* Pas de parenthese, chevron, virgule, point-virgule, deux-points, guillemet ni crochet :
+   l'adresse controlee est exactement celle qui part (verificateur, lot 77). */
+const ADRESSE = /^[^@\s()<>,;:"\[\]\\]+@[^@\s()<>,;:"\[\]\\]+\.[a-z]{2,}$/i;
 const SERVEUR = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 const texte = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max);
 
@@ -160,6 +168,77 @@ function code6() {
   return String(b[0] % 1000000).padStart(6, '0');
 }
 
+/* ---------------------------------------------------------------------------
+   ENVOYER (lot 77). `adresse` est ici le DESTINATAIRE ; l'expediteur est la boite branchee,
+   lue dans la base, jamais dans la requete.
+   --------------------------------------------------------------------------- */
+async function envoyer(jwt: string, corps: Record<string, unknown>, a: string) {
+  const moi = await quiAppelle(jwt);
+  if (!moi) return reponse({ erreur: 'aucune session' }, 401);
+  const bureau = texte(corps.bureau, 40);
+  if (!/^[0-9a-f-]{36}$/i.test(bureau)) return reponse({ erreur: 'bureau inconnu' }, 400);
+  const sujet = texte(corps.sujet, 300);
+  const corpsTexte = String(corps.texte ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').slice(0, 20000);
+  if (!sujet && !corpsTexte.trim()) return reponse({ resultat: 'vide', erreur: 'Écris un objet ou un texte.' });
+
+  let b: { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean } | null = null;
+  try {
+    const l = await rpc('boite_pour_envoi', { p_personne: moi.id, p_bureau: bureau });
+    b = Array.isArray(l) && l[0] ? l[0] : null;
+  } catch { return reponse({ resultat: 'erreur', erreur: 'Le bureau n’a pas pu lire ta boîte.' }); }
+  if (!b) return reponse({ resultat: 'pas_branchee' });
+
+  const cible = await adressePublique(b.serveur);
+  if (!cible) return reponse({ resultat: 'injoignable', serveur: b.serveur });
+
+  let permis = false;
+  try { permis = await rpc('boite_envoi_permis', { p_personne: moi.id, p_bureau: bureau }) === true; }
+  catch { return reponse({ resultat: 'erreur', erreur: 'Le bureau n’a pas pu préparer l’envoi.' }); }
+  if (!permis) return reponse({ resultat: 'plafond', erreur: 'Tu as envoyé 200 mails depuis le bureau aujourd’hui : la suite part de ta messagerie.' });
+
+  try {
+    const tr = nodemailer.createTransport({
+      host: cible, servername: b.serveur, port: 465, secure: true, tls: { servername: b.serveur },
+      auth: { user: b.identifiant, pass: b.secret }, connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 15000,
+    });
+    /* D'ABORD la connexion et le mot de passe, A PART : une erreur reseau ici prouve que rien
+       n'est parti. Une erreur reseau pendant l'envoi qui suit, elle, laisse un doute, et on le
+       dit au lieu d'inviter a renvoyer (verificateur, lot 77). */
+    try { await tr.verify(); } catch (e0) {
+      const er = e0 as { code?: string; responseCode?: number };
+      const rc0 = Number(er.responseCode || 0);
+      console.log('boite: connexion refusee ' + (er.code ?? '') + ' ' + rc0);
+      if (rc0 === 535 || rc0 === 534 || rc0 === 530) {
+        try { await rpc('boite_reconnecter', { p_personne: moi.id, p_bureau: bureau, p_erreur: 'mot de passe refuse (' + rc0 + ')' }); } catch { /* rien */ }
+        return reponse({ resultat: 'refus' });
+      }
+      if (er.code === 'EAUTH') return reponse({ resultat: 'passager' });
+      return reponse({ resultat: 'injoignable', serveur: b.serveur });
+    }
+    const info = await tr.sendMail({
+      from: b.adresse, to: { name: '', address: a }, ...(b.copie_a_soi && a !== b.adresse ? { bcc: b.adresse } : {}),
+      subject: sujet, text: corpsTexte,
+    });
+    console.log('boite: envoi parti');
+    return reponse({ resultat: 'parti', de: b.adresse, copie: !!b.copie_a_soi, id: String(info.messageId || '').slice(0, 200) });
+  } catch (e) {
+    const err = e as { code?: string; responseCode?: number; command?: string };
+    const rc = Number(err.responseCode || 0), cmd = String(err.command || '').toUpperCase();
+    console.log('boite: envoi refuse ' + (err.code ?? '') + ' ' + rc + ' ' + cmd);
+    /* Seul un refus FRANC du mot de passe passe la boite a « reconnecter » : un 454 « trop de
+       connexions » (que nodemailer range aussi en EAUTH) n'est qu'un incident (verificateur). */
+    if (rc === 535 || rc === 534 || rc === 530) {
+      try { await rpc('boite_reconnecter', { p_personne: moi.id, p_bureau: bureau, p_erreur: 'mot de passe refuse (' + rc + ')' }); } catch { /* rien */ }
+      return reponse({ resultat: 'refus' });
+    }
+    if (err.code === 'EAUTH') return reponse({ resultat: 'passager' });
+    /* La connexion et le mot de passe venaient de passer : une coupure ici laisse un doute. */
+    if (['ESOCKET', 'ECONNECTION', 'ETIMEDOUT', 'EDNS', 'ECONNREFUSED'].includes(String(err.code))) return reponse({ resultat: 'incertain' });
+    if (cmd.startsWith('RCPT')) return reponse({ resultat: 'destinataire' });
+    return reponse({ resultat: 'autre', code_smtp: rc || null });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reponse({ erreur: 'methode' }, 405);
@@ -167,13 +246,15 @@ Deno.serve(async (req) => {
   if (!jwt.startsWith('Bearer ')) return reponse({ erreur: 'aucune session' }, 401);
   let corps: Record<string, unknown>;
   try { corps = await req.json(); } catch { return reponse({ erreur: 'corps illisible' }, 400); }
-  if (JSON.stringify(corps).length > 4000) return reponse({ erreur: 'trop long' }, 413);
-
   const action = String(corps.action ?? '');
+  /* Un mail peut etre long (un devis, une signature) : 25 000 signes pour `envoyer`. */
+  if (JSON.stringify(corps).length > (action === 'envoyer' ? 25000 : 4000)) return reponse({ resultat: 'trop_long', erreur: 'Ce mail est trop long pour partir du bureau.' }, 413);
+
   const adresse = texte(corps.adresse, 254).toLowerCase();
   if (!ADRESSE.test(adresse)) return reponse({ erreur: 'Cette adresse ne ressemble pas à une adresse mail.' }, 400);
 
   if (action === 'reconnaitre') return reponse(await reconnaitre(adresse));
+  if (action === 'envoyer') return await envoyer(jwt, corps, adresse);
   if (action !== 'tester') return reponse({ erreur: 'action inconnue' }, 400);
 
   const moi = await quiAppelle(jwt);

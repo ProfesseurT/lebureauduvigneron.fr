@@ -55,6 +55,7 @@
         AUTRES = (Array.isArray(a) ? a : []).filter(function (x) { return x.personne !== moi; });
       }
     } catch (e) { AUTRES = []; }
+    try { document.dispatchEvent(new CustomEvent('bdv:boite')); } catch (e) {}
   }
 
   function dire(t, alerte) {
@@ -75,7 +76,7 @@
     var corps = mk('div', 'bdvb-corps'); corps.id = 'bdvbCorps';
     var q = mk('div', 'bdvr-groupe bdvs-question'); q.setAttribute('role', 'radiogroup'); q.setAttribute('aria-labelledby', 'bdvbTitre');
     [['bdvbMess', 'Ma messagerie ouvre le mail', ' : le bureau prépare le texte, tu cliques sur Envoyer. Rien à brancher.'],
-     ['bdvbBureau', 'Le bureau envoie pour moi', ', depuis ma boîte (à la prochaine mise à jour) : je peux la brancher dès maintenant.']].forEach(function (x) {
+     ['bdvbBureau', 'Le bureau envoie pour moi', ', depuis ma boîte : je la branche une fois, puis j’envoie d’un clic.']].forEach(function (x) {
       var lab = mk('label', 'bdvr-chk'); var r = mk('input'); r.type = 'radio'; r.name = 'bdvbMode'; r.id = x[0];
       /* Un seul enfant de texte : la case est en flex, le gras et la suite se separeraient. */
       var sp = mk('span'); sp.appendChild(mk('b', null, x[1])); sp.appendChild(document.createTextNode(x[2]));
@@ -161,8 +162,8 @@
       if (!et.dataset.origine) et.dataset.origine = et.textContent;
       var murVu = FOURN && FOURN.statut === 'mur';
       et.textContent = !bureauMode || (murVu && !branchee) ? et.dataset.origine
-        : branchee ? 'Ta boîte est branchée. Le bureau enverra depuis elle à la prochaine mise à jour : d’ici là, ta messagerie ouvre le mail.'
-        : 'Tu peux brancher ta boîte dès maintenant. Le bureau enverra depuis elle à la prochaine mise à jour : d’ici là, ta messagerie ouvre le mail.';
+        : branchee ? 'Tes mails partent de ta boîte ' + BOITE.adresse + ' : quand tu cliques « Envoyer depuis ma boîte », le bureau l’envoie. Si un envoi échoue, ta messagerie prend le relais.'
+        : 'Branche ta boîte ci-dessous : tant qu’elle ne l’est pas, ta messagerie ouvre le mail.';
     }
   }
 
@@ -368,5 +369,53 @@
   }
   if (!brancherBloc()) document.addEventListener('DOMContentLoaded', brancherBloc);
 
-  window.BdvBoite = { _etat: function () { return { BOITE: BOITE, LU: LU, ABSENTE: ABSENTE, FOURN: FOURN, MDP: MDP }; } };
+  /* ---------------- L'ENVOI, lot 77 ----------------
+     Les deux redacteurs (affaire, fiche client) demandent `prete()` pour montrer « Envoyer
+     depuis ma boite », puis `envoyer()`. Le clic EST la validation du vigneron : rien ne part
+     sans lui. Un echec ne perd rien : le redacteur garde le texte et propose la messagerie. */
+  function prete() { return !!(LU && BOITE && BOITE.etat === 'branchee' && BOITE.utiliser); }
+  var EN_VOL = false;
+  async function envoyer(o) {
+    if (!prete()) return { ok: false, resultat: 'pas_branchee', mot: 'Ta boîte n’est pas branchée : ouvre le mail dans ta messagerie.' };
+    if (EN_VOL) return { ok: false, resultat: 'en_cours', mot: 'Un envoi est déjà en cours.' };
+    EN_VOL = true;
+    var r;
+    try {
+      r = await BdvCompte.fonction('boite', { action: 'envoyer', bureau: bureau(), adresse: String(o.a || '').trim(),
+        sujet: String(o.sujet || ''), texte: String(o.texte || '') });
+    } catch (e) {
+      /* Pas de reponse : le mail est peut-etre parti. On ne pousse pas a renvoyer. */
+      /* Un refus de la fonction (400, 401, 413) prouve que rien n'est parti ; seuls le reseau
+         ou une panne du serveur (500 et plus) laissent un doute. */
+      var st = e && e.status;
+      var avant = /aucune session|configuration absente/.test(String(e && e.message));
+      r = st === 413 ? { resultat: 'trop_long' } : ((st && st < 500) || avant) ? { resultat: 'refus_fonction', erreur: e.message } : { resultat: 'incertain' };
+    }
+    EN_VOL = false;
+    r = r || {};
+    if (r.resultat === 'parti') return { ok: true, de: r.de, copie: r.copie, mot: 'Mail envoyé depuis ' + r.de + (r.copie ? ', avec une copie dans ta boîte.' : '.') };
+    var mot = 'Pas parti : ';
+    if (r.resultat === 'refus') {
+      if (BOITE) BOITE.etat = 'reconnecter';
+      mot += 'ta boîte a refusé le mot de passe (il a peut-être changé). Rebranche-la dans Mes réglages, onglet Mes envois.';
+    } else if (r.resultat === 'injoignable') mot += 'le serveur de ta boîte ne répond pas. Réessaie dans un moment.';
+    else if (r.resultat === 'destinataire') mot += 'ta boîte refuse cette adresse. Vérifie-la.';
+    else if (r.resultat === 'passager') mot += 'ta boîte est occupée. Réessaie dans un moment.';
+    else if (r.resultat === 'trop_long') mot += 'ce mail est trop long pour partir du bureau.';
+    else if (r.resultat === 'refus_fonction') mot += (r.erreur === 'aucune session' ? 'ta session a expiré, reconnecte-toi.' : (r.erreur || 'le bureau a refusé l’envoi.'));
+    else if (r.resultat === 'incertain') return { ok: false, resultat: 'incertain',
+      mot: 'Peut-être parti : la réponse de ta boîte n’est pas arrivée. Regarde ton dossier Envoyés avant de le renvoyer.' };
+    else if (r.resultat === 'plafond') mot += r.erreur;
+    else if (r.resultat === 'pas_branchee') { charger(); mot += 'ta boîte n’est plus branchée.'; }
+    else mot += 'le bureau n’a pas pu l’envoyer' + (r.code_smtp ? ' (code ' + r.code_smtp + ')' : '') + '.';
+    return { ok: false, resultat: r.resultat || 'erreur', mot: mot + ' Ton texte est gardé : tu peux aussi l’ouvrir dans ta messagerie.' };
+  }
+  /* La boite se lit des que le bureau est connu, pas seulement a l'ouverture des reglages : le
+     premier redacteur ouvert doit savoir s'il peut envoyer. */
+  function lireTot() { if (bureau() && !LU) charger(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lireTot); else lireTot();
+  document.addEventListener('bdv:bureau', lireTot);
+
+  window.BdvBoite = { prete: prete, adresse: function () { return BOITE ? BOITE.adresse : ''; }, envoyer: envoyer, charger: charger,
+    _etat: function () { return { BOITE: BOITE, LU: LU, ABSENTE: ABSENTE, FOURN: FOURN, MDP: MDP }; } };
 })();

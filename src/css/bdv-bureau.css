@@ -6947,3 +6947,12 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque .bdvb-mur p{ margin:0; }
 .bdv-coque .bdvb-etat > .bdvr-chk{ margin-bottom:var(--bdv-e-4); }
 .bdv-coque .bdvb-fourn a{ color:var(--bdv-accent); }
+
+/* -- 38 ter. ENVOYER DEPUIS MA BOITE, lot 77 (07/10/2026). Le resultat prend la place des
+   boutons ; sous 700 px, « Envoyer » est seul sur sa ligne, loin du repli (vigneron). */
+.bdv-coque .aff-redac__resultat{ flex-basis:100%; margin:0; font-weight:600; color:var(--bdv-encre-1); }
+@media (max-width: 700px){
+  .bdv-coque .aff-redac__gestes .aff-redac__envoyer{ flex-basis:100%; margin-bottom:var(--bdv-e-2); }
+}
+.bdv-coque .aff-redac__resultat--echec{ margin:0 0 var(--bdv-e-2); }
+.bdv-coque .aff-redac__resultat--echec::before{ content:"!\00a0"; color:var(--bdv-alerte); }

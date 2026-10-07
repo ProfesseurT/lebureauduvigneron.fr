@@ -14,6 +14,21 @@ trois jours. Ne pas s'en étonner en relisant.
 
 
 
+
+## 07/10/2026, lot 77 construit : envoyer depuis sa boite
+
+Premier essai reel du lot 76 par Ted : sa boite Gmail branchee en 39 secondes, code juste du
+premier coup. Le lot 77 fait partir les mails des deux redacteurs (affaire, fiche client) par
+cette boite, d'un clic qui vaut validation, avec « De : » et « A : » dits avant. Parti, le mail
+est note dans l'historique ; pas parti, la messagerie prend le relais ; doute (coupure pendant
+l'envoi), le bureau dit de regarder Envoyes au lieu d'inviter a renvoyer.
+
+Conseil : vigneron (orange : pas de « De : », second envoi possible d'un clic, double note ;
+corrige, vert) ; verificateur de securite (orange : mail long bloque a 4 000 signes, boite
+passee a « reconnecter » sur un incident, double envoi si le journal echoue, « incertain » jamais
+declenche ; corrige, vert). Aucune injection d'en-tete ni envoi a plusieurs destinataires possible
+(essais sur un faux serveur SMTP).
+
 ## 07/10/2026, lot 76 construit : brancher sa boite
 
 Dans « Mes envois », « D'ou partent tes mails » : ma messagerie (defaut) ou le bureau envoie
@@ -34,6 +49,10 @@ pas documente.
 Conseil : vigneron empathique (orange, orange, puis vert) ; verificateur de securite (orange :
 le champ serveur permettait de viser un serveur interne ; corrige, plus l'empreinte salee, le
 verrou du plafond et le maitre seul pour voir les boites ; puis vert).
+
+Mis en production le meme soir : SQL passe par Ted (droits verifies : ni `secret_id` ni
+`code_hash` lisibles, `boite_ranger` interdit au navigateur), commit fb65af8, fonction `boite`
+deployee en version 1 depuis le fichier commite (verify_jwt = true).
 
 ## 07/10/2026, lot 75 construit : l'onglet « Mes envois » et la signature
 

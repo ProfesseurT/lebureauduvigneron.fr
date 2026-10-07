@@ -8541,3 +8541,30 @@ dessin de la coque.
   capture ; avec une adresse Outlook le choix B reste coche ; `banc:signature` echoue parfois
   sous la charge de `verif` (« la fonction tombe »), vert seul.
 
+### LOT 77 : ENVOYER DEPUIS SA BOITE (07/10/2026)
+
+- **SQL `supabase/lot77-envoi.sql`, APRES 76, PUIS push, PUIS redeploiement de `boite`.** Trois
+  fonctions, cle de service SEULE : `boite_envoi_permis()` (200 par jour et par personne, verrou),
+  `boite_pour_envoi()` (lit le mot de passe dans Vault, seulement boite branchee ET utilisee),
+  `boite_reconnecter()`. `boite_envois` ne garde que personne, bureau et heure, deux jours.
+- **Fonction `boite`, action `envoyer`** : l'expediteur vient de la BASE, jamais de la requete ;
+  un seul destinataire (`to: { address }`, ADRESSE refuse ()<>,;:"[]\) ; copie a soi en cci si
+  cochee ; plafond AVANT le serveur. `verify()` d'abord (connexion + mot de passe : une erreur
+  la prouve que rien n'est parti), puis `sendMail` : une coupure pendant l'envoi = « incertain »,
+  jamais « reessaie ». Seuls 530/534/535 passent la boite a « reconnecter » (un 454 est passager).
+  Requete jusqu'a 25 000 signes pour `envoyer`.
+- **L'ecran** : `BdvBoite.prete()` / `.envoyer()` (bdv-boite.js, lue des l'ouverture, evenement
+  `bdv:boite`). Redacteur d'une affaire et fiche client : « De : ta boite » sous « A : »,
+  « Envoyer depuis ma boite » (plein), la messagerie en repli. Le clic EST la validation. Parti :
+  note au journal par le meme chemin que « Considere comme envoye », et le resultat prend la place
+  des boutons (plus de second envoi ni de double note ; « Ecrire un autre mail » les rend).
+  Echec : dit a la place du bouton, la messagerie passe en plein. « Incertain » : pas de bouton
+  d'envoi, « regarde ton dossier Envoyes ». La case du rappel est au-dessus des boutons.
+- Au passage : le formulaire de l'affaire suit le rappel pose par un mail (avant, « Enregistrer »
+  remettait l'ancien), et « Rappel pose le 14 oct.. » n'a plus son double point.
+- Garde : banc SQL `supabase/banc-lot77-envoi.sql` (12), `npm run banc:boite` (61), capture
+  `scripts/cap-envoi77.mjs` (ECHEC=1 pour l'echec). Conseil : vigneron vert, verificateur vert.
+- Ouvert : deux onglets peuvent envoyer le meme mail (verrou par onglet seulement) ; une session
+  volee enverrait 200 mails par jour depuis la vraie boite (plafond seul) ; texte simple, sans
+  logo (lot 78).
+

@@ -98,7 +98,7 @@ console.log('\n== 2. Le bureau envoie pour moi : reconnaitre, tester, le code ==
   choisir(w, 'bdvbBureau'); await pause(60);
   dit(!d.getElementById('bdvbForm').hidden, 'le formulaire s\'ouvre');
   dit(d.getElementById('bdvbAdresse').value === 'julien@gmail.com', 'l\'adresse du compte, a defaut');
-  dit(/prochaine mise à jour/.test(d.getElementById('bdvsEtat').textContent), 'la phrase d\'etat du haut dit, AVANT le mot de passe, que le bureau n\'envoie pas encore');
+  dit(/tant qu’elle ne l’est pas, ta messagerie ouvre le mail/.test(d.getElementById('bdvsEtat').textContent), 'la phrase d\'etat du haut dit, AVANT le mot de passe, que la messagerie sert tant que la boite n\'est pas branchee');
   dit(/seulement avec « Tester et brancher »/.test(d.getElementById('bdvbMdpAide').textContent), 'le mot de passe ne part qu\'avec « Tester et brancher », et l\'ecran le dit');
   dit(!!d.querySelector('#bdvbFourn a[href="https://myaccount.google.com/apppasswords"][target="_blank"]'), 'la page Google se touche, elle ne se retape pas');
   dit(/Gmail/.test(d.getElementById('bdvbFourn').textContent) && /application/.test(d.getElementById('bdvbFourn').textContent), 'le fournisseur est reconnu, et le mot de passe a donner est dit');
@@ -120,7 +120,7 @@ console.log('\n== 2. Le bureau envoie pour moi : reconnaitre, tester, le code ==
   d.getElementById('bdvbCodeI').value = '654 321';
   clic(w, 'bdvbBrancher'); await pause(80);
   dit(/est branchée/.test(d.getElementById('bdvbEtat').textContent), 'le bon code branche la boite');
-  dit(/prochaine mise à jour/.test(d.getElementById('bdvsEtat').textContent), 'et l\'ecran dit que l\'envoi par le bureau n\'est pas encore la');
+  dit(/Tes mails partent de ta boîte julien@gmail\.com/.test(d.getElementById('bdvsEtat').textContent) && /ta messagerie prend le relais/.test(d.getElementById('bdvsEtat').textContent), 'branchee : la phrase d\'etat dit d\'ou partent les mails, et le relais');
   dit(w.BdvBoite._etat().MDP === '', 'branchee, le mot de passe a quitte la memoire de la page');
   dit(d.getElementById('bdvbForm').hidden && d.getElementById('bdvbCode').hidden, 'branchee : ni formulaire ni code');
   dit(d.getElementById('bdvbCopie').checked, 'la copie a soi est cochee d\'office');
@@ -173,7 +173,8 @@ console.log('\n== 4. Retirer, revenir a la messagerie, SQL absent ==');
 
 console.log('\n== 5. La fonction Edge, la page, la RGPD ==');
 {
-  const f = lire('supabase/functions/boite/index.ts');
+  const tout = lire('supabase/functions/boite/index.ts');
+  const f = tout.slice(tout.indexOf("if (action !== 'tester')"));
   dit(f.indexOf("rpc('boite_essai_permis'") > 0 && f.indexOf("rpc('boite_essai_permis'") < f.indexOf('createTransport'), 'le plafond est demande AVANT le serveur de mail');
   dit(/from: adresse, to: adresse,/.test(f) && !/to: corps/.test(f), 'l\'essai n\'ecrit qu\'a l\'adresse branchee (aucun relais)');
   dit(f.indexOf("rpc('boite_ranger'") > f.indexOf('sendMail'), 'le mot de passe n\'est range qu\'APRES un envoi accepte');
@@ -188,6 +189,49 @@ console.log('\n== 5. La fonction Edge, la page, la RGPD ==');
   }
   const r = lire('src/rgpd.njk');
   dit(/Vault/.test(r) && /chiffré/.test(r) && /Retirer ma boîte/.test(r), 'la page RGPD dit ce qu\'on garde de la boite, et comment l\'effacer');
+}
+
+console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
+{
+  const boite = { adresse: 'julien@gmail.com', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: '2026-10-07T10:00:00Z' };
+  const { w, fonctions } = monter({ boite });
+  await pause(80);
+  dit(w.BdvBoite.prete(), 'une boite branchee et utilisee est prete');
+  const appel = w.BdvCompte.fonction;
+  w.BdvCompte.fonction = (nom, c) => { fonctions.push({ nom, c }); return Promise.resolve(c.action === 'envoyer' ? { resultat: 'parti', de: 'julien@gmail.com', copie: true } : {}); };
+  const r1 = await w.BdvBoite.envoyer({ a: 'cave@exemple.fr', sujet: 'Objet', texte: 'Texte' });
+  const e = fonctions.filter(x => x.c.action === 'envoyer').pop();
+  dit(r1.ok && /copie/.test(r1.mot) && e.c.bureau === B && e.c.adresse === 'cave@exemple.fr', 'l\'envoi nomme son bureau et son destinataire, et dit la copie');
+  dit(!('de' in e.c) && !('from' in e.c), 'l\'expediteur n\'est jamais demande au navigateur (la base le lit)');
+  w.BdvCompte.fonction = () => Promise.resolve({ resultat: 'refus' });
+  const r2 = await w.BdvBoite.envoyer({ a: 'cave@exemple.fr', sujet: 'Objet', texte: 'Texte' });
+  dit(!r2.ok && /Rebranche-la/.test(r2.mot) && /messagerie/.test(r2.mot), 'mot de passe refuse : rien n\'est perdu, la messagerie est proposee');
+  dit(!w.BdvBoite.prete(), 'et la boite n\'est plus prete : le redacteur repasse par la messagerie');
+  w.BdvCompte.fonction = () => Promise.reject(new Error('reseau'));
+  w.BdvBoite._etat().BOITE.etat = 'branchee';
+  const r3 = await w.BdvBoite.envoyer({ a: 'cave@exemple.fr', sujet: 'Objet', texte: 'Texte' });
+  dit(r3.resultat === 'incertain' && /Envoyés avant de le renvoyer/.test(r3.mot), 'pas de reponse : « peut-etre parti », on ne pousse pas a renvoyer');
+  w.BdvCompte.fonction = appel;
+}
+{
+  const { w } = monter({ boite: { adresse: 'j@gmail.com', etat: 'branchee', utiliser: false } });
+  await pause(80);
+  dit(!w.BdvBoite.prete(), '« ma messagerie ouvre le mail » choisi : la boite ne sert pas');
+}
+{
+  const tout = lire('supabase/functions/boite/index.ts');
+  const env = tout.slice(tout.indexOf('async function envoyer('), tout.indexOf('Deno.serve('));
+  dit(env.indexOf("rpc('boite_envoi_permis'") > 0 && env.indexOf("rpc('boite_envoi_permis'") < env.indexOf('createTransport'), 'envoyer : le plafond du jour avant le serveur de mail');
+  dit(/from: b\.adresse, to: \{ name: '', address: a \},/.test(env) && /b\.copie_a_soi && a !== b\.adresse \? \{ bcc: b\.adresse \}/.test(env), 'envoyer : l\'expediteur vient de la base, la copie va a soi seulement');
+  dit(/host: cible,/.test(env) && /rpc\('boite_reconnecter'/.test(env) && !/err\.message/.test(env), 'envoyer : adresse publique, boite a reconnecter si le mot de passe est refuse, aucun message du serveur renvoye');
+  dit(!/err\.code === 'EAUTH' \|\| rc === 535/.test(env) && /if \(rc === 535 \|\| rc === 534 \|\| rc === 530\) \{\s*try \{ await rpc\('boite_reconnecter'/.test(env), 'seul un refus franc (530, 534, 535) passe la boite a reconnecter, pas un incident');
+  dit(/\(action === 'envoyer' \? 25000 : 4000\)/.test(tout), 'un mail long (25 000 signes) peut partir');
+  dit(/ADRESSE = \/\^\[\^@\\s\(\)<>,;:/.test(tout), 'une adresse ne porte ni parenthese, ni chevron, ni virgule : celle controlee est celle qui part');
+  const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
+  dit(/data-aff="redacEnvoyer">Envoyer depuis ma boîte/.test(aff) && /await redacEnvoye\(a, b, \{ parti: res\.mot \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
+  dit(/r\.parti = true;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');
+  dit(/De : <b>' \+ esc\(BdvBoite\.adresse\(\)\)/.test(aff) && /De : <b>\$\{esc\(BdvBoite\.adresse\(\)\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
+  dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">Envoyer depuis ma boîte/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');
 }
 
 console.log('\n' + (ko ? 'BANC DE LA BOITE : ' + ko + ' ECHEC(S) sur ' + (ok + ko) : 'BANC DE LA BOITE : ' + ok + ' controles, 0 echec'));

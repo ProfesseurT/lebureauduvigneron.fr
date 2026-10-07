@@ -2947,6 +2947,26 @@ function messageEnvoye(btn){
   deplierSuivi();
   const b=el('suiviBloc');if(b)b.scrollIntoView({block:'start'});
 }
+/* ENVOYER DEPUIS MA BOITE, lot 77. La boite branchee (Mes reglages, Mes envois) envoie le
+   message d'un clic : ce clic est la validation du vigneron. Parti, il est note au journal
+   du client par le meme chemin que « Considere comme envoye ». Pas parti, rien n'est note,
+   le texte reste, et « Ouvrir dans ma messagerie » est toujours la. */
+function boitePrete(){return !!(window.BdvBoite&&BdvBoite.prete&&BdvBoite.prete());}
+async function envoyerMessage(btn){
+  const z=el('msgZone');if(!z||!z.dataset.mail)return;
+  const sujet=(el('msgSujet')||{}).value||'',texte=(el('msgTexte')||{}).value||'';
+  if(!sujet.trim()&&!texte.trim()){status('error','Écris un objet ou un texte avant d\'envoyer.');return;}
+  btn.disabled=true;btn.textContent='Envoi…';
+  const res=await BdvBoite.envoyer({a:z.dataset.mail,sujet:sujet,texte:texte});
+  /* « Peut-etre parti » : le bouton ne revient pas, on ne pousse pas a renvoyer (lot 77). */
+  if(!res.ok&&res.resultat==='incertain'){btn.textContent='Envoi incertain';status('error',res.mot);return;}
+  btn.disabled=false;btn.textContent='Envoyer depuis ma boîte';
+  if(!res.ok){status('error',res.mot);return;}
+  const noter=[...document.querySelectorAll('#msgZone button')].find(b=>/Considéré comme envoyé/.test(b.textContent));
+  messageEnvoye(noter||btn);
+  btn.disabled=true;btn.textContent='Envoyé';
+  status('success',res.mot+' Noté dans son suivi.');
+}
 function copierMessage(btn){
   const ta=el('msgTexte');if(!ta)return;
   const fini=ok=>{btn.textContent=ok?'Copié':'Sélectionne et copie';setTimeout(()=>{btn.textContent='Copier le texte';},1800);};
@@ -2972,11 +2992,13 @@ function messageHTML(f,motif){
     <label class="msg__lbl">Texte, modifiable avant envoi</label>
     <textarea class="msg__texte" id="msgTexte" rows="11" aria-label="Texte du message, modifiable avant envoi" oninput="majLienMail()">${esc(texte)}</textarea>
     <div class="fiche__actions">
-      ${mail?`<a class="btn btn--primary btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
+      ${mail&&boitePrete()?`<button class="btn btn--primary btn--sm" id="msgEnvoyer" onclick="envoyerMessage(this)">Envoyer depuis ma boîte</button>`:''}
+      ${mail?`<a class="btn ${boitePrete()?'btn--ghost':'btn--primary'} btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
       <button class="btn btn--ghost btn--sm" onclick="copierMessage(this)">Copier le texte</button>
       ${f.tels.length?`<a class="btn btn--ghost btn--sm" href="tel:${esc(f.tels[0].appel)}">Appeler ${esc(f.tels[0].affiche)}</a>`:''}
       <button class="btn btn--ghost btn--sm" onclick="messageEnvoye(this)">Considéré comme envoyé</button>
     </div>
+    ${mail&&boitePrete()?`<p class="note">De : <b>${esc(BdvBoite.adresse())}</b>, ta boîte branchée. À : <b>${esc(mail)}</b>.</p>`:''}
     ${mail?'':'<p class="note">Pas d\'adresse e-mail pour ce client : copie le texte ou appelle-le.</p>'}
   </div>`;
 }
