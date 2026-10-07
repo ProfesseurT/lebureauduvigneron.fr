@@ -218,6 +218,8 @@
 .bdv-ventes .fil__titre::after{content:" ▸";color:var(--bdv-encre-4);font-weight:400}
 .bdv-ventes details[open]>.fil__s .fil__titre::after{content:" ▾"}
 .bdv-ventes .fil__qui{font-weight:400;color:var(--bdv-encre-3)}
+/* LOT 74 : un mail ecrit depuis une affaire dit de quelle affaire il vient. */
+.bdv-ventes .fil__aff{font-weight:400;color:var(--bdv-encre-3)}
 .bdv-ventes .fil__apercu{grid-column:2 / -1;color:var(--bdv-encre-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bdv-ventes details[open]>.fil__s .fil__apercu{display:none}
 .bdv-ventes .fil__txt{margin:0 0 var(--bdv-e-3) 28px;padding:var(--bdv-e-3) var(--bdv-e-4);background:var(--bdv-surface-2);

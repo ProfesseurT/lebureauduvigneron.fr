@@ -12,6 +12,16 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/10/2026, lot 74 : la fiche client montre les mails de ses affaires
+
+Choix de Ted après le lot 73. Un mail écrit depuis une affaire allait dans le journal de
+l'affaire et n'apparaissait pas dans la fiche du client : deux historiques pour un même client.
+La fiche lit maintenant, à chaque ouverture, le journal des affaires du client (son numéro, ou
+une piste devenue ce client), closes comprises, et le mêle à son fil par date, avec le nom de
+l'affaire. Rien n'est recopié, pas de SQL. Une lecture ratée se dit.
+
+---
+
 ## 07/10/2026, lot 73 : six mails de plus dans les affaires
 
 Premier contact, demande pour un événement, proposer un rendez-vous, réponse sur le prix, merci

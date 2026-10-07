@@ -3062,6 +3062,8 @@ function ouvrirFiche(id,motif){
   if(!modeTiroir()){ const btn=m.querySelector('.modale__close'); if(btn)btn.focus(); }
   majLienMail();   // le lien de messagerie se construit a partir des champs affiches
   reprendreBrouillon(id);   // APRES majLienMail : le brouillon refait le lien s'il reprend le message
+  /* LOT 74 : relu a chaque ouverture (un mail vient peut-etre d'etre note dans l'affaire). */
+  lireMailsAffaires(id).catch(function(){});
 }
 /* ======================= LE BROUILLON DE LA FICHE, 11/09/2026 =======================
    Ecrit le jour ou le bureau est devenu une application de telephone, et c'est le seul
@@ -3841,9 +3843,48 @@ function suiviCorps(f,s){
    conseille d'en faire. La colonne du suivi garde ce qui ECRIT (rappel, saisie, etiquettes).
    `redessinerSuivi()` repeint AUSSI `#ficheHist` : sans ca, une note enregistree
    n'apparaitrait qu'a la reouverture de la fiche. */
+/* ---- LES MAILS DE SES AFFAIRES, LOT 74 (07/10/2026). ----
+   Un mail ecrit depuis une affaire va dans le journal de l'AFFAIRE (`affaire_echanges`,
+   choix A du lot 72), pas dans `echanges`. Sans ce qui suit, la fiche d'un client ignorait
+   le devis envoye, la relance et le merci : deux historiques pour un meme client. On LIT ce
+   journal pour les affaires du client (son numero, ou une piste devenue ce client, la regle
+   de `duClient`), closes comprises, et on le MELE au fil par date. Rien n'est recopie.
+   undefined : pas encore lu ; null : lecture ratee (le fil le dit) ; [] : lu.
+   Table absente (SQL du lot 72 pas passe) : [], le fil se tait. */
+const MAILS_AFF={};
+function lireMailsAffaires(id){
+  const B=window.BdvCompte, bu=B&&B.monBureau&&B.monBureau();
+  if(!B||!B.api||!bu||id==null)return Promise.resolve();
+  const enc=encodeURIComponent, cle=String(id), b='&bureau=eq.'+enc(bu);
+  const absente=e=>!!(e&&e.status===404)||/PGRST205|42P01/.test(String((e&&(e.code||''))+' '+((e&&e.message)||'')));
+  return B.api('/pistes?select=piste_id'+b+'&client_id=eq.'+enc(cle))
+    .then(function(pi){
+      const ps=(Array.isArray(pi)?pi:[]).map(x=>x.piste_id).filter(Boolean);
+      const ou='client_id.eq.'+cle.replace(/[,()]/g,'')+(ps.length?',piste_id.in.('+ps.join(',')+')':'');
+      return B.api('/affaires?select=affaire_id,titre'+b+'&or=('+enc(ou)+')&limit=200');
+    })
+    .then(function(af){
+      af=Array.isArray(af)?af:[];
+      if(!af.length)return [];
+      const titres={};af.forEach(a=>{titres[a.affaire_id]=a.titre||'';});
+      return B.api('/affaire_echanges?select=*'+b+'&affaire_id=in.('+af.map(a=>a.affaire_id).join(',')+')&order=le.desc&limit=200')
+        .then(l=>(Array.isArray(l)?l:[]).map(function(x){
+          const texte=[x.sujet,x.corps].filter(v=>v&&String(v).trim()).join('\n\n');
+          return {echange_id:'aff:'+x.echange_id,le:x.le,cree_par:x.cree_par,canal:x.type==='email'?'email':(x.canal||'autre'),
+            type:x.type,resume:x.type==='email'&&x.sujet?'Message envoyé : '+texte:texte,affaire:titres[x.affaire_id]||'une affaire'};
+        }),e=>absente(e)?[]:Promise.reject(e));
+    })
+    .then(function(l){MAILS_AFF[cle]=l;},function(){MAILS_AFF[cle]=null;})
+    .then(function(){
+      if(String(FICHE_ID)!==cle)return;
+      const f=ficheClient(FICHE_ID), hi=el('ficheHist');
+      if(f&&hi)hi.innerHTML=filCorps(f,CRM[FICHE_ID]||{});
+    });
+}
 function filCorps(f,s){
   const arg=JSON.stringify(String(f.id)).replace(/"/g,'&quot;');
-  const ech=echDe(f.id);
+  const affs=MAILS_AFF[String(f.id)];
+  const ech=echDe(f.id).concat(Array.isArray(affs)?affs:[]).sort((a,b)=>String(b.le).localeCompare(String(a.le)));
   /* ---- QUI A ECRIT QUOI, 14/09/2026. ----
      `quiEcrit` se tait dans un bureau seul et sur mes propres lignes : le nom
      n'apparait donc que la ou il explique quelque chose, c'est-a-dire exactement la
@@ -3886,7 +3927,7 @@ function filCorps(f,s){
       return `<details class="fil__l">
         <summary class="fil__s">
           <span class="fil__ico" aria-hidden="true">${t.ico}</span>
-          <span class="fil__titre">${esc(t.label)}${qui?' <span class="fil__qui">par '+esc(qui)+'</span>':''}</span>
+          <span class="fil__titre">${esc(t.label)}${qui?' <span class="fil__qui">par '+esc(qui)+'</span>':''}${e.affaire?' <span class="fil__aff">affaire « '+esc(e.affaire)+' »</span>':''}</span>
           <span class="fil__quand">${esc(quand)}</span>
           ${apercu?`<span class="fil__apercu">${esc(apercu)}</span>`:''}
         </summary>
@@ -3895,6 +3936,7 @@ function filCorps(f,s){
     }).join('');
     if(ech.length>40)h+=`<p class="fil__vide">${plur(ech.length-40,'entrée')} plus ancienne(s) non affichée(s).</p>`;
   }
+  if(affs===null)h+=`<p class="fil__vide">Les mails écrits depuis ses affaires n’ont pas pu être lus.</p>`;
   h+=`</div>`;
   return h;
 }

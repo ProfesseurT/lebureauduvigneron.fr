@@ -72,6 +72,7 @@ const test = `
      gabarit, et la premiere le refermerait. Paye en l'ecrivant.) */
   SORTIE.fiche = ficheHTML(ficheClient('C1'), 'recul');
   window.__SORTIE = SORTIE;
+  window.__echPose = function (id, l) { ECHANGES[id] = l; };
 `;
 
 try {
@@ -116,5 +117,33 @@ t('le prix moyen du domaine est un nombre lisible',
   /* « domaine 10,72 € » est devenu « ta moyenne 10,72 € » le 25/09/2026 (revue des libelles). */
   !S.fiche.includes('moyenne NaN') && /ta moyenne \d/.test(texteFiche));
 
-console.log('\n== VERDICT ==\n  ' + (ko ? ko + ' echec(s)' : '16 controles passes, 0 en echec'));
+/* LOT 74 (07/10/2026) : LES MAILS DE SES AFFAIRES DANS LE FIL DE LA FICHE. */
+console.log('== La fiche client, les mails de ses affaires ==');
+{
+  const REQ = [];
+  w.__REQ = REQ;
+  w.BdvCompte = { monId: () => 'u1', monBureau: () => 'b1', api: async (c) => {
+    REQ.push(c);
+    if (/^\/pistes\?/.test(c)) return [{ piste_id: 'p9' }];
+    if (/^\/affaires\?/.test(c)) return [{ affaire_id: 'a1', titre: 'Cave du Port' }, { affaire_id: 'a2', titre: 'Salon' }];
+    if (/^\/affaire_echanges\?/.test(c)) return [{ echange_id: 'x1', affaire_id: 'a1', le: '2099-01-02T10:00:00Z', type: 'email', sujet: 'Devis D-2026-0012', corps: 'Bonjour,\n\nVoici le devis.', cree_par: 'u1' }];
+    return [];
+  } };
+  w.__echPose('C1', [{ echange_id: 'e1', le: '2026-01-01T10:00:00Z', canal: 'appel', resume: 'Appel du printemps' }]);
+  await w.eval('lireMailsAffaires("C1")');
+  const fil = w.eval('filCorps(ficheClient("C1"), {})');
+  t('les affaires du client sont lues par son numero ET ses pistes devenues clientes, pour ce bureau',
+    REQ.some(c => /^\/pistes\?.*bureau=eq\.b1.*client_id=eq\.C1/.test(c)) && REQ.some(c => /^\/affaires\?/.test(c) && /bureau=eq\.b1/.test(c) && /client_id\.eq\.C1/.test(decodeURIComponent(c)) && /piste_id\.in\.\(p9\)/.test(decodeURIComponent(c))));
+  t('le journal est lu pour ses affaires, closes comprises (aucun filtre sur l\'issue)', REQ.some(c => /^\/affaire_echanges\?.*affaire_id=in\.\(a1,a2\)/.test(c)) && !REQ.some(c => /issue/.test(c)));
+  t('le mail de l\'affaire est dans le fil, avec son objet, son texte et son affaire', /Message envoyé : Devis D-2026-0012/.test(fil) && /Voici le devis/.test(fil) && /affaire « Cave du Port »/.test(fil));
+  t('il est MELE au fil de la fiche, par date (le plus recent d\'abord)', fil.indexOf('Cave du Port') > -1 && fil.indexOf('Appel du printemps') > fil.indexOf('Cave du Port'));
+  w.BdvCompte.api = async (c) => { if (/^\/pistes/.test(c)) { const e = new Error('panne'); e.status = 500; throw e; } return []; };
+  await w.eval('lireMailsAffaires("C1")');
+  t('une lecture ratee se dit, elle ne se tait pas', /n’ont pas pu être lus/.test(w.eval('filCorps(ficheClient("C1"), {})')));
+  w.BdvCompte.api = async (c) => { if (/^\/affaire_echanges/.test(c)) { const e = new Error('absente'); e.status = 404; e.code = 'PGRST205'; throw e; } if (/^\/affaires/.test(c)) return [{ affaire_id: 'a1', titre: 'x' }]; return []; };
+  await w.eval('lireMailsAffaires("C1")');
+  t('SQL du lot 72 pas passe : le fil se tait, sans message d\'erreur', !/pas pu être lus/.test(w.eval('filCorps(ficheClient("C1"), {})')));
+}
+
+console.log('\n== VERDICT ==\n  ' + (ko ? ko + ' echec(s)' : '22 controles passes, 0 en echec'));
 process.exit(ko ? 1 : 0);

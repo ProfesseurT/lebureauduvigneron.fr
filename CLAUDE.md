@@ -8399,7 +8399,7 @@ dessin de la coque.
 - **Arbitrage de Ted (choix A)** : les mails d'une affaire vont dans CE journal, jamais dans
   `echanges` (une piste n'a pas de numero Vitisoft, et « Vider la base » l'emporterait).
   L'historique d'une affaire client MELE ce journal et les echanges de sa fiche, par date.
-  La fiche client, elle, ne montre pas encore les mails de ses affaires.
+  ~~La fiche client, elle, ne montre pas encore les mails de ses affaires.~~ FAIT AU LOT 74.
 - **Les textes vivent dans `src/js/bdv-mails-affaire.js`**, PUR (ni DOM, ni reseau), charge par
   bdv-affaires.js a la premiere ouverture d'un redacteur. `choisir(ctx)` rend le modele et sa
   raison ; `blocs()` dit les blocs, grises avec la raison et le geste (`lien`, `envoi`). Le
@@ -8457,3 +8457,21 @@ dessin de la coque.
   `Claude outputs/lot73/`.
 - Ouvert a Ted : signer le texte, nommer le vin de l'affaire ; un bloc de saison au premier
   contact (« avant vos commandes de fin d'annee »), idee de l'expert, non faite.
+
+### LOT 74 : LA FICHE CLIENT MONTRE LES MAILS DE SES AFFAIRES (07/10/2026)
+
+- **Pas de SQL.** `bdv-ecrans.js` (`lireMailsAffaires()`, `MAILS_AFF`, `filCorps()`), une regle
+  `.fil__aff` dans `bdv-ecrans.css`.
+- A chaque ouverture de la fiche, on LIT le journal `affaire_echanges` des affaires du client :
+  son numero (`affaires.client_id`) OU une piste devenue ce client (`pistes.client_id`), la
+  regle de `duClient`, **closes comprises** (le merci part sur une affaire gagnee). Rien n'est
+  recopie dans `echanges`. Le fil MELE les deux journaux par date ; une entree d'affaire dit
+  « affaire « Titre » » a cote de son auteur. Un mail se lit « Message envoye : objet », puis
+  le texte, comme un mail de la fiche.
+- Trois etats : pas lu, lu, illisible (« Les mails ecrits depuis ses affaires n'ont pas pu etre
+  lus. »). Table absente (SQL du lot 72 pas passe) : le fil se tait. Toute requete nomme son
+  bureau.
+- Garde : `banc:registre`, section « La fiche client, les mails de ses affaires » (6 controles,
+  mutation du tri tuee).
+- Signale : `npm run banc` (banc-bureau) echoue au hasard sur l'ordre de chargement du moteur
+  sous la charge du pont, sur HEAD comme sur ce lot ; relancer.
