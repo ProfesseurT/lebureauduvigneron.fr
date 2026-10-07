@@ -12,6 +12,22 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/10/2026, lot 73 : six mails de plus dans les affaires
+
+Premier contact, demande pour un événement, proposer un rendez-vous, réponse sur le prix, merci
+pour la commande, pas pour cette fois. Conseil avant (expert commercial, vigneron) : un seul geste
+par mail, pas de reproche caché (« sans raison », « déranger » retirés), l'article devant le nom du
+domaine, et surtout « un mail qui promet une suite pose son rappel ». D'où un rappel décidé par le
+module des textes, et, sur une affaire close (qui n'a plus de rappel), une tâche datée dans Mes
+tâches : le merci se suit une semaine après la livraison, le « prochain millésime » à six mois.
+Vigneron après : feu orange (rappel du rendez-vous qui tombait après le rendez-vous, premier
+créneau le lendemain, merci sans livraison décoché, « d'EARL », objet « Je clos notre échange »),
+les cinq corrigés. Une affaire close s'écrit maintenant depuis la liste des closes et depuis
+l'avis qui suit la clôture. Pas de SQL. Ouvert à Ted : signature du texte, nom du vin, bloc de
+saison au premier contact.
+
+---
+
 ## 06/10/2026, lot 72 : écrire un mail depuis une affaire
 
 Demande de Ted : un outil de création de mail dans les affaires, sur le modèle de la fiche

@@ -1925,7 +1925,7 @@ titre('Lot 72 : les mails tout faits (textes)');
     M.MODELES.forEach(m => { const c = ctx({ devis: dv() }); tous.push(M.sujet(m.k, c), M.texte(m.k, c, M.blocs(m.k, c).map(b => b.k))); });
     const tx = tous.join('\n');
     t('aucun tiret cadratin, aucun tutoiement, aucun « expire » dans les mails', !/—/.test(tx) && !/(^|[^\p{L}])(tu|ton|ta|tes|toi)(?![\p{L}])/iu.test(tx) && !/expir/i.test(tx));
-    t('deux moments pour un appel, jamais « quand vous voulez »', /mercredi 7 octobre à 10 h ou vendredi 9 octobre à 16 h/.test(tx) && !/quand vous voulez/.test(tx)); }
+    t('deux moments pour un appel, jamais « quand vous voulez »', /jeudi 8 octobre à 10 h ou lundi 12 octobre à 16 h/.test(tx) && !/quand vous voulez/.test(tx)); }
 }
 
 titre('Lot 72 : le redacteur dans le panneau, et le journal de l\'affaire');
@@ -1950,7 +1950,7 @@ titre('Lot 72 : le redacteur dans le panneau, et le journal de l\'affaire');
   R.clic('#affaireModale [data-aff="ecrireMail"]');
   const D = () => R.doc.getElementById('affRedac');
   t('« Ecrire » deplie le redacteur et pose le focus sur le modele', D().open && R.doc.activeElement === D().querySelector('[data-redac="modele"]'));
-  t('le modele propose dit pourquoi', /Proposé : Mail libre, parce que/.test(D().textContent));
+  t('le modele propose dit pourquoi (lot 73 : une piste jamais ecrite, « Premier contact »)', /Proposé : Premier contact, parce que tu ne lui as encore jamais écrit/.test(D().textContent));
   t('les modeles du devis sont grises sans devis, avec la raison', [...D().querySelectorAll('[data-redac="modele"] option[disabled]')].some(o => /pas de devis/.test(o.textContent)));
   const sel = D().querySelector('[data-redac="modele"]');
   sel.value = 'degustation'; sel.dispatchEvent(new R.w.Event('change', { bubbles: true }));
@@ -1962,7 +1962,7 @@ titre('Lot 72 : le redacteur dans le panneau, et le journal de l\'affaire');
   t('taper dans le texte met a jour le lien mailto sans repeindre', /Mon%20texte/.test(href()) && R.doc.activeElement !== null);
   const passage = D().querySelector('[data-redac="bloc"][value="passage"]');
   passage.checked = true; passage.dispatchEvent(new R.w.Event('change', { bubbles: true }));
-  t('cocher un bloc reecrit le texte, et garde le texte retouche de cote', /bienvenu au domaine/.test(ta().value) && !!D().querySelector('[data-aff="redacRevenir"]'));
+  t('cocher un bloc reecrit le texte, et garde le texte retouche de cote', /venir déguster au domaine/.test(ta().value) && !!D().querySelector('[data-aff="redacRevenir"]'));
   R.clic('#affRedac [data-aff="redacRevenir"]');
   t('« Revenir a mon texte » le rend', ta().value === 'Mon texte à moi');
   const tarif = D().querySelector('[data-redac="bloc"][value="tarif"]');
@@ -2048,6 +2048,103 @@ titre('Lot 72 : personne en opposition, et SQL pas encore passe');
   R.clic('#affaireModale [data-aff="ecrireMail"]');
   const D = R.doc.getElementById('affRedac');
   t('SQL du lot 72 pas passe : le redacteur marche, il dit que le mail ne sera pas note', !!D.querySelector('[data-redac="ouvrir"]') && !D.querySelector('[data-aff="redacEnvoye"]') && /pas encore en place/.test(D.textContent));
+}
+
+/* ---------------------------------------------------------------------------
+   LOT 73 (07/10/2026) : SIX MODELES DE PLUS, ET LE RAPPEL DECIDE PAR LE MODULE.
+   --------------------------------------------------------------------------- */
+titre('Lot 73 : les six nouveaux mails (textes)');
+{
+  const X = monter(), M = X.w.BdvMailsAffaire;
+  const dv = (o) => Object.assign({ numero: 'D-2026-0012', version: 1, statut: 'envoye', total_ht_c: 124000, valable_jusqu: '2026-11-05',
+    envoye_le: '2026-10-01', url: 'https://lebureauduvigneron.fr/signer/#' + 'a'.repeat(64), lienEtat: 'jeton' }, o || {});
+  const ctx = (o) => Object.assign({ contact: 'Jean Dupont', domaine: 'Domaine Test', aujourdhui: '2026-10-07', devis: null, journal: [], dernierEchange: null, degustation: null,
+    piste: true, nature: 'caviste', famille: 'conquete', typeNom: 'Caviste', etape: 'Repéré', etape_le: '2026-10-01', issue: 'en_cours', close_le: null, motif: null }, o || {});
+  const acc = (o) => dv(Object.assign({ statut: 'accepte', accepte_le: '2026-10-06', signe_le: '2026-10-06', livraison_mode: 'adresse', livraison_souhaitee: '2026-10-20' }, o || {}));
+  t('une piste jamais ecrite : « Premier contact », raison ecrite', (c => c.k === 'premier_contact' && /jamais écrit/.test(c.raison))(M.choisir(ctx())));
+  t('un client Vitisoft ne recoit pas de « premier contact » (grise, avec la raison)', M.choisir(ctx({ piste: false })).k === 'libre' && /déjà ton client/.test(M.dispo('premier_contact', ctx({ piste: false }))));
+  t('une affaire d\'evenement jamais ecrite : « Une demande pour un evenement »', M.choisir(ctx({ famille: 'evenement' })).k === 'evenement');
+  t('un mariage se dit « votre mariage », dans l\'objet et le texte', (c => /votre mariage/.test(M.sujet('evenement', c)) && /votre mariage/.test(M.texte('evenement', c, M.defauts('evenement', c))))(ctx({ famille: 'evenement', typeNom: 'Mariage' })));
+  t('une etape « Rendez-vous » propose le rendez-vous, une fois', M.choisir(ctx({ etape: 'Rendez-vous', journal: [{ type: 'email', modele: 'premier_contact', le: '2026-09-20' }] })).k === 'rendez_vous'
+    && M.choisir(ctx({ etape: 'Rendez-vous', journal: [{ type: 'email', modele: 'rendez_vous', le: '2026-10-02' }] })).k !== 'rendez_vous');
+  t('un devis signe : « Merci pour la commande », et plus apres le merci', M.choisir(ctx({ devis: acc() })).k === 'merci_commande'
+    && M.choisir(ctx({ devis: acc(), journal: [{ type: 'email', modele: 'merci_commande', le: '2026-10-06' }] })).k !== 'merci_commande');
+  t('le merci ne se propose pas sans devis accepte', !!M.dispo('merci_commande', ctx({ devis: dv() })) && !M.dispo('merci_commande', ctx({ devis: acc() })));
+  t('une affaire perdue : « Pas pour cette fois », une seule fois', M.choisir(ctx({ issue: 'perdue', close_le: '2026-10-07', motif: 'prix' })).k === 'pas_pour_cette_fois'
+    && M.choisir(ctx({ issue: 'perdue', close_le: '2026-10-07', journal: [{ type: 'email', modele: 'pas_pour_cette_fois', le: '2026-10-07' }] })).k === 'libre');
+  t('une affaire gagnee ne propose pas « Pas pour cette fois »', !!M.dispo('pas_pour_cette_fois', ctx({ issue: 'gagnee' })));
+  t('l\'article devant le domaine : « du Domaine », « de la Maison », « de l’EARL »', /pour le compte du Domaine Test\./.test(M.texte('premier_contact', ctx(), []))
+    && /pour le compte de la Maison Roux\./.test(M.texte('premier_contact', ctx({ domaine: 'Maison Roux' }), []))
+    && /pour le compte de l’EARL Dupont\./.test(M.texte('premier_contact', ctx({ domaine: 'EARL Dupont' }), [])));
+  t('premier contact : un seul geste, l\'appel pour convenir des echantillons', (tx => /appeler .* pour convenir d’un moment où vous déposer quelques échantillons\. Dites-moi/.test(tx) && !/simple retour/.test(tx))(M.texte('premier_contact', ctx(), M.defauts('premier_contact', ctx()))));
+  t('premier contact : l\'objet suit les blocs (echantillons pour votre cave, ou degustation)', /^Des échantillons pour votre cave, Domaine Test$/.test(M.sujet('premier_contact', ctx(), ['echantillons', 'appel']))
+    && /^Une dégustation au domaine/.test(M.sujet('premier_contact', ctx(), ['passage'])));
+  t('premier contact : echantillons ET visite, l\'ecran dit « une seule offre »', M.avertir('premier_contact', ctx(), ['echantillons', 'passage'], 10).some(x => /Une seule offre/.test(x)));
+  t('un restaurant : on l\'appelle l\'apres-midi, jamais a 10 h', (tx => /à 15 h ou .* à 16 h/.test(tx) && !/10 h/.test(tx))(M.texte('premier_contact', ctx({ nature: 'restaurant' }), ['appel'])));
+  t('reponse sur le prix : deux offres cochees, l\'ecran dit « une seule offre »', M.avertir('objection_prix', ctx(), ['autre_cuvee', 'quantite'], 10).some(x => /Une seule offre/.test(x)));
+  t('merci : livraison souhaitee reprise, et l\'avis du client demande', (tx => /20 octobre 2026/.test(tx) && /votre avis/.test(tx) && /signé notre devis D-2026-0012/.test(tx))(M.texte('merci_commande', ctx({ devis: acc() }), ['livraison'])));
+  t('merci d\'un devis accepte a la main, en retrait : « votre accord », « retirer au domaine »', (tx => /votre accord/.test(tx) && /retirer au domaine/.test(tx) && !/livraison souhaitée/.test(tx))(M.texte('merci_commande', ctx({ devis: acc({ signe_le: null, livraison_mode: 'retrait' }) }), [])));
+  t('pas pour cette fois, sans reponse : franc, sans reproche', (tx => /je clos le sujet/.test(tx) && !/déranger/.test(tx))(M.texte('pas_pour_cette_fois', ctx({ issue: 'perdue', motif: 'sans_reponse' }), ['millesime'])));
+  { const nouveaux = ['premier_contact', 'evenement', 'rendez_vous', 'objection_prix', 'merci_commande', 'pas_pour_cette_fois'], tous = [];
+    ['prix', 'sans_reponse', 'indisponible', 'fournisseur', 'moment', 'autre', null].forEach(motif => nouveaux.forEach(k => {
+      const c = ctx({ devis: k === 'merci_commande' ? acc() : dv(), motif: motif, issue: k === 'pas_pour_cette_fois' ? 'perdue' : 'en_cours', famille: k === 'evenement' ? 'evenement' : 'conquete' });
+      const bl = M.blocs(k, c).map(b => b.k);
+      tous.push(M.sujet(k, c, bl), M.texte(k, c, bl), M.texte(k, c, M.defauts(k, c)), M.texte(k, c, []));
+    }));
+    const tx = tous.join('\n');
+    t('les six nouveaux mails : aucun tiret cadratin, aucun tutoiement, aucun « expire »', !/—/.test(tx) && !/(^|[^\p{L}])(tu|ton|ta|tes|toi)(?![\p{L}])/iu.test(tx) && !/expir/i.test(tx));
+    t('aucun reproche cache (« sans raison », « deranger »), aucun accord impose (« bienvenu », « desole »)', !/sans raison|déranger|bienvenu|désolé|heureux|ravi/i.test(tx));
+    t('aucune phrase vide ni double espace', !/\n\n\n|  | [.,]/.test(tx)); }
+  t('rendez-vous : premier moment a deux jours ouvres, rappel « Confirmer » la veille', /vendredi 9 octobre à 10 h/.test(M.texte('rendez_vous', ctx(), []))
+    && (r => r && r.titre === 'Confirmer le rendez-vous' && r.iso === '2026-10-08' && r.defaut)(M.rappel('rendez_vous', ctx())));
+  t('premier moment un lundi : le rappel tombe le vendredi, pas le dimanche', M.rappel('rendez_vous', ctx({ aujourdhui: '2026-10-08' })).iso === '2026-10-09');
+  t('merci avec livraison : rappel une semaine apres, coche ; sans livraison : 3 semaines, coche aussi', (r => r.iso === '2026-10-27' && r.defaut)(M.rappel('merci_commande', ctx({ devis: acc() })))
+    && (r => r.iso === '2026-10-28' && r.defaut)(M.rappel('merci_commande', ctx({ devis: acc({ livraison_mode: 'retrait' }) }))));
+  t('pas pour cette fois : la promesse du millesime pose une TACHE (affaire close) ; sans elle, rien', (r => r && r.tache && /millésime/.test(r.titre) && r.iso === '2027-04-07')(M.rappel('pas_pour_cette_fois', ctx({ issue: 'perdue' }), ['millesime']))
+    && M.rappel('pas_pour_cette_fois', ctx({ issue: 'perdue' }), []) === null);
+  t('une affaire close ne se relance pas (premier contact, relance du devis)', M.rappel('premier_contact', ctx({ issue: 'perdue' })) === null && M.rappel('relance_devis', ctx({ issue: 'gagnee', devis: dv() })) === null);
+  t('le rappel d\'une relance de devis porte son numero', /Relancer le devis D-2026-0012/.test(M.rappel('relance_devis', ctx({ devis: dv() })).titre));
+}
+
+titre('Lot 73 : ecrire a une affaire close, le rappel devient une tache');
+{
+  const R = monter(), jour = new Date().toISOString();
+  R.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  R.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Repéré', ordre: 1 }, { bureau: BUREAU, etape_id: 'e2', type_id: 't1', nom: 'Rendez-vous', ordre: 2 });
+  R.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Cave du Port', issue: 'perdue', motif: 'prix', close_le: jour, rappel: null, etape_le: jour },
+                       { bureau: BUREAU, affaire_id: 'a2', type_id: 't1', etape_id: 'e2', piste_id: 'p2', titre: 'Bistrot', issue: 'en_cours', rappel: '2099-01-01', etape_le: jour });
+  R.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', contact_nom: 'Jean Dupont', email: 'cave@port.fr', opposition: false, nature: 'caviste' },
+                     { bureau: BUREAU, piste_id: 'p2', nom: 'Bistrot', email: 'b@x.fr', opposition: false, nature: 'restaurant' });
+  R.base.devis = [];
+  const taches = [];
+  R.w.BdvTaches = Object.assign(R.w.BdvTaches || {}, { ajouter: (titre, le) => { taches.push({ titre, le }); return true; } });
+  await R.w.BdvAffaires.ouvrir();
+  const b = R.doc.querySelector('#affCorps .aff-closes [data-affaire="a1"] [data-aff="ecrireClose"]');
+  t('une affaire close (pas en opposition) a « Lui ecrire » dans la liste des closes', !!b && /Lui écrire/.test(b.textContent));
+  b.click();
+  await attendre(40);
+  const D = () => R.doc.getElementById('affRedac');
+  t('« Lui ecrire » ouvre son panneau sur le redacteur, modele « Pas pour cette fois »', !!D() && D().open && D().querySelector('[data-redac="modele"]').value === 'pas_pour_cette_fois');
+  const cr = D().querySelector('[data-redac="rappel"]');
+  t('la case dit que la promesse du millesime va dans Mes taches, cochee', !!cr && cr.checked && /nouveau millésime dans 6 mois, dans Mes tâches/.test(cr.parentNode.textContent));
+  const avant = R.requetes.filter(q => q.methode === 'PATCH' && /^\/affaires\?/.test(q.chemin)).length;
+  R.clic('#affRedac [data-aff="redacEnvoye"]');
+  await attendre(40);
+  t('« Considere comme envoye » pose une tache datee a 6 mois, sans toucher au rappel de l\'affaire close',
+    taches.length === 1 && /nouveau millésime : Cave du Port/.test(taches[0].titre) && /^\d{4}-\d{2}-\d{2}$/.test(taches[0].le)
+    && R.requetes.filter(q => q.methode === 'PATCH' && /^\/affaires\?/.test(q.chemin)).length === avant && /Tâche posée/.test(D().textContent));
+  t('le mail de fin parti, le redacteur ne repropose pas « Pas pour cette fois »', D().querySelector('[data-redac="modele"]').value === 'libre');
+  const sel = D().querySelector('[data-redac="modele"]');
+  sel.value = 'pas_pour_cette_fois'; sel.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+  const mil = D().querySelector('[data-redac="bloc"][value="millesime"]');
+  mil.checked = false; mil.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+  t('sans la promesse du millesime, plus de case de rappel', !D().querySelector('[data-redac="rappel"]') && !/millésime/.test(D().querySelector('[data-redac="texte"]').value));
+  R.clic('#affaireModale .tmod__x');
+  R.clic('#affCorps [data-affaire="a2"] [data-aff="ouvrir"]');
+  await attendre(40);
+  R.clic('#affaireModale [data-aff="ecrireMail"]');
+  t('etape « Rendez-vous » : le rendez-vous est propose, la case dit « la veille du premier moment »', D().querySelector('[data-redac="modele"]').value === 'rendez_vous'
+    && /confirmer le rendez-vous le .*, la veille du premier moment/.test(D().querySelector('[data-redac="rappel"]').parentNode.textContent));
 }
 
 console.log('\n== VERDICT ==');

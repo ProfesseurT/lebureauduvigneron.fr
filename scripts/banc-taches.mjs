@@ -624,7 +624,9 @@ console.log('\n== 10. La modale d\'une tache ==');
     'et c\'est un <button> : ce qui s\'ouvre a la souris doit s\'ouvrir au clavier');
 
   /* ---- la punaise du panneau porte la meme porte ---- */
-  const p = t.T.punaises().filter(x => String(x.cle).indexOf('tache:') === 0)[0];
+  /* 07/10/2026 : la premiere punaise « tache: » pouvait etre la DRM de la semaine (le 10 du
+     mois) : on prend celle de CETTE tache, par sa cle, sinon le controle dependait du jour. */
+  const p = t.T.punaises().filter(x => String(x.cle) === 'tache:' + tid)[0];
   dit(!!p && p.ouvre === tid,
     'la punaise du panneau ouvre la modale de SA tache', p && p.ouvre);
   dit(!!p && p.href === '/mon-bureau/#taches',

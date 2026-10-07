@@ -33,19 +33,64 @@
      journal: [{ type, modele, le }],   les mails et notes de l'affaire (plus recent d'abord)
      dernierEchange: 'AAAA-MM-JJ…' | null   le dernier echange NOTE (appel, visite…), pas un mail
      degustation: 'AAAA-MM-JJ…' | null      le dernier echange note « echantillon » ou « salon »
+     LOT 73 :
+     piste: true | false,              un nouveau client (pas encore dans Vitisoft)
+     nature: 'caviste'|'restaurant'|'importateur'|'ce'|'particulier'|'autre'|'',  celle de la piste
+     famille: 'conquete'|'evenement'|'client'|'',   la famille du type d'affaire
+     etape: 'Rendez-vous' | '',  etape_le: 'AAAA-MM-JJ' | null,   l'etape en cours, depuis quand
+     issue: 'en_cours'|'gagnee'|'perdue',  close_le: 'AAAA-MM-JJ' | null,  motif: 'prix'|… | null
+     devis (en plus) : accepte_le, signe_le ('AAAA-MM-JJ' | null), livraison_mode, livraison_souhaitee
    }
+
+   LOT 73 (07/10/2026) : six modeles de plus, premier contact, rendez-vous, evenement,
+   reponse sur le prix, merci pour la commande, pas pour cette fois. Et le rappel a poser
+   apres un mail se decide ICI (`rappel()`), plus dans bdv-affaires.js : un seul endroit
+   sait quel mail se relance, et sous quel motif.
    ============================================================================ */
 (function () {
   'use strict';
 
+  /* Dans l'ordre d'une affaire : on se presente, on se voit, on fait gouter, on chiffre,
+     on relance, on remercie ou on se quitte bien. */
   var MODELES = [
-    { k: 'devis', nom: 'Envoi du devis à signer' },
-    { k: 'relance_devis', nom: 'Relance du devis' },
+    { k: 'premier_contact', nom: 'Premier contact' },
+    { k: 'evenement', nom: 'Une demande pour un événement' },
+    { k: 'rendez_vous', nom: 'Proposer un rendez-vous' },
     { k: 'degustation', nom: 'Dégustation, échantillons' },
     { k: 'relance_degustation', nom: 'Relance après la dégustation' },
     { k: 'suite', nom: 'Suite à notre échange' },
+    { k: 'devis', nom: 'Envoi du devis à signer' },
+    { k: 'relance_devis', nom: 'Relance du devis' },
+    { k: 'objection_prix', nom: 'Réponse sur le prix' },
+    { k: 'merci_commande', nom: 'Merci pour la commande' },
+    { k: 'pas_pour_cette_fois', nom: 'Pas pour cette fois' },
     { k: 'libre', nom: 'Mail libre' }
   ];
+  /* Le rappel que propose « Considere comme envoye », par modele : le motif ecrit sur
+     l'affaire, dans combien de jours, et la phrase de la case. Conseil du 07/09/2026 (lot
+     73) : UN MAIL QUI PROMET UNE SUITE POSE SON RAPPEL, sinon le bureau fait promettre au
+     vigneron ce qu'il ne tiendra pas. Le merci et le « pas pour cette fois » sont dans
+     `rappel()` : leur date depend de la livraison ou d'un bloc coche. */
+  var RAPPELS = {
+    premier_contact: ['Relancer le premier contact', 7],
+    evenement: ['Relancer la demande d’événement', 7],
+    rendez_vous: ['Confirmer le rendez-vous', 3],
+    degustation: ['Relancer après la dégustation', 7],
+    relance_degustation: ['Relancer après la dégustation', 7],
+    objection_prix: ['Relancer après sa remarque sur le prix', 7],
+    relance_devis: ['Relancer le devis', 7]
+  };
+  /* « au nom du Domaine X », « de la Maison Y », « de EARL Dupont » : l'article qu'un
+     humain mettrait devant la raison sociale. */
+  var ARTICLES = [[/^(domaine|château|chateau|clos|mas|vignoble|cellier|moulin)\b/i, 'du '], [/^(vignobles|caves)\b/i, 'des '],
+    [/^(maison|cave|famille|cuverie|bergerie)\b/i, 'de la '], [/^(earl|scea|gaec|sarl|sas|sasu|sca|sci|eurl|sa)\b/i, 'de l’'], [/^[aeiouyhéèâ]/i, 'd’']];
+  function deDomaine(dom) {
+    var d = String(dom || '').trim();
+    for (var i = 0; i < ARTICLES.length; i++) if (ARTICLES[i][0].test(d)) return ARTICLES[i][1] + d;
+    return 'de ' + d;
+  }
+  /* Ou finissent les vins, selon la nature de la piste : l'accroche du premier contact. */
+  var PLACE = { caviste: 'dans votre cave', restaurant: 'à votre carte', importateur: 'dans votre catalogue', ce: 'pour votre comité d’entreprise' };
   /* Au-dela, un lien mailto se fait couper par certaines messageries : l'ecran le dit. */
   var MAX_MAILTO = 1800;
   var JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -78,12 +123,16 @@
     while (n > 0) { x = new Date(x.getTime() + 86400000); if (x.getUTCDay() !== 0 && x.getUTCDay() !== 6) n--; }
     return x;
   }
-  function creneaux(aujourdhui) {
-    var d = versDate(aujourdhui) || versDate(new Date().toISOString());
-    var d1 = ouvreApres(d, 1), d2 = ouvreApres(d1, 2);
+  /* Lot 73 : un restaurant est en service a 10 h ; on lui propose l'apres-midi, 15 h ou 16 h.
+     Et le premier moment est a DEUX jours ouvres de l'envoi (vigneron, 07/10/2026) : un mail
+     lu le soir ne doit pas proposer un rendez-vous deja passe. */
+  function premierCreneau(aujourdhui) { return ouvreApres(versDate(aujourdhui) || versDate(new Date().toISOString()), 2); }
+  function creneaux(aujourdhui, nature) {
+    var d1 = premierCreneau(aujourdhui), d2 = ouvreApres(d1, 2), resto = nature === 'restaurant';
     function dit(x, h) { return JOURS[x.getUTCDay()] + ' ' + (x.getUTCDate() === 1 ? '1er' : x.getUTCDate()) + ' ' + MOIS[x.getUTCMonth()] + ' à ' + h + ' h'; }
-    return dit(d1, 10) + ' ou ' + dit(d2, 16);
+    return dit(d1, resto ? 15 : 10) + ' ou ' + dit(d2, 16);
   }
+  function plusJours(isoJour, n) { var d = versDate(isoJour); return d ? iso(new Date(d.getTime() + n * 86400000)) : ''; }
   function version(dv) { var v = Number(dv && dv.version); return v >= 1 ? v : 1; }
   function expire(dv, auj) { return !!(dv && dv.statut === 'envoye' && dv.valable_jusqu && String(dv.valable_jusqu) < auj); }
   function mails(ctx) { return (ctx.journal || []).filter(function (e) { return e && e.type === 'email'; }); }
@@ -99,13 +148,29 @@
       return '';
     }
     if (k === 'relance_devis') return dv && dv.statut === 'envoye' ? '' : 'pas de devis envoyé';
+    if (k === 'merci_commande') return dv && dv.statut === 'accepte' ? '' : 'pas de devis accepté';
+    if (k === 'premier_contact' && ctx.piste === false) return 'c’est déjà ton client';
+    if (k === 'pas_pour_cette_fois' && ctx.issue === 'gagnee') return 'l’affaire est gagnée';
     return '';
+  }
+  function jourDe(x) { return String(x || '').slice(0, 10); }
+  /* Un mail de ces modeles ecrit depuis `depuis` (inclus) : on ne propose pas deux fois le meme. */
+  function ecritDepuis(ctx, modeles, depuis) {
+    return mails(ctx).some(function (e) { return modeles.indexOf(e.modele) >= 0 && (!depuis || jourDe(e.le) >= jourDe(depuis)); });
   }
 
   /* LE CHOIX AUTOMATIQUE, et la phrase qui le justifie. Le premier cas qui s'applique gagne. */
   function choisir(ctx) {
     var dv = ctx.devis, auj = ctx.aujourdhui, m = mails(ctx);
     function dernier(modeles) { return m.filter(function (e) { return modeles.indexOf(e.modele) >= 0; })[0] || null; }
+    /* LOT 73 : une affaire qui s'arrete se quitte bien, une affaire gagnee se remercie. */
+    if (ctx.issue === 'perdue') {
+      if (!ecritDepuis(ctx, ['pas_pour_cette_fois'], ctx.close_le))
+        return { k: 'pas_pour_cette_fois', raison: 'l’affaire s’arrête là : laisse-lui une bonne dernière impression' };
+      return { k: 'libre', raison: 'l’affaire est close et ton mail de fin est parti' };
+    }
+    if (dv && dv.statut === 'accepte' && !ecritDepuis(ctx, ['merci_commande'], dv.signe_le || dv.accepte_le))
+      return { k: 'merci_commande', raison: 'ton devis ' + dv.numero + (dv.signe_le ? ' a été signé en ligne' : ' est accepté') + ' et tu ne l’as pas encore remercié' };
     if (dv && dv.statut === 'enregistre')
       return { k: 'devis', raison: 'ton devis ' + dv.numero + ' est prêt mais pas encore parti' };
     if (dv && dv.statut === 'envoye') {
@@ -127,10 +192,18 @@
       var jd = joursEntre(deg.slice(0, 10), auj);
       if (jd != null && jd >= 7) return { k: 'relance_degustation', raison: 'ta proposition de dégustation date de ' + jd + ' jours' };
     }
+    /* Une etape qui parle de rendez-vous, et aucun mail de rendez-vous depuis qu'on y est. */
+    if (ctx.etape && /rendez|rdv|visite|rencontre/i.test(ctx.etape) && !ecritDepuis(ctx, ['rendez_vous'], ctx.etape_le))
+      return { k: 'rendez_vous', raison: 'ton affaire est à l’étape « ' + ctx.etape + ' »' };
     if (ctx.dernierEchange) {
       var je = joursEntre(String(ctx.dernierEchange).slice(0, 10), auj);
       if (je != null && je >= 0 && je <= 2 && !(dm && String(dm.le) > String(ctx.dernierEchange)))
         return { k: 'suite', raison: 'tu as noté un échange ' + (je === 0 ? 'aujourd’hui' : je === 1 ? 'hier' : 'avant-hier') };
+    }
+    /* Rien d'ecrit, rien de note : le premier mail de l'affaire. */
+    if (!m.length && !ctx.dernierEchange && !dv) {
+      if (ctx.famille === 'evenement') return { k: 'evenement', raison: 'tu ne lui as pas encore écrit' };
+      if (ctx.piste) return { k: 'premier_contact', raison: 'tu ne lui as encore jamais écrit' };
     }
     return { k: 'libre', raison: 'aucun modèle ne s’impose : écris ce que tu veux' };
   }
@@ -176,18 +249,52 @@
       l.push({ k: 'echantillons', lbl: 'Proposer des échantillons', defaut: false });
       l.push(tarif);
       l.push(appel);
+    } else if (k === 'premier_contact') {
+      l.push({ k: 'echantillons', lbl: 'Proposer des échantillons', defaut: true });
+      l.push({ k: 'passage', lbl: 'L’inviter au domaine', defaut: false });
+      l.push(tarif);
+      appel.defaut = true; l.push(appel);
+    } else if (k === 'rendez_vous') {
+      l.push({ k: 'au_domaine', lbl: 'Le recevoir au domaine plutôt que passer le voir', defaut: false });
+      l.push({ k: 'gouter', lbl: 'Faire goûter les vins', defaut: true });
+      l.push(tarif);
+    } else if (k === 'evenement') {
+      l.push({ k: 'questions', lbl: 'Demander la date et le nombre d’invités', defaut: true });
+      l.push({ k: 'passage', lbl: 'L’inviter à goûter au domaine', defaut: true });
+      l.push(appel);
+    } else if (k === 'objection_prix') {
+      l.push({ k: 'autre_cuvee', lbl: 'Proposer une cuvée à un prix plus doux', defaut: false });
+      l.push({ k: 'quantite', lbl: 'Proposer un prix pour une plus grande quantité', defaut: false });
+      appel.defaut = true; l.push(appel);
+    } else if (k === 'merci_commande') {
+      var retrait = dv && dv.livraison_mode === 'retrait';
+      if (dv && !retrait && dv.livraison_souhaitee) l.push({ k: 'livraison', lbl: 'La date de livraison souhaitée', defaut: true });
+    } else if (k === 'pas_pour_cette_fois') {
+      l.push({ k: 'millesime', lbl: 'Lui donner des nouvelles au prochain millésime', defaut: true });
     }
     return l;
   }
   function defauts(k, ctx) { return blocs(k, ctx).filter(function (b) { return b.defaut && !b.off; }).map(function (b) { return b.k; }); }
 
-  function sujet(k, ctx) {
+  function evt(ctx) { return /mariage/i.test(String(ctx.typeNom || '')) ? 'votre mariage' : 'votre événement'; }
+  function sujet(k, ctx, coches) {
     var dv = ctx.devis, dom = ctx.domaine ? ', ' + ctx.domaine : '';
+    var c = coches || defauts(k, ctx), lieu = PLACE[ctx.nature] ? PLACE[ctx.nature].replace(/^(dans|à) /, 'pour ') : '';
     if (k === 'devis') return dv ? 'Devis ' + dv.numero + (version(dv) > 1 ? ', version ' + version(dv) : '') + dom : 'Notre devis' + dom;
     if (k === 'relance_devis') return dv ? 'Notre devis ' + dv.numero : 'Notre devis';
     if (k === 'degustation') return 'Une dégustation de nos vins' + dom;
     if (k === 'relance_degustation') return 'Suite à la dégustation';
     if (k === 'suite') return 'Suite à notre échange';
+    if (k === 'premier_contact') {
+      if (c.indexOf('echantillons') >= 0) return 'Des échantillons ' + (lieu || 'pour vous') + dom;
+      if (c.indexOf('passage') >= 0) return 'Une dégustation au domaine' + dom;
+      return 'Nos vins' + (lieu ? ' ' + lieu : '') + dom;
+    }
+    if (k === 'rendez_vous') return 'Se voir pour en parler' + dom;
+    if (k === 'evenement') return 'Les vins de ' + evt(ctx) + dom;
+    if (k === 'objection_prix') return dv ? 'Notre devis ' + dv.numero : 'Suite à votre retour';
+    if (k === 'merci_commande') return 'Merci pour votre commande' + (dv ? ', devis ' + dv.numero : '');
+    if (k === 'pas_pour_cette_fois') return ctx.motif === 'sans_reponse' ? 'Notre proposition' + dom : 'Merci pour votre retour';
     return '';
   }
 
@@ -198,7 +305,7 @@
     bl.forEach(function (b) { if (!b.off) permis[b.k] = true; });
     function a(x) { return c[x] && permis[x]; }
     var p = [ctx.contact ? 'Bonjour ' + ctx.contact + ',' : 'Bonjour,'];
-    var appelTxt = 'Je peux vous appeler ' + creneaux(auj) + ' : dites-moi ce qui vous convient.';
+    var appelTxt = 'Je peux vous appeler ' + creneaux(auj, ctx.nature) + ' : dites-moi ce qui vous convient.';
     var tarifTxt = 'Vous trouverez notre tarif en pièce jointe.';
     var fin = 'Je reste à votre disposition.';
     if (k === 'devis' && dv) {
@@ -228,7 +335,7 @@
       p.push('Comme évoqué, j’aimerais vous faire goûter nos vins.');
       var g = [];
       if (a('echantillons')) g.push('Je peux vous déposer ou vous envoyer quelques échantillons : dites-moi ceux qui vous intéressent.');
-      if (a('passage')) g.push('Vous êtes aussi le bienvenu au domaine pour une dégustation.');
+      if (a('passage')) g.push('Je vous propose aussi de venir déguster au domaine.');
       if (g.length) p.push(g.join(' '));
       if (a('tarif')) p.push(tarifTxt);
       if (a('appel')) p.push(appelTxt);
@@ -242,6 +349,55 @@
       if (a('echantillons')) p.push('Je vous propose de goûter nos vins : je peux vous faire parvenir quelques échantillons.');
       if (a('tarif')) p.push(tarifTxt);
       if (a('appel')) p.push(appelTxt);
+    } else if (k === 'premier_contact') {
+      /* UN SEUL GESTE demande au client : l'appel, pour convenir des echantillons OU de la visite. */
+      p.push((ctx.domaine ? 'Je vous contacte pour le compte ' + deDomaine(ctx.domaine) + '. ' : '')
+        + 'Je pense que nos vins ont leur place ' + (PLACE[ctx.nature] || 'chez vous') + ', et le plus simple est de vous les faire goûter.');
+      var quoi = a('echantillons') ? 'vous déposer quelques échantillons' : a('passage') ? 'venir déguster au domaine' : '';
+      if (a('appel')) p.push('Je peux vous appeler ' + creneaux(auj, ctx.nature) + (quoi ? ', pour convenir d’un moment où ' + quoi : '') + '. Dites-moi ce qui vous convient.');
+      else if (quoi) p.push('Je vous propose de ' + quoi + ' : dites-moi quand cela vous arrange.');
+      if (a('tarif')) p.push(tarifTxt);
+      fin = '';
+    } else if (k === 'rendez_vous') {
+      var gouter = a('gouter');
+      p.push('Je vous propose de nous voir une vingtaine de minutes pour en parler' + (gouter ? ' et goûter nos vins ensemble' : '') + '.');
+      p.push((a('au_domaine') ? 'Je peux vous recevoir au domaine ' : 'Je peux passer vous voir ')
+        + creneaux(auj, ctx.nature) + ' : dites-moi ce qui vous convient, ou proposez-moi un autre moment.');
+      if (gouter && !a('au_domaine')) p.push('J’apporterai quelques bouteilles.');
+      if (a('tarif')) p.push(tarifTxt);
+      fin = '';
+    } else if (k === 'evenement') {
+      p.push('Merci de penser à nos vins pour ' + evt(ctx) + '.');
+      if (a('questions')) p.push('Pour vous faire une proposition juste, pouvez-vous me dire la date, le nombre d’invités et ce que vous pensez servir : l’apéritif, le repas, ou les deux ? Je vous aiderai à calculer les quantités pour ne manquer de rien.');
+      if (a('passage')) p.push('Je vous propose aussi de venir goûter au domaine avant de choisir.');
+      if (a('appel')) p.push(appelTxt);
+      fin = '';
+    } else if (k === 'objection_prix') {
+      var envoyeDv = dv && (dv.statut === 'envoye' || dv.statut === 'enregistre');
+      p.push('Merci pour votre retour sur le prix' + (envoyeDv ? ' de notre devis ' + dv.numero : '') + ', je le comprends.');
+      p.push('Notre prix tient au travail fait à la vigne et au chai, et ' + (a('appel') ? 'c’est plus simple à expliquer de vive voix.' : 'j’aimerais prendre cinq minutes pour vous l’expliquer.'));
+      if (a('autre_cuvee')) p.push('Je peux aussi vous proposer une autre de nos cuvées, à un prix plus doux' + (a('appel') ? ' : nous pourrons en parler à ce moment-là.' : '.'));
+      if (a('quantite')) p.push('Je peux aussi revoir le prix pour une quantité plus importante' + (a('appel') ? ' : nous pourrons en parler à ce moment-là.' : ' : dites-moi le volume qui vous conviendrait.'));
+      if (a('appel')) p.push(appelTxt);
+      fin = '';
+    } else if (k === 'merci_commande' && dv) {
+      p.push((dv.signe_le ? 'Merci d’avoir signé notre devis ' : 'Merci pour votre accord sur notre devis ') + dv.numero + ' : votre commande est enregistrée.');
+      if (dv.livraison_mode === 'retrait') p.push('Vous pourrez passer la retirer au domaine : je vous préviens dès qu’elle est prête.');
+      else if (a('livraison')) p.push('Je retiens la livraison souhaitée le ' + dateLettre(dv.livraison_souhaitee) + ' et je vous tiens au courant.');
+      else p.push('Je vous tiens au courant pour la livraison.');
+      p.push('Quand vous aurez goûté, dites-moi comment nos vins sont accueillis : votre avis compte beaucoup pour moi.');
+      fin = 'Merci encore pour votre confiance.';
+    } else if (k === 'pas_pour_cette_fois') {
+      var motifs = {
+        prix: 'Je comprends que le prix ne convienne pas cette fois.',
+        fournisseur: 'Je comprends que vous travailliez déjà avec un fournisseur.',
+        moment: 'Je comprends que ce ne soit pas le bon moment.',
+        indisponible: 'Je regrette de ne pas avoir pu répondre à votre demande cette fois.'
+      };
+      if (ctx.motif === 'sans_reponse') p.push('J’imagine que ce n’est pas le bon moment pour vous : je clos le sujet de mon côté, et je ne vous relancerai pas sur cette proposition.');
+      else p.push(('Merci d’avoir pris le temps de regarder notre proposition. ' + (motifs[ctx.motif] || '')).trim());
+      if (a('millesime')) p.push('Si vous le voulez bien, je vous donnerai des nouvelles à la sortie de notre prochain millésime.');
+      fin = ctx.motif === 'sans_reponse' ? '' : 'Au plaisir de vous faire goûter nos vins une autre fois.';
     } else {
       p.push('');
       fin = '';
@@ -256,12 +412,45 @@
     var l = [];
     if ((coches || []).indexOf('tarif') >= 0) l.push('Pense à joindre ton tarif à ton mail : la messagerie ne le fait pas pour toi.');
     if (k === 'devis' && (coches || []).indexOf('lien') < 0) l.push('Sans le lien, joins le PDF du devis à ton mail.');
+    if (k === 'premier_contact' && (coches || []).indexOf('echantillons') >= 0 && (coches || []).indexOf('passage') >= 0)
+      l.push('Une seule offre par mail : les échantillons OU la visite au domaine. Le texte garde les échantillons.');
+    if (k === 'objection_prix' && (coches || []).indexOf('autre_cuvee') >= 0 && (coches || []).indexOf('quantite') >= 0)
+      l.push('Une seule offre par mail : garde l’autre cuvée OU le prix par quantité, ton client choisira mieux.');
     if (longueurMailto > MAX_MAILTO) l.push('Texte long : si ta messagerie le coupe, utilise « Copier le texte ».');
     return l;
   }
 
+  /* Le rappel a poser apres ce mail : null s'il n'y en a pas, sinon { titre, iso, lbl,
+     defaut, tache }. `tache` : l'affaire est close, elle n'a plus de rappel (regle du lot
+     34), la promesse devient une tache datee de « Mes taches ». */
+  function rappel(k, ctx, coches) {
+    ctx = ctx || {};
+    var auj = ctx.aujourdhui, close = !!(ctx.issue && ctx.issue !== 'en_cours'), dv = ctx.devis, c = coches || defauts(k, ctx);
+    if (k === 'merci_commande') {
+      var liv = dv && dv.livraison_mode !== 'retrait' && dv.livraison_souhaitee && String(dv.livraison_souhaitee) >= auj ? String(dv.livraison_souhaitee) : '';
+      var isoM = liv ? plusJours(liv, 7) : plusJours(auj, 21);
+      return { titre: 'Prendre de ses nouvelles après la livraison', iso: isoM, defaut: true, tache: close,
+        lbl: 'Me rappeler de prendre de ses nouvelles ' + (liv ? 'le ' + dateLettre(isoM) + ', une semaine après la livraison' : 'dans 3 semaines') };
+    }
+    if (k === 'pas_pour_cette_fois') {
+      if (c.indexOf('millesime') < 0) return null;
+      return { titre: 'Lui présenter le nouveau millésime', iso: plusJours(auj, 182), defaut: true, tache: close,
+        lbl: 'Me rappeler de lui présenter le nouveau millésime dans 6 mois' };
+    }
+    var r = RAPPELS[k];
+    if (!r || close) return null;
+    if (k === 'rendez_vous') {
+      /* La VEILLE du premier moment propose : confirmer apres le rendez-vous ne sert a rien. */
+      var p1 = premierCreneau(auj), veille = new Date(p1.getTime() - 86400000);
+      while (veille.getUTCDay() === 0 || veille.getUTCDay() === 6) veille = new Date(veille.getTime() - 86400000);
+      var isoV = iso(veille) > auj ? iso(veille) : auj;
+      return { titre: r[0], iso: isoV, defaut: true, tache: false, lbl: 'Me rappeler de confirmer le rendez-vous le ' + dateLettre(isoV) + ', la veille du premier moment proposé' };
+    }
+    return { titre: k === 'relance_devis' && dv ? r[0] + ' ' + dv.numero : r[0], iso: plusJours(auj, r[1]), defaut: true, tache: false,
+      lbl: 'Me rappeler de le relancer dans ' + r[1] + ' jours' };
+  }
   function nom(k) { var m = MODELES.filter(function (x) { return x.k === k; })[0]; return m ? m.nom : ''; }
 
   window.BdvMailsAffaire = { MODELES: MODELES, MAX_MAILTO: MAX_MAILTO, dispo: dispo, choisir: choisir, blocs: blocs,
-    defauts: defauts, sujet: sujet, texte: texte, avertir: avertir, nom: nom, creneaux: creneaux, _euros: euros, _dateLettre: dateLettre };
+    defauts: defauts, sujet: sujet, texte: texte, avertir: avertir, nom: nom, rappel: rappel, creneaux: creneaux, _euros: euros, _dateLettre: dateLettre };
 })();

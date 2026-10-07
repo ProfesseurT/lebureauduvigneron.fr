@@ -8419,5 +8419,41 @@ dessin de la coque.
 - **Avant le SQL** : le redacteur marche, il dit que le mail ne sera pas note et cache
   « Considere comme envoye » ; « Noter » d'une piste se cache.
 - Garde : `banc:affaires` (sections Lot 72, 47 controles). Captures : `scripts/cap-redac.mjs`.
-- **Lot 73** : premier contact, rendez-vous, objection prix, merci pour la signature,
-  evenement, pas pour cette fois. Ouvert a Ted : signer le texte, nommer le vin de l'affaire.
+- Ouvert a Ted : signer le texte, nommer le vin de l'affaire.
+
+### LOT 73 : SIX MAILS DE PLUS, ET LE RAPPEL DECIDE PAR LE MODULE (07/10/2026)
+
+- **Pas de SQL.** `bdv-mails-affaire.js`, `bdv-affaires.js`. Modeles ajoutes, dans l'ordre d'une
+  affaire : `premier_contact`, `evenement`, `rendez_vous`, `objection_prix`, `merci_commande`,
+  `pas_pour_cette_fois`. Le `modele` du journal est libre en base (`^[a-z_]{1,40}$`).
+- **Le choix automatique** : affaire perdue sans mail de fin depuis la cloture, « Pas pour cette
+  fois » ; devis accepte sans merci depuis l'accord, « Merci pour la commande » ; puis le devis et
+  la degustation (lot 72) ; une etape dont le nom dit rendez-vous / rdv / visite, sans mail de
+  rendez-vous depuis qu'on y est ; un echange note < 2 jours ; rien d'ecrit ni de note :
+  « Une demande pour un evenement » (famille `evenement`) ou « Premier contact » (une piste).
+  Un client Vitisoft ne recoit pas de premier contact (grise). La reponse sur le prix ne se
+  propose jamais seule : rien ne dit qu'il y a eu une objection.
+- **LE RAPPEL SE DECIDE DANS LE MODULE**, `rappel(k, ctx, coches)` : `{ titre, iso, lbl, defaut,
+  tache }` ou null. Plus de liste de modeles dans bdv-affaires.js. Un mail qui promet une suite
+  pose son rappel (conseil du 07/10) : relances a 7 jours, rendez-vous LA VEILLE du premier moment
+  propose, merci une semaine apres la livraison souhaitee (3 semaines sans), « pas pour cette
+  fois » a 6 mois SEULEMENT si la promesse du millesime est cochee.
+- **Une affaire close n'a pas de rappel (lot 34) : la promesse devient une tache** de Mes taches,
+  par `BdvTaches.ajouter()`, seul ecrivain de la table. La case le dit (« dans Mes taches »).
+- **Une affaire close s'ecrit encore** : « Le remercier » / « Lui ecrire » dans la liste des
+  closes, et « Lui ecrire un merci / un dernier mot » dans l'avis qui suit la cloture
+  (`data-aff="ecrireClose"`, l'avis `#affAvis` est branche). Ouvre le panneau sur le redacteur.
+  Jamais pour une personne en opposition.
+- **Regles d'ecriture tenues** : un seul geste au premier contact (l'appel pour convenir des
+  echantillons OU de la visite, l'ecran avertit si les deux) ; une seule offre a la reponse sur le
+  prix ; l'article devant la raison sociale (`deDomaine()` : du Domaine, de la Maison, de l'EARL,
+  d'...) ; « votre mariage » si le type le dit ; le premier moment propose est a DEUX jours
+  ouvres de l'envoi, l'apres-midi pour un restaurant ; aucun « sans raison », « deranger »,
+  « bienvenu », « desole », « ravi » (le banc les refuse). Le lot 72 disait « le bienvenu au
+  domaine » : corrige.
+- L'objet suit les blocs : `sujet(k, ctx, coches)`.
+- Garde : `banc:affaires` sections Lot 73 (34 controles, 7 mutations tuees). Conseil : expert
+  commercial et vigneron avant, vigneron apres (orange, 5 points corriges). Textes de la passe :
+  `Claude outputs/lot73/`.
+- Ouvert a Ted : signer le texte, nommer le vin de l'affaire ; un bloc de saison au premier
+  contact (« avant vos commandes de fin d'annee »), idee de l'expert, non faite.

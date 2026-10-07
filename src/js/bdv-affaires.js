@@ -1980,7 +1980,8 @@
           /* T5 (tour 3) : une personne en opposition ne se rappelle plus, son affaire classee ne
              se rouvre pas (la base le refuse aussi, lot 56). Sa marque le dit a la place. */
           + (oppose(a) ? '<span class="aff-marque">' + esc(MARQUE_OPP) + '</span>'
-            : '<button type="button" class="btn" data-aff="rouvrir">Rouvrir</button>') + '</div>'
+            : '<button type="button" class="btn" data-aff="ecrireClose">' + (a.issue === 'gagnee' ? 'Le remercier' : 'Lui écrire') + '</button>'
+              + '<button type="button" class="btn" data-aff="rouvrir">Rouvrir</button>') + '</div>'
           + '<ul class="aff-devis__liste" id="affDevisC-' + a.affaire_id + '"' + (S.closesDevis[a.affaire_id] ? '' : ' hidden') + '>'
           + (S.closesDevis[a.affaire_id] ? (htmlListeDevis(a) || (Array.isArray(S.devisDe[a.affaire_id]) ? '<li class="aff-aide">Aucun devis.</li>' : '')) : '')
           + '</ul></li>';
@@ -2432,11 +2433,14 @@
     try {
       await modifier('affaires', 'affaire_id', a.affaire_id, { issue: issue, motif: motif || null });
       S.ouverte = null;
-      dire(issue === 'gagnee'
+      /* LOT 73 : apres une cloture, le geste qui laisse une bonne derniere impression. */
+      var ecr = oppose(a) || issue === 'en_cours' ? '' : ' <button type="button" class="aff-vers" data-aff="ecrireClose" data-id="' + esc(a.affaire_id) + '">'
+        + (issue === 'gagnee' ? 'Lui écrire un merci' : 'Lui écrire un dernier mot') + '</button>';
+      dire((issue === 'gagnee'
         ? 'Bravo. L’affaire passe dans « Les affaires closes ». Quand tu factureras dans Vitisoft, la vente arrivera avec ton prochain export.'
         : issue === 'perdue' ? (oppose(a) ? 'Classée. Tu la retrouves dans « Les affaires closes ».'
           : 'Classée. Tu la retrouves dans « Les affaires closes », et tu peux la rouvrir.')
-        : 'Rouverte : elle revient dans tes affaires en cours, sans date de rappel. Pense à en poser une.');
+        : 'Rouverte : elle revient dans tes affaires en cours, sans date de rappel. Pense à en poser une.') + ecr);
     } catch (e) { dire(raison(e), true); await relireSansEffacer(); return; }
     await charger(); rendre();
   }
@@ -2599,6 +2603,9 @@
     if (!c || c.getAttribute('data-branche')) return;
     c.setAttribute('data-branche', '1');
     brancherSur(c);
+    /* LOT 73 : l'avis de la piece porte « Lui écrire un dernier mot » apres une cloture. */
+    var avis = el('affAvis');
+    if (avis && !avis.getAttribute('data-branche')) { avis.setAttribute('data-branche', '1'); brancherSur(avis); }
     ecouteursUniques();
   }
   /* Le corps de la piece ET le panneau : les memes ecouteurs delegues, poses une
@@ -2658,6 +2665,14 @@
       if (quoi === 'noterEchange' && a) { noterEchange(a, b); return; }
       if (quoi === 'ecrireClient' && a) { ecrireClient(a); return; }
       if (quoi === 'ecrireMail' && a) { ouvrirRedac(a); return; }
+      /* LOT 73 : une affaire close s'ecrit encore (le merci, le dernier mot), depuis la liste
+         des closes ou l'avis qui suit la cloture : on ouvre son panneau sur le redacteur. */
+      if (quoi === 'ecrireClose' && a && !oppose(a)) {
+        viderAttente();
+        S.nouvelle = false; S.choix = null; S.ouverte = a.affaire_id; S.retour = { affaire: a.affaire_id }; rendre();
+        ouvrirRedac(a);
+        return;
+      }
       if (quoi === 'redacCopier' && a) { copierRedac(a, b); return; }
       if (quoi === 'redacEnvoye' && a) { redacEnvoye(a, b); return; }
       if (quoi === 'redacRevenir' && a) { var rr = REDAC[a.affaire_id]; if (rr && rr.garde != null) { rr.texte = rr.garde; rr.garde = null; rr.texteAuto = false; repeindreRedac(a, '[data-redac="texte"]'); } return; }
@@ -3178,7 +3193,10 @@
     if (dv) {
       var u = urlSignature(dv);
       d = { numero: dv.numero, version: dv.version, statut: dv.statut, total_ht_c: dv.total_ht_c, valable_jusqu: dv.valable_jusqu,
-        envoye_le: dv.envoye_le, url: u, lienEtat: u ? 'jeton' : S.lienDe[dv.devis_id], devis_id: dv.devis_id };
+        envoye_le: dv.envoye_le, url: u, lienEtat: u ? 'jeton' : S.lienDe[dv.devis_id], devis_id: dv.devis_id,
+        /* LOT 73 : pour le merci de la commande. */
+        accepte_le: dv.accepte_le ? jourLocal(dv.accepte_le) : null, signe_le: dv.signe_le ? jourLocal(dv.signe_le) || String(dv.signe_le).slice(0, 10) : null,
+        livraison_mode: dv.livraison_mode || null, livraison_souhaitee: dv.livraison_souhaitee || null };
     }
     var j = Array.isArray(JOURNAL[a.affaire_id]) ? JOURNAL[a.affaire_id] : [], c = cliDe(a), dern = null, deg = null;
     var notes = j.filter(function (e) { return e.type === 'note'; }).map(function (e) { return { le: e.le, canal: e.canal }; });
@@ -3193,7 +3211,12 @@
     });
     var p = pisteDe(a), dom = '';
     try { var f = window.BdvDomaine && BdvDomaine.fiche && BdvDomaine.fiche(); dom = f && f.raison_sociale ? String(f.raison_sociale) : ''; } catch (x) {}
+    /* LOT 73 : ce qui choisit le premier mail, le rendez-vous et le mail de fin. */
+    var t = typeDe(a.type_id), et = etapeDe(a.etape_id);
     return { contact: p && p.contact_nom ? String(p.contact_nom) : '', domaine: dom, aujourdhui: jourIso(), devis: d,
+      typeNom: t && t.nom ? String(t.nom) : '', piste: !clientDe(a), nature: p && p.nature ? String(p.nature) : '', famille: t && t.famille ? String(t.famille) : '',
+      etape: et && et.nom ? String(et.nom) : '', etape_le: a.etape_le ? jourLocal(a.etape_le) : null,
+      issue: a.issue || 'en_cours', close_le: a.close_le ? jourLocal(a.close_le) : null, motif: a.motif || null,
       journal: j.map(function (e) { return { type: e.type, modele: e.modele, le: jourLocal(e.le) || String(e.le || '') }; }),
       dernierEchange: dern ? jourLocal(dern) : null, degustation: deg ? jourLocal(deg) : null };
   }
@@ -3205,9 +3228,12 @@
     var permis = M.blocs(r.k, ctx).filter(function (b) { return !b.off; }).map(function (b) { return b.k; });
     if (r.cochesAuto || !r.coches) r.coches = M.defauts(r.k, ctx);
     else r.coches = r.coches.filter(function (k) { return permis.indexOf(k) >= 0; });
-    if (r.sujetAuto) r.sujet = M.sujet(r.k, ctx);
+    if (r.sujetAuto) r.sujet = M.sujet(r.k, ctx, r.coches);
     if (r.texteAuto) r.texte = M.texte(r.k, ctx, r.coches);
-    if (r.rappelK !== r.k) { r.rappelK = r.k; r.rappel = ['degustation', 'relance_devis', 'relance_degustation'].indexOf(r.k) >= 0; }
+    /* La case du rappel suit le modele ET ses blocs (lot 73) : « pas pour cette fois » ne
+       propose un rappel que si la promesse du prochain millesime est dans le texte. */
+    var rp = M.rappel(r.k, ctx, r.coches), cle = r.k + '|' + (rp ? rp.titre : '');
+    if (r.rappelK !== cle) { r.rappelK = cle; r.rappel = !!(rp && rp.defaut); }
     return { r: r, ctx: ctx };
   }
   function lienMailto(a, r) {
@@ -3236,7 +3262,7 @@
         + '</li>';
     }).join('');
     var href = lienMailto(a, r), av = M.avertir(r.k, ctx, r.coches, href.length);
-    var rapK = a.issue === 'en_cours' && ['degustation', 'relance_devis', 'relance_degustation'].indexOf(r.k) >= 0;
+    var rp = M.rappel(r.k, ctx, r.coches);
     return '<details class="aff-redac" id="affRedac" data-bloc="redac"' + (r.ouvert ? ' open' : '') + '><summary class="aff-redac__t"><span class="aff-redac__ouvrir">Écrire un mail</span><span class="aff-redac__fermer">Fermer le rédacteur</span></summary><div class="aff-redac__corps">'
       + (r.kAuto ? '<p class="aff-redac__pourquoi">Proposé : <b>' + esc(M.nom(r.k)) + '</b>, parce que ' + esc(r.raison) + '.</p>' : '')
       + '<p class="aff-redac__a">' + (mail ? 'À : <b>' + esc(mail) + '</b>' : c && c.contacts === undefined ? 'Lecture de son adresse…'
@@ -3252,8 +3278,8 @@
       + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button></div>'
       + (JOURNAL_ABSENT ? '<p class="aff-aide">L’historique des mails n’est pas encore en place dans ton bureau : ce mail ne sera pas noté.</p>'
         : '<div class="aff-redac__fin">'
-          + (rapK ? '<label class="aff-redac__rappel"><input type="checkbox" data-redac="rappel"' + (r.rappel ? ' checked' : '') + '> Me rappeler de le relancer dans 7 jours'
-            + (a.rappel ? ' (remplace ton rappel du ' + esc(dateCourte(a.rappel)) + ')' : '') + '</label>' : '')
+          + (rp ? '<label class="aff-redac__rappel"><input type="checkbox" data-redac="rappel"' + (r.rappel ? ' checked' : '') + '> ' + esc(rp.lbl)
+            + (rp.tache ? ', dans Mes tâches' : a.rappel ? ' (remplace ton rappel du ' + esc(dateCourte(a.rappel)) + ')' : '') + '</label>' : '')
           + '<p class="aff-redac__explique">Ton mail est parti de ta messagerie ? Note-le : il entre dans l’historique de l’affaire.</p>'
           + '<p><button type="button" class="btn" data-aff="redacEnvoye">Considéré comme envoyé</button></p></div>')
       + '<p class="aff-aide aff-redac__mot" id="affRedacMot" role="status" aria-live="polite">' + esc(r.mot || '') + '</p>'
@@ -3373,10 +3399,16 @@
       return;
     }
     var phrase = 'Mail noté dans l’historique de l’affaire.';
-    if (r.rappel && a.issue === 'en_cours' && ['degustation', 'relance_devis', 'relance_degustation'].indexOf(r.k) >= 0) {
-      var d = new Date(); d.setDate(d.getDate() + 7);
-      var iso = jourIso(d), titre = r.k === 'degustation' || r.k === 'relance_degustation' ? 'Relancer après la dégustation'
-        : 'Relancer le devis' + (ctxMail(a).devis ? ' ' + ctxMail(a).devis.numero : '');
+    /* LOT 73 : le rappel vient de bdv-mails-affaire.js, seul a savoir quel mail se relance,
+       quand, et sous quel motif. Une affaire close n'a plus de rappel (lot 34) : la promesse
+       devient une tache datee de « Mes taches », par bdv-taches.js, son seul ecrivain. */
+    var rp = window.BdvMailsAffaire ? BdvMailsAffaire.rappel(r.k, ctxMail(a), r.coches) : null;
+    if (r.rappel && rp && rp.tache) {
+      var okT = false;
+      try { okT = !!(window.BdvTaches && BdvTaches.ajouter(rp.titre + ' : ' + sujet(a), rp.iso)); } catch (eT) {}
+      phrase += okT ? ' Tâche posée dans Mes tâches le ' + dateCourte(rp.iso) + '.' : ' La tâche n’a pas pu se poser : note-la dans Mes tâches.';
+    } else if (r.rappel && rp && a.issue === 'en_cours') {
+      var iso = rp.iso, titre = rp.titre;
       try {
         var rr = await modifier('affaires', 'affaire_id', a.affaire_id, { rappel: iso, rappel_titre: titre });
         Object.assign(a, rr[0] || { rappel: iso, rappel_titre: titre });
