@@ -527,6 +527,16 @@
         </div>
       </fieldset>
 
+      <!-- MES ENVOIS, lot 75 (07/10/2026). La signature de mes mails, et plus tard la boite
+           d'ou ils partent (lot 76). Une par PERSONNE, avec un bloc commun au domaine que le
+           maitre seul regle. Rempli par bdv-signature.js. -->
+      <fieldset class="bdvr-bloc" id="bdvrBlocEnvois" data-onglet="Mes envois">
+        <legend class="bdvr-legende">Mes envois</legend>
+        <div class="bdvr-hote" id="bdvrHoteEnvois">
+          <p class="bdvr-aide">Ta signature se règle depuis ton bureau.</p>
+        </div>
+      </fieldset>
+
       <!-- LES TYPES D'AFFAIRES, 02/10/2026. Ils vivaient en bas de Mon commerce, dans un
            repli « Regler mes types d'affaires » ; Ted les a voulus ici. Rempli par
            bdv-affaires.js (charge a la demande), branche par bdv-affaires-jour.js. -->
@@ -748,7 +758,8 @@
     'base':         'bdvrHoteBase',
     'base-actions': 'bdvrBaseActions',
     'domaine':      'bdvrHoteDomaine',
-    'affaires':     'bdvrHoteAffaires'
+    'affaires':     'bdvrHoteAffaires',
+    'envois':       'bdvrHoteEnvois'
   };
   function monterBloc(b){
     const cible = el(HOTES[b.hote] || 'bdvrHoteBase');
@@ -1373,7 +1384,8 @@
      l'onglet avant, c'est se faire corriger sans le voir. `montrerOnglet()` retombe de
      toute facon sur le premier onglet disponible si celui-la est ecarte. */
   const ONGLETS_NOMMES = { classement: 'bdvrBlocClassement', base: 'bdvrBlocBase',
-                           ventes: 'bdvrBlocVentes', affaires: 'bdvrBlocAffaires' };
+                           ventes: 'bdvrBlocVentes', affaires: 'bdvrBlocAffaires',
+                           envois: 'bdvrBlocEnvois' };
   function viserOnglet(onglet){
     if(!onglet) return;
     const id = ONGLETS_NOMMES[onglet] || onglet;

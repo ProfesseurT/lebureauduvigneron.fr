@@ -12,6 +12,52 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+
+## 07/10/2026, lot 75 construit : l'onglet « Mes envois » et la signature
+
+Fait : le module `bdv-signature.js`, l'onglet dans les reglages, la signature collee par les deux
+redacteurs, la ligne RGPD, le dessin, le banc JS (60 controles, 7 mutations tuees) et le banc SQL
+(23). Vigneron empathique : feu orange (lecture seule invisible pour un simple utilisateur,
+signature en double possible apres une copie, apercu plus riche que ce que recoit le client), puis
+feu vert apres corrections. Rien ne part encore d'ailleurs que de la messagerie du vigneron :
+brancher sa boite, c'est le lot 76.
+
+## 07/10/2026, l'onglet « Mes envois » et la signature : les arbitrages
+
+Ted refuse de copier l'ecran SMTP de Vitisoft : « quelque chose de logique », dans Mes reglages,
+avec un outil qui fabrique la signature. Conseil : designer-vigneron, expert commercial,
+contradicteur technique (faits sources). Ted : « tout ok » sur les quatre points.
+
+- **Un onglet « Mes envois »**, apres « Mon domaine ». Pas dans « Le courrier » (ce que le
+  bureau envoie AU vigneron). Etat en haut (« Tes mails partent de ... »), redit au pied de
+  chaque mail redige. Deux choix : « Ma messagerie ouvre le mail » (defaut) ou « Le bureau
+  envoie pour moi » (la boite est reconnue a l'adresse ; serveur et port seulement sous
+  « Autre fournisseur ») ; « Tester et brancher » : rien n'est branche sans mail d'essai
+  arrive. Outlook, Hotmail, iCloud : encadre calme, ils restent sur la messagerie.
+- **Par personne** : chacun sa boite et sa signature ; un bloc commun au domaine regle par le
+  maitre seul. Le maitre voit qui envoie d'ou, jamais les codes.
+- **Le dossier Envoyes** : [Probable] OVH, IONOS, Orange n'y rangent pas un mail envoye par
+  SMTP (Gmail si). Parade retenue : « M'envoyer une copie de chaque mail », cochee d'office.
+- **Une actualite du moment** dans la signature, une ligne, DATE DE FIN OBLIGATOIRE : elle
+  disparait seule, le bureau previent avant. Jamais sous un mail de souci.
+- **Mentions** par defaut, a faire valider par un juriste de Solumatic : pied legal d'une
+  societe (raison sociale, SIREN, RCS Ville) ; la mention loi Evin des que la signature fait
+  la promotion du vin (actualite ou lien boutique remplis).
+- **Signature** : nom, role, domaine et appellation, portable, UNE ligne d'action (caveau,
+  boutique ou degustation), pied legal ; six lignes au plus ; ni reseaux sociaux, ni email
+  recopie, ni TVA. Texte en mailto, HTML avec logo en envoi direct, boutons « Copier pour
+  Gmail / Outlook / iPhone ». « Ta messagerie signe deja ? » evite la double signature.
+- **Logo** : [Certain] Gmail refuse une image en data: (caniemail). Pour copier la signature
+  avec le logo, le logo sera heberge dans Supabase Storage (public, gratuit). En envoi direct,
+  piece jointe en ligne (cid).
+
+Decoupage : lot 75 l'onglet et la signature (rien ne part encore), lot 76 brancher sa boite
+(Vault, fonction d'essai, reconnaissance du fournisseur), lot 77 l'envoi depuis les redacteurs
+(copie a soi, repli sur la messagerie si un envoi casse), lot 78 le logo heberge.
+Pieges notes : Vault journalise un INSERT en clair (README officiel), donc le secret ne passe
+que par une fonction avec parametre depuis l'Edge Function ; un mot de passe d'application
+Google est revoque au changement de mot de passe du compte (etat « reconnecter » a prevoir).
+
 ## 07/10/2026, envoyer les mails depuis la boite du vigneron : A, B et D
 
 Reprise de la reflexion du 01/10. Decision de Ted : **A reste le defaut** (la messagerie du

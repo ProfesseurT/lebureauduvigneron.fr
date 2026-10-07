@@ -2894,7 +2894,8 @@ function composerMessage(f,motif,coches){
   const corps=['Bonjour,','',accrocheMessage(f,motif)];
   if(b.length){corps.push('');corps.push(b.map(x=>x.txt).join(' '));}
   corps.push('','Un simple retour à ce message suffit, je m\'occupe du reste.','','Bien à vous,');
-  return corps.join('\n');
+  // La signature de Mes envois (lot 75), si elle est reglee et que la messagerie ne signe pas.
+  return corps.join('\n')+(window.BdvSignature?BdvSignature.suffixe({promo:true}):'');
 }
 function majMessage(){
   const z=el('msgZone');if(!z)return;

@@ -4905,6 +4905,10 @@ bordeaux, du blanc pur est plus dur que le papier du site.
   coupee) : ils restent sur A en attendant D. Un mot de passe de boite se range dans Vault,
   chiffre, retirable en un geste, et la page RGPD le dit AVANT la mise en ligne. Detail des faits
   verifies : JOURNAL.md du 07/10/2026.
+  **L'ECRAN est l'onglet « Mes envois » des reglages, PAS « Le courrier »**, et ne copie PAS
+  l'ecran Vitisoft (decision de Ted) : boite et signature PAR PERSONNE, bloc commun au domaine
+  regle par le maitre, copie a soi cochee d'office, actualite de signature avec date de fin
+  obligatoire, pied legal et mention loi Evin par defaut. Lots 75 a 78, JOURNAL.md du 07/10.
 - **Aucune generation de texte par un modele.** Les messages sont des gabarits a blocs remplis
   avec les donnees du client. Sept squelettes pour l'instant : si le besoin de varier grandit,
   ecrire plusieurs variantes par bloc et les choisir par une empreinte stable du numero client,
@@ -8484,3 +8488,24 @@ dessin de la coque.
   mutation du tri tuee).
 - Signale : `npm run banc` (banc-bureau) echoue au hasard sur l'ordre de chargement du moteur
   sous la charge du pont, sur HEAD comme sur ce lot ; relancer.
+
+### LOT 75 : L'ONGLET « MES ENVOIS » ET LA SIGNATURE (07/10/2026)
+
+- **SQL `supabase/lot75-signature-mail.sql`, a coller APRES 74.** `signatures` (une ligne par
+  bureau et par PERSONNE, chacun n'ecrit que la sienne), `signature_domaine` (une ligne par
+  bureau, ecrite par le MAITRE seul via `signature_domaine_poser()`, refus d'une actualite sans
+  fin ou passee). Banc `supabase/banc-lot75-signature-mail.sql` (23). `banc-rejeu.mjs` le liste.
+- **`src/js/bdv-signature.js`** (defer, apres bdv-domaine.js) tient l'onglet (hote `envois`,
+  alias `envois` de `ouvrir()`) et `composer()` (PUR). `suffixe()` est ce que collent les DEUX
+  redacteurs (affaire, fiche client) apres « Bien a vous, » ; il est VIDE si rien n'est lu, sans
+  signature reglee, si la personne n'en veut pas ou si sa messagerie signe deja. Jamais
+  d'actualite sous « Pas pour cette fois » (`promo:false`). Rien n'est envoye : mailto.
+- **Evin** suit la promotion (lien ou actualite). Pied legal seulement avec SIREN ou RCS.
+- **L'apercu est en texte simple** (ce que colle un mailto). Simple utilisateur : bloc commun en
+  texte sans cadre, sans les consignes d'ecriture. Apres une copie, « Passer sur Oui ».
+- Dessin : section 38 de `bdv-bureau.css`. Garde : `npm run banc:envois` (60, dans `verif`),
+  capture `scripts/cap-envois.mjs` (playwright, hors verif).
+- Ouvert : aperçu loin des champs a 390 (lien « Voir ce que reçoit ton client » propose) ;
+  « Copier pour l'iPhone » en aplat a 390 (survol colle ?) a verifier sur un vrai iPhone ; la
+  boucle « Passer sur Oui » n'a ete vue dans aucune capture (copie impossible hors navigateur reel).
+

@@ -87,6 +87,7 @@ const ORDRE = [
   'lot70-signature-trace.sql',
   'lot71-lien-recopiable.sql',
   'lot72-journal-affaires.sql',
+  'lot75-signature-mail.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

@@ -3229,7 +3229,10 @@
     if (r.cochesAuto || !r.coches) r.coches = M.defauts(r.k, ctx);
     else r.coches = r.coches.filter(function (k) { return permis.indexOf(k) >= 0; });
     if (r.sujetAuto) r.sujet = M.sujet(r.k, ctx, r.coches);
-    if (r.texteAuto) r.texte = M.texte(r.k, ctx, r.coches);
+    /* LA SIGNATURE DE MES ENVOIS, lot 75 : ajoutee sous « Bien a vous, » si la personne l'a
+       reglee et que sa messagerie ne signe pas deja. Pas d'actualite dans un mail de refus. */
+    if (r.texteAuto) r.texte = M.texte(r.k, ctx, r.coches)
+      + (window.BdvSignature ? BdvSignature.suffixe({ promo: r.k !== 'pas_pour_cette_fois' }) : '');
     /* La case du rappel suit le modele ET ses blocs (lot 73) : « pas pour cette fois » ne
        propose un rappel que si la promesse du prochain millesime est dans le texte. */
     var rp = M.rappel(r.k, ctx, r.coches), cle = r.k + '|' + (rp ? rp.titre : '');

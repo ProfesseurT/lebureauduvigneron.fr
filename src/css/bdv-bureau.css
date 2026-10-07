@@ -6867,3 +6867,57 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
   color:var(--bdv-encre-1);
   overflow-wrap:anywhere;
 }
+
+/* ===================================================================================
+   38. « MES ENVOIS » : LA SIGNATURE DE MES MAILS, lot 75 (07/10/2026). Pose par
+   bdv-signature.js dans l'onglet du panneau des reglages. Deux colonnes au-dessus de
+   56 rem de panneau (les reglages a gauche, l'apercu a droite), une seule en dessous :
+   le repli se juge sur le PANNEAU, pas sur la fenetre. Que des jetons.
+   =================================================================================== */
+.bdv-coque .bdvs-etat{
+  margin:0 0 var(--bdv-e-3);
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  border-left:3px solid var(--bdv-accent);
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-1);
+  font-size:var(--bdv-f-3);
+}
+.bdv-coque #bdvrHoteEnvois{ container:envois / inline-size; }
+.bdv-coque .bdvs-corps{ display:grid; grid-template-columns:minmax(0,1fr); gap:var(--bdv-e-6); }
+.bdv-coque .bdvs-corps[hidden]{ display:none; }
+@container envois (min-width: 56rem){
+  .bdv-coque .bdvs-corps{ grid-template-columns:minmax(0,1fr) minmax(0,22rem); align-items:start; }
+}
+.bdv-coque .bdvs-reglages,
+.bdv-coque .bdvs-apercu-zone{ min-width:0; }
+.bdv-coque .bdvs-question{ margin:var(--bdv-e-4) 0; }
+.bdv-coque .bdvs-reglages > .bdvr-chk{ margin-top:var(--bdv-e-4); }
+.bdv-coque .bdvs-question .bdvr-chk{ min-height:var(--bdv-cible); }
+/* L'apercu : un petit mail, a la largeur d'un telephone. */
+.bdv-coque .bdvs-apercu{
+  max-width:22rem;
+  padding:var(--bdv-e-4);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+  color:var(--bdv-encre-1);
+  font-size:var(--bdv-f-3);
+  overflow-wrap:anywhere;
+}
+.bdv-coque .bdvs-apercu__t{ margin:0 0 var(--bdv-e-2); color:var(--bdv-encre-1); }
+/* En texte simple, comme le colle le lien mailto : ni gras, ni couleur, ni filet. */
+.bdv-coque .bdvs-apercu__sig{ margin-top:var(--bdv-e-3); }
+.bdv-coque .bdvs-apercu__vide{ margin:0; color:var(--bdv-encre-3); font-style:italic; }
+.bdv-coque .bdvs-sig{ margin:0; line-height:1.45; color:var(--bdv-encre-1); }
+.bdv-coque .bdvs-sig--pied{ margin-top:var(--bdv-e-3); }
+/* Le bloc commun en lecture seule (simple utilisateur) : du texte, pas un champ. */
+.bdv-coque #bdvsCommun .bdvr-i[readonly]{ border-color:transparent; background:transparent; padding-left:0; padding-right:0; color:var(--bdv-encre-1); }
+.bdv-coque .bdvs-copies{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-2); margin:var(--bdv-e-3) 0; }
+.bdv-coque .bdvs-copies .bdvr-btn{ min-height:var(--bdv-cible); }
+.bdv-coque .bdvs-etapes{ margin-top:var(--bdv-e-2); color:var(--bdv-encre-1); }
+.bdv-coque .bdvs-etapes[hidden]{ display:none; }
+.bdv-coque .bdvs-etapes__l{ margin:var(--bdv-e-2) 0 0; padding-left:var(--bdv-e-6); }
+.bdv-coque .bdvs-etapes__l li{ margin:0 0 var(--bdv-e-1); }
+/* « Copiee » se dit par un glyphe ET un mot, jamais par la seule couleur. */
+.bdv-coque .bdvs-copie-ok{ margin:0; font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .bdvs-copie-ok::before{ content:"\2713\00a0"; color:var(--bdv-bon); }
