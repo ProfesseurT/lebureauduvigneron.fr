@@ -4894,8 +4894,17 @@ bordeaux, du blanc pur est plus dur que le papier du site.
   Regle d'or du module de compte (`src/js/bdv-compte.js`) : le compte ne conditionne jamais la
   lecture des donnees locales. Si Supabase est en panne ou le reseau coupe, l'outil s'ouvre quand
   meme des lors qu'une session a deja ete ouverte une fois sur ce navigateur.
-- **Aucun envoi d'e-mail.** Le compositeur remplit un lien `mailto:`, c'est la messagerie du
-  vigneron qui envoie. Pas de cle API dans une page publique, pas de responsabilite d'envoi.
+- **Aucun envoi d'e-mail SANS L'ACCORD DU VIGNERON. AMENDE PAR TED LE 07/10/2026.** Par defaut
+  (option A) le compositeur remplit un lien `mailto:`, c'est la messagerie du vigneron qui envoie.
+  Pas de cle API dans une page publique. Pour qui le CHOISIT, deux options, decision de Ted :
+  B, le vigneron saisit les reglages SMTP de SA boite (port 465 SSL, depuis une Edge Function :
+  Supabase bloque 25 et 587) ; D, « Se connecter avec Google / Microsoft » (OAuth, aucun mot de
+  passe stocke). Le mail part TOUJOURS de la boite du vigneron, jamais de notre domaine : la regle
+  du SEUIL ne s'applique pas. C (Cloudflare Workers) et un service d'envoi tiers sont ecartes.
+  Microsoft 365, Outlook.com et iCloud ne passent pas par B (587 seul, ou authentification basique
+  coupee) : ils restent sur A en attendant D. Un mot de passe de boite se range dans Vault,
+  chiffre, retirable en un geste, et la page RGPD le dit AVANT la mise en ligne. Detail des faits
+  verifies : JOURNAL.md du 07/10/2026.
 - **Aucune generation de texte par un modele.** Les messages sont des gabarits a blocs remplis
   avec les donnees du client. Sept squelettes pour l'instant : si le besoin de varier grandit,
   ecrire plusieurs variantes par bloc et les choisir par une empreinte stable du numero client,

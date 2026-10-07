@@ -12,6 +12,38 @@ trois jours. Ne pas s'en étonner en relisant.
 
 ---
 
+## 07/10/2026, envoyer les mails depuis la boite du vigneron : A, B et D
+
+Reprise de la reflexion du 01/10. Decision de Ted : **A reste le defaut** (la messagerie du
+vigneron s'ouvre) pour qui ne veut pas confier sa boite ; **pour qui veut, B et D**. B : les
+reglages SMTP de sa boite, envoi en SSL implicite sur le port 465 depuis une Edge Function. D :
+connexion Google / Microsoft, sans mot de passe stocke. Ecartes : C (Cloudflare Workers, 587),
+un service d'envoi tiers (le mail partirait de notre domaine, mur du SEUIL). La regle
+« Aucun envoi d'e-mail » de CLAUDE.md devient « aucun envoi sans l'accord du vigneron ».
+
+Faits reverifies le 07/10/2026 (sources dans le rapport de la session) :
+- Supabase Edge Functions : la page limits ne bloque plus que 25 et 587 ; le 465 n'est plus
+  liste, et une issue (supabase#21977) rapporte un envoi reussi par smtp.gmail.com:465. Supabase
+  publie un exemple SMTP officiel avec `npm:nodemailer`. Aucune page ne dit en toutes lettres que
+  465 est permis : A CONFIRMER PAR UN ESSAI REEL avant tout ecran.
+- Limites du plan gratuit : 2 s de CPU par requete, 150 s de duree, projet mis en pause apres
+  7 jours d'inactivite.
+- Vault : disponible sur tous les projets ; `vault.create_secret`, lecture par
+  `vault.decrypted_secrets`. Risque de journalisation du secret a sa creation : non documente,
+  a verifier.
+- Gmail : mot de passe classique refuse depuis le 14/03/2025, mots de passe d'application
+  acceptes, validation en deux etapes obligatoire, absents en Protection avancee. Workspace :
+  depend de l'administrateur.
+- 465 SSL documente : OVH, Gandi, IONOS, Yahoo (mot de passe d'application), Free et Orange
+  (sources moins solides). SFR et La Poste : pas de source officielle.
+- Murs de B : Microsoft 365 (« Port 465: Do NOT use », basic auth coupee par defaut fin
+  decembre 2026), Outlook.com (basic auth coupee depuis le 16/09/2024), iCloud (587 seul).
+  Ceux-la restent sur A jusqu'a D.
+
+Ordre retenu : B d'abord (essai reel du 465 avant tout), la demande de validation Google pour D
+en parallele, puis D. Question a poser a Solumatic : leur plan pour la coupure Microsoft, qui
+touche aussi l'ecran SMTP de Vitisoft.
+
 ## 07/10/2026, l'accroche de l'accueil : « Moins de bureau. Plus de vigne. »
 
 Ted veut sortir de l'image vieillotte du site. Trois directions proposees, il choisit
