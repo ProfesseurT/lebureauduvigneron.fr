@@ -28,8 +28,15 @@ d'avant avec le mail ouvert et le lien à l'intérieur. »
   de copie du message ni du lien. Un bouton « Envoyer le devis par email » ramène à l'affaire,
   le rédacteur ouvert sur « Envoi du devis à signer », le lien de signature dedans.
 - Sans boîte branchée, ou sans lien de signature, le devis garde la copie du message.
-- Signalé, pas changé : le devis se note « envoyé » (avec sa relance) dès « Préparer l'envoi »,
-  avant que le mail parte vraiment ; et le rédacteur propose aussi sa propre relance.
+- Suite le même jour, Ted (« ah bah oui bien sûr ») : avec la boîte branchée, le devis ne se
+  fige plus à « Préparer l'envoi ». « Envoyer le devis par email » ramène à l'affaire, mail
+  ouvert, avec la mention « [le lien pour signer, ajouté quand le mail part] ». Au clic sur
+  « Envoyer depuis ma boîte » : le devis se fige (copie exacte), il est noté envoyé aujourd'hui,
+  le lien se crée et remplace la mention, puis le mail part. La relance (7 jours, jamais après la
+  validité) se coche dans le mail : une seule relance. L'étape « devis » de l'affaire suit.
+  Un devis à figer ne se programme pas. « Le noter envoyé » garde le chemin d'un devis remis en
+  main propre ou par courrier. Cas rare assumé : si le mail échoue juste après, le devis reste
+  figé et noté envoyé, le lien est dans le texte et l'écran dit de réessayer.
 
 ## 08/10/2026, lot 79 et les trois suites des envois
 

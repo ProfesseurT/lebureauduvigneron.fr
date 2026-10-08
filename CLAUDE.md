@@ -8797,3 +8797,18 @@ separes) : ca se corrige dans Vitisoft.
 - Ouvert : deux portes pour ecrire (« Ecrire » du moment et « Ecrire un mail »), meme redacteur ;
   un mail en echec ne previent pas hors de la page ; l'etat « peut-etre parti » n'a pas de capture.
 
+### LOT 85 : BOITE BRANCHEE, UN SEUL BOUTON, ET LE DEVIS SE FIGE AU DEPART DU MAIL (08/10/2026)
+
+- **Boite branchee** (`BdvBoite.prete()` et une adresse) : le redacteur d'une affaire et la fiche
+  client n'ont plus que « Envoyer depuis ma boite » (et « Programmer »). Ni messagerie, ni copie,
+  ni « Considere comme envoye ». Sans boite, rien ne change.
+- **Le devis ne se fige plus a « Preparer l'envoi »** (Ted). Etape 3 : « Envoyer le devis par
+  email » (`retour({mail:true})`), et « Le noter envoye » (`S.envoiAutre`) pour un devis remis
+  autrement. Le mail « Envoi du devis » porte `BdvMailsAffaire.LIEN_A_VENIR` ; au clic d'envoi,
+  `redacEnvoyer` appelle `BdvDevis.figerPourMail()` (relit devis et lignes, refuse ce qui ne se
+  signerait pas, `devis_envoyer` SANS rappel avec la copie et l'etape devis, puis
+  `devis_lien_creer`), remplace la mention par le lien, PUIS envoie. La relance vient du mail
+  (`rappel('devis')`, seulement pour un devis `enregistre`, lue AVANT de figer : `r.rpFige`).
+  Un devis a figer ne se programme pas. La carte du devis propose « Envoyer par email ».
+- Garde : `banc:devis` (figerPourMail, rien fige au clic), `banc:affaires`, `banc:boite`.
+

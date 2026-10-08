@@ -1431,7 +1431,7 @@
     if (d.statut === 'enregistre') {
       r.marque = 'pas encore envoyé';
       r.phrase = 'Prêt depuis le ' + esc(dateCourte(jourLocal(d.cree_le) || d.date_devis)) + ', pas encore parti : ' + ht + '. Tant qu’il ne l’a pas reçu, ton client ne peut pas dire oui.';
-      if (ouverte) r.geste = { action: 'envoi', mot: 'Préparer l’envoi' };
+      if (ouverte) r.geste = devisAFigerA(a, d) ? { action: 'mail', mot: 'Envoyer par email' } : { action: 'envoi', mot: 'Préparer l’envoi' };
     } else if (d.statut === 'envoye' && expireD(d)) {
       j = joursDepuis(d.valable_jusqu);
       r.marque = 'expiré';
@@ -2757,6 +2757,11 @@
       /* LOT 67 : le geste de la carte ouvre le devis LA OU il se fait. */
       if (quoi === 'devisAgir' && a) {
         var ac = b.getAttribute('data-action');
+        if (ac === 'mail') {
+          REDAC[a.affaire_id] = { k: 'devis', kAuto: false, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: true, garde: null, mot: '' };
+          repeindreRedac(a); ouvrirRedac(a);
+          return;
+        }
         ouvrirDevis(a, b.getAttribute('data-devis'), ac === 'version' ? { action: 'version', version: Number(b.getAttribute('data-version')) } : { action: ac });
         return;
       }
@@ -3426,10 +3431,22 @@
   }
   /* Ce que l'affaire sait, pour les textes. Rien n'est recopie : le devis, le lien et le
      journal se relisent a chaque composition (un texte qui cite un devis remplace ment). */
+  /* DEMANDE DE TED, 08/10/2026 : « Envoyé » et la relance se posent quand le mail PART, pas
+     avant. Boite branchee, un devis enregistre se fige, prend son lien et se note envoye au
+     depart du mail « Envoi du devis » (BdvDevis.figerPourMail), jamais avant. */
+  function devisAFigerA(a, dv) {
+    return !!(dv && dv.statut === 'enregistre' && a.issue === 'en_cours' && !oppose(a) && boitePrete() && adresseMail(a));
+  }
+  function devisAFiger(a, r) {
+    var dv = devisPrincipal(a);
+    return r && r.k === 'devis' && devisAFigerA(a, dv) ? dv : null;
+  }
   function ctxMail(a) {
     var dv = devisPrincipal(a), d = null;
     if (dv) {
       var u = urlSignature(dv);
+      /* Ted, 08/10/2026 : boite branchee, le lien d'un devis pas encore parti se cree au depart. */
+      if (!u && devisAFigerA(a, dv) && window.BdvMailsAffaire) u = BdvMailsAffaire.LIEN_A_VENIR;
       d = { numero: dv.numero, version: dv.version, statut: dv.statut, total_ht_c: dv.total_ht_c, valable_jusqu: dv.valable_jusqu,
         envoye_le: dv.envoye_le, url: u, lienEtat: u ? 'jeton' : S.lienDe[dv.devis_id], devis_id: dv.devis_id,
         /* LOT 73 : pour le merci de la commande. */
@@ -3500,7 +3517,8 @@
       chargerMails().then(function () { repeindreRedac(a); }, function () {});
       return '<div class="aff-redac" id="affRedac"><p class="aff-aide">Préparation des modèles de mails…</p></div>';
     }
-    var x = etatRedac(a), r = x.r, ctx = x.ctx, mail = adresseMail(a), c = cliDe(a);
+    var x = etatRedac(a), r = x.r, ctx = x.ctx, mail = adresseMail(a), c = cliDe(a), dvFige = devisAFiger(a, r);
+    if (dvFige) r.progOuvert = false;
     var opts = M.MODELES.map(function (m) {
       var d = M.dispo(m.k, ctx);
       return '<option value="' + m.k + '"' + (m.k === r.k ? ' selected' : '') + (d ? ' disabled' : '') + '>' + esc(m.nom + (d ? ' (' + d + ')' : '')) + '</option>';
@@ -3539,6 +3557,7 @@
       + (r.parti ? '<div class="aff-redac__gestes aff-redac__parti"><p class="aff-redac__resultat" role="status">' + esc(r.mot || '') + '</p>'
           + '<button type="button" class="btn" data-aff="redacAutre">Écrire un autre mail</button></div>'
         : (r.echec ? '<p class="aff-redac__resultat aff-redac__resultat--echec" role="alert">' + esc(r.echec) + '</p>' : '')
+      + (dvFige ? '<p class="aff-aide">Quand ce mail part, le devis ' + esc(dvFige.numero) + ' se fige, son lien de signature remplace la mention entre crochets et il est noté envoyé aujourd’hui. Pas avant.</p>' : '')
       + '<div class="aff-redac__gestes">'
       + (boite ? '<button type="button" class="btn' + (progVise(r) ? '' : ' btn--bordeaux') + ' aff-redac__envoyer" data-aff="redacEnvoyer">' + (progVise(r) ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte') + '</button>'
         : (mail ? '<a class="btn btn--bordeaux" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
@@ -3591,6 +3610,7 @@
   }
   function htmlProgrammer(a, r, mail) {
     if (!mail || !boitePrete() || LOT84 !== true) return '';
+    if (devisAFiger(a, r)) return '<p class="aff-aide">Un devis se fige au moment où il part : il ne se programme pas.</p>';
     var df = progDefaut(), max = new Date(Date.now() + 59 * 86400000);
     if (!r.progJour) r.progJour = df.jour;
     if (!r.progHeure) r.progHeure = df.heure;
@@ -3714,10 +3734,36 @@
     if (!String(r.sujet || '').trim() && !String(r.texte || '').trim()) { motRedac(a, 'Écris un objet ou un texte avant d’envoyer.'); return; }
     if (b) b.disabled = true;
     r.echec = null;
+    var dvF = devisAFiger(a, r), avant = '';
+    if (dvF) {
+      /* La relance se lit AVANT de figer : apres, le devis est envoye et n'en propose plus. */
+      r.rpFige = r.rappel && window.BdvMailsAffaire ? BdvMailsAffaire.rappel(r.k, ctxMail(a), r.coches) : null;
+      motRedac(a, 'Le devis se fige et son lien se crée…');
+      var fr = null;
+      try {
+        var D = await chargerDevis();
+        var etD = etapeDevis(a);
+        fr = await D.figerPourMail({ bureau: bureau(), devis_id: dvF.devis_id, etape: etD ? etD.etape_id : null });
+      } catch (eF) { fr = { mot: eF && eF.mot ? eF.mot : 'Le devis n’a pas pu se figer : ' + raison(eF) + '.' }; }
+      if (!fr || !fr.url) {
+        if (b) b.disabled = false;
+        r.echec = ((fr && fr.mot) || 'Le devis n’a pas pu se figer.') + ' Le mail n’est pas parti.';
+        motRedac(a, '');
+        repeindreRedac(a);
+        return;
+      }
+      S.lienDe[dvF.devis_id] = fr.jeton;
+      Object.assign(dvF, fr.devis || {});
+      r.texte = String(r.texte || '').split(BdvMailsAffaire.LIEN_A_VENIR).join(fr.url);
+      r.texteAuto = false; r.sujetAuto = false; r.cochesAuto = false;
+      avant = 'Devis ' + dvF.numero + ' figé et noté envoyé aujourd’hui. ';
+      r.figeMot = avant;
+    }
     motRedac(a, 'Envoi depuis ta boîte…');
     var res = await BdvBoite.envoyer({ a: mail, sujet: r.sujet || '', texte: r.texte || '' });
     if (b) b.disabled = false;
     if (!res.ok) {
+      if (dvF) res = { ok: false, resultat: res.resultat, mot: res.mot + ' Le devis est déjà figé et son lien est dans le texte' + (res.resultat === 'incertain' ? '.' : ' : tu peux réessayer.') };
       motRedac(a, res.mot);
       /* « Peut-etre parti » : on ne repropose pas d'envoyer d'un clic (verificateur). */
       /* L'echec se dit LA OU ETAIT le bouton, pas en bas du redacteur (vigneron, lot 77). */
@@ -3728,8 +3774,14 @@
     }
     /* PARTI : plus de bouton d'envoi pour ce mail, quoi qu'il arrive au journal ensuite. */
     r.parti = true;
-    if (JOURNAL_ABSENT) { r.mot = res.mot; repeindreRedac(a); return; }
-    await redacEnvoye(a, b, { parti: res.mot });
+    var fige = r.figeMot || '', rpF = r.rpFige;
+    if (JOURNAL_ABSENT) { r.mot = fige + res.mot; repeindreRedac(a); }
+    else await redacEnvoye(a, b, { parti: fige + res.mot, rp: rpF });
+    /* Le devis vient de changer (envoye, lien, etape) : on relit l'affaire et ses devis. */
+    if (fige) {
+      S.devisDe[a.affaire_id] = null;
+      charger().then(function (ok) { if (ok) rendre(); return lireDevis({ affaire_id: a.affaire_id }); }).then(function () { if (S.page) rendre(); }, function () {});
+    }
   }
   async function redacEnvoye(a, b, opts) {
     opts = opts || {};
@@ -3752,7 +3804,7 @@
     /* LOT 73 : le rappel vient de bdv-mails-affaire.js, seul a savoir quel mail se relance,
        quand, et sous quel motif. Une affaire close n'a plus de rappel (lot 34) : la promesse
        devient une tache datee de « Mes taches », par bdv-taches.js, son seul ecrivain. */
-    var rp = window.BdvMailsAffaire ? BdvMailsAffaire.rappel(r.k, ctxMail(a), r.coches) : null;
+    var rp = opts.rp !== undefined ? opts.rp : (window.BdvMailsAffaire ? BdvMailsAffaire.rappel(r.k, ctxMail(a), r.coches) : null);
     if (r.rappel && rp && rp.tache) {
       var okT = false;
       try { okT = !!(window.BdvTaches && BdvTaches.ajouter(rp.titre + ' : ' + sujet(a), rp.iso)); } catch (eT) {}

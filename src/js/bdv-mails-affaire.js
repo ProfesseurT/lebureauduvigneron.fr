@@ -71,6 +71,10 @@
      73) : UN MAIL QUI PROMET UNE SUITE POSE SON RAPPEL, sinon le bureau fait promettre au
      vigneron ce qu'il ne tiendra pas. Le merci et le « pas pour cette fois » sont dans
      `rappel()` : leur date depend de la livraison ou d'un bloc coche. */
+  /* Ted, 08/10/2026 : boite branchee, un devis pas encore parti se fige AU DEPART du mail.
+     Jusque-la, le texte porte cette mention a la place du lien, que le bureau remplace par le
+     vrai lien juste avant l'envoi. */
+  var LIEN_A_VENIR = '[le lien pour signer, ajouté quand le mail part]';
   var RAPPELS = {
     premier_contact: ['Relancer le premier contact', 7],
     evenement: ['Relancer la demande d’événement', 7],
@@ -437,6 +441,15 @@
       return { titre: 'Lui présenter le nouveau millésime', iso: plusJours(auj, 182), defaut: true, tache: close,
         lbl: 'Me rappeler de lui présenter le nouveau millésime dans 6 mois' };
     }
+    /* Le devis qui part avec ce mail (boite branchee) : la relance que posait son envoi,
+       7 jours, jamais apres sa validite. Un devis deja parti a deja la sienne. */
+    if (k === 'devis') {
+      if (close || !dv || dv.statut !== 'enregistre') return null;
+      var isoD = plusJours(auj, 7);
+      if (dv.valable_jusqu && String(dv.valable_jusqu) < isoD && String(dv.valable_jusqu) >= auj) isoD = String(dv.valable_jusqu);
+      return { titre: 'Relancer le devis ' + dv.numero, iso: isoD, defaut: true, tache: false,
+        lbl: 'Me rappeler de le relancer le ' + dateLettre(isoD) };
+    }
     var r = RAPPELS[k];
     if (!r || close) return null;
     if (k === 'rendez_vous') {
@@ -452,5 +465,5 @@
   function nom(k) { var m = MODELES.filter(function (x) { return x.k === k; })[0]; return m ? m.nom : ''; }
 
   window.BdvMailsAffaire = { MODELES: MODELES, MAX_MAILTO: MAX_MAILTO, dispo: dispo, choisir: choisir, blocs: blocs,
-    defauts: defauts, sujet: sujet, texte: texte, avertir: avertir, nom: nom, rappel: rappel, creneaux: creneaux, _euros: euros, _dateLettre: dateLettre };
+    defauts: defauts, sujet: sujet, LIEN_A_VENIR: LIEN_A_VENIR, texte: texte, avertir: avertir, nom: nom, rappel: rappel, creneaux: creneaux, _euros: euros, _dateLettre: dateLettre };
 })();

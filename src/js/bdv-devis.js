@@ -701,7 +701,11 @@
     if (g.action === 'version' && g.version >= 1) { S.voirVersion = g.version; entrerApercu(); return; }
     if (S.etape !== 3) montrerEtape(3, true);
     var b = null;
-    if (g.action === 'envoi') b = MOD.querySelector('[data-dev="envoyer"]');
+    if (g.action === 'envoi') {
+      var bm = el('devEcrireMail');
+      if (bm) { try { bm.focus({ preventScroll: true }); } catch (e) {} montrerDansBoite(bm); return; }
+      b = MOD.querySelector('[data-dev="envoyer"]');
+    }
     else if (g.action === 'corriger') b = MOD.querySelector('[data-dev="rappeler"]');
     else if (g.action === 'commande') b = MOD.querySelector('.dmod__commande [data-dev="telecharger"]:not([aria-disabled="true"])');
     else if (g.action === 'refaire') { if (MOD.querySelector('[data-dev="refaire"]')) { refaire(); return; } }
@@ -1274,11 +1278,20 @@
   function htmlEnvoiAvant() {
     var d = S.devis, auj = jourIso(), a = S.ctx.affaire || {}, et = S.ctx.etapeDevis, lien = lienPossible();
     var min = d.date_devis && String(d.date_devis) < auj ? String(d.date_devis) : auj;
+    /* DEMANDE DE TED, 08/10/2026 : boite branchee, rien ne se fige ici. Le devis se fige, prend
+       son lien et se note envoye QUAND LE MAIL PART de l'affaire. « Le noter envoyé » garde le
+       chemin d'un devis remis en main propre ou par courrier. */
+    if (lien && parBoite() && !S.envoiAutre) {
+      return '<section class="dmod__bloc" aria-labelledby="devEnvT"><h3 class="dmod__t" id="devEnvT">Envoyer le devis au client</h3>'
+        + '<ol class="dmod__etapes aff-aide"><li>« Envoyer le devis par email » te ramène à l’affaire, le mail ouvert.</li>'
+        + '<li>Quand il part de ta boîte, le devis se fige, son lien de signature se met dans le mail et il est noté envoyé. Pas avant.</li>'
+        + '<li>La relance se choisit dans le mail.</li></ol>'
+        + '<p class="aff-aide dmod__copie--souci" id="devEnvoiNote"' + (S.modifie ? '' : ' hidden') + '>Enregistre d’abord tes changements : c’est le devis enregistré que tu envoies.</p>'
+        + '<p class="dmod__gestes"><button type="button" class="btn" id="devEcrireMail" data-dev="ecrireMail">Envoyer le devis par email</button></p>'
+        + '<p class="aff-aide">Remis autrement, en main propre ou par courrier ? <button type="button" class="dmod__lien" data-dev="envoiAutre">Le noter envoyé</button></p></section>';
+    }
     return '<section class="dmod__bloc" aria-labelledby="devEnvT"><h3 class="dmod__t" id="devEnvT">Envoyer le devis au client</h3>'
-      + '<ol class="dmod__etapes aff-aide">' + (lien && parBoite()
-        ? '<li>Prépare l’envoi ici : le devis se fige, et le bureau crée le lien de signature.</li>'
-          + '<li>« Envoyer le devis par email » : le mail s’ouvre dans l’affaire, le lien dedans, et part de ta boîte.</li>'
-        : '<li>Prépare l’envoi ici : le devis se fige' + (lien ? ', et le bureau te donne le lien de signature et le message à coller.' : '.') + '</li>'
+      + '<ol class="dmod__etapes aff-aide">' + ('<li>Prépare l’envoi ici : le devis se fige' + (lien ? ', et le bureau te donne le lien de signature et le message à coller.' : '.') + '</li>'
           + '<li>Envoie ton mail avec le PDF' + (lien ? ' et le lien' : '') + ', depuis ta messagerie.</li>')
       + '<li>Le bureau te rappelle de le relancer.</li></ol>'
       /* V8 : un changement pas enregistre se dit A COTE du bouton, pas seulement apres l'appui. */
@@ -1521,7 +1534,7 @@
   function majPrincipal() {
     if (!MOD) return;
     var conf = !!(S && (S.envoi || S.accord || S.confirme || S.refus)), d = S && S.devis;
-    var enreg = MOD.querySelector('[data-dev="enregistrer"]'), env = MOD.querySelector('[data-dev="envoyer"]');
+    var enreg = MOD.querySelector('[data-dev="enregistrer"]'), env = MOD.querySelector('[data-dev="envoyer"]') || el('devEcrireMail');
     var aEnregistrer = !d || !!S.modifie;
     var et = S && S.etape ? S.etape : 3, suiv = el('devSuivant');
     if (suiv) { suiv.hidden = et === 3; suiv.textContent = SUIVANT[et] || ''; suiv.classList.toggle('btn--bordeaux', !conf && et < 3); }
@@ -1759,7 +1772,10 @@
     if (q === 'pasEncore') { S.accord = false; var a2 = el('devAccord'); if (a2) a2.hidden = true;
       var bt = MOD.querySelector('[data-dev="accepter"]'); if (bt) { try { bt.focus(); } catch (e) {} } return; }
     if (q === 'confirmerAccord') { accepter(); return; }
-    if (q === 'allerEnvoi') { var pr2 = el('devProchaine'); if (pr2) pr2.hidden = true; if (S.etape !== 3) montrerEtape(3, true); q = 'envoyer'; }
+    if (q === 'allerEnvoi') { var pr2 = el('devProchaine'); if (pr2) pr2.hidden = true; if (S.etape !== 3) montrerEtape(3, true);
+      var bm2 = el('devEcrireMail'); if (bm2) { try { bm2.focus({ preventScroll: true }); } catch (e) {} montrerDansBoite(bm2); return; }
+      q = 'envoyer'; }
+    if (q === 'envoiAutre') { S.envoiAutre = true; peindre(); var be = MOD.querySelector('[data-dev="envoyer"]'); if (be) { try { be.focus(); } catch (e) {} } return; }
     if (q === 'envoyer') {
       if (S.modifie) { dire('Enregistre d’abord tes changements : c’est le devis enregistré que tu envoies.', true); return; }
       S.envoi = true;
@@ -2709,6 +2725,35 @@
       + '</main></body></html>';
   }
 
-  window.BdvDevis = { ouvrir: ouvrir, fermer: fermer, htmlPapier: htmlPapier, surRetour: surRetour,
+  /* FIGER AU DEPART DU MAIL (Ted, 08/10/2026), sans ouvrir le devis : relit le devis et ses
+     lignes, refuse ce qui ne se signerait pas, range la copie exacte, note envoye aujourd'hui
+     (sans rappel : c'est le mail qui pose la relance), puis cree le lien. Un refus rend
+     `{ mot }`, rien ne part. Ne touche pas a `S` : le devis peut etre ferme. */
+  async function figerPourMail(o) {
+    var b = o && o.bureau, id = o && o.devis_id;
+    function non(m) { var e = new Error(m); e.mot = m; return e; }
+    if (!b || !id) throw non('Le devis n’a pas pu se figer.');
+    var dl = await api('/devis?bureau=eq.' + encodeURIComponent(b) + '&devis_id=eq.' + encodeURIComponent(id) + '&select=*');
+    var d = unSeul(dl);
+    if (!d) throw non('Le devis n’a pas pu être relu.');
+    if (d.statut !== 'enregistre') throw non('Ce devis est déjà parti ou fermé : ouvre-le pour voir où il en est.');
+    if (!Object.prototype.hasOwnProperty.call(d, 'papier_empreinte')) throw non('La signature en ligne n’est pas encore en place dans ton bureau.');
+    if (d.valable_jusqu && String(d.valable_jusqu) < jourIso()) throw non('Ce devis n’est plus valable : refais-le avant de l’envoyer.');
+    var l = await api('/devis_lignes?bureau=eq.' + encodeURIComponent(b) + '&devis_id=eq.' + encodeURIComponent(id) + '&order=rang');
+    if (!Array.isArray(l)) throw non('Les lignes du devis n’ont pas pu être relues.');
+    var m = window.BdvCommande ? BdvCommande.manques(d, l) : [];
+    if (m.length) throw non('Ce devis ne peut pas se signer en ligne : ' + phraseManques(m));
+    var f = await feuillesPapier();
+    if (window.BdvLogo && BdvLogo.pret) { try { await BdvLogo.pret(); } catch (e) {} }
+    if (!f) throw non('La copie exacte du devis n’a pas pu se préparer. Réessaie.');
+    var papier = htmlPapier(d, l, { polices: polices(), feuilles: f, logo: logoPapier() });
+    var r = unSeul(await rpc('devis_envoyer', { p_bureau: b, p_devis: id, p_jour: jourIso(), p_rappel: null, p_rappel_titre: null, p_etape: o.etape || null, p_papier: papier }));
+    if (!r || r.statut !== 'envoye' || !r.papier_empreinte) throw non('Le devis n’a pas pu se figer avec sa copie exacte.');
+    var j = await rpc('devis_lien_creer', { p_bureau: b, p_devis: id });
+    var jeton = typeof j === 'string' ? j : (Array.isArray(j) ? j[0] : j);
+    if (typeof jeton !== 'string' || !/^[0-9a-f]{64}$/.test(jeton)) throw non('Le devis est figé, mais son lien de signature n’a pas pu se créer : ouvre-le pour le créer.');
+    return { devis: r, jeton: jeton, url: urlDuLien(jeton) };
+  }
+  window.BdvDevis = { ouvrir: ouvrir, figerPourMail: figerPourMail, fermer: fermer, htmlPapier: htmlPapier, surRetour: surRetour,
                       _S: function () { return S; }, _cle: CLE_BROUILLON };
 })();

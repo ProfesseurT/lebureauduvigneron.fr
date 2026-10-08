@@ -1920,6 +1920,11 @@ titre('Lot 72 : les mails tout faits (textes)');
   { const c = ctx({ devis: dv({ statut: 'enregistre', url: '' }) }), b = M.blocs('devis', c).filter(x => x.k === 'lien')[0];
     t('devis pas parti : le lien se cree en faisant partir le devis', b.off && b.geste === 'envoi'); }
   t('une version 2 dit qu\'elle remplace la precedente', (c => /version 2/.test(M.texte('devis', c, [])) && /remplace/.test(M.texte('devis', c, [])) && /version 2/.test(M.sujet('devis', c)))(ctx({ devis: dv({ version: 2 }) })));
+  /* Ted, 08/10/2026 : boite branchee, le devis se fige au depart du mail. */
+  { const c = ctx({ devis: dv({ statut: 'enregistre', url: M.LIEN_A_VENIR }) }), b = M.blocs('devis', c).filter(x => x.k === 'lien')[0];
+    t('devis a figer au depart : le lien est propose, la mention entre crochets est dans le texte', !b.off && M.texte('devis', c, M.defauts('devis', c)).indexOf(M.LIEN_A_VENIR) >= 0);
+    const rp = M.rappel('devis', c, M.defauts('devis', c));
+    t('devis a figer au depart : la relance est proposee, une seule fois', !!rp && rp.defaut && /Relancer le devis/.test(rp.titre) && !M.rappel('devis', ctx({ devis: dv({ statut: 'envoye' }) }), [])); }
   t('la relance ne recopie PAS le montant par defaut', M.defauts('relance_devis', ctx({ devis: dv() })).indexOf('montant') < 0);
   t('un devis accepte ne s\'envoie ni ne se relance', (c => M.dispo('devis', c) && M.dispo('relance_devis', c))(ctx({ devis: dv({ statut: 'accepte' }) })));
   t('le tarif coche : l\'ecran rappelle de le joindre', M.avertir('degustation', ctx(), ['tarif'], 10).some(x => /joindre ton tarif/.test(x)));

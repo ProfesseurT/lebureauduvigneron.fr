@@ -149,6 +149,10 @@ function monter(o) {
         if (X.mode === 'panne-ouverture') return null;
         return op.corps.p_tout_le_domaine ? DOMAINE_ENTIER.map(x => ({ ...x })) : X.props.map(x => ({ ...x }));
       }
+      if (/^\/devis\?/.test(chemin) && !(op.methode)) {
+        const m = /devis_id=eq\.([^&]+)/.exec(chemin);
+        return X.devis.filter(d => !m || d.devis_id === decodeURIComponent(m[1])).map(d => Object.assign({}, d));
+      }
       if (/^\/devis_lignes\?/.test(chemin)) {
         const id = new URLSearchParams(chemin.split('?')[1]).get('devis_id').slice(3);
         return (X.lignes[id] || []).map(x => ({ ...x }));
@@ -1586,16 +1590,36 @@ titre('15. Tour 2 du juge (02/10/2026) : l\'envoi dit ce qu\'il note, le lien so
   const X = monter({ lot52: true, lot55: true, fetch: 'ok' });
   X.w.BdvBoite = { prete: () => true };
   await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
-  t('boite : les etapes de l\'envoi disent que le mail part de la boite', /le mail s’ouvre dans l’affaire, le lien dedans, et part de ta boîte/.test(X.modale().textContent));
-  X.clic('[data-dev="envoyer"]');
-  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
-  const bloc = X.doc.getElementById('devLienBloc'), b = bloc && bloc.querySelector('[data-dev="ecrireMail"]');
-  t('boite : « Envoyer le devis par email », plein, a le focus ; ni copie du message, ni du lien, ni champ du lien',
-    !!b && b.textContent === 'Envoyer le devis par email' && b.classList.contains('btn--bordeaux') && X.doc.activeElement === b
-    && !bloc.querySelector('[data-dev="messageCopier"]') && !bloc.querySelector('[data-dev="lienCopier"]') && !X.doc.getElementById('devLienUrl'));
-  t('boite : la relance notee reste dite dans le bloc', /Pas parti aujourd’hui \?/.test(bloc.textContent));
-  X.retourOpts = undefined; X.clic('[data-dev="ecrireMail"]'); await attendre(5);
-  t('boite : le clic ramene a l\'affaire avec la demande d\'ouvrir le mail', X.retourOpts && X.retourOpts.mail === true && X.retourId === X.devis[0].devis_id);
+  t('boite : les etapes disent que le devis se fige au depart du mail, pas avant', /Quand il part de ta boîte, le devis se fige/.test(X.modale().textContent) && /Pas avant\./.test(X.modale().textContent));
+  const bm = X.doc.getElementById('devEcrireMail');
+  t('boite : « Envoyer le devis par email » plein, ni « Préparer l’envoi » ni formulaire d’envoi',
+    !!bm && bm.textContent === 'Envoyer le devis par email' && bm.classList.contains('btn--bordeaux') && !X.modale().querySelector('[data-dev="envoyer"]') && !X.doc.getElementById('devEnvoi'));
+  const avant = X.requetes.length;
+  X.retourOpts = undefined; X.clic('#devEcrireMail'); await attendre(5);
+  t('boite : le clic ramene a l\'affaire, mail ouvert, et RIEN n\'est fige', X.retourOpts && X.retourOpts.mail === true && X.retourId === X.devis[0].devis_id
+    && !X.requetes.slice(avant).some(r => /devis_envoyer|devis_lien_creer/.test(r.chemin)));
+}
+{
+  /* figerPourMail : relit, fige SANS rappel avec sa copie, puis cree le lien. */
+  const X = monter({ lot52: true, lot55: true, fetch: 'ok' });
+  X.w.BdvBoite = { prete: () => true };
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  const avant = X.requetes.length;
+  let res = null, err = null;
+  try { res = await X.w.BdvDevis.figerPourMail({ bureau: BUREAU, devis_id: X.devis[0].devis_id }); } catch (e) { err = e; }
+  const rq = X.requetes.slice(avant), ch = rq.map(r => r.chemin);
+  const env = rq.filter(r => r.chemin === '/rpc/devis_envoyer').pop();
+  t('figerPourMail : devis_envoyer puis devis_lien_creer, sans rappel, avec la copie', !err && ch.indexOf('/rpc/devis_envoyer') >= 0 && ch.indexOf('/rpc/devis_lien_creer') > ch.indexOf('/rpc/devis_envoyer')
+    && env && env.corps.p_rappel === null && typeof env.corps.p_papier === 'string', err ? String(err.mot || err.message) : ch.join());
+  t('figerPourMail : rend le lien de signature', !!res && /\/signer\/#[0-9a-f]{64}$/.test(res.url) && res.devis && res.devis.statut === 'envoye');
+}
+{
+  /* « Le noter envoyé » garde le chemin d'un devis remis autrement. */
+  const X = monter({ lot52: true, lot55: true, fetch: 'ok' });
+  X.w.BdvBoite = { prete: () => true };
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  X.clic('[data-dev="envoiAutre"]'); await attendre(5);
+  t('boite : « Le noter envoyé » rend « Préparer l’envoi »', !!X.modale().querySelector('[data-dev="envoyer"]') && !X.doc.getElementById('devEcrireMail'));
 }
 {
   /* L'envoi note un AUTRE jour : le titre de relance par defaut (celui de la base) suffit. */
