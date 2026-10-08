@@ -39,6 +39,9 @@ trois jours. Ne pas s'en étonner en relisant.
   de 7 jours (la boîte passe alors « à reconnecter »). La vérification Google se lance quand le
   domaine répond.
 
+**Premier essai réel, le soir même.** Secrets Google posés par Ted, fonctions déployées (google-retour, boite, mails-programmes). La boîte teddypereira88@gmail.com s'est branchée au DEUXIÈME essai, et le premier mail est parti par Gmail. Le premier essai a échoué sans laisser de raison : la fin de connexion se taisait sur ses échecs. Correctif : chaque échec de `finir` laisse sa raison dans les traces, la page dit de cocher « Envoyer des e-mails en votre nom » avant de partir chez Google (la case est décochée au départ), et le message sous le bouton défile à l'écran (il s'affichait hors de vue : le bouton semblait ne rien faire). banc:boite 93/0.
+
+
 ## 08/10/2026, lot 85 : la boîte branchée simplifie l'envoi
 
 Ted : « quand on a connecté la boîte, il faut virer les autres boutons. » Et pour le devis :

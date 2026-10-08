@@ -237,7 +237,9 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
       'Gmail et Workspace : « Se connecter avec Google », retour sur le meme site');
     dit(bo.includes("/^https:\\/\\/accounts\\.google\\.com\\//.test(String(r.url"), 'le navigateur ne part que vers accounts.google.com');
     dit(/PORTEE = 'openid email https:\/\/www\.googleapis\.com\/auth\/gmail\.send'/.test(gr) && !/mail\.google\.com\/'/.test(gr), 'permission gmail.send seulement, jamais mail.google.com');
-    dit(/includes\('https:\/\/www\.googleapis\.com\/auth\/gmail\.send'\)\) return reponse\(\{ resultat: 'permission' \}\)/.test(gr), 'permission decochee chez Google : rien n est branche');
+    dit(/includes\('https:\/\/www\.googleapis\.com\/auth\/gmail\.send'\)\) \{ console\.log\('google: case envoi non cochee'\); return reponse\(\{ resultat: 'permission' \}\); \}/.test(gr), 'permission decochee chez Google : rien n est branche, et la raison est notee');
+    dit(/console\.log\('google: reponse incomplete'/.test(gr) && /console\.log\('google: finir, etat expire/.test(gr) && /console\.log\('google: echange sans reponse'\)/.test(gr), 'chaque echec de la fin de connexion laisse sa raison dans les traces');
+    dit(/coche bien « Envoyer des e-mails en votre nom »/.test(bo) && /p\.scrollIntoView\(\{ block: 'nearest'/.test(bo), 'la case a cocher est dite avant Google, et le message sous le bouton vient a l ecran');
     dit(/if \(qui\.personne !== moi\.id\)/.test(gr) && !/boite_google_ranger/.test(gr.slice(gr.indexOf('async function retour'), gr.indexOf('async function finir'))) && /action === 'finir'\) return await finir/.test(gr),
       'contre la connexion forcee : seul celui qui a commence finit, avec sa session, et le retour de Google ne range rien');
     dit(/const SITES = \['https:\/\/lebureauduvigneron\.fr', 'https:\/\/www\.lebureauduvigneron\.fr', 'https:\/\/lebureauduvigneron\.vercel\.app'\]/.test(gr)

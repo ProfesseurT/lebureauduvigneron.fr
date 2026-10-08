@@ -147,8 +147,8 @@ async function finir(req: Request) {
   try {
     const l = await rpc('google_etat_prendre', { p_hash: await empreinte(etat) });
     qui = Array.isArray(l) && l[0] ? l[0] : null;
-  } catch { return reponse({ resultat: 'erreur' }); }
-  if (!qui) return reponse({ resultat: 'expire' });
+  } catch { console.log('google: finir, etat illisible'); return reponse({ resultat: 'erreur' }); }
+  if (!qui) { console.log('google: finir, etat expire ou deja pris'); return reponse({ resultat: 'expire' }); }
   if (qui.personne !== moi.id) { console.log('google: etat d un autre compte'); return reponse({ resultat: 'autre_compte' }); }
   let j: Record<string, unknown> = {};
   try {
@@ -160,13 +160,13 @@ async function finir(req: Request) {
     });
     j = await r.json().catch(() => ({}));
     if (!r.ok) { console.log('google: echange refuse ' + r.status + ' ' + String(j.error ?? '').slice(0, 40)); return reponse({ resultat: 'erreur' }); }
-  } catch { return reponse({ resultat: 'erreur' }); }
+  } catch { console.log('google: echange sans reponse'); return reponse({ resultat: 'erreur' }); }
   /* L'ecran de Google laisse decocher une permission : sans `gmail.send`, rien a brancher. */
   const portee = String(j.scope ?? '').split(/\s+/);
-  if (!portee.includes('https://www.googleapis.com/auth/gmail.send')) return reponse({ resultat: 'permission' });
+  if (!portee.includes('https://www.googleapis.com/auth/gmail.send')) { console.log('google: case envoi non cochee'); return reponse({ resultat: 'permission' }); }
   const renouvellement = String(j.refresh_token ?? '');
   const adresse = adresseDuJeton(String(j.id_token ?? ''));
-  if (!renouvellement || !adresse) return reponse({ resultat: 'erreur' });
+  if (!renouvellement || !adresse) { console.log('google: reponse incomplete' + (renouvellement ? '' : ' sans renouvellement') + (adresse ? '' : ' sans adresse verifiee')); return reponse({ resultat: 'erreur' }); }
   try {
     await rpc('boite_google_ranger', { p_personne: qui.personne, p_bureau: qui.bureau, p_adresse: adresse, p_jeton: renouvellement });
   } catch (e) {

@@ -82,6 +82,9 @@
     p.textContent = t || '';
     p.className = 'bdvr-aide' + (alerte ? ' bdvr-aide--alerte' : '');
     p.hidden = !t;
+    /* Lot 86 suite : le message vit en bas de Mes envois ; sans ce defilement, il s'affichait
+       hors de l'ecran et le bouton semblait ne rien faire (essai de Ted, 08/10/2026). */
+    if (t && typeof p.scrollIntoView === 'function') { try { p.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {} }
   }
 
   /* ---------------- L'ECRAN ---------------- */
@@ -317,7 +320,7 @@
         var gg = mk('div', 'bdvb-gestes');
         var bg = mk('button', 'bdvr-btn', 'Se connecter avec Google'); bg.type = 'button'; bg.id = 'bdvbGoogle';
         gg.appendChild(bg); fo.appendChild(gg);
-        fo.appendChild(mk('p', 'bdvr-aide', 'Le plus simple : Google te demande d’autoriser le bureau à envoyer des mails en ton nom. Il ne lit rien dans ta boîte, et tu n’as aucun mot de passe à créer.'));
+        fo.appendChild(mk('p', 'bdvr-aide', 'Le plus simple : Google te demande d’autoriser le bureau à envoyer des mails en ton nom. Il ne lit rien dans ta boîte, et tu n’as aucun mot de passe à créer. Sur sa page, coche bien « Envoyer des e-mails en votre nom » : la case est décochée au départ.'));
         if (f.motDePasse) fo.appendChild(mk('p', 'bdvr-aide', 'Sinon, avec un mot de passe :'));
       }
       if (f.motDePasse) fo.appendChild(aideAvecLien(f.motDePasse));
