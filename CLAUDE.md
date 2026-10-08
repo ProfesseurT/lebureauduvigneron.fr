@@ -8635,3 +8635,31 @@ Demande de Ted : l'historique d'achat du client dans l'affaire, comme sur la fic
 - Fiche ET affaire : une commande attendue deja passee dit « attendue vers le ..., rien depuis ».
 - Ouvert, a Ted : l'onglet « Commandes » compte les factures, la tuile compte les commandes
   (54 contre 18 dans le decor) ; tuiles de periodes differentes (CA de l'exercice, le reste au total).
+
+
+## LES NOUVEAUX CLIENTS DANS « MES CLIENTS », DECIDE LE 08/10/2026 (lots 80 a 83)
+
+Decision de Ted (choix 2 + 3) : un client qui n'est pas dans Vitisoft (une `piste`) apparait dans
+« Mes clients », marque « Pas encore dans Vitisoft », avec la MEME fiche (sans chiffres de vente).
+Bouton « Nouveau client » dans « Mes clients ». Ses notes et echanges survivent a « Vider la base ».
+Ses rappels remontent partout comme ceux d'un client. A l'arrivee par l'export : relie TOUT SEUL si
+l'e-mail est identique, sinon le bureau demande ; un bouton « Delier » defait une erreur.
+Lots : 80 la base, 81 la liste et « Nouveau client », 82 la fiche, 83 journee, courrier et fusion.
+
+### LOT 80 : LA BASE (08/10/2026)
+
+- **SQL `supabase/lot80-nouveaux-clients.sql`, a coller APRES 78.** Banc
+  `supabase/banc-lot80-nouveaux-clients.sql` (27, rejoue 47 a 78, 5 mutations tuees).
+- **LA CLE : « p:<piste_id> »** dans `suivi_clients.client_id` et `echanges.client_id`. Un numero
+  Vitisoft n'a que des chiffres (verifie en production : zero cle non numerique). `piste_de_cle()`.
+- **Declencheur `cle_client_verifier`** sur les deux tables : une cle « p: » doit designer une piste
+  du MEME bureau, pas en opposition, pas deja reliee a Vitisoft. Laisse passer ce qu'ecrit un autre
+  declencheur (`pg_trigger_depth() > 1`) : sinon l'opposition ne peut plus effacer son journal (vu au banc).
+- **`vider_la_base_du_bureau` garde les lignes « p: »** et ne les recompte pas ; nouveau champ
+  `gardes`. Les autres champs rendus ne changent pas.
+- **Opposition** : sa fiche (suivi) est supprimee, le texte de son journal efface (la date reste).
+  **Purge a trois ans** : une note ou un suivi de moins de trois ans est un geste ; sinon effaces.
+- **`nom_du_client(bureau, cle)`**, SECURITY INVOKER (un compte ne lit que les pistes de ses
+  bureaux). `v_courrier` : memes onze colonnes, chaque suivi porte `nom`. `notif_horaire_lots` nomme
+  par elle (copie exacte du lot 64 sinon).
+- Rien n'ecrit encore de cle « p: » : les ecrans arrivent au lot 81.

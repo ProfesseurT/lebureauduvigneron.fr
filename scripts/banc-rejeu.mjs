@@ -91,6 +91,7 @@ const ORDRE = [
   'lot76-boites.sql',
   'lot77-envoi.sql',
   'lot78-nom-affiche.sql',
+  'lot80-nouveaux-clients.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

@@ -10691,3 +10691,16 @@ les onglets de la fiche client (commandes, ce qu'il achete, a lui proposer, info
 d'achat), ecrits par la fiche elle-meme. Vigneron empathique : feu orange, deux points corriges
 (chiffres sur deux colonnes au telephone ; une commande attendue passee le dit). Deux points
 signales a Ted, non tranches. Bancs verts. Pas de SQL.
+
+
+## 08/10/2026 : les nouveaux clients dans « Mes clients », lot 80 (la base)
+
+Ted : « les clients non presents dans Vitisoft doivent pouvoir apparaitre dans Mes clients ».
+Etat d'avant : seuls les clients des exports y sont ; un nouveau client (piste) ne vit que dans
+ses affaires, sans fiche. Choix de Ted : une vraie fiche (2) et le rapprochement a l'arrivee
+dans Vitisoft (3) ; « Nouveau client » depuis « Mes clients » ; ses notes survivent au vidage ;
+ses rappels remontent partout ; rapprochement AUTOMATIQUE si e-mail identique, sinon on demande.
+Lot 80 : la cle « p:<piste> » dans `suivi_clients` et `echanges`, verifiee par la base, gardee par
+« Vider la base », effacee par l'opposition et la purge, nommee dans le courrier et le soir.
+Banc SQL 27 controles, 5 mutations tuees ; le banc a trouve que le verificateur bloquait
+l'opposition elle-meme, corrige. SQL a coller.
