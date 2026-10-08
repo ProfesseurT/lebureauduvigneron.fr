@@ -8692,3 +8692,54 @@ Lots : 80 la base, 81 la liste et « Nouveau client », 82 la fiche, 83 journee,
   captures `scripts/cap-nouveaux.mjs` (playwright, hors verif). Vigneron empathique : orange deux
   fois, corrige, defauts restants = dessin commun des fiches (deux aplats, 5 boutons sur 4 lignes).
 - Reste au lot 83 : la fusion a l'arrivee dans Vitisoft (auto si e-mail identique) et « Delier ».
+
+### LOT 83 : RELIER, DELIER, FUSIONNER (08/10/2026)
+
+Decisions de Ted : relier automatique si meme e-mail, sinon « C'est le meme ? » ; a la main depuis
+la fiche ; « Delier » remet comme au moment du lien ; fusion de DEUX NOUVEAUX clients, definitive
+apres confirmation. Deux clients Vitisoft ne se fusionnent pas ici (Vitisoft les renverrait
+separes) : ca se corrige dans Vitisoft.
+
+- **SQL `supabase/lot83-relier-fusionner.sql`, a coller APRES 80.** Banc
+  `supabase/banc-lot83-relier-fusionner.sql` (42 ; il refait `suivi_clients` et `echanges` a leur
+  forme de production, droits par auteur compris, puis repasse 80).
+- **Trois gestes, dans la base** (security definer, `est_membre`) : `relier_a_vitisoft`,
+  `delier_de_vitisoft`, `fusionner_nouveaux`. Raison : un echange ne se modifie que par son auteur,
+  une piste ne se supprime plus depuis le navigateur, et le declencheur du lot 80 refuse « p: » des
+  que le lien est pose : il faut deplacer AVANT de relier, dans une transaction.
+- **`pistes.client_id` ne se pose plus a la main** (`pistes_lien_garde`, sauf `bdv.lien` pose par
+  les gestes ; role de service et editeur SQL passent).
+- **`liens_nouveaux`** garde l'avant (suivi de la piste, suivi Vitisoft, ligne reunie, echanges
+  deplaces) : c'est ce que relit « Delier ». Personne ne la lit depuis le navigateur ; l'opposition
+  l'efface (elle porte une copie du suivi).
+- **Reunion de deux suivis** (`suivi_reunir`) : notes bout a bout, rappel le plus proche (avec
+  motif, canal, statut), etiquettes additionnees, « suivi par » de la fiche Vitisoft.
+- **Delier** : les echanges venus de la piste repartent, ceux ecrits apres restent sur Vitisoft.
+  Suivi Vitisoft inchange depuis le lien : il reprend son etat d'avant. Modifie : fusion a trois
+  champ par champ (ce qui a change reste, le reste reprend sa valeur d'avant le lien).
+- **Fusion** : l'absorbee donne suivi, journal, affaires et champs vides (SIRET libere d'abord),
+  puis disparait. Une affaire dont le « suivi par » a quitte le bureau perd ce nom. Des notes trop
+  longues pour tenir ensemble (2 000) : celles de l'absorbee vont ENTIERES au journal. Les devis
+  gardent leur `piste_id` (figes, sans cle etrangere, personne ne le lit).
+- **`piste_ecarter`** : « Non » a « C'est le meme ? », ajoute par la base dans `pistes.pas_vitisoft`
+  (deux « Non » simultanes ne s'effacent pas).
+- **`cle_client_verifier` du lot 80 lit la piste `for share`** : une note ecrite pendant un lien
+  attend la fin et est refusee, au lieu de rester sous l'ancienne cle (verifie a deux sessions).
+- **Front** : `window.bdvClients` (bdv-base.js) pousse ce qui attend ici AVANT le geste (une note pas
+  partie BLOQUE, sinon perdue), puis relit les deux cles. Les erreurs se lisent dans `e.detail` (le
+  corps), jamais dans le chemin. Le tirage ne remet sous son ancienne cle QUE ce qui attend et que
+  le serveur ne montre nulle part, et retire une fiche de suivi que le serveur n'a plus : sans quoi
+  un autre appareil montrait les notes deplacees sur les deux fiches.
+- **A l'import** (`rapprocherApresImport`, apres `reloadFromDB`) : meme e-mail chez UN SEUL vrai
+  numero, pas ecarte, pas deja relie : relie, et le compte rendu le dit. Pistes lues par pages de 1 000.
+- **« Mes clients »** : « Relies a Vitisoft ces derniers jours » (7 jours, « Voir la fiche », « C'est
+  bien lui, masquer » retenu sur l'appareil) et « C'est le meme client ? » (meme e-mail en tete, puis
+  nom proche ; les deux fiches cote a cote, ville et e-mail, avertissement si elles divergent).
+- **La fiche** : nouveau client, « Le retrouver dans Vitisoft » et « Fusionner avec un autre nouveau
+  client » (recherche, sosies proposes sans recherche, confirmation avec les deux fiches) ; fiche
+  Vitisoft reliee, « Ajoute d'abord a la main... puis relie... » et « Delier » (confirmation). Les
+  pistes reliees sont lues avec les autres (`LIES`, `bdvNouveaux.lie(num)`).
+- Garde : `banc:annuaire` section 11 ; captures `scripts/cap-lien.mjs`. Relecture adverse : 11
+  constats, les 10 reels corriges. Vigneron empathique : 10 constats, corriges (fiches cote a cote,
+  avertissement, explication au-dessus des boutons, plus de bandeau par-dessus la fiche, « Delier » en
+  bouton, « Fusionner pour de bon »).

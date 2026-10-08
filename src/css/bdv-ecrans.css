@@ -1150,6 +1150,45 @@
   color:var(--bdv-encre-2);font-size:var(--bdv-f-2)}
 .bdv-ventes .fiche__adresse{margin:0 0 var(--bdv-e-3);font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
 .bdv-ventes .fiche__oppose{margin:var(--bdv-e-3) 0;padding:var(--bdv-e-3);border-left:3px solid var(--bdv-retard);background:var(--bdv-retard-lavis);color:var(--bdv-encre-1)}
+/* LOT 83 (08/10/2026) : relier, delier, fusionner. Une confirmation dit toujours ce qui
+   bouge ; les propositions de « Mes clients » sont une liste, pas une alerte. */
+.bdv-ventes .fiche__lien{margin:0 0 var(--bdv-e-4)}
+.bdv-ventes .fiche__lien-btns{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2)}
+.bdv-ventes .fiche__lien-cherche{display:flex;flex-direction:column;gap:var(--bdv-e-2);padding:var(--bdv-e-3);border:1px solid var(--bdv-trait);background:var(--bdv-surface-2)}
+.bdv-ventes .fiche__lien-cherche > .btn{align-self:flex-start}
+.bdv-ventes .fiche__lien-q{width:100%;min-height:var(--bdv-cible);font-size:var(--bdv-f-3)}
+.bdv-ventes .fiche__lien-res{list-style:none;margin:0;padding:0;border-top:1px solid var(--bdv-trait)}
+.bdv-ventes .fiche__lien-res li{border-bottom:1px solid var(--bdv-trait)}
+.bdv-ventes .fiche__lien-choix{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--bdv-e-2);width:100%;min-height:var(--bdv-cible);
+  padding:var(--bdv-e-2) var(--bdv-e-1);border:0;background:none;font:inherit;color:var(--bdv-encre-1);text-align:left;cursor:pointer}
+.bdv-ventes .fiche__lien-choix:hover{background:var(--bdv-surface-3)}
+.bdv-ventes .fiche__lien-choix:focus-visible{outline:2px solid var(--bdv-anneau);outline-offset:-2px}
+.bdv-ventes .fiche__lien-vide{margin:0}
+.bdv-ventes .fiche__lien-conf{padding:var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);border-left:3px solid var(--bdv-accent);background:var(--bdv-surface)}
+.bdv-ventes .fiche__lien-conf p{margin:0 0 var(--bdv-e-3);color:var(--bdv-encre-1)}
+.bdv-ventes .fiche__lien-msg{margin:var(--bdv-e-2) 0 0;font-size:var(--bdv-f-2);color:var(--bdv-encre-1)}
+.bdv-ventes .fiche__lien-err,.bdv-ventes .annu__rappro-err{margin:var(--bdv-e-2) 0 0;color:var(--bdv-retard);font-weight:600}
+.bdv-ventes .fiche__lie{margin-top:var(--bdv-e-2)}
+.bdv-ventes .fiche__relie{margin:0 0 var(--bdv-e-2);font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
+.bdv-ventes .fiche__lien-deux,.bdv-ventes .annu__rappro-deux{list-style:none;margin:0 0 var(--bdv-e-2);padding:0;display:flex;flex-direction:column;gap:var(--bdv-e-1)}
+.bdv-ventes .fiche__lien-cote,.bdv-ventes .annu__rappro-cote{color:var(--bdv-encre-3);font-size:var(--bdv-f-2)}
+.bdv-ventes .fiche__lien-att,.bdv-ventes .annu__rappro-att{margin:0 0 var(--bdv-e-2);color:var(--bdv-retard)}
+.bdv-ventes .fiche__lien-conf--grave{border-left-color:var(--bdv-retard)}
+.bdv-ventes .annu__rappro{margin:0 0 var(--bdv-e-4);padding:var(--bdv-e-4);border:1px solid var(--bdv-trait);background:var(--bdv-surface-2)}
+.bdv-ventes .annu__rappro-t{margin:0 0 var(--bdv-e-2);font-size:var(--bdv-f-3)}
+.bdv-ventes .annu__rappro-t ~ .annu__rappro-t{margin-top:var(--bdv-e-4)}
+.bdv-ventes .annu__rappro-l{list-style:none;margin:0 0 var(--bdv-e-2);padding:0;border-top:1px solid var(--bdv-trait)}
+.bdv-ventes .annu__rappro-l li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--bdv-e-2);padding:var(--bdv-e-2) 0;border-bottom:1px solid var(--bdv-trait);color:var(--bdv-encre-1)}
+.bdv-ventes .annu__rappro-l li > span:first-child{flex:1 1 18rem}
+.bdv-ventes .annu__rappro-l li > .annu__rappro-deux{margin:0}
+.bdv-ventes .annu__rappro-b{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2)}
+.bdv-ventes .annu__rappro-pq{display:inline-block;margin-left:var(--bdv-e-1);padding:0 var(--bdv-e-1);border:1px solid var(--bdv-trait-fort);font-size:var(--bdv-f-1);white-space:nowrap}
+.bdv-ventes .annu__rappro .note{margin:0;font-size:var(--bdv-f-2);color:var(--bdv-encre-3)}
+@media (max-width:700px){
+  .bdv-ventes .annu__rappro-b{flex:1 1 100%}
+  .bdv-ventes .annu__rappro-b .btn,.bdv-ventes .fiche__lien-btns .btn{flex:1 1 100%;min-height:var(--bdv-cible)}
+  .bdv-ventes .annu__rappro .btn,.bdv-ventes .fiche__lien .btn{scroll-margin-bottom:calc(var(--bdv-cible) + var(--bdv-e-6) * 2)}
+}
 /* « Clients a suivre », 29/09/2026 (lot 44) : la rangee etait un `<tr role=button>` qui
    portait deja des liens, et il fallait y poser « En faire une affaire ». Meme montage que
    « Mes clients » : le NOM est le bouton qui ouvre la fiche, et un clic ailleurs sur la

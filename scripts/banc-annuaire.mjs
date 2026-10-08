@@ -445,8 +445,9 @@ console.log('== 10. Les nouveaux clients ==');
     api: async (chemin, o) => {
       o = o || {};
       if (/^\/pistes/.test(chemin) && (o.methode || 'GET') === 'GET') {
-        if (!/client_id=is\.null/.test(chemin) || !/bureau=eq\.B1/.test(chemin)) throw new Error('lecture des pistes mal filtree : ' + chemin);
-        return PISTES.filter(p => !p.client_id);
+        /* Lot 83 : toutes les pistes du bureau ; les reliees vont a la fiche Vitisoft. */
+        if (!/bureau=eq\.B1/.test(chemin)) throw new Error('lecture des pistes mal filtree : ' + chemin);
+        return PISTES;
       }
       if (chemin === '/pistes' && o.methode === 'POST') { w10.__POST.push(o.corps); return [Object.assign({ cree_le: '2026-10-08' }, o.corps[0])]; }
       return [];
@@ -458,7 +459,7 @@ console.log('== 10. Les nouveaux clients ==');
   await tic10();
   const X = (c) => w10.__x10(c);
   const ids = () => X(`BdvAnnuaire._etat().LISTE.map(function(c){ return c.id; }).sort().join(',')`);
-  t('la lecture des nouveaux clients ne prend que les pistes pas encore reliees, du bureau', X(`window.bdvNouveaux.lus()`) === true, X(`window.bdvNouveaux.lus()`));
+  t('la lecture des nouveaux clients aboutit, et la piste deja reliee va a sa fiche Vitisoft', X(`window.bdvNouveaux.lus()`) === true && X(`(window.bdvNouveaux.lie('C1')||{}).piste_id`) === PL, X(`window.bdvNouveaux.lus()`));
   t('« Mes clients » montre les clients Vitisoft ET les nouveaux, pas la piste deja reliee',
     ids() === ['C1', 'C2', 'C3', 'p:' + PA, 'p:' + PO].sort().join(','), ids());
   const ligne = w10.document.querySelector('#annuCorps tr[data-id="p:' + PA + '"]');
@@ -525,6 +526,163 @@ console.log('== 10. Les nouveaux clients ==');
   t('bdv-crm.js lit le nom des pistes des cles « p: » du suivi', /\/pistes\?select=piste_id,nom' \+ auBureau\(\) \+ '&piste_id=in\./.test(crm));
   const cou = fs.readFileSync(R + 'bdv-courrier.js', 'utf8');
   t('le courrier du matin prend le nom porte par la vue (lot 80) avant l annuaire', /titre:\(s\.nom && String\(s\.nom\)\.trim\(\)\) \|\| nomDe\(annuaire, s\.client_id\)/.test(cou));
+}
+
+/* 08/10/2026, LOT 83 : RELIER, DELIER, FUSIONNER. Les gestes partent a la base (rpc), et
+   l'ecran ne fait que proposer et confirmer. Ce banc garde ce que l'ecran promet : ce qu'il
+   propose, ce qu'il envoie, et qu'un geste en attente ici bloque le lien au lieu d'etre perdu. */
+console.log('== 11. Relier, delier, fusionner (lot 83) ==');
+{
+  const PM = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', PN = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', PF = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+  const PISTES = [
+    { piste_id: PM, nom: 'Achats Belges', email: 'achat@import.be', client_id: null, opposition: false, pas_vitisoft: [], cree_le: '2026-10-01T10:00:00Z' },
+    { piste_id: PN, nom: 'SARL Domaine Neuf', client_id: null, opposition: false, pas_vitisoft: [] },
+    { piste_id: PF, nom: 'Domaine Neuf (doublon)', ville: 'Nantes', client_id: null, opposition: false, pas_vitisoft: [] }
+  ];
+  const d11 = new JSDOM(`<!doctype html><body>
+    <section class="panel on" id="p-annuaire"></section>
+    <div id="modale" class="bdv-ventes modale"></div>
+    <div id="status"></div><div id="statusTxt"></div><div id="statusSpin"></div>
+    <div id="busyov"></div><div id="busytxt"></div>
+  </body>`, { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/' });
+  const w = d11.window;
+  if (w.document.readyState === 'loading') await new Promise(r => w.document.addEventListener('DOMContentLoaded', r));
+  w.Chart = function(){ this.destroy = () => {}; }; w.Papa = {};
+  w.__RPC = []; w.__PATCH = []; w.__ECH_OK = true; w.__OUVERT = [];
+  w.BdvSync = { pret: () => true, ecrireSuiviLot: async () => true, ecrireSuivi: async () => true, supprimerSuivi: async () => true,
+    lot33: async () => null, lireVues: async () => null, lireSuivi: async () => ({}), lireEchanges: async () => [],
+    ecrireEchange: async () => w.__ECH_OK };
+  w.bdvOuvrirFiche = function(id){ w.__OUVERT.push(id); return Promise.resolve(true); };
+  w.BdvCompte = { monBureau: () => 'B1', monId: () => 'u1',
+    api: async (chemin, o) => {
+      o = o || {};
+      if (/^\/pistes/.test(chemin) && (o.methode || 'GET') === 'GET') return JSON.parse(JSON.stringify(PISTES));
+      if (/^\/pistes\?/.test(chemin) && o.methode === 'PATCH') { w.__PATCH.push({ chemin, corps: o.corps });
+        const id = /piste_id=eq\.([^&]+)/.exec(chemin)[1]; PISTES.find(p => p.piste_id === id).pas_vitisoft = o.corps.pas_vitisoft; return null; }
+      if (/^\/rpc\//.test(chemin)) {
+        w.__RPC.push({ fn: chemin.slice(5), corps: o.corps });
+        if (chemin === '/rpc/relier_a_vitisoft') { const p = PISTES.find(x => x.piste_id === o.corps.p_piste); p.client_id = o.corps.p_client; p.lie_le = new Date().toISOString(); return { relie: true }; }
+        if (chemin === '/rpc/delier_de_vitisoft') { const p = PISTES.find(x => x.piste_id === o.corps.p_piste); p.client_id = null; p.lie_le = null; return { delie: true }; }
+        if (chemin === '/rpc/piste_ecarter') { const p = PISTES.find(x => x.piste_id === o.corps.p_piste); p.pas_vitisoft = (p.pas_vitisoft || []).concat([o.corps.p_client]); return p.pas_vitisoft; }
+        if (chemin === '/rpc/fusionner_nouveaux') { const i = PISTES.findIndex(x => x.piste_id === o.corps.p_absorbe); PISTES.splice(i, 1); return { garde: o.corps.p_garde }; }
+      }
+      return [];
+    } };
+  const tic = async () => { for (let i = 0; i < 30; i++) await new Promise(r => setTimeout(r, 0)); };
+  w.eval(fs.readFileSync(R + 'bdv-base.js', 'utf8') + '\n' + fs.readFileSync(R + 'bdv-ecrans.js', 'utf8') + '\n'
+    + fs.readFileSync(R + 'bdv-annuaire.js', 'utf8') + '\n' + scenario.replace('window.__S = S;', 'window.__S11 = S;') + `
+    window.__x11 = function(code){ return eval(code); };`);
+  await tic();
+  const X = (c) => w.__x11(c);
+  const q = (s) => w.document.querySelector(s), qa = (s) => Array.from(w.document.querySelectorAll(s));
+  X(`BdvAnnuaire.peindre()`); await tic();
+
+  // « MES CLIENTS » PROPOSE
+  const props = qa('.annu__rappro-l li').map(li => li.textContent.replace(/\s+/g, ' '));
+  t('« C est le meme ? » propose le meme e-mail en tete, puis le nom proche (sans la forme juridique)',
+    props.length >= 2 && /Achats Belges.*Import Belge.*même e-mail/.test(props[0]) && props.some(x => /SARL Domaine Neuf.*Domaine Neuf/.test(x)), props.join(' | '));
+  const non = qa('[data-a="rp-non"]').find(b => b.getAttribute('data-p') === PN && b.getAttribute('data-n') === 'C1');
+  non.click(); await tic();
+  const rn = w.__RPC[0];
+  t('« Non » passe par la base qui AJOUTE le numero (deux « Non » simultanes ne s effacent pas), et la question ne revient pas',
+    w.__PATCH.length === 0 && rn && rn.fn === 'piste_ecarter' && rn.corps.p_piste === PN && rn.corps.p_client === 'C1'
+    && !qa('[data-a="rp-oui"]').some(b => b.getAttribute('data-p') === PN && b.getAttribute('data-n') === 'C1'), JSON.stringify(rn));
+  t('et le focus va a la proposition suivante', w.document.activeElement && w.document.activeElement.closest('#annuRappro') !== null);
+  w.__RPC.length = 0;
+  qa('[data-a="rp-oui"]').find(b => b.getAttribute('data-p') === PM).click(); await tic();
+  const r1 = w.__RPC[0];
+  t('« Oui » relie par la base, avec le bureau, la piste et le numero', !!r1 && r1.fn === 'relier_a_vitisoft' && r1.corps.p_bureau === 'B1' && r1.corps.p_piste === PM && r1.corps.p_client === 'C3', JSON.stringify(r1));
+  t('le lien se montre dans « Relies a Vitisoft ces derniers jours », avec « Voir la fiche »',
+    /Reliés à Vitisoft ces derniers jours/.test(q('#annuRappro').textContent) && /« Achats Belges » est maintenant Import Belge, n°C3/.test(q('#annuRappro').textContent.replace(/\s+/g, ' ')) && !!q('[data-a="rp-voir"][data-n="C3"]'));
+  t('et le nouveau client sort de la liste des nouveaux', X(`window.bdvNouveaux.get('p:${PM}')`) === null && !!X(`window.bdvNouveaux.lie('C3')`));
+  q('[data-a="rp-vu"]').click(); await tic();
+  t('« C est bon » range le lien vu', !/Reliés à Vitisoft/.test(q('#annuRappro').textContent));
+
+  // LA FICHE VITISOFT D'UN CLIENT RELIE
+  X(`ouvrirFiche('C3')`);
+  t('la fiche Vitisoft dit d ou vient le client, et propose « Delier »', /Ajouté d’abord à la main sous le nom « Achats Belges », le 1 octobre 2026, puis relié à Vitisoft/.test(q('#ficheLien').textContent) && !!q('.fiche__lien-delier'), q('#ficheLien').textContent);
+  /* jsdom « outside-only » ne joue pas les onclick en ligne : on lit l'attribut, puis on appelle. */
+  const on = (sel) => { const b = q(sel); return b && b.getAttribute('onclick'); };
+  const choisir = () => X(`ficheLien('choisir', document.querySelector('#ficheLienRes .fiche__lien-choix'))`);
+  t('le bouton « Delier » appelle le geste', on('.fiche__lien-delier') === "ficheLien('delier')");
+  await X(`ficheLien('delier')`); await tic();
+  t('« Delier » demande confirmation et dit ce qui reste ici', /ses affaires repartent sur sa fiche de nouveau client\. Ce qui a été écrit ici depuis le lien reste ici/.test(q('#ficheLien').textContent) && w.__RPC.length === 1);
+  t('la confirmation porte le bon geste', on('#ficheLien .btn--primary') === "ficheLien('delier-ok')");
+  await X(`ficheLien('delier-ok')`); await tic();
+  t('la confirmation delie par la base', w.__RPC[1] && w.__RPC[1].fn === 'delier_de_vitisoft' && w.__RPC[1].corps.p_piste === PM, JSON.stringify(w.__RPC[1]));
+  t('et redevient un nouveau client, avec « Ouvrir sa fiche »', !!X(`window.bdvNouveaux.get('p:${PM}')`) && /est de nouveau un nouveau client/.test(q('#ficheLien').textContent));
+
+  // LA FICHE D'UN NOUVEAU CLIENT : RELIER A LA MAIN
+  X(`ouvrirFicheClient('p:${PF}')`); await tic();
+  t('la fiche d un nouveau client propose les deux gestes', /Le retrouver dans Vitisoft/.test(q('#ficheLien').textContent) && /Fusionner avec un autre nouveau client/.test(q('#ficheLien').textContent));
+  t('« C est un client Vitisoft » appelle le geste', on('#ficheLien .btn') === "ficheLien('vitisoft')");
+  await X(`ficheLien('vitisoft')`); await tic();
+  const sugg = qa('#ficheLienRes .fiche__lien-choix').map(b => b.getAttribute('data-id'));
+  t('sans recherche, les sosies : le client Vitisoft au nom proche', sugg.join() === 'C1' && w.document.activeElement === q('#ficheLienQ'), sugg.join());
+  q('#ficheLienQ').value = 'liege'; X(`ficheLien('q', document.getElementById('ficheLienQ'))`);
+  t('la recherche trouve par la ville', qa('#ficheLienRes .fiche__lien-choix').map(b => b.getAttribute('data-id')).join() === 'C3');
+  q('#ficheLienQ').value = ''; X(`ficheLien('q', document.getElementById('ficheLienQ'))`);
+  choisir(); await tic();
+  t('meme ville : pas d avertissement', !/Attention/.test(q('#ficheLien').textContent));
+  t('choisir demande confirmation, et dit qu on pourra delier', /Ce nouveau client : Domaine Neuf \(doublon\) · Nantes/.test(q('#ficheLien').textContent) && /Vitisoft n°C1 : Domaine Neuf · Nantes/.test(q('#ficheLien').textContent) && /Tu pourras délier/.test(q('#ficheLien').textContent) && w.document.activeElement === q('#ficheLien .btn--primary'));
+  // Un geste en attente ici BLOQUE le lien.
+  X(`ECHANGES['p:${PF}'] = [{ echange_id: 'x1', client_id: 'p:${PF}', le: '2026-10-08', type: 'note', resume: 'pas partie', _apousser: true }]`);
+  w.__ECH_OK = false;
+  const avant = w.__RPC.length;
+  await X(`ficheLien('ok')`); await tic();
+  t('une note pas encore arrivee sur le compte bloque le lien, et c est dit', w.__RPC.length === avant && /pas encore arrivé sur ton compte/.test(q('#ficheLien').textContent), q('#ficheLien').textContent);
+  w.__ECH_OK = true;
+  await X(`ficheLien('ok')`); await tic();
+  t('la connexion revenue, la note part d abord, puis le lien', w.__RPC.length === avant + 1 && w.__RPC[avant].corps.p_client === 'C1' && !X(`ECHANGES['p:${PF}']`), JSON.stringify(w.__RPC[avant]));
+  t('et la fiche Vitisoft s ouvre', X(`FICHE_ID`) === 'C1');
+
+  // FUSIONNER
+  X(`ouvrirFicheClient('p:${PN}')`); await tic();
+  t('« Fusionner avec... » appelle le geste', qa('#ficheLien .btn')[1].getAttribute('onclick') === "ficheLien('fusion')");
+  await X(`ficheLien('fusion')`); await tic();
+  q('#ficheLienQ').value = 'achats'; X(`ficheLien('q', document.getElementById('ficheLienQ'))`);
+  choisir(); await tic();
+  X(`ficheClient(FICHE_ID).piste.ville = 'Saumur'; NOUVEAUX.get(FICHE_ID).ville = 'Saumur'; LIEN.choix.ville = 'Nantes'; lienRepeindre()`);
+  t('deux villes differentes : l avertissement le dit, les deux nommees',
+    /Attention : Saumur d’un côté, Nantes de l’autre/.test(q('#ficheLien').textContent), q('#ficheLien').textContent);
+  t('le bouton definitif le dit', /Fusionner pour de bon/.test(q('#ficheLien').textContent));
+  t('fusionner demande confirmation et dit que c est definitif', /Fusionner Achats Belges dans cette fiche/.test(q('#ficheLien').textContent) && /C’est définitif/.test(q('#ficheLien').textContent));
+  await X(`ficheLien('ok')`); await tic();
+  const rf = w.__RPC[w.__RPC.length - 1];
+  t('la fusion garde la fiche ouverte et absorbe l autre', rf.fn === 'fusionner_nouveaux' && rf.corps.p_garde === PN && rf.corps.p_absorbe === PM, JSON.stringify(rf));
+  t('l absorbe a disparu des nouveaux clients', X(`window.bdvNouveaux.get('p:${PM}')`) === null && /est fondu dans cette fiche/.test(q('#ficheLien').textContent));
+
+  // A L'IMPORT
+  PISTES.push({ piste_id: '11111111-1111-4111-8111-111111111111', nom: 'Par mail', email: 'Achat@Import.be', client_id: null, opposition: false, pas_vitisoft: [] });
+  const n0 = w.__RPC.length;
+  const rel = await X(`rapprocherApresImport()`);
+  t('a l import, le meme e-mail chez un seul client relie tout seul (sans tenir compte des majuscules)', rel.join() === 'Par mail' && w.__RPC[n0] && w.__RPC[n0].corps.p_client === 'C3', JSON.stringify(rel));
+  PISTES.push({ piste_id: '22222222-2222-4222-8222-222222222222', nom: 'Deux fois', email: 'deux@x.fr', client_id: null, opposition: false, pas_vitisoft: [] });
+  PISTES.push({ piste_id: '33333333-3333-4333-8333-333333333333', nom: 'Ecarte', email: 'seul@x.fr', client_id: null, opposition: false, pas_vitisoft: ['C2'] });
+  X(`EMAILS['C1'] = ['deux@x.fr']; EMAILS['C2'] = ['deux@x.fr', 'seul@x.fr']`);
+  const n1 = w.__RPC.length;
+  const rel2 = await X(`rapprocherApresImport()`);
+  t('deux clients avec la meme adresse : on ne choisit pas', rel2.length === 0 && w.__RPC.length === n1, JSON.stringify(rel2));
+  t('un numero deja ecarte (« Non ») ne se relie pas tout seul', !w.__RPC.slice(n1).some(r => r.corps.p_piste === '33333333-3333-4333-8333-333333333333'));
+  /* La forme REELLE d'une erreur de BdvCompte.api : le statut dans `message`, le corps dans `detail`. */
+  const err = (code, msg, st) => `clientsErreur({ message: 'Supabase a refuse /rpc/relier_a_vitisoft (${st})', detail: JSON.stringify({ code: '${code}', message: ${JSON.stringify(msg)} }) })`;
+  t('les erreurs de la base se disent en clair, lues dans le corps de la reponse',
+    /déjà relié à un autre nouveau client \(« Cave X »\)/.test(X(err('23505', 'ce client Vitisoft est deja relie a Cave X', 409)))
+    && /ne plus être contactée/.test(X(err('42501', 'cette personne a demande a ne plus etre contactee', 403)))
+    && /déjà relié à Vitisoft/.test(X(err('23514', 'ce nouveau client est deja relie a un autre client Vitisoft', 400)))
+    && /pas encore installé/.test(X(`clientsErreur({ message: 'Supabase a refuse /rpc/x (404)', detail: '{"code":"PGRST202"}' })`)));
+  t('un uuid qui contient « 404 » ne fait pas dire « pas installe »',
+    !/pas encore installé/.test(X(`clientsErreur({ message: 'Supabase a refuse /pistes?piste_id=eq.404a (500)', detail: '' })`)));
+  w.close();
+}
+{
+  const base = fs.readFileSync(R + 'bdv-base.js', 'utf8');
+  t('le tirage ne remet sous son ancienne cle qu une entree EN ATTENTE, inconnue du serveur',
+    /if\(e\._apousser&&!partout\.has\(e\.echange_id\)\)/.test(base));
+  t('le tirage retire une fiche de suivi que le serveur n a plus, si rien n attend ici',
+    /Object\.keys\(CRM\)\.forEach\(function\(id\)\{ if\(!\(id in suivi\)&&!\(CRM\[id\]&&CRM\[id\]\._apousser\)\)delete CRM\[id\]; \}\);/.test(base));
+  t('l import appelle le rapprochement apres avoir relu la base, et le dit dans son compte rendu',
+    /await reloadFromDB\(\);\s*\/\*[^*]*\*\/\s*let relies=\[\];\s*try\{ relies=await rapprocherApresImport\(\); \}/.test(base) && /couvTxt\+reliesTxt/.test(base));
 }
 
 console.log('\n== VERDICT ==');

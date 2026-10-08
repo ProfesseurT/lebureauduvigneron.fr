@@ -10713,3 +10713,14 @@ chiffres) ; « Nouveau client » le cree sans affaire, avec les gardes de doublo
 nommes dans la journee et le courrier. Au passage, un defaut ancien : le texte des boutons pleins
 des ecrans de vente devenait fonce sur bordeaux au survol. Bancs verts (toute la chaine verif),
 vigneron empathique orange puis presque vert. Pas de SQL ; courrier-matin a redeployer apres le push.
+
+
+## 08/10/2026 : relier, delier, fusionner les nouveaux clients, lot 83
+
+Un nouveau client se relie a son client Vitisoft : tout seul a l'import si l'e-mail est le meme,
+sur « C'est le meme ? » dans « Mes clients », ou a la main depuis sa fiche. « Delier » le remet
+comme avant. Deux nouveaux clients en double se fusionnent (definitif). Les gestes se font dans la
+base, qui deplace suivi, journal et affaires. Banc SQL 42 controles ; relecture adverse : 10 defauts
+reels corriges (erreurs jamais traduites, delier qui doublait les notes, fusion qui coupait les
+notes, course avec une note ecrite pendant le lien, notes fantomes sur un autre appareil...).
+Vigneron empathique : 10 constats corriges. Toute la chaine verif verte. SQL a coller.

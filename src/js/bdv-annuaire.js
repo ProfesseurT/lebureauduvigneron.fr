@@ -467,6 +467,7 @@
       +     '<span class="annu__gestes"><button type="button" class="btn btn--ghost btn--sm" data-a="exporter">Exporter la liste</button>'
       +     '<button type="button" class="btn btn--primary btn--sm" data-a="nouveau" aria-expanded="' + (NOUVEAU.ouvert ? 'true' : 'false') + '" aria-controls="annuNouveau">Nouveau client</button></span></div>'
       +   blocNouveau()
+      +   '<div id="annuRappro">' + blocRappro() + '</div>'
       +   '<div class="tablewrap annu__wrap"><table class="data data--sticky annu__t"><caption class="hors-ecran">Tes clients. Clique sur un nom pour ouvrir sa fiche, Cmd + clic pour l’ouvrir dans un nouvel onglet.</caption>'
       +     '<thead id="annuTete"></thead><tbody id="annuCorps"></tbody></table></div>'
       +   '<div class="annu__pied"><button type="button" class="btn btn--ghost btn--sm" data-a="plus" hidden></button></div>'
@@ -518,6 +519,115 @@
     const court = x.length <= y.length ? x : y, long = court === x ? y : x;
     return court.length >= 5 && (' ' + long + ' ').indexOf(' ' + court + ' ') >= 0;
   }
+  /* ------------------------------------------------------------------ rapprocher (lot 83) */
+  /* « C'EST LE MEME ? », 08/10/2026 (decision de Ted). Un nouveau client qui ressemble a un
+     client Vitisoft (meme e-mail, ou nom proche sans les formes juridiques) est propose ici.
+     Oui le relie (la base deplace son suivi, son journal et ses affaires) ; Non est retenu
+     pour tout le bureau (`pistes.pas_vitisoft`) et la question ne revient plus.
+     Au-dessus, les liens poses ces sept derniers jours, tout seuls a l'import ou a la main :
+     on les montre, parce qu'un lien automatique qu'on ne voit pas est un lien qu'on ne
+     defait jamais. */
+  const RAPPRO = { occupe: '', err: '', focus: false, vus: lireVus() };
+  function lireVus(){ try{ return new Set(JSON.parse(localStorage.getItem('bdv_rappro_vus') || '[]')); }catch(e){ return new Set(); } }
+  function ecrireVus(){ try{ localStorage.setItem('bdv_rappro_vus', JSON.stringify(Array.from(RAPPRO.vus).slice(-500))); }catch(e){} }
+  function propositions(){
+    const nv = NV(); if(!nv) return [];
+    const lies = new Set((nv.lies ? nv.lies() : []).map(function(p){ return String(p.client_id); }));
+    const vits = LISTE.filter(function(c){ return !c.nouveau && c.num && !lies.has(c.num); })
+      .map(function(c){ return { c: c, k: coeur(c.nom), m: (typeof emailsOf === 'function' ? emailsOf(c.id) : []).map(function(x){ return String(x).toLowerCase(); }) }; });
+    const out = [];
+    nv.liste().forEach(function(p){
+      if(p.opposition) return;
+      const refus = new Set((p.pas_vitisoft || []).map(String));
+      const mails = (p.email ? String(p.email).toLowerCase().split(/[\s;,]+/) : []).filter(Boolean);
+      const k = coeur(p.nom);
+      vits.forEach(function(v){
+        if(refus.has(v.c.num)) return;
+        const parMail = mails.length && v.m.some(function(x){ return mails.indexOf(x) >= 0; });
+        if(parMail || (k.length >= 3 && proches(p.nom, v.c.nom))) out.push({ p: p, c: v.c, mail: !!parMail });
+      });
+    });
+    return out.sort(function(a, b){ return (b.mail ? 1 : 0) - (a.mail ? 1 : 0) || a.p.nom.localeCompare(b.p.nom, 'fr'); });
+  }
+  function recents(){
+    const nv = NV(); if(!nv || !nv.lies) return [];
+    const limite = Date.now() - 7 * 86400000;
+    return nv.lies().filter(function(p){ return p.lie_le && Date.parse(p.lie_le) >= limite && !RAPPRO.vus.has(p.piste_id + '>' + p.client_id); });
+  }
+  function nomVitisoft(num){ const c = LISTE.filter(function(x){ return x.num === String(num); })[0]; return c ? c.nom : 'n°' + num; }
+  function blocRappro(){
+    const props = propositions(), rec = recents();
+    if(!props.length && !rec.length) return '';
+    let h = '<section class="annu__rappro" aria-label="Nouveaux clients et Vitisoft">';
+    if(rec.length){
+      h += '<h3 class="annu__rappro-t">Reliés à Vitisoft ces derniers jours</h3><ul class="annu__rappro-l">'
+        + rec.slice(0, 5).map(function(p){
+          return '<li><span>« ' + esc(p.nom) + ' » est maintenant <b>' + esc(nomVitisoft(p.client_id)) + '</b>, n°' + esc(p.client_id) + '.</span>'
+            + '<span class="annu__rappro-b"><button type="button" class="btn btn--ghost btn--sm" data-a="rp-voir" data-n="' + esc(p.client_id) + '">Voir la fiche</button>'
+            + '<button type="button" class="btn btn--ghost btn--sm" data-a="rp-vu" data-k="' + esc(p.piste_id + '>' + p.client_id) + '">C’est bien lui, masquer</button></span></li>';
+        }).join('') + '</ul>'
+        + '<p class="note">Si ce n’est pas le même client, ouvre sa fiche et choisis « Délier ».</p>';
+    }
+    if(props.length){
+      /* L'explication passe AU-DESSUS des boutons : sous la liste, au telephone, la barre du
+         bas la cachait, et c'est elle qui dit que « Non » ne revient pas (vigneron empathique). */
+      h += '<h3 class="annu__rappro-t">C’est le même client ?</h3>'
+        + '<p class="note">Oui : son suivi, ses notes et ses affaires passent sur la fiche Vitisoft (tu pourras délier). Non : la question ne reviendra plus.</p>'
+        + '<ul class="annu__rappro-l">'
+        + props.slice(0, 5).map(function(x){
+          const cle = x.p.piste_id + '>' + x.c.num, occ = RAPPRO.occupe === cle ? ' disabled aria-busy="true"' : '';
+          const mv = (typeof emailOf === 'function' ? emailOf(x.c.id) : '') || '', mp = String(x.p.email || '').split(/[\s;,]+/)[0] || '';
+          const ecarts = [];
+          if(x.p.ville && x.c.ville && coeur(x.p.ville) !== coeur(x.c.ville)) ecarts.push(x.p.ville + ' d’un côté, ' + x.c.ville + ' de l’autre');
+          if(mp && mv && !x.mail) ecarts.push('deux e-mails différents');
+          return '<li><span class="annu__rappro-deux">'
+            + '<span><span class="annu__rappro-cote">Nouveau client :</span> <b>' + esc(x.p.nom) + '</b>' + (x.p.ville ? ' · ' + esc(x.p.ville) : '') + (mp ? ' · ' + esc(mp) : '') + '</span>'
+            + '<span><span class="annu__rappro-cote">Vitisoft n°' + esc(x.c.num) + ' :</span> <b>' + esc(x.c.nom) + '</b>' + (x.c.ville ? ' · ' + esc(x.c.ville) : '') + (mv ? ' · ' + esc(mv) : '')
+            + (x.mail ? ' <span class="annu__rappro-pq">même e-mail</span>' : '') + '</span>'
+            + (ecarts.length ? '<span class="annu__rappro-att"><b>Attention :</b> ' + esc(ecarts.join(', ')) + '.</span>' : '')
+            + '</span>'
+            + '<span class="annu__rappro-b"><button type="button" class="btn btn--primary btn--sm" data-a="rp-oui" data-p="' + esc(x.p.piste_id) + '" data-n="' + esc(x.c.num) + '"' + occ + '>'
+            + (RAPPRO.occupe === cle ? 'Je relie…' : 'Oui, c’est le même') + '</button>'
+            + '<button type="button" class="btn btn--ghost btn--sm" data-a="rp-non" data-p="' + esc(x.p.piste_id) + '" data-n="' + esc(x.c.num) + '"' + occ + '>Non</button></span></li>';
+        }).join('') + '</ul>'
+        + (props.length > 5 ? '<p class="note">Et ' + plur(props.length - 5, 'autre proposition') + ' : réponds à celles-ci, les suivantes viendront.</p>' : '');
+    }
+    if(RAPPRO.err) h += '<p class="annu__rappro-err" role="alert">' + esc(RAPPRO.err) + '</p>';
+    return h + '</section>';
+  }
+  function repeindreRappro(focus){
+    const z = P() && P().querySelector('#annuRappro'); if(!z) return;
+    z.innerHTML = blocRappro();
+    if(focus){ const b = z.querySelector(focus) || z.querySelector('button'); if(b) b.focus(); else { const q = document.getElementById('annuQ'); if(q) q.focus(); } }
+  }
+  async function rappro(a, b){
+    RAPPRO.err = '';
+    if(a === 'rp-voir'){ if(typeof window.bdvOuvrirFiche === 'function') window.bdvOuvrirFiche(b.getAttribute('data-n')); return; }
+    if(a === 'rp-vu'){ RAPPRO.vus.add(b.getAttribute('data-k')); ecrireVus(); repeindreRappro('button'); return; }
+    if(RAPPRO.occupe) return;
+    const pid = b.getAttribute('data-p'), num = b.getAttribute('data-n'), p = NV() && NV().get('p:' + pid);
+    if(!p) return;
+    RAPPRO.occupe = pid + '>' + num; repeindreRappro();
+    try{
+      if(a === 'rp-oui'){
+        /* Pas de bandeau par-dessus la liste : le bloc « Relies ces derniers jours » le montre. */
+        await window.bdvClients.relier(pid, num);
+      }else if(a === 'rp-non'){
+        /* Par la base, qui ajoute : deux « Non » en meme temps ne s'effacent pas l'un l'autre. */
+        const liste = await window.bdvClients.ecarter(pid, num);
+        p.pas_vitisoft = Array.isArray(liste) ? liste : (p.pas_vitisoft || []).concat([String(num)]);
+      }
+      RAPPRO.occupe = '';
+      /* Le focus ne retombe pas sur la page : il va au premier bouton du bloc (la proposition
+         suivante), ou a la recherche si le bloc s'est vide. */
+      if(a === 'rp-oui'){ RAPPRO.focus = true; await NV().charger(); } else repeindreRappro('button');
+    }catch(e){
+      RAPPRO.occupe = '';
+      RAPPRO.err = (e && e.message) || 'Le geste n’a pas abouti.';
+      repeindreRappro('button');
+    }
+  }
+
   function chiffres(v){ return String(v || '').replace(/\D/g, ''); }
   function lireChamps(){
     const b = document.getElementById('annuNouveau'); if(!b) return NOUVEAU.champs;
@@ -796,6 +906,7 @@
       else if(a === 'nv-chercher'){ chercherNv(); }
       else if(a === 'nv-prendre'){ prendreNv(Number(b.getAttribute('data-i'))); }
       else if(a === 'nv-creer'){ creerNv(b.hasAttribute('data-force')); }
+      else if(a.indexOf('rp-') === 0){ rappro(a, b); }
       else if(a === 'exporter'){ exporter(FILTREE, 'liste'); }
       else if(a === 'exporter-sel'){ exporter(LISTE.filter(function(c){ return SEL.has(c.id); }), 'selection'); }
       else if(a === 'tag-plus' || a === 'tag-moins'){ const i = document.getElementById('annuTag'); etiqueter(ids, i && i.value, a === 'tag-plus'); }
@@ -852,7 +963,7 @@
       if(!(pp && pp.classList.contains('on'))) return;
       if(NOUVEAU.ouvert) lireChamps();
       if(pp.querySelector('#annuCorps')){
-        construire(); repeindreBarres(); majListe();
+        construire(); repeindreBarres(); majListe(); repeindreRappro(RAPPRO.focus ? 'button' : null); RAPPRO.focus = false;
         const sub = pp.querySelector('.panel__sub');
         if(sub) sub.textContent = phraseCompte() + ' Les coordonnées viennent de Vitisoft et se corrigent là-bas ; les étiquettes, le suivi et les vues sont communs à ton bureau.';
       }else peindre();
@@ -939,7 +1050,7 @@
   };
 
   window.BdvAnnuaire = { peindre: ouvrir, attribuer: attribuer, etiqueter: etiqueter, blocFiche: blocFiche, nomDe: nomDe,
-    etiquettes: etiquettes, voirEtiquette: voirEtiquette, renommerEtiquette: renommer, supprimerEtiquette: supprimerEtiquette,
+    proches: proches, etiquettes: etiquettes, voirEtiquette: voirEtiquette, renommerEtiquette: renommer, supprimerEtiquette: supprimerEtiquette,
     _maj: function(){ majListe(); },
     _etat: function(){ return { ETAT: ETAT, LISTE: LISTE, FILTREE: FILTREE, SEL: SEL, LOT33: LOT33, VUES: VUES }; } };
 })();

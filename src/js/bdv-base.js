@@ -515,9 +515,13 @@ async function tirerDuServeurUneFois(){
       (lignes||[]).forEach(function(e){(parClient[e.client_id]||(parClient[e.client_id]=[])).push(e);});
       // Fusion par identifiant : ce qui est parti d'ici et n'est pas encore revenu du
       // serveur ne doit pas disparaitre de l'ecran.
+      /* SEULE UNE ENTREE EN ATTENTE se remet, et jamais une que le serveur montre ailleurs.
+         Lot 83 : relier, delier et fusionner DEPLACENT des entrees d'une cle a l'autre. Remise
+         sous son ancienne cle, une entree deja partie s'affichait sur les deux fiches, pour
+         toujours, sur tout appareil autre que celui du geste (relecture adverse du 08/10). */
+      const partout=new Set((lignes||[]).map(e=>e.echange_id));
       Object.keys(ECHANGES).forEach(function(id){
-        const connus=new Set((parClient[id]||[]).map(e=>e.echange_id));
-        (ECHANGES[id]||[]).forEach(function(e){if(!connus.has(e.echange_id))(parClient[id]||(parClient[id]=[])).push(e);});
+        (ECHANGES[id]||[]).forEach(function(e){if(e._apousser&&!partout.has(e.echange_id))(parClient[id]||(parClient[id]=[])).push(e);});
       });
       ECHANGES=parClient;echSave();
       echRejouer();
@@ -544,6 +548,10 @@ async function tirerDuServeurUneFois(){
      l'etiquette posee par Romane, ni celle qu'elle a retiree. La regle d'avant ne vaut
      plus que pour une fiche qui porte `_apousser`, c'est-a-dire un geste fait ici et pas
      encore arrive : lui, on ne l'ecrase pas. */
+  /* Lot 83 : une fiche que le serveur n'a plus (deplacee par un lien, une fusion) et qui
+     n'attend rien d'ici disparait aussi d'ici. Sans cela elle restait affichee, et le
+     premier geste dessus repartait sans fin vers une cle que la base refuse. */
+  Object.keys(CRM).forEach(function(id){ if(!(id in suivi)&&!(CRM[id]&&CRM[id]._apousser))delete CRM[id]; });
   Object.keys(suivi||{}).forEach(function(id){
     const distant=suivi[id]||{}, local=CRM[id];
     if(!local||!local._apousser){CRM[id]=distant;return;}
@@ -710,6 +718,133 @@ function echRejouer(){
   Object.keys(ECHANGES).forEach(function(id){
     (ECHANGES[id]||[]).forEach(function(e){ if(e._apousser)echPousser(e); });
   });
+}
+
+/* ======================= RELIER, DELIER, FUSIONNER (lot 83, 08/10/2026) =======================
+   Les trois gestes se font DANS LA BASE (supabase/lot83-relier-fusionner.sql) : elle deplace
+   le suivi et le journal d'une cle a l'autre. Cet appareil garde une copie des deux (CRM et
+   ECHANGES) ; sans les deux outils ci-dessous, il afficherait les notes en double (le tirage
+   reinjecte une entree locale sous son ANCIENNE cle) et repousserait sans fin un geste en
+   attente vers une cle que la base refuse desormais.
+   1. AVANT le geste : `pousser(ids)` envoie ce qui attend encore ici, et dit si tout est
+      parti. Un geste en attente qui ne part pas BLOQUE le lien : il serait perdu.
+   2. APRES : `relire(ids)` remplace la copie de ces cles par ce que dit la base. */
+async function clientsPousser(ids){
+  if(!syncPret())return false;
+  let ok=true;
+  for(const id of ids){
+    if(CRM[id]&&CRM[id]._apousser){ if(!(await syncSuivi(id)))ok=false; }
+    for(const e of (ECHANGES[id]||[])){
+      if(!e._apousser)continue;
+      let fait=false;
+      try{ fait=await BdvSync.ecrireEchange(e); }catch(_){ fait=false; }
+      if(fait){ delete e._apousser; echSave(); } else ok=false;
+    }
+  }
+  return ok;
+}
+async function clientsRelire(ids){
+  if(!syncPret())return false;
+  try{
+    const suivi=await BdvSync.lireSuivi();
+    for(const id of ids){
+      if(suivi&&suivi[id])CRM[id]=suivi[id]; else delete CRM[id];
+      const l=await BdvSync.lireEchanges(id);
+      if(l&&l.length)ECHANGES[id]=l; else delete ECHANGES[id];
+    }
+    crmSave();echSave();
+    ids.forEach(function(id){prevenirLesOnglets('suivi',id);});
+    if(typeof window.bdvCrmAChange==='function'){try{window.bdvCrmAChange();}catch(_){}}
+    return true;
+  }catch(e){ return false; }
+}
+/* Un geste de la base, encadre par les deux. Rend la reponse de la base, ou leve une erreur
+   dont le message se montre tel quel au vigneron. */
+async function clientsGeste(rpc,corps,ids){
+  if(!syncPret())throw new Error('Connecte-toi à ton compte pour faire ce geste.');
+  if(!(await clientsPousser(ids)))throw new Error('Une note ou un rappel de cette fiche n’est pas encore arrivé sur ton compte. Réessaie quand la connexion est revenue : rien n’a bougé.');
+  let r;
+  try{ r=await BdvCompte.api('/rpc/'+rpc,{methode:'POST',corps:corps}); }
+  catch(e){ throw new Error(clientsErreur(e)); }
+  if(!(await clientsRelire(ids)))status('error','Le geste est fait, mais cet appareil n’a pas pu relire la fiche. Recharge la page avant d’y écrire.');
+  return r;
+}
+/* LA REPONSE DE LA BASE EST DANS `detail`, pas dans `message` (BdvCompte.api pose
+   « Supabase a refuse ... (409) » en message et le corps JSON en detail). On lit le CODE et
+   le TEXTE du corps, jamais le chemin : un uuid qui contient « 404 » ne doit rien dire.
+   Relecture adverse du 08/10/2026 : lu avec `message||detail`, aucun code n'arrivait et
+   tout refus devenait « reessaie », que le vigneron aurait reessaye sans fin. */
+function clientsErreur(e){
+  let code=String((e&&e.code)||''), txt='';
+  try{const j=JSON.parse((e&&e.detail)||'{}');code=String(j.code||code);txt=String(j.message||'');}catch(_){txt=String((e&&e.detail)||'');}
+  const statut=(/\((\d{3})\)\s*$/.exec(String((e&&e.message)||''))||[])[1]||'';
+  if(code==='23505'){const m=/deja relie a (.+)$/.exec(txt);return 'Ce client Vitisoft est déjà relié à un autre nouveau client'+(m?' (« '+m[1].trim()+' »)':'')+'. Délie-le d’abord depuis sa fiche.';}
+  if(code==='42501'&&/contact/.test(txt))return 'Cette personne a demandé à ne plus être contactée : rien n’a été fait.';
+  if(code==='42501')return 'Ton compte ne peut pas faire ce geste dans ce bureau.';
+  if(code==='23514'&&/relie|Vitisoft|delie/i.test(txt))return 'Ce nouveau client est déjà relié à Vitisoft. Délie-le d’abord depuis sa fiche.';
+  if(code==='23514')return 'La base a refusé ce geste ('+(txt||'règle non respectée')+') : rien n’a bougé.';
+  if(code==='23503')return 'Ce nouveau client n’existe plus. Recharge la page.';
+  if(code==='22023')return 'Il faut deux fiches différentes, et un vrai numéro Vitisoft.';
+  if(code==='PGRST202'||statut==='404')return 'Ce geste n’est pas encore installé sur ton compte (lot 83 du SQL).';
+  return 'Le geste n’a pas abouti, rien n’a bougé. Réessaie dans un instant.';
+}
+window.bdvClients={
+  relier:function(pisteId,num){
+    return clientsGeste('relier_a_vitisoft',{p_bureau:BdvCompte.monBureau(),p_piste:pisteId,p_client:String(num)},['p:'+pisteId,String(num)]);
+  },
+  delier:function(pisteId,num){
+    return clientsGeste('delier_de_vitisoft',{p_bureau:BdvCompte.monBureau(),p_piste:pisteId},['p:'+pisteId,String(num)]);
+  },
+  fusionner:function(garde,absorbe){
+    return clientsGeste('fusionner_nouveaux',{p_bureau:BdvCompte.monBureau(),p_garde:garde,p_absorbe:absorbe},['p:'+absorbe,'p:'+garde]);
+  },
+  ecarter:function(pisteId,num){
+    return BdvCompte.api('/rpc/piste_ecarter',{methode:'POST',corps:{p_bureau:BdvCompte.monBureau(),p_piste:pisteId,p_client:String(num)}})
+      .catch(function(e){ throw new Error(clientsErreur(e)); });
+  },
+  erreur:clientsErreur
+};
+
+/* A L'IMPORT : LE MEME E-MAIL, ET UN SEUL CLIENT QUI LE PORTE (decision de Ted). Un nouveau
+   client dont l'adresse est celle d'un client de l'export, et d'un seul, est relie tout de
+   suite. Deux clients Vitisoft avec la meme adresse (une maison et son negoce) : on ne choisit
+   pas a sa place, « Mes clients » posera la question. Seuls les vrais numeros comptent : un
+   client sans numero (cle = son nom) ne se relie pas, la base attend un numero.
+   Rend la liste des noms relies, pour le compte rendu d'import. Jamais bloquant. */
+async function rapprocherApresImport(){
+  if(!syncPret()||!window.BdvCompte||!BdvCompte.monBureau||!BdvCompte.monBureau())return [];
+  let pistes=[];
+  try{
+    /* Par pages de 1 000 : c'est le plafond de PostgREST, au-dela il tronque sans le dire. */
+    for(let de=0;;de+=1000){
+      const l=await BdvCompte.api('/pistes?select=piste_id,nom,email,client_id,opposition,pas_vitisoft&bureau=eq.'
+        +encodeURIComponent(BdvCompte.monBureau())+'&order=piste_id.asc&offset='+de+'&limit=1000');
+      if(!Array.isArray(l))break;
+      pistes.push.apply(pistes,l);
+      if(l.length<1000)break;
+    }
+  }catch(e){ return []; }
+  if(!Array.isArray(pistes)||!pistes.length)return [];
+  const lies=new Set(pistes.filter(p=>p.client_id).map(p=>String(p.client_id)));
+  const nums=new Set();ROWS.forEach(r=>{if(r.numClient)nums.add(String(r.numClient));});
+  const parMail={};
+  Object.keys(EMAILS).forEach(function(id){
+    if(!nums.has(id))return;
+    EMAILS[id].forEach(function(m){const k=String(m).trim().toLowerCase();(parMail[k]||(parMail[k]=new Set())).add(id);});
+  });
+  const relies=[];
+  for(const p of pistes){
+    if(p.client_id||p.opposition||!p.email)continue;
+    const cands=new Set();
+    parseEmails(p.email).forEach(function(m){(parMail[String(m).trim().toLowerCase()]||[]).forEach(id=>cands.add(id));});
+    const refus=new Set((p.pas_vitisoft||[]).map(String));
+    const ok=[...cands].filter(id=>!refus.has(id));
+    if(ok.length!==1||lies.has(ok[0]))continue;
+    try{ await window.bdvClients.relier(p.piste_id,ok[0]); lies.add(ok[0]); relies.push(p.nom); }
+    catch(e){ /* la fiche le proposera dans « Mes clients » */ }
+  }
+  if(relies.length&&window.bdvNouveaux&&bdvNouveaux.charger)bdvNouveaux.charger();
+  return relies;
 }
 /* Les libelles et les icones du journal viennent de bdv-canaux.js, seul endroit ou la
    liste des moyens de communication est ecrite. Cette table-ci n'est qu'un repli pour le
@@ -1272,6 +1407,11 @@ async function handleFiles(list){
      ou quelques secondes de serveur ne se voient pas. */
   if(syncPret() && BdvSync.rechaufferResumes) BdvSync.rechaufferResumes();
   await reloadFromDB();
+  /* LOT 83 : les nouveaux clients qui arrivent dans cet export, reconnus a leur e-mail. */
+  let relies=[];
+  try{ relies=await rapprocherApresImport(); }catch(e){ relies=[]; }
+  const reliesTxt=relies.length?' '+(relies.length>1?relies.length+' nouveaux clients sont arrivés dans Vitisoft et ont été reliés à leur fiche : ':'Un nouveau client est arrivé dans Vitisoft et a été relié à sa fiche : ')
+    +relies.slice(0,5).join(', ')+(relies.length>5?' et '+(relies.length-5)+' autres':'')+'. Tu peux les délier depuis « Mes clients ».':'';
   const total=ROWS.length;
   const per=META.min&&META.max?(' sur la période '+fmtDate(META.min)+' au '+fmtDate(META.max)):'';
   // Un export deja importe qui revient enrichi (adresses e-mail) ne doit pas passer pour un echec.
@@ -1281,7 +1421,7 @@ async function handleFiles(list){
   const couvTxt=COUV.total?' '+plur(COUV.joignables,'client')+' sur '+fmtNum(COUV.total)
     +(COUV.joignables>1?' sont joignables (':' est joignable (')
     +fmtNum(COUV.mail)+' par e-mail, '+fmtNum(COUV.tel)+' par téléphone).':'';
-  const resume=plur(totAdded,'ligne','ajoutée')+', '+plur(totDup,'doublon','ignoré')+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt;
+  const resume=plur(totAdded,'ligne','ajoutée')+', '+plur(totDup,'doublon','ignoré')+enrichTxt+'. Base totale = '+fmtNum(total)+' lignes'+per+'.'+couvTxt+reliesTxt;
   if(echecsSync)status('error','Attention, '+plur(echecsSync,'ligne')+(echecsSync>1?' n\'ont pas pu être enregistrées':' n\'a pas pu être enregistrée')+' sur ton compte. Elle'+(echecsSync>1?'s sont bien':' est bien')+' sur cet appareil. '+resume);
   else status('success',resume);
   if(!BdvCompte.session()) await BdvCompte.porte({titre:'Tes chiffres sont prêts.'});

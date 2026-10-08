@@ -2635,6 +2635,9 @@ function recoPour(id,n){
    fiche Vitisoft qui compte. Une piste en opposition reste lisible, marquee, et sa fiche
    ne propose aucun geste (la base les refuse de toute facon). */
 const NOUVEAUX=new Map();
+/* LOT 83 : les pistes DEJA reliees, par numero Vitisoft. La fiche Vitisoft en a besoin pour
+   dire « relie au nouveau client cree le ... » et proposer « Delier ». */
+const LIES=new Map();
 let NOUVEAUX_LUS=null, NOUVEAUX_EN_COURS=null;
 function estNouveau(id){return typeof id==='string'&&id.indexOf('p:')===0;}
 function chargerNouveaux(){
@@ -2642,13 +2645,14 @@ function chargerNouveaux(){
   const B=window.BdvCompte, bu=B&&B.monBureau&&B.monBureau();
   if(!B||!B.api||!bu){NOUVEAUX_LUS=false;return Promise.resolve(false);}
   NOUVEAUX_EN_COURS=(async function(){
-    const vus=new Map();
+    const vus=new Map(), lies=new Map();
     for(let de=0;;de+=1000){
-      const l=await B.api('/pistes?select=*&bureau=eq.'+encodeURIComponent(bu)+'&client_id=is.null&order=nom.asc&offset='+de+'&limit=1000');
-      (Array.isArray(l)?l:[]).forEach(x=>vus.set('p:'+x.piste_id,x));
+      const l=await B.api('/pistes?select=*&bureau=eq.'+encodeURIComponent(bu)+'&order=nom.asc,piste_id.asc&offset='+de+'&limit=1000');
+      (Array.isArray(l)?l:[]).forEach(x=>{if(x.client_id)lies.set(String(x.client_id),x);else vus.set('p:'+x.piste_id,x);});
       if(!Array.isArray(l)||l.length<1000)break;
     }
     NOUVEAUX.clear();vus.forEach((v,k)=>NOUVEAUX.set(k,v));
+    LIES.clear();lies.forEach((v,k)=>LIES.set(k,v));
     NOUVEAUX_LUS=true;return true;
   })().catch(function(){NOUVEAUX_LUS=false;return false;})
     .then(function(ok){NOUVEAUX_EN_COURS=null;try{document.dispatchEvent(new CustomEvent('bdv:nouveaux'));}catch(e){}return ok;});
@@ -2656,7 +2660,8 @@ function chargerNouveaux(){
 }
 function poserNouveau(p){
   if(!p||!p.piste_id)return;
-  if(p.client_id)NOUVEAUX.delete('p:'+p.piste_id);else NOUVEAUX.set('p:'+p.piste_id,p);
+  if(p.client_id){NOUVEAUX.delete('p:'+p.piste_id);LIES.set(String(p.client_id),p);}
+  else{NOUVEAUX.set('p:'+p.piste_id,p);LIES.forEach((v,k)=>{if(v.piste_id===p.piste_id)LIES.delete(k);});}
 }
 function fichePiste(id){
   const p=NOUVEAUX.get(String(id));
@@ -2674,7 +2679,176 @@ function fichePiste(id){
 }
 window.bdvNouveaux={charger:chargerNouveaux,est:estNouveau,poser:poserNouveau,
   lus:function(){return NOUVEAUX_LUS;},liste:function(){return Array.from(NOUVEAUX.values());},
-  get:function(id){return NOUVEAUX.get(String(id))||null;},fiche:fichePiste};
+  get:function(id){return NOUVEAUX.get(String(id))||null;},fiche:fichePiste,
+  lie:function(num){return LIES.get(String(num))||null;},
+  lies:function(){return Array.from(LIES.values());}};
+/* ======================= RELIER, DELIER, FUSIONNER DEPUIS LA FICHE (lot 83, 08/10/2026) =======================
+   Decisions de Ted : un nouveau client se relie a la main a un client Vitisoft (« C'est un
+   client Vitisoft »), deux nouveaux clients en double se fusionnent (definitif), et la fiche
+   Vitisoft d'un client relie propose « Delier ». Les gestes se font dans la base
+   (`window.bdvClients`, bdv-base.js) ; ce bloc ne fait que demander et confirmer.
+   UNE CONFIRMATION A CHAQUE FOIS, qui dit ce qui bouge : on ne deplace pas des notes sur un
+   clic de liste. */
+let LIEN={id:null,mode:'',q:'',choix:null,msg:'',err:'',occupe:false,cache:null};
+function lienRaz(id){LIEN={id:id||null,mode:'',q:'',choix:null,msg:'',err:'',occupe:false,cache:null};}
+function lienDate(iso){
+  if(!iso)return '';
+  try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return '';}
+}
+function lienCoeur(n){return norm(String(n||'')).replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+function lienProches(a,b){
+  if(window.BdvAnnuaire&&BdvAnnuaire.proches)return BdvAnnuaire.proches(a,b);
+  const x=lienCoeur(a),y=lienCoeur(b);return x.length>=3&&x===y;
+}
+/* Les clients Vitisoft QUI ONT UN NUMERO : la base relie a un numero, pas a un nom. */
+function lienVitisoft(){
+  if(LIEN.cache)return LIEN.cache.filter(c=>!LIES.has(c.id));
+  const vus=new Map();
+  ROWS.forEach(function(r){
+    if(!r.numClient)return;const k=String(r.numClient);
+    const o=vus.get(k);
+    if(!o||((r._dayNum||0)>(o.jour||0)))vus.set(k,{id:k,nom:r.client||k,ville:r.ville||'',mail:'',jour:r._dayNum||0});
+  });
+  LIEN.cache=Array.from(vus.values());
+  return LIEN.cache.filter(c=>!LIES.has(c.id));
+}
+function lienResultats(f){
+  const q=lienCoeur(LIEN.q);
+  if(LIEN.mode==='vitisoft'){
+    const refus=new Set(((f.piste&&f.piste.pas_vitisoft)||[]).map(String));
+    const mails=new Set((f.emails||[]).map(m=>String(m).toLowerCase()));
+    const tous=lienVitisoft();
+    if(!q){
+      /* SANS RECHERCHE, LES SOSIES : meme e-mail ou nom proche. C'est presque toujours lui. */
+      return tous.filter(c=>!refus.has(c.id)&&(emailsOf(c.id).some(m=>mails.has(String(m).toLowerCase()))||lienProches(c.nom,f.nom))).slice(0,8);
+    }
+    return tous.filter(c=>lienCoeur(c.nom+' '+c.id+' '+c.ville).indexOf(q)>=0).slice(0,8);
+  }
+  if(LIEN.mode==='fusion'){
+    const autres=Array.from(NOUVEAUX.values()).filter(p=>'p:'+p.piste_id!==f.id&&!p.opposition)
+      .map(p=>({id:p.piste_id,nom:p.nom,ville:p.ville||'',mail:p.email||''}));
+    if(!q)return autres.filter(c=>lienProches(c.nom,f.nom)).slice(0,8);
+    return autres.filter(c=>lienCoeur(c.nom+' '+c.ville).indexOf(q)>=0).slice(0,8);
+  }
+  return [];
+}
+function lienListe(f){
+  const r=lienResultats(f);
+  if(!r.length)return `<p class="note fiche__lien-vide">${LIEN.q?'Aucun résultat pour cette recherche.':(LIEN.mode==='vitisoft'?'Aucun client Vitisoft ne lui ressemble. Tape son nom, son numéro ou sa ville.':'Aucun autre nouveau client ne lui ressemble. Tape son nom.')}</p>`;
+  return `<ul class="fiche__lien-res">${r.map(c=>`<li><button type="button" class="fiche__lien-choix" data-id="${esc(c.id)}" data-nom="${esc(c.nom)}" data-ville="${esc(c.ville)}" data-mail="${esc(LIEN.mode==='vitisoft'?emailOf(c.id):c.mail)}" onclick="ficheLien('choisir',this)">${esc(c.nom)}<span class="note">${esc([LIEN.mode==='vitisoft'?'n°'+c.id:'',c.ville].filter(Boolean).join(' · '))}</span></button></li>`).join('')}</ul>`;
+}
+function lienHTML(f){
+  if(!f)return '';
+  if(LIEN.id!==f.id)lienRaz(f.id);
+  const msg=LIEN.msg?`<p class="fiche__lien-msg" role="status">${LIEN.msg}</p>`:'';
+  const err=LIEN.err?`<p class="fiche__lien-err" role="alert">${esc(LIEN.err)}</p>`:'';
+  const occ=LIEN.occupe?' disabled aria-busy="true"':'';
+  if(!f.nouveau){
+    const p=LIES.get(String(f.id));
+    if(!p)return msg;
+    if(LIEN.mode==='delier')return `<div class="fiche__lien-conf" role="group" aria-label="Délier ce client">
+      <p>Délier remet <b>${esc(p.nom)}</b> comme il était au moment du lien : ses notes, son rappel d’avant et ses affaires repartent sur sa fiche de nouveau client. Ce qui a été écrit ici depuis le lien reste ici.</p>
+      <div class="fiche__lien-btns"><button type="button" class="btn btn--sm btn--primary" onclick="ficheLien('delier-ok')"${occ}>${LIEN.occupe?'Je délie…':'Délier'}</button>
+      <button type="button" class="btn btn--sm btn--ghost" onclick="ficheLien('annuler')"${occ}>Annuler</button></div>${err}</div>`;
+    return `<p class="fiche__relie">Ajouté d’abord à la main sous le nom « ${esc(p.nom)} »${p.cree_le?', le '+esc(lienDate(p.cree_le)):''}, puis relié à Vitisoft${p.lie_le?' le '+esc(lienDate(p.lie_le)):''}.</p>
+      <button type="button" class="btn btn--sm btn--ghost fiche__lien-delier" onclick="ficheLien('delier')">Délier</button>${err}${msg}`;
+  }
+  if(f.opposition)return '';
+  if(LIEN.choix){
+    const c=LIEN.choix;
+    /* LES DEUX FICHES COTE A COTE, ville et e-mail, et un avertissement si elles divergent :
+       deux noms qui se ressemblent ne font pas deux fois le meme client (vigneron empathique). */
+    const ligne=(lib,nom,ville,mail)=>`<li><span class="fiche__lien-cote">${esc(lib)}</span> <b>${esc(nom)}</b>${ville?' · '+esc(ville):''}${mail?' · '+esc(mail):''}</li>`;
+    const moiMail=(f.emails&&f.emails[0])||'';
+    const deux=`<ul class="fiche__lien-deux">${ligne(LIEN.mode==='vitisoft'?'Ce nouveau client :':'Cette fiche, gardée :',f.nom,f.ville,moiMail)}${ligne(LIEN.mode==='vitisoft'?'Vitisoft n°'+c.id+' :':'Fondue ici :',c.nom,c.ville,c.mail)}</ul>`;
+    const ecarts=[];
+    if(f.ville&&c.ville&&lienCoeur(f.ville)!==lienCoeur(c.ville))ecarts.push(f.ville+' d’un côté, '+c.ville+' de l’autre');
+    if(moiMail&&c.mail&&moiMail.toLowerCase()!==c.mail.toLowerCase())ecarts.push('deux e-mails différents');
+    const att=ecarts.length?`<p class="fiche__lien-att"><b>Attention :</b> ${esc(ecarts.join(', '))}. Vérifie que c’est bien le même client.</p>`:'';
+    const txt=LIEN.mode==='vitisoft'
+      ? `<p>Relier ces deux fiches ? Son suivi, ses notes et ses affaires passent sur la fiche Vitisoft. Tu pourras délier.</p>`
+      : `<p>Fusionner <b>${esc(c.nom)}</b> dans cette fiche ? Son suivi, ses notes, ses affaires et les coordonnées qui manquent ici passent sur <b>${esc(f.nom)}</b>, puis elle disparaît. <b>C’est définitif.</b></p>`;
+    const ok=LIEN.mode==='vitisoft'?(LIEN.occupe?'Je relie…':'Relier'):(LIEN.occupe?'Je fusionne…':'Fusionner pour de bon');
+    return `<div class="fiche__lien-conf${LIEN.mode==='fusion'?' fiche__lien-conf--grave':''}" role="group" aria-label="Confirmer">${deux}${att}${txt}
+      <div class="fiche__lien-btns"><button type="button" class="btn btn--sm btn--primary" onclick="ficheLien('ok')"${occ}>${ok}</button>
+      <button type="button" class="btn btn--sm btn--ghost" onclick="ficheLien('retour')"${occ}>Annuler</button></div>${err}</div>`;
+  }
+  if(LIEN.mode){
+    const lab=LIEN.mode==='vitisoft'?'Chercher le client dans Vitisoft':'Chercher l’autre fiche (tu gardes celle-ci)';
+    return `<div class="fiche__lien-cherche" role="group" aria-label="${esc(lab)}">
+      <label class="action__lbl" for="ficheLienQ">${esc(lab)}</label>
+      <input type="search" id="ficheLienQ" class="fiche__lien-q" autocomplete="off" placeholder="${LIEN.mode==='vitisoft'?'Nom, numéro ou ville':'Nom ou ville'}" value="${esc(LIEN.q)}" oninput="ficheLien('q',this)">
+      <div id="ficheLienRes">${lienListe(f)}</div>
+      <button type="button" class="btn btn--sm btn--ghost" onclick="ficheLien('annuler')">Annuler</button>${err}</div>`;
+  }
+  return `<div class="fiche__lien-btns">
+    <button type="button" class="btn btn--sm btn--ghost" onclick="ficheLien('vitisoft')">Le retrouver dans Vitisoft</button>
+    <button type="button" class="btn btn--sm btn--ghost" onclick="ficheLien('fusion')">Fusionner avec un autre nouveau client</button></div>${msg}`;
+}
+function lienRepeindre(focusQ){
+  const z=el('ficheLien');if(!z||!FICHE_ID)return;
+  const f=ficheClient(FICHE_ID);if(!f)return;
+  z.innerHTML=lienHTML(f);
+  if(focusQ){const q=el('ficheLienQ');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length);}catch(e){}}}
+}
+window.ficheLien=async function(a,node){
+  const f=FICHE_ID?ficheClient(FICHE_ID):null;
+  if(!f)return;
+  LIEN.err='';
+  if(a==='vitisoft'||a==='fusion'){
+    LIEN.mode=a;LIEN.q='';LIEN.choix=null;LIEN.msg='';
+    if(a==='vitisoft'&&!lignesPretes()){
+      const z=el('ficheLien');if(z)z.innerHTML='<p class="note" role="status">Je charge tes clients Vitisoft…</p>';
+      await assurerLignes();
+    }
+    lienRepeindre(true);return;
+  }
+  if(a==='q'){LIEN.q=node.value;const r=el('ficheLienRes');if(r)r.innerHTML=lienListe(f);return;}
+  if(a==='choisir'){LIEN.choix={id:node.dataset.id,nom:node.dataset.nom,ville:node.dataset.ville||'',mail:node.dataset.mail||''};lienRepeindre();
+    const b=el('ficheLien')&&el('ficheLien').querySelector('.btn--primary');if(b)b.focus();return;}
+  if(a==='retour'){LIEN.choix=null;lienRepeindre(true);return;}
+  if(a==='annuler'){lienRaz(f.id);lienRepeindre();return;}
+  if(a==='delier'){LIEN.mode='delier';lienRepeindre();const b=el('ficheLien')&&el('ficheLien').querySelector('.btn--primary');if(b)b.focus();return;}
+  if(LIEN.occupe||!window.bdvClients)return;
+  LIEN.occupe=true;lienRepeindre();
+  try{
+    if(a==='ok'&&LIEN.mode==='vitisoft'){
+      const c=LIEN.choix, pid=f.piste.piste_id;
+      await bdvClients.relier(pid,c.id);
+      await chargerNouveaux();
+      /* La phrase « Ajoute d'abord a la main..., puis relie » de la fiche Vitisoft dit deja ce
+         qui vient d'arriver : pas de deuxieme message, ni de bandeau par-dessus la fiche. */
+      lienRaz(c.id);
+      if(lignesPretes()&&ficheClient(c.id))ouvrirFiche(c.id);else{fermerFiche();status('success',f.nom+' est relié à '+c.nom+' (n°'+c.id+').');}
+      return;
+    }
+    if(a==='ok'&&LIEN.mode==='fusion'){
+      const c=LIEN.choix;
+      await bdvClients.fusionner(f.piste.piste_id,c.id);
+      await chargerNouveaux();
+      lienRaz(f.id);
+      LIEN.msg=`<b>${esc(c.nom)}</b> est fondu dans cette fiche.`;
+      ouvrirFiche(f.id);
+      return;
+    }
+    if(a==='delier-ok'){
+      const p=LIES.get(String(f.id));if(!p){lienRaz(f.id);lienRepeindre();return;}
+      await bdvClients.delier(p.piste_id,f.id);
+      await chargerNouveaux();
+      lienRaz(f.id);
+      LIEN.msg=`<b>${esc(p.nom)}</b> est de nouveau un nouveau client. <button type="button" class="btn btn--sm btn--ghost" onclick="bdvOuvrirFiche('p:${esc(p.piste_id)}')">Ouvrir sa fiche</button>`;
+      ouvrirFiche(f.id);
+      return;
+    }
+  }catch(e){
+    LIEN.err=(e&&e.message)||'Le geste n’a pas abouti, rien n’a bougé.';
+  }
+  LIEN.occupe=false;lienRepeindre();
+};
+document.addEventListener('bdv:nouveaux',function(){
+  if(FICHE_ID&&!estNouveau(FICHE_ID)&&!LIEN.mode)lienRepeindre();
+});
+
 
 function ficheClient(id){
   if(estNouveau(id))return fichePiste(id);
@@ -3115,6 +3289,7 @@ function rangerPage(boite){
     droite.setAttribute('aria-label','Ses coordonnées');
     ['.fiche__contacts','.fiche__adresse'].forEach(function(q){const n=boite.querySelector(q);if(n)droite.appendChild(n);});
     droite.appendChild(neuf);
+    const lien=boite.querySelector('.fiche__lien');if(lien)droite.appendChild(lien);
   }
   boite.insertBefore(centre,corps);
   centre.appendChild(corps);
@@ -3491,10 +3666,14 @@ let DEMANDE_DATE=null;    // l'id dont on vient de noter un echange, et a qui il
 async function ouvrirFicheClient(id,opts){
   opts=opts||{};
   if(!id)return false;
+  lienRaz(String(id));
   /* LA FICHE EST UN GESTE, ELLE A LE DROIT D'ATTENDRE, MAIS ELLE DOIT LE DIRE. Depuis
      que l'amorcage ne charge plus rien, ce chargement-la n'est plus l'exception d'un
      appareil neuf : c'est le cas normal du premier clic sur un client. Sans voile, le
      vigneron clique sur un nom et la page se fige quelques secondes sans un mot. */
+  /* Une fiche Vitisoft doit savoir si un nouveau client lui est relie (lot 83) : la
+     lecture part sans attendre, et la ligne « relie » se peint a son arrivee. */
+  if(!estNouveau(id)&&NOUVEAUX_LUS===null)chargerNouveaux();
   if(estNouveau(id)){
     if(!NOUVEAUX.has(String(id)))await chargerNouveaux();
   }else if(!lignesPretes()){
@@ -3806,6 +3985,7 @@ function ficheHTML(f,motif){
       <div class="fiche__id">
         <h3 class="fiche__nom">${esc(f.nom)}</h3>
         <div class="fiche__meta">${meta.map(esc).join(' · ')}</div>
+        ${neuf?'':`<div class="fiche__lie" id="ficheLien">${lienHTML(f)}</div>`}
         ${neuf?`<p class="fiche__neuf-marque"><span class="aff-marque aff-marque--nouveau">Pas encore dans Vitisoft</span></p>`:''}
         <div class="fiche__pastilles" id="fichePastilles">${pastillesFiche(f,s)}</div>
       </div>
@@ -3829,9 +4009,9 @@ function ficheHTML(f,motif){
       ${f.tels.map(t=>`<a class="chipc" href="tel:${esc(t.appel)}">☎ ${esc(t.affiche)}</a>`).join('')}
       ${(!f.emails.length&&!f.tels.length)?(neuf?'<span class="muted-cell">Aucun e-mail ni téléphone sur sa fiche.</span>':'<span class="muted-cell">Aucun e-mail ni téléphone dans ton export.</span>'):''}
     </div>
-    ${neuf&&!muet&&(f.adresse||f.cp||f.ville)?`<p class="fiche__adresse">${esc([f.adresse,[f.cp,f.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</p>`:''}
+    ${neuf&&!muet&&f.adresse?`<p class="fiche__adresse">${esc([f.adresse,[f.cp,f.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</p>`:''}
 
-    ${neuf?(muet?'':`<p class="fiche__neuf">Pas encore de vente : il entrera dans tes chiffres avec sa première facture Vitisoft.</p>`):ficheKpis(f)}
+    ${neuf?(muet?'':`<p class="fiche__neuf">Pas encore de vente : il entrera dans tes chiffres avec sa première facture Vitisoft.</p><div class="fiche__lien" id="ficheLien">${lienHTML(f)}</div>`):ficheKpis(f)}
     ${neuf&&!muet?suiviHTML(f,s):''}
 
     ${lead?`<div class="fiche__conseil">
