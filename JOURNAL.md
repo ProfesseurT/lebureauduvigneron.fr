@@ -10802,3 +10802,13 @@ a la page, mutation verifiee). Vigneron empathique : orange, puis orange leger ;
 au telephone (ecrire et noter sous le moment), bouton plein qui suit la programmation, echecs en
 tete, date du rappel decale, « (note par X) », pictos, « Noter » plein, meme ordre panneau et
 page, ecrire et noter sur une rangee. Toute la chaine verif verte.
+
+## 08/10/2026 : Brevo, les arbitrages, et le lot 87 (brancher la cle)
+
+Beaucoup de vignerons clients sont chez Brevo. Conseil (vigneron, expert commercial, avocat du
+diable) puis arbitrages de Ted : le serveur de mail Brevo (port 465) marche deja avec le
+formulaire actuel, on n'y touche pas ; une option « Tout passer par Brevo » par l'API, une cle
+par bureau collee par le maitre ; chacun choisit son expediteur et peut garder sa boite ; listes
+de campagne creees dans Brevo par le bureau, campagne ecrite dans Brevo ; SMS un par un et en
+masse. Lot 87 fait : brancher la cle, lire les expediteurs, poser les choix. Rien ne part encore
+par Brevo. Banc SQL 42, banc JS 49, verif vert. SQL a coller, fonction `brevo` a deployer.

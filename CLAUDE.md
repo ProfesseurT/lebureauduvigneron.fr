@@ -8829,3 +8829,36 @@ separes) : ca se corrige dans Vitisoft.
   `boite` et `_shared/smtp.ts` (mails programmes).
 - Secrets : GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET. Garde : `banc:boite` (Google), banc SQL 86.
 
+
+### LOT 87 : BRANCHER BREVO (08/10/2026)
+
+Arbitrages de Ted : une cle API Brevo PAR BUREAU, collee par le MAITRE ; le maitre choisit ce
+qui partira par Brevo (mails d'affaire et de fiche, devis et commandes, mails programmes) ;
+CHAQUE PERSONNE choisit son adresse d'expediteur parmi celles validees chez Brevo, et peut
+passer « Par ma boite » (jamais par Brevo). Campagnes : le bureau creera la liste dans Brevo,
+le vigneron ecrit dans Brevo. SMS un par un et en masse. Lots prevus : 88 l'envoi par Brevo,
+89 les listes, 90 desinscriptions et adresses mortes qui reviennent, 91 les SMS.
+**CE LOT N'ENVOIE RIEN PAR BREVO, et l'ecran le dit.**
+- **SQL `supabase/lot87-brevo.sql`, APRES 86, PUIS push, PUIS deploiement de la fonction
+  `brevo` (verify_jwt = true, aucun secret a poser).** Tables `brevo` (une ligne par bureau,
+  cle dans Vault, `secret_id` illisible du navigateur, 4 derniers signes gardes) et
+  `brevo_choix` (une ligne par personne qui a choisi). Ecritures par RPC seulement :
+  `brevo_regler` et `brevo_retirer` (maitre), `brevo_choisir` (soi) ; `brevo_ranger`,
+  `brevo_cle`, `brevo_noter`, `brevo_est_maitre/membre` : cle de service seule. Retirer ou
+  supprimer le bureau efface la cle de Vault ; quitter le bureau efface son choix.
+- **Fonction `brevo`** : `brancher` verifie le maitre AVANT Brevo, lit `GET /v3/account`, ne
+  range qu'apres un oui ; reconnait une cle SMTP (`xsmtpsib-`). `expediteurs` (membre) lit
+  `GET /v3/senders` et note si Brevo accepte encore la cle. Jamais un texte de Brevo renvoye.
+- [Certain, aide Brevo] la cle ouvre tout le compte, se desactive apres 90 jours sans appel, et
+  Brevo bloque d'office les adresses IP inconnues apres 30 jours : l'ecran demande de desactiver
+  ce blocage (Securite, Adresses IP autorisees). [Supposition] Brevo repond 401 dans ce cas,
+  seul son texte (« IP ») le distingue d'une cle fausse.
+- **`src/js/bdv-brevo.js`** (defer, apres bdv-boite.js), bloc sous « D'ou partent tes mails ».
+  `BdvBrevo.passe(sorte)` ('affaires' | 'devis' | 'programmes') : vrai seulement si Brevo est
+  branche, la sorte cochee, pas « Par ma boite », et une adresse choisie. C'est ce que lira le
+  lot 88. Une absence n'est pas un oui.
+- Garde : banc SQL `supabase/banc-lot87-brevo.sql` (42, rejoue 47 a 86), `npm run banc:brevo`
+  (49, dans verif). Captures : `BREVO=branche|refusee node scripts/cap-envois.mjs 1440:light`.
+- Vigneron empathique : orange (present trompeur, jargon IP, « Tes mails a toi »), corrige.
+  Ouvert, anterieur et commun a tout le panneau : cases et ronds vides peu visibles en sombre,
+  ronds radio trop serres.
