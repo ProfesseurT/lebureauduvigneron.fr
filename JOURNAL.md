@@ -15,6 +15,22 @@ trois jours. Ne pas s'en étonner en relisant.
 
 
 
+## 08/10/2026, lot 85 : la boîte branchée simplifie l'envoi
+
+Ted : « quand on a connecté la boîte, il faut virer les autres boutons. » Et pour le devis :
+« je veux un bouton qui dit envoyer le devis par email et ça nous fait revenir sur la page
+d'avant avec le mail ouvert et le lien à l'intérieur. »
+- **Rédacteur d'une affaire et fiche client**, boîte branchée : il ne reste que « Envoyer depuis
+  ma boîte » (et « Programmer l'envoi »). Plus de « Ouvrir dans ma messagerie », de « Copier le
+  texte », de « Considéré comme envoyé », ni de la phrase « Parti de ta messagerie ? ». Sans
+  boîte branchée, rien ne change. « Noter un échange » reste (appels, visites).
+- **Devis**, boîte branchée et devis ouvert depuis une affaire : après « Préparer l'envoi », plus
+  de copie du message ni du lien. Un bouton « Envoyer le devis par email » ramène à l'affaire,
+  le rédacteur ouvert sur « Envoi du devis à signer », le lien de signature dedans.
+- Sans boîte branchée, ou sans lien de signature, le devis garde la copie du message.
+- Signalé, pas changé : le devis se note « envoyé » (avec sa relance) dès « Préparer l'envoi »,
+  avant que le mail parte vraiment ; et le rédacteur propose aussi sa propre relance.
+
 ## 08/10/2026, lot 79 et les trois suites des envois
 
 Ted : « tu vas faire les 4 à la suite et me demander de pousser à la fin. »

@@ -1764,7 +1764,17 @@
         bureau: bureau(), affaire: { affaire_id: id, issue: issue, rappel: a.rappel || null, rappel_titre: a.rappel_titre || null },
         etapeDevis: etD, sujet: qui, nouveau: neuf, devis: dv || null, autresEnCours: autres, opposee: oppose(a),
         agir: dv && agir ? agir : null,
-        retour: function (devisId) {
+        retour: function (devisId, opts) {
+          /* « Envoyer le devis par email » (Ted, 08/10/2026) : le redacteur s'ouvre sur l'envoi
+             du devis ; le texte se recompose quand le lien relu arrive (texteAuto). */
+          if (opts && opts.mail && issue === 'en_cours') {
+            REDAC[id] = { k: 'devis', kAuto: false, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: true, garde: null, mot: '' };
+            var ouvrirMail = function () { var ax = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (ax) ouvrirRedac(ax); };
+            if (S.page) { rendre(); ouvrirMail(); lireDevis({ affaire_id: id }).then(function () { rendre(); ouvrirMail(); }); return; }
+            S.nouvelle = false; S.choix = null; S.ouverte = id; MOD_CLE = ''; S.retour = { affaire: id };
+            rendre(); ouvrirMail();
+            return;
+          }
           if (S.page) { rendre(); lireDevis({ affaire_id: id }).then(rendre); return; }
           if (issue !== 'en_cours') { rendre(); var b = focusSortie(id); if (b) { try { b.focus(); } catch (e) {} } return; }
           S.nouvelle = false; S.choix = null; S.ouverte = id; MOD_CLE = ''; S.retour = { affaire: id };
@@ -3504,7 +3514,10 @@
             : b.geste === 'envoi' && a.issue === 'en_cours' ? '<p><button type="button" class="btn" data-aff="redacEnvoi">Préparer l’envoi du devis</button></p>' : '') : '')
         + '</li>';
     }).join('');
-    var href = lienMailto(a, r), av = M.avertir(r.k, ctx, r.coches, href.length);
+    /* Demande de Ted (08/10/2026) : boite branchee, UN seul chemin, « Envoyer depuis ma boite ».
+       Ni messagerie, ni copie, ni « Considere comme envoye » : l'envoi se note tout seul. */
+    var boite = !!(mail && boitePrete());
+    var href = lienMailto(a, r), av = M.avertir(r.k, ctx, r.coches, boite ? 0 : href.length);
     var rp = M.rappel(r.k, ctx, r.coches);
     return '<details class="aff-redac" id="affRedac" data-bloc="redac"' + (r.ouvert ? ' open' : '') + '><summary class="aff-redac__t"><span class="aff-redac__ouvrir">Écrire un mail</span><span class="aff-redac__fermer">Fermer le rédacteur</span></summary><div class="aff-redac__corps">'
       + (r.kAuto ? '<p class="aff-redac__pourquoi">Proposé : <b>' + esc(M.nom(r.k)) + '</b>, parce que ' + esc(r.raison) + '.</p>' : '')
@@ -3527,14 +3540,15 @@
           + '<button type="button" class="btn" data-aff="redacAutre">Écrire un autre mail</button></div>'
         : (r.echec ? '<p class="aff-redac__resultat aff-redac__resultat--echec" role="alert">' + esc(r.echec) + '</p>' : '')
       + '<div class="aff-redac__gestes">'
-      + (mail && boitePrete() ? '<button type="button" class="btn' + (progVise(r) ? '' : ' btn--bordeaux') + ' aff-redac__envoyer" data-aff="redacEnvoyer">' + (progVise(r) ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte') + '</button>' : '')
-      + (mail ? '<a class="btn' + (boitePrete() ? '' : ' btn--bordeaux') + '" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
-      + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button></div>'
+      + (boite ? '<button type="button" class="btn' + (progVise(r) ? '' : ' btn--bordeaux') + ' aff-redac__envoyer" data-aff="redacEnvoyer">' + (progVise(r) ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte') + '</button>'
+        : (mail ? '<a class="btn btn--bordeaux" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
+          + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button>')
+      + '</div>'
       + htmlProgrammer(a, r, mail)
       + (JOURNAL_ABSENT ? '<p class="aff-aide">L’historique des mails n’est pas encore en place dans ton bureau : ce mail ne sera pas noté.</p>'
+        : boite ? ''
         : '<div class="aff-redac__fin">'
-          + (mail && boitePrete() ? '<p class="aff-redac__explique">Envoyé depuis ta boîte, il entre tout seul dans l’historique. Parti de ta messagerie ? Note-le :</p>'
-            : '<p class="aff-redac__explique">Ton mail est parti de ta messagerie ? Note-le : il entre dans l’historique de l’affaire.</p>')
+          + '<p class="aff-redac__explique">Ton mail est parti de ta messagerie ? Note-le : il entre dans l’historique de l’affaire.</p>'
           + '<p><button type="button" class="btn" data-aff="redacEnvoye">Considéré comme envoyé</button></p></div>'))
       + '<p class="aff-aide aff-redac__mot" id="affRedacMot" role="status" aria-live="polite">' + esc(r.parti ? '' : r.mot || '') + '</p>'
       + '</div></details>';
@@ -3667,7 +3681,7 @@
       var o = boxRedac().querySelector('[data-redac="ouvrir"]');
       var href = lienMailto(a, r);
       if (o) o.setAttribute('href', href);
-      var M = window.BdvMailsAffaire, av = M ? M.avertir(r.k, ctxMail(a), r.coches, href.length) : [], ul = boxRedac() && boxRedac().querySelector('.aff-redac__avert');
+      var M = window.BdvMailsAffaire, av = M ? M.avertir(r.k, ctxMail(a), r.coches, o ? href.length : 0) : [], ul = boxRedac() && boxRedac().querySelector('.aff-redac__avert');
       if (ul) { ul.innerHTML = av.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join(''); ul.hidden = !av.length; }
     });
   }

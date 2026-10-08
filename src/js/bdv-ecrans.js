@@ -3210,6 +3210,8 @@ function messageHTML(f,motif){
   const sujet=sujetMessage(f,motif,coches);
   const texte=composerMessage(f,motif,coches);
   const mail=f.emails[0]||'';
+  /* Demande de Ted (08/10/2026) : boite branchee, un seul bouton ; l'envoi se note tout seul. */
+  const boite=!!(mail&&boitePrete());
   return `<div class="msg" id="msgZone" data-id="${esc(f.id)}" data-motif="${esc(motif)}" data-mail="${esc(mail)}">
     <div class="section-label" style="margin-top:0">Le message</div>
     <div class="msg__blocs" id="msgBlocs">
@@ -3220,13 +3222,13 @@ function messageHTML(f,motif){
     <label class="msg__lbl">Texte, modifiable avant envoi</label>
     <textarea class="msg__texte" id="msgTexte" rows="11" aria-label="Texte du message, modifiable avant envoi" oninput="majLienMail()">${esc(texte)}</textarea>
     <div class="fiche__actions">
-      ${mail&&boitePrete()?`<button class="btn btn--primary btn--sm" id="msgEnvoyer" onclick="envoyerMessage(this)">Envoyer depuis ma boîte</button>`:''}
-      ${mail?`<a class="btn ${boitePrete()?'btn--ghost':'btn--primary'} btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
-      <button class="btn btn--ghost btn--sm" onclick="copierMessage(this)">Copier le texte</button>
+      ${boite?`<button class="btn btn--primary btn--sm" id="msgEnvoyer" onclick="envoyerMessage(this)">Envoyer depuis ma boîte</button>`
+        :`${mail?`<a class="btn btn--primary btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
+      <button class="btn btn--ghost btn--sm" onclick="copierMessage(this)">Copier le texte</button>`}
       ${f.tels.length?`<a class="btn btn--ghost btn--sm" href="tel:${esc(f.tels[0].appel)}">Appeler ${esc(f.tels[0].affiche)}</a>`:''}
-      <button class="btn btn--ghost btn--sm" onclick="messageEnvoye(this)">Considéré comme envoyé</button>
+      ${boite?'':`<button class="btn btn--ghost btn--sm" onclick="messageEnvoye(this)">Considéré comme envoyé</button>`}
     </div>
-    ${mail&&boitePrete()?`<p class="note">De : ${deBoite()}, ta boîte branchée. À : <b>${esc(mail)}</b>.</p>`:''}
+    ${boite?`<p class="note">De : ${deBoite()}, ta boîte branchée. À : <b>${esc(mail)}</b>.</p>`:''}
     ${mail?'':'<p class="note">Pas d\'adresse e-mail pour ce client : copie le texte ou appelle-le.</p>'}
   </div>`;
 }

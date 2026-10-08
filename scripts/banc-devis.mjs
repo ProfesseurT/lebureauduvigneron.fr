@@ -288,7 +288,7 @@ function monter(o) {
   w.eval(SRC_CALC);
   w.eval(SRC_DEVIS);
   X.ctx = Object.assign({ bureau: BUREAU, affaire: { affaire_id: 'aC', issue: 'en_cours' }, sujet: 'Chez Paul', nouveau: false, devis: null,
-    retour: (id) => { X.retours = (X.retours || 0) + 1; X.retourId = id; },
+    retour: (id, opts) => { X.retours = (X.retours || 0) + 1; X.retourId = id; X.retourOpts = opts; },
     focusSortie: () => w.document.getElementById('depart'), change: (d) => { X.changes = (X.changes || []).concat([d]); } }, o.ctx || {});
   X.modale = () => w.document.getElementById('devisModale');
   X.corps = () => w.document.getElementById('devCorps');
@@ -1579,6 +1579,23 @@ titre('15. Tour 2 du juge (02/10/2026) : l\'envoi dit ce qu\'il note, le lien so
     /Pas parti aujourd’hui \?/.test(bloc.textContent) && /Décale la relance dans l’affaire/.test(bloc.textContent) && !!bloc.querySelector('[data-dev="retour"]')
     && bloc.textContent.indexOf(court(dans7)) > 0, bloc.textContent.slice(0, 400));
   t('N2 : le bloc nomme le client a qui coller le message', /Colle-le dans ton mail à Chez Paul/.test(bloc.textContent));
+}
+{
+  /* Demande de Ted (08/10/2026) : boite branchee, plus de copie. UN bouton « Envoyer le devis
+     par email » qui ramene a l'affaire, le redacteur ouvert, le lien dedans. */
+  const X = monter({ lot52: true, lot55: true, fetch: 'ok' });
+  X.w.BdvBoite = { prete: () => true };
+  await X.ouvrir(); X.cocher(CLE0); await X.enregistrer();
+  t('boite : les etapes de l\'envoi disent que le mail part de la boite', /le mail s’ouvre dans l’affaire, le lien dedans, et part de ta boîte/.test(X.modale().textContent));
+  X.clic('[data-dev="envoyer"]');
+  X.clic('[data-dev="confirmerEnvoi"]'); await attendre(40);
+  const bloc = X.doc.getElementById('devLienBloc'), b = bloc && bloc.querySelector('[data-dev="ecrireMail"]');
+  t('boite : « Envoyer le devis par email », plein, a le focus ; ni copie du message, ni du lien, ni champ du lien',
+    !!b && b.textContent === 'Envoyer le devis par email' && b.classList.contains('btn--bordeaux') && X.doc.activeElement === b
+    && !bloc.querySelector('[data-dev="messageCopier"]') && !bloc.querySelector('[data-dev="lienCopier"]') && !X.doc.getElementById('devLienUrl'));
+  t('boite : la relance notee reste dite dans le bloc', /Pas parti aujourd’hui \?/.test(bloc.textContent));
+  X.retourOpts = undefined; X.clic('[data-dev="ecrireMail"]'); await attendre(5);
+  t('boite : le clic ramene a l\'affaire avec la demande d\'ouvrir le mail', X.retourOpts && X.retourOpts.mail === true && X.retourId === X.devis[0].devis_id);
 }
 {
   /* L'envoi note un AUTRE jour : le titre de relance par defaut (celui de la base) suffit. */

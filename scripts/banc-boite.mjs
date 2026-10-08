@@ -234,6 +234,13 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   dit(/data-aff="redacEnvoyer">' \+ \(progVise\(r\) \? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'\)/.test(aff) && /await redacEnvoye\(a, b, \{ parti: res\.mot \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
   dit(/r\.parti = true;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');
   dit(/De : ' \+ deBoite\(\)/.test(aff) && /De : \$\{deBoite\(\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
+  /* Demande de Ted (08/10/2026) : boite branchee, UN seul bouton. */
+  dit(/\(boite \? '<button type="button" class="btn' \+ \(progVise\(r\) \? '' : ' btn--bordeaux'\) \+ ' aff-redac__envoyer"/.test(aff)
+    && /: \(mail \? '<a class="btn btn--bordeaux" data-redac="ouvrir"/.test(aff) && /: boite \? ''\s*: '<div class="aff-redac__fin">'/.test(aff)
+    && !/Parti de ta messagerie/.test(aff), 'redacteur d\'une affaire, boite branchee : ni messagerie, ni copie, ni « Considere comme envoye »');
+  dit(/\$\{boite\?`<button class="btn btn--primary btn--sm" id="msgEnvoyer"[^`]*`\s*:`\$\{mail\?`<a class="btn btn--primary btn--sm" id="msgOuvrir"/.test(ecr)
+    && /\$\{boite\?'':`<button class="btn btn--ghost btn--sm" onclick="messageEnvoye\(this\)">Considéré comme envoyé/.test(ecr), 'fiche client, boite branchee : le meme seul bouton');
+  dit(/if \(opts && opts\.mail && issue === 'en_cours'\) \{\s*REDAC\[id\] = \{ k: 'devis', kAuto: false/.test(aff), 'retour du devis par « Envoyer le devis par email » : le redacteur s\'ouvre sur l\'envoi du devis');
   dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">Envoyer depuis ma boîte/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');
 }
 

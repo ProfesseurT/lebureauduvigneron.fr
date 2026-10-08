@@ -601,13 +601,19 @@
       + (parRetour ? 'reviens encore une fois en arrière' : 'appuie encore une fois') + ' pour partir sans eux.', true);
     return true;
   }
-  function retour() {
+  /* `opts.mail` : « Envoyer le devis par email » (demande de Ted, 08/10/2026) : retour a
+     l'affaire, le redacteur ouvert sur l'envoi du devis, le lien de signature dedans. */
+  function retour(opts) {
     if (garderAvantDePartir()) return;
     var f = S && S.ctx && S.ctx.retour;
     var id = S && S.devis ? S.devis.devis_id : null;
     retirer();
     RETOUR_FOCUS = null;
-    if (typeof f === 'function') f(id);
+    if (typeof f === 'function') f(id, opts || null);
+  }
+  /* La boite branchee (Mes envois) et une affaire ou revenir : le devis part par le redacteur. */
+  function parBoite() {
+    return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete() && S && S.ctx && typeof S.ctx.retour === 'function');
   }
 
   /* ---------------- L'OUVERTURE ---------------- */
@@ -1134,6 +1140,20 @@
     if (note && a.rappel) note += ', relance le ' + dateCourte(a.rappel) + ' dans Ma journée';
     note = note ? finPhrase(note) : '';
     var rattrape = a.rappel ? ' ' + (auj ? 'Pas parti aujourd’hui ?' : 'Pas parti ce jour-là ?') + ' ' : '';
+    var fin = (note || rattrape ? '<p class="aff-aide">' + esc(note) + rattrape
+        + (rattrape ? (typeof S.ctx.retour === 'function'
+          ? '<button type="button" class="dmod__lien" data-dev="retour">Décale la relance dans l’affaire</button>.'
+          : 'Décale la relance dans l’affaire.') : '') + '</p>' : '')
+      + '<p class="aff-aide">Quand ton client signe, le devis passe accepté tout seul et la commande Vitisoft est prête.</p>'
+      + '</div></section>';
+    /* Demande de Ted (08/10/2026) : boite branchee, plus de copie du message ni du lien. UN
+       bouton : retour a l'affaire, le mail ouvert, le lien dedans. */
+    if (parBoite()) return '<section class="dmod__bloc dmod__lientete" id="devLienBloc" aria-labelledby="devLienT">'
+      + '<div class="dmod__confirme dmod__confirme--neutre dmod__lienbloc">'
+      + '<h3 class="dmod__t" id="devLienT">Ton envoi est prêt</h3>'
+      + '<p class="aff-aide">Le mail s’ouvre dans l’affaire' + qui + ', le lien de signature dedans. Tu le relis, il part de ta boîte.</p>'
+      + '<p class="dmod__gestes"><button type="button" class="btn btn--bordeaux" data-dev="ecrireMail">Envoyer le devis par email</button></p>'
+      + fin;
     return '<section class="dmod__bloc dmod__lientete" id="devLienBloc" aria-labelledby="devLienT">'
       + '<div class="dmod__confirme dmod__confirme--neutre dmod__lienbloc">'
       + '<h3 class="dmod__t" id="devLienT">Ton envoi est prêt</h3>'
@@ -1144,12 +1164,7 @@
       + '<p class="aff-aide" id="devLienMot" aria-live="polite"></p>'
       + '<label class="aff-champ"><span>Le lien de signature</span><input id="devLienUrl" type="text" readonly value="' + esc(url) + '"></label>'
       + (S.lot71 ? '<p class="aff-aide">' + esc(MOT_LIEN_GARDE) + '</p>' : '<p class="aff-aide dmod__copie--souci">' + esc(MOT_LIEN_UNE_FOIS) + '</p>')
-      + (note || rattrape ? '<p class="aff-aide">' + esc(note) + rattrape
-        + (rattrape ? (typeof S.ctx.retour === 'function'
-          ? '<button type="button" class="dmod__lien" data-dev="retour">Décale la relance dans l’affaire</button>.'
-          : 'Décale la relance dans l’affaire.') : '') + '</p>' : '')
-      + '<p class="aff-aide">Quand ton client signe, le devis passe accepté tout seul et la commande Vitisoft est prête.</p>'
-      + '</div></section>';
+      + fin;
   }
   function lienMontre() { return !!(S.lien && S.devis && S.lien.devis_id === S.devis.devis_id && S.devis.statut === 'envoye'); }
   function htmlSignature() {
@@ -1160,7 +1175,7 @@
     if (!d.papier_empreinte) return t + '<p class="aff-aide">Pas de copie exacte gardée pour ce devis : il ne peut pas se signer en ligne. Refais-le pour en avoir une.</p></section>';
     var m = manquesCommande();
     if (m.length) return t + '<p class="aff-aide">Pas de signature en ligne pour ce devis : ' + esc(phraseManques(m)) + '</p></section>';
-    if (lienMontre()) return t + '<p class="aff-aide">Ton lien de signature est en tête du devis, avec le message à copier.</p></section>';
+    if (lienMontre()) return t + '<p class="aff-aide">' + (parBoite() ? 'Ton lien de signature est en tête du devis : envoie-le par email.' : 'Ton lien de signature est en tête du devis, avec le message à copier.') + '</p></section>';
     if (S.lienInfo && S.lienInfo.cree_le) return t + '<p class="aff-aide">Un lien de signature a été créé le ' + esc(heureFr(S.lienInfo.cree_le))
       + '. Il ne se réaffiche pas. Pour le renvoyer, crée un nouveau lien : l’ancien s’éteint.</p>'
       + '<p class="dmod__gestes"><button type="button" class="btn" data-dev="lienCreer">Créer un nouveau lien</button></p></section>';
@@ -1197,7 +1212,7 @@
        champ, juste dessous, a selectionner. */
     var box = MOD.querySelector('.tmod__boite'), bloc = el('devLienBloc');
     if (box) box.scrollTop = 0;
-    var cm = bloc && bloc.querySelector('[data-dev="messageCopier"]');
+    var cm = bloc && bloc.querySelector('[data-dev="messageCopier"], [data-dev="ecrireMail"]');
     if (cm) { try { cm.focus({ preventScroll: true }); } catch (e) {} }
     if (bloc) montrerDansBoite(bloc.querySelector('.dmod__gestes') || bloc);
     return true;
@@ -1260,8 +1275,11 @@
     var d = S.devis, auj = jourIso(), a = S.ctx.affaire || {}, et = S.ctx.etapeDevis, lien = lienPossible();
     var min = d.date_devis && String(d.date_devis) < auj ? String(d.date_devis) : auj;
     return '<section class="dmod__bloc" aria-labelledby="devEnvT"><h3 class="dmod__t" id="devEnvT">Envoyer le devis au client</h3>'
-      + '<ol class="dmod__etapes aff-aide"><li>Prépare l’envoi ici : le devis se fige' + (lien ? ', et le bureau te donne le lien de signature et le message à coller.' : '.') + '</li>'
-      + '<li>Envoie ton mail avec le PDF' + (lien ? ' et le lien' : '') + ', depuis ta messagerie.</li>'
+      + '<ol class="dmod__etapes aff-aide">' + (lien && parBoite()
+        ? '<li>Prépare l’envoi ici : le devis se fige, et le bureau crée le lien de signature.</li>'
+          + '<li>« Envoyer le devis par email » : le mail s’ouvre dans l’affaire, le lien dedans, et part de ta boîte.</li>'
+        : '<li>Prépare l’envoi ici : le devis se fige' + (lien ? ', et le bureau te donne le lien de signature et le message à coller.' : '.') + '</li>'
+          + '<li>Envoie ton mail avec le PDF' + (lien ? ' et le lien' : '') + ', depuis ta messagerie.</li>')
       + '<li>Le bureau te rappelle de le relancer.</li></ol>'
       /* V8 : un changement pas enregistre se dit A COTE du bouton, pas seulement apres l'appui. */
       + '<p class="aff-aide dmod__copie--souci" id="devEnvoiNote"' + (S.modifie ? '' : ' hidden') + '>Enregistre d’abord tes changements : c’est le devis enregistré que tu envoies.</p>'
@@ -1660,6 +1678,7 @@
     var q = b.getAttribute('data-dev');
     if (q === 'fermer') { fermer(); return; }
     if (q === 'retour') { retour(); return; }
+    if (q === 'ecrireMail') { retour({ mail: true }); return; }
     if (q === 'domaine') { ouvrirDomaine(); return; }
     if (q === 'etape') { montrerEtape(Number(b.getAttribute('data-vers'))); return; }
     if (q === 'suivant') { montrerEtape(Math.min(3, (S.etape || 1) + 1)); return; }
