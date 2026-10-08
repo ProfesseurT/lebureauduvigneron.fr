@@ -15,6 +15,30 @@ trois jours. Ne pas s'en étonner en relisant.
 
 
 
+## 08/10/2026, lot 86 : brancher sa boîte « avec Google » (option D, Google seul)
+
+- **Arbitrages de Ted** : l'éditeur de l'application est Solumatic ; **Microsoft est abandonné**
+  (compte `contact@solumatic.onmicrosoft.com` créé, connexion impossible, inscription partenaire
+  sans fin). Conséquence assumée : après fin décembre 2026, une boîte Microsoft 365 repasse par
+  la messagerie. Google seul, par l'API Gmail et la permission `gmail.send`.
+- Domaine `lebureauduvigneron.fr` (+ `www` redirigé) ajouté au projet Vercel. Le DNS chez IONOS
+  n'avait pas encore changé au soir du 08/10 (A = 217.160.0.84, AAAA présent, `www` absent).
+- **Le parcours** : « Se connecter avec Google » (Gmail, Workspace) dans Mes envois ; la page
+  de Google ; retour au bureau ; la boîte est branchée sans code (Google a prouvé l'adresse).
+  Le jeton de renouvellement est rangé dans Vault à la place du mot de passe. Gmail range dans
+  Envoyés : pas de copie à soi.
+- **Contre la connexion forcée** (vu en écrivant) : le retour de Google ne range RIEN, il renvoie
+  au bureau, et c'est le vigneron connecté qui finit ; la fonction refuse si l'état a été posé
+  par un autre compte. Sans ça, un lien envoyé par quelqu'un d'autre lui donnait la boîte Gmail
+  du vigneron.
+- SQL `lot86-boite-google.sql` (banc SQL 22 contrôles, 3 mutations tuées), fonction
+  `google-retour` (verify_jwt = false), `_shared/gmail.ts` utilisé par `boite` et
+  `mails-programmes`, page rgpd complétée. Testé en Deno avec un faux Google : parcours entier,
+  autre compte refusé, rejeu refusé, permission décochée, refus, état inconnu.
+- En mode test chez Google : seuls les utilisateurs test entrent, et la connexion expire au bout
+  de 7 jours (la boîte passe alors « à reconnecter »). La vérification Google se lance quand le
+  domaine répond.
+
 ## 08/10/2026, lot 85 : la boîte branchée simplifie l'envoi
 
 Ted : « quand on a connecté la boîte, il faut virer les autres boutons. » Et pour le devis :

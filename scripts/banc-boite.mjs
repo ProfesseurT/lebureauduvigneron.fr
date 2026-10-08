@@ -230,6 +230,23 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   dit(!/err\.code === 'EAUTH' \|\| rc === 535/.test(env) && /if \(rc === 535 \|\| rc === 534 \|\| rc === 530\) \{\s*try \{ await rpc\('boite_reconnecter'/.test(env), 'seul un refus franc (530, 534, 535) passe la boite a reconnecter, pas un incident');
   dit(/\(action === 'envoyer' \? 25000 : 4000\)/.test(tout), 'un mail long (25 000 signes) peut partir');
   dit(/ADRESSE = \/\^\[\^@\\s\(\)<>,;:/.test(tout), 'une adresse ne porte ni parenthese, ni chevron, ni virgule : celle controlee est celle qui part');
+  /* LOT 86 : brancher avec Google (option D, Google seul). */
+  { const bo = lire('src/js/bdv-boite.js'), gr = lire('supabase/functions/google-retour/index.ts'), gm = lire('supabase/functions/_shared/gmail.ts'),
+      bt = lire('supabase/functions/boite/index.ts'), sm = lire('supabase/functions/_shared/smtp.ts');
+    dit(/f\.cle === 'gmail' \|\| f\.cle === 'workspace'/.test(bo) && /id = 'bdvbGoogle'/.test(bo) && /fonction\('google-retour', \{ action: 'commencer', bureau: bureau\(\), retour: location\.origin/.test(bo),
+      'Gmail et Workspace : « Se connecter avec Google », retour sur le meme site');
+    dit(bo.includes("/^https:\\/\\/accounts\\.google\\.com\\//.test(String(r.url"), 'le navigateur ne part que vers accounts.google.com');
+    dit(/PORTEE = 'openid email https:\/\/www\.googleapis\.com\/auth\/gmail\.send'/.test(gr) && !/mail\.google\.com\/'/.test(gr), 'permission gmail.send seulement, jamais mail.google.com');
+    dit(/includes\('https:\/\/www\.googleapis\.com\/auth\/gmail\.send'\)\) return reponse\(\{ resultat: 'permission' \}\)/.test(gr), 'permission decochee chez Google : rien n est branche');
+    dit(/if \(qui\.personne !== moi\.id\)/.test(gr) && !/boite_google_ranger/.test(gr.slice(gr.indexOf('async function retour'), gr.indexOf('async function finir'))) && /action === 'finir'\) return await finir/.test(gr),
+      'contre la connexion forcee : seul celui qui a commence finit, avec sa session, et le retour de Google ne range rien');
+    dit(/const SITES = \['https:\/\/lebureauduvigneron\.fr', 'https:\/\/www\.lebureauduvigneron\.fr', 'https:\/\/lebureauduvigneron\.vercel\.app'\]/.test(gr)
+      && /SITES\.includes\(site\) \? site : SITES\[0\]/.test(gr), 'le retour ne va que vers les trois adresses du bureau');
+    dit(/const \{ bcc: _bcc, \.\.\.sans \} = options/.test(gm) && /status >= 500\) return \{ resultat: 'incertain'/.test(gm) && /catch \{ return \{ resultat: 'incertain' \}; \}/.test(gm),
+      'Gmail : pas de copie, une panne ou une coupure laisse un doute, jamais « reessaie »');
+    dit(/if \(b\.fournisseur === 'google_api'\) \{[\s\S]{0,400}boite_envoi_permis/.test(bt) && /if \(b\.fournisseur === 'google_api'\) \{\s*return await envoyerGmail/.test(sm),
+      'boite et mails programmes : une boite Google part par Gmail, avec le meme plafond');
+  }
   const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
   dit(/data-aff="redacEnvoyer">' \+ \(progVise\(r\) \? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'\)/.test(aff) && /await redacEnvoye\(a, b, \{ parti: fige \+ res\.mot, rp: rpF \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
   dit(/r\.parti = true;\s*var fige = r\.figeMot \|\| '', rpF = r\.rpFige;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');

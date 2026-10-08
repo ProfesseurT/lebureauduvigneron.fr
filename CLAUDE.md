@@ -8812,3 +8812,20 @@ separes) : ca se corrige dans Vitisoft.
   Un devis a figer ne se programme pas. La carte du devis propose « Envoyer par email ».
 - Garde : `banc:devis` (figerPourMail, rien fige au clic), `banc:affaires`, `banc:boite`.
 
+### LOT 86 : BRANCHER SA BOITE AVEC GOOGLE (08/10/2026)
+
+- **Google seul, Microsoft abandonne (Ted).** Editeur : Solumatic. Voir GUIDE_connexion-google-microsoft.md.
+- SQL `lot86-boite-google.sql`, APRES 84 : `oauth_etats` (empreinte du state, qui, ou revenir,
+  10 min, une fois, 10 par heure, purge horaire par cron), `google_etat_poser/voir/prendre`,
+  `boite_google_ranger` (Vault, branchee sans code, `fournisseur = 'google_api'`, pas de copie a
+  soi), `boite_pour_envoi` rend `fournisseur` en dernier. Tout en cle de service seule.
+- Fonction `google-retour` (verify_jwt = false) : `commencer` (session) rend l'adresse Google ;
+  le GET de retour NE RANGE RIEN et renvoie au bureau (`?google=fin&g_code&g_etat`) ; `finir`
+  (session) exige que l'etat ait ete pose par CETTE personne. Ne jamais ranger au GET : connexion
+  forcee. `REDIRECT` ecrit en dur, identique a celui declare chez Google. Retour seulement vers
+  les trois adresses du bureau (session par site).
+- `_shared/gmail.ts` : jeton d'acces, mail fabrique par nodemailer (streamTransport), envoi par
+  l'API Gmail ; `invalid_grant` = « reconnecter » ; 5xx ou coupure = « incertain ». Utilise par
+  `boite` et `_shared/smtp.ts` (mails programmes).
+- Secrets : GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET. Garde : `banc:boite` (Google), banc SQL 86.
+

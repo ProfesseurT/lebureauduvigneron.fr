@@ -7,6 +7,7 @@
    pour ne pas toucher a une fonction en production qui marche (lot 77).
    ============================================================================ */
 import nodemailer from 'npm:nodemailer@^9';
+import { envoyerGmail } from './gmail.ts';
 
 /* LE SERVEUR D'ENVOI DOIT ETRE SUR INTERNET (verificateur, lot 76). */
 function ipPrivee(ip: string) {
@@ -68,12 +69,16 @@ function pieceLogo(b: { logo?: string | null; logo_l?: number | null; logo_h?: n
 }
 
 export type Boite = { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean; nom?: string | null;
-  logo?: string | null; logo_l?: number | null; logo_h?: number | null };
+  logo?: string | null; logo_l?: number | null; logo_h?: number | null; fournisseur?: string | null };
 export type Issue = { resultat: 'parti' | 'refus' | 'passager' | 'injoignable' | 'incertain' | 'destinataire' | 'autre'; code?: number };
 
 /* Meme ordre que `boite` : d'abord la connexion et le mot de passe (une erreur la prouve que
    rien n'est parti), puis l'envoi (une coupure la laisse un doute : « incertain »). */
 export async function envoyerSmtp(b: Boite, a: string, sujet: string, texte: string): Promise<Issue> {
+  /* LOT 86 : une boite branchee avec Google part par l'API Gmail, memes issues. */
+  if (b.fournisseur === 'google_api') {
+    return await envoyerGmail(b.secret, { from: expediteur(b), to: { name: '', address: a }, subject: sujet, text: texte, ...pieceLogo(b, texte) }) as Issue;
+  }
   const cible = await adressePublique(b.serveur);
   if (!cible) return { resultat: 'injoignable' };
   const tr = nodemailer.createTransport({

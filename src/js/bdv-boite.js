@@ -23,6 +23,8 @@
   var FOURN = null;          // le dernier « reconnaitre »
   var EN_COURS = false;
   var MDP = '';              // le mot de passe, le temps de l'essai seulement
+  var GOOGLE_MOT = null;      // la phrase a dire au retour de la page de Google (lot 86)
+  function avecGoogle(b) { return !!(b && b.fournisseur === 'google_api'); }
 
   function el(id) { return document.getElementById(id); }
   function bureau() { return window.BdvCompte && BdvCompte.monBureau && BdvCompte.monBureau(); }
@@ -218,10 +220,14 @@
     var etat = el('bdvbEtat');
     etat.textContent = '';
     if (b && branchee) {
-      etat.appendChild(mk('p', 'bdvb-ok', 'Ta boîte ' + b.adresse + ' est branchée' + (b.branchee_le ? ' depuis le ' + dateCourte(b.branchee_le) : '') + '.'));
-      var lc = mk('label', 'bdvr-chk'); var cc = mk('input'); cc.type = 'checkbox'; cc.id = 'bdvbCopie'; cc.checked = b.copie_a_soi !== false;
-      lc.appendChild(cc); lc.appendChild(document.createTextNode(' M’envoyer une copie de chaque mail (OVH, IONOS et Orange ne le rangent pas dans Envoyés)'));
-      etat.appendChild(lc);
+      etat.appendChild(mk('p', 'bdvb-ok', 'Ta boîte ' + b.adresse + ' est branchée' + (avecGoogle(b) ? ' avec Google' : '') + (b.branchee_le ? ' depuis le ' + dateCourte(b.branchee_le) : '') + '.'));
+      /* LOT 86 : Gmail range lui-meme dans Envoyes un mail parti par son API : pas de copie. */
+      if (avecGoogle(b)) etat.appendChild(mk('p', 'bdvr-aide', 'Tes mails se rangent dans le dossier Envoyés de Gmail, comme si tu les avais écrits là-bas.'));
+      else {
+        var lc = mk('label', 'bdvr-chk'); var cc = mk('input'); cc.type = 'checkbox'; cc.id = 'bdvbCopie'; cc.checked = b.copie_a_soi !== false;
+        lc.appendChild(cc); lc.appendChild(document.createTextNode(' M’envoyer une copie de chaque mail (OVH, IONOS et Orange ne le rangent pas dans Envoyés)'));
+        etat.appendChild(lc);
+      }
       if (NOM_COL) {
         var avant = el('bdvbNom');
         var garde = avant && avant.dataset.sale ? avant.value : null;
@@ -247,13 +253,17 @@
       var rt = mk('button', 'bdvr-btn bdvr-btn--creux', 'Retirer ma boîte'); rt.type = 'button'; rt.id = 'bdvbRetirer';
       etat.appendChild(rt);
       var cf = mk('div', 'bdvb-confirme'); cf.id = 'bdvbConfirme'; cf.hidden = true;
-      cf.appendChild(mk('p', null, 'Retirer ta boîte efface le mot de passe rangé. Tes mails repartiront de ta messagerie.'));
+      cf.appendChild(mk('p', null, avecGoogle(b)
+        ? 'Retirer ta boîte efface l’accès donné par Google. Tes mails repartiront de ta messagerie. Tu peux aussi le retirer dans ton compte Google, rubrique Sécurité, Applications tierces.'
+        : 'Retirer ta boîte efface le mot de passe rangé. Tes mails repartiront de ta messagerie.'));
       var non = mk('button', 'bdvr-btn bdvr-btn--creux', 'Non, la garder'); non.type = 'button'; non.id = 'bdvbGarder';
       var oui = mk('button', 'bdvr-btn', 'Oui, la retirer'); oui.type = 'button'; oui.id = 'bdvbOui';
       cf.appendChild(non); cf.appendChild(oui);
       etat.appendChild(cf);
     } else if (b && b.etat === 'reconnecter') {
-      etat.appendChild(mk('p', 'bdvr-aide bdvr-aide--alerte', 'Ta boîte ' + b.adresse + ' n’accepte plus le mot de passe rangé (il a peut-être changé). Rebranche-la ci-dessous.'));
+      etat.appendChild(mk('p', 'bdvr-aide bdvr-aide--alerte', avecGoogle(b)
+        ? 'Google ne laisse plus le bureau envoyer depuis ' + b.adresse + ' (accès retiré, ou expiré). Reconnecte-toi avec Google ci-dessous.'
+        : 'Ta boîte ' + b.adresse + ' n’accepte plus le mot de passe rangé (il a peut-être changé). Rebranche-la ci-dessous.'));
     }
     etat.hidden = !bureauMode || !etat.firstChild;
     el('bdvbForm').hidden = !bureauMode || !!branchee;
@@ -271,6 +281,7 @@
     }
     au.hidden = !au.firstChild;
     if (bureauMode && !branchee && el('bdvbAdresse').value && !FOURN) reconnaitre();
+    if (GOOGLE_MOT) { dire(GOOGLE_MOT[0], GOOGLE_MOT[1]); GOOGLE_MOT = null; }
   }
 
   async function reconnaitre() {
@@ -301,6 +312,14 @@
     fo.className = 'bdvb-fourn';
     if (f.statut === 'connu') {
       fo.appendChild(mk('p', 'bdvb-ok', 'Boîte reconnue : ' + f.nom + '.'));
+      /* LOT 86 : Gmail et Google Workspace se branchent d'un clic, sans mot de passe a creer. */
+      if (f.cle === 'gmail' || f.cle === 'workspace') {
+        var gg = mk('div', 'bdvb-gestes');
+        var bg = mk('button', 'bdvr-btn', 'Se connecter avec Google'); bg.type = 'button'; bg.id = 'bdvbGoogle';
+        gg.appendChild(bg); fo.appendChild(gg);
+        fo.appendChild(mk('p', 'bdvr-aide', 'Le plus simple : Google te demande d’autoriser le bureau à envoyer des mails en ton nom. Il ne lit rien dans ta boîte, et tu n’as aucun mot de passe à créer.'));
+        if (f.motDePasse) fo.appendChild(mk('p', 'bdvr-aide', 'Sinon, avec un mot de passe :'));
+      }
       if (f.motDePasse) fo.appendChild(aideAvecLien(f.motDePasse));
     } else if (f.statut === 'inconnu') {
       fo.appendChild(mk('p', 'bdvr-aide', 'Le bureau ne reconnaît pas ce fournisseur. Indique son serveur d’envoi.'));
@@ -405,6 +424,7 @@
     var b = e.target.closest && e.target.closest('button');
     if (!b) return;
     if (b.id === 'bdvbTester') { e.preventDefault(); tester(); }
+    else if (b.id === 'bdvbGoogle') { e.preventDefault(); commencerGoogle(b); }
     else if (b.id === 'bdvbRenvoyer') {
       e.preventDefault();
       if (MDP) tester();
@@ -424,6 +444,64 @@
       }).catch(function () { dire('La boîte n’a pas été retirée. Réessaie.', true); });
     }
   }
+
+  /* ---------------- AVEC GOOGLE, lot 86 ----------------
+     La fonction `google-retour` rend l'adresse de la page de Google ; le navigateur y va, et
+     Google le renvoie au bureau avec ?google=<issue>, sur le MEME site (la session y vit). */
+  async function commencerGoogle(bt) {
+    if (EN_COURS) return;
+    EN_COURS = true; if (bt) bt.disabled = true;
+    dire('Ouverture de la page de Google…');
+    try {
+      var a = (el('bdvbAdresse') && el('bdvbAdresse').value || '').trim().toLowerCase();
+      var r = await BdvCompte.fonction('google-retour', { action: 'commencer', bureau: bureau(), retour: location.origin, adresse: a });
+      if (!r || !/^https:\/\/accounts\.google\.com\//.test(String(r.url || ''))) throw new Error('La connexion avec Google n’a pas pu commencer.');
+      location.assign(r.url);
+      return;
+    } catch (e) {
+      var m = String(e && e.message || '');
+      dire(e && e.status === 503 ? 'La connexion avec Google n’est pas encore en place sur ce bureau.'
+        : /aucune session/.test(m) ? 'Ta session a expiré : reconnecte-toi, puis recommence.'
+        : /adresse de retour/.test(m) ? 'La connexion avec Google ne marche que depuis le bureau en ligne.'
+        : (m && !/refuse \(/.test(m) ? m : 'La connexion avec Google n’a pas pu commencer. Réessaie.'), true);
+    }
+    EN_COURS = false; if (bt) bt.disabled = false;
+  }
+  var MOTS_GOOGLE = {
+    ok: ['Ta boîte Gmail est branchée : tes mails partent maintenant de ta boîte, d’un clic.', false],
+    annule: ['Tu as dit non sur la page de Google : rien n’est branché.', true],
+    permission: ['Sur la page de Google, il faut cocher « Envoyer des e-mails en votre nom ». Rien n’est branché : recommence.', true],
+    expire: ['La connexion a pris plus de 10 minutes. Recommence.', true],
+    erreur: ['La connexion avec Google n’a pas abouti. Réessaie dans un moment.', true]
+  };
+  MOTS_GOOGLE.autre_compte = ['Cette connexion avait été commencée depuis un autre compte du bureau : rien n’est branché. Recommence depuis ton compte.', true];
+  /* Google renvoie ici avec ?google=fin&g_code&g_etat : le bureau FINIT avec la session du
+     vigneron (la fonction verifie que c'est lui qui a commence). L'adresse est nettoyee tout
+     de suite : le code ne reste ni dans l'historique ni dans un favori. */
+  function retourDeGoogle() {
+    var p; try { p = new URLSearchParams(location.search); } catch (e) { p = null; }
+    var q = p && p.get('google');
+    if (!q) return;
+    var code = p.get('g_code') || '', etat = p.get('g_etat') || '';
+    try { history.replaceState(history.state, '', location.pathname + location.hash); } catch (e) {}
+    var essais = 0;
+    async function suite() {
+      if (q === 'fin') {
+        var r = null;
+        try { r = await BdvCompte.fonction('google-retour', { action: 'finir', code: code, etat: etat }); } catch (e) { r = null; }
+        q = r && MOTS_GOOGLE[r.resultat] ? r.resultat : 'erreur';
+      }
+      GOOGLE_MOT = MOTS_GOOGLE[q] || MOTS_GOOGLE.erreur;
+      BdvNav.ouvrirReglages('envois');
+      await charger();
+      if (el('bdvbZone')) peindre();
+    }
+    (function attendre() {
+      if (window.BdvNav && BdvNav.ouvrirReglages && window.BdvCompte && BdvCompte.fonction && bureau()) { suite(); return; }
+      if (++essais < 40) setTimeout(attendre, 250);
+    })();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', retourDeGoogle); else retourDeGoogle();
 
   function rafraichir() { var z = el('bdvbZone'); if (z) delete z.dataset.touche; return charger().then(peindre); }
 
@@ -462,7 +540,8 @@
     var mot = 'Pas parti : ';
     if (r.resultat === 'refus') {
       if (BOITE) BOITE.etat = 'reconnecter';
-      mot += 'ta boîte a refusé le mot de passe (il a peut-être changé). Rebranche-la dans Mes réglages, onglet Mes envois.';
+      mot += r.google ? 'Google ne laisse plus le bureau envoyer (accès retiré ou expiré). Reconnecte-toi avec Google dans Mes réglages, onglet Mes envois.'
+        : 'ta boîte a refusé le mot de passe (il a peut-être changé). Rebranche-la dans Mes réglages, onglet Mes envois.';
     } else if (r.resultat === 'injoignable') mot += 'le serveur de ta boîte ne répond pas. Réessaie dans un moment.';
     else if (r.resultat === 'destinataire') mot += 'ta boîte refuse cette adresse. Vérifie-la.';
     else if (r.resultat === 'passager') mot += 'ta boîte est occupée. Réessaie dans un moment.';

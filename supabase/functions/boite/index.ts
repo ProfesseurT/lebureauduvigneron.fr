@@ -33,6 +33,7 @@
    a poser : SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont fournis.
    ============================================================================ */
 import nodemailer from 'npm:nodemailer@^9';
+import { envoyerGmail } from '../_shared/gmail.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -220,12 +221,29 @@ async function envoyer(jwt: string, corps: Record<string, unknown>, a: string) {
   if (!sujet && !corpsTexte.trim()) return reponse({ resultat: 'vide', erreur: 'Écris un objet ou un texte.' });
 
   let b: { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean; nom?: string | null;
-    logo?: string | null; logo_l?: number | null; logo_h?: number | null } | null = null;
+    logo?: string | null; logo_l?: number | null; logo_h?: number | null; fournisseur?: string | null } | null = null;
   try {
     const l = await rpc('boite_pour_envoi', { p_personne: moi.id, p_bureau: bureau });
     b = Array.isArray(l) && l[0] ? l[0] : null;
   } catch { return reponse({ resultat: 'erreur', erreur: 'Le bureau n’a pas pu lire ta boîte.' }); }
   if (!b) return reponse({ resultat: 'pas_branchee' });
+
+  /* LOT 86 : une boite branchee avec Google part par l'API Gmail (_shared/gmail.ts). Meme
+     plafond, memes issues ; Gmail range lui-meme dans Envoyes, donc pas de copie a soi. */
+  if (b.fournisseur === 'google_api') {
+    let okG = false;
+    try { okG = await rpc('boite_envoi_permis', { p_personne: moi.id, p_bureau: bureau }) === true; }
+    catch { return reponse({ resultat: 'erreur', erreur: 'Le bureau n’a pas pu préparer l’envoi.' }); }
+    if (!okG) return reponse({ resultat: 'plafond', erreur: 'Tu as envoyé 200 mails depuis le bureau aujourd’hui : la suite part de ta messagerie.' });
+    const g = await envoyerGmail(b.secret, { from: expediteur(b), to: { name: '', address: a }, subject: sujet, text: corpsTexte, ...pieceLogo(b, corpsTexte) });
+    console.log('boite: gmail ' + g.resultat + (g.code ? ' ' + g.code : ''));
+    if (g.resultat === 'refus') {
+      try { await rpc('boite_reconnecter', { p_personne: moi.id, p_bureau: bureau, p_erreur: 'acces Google retire ou expire' }); } catch { /* rien */ }
+      return reponse({ resultat: 'refus', google: true });
+    }
+    if (g.resultat === 'parti') return reponse({ resultat: 'parti', de: b.adresse, copie: false });
+    return reponse({ resultat: g.resultat, ...(g.code ? { code_smtp: g.code } : {}) });
+  }
 
   const cible = await adressePublique(b.serveur);
   if (!cible) return reponse({ resultat: 'injoignable', serveur: b.serveur });

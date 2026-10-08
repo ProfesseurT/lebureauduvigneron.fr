@@ -62,6 +62,36 @@ des clients. Une application non vérifiée affiche un écran d'avertissement et
 Plafonds d'envoi Gmail : 500 mails par jour pour un compte personnel, 2 000 pour Workspace
 [Certain]. Le bureau en plafonne déjà 200 (lot 77).
 
+## Décisions du 08/10/2026
+
+- **Le domaine** : `lebureauduvigneron.fr` (et `www`, redirigé) est ajouté au projet Vercel le
+  08/10/2026. Reste à Ted : chez IONOS, A `@` = 76.76.21.21, supprimer l'AAAA `@`, CNAME `www` =
+  cname.vercel-dns.com. Ne pas toucher MX, TXT ni `courrier`.
+- **L'éditeur de l'application, pour Microsoft ET Google : Solumatic** (arbitrage de Ted).
+  Solumatic n'a pas de Partner One ID : il faut le créer.
+- Ce que Microsoft exige, lu le 08/10/2026 [Certain, learn.microsoft.com] :
+  - un compte **professionnel** Entra (pas Gmail, pas Outlook.com), créé au besoin à l'inscription ;
+  - l'inscrit est **administrateur général** du tenant et **autorisé à signer** pour Solumatic,
+    capable de fournir des **documents légaux** ;
+  - le Partner One ID doit être le compte **global** (PGA), pas un compte de site ;
+  - le domaine de l'e-mail de vérification = **domaine vérifié par DNS** dans le tenant
+    (`solumatic.fr` : une ligne TXT chez le gestionnaire DNS de Solumatic), jamais
+    `*.onmicrosoft.com` ;
+  - l'application s'inscrit dans **ce** tenant, par un compte pro qui a le rôle
+    Administrateur d'applications, avec authentification à deux facteurs ;
+  - gratuit [Probable : aucune page ne cite de frais] ; vérification de la société en
+    3 à 5 jours ouvrés [Supposition : chiffre d'une réponse de forum].
+
+- **ARBITRAGE DE TED, 08/10/2026 : GOOGLE SEUL, MICROSOFT ABANDONNÉ.** Le compte
+  `contact@solumatic.onmicrosoft.com` a été créé mais la connexion échoue, et l'inscription
+  partenaire tourne en rond. Conséquence assumée : après fin décembre 2026, une boîte
+  Microsoft 365 ne pourra plus envoyer depuis le bureau (sauf si son administrateur rallume
+  l'envoi par mot de passe) ; elle reste sur l'option A (la messagerie). Outlook.com et iCloud
+  y sont déjà.
+- **Google, adresse de retour** : `https://qukmncqqwomhmrdhvetj.supabase.co/functions/v1/google-retour`.
+  Projet Google Cloud créé avec `teddy@solumatic.fr`, public **Externe** (Interne ne laisserait
+  entrer que les comptes solumatic.fr).
+
 ## Partie Microsoft, étape par étape
 
 1. **Inscrire Solumatic au Microsoft AI Cloud Partner Program** pour obtenir un
