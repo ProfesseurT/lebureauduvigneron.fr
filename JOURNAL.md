@@ -10663,3 +10663,16 @@ redeploiement de la fonction `signature`. Vigneron empathique : feu vert, cinq t
 Meme jour, lot 71 : Ted veut le lien de signature a copier sur la carte du devis. La base ne
 gardait que l'empreinte : arbitrage de Ted, le jeton est garde en base, lisible par le bureau
 seul. SQL lot 71 a coller. Corrige au passage « Envoyé le 6 oct.. ».
+
+## 08/10/2026 : la fiche et l'affaire en page de travail
+
+Ted : « le passage en plein ecran, c'est franchement pas jojo ». Ce qui change : « Agrandir »
+ouvre toujours un nouvel onglet, mais la barre de gauche et le haut de page restent ; au milieu
+les actions et l'historique, a droite ce qui renseigne (chiffres, commandes, ce qu'il achete ;
+pour une affaire « Avant de l'appeler », les devis, les notes), colle au defilement.
+« Nouvelle affaire » (et le lien d'une affaire en cours) s'ouvre en tiroir a droite qui pousse
+la page, sans recharger. Arbitrages de Ted : la colonne de droite passe sous le centre quand la
+place manque ; un clic sur la barre recharge le bureau dans l'onglet. Le code de la page a quitte
+le script en ligne (bdv-affaires-jour.js) : `banc:poids` descend a 76,8 ko. Vigneron empathique :
+feu orange, trois points corriges (telephone : le devis passait avant le nom ; grand ecran : plus
+de largeur maximale ; lieu des commandes sur une ligne). Pas de SQL.

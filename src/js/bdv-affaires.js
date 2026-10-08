@@ -234,6 +234,8 @@
       S.charge = true; S.erreur = false; S.panneauSale = true; S.luLe = new Date();
       /* La journee lit les memes affaires : on les lui pose, elle repeint son panneau. */
       if (window.BdvAffairesJour) BdvAffairesJour.poser(S.affaires, S.pistes, S.types);
+      /* 08/10/2026 : la fiche d'un client (sa ligne « Affaire en cours ») suit sans repeindre. */
+      try { document.dispatchEvent(new CustomEvent('bdv:affaires')); } catch (x) {}
       return true;
     } catch (e) { S.erreur = true; return false; }
   }
@@ -2308,7 +2310,11 @@
       S.nouvelle = false; S.clientPropose = null;
       dire(point('Affaire ouverte chez ' + esc(c.nom || c.id) + ', rappel le ' + dateCourte(rappel)));
     } catch (e) { dire(raison(e), true); await relireSansEffacer(); return; }
+    /* HORS DE LA PIECE (la fiche en pleine page, 08/10/2026), l'affaire creee reste ouverte
+       dans le panneau : sinon il se fermerait et l'avis partirait dans une piece cachee. */
+    if (S.horsPiece) S.ouverte = affaire.affaire_id;
     await charger(); rendre();
+    if (S.horsPiece) dire(point('Affaire ouverte chez ' + esc(c.nom || c.id) + ', rappel le ' + dateCourte(rappel)));
   }
 
   /* W1 : le choix « Gagnee » ou « Pas pour cette fois » en cours, ou aucun (''). */
@@ -3702,29 +3708,36 @@
     var sous = [quoi, 'ouverte le ' + esc(dateCourte(jourLocal(a.ouverte_le || a.cree_le)))]
       .concat(a.maj_le ? ['modifiée le ' + esc(dateCourte(jourLocal(a.maj_le)))] : []).filter(Boolean).join(' · ');
     var clos = a.issue !== 'en_cours' ? '<p class="page-aff__clos">' + (a.issue === 'gagnee' ? 'Affaire gagnée' : 'Pas pour cette fois') + ' le ' + esc(dateCourte(jourLocal(a.close_le))) + '.</p>' : '';
+    /* LA PAGE DE TRAVAIL, 08/10/2026 (demande de Ted) : AU MILIEU ce qu'on fait (le moment,
+       les etapes, ecrire, son historique) ; A DROITE ce qui renseigne (avant de l'appeler :
+       ses achats, puis les devis, les reperes, les notes, modifier), colle au defilement. Un devis qui
+       attend un geste passe au milieu, sous les etapes (lot 67). La barre du bureau reste a
+       gauche : plus de lien « Retour a Mon commerce ». En une colonne, la droite passe dessous. */
+    var presse = devisAttend(a);
+    var blocDevis = '<section class="page-aff__bloc page-aff__bloc--devis' + (presse ? ' page-aff__bloc--presse' : '') + '"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>';
     return '<div class="page-aff" data-affaire="' + a.affaire_id + '">'
-      + '<p><a class="page-aff__retour" href="/mon-bureau/#affaires">Retour à Mon commerce</a></p>'
+      + '<div class="page-aff__centre">'
       + '<header class="page-aff__tete"><p class="page-aff__marques"><span class="page-aff__etape">Étape : <b>' + esc(et ? et.nom : 'étape') + '</b></span>'
       + (t ? '<span>' + esc(t.nom) + '</span>' : '') + (estNouveau(a) ? marqueNouveau() : '') + '</p>'
       + '<h1 class="page-aff__nom" id="pageAffTitre">' + esc(sujet(a)) + '</h1><p class="page-aff__sous">' + sous + '</p>' + clos + '</header>'
       + (m ? '<section class="page-aff__moment' + (m.ton ? ' page-aff__moment--' + m.ton : '') + '"><p class="page-aff__phrase">' + m.t + '</p>' + htmlGestesPage(a, m) + '</section>' : '')
       + htmlFrise(a, e)
-      + '<div class="page-aff__grille"><div class="page-aff__col">'
-      + '<section class="page-aff__bloc page-aff__bloc--devis' + (devisAttend(a) ? ' page-aff__bloc--presse' : '') + '"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>'
-      /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
-      + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')
-      + '<section class="page-aff__bloc"><h2 class="page-aff__h"><label for="pageAffNotes">Notes</label></h2>'
-      + '<textarea id="pageAffNotes" class="page-aff__notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea>'
-      + '<p class="aff-aide" id="pageAffNotesMot" aria-live="polite">Enregistrées quand tu quittes le champ.</p></section>'
-      + '<details class="page-aff__bloc page-aff__modif" data-bloc="modifier"><summary class="page-aff__h">Modifier l’affaire</summary>' + htmlEditeur(a) + '</details>'
-      + '</div><div class="page-aff__col">'
-      + htmlAvantAppel(a)
+      + (presse ? blocDevis : '')
       + (oppose(a) ? '' : '<section class="page-aff__bloc page-aff__bloc--redac">' + htmlRedac(a) + '</section>')
       + '<section class="page-aff__bloc page-aff__bloc--hist"><h2 class="page-aff__h">' + (clientDe(a) ? 'Son historique' : 'Historique') + '</h2>'
         + (clientDe(a) ? '<p class="aff-aide">Ses échanges de fiche et les mails de cette affaire, mêlés par date.</p>' : '')
         + htmlHistorique(a, 8) + htmlNoter(a) + '</section>'
+      + '</div><aside class="page-aff__droite" aria-label="Ce qui renseigne l’affaire">'
+      + htmlAvantAppel(a)
+      + (presse ? '' : blocDevis)
+      /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
+      + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')
       + htmlDejaDit(a) + htmlPreparer(a)
-      + '</div></div></div>';
+      + '<section class="page-aff__bloc"><h2 class="page-aff__h"><label for="pageAffNotes">Notes</label></h2>'
+      + '<textarea id="pageAffNotes" class="page-aff__notes" rows="3" maxlength="2000">' + esc(a.notes || '') + '</textarea>'
+      + '<p class="aff-aide" id="pageAffNotesMot" aria-live="polite">Enregistrées quand tu quittes le champ.</p></section>'
+      + '<details class="page-aff__bloc page-aff__modif" data-bloc="modifier"><summary class="page-aff__h">Modifier l’affaire</summary>' + htmlEditeur(a) + '</details>'
+      + '</aside></div>';
   }
   function peindrePage() {
     var box = el('pageAffCorps');
@@ -3785,7 +3798,9 @@
       var av = el('affAvis');
       if (!av) { av = document.createElement('p'); av.className = 'aff-avis'; av.id = 'affAvis'; av.setAttribute('role', 'status'); av.setAttribute('aria-live', 'polite'); av.hidden = true; }
       root.insertBefore(av, root.firstChild);
-      document.body.appendChild(root);
+      /* 08/10/2026 : dans la page de travail (`#bureauPage`), a cote de la barre et sous
+         l'en-tete, demande de Ted. Sans elle (un banc, un apercu), dans le corps de page. */
+      (el('bureauPage') || document.body).appendChild(root);
       brancherSur(root);
       ecouteursUniques();
       root.addEventListener('input', function (ev) {
@@ -3818,7 +3833,26 @@
     return true;
   }
 
-  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, page: page, _moment: moment, _listeDevis: htmlListeDevis, _devisAttend: devisAttend,
+  /* LE PANNEAU HORS DE LA PIECE, 08/10/2026 : depuis la fiche d'un client en pleine page,
+     « Nouvelle affaire » ({client: {id, nom, ...}}) ou une affaire en cours ({affaire: id})
+     s'ouvrent dans le panneau, a droite de la fiche (tiroir, `BdvTiroir`), sans quitter la
+     page. Rend false si les affaires n'ont pas pu etre lues. */
+  async function horsPiece(o) {
+    o = o || {};
+    S.horsPiece = true;
+    if (!pret()) return false;
+    if (!S.charge && !(await charger())) return false;
+    if (o.affaire) {
+      if (!S.affaires.some(function (a) { return a.affaire_id === o.affaire; })) return false;
+      S.nouvelle = false; S.clientPropose = null; S.ouverte = o.affaire;
+    } else if (o.client && o.client.id) {
+      S.ouverte = null; S.clientPropose = o.client; S.nouvelle = 'client';
+    } else return false;
+    peindrePanneau(true);
+    return true;
+  }
+
+  window.BdvAffaires = { ouvrir: ouvrir, etat: etat, page: page, horsPiece: horsPiece, _moment: moment, _listeDevis: htmlListeDevis, _devisAttend: devisAttend,
     reglages: { ouvrir: ouvrirReglages, enregistrer: enregistrerReglages }, _S: S, _chargerDevis: chargerDevis, MODELES: MODELES, _nomsProches: nomsProches, _nomPropose: nomPropose, _htmlCloses: htmlCloses, _deplacer: function (id, e) {
     var a = S.affaires.filter(function (x) { return x.affaire_id === id; })[0]; if (a) deplacer(a, e); } };
 })();

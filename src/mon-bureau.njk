@@ -722,6 +722,12 @@ theme_bureau: true
     <div id="bureauVentes" hidden>
       {% include "components/ecrans-vente.njk" %}
     </div>
+
+    {# LA PAGE DE TRAVAIL, 08/10/2026 : la fiche d'un client (#fiche=) ou une affaire
+       (#affaire=) ouverte en pleine page, dans un onglet a part. Elle se pose ICI, a la
+       place des pieces, pour garder la barre a gauche et l'en-tete en haut (demande de
+       Ted). `entrer()` de bdv-affaires-jour.js la montre ; section 39 de bdv-bureau.css. #}
+    <div id="bureauPage" hidden></div>
     </div><!-- /.bureau-atelier__travail -->
 
     <!-- LA SORTIE DU POSTE DE TRAVAIL, 11/09/2026. Sur telephone, le bureau ne porte plus
@@ -2727,51 +2733,13 @@ theme_bureau: true
      rien ne part ; la fiche ensuite, qui charge le moteur et les lignes. La barre est
      quand meme montee : `monter()` sort #modale, #busyov et .status hors de la page,
      et sans elle la fiche se peindrait dans un conteneur masque. #}
-  function ficheDemandee(){
-    var h = location.hash || '';
-    if(h.indexOf('#fiche=') !== 0) return null;
-    try{ return decodeURIComponent(h.slice(7)) || null; }catch(e){ return null; }
-  }
-  function avisPageFiche(texte){
-    var p = el('pageFicheAvis');
-    if(!p){ p = mk('p'); p.id = 'pageFicheAvis'; p.className = 'page-fiche__avis'; p.setAttribute('role', 'status'); DOC.body.appendChild(p); }
-    p.innerHTML = '';
-    p.appendChild(DOC.createTextNode(texte + ' '));
-    var a = mk('a'); a.href = '/mon-bureau/#annuaire'; a.textContent = 'Retour à Mes clients';
-    a.addEventListener('click', function(e){ e.preventDefault(); location.href = '/mon-bureau/#annuaire'; location.reload(); });
-    p.appendChild(a);
-  }
-  function ouvrirPageFiche(){
-    var id = ficheDemandee();
-    if(!id) return false;
-    DOC.body.classList.add('bdv-page-fiche');
-    if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
-    brancherTheme();
-    var etapes = [
-      { cle: 'bureau', texte: 'Ton bureau', faire: function(){
-          if(!(window.BdvCompte && BdvCompte.chargerBureau)) return false;
-          return BdvCompte.chargerBureau().then(function(b){ return b ? true : false; });
-        } },
-      { cle: 'fiche', texte: 'La fiche du client', faire: function(){
-          if(!window.BdvNav || !BdvNav.chargerEcrans) return false;
-          return BdvNav.chargerEcrans().then(function(){
-            if(typeof window.ouvrirFicheClient !== 'function') return false;
-            return window.ouvrirFicheClient(id, {});
-          }).then(function(ok){
-            if(!ok) avisPageFiche('Ce client n’est pas dans les ventes de ton bureau.');
-            return ok !== false;
-          });
-        } }
-    ];
-    var fin = window.BdvAmorce ? BdvAmorce.lancer(etapes) : Promise.reject(new Error('amorce absente'));
-    fin.then(function(bilan){
-      if(bilan && bilan.rates && bilan.rates.length) avisPageFiche('La fiche n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.');
-    })['catch'](function(){ avisPageFiche('La fiche n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.'); });
-    return true;
-  }
+  {# LA PAGE DE TRAVAIL, 08/10/2026 : la fiche (#fiche=) et l'affaire (#affaire=) en pleine
+     page vivent dans bdv-affaires-jour.js (differe : pas un octet bloquant de plus). Ce qui
+     reste ici, c'est ce que seul ce script sait faire : brancher l'en-tete. #}
+  window.bdvBrancherTete = function(){ brancherReglages(); brancherTheme(); brancherRetraction(); peindreLune(); };
 
   DOC.addEventListener('DOMContentLoaded', function(){
-    if(ouvrirPageFiche() || (window.BdvAffairesJour && BdvAffairesJour.pageAffaire && BdvAffairesJour.pageAffaire())) return;
+    if(window.BdvAffairesJour && (BdvAffairesJour.pageFiche() || BdvAffairesJour.pageAffaire())) return;
     {# La barre en premier : elle est le cadre, tout le reste se peint dedans. #}
     if(window.BdvNav) BdvNav.monter(el('bureauNav'), 'journee');
     brancherReglages();

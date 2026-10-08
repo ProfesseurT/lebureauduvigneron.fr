@@ -778,7 +778,7 @@
     try { id = decodeURIComponent(h.slice(9)); } catch (e) { id = null; }
     if (!id) return false;
     document.body.classList.add('bdv-page-affaire');
-    if (window.BdvNav) BdvNav.monter(document.getElementById('bureauNav'), 'journee');
+    entrer('Affaire');
     function echec(t) {
       var p = document.getElementById('pageAffCorps') || document.body;
       if (p.querySelector && p.querySelector('.aff-vide')) return;
@@ -804,7 +804,70 @@
     return true;
   }
 
-  window.BdvAffairesJour = { charger: charger, pageAffaire: pageAffaire, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
+  /* LA PAGE DE TRAVAIL GARDE LA BARRE ET L'EN-TETE, 08/10/2026. Demande de Ted : « je garde
+     mon bandeau a gauche et mon haut de page ». Le contenu se pose dans `#bureauPage`
+     (mon-bureau.njk), a la place des pieces, et l'en-tete dit ce qu'on regarde. Aucune piece
+     n'est la courante (bdv-nav.js le sait par `bdv-page-travail`), et un clic sur la barre
+     recharge le bureau dans cet onglet (arbitrage de Ted). Vit ici et pas dans le script en
+     ligne : `banc:poids` est au plafond. */
+  function entrer(titre) {
+    var d = document, hote = d.getElementById('bureauPage'), h1 = d.getElementById('bureauPiece');
+    d.body.classList.add('bdv-page-travail');
+    if (window.BdvNav) BdvNav.monter(d.getElementById('bureauNav'), null);
+    if (hote) hote.hidden = false;
+    if (h1) h1.textContent = titre;
+    if (window.bdvBrancherTete) window.bdvBrancherTete();
+    return hote;
+  }
+
+  /* LA FICHE EN PLEINE PAGE, /mon-bureau/#fiche=<cle> (24/09/2026), demenagee ici le
+     08/10/2026. Demarrage ALLEGE : le bureau, ses affaires (pour « Affaire en cours », une
+     lecture ratee ne bloque pas), puis la fiche. Rend vrai si l'adresse est la sienne. */
+  function avisFiche(texte) {
+    var d = document, p = d.getElementById('pageFicheAvis');
+    if (!p) { p = d.createElement('p'); p.id = 'pageFicheAvis'; p.className = 'page-fiche__avis'; p.setAttribute('role', 'status'); (d.getElementById('bureauPage') || d.body).appendChild(p); }
+    p.textContent = texte + ' ';
+    var a = d.createElement('a'); a.href = '/mon-bureau/#annuaire'; a.textContent = 'Retour à Mes clients';
+    a.addEventListener('click', function (e) { e.preventDefault(); location.href = '/mon-bureau/#annuaire'; location.reload(); });
+    p.appendChild(a);
+  }
+  function pageFiche() {
+    var h = location.hash || '', id = null;
+    if (h.indexOf('#fiche=') !== 0) return false;
+    try { id = decodeURIComponent(h.slice(7)); } catch (e) { id = null; }
+    if (!id) return false;
+    document.body.classList.add('bdv-page-fiche');
+    var hote = entrer('Fiche client');
+    /* La fiche vit dans `#modale` ; `monter()` vient de la sortir sous <body> (pour la modale
+       et le tiroir). En pleine page on la range dans la page de travail : elle prend la place
+       des pieces, et un tiroir ouvert depuis elle (une affaire) la pousse. */
+    var mo = document.getElementById('modale');
+    if (hote && mo) hote.appendChild(mo);
+    var rate = 'La fiche n’a pas pu s’ouvrir : vérifie ta connexion et recharge la page.';
+    var etapes = [
+      { cle: 'bureau', texte: 'Ton bureau', faire: function () {
+        if (!(window.BdvCompte && BdvCompte.chargerBureau)) return false;
+        return BdvCompte.chargerBureau().then(function (b) { return !!b; });
+      } },
+      { cle: 'affaires', texte: 'Ses affaires', faire: function () {
+        return Promise.resolve(charger())['catch'](function () {}).then(function () { return true; });
+      } },
+      { cle: 'fiche', texte: 'La fiche du client', faire: function () {
+        if (!(window.BdvNav && BdvNav.chargerEcrans)) return false;
+        return BdvNav.chargerEcrans().then(function () {
+          return typeof window.ouvrirFicheClient === 'function' ? window.ouvrirFicheClient(id, {}) : false;
+        }).then(function (ok) {
+          if (!ok) avisFiche('Ce client n’est pas dans les ventes de ton bureau.');
+          return ok !== false;
+        });
+      } }
+    ];
+    var fin = window.BdvAmorce ? BdvAmorce.lancer(etapes) : Promise.reject(new Error('amorce absente'));
+    fin.then(function (bilan) { if (bilan && bilan.rates && bilan.rates.length) avisFiche(rate); })['catch'](function () { avisFiche(rate); });
+    return true;
+  }
+
+  window.BdvAffairesJour = { charger: charger, pageAffaire: pageAffaire, pageFiche: pageFiche, poser: poser, punaises: punaises, duClient: duClient, clientsEnAffaire: clientsEnAffaire,
                              datees: datees, ouvrirPiece: ouvrirPiece, famille: FAMILLE,
                              etat: etat, aRelancer: aRelancer, peindreBilan: peindreBilan,
                              vu: function (id) { vu(id); majNouv(); },

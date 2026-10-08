@@ -4167,86 +4167,8 @@ body.bdv-coque .bureau-nav .bureau-nav__replier{ display:none; }
    `.fiche__corps` et `.fiche__cote` valent `display:contents` partout ailleurs
    (bdv-ecrans.css) : ils ne changent rien a la modale ni au tiroir.
    ========================================================================== */
-body.bdv-coque.bdv-page-fiche > :not(#modale):not(#busyov):not(.status):not(.bdv-amorce):not(#pageFicheAvis):not(script){
-  display:none;
-}
-body.bdv-coque.bdv-page-fiche{ background:var(--bdv-fond); }
-body.bdv-coque.bdv-page-fiche #modale.on{
-  position:static;
-  display:block;
-}
-body.bdv-coque.bdv-page-fiche #modale.on .modale__bg,
-body.bdv-coque.bdv-page-fiche #modale.on .fiche__agrandir{
-  display:none;
-}
-body.bdv-coque.bdv-page-fiche #modale.on .modale__box{
-  max-width:1600px;
-  min-height:100vh;
-  max-height:none;
-  margin:0 auto;
-  overflow:visible;
-  border-width:0;
-  border-radius:0;
-  padding:var(--bdv-e-8);
-  background:var(--bdv-fond);
-}
-/* EN PLEINE PAGE, LA SORTIE EST UN LIEN QUI DIT OU IL MENE, pas une croix seule dans un
-   coin : on ne « ferme » pas une page, on retourne a sa liste. */
-body.bdv-coque.bdv-page-fiche #modale.on .modale__close{ display:none; }
-body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour{
-  display:inline-flex;
-  align-items:center;
-  min-height:var(--bdv-cible);
-  margin-bottom:var(--bdv-e-4);
-  padding:0;
-  border:0;
-  background:none;
-  font-family:inherit;
-  font-size:var(--bdv-f-2);
-  font-weight:600;
-  color:var(--bdv-encre-2);
-  cursor:pointer;
-}
-body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour:hover{ color:var(--bdv-encre-1); }
-body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
-@media (min-width:1100px){
-  body.bdv-coque.bdv-page-fiche #modale.on .modale__box{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) minmax(380px,34%);
-    /* La colonne du suivi couvre les deux rangees : sans `1fr` sur la seconde, sa hauteur
-       se reportait sur la premiere et ouvrait un trou sous le conseil. */
-    grid-template-rows:auto auto 1fr;
-    column-gap:var(--bdv-e-8);
-    align-items:start;
-  }
-  body.bdv-coque.bdv-page-fiche #modale.on .fiche__retour{
-    grid-column:1 / -1;
-    grid-row:1;
-    justify-self:start;
-  }
-  body.bdv-coque.bdv-page-fiche #modale.on .fiche__corps{
-    display:block;
-    grid-column:1;
-    grid-row:2;
-  }
-  body.bdv-coque.bdv-page-fiche #modale.on .fiche__onglets{
-    grid-column:1;
-    grid-row:3;
-  }
-  /* LA COLONNE DU SUIVI RESTE A L'ECRAN QUAND ON DESCEND DANS LES COMMANDES : c'est la
-     qu'on note l'appel qu'on est en train de passer. Elle garde son propre ascenseur, sans
-     quoi un long fil d'echanges la ferait deborder par le bas (lecon du 08/09/2026 sur les
-     collants : descendre un element le fait depasser d'autant). */
-  body.bdv-coque.bdv-page-fiche #modale.on .fiche__cote{
-    display:block;
-    grid-column:2;
-    grid-row:2 / span 2;
-    position:sticky;
-    top:var(--bdv-e-6);
-    max-height:calc(100vh - var(--bdv-e-12));
-    overflow-y:auto;
-  }
-}
+/* 08/10/2026 : TOUT CE QUI SUIT EST REMPLACE PAR LA SECTION 39, « LA PAGE DE TRAVAIL ».
+   La fiche ne cache plus le bureau : la barre et l'en-tete restent (demande de Ted). */
 body.bdv-coque .page-fiche__avis{
   max-width:640px;
   margin:var(--bdv-e-12) auto;
@@ -4753,9 +4675,8 @@ body.bdv-coque .listb tbody tr:has(:focus-visible) > td:first-child{
 /* -- 29.11 « MES REGLAGES » N'EST PLUS DANS L'EN-TETE SUR ORDINATEUR, 26/09/2026,
    arbitrage de Ted : il y etait deux fois, dans la barre de gauche et ici. Le
    bouton reste dans le DOM (les bancs et `BdvNav.ouvrirReglages()` le connaissent),
-   et il reste visible sur la fiche en pleine page, qui n'a pas de barre. */
+   la fiche en pleine page a desormais la barre (08/10/2026), il y est donc cache aussi. */
 body.bdv-coque .bureau-tete .bureau-tete__reglages{ display:none; }
-body.bdv-coque.bdv-page-fiche .bureau-tete .bureau-tete__reglages{ display:inline-flex; }
 
 /* -- 30. LA FAMILLE SE VOIT PARTOUT, ET ELLE NE DIT QU'ELLE, 26/09/2026 -------
    Demande de Ted : les couleurs du calendrier et des taches sont-elles assez
@@ -6100,16 +6021,10 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
    montant est celui d'un devis envoye ou accepte. Deux colonnes au-dessus de
    1100 px, l'ordre de la maquette en dessous.
    ========================================================================== */
-body.bdv-coque.bdv-page-affaire > :not(#pageAffaire):not(#modale):not(#devisModale):not(#busyov):not(.status):not(.bdv-amorce):not(script){
-  display:none;
-}
-body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
-.bdv-coque .page-aff__racine{ max-width:1440px; margin:0 auto; padding:var(--bdv-e-6) var(--bdv-e-8) var(--bdv-e-12); }
+.bdv-coque .page-aff__racine{ margin:0; padding:0 0 var(--bdv-e-12); }
 .bdv-coque .page-aff__racine .aff-avis{ margin:0 0 var(--bdv-e-3); }
 .bdv-coque .page-aff{ display:grid; gap:var(--bdv-e-4); color:var(--bdv-encre-2); }
 .bdv-coque .page-aff p{ margin:0; }
-.bdv-coque .page-aff__retour{ display:inline-flex; align-items:center; min-height:var(--bdv-cible); color:var(--bdv-encre-2); font-size:var(--bdv-f-2); }
-.bdv-coque .page-aff__retour::before{ content:"\2190"; content:"\2190" / ""; margin-right:var(--bdv-e-2); }
 .bdv-coque .page-aff__marques{ display:flex; flex-wrap:wrap; gap:var(--bdv-e-3); align-items:center; font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
 .bdv-coque .page-aff__etape b{ color:var(--bdv-accent); font-weight:600; }
 .bdv-coque .page-aff__nom{ margin:var(--bdv-e-1) 0; font-family:inherit; letter-spacing:var(--bdv-ls-serre); font-size:var(--bdv-f-6); font-weight:600; line-height:1.15; color:var(--bdv-encre-1); }
@@ -6148,21 +6063,7 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque .page-aff__frise-d .btn,
 .bdv-coque .page-aff__frise-d .aff-vers{ min-height:var(--bdv-cible); }
 
-.bdv-coque .page-aff__grille{ display:grid; grid-template-columns:minmax(0,1fr); gap:var(--bdv-e-4); }
-.bdv-coque .page-aff__col{ display:grid; gap:var(--bdv-e-4); align-content:start; min-width:0; }
-@media (min-width:1100px){
-  /* minmax(0, ...) : sans lui, un mot sans espace dans l'historique elargissait la colonne
-     au-dela de la page (vu par Ted, 06/10/2026 : 2180 px de page pour 1440). */
-  .bdv-coque .page-aff__grille{ grid-template-columns:minmax(0,7fr) minmax(0,5fr); align-items:start; }
-}
-/* EN UNE COLONNE, ON LIT AVANT D'APPELER (expert commercial, 03/10/2026) : « Avant de
-   l'appeler », puis les devis, puis son historique, puis le reste. */
-@media (max-width:1099px){
-  .bdv-coque .page-aff__col{ display:contents; }
-  .bdv-coque .page-aff__bloc--avant{ order:-3; }
-  .bdv-coque .page-aff__bloc--devis{ order:-2; }
-  .bdv-coque .page-aff__bloc--hist{ order:-1; }
-}
+/* Les deux colonnes de la page (centre, droite) : section 39. */
 .bdv-coque .page-aff__bloc{
   display:grid; grid-template-columns:minmax(0,1fr); gap:var(--bdv-e-3); min-width:0;
   padding:var(--bdv-e-6); border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); background:var(--bdv-surface);
@@ -6515,10 +6416,9 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 .bdv-coque .aff-devis__liens{ gap:var(--bdv-e-1); }
 /* Le mot d'un devis abandonne ou refuse reste lisible : seul le numero est barre. */
 .bdv-coque .aff-devis__court .aff-devis__un{ color:var(--bdv-encre-2); }
-/* Un devis qui attend un geste remonte sous la frise, en une colonne comme en deux. */
-@media (max-width:1099px){
-  .bdv-coque .page-aff__bloc--devis.page-aff__bloc--presse{ order:-4; }
-}
+/* Un devis qui attend un geste est pose SOUS la frise par htmlPage() (bdv-affaires.js),
+   dans l'ordre du document : plus d'`order`, qui le faisait passer AVANT le nom et le
+   rappel au telephone (08/10/2026). */
 
 /* LOT 68 (06/10/2026, arbitre par Ted) : AU TELEPHONE, LA FRISE DE L'AFFAIRE SE REPLIE en une
    ligne (« Étape : X (2 sur 3) ») ; un appui deplie les etapes. Au-dessus de 700 px, la frise
@@ -6956,3 +6856,125 @@ body.bdv-coque.bdv-page-affaire{ background:var(--bdv-fond); }
 }
 .bdv-coque .aff-redac__resultat--echec{ margin:0 0 var(--bdv-e-2); }
 .bdv-coque .aff-redac__resultat--echec::before{ content:"!\00a0"; color:var(--bdv-alerte); }
+
+/* ==========================================================================
+   39. LA PAGE DE TRAVAIL : LA FICHE ET L'AFFAIRE EN PLEINE PAGE, 08/10/2026
+
+   Demande de Ted : « le passage en plein ecran, c'est franchement pas jojo ».
+   « Agrandir » ouvre toujours un NOUVEL ONGLET (#fiche=, #affaire=), mais :
+   - la barre a gauche et l'en-tete restent, la page prend la place des pieces
+     (`#bureauPage`, pose par `entrer()` de bdv-affaires-jour.js) ;
+   - AU MILIEU, l'historique et les actions ; A DROITE, ce qui renseigne (ses
+     chiffres, ses commandes, ce qu'il achete ; pour une affaire, les devis, les
+     notes), colle au defilement ;
+   - une affaire ouverte depuis la fiche s'ouvre en tiroir a droite et POUSSE la
+     page (section 22). Arbitrage de Ted : quand la place manque, la colonne de
+     droite passe SOUS le centre.
+
+   LE SEUIL EST UNE REQUETE DE CONTENEUR, PAS DE FENETRE (regle du 07/09/2026) :
+   c'est le tiroir qui retire de la place sans que la fenetre change. Mesure sur
+   le tableau de la section 22 : a 1440 sans tiroir, 1208 px de page, deux
+   colonnes ; tiroir ouvert, 747 px, une seule ; a 2296 (l'ecran de Ted), 1329 px
+   tiroir ouvert, deux colonnes encore. Seuil a 60 rem, 960 px.
+
+   LES SELECTEURS PORTENT `#bureauPage`, ET CE N'EST PAS DECORATIF : la fiche vit
+   dans `#modale`, que la section 22 transforme en tiroir FIXE des que le corps de
+   page porte `bdv-a-tiroir`, c'est-a-dire precisement quand une affaire s'ouvre a
+   cote. Un identifiant de plus (2,x,x contre 1,3,1) garde la fiche dans la page.
+   ========================================================================== */
+body.bdv-coque.bdv-page-travail .bureau-atelier__travail > :not(#bureauPage){ display:none; }
+body.bdv-coque.bdv-page-travail #bureauPage{
+  container:page / inline-size;
+  width:100%;
+  min-width:0;
+}
+/* Pas de largeur maximale : c'est un poste de travail, pas une page a lire. Sur l'ecran
+   de Ted (2296 px), une borne a 1560 laissait 240 px vides de chaque cote (08/10/2026). */
+body.bdv-coque.bdv-page-travail .page-fiche__avis{ margin:var(--bdv-e-8) auto; }
+
+/* -- 39.1 LA FICHE NE FLOTTE PLUS : elle est dans le flux de la page. */
+body.bdv-coque #bureauPage #modale.on{
+  position:static;
+  inset:auto;
+  width:auto;
+  display:block;
+  z-index:auto;
+}
+body.bdv-coque #bureauPage #modale.on .modale__bg,
+body.bdv-coque #bureauPage #modale.on .fiche__coin,
+body.bdv-coque #bureauPage #modale.on .fiche__retour{ display:none; }
+body.bdv-coque #bureauPage #modale.on .modale__box{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:var(--bdv-e-6);
+  align-items:start;
+  max-width:none;
+  width:auto;
+  height:auto;
+  max-height:none;
+  margin:0;
+  overflow:visible;
+  border-width:0;
+  border-radius:0;
+  padding:0;
+  background:none;
+}
+/* Les deux colonnes sont des CARTES, comme les blocs de l'affaire : une surface, un
+   trait de 1 px, aucune ombre (regle du 21/09/2026). */
+body.bdv-coque #bureauPage #modale.on .fiche__centre,
+body.bdv-coque #bureauPage #modale.on .fiche__droite{
+  min-width:0;
+  padding:var(--bdv-e-8);
+  border:1px solid var(--bdv-trait);
+  border-radius:var(--bdv-r);
+  background:var(--bdv-surface);
+}
+body.bdv-coque #bureauPage #modale.on .fiche__corps,
+body.bdv-coque #bureauPage #modale.on .fiche__cote{ display:block; }
+body.bdv-coque #bureauPage #modale.on .fiche__head{ padding-right:0; }
+body.bdv-coque #bureauPage #modale.on .fiche__cote{ margin-bottom:var(--bdv-e-6); }
+body.bdv-coque #bureauPage #modale.on .fiche__droite .fiche__kpis{
+  grid-template-columns:repeat(2, minmax(0,1fr));
+}
+
+/* -- 39.2 L'AFFAIRE : meme partage. */
+body.bdv-coque #bureauPage .page-aff{
+  grid-template-columns:minmax(0,1fr);
+  gap:var(--bdv-e-6);
+  align-items:start;
+}
+body.bdv-coque #bureauPage .page-aff__centre,
+body.bdv-coque #bureauPage .page-aff__droite{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:var(--bdv-e-4);
+  align-content:start;
+  min-width:0;
+}
+
+/* -- 39.3 DEUX COLONNES QUAND LA PAGE A LA PLACE, ET LA DROITE COLLE. Elle garde son
+      propre ascenseur : une longue liste de commandes la ferait sinon deborder par le
+      bas autant qu'on l'a descendue (lecon du 08/09/2026 sur les collants). Le haut
+      tient compte du bandeau et de l'en-tete retracte, comme le bloc calendrier. */
+@container page (min-width: 60rem){
+  body.bdv-coque #bureauPage #modale.on .modale__box,
+  body.bdv-coque #bureauPage .page-aff{
+    grid-template-columns:minmax(0,1fr) minmax(22rem, 36%);
+  }
+  body.bdv-coque #bureauPage #modale.on .fiche__droite,
+  body.bdv-coque #bureauPage .page-aff__droite{
+    position:sticky;
+    top:calc(var(--h-entete) + var(--bdv-cible) + var(--bdv-e-4));
+    max-height:calc(100vh - var(--h-entete) - var(--bdv-cible) - var(--bdv-e-8));
+    overflow-y:auto;
+  }
+}
+@media (max-width:700px){
+  body.bdv-coque #bureauPage #modale.on .fiche__centre,
+  body.bdv-coque #bureauPage #modale.on .fiche__droite{ padding:var(--bdv-e-4); }
+  body.bdv-coque #bureauPage #modale.on .fiche__droite .fiche__kpis{ grid-template-columns:minmax(0,1fr); }
+}
+
+/* Le lieu d'une commande tient sur une ligne dans la colonne de droite : « Autre / non
+   renseigne » en trois lignes poussait le tableau. Le tableau defile deja dans son cadre. */
+body.bdv-coque #bureauPage #modale.on .fiche__droite .fiche__cmds td{ white-space:nowrap; }

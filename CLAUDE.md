@@ -8585,3 +8585,33 @@ champ libre dans Mes envois. **Le logo heberge, annonce comme lot 78, devient le
   ferait echouer. Pas de colonne : pas de champ.
 - Garde : banc SQL `supabase/banc-lot78-nom-affiche.sql` (13, rejoue 77 et 76), `banc:boite`
   section 7 (69 au total). Mutation faite : retirer @ du controle fait echouer le banc SQL.
+
+### LA FICHE ET L'AFFAIRE EN PAGE DE TRAVAIL, 08/10/2026 (section 39 de bdv-bureau.css)
+
+Demande de Ted. Remplace le dessin des sections 26 et 34 pour la pleine page.
+- **`#fiche=` et `#affaire=` gardent la barre et l'en-tete.** Le contenu se pose dans
+  `#bureauPage` (mon-bureau.njk, apres `#bureauVentes`) ; `body.bdv-page-travail` cache les
+  autres enfants de `.bureau-atelier__travail`. Tout le code vit dans **bdv-affaires-jour.js**
+  (`entrer(titre)`, `pageFiche()`, `pageAffaire()`), jamais dans le script en ligne
+  (`banc:poids`). Le script en ligne n'expose que `window.bdvBrancherTete`.
+- **Aucune piece n'est la courante** : `marquerActif()` sort tot en page de travail (le `h1`
+  dit « Fiche client » ou « Affaire »). Un clic sur la barre RECHARGE le bureau a l'adresse
+  demandee (`afficher()`), et `suivreAdresse()` ne fait rien a l'arrivee (sinon boucle infinie :
+  le changement d'ancre relance `afficher()`), recharge sur Retour vers une autre adresse.
+- **La fiche** : `#modale` est deplace dans `#bureauPage` ; `rangerPage()` (bdv-ecrans.js, page
+  seulement) range la sortie de `ficheHTML()` en `.fiche__centre` (corps, suivi, historique) et
+  `aside.fiche__droite` (chiffres, onglets). `ficheHTML()` reste le seul auteur.
+- **L'affaire** : `htmlPage()` pose `.page-aff__centre` (en-tete, moment, frise, devis qui
+  presse, redacteur, historique) et `.page-aff__droite` (Avant de l'appeler, devis, reperes,
+  deja dit, notes, modifier). Plus de lien « Retour a Mon commerce ».
+- **Deux colonnes par requete de conteneur** (`@container page`, 60 rem), droite collante sous
+  l'en-tete avec son propre defilement. Le tiroir (section 22) pousse la page et fait passer la
+  droite dessous. **Pas de largeur maximale** (poste de travail). Les selecteurs portent
+  `#bureauPage` : la section 22 ferait de `#modale` un tiroir fixe des que `bdv-a-tiroir` est pose.
+- **Depuis la fiche, une affaire s'ouvre a cote** : `BdvAffaires.horsPiece({affaire}|{client})`
+  ouvre le panneau hors de la piece ; `affaireACote()` (bdv-ecrans.js) y passe pour « Nouvelle
+  affaire » et le lien d'une affaire en cours (`data-ouvrir-affaire`). `charger()` emet
+  `bdv:affaires`, la ligne « Affaire en cours » se repeint.
+- Captures : `scripts/cap-page-travail.mjs` (playwright, hors verif ; `LARG=2296` pour l'ecran
+  de Ted). Ouvert : au telephone, les six actions de la fiche s'empilent et « Fiche cli… » est
+  coupe ; « Nouvelle affaire » proposee quand une affaire est en cours (anterieur, lot 44).

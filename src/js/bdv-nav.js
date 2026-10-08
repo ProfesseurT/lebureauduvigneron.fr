@@ -579,6 +579,16 @@
   var PIECE_COURANTE = null;
   function marquerActif(id) {
     if (id === 'reglages') return;
+    /* LA PAGE DE TRAVAIL N'EST PAS UNE PIECE (08/10/2026) : la fiche d'un client ou une
+       affaire ouverte en pleine page, dans un onglet a part, garde la barre et l'en-tete
+       mais aucune piece n'y est la courante. L'en-tete porte « Fiche client » ou
+       « Affaire », pose par `entrer()` de bdv-affaires-jour.js, et rien ici ne doit
+       l'ecraser ni allumer une cellule. La mise a jour et la periode ne servent pas. */
+    if (document.body.classList.contains('bdv-page-travail')) {
+      var mj = document.getElementById('bureauMaj'); if (mj) mj.hidden = true;
+      var pe = document.getElementById('bureauPeriode'); if (pe) pe.hidden = true;
+      return;
+    }
     var nav = document.getElementById('bureauNav');
     if (!nav) return;
     PIECE_COURANTE = id;
@@ -760,6 +770,16 @@
        Le panneau reste bien un survol et pas une destination, donc on ne change ni
        l'affichage ni l'adresse : on se contente de dire a la barre ou on est. */
     if (id === 'reglages' || id === 'base') { marquerActif('reglages'); ouvrirReglages(); return; }
+
+    /* DEPUIS LA PAGE DE TRAVAIL, L'ONGLET DEVIENT LE BUREAU (arbitrage de Ted, 08/10/2026) :
+       cette page a ete montee pour une seule fiche ou une seule affaire, sans « Ma journee »
+       ni les pieces. On recharge donc le bureau a l'adresse demandee, comme le ferait le lien
+       sans ce script. Les reglages, eux, s'ouvrent par-dessus la page (ligne du dessus). */
+    if (document.body.classList.contains('bdv-page-travail')) {
+      var dest = opts.client ? 'client=' + encodeURIComponent(opts.client)
+        : (id === 'clients' && opts.onglet === 'gagner') ? 'affaires' : id;
+      location.href = '/mon-bureau/#' + dest; location.reload(); return;
+    }
 
     var piece = PIECES.filter(function (p) { return p.id === id; })[0];
     if (!piece) id = 'journee';
@@ -997,6 +1017,13 @@
       if (pp && typeof pp.retour === 'function' && pp.retour()) ev.__bdvPris = true;
     }
     if (ev && ev.__bdvPris) return;
+    /* LA PAGE DE TRAVAIL (08/10/2026) ne suit pas l'adresse : elle a ete montee pour UNE fiche
+       ou UNE affaire. Si l'adresse change (Retour, un lien), on recharge le bureau a la nouvelle
+       adresse ; a l'arrivee, on ne fait rien (sans ce garde, afficher() rechargeait en boucle). */
+    if (document.body.classList.contains('bdv-page-travail')) {
+      if (ev && !/^#(fiche|affaire)=/.test(location.hash || '')) location.reload();
+      return;
+    }
     var a = lireAdresse();
     afficher(a.id, { client: a.client, onglet: a.onglet, ecrire: false, historique: true });
   }
@@ -1163,7 +1190,7 @@
       /* L'ONGLET D'UNE FICHE EN PLEINE PAGE N'A PAS DE PIECES : `afficher()` y peindrait
          dans des conteneurs masques. Un lien vers une piece y fait donc ce qu'il ferait
          sans ce script, recharger le bureau a cette adresse. */
-      if (/\bbdv-page-(fiche|affaire)\b/.test(document.body.className)) {
+      if (/\bbdv-page-(fiche|affaire|travail)\b/.test(document.body.className)) {
         location.href = '/mon-bureau/#' + brut; location.reload(); return;
       }
       /* `#fiche=` (24/09/2026) ouvre la fiche LA OU L'ON EST, par le seul ouvreur du

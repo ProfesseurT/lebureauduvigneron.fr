@@ -156,8 +156,10 @@ t('renderCap() le pose apres « Ce qui explique ta variation »',
   t('plus de barre du haut nulle part (depot, PDF, Excel)',
     !/class="topbar"/.test(coque) && !/showImport\(\)|exportPDF\(\)|exportExcel\(\)/.test(coque) && /<span id="tbFile" hidden><\/span>/.test(coque)); }
 
-t('pleine page : « Nouvelle affaire » recharge la page (ancre seule = pas de rechargement)',
-  /if\(pageFiche\(\)\)\{location\.href='\/mon-bureau\/#affaires';location\.reload\(\);return;\}/.test(SRCE));
+/* 08/10/2026, la page de travail (demande de Ted) : en pleine page, « Nouvelle affaire » ne
+   recharge plus rien, elle s'ouvre A DROITE de la fiche, en tiroir qui pousse la page. */
+t('pleine page : « Nouvelle affaire » s\'ouvre a droite de la fiche, sans recharger',
+  /if\(pageFiche\(\)\)\{[\s\S]{0,400}?affaireACote\(/.test(SRCE) && !/if\(pageFiche\(\)\)\{location\.href='\/mon-bureau\/#affaires'/.test(SRCE));
 { const d0 = new w.DOMParser().parseFromString('<table>'+h.slice(h.indexOf('<tbody id="clientsBody"'), h.indexOf('</tbody>')+8)+'</table>','text/html');
   const ls = [...d0.querySelectorAll('tr.suivre__l')];
   t('chaque client a son lien « nouvel onglet » vers sa fiche en pleine page',

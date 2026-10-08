@@ -3037,6 +3037,29 @@ function modeTiroir(){ return pageFiche() || !!(window.BdvTiroir && window.BdvTi
    du tiroir : il est pose par `poserPage()`, et `BdvTiroir` n'est jamais appele ici,
    sans quoi le retrait de l'atelier se poserait sur une page qui n'en a pas. */
 function pageFiche(){ return document.body.classList.contains('bdv-page-fiche'); }
+/* LA PAGE DE TRAVAIL, 08/10/2026. Demande de Ted : en pleine page, l'historique et les
+   actions AU MILIEU, ce qui renseigne (ses chiffres, ses commandes, ce qu'il achete, ses
+   infos Vitisoft) A DROITE, colle au defilement. `ficheHTML()` reste l'unique auteur de la
+   fiche : on ne fabrique rien, on RANGE ses blocs, dans ce seul contenant. Ranger par le
+   CSS seul ne suffisait pas : les chiffres sont au milieu du corps dans la modale, et une
+   colonne qui colle doit etre UN element. Les blocs gardent leurs id, donc les repeintes
+   partielles (suivi, historique, pastilles, onglets) les retrouvent ou qu'ils soient.
+   Le suivi et le redacteur passent juste avant l'historique : on note, puis on relit. */
+function rangerPage(boite){
+  if(!boite)return;
+  const corps=boite.querySelector('.fiche__corps'),cote=boite.querySelector('.fiche__cote');
+  const kpis=boite.querySelector('.fiche__kpis'),ong=boite.querySelector('.fiche__onglets'),hist=boite.querySelector('#ficheHist');
+  if(!corps)return;
+  const centre=document.createElement('div');centre.className='fiche__centre';
+  const droite=document.createElement('aside');droite.className='fiche__droite';
+  droite.setAttribute('aria-label','Ses chiffres et ses achats');
+  if(cote&&hist&&hist.parentNode===corps)corps.insertBefore(cote,hist);
+  if(kpis)droite.appendChild(kpis);
+  if(ong)droite.appendChild(ong);
+  boite.insertBefore(centre,corps);
+  centre.appendChild(corps);
+  boite.insertBefore(droite,centre.nextSibling);
+}
 function poserPage(boite,f){
   if(!boite)return;
   boite.removeAttribute('aria-modal');
@@ -3068,6 +3091,7 @@ function ouvrirFiche(id,motif){
   FICHE_ID=id;
   const m=el('modale');
   m.innerHTML=ficheHTML(f,motif||(CLIENTS.find(c=>c.id===id)||{}).motif||'');
+  if(pageFiche())rangerPage(m.querySelector('.modale__box'));
   monterSelectCanal();
   m.classList.add('on');
   m.setAttribute('aria-hidden','false');
@@ -3198,7 +3222,13 @@ function ficheNouvelleAffaire(b){
   /* PLEINE PAGE : meme adresse, seule l'ancre change, donc le navigateur NE RECHARGE PAS et
      la piece des affaires se peignait dans une page montee pour la seule fiche (06/10/2026,
      capture de Ted). On recharge, comme le retour vers « Mes clients ». */
-  if(pageFiche()){location.href='/mon-bureau/#affaires';location.reload();return;}
+  /* 08/10/2026 : en pleine page, plus de rechargement vers « A gagner » : l'affaire s'ouvre
+     a droite de la fiche (affaireACote). Le mot laisse plus haut est repris par la piece. */
+  if(pageFiche()){
+    try{sessionStorage.removeItem('bdv_affaire_client');sessionStorage.removeItem('bdv_affaire_ouvrir');}catch(e){}
+    affaireACote(deja.length===1?{affaire:deja[0].affaire_id}:{client:m&&MOTIFS[m]?{id,nom,raison:MOTIFS[m].label,enjeu:enjeu||'',pretexte:PRETEXTES[m]}:{id,nom}});
+    return;
+  }
   if(el('modale')&&el('modale').classList.contains('on'))fermerFiche();
   if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('affaires');else location.hash='affaires';
 }
@@ -3259,10 +3289,46 @@ document.addEventListener('bdv:taches',function(){
 /* Les affaires en cours du client, lues par bdv-affaires-jour.js. Une ligne, pas un
    bloc : c'est un rappel de contexte, le travail se fait dans « Mes affaires ». */
 function ficheAffaires(f){
-  const l=(window.BdvAffairesJour&&BdvAffairesJour.duClient)?BdvAffairesJour.duClient(f.id):[];
-  if(!l.length)return '';
-  return `<p class="fiche__affaires"><a href="/mon-bureau/#affaires">${l.length>1?l.length+' affaires en cours':'Affaire en cours'}</a> : ${l.map(a=>esc(a.titre)).join(', ')}</p>`;
+  return `<div id="ficheAffaires">${ficheAffairesLigne(f.id)}</div>`;
 }
+/* 08/10/2026 : chaque affaire se NOMME et s'ouvre. En pleine page, dans le panneau a droite,
+   qui pousse la fiche (demande de Ted) ; ailleurs, dans « A gagner », sur cette affaire. */
+function ficheAffairesLigne(id){
+  const l=(window.BdvAffairesJour&&BdvAffairesJour.duClient)?BdvAffairesJour.duClient(id):[];
+  if(!l.length)return '';
+  return `<p class="fiche__affaires">${l.length>1?l.length+' affaires en cours':'Affaire en cours'} : ${l.map(a=>`<a href="/mon-bureau/#affaires" data-ouvrir-affaire="${esc(a.affaire_id)}">${esc(a.titre)}</a>`).join(', ')}</p>`;
+}
+/* La ligne suit les affaires sans repeindre la fiche (ce qui est tape reste) : lues a
+   l'amorcage, puis apres chaque geste du panneau (bdv-affaires.js emet `bdv:affaires`). */
+['bdv:affaires','bdv:taches'].forEach(function(ev){
+  document.addEventListener(ev,function(){
+    const z=el('ficheAffaires');if(!z||!FICHE_ID)return;
+    const h=ficheAffairesLigne(FICHE_ID);if(z.innerHTML!==h)z.innerHTML=h;
+  });
+});
+/* LE PANNEAU D'UNE AFFAIRE DEPUIS LA FICHE EN PLEINE PAGE : « Nouvelle affaire » et le nom
+   d'une affaire en cours l'ouvrent A DROITE, en tiroir, et la fiche reste la (08/10/2026,
+   demande de Ted : « ca s'ouvre sur la droite, ca pousse »). Sous 1320 px, c'est la modale,
+   comme partout. La piece seule ecrit (`BdvAffaires.horsPiece`). */
+function affaireACote(o){
+  const ch=window.BdvNav&&BdvNav.chargerAffaires?BdvNav.chargerAffaires():Promise.reject(new Error('pas de chargeur'));
+  return ch.then(function(){
+    if(!window.BdvAffaires||!BdvAffaires.horsPiece)throw new Error('affaires absentes');
+    return BdvAffaires.horsPiece(o);
+  }).then(function(ok){
+    if(ok===false)status('error','Tes affaires n’ont pas pu être lues : vérifie ta connexion et réessaie.');
+  },function(){status('error','Tes affaires n’ont pas pu s’ouvrir : vérifie ta connexion et réessaie.');});
+}
+document.addEventListener('click',function(e){
+  const a=e.target.closest&&e.target.closest('#modale [data-ouvrir-affaire]');
+  if(!a||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button!==0)return;
+  e.preventDefault();e.stopPropagation();
+  const id=a.getAttribute('data-ouvrir-affaire');
+  if(pageFiche()){affaireACote({affaire:id});return;}
+  try{sessionStorage.setItem('bdv_affaire_ouvrir',id);}catch(x){}
+  if(el('modale')&&el('modale').classList.contains('on'))fermerFiche();
+  if(window.BdvNav&&BdvNav.afficher)BdvNav.afficher('affaires');else location.hash='affaires';
+},true);
 
 let GARDER_BROUILLON=false;
 function fermerFiche(){
