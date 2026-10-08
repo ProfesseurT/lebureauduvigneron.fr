@@ -3709,6 +3709,16 @@
     return '<section class="page-aff__bloc page-aff__bloc--avant"><h2 class="page-aff__h">Avant de l’appeler</h2>' + l.join('')
       + '<p><a class="aff-vers" href="/mon-bureau/#fiche=' + encodeURIComponent(id) + '" target="_blank" rel="noopener">Voir sa fiche complète<span class="hors-ecran"> (nouvel onglet)</span></a></p></section>';
   }
+  /* SES ACHATS, 08/10/2026 (demande de Ted : « l'historique d'achat du client, comme dans
+     la fiche client ») : les memes quatre chiffres et les memes onglets, ecrits par la fiche
+     elle-meme (`bdvAchatsClient`). Rien tant que ses ventes ne sont pas lues : « Avant de
+     l'appeler » le dit deja. */
+  function htmlAchats(a) {
+    if (!clientDe(a) || typeof window.bdvAchatsClient !== 'function') return '';
+    var f = fichePage(a);
+    if (!f) return '';
+    return '<section class="page-aff__bloc page-aff__bloc--achats"><h2 class="page-aff__h">Ses achats</h2>' + window.bdvAchatsClient(f) + '</section>';
+  }
   function htmlPage(a) {
     var e = etat(a), t = typeDe(a.type_id), et = etapeDe(a.etape_id), m = a.issue === 'en_cours' ? moment(a, e) : null;
     var quoi = a.titre && a.titre !== sujet(a) ? '<span class="page-aff__quoi">' + esc(a.titre) + '</span>' : '';
@@ -3736,6 +3746,7 @@
         + htmlHistorique(a, 8) + htmlNoter(a) + '</section>'
       + '</div><aside class="page-aff__droite" aria-label="Ce qui renseigne l’affaire">'
       + htmlAvantAppel(a)
+      + htmlAchats(a)
       + (presse ? '' : blocDevis)
       /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
       + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')

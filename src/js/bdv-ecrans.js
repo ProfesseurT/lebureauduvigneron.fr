@@ -3500,11 +3500,13 @@ function basculerCommande(tr){
   const ouvert=b.getAttribute('aria-expanded')==='true';
   b.setAttribute('aria-expanded',ouvert?'false':'true');
   d.hidden=ouvert;
+  const box=tr.closest('[data-achats]');
+  if(box){const k=box.getAttribute('data-achats')+'|'+tr.getAttribute('data-i');if(ouvert)ACHATS_OUVERTES.delete(k);else ACHATS_OUVERTES.add(k);}
 }
 // Un seul ecouteur, delegue : la fiche est reecrite a chaque geste, un ecouteur pose sur ses
 // lignes mourrait au premier redessin. Le clavier arrive par le bouton, dont le clic remonte ici.
 document.addEventListener('click',function(e){
-  const tr=e.target.closest&&e.target.closest('#modale tr.cmd');
+  const tr=e.target.closest&&e.target.closest('#modale tr.cmd, #pageAffCorps tr.cmd');
   if(!tr||window.getSelection&&String(window.getSelection()).length)return;
   basculerCommande(tr);
 });
@@ -3538,8 +3540,15 @@ function rangPlace(ca){
   return {place:lo+1,total:t.length};
 }
 function moisAn(d){return d?(MOIS_FR[d.m-1]||'')+' '+d.y:'';}
-function ficheOnglets(f,reco){
-  const ong=(FICHE_ONGLET.id===f.id)?FICHE_ONGLET.onglet:'cmd';
+/* `o.pre` : la page de travail d'une affaire pose les memes onglets avec ses propres
+   identifiants (la fiche peut s'ouvrir a cote, dans #modale), et retient son onglet et ses
+   commandes depliees a part : elle se repeint a chaque geste (08/10/2026). */
+let ACHATS_ONGLET={id:null,onglet:'cmd'};
+const ACHATS_OUVERTES=new Set();
+function ficheOnglets(f,reco,o){
+  const pre=(o&&o.pre)||'';
+  const ong=pre?((ACHATS_ONGLET.id===f.id)?ACHATS_ONGLET.onglet:'cmd'):((FICHE_ONGLET.id===f.id)?FICHE_ONGLET.onglet:'cmd');
+  const ouverte=i=>!!pre&&ACHATS_OUVERTES.has(f.id+'|'+i);
   const maxCuvee=f.cuvees.length?f.cuvees[0][1].ca:0;
   const moisMax=Math.max(...f.parMois);
   /* Formats et millesimes : lus dans le DETAIL des factures, c'est-a-dire les memes lignes
@@ -3556,8 +3565,8 @@ function ficheOnglets(f,reco){
   const O=[
     ['cmd','Commandes',f.factures.length,`
       <div class="tablewrap fiche__cmds"><table class="data"><thead><tr><th>Date</th><th class="num">Montant</th><th class="num">Btl</th><th>Où</th></tr></thead><tbody>
-      ${f.factures.map((x,i)=>`<tr class="clic cmd"><td><button type="button" class="cmd__b" aria-expanded="false" aria-controls="cmd-${i}">${fmtDate(x.date)}<span class="hors-ecran">, voir le détail de la facture</span></button></td><td class="num">${fmtMoney(x.total)}</td><td class="num">${fmtNum(x.btl)}</td><td>${esc(x.canal||'')}</td></tr>
-      <tr class="cmd__d" id="cmd-${i}" hidden><td colspan="4">${detailCommande(x)}</td></tr>`).join('')}
+      ${f.factures.map((x,i)=>`<tr class="clic cmd" data-i="${i}"><td><button type="button" class="cmd__b" aria-expanded="${ouverte(i)}" aria-controls="${pre}cmd-${i}">${fmtDate(x.date)}<span class="hors-ecran">, voir le détail de la facture</span></button></td><td class="num">${fmtMoney(x.total)}</td><td class="num">${fmtNum(x.btl)}</td><td>${esc(x.canal||'')}</td></tr>
+      <tr class="cmd__d" id="${pre}cmd-${i}"${ouverte(i)?'':' hidden'}><td colspan="4">${detailCommande(x)}</td></tr>`).join('')}
       </tbody></table></div>
       <div class="section-label">Ses mois d'achat</div>
       <div class="fiche__mois">
@@ -3588,11 +3597,11 @@ function ficheOnglets(f,reco){
       <p class="note">Ces informations viennent de ton export Vitisoft : c'est là-bas qu'on les corrige.</p>`
       :`<p class="fil__vide">Ton export ne porte aucune autre information sur ce client.</p>`]
   ];
-  return `<div class="fiche__onglets">
+  return `<div class="fiche__onglets"${pre?` data-achats="${esc(f.id)}"`:''}>
     <div class="onglets" role="tablist" aria-label="Le détail de ce client">
-      ${O.map(([k,lib,n])=>`<button type="button" role="tab" class="onglets__t" id="ft-${k}" aria-controls="fp-${k}" aria-selected="${k===ong}" tabindex="${k===ong?0:-1}" data-onglet="${k}">${esc(lib)}${n!=null?` <span class="onglets__n">${fmtNum(n)}</span>`:''}</button>`).join('')}
+      ${O.map(([k,lib,n])=>`<button type="button" role="tab" class="onglets__t" id="${pre}ft-${k}" aria-controls="${pre}fp-${k}" aria-selected="${k===ong}" tabindex="${k===ong?0:-1}" data-onglet="${k}">${esc(lib)}${n!=null?` <span class="onglets__n">${fmtNum(n)}</span>`:''}</button>`).join('')}
     </div>
-    ${O.map(([k,,,corps])=>`<div class="onglets__p" role="tabpanel" id="fp-${k}" aria-labelledby="ft-${k}" tabindex="0"${k===ong?'':' hidden'}>${corps}</div>`).join('')}
+    ${O.map(([k,,,corps])=>`<div class="onglets__p" role="tabpanel" id="${pre}fp-${k}" aria-labelledby="${pre}ft-${k}" tabindex="0"${k===ong?'':' hidden'}>${corps}</div>`).join('')}
   </div>`;
 }
 /* Les onglets : un ecouteur DELEGUE sur le document, pose une fois, parce que la fiche est
@@ -3602,14 +3611,16 @@ function choisirOnglet(b,focus){
   const box=b.closest('.fiche__onglets');if(!box)return;
   box.querySelectorAll('[role="tab"]').forEach(t=>{const on=t===b;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;
     const p=document.getElementById(t.getAttribute('aria-controls'));if(p)p.hidden=!on;});
-  if(FICHE_ID)FICHE_ONGLET={id:FICHE_ID,onglet:b.getAttribute('data-onglet')};
+  const qui=box.getAttribute('data-achats');
+  if(qui)ACHATS_ONGLET={id:qui,onglet:b.getAttribute('data-onglet')};
+  else if(FICHE_ID)FICHE_ONGLET={id:FICHE_ID,onglet:b.getAttribute('data-onglet')};
   if(focus)b.focus();
 }
 document.addEventListener('click',function(e){
-  const b=e.target.closest&&e.target.closest('#modale .onglets__t');if(b)choisirOnglet(b,false);
+  const b=e.target.closest&&e.target.closest('#modale .onglets__t, #pageAffCorps .onglets__t');if(b)choisirOnglet(b,false);
 });
 document.addEventListener('keydown',function(e){
-  const b=e.target.closest&&e.target.closest('#modale .onglets__t');if(!b)return;
+  const b=e.target.closest&&e.target.closest('#modale .onglets__t, #pageAffCorps .onglets__t');if(!b)return;
   const ts=[].slice.call(b.parentNode.querySelectorAll('[role="tab"]')),i=ts.indexOf(b);let j=-1;
   if(e.key==='ArrowRight')j=(i+1)%ts.length;else if(e.key==='ArrowLeft')j=(i-1+ts.length)%ts.length;
   else if(e.key==='Home')j=0;else if(e.key==='End')j=ts.length-1;
@@ -3662,13 +3673,9 @@ function pastillesFiche(f,s){
   return pastilles.map(p=>`<span class="fiche__pastille">${esc(p)}</span>`).join('')
     +((s&&s.tags)||[]).map(t=>`<span class="fiche__pastille fiche__pastille--tag">${esc(t)}</span>`).join('');
 }
-function ficheHTML(f,motif){
-  const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
-  const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
-  const mot=motif||motifDeduit(f);
-  const conseils=conseilClient(f,mot);
-  const s=CRM[f.id]||{};
-  const reco=recoPour(f.id,5);
+/* LES QUATRE CHIFFRES DE LA FICHE, a part depuis le 08/10/2026 : la page de travail d'une
+   affaire les montre aussi (demande de Ted), et ils ne doivent s'ecrire qu'a un endroit. */
+function ficheKpis(f){
   const prixBase=prixMoyenBouteilleDomaine();   // un NOMBRE. prixVenteMoyen() rend un objet, et fmtNum(objet) vaut NaN
   /* LE DELAI SE COMPTE DEPUIS LA FIN DE L'EXPORT, jamais depuis aujourd'hui (regle du
      19/09/2026 : c'est la reference de tout l'ecran). On le dit donc en toutes lettres. */
@@ -3681,6 +3688,29 @@ function ficheHTML(f,motif){
   const caCur=cur!=null?(f.parAn[cur]||0):f.ca, caPrev=cur!=null?(f.parAn[cur-1]||0):0;
   const evo=caPrev>0?(caCur-caPrev)/caPrev*100:null;
   const rp=rangPlace(f.ca);
+  return `<div class="fiche__kpis">
+      ${ficheKpi(fmtMoney(caCur),cur!=null?'CA '+exLabel(cur):'chiffre d\'affaires',
+        (evo!=null?(evo>=0?'+':'−')+fmtNum(Math.abs(evo),0)+' % par rapport à '+exLabel(cur-1):(caPrev===0&&cur!=null&&f.ca>caCur?'rien en '+exLabel(cur-1)+', ':'')+'au total '+fmtMoney(f.ca))
+        +(rp?' · '+(rp.place===1?'1er':fmtNum(rp.place)+'ᵉ')+' client sur '+fmtNum(rp.total):''))}
+      ${ficheKpi(fmtNum(f.nbCommandes),f.nbCommandes>1?'commandes':'commande',
+        f.nbCommandes>1?'tous les '+fmtDelai(f.cadence)+' · '+fmtMoney(f.panier)+' par commande':'pas encore revenu')}
+      ${ficheKpi(fmtNum(f.btl),f.btl>1?'bouteilles':'bouteille',fmtNum(f.prixMoyen,2)+' € la bouteille'+(prixBase?' · ta moyenne '+fmtNum(prixBase,2)+' €':''))}
+      ${ficheKpi(f.dernier?fmtDate(f.dernier):'aucune','dernière commande',dernierDelai+(prochaine?(f.silence!=null&&f.silence>f.cadence?' · attendue vers le '+fmtDate(prochaine)+', rien depuis':' · prochaine vers le '+fmtDate(prochaine)):''))}
+    </div>`;
+}
+/* L'HISTORIQUE D'ACHAT d'un client pour la page de travail d'une affaire (08/10/2026,
+   demande de Ted) : les memes chiffres et les memes onglets que la fiche, peints ici. */
+window.bdvAchatsClient=function(f){
+  if(!f)return '';
+  return `<div class="bdv-ventes page-aff__achats">${ficheKpis(f)}${ficheOnglets(f,recoPour(f.id,5),{pre:'paff-'})}</div>`;
+};
+function ficheHTML(f,motif){
+  const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
+  const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
+  const mot=motif||motifDeduit(f);
+  const conseils=conseilClient(f,mot);
+  const s=CRM[f.id]||{};
+  const reco=recoPour(f.id,5);
   const tags=s.tags||[];
   const proprio=(s.proprietaire&&window.BdvAnnuaire&&BdvAnnuaire.nomDe)?BdvAnnuaire.nomDe(s.proprietaire):'';
   const tel=f.tels[0], mail=f.emails[0];
@@ -3726,15 +3756,7 @@ function ficheHTML(f,motif){
       ${(!f.emails.length&&!f.tels.length)?'<span class="muted-cell">Aucun e-mail ni téléphone dans ton export.</span>':''}
     </div>
 
-    <div class="fiche__kpis">
-      ${ficheKpi(fmtMoney(caCur),cur!=null?'CA '+exLabel(cur):'chiffre d\'affaires',
-        (evo!=null?(evo>=0?'+':'−')+fmtNum(Math.abs(evo),0)+' % par rapport à '+exLabel(cur-1):(caPrev===0&&cur!=null&&f.ca>caCur?'rien en '+exLabel(cur-1)+', ':'')+'au total '+fmtMoney(f.ca))
-        +(rp?' · '+(rp.place===1?'1er':fmtNum(rp.place)+'ᵉ')+' client sur '+fmtNum(rp.total):''))}
-      ${ficheKpi(fmtNum(f.nbCommandes),f.nbCommandes>1?'commandes':'commande',
-        f.nbCommandes>1?'tous les '+fmtDelai(f.cadence)+' · '+fmtMoney(f.panier)+' par commande':'pas encore revenu')}
-      ${ficheKpi(fmtNum(f.btl),f.btl>1?'bouteilles':'bouteille',fmtNum(f.prixMoyen,2)+' € la bouteille'+(prixBase?' · ta moyenne '+fmtNum(prixBase,2)+' €':''))}
-      ${ficheKpi(f.dernier?fmtDate(f.dernier):'aucune','dernière commande',dernierDelai+(prochaine?' · prochaine vers le '+fmtDate(prochaine):''))}
-    </div>
+    ${ficheKpis(f)}
 
     ${lead?`<div class="fiche__conseil">
       <div class="fiche__conseil-t">${({alerte:'À faire cette semaine',calme:'Pour le garder'})[conseils.ton]||'Ce que je ferais'}</div>

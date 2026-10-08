@@ -6994,3 +6994,17 @@ body.bdv-coque #bureauPage .page-aff__droite{
 /* Le lieu d'une commande tient sur une ligne dans la colonne de droite : « Autre / non
    renseigne » en trois lignes poussait le tableau. Le tableau defile deja dans son cadre. */
 body.bdv-coque #bureauPage #modale.on .fiche__droite .fiche__cmds td{ white-space:nowrap; }
+
+/* -- 39.4 SES ACHATS DANS L'AFFAIRE (08/10/2026) : les chiffres et les onglets de la fiche,
+      dans la colonne de droite, au meme dessin que la colonne de droite de la fiche. */
+body.bdv-coque #bureauPage .page-aff__achats .fiche__kpis{
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  margin-bottom:0;
+}
+body.bdv-coque #bureauPage .page-aff__achats .onglets{ margin-top:var(--bdv-e-4); }
+body.bdv-coque #bureauPage .page-aff__achats .fiche__cmds td{ white-space:nowrap; }
+/* Sur telephone les quatre chiffres restent sur deux colonnes : empiles, ils faisaient
+   800 px avant les onglets (vigneron empathique, 08/10/2026). */
+@media (max-width:700px){
+  body.bdv-coque #bureauPage .page-aff__achats .fiche__kpi{ padding:var(--bdv-e-2) var(--bdv-e-3); }
+}

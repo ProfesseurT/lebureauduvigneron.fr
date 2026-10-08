@@ -8620,3 +8620,18 @@ Demande de Ted. Remplace le dessin des sections 26 et 34 pour la pleine page.
   juste apres le nom, sur la ligne (liste) et la carte (kanban), opposees comprises. Meme dessin
   que `.suivre__onglet` d'un client. `position:relative; z-index:1` pour passer au-dessus du
   calque du nom. Cachee sous 700 px. Le nom garde son geste : le panneau a cote.
+
+### SES ACHATS DANS LA PAGE D'UNE AFFAIRE, 08/10/2026
+
+Demande de Ted : l'historique d'achat du client dans l'affaire, comme sur la fiche.
+- Bloc « Ses achats » sous « Avant de l'appeler » (page de travail seulement, client Vitisoft).
+  Ecrit par la fiche elle-meme : `window.bdvAchatsClient(f)` = `ficheKpis(f)` + `ficheOnglets(f,
+  reco, {pre:'paff-'})`. `ficheKpis()` est sorti de `ficheHTML()` : les quatre chiffres ne
+  s'ecrivent qu'a un endroit.
+- Ids prefixes `paff-` (la fiche peut s'ouvrir a cote dans #modale). Onglet choisi et commandes
+  depliees retenus a part (`ACHATS_ONGLET`, `ACHATS_OUVERTES`) : la page se repeint a chaque geste.
+  Les ecouteurs des onglets et des commandes ecoutent aussi `#pageAffCorps`.
+- Section 39.4 de `bdv-bureau.css`, deux colonnes de chiffres a toutes les largeurs.
+- Fiche ET affaire : une commande attendue deja passee dit « attendue vers le ..., rien depuis ».
+- Ouvert, a Ted : l'onglet « Commandes » compte les factures, la tuile compte les commandes
+  (54 contre 18 dans le decor) ; tuiles de periodes differentes (CA de l'exercice, le reste au total).

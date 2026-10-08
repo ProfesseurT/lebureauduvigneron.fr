@@ -10683,3 +10683,11 @@ Demande de Ted : la petite fleche des « Clients a suivre » existe aussi sur la
 d'une affaire (« A gagner », liste et kanban). Elle ouvre la page de travail de l'affaire dans un
 nouvel onglet ; un clic sur le nom ouvre toujours le panneau a cote. Cachee au telephone. Bancs
 verts. Pas de SQL.
+
+## 08/10/2026 : l'historique d'achat du client dans l'affaire
+
+Demande de Ted. La page de travail d'une affaire montre « Ses achats » : les quatre chiffres et
+les onglets de la fiche client (commandes, ce qu'il achete, a lui proposer, infos Vitisoft, mois
+d'achat), ecrits par la fiche elle-meme. Vigneron empathique : feu orange, deux points corriges
+(chiffres sur deux colonnes au telephone ; une commande attendue passee le dit). Deux points
+signales a Ted, non tranches. Bancs verts. Pas de SQL.
