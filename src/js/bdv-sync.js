@@ -748,7 +748,7 @@
     let debut = 0;
     for(;;){
       const page = await BdvCompte.api(
-        '/echanges?select=echange_id,client_id,le,type,canal,resume,cree_par' + filtre + auBureau() +
+        '/echanges?select=*' + filtre + auBureau() +
         '&order=le.desc&limit=' + PAGE + '&offset=' + debut);
       if(!page || !page.length) break;
       out.push.apply(out, page);
@@ -782,6 +782,8 @@
       canal: entree.canal || null,
       resume: entree.resume || null
     };
+    /* LOT 84 : le membre qui a eu l'echange, seulement s'il est pose (colonne neuve). */
+    if (entree.fait_par) corps.fait_par = String(entree.fait_par);
     try{
       await BdvCompte.api('/echanges?on_conflict=bureau,echange_id', {
         methode: 'POST',

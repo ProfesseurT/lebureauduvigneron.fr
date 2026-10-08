@@ -8743,3 +8743,30 @@ separes) : ca se corrige dans Vitisoft.
   constats, les 10 reels corriges. Vigneron empathique : 10 constats, corriges (fiches cote a cote,
   avertissement, explication au-dessus des boutons, plus de bandeau par-dessus la fiche, « Delier » en
   bouton, « Fusionner pour de bon »).
+
+### LOT 84 : LA PAGE D'UNE AFFAIRE POUR SUIVRE ET AGIR (08/10/2026)
+
+- **SQL `supabase/lot84-echanges-mails-programmes.sql`, a coller APRES 83, PUIS push, PUIS
+  deploiement de `mails-programmes`** (verify_jwt = false, avec `_shared/smtp.ts`, aucun secret
+  neuf). Banc `supabase/banc-lot84-echanges-mails-programmes.sql` (40), dans `banc-rejeu.mjs`.
+- **Un echange porte `fait_le` (le jour) et `fait_par` (qui, dans le bureau, l'a eu)**, a cote de
+  `cree_par` : « par Romane (note par Ted) ». Moi par defaut, liste seulement a deux membres ou plus.
+- **Pictos de l'historique** : `bdv-canaux.js` (`TRAITS`, `PICTO_DE`, `pictoEntree`), un seul
+  endroit ; canal `rdv` en epingle. En encre 2, jamais en couleur seule.
+- **Mail programme** (`mails_programmes`) : ecrit par `mail_programmer` / `mail_annuler` /
+  `mail_retirer` (security definer, est_membre), pris par `mails_a_partir()` sous verrou (cle de
+  service seule), un mail ne part qu'une fois ; bloque 15 min en « envoi » = « incertain », JAMAIS
+  renvoye ; un echec ne se rejoue pas seul (« Le reprendre » le remet dans le redacteur).
+  L'opposition annule et efface le contenu. **Toute ligne finie depuis 30 jours s'efface, echec
+  compris** : c'est la promesse de la page rgpd. Seulement avec une boite branchee
+  (`BdvBoite.prete()`), sinon le choix n'apparait pas. Le rappel se decale avec l'envoi, et l'ecran
+  dit sa date. Samedi ou dimanche : « ton client le lira sans doute lundi ».
+- **La page** : devis TOUJOURS a droite ; centre = tete, moment, frise, ecrire + noter (sur une
+  rangee, l'un ouvert prend la largeur), mails programmes (echecs en tete, « N a regarder »),
+  historique. Sous 60 rem, ecrire et noter viennent JUSTE APRES le moment (section 40.4).
+  Panneau : meme ordre (ecrire, noter, programmes). « Noter » est un bouton plein.
+- Garde : `banc:affaires` section lot 84, `banc:programmes` (25, dans verif), `banc:boite`.
+  Captures : `PROG=1 node scripts/cap-page-affaire.mjs 1440:light`.
+- Ouvert : deux portes pour ecrire (« Ecrire » du moment et « Ecrire un mail »), meme redacteur ;
+  un mail en echec ne previent pas hors de la page ; l'etat « peut-etre parti » n'a pas de capture.
+

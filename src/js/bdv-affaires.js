@@ -496,6 +496,7 @@
       lireDevis(a);
       if (clientDe(a)) chargerClient(a, function () { repeindreClient(a); });
       lireJournal(a).then(function () { repeindreClient(a); });
+      lireProgrammes(a).then(function () { repeindreClient(a); });
     }
     var ag = el('amodAgrandir');
     if (ag) { ag.hidden = !S.ouverte || !!S.nouvelle; if (S.ouverte) ag.href = '/mon-bureau/#affaire=' + encodeURIComponent(S.ouverte); }
@@ -602,8 +603,9 @@
       + (a.issue === 'en_cours' ? '<p class="amod__raccourci"><button type="button" class="btn" data-aff="devisRaccourci">Nouveau devis</button></p>' : '')
       + htmlReport(a, e)
       /* LOT 72 : le redacteur de mails, puis noter et l'historique, client COMME piste. */
-      + htmlRedac(a)
-      + htmlNoter(a) + '<details class="aff-plus amod__hist" data-bloc="hist"><summary>' + (clientDe(a) ? 'Son historique' : 'Historique') + '</summary><div class="aff-plus__corps">'
+      /* Meme ordre que la page (vigneron, 08/10/2026) : ecrire, noter, puis ce qui est programme. */
+      + htmlRedac(a) + htmlNoter(a) + htmlProgrammes(a)
+      + '<details class="aff-plus amod__hist" data-bloc="hist"><summary>' + (clientDe(a) ? 'Son historique' : 'Historique') + '</summary><div class="aff-plus__corps">'
         + htmlHistorique(a, 5) + '</div></details>';
   }
   /* V6 (01/10/2026), demande du vigneron : « repousser une relance d'un pouce au chai ».
@@ -2695,6 +2697,9 @@
       if (quoi === 'redacCopier' && a) { copierRedac(a, b); return; }
       if (quoi === 'redacEnvoye' && a) { redacEnvoye(a, b); return; }
       if (quoi === 'redacEnvoyer' && a) { redacEnvoyer(a, b); return; }
+      /* LOT 84 : programmer un mail, et les gestes sur un mail programme. */
+      if (quoi === 'redacProgrammer' && a) { redacProgrammer(a, b); return; }
+      if ((quoi === 'progAnnuler' || quoi === 'progEffacer' || quoi === 'progReprendre') && a) { gesteProgramme(a, quoi, b.getAttribute('data-mail'), b); return; }
       if (quoi === 'redacAutre' && a) { var ra = REDAC[a.affaire_id]; if (ra) { ra.parti = false; ra.echec = null; ra.mot = ''; } repeindreRedac(a, '[data-redac="modele"]'); return; }
       if (quoi === 'redacRevenir' && a) { var rr = REDAC[a.affaire_id]; if (rr && rr.garde != null) { rr.texte = rr.garde; rr.garde = null; rr.texteAuto = false; repeindreRedac(a, '[data-redac="texte"]'); } return; }
       if (quoi === 'redacLien' && a) { var dl = devisPrincipal(a); if (dl) creerLienCarte(dl.devis_id).then(function () { repeindreRedac(a, '[data-redac="bloc"][value="lien"]'); }); return; }
@@ -3052,6 +3057,20 @@
     try { if (e.cree_par && window.BdvCompte && BdvCompte.nomAuteur) return BdvCompte.nomAuteur(e.cree_par); } catch (x) {}
     return '';
   }
+  /* LOT 84 (demande de Ted, « la note d'echange avec date et personne ») : « par » nomme qui A
+     EU l'echange (`fait_par`), et « note par » qui l'a ecrit quand ce n'est pas la meme
+     personne. Sans `fait_par` (avant le lot, ou moi), c'est l'auteur. */
+  function quiDe(e) {
+    var nom = function (id) { try { return id && window.BdvCompte && BdvCompte.nomAuteur ? BdvCompte.nomAuteur(id) : ''; } catch (x) { return ''; } };
+    var q = nom(e.fait_par || e.cree_par);
+    if (q && e.fait_par && e.cree_par && e.fait_par !== e.cree_par) { var n = nom(e.cree_par); if (n) q += ' (noté par ' + n + ')'; }
+    return q;
+  }
+  /* Le picto du canal (bdv-canaux.js), cache a la synthese vocale : le libelle le dit en mots. */
+  function pictoDe(e) {
+    try { if (window.BdvCanaux && BdvCanaux.pictoEntree) return BdvCanaux.pictoEntree(e); } catch (x) {}
+    return '';
+  }
   /* L'HISTORIQUE, LOT 72 : pour un client Vitisoft, ses echanges de fiche (`echanges`) ET le
      journal de l'affaire (`affaire_echanges`), meles par date ; pour un nouveau client, le
      journal seul. Un mail se deplie : objet et texte entiers, tels qu'ils sont partis. */
@@ -3059,12 +3078,13 @@
     var c = cliDe(a), j = JOURNAL[a.affaire_id], l = [];
     if (c && Array.isArray(c.echanges)) c.echanges.forEach(function (e) {
       var r = String(e.resume || ''), i = r.indexOf('\n\n');
-      l.push({ le: String(e.le || ''), lib: libEch(e), qui: auteur(e), titre: (i >= 0 ? r.slice(0, i) : r).split('\n')[0],
+      l.push({ le: String(e.le || ''), lib: libEch(e), qui: quiDe(e), picto: pictoDe(e), titre: (i >= 0 ? r.slice(0, i) : r).split('\n')[0],
         corps: i >= 0 ? r.slice(i + 2) : '' });
     });
     if (Array.isArray(j)) j.forEach(function (e) {
       var m = e.type === 'email' && window.BdvMailsAffaire ? BdvMailsAffaire.nom(e.modele) : '';
-      l.push({ le: String(e.le || ''), qui: auteur(e),
+      /* `fait_le` (lot 84) : le jour ou l'echange a eu lieu, quand on le note apres coup. */
+      l.push({ le: String(e.fait_le || e.le || ''), qui: quiDe(e), picto: pictoDe(e.type === 'email' ? { type: 'email', canal: 'email' } : { type: e.type, canal: e.canal }),
         lib: e.type === 'email' ? 'E-mail' + (m ? ' : ' + m : '') : libEch({ type: e.type, canal: e.canal }),
         titre: e.type === 'email' ? (e.sujet || (e.corps == null ? 'contenu effacé' : '')) : String(e.corps || 'contenu effacé').split('\n')[0],
         corps: e.type === 'email' ? String(e.corps || '') : (String(e.corps || '').indexOf('\n') >= 0 ? String(e.corps) : '') });
@@ -3080,8 +3100,8 @@
     var mot = rate.length ? '<p class="aff-aide">L’historique n’a pas pu être lu en entier (' + rate.join(', ') + ').</p>' : '';
     if (!l.length) return mot + '<p class="aff-aide">Rien de noté pour l’instant.' + (c ? ' Ce que tu notes ici apparaît aussi dans sa fiche.' : '') + '</p>';
     var n = max || 5;
-    return mot + '<ul class="aff-hist">' + l.slice(0, n).map(function (e) {
-      var tete = '<span class="aff-hist__d">' + esc(dateCourte(jourLocal(e.le) || e.le.slice(0, 10))) + '</span><span><b>' + esc(e.lib) + '</b>'
+    return mot + '<ul class="aff-hist aff-hist--pictos">' + l.slice(0, n).map(function (e) {
+      var tete = '<span class="aff-hist__ico">' + (e.picto || '') + '</span><span class="aff-hist__d">' + esc(dateCourte(jourLocal(e.le) || e.le.slice(0, 10))) + '</span><span><b>' + esc(e.lib) + '</b>'
         + (e.qui ? ' par ' + esc(e.qui) : '') + (e.titre ? ' : ' + esc(e.titre.length > 160 ? e.titre.slice(0, 157) + '…' : e.titre) : '') + '</span>';
       return e.corps ? '<li class="aff-hist__plie"><details><summary>' + tete + '</summary><p class="aff-hist__corps">' + esc(e.corps).replace(/\n/g, '<br>') + '</p></details></li>'
         : '<li>' + tete + '</li>';
@@ -3095,10 +3115,21 @@
     if (!client && JOURNAL_ABSENT) return '';
     var opts = '';
     try { if (window.BdvCanaux) BdvCanaux.liste.forEach(function (k) { opts += '<option value="' + esc(k.cle) + '"' + (k.cle === 'appel' ? ' selected' : '') + '>' + esc(k.label || k.libelle || k.cle) + '</option>'; }); } catch (x) {}
+    /* LOT 84 : le jour (aujourd'hui par defaut, jamais dans le futur) et, dans un bureau a
+       plusieurs, qui a eu l'echange (moi par defaut). Pour un nouveau client, le jour et la
+       personne vivent dans le journal de l'affaire : seulement une fois le SQL du lot 84 passe. */
+    var auj = jourIso(), jourOk = client || LOT84 === true, d2 = new Date(); d2.setFullYear(d2.getFullYear() - 2);
+    var t = trombiAff(), moi = window.BdvCompte && BdvCompte.monId ? BdvCompte.monId() : '';
+    var gens = LOT84 === true && t && t.combien > 1 ? Object.keys(t.gens) : [];
+    var quiOpts = gens.map(function (u) { return '<option value="' + esc(u) + '"' + (u === moi ? ' selected' : '') + '>' + esc(u === moi ? 'Moi' : t.gens[u]) + '</option>'; }).join('');
     return '<details class="aff-noter" data-bloc="noter"><summary>Noter un échange</summary><div class="aff-noter__corps">'
+      + '<div class="aff-noter__ligne">'
       + (opts ? '<label class="aff-champ"><span>Comment</span><select class="aff-noter__canal">' + opts + '</select></label>' : '')
+      + (jourOk ? '<label class="aff-champ"><span>Quand</span><input type="date" class="aff-noter__jour" value="' + auj + '" max="' + auj + '" min="' + jourIso(d2) + '"></label>' : '')
+      + (quiOpts ? '<label class="aff-champ"><span>Qui l’a eu</span><select class="aff-noter__qui">' + quiOpts + '</select></label>' : '')
+      + '</div>'
       + '<label class="aff-champ"><span>Ce qui s’est dit</span><textarea class="aff-noter__txt" rows="3" maxlength="2000"></textarea></label>'
-      + '<p><button type="button" class="btn" data-aff="noterEchange">Noter</button></p>'
+      + '<p><button type="button" class="btn btn--bordeaux" data-aff="noterEchange">Noter</button></p>'
       + '<p class="aff-aide">' + (client ? 'Noté aussi dans sa fiche.' : 'Noté dans l’historique de l’affaire.') + '</p></div></details>';
   }
   function noterEchange(a, bouton) {
@@ -3109,23 +3140,37 @@
     var cn = null;
     try { cn = window.BdvCanaux && sel ? BdvCanaux.canal(sel.value) : null; } catch (x) {}
     var type = cn ? cn.type : 'note', canal = cn ? cn.cle : null, e;
+    /* LOT 84 : le jour et la personne. Aujourd'hui, c'est maintenant ; un jour passe, midi
+       (l'ordre dans la journee n'a pas de sens apres coup). */
+    var chJ = bloc && bloc.querySelector('.aff-noter__jour'), chQ = bloc && bloc.querySelector('.aff-noter__qui');
+    var auj = jourIso(), j = chJ && /^\d{4}-\d{2}-\d{2}$/.test(chJ.value) ? chJ.value : auj;
+    if (j > auj) { dire('Un échange se note le jour où il a eu lieu, pas dans le futur.', true); if (chJ) chJ.focus(); return; }
+    var dj = versDate(j), leIso = j === auj ? new Date().toISOString() : new Date(dj.getFullYear(), dj.getMonth(), dj.getDate(), 12).toISOString();
+    var moi = window.BdvCompte && BdvCompte.monId ? BdvCompte.monId() : '';
+    var fait = LOT84 === true && chQ && chQ.value && chQ.value !== moi ? chQ.value : null;
+    function remettre() { if (chJ) chJ.value = auj; if (chQ && moi) chQ.value = moi; }
     if (!id) {
       /* Un nouveau client : le journal de l'affaire. La base signe (auteur, date). */
-      creer('affaire_echanges', [{ affaire_id: a.affaire_id, type: 'note', canal: canal, corps: t }])
+      var ligne = { affaire_id: a.affaire_id, type: 'note', canal: canal, corps: t };
+      if (LOT84 === true && j !== auj) ligne.fait_le = leIso;
+      if (fait) ligne.fait_par = fait;
+      creer('affaire_echanges', [ligne])
         .then(function () { return lireJournal(a); }).then(function () {
           if (txt) txt.value = '';
+          remettre();
           dire('Noté dans l’historique de l’affaire.');
           repeindreClient(a);
         }, function (er) { dire('La note n’est pas partie : ' + raison(er) + ' Ton texte est gardé.', true); });
       return;
     }
     if (typeof echAjouter === 'function') {
-      e = echAjouter(id, type, canal, t);
+      e = echAjouter(id, type, canal, t, { le: leIso, fait_par: fait });
       fini(true);
     } else {
-      var q = new Date().toISOString();
+      var q = leIso;
       e = { echange_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), client_id: String(id), le: q, maj_le: q, type: type, canal: canal, resume: t };
       if (window.BdvCompte && BdvCompte.monId) e.cree_par = BdvCompte.monId();
+      if (fait) e.fait_par = fait;
       (window.BdvSync && BdvSync.ecrireEchange ? BdvSync.ecrireEchange(e) : Promise.resolve(false)).then(fini, function () { fini(false); });
     }
     function fini(ok) {
@@ -3133,6 +3178,7 @@
       var c = cliDe(a);
       if (c && Array.isArray(c.echanges) && e) c.echanges.unshift(e);
       if (txt) txt.value = '';
+      remettre();
       dire('Noté, aussi dans sa fiche.');
       repeindreClient(a);
     }
@@ -3199,6 +3245,167 @@
       + '&order=le.desc,echange_id.asc&limit=200')
       .then(function (l) { JOURNAL[id] = Array.isArray(l) ? l : null; if (Array.isArray(l)) JOURNAL_ABSENT = false; },
         function (e) { JOURNAL[id] = null; if (tableAbsente(e)) JOURNAL_ABSENT = true; });
+  }
+  /* ================= LOT 84 : LES MAILS PROGRAMMES (08/10/2026) =================
+     Demande de Ted : « on permet aussi de programmer un email ». Arbitrage : envoi
+     automatique par la boite branchee (lot 77), a la date et a l'heure choisies. La base
+     garde le mail (`mails_programmes`), la fonction `mails-programmes` le fait partir toutes
+     les 5 minutes. Parti, il entre dans le journal de l'affaire comme un mail envoye.
+     `LOT84` : undefined (pas encore su), true (SQL passe), false (pas encore : on se tait). */
+  var LOT84;
+  var PROG = {};   // par affaire : undefined (pas lu), null (illisible), [] (lus)
+  function progAbsent(e) {
+    var t = String((e && e.code) || '') + ' ' + String((e && (e.message || e.detail)) || '');
+    return !!(e && e.status === 404) || /PGRST205|42P01|mails_programmes/.test(t);
+  }
+  function lireProgrammes(a) {
+    if (!a || !pret() || LOT84 === false) return Promise.resolve();
+    var id = a.affaire_id;
+    return BdvCompte.api('/mails_programmes?select=mail_id,personne,destinataire,sujet,corps,modele,partir_le,statut,echec&bureau=eq.'
+      + encodeURIComponent(bureau()) + '&affaire_id=eq.' + encodeURIComponent(id)
+      + '&statut=in.(prevu,envoi,echec,incertain)&order=partir_le.asc,mail_id.asc&limit=50')
+      .then(function (l) { PROG[id] = Array.isArray(l) ? l : null; if (Array.isArray(l)) LOT84 = true; },
+        function (e) { if (progAbsent(e)) { LOT84 = false; PROG[id] = []; } else PROG[id] = null; });
+  }
+  /* Le trombinoscope (bdv-compte.js), lu une fois : il dit qui est dans le bureau. */
+  var TROMBI_AFF, _trombiAff = false;
+  function trombiAff() {
+    if (!_trombiAff && window.BdvCompte && BdvCompte.trombinoscope) {
+      _trombiAff = true;
+      BdvCompte.trombinoscope().then(function (t) {
+        if (!t) return;
+        TROMBI_AFF = t;
+        var id = S.page || (MOD && !MOD.hidden ? S.ouverte : null);
+        var a = id && S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+        if (a) repeindreClient(a);
+      }, function () {});
+    }
+    return TROMBI_AFF;
+  }
+  document.addEventListener('bdv:trombinoscope', function () { _trombiAff = false; trombiAff(); });
+  /* Revenir sur la page relit les mails programmes : celui de 9 h est peut-etre parti. */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible' || LOT84 !== true) return;
+    var id = S.page || (MOD && !MOD.hidden ? S.ouverte : null);
+    var a = id && S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
+    if (a && PROG[id] && PROG[id].length) Promise.all([lireProgrammes(a), lireJournal(a)]).then(function () { repeindreClient(a); });
+  });
+  function heureCourte(d) { return d.getHours() + ' h' + (d.getMinutes() ? ' ' + String(d.getMinutes()).padStart(2, '0') : ''); }
+  /* Le prochain jour ouvre a 9 h : un mail programme ne part pas un dimanche par defaut. */
+  function progDefaut() {
+    var d = new Date(); d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    return { jour: jourIso(d), heure: '09:00' };
+  }
+  function htmlProgrammes(a) {
+    var l = PROG[a.affaire_id];
+    if (LOT84 !== true) return '';
+    if (l === null) return '<p class="aff-aide aff-prog__rate">Les mails programmés n’ont pas pu être lus.</p>';
+    if (!Array.isArray(l) || !l.length) return '';
+    var moi = window.BdvCompte && BdvCompte.monId ? BdvCompte.monId() : '';
+    var pic = window.BdvCanaux && BdvCanaux.pictoEntree ? BdvCanaux.pictoEntree({ canal: 'programme' }) : '';
+    var RANG = { echec: 0, incertain: 1, envoi: 2, prevu: 3 }, rates = l.filter(function (m) { return m.statut === 'echec' || m.statut === 'incertain'; }).length;
+    l = l.slice().sort(function (x, y) { return (RANG[x.statut] - RANG[y.statut]) || String(x.partir_le).localeCompare(String(y.partir_le)); });
+    return '<section class="aff-prog" aria-labelledby="affProgT-' + a.affaire_id + '"><h3 class="aff-prog__t' + (S.page ? ' page-aff__h' : '') + '" id="affProgT-' + a.affaire_id + '">Mails programmés' + (rates ? ' (' + rates + ' à regarder)' : '') + '</h3><ul class="aff-prog__l">'
+      + l.map(function (m) {
+        var d = new Date(m.partir_le), quand = 'le ' + JOURS_C[d.getDay()] + ' ' + dateCourte(jourIso(d)) + ' à ' + heureCourte(d);
+        var objet = m.sujet ? ' : ' + esc(m.sujet) : '', vers = m.destinataire ? ' à ' + esc(m.destinataire) : '';
+        var mien = m.personne === moi, par = !mien ? quiDe({ cree_par: m.personne }) : '';
+        var etat, gestes = '';
+        if (m.statut === 'prevu') {
+          etat = '<b>Part ' + quand + '</b>' + vers + objet + (par ? ' <span class="aff-prog__par">(programmé par ' + esc(par) + ')</span>' : '');
+          if (mien) gestes = '<button type="button" class="btn" data-aff="progAnnuler" data-mail="' + esc(m.mail_id) + '">Annuler l’envoi</button>';
+        } else if (m.statut === 'envoi') {
+          etat = '<b>En train de partir</b>' + vers + objet;
+        } else if (m.statut === 'echec') {
+          etat = '<b>Pas parti</b> (prévu ' + quand + ')' + objet + '. ' + esc(m.echec || '');
+          if (mien) gestes = '<button type="button" class="btn" data-aff="progReprendre" data-mail="' + esc(m.mail_id) + '" aria-label="Le reprendre dans le rédacteur">Le reprendre</button>'
+            + '<button type="button" class="btn" data-aff="progEffacer" data-mail="' + esc(m.mail_id) + '">L’effacer</button>';
+        } else {
+          etat = '<b>Peut-être parti</b> (prévu ' + quand + ')' + objet + '. Regarde ton dossier Envoyés avant de le renvoyer : le bureau ne le renvoie jamais seul.';
+          if (mien) gestes = '<button type="button" class="btn" data-aff="progEffacer" data-mail="' + esc(m.mail_id) + '">L’effacer</button>';
+        }
+        return '<li class="aff-prog__i aff-prog__i--' + esc(m.statut) + '"><span class="aff-hist__ico">' + pic + '</span><span class="aff-prog__txt">' + etat + '</span>'
+          + (gestes ? '<span class="aff-prog__gestes">' + gestes + '</span>' : '') + '</li>';
+      }).join('') + '</ul></section>';
+  }
+  function raisonProg(e) {
+    var t = String((e && e.detail) || '') + ' ' + String((e && e.message) || '');
+    if (/branche ta boite/.test(t)) return 'ta boîte n’est pas branchée : branche-la dans Mes réglages, Mes envois.';
+    if (/5 minutes a 60 jours/.test(t)) return 'choisis un moment entre dans 5 minutes et dans 60 jours.';
+    if (/50 mails programmes/.test(t)) return 'tu as déjà 50 mails programmés.';
+    if (/ne plus etre contactee/.test(t)) return 'cette personne a demandé à ne plus être contactée.';
+    if (/adresse du destinataire/.test(t)) return 'l’adresse du destinataire n’est pas lisible.';
+    return raison(e);
+  }
+  async function redacProgrammer(a, b) {
+    var r = REDAC[a.affaire_id], mail = adresseMail(a);
+    if (!r || ENVOI_EN_COURS || oppose(a) || !mail) return;
+    if (!String(r.sujet || '').trim() && !String(r.texte || '').trim()) { motRedac(a, 'Écris un objet ou un texte avant de programmer.'); return; }
+    var df = progDefaut(), j = r.progJour || df.jour, h = r.progHeure || df.heure;
+    var m1 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(j), m2 = /^(\d{2}):(\d{2})$/.exec(h);
+    if (!m1 || !m2) { motRedac(a, 'Choisis un jour et une heure.'); return; }
+    var quand = new Date(+m1[1], +m1[2] - 1, +m1[3], +m2[1], +m2[2]);
+    if (quand.getTime() < Date.now() + 5 * 60000) { motRedac(a, 'Choisis un moment dans au moins 5 minutes.'); return; }
+    if (quand.getTime() > Date.now() + 60 * 86400000) { motRedac(a, 'Un mail se programme 60 jours à l’avance au plus.'); return; }
+    /* Le rappel promis par le mail se decale d'autant de jours que l'envoi (lot 73 : relancer
+       7 jours APRES l'envoi, pas apres aujourd'hui). La base le pose quand le mail part. */
+    var M = window.BdvMailsAffaire, rp = M ? M.rappel(r.k, ctxMail(a), r.coches) : null, rappel = null, rtitre = null, dec = 0;
+    if (r.rappel && rp) {
+      dec = Math.round((versDate(j) - versDate(jourIso())) / 86400000);
+      var dr = versDate(rp.iso); dr.setDate(dr.getDate() + dec);
+      if (!rp.tache && a.issue === 'en_cours') { rappel = jourIso(dr); rtitre = rp.titre; }
+      else if (rp.tache) rp = { tache: true, titre: rp.titre, iso: jourIso(dr) };
+    }
+    ENVOI_EN_COURS = true; if (b) b.disabled = true;
+    motRedac(a, 'Programmation…');
+    try {
+      await BdvCompte.api('/rpc/mail_programmer', { methode: 'POST', corps: { p_bureau: bureau(), p_affaire: a.affaire_id,
+        p_destinataire: mail, p_sujet: String(r.sujet || '').slice(0, 300), p_corps: String(r.texte || '').slice(0, 20000), p_modele: r.k || null,
+        p_partir_le: quand.toISOString(), p_rappel: rappel, p_rappel_titre: rtitre } });
+    } catch (e) {
+      ENVOI_EN_COURS = false; if (b) b.disabled = false;
+      if (progAbsent(e)) LOT84 = false;
+      motRedac(a, 'Pas programmé : ' + raisonProg(e) + ' Ton texte est gardé.');
+      return;
+    }
+    ENVOI_EN_COURS = false;
+    var phrase = 'Mail programmé pour le ' + dateCourte(j) + ' à ' + heureCourte(quand) + ' : il partira tout seul de ta boîte.';
+    if (rappel) phrase += finPoint(' Le rappel se posera au ' + dateCourte(rappel) + ', quand il sera parti');
+    if (r.rappel && rp && rp.tache) {
+      var okT = false;
+      try { okT = !!(window.BdvTaches && BdvTaches.ajouter(rp.titre + ' : ' + sujet(a), rp.iso)); } catch (eT) {}
+      phrase += okT ? finPoint(' Tâche posée dans Mes tâches le ' + dateCourte(rp.iso)) : ' La tâche n’a pas pu se poser : note-la dans Mes tâches.';
+    }
+    await lireProgrammes(a);
+    REDAC[a.affaire_id] = { kAuto: true, cochesAuto: true, sujetAuto: true, texteAuto: true, ouvert: false, garde: null, mot: '' };
+    if (S.page) rendre(); else repeindreClient(a);
+    dire(esc(phrase));
+    var bt = (S.page ? el('pageAffaire') : MOD) ; bt = bt && bt.querySelector('.aff-prog__t');
+    if (bt) { bt.setAttribute('tabindex', '-1'); try { bt.focus({ preventScroll: false }); } catch (x) {} }
+  }
+  async function gesteProgramme(a, quoi, idMail, b) {
+    var l = PROG[a.affaire_id] || [], m = l.filter(function (x) { return x.mail_id === idMail; })[0];
+    if (!m) return;
+    if (b) b.disabled = true;
+    try {
+      if (quoi === 'progAnnuler') {
+        var ok = await BdvCompte.api('/rpc/mail_annuler', { methode: 'POST', corps: { p_bureau: bureau(), p_mail: idMail } });
+        dire(ok === false ? 'Trop tard pour l’annuler : il est en train de partir.' : 'Envoi annulé : rien n’est parti.', ok === false);
+      } else {
+        if (quoi === 'progReprendre') {
+          /* Le texte revient dans le redacteur, tel qu'il etait : objet et texte retouches. */
+          var M = window.BdvMailsAffaire, k = M && M.MODELES.some(function (x) { return x.k === m.modele; }) ? m.modele : 'libre';
+          REDAC[a.affaire_id] = { k: k, kAuto: false, cochesAuto: true, sujetAuto: false, texteAuto: false, ouvert: true, garde: null, mot: '',
+            sujet: m.sujet || '', texte: m.corps || '' };
+        }
+        await BdvCompte.api('/rpc/mail_retirer', { methode: 'POST', corps: { p_bureau: bureau(), p_mail: idMail } });
+        if (quoi === 'progEffacer') dire('Effacé de la liste.');
+      }
+    } catch (e) { dire('Rien n’a changé : ' + raisonProg(e), true); if (b) b.disabled = false; return; }
+    await lireProgrammes(a);
+    if (S.page) rendre(); else repeindreClient(a);
+    if (quoi === 'progReprendre') ouvrirRedac(a);
   }
   function pisteDe(a) { return a && a.piste_id ? S.pistes[a.piste_id] || null : null; }
   function adresseMail(a) {
@@ -3315,9 +3522,10 @@
           + '<button type="button" class="btn" data-aff="redacAutre">Écrire un autre mail</button></div>'
         : (r.echec ? '<p class="aff-redac__resultat aff-redac__resultat--echec" role="alert">' + esc(r.echec) + '</p>' : '')
       + '<div class="aff-redac__gestes">'
-      + (mail && boitePrete() ? '<button type="button" class="btn btn--bordeaux aff-redac__envoyer" data-aff="redacEnvoyer">Envoyer depuis ma boîte</button>' : '')
+      + (mail && boitePrete() ? '<button type="button" class="btn' + (progVise(r) ? '' : ' btn--bordeaux') + ' aff-redac__envoyer" data-aff="redacEnvoyer">' + (progVise(r) ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte') + '</button>' : '')
       + (mail ? '<a class="btn' + (boitePrete() ? '' : ' btn--bordeaux') + '" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
       + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button></div>'
+      + htmlProgrammer(a, r, mail)
       + (JOURNAL_ABSENT ? '<p class="aff-aide">L’historique des mails n’est pas encore en place dans ton bureau : ce mail ne sera pas noté.</p>'
         : '<div class="aff-redac__fin">'
           + (mail && boitePrete() ? '<p class="aff-redac__explique">Envoyé depuis ta boîte, il entre tout seul dans l’historique. Parti de ta messagerie ? Note-le :</p>'
@@ -3325,6 +3533,55 @@
           + '<p><button type="button" class="btn" data-aff="redacEnvoye">Considéré comme envoyé</button></p></div>'))
       + '<p class="aff-aide aff-redac__mot" id="affRedacMot" role="status" aria-live="polite">' + esc(r.parti ? '' : r.mot || '') + '</p>'
       + '</div></details>';
+  }
+  /* LOT 84 : « Programmer l'envoi », sous les boutons, replie. Seulement quand le mail
+     partirait de la boite (c'est elle qui l'enverra) et une fois le SQL du lot 84 passe. */
+  /* Vigneron empathique, 08/10/2026 : programmer deplie, c'est « Programmer » le bouton plein
+     (sinon on touche le gros bouton par reflexe et le mail part tout de suite), et il dit la
+     date en toutes lettres. */
+  var JOURS_C = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  function progVise(r) { return !!(r && r.progOuvert && LOT84 === true && boitePrete()); }
+  function progQuand(r) {
+    var df = progDefaut(), j = (r && r.progJour) || df.jour, h = (r && r.progHeure) || df.heure, d = versDate(j), m = /^(\d{2}):(\d{2})$/.exec(h);
+    return { j: j, d: d, h: m ? (+m[1]) + ' h' + (m[2] !== '00' ? ' ' + m[2] : '') : '' };
+  }
+  function progLibelle(r) { var q = progQuand(r); return q.d ? 'Programmer pour le ' + JOURS_C[q.d.getDay()] + ' ' + dateCourte(q.j) + (q.h ? ' à ' + q.h : '') : 'Programmer pour ce moment'; }
+  function progWeekend(r) {
+    var q = progQuand(r); if (!q.d) return '';
+    return q.d.getDay() === 6 ? 'C’est un samedi : ton client le lira sans doute lundi.' : q.d.getDay() === 0 ? 'C’est un dimanche : ton client le lira sans doute lundi.' : '';
+  }
+  function progRappel(a, r) {
+    var M = window.BdvMailsAffaire; if (!M || !r || !r.rappel) return '';
+    var rp = null; try { rp = M.rappel(r.k, ctxMail(a), r.coches); } catch (x) {}
+    if (!rp) return '';
+    var q = progQuand(r), dec = Math.round((versDate(q.j) - versDate(jourIso())) / 86400000), dr = versDate(rp.iso);
+    if (!dr || !dec) return '';
+    dr.setDate(dr.getDate() + dec);
+    return finPoint('Programmé, le rappel se décale avec l’envoi : il tombera le ' + dateCourte(jourIso(dr)));
+  }
+  /* Deplier, changer le jour ou l'heure : on met a jour les deux boutons et les phrases sur
+     place, sans repeindre (la frappe et le focus restent). */
+  function majProg(box, a) {
+    var r = a && REDAC[a.affaire_id]; if (!box || !r) return;
+    var env = box.querySelector('[data-aff="redacEnvoyer"]'), pg = box.querySelector('[data-aff="redacProgrammer"]'), v = progVise(r);
+    if (env) { env.classList.toggle('btn--bordeaux', !v); env.textContent = v ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'; }
+    if (pg) { pg.classList.toggle('btn--bordeaux', v); pg.textContent = progLibelle(r); }
+    var we = box.querySelector('.aff-redac__prog-we'), rr = box.querySelector('.aff-redac__prog-rappel');
+    if (we) we.textContent = progWeekend(r);
+    if (rr) rr.textContent = progRappel(a, r);
+  }
+  function htmlProgrammer(a, r, mail) {
+    if (!mail || !boitePrete() || LOT84 !== true) return '';
+    var df = progDefaut(), max = new Date(Date.now() + 59 * 86400000);
+    if (!r.progJour) r.progJour = df.jour;
+    if (!r.progHeure) r.progHeure = df.heure;
+    return '<details class="aff-redac__prog" data-bloc="prog"' + (r.progOuvert ? ' open' : '') + '><summary>Programmer l’envoi</summary><div class="aff-redac__prog-corps">'
+      + '<div class="aff-redac__prog-champs"><label class="aff-champ"><span>Le</span><input type="date" data-redac="progJour" value="' + esc(r.progJour) + '" min="' + jourIso() + '" max="' + jourIso(max) + '"></label>'
+      + '<label class="aff-champ"><span>À</span><input type="time" data-redac="progHeure" value="' + esc(r.progHeure) + '" step="300"></label></div>'
+      + '<p class="aff-aide aff-redac__prog-we" aria-live="polite">' + esc(progWeekend(r)) + '</p>'
+      + '<p class="aff-aide">Il part tout seul de ta boîte à ce moment-là, à 5 minutes près, même ton bureau fermé. Tu peux l’annuler tant qu’il n’est pas parti. Il entrera dans l’historique une fois parti ; s’il ne part pas, tu le verras ici avec la raison.</p>'
+      + '<p class="aff-aide aff-redac__prog-rappel" aria-live="polite">' + esc(progRappel(a, r)) + '</p>'
+      + '<p><button type="button" class="btn' + (progVise(r) ? ' btn--bordeaux' : '') + '" data-aff="redacProgrammer">' + esc(progLibelle(r)) + '</button></p></div></details>';
   }
   function focusRedac() {
     var act = document.activeElement, box = boxRedac();
@@ -3369,6 +3626,9 @@
   function brancherRedac(c) {
     c.addEventListener('toggle', function (ev) {
       var d = ev.target;
+      if (d && d.classList && d.classList.contains('aff-redac__prog')) {
+        var ap = affaireDe(d), rq = ap && REDAC[ap.affaire_id]; if (rq) { rq.progOuvert = d.open; majProg(d.closest('#affRedac'), ap); } return;
+      }
       if (!d || d.id !== 'affRedac') return;
       var a = affaireDe(d); if (!a) return;
       var r = REDAC[a.affaire_id]; if (r) r.ouvert = d.open;
@@ -3378,7 +3638,9 @@
       if (!k || !t.closest('#affRedac')) return;
       var a = affaireDe(t), r = a && REDAC[a.affaire_id];
       if (!r) return;
-      if (k === 'rappel') { r.rappel = t.checked; return; }
+      if (k === 'rappel') { r.rappel = t.checked; majProg(t.closest('#affRedac'), a); return; }
+      if (k === 'progJour') { r.progJour = t.value; majProg(t.closest('#affRedac'), a); return; }
+      if (k === 'progHeure') { r.progHeure = t.value; majProg(t.closest('#affRedac'), a); return; }
       if (k !== 'modele' && k !== 'bloc') return;
       /* Changer de modele ou de bloc REECRIT le texte (comme la fiche client) ; un texte
          retouche a la main est garde de cote, et « Revenir a mon texte » le rend. */
@@ -3736,8 +3998,12 @@
        ses achats, puis les devis, les reperes, les notes, modifier), colle au defilement. Un devis qui
        attend un geste passe au milieu, sous les etapes (lot 67). La barre du bureau reste a
        gauche : plus de lien « Retour a Mon commerce ». En une colonne, la droite passe dessous. */
-    var presse = devisAttend(a);
-    var blocDevis = '<section class="page-aff__bloc page-aff__bloc--devis' + (presse ? ' page-aff__bloc--presse' : '') + '"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>';
+    /* LOT 84 (demande de Ted, 08/10/2026) : « les devis en cours, ca part a droite ; le
+       milieu va vraiment servir a suivre et actionner ». Les devis vivent TOUJOURS a droite,
+       juste sous « Avant de l'appeler » ; le geste d'un devis qui attend reste au milieu, dans
+       le bouton plein du moment (lot 67). Au milieu : agir (ecrire, programmer, noter), puis
+       suivre (les mails programmes, l'historique). */
+    var blocDevis = '<section class="page-aff__bloc page-aff__bloc--devis"><h2 class="page-aff__h">Les devis</h2>' + htmlDevisPage(a) + '</section>';
     return '<div class="page-aff" data-affaire="' + a.affaire_id + '">'
       + '<div class="page-aff__centre">'
       + '<header class="page-aff__tete"><p class="page-aff__marques"><span class="page-aff__etape">Étape : <b>' + esc(et ? et.nom : 'étape') + '</b></span>'
@@ -3745,15 +4011,15 @@
       + '<h1 class="page-aff__nom" id="pageAffTitre">' + esc(sujet(a)) + '</h1><p class="page-aff__sous">' + sous + '</p>' + clos + '</header>'
       + (m ? '<section class="page-aff__moment' + (m.ton ? ' page-aff__moment--' + m.ton : '') + '"><p class="page-aff__phrase">' + m.t + '</p>' + htmlGestesPage(a, m) + '</section>' : '')
       + htmlFrise(a, e)
-      + (presse ? blocDevis : '')
-      + (oppose(a) ? '' : '<section class="page-aff__bloc page-aff__bloc--redac">' + htmlRedac(a) + '</section>')
+      + (oppose(a) ? '' : '<section class="page-aff__bloc page-aff__bloc--redac">' + htmlRedac(a) + htmlNoter(a) + '</section>')
+      + (function (h) { return h ? '<div class="page-aff__bloc page-aff__bloc--prog">' + h + '</div>' : ''; })(htmlProgrammes(a))
       + '<section class="page-aff__bloc page-aff__bloc--hist"><h2 class="page-aff__h">' + (clientDe(a) ? 'Son historique' : 'Historique') + '</h2>'
         + (clientDe(a) ? '<p class="aff-aide">Ses échanges de fiche et les mails de cette affaire, mêlés par date.</p>' : '')
-        + htmlHistorique(a, 8) + htmlNoter(a) + '</section>'
+        + htmlHistorique(a, 8) + '</section>'
       + '</div><aside class="page-aff__droite" aria-label="Ce qui renseigne l’affaire">'
       + htmlAvantAppel(a)
+      + blocDevis
       + htmlAchats(a)
-      + (presse ? '' : blocDevis)
       /* Arbitre par Ted : « Repères » ne parait qu'a partir de 5 affaires closes du type. */
       + (a.issue === 'en_cours' && closesDuType(a.type_id).length >= SEUIL_REPERE ? '<section class="page-aff__bloc"><h2 class="page-aff__h">Repères</h2>' + htmlReperes(a, e) + '</section>' : '')
       + htmlDejaDit(a) + htmlPreparer(a)
@@ -3854,6 +4120,7 @@
     lireDevis(a).then(function () { rendre(); });
     chargerClient(a, rendre);
     lireJournal(a).then(rendre);
+    lireProgrammes(a).then(rendre);
     return true;
   }
 

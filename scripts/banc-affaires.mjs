@@ -2151,6 +2151,131 @@ titre('Lot 73 : ecrire a une affaire close, le rappel devient une tache');
     && /confirmer le rendez-vous le .*, la veille du premier moment/.test(D().querySelector('[data-redac="rappel"]').parentNode.textContent));
 }
 
+titre('Lot 84 : le suivi d\'une affaire (pictos, date et personne, mail programme)');
+{
+  const sp = (x) => String(x || '').replace(/[\u00a0\u202f]/g, ' ').replace(/\s+/g, ' ');
+  const R = monter();
+  R.base.affaire_types.push({ bureau: BUREAU, type_id: 't1', nom: 'Caviste', famille: 'conquete', sommeil_jours: 30, ordre: 0, archive: false });
+  R.base.affaire_etapes.push({ bureau: BUREAU, etape_id: 'e1', type_id: 't1', nom: 'Premier contact', ordre: 0 });
+  R.base.affaires.push({ bureau: BUREAU, affaire_id: 'a1', type_id: 't1', etape_id: 'e1', piste_id: 'p1', titre: 'Cave du Port', issue: 'en_cours',
+    rappel: '2099-01-01', etape_le: new Date().toISOString() });
+  R.base.pistes.push({ bureau: BUREAU, piste_id: 'p1', nom: 'Cave du Port', contact_nom: 'Jean Dupont', email: 'cave@port.fr', opposition: false });
+  R.base.devis = [];
+  R.base.mails_programmes = [];
+  R.base.affaire_echanges.push({ bureau: BUREAU, echange_id: 'x1', affaire_id: 'a1', type: 'note', canal: 'visite', corps: 'Passé au domaine', cree_par: 'moi',
+    fait_par: 'u2', le: new Date().toISOString(), fait_le: new Date(Date.now() - 3 * 86400000).toISOString() });
+  R.w.BdvCanaux = { liste: [{ cle: 'appel', label: 'Appel' }, { cle: 'visite', label: 'Visite' }], canal: k => ({ cle: k, type: k === 'visite' ? 'visite' : 'appel' }),
+    pictoEntree: e => '<svg class="picto picto--' + (e.canal || e.type) + '" aria-hidden="true"></svg>' };
+  R.w.BdvCompte.monId = () => 'moi';
+  R.w.BdvCompte.nomAuteur = id => ({ moi: 'Teddy', u2: 'Camila' })[id] || '';
+  R.w.BdvCompte.trombinoscope = async () => ({ combien: 2, gens: { moi: 'Teddy', u2: 'Camila' } });
+  R.w.BdvBoite = { prete: () => true, adresse: () => 'teddy@domaine.fr', envoyer: async () => ({ resultat: 'parti' }) };
+  const api = R.w.BdvCompte.api;
+  R.w.BdvCompte.api = async (c, o) => {
+    if (/^\/rpc\/mail_programmer/.test(c)) { R.requetes.push({ chemin: c, methode: 'POST', corps: o.corps });
+      R.base.mails_programmes.push({ bureau: BUREAU, mail_id: 'm1', affaire_id: o.corps.p_affaire, personne: 'moi', destinataire: o.corps.p_destinataire,
+        sujet: o.corps.p_sujet, corps: o.corps.p_corps, modele: o.corps.p_modele, partir_le: o.corps.p_partir_le, statut: 'prevu', echec: null }); return 'm1'; }
+    if (/^\/rpc\/mail_annuler/.test(c)) { R.requetes.push({ chemin: c, methode: 'POST', corps: o.corps });
+      R.base.mails_programmes.forEach(m => { if (m.mail_id === o.corps.p_mail) m.statut = 'annule'; }); return true; }
+    if (/^\/rpc\/mail_retirer/.test(c)) { R.requetes.push({ chemin: c, methode: 'POST', corps: o.corps });
+      R.base.mails_programmes = R.base.mails_programmes.filter(m => m.mail_id !== o.corps.p_mail); return true; }
+    return api(c, o);
+  };
+  await R.w.BdvAffaires.ouvrir();
+  R.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(60);
+  const P = () => R.doc.getElementById('affaireModale');
+  const lp = R.requetes.filter(q => /^\/mails_programmes\?/.test(q.chemin));
+  t('L84 : les mails programmes sont lus, pour ce bureau et cette affaire', lp.length >= 1 && lp.every(q => /bureau=eq\./.test(q.chemin) && /affaire_id=eq\.a1/.test(q.chemin)));
+  t('L84 : l\'historique porte un picto par entree, cache a la synthese vocale', !!P().querySelector('.aff-hist--pictos .aff-hist__ico svg.picto--visite[aria-hidden="true"]'));
+  t('L84 : l\'historique nomme qui a EU l\'echange, et qui l\'a note', /par Camila \(noté par Teddy\)/.test(P().textContent), sp(P().textContent).slice(0, 400));
+  const n = P().querySelector('.aff-noter');
+  t('L84 : « Noter un echange » propose le jour et la personne', !!n.querySelector('.aff-noter__jour') && !!n.querySelector('.aff-noter__qui'));
+  t('L84 : le jour ne va pas dans le futur', n.querySelector('.aff-noter__jour').getAttribute('max') === n.querySelector('.aff-noter__jour').value);
+  t('L84 : « Moi » par defaut, les collegues proposes', n.querySelector('.aff-noter__qui').value === 'moi' && /Camila/.test(n.querySelector('.aff-noter__qui').textContent));
+  const hier = new Date(Date.now() - 86400000), hj = [hier.getFullYear(), String(hier.getMonth() + 1).padStart(2, '0'), String(hier.getDate()).padStart(2, '0')].join('-');
+  n.querySelector('.aff-noter__jour').value = hj;
+  n.querySelector('.aff-noter__qui').value = 'u2';
+  n.querySelector('.aff-noter__txt').value = 'Camila l\'a eu au salon';
+  R.clic('#affaireModale [data-aff="noterEchange"]');
+  await attendre(40);
+  const ne = R.base.affaire_echanges[R.base.affaire_echanges.length - 1];
+  t('L84 : la note porte le jour choisi et la personne qui l\'a eu', ne && /salon/.test(ne.corps) && ne.fait_par === 'u2' && /^\d{4}-\d{2}-\d{2}T/.test(ne.fait_le || '')
+    && new Date(ne.fait_le).getDate() === hier.getDate(), JSON.stringify(ne));
+  { const n2 = P().querySelector('.aff-noter'), j2 = n2.querySelector('.aff-noter__jour');
+    const dm = new Date(Date.now() + 2 * 86400000); j2.value = [dm.getFullYear(), String(dm.getMonth() + 1).padStart(2, '0'), String(dm.getDate()).padStart(2, '0')].join('-');
+    n2.querySelector('.aff-noter__txt').value = 'demain'; const avant = R.base.affaire_echanges.length;
+    R.clic('#affaireModale [data-aff="noterEchange"]'); await attendre(20);
+    t('L84 : un echange dans le futur est refuse, rien n\'est ecrit', R.base.affaire_echanges.length === avant && /pas dans le futur/.test(avis(R))); }
+  R.clic('#affaireModale [data-aff="ecrireMail"]');
+  await attendre(20);
+  const D = () => R.doc.getElementById('affRedac');
+  const pr = D().querySelector('.aff-redac__prog');
+  t('L84 : avec une boite branchee, le redacteur propose « Programmer l\'envoi »', !!pr && !!pr.querySelector('[data-redac="progJour"]') && !!pr.querySelector('[data-redac="progHeure"]'));
+  t('L84 : par defaut, le prochain jour ouvre a 9 h', pr.querySelector('[data-redac="progHeure"]').value === '09:00' && ![0, 6].includes(new Date(pr.querySelector('[data-redac="progJour"]').value + 'T12:00').getDay()));
+  { const jj = pr.querySelector('[data-redac="progJour"]'), hh = pr.querySelector('[data-redac="progHeure"]');
+    const now = new Date(); jj.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+    jj.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+    hh.value = '00:00'; hh.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+    R.clic('#affRedac [data-aff="redacProgrammer"]'); await attendre(20);
+    t('L84 : un moment trop proche (ou passe) est refuse, rien ne part', !R.requetes.some(q => /mail_programmer/.test(q.chemin)) && /au moins 5 minutes/.test(D().textContent)); }
+  { const pr2 = D().querySelector('.aff-redac__prog'), jj = pr2.querySelector('[data-redac="progJour"]'), hh = pr2.querySelector('[data-redac="progHeure"]');
+    const df = new Date(Date.now() + 3 * 86400000); jj.value = [df.getFullYear(), String(df.getMonth() + 1).padStart(2, '0'), String(df.getDate()).padStart(2, '0')].join('-');
+    jj.dispatchEvent(new R.w.Event('change', { bubbles: true }));
+    hh.value = '10:30'; hh.dispatchEvent(new R.w.Event('change', { bubbles: true })); }
+  R.clic('#affRedac [data-aff="redacProgrammer"]');
+  await attendre(60);
+  const rq = R.requetes.filter(q => /mail_programmer/.test(q.chemin));
+  t('L84 : « Programmer » appelle la base une fois, avec le bureau, l\'adresse et le moment', rq.length === 1 && rq[0].corps.p_bureau === BUREAU && rq[0].corps.p_destinataire === 'cave@port.fr'
+    && new Date(rq[0].corps.p_partir_le).getHours() === 10 && new Date(rq[0].corps.p_partir_le).getMinutes() === 30, JSON.stringify(rq[0] && rq[0].corps));
+  t('L84 : rien n\'est note dans le journal avant que le mail parte', !R.base.affaire_echanges.some(e => e.type === 'email'));
+  t('L84 : la liste « Mails programmes » montre le mail, avec son moment en mots', /Mails programmés/.test(P().textContent) && /Part le .* à 10 h 30/.test(P().textContent), sp(P().textContent).slice(0, 500));
+  t('L84 : le focus va au titre de la liste', R.doc.activeElement && R.doc.activeElement.classList.contains('aff-prog__t'));
+  R.clic('#affaireModale [data-aff="progAnnuler"]');
+  await attendre(60);
+  t('L84 : « Annuler l\'envoi » passe par la base, et le mail sort de la liste', R.requetes.some(q => /mail_annuler/.test(q.chemin) && q.corps.p_bureau === BUREAU)
+    && !/Part le/.test(P().textContent) && /Envoi annulé/.test(avis(R)));
+  /* Un echec : il se dit en mots, se reprend dans le redacteur. */
+  R.base.mails_programmes.push({ bureau: BUREAU, mail_id: 'm2', affaire_id: 'a1', personne: 'moi', destinataire: 'cave@port.fr', sujet: 'Relance', corps: 'Bonjour,\nTexte',
+    modele: 'libre', partir_le: new Date(Date.now() - 3600000).toISOString(), statut: 'echec', echec: 'Le serveur de ta boîte ne répondait pas.' });
+  R.base.mails_programmes.push({ bureau: BUREAU, mail_id: 'm3', affaire_id: 'a1', personne: 'moi', destinataire: 'cave@port.fr', sujet: 'Doute', corps: 'x',
+    modele: 'libre', partir_le: new Date(Date.now() - 7200000).toISOString(), statut: 'incertain', echec: null });
+  R.clic('#affaireModale .tmod__x');
+  R.clic('#affCorps [data-affaire="a1"] [data-aff="ouvrir"]');
+  await attendre(60);
+  t('L84 : un mail pas parti le dit en mots, avec la raison', /Pas parti/.test(P().textContent) && /ne répondait pas/.test(P().textContent) && !!P().querySelector('.aff-prog__i--echec'));
+  t('L84 : un mail peut-etre parti ne se renvoie pas tout seul, et le dit', /Peut-être parti/.test(P().textContent) && /ne le renvoie jamais seul/.test(P().textContent)
+    && !P().querySelector('.aff-prog__i--incertain [data-aff="progReprendre"]'));
+  R.clic('#affaireModale [data-aff="progReprendre"]');
+  await attendre(60);
+  t('L84 : « Le reprendre » remet objet et texte dans le redacteur et retire le mail', D() && D().open && D().querySelector('[data-redac="texte"]').value === 'Bonjour,\nTexte'
+    && !R.base.mails_programmes.some(m => m.mail_id === 'm2'));
+  t('L84 : aucun onclick dans le panneau', !/onclick/i.test(P().outerHTML));
+  /* Sans boite branchee : pas de programmation (le bureau n'enverrait rien). */
+  R.w.BdvBoite = { prete: () => false, adresse: () => '' };
+  R.doc.dispatchEvent(new R.w.CustomEvent('bdv:boite'));
+  await attendre(20);
+  t('L84 : sans boite branchee, pas de « Programmer l\'envoi »', !D().querySelector('.aff-redac__prog'));
+  /* La page : les devis passent a droite, le centre sert a suivre et agir. */
+  R.w.BdvBoite = { prete: () => true, adresse: () => 'teddy@domaine.fr', envoyer: async () => ({ resultat: 'parti' }) };
+  R.clic('#affaireModale .tmod__x');
+  await R.w.BdvAffaires.page('a1');
+  await attendre(80);
+  const pg = R.doc.getElementById('pageAffaire');
+  t('L84 : dans la page, les devis vivent a droite, jamais au centre', !!pg && !pg.querySelector('.page-aff__centre .aff-devis__carte, .page-aff__centre #affDevisListe')
+    && !pg.querySelector('.page-aff__bloc--presse'));
+  t('L84 : dans la page, le centre porte le redacteur, « Noter » et l\'historique', !!pg.querySelector('.page-aff__centre #affRedac') && !!pg.querySelector('.page-aff__centre .aff-noter')
+    && !!pg.querySelector('.page-aff__centre .aff-hist--pictos'));
+}
+/* Le CSS du lot 84 : jetons seulement, pas d'ombre ni de z-index, et l'etat dit en mots. */
+{
+  const css = fs.readFileSync(path.join(RACINE, 'src/css/bdv-bureau.css'), 'utf8');
+  const i = css.indexOf('40. LE SUIVI D\'UNE AFFAIRE'), sec = i >= 0 ? css.slice(css.lastIndexOf('/*', i)) : '';
+  t('L84 : la section 40 existe dans bdv-bureau.css', !!sec);
+  t('L84 : ni ombre ni z-index dans la section 40', !/box-shadow|z-index/.test(sec.replace(/\/\*[\s\S]*?\*\//g, '')));
+  t('L84 : aucune couleur en dur dans la section 40', !/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(sec.replace(/\/\*[\s\S]*?\*\//g, '')));
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + OK + ' controle(s) passe(s), ' + KO + ' echec(s)');
 console.log(KO ? '  MES AFFAIRES NE FONT PAS CE QU\'ELLES DISENT' : '  MES AFFAIRES FONT CE QU\'ELLES DISENT');

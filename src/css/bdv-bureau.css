@@ -7008,3 +7008,121 @@ body.bdv-coque #bureauPage .page-aff__achats .fiche__cmds td{ white-space:nowrap
 @media (max-width:700px){
   body.bdv-coque #bureauPage .page-aff__achats .fiche__kpi{ padding:var(--bdv-e-2) var(--bdv-e-3); }
 }
+
+/* ===================================================================================
+   40. LE SUIVI D'UNE AFFAIRE, lot 84 (08/10/2026). Demande de Ted : un picto par outil
+   dans l'historique, « Noter un echange » avec la date et la personne, et un mail qu'on
+   programme. Le picto est un SVG au trait (bdv-canaux.js), cache a la synthese vocale :
+   le libelle de l'entree dit deja le canal en mots. Que des jetons, aucune ombre,
+   aucun z-index.
+   =================================================================================== */
+.bdv-coque .aff-hist--pictos li{ grid-template-columns:1.25rem 4.5rem minmax(0,1fr); align-items:start; }
+.bdv-coque .aff-hist--pictos .aff-hist__plie > details > summary{ grid-template-columns:1.25rem 4.5rem minmax(0,1fr); align-items:start; }
+.bdv-coque .page-aff .aff-hist--pictos li,
+.bdv-coque .page-aff .aff-hist--pictos .aff-hist__plie > details > summary{ grid-template-columns:1.25rem 5rem minmax(0,1fr); }
+.bdv-coque .aff-hist--pictos .aff-hist__plie{ display:block; }
+.bdv-coque .aff-hist__ico{ display:flex; align-items:center; justify-content:center; min-height:1.4em; color:var(--bdv-encre-2); }
+.bdv-coque .aff-hist__ico .picto{ width:16px; height:16px; flex:none; }
+.bdv-coque .aff-hist--pictos .aff-hist__corps{ margin-left:calc(1.25rem + var(--bdv-e-2)); }
+
+/* -- 40.1 « Noter un echange » : comment, quand, qui, cote a cote quand le bloc a la place. */
+.bdv-coque .aff-noter__ligne{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr));
+  gap:var(--bdv-e-3);
+}
+.bdv-coque .aff-noter__jour,
+.bdv-coque .aff-noter__qui{ font-size:var(--bdv-f-saisie); min-height:var(--bdv-cible); }
+
+/* -- 40.2 Programmer l'envoi, sous les boutons du redacteur. */
+.bdv-coque .aff-redac__prog{
+  margin-top:var(--bdv-e-3);
+  border-top:1px solid var(--bdv-trait);
+  padding-top:var(--bdv-e-2);
+}
+.bdv-coque .aff-redac__prog > summary{
+  display:flex;
+  align-items:center;
+  min-height:var(--bdv-cible);
+  cursor:pointer;
+  color:var(--bdv-accent);
+  font-weight:600;
+}
+.bdv-coque .aff-redac__prog-corps{ display:grid; grid-template-columns:minmax(0,1fr); gap:var(--bdv-e-3); }
+.bdv-coque .aff-redac__prog-champs{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr));
+  gap:var(--bdv-e-3);
+}
+.bdv-coque .aff-redac__prog-champs input{ font-size:var(--bdv-f-saisie); min-height:var(--bdv-cible); }
+.bdv-coque .aff-redac__prog .btn{ min-height:var(--bdv-cible); }
+
+/* -- 40.3 Les mails programmes. L'etat se dit en MOTS en tete de ligne (« Part le »,
+      « Pas parti », « Peut-etre parti ») ; le filet de gauche ne fait que le doubler. */
+.bdv-coque .aff-prog{ display:grid; gap:var(--bdv-e-2); }
+.bdv-coque .aff-prog__t{
+  margin:0;
+  font-family:inherit;
+  color:var(--bdv-encre-3);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+}
+.bdv-coque .aff-prog__l{ display:grid; gap:var(--bdv-e-2); margin:0; padding:0; list-style:none; }
+.bdv-coque .aff-prog__i{
+  display:grid;
+  grid-template-columns:1.25rem minmax(0,1fr);
+  gap:var(--bdv-e-2);
+  align-items:start;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border-left:3px solid var(--bdv-trait-fort);
+  background:var(--bdv-surface-2);
+  color:var(--bdv-encre-2);
+  font-size:var(--bdv-f-3);
+}
+.bdv-coque .aff-prog__i b{ color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .aff-prog__i--echec{ border-left-color:var(--bdv-retard); }
+.bdv-coque .aff-prog__i--incertain{ border-left-color:var(--bdv-alerte); }
+.bdv-coque .aff-prog__txt{ min-width:0; overflow-wrap:anywhere; }
+.bdv-coque .aff-prog__par{ color:var(--bdv-encre-3); }
+.bdv-coque .aff-prog__gestes{
+  grid-column:2;
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--bdv-e-2);
+}
+.bdv-coque .aff-prog__gestes .btn{ min-height:var(--bdv-cible); }
+/* Au telephone, les gestes d'un mail programme prennent toute la ligne, et un libelle long
+   passe a la ligne au lieu de sortir de sa carte (« Le reprendre dans le redacteur », 390 px). */
+@media (max-width:700px){
+  .bdv-coque .aff-prog__gestes{ grid-column:1 / -1; }
+  .bdv-coque .aff-prog__gestes .btn{ white-space:normal; text-align:center; max-width:100%; }
+}
+
+/* -- 40.4 EN UNE COLONNE, CE QUI PRESSE D'ABORD (vigneron empathique, 08/10/2026). Sous 60 rem
+      de page, la droite ne passe plus en bloc sous le centre : « Avant de l'appeler » et les
+      devis remontent juste sous les etapes, avant le redacteur et l'historique. */
+@container page (max-width: 59.99rem){
+  body.bdv-coque #bureauPage .page-aff__centre,
+  body.bdv-coque #bureauPage .page-aff__droite{ display:contents; }
+  body.bdv-coque #bureauPage .page-aff{ gap:var(--bdv-e-4); }
+  body.bdv-coque #bureauPage .page-aff > * > *{ order:9; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__tete{ order:1; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__moment{ order:2; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__frise{ order:3; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__bloc--avant{ order:4; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__bloc--devis{ order:5; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__bloc--prog{ order:6; }
+  /* Ecrire et noter juste sous le moment : on raccroche et on note (vigneron, 08/10/2026).
+     Meme valeur que le moment, il vient apres lui dans le document. */
+  body.bdv-coque #bureauPage .page-aff .page-aff__bloc--redac{ order:2; }
+  body.bdv-coque #bureauPage .page-aff .page-aff__bloc--hist{ order:8; }
+}
+
+/* -- 40.5 ECRIRE ET NOTER SUR UNE MEME RANGEE, dans la page (vigneron, 08/10/2026). Fermes, les
+      deux gestes se tiennent cote a cote ; ouvert, l'un prend toute la largeur. Le filet qui
+      separait « Noter » du redacteur n'a plus lieu d'etre. */
+.bdv-coque .page-aff .page-aff__bloc--redac{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--bdv-e-3); }
+.bdv-coque .page-aff .page-aff__bloc--redac > :is(.aff-redac, .aff-noter){ flex:0 1 auto; margin-top:0; padding-top:0; border-top:0; }
+.bdv-coque .page-aff .page-aff__bloc--redac > :is(.aff-redac, .aff-noter)[open]{ flex-basis:100%; }

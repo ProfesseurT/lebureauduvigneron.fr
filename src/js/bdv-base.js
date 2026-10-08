@@ -681,16 +681,20 @@ function echDe(id){return (ECHANGES[id]||[]).slice().sort((a,b)=>String(b.le).lo
 // Identifiant fabrique ici, comme l'empreinte d'une ligne de vente : le meme geste pousse
 // deux fois ne cree pas de doublon, et l'ecran affiche l'entree avant la reponse du serveur.
 function echId(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);}
-function echAjouter(id,type,canal,resume){
+function echAjouter(id,type,canal,resume,o){
   if(!id)return null;
   // maj_le PORTE LA MEME VALEUR QUE le. La colonne a un defaut now() cote base : une
   // entree qui ne la porte pas se fait horodater a l'arrivee de la requete, et les cent
   // millisecondes du reseau suffisaient a faire afficher « corrigé le » sur une note
   // ecrite a l'instant. L'ecran ne compare que ces deux dates, il a raison de le faire :
   // c'est l'ecriture qui devait les poser ensemble.
-  const quand=new Date().toISOString();
+  /* LOT 84 : `o.le` est le moment de l'echange quand on le note apres coup (jamais dans le
+     futur, la base le refuse), `o.fait_par` le membre qui l'a eu. Ce dernier ne part que s'il
+     est pose : avant le SQL du lot 84, la colonne n'existe pas. */
+  const quand=(o&&o.le)||new Date().toISOString();
   const e={echange_id:echId(),client_id:String(id),le:quand,maj_le:quand,
            type:type||'note',canal:canal||null,resume:resume||null};
+  if(o&&o.fait_par)e.fait_par=o.fait_par;
   /* L'AUTEUR SE POSE DES L'ECRITURE LOCALE, 25/09/2026. La base le pose aussi (defaut
      auth.uid()), mais seulement a la relecture : entre les deux, l'entree n'avait pas de
      `cree_par`, et `quiEcrit()` lit une absence comme un compte supprime. Ted voyait sa
@@ -851,7 +855,7 @@ async function rapprocherApresImport(){
    cas ou le fichier ne serait pas charge : mieux vaut un fil un peu pauvre qu'un fil vide.
    Avant, cette table et sa jumelle de bdv-crm.js avaient deja divergé l'une de l'autre. */
 function libEchange(e){
-  if(window.BdvCanaux)return{label:BdvCanaux.libelleEntree(e),ico:BdvCanaux.icoEntree(e)};
+  if(window.BdvCanaux)return{label:BdvCanaux.libelleEntree(e),ico:BdvCanaux.pictoEntree?BdvCanaux.pictoEntree(e):BdvCanaux.icoEntree(e)};
   return{label:String((e&&(e.canal||e.type))||''),ico:'&#9998;'};
 }
 /* Un canal stocke en base est une CLE ('appel', 'sms'), pas un libelle. La colonne

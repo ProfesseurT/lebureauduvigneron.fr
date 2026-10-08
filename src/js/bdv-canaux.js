@@ -43,6 +43,7 @@
     { cle: 'visite',      label: 'Visite au domaine',    ico: '⚑', type: 'visite',   groupe: 'Sur le terrain',     jours: 60 },
     { cle: 'caveau',      label: 'Reçu au caveau',       ico: '⚑', type: 'visite',   groupe: 'Sur le terrain',     jours: 45 },
     { cle: 'salon',       label: 'Salon ou dégustation', ico: '⚑', type: 'visite',   groupe: 'Sur le terrain',     jours: 21 },
+    { cle: 'rdv',         label: 'Rendez-vous chez lui', ico: '⚑', type: 'visite',   groupe: 'Sur le terrain',     jours: 30 },
     // ---- Messageries ----
     { cle: 'whatsapp',    label: 'WhatsApp',             ico: '✉', type: 'message',  groupe: 'Messageries',        jours: 7 },
     { cle: 'linkedin',    label: 'LinkedIn',             ico: '✉', type: 'message',  groupe: 'Messageries',        jours: 14 },
@@ -121,6 +122,36 @@
     return (c && c.jours) || 0;
   }
 
+  /* LES PICTOS DE L'HISTORIQUE, LOT 84 (08/10/2026). Demande de Ted : « historique revisite
+     avec des pictos en fonction des outils utilises ». Un dessin par canal, au trait, de la
+     couleur du texte (`currentColor`), cache a la synthese vocale : le LIBELLE dit deja le
+     canal en mots. Les dessins sont les notres, aucun logo de marque (ni WhatsApp ni LinkedIn :
+     une bulle et une carte de visite). `icoEntree` garde ses caracteres, lus ailleurs en texte. */
+  var TRAITS = {
+    appel:       '<path d="M5 3h3l1.5 4-2 1.5a10 10 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/>',
+    repondeur:   '<circle cx="6.5" cy="12" r="3.5"/><circle cx="17.5" cy="12" r="3.5"/><path d="M6.5 15.5h11"/>',
+    bulle:       '<path d="M4 5h16v10H9l-5 4z"/>',
+    email:       '<rect x="3" y="5" width="18" height="14" rx="1"/><path d="m3 6 9 7 9-7"/>',
+    note:        '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+    visite:      '<path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
+    verre:       '<path d="M7 3h10l-1 7a4 4 0 0 1-8 0z"/><path d="M12 14v6M8 21h8"/>',
+    carte:       '<rect x="3" y="6" width="18" height="12" rx="1"/><circle cx="8.5" cy="11" r="2"/><path d="M6 15.5c.8-1.2 4.2-1.2 5 0M14 10h4M14 13h3"/>',
+    visio:       '<rect x="3" y="7" width="12" height="10" rx="1"/><path d="m15 11 6-3v8l-6-3"/>',
+    courrier:    '<path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 13h6M9 16h4"/>',
+    echantillon: '<path d="M10 3h4v4l1.5 2.5V21h-7V9.5L10 7z"/><path d="M8.5 13h7"/>',
+    ecarte:      '<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>',
+    programme:   '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>'
+  };
+  var PICTO_DE = { appel: 'appel', repondeur: 'repondeur', sms: 'bulle', whatsapp: 'bulle', linkedin: 'carte',
+    email: 'email', note: 'note', visite: 'visite', rdv: 'visite', caveau: 'verre', salon: 'verre', visio: 'visio',
+    courrier: 'courrier', echantillon: 'echantillon', message: 'email', envoi: 'echantillon', ecarte: 'ecarte', programme: 'programme' };
+  function pictoEntree(e) {
+    var c = e ? canal(e.canal) : null;
+    var k = (c && PICTO_DE[c.cle]) || (e && PICTO_DE[e.canal]) || (e && PICTO_DE[e.type]) || 'note';
+    return '<svg class="picto picto--' + k + '" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"'
+      + ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + TRAITS[k] + '</svg>';
+  }
+
   // Un <select> groupe, construit en DOM et jamais en chaine HTML : les libelles sont
   // les notres, mais la regle du projet est qu'aucune valeur ne rentre dans un innerHTML
   // sans raison, et une exception ici deviendrait la regle ailleurs.
@@ -151,6 +182,7 @@
     libelle: libelle,
     libelleEntree: libelleEntree,
     icoEntree: icoEntree,
+    pictoEntree: pictoEntree,
     type: type,
     jours: jours,
     remplirSelect: remplirSelect,

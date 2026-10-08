@@ -24,7 +24,7 @@ export async function contexte(nav, largeur, theme) {
     userAgent: tel ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1' : undefined });
   await garnirLeBureau(ctx, process.env.DECOR_BRUT ? lignesDeVente() : lignesAvecSignaux());
   await doublerLesBibliotheques(ctx);
-  if (!process.env.NOFAKE) await ctx.addInitScript(({ B, theme, HORS33, NOUV }) => {
+  if (!process.env.NOFAKE) await ctx.addInitScript(({ B, theme, HORS33, NOUV, PROG }) => {
     try { localStorage.setItem('bureau_theme_v1', theme); } catch (e) {}
     const jour = new Date().toISOString();
     const T = { affaire_types: [{ bureau: B, type_id: 't1', nom: 'Caviste / restaurant', famille: 'client', sommeil_jours: 30, ordre: 0, archive: false, cree_le: jour },
@@ -58,12 +58,22 @@ export async function contexte(nav, largeur, theme) {
         { bureau: B, affaire_id: 'a7', type_id: 't1', etape_id: 'e3', client_id: 'C0610', client_nom: 'Cave Saint-Vincent', titre: 'Commande de Noël', issue: 'gagnee', close_le: h(2), etape_le: jour, maj_le: jour, cree_le: jour });
       T.devis.push({ bureau: B, devis_id: 'd7', affaire_id: 'a7', numero: 'D-2026-0051', statut: 'accepte', signe_le: h(2), total_ht_c: 86400, total_vins_c: 86400, remise_globale_c: 0, tva_c: 17280, total_ttc_c: 103680, port_c: 0, acheteur: { nom: 'Cave Saint-Vincent' }, date_devis: h(72).slice(0, 10), cree_le: jour, papier_empreinte: null });
     }
+    /* Lot 84 (08/10/2026) : une boite branchee, deux mails programmes (un prevu, un pas parti)
+       et une visite notee par quelqu'un d'autre que celui qui l'a eue. PROG=1. */
+    if (PROG) {
+      T.boites = [{ bureau: B, adresse: 'teddy@domaine.fr', fournisseur: 'ovh', serveur: 'ssl0.ovh.net', identifiant: 'teddy@domaine.fr', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: jour }];
+      const dans = (j, h) => { const d = new Date(); d.setDate(d.getDate() + j); d.setHours(h, 0, 0, 0); return d.toISOString(); };
+      T.mails_programmes = [
+        { bureau: B, mail_id: 'm1', affaire_id: 'a1', personne: 'moi', destinataire: 'cave@exemple.fr', sujet: 'Le magnum de rosé, pour Noël', corps: 'Bonjour,\n\nJe reviens vers vous.', modele: 'relance_devis', partir_le: dans(2, 9), statut: 'prevu', echec: null },
+        { bureau: B, mail_id: 'm2', affaire_id: 'a1', personne: 'moi', destinataire: 'cave@exemple.fr', sujet: 'Les échantillons', corps: 'Bonjour,\n\nTexte.', modele: 'libre', partir_le: dans(-1, 9), statut: 'echec', echec: 'Le serveur de ta boîte ne répondait pas.' }];
+      T.echanges.unshift({ bureau: B, echange_id: 'x4', client_id: 'C0288', le: new Date(Date.now()-2*86400000).toISOString(), type: 'visite', canal: 'rdv', fait_par: 'p2', cree_par: 'moi', resume: 'Rendez-vous au domaine : il goûte le 2025 et repart avec un magnum.' });
+    }
     window.__T = T; let n = 0;
     const avant = window.fetch;
     window.fetch = function (e, init) {
       const url = String((e && e.url) || e || '');
       if (/\/suivi_clients/.test(url)) window.__N33 = (window.__N33 || 0) + 1;
-      const m = url.match(new RegExp('supabase\\.co/rest/v1/(affaire_types|affaire_etapes|pistes|affaires|affaire_notes' + (HORS33 ? '' : '|suivi_clients|vues_clients') + '|ventes_lignes|echanges|affaire_echanges|devis_liens|devis)(\\?|$)'));
+      const m = url.match(new RegExp('supabase\\.co/rest/v1/(affaire_types|affaire_etapes|pistes|affaires|affaire_notes' + (HORS33 ? '' : '|suivi_clients|vues_clients') + '|ventes_lignes|echanges|affaire_echanges|devis_liens|devis|boites|mails_programmes)(\\?|$)'));
       if (!m) return avant(e, init);
       const t = m[1], meth = (init && init.method) || 'GET';
       const rep = o => Promise.resolve(new Response(o == null ? '' : JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json' } }));
@@ -84,7 +94,7 @@ export async function contexte(nav, largeur, theme) {
       if (meth === 'PATCH') { const c = JSON.parse(init.body || '{}'); const id = (url.match(/_id=eq\.([^&]+)/) || [])[1]; const r = T[t].filter(x => Object.values(x).includes(decodeURIComponent(id || ''))); r.forEach(x => Object.assign(x, c)); return rep(r); }
       return rep([]);
     };
-  }, { B: BUREAU_A, theme, HORS33: !!process.env.HORS33, NOUV: !!process.env.NOUV });
+  }, { B: BUREAU_A, theme, HORS33: !!process.env.HORS33, NOUV: !!process.env.NOUV, PROG: !!process.env.PROG });
   return ctx;
 }
 export async function ouvrirPage(ctx, port) {

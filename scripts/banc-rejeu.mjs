@@ -93,6 +93,7 @@ const ORDRE = [
   'lot78-nom-affiche.sql',
   'lot80-nouveaux-clients.sql',
   'lot83-relier-fusionner.sql',
+  'lot84-echanges-mails-programmes.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

@@ -4238,7 +4238,7 @@ function lireMailsAffaires(id){
       return B.api('/affaire_echanges?select=*'+b+'&affaire_id=in.('+af.map(a=>a.affaire_id).join(',')+')&order=le.desc&limit=200')
         .then(l=>(Array.isArray(l)?l:[]).map(function(x){
           const texte=[x.sujet,x.corps].filter(v=>v&&String(v).trim()).join('\n\n');
-          return {echange_id:'aff:'+x.echange_id,le:x.le,cree_par:x.cree_par,canal:x.type==='email'?'email':(x.canal||'autre'),
+          return {echange_id:'aff:'+x.echange_id,le:x.fait_le||x.le,cree_par:x.cree_par,fait_par:x.fait_par||null,canal:x.type==='email'?'email':(x.canal||'autre'),
             type:x.type,resume:x.type==='email'&&x.sujet?'Message envoyé : '+texte:texte,affaire:titres[x.affaire_id]||'une affaire'};
         }),e=>absente(e)?[]:Promise.reject(e));
     })
@@ -4289,13 +4289,15 @@ function filCorps(f,s){
       const t=libEchange(e);
       const d=new Date(e.le);
       const quand=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
-      const qui=nom(e.cree_par);
+      /* LOT 84 : « par » nomme qui A EU l'echange (fait_par), et « noté par » qui l'a ecrit
+         quand ce n'est pas la meme personne. */
+      const qui=nom(e.fait_par||e.cree_par), note=e.fait_par&&e.cree_par&&e.fait_par!==e.cree_par?nom(e.cree_par):'';
       const texte=String(e.resume||'').trim();
       const apercu=texte.split('\n')[0];
       return `<details class="fil__l">
         <summary class="fil__s">
           <span class="fil__ico" aria-hidden="true">${t.ico}</span>
-          <span class="fil__titre">${esc(t.label)}${qui?' <span class="fil__qui">par '+esc(qui)+'</span>':''}${e.affaire?' <span class="fil__aff">affaire « '+esc(e.affaire)+' »</span>':''}</span>
+          <span class="fil__titre">${esc(t.label)}${qui?' <span class="fil__qui">par '+esc(qui)+(note?', noté par '+esc(note):'')+'</span>':''}${e.affaire?' <span class="fil__aff">affaire « '+esc(e.affaire)+' »</span>':''}</span>
           <span class="fil__quand">${esc(quand)}</span>
           ${apercu?`<span class="fil__apercu">${esc(apercu)}</span>`:''}
         </summary>

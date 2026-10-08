@@ -229,7 +229,7 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   dit(/\(action === 'envoyer' \? 25000 : 4000\)/.test(tout), 'un mail long (25 000 signes) peut partir');
   dit(/ADRESSE = \/\^\[\^@\\s\(\)<>,;:/.test(tout), 'une adresse ne porte ni parenthese, ni chevron, ni virgule : celle controlee est celle qui part');
   const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
-  dit(/data-aff="redacEnvoyer">Envoyer depuis ma boîte/.test(aff) && /await redacEnvoye\(a, b, \{ parti: res\.mot \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
+  dit(/data-aff="redacEnvoyer">' \+ \(progVise\(r\) \? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'\)/.test(aff) && /await redacEnvoye\(a, b, \{ parti: res\.mot \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
   dit(/r\.parti = true;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');
   dit(/De : <b>' \+ esc\(BdvBoite\.adresse\(\)\)/.test(aff) && /De : <b>\$\{esc\(BdvBoite\.adresse\(\)\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
   dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">Envoyer depuis ma boîte/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');

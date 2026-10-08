@@ -10724,3 +10724,17 @@ base, qui deplace suivi, journal et affaires. Banc SQL 42 controles ; relecture 
 reels corriges (erreurs jamais traduites, delier qui doublait les notes, fusion qui coupait les
 notes, course avec une note ecrite pendant le lien, notes fantomes sur un autre appareil...).
 Vigneron empathique : 10 constats corriges. Toute la chaine verif verte. SQL a coller.
+
+## 08/10/2026 : la page d'une affaire pour suivre et agir, lot 84
+
+Demande de Ted : les devis a droite, le milieu sert a suivre et agir ; historique avec des
+pictos selon l'outil ; noter un echange avec la date et la personne ; programmer un mail.
+Choix de Ted : le mail programme part tout seul de la boite branchee (lot 77), « qui » est un
+membre du bureau (moi par defaut), pictos appel/repondeur, e-mail, visite/RDV/degustation,
+visio/SMS/note. SQL `lot84-echanges-mails-programmes.sql` (a coller APRES 83), banc 40
+controles ; fonction `mails-programmes` (horloge toutes les 5 min, cle NOTIF_CLE). La page rgpd
+le dit, et la purge efface toute ligne finie depuis 30 jours, echec compris (corrige pour coller
+a la page, mutation verifiee). Vigneron empathique : orange, puis orange leger ; corriges : ordre
+au telephone (ecrire et noter sous le moment), bouton plein qui suit la programmation, echecs en
+tete, date du rappel decale, « (note par X) », pictos, « Noter » plein, meme ordre panneau et
+page, ecrire et noter sur une rangee. Toute la chaine verif verte.
