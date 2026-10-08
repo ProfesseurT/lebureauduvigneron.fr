@@ -598,7 +598,10 @@
   function duClient(cle) {
     if (!EN_COURS || cle == null) return [];
     var c = String(cle);
+    /* Un NOUVEAU CLIENT (cle « p:<piste> », lot 81) : ses affaires sont celles de sa piste. */
+    var piste = c.indexOf('p:') === 0 ? c.slice(2) : null;
     return EN_COURS.filter(function (a) {
+      if (piste) return a.piste_id === piste;
       return (a.client_id != null && String(a.client_id) === c) || (!!a.piste_id && CLIENT_DE[a.piste_id] === c);
     });
   }
@@ -614,6 +617,7 @@
     EN_COURS.forEach(function (a) {
       if (a.client_id != null) s.add(String(a.client_id));
       if (a.piste_id && CLIENT_DE[a.piste_id]) s.add(CLIENT_DE[a.piste_id]);
+      else if (a.piste_id) s.add('p:' + a.piste_id);
     });
     return s;
   }

@@ -248,6 +248,20 @@
                  statut: l.statut || '', par: l.cree_par || null };
       }) : (vieux.suivi || vieux.rappels || [])
     };
+    /* LES NOUVEAUX CLIENTS N'ONT PAS DE NOM DANS LE DEPOT (il vient de l'export), 08/10/2026,
+       lot 81. Leur cle est « p:<piste> » : on lit le nom de leur piste, une requete et
+       seulement s'il y en a. Une lecture ratee laisse le nom d'avant, jamais la cle brute
+       si le miroir la connaissait. */
+    var pids = (etat.suivi || []).map(function (l) { return String(l.id || ''); })
+      .filter(function (id) { return /^p:[0-9a-f-]{36}$/i.test(id); }).map(function (id) { return id.slice(2); });
+    if (pids.length) {
+      etat.noms = Object.assign({}, etat.noms);
+      Object.keys(vieux.noms || {}).forEach(function (k) { if (k.indexOf('p:') === 0 && !etat.noms[k]) etat.noms[k] = vieux.noms[k]; });
+      try {
+        var ps = await api('/pistes?select=piste_id,nom' + auBureau() + '&piste_id=in.(' + pids.slice(0, 300).join(',') + ')');
+        (Array.isArray(ps) ? ps : []).forEach(function (x) { if (x && x.nom) etat.noms['p:' + x.piste_id] = x.nom; });
+      } catch (e) {}
+    }
     ecrireMiroir(etat);
     return etat;
   }

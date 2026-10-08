@@ -2625,7 +2625,59 @@ function recoPour(id,n){
 }
 
 // Tout ce qu'on sait d'un client, rassemble en un objet.
+/* ======================= LES NOUVEAUX CLIENTS, 08/10/2026 (lots 81 et 82) =======================
+   Decision de Ted : un client qui n'est pas (encore) dans Vitisoft a sa place dans « Mes
+   clients » et la MEME fiche, sans les chiffres de vente. C'est une ligne de `pistes`, et sa
+   cle de fiche est « p:<piste_id> » : le suivi et le journal vont dans les memes tables que
+   ceux d'un client Vitisoft (lot 80 du SQL, qui verifie la cle).
+   TROIS ETATS de lecture, jamais deux : null pas lus, true lus, false la lecture a lache.
+   Une piste deja reliee a Vitisoft (`client_id`) n'est PAS un nouveau client : c'est la
+   fiche Vitisoft qui compte. Une piste en opposition reste lisible, marquee, et sa fiche
+   ne propose aucun geste (la base les refuse de toute facon). */
+const NOUVEAUX=new Map();
+let NOUVEAUX_LUS=null, NOUVEAUX_EN_COURS=null;
+function estNouveau(id){return typeof id==='string'&&id.indexOf('p:')===0;}
+function chargerNouveaux(){
+  if(NOUVEAUX_EN_COURS)return NOUVEAUX_EN_COURS;
+  const B=window.BdvCompte, bu=B&&B.monBureau&&B.monBureau();
+  if(!B||!B.api||!bu){NOUVEAUX_LUS=false;return Promise.resolve(false);}
+  NOUVEAUX_EN_COURS=(async function(){
+    const vus=new Map();
+    for(let de=0;;de+=1000){
+      const l=await B.api('/pistes?select=*&bureau=eq.'+encodeURIComponent(bu)+'&client_id=is.null&order=nom.asc&offset='+de+'&limit=1000');
+      (Array.isArray(l)?l:[]).forEach(x=>vus.set('p:'+x.piste_id,x));
+      if(!Array.isArray(l)||l.length<1000)break;
+    }
+    NOUVEAUX.clear();vus.forEach((v,k)=>NOUVEAUX.set(k,v));
+    NOUVEAUX_LUS=true;return true;
+  })().catch(function(){NOUVEAUX_LUS=false;return false;})
+    .then(function(ok){NOUVEAUX_EN_COURS=null;try{document.dispatchEvent(new CustomEvent('bdv:nouveaux'));}catch(e){}return ok;});
+  return NOUVEAUX_EN_COURS;
+}
+function poserNouveau(p){
+  if(!p||!p.piste_id)return;
+  if(p.client_id)NOUVEAUX.delete('p:'+p.piste_id);else NOUVEAUX.set('p:'+p.piste_id,p);
+}
+function fichePiste(id){
+  const p=NOUVEAUX.get(String(id));
+  if(!p)return null;
+  const tels=p.telephone?parseTels(p.telephone,p.pays||''):[];
+  const emails=p.email?parseEmails(p.email):[];
+  return {id:String(id),nouveau:true,piste:p,opposition:!!p.opposition,
+    nom:p.nom||'Nouveau client',ville:p.ville||'',cp:p.code_postal||'',pays:p.pays||'',
+    adresse:p.adresse||'',siret:p.siret||'',contact:p.contact_nom||'',fonction:p.contact_fonction||'',
+    type:'',tarif:'',commercial:'',origine:'',lieu:'',canal:'',perso:[],
+    ca:0,btl:0,nbFactures:0,factures:[],nbCommandes:0,panier:0,prixMoyen:0,
+    premier:null,dernier:null,silence:null,cadence:null,cuvees:[],
+    parMois:new Array(13).fill(0),parAn:{},offerts:0,coutOfferts:0,
+    cree:p.cree_le||null,emails:emails,tels:tels};
+}
+window.bdvNouveaux={charger:chargerNouveaux,est:estNouveau,poser:poserNouveau,
+  lus:function(){return NOUVEAUX_LUS;},liste:function(){return Array.from(NOUVEAUX.values());},
+  get:function(id){return NOUVEAUX.get(String(id))||null;},fiche:fichePiste};
+
 function ficheClient(id){
+  if(estNouveau(id))return fichePiste(id);
   const lignes=ROWS.filter(r=>clientKey(r)===id);
   if(!lignes.length)return null;
   const ventes=lignes.filter(r=>r._vin);
@@ -3056,9 +3108,18 @@ function rangerPage(boite){
   if(cote&&hist&&hist.parentNode===corps)corps.insertBefore(cote,hist);
   if(kpis)droite.appendChild(kpis);
   if(ong)droite.appendChild(ong);
+  /* Un nouveau client (lot 81) n'a ni chiffres ni onglets : la colonne de droite porte ses
+     coordonnees, puis la phrase qui dit pourquoi il n'y a pas de chiffres. */
+  const neuf=boite.querySelector('.fiche__neuf');
+  if(neuf){
+    droite.setAttribute('aria-label','Ses coordonnées');
+    ['.fiche__contacts','.fiche__adresse'].forEach(function(q){const n=boite.querySelector(q);if(n)droite.appendChild(n);});
+    droite.appendChild(neuf);
+  }
   boite.insertBefore(centre,corps);
   centre.appendChild(corps);
-  boite.insertBefore(droite,centre.nextSibling);
+  /* Rien a droite (une personne en opposition) : pas de cadre vide. */
+  if(droite.children.length)boite.insertBefore(droite,centre.nextSibling);
 }
 function poserPage(boite,f){
   if(!boite)return;
@@ -3434,7 +3495,9 @@ async function ouvrirFicheClient(id,opts){
      que l'amorcage ne charge plus rien, ce chargement-la n'est plus l'exception d'un
      appareil neuf : c'est le cas normal du premier clic sur un client. Sans voile, le
      vigneron clique sur un nom et la page se fige quelques secondes sans un mot. */
-  if(!lignesPretes()){
+  if(estNouveau(id)){
+    if(!NOUVEAUX.has(String(id)))await chargerNouveaux();
+  }else if(!lignesPretes()){
     busy(true, 'Récupération de tes ventes…');
     try{
       await assurerLignes(function(txt){ const z=el('busytxt'); if(z) z.textContent=txt; });
@@ -3705,18 +3768,27 @@ window.bdvAchatsClient=function(f){
   return `<div class="bdv-ventes page-aff__achats">${ficheKpis(f)}${ficheOnglets(f,recoPour(f.id,5),{pre:'paff-'})}</div>`;
 };
 function ficheHTML(f,motif){
-  const lib=MOTIFS[motif]?MOTIFS[motif].label:'';
-  const cls=MOTIFS[motif]?MOTIFS[motif].cls:'';
-  const mot=motif||motifDeduit(f);
-  const conseils=conseilClient(f,mot);
+  /* UN NOUVEAU CLIENT N'A NI MOTIF, NI CONSEIL, NI ONGLETS D'ACHATS : tout cela se calcule sur
+     ses ventes, et il n'en a pas. Ce qu'on lui montre a la place vient de sa piste. */
+  const neuf=!!f.nouveau;
+  const lib=!neuf&&MOTIFS[motif]?MOTIFS[motif].label:'';
+  const cls=!neuf&&MOTIFS[motif]?MOTIFS[motif].cls:'';
+  const mot=neuf?'':(motif||motifDeduit(f));
+  const conseils=neuf?[]:conseilClient(f,mot);
   const s=CRM[f.id]||{};
-  const reco=recoPour(f.id,5);
+  const reco=neuf?[]:recoPour(f.id,5);
   const tags=s.tags||[];
   const proprio=(s.proprietaire&&window.BdvAnnuaire&&BdvAnnuaire.nomDe)?BdvAnnuaire.nomDe(s.proprietaire):'';
   const tel=f.tels[0], mail=f.emails[0];
-  const meta=[f.id&&f.id!==f.nom?'n°'+f.id:'', [f.cp,f.ville].filter(Boolean).join(' '),
+  const meta=neuf
+    ? [[f.contact,f.fonction].filter(Boolean).join(', '), [f.cp,f.ville].filter(Boolean).join(' '),
+       f.pays&&!/^france$/i.test(f.pays)?f.pays:'', f.siret?'SIRET '+f.siret:'',
+       proprio?'suivi par '+proprio:''].filter(Boolean)
+    : [f.id&&f.id!==f.nom?'n°'+f.id:'', [f.cp,f.ville].filter(Boolean).join(' '),
     f.pays&&!/^france$/i.test(f.pays)?f.pays:'', f.premier?'client depuis '+moisAn(f.premier):'',
     proprio?'suivi par '+proprio:''].filter(Boolean);
+  /* En opposition, aucun geste : la personne a demande a ne plus etre contactee. */
+  const muet=neuf&&f.opposition;
   /* LE CONSEIL : la phrase qui porte le verdict (celle en gras) passe devant, le reste se
      deplie. Les phrases viennent telles quelles de conseilClient() : on ne les reecrit pas. */
   const iLead=Math.max(0,conseils.findIndex(c=>c.indexOf('<b>')>=0));
@@ -3734,29 +3806,33 @@ function ficheHTML(f,motif){
       <div class="fiche__id">
         <h3 class="fiche__nom">${esc(f.nom)}</h3>
         <div class="fiche__meta">${meta.map(esc).join(' · ')}</div>
+        ${neuf?`<p class="fiche__neuf-marque"><span class="aff-marque aff-marque--nouveau">Pas encore dans Vitisoft</span></p>`:''}
         <div class="fiche__pastilles" id="fichePastilles">${pastillesFiche(f,s)}</div>
       </div>
       ${lib?`<span class="motif ${cls}">${lib}</span>`:''}
     </div>
 
-    <div class="fiche__actions">
+    ${muet?`<p class="fiche__oppose" role="note"><b>${esc(f.nom)} a demandé à ne plus être contacté.</b> Ne le rappelle pas, ne lui envoie rien.</p>`:''}
+    <div class="fiche__actions"${muet?' hidden':''}>
       ${tel?`<a class="btn btn--primary btn--sm" href="tel:${esc(tel.appel)}">☎ Appeler<span class="hors-ecran"> ${esc(tel.affiche)}</span></a>`:''}
-      ${mail?`<button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('message')">✉ Écrire</button>`:''}
+      ${mail?(neuf?`<a class="btn btn--ghost btn--sm" href="mailto:${esc(mail)}">✉ Écrire</a>`:`<button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('message')">✉ Écrire</button>`):''}
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('note')">Noter un échange</button>
       <button type="button" class="btn btn--ghost btn--sm" onclick="ficheViser('rappel')">Planifier un rappel</button>
       <button type="button" class="btn btn--ghost btn--sm" data-id="${esc(f.id)}" data-nom="${esc(f.nom)}" onclick="ficheNouvelleAffaire(this)">Nouvelle affaire</button>
-      <button type="button" class="btn btn--sm btn--bientot" data-bientot="commande" data-nom="${esc(f.nom)}" aria-disabled="true" aria-describedby="ficheBientot" aria-label="Commande bientôt : nouvelle commande, pas encore disponible">Commande <span class="btn__bientot">bientôt</span></button>
+      ${neuf?'':`<button type="button" class="btn btn--sm btn--bientot" data-bientot="commande" data-nom="${esc(f.nom)}" aria-disabled="true" aria-describedby="ficheBientot" aria-label="Commande bientôt : nouvelle commande, pas encore disponible">Commande <span class="btn__bientot">bientôt</span></button>`}
     </div>
     <p class="fiche__bientot" id="ficheBientot" aria-live="polite"></p>
     ${ficheAffaires(f)}
 
-    <div class="fiche__contacts">
+    <div class="fiche__contacts"${muet?' hidden':''}>
       ${f.emails.map(e=>`<a class="chipc" href="mailto:${esc(e)}">✉ ${esc(e)}</a>`).join('')}
       ${f.tels.map(t=>`<a class="chipc" href="tel:${esc(t.appel)}">☎ ${esc(t.affiche)}</a>`).join('')}
-      ${(!f.emails.length&&!f.tels.length)?'<span class="muted-cell">Aucun e-mail ni téléphone dans ton export.</span>':''}
+      ${(!f.emails.length&&!f.tels.length)?(neuf?'<span class="muted-cell">Aucun e-mail ni téléphone sur sa fiche.</span>':'<span class="muted-cell">Aucun e-mail ni téléphone dans ton export.</span>'):''}
     </div>
+    ${neuf&&!muet&&(f.adresse||f.cp||f.ville)?`<p class="fiche__adresse">${esc([f.adresse,[f.cp,f.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</p>`:''}
 
-    ${ficheKpis(f)}
+    ${neuf?(muet?'':`<p class="fiche__neuf">Pas encore de vente : il entrera dans tes chiffres avec sa première facture Vitisoft.</p>`):ficheKpis(f)}
+    ${neuf&&!muet?suiviHTML(f,s):''}
 
     ${lead?`<div class="fiche__conseil">
       <div class="fiche__conseil-t">${({alerte:'À faire cette semaine',calme:'Pour le garder'})[conseils.ton]||'Ce que je ferais'}</div>
@@ -3768,12 +3844,12 @@ function ficheHTML(f,motif){
     </div>
 
     <div class="fiche__cote">
-    ${suiviHTML(f,s)}
+    ${neuf?'':suiviHTML(f,s)}
 
-    ${(f.emails.length||f.tels.length)?`<details class="msg msg--replie fiche__redac"><summary>Écrire un message à ce client</summary>${messageHTML(f,mot)}</details>`:''}
+    ${!neuf&&(f.emails.length||f.tels.length)?`<details class="msg msg--replie fiche__redac"><summary>Écrire un message à ce client</summary>${messageHTML(f,mot)}</details>`:''}
     </div>
 
-    ${ficheOnglets(f,reco)}
+    ${neuf?'':ficheOnglets(f,reco)}
   </div>`;
 }
 /* ======================= LE SUIVI D'UN CLIENT =======================
@@ -3968,10 +4044,11 @@ function lireMailsAffaires(id){
   if(!B||!B.api||!bu||id==null)return Promise.resolve();
   const enc=encodeURIComponent, cle=String(id), b='&bureau=eq.'+enc(bu);
   const absente=e=>!!(e&&e.status===404)||/PGRST205|42P01/.test(String((e&&(e.code||''))+' '+((e&&e.message)||'')));
-  return B.api('/pistes?select=piste_id'+b+'&client_id=eq.'+enc(cle))
+  const pisteIci=estNouveau(cle)?cle.slice(2).replace(/[^0-9a-f-]/gi,''):'';
+  return (pisteIci?Promise.resolve([{piste_id:pisteIci}]):B.api('/pistes?select=piste_id'+b+'&client_id=eq.'+enc(cle)))
     .then(function(pi){
       const ps=(Array.isArray(pi)?pi:[]).map(x=>x.piste_id).filter(Boolean);
-      const ou='client_id.eq.'+cle.replace(/[,()]/g,'')+(ps.length?',piste_id.in.('+ps.join(',')+')':'');
+      const ou=(pisteIci?'':'client_id.eq.'+cle.replace(/[,()]/g,'')+(ps.length?',':''))+(ps.length?'piste_id.in.('+ps.join(',')+')':'');
       return B.api('/affaires?select=affaire_id,titre'+b+'&or=('+enc(ou)+')&limit=200');
     })
     .then(function(af){

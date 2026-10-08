@@ -417,6 +417,116 @@ console.log('== 9. La phrase « bientot » ne passe pas sous le coin de la fiche
   t('et c\'est bien elle que ficheBientot() ramene dans la vue', /const mot=el\('ficheBientot'\)[\s\S]{0,600}mot\.scrollIntoView\(/.test(js));
 }
 
+/* 08/10/2026, LOTS 81 ET 82 : LES NOUVEAUX CLIENTS. Une piste pas encore reliee a Vitisoft
+   entre dans « Mes clients » sous la cle « p:<piste> », marquee, avec la meme fiche sans chiffres.
+   « Nouveau client » la cree, en bloquant un SIRET deja connu et en prevenant pour un nom proche. */
+console.log('== 10. Les nouveaux clients ==');
+{
+  const PA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', PO = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', PL = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const PISTES = [
+    { piste_id: PA, nom: 'Cave du Quai', nature: 'caviste', ville: 'Nantes', code_postal: '44000', siret: '12345678900011', email: 'cave@quai.fr', telephone: '02 40 00 00 00', contact_nom: 'Paul', client_id: null, opposition: false },
+    { piste_id: PO, nom: 'Bistrot Fermé', nature: 'restaurant', ville: 'Lyon', client_id: null, opposition: true },
+    { piste_id: PL, nom: 'Devenu Vitisoft', client_id: 'C1', opposition: false }
+  ];
+  const d10 = new JSDOM(`<!doctype html><body>
+    <section class="panel on" id="p-annuaire"></section>
+    <div id="modale" class="bdv-ventes modale"></div>
+    <div id="status"></div><div id="statusTxt"></div><div id="statusSpin"></div>
+    <div id="busyov"></div><div id="busytxt"></div>
+  </body>`, { runScripts: 'outside-only', url: 'https://x.test/mon-bureau/' });
+  const w10 = d10.window;
+  if (w10.document.readyState === 'loading') await new Promise(r => w10.document.addEventListener('DOMContentLoaded', r));
+  w10.Chart = function(){ this.destroy = () => {}; }; w10.Papa = {};
+  w10.__POST = []; w10.__OUVERT = [];
+  w10.BdvSync = { pret: () => true, ecrireSuiviLot: async () => true, ecrireSuivi: async () => true, supprimerSuivi: async () => true, lot33: async () => null, lireVues: async () => null };
+  w10.BdvDomaine = { chercher: async () => ({ ok: true, liste: [{ nom: 'CAVE DU QUAI', siret: '12345678900011', adresse: '1 quai', code_postal: '44000', ville: 'Nantes', actif: true }] }) };
+  w10.bdvOuvrirFiche = function(id){ w10.__OUVERT.push(id); return Promise.resolve(true); };
+  w10.BdvCompte = { monBureau: () => 'B1', monId: () => 'u1',
+    api: async (chemin, o) => {
+      o = o || {};
+      if (/^\/pistes/.test(chemin) && (o.methode || 'GET') === 'GET') {
+        if (!/client_id=is\.null/.test(chemin) || !/bureau=eq\.B1/.test(chemin)) throw new Error('lecture des pistes mal filtree : ' + chemin);
+        return PISTES.filter(p => !p.client_id);
+      }
+      if (chemin === '/pistes' && o.methode === 'POST') { w10.__POST.push(o.corps); return [Object.assign({ cree_le: '2026-10-08' }, o.corps[0])]; }
+      return [];
+    } };
+  const tic10 = async () => { for (let i = 0; i < 20; i++) await new Promise(r => setTimeout(r, 0)); };
+  w10.eval(fs.readFileSync(R + 'bdv-base.js', 'utf8') + '\n' + fs.readFileSync(R + 'bdv-ecrans.js', 'utf8') + '\n'
+    + fs.readFileSync(R + 'bdv-annuaire.js', 'utf8') + '\n' + scenario.replace('window.__S = S;', 'window.__S10 = S;') + `
+    window.__x10 = function(code){ return eval(code); };`);
+  await tic10();
+  const X = (c) => w10.__x10(c);
+  const ids = () => X(`BdvAnnuaire._etat().LISTE.map(function(c){ return c.id; }).sort().join(',')`);
+  t('la lecture des nouveaux clients ne prend que les pistes pas encore reliees, du bureau', X(`window.bdvNouveaux.lus()`) === true, X(`window.bdvNouveaux.lus()`));
+  t('« Mes clients » montre les clients Vitisoft ET les nouveaux, pas la piste deja reliee',
+    ids() === ['C1', 'C2', 'C3', 'p:' + PA, 'p:' + PO].sort().join(','), ids());
+  const ligne = w10.document.querySelector('#annuCorps tr[data-id="p:' + PA + '"]');
+  t('sa ligne porte « Pas encore dans Vitisoft »', !!ligne && /Pas encore dans Vitisoft/.test(ligne.textContent), ligne && ligne.textContent);
+  t('et un lien vers sa fiche par sa cle', !!ligne && ligne.querySelector('a.annu__nom').getAttribute('href') === '/mon-bureau/#fiche=' + encodeURIComponent('p:' + PA));
+  const lo = w10.document.querySelector('#annuCorps tr[data-id="p:' + PO + '"]');
+  t('une personne en opposition reste visible, marquee', !!lo && /Ne veut plus être contacté/.test(lo.textContent));
+  X(`BdvAnnuaire._etat().ETAT.etat = 'nouveau'; BdvAnnuaire._maj()`);
+  t('le filtre « Pas encore dans Vitisoft »', X(`BdvAnnuaire._etat().FILTREE.map(function(c){ return c.id; }).sort().join(',')`) === ['p:' + PA, 'p:' + PO].sort().join(','));
+  X(`BdvAnnuaire._etat().ETAT.etat = ''; BdvAnnuaire._etat().ETAT.q = '12345678900011'; BdvAnnuaire._maj()`);
+  t('la recherche trouve un nouveau client par son SIRET', X(`BdvAnnuaire._etat().FILTREE.map(function(c){ return c.id; }).join(',')`) === 'p:' + PA);
+  X(`BdvAnnuaire._etat().ETAT.q = '02 40 00'; BdvAnnuaire._maj()`);
+  t('et par son telephone', X(`BdvAnnuaire._etat().FILTREE.map(function(c){ return c.id; }).join(',')`) === 'p:' + PA);
+  X(`BdvAnnuaire._etat().ETAT.q = ''; BdvAnnuaire._maj()`);
+
+  // LA FICHE
+  const f = X(`JSON.stringify(ficheClient('p:${PA}'))`);
+  const fo = JSON.parse(f);
+  t('ficheClient(p:...) rend une fiche de nouveau client, sans ventes', fo.nouveau === true && fo.nom === 'Cave du Quai' && fo.ca === 0 && fo.factures.length === 0, f);
+  t('ses coordonnees viennent de sa piste', fo.emails[0] === 'cave@quai.fr' && fo.tels.length === 1 && fo.siret === '12345678900011', JSON.stringify(fo.tels));
+  const h = X(`ficheHTML(ficheClient('p:${PA}'), '')`);
+  t('sa fiche dit « Pas encore dans Vitisoft » et pourquoi elle n a pas de chiffres', /Pas encore dans Vitisoft/.test(h) && /Pas encore de vente/.test(h));
+  t('ni chiffres, ni onglets d achats, ni conseil, ni redacteur des clients Vitisoft',
+    !/fiche__kpis/.test(h) && !/fiche__onglets/.test(h) && !/fiche__conseil/.test(h) && !/fiche__redac/.test(h));
+  t('elle garde le suivi, l historique, Appeler, Ecrire (messagerie), Noter, Planifier et Nouvelle affaire',
+    /id="suiviRepli"/.test(h) && /id="ficheHist"/.test(h) && /href="tel:/.test(h) && /href="mailto:cave@quai.fr"/.test(h)
+    && /ficheViser\('note'\)/.test(h) && /ficheViser\('rappel'\)/.test(h) && /ficheNouvelleAffaire/.test(h));
+  const ho = X(`ficheHTML(ficheClient('p:${PO}'), '')`);
+  t('en opposition : le message, aucun geste, aucun suivi', /a demandé à ne plus être contacté/.test(ho) && /fiche__actions" hidden/.test(ho) && !/id="suiviRepli"/.test(ho));
+  t('un client Vitisoft garde sa fiche d avant (chiffres et onglets)', /fiche__kpis/.test(X(`ficheHTML(ficheClient('C1'), '')`)));
+
+  // NOUVEAU CLIENT
+  const q = (sel) => w10.document.querySelector(sel);
+  const clic = (sel) => { q(sel).click(); };
+  const remplir = (o) => Object.keys(o).forEach(k => { q('[name="nv-' + k + '"]').value = o[k]; });
+  clic('[data-a="nouveau"]'); await tic10();
+  t('« Nouveau client » ouvre le formulaire, le curseur sur le nom', !!q('#annuNouveau:not([hidden])') && w10.document.activeElement === q('[name="nv-nom"]'));
+  remplir({ nom: '' }); clic('[data-a="nv-creer"]'); await tic10();
+  t('sans nom : refuse, rien ne part', w10.__POST.length === 0 && /Donne au moins son nom/.test(q('#annuNouveau').textContent));
+  remplir({ nom: 'Nouvelle Cave', siret: '12345678900011' }); clic('[data-a="nv-creer"]'); await tic10();
+  t('un SIRET deja connu BLOQUE, rien ne part', w10.__POST.length === 0 && /déjà celui de « Cave du Quai »/.test(q('#annuNouveau').textContent), q('#annuNouveau').textContent);
+  remplir({ nom: 'Nouvelle Cave', siret: '123' }); clic('[data-a="nv-creer"]'); await tic10();
+  t('un SIRET qui n a pas 14 chiffres est refuse', w10.__POST.length === 0 && /14 chiffres/.test(q('#annuNouveau').textContent));
+  remplir({ nom: 'Bistrot Fermé', siret: '' }); clic('[data-a="nv-creer"]'); await tic10();
+  t('une personne en opposition ne se recree pas', w10.__POST.length === 0 && /ne plus être contacté/.test(q('#annuNouveau').textContent));
+  remplir({ nom: 'SARL Domaine Neuf', siret: '' }); clic('[data-a="nv-creer"]'); await tic10();
+  t('un nom proche PREVIENT (sans la forme juridique) et rien ne part', w10.__POST.length === 0 && !!q('.annu__nproche') && /Domaine Neuf/.test(q('.annu__nproche').textContent));
+  t('le curseur va sur « Creer quand meme »', w10.document.activeElement === q('[data-force]'));
+  clic('[data-force]'); await tic10();
+  const corps = w10.__POST[0] && w10.__POST[0][0];
+  t('« Creer quand meme » cree la piste, du bureau, sans affaire', w10.__POST.length === 1 && corps.bureau === 'B1' && corps.nom === 'SARL Domaine Neuf' && corps.source === 'Mes clients' && !('client_id' in corps), JSON.stringify(corps));
+  t('et elle entre aussitot dans la liste, puis sa fiche s ouvre', ids().indexOf('p:' + corps.piste_id) >= 0 && w10.__OUVERT[0] === 'p:' + corps.piste_id, w10.__OUVERT.join());
+  clic('[data-a="nouveau"]'); await tic10();
+  remplir({ nom: 'Cave' }); clic('[data-a="nv-chercher"]'); await tic10();
+  t('l annuaire : un resultat deja dans ta base se dit, sans bouton « Prendre »', /Déjà dans ta base : « Cave du Quai »/.test(q('#annuNouveau').textContent) && !q('[data-a="nv-prendre"]'));
+  X(`window.bdvNouveaux.poser({ piste_id: '${PA}', nom: 'Cave du Quai', client_id: 'C9' })`);
+  t('une piste reliee a Vitisoft sort des nouveaux clients', X(`window.bdvNouveaux.get('p:${PA}')`) === null);
+  w10.close();
+}
+
+/* LA JOURNEE NOMME UN NOUVEAU CLIENT, et pas par sa cle (bdv-crm.js lit le nom de sa piste). */
+{
+  const crm = fs.readFileSync(R + 'bdv-crm.js', 'utf8');
+  t('bdv-crm.js lit le nom des pistes des cles « p: » du suivi', /\/pistes\?select=piste_id,nom' \+ auBureau\(\) \+ '&piste_id=in\./.test(crm));
+  const cou = fs.readFileSync(R + 'bdv-courrier.js', 'utf8');
+  t('le courrier du matin prend le nom porte par la vue (lot 80) avant l annuaire', /titre:\(s\.nom && String\(s\.nom\)\.trim\(\)\) \|\| nomDe\(annuaire, s\.client_id\)/.test(cou));
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 console.log(ko ? '  « MES CLIENTS » NE TIENT PAS SES PROMESSES' : '  « MES CLIENTS » TIENT SES PROMESSES');

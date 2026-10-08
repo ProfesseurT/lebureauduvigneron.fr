@@ -236,7 +236,10 @@
 /* BOUTONS */
 .bdv-ventes .btn{display:inline-flex;align-items:center;gap:var(--bdv-e-2);padding:var(--bdv-e-3) var(--bdv-e-6);font-family:inherit;font-size:var(--bdv-f-2);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq);cursor:pointer;border:none;text-decoration:none;transition:background var(--bdv-d-court) var(--bdv-courbe),color var(--bdv-d-court) var(--bdv-courbe);white-space:nowrap;border-radius:var(--bdv-r);font-weight:600}
 .bdv-ventes .btn--primary{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
-.bdv-ventes .btn--primary:hover{background:var(--bdv-accent-fort)}
+/* LE TEXTE GARDE SON ENCRE AU SURVOL, 08/10/2026 : `.bdv-coque .btn:hover` (0,3,0, bdv-bureau.css)
+   pose `--bdv-encre-1`, et cette regle ne nommait que le fond. Au survol, « Appeler » et tout
+   bouton plein des ecrans de vente ecrivaient de l'encre foncee sur du bordeaux fonce. */
+.bdv-ventes .btn--primary:hover{background:var(--bdv-accent-fort);border-color:var(--bdv-accent-fort);color:var(--bdv-encre-sur-accent)}
 .bdv-ventes .btn--ghost{background:transparent;color:var(--bdv-accent);border:1px solid var(--bdv-accent)}
 .bdv-ventes .btn--ghost:hover{background:var(--bdv-accent);color:var(--bdv-encre-sur-accent)}
 .bdv-ventes .btn--sm{padding:var(--bdv-e-2) var(--bdv-e-3);font-size:var(--bdv-f-1)}
@@ -1106,6 +1109,47 @@
    le meme »). La rangee entiere s'ouvre par un ecouteur (bdv-annuaire.js, bdv-ecrans.js), qui
    rend le clic au nom. Ne pas remettre de calque sur une rangee de tableau. */
 .bdv-ventes tr.annu__l{cursor:pointer}
+
+/* LES NOUVEAUX CLIENTS, 08/10/2026 (lots 81 et 82). Un client pas encore dans Vitisoft :
+   sa marque reprend `.aff-marque--nouveau` des affaires (bdv-bureau.css), son formulaire de
+   creation vit sous la ligne du compte, et sa fiche dit pourquoi elle n'a pas de chiffres. */
+.bdv-ventes .annu__gestes{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2)}
+.bdv-ventes .annu__seul{padding:var(--bdv-e-4)}
+.bdv-ventes .annu__nom ~ .aff-marque{margin-left:var(--bdv-e-2);vertical-align:middle;white-space:nowrap}
+.bdv-ventes .annu__nouveau{border:1px solid var(--bdv-trait);border-left:3px solid var(--bdv-accent);background:var(--bdv-surface-2);
+  padding:var(--bdv-e-4);margin:0 0 var(--bdv-e-4)}
+.bdv-ventes .annu__nouveau-t{margin:0 0 var(--bdv-e-2);font-size:var(--bdv-f-3);color:var(--bdv-encre-1)}
+.bdv-ventes .annu__aide{margin:0 0 var(--bdv-e-3);font-size:var(--bdv-f-2);color:var(--bdv-encre-3)}
+.bdv-ventes .annu__ngrille{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:var(--bdv-e-3)}
+.bdv-ventes .annu__nchamp{display:flex;flex-direction:column;gap:var(--bdv-e-1);min-width:0}
+.bdv-ventes .annu__nchamp--plein{grid-column:1 / -1}
+.bdv-ventes .annu__nchamp span{font-size:var(--bdv-f-1);color:var(--bdv-encre-3);text-transform:uppercase;letter-spacing:var(--bdv-ls-etiq)}
+.bdv-ventes .annu__nchamp input,.bdv-ventes .annu__nchamp select{width:100%;min-height:var(--bdv-cible);font-size:var(--bdv-f-3);color:var(--bdv-encre-1)}
+.bdv-ventes .annu__ngrille--suite{margin-top:var(--bdv-e-3)}
+@media (max-width:700px){
+  /* La barre des pieces est fixee en bas : un bouton qui prend le focus garde sa hauteur au-dessus. */
+  .bdv-ventes .annu__nouveau .btn{scroll-margin-bottom:calc(var(--bdv-cible) + var(--bdv-e-6) * 2)}
+  .bdv-ventes .annu__nouveau{margin-bottom:calc(var(--bdv-cible) + var(--bdv-e-6))}
+  .bdv-ventes .annu__haut{flex-wrap:wrap}
+  .bdv-ventes .annu__gestes{flex:1 1 100%}
+  .bdv-ventes .annu__gestes [data-a="nouveau"]{flex:1 1 100%;min-height:var(--bdv-cible)}
+}
+.bdv-ventes .annu__nbarre,.bdv-ventes .annu__npied{display:flex;flex-wrap:wrap;gap:var(--bdv-e-2);margin-top:var(--bdv-e-3)}
+.bdv-ventes .annu__ntrouve{list-style:none;margin:var(--bdv-e-3) 0 0;padding:0;border-top:1px solid var(--bdv-trait)}
+.bdv-ventes .annu__ntrouve li{display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-2);padding:var(--bdv-e-2) 0;border-bottom:1px solid var(--bdv-trait)}
+.bdv-ventes .annu__ntrouve-nom{font-weight:600;color:var(--bdv-encre-1);flex:1 1 12rem}
+.bdv-ventes .annu__ntrouve .annu__sous{flex:1 1 100%}
+.bdv-ventes .annu__nmot{margin:var(--bdv-e-3) 0 0;font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
+.bdv-ventes .annu__nmot:empty{display:none}
+.bdv-ventes .annu__nmot--alerte{color:var(--bdv-retard);font-weight:600}
+.bdv-ventes .annu__nproche{margin-top:var(--bdv-e-3);padding:var(--bdv-e-3);border:1px solid var(--bdv-trait-fort);background:var(--bdv-surface);
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--bdv-e-2)}
+.bdv-ventes .annu__nproche p{margin:0;flex:1 1 100%;color:var(--bdv-encre-1)}
+.bdv-ventes .fiche__neuf-marque{margin:var(--bdv-e-2) 0 0}
+.bdv-ventes .fiche__neuf{margin:var(--bdv-e-4) 0;padding:var(--bdv-e-3) var(--bdv-e-4);border:1px solid var(--bdv-trait);background:var(--bdv-surface-2);
+  color:var(--bdv-encre-2);font-size:var(--bdv-f-2)}
+.bdv-ventes .fiche__adresse{margin:0 0 var(--bdv-e-3);font-size:var(--bdv-f-2);color:var(--bdv-encre-2)}
+.bdv-ventes .fiche__oppose{margin:var(--bdv-e-3) 0;padding:var(--bdv-e-3);border-left:3px solid var(--bdv-retard);background:var(--bdv-retard-lavis);color:var(--bdv-encre-1)}
 /* « Clients a suivre », 29/09/2026 (lot 44) : la rangee etait un `<tr role=button>` qui
    portait deja des liens, et il fallait y poser « En faire une affaire ». Meme montage que
    « Mes clients » : le NOM est le bouton qui ouvre la fiche, et un clic ailleurs sur la

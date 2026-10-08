@@ -19,8 +19,11 @@
    LES TROIS DECISIONS DE TED QUI COMMANDENT CE FICHIER :
      1. VITISOFT FAIT FOI sur les coordonnees : on les LIT, on ne les modifie pas.
         Aucune ecriture de nom, de ville ou de telephone ne part d'ici.
-     2. SEULS LES CLIENTS DES EXPORTS entrent dans la base : la liste se CALCULE
-        sur les lignes de vente, elle ne se saisit pas. Pas de creation a la main.
+     2. LES CLIENTS DES EXPORTS, PLUS LES NOUVEAUX CLIENTS (amende le 08/10/2026, lot 81,
+        decision de Ted) : la liste se CALCULE sur les lignes de vente, et y ajoute les
+        `pistes` pas encore reliees a Vitisoft, marquees « Pas encore dans Vitisoft ».
+        « Nouveau client » en cree une. Leurs coordonnees se corrigent sur leur fiche,
+        pas ici, et Vitisoft reprend la main a leur premiere facture.
      3. TOUT LE BUREAU ECRIT, ET ON NOMME QUI A FAIT L'ACTION (lot 33 du SQL).
 
    LA SELECTION NE POSE PAS DE RAPPELS, et c'est une regle de Ted du 11/09/2026 :
@@ -47,6 +50,9 @@
   const DORMANT_J = 365;           // au-dela d'un an sans commande, un client est dormant
 
   const ETAT_VIDE = { q:'', canal:'', type:'', pays:'', etat:'', rappel:'', tag:'', proprio:'', tri:'der', sens:-1 };
+  const NATURES = [['caviste', 'Caviste'], ['restaurant', 'Restaurant'], ['importateur', 'Importateur'], ['ce', 'CE, entreprise'], ['particulier', 'Particulier'], ['autre', 'Autre']];
+  function libNature(n){ const x = NATURES.filter(function(y){ return y[0] === n; })[0]; return x && n !== 'autre' ? x[1] : ''; }
+  const NV = function(){ return window.bdvNouveaux || null; };
   let ETAT = Object.assign({}, ETAT_VIDE);
   let MONTRES = PAS;
   let LISTE = [];                  // tous les clients, calcules une fois par peinture
@@ -104,14 +110,26 @@
       if(r._typeClient) c.types[r._typeClient] = (c.types[r._typeClient] || 0) + 1;
       if(r._dayNum != null && (c.der == null || r._dayNum > c.der)){ c.der = r._dayNum; c.derDate = r._date; }
     });
+    /* LES NOUVEAUX CLIENTS, 08/10/2026 (lot 81) : une piste pas encore reliee a Vitisoft.
+       Ni commandes ni chiffre : ils trient en fin de liste sur la derniere commande. */
+    const nv = NV();
+    (nv ? nv.liste() : []).forEach(function(p){
+      const id = 'p:' + p.piste_id;
+      if(m.has(id)) return;
+      m.set(id, { id: id, num: '', nom: String(p.nom || '').trim(), ville: p.ville || '', cp: p.code_postal || '', pays: p.pays || '',
+        _vu: -1, canaux: {}, types: {}, fact: new Set(), ca: 0, caPrev: 0, der: null,
+        nouveau: true, opposition: !!p.opposition, nature: libNature(p.nature), siret: p.siret || '',
+        mails: p.email ? [String(p.email)] : [], tel: p.telephone ? String(p.telephone) : '' });
+    });
     LISTE = Array.from(m.values()).map(function(c){
       c.nom = c.nom || c.id;
       c.canal = plusFrequent(c.canaux);
       c.type = plusFrequent(c.types);
       c.cmd = c.fact.size;
       c.silence = c.der == null ? null : JOUR_MAX - c.der;
-      c.etat = c.der == null ? 'sans' : (c.silence <= DORMANT_J ? 'actif' : 'dormant');
-      c.cle = norm([c.nom, c.num, c.ville, c.cp].join(' '));
+      c.etat = c.nouveau ? 'nouveau' : (c.der == null ? 'sans' : (c.silence <= DORMANT_J ? 'actif' : 'dormant'));
+      if(c.nouveau) c.type = c.nature || '';
+      c.cle = norm([c.nom, c.num, c.ville, c.cp, c.siret || ''].join(' '));
       delete c.fact; delete c.canaux; delete c.types; delete c._vu;
       return c;
     });
@@ -161,9 +179,10 @@
     if(e.q){
       const q = norm(e.q);
       if(c.cle.indexOf(q) < 0){
-        const mails = (emailsOf(c.id) || []).join(' ').toLowerCase();
+        const mails = (c.nouveau ? c.mails : (emailsOf(c.id) || [])).join(' ').toLowerCase();
         const chiffres = q.replace(/\D/g, '');
-        const tels = (telsOf(c.id) || []).map(function(t){ return String(t.appel || '').replace(/\D/g, ''); }).join(' ');
+        const tels = c.nouveau ? String(c.tel || '').replace(/\D/g, '')
+          : (telsOf(c.id) || []).map(function(t){ return String(t.appel || '').replace(/\D/g, ''); }).join(' ');
         if(mails.indexOf(q) < 0 && !(chiffres.length >= 4 && tels.indexOf(chiffres) >= 0)) return false;
       }
     }
@@ -235,23 +254,28 @@
 
   function ligne(c){
     const s = suivi(c.id), er = etatRappel(s), coche = SEL.has(c.id);
-    const sous = [c.num && c.num !== c.nom ? 'n°' + c.num : '', [c.cp, c.ville].filter(Boolean).join(' '), c.pays && !/^france$/i.test(c.pays) ? c.pays : '']
+    const sous = [c.num && c.num !== c.nom ? 'n°' + c.num : '', c.nature || '', [c.cp, c.ville].filter(Boolean).join(' '), c.pays && !/^france$/i.test(c.pays) ? c.pays : '']
       .filter(Boolean).join(' · ');
+    const marque = (c.nouveau ? ' <span class="aff-marque aff-marque--nouveau">Pas encore dans Vitisoft</span>' : '')
+      + (c.opposition ? ' <span class="aff-marque aff-marque--opposee">Ne veut plus être contacté</span>' : '');
     let action = '<span class="annu__vide">—</span>';
     if(s.statut === 'traite') action = '<span class="annu__vide">Mis de côté</span>';
     else if(s.rappel) action = '<span class="annu__rap' + (er === 'retard' ? ' annu__rap--retard' : '') + '">'
       + (er === 'retard' ? '<span class="hors-ecran">En retard : </span>' : '') + esc(fmtDateIso(s.rappel)) + '</span>'
       + (s.rappel_titre ? '<span class="annu__motif">' + esc(s.rappel_titre) + '</span>' : '');
-    const ca = c.ca ? fmtMoney(c.ca) : '<span class="annu__vide">—</span>';
-    const caP = c.caPrev ? fmtMoney(c.caPrev) : '<span class="annu__vide">—</span>';
-    const der = c.derDate ? fmtDate(c.derDate) + (c.etat === 'dormant' ? ' <span class="annu__dormant">dormant</span>' : '') : '<span class="annu__vide">aucune</span>';
+    /* Un nouveau client n'a pas de chiffre : sa case reste vide (« aucune vente » pour qui
+       ecoute), plutot qu'un tiret de plus sur une ligne qui dit deja « pas encore ». */
+    const rien = c.nouveau ? '<span class="hors-ecran">aucune vente</span>' : '<span class="annu__vide">—</span>';
+    const ca = c.ca ? fmtMoney(c.ca) : rien;
+    const caP = c.caPrev ? fmtMoney(c.caPrev) : rien;
+    const der = c.derDate ? fmtDate(c.derDate) + (c.etat === 'dormant' ? ' <span class="annu__dormant">dormant</span>' : '') : '<span class="annu__vide">' + (c.nouveau ? 'pas encore' : 'aucune') + '</span>';
     return '<tr class="annu__l' + (coche ? ' is-coche' : '') + '" data-id="' + esc(c.id) + '">'
       + '<td class="annu__coche"><input type="checkbox" data-a="coche"' + (coche ? ' checked' : '') + ' aria-label="Sélectionner ' + esc(c.nom) + '"></td>'
-      + '<td><a class="annu__nom" href="/mon-bureau/#fiche=' + esc(encId(c.id)) + '">' + esc(c.nom) + '</a>'
+      + '<td><a class="annu__nom" href="/mon-bureau/#fiche=' + esc(encId(c.id)) + '">' + esc(c.nom) + '</a>' + marque
       + (sous ? '<span class="annu__sous">' + esc(sous) + '</span>' : '') + '</td>'
       + '<td>' + esc(c.canal || '') + '</td>'
       + '<td>' + der + '</td>'
-      + '<td class="num">' + fmtNum(c.cmd) + '</td>'
+      + '<td class="num">' + (c.nouveau ? '<span class="hors-ecran">aucune</span>' : fmtNum(c.cmd)) + '</td>'
       + '<td class="num">' + ca + '</td>'
       + (EX_PREV != null ? '<td class="num">' + caP + '</td>' : '')
       + '<td>' + action + '</td>'
@@ -284,7 +308,8 @@
     return '<select data-f="canal" aria-label="Canal">' + options(valeursDe('canal'), e.canal, 'Tous les canaux') + '</select>'
       + '<select data-f="type" aria-label="Typologie">' + options(valeursDe('type').filter(function(t){ return t !== 'Non typé'; }), e.type, 'Toutes les typologies') + '</select>'
       + '<select data-f="pays" aria-label="Pays">' + options(valeursDe('pays'), e.pays, 'Tous les pays') + '</select>'
-      + '<select data-f="etat" aria-label="Activité">' + options([['actif', 'Actifs (commande depuis moins d’un an)'], ['dormant', 'Dormants (rien depuis plus d’un an)'], ['sans', 'Sans commande']], e.etat, 'Actifs et dormants') + '</select>'
+      + '<select data-f="etat" aria-label="Activité">' + options([['actif', 'Actifs (commande depuis moins d’un an)'], ['dormant', 'Dormants (rien depuis plus d’un an)'], ['sans', 'Sans commande']]
+          .concat(LISTE.some(function(c){ return c.nouveau; }) ? [['nouveau', 'Pas encore dans Vitisoft']] : []), e.etat, 'Tous les clients') + '</select>'
       + '<select data-f="rappel" aria-label="Prochaine action">' + options([['retard', 'Rappel en retard'], ['prevu', 'Rappel prévu'], ['aucun', 'Sans rappel']], e.rappel, 'Toute action') + '</select>'
       + '<select data-f="tag" aria-label="Étiquette">' + options(etiquettes().map(function(x){ return [x.t, x.t + ' (' + x.n + ')']; })
           .sort(function(a, b){ return a[0].localeCompare(b[0], 'fr'); }), e.tag, 'Toutes les étiquettes') + '</select>'
@@ -413,16 +438,19 @@
   function peindre(){
     const p = P(); if(!p) return;
     brancher();
-    if(!(ROWS && ROWS.length)){
-      p.innerHTML = '<h2 class="panel__title titre-piece">Mes clients</h2><p class="panel__sub">Tes clients apparaîtront ici dès que ton premier export Vitisoft sera déposé.</p>';
+    construire();
+    if(!LISTE.length){
+      p.innerHTML = '<h2 class="panel__title titre-piece">Mes clients</h2><p class="panel__sub">Tes clients apparaîtront ici dès que ton premier export Vitisoft sera déposé. '
+        + 'Un client qui n’est pas encore dans Vitisoft se crée avec « Nouveau client ».</p>'
+        + '<div class="annu__haut"><span></span><button type="button" class="btn btn--primary btn--sm" data-a="nouveau">Nouveau client</button></div>'
+        + '<div class="card annu__seul">' + blocNouveau() + '</div>';
       return;
     }
-    construire();
     // Une selection qui designe un client disparu de la base (base videe, autre bureau) ne vaut rien.
     const ids = new Set(LISTE.map(function(c){ return c.id; }));
     Array.from(SEL).forEach(function(id){ if(!ids.has(id)) SEL.delete(id); });
     p.innerHTML = '<h2 class="panel__title titre-piece">Mes clients</h2>'
-      + '<p class="panel__sub">Tous les clients de tes exports, ' + plur(LISTE.length, 'client') + '. '
+      + '<p class="panel__sub">' + phraseCompte() + ' '
       + 'Les coordonnées viennent de Vitisoft et se corrigent là-bas ; les étiquettes, le suivi et les vues sont communs à ton bureau.</p>'
       + '<div class="card annu">'
       +   '<div class="annu__barre annu__cherche"><input type="search" class="annu__q" id="annuQ" data-f="q" value="' + esc(ETAT.q) + '" placeholder="Nom, n°, ville, e-mail, téléphone" aria-label="Chercher un client"></div>'
@@ -436,7 +464,9 @@
       +   '</details>'
       +   '<div class="annu__barre annu__lot" id="annuLot" hidden></div>'
       +   '<div class="annu__haut"><p class="annu__compte" id="annuCompte" aria-live="polite"></p>'
-      +     '<button type="button" class="btn btn--ghost btn--sm" data-a="exporter">Exporter la liste</button></div>'
+      +     '<span class="annu__gestes"><button type="button" class="btn btn--ghost btn--sm" data-a="exporter">Exporter la liste</button>'
+      +     '<button type="button" class="btn btn--primary btn--sm" data-a="nouveau" aria-expanded="' + (NOUVEAU.ouvert ? 'true' : 'false') + '" aria-controls="annuNouveau">Nouveau client</button></span></div>'
+      +   blocNouveau()
       +   '<div class="tablewrap annu__wrap"><table class="data data--sticky annu__t"><caption class="hors-ecran">Tes clients. Clique sur un nom pour ouvrir sa fiche, Cmd + clic pour l’ouvrir dans un nouvel onglet.</caption>'
       +     '<thead id="annuTete"></thead><tbody id="annuCorps"></tbody></table></div>'
       +   '<div class="annu__pied"><button type="button" class="btn btn--ghost btn--sm" data-a="plus" hidden></button></div>'
@@ -457,6 +487,164 @@
   }
 
   function caleRecherche(){ const q = document.getElementById('annuQ'); if(q) q.value = ETAT.q || ''; }
+
+
+  /* ------------------------------------------------------------------ nouveau client */
+  /* « NOUVEAU CLIENT », 08/10/2026 (lot 81, decision de Ted) : un client qui n'est pas
+     encore dans Vitisoft se cree ici, sans affaire. C'est une ligne de `pistes`.
+     LES DEUX GARDES DE DOUBLON, les memes que dans les affaires (lot 41) : un SIRET deja
+     connu BLOQUE (une entreprise, une fiche ; la base le refuse aussi), un nom proche
+     PREVIENT, et « Creer quand meme » demande un second geste. Une personne qui a demande a
+     ne plus etre contactee ne se recree pas (la base le refuse aussi). */
+  const NOUVEAU = { ouvert: false, champs: {}, resultats: null, mot: '', alerte: false, proche: null };
+  const CHAMPS_NV = [['nom', 'Nom de l’entreprise ou de la personne', 'text', 120, 'organization'], ['siret', 'SIRET (facultatif)', 'text', 17, ''],
+    ['nature', 'Type', 'select'], ['contact_nom', 'Interlocuteur', 'text', 120, 'name'], ['contact_fonction', 'Sa fonction', 'text', 80, 'organization-title'],
+    ['email', 'E-mail', 'email', 200, 'email'], ['telephone', 'Téléphone', 'tel', 40, 'tel'],
+    ['adresse', 'Adresse', 'text', 200, 'street-address'], ['code_postal', 'Code postal', 'text', 12, 'postal-code'], ['ville', 'Ville', 'text', 80, 'address-level2']];
+  function phraseCompte(){
+    const n = LISTE.filter(function(c){ return c.nouveau; }).length;
+    return 'Les clients de tes exports, ' + plur(LISTE.length - n, 'client')
+      + (n ? ', et ' + plur(n, 'nouveau client') .replace('nouveau clients', 'nouveaux clients') + ' pas encore dans Vitisoft.' : '.');
+  }
+  const FORMES_NV = ['sarl', 'sas', 'sasu', 'sa', 'eurl', 'earl', 'scea', 'gaec', 'sci', 'scev', 'snc', 'ste', 'societe', 'ets', 'sca', 'eirl', 'ei', 'gfa', 'cuma'];
+  function coeur(n){
+    return norm(String(n || '').replace(/\([^)]*\)/g, ' ')).split(/[^a-z0-9]+/)
+      .filter(function(w){ return w && FORMES_NV.indexOf(w) < 0; }).join(' ');
+  }
+  function proches(a, b){
+    const x = coeur(a), y = coeur(b);
+    if(x.length < 3 || y.length < 3) return false;
+    if(x === y) return true;
+    const court = x.length <= y.length ? x : y, long = court === x ? y : x;
+    return court.length >= 5 && (' ' + long + ' ').indexOf(' ' + court + ' ') >= 0;
+  }
+  function chiffres(v){ return String(v || '').replace(/\D/g, ''); }
+  function lireChamps(){
+    const b = document.getElementById('annuNouveau'); if(!b) return NOUVEAU.champs;
+    CHAMPS_NV.forEach(function(c){ const i = b.querySelector('[name="nv-' + c[0] + '"]'); if(i) NOUVEAU.champs[c[0]] = i.value; });
+    return NOUVEAU.champs;
+  }
+  function blocNouveau(){
+    if(!NOUVEAU.ouvert) return '<div id="annuNouveau" class="annu__nouveau" hidden></div>';
+    const v = NOUVEAU.champs;
+    const champ = function(c){
+      const id = 'nv-' + c[0];
+      if(c[2] === 'select') return '<label class="annu__nchamp"><span>' + esc(c[1]) + '</span><select name="' + id + '">'
+        + NATURES.map(function(n){ return '<option value="' + n[0] + '"' + ((v.nature || 'autre') === n[0] ? ' selected' : '') + '>' + esc(n[1]) + '</option>'; }).join('') + '</select></label>';
+      return '<label class="annu__nchamp' + (c[0] === 'nom' || c[0] === 'adresse' ? ' annu__nchamp--plein' : '') + '"><span>' + esc(c[1]) + '</span>'
+        + '<input name="' + id + '" type="' + c[2] + '" maxlength="' + c[3] + '"' + (c[4] ? ' autocomplete="' + c[4] + '"' : ' autocomplete="off"')
+        + (c[0] === 'siret' ? ' inputmode="numeric"' : '') + ' value="' + esc(v[c[0]] || '') + '"></label>';
+    };
+    /* LE NOM ET LE SIRET D'ABORD, PUIS « CHERCHER » TOUT DE SUITE (vigneron empathique,
+       08/10/2026) : l'aide dit « tape son nom, puis cherche », le bouton ne peut pas
+       attendre neuf champs plus bas. */
+    const champsTete = CHAMPS_NV.slice(0, 2).map(champ).join('');
+    const champs = CHAMPS_NV.slice(2).map(champ).join('');
+    let res = '';
+    if(NOUVEAU.resultats && NOUVEAU.resultats.length){
+      res = '<ul class="annu__ntrouve">' + NOUVEAU.resultats.map(function(x, i){
+        const deja = LISTE.filter(function(c){ return c.siret && c.siret === x.siret; })[0];
+        return '<li><span class="annu__ntrouve-nom">' + esc(x.nom) + (x.actif ? '' : ' <span class="aff-marque aff-marque--opposee">fermée</span>') + '</span>'
+          + '<span class="annu__sous">' + esc([x.adresse, [x.code_postal, x.ville].filter(Boolean).join(' '), 'SIRET ' + x.siret].filter(Boolean).join(' · ')) + '</span>'
+          + (deja ? '<span class="annu__note">Déjà dans ta base : « ' + esc(deja.nom) + ' ».</span> <a class="btn btn--ghost btn--sm" href="/mon-bureau/#fiche=' + esc(encId(deja.id)) + '">Ouvrir sa fiche</a>'
+                  : '<button type="button" class="btn btn--ghost btn--sm" data-a="nv-prendre" data-i="' + i + '">Prendre</button>')
+          + '</li>';
+      }).join('') + '</ul>';
+    }
+    let prev = '';
+    if(NOUVEAU.proche){
+      const c = NOUVEAU.proche;
+      prev = '<div class="annu__nproche" role="alert"><p>Un de tes clients s’appelle déjà « ' + esc(c.nom) + ' »' + (c.ville ? ', à ' + esc(c.ville) : '') + '. Vérifie que ce n’est pas le même.</p>'
+        + '<a class="btn btn--ghost btn--sm" href="/mon-bureau/#fiche=' + esc(encId(c.id)) + '">Ouvrir sa fiche</a>'
+        + '<button type="button" class="btn btn--ghost btn--sm" data-a="nv-creer" data-force="1">Créer quand même</button></div>';
+    }
+    return '<div id="annuNouveau" class="annu__nouveau" role="group" aria-labelledby="annuNouveauT">'
+      + '<h3 class="annu__nouveau-t" id="annuNouveauT">Nouveau client, pas encore dans Vitisoft</h3>'
+      + '<p class="annu__aide">Tape son nom ou son SIRET, puis « Chercher dans l’annuaire » pour remplir la fiche d’un coup. Tu peux aussi tout remplir à la main.</p>'
+      + '<div class="annu__ngrille">' + champsTete + '</div>'
+      + '<div class="annu__nbarre"><button type="button" class="btn btn--ghost btn--sm" data-a="nv-chercher">Chercher dans l’annuaire</button></div>'
+      + res
+      + '<div class="annu__ngrille annu__ngrille--suite">' + champs + '</div>'
+      + '<p class="annu__nmot' + (NOUVEAU.alerte ? ' annu__nmot--alerte' : '') + '" aria-live="polite">' + esc(NOUVEAU.mot || '') + '</p>'
+      + prev
+      + '<div class="annu__npied"><button type="button" class="btn btn--primary btn--sm" data-a="nv-creer">Créer le client</button>'
+      + '<button type="button" class="btn btn--ghost btn--sm" data-a="nv-annuler">Annuler</button></div>'
+      + '</div>';
+  }
+  function repeindreNouveau(focus){
+    const b = document.getElementById('annuNouveau'); if(!b) return;
+    const tmp = document.createElement('div'); tmp.innerHTML = blocNouveau();
+    b.replaceWith(tmp.firstChild);
+    const bt = P() && P().querySelector('[data-a="nouveau"]'); if(bt) bt.setAttribute('aria-expanded', NOUVEAU.ouvert ? 'true' : 'false');
+    if(focus){ const n = document.getElementById('annuNouveau'); const f = n && n.querySelector(focus); if(f) f.focus(); }
+  }
+  function direNv(m, alerte){ NOUVEAU.mot = m || ''; NOUVEAU.alerte = !!alerte; }
+  async function chercherNv(){
+    lireChamps();
+    const q = chiffres(NOUVEAU.champs.siret).length >= 9 ? chiffres(NOUVEAU.champs.siret) : (NOUVEAU.champs.nom || '');
+    if(!(window.BdvDomaine && BdvDomaine.chercher)){ direNv('L’annuaire n’est pas joignable d’ici : remplis la fiche à la main.', true); repeindreNouveau(); return; }
+    direNv('Recherche dans l’annuaire…'); NOUVEAU.resultats = null; repeindreNouveau();
+    const r = await BdvDomaine.chercher(q);
+    if(!r.ok){ direNv(r.mot, true); NOUVEAU.resultats = null; }
+    else if(!r.liste.length){ direNv('Rien trouvé dans l’annuaire pour « ' + q + ' ». Tu peux remplir la fiche à la main.'); NOUVEAU.resultats = []; }
+    else { direNv(plur(r.liste.length, 'entreprise') + ' trouvée' + (r.liste.length > 1 ? 's' : '') + ' : prends la bonne.'); NOUVEAU.resultats = r.liste; }
+    repeindreNouveau();
+  }
+  function prendreNv(i){
+    const x = NOUVEAU.resultats && NOUVEAU.resultats[i]; if(!x) return;
+    lireChamps();
+    const nomPropre = (window.BdvAffaires && BdvAffaires._nomPropose) ? BdvAffaires._nomPropose(x.nom) : x.nom;
+    Object.assign(NOUVEAU.champs, { nom: nomPropre || x.nom, siret: x.siret, adresse: x.adresse || '', code_postal: x.code_postal || '', ville: x.ville || '' });
+    NOUVEAU.resultats = null; direNv('« ' + (nomPropre || x.nom) + ' » : vérifie la fiche, puis crée le client.');
+    repeindreNouveau('[name="nv-contact_nom"]');
+  }
+  function bureauCourant(){ return window.BdvCompte && BdvCompte.monBureau ? BdvCompte.monBureau() : null; }
+  function nouvelId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(ch){ const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 3 | 8)).toString(16); });
+  }
+  let CREATION = false;
+  async function creerNv(force){
+    if(CREATION) return;
+    const v = lireChamps();
+    const nom = String(v.nom || '').replace(/\s+/g, ' ').trim();
+    const siret = chiffres(v.siret);
+    if(!nom){ direNv('Donne au moins son nom.', true); NOUVEAU.proche = null; repeindreNouveau('[name="nv-nom"]'); return; }
+    if(siret && siret.length !== 14){ direNv('Un SIRET a 14 chiffres. Laisse le champ vide si tu ne l’as pas.', true); repeindreNouveau('[name="nv-siret"]'); return; }
+    const mail = String(v.email || '').trim();
+    if(mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){ direNv('Cet e-mail ne semble pas complet.', true); repeindreNouveau('[name="nv-email"]'); return; }
+    const parSiret = siret ? LISTE.filter(function(c){ return c.siret === siret; })[0] : null;
+    if(parSiret){ direNv('Ce SIRET est déjà celui de « ' + parSiret.nom + ' ». Une entreprise, une fiche : ouvre la sienne.', true); NOUVEAU.proche = null; repeindreNouveau(); return; }
+    const oppose = LISTE.filter(function(c){ return c.opposition && coeur(c.nom) === coeur(nom); })[0];
+    if(oppose){ direNv('« ' + oppose.nom + ' » a demandé à ne plus être contacté : on ne le recrée pas.', true); NOUVEAU.proche = null; repeindreNouveau(); return; }
+    if(!force){
+      const p = LISTE.filter(function(c){ return !c.opposition && proches(c.nom, nom); })[0];
+      if(p){ NOUVEAU.proche = p; direNv(''); repeindreNouveau('[data-force]'); return; }
+    }
+    const b = bureauCourant();
+    if(!b || !(window.BdvCompte && BdvCompte.api)){ direNv('Ton bureau n’est pas encore raccordé : recharge la page, puis réessaie.', true); repeindreNouveau(); return; }
+    const ligne = { bureau: b, piste_id: nouvelId(), nom: nom.slice(0, 120), nature: v.nature || 'autre', source: 'Mes clients' };
+    [['contact_nom', 120], ['contact_fonction', 80], ['email', 200], ['telephone', 40], ['adresse', 200], ['code_postal', 12], ['ville', 80]].forEach(function(x){
+      const t = String(v[x[0]] || '').replace(/\s+/g, ' ').trim(); if(t) ligne[x[0]] = t.slice(0, x[1]);
+    });
+    if(siret) ligne.siret = siret;
+    CREATION = true; direNv('Création…'); repeindreNouveau();
+    try{
+      const r = await BdvCompte.api('/pistes', { methode: 'POST', entetes: { 'Prefer': 'return=representation' }, corps: [ligne] });
+      const cree = Array.isArray(r) && r[0] ? r[0] : ligne;
+      if(NV()) NV().poser(cree);
+      NOUVEAU.ouvert = false; NOUVEAU.champs = {}; NOUVEAU.resultats = null; NOUVEAU.proche = null; direNv('');
+      peindre();
+      status('success', '« ' + cree.nom + ' » est dans tes clients, pas encore dans Vitisoft.');
+      if(typeof window.bdvOuvrirFiche === 'function') window.bdvOuvrirFiche('p:' + cree.piste_id);
+    }catch(e){
+      const d = String((e && e.detail) || '') + ' ' + String((e && e.message) || '');
+      direNv(/23505|siret/i.test(d) ? 'Ce SIRET est déjà celui d’un client de ton bureau.'
+        : /23514|plus etre contact/i.test(d) ? 'Cette personne a demandé à ne plus être contactée : on ne la recrée pas.'
+        : 'Le client n’a pas pu être créé : vérifie ta connexion et réessaie.', true);
+      repeindreNouveau();
+    }finally{ CREATION = false; }
+  }
 
   /* ------------------------------------------------------------------ ecriture groupee */
   /* LES GESTES GROUPES PASSENT PAR LA MEME MEMOIRE QUE LA FICHE : CRM, crmSave(), puis
@@ -525,7 +713,8 @@
       .concat(['Prochaine action', 'Motif', 'Étiquettes', 'Suivi par'])];
     liste.forEach(function(c){
       const s = suivi(c.id);
-      aoa.push([c.nom, c.num, c.cp, c.ville, c.pays, c.canal, c.type, emailOf(c.id), telOf(c.id),
+      aoa.push([c.nom, c.nouveau ? 'pas encore dans Vitisoft' : c.num, c.cp, c.ville, c.pays, c.canal, c.type,
+        c.nouveau ? (c.mails[0] || '') : emailOf(c.id), c.nouveau ? c.tel : telOf(c.id),
         c.derDate ? fmtDate(c.derDate) : '', c.cmd, Math.round(c.ca)].concat(EX_PREV != null ? [Math.round(c.caPrev)] : [])
         .concat([s.statut === 'traite' ? 'Mis de côté' : (s.rappel ? fmtDateIso(s.rappel) : ''), s.rappel_titre || '', (s.tags || []).join(', '), nomDe(s.proprietaire)]));
     });
@@ -601,6 +790,12 @@
       }else if(a === 'plus'){ MONTRES += PAS; majListe(); }
       else if(a === 'raz'){ ETAT = Object.assign({}, ETAT_VIDE); MONTRES = PAS; repeindreBarres(); caleRecherche(); majListe(); }
       else if(a === 'desel'){ SEL.clear(); majListe(); }
+      else if(a === 'nouveau'){ NOUVEAU.ouvert = !NOUVEAU.ouvert; if(!NOUVEAU.ouvert){ NOUVEAU.proche = null; direNv(''); } repeindreNouveau(NOUVEAU.ouvert ? '[name="nv-nom"]' : null); if(!NOUVEAU.ouvert) b.focus(); }
+      else if(a === 'nv-annuler'){ NOUVEAU.ouvert = false; NOUVEAU.champs = {}; NOUVEAU.resultats = null; NOUVEAU.proche = null; direNv(''); repeindreNouveau();
+        const bt = P().querySelector('[data-a="nouveau"]'); if(bt) bt.focus(); }
+      else if(a === 'nv-chercher'){ chercherNv(); }
+      else if(a === 'nv-prendre'){ prendreNv(Number(b.getAttribute('data-i'))); }
+      else if(a === 'nv-creer'){ creerNv(b.hasAttribute('data-force')); }
       else if(a === 'exporter'){ exporter(FILTREE, 'liste'); }
       else if(a === 'exporter-sel'){ exporter(LISTE.filter(function(c){ return SEL.has(c.id); }), 'selection'); }
       else if(a === 'tag-plus' || a === 'tag-moins'){ const i = document.getElementById('annuTag'); etiqueter(ids, i && i.value, a === 'tag-plus'); }
@@ -648,6 +843,19 @@
         if(e.key === 'Enter'){ e.preventDefault(); const li = e.target.closest('li'); renommer(li.getAttribute('data-t'), e.target.value); }
         else if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); GERER_EDIT = null; repeindreGerer(); }
       }else if(e.target.id === 'annuTag' && e.key === 'Enter'){ e.preventDefault(); etiqueter(Array.from(SEL), e.target.value, true); }
+      else if(e.key === 'Enter' && e.target.name && e.target.name.indexOf('nv-') === 0 && e.target.tagName === 'INPUT'){
+        e.preventDefault(); if(e.target.name === 'nv-siret' || (e.target.name === 'nv-nom' && !NOUVEAU.champs.siret)) chercherNv(); else creerNv(false); }
+    });
+    /* Les nouveaux clients arrivent APRES la liste : on repeint en gardant ce qui est tape. */
+    document.addEventListener('bdv:nouveaux', function(){
+      const pp = P();
+      if(!(pp && pp.classList.contains('on'))) return;
+      if(NOUVEAU.ouvert) lireChamps();
+      if(pp.querySelector('#annuCorps')){
+        construire(); repeindreBarres(); majListe();
+        const sub = pp.querySelector('.panel__sub');
+        if(sub) sub.textContent = phraseCompte() + ' Les coordonnées viennent de Vitisoft et se corrigent là-bas ; les étiquettes, le suivi et les vues sont communs à ton bureau.';
+      }else peindre();
     });
     document.addEventListener('bdv:trombinoscope', function(){
       if(window.BdvCompte && BdvCompte.trombinoscope) BdvCompte.trombinoscope().then(function(t){ TROMBI = t; repeindreBarres(); majListe(); });
@@ -694,6 +902,7 @@
       if(t){ sessionStorage.removeItem('bdv_annu_tag'); ETAT = Object.assign({}, ETAT_VIDE, { tag: t }); MONTRES = PAS; }
     }catch(e){}
     peindre();
+    if(NV()) NV().charger();
     preparer().then(lireLesVues).then(function(){ repeindreBarres(); majListe(); }).catch(function(){});
   }
 

@@ -8663,3 +8663,32 @@ Lots : 80 la base, 81 la liste et « Nouveau client », 82 la fiche, 83 journee,
   bureaux). `v_courrier` : memes onze colonnes, chaque suivi porte `nom`. `notif_horaire_lots` nomme
   par elle (copie exacte du lot 64 sinon).
 - Rien n'ecrit encore de cle « p: » : les ecrans arrivent au lot 81.
+
+### LOTS 81 ET 82 : LA LISTE, « NOUVEAU CLIENT » ET LA FICHE (08/10/2026)
+
+- **Pas de SQL** (le lot 80 suffit). `bdv-ecrans.js` porte `window.bdvNouveaux` : lecture des
+  pistes du bureau `client_id=is.null` (trois etats, evenement `bdv:nouveaux`), `estNouveau()`,
+  `fichePiste()`. `ficheClient('p:...')` rend une fiche SYNTHETIQUE (`nouveau:true`, ventes a zero) :
+  toujours UNE seule fiche, `ficheHTML()` reste l'unique auteur. `ouvrirFicheClient` n'attend pas
+  les ventes pour un nouveau client.
+- **La fiche d'un nouveau client** : marque « Pas encore dans Vitisoft », interlocuteur, SIRET,
+  adresse ; ni chiffres, ni conseil, ni onglets d'achats, ni redacteur (« Ecrire » = messagerie) ;
+  la phrase « Pas encore de vente... » a la place des chiffres ; le SUIVI passe AVANT l'historique.
+  En pleine page, ses coordonnees vont a droite. En opposition : le message seul, aucun geste,
+  aucune coordonnee, pas de colonne de droite.
+- **« Mes clients »** ajoute les nouveaux (cle `p:`), filtre « Pas encore dans Vitisoft », recherche
+  par SIRET, mail, telephone de la piste, cases de chiffres vides. « Nouveau client » : nom et
+  SIRET puis « Chercher dans l'annuaire » (`BdvDomaine.chercher`), SIRET connu BLOQUE, nom proche
+  PREVIENT (« Creer quand meme »), opposition refusee ; POST `/pistes` (`source: 'Mes clients'`),
+  puis sa fiche s'ouvre.
+- **Les affaires** : `duClient('p:...')` = affaires de la piste ; `clientsEnAffaire()` y ajoute
+  `p:<piste>` ; « Nouvelle affaire » depuis sa fiche cree une affaire sur `piste_id` (famille
+  `conquete` proposee).
+- **Les noms** : `BdvCrm.charger()` lit le nom des pistes des cles `p:` (journee, calendrier,
+  Mes taches) ; la fabrique du courrier prend `s.nom` (vue du lot 80) : courrier-matin A REDEPLOYER.
+- **Defaut ancien corrige** : `.bdv-ventes .btn--primary:hover` ecrivait l'encre foncee sur le
+  bordeaux (« Appeler » au survol). Il nomme maintenant sa couleur.
+- Garde : `banc:annuaire` section 10 (28 controles, mutations faites), `banc:affaires` ;
+  captures `scripts/cap-nouveaux.mjs` (playwright, hors verif). Vigneron empathique : orange deux
+  fois, corrige, defauts restants = dessin commun des fiches (deux aplats, 5 boutons sur 4 lignes).
+- Reste au lot 83 : la fusion a l'arrivee dans Vitisoft (auto si e-mail identique) et « Delier ».

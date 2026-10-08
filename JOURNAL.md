@@ -10704,3 +10704,12 @@ Lot 80 : la cle « p:<piste> » dans `suivi_clients` et `echanges`, verifiee par
 « Vider la base », effacee par l'opposition et la purge, nommee dans le courrier et le soir.
 Banc SQL 27 controles, 5 mutations tuees ; le banc a trouve que le verificateur bloquait
 l'opposition elle-meme, corrige. SQL a coller.
+
+
+## 08/10/2026 : les nouveaux clients dans « Mes clients », lots 81 et 82
+
+Un client pas encore dans Vitisoft apparait dans « Mes clients », marque, avec sa fiche (sans
+chiffres) ; « Nouveau client » le cree sans affaire, avec les gardes de doublon. Ses rappels sont
+nommes dans la journee et le courrier. Au passage, un defaut ancien : le texte des boutons pleins
+des ecrans de vente devenait fonce sur bordeaux au survol. Bancs verts (toute la chaine verif),
+vigneron empathique orange puis presque vert. Pas de SQL ; courrier-matin a redeployer apres le push.

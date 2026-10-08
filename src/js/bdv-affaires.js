@@ -1152,7 +1152,10 @@
   function htmlNouvelleClient() {
     var c = S.clientPropose || {};
     var tous = typesActifs();
-    var pref = tous.filter(function (t) { return t.famille === 'client'; })[0] || tous[0];
+    /* Un nouveau client (« p:... », lot 81) n'a encore rien achete : on propose d'abord la
+       conquete, pas « une nouvelle cuvee chez un client ». */
+    var fam = String(c.id || '').indexOf('p:') === 0 ? 'conquete' : 'client';
+    var pref = tous.filter(function (t) { return t.famille === fam; })[0] || tous[0];
     var dans7 = new Date(); dans7.setDate(dans7.getDate() + 7);
     var options = tous.map(function (t) {
       return '<option value="' + t.type_id + '"' + (pref && t.type_id === pref.type_id ? ' selected' : '') + '>' + esc(t.nom) + '</option>';
@@ -2306,6 +2309,9 @@
     var motif = (el('affMotifClient').value || '').trim() || null;
     var affaire = { affaire_id: uuid(), type_id: typeId, etape_id: premiere.etape_id,
       client_id: String(c.id), client_nom: borne(c.nom, 120), titre: borne(titre, 120), rappel: rappel, rappel_titre: motif };
+    /* UN NOUVEAU CLIENT N'A PAS DE NUMERO VITISOFT (lot 81) : l'affaire porte sur sa piste.
+       La base refuse une affaire qui aurait les deux (contrainte affaires_sujet). */
+    if (String(c.id).indexOf('p:') === 0) { affaire.piste_id = String(c.id).slice(2); delete affaire.client_id; delete affaire.client_nom; }
     try {
       try { await creer('affaires', [affaire]); }
       catch (e) {

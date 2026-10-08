@@ -834,8 +834,12 @@ titre('Lot 45 : la raison du client suit son affaire');
   t('avant la lecture, clientsEnAffaire() rend null (on ne sait pas)', F.w.BdvAffairesJour.clientsEnAffaire() === null);
   await F.w.BdvAffaires.ouvrir();
   const enA = F.w.BdvAffairesJour.clientsEnAffaire();
-  t('clientsEnAffaire() : les clients par leur numero ET la piste devenue cliente, pas la piste neuve',
-    !!enA && enA.has('C7') && enA.has('C8') && enA.has('C9') && enA.size === 3, enA && [...enA].join(','));
+  /* Depuis le 08/10/2026 (lot 81), la piste neuve est un NOUVEAU CLIENT de « Mes clients », sous la cle
+     « p:<piste> » : elle compte, sous cette cle et pas sous un numero. */
+  t('clientsEnAffaire() : les clients par leur numero, la piste devenue cliente, et la piste neuve sous « p: »',
+    !!enA && enA.has('C7') && enA.has('C8') && enA.has('C9') && enA.has('p:pN') && enA.size === 4, enA && [...enA].join(','));
+  t('duClient(« p:pN ») rend l affaire de la piste neuve, et seulement elle',
+    (function(){ const l = F.w.BdvAffairesJour.duClient('p:pN'); return l.length === 1 && l[0].affaire_id === 'aN'; })());
   /* M1 (01/10/2026) : le moteur ne part QUE de la recherche d'un client (demanderLignes),
      jamais pour la raison d'une affaire ni a l'ouverture de la piece. */
   t('la piece ne charge jamais le moteur des ventes pour la raison',

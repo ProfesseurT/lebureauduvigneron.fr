@@ -248,7 +248,8 @@ function normRappel(s, annuaire, jAuj){
   var meta = [];
   if(s.canal) meta.push(String(s.canal));
   meta.push('rappel du '+fmtJourCourt(jr));
-  return { type:'rappel', titre:nomDe(annuaire, s.client_id), jour:jr,
+  /* `s.nom` vient de la vue (lot 80) : un nouveau client n'est pas dans l'annuaire de l'export. */
+  return { type:'rappel', titre:(s.nom && String(s.nom).trim()) || nomDe(annuaire, s.client_id), jour:jr,
            ecart:jAuj.n - jr.n, encours:false, meta:meta,
            note:sansBalise(s.notes).trim() };
 }
