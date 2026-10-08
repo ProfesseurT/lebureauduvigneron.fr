@@ -329,6 +329,15 @@
   --bdv-fond:      #F7F7F5;             /* sombre #0B0C0E  la page */
   --bdv-surface:   #FFFFFF;             /* sombre #131519  les cartes */
   --bdv-surface-2: #F1F1EE;             /* sombre #1A1D22  rail, en-tete de tableau, champ au repos */
+  /* Le bouton « Se connecter avec Google » (lot 86) : la charte de Google impose ses couleurs a
+     ses boutons de connexion. Ces sept jetons ne servent qu'a ce bouton et a son « G ». */
+  --bdv-google-fond:  #FFFFFF;          /* sombre #131314  fond du bouton, charte Google */
+  --bdv-google-trait: #747775;          /* sombre #8E918F  trait du bouton, charte Google */
+  --bdv-google-encre: #1F1F1F;          /* sombre #E3E3E3  texte du bouton, charte Google */
+  --bdv-google-bleu:  #4285F4;          /* meme valeur en sombre. le « G » de Google */
+  --bdv-google-rouge: #EA4335;          /* meme valeur en sombre. le « G » de Google */
+  --bdv-google-jaune: #FBBC05;          /* meme valeur en sombre. le « G » de Google */
+  --bdv-google-vert:  #34A853;          /* meme valeur en sombre. le « G » de Google */
   --bdv-surface-3: #FFFFFF;             /* sombre #21252B  popover, feuille montante */
   --bdv-survol:    rgba(22,24,28,.05);  /* sombre rgba(255,255,255,.055)  voile de survol d'une rangee */
   --bdv-voile:     rgba(22,24,28,.40);  /* sombre rgba(4,5,6,.66)  ecran derriere la feuille montante */

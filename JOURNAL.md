@@ -41,6 +41,8 @@ trois jours. Ne pas s'en étonner en relisant.
 
 **Premier essai réel, le soir même.** Secrets Google posés par Ted, fonctions déployées (google-retour, boite, mails-programmes). La boîte teddypereira88@gmail.com s'est branchée au DEUXIÈME essai, et le premier mail est parti par Gmail. Le premier essai a échoué sans laisser de raison : la fin de connexion se taisait sur ses échecs. Correctif : chaque échec de `finir` laisse sa raison dans les traces, la page dit de cocher « Envoyer des e-mails en votre nom » avant de partir chez Google (la case est décochée au départ), et le message sous le bouton défile à l'écran (il s'affichait hors de vue : le bouton semblait ne rien faire). banc:boite 93/0.
 
+**Mettre de l'ordre (Ted, même soir).** Boîte branchée en trois blocs : une carte pour l'état, « Ce que voient tes clients » (le champ devient « Ton nom d'expéditeur », chaque case colle à son aide), puis « Retirer ma boîte » seul sous un trait ; le message vient sous la carte. Le bouton « Se connecter avec Google » prend la charte des boutons de Google (fond blanc ou #131314 en sombre, trait gris, « G » en quatre couleurs), sept jetons `--bdv-google-*` écrits dans tokens.css. banc:boite 95/0, charte et jetons conformes.
+
 
 ## 08/10/2026, lot 85 : la boîte branchée simplifie l'envoi
 

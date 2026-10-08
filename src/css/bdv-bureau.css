@@ -6863,6 +6863,30 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 .bdv-coque .bdvb-mur p{ margin:0; }
 .bdv-coque .bdvb-etat > .bdvr-chk{ margin-bottom:var(--bdv-e-4); }
 .bdv-coque .bdvb-fourn a{ color:var(--bdv-accent); }
+/* L'ORDRE DE LA BOITE BRANCHEE (08/10/2026, « mets un peu d'ordre ») : une carte pour l'etat,
+   un bloc titre pour ce que voient les clients (chaque case colle a son aide), puis le geste
+   pour retirer, seul, sous un trait. */
+.bdv-coque .bdvb-carte{ padding:var(--bdv-e-3) var(--bdv-e-4); border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); background:var(--bdv-surface-2); }
+.bdv-coque .bdvb-carte .bdvr-aide{ margin:0; }
+.bdv-coque .bdvb-carte > .bdvr-chk{ margin:var(--bdv-e-2) 0 0; }
+.bdv-coque .bdvb-etat > #bdvbMot{ margin:var(--bdv-e-2) 0 0; }
+.bdv-coque .bdvb-reglages{ margin-top:var(--bdv-e-6); display:grid; gap:var(--bdv-e-4); }
+.bdv-coque .bdvb-sous{ margin:0; font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .bdvb-reglages .bdvr-champ{ margin:0; }
+.bdv-coque .bdvb-case > .bdvr-chk{ margin:0; }
+.bdv-coque .bdvb-case > .bdvr-aide{ margin:0; padding-left:var(--bdv-e-6); }
+.bdv-coque .bdvb-fin{ margin:var(--bdv-e-6) 0 0; padding-top:var(--bdv-e-4); border-top:1px solid var(--bdv-trait); }
+/* LE BOUTON DE GOOGLE, selon sa charte : fond, trait et encre de Google, le « G » a gauche. */
+.bdv-coque .bdvb-google{ display:inline-flex; align-items:center; gap:var(--bdv-e-3); min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-4) 0 var(--bdv-e-3); border:1px solid var(--bdv-google-trait); border-radius:var(--bdv-r);
+  background:var(--bdv-google-fond); color:var(--bdv-google-encre); font:inherit; font-weight:600; cursor:pointer; }
+.bdv-coque .bdvb-google:disabled{ opacity:.6; cursor:default; }
+.bdv-coque .bdvb-google:focus-visible{ outline:2px solid var(--bdv-accent); outline-offset:2px; }
+.bdv-coque .bdvb-google svg{ flex:none; }
+.bdv-coque .bdvb-g-b{ fill:var(--bdv-google-bleu); }
+.bdv-coque .bdvb-g-r{ fill:var(--bdv-google-rouge); }
+.bdv-coque .bdvb-g-j{ fill:var(--bdv-google-jaune); }
+.bdv-coque .bdvb-g-v{ fill:var(--bdv-google-vert); }
 
 /* -- 38 ter. ENVOYER DEPUIS MA BOITE, lot 77 (07/10/2026). Le resultat prend la place des
    boutons ; sous 700 px, « Envoyer » est seul sur sa ligne, loin du repli (vigneron). */

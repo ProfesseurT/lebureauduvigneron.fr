@@ -240,6 +240,8 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
     dit(/includes\('https:\/\/www\.googleapis\.com\/auth\/gmail\.send'\)\) \{ console\.log\('google: case envoi non cochee'\); return reponse\(\{ resultat: 'permission' \}\); \}/.test(gr), 'permission decochee chez Google : rien n est branche, et la raison est notee');
     dit(/console\.log\('google: reponse incomplete'/.test(gr) && /console\.log\('google: finir, etat expire/.test(gr) && /console\.log\('google: echange sans reponse'\)/.test(gr), 'chaque echec de la fin de connexion laisse sa raison dans les traces');
     dit(/coche bien « Envoyer des e-mails en votre nom »/.test(bo) && /p\.scrollIntoView\(\{ block: 'nearest'/.test(bo), 'la case a cocher est dite avant Google, et le message sous le bouton vient a l ecran');
+    dit(/var bg = mk\('button', 'bdvb-google'\)/.test(bo) && /G_GOOGLE \+ '<span>Se connecter avec Google<\/span>'/.test(bo) && /class="bdvb-g-b"/.test(bo), 'le bouton de connexion est aux couleurs de Google, avec son « G »');
+    dit(/mk\('div', 'bdvb-carte'\)/.test(bo) && /'Ce que voient tes clients'/.test(bo) && /mk\('div', 'bdvb-gestes bdvb-fin'\)/.test(bo), 'boite branchee en trois blocs : la carte, ce que voient les clients, retirer a part');
     dit(/if \(qui\.personne !== moi\.id\)/.test(gr) && !/boite_google_ranger/.test(gr.slice(gr.indexOf('async function retour'), gr.indexOf('async function finir'))) && /action === 'finir'\) return await finir/.test(gr),
       'contre la connexion forcee : seul celui qui a commence finit, avec sa session, et le retour de Google ne range rien');
     dit(/const SITES = \['https:\/\/lebureauduvigneron\.fr', 'https:\/\/www\.lebureauduvigneron\.fr', 'https:\/\/lebureauduvigneron\.vercel\.app'\]/.test(gr)

@@ -23,7 +23,13 @@
   var FOURN = null;          // le dernier « reconnaitre »
   var EN_COURS = false;
   var MDP = '';              // le mot de passe, le temps de l'essai seulement
-  var GOOGLE_MOT = null;      // la phrase a dire au retour de la page de Google (lot 86)
+  var GOOGLE_MOT = null;
+  /* Le « G » de Google, dessin officiel de sa charte ; ses couleurs sont des jetons (bdv-theme.css). */
+  var G_GOOGLE = '<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true" focusable="false">'
+    + '<path class="bdvb-g-r" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'
+    + '<path class="bdvb-g-b" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>'
+    + '<path class="bdvb-g-j" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>'
+    + '<path class="bdvb-g-v" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';      // la phrase a dire au retour de la page de Google (lot 86)
   function avecGoogle(b) { return !!(b && b.fournisseur === 'google_api'); }
 
   function el(id) { return document.getElementById(id); }
@@ -221,8 +227,16 @@
     peindreEtatHaut();
     var attend = b && b.etat === 'a_confirmer' && b.code_expire && new Date(b.code_expire) > new Date();
     var etat = el('bdvbEtat');
+    /* Le message vit dans l'etat quand la boite est branchee (sous la carte) : on le remet a sa
+       place d'origine avant de vider l'etat, sinon il disparaitrait avec lui. */
+    var motP = el('bdvbMot');
+    if (motP && motP.parentNode !== el('bdvbCorps')) el('bdvbCorps').insertBefore(motP, el('bdvbAutres'));
     etat.textContent = '';
     if (b && branchee) {
+      /* TROIS BLOCS (demande de Ted, 08/10/2026, « mets un peu d'ordre ») : la carte qui dit
+         l'etat, ce que voient les clients, puis le geste pour retirer, a part. */
+      var carte = mk('div', 'bdvb-carte');
+      var ptr = etat; etat = carte;
       etat.appendChild(mk('p', 'bdvb-ok', 'Ta boîte ' + b.adresse + ' est branchée' + (avecGoogle(b) ? ' avec Google' : '') + (b.branchee_le ? ' depuis le ' + dateCourte(b.branchee_le) : '') + '.'));
       /* LOT 86 : Gmail range lui-meme dans Envoyes un mail parti par son API : pas de copie. */
       if (avecGoogle(b)) etat.appendChild(mk('p', 'bdvr-aide', 'Tes mails se rangent dans le dossier Envoyés de Gmail, comme si tu les avais écrits là-bas.'));
@@ -231,10 +245,15 @@
         lc.appendChild(cc); lc.appendChild(document.createTextNode(' M’envoyer une copie de chaque mail (OVH, IONOS et Orange ne le rangent pas dans Envoyés)'));
         etat.appendChild(lc);
       }
+      etat = ptr; etat.appendChild(carte);
+      if (motP) etat.appendChild(motP);
+      var rg = mk('div', 'bdvb-reglages');
+      rg.appendChild(mk('p', 'bdvb-sous', 'Ce que voient tes clients'));
+      etat.appendChild(rg); etat = rg;
       if (NOM_COL) {
         var avant = el('bdvbNom');
         var garde = avant && avant.dataset.sale ? avant.value : null;
-        champ(etat, 'bdvbNom', 'Le nom que voient tes clients', { max: 80, auto: 'off',
+        champ(etat, 'bdvbNom', 'Ton nom d’expéditeur', { max: 80, auto: 'off',
           place: nomSignature() || 'Teddy Pereira, Domaine du Clos',
           aide: 'Il s’affiche à la place de ton adresse dans leur boîte. Vide : le nom de ta signature.' });
         el('bdvbNom').value = garde != null ? garde : (b.nom_affiche || nomSignature());
@@ -246,15 +265,18 @@
         var lg = mk('label', 'bdvr-chk'); var cl = mk('input'); cl.type = 'checkbox'; cl.id = 'bdvbLogo'; cl.checked = b.logo_dans_mails !== false;
         cl.setAttribute('aria-describedby', 'bdvbLogoAide');
         lg.appendChild(cl); lg.appendChild(document.createTextNode(' Mettre le logo du domaine sous mes mails'));
-        etat.appendChild(lg);
+        var cs = mk('div', 'bdvb-case'); cs.appendChild(lg); etat.appendChild(cs);
         var aLogo = !!(window.BdvLogo && BdvLogo.image && BdvLogo.image());
         var al = mk('p', 'bdvr-aide', aLogo
           ? 'Il part dans le mail, sous ta signature, seulement quand le bureau envoie depuis ta boîte.'
           : 'Tu n’as pas encore de logo : ajoute-le dans l’onglet Mon domaine, il partira ensuite sous tes mails.');
-        al.id = 'bdvbLogoAide'; etat.appendChild(al);
+        al.id = 'bdvbLogoAide'; cs.appendChild(al);
       }
+      etat = ptr;
+      if (rg.childNodes.length < 2) etat.removeChild(rg);   // ni nom ni logo : pas de titre seul
+      var fin = mk('div', 'bdvb-gestes bdvb-fin');
       var rt = mk('button', 'bdvr-btn bdvr-btn--creux', 'Retirer ma boîte'); rt.type = 'button'; rt.id = 'bdvbRetirer';
-      etat.appendChild(rt);
+      fin.appendChild(rt); etat.appendChild(fin);
       var cf = mk('div', 'bdvb-confirme'); cf.id = 'bdvbConfirme'; cf.hidden = true;
       cf.appendChild(mk('p', null, avecGoogle(b)
         ? 'Retirer ta boîte efface l’accès donné par Google. Tes mails repartiront de ta messagerie. Tu peux aussi le retirer dans ton compte Google, rubrique Sécurité, Applications tierces.'
@@ -318,7 +340,10 @@
       /* LOT 86 : Gmail et Google Workspace se branchent d'un clic, sans mot de passe a creer. */
       if (f.cle === 'gmail' || f.cle === 'workspace') {
         var gg = mk('div', 'bdvb-gestes');
-        var bg = mk('button', 'bdvr-btn', 'Se connecter avec Google'); bg.type = 'button'; bg.id = 'bdvbGoogle';
+        /* Aux couleurs de Google (demande de Ted, 08/10/2026), selon sa charte des boutons de
+           connexion : fond blanc (sombre en theme sombre), trait gris, le « G » en quatre couleurs. */
+        var bg = mk('button', 'bdvb-google'); bg.type = 'button'; bg.id = 'bdvbGoogle';
+        bg.innerHTML = G_GOOGLE + '<span>Se connecter avec Google</span>';
         gg.appendChild(bg); fo.appendChild(gg);
         fo.appendChild(mk('p', 'bdvr-aide', 'Le plus simple : Google te demande d’autoriser le bureau à envoyer des mails en ton nom. Il ne lit rien dans ta boîte, et tu n’as aucun mot de passe à créer. Sur sa page, coche bien « Envoyer des e-mails en votre nom » : la case est décochée au départ.'));
         if (f.motDePasse) fo.appendChild(mk('p', 'bdvr-aide', 'Sinon, avec un mot de passe :'));

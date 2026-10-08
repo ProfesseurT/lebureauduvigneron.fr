@@ -99,6 +99,11 @@
   /* -- ce qui dit au navigateur quelle famille il peint (barres de defilement,
         champs natifs, selection de texte). Ce n'est pas une couleur. -------- */
   --bdv-schema:light;
+  /* -- LE BOUTON « SE CONNECTER AVEC GOOGLE » (lot 86, 08/10/2026) : les couleurs que la
+        charte de Google impose a ses boutons de connexion, et celles de son « G ». Elles ne
+        servent qu'a ce bouton. ------------------------------------------------------------ */
+  --bdv-google-fond:#FFFFFF; --bdv-google-trait:#747775; --bdv-google-encre:#1F1F1F;
+  --bdv-google-bleu:#4285F4; --bdv-google-rouge:#EA4335; --bdv-google-jaune:#FBBC05; --bdv-google-vert:#34A853;
 
   /* -- SURFACES ---------------------------------------------------------- */
   --bdv-fond:#F7F7F5;              /* la page                                */
@@ -263,6 +268,8 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bdv-schema:dark;
+    --bdv-google-fond:#131314; --bdv-google-trait:#8E918F; --bdv-google-encre:#E3E3E3;
+    --bdv-google-bleu:#4285F4; --bdv-google-rouge:#EA4335; --bdv-google-jaune:#FBBC05; --bdv-google-vert:#34A853;
 
     --bdv-fond:#0B0C0E;
     --bdv-surface:#131519;
@@ -333,6 +340,8 @@
 :root[data-theme="dark"],
 [data-theme="dark"]{
   --bdv-schema:dark;
+  --bdv-google-fond:#131314; --bdv-google-trait:#8E918F; --bdv-google-encre:#E3E3E3;
+  --bdv-google-bleu:#4285F4; --bdv-google-rouge:#EA4335; --bdv-google-jaune:#FBBC05; --bdv-google-vert:#34A853;
 
   --bdv-fond:#0B0C0E;
   --bdv-surface:#131519;
