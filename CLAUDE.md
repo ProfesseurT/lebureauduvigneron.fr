@@ -8586,6 +8586,33 @@ champ libre dans Mes envois. **Le logo heberge, annonce comme lot 78, devient le
 - Garde : banc SQL `supabase/banc-lot78-nom-affiche.sql` (13, rejoue 77 et 76), `banc:boite`
   section 7 (69 au total). Mutation faite : retirer @ du controle fait echouer le banc SQL.
 
+### LOT 79 : LE LOGO DU DOMAINE SOUS LES MAILS, ET « DE : » DIT LE NOM (08/10/2026)
+
+- **SQL `supabase/lot79-logo-mails.sql`, APRES 78, PUIS push, PUIS redeploiement de `boite` ET de
+  `mails-programmes`.** Colonne `boites.logo_dans_mails` (cochee par defaut), `boite_logo(p_bureau,
+  p_avec)` (sa boite seulement, null ne change rien), `boite_pour_envoi()` rend aussi `logo`,
+  `logo_l`, `logo_h` (null si decochee ou sans logo dans Mon domaine). Le numero 79 se range AVANT
+  80 dans `banc-rejeu.mjs` : aucun lot 80 a 84 ne touche `boite_pour_envoi`.
+- **Le logo part DANS le mail** (piece affichee, `cid:logo@bdv`), jamais heberge : les messageries
+  bloquent les images distantes, et le mail ne depend d'aucune adresse du site. `pieceLogo(b,
+  texte)` ajoute une version HTML (le texte echappe, liens cliquables, logo dessous, 60 px de haut
+  et 240 de large au plus) ; le texte simple part toujours. Sans logo valide : texte simple seul,
+  comme avant. **`pieceLogo` est recopiee a l'octet pres dans `_shared/smtp.ts`** (mails
+  programmes, lot 84) : `banc:programmes` le verifie, et son `corps()` saute maintenant la liste
+  des parametres (un type `{ ... }` y vit : avant, il ne comparait que la signature).
+- **L'ecran** : case « Mettre le logo du domaine sous mes mails » sous le nom affiche, lue A PART
+  (`select=logo_dans_mails`, meme raison que le nom), enregistree au changement. Sans logo, l'aide
+  dit de l'ajouter dans Mon domaine ; elle se repeint sur `bdv:logo`.
+- **« De : » dit ce que voit le client** : `BdvBoite.nom()` (le nom choisi, sinon celui de la
+  signature, meme filtre que la fonction), puis l'adresse entre parentheses, par `deBoite()` dans
+  bdv-affaires.js et bdv-ecrans.js. Sans nom : l'adresse seule, comme avant.
+- Garde : banc SQL `supabase/banc-lot79-logo-mails.sql` (15, rejoue 78 a 69), `banc:boite`
+  section 8 (80 au total), `banc:programmes` (29). Mutations faites : la case ignoree par la base,
+  la garde de colonne retiree, la valeur envoyee figee, une copie divergente : toutes attrapees.
+- Ouvert : le rendu du logo n'a pas ete vu dans une vraie messagerie (Gmail, Outlook, iPhone) :
+  a regarder au premier envoi de Ted. Une piece en `cid` peut apparaitre aussi comme piece jointe
+  dans certaines messageries.
+
 ### LA FICHE ET L'AFFAIRE EN PAGE DE TRAVAIL, 08/10/2026 (section 39 de bdv-bureau.css)
 
 Demande de Ted. Remplace le dessin des sections 26 et 34 pour la pleine page.

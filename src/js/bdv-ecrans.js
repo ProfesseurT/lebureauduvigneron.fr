@@ -3178,6 +3178,8 @@ function messageEnvoye(btn){
    du client par le meme chemin que « Considere comme envoye ». Pas parti, rien n'est note,
    le texte reste, et « Ouvrir dans ma messagerie » est toujours la. */
 function boitePrete(){return !!(window.BdvBoite&&BdvBoite.prete&&BdvBoite.prete());}
+/* « De : » dit ce que voit le client (lot 78) : le nom, puis l'adresse entre parentheses. */
+function deBoite(){const n=BdvBoite.nom?BdvBoite.nom():'';return '<b>'+esc(n||BdvBoite.adresse())+'</b>'+(n?' ('+esc(BdvBoite.adresse())+')':'');}
 async function envoyerMessage(btn){
   const z=el('msgZone');if(!z||!z.dataset.mail)return;
   const sujet=(el('msgSujet')||{}).value||'',texte=(el('msgTexte')||{}).value||'';
@@ -3224,7 +3226,7 @@ function messageHTML(f,motif){
       ${f.tels.length?`<a class="btn btn--ghost btn--sm" href="tel:${esc(f.tels[0].appel)}">Appeler ${esc(f.tels[0].affiche)}</a>`:''}
       <button class="btn btn--ghost btn--sm" onclick="messageEnvoye(this)">Considéré comme envoyé</button>
     </div>
-    ${mail&&boitePrete()?`<p class="note">De : <b>${esc(BdvBoite.adresse())}</b>, ta boîte branchée. À : <b>${esc(mail)}</b>.</p>`:''}
+    ${mail&&boitePrete()?`<p class="note">De : ${deBoite()}, ta boîte branchée. À : <b>${esc(mail)}</b>.</p>`:''}
     ${mail?'':'<p class="note">Pas d\'adresse e-mail pour ce client : copie le texte ou appelle-le.</p>'}
   </div>`;
 }

@@ -2,7 +2,7 @@
    scripts/banc-programmes.mjs : la fonction qui fait partir les mails programmes (lot 84)
    ----------------------------------------------------------------------------
    Pas de Deno dans le banc : on LIT les sources. Ce qui est garde :
-   1. `_shared/smtp.ts` recopie `ipPrivee`, `adressePublique` et `expediteur` de
+   1. `_shared/smtp.ts` recopie `ipPrivee`, `adressePublique`, `expediteur` et `pieceLogo` (lot 79) de
       `functions/boite/index.ts` A L'OCTET PRES (deux copies qui divergent, c'est une boite
       qu'on verifie d'une facon et qu'on utilise d'une autre) ;
    2. `mails-programmes` ferme sa porte par la cle NOTIF_CLE, avant toute lecture ;
@@ -27,18 +27,23 @@ const SQL = lire('supabase/lot84-echanges-mails-programmes.sql');
 function corps(src, nom) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + nom + '\\s*\\(');
   const m = re.exec(src); if (!m) return null;
-  let i = src.indexOf('{', m.index), n = 0;
+  /* On saute la liste des parametres (un type `{ ... }` y vit) avant de chercher le corps. */
+  let p = m.index + m[0].length - 1, q = 0;
+  for (; p < src.length; p++) { if (src[p] === '(') q++; else if (src[p] === ')' && --q === 0) break; }
+  let i = src.indexOf('{', p), n = 0;
   for (let j = i; j < src.length; j++) { if (src[j] === '{') n++; else if (src[j] === '}' && --n === 0) return src.slice(m.index, j + 1); }
   return null;
 }
 console.log('\n== 1. Les copies de la fonction boite ==');
-for (const nom of ['ipPrivee', 'adressePublique', 'expediteur']) {
+for (const nom of ['ipPrivee', 'adressePublique', 'expediteur', 'pieceLogo']) {
   const a = corps(BOITE, nom), b = corps(SMTP, nom);
   t(nom + ' existe des deux cotes', !!a && !!b);
   t(nom + ' est recopiee a l\'octet pres', a === b);
 }
 t('smtp.ts ne se connecte qu\'en 465 chiffre', /port:\s*465,\s*secure:\s*true/.test(SMTP));
 t('smtp.ts verifie la connexion AVANT d\'envoyer', SMTP.indexOf('tr.verify()') > 0 && SMTP.indexOf('tr.verify()') < SMTP.indexOf('tr.sendMail('));
+t('smtp.ts joint le logo a l\'envoi (lot 79)', /text: texte, \.\.\.pieceLogo\(b, texte\)/.test(SMTP));
+t('boite joint le logo a l\'envoi (lot 79)', /text: corpsTexte, \.\.\.pieceLogo\(b, corpsTexte\)/.test(BOITE));
 t('une coupure pendant l\'envoi rend « incertain »', /ESOCKET[\s\S]{0,120}incertain/.test(SMTP));
 
 console.log('\n== 2. La porte ==');

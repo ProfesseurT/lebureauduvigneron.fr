@@ -177,6 +177,35 @@ function expediteur(b: { adresse: string; nom?: string | null }) {
   return n ? { name: n, address: b.adresse } : b.adresse;
 }
 
+/* LE LOGO DU DOMAINE SOUS LE MAIL (lot 79). `boite_pour_envoi` rend le logo de Mon domaine
+   (lot 69) si la case de Mes envois est cochee, sinon rien. Il part DANS le mail, en piece
+   affichee (cid), jamais comme une image hebergee : les messageries bloquent les images
+   distantes. Le texte simple part toujours a cote ; la version HTML ne fait que le recopier,
+   echappe, avec le logo dessous (60 px de haut, 240 de large au plus, proportions gardees).
+   Couleur : `--ink`, recopiee en dur (une messagerie ne lit pas les jetons). Sans logo valide :
+   rien, le mail reste en texte simple comme avant le lot 79. */
+function pieceLogo(b: { logo?: string | null; logo_l?: number | null; logo_h?: number | null }, texte: string) {
+  const m = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(String(b.logo ?? ''));
+  if (!m) return {};
+  const l0 = Number(b.logo_l) || 0, h0 = Number(b.logo_h) || 0;
+  let h = 60, l = 240;
+  if (l0 > 0 && h0 > 0) {
+    const k = Math.min(60 / h0, 240 / l0, 1);
+    h = Math.max(1, Math.round(h0 * k)); l = Math.max(1, Math.round(l0 * k));
+  }
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const corps = esc(texte)
+    .replace(/https?:\/\/[^\s<]+?(?=[.,;:!?)]*(?:\s|<|$))/g, (u) => '<a href="' + u + '">' + u + '</a>')
+    .replace(/\n/g, '<br>');
+  const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1E2536">' + corps + '</div>'
+    + '<p style="margin:16px 0 0"><img src="cid:logo@bdv" alt="" width="' + l + '" height="' + h
+    + '" style="display:block;border:0;width:' + l + 'px;height:' + h + 'px"></p>';
+  return {
+    html,
+    attachments: [{ filename: m[1] === 'png' ? 'logo.png' : 'logo.jpg', content: m[2], encoding: 'base64', cid: 'logo@bdv', contentType: 'image/' + m[1], contentDisposition: 'inline' as const }],
+  };
+}
+
 /* ---------------------------------------------------------------------------
    ENVOYER (lot 77). `adresse` est ici le DESTINATAIRE ; l'expediteur est la boite branchee,
    lue dans la base, jamais dans la requete.
@@ -190,7 +219,8 @@ async function envoyer(jwt: string, corps: Record<string, unknown>, a: string) {
   const corpsTexte = String(corps.texte ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').slice(0, 20000);
   if (!sujet && !corpsTexte.trim()) return reponse({ resultat: 'vide', erreur: 'Écris un objet ou un texte.' });
 
-  let b: { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean; nom?: string | null } | null = null;
+  let b: { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean; nom?: string | null;
+    logo?: string | null; logo_l?: number | null; logo_h?: number | null } | null = null;
   try {
     const l = await rpc('boite_pour_envoi', { p_personne: moi.id, p_bureau: bureau });
     b = Array.isArray(l) && l[0] ? l[0] : null;
@@ -226,7 +256,7 @@ async function envoyer(jwt: string, corps: Record<string, unknown>, a: string) {
     }
     const info = await tr.sendMail({
       from: expediteur(b), to: { name: '', address: a }, ...(b.copie_a_soi && a !== b.adresse ? { bcc: b.adresse } : {}),
-      subject: sujet, text: corpsTexte,
+      subject: sujet, text: corpsTexte, ...pieceLogo(b, corpsTexte),
     });
     console.log('boite: envoi parti');
     return reponse({ resultat: 'parti', de: b.adresse, copie: !!b.copie_a_soi, id: String(info.messageId || '').slice(0, 200) });

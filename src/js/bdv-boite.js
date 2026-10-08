@@ -18,6 +18,7 @@
   var BOITE = null;          // ma ligne de `boites`, ou null
   var LU = false, ABSENTE = false;
   var NOM_COL = false;        // la base connait-elle `nom_affiche` (lot 78) ? Sinon, pas de champ.
+  var LOGO_COL = false;       // et `logo_dans_mails` (lot 79) ? Sinon, pas de case.
   var MAITRE = null, AUTRES = [];
   var FOURN = null;          // le dernier « reconnaitre »
   var EN_COURS = false;
@@ -52,6 +53,12 @@
           var ln = await BdvCompte.api('/boites?select=nom_affiche&bureau=eq.' + encodeURIComponent(b));
           if (Array.isArray(ln) && ln[0] && 'nom_affiche' in ln[0]) { BOITE.nom_affiche = ln[0].nom_affiche; NOM_COL = true; }
         } catch (e2) { NOM_COL = false; }
+        /* La case du logo, a part elle aussi, pour la meme raison (lot 79). */
+        LOGO_COL = false;
+        try {
+          var lg = await BdvCompte.api('/boites?select=logo_dans_mails&bureau=eq.' + encodeURIComponent(b));
+          if (Array.isArray(lg) && lg[0] && 'logo_dans_mails' in lg[0]) { BOITE.logo_dans_mails = lg[0].logo_dans_mails; LOGO_COL = true; }
+        } catch (e3) { LOGO_COL = false; }
       }
     } catch (e) {
       LU = false;
@@ -224,6 +231,19 @@
         el('bdvbNom').value = garde != null ? garde : (b.nom_affiche || nomSignature());
         if (garde != null) el('bdvbNom').dataset.sale = '1';
       }
+      if (LOGO_COL) {
+        /* Le logo de Mon domaine (lot 69) sous les mails qui partent de la boite (lot 79). Sans
+           logo, la case reste, et l'aide dit ou l'ajouter : decocher n'a alors rien a retirer. */
+        var lg = mk('label', 'bdvr-chk'); var cl = mk('input'); cl.type = 'checkbox'; cl.id = 'bdvbLogo'; cl.checked = b.logo_dans_mails !== false;
+        cl.setAttribute('aria-describedby', 'bdvbLogoAide');
+        lg.appendChild(cl); lg.appendChild(document.createTextNode(' Mettre le logo du domaine sous mes mails'));
+        etat.appendChild(lg);
+        var aLogo = !!(window.BdvLogo && BdvLogo.image && BdvLogo.image());
+        var al = mk('p', 'bdvr-aide', aLogo
+          ? 'Il part dans le mail, sous ta signature, seulement quand le bureau envoie depuis ta boîte.'
+          : 'Tu n’as pas encore de logo : ajoute-le dans l’onglet Mon domaine, il partira ensuite sous tes mails.');
+        al.id = 'bdvbLogoAide'; etat.appendChild(al);
+      }
       var rt = mk('button', 'bdvr-btn bdvr-btn--creux', 'Retirer ma boîte'); rt.type = 'button'; rt.id = 'bdvbRetirer';
       etat.appendChild(rt);
       var cf = mk('div', 'bdvb-confirme'); cf.id = 'bdvbConfirme'; cf.hidden = true;
@@ -365,6 +385,13 @@
       peindre();
     } else if (t.id === 'bdvbNom') {
       nommer(t);
+    } else if (t.id === 'bdvbLogo') {
+      try {
+        var rl = await BdvCompte.api('/rpc/boite_logo', { methode: 'POST', corps: { p_bureau: bureau(), p_avec: t.checked } });
+        if (rl !== true) throw new Error('rien');
+        BOITE.logo_dans_mails = t.checked;
+        dire(t.checked ? 'Le logo partira sous tes mails.' : 'Tes mails partiront sans logo.');
+      } catch (x) { t.checked = !t.checked; dire('Ce choix n’a pas été enregistré. Réessaie.', true); }
     } else if (t.id === 'bdvbCopie') {
       try {
         var r = await BdvCompte.api('/rpc/boite_regler', { methode: 'POST', corps: { p_bureau: bureau(), p_utiliser: null, p_copie: t.checked } });
@@ -453,7 +480,18 @@
   function lireTot() { if (bureau() && !LU) charger(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lireTot); else lireTot();
   document.addEventListener('bdv:bureau', lireTot);
+  /* Un logo pose ou retire dans Mon domaine change l'aide de la case (lot 79). */
+  document.addEventListener('bdv:logo', function () { if (el('bdvbZone') && LU) peindre(); });
 
-  window.BdvBoite = { prete: prete, adresse: function () { return BOITE ? BOITE.adresse : ''; }, envoyer: envoyer, charger: charger,
+  /* Le nom que voient les clients, tel que la fonction `boite` le pose (lot 78) : celui choisi
+     dans Mes envois, sinon celui de la signature, avec le meme filtre. Vide : l'adresse seule.
+     Sert a la ligne « De : » des deux redacteurs. */
+  function nomVu() {
+    var n = BOITE && BOITE.nom_affiche;
+    if (!n && window.BdvSignature && BdvSignature.perso) { var p = BdvSignature.perso(); n = p && p.nom; }
+    return String(n || '').replace(/[\u0000-\u001F\u007F@<>"\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  }
+
+  window.BdvBoite = { prete: prete, adresse: function () { return BOITE ? BOITE.adresse : ''; }, nom: nomVu, envoyer: envoyer, charger: charger,
     _etat: function () { return { BOITE: BOITE, LU: LU, ABSENTE: ABSENTE, FOURN: FOURN, MDP: MDP }; } };
 })();

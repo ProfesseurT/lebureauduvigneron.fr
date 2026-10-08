@@ -91,6 +91,7 @@ const ORDRE = [
   'lot76-boites.sql',
   'lot77-envoi.sql',
   'lot78-nom-affiche.sql',
+  'lot79-logo-mails.sql',
   'lot80-nouveaux-clients.sql',
   'lot83-relier-fusionner.sql',
   'lot84-echanges-mails-programmes.sql',

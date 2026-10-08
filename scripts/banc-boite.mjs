@@ -54,6 +54,7 @@ function monter(o) {
       if (chemin === '/rpc/boite_regler') { if (base.boite) Object.assign(base.boite, x.corps.p_utiliser == null ? {} : { utiliser: x.corps.p_utiliser }); return Promise.resolve(!!base.boite); }
       if (chemin === '/rpc/boite_nommer') { if (base.boite) base.boite.nom_affiche = x.corps.p_nom; return Promise.resolve(!!base.boite); }
       if (chemin === '/rpc/boite_retirer') { base.boite = null; return Promise.resolve(true); }
+      if (chemin === '/rpc/boite_logo') { if (o.logoRefus) return Promise.reject(new Error('500')); if (base.boite && x.corps.p_avec != null) base.boite.logo_dans_mails = x.corps.p_avec; return Promise.resolve(!!base.boite && x.corps.p_avec != null); }
       return Promise.resolve([]);
     },
     fonction: (nom, c) => {
@@ -72,6 +73,7 @@ function monter(o) {
       return Promise.resolve({});
     }
   };
+  if (o.logo !== undefined) w.BdvLogo = { image: () => o.logo };
   for (const f of ['src/js/bdv-signature.js', 'src/js/bdv-boite.js']) {
     const s = w.document.createElement('script'); s.textContent = lire(f); w.document.body.appendChild(s);
   }
@@ -231,7 +233,7 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
   dit(/data-aff="redacEnvoyer">' \+ \(progVise\(r\) \? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'\)/.test(aff) && /await redacEnvoye\(a, b, \{ parti: res\.mot \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
   dit(/r\.parti = true;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');
-  dit(/De : <b>' \+ esc\(BdvBoite\.adresse\(\)\)/.test(aff) && /De : <b>\$\{esc\(BdvBoite\.adresse\(\)\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
+  dit(/De : ' \+ deBoite\(\)/.test(aff) && /De : \$\{deBoite\(\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
   dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">Envoyer depuis ma boîte/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');
 }
 
@@ -268,6 +270,43 @@ console.log('\n== 7. Le nom que voient les clients (lot 78) ==');
   const tout = lire('supabase/functions/boite/index.ts');
   const ex = tout.slice(tout.indexOf('function expediteur('), tout.indexOf('async function envoyer('));
   dit(/\[\\u0000-\\u001F\\u007F@<>"\\\\\]/.test(ex) && /return n \? \{ name: n, address: b\.adresse \} : b\.adresse;/.test(ex), 'la fonction refiltre le nom (celui de la signature n\'est pas controle par la base) et laisse l\'adresse seule sans nom');
+}
+
+console.log('\n== 8. Le logo sous les mails, et le nom de la ligne « De : » (lot 79) ==');
+{
+  const boite = { adresse: 'julien@gmail.com', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: '2026-10-07T10:00:00Z' };
+  const { d } = monter({ boite, logo: null });
+  await pause(100);
+  dit(!d.getElementById('bdvbLogo'), 'SQL du lot 79 pas passe : pas de case, et la boite se lit quand meme');
+}
+{
+  const boite = { adresse: 'julien@gmail.com', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: '2026-10-07T10:00:00Z', nom_affiche: 'Julien, Domaine du Clos', logo_dans_mails: true };
+  const { w, d, appels, base } = monter({ boite, logo: null });
+  await pause(100);
+  const c = d.getElementById('bdvbLogo');
+  dit(!!c && c.checked, 'branchee : la case du logo, cochee comme en base');
+  dit(appels.some(a => a.chemin === '/boites?select=logo_dans_mails&bureau=eq.' + B), 'la case se lit a part, au nom de son bureau');
+  dit(/Mon domaine/.test(d.getElementById('bdvbLogoAide').textContent) && c.getAttribute('aria-describedby') === 'bdvbLogoAide', 'sans logo, l\'aide dit ou l\'ajouter, et la case la nomme');
+  c.checked = false; c.dispatchEvent(new w.Event('change', { bubbles: true })); await pause(60);
+  const r = appels.filter(a => a.chemin === '/rpc/boite_logo').pop();
+  dit(r && r.x.corps.p_bureau === B && r.x.corps.p_avec === false && base.boite.logo_dans_mails === false, 'decocher part tout de suite, au nom de son bureau');
+  dit(/sans logo/.test(d.getElementById('bdvbMot').textContent), 'et l\'ecran dit que les mails partiront sans logo');
+  dit(w.BdvBoite.nom() === 'Julien, Domaine du Clos', 'BdvBoite.nom() rend le nom que voient les clients');
+}
+{
+  const boite = { adresse: 'julien@gmail.com', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: '2026-10-07T10:00:00Z', nom_affiche: null, logo_dans_mails: true };
+  const { w, d } = monter({ boite, logo: 'data:image/png;base64,iVBORw0KGgo=', logoRefus: true });
+  await pause(100);
+  dit(/seulement quand le bureau envoie depuis ta boîte/.test(d.getElementById('bdvbLogoAide').textContent), 'avec un logo, l\'aide dit quand il part');
+  const c = d.getElementById('bdvbLogo');
+  c.checked = false; c.dispatchEvent(new w.Event('change', { bubbles: true })); await pause(60);
+  dit(c.checked === true && /pas été enregistré/.test(d.getElementById('bdvbMot').textContent), 'un refus remet la case et le dit');
+  dit(w.BdvBoite.nom() === '', 'sans nom choisi ni signature : BdvBoite.nom() est vide (l\'adresse seule)');
+}
+{
+  const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
+  const parens = /\(n \? ' \(' \+ esc\(BdvBoite\.adresse\(\)\) \+ '\)' : ''\)/;
+  dit(parens.test(aff) && /\(n\?' \('\+esc\(BdvBoite\.adresse\(\)\)\+'\)':''\)/.test(ecr), '« De : » dit le nom, puis l\'adresse entre parentheses, dans les deux redacteurs');
 }
 
 console.log('\n' + (ko ? 'BANC DE LA BOITE : ' + ko + ' ECHEC(S) sur ' + (ok + ko) : 'BANC DE LA BOITE : ' + ok + ' controles, 0 echec'));

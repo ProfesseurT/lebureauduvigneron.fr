@@ -3468,6 +3468,11 @@
     return { r: r, ctx: ctx };
   }
   function boitePrete() { return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete()); }
+  /* « De : » dit ce que voit le client (lot 78) : le nom, puis l'adresse entre parentheses. */
+  function deBoite() {
+    var n = BdvBoite.nom ? BdvBoite.nom() : '';
+    return '<b>' + esc(n || BdvBoite.adresse()) + '</b>' + (n ? ' (' + esc(BdvBoite.adresse()) + ')' : '');
+  }
   /* La boite se lit apres coup : le redacteur ouvert se repeint quand elle arrive. */
   document.addEventListener('bdv:boite', function () {
     var id = S.page || (MOD && !MOD.hidden ? S.ouverte : null);
@@ -3506,7 +3511,7 @@
       + '<p class="aff-redac__a">' + (mail ? 'À : <b>' + esc(mail) + '</b>' : c && c.contacts === undefined ? 'Lecture de son adresse…'
         : 'Pas d’adresse e-mail : copie le texte et colle-le dans ta messagerie.') + '</p>'
       /* LOT 77 : d'ou il part, AVANT le clic (vigneron). */
-      + (mail && boitePrete() ? '<p class="aff-redac__a">De : <b>' + esc(BdvBoite.adresse()) + '</b>, ta boîte branchée</p>' : '')
+      + (mail && boitePrete() ? '<p class="aff-redac__a">De : ' + deBoite() + ', ta boîte branchée</p>' : '')
       + '<label class="aff-champ"><span>Modèle</span><select data-redac="modele">' + opts + '</select></label>'
       + (bl ? '<fieldset class="aff-redac__blocs"><legend>Ce que tu mets dedans</legend><ul>' + bl + '</ul></fieldset>' : '')
       + '<label class="aff-champ"><span>Objet</span><input type="text" data-redac="sujet" maxlength="300" value="' + esc(r.sujet || '') + '"></label>'

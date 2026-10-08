@@ -15,6 +15,18 @@ trois jours. Ne pas s'en étonner en relisant.
 
 
 
+## 08/10/2026, lot 79 et les trois suites des envois
+
+Ted : « tu vas faire les 4 à la suite et me demander de pousser à la fin. »
+- **Lot 79** : le logo de Mon domaine part sous les mails envoyés depuis la boîte, embarqué dans
+  le mail (pas hébergé), avec une case pour le retirer. La ligne « De : » des deux rédacteurs dit
+  le nom que voient les clients, puis l'adresse.
+- **Option D** : `GUIDE_connexion-google-microsoft.md`, ce que Ted doit faire chez Google et chez
+  Microsoft avant tout code. Google par l'API Gmail (`gmail.send`, vérification gratuite), pas par
+  le SMTP (audit payant). Microsoft par Graph, avec un Partner One ID. Microsoft d'abord : la
+  connexion par mot de passe s'éteint par défaut fin décembre 2026.
+- **Question à Solumatic** sur la coupure Microsoft : brouillon proposé à Ted, rien n'est envoyé.
+
 ## 08/10/2026, lot 78 : le nom que voient les clients
 
 Premier envoi reel du lot 77 par Ted : le mail est arrive, mais le client voyait
