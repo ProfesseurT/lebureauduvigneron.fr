@@ -17,6 +17,7 @@
 
   var BOITE = null;          // ma ligne de `boites`, ou null
   var LU = false, ABSENTE = false;
+  var NOM_COL = false;        // la base connait-elle `nom_affiche` (lot 78) ? Sinon, pas de champ.
   var MAITRE = null, AUTRES = [];
   var FOURN = null;          // le dernier « reconnaitre »
   var EN_COURS = false;
@@ -43,6 +44,15 @@
       var l = await BdvCompte.api('/boites?select=adresse,fournisseur,serveur,identifiant,etat,utiliser,copie_a_soi,code_expire,essai_le,branchee_le,erreur&bureau=eq.' + encodeURIComponent(b));
       BOITE = (Array.isArray(l) && l[0]) || null;
       LU = true; ABSENTE = false;
+      /* Le nom affiche se lit A PART : nomme dans la requete du dessus avant le SQL du lot 78,
+         il ferait echouer toute la lecture de la boite. */
+      NOM_COL = false;
+      if (BOITE) {
+        try {
+          var ln = await BdvCompte.api('/boites?select=nom_affiche&bureau=eq.' + encodeURIComponent(b));
+          if (Array.isArray(ln) && ln[0] && 'nom_affiche' in ln[0]) { BOITE.nom_affiche = ln[0].nom_affiche; NOM_COL = true; }
+        } catch (e2) { NOM_COL = false; }
+      }
     } catch (e) {
       LU = false;
       ABSENTE = !!e && (e.status === 404 || /PGRST|42P01/.test(String(e.detail || e.message || '')));
@@ -131,9 +141,26 @@
 
     z.addEventListener('change', surChange);
     z.addEventListener('click', surClic);
+    z.addEventListener('input', function (e) { if (e.target && e.target.id === 'bdvbNom') e.target.dataset.sale = '1'; });
     el('bdvbAdresse').addEventListener('blur', function () { reconnaitre(); });
     peindre();
     charger().then(peindre);
+  }
+  function nomSignature() { var n = el('bdvsNom'); return n ? String(n.value || '').trim() : ''; }
+  function nettoyerNom(v) { return String(v || '').replace(/\s+/g, ' ').trim(); }
+  async function nommer(t) {
+    var n = nettoyerNom(t.value);
+    if (/[@<>"\\]/.test(n)) { dire('Le nom ne peut pas contenir @ < > " ou \\ : il ressemblerait à une adresse.', true); t.focus(); return; }
+    var aGarder = n || null;
+    try {
+      var r = await BdvCompte.api('/rpc/boite_nommer', { methode: 'POST', corps: { p_bureau: bureau(), p_nom: aGarder } });
+      if (r !== true) throw new Error('rien');
+      BOITE.nom_affiche = aGarder;
+      delete t.dataset.sale;
+      t.value = n || nomSignature();
+      var vu = n || nomSignature();
+      dire(vu ? 'Tes clients verront « ' + vu + ' ».' : 'Tes clients verront ton adresse seule.');
+    } catch (x) { dire('Ce nom n’a pas été enregistré. Réessaie.', true); }
   }
   function champ(parent, id, libelle, o) {
     o = o || {};
@@ -188,6 +215,15 @@
       var lc = mk('label', 'bdvr-chk'); var cc = mk('input'); cc.type = 'checkbox'; cc.id = 'bdvbCopie'; cc.checked = b.copie_a_soi !== false;
       lc.appendChild(cc); lc.appendChild(document.createTextNode(' M’envoyer une copie de chaque mail (OVH, IONOS et Orange ne le rangent pas dans Envoyés)'));
       etat.appendChild(lc);
+      if (NOM_COL) {
+        var avant = el('bdvbNom');
+        var garde = avant && avant.dataset.sale ? avant.value : null;
+        champ(etat, 'bdvbNom', 'Le nom que voient tes clients', { max: 80, auto: 'off',
+          place: nomSignature() || 'Teddy Pereira, Domaine du Clos',
+          aide: 'Il s’affiche à la place de ton adresse dans leur boîte. Vide : le nom de ta signature.' });
+        el('bdvbNom').value = garde != null ? garde : (b.nom_affiche || nomSignature());
+        if (garde != null) el('bdvbNom').dataset.sale = '1';
+      }
       var rt = mk('button', 'bdvr-btn bdvr-btn--creux', 'Retirer ma boîte'); rt.type = 'button'; rt.id = 'bdvbRetirer';
       etat.appendChild(rt);
       var cf = mk('div', 'bdvb-confirme'); cf.id = 'bdvbConfirme'; cf.hidden = true;
@@ -327,6 +363,8 @@
       }
       dire('');
       peindre();
+    } else if (t.id === 'bdvbNom') {
+      nommer(t);
     } else if (t.id === 'bdvbCopie') {
       try {
         var r = await BdvCompte.api('/rpc/boite_regler', { methode: 'POST', corps: { p_bureau: bureau(), p_utiliser: null, p_copie: t.checked } });

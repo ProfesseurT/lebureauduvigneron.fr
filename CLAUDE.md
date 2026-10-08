@@ -8568,3 +8568,20 @@ dessin de la coque.
   volee enverrait 200 mails par jour depuis la vraie boite (plafond seul) ; texte simple, sans
   logo (lot 78).
 
+
+### LOT 78 : LE NOM QUE VOIENT LES CLIENTS (08/10/2026)
+
+Ted, apres son premier envoi reel : le client voyait l'adresse seule. Arbitrage de Ted : un
+champ libre dans Mes envois. **Le logo heberge, annonce comme lot 78, devient le lot 79.**
+- **SQL `supabase/lot78-nom-affiche.sql`, APRES 77.** Colonne `boites.nom_affiche` (1 a 80
+  signes, ni controle, ni @ < > " \ : un nom qui ressemble a une adresse tromperait le client),
+  `boite_nommer(p_bureau, p_nom)` (sa boite seulement, vide = null, espaces resserres),
+  `boite_pour_envoi()` rend `nom` = le nom choisi, sinon celui de la signature (lot 75).
+- **Fonction `boite`** : `expediteur(b)` refiltre le nom (celui de la signature ne passe pas par
+  le controle de la base) ; sans nom, l'adresse seule, comme avant. Marche avant le SQL.
+- **L'ecran** : champ « Le nom que voient tes clients » sous la boite branchee, rempli avec le nom
+  enregistre, sinon celui de la signature. S'enregistre en quittant le champ (comme la copie a
+  soi). Lu A PART (`select=nom_affiche`) : nomme dans la lecture de la boite avant le SQL, il la
+  ferait echouer. Pas de colonne : pas de champ.
+- Garde : banc SQL `supabase/banc-lot78-nom-affiche.sql` (13, rejoue 77 et 76), `banc:boite`
+  section 7 (69 au total). Mutation faite : retirer @ du controle fait echouer le banc SQL.

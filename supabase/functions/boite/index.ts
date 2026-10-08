@@ -29,7 +29,7 @@
    essais par heure et par personne) est demande AVANT de toucher au serveur de mail, sinon
    elle servirait a deviner le mot de passe d'une boite.
 
-   DEPLOIEMENT : APRES le SQL du lot 76 et APRES le commit, verify_jwt = true. Aucun secret
+   DEPLOIEMENT : APRES le SQL du lot 76 (et du lot 78 pour le nom affiche) et APRES le commit, verify_jwt = true. Aucun secret
    a poser : SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont fournis.
    ============================================================================ */
 import nodemailer from 'npm:nodemailer@^9';
@@ -168,6 +168,15 @@ function code6() {
   return String(b[0] % 1000000).padStart(6, '0');
 }
 
+/* LE NOM AFFICHE (lot 78) : celui choisi dans Mes envois, sinon celui de la signature (la base
+   tranche, `boite_pour_envoi`). La base refuse deja @ < > " \ et les caracteres de controle dans
+   le nom choisi ; celui de la signature ne passe pas par ce controle, d'ou ce second filtre. Un
+   nom vide, ou que le filtre vide, laisse l'adresse seule, comme avant le lot 78. */
+function expediteur(b: { adresse: string; nom?: string | null }) {
+  const n = String(b.nom ?? '').replace(/[\u0000-\u001F\u007F@<>"\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return n ? { name: n, address: b.adresse } : b.adresse;
+}
+
 /* ---------------------------------------------------------------------------
    ENVOYER (lot 77). `adresse` est ici le DESTINATAIRE ; l'expediteur est la boite branchee,
    lue dans la base, jamais dans la requete.
@@ -181,7 +190,7 @@ async function envoyer(jwt: string, corps: Record<string, unknown>, a: string) {
   const corpsTexte = String(corps.texte ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').slice(0, 20000);
   if (!sujet && !corpsTexte.trim()) return reponse({ resultat: 'vide', erreur: 'Écris un objet ou un texte.' });
 
-  let b: { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean } | null = null;
+  let b: { adresse: string; serveur: string; identifiant: string; secret: string; copie_a_soi: boolean; nom?: string | null } | null = null;
   try {
     const l = await rpc('boite_pour_envoi', { p_personne: moi.id, p_bureau: bureau });
     b = Array.isArray(l) && l[0] ? l[0] : null;
@@ -216,7 +225,7 @@ async function envoyer(jwt: string, corps: Record<string, unknown>, a: string) {
       return reponse({ resultat: 'injoignable', serveur: b.serveur });
     }
     const info = await tr.sendMail({
-      from: b.adresse, to: { name: '', address: a }, ...(b.copie_a_soi && a !== b.adresse ? { bcc: b.adresse } : {}),
+      from: expediteur(b), to: { name: '', address: a }, ...(b.copie_a_soi && a !== b.adresse ? { bcc: b.adresse } : {}),
       subject: sujet, text: corpsTexte,
     });
     console.log('boite: envoi parti');

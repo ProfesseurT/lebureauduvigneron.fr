@@ -52,6 +52,7 @@ function monter(o) {
         return Promise.resolve('branchee');
       }
       if (chemin === '/rpc/boite_regler') { if (base.boite) Object.assign(base.boite, x.corps.p_utiliser == null ? {} : { utiliser: x.corps.p_utiliser }); return Promise.resolve(!!base.boite); }
+      if (chemin === '/rpc/boite_nommer') { if (base.boite) base.boite.nom_affiche = x.corps.p_nom; return Promise.resolve(!!base.boite); }
       if (chemin === '/rpc/boite_retirer') { base.boite = null; return Promise.resolve(true); }
       return Promise.resolve([]);
     },
@@ -222,7 +223,7 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   const tout = lire('supabase/functions/boite/index.ts');
   const env = tout.slice(tout.indexOf('async function envoyer('), tout.indexOf('Deno.serve('));
   dit(env.indexOf("rpc('boite_envoi_permis'") > 0 && env.indexOf("rpc('boite_envoi_permis'") < env.indexOf('createTransport'), 'envoyer : le plafond du jour avant le serveur de mail');
-  dit(/from: b\.adresse, to: \{ name: '', address: a \},/.test(env) && /b\.copie_a_soi && a !== b\.adresse \? \{ bcc: b\.adresse \}/.test(env), 'envoyer : l\'expediteur vient de la base, la copie va a soi seulement');
+  dit(/from: expediteur\(b\), to: \{ name: '', address: a \},/.test(env) && /b\.copie_a_soi && a !== b\.adresse \? \{ bcc: b\.adresse \}/.test(env), 'envoyer : l\'expediteur vient de la base, la copie va a soi seulement');
   dit(/host: cible,/.test(env) && /rpc\('boite_reconnecter'/.test(env) && !/err\.message/.test(env), 'envoyer : adresse publique, boite a reconnecter si le mot de passe est refuse, aucun message du serveur renvoye');
   dit(!/err\.code === 'EAUTH' \|\| rc === 535/.test(env) && /if \(rc === 535 \|\| rc === 534 \|\| rc === 530\) \{\s*try \{ await rpc\('boite_reconnecter'/.test(env), 'seul un refus franc (530, 534, 535) passe la boite a reconnecter, pas un incident');
   dit(/\(action === 'envoyer' \? 25000 : 4000\)/.test(tout), 'un mail long (25 000 signes) peut partir');
@@ -232,6 +233,41 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   dit(/r\.parti = true;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');
   dit(/De : <b>' \+ esc\(BdvBoite\.adresse\(\)\)/.test(aff) && /De : <b>\$\{esc\(BdvBoite\.adresse\(\)\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
   dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">Envoyer depuis ma boîte/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');
+}
+
+console.log('\n== 7. Le nom que voient les clients (lot 78) ==');
+{
+  const boite = { adresse: 'julien@gmail.com', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: '2026-10-07T10:00:00Z' };
+  const { d } = monter({ boite });
+  await pause(100);
+  dit(!d.getElementById('bdvbNom'), 'SQL du lot 78 pas passe : pas de champ, et la boite se lit quand meme');
+}
+{
+  const boite = { adresse: 'julien@gmail.com', etat: 'branchee', utiliser: true, copie_a_soi: true, branchee_le: '2026-10-07T10:00:00Z', nom_affiche: null };
+  const { w, d, appels, base } = monter({ boite });
+  await pause(100);
+  const i = d.getElementById('bdvbNom');
+  dit(!!i && i.value === '' && /Vide : le nom de ta signature/.test(d.getElementById('bdvbNomAide').textContent), 'branchee : le champ, vide sans signature, et l\'aide dit ce que veut dire vide');
+  dit(appels.some(a => a.chemin === '/boites?select=nom_affiche&bureau=eq.' + B), 'le nom se lit a part, au nom de son bureau');
+  i.value = '  Julien,   Domaine du Clos ';
+  i.dispatchEvent(new w.Event('input', { bubbles: true }));
+  i.dispatchEvent(new w.Event('change', { bubbles: true })); await pause(60);
+  const n = appels.filter(a => a.chemin === '/rpc/boite_nommer').pop();
+  dit(n && n.x.corps.p_bureau === B && n.x.corps.p_nom === 'Julien, Domaine du Clos', 'le nom s\'enregistre en quittant le champ, resserre, au nom de son bureau');
+  dit(/verront « Julien, Domaine du Clos »/.test(d.getElementById('bdvbMot').textContent) && base.boite.nom_affiche === 'Julien, Domaine du Clos', 'et l\'ecran dit ce que verront les clients');
+  const avant = appels.length;
+  i.value = 'service@banque.fr';
+  i.dispatchEvent(new w.Event('change', { bubbles: true })); await pause(60);
+  dit(appels.length === avant && /ne peut pas contenir @/.test(d.getElementById('bdvbMot').textContent), 'un nom qui ressemble a une adresse est refuse avant de partir');
+  i.value = '';
+  i.dispatchEvent(new w.Event('change', { bubbles: true })); await pause(60);
+  const v = appels.filter(a => a.chemin === '/rpc/boite_nommer').pop();
+  dit(v.x.corps.p_nom === null && /adresse seule/.test(d.getElementById('bdvbMot').textContent), 'vide : le nom part a null, et l\'ecran dit que l\'adresse sera seule');
+}
+{
+  const tout = lire('supabase/functions/boite/index.ts');
+  const ex = tout.slice(tout.indexOf('function expediteur('), tout.indexOf('async function envoyer('));
+  dit(/\[\\u0000-\\u001F\\u007F@<>"\\\\\]/.test(ex) && /return n \? \{ name: n, address: b\.adresse \} : b\.adresse;/.test(ex), 'la fonction refiltre le nom (celui de la signature n\'est pas controle par la base) et laisse l\'adresse seule sans nom');
 }
 
 console.log('\n' + (ko ? 'BANC DE LA BOITE : ' + ko + ' ECHEC(S) sur ' + (ok + ko) : 'BANC DE LA BOITE : ' + ok + ' controles, 0 echec'));

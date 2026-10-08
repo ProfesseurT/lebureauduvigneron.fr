@@ -15,6 +15,13 @@ trois jours. Ne pas s'en étonner en relisant.
 
 
 
+## 08/10/2026, lot 78 : le nom que voient les clients
+
+Premier envoi reel du lot 77 par Ted : le mail est arrive, mais le client voyait
+« teddypereira88@gmail.com » sans nom. Choix de Ted parmi trois (son nom de signature, son nom
+plus le domaine, un champ libre) : le champ libre, rempli avec son nom au depart. Vide, c'est le
+nom de la signature ; vide aussi, l'adresse seule. Le logo heberge passe au lot 79.
+
 ## 07/10/2026, lot 77 construit : envoyer depuis sa boite
 
 Premier essai reel du lot 76 par Ted : sa boite Gmail branchee en 39 secondes, code juste du
