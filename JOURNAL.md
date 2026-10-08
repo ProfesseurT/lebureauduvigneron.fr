@@ -10676,3 +10676,10 @@ place manque ; un clic sur la barre recharge le bureau dans l'onglet. Le code de
 le script en ligne (bdv-affaires-jour.js) : `banc:poids` descend a 76,8 ko. Vigneron empathique :
 feu orange, trois points corriges (telephone : le devis passait avant le nom ; grand ecran : plus
 de largeur maximale ; lieu des commandes sur une ligne). Pas de SQL.
+
+## 08/10/2026 : une affaire s'ouvre dans un nouvel onglet
+
+Demande de Ted : la petite fleche des « Clients a suivre » existe aussi sur la ligne et la carte
+d'une affaire (« A gagner », liste et kanban). Elle ouvre la page de travail de l'affaire dans un
+nouvel onglet ; un clic sur le nom ouvre toujours le panneau a cote. Cachee au telephone. Bancs
+verts. Pas de SQL.

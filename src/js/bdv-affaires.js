@@ -1254,6 +1254,13 @@
     return '<button type="button" class="' + (plein ? 'btn' : 'aff-vers') + '" data-aff="suivante"'
       + ' aria-label="Passer « ' + esc(qui) + ' » à l’étape suivante, « ' + esc(suite.nom) + ' »">Vers ' + esc(suite.nom) + '</button>';
   }
+  /* 08/10/2026, demande de Ted : la fleche « nouvel onglet » de la ligne d'un client
+     (« Clients a suivre ») existe aussi sur la ligne et la carte d'une affaire. Elle ouvre
+     la page de travail de l'affaire (#affaire=). Le nom garde son geste : le panneau a cote. */
+  function lienOnglet(a, qui) {
+    return '<a class="aff-onglet" href="/mon-bureau/#affaire=' + encodeURIComponent(a.affaire_id) + '" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet">'
+      + '<span class="hors-ecran">Ouvrir l’affaire « ' + esc(qui) + ' » dans un nouvel onglet</span></a>';
+  }
   function marqueNouveau() {
     return '<span class="aff-marque aff-marque--nouveau">Nouveau client<span class="hors-ecran">, pas encore dans Vitisoft</span></span>';
   }
@@ -1268,7 +1275,7 @@
       + (ouverte ? ' aff-ligne--ouverte' : '') + '" data-affaire="' + a.affaire_id + '">'
       + '<div class="aff-ligne__corps">'
       + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir"'
-      + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>'
+      + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>' + lienOnglet(a, qui)
       + (estNouveau(a) ? ' ' + marqueNouveau() : '')
       + (motifDe(a) ? ' ' + htmlMotif(motifDe(a)) : '') + '</p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__titre">' + esc(a.titre) + '</p>' : '')
@@ -1288,7 +1295,7 @@
     return '<li class="aff-ligne aff-ligne--opposee' + (ouverte ? ' aff-ligne--ouverte' : '') + '" data-affaire="' + a.affaire_id + '">'
       + '<div class="aff-ligne__corps">'
       + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir"'
-      + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
+      + ' aria-haspopup="dialog" aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>' + lienOnglet(a, qui) + '</p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__titre">' + esc(a.titre) + '</p>' : '')
       + '</div>'
       + '<p class="aff-ligne__etape"><span class="aff-pastille">' + esc(et ? et.nom : 'étape') + '</span>'
@@ -1883,7 +1890,7 @@
     if (e.oppose) {
       return '<li class="aff-carte aff-ligne--opposee' + (S.ouverte === a.affaire_id ? ' aff-carte--ouverte' : '') + '" data-affaire="' + a.affaire_id + '">'
         + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" data-aff="ouvrir" aria-haspopup="dialog"'
-        + ' aria-controls="affaireModale" aria-expanded="' + (S.ouverte === a.affaire_id ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
+        + ' aria-controls="affaireModale" aria-expanded="' + (S.ouverte === a.affaire_id ? 'true' : 'false') + '">' + esc(qui) + '</button>' + lienOnglet(a, qui) + '</p>'
         + '<p class="aff-marque aff-marque--opposee">' + MARQUE_OPP + '</p></li>';
     }
     /* L'etape ou la carte est deja n'est pas proposee : la liste disait « Repere » dans la
@@ -1899,7 +1906,7 @@
          son milieu, la carte ne partait pas. Le bouton est donc `draggable` lui aussi ; l'image du
          glisser reste la carte entiere (dragstart). */
       + '<p class="aff-ligne__t"><button type="button" class="aff-ligne__qui" draggable="true" data-aff="ouvrir" aria-haspopup="dialog"'
-      + ' aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button></p>'
+      + ' aria-controls="affaireModale" aria-expanded="' + (ouverte ? 'true' : 'false') + '">' + esc(qui) + '</button>' + lienOnglet(a, qui) + '</p>'
       + (a.titre && a.titre !== qui ? '<p class="aff-ligne__s">' + esc(a.titre) + '</p>' : '')
       + (estNouveau(a) ? '<p class="aff-carte__marque">' + marqueNouveau() + '</p>' : '')
       + (motifDe(a) ? '<p class="aff-carte__motif">' + htmlMotif(motifDe(a)) + '</p>' : '')

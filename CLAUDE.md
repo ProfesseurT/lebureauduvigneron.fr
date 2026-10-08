@@ -8615,3 +8615,8 @@ Demande de Ted. Remplace le dessin des sections 26 et 34 pour la pleine page.
 - Captures : `scripts/cap-page-travail.mjs` (playwright, hors verif ; `LARG=2296` pour l'ecran
   de Ted). Ouvert : au telephone, les six actions de la fiche s'empilent et « Fiche cli… » est
   coupe ; « Nouvelle affaire » proposee quand une affaire est en cours (anterieur, lot 44).
+- **Fleche « nouvel onglet » sur une affaire** (08/10/2026, demande de Ted) : `lienOnglet(a, qui)`
+  (bdv-affaires.js) pose `a.aff-onglet` vers `/mon-bureau/#affaire=<id>` (`target="_blank"`)
+  juste apres le nom, sur la ligne (liste) et la carte (kanban), opposees comprises. Meme dessin
+  que `.suivre__onglet` d'un client. `position:relative; z-index:1` pour passer au-dessus du
+  calque du nom. Cachee sous 700 px. Le nom garde son geste : le panneau a cote.

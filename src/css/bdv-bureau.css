@@ -5411,6 +5411,22 @@ body.bdv-poste.bdv-coque .amod .btn{ min-height:var(--bdv-cible); }
 .bdv-coque .aff-carte__gestes,
 .bdv-coque .aff-ligne .aff-marque,
 .bdv-coque .aff-ligne .aff-devis__liste{ position:relative; z-index:1; }
+/* La fleche « nouvel onglet » d'une affaire (08/10/2026), meme dessin que celle d'un client
+   (bdv-ecrans.css, .suivre__onglet) : discrete au repos, l'accent au survol. Au-dessus du
+   calque du nom, sinon le clic ouvrirait le panneau. Pas sur telephone. */
+.bdv-coque .aff-onglet{
+  position:relative; z-index:1;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; margin-left:var(--bdv-e-1); vertical-align:middle;
+  border-radius:var(--bdv-r); color:var(--bdv-encre-4); font-size:var(--bdv-f-3); line-height:1; text-decoration:none;
+}
+.bdv-coque .aff-onglet::after{ content:"\2197"; }
+.bdv-coque .aff-ligne:hover .aff-onglet,
+.bdv-coque .aff-carte:hover .aff-onglet,
+.bdv-coque .aff-onglet:hover{ color:var(--bdv-accent); }
+.bdv-coque .aff-onglet:hover{ background:var(--bdv-survol); }
+.bdv-coque .aff-onglet:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+@media (max-width:700px){ .bdv-coque .aff-onglet{ display:none; } }
 .bdv-coque .aff-ligne__titre{
   margin:var(--bdv-e-1) 0 0;
   font-size:var(--bdv-f-2);
