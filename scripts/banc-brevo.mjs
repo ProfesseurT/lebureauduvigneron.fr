@@ -72,6 +72,12 @@ function monter(o) {
           defaut_affaires: true, defaut_devis: true, defaut_programmes: true, branche_le: '2026-10-08T10:00:00Z' };
         return Promise.resolve({ resultat: 'branche', compte_email: 'contact@clos.fr', compte_nom: 'Clos Fertel' });
       }
+      if (c.action === 'envoyer') {
+        if (o.envoi === 'plafond') return Promise.resolve({ resultat: 'plafond', mot: '200 mails envoyés par Brevo aujourd’hui : la limite du jour est atteinte.' });
+        if (o.envoi === 'panne') return Promise.reject(Object.assign(new Error('500'), { status: 500 }));
+        if (o.envoi === 'refus') return Promise.resolve({ resultat: 'refus_cle', mot: 'Brevo refuse la clé du bureau.' });
+        return Promise.resolve({ resultat: 'parti', de: 'julien@clos.fr', copie: true, par: 'brevo' });
+      }
       if (c.action === 'expediteurs') {
         if (o.expRefus) return Promise.resolve({ resultat: 'refusee', mot: 'Brevo refuse cette clé : elle est désactivée.' });
         return Promise.resolve({ resultat: 'ok', expediteurs: [
@@ -100,7 +106,7 @@ console.log('\n== 1. Non branche ==');
   dit(d.getElementById('bdvvZone').previousElementSibling === d.getElementById('bdvbZone'), 'Brevo vient juste apres « D\'ou partent tes mails »');
   dit(!!d.getElementById('bdvvCle') && d.getElementById('bdvvCle').type === 'password', 'le maitre a le champ de la cle, masque');
   dit(/Adresses IP autorisées/.test(d.getElementById('bdvvForm').textContent), 'l\'etape « debloquer les adresses IP » est dite avant de coller la cle');
-  dit(/rien ne part encore par Brevo/i.test(d.getElementById('bdvvCorps').textContent), 'l\'ecran dit que rien ne part encore par Brevo');
+  dit(/le bureau envoie tes mails par Brevo/.test(d.getElementById('bdvvCorps').textContent), 'l\'ecran dit ce que Brevo fera, sans rien promettre de plus');
 }
 {
   const { d } = monter({ maitre: false });
@@ -128,7 +134,7 @@ console.log('\n== 2. Brancher ==');
   dit(!appels.some(a => JSON.stringify(a.x || {}).indexOf('0123456789abcdef') >= 0), 'la cle ne part JAMAIS vers la base');
   dit(!d.getElementById('bdvvCle'), 'branche : le champ de la cle a quitte la page');
   dit(/Brevo est branché sur Clos Fertel \(clé terminée par AbCd\)/.test(d.getElementById('bdvvCorps').textContent), 'la carte nomme le compte et la fin de la cle');
-  dit(/rien ne part encore par Brevo/i.test(d.getElementById('bdvvCorps').textContent), 'branche, l\'ecran dit encore que rien ne part par Brevo');
+  dit(/Ce que le maître a coché ci-dessous part par Brevo/.test(d.getElementById('bdvvCorps').textContent), 'branche, l\'ecran dit que ce qui est coche part par Brevo');
   dit(fonctions.some(x => x.c.action === 'expediteurs'), 'branche, le bureau lit les adresses chez Brevo');
   dit(appels.filter(a => a.chemin.indexOf('/brevo') === 0).every(a => a.chemin.indexOf('bureau=eq.' + B) > 0), 'chaque lecture nomme son bureau');
 }
@@ -180,14 +186,15 @@ console.log('\n== 4. Mes mails a moi ==');
 {
   const { w } = monter({ maitre: false, brevo: BRANCHE() });
   await pause(120);
-  dit(!w.BdvBrevo.passe('affaires'), 'sans adresse choisie, rien ne passe par Brevo');
+  dit(w.BdvBrevo.passe('affaires'), 'sans adresse choisie, le mail va QUAND MEME vers Brevo, qui dira pourquoi il ne part pas (pas de bascule sur la boite)');
   dit(!w.BdvBrevo.passe('inconnue'), 'une sorte inconnue ne passe pas');
 }
 {
   const { w, d } = monter({ maitre: true, brevo: BRANCHE(), expRefus: true, choix: { chemin: 'bureau', expediteur: 'julien@clos.fr' } });
   await pause(150);
   dit(/désactivée/.test(d.getElementById('bdvvCorps').textContent) && !!d.getElementById('bdvvCle'), 'Brevo refuse la cle : l\'ecran le dit et le maitre peut la remplacer');
-  dit(!w.BdvBrevo.passe('affaires'), 'cle refusee : rien ne passe par Brevo');
+  dit(w.BdvBrevo.passe('affaires'), 'cle refusee : le mail ne bascule PAS sur la boite, il va vers Brevo qui le refusera en le disant');
+  dit(/ne passent pas par ta boîte à la place/.test(d.getElementById('bdvvCorps').textContent), 'cle refusee : l\'ecran dit que rien ne bascule sur la boite');
 }
 
 console.log('\n== 5. Retirer, et la base absente ==');
@@ -222,6 +229,63 @@ console.log('\n== 6. La fonction Edge et la base ==');
   dit(n.indexOf('/js/bdv-brevo.js') > n.indexOf('/js/bdv-boite.js'), 'bdv-brevo.js est charge apres bdv-boite.js');
   const r = lire('scripts/banc-rejeu.mjs');
   dit(/'lot87-brevo\.sql'/.test(r), 'le lot 87 est dans la procedure de reconstruction');
+}
+
+console.log('\n== 7. Envoyer par Brevo (lot 88) ==');
+{
+  const { w, fonctions } = monter({ maitre: false, brevo: BRANCHE(), choix: { chemin: 'bureau', expediteur: 'julien@clos.fr', expediteur_nom: 'Julien', copie_a_soi: true } });
+  await pause(120);
+  const r = await w.BdvBrevo.envoyer('devis', { a: ' client@cave.fr ', sujet: 'Votre devis', texte: 'Bonjour' });
+  const f = fonctions.filter(x => x.c.action === 'envoyer').pop();
+  dit(f && f.nom === 'brevo' && f.c.bureau === B && f.c.sorte === 'devis' && f.c.adresse === 'client@cave.fr', 'l\'envoi part vers la fonction brevo, avec son bureau, sa sorte et l\'adresse nettoyee');
+  dit(r.ok && /Mail envoyé par Brevo depuis julien@clos\.fr, avec une copie/.test(r.mot), 'parti : le mot dit Brevo, l\'adresse et la copie');
+  dit(!!w.document.getElementById('bdvvCopie') && w.document.getElementById('bdvvCopie').checked, 'la case de la copie a soi, cochee');
+}
+{
+  const { w } = monter({ brevo: BRANCHE(), choix: { chemin: 'bureau', expediteur: 'julien@clos.fr' }, envoi: 'plafond' });
+  await pause(120);
+  const r = await w.BdvBrevo.envoyer('affaires', { a: 'c@d.fr', sujet: 'x', texte: 'y' });
+  dit(!r.ok && /Pas parti : 200 mails/.test(r.mot) && /Ton texte est gardé/.test(r.mot), 'plafond : pas parti, dit pourquoi, le texte reste');
+}
+{
+  const { w } = monter({ brevo: BRANCHE(), choix: { chemin: 'bureau', expediteur: 'julien@clos.fr' }, envoi: 'panne' });
+  await pause(120);
+  const r = await w.BdvBrevo.envoyer('affaires', { a: 'c@d.fr', sujet: 'x', texte: 'y' });
+  dit(!r.ok && r.resultat === 'incertain' && /Peut-être parti/.test(r.mot), 'pas de reponse : « peut-etre parti », on ne pousse pas a renvoyer');
+}
+{
+  /* Le vrai bdv-boite.js : c'est lui qui choisit le chemin. */
+  const dom = new JSDOM('<!doctype html><body></body>', { url: 'https://lebureauduvigneron.fr/mon-bureau/', runScripts: 'dangerously' });
+  const w = dom.window, routes = [];
+  w.BdvCompte = { monBureau: () => B, monId: () => MOI, api: () => Promise.resolve([]), fonction: () => Promise.resolve({}) };
+  w.BdvBrevo = { passe: (s) => s === 'devis', envoyer: (s, o) => { routes.push(s); return Promise.resolve({ ok: true, mot: 'par Brevo' }); },
+    expediteur: () => 'julien@clos.fr', nom: () => 'Julien' };
+  const sc = w.document.createElement('script'); sc.textContent = lire('src/js/bdv-boite.js'); w.document.body.appendChild(sc);
+  await pause(60);
+  dit(w.BdvBoite.prete('devis') && !w.BdvBoite.prete('affaires'), 'sans boite : un devis coche part par Brevo, une affaire non cochee n\'a aucun chemin');
+  const r1 = await w.BdvBoite.envoyer({ sorte: 'devis', a: 'c@d.fr', sujet: 'x', texte: 'y' });
+  const r2 = await w.BdvBoite.envoyer({ sorte: 'affaires', a: 'c@d.fr', sujet: 'x', texte: 'y' });
+  dit(r1.ok && routes.join() === 'devis' && !r2.ok && r2.resultat === 'pas_branchee', 'le devis part par Brevo ; l\'affaire ne part pas par Brevo, et pas de boite');
+  dit(w.BdvBoite.libelle('devis') === 'Envoyer par Brevo' && w.BdvBoite.libelle('affaires') === 'Envoyer depuis ma boîte', 'le bouton dit par ou part le mail');
+  dit(w.BdvBoite.adresse('devis') === 'julien@clos.fr' && w.BdvBoite.nom('devis') === 'Julien', '« De : » dit l\'adresse et le nom Brevo');
+}
+{
+  const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js'), dev = lire('src/js/bdv-devis.js');
+  dit(/BdvBoite\.envoyer\(\{ a: mail, sujet: r\.sujet \|\| '', texte: r\.texte \|\| '', sorte: so \}\)/.test(aff), 'le redacteur d\'une affaire passe sa sorte');
+  dit(/BdvBoite\.envoyer\(\{a:z\.dataset\.mail,sujet:sujet,texte:texte,sorte:'affaires'\}\)/.test(ecr), 'la fiche client passe sa sorte');
+  dit(/BdvBoite\.prete\('devis'\)/.test(dev), 'le devis demande le chemin des devis');
+  dit(!/BdvBoite\.prete\(\)/.test(aff + ecr + dev), 'plus aucun appel sans sorte dans les redacteurs');
+  const fx = lire('supabase/functions/brevo/index.ts');
+  const iPour = fx.indexOf("rpc('brevo_pour_envoi'"), iPerm = fx.indexOf("rpc('brevo_envoi_permis'"), iEnv = fx.indexOf('await envoyerBrevo(');
+  dit(iPour > 0 && iPerm > iPour && iEnv > iPerm, 'la fonction : le chemin, puis le plafond, puis Brevo');
+  dit(!/boite_pour_envoi|envoyerSmtp|envoyerGmail/.test(fx), 'la fonction brevo ne bascule jamais sur la boite');
+  const mp = lire('supabase/functions/mails-programmes/index.ts');
+  dit(mp.indexOf("rpc('brevo_pour_envoi'") > 0 && mp.indexOf("rpc('brevo_pour_envoi'") < mp.indexOf("rpc('boite_pour_envoi'"), 'les mails programmes demandent Brevo avant la boite');
+  dit(/pb\.etat === 'refusee' \|\| pb\.etat === 'sans_expediteur'\)\) \{ issue = 'brevo'/.test(mp) && /if \(issue === 'erreur'\) \{\n\s*const bl = await rpc\('boite_pour_envoi'/.test(mp), 'un mail programme bloque cote Brevo ne part pas par la boite');
+  const sb = lire('supabase/functions/_shared/brevo.ts');
+  dit(/to: \[\{ email: a \}\]/.test(sb) && /htmlContent: texteEnHtml\(texte\)/.test(sb) && /textContent: texte/.test(sb), 'un seul destinataire, le texte tel quel, l\'HTML exige par Brevo n\'en est que l\'habillage');
+  dit(/if \(r\.status >= 500\) return \{ resultat: 'incertain'/.test(sb) && /catch \{\n\s*return \{ resultat: 'incertain' \};/.test(sb), 'panne de Brevo ou pas de reponse : « incertain », jamais renvoye');
+  dit(/'lot88-envoi-brevo\.sql'/.test(lire('scripts/banc-rejeu.mjs')), 'le lot 88 est dans la procedure de reconstruction');
 }
 
 console.log('\n' + (ko ? 'BANC BREVO : ' + ko + ' ECHEC(S), ' + ok + ' ok' : 'BREVO SE BRANCHE COMME PREVU : ' + ok + ' controles'));

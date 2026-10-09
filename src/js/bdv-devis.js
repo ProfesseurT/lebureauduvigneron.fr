@@ -613,7 +613,7 @@
   }
   /* La boite branchee (Mes envois) et une affaire ou revenir : le devis part par le redacteur. */
   function parBoite() {
-    return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete() && S && S.ctx && typeof S.ctx.retour === 'function');
+    return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete('devis') && S && S.ctx && typeof S.ctx.retour === 'function');
   }
 
   /* ---------------- L'OUVERTURE ---------------- */

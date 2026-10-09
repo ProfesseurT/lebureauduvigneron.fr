@@ -3177,18 +3177,22 @@ function messageEnvoye(btn){
    message d'un clic : ce clic est la validation du vigneron. Parti, il est note au journal
    du client par le meme chemin que « Considere comme envoye ». Pas parti, rien n'est note,
    le texte reste, et « Ouvrir dans ma messagerie » est toujours la. */
-function boitePrete(){return !!(window.BdvBoite&&BdvBoite.prete&&BdvBoite.prete());}
+/* LOT 88 : un mail ecrit depuis la fiche est de la sorte « affaires » : il part par Brevo si le
+   maitre l'a coche et que la personne n'a pas choisi sa boite ; bdv-boite.js tranche. */
+function boitePrete(){return !!(window.BdvBoite&&BdvBoite.prete&&BdvBoite.prete('affaires'));}
+function parBrevoFiche(){return !!(window.BdvBoite&&BdvBoite.parBrevo&&BdvBoite.parBrevo('affaires'));}
+function libelleEnvoiFiche(){return window.BdvBoite&&BdvBoite.libelle?BdvBoite.libelle('affaires'):'Envoyer depuis ma boîte';}
 /* « De : » dit ce que voit le client (lot 78) : le nom, puis l'adresse entre parentheses. */
-function deBoite(){const n=BdvBoite.nom?BdvBoite.nom():'';return '<b>'+esc(n||BdvBoite.adresse())+'</b>'+(n?' ('+esc(BdvBoite.adresse())+')':'');}
+function deBoite(){const n=BdvBoite.nom?BdvBoite.nom('affaires'):'',ad=BdvBoite.adresse('affaires');if(!ad&&parBrevoFiche())return '<b>ton adresse Brevo, pas encore choisie</b>';return '<b>'+esc(n||ad)+'</b>'+(n?' ('+esc(ad)+')':'');}
 async function envoyerMessage(btn){
   const z=el('msgZone');if(!z||!z.dataset.mail)return;
   const sujet=(el('msgSujet')||{}).value||'',texte=(el('msgTexte')||{}).value||'';
   if(!sujet.trim()&&!texte.trim()){status('error','Écris un objet ou un texte avant d\'envoyer.');return;}
   btn.disabled=true;btn.textContent='Envoi…';
-  const res=await BdvBoite.envoyer({a:z.dataset.mail,sujet:sujet,texte:texte});
+  const res=await BdvBoite.envoyer({a:z.dataset.mail,sujet:sujet,texte:texte,sorte:'affaires'});
   /* « Peut-etre parti » : le bouton ne revient pas, on ne pousse pas a renvoyer (lot 77). */
   if(!res.ok&&res.resultat==='incertain'){btn.textContent='Envoi incertain';status('error',res.mot);return;}
-  btn.disabled=false;btn.textContent='Envoyer depuis ma boîte';
+  btn.disabled=false;btn.textContent=libelleEnvoiFiche();
   if(!res.ok){status('error',res.mot);return;}
   const noter=[...document.querySelectorAll('#msgZone button')].find(b=>/Considéré comme envoyé/.test(b.textContent));
   messageEnvoye(noter||btn);
@@ -3222,13 +3226,13 @@ function messageHTML(f,motif){
     <label class="msg__lbl">Texte, modifiable avant envoi</label>
     <textarea class="msg__texte" id="msgTexte" rows="11" aria-label="Texte du message, modifiable avant envoi" oninput="majLienMail()">${esc(texte)}</textarea>
     <div class="fiche__actions">
-      ${boite?`<button class="btn btn--primary btn--sm" id="msgEnvoyer" onclick="envoyerMessage(this)">Envoyer depuis ma boîte</button>`
+      ${boite?`<button class="btn btn--primary btn--sm" id="msgEnvoyer" onclick="envoyerMessage(this)">${libelleEnvoiFiche()}</button>`
         :`${mail?`<a class="btn btn--primary btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
       <button class="btn btn--ghost btn--sm" onclick="copierMessage(this)">Copier le texte</button>`}
       ${f.tels.length?`<a class="btn btn--ghost btn--sm" href="tel:${esc(f.tels[0].appel)}">Appeler ${esc(f.tels[0].affiche)}</a>`:''}
       ${boite?'':`<button class="btn btn--ghost btn--sm" onclick="messageEnvoye(this)">Considéré comme envoyé</button>`}
     </div>
-    ${boite?`<p class="note">De : ${deBoite()}, ta boîte branchée. À : <b>${esc(mail)}</b>.</p>`:''}
+    ${boite?`<p class="note">De : ${deBoite()}${parBrevoFiche()?', par Brevo':', ta boîte branchée'}. À : <b>${esc(mail)}</b>.</p>`:''}
     ${mail?'':'<p class="note">Pas d\'adresse e-mail pour ce client : copie le texte ou appelle-le.</p>'}
   </div>`;
 }

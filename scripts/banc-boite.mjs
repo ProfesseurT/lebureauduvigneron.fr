@@ -252,9 +252,9 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
       'boite et mails programmes : une boite Google part par Gmail, avec le meme plafond');
   }
   const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
-  dit(/data-aff="redacEnvoyer">' \+ \(progVise\(r\) \? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'\)/.test(aff) && /await redacEnvoye\(a, b, \{ parti: fige \+ res\.mot, rp: rpF \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
+  dit(/data-aff="redacEnvoyer">' \+ \(progVise\(r\) \? 'Envoyer maintenant' : libelleEnvoi\(so\)\)/.test(aff) && /await redacEnvoye\(a, b, \{ parti: fige \+ res\.mot, rp: rpF \}\)/.test(aff), 'redacteur d\'une affaire : le bouton, puis le meme journal que « Considere comme envoye »');
   dit(/r\.parti = true;\s*var fige = r\.figeMot \|\| '', rpF = r\.rpFige;\s*if \(JOURNAL_ABSENT\)/.test(aff) && /r\.parti \? '<div class="aff-redac__gestes aff-redac__parti">/.test(aff) && /data-aff="redacAutre">Écrire un autre mail/.test(aff), 'parti : les boutons laissent place au resultat, pas de second envoi d\'un clic');
-  dit(/De : ' \+ deBoite\(\)/.test(aff) && /De : \$\{deBoite\(\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
+  dit(/De : ' \+ deBoite\(so\)/.test(aff) && /De : \$\{deBoite\(\)\}/.test(ecr), 'la boite d\'envoi est dite AVANT le clic, dans les deux redacteurs');
   /* Demande de Ted (08/10/2026) : boite branchee, UN seul bouton. */
   dit(/\(boite \? '<button type="button" class="btn' \+ \(progVise\(r\) \? '' : ' btn--bordeaux'\) \+ ' aff-redac__envoyer"/.test(aff)
     && /: \(mail \? '<a class="btn btn--bordeaux" data-redac="ouvrir"/.test(aff) && /: boite \? ''\s*: '<div class="aff-redac__fin">'/.test(aff)
@@ -262,7 +262,7 @@ console.log('\n== 6. Lot 77 : envoyer depuis ma boite ==');
   dit(/\$\{boite\?`<button class="btn btn--primary btn--sm" id="msgEnvoyer"[^`]*`\s*:`\$\{mail\?`<a class="btn btn--primary btn--sm" id="msgOuvrir"/.test(ecr)
     && /\$\{boite\?'':`<button class="btn btn--ghost btn--sm" onclick="messageEnvoye\(this\)">Considéré comme envoyé/.test(ecr), 'fiche client, boite branchee : le meme seul bouton');
   dit(/if \(opts && opts\.mail && issue === 'en_cours'\) \{\s*REDAC\[id\] = \{ k: 'devis', kAuto: false/.test(aff), 'retour du devis par « Envoyer le devis par email » : le redacteur s\'ouvre sur l\'envoi du devis');
-  dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">Envoyer depuis ma boîte/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');
+  dit(/id="msgEnvoyer" onclick="envoyerMessage\(this\)">\$\{libelleEnvoiFiche\(\)\}/.test(ecr) && /if\(!res\.ok\)\{status\('error',res\.mot\);return;\}/.test(ecr), 'fiche client : le bouton, et un echec ne note rien');
 }
 
 console.log('\n== 7. Le nom que voient les clients (lot 78) ==');
@@ -333,8 +333,8 @@ console.log('\n== 8. Le logo sous les mails, et le nom de la ligne « De : » (l
 }
 {
   const aff = lire('src/js/bdv-affaires.js'), ecr = lire('src/js/bdv-ecrans.js');
-  const parens = /\(n \? ' \(' \+ esc\(BdvBoite\.adresse\(\)\) \+ '\)' : ''\)/;
-  dit(parens.test(aff) && /\(n\?' \('\+esc\(BdvBoite\.adresse\(\)\)\+'\)':''\)/.test(ecr), '« De : » dit le nom, puis l\'adresse entre parentheses, dans les deux redacteurs');
+  const parens = /\(n \? ' \(' \+ esc\(ad\) \+ '\)' : ''\)/;
+  dit(parens.test(aff) && /\(n\?' \('\+esc\(ad\)\+'\)':''\)/.test(ecr), '« De : » dit le nom, puis l\'adresse entre parentheses, dans les deux redacteurs');
 }
 
 console.log('\n' + (ko ? 'BANC DE LA BOITE : ' + ko + ' ECHEC(S) sur ' + (ok + ko) : 'BANC DE LA BOITE : ' + ok + ' controles, 0 echec'));

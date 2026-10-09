@@ -9,8 +9,10 @@
        peut faire passer SES mails par sa boite au lieu de Brevo.
    La cle ne vit qu'en memoire de cette page, le temps de l'essai, et part a la fonction Edge
    `brevo` qui la range dans Vault. Elle n'est jamais relue.
-   LOT 87 N'ENVOIE RIEN PAR BREVO : l'ecran le dit. L'envoi arrive au lot 88, qui lira
-   `BdvBrevo.passe(sorte)`.
+   LOT 88 : les mails partent par Brevo. `passe(sorte)` dit si une sorte de mail part par Brevo
+   pour moi ; bdv-boite.js le demande, et route `envoyer()` ici. Si Brevo doit envoyer et ne
+   peut pas (cle refusee, pas d'adresse choisie), le mail NE part PAS par la boite a la place :
+   la fonction `brevo` le dit (decision de Ted du 08/10/2026).
    ================================================================ */
 (function () {
   'use strict';
@@ -22,6 +24,7 @@
   var EXP_MOT = '';          // ce qu'il faut dire si la liste n'a pas pu etre lue
   var EN_COURS = false;
   var CONFIRMER = false;
+  var COPIE_COL = false;     // la base connait-elle `copie_a_soi` (lot 88) ? Lu sans ligne de choix.
 
   /* Les trois sortes de mails, dans l'ordre de l'ecran. La cle sert a `passe()`. */
   var SORTES = [
@@ -51,9 +54,14 @@
       var l = await BdvCompte.api('/brevo?select=etat,compte_email,compte_nom,cle_fin,defaut_affaires,defaut_devis,defaut_programmes,branche_le,verifie_le,erreur&bureau=eq.' + encodeURIComponent(b));
       BREVO = (Array.isArray(l) && l[0]) || null;
       var moi = BdvCompte.monId && BdvCompte.monId();
-      var c = await BdvCompte.api('/brevo_choix?select=chemin,expediteur,expediteur_nom&bureau=eq.' + encodeURIComponent(b)
+      /* `*` et pas une liste : `copie_a_soi` n'existe qu'apres le SQL du lot 88. */
+      var c = await BdvCompte.api('/brevo_choix?select=*&bureau=eq.' + encodeURIComponent(b)
         + (moi ? '&personne=eq.' + encodeURIComponent(moi) : ''));
       CHOIX = (Array.isArray(c) && c[0]) || null;
+      if (!CHOIX) {
+        try { await BdvCompte.api('/brevo_choix?select=copie_a_soi&limit=0&bureau=eq.' + encodeURIComponent(b)); COPIE_COL = true; }
+        catch (e2) { COPIE_COL = false; }
+      }
       LU = true; ABSENTE = false;
     } catch (e) {
       LU = false;
@@ -128,7 +136,7 @@
     if (ABSENTE || !LU) return;
     var b = BREVO;
     if (!b) {
-      c.appendChild(mk('p', 'bdvr-aide', 'Avec la clé API de ton compte Brevo, le bureau pourra envoyer tes mails, tes listes de clients et tes SMS par Brevo. Pour l’instant, rien ne part encore par Brevo : tes mails partent comme avant.'));
+      c.appendChild(mk('p', 'bdvr-aide', 'Avec la clé API du compte Brevo du domaine, le bureau envoie tes mails par Brevo, depuis l’adresse d’expéditeur de chacun. Tes listes de clients et tes SMS suivront.'));
       if (MAITRE) peindreCle(c, false);
       else c.appendChild(mk('p', 'bdvr-aide', 'Le maître du bureau peut brancher le compte Brevo du domaine dans cet onglet.'));
       return;
@@ -140,20 +148,20 @@
       /* Pas de coche : une cle refusee n'est plus « branchee ». */
       carte.appendChild(mk('p', 'bdvr-aide bdvr-aide--alerte', (b.erreur || 'Brevo refuse cette clé : crée une nouvelle clé API dans Brevo.')
         + ' Compte : ' + qui + (b.cle_fin ? ', clé terminée par ' + b.cle_fin : '') + '.' + (MAITRE ? '' : ' Préviens le maître du bureau.')));
-      carte.appendChild(mk('p', 'bdvr-aide', 'Rien ne part par Brevo tant que la clé n’est pas remplacée.'));
+      carte.appendChild(mk('p', 'bdvr-aide', 'Tant que la clé n’est pas remplacée, les mails qui doivent partir par Brevo ne partent pas : ils ne passent pas par ta boîte à la place.'));
       c.appendChild(carte);
       if (MAITRE) peindreCle(c, true);
     } else {
       carte.appendChild(mk('p', 'bdvb-ok', 'Brevo est branché sur ' + qui + fin
         + (b.branche_le ? ', depuis le ' + dateCourte(b.branche_le) : '') + '.'));
       /* Aussi visible que l'etat : sans elle, les reglages au-dessous se lisent comme deja actifs (vigneron, lot 87). */
-      carte.appendChild(mk('p', 'bdvb-sous', 'Rien ne part encore par Brevo : tes mails partent comme avant. L’envoi par Brevo arrive bientôt.'));
+      carte.appendChild(mk('p', 'bdvr-aide', 'Ce que le maître a coché ci-dessous part par Brevo, depuis l’adresse d’expéditeur de chacun.'));
       c.appendChild(carte);
     }
 
     /* Ce qui part par Brevo pour tout le bureau. */
     var rg = mk('div', 'bdvb-reglages');
-    rg.appendChild(mk('p', 'bdvb-sous', 'Ce qui partira par Brevo, pour tout le bureau'));
+    rg.appendChild(mk('p', 'bdvb-sous', 'Ce qui part par Brevo, pour tout le bureau'));
     if (MAITRE) {
       SORTES.forEach(function (s) {
         var lab = mk('label', 'bdvr-chk'); var i = mk('input'); i.type = 'checkbox'; i.id = 'bdvvDefaut_' + s[0];
@@ -174,7 +182,7 @@
     var q = mk('div', 'bdvr-groupe'); q.setAttribute('role', 'radiogroup'); q.setAttribute('aria-label', 'Par où partent tes mails');
     var boite = window.BdvBoite && BdvBoite.prete && BdvBoite.prete() ? BdvBoite.adresse() : '';
     var chemin = CHOIX && CHOIX.chemin === 'boite' ? 'boite' : 'bureau';
-    [['bdvvParBureau', 'bureau', 'Comme le bureau', ' : ils partiront par Brevo pour ce que le maître a coché, sinon comme avant.'],
+    [['bdvvParBureau', 'bureau', 'Comme le bureau', ' : par Brevo pour ce que le maître a coché, sinon comme avant.'],
      ['bdvvParBoite', 'boite', 'Par ma boîte', boite ? ' ' + boite + ', jamais par Brevo.' : ' : branche-la d’abord dans « D’où partent tes mails ».']].forEach(function (x) {
       var lab = mk('label', 'bdvr-chk'); var r = mk('input'); r.type = 'radio'; r.name = 'bdvvChemin'; r.id = x[0]; r.value = x[1];
       r.checked = chemin === x[1];
@@ -185,6 +193,14 @@
     });
     mm.appendChild(q);
     var zexp = mk('div'); zexp.id = 'bdvvExpZone'; mm.appendChild(zexp);
+    /* Lot 88 : un mail parti par Brevo ne se range dans aucun dossier « Envoyes ». La case
+       n'existe qu'une fois le SQL du lot 88 passe (la colonne est lue avec `*`). */
+    if (CHOIX ? 'copie_a_soi' in CHOIX : COPIE_COL) {
+      var lc = mk('label', 'bdvr-chk'); var cc = mk('input'); cc.type = 'checkbox'; cc.id = 'bdvvCopie';
+      cc.checked = !CHOIX || CHOIX.copie_a_soi !== false;
+      lc.appendChild(cc); lc.appendChild(document.createTextNode(' M’envoyer une copie de chaque mail parti par Brevo (il ne se range pas dans mes Envoyés)'));
+      mm.appendChild(lc);
+    }
     c.appendChild(mm);
     peindreExp();
 
@@ -315,6 +331,46 @@
     } catch (e) { dire('Brevo n’a pas pu être retiré. Réessaie.', true); }
   }
 
+  async function copier(oui) {
+    try {
+      var r = await BdvCompte.api('/rpc/brevo_choisir', { methode: 'POST',
+        corps: { p_bureau: bureau(), p_chemin: null, p_expediteur: null, p_nom: null, p_copie: !!oui } });
+      if (r !== true) throw new Error('rien');
+      CHOIX = CHOIX || { chemin: 'bureau', expediteur: null, expediteur_nom: null };
+      CHOIX.copie_a_soi = !!oui;
+      dire(oui ? 'Tu recevras une copie de chaque mail parti par Brevo.' : 'Plus de copie des mails partis par Brevo.');
+    } catch (e) { dire('Ce choix n’a pas été enregistré. Réessaie.', true); await charger(); peindre(); }
+  }
+
+  /* ---------------- L'ENVOI, lot 88 ----------------
+     Meme reponse que BdvBoite.envoyer() : { ok, resultat, mot, de }. Le clic EST la validation
+     du vigneron ; rien ne part sans lui. Un echec ne perd rien : le redacteur garde le texte. */
+  var EN_VOL = false;
+  async function envoyer(sorte, o) {
+    if (EN_VOL) return { ok: false, resultat: 'en_cours', mot: 'Un envoi est déjà en cours.' };
+    EN_VOL = true;
+    var r;
+    try {
+      r = await BdvCompte.fonction('brevo', { action: 'envoyer', bureau: bureau(), sorte: sorte,
+        adresse: String(o.a || '').trim(), sujet: String(o.sujet || ''), texte: String(o.texte || '') });
+    } catch (e) {
+      /* Un refus de la fonction (400, 401, 413) prouve que rien n'est parti ; seuls le reseau
+         ou une panne (500 et plus) laissent un doute. Meme regle que la boite (lot 77). */
+      var st = e && e.status;
+      var avant = /aucune session|configuration absente/.test(String(e && e.message));
+      r = st === 413 ? { resultat: 'trop_long', mot: 'Ce mail est trop long pour partir du bureau.' }
+        : ((st && st < 500) || avant) ? { resultat: 'refus_fonction', mot: /aucune session/.test(String(e && e.message)) ? 'Ta session a expiré, reconnecte-toi.' : (e && e.message) || 'Le bureau a refusé l’envoi.' }
+        : { resultat: 'incertain' };
+    }
+    EN_VOL = false;
+    r = r || {};
+    if (r.resultat === 'parti') return { ok: true, de: r.de, copie: r.copie, mot: 'Mail envoyé par Brevo depuis ' + r.de + (r.copie ? ', avec une copie dans ta boîte.' : '.') };
+    if (r.resultat === 'incertain') return { ok: false, resultat: 'incertain',
+      mot: 'Peut-être parti : Brevo n’a pas répondu à temps. Regarde dans Brevo (Transactionnel, Journaux) avant de le renvoyer.' };
+    if (r.resultat === 'refus_cle' && BREVO) { BREVO.etat = 'refusee'; BREVO.erreur = r.mot; }
+    return { ok: false, resultat: r.resultat || 'erreur', mot: 'Pas parti : ' + (r.mot || 'Brevo n’a pas pu l’envoyer.') + ' Ton texte est gardé.' };
+  }
+
   function surClic(e) {
     var t = e.target && e.target.closest ? e.target.closest('button') : null;
     if (!t) return;
@@ -328,6 +384,7 @@
     var t = e.target; if (!t) return;
     if (t.dataset && t.dataset.sorte) regler(t.dataset.sorte, t.checked);
     else if (t.name === 'bdvvChemin') choisir(t.value, null, null);
+    else if (t.id === 'bdvvCopie') copier(t.checked);
     else if (t.id === 'bdvvExp') {
       var o = t.options[t.selectedIndex];
       choisir(null, t.value || '', t.value && o ? (o.dataset.nom || '') : '');
@@ -347,16 +404,19 @@
 
   /* Le lot 88 demandera : ce mail-la part-il par Brevo pour moi ? Faux tant que rien n'est sur,
      jamais un « peut-etre » : une absence n'est pas un oui. */
+  /* Lot 88 : vrai des que Brevo est branche (meme refuse), la sorte cochee, et pas « Par ma
+     boite ». Une cle refusee ou une adresse non choisie ne renvoient PAS sur la boite : le
+     mail part vers Brevo, qui dit clairement pourquoi il ne part pas (pas de bascule). */
   function passe(sorte) {
     var s = SORTES.filter(function (x) { return x[0] === sorte; })[0];
-    return !!(s && LU && BREVO && BREVO.etat === 'branche' && BREVO[s[1]] !== false
-      && !(CHOIX && CHOIX.chemin === 'boite') && CHOIX && CHOIX.expediteur);
+    return !!(s && LU && BREVO && BREVO[s[1]] !== false && !(CHOIX && CHOIX.chemin === 'boite'));
   }
   function lireTot() { if (bureau() && !LU) charger(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lireTot); else lireTot();
   document.addEventListener('bdv:bureau', lireTot);
 
-  window.BdvBrevo = { charger: charger, passe: passe,
+  window.BdvBrevo = { charger: charger, passe: passe, envoyer: envoyer,
     expediteur: function () { return CHOIX && CHOIX.expediteur || ''; },
+    nom: function () { return String(CHOIX && CHOIX.expediteur_nom || '').replace(/[\u0000-\u001F\u007F@<>"\\]/g, '').trim().slice(0, 80); },
     _etat: function () { return { BREVO: BREVO, CHOIX: CHOIX, LU: LU, ABSENTE: ABSENTE, MAITRE: MAITRE, EXP: EXP, EXP_MOT: EXP_MOT }; } };
 })();

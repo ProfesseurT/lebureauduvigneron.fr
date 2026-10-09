@@ -27,7 +27,7 @@ await ctx.addInitScript(({ maitre, fin, boite, brevo }) => {
     if (/rest\/v1\/brevo\?select=/.test(url)) return rep(brevo ? [{ etat: brevo === 'refusee' ? 'refusee' : 'branche', compte_email: 'contact@closfertel.fr', compte_nom: 'Domaine du Clos Fertel',
       cle_fin: 'x7Qa', defaut_affaires: true, defaut_devis: true, defaut_programmes: false, branche_le: new Date().toISOString(),
       erreur: brevo === 'refusee' ? 'Brevo refuse cette clé : elle est fausse, désactivée ou supprimée. Crée une nouvelle clé API dans Brevo.' : null }] : []);
-    if (/rest\/v1\/brevo_choix\?select=/.test(url)) return rep(brevo ? [{ chemin: 'bureau', expediteur: 'julien@closfertel.fr', expediteur_nom: 'Julien' }] : []);
+    if (/rest\/v1\/brevo_choix\?select=/.test(url)) return rep(brevo ? [{ chemin: 'bureau', expediteur: 'julien@closfertel.fr', expediteur_nom: 'Julien', copie_a_soi: true }] : []);
     if (/functions\/v1\/brevo/.test(url)) return rep({ resultat: 'ok', expediteurs: [
       { email: 'contact@closfertel.fr', nom: 'Domaine du Clos Fertel', actif: true }, { email: 'julien@closfertel.fr', nom: 'Julien', actif: true },
       { email: 'caveau@closfertel.fr', nom: '', actif: false }] });

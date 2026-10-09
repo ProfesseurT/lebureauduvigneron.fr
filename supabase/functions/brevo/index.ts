@@ -18,11 +18,17 @@
      - elle traverse cette fonction, n'est jamais journalisee ni renvoyee ;
      - aucun texte de Brevo ne sort d'ici : on rend un mot du bureau.
 
-   CE LOT N'ENVOIE AUCUN MAIL. Le lot 88 ajoutera l'envoi.
+   LOT 88 : `envoyer` (tout membre) fait partir UN mail ecrit dans un redacteur du bureau, au
+   seul destinataire affiche, quand le vigneron clique. La base dit si ce mail-la part par
+   Brevo (`brevo_pour_envoi`) ; si Brevo doit envoyer et ne peut pas, RIEN ne part, et on ne
+   bascule pas sur la boite (decision de Ted du 08/10/2026). Plafond : 200 par jour et par
+   personne, demande AVANT Brevo.
 
    DEPLOIEMENT : APRES le SQL du lot 87 et APRES le commit, verify_jwt = true. Aucun secret a
    poser : SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont fournis.
    ============================================================================ */
+
+import { envoyerBrevo, MOTS_BREVO } from '../_shared/brevo.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -138,6 +144,44 @@ async function expediteurs(moi: string, bureau: string) {
   return reponse({ resultat: 'ok', expediteurs: out.slice(0, 100) });
 }
 
+/* Pas de parenthese, chevron, virgule, point-virgule, deux-points, guillemet ni crochet :
+   l'adresse controlee est exactement celle qui part (meme regle que la fonction `boite`). */
+const ADRESSE = /^[^@\s()<>,;:"\[\]\\]+@[^@\s()<>,;:"\[\]\\]+\.[a-z]{2,}$/i;
+const SORTES = ['affaires', 'devis'];
+
+async function envoyer(moi: string, bureau: string, corps: Record<string, unknown>) {
+  const sorte = String(corps.sorte ?? '');
+  if (!SORTES.includes(sorte)) return reponse({ erreur: 'sorte inconnue' }, 400);
+  const a = texte(corps.adresse, 254).toLowerCase();
+  if (!ADRESSE.test(a)) return reponse({ resultat: 'destinataire', mot: 'Cette adresse ne ressemble pas à une adresse mail.' }, 400);
+  const sujet = texte(corps.sujet, 300);
+  const corpsTexte = String(corps.texte ?? '').replace(/\r\n/g, '\n').slice(0, 20000);
+  if (!sujet && !corpsTexte.trim()) return reponse({ erreur: 'Écris un objet ou un texte.' }, 400);
+  const l = await rpc('brevo_pour_envoi', { p_personne: moi, p_bureau: bureau, p_sorte: sorte });
+  const b = Array.isArray(l) && l[0] ? l[0] : null;
+  if (!b || b.etat !== 'ok') {
+    const etat = b ? String(b.etat) : 'pas_branche';
+    /* « pas_branche », « par_ma_boite », « pas_pour_cette_sorte » : ce mail ne passe pas par
+       Brevo ; le navigateur le savait deja, il s'est trompe de chemin. Rien n'est parti. */
+    return reponse({ resultat: etat, mot: MOTS_BREVO[etat] ?? 'Ce mail ne part pas par Brevo : rien n’est parti.' });
+  }
+  const id = await rpc('brevo_envoi_permis', { p_personne: moi, p_bureau: bureau, p_sorte: sorte });
+  if (id == null) return reponse({ resultat: 'plafond', mot: MOTS_BREVO.plafond });
+  const r = await envoyerBrevo({ cle: String(b.cle), expediteur: String(b.expediteur), nom: b.nom ? String(b.nom) : null, copie: b.copie !== false },
+    a, sujet, corpsTexte, [sorte]);
+  if (r.resultat === 'parti') {
+    try { await rpc('brevo_envoi_noter', { p_id: id, p_message_id: r.messageId || null }); } catch { /* le mail est parti quand meme */ }
+    return reponse({ resultat: 'parti', de: String(b.expediteur), copie: b.copie !== false, par: 'brevo' });
+  }
+  if (r.resultat === 'refus_cle') {
+    const mot = r.ip ? MOTS_BREVO.ip : MOTS_BREVO.refus_cle;
+    try { await rpc('brevo_noter', { p_bureau: bureau, p_etat: 'refusee', p_erreur: mot }); } catch { /* l'ecran le dit */ }
+    return reponse({ resultat: 'refus_cle', mot });
+  }
+  if (r.resultat === 'incertain') return reponse({ resultat: 'incertain' });
+  return reponse({ resultat: r.resultat, mot: MOTS_BREVO[r.resultat] ?? MOTS_BREVO.erreur, code: r.code });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reponse({ erreur: 'methode' }, 405);
@@ -146,13 +190,15 @@ Deno.serve(async (req) => {
   if (!jwt.startsWith('Bearer ')) return reponse({ erreur: 'aucune session' }, 401);
   let corps: Record<string, unknown>;
   try { corps = await req.json(); } catch { return reponse({ erreur: 'corps illisible' }, 400); }
-  if (JSON.stringify(corps).length > 2000) return reponse({ erreur: 'trop long' }, 413);
+  const action = String(corps.action ?? '');
+  /* Un mail peut etre long (un devis, une signature) : 25 000 signes pour `envoyer`. */
+  if (JSON.stringify(corps).length > (action === 'envoyer' ? 25000 : 2000)) return reponse({ resultat: 'trop_long', erreur: 'trop long' }, 413);
   const moi = await quiAppelle(jwt);
   if (!moi) return reponse({ erreur: 'aucune session' }, 401);
   const bureau = texte(corps.bureau, 40);
   if (!/^[0-9a-f-]{36}$/i.test(bureau)) return reponse({ erreur: 'bureau inconnu' }, 400);
-  const action = String(corps.action ?? '');
   try {
+    if (action === 'envoyer') return await envoyer(moi.id, bureau, corps);
     if (action === 'brancher') return await brancher(moi.id, bureau, String(corps.cle ?? '').trim());
     if (action === 'expediteurs') return await expediteurs(moi.id, bureau);
     return reponse({ erreur: 'action inconnue' }, 400);

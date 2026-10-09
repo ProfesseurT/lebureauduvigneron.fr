@@ -8862,3 +8862,32 @@ le vigneron ecrit dans Brevo. SMS un par un et en masse. Lots prevus : 88 l'envo
 - Vigneron empathique : orange (present trompeur, jargon IP, « Tes mails a toi »), corrige.
   Ouvert, anterieur et commun a tout le panneau : cases et ronds vides peu visibles en sombre,
   ronds radio trop serres.
+
+### LOT 88 : LES MAILS PARTENT PAR BREVO (09/10/2026)
+
+- **SQL `supabase/lot88-envoi-brevo.sql`, APRES 87, PUIS push, PUIS redeploiement de `brevo` ET
+  de `mails-programmes` (avec `_shared/brevo.ts`).** `brevo_choix.copie_a_soi` (cochee d'office,
+  copie cachee : un mail Brevo ne se range dans aucun « Envoyes ») ; `brevo_choisir` passe a
+  5 arguments (`p_copie` facultatif, l'ancienne a 4 supprimee) ; `brevo_pour_envoi(personne,
+  bureau, sorte)` dit le chemin : `ok` (Brevo, avec cle, adresse, nom, copie), `pas_branche`,
+  `par_ma_boite`, `pas_pour_cette_sorte` (-> la boite), `refusee`, `sans_expediteur` (-> le mail
+  NE part PAS) ; `brevo_envoi_permis` (200 par jour et par personne) et `brevo_envois` (30 jours,
+  identifiant Brevo, ni destinataire ni texte : pour le lot 90). Banc
+  `supabase/banc-lot88-envoi-brevo.sql` (21, rejoue 47 a 87).
+- **PAS DE BASCULE.** `BdvBrevo.passe(sorte)` est vrai des que Brevo est branche (meme cle
+  refusee), la sorte cochee et pas « Par ma boite » : le mail va vers Brevo, qui dit pourquoi il
+  ne part pas. Jamais par la boite a la place. Meme regle dans `mails-programmes`.
+- **Le chemin se choisit a UN endroit, `bdv-boite.js`** : `prete(sorte)`, `envoyer({..., sorte})`,
+  `libelle(sorte)` (« Envoyer par Brevo » / « Envoyer depuis ma boite »), `nom(sorte)`,
+  `adresse(sorte)`, `parBrevo(sorte)`. Sortes : `affaires` (fiche client et mails d'affaire),
+  `devis` (le modele dont la cle contient « devis », et le devis lui-meme), `programmes`.
+  Les redacteurs passent leur sorte ; `banc:brevo` refuse un appel sans sorte.
+- **`_shared/brevo.ts`** : POST /v3/smtp/email, un seul destinataire, `htmlContent` (exige par
+  Brevo) = le texte echappe, liens cliquables ; `textContent` = le texte tel quel ; pas de logo
+  (a faire). Issues : parti, refus_cle (401/403, ou « IP »), expediteur, destinataire, credits
+  (402), passager (429), incertain (5xx ou pas de reponse, jamais renvoye), erreur.
+- Page rgpd : le paragraphe Brevo (cle chiffree, message qui transite par l'outil du domaine,
+  trace de 30 jours sans destinataire ni contenu).
+- Garde : `npm run banc:brevo` (70), `banc:boite` (95). Captures :
+  `BREVO=1 [ECHEC=1] node scripts/cap-envoi77.mjs 1440:light`.
+- Ouvert : le retour « arrive / adresse morte » (lot 90, webhook) ; le logo sous un mail Brevo.

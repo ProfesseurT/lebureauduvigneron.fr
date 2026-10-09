@@ -97,6 +97,7 @@ const ORDRE = [
   'lot84-echanges-mails-programmes.sql',
   'lot86-boite-google.sql',
   'lot87-brevo.sql',
+  'lot88-envoi-brevo.sql',
 ];
 
 /* Ce que Supabase fournit d'office et qu'aucun fichier du depot ne cree. */

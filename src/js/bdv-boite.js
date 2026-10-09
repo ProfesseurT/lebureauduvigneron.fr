@@ -544,10 +544,17 @@
      Les deux redacteurs (affaire, fiche client) demandent `prete()` pour montrer « Envoyer
      depuis ma boite », puis `envoyer()`. Le clic EST la validation du vigneron : rien ne part
      sans lui. Un echec ne perd rien : le redacteur garde le texte et propose la messagerie. */
-  function prete() { return !!(LU && BOITE && BOITE.etat === 'branchee' && BOITE.utiliser); }
+  /* LOT 88 : une SORTE de mail ('affaires', 'devis', 'programmes') peut partir par Brevo, si
+     le maitre l'a cochee et que la personne n'a pas choisi « Par ma boite » (bdv-brevo.js).
+     Les redacteurs passent la sorte : c'est ici, et seulement ici, que le chemin se choisit. */
+  function parBrevo(sorte) { return !!(sorte && window.BdvBrevo && BdvBrevo.passe && BdvBrevo.passe(sorte)); }
+  function boitePrete() { return !!(LU && BOITE && BOITE.etat === 'branchee' && BOITE.utiliser); }
+  function prete(sorte) { return parBrevo(sorte) || boitePrete(); }
+  function libelle(sorte) { return parBrevo(sorte) ? 'Envoyer par Brevo' : 'Envoyer depuis ma boîte'; }
   var EN_VOL = false;
   async function envoyer(o) {
-    if (!prete()) return { ok: false, resultat: 'pas_branchee', mot: 'Ta boîte n’est pas branchée : ouvre le mail dans ta messagerie.' };
+    if (o && parBrevo(o.sorte)) return BdvBrevo.envoyer(o.sorte, o);
+    if (!boitePrete()) return { ok: false, resultat: 'pas_branchee', mot: 'Ta boîte n’est pas branchée : ouvre le mail dans ta messagerie.' };
     if (EN_VOL) return { ok: false, resultat: 'en_cours', mot: 'Un envoi est déjà en cours.' };
     EN_VOL = true;
     var r;
@@ -593,12 +600,15 @@
   /* Le nom que voient les clients, tel que la fonction `boite` le pose (lot 78) : celui choisi
      dans Mes envois, sinon celui de la signature, avec le meme filtre. Vide : l'adresse seule.
      Sert a la ligne « De : » des deux redacteurs. */
-  function nomVu() {
+  function nomVu(sorte) {
+    if (parBrevo(sorte)) return BdvBrevo.nom();
     var n = BOITE && BOITE.nom_affiche;
     if (!n && window.BdvSignature && BdvSignature.perso) { var p = BdvSignature.perso(); n = p && p.nom; }
     return String(n || '').replace(/[\u0000-\u001F\u007F@<>"\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
   }
 
-  window.BdvBoite = { prete: prete, adresse: function () { return BOITE ? BOITE.adresse : ''; }, nom: nomVu, envoyer: envoyer, charger: charger,
+  window.BdvBoite = { prete: prete, parBrevo: parBrevo, libelle: libelle,
+    adresse: function (sorte) { return parBrevo(sorte) ? BdvBrevo.expediteur() : BOITE ? BOITE.adresse : ''; },
+    nom: nomVu, envoyer: envoyer, charger: charger,
     _etat: function () { return { BOITE: BOITE, LU: LU, ABSENTE: ABSENTE, FOURN: FOURN, MDP: MDP }; } };
 })();

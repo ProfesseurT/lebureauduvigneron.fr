@@ -17,6 +17,10 @@
      3. `mail_resultat()` : parti (le mail entre dans le journal de l'affaire, signe par celui
         qui l'a programme, et le rappel se pose), pas parti (le motif, en francais), ou peut-etre
         parti (« incertain » : JAMAIS renvoye).
+   LOT 88 : si le maitre a coche « les mails programmes » pour Brevo et que la personne n'a
+   pas choisi « Par ma boite », le mail part par Brevo (`brevo_pour_envoi`, `_shared/brevo.ts`),
+   avec le plafond Brevo (`brevo_envoi_permis`). Si Brevo doit envoyer et ne peut pas (cle
+   refusee, pas d'adresse choisie), le mail est en ECHEC : il ne part pas par la boite a la place.
    UN MAIL NE PART QU'UNE FOIS : c'est la base qui le tient (statut « envoi » sous verrou),
    pas cette fonction. Un echec ne se rejoue pas tout seul : le vigneron le reprend.
 
@@ -27,6 +31,7 @@
    la cle NOTIF_CLE garde la porte). Aucun secret neuf.
    ============================================================================ */
 import { envoyerSmtp, type Boite } from '../_shared/smtp.ts';
+import { envoyerBrevo, MOTS_BREVO } from '../_shared/brevo.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -68,8 +73,36 @@ Deno.serve(async (req) => {
 
   const rapport = { pris: l.length, partis: 0, echecs: 0, incertains: 0 };
   for (const m of l) {
-    let issue = 'erreur', code: number | undefined;
+    let issue = 'erreur', code: number | undefined, motBrevo = '';
     try {
+      /* Lot 88 : Brevo d'abord, si c'est son chemin pour ce mail. Une base sans le lot 87/88
+         rend une erreur ici : on retombe sur la boite, comme avant. */
+      let pb: { etat: string; cle: string; expediteur: string; nom: string | null; copie: boolean } | null = null;
+      try {
+        const l = await rpc('brevo_pour_envoi', { p_personne: m.personne, p_bureau: m.bureau, p_sorte: 'programmes' });
+        pb = Array.isArray(l) && l[0] ? l[0] : null;
+      } catch { pb = null; }
+      if (pb && (pb.etat === 'refusee' || pb.etat === 'sans_expediteur')) { issue = 'brevo'; motBrevo = MOTS_BREVO[pb.etat]; }
+      else if (pb && pb.etat === 'ok') {
+        if (!m.destinataire) issue = 'destinataire';
+        else {
+          const id = await rpc('brevo_envoi_permis', { p_personne: m.personne, p_bureau: m.bureau, p_sorte: 'programmes' });
+          if (id == null) { issue = 'brevo'; motBrevo = MOTS_BREVO.plafond; }
+          else {
+            const r = await envoyerBrevo({ cle: pb.cle, expediteur: pb.expediteur, nom: pb.nom, copie: pb.copie !== false },
+              m.destinataire, String(m.sujet ?? ''), String(m.corps ?? ''), ['programmes']);
+            code = r.code;
+            if (r.resultat === 'parti') { issue = 'parti'; try { await rpc('brevo_envoi_noter', { p_id: id, p_message_id: r.messageId || null }); } catch { /* parti quand meme */ } }
+            else if (r.resultat === 'incertain') issue = 'incertain';
+            else {
+              issue = 'brevo';
+              motBrevo = r.resultat === 'refus_cle' ? (r.ip ? MOTS_BREVO.ip : MOTS_BREVO.refus_cle) : (MOTS_BREVO[r.resultat] ?? MOTS_BREVO.erreur);
+              if (r.resultat === 'refus_cle') { try { await rpc('brevo_noter', { p_bureau: m.bureau, p_etat: 'refusee', p_erreur: motBrevo }); } catch { /* rien */ } }
+            }
+          }
+        }
+      }
+      if (issue === 'erreur') {
       const bl = await rpc('boite_pour_envoi', { p_personne: m.personne, p_bureau: m.bureau });
       const b: Boite | null = Array.isArray(bl) && bl[0] ? bl[0] : null;
       if (!b) issue = 'pas_branchee';
@@ -82,12 +115,13 @@ Deno.serve(async (req) => {
           try { await rpc('boite_reconnecter', { p_personne: m.personne, p_bureau: m.bureau, p_erreur: 'mot de passe refuse (' + code + ')' }); } catch { /* rien */ }
         }
       }
+      }
     } catch (e) { console.error('mails-programmes: ' + String((e as Error).message)); issue = 'erreur'; }
 
     const resultat = issue === 'parti' ? 'parti' : issue === 'incertain' ? 'incertain' : 'echec';
     try {
       await rpc('mail_resultat', { p_bureau: m.bureau, p_mail: m.mail_id, p_resultat: resultat,
-        p_echec: resultat === 'echec' ? (MOTS[issue] ?? MOTS.autre) : resultat === 'incertain' ? 'La connexion a coupé pendant l’envoi : il est peut-être parti.' : null });
+        p_echec: resultat === 'echec' ? (issue === 'brevo' ? motBrevo : (MOTS[issue] ?? MOTS.autre)) : resultat === 'incertain' ? 'La connexion a coupé pendant l’envoi : il est peut-être parti.' : null });
     } catch (e) { console.error('mails-programmes: resultat ' + String((e as Error).message)); }
     if (resultat === 'parti') rapport.partis++; else if (resultat === 'incertain') rapport.incertains++; else rapport.echecs++;
     console.log('mails-programmes: ' + resultat + ' ' + issue + (code ? ' ' + code : ''));

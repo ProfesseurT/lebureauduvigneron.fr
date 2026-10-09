@@ -10812,3 +10812,13 @@ par bureau collee par le maitre ; chacun choisit son expediteur et peut garder s
 de campagne creees dans Brevo par le bureau, campagne ecrite dans Brevo ; SMS un par un et en
 masse. Lot 87 fait : brancher la cle, lire les expediteurs, poser les choix. Rien ne part encore
 par Brevo. Banc SQL 42, banc JS 49, verif vert. SQL a coller, fonction `brevo` a deployer.
+
+## 09/10/2026 : lot 88, les mails partent par Brevo
+
+Lot 87 en production, essai de Ted : « ça marche ». Lot 88 : ce que le maître coche part par
+Brevo, depuis l'adresse d'expéditeur de chacun, avec une copie cachée à soi (cochée d'office).
+« Par ma boîte » reste par la boîte. Si Brevo doit envoyer et ne peut pas (clé refusée, pas
+d'adresse choisie, plafond), rien ne part et l'écran le dit : jamais de bascule sur la boîte.
+Les mails programmés suivent la même règle. Banc SQL 21, banc écran 70 (mutations tuées),
+verif vert, captures du rédacteur (parti, et clé refusée). SQL à coller, deux fonctions à
+redéployer. Le retour « arrivé / adresse morte » viendra au lot 90.

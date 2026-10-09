@@ -3385,7 +3385,7 @@
       return;
     }
     ENVOI_EN_COURS = false;
-    var phrase = 'Mail programmé pour le ' + dateCourte(j) + ' à ' + heureCourte(quand) + ' : il partira tout seul de ta boîte.';
+    var phrase = 'Mail programmé pour le ' + dateCourte(j) + ' à ' + heureCourte(quand) + ' : il partira tout seul ' + (parBrevo('programmes') ? 'par Brevo.' : 'de ta boîte.');
     if (rappel) phrase += finPoint(' Le rappel se posera au ' + dateCourte(rappel) + ', quand il sera parti');
     if (r.rappel && rp && rp.tache) {
       var okT = false;
@@ -3435,7 +3435,7 @@
      avant. Boite branchee, un devis enregistre se fige, prend son lien et se note envoye au
      depart du mail « Envoi du devis » (BdvDevis.figerPourMail), jamais avant. */
   function devisAFigerA(a, dv) {
-    return !!(dv && dv.statut === 'enregistre' && a.issue === 'en_cours' && !oppose(a) && boitePrete() && adresseMail(a));
+    return !!(dv && dv.statut === 'enregistre' && a.issue === 'en_cours' && !oppose(a) && boitePrete('devis') && adresseMail(a));
   }
   function devisAFiger(a, r) {
     var dv = devisPrincipal(a);
@@ -3494,18 +3494,27 @@
     if (r.rappelK !== cle) { r.rappelK = cle; r.rappel = !!(rp && rp.defaut); }
     return { r: r, ctx: ctx };
   }
-  function boitePrete() { return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete()); }
+  /* LOT 88 : la SORTE du mail decide du chemin (Brevo ou la boite) ; c'est bdv-boite.js qui
+     tranche. Un mail d'envoi de devis est un « devis », tout le reste une « affaire ». */
+  function sorteRedac(r) { return r && /devis/.test(String(r.k || '')) ? 'devis' : 'affaires'; }
+  function boitePrete(sorte) { return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete(sorte)); }
+  function parBrevo(sorte) { return !!(window.BdvBoite && BdvBoite.parBrevo && BdvBoite.parBrevo(sorte)); }
+  function libelleEnvoi(sorte) { return window.BdvBoite && BdvBoite.libelle ? BdvBoite.libelle(sorte) : 'Envoyer depuis ma boîte'; }
   /* « De : » dit ce que voit le client (lot 78) : le nom, puis l'adresse entre parentheses. */
-  function deBoite() {
-    var n = BdvBoite.nom ? BdvBoite.nom() : '';
-    return '<b>' + esc(n || BdvBoite.adresse()) + '</b>' + (n ? ' (' + esc(BdvBoite.adresse()) + ')' : '');
+  function deBoite(sorte) {
+    var n = BdvBoite.nom ? BdvBoite.nom(sorte) : '', ad = BdvBoite.adresse(sorte);
+    if (!ad && parBrevo(sorte)) return '<b>ton adresse Brevo, pas encore choisie</b>';
+    return '<b>' + esc(n || ad) + '</b>' + (n ? ' (' + esc(ad) + ')' : '');
   }
   /* La boite se lit apres coup : le redacteur ouvert se repeint quand elle arrive. */
-  document.addEventListener('bdv:boite', function () {
+  function redacSuitLeChemin() {
     var id = S.page || (MOD && !MOD.hidden ? S.ouverte : null);
     var a = id && S.affaires.filter(function (x) { return x.affaire_id === id; })[0];
     if (a && boxRedac()) repeindreRedac(a);
-  });
+  }
+  document.addEventListener('bdv:boite', redacSuitLeChemin);
+  /* Lot 88 : Brevo se lit aussi apres coup, et change le chemin d'un mail. */
+  document.addEventListener('bdv:brevo', redacSuitLeChemin);
   function lienMailto(a, r) {
     var m = adresseMail(a);
     return m ? 'mailto:' + encodeURIComponent(m) + '?subject=' + encodeURIComponent(r.sujet || '') + '&body=' + encodeURIComponent(r.texte || '') : '';
@@ -3534,7 +3543,7 @@
     }).join('');
     /* Demande de Ted (08/10/2026) : boite branchee, UN seul chemin, « Envoyer depuis ma boite ».
        Ni messagerie, ni copie, ni « Considere comme envoye » : l'envoi se note tout seul. */
-    var boite = !!(mail && boitePrete());
+    var so = sorteRedac(r), boite = !!(mail && boitePrete(so));
     var href = lienMailto(a, r), av = M.avertir(r.k, ctx, r.coches, boite ? 0 : href.length);
     var rp = M.rappel(r.k, ctx, r.coches);
     return '<details class="aff-redac" id="affRedac" data-bloc="redac"' + (r.ouvert ? ' open' : '') + '><summary class="aff-redac__t"><span class="aff-redac__ouvrir">Écrire un mail</span><span class="aff-redac__fermer">Fermer le rédacteur</span></summary><div class="aff-redac__corps">'
@@ -3542,7 +3551,7 @@
       + '<p class="aff-redac__a">' + (mail ? 'À : <b>' + esc(mail) + '</b>' : c && c.contacts === undefined ? 'Lecture de son adresse…'
         : 'Pas d’adresse e-mail : copie le texte et colle-le dans ta messagerie.') + '</p>'
       /* LOT 77 : d'ou il part, AVANT le clic (vigneron). */
-      + (mail && boitePrete() ? '<p class="aff-redac__a">De : ' + deBoite() + ', ta boîte branchée</p>' : '')
+      + (boite ? '<p class="aff-redac__a">De : ' + deBoite(so) + (parBrevo(so) ? ', par Brevo' : ', ta boîte branchée') + '</p>' : '')
       + '<label class="aff-champ"><span>Modèle</span><select data-redac="modele">' + opts + '</select></label>'
       + (bl ? '<fieldset class="aff-redac__blocs"><legend>Ce que tu mets dedans</legend><ul>' + bl + '</ul></fieldset>' : '')
       + '<label class="aff-champ"><span>Objet</span><input type="text" data-redac="sujet" maxlength="300" value="' + esc(r.sujet || '') + '"></label>'
@@ -3559,7 +3568,7 @@
         : (r.echec ? '<p class="aff-redac__resultat aff-redac__resultat--echec" role="alert">' + esc(r.echec) + '</p>' : '')
       + (dvFige ? '<p class="aff-aide">Quand ce mail part, le devis ' + esc(dvFige.numero) + ' se fige, son lien de signature remplace la mention entre crochets et il est noté envoyé aujourd’hui. Pas avant.</p>' : '')
       + '<div class="aff-redac__gestes">'
-      + (boite ? '<button type="button" class="btn' + (progVise(r) ? '' : ' btn--bordeaux') + ' aff-redac__envoyer" data-aff="redacEnvoyer">' + (progVise(r) ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte') + '</button>'
+      + (boite ? '<button type="button" class="btn' + (progVise(r) ? '' : ' btn--bordeaux') + ' aff-redac__envoyer" data-aff="redacEnvoyer">' + (progVise(r) ? 'Envoyer maintenant' : libelleEnvoi(so)) + '</button>'
         : (mail ? '<a class="btn btn--bordeaux" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
           + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button>')
       + '</div>'
@@ -3578,7 +3587,7 @@
      (sinon on touche le gros bouton par reflexe et le mail part tout de suite), et il dit la
      date en toutes lettres. */
   var JOURS_C = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
-  function progVise(r) { return !!(r && r.progOuvert && LOT84 === true && boitePrete()); }
+  function progVise(r) { return !!(r && r.progOuvert && LOT84 === true && boitePrete('programmes') && boitePrete(sorteRedac(r))); }
   function progQuand(r) {
     var df = progDefaut(), j = (r && r.progJour) || df.jour, h = (r && r.progHeure) || df.heure, d = versDate(j), m = /^(\d{2}):(\d{2})$/.exec(h);
     return { j: j, d: d, h: m ? (+m[1]) + ' h' + (m[2] !== '00' ? ' ' + m[2] : '') : '' };
@@ -3602,14 +3611,16 @@
   function majProg(box, a) {
     var r = a && REDAC[a.affaire_id]; if (!box || !r) return;
     var env = box.querySelector('[data-aff="redacEnvoyer"]'), pg = box.querySelector('[data-aff="redacProgrammer"]'), v = progVise(r);
-    if (env) { env.classList.toggle('btn--bordeaux', !v); env.textContent = v ? 'Envoyer maintenant' : 'Envoyer depuis ma boîte'; }
+    if (env) { env.classList.toggle('btn--bordeaux', !v); env.textContent = v ? 'Envoyer maintenant' : libelleEnvoi(sorteRedac(r)); }
     if (pg) { pg.classList.toggle('btn--bordeaux', v); pg.textContent = progLibelle(r); }
     var we = box.querySelector('.aff-redac__prog-we'), rr = box.querySelector('.aff-redac__prog-rappel');
     if (we) we.textContent = progWeekend(r);
     if (rr) rr.textContent = progRappel(a, r);
   }
   function htmlProgrammer(a, r, mail) {
-    if (!mail || !boitePrete() || LOT84 !== true) return '';
+    /* Un mail programme part par le chemin des « mails programmes » (Brevo si le maitre l'a
+       coche, sinon la boite), decide par la fonction au moment de l'envoi (lot 88). */
+    if (!mail || !boitePrete('programmes') || !boitePrete(sorteRedac(r)) || LOT84 !== true) return '';
     if (devisAFiger(a, r)) return '<p class="aff-aide">Un devis se fige au moment où il part : il ne se programme pas.</p>';
     var df = progDefaut(), max = new Date(Date.now() + 59 * 86400000);
     if (!r.progJour) r.progJour = df.jour;
@@ -3759,8 +3770,9 @@
       avant = 'Devis ' + dvF.numero + ' figé et noté envoyé aujourd’hui. ';
       r.figeMot = avant;
     }
-    motRedac(a, 'Envoi depuis ta boîte…');
-    var res = await BdvBoite.envoyer({ a: mail, sujet: r.sujet || '', texte: r.texte || '' });
+    var so = sorteRedac(r);
+    motRedac(a, parBrevo(so) ? 'Envoi par Brevo…' : 'Envoi depuis ta boîte…');
+    var res = await BdvBoite.envoyer({ a: mail, sujet: r.sujet || '', texte: r.texte || '', sorte: so });
     if (b) b.disabled = false;
     if (!res.ok) {
       if (dvF) res = { ok: false, resultat: res.resultat, mot: res.mot + ' Le devis est déjà figé et son lien est dans le texte' + (res.resultat === 'incertain' ? '.' : ' : tu peux réessayer.') };
