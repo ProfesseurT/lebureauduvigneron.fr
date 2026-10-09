@@ -49,7 +49,7 @@ vitrine: article
         <a href="/">Accueil</a> <span aria-hidden="true">›</span>
         <a href="/articles/">Articles</a>
         {%- if rub %} <span aria-hidden="true">›</span>
-        <a href="/articles/rubrique/{{ rub.slug }}/">{{ rub.nom }}</a>
+        <a class="vt-pastille" data-rub="{{ rub.slug }}" href="/articles/rubrique/{{ rub.slug }}/">{{ rub.nom }}</a>
         {%- endif %}
       </nav>
       <h1 class="vt-tete__titre vt-tete__titre--article">{{ title }}</h1>

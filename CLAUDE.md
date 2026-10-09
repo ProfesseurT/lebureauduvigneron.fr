@@ -9120,3 +9120,7 @@ ou Fraunces au nom de l'ancienne charte (l'anti-claude l'a propose : refuse).
   style.css** : `CHARTE_MORTES=1 node scripts/charte.mjs` les liste avec leur position ; la
   borne C1 ne remonte pas.
 - banc-outils compare le nom d'un outil SANS sa mention `.hors-ecran`.
+- **Une couleur par rubrique** (`data-rub` = slug, `--vt-rub` en fin de vitrine.css) : terre,
+  `--vt-vigne`, ardoise, ocre. JAMAIS le lie (le retard). Une rubrique ajoutee prend une
+  couleur ici, sinon elle reste grise. Pas de graisse sur une police mono (IBM Plex Mono n'est
+  chargee qu'en 400).

@@ -13,6 +13,16 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 09/10/2026, la vitrine : une couleur par rubrique d'articles
+
+Demande de Ted. Vendre & fidéliser en terre, Gérer & s'organiser en vert (`--vt-vigne`, nouveau
+jeton), Réglementation & obligations en ardoise (comme « À déposer » sur l'accueil), Se lancer
+en ocre. Le lie n'est pas pris : sur la vitrine, le rouge dit le retard. Posé par `data-rub`
+(le slug) : liseré et numéro des lignes, pastille des rubriques, des titres de cahier, du fil
+d'Ariane et de « Le plus récent ». Le nom est toujours écrit à côté. Retiré : « Écrits par
+Teddy Pereira » sur /articles/ (et dans sa description). « Par Teddy Pereira » reste sous
+l'article mis en avant et sur chaque article (c'est la signature).
+
 ## 09/10/2026, la vitrine, lot 2 : les autres pages publiques
 
 Demande de Ted (« ok suite »). Quatorze pages passent au dessin de la vitrine, en trois paquets :

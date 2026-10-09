@@ -34,7 +34,7 @@ eleventyComputed:
       <a href="/articles/">Articles</a> <span aria-hidden="true">›</span>
       <span aria-current="page">{{ rubrique.nom }}</span>
     </nav>
-    <h1 class="vt-tete__titre">{{ rubrique.nom }}</h1>
+    <h1 class="vt-tete__titre vt-pastille" data-rub="{{ rubrique.slug }}">{{ rubrique.nom }}</h1>
     <p class="vt-tete__lead">{{ rubrique.intro }}</p>
     <p class="vt-tete__meta">{{ rubrique.articles | length }} article{% if rubrique.articles | length > 1 %}s{% endif %}</p>
   </div>
@@ -51,7 +51,7 @@ eleventyComputed:
     <ul class="vt-autres__liste">
       {%- for r in collections.rubriques %}
       {%- if r.slug != rubrique.slug %}
-      <li class="vt-autre">
+      <li class="vt-autre" data-rub="{{ r.slug }}">
         <a class="vt-autre__lien" href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }}</a>
         <span class="vt-autre__n">{{ r.articles | length }} article{% if r.articles | length > 1 %}s{% endif %}</span>
         <p class="vt-autre__intro">{{ r.intro | court(120) }}</p>

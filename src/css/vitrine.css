@@ -34,6 +34,7 @@
   --vt-ardoise:    #34404C;
   --vt-ocre:       #8A6516;
   --vt-terre:      #8A4524;
+  --vt-vigne:      #3D6B35;
 
   --font-vitrine:      'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-vitrine-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
@@ -1027,3 +1028,34 @@
 .vt .section .container ul:not([class]) li { margin-bottom: .4em; }
 .vt .boite-prix--compte { border: var(--vt-filet) solid var(--vt-encre); background: var(--vt-fond); color: var(--vt-encre); }
 .vt .conseil-form__fallback-note { margin: 0 0 16px; }
+
+/* --- Le code couleur des rubriques, 09/10/2026 (demande de Ted) -----------
+   Une couleur par rubrique, posee par `data-rub` (le slug). Le nom de la rubrique
+   est toujours ecrit a cote : la couleur aide a reconnaitre, elle ne porte jamais
+   seule le sens. Le lie n'y est pas : sur la vitrine, le rouge dit le retard.
+   Obligations en ardoise, comme « A deposer » sur l'accueil. */
+.vt [data-rub] { --vt-rub: var(--vt-encre-2); }
+.vt [data-rub="vendre-fideliser"] { --vt-rub: var(--vt-terre); }
+.vt [data-rub="gerer-organiser"] { --vt-rub: var(--vt-vigne); }
+.vt [data-rub="reglementation"] { --vt-rub: var(--vt-ardoise); }
+.vt [data-rub="se-lancer"] { --vt-rub: var(--vt-ocre); }
+.vt .vt-pastille::before {
+  content: "";
+  display: inline-block;
+  flex: none;
+  width: .7em;
+  height: .7em;
+  margin-right: .45em;
+  border-radius: var(--vt-r-bouton);
+  background: var(--vt-rub);
+  vertical-align: .05em;
+}
+.vt .vt-rubrique.vt-pastille::before { margin-right: 0; }
+.vt .vt-ariane .vt-pastille { color: var(--vt-rub); font-weight: 600; }
+.vt .vt-une__etiq .vt-pastille { color: var(--vt-rub); }
+.vt .vt-article[data-rub] { border-left: var(--vt-liseret) solid var(--vt-rub); padding-left: 16px; }
+.vt .vt-article[data-rub] .vt-article__num { color: var(--vt-rub); }
+.vt .vt-autre[data-rub] { border-left: var(--vt-liseret) solid var(--vt-rub); }
+@media (max-width: 700px) {
+  .vt .vt-article[data-rub] { padding-left: 10px; }
+}

@@ -23,7 +23,8 @@
     classe `signet` : bdv-signets.js la lit. -#}
 <ol class="vt-articles">
 {%- for p in lot %}
-  <li class="vt-article">
+  {%- set rubA = p.data.categorie | rubriqueDe %}
+  <li class="vt-article"{% if rubA %} data-rub="{{ rubA.slug }}"{% endif %}>
     <span class="vt-article__num" aria-hidden="true">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
     <div class="vt-article__corps">
       <h2 class="vt-article__titre"><a href="{{ p.url }}">{{ p.data.title }}</a></h2>

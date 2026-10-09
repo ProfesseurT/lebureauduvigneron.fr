@@ -2,7 +2,7 @@
 layout: base.njk
 title: Articles
 titre_seo: "Articles pour gérer son domaine viticole"
-description: "Les articles du Bureau du Vigneron sur la vente, l'organisation, les obligations et l'installation d'un domaine, écrits par Teddy Pereira à partir de ce qu'il voit dans les domaines."
+description: "Les articles du Bureau du Vigneron sur la vente, l'organisation, les obligations et l'installation d'un domaine, à partir de ce qu'on voit dans les domaines."
 vitrine: articles
 permalink: /articles/
 ---
@@ -36,7 +36,7 @@ permalink: /articles/
 <section class="vt-tete">
   <div class="vt-cadre">
     <h1 class="vt-tete__titre">Articles</h1>
-    <p class="vt-tete__lead">La vente, l’organisation, les obligations, l’installation. Écrits par Teddy Pereira, à partir de ce qu’il voit dans les domaines.</p>
+    <p class="vt-tete__lead">La vente, l’organisation, les obligations, l’installation : ce qu’on voit dans les domaines.</p>
     <p class="vt-tete__meta">
       {{ collections.posts | length }} articles · {{ collections.rubriques | length }} rubriques ·
       le plus récent du <time datetime="{{ une.date | dateISO }}">{{ une.date | dateReadable }}</time>
@@ -46,7 +46,7 @@ permalink: /articles/
 
 <main id="contenu" class="vt-cadre vt-corps">
   <section class="vt-une" aria-labelledby="vtUne">
-    <p class="vt-une__etiq">Le plus récent{% if rubUne %} · <a href="/articles/rubrique/{{ rubUne.slug }}/">{{ rubUne.nom }}</a>{% endif %}</p>
+    <p class="vt-une__etiq">Le plus récent{% if rubUne %} · <a data-rub="{{ rubUne.slug }}" class="vt-pastille" href="/articles/rubrique/{{ rubUne.slug }}/">{{ rubUne.nom }}</a>{% endif %}</p>
     <h2 class="vt-une__titre" id="vtUne"><a href="{{ une.url }}">{{ une.data.title }}</a></h2>
     {%- if une.data.description %}
     <p class="vt-une__chapo">{{ une.data.description }}</p>
@@ -62,16 +62,16 @@ permalink: /articles/
     <ul>
       <li><span class="vt-rubrique vt-rubrique--actif" aria-current="page">Tout <span class="vt-rubrique__n">{{ collections.posts | length }}</span></span></li>
       {%- for r in collections.rubriques %}
-      <li><a class="vt-rubrique" href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }} <span class="vt-rubrique__n">{{ r.articles | length }}</span></a></li>
+      <li><a class="vt-rubrique vt-pastille" data-rub="{{ r.slug }}" href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }} <span class="vt-rubrique__n">{{ r.articles | length }}</span></a></li>
       {%- endfor %}
     </ul>
   </nav>
 
   {%- if collections.posts | length > 0 %}
   {%- for r in collections.rubriques %}
-  <section class="vt-cahier" id="{{ r.slug }}" aria-labelledby="vtCahier{{ loop.index }}">
+  <section class="vt-cahier" id="{{ r.slug }}" data-rub="{{ r.slug }}" aria-labelledby="vtCahier{{ loop.index }}">
     <div class="vt-cahier__tete">
-      <h2 class="vt-cahier__titre" id="vtCahier{{ loop.index }}"><a href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }}</a></h2>
+      <h2 class="vt-cahier__titre vt-pastille" id="vtCahier{{ loop.index }}"><a href="/articles/rubrique/{{ r.slug }}/">{{ r.nom }}</a></h2>
       <p class="vt-cahier__n">{{ r.articles | length }} article{% if r.articles | length > 1 %}s{% endif %}</p>
     </div>
     <p class="vt-cahier__intro">{{ r.intro }}</p>

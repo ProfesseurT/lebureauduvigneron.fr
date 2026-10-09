@@ -539,6 +539,7 @@
   --vt-anneau:  3px;    /* l'anneau de focus, noir sur clair, blanc sur le noir */
   --vt-cible:       44px;  /* le plancher tactile d'un lien */
   --vt-cible-forte: 56px;  /* le bouton principal, qu'on touche debout */
+  --vt-vigne:  #3D6B35;  /* la rubrique « Gerer & s'organiser » : un vert de feuille, 6,26:1 sur blanc, 5,61:1 sur le fond. Les trois autres rubriques prennent terre, ardoise, ocre ; le lie reste au retard */
   --vt-t-page:    clamp(2.25rem, 1.832rem + 1.714vw, 3.375rem);  /* le titre d'une page de la vitrine (lot 2), 36 px a 390 et 54 px a 1440 : plus petit que le h1 de l'accueil, qui est le seul a vendre */
   --vt-t-article: clamp(2rem, 1.721rem + 1.143vw, 2.75rem);     /* le titre d'un article, 32 a 44 px : un titre d'article est long, il ne doit pas tenir sur cinq lignes au telephone */
   --vt-t-h2:      clamp(1.375rem, 1.236rem + 0.571vw, 1.75rem); /* un intertitre de page ou d'article, 22 a 28 px */
