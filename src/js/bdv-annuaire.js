@@ -397,6 +397,7 @@
     const membres = (TROMBI && TROMBI.gens) ? Object.keys(TROMBI.gens).map(function(u){ return [u, u === moi() ? 'Moi' : TROMBI.gens[u]]; }) : [];
     return '<p class="annu__nsel" aria-live="polite"><b>' + plur(n, 'client') + '</b> ' + (n > 1 ? 'sélectionnés' : 'sélectionné') + '</p>'
       + '<button type="button" class="btn btn--ghost btn--sm" data-a="exporter-sel">Exporter</button>'
+      + (brevoPret() ? '<button type="button" class="btn btn--ghost btn--sm" data-a="brevo-sel">Vers Brevo</button>' : '')
       + '<span class="annu__sep" aria-hidden="true"></span>'
       + '<label class="annu__lbl" for="annuTag">Étiquette</label>'
       + '<input id="annuTag" type="text" maxlength="40" list="annuTags" placeholder="VIP, Salon Bordeaux…">'
@@ -433,6 +434,8 @@
     const lot = p.querySelector('#annuLot');
     lot.hidden = SEL.size === 0;
     if(SEL.size) lot.innerHTML = barreDeSelection();
+    /* Lot 89 : un bloc « Vers Brevo » ouvert suit les filtres et la selection. */
+    if(window.BdvBrevoListes) BdvBrevoListes.rafraichir();
   }
 
   function peindre(){
@@ -464,8 +467,10 @@
       +   '</details>'
       +   '<div class="annu__barre annu__lot" id="annuLot" hidden></div>'
       +   '<div class="annu__haut"><p class="annu__compte" id="annuCompte" aria-live="polite"></p>'
-      +     '<span class="annu__gestes"><button type="button" class="btn btn--ghost btn--sm" data-a="exporter">Exporter la liste</button>'
+      +     '<span class="annu__gestes"><button type="button" class="btn btn--ghost btn--sm" data-a="brevo"' + (brevoPret() ? '' : ' hidden') + '>Vers Brevo</button>'
+      +     '<button type="button" class="btn btn--ghost btn--sm" data-a="exporter">Exporter la liste</button>'
       +     '<button type="button" class="btn btn--primary btn--sm" data-a="nouveau" aria-expanded="' + (NOUVEAU.ouvert ? 'true' : 'false') + '" aria-controls="annuNouveau">Nouveau client</button></span></div>'
+      +   '<div class="bdvbl" id="annuBrevo" hidden></div>'
       +   blocNouveau()
       +   '<div id="annuRappro">' + blocRappro() + '</div>'
       +   '<div class="tablewrap annu__wrap"><table class="data data--sticky annu__t"><caption class="hors-ecran">Tes clients. Clique sur un nom pour ouvrir sa fiche, Cmd + clic pour l’ouvrir dans un nouvel onglet.</caption>'
@@ -908,6 +913,7 @@
       else if(a === 'nv-creer'){ creerNv(b.hasAttribute('data-force')); }
       else if(a.indexOf('rp-') === 0){ rappro(a, b); }
       else if(a === 'exporter'){ exporter(FILTREE, 'liste'); }
+      else if(a === 'brevo' || a === 'brevo-sel'){ versBrevo(a === 'brevo-sel', b); }
       else if(a === 'exporter-sel'){ exporter(LISTE.filter(function(c){ return SEL.has(c.id); }), 'selection'); }
       else if(a === 'tag-plus' || a === 'tag-moins'){ const i = document.getElementById('annuTag'); etiqueter(ids, i && i.value, a === 'tag-plus'); }
       else if(a === 'tag-filtre'){
@@ -1043,6 +1049,40 @@
     if(qui) h += '<p class="note action__auteur">Dernier geste sur cette fiche : ' + esc(qui.replace(/^de /, '').replace(/^d’un /, 'un ')) + '.</p>';
     return h;
   }
+
+  /* LOT 89 : LA LISTE VERS BREVO. « Vers Brevo » prend la liste filtree (a cote d'« Exporter
+     la liste ») ou la selection (dans la barre de selection). Le bouton n'existe que si Brevo
+     est branche sur le bureau. Le nom propose dit d'ou vient la liste. */
+  function brevoPret(){ return !!(window.BdvBrevoListes && BdvBrevoListes.pret()); }
+  function titreBrevo(sel){
+    if(sel) return 'Mes clients, sélection';
+    const e = ETAT, l = [];
+    const etats = { actif: 'actifs', dormant: 'dormants', sans: 'sans commande', nouveau: 'pas encore dans Vitisoft' };
+    if(e.tag) l.push(e.tag);
+    if(e.type) l.push(e.type);
+    if(e.canal) l.push(e.canal);
+    if(e.pays) l.push(e.pays);
+    if(e.etat && etats[e.etat]) l.push(etats[e.etat]);
+    if(e.q) l.push('« ' + e.q + ' »');
+    return 'Mes clients' + (l.length ? ', ' + l.join(', ') : '');
+  }
+  function versBrevo(sel, bouton){
+    const z = document.getElementById('annuBrevo');
+    if(!z || !brevoPret()) return;
+    /* Une fonction, pas une liste : le bloc la relit quand les filtres ou la selection bougent. */
+    const ids = sel
+      ? function(){ const vus = new Set(FILTREE.map(function(c){ return c.id; }));
+          return FILTREE.filter(function(c){ return SEL.has(c.id); }).concat(LISTE.filter(function(c){ return SEL.has(c.id) && !vus.has(c.id); })).map(function(c){ return c.id; }); }
+      : function(){ return FILTREE.map(function(c){ return c.id; }); };
+    BdvBrevoListes.ouvrir({ cible: z, source: 'clients', titre: titreBrevo(sel), ids: ids, bouton: bouton });
+  }
+  /* Brevo lu, branche ou retire : le bouton apparait ou part, sans repeindre la piece. */
+  document.addEventListener('bdv:brevo', function(){
+    const p = P(); if(!p) return;
+    const b = p.querySelector('[data-a="brevo"]'); if(b) b.hidden = !brevoPret();
+    const lot = p.querySelector('#annuLot'); if(lot && SEL.size) lot.innerHTML = barreDeSelection();
+    if(!brevoPret()){ const z = document.getElementById('annuBrevo'); const o = window.BdvBrevoListes && BdvBrevoListes._etat(); if(z && o && o.cible === z) BdvBrevoListes.fermer(); }
+  });
 
   window.bdvCrmAChange = function(){
     const p = P();

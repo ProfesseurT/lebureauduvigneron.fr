@@ -4934,7 +4934,8 @@ function renderClients(){
   if(filtreMotif!=='tous')html+=`<p class="note" style="margin:.2rem 0 1rem">${MOTIFS[filtreMotif].aide}</p>`;
   html+=`<div class="card">
     <div class="toolbar"><span class="card__title" style="margin:0">${filtreMotif==='tous'?'Tous les clients à traiter':MOTIFS[filtreMotif].label}, du plus gros montant au plus petit</span>
-      ${listTools('clientsBody','exportClients')}</div>
+      ${listTools('clientsBody','exportClients')}<button type="button" class="btn btn--ghost btn--sm" id="clientsVersBrevo" onclick="versBrevoCommerce(this)"${brevoListesPret()?'':' hidden'}>Vers Brevo</button></div>
+    <div class="bdvbl" id="clientsBrevo" hidden></div>
     <div class="tablewrap"><table class="data data--sticky"><thead><tr>
       <th>Client</th><th>Contact</th><th>Raison</th><th class="num">Montant</th><th class="num">Chance</th>
       <th>Statut</th><th>Rappel</th><th>Étiquettes</th><th>Canal</th></tr></thead><tbody id="clientsBody">
@@ -4960,6 +4961,22 @@ function renderClients(){
   signalerClients();   // le bilan commun se recompte (lot 45)
 }
 function setMotif(m){filtreMotif=m;renderClients();navTo('clients');}
+/* LOT 89 : « Vers Brevo » prend CE QUE LA LISTE MONTRE : la tuile choisie, puis la recherche
+   et la case « joignables » de la barre (memes regles qu'`applyFilters`, rejouees sur les
+   clients puisque les lignes du tableau ne portent pas leur identifiant). */
+function brevoListesPret(){return !!(window.BdvBrevoListes&&BdvBrevoListes.pret());}
+function idsCommerceVisibles(){
+  const VIS=VIS_PEINTS||[];
+  const l=(filtreMotif==='tous'?VIS:VIS.filter(c=>c.motif===filtreMotif)).slice().sort((a,b)=>b.montant-a.montant);
+  const f=FILTRES.clientsBody||{q:'',joign:false},k=norm(f.q);
+  return l.filter(c=>{const m=contactTexte(c.id);return (!k||norm(c.nom).includes(k)||m.includes(k))&&(!f.joign||m!=='');}).map(c=>c.id);
+}
+function versBrevoCommerce(bouton){
+  const z=el('clientsBrevo');if(!z||!brevoListesPret())return;
+  const titre=filtreMotif==='tous'?'Clients à suivre':MOTIFS[filtreMotif].label;
+  BdvBrevoListes.ouvrir({cible:z,source:'commerce',titre:titre,ids:idsCommerceVisibles,bouton:bouton});
+}
+document.addEventListener('bdv:brevo',function(){const b=el('clientsVersBrevo');if(b)b.hidden=!brevoListesPret();});
 /* LES LISTES COMPLETES, SOUS LES TUILES, 06/10/2026 (Ted) : le bloc « Sortir tes listes
    completes » du bas de page est remonte ici. On ne montre que la liste complete de la tuile
    choisie (toutes avec « Tous ») : « Exporter la liste », au-dessus du tableau, sort ce qu'on
@@ -5250,6 +5267,7 @@ function applyFilters(tbodyId){
   });
   const cpt=el(tbodyId+'Count');
   if(cpt)cpt.textContent=fmtNum(vus)+' affiché(s)';
+  if(tbodyId==='clientsBody'&&window.BdvBrevoListes)BdvBrevoListes.rafraichir();   // lot 89 : le bloc suit la liste vue
 }
 function filterList(tbodyId,q){const f=FILTRES[tbodyId]||(FILTRES[tbodyId]={q:'',joign:false});f.q=q;applyFilters(tbodyId);}
 function filterJoignables(tbodyId,on){const f=FILTRES[tbodyId]||(FILTRES[tbodyId]={q:'',joign:false});f.joign=!!on;applyFilters(tbodyId);}

@@ -6888,6 +6888,30 @@ body.bdv-coque .tache__puce{ font-size:var(--bdv-f-5); color:var(--bdv-encre-2);
 .bdv-coque .bdvb-g-j{ fill:var(--bdv-google-jaune); }
 .bdv-coque .bdvb-g-v{ fill:var(--bdv-google-vert); }
 
+/* -- 38 quater. UNE LISTE VERS BREVO, lot 89 (09/10/2026). Pose par bdv-brevo-listes.js sous
+   la barre de « Mes clients » ou de « Mon commerce ». Un bloc encadre, comme « Nouveau client » :
+   les comptes, les deux cases d'ecart, le nom, le geste. */
+.bdv-coque .bdvbl{ margin:var(--bdv-e-3) 0 var(--bdv-e-4); padding:var(--bdv-e-4); border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); background:var(--bdv-surface-2); color:var(--bdv-encre-1); }
+.bdv-coque .bdvbl[hidden]{ display:none; }
+.bdv-coque .bdvbl .bdvd-sous{ margin:0 0 var(--bdv-e-2); }
+.bdv-coque .bdvbl .bdvd-sous:focus{ outline:none; }
+.bdv-coque .bdvbl .bdvd-sous:focus-visible{ outline:2px solid var(--bdv-accent); outline-offset:2px; }
+.bdv-coque .bdvbl-compte{ margin:var(--bdv-e-3) 0; padding-left:var(--bdv-e-6); }
+.bdv-coque .bdvbl-compte li{ margin:0 0 var(--bdv-e-1); }
+.bdv-coque .bdvbl-ecart{ margin:var(--bdv-e-3) 0; padding:var(--bdv-e-2) var(--bdv-e-3); border-left:3px solid var(--bdv-trait-fort); background:var(--bdv-surface); }
+.bdv-coque .bdvbl-ecart .bdvr-aide{ margin:0 0 var(--bdv-e-1); }
+.bdv-coque .bdvbl-ecart .chk{ display:inline-flex; align-items:center; gap:var(--bdv-e-2); min-height:var(--bdv-cible); }
+.bdv-coque .bdvbl-resume{ margin:var(--bdv-e-4) 0 var(--bdv-e-1); }
+.bdv-coque .bdvbl .bdvr-champ{ margin:var(--bdv-e-3) 0; max-width:36rem; }
+.bdv-coque .bdvbl .bdvb-gestes .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .bdvbl-mot{ margin:var(--bdv-e-2) 0 0; }
+.bdv-coque .bdvbl-mot[hidden]{ display:none; }
+.bdv-coque .bdvbl-histo:empty{ display:none; }
+.bdv-coque .bdvbl-histo{ margin-top:var(--bdv-e-4); padding-top:var(--bdv-e-3); border-top:1px solid var(--bdv-trait); }
+.bdv-coque .bdvbl-histo__t{ margin:0 0 var(--bdv-e-2); font-weight:600; }
+.bdv-coque .bdvbl-histo__l{ margin:0; padding:0; list-style:none; }
+.bdv-coque .bdvbl-histo__l li{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--bdv-e-2); margin:0 0 var(--bdv-e-1); }
+
 /* -- 38 ter. ENVOYER DEPUIS MA BOITE, lot 77 (07/10/2026). Le resultat prend la place des
    boutons ; sous 700 px, « Envoyer » est seul sur sa ligne, loin du repli (vigneron). */
 .bdv-coque .aff-redac__resultat{ flex-basis:100%; margin:0; font-weight:600; color:var(--bdv-encre-1); }

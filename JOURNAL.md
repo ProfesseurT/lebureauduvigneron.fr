@@ -10822,3 +10822,20 @@ d'adresse choisie, plafond), rien ne part et l'écran le dit : jamais de bascule
 Les mails programmés suivent la même règle. Banc SQL 21, banc écran 70 (mutations tuées),
 verif vert, captures du rédacteur (parti, et clé refusée). SQL à coller, deux fonctions à
 redéployer. Le retour « arrivé / adresse morte » viendra au lot 90.
+
+## 09/10/2026 : lot 89, les listes vers Brevo
+
+Lot 88 en production, essai de Ted : « c'est passé ». Arbitrages du jour : un « gros client » est
+un client qui porte l'étiquette « Gros client » (posée à la main dans Mes clients, rien
+d'automatique) ; tout membre du bureau peut créer une liste. « Vers Brevo » dans Mes clients
+(liste filtrée, ou sélection) et dans Mon commerce (la liste vue) : le bureau crée une liste neuve
+et datée dans le dossier « Le bureau du vigneron », avec l'adresse et le mobile, rien d'autre.
+Recul confirmé et « Gros client » écartés d'office (une case les remet), opposition jamais.
+Avant de créer, la fonction lit TOUT le carnet Brevo et écarte chaque désinscrit (mail ou SMS) :
+la doc de Brevo ne dit pas si un import re-inscrit un désinscrit, donc on ne lui en envoie
+aucun. Carnet pas lu en entier : rien ne part. Relecture adverse : 12 constats, corrigés les
+réels (opposition d'un nouveau client relié, liste qui ne suivait plus les filtres, carnet lu
+moins long qu'annoncé, réponse perdue présentée comme « rien n'est parti », numéros comparés
+sous une seule forme, mots « envoyer » trompeurs). Banc SQL 21, banc écran 56, verif vert.
+Ouvert : le plafond de 20 listes par jour peut être dépassé d'une liste par deux clics
+simultanés (accepté) ; un fixe étranger rangé dans la colonne Mobile part comme mobile.

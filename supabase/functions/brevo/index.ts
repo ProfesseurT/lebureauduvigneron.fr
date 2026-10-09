@@ -24,6 +24,13 @@
    bascule pas sur la boite (decision de Ted du 08/10/2026). Plafond : 200 par jour et par
    personne, demande AVANT Brevo.
 
+   LOT 89 : `liste` (tout membre) cree dans Brevo une liste NEUVE et datee, dans le dossier
+   « Le bureau du vigneron », avec les adresses et les mobiles que le navigateur envoie (5 000
+   au plus). AVANT d'y mettre qui que ce soit, la fonction lit tout le carnet du compte Brevo
+   et ECARTE chaque contact desinscrit (mail ou SMS) : un desinscrit n'est jamais renvoye a
+   Brevo, quelle que soit la facon dont Brevo traiterait un import. Si le carnet ne se lit pas
+   en entier, rien ne part. `liste_etat` dit ou en est l'import chez Brevo.
+
    DEPLOIEMENT : APRES le SQL du lot 87 et APRES le commit, verify_jwt = true. Aucun secret a
    poser : SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont fournis.
    ============================================================================ */
@@ -76,6 +83,24 @@ async function brevo(cle: string, chemin: string) {
     let corps: unknown = null;
     try { corps = t ? JSON.parse(t) : null; } catch { corps = null; }
     return { statut: r.status, corps: corps as Record<string, unknown> | null, brut: t.slice(0, 500) };
+  } catch {
+    return { statut: 0, corps: null, brut: '' };
+  }
+}
+
+/* Une ecriture chez Brevo (POST). Meme forme de reponse que `brevo()`. */
+async function brevoPoster(cle: string, chemin: string, corps: unknown) {
+  try {
+    const r = await fetch(`${BREVO}${chemin}`, {
+      method: 'POST',
+      headers: { 'api-key': cle, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(corps),
+      signal: AbortSignal.timeout(20000),
+    });
+    const t = await r.text();
+    let c: unknown = null;
+    try { c = t ? JSON.parse(t) : null; } catch { c = null; }
+    return { statut: r.status, corps: c as Record<string, unknown> | null, brut: t.slice(0, 500) };
   } catch {
     return { statut: 0, corps: null, brut: '' };
   }
@@ -182,6 +207,182 @@ async function envoyer(moi: string, bureau: string, corps: Record<string, unknow
   return reponse({ resultat: r.resultat, mot: MOTS_BREVO[r.resultat] ?? MOTS_BREVO.erreur, code: r.code });
 }
 
+/* ------------------------------------------------------------------ LOT 89 : LES LISTES */
+const DOSSIER = 'Le bureau du vigneron';
+const MAX_CONTACTS = 5000;
+const PAGE = 1000;              // [Certain, doc Brevo] GET /v3/contacts : 1 000 par page au plus
+const PAGES_MAX = 100;          // 100 000 contacts lus au plus
+const DUREE_LECTURE = 60000;    // une minute pour lire le carnet, sinon rien ne part
+const SMS = /^\+[1-9]\d{7,14}$/;
+const chiffres = (v: unknown) => String(v ?? '').replace(/\D/g, '');
+/* La cle de comparaison d'un numero : « 0033 6... », « +33 6... », « 33 6... » et « 06... »
+   donnent la meme. Ecarter un peu trop est sans danger ; ne pas reconnaitre un desinscrit l'est. */
+function cleSms(v: unknown) {
+  let d = chiffres(v);
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.length === 10 && d.startsWith('0')) d = '33' + d.slice(1);
+  return d;
+}
+
+/* La liste noire du compte : chaque contact desinscrit des mails OU des SMS, par son adresse
+   et par son numero. Un contact qui l'est pour l'un est ecarte pour les deux. */
+async function listeNoire(cle: string) {
+  const emails = new Set<string>(), sms = new Set<string>();
+  const debut = Date.now();
+  let total = -1, lus = 0;
+  for (let p = 0; p < PAGES_MAX; p++) {
+    if (Date.now() - debut > DUREE_LECTURE) return { trop: true as const };
+    const r = await brevo(cle, `/contacts?limit=${PAGE}&offset=${p * PAGE}&sort=asc`);
+    if (r.statut !== 200 || !r.corps) return { refus: motDuRefus(r.statut, r.brut) };
+    const l = Array.isArray(r.corps.contacts) ? r.corps.contacts as Array<Record<string, unknown>> : [];
+    if (p === 0 && Number.isFinite(Number(r.corps.count))) total = Number(r.corps.count);
+    lus += l.length;
+    for (const c of l) {
+      if (c.emailBlacklisted !== true && c.smsBlacklisted !== true) continue;
+      const e = texte(c.email, 254).toLowerCase();
+      if (e) emails.add(e);
+      const a = (c.attributes && typeof c.attributes === 'object') ? c.attributes as Record<string, unknown> : {};
+      const n = cleSms(a.SMS);
+      if (n.length >= 8) sms.add(n);
+    }
+    /* Une page courte dit la fin du carnet, a condition d'avoir lu autant que Brevo en annonce :
+       sinon un desinscrit pourrait rester non lu, et rien ne part. */
+    if (l.length < PAGE) return (total >= 0 && lus < total) ? { trop: true as const } : { emails, sms };
+  }
+  return { trop: true as const };
+}
+
+/* Le dossier « Le bureau du vigneron » : retrouve, sinon cree. */
+async function dossier(cle: string): Promise<number | null> {
+  for (let p = 0; p < 30; p++) {
+    const r = await brevo(cle, `/contacts/folders?limit=10&offset=${p * 10}`);
+    if (r.statut !== 200 || !r.corps) return null;
+    const l = Array.isArray(r.corps.folders) ? r.corps.folders as Array<Record<string, unknown>> : [];
+    const vu = l.find((f) => String(f.name ?? '').trim() === DOSSIER);
+    if (vu && Number.isFinite(Number(vu.id))) return Number(vu.id);
+    if (l.length < 10) break;
+  }
+  const c = await brevoPoster(cle, '/contacts/folders', { name: DOSSIER });
+  return (c.statut === 201 || c.statut === 200) && c.corps && Number.isFinite(Number(c.corps.id)) ? Number(c.corps.id) : null;
+}
+
+/* Les contacts envoyes par le navigateur, nettoyes : une adresse valide et/ou un mobile au
+   format international. Ni nom, ni autre attribut. Seul le mobile d'un contact deja connu de
+   Brevo peut etre mis a jour (celui de Vitisoft). */
+function contactsPropres(v: unknown) {
+  const out: Array<{ e: string; s: string }> = [];
+  const ve = new Set<string>(), vs = new Set<string>();
+  for (const x of Array.isArray(v) ? v : []) {
+    const o = (x && typeof x === 'object') ? x as Record<string, unknown> : {};
+    let e = texte(o.e, 254).toLowerCase();
+    let s = texte(o.s, 20);
+    if (e && (!ADRESSE.test(e) || ve.has(e))) e = '';
+    if (s && (!SMS.test(s) || vs.has(cleSms(s)))) s = '';
+    if (!e && !s) continue;
+    if (e) ve.add(e);
+    if (s) vs.add(cleSms(s));
+    out.push({ e, s });
+  }
+  return out;
+}
+
+async function liste(moi: string, bureau: string, corps: Record<string, unknown>) {
+  const source = String(corps.source ?? '');
+  if (!['clients', 'commerce'].includes(source)) return reponse({ erreur: 'source inconnue' }, 400);
+  const nom = texte(corps.nom, 100);
+  if (!nom) return reponse({ erreur: 'Donne un nom à la liste.' }, 400);
+  if (!Array.isArray(corps.contacts) || corps.contacts.length > MAX_CONTACTS) {
+    return reponse({ resultat: 'trop', mot: 'Une liste part avec 5 000 contacts au plus. Resserre tes filtres.' });
+  }
+  const contacts = contactsPropres(corps.contacts);
+  if (!contacts.length) return reponse({ resultat: 'vide', mot: 'Aucune adresse ni aucun mobile utilisable dans cette liste.' });
+  if (!(await rpc('brevo_est_membre', { p_personne: moi, p_bureau: bureau }))) {
+    return reponse({ erreur: 'pas membre de ce bureau' }, 403);
+  }
+  const cle = await rpc('brevo_cle', { p_bureau: bureau });
+  if (!cle) return reponse({ resultat: 'pas_branche', mot: 'Brevo n’est pas branché sur ce bureau.' });
+  if (!(await rpc('brevo_liste_permise', { p_personne: moi, p_bureau: bureau }))) {
+    return reponse({ resultat: 'plafond', mot: '20 listes créées aujourd’hui par le bureau : la limite du jour est atteinte.' });
+  }
+
+  const noire = await listeNoire(String(cle));
+  if ('refus' in noire && noire.refus) {
+    const m = noire.refus;
+    if (m.resultat === 'refusee' || m.resultat === 'ip') {
+      try { await rpc('brevo_noter', { p_bureau: bureau, p_etat: 'refusee', p_erreur: m.mot }); } catch { /* l'ecran le dit */ }
+    }
+    return reponse({ resultat: m.resultat, mot: m.mot + ' Aucune liste n’a été créée.' });
+  }
+  if ('trop' in noire) {
+    return reponse({ resultat: 'carnet_trop_long', mot: 'Le carnet Brevo est trop grand pour être relu à temps : le bureau n’a pas pu écarter les désinscrits, et n’a rien envoyé.' });
+  }
+  const garder = contacts.filter((c) => !(c.e && noire.emails.has(c.e)) && !(c.s && noire.sms.has(cleSms(c.s))));
+  const retires = (corps.contacts as unknown[]).length - contacts.length;
+  const ecartes = contacts.length - garder.length;
+  if (!garder.length) return reponse({ resultat: 'tous_desinscrits', ecartes, mot: 'Tous ces contacts se sont désinscrits chez Brevo : aucune liste n’a été créée.' });
+
+  const dos = await dossier(String(cle));
+  if (dos == null) return reponse({ resultat: 'erreur', mot: 'Brevo n’a pas ouvert le dossier « ' + DOSSIER + ' ». Aucune liste n’a été créée. Réessaie dans un moment.' });
+  const l = await brevoPoster(String(cle), '/contacts/lists', { name: nom, folderId: dos });
+  const listeId = l.corps && Number.isFinite(Number(l.corps.id)) ? Number(l.corps.id) : null;
+  if (!(l.statut === 201 || l.statut === 200) || listeId == null) {
+    return reponse({ resultat: 'erreur', mot: l.statut === 0
+      ? 'Brevo n’a pas répondu à temps. Regarde dans Brevo (Contacts, Listes) si la liste « ' + nom + ' » existe avant de réessayer.'
+      : 'Brevo n’a pas créé la liste (ce nom existe peut-être déjà). Change le nom et réessaie.' });
+  }
+  const imp = await brevoPoster(String(cle), '/contacts/import', {
+    jsonBody: garder.map((c) => c.e ? { email: c.e, attributes: c.s ? { SMS: c.s } : {} } : { attributes: { SMS: c.s } }),
+    listIds: [listeId],
+    updateExistingContacts: true,
+    emptyContactsAttributes: false,
+    disableNotification: true,
+  });
+  const process = imp.corps && Number.isFinite(Number(imp.corps.processId)) ? Number(imp.corps.processId) : null;
+  if (imp.statut === 0) {
+    /* Pas de reponse : Brevo a peut-etre pris les contacts. On note la liste, et on le dit. */
+    try { await rpc('brevo_liste_noter', { p_personne: moi, p_bureau: bureau, p_nom: nom, p_source: source,
+      p_liste_id: listeId, p_process_id: null, p_envoyes: garder.length, p_ecartes: ecartes }); } catch { /* rien */ }
+    return reponse({ resultat: 'incertain', mot: 'La liste « ' + nom + ' » est créée dans Brevo, mais Brevo n’a pas répondu à temps pour les contacts. Regarde dans quelques minutes si elle se remplit (Contacts, Listes) avant de réessayer.' });
+  }
+  if (!(imp.statut === 202 || imp.statut === 200 || imp.statut === 201)) {
+    return reponse({ resultat: 'import_refuse', mot: 'La liste « ' + nom + ' » est créée dans Brevo, mais Brevo a refusé les contacts : elle est vide. Supprime-la dans Brevo et réessaie.' });
+  }
+  let id: unknown = null;
+  try {
+    id = await rpc('brevo_liste_noter', { p_personne: moi, p_bureau: bureau, p_nom: nom, p_source: source,
+      p_liste_id: listeId, p_process_id: process, p_envoyes: garder.length, p_ecartes: ecartes });
+  } catch { /* la liste est chez Brevo quand meme */ }
+  return reponse({ resultat: 'creee', nom, liste_id: listeId, process_id: process, id,
+    envoyes: garder.length, avec_mail: garder.filter((c) => c.e).length, avec_mobile: garder.filter((c) => c.s).length, ecartes, retires });
+}
+
+/* Ou en est l'import chez Brevo. Les soucis sont des categories, jamais un texte de Brevo. */
+const SOUCIS: Record<string, string> = {
+  invalid_emails: 'des adresses que Brevo juge invalides',
+  duplicate_email_id: 'des adresses en double',
+  duplicate_phone_id: 'des mobiles déjà portés par un autre contact de Brevo',
+  duplicate_contact_id: 'des contacts en double',
+  duplicate_ext_id: 'des contacts en double',
+  duplicate_whatsapp_id: 'des numéros en double',
+  duplicate_landline_number_id: 'des numéros en double',
+};
+async function listeEtat(moi: string, bureau: string, corps: Record<string, unknown>) {
+  const p = Number(corps.process);
+  if (!Number.isInteger(p) || p <= 0) return reponse({ erreur: 'import inconnu' }, 400);
+  if (!(await rpc('brevo_est_membre', { p_personne: moi, p_bureau: bureau }))) {
+    return reponse({ erreur: 'pas membre de ce bureau' }, 403);
+  }
+  const cle = await rpc('brevo_cle', { p_bureau: bureau });
+  if (!cle) return reponse({ resultat: 'pas_branche', mot: 'Brevo n’est pas branché sur ce bureau.' });
+  const r = await brevo(String(cle), `/processes/${p}`);
+  if (r.statut !== 200 || !r.corps) return reponse(motDuRefus(r.statut, r.brut));
+  const statut = texte(r.corps.status, 20);
+  const info = (r.corps.info && typeof r.corps.info === 'object') ? r.corps.info as Record<string, unknown> : {};
+  const imp = (info.import && typeof info.import === 'object') ? info.import as Record<string, unknown> : {};
+  const soucis = Array.from(new Set(Object.keys(SOUCIS).filter((k) => imp[k]).map((k) => SOUCIS[k])));
+  return reponse({ resultat: 'etat', statut, soucis });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reponse({ erreur: 'methode' }, 405);
@@ -192,13 +393,17 @@ Deno.serve(async (req) => {
   try { corps = await req.json(); } catch { return reponse({ erreur: 'corps illisible' }, 400); }
   const action = String(corps.action ?? '');
   /* Un mail peut etre long (un devis, une signature) : 25 000 signes pour `envoyer`. */
-  if (JSON.stringify(corps).length > (action === 'envoyer' ? 25000 : 2000)) return reponse({ resultat: 'trop_long', erreur: 'trop long' }, 413);
+  /* Une liste de 5 000 contacts tient sous 400 000 signes. */
+  const limite = action === 'envoyer' ? 25000 : action === 'liste' ? 400000 : 2000;
+  if (JSON.stringify(corps).length > limite) return reponse({ resultat: 'trop_long', erreur: 'trop long' }, 413);
   const moi = await quiAppelle(jwt);
   if (!moi) return reponse({ erreur: 'aucune session' }, 401);
   const bureau = texte(corps.bureau, 40);
   if (!/^[0-9a-f-]{36}$/i.test(bureau)) return reponse({ erreur: 'bureau inconnu' }, 400);
   try {
     if (action === 'envoyer') return await envoyer(moi.id, bureau, corps);
+    if (action === 'liste') return await liste(moi.id, bureau, corps);
+    if (action === 'liste_etat') return await listeEtat(moi.id, bureau, corps);
     if (action === 'brancher') return await brancher(moi.id, bureau, String(corps.cle ?? '').trim());
     if (action === 'expediteurs') return await expediteurs(moi.id, bureau);
     return reponse({ erreur: 'action inconnue' }, 400);

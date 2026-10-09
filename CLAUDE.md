@@ -8891,3 +8891,34 @@ le vigneron ecrit dans Brevo. SMS un par un et en masse. Lots prevus : 88 l'envo
 - Garde : `npm run banc:brevo` (70), `banc:boite` (95). Captures :
   `BREVO=1 [ECHEC=1] node scripts/cap-envoi77.mjs 1440:light`.
 - Ouvert : le retour « arrive / adresse morte » (lot 90, webhook) ; le logo sous un mail Brevo.
+
+### LOT 89 : LES LISTES VERS BREVO (09/10/2026)
+
+Arbitrages de Ted : « gros client » = l'etiquette « Gros client » (casse et accents libres, posee a
+la main) ; tout membre cree une liste ; une liste NEUVE et datee a chaque fois ; recul confirme et
+gros clients ecartes d'office (une case les remet) ; le vigneron ecrit sa campagne DANS Brevo.
+- **SQL `supabase/lot89-listes-brevo.sql`, APRES 88, PUIS push, PUIS redeploiement de `brevo`
+  (avec `_shared/brevo.ts`).** Table `brevo_listes` (qui, quand, nom, numero de liste et d'import
+  Brevo, combien envoyes et ecartes ; JAMAIS d'adresse ni de numero ; 13 mois). Lecture par le
+  bureau, ecriture par la cle de service seule : `brevo_liste_permise` (membre, 20 par jour et par
+  bureau, purge) et `brevo_liste_noter`. Banc `supabase/banc-lot89-listes-brevo.sql` (21).
+- **Fonction `brevo`, action `liste`** : membre, cle, plafond, PUIS lecture de TOUT le carnet
+  (`GET /v3/contacts` par 1 000, `count` verifie, une minute au plus) et retrait de chaque contact
+  `emailBlacklisted` OU `smsBlacklisted` (adresse et numero, `cleSms` pour comparer). Carnet pas
+  lu en entier : RIEN ne part. Puis dossier « Le bureau du vigneron » (retrouve ou cree), liste
+  (`POST /v3/contacts/lists`), import (`jsonBody` : email et attribut SMS seulement,
+  `updateExistingContacts` vrai, `emptyContactsAttributes` faux, `disableNotification`, AUCUN
+  drapeau de liste noire). Import sans reponse = « incertain », la liste est notee. 5 000 contacts
+  au plus, 400 000 signes pour cette seule action. `liste_etat` lit `GET /v3/processes/{id}`
+  (statut et categories de soucis, jamais un texte de Brevo).
+- **`src/js/bdv-brevo-listes.js`** (`BdvBrevoListes.ouvrir({cible, source, titre, ids, bouton})`,
+  `ids` peut etre une fonction ; `rafraichir()` recompte quand les filtres bougent ; `creer()`
+  recompte et refuse si la liste a change). Mobile = colonne Mobile seule, ligne la plus recente,
+  francais 06/07 seulement, jamais d'indicatif invente ; nouveau client : son numero s'il est un
+  06/07. Opposition d'un nouveau client, relie ou non : jamais.
+- Branchements : `bdv-annuaire.js` (`data-a="brevo"` et `brevo-sel`, `#annuBrevo`, majListe
+  rafraichit) ; `bdv-ecrans.js` (`#clientsVersBrevo`, `#clientsBrevo`, `idsCommerceVisibles` rejoue
+  tuile, recherche et « joignables » ; `applyFilters` rafraichit). Script charge apres bdv-brevo.js.
+- Garde : `npm run banc:brevo-listes` (56, dans verif, mutations tuees). Captures :
+  `node scripts/cap-listes-brevo.mjs 1440:light`. Page rgpd : paragraphe des listes.
+
