@@ -335,11 +335,12 @@ export const MOI = 'moi';
    trois lignes ne portent pas les memes boutons ni la meme etiquette. Les noms
    sont longs et les adresses sales, comme les cinq clients plus haut : une
    adresse de trente-deux signes est ce qui fait deborder la colonne. */
+/* LOT 92 : Ted au masculin, Romane au feminin, Camila sans reponse (« Admin »). */
 export const EQUIPIERS = [
   { personne: MOI, role: 'maitre', depuis: '2026-09-01T08:00:00Z',
-    prenom: 'Ted', nom: 'Pereira', email: 'teddypereira88@gmail.com' },
+    prenom: 'Ted', nom: 'Pereira', email: 'teddypereira88@gmail.com', genre: 'm' },
   { personne: 'p2', role: 'simple', depuis: '2026-09-10T08:00:00Z',
-    prenom: 'Romane', nom: 'Bouijoux', email: 'romane@solumatic.fr' },
+    prenom: 'Romane', nom: 'Bouijoux', email: 'romane@solumatic.fr', genre: 'f' },
   { personne: 'p3', role: 'maitre', depuis: '2026-09-12T08:00:00Z',
     prenom: 'Camila', nom: 'Vendramini', email: 'camila.vendramini@solumatic.fr' }
 ];

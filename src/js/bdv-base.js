@@ -2380,7 +2380,7 @@ async function viderBase(){
           : (laBas===null)
             ? (syncPret()
                 ? "Ton compte n'a pas répondu, donc on ne sait pas ce qu'il porte."
-                : "Tu n'es pas connecté : on ne peut pas savoir ce que ton compte porte.")
+                : "Ta session n'est pas ouverte : on ne peut pas savoir ce que ton compte porte.")
             : "Ton compte porte des lignes que cet appareil n'a pas encore récupérées.";
       alert("On ne peut pas vider maintenant.\n\n" + pourquoi + "\n\n"
         + "Cet écran afficherait « 0 ligne de vente » et tu confirmerais un effacement "

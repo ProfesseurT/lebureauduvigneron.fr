@@ -3309,7 +3309,7 @@ function poserPage(boite,f){
   boite.removeAttribute('aria-modal');
   boite.setAttribute('role','main');
   document.body.style.overflow='';
-  document.title=(f&&f.nom?f.nom+' · ':'')+'Fiche client · Le Bureau du Vigneron';
+  document.title=(f&&f.nom?f.nom+' · ':'')+'Fiche client · '+(window.BdvCompte&&BdvCompte.marque?BdvCompte.marque():'Le Bureau du Vigneron');
 }
 /* « Agrandir » ouvre la fiche dans un onglet, et referme celle d'ici : deux copies de la
    meme fiche, ce sont deux brouillons (sessionStorage est par onglet) et une note qu'on
@@ -5181,7 +5181,7 @@ function buildReport(){
   const panier=factures?ca/factures:0,at=computeAtterrissage(),yt=yoyTotals();
   const per=META.min?fmtDate(META.min)+' au '+fmtDate(META.max):'';
   let h=`<div class="pr">`;
-  h+=`<div class="pr-cover"><div class="pr-cover__brand">Le Bureau du Vigneron</div><div class="pr-cover__title">Rapport de ventes</div><div class="pr-cover__sub">${per} · édité le ${new Date().toLocaleDateString('fr-FR')} · ${fmtNum(rows.length)} lignes analysées</div><div class="pr-cover__tag">Propulsé par Solumatic · lecture d'export Vitisoft · CA HT</div></div>`;
+  h+=`<div class="pr-cover"><div class="pr-cover__brand">${window.BdvCompte&&BdvCompte.marque?BdvCompte.marque():'Le Bureau du Vigneron'}</div><div class="pr-cover__title">Rapport de ventes</div><div class="pr-cover__sub">${per} · édité le ${new Date().toLocaleDateString('fr-FR')} · ${fmtNum(rows.length)} lignes analysées</div><div class="pr-cover__tag">Propulsé par Solumatic · lecture d'export Vitisoft · CA HT</div></div>`;
 
   const evV=(yt&&yt.d!=null)?fmtPct(yt.d):'n/d',evCls=(yt&&yt.d!=null&&yt.d!==0)?(yt.d>0?'up':'down'):'';
   const atV=at?(at.complete?fmtMoney(at.total):fmtMoney(at.central)):'n/d';

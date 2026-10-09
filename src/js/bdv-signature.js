@@ -360,7 +360,7 @@
     sousTitre(gauche, 'Ta signature');
     var g = mk('div', 'bdvr-grille');
     champ(g, 'bdvsNom', 'Ton prénom et ton nom', { auto: 'name', max: MAX.nom });
-    champ(g, 'bdvsRole', 'Ton rôle au domaine', { max: MAX.role, place: 'Vigneron', aide: 'Le client sait à qui il parle.' });
+    champ(g, 'bdvsRole', 'Ton rôle au domaine', { max: MAX.role, place: (window.BdvCompte && BdvCompte.accord ? BdvCompte.accord('Vigneron', 'Vigneronne', 'Responsable du domaine') : 'Vigneron'), aide: 'Le client sait à qui il parle.' });
     champ(g, 'bdvsTel', 'Ton téléphone direct', { type: 'tel', auto: 'tel', mode: 'tel', max: MAX.tel,
       aide: 'Le portable de préférence : un caviste qui hésite appelle. Vide, c’est celui du domaine.' });
     gauche.appendChild(g);

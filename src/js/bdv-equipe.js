@@ -109,6 +109,14 @@
      simple appel a la base : ce navigateur porte encore les lignes de vente du
      bureau qu'on quitte, et entrer dans un autre sans vider le poste melangerait
      les deux ardoises sans lever la moindre erreur. */
+  /* LOT 92, 09/10/2026. « Administrateur », « Administratrice », ou « Admin » pour qui
+     prefere ne pas le dire ; « Utilisateur », « Utilisatrice », ou « Membre ». Une
+     invitation n'a pas encore de genre : elle prend toujours la forme epicene. */
+  function role(r, g) {
+    if (window.BdvCompte && BdvCompte.libelleRole) return BdvCompte.libelleRole(r, g);
+    return r === 'maitre' ? 'Admin' : 'Membre';
+  }
+
   async function rendreBureaux() {
     var bloc = el('equipeBureauBloc'), choix = el('equipeBureauChoix');
     if (!bloc || !choix) return;
@@ -117,7 +125,7 @@
     var ici = BdvCompte.monBureau();
     choix.innerHTML = liste.map(function (b) {
       return '<option value="' + esc(b.bureau) + '"' + (b.bureau === ici ? ' selected' : '') + '>'
-        + esc(b.nom) + (b.role === 'maitre' ? ' (administrateur)' : '') + '</option>';
+        + esc(b.nom) + (b.role === 'maitre' ? ' (' + role('maitre').toLowerCase() + ')' : '') + '</option>';
     }).join('');
     bloc.hidden = false;
   }
@@ -181,6 +189,11 @@
 
     zone.innerHTML = gens.map(function (g) {
       var cestMoi = g.personne === MOI;
+      /* LOT 92 : le role s'accorde avec la personne qui le TIENT, jamais avec qui regarde.
+         Une base sans la colonne rend `undefined`, qui vaut « prefere ne pas le dire » :
+         le `|| 'n'` est indispensable, sans lui `accord()` prendrait le genre de QUI
+         REGARDE (son quatrieme argument absent veut dire « moi »). */
+      var gg = g.genre || 'n';
       var gestes = '';
       /* On ne se retrograde pas soi-meme depuis cette liste, et on ne se retire pas
          par le meme bouton que les autres : « partir » est un geste a part, en bas,
@@ -188,7 +201,8 @@
       if (MAITRE && !cestMoi) {
         gestes = '<button type="button" class="btn btn--geste" data-role="'
           + (g.role === 'maitre' ? 'simple' : 'maitre') + '" data-qui="' + esc(g.personne) + '">'
-          + (g.role === 'maitre' ? 'Repasser en utilisateur' : 'Nommer administrateur') + '</button>'
+          + (g.role === 'maitre' ? 'Repasser en ' + role('simple', gg).toLowerCase()
+                                 : 'Nommer ' + role('maitre', gg).toLowerCase()) + '</button>'
           + ' <button type="button" class="btn btn--geste" data-retirer="' + esc(g.personne) + '"'
           + ' data-nom="' + esc(nomDe(g)) + '">Retirer</button>';
       }
@@ -202,7 +216,7 @@
         + '<span class="equipe-ligne__adresse">' + esc(g.email) + '</span>'
         + '</span>'
         + '<span class="equipe-role equipe-role--' + esc(g.role) + '">'
-        + (g.role === 'maitre' ? 'Administrateur' : 'Utilisateur') + '</span>'
+        + role(g.role, gg) + '</span>'
         + '<span class="equipe-ligne__gestes">' + gestes + '</span>'
         + '</li>';
     }).join('');
@@ -239,7 +253,7 @@
         + (expiree ? 'lien expiré' : 'en attente')
         + '</span></span>'
         + '<span class="equipe-role equipe-role--' + esc(l.role) + '">'
-        + (l.role === 'maitre' ? 'Administrateur' : 'Utilisateur') + '</span>'
+        + role(l.role, 'n') + '</span>'
         + '<span class="equipe-ligne__gestes">'
         + '<button type="button" class="btn btn--geste" data-annuler="' + esc(l.email) + '">Annuler</button>'
         + '</span></li>';
@@ -560,7 +574,7 @@
     if (!inv) {
       try { sessionStorage.removeItem(JETON_KEY); } catch (e) {}
       bandeau('<p class="invitation__souci">Ce lien d’invitation n’est pas valable. '
-        + 'Demande à la personne qui t’a invité d’en renvoyer un.</p>');
+        + 'Demande à la personne qui t’a envoyé ce lien d’en renvoyer un.</p>');
       return;
     }
     if (inv.etat !== 'valide') {

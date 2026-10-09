@@ -69,12 +69,27 @@
 
   // Les trois questions posees juste apres l'inscription. Valeurs stockees en base, libelles
   // affiches : les deux ne bougent jamais ensemble, la valeur est un identifiant, pas du texte.
+  //
+  // LES LIBELLES SUIVENT LE GENRE, 09/10/2026 (lot 92) : masculin, feminin, et pour « prefere
+  // ne pas le dire » des mots EPICENES, jamais de point median. `t` est la forme masculine,
+  // gardee pour qui lirait encore ce champ. La valeur, elle, ne change jamais.
   const QUI = [
-    { v:'vigneron',       t:'Vigneron' },
-    { v:'caviste-negoce', t:'Caviste ou négociant' },
-    { v:'etudiant',       t:'Étudiant ou école' },
-    { v:'pro-filiere',    t:'Pro de la filière' },
-    { v:'autre',          t:'Autre' }
+    { v:'vigneron',       t:'Vigneron',             g:['Vigneron', 'Vigneronne', 'Vigne et vin'] },
+    { v:'caviste-negoce', t:'Caviste ou négociant', g:['Caviste ou négociant', 'Caviste ou négociante', 'Cave ou négoce'] },
+    { v:'etudiant',       t:'Étudiant ou école',    g:['Étudiant ou école', 'Étudiante ou école', 'Études ou école'] },
+    { v:'pro-filiere',    t:'Pro de la filière',    g:['Pro de la filière', 'Pro de la filière', 'Pro de la filière'] },
+    { v:'autre',          t:'Autre',                g:['Autre', 'Autre', 'Autre'] }
+  ];
+  // Ce que dit la plaque sous le bonjour (« Domaine X · Vigneronne »). « Autre » n'y dit rien.
+  const PLAQUE = { 'vigneron':['Vigneron', 'Vigneronne', 'Vigne et vin'],
+                   'caviste-negoce':['Caviste ou négociant', 'Caviste ou négociante', 'Cave ou négoce'],
+                   'etudiant':['Étudiant', 'Étudiante', 'Études'],
+                   'pro-filiere':['Pro de la filière', 'Pro de la filière', 'Pro de la filière'] };
+  // Comment on t'ecrit. Pose a l'inscription, modifiable dans Mes reglages.
+  const GENRES = [
+    { v:'m', t:'Au masculin' },
+    { v:'f', t:'Au féminin' },
+    { v:'n', t:'Je préfère ne pas le dire' }
   ];
   const VITI = [
     { v:'oui',     t:'Oui' },
@@ -527,7 +542,9 @@
       });
       if(!r.ok) return null;
       const lignes = await r.json();
-      return lignes[0] || null;
+      const p = lignes[0] || null;
+      if(p && 'genre' in p) poserGenre(p.genre);
+      return p;
     }catch(e){ return null; }
   }
 
@@ -547,6 +564,7 @@
       body: JSON.stringify(champs)
     });
     if(!r.ok) throw new Error('majProfil a echoue (' + r.status + ')');
+    if(champs && 'genre' in champs) poserGenre(champs.genre);
   }
 
   // vu_le (et consent_news si transmis) : au plus une fois par session navigateur, en tache
@@ -740,11 +758,14 @@
         // connexion : quelqu'un qui revient n'a pas a repasser un formulaire. Chaque question est
         // sautable, et rien de ce qui est ici ne conditionne l'ouverture du compte.
         + '<div data-etape="profil" hidden>'
-        + '<p class="bdv-porte__note">Ton compte est ouvert. Cinq questions rapides pour te montrer ce qui te concerne plutôt que tout le reste. Tu peux les passer.</p>'
+        + '<p class="bdv-porte__note">Ton compte est ouvert. Six questions rapides pour te montrer ce qui te concerne plutôt que tout le reste. Tu peux les passer.</p>'
         + '<label class="bdv-porte__label" for="bdvPrenom">Ton prénom</label>'
         + '<input class="bdv-porte__input" type="text" id="bdvPrenom" autocomplete="given-name">'
+        // LOT 92 : avant « Tu es », pour que les metiers s'accordent des qu'on a repondu.
+        + '<p class="bdv-porte__label">On t’écrit</p>'
+        + groupeChoix('genre', GENRES)
         + '<p class="bdv-porte__label">Tu es</p>'
-        + groupeChoix('qui', QUI)
+        + groupeChoix('qui', QUI.map(function(o){ return { v: o.v, t: o.g[2] }; }))
         + '<label class="bdv-porte__label" for="bdvDomaine">Ton domaine ou ta structure</label>'
         + '<input class="bdv-porte__input" type="text" id="bdvDomaine" autocomplete="organization">'
         + '<label class="bdv-porte__label" for="bdvCp">Ton code postal</label>'
@@ -848,6 +869,13 @@
           b.setAttribute('aria-pressed', 'false');
         });
         btn.setAttribute('aria-pressed', actif ? 'false' : 'true');
+        // LOT 92 : le genre choisi (ou retire) re-accorde les metiers juste en dessous.
+        if(btn.closest('[data-choix="genre"]')){
+          const g = choixDe('genre') || 'n';
+          overlay.querySelectorAll('[data-choix="qui"] .bdv-porte__choix-btn').forEach(function(b){
+            b.textContent = libelleQui(b.getAttribute('data-valeur'), g);
+          });
+        }
       });
       function choixDe(nom){
         const b = overlay.querySelector('[data-choix="' + nom + '"] [aria-pressed="true"]');
@@ -863,6 +891,7 @@
       async function enregistrerProfil(){
         const champs = {};
         const pre = champPrenom.value.trim(); if(pre) champs.prenom = pre;
+        const gen = choixDe('genre');         if(gen) champs.genre = gen;
         const qui = choixDe('qui');           if(qui) champs.profil = qui;
         const dom = champDomaine.value.trim();if(dom) champs.domaine = dom;
         const cp  = champCp.value.trim();     if(cp)  champs.code_postal = cp;
@@ -1655,6 +1684,50 @@
     return String(err.detail || '').indexOf('row-level security') >= 0;
   }
 
+  /* LE GENRE, 09/10/2026 (lot 92), demande de Ted.
+     ================================================================
+     Chacun dit comment on lui ecrit : 'm', 'f', ou 'n' (« je prefere ne pas le dire »), et
+     'n' s'ecrit en mots EPICENES, jamais avec un point median (lecture difficile, lecteurs
+     d'ecran qui le prononcent de travers). Un compte sans reponse, ou une base qui n'a pas
+     encore la colonne, vaut 'n' : on n'invente le genre de personne.
+
+     CHACUN EST ACCORDE SELON SON PROPRE GENRE, jamais selon celui de qui regarde : le role de
+     Romane dans « L'equipe » suit le genre de Romane. D'ou le 4e argument d'`accord()`.
+
+     La copie locale `bdv_genre_v1` sert aux mots ecrits avant que le profil arrive (le nom du
+     bureau dans le bandeau). Elle porte le prefixe `bdv_` EXPRES : elle part a la
+     deconnexion, la personne suivante sur ce poste n'herite pas des accords d'une autre.
+     La base fait foi : chaque lecture du profil la repose. */
+  const GENRE_KEY = 'bdv_genre_v1';
+  function genreValide(g){ return (g === 'm' || g === 'f') ? g : 'n'; }
+  function genre(){ try{ return genreValide(localStorage.getItem(GENRE_KEY)); }catch(e){ return 'n'; } }
+  function poserGenre(g){
+    g = genreValide(g);
+    try{ localStorage.setItem(GENRE_KEY, g); }catch(e){}
+    try{ document.dispatchEvent(new CustomEvent('bdv:genre', { detail: g })); }catch(e){}
+    return g;
+  }
+  // accord('Administrateur', 'Administratrice', 'Admin') pour moi ;
+  // accord(m, f, n, g.genre) pour quelqu'un d'autre.
+  function accord(m, f, n, g){
+    g = genreValide(g === undefined ? genre() : g);
+    return g === 'f' ? f : (g === 'm' ? m : n);
+  }
+  function rangGenre(g){ g = genreValide(g === undefined ? genre() : g); return g === 'm' ? 0 : (g === 'f' ? 1 : 2); }
+  function libelleQui(v, g){
+    const q = QUI.filter(function(o){ return o.v === v; })[0];
+    return q ? q.g[rangGenre(g)] : '';
+  }
+  function metier(v, g){ const l = PLAQUE[v]; return l ? l[rangGenre(g)] : ''; }
+  // Le nom du bureau, pour les mots que voit la personne connectee. Le nom du SITE, celui des
+  // mails et des pages publiques, ne change pas.
+  function marque(g){ return accord('Le Bureau du Vigneron', 'Le Bureau de la Vigneronne', 'Le Bureau du Vigneron', g); }
+  // Le role dans un bureau, accorde avec la personne qui le TIENT.
+  function libelleRole(role, g){
+    return role === 'maitre' ? accord('Administrateur', 'Administratrice', 'Admin', g)
+                             : accord('Utilisateur', 'Utilisatrice', 'Membre', g);
+  }
+
   window.BdvCompte = {
     session: lireSession,
     inscription: inscription,
@@ -1689,7 +1762,15 @@
     trombinoscope: chargerTrombinoscope,
     quiEcrit: quiEcrit,
     mentionAuteur: mentionAuteur,
-    nomAuteur: nomAuteur
+    nomAuteur: nomAuteur,
+    GENRES: GENRES,
+    genre: genre,
+    poserGenre: poserGenre,
+    accord: accord,
+    libelleQui: libelleQui,
+    metier: metier,
+    marque: marque,
+    libelleRole: libelleRole
   };
 
   // Un profil que le reseau avait refuse repart a la premiere occasion, et la file se vide

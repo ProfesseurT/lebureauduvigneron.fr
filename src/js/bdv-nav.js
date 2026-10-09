@@ -834,7 +834,7 @@
         afficher('journee');
         var avc = document.getElementById('bureauAvis');
         if (avc) {
-          avc.textContent = 'Ton calendrier n\'a pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+          avc.textContent = 'Ton calendrier n\'a pas pu s\'ouvrir. Tu es de retour sur Ma journée : vérifie ta connexion et reclique.';
           avc.hidden = false;
         }
       });
@@ -875,7 +875,7 @@
         afficher('journee');
         var ava = document.getElementById('bureauAvis');
         if (ava) {
-          ava.textContent = 'Tes affaires n\'ont pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+          ava.textContent = 'Tes affaires n\'ont pas pu s\'ouvrir. Tu es de retour sur Ma journée : vérifie ta connexion et reclique.';
           ava.hidden = false;
         }
       });
@@ -901,7 +901,7 @@
         afficher('journee');
         var ave = document.getElementById('bureauAvis');
         if (ave) {
-          ave.textContent = 'L\'équipe n\'a pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+          ave.textContent = 'L\'équipe n\'a pas pu s\'ouvrir. Tu es de retour sur Ma journée : vérifie ta connexion et reclique.';
           ave.hidden = false;
         }
       });
@@ -952,7 +952,7 @@
       afficher('journee');
       var av = document.getElementById('bureauAvis');
       if (av) {
-        av.textContent = 'Tes écrans de vente n\'ont pas pu s\'ouvrir. Te voilà revenu à Ma journée : vérifie ta connexion et reclique.';
+        av.textContent = 'Tes écrans de vente n\'ont pas pu s\'ouvrir. Tu es de retour sur Ma journée : vérifie ta connexion et reclique.';
         av.hidden = false;
       }
     };

@@ -475,6 +475,58 @@ async function monterAlertes(profil) {
   dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"notif_push_detail":true}', 'la cocher n\'envoie que sa colonne (' + JSON.stringify(ecrits) + ')');
 }
 
+/* ==========================================================================
+   8. LE GENRE, LOT 92, 09/10/2026 (demande de Ted)
+   --------------------------------------------------------------------------
+   « On t'ecrit » n'apparait que si la base porte la colonne `genre` ; sans elle, il ne part
+   jamais (l'ecriture du profil entier serait refusee). Le choix re-accorde « Tu es » tout
+   de suite, et seule la colonne qui a bouge part.
+   ========================================================================== */
+console.log('\n== 8. Le genre ==');
+{
+  const t0 = monter({ objectif: 500000, exercice_debut: 4 });
+  const poses = [];
+  const ecrits = [];
+  t0.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
+  t0.w.BdvCompte.poserGenre = (g) => { poses.push(g); return g; };
+  t0.w.BdvCompte.libelleQui = (v, g) => v + ':' + (g || 'n');
+  t0.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, BASE)] : [{}]);
+  t0.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  const d = t0.w.document, $ = (id) => d.getElementById(id);
+  t0.w.BdvReglages.ouvrir('bdvrBlocToi');
+  await dormir(80);
+  dit($('bdvrGenreChamp').hidden, 'base sans la colonne genre : « On t\'écrit » reste cache');
+  dit(poses.length === 0, 'et on ne pose aucun genre a partir d\'une absence');
+  $('bdvrNews').checked = true;
+  $('bdvrForm').dispatchEvent(new t0.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60);
+  dit(ecrits.length === 1 && !('genre' in ecrits[0]), 'et la colonne genre ne part jamais (' + JSON.stringify(ecrits) + ')');
+}
+{
+  const t0 = monter({ objectif: 500000, exercice_debut: 4 });
+  const poses = [];
+  const ecrits = [];
+  t0.w.BdvCompte.majProfil = (c) => { ecrits.push(c); return Promise.resolve(true); };
+  t0.w.BdvCompte.poserGenre = (g) => { poses.push(g); return g; };
+  t0.w.BdvCompte.libelleQui = (v, g) => v + ':' + (g || 'n');
+  t0.w.BdvCompte.api = (chemin) => Promise.resolve(String(chemin).indexOf('/profils') === 0 ? [Object.assign({}, BASE, { genre: 'n', profil: 'vigneron' })] : [{}]);
+  t0.poser(lire('bdv-reglages.js'), 'bdv-reglages.js');
+  const d = t0.w.document, $ = (id) => d.getElementById(id);
+  t0.w.BdvReglages.ouvrir('bdvrBlocToi');
+  await dormir(80);
+  const vig = () => [...$('bdvrQui').options].filter((o) => o.value === 'vigneron')[0].textContent;
+  dit(!$('bdvrGenreChamp').hidden && $('bdvrGenre').value === 'n', 'base au lot 92 : le champ se montre, sur « je prefere ne pas le dire »');
+  dit(poses.join() === 'n', 'le genre lu est pose pour le reste du bureau (' + poses.join() + ')');
+  dit(vig() === 'vigneron:n', '« Tu es » est accorde sur le genre lu (' + vig() + ')');
+  const soumettre = async () => { $('bdvrForm').dispatchEvent(new t0.w.Event('submit', { bubbles: true, cancelable: true })); await dormir(60); };
+  await soumettre();
+  dit(ecrits.length === 0, 'rien touche : rien ne part, « n » n\'est pas pris pour un changement');
+  $('bdvrGenre').value = 'f';
+  $('bdvrGenre').dispatchEvent(new t0.w.Event('change', { bubbles: true }));
+  dit(vig() === 'vigneron:f', 'choisir « au feminin » re-accorde « Tu es » tout de suite (' + vig() + ')');
+  await soumettre();
+  dit(ecrits.length === 1 && JSON.stringify(ecrits[0]) === '{"genre":"f"}', 'et seule la colonne genre part (' + JSON.stringify(ecrits) + ')');
+}
+
 console.log('\n== VERDICT ==');
 console.log('  ' + ok + ' controle(s) passe(s), ' + ko + ' echec(s)');
 if (ko) { console.log('  LE BANC DES REGLAGES REFUSE\n'); process.exit(1); }

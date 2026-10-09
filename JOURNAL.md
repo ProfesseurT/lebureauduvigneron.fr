@@ -10843,3 +10843,7 @@ simultanés (accepté) ; un fixe étranger rangé dans la colonne Mobile part co
 ## 09/10/2026 : « maître » devient « administrateur » (lot 1 de 3)
 
 Demande de Ted. Écran seulement, noms internes inchangés, refus de la base traduits par `motsEcran()` (bdv-compte.js). Arbitrages pour la suite : mots épicènes pour « préfère ne pas le dire », genre demandé à l’inscription et modifiable dans Mes réglages. Fonctions `brevo`, `boite`, `mails-programmes` à redéployer.
+
+## 09/10/2026 : le genre et les accords (lots 2 et 3, SQL lot 92)
+
+`profils.genre` (m, f, n), demandé à l’inscription avant « Tu es » et modifiable dans Mes réglages. Accords centralisés dans bdv-compte.js, mots épicènes pour « je préfère ne pas le dire ». Au féminin : « Le Bureau de la Vigneronne » dans le bureau, « Administratrice », « Utilisatrice », « Vigneronne ». Chaque membre accordé selon son propre genre. Bancs : banc:genre (31), banc:reglages section 8. SQL rejoué deux fois sur PostgreSQL 16. Non genré : courrier du matin, mails, pages publiques.

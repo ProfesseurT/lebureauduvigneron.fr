@@ -81,8 +81,20 @@ function monter(opts) {
   return w;
 }
 
+/* LOT 92 : les accords sont ceux de bdv-compte.js, pas une copie. Ted (MOI) est au
+   masculin, comme dans le decor des equipiers. */
+const ACCORDS = (function () {
+  const v = new JSDOM('<!doctype html><body></body>', { url: 'https://lebureauduvigneron.fr/', runScripts: 'outside-only' }).window;
+  v.fetch = () => Promise.reject(new TypeError('pas de reseau'));
+  v.eval(fs.readFileSync(path.join(RACINE, 'src/js/bdv-compte.js'), 'utf8'));
+  v.BdvCompte.poserGenre('m');
+  const C = v.BdvCompte;
+  return { genre: C.genre, accord: C.accord, libelleRole: C.libelleRole, libelleQui: C.libelleQui, metier: C.metier, marque: C.marque };
+})();
+
 function compte(opts) {
   return {
+    ...ACCORDS,
     monId: () => MOI,
     monBureau: () => opts.sansBureau ? null : BUREAU_A,
     session: () => ({ user: { id: MOI } }),
@@ -121,7 +133,7 @@ const dormir = (ms) => new Promise(r => setTimeout(r, ms));
   w.document.getElementById('equipeLienTexte').value =
     'https://lebureauduvigneron.fr/mon-bureau/?invitation='
     + '2990143f50f7a1c4b8e9d0f3a6b7c8d9e0f1a2b3c4d5e6f70819a2b3c4d5e6f7';
-  vues.push({ titre: 'Un maitre, dans un bureau partage',
+  vues.push({ titre: 'Un administrateur, dans un bureau partage',
               note: 'Selecteur, equipe, invitation, lien a copier, invitations en attente',
               html: w.document.querySelector('.zone--equipe').outerHTML });
 }
@@ -133,7 +145,7 @@ const dormir = (ms) => new Promise(r => setTimeout(r, ms));
   const w = monter({ equipe: equipe, unSeulBureau: true });
   await w.BdvEquipe.ouvrir();
   await dormir(30);
-  vues.push({ titre: 'Un simple utilisateur, un seul bureau',
+  vues.push({ titre: 'Un simple membre, un seul bureau',
               note: 'Pas de formulaire, pas de gestes, et pas de selecteur : un choix a une ligne est un ecran mort',
               html: w.document.querySelector('.zone--equipe').outerHTML });
 }

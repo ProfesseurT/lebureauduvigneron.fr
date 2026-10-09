@@ -397,7 +397,7 @@
 
   async function creerAgenda(){
     const moi = window.BdvCompte && BdvCompte.monId && BdvCompte.monId();
-    if(!moi){ motAgenda('Il faut être connecté.'); return; }
+    if(!moi){ motAgenda('Il faut une session ouverte.'); return; }
     motAgenda('Création…');
     try{
       /* `id` est pose ICI et jamais laisse au defaut : regle 6 de CLAUDE.md,
@@ -493,13 +493,24 @@
             <label class="bdvr-l" for="bdvrCp">Ton code postal</label>
             <input class="bdvr-i" type="text" id="bdvrCp" inputmode="numeric" maxlength="5" autocomplete="postal-code">
           </div>
+          <!-- LOT 92 : comment on t'ecrit. Cache tant que la base n'a pas la colonne « genre »
+               (une absence n'est pas une reponse), et jamais envoye dans ce cas. -->
+          <div class="bdvr-champ" id="bdvrGenreChamp" hidden>
+            <label class="bdvr-l" for="bdvrGenre">On t’écrit</label>
+            <select class="bdvr-i" id="bdvrGenre">
+              <option value="m">Au masculin</option>
+              <option value="f">Au féminin</option>
+              <option value="n">Je préfère ne pas le dire</option>
+            </select>
+            <p class="bdvr-aide">Ton bureau s’accorde avec toi : « Le Bureau de la Vigneronne », « Administratrice ». Sans réponse, il choisit des mots qui ne s’accordent pas.</p>
+          </div>
           <div class="bdvr-champ">
             <label class="bdvr-l" for="bdvrQui">Tu es</label>
             <select class="bdvr-i" id="bdvrQui">
               <option value="">Sans réponse</option>
-              <option value="vigneron">Vigneron</option>
-              <option value="caviste-negoce">Caviste ou négociant</option>
-              <option value="etudiant">Étudiant ou école</option>
+              <option value="vigneron">Vigne et vin</option>
+              <option value="caviste-negoce">Cave ou négoce</option>
+              <option value="etudiant">Études ou école</option>
               <option value="pro-filiere">Pro de la filière</option>
               <option value="autre">Autre</option>
             </select>
@@ -726,6 +737,7 @@
     // Regle 2 : un champ touche est marque des la premiere frappe, avant toute reponse reseau.
     el('bdvrForm').addEventListener('input', marquer);
     el('bdvrForm').addEventListener('change', marquer);
+    el('bdvrForm').addEventListener('change', function(e){ if(e.target && e.target.id === 'bdvrGenre') accorderQui(); });
     el('bdvrForm').addEventListener('submit', enregistrer);
 
     /* L'agenda ne passe PAS par « Enregistrer » : creer et revoquer sont des
@@ -862,6 +874,7 @@
         if(!Array.isArray(lignes)) return null;
         PROFIL = lignes[0] || {};
         PROFIL_LU = true;
+        if('genre' in PROFIL && BdvCompte.poserGenre) BdvCompte.poserGenre(PROFIL.genre);
         if(SUR_PROFIL){ try{ SUR_PROFIL(PROFIL); }catch(e){} }
         return PROFIL;
       }).catch(function(){ return null; });
@@ -1136,12 +1149,27 @@
       });
   }
 
+  function accorderQui(){
+    const q = el('bdvrQui'), g = el('bdvrGenre');
+    if(!q || !window.BdvCompte || !BdvCompte.libelleQui) return;
+    const genre = (g && !el('bdvrGenreChamp').hidden) ? g.value : (PROFIL && PROFIL.genre);
+    Array.prototype.forEach.call(q.options, function(o){
+      if(o.value) o.textContent = BdvCompte.libelleQui(o.value, genre);
+    });
+  }
+
   function remplir(){
     const p = PROFIL || {};
     poser('bdvrPrenom',  p.prenom);
     poser('bdvrDomaine', p.domaine);
     poser('bdvrCp',      p.code_postal);
     poser('bdvrQui',     p.profil);
+    /* LOT 92. Le champ n'existe a l'ecran que si la base porte la colonne. Les metiers de
+       « Tu es » s'accordent sur le genre affiche, et suivent le choix sans enregistrer. */
+    const gc = el('bdvrGenreChamp');
+    if(gc) gc.hidden = !('genre' in p);
+    if('genre' in p) poser('bdvrGenre', p.genre || 'n');
+    accorderQui();
     poser('bdvrViti',    p.utilise_vitisoft);
     poser('bdvrCourrier', p.consent_courrier);
     poser('bdvrNews',    p.consent_news);
@@ -1296,6 +1324,8 @@
     // LOT 63 : seulement les colonnes que la base porte, sinon l ecriture du profil entier
     // serait refusee pour une colonne inconnue.
     ALERTES.forEach(function(c){ if(c[0] in p) vus[c[0]] = !!el(c[1]).checked; });
+    // LOT 92 : seulement si la base porte la colonne. 'n' est une reponse, pas une absence.
+    if('genre' in p) vus.genre = el('bdvrGenre').value || 'n';
     const champs = {};
     Object.keys(vus).forEach(function(k){
       /* Les deux consentements se comparent en booleen et pas avec `|| null` : `false ||

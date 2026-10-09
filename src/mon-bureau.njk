@@ -15,7 +15,10 @@ theme_bureau: true
    yeux. Il ne lit QUE sa cle, `bureau_rail_v1`, et ne dessine rien. La cle est hors
    du prefixe `bdv_` : un confort d'affichage survit a la deconnexion. Le reste de la
    mecanique est dans bdv-nav.js (`poserRepli`) et la section 23 de bdv-bureau.css. #}
-<script>try{if(localStorage.getItem('bureau_rail_v1')==='replie')document.body.classList.add('bdv-rail-replie');}catch(e){}</script>
+{# LOT 92 : au feminin, le bandeau dit « Le Bureau de la Vigneronne » des le premier rendu.
+   Lu dans `bdv_genre_v1`, la copie que pose bdv-compte.js a chaque lecture du profil ;
+   peindreIdentite() le repeint quand le profil arrive ou change. #}
+<script>try{if(localStorage.getItem('bureau_rail_v1')==='replie')document.body.classList.add('bdv-rail-replie');if(localStorage.getItem('bdv_genre_v1')==='f'){var l=document.querySelector('.nav__logo');if(l)l.textContent='Le Bureau de la Vigneronne';document.title=document.title.replace('Bureau du Vigneron','Bureau de la Vigneronne');}}catch(e){}</script>
 
 {# LES MERS DE LA LUNE, 25/09/2026, demande de Ted (« la texturer un peu plus »).
    Les vraies taches sombres de la face visible, a leur place, nord en haut : la
@@ -625,7 +628,7 @@ theme_bureau: true
         <ul class="equipe-liste" id="equipeListe"></ul>
 
         <p class="equipe-note" id="equipeNoteSimple" hidden>
-          Seul un administrateur de ce bureau peut inviter quelqu'un ou changer un rôle.
+          Inviter quelqu'un ou changer un rôle est réservé aux admins de ce bureau.
         </p>
 
         <form class="equipe-inviter" id="equipeInviterForme" novalidate hidden>
@@ -634,8 +637,10 @@ theme_bureau: true
             <input class="equipe-inviter__i" id="equipeAdresse" type="email" autocomplete="off"
                    placeholder="son adresse e-mail" maxlength="200">
             <select class="equipe-inviter__r" id="equipeRole" aria-label="Avec quels droits">
-              <option value="simple">Utilisateur</option>
-              <option value="maitre">Administrateur</option>
+              {# LOT 92 : on ne connait pas encore le genre de qui on invite, donc les mots
+                 epicenes. Les valeurs ne changent pas. #}
+              <option value="simple">Membre</option>
+              <option value="maitre">Admin</option>
             </select>
             {# « Envoyer l'invitation » et plus « Creer le lien », 14/09/2026 : depuis
                le lot 20 ce bouton ENVOIE un mail. Un libelle qui annonce un lien a
@@ -648,8 +653,8 @@ theme_bureau: true
           {# La difference entre les deux roles se dit ICI, au moment ou on choisit, et
              pas dans une aide qu'il faudrait aller chercher. #}
           <p class="equipe-inviter__aide">
-            Un utilisateur voit tout le bureau et n'écrit que ses propres lignes.
-            Un administrateur peut en plus importer les ventes, changer les réglages et inviter.
+            Membre : voit tout le bureau et n'écrit que ses propres lignes.
+            Admin : peut en plus importer les ventes, changer les réglages et inviter.
           </p>
         </form>
 
@@ -2182,8 +2187,6 @@ theme_bureau: true
      premieres peintures. On ne cache pas une zone sur une absence de reponse, on la cache
      sur un « non » lu. peindreIdentite() repeint les deux zones quand la reponse arrive. #}
   var SANS_VITI = false;
-  var METIERS = { 'vigneron':'Vigneron', 'caviste-negoce':'Caviste ou négociant',
-                  'etudiant':'Étudiant', 'pro-filiere':'Pro de la filière', 'autre':'' };
 
   {# ---------------- LA LUNE DE L'ENTETE ----------------
      Posee le 08/09/2026. Le calcul ET le dessin sont dans bdv-almanach.js, ou
@@ -2263,7 +2266,9 @@ theme_bureau: true
     var dom = (p.domaine || '').trim();
     if(dom){
       var bits = [dom];
-      if(METIERS[p.profil]) bits.push(METIERS[p.profil]);
+      {# LOT 92 : le metier s'accorde (« Vigneronne »), la table vit dans bdv-compte.js. #}
+      var met = window.BdvCompte && BdvCompte.metier ? BdvCompte.metier(p.profil, p.genre) : '';
+      if(met) bits.push(met);
       plaque.textContent = bits.join(' · ');
       plaque.hidden = false;
     }else if(!prenom){
@@ -2282,6 +2287,12 @@ theme_bureau: true
     {# Le meme filtre s'applique aux blocs du panneau de reglages, mais ce n'est plus notre #}
     {# affaire depuis la fusion : le module le fait lui-meme, sur la meme fiche profil, #}
     {# cf. gateVitisoft() dans bdv-reglages.js. #}
+    {# LOT 92 : le nom du bureau suit le genre, dans le bandeau et l'onglet. #}
+    var mq = p.genre === 'f' ? 'Le Bureau de la Vigneronne' : 'Le Bureau du Vigneron';
+    var lg = document.querySelector('.nav__logo');
+    if(lg) lg.textContent = mq;
+    document.title = document.title.replace(/Le Bureau d(u Vigneron|e la Vigneronne)/, mq);
+
     var sansViti = (p.utilise_vitisoft === 'non');
     if(window.BdvNav) BdvNav.sansVitisoft(sansViti);
     {# LES DEUX ZONES DE VENTE DU PLAN SUIVENT LA BARRE, depuis le 08/09/2026. Retirer les

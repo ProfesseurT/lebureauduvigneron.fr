@@ -8936,9 +8936,33 @@ Demande de Ted : le mot « maître » ne s'affiche plus nulle part. A l'ecran et
   chemin afficherait encore le mot : la faire passer par la.
 - Les fonctions Edge `brevo` (et `_shared/brevo.ts`, donc `boite` et `mails-programmes`)
   portent le nouveau mot : a redeployer.
-- La suite, decidee le meme jour : lot 2, le genre sur le profil (masculin, feminin, prefere
-  ne pas le dire), demande a l'inscription et modifiable dans Mes reglages, comptes existants
-  sur « prefere ne pas le dire » ; lot 3, les accords (« Le bureau de la vigneronne »,
-  « Administratrice »), chacun accorde selon SON genre, pas celui de qui regarde, et des mots
-  EPICENES (jamais de point median) pour « prefere ne pas le dire ». Le nom du site et les
-  mails aux clients ne changent pas.
+
+## LE GENRE ET LES ACCORDS, 09/10/2026 (lots 2 et 3, SQL `supabase/lot92-genre.sql`)
+
+Demande de Ted. **SQL a coller APRES 89, AVANT de pousser** (la porte d'inscription envoie
+`genre` des qu'on y repond). Le numero 92 laisse 90 et 91 a Brevo.
+- **`profils.genre`** : 'm', 'f' ou 'n' (« je prefere ne pas le dire », defaut, comptes
+  existants compris). Ecrit par la personne (droit par colonne). `equipe(b)` rend aussi le
+  genre (fonction supprimee puis recreee : une colonne rendue de plus).
+- **Les accords vivent UNE fois, dans bdv-compte.js** : `genre()`, `poserGenre()`,
+  `accord(m, f, n, g)`, `libelleRole()`, `libelleQui()`, `metier()`, `marque()`, et `GENRES`.
+  'n' s'ecrit en mots EPICENES (« Admin », « Membre », « Vigne et vin »), JAMAIS de point
+  median. Banc : `npm run banc:genre` (dans verif) et `banc:reglages` section 8.
+- **CHACUN EST ACCORDE SELON SON GENRE, jamais selon celui de qui regarde.** Le 4e argument
+  d'`accord()` absent veut dire « moi » : pour quelqu'un d'autre, toujours `g.genre || 'n'`.
+  L'apercu de « L'equipe » a attrape ce piege (Camila, sans genre, prenait celui de Ted).
+- **La copie locale `bdv_genre_v1`** (prefixe `bdv_` : elle part a la deconnexion) sert au
+  premier rendu : le script en ligne de tete de `mon-bureau.njk` ecrit « Le Bureau de la
+  Vigneronne » dans le bandeau et l'onglet, puis `peindreIdentite()` le repeint a l'arrivee
+  du profil. Chaque lecture du profil la repose.
+- **Au feminin seulement**, le nom du bureau change : bandeau, onglet, titre de la fiche,
+  couverture du rapport imprime. Le nom du SITE (pages publiques, porte, mails, .ics,
+  notifications, pied du rapport) ne change pas.
+- **Une invitation n'a pas de genre** : la liste d'attente et le choix du role a l'envoi sont
+  en mots epicenes (« Membre », « Admin »).
+- Phrases generiques (« Seul un administrateur du bureau peut ... ») gardees : elles ne
+  designent personne. Les phrases qui designaient la personne connectee sont passees en
+  epicene (« Tu es de retour sur Ma journee », « Ta session n'est pas ouverte »).
+- **Ce qui n'est PAS genre** : le courrier du matin et les mails des nouvelles (ils disent
+  « Le Bureau du Vigneron » comme expediteur ; les genrer demanderait le genre dans
+  `v_courrier` et un redeploiement), les pages publiques (rgpd, conseil-terrain).
