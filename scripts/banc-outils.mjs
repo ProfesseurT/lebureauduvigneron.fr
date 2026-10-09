@@ -101,7 +101,11 @@ if (liste) {
   for (const c of cartes) {
     const a = c.querySelector('h2 a');
     if (!a) continue;
-    const nom = a.textContent.replace(/\s+/g, ' ').replace(/\s*—.*$/, '').trim();
+    /* LE NOM VISIBLE, SANS LA MENTION .hors-ecran (« nouvelle fenetre ») :
+       c est elle qui annonce la sortie a l oreille, pas le nom de l outil. */
+    const vu = a.cloneNode(true);
+    vu.querySelectorAll('.hors-ecran').forEach(h => h.remove());
+    const nom = vu.textContent.replace(/\s+/g, ' ').replace(/\s*—.*$/, '').trim();
     const href = a.getAttribute('href');
     const e = items.find(i => (i.name || '').trim() === nom);
     dit(!!e, 'la liste connait « ' + nom + ' »');

@@ -1633,6 +1633,7 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
         if (!node.loc || node.prelude.type !== 'SelectorList') return;
         const sels = node.prelude.children.toArray().map(s => csstree.generate(s));
         out.push({ sels, octets: node.loc.end.offset - node.loc.start.offset,
+                   debut: node.loc.start.offset, fin: node.loc.end.offset,
                    ligne: node.loc.start.line });
       }
     });
@@ -1673,6 +1674,7 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
     const toutesInertes  = r.sels.every(s => inerte(s, MARQUAGE, 'm'));
     if (toutesMortes) {
       oMortes += r.octets; nMortes++;
+      if (process.env.CHARTE_MORTES) console.log('MORTE\t' + r.debut + '\t' + r.fin + '\t' + r.sels[0]);
       if (exemplesMortes.length < 10) exemplesMortes.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
     } else if (toutesInertes) {
       oOrph += r.octets; nOrph++;

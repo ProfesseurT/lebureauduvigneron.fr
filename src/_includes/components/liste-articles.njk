@@ -19,25 +19,23 @@
   c'est ce qui transforme un flux sans fin en collection finie. Il est
   `aria-hidden`, un lecteur d'ecran annonce deja le rang dans une liste ordonnee.
 #}
-<ol class="artliste">
+{#- VITRINE, 09/10/2026 : le meme dessin, en classes `vt-`. Le signet garde sa
+    classe `signet` : bdv-signets.js la lit. -#}
+<ol class="vt-articles">
 {%- for p in lot %}
-  <li class="artligne">
-    <span class="artligne__num" aria-hidden="true">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
-    <div class="artligne__corps">
-      {#- h2 ET PAS h3, 19/09/2026 : sur les quatre pages de rubrique, le titre qui
-          precede est le h1 de src/rubriques.njk. Un h3 y saute le cran du h2, et un
-          lecteur d'ecran qui navigue de titre en titre perd le fil. Une seule faute,
-          vue quatre fois. La classe ne bouge pas, donc le dessin non plus. -#}
-      <h2 class="artligne__titre"><a href="{{ p.url }}">{{ p.data.title }}</a></h2>
+  <li class="vt-article">
+    <span class="vt-article__num" aria-hidden="true">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
+    <div class="vt-article__corps">
+      <h2 class="vt-article__titre"><a href="{{ p.url }}">{{ p.data.title }}</a></h2>
       {%- if p.data.description %}
-      <p class="artligne__chapo">{{ p.data.description | court(130) }}</p>
+      <p class="vt-article__chapo">{{ p.data.description | court(130) }}</p>
       {%- endif %}
+      <p class="vt-article__meta">
+        {%- if p.data.temps_lecture %}<span>{{ p.data.temps_lecture }} de lecture</span> · {% endif -%}
+        <time datetime="{{ p.date | dateISO }}">{{ p.date | dateReadable }}</time>
+      </p>
     </div>
-    <p class="artligne__meta">
-      {%- if p.data.temps_lecture %}<span class="artligne__duree">{{ p.data.temps_lecture }}</span>{% endif %}
-      <time datetime="{{ p.date | dateISO }}">{{ p.date | dateReadable }}</time>
-    </p>
-    <button type="button" class="signet signet--punaise" data-signet
+    <button type="button" class="signet signet--punaise vt-article__signet" data-signet
             data-signet-ref="{{ p.url }}"
             data-signet-titre="{{ p.data.title }}"
             data-signet-type="article"

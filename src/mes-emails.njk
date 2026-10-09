@@ -5,6 +5,7 @@ description: Choisis les e-mails que Le Bureau du Vigneron t'envoie, ou arrête 
 permalink: /mes-emails/
 eleventyExcludeFromCollections: true
 noindex: true
+vitrine: emails
 ---
 
 {#- CETTE PAGE S'OUVRE SANS MOT DE PASSE, ET C'EST LE POINT.
@@ -28,14 +29,14 @@ noindex: true
 <section class="about-hero">
   <div class="container">
     <h1>Tes e-mails</h1>
-    <p style="color:var(--on-dark-soft); font-style:italic; margin:0; font-size:1.05rem;">
+    <p>
       Ce que tu reçois, et ce que tu ne reçois plus. Sans mot de passe.
     </p>
   </div>
 </section>
 
 <section class="section">
-  <div class="container" style="max-width:44rem;">
+  <div class="container vt-texte">
 
     <p id="mailsAttente">Chargement de tes préférences…</p>
 
@@ -52,12 +53,12 @@ noindex: true
     <form id="mailsForm" hidden>
       <p>Préférences de <b id="mailsAdresse"></b>.</p>
 
-      <fieldset style="border:1px solid var(--filet, #ddd); border-radius:6px; padding:1rem 1.25rem; margin:0 0 1.25rem 0;">
-        <legend style="padding:0 .5rem; font-weight:600;">Le courrier du matin</legend>
-        <label style="display:block; margin:0 0 .5rem 0;">
+      <fieldset class="vt-groupe">
+        <legend>Le courrier du matin</legend>
+        <label class="vt-case">
           <input type="checkbox" id="mailsRappels"> Me l'envoyer
         </label>
-        <p style="margin:0; font-size:.92rem; color:var(--muted, #666);">
+        <p class="vt-aide">
           Chaque matin à 8 h, s'il y a quelque chose à dire : tes rappels du jour, tes tâches
           en retard et ta file de travail. Rien de nouveau, rien dans ta boîte.
           Il porte les noms de tes clients et tes montants.
@@ -65,18 +66,18 @@ noindex: true
         </p>
       </fieldset>
 
-      <fieldset style="border:1px solid var(--filet, #ddd); border-radius:6px; padding:1rem 1.25rem; margin:0 0 1.25rem 0;">
-        <legend style="padding:0 .5rem; font-weight:600;">L'édition du Bureau</legend>
-        <label style="display:block; margin:0 0 .5rem 0;">
+      <fieldset class="vt-groupe">
+        <legend>L'édition du Bureau</legend>
+        <label class="vt-case">
           <input type="checkbox" id="mailsEdition"> Me l'envoyer
         </label>
-        <p style="margin:0; font-size:.92rem; color:var(--muted, #666);">
+        <p class="vt-aide">
           Deux fois par mois : ce qui bouge dans la filière et dans l'outil.
           <span id="mailsEditionDepuis" hidden></span>
         </p>
       </fieldset>
 
-      <p role="status" id="mailsAvis" hidden style="font-weight:600;"></p>
+      <p role="status" id="mailsAvis" class="vt-avis" hidden></p>
 
       <p>
         <button class="btn" type="submit" id="mailsEnregistrer">Enregistrer</button>
@@ -90,13 +91,11 @@ noindex: true
             Un bouton de desinscription invisible, c'est une page de desinscription qui
             n'en est pas une : le pire defaut possible sur cette page precise, et celui
             que personne ne signale, puisqu'on ne rale pas contre un bouton qu'on ne
-            voit pas. Les couleurs sont donc ecrites ici, en clair. -#}
-        <button class="btn" type="button" id="mailsToutCouper"
-                style="margin-left:.75rem; background:transparent; color:var(--bordeaux);
-                       border:1px solid var(--bordeaux);">Ne plus rien recevoir</button>
+            voit pas. Depuis la vitrine (09/10/2026) son dessin est `.vt-bouton-creux` dans vitrine.css : contour et encre noirs sur fond clair. -#}
+        <button class="btn vt-bouton-creux" type="button" id="mailsToutCouper">Ne plus rien recevoir</button>
       </p>
 
-      <p style="font-size:.92rem; color:var(--muted, #666);">
+      <p class="vt-aide">
         Ça ne supprime pas ton compte et ça ne touche pas à tes données. Les e-mails de
         service — confirmation d'adresse, réinitialisation de mot de passe — partent de toute
         façon : sans eux tu ne pourrais plus entrer chez toi.
@@ -105,7 +104,7 @@ noindex: true
       </p>
     </form>
 
-    <p style="margin-top:2rem;"><a href="/politique-confidentialite/">Politique de confidentialité</a> ·
+    <p class="vt-retour"><a href="/politique-confidentialite/">Politique de confidentialité</a> ·
       <a href="/">← Accueil</a></p>
   </div>
 </section>

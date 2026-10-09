@@ -1,5 +1,6 @@
 ---
 layout: base.njk
+vitrine: article
 ---
 {#
   LA PAGE DE LECTURE D'UN ARTICLE, REFAITE LE 10/09/2026.
@@ -41,158 +42,125 @@ layout: base.njk
 {%- set plusAncien = collections.posts | getNextCollectionItem -%}
 
 <main id="contenu">
-<article class="art">
-
-  <header class="art__tete">
-    <div class="container">
-      <nav class="filariane filariane--clair" aria-label="Fil d'Ariane">
+<article class="vt-art">
+  <header class="vt-tete">
+    <div class="vt-cadre vt-cadre--lecture">
+      <nav class="vt-ariane" aria-label="Fil d'Ariane">
         <a href="/">Accueil</a> <span aria-hidden="true">›</span>
         <a href="/articles/">Articles</a>
         {%- if rub %} <span aria-hidden="true">›</span>
         <a href="/articles/rubrique/{{ rub.slug }}/">{{ rub.nom }}</a>
         {%- endif %}
       </nav>
-
-      <h1 class="art__titre">{{ title }}</h1>
-
+      <h1 class="vt-tete__titre vt-tete__titre--article">{{ title }}</h1>
       {%- if description %}
-      <p class="art__chapo">{{ description }}</p>
+      <p class="vt-tete__lead">{{ description }}</p>
       {%- endif %}
-
-      <p class="art__signature">
-        <span class="art__auteur">Par <a href="/la-redaction/">{{ auteur }}</a></span>
-        <span class="art__sep" aria-hidden="true">·</span>
-        <span>Publié le <time datetime="{{ page.date | dateISO }}">{{ page.date | dateReadable }}</time></span>
-        {%- if maj %}
-        <span class="art__sep" aria-hidden="true">·</span>
-        <span>Mis à jour le <time datetime="{{ maj | dateISO }}">{{ maj | dateReadable }}</time></span>
-        {%- endif %}
-        {%- if temps_lecture %}
-        <span class="art__sep" aria-hidden="true">·</span>
-        <span>{{ temps_lecture }} de lecture</span>
-        {%- endif %}
+      <p class="vt-tete__meta">
+        Par <a href="/la-redaction/">{{ auteur }}</a>
+        · Publié le <time datetime="{{ page.date | dateISO }}">{{ page.date | dateReadable }}</time>
+        {%- if maj %} · Mis à jour le <time datetime="{{ maj | dateISO }}">{{ maj | dateReadable }}</time>{% endif %}
+        {%- if temps_lecture %} · {{ temps_lecture }} de lecture{% endif %}
       </p>
     </div>
   </header>
 
   {%- if image %}
-  <figure class="art__figure">
-    <div class="container container--wide">
-      <img src="{{ image }}" alt="{{ image_alt if image_alt else '' }}"
-           width="1600" height="900" fetchpriority="high" decoding="async">
-      {%- if image_legende %}<figcaption>{{ image_legende }}</figcaption>{% endif %}
-    </div>
+  <figure class="vt-cadre vt-cadre--lecture vt-art__figure">
+    <img src="{{ image }}" alt="{{ image_alt if image_alt else '' }}"
+         width="1600" height="900" fetchpriority="high" decoding="async">
+    {%- if image_legende %}<figcaption>{{ image_legende }}</figcaption>{% endif %}
   </figure>
   {%- endif %}
 
-  <div class="art__corps">
-    <div class="container">
+  <div class="vt-cadre vt-cadre--lecture vt-art__corps">
+    {%- if toc | length >= 3 %}
+    <nav class="vt-som" aria-labelledby="vtSom">
+      <p class="vt-som__titre" id="vtSom">Sur cette page</p>
+      <ol class="vt-som__liste">
+        {%- for t in toc %}
+        <li><a href="#{{ t.id }}">{{ t.texte }}</a></li>
+        {%- endfor %}
+      </ol>
+    </nav>
+    {%- endif %}
 
-      {%- if toc | length >= 3 %}
-      <nav class="artsom" aria-labelledby="artsom-titre">
-        <p class="artsom__titre" id="artsom-titre">Sur cette page</p>
-        <ol class="artsom__liste">
-          {%- for t in toc %}
-          <li><a href="#{{ t.id }}">{{ t.texte }}</a></li>
-          {%- endfor %}
-        </ol>
-      </nav>
-      {%- endif %}
-
-      <div class="art__texte">
-        {{ content | avecAncres | safe }}
-      </div>
-
-      <div class="signet-barre">
-        <button type="button" class="signet" data-signet
-                data-signet-ref="{{ page.url }}"
-                data-signet-titre="{{ title }}"
-                data-signet-type="article">
-          <span class="signet__icone" aria-hidden="true"></span>
-          <span data-signet-texte>Mettre de côté</span>
-        </button>
-        <button type="button" class="signet" data-signet-lu
-                data-signet-ref="{{ page.url }}"
-                data-signet-titre="{{ title }}"
-                data-signet-type="article">
-          <span class="signet__coche" aria-hidden="true">&#10003;</span>
-          <span data-signet-texte>J'ai lu</span>
-        </button>
-      </div>
-
-      {#- Qui ecrit. Le nom vient de la donnee, le texte parle de l'equipe : c'est
-          la regle du flambeau, une signature n'est pas une identite de site. -#}
-      <aside class="artauteur">
-        <p class="artauteur__etiq">Qui écrit ici</p>
-        <p class="artauteur__nom">{{ auteur }}</p>
-        <p class="artauteur__texte">
-          Le Bureau du Vigneron est tenu par l'équipe de Solumatic, éditeur de Vitisoft.
-          Une vingtaine de personnes qui entrent chaque semaine dans les bureaux des
-          vignerons : ce qu'elles y voient est ce qui s'écrit ici.
-        </p>
-        <p class="artauteur__lien"><a href="/la-redaction/">La rédaction →</a></p>
-      </aside>
-
+    <div class="vt-prose">
+      {{ content | avecAncres | safe }}
     </div>
+
+    <div class="vt-art__gestes">
+      <button type="button" class="signet" data-signet
+              data-signet-ref="{{ page.url }}"
+              data-signet-titre="{{ title }}"
+              data-signet-type="article">
+        <span class="signet__icone" aria-hidden="true"></span>
+        <span data-signet-texte>Mettre de côté</span>
+      </button>
+      <button type="button" class="signet" data-signet-lu
+              data-signet-ref="{{ page.url }}"
+              data-signet-titre="{{ title }}"
+              data-signet-type="article">
+        <span class="signet__coche" aria-hidden="true">&#10003;</span>
+        <span data-signet-texte>J'ai lu</span>
+      </button>
+    </div>
+
+    <aside class="vt-auteur">
+      <p class="vt-auteur__nom">{{ auteur }}</p>
+      <p class="vt-auteur__texte">
+        Le Bureau du Vigneron est tenu par l'équipe de Solumatic, éditeur de Vitisoft.
+        Une vingtaine de personnes qui entrent chaque semaine dans les bureaux des
+        vignerons : ce qu'elles y voient est ce qui s'écrit ici.
+      </p>
+      <p><a href="/la-redaction/">La rédaction</a></p>
+    </aside>
   </div>
 
-  <footer class="art__pied">
-    <div class="container container--wide">
-
+  <footer class="vt-art__pied">
+    <div class="vt-cadre">
       {%- if voisins | length > 0 %}
-      <section class="artvoisins">
-        <h2 class="artvoisins__titre">
-          Du même rayon{% if rub %} · <a href="/articles/rubrique/{{ rub.slug }}/">{{ rub.nom }}</a>{% endif %}
-        </h2>
-        <ul class="artvoisins__liste">
+      <section class="vt-voisins" aria-labelledby="vtVoisins">
+        <h2 class="vt-voisins__titre" id="vtVoisins">Dans la même rubrique{% if rub %} · <a href="/articles/rubrique/{{ rub.slug }}/">{{ rub.nom }}</a>{% endif %}</h2>
+        <ul class="vt-voisins__liste">
           {%- for v in voisins %}
-          <li class="artvoisin">
-            <a class="artvoisin__titre" href="{{ v.url }}">{{ v.data.title }}</a>
+          <li class="vt-voisin">
+            <a class="vt-voisin__titre" href="{{ v.url }}">{{ v.data.title }}</a>
             {%- if v.data.description %}
-            <p class="artvoisin__chapo">{{ v.data.description | court(110) }}</p>
+            <p class="vt-voisin__chapo">{{ v.data.description | court(110) }}</p>
             {%- endif %}
-            <p class="artvoisin__meta">{% if v.data.temps_lecture %}{{ v.data.temps_lecture }} · {% endif %}<time datetime="{{ v.date | dateISO }}">{{ v.date | dateReadable }}</time></p>
+            <p class="vt-voisin__meta">{% if v.data.temps_lecture %}{{ v.data.temps_lecture }} · {% endif %}<time datetime="{{ v.date | dateISO }}">{{ v.date | dateReadable }}</time></p>
           </li>
           {%- endfor %}
         </ul>
       </section>
       {%- endif %}
 
-      {#- « Plus recent » et « plus ancien » plutot que « precedent » et « suivant » :
-          la collection est rangee du plus recent au plus ancien, et « precedent »
-          y designe l'article le plus RECENT, ce qui est le contraire de ce que le
-          mot fait comprendre. -#}
       {%- if plusRecent or plusAncien %}
-      <nav class="artnav" aria-label="Autres articles">
+      <nav class="vt-suite" aria-label="Autres articles">
         {%- if plusAncien %}
-        <a class="artnav__lien artnav__lien--avant" href="{{ plusAncien.url }}">
-          <span class="artnav__sens">← Plus ancien</span>
-          <span class="artnav__titre">{{ plusAncien.data.title }}</span>
+        <a class="vt-suite__lien" href="{{ plusAncien.url }}">
+          <span class="vt-suite__sens">← Plus ancien</span>
+          <span class="vt-suite__titre">{{ plusAncien.data.title }}</span>
         </a>
         {%- else %}<span></span>{% endif %}
         {%- if plusRecent %}
-        <a class="artnav__lien artnav__lien--apres" href="{{ plusRecent.url }}">
-          <span class="artnav__sens">Plus récent →</span>
-          <span class="artnav__titre">{{ plusRecent.data.title }}</span>
+        <a class="vt-suite__lien vt-suite__lien--apres" href="{{ plusRecent.url }}">
+          <span class="vt-suite__sens">Plus récent →</span>
+          <span class="vt-suite__titre">{{ plusRecent.data.title }}</span>
         </a>
         {%- endif %}
       </nav>
       {%- endif %}
 
-      <section class="artporte">
-        <p class="artporte__etiq">Le bureau</p>
-        <p class="artporte__texte">
-          Les échéances de cet article, tu peux les faire tomber toutes seules dans ton
-          bureau : ce qui presse, ce que tu as mis de côté, tes chiffres. Gratuit,
-          ouvert à toute la filière.
-        </p>
-        <a href="/compte/" class="btn" data-bdv-compte
-           data-bdv-mode="inscription" data-bdv-titre="Ton bureau t&#39;attend.">Créer mon compte</a>
-        <a href="/articles/" class="artporte__retour">← Tous les articles</a>
+      <section class="vt-porte" aria-labelledby="vtPorte">
+        <h2 class="vt-porte__titre" id="vtPorte">Ton bureau te dit par quoi commencer</h2>
+        <p class="vt-porte__texte">La DRM du 10, le client qui ne commande plus. Gratuit, avec ou sans Vitisoft.</p>
+        <a href="/compte/" class="vt-bouton" data-bdv-compte
+           data-bdv-mode="inscription" data-bdv-titre="Ton bureau t'attend.">Ouvrir mon bureau, gratuit</a>
+        <p><a href="/articles/" class="vt-porte__retour">← Tous les articles</a></p>
       </section>
-
     </div>
   </footer>
-
 </article>
 </main>

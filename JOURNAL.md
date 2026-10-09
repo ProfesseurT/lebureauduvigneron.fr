@@ -13,13 +13,48 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 09/10/2026, la vitrine, lot 2 : les autres pages publiques
+
+Demande de Ted (« ok suite »). Quatorze pages passent au dessin de la vitrine, en trois paquets :
+articles, rubriques, article ; outils, echeances ; conseil terrain, la redaction, compte,
+mentions legales, politique de confidentialite, CGU, plan du site, mes e-mails. Hors lot : le
+bureau, /signer/, les calendriers A3, le texte des articles.
+
+- Classe du corps : `vt vt-page-<page>` (le prefixe evite la collision `article` / `.vt-article`).
+- Cadre commun `.vt-cadre` (1200 px), en-tete et pied cales dessus hors accueil, menu
+  « Menu » sous 1000 px sur toutes les pages, « Creer mon compte » cache sous 700 px.
+- Listes d'articles en `ol.vt-articles` (numero, titre, chapo, temps de lecture et date) ;
+  page d'article en `vt-article` (ariane, titre, chapo, sommaire, prose, auteur, voisins,
+  « d'autres articles », porte vers le bureau). Le texte des articles n'a pas bouge.
+- Les autres pages gardent leur balisage : un bloc de regles `.vt` les repeint (cartes
+  blanches arrondies, boutons noirs, rouge reserve au retard). Styles en ligne retires.
+- Textes raccourcis apres relecture (vigneron empathique et anti-claude) : chapo des articles,
+  pied des outils, conseil terrain (bloc « Le point commun ? Du temps. » retire, les trois cas
+  le disent deja), la redaction, compte, echeances.
+- style.css : 136 regles devenues mortes retirees (environ 22 Ko), borne C1 tenue a 5080.
+  `CHARTE_MORTES=1 node scripts/charte.mjs` liste desormais les regles mortes avec leur
+  position, pour les retirer sans les chercher a la main.
+- banc-outils lit le nom d'un outil sans sa mention `.hors-ecran` (« viticode.fr, nouvelle
+  fenetre ») : le nom accessible dit ou il emmene, la liste structuree garde le nom seul.
+- Cinq jetons ajoutes a tokens.css : `--vt-t-page`, `--vt-t-article`, `--vt-t-h2`,
+  `--vt-cadre`, `--vt-lecture`.
+- Verifie : `verif` vert (banc:signature vert seul, il a echoue une fois sous la charge),
+  captures a 390, 1000 et 1440 des quatorze pages, aucune page ne deborde. La capture a 390
+  a trouve deux defauts corriges : l'en-tete gardait 48 px de marge (page plus large que
+  l'ecran), et « Menu » de l'accueil etait noir sur noir.
+- A dire a Ted, non corrige (contenu) : « nous voyons les donnees reelles de 2 000 domaines »
+  (la redaction) contredit la promesse de /compte/ ; « x15 croissance de Solumatic » sans
+  source ; « Une vingtaine de personnes » ; « webinaires et interviews » promis sur /compte/ ;
+  « Facturation electronique... En retard » sur les echeances (vient de `phrase()`) ; un tiret
+  cadratin dans un chapo d'article ; la porte de compte garde son dessin papier.
+
 ## 09/10/2026, la vitrine, lot 1 : le socle public et l'accueil
 
 Ted a valide le 08/10/2026 la maquette « p10 » comme reference du nouveau site public.
 Lot 1 : le socle et la page d'accueil. Le bureau et les autres pages ne bougent pas.
 
 - Nouvelle feuille `src/css/vitrine.css`, liee par le drapeau de front matter `vitrine`
-  (valeur = nom de la page, ici `accueil`), qui pose aussi `class="vt vt-accueil"` sur le
+  (valeur = nom de la page, ici `accueil`), qui pose aussi `class="vt vt-page-accueil"` sur le
   corps de page. Toutes les regles sous `.vt`. Aucune couleur, taille, rayon en dur hors
   du `:root` ; aucune ombre. Jetons `--vt-*`, ecrits dans tokens.css avec leur raison.
 - Archivo (400, 600, 800) et IBM Plex Mono (400) ajoutees au lien Google Fonts UNIQUE.

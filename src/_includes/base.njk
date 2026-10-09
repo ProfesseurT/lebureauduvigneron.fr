@@ -234,7 +234,7 @@
     « 2 000 vignerons qu'on a visites » : ca sentait la pub. Les deux `if` sont poses
     sur des lignes qui etaient VIDES, et le pied dans sa propre ligne : sans le drapeau,
     chaque page sort a l'octet pres comme avant. -#}
-<body{% if theme_bureau %} class="bdv-coque"{% elif vitrine %} class="vt vt-{{ vitrine }}"{% endif %}>
+<body{% if theme_bureau %} class="bdv-coque"{% elif vitrine %} class="vt vt-page-{{ vitrine }}"{% endif %}>
 {% if not sans_chrome %}
 {% if vitrine %}{% include "components/vitrine-entete.njk" %}{% else %}
   <nav class="nav">

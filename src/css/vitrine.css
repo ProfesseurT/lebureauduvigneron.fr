@@ -54,6 +54,9 @@
   --vt-t-chiffre: clamp(1.75rem, 1.379rem + 1.524vw, 2.75rem);
   --vt-t-h1:      clamp(3.125rem, 2.521rem + 2.476vw, 4.75rem);
   --vt-t-h1-col:  min(5.2vw, 4.75rem);
+  --vt-t-page:    clamp(2.25rem, 1.832rem + 1.714vw, 3.375rem);
+  --vt-t-article: clamp(2rem, 1.721rem + 1.143vw, 2.75rem);
+  --vt-t-h2:      clamp(1.375rem, 1.236rem + 0.571vw, 1.75rem);
 
   --vt-r-tuile:  12px;
   --vt-r-carte:  14px;
@@ -65,6 +68,9 @@
 
   --vt-cible:       44px;
   --vt-cible-forte: 56px;
+
+  --vt-cadre: 1200px;
+  --vt-lecture: 46rem;
 }
 
 /* --- Le socle ------------------------------------------------------------ */
@@ -76,14 +82,14 @@
 }
 .vt :where(h1, h2, h3, p, ul, figure) { margin: 0; }
 .vt :where(h1, h2, h3) { font-family: inherit; color: inherit; line-height: 1.1; }
-.vt :where(ul) { list-style: none; padding: 0; }
+.vt :where(ul, ol) { list-style: none; padding: 0; }
 .vt :where(a) { color: inherit; }
 .vt :focus-visible {
   outline: var(--vt-anneau) solid var(--vt-encre);
   outline-offset: 3px;
 }
 .vt .vt-noir :focus-visible,
-.vt-accueil .vt-entete :focus-visible { outline-color: var(--vt-blanc); }
+.vt-page-accueil .vt-entete :focus-visible { outline-color: var(--vt-blanc); }
 
 /* --- Le bouton ------------------------------------------------------------ */
 .vt .vt-bouton {
@@ -157,7 +163,7 @@
 }
 
 /* L'accueil : l'en-tete se pose sur les deux colonnes, la marque dans le noir. */
-.vt-accueil .vt-entete {
+.vt-page-accueil .vt-entete {
   position: absolute;
   top: 0;
   left: 0;
@@ -167,12 +173,12 @@
   align-items: start;
   padding: 0;
 }
-.vt-accueil .vt-entete > * { padding: 28px 48px 0; }
-.vt-accueil .vt-entete__marque { box-sizing: content-box; color: var(--vt-blanc); }
-.vt-accueil .vt-entete__nav { justify-content: flex-end; }
+.vt-page-accueil .vt-entete > * { padding: 28px 48px 0; }
+.vt-page-accueil .vt-entete__marque { box-sizing: content-box; color: var(--vt-blanc); }
+.vt-page-accueil .vt-entete__nav { justify-content: flex-end; }
 /* Le bouton d'inscription est deja le geste principal du bloc noir : un seul
    aplat par ecran. */
-.vt-accueil .vt-entete__creer { display: none; }
+.vt-page-accueil .vt-entete__creer { display: none; }
 
 /* --- L'accueil, le haut --------------------------------------------------- */
 .vt-haut {
@@ -358,11 +364,11 @@
   .vt-haut, .vt-deux, .vt-fin { grid-template-columns: 1fr; }
   .vt-haut { min-height: 0; }
   .vt .vt-noir h1 { font-size: var(--vt-t-h1); margin-top: 64px; }
-  .vt-accueil .vt-entete { grid-template-columns: 1fr auto; }
-  .vt-accueil .vt-entete__liens { display: none; }
-  .vt-accueil .vt-menu { display: block; }
-  .vt-accueil .vt-menu summary,
-  .vt-accueil .vt-entete__compte a { color: var(--vt-blanc); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+  .vt-page-accueil .vt-entete { grid-template-columns: 1fr auto; }
+  .vt-entete__liens { display: none; }
+  .vt-menu { display: block; }
+  .vt-page-accueil .vt-menu summary,
+  .vt-page-accueil .vt-entete__compte a { color: var(--vt-blanc); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
   .vt-cote { padding-top: 40px; }
   .vt .vt-apercu { margin-top: 0; }
   .vt-deux > * + * { padding-top: 0; }
@@ -372,7 +378,10 @@
 /* --- Telephone ------------------------------------------------------------ */
 @media (max-width: 700px) {
   .vt-entete { padding: 14px 20px; }
-  .vt-accueil .vt-entete > * { padding: 18px 20px 0; }
+  .vt-entete__nav, .vt-entete__compte { gap: 18px; }
+  .vt-entete__creer { display: none; }
+  .vt-cadre { padding-inline: 20px; }
+  .vt-page-accueil .vt-entete > * { padding: 18px 20px 0; }
   .vt-noir { padding: 62px 20px 36px; }
   .vt .vt-noir h1 { margin-top: 40px; }
   .vt .vt-noir .vt-bouton { display: flex; }
@@ -397,3 +406,624 @@
   .vt .vt-fin .vt-bouton { justify-self: stretch; }
   .vt-pied { padding: 18px 20px; }
 }
+
+/* ==========================================================================
+   LES PAGES INTERIEURES, LOT 2 DE LA VITRINE, 09/10/2026
+   ========================================================================== */
+
+/* Le cadre : la meme largeur pour l'en-tete et le contenu, pour que la marque
+   et le titre de la page tombent sur le meme bord. */
+.vt-cadre {
+  box-sizing: content-box;
+  max-width: var(--vt-cadre);
+  margin-inline: auto;
+  padding-inline: 48px;
+}
+.vt-cadre--lecture { max-width: var(--vt-lecture); }
+.vt:not(.vt-page-accueil) .vt-pied { padding-inline: max(48px, calc((100% - var(--vt-cadre)) / 2)); }
+.vt:not(.vt-page-accueil) .vt-entete {
+  padding-inline: max(48px, calc((100% - var(--vt-cadre)) / 2));
+  border-bottom: var(--vt-filet) solid var(--vt-trait);
+}
+.vt .vt-entete__creer a {
+  padding: 0 16px;
+  border-radius: var(--vt-r-bouton);
+  background: var(--vt-encre);
+  color: var(--vt-blanc);
+}
+
+/* --- La tete d'une page --------------------------------------------------- */
+.vt-tete { padding: 48px 0 40px; }
+.vt .vt-tete__titre {
+  max-width: 20ch;
+  font-size: var(--vt-t-page);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.035em;
+}
+.vt .vt-tete__titre--article { max-width: 24ch; font-size: var(--vt-t-article); line-height: 1.08; letter-spacing: -.025em; }
+.vt .vt-tete__lead {
+  max-width: 60ch;
+  margin-top: 18px;
+  font-size: var(--vt-t-lead);
+  color: var(--vt-encre-2);
+}
+.vt .vt-tete__meta {
+  margin-top: 18px;
+  font-family: var(--font-vitrine-mono);
+  font-size: var(--vt-t-1);
+  color: var(--vt-encre-2);
+}
+.vt .vt-tete__meta a { color: var(--vt-encre); text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-ariane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+  font-size: var(--vt-t-1);
+  color: var(--vt-encre-2);
+}
+.vt .vt-ariane a { color: var(--vt-encre); text-decoration: underline; text-underline-offset: 3px; }
+.vt-corps { padding-bottom: 72px; }
+
+/* --- Les articles : la une, les rubriques, les listes --------------------- */
+.vt-une {
+  padding: 32px 40px;
+  border-radius: var(--vt-r-carte);
+  background: var(--vt-blanc);
+}
+.vt .vt-une__etiq { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+.vt .vt-une__etiq a { color: var(--vt-encre); text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-une__titre {
+  max-width: 28ch;
+  margin-top: 12px;
+  font-size: var(--vt-t-section);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+.vt .vt-une__titre a { text-decoration: none; }
+.vt .vt-une__titre a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.vt .vt-une__chapo { max-width: 62ch; margin-top: 14px; font-size: var(--vt-t-4); color: var(--vt-encre-2); }
+.vt .vt-une__meta { margin: 14px 0 22px; font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+
+.vt-rubriques ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 8px; }
+.vt .vt-rubrique {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--vt-cible);
+  padding: 0 16px;
+  border: var(--vt-filet) solid var(--vt-trait);
+  border-radius: var(--vt-r-bouton);
+  background: var(--vt-blanc);
+  color: var(--vt-encre);
+  font-size: var(--vt-t-3);
+  font-weight: 600;
+  text-decoration: none;
+}
+.vt a.vt-rubrique:hover { border-color: var(--vt-encre); }
+.vt-rubrique__n { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); font-weight: 400; color: var(--vt-encre-2); }
+.vt .vt-rubrique--actif { border-color: var(--vt-encre); background: var(--vt-encre); color: var(--vt-blanc); }
+.vt .vt-rubrique--actif .vt-rubrique__n { color: var(--vt-gris); }
+
+.vt-cahier { margin-top: 48px; }
+.vt-cahier--seule { margin-top: 0; }
+.vt-cahier__tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; }
+.vt .vt-cahier__titre { font-size: var(--vt-t-h2); font-weight: 800; letter-spacing: -.02em; }
+.vt .vt-cahier__titre a { text-decoration: none; }
+.vt .vt-cahier__titre a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.vt .vt-cahier__n { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+.vt .vt-cahier__intro { max-width: 70ch; margin: 8px 0 16px; font-size: var(--vt-t-3); color: var(--vt-encre-2); }
+
+.vt-articles { overflow: hidden; border-radius: var(--vt-r-carte); background: var(--vt-blanc); }
+.vt-article {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) var(--vt-cible);
+  gap: 0 16px;
+  align-items: start;
+  padding: 20px 16px 20px 20px;
+  border-top: var(--vt-filet) solid var(--vt-trait);
+}
+.vt-article:first-child { border-top: 0; }
+.vt .vt-article__num { padding-top: 3px; font-family: var(--font-vitrine-mono); font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-article__titre { font-size: var(--vt-t-6); font-weight: 800; line-height: 1.25; letter-spacing: -.01em; }
+.vt .vt-article__titre a { text-decoration: none; }
+.vt .vt-article__titre a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-article__chapo { max-width: 74ch; margin-top: 6px; font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-article__meta { margin-top: 8px; font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+
+/* Le signet : sa classe est lue par bdv-signets.js, son dessin est ici. */
+.vt .vt-article__signet { position: static; align-self: start; }
+.vt .signet__icone { border-color: var(--vt-encre-2); }
+.vt .signet--punaise:hover .signet__icone { border-color: var(--vt-encre); }
+.vt .signet--punaise[data-etat="a_lire"] .signet__icone,
+.vt .signet--punaise[data-etat="lu"] .signet__icone { border-color: var(--vt-encre); background: var(--vt-encre); }
+.vt .vt-art__gestes .signet {
+  border: var(--vt-filet) solid var(--vt-trait);
+  border-radius: var(--vt-r-bouton);
+  background: var(--vt-blanc);
+  color: var(--vt-encre);
+  font-family: inherit;
+  font-size: var(--vt-t-3);
+  font-weight: 600;
+}
+.vt .vt-art__gestes .signet:hover { border-color: var(--vt-encre); }
+.vt .vt-art__gestes .signet[data-etat="a_lire"],
+.vt .vt-art__gestes .signet[data-etat="lu"] { border-color: var(--vt-encre); background: var(--vt-encre); color: var(--vt-blanc); }
+.vt .vt-art__gestes .signet[data-etat] .signet__icone { border-color: var(--vt-blanc); background: var(--vt-blanc); }
+
+.vt-autres { margin-top: 56px; }
+.vt .vt-autres__titre { font-size: var(--vt-t-h2); font-weight: 800; letter-spacing: -.02em; }
+.vt-autres__liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 12px; margin: 16px 0; }
+.vt-autre { padding: 20px; border-radius: var(--vt-r-carte); background: var(--vt-blanc); }
+.vt .vt-autre__lien { font-size: var(--vt-t-5); font-weight: 800; text-decoration: none; }
+.vt .vt-autre__lien:hover { text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-autre__n { display: block; margin-top: 2px; font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+.vt .vt-autre__intro { margin-top: 8px; font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-autres__tout a,
+.vt .vt-auteur a,
+.vt .vt-porte__retour { display: inline-flex; align-items: center; min-height: var(--vt-cible); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-vide { padding: 48px 0; color: var(--vt-encre-2); }
+
+/* --- La page d'un article ------------------------------------------------- */
+.vt .vt-art__figure { margin-bottom: 32px; }
+.vt-art__figure img { display: block; width: 100%; height: auto; border-radius: var(--vt-r-carte); }
+.vt-art__figure figcaption { margin-top: 8px; font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+.vt-art__corps { padding-bottom: 64px; }
+
+.vt-som { margin-bottom: 40px; padding: 20px 24px; border-radius: var(--vt-r-carte); background: var(--vt-blanc); }
+.vt .vt-som__titre { margin-bottom: 10px; font-size: var(--vt-t-3); font-weight: 800; }
+.vt-som__liste { counter-reset: som; }
+.vt-som__liste li { position: relative; padding: 4px 0 4px 2.25rem; counter-increment: som; }
+.vt-som__liste li::before {
+  content: counter(som, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 7px;
+  font-family: var(--font-vitrine-mono);
+  font-size: var(--vt-t-1);
+  color: var(--vt-encre-2);
+}
+.vt .vt-som__liste a { font-size: var(--vt-t-3); text-decoration: underline; text-decoration-color: var(--vt-trait); text-underline-offset: 3px; }
+.vt .vt-som__liste a:hover { text-decoration-color: var(--vt-encre); }
+
+.vt-prose { font-size: var(--vt-t-5); line-height: 1.7; }
+.vt .vt-prose > :first-child { margin-top: 0; }
+.vt .vt-prose p { margin: 0 0 1.15em; }
+.vt .vt-prose h2 {
+  margin: 2.2em 0 .6em;
+  font-size: var(--vt-t-h2);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+.vt .vt-prose h3 { margin: 1.8em 0 .4em; font-size: var(--vt-t-5); font-weight: 800; }
+.vt .vt-prose ul { margin: 0 0 1.15em; padding-left: 1.4em; list-style: disc; }
+.vt .vt-prose ol { margin: 0 0 1.15em; padding-left: 1.6em; list-style: decimal; }
+.vt .vt-prose li { margin-bottom: .4em; }
+.vt .vt-prose strong { font-weight: 600; }
+.vt .vt-prose a { text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-prose hr { margin: 2.4em 0; border: 0; border-top: var(--vt-filet) solid var(--vt-trait); }
+
+.vt-art__gestes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: var(--vt-filet) solid var(--vt-trait);
+}
+.vt-auteur { margin-top: 32px; padding: 24px; border-radius: var(--vt-r-carte); background: var(--vt-blanc); }
+.vt .vt-auteur__nom { font-size: var(--vt-t-5); font-weight: 800; }
+.vt .vt-auteur__texte { margin-top: 6px; font-size: var(--vt-t-3); color: var(--vt-encre-2); }
+
+.vt-art__pied { padding: 56px 0 72px; border-top: var(--vt-filet) solid var(--vt-trait); background: var(--vt-blanc); }
+.vt .vt-voisins__titre { margin-bottom: 16px; font-size: var(--vt-t-h2); font-weight: 800; letter-spacing: -.02em; }
+.vt .vt-voisins__titre a { text-decoration: underline; text-underline-offset: 4px; }
+.vt-voisins__liste { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.vt-voisin { padding: 20px; border-radius: var(--vt-r-carte); background: var(--vt-fond); }
+.vt .vt-voisin__titre { font-size: var(--vt-t-4); font-weight: 800; line-height: 1.3; text-decoration: none; }
+.vt .vt-voisin__titre:hover { text-decoration: underline; text-underline-offset: 3px; }
+.vt .vt-voisin__chapo { margin-top: 8px; font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-voisin__meta { margin-top: 8px; font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+
+.vt-suite {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: var(--vt-filet) solid var(--vt-trait);
+}
+.vt .vt-suite__lien { display: block; text-decoration: none; }
+.vt .vt-suite__lien--apres { text-align: right; }
+.vt-suite__sens { display: block; font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+.vt-suite__titre { display: block; margin-top: 4px; font-size: var(--vt-t-4); font-weight: 800; }
+.vt .vt-suite__lien:hover .vt-suite__titre { text-decoration: underline; text-underline-offset: 3px; }
+
+.vt-porte { margin-top: 56px; padding-top: 32px; border-top: 2px solid var(--vt-encre); }
+.vt .vt-porte__titre { font-size: var(--vt-t-section); font-weight: 800; line-height: 1.05; letter-spacing: -.03em; }
+.vt .vt-porte__texte { max-width: 52ch; margin: 12px 0 22px; font-size: var(--vt-t-4); color: var(--vt-encre-2); }
+.vt .vt-porte__retour { margin-top: 12px; }
+
+@media (max-width: 999px) {
+  .vt-voisins__liste { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .vt-tete { padding: 28px 0 24px; }
+  .vt-une { padding: 22px 20px; }
+  .vt-article { grid-template-columns: 2rem minmax(0, 1fr) var(--vt-cible); gap: 0 10px; padding: 16px 8px 16px 14px; }
+  .vt-voisins__liste, .vt-suite { grid-template-columns: 1fr; }
+  .vt .vt-suite__lien--apres { text-align: left; }
+}
+
+/* --- Une ligne qui mene quelque part se touche en entier -------------------
+   Le lien du titre porte un calque `::after` sur toute sa carte ; ce qui doit
+   rester un geste a part (le signet) passe au-dessus parce qu'il est positionne
+   et vient APRES dans le document. Aucun z-index : l'ordre suffit. Jamais sur
+   une rangee de tableau (regle du 02/10/2026) : ici ce sont des blocs. */
+.vt-article, .vt-voisin, .vt-autre, .vt-une { position: relative; }
+.vt .vt-article__titre a::after,
+.vt .vt-voisin__titre::after,
+.vt .vt-autre__lien::after { content: ""; position: absolute; inset: 0; }
+.vt .vt-article__signet { position: relative; }
+.vt .vt-ariane a { padding-block: 12px; margin-block: -12px; }
+@media (max-width: 700px) {
+  .vt:not(.vt-page-accueil) .vt-pied { padding-inline: 20px; }
+  .vt:not(.vt-page-accueil) .vt-entete { padding-inline: 20px; }
+}
+
+/* ==========================================================================
+   LES PAGES QUI GARDENT LEURS CLASSES, LOT 2 DE LA VITRINE, 09/10/2026
+   Outils, echeances, conseil terrain, la redaction, compte, pages legales,
+   mes e-mails. Leur balisage garde ses classes parce que des bancs et des
+   scripts les lisent (banc:outils, bdv-echeances.js, bdv-compte.js). On les
+   RECOUVRE donc sous `.vt`, en nommant chaque propriete que style.css pose :
+   une propriete qu'on ne reecrit pas garde celle de la cascade.
+   ========================================================================== */
+
+/* --- Les conteneurs : le meme bord que l'en-tete --------------------------- */
+.vt .container,
+.vt .container--wide {
+  box-sizing: content-box;
+  max-width: var(--vt-cadre);
+  margin-inline: auto;
+  padding-inline: 48px;
+}
+.vt .vt-texte > * { max-width: var(--vt-lecture); }
+.vt .section { padding-block: 48px; border-top: 0; }
+.vt .section--alt { background: var(--vt-blanc); }
+
+/* --- La tete d'une page --------------------------------------------------- */
+.vt .about-hero,
+.vt .conseil-hero {
+  padding: 48px 0 40px;
+  background: transparent;
+  color: var(--vt-encre);
+  text-align: left;
+}
+.vt .about-hero h1,
+.vt .conseil-hero h1 {
+  max-width: 20ch;
+  margin: 0;
+  font-family: inherit;
+  font-size: var(--vt-t-page);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  color: var(--vt-encre);
+}
+.vt .about-hero p,
+.vt .conseil-hero__sub,
+.vt .conseil-hero__desc {
+  max-width: 60ch;
+  margin: 18px 0 0;
+  font-family: inherit;
+  font-size: var(--vt-t-lead);
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--vt-encre-2);
+  opacity: 1;
+}
+.vt .conseil-hero__sub { font-weight: 800; color: var(--vt-encre); }
+.vt .conseil-hero .btn { margin-top: 28px; }
+
+/* --- Les titres et le texte des sections ---------------------------------- */
+.vt .section h2,
+.vt .waitlist h2,
+.vt .voix-filiere__header h2 {
+  margin: 0 0 14px;
+  font-family: inherit;
+  font-size: var(--vt-t-h2);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--vt-encre);
+}
+.vt .section h3 { margin: 28px 0 8px; font-family: inherit; font-size: var(--vt-t-5); font-weight: 800; color: var(--vt-encre); }
+.vt .section p,
+.vt .section li { font-size: var(--vt-t-4); line-height: 1.6; }
+.vt .section p { margin: 0 0 1em; }
+.vt .vt-texte ul,
+.vt .vt-puces { margin: 0 0 1.2em; padding-left: 1.3em; list-style: disc; }
+.vt .vt-texte li,
+.vt .vt-puces li { margin-bottom: .4em; }
+.vt .section a:not(.btn) { color: var(--vt-encre); text-decoration: underline; text-underline-offset: 3px; }
+.vt .section strong { font-weight: 600; }
+.vt .section__label { display: none; }
+.vt .vt-retour { margin-top: 32px; }
+
+/* --- Le bouton du site, dessine comme celui de la vitrine ----------------- */
+.vt .btn,
+.vt .btn--bordeaux {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--vt-cible-forte);
+  padding: 0 26px;
+  border: var(--vt-filet) solid var(--vt-encre);
+  border-radius: var(--vt-r-bouton);
+  background: var(--vt-encre);
+  color: var(--vt-blanc);
+  font-family: inherit;
+  font-size: var(--vt-t-4);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: none;
+  transform: none;
+  box-shadow: none;
+}
+.vt .btn:hover,
+.vt .btn--bordeaux:hover { background: var(--vt-encre); text-decoration: underline; text-underline-offset: 4px; transform: none; box-shadow: none; }
+.vt .btn--ghost,
+.vt .vt-bouton-creux { background: var(--vt-blanc); color: var(--vt-encre); }
+.vt .btn--ghost:hover,
+.vt .vt-bouton-creux:hover { background: var(--vt-blanc); }
+
+/* --- La boite a outils ---------------------------------------------------- */
+.vt .boite-vedette,
+.vt .boite-carte {
+  border: var(--vt-filet) solid transparent;
+  border-radius: var(--vt-r-carte);
+  background: var(--vt-blanc);
+  color: var(--vt-encre);
+  transition: none;
+}
+.vt .boite-vedette { overflow: hidden; margin-bottom: 12px; }
+.vt .boite-vedette:hover, .vt .boite-vedette:focus-within,
+.vt .boite-carte:hover, .vt .boite-carte:focus-within { border-color: var(--vt-encre); transform: none; box-shadow: none; }
+.vt .boite-grille { gap: 12px; }
+.vt .boite-vedette__nom,
+.vt .boite-carte__nom { font-family: inherit; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+.vt .boite-vedette__nom { font-size: var(--vt-t-section); }
+.vt .boite-carte__nom { font-size: var(--vt-t-h2); }
+.vt .boite-vedette__nom a, .vt .boite-carte__nom a { color: var(--vt-encre); text-decoration: none; }
+.vt .boite-vedette__quoi,
+.vt .boite-carte__quoi,
+.vt .boite-carte__points { font-size: var(--vt-t-3); color: var(--vt-encre-2); }
+.vt .boite-carte__points li::before { background: var(--vt-encre-2); }
+.vt .boite-carte__reserve { font-size: var(--vt-t-2); font-style: normal; color: var(--vt-encre-2); border-top-color: var(--vt-trait); }
+.vt .boite-vedette__aller,
+.vt .boite-carte__aller {
+  font-family: inherit;
+  font-size: var(--vt-t-3);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--vt-encre);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vt .boite-prix {
+  border-radius: var(--vt-r-bouton);
+  font-family: var(--font-vitrine-mono);
+  font-size: var(--vt-t-1);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.vt .boite-prix--libre { background: var(--vt-fond); color: var(--vt-encre); }
+.vt .boite-prix--compte { background: var(--vt-encre); color: var(--vt-blanc); }
+.vt .boite-apercu { background: var(--vt-fond); border-left-color: var(--vt-trait); }
+.vt .boite-apercu__titre { font-family: inherit; font-size: var(--vt-t-3); font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--vt-encre); }
+.vt .boite-apercu__ligne { border-top-color: var(--vt-trait); }
+.vt .boite-apercu__quand { font-family: inherit; font-size: var(--vt-t-5); font-weight: 800; letter-spacing: 0; color: var(--vt-encre); }
+.vt .boite-apercu__ligne[data-niveau] .boite-apercu__quand { color: var(--vt-encre); }
+.vt .boite-apercu__quoi { font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+
+/* --- Le calendrier reglementaire ------------------------------------------
+   Le rouge ne dit que le retard. Une echeance proche n'est pas en retard :
+   elle se dit par sa phrase (« dans 3 jours ») et par son gras. */
+.vt .echeances { gap: 10px; }
+.vt .echeance {
+  border: 0;
+  border-left: var(--vt-liseret) solid var(--vt-ardoise);
+  border-radius: var(--vt-r-carte);
+  background: var(--vt-blanc);
+}
+.vt .echeance[data-niveau] { border-left-color: var(--vt-ardoise); background: var(--vt-blanc); }
+.vt .echeance[data-niveau="passe"] { border-left-color: var(--vt-trait); background: var(--vt-fond); }
+.vt .echeance__compte { border-right-color: var(--vt-trait); }
+.vt .echeance__quand,
+.vt .echeance[data-niveau] .echeance__quand { font-family: inherit; font-size: var(--vt-t-5); font-weight: 800; color: var(--vt-encre); }
+.vt .echeance[data-niveau="passe"] .echeance__quand { font-size: var(--vt-t-3); color: var(--vt-encre-2); }
+.vt .echeance__date { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); color: var(--vt-encre-2); }
+.vt .echeance__titre { margin: 0 0 4px; font-family: inherit; font-size: var(--vt-t-5); font-weight: 800; }
+.vt .echeance__qui { font-size: var(--vt-t-3); color: var(--vt-encre); }
+.vt .echeance__detail { font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .echeance__liens { font-family: inherit; font-size: var(--vt-t-2); }
+.vt .echeances__avis { font-size: var(--vt-t-2); color: var(--vt-encre-2); border-top-color: var(--vt-trait); }
+.vt .bureau-vide { max-width: var(--vt-lecture); margin: 0; text-align: left; }
+.vt .bureau-vide p { margin-bottom: 1em; }
+
+/* --- La redaction --------------------------------------------------------- */
+.vt .vt-reperes { display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: var(--vt-t-4); color: var(--vt-encre-2); }
+.vt .vt-reperes__nb { font-weight: 800; color: var(--vt-encre); }
+.vt .voix-filiere { background: var(--vt-fond); border-top: 0; }
+.vt .voix-filiere__header { margin-bottom: 20px; }
+.vt .voix-filiere__sub { font-style: normal; color: var(--vt-encre-2); }
+.vt .voix-filiere__grid { gap: 12px; }
+.vt .voix-filiere__card {
+  border: var(--vt-filet) solid transparent;
+  border-radius: var(--vt-r-carte);
+  background: var(--vt-blanc);
+  text-align: left;
+  transition: none;
+}
+.vt .voix-filiere__card:hover { border-color: transparent; transform: none; box-shadow: none; }
+.vt .voix-filiere__card--soon { justify-content: flex-start; border-style: dashed; border-color: var(--vt-gris); background: transparent; }
+.vt .voix-filiere__specialty { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); letter-spacing: 0; text-transform: none; color: var(--vt-encre-2); }
+.vt .voix-filiere__name { font-family: inherit; font-size: var(--vt-t-5); font-weight: 800; color: var(--vt-encre); }
+.vt .voix-filiere__desc { font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .voix-filiere__avatar--bordeaux { background: var(--vt-encre); }
+
+/* --- Le bloc d'inscription (compte, la redaction) ------------------------- */
+.vt .waitlist { padding-block: 48px 64px; background: transparent; color: var(--vt-encre); text-align: left; }
+.vt .waitlist__eyebrow { display: none; }
+.vt .waitlist__header { margin-bottom: 20px; }
+.vt .waitlist__sub,
+.vt .waitlist__sub--lecture {
+  max-width: var(--vt-lecture);
+  margin: 0 0 .9em;
+  font-size: var(--vt-t-4);
+  font-style: normal;
+  text-align: left;
+  color: var(--vt-encre-2);
+  opacity: 1;
+}
+.vt .waitlist__sub b { color: var(--vt-encre); }
+.vt .waitlist__proof { justify-content: flex-start; margin-bottom: 20px; }
+.vt .waitlist__proof-item { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); letter-spacing: 0; text-transform: none; color: var(--vt-encre-2); opacity: 1; }
+.vt .waitlist__proof-sep { color: var(--vt-gris); opacity: 1; }
+.vt .waitlist__form-wrap { max-width: none; margin: 0; }
+.vt .waitlist__form-wrap p { margin-top: 14px; font-size: var(--vt-t-3); }
+.vt .waitlist__reassurance { font-family: var(--font-vitrine-mono); font-size: var(--vt-t-1); letter-spacing: 0; color: var(--vt-encre-2); opacity: 1; }
+.vt .waitlist a:not(.btn) { color: var(--vt-encre); text-decoration: underline; text-underline-offset: 3px; }
+
+/* --- Conseil terrain ------------------------------------------------------ */
+.vt .conseil-prestations__grid,
+.vt .conseil-cas__grid { gap: 12px; }
+.vt .conseil-carte,
+.vt .conseil-cas__card {
+  border: var(--vt-filet) solid transparent;
+  border-radius: var(--vt-r-carte);
+  background: var(--vt-fond);
+  transition: none;
+}
+.vt .conseil-carte:hover { border-color: transparent; transform: none; box-shadow: none; }
+.vt .conseil-carte__badge,
+.vt .conseil-cas__region,
+.vt .conseil-cas__context-label,
+.vt .conseil-cas__result-label {
+  border: 0;
+  padding: 0;
+  font-family: var(--font-vitrine-mono);
+  font-size: var(--vt-t-1);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--vt-encre-2);
+}
+.vt .conseil-carte__title { font-family: inherit; font-size: var(--vt-t-5); font-weight: 800; color: var(--vt-encre); }
+.vt .conseil-carte__tarif { font-family: inherit; font-size: var(--vt-t-6); font-weight: 800; color: var(--vt-encre); }
+.vt .conseil-carte__desc, .vt .conseil-cas__text { font-size: var(--vt-t-3); color: var(--vt-encre-2); }
+.vt .conseil-carte__note { font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .conseil-carte__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vt-cible);
+  border: 0;
+  font-family: inherit;
+  font-size: var(--vt-t-3);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--vt-encre);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vt .conseil-cas__sub, .vt .conseil-form__sub { font-style: normal; color: var(--vt-encre-2); }
+.vt .conseil-cas__result { border-top-color: var(--vt-trait); }
+.vt .conseil-cas__result-text { font-size: var(--vt-t-3); color: var(--vt-encre); }
+.vt .conseil-temoignage { max-width: var(--vt-lecture); margin: 0; padding: 0; background: transparent; color: var(--vt-encre); text-align: left; }
+.vt .conseil-temoignage__quote { font-family: inherit; font-style: normal; font-size: var(--vt-t-h2); font-weight: 800; line-height: 1.25; color: var(--vt-encre); }
+.vt .conseil-temoignage__quote::before,
+.vt .conseil-temoignage__quote::after { color: var(--vt-encre-2); }
+.vt .conseil-temoignage__attribution { font-size: var(--vt-t-2); letter-spacing: 0; text-transform: none; color: var(--vt-encre-2); opacity: 1; }
+.vt .conseil-tarifs__table th { font-family: inherit; font-size: var(--vt-t-2); font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--vt-encre); border-bottom-color: var(--vt-encre); }
+.vt .conseil-tarifs__table td { font-size: var(--vt-t-3); border-bottom-color: var(--vt-trait); }
+.vt .conseil-tarifs__table tr:hover td { background: transparent; }
+.vt .conseil-tarifs__note { font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .conseil-form__embed { max-width: var(--vt-lecture); margin: 0; }
+.vt .conseil-form__fallback-note { font-family: inherit; font-size: var(--vt-t-2); letter-spacing: 0; text-align: left; color: var(--vt-encre-2); }
+
+/* --- Mes e-mails ---------------------------------------------------------- */
+.vt .vt-groupe { margin: 0 0 16px; padding: 16px 20px; border: var(--vt-filet) solid var(--vt-trait); border-radius: var(--vt-r-carte); background: var(--vt-blanc); }
+.vt .vt-groupe legend { padding: 0 6px; font-weight: 800; }
+.vt .vt-case { display: flex; align-items: center; gap: 10px; min-height: var(--vt-cible); font-size: var(--vt-t-4); }
+.vt .vt-aide { margin: 0; font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-avis { font-weight: 800; }
+.vt #mailsToutCouper { margin-left: 12px; }
+
+@media (max-width: 700px) {
+  .vt .container, .vt .container--wide { padding-inline: 20px; }
+  .vt .about-hero, .vt .conseil-hero { padding: 28px 0 24px; }
+  .vt .section { padding-block: 32px; }
+  .vt #mailsToutCouper { margin: 12px 0 0; }
+}
+
+/* --- Retouches apres capture, 09/10/2026 ---------------------------------- */
+.vt .section .container > p,
+.vt .section .container > h2,
+.vt .section .container > ul { max-width: var(--vt-lecture); }
+.vt .section .boite-vedette__nom a,
+.vt .section .boite-carte__nom a { text-decoration: none; }
+.vt .boite-aveu {
+  border-left: var(--vt-liseret) solid var(--vt-encre);
+  border-radius: 0 var(--vt-r-carte) var(--vt-r-carte) 0;
+  background: var(--vt-blanc);
+  font-size: var(--vt-t-3);
+  color: var(--vt-encre-2);
+}
+.vt .boite-aveu strong { color: var(--vt-encre); }
+.vt .section:not(.section--alt) .conseil-cas__card { background: var(--vt-blanc); }
+.vt .conseil-bandeau { border-radius: var(--vt-r-carte); background: var(--vt-encre); color: var(--vt-blanc); }
+.vt .conseil-bandeau__text { font-size: var(--vt-t-3); color: var(--vt-gris-clair); opacity: 1; }
+.vt .conseil-bandeau__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vt-cible);
+  padding: 0 18px;
+  border: var(--vt-filet) solid var(--vt-blanc);
+  border-radius: var(--vt-r-bouton);
+  font-family: inherit;
+  font-size: var(--vt-t-3);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--vt-blanc);
+}
+.vt .section a.conseil-bandeau__cta { color: var(--vt-blanc); text-decoration: none; }
+.vt .conseil-bandeau :focus-visible { outline-color: var(--vt-blanc); }
+.vt .conseil-temoignage__quote::before,
+.vt .conseil-temoignage__quote::after { content: none; }
+
+/* --- Retouches apres relecture, 09/10/2026 -------------------------------- */
+@media (max-width: 700px) {
+  .vt-cadre { padding-inline: 20px; }
+}
+@media (max-width: 999px) {
+  .vt:not(.vt-page-accueil) .vt-menu summary { color: var(--vt-encre); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+}
+@media (max-width: 420px) {
+  .vt .vt-entete__marque { font-size: var(--vt-t-0); letter-spacing: 0; white-space: nowrap; }
+  .vt-page-accueil .vt-entete__marque { white-space: normal; }
+}
+/* Le rond de la liste ne disait rien sans legende : le signet reste sur la page de
+   l'article, avec son mot (« Mettre de côté »). */
+.vt .vt-article__signet { display: none; }
+.vt .vt-article { grid-template-columns: 2.75rem minmax(0, 1fr); }
+.vt .section .container ul:not([class]) { margin: 0 0 1.2em; padding-left: 1.3em; list-style: disc; }
+.vt .section .container ul:not([class]) li { margin-bottom: .4em; }
+.vt .boite-prix--compte { border: var(--vt-filet) solid var(--vt-encre); background: var(--vt-fond); color: var(--vt-encre); }
+.vt .conseil-form__fallback-note { margin: 0 0 16px; }

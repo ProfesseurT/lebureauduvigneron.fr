@@ -9086,7 +9086,7 @@ portent le drapeau `vitrine`, et pour elles seules.** Ne pas y remettre papier, 
 ou Fraunces au nom de l'ancienne charte (l'anti-claude l'a propose : refuse).
 
 - **Drapeau de front matter `vitrine: <page>`** : lie `src/css/vitrine.css` apres style.css,
-  pose `class="vt vt-<page>"` sur le corps, remplace `.nav` par `vitrine-entete.njk` et le
+  pose `class="vt vt-page-<page>"` sur le corps (prefixe `vt-page-` : sans lui, la page `article` prenait le dessin de `.vt-article`, une ligne de liste), remplace `.nav` par `vitrine-entete.njk` et le
   pied par `vitrine-pied.njk`. Une page sans drapeau sort a l'octet pres comme avant.
 - **Tout est sous `.vt`**, jetons `--vt-*` (et `--font-vitrine`, `--font-vitrine-mono`,
   prefixe `--font-` pour que la charte controle leurs graisses). Chaque jeton dans tokens.css.
@@ -9096,4 +9096,27 @@ ou Fraunces au nom de l'ancienne charte (l'anti-claude l'a propose : refuse).
   vrais composants du bureau : la regle du 12/09/2026 ne vaut plus pour l'accueil.
 - Captures : `/tmp`-style harnais Playwright qui sert `_site` et remplace Google Fonts par
   @fontsource ; a refaire a 390, 1000, 1024, 1440 et 2296 px apres toute retouche.
-- Lots suivants : 2, les autres pages publiques ; 3, « Ma journee » du bureau en cases.
+- Lots suivants : ~~2, les autres pages publiques~~ (fait, voir ci-dessous) ; 3, « Ma journee »
+  du bureau en cases.
+
+### LOT 2 : LES AUTRES PAGES PUBLIQUES, 09/10/2026
+
+- **Quatorze pages portent `vitrine`** (articles, rubriques, article, outils, echeances,
+  conseil, redaction, compte, legal x4, plan, emails). Hors vitrine : le bureau, /signer/,
+  les calendriers A3.
+- **Deux facons d'habiller** : les listes et la page d'article ont un balisage NEUF
+  (`vt-articles`, `vt-article`, dans `liste-articles.njk` et `article.njk`) ; les autres pages
+  gardent leur balisage, repeint par un bloc `.vt .container`, `.vt .btn`, `.vt .boite-*`,
+  `.vt .conseil-*`... dans vitrine.css. Ne pas remettre de style en ligne dans ces pages : il
+  battrait la vitrine.
+- **`.vt-cadre`** (1200 px, `--vt-cadre`) : l'en-tete et le pied s'y calent hors accueil
+  (`max(48px, ...)`, 20 px sous 700). Toute regle de marge laterale ecrite plus haut dans la
+  feuille doit etre REDITE dans un bloc de telephone place apres : sinon 48 px restent a 390 px
+  et la page deborde (capture du 09/10/2026).
+- **Une couleur posee pour toutes les pages sous 1000 px ne vaut pas pour l'accueil** : son
+  en-tete est sur le noir. `.vt:not(.vt-page-accueil)` dans ces regles.
+- **Le rouge reste reserve au retard** : l'echeance a son liseret ardoise, jamais rouge.
+- **Retirer une regle de vitrine.css ou un composant fait souvent mourir des regles de
+  style.css** : `CHARTE_MORTES=1 node scripts/charte.mjs` les liste avec leur position ; la
+  borne C1 ne remonte pas.
+- banc-outils compare le nom d'un outil SANS sa mention `.hors-ecran`.

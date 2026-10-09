@@ -3,6 +3,7 @@ layout: base.njk
 title: Mon compte
 description: Crée ton compte du Bureau du Vigneron, gratuit et ouvert à toute la filière, ou connecte-toi pour retrouver ton bureau.
 permalink: /compte/
+vitrine: compte
 ---
 
 <section class="about-hero">
@@ -16,7 +17,7 @@ permalink: /compte/
 
     <div class="waitlist__header" id="compteInvite">
       <p class="waitlist__eyebrow">Gratuit</p>
-      <h2>Ouvre ton bureau.<br>Un email, un mot de passe.</h2>
+      <h2>Une adresse et un mot de passe suffisent</h2>
       <p class="waitlist__sub waitlist__sub--lecture">
         Le compte est gratuit et ouvert à toute la filière. Il sert à retrouver ce que tu as
         trouvé : les articles que tu mets de côté, les webinaires et les interviews, les outils,
@@ -24,7 +25,7 @@ permalink: /compte/
       </p>
       <p class="waitlist__sub waitlist__sub--lecture">
         Juste après, on te pose cinq questions rapides : ton prénom, ce que tu fais, le nom de ta
-        structure, ton code postal, et si tu travailles avec Vitisoft. Elles servent à deux choses, et autant te le dire franchement : te montrer
+        structure, ton code postal, et si tu travailles avec Vitisoft. Elles servent à deux choses : te montrer
         ce qui te concerne plutôt que tout le reste, et proposer aux partenaires de la filière un
         espace visible par les bons interlocuteurs. Tu peux les passer, ton compte marche quand
         même.
@@ -40,7 +41,7 @@ permalink: /compte/
 
     <div class="waitlist__header" id="compteConnecte" hidden>
       <p class="waitlist__eyebrow">Session ouverte</p>
-      <h2>Te voilà chez toi.</h2>
+      <h2>Ta session est ouverte</h2>
       <p class="waitlist__sub">Ta session est ouverte avec <b id="compteEmail"></b>.</p>
     </div>
 
@@ -52,11 +53,11 @@ permalink: /compte/
       <span class="waitlist__proof-item">Pros filière</span>
     </div>
 
-    <div class="waitlist__form-wrap" style="text-align:center">
+    <div class="waitlist__form-wrap">
       <a href="/compte/" class="btn" id="compteBtnOuvrir"
          data-bdv-compte data-bdv-mode="inscription"
          data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a>
-      <p id="compteDejaInscrit" style="margin-top:.9rem">Tu as déjà un compte ?
+      <p id="compteDejaInscrit">Tu as déjà un compte ?
         <a href="/compte/?mode=connexion" id="compteBtnConnexion" data-bdv-compte
            data-bdv-mode="connexion" data-bdv-titre="Content de te revoir.">Me connecter</a></p>
       <a href="/mon-bureau/" class="btn" id="compteBtnTableau" hidden>Ouvrir mon bureau</a>

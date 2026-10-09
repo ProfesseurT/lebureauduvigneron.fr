@@ -54,7 +54,7 @@ module.exports = [
     titre: "Vendre son vin et fidéliser ses clients",
     categories: ["Vendre & fidéliser", "Vente directe & Œnotourisme"],
     descSeo: "Marketing, storytelling, segmentation clients, vente au domaine et œnotourisme : la méthode commerciale des vignerons qui vendent, sans budget pub.",
-    intro: "Se faire connaître, vendre au domaine, garder ses clients : la partie commerciale du métier, celle qu'on apprend rarement à l'école de viti. Storytelling, plan marketing, segmentation, œnotourisme, vente à l'exploitation. Du terrain, pas de la théorie d'école de commerce."
+    intro: "Se faire connaître, vendre au domaine, garder ses clients : la partie commerciale du métier, celle qu'on apprend rarement à l'école de viti. Storytelling, plan marketing, segmentation, œnotourisme, vente à l'exploitation."
   },
   {
     slug: "gerer-organiser",
