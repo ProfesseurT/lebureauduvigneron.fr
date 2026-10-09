@@ -1,0 +1,95 @@
+{#- LA PAGE D'ACCUEIL, 09/10/2026. Maquette de reference « p10 », validee par Ted le
+    08/10/2026, relue par les agents vigneron-empathique et anti-claude.
+
+    A GAUCHE, LA PROMESSE ; A DROITE, LA PREUVE. Le principe de l'ordre du 12/09/2026
+    tient toujours (« apres la promesse, la preuve ») ; il est simplement devenu
+    horizontal : l'exemple de bureau est a cote du titre, et non plus quatre
+    ecrans plus bas.
+
+    L'EXEMPLE EST UN DOMAINE FICTIF ET IL LE DIT. Ce qui y est vrai est dit vrai :
+    la DRM tombe le 10 de chaque mois. Ce qui ne l'est pas (les clients, les
+    montants) est dit venir de l'export Vitisoft. Le 09/10/2026 est un vendredi,
+    le 10 un samedi : « sam. 10 » et « À déposer demain » sont justes ce jour-la
+    et le resteront dans l'exemple, qui est date (« Un vendredi d’octobre »).
+
+    CE QUE L'EXEMPLE NE PROMET PAS : aucun total qui additionne des natures
+    differentes, aucun « à facturer », aucun stock, aucun impaye. Le bureau ne les
+    calcule pas.
+
+    PAS DE BOUTON DANS L'EXEMPLE. Les cases et les lignes ne sont pas cliquables :
+    un bouton « Appeler » qui ne fait rien sur une page publique est un faux geste.
+    Le seul geste de l'ecran est « Ouvrir mon bureau, gratuit », deux fois. -#}
+<div class="vt-haut">
+  <section class="vt-noir" aria-labelledby="vtTitre">
+    <h1 id="vtTitre">Ton bureau te dit par quoi commencer</h1>
+    <p class="vt-noir__lead">La DRM du 10, le client qui ne commande plus.</p>
+    <a href="/compte/" class="vt-bouton vt-bouton--clair" data-bdv-compte
+       data-bdv-mode="inscription" data-bdv-titre="Ton bureau t'attend.">Ouvrir mon bureau, gratuit</a>
+    <p class="vt-noir__note">Les échéances marchent sans Vitisoft. Pour les clients, il faut ton export.</p>
+  </section>
+
+  <section class="vt-cote" aria-label="Un exemple de bureau">
+    <figure class="vt-apercu">
+      <p class="vt-apercu__quand">Un vendredi d’octobre, en vendanges</p>
+      <ul class="vt-tuiles">
+        <li class="vt-tuile vt-tuile--lie"><span><span class="vt-tuile__nom">En retard</span><span class="vt-tuile__quand">1 promesse</span></span><span class="vt-tuile__n">1</span></li>
+        <li class="vt-tuile vt-tuile--ardoise"><span><span class="vt-tuile__nom">À déposer</span><span class="vt-tuile__quand">demain</span></span><span class="vt-tuile__n">1</span></li>
+        <li class="vt-tuile vt-tuile--terre"><span><span class="vt-tuile__nom">Devis</span><span class="vt-tuile__quand">2 aujourd’hui</span></span><span class="vt-tuile__n">4</span></li>
+        <li class="vt-tuile vt-tuile--ocre"><span><span class="vt-tuile__nom">À rappeler</span><span class="vt-tuile__quand">1 aujourd’hui</span></span><span class="vt-tuile__n">12</span></li>
+      </ul>
+      <p class="vt-apercu__jour">Dessous, les 5 choses du jour. Dans le bureau, une case ouvre toute sa liste.</p>
+      <ul class="vt-liste">
+        <li class="vt-ligne vt-ligne--lie">
+          <span class="vt-ligne__quand">depuis le 7</span>
+          <div><span class="vt-ligne__nom">Domaine des Hauts Coteaux</span><p class="vt-ligne__dit"><span class="vt-ligne__alerte">Rappel promis, en retard de 2 jours</span> · Julien voulait un devis pour le salon.</p></div>
+          <span class="vt-ligne__montant"></span>
+        </li>
+        <li class="vt-ligne vt-ligne--ardoise">
+          <span class="vt-ligne__quand">sam. 10</span>
+          <div><span class="vt-ligne__nom">DRM de septembre</span><p class="vt-ligne__dit"><strong>À déposer demain</strong> · Déclaration récapitulative mensuelle.</p></div>
+          <span class="vt-ligne__montant"></span>
+        </li>
+        <li class="vt-ligne vt-ligne--terre">
+          <span class="vt-ligne__quand">jeu. 8</span>
+          <div><span class="vt-ligne__nom">Cave du Quai</span><p class="vt-ligne__dit">Devis signé, à télécharger · Signé jeudi soir, sa 3e commande de l’année. Fichier prêt pour Vitisoft.</p></div>
+          <span class="vt-ligne__montant">1 240 €<small>HT</small></span>
+        </li>
+        <li class="vt-ligne vt-ligne--terre">
+          <span class="vt-ligne__quand">2 oct.</span>
+          <div><span class="vt-ligne__nom">Restaurant Le Cep</span><p class="vt-ligne__dit">Devis à relancer · Devis envoyé le 2 octobre, pas de réponse.</p></div>
+          <span class="vt-ligne__montant">860 €<small>HT</small></span>
+        </li>
+        <li class="vt-ligne vt-ligne--ocre">
+          <span class="vt-ligne__quand">14 août</span>
+          <div><span class="vt-ligne__nom">Caves Bertrand</span><p class="vt-ligne__dit">Client à rappeler · Commandait toutes les 6&nbsp;semaines, rien depuis 8&nbsp;semaines.</p></div>
+          <span class="vt-ligne__montant">2 100 €<small>sur 12 mois</small></span>
+        </li>
+      </ul>
+      <figcaption class="vt-apercu__note">Exemple d’un domaine fictif. La DRM, elle, tombe vraiment le 10 de chaque mois. Les clients viennent de ton export Vitisoft.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<section class="vt-deux" aria-labelledby="vtSans">
+  <div><h2 id="vtSans" class="vt-deux__titre">Sans Vitisoft, tu as déjà</h2></div>
+  <div class="vt-deux__listes">
+    <ul class="vt-sans">
+      <li>Les échéances qui coûtent une amende, avec leur date exacte</li>
+      <li>Tes devis, signés par ton client sur son téléphone</li>
+      <li>Tes tâches et tes rappels clients, dans une seule liste par date</li>
+      <li>Un mail à 8 h avec ta journée, si tu le veux</li>
+    </ul>
+    <h3 class="vt-plus">Avec ton export Vitisoft, en plus</h3>
+    <ul class="vt-avec">
+      <li>Qui rappeler, et pourquoi</li>
+      <li>Ce qui se vend, cuvée par cuvée</li>
+      <li>Ton chiffre comparé à l’an dernier, à date égale</li>
+    </ul>
+  </div>
+</section>
+
+<section class="vt-fin" aria-label="Commencer">
+  <a href="/compte/" class="vt-bouton" data-bdv-compte
+     data-bdv-mode="inscription" data-bdv-titre="Ton bureau t'attend.">Ouvrir mon bureau, gratuit</a>
+  <p>Une adresse et un mot de passe.</p>
+</section>

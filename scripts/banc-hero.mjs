@@ -105,6 +105,14 @@ for (const [nom, W, H] of [['grand ecran', 1440, 900], ['telephone', 390, 844]])
   const page = await nav.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   await page.goto('http://localhost:4380/', { waitUntil: 'networkidle' }).catch(() => {});
   await page.waitForTimeout(800);
+  /* SANS OBJET DEPUIS LE 09/10/2026 : l'accueil n'a plus de photo sous son titre
+     (la vitrine, components/accueil.njk). Le contraste du bloc noir est une paire
+     de jetons, mesuree par npm run charte. On le DIT et on sort en echec : un
+     controle qui ne peut pas s'executer crie, il ne se tait pas. */
+  if (!(await page.$('.hero--photo'))) {
+    console.error('  SANS OBJET : l\'accueil n\'a plus de hero photo depuis le 09/10/2026. Rien n\'a ete mesure.');
+    process.exit(2);
+  }
 
   const mesures = await page.evaluate(sels => sels.map(s => {
     const e = document.querySelector(s);

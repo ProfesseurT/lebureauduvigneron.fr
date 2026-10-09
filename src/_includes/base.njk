@@ -133,9 +133,15 @@
 {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@400;500&family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
-{% if theme_bureau %}
+{#- LA VITRINE, 09/10/2026 : le dessin des pages publiques deja refaites. Liee APRES
+    style.css, qu'elle recouvre sous `.vt`, et par le seul drapeau `vitrine`, qui
+    pose aussi la classe du corps de page. Archivo et IBM Plex Mono sont dans le
+    lien UNIQUE ci-dessus (jamais un second lien, regle du 18/09/2026) : une famille
+    declaree dans ce lien ne se telecharge que sur une page qui s'en sert. -#}
+{% if vitrine %}  <link rel="stylesheet" href="/css/vitrine.css">
+{% endif %}{% if theme_bureau %}
   <!-- LA MOITIE BUREAU DE L'ANCIENNE style.css, 21/09/2026.
        ENTRE style.css ET bdv-bureau.css, ET CE N'EST PAS UN DETAIL D'ORDRE.
        Ses regles etaient DANS style.css, donc avant bdv-theme.css... non :
@@ -203,7 +209,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Mon bureau">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#45101D">
+  <meta name="theme-color" content="{% if vitrine %}#111114{% else %}#45101D{% endif %}">
 </head>
 {#- LE SCOPE DU NOUVEAU DESSIN DU BUREAU, 21/09/2026.
 
@@ -228,8 +234,9 @@
     « 2 000 vignerons qu'on a visites » : ca sentait la pub. Les deux `if` sont poses
     sur des lignes qui etaient VIDES, et le pied dans sa propre ligne : sans le drapeau,
     chaque page sort a l'octet pres comme avant. -#}
-<body{% if theme_bureau %} class="bdv-coque"{% endif %}>
+<body{% if theme_bureau %} class="bdv-coque"{% elif vitrine %} class="vt vt-{{ vitrine }}"{% endif %}>
 {% if not sans_chrome %}
+{% if vitrine %}{% include "components/vitrine-entete.njk" %}{% else %}
   <nav class="nav">
     <div class="nav__inner">
       <a href="/" class="nav__logo">Le Bureau du Vigneron</a>
@@ -261,6 +268,7 @@
       </ul>
     </div>
   </nav>
+{% endif %}
   <!-- Lu ici et pas dans le module : bdv-compte.js est en defer, les etiquettes changeraient
        apres le premier rendu et le menu clignoterait de « Créer mon compte » a « Mon bureau ».
        Posee sur window et rejouable, et non plus enfermee dans un if : la fenetre de compte
@@ -302,7 +310,7 @@
 {% endif %}
   {{ content | safe }}
 
-  {% if not sans_chrome %}{% include "components/footer-rich.njk" %}{% endif %}
+  {% if not sans_chrome %}{% if vitrine %}{% include "components/vitrine-pied.njk" %}{% else %}{% include "components/footer-rich.njk" %}{% endif %}{% endif %}
 
 
 </body>

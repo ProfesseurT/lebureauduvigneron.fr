@@ -1,10 +1,11 @@
 ---
 layout: base.njk
 title: Le Bureau du Vigneron
-description: "Moins de bureau, plus de vigne. Tes échéances, tes clients à rappeler, tes devis à relancer : ton bureau te dit chaque matin par quoi commencer. Gratuit, par Solumatic, créateur de Vitisoft."
+description: "Ton bureau te dit par quoi commencer : la DRM du 10, le client qui ne commande plus, le devis à relancer. Gratuit, par Solumatic, créateur de Vitisoft."
+vitrine: accueil
 ---
 
-{#- L'ORDRE DE LA PAGE, REPRIS LE 12/09/2026.
+{#- PERIME DEPUIS LE 09/10/2026 (voir plus bas), garde pour l'histoire. L'ORDRE DE LA PAGE, REPRIS LE 12/09/2026.
 
     L'ORDRE D'AVANT, ET CE QU'IL COUTAIT. hero, articles, podcast, partenaires,
     manifeste, compteurs, demonstration, inscription. Mesure de la page produite,
@@ -39,10 +40,12 @@ description: "Moins de bureau, plus de vigne. Tes échéances, tes clients à ra
     restent dans le depot : voir l'en-tete de filiere-bande.njk pour savoir quand
     les remettre. -#}
 
-{% include "components/hero.njk" %}
-{% include "components/demo-pinboard.njk" %}
-{% include "components/manifeste.njk" %}
-{% include "components/articles-une.njk" %}
-{% include "components/filiere-bande.njk" %}
-{% include "components/compteurs-honnetes.njk" %}
-{% include "components/waitlist.njk" %}
+{#- LE 09/10/2026, LA VITRINE. La page entiere est dans components/accueil.njk,
+    d'apres la maquette de reference « p10 ». Les sept composants d'avant (hero,
+    demo-pinboard, manifeste, articles-une, filiere-bande, compteurs-honnetes,
+    waitlist) ne sont plus inclus nulle part, mais restent dans le depot : la
+    charte compte leurs regles comme du site mis de cote (thermometre 1), et
+    les 119 regles de style.css que la demonstration retenait cote public y
+    restent tant que demo-pinboard.njk existe. Les supprimer ensemble est le
+    menage du lot qui suivra. -#}
+{% include "components/accueil.njk" %}

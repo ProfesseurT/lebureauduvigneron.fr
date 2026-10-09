@@ -1,0 +1,40 @@
+{#- L'EN-TETE DE LA VITRINE, 09/10/2026, pour les pages qui portent le drapeau
+    `vitrine` (voir base.njk). Il remplace `.nav` sur ces pages seulement.
+
+    LES IDENTIFIANTS SONT CEUX DE `.nav`, ET C'EST UNE CONDITION : navBureau,
+    navConnexionLi, navCompteLi, navPastille, navPoint sont lus par
+    `bdvMajBandeau()` dans base.njk, et `data-bdv-compte` par bdv-compte.js. Un
+    seul en-tete par page, donc jamais deux fois le meme identifiant.
+
+    LE MENU DU TELEPHONE EST UN `details`, sans une ligne de script : il s'ouvre
+    au doigt et au clavier, et se lit sans JavaScript. Les quatre liens y sont
+    ecrits une deuxieme fois, et c'est voulu : un `details` ferme cache son
+    contenu quoi que dise la feuille, on ne peut donc pas le reutiliser pour la
+    rangee de l'ordinateur. -#}
+<header class="vt-entete">
+  <a href="/" class="vt-entete__marque">Le Bureau du Vigneron</a>
+  <nav class="vt-entete__nav" aria-label="Le site">
+    <ul class="vt-entete__liens">
+      <li><a href="/articles/">Articles</a></li>
+      <li><a href="/outils/">Outils</a></li>
+      <li><a href="/conseil-terrain/">Conseil terrain</a></li>
+      <li><a href="/la-redaction/">La rédaction</a></li>
+    </ul>
+    <details class="vt-menu">
+      <summary>Menu</summary>
+      <ul class="vt-menu__liste">
+        <li><a href="/articles/">Articles</a></li>
+        <li><a href="/outils/">Outils</a></li>
+        <li><a href="/conseil-terrain/">Conseil terrain</a></li>
+        <li><a href="/la-redaction/">La rédaction</a></li>
+      </ul>
+    </details>
+    <ul class="vt-entete__compte">
+      <li id="navBureau" hidden><a href="/mon-bureau/">Mon bureau<span class="nav__pastille" id="navPastille" hidden></span><span class="nav__point" id="navPoint" hidden><span class="hors-ecran">, nouvelles de ton commerce</span></span></a></li>
+      <li id="navConnexionLi"><a href="/compte/?mode=connexion" id="navConnexion" data-bdv-compte
+             data-bdv-mode="connexion" data-bdv-titre="Content de te revoir.">Connexion</a></li>
+      <li id="navCompteLi" class="vt-entete__creer"><a href="/compte/" id="navCompte" data-bdv-compte
+             data-bdv-mode="inscription" data-bdv-titre="Ton bureau t'attend.">Créer mon compte</a></li>
+    </ul>
+  </nav>
+</header>

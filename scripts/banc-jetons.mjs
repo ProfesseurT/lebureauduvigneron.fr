@@ -95,6 +95,8 @@ const SERVIES = [
   'src/css/bdv-ecrans.css',
   'src/css/bdv-panneau.css',
   'src/css/bdv-calendrier.css',
+  /* La vitrine, 09/10/2026 : liee par les pages publiques deja refaites. */
+  'src/css/vitrine.css',
 ];
 
 /* LA FEUILLE DES DEUX THEMES, nommee a part parce que la section 4 la relit avec

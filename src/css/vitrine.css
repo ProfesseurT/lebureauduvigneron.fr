@@ -1,0 +1,399 @@
+/* ==========================================================================
+   VITRINE, LE DESSIN DU SITE PUBLIC, 09/10/2026
+
+   La maquette de reference validee par Ted le 08/10/2026 (« p10 ») : un fond
+   gris tres clair, des cartes blanches, l'encre presque noire, Archivo et IBM
+   Plex Mono, quatre couleurs de famille prises au vin et a la terre, et le
+   rouge reserve a ce qui est EN RETARD.
+
+   CETTE FEUILLE N'EST LIEE QUE PAR LES PAGES DEJA REFAITES, par le drapeau de
+   front matter `vitrine` (voir src/_includes/base.njk). Le bureau et les pages
+   pas encore refaites ne la chargent pas et ne bougent donc pas d'un pixel.
+   Toutes ses regles sont sous `.vt`, la classe que le meme drapeau pose sur le
+   corps de page : la classe ne peut pas arriver sans la feuille, ni l'inverse.
+
+   LES REGLES QUI LA TIENNENT, et `npm run charte` les controle :
+   1. aucune couleur, aucune taille de texte, aucun rayon en dur hors du :root ;
+   2. aucune ombre : la profondeur est un fond qui change, pas une ombre ;
+   3. tous les jetons portent `--vt-`, sauf les deux familles de police, qui
+      portent `--font-` parce que la charte reconnait une famille a ce prefixe
+      et controle ses graisses contre le lien Google Fonts ;
+   4. chaque jeton est ecrit dans tokens.css avec sa raison (`npm run banc:jetons`).
+   ========================================================================== */
+
+:root {
+  /* Les matieres. Mesures de contraste dans la table de scripts/charte.mjs. */
+  --vt-fond:       #F2F2F7;
+  --vt-blanc:      #FFFFFF;
+  --vt-encre:      #111114;
+  --vt-encre-2:    #5E5E66;
+  --vt-trait:      #E3E3E8;
+  --vt-gris-clair: #EDEDED;
+  --vt-gris:       #C4C4C4;
+  --vt-lie:        #7A1F3D;
+  --vt-ardoise:    #34404C;
+  --vt-ocre:       #8A6516;
+  --vt-terre:      #8A4524;
+
+  --font-vitrine:      'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-vitrine-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Les tailles. Les pas fixes, puis les pas qui glissent de 390 a 1440 px de
+     fenetre : un seul jeton par role, pas un jeton par largeur. */
+  --vt-t-0: 0.8125rem;
+  --vt-t-1: 0.875rem;
+  --vt-t-2: 0.9375rem;
+  --vt-t-3: 1rem;
+  --vt-t-4: 1.0625rem;
+  --vt-t-5: 1.125rem;
+  --vt-t-6: 1.1875rem;
+  --vt-t-montant: clamp(1.0625rem, 1.016rem + 0.19vw, 1.1875rem);
+  --vt-t-lead:    clamp(1.1875rem, 1.141rem + 0.19vw, 1.3125rem);
+  --vt-t-liste:   clamp(1.1875rem, 1.118rem + 0.286vw, 1.375rem);
+  --vt-t-section: clamp(1.75rem, 1.564rem + 0.762vw, 2.25rem);
+  --vt-t-chiffre: clamp(1.75rem, 1.379rem + 1.524vw, 2.75rem);
+  --vt-t-h1:      clamp(3.125rem, 2.521rem + 2.476vw, 4.75rem);
+  --vt-t-h1-col:  min(5.2vw, 4.75rem);
+
+  --vt-r-tuile:  12px;
+  --vt-r-carte:  14px;
+  --vt-r-bouton: 8px;
+
+  --vt-filet:   1px;
+  --vt-liseret: 4px;
+  --vt-anneau:  3px;
+
+  --vt-cible:       44px;
+  --vt-cible-forte: 56px;
+}
+
+/* --- Le socle ------------------------------------------------------------ */
+.vt {
+  background: var(--vt-fond);
+  color: var(--vt-encre);
+  font-family: var(--font-vitrine);
+  line-height: 1.45;
+}
+.vt :where(h1, h2, h3, p, ul, figure) { margin: 0; }
+.vt :where(h1, h2, h3) { font-family: inherit; color: inherit; line-height: 1.1; }
+.vt :where(ul) { list-style: none; padding: 0; }
+.vt :where(a) { color: inherit; }
+.vt :focus-visible {
+  outline: var(--vt-anneau) solid var(--vt-encre);
+  outline-offset: 3px;
+}
+.vt .vt-noir :focus-visible,
+.vt-accueil .vt-entete :focus-visible { outline-color: var(--vt-blanc); }
+
+/* --- Le bouton ------------------------------------------------------------ */
+.vt .vt-bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--vt-cible-forte);
+  padding: 0 26px;
+  border-radius: var(--vt-r-bouton);
+  background: var(--vt-encre);
+  color: var(--vt-blanc);
+  font-size: var(--vt-t-4);
+  font-weight: 800;
+  text-decoration: none;
+}
+.vt .vt-bouton:hover { text-decoration: underline; text-underline-offset: 4px; }
+.vt .vt-bouton--clair { background: var(--vt-blanc); color: var(--vt-encre); }
+
+/* --- L'en-tete ------------------------------------------------------------ */
+.vt-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 48px;
+}
+.vt .vt-entete__marque {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vt-cible);
+  font-size: var(--vt-t-2);
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.vt-entete__nav { display: flex; align-items: center; gap: 26px; }
+.vt-entete__liens,
+.vt-entete__compte { display: flex; gap: 26px; }
+.vt .vt-entete__liens a,
+.vt .vt-entete__compte a,
+.vt .vt-menu summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vt-cible);
+  font-size: var(--vt-t-3);
+  color: var(--vt-encre-2);
+  white-space: nowrap;
+}
+.vt .vt-entete__compte a { color: var(--vt-encre); font-weight: 800; }
+.vt-menu { display: none; position: relative; }
+.vt .vt-menu summary { cursor: pointer; list-style: none; }
+.vt-menu summary::-webkit-details-marker { display: none; }
+.vt-menu__liste {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  min-width: 15rem;
+  padding: 6px 0;
+  background: var(--vt-blanc);
+  border: var(--vt-filet) solid var(--vt-trait);
+  border-radius: var(--vt-r-carte);
+}
+.vt .vt-menu__liste a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 20px;
+  font-size: var(--vt-t-4);
+  color: var(--vt-encre);
+}
+
+/* L'accueil : l'en-tete se pose sur les deux colonnes, la marque dans le noir. */
+.vt-accueil .vt-entete {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 40fr 60fr;
+  align-items: start;
+  padding: 0;
+}
+.vt-accueil .vt-entete > * { padding: 28px 48px 0; }
+.vt-accueil .vt-entete__marque { box-sizing: content-box; color: var(--vt-blanc); }
+.vt-accueil .vt-entete__nav { justify-content: flex-end; }
+/* Le bouton d'inscription est deja le geste principal du bloc noir : un seul
+   aplat par ecran. */
+.vt-accueil .vt-entete__creer { display: none; }
+
+/* --- L'accueil, le haut --------------------------------------------------- */
+.vt-haut {
+  display: grid;
+  grid-template-columns: 40fr 60fr;
+  min-height: 100vh;
+}
+.vt-noir {
+  padding: 72px 48px 48px;
+  background: var(--vt-encre);
+  color: var(--vt-gris-clair);
+}
+.vt .vt-noir h1 {
+  margin-top: 110px;
+  font-size: var(--vt-t-h1-col);
+  font-weight: 800;
+  line-height: .94;
+  letter-spacing: -.045em;
+  color: var(--vt-blanc);
+}
+.vt .vt-noir__lead {
+  max-width: 22ch;
+  margin-top: 26px;
+  font-size: var(--vt-t-lead);
+}
+.vt .vt-noir .vt-bouton { margin-top: 36px; }
+.vt .vt-noir__note {
+  max-width: 34ch;
+  margin-top: 14px;
+  font-size: var(--vt-t-3);
+  color: var(--vt-gris);
+}
+
+.vt-cote { min-width: 0; padding: 72px 48px 48px; }
+.vt .vt-apercu { margin-top: 56px; }
+.vt .vt-apercu__quand {
+  margin-bottom: 12px;
+  font-family: var(--font-vitrine-mono);
+  font-size: var(--vt-t-2);
+  color: var(--vt-encre-2);
+}
+
+.vt-tuiles {
+  display: grid;
+  grid-template-columns: 1.4fr 1.4fr 1fr 1fr;
+  gap: 10px;
+}
+.vt-tuile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 104px;
+  padding: 14px 16px;
+  border-radius: var(--vt-r-tuile);
+  color: var(--vt-blanc);
+}
+.vt-tuile--lie     { background: var(--vt-lie); }
+.vt-tuile--ardoise { background: var(--vt-ardoise); }
+.vt-tuile--terre   { background: var(--vt-terre); }
+.vt-tuile--ocre    { background: var(--vt-ocre); }
+.vt .vt-tuile__nom   { display: block; font-size: var(--vt-t-3); font-weight: 800; }
+.vt .vt-tuile__quand { display: block; margin-top: 2px; font-size: var(--vt-t-1); }
+.vt .vt-tuile__n {
+  margin-top: 14px;
+  font-size: var(--vt-t-chiffre);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.03em;
+}
+
+.vt-liste {
+  overflow: hidden;
+  background: var(--vt-blanc);
+  border-radius: var(--vt-r-carte);
+}
+.vt-ligne {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 90px;
+  gap: 0 18px;
+  align-items: center;
+  padding: 16px 20px 16px 16px;
+  border-top: var(--vt-filet) solid var(--vt-trait);
+  border-left: var(--vt-liseret) solid transparent;
+}
+.vt-ligne:first-child { border-top: 0; }
+.vt-ligne--lie     { border-left-color: var(--vt-lie); }
+.vt-ligne--ardoise { border-left-color: var(--vt-ardoise); }
+.vt-ligne--terre   { border-left-color: var(--vt-terre); }
+.vt-ligne--ocre    { border-left-color: var(--vt-ocre); }
+.vt-ligne__quand {
+  font-family: var(--font-vitrine-mono);
+  font-size: var(--vt-t-2);
+  line-height: 1.3;
+  color: var(--vt-encre-2);
+}
+.vt .vt-ligne__nom {
+  display: block;
+  font-size: var(--vt-t-6);
+  font-weight: 800;
+  letter-spacing: -.015em;
+}
+.vt .vt-ligne__dit { font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-ligne__dit strong { font-weight: 800; color: var(--vt-encre); }
+.vt .vt-ligne__alerte { font-weight: 600; color: var(--vt-lie); }
+.vt .vt-ligne__montant {
+  text-align: right;
+  font-size: var(--vt-t-montant);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.vt .vt-ligne__montant small {
+  display: block;
+  font-size: var(--vt-t-0);
+  font-weight: 400;
+  color: var(--vt-encre-2);
+}
+.vt .vt-apercu__note,
+.vt .vt-apercu__jour { margin-top: 12px; font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+.vt .vt-apercu__jour { margin: 12px 2px 10px; }
+
+/* --- Ce qu'on a sans Vitisoft --------------------------------------------- */
+.vt-deux {
+  display: grid;
+  grid-template-columns: 40fr 60fr;
+  background: var(--vt-blanc);
+}
+.vt-deux > * { padding: 56px 48px; }
+.vt .vt-deux__titre {
+  padding-top: 12px;
+  font-size: var(--vt-t-section);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.03em;
+}
+.vt .vt-sans li {
+  padding: 16px 0;
+  border-bottom: var(--vt-filet) solid var(--vt-trait);
+  font-size: var(--vt-t-liste);
+  font-weight: 800;
+}
+.vt .vt-plus { margin: 32px 0 4px; font-size: var(--vt-t-4); font-weight: 800; }
+.vt .vt-avec li {
+  padding: 12px 0;
+  border-bottom: var(--vt-filet) solid var(--vt-trait);
+  font-size: var(--vt-t-5);
+  color: var(--vt-encre-2);
+}
+
+/* --- Le dernier geste ----------------------------------------------------- */
+.vt-fin {
+  display: grid;
+  grid-template-columns: 40fr 60fr;
+  padding: 0 0 56px;
+  background: var(--vt-blanc);
+}
+.vt-fin > * { grid-column: 2; margin-left: 48px; }
+.vt .vt-fin .vt-bouton { justify-self: start; }
+.vt .vt-fin p { margin-top: 10px; font-size: var(--vt-t-2); color: var(--vt-encre-2); }
+
+/* --- Le pied -------------------------------------------------------------- */
+.vt-pied {
+  padding: 22px 48px;
+  border-top: var(--vt-filet) solid var(--vt-trait);
+  background: var(--vt-blanc);
+  font-size: var(--vt-t-1);
+  color: var(--vt-encre-2);
+}
+.vt .vt-pied a { display: inline-block; padding: 12px 0; color: var(--vt-encre); }
+
+/* --- De 1000 a 1199 px : deux colonnes, mais la droite est etroite ----------
+   Mesure du 09/10/2026 a 1000 px : quatre cases en ligne coupaient « À
+   rappeler » et « 2 aujourd'hui » en deux. Deux cases par rangee. */
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .vt-tuiles { grid-template-columns: 1fr 1fr; }
+  .vt-ligne { grid-template-columns: 92px minmax(0, 1fr) 80px; gap: 0 14px; }
+}
+
+/* --- Sous 1000 px : une seule colonne, le noir d'abord --------------------
+   A deux colonnes, sous 1000 px, la colonne noire tombe sous 400 px : le titre
+   n'y tient plus et la rangee de liens deborde (mesure du 09/10/2026). */
+@media (max-width: 999px) {
+  .vt-haut, .vt-deux, .vt-fin { grid-template-columns: 1fr; }
+  .vt-haut { min-height: 0; }
+  .vt .vt-noir h1 { font-size: var(--vt-t-h1); margin-top: 64px; }
+  .vt-accueil .vt-entete { grid-template-columns: 1fr auto; }
+  .vt-accueil .vt-entete__liens { display: none; }
+  .vt-accueil .vt-menu { display: block; }
+  .vt-accueil .vt-menu summary,
+  .vt-accueil .vt-entete__compte a { color: var(--vt-blanc); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+  .vt-cote { padding-top: 40px; }
+  .vt .vt-apercu { margin-top: 0; }
+  .vt-deux > * + * { padding-top: 0; }
+  .vt-fin > * { grid-column: 1; }
+}
+
+/* --- Telephone ------------------------------------------------------------ */
+@media (max-width: 700px) {
+  .vt-entete { padding: 14px 20px; }
+  .vt-accueil .vt-entete > * { padding: 18px 20px 0; }
+  .vt-noir { padding: 62px 20px 36px; }
+  .vt .vt-noir h1 { margin-top: 40px; }
+  .vt .vt-noir .vt-bouton { display: flex; }
+  .vt-cote { padding: 20px; }
+  .vt-tuiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vt-tuile { min-height: 74px; padding: 8px 12px; }
+  .vt .vt-tuile__nom { line-height: 1.2; font-size: var(--vt-t-2); }
+  .vt .vt-tuile__quand { line-height: 1.25; }
+  .vt .vt-tuile__n { margin-top: 6px; }
+  .vt-ligne {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    padding: 14px 14px 14px 12px;
+  }
+  .vt-ligne__quand { grid-column: 1 / -1; }
+  .vt-ligne__quand:empty { display: none; }
+  .vt-deux > * { padding: 28px 20px; }
+  .vt-deux > * + * { padding-top: 0; }
+  .vt .vt-deux__titre { padding-top: 0; }
+  .vt-fin { padding: 0 20px 40px; }
+  .vt-fin > * { margin-left: 0; }
+  .vt .vt-fin .vt-bouton { justify-self: stretch; }
+  .vt-pied { padding: 18px 20px; }
+}

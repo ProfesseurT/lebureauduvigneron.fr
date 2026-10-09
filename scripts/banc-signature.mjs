@@ -315,7 +315,7 @@ titre('1 bis. Les corrections du juge, 01/10/2026');
     && /\(obligatoire\)/.test(X.doc.querySelector('label[for="' + i + '"]').textContent)));
 }
 t('V7 : la page porte « sans_chrome », et le gabarit retire bandeau et pied SEULEMENT sous ce drapeau', /^sans_chrome: true$/m.test(NJK)
-  && /\{% if not sans_chrome %\}\{% include "components\/footer-rich\.njk" %\}\{% endif %\}/.test(lire('src/_includes/base.njk'))
+  && /\{% if not sans_chrome %\}(\{% if vitrine %\}\{% include "components\/vitrine-pied\.njk" %\}\{% else %\})?\{% include "components\/footer-rich\.njk" %\}(\{% endif %\})?\{% endif %\}/.test(lire('src/_includes/base.njk'))
   && (lire('src/_includes/base.njk').match(/\{% if not sans_chrome %\}/g) || []).length === 2);
 t('V7 : un pied propre : mentions legales et confidentialite, en cibles de 44 px', /href="\/mentions-legales\/"[^>]*min-height:44px/.test(NJK) && /href="\/politique-confidentialite\/"[^>]*min-height:44px/.test(NJK));
 t('la page est hors index et hors collections', /noindex: true/.test(NJK) && /eleventyExcludeFromCollections: true/.test(NJK));

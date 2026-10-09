@@ -498,6 +498,47 @@
   --bdv-d-court: 150ms;                 /* meme valeur en sombre. survol, selection, focus */
   --bdv-d-long:  300ms;                 /* meme valeur en sombre. modale, feuille, tiroir */
   --bdv-courbe:  cubic-bezier(.22,.61,.36,1);  /* meme valeur en sombre */
+
+  /* --- LA VITRINE, 09/10/2026 -----------------------------------------------
+     Servis par src/css/vitrine.css, liee par les seules pages publiques deja
+     refaites (drapeau `vitrine`). Maquette de reference « p10 », validee par Ted
+     le 08/10/2026. Un seul theme, clair : la vitrine se lit, elle ne s'ouvre pas
+     a 23 h dans un chai. */
+  --vt-fond:       #F2F2F7;  /* le fond de page, un gris tres clair : les cartes blanches s'en detachent sans ombre */
+  --vt-blanc:      #FFFFFF;  /* les cartes, et le texte sur un aplat de couleur */
+  --vt-encre:      #111114;  /* le texte, le bouton plein, le bloc noir de l'accueil. 16,89:1 sur le fond */
+  --vt-encre-2:    #5E5E66;  /* ce qui explique : 6,42:1 sur carte, 5,76:1 sur le fond */
+  --vt-trait:      #E3E3E8;  /* le filet entre deux lignes, decor : la ligne se lit sans lui */
+  --vt-gris-clair: #EDEDED;  /* le texte courant du bloc noir, 16,10:1 */
+  --vt-gris:       #C4C4C4;  /* la note sous le bouton du bloc noir, 10,81:1 */
+  --vt-lie:        #7A1F3D;  /* le retard, et lui seul : case, liseret, phrase. 10,04:1 avec le blanc */
+  --vt-ardoise:    #34404C;  /* ce qui est a declarer. 10,59:1 */
+  --vt-ocre:       #8A6516;  /* les clients a rappeler. 5,31:1, le plus faible des quatre, au-dessus de AA */
+  --vt-terre:      #8A4524;  /* les devis. 7,10:1 */
+  --font-vitrine:      'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;  /* la police de la vitrine, 400, 600 et 800 dans le lien unique */
+  --font-vitrine-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;  /* les dates et les reperes, 400 seulement */
+  --vt-t-0: 0.8125rem;  /* 13 px : l'unite sous un montant */
+  --vt-t-1: 0.875rem;   /* 14 px : les notes, le pied, la precision d'une case */
+  --vt-t-2: 0.9375rem;  /* 15 px : ce qui explique une ligne, la date, la marque */
+  --vt-t-3: 1rem;       /* 16 px : les liens de l'en-tete, le nom d'une case */
+  --vt-t-4: 1.0625rem;  /* 17 px : le bouton, un intertitre */
+  --vt-t-5: 1.125rem;   /* 18 px : la liste de ce qu'apporte l'export */
+  --vt-t-6: 1.1875rem;  /* 19 px : le nom d'une ligne, ce qu'on cherche des yeux */
+  --vt-t-montant: clamp(1.0625rem, 1.016rem + 0.19vw, 1.1875rem);  /* 17 a 19 px de 390 a 1440 px de fenetre */
+  --vt-t-lead:    clamp(1.1875rem, 1.141rem + 0.19vw, 1.3125rem);  /* 19 a 21 px, la phrase sous le titre */
+  --vt-t-liste:   clamp(1.1875rem, 1.118rem + 0.286vw, 1.375rem);  /* 19 a 22 px, ce qu'on a sans Vitisoft */
+  --vt-t-section: clamp(1.75rem, 1.564rem + 0.762vw, 2.25rem);     /* 28 a 36 px, un titre de section */
+  --vt-t-chiffre: clamp(1.75rem, 1.379rem + 1.524vw, 2.75rem);     /* 28 a 44 px, le nombre d'une case */
+  --vt-t-h1:      clamp(3.125rem, 2.521rem + 2.476vw, 4.75rem);    /* 50 a 76 px, le titre quand il a toute la largeur */
+  --vt-t-h1-col:  min(5.2vw, 4.75rem);  /* le titre a deux colonnes : il suit la COLONNE noire (40 %), pas la fenetre. Mesure : sous 1000 px de fenetre il ne tient plus, d'ou la colonne unique */
+  --vt-r-tuile:  12px;  /* une case de compte */
+  --vt-r-carte:  14px;  /* une carte, la liste, le menu */
+  --vt-r-bouton: 8px;   /* un bouton */
+  --vt-filet:   1px;    /* le filet entre deux lignes */
+  --vt-liseret: 4px;    /* le bord gauche d une ligne, a la couleur de sa famille. 4 et pas les 5 de la maquette : 5 aurait ete une dixieme epaisseur de filet, la charte la refuse */
+  --vt-anneau:  3px;    /* l'anneau de focus, noir sur clair, blanc sur le noir */
+  --vt-cible:       44px;  /* le plancher tactile d'un lien */
+  --vt-cible-forte: 56px;  /* le bouton principal, qu'on touche debout */
 }
 
 /* ============================================================================

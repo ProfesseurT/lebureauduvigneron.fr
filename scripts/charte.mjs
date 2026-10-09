@@ -83,7 +83,13 @@ const DASH = process.argv.includes('--bureau') || process.argv.includes('--dash'
    par /mon-bureau/. La controler ici reviendrait a mesurer le bureau contre le
    lien du site, ce qui est exactement le faux CONFORME qu'on cherche a eviter.
    La section C verifie d'ailleurs qu'aucune page publique ne la lie. */
-const FEUILLES_SITE  = ['src/css/style.css'];
+/* LA VITRINE, 09/10/2026 : src/css/vitrine.css est liee par les pages publiques
+   deja refaites, et par elles seules. Elle entre dans le controle du site.
+   FEUILLES_PARTAGEES, ce sont celles du site que le BUREAU charge aussi : les
+   thermometres 2 et 3 de la section C ne pesent qu'elles, parce qu'ils mesurent
+   ce qui voyage de l'un a l'autre. La vitrine ne voyage pas. */
+const FEUILLES_SITE  = ['src/css/style.css', 'src/css/vitrine.css'];
+const FEUILLES_PARTAGEES = ['src/css/style.css'];
 const FEUILLES_POSTE = ['src/css/bdv-poste.css'];
 
 const CIBLES = DASH ? [path.join(RACINE, '_site/mon-bureau/index.html')]
@@ -597,7 +603,21 @@ const PAIRES = [
   ['var(--warn-deep)',  'var(--paper-deep)',    'alerte ecrite sur bande',         4.5, true,  ''],
   ['var(--on-dark)',    'var(--ink-deep)',      'etiquette de prix gratuite',      4.5, true,  ''],
   ['var(--ink-deep)',   'var(--viti-orange)',   'etiquette de prix Vitisoft',      4.5, true,  ''],
-  ['var(--viti-orange)','var(--paper-light)',   'orange Vitisoft POSE sur la carte (non textuel)', 3.0, false, '1,79:1 : il ne tient pas meme le seuil graphique. Aplat uniquement, jamais un filet ni des lettres']
+  ['var(--viti-orange)','var(--paper-light)',   'orange Vitisoft POSE sur la carte (non textuel)', 3.0, false, '1,79:1 : il ne tient pas meme le seuil graphique. Aplat uniquement, jamais un filet ni des lettres'],
+  /* LA VITRINE, 09/10/2026, src/css/vitrine.css. Mesurees avant d'etre ecrites. */
+  ['var(--vt-encre)',      'var(--vt-fond)',    'vitrine : texte sur le fond',          4.5, true, ''],
+  ['var(--vt-encre)',      'var(--vt-blanc)',   'vitrine : texte sur carte',            4.5, true, ''],
+  ['var(--vt-encre-2)',    'var(--vt-blanc)',   'vitrine : texte secondaire sur carte', 4.5, true, ''],
+  ['var(--vt-encre-2)',    'var(--vt-fond)',    'vitrine : texte secondaire sur fond',  4.5, true, ''],
+  ['var(--vt-blanc)',      'var(--vt-encre)',   'vitrine : bouton plein, titre noir',   4.5, true, ''],
+  ['var(--vt-gris-clair)', 'var(--vt-encre)',   'vitrine : texte du bloc noir',         4.5, true, ''],
+  ['var(--vt-gris)',       'var(--vt-encre)',   'vitrine : note du bloc noir',          4.5, true, ''],
+  ['var(--vt-blanc)',      'var(--vt-lie)',     'vitrine : case En retard',             4.5, true, ''],
+  ['var(--vt-blanc)',      'var(--vt-ardoise)', 'vitrine : case A declarer',            4.5, true, ''],
+  ['var(--vt-blanc)',      'var(--vt-ocre)',    'vitrine : case A rappeler',            4.5, true, ''],
+  ['var(--vt-blanc)',      'var(--vt-terre)',   'vitrine : case Devis',                 4.5, true, ''],
+  ['var(--vt-lie)',        'var(--vt-blanc)',   'vitrine : retard dit en rouge',        4.5, true, ''],
+  ['var(--vt-trait)',      'var(--vt-blanc)',   'vitrine : filet entre deux lignes (non textuel)', 1.25, true, 'decor : la ligne se lit sans lui']
 ];
 
 let echecsContraste = 0;
@@ -751,7 +771,9 @@ Object.entries(chargees).forEach(([f, w]) => console.log('  charge : ' + f.padEn
 
 /* Token de famille -> nom Google */
 const FAMILLE = { '--font-titre': 'Fraunces', '--font-corps': 'Inter',
-                  '--font-mono': 'JetBrains Mono', '--font-manuscrit': 'Caveat' };
+                  '--font-mono': 'JetBrains Mono', '--font-manuscrit': 'Caveat',
+                  /* La vitrine, 09/10/2026, src/css/vitrine.css. */
+                  '--font-vitrine': 'Archivo', '--font-vitrine-mono': 'IBM Plex Mono' };
 
 /* Famille declaree par selecteur, dans le meme bloc ou dans un autre bloc
    portant exactement le meme selecteur. */
@@ -1698,8 +1720,8 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
     /* LES FEUILLES DECLAREES DU SITE, ET PLUS style.css EN DUR, 21/09/2026 :
        ce thermometre mesure ce qui ne peut servir QU'au site public et part
        quand meme dans le bureau. Le jour ou la moitie publique se scinde a son
-       tour, il suffit de l'ajouter a FEUILLES_SITE pour qu'elle soit pesee. */
-    const texteStyle = FEUILLES_SITE.map(f => lireSi(path.join(RACINE, f))).join('\n');
+       tour, il suffit de l'ajouter a FEUILLES_PARTAGEES pour qu'elle soit pesee. */
+    const texteStyle = FEUILLES_PARTAGEES.map(f => lireSi(path.join(RACINE, f))).join('\n');
     let oPublic = 0, nPublic = 0, oTotal = 0;
     const exemples = [];
     reglesPesees(texteStyle).forEach(r => {
@@ -1712,12 +1734,12 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
         if (exemples.length < 8) exemples.push('L' + r.ligne + ' ' + r.sels[0].slice(0, 46) + ' (' + r.octets + ' o)');
       }
     });
-    console.log('  ' + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') + ' : ' + ko3(oTotal)
+    console.log('  ' + FEUILLES_PARTAGEES.map(f => path.basename(f)).join(' + ') + ' : ' + ko3(oTotal)
                 + ' de regles, dont ' + ko3(oPublic) +
                 ' (' + nPublic + ' regle(s)) qui ne peuvent servir qu\'au site public');
     exemples.forEach(e => console.log('        ' + e));
     note('THERMOMETRE 2 (n\'echoue pas) : ' + ko3(oPublic) +
-         ' de ' + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') +
+         ' de ' + FEUILLES_PARTAGEES.map(f => path.basename(f)).join(' + ') +
          ' voyagent dans le bureau sans pouvoir s\'y appliquer');
   }
 
@@ -1767,7 +1789,7 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
        bureau : les compter ici ferait remonter la borne pour rien. */
     orphelins.forEach(f => fusion(PUBLIC, mots(fs.readFileSync(f, 'utf8'))));
 
-    const texteSite = FEUILLES_SITE.map(f => lireSi(path.join(RACINE, f))).join('\n');
+    const texteSite = FEUILLES_PARTAGEES.map(f => lireSi(path.join(RACINE, f))).join('\n');
     let oBureau = 0, nBureau = 0;
     const ex3 = [];
     reglesPesees(texteSite).forEach(r => {
@@ -1783,13 +1805,13 @@ titre('C. Regles mortes, composants non inclus, feuille qui voyage');
        peut poser demain sur n'importe quelle page. Voir le bloc de tete de
        src/css/bdv-poste.css. CE CHIFFRE NE REMONTE JAMAIS. */
     const BORNE_POSTE = 150;
-    console.log('  ' + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') + ' : ' + ko3(oBureau)
+    console.log('  ' + FEUILLES_PARTAGEES.map(f => path.basename(f)).join(' + ') + ' : ' + ko3(oBureau)
                 + ' (' + nBureau + ' regle(s)) qui ne peuvent servir QU\'au bureau'
                 + '   borne ' + ko3(BORNE_POSTE) + ' (' + BORNE_POSTE + ' o)');
     ex3.forEach(e => console.log('        ' + e));
     if (oBureau > BORNE_POSTE)
       ko('C3 ' + oBureau + ' octets de regles qui ne servent qu\'au bureau sont restes dans '
-         + FEUILLES_SITE.map(f => path.basename(f)).join(' + ') + ', la borne est a ' + BORNE_POSTE
+         + FEUILLES_PARTAGEES.map(f => path.basename(f)).join(' + ') + ', la borne est a ' + BORNE_POSTE
          + '. Leur place est dans ' + FEUILLES_POSTE.map(f => path.basename(f)).join(', ')
          + ', sinon les douze pages publiques les portent pour rien');
     else ok('C3 ' + oBureau + ' octets de regles de bureau dans la feuille publique, sous la borne de ' + BORNE_POSTE);

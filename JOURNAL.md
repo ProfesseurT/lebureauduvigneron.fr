@@ -13,6 +13,40 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 09/10/2026, la vitrine, lot 1 : le socle public et l'accueil
+
+Ted a valide le 08/10/2026 la maquette « p10 » comme reference du nouveau site public.
+Lot 1 : le socle et la page d'accueil. Le bureau et les autres pages ne bougent pas.
+
+- Nouvelle feuille `src/css/vitrine.css`, liee par le drapeau de front matter `vitrine`
+  (valeur = nom de la page, ici `accueil`), qui pose aussi `class="vt vt-accueil"` sur le
+  corps de page. Toutes les regles sous `.vt`. Aucune couleur, taille, rayon en dur hors
+  du `:root` ; aucune ombre. Jetons `--vt-*`, ecrits dans tokens.css avec leur raison.
+- Archivo (400, 600, 800) et IBM Plex Mono (400) ajoutees au lien Google Fonts UNIQUE.
+- Les pages `vitrine` ont leur en-tete (`vitrine-entete.njk`, memes identifiants que `.nav`
+  pour `bdvMajBandeau` et bdv-compte.js, menu du telephone en `details`) et leur pied d'une
+  ligne (`vitrine-pied.njk`, CGU ajoutees a la maquette).
+- L'accueil (`components/accueil.njk`) : bloc noir a gauche, exemple de bureau fictif a
+  droite, « Sans Vitisoft, tu as deja », dernier bouton. Deux colonnes des 1000 px, une
+  seule en dessous ; de 1000 a 1199 px les cases passent deux par rangee.
+- Relu par le vigneron empathique (orange, corrige : verbe « A deposer » des deux cotes,
+  une ligne qui dit que dessous ce sont les choses du jour, des dates sur chaque ligne,
+  note « fictif » plus lisible, deux colonnes des 1000 px, plus de bande vide a 2296 px)
+  et par l'anti-claude (6,5/10). Ses trois premieres corrections (retirer les cases, revenir
+  au papier creme, aux angles vifs et a Fraunces) contredisent la maquette validee par Ted :
+  non appliquees. Applique : « au meme endroit » remplace par « dans une seule liste par date ».
+- Charte : `FEUILLES_SITE` lit aussi vitrine.css ; les thermometres 2 et 3 ne pesent que
+  `FEUILLES_PARTAGEES` (style.css) ; familles `--font-vitrine*` ; 13 paires de contraste.
+  Le liseret fait 4 px et non 5 : 5 aurait ete une dixieme epaisseur de filet.
+- Les sept anciens composants de l'accueil ne sont plus inclus mais restent dans le depot
+  (comptes comme « site mis de cote »). Les supprimer, avec les 119 regles de style.css que
+  la demonstration retenait, est un menage a faire plus tard.
+- `banc-hero.mjs` sort en echec « sans objet » : plus de photo sous le titre.
+- `banc-signature.mjs` lit la nouvelle forme de la ligne du pied dans base.njk.
+- Ouvert, a Ted : « La redaction » gardee dans le menu (la maquette ne l'avait pas) ; la
+  porte de compte garde son dessin papier ; banc et banc:signature echouent parfois sous la
+  charge de `verif` (connu, verts seuls).
+
 ## 09/10/2026, lot 90 : ce que Brevo renvoie au bureau
 
 - Ted : temps reel (webhooks), « en meme temps que les ouvertures et les clics », regles du

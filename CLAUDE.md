@@ -9077,3 +9077,23 @@ clics ; regles d'envoi du vigneron ; l'alerte dans Ma journee viendra plus tard.
 - Vigneron : orange corrige (avis sous le bouton, « Il accepte », raison CNIL sous la case,
   etiquette de Mes clients). Ouvert : bouton Envoyer grise quand Brevo refusera (propose par
   lui) ; l'alerte Ma journee.
+
+## LA VITRINE : LE NOUVEAU DESSIN DU SITE PUBLIC, 09/10/2026 (lot 1 : socle et accueil)
+
+Maquette de reference « p10 », validee par Ted le 08/10/2026. **Elle remplace la regle
+« le site est une brochure sur papier creme, angle vif, Fraunces » pour les pages qui
+portent le drapeau `vitrine`, et pour elles seules.** Ne pas y remettre papier, angles vifs
+ou Fraunces au nom de l'ancienne charte (l'anti-claude l'a propose : refuse).
+
+- **Drapeau de front matter `vitrine: <page>`** : lie `src/css/vitrine.css` apres style.css,
+  pose `class="vt vt-<page>"` sur le corps, remplace `.nav` par `vitrine-entete.njk` et le
+  pied par `vitrine-pied.njk`. Une page sans drapeau sort a l'octet pres comme avant.
+- **Tout est sous `.vt`**, jetons `--vt-*` (et `--font-vitrine`, `--font-vitrine-mono`,
+  prefixe `--font-` pour que la charte controle leurs graisses). Chaque jeton dans tokens.css.
+- **L'en-tete garde les identifiants de `.nav`** (navBureau, navConnexionLi, navCompteLi,
+  navPastille, navPoint) : `bdvMajBandeau()` et bdv-compte.js les lisent.
+- Sur l'accueil, l'exemple de bureau est une maquette (`vt-tuile`, `vt-ligne`), plus les
+  vrais composants du bureau : la regle du 12/09/2026 ne vaut plus pour l'accueil.
+- Captures : `/tmp`-style harnais Playwright qui sert `_site` et remplace Google Fonts par
+  @fontsource ; a refaire a 390, 1000, 1024, 1440 et 2296 px apres toute retouche.
+- Lots suivants : 2, les autres pages publiques ; 3, « Ma journee » du bureau en cases.
