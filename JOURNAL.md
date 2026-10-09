@@ -13,6 +13,40 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 09/10/2026, lot 90 : ce que Brevo renvoie au bureau
+
+- Ted : temps reel (webhooks), « en meme temps que les ouvertures et les clics », regles du
+  vigneron, Ma journee plus tard. L'architecte proposait une releve nocturne (historique, pas de
+  porte ouverte) : Ted a choisi le temps reel ; on garde un rattrapage au branchement et un
+  bouton « Relire l'historique ».
+- Decouvert en route : [Certain, CNIL, recommandation adoptee le 12/03/2026] suivre l'ouverture
+  client par client demande son accord ; [Certain, aide Brevo] depuis le 14/07/2026, et Brevo
+  offre `contactPixelTrackingConsent` par destinataire. Les mails du lot 88 etaient [Probable]
+  suivis pour tous : chaque mail dit maintenant oui ou non selon la case du client.
+- Aucune adresse en base : des empreintes. Le jeton du webhook dans un en-tete, son empreinte
+  seule en base. Une lecture incomplete de Brevo ne remplace rien.
+- Ecarte : bloquer depuis le navigateur (le serveur decide) ; normaliser les adresses Gmail.
+
+## 09/10/2026, Brevo : le bureau en declencheur (etude, rien de code)
+
+Demande de Ted : que le bureau devienne un « declencheur geant » de communications Brevo.
+- Faits verifies (doc Brevo) : POST /v3/events (nom, identifiant du contact, proprietes),
+  lot de 200 par /v3/events/batch, 10 par seconde ; une automatisation Brevo demarre sur
+  « evenement personnalise ». Gratuit : 300 mails par jour partages avec le lot 88, 2 000
+  contacts en automatisation active ; un nouvel evenement peut mettre ~2 jours a etre choisissable.
+- Inconnus a TESTER sur un vrai compte avant de coder : un evenement cree-t-il le contact ?
+  l'automatisation a plusieurs etapes se publie-t-elle en gratuit ? un doublon fait-il deux mails ?
+  un contact en liste noire est-il ecarte ?
+- Arbitrages de Ted : (1) le lot 90 (desinscriptions et adresses mortes) AVANT les declencheurs ;
+  (2) un interrupteur par evenement, ETEINT au depart, allume par l'administrateur ; (3) premier
+  lot : devis sans reponse, premier achat, commande livree, client inactif (sur son rythme),
+  etape atteinte d'une affaire ; (4) une case « accepte les mails » sur la fiche : sans elle, un
+  particulier ne recoit rien d'automatique (CNIL, L34-5 CPCE).
+- Conseil : filtre AVANT l'envoi dans le bureau (gros clients, recul, liste noire, quinzaine) ;
+  recul, gros client, affaire perdue, rappel echu : alerte au vigneron seulement ; file en base,
+  un evenement par geste (cle unique), jamais d'adresse gardee ; journal « transmis a Brevo » sur
+  la fiche ; nom exact de l'evenement avec un bouton copier ; prevenir du delai de 2 jours.
+
 ## 09/10/2026, la mise en route, lot 2 : ce qui bloque s'ouvre sur place
 
 - **Devis sans fiche du domaine** : on cherche son domaine DANS le devis (nom ou SIREN,

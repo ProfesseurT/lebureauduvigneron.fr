@@ -283,7 +283,7 @@ console.log('\n== 7. Envoyer par Brevo (lot 88) ==');
   dit(mp.indexOf("rpc('brevo_pour_envoi'") > 0 && mp.indexOf("rpc('brevo_pour_envoi'") < mp.indexOf("rpc('boite_pour_envoi'"), 'les mails programmes demandent Brevo avant la boite');
   dit(/pb\.etat === 'refusee' \|\| pb\.etat === 'sans_expediteur'\)\) \{ issue = 'brevo'/.test(mp) && /if \(issue === 'erreur'\) \{\n\s*const bl = await rpc\('boite_pour_envoi'/.test(mp), 'un mail programme bloque cote Brevo ne part pas par la boite');
   const sb = lire('supabase/functions/_shared/brevo.ts');
-  dit(/to: \[\{ email: a \}\]/.test(sb) && /htmlContent: texteEnHtml\(texte\)/.test(sb) && /textContent: texte/.test(sb), 'un seul destinataire, le texte tel quel, l\'HTML exige par Brevo n\'en est que l\'habillage');
+  dit(/to: \[\{ email: a, contactPixelTrackingConsent: b\.suivi === true \}\]/.test(sb) && /htmlContent: texteEnHtml\(texte\)/.test(sb) && /textContent: texte/.test(sb), 'un seul destinataire, le texte tel quel, l\'HTML exige par Brevo n\'en est que l\'habillage');
   dit(/if \(r\.status >= 500\) return \{ resultat: 'incertain'/.test(sb) && /catch \{\n\s*return \{ resultat: 'incertain' \};/.test(sb), 'panne de Brevo ou pas de reponse : « incertain », jamais renvoye');
   dit(/'lot88-envoi-brevo\.sql'/.test(lire('scripts/banc-rejeu.mjs')), 'le lot 88 est dans la procedure de reconstruction');
 }

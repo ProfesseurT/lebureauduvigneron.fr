@@ -204,6 +204,9 @@
     c.appendChild(mm);
     peindreExp();
 
+    /* Lot 90 : ce que Brevo renvoie (bdv-retours.js), pas avec une cle refusee. */
+    if (window.BdvRetours && b.etat !== 'refusee') BdvRetours.peindreReglage(c, MAITRE);
+
     if (MAITRE) {
       var fin = mk('div', 'bdvb-gestes bdvb-fin');
       var rt = mk('button', 'bdvr-btn bdvr-btn--creux', 'Retirer Brevo'); rt.type = 'button'; rt.id = 'bdvvRetirer';
@@ -286,7 +289,8 @@
       if (i) i.value = '';
       EXP = null; EXP_MOT = '';
       await charger(); peindre();
-      dire('Brevo est branché' + (r.compte_nom || r.compte_email ? ' sur ' + (r.compte_nom || r.compte_email) : '') + '. Choisis maintenant ton adresse d’expéditeur.');
+      dire('Brevo est branché' + (r.compte_nom || r.compte_email ? ' sur ' + (r.compte_nom || r.compte_email) : '') + '. Choisis maintenant ton adresse d’expéditeur.'
+        + (r.retours && r.retours !== 'branches' ? ' Brevo n’a pas accepté de prévenir le bureau : réessaie plus bas, « Ce que Brevo renvoie au bureau ».' : ''));
       lireExpediteurs();
       return;
     }

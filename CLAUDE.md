@@ -9017,3 +9017,63 @@ bandeau `#bdvrMer` en tête de Mes réglages, section 41 de `bdv-bureau.css`.
   `node scripts/cap-domaine-devis.mjs 1440:light`.
 - Piège d'outil : après `npm run build` sur le Mac, des fichiers de `src/js` ressortent en lien
   dur et le pont refuse de les stager. `cp f f.n && mv f.n f` casse le lien.
+
+### BREVO EN DECLENCHEUR (etude du 09/10/2026, PAS ENCORE CODE)
+
+Arbitrages de Ted : lot 90 (desinscriptions, adresses mortes) AVANT ; un interrupteur par
+evenement, ETEINT au depart (administrateur) ; premier lot : devis sans reponse, premier achat,
+commande livree, client inactif, etape atteinte d'une affaire ; case « accepte les mails » sur la
+fiche, sans elle aucun automatique vers un particulier. Regles : le bureau filtre AVANT d'envoyer
+(gros clients, recul, liste noire, quinzaine) ; recul, gros client, affaire perdue, rappel echu ne
+partent JAMAIS vers le client ; une file en base, un evenement par geste, jamais d'adresse gardee.
+A tester d'abord sur un vrai compte : creation du contact par l'evenement, automatisation a
+plusieurs etapes en gratuit, doublons, liste noire. Detail : JOURNAL.md du 09/10.
+
+### LOT 90 : CE QUE BREVO RENVOIE (09/10/2026)
+
+Arbitrages de Ted : Brevo previent le bureau EN TEMPS REEL (webhooks), y compris ouvertures et
+clics ; regles d'envoi du vigneron ; l'alerte dans Ma journee viendra plus tard.
+- **SQL `supabase/lot90-retours-brevo.sql`, APRES 92, PUIS push, PUIS (re)deploiement de `brevo`
+  (verify_jwt true), `mails-programmes` (verify_jwt false) ET de la NOUVELLE `brevo-retours`
+  (verify_jwt FALSE : Brevo n'a pas de session, le jeton garde la porte), toutes avec
+  `_shared/brevo.ts` et `_shared/empreinte.ts`.** Deployer `mails-programmes` AVANT le SQL ferait
+  echouer son chemin Brevo (et une erreur la-bas retombe sur la boite).
+- **AUCUNE ADRESSE EN BASE** : une EMPREINTE, sha256 de « <bureau en minuscules>:<adresse en
+  minuscules, sans espaces autour> », hexadecimal. Calculee a l'identique dans
+  `_shared/empreinte.ts` (Edge) et `bdv-retours.js` (navigateur) ; `banc:retours` et
+  `banc:retours-serveur` comparent les deux a la formule SQL. Ni point ni « + » retires.
+- Tables : `brevo_bloquees` (bureau, empreinte, source transactionnel|campagne, motif desinscrit|
+  morte|spam|bloquee, depuis ; cascade quand Brevo est retire), `suivi_accords` (l'accord du
+  client au suivi des ouvertures ; pas de ligne = non ; reste si Brevo est retire),
+  `brevo_retours` (premiere ouverture, premier clic, rejet d'UN mail parti), `brevo_envois.empreinte`
+  (90 jours au lieu de 30), `brevo.retours_jeton` (EMPREINTE du jeton, illisible du navigateur),
+  `retours_etat`, `retours_le`, `rattrape_le`. `brevo_envoi_permis` passe a 4 arguments
+  (`p_empreinte` facultatif). Un spam ne redevient jamais une simple desinscription (gravite).
+- **Webhooks** : `brevo` action `retours_brancher` (administrateur, et tout seul apres
+  `brancher`) supprime les webhooks du bureau (meme adresse) puis en cree deux (mails 1 a 1 :
+  hardBounce, invalid, blocked, spam, unsubscribed, opened, click ; campagnes : hardBounce,
+  unsubscribed, spam) vers `functions/v1/brevo-retours?b=<bureau>`, jeton neuf dans l'en-tete
+  `x-bdv-jeton` (jamais dans l'adresse). Jamais a moitie. [Certain, doc Brevo] Brevo ne signe pas
+  ses webhooks. `retours_relire` = le RATTRAPAGE : `smtp/blockedContacts` + carnet
+  (`emailBlacklisted`), REMPLACE une source seulement si elle est lue EN ENTIER.
+- **Regles d'envoi** (`brevo_destinataire`) : morte, spam, bloquee, ou desinscrit des mails 1 a 1
+  -> le mail par Brevo NE part PAS (`resultat: 'bloque'`, motif) ; desinscrit des seules
+  campagnes -> il part, on previent. Par sa boite : on previent seulement.
+- **Pixel** : chaque mail dit a Brevo `contactPixelTrackingConsent` (vrai si accord, faux
+  sinon ; copie a soi toujours faux). [Certain, aide Brevo] Brevo ne le lit que si le compte a
+  active « Consentement au suivi par contact » (Parametres, Contacts) : l'ecran le dit a
+  l'administrateur. [Certain, CNIL 12/03/2026] suivre l'ouverture client par client demande son
+  accord. Ouvert et clic ne sont NOTES que si l'accord existe, et ne se LISENT que s'il existe
+  encore (`brevo_suivi`).
+- **`src/js/bdv-retours.js`** (defer, apres bdv-brevo-listes.js) : remplit tout seul
+  `[data-retour-mail]` (avis AU-DESSUS du bouton : fiche, redacteur d'affaire) et
+  `[data-retours-fiche]` (marques, case « Il accepte que je voie quand il ouvre mes mails »,
+  derniers mails) ; `marqueListe(mails)` pour « Mes clients » (evenement `bdv:retours`,
+  redessin seulement si une marque apparait) ; `peindreReglage` dans Mes envois.
+- Gardes : banc SQL `supabase/banc-lot90-retours-brevo.sql` (51, mutations tuees),
+  `npm run banc:retours-serveur` (37, Deno + Postgres : vraies fonctions sur vrai SQL, hors
+  verif), `npm run banc:retours` (43, dans verif). Captures : `node scripts/cap-retours.mjs
+  1440:light`. Page rgpd : paragraphe des retours.
+- Vigneron : orange corrige (avis sous le bouton, « Il accepte », raison CNIL sous la case,
+  etiquette de Mes clients). Ouvert : bouton Envoyer grise quand Brevo refusera (propose par
+  lui) ; l'alerte Ma journee.

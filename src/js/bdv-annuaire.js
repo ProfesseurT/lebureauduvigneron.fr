@@ -257,7 +257,9 @@
     const sous = [c.num && c.num !== c.nom ? 'n°' + c.num : '', c.nature || '', [c.cp, c.ville].filter(Boolean).join(' '), c.pays && !/^france$/i.test(c.pays) ? c.pays : '']
       .filter(Boolean).join(' · ');
     const marque = (c.nouveau ? ' <span class="aff-marque aff-marque--nouveau">Pas encore dans Vitisoft</span>' : '')
-      + (c.opposition ? ' <span class="aff-marque aff-marque--opposee">Ne veut plus être contacté</span>' : '');
+      + (c.opposition ? ' <span class="aff-marque aff-marque--opposee">Ne veut plus être contacté</span>' : '')
+      /* Lot 90 : adresse morte, desinscrite, spam (bdv-retours.js). */
+      + (window.BdvRetours ? BdvRetours.marqueListe(c.nouveau ? c.mails : (typeof emailsOf === 'function' ? emailsOf(c.id) || [] : [])) : '');
     let action = '<span class="annu__vide">—</span>';
     if(s.statut === 'traite') action = '<span class="annu__vide">Mis de côté</span>';
     else if(s.rappel) action = '<span class="annu__rap' + (er === 'retard' ? ' annu__rap--retard' : '') + '">'
@@ -1076,6 +1078,11 @@
       : function(){ return FILTREE.map(function(c){ return c.id; }); };
     BdvBrevoListes.ouvrir({ cible: z, source: 'clients', titre: titreBrevo(sel), ids: ids, bouton: bouton });
   }
+  /* Lot 90 : une marque est apparue (adresse morte, desinscrite) : la liste se redessine. */
+  document.addEventListener('bdv:retours', function(){
+    const p = P();
+    if(p && p.classList.contains('on') && p.querySelector('.annu')) majListe();
+  });
   /* Brevo lu, branche ou retire : le bouton apparait ou part, sans repeindre la piece. */
   document.addEventListener('bdv:brevo', function(){
     const p = P(); if(!p) return;

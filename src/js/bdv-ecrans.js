@@ -3228,6 +3228,7 @@ function messageHTML(f,motif){
     <input class="msg__sujet" id="msgSujet" type="text" aria-label="Objet du message" value="${esc(sujet)}" data-auto="1" oninput="this.dataset.auto='';majLienMail()">
     <label class="msg__lbl">Texte, modifiable avant envoi</label>
     <textarea class="msg__texte" id="msgTexte" rows="11" aria-label="Texte du message, modifiable avant envoi" oninput="majLienMail()">${esc(texte)}</textarea>
+    ${mail?`<p class="ret-avis" data-retour-mail="${esc(mail)}" data-retour-sorte="affaires" hidden></p>`:''}
     <div class="fiche__actions">
       ${boite?`<button class="btn btn--primary btn--sm" id="msgEnvoyer" onclick="envoyerMessage(this)">${libelleEnvoiFiche()}</button>`
         :`${mail?`<a class="btn btn--primary btn--sm" id="msgOuvrir" href="#">Ouvrir dans ma messagerie</a>`:''}
@@ -4024,6 +4025,7 @@ function ficheHTML(f,motif){
       ${f.tels.map(t=>`<a class="chipc" href="tel:${esc(t.appel)}">☎ ${esc(t.affiche)}</a>`).join('')}
       ${(!f.emails.length&&!f.tels.length)?(neuf?'<span class="muted-cell">Aucun e-mail ni téléphone sur sa fiche.</span>':'<span class="muted-cell">Aucun e-mail ni téléphone dans ton export.</span>'):''}
     </div>
+    ${!muet&&f.emails.length?`<div class="ret" data-retours-fiche data-mails="${esc(JSON.stringify(f.emails))}" hidden></div>`:''}
     ${neuf&&!muet&&f.adresse?`<p class="fiche__adresse">${esc([f.adresse,[f.cp,f.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</p>`:''}
 
     ${neuf?(muet?'':`<p class="fiche__neuf">Pas encore de vente : il entrera dans tes chiffres avec sa première facture Vitisoft.</p><div class="fiche__lien" id="ficheLien">${lienHTML(f)}</div>`):ficheKpis(f)}

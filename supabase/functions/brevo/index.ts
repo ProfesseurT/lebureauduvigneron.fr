@@ -31,11 +31,26 @@
    Brevo, quelle que soit la facon dont Brevo traiterait un import. Si le carnet ne se lit pas
    en entier, rien ne part. `liste_etat` dit ou en est l'import chez Brevo.
 
+   LOT 90 : ce que Brevo renvoie.
+     - `retours_brancher` (administrateur, et tout seul apres `brancher`) : cree chez Brevo DEUX
+       webhooks vers la fonction `brevo-retours` (mails 1 a 1 : ouvert, clic, rejet definitif,
+       adresse invalide, bloque, spam, desinscrit ; campagnes : rejet definitif, desinscrit,
+       spam), proteges par un jeton neuf dans l'en-tete `x-bdv-jeton`. Les anciens webhooks du
+       bureau (meme adresse) sont supprimes d'abord. Seule l'EMPREINTE du jeton est rangee.
+     - `retours_relire` (administrateur, et tout seul apres `retours_brancher`) : le RATTRAPAGE.
+       Lit chez Brevo TOUTE la liste des adresses bloquees en mails 1 a 1 (smtp/blockedContacts)
+       et tout le carnet (desinscrits des campagnes), et remplace ce que le bureau en savait.
+       Une lecture incomplete ne remplace RIEN (sinon un blocage pourrait disparaitre).
+     - `envoyer` : une adresse morte, en spam, bloquee ou desinscrite des mails 1 a 1 ne part
+       pas ; le mail dit a Brevo si le client a accepte le suivi (`contactPixelTrackingConsent`).
+     Aucune adresse n'entre en base : son empreinte (`_shared/empreinte.ts`).
+
    DEPLOIEMENT : APRES le SQL du lot 87 et APRES le commit, verify_jwt = true. Aucun secret a
    poser : SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont fournis.
    ============================================================================ */
 
-import { envoyerBrevo, MOTS_BREVO } from '../_shared/brevo.ts';
+import { envoyerBrevo, MOTS_BREVO, MOTS_BLOQUE } from '../_shared/brevo.ts';
+import { empreinte } from '../_shared/empreinte.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -138,7 +153,11 @@ async function brancher(moi: string, bureau: string, cle: string) {
   const email = texte(r.corps.email, 254);
   const nom = texte(r.corps.companyName, 120);
   await rpc('brevo_ranger', { p_personne: moi, p_bureau: bureau, p_cle: cle, p_email: email, p_nom: nom });
-  return reponse({ resultat: 'branche', compte_email: email, compte_nom: nom, credits_sms: creditsSms(r.corps) });
+  /* Les retours suivent : un echec ici ne defait pas le branchement, l'ecran le dit. */
+  let retours = 'echec';
+  try { retours = (await installerRetours(bureau, cle)).resultat; } catch { retours = 'echec'; }
+  if (retours === 'branches') { try { await rattraper(bureau, cle); } catch { /* le bouton Relire reste */ } }
+  return reponse({ resultat: 'branche', compte_email: email, compte_nom: nom, credits_sms: creditsSms(r.corps), retours });
 }
 
 async function expediteurs(moi: string, bureau: string) {
@@ -190,9 +209,14 @@ async function envoyer(moi: string, bureau: string, corps: Record<string, unknow
        Brevo ; le navigateur le savait deja, il s'est trompe de chemin. Rien n'est parti. */
     return reponse({ resultat: etat, mot: MOTS_BREVO[etat] ?? 'Ce mail ne part pas par Brevo : rien n’est parti.' });
   }
-  const id = await rpc('brevo_envoi_permis', { p_personne: moi, p_bureau: bureau, p_sorte: sorte });
+  /* Lot 90 : l'adresse est-elle retenue, le client a-t-il accepte le suivi ? */
+  const emp = await empreinte(bureau, a);
+  const dl = await rpc('brevo_destinataire', { p_bureau: bureau, p_empreinte: emp });
+  const d = Array.isArray(dl) && dl[0] ? dl[0] : { bloque: null, suivi: false };
+  if (d.bloque) return reponse({ resultat: 'bloque', motif: String(d.bloque), mot: MOTS_BLOQUE[String(d.bloque)] ?? MOTS_BLOQUE.bloquee });
+  const id = await rpc('brevo_envoi_permis', { p_personne: moi, p_bureau: bureau, p_sorte: sorte, p_empreinte: emp });
   if (id == null) return reponse({ resultat: 'plafond', mot: MOTS_BREVO.plafond });
-  const r = await envoyerBrevo({ cle: String(b.cle), expediteur: String(b.expediteur), nom: b.nom ? String(b.nom) : null, copie: b.copie !== false },
+  const r = await envoyerBrevo({ cle: String(b.cle), expediteur: String(b.expediteur), nom: b.nom ? String(b.nom) : null, copie: b.copie !== false, suivi: d.suivi === true },
     a, sujet, corpsTexte, [sorte]);
   if (r.resultat === 'parti') {
     try { await rpc('brevo_envoi_noter', { p_id: id, p_message_id: r.messageId || null }); } catch { /* le mail est parti quand meme */ }
@@ -383,6 +407,143 @@ async function listeEtat(moi: string, bureau: string, corps: Record<string, unkn
   return reponse({ resultat: 'etat', statut, soucis });
 }
 
+/* ------------------------------------------------------------------ LOT 90 : LES RETOURS */
+/* [Certain, doc Brevo lue le 09/10/2026] POST /v3/webhooks (url, events, type, headers),
+   GET /v3/webhooks?type=, DELETE /v3/webhooks/{id} (204). Brevo ne signe pas ses webhooks :
+   le jeton dans l'en-tete est la seule porte. */
+const EVTS_TRANSAC = ['hardBounce', 'invalid', 'blocked', 'spam', 'unsubscribed', 'opened', 'click'];
+const EVTS_CAMPAGNE = ['hardBounce', 'unsubscribed', 'spam'];
+function adresseRetours(bureau: string) {
+  return `${SUPABASE_URL}/functions/v1/brevo-retours?b=${bureau}`;
+}
+async function brevoAppel(cle: string, methode: string, chemin: string, corps?: unknown) {
+  try {
+    const r = await fetch(`${BREVO}${chemin}`, {
+      method: methode,
+      headers: { 'api-key': cle, Accept: 'application/json', ...(corps ? { 'Content-Type': 'application/json' } : {}) },
+      body: corps ? JSON.stringify(corps) : undefined,
+      signal: AbortSignal.timeout(10000),
+    });
+    const t = await r.text();
+    let c: unknown = null;
+    try { c = t ? JSON.parse(t) : null; } catch { c = null; }
+    return { statut: r.status, corps: c as Record<string, unknown> | null, brut: t.slice(0, 500) };
+  } catch {
+    return { statut: 0, corps: null, brut: '' };
+  }
+}
+function jetonNeuf() {
+  const o = crypto.getRandomValues(new Uint8Array(32));
+  return btoa(String.fromCharCode(...o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function sha256hex(t: string) {
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
+  return Array.from(h, (o) => o.toString(16).padStart(2, '0')).join('');
+}
+
+/* Supprime les webhooks du bureau (meme adresse), puis en cree deux neufs. Rend
+   { resultat: 'branches' } ou un refus en mots du bureau. Jamais a moitie : si le second ne se
+   cree pas, le premier est supprime, et la base note l'echec. */
+async function installerRetours(bureau: string, cle: string) {
+  const adr = adresseRetours(bureau);
+  for (const type of ['transactional', 'marketing']) {
+    const l = await brevoAppel(cle, 'GET', `/webhooks?type=${type}`);
+    if (l.statut !== 200 || !l.corps) {
+      await rpc('brevo_retours_poser', { p_bureau: bureau, p_jeton: null });
+      return motDuRefus(l.statut, l.brut);
+    }
+    const vieux = Array.isArray(l.corps.webhooks) ? l.corps.webhooks as Array<Record<string, unknown>> : [];
+    for (const w of vieux) {
+      if (String(w.url ?? '') === adr && Number.isFinite(Number(w.id))) await brevoAppel(cle, 'DELETE', `/webhooks/${Number(w.id)}`);
+    }
+  }
+  const jeton = jetonNeuf();
+  const crees: number[] = [];
+  for (const [type, events] of [['transactional', EVTS_TRANSAC], ['marketing', EVTS_CAMPAGNE]] as const) {
+    const c = await brevoAppel(cle, 'POST', '/webhooks', {
+      url: adr, type, events, description: 'Le bureau du vigneron : ce que Brevo renvoie',
+      headers: [{ key: 'x-bdv-jeton', value: jeton }],
+    });
+    const id = c.corps && Number.isFinite(Number(c.corps.id)) ? Number(c.corps.id) : null;
+    if (!(c.statut === 201 || c.statut === 200) || id == null) {
+      for (const x of crees) await brevoAppel(cle, 'DELETE', `/webhooks/${x}`);
+      await rpc('brevo_retours_poser', { p_bureau: bureau, p_jeton: null });
+      return c.statut === 401 || c.statut === 403 || c.statut === 0 ? motDuRefus(c.statut, c.brut)
+        : { resultat: 'erreur', mot: 'Brevo n’a pas accepté de prévenir le bureau (code ' + c.statut + '). Réessaie dans un moment.' };
+    }
+    crees.push(id);
+  }
+  await rpc('brevo_retours_poser', { p_bureau: bureau, p_jeton: await sha256hex(jeton) });
+  return { resultat: 'branches' };
+}
+
+/* Les adresses bloquees en mails 1 a 1, en entier, ou rien. */
+const RAISONS: Record<string, string> = {
+  hardBounce: 'morte', contactFlaggedAsSpam: 'spam', adminBlocked: 'bloquee',
+  unsubscribedViaEmail: 'desinscrit', unsubscribedViaApi: 'desinscrit', unsubscribedViaMA: 'desinscrit',
+};
+async function bloqueesTransac(cle: string) {
+  const out: Array<{ email: string; m: string; d: string | null }> = [];
+  const debut = Date.now();
+  let total = -1;
+  for (let p = 0; p < 2000; p++) {
+    if (Date.now() - debut > 40000) return { trop: true as const };
+    const r = await brevo(cle, `/smtp/blockedContacts?limit=100&offset=${p * 100}&sort=asc`);
+    if (r.statut !== 200 || !r.corps) return { refus: motDuRefus(r.statut, r.brut) };
+    if (p === 0 && Number.isFinite(Number(r.corps.count))) total = Number(r.corps.count);
+    const l = Array.isArray(r.corps.contacts) ? r.corps.contacts as Array<Record<string, unknown>> : [];
+    for (const c of l) {
+      const e = texte(c.email, 254).toLowerCase();
+      if (!e) continue;
+      const code = c.reason && typeof c.reason === 'object' ? String((c.reason as Record<string, unknown>).code ?? '') : '';
+      const d = texte(c.blockedAt, 40);
+      out.push({ email: e, m: RAISONS[code] ?? 'bloquee', d: d && !isNaN(Date.parse(d)) ? new Date(d).toISOString() : null });
+    }
+    /* Une page courte dit la fin, a condition d'avoir lu autant que Brevo en annonce. */
+    if (l.length < 100) return (total >= 0 && p * 100 + l.length < total) ? { trop: true as const } : { lignes: out };
+  }
+  return { trop: true as const };
+}
+
+/* Le rattrapage. Chaque source n'est remplacee que si elle a ete lue EN ENTIER. */
+async function rattraper(bureau: string, cle: string) {
+  const bilan: Record<string, unknown> = {};
+  const t = await bloqueesTransac(cle);
+  if ('lignes' in t && t.lignes) {
+    const lignes = [];
+    for (const x of t.lignes) lignes.push({ e: await empreinte(bureau, x.email), m: x.m, d: x.d });
+    bilan.transactionnel = await rpc('brevo_bloquees_remplacer', { p_bureau: bureau, p_source: 'transactionnel', p_lignes: lignes });
+  } else bilan.transactionnel = 'pas_lu';
+  const n = await listeNoire(cle);
+  if ('emails' in n && n.emails) {
+    const lignes = [];
+    for (const e of n.emails) lignes.push({ e: await empreinte(bureau, e), m: 'desinscrit', d: null });
+    bilan.campagne = await rpc('brevo_bloquees_remplacer', { p_bureau: bureau, p_source: 'campagne', p_lignes: lignes });
+  } else bilan.campagne = 'pas_lu';
+  return bilan;
+}
+
+async function retours(moi: string, bureau: string, action: string) {
+  if (!(await rpc('brevo_est_maitre', { p_personne: moi, p_bureau: bureau }))) {
+    return reponse({ erreur: 'Seul un administrateur du bureau règle ce que Brevo renvoie.' }, 403);
+  }
+  const cle = await rpc('brevo_cle', { p_bureau: bureau });
+  if (!cle) return reponse({ resultat: 'pas_branche', mot: 'Brevo n’est pas branché sur ce bureau.' });
+  if (action === 'retours_brancher') {
+    const i = await installerRetours(bureau, String(cle));
+    if (i.resultat !== 'branches') {
+      if (i.resultat === 'refusee' || i.resultat === 'ip') {
+        try { await rpc('brevo_noter', { p_bureau: bureau, p_etat: 'refusee', p_erreur: (i as { mot: string }).mot }); } catch { /* l'ecran le dit */ }
+      }
+      return reponse(i);
+    }
+  }
+  const bilan = await rattraper(bureau, String(cle));
+  const complet = bilan.transactionnel !== 'pas_lu' && bilan.campagne !== 'pas_lu';
+  return reponse({ resultat: action === 'retours_brancher' ? 'branches' : 'relu', complet,
+    mot: complet ? null : 'Brevo n’a pas tout donné à temps : ce qui n’a pas été lu en entier n’a pas été remplacé. Réessaie dans un moment.' });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reponse({ erreur: 'methode' }, 405);
@@ -406,6 +567,7 @@ Deno.serve(async (req) => {
     if (action === 'liste_etat') return await listeEtat(moi.id, bureau, corps);
     if (action === 'brancher') return await brancher(moi.id, bureau, String(corps.cle ?? '').trim());
     if (action === 'expediteurs') return await expediteurs(moi.id, bureau);
+    if (action === 'retours_brancher' || action === 'retours_relire') return await retours(moi.id, bureau, action);
     return reponse({ erreur: 'action inconnue' }, 400);
   } catch {
     return reponse({ erreur: 'Le bureau n’a pas pu parler à sa base. Réessaie dans un moment.' }, 500);

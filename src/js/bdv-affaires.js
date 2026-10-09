@@ -3563,6 +3563,8 @@
       + (r.kAuto ? '<p class="aff-redac__pourquoi">Proposé : <b>' + esc(M.nom(r.k)) + '</b>, parce que ' + esc(r.raison) + '.</p>' : '')
       + '<p class="aff-redac__a">' + (mail ? 'À : <b>' + esc(mail) + '</b>' : c && c.contacts === undefined ? 'Lecture de son adresse…'
         : 'Pas d’adresse e-mail : copie le texte et colle-le dans ta messagerie.') + '</p>'
+      /* LOT 90 : adresse morte, desinscrite, spam (bdv-retours.js la remplit). */
+      + (mail ? '<p class="ret-avis" data-retour-mail="' + esc(mail) + '" data-retour-sorte="' + esc(so) + '" hidden></p>' : '')
       /* LOT 77 : d'ou il part, AVANT le clic (vigneron). */
       + (boite ? '<p class="aff-redac__a">De : ' + deBoite(so) + (parBrevo(so) ? ', par Brevo' : ', ta boîte branchée') + '</p>' : '')
       + '<label class="aff-champ"><span>Modèle</span><select data-redac="modele">' + opts + '</select></label>'

@@ -7373,3 +7373,45 @@ body.bdv-coque #bureauPage .page-aff__achats .fiche__cmds td{ white-space:nowrap
   /* Mais il NOMME l'onglet : sur telephone la rangee defile, et l'onglet marque peut etre hors champ. */
   .bdv-coque .mer-bandeau__ou{ display:block; font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
 }
+
+/* ===================================================================================
+   42. CE QUE BREVO RENVOIE, 09/10/2026 (lot 90). Pose par src/js/bdv-retours.js : la
+   marque d'une adresse (fiche, « Mes clients »), l'avis au-dessus du bouton d'envoi, le
+   bloc « Ses mails et Brevo » de la fiche. Un etat se dit par un MOT et une FORME (filet,
+   pointille), jamais par la couleur seule. Que des jetons, aucune ombre, aucun z-index.
+   =================================================================================== */
+.bdv-coque .ret-marque--morte,
+.bdv-coque .ret-marque--spam{ border-color:var(--bdv-retard); color:var(--bdv-encre-1); }
+.bdv-coque .ret-marque--bloquee{ border-style:dashed; border-color:var(--bdv-retard); color:var(--bdv-encre-1); }
+.bdv-coque .ret-marque--desinscrit{ border-style:dashed; }
+.bdv-coque .ret-avis{
+  margin:var(--bdv-e-2) 0 0;
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+  border-left:3px solid var(--bdv-trait-fort);
+  font-size:var(--bdv-f-2);
+  color:var(--bdv-encre-2);
+  overflow-wrap:anywhere;
+}
+.bdv-coque .ret-avis b{ color:var(--bdv-encre-1); }
+.bdv-coque .ret-avis--bloque{ border-left-color:var(--bdv-retard); background:var(--bdv-retard-lavis); }
+.bdv-coque .ret{
+  margin:var(--bdv-e-3) 0;
+  padding:var(--bdv-e-3) 0 0;
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .ret__t{
+  margin:0 0 var(--bdv-e-2);
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .ret__l + .ret__l{ margin-top:var(--bdv-e-3); }
+.bdv-coque .ret__adr{ margin:0; font-size:var(--bdv-f-2); color:var(--bdv-encre-2); overflow-wrap:anywhere; }
+.bdv-coque .ret__adr .aff-marque{ margin-top:0; }
+.bdv-coque .ret__accord{ display:flex; align-items:flex-start; gap:var(--bdv-e-2); min-height:var(--bdv-cible); font-size:var(--bdv-f-2); }
+.bdv-coque .ret__envois{ margin:var(--bdv-e-1) 0 0; padding-left:var(--bdv-e-4); font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+.bdv-coque .ret__envois li + li{ margin-top:var(--bdv-e-1); }
+.bdv-coque .ret__accord small{ font-size:var(--bdv-f-1); color:var(--bdv-encre-3); }
+.bdv-coque .ret__cnil{ margin:0 0 var(--bdv-e-2); }

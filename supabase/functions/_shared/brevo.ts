@@ -22,7 +22,12 @@
      erreur       : autre refus (4xx) : rien n'est parti.
    ============================================================================ */
 
-export type EnvoiBrevo = { cle: string; expediteur: string; nom: string | null; copie: boolean };
+/* `suivi` (lot 90) : le client a accepte le suivi des ouvertures et des clics (case de sa
+   fiche). [Certain, doc Brevo lue le 09/10/2026] `contactPixelTrackingConsent` (vrai ou faux,
+   par destinataire) ; Brevo ne le lit que si le compte a active le consentement par contact
+   (Parametres, Contacts). Faux : ouvertures et clics anonymes, comptes en gros seulement.
+   La copie cachee a soi : toujours faux. */
+export type EnvoiBrevo = { cle: string; expediteur: string; nom: string | null; copie: boolean; suivi?: boolean };
 export type IssueBrevo = { resultat: string; messageId?: string; code?: number; ip?: boolean };
 
 function echapper(t: string) {
@@ -38,13 +43,13 @@ export function texteEnHtml(texte: string) {
 export async function envoyerBrevo(b: EnvoiBrevo, a: string, sujet: string, texte: string, tags: string[] = []): Promise<IssueBrevo> {
   const corps: Record<string, unknown> = {
     sender: b.nom ? { email: b.expediteur, name: b.nom } : { email: b.expediteur },
-    to: [{ email: a }],
+    to: [{ email: a, contactPixelTrackingConsent: b.suivi === true }],
     subject: sujet || '(sans objet)',
     htmlContent: texteEnHtml(texte),
     textContent: texte,
     tags: ['bureau-du-vigneron', ...tags].slice(0, 5),
   };
-  if (b.copie && b.expediteur.toLowerCase() !== a.toLowerCase()) corps.bcc = [{ email: b.expediteur }];
+  if (b.copie && b.expediteur.toLowerCase() !== a.toLowerCase()) corps.bcc = [{ email: b.expediteur, contactPixelTrackingConsent: false }];
   let r: Response;
   try {
     r = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -84,4 +89,12 @@ export const MOTS_BREVO: Record<string, string> = {
   refusee: 'Brevo refuse la clé du bureau : un administrateur doit en coller une nouvelle dans Mes réglages, Mes envois. Le mail n’est pas parti par ta boîte à la place.',
   sans_expediteur: 'Choisis d’abord ton adresse d’expéditeur chez Brevo, dans Mes réglages, Mes envois.',
   plafond: '200 mails envoyés par Brevo aujourd’hui : la limite du jour est atteinte.',
+};
+
+/* Lot 90 : pourquoi un mail par Brevo ne part pas vers cette adresse. Rien n'est parti. */
+export const MOTS_BLOQUE: Record<string, string> = {
+  morte: 'Cette adresse ne marche plus (Brevo l’a vue rejetée) : le mail n’est pas parti. Demande une autre adresse au client.',
+  spam: 'Ce client a classé un de tes mails en spam : Brevo ne lui écrit plus, le mail n’est pas parti.',
+  bloquee: 'Brevo bloque cette adresse : le mail n’est pas parti.',
+  desinscrit: 'Ce client s’est désinscrit de tes mails : Brevo ne lui écrit plus, le mail n’est pas parti.',
 };

@@ -21,6 +21,9 @@
    pas choisi « Par ma boite », le mail part par Brevo (`brevo_pour_envoi`, `_shared/brevo.ts`),
    avec le plafond Brevo (`brevo_envoi_permis`). Si Brevo doit envoyer et ne peut pas (cle
    refusee, pas d'adresse choisie), le mail est en ECHEC : il ne part pas par la boite a la place.
+   LOT 90 : avant Brevo, l'adresse retenue (morte, spam, bloquee, desinscrite des mails 1 a 1)
+   met le mail en ECHEC avec son motif ; le mail dit a Brevo si le client a accepte le suivi.
+   L'empreinte du destinataire est notee avec le mail (`_shared/empreinte.ts`).
    UN MAIL NE PART QU'UNE FOIS : c'est la base qui le tient (statut « envoi » sous verrou),
    pas cette fonction. Un echec ne se rejoue pas tout seul : le vigneron le reprend.
 
@@ -31,7 +34,8 @@
    la cle NOTIF_CLE garde la porte). Aucun secret neuf.
    ============================================================================ */
 import { envoyerSmtp, type Boite } from '../_shared/smtp.ts';
-import { envoyerBrevo, MOTS_BREVO } from '../_shared/brevo.ts';
+import { envoyerBrevo, MOTS_BREVO, MOTS_BLOQUE } from '../_shared/brevo.ts';
+import { empreinte } from '../_shared/empreinte.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -86,10 +90,14 @@ Deno.serve(async (req) => {
       else if (pb && pb.etat === 'ok') {
         if (!m.destinataire) issue = 'destinataire';
         else {
-          const id = await rpc('brevo_envoi_permis', { p_personne: m.personne, p_bureau: m.bureau, p_sorte: 'programmes' });
-          if (id == null) { issue = 'brevo'; motBrevo = MOTS_BREVO.plafond; }
+          const emp = await empreinte(m.bureau, m.destinataire);
+          const dl = await rpc('brevo_destinataire', { p_bureau: m.bureau, p_empreinte: emp });
+          const d = Array.isArray(dl) && dl[0] ? dl[0] : { bloque: null, suivi: false };
+          const id = d.bloque ? null : await rpc('brevo_envoi_permis', { p_personne: m.personne, p_bureau: m.bureau, p_sorte: 'programmes', p_empreinte: emp });
+          if (d.bloque) { issue = 'brevo'; motBrevo = MOTS_BLOQUE[String(d.bloque)] ?? MOTS_BLOQUE.bloquee; }
+          else if (id == null) { issue = 'brevo'; motBrevo = MOTS_BREVO.plafond; }
           else {
-            const r = await envoyerBrevo({ cle: pb.cle, expediteur: pb.expediteur, nom: pb.nom, copie: pb.copie !== false },
+            const r = await envoyerBrevo({ cle: pb.cle, expediteur: pb.expediteur, nom: pb.nom, copie: pb.copie !== false, suivi: d.suivi === true },
               m.destinataire, String(m.sujet ?? ''), String(m.corps ?? ''), ['programmes']);
             code = r.code;
             if (r.resultat === 'parti') { issue = 'parti'; try { await rpc('brevo_envoi_noter', { p_id: id, p_message_id: r.messageId || null }); } catch { /* parti quand meme */ } }
