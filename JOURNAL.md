@@ -10847,3 +10847,5 @@ Demande de Ted. Écran seulement, noms internes inchangés, refus de la base tra
 ## 09/10/2026 : le genre et les accords (lots 2 et 3, SQL lot 92)
 
 `profils.genre` (m, f, n), demandé à l’inscription avant « Tu es » et modifiable dans Mes réglages. Accords centralisés dans bdv-compte.js, mots épicènes pour « je préfère ne pas le dire ». Au féminin : « Le Bureau de la Vigneronne » dans le bureau, « Administratrice », « Utilisatrice », « Vigneronne ». Chaque membre accordé selon son propre genre. Bancs : banc:genre (31), banc:reglages section 8. SQL rejoué deux fois sur PostgreSQL 16. Non genré : courrier du matin, mails, pages publiques.
+
+Redéploiement du 09/10/2026 : `brevo` (v4) et `mails-programmes` (v7, premier passage à 200). `boite` n’utilise pas `_shared/brevo.ts`, pas redéployée.

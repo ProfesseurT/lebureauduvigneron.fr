@@ -8934,8 +8934,9 @@ Demande de Ted : le mot « maître » ne s'affiche plus nulle part. A l'ecran et
   traduit a la sortie de `api()`, de la RPC anonyme et de `fonction()` (`err.message` et
   `err.detail`). `\b` protege `est_maitre`. Une phrase de la base qui passerait par un autre
   chemin afficherait encore le mot : la faire passer par la.
-- Les fonctions Edge `brevo` (et `_shared/brevo.ts`, donc `boite` et `mails-programmes`)
-  portent le nouveau mot : a redeployer.
+- Les fonctions Edge `brevo` et `mails-programmes` (par `_shared/brevo.ts`) portent le nouveau
+  mot : REDEPLOYEES le 09/10/2026 (brevo v4, mails-programmes v7, passage de 09:20 a 200).
+  `boite` n'importe pas `_shared/brevo.ts` : rien a redeployer.
 
 ## LE GENRE ET LES ACCORDS, 09/10/2026 (lots 2 et 3, SQL `supabase/lot92-genre.sql`)
 
