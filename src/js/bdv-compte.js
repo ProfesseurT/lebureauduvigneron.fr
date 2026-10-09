@@ -1154,7 +1154,7 @@
       const detail = await r.text().catch(function(){ return ''; });
       const err = new Error('Supabase a refuse ' + chemin + ' (' + r.status + ')');
       err.status = r.status;
-      err.detail = detail;
+      err.detail = motsEcran(detail);
       throw err;
     }
     const t = await r.text();
@@ -1221,7 +1221,7 @@
       const detail = await r.text().catch(function(){ return ''; });
       const err = new Error('Supabase a refuse ' + nom + ' (' + r.status + ')');
       err.status = r.status;
-      err.detail = detail;
+      err.detail = motsEcran(detail);
       throw err;
     }
     const t = await r.text();
@@ -1539,6 +1539,13 @@
      ce bureau peut inviter », « cette personne est deja dans ce bureau », le plafond
      du jour. Ces phrases sont ecrites pour le vigneron, elles remontent telles quelles
      jusqu'a l'ecran. */
+  /* LES MOTS D'ECRAN DES REFUS DE LA BASE, 09/10/2026, demande de Ted.
+     La base ecrit encore « maitre » dans ses messages (et dans ses noms internes,
+     est_maitre, role 'maitre', qu'on ne renomme pas). L'ecran dit « administrateur ».
+     \b protege les noms internes : dans « est_maitre », le _ colle au mot. */
+  function motsEcran(t){
+    return typeof t === 'string' ? t.replace(/\bma[iî]tre(s?)\b/g, 'administrateur$1') : t;
+  }
   async function fonction(nom, corps){
     if(!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('configuration absente');
     const s = lireSession();
@@ -1556,7 +1563,7 @@
     let data = null;
     try{ data = t ? JSON.parse(t) : null; }catch(e){ data = null; }
     if(!r.ok){
-      const err = new Error((data && data.erreur) || ('la fonction ' + nom + ' a refuse (' + r.status + ')'));
+      const err = new Error(motsEcran((data && data.erreur) || ('la fonction ' + nom + ' a refuse (' + r.status + ')')));
       err.status = r.status;
       throw err;
     }

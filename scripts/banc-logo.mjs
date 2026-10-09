@@ -168,7 +168,7 @@ console.log('\n== 2. Le bloc des reglages ==');
   const hote = w.document.getElementById('hote');
   w.BdvLogo.monter(hote); await w.BdvLogo.rafraichir();
   dit(hote.querySelector('.bdvl-gestes').hidden, 'un simple utilisateur ne voit aucun geste');
-  dit(/Seul le maître du bureau peut le changer/.test(hote.textContent), 'il lit « Seul le maître du bureau peut le changer »');
+  dit(/Seul un administrateur du bureau peut le changer/.test(hote.textContent), 'il lit « Seul le maître du bureau peut le changer »');
   dit(!hote.querySelector('.bdvl-apercu').hidden, 'et il voit le logo');
 }
 {

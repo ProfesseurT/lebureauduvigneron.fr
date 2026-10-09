@@ -138,7 +138,7 @@
     if (!b) {
       c.appendChild(mk('p', 'bdvr-aide', 'Avec la clé API du compte Brevo du domaine, le bureau envoie tes mails par Brevo, depuis l’adresse d’expéditeur de chacun. Tes listes de clients et tes SMS suivront.'));
       if (MAITRE) peindreCle(c, false);
-      else c.appendChild(mk('p', 'bdvr-aide', 'Le maître du bureau peut brancher le compte Brevo du domaine dans cet onglet.'));
+      else c.appendChild(mk('p', 'bdvr-aide', 'Un administrateur du bureau peut brancher le compte Brevo du domaine dans cet onglet.'));
       return;
     }
     var carte = mk('div', 'bdvb-carte');
@@ -147,7 +147,7 @@
     if (b.etat === 'refusee') {
       /* Pas de coche : une cle refusee n'est plus « branchee ». */
       carte.appendChild(mk('p', 'bdvr-aide bdvr-aide--alerte', (b.erreur || 'Brevo refuse cette clé : crée une nouvelle clé API dans Brevo.')
-        + ' Compte : ' + qui + (b.cle_fin ? ', clé terminée par ' + b.cle_fin : '') + '.' + (MAITRE ? '' : ' Préviens le maître du bureau.')));
+        + ' Compte : ' + qui + (b.cle_fin ? ', clé terminée par ' + b.cle_fin : '') + '.' + (MAITRE ? '' : ' Préviens un administrateur du bureau.')));
       carte.appendChild(mk('p', 'bdvr-aide', 'Tant que la clé n’est pas remplacée, les mails qui doivent partir par Brevo ne partent pas : ils ne passent pas par ta boîte à la place.'));
       c.appendChild(carte);
       if (MAITRE) peindreCle(c, true);
@@ -155,7 +155,7 @@
       carte.appendChild(mk('p', 'bdvb-ok', 'Brevo est branché sur ' + qui + fin
         + (b.branche_le ? ', depuis le ' + dateCourte(b.branche_le) : '') + '.'));
       /* Aussi visible que l'etat : sans elle, les reglages au-dessous se lisent comme deja actifs (vigneron, lot 87). */
-      carte.appendChild(mk('p', 'bdvr-aide', 'Ce que le maître a coché ci-dessous part par Brevo, depuis l’adresse d’expéditeur de chacun.'));
+      carte.appendChild(mk('p', 'bdvr-aide', 'Ce que l’administrateur a coché ci-dessous part par Brevo, depuis l’adresse d’expéditeur de chacun.'));
       c.appendChild(carte);
     }
 
@@ -172,7 +172,7 @@
       rg.appendChild(mk('p', 'bdvr-aide', 'Chacun peut quand même faire passer ses mails par sa propre boîte, ci-dessous.'));
     } else {
       var oui = SORTES.filter(function (s) { return b[s[1]] !== false; }).map(function (s) { return s[2].toLowerCase(); });
-      rg.appendChild(mk('p', 'bdvr-aide', oui.length ? 'Le maître a choisi pour Brevo : ' + oui.join(', ') + '.' : 'Le maître n’a rien mis sur Brevo pour l’instant.'));
+      rg.appendChild(mk('p', 'bdvr-aide', oui.length ? 'L’administrateur a choisi pour Brevo : ' + oui.join(', ') + '.' : 'L’administrateur n’a rien mis sur Brevo pour l’instant.'));
     }
     c.appendChild(rg);
 
@@ -182,7 +182,7 @@
     var q = mk('div', 'bdvr-groupe'); q.setAttribute('role', 'radiogroup'); q.setAttribute('aria-label', 'Par où partent tes mails');
     var boite = window.BdvBoite && BdvBoite.prete && BdvBoite.prete() ? BdvBoite.adresse() : '';
     var chemin = CHOIX && CHOIX.chemin === 'boite' ? 'boite' : 'bureau';
-    [['bdvvParBureau', 'bureau', 'Comme le bureau', ' : par Brevo pour ce que le maître a coché, sinon comme avant.'],
+    [['bdvvParBureau', 'bureau', 'Comme le bureau', ' : par Brevo pour ce que l’administrateur a coché, sinon comme avant.'],
      ['bdvvParBoite', 'boite', 'Par ma boîte', boite ? ' ' + boite + ', jamais par Brevo.' : ' : branche-la d’abord dans « D’où partent tes mails ».']].forEach(function (x) {
       var lab = mk('label', 'bdvr-chk'); var r = mk('input'); r.type = 'radio'; r.name = 'bdvvChemin'; r.id = x[0]; r.value = x[1];
       r.checked = chemin === x[1];
@@ -279,7 +279,7 @@
     catch (e) {
       r = { resultat: 'erreur', mot: e && e.status === 503 ? 'Brevo n’est pas encore en place sur ce bureau.'
         : /aucune session/.test(String(e && e.message)) ? 'Ta session a expiré : reconnecte-toi, puis recommence.'
-        : (e && e.status === 403 ? 'Seul le maître du bureau branche Brevo.' : 'La clé n’a pas pu être vérifiée. Réessaie.') };
+        : (e && e.status === 403 ? 'Seul un administrateur du bureau branche Brevo.' : 'La clé n’a pas pu être vérifiée. Réessaie.') };
     }
     EN_COURS = false;
     if (r && r.resultat === 'branche') {

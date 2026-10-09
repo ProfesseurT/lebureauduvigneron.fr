@@ -117,7 +117,7 @@
     var ici = BdvCompte.monBureau();
     choix.innerHTML = liste.map(function (b) {
       return '<option value="' + esc(b.bureau) + '"' + (b.bureau === ici ? ' selected' : '') + '>'
-        + esc(b.nom) + (b.role === 'maitre' ? ' (ma\u00eetre)' : '') + '</option>';
+        + esc(b.nom) + (b.role === 'maitre' ? ' (administrateur)' : '') + '</option>';
     }).join('');
     bloc.hidden = false;
   }
@@ -188,7 +188,7 @@
       if (MAITRE && !cestMoi) {
         gestes = '<button type="button" class="btn btn--geste" data-role="'
           + (g.role === 'maitre' ? 'simple' : 'maitre') + '" data-qui="' + esc(g.personne) + '">'
-          + (g.role === 'maitre' ? 'Repasser en utilisateur' : 'Nommer maître') + '</button>'
+          + (g.role === 'maitre' ? 'Repasser en utilisateur' : 'Nommer administrateur') + '</button>'
           + ' <button type="button" class="btn btn--geste" data-retirer="' + esc(g.personne) + '"'
           + ' data-nom="' + esc(nomDe(g)) + '">Retirer</button>';
       }
@@ -202,7 +202,7 @@
         + '<span class="equipe-ligne__adresse">' + esc(g.email) + '</span>'
         + '</span>'
         + '<span class="equipe-role equipe-role--' + esc(g.role) + '">'
-        + (g.role === 'maitre' ? 'Maître' : 'Utilisateur') + '</span>'
+        + (g.role === 'maitre' ? 'Administrateur' : 'Utilisateur') + '</span>'
         + '<span class="equipe-ligne__gestes">' + gestes + '</span>'
         + '</li>';
     }).join('');
@@ -239,7 +239,7 @@
         + (expiree ? 'lien expiré' : 'en attente')
         + '</span></span>'
         + '<span class="equipe-role equipe-role--' + esc(l.role) + '">'
-        + (l.role === 'maitre' ? 'Maître' : 'Utilisateur') + '</span>'
+        + (l.role === 'maitre' ? 'Administrateur' : 'Utilisateur') + '</span>'
         + '<span class="equipe-ligne__gestes">'
         + '<button type="button" class="btn btn--geste" data-annuler="' + esc(l.email) + '">Annuler</button>'
         + '</span></li>';

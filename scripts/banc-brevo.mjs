@@ -112,7 +112,7 @@ console.log('\n== 1. Non branche ==');
   const { d } = monter({ maitre: false });
   await pause(80);
   dit(!d.getElementById('bdvvCle'), 'un simple utilisateur n\'a pas de champ de cle');
-  dit(/maître du bureau peut brancher/.test(d.getElementById('bdvvCorps').textContent), 'il lit qui peut brancher');
+  dit(/administrateur du bureau peut brancher/.test(d.getElementById('bdvvCorps').textContent), 'il lit qui peut brancher');
 }
 
 console.log('\n== 2. Brancher ==');
@@ -134,7 +134,7 @@ console.log('\n== 2. Brancher ==');
   dit(!appels.some(a => JSON.stringify(a.x || {}).indexOf('0123456789abcdef') >= 0), 'la cle ne part JAMAIS vers la base');
   dit(!d.getElementById('bdvvCle'), 'branche : le champ de la cle a quitte la page');
   dit(/Brevo est branché sur Clos Fertel \(clé terminée par AbCd\)/.test(d.getElementById('bdvvCorps').textContent), 'la carte nomme le compte et la fin de la cle');
-  dit(/Ce que le maître a coché ci-dessous part par Brevo/.test(d.getElementById('bdvvCorps').textContent), 'branche, l\'ecran dit que ce qui est coche part par Brevo');
+  dit(/Ce que l’administrateur a coché ci-dessous part par Brevo/.test(d.getElementById('bdvvCorps').textContent), 'branche, l\'ecran dit que ce qui est coche part par Brevo');
   dit(fonctions.some(x => x.c.action === 'expediteurs'), 'branche, le bureau lit les adresses chez Brevo');
   dit(appels.filter(a => a.chemin.indexOf('/brevo') === 0).every(a => a.chemin.indexOf('bureau=eq.' + B) > 0), 'chaque lecture nomme son bureau');
 }
@@ -155,7 +155,7 @@ console.log('\n== 3. Ce qui part par Brevo (le maitre) ==');
   const { d } = monter({ maitre: false, brevo: Object.assign(BRANCHE(), { defaut_affaires: false }) });
   await pause(100);
   dit(!d.getElementById('bdvvDefaut_devis'), 'un simple utilisateur n\'a pas les cases du bureau');
-  dit(/Le maître a choisi pour Brevo : les devis et les commandes, les mails programmés\./.test(d.getElementById('bdvvCorps').textContent), 'il lit ce que le maitre a coche');
+  dit(/L’administrateur a choisi pour Brevo : les devis et les commandes, les mails programmés\./.test(d.getElementById('bdvvCorps').textContent), 'il lit ce que le maitre a coche');
   dit(!d.getElementById('bdvvRetirer'), 'il ne peut pas retirer Brevo');
 }
 

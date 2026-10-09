@@ -625,7 +625,7 @@ theme_bureau: true
         <ul class="equipe-liste" id="equipeListe"></ul>
 
         <p class="equipe-note" id="equipeNoteSimple" hidden>
-          Seul un maître de ce bureau peut inviter quelqu'un ou changer un rôle.
+          Seul un administrateur de ce bureau peut inviter quelqu'un ou changer un rôle.
         </p>
 
         <form class="equipe-inviter" id="equipeInviterForme" novalidate hidden>
@@ -635,7 +635,7 @@ theme_bureau: true
                    placeholder="son adresse e-mail" maxlength="200">
             <select class="equipe-inviter__r" id="equipeRole" aria-label="Avec quels droits">
               <option value="simple">Utilisateur</option>
-              <option value="maitre">Maître</option>
+              <option value="maitre">Administrateur</option>
             </select>
             {# « Envoyer l'invitation » et plus « Creer le lien », 14/09/2026 : depuis
                le lot 20 ce bouton ENVOIE un mail. Un libelle qui annonce un lien a
@@ -649,7 +649,7 @@ theme_bureau: true
              pas dans une aide qu'il faudrait aller chercher. #}
           <p class="equipe-inviter__aide">
             Un utilisateur voit tout le bureau et n'écrit que ses propres lignes.
-            Un maître peut en plus importer les ventes, changer les réglages et inviter.
+            Un administrateur peut en plus importer les ventes, changer les réglages et inviter.
           </p>
         </form>
 

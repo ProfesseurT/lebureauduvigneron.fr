@@ -560,7 +560,7 @@
     var qui = el('bdvsQui');
     if (qui) qui.textContent = maitre
       ? 'Commun à tout le bureau : chacun l’a sous son nom. Le pied légal se règle dans Mon domaine (raison sociale, SIREN, RCS).'
-      : (MAITRE === false ? 'Réglé par le maître du bureau, pour tout le bureau. Pour changer une ligne, demande-lui.' : 'Commun à tout le bureau.');
+      : (MAITRE === false ? 'Réglé par un administrateur du bureau, pour tout le bureau. Pour changer une ligne, demande-lui.' : 'Commun à tout le bureau.');
     peindreApercu();
     peindreActu();
   }

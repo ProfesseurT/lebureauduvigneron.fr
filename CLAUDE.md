@@ -8922,3 +8922,23 @@ gros clients ecartes d'office (une case les remet) ; le vigneron ecrit sa campag
 - Garde : `npm run banc:brevo-listes` (56, dans verif, mutations tuees). Captures :
   `node scripts/cap-listes-brevo.mjs 1440:light`. Page rgpd : paragraphe des listes.
 
+
+## « MAITRE » DEVIENT « ADMINISTRATEUR » A L'ECRAN, 09/10/2026 (lot 1 de 3)
+
+Demande de Ted : le mot « maître » ne s'affiche plus nulle part. A l'ecran et dans les textes
+(bureau, reglages, page de confidentialite, refus des fonctions Brevo) : « administrateur ».
+- **Les noms internes NE CHANGENT PAS** : role `'maitre'` en base, `est_maitre()`,
+  `MAITRE` dans le JS, `.equipe-role--maitre`, les messages `raise exception` du SQL. Meme
+  regle que « geste / action ». Ne pas « corriger » l'un vers l'autre.
+- **Les refus de la base disent encore « maitre »** : `motsEcran()` de bdv-compte.js les
+  traduit a la sortie de `api()`, de la RPC anonyme et de `fonction()` (`err.message` et
+  `err.detail`). `\b` protege `est_maitre`. Une phrase de la base qui passerait par un autre
+  chemin afficherait encore le mot : la faire passer par la.
+- Les fonctions Edge `brevo` (et `_shared/brevo.ts`, donc `boite` et `mails-programmes`)
+  portent le nouveau mot : a redeployer.
+- La suite, decidee le meme jour : lot 2, le genre sur le profil (masculin, feminin, prefere
+  ne pas le dire), demande a l'inscription et modifiable dans Mes reglages, comptes existants
+  sur « prefere ne pas le dire » ; lot 3, les accords (« Le bureau de la vigneronne »,
+  « Administratrice »), chacun accorde selon SON genre, pas celui de qui regarde, et des mots
+  EPICENES (jamais de point median) pour « prefere ne pas le dire ». Le nom du site et les
+  mails aux clients ne changent pas.

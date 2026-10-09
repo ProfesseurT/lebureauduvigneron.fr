@@ -161,7 +161,7 @@ console.log('\n== 4. L\'onglet dans le panneau ==');
   const d = m.w.document;
   dit(d.getElementById('bdvsNom').value === 'Teddy Pereira', 'ma signature est relue dans les champs');
   dit(d.getElementById('bdvsDomaine').readOnly && d.getElementById('bdvsPied').disabled, 'simple utilisateur : le bloc commun est en lecture seule');
-  dit(/Réglé par le maître/.test(d.getElementById('bdvsQui').textContent), 'et l\'ecran dit qui le regle');
+  dit(/Réglé par un administrateur/.test(d.getElementById('bdvsQui').textContent), 'et l\'ecran dit qui le regle');
   dit(d.getElementById('bdvsMessBureau').checked, 'la question de la messagerie est repondue « non » par defaut');
   const nom = d.getElementById('bdvsNom');
   nom.value = 'Camila Rossi';

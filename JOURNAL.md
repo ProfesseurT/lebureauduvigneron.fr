@@ -10839,3 +10839,7 @@ moins long qu'annoncé, réponse perdue présentée comme « rien n'est parti »
 sous une seule forme, mots « envoyer » trompeurs). Banc SQL 21, banc écran 56, verif vert.
 Ouvert : le plafond de 20 listes par jour peut être dépassé d'une liste par deux clics
 simultanés (accepté) ; un fixe étranger rangé dans la colonne Mobile part comme mobile.
+
+## 09/10/2026 : « maître » devient « administrateur » (lot 1 de 3)
+
+Demande de Ted. Écran seulement, noms internes inchangés, refus de la base traduits par `motsEcran()` (bdv-compte.js). Arbitrages pour la suite : mots épicènes pour « préfère ne pas le dire », genre demandé à l’inscription et modifiable dans Mes réglages. Fonctions `brevo`, `boite`, `mails-programmes` à redéployer.

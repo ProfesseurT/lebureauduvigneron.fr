@@ -74,14 +74,14 @@ export async function envoyerBrevo(b: EnvoiBrevo, a: string, sujet: string, text
 
 /* Les mots du bureau pour chaque issue (les memes pour un clic et pour un mail programme). */
 export const MOTS_BREVO: Record<string, string> = {
-  refus_cle: 'Brevo refuse la clé du bureau : le maître doit en coller une nouvelle dans Mes réglages, Mes envois.',
+  refus_cle: 'Brevo refuse la clé du bureau : un administrateur doit en coller une nouvelle dans Mes réglages, Mes envois.',
   ip: 'Brevo bloque les appels du bureau : dans Brevo, menu Sécurité, « Adresses IP autorisées », désactive le blocage.',
   expediteur: 'Ton adresse d’expéditeur n’est pas (ou plus) validée chez Brevo : choisis-en une autre dans Mes réglages, Mes envois.',
   destinataire: 'Brevo refuse l’adresse du destinataire. Vérifie-la.',
   credits: 'Le compte Brevo n’a plus de crédits d’envoi.',
   passager: 'Brevo demande d’attendre un peu. Réessaie dans un moment.',
   erreur: 'Brevo a refusé l’envoi.',
-  refusee: 'Brevo refuse la clé du bureau : le maître doit en coller une nouvelle dans Mes réglages, Mes envois. Le mail n’est pas parti par ta boîte à la place.',
+  refusee: 'Brevo refuse la clé du bureau : un administrateur doit en coller une nouvelle dans Mes réglages, Mes envois. Le mail n’est pas parti par ta boîte à la place.',
   sans_expediteur: 'Choisis d’abord ton adresse d’expéditeur chez Brevo, dans Mes réglages, Mes envois.',
   plafond: '200 mails envoyés par Brevo aujourd’hui : la limite du jour est atteinte.',
 };

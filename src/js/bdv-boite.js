@@ -132,7 +132,7 @@
     var ge = mk('div', 'bdvb-gestes');
     var bt = mk('button', 'bdvr-btn', 'Tester et brancher'); bt.type = 'button'; bt.id = 'bdvbTester';
     ge.appendChild(bt); f.appendChild(ge);
-    var ae = mk('p', 'bdvr-aide', 'Le bureau t’envoie un mail d’essai avec un code. Ton mot de passe est rangé chiffré, personne ne peut le relire, pas même le maître du bureau.');
+    var ae = mk('p', 'bdvr-aide', 'Le bureau t’envoie un mail d’essai avec un code. Ton mot de passe est rangé chiffré, personne ne peut le relire, pas même l’administrateur du bureau.');
     ae.id = 'bdvbAideEssai'; f.appendChild(ae);
     corps.appendChild(f);
 

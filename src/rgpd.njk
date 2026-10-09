@@ -101,18 +101,18 @@ permalink: /politique-confidentialite/
     <p>Dans <b>Mes réglages</b>, onglet <b>Mes envois</b>, chacun règle sa signature : on garde
       ton <strong>nom</strong>, ton rôle, ton <strong>téléphone</strong> si tu le donnes, et deux
       réponses (la mettre sous les mails du bureau, ta messagerie signe-t-elle déjà). Le domaine a
-      une partie commune, réglée par le maître du bureau : nom, appellation, une ligne pour faire
+      une partie commune, réglée par un administrateur du bureau : nom, appellation, une ligne pour faire
       venir, un lien et une actualité avec sa date de fin. Tout le bureau les lit, et elles ne
       servent qu'à écrire la fin des mails que tu prépares. Le bureau n'envoie rien : c'est ta
       messagerie qui envoie. Supprimer ton compte efface ta signature.</p>
     <p>Si tu choisis « Le bureau envoie pour moi », on garde pour ta boîte : son
       <strong>adresse</strong>, son serveur d'envoi, ton identifiant et le <strong>mot de passe</strong>
       que tu donnes. Ce mot de passe est rangé <strong>chiffré</strong> (dans le coffre de notre base,
-      Supabase Vault) ; personne ne peut le relire, ni toi, ni le maître de ton bureau, ni nous depuis
+      Supabase Vault) ; personne ne peut le relire, ni toi, ni les administrateurs de ton bureau, ni nous depuis
       l'écran. Il ne sert qu'à envoyer les mails que tu as validés, depuis ta boîte. Pour vérifier
       qu'elle marche, le bureau t'envoie un code à 6 chiffres : on ne garde que son empreinte, 15
       minutes. On note aussi l'heure de chaque essai de branchement, un jour, pour en limiter le
-      nombre. Le maître de ton bureau voit l'adresse d'où tu envoies, jamais le mot de passe.
+      nombre. Les administrateurs de ton bureau voient l'adresse d'où tu envoies, jamais le mot de passe.
       « Retirer ma boîte », quitter le bureau ou supprimer ton compte efface le mot de passe
       aussitôt.</p>
     <p>Si tu branches une boîte Gmail « avec Google », tu ne donnes aucun mot de passe : Google te
@@ -136,11 +136,11 @@ permalink: /politique-confidentialite/
       leur texte effacé aussitôt.</p>
     <p>Quand tu notes un échange, tu peux dire le jour où il a eu lieu et qui, dans ton bureau,
       l'a eu. Ce nom est gardé avec l'échange, à côté de celui qui l'a noté.</p>
-    <p>Si le maître de ton bureau branche le compte <strong>Brevo</strong> de votre domaine, on garde
-      la clé de ce compte rangée chiffrée (dans Supabase Vault) : personne ne peut la relire, ni le
-      maître, ni nous depuis l'écran. On garde aussi le nom et l'adresse du compte Brevo, les
+    <p>Si un administrateur de ton bureau branche le compte <strong>Brevo</strong> de votre domaine, on garde
+      la clé de ce compte rangée chiffrée (dans Supabase Vault) : personne ne peut la relire, ni les
+      administrateurs, ni nous depuis l'écran. On garde aussi le nom et l'adresse du compte Brevo, les
       quatre derniers signes de la clé, et pour chacun l'adresse d'expéditeur choisie. Les mails
-      que le maître a cochés partent alors par Brevo, toujours quand tu cliques (ou au moment que
+      que l'administrateur a cochés partent alors par Brevo, toujours quand tu cliques (ou au moment que
       tu as programmé), au seul destinataire affiché : le message, avec le nom et l'adresse de
       ton client, transite par Brevo, l'outil de votre domaine. Pour limiter les envois à 200 par
       jour et retrouver plus tard ce que Brevo dit d'un mail, on garde trente jours, pour chaque

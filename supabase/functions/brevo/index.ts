@@ -127,7 +127,7 @@ function creditsSms(compte: Record<string, unknown> | null) {
 
 async function brancher(moi: string, bureau: string, cle: string) {
   if (!(await rpc('brevo_est_maitre', { p_personne: moi, p_bureau: bureau }))) {
-    return reponse({ erreur: 'Seul le maître du bureau branche Brevo.' }, 403);
+    return reponse({ erreur: 'Seul un administrateur du bureau branche Brevo.' }, 403);
   }
   if (/^xsmtpsib-/i.test(cle)) return reponse({ resultat: 'cle_smtp',
     mot: 'C’est une clé SMTP. Il faut une clé API : dans Brevo, SMTP et API, onglet Clés API, puis Générer une nouvelle clé API.' });

@@ -284,7 +284,7 @@
     choisir.textContent = LOGO ? 'Changer le logo' : 'Choisir mon logo';
     retirer.hidden = !LOGO;
     role.hidden = peut;
-    role.textContent = MAITRE === false ? 'Seul le maître du bureau peut le changer.'
+    role.textContent = MAITRE === false ? 'Seul un administrateur du bureau peut le changer.'
       : 'Je n’arrive pas à savoir si tu peux changer le logo. Vérifie ta connexion.';
   }
 
@@ -323,7 +323,7 @@
         : 'Logo enregistré, il est déjà sur tes prochains devis.', petit);
     } catch (e) {
       dire(e && e.status === 403 || /42501/.test(String(e && e.detail || ''))
-        ? 'Seul le maître du bureau peut changer le logo.'
+        ? 'Seul un administrateur du bureau peut changer le logo.'
         : 'Le logo n’a pas été enregistré. Vérifie ta connexion et réessaie.', true);
     }
   }
