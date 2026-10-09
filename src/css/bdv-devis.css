@@ -510,3 +510,33 @@
 /* LOT 70 : la signature du client dans la preuve. Encre sombre sur fond transparent : le fond
    du logo (blanc en clair, gris tres clair en sombre) la garde lisible dans les deux themes. */
 .bdv-coque .dmod__signature{ display:block; max-width:min(100%, 18rem); height:auto; background:var(--bdv-fond-logo); border:1px solid var(--bdv-trait); margin:0 0 var(--bdv-e-3) 0; }
+
+/* ---- LE DOMAINE SE COMPLETE DANS LE DEVIS, 09/10/2026 (mise en route, lot 2). La recherche
+        de l'annuaire, posee la ou le devis bloquait. Deux « C'est moi » du meme poids : l'ecran
+        ne choisit pas a la place du vigneron. Un souci se dit par un glyphe ET un mot. ---- */
+.bdv-coque .dmod__dom{ display:grid; grid-template-columns:minmax(0, 1fr); gap:var(--bdv-e-3); }
+.bdv-coque .dmod__dom > p{ margin:0; }
+.bdv-coque .dmod__dom-champ{ display:flex; gap:var(--bdv-e-2); }
+.bdv-coque .dmod__dom-q{
+  flex:1; min-width:0; min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-3);
+  font:inherit; font-size:var(--bdv-f-saisie);
+  color:var(--bdv-encre-1); background:var(--bdv-surface);
+  border:1px solid var(--bdv-trait-fort); border-radius:var(--bdv-r);
+}
+.bdv-coque .dmod__dom-q:focus-visible{ outline:2px solid var(--bdv-anneau); outline-offset:2px; }
+.bdv-coque .dmod__dom .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .dmod__dom-res{ margin:var(--bdv-e-2) 0 0; padding:0; list-style:none; border:1px solid var(--bdv-trait); border-radius:var(--bdv-r); }
+.bdv-coque .dmod__dom-res li{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--bdv-e-3);
+  padding:var(--bdv-e-2) var(--bdv-e-3);
+}
+.bdv-coque .dmod__dom-res li + li{ border-top:1px solid var(--bdv-trait); }
+.bdv-coque .dmod__dom-res b{ display:block; font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .dmod__dom-res small{ display:block; font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .dmod__dom-mot--souci{ color:var(--bdv-retard); }
+.bdv-coque .dmod__dom-mot--souci::before{ content:"! "; font-weight:700; }
+@media (max-width: 700px){
+  .bdv-coque .dmod__dom-res li{ flex-wrap:wrap; }
+  .bdv-coque .dmod__dom-res li .btn{ flex:1 0 100%; }
+}

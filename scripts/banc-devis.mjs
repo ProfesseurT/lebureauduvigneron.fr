@@ -139,6 +139,11 @@ function monter(o) {
       op = op || {};
       X.requetes.push({ chemin, methode: op.methode || 'GET', corps: op.corps === undefined ? undefined : JSON.parse(JSON.stringify(op.corps)) });
       await pause(0);
+      if (/^\/domaine\?on_conflict/.test(chemin) && op.methode === 'POST') {
+        if (X.domaine === 'ecriture-ko') return [];
+        X.fiche = Object.assign({ paiement_mode: 'fdm', paiement_jours: 30, validite_jours: 30 }, X.fiche || {}, op.corps);
+        return [Object.assign({}, X.fiche)];
+      }
       if (/^\/domaine\?/.test(chemin)) {
         if (X.domaine === 'panne') throw new TypeError('Failed to fetch');
         if (X.domaine === 'sql') throw refus(404, '{"code":"PGRST205","message":"Could not find the table public.domaine"}');
@@ -512,16 +517,17 @@ titre('3. Ce qui bloque, ce qui manque');
   const X = monter({ fiche: Object.assign({}, FICHE, { siret: null, adresse: '' }) });
   await X.ouvrir();
   t('fiche du domaine incomplete : bloque DES L\'OUVERTURE, et dit ce qui manque',
-    /Il manque des infos sur ton domaine pour faire un devis : le SIRET et l’adresse\./.test(X.corps().textContent), X.corps().textContent);
-  t('aucune proposition demandee, aucun champ a remplir', !X.requetes.some(r => /devis_/.test(r.chemin)) && !X.corps().querySelector('input'));
+    /Avant ce devis, il manque ce qui s’imprime en haut : le SIRET et l’adresse\./.test(X.corps().textContent), X.corps().textContent);
+  t('aucune proposition demandee ; un seul champ, la recherche du domaine (mise en route, lot 2)',
+    !X.requetes.some(r => /devis_/.test(r.chemin)) && X.corps().querySelectorAll('input').length === 1 && !!X.corps().querySelector('#devDomQ'));
   /* Les reglages, tels qu'ils s'ouvrent : l'onglet « Toi » cache, « Mon domaine » visible. */
   X.doc.body.insertAdjacentHTML('beforeend', '<div id="bdvrVoile"><fieldset id="bdvrBlocToi" hidden><input id="bdvrPrenom"></fieldset>'
     + '<fieldset id="bdvrBlocDomaine"><input type="hidden" id="devCache"><input id="bdvdQ"><input id="bdvdRaison"></fieldset></div>');
   X.clic('[data-dev="domaine"]');
   t('« Compléter Mon domaine » : le focus va dans le premier champ de l\'onglet Mon domaine', X.doc.activeElement === X.doc.getElementById('bdvdQ'),
     X.doc.activeElement && (X.doc.activeElement.id || X.doc.activeElement.tagName));
-  t('« Compléter Mon domaine » ferme le devis et ouvre l\'onglet Mon domaine des reglages',
-    /Compléter Mon domaine/.test(X.modale().textContent) && X.modale().hidden && X.reglages[0] === 'bdvrBlocDomaine', JSON.stringify(X.reglages));
+  t('« Remplir la fiche à la main » ferme le devis et ouvre l\'onglet Mon domaine des reglages',
+    /Remplir la fiche à la main dans Mon domaine/.test(X.modale().textContent) && X.modale().hidden && X.reglages[0] === 'bdvrBlocDomaine', JSON.stringify(X.reglages));
   const Y = monter({ fiche: null });
   await Y.ouvrir();
   t('pas de fiche du tout : les cinq champs sont nommes',
@@ -760,7 +766,53 @@ titre('4 ter. Retour du verificateur : ce qui se voit, ce qui garde le focus');
   await Z.enregistrer();
   await attendre(10);
   t('refus « fiche du domaine incomplete » : la fiche est RELUE et seuls les vrais manques sont dits',
-    /Il manque des infos sur ton domaine pour faire un devis : la ville\./.test(Z.corps().textContent), Z.corps().textContent);
+    /Avant ce devis, il manque ce qui s’imprime en haut : la ville\./.test(Z.corps().textContent), Z.corps().textContent);
+}
+/* MISE EN ROUTE, LOT 2 (09/10/2026) : le domaine se complete DANS le devis. Decision de Ted :
+   on bloque l'action, et le formulaire s'ouvre sur place. */
+titre('3 ter. Le domaine se complete dans le devis');
+{
+  const ANNU = { results: [
+    { siren: '123456789', nom_complet: 'EARL DOMAINE DES COTEAUX', etat_administratif: 'A', tva: ['FR32123456789'],
+      siege: { siret: '12345678900017', numero_voie: '3', type_voie: 'RUE', libelle_voie: 'DES VIGNES', code_postal: '44190', libelle_commune: 'CLISSON' } },
+    { siren: '987654321', nom_complet: 'SCEA LES COTEAUX', etat_administratif: 'A', tva: null,
+      siege: { siret: '98765432100011', numero_voie: '1', libelle_voie: 'PLACE', code_postal: '84110', libelle_commune: 'VAISON' } }] };
+  const brancherAnnuaire = (X, rep) => { X.annu = []; X.w.fetch = async (u) => { X.annu.push(u); await pause(0); return rep === 'ko' ? { ok: false, status: 503 } : { ok: true, status: 200, json: async () => rep }; }; };
+  const X = monter({ fiche: null });
+  await X.ouvrir();
+  brancherAnnuaire(X, ANNU);
+  X.doc.getElementById('devDomQ').value = 'coteaux';
+  X.clic('[data-dev="domChercher"]'); await attendre(10);
+  const choix = X.corps().querySelectorAll('[data-dev="domChoisir"]');
+  t('l’annuaire est interroge depuis le devis, et ses reponses s’affichent dans le devis', X.annu.length === 1 && choix.length === 2 && !X.modale().hidden, X.corps().textContent.slice(0, 200));
+  t('les deux « C’est moi » ont le meme poids : l’ecran ne choisit pas', [].every.call(choix, b => b.className === 'btn'));
+  t('la recherche ne passe pas par les reglages', X.reglages.length === 0);
+  X.clic('[data-dev="domChoisir"][data-i="0"]'); await attendre(20);
+  const post = X.requetes.filter(r => /^\/domaine\?on_conflict/.test(r.chemin) && r.methode === 'POST');
+  t('« C’est moi » ecrit la fiche : une ecriture, l’identite seulement', post.length === 1 && post[0].corps.siret === '12345678900017'
+    && post[0].corps.siren === '123456789' && post[0].corps.tva === 'FR32123456789' && !('paiement_mode' in post[0].corps), JSON.stringify(post[0] && post[0].corps));
+  t('puis le devis continue : les vins sont demandes, sans fermer la boite',
+    X.requetes.some(r => r.chemin === '/rpc/devis_propositions') && !X.modale().hidden && !X.corps().querySelector('#devDomQ'));
+  t('et il le dit', /Ton domaine est enregistré/.test(X.doc.getElementById('devAvis').textContent), X.doc.getElementById('devAvis').textContent);
+
+  const Y = monter({ fiche: null });
+  await Y.ouvrir();
+  brancherAnnuaire(Y, 'ko');
+  Y.doc.getElementById('devDomQ').value = 'coteaux';
+  Y.clic('[data-dev="domChercher"]'); await attendre(10);
+  t('annuaire muet : le devis le dit, garde la saisie et le chemin a la main', /ne répond pas/.test(Y.corps().textContent)
+    && Y.doc.getElementById('devDomQ').value === 'coteaux' && !!Y.corps().querySelector('[data-dev="domaine"]'));
+
+  const Z = monter({ fiche: null });
+  Z.domaine = 'ok';
+  await Z.ouvrir();
+  brancherAnnuaire(Z, ANNU);
+  Z.domaine = 'ecriture-ko';
+  Z.doc.getElementById('devDomQ').value = 'coteaux';
+  Z.clic('[data-dev="domChercher"]'); await attendre(10);
+  Z.clic('[data-dev="domChoisir"][data-i="1"]'); await attendre(20);
+  t('une ecriture qui ne rend aucune ligne n’est pas un succes : le devis reste bloque et le dit',
+    /n’a pas été enregistrée/.test(Z.corps().textContent) && !Z.requetes.some(r => r.chemin === '/rpc/devis_propositions'), Z.corps().textContent.slice(0, 160));
 }
 {
   const X = monter({ props: props(9, 'client') });

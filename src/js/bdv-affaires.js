@@ -432,7 +432,7 @@
     document.body.appendChild(MOD);
     brancherSur(MOD);
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && MOD && !MOD.hidden) { e.preventDefault(); fermerPanneau(); }
+      if (e.key === 'Escape' && MOD && !MOD.hidden && !(document.getElementById('bdvrVoile') && !document.getElementById('bdvrVoile').hidden)) { e.preventDefault(); fermerPanneau(); }
     });
     /* S3 (01/10/2026) : EN MODALE, LE CLAVIER RESTE DANS LE PANNEAU. La boite porte
        `aria-modal="true"` sous 1320 px : elle DIT qu'il n'y a rien d'autre a l'ecran, et
@@ -443,6 +443,8 @@
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Tab' || !MOD || MOD.hidden) return;
       if (window.BdvTiroir && BdvTiroir.actif && BdvTiroir.actif()) return;
+      /* Mes reglages par-dessus (« branche ta boite », 09/10/2026) : le clavier est a eux. */
+      var rv = document.getElementById('bdvrVoile'); if (rv && !rv.hidden) return;
       var boite = MOD.querySelector('.tmod__boite');
       var cibles = [].slice.call(boite.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'))
         .filter(function (n) {
@@ -3498,6 +3500,17 @@
      tranche. Un mail d'envoi de devis est un « devis », tout le reste une « affaire ». */
   function sorteRedac(r) { return r && /devis/.test(String(r.k || '')) ? 'devis' : 'affaires'; }
   function boitePrete(sorte) { return !!(window.BdvBoite && BdvBoite.prete && BdvBoite.prete(sorte)); }
+  /* LA MISE EN ROUTE, lot 2 (09/10/2026) : sans boite branchee, l'envoi d'ici est l'ACTION a
+     laquelle il manque une donnee. On ne bloque pas la messagerie, qui marche ; on dit en une
+     ligne ce qui manque et le geste qui l'ouvre sur place (Mes reglages, Mes envois, par-dessus
+     le redacteur). Seulement quand la boite a ete LUE : pendant la lecture on ne sait pas. */
+  function inviterBoite(oui) {
+    var b = window.BdvBoite && BdvBoite._etat ? BdvBoite._etat() : null;
+    if (!oui || !b || !b.LU || b.ABSENTE) return '';
+    var reco = b.BOITE && b.BOITE.etat === 'reconnecter';
+    return '<p class="aff-aide aff-redac__boite">' + (reco ? 'Ta boîte ne répond plus : ' : 'Pour l’envoyer d’ici, sans ouvrir ta messagerie : ')
+      + '<button type="button" class="aff-vers" data-mer="aller" data-onglet="envois">' + (reco ? 'la reconnecter' : 'branche ta boîte') + '</button>, une minute.</p>';
+  }
   function parBrevo(sorte) { return !!(window.BdvBoite && BdvBoite.parBrevo && BdvBoite.parBrevo(sorte)); }
   function libelleEnvoi(sorte) { return window.BdvBoite && BdvBoite.libelle ? BdvBoite.libelle(sorte) : 'Envoyer depuis ma boîte'; }
   /* « De : » dit ce que voit le client (lot 78) : le nom, puis l'adresse entre parentheses. */
@@ -3572,6 +3585,7 @@
         : (mail ? '<a class="btn btn--bordeaux" data-redac="ouvrir" href="' + esc(href) + '">Ouvrir dans ma messagerie</a>' : '')
           + '<button type="button" class="btn" data-aff="redacCopier">Copier le texte</button>')
       + '</div>'
+      + inviterBoite(mail && !boite)
       + htmlProgrammer(a, r, mail)
       + (JOURNAL_ABSENT ? '<p class="aff-aide">L’historique des mails n’est pas encore en place dans ton bureau : ce mail ne sera pas noté.</p>'
         : boite ? ''

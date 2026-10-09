@@ -875,7 +875,7 @@
         PROFIL = lignes[0] || {};
         PROFIL_LU = true;
         if('genre' in PROFIL && BdvCompte.poserGenre) BdvCompte.poserGenre(PROFIL.genre);
-        if(SUR_PROFIL){ try{ SUR_PROFIL(PROFIL); }catch(e){} }
+        if(SUR_PROFIL){ try{ SUR_PROFIL(PROFIL); }catch(e){} } try{ document.dispatchEvent(new CustomEvent('bdv:profil', { detail: PROFIL })); }catch(e){}
         return PROFIL;
       }).catch(function(){ return null; });
   }
@@ -1372,7 +1372,7 @@
       if(profilOk && bougeProfil){
         PROFIL = Object.assign({}, PROFIL, champs);
         gateVitisoft();
-        if(SUR_PROFIL){ try{ SUR_PROFIL(PROFIL); }catch(e){} }
+        if(SUR_PROFIL){ try{ SUR_PROFIL(PROFIL); }catch(e){} } try{ document.dispatchEvent(new CustomEvent('bdv:profil', { detail: PROFIL })); }catch(e){}
       }
       if(reglagesOk && bougeReglages){
         REGL = Object.assign({}, r, nouv);
@@ -1461,6 +1461,8 @@
     armerAttente();
     if(!PROFIL_LU) chargerProfil().then(function(np){ if(np && encore()){ remplir(); reposerFocus(); } });
     if(!REGL_LU)   chargerReglages().then(function(nr){ if(nr && encore()){ remplir(); reposerFocus(); } });
+    /* La mise en route pose son bandeau en tete (bdv-mise-en-route.js, 09/10/2026). */
+    try{ document.dispatchEvent(new CustomEvent('bdv:reglages', { detail: { ouvert: true } })); }catch(e){}
   }
 
   /* LE FOCUS ET LE CLAVIER DU PANNEAU, 01/10/2026 (saisie S4, juge V17).
@@ -1539,6 +1541,7 @@
     if(RETOUR_FOCUS && RETOUR_FOCUS.focus) RETOUR_FOCUS.focus();
     RETOUR_FOCUS = null;
     celluleReglages(false);
+    try{ document.dispatchEvent(new CustomEvent('bdv:reglages', { detail: { ouvert: false } })); }catch(e){}
   }
 
   /* ====================== LE BOUTON « ME DECONNECTER » ======================

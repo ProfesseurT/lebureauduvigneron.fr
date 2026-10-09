@@ -196,6 +196,9 @@
   }
 
   function mode() { return el('bdvbBureau') && el('bdvbBureau').checked ? 'bureau' : 'messagerie'; }
+  var VISER = false;
+  function viser() { VISER = true; if (LU && el('bdvbZone')) { peindre(); montrerZone(); } }
+  function montrerZone() { var z = el('bdvbZone'); if (z && z.scrollIntoView) { try { z.scrollIntoView({ block: 'start' }); } catch (e) {} } }
 
   function peindreEtatHaut() {
     var bureauMode = mode() === 'bureau';
@@ -222,6 +225,12 @@
       el('bdvbBureau').checked = !!(b && b.utiliser);
       el('bdvbMess').checked = !(b && b.utiliser);
     }
+    /* ARRIVE PAR « BRANCHE TA BOITE » (mise en route, lot 2, 09/10/2026). Le vigneron vient de
+       demander a brancher : on montre le branchement, au lieu de « Ma messagerie » coche. Rien
+       n'est ecrit tant qu'aucune boite n'existe (le choix ne s'enregistre qu'avec elle). */
+    var viser = VISER && LU; if (viser) VISER = false;
+    if (viser && !b) { el('bdvbBureau').checked = true; el('bdvbMess').checked = false; el('bdvbZone').dataset.touche = '1'; }
+    if (viser) setTimeout(montrerZone, 0);
     var bureauMode = mode() === 'bureau';
     var branchee = BOITE && BOITE.etat === 'branchee';
     peindreEtatHaut();
@@ -609,6 +618,6 @@
 
   window.BdvBoite = { prete: prete, parBrevo: parBrevo, libelle: libelle,
     adresse: function (sorte) { return parBrevo(sorte) ? BdvBrevo.expediteur() : BOITE ? BOITE.adresse : ''; },
-    nom: nomVu, envoyer: envoyer, charger: charger,
+    nom: nomVu, envoyer: envoyer, charger: charger, viser: viser,
     _etat: function () { return { BOITE: BOITE, LU: LU, ABSENTE: ABSENTE, FOURN: FOURN, MDP: MDP }; } };
 })();

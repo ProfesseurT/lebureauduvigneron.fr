@@ -7174,3 +7174,202 @@ body.bdv-coque #bureauPage .page-aff__achats .fiche__cmds td{ white-space:nowrap
 .bdv-coque .page-aff .page-aff__bloc--redac{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--bdv-e-3); }
 .bdv-coque .page-aff .page-aff__bloc--redac > :is(.aff-redac, .aff-noter){ flex:0 1 auto; margin-top:0; padding-top:0; border-top:0; }
 .bdv-coque .page-aff .page-aff__bloc--redac > :is(.aff-redac, .aff-noter)[open]{ flex-basis:100%; }
+
+/* ===================================================================================
+   41. LA MISE EN ROUTE, 09/10/2026. Pose par src/js/bdv-mise-en-route.js : la carte
+   `#bureauMer` en tete de Ma journee, et le bandeau `#bdvrMer` en tete de Mes reglages.
+   Maquette jugee par le vigneron (deux tours, feu vert) : Claude outputs/maquette-
+   onboarding.html. Trois regles du dessin, chacune venue de lui :
+   1. UNE etape proposee, UN bouton plein. Le reste est en liens de 44 px de cible.
+   2. L'etat d'une etape se dit par une FORME et un MOT, jamais par la couleur seule :
+      segment plein (fait), en contour (a faire), vide en pointille (a refaire) ;
+      « 3 sur 5, 1 a refaire » en toutes lettres ; un « ! » cercle sur l'onglet, que le
+      bandeau nomme en mots juste au-dessus (en toutes lettres, l'etiquette repliait les
+      onglets sur deux rangees).
+   3. Les segments vides sont en contour `--bdv-encre-4` : en sombre, un fond gris sur
+      presque noir ne se voyait plus a 23 h.
+   La carte n'est PAS une `.zone` : `npm run banc` controle l'ordre des zones de
+   #bureauJournee, et elle n'en fait pas partie. `grid-column:1 / -1`, regle du 14/09.
+   Que des jetons, aucune ombre, aucun z-index.
+   =================================================================================== */
+/* Le nombre d'etapes : 5 par defaut, le module le redit sur la barre (3 pour un membre). */
+.bdv-coque .mer,
+.bdv-coque .mer-bandeau{ --mer-n:5; }
+.bdv-coque .mer{
+  grid-column:1 / -1;
+  background:var(--bdv-surface);
+  border:1px solid var(--bdv-accent-trait);
+  border-left:3px solid var(--bdv-accent);
+  border-radius:var(--bdv-r);
+  padding:var(--bdv-e-4) var(--bdv-e-6);
+  color:var(--bdv-encre-2);
+}
+.bdv-coque .mer__tete{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:var(--bdv-e-3); }
+.bdv-coque .mer__titre{
+  margin:0;
+  font-family:inherit;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .mer__compte{ font-size:var(--bdv-f-3); font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .mer__compte-r{ color:var(--bdv-retard); }
+.bdv-coque .mer__reste{ font-size:var(--bdv-f-2); color:var(--bdv-encre-3); }
+.bdv-coque .mer__pas{
+  display:grid;
+  grid-template-columns:repeat(var(--mer-n), minmax(0, 1fr));
+  gap:var(--bdv-e-1);
+  margin:var(--bdv-e-3) 0 var(--bdv-e-1);
+}
+.bdv-coque .mer__seg{
+  height:var(--bdv-e-2);
+  border:1px solid var(--bdv-encre-4);
+  border-radius:var(--bdv-r-pastille);
+}
+.bdv-coque .mer__seg--fait{ background:var(--bdv-accent); border-color:var(--bdv-accent); }
+.bdv-coque .mer__seg--refaire{ border:2px dashed var(--bdv-retard); }
+.bdv-coque .mer__chapeau{ margin:var(--bdv-e-2) 0 0; font-size:var(--bdv-f-3); color:var(--bdv-encre-2); }
+.bdv-coque .mer__noms{
+  display:grid;
+  grid-template-columns:repeat(var(--mer-n), minmax(0, 1fr));
+  gap:var(--bdv-e-1);
+  margin:0;
+  padding:0;
+  list-style:none;
+  font-size:var(--bdv-f-1);
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .mer__nom--fait{ color:var(--bdv-encre-2); }
+.bdv-coque .mer__nom--suite{ color:var(--bdv-encre-1); font-weight:600; }
+.bdv-coque .mer__nom--refaire{ color:var(--bdv-retard); font-weight:600; }
+.bdv-coque .mer__corps{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-6);
+  margin-top:var(--bdv-e-3);
+  padding-top:var(--bdv-e-3);
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .mer__txt{ flex:1; min-width:0; }
+.bdv-coque .mer__suite{ margin:0; font-size:var(--bdv-f-4); font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .mer__txt--refaire .mer__suite{ color:var(--bdv-retard); }
+.bdv-coque .mer__suite small,
+.bdv-coque .mer__nom small{ font-size:var(--bdv-f-2); font-weight:500; color:var(--bdv-encre-3); margin-left:var(--bdv-e-1); }
+.bdv-coque .mer__ex{ margin:var(--bdv-e-1) 0 0; font-size:var(--bdv-f-3); color:var(--bdv-encre-2); }
+.bdv-coque .mer__gestes{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--bdv-e-2); }
+.bdv-coque .mer__gestes--bas{ margin-top:var(--bdv-e-3); }
+.bdv-coque .mer .btn{ min-height:var(--bdv-cible); }
+.bdv-coque .mer__lien{
+  min-height:var(--bdv-cible);
+  padding:0 var(--bdv-e-1);
+  background:none;
+  border:0;
+  color:var(--bdv-encre-2);
+  font:inherit;
+  font-size:var(--bdv-f-3);
+  font-weight:500;
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.bdv-coque .mer__lien:hover{ color:var(--bdv-encre-1); }
+
+/* -- 41.1 La liste des etapes, depliee dans la carte. */
+.bdv-coque .mer__etapes{ margin:var(--bdv-e-3) 0 0; padding:0; list-style:none; }
+.bdv-coque .mer__etape{
+  display:grid;
+  grid-template-columns:1.75rem minmax(0, 1fr) auto;
+  gap:var(--bdv-e-3);
+  align-items:center;
+  padding:var(--bdv-e-3) 0;
+  border-top:1px solid var(--bdv-trait);
+}
+.bdv-coque .mer__marque{
+  display:grid;
+  place-items:center;
+  width:1.5rem;
+  height:1.5rem;
+  border:2px solid var(--bdv-encre-4);
+  border-radius:var(--bdv-r-rond);
+  font-size:var(--bdv-f-2);
+  font-weight:700;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .mer__etape--fait .mer__marque{ background:var(--bdv-accent); border-color:var(--bdv-accent); color:var(--bdv-encre-sur-accent); }
+.bdv-coque .mer__etape--refaire .mer__marque{ border-color:var(--bdv-retard); color:var(--bdv-retard); }
+.bdv-coque .mer__etape--refaire .mer__nom{ color:var(--bdv-retard); }
+.bdv-coque .mer__nom{ margin:0; font-weight:600; color:var(--bdv-encre-1); }
+.bdv-coque .mer__etape .mer__ex{ font-size:var(--bdv-f-2); color:var(--bdv-encre-3); margin:0; }
+.bdv-coque .mer__sous{
+  margin:var(--bdv-e-4) 0 0;
+  font-size:var(--bdv-f-1);
+  font-weight:600;
+  letter-spacing:var(--bdv-ls-etiq);
+  text-transform:uppercase;
+  color:var(--bdv-encre-3);
+}
+.bdv-coque .mer__sous small{ text-transform:none; letter-spacing:0; font-size:var(--bdv-f-2); font-weight:500; color:var(--bdv-encre-2); margin-left:var(--bdv-e-2); }
+.bdv-coque .mer__plus{ margin:var(--bdv-e-1) 0 0; padding:0; list-style:none; }
+.bdv-coque .mer__plus li{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--bdv-e-3);
+  padding:var(--bdv-e-2) 0;
+  border-top:1px solid var(--bdv-trait);
+  font-size:var(--bdv-f-2);
+}
+
+/* -- 41.2 Le bandeau en tete de Mes reglages, et l'etiquette « a faire » d'un onglet. */
+.bdv-coque .mer-bandeau{
+  display:flex;
+  align-items:center;
+  gap:var(--bdv-e-4);
+  margin-top:var(--bdv-e-3);
+  padding:var(--bdv-e-3) var(--bdv-e-4);
+  background:var(--bdv-accent-lavis);
+  border:1px solid var(--bdv-accent-trait);
+  border-radius:var(--bdv-r);
+}
+.bdv-coque .mer-bandeau .mer__pas{ flex:none; width:12rem; margin:0; }
+.bdv-coque .mer-bandeau__x{ flex:1; margin:0; font-size:var(--bdv-f-3); color:var(--bdv-encre-1); }
+.bdv-coque .mer-bandeau__x b{ font-weight:600; white-space:nowrap; }
+.bdv-coque .mer-bandeau__ou{ display:none; }
+.bdv-coque .mer-bandeau .btn{ min-height:var(--bdv-cible); flex:none; }
+.bdv-coque .mer__af{
+  display:inline-grid;
+  place-items:center;
+  width:1.1rem;
+  height:1.1rem;
+  margin-left:var(--bdv-e-1);
+  border:2px solid var(--bdv-accent);
+  border-radius:var(--bdv-r-rond);
+  font-size:var(--bdv-f-1);
+  font-weight:700;
+  line-height:1;
+  color:var(--bdv-accent);
+  vertical-align:middle;
+}
+
+/* -- 41.3 Sur telephone : les noms d'etapes partent (le compte les dit), le bouton prend
+      toute la largeur, les deux liens se partagent la rangee du dessous. */
+@media (max-width: 700px){
+  .bdv-coque .mer{ padding:var(--bdv-e-4); }
+  .bdv-coque .mer__noms{ display:none; }
+  .bdv-coque .mer__corps{ flex-direction:column; align-items:stretch; gap:var(--bdv-e-3); }
+  .bdv-coque .mer__corps .mer__gestes{ justify-content:space-between; }
+  .bdv-coque .mer__corps .mer__gestes .btn{ flex:1 0 100%; }
+  .bdv-coque .mer__etape{ grid-template-columns:1.75rem minmax(0, 1fr); }
+  .bdv-coque .mer__etape > :is(.btn, .mer__lien){ grid-column:2; justify-self:start; }
+  /* Sur telephone le bandeau tient sur une rangee : le compte et « Reprendre ». La suite
+     est dite par le bouton lui-meme (il ouvre le bon onglet) ; en toutes lettres, le
+     bandeau mangeait 230 px des 844 de l'ecran, avant le premier champ. */
+  .bdv-coque .mer-bandeau{ flex-wrap:wrap; gap:var(--bdv-e-2) var(--bdv-e-3); padding:var(--bdv-e-2) var(--bdv-e-3); }
+  .bdv-coque .mer-bandeau .mer__pas{ width:100%; }
+  .bdv-coque .mer-bandeau__suite{ display:none; }
+  /* Mais il NOMME l'onglet : sur telephone la rangee defile, et l'onglet marque peut etre hors champ. */
+  .bdv-coque .mer-bandeau__ou{ display:block; font-size:var(--bdv-f-2); color:var(--bdv-encre-2); }
+}

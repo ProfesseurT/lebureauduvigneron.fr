@@ -182,6 +182,31 @@
     }
   }
 
+  /* ADOPTER UNE LIGNE DE L'ANNUAIRE SANS PASSER PAR LE FORMULAIRE, 09/10/2026 (mise en
+     route, lot 2). C'est le devis qui l'appelle quand la fiche manque : le vigneron cherche
+     son domaine DANS le devis, choisit, et le devis continue. N'envoie QUE l'identite :
+     `merge-duplicates` ne touche pas aux conditions, au telephone ni au courriel deja
+     saisis, et une premiere fiche prend les valeurs par defaut de la base (30 jours fin de
+     mois, devis valable 30 jours). Une TVA deja saisie n'est gardee que si elle va avec le
+     nouveau SIRET : sinon la base la refuserait, et l'ecran l'aurait annoncee juste. */
+  async function adopter(x) {
+    var b = bureau();
+    if (!b || !x || !x.siret) throw new Error('rien a adopter');
+    var f0 = FICHE || {};
+    var tva = x.tva || ((f0.tva && String(f0.tva).slice(4) === x.siret.slice(0, 9)) ? f0.tva : null);
+    var f = { bureau: b, raison_sociale: x.nom || null, forme_juridique: x.forme || f0.forme_juridique || null,
+      siret: x.siret, siren: x.siret.slice(0, 9), tva: tva,
+      adresse: x.adresse || f0.adresse || null, code_postal: x.code_postal || f0.code_postal || null, ville: x.ville || f0.ville || null };
+    var l = await BdvCompte.api('/domaine?on_conflict=bureau', {
+      methode: 'POST', corps: f, entetes: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+    });
+    /* Une ecriture qui ne rend aucune ligne n'a rien ecrit (regle du lot 34). */
+    if (!Array.isArray(l) || !l.length) throw new Error('rien ecrit');
+    FICHE = l[0]; LU = true; TOUCHE = false;
+    if (el('bdvdRaison')) peindre();
+    return FICHE;
+  }
+
   /* ---------------- L'ECRAN ---------------- */
   function dire(m, alerte) {
     var p = el('bdvdMot');
@@ -421,6 +446,6 @@
   if (!brancher()) document.addEventListener('DOMContentLoaded', brancher);
 
   window.BdvDomaine = { charger: charger, fiche: function () { return FICHE; }, lue: function () { return LU; }, complete: complete, requis: function () { return REQUIS.map(function (r) { return r[0]; }); },
-                        conditions: conditions, chercher: chercher, mentions: function () { return MENTIONS; },
+                        conditions: conditions, chercher: chercher, adopter: adopter, mentions: function () { return MENTIONS; },
                         _lire: lire, _defauts: defauts };
 })();

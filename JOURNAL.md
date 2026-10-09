@@ -13,6 +13,50 @@ trois jours. Ne pas s'en étonner en relisant.
 ---
 
 
+## 09/10/2026, la mise en route, lot 2 : ce qui bloque s'ouvre sur place
+
+- **Devis sans fiche du domaine** : on cherche son domaine DANS le devis (nom ou SIREN,
+  annuaire officiel), « C'est moi », et le devis continue sans fermer. Seule l'identité est
+  écrite, les conditions déjà saisies ne bougent pas.
+- **Mail sans boîte branchée** : la messagerie reste ; une ligne « branche ta boîte » ouvre Mes
+  envois par-dessus le rédacteur, sur le branchement directement.
+- Défaut trouvé en passant : Échap dans Mes réglages ouverts par-dessus une fiche fermait aussi
+  la fiche (et son brouillon). Corrigé, avec le piège à focus.
+- Vigneron sur captures réelles : feu vert devis et rédacteur, orange puis corrigé pour Mes
+  envois (« Ma messagerie » restait coché). Bancs verts (`banc:devis` 511, `banc:mise-en-route`
+  40) ; `banc:devis` (A4) et `banc:signature` (W9) ont échoué une fois chacun sous la charge de
+  `verif`, verts seuls (intermittence déjà connue).
+
+## 09/10/2026, la mise en route (onboarding), lot 1 de 2
+
+- **Demande de Ted** : emmener le vigneron plus loin que prénom et genre, avec une barre de
+  progression et un bouton pour reprendre dans Mes réglages.
+- **Conseil tenu** (vigneron empathique, expert commercial, contradicteur), unanime : ne jamais
+  bloquer l'entrée du bureau. Ça fabrique de fausses fiches (SIRET « aaa » pour passer), et un
+  consentement exigé pour entrer n'est pas libre (RGPD art. 7, considérant 43).
+- **Arbitrages de Ted** : on bloque l'ACTION qui dépend de la donnée, jamais l'entrée (lot 2) ;
+  une carte en tête de Ma journée ; « Pas aujourd'hui » la cache pour la journée seulement, elle
+  revient chaque jour (le 7 jours / 3 fois proposé a été refusé) ; maquette d'abord.
+- **Fait** : `src/js/bdv-mise-en-route.js` (defer, zéro octet bloquant). Cinq étapes pour un
+  admin (qui tu es, ton domaine, ta base Vitisoft, tes chiffres justes, tes mails à ton nom),
+  trois pour un membre invité (qui tu es, ta signature, tes mails), et sans Vitisoft la base et
+  le classement deviennent « ta première affaire » et « son rappel ». Courrier de 8 h,
+  notifications et équipe sont proposés « en plus » et ne comptent jamais.
+- La progression est CALCULÉE à chaque lecture (profil, rôle par `est_maitre`, `reglages`,
+  boîte, domaine, signature, affaires). Une boîte à reconnecter fait repasser l'étape « à
+  refaire », proposée avant la suivante. Une lecture ratée n'est ni faite ni proposée.
+- Aucun champ dans le module : chaque étape ouvre l'onglet de Mes réglages qui porte déjà le
+  réglage. `bdv-reglages.js` émet `bdv:profil` et `bdv:reglages` pour que la carte se repeigne.
+- Maquette jugée par le vigneron en deux tours (`Claude outputs/maquette-onboarding.html`),
+  puis le vrai bureau en un tour (feu vert Ma journée ; sur iPhone le bandeau nomme l'onglet,
+  et la marque d'un onglet est le numéro de l'étape, « ! » seulement pour ce qui est cassé).
+- Bancs : `npm run banc:mise-en-route` (29 contrôles, 5 mutations tuées), dans `verif`.
+  Captures : `node scripts/cap-mise-en-route.mjs <dossier>` (playwright, hors verif).
+- **Reste, lot 2** : les blocages sur place (devis sans fiche du domaine : recherche SIREN dans
+  le devis même ; envoi sans boîte branchée). Signalé, antérieur : à 1440 les onglets des
+  réglages tiennent sur deux rangées.
+
+
 
 
 ## 08/10/2026, lot 86 : brancher sa boîte « avec Google » (option D, Google seul)

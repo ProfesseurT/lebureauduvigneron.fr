@@ -1265,3 +1265,6 @@
   .bdv-ventes #p-clients .toolbar .chk{order:2}
   .bdv-ventes #p-clients .toolbar .muted-cell{order:3}
 }
+/* Mise en route, lot 2 (09/10/2026) : le lien « branche ta boite » sous le redacteur de la fiche.
+   Une cible de 44 px au pouce, sans dessiner plus gros. */
+.bdv-ventes .msg__boite{display:inline-flex;align-items:center;min-height:var(--bdv-cible);padding:0 var(--bdv-e-1);font-size:inherit}

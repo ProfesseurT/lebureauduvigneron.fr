@@ -3180,6 +3180,9 @@ function messageEnvoye(btn){
 /* LOT 88 : un mail ecrit depuis la fiche est de la sorte « affaires » : il part par Brevo si le
    maitre l'a coche et que la personne n'a pas choisi sa boite ; bdv-boite.js tranche. */
 function boitePrete(){return !!(window.BdvBoite&&BdvBoite.prete&&BdvBoite.prete('affaires'));}
+/* Mise en route, lot 2 (09/10/2026) : sans boite branchee, une ligne dit ce qui manque pour
+   envoyer d'ici, et ouvre Mes envois par-dessus la fiche. Seulement une fois la boite LUE. */
+function inviterBoiteFiche(){const b=window.BdvBoite&&BdvBoite._etat?BdvBoite._etat():null;if(!b||!b.LU||b.ABSENTE)return '';const reco=b.BOITE&&b.BOITE.etat==='reconnecter';return `<p class="note">${reco?'Ta boîte ne répond plus : ':'Pour l’envoyer d’ici, sans ouvrir ta messagerie : '}<button type="button" class="btn--lien msg__boite" data-mer="aller" data-onglet="envois">${reco?'la reconnecter':'branche ta boîte'}</button>, une minute.</p>`;}
 function parBrevoFiche(){return !!(window.BdvBoite&&BdvBoite.parBrevo&&BdvBoite.parBrevo('affaires'));}
 function libelleEnvoiFiche(){return window.BdvBoite&&BdvBoite.libelle?BdvBoite.libelle('affaires'):'Envoyer depuis ma boîte';}
 /* « De : » dit ce que voit le client (lot 78) : le nom, puis l'adresse entre parentheses. */
@@ -3234,6 +3237,7 @@ function messageHTML(f,motif){
     </div>
     ${boite?`<p class="note">De : ${deBoite()}${parBrevoFiche()?', par Brevo':', ta boîte branchée'}. À : <b>${esc(mail)}</b>.</p>`:''}
     ${mail?'':'<p class="note">Pas d\'adresse e-mail pour ce client : copie le texte ou appelle-le.</p>'}
+    ${mail&&!boite?inviterBoiteFiche():''}
   </div>`;
 }
 
@@ -3633,6 +3637,9 @@ window.bdvQuitterLaFiche=function(id,opts){
 document.addEventListener('keydown',function(e){
   if(e.key!=='Tab')return;
   const m=el('modale');if(!m||!m.classList.contains('on'))return;
+  /* Mes reglages ouverts PAR-DESSUS la fiche (mise en route, « branche ta boite », 09/10/2026) :
+     le clavier appartient au panneau, la fiche ne le reprend pas. */
+  const rv=el('bdvrVoile');if(rv&&!rv.hidden)return;
   /* LE PIEGE EST LA MOITIE D'UN CONTRAT DE MODALE, DONC IL S'EN VA AVEC ELLE.
      En tiroir, la liste reste a l'ecran et reste le sujet : enfermer le clavier
      dans la fiche interdirait d'atteindre le client suivant autrement qu'a la

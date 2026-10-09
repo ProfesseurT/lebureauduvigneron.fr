@@ -457,6 +457,7 @@
     });
     MOD.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'checkbox') ev.preventDefault();
+      if (ev.key === 'Enter' && ev.target && ev.target.id === 'devDomQ') domChercher();
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && MOD && !MOD.hidden) { e.preventDefault(); fermer(); }
@@ -638,7 +639,7 @@
     if (moi !== S) return;
     if (fiche === false && !lectureSeule()) { S.etat = 'illisible'; peindre(); return; }
     var manque = manquesDomaine(fiche || null);
-    if (manque.length && !lectureSeule()) { S.etat = 'blocage'; S.manque = manque; peindre(); return; }
+    if (manque.length && !lectureSeule()) { S.etat = 'blocage'; S.blocageDe = 'ouverture'; S.manque = manque; peindre(); return; }
     S.fiche = fiche || null;
     await charger(moi);
   }
@@ -775,8 +776,7 @@
     tete.innerHTML = '<h2 class="tmod__titre" id="devTitre">' + titre + '</h2><p class="tmod__sous">' + sous + '</p>';
     MOD.querySelector('.tmod__boite').classList.toggle('dmod__boite--apercu', S.etat === 'apercu');
     if (S.etat === 'chargement') corps.innerHTML = '<p class="aff-aide">Ouverture du devis…</p>';
-    else if (S.etat === 'blocage') corps.innerHTML = '<div class="dmod__bloque"><p class="dmod__phrase">Il manque des infos sur ton domaine pour faire un devis : '
-      + esc(liste(S.manque)) + '.</p><p><button type="button" class="btn btn--bordeaux" data-dev="domaine">Compléter Mon domaine</button></p></div>';
+    else if (S.etat === 'blocage') corps.innerHTML = htmlBlocage();
     else if (S.etat === 'indispo') corps.innerHTML = '<p class="dmod__phrase">' + MOT_SQL + '</p>';
     else if (S.etat === 'illisible') corps.innerHTML = '<p class="dmod__phrase">' + MOT_DOMAINE_ILLISIBLE + '</p>';
     else if (S.etat === 'panne') corps.innerHTML = '<p class="dmod__phrase">Le devis ne s’est pas ouvert : ta connexion a coupé.</p>'
@@ -1693,6 +1693,8 @@
     if (q === 'retour') { retour(); return; }
     if (q === 'ecrireMail') { retour({ mail: true }); return; }
     if (q === 'domaine') { ouvrirDomaine(); return; }
+    if (q === 'domChercher') { domChercher(); return; }
+    if (q === 'domChoisir') { domChoisir(Number(b.getAttribute('data-i'))); return; }
     if (q === 'etape') { montrerEtape(Number(b.getAttribute('data-vers'))); return; }
     if (q === 'suivant') { montrerEtape(Math.min(3, (S.etape || 1) + 1)); return; }
     if (q === 'pli') { basculerPli(b.getAttribute('data-pli'), undefined, true); return; }
@@ -1919,6 +1921,81 @@
     majTotaux();
     ecrireBrouillon();
   }
+  /* LE DOMAINE SE COMPLETE DANS LE DEVIS, 09/10/2026 (mise en route, lot 2). Decision de
+     Ted : on bloque l'ACTION qui depend de la donnee, et le formulaire s'ouvre SUR PLACE.
+     Avant, « Completer Mon domaine » fermait le devis. Le vigneron tape son nom ou son
+     SIREN, l'annuaire (BdvDomaine.chercher, une seule porte) propose, il choisit, la fiche
+     s'ecrit (BdvDomaine.adopter) et le devis continue la ou il en etait : lignes gardees.
+     Les deux « C'est moi » ont le MEME poids : l'ecran ne choisit pas a sa place. Le
+     formulaire complet reste a un lien, pour qui veut tout remplir a la main. */
+  function htmlBlocage() {
+    var r = S.domRecherche || {};
+    var s = '<div class="dmod__bloque dmod__dom"><p class="dmod__phrase">Avant ce devis, il manque ce qui s’imprime en haut : '
+      + esc(liste(S.manque)) + '.</p>'
+      + '<p class="aff-aide">Tape le nom de ton domaine ou ton SIREN : l’annuaire officiel remplit le reste. Une minute. '
+      + (S.blocageDe === 'edition' ? 'Tes lignes sont gardées : ton devis reprend juste après.' : 'Ton devis s’ouvre juste après.') + '</p>'
+      + '<div class="dmod__dom-champ"><label class="hors-ecran" for="devDomQ">Nom ou SIREN de ton domaine</label>'
+      + '<input type="text" id="devDomQ" class="dmod__dom-q" autocomplete="organization" value="' + esc(r.q || '') + '">'
+      + '<button type="button" class="btn" data-dev="domChercher">Chercher</button></div>'
+      + '<div id="devDomRes" aria-live="polite">';
+    if (r.attente) s += '<p class="aff-aide">Recherche…</p>';
+    else if (r.mot) s += '<p class="aff-aide' + (r.souci ? ' dmod__dom-mot--souci' : '') + '">' + esc(r.mot) + '</p>';
+    if (r.liste && r.liste.length) {
+      s += '<ul class="dmod__dom-res">' + r.liste.map(function (x, i) {
+        return '<li><span><b>' + esc((x.actif ? '' : 'Fermée · ') + x.nom) + '</b><small>'
+          + esc(['SIREN ' + x.siret.slice(0, 9), (x.code_postal + ' ' + x.ville).trim()].filter(Boolean).join(' · ')) + '</small></span>'
+          + '<button type="button" class="btn" data-dev="domChoisir" data-i="' + i + '"' + (r.ecriture ? ' disabled' : '') + '>C’est moi</button></li>';
+      }).join('') + '</ul>';
+    }
+    s += '</div><p><button type="button" class="dmod__lien" data-dev="domaine">Remplir la fiche à la main dans Mon domaine</button></p></div>';
+    return s;
+  }
+  async function domChercher() {
+    var q = el('devDomQ'); if (!q) return;
+    var moi = S;
+    S.domRecherche = { q: q.value, attente: true };
+    peindre();
+    var r = window.BdvDomaine && BdvDomaine.chercher ? await BdvDomaine.chercher(q.value) : { ok: false, mot: 'L’annuaire n’est pas disponible.' };
+    if (moi !== S || S.etat !== 'blocage') return;
+    S.domRecherche = { q: q.value, liste: r.ok ? r.liste : [], souci: !r.ok || !r.liste.length,
+      mot: !r.ok ? r.mot : (!r.liste.length ? 'Aucune entreprise trouvée. Vérifie le numéro, ou remplis la fiche à la main.'
+        : r.liste.length === 1 ? 'Une entreprise trouvée. Vérifie que c’est la tienne.' : r.liste.length + ' entreprises trouvées. Choisis la tienne.') };
+    peindre();
+    var b = MOD.querySelector('[data-dev="domChoisir"]') || el('devDomQ');
+    if (b) b.focus();
+  }
+  async function domChoisir(i) {
+    var r = S.domRecherche, x = r && r.liste && r.liste[i];
+    if (!x || r.ecriture) return;
+    var moi = S;
+    r.ecriture = true; peindre();
+    var f;
+    try { f = await BdvDomaine.adopter(x); }
+    catch (e) {
+      if (moi !== S) return;
+      r.ecriture = false; r.souci = true; r.mot = 'La fiche n’a pas été enregistrée. Réessaie, ou remplis-la à la main dans Mon domaine.';
+      peindre(); return;
+    }
+    if (moi !== S) return;
+    var manque = manquesDomaine(f);
+    if (manque.length) {
+      /* L'annuaire n'a pas tout donne (une adresse manque, rare) : on le dit, on garde la recherche. */
+      S.manque = manque; r.ecriture = false; r.liste = []; r.souci = true;
+      r.mot = 'Enregistré, mais l’annuaire ne donne pas tout : il manque encore ' + liste(manque) + '. Complète-le dans Mon domaine.';
+      peindre(); return;
+    }
+    S.fiche = f; S.domRecherche = null;
+    try { document.dispatchEvent(new CustomEvent('bdv:domaine')); } catch (e) {}
+    if (S.blocageDe === 'edition') {
+      S.etat = 'edition'; peindre();
+      dire('Ton domaine est enregistré' + (x.actif ? '' : ' (l’annuaire le dit fermé : vérifie-le dans Mon domaine)') + '. Tu peux enregistrer ton devis.', !x.actif);
+      return;
+    }
+    S.etat = 'chargement'; peindre();
+    await charger(moi);
+    if (moi === S) dire('Ton domaine est enregistré' + (x.actif ? '' : ' (l’annuaire le dit fermé : vérifie-le dans Mon domaine)') + '. Ton devis peut continuer.', !x.actif, true);
+  }
+
   /* « Completer Mon domaine » : la boite du devis se retire, les reglages s'ouvrent sur
      l'onglet, par le SEUL point d'entree des reglages (`BdvNav.ouvrirReglages`). */
   function ouvrirDomaine() {
@@ -2085,7 +2162,7 @@
         var f = await relireDomaine();
         if (moi !== S) return;
         if (f === false) S.etat = 'illisible';
-        else { S.etat = 'blocage'; S.manque = manquesDomaine(f); if (!S.manque.length) S.manque = ['la fiche que la base a refusée']; }
+        else { S.etat = 'blocage'; S.blocageDe = 'edition'; S.manque = manquesDomaine(f); if (!S.manque.length) S.manque = ['la fiche que la base a refusée']; }
         peindre();
       }
       else if (/affaire close/.test(detail)) dire('Cette affaire est close : le devis ne s’enregistre plus. Tes lignes sont gardées.', true);

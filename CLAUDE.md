@@ -8967,3 +8967,53 @@ Demande de Ted. **SQL a coller APRES 89, AVANT de pousser** (la porte d'inscript
 - **Ce qui n'est PAS genre** : le courrier du matin et les mails des nouvelles (ils disent
   « Le Bureau du Vigneron » comme expediteur ; les genrer demanderait le genre dans
   `v_courrier` et un redeploiement), les pages publiques (rgpd, conseil-terrain).
+
+## LA MISE EN ROUTE, 09/10/2026 (lots 1 et 2)
+
+Demande de Ted, conseil tenu, arbitrages : voir JOURNAL.md du 09/10/2026.
+`src/js/bdv-mise-en-route.js` (defer), carte `#bureauMer` en tête de Ma journée (PAS une `.zone`),
+bandeau `#bdvrMer` en tête de Mes réglages, section 41 de `bdv-bureau.css`.
+
+- **On n'empêche jamais d'entrer.** Seule l'action à laquelle il manque une donnée est refusée,
+  formulaire ouvert sur place (lot 2). Un consentement (courrier, notifications) ne compte
+  jamais dans la barre.
+- **La progression se calcule sur l'état réel**, jamais cochée. Étape = true / false /
+  'refaire' / null (inconnu). L'inconnu n'est ni fait ni proposé ; sans profil ni rôle, on se tait.
+  Une étape « à refaire » passe avant la suivante.
+- **Aucun champ dans le module** : chaque étape ouvre l'onglet existant (`BdvNav.ouvrirReglages`)
+  ou la pièce (`BdvNav.afficher`). Ajouter une étape = une entrée dans `etapes()`, qui lit un
+  module qui existe déjà. Ne pas recopier un formulaire ici.
+- **Chaque barre ne compte que ce que la personne peut faire** : admin 5 étapes, membre 3.
+- « Pas aujourd'hui » : clé `bdv_mer_pas_v1` = le jour local ; la carte revient le lendemain
+  (décision de Ted), le bandeau des réglages reste toujours.
+- L'état se dit par une FORME et un MOT (segment plein / contour / pointillé, « 1 à refaire »,
+  numéro de l'étape sur l'onglet, « ! » réservé à ce qui est cassé).
+- `bdv-reglages.js` émet `bdv:profil` (profil lu ou enregistré) et `bdv:reglages`
+  ({ouvert}) : la carte en dépend pour se repeindre.
+- Banc : `npm run banc:mise-en-route`, dans `verif`.
+
+### LOT 2 : CE QUI BLOQUE S'OUVRE SUR PLACE (09/10/2026)
+
+- **Le devis sans fiche du domaine** : plus de « Compléter Mon domaine » qui ferme le devis. La
+  recherche de l'annuaire est DANS le devis (`htmlBlocage()`, `domChercher()`, `domChoisir()` de
+  bdv-devis.js), par `BdvDomaine.chercher()` ; « C'est moi » écrit par `BdvDomaine.adopter(x)`,
+  qui n'envoie QUE l'identité (raison, forme, SIRET, SIREN, TVA, adresse) en merge-duplicates :
+  conditions, téléphone et courriel déjà saisis ne bougent pas, une première fiche prend les
+  défauts de la base. Une TVA déjà saisie n'est gardée que si elle va avec le SIRET. Puis le
+  devis continue : ouverture → les vins se chargent ; refus à l'enregistrement → retour à
+  l'édition, lignes gardées. Les deux « C'est moi » ont le même poids. « Remplir la fiche à la
+  main dans Mon domaine » reste. `bdv:domaine` est émis : la mise en route se repeint.
+- **L'envoi sans boîte branchée** : la messagerie RESTE (on ne bloque pas ce qui marche). Une
+  ligne « Pour l'envoyer d'ici… branche ta boîte, une minute » sous les boutons des deux
+  rédacteurs (`inviterBoite()` bdv-affaires.js, `inviterBoiteFiche()` bdv-ecrans.js), seulement
+  quand la boîte a été LUE. Elle ouvre Mes envois par-dessus (`data-mer="aller"`), et
+  `BdvBoite.viser()` montre le branchement (choix « Le bureau envoie pour moi » coché, sans
+  rien écrire tant qu'aucune boîte n'existe), APRÈS `bdv:reglages` ouvert : avant, la relecture
+  de la boîte l'effacerait.
+- **Mes réglages par-dessus une fiche ou une affaire** : Échap ne ferme que les réglages, et le
+  piège à focus de la fiche et du panneau d'affaire se tait tant que `#bdvrVoile` est visible.
+  Sans ça, Échap fermait aussi la fiche dessous (et effaçait son brouillon).
+- Bancs : `banc:devis` section 3 ter, `banc:mise-en-route` section 8. Capture :
+  `node scripts/cap-domaine-devis.mjs 1440:light`.
+- Piège d'outil : après `npm run build` sur le Mac, des fichiers de `src/js` ressortent en lien
+  dur et le pont refuse de les stager. `cp f f.n && mv f.n f` casse le lien.

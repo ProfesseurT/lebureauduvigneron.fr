@@ -281,6 +281,10 @@ theme_bureau: true
       </div>
     </section>
 
+    {# LA MISE EN ROUTE, 09/10/2026. Remplie par bdv-mise-en-route.js. PAS une `.zone` :
+       l'ordre des zones de #bureauJournee est garde par `npm run banc`. Voir CLAUDE.md. #}
+    <section class="mer" id="bureauMer" aria-labelledby="merTitre" hidden></section>
+
     <!-- L'ORDRE DES ZONES EST CELUI QUE TED A DICTE le 07/09/2026 : le panneau de
          post-it, puis le sous-main avec le calendrier a sa droite, puis l'ardoise,
          puis a lire / le classeur / le courrier. Chaque objet a sa matiere, et
@@ -795,6 +799,7 @@ theme_bureau: true
 <script src="/js/bdv-brevo.js" defer></script>
 <script src="/js/bdv-brevo-listes.js" defer></script>
 <script src="/js/bdv-crm.js" defer></script>
+<script src="/js/bdv-mise-en-route.js" defer></script>
 <!-- L'ALMANACH. Il etait charge au premier clic sur le calendrier, par la constante
      RESSOURCES_CAL de bdv-nav.js. La lune de l'entete, elle, doit etre la des la
      premiere seconde et dans TOUTES les pieces, y compris « Ma journee ». Donc ici, et

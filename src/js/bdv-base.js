@@ -1349,7 +1349,7 @@ async function dbCount(){
 /* ======================= IMPORT ======================= */
 // Echap ferme la fiche client, ou l'ecran d'import si aucune fiche n'est ouverte.
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&!document.body.classList.contains('bdv-page-fiche')&&el('modale')&&el('modale').classList.contains('on')&&typeof fermerFiche==='function'){e.preventDefault();fermerFiche();}
+  if(e.key==='Escape'&&!(el('bdvrVoile')&&!el('bdvrVoile').hidden)&&!document.body.classList.contains('bdv-page-fiche')&&el('modale')&&el('modale').classList.contains('on')&&typeof fermerFiche==='function'){e.preventDefault();fermerFiche();}
 });
 // Deux zones de depot vivent dans la page depuis le 04/09/2026 : celle de l'ecran d'arrivee,
 // et celle de l'ecran « Ma base », pour qu'ajouter un export ne fasse plus sortir de l'outil.
